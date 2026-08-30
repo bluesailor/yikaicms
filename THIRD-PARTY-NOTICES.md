@@ -89,6 +89,14 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
   项目源码，不产生额外许可证义务。反向核对：清单内前端组件、插件图标库与 PHP 生产
   依赖仍有真实加载点。
 
+- **2026-08-30（v1.19.3 核对）**：本周期未引入任何新的第三方组件，PHP 生产依赖仍为空
+  （`composer.json` 的 `require` 只剩 `php` 与 `ext-*` 平台约束，自 v1.19.2 自建拼音模块
+  替换 overtrue/pinyin 后再无第三方库）。变动一处，不涉及授权变化：删除标志设计器
+  `assets/icon-library/` 下与 `icons.bin` 完全冗余的 7618 个松散 SVG——SVG 本体自 v1.18.6
+  起即以 `icons.bin` 形式分发，本次只是清掉重复的散件，`licenses/` 许可原文原样保留。
+  反向核对：清单内前端组件、插件图标库与 PHP 生产依赖均仍有真实加载点；
+  本轮新增的演示配图由本项目脚本生成（`tools/generate_demo_images.php`），不产生许可义务。
+
 - **2026-08-23（v1.18.6 核对）**：本周期未引入任何新的第三方组件。变动两处，均不涉及
   授权变化：标志设计器移出核心安装包改由插件市场分发（图标库许可原文随插件包，见上），
   其 SVG 图标改为 `icons.bin` 索引化存放；`assets/bootstrap-icons/fonts/` 删除 `.woff`
