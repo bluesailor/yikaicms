@@ -184,7 +184,9 @@ final class BloxSecurityBoundaryTest extends TestCase
         $remoteInstaller = $this->source('includes/builder/BloxRemoteTemplateInstaller.php');
         self::assertBefore($remoteInstaller, '$stateModel->stageUpdate(', 'bloxTemplateModel()->updateDraft(');
         self::assertStringContainsString('$existingDraft', $remoteInstaller);
-        self::assertSame(2, substr_count($media, 'verifyCsrf();'));
+        self::assertStringContainsString("if (\$action === 'remote_import' && \$_SERVER['REQUEST_METHOD'] === 'POST')", $media);
+        self::assertBefore($media, "if (!canUploadImage()) {\n        ma_deny('没有上传图片的权限');\n    }\n    verifyCsrf();", 'RemoteOfficialMedia::import(');
+        self::assertSame(3, substr_count($media, 'verifyCsrf();'));
         self::assertSame(1, substr_count($upload, 'verifyCsrf();'));
     }
 
