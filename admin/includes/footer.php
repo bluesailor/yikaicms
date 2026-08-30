@@ -414,7 +414,7 @@
             _mpSelected = null;
             _mpType = options.type || 'image';
             _mpUsage = String(options.usage || '');
-            _mpSource = 'local';
+            _mpSource = options.source === 'official' && _mpType === 'image' ? 'official' : 'local';
             _mpImporting = '';
             _mpEntitlement = { canImport: false, reason: '' };
             _mpPage = 1;

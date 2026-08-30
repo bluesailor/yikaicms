@@ -11,6 +11,7 @@ final class OfficialMediaPickerContractTest extends TestCase
         $footer = $this->source('admin/includes/footer.php');
 
         self::assertStringContainsString('/assets/js/official-media-client.js', $footer);
+        self::assertStringContainsString("_mpSource = options.source === 'official' && _mpType === 'image' ? 'official' : 'local';", $footer);
         self::assertStringContainsString("_mpSetSource('official')", $footer);
         self::assertStringContainsString('window._mpImportOfficial', $footer);
         self::assertStringContainsString("OfficialMediaClient.importAsset('/admin/media_api.php', assetId", $footer);
@@ -23,11 +24,21 @@ final class OfficialMediaPickerContractTest extends TestCase
         $overlays = $this->source('admin/blox_editor/partials/overlays.php');
 
         self::assertStringContainsString('/assets/js/official-media-client.js', $editor);
+        self::assertStringContainsString('this.mediaSource = options.source === "official" ? "official" : "local";', $editor);
         self::assertStringContainsString('setMediaSource(source)', $editor);
         self::assertStringContainsString('window.OfficialMediaClient.list', $editor);
         self::assertStringContainsString('window.OfficialMediaClient.importAsset', $editor);
         self::assertStringContainsString('data-testid="blox-official-media-grid"', $overlays);
         self::assertStringContainsString("@click=\"importOfficialMedia(it)\"", $overlays);
+    }
+
+    public function testHomepageCtaBackgroundOpensTheRelevantOfficialMediaCategory(): void
+    {
+        $editor = $this->source('admin/page_edit_advance.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        self::assertStringContainsString('{ usage: "cta", source: "official" }', $editor);
+        self::assertStringContainsString("{ usage: 'cta', source: 'official' }", $workspace);
     }
 
     private function source(string $relativePath): string

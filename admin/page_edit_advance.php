@@ -2187,7 +2187,7 @@ function pageBuilder() {
                 if (!String(el.data.bg_color || "").trim()) el.data.bg_color = "#0f172a";
                 if (el.data.bg_opacity === undefined || el.data.bg_opacity === null) el.data.bg_opacity = 55;
                 el.data.text_light = true;
-            });
+            }, { usage: "cta", source: "official" });
         },
         isHomePartnersBlock(el) { return !!(this.isHomeBlock(el) && String((el.data || {}).block_type || "") === "partners"); },
         isHomeTestimonialsBlock(el) { return !!(this.isHomeBlock(el) && String((el.data || {}).block_type || "") === "testimonials"); },

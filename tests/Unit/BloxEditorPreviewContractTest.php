@@ -1189,6 +1189,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('x-model="el.data.bg_image"', $editor);
         $this->assertStringContainsString('x-model.number="el.data.bg_opacity"', $editor);
         $this->assertStringContainsString('pickCtaBackground(el)', $editor);
+        $this->assertStringContainsString('}, { usage: "cta", source: "official" });', $editor);
         foreach (['aurora', 'business', 'default', 'minimal', 'trade'] as $theme) {
             $themeSource = $theme === 'default'
                 ? 'themes/default/blocks/cta.php'
@@ -1260,6 +1261,7 @@ final class BloxEditorPreviewContractTest extends TestCase
             "ctrl.type === 'range'",
             "@input=\"setControlValue(ctrl, Number(\$event.target.value))\"",
             "@click=\"openMedia(u => selEl.data[ctrl.key] = u)\"",
+            "openMedia(u => selEl.data[ctrl.key] = u, { usage: 'cta', source: 'official' })",
             "'blox-control-' + ctrl.key",
         ] as $token) {
             $this->assertStringContainsString($token, $workspace, "CTA control token {$token} missing");

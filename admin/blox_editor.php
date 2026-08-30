@@ -3146,7 +3146,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this._mediaTarget = setter;
                 this.mediaUsage = String(options.usage || "");
                 this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
-                this.mediaSource = "local";
+                this.mediaSource = options.source === "official" ? "official" : "local";
                 this.mediaEntitlement = { canImport: false, reason: "" };
                 this.mediaImporting = "";
                 this.mediaOpen = true;
