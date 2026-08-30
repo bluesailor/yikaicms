@@ -16,6 +16,7 @@
  */
 declare(strict_types=1);
 
+/** @psalm-suppress ParadoxicalCondition 直连访问本文件时的守卫；Psalm 按包含顺序已认定 ROOT_PATH 有定义。 */
 if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
@@ -54,10 +55,45 @@ final class DemoSandbox
         return self::mode() === self::MODE_SANDBOX;
     }
 
-    /** @psalm-suppress PossiblyUnusedMethod 模式判定 API：只读演示与沙盒的分支消费方（setting_demo.php UI）尚未落地 */
+    /**
+     * @psalm-suppress PossiblyUnusedMethod 与 isSandbox() 成对的公开判定 API。
+     * 后台三态 UI 走的是 mode() 直接比较（一次取值判三档，比连调两个 is* 更清楚），
+     * 这里保留给插件与后续消费方，别因为「暂时没人调」就删掉半边。
+     */
     public static function isReadonly(): bool
     {
         return self::mode() === self::MODE_READONLY;
+    }
+
+    /** 是否为受支持的三态之一。normalizeMode() 负责收敛，本方法负责校验。 */
+    public static function isValidMode(mixed $raw): bool
+    {
+        $value = is_string($raw) || is_int($raw) ? (string) $raw : '';
+        return in_array($value, [self::MODE_OFF, self::MODE_READONLY, self::MODE_SANDBOX], true);
+    }
+
+    /**
+     * 把任意外来输入收敛成三态之一。非法值一律落到 OFF——
+     * 宁可把演示站误判成「正常站」被后台拦下，也不要把正常站误判成沙盒去跑重置。
+     */
+    public static function normalizeMode(mixed $raw): string
+    {
+        $value = is_string($raw) || is_int($raw) ? (string) $raw : '';
+        return in_array($value, [self::MODE_READONLY, self::MODE_SANDBOX], true) ? $value : self::MODE_OFF;
+    }
+
+    /**
+     * 模式的可读名称。全系统（后台 UI / CLI / yk info）都从这里取，
+     * 避免各处再写 `=== '1' ? 'ON' : 'off'` 这种只认两态的判断——
+     * info.php 曾因此把沙盒站报成「off」。
+     */
+    public static function modeLabel(?string $mode = null): string
+    {
+        return match (self::normalizeMode($mode ?? self::mode())) {
+            self::MODE_READONLY => __('dm_mode_readonly'),
+            self::MODE_SANDBOX => __('dm_mode_sandbox'),
+            default => __('dm_mode_off'),
+        };
     }
 
     /**
@@ -72,6 +108,12 @@ final class DemoSandbox
             'setting_security.php', 'site_health.php', // 改 .htaccess / 探针修复
             'user.php', 'profile.php',                // 改密码会把其他访客锁在门外
             'database.php',                           // 任意 SQL 恢复 / 清表
+            'license.php', 'cron.php',                // 远程授权 / 站长口令与计划任务
+            // 下面这些页面会把授权信息、SMTP/API 密钥显示出来，或直接触发外部服务调用。
+            // 公开演示账号连 GET 都不该看到，所以拦的是整页而不是只拦提交。
+            'setting_email.php', 'setting_ai.php', 'setting_translate.php', 'setting_api.php',
+            'setting_channel_translate.php', 'setting_product_cat_translate.php',
+            'api_ai.php', 'api_ai_agent.php', 'api_ai_apply.php', 'api_ai_undo.php',
         ];
     }
 
@@ -81,13 +123,16 @@ final class DemoSandbox
     }
 
     /**
-     * 站长口令：与 cron token 同源。沙盒下切模式、更新快照都要带它，
-     * 否则拿着演示账号的访客可以关掉沙盒或把脏数据存成快照。
+     * 站长口令：与 cron token 同源。切换演示模式、更新快照都要带它。
      *
-     * @psalm-suppress PossiblyUnusedMethod 待 setting_demo.php 的切换/快照按钮接入
+     * 为什么不能只靠后台权限：公开演示站的超管账号密码本身就是公开的
+     * （demo/demo 之类），`requirePermission('*')` 对访客等于不设防。
+     * 口令只有能读库或能登 shell 的人拿得到，这才是「站长」与「演示超管」的分界。
      */
     public static function ownerTokenMatches(string $given): bool
     {
+        // 先 trim 再判空：纯空白的口令不该还去查一次库
+        $given = trim($given);
         if ($given === '') {
             return false;
         }

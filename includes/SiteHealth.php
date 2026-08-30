@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/SiteAsset.php';
 require_once __DIR__ . '/ProductIdentity.php';
+require_once __DIR__ . '/RuntimeRequirements.php';
 
 final class SiteHealth
 {
@@ -474,7 +475,7 @@ final class SiteHealth
             })(),
             'debug' => defined('DEBUG') && DEBUG,
             'disk_free_bytes' => $disk === false ? null : (int) $disk,
-            'required_extensions' => self::extensionMap(['pdo', 'json', 'mbstring', 'fileinfo', 'dom', 'simplexml']),
+            'required_extensions' => self::extensionMap(RuntimeRequirements::requiredNames()),
             'recommended_extensions' => self::extensionMap(['gd', 'openssl', 'curl', 'zip']),
         ];
     }
@@ -540,16 +541,28 @@ final class SiteHealth
     /** @return array<string,mixed> */
     private static function checkPhpVersion(): array
     {
-        $ok = version_compare(PHP_VERSION, '8.2.0', '>=');
-        return self::result('php_version', $ok ? self::GOOD : self::CRITICAL, 'environment',
-            'health_php_title', $ok ? 'health_php_good' : 'health_php_bad', '', ['version' => PHP_VERSION]);
+        // 三档而非两档：低于硬地板才是 CRITICAL。此前这里写死 8.2 判 CRITICAL，
+        // 而安装器的门槛是 8.0——装得上的站打开健康检查就看到一条红色严重项。
+        if (!RuntimeRequirements::phpMeetsMinimum()) {
+            return self::result('php_version', self::CRITICAL, 'environment',
+                'health_php_title', 'health_php_bad', '',
+                ['version' => PHP_VERSION, 'minimum' => RuntimeRequirements::PHP_MINIMUM]);
+        }
+        if (!RuntimeRequirements::phpMeetsRecommended()) {
+            return self::result('php_version', self::RECOMMENDED, 'environment',
+                'health_php_title', 'health_php_old', '',
+                ['version' => PHP_VERSION, 'recommended' => RuntimeRequirements::PHP_RECOMMENDED]);
+        }
+        return self::result('php_version', self::GOOD, 'environment',
+            'health_php_title', 'health_php_good', '', ['version' => PHP_VERSION]);
     }
 
     /** @return array<string,mixed> */
     private static function checkExtensions(): array
     {
-        $required = ['pdo', 'json', 'mbstring', 'fileinfo', 'dom', 'simplexml'];
-        $missing = array_values(array_filter($required, static fn(string $extension): bool => !extension_loaded($extension)));
+        // simplexml 已从必需项移出：核心零使用，只有 product-import 插件读 xlsx 用得到，
+        // 缺了却报 CRITICAL 是误报。清单见 RuntimeRequirements。
+        $missing = RuntimeRequirements::missingRequired();
         return self::result('required_extensions', $missing === [] ? self::GOOD : self::CRITICAL, 'environment',
             'health_extensions_title', $missing === [] ? 'health_extensions_good' : 'health_extensions_bad', '',
             ['extensions' => implode(', ', $missing)]);

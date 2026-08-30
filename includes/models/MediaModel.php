@@ -77,4 +77,34 @@ class MediaModel extends Model
             ['image', $afterId, $limit]
         );
     }
+
+    /** @psalm-api Called by the standalone media admin endpoint. */
+    public function deleteById(int|string $id): int
+    {
+        $result = parent::deleteById($id);
+        $this->deleteRemoteImportMappings([(int) $id]);
+        return $result;
+    }
+
+    /** @psalm-api Called by the standalone media admin endpoint. */
+    public function deleteByIds(array $ids): int
+    {
+        $normalized = array_values(array_unique(array_filter(array_map('intval', $ids), static fn(int $id): bool => $id > 0)));
+        $result = parent::deleteByIds($normalized);
+        $this->deleteRemoteImportMappings($normalized);
+        return $result;
+    }
+
+    /** @param list<int> $ids */
+    private function deleteRemoteImportMappings(array $ids): void
+    {
+        if ($ids === [] || !db()->tableExists('media_remote_imports')) {
+            return;
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        db()->execute(
+            "DELETE FROM " . DB_PREFIX . "media_remote_imports WHERE media_id IN ({$placeholders})",
+            $ids
+        );
+    }
 }

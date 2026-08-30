@@ -99,11 +99,14 @@
 
 | 项目 | 要求 |
 |------|------|
-| PHP | >= 8.0 |
+| PHP | >= 8.0（建议 8.2+） |
 | 数据库 | MySQL 5.7+ / MySQL 8.0+（utf8mb4）或 SQLite 3 |
 | Web 服务器 | Apache（启用 `mod_rewrite`）或 Nginx |
-| PHP 扩展（必需） | pdo、json、mbstring、fileinfo、dom、simplexml |
-| PHP 扩展（推荐） | gd、openssl、curl、zip（在线升级与 XLSX 导入需要） |
+| PHP 扩展（必需） | pdo、json、mbstring、fileinfo、dom |
+| PHP 扩展（推荐） | curl、openssl、gd、zip、simplexml（在线升级、缩略图、授权校验与 XLSX 导入需要） |
+
+> 以上要求由 `includes/RuntimeRequirements.php` 统一定义，安装器、站点健康检查与兼容层都从那里读取；
+> 改要求请只改那一处。`simplexml` 核心不依赖，仅 product-import 插件读 XLSX 时用到。
 
 ---
 

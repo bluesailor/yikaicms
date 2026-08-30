@@ -81,11 +81,13 @@ CLI::register('demo:reset', '从快照恢复演示站（库 + uploads + 缓存�
 CLI::register('demo:status', '查看当前演示模式状态', function (array $args, array $opts): int {
     $mode = DemoSandbox::mode();
     $color = CLI_color_supported();
-    $label = match ($mode) {
-        DemoSandbox::MODE_READONLY => $color ? "\033[33m只读演示\033[0m" : '只读演示',
-        DemoSandbox::MODE_SANDBOX => $color ? "\033[36m演示沙盒\033[0m" : '演示沙盒',
-        default => $color ? "\033[32m已关闭\033[0m" : '已关闭',
-    };
+    // 文案统一从 DemoSandbox::modeLabel() 取，这里只负责上色
+    $text = DemoSandbox::modeLabel($mode);
+    $label = $color ? match ($mode) {
+        DemoSandbox::MODE_READONLY => "\033[33m" . $text . "\033[0m",
+        DemoSandbox::MODE_SANDBOX => "\033[36m" . $text . "\033[0m",
+        default => "\033[32m" . $text . "\033[0m",
+    } : $text;
     CLI::out('演示模式：' . $label);
 
     $m = DemoSandbox::manifest();
