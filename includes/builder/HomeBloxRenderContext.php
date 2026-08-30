@@ -182,7 +182,13 @@ final class HomeBloxRenderContext
         if ($type === 'banner' && ($block['banner_height_mode'] ?? 'inherit') === 'inherit') {
             $group = function_exists('getBannerGroup') ? getBannerGroup('home') : null;
             if (is_array($group)) {
-                $block = array_merge($block, HomeBloxBlockSchema::bannerGroupRuntimeConfig($group));
+                $runtime = HomeBloxBlockSchema::bannerGroupRuntimeConfig($group);
+                // Desktop inheritance must not discard an explicit mobile override.
+                if (in_array($block['banner_mobile_mode'], ['fixed', 'hidden'], true)) {
+                    $runtime['banner_mobile_mode'] = $block['banner_mobile_mode'];
+                    $runtime['banner_height_mobile'] = $block['banner_height_mobile'];
+                }
+                $block = array_merge($block, $runtime);
             }
         }
 

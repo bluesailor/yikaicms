@@ -38,3 +38,31 @@ test('mobile image fallback and reset match the actual canvas @ci', async ({ pag
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+test('mobile hidden and fixed height stay independent of desktop display @ci', async ({ page }) => {
+  const errors = observeConsole(page);
+  const writes = observeUnsafeWrites(page);
+  const labels = {
+    'zh-CN': ['不显示', '固定高度'], en: ['Hidden', 'Fixed height'], ja: ['非表示', '固定高さ'],
+  }[process.env.BLOX_E2E_SITE_LANG || 'zh-CN'];
+  await openBanner(page);
+  await page.getByTestId('blox-banner-group-mobile').click();
+  const mode = page.locator('[data-control-key="banner_mobile_mode"]');
+  const height = page.locator('[data-control-key="banner_height_mobile"]');
+  await performPreviewUpdate(page, () => mode.getByRole('button', { name: labels[0], exact: true }).click());
+  await expect(height).toHaveCount(0);
+  await page.getByTestId('blox-banner-preview-mobile').click();
+  const banner = (await frame(page)).locator('[data-blox-banner]').first();
+  await expect(banner).toBeHidden();
+  await showSettings(page);
+  await page.getByTestId('blox-banner-preview-desktop').click();
+  await expect(banner).toBeVisible();
+  await showSettings(page);
+  await performPreviewUpdate(page, () => mode.getByRole('button', { name: labels[1], exact: true }).click());
+  await performPreviewUpdate(page, () => height.locator('input').fill('240'));
+  await page.getByTestId('blox-banner-preview-mobile').click();
+  await expect(banner).toBeVisible();
+  await expect.poll(() => banner.evaluate(node => Math.round(node.getBoundingClientRect().height))).toBe(240);
+  expect(writes).toEqual([]);
+  expect(errors).toEqual([]);
+});

@@ -32,6 +32,10 @@ test('slide actions preserve identity, undo as one step and keep canvas position
   expect(Math.abs(await canvasScrollTop(page) - beforeScroll)).toBeLessThan(8);
   await undo(page);
   expect(await items(page)).toEqual(original);
+  await performPreviewUpdate(page, () => page.getByTestId('blox-banner-redo').click());
+  expect((await items(page))[1].id).toBe(original[0].id);
+  await undo(page);
+  expect(await items(page)).toEqual(original);
 
   await performPreviewUpdate(page, () => action('duplicate').click());
   const copies = await items(page);
