@@ -1715,6 +1715,21 @@ CREATE INDEX "idx_type_yikai_media" ON "yikai_media" ("type");
 CREATE INDEX "idx_admin_yikai_media" ON "yikai_media" ("admin_id");
 CREATE INDEX "idx_md5_yikai_media" ON "yikai_media" ("md5");
 
+DROP TABLE IF EXISTS "yikai_media_remote_imports";
+CREATE TABLE "yikai_media_remote_imports" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "media_id" INTEGER NOT NULL,
+  "provider" TEXT NOT NULL DEFAULT 'update.yikaicms.com',
+  "asset_id" TEXT NOT NULL,
+  "asset_version" TEXT NOT NULL DEFAULT '',
+  "sha256" TEXT NOT NULL DEFAULT '',
+  "license_code" TEXT NOT NULL DEFAULT '',
+  "attribution" TEXT NOT NULL DEFAULT '',
+  "imported_by" INTEGER NOT NULL DEFAULT '0',
+  "imported_at" INTEGER NOT NULL DEFAULT '0',
+  UNIQUE ("provider", "asset_id", "asset_version")
+);
+CREATE INDEX "idx_media_id_yikai_media_remote_imports" ON "yikai_media_remote_imports" ("media_id");
 
 DROP TABLE IF EXISTS "yikai_members";
 CREATE TABLE "yikai_members" (

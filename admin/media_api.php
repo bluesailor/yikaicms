@@ -15,6 +15,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/BundledMediaLibrary.php';
+require_once ROOT_PATH . '/includes/RemoteOfficialMedia.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -88,6 +89,48 @@ if ($action === 'list') {
             'pages' => $pages,
         ],
     ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// 官方远程素材目录：后台代理访问 update.yikaicms，客户端只拿预览字段。
+if ($action === 'remote_list') {
+    if (!canUploadImage()) {
+        ma_deny('没有媒体库权限');
+    }
+    try {
+        $data = RemoteOfficialMedia::list([
+            'page' => $_GET['page'] ?? 1,
+            'per_page' => $_GET['per_page'] ?? 24,
+            'purpose' => $_GET['purpose'] ?? '',
+            'industry' => $_GET['industry'] ?? '',
+            'keyword' => $_GET['keyword'] ?? '',
+            'usage' => $_GET['usage'] ?? '',
+            'lang' => $_GET['lang'] ?? '',
+        ]);
+        echo json_encode(['code' => 0, 'data' => $data], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    } catch (Throwable $e) {
+        echo json_encode([
+            'code' => 1,
+            'msg' => $e->getMessage() ?: '官方素材暂时不可用，本站媒体仍可使用',
+            'data' => ['items' => [], 'total' => 0, 'page' => 1, 'pages' => 0],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+    exit;
+}
+
+// 官方远程素材导入：只接受 asset_id，下载、验签、落库均在服务端完成。
+if ($action === 'remote_import' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!canUploadImage()) {
+        ma_deny('没有上传图片的权限');
+    }
+    verifyCsrf();
+    try {
+        $data = RemoteOfficialMedia::import((string) ($_POST['asset_id'] ?? ''), (int) ($_SESSION['admin_id'] ?? 0));
+        adminLog('media', 'add', '导入官方素材：' . (string) ($_POST['asset_id'] ?? ''));
+        echo json_encode(['code' => 0, 'data' => $data], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    } catch (Throwable $e) {
+        echo json_encode(['code' => 1, 'msg' => $e->getMessage() ?: '导入失败，可重试'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
     exit;
 }
 
