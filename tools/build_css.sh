@@ -35,7 +35,9 @@ TAILWIND_VERSION=""
 REJECTED=()
 for c in "${CANDIDATES[@]}"; do
     if [ -n "$c" ] && [ -x "$c" ]; then
-        VERSION_OUTPUT=$("$c" --help 2>&1 | sed -n '1,3p' | tr -d '\r' || true)
+        # 必须剥掉 ANSI 颜色码：独立二进制在 WSL 下会输出
+        # "tailwindcss \e[34mv4.3.3\e[39m"，转义序列夹在中间会让版本子串匹配永远失败。
+        VERSION_OUTPUT=$("$c" --help 2>&1 | sed -n '1,3p' | tr -d '\r' | sed -e 's/\x1b\[[0-9;]*m//g' || true)
         if [[ "$VERSION_OUTPUT" == *"tailwindcss v${EXPECTED_VERSION}"* ]]; then
             TAILWIND="$c"
             TAILWIND_VERSION="${EXPECTED_VERSION}"
