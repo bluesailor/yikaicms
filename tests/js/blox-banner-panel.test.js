@@ -17,3 +17,12 @@ test('search and modified-only include every group; unrelated elements stay unch
     assert.equal(panel.controls({ type: 'home-block', data: { block_type: 'about' } }, controls, 'common', false), controls);
     assert.equal(panel.controls(null, controls, 'common', false), controls);
 });
+
+test('slide content prioritizes image and text; links and motion retain all fields', () => {
+    const slide = { type: 'home-banner-item', data: {} };
+    const fields = ['title', 'subtitle', 'content_motion', 'image', 'image_mobile', 'background_motion', 'btn1_text', 'btn1_url', 'btn2_text', 'btn2_url', 'link_url', 'link_target'].map(key => ({ key }));
+    assert.deepEqual(panel.controls(slide, fields, 'common', false).map(c => c.key), ['image', 'title', 'subtitle', 'image_mobile']);
+    const all = ['common', 'playback', 'motion'].flatMap(group => panel.controls(slide, fields, group, false));
+    assert.deepEqual(all.map(c => c.key).sort(), fields.map(c => c.key).sort());
+    assert.equal(panel.controls(slide, fields, 'common', true), fields);
+});

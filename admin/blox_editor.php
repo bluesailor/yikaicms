@@ -4286,6 +4286,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
             },
             selectElement(si, ci, ei, notifyCanvas) {
+                this.bannerPanelGroup = "common";
                 this.selectedSi = si;
                 this.selectedCi = ci;
                 this.selectedEi = ei;
@@ -4335,7 +4336,6 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             selectChild(si, ci, ei, k, notifyCanvas) {
                 this.selectElement(si, ci, ei, false);
-                this.bannerPanelGroup = "common";
                 this.selectedSubEi = k;
                 this.panelTab = this.isSelectedContainerEl() ? "style" : "content";
                 if (notifyCanvas !== false) this.highlightCanvasSelection(true);

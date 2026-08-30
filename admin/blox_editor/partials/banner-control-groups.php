@@ -11,7 +11,7 @@ declare(strict_types=1);
                 data-testid="blox-banner-group-<?= e($group) ?>"
                 class="min-w-0 flex-1 rounded px-2 py-2 text-xs font-medium"
                 :class="bannerPanelGroup === '<?= e($group) ?>' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'">
-            <?= e(__($label)) ?>
+            <span x-text="selEl.type === 'home-banner-item' ? <?= e($jt(['common' => 'blox_banner_group_content', 'playback' => 'blox_banner_group_links', 'motion' => 'blox_banner_group_motion'][$group])) ?> : <?= e($jt($label)) ?>"></span>
         </button>
         <?php endforeach; ?>
     </div>
