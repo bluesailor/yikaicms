@@ -272,7 +272,10 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       expect(footerEditorHref).toBeTruthy();
 
       // 悬停入口取消后，导航深链改用与 search/language 同一套组装方式
-      const navigationHref = `${headerEditorHref}&focus_element=${encodeURIComponent(navigationId)}`;
+      // return_to 必须一并带上：原先它由悬停按钮经 withReturnTo() 注入，
+      // 少了它「返回前台」不会回到原页面，后面的 waitForURL 会一直等到用例超时。
+      const navigationHref = `${headerEditorHref}&focus_element=${encodeURIComponent(navigationId)}`
+        + `&return_to=${encodeURIComponent(frontendReturnTo)}`;
       await page.goto(navigationHref, { waitUntil: 'domcontentloaded' });
       const selectedNavigation = page.locator(`[data-sort-child-item][data-item-id="${navigationId}"]`).first();
       await expect(selectedNavigation).toHaveClass(/bg-blue-100/);
