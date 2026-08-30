@@ -6049,4 +6049,8 @@ voltage|电压|220V',
     'blox_home_banner_source_live' => '同步轮播图管理',
     'blox_home_banner_edit' => '编辑轮播',
     'blox_home_banner_empty' => '暂无轮播图片',
+    'blox_banner_settings_groups' => '轮播设置',
+    'blox_banner_group_display' => '显示',
+    'blox_banner_group_playback' => '播放',
+    'blox_banner_group_motion' => '动画',
 ];
