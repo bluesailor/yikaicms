@@ -650,6 +650,10 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         $canvas = $this->source('admin/page_edit_advance.php');
         $editor = $this->source('admin/blox_editor.php');
+        $this->assertStringContainsString("require __DIR__ . '/banner-manager.php'", $editor);
+        $this->assertStringContainsString('...window.BloxBannerPanel.methods', $editor);
+        $editor .= $this->source('admin/blox_editor/partials/banner-manager.php')
+            . $this->source('assets/js/blox-banner-panel.js');
 
         foreach ([
             '/assets/swiper/swiper-bundle.min.css',

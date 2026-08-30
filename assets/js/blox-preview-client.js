@@ -79,10 +79,18 @@
         }
         try {
             if (frame && frame.contentWindow) {
-                frame.contentWindow.scrollTo(
-                    Math.max(state.frameLeft, frame.contentWindow.scrollX || 0),
-                    Math.max(state.frameTop, frame.contentWindow.scrollY || 0)
-                );
+                var root = frame.contentDocument && frame.contentDocument.documentElement;
+                var behavior = root ? root.style.scrollBehavior : "";
+                // Restoring a preview is not navigation: ignore the page's smooth-scroll CSS.
+                if (root) root.style.scrollBehavior = "auto";
+                try {
+                    frame.contentWindow.scrollTo(
+                        Math.max(state.frameLeft, frame.contentWindow.scrollX || 0),
+                        Math.max(state.frameTop, frame.contentWindow.scrollY || 0)
+                    );
+                } finally {
+                    if (root) root.style.scrollBehavior = behavior;
+                }
             }
         } catch (error) {}
     };
