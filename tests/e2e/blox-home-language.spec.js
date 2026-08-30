@@ -15,14 +15,18 @@ const locales = {
     library: 'Element library',
     editHeader: 'Edit header',
     context: 'Header · Theme default',
-    pricing: 'Pricing Plans',
+    // 出厂首页已移除「价格方案」，改用同样三语齐全的「常见问题」自定义版块：
+    // 本用例考的是本地化标题要显示、中文基底不能泄漏，换块不影响覆盖。
+    customBlock: 'FAQ',
+    customBlockBase: '常见问题',
   },
   ja: {
     title: /^Blox エディター · ホーム$/,
     library: '要素ライブラリ',
     editHeader: 'ヘッダーを編集',
     context: 'ヘッダー · テーマ標準',
-    pricing: '料金プラン',
+    customBlock: 'よくある質問',
+    customBlockBase: '常见问题',
   },
 };
 
@@ -37,8 +41,8 @@ test('single-language homepage remains editable in Blox @language', async ({ pag
   await openEditor(page);
   await expect(page).toHaveTitle(expected.title);
   await expect(page.getByText(expected.library).first()).toBeVisible();
-  await expect(page.getByTestId('blox-tree')).toContainText(expected.pricing);
-  await expect(page.getByTestId('blox-tree')).not.toContainText('价格方案');
+  await expect(page.getByTestId('blox-tree')).toContainText(expected.customBlock);
+  await expect(page.getByTestId('blox-tree')).not.toContainText(expected.customBlockBase);
 
   const contentFrame = await frame(page);
   expect(await contentFrame.locator('html').getAttribute('lang')).toBe(language);
