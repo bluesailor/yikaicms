@@ -159,7 +159,39 @@ final class RemoteOfficialMedia
     {
         $env = getenv('YIKAI_OFFICIAL_MEDIA_API_BASE');
         $base = $env !== false && trim($env) !== '' ? trim($env) : (string) config('official_media_api_base', self::DEFAULT_API_BASE);
-        return preg_match('#^https?://#i', $base) === 1 ? $base : self::DEFAULT_API_BASE;
+        return self::normalizeApiBase($base);
+    }
+
+    /**
+     * 收敛候选 API 地址：合规则原样（去尾斜杠）返回，否则退回官方默认值。
+     * 独立成公开方法是为了能直接对各种绕过形态做断言，而不必发真实请求。
+     */
+    public static function normalizeApiBase(string $candidate): string
+    {
+        return self::apiBaseAllowed($candidate) ? rtrim($candidate, '/') : self::DEFAULT_API_BASE;
+    }
+
+    private static function apiBaseAllowed(string $base): bool
+    {
+        if ($base === '' || preg_match('/[\x00-\x1F\x7F]/', $base) === 1) {
+            return false;
+        }
+        $parts = parse_url($base);
+        if (!is_array($parts) || isset($parts['user']) || isset($parts['pass']) || isset($parts['fragment']) || isset($parts['query'])) {
+            return false;
+        }
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = rtrim(rawurldecode((string) ($parts['path'] ?? '')), '/');
+        if ($path !== '/api/media' || str_contains($path, '..') || str_contains($path, '\\')) {
+            return false;
+        }
+        if ($host === 'update.yikaicms.com') {
+            return $scheme === 'https' && !isset($parts['port']);
+        }
+        return $host === '127.0.0.1'
+            && getenv('YIKAI_OFFICIAL_MEDIA_ALLOW_LOCAL') === '1'
+            && in_array($scheme, ['http', 'https'], true);
     }
 
     private static function canImport(): bool
@@ -343,12 +375,22 @@ final class RemoteOfficialMedia
     /** @return array<string,mixed>|null */
     private static function findExisting(string $assetId, string $version): ?array
     {
-        $row = db()->fetchOne(
-            "SELECT m.* FROM " . DB_PREFIX . "media_remote_imports r INNER JOIN " . DB_PREFIX . "media m ON m.id = r.media_id
-             WHERE r.provider = ? AND r.asset_id = ? AND r.asset_version = ? LIMIT 1",
+        $mapping = db()->fetchOne(
+            "SELECT id, media_id FROM " . DB_PREFIX . "media_remote_imports
+             WHERE provider = ? AND asset_id = ? AND asset_version = ? LIMIT 1",
             [self::PROVIDER, $assetId, $version]
         );
-        return $row ?: null;
+        if (!$mapping) {
+            return null;
+        }
+        $media = mediaModel()->find((int) $mapping['media_id']);
+        if ($media) {
+            return $media;
+        }
+
+        // 删除流程若曾中断，旧映射不能永久卡住同版本素材的再次导入。
+        db()->delete('media_remote_imports', 'id = ?', [(int) $mapping['id']]);
+        return null;
     }
 
     /** @param array<string,mixed> $resolved */

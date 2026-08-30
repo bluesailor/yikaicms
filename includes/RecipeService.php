@@ -25,6 +25,8 @@ if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
 
+require_once ROOT_PATH . '/includes/SensitiveSettings.php';
+
 class RecipeService
 {
     private string $recipesDir;
@@ -253,7 +255,15 @@ class RecipeService
             // ── settings ──────────────────────────────────────
             // 默认守"已有非空值则跳过"——避免覆盖用户已自定义的 footer_copyright、
             // 主题色等。update_existing=true 时才允许覆盖。
-            foreach ($recipe['settings'] as $k => $v) {
+            // 先过敏感度闸再谈覆盖策略：配方可能来自模板市场或任何第三方，
+            // 若放它写 encrypt_key / cron_token / demo_mode / license_key，
+            // 等于让配方作者接管这台站——而且全新站这些键多半是空的，
+            // 连下面「已有非空值则跳过」的保护都挡不住。
+            $importable = SensitiveSettings::filterImportable($recipe['settings']);
+            if ($importable['rejected'] !== []) {
+                $report['settings_rejected'] = $importable['rejected'];
+            }
+            foreach ($importable['settings'] as $k => $v) {
                 $existing = (string)config((string)$k, '');
                 if ($existing !== '' && !$updateExisting) {
                     $report['settings_skipped'] = ($report['settings_skipped'] ?? 0) + 1;
@@ -321,6 +331,18 @@ class RecipeService
     }
 
     /**
+     * 可移植设置过滤：中央策略始终生效，调用方传入的 $excludeKeys 只能继续收紧。
+     *
+     * @param array<string,mixed> $settings
+     * @param list<string> $excludeKeys
+     * @return array<string,string>
+     */
+    public static function filterPortableSettings(array $settings, array $excludeKeys = []): array
+    {
+        return SensitiveSettings::filterExportable($settings, $excludeKeys)['settings'];
+    }
+
+    /**
      * 把当前站点状态序列化成配方 manifest（供导出）。
      */
     public function exportCurrent(array $options = []): array
@@ -328,16 +350,21 @@ class RecipeService
         $lang = (string)($options['lang'] ?? (defined('SITE_LANG') ? SITE_LANG : 'zh-CN'));
         $includeContents = !empty($options['include_contents']);
 
-        // 设置：只导出可移植的 KV（排除敏感如 api keys、随机密钥）
-        $excludeKeys = $options['exclude_setting_keys'] ?? [
-            'ai_api_key', 'mail_password', 'smtp_password', 'encrypt_key',
-        ];
+        // 设置：只导出可移植的 KV。敏感度判据统一走 SensitiveSettings，
+        // 不再在这里维护本地黑名单——旧的四项黑名单里有三项键名与真实键对不上
+        // （黑名单写 smtp_password，库里其实叫 smtp_pass），结果 cron_token、
+        // license_key、seo_indexnow_key 长期被原样导出。cron_token 就是
+        // DemoSandbox 的站长口令，导一次配方等于把钥匙一起送出去。
         $allSettings = settingModel()->getAll();
-        $settings = [];
-        foreach ($allSettings as $k => $v) {
-            if (in_array($k, $excludeKeys, true)) continue;
-            $settings[$k] = (string)$v;
-        }
+        $settings = self::filterPortableSettings(
+            $allSettings,
+            is_array($options['exclude_setting_keys'] ?? null)
+                ? array_values(array_map('strval', $options['exclude_setting_keys']))
+                : []
+        );
+        // 只记被剔除的键名，绝不记值
+        $excludedSettingKeys = array_values(array_diff(array_keys($allSettings), array_keys($settings)));
+        sort($excludedSettingKeys);
 
         // channels（默认语言）
         $channelRows = db()->fetchAll(
@@ -399,6 +426,7 @@ class RecipeService
             'extfields'   => $extfields,
             'contents'    => [],
             'settings'    => $settings,
+            'excluded_settings' => $excludedSettingKeys,
         ];
 
         if ($includeContents) {
