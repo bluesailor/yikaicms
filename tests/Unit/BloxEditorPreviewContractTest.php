@@ -653,6 +653,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString("require __DIR__ . '/banner-manager.php'", $editor);
         $this->assertStringContainsString('...window.BloxBannerPanel.methods', $editor);
         $editor .= $this->source('admin/blox_editor/partials/banner-manager.php')
+            . $this->source('admin/blox_editor/partials/banner-image-control.php')
             . $this->source('assets/js/blox-banner-panel.js');
 
         foreach ([

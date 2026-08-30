@@ -7,10 +7,12 @@
 
     function groupFor(key, node) {
         if (node && node.type === "home-banner-item") {
+            if (key === "image_mobile") return "mobile";
             if (["content_motion", "background_motion"].includes(key)) return "motion";
             if (["btn1_text", "btn1_url", "btn2_text", "btn2_url", "link_url", "link_target"].includes(key)) return "playback";
             return "common";
         }
+        if (["banner_mobile_mode", "banner_height_mobile"].includes(key)) return "mobile";
         if (["banner_effect", "banner_content_motion", "banner_background_motion", "banner_speed", "banner_stagger"].includes(key)) return "motion";
         if (["banner_autoplay", "banner_navigation", "banner_pagination", "banner_pause_hover", "limit"].includes(key)) return "playback";
         return "common";
@@ -20,13 +22,40 @@
         if (!supports(node) || showAll) return list;
         var visible = list.filter(function (control) { return groupFor(control.key, node) === group; });
         if (node.type === "home-banner-item" && group === "common") {
-            var order = ["image", "title", "subtitle", "image_mobile"];
+            var order = ["image", "title", "subtitle"];
             visible.sort(function (a, b) { return order.indexOf(a.key) - order.indexOf(b.key); });
         }
         return visible;
     }
 
     var methods = {
+        bannerImageUrl(key) {
+            var data = (this.selEl && this.selEl.data) || {};
+            return key === "image_mobile" ? (data.image_mobile || data.image || "") : (data.image || "");
+        },
+
+        replaceBannerControlImage(key) {
+            var node = this.selEl;
+            if (!node || node.type !== "home-banner-item" || !["image", "image_mobile"].includes(key)) return;
+            var self = this;
+            this.openMedia(function (url) {
+                if (self.selEl !== node) return;
+                self.runCommand("replace-banner-control-image", function () { node.data[key] = url; });
+            }, key === "image_mobile" ? {} : { usage: "hero-bg" });
+        },
+
+        resetBannerMobileImage() {
+            if (!this.selEl || this.selEl.type !== "home-banner-item" || !this.selEl.data.image_mobile) return;
+            this.runCommand("reset-banner-mobile-image", function () { this.selEl.data.image_mobile = ""; });
+        },
+
+        previewBannerDevice(device) {
+            if (!["desktop", "mobile"].includes(device) || !this.bannerHost()) return;
+            this.previewDevice = device;
+            this.mobilePanel = "";
+            this.$nextTick(() => this.highlightCanvasSelection(true));
+        },
+
         hasCustomBannerItems() {
             var host = this.isHomeBlockHost(this.selTopEl) ? this.selTopEl : this.selEl;
             return !!(this.isHomeBannerHost(host) && (host.data || {}).items_mode === "custom");

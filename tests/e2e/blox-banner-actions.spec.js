@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
-const { observeConsole, observeUnsafeWrites, performPreviewUpdate, undo, canvasScrollTop, waitPreviewSettled, frame } = require('./helpers');
-const { openBanner } = require('./banner-helpers');
+const { observeConsole, observeUnsafeWrites, performPreviewUpdate, canvasScrollTop, waitPreviewSettled, frame } = require('./helpers');
+const { openBanner, undoBanner: undo } = require('./banner-helpers');
 
 const items = page => page.evaluate(() => JSON.parse(JSON.stringify(window.Alpine.$data(document.body).bannerItems())));
 
