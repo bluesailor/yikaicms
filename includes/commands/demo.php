@@ -14,6 +14,11 @@ if (!defined('IK_CLI')) return;
 require_once ROOT_PATH . '/includes/Cron.php';
 require_once ROOT_PATH . '/includes/DemoSandbox.php';
 
+CLI::register('demo:owner-token', '读取或签发独立的演示站长口令（仅服务器终端）', function (): int {
+    CLI::out(DemoSandbox::ownerToken());
+    return 0;
+}, ['usage' => 'demo:owner-token']);
+
 CLI::register('demo:on', '开启只读演示模式（后台 POST 写操作被拦截）', function (array $args, array $opts): int {
     settingModel()->set('demo_mode', DemoSandbox::MODE_READONLY);
     CLI::ok('只读演示模式已开启');
@@ -48,7 +53,7 @@ CLI::register('demo:sandbox', '开启演示沙盒（可写，按快照定时重�
     return 0;
 }, ['usage' => 'demo:sandbox [--interval=秒] [--no-snapshot]']);
 
-CLI::register('demo:snapshot', '把当前库 + uploads 存为沙盒快照（覆盖旧快照）', function (array $args, array $opts): int {
+CLI::register('demo:snapshot', '把当前库 + uploads 存为沙盒快照（覆盖旧快照）', function (): int {
     $t0 = microtime(true);
     $m = DemoSandbox::snapshot();
     CLI::ok(sprintf(

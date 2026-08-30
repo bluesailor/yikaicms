@@ -2467,41 +2467,15 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.reloadHeaderPresetPreview();
             },
 
-            headerPresetElementCounts(sections) {
-                var counts = {};
-                var visit = function (element) {
-                    if (!element || !element.type) return;
-                    counts[element.type] = (counts[element.type] || 0) + 1;
-                    var children = element.data && Array.isArray(element.data.children) ? element.data.children : [];
-                    children.forEach(visit);
-                };
-                (sections || []).forEach(function (section) {
-                    (section.columns || []).forEach(function (column) {
-                        (column.elements || []).forEach(visit);
-                    });
-                });
-                return counts;
-            },
-
             headerPresetComparison(preset) {
-                var before = this.headerPresetElementCounts(this.sections || []);
-                var after = this.headerPresetElementCounts((preset && preset.sections) || []);
-                var types = Array.from(new Set(Object.keys(before).concat(Object.keys(after)))).sort();
                 var label = function (type, count) {
                     return (this.elSchema(type).label || type) + (count > 1 ? " ×" + count : "");
                 }.bind(this);
-                var added = [];
-                var removed = [];
-                types.forEach(function (type) {
-                    var delta = (after[type] || 0) - (before[type] || 0);
-                    if (delta > 0) added.push(label(type, delta));
-                    if (delta < 0) removed.push(label(type, -delta));
-                });
-                return { added: added, removed: removed, same: added.length === 0 && removed.length === 0 };
+                return window.BloxTemplateLibrary.compareSections(this.sections || [], (preset && preset.sections) || [], label);
             },
 
             headerPresetWarnings(preset) {
-                var counts = this.headerPresetElementCounts((preset && preset.sections) || []);
+                var counts = window.BloxTemplateLibrary.elementCounts((preset && preset.sections) || []);
                 var warnings = [];
                 if (counts.logo && !this.headerPresetSiteData.logo) warnings.push(this.headerPresetText.missingLogo);
                 if ((counts.nav || counts["nav-mega"] || counts["nav-drawer"]) && !this.headerPresetSiteData.navigation) {
@@ -2520,7 +2494,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             headerPresetFocusTypes(preset) {
-                var counts = this.headerPresetElementCounts((preset && preset.sections) || []);
+                var counts = window.BloxTemplateLibrary.elementCounts((preset && preset.sections) || []);
                 var candidates = this.areaPresetType === "footer"
                     ? ["logo", "nav", "site-contact", "site-search", "social-links", "site-copyright"]
                     : ["logo", counts["nav-mega"] ? "nav-mega" : "nav", "site-search", "language-switcher"];

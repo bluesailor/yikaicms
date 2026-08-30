@@ -274,7 +274,39 @@
         }));
     }
 
+    function elementCounts(sections) {
+        var counts = {};
+        function visit(element) {
+            if (!element || !element.type) return;
+            counts[element.type] = (counts[element.type] || 0) + 1;
+            var children = element.data && Array.isArray(element.data.children) ? element.data.children : [];
+            children.forEach(visit);
+        }
+        (sections || []).forEach(function (section) {
+            (section.columns || []).forEach(function (column) {
+                (column.elements || []).forEach(visit);
+            });
+        });
+        return counts;
+    }
+
+    function compareSections(current, candidate, label) {
+        var before = elementCounts(current);
+        var after = elementCounts(candidate);
+        var types = Array.from(new Set(Object.keys(before).concat(Object.keys(after)))).sort();
+        var added = [];
+        var removed = [];
+        types.forEach(function (type) {
+            var delta = (after[type] || 0) - (before[type] || 0);
+            if (delta > 0) added.push(label(type, delta));
+            if (delta < 0) removed.push(label(type, -delta));
+        });
+        return { added: added, removed: removed, same: added.length === 0 && removed.length === 0 };
+    }
+
     global.BloxTemplateLibrary = {
+        elementCounts: elementCounts,
+        compareSections: compareSections,
         list: list,
         resolve: resolve,
         normalizeMetadata: normalizeMetadata,

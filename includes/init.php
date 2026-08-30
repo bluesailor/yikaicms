@@ -79,13 +79,8 @@ require_once ROOT_PATH . '/includes/security.php';
 require_once ROOT_PATH . '/includes/TagEngine.php';
 require_once ROOT_PATH . '/includes/Cron.php';
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
-// 内容/产品/栏目/设置等数据变更时，自动清除前台 HTML 缓存（避免改完后台不生效）
+// Cache invalidation is registered by HtmlCache.php; do not duplicate its policy here.
 if (function_exists('add_action')) {
-    add_action('data_changed', function () {
-        if (class_exists('HtmlCache')) {
-            HtmlCache::invalidate();
-        }
-    });
     // 吸顶头部滚动透明效果（前台 footer 输出，各主题通用；未启用时自动无输出）
     add_action('ik_footer_scripts', 'renderHeaderScrollFade');
     // 代码块复制按钮（正文含 <pre><code> 时才实际生效）
