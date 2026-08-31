@@ -4,6 +4,20 @@ const panel = require('../../assets/js/blox-home-content-panel');
 const about = { type: 'home-block', data: { block_type: 'about' } };
 const cta = { type: 'home-block', data: { block_type: 'cta' } };
 
+test('source links use only permission-filtered server entries', () => {
+    const link = { url: '/admin/setting_home.php#home-source-about' };
+    const context = { selEl: about, homeSourceLinks: { about: link } };
+    assert.equal(panel.methods.homeContentSource.call(context), link);
+    context.selEl = { type: 'home-block', data: { block_type: '__proto__', url: 'https://example.com' } };
+    assert.equal(panel.methods.homeContentSource.call(context), null);
+    context.selEl = { type: 'product-catalog' };
+    assert.equal(panel.methods.homeContentSource.call(context), null);
+    context.homeSourceLinks['product-catalog'] = link;
+    assert.equal(panel.methods.homeContentSource.call(context), link);
+    context.selEl = null;
+    assert.equal(panel.methods.homeContentSource.call(context), null);
+});
+
 test('inheritance reads hints without materializing empty or absent overrides', () => {
     const seeds = { override_title: 'Original', override_image: '/original.jpg' };
     const node = { type: 'home-block', data: { block_type: 'about' } };

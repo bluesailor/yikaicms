@@ -34,6 +34,27 @@ class ProductCategoryModel extends Model
         return $items;
     }
 
+    /** Navigation state shared by the public listing and the Blox canvas. */
+    public function getNavigationTree(int $currentId = 0): array
+    {
+        $mark = static function (array $items) use (&$mark, $currentId): array {
+            foreach ($items as &$item) {
+                $item['children'] = $mark($item['children'] ?? []);
+                $item['is_active'] = (int) $item['id'] === $currentId;
+                $item['has_active_child'] = false;
+                foreach ($item['children'] as $child) {
+                    if ($child['is_active'] || $child['has_active_child']) {
+                        $item['has_active_child'] = true;
+                        break;
+                    }
+                }
+            }
+            unset($item);
+            return $items;
+        };
+        return $mark($this->getTree());
+    }
+
     /**
      * 获取带缩进的平面选项
      *

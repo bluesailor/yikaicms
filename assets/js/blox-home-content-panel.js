@@ -41,6 +41,12 @@
     }
 
     var methods = {
+        homeContentSource() {
+            var node = this.selEl;
+            if (!node) return null;
+            var key = node.type === 'home-block' ? (node.data || {}).block_type : node.type;
+            return Object.prototype.hasOwnProperty.call(this.homeSourceLinks || {}, key) ? this.homeSourceLinks[key] : null;
+        },
         homeContentField(key) {
             return fieldState(this.selEl, key, (this.homeFieldSeeds || {}).about);
         },

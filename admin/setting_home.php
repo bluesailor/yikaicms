@@ -575,7 +575,8 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
             if (!$meta) continue;
             $enabled = !empty($block['enabled']);
         ?>
-        <div class="block-card bg-white rounded-lg shadow" data-type="<?php echo $type; ?>" x-data="{ expanded: false }">
+        <div id="home-source-<?= e(rawurlencode($type)) ?>" class="block-card bg-white rounded-lg shadow" data-type="<?php echo e($type); ?>"
+             x-data="{ expanded: window.location.hash === '#home-source-<?= e(rawurlencode($type)) ?>' }">
             <!-- 卡片头部 -->
             <div class="flex items-center gap-3 px-4 py-3">
                 <!-- 拖拽手柄 -->

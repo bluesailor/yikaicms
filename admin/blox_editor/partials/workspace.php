@@ -600,6 +600,7 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <?php require __DIR__ . '/source-link.php'; ?>
                             <template x-if="selEl && selEl.type === 'home-block' && panelTab === 'content'">
                                 <div class="rounded border border-blue-200 bg-blue-50/60 p-3">
                                     <div class="flex items-start gap-3">
@@ -1819,15 +1820,7 @@ declare(strict_types=1);
                                             <?php require __DIR__ . '/home-image-control.php'; ?>
                                             <?php require __DIR__ . '/banner-image-control.php'; ?>
                                             <template x-if="selEl && selEl.type !== 'home-banner-item' && !BloxHomeContentPanel.isImage(selEl, ctrl.key)">
-                                                <div class="flex items-center gap-2">
-                                                    <template x-if="selEl.data[ctrl.key]">
-                                                        <img :src="selEl.data[ctrl.key]" class="w-9 h-9 rounded border border-gray-200 object-cover shrink-0" alt="">
-                                                    </template>
-                                                    <input type="text" x-model="selEl.data[ctrl.key]" placeholder="/uploads/images/xx.jpg"
-                                                           class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                                    <button type="button" @click="openMedia(u => selEl.data[ctrl.key] = u)"
-                                                            class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"><?= __('admin_media') ?></button>
-                                                </div>
+                                                <?php $imageControl = ['scope' => 'element', 'key' => 'ctrl.key', 'id' => 'blox-element-image', 'urlId' => 'blox-element-image-url']; require __DIR__ . '/image-control.php'; ?>
                                             </template>
                                         </div>
                                     </template>
@@ -2040,20 +2033,7 @@ declare(strict_types=1);
                                 <!-- 背景图 + 独立遮罩 + 焦点 -->
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_image') ?></label>
-                                    <div class="flex items-center gap-2">
-                                        <template x-if="sel.settings.bg_image">
-                                            <img :src="sel.settings.bg_image" class="w-9 h-9 rounded border border-gray-200 object-cover shrink-0" alt="">
-                                        </template>
-                                        <input type="text" :value="sel.settings.bg_image || ''" placeholder="/uploads/images/xx.jpg"
-                                               @change="setSectionBackgroundImage($event.target.value)"
-                                               data-testid="blox-section-bg-image"
-                                               class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                        <button type="button" @click="openMedia(u => setSectionBackgroundImage(u), { usage: 'hero-bg' })"
-                                                class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"><?= __('admin_media') ?></button>
-                                        <button type="button" @click="setSectionBackgroundImage('')"
-                                                class="text-gray-400 hover:text-red-500 p-1 shrink-0" title="<?= e(__('blox_clear')) ?>">
-                                            <i class="ti ti-x text-sm"></i></button>
-                                    </div>
+                                    <?php $imageControl = ['scope' => 'section', 'key' => "'bg_image'", 'id' => 'blox-section-background-image', 'urlId' => 'blox-section-bg-image']; require __DIR__ . '/image-control.php'; ?>
                                     <div x-show="sel.settings.bg_image" class="mt-3 space-y-3">
                                         <div>
                                             <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
@@ -2213,26 +2193,7 @@ declare(strict_types=1);
                                         <p class="text-[10px] text-gray-400 mt-1"><?= __('blox_col_bg_hint') ?></p>
                                         <div class="mt-3" data-testid="blox-column-background-image">
                                             <label class="block text-[10px] font-medium text-gray-500 mb-1.5"><?= __('blox_bg_image') ?></label>
-                                            <div class="flex items-center gap-2">
-                                                <template x-if="selectedColData().card_bg_image">
-                                                    <img :src="selectedColData().card_bg_image"
-                                                         class="w-10 h-10 rounded border border-gray-200 object-cover shrink-0" alt="">
-                                                </template>
-                                                <input type="text" x-model="selectedColData().card_bg_image"
-                                                       @change="setColumnBackgroundImage($event.target.value)"
-                                                       placeholder="/uploads/images/xx.jpg"
-                                                       data-testid="blox-column-background-image-url"
-                                                       class="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                                <button type="button" @click="pickColumnBackgroundImage()"
-                                                        data-testid="blox-column-background-image-media"
-                                                        class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"><?= __('admin_media') ?></button>
-                                                <button type="button" @click="setColumnBackgroundImage('')"
-                                                        :disabled="!selectedColData().card_bg_image"
-                                                        class="w-8 h-8 shrink-0 rounded text-gray-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 inline-flex items-center justify-center"
-                                                        title="<?= e(__('blox_clear')) ?>" aria-label="<?= e(__('blox_clear')) ?>">
-                                                    <i class="ti ti-x text-sm"></i>
-                                                </button>
-                                            </div>
+                                            <?php $imageControl = ['scope' => 'column', 'key' => "'card_bg_image'", 'id' => 'blox-column-background-image', 'urlId' => 'blox-column-background-image-url']; require __DIR__ . '/image-control.php'; ?>
                                             <div x-show="selectedColData().card_bg_image" class="mt-3 space-y-3">
                                                 <div>
                                                     <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
@@ -2419,26 +2380,7 @@ declare(strict_types=1);
                                     </button>
                                     <div class="mt-3" data-testid="blox-container-background-image">
                                         <label class="block text-[10px] font-medium text-gray-500 mb-1.5"><?= __('blox_bg_image') ?></label>
-                                        <div class="flex items-center gap-2">
-                                            <template x-if="sel.settings.container_bg_image">
-                                                <img :src="sel.settings.container_bg_image"
-                                                     class="w-10 h-10 rounded border border-gray-200 object-cover shrink-0" alt="">
-                                            </template>
-                                            <input type="text" x-model="sel.settings.container_bg_image"
-                                                   @change="setContainerBackgroundImage($event.target.value)"
-                                                   placeholder="/uploads/images/xx.jpg"
-                                                   data-testid="blox-container-background-image-url"
-                                                   class="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                            <button type="button" @click="pickContainerBackgroundImage()"
-                                                    data-testid="blox-container-background-image-media"
-                                                    class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"><?= __('admin_media') ?></button>
-                                            <button type="button" @click="setContainerBackgroundImage('')"
-                                                   :disabled="!sel.settings.container_bg_image"
-                                                   class="w-8 h-8 shrink-0 rounded text-gray-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 inline-flex items-center justify-center"
-                                                   title="<?= e(__('blox_clear')) ?>" aria-label="<?= e(__('blox_clear')) ?>">
-                                                <i class="ti ti-x text-sm"></i>
-                                            </button>
-                                        </div>
+                                        <?php $imageControl = ['scope' => 'container', 'key' => "'container_bg_image'", 'id' => 'blox-container-background-image', 'urlId' => 'blox-container-background-image-url']; require __DIR__ . '/image-control.php'; ?>
                                         <div x-show="sel.settings.container_bg_image" class="mt-3 space-y-3">
                                             <div>
                                                 <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
