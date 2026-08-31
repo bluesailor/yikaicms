@@ -137,7 +137,7 @@ test('refresh preserves the query and page, disables duplicates and recovers fro
 
     failing = false;
     await refresh.click();
-    await expect(panel.locator('[role="status"]')).toContainText(/没有匹配|No matching|一致する/);
+    await expect(panel.getByTestId('blox-catalog-empty-page')).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).previewFailed)).toBe(false);
     await expect(refresh).toBeEnabled();
     expect(await panel.locator('input[type="search"]').inputValue()).toBe(keyword);

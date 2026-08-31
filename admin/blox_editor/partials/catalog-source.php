@@ -31,8 +31,22 @@ $catalogKind = $isProductBlox ? 'product' : 'article';
             <p class="text-xs text-gray-600"><?= e(__('blox_catalog_published_items')) ?></p>
             <div role="status" aria-live="polite" class="text-xs text-gray-700">
                 <span x-show="loading"><?= e(__('admin_loading')) ?></span>
-                <span x-show="!loading && !failed && items.length === 0"><?= e(__('blox_catalog_empty')) ?></span>
+                <span x-show="emptyState === 'unpublished'" data-testid="blox-catalog-unpublished"><?= e(__($isProductBlox ? 'blox_catalog_no_products' : 'blox_catalog_no_articles')) ?></span>
+                <span x-show="emptyState === 'search'" data-testid="blox-catalog-no-match"><?= e(__('blox_catalog_empty')) ?></span>
+                <span x-show="emptyState === 'page'" data-testid="blox-catalog-empty-page"><?= e(__('blox_catalog_page_empty')) ?></span>
                 <span x-show="failed"><?= e(__('blox_catalog_load_failed')) ?></span>
+            </div>
+            <div x-show="emptyState === 'search' || emptyState === 'page'" class="flex flex-wrap items-center gap-2">
+                <button type="button" x-show="emptyState === 'page'" @click="keyword = resultKeyword; load(1)"
+                        data-testid="blox-catalog-first-page" class="inline-flex items-center gap-1 min-h-8 text-xs text-blue-700 hover:underline">
+                    <i class="ti ti-arrow-bar-to-left shrink-0" aria-hidden="true"></i>
+                    <span class="min-w-0 break-words"><?= e(__('blox_catalog_first_page')) ?></span>
+                </button>
+                <button type="button" x-show="resultKeyword !== ''" @click="keyword = ''; load(1)"
+                        data-testid="blox-catalog-clear-search" class="inline-flex items-center gap-1 min-h-8 text-xs text-blue-700 hover:underline">
+                    <i class="ti ti-x shrink-0" aria-hidden="true"></i>
+                    <span class="min-w-0 break-words"><?= e(__('blox_catalog_clear_search')) ?></span>
+                </button>
             </div>
             <button type="button" x-show="failed" @click="load(1)" class="text-xs text-blue-700 hover:underline">
                 <?= e(__('blox_catalog_retry')) ?>

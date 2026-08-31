@@ -30,10 +30,12 @@ test('stale responses and responses after panel destruction cannot replace curre
     const pending = [];
     global.fetch = () => new Promise(resolve => pending.push(resolve));
     const app = create(2, '', 'product');
+    assert.equal(app.emptyState, '');
     const first = app.load(1), second = app.load(2);
     pending[1](response([{ id: 2 }], 2)); await second;
     pending[0](response([{ id: 1 }])); await first;
     assert.equal(app.items[0].id, 2);
+    assert.equal(app.emptyState, '');
     const third = app.load(3);
     app.destroy(); pending[2](response([{ id: 3 }], 3)); await third;
     assert.deepEqual(app.items, []);
@@ -50,9 +52,65 @@ test('HTTP, protocol and network failures show retry state; retry can recover to
         assert.equal(app.failed, true);
         assert.equal(app.loading, false);
         assert.deepEqual(app.items, []);
+        assert.equal(app.emptyState, '');
     }
     global.fetch = async () => response([]);
     await app.load(1);
     assert.equal(app.failed, false);
     assert.deepEqual(app.items, []);
+    assert.equal(app.emptyState, 'unpublished');
+});
+
+test('empty states distinguish unpublished items, searches and empty later pages', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    for (const kind of ['product', 'article']) {
+        const app = create(2, '', kind);
+        for (const [keyword, page, state] of [['', 1, 'unpublished'], ['  ', 1, 'unpublished'],
+            ['no-match', 1, 'search'], ['', 2, 'page'], ['no-match', 2, 'page']]) {
+            global.fetch = async () => response([], page);
+            app.keyword = keyword;
+            await app.load(page);
+            assert.equal(app.emptyState, state);
+            assert.equal(app.resultKeyword, keyword.trim());
+            app.keyword = 'unsubmitted';
+            assert.equal(app.emptyState, state);
+        }
+        global.fetch = async () => response([{ id: 1 }]);
+        await app.load(1);
+        assert.equal(app.emptyState, '');
+    }
+});
+
+test('empty states use the completed request and ignore stale queries and unsubmitted text', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    const pending = [];
+    global.fetch = () => new Promise(resolve => pending.push(resolve));
+    const app = create(2, '', 'product');
+    const first = app.load(1);
+    app.keyword = '  latest query  ';
+    const second = app.load(2);
+    app.keyword = 'unsubmitted';
+    assert.equal(app.emptyState, '');
+    pending[1](response([], 2)); await second;
+    assert.equal(app.emptyState, 'page');
+    assert.equal(app.resultKeyword, 'latest query');
+    pending[0](response([])); await first;
+    assert.equal(app.emptyState, 'page');
+    assert.equal(app.resultKeyword, 'latest query');
+    const third = app.load(1);
+    assert.equal(app.emptyState, '');
+    app.destroy(); pending[2](response([])); await third;
+    assert.equal(app.emptyState, '');
+});
+
+test('a malformed nonempty response cannot masquerade as no published content', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    const app = create(2, '', 'product');
+    global.fetch = async () => response([{ id: '../evil' }, { id: 0 }]);
+    await app.load(1);
+    assert.equal(app.failed, true);
+    assert.equal(app.emptyState, '');
 });
