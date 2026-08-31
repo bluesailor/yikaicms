@@ -51,3 +51,32 @@ test('core install keeps only default locally and discovers optional market them
   expect(unsafeWrites, 'theme discovery must not activate or install a theme').toEqual([]);
   expect(consoleEntries, 'theme manager should keep the browser console clean').toEqual([]);
 });
+
+test('theme update link opens the market and highlights its theme @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'one focused theme-link check is sufficient');
+  const consoleEntries = observeConsole(page);
+
+  await page.route('**/admin/theme.php', async (route) => {
+    const request = route.request();
+    if (request.method() !== 'POST') {
+      await route.continue();
+      return;
+    }
+    const body = new URLSearchParams(request.postData() || '');
+    if (body.get('action') !== 'market_list') {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json; charset=utf-8',
+      body: JSON.stringify({ code: 0, data: { updated_at: '2026-09-01', themes: marketThemes } }),
+    });
+  });
+
+  await page.goto('/admin/theme.php?tab=market&update=business', { waitUntil: 'domcontentloaded' });
+  const business = page.getByTestId('theme-market-list').locator('[data-theme-slug="business"]');
+  await expect(business).toBeVisible();
+  await expect(business).toHaveClass(/ring-amber-400/);
+  expect(consoleEntries, 'focused theme market should keep the console clean').toEqual([]);
+});
