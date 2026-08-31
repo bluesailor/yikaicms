@@ -14,6 +14,12 @@ $catalogKind = $isProductBlox ? 'product' : 'article';
             <?= e(__($isProductBlox ? 'blox_catalog_products' : 'blox_catalog_articles')) ?>
         </button>
         <div x-show="expanded" id="blox-catalog-items" class="space-y-2 pb-2">
+            <button type="button" @click="load(page); refreshPreview()" :disabled="loading || previewLoading"
+                    :aria-busy="loading || previewLoading" data-testid="blox-catalog-refresh"
+                    class="flex items-center justify-center gap-2 w-full min-h-8 px-2 py-1 border border-gray-300 rounded text-xs text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-wait">
+                <i class="ti ti-refresh shrink-0" aria-hidden="true"></i>
+                <span class="min-w-0 break-words"><?= e(__('blox_catalog_refresh_preview')) ?></span>
+            </button>
             <form @submit.prevent="load(1)" class="flex items-center gap-1">
                 <input type="search" x-model="keyword" maxlength="120" class="min-w-0 w-full border border-gray-300 rounded px-2 h-8 text-xs"
                        aria-label="<?= e(__('admin_search')) ?>" placeholder="<?= e(__('admin_search')) ?>">

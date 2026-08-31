@@ -6026,4 +6026,5 @@ voltage|Voltage|220V',
     'blox_catalog_retry' => 'Reload items',
     'blox_catalog_previous' => 'Previous items',
     'blox_catalog_next' => 'Next items',
+    'blox_catalog_refresh_preview' => 'Refresh content preview',
 ];
