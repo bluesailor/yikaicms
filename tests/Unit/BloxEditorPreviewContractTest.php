@@ -1265,7 +1265,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach ([
             "ctrl.type === 'range'",
             "@input=\"setControlValue(ctrl, Number(\$event.target.value))\"",
-            "@click=\"openMedia(u => selEl.data[ctrl.key] = u)\"",
+            "require __DIR__ . '/image-control.php'",
             "require __DIR__ . '/home-image-control.php'",
             "'blox-control-' + ctrl.key",
         ] as $token) {
@@ -1286,8 +1286,10 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('this.mediaUsage === "hero-bg" ? 1920 : 0', $editor);
         $this->assertStringContainsString('self.pageHero.hero_bg = url; }, { usage: "hero-bg" }', $editor);
-        $this->assertStringContainsString('self.setContainerBackgroundImage(url); }, { usage: "hero-bg" }', $editor);
-        $this->assertStringContainsString("setSectionBackgroundImage(u), { usage: 'hero-bg' }", $workspace);
+        $imageControl = $this->source('assets/js/blox-image-control.js');
+        $this->assertStringContainsString('scope === "element" ? {} : { usage: "hero-bg" }', $imageControl);
+        $this->assertStringContainsString("'scope' => 'section', 'key' => \"'bg_image'\"", $workspace);
+        $this->assertStringContainsString("'scope' => 'container', 'key' => \"'container_bg_image'\"", $workspace);
         $this->assertStringContainsString('data-testid="blox-media-wide-background-hint"', $overlays);
         $this->assertStringContainsString('mediaRecommended(it)', $overlays);
         $this->assertStringContainsString("\$usage === 'hero-bg' ? 1920 : 0", $api);
@@ -1411,11 +1413,16 @@ final class BloxEditorPreviewContractTest extends TestCase
         $pipeline = $this->source('includes/builder/BloxDocumentPipeline.php');
         $renderer = $this->source('includes/builder/BlockRenderer.php');
 
-        $this->assertStringContainsString('pickContainerBackgroundImage()', $editor);
+        $imageMethods = $this->source('assets/js/blox-image-control.js');
+        $imageControl = $this->source('admin/blox_editor/partials/image-control.php');
+        $this->assertStringContainsString('...window.BloxImageControl.methods', $editor);
+        $this->assertStringContainsString('pickContainerBackgroundImage()', $imageMethods);
         $this->assertStringContainsString('container_bg_image: ""', $editor);
         $this->assertStringContainsString('data-testid="blox-container-background-image"', $workspace);
-        $this->assertStringContainsString('x-model="sel.settings.container_bg_image"', $workspace);
-        $this->assertStringContainsString('@click="pickContainerBackgroundImage()"', $workspace);
+        $this->assertStringContainsString("'scope' => 'container', 'key' => \"'container_bg_image'\"", $workspace);
+        $this->assertStringContainsString('@click="pickImageControl(', $imageControl);
+        $this->assertStringContainsString('@input="setImageControl(', $imageControl);
+        $this->assertStringContainsString('self.imageControlTarget(scope) === target', $imageMethods);
         $this->assertStringContainsString('data-testid="blox-container-overlay-color"', $workspace);
         $this->assertStringContainsString('data-testid="blox-container-overlay-opacity"', $workspace);
         $this->assertStringContainsString('data-testid="blox-column-background-image"', $workspace);

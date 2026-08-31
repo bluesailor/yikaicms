@@ -142,9 +142,10 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             $pageRow = null;
             $pageType = '';
         } else {
-            $pageBody = renderBlocksToHtml($_POST['blocks_data'] ?? '[]');
             $pageRow = channelModel()->find($id);
             $pageType = (string) ($pageRow['type'] ?? '');
+            require_once ROOT_PATH . '/includes/builder/BloxCatalogPreview.php';
+            $pageBody = BloxCatalogPreview::render($pageRow ?? [], $previewJson);
         }
 
         $pageHeroBody = '';

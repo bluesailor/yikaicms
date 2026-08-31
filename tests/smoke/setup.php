@@ -354,6 +354,7 @@ $processStmt->execute([$smokeLang]);
 $processPageId = (int) ($processStmt->fetchColumn() ?: 0);
 
 $out = [
+    'product_page' => (int) $pdo->query("SELECT id FROM yikai_channels WHERE type='product' AND parent_id=0 AND lang='{$smokeLang}' LIMIT 1")->fetchColumn(),
     // 按站点语言挑 fixture：种子数据是三语的，随手取第一行会拿到中文栏目，
     // 而英文站建的内容 lang=en——父子语言不一致，列表页永远查不到（这不是产品
     // bug 而是测试自身的坑，--lang=en 首跑就撞上）。同语言取不到才回退任意行。

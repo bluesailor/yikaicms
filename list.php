@@ -210,33 +210,7 @@ if ($showProductTopNav) {
 
 if ($showSidebar || $showProductTopNav) {
     if ($isProductType) {
-        // 产品类型：从产品分类表获取完整分类树
-
-        // 递归获取产品分类树
-        function buildProductCategoryTree(int $parentId, int $currentId): array {
-            $conditions = ['parent_id' => $parentId, 'status' => 1];
-            if (isMultiLangEnabled('product_categories')) {
-                $conditions['lang'] = siteLang();
-            }
-            $categories = productCategoryModel()->where($conditions);
-            $tree = [];
-            foreach ($categories as $cat) {
-                $cat['children'] = buildProductCategoryTree((int)$cat['id'], $currentId);
-                $cat['is_active'] = ((int)$cat['id'] === $currentId);
-                $cat['has_active_child'] = false;
-                foreach ($cat['children'] as $child) {
-                    if ($child['is_active'] || $child['has_active_child']) {
-                        $cat['has_active_child'] = true;
-                        break;
-                    }
-                }
-                $tree[] = $cat;
-            }
-            return $tree;
-        }
-
-        // 始终从顶级开始构建完整分类树
-        $categoryTree = buildProductCategoryTree(0, $productCategoryId);
+        $categoryTree = productCategoryModel()->getNavigationTree($productCategoryId);
     } else {
         // 非产品类型（如案例）：从栏目表获取
         $tempCh = $channel;

@@ -85,6 +85,9 @@ try {
     }
 
     if ($action === 'preview') {
+        if (!defined('SITE_LANG') && is_array($targetChannel)) {
+            define('SITE_LANG', (string) ($targetChannel['lang'] ?? siteLang()));
+        }
         require_once ROOT_PATH . '/includes/builder/BloxCanvasPreview.php';
         outputBloxCanvasPreview(false, $pageId);
     }

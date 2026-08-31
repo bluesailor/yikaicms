@@ -722,6 +722,7 @@ foreach ($registryMeta as $type => $m) {
 // 分类显示名：category 是机器值，界面要中文
 $catLabels = ['basic' => __('blox_cat_basic'), 'media' => __('blox_cat_media'), 'layout' => __('blox_layout'), 'advanced' => __('blox_cat_advanced'), 'dynamic' => __('blox_cat_dynamic')];
 $homeEditorBlueprints = $isHomeBlox ? HomeBloxBlockSchema::editorBlueprints() : [];
+require __DIR__ . '/blox_editor/source-links.php';
 $homeFieldSeeds = $isHomeBlox ? [
     'about' => HomeAboutContent::resolve(getChannelBySlug('about', true)),
     'stats' => ['stats_items' => HomeBloxBlockSchema::statsSeedItems()],
@@ -791,6 +792,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-control-rules.js') ?>"></script>
     <script src="/assets/js/blox-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-banner-panel.js') ?>"></script>
     <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
+    <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
     <script src="/assets/js/blox-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-icon-utils.js') ?>"></script>
     <script src="/assets/js/blox-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-field-store.js') ?>"></script>
@@ -1120,6 +1122,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             headerPreviewState: "normal",
             canvasViewportTick: 0,
             previewLoading: false,
+            previewFailed: false,
+            saveOutcome: "",
             saving: false,
             cacheClearing: false,
             dirty: false,
@@ -1340,6 +1344,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             homeEditorBlueprints: <?php echo json_encode($homeEditorBlueprints, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             homeFieldSeeds: <?php echo json_encode($homeFieldSeeds, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            homeSourceLinks: <?= json_encode($bloxSourceLinks, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             homeText: <?php echo json_encode([
                 'publishConfirm' => __('blox_publish_confirm'),
                 'rollbackConfirm' => __('blox_rollback_confirm'),
@@ -1494,6 +1499,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'saved' => __('blox_saved'),
                 'saveFailed' => __('blox_save_failed'),
                 'saveFailedMsg' => __('blox_save_failed_msg'),
+                'saveStatusFailed' => __('blox_save_status_failed'),
+                'draftSaved' => __('blox_save_status_draft'),
+                'unsaved' => __('blox_dirty'),
+                'savingDraft' => __('blox_saving'),
                 'revisionLoading' => __('loading'),
                 'revisionPreviewFailed' => __('blox_revision_preview_failed'),
                 'iconHintDefault' => __('blox_icon_hint_default'),
@@ -2181,56 +2190,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.sel.settings.bg_gradient = "linear-gradient(" + this.gradDir + "deg," + this.gradA + " 0%," + this.gradB + " 100%)";
             },
 
-            setSectionBackgroundImage(url) {
-                if (!this.sel || !this.sel.settings) return;
-                this.sel.settings.bg_image = url || "";
-                if (!url) return;
-                if (!Object.prototype.hasOwnProperty.call(this.sel.settings, "bg_overlay_color")) {
-                    this.sel.settings.bg_overlay_color = "#000000";
-                }
-                if (!Object.prototype.hasOwnProperty.call(this.sel.settings, "bg_overlay_opacity")) {
-                    this.sel.settings.bg_overlay_opacity = 45;
-                }
-                if (!Object.prototype.hasOwnProperty.call(this.sel.settings, "bg_position")) {
-                    this.sel.settings.bg_position = "center";
-                }
-            },
-
-            setContainerBackgroundImage(url) {
-                var section = this.sel;
-                if (!section || !section.settings) return;
-                section.settings.container_bg_image = url || "";
-                if (!url) return;
-                if (!Object.prototype.hasOwnProperty.call(section.settings, "container_bg_overlay_color")) {
-                    section.settings.container_bg_overlay_color = "#000000";
-                }
-                if (!Object.prototype.hasOwnProperty.call(section.settings, "container_bg_overlay_opacity")) {
-                    section.settings.container_bg_overlay_opacity = 45;
-                }
-            },
-
-            pickContainerBackgroundImage() {
-                var self = this;
-                this.openMedia(function (url) { self.setContainerBackgroundImage(url); }, { usage: "hero-bg" });
-            },
-
-            setColumnBackgroundImage(url) {
-                var column = this.selectedCol();
-                if (!column) return;
-                column.card_bg_image = url || "";
-                if (!url) return;
-                if (!Object.prototype.hasOwnProperty.call(column, "card_bg_overlay_color")) {
-                    column.card_bg_overlay_color = "#000000";
-                }
-                if (!Object.prototype.hasOwnProperty.call(column, "card_bg_overlay_opacity")) {
-                    column.card_bg_overlay_opacity = 45;
-                }
-            },
-
-            pickColumnBackgroundImage() {
-                var self = this;
-                this.openMedia(function (url) { self.setColumnBackgroundImage(url); });
-            },
+            ...window.BloxImageControl.methods,
 
             // ── 渐变背景预置（值原样存 settings.bg_gradient；渲染器有白名单校验） ──
             gradientPresets: [
@@ -6460,6 +6420,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     },
                     setLoading: function (loading) { self.previewLoading = loading; },
                     onLoaded: function () {
+                        self.previewFailed = false;
                         var shouldScroll = self._pendingInitialFocus;
                         self._pendingInitialFocus = false;
                         if (shouldScroll) {
@@ -6469,7 +6430,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                             self.highlightCanvasSelection(false);
                         }
                     },
-                    onError: function () { self.toast(self.uiText.previewFailed); },
+                    onError: function () { self.previewFailed = true; self.toast(self.uiText.previewFailed); },
                 });
                 return this._previewClient;
             },
@@ -8846,6 +8807,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             acceptSavedDocument(payload, savedData, res) {
+                this.saveOutcome = "";
                 if (res.data && typeof res.data.base_revision === "string") {
                     this.baseRevision = res.data.base_revision;
                 }
@@ -8868,7 +8830,15 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
             },
 
+            saveStatusText() {
+                if (this.saving) return this.uiText.savingDraft;
+                if (this.saveOutcome === "failed") return this.uiText.saveStatusFailed;
+                if (this.dirty) return this.uiText.unsaved;
+                return this.saveOutcome === "saved" ? this.uiText.draftSaved : "";
+            },
+
             save() {
+                if (this.saving || this.homeActionBusy || this.pageActionBusy) return;
                 var self = this;
                 this.flushHistory(true);
                 var savedData = this.historyData();
@@ -8876,6 +8846,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 // 历史 data 保持裸 sections，文档设置由快照 settings 字段独立追踪。
                 var payload = this.documentData();
                 this.saving = true;
+                this.saveOutcome = "";
                 var body = new URLSearchParams();
                 <?php if ($templateId): ?>
                 body.set("action", "save_draft");
@@ -8891,23 +8862,30 @@ $canManageBloxDesign = hasPermission('blox_global');
                 body.set("base_revision", this.baseRevision);
                 body.set("_token", this.csrf);
                 fetch(this.endpoint, { method: "POST", body: body })
-                    .then(function(r) { return r.json().catch(function() { return { success: false }; }); })
+                    .then(function(r) {
+                        if (r.status === 409) return { code: 409 };
+                        if (!r.ok) throw new Error("Save request failed");
+                        return r.json();
+                    })
                     .then(function(res) {
                         if (res && Number(res.code) === 409) {
+                            self.saveOutcome = "failed";
                             self.showSaveConflict();
                             return;
                         }
-                        var ok = res && res.success !== false
-                            && (typeof res.code === "undefined" || Number(res.code) === 0);
+                        var ok = res && res.success !== false && (res.code === 0 || res.code === "0"
+                            || (typeof res.code === "undefined" && res.success === true));
                         if (ok) {
                             self.acceptSavedDocument(payload, savedData, res);
                             self.setEditorReturnReceipt(res.data && res.data.return_receipt);
+                            self.saveOutcome = "saved";
                             self.toast(self.uiText.saved);
                         } else {
-                            self.toast(self.uiText.saveFailedMsg.replace(":msg", res.message || res.msg || ""));
+                            self.saveOutcome = "failed";
+                            self.toast(self.uiText.saveFailedMsg.replace(":msg", (res && (res.message || res.msg)) || ""));
                         }
                     })
-                    .catch(function() { self.toast(self.uiText.saveFailed); })
+                    .catch(function() { self.saveOutcome = "failed"; self.toast(self.uiText.saveFailed); })
                     .finally(function() { self.saving = false; });
             },
 

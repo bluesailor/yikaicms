@@ -103,7 +103,8 @@ declare(strict_types=1);
         </div>
 
         <div class="blox-header-actions flex items-center gap-2 shrink-0" data-testid="blox-desktop-actions">
-            <span class="text-xs text-amber-300" x-show="dirty" data-testid="blox-dirty"><?= __('blox_dirty') ?></span>
+            <span class="text-xs max-w-28 truncate" :class="dirty || saveOutcome === 'failed' ? 'text-amber-300' : 'text-gray-300'"
+                  role="status" aria-live="polite" :title="saveStatusText()" x-text="saveStatusText()" data-testid="blox-dirty"></span>
             <div class="flex items-center gap-0.5 border-r border-gray-700 pr-2 mr-0.5">
                 <button type="button" @click="undo()" :disabled="!canUndo()" data-testid="blox-undo"
                         title="<?php echo e(__('blox_undo_shortcut')); ?>" aria-label="<?php echo e(__('blox_undo')); ?>"
@@ -327,6 +328,7 @@ declare(strict_types=1);
                 <span class="truncate" x-text="draftSummaryCountText()"></span>
             </button>
             <span class="text-xs text-gray-400" x-show="previewLoading"><?= __('blox_refreshing') ?></span>
+            <?php $previewRetryId = 'blox-preview-retry'; require __DIR__ . '/preview-retry.php'; ?>
             <div class="inline-flex items-center gap-0.5 border-r border-gray-700 pr-2 mr-0.5"
                  role="group" aria-label="<?php echo e(__('blox_add_content')); ?>">
                 <button type="button" @click="openElementLibrary()" data-testid="blox-elements-open"
@@ -409,6 +411,8 @@ declare(strict_types=1);
             </button>
             <div x-show="mobileActionsOpen" x-cloak @click.outside="mobileActionsOpen = false"
                  @keydown.escape.window="mobileActionsOpen = false" class="blox-mobile-actions-menu">
+                <p class="px-3 py-2 text-xs text-gray-600 break-words" role="status" aria-live="polite" x-text="saveStatusText()" data-testid="blox-mobile-save-status"></p>
+                <?php $previewRetryId = 'blox-mobile-preview-retry'; require __DIR__ . '/preview-retry.php'; ?>
                 <button type="button" @click="undo(); mobileActionsOpen = false" :disabled="!canUndo()">
                     <i class="ti ti-arrow-back-up"></i><?php echo e(__('blox_undo')); ?>
                 </button>
