@@ -4,7 +4,7 @@
     function create(id, csrf, kind) {
         return {
             expanded: false, keyword: "", items: [], page: 1, hasMore: false,
-            loading: false, failed: false, requestId: 0,
+            loading: false, failed: false, requestId: 0, emptyState: "", resultKeyword: "",
             toggle() {
                 this.expanded = !this.expanded;
                 if (this.expanded) this.load(1);
@@ -16,13 +16,15 @@
             },
             async load(page) {
                 var requestId = ++this.requestId;
+                var keyword = this.keyword.trim();
                 this.loading = true;
                 this.failed = false;
+                this.emptyState = "";
                 this.items = [];
                 this.hasMore = false;
                 try {
                     var body = new URLSearchParams({ action: "catalog_items", id: id, _token: csrf,
-                        keyword: this.keyword, page: page });
+                        keyword: keyword, page: page });
                     var response = await fetch("/admin/blox_page_api.php", { method: "POST", body: body,
                         credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } });
                     if (!response.ok) throw new Error("catalog-request-failed");
@@ -32,8 +34,14 @@
                     }
                     if (requestId !== this.requestId) return;
                     this.items = result.data.items.filter(item => this.editUrl(item));
+                    if (result.data.items.length > 0 && this.items.length === 0) {
+                        throw new Error("catalog-items-invalid");
+                    }
                     this.page = Number(result.data.page) || page;
                     this.hasMore = result.data.has_more === true;
+                    // Describe the completed query, not unsubmitted edits in the search field.
+                    this.resultKeyword = keyword;
+                    this.emptyState = this.items.length ? "" : this.page > 1 ? "page" : keyword ? "search" : "unpublished";
                 } catch (_) {
                     if (requestId === this.requestId) this.failed = true;
                 } finally {

@@ -49,7 +49,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         await panel.locator('input[type="search"]').fill('no-match-' + Date.now());
         await panel.locator('form').evaluate(el => el.requestSubmit());
         await expect(items).toHaveCount(0);
-        await expect(panel.locator('[role="status"]')).toContainText(/没有匹配|No matching|一致する/);
+        await expect(panel.getByTestId('blox-catalog-no-match')).toBeVisible();
         await panel.locator('input[type="search"]').fill(title);
         await panel.locator('form').evaluate(el => el.requestSubmit());
         await expect(items.first()).toHaveAttribute('href', href);

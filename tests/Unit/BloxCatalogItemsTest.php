@@ -68,4 +68,20 @@ final class BloxCatalogItemsTest extends TestCase
         $this->expectException(\RuntimeException::class);
         \BloxCatalogItems::read(['id' => 1, 'type' => 'page'], '', 1);
     }
+
+    public function testOnlyUnpublishedRecordsAreEmptyUntilARecordIsPublished(): void
+    {
+        $this->insertRow('channels', ['id' => 1, 'type' => 'list']);
+        $this->insertRow('product_categories', ['id' => 1]);
+        foreach (['contents' => ['list', 'channel_id'], 'products' => ['product', 'category_id']] as $table => [$type, $parent]) {
+            $channel = ['id' => 1, 'type' => $type];
+            $this->insertRow($table, [$parent => 1, 'title' => 'Draft', 'status' => 0]);
+            $this->insertRow($table, [$parent => 1, 'title' => 'Deleted', 'deleted_at' => 123]);
+            self::assertSame(['items' => [], 'page' => 1, 'has_more' => false], \BloxCatalogItems::read($channel, '', 1));
+            $this->insertRow($table, [$parent => 1, 'title' => 'Published']);
+            self::assertCount(1, \BloxCatalogItems::read($channel, '', 1)['items']);
+            self::assertSame(['items' => [], 'page' => 1, 'has_more' => false], \BloxCatalogItems::read($channel, 'no-match', 1));
+            self::assertSame(['items' => [], 'page' => 2, 'has_more' => false], \BloxCatalogItems::read($channel, '', 2));
+        }
+    }
 }
