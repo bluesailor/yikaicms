@@ -1,6 +1,6 @@
 <?php
 /**
- * Business 主题 — 右侧导航 + 联系卡（深色 header + 锐利边框）
+ * Business 主题 — 右侧导航 + 联系卡（主色标题 + 浅色内容）
  *
  *   @var string $rightSidebarTitle
  *   @var array  $rightSidebarChannels
@@ -14,10 +14,9 @@ $sidebarItems = $rightSidebarItems ?? null;
 <aside class="w-full lg:w-72 space-y-6<?php echo is_array($sidebarItems) ? ' business-download-sidebar' : ''; ?>">
 
     <!-- 子栏目导航 -->
-    <div class="bg-white border border-slate-200">
-        <div class="bg-slate-900 px-5 py-3 flex items-center gap-3">
-            <span class="block w-1 h-5 bg-primary"></span>
-            <span class="text-white font-bold tracking-wide uppercase text-sm">
+    <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        <div class="bg-primary px-5 py-4">
+            <span class="text-white font-bold tracking-wide text-base">
                 <?php echo e($rightSidebarTitle); ?>
             </span>
         </div>
@@ -26,10 +25,10 @@ $sidebarItems = $rightSidebarItems ?? null;
             <?php foreach ($sidebarItems as $item): ?>
             <li>
                 <a href="<?php echo e((string) ($item['url'] ?? '')); ?>"
-                   class="flex items-center justify-between gap-2 px-5 py-3 text-sm transition
+                   class="flex items-center justify-between gap-2 px-5 py-3.5 text-sm transition-colors
                           <?php echo !empty($item['active'])
-                              ? 'bg-primary/5 text-primary font-bold border-l-2 border-primary -ml-px'
-                              : 'text-slate-700 hover:bg-slate-50 hover:text-primary border-l-2 border-transparent'; ?>">
+                              ? 'bg-primary/5 text-primary font-bold'
+                              : 'text-slate-700 hover:bg-slate-50 hover:text-primary'; ?>">
                     <span class="truncate"><?php echo e((string) ($item['label'] ?? '')); ?></span>
                     <svg class="w-3.5 h-3.5 flex-shrink-0 <?php echo !empty($item['active']) ? '' : 'opacity-40'; ?>" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
                 </a>
@@ -41,10 +40,10 @@ $sidebarItems = $rightSidebarItems ?? null;
             ?>
             <li>
                 <a href="<?php echo channelUrl($sub); ?>"
-                   class="flex items-center justify-between gap-2 px-5 py-3 text-sm transition
+                   class="flex items-center justify-between gap-2 px-5 py-3.5 text-sm transition-colors
                           <?php echo $active
-                              ? 'bg-primary/5 text-primary font-bold border-l-2 border-primary -ml-px'
-                              : 'text-slate-700 hover:bg-slate-50 hover:text-primary border-l-2 border-transparent'; ?>">
+                              ? 'bg-primary/5 text-primary font-bold'
+                              : 'text-slate-700 hover:bg-slate-50 hover:text-primary'; ?>">
                     <span class="truncate"><?php echo e($sub['name']); ?></span>
                     <svg class="w-3.5 h-3.5 flex-shrink-0 <?php echo $active ? '' : 'opacity-40'; ?>" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
                 </a>
@@ -54,7 +53,7 @@ $sidebarItems = $rightSidebarItems ?? null;
         </ul>
     </div>
 
-    <!-- 联系卡：深色块 -->
+    <!-- 联系卡：与栏目导航共用蓝白层级 -->
     <?php
     $phone   = configRawLang('contact_phone');
     $email   = configRawLang('contact_email');
@@ -62,24 +61,23 @@ $sidebarItems = $rightSidebarItems ?? null;
     $hasContact = $phone || $email || $address;
     ?>
     <?php if ($hasContact): ?>
-    <div class="bg-slate-900 text-slate-200">
-        <div class="px-5 py-5">
-            <div class="flex items-center gap-3 mb-4">
-                <span class="block w-1 h-5 bg-primary"></span>
-                <span class="text-white font-bold tracking-wide uppercase text-sm">
+    <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm text-slate-700">
+        <div class="bg-primary px-5 py-4">
+            <span class="text-white font-bold tracking-wide text-base">
                     <?php echo __('footer_contact'); ?>
-                </span>
-            </div>
+            </span>
+        </div>
 
+        <div class="px-5 py-5">
             <div class="space-y-3 text-sm">
                 <?php if ($phone): ?>
-                <a href="tel:<?php echo e($phone); ?>" class="flex items-center gap-2 hover:text-white transition">
+                <a href="tel:<?php echo e($phone); ?>" class="flex items-center gap-2 hover:text-primary transition-colors">
                     <svg class="w-4 h-4 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                     <span class="font-mono tracking-wide"><?php echo e($phone); ?></span>
                 </a>
                 <?php endif; ?>
                 <?php if ($email): ?>
-                <a href="mailto:<?php echo e($email); ?>" class="flex items-center gap-2 hover:text-white transition break-all">
+                <a href="mailto:<?php echo e($email); ?>" class="flex items-center gap-2 hover:text-primary transition-colors break-all">
                     <svg class="w-4 h-4 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                     <span class="font-mono"><?php echo e($email); ?></span>
                 </a>
