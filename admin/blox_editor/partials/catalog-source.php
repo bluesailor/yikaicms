@@ -29,7 +29,7 @@ $catalogLanguageLabel = isMultiLangEnabled($isProductBlox ? 'products' : 'conten
                         : __('blox_catalog_scope_descendants', ['name' => (string) ($page['name'] ?? '')])) ?></dd>
                 </div>
             </dl>
-            <button type="button" @click="load(page); refreshPreview()" :disabled="loading || previewLoading"
+            <button type="button" @click="load(requestPage, requestKeyword); refreshPreview()" :disabled="loading || previewLoading"
                     :aria-busy="loading || previewLoading" data-testid="blox-catalog-refresh"
                     class="flex items-center justify-center gap-2 w-full min-h-8 px-2 py-1 border border-gray-300 rounded text-xs text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-wait">
                 <i class="ti ti-refresh shrink-0" aria-hidden="true"></i>
@@ -63,7 +63,7 @@ $catalogLanguageLabel = isMultiLangEnabled($isProductBlox ? 'products' : 'conten
                     <span class="min-w-0 break-words"><?= e(__('blox_catalog_clear_search')) ?></span>
                 </button>
             </div>
-            <button type="button" x-show="failed" @click="load(1)" class="text-xs text-blue-700 hover:underline">
+            <button type="button" x-show="failed" @click="load(requestPage, requestKeyword)" class="text-xs text-blue-700 hover:underline">
                 <?= e(__('blox_catalog_retry')) ?>
             </button>
             <ul class="divide-y divide-gray-200">
@@ -86,12 +86,12 @@ $catalogLanguageLabel = isMultiLangEnabled($isProductBlox ? 'products' : 'conten
                 </template>
             </ul>
             <div x-show="!loading && !failed && (page > 1 || hasMore)" class="flex items-center justify-between text-xs">
-                <button type="button" @click="load(page - 1)" :disabled="page <= 1" class="w-8 h-8 border rounded disabled:opacity-40 hover:bg-gray-100"
+                <button type="button" @click="load(page - 1, resultKeyword)" :disabled="page <= 1" class="w-8 h-8 border rounded disabled:opacity-40 hover:bg-gray-100"
                         title="<?= e(__('blox_catalog_previous')) ?>" aria-label="<?= e(__('blox_catalog_previous')) ?>">
                     <i class="ti ti-chevron-left" aria-hidden="true"></i>
                 </button>
                 <span x-text="page"></span>
-                <button type="button" @click="load(page + 1)" :disabled="!hasMore" class="w-8 h-8 border rounded disabled:opacity-40 hover:bg-gray-100"
+                <button type="button" @click="load(page + 1, resultKeyword)" :disabled="!hasMore" class="w-8 h-8 border rounded disabled:opacity-40 hover:bg-gray-100"
                         title="<?= e(__('blox_catalog_next')) ?>" aria-label="<?= e(__('blox_catalog_next')) ?>">
                     <i class="ti ti-chevron-right" aria-hidden="true"></i>
                 </button>

@@ -166,7 +166,7 @@ if (isset($status) && $status !== '') {
     $where[] = 'a.status = ?';
     $params[] = (int)$status;
 }
-if (!empty($keyword)) {
+if ((string) $keyword !== '') {
     $where[] = '(a.title LIKE ? OR a.summary LIKE ?)';
     $params[] = '%' . $keyword . '%';
     $params[] = '%' . $keyword . '%';
@@ -365,7 +365,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <span class="text-gray-400"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?></span>
             <?php
             $totalPages = (int)ceil($total / $perPage);
-            $qstr = http_build_query(array_filter(['channel_id' => $channelId, 'status' => $status, 'keyword' => $keyword]));
+            $qstr = http_build_query(array_filter(
+                ['channel_id' => $channelId, 'status' => $status, 'keyword' => $keyword],
+                static fn(mixed $value): bool => $value !== '' && $value !== null
+            ));
             ?>
             <?php if ($page > 1): ?>
             <a href="?page=<?php echo $page - 1; ?>&<?php echo $qstr; ?>" class="px-3 py-1 border rounded hover:bg-gray-50"><?php echo __('list_prev_page'); ?></a>

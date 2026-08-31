@@ -100,8 +100,10 @@ test('refresh preserves the query and page, disables duplicates and recovers fro
     const oldContent = await catalog.innerText();
     const keyword = 'no-match-' + Date.now();
     await panel.locator('input[type="search"]').fill(keyword);
+    await panel.locator('input[type="search"]').press('Enter');
+    await expect(panel.getByTestId('blox-catalog-no-match')).toBeVisible();
     // The tiny fixture has one page; retain a later page to exercise a now-empty result.
-    await panel.evaluate(el => { window.Alpine.$data(el).page = 2; });
+    await panel.evaluate(el => { const state = window.Alpine.$data(el); state.page = state.requestPage = 2; });
     let failing = true, release;
     const held = new Promise(resolve => { release = resolve; });
     const queries = [], actions = [];
