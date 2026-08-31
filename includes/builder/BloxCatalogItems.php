@@ -28,10 +28,14 @@ final class BloxCatalogItems
         }
         $items = [];
         foreach (array_slice($rows, 0, 6) as $row) {
+            $sourceName = (string) ($row[$type === 'product' ? 'category_name' : 'channel_name'] ?? '');
+            $sourceId = (int) ($row[$type === 'product' ? 'category_id' : 'channel_id'] ?? 0);
             $items[] = [
                 'id' => (int) $row['id'],
                 'title' => (string) $row['title'],
                 'cover' => UrlPolicy::image((string) ($row['cover'] ?? '')),
+                'source_label' => trim($sourceName) !== '' ? $sourceName
+                    : __($sourceId > 0 ? 'blox_catalog_source_unavailable' : 'admin_uncategorized'),
             ];
         }
         return ['items' => $items, 'page' => $page, 'has_more' => $page < 1000 && count($rows) > 6];

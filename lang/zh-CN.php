@@ -6100,4 +6100,8 @@ voltage|电压|220V',
     'blox_catalog_page_empty' => '当前页暂无条目',
     'blox_catalog_first_page' => '返回第一页',
     'blox_catalog_clear_search' => '清除搜索',
+    'blox_catalog_scope_label' => '内容范围',
+    'blox_catalog_scope_all_products' => '全部分类，含未分类产品',
+    'blox_catalog_scope_descendants' => ':name及全部下级栏目',
+    'blox_catalog_source_unavailable' => '来源未命名或已移除',
 ];

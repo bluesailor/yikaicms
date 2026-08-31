@@ -6032,4 +6032,8 @@ voltage|Voltage|220V',
     'blox_catalog_page_empty' => 'No items on this page',
     'blox_catalog_first_page' => 'Back to first page',
     'blox_catalog_clear_search' => 'Clear search',
+    'blox_catalog_scope_label' => 'Content scope',
+    'blox_catalog_scope_all_products' => 'All categories, including uncategorized products',
+    'blox_catalog_scope_descendants' => ':name and all subchannels',
+    'blox_catalog_source_unavailable' => 'Source unnamed or removed',
 ];

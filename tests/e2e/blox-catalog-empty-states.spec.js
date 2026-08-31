@@ -103,7 +103,7 @@ test('an empty later page returns to the same search and failures never look unp
     const panel = await openCatalog(page, 'product-catalog', fixtures.product_page);
     const item = panel.getByTestId('blox-catalog-item').first();
     await expect(item).toBeVisible();
-    const title = (await item.innerText()).trim();
+    const title = (await item.getByTestId('blox-catalog-item-title').innerText()).trim();
     const before = await snapshot(page), search = panel.locator('input[type="search"]');
     await search.fill(title);
     await search.press('Enter');

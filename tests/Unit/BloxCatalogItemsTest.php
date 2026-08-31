@@ -25,7 +25,7 @@ final class BloxCatalogItemsTest extends TestCase
     public function testArticlesAreBoundedScopedAndNeverReturnDraftsOrOtherContentTypes(): void
     {
         $this->insertRow('channels', ['id' => 1, 'type' => 'list']);
-        $this->insertRow('channels', ['id' => 2, 'parent_id' => 1, 'type' => 'list']);
+        $this->insertRow('channels', ['id' => 2, 'parent_id' => 1, 'type' => 'list', 'name' => 'Child news']);
         $this->insertRow('channels', ['id' => 3, 'type' => 'list']);
         for ($i = 0; $i < 8; $i++) {
             $this->insertRow('contents', ['channel_id' => 2, 'title' => 'Article ' . $i,
@@ -39,7 +39,8 @@ final class BloxCatalogItemsTest extends TestCase
         self::assertCount(6, $first['items']);
         self::assertTrue($first['has_more']);
         self::assertSame(1, $first['page']);
-        self::assertSame(['id', 'title', 'cover'], array_keys($first['items'][0]));
+        self::assertSame(['id', 'title', 'cover', 'source_label'], array_keys($first['items'][0]));
+        self::assertSame('Child news', $first['items'][0]['source_label']);
         self::assertSame('', $first['items'][0]['cover']);
         $second = \BloxCatalogItems::read($channel, '', 2);
         self::assertCount(2, $second['items']);
@@ -67,6 +68,21 @@ final class BloxCatalogItemsTest extends TestCase
     {
         $this->expectException(\RuntimeException::class);
         \BloxCatalogItems::read(['id' => 1, 'type' => 'page'], '', 1);
+    }
+
+    public function testSourcesUseJoinedNamesAndDistinguishUnassignedFromMissingParents(): void
+    {
+        $name = '<img src=x onerror=alert(1)> & Category';
+        $this->insertRow('product_categories', ['id' => 1, 'name' => $name]);
+        foreach ([1, 0, 999] as $categoryId) {
+            $this->insertRow('products', ['category_id' => $categoryId, 'title' => 'Product ' . $categoryId]);
+        }
+        $rows = \BloxCatalogItems::read(['id' => 1, 'type' => 'product'], '', 1)['items'];
+        $labels = array_column($rows, 'source_label', 'title');
+        // Raw names stay data; the browser must render them with x-text, not HTML.
+        self::assertSame($name, $labels['Product 1']);
+        self::assertSame(__('admin_uncategorized'), $labels['Product 0']);
+        self::assertSame(__('blox_catalog_source_unavailable'), $labels['Product 999']);
     }
 
     public function testOnlyUnpublishedRecordsAreEmptyUntilARecordIsPublished(): void

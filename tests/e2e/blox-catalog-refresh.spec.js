@@ -45,7 +45,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         });
         const panel = await openCatalog(page, type, id);
         const item = panel.getByTestId('blox-catalog-item').first();
-        const title = (await item.innerText()).trim();
+        const title = (await item.getByTestId('blox-catalog-item-title').innerText()).trim();
         const changedTitle = `Refresh ${kind} ${testInfo.project.name} ${Date.now()}`;
         const catalog = (await frame(page)).locator(`[data-${type}]`);
         await expect(catalog).toContainText(title);

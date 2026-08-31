@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 // Only server-authorized destinations are exposed; document data never supplies URLs.
 $bloxSourceLinks = [];
-$sourceLang = rawurlencode(siteLang());
+$sourceLang = rawurlencode(($isProductBlox || $isContentListBlox)
+    ? (string) ($page['lang'] ?? siteLang()) : siteLang());
 if (hasPermission('*')) {
     foreach (['about', 'cta', 'stats', 'advantage', 'testimonials', 'partners'] as $sourceType) {
         $bloxSourceLinks[$sourceType] = [
