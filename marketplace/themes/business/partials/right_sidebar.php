@@ -6,8 +6,10 @@
  *   @var array  $rightSidebarChannels
  *   @var int    $channelId
  *   @var ?int   $rightSidebarActiveId  覆盖高亮 id
+ *   @var ?array $rightSidebarItems     预构建链接 [{label,url,active}]，用于下载分类等
  */
 $activeId = $rightSidebarActiveId ?? $channelId;
+$sidebarItems = $rightSidebarItems ?? null;
 ?>
 <aside class="w-full lg:w-72 space-y-6">
 
@@ -20,6 +22,20 @@ $activeId = $rightSidebarActiveId ?? $channelId;
             </span>
         </div>
         <ul class="divide-y divide-slate-100">
+            <?php if (is_array($sidebarItems)): ?>
+            <?php foreach ($sidebarItems as $item): ?>
+            <li>
+                <a href="<?php echo e((string) ($item['url'] ?? '')); ?>"
+                   class="flex items-center justify-between gap-2 px-5 py-3 text-sm transition
+                          <?php echo !empty($item['active'])
+                              ? 'bg-primary/5 text-primary font-bold border-l-2 border-primary -ml-px'
+                              : 'text-slate-700 hover:bg-slate-50 hover:text-primary border-l-2 border-transparent'; ?>">
+                    <span class="truncate"><?php echo e((string) ($item['label'] ?? '')); ?></span>
+                    <svg class="w-3.5 h-3.5 flex-shrink-0 <?php echo !empty($item['active']) ? '' : 'opacity-40'; ?>" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                </a>
+            </li>
+            <?php endforeach; ?>
+            <?php else: ?>
             <?php foreach ($rightSidebarChannels as $sub):
                 $active = (int)$sub['id'] === $activeId;
             ?>
@@ -34,6 +50,7 @@ $activeId = $rightSidebarActiveId ?? $channelId;
                 </a>
             </li>
             <?php endforeach; ?>
+            <?php endif; ?>
         </ul>
     </div>
 
