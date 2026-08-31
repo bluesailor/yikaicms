@@ -1,0 +1,30 @@
+{
+  "version": "1.19.3.1",
+  "channel": "beta",
+  "release_date": "2026-09-01",
+  "level": "normal",
+  "min_php": "8.0",
+  "targeting": {
+    "domains": [
+      "target.example.com",
+      "www.target.example.com"
+    ],
+    "from": "1.19.3",
+    "manual_only": true,
+    "expires_at": "2026-09-30T17:41:03Z"
+  },
+  "changelog": "【Business 模板兼容修复】\n【重要】本次会更新 Business 主题文件！页面上方通用提示中的“主题与插件不受影响”不适用于本补丁。若自行修改过页头、页脚、标题区或同名脚本，请先备份并核对差异，暂勿直接升级。\n本次维护更新适用于本站 CMS 1.19.3 与 Business 1.0.0 模板。修复首页没有首屏轮播时白色导航难以看清、手机管理条遮挡菜单等兼容问题，并更新标题区兼容输出。\n仅更新 5 个模板文件和程序版本记录，不更换 Logo，不恢复或改写轮播、栏目、文章及首页内容。此次修复不是首页重新设计。\n模板更新为 1.0.1，维护版本记录为 1.19.3.1。",
+  "package": "delta-1.19.3-to-1.19.3.1-business.zip",
+  "hash": "sha256:cf18856fdd94571b3fba0cde04da3633c648546c4fcc36375094f00e8fdb3780",
+  "sig": "JlMpVD0uL2eiaB8udf+J309EQHOzhSSrSXu5qKqocxsldTMM4v81uF6VHN5GrpaN/Tx2GDILquYSQt0ZgCh/P6J3O1gT0r9HS/sOa4Ym3M/cYSwh0BcLeL0BzyA/ls8CxTAaM2wlKjpYzK++LQo4xaiUbINT5aKpIU5i1qJEumqRKPx2W3u17/ll1OLHLEcP2icKVJ3z2Oyg7uFNkJ69eeephoL3h3vKvXFlvjObwIO+kxP3Ws+CsGgqQuJsUo/RThxJuWREcZiSbgKz9gT3m73tSnw3wfZ+L1gbSPgs4s8RQETvvOaNcC/I+xdpowFDFo92LzCdazAihECGzrQV4g==",
+  "size": "8.7 KB",
+  "deltas": [
+    {
+      "from": "1.19.3",
+      "package": "delta-1.19.3-to-1.19.3.1-business.zip",
+      "hash": "sha256:cf18856fdd94571b3fba0cde04da3633c648546c4fcc36375094f00e8fdb3780",
+      "sig": "JlMpVD0uL2eiaB8udf+J309EQHOzhSSrSXu5qKqocxsldTMM4v81uF6VHN5GrpaN/Tx2GDILquYSQt0ZgCh/P6J3O1gT0r9HS/sOa4Ym3M/cYSwh0BcLeL0BzyA/ls8CxTAaM2wlKjpYzK++LQo4xaiUbINT5aKpIU5i1qJEumqRKPx2W3u17/ll1OLHLEcP2icKVJ3z2Oyg7uFNkJ69eeephoL3h3vKvXFlvjObwIO+kxP3Ws+CsGgqQuJsUo/RThxJuWREcZiSbgKz9gT3m73tSnw3wfZ+L1gbSPgs4s8RQETvvOaNcC/I+xdpowFDFo92LzCdazAihECGzrQV4g==",
+      "size": "8.7 KB"
+    }
+  ]
+}

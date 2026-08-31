@@ -1,0 +1,47 @@
+{
+    "status": "local-candidate-not-released",
+    "from": "1.19.3",
+    "to": "1.19.3.1",
+    "package": {
+        "package": "delta-1.19.3-to-1.19.3.1-business.zip",
+        "hash": "sha256:cf18856fdd94571b3fba0cde04da3633c648546c4fcc36375094f00e8fdb3780",
+        "sig": "JlMpVD0uL2eiaB8udf+J309EQHOzhSSrSXu5qKqocxsldTMM4v81uF6VHN5GrpaN/Tx2GDILquYSQt0ZgCh/P6J3O1gT0r9HS/sOa4Ym3M/cYSwh0BcLeL0BzyA/ls8CxTAaM2wlKjpYzK++LQo4xaiUbINT5aKpIU5i1qJEumqRKPx2W3u17/ll1OLHLEcP2icKVJ3z2Oyg7uFNkJ69eeephoL3h3vKvXFlvjObwIO+kxP3Ws+CsGgqQuJsUo/RThxJuWREcZiSbgKz9gT3m73tSnw3wfZ+L1gbSPgs4s8RQETvvOaNcC/I+xdpowFDFo92LzCdazAihECGzrQV4g==",
+        "size": "8.7 KB"
+    },
+    "base_package": "yikaicms-v1.19.3.zip",
+    "base_hash": "sha256:5b18cb682819f7c04623db968bc83f7e08d68d44246416a213d8949aa4a1ed74",
+    "theme_package": "business-v1.0.1.zip",
+    "theme_hash": "sha256:699aeea961ff1f7e3ddd7b8a65f9ca8c4c1b398b8285f477ede910f118368fe3",
+    "files": {
+        "config/version.php": {
+            "before_sha256": "26776c8322ff73e329e8a8a2a7dea1bb00f293159b20585f7dbfa60365b67dfc",
+            "after_sha256": "521b43a016d0225c0a451a009202135d7fa44a25c8c2681ab872db170dde930f"
+        },
+        "themes/business/assets/js/header.js": {
+            "before_sha256": null,
+            "after_sha256": "025a4e904cffbcdf2cdd75368b523593e63b89b7c9a62efe8f5784418578c38c"
+        },
+        "themes/business/layouts/footer.php": {
+            "before_sha256": "4bae77560aa15231ee8aff0c9b5f70b155bbab79713cffd6d3ca032b3fe79173",
+            "after_sha256": "8ded1986dd4001444f78497523b068d2b420194dc333088036ddf2e149178f67"
+        },
+        "themes/business/layouts/header.php": {
+            "before_sha256": "17a1120e5a4e280f060a0426a6574ffcae44203691fc279145f20fe9cd6d72a7",
+            "after_sha256": "f9b045f5c231d75bebee55b6ec4e981fa6296af5a16a20f141e6770158cfdcae"
+        },
+        "themes/business/partials/page-hero.php": {
+            "before_sha256": "e7598837b8792ddf950ac7d4e392d1b2f2b33c66d5dd50e6be23f1a4387ec61f",
+            "after_sha256": "417f04eea1a9b8c13e6f3f582e2c501b44735a4978ebb1ce88b511fd76cb0bf0"
+        },
+        "themes/business/theme.json": {
+            "before_sha256": "7291f3b5e67588d61bba8bbb4771062768b5aa375bff656f3f87d2fee75653d3",
+            "after_sha256": "14d593d2d33d0782b3d53a2a103a3be11d361fd011b799381a97d63863f874ab"
+        }
+    },
+    "limitations": [
+        "Customer PHP files and DB not available for customization comparison",
+        "Requires _targeting.php, _channel.php and check.php server changes before catalog activation",
+        "Do not alter global latest; do not publish as a fresh-install package",
+        "No client-installed result is established by local tests"
+    ]
+}

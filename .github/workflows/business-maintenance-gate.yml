@@ -1,0 +1,42 @@
+name: Business Maintenance Gate
+
+on:
+  push:
+    branches: ['codex/verify-business-11931']
+
+permissions:
+  contents: read
+
+jobs:
+  targeted-maintenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.0', '8.2']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, openssl, zip
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify actual signed upgrade artifact with the CMS client key
+        run: php tests/maintenance/business11931/verify.php
+      - name: Verify deployed server rules and existing channel behavior
+        working-directory: tests/maintenance/business11931/server
+        run: |
+          find api tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/update-check-channel.php
+          php tests/update-targeted.php
+      - name: Verify real HTTP update API isolation
+        working-directory: tests/maintenance/business11931/server
+        env:
+          PHP_BINARY: php
+        run: |
+          mkdir -p ../candidate/verification
+          node tests/update-targeted-api.cjs ../candidate

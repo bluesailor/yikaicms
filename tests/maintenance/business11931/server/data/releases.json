@@ -1,0 +1,194 @@
+{
+  "latest": "1.19.3",
+  "releases": [
+    {
+      "version": "1.19.3",
+      "channel": "stable",
+      "release_date": "2026-08-30",
+      "level": "security",
+      "changelog": "【安全】演示模式的开关现在需要站长口令。此前拥有演示站管理员账号的人可以直接关闭演示模式、取得完整写入权限，而公开演示站通常会公布该账号。本项不涉及未授权访问，攻击者需先持有一个管理员账号。切换模式、重建快照、立即重置均需口令。\n【安全】站点配方导出不再包含密钥类设置。此前导出的配方会原样带出计划任务令牌、授权码、SEO 推送密钥与邮件服务器账号，作为模板分发时会一并流出。导出需要管理员账号，不涉及未授权访问。已导出的配方文件请重新生成，并视情况轮换其中出现过的密钥。\n【安全】导入站点配方时不再允许写入密钥与本机身份类设置。此前一份来自第三方的配方可以改写加密密钥、计划任务令牌与演示模式开关。\n【安全】官方素材服务的接口地址限定为官方域名且必须使用 HTTPS。此前该地址可被改写为任意主机与明文连接，而素材请求会携带授权信息。\n【安全】页头、页脚与统计区块的背景图地址改为白名单校验后输出。此前特定格式的地址可以逃出样式声明并追加任意样式规则。相关升级须知见本页下方。\n【安全】未获得代码元素权限的角色，无法再通过排版编辑器的预览通道使用代码元素。\n【安全】授权、邮件、AI、翻译与接口设置等页面，在演示模式下不再允许打开。\n【修复】首页设置中的统计数值与文案修改后前台不生效的问题已修复。修改后请到前台确认显示无误。\n【修复】演示沙盒站点打开演示设置页并保存时会被关闭的问题已修复。\n【修复】首页两处版块的栅格错位已修复。\n【新增】排版编辑器的使用权限可按场景分配：单页与区块编辑、首页、全站设计（页头、页脚、弹窗）、代码元素。首页与全站设计不会自动下放，需管理员显式授予；原本拥有单页编辑权限的角色升级后保持不变。\n【新增】页面标题区支持选择样式来源：使用本栏目设置、继承上级栏目，或使用全站默认。同时可调整高度、遮罩浓度、对齐方式、焦点位置与文字明暗。\n【新增】页头与页脚支持按语言与具体栏目或单页分配专用版本。\n【新增】官方素材库：可在编辑器中浏览并导入官方提供的配图。\n【新增】排版元素支持按条件控制显示，轮播组件新增移动端展示模式。\n【新增】安装包内置来源清单，可核对所安装的版本与构建来源。\n【新增】站点健康检查按必需与建议区分运行环境要求。PHP 8.0 与 8.1 可正常运行，不再被标为严重问题；建议升级到 PHP 8.2 或更高。\n【优化】默认演示内容整体改版：主色调整为蓝色，正文对比度符合无障碍标准；演示配图改为随安装包提供，不再从外部图片服务实时获取，离线环境与内网部署下显示一致。\n【优化】安装包体积减小约 6MB，图标库不再重复内置。\n【优化】媒体库选择背景图时优先展示宽幅图片；批量修复的按钮文案更明确。\n\n【升级须知】本版有数据库变更，升级后请在后台运行一次数据库升级。\n【升级须知】页头、页脚和统计区块的背景图，如果填写的是协议相对地址（//主机/图片.jpg）、不带前导斜杠的 uploads/ 开头地址或 data URI，升级后需要重新选择一次图片。原值仍保留在数据库中，重新选择即可恢复，不涉及数据丢失；通过媒体库选择的图片不受影响。\n【升级须知】排版编辑器的首页与全站设计权限不会自动下放，需要管理员在角色设置中显式授予。",
+      "min_php": "8.0",
+      "size": "7.02MB",
+      "package": "yikaicms-v1.19.3.zip",
+      "hash": "sha256:5b18cb682819f7c04623db968bc83f7e08d68d44246416a213d8949aa4a1ed74",
+      "deltas": [
+        {
+          "from": "1.12.1",
+          "package": "delta-1.12.1-to-1.19.3.zip",
+          "hash": "sha256:d61ea4a376df28ba4c46bf01f63603f7ca7e0a52a89d99bf4c8f19fa4f3391bd",
+          "size": "6000KB",
+          "sig": "SETDH7cUmfx9dIH1YURvGia5X4nPVNZgsrUzelE/JwJIwbusZZN0yIxjcIxknH//pxeXwehqxh4SEG6SIcQEnJarBFLmUrj3q0KZ+8dUiVT0SsHS0BJ46dyS/CnHF+7SxFviCtd9+FmygqTGYuXfm+a6Fn7K+ohCYFBk9utK6upo7SsAyKpbDaNA1kh0n3BCqcqpxxLeKB4p/QPUUEl5ktaIh6KwQksNs8TvOcA0oB9OsUqfngePN0DbnsATb1okdXdt4B0C4qRknmyWmYjBdsOKbN2Wv7qnuO7pqGz20jXVHWJqLmCdbUTUlv9b5OI9gV7OMyYiDuiVdQbTnDlLww=="
+        },
+        {
+          "from": "1.12.5",
+          "package": "delta-1.12.5-to-1.19.3.zip",
+          "hash": "sha256:1fd1c6f0f8951fee083a6b93e228cd215db674bedaa464e3981e01a5b85a139a",
+          "size": "5614KB",
+          "sig": "dUT3adLwjXWdWubr+GVlJIqSXGX5/+o7iBv615lfxltDWCdCr2BSbJIn4Y2FeXC2iwH1m0sLcoaDxERlpLTJ2KqfvcTsNz+qzSo7YTQv6q11jWHhYNAj60K+i0LyPeUqi79htxPcVwTIN53yiBrVChaE+kE4AWNm2RiLXWbTbu7Q+7Y8vJx3+F5AjH0WzAMWswPD1sWgTEseRKUs6uWC0ayNWFbyOejOZuCjdviEq5SkCwuEtrcaW7DL38gztM9B47n1MJsq72CohohxhxRJa/gcIAgf6QUev8Rlo8S130jtDf84UancC60Wkz05PhJEEqfd5i+yVRQGnt2F7pFJ7A=="
+        },
+        {
+          "from": "1.12.7",
+          "package": "delta-1.12.7-to-1.19.3.zip",
+          "hash": "sha256:c1320b07957754520bcda5e781f9ba5f3a58654c65543074564c40946a94446a",
+          "size": "5602KB",
+          "sig": "YYbedtoYjltS9uiLqi6+bPFjc6IRCzZdXpb4AvRF/G0Nvq0fi8bnEYufSPbgrw32kL29wz0VCt7eBEp6RUXtMAX3b1r+UvNJyxUC/QPj238Adj1IFuiiqigG+iYvPIvCqv3bLQ3pSctUlCSmQl2TfWn33VU0n8uGUNmhi/duV0dgMgZ4AVDmXZ1yVJXm+OBqaJ/Rcq9r+ZXoKMp/FHtjDnACIperSu9ScEmLYtHYPXn7q1vj5Q3uzzOKQWNo2koVB9M7eWKlZgcf20vNkrLuZodB3ZDmeG2+p6efXlW5OioO5uPs0+AlGab1jRkLieeysPbheZ8pVIZ6dSW7YEGP5Q=="
+        },
+        {
+          "from": "1.12.9",
+          "package": "delta-1.12.9-to-1.19.3.zip",
+          "hash": "sha256:54f9665532f793b9301a4142a6f893faa75f2921b47866724cbab0752b508377",
+          "size": "5592KB",
+          "sig": "J0ML5wAuPYiSkwvX7JK6Lf+mnU5BYEFkWd3Z7rz3+/BM/EH19PoUufQBrzkYvDhU98OpkLjDF2UVj36mVmIc3+cb1hCOspJWjjwcxNYVBLUM6XdN6cIqS8qFbl0C77N31ypOwwroEjCDkU7TJOoOlS22a8MxIK3zU0AlhqDd86Jrc1KeUQ/Vnl0Ae/SUz0Lcq258hjatJ1UidsmiQR55d7G8eYBRTpa+19Sn5kEaerPaMvVYQtPM/rzmfXrGnqlFmFZ/SaUDJuQFvvTQnfNw5mjmTA3wqINoC9LLRuP/h5nKPJdpM8qvF9ezO3a80lfzKWFgDhwwmpCX51FE0r09QQ=="
+        },
+        {
+          "from": "1.12.10",
+          "package": "delta-1.12.10-to-1.19.3.zip",
+          "hash": "sha256:22d77cd25dceee555933394ea26a75e7ab8c49deb3c88f2eade6422c14f53dde",
+          "size": "5588KB",
+          "sig": "pSClWxEkjgEhXJYLKbEC5POBnKPyxkiUdiMiNxddUsblqRL5EKPjYWYpKhcoiqS1kR24WUliFEUMkZVUUdgT4ucJld9LxxifNys77hTRP3b3zSp5JShXEzVDHmSrWQXsqi0jhlnSmFUXE+WbUYzHYShieMeGfGjfUdz6JE6ufeGOR4H2P6lGoC+Mi4dA6fHJj/C5fYoWzUGcQQqxPv+wb31PHzURlTz2eO0NGYq+QaeavLFuPsT0JXJSitpQJvuocmPbdDYgShlYVCs8+1atM6BQLszov/KyeFrN3tQO1IrxLGDjz2Xv5HoB96k0WGTfKPWIYPHLnBcej+xUkh6e8Q=="
+        },
+        {
+          "from": "1.13.0",
+          "package": "delta-1.13.0-to-1.19.3.zip",
+          "hash": "sha256:2085d3f951c107ecb23f7b84fb12bb843aa35a67a205b61048eb762ae968c2f9",
+          "size": "5510KB",
+          "sig": "a71yBh4Pm8euB8j/3aVePYvV0c2zAboHJ7zhS3+ovuyT3QNUe13y+Ex61aB1MiZzumIVg/rhWfALL9XSguK6upLVySOLCWMuma4WuI/8S7kQJsL5tXVmnBBYaQomVyIEqf2xXjAjLO0vuJWV1OL/Pe0QsA1Yg54hwYYHHBSC4ZHJpLwP0Mqm/KrDjGpAhHMydEOFzt0na+Q9bUEDRoa+NgHMlChXwd44mTjcTorUa1QJklQ8zntkY9DFryusJqbp3nLifQpUyxk8iQ39iqDKCukUv+dsd4Dy6U2SZZn5IUZH5DexG9BQKhn5waL9VLV587DqC5+/LVdCNyg8D3ithw=="
+        },
+        {
+          "from": "1.13.1",
+          "package": "delta-1.13.1-to-1.19.3.zip",
+          "hash": "sha256:0601f8221d5172edd8d81e790b6be0ecb0a4da12399c94e9405a4be97546eb54",
+          "size": "5506KB",
+          "sig": "oyPVbaJ6XsM9ID0xYVUxMkln/GYToKkiDP0sCepSZVjQdLoGSCkbn3Brc46XE0j+HW2EmiQ1K6NXNkkHI50nBMdvcuBsM4LxOqkJDgFp20zFtvW2tNk/1T+wjgFFilGRg7T13WjGepWl83UtL7vuhsRnpu2+T2H9/2jH2r2U6K23Qaw14yilX2YNjgyBRlLd8mLzRhKLRWrCP58ceMqHhxnBm8w7WOYm+gJXDbwN6B8/JguC6vsv6gQwra7DUYmnOtJZI3nFfh4xuaEXXgufhHx/O3ac+fHboLFqZzh6N12zOMkuE2eXNy55clzN+7lq2ycn0WX1D58NBqXXsS1MCQ=="
+        },
+        {
+          "from": "1.13.2",
+          "package": "delta-1.13.2-to-1.19.3.zip",
+          "hash": "sha256:f18efd1e85c81a71d7d63fba63a98aeef6842c0721d286e4a6230d48e97009a9",
+          "size": "5502KB",
+          "sig": "XSYttr3a2Kx/FsOzNCU1BM2stPnE15JYqaywHQvRtkNe1mDyJhbnO9885eAPC7HAnkyrlNNNrGqNYK7q6H9OqrxpBvY+6U9sDh+uuXQBbzyszQPBFBu1O5IXcLx/pQ5gUPx40iICp/00XS9Si9RAm9EKMysWZqfHxGtxumw0FgGCI+b4cQxmcUyIPSeGOChqTKyIU/p+Ww/4DqrLqv+NyIMZfqbAIp1gnc3sGkSoVjw9SAgRAPoS+R1vkGw8V8wui9W9ZLMXFzaLDRK7PuCkEI4f4t6FShqXf8zhxCPx78ISV0nQjG0VEa17NKsaoLTfQq6MoxrL/6mPxoMWaAOfXw=="
+        },
+        {
+          "from": "1.14.0",
+          "package": "delta-1.14.0-to-1.19.3.zip",
+          "hash": "sha256:18e70149304f590806369b07f7552dff931ef870f46e7c43606e2b094f59eda2",
+          "size": "5473KB",
+          "sig": "kL5sm+hXf3QaNf6w+pmydEdeW82Lqs1UsGQrPNudlqv9c5QOivDs1LGvEaWba7l0uSbjjLc2vI6e3MprVxgLQPRO19sk84wSaLI79tSvXFaC7LNKA3gxU7mUYDLkOjoFy8CVwTAnltx7lrwfNVDKiYPDT3pESLRmwiyjSKQcqwI7hm7b7SacZToN0/DGeIeESwhdCOhGljsnwZXbTotagqs/loeLYcL2bvkYR/fHtCKYcbw736dRqCoaY33HwtSalfKaqdn2ecqhoMGR2hYmRm3DQeHNsDGjpzhm1hVXYCFexj925egD439Xb99av0Hq+Zc6JC7Qc1hCZBqdkifc6w=="
+        },
+        {
+          "from": "1.15.2",
+          "package": "delta-1.15.2-to-1.19.3.zip",
+          "hash": "sha256:9c5751d4d652c2a037a9d83ab5e723d08d714e960f035592cf89f2d8a882d0ea",
+          "size": "5443KB",
+          "sig": "pzYtdTzoBeCfbdXf/nVGnG+S8CUcibgRpOsrITR+enGUe5elfDbM57WHUEVl4zBJsqamNVVR+KGJTqp3SScE/OxS4ADSPl7hvVNidio0KpVP3Dif1I84E2LvI8gjsDk1rvemSTG3gY/HPseaqW5c0I910BbuBtfqs/cHdcYvEhKPGnBGU8JtGDibcvuYu/uP26rXrDLZIU8FZOeBMfKJNKdXmIrLMctESScrHDLRWm/zGXIaQTy1IlEJOOM9zvkuj8rVMVng5+6HCcGUKAXLZhcSKb+ZNyXrraECmLXb1yqo/sLNIXBMkTPiaNUiLxkV+H2iyDHiPPd4ZTIDAd2pmQ=="
+        },
+        {
+          "from": "1.16.0",
+          "package": "delta-1.16.0-to-1.19.3.zip",
+          "hash": "sha256:9b94efad553a4d5cc27f841851ca3562ecd0e8c864fb3bf3b25b32c6f9ccaee9",
+          "size": "5415KB",
+          "sig": "PDA/vUdW05llPCWsnh1ypppSsCfcpA7CNBZqJVcXHqD4s3CuY5m316rBoMZHCWZYSj0fpmZevWklPaGhnITMD2MOCNBl77YWwtOr/vfBV7hbwuLHdbC6xbecW5U8rUNk2qxS2h59rVbvSqCOWote4CR4FrNkrKMZOm+5InTaOXpF+cHctoUBUabFGEyqMmCqNxDmsAp4Qyxtom3abb8cLBShS5hRuRyX/r05wGBBP+nK6gQtP6r/OtQFuseviK5XzmU/PAuOWI2+hB1Zgr9b07KmbRt+Xoj5c9WfxbzFkEfm/HkI/X1/sSGShLDoFpeinFjJmaYavudZCGg1jbY5YQ=="
+        },
+        {
+          "from": "1.16.1",
+          "package": "delta-1.16.1-to-1.19.3.zip",
+          "hash": "sha256:d259cab7f95a56eed3ee8316be99bd29f337f2cd4962b742c9b88b5b41031ab1",
+          "size": "5415KB",
+          "sig": "U3+oezDHoAp5V3zmCq1vTn+rNUUJ6dC8AqedCRdHPMPtSo5IJoBfxjuAzBjN7RF1GWojPIfR0CJ6JbQeePSc91Yp3tsGpXu0weWG6CeYs2rcpDDHiLBpOVtEJknNOTfjPsJ24QZhTF1GdrNsNAZIy1R3q0xTq3iUYofmlW7ahjn07gJ+lX2LB/8XhospW6YD/reycuKEJRdVr44rF0czBSEzNRShNDATt70ffWl0mMZCGSskpwrXg3ydcQkzCZSOEHHrQ6BEaGpUPp3F4fGuskIL9eN/WHSrPrrxGdBCPplWMLASPEkyFXS3jGGlpnYpoIDjbCV+dSI6096AXXLUZg=="
+        },
+        {
+          "from": "1.16.2",
+          "package": "delta-1.16.2-to-1.19.3.zip",
+          "hash": "sha256:6debbc3010046f8487412695ea1b6fbf7dbceaedb95a5468f889d678de16d5ea",
+          "size": "5415KB",
+          "sig": "ejZKi+oAnbW5wYj0VfSkgtTqH7GhdqCIRS6ip+TTmZJrCT1coaDpt8XzPtSi780XQ0we1l/VdaJQ7M+LEyQeMgdL36DX+3VobbdP0jK07e2mkQXV3hU+4B5apB7IUqm1QYbkqIiZFWGyoNo/dn/sOSxGogennrH0CGcdGj56OWoaBzPQm8Sd9/NsyLNn74My+Uxrh9FFK1dENWPGcoCvm+1h7794gERPVyVO90WeLunLNBVyDhz//nIlgTJXhaC7Nqa5tgapG8k02gp039891oQZvpovbmuX0dPE9JPlWAoV6J7WSxWk4wsdPUDgAQUhmwEX9O7T7tjZNGCnFd1UVQ=="
+        },
+        {
+          "from": "1.17.2",
+          "package": "delta-1.17.2-to-1.19.3.zip",
+          "hash": "sha256:c06a6671e522157d8a7b4f204e7bf59551484d71cbe875a70fd6e454c1da1046",
+          "size": "4564KB",
+          "sig": "ZVrJHXZpeZID7gAaFjRz1SOB63Q29A3TdYR2zw5jLXsIE0RwEliFPsM/uzzZXSi38OtMs9usdLH+2c+Ze+FFLhgbWB35a7xyKKCuxnjrJ81DY8N1/WPjMYH75XQUr2iaiv0buuoRF4LL/zgMli7tX0WWiclGJFbS23yP0XS+qUC5rFy78l9pBRj5sY0fLuSNP0T0owJ57cHbURgwVetjnqAS05KD8IspYONjNL7doxzsenLmEk53csefCOzz9zUGh3XUzr4sEeUc7U27sIr4vDyUOnal0v3VKpY42kWIjuhwxAYEP/+2WE4sFSzXSOGDE2A6E5Movy2Tv47raA81ig=="
+        },
+        {
+          "from": "1.18.0",
+          "package": "delta-1.18.0-to-1.19.3.zip",
+          "hash": "sha256:873f8511fcfe60cd0bac42f3ef85ef8cc5f050d019659d253ed35fffb3b0c70f",
+          "size": "4.25MB",
+          "sig": "pA765pvdNqZi8LmVdSplrFe64yoBAHsOCKw1ZiLIkA9/scysvk7ibdeLj2OyMWS3/EYFzoc2LKp3szTh/jZWD+MeqcVv+I/u4P4nT/qlRhBqamZRqXUV4caOcV7O+t0pWJpGTT5ttunYTMn+hGel68u6IWfw3RX5Y/oNlrLcUHEZvIu1j1bVU+sVz6MvVRljtX7sHFLJzTJ7J0+BCsZ+2kax/CxKTnhFMQkM+hPH96UGXmohkYcGRVZEeLfQaYpRHsnofIRDVdrPLPjjvYhDQ/TgB67FFMfzU1cAnmt8hqbRuN+kkWVEoM+ruN8sZiNkqzu1VDpdjIhZiQlN1aZdDA=="
+        },
+        {
+          "from": "1.18.2",
+          "package": "delta-1.18.2-to-1.19.3.zip",
+          "hash": "sha256:26ca5422bb5ca495f1ac023635fa9087c7fd84e2c1b5dbf91389b94eb76e182e",
+          "size": "4.24MB",
+          "sig": "YUM1T8jcPctHK7rIRa7JsVpZ72/jjbjz+946gNjnnVy1K6c3R9Svm52xlbTKHhq86onDP9PEmVOJbibotDM2ajX9KAXPCl8fukUen6F48oBWXHzv0JAIOOgPwDtXgYIkXr23TrjoC6eYmJrieqyQP8xqLj+Cvz0/Uwx6m247zxAxumEZEZrHLYHsK7Bmfi59mqHNx/nARxTo5Ve4HHueTqENKwQ8lwqYI3oeDIj6MY8BsODYdSwBfYA49X/2lBJFyTmnA3BanSI/smYxGiUID5j3osg2eiDI6XDbqWdkg0Ic+gc2TQeKaD+iFr9Md6oFPdfE5afHjIjEM7JNBsDJRw=="
+        },
+        {
+          "from": "1.18.3",
+          "package": "delta-1.18.3-to-1.19.3.zip",
+          "hash": "sha256:73000a8cb2412441f6bd125c78ee722431b458682204216cede320d63d1e5e15",
+          "size": "4.24MB",
+          "sig": "QGu57j07t8ntkNy+9IDKoaAgQvkIsX4tFVhBuRJGvWH2Xp0UsLVhhL9ZdhoVWbB/K1wXYEuswUahDJk01RmLKCYRXinQeBacbRLXXfU6uht24R954138FxzvuwnHyEYxWyXLRS0Aco+bD/GFVZuE/VSwQ1+LRl+iQuT7v2QeIE2LxFD53eMYrdPT7aJ8CmTBkcnO3qymWgUXgjY/0DaR7FErVNNJEl6Q0K19PXNvU4BpNHT0g9CarG/1Bj03uU7jR/ZqhJn/udHV1QJ9arWERlJU5+1sleppYdvf6ySBJrPje2KkRD6ArGEVLh2EsBoUaZzmj9uTPv/0b+zOF3beiA=="
+        },
+        {
+          "from": "1.18.4",
+          "package": "delta-1.18.4-to-1.19.3.zip",
+          "hash": "sha256:db652a911ed9ee588ad82c7ec515e5da52fcbd51e27d450d60a63a12f0796d95",
+          "size": "4.24MB",
+          "sig": "pnJsiszlxOPm5Zs+TkSDdwcz9BWcG6f71pFp7Fo9FVdDN0VFYYpK2JsOxytNpA+dYhSkoHXMfBm9L4wJc6/90ZvRd/S8JlRPt07hBgJvUuP+njce5reIHfLl68z+b0MVc34pAAF5pKB/bN+FltlZ2kx4SwlRdrp3O4pi6R5cLBczZgyQVy82msi3yZWo99zkufWk9m+i/lJMrO8pK0PQWB2U7LSoCt4zEp1E2ILDI7sCX9VB+qHoBdo40R5Bt3Aly5F+FC6MpYQ5e9nzrgrGoYze4//gEZAuM6+I6AoCMth+j05Kk7aJE7EsH3b7jhw9VxqCHwp93SpB7DoDciPmSA=="
+        },
+        {
+          "from": "1.18.5",
+          "package": "delta-1.18.5-to-1.19.3.zip",
+          "hash": "sha256:cd3c03899275de090a3e70aa33072ddc3ca8ef2a292409076f4a89b46a5c590a",
+          "size": "4.2MB",
+          "sig": "jAHErcS0p9o97jLej4XUQeeMEhrYp8Gb4pPtRljrrtUsbgso10W/UYjgBJVpvI1P/ufOXEXzqLws1DpEpDwGftADFQk+FE3oOYSjJBQtQLzlcySs5kR4/sgYjPVKhbEXMniX4p2S57eiaLGWq8p8NeduCCQj+3iIeOXVHCRMJE8LZKtIRB84pPDuUqbfgfI/wcIfOkG7m/V2BTTvnKN9121kyJEYFDTJR2abrCbfpSmWLA66t9VKEbNDsZ7PK35mXRgQ/+Ks8KfK5wYIdaX7/d/MvGRVhlNvbPl79bxNubcJvZHp/qZiHhAsD3fbNinUaKpQogcRNyuMHk0LW8nMLQ=="
+        },
+        {
+          "from": "1.18.6",
+          "package": "delta-1.18.6-to-1.19.3.zip",
+          "hash": "sha256:c525921c22eb4569bf87b2bf294a04b77cfa98325317cd8003b17f1d15d47a85",
+          "size": "3.86MB",
+          "sig": "StNMGoRTOKt9v09yLX0L55bEP3DEKFL5seY9rZLyuvToZYgPJN849OG+yVgnxY7vf6kRPvtVWT0TUwichMbdjdbN+48DkqB1V4Oc1oQ5y5L+6YHJkdKBUEI/8NSr4RlL+r9KNpAPCCM4LB+XSKAyoSIoaeMih9+8ShWBjzxthgOiBaBVvLlRGP/NaxrgXMkzdJUCb4/RSIPS8OhWoysAo+PIF+9lM5iAPOjmElFpJ8JTLhcG/4t0Te+9RBGssnNTnCaCKF0BtmTJUsIMKBkZeVX1urUk8ka5YHiNHUK20gYPTw6bgfdfXySw15yMvgrphSetD2NFpARR9WApqG6FxA=="
+        },
+        {
+          "from": "1.18.7",
+          "package": "delta-1.18.7-to-1.19.3.zip",
+          "hash": "sha256:33b3dfbb915fdb705f37e58d095cf8185cf89ff152cc212b345e8e1eeb1c08ff",
+          "size": "3.79MB",
+          "sig": "g9ySvDtCQ+jYwd9SVJ0JJh6H9JMc5FfxgUy7aqOv+5lylFJczSi17rpLrgGCz5B0w1TRp2z+2rfSlvCdmnsreV7ioLwq/OwSHTcbhxvB8tpZLwgYsQV142zFxBbQSrLJuduFQ//IzfZsiahW0gEn+4M//ZPFkc7BhLmuBvxUbSd9kg1tQ8leZ8WuJYkgP2cid2K9S2xoizHvWNut5BRrKDQtw7QDvJMMumo4363cCwhuuKXMHvyLh1xvPOoLYjsFB51JMP/S3ew7vZAg1mFJ4JKGsDEla3X2y0iwFI23FOYejIBdIKi5E6ND6I/eCq/5PaRX8uVcWi5YO+LpHlGdKw=="
+        },
+        {
+          "from": "1.18.8",
+          "package": "delta-1.18.8-to-1.19.3.zip",
+          "hash": "sha256:e28fe77086a0ac0722c3442212ce83d2b129ac6c89a52bed56f3e666e831e457",
+          "size": "3.74MB",
+          "sig": "hRM2epZhqmNUSJV9rZKY29WYMMcVie3YaLdEMA0CnuLLx9x/nJMNO60HK60VosC/Gko7SSUY73rax/SK3MC9IsM6BoQegdrTZ53ZGWmFpU8NCQU+ysQ2uw+00zaIv5njEAhfICi6iU6C3rLVJpXPfoXIMo/BvKkeDBkIvI6OfB0yydAatzmvy+d8l6GtyGRqwjnHpeD48umZ2p5lwdbBnTLMgRgeY77bxF/sJtnluRtHRYMyjma9aSB8X+BR4GpCAfolInRCXCoIUA0Lw8dX2JV0krZXomaCeR8S9qdGTeX0fnL3tBiRGtJYcdPKlwCu0vaqmxZi88NqZnGQCHc8Lg=="
+        },
+        {
+          "from": "1.19.0",
+          "package": "delta-1.19.0-to-1.19.3.zip",
+          "hash": "sha256:3ca9c6579d71970a1734e710ef90d40b7da9f64699bd7761090df67e6fdfde0c",
+          "size": "3.1MB",
+          "sig": "Gw77x4IB6vZLEqwnaagMsNJi0OedkBKuUTCREXgCXl2YmLZ/W1PPZy53ksccxns5MWgAk/vZslpmVdw2of1iQKuEl1VBq2bdQEzp8k2DBAghiAK9y8MhjCydREbRqTRVhjvEapTg2r/nQ97/95xWvF5FSKu8M8jsYl+qdwIKqAPRjDHdkzPP7Ew/khHjfhDcUij50RkBtqdRC5y4qmCGGE40OzK+1M5eZSBf5W8dsqrNBKf21x6//1iNOLa+7qqOcijGL3COJEfmp6qDJSUeEgb9nE4gzp1hEXqPxPhnGim84bUXHjdrTECUcS0wwK3niMIF1OSDdR24uQk2Mu5MlQ=="
+        },
+        {
+          "from": "1.19.1",
+          "package": "delta-1.19.1-to-1.19.3.zip",
+          "hash": "sha256:01f6c16627c78c046a29f1c2796a2f50ff46fd23d4eb80236ef8375be4d67be2",
+          "size": "2.22MB",
+          "sig": "OFkAMUwyE6kF4FPUSs0h0ESuxUrZd/da1jVc9cirA6o26bady7fu2m08SrFZapRIqDbmxDe0ASqY7LmNRn3B2+FbqQElmgSTJxEmWCcyku/3GrjYNp81LfoBgHPfSmk7ysp9H8X5Vf6TgDCJNyY7KQQo5EjGLsECiCnOGQyLo8IOr741Vl9PNf2bm8nmtOtHNXyxp8oNzoLdOGb/Wi+Ow0zfyqLKDghZ9oPA7wOBIo0ngMkq42hTDHVETE5iJx8C6Ta5ExMJgGAumxMfWDZ8HYjO8M1VDSiFNZ3/CPvAZO1lUiTJIG4yqjdx5kaPhflNz5KZS780VY8Z/cf0VRdrKA=="
+        },
+        {
+          "from": "1.19.2",
+          "package": "delta-1.19.2-to-1.19.3.zip",
+          "hash": "sha256:de07ce33d9fd669d204357f42e99cb47491a309b085e39b680d5f74b7c0ee576",
+          "size": "2.15MB",
+          "sig": "LdpenAvvF15kpQN2eqOWccWtPTyEr9EQ0TVV/DmjF8jED9FgVN9DqhRUppoqbsVN4N+k0EMVLH7WgBnjy4Y7aavTSs2dUCBWJRAzqgfnBkCUJtLf13MMyzWRXhV+pJWa1Q41yU4ve6gKpwYJ87TO5Zwb//R62nYHctiPdKBVWYT4D5wUR4y1rEDiCXP91HXM82H1Womu6ceIJwCkGggDSYlto5QmwpMSjpktoNbOp1eS2UuygAA3+/b9656kCw/7ax3lq+nJhPzHfGN1y9l7KglEGdqMXcgbWaWy/MOl7Mg0iwcVVF1FO9ESqi8Iw2Zq05KJc57y78pd0HEgguhdFw=="
+        }
+      ],
+      "sig": "AsazTQE0V1Lub87o6ync2wkQbUt21sEi5eH/xnyd96JrK0HAzCa8y7Qz6WADed2kh5Z8IyqOo4ugO0AQx8cFyqTOaYfMwRY4cUNF+jDs05yInGybXWyBBrPuTw8C+HSsjXYCgVHNrUwVIymg1dKWloBA3vkyo00RWzIx0Fv1miMvEFup7sE4ezfVGvm5OwMGLmcHUZOYtWRKBM1MBslCF6/FgP18NR2JxZOY3t5hvo7SU/qnFBbdbIPxH7dwSqPzH6tjAgX1qwCrbrP3DsyXR0f66w5e8ePYluhbLElpurKMr/h/aHDAi1odzpes05rvhzPY/YVV7F3B6De51rV3uA=="
+    }
+  ]
+}
