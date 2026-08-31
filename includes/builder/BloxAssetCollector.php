@@ -99,7 +99,7 @@ final class BloxAssetCollector
             return false;
         }
         if (preg_match(
-            '#^/(?:assets|plugins)/[a-zA-Z0-9_./-]+\.' . preg_quote($extension, '#') . '$#',
+            '#^/(?:assets/|plugins/|themes/[a-zA-Z0-9_-]+/assets/)[a-zA-Z0-9_./-]+\.' . preg_quote($extension, '#') . '$#',
             $path
         ) !== 1) {
             return false;
