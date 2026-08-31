@@ -109,6 +109,9 @@ $footerNav = $footerNavRaw ? (json_decode($footerNavRaw, true) ?: []) : [];
         }
     })();
     </script>
+    <?php if (!empty($isHomePage)): ?>
+    <script src="<?php echo e(assetVer('/themes/business/assets/js/header.js')); ?>"></script>
+    <?php endif; ?>
     <?php if (!empty($extraJs)): ?><?php echo $extraJs; ?><?php endif; ?>
     <?php do_action('ik_footer_scripts'); ?>
     <?php do_action('render_footer'); ?>
