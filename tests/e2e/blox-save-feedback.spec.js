@@ -62,7 +62,10 @@ test('a failed canvas keeps the document and can retry without saving @ci', asyn
     const mobile = await page.getByTestId('blox-mobile-actions-open').isVisible();
     if (mobile) await page.getByTestId('blox-mobile-actions-open').click();
     failed = false;
-    await page.getByTestId(mobile ? 'blox-mobile-preview-retry' : 'blox-preview-retry').click();
+    const retry = page.getByTestId(mobile ? 'blox-mobile-preview-retry' : 'blox-preview-retry');
+    await expect(retry).toBeVisible();
+    if (mobile) expect((await retry.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    await retry.click();
     await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).previewFailed)).toBe(false);
     expect(await page.evaluate(() => window.Alpine.$data(document.body).documentData())).toBe(before);
     expect(writes).toBe(0);

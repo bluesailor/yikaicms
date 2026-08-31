@@ -3,6 +3,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 const {
   addTemporaryHeading,
+  expectClean,
   frame,
   observeConsole,
   openPageEditor,
@@ -34,7 +35,7 @@ test('page canvas includes the effective readonly header and footer @ci', async 
   await expect(headerArea).toHaveAttribute('data-yk-context-url', /\/admin\/(?:blox_editor\.php\?template=\d+|site_design\.php#site-design-area-header)/);
   await expect(footerArea).toHaveAttribute('data-yk-context-url', /\/admin\/(?:blox_editor\.php\?template=\d+|site_design\.php#site-design-area-footer)/);
   await expect(contentFrame.locator('.yk-home-context-area')).toHaveCount(2);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('page draft stays private until explicit publish @ci', async ({ page }, testInfo) => {
@@ -106,7 +107,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   const saveResult = await (await saveResponse).json();
   expect(saveResult.code).toBe(0);
   expect(saveResult.data.return_receipt).toMatch(/^[a-f0-9]{48}$/);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
   await expect(draftSummaryOpen).toBeVisible();
 
   const back = page.getByTestId('blox-back');
@@ -196,7 +197,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   const publishResult = await (await publishResponse).json();
   expect(publishResult.code).toBe(0);
   expect(publishResult.data.return_receipt).toMatch(/^[a-f0-9]{48}$/);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
   await expect(draftSummaryOpen).toBeHidden();
 
   const publishedBack = new URL(await page.getByTestId('blox-back').getAttribute('href'), 'http://yikaicms.local');
@@ -374,7 +375,7 @@ test('frontend return target preserves source and guards unsaved edits @local', 
   await expect(page.getByTestId('blox-undo')).toBeEnabled();
   await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
   await expect(sectionName).toHaveValue(originalName);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await Promise.all([
     page.waitForURL((url) => url.pathname + url.search === returnTo),
@@ -445,7 +446,7 @@ test('custom section name survives history and save before returning to automati
     });
     await page.getByTestId('blox-save').click();
     expect((await (await response).json()).code).toBe(0);
-    await expect(page.getByTestId('blox-dirty')).toBeHidden();
+    await expectClean(page);
   };
 
   await saveDraft();
