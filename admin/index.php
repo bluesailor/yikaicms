@@ -14,6 +14,37 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 
+// 控制台模板更新提醒：只读检测，与 CMS 程序升级分开返回。
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && get('action') === 'theme_updates') {
+    requirePermission('*');
+    $notifyLevel = (string) config('update_notify_level', '');
+    if ($notifyLevel === '') {
+        $notifyLevel = config('dashboard_update_check', '1') === '0' ? 'off' : 'all';
+    }
+    if ($notifyLevel !== 'all') {
+        success(['updates' => [], 'count' => 0], '');
+    }
+    require_once ROOT_PATH . '/includes/ThemeMarket.php';
+    $catalog = ThemeMarket::request();
+    if ($catalog === null) {
+        error(__('theme_err_market_conn'));
+    }
+    $updates = ThemeMarket::availableUpdates(
+        ThemeMarket::localVersions(ROOT_PATH . '/themes'),
+        $catalog['data']['themes']
+    );
+    $activeTheme = currentTheme();
+    usort($updates, static function (array $a, array $b) use ($activeTheme): int {
+        return (($b['slug'] === $activeTheme) <=> ($a['slug'] === $activeTheme))
+            ?: strcmp($a['slug'], $b['slug']);
+    });
+    success([
+        'updates' => $updates,
+        'count' => count($updates),
+        'updated_at' => $catalog['data']['updated_at'],
+    ], '');
+}
+
 // 新站引导：关闭提示（AJAX）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_onboard') {
     verifyCsrf();
@@ -166,20 +197,40 @@ if ($__notifyLv === '') {
 }
 require_once ROOT_PATH . '/includes/UpdateChannel.php';
 $__updateChannel = UpdateChannel::current();
+$__themeVersions = [];
+if (hasPermission('*') && $__notifyLv === 'all') {
+    require_once ROOT_PATH . '/includes/ThemeMarket.php';
+    $__themeVersions = ThemeMarket::localVersions(ROOT_PATH . '/themes');
+}
+$__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions)), 0, 12);
 ?>
 <?php if (hasPermission('*') && $__notifyLv !== 'off'): ?>
 <!-- 版本检测：显示当前版本，异步检查更新（结果本地缓存 6h，避免频繁请求更新服务器）；可关闭 -->
-<div id="uoBar" class="bg-white rounded-lg shadow px-5 py-3 mb-6 flex items-center justify-between flex-wrap gap-3">
-    <div class="flex items-center gap-2 text-sm text-gray-600">
-        <i class="ti ti-versions text-gray-400"></i>
-        <span><?php echo __('dashboard_version'); ?>：<b class="text-gray-800">v<?php echo e(defined('CMS_VERSION') ? CMS_VERSION : '?'); ?></b></span>
-        <span id="uoStatus" class="text-gray-400 flex items-center gap-1">
-            <i class="ti ti-loader-2 animate-spin text-xs"></i><?php echo __('dashboard_update_check'); ?>
-        </span>
+<div id="uoBar" class="mb-6 overflow-hidden rounded-lg bg-white shadow">
+    <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+        <div class="flex items-center gap-2 text-sm text-gray-600">
+            <i class="ti ti-versions text-gray-400"></i>
+            <span><?php echo __('dashboard_version'); ?>：<b class="text-gray-800">v<?php echo e(defined('CMS_VERSION') ? CMS_VERSION : '?'); ?></b></span>
+            <span id="uoStatus" class="text-gray-400 flex items-center gap-1" aria-live="polite">
+                <i class="ti ti-loader-2 animate-spin text-xs"></i><?php echo __('dashboard_update_check'); ?>
+            </span>
+        </div>
+        <a id="uoGo" href="/admin/upgrade_online.php" class="hidden items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded text-sm font-medium transition">
+            <i class="ti ti-cloud-download text-base"></i><span><?php echo __('dashboard_update_go'); ?></span>
+        </a>
     </div>
-    <a id="uoGo" href="/admin/upgrade_online.php" class="hidden items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded text-sm font-medium transition">
-        <i class="ti ti-cloud-download text-base"></i><span><?php echo __('dashboard_update_go'); ?></span>
-    </a>
+    <?php if ($__notifyLv === 'all'): ?>
+    <div id="themeUpdateRow" data-testid="dashboard-theme-update" class="hidden flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
+        <div class="flex min-w-0 flex-1 items-center gap-2 text-sm">
+            <i class="ti ti-template text-sky-600" aria-hidden="true"></i>
+            <span id="themeUpdateStatus" class="min-w-0 font-medium text-gray-700" aria-live="polite"></span>
+        </div>
+        <a id="themeUpdateGo" data-testid="dashboard-theme-update-go" href="/admin/theme.php?tab=market"
+            class="inline-flex shrink-0 items-center gap-1 py-1.5 text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+            <?php echo e(__('dashboard_theme_update_go')); ?><i class="ti ti-chevron-right" aria-hidden="true"></i>
+        </a>
+    </div>
+    <?php endif; ?>
 </div>
 <script>
 (function () {
@@ -194,6 +245,7 @@ $__updateChannel = UpdateChannel::current();
     };
     var NOTIFY_LEVEL = <?php echo json_encode($__notifyLv); ?>;
     var UPDATE_CHANNEL = <?php echo json_encode($__updateChannel); ?>;
+    var THEME_FINGERPRINT = <?php echo json_encode($__themeVersionFingerprint); ?>;
     function render(d) {
         // 仅安全更新：非 security 级别的版本不提示（后端 releases.json 的 level 字段）
         if (NOTIFY_LEVEL === 'security' && d && d.has_update && d.level !== 'security') {
@@ -250,6 +302,59 @@ $__updateChannel = UpdateChannel::current();
     statusEl.addEventListener('click', function () { check(true); });
 
     check(false);
+
+    var themeRow = document.getElementById('themeUpdateRow');
+    var themeStatus = document.getElementById('themeUpdateStatus');
+    var themeGo = document.getElementById('themeUpdateGo');
+    if (!themeRow || !themeStatus || !themeGo) return;
+    var themeKey = 'yk_theme_upd_' + THEME_FINGERPRINT;
+    var themeLang = <?php echo json_encode(getLang()); ?>;
+    var themeText = {
+        one: <?php echo json_encode(__('dashboard_theme_update_one')); ?>,
+        many: <?php echo json_encode(__('dashboard_theme_update_many')); ?>
+    };
+    function themeName(item) {
+        if (themeLang === 'en' && item.name_en) return item.name_en;
+        if (themeLang === 'ja' && item.name_ja) return item.name_ja;
+        return item.name || item.slug;
+    }
+    function formatThemeText(template, values) {
+        Object.keys(values).forEach(function (key) {
+            template = template.split(':' + key).join(String(values[key]));
+        });
+        return template;
+    }
+    function renderThemeUpdates(data) {
+        var updates = data && Array.isArray(data.updates) ? data.updates : [];
+        if (!updates.length) { themeRow.classList.add('hidden'); return; }
+        var first = updates[0];
+        themeStatus.textContent = updates.length === 1
+            ? formatThemeText(themeText.one, {
+                name: themeName(first), current: first.current_version, latest: first.latest_version
+            })
+            : formatThemeText(themeText.many, { count: updates.length });
+        themeGo.href = '/admin/theme.php?tab=market&update=' + encodeURIComponent(first.slug);
+        themeRow.classList.remove('hidden');
+        themeRow.classList.add('flex');
+    }
+    function checkThemeUpdates() {
+        try {
+            var saved = JSON.parse(localStorage.getItem(themeKey) || 'null');
+            if (saved && Date.now() - saved.t < (saved.d && saved.d.count ? 6 * 3600 * 1000 : 3600 * 1000)) {
+                renderThemeUpdates(saved.d); return;
+            }
+        } catch (e) {}
+        fetch('/admin/index.php?action=theme_updates', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (response) { return response.json(); })
+            .then(function (result) {
+                if (!result || Number(result.code) !== 0) return;
+                var data = result.data || { updates: [], count: 0 };
+                renderThemeUpdates(data);
+                try { localStorage.setItem(themeKey, JSON.stringify({ t: Date.now(), d: data })); } catch (e) {}
+            })
+            .catch(function () {});
+    }
+    checkThemeUpdates();
 })();
 </script>
 <?php endif; ?>

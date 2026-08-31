@@ -12,33 +12,11 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/security.php';   // zipUnsafeEntry
 require_once ROOT_PATH . '/includes/ThemeValidator.php';
+require_once ROOT_PATH . '/includes/ThemeMarket.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('*');
-
-// 模板市场 API（升级服务器承载，见 update.yikaicms/api/themes/list.php）
-const THEME_MARKET_API = 'https://update.yikaicms.com/api/themes/list.php';
-
-/** GET 一个 URL 返回 body（curl 优先，回退 allow_url_fopen；失败返回 null） */
-function themeMarketHttpGet(string $url, int $timeout = 15): ?string
-{
-    if (function_exists('curl_init')) {
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => $timeout,
-            CURLOPT_SSL_VERIFYPEER => true, CURLOPT_FOLLOWLOCATION => true,
-        ]);
-        $resp = curl_exec($ch);
-        curl_close($ch);
-        return is_string($resp) && $resp !== '' ? $resp : null;
-    }
-    if (ini_get('allow_url_fopen')) {
-        $resp = @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => $timeout]]));
-        return is_string($resp) && $resp !== '' ? $resp : null;
-    }
-    return null;
-}
 
 /** 递归删除主题目录（限定在 themes/ 内，防越界） */
 function deleteThemeDir(string $slug): bool
@@ -157,15 +135,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 
     if ($action === 'market_list') {
         $q = trim((string) ($_POST['q'] ?? ''));
-        $url = THEME_MARKET_API . ($q !== '' ? '?q=' . urlencode($q) : '');
-        $resp = themeMarketHttpGet($url);
-        if ($resp === null) {
+        $data = ThemeMarket::request($q);
+        if ($data === null) {
             echo json_encode(['code' => 1, 'msg' => __('theme_err_market_conn')]);
-            exit;
-        }
-        $data = json_decode($resp, true);
-        if (!is_array($data) || ($data['code'] ?? 1) !== 0) {
-            echo json_encode(['code' => 1, 'msg' => __('theme_err_market_resp')]);
             exit;
         }
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -173,9 +145,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     }
 
     // market_install：以服务端拿到的市场元数据为准（不信任前端传来的 URL/哈希）
-    $resp = themeMarketHttpGet(THEME_MARKET_API);
-    $data = $resp !== null ? json_decode($resp, true) : null;
-    if (!is_array($data) || ($data['code'] ?? 1) !== 0) {
+    $data = ThemeMarket::request();
+    if ($data === null) {
         echo json_encode(['code' => 1, 'msg' => __('theme_err_market_conn')]);
         exit;
     }
@@ -190,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 
     // 下载到临时文件
     $tmpZip = tempnam(sys_get_temp_dir(), 'ykthm');
-    $body = themeMarketHttpGet($item['download_url'], 120);
+    $body = ThemeMarket::downloadPackage((string) $item['download_url']);
     if ($body === null || file_put_contents($tmpZip, $body) === false) {
         @unlink($tmpZip);
         echo json_encode(['code' => 1, 'msg' => __('theme_err_download')]);
@@ -277,6 +248,9 @@ foreach ($themes as &$__t) {
 }
 unset($__t);
 $currentTheme = currentTheme();
+$initialThemeTab = get('tab') === 'market' ? 'market' : 'local';
+$highlightTheme = preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/D', (string) get('update')) === 1
+    ? (string) get('update') : '';
 
 // 本地已装版本表（市场页签据此显示 已安装/可升级）
 $localThemeVersions = [];
@@ -287,7 +261,7 @@ foreach ($themes as $t) {
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="p-6" x-data="themeManager()">
+<div class="p-6" x-data="themeManager()" x-init="init()">
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-800"><?php echo __('admin_theme'); ?></h1>
         <span class="text-sm text-gray-500"><?php echo __('theme_current'); ?>：<span class="font-medium text-primary"><?php echo e($currentTheme); ?></span></span>
@@ -451,7 +425,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
         <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="theme-market-list">
             <template x-for="t in items" :key="t.slug">
-                <div class="bg-white rounded-lg shadow overflow-hidden flex flex-col" :data-theme-slug="t.slug">
+                <div class="bg-white rounded-lg shadow overflow-hidden flex flex-col"
+                    :class="highlight === t.slug ? 'ring-2 ring-amber-400' : ''" :data-theme-slug="t.slug">
                     <div class="aspect-[16/10] bg-gray-100 relative overflow-hidden">
                         <img x-show="t.screenshot" :src="t.screenshot" :alt="t.name" class="w-full h-full object-cover">
                         <div x-show="!t.screenshot" class="w-full h-full flex items-center justify-center text-gray-300">
@@ -486,7 +461,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <script>
 function themeManager() {
     return {
-        tab: 'local',
+        tab: <?php echo json_encode($initialThemeTab); ?>,
+        highlight: <?php echo json_encode($highlightTheme); ?>,
         q: '',
         items: [],
         loading: false,
@@ -496,6 +472,9 @@ function themeManager() {
         local: <?php echo json_encode($localThemeVersions, JSON_UNESCAPED_UNICODE); ?>,
         lang: <?php echo json_encode(getLang()); ?>,
 
+        init() {
+            if (this.tab === 'market') this.search();
+        },
         openMarket() {
             this.tab = 'market';
             if (!this.loaded && !this.loading) this.search();
