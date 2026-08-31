@@ -106,7 +106,8 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test.afterEach(async ({ page }) => {
   if (!consoleEntries || !unsafeWrites) return;
-  const leakedDirtyState = await editorHasChanges(page);
+  const inEditor = new URL(page.url()).pathname.endsWith('/admin/blox_editor.php');
+  const leakedDirtyState = inEditor && await editorHasChanges(page);
   if (leakedDirtyState) await restoreClean(page);
   expect(leakedDirtyState, 'test left the editor dirty').toBe(false);
   expect(unsafeWrites, 'save/publish/rollback request was sent').toEqual([]);
