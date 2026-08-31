@@ -71,7 +71,8 @@ $aboutTextEditAttr = $aboutEditMode
 $aboutImageEditAttr = $aboutEditMode
     ? ' data-yk-home-column="image" data-yk-home-column-label="' . e($aboutImageOrder . ' · ' . __('blox_home_about_image_column') . ' · ' . $aboutRatioSpans[1]) . '"' . $aboutColumnPathAttr
     : '';
-$aboutImage = (string) config('home_about_image', '/assets/images/demo/about-office.jpg');
+$aboutContent = HomeAboutContent::resolve($aboutChannel ?? null);
+$aboutImage = $aboutContent['override_image'];
 $aboutImageWidth = match ($aboutRatio) {
     '5_7' => '58vw',
     '7_5' => '42vw',
@@ -81,13 +82,9 @@ $aboutImageWidth = match ($aboutRatio) {
 };
 $aboutImageSizes = '(min-width: ' . ($aboutBreakpoint === 'md' ? '768px' : '1024px') . ') '
     . $aboutImageWidth . ', 100vw';
-$aboutTagTitle = configJsonLang('home_about_tag_title') ?: config('home_about_tag_title', '');
-$aboutTagDesc = configJsonLang('home_about_tag_desc') ?: config('home_about_tag_desc', '');
-// 版块标题：后台可自定义（home_about_title）；留空回退到「关于」+ 站点名称
-$aboutTitle = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
-if ($aboutTitle === '') {
-    $aboutTitle = homeAboutDefaultTitle();
-}
+$aboutTagTitle = $aboutContent['override_tag_title'];
+$aboutTagDesc = $aboutContent['override_tag_description'];
+$aboutTitle = $aboutContent['override_title'];
 $bg = getBlockBg($block ?? [], '@auto');
 ?>
 <section class="blk <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
@@ -98,11 +95,11 @@ $bg = getBlockBg($block ?? [], '@auto');
                 <h2 class="blk-title mb-2"><?php echo homeTitleInner($aboutTitle); ?></h2>
                 <?php echo homeTitleDeco(false, 'st-left'); ?>
                 <p class="text-gray-600 text-lg leading-relaxed mb-6 mt-6">
-                    <?php echo e(configLang('home_about_content', 'home_about_default')); ?>
+                    <?php echo e($aboutContent['override_content']); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
-                <a href="<?php echo e(config('home_about_link', '') ?: channelUrl($aboutChannel)); ?>" class="u-btn-primary inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
-                    <?php echo e(config('home_about_button', '') ?: __('home_learn_more')); ?> &raquo;
+                <a href="<?php echo e($aboutContent['override_button_url']); ?>" class="u-btn-primary inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
+                    <?php echo e($aboutContent['override_button_text']); ?> &raquo;
                 </a>
                 <?php endif; ?>
             </div>

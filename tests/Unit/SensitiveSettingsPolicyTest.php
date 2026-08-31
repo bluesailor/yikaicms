@@ -94,6 +94,24 @@ final class SensitiveSettingsPolicyTest extends TestCase
         }
     }
 
+    public function testAllSecurityDefaultsAndMachineSettingsAreExcludedInBothDirections(): void
+    {
+        $defaults = require ROOT_PATH . '/config/defaults.php';
+        $keys = array_merge(array_keys($defaults['security']), [
+            'site_url', 'demo_mode', 'demo_reset_interval', 'installed', 'install_time',
+            'cms_version', 'db_version', 'enabled_languages', 'site_lang', 'admin_lang',
+            'official_media_api_base', 'static_html_base_url', 'static_html_enabled', 'static_html_last_gen',
+            'demo_owner_token',
+        ]);
+        foreach ($keys as $key) {
+            foreach ([$key, strtoupper($key), ' ' . $key . ' '] as $variant) {
+                self::assertSame([], SensitiveSettings::filterImportable([$variant => 'attack'])['settings'], $variant);
+                self::assertSame([], SensitiveSettings::filterExportable([$variant => 'private'])['settings'], $variant);
+            }
+        }
+        self::assertSame(['site_name' => 'Company'], SensitiveSettings::filterImportable(['site_name' => 'Company'])['settings']);
+    }
+
     public function testImportFilterRejectsAndReports(): void
     {
         $result = SensitiveSettings::filterImportable([

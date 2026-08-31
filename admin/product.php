@@ -92,9 +92,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// 获取分类
-$categories = productCategoryModel()->where(['status' => 1]);
-
 // 查询参数
 $categoryId = getInt('category_id');
 $status = get('status', '');
@@ -110,6 +107,12 @@ $_defaultLang = $_lang['default'];
 $_viewLang    = $_lang['view'];
 $_enabledList = $_lang['enabled'];
 $_langLabels  = availableLanguages();
+
+$categoryFilters = ['status' => 1];
+if (isMultiLangEnabled('product_categories')) {
+    $categoryFilters['lang'] = $_viewLang;
+}
+$categories = productCategoryModel()->where($categoryFilters);
 
 $filters = array_filter([
     'lang' => $_viewLang,
@@ -142,7 +145,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/product.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('product_tab_list'); ?></a>
+        <a href="/admin/product.php<?php echo e($_lang['qs']); ?>" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('product_tab_list'); ?></a>
         <a href="/admin/product_category.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('product_tab_category'); ?></a>
         <a href="/admin/product_brand.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_brand'); ?></a>
         <a href="/admin/product_tag.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_tag'); ?></a>
@@ -154,6 +157,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
+            <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
             <select name="category_id" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?></option>
                 <?php foreach ($categories as $cat): ?>
@@ -194,7 +198,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php echo e(__('blox_edit_product_page')); ?>
             </a>
             <?php endif; ?>
-            <a href="/admin/product_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
+            <a href="/admin/product_edit.php<?php echo e($_lang['qs']); ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <i class="ti ti-plus text-base"></i>
                 <?php echo __('admin_add'); ?>
             </a>
@@ -325,7 +329,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?></span>
                 <?php
                 $totalPages = ceil($total / $perPage);
-                $queryString = http_build_query(array_filter(['category_id' => $categoryId, 'status' => $status, 'keyword' => $keyword]));
+                $queryString = http_build_query(array_filter(
+                    ['category_id' => $categoryId, 'status' => $status, 'keyword' => $keyword, 'lang' => $_viewLang],
+                    static fn(mixed $value): bool => $value !== '' && $value !== null
+                ));
                 $baseUrl = '?' . ($queryString ? $queryString . '&' : '');
                 ?>
                 <?php if ($page > 1): ?>

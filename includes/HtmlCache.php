@@ -295,10 +295,11 @@ if (!function_exists('add_action')) {
     return;
 }
 // 1) Model 基类的 create/update/delete 都会触发通用 data_changed
-add_action('data_changed', function (string $table = '', $id = null): void {
+add_action('data_changed', function (string $table = '', $id = null, array $settings = []): void {
     // 黑名单：这些表写入不影响前台缓存，避免无谓清理
     static $skipTables = ['admin_logs', 'ai_logs', 'login_throttle', 'form_throttle'];
     if (in_array($table, $skipTables, true)) return;
+    if ($table === 'settings' && !SettingModel::affectsPageCache($settings)) return;
     HtmlCache::invalidate();
 });
 
@@ -307,4 +308,6 @@ add_action('after_save_content', function (): void { HtmlCache::invalidate(); })
 add_action('after_save_product', function (): void { HtmlCache::invalidate(); });
 add_action('after_delete_content', function (): void { HtmlCache::invalidate(); });
 add_action('after_delete_product', function (): void { HtmlCache::invalidate(); });
-add_action('setting_saved', function (): void { HtmlCache::invalidate(); });
+add_action('setting_saved', function (array $settings = []): void {
+    if (SettingModel::affectsPageCache($settings)) HtmlCache::invalidate();
+});

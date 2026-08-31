@@ -6,7 +6,7 @@
  * 动手改：发文章、传图、拖 Blox——然后由快照把站点拉回原样。
  *
  *   快照 = storage/demo/snapshot.sql（全部前缀表）+ storage/demo/uploads/（上传目录镜像）
- *   重置 = 恢复 SQL → 镜像回 uploads → 清页面/文件缓存 → 钉住 demo_mode=2 与 cron_token
+ *   重置 = 恢复 SQL → 钉住演示模式与独立口令 → 镜像回 uploads → 清页面/文件缓存
  *
  * 触发入口：后台 setting_demo.php 一键按钮 / cron.php?token=..&task=demo_reset /
  * CLI demo:reset / 定时任务 demo_reset（间隔见设置 demo_reset_interval）。
@@ -108,6 +108,7 @@ final class DemoSandbox
             'setting_security.php', 'site_health.php', // 改 .htaccess / 探针修复
             'user.php', 'profile.php',                // 改密码会把其他访客锁在门外
             'database.php',                           // 任意 SQL 恢复 / 清表
+            'static_html.php', 'setting_seo.php', 'system.php',
             'license.php', 'cron.php',                // 远程授权 / 站长口令与计划任务
             // 下面这些页面会把授权信息、SMTP/API 密钥显示出来，或直接触发外部服务调用。
             // 公开演示账号连 GET 都不该看到，所以拦的是整页而不是只拦提交。
@@ -123,7 +124,7 @@ final class DemoSandbox
     }
 
     /**
-     * 站长口令：与 cron token 同源。切换演示模式、更新快照都要带它。
+     * 独立站长口令：Cron 的调用权限不能升级成演示模式管理权限。
      *
      * 为什么不能只靠后台权限：公开演示站的超管账号密码本身就是公开的
      * （demo/demo 之类），`requirePermission('*')` 对访客等于不设防。
@@ -136,10 +137,19 @@ final class DemoSandbox
         if ($given === '') {
             return false;
         }
-        if (!class_exists('Cron')) {
-            require_once ROOT_PATH . '/includes/Cron.php';
+        $expected = (string) settingModel()->get('demo_owner_token', '');
+        return $expected !== '' && hash_equals($expected, $given);
+    }
+
+    /** Only the server CLI or first setup on a non-demo site may issue this secret. */
+    public static function ownerToken(): string
+    {
+        $token = (string) settingModel()->get('demo_owner_token', '');
+        if ($token === '') {
+            $token = bin2hex(random_bytes(32));
+            settingModel()->set('demo_owner_token', $token, 'system');
         }
-        return hash_equals(Cron::token(), $given);
+        return $token;
     }
 
     // ─────────────────────────────────────────────────────
@@ -271,11 +281,12 @@ final class DemoSandbox
 
         $t0 = microtime(true);
         try {
-            // 重置前记住要钉住的两个值：cron token 不能随库变（站长收藏的重置链接会失效），
-            // demo_mode 必须保持沙盒（快照可能是在切换模式之前拍的）。
+            // 两种口令均不能回退到旧快照；demo_mode 保持沙盒，避免恢复后开放真站权限。
             $cronToken = '';
+            $ownerToken = '';
             try {
                 $cronToken = (string) settingModel()->get('cron_token', '');
+                $ownerToken = (string) settingModel()->get('demo_owner_token', '');
             } catch (\Throwable $e) {
             }
 
@@ -283,11 +294,10 @@ final class DemoSandbox
 
             $sql = (string) file_get_contents(self::snapshotSqlPath());
             $result = DatabaseMaintenance::restoreSql($sql);
+            self::pinSettings($cronToken, $ownerToken);
             if (!empty($result['errors'])) {
                 throw new \RuntimeException('恢复 SQL 出错：' . implode(' | ', $result['errors']));
             }
-
-            self::pinSettings($cronToken);
 
             $files = self::mirrorDir(self::snapshotUploadsPath(), self::uploadsDir(), self::KEEP_IN_UPLOADS);
             $cache = self::clearCaches();
@@ -348,13 +358,12 @@ final class DemoSandbox
     // 内部
     // ─────────────────────────────────────────────────────
 
-    private static function pinSettings(string $cronToken): void
+    private static function pinSettings(string $cronToken, string $ownerToken): void
     {
         $model = settingModel();
         $model->set('demo_mode', self::MODE_SANDBOX);
-        if ($cronToken !== '') {
-            $model->set('cron_token', $cronToken, 'cron');
-        }
+        $model->set('cron_token', $cronToken, 'cron');
+        $model->set('demo_owner_token', $ownerToken, 'system');
     }
 
     private static function clearCaches(): int

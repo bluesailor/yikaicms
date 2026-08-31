@@ -482,10 +482,11 @@ function pickCoverFromMedia() {
 </script>
 
 <?php
-// 注意：下面是 heredoc（双引号语义），仅 {$msgSaveSuccess} 会被插值。
-// 不要改回 nowdoc（单引号定界符），否则内嵌的 PHP 标签不会被执行、会原样输出到 JS。
+// 注意：下面是 heredoc（双引号语义），文案应先 JSON 编码，再通过变量插值。
+// heredoc 不执行内嵌 PHP 标签；也不要改成不会插值变量的 nowdoc。
 // 切勿在本注释里写 PHP 闭合标签，否则会提前结束 PHP 块、把后面的代码当文本输出。
 $msgSaveSuccess = json_encode(__('msg_save_success'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
+$msgNetworkError = json_encode(__('admin_network_error'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
 $sumCharsLabel  = json_encode(__('sum_chars'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
 $extraJs = <<<JSEOF
 <script>
@@ -528,7 +529,7 @@ initTinyEditor(".tinymce-editor");
             }
         } catch (err) {
             submitting = false;
-            showMessage(<?php echo json_encode(__('admin_network_error'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+            showMessage({$msgNetworkError}, 'error');
         }
     });
 })();

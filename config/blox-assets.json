@@ -11,6 +11,8 @@
     "admin/blox_template_api.php",
     "admin/blox_templates.php",
     "includes/builder/BloxCanvasPreview.php",
+    "includes/builder/BloxCatalogPreview.php",
+    "includes/builder/BloxCatalogItems.php",
     "includes/builder/BloxAreaDocument.php",
     "includes/builder/BloxThemeHeaderDocument.php",
     "includes/builder/BloxHeaderStates.php",
@@ -37,6 +39,10 @@
     "assets/js/blox-color-picker.js",
     "assets/js/blox-command-runner.js",
     "assets/js/blox-control-rules.js",
+    "assets/js/blox-banner-panel.js",
+    "assets/js/blox-home-content-panel.js",
+    "assets/js/blox-image-control.js",
+    "assets/js/blox-catalog-source.js",
     "assets/js/blox-dialog-focus.js",
     "assets/js/blox-draft-recovery.js",
     "assets/js/blox-draft-summary.js",
@@ -46,7 +52,8 @@
     "assets/js/blox-media-client.js",
     "assets/js/blox-preview-client.js",
     "assets/js/blox-responsive.js",
-    "assets/js/blox-template-library.js"
+    "assets/js/blox-template-library.js",
+    "includes/builder/HomeAboutContent.php"
   ],
   "pro": [
     "plugins/blox-example"

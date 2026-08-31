@@ -28,7 +28,7 @@ class ProductModel extends Model
             $params = array_merge($params, $catIds);
         }
 
-        if (!empty($filters['keyword'])) {
+        if ((string) ($filters['keyword'] ?? '') !== '') {
             $where[] = '(p.title LIKE ? OR p.summary LIKE ? OR p.model LIKE ?)';
             $kw = '%' . $filters['keyword'] . '%';
             $params[] = $kw;
@@ -86,7 +86,7 @@ class ProductModel extends Model
             $params = array_merge($params, $catIds);
         }
 
-        if (!empty($filters['keyword'])) {
+        if ((string) ($filters['keyword'] ?? '') !== '') {
             $where[] = '(title LIKE ? OR summary LIKE ? OR model LIKE ?)';
             $kw = '%' . $filters['keyword'] . '%';
             $params[] = $kw;
@@ -291,7 +291,7 @@ class ProductModel extends Model
             $where[] = 'p.status = ?';
             $params[] = (int) $filters['status'];
         }
-        if (!empty($filters['keyword'])) {
+        if ((string) ($filters['keyword'] ?? '') !== '') {
             $where[] = '(p.title LIKE ? OR p.model LIKE ?)';
             $params[] = '%' . $filters['keyword'] . '%';
             $params[] = '%' . $filters['keyword'] . '%';

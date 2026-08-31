@@ -4,20 +4,24 @@ const net = require('net');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 
-const root = path.resolve(__dirname, '../..');
+const { createSite, removeSite } = require('./isolated-site');
+const sourceRoot = path.resolve(__dirname, '../..');
+let root = '';
 const php = process.env.PHP_BINARY || 'php';
 let port = Number(process.env.BLOX_E2E_PORT || 0);
 let baseURL = '';
 const runId = `${process.pid}-${Date.now()}`;
 const requestedArgs = process.argv.slice(2);
 const freeMode = requestedArgs.includes('--free');
+const adminSmoke = requestedArgs.includes('--admin-smoke');
+const permissionSmoke = requestedArgs.includes('--permission-smoke');
 const languageArg = requestedArgs.find((arg) => /^--lang=(?:zh-CN|en|ja)$/.test(arg));
 const smokeLang = languageArg ? languageArg.slice('--lang='.length) : 'zh-CN';
-const playwrightArgs = requestedArgs.filter((arg) => arg !== '--free' && arg !== languageArg);
+const playwrightArgs = requestedArgs.filter((arg) => arg !== '--free' && arg !== '--admin-smoke' && arg !== '--permission-smoke' && arg !== languageArg);
 const outputDir = process.env.BLOX_E2E_OUTPUT_DIR
-  || path.join(root, 'test-results', `e2e-${runId}`);
+  || path.join(sourceRoot, 'test-results', `e2e-${runId}`);
 const reportDir = process.env.BLOX_E2E_REPORT_DIR
-  || path.join(root, 'playwright-report', runId);
+  || path.join(sourceRoot, 'playwright-report', runId);
 const serverLogPath = process.env.BLOX_E2E_SERVER_LOG
   || path.join(outputDir, 'php-server.log');
 let server = null;
@@ -89,6 +93,8 @@ async function main() {
   };
   process.once('SIGINT', onInterrupt);
   try {
+    root = createSite(sourceRoot);
+    console.log(`Isolated test site: ${root}`);
     port = await choosePort();
     baseURL = `http://127.0.0.1:${port}`;
     setupAttempted = true;
@@ -111,13 +117,21 @@ async function main() {
     server.stderr.on('data', collectLog);
     await waitForServer();
 
+    if (adminSmoke || permissionSmoke) {
+      for (const script of [adminSmoke && 'admin_pages.php', permissionSmoke && 'permission_matrix.php'].filter(Boolean)) {
+        exitCode = runPhp(['tests/smoke/' + script], { ...process.env, SMOKE_BASE: baseURL }).status === 0 ? 0 : 1;
+        if (exitCode !== 0) throw new Error(script + ' failed');
+      }
+      return;
+    }
+
     const playwrightCli = require.resolve('@playwright/test/cli');
     playwright = spawn(process.execPath, [playwrightCli, 'test', ...playwrightArgs], {
       cwd: root,
       env: {
         ...process.env,
         BLOX_E2E_BASE_URL: baseURL,
-        BLOX_E2E_STORAGE_STATE: path.join(root, 'test-results', `e2e-auth-${runId}.json`),
+        BLOX_E2E_STORAGE_STATE: path.join(sourceRoot, 'test-results', `e2e-auth-${runId}.json`),
         BLOX_E2E_OUTPUT_DIR: outputDir,
         BLOX_E2E_REPORT_DIR: reportDir,
         SMOKE_BLOX_ADVANCED: freeMode ? '0' : (process.env.SMOKE_BLOX_ADVANCED || '1'),
@@ -150,7 +164,9 @@ async function main() {
       if (restore.status !== 0) exitCode = 1;
     }
     if (exitCode !== 0) persistServerLog();
+    if (root) removeSite(root);
     process.removeListener('SIGINT', onInterrupt);
+    process.exitCode = exitCode;
   }
   process.exitCode = exitCode;
 }

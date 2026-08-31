@@ -34,6 +34,21 @@ global.fetch = function (url, options) {
 };
 require("../../assets/js/blox-template-library.js");
 
+test("area comparison counts nested elements without changing documents", function () {
+    const current = [{ columns: [{ elements: [
+        { type: "container", data: { children: [{ type: "logo" }, { type: "nav" }] } },
+        { type: "logo" },
+    ] }] }];
+    const candidate = [{ columns: [{ elements: [{ type: "site-contact" }, { type: "site-contact" }, { type: "logo" }] }] }];
+    const original = JSON.stringify([current, candidate]);
+    const result = global.BloxTemplateLibrary.compareSections(current, candidate, (type, count) => type + ":" + count);
+    assert.deepEqual(global.BloxTemplateLibrary.elementCounts(current), { container: 1, logo: 2, nav: 1 });
+    assert.deepEqual(result, { added: ["site-contact:2"], removed: ["container:1", "logo:1", "nav:1"], same: false });
+    assert.equal(JSON.stringify([current, candidate]), original);
+    assert.deepEqual(global.BloxTemplateLibrary.compareSections(current, current, String), { added: [], removed: [], same: true });
+    assert.deepEqual(global.BloxTemplateLibrary.elementCounts([]), {});
+});
+
 test("list keeps local results and exposes a remote provider warning", async function () {
     const items = await global.BloxTemplateLibrary.list("/templates", "page", "failed");
     assert.equal(items.length, 1);

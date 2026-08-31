@@ -20,6 +20,14 @@ declare(strict_types=1);
 $BASE = getenv('SMOKE_BASE') ?: 'http://127.0.0.1:8080';
 $JAR  = sys_get_temp_dir() . '/smoke_rollback_cookies_' . getmypid() . '.txt';
 $ROOT = dirname(__DIR__, 2);
+define('ROOT_PATH', $ROOT);
+require $ROOT . '/config/config.php';
+if (DB_DRIVER !== 'sqlite' || realpath(DB_PATH) !== realpath($ROOT . '/storage/database.sqlite')
+    || SITE_URL !== $BASE || !str_starts_with($BASE, 'http://127.0.0.1:')
+    || !is_file($ROOT . '/tests/smoke/fixtures.json')) {
+    fwrite(STDERR, "Requires disposable smoke installation\n");
+    exit(2);
+}
 $SANDBOX = $ROOT . '/e2e-rb-sandbox';
 @unlink($JAR);
 
@@ -68,6 +76,7 @@ $CLEANUP = [];
 function rbCleanup(): void
 {
     global $CLEANUP, $SANDBOX, $ROOT;
+    db()->execute('DROP TABLE IF EXISTS ' . DB_PREFIX . 'smoke_rollback_probe');
     $rm = function (string $d) use (&$rm): void {
         if (!is_dir($d)) { @unlink($d); return; }
         foreach (array_diff(scandir($d) ?: [], ['.', '..']) as $it) {
@@ -113,6 +122,8 @@ if (!preg_match('/name="csrf-token"\s+content="([a-f0-9]+)"/', $indexPage, $m)) 
 }
 $CSRF = $m[1];
 echo "✓ 登录成功\n";
+db()->execute('CREATE TABLE ' . DB_PREFIX . 'smoke_rollback_probe (id INTEGER PRIMARY KEY, value VARCHAR(100))');
+db()->execute('INSERT INTO ' . DB_PREFIX . 'smoke_rollback_probe (id, value) VALUES (?, ?)', [1, 'BEFORE']);
 
 // ---- 0) 布景：沙箱三类文件 + 手工构造增量包 ----
 @mkdir($SANDBOX, 0755, true);
@@ -159,6 +170,7 @@ rbAssert($backup !== '' && str_starts_with($backup, 'pre-upgrade-'), "备份目�
 $bakDir = $ROOT . '/storage/backups/' . $backup;
 $CLEANUP[] = $bakDir;
 rbAssert(is_file($bakDir . '/config.php'), 'config.php 已在改动文件前完成备份');
+rbAssert(is_file($bakDir . '/database.sql'), '数据库快照已在升级前完成');
 
 // ---- 2) apply_batch：覆盖 + 覆盖前快照 ----
 echo "— apply_batch\n";
@@ -187,9 +199,24 @@ rbAssert(($rb['created'] ?? []) === ['e2e-rb-sandbox/created.txt'], '回滚清�
 rbAssert(($rb['deleted'] ?? []) === ['e2e-rb-sandbox/doomed.txt'], '回滚清单记录了被删文件');
 
 // ---- 4) apply_rollback：三类文件全部还原 ----
+db()->execute('UPDATE ' . DB_PREFIX . 'smoke_rollback_probe SET value = ? WHERE id = ?', ['AFTER', 1]);
+db()->execute('ALTER TABLE ' . DB_PREFIX . 'smoke_rollback_probe ADD COLUMN migration_marker INTEGER');
+rename($bakDir . '/database.sql', $bakDir . '/database.sql.held');
+try {
+    $missing = rbAction('apply_rollback', ['backup' => $backup]);
+    rbAssert(($missing['code'] ?? 0) === 2, '数据库快照缺失时拒绝回滚');
+    rbAssert(file_get_contents($SANDBOX . '/overwrite.txt') === 'NEW-CONTENT', '数据库恢复失败不回滚文件');
+    rbAssert(is_file($bakDir . '/rollback.json'), '失败后保留恢复清单');
+} finally {
+    rename($bakDir . '/database.sql.held', $bakDir . '/database.sql');
+}
 echo "— apply_rollback\n";
 $roll = rbAction('apply_rollback', ['backup' => $backup]);
 rbAssert(($roll['code'] ?? 1) === 0, '回滚成功且零失败');
+rbAssert(($roll['database']['statements'] ?? 0) > 0 && ($roll['database']['errors'] ?? null) === [], '数据库 SQL 恢复成功');
+rbAssert(db()->fetchColumn('SELECT value FROM ' . DB_PREFIX . 'smoke_rollback_probe WHERE id = ?', [1]) === 'BEFORE', '数据库数据恢复到升级前');
+$columns = array_column(db()->fetchAll('PRAGMA table_info(' . DB_PREFIX . 'smoke_rollback_probe)'), 'name');
+rbAssert(!in_array('migration_marker', $columns, true), '数据库结构恢复到升级前');
 rbAssert(file_get_contents($SANDBOX . '/overwrite.txt') === 'OLD-CONTENT', '被覆盖文件已还原为旧版');
 rbAssert(!is_file($SANDBOX . '/created.txt'), '升级新建的文件已移除');
 rbAssert(file_get_contents($SANDBOX . '/doomed.txt') === 'DOOMED-CONTENT', '被删除的文件已恢复');

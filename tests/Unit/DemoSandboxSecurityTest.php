@@ -26,25 +26,25 @@ final class DemoSandboxSecurityTest extends TestCase
         );
         $existing = db()->fetchOne(
             'SELECT `value`, `group` FROM ' . DB_PREFIX . 'settings WHERE `key` = ?',
-            ['cron_token']
+            ['demo_owner_token']
         );
         if (is_array($existing)) {
             $this->hadOwnerToken = true;
             $this->previousOwnerToken = (string) ($existing['value'] ?? '');
             $this->previousOwnerTokenGroup = (string) ($existing['group'] ?? 'cron');
         }
-        settingModel()->set('cron_token', 'demo-owner-token', 'cron');
+        settingModel()->set('demo_owner_token', 'demo-owner-token', 'system');
     }
 
     protected function tearDown(): void
     {
         if ($this->hadOwnerToken) {
-            settingModel()->set('cron_token', $this->previousOwnerToken, $this->previousOwnerTokenGroup);
+            settingModel()->set('demo_owner_token', $this->previousOwnerToken, $this->previousOwnerTokenGroup);
             return;
         }
 
-        settingModel()->set('cron_token', '', 'cron');
-        db()->delete('settings', '`key` = ?', ['cron_token']);
+        db()->delete('settings', '`key` = ?', ['demo_owner_token']);
+        settingModel()->clearCache();
     }
 
     public function testEverySupportedModeHasOneCanonicalContract(): void
@@ -55,11 +55,32 @@ final class DemoSandboxSecurityTest extends TestCase
         self::assertFalse(DemoSandbox::isValidMode('3'));
     }
 
-    public function testOwnerTokenUsesConstantTimeSharedCronToken(): void
+    public function testOwnerTokenUsesIndependentSecret(): void
     {
         self::assertTrue(DemoSandbox::ownerTokenMatches('demo-owner-token'));
         self::assertFalse(DemoSandbox::ownerTokenMatches('wrong-token'));
         self::assertFalse(DemoSandbox::ownerTokenMatches(''));
+    }
+
+    public function testCronTokenCannotManageSandboxOrIssueOwnerToken(): void
+    {
+        $before = settingModel()->get('cron_token', null);
+        try {
+            settingModel()->set('cron_token', 'cron-only-token', 'cron');
+            self::assertFalse(DemoSandbox::ownerTokenMatches('cron-only-token'));
+            settingModel()->set('demo_owner_token', '', 'system');
+            self::assertFalse(DemoSandbox::ownerTokenMatches('cron-only-token'));
+            self::assertSame('', settingModel()->get('demo_owner_token'));
+            $token = DemoSandbox::ownerToken();
+            self::assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $token);
+            self::assertSame($token, DemoSandbox::ownerToken());
+            self::assertTrue(DemoSandbox::ownerTokenMatches($token));
+            self::assertSame('cron-only-token', settingModel()->get('cron_token'));
+        } finally {
+            if ($before === null) db()->delete('settings', '`key` = ?', ['cron_token']);
+            else settingModel()->set('cron_token', (string) $before, 'cron');
+            settingModel()->clearCache();
+        }
     }
 
     public function testExternalSideEffectPagesRemainProtectedInSandbox(): void
@@ -68,6 +89,7 @@ final class DemoSandboxSecurityTest extends TestCase
             'license.php', 'setting_email.php', 'setting_ai.php', 'setting_translate.php',
             'setting_api.php', 'setting_channel_translate.php', 'setting_product_cat_translate.php',
             'api_ai.php', 'api_ai_agent.php', 'api_ai_apply.php', 'api_ai_undo.php',
+            'static_html.php', 'setting_seo.php', 'system.php',
         ] as $page) {
             self::assertTrue(DemoSandbox::isProtectedPage('/admin/' . $page), $page);
         }
