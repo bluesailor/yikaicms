@@ -1,0 +1,161 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { create } = require('../../assets/js/blox-catalog-source');
+
+const response = (items, page = 1, more = false) => ({ ok: true,
+    json: async () => ({ code: 0, data: { items, page, has_more: more } }) });
+
+test('catalog lookup sends only read parameters, paginates, and builds local numeric edit URLs', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    const app = create(18, 'csrf-test', 'article');
+    app.keyword = 'Needle';
+    global.fetch = async (url, options) => {
+        assert.equal(url, '/admin/blox_page_api.php');
+        assert.deepEqual(Object.fromEntries(options.body), { action: 'catalog_items', id: '18', _token: 'csrf-test', keyword: 'Needle', page: '2' });
+        return response([{ id: 9, title: '<img onerror=alert(1)>' }, { id: '../evil' }, { id: -1 }], 2, true);
+    };
+    await app.load(2);
+    assert.equal(app.items.length, 1);
+    assert.equal(app.editUrl(app.items[0]), '/admin/article_edit.php?id=9');
+    assert.equal(app.page, 2);
+    assert.equal(app.hasMore, true);
+    assert.equal(app.loading, false);
+    assert.equal(create(18, '', '../evil').editUrl({ id: 1 }), '');
+});
+
+test('stale responses and responses after panel destruction cannot replace current results', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    const pending = [];
+    global.fetch = () => new Promise(resolve => pending.push(resolve));
+    const app = create(2, '', 'product');
+    assert.equal(app.emptyState, '');
+    const first = app.load(1), second = app.load(2);
+    pending[1](response([{ id: 2 }], 2)); await second;
+    pending[0](response([{ id: 1 }])); await first;
+    assert.equal(app.items[0].id, 2);
+    assert.equal(app.emptyState, '');
+    const third = app.load(3);
+    app.destroy(); pending[2](response([{ id: 3 }], 3)); await third;
+    assert.deepEqual(app.items, []);
+});
+
+test('HTTP, protocol and network failures show retry state; retry can recover to an empty result', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    const app = create(2, '', 'product');
+    for (const bad of [{ ok: false }, { ok: true, json: async () => ({}) },
+        { ok: true, json: async () => ({ code: null, data: { items: [] } }) }, null]) {
+        global.fetch = async () => { if (!bad) throw new Error('offline'); return bad; };
+        await app.load(1);
+        assert.equal(app.failed, true);
+        assert.equal(app.loading, false);
+        assert.deepEqual(app.items, []);
+        assert.equal(app.emptyState, '');
+    }
+    global.fetch = async () => response([]);
+    await app.load(1);
+    assert.equal(app.failed, false);
+    assert.deepEqual(app.items, []);
+    assert.equal(app.emptyState, 'unpublished');
+});
+
+test('empty states distinguish unpublished items, searches and empty later pages', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    for (const kind of ['product', 'article']) {
+        const app = create(2, '', kind);
+        for (const [keyword, page, state] of [['', 1, 'unpublished'], ['  ', 1, 'unpublished'],
+            ['no-match', 1, 'search'], ['', 2, 'page'], ['no-match', 2, 'page']]) {
+            global.fetch = async () => response([], page);
+            app.keyword = keyword;
+            await app.load(page);
+            assert.equal(app.emptyState, state);
+            assert.equal(app.resultKeyword, keyword.trim());
+            app.keyword = 'unsubmitted';
+            assert.equal(app.emptyState, state);
+        }
+        global.fetch = async () => response([{ id: 1 }]);
+        await app.load(1);
+        assert.equal(app.emptyState, '');
+    }
+});
+
+test('empty states use the completed request and ignore stale queries and unsubmitted text', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    const pending = [];
+    global.fetch = () => new Promise(resolve => pending.push(resolve));
+    const app = create(2, '', 'product');
+    const first = app.load(1);
+    app.keyword = '  latest query  ';
+    const second = app.load(2);
+    app.keyword = 'unsubmitted';
+    assert.equal(app.emptyState, '');
+    pending[1](response([], 2)); await second;
+    assert.equal(app.emptyState, 'page');
+    assert.equal(app.resultKeyword, 'latest query');
+    pending[0](response([])); await first;
+    assert.equal(app.emptyState, 'page');
+    assert.equal(app.resultKeyword, 'latest query');
+    const third = app.load(1);
+    assert.equal(app.emptyState, '');
+    app.destroy(); pending[2](response([])); await third;
+    assert.equal(app.emptyState, '');
+});
+
+test('a malformed nonempty response cannot masquerade as no published content', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    const app = create(2, '', 'product');
+    global.fetch = async () => response([{ id: '../evil' }, { id: 0 }]);
+    await app.load(1);
+    assert.equal(app.failed, true);
+    assert.equal(app.emptyState, '');
+});
+
+test('paging, refresh and reopening keep the submitted query without consuming new input', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    const queries = [], app = create(2, '', 'product');
+    global.fetch = async (_, options) => {
+        const query = Object.fromEntries(options.body);
+        queries.push([query.keyword, query.page]);
+        return response([{ id: 1 }], Number(query.page), true);
+    };
+    app.keyword = '  0  ';
+    await app.load(1);
+    app.keyword = 'not submitted';
+    await app.load(2, app.resultKeyword);
+    await app.load(app.requestPage, app.requestKeyword);
+    app.toggle();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(queries, [['0', '1'], ['0', '2'], ['0', '2'], ['0', '2']]);
+    assert.equal(app.keyword, 'not submitted');
+    assert.equal(app.resultKeyword, '0');
+    await app.load(1);
+    assert.deepEqual(queries.at(-1), ['not submitted', '1']);
+});
+
+test('retry preserves the failed request instead of using the last success or unsubmitted input', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    const app = create(2, '', 'article');
+    global.fetch = async () => response([{ id: 1 }]);
+    await app.load(1);
+    app.keyword = 'new search';
+    global.fetch = async () => { throw new Error('offline'); };
+    await app.load(2);
+    app.keyword = 'not submitted';
+    global.fetch = async (_, options) => {
+        assert.equal(options.body.get('keyword'), 'new search');
+        assert.equal(options.body.get('page'), '2');
+        return response([], 2);
+    };
+    await app.load(app.requestPage, app.requestKeyword);
+    assert.equal(app.failed, false);
+    assert.equal(app.resultKeyword, 'new search');
+    assert.equal(app.emptyState, 'page');
+    assert.equal(app.keyword, 'not submitted');
+});

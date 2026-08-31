@@ -36,12 +36,15 @@ function response(html, status = 200) {
 
 function fakeFrame() {
     const listeners = new Set();
+    const style = { scrollBehavior: "smooth" };
     return {
         srcdoc: "",
+        contentDocument: { documentElement: { style } },
         contentWindow: {
             scrollX: 0,
             scrollY: 0,
             scrollTo: function (left, top) {
+                assert.equal(style.scrollBehavior, "auto", "preview restoration must not animate");
                 this.scrollX = left;
                 this.scrollY = top;
             },
@@ -110,6 +113,7 @@ async function run() {
     frame.contentWindow.scrollX = 0;
     frame.contentWindow.scrollY = 0;
     frame.fireLoad();
+    assert.equal(frame.contentDocument.documentElement.style.scrollBehavior, "smooth", "restore the original scroll style");
     assert.deepEqual([host.scrollLeft, host.scrollTop], [12, 34]);
     assert.deepEqual([frame.contentWindow.scrollX, frame.contentWindow.scrollY], [56, 78]);
     assert.equal(loaded, 1);

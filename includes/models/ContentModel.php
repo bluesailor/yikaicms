@@ -34,7 +34,7 @@ class ContentModel extends Model
             $where[] = 'c.type = ?';
             $params[] = $filters['type'];
         }
-        if (!empty($filters['keyword'])) {
+        if ((string) ($filters['keyword'] ?? '') !== '') {
             $where[] = '(c.title LIKE ? OR c.summary LIKE ?)';
             $params[] = '%' . $filters['keyword'] . '%';
             $params[] = '%' . $filters['keyword'] . '%';
@@ -90,7 +90,7 @@ class ContentModel extends Model
             $where[] = 'type = ?';
             $params[] = $filters['type'];
         }
-        if (!empty($filters['keyword'])) {
+        if ((string) ($filters['keyword'] ?? '') !== '') {
             $where[] = '(title LIKE ? OR summary LIKE ?)';
             $params[] = '%' . $filters['keyword'] . '%';
             $params[] = '%' . $filters['keyword'] . '%';

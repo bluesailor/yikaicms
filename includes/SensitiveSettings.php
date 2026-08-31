@@ -61,6 +61,9 @@ final class SensitiveSettings
         'site_lang',
         'admin_lang',
         'official_media_api_base',
+        'static_html_base_url',
+        'static_html_enabled',
+        'static_html_last_gen',
     ];
 
     /** 值内部递归清洗时命中即摘除的键名 */
@@ -93,7 +96,15 @@ final class SensitiveSettings
         if (self::isSensitive($key)) {
             return false;
         }
-        return !in_array(strtolower(trim($key)), self::NEVER_IMPORT, true);
+        $normalized = strtolower(trim($key));
+        static $securityKeys = null;
+        if ($securityKeys === null) {
+            $defaults = require ROOT_PATH . '/config/defaults.php';
+            $securityKeys = array_fill_keys(array_keys($defaults['security'] ?? []), true);
+        }
+        // Recipes describe content, never this installation's access/upload policy.
+        return !isset($securityKeys[$normalized])
+            && !in_array($normalized, self::NEVER_IMPORT, true);
     }
 
     /**
@@ -149,7 +160,7 @@ final class SensitiveSettings
         $excluded = [];
         foreach ($settings as $key => $value) {
             $key = (string) $key;
-            if (self::isSensitive($key) || isset($extra[strtolower(trim($key))])) {
+            if (!self::isImportable($key) || isset($extra[strtolower(trim($key))])) {
                 $excluded[] = $key;
                 continue;
             }

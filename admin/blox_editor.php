@@ -93,6 +93,7 @@ $areaEditorContextTitle = '';
 $areaEditorPublishConfirm = '';
 $documentIdentity = '';
 $homeBannerSeeds = [];
+$homeBannerRuntime = [];
 $pageHasPublished = false;
 $pageHasUnpublishedChanges = false;
 $pageUsesLegacyHtml = false;
@@ -141,6 +142,10 @@ if ($isHomeBlox) {
         if (is_array($banner)) {
             $homeBannerSeeds[] = HomeBannerItemElement::fromLegacy($banner);
         }
+    }
+    $homeBannerGroup = getBannerGroup('home');
+    if (is_array($homeBannerGroup)) {
+        $homeBannerRuntime = HomeBloxBlockSchema::bannerGroupRuntimeConfig($homeBannerGroup);
     }
 }
 // 无 id 时默认落到 blox 沙盒页，方便直接进来试
@@ -387,7 +392,7 @@ if ($isHomeBlox) {
     $publishedDocumentSource = $pageDocument['published_document_json'];
     $pageHasPublished = $pageDocument['has_published'];
     $pageHasUnpublishedChanges = $pageDocument['has_unpublished_changes'];
-    $pageUsesLegacyHtml = $pageDocument['uses_legacy_html'];
+    $pageUsesLegacyHtml = !$isContentListBlox && $pageDocument['uses_legacy_html'];
     $saveEndpoint = '/admin/blox_page_api.php?id=' . $id;
     $previewEndpoint = $saveEndpoint;
     $documentIdentity = ($isContentListBlox ? 'content-list:' : ($isProductBlox ? 'product:' : 'page:')) . $id;
@@ -717,7 +722,9 @@ foreach ($registryMeta as $type => $m) {
 // 分类显示名：category 是机器值，界面要中文
 $catLabels = ['basic' => __('blox_cat_basic'), 'media' => __('blox_cat_media'), 'layout' => __('blox_layout'), 'advanced' => __('blox_cat_advanced'), 'dynamic' => __('blox_cat_dynamic')];
 $homeEditorBlueprints = $isHomeBlox ? HomeBloxBlockSchema::editorBlueprints() : [];
+require __DIR__ . '/blox_editor/source-links.php';
 $homeFieldSeeds = $isHomeBlox ? [
+    'about' => HomeAboutContent::resolve(getChannelBySlug('about', true)),
     'stats' => ['stats_items' => HomeBloxBlockSchema::statsSeedItems()],
     'advantage' => ['advantage_items' => HomeBloxBlockSchema::advantageSeedItems()],
 ] : [];
@@ -783,6 +790,10 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-draft-summary.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-draft-summary.js') ?>"></script>
     <script src="/assets/js/blox-command-runner.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-command-runner.js') ?>"></script>
     <script src="/assets/js/blox-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-control-rules.js') ?>"></script>
+    <script src="/assets/js/blox-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-banner-panel.js') ?>"></script>
+    <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
+    <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
+    <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
     <script src="/assets/js/blox-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-icon-utils.js') ?>"></script>
     <script src="/assets/js/blox-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-field-store.js') ?>"></script>
@@ -1021,7 +1032,7 @@ $canManageBloxDesign = hasPermission('blox_global');
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800" x-data="bloxEditor()" x-init="init()" x-cloak
+<body class="bg-gray-100 text-gray-800" x-data="bloxEditor()" x-cloak
       data-blox-advanced="<?php echo $advancedBloxEnabled ? '1' : '0'; ?>"
       data-blox-recovery-key="<?= e($recoveryKey) ?>"
       data-blox-base-revision="<?= e($baseRevision) ?>">
@@ -1112,6 +1123,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             headerPreviewState: "normal",
             canvasViewportTick: 0,
             previewLoading: false,
+            previewFailed: false,
+            saveOutcome: "",
             saving: false,
             cacheClearing: false,
             dirty: false,
@@ -1164,6 +1177,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'current' => __('blox_assignment_current_match'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
+            bannerPanelGroup: "common",
+            homeContentGroup: "content",
+            homeBannerRuntime: <?= json_encode($homeBannerRuntime, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             areaTemplateMode: <?php echo $templateId && in_array($templateType, ['header', 'footer'], true) ? 'true' : 'false'; ?>,
@@ -1329,6 +1345,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             homeEditorBlueprints: <?php echo json_encode($homeEditorBlueprints, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             homeFieldSeeds: <?php echo json_encode($homeFieldSeeds, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            homeSourceLinks: <?= json_encode($bloxSourceLinks, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             homeText: <?php echo json_encode([
                 'publishConfirm' => __('blox_publish_confirm'),
                 'rollbackConfirm' => __('blox_rollback_confirm'),
@@ -1378,8 +1395,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'sort' => __('blox_home_sort'),
                 'columns' => __('blox_home_columns'),
                 'items' => __('blox_home_banner_items_unit'),
-                'adoptItems' => __('blox_home_banner_adopt'),
-                'createItem' => __('blox_home_banner_create'),
+                'editSlide' => __('blox_home_banner_edit'),
                 'restoreConfirm' => __('blox_home_banner_restore_confirm'),
                 'customItems' => __('blox_home_banner_custom'),
                 'newItemTitle' => __('blox_home_banner_new_title'),
@@ -1484,6 +1500,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'saved' => __('blox_saved'),
                 'saveFailed' => __('blox_save_failed'),
                 'saveFailedMsg' => __('blox_save_failed_msg'),
+                'saveStatusFailed' => __('blox_save_status_failed'),
+                'draftSaved' => __('blox_save_status_draft'),
+                'unsaved' => __('blox_dirty'),
+                'savingDraft' => __('blox_saving'),
                 'revisionLoading' => __('loading'),
                 'revisionPreviewFailed' => __('blox_revision_preview_failed'),
                 'iconHintDefault' => __('blox_icon_hint_default'),
@@ -2171,56 +2191,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.sel.settings.bg_gradient = "linear-gradient(" + this.gradDir + "deg," + this.gradA + " 0%," + this.gradB + " 100%)";
             },
 
-            setSectionBackgroundImage(url) {
-                if (!this.sel || !this.sel.settings) return;
-                this.sel.settings.bg_image = url || "";
-                if (!url) return;
-                if (!Object.prototype.hasOwnProperty.call(this.sel.settings, "bg_overlay_color")) {
-                    this.sel.settings.bg_overlay_color = "#000000";
-                }
-                if (!Object.prototype.hasOwnProperty.call(this.sel.settings, "bg_overlay_opacity")) {
-                    this.sel.settings.bg_overlay_opacity = 45;
-                }
-                if (!Object.prototype.hasOwnProperty.call(this.sel.settings, "bg_position")) {
-                    this.sel.settings.bg_position = "center";
-                }
-            },
-
-            setContainerBackgroundImage(url) {
-                var section = this.sel;
-                if (!section || !section.settings) return;
-                section.settings.container_bg_image = url || "";
-                if (!url) return;
-                if (!Object.prototype.hasOwnProperty.call(section.settings, "container_bg_overlay_color")) {
-                    section.settings.container_bg_overlay_color = "#000000";
-                }
-                if (!Object.prototype.hasOwnProperty.call(section.settings, "container_bg_overlay_opacity")) {
-                    section.settings.container_bg_overlay_opacity = 45;
-                }
-            },
-
-            pickContainerBackgroundImage() {
-                var self = this;
-                this.openMedia(function (url) { self.setContainerBackgroundImage(url); }, { usage: "hero-bg" });
-            },
-
-            setColumnBackgroundImage(url) {
-                var column = this.selectedCol();
-                if (!column) return;
-                column.card_bg_image = url || "";
-                if (!url) return;
-                if (!Object.prototype.hasOwnProperty.call(column, "card_bg_overlay_color")) {
-                    column.card_bg_overlay_color = "#000000";
-                }
-                if (!Object.prototype.hasOwnProperty.call(column, "card_bg_overlay_opacity")) {
-                    column.card_bg_overlay_opacity = 45;
-                }
-            },
-
-            pickColumnBackgroundImage() {
-                var self = this;
-                this.openMedia(function (url) { self.setColumnBackgroundImage(url); });
-            },
+            ...window.BloxImageControl.methods,
 
             // ── 渐变背景预置（值原样存 settings.bg_gradient；渲染器有白名单校验） ──
             gradientPresets: [
@@ -2467,41 +2438,15 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.reloadHeaderPresetPreview();
             },
 
-            headerPresetElementCounts(sections) {
-                var counts = {};
-                var visit = function (element) {
-                    if (!element || !element.type) return;
-                    counts[element.type] = (counts[element.type] || 0) + 1;
-                    var children = element.data && Array.isArray(element.data.children) ? element.data.children : [];
-                    children.forEach(visit);
-                };
-                (sections || []).forEach(function (section) {
-                    (section.columns || []).forEach(function (column) {
-                        (column.elements || []).forEach(visit);
-                    });
-                });
-                return counts;
-            },
-
             headerPresetComparison(preset) {
-                var before = this.headerPresetElementCounts(this.sections || []);
-                var after = this.headerPresetElementCounts((preset && preset.sections) || []);
-                var types = Array.from(new Set(Object.keys(before).concat(Object.keys(after)))).sort();
                 var label = function (type, count) {
                     return (this.elSchema(type).label || type) + (count > 1 ? " ×" + count : "");
                 }.bind(this);
-                var added = [];
-                var removed = [];
-                types.forEach(function (type) {
-                    var delta = (after[type] || 0) - (before[type] || 0);
-                    if (delta > 0) added.push(label(type, delta));
-                    if (delta < 0) removed.push(label(type, -delta));
-                });
-                return { added: added, removed: removed, same: added.length === 0 && removed.length === 0 };
+                return window.BloxTemplateLibrary.compareSections(this.sections || [], (preset && preset.sections) || [], label);
             },
 
             headerPresetWarnings(preset) {
-                var counts = this.headerPresetElementCounts((preset && preset.sections) || []);
+                var counts = window.BloxTemplateLibrary.elementCounts((preset && preset.sections) || []);
                 var warnings = [];
                 if (counts.logo && !this.headerPresetSiteData.logo) warnings.push(this.headerPresetText.missingLogo);
                 if ((counts.nav || counts["nav-mega"] || counts["nav-drawer"]) && !this.headerPresetSiteData.navigation) {
@@ -2520,7 +2465,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             headerPresetFocusTypes(preset) {
-                var counts = this.headerPresetElementCounts((preset && preset.sections) || []);
+                var counts = window.BloxTemplateLibrary.elementCounts((preset && preset.sections) || []);
                 var candidates = this.areaPresetType === "footer"
                     ? ["logo", "nav", "site-contact", "site-search", "social-links", "site-copyright"]
                     : ["logo", counts["nav-mega"] ? "nav-mega" : "nav", "site-search", "language-switcher"];
@@ -3438,95 +3383,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return !!(this.isHomeBlockHost(node) && String((node.data || {}).block_type || "") === "banner");
             },
 
-            hasCustomBannerItems() {
-                var host = this.isHomeBlockHost(this.selTopEl) ? this.selTopEl : this.selEl;
-                return !!(this.isHomeBannerHost(host) && (host.data || {}).items_mode === "custom");
-            },
-
-            bannerHost() {
-                if (this.isHomeBannerHost(this.selTopEl)) return this.selTopEl;
-                return this.isHomeBannerHost(this.selEl) ? this.selEl : null;
-            },
-
-            bannerItems() {
-                var host = this.bannerHost();
-                return host && host.data && Array.isArray(host.data.children) ? host.data.children : [];
-            },
-
-            bannerPreviewItems() {
-                if (this.hasCustomBannerItems()) return this.bannerItems();
-                return this.homeBannerSeeds.map(function (item, index) {
-                    return { id: "seed-banner-" + index, type: "home-banner-item", data: item };
-                });
-            },
-
-            homeBannerItemCount() {
-                return this.bannerPreviewItems().length;
-            },
-
-            adoptBannerData(host) {
-                if (!this.isHomeBannerHost(host)) return [];
-                var self = this;
-                host.data.items_mode = "custom";
-                host.data.children = this.homeBannerSeeds.map(function (item) {
-                    return { id: self.uid("e"), type: "home-banner-item", data: JSON.parse(JSON.stringify(item)) };
-                });
-                return host.data.children;
-            },
-
-            selectBannerItem(index) {
-                var host = this.bannerHost();
-                if (!host || !this.bannerPreviewItems()[index]) return;
-                if (!this.hasCustomBannerItems()) this.adoptBannerData(host);
-                if (!this.bannerItems()[index]) return;
-                this.selectChild(this.selectedSi, this.selectedCi, this.selectedEi, index);
-            },
-
-            replaceBannerImage(index) {
-                var host = this.bannerHost();
-                if (!host || !this.bannerPreviewItems()[index]) return;
-                var self = this;
-                this.openMedia(function (url) {
-                    if (!self.hasCustomBannerItems()) self.adoptBannerData(host);
-                    var item = self.bannerItems()[index];
-                    if (!item) return;
-                    item.data = item.data || {};
-                    item.data.image = url;
-                    self.selectChild(self.selectedSi, self.selectedCi, self.selectedEi, index);
-                }, { usage: "hero-bg" });
-            },
-
-            adoptBannerItems(index) {
-                var host = this.isHomeBlockHost(this.selTopEl) ? this.selTopEl : this.selEl;
-                if (!this.isHomeBannerHost(host)) return;
-                var items = this.adoptBannerData(host);
-                if (items.length === 0) {
-                    this.addBannerItem();
-                    return;
-                }
-                var selectedIndex = Number.isInteger(index) ? index : 0;
-                this.selectChild(this.selectedSi, this.selectedCi, this.selectedEi, Math.min(items.length - 1, selectedIndex));
-            },
-
-            addBannerItem() {
-                var host = this.isHomeBlockHost(this.selTopEl) ? this.selTopEl : this.selEl;
-                if (!this.isHomeBannerHost(host)) return;
-                if (!this.hasCustomBannerItems()) this.adoptBannerData(host);
-                host.data.children = host.data.children || [];
-                var defaults = JSON.parse(JSON.stringify((this.elSchema("home-banner-item").defaults || {})));
-                defaults.title = defaults.title || this.homeDynamicText.newItemTitle;
-                host.data.children.push({ id: this.uid("e"), type: "home-banner-item", data: defaults });
-                this.selectChild(this.selectedSi, this.selectedCi, this.selectedEi, host.data.children.length - 1);
-            },
-
-            restoreBannerSource() {
-                var host = this.isHomeBlockHost(this.selTopEl) ? this.selTopEl : this.selEl;
-                if (!this.isHomeBannerHost(host)) return;
-                if ((host.data.children || []).length && !confirm(this.homeDynamicText.restoreConfirm)) return;
-                host.data.items_mode = "inherit";
-                host.data.children = [];
-                this.selectElement(this.selectedSi, this.selectedCi, this.selectedEi);
-            },
+            ...window.BloxBannerPanel.methods,
+            ...window.BloxHomeContentPanel.methods,
 
             isLoopTemplateChild() {
                 return this.selectedSubEi >= 0 && this.isLoopTemplateHost(this.selTopEl);
@@ -4323,6 +4181,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
             },
             selectElement(si, ci, ei, notifyCanvas) {
+                this.bannerPanelGroup = "common";
+                this.homeContentGroup = "content";
                 this.selectedSi = si;
                 this.selectedCi = ci;
                 this.selectedEi = ei;
@@ -4350,6 +4210,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!this.homeFieldAllowed(el, field)) return;
                 this.selectPath(path, false);
                 this.selectedHomeField = field;
+                if (window.BloxHomeContentPanel.supports(el)) this.homeContentGroup = window.BloxHomeContentPanel.groupFor(field);
                 this.selectedHomeColumn = this.homeFieldGroupKey(el, field);
                 this.panelTab = "content";
                 this.libOpen = false;
@@ -4476,10 +4337,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (this.isSelectedContainerEl() && this.panelTab === "style") return [];
                 var self = this;
                 var q = this.ctrlQuery.trim().toLowerCase();
-                return (this.elSchema(this.selEl.type).controls || []).filter(function (c) {
+                var controls = (this.elSchema(this.selEl.type).controls || []).filter(function (c) {
                     // 页签归属：控件可在 schema 里显式标 tab（如容器的布局控件全在样式页）；
                     // 未标注的按类型推断——color 归样式，其余归内容
-                    var tab = c.tab || (c.type === "color" ? "style" : "content");
+                    var tab = window.BloxHomeContentPanel.tabFor(self.selEl, c);
                     if (tab !== self.panelTab) return false;
                     if (c.loop_only && !self.isLoopTemplateChild()) return false;
                     if (c.outside_loop_only && self.isLoopTemplateChild()) return false;
@@ -4493,6 +4354,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (self.modifiedOnly && !self.isCtrlModified(c)) return false;
                     return true;
                 });
+                var showAll = !!q || this.modifiedOnly || this.panelTab !== "content";
+                controls = window.BloxBannerPanel.controls(this.selEl, controls, this.bannerPanelGroup, showAll);
+                return window.BloxHomeContentPanel.controls(this.selEl, controls, this.homeContentGroup, showAll);
             },
 
             controlRequirementMet(ctrl) {
@@ -4554,7 +4418,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
             controlValue(ctrl) {
                 if (!this.selEl || !this.selEl.data) return ctrl.default ?? "";
-                var value = this.selEl.data[ctrl.key];
+                var value = this.bannerControlValue(ctrl.key, this.selEl.data[ctrl.key]);
                 var isLegacyCtaOverlay = this.selEl.type === "home-block"
                     && String(this.selEl.data.block_type || "") === "cta"
                     && (ctrl.key === "bg_overlay_color" || ctrl.key === "bg_overlay_opacity")
@@ -4585,6 +4449,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             setControlValue(ctrl, value) {
                 if (!this.selEl) return;
+                this.prepareBannerControlEdit(ctrl.key, value);
                 var oldLabel = String((this.selEl.data || {}).label || "");
                 this.selEl.data[ctrl.key] = ctrl.responsive && window.BloxResponsive
                     ? window.BloxResponsive.setFor(
@@ -5076,6 +4941,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.selectPath(path, false);
                 this.selectedHomeColumn = String(column);
                 this.selectedHomeField = "";
+                if (window.BloxHomeContentPanel.supports(el)) this.homeContentGroup = ["image", "background"].includes(column) ? "media" : "content";
                 this.panelTab = "content";
                 this.libOpen = false;
                 this.openMobileSettings();
@@ -6555,6 +6421,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     },
                     setLoading: function (loading) { self.previewLoading = loading; },
                     onLoaded: function () {
+                        self.previewFailed = false;
                         var shouldScroll = self._pendingInitialFocus;
                         self._pendingInitialFocus = false;
                         if (shouldScroll) {
@@ -6564,7 +6431,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                             self.highlightCanvasSelection(false);
                         }
                     },
-                    onError: function () { self.toast(self.uiText.previewFailed); },
+                    onError: function () { self.previewFailed = true; self.toast(self.uiText.previewFailed); },
                 });
                 return this._previewClient;
             },
@@ -8941,6 +8808,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             acceptSavedDocument(payload, savedData, res) {
+                this.saveOutcome = "";
                 if (res.data && typeof res.data.base_revision === "string") {
                     this.baseRevision = res.data.base_revision;
                 }
@@ -8963,7 +8831,15 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
             },
 
+            saveStatusText() {
+                if (this.saving) return this.uiText.savingDraft;
+                if (this.saveOutcome === "failed") return this.uiText.saveStatusFailed;
+                if (this.dirty) return this.uiText.unsaved;
+                return this.saveOutcome === "saved" ? this.uiText.draftSaved : "";
+            },
+
             save() {
+                if (this.saving || this.homeActionBusy || this.pageActionBusy) return;
                 var self = this;
                 this.flushHistory(true);
                 var savedData = this.historyData();
@@ -8971,6 +8847,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 // 历史 data 保持裸 sections，文档设置由快照 settings 字段独立追踪。
                 var payload = this.documentData();
                 this.saving = true;
+                this.saveOutcome = "";
                 var body = new URLSearchParams();
                 <?php if ($templateId): ?>
                 body.set("action", "save_draft");
@@ -8986,23 +8863,30 @@ $canManageBloxDesign = hasPermission('blox_global');
                 body.set("base_revision", this.baseRevision);
                 body.set("_token", this.csrf);
                 fetch(this.endpoint, { method: "POST", body: body })
-                    .then(function(r) { return r.json().catch(function() { return { success: false }; }); })
+                    .then(function(r) {
+                        if (r.status === 409) return { code: 409 };
+                        if (!r.ok) throw new Error("Save request failed");
+                        return r.json();
+                    })
                     .then(function(res) {
                         if (res && Number(res.code) === 409) {
+                            self.saveOutcome = "failed";
                             self.showSaveConflict();
                             return;
                         }
-                        var ok = res && res.success !== false
-                            && (typeof res.code === "undefined" || Number(res.code) === 0);
+                        var ok = res && res.success !== false && (res.code === 0 || res.code === "0"
+                            || (typeof res.code === "undefined" && res.success === true));
                         if (ok) {
                             self.acceptSavedDocument(payload, savedData, res);
                             self.setEditorReturnReceipt(res.data && res.data.return_receipt);
+                            self.saveOutcome = "saved";
                             self.toast(self.uiText.saved);
                         } else {
-                            self.toast(self.uiText.saveFailedMsg.replace(":msg", res.message || res.msg || ""));
+                            self.saveOutcome = "failed";
+                            self.toast(self.uiText.saveFailedMsg.replace(":msg", (res && (res.message || res.msg)) || ""));
                         }
                     })
-                    .catch(function() { self.toast(self.uiText.saveFailed); })
+                    .catch(function() { self.saveOutcome = "failed"; self.toast(self.uiText.saveFailed); })
                     .finally(function() { self.saving = false; });
             },
 

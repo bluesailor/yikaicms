@@ -16,15 +16,10 @@ requirePermission('*');
 
 $queueFile = ROOT_PATH . '/storage/cache/static_gen_queue.json';
 
-// 自爬基址：优先后台配置，否则用当前请求的 scheme+host
+// The service owns outbound URL policy; the page does not trust the Host header.
 function staticBaseUrl(): string
 {
-    $cfg = trim((string) config('static_html_base_url', ''));
-    if ($cfg !== '') return rtrim($cfg, '/');
-    $https  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['SERVER_PORT'] ?? '') === '443';
-    $scheme = $https ? 'https' : 'http';
-    $host   = $_SERVER['HTTP_HOST'] ?? '127.0.0.1';
-    return $scheme . '://' . $host;
+    return StaticHtml::baseUrl();
 }
 
 // ============ POST：JSON 动作 ============
@@ -34,9 +29,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
     if ($action === 'save') {
+        $base = trim((string) post('static_html_base_url', ''));
+        try {
+            StaticHtml::baseUrl($base);
+        } catch (InvalidArgumentException) {
+            error(__('sh_base_url_invalid'));
+        }
         settingModel()->saveBatch([
             'static_html_enabled'  => post('static_html_enabled') ? '1' : '0',
-            'static_html_base_url' => trim((string) post('static_html_base_url', '')),
+            'static_html_base_url' => $base,
         ]);
         adminLog('static_html', 'setting', '保存静态HTML设置');
         success(['msg' => __('admin_success')]);
@@ -52,6 +53,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 开始：枚举 URL 写入队列，返回总数
     if ($action === 'start') {
+        try {
+            staticBaseUrl();
+        } catch (InvalidArgumentException) {
+            error(__('sh_base_url_invalid'));
+        }
         $items = StaticHtml::enumerate();
         $dir = dirname($queueFile);
         if (!is_dir($dir)) @mkdir($dir, 0755, true);
@@ -74,7 +80,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $total = count($items);
         $slice = array_slice($items, $offset, $size);
-        $res   = StaticHtml::generateBatch($slice, staticBaseUrl());
+        try {
+            $res = StaticHtml::generateBatch($slice, staticBaseUrl());
+        } catch (InvalidArgumentException) {
+            error(__('sh_base_url_invalid'));
+        }
 
         $next = $offset + $size;
         $done = $next >= $total;
@@ -104,6 +114,12 @@ $enabled  = StaticHtml::enabled();
 $baseUrl  = trim((string) config('static_html_base_url', ''));
 $stats    = StaticHtml::stats();
 $hasCurl  = function_exists('curl_init');
+$safeBaseUrl = '';
+try {
+    $safeBaseUrl = staticBaseUrl();
+} catch (InvalidArgumentException) {
+    // Keep this settings page usable so an old, now-disallowed URL can be corrected.
+}
 
 $pageTitle   = __('sh_title');
 $currentMenu = 'static_html';
@@ -128,12 +144,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 // **自建 Nginx 的站点必须手工更新 server 配置**，否则管理员在前台看不到管理条、
 // 改了内容也不生效，而且毫无提示——这里替他们检出来。
 $__shSelfCheck = null;
-if ($stats['files'] > 0 && function_exists('curl_init')) {
-    $__probe = rtrim(siteBaseUrl(), '/') . '/';
+if ($stats['files'] > 0 && $safeBaseUrl !== '' && function_exists('curl_init')) {
+    $__probe = $safeBaseUrl . '/';
     $__ch = curl_init($__probe);
     curl_setopt_array($__ch, [
         CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 8, CURLOPT_NOBODY => true,
-        CURLOPT_HEADER => true, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_HEADER => true, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_FOLLOWLOCATION => false, CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
         CURLOPT_COOKIE => 'yk_admin=1',
         CURLOPT_HTTPHEADER => ['X-Static-Gen: 1'],
     ]);
@@ -187,7 +204,7 @@ if ($stats['files'] > 0 && function_exists('curl_init')) {
         <div>
             <label class="block text-sm text-gray-700 mb-1"><?php echo __('sh_base_url'); ?></label>
             <input type="text" id="baseUrlInput" value="<?php echo e($baseUrl); ?>"
-                   class="w-full md:w-2/3 border rounded px-4 py-2 text-sm" placeholder="<?php echo e(staticBaseUrl()); ?>">
+                   class="w-full md:w-2/3 border rounded px-4 py-2 text-sm" placeholder="<?php echo e($safeBaseUrl); ?>">
             <p class="text-xs text-gray-400 mt-1"><?php echo __('sh_base_url_tip'); ?></p>
         </div>
         <button type="button" id="saveBtn" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded text-sm transition">

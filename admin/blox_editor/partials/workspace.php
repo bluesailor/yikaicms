@@ -169,7 +169,7 @@ declare(strict_types=1);
                         <input type="text" x-model="ctrlQuery" placeholder="<?= e(__('blox_search_settings')) ?>"
                                class="w-full border border-gray-200 rounded pl-7 pr-2 py-1.5 text-xs">
                     </div>
-                    <button type="button" @click="modifiedOnly = !modifiedOnly" title="<?= e(__('blox_modified_only')) ?>"
+                    <button type="button" @click="modifiedOnly = !modifiedOnly" title="<?= e(__('blox_modified_only')) ?>" data-testid="blox-modified-only"
                             class="w-7 h-7 rounded border inline-flex items-center justify-center transition shrink-0"
                             :class="modifiedOnly ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-400 hover:text-gray-600'">
                         <i class="ti ti-adjustments-check text-sm"></i>
@@ -600,6 +600,7 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <?php require __DIR__ . '/source-link.php'; ?>
                             <template x-if="selEl && selEl.type === 'home-block' && panelTab === 'content'">
                                 <div class="rounded border border-blue-200 bg-blue-50/60 p-3">
                                     <div class="flex items-start gap-3">
@@ -880,67 +881,7 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
-                            <template x-if="isHomeBannerHost(selTopEl) && panelTab === 'content'">
-                                <div class="rounded border border-amber-200 bg-amber-50/60 p-3 space-y-2.5">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="text-xs font-semibold text-amber-700 inline-flex items-center gap-1.5">
-                                            <i class="ti ti-carousel-horizontal text-sm"></i>
-                                            <?php echo e(__('blox_home_banner_items')); ?>
-                                        </span>
-                                        <span class="text-[10px] rounded border border-amber-200 bg-white text-amber-700 px-1.5 py-0.5"
-                                              x-text="hasCustomBannerItems() ? (homeBannerItemCount() + ' ' + homeDynamicText.items) : homeDynamicText.inherit"></span>
-                                    </div>
-                                    <template x-if="!hasCustomBannerItems()">
-                                        <div class="space-y-2">
-                                            <p class="text-[10px] leading-relaxed text-gray-500"><?php echo e(__('blox_home_banner_items_help')); ?></p>
-                                            <button type="button" @click="adoptBannerItems()"
-                                                    class="w-full h-8 rounded border border-amber-200 bg-white text-amber-700 hover:border-amber-300 text-xs inline-flex items-center justify-center gap-1.5">
-                                                <i class="ti ti-copy-plus text-sm"></i>
-                                                <span x-text="homeBannerSeeds.length ? homeDynamicText.adoptItems : homeDynamicText.createItem"></span>
-                                            </button>
-                                        </div>
-                                    </template>
-                                    <template x-if="bannerPreviewItems().length">
-                                        <div class="space-y-2.5" data-banner-manager>
-                                            <div class="grid grid-cols-3 gap-1.5">
-                                                <template x-for="(item, bi) in bannerPreviewItems()" :key="item.id">
-                                                    <div class="relative min-w-0 group/banner" data-banner-thumb>
-                                                        <button type="button" @click="selectBannerItem(bi)"
-                                                                class="w-full overflow-hidden rounded border-2 bg-white text-left transition"
-                                                                :class="selectedSubEi === bi ? 'border-blue-500 ring-2 ring-blue-100' : 'border-white hover:border-amber-300'">
-                                                            <span class="block aspect-[16/10] bg-gray-100">
-                                                                <template x-if="item.data && item.data.image">
-                                                                    <img :src="item.data.image" class="w-full h-full object-cover" alt="">
-                                                                </template>
-                                                                <template x-if="!item.data || !item.data.image">
-                                                                    <span class="w-full h-full flex items-center justify-center text-gray-300"><i class="ti ti-photo-off text-lg"></i></span>
-                                                                </template>
-                                                            </span>
-                                                            <span class="block px-1.5 py-1 text-[10px] text-gray-600 truncate"
-                                                                  x-text="homeDynamicText.slide + ' ' + (bi + 1)"></span>
-                                                        </button>
-                                                        <button type="button" @click.stop="replaceBannerImage(bi)" data-banner-replace
-                                                                :title="homeDynamicText.replaceImage"
-                                                                class="absolute top-1 right-1 w-6 h-6 rounded bg-white/95 shadow text-blue-600 hover:bg-blue-600 hover:text-white inline-flex items-center justify-center transition">
-                                                            <i class="ti ti-photo-edit text-sm"></i>
-                                                        </button>
-                                                    </div>
-                                                </template>
-                                            </div>
-                                            <div class="grid grid-cols-2 gap-1.5">
-                                                <button type="button" @click="addBannerItem()"
-                                                        class="h-8 rounded border border-amber-200 bg-white text-amber-700 hover:border-amber-300 text-xs inline-flex items-center justify-center gap-1">
-                                                    <i class="ti ti-plus text-sm"></i><?php echo e(__('blox_home_banner_add')); ?>
-                                                </button>
-                                                <button type="button" @click="restoreBannerSource()" :disabled="!hasCustomBannerItems()"
-                                                        class="h-8 rounded border border-gray-200 bg-white text-gray-500 hover:border-red-200 hover:text-red-500 disabled:opacity-40 disabled:hover:border-gray-200 disabled:hover:text-gray-500 text-xs inline-flex items-center justify-center gap-1">
-                                                    <i class="ti ti-database text-sm"></i><?php echo e(__('blox_home_banner_restore')); ?>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
+                            <?php require __DIR__ . '/banner-manager.php'; ?>
 
                             <template x-if="selEl && selEl.type === 'list-dynamic' && panelTab === 'content'">
                                 <div class="rounded border border-violet-200 bg-violet-50/60 p-3 space-y-2">
@@ -1480,6 +1421,8 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <?php require __DIR__ . '/banner-control-groups.php'; ?>
+                            <?php require __DIR__ . '/home-content-groups.php'; ?>
                             <div class="blox-property-pair-grid" data-testid="blox-element-property-grid">
                             <template x-for="ctrl in visibleCtrls()" :key="ctrl.key">
                                 <div :data-control-key="ctrl.key"
@@ -1513,6 +1456,7 @@ declare(strict_types=1);
                                         </div>
                                     </template>
 
+                                    <?php require __DIR__ . '/home-content-source.php'; ?>
                                     <p x-show="ctrl.responsive && previewDevice !== 'desktop'"
                                        class="-mt-0.5 mb-1.5 text-[10px] text-gray-400 flex items-center gap-1">
                                         <i class="ti" :class="controlResponsiveState(ctrl).overridden ? 'ti-adjustments' : 'ti-link'"></i>
@@ -1588,12 +1532,14 @@ declare(strict_types=1);
 
                                     <?php // url / video_url 是数据契约类型（保存管线定向清洗），编辑体验同普通文本框 ?>
                                     <template x-if="['text','url','video_url'].indexOf(ctrl.type) !== -1">
-                                        <input type="text" x-model="selEl.data[ctrl.key]" :placeholder="ctrl.placeholder || ''"
+                                        <input type="text" x-model="selEl.data[ctrl.key]" :placeholder="homeContentPlaceholder(ctrl)"
+                                               :class="homeContentField(ctrl.key) ? 'placeholder:text-gray-600' : ''"
                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm">
                                     </template>
 
                                     <template x-if="ctrl.type === 'textarea'">
-                                        <textarea x-model="selEl.data[ctrl.key]" rows="3" :placeholder="ctrl.placeholder || ''"
+                                        <textarea x-model="selEl.data[ctrl.key]" rows="3" :placeholder="homeContentPlaceholder(ctrl)"
+                                                  :class="homeContentField(ctrl.key) ? 'placeholder:text-gray-600' : ''"
                                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm"></textarea>
                                     </template>
 
@@ -1871,70 +1817,10 @@ declare(strict_types=1);
                                     <?php // image：图片地址 + 缩略预览 + 媒体库选图（复用 openMedia 弹窗） ?>
                                     <template x-if="ctrl.type === 'image'">
                                         <div>
-                                            <template x-if="selEl && selEl.type === 'home-block' && String((selEl.data || {}).block_type || '') === 'cta' && ctrl.key === 'bg_image'">
-                                                <div class="space-y-2" data-testid="blox-cta-background-control">
-                                                    <div class="relative aspect-[3/2] rounded overflow-hidden border border-gray-200 bg-gray-100">
-                                                        <template x-if="selEl.data[ctrl.key]">
-                                                            <img :src="selEl.data[ctrl.key]" class="w-full h-full object-cover" alt="">
-                                                        </template>
-                                                        <template x-if="!selEl.data[ctrl.key]">
-                                                            <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                                                                <i class="ti ti-photo-off text-2xl"></i>
-                                                                <span class="mt-1 text-[10px]" x-text="homeDynamicText.noImage"></span>
-                                                            </div>
-                                                        </template>
-                                                        <button type="button" @click="openMedia(u => selEl.data[ctrl.key] = u, { usage: 'cta', source: 'official' })"
-                                                                data-testid="blox-cta-background-media"
-                                                                class="absolute inset-x-2 bottom-2 h-8 rounded bg-gray-900/80 hover:bg-blue-600 text-white text-xs inline-flex items-center justify-center gap-1.5 transition">
-                                                            <i class="ti ti-photo-edit text-sm"></i><span x-text="homeDynamicText.replaceImage"></span>
-                                                        </button>
-                                                    </div>
-                                                    <details class="rounded border border-gray-200 bg-gray-50">
-                                                        <summary class="px-2.5 py-1.5 text-[10px] text-gray-500 cursor-pointer" x-text="homeDynamicText.imageUrl"></summary>
-                                                        <div class="px-2 pb-2">
-                                                            <input type="text" x-model="selEl.data[ctrl.key]" placeholder="/uploads/images/xx.jpg"
-                                                                   data-testid="blox-cta-background-url"
-                                                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white">
-                                                        </div>
-                                                    </details>
-                                                </div>
-                                            </template>
-                                            <template x-if="selEl && selEl.type === 'home-banner-item'">
-                                                <div class="space-y-2" data-banner-image-control>
-                                                    <div class="relative aspect-[16/7] rounded overflow-hidden border border-gray-200 bg-gray-100">
-                                                        <template x-if="selEl.data[ctrl.key]">
-                                                            <img :src="selEl.data[ctrl.key]" class="w-full h-full object-cover" alt="">
-                                                        </template>
-                                                        <template x-if="!selEl.data[ctrl.key]">
-                                                            <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                                                                <i class="ti ti-photo-off text-2xl"></i>
-                                                                <span class="text-[10px] mt-1" x-text="homeDynamicText.noImage"></span>
-                                                            </div>
-                                                        </template>
-                                                        <button type="button" @click="openMedia(u => selEl.data[ctrl.key] = u, { usage: 'hero-bg' })"
-                                                                class="absolute inset-x-2 bottom-2 h-8 rounded bg-gray-900/80 hover:bg-blue-600 text-white text-xs inline-flex items-center justify-center gap-1.5 transition">
-                                                            <i class="ti ti-photo-edit text-sm"></i><span x-text="homeDynamicText.replaceImage"></span>
-                                                        </button>
-                                                    </div>
-                                                    <details class="rounded border border-gray-200 bg-gray-50">
-                                                        <summary class="px-2.5 py-1.5 text-[10px] text-gray-500 cursor-pointer" x-text="homeDynamicText.imageUrl"></summary>
-                                                        <div class="px-2 pb-2">
-                                                            <input type="text" x-model="selEl.data[ctrl.key]" placeholder="/uploads/images/xx.jpg"
-                                                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white">
-                                                        </div>
-                                                    </details>
-                                                </div>
-                                            </template>
-                                            <template x-if="selEl && selEl.type !== 'home-banner-item' && !(selEl.type === 'home-block' && String((selEl.data || {}).block_type || '') === 'cta' && ctrl.key === 'bg_image')">
-                                                <div class="flex items-center gap-2">
-                                                    <template x-if="selEl.data[ctrl.key]">
-                                                        <img :src="selEl.data[ctrl.key]" class="w-9 h-9 rounded border border-gray-200 object-cover shrink-0" alt="">
-                                                    </template>
-                                                    <input type="text" x-model="selEl.data[ctrl.key]" placeholder="/uploads/images/xx.jpg"
-                                                           class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                                    <button type="button" @click="openMedia(u => selEl.data[ctrl.key] = u)"
-                                                            class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"><?= __('admin_media') ?></button>
-                                                </div>
+                                            <?php require __DIR__ . '/home-image-control.php'; ?>
+                                            <?php require __DIR__ . '/banner-image-control.php'; ?>
+                                            <template x-if="selEl && selEl.type !== 'home-banner-item' && !BloxHomeContentPanel.isImage(selEl, ctrl.key)">
+                                                <?php $imageControl = ['scope' => 'element', 'key' => 'ctrl.key', 'id' => 'blox-element-image', 'urlId' => 'blox-element-image-url']; require __DIR__ . '/image-control.php'; ?>
                                             </template>
                                         </div>
                                     </template>
@@ -2147,20 +2033,7 @@ declare(strict_types=1);
                                 <!-- 背景图 + 独立遮罩 + 焦点 -->
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_image') ?></label>
-                                    <div class="flex items-center gap-2">
-                                        <template x-if="sel.settings.bg_image">
-                                            <img :src="sel.settings.bg_image" class="w-9 h-9 rounded border border-gray-200 object-cover shrink-0" alt="">
-                                        </template>
-                                        <input type="text" :value="sel.settings.bg_image || ''" placeholder="/uploads/images/xx.jpg"
-                                               @change="setSectionBackgroundImage($event.target.value)"
-                                               data-testid="blox-section-bg-image"
-                                               class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                        <button type="button" @click="openMedia(u => setSectionBackgroundImage(u), { usage: 'hero-bg' })"
-                                                class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"><?= __('admin_media') ?></button>
-                                        <button type="button" @click="setSectionBackgroundImage('')"
-                                                class="text-gray-400 hover:text-red-500 p-1 shrink-0" title="<?= e(__('blox_clear')) ?>">
-                                            <i class="ti ti-x text-sm"></i></button>
-                                    </div>
+                                    <?php $imageControl = ['scope' => 'section', 'key' => "'bg_image'", 'id' => 'blox-section-background-image', 'urlId' => 'blox-section-bg-image']; require __DIR__ . '/image-control.php'; ?>
                                     <div x-show="sel.settings.bg_image" class="mt-3 space-y-3">
                                         <div>
                                             <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
@@ -2320,26 +2193,7 @@ declare(strict_types=1);
                                         <p class="text-[10px] text-gray-400 mt-1"><?= __('blox_col_bg_hint') ?></p>
                                         <div class="mt-3" data-testid="blox-column-background-image">
                                             <label class="block text-[10px] font-medium text-gray-500 mb-1.5"><?= __('blox_bg_image') ?></label>
-                                            <div class="flex items-center gap-2">
-                                                <template x-if="selectedColData().card_bg_image">
-                                                    <img :src="selectedColData().card_bg_image"
-                                                         class="w-10 h-10 rounded border border-gray-200 object-cover shrink-0" alt="">
-                                                </template>
-                                                <input type="text" x-model="selectedColData().card_bg_image"
-                                                       @change="setColumnBackgroundImage($event.target.value)"
-                                                       placeholder="/uploads/images/xx.jpg"
-                                                       data-testid="blox-column-background-image-url"
-                                                       class="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                                <button type="button" @click="pickColumnBackgroundImage()"
-                                                        data-testid="blox-column-background-image-media"
-                                                        class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"><?= __('admin_media') ?></button>
-                                                <button type="button" @click="setColumnBackgroundImage('')"
-                                                        :disabled="!selectedColData().card_bg_image"
-                                                        class="w-8 h-8 shrink-0 rounded text-gray-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 inline-flex items-center justify-center"
-                                                        title="<?= e(__('blox_clear')) ?>" aria-label="<?= e(__('blox_clear')) ?>">
-                                                    <i class="ti ti-x text-sm"></i>
-                                                </button>
-                                            </div>
+                                            <?php $imageControl = ['scope' => 'column', 'key' => "'card_bg_image'", 'id' => 'blox-column-background-image', 'urlId' => 'blox-column-background-image-url']; require __DIR__ . '/image-control.php'; ?>
                                             <div x-show="selectedColData().card_bg_image" class="mt-3 space-y-3">
                                                 <div>
                                                     <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
@@ -2526,26 +2380,7 @@ declare(strict_types=1);
                                     </button>
                                     <div class="mt-3" data-testid="blox-container-background-image">
                                         <label class="block text-[10px] font-medium text-gray-500 mb-1.5"><?= __('blox_bg_image') ?></label>
-                                        <div class="flex items-center gap-2">
-                                            <template x-if="sel.settings.container_bg_image">
-                                                <img :src="sel.settings.container_bg_image"
-                                                     class="w-10 h-10 rounded border border-gray-200 object-cover shrink-0" alt="">
-                                            </template>
-                                            <input type="text" x-model="sel.settings.container_bg_image"
-                                                   @change="setContainerBackgroundImage($event.target.value)"
-                                                   placeholder="/uploads/images/xx.jpg"
-                                                   data-testid="blox-container-background-image-url"
-                                                   class="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
-                                            <button type="button" @click="pickContainerBackgroundImage()"
-                                                    data-testid="blox-container-background-image-media"
-                                                    class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"><?= __('admin_media') ?></button>
-                                            <button type="button" @click="setContainerBackgroundImage('')"
-                                                   :disabled="!sel.settings.container_bg_image"
-                                                   class="w-8 h-8 shrink-0 rounded text-gray-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 inline-flex items-center justify-center"
-                                                   title="<?= e(__('blox_clear')) ?>" aria-label="<?= e(__('blox_clear')) ?>">
-                                                <i class="ti ti-x text-sm"></i>
-                                            </button>
-                                        </div>
+                                        <?php $imageControl = ['scope' => 'container', 'key' => "'container_bg_image'", 'id' => 'blox-container-background-image', 'urlId' => 'blox-container-background-image-url']; require __DIR__ . '/image-control.php'; ?>
                                         <div x-show="sel.settings.container_bg_image" class="mt-3 space-y-3">
                                             <div>
                                                 <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
@@ -2936,6 +2771,7 @@ declare(strict_types=1);
                                                     <template x-for="field in group.fields" :key="field.key">
                                                         <button type="button"
                                                                 @click.stop="selectHomeField(si + '.0.0', field.key)"
+                                                                :data-home-field-tree="si + '.0.0.' + field.key"
                                                                 class="w-full flex items-center gap-1.5 pl-2 pr-1 py-1 rounded text-left transition"
                                                                 :class="isElSelected(si,0,0) && selectedHomeField === field.key ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'">
                                                             <i class="ti text-xs shrink-0" :class="'ti-' + field.icon"></i>

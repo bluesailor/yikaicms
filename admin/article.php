@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 获取子栏目（替代原来的 article_categories）
 $categories = [];
 if ($newsChannelId > 0) {
-    $categories = channelModel()->getFlatList($newsChannelId);
+    $categories = channelModel()->getFlatList($newsChannelId, 0, $_viewLang);
 }
 
 // 查询参数
@@ -166,7 +166,7 @@ if (isset($status) && $status !== '') {
     $where[] = 'a.status = ?';
     $params[] = (int)$status;
 }
-if (!empty($keyword)) {
+if ((string) $keyword !== '') {
     $where[] = '(a.title LIKE ? OR a.summary LIKE ?)';
     $params[] = '%' . $keyword . '%';
     $params[] = '%' . $keyword . '%';
@@ -201,13 +201,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- Tab 导航 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
-        <a href="/admin/article.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('admin_article'); ?></a>
+        <a href="/admin/article.php<?php echo e($_lang['qs']); ?>" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('admin_article'); ?></a>
     </div>
 </div>
 
 <!-- 筛选栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <form method="get" class="p-4 flex flex-wrap items-center gap-4">
+        <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
         <select name="channel_id" class="border rounded px-3 py-2 text-sm">
             <option value=""><?php echo __('admin_all'); ?></option>
             <?php foreach ($categories as $cat): ?>
@@ -240,7 +241,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php echo e(__('blox_edit_news_page')); ?>
             </a>
             <?php endif; ?>
-            <a href="/admin/article_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm transition">
+            <a href="/admin/article_edit.php<?php echo e($_lang['qs']); ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm transition">
                 + <?php echo __('admin_add'); ?>
             </a>
         </div>
@@ -365,7 +366,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <span class="text-gray-400"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?></span>
             <?php
             $totalPages = (int)ceil($total / $perPage);
-            $qstr = http_build_query(array_filter(['channel_id' => $channelId, 'status' => $status, 'keyword' => $keyword]));
+            $qstr = http_build_query(array_filter(
+                ['channel_id' => $channelId, 'status' => $status, 'keyword' => $keyword, 'lang' => $_viewLang],
+                static fn(mixed $value): bool => $value !== '' && $value !== null
+            ));
             ?>
             <?php if ($page > 1): ?>
             <a href="?page=<?php echo $page - 1; ?>&<?php echo $qstr; ?>" class="px-3 py-1 border rounded hover:bg-gray-50"><?php echo __('list_prev_page'); ?></a>

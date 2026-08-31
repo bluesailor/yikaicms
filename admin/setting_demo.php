@@ -8,7 +8,7 @@
  *
  * 为什么切换要额外验站长口令（DemoSandbox::ownerTokenMatches）：
  * 公开演示站的超管账号密码本身就是公开的，`requirePermission('*')` 对访客形同虚设，
- * 访客只要打开本页就能把演示模式关掉、拿到一个完全可写的真站。口令与 cron token 同源，
+ * 访客只要打开本页就能把演示模式关掉、拿到一个完全可写的真站。站长口令独立于 cron token，
  * 只有能读库或能登 shell 的人拿得到——这才是「站长」与「演示超管」的分界线。
  */
 declare(strict_types=1);
@@ -100,10 +100,12 @@ $manifest = DemoSandbox::manifest();
 $lastReset = DemoSandbox::lastReset();
 
 // 口令只在「尚未配置」时显示一次——那是它刚被创建出来、除了这里没有别处能拿到的时刻。
-// 已配置就再也不回显：口令与 cron token 同源，把它印在 HTML 里会扩大暴露面
+// 已配置就再也不回显；开启演示后缺失口令也不允许访客从 Web 签发。
 // （浏览器历史、截图、旁人一瞥），而这恰恰削弱了它「只有能读库或登 shell 的人才知道」的边界。
-$ownerTokenConfigured = trim((string) settingModel()->get('cron_token', '')) !== '';
-$issuedToken = $ownerTokenConfigured ? '' : Cron::token();
+$ownerTokenConfigured = trim((string) settingModel()->get('demo_owner_token', '')) !== '';
+$mayIssueOwnerToken = $currentMode === DemoSandbox::MODE_OFF
+    && !(defined('DEMO_MODE') && DEMO_MODE) && !(defined('DEMO_SANDBOX') && DEMO_SANDBOX);
+$issuedToken = !$ownerTokenConfigured && $mayIssueOwnerToken ? DemoSandbox::ownerToken() : '';
 
 // 注意：不要拿 MODE_* 当数组键。它们是 '0'/'1'/'2'，PHP 会把数字字符串键
 // 静默转成 int，于是 e($value) 收到 int 直接 TypeError，
@@ -179,7 +181,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 <?php else: ?>
                     <div class="bg-gray-50 border rounded p-3 text-xs text-gray-600">
-                        <?php echo e(__('dm_owner_token_hidden')); ?>
+                        <?php echo e(__($ownerTokenConfigured ? 'dm_owner_token_hidden' : 'dm_owner_token_cli_required')); ?>
                     </div>
                 <?php endif; ?>
             </div>

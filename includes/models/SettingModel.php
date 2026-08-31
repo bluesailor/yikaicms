@@ -45,10 +45,12 @@ class SettingModel extends Model
             [$key]
         );
         if ($existing) {
-            return db()->execute(
+            $affected = db()->execute(
                 "UPDATE {$this->tableName()} SET `value` = ? WHERE `key` = ?",
                 [$value, $key]
             );
+            $this->notifySaved([$key => $value]);
+            return $affected;
         }
         // INSERT 路径：手写 SQL 给 `key` / `group` 加反引号（MySQL 保留字，
         // 走 Model::create→db()->insert 通用路径会因列名不带反引号而报 1064 语法错误）
@@ -56,8 +58,36 @@ class SettingModel extends Model
             "INSERT INTO {$this->tableName()} (`key`, `value`, `group`, `name`, `tip`) VALUES (?, ?, ?, ?, ?)",
             [$key, $value, $group, $key, '']
         );
-        if (function_exists('do_action')) do_action('data_changed', $this->table);
+        $this->notifySaved([$key => $value]);
         return 1;
+    }
+
+    public function clearCache(): void
+    {
+        $this->cache = null;
+    }
+
+    /** @param array<string,mixed> $settings */
+    private function notifySaved(array $settings): void
+    {
+        // Listeners may read settings immediately; discard the old snapshot first.
+        $this->clearCache();
+        if ($settings !== [] && function_exists('do_action')) {
+            do_action('data_changed', $this->table, 0, $settings);
+            do_action('setting_saved', $settings);
+        }
+    }
+
+    /** Empty/unknown payloads conservatively invalidate; only known runtime stamps are exempt. */
+    public static function affectsPageCache(array $settings): bool
+    {
+        if ($settings === []) return true;
+        foreach (array_keys($settings) as $key) {
+            if ($key !== 'sched_sweep_at' && !preg_match('/^cron_[a-z0-9_]+_(last|status|msg|ms)$/D', (string) $key)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -114,6 +144,7 @@ class SettingModel extends Model
             $this->set($baseKey, (string) $row['value'], (string) ($row['group'] ?? 'basic'));
             // 3) 删除后缀行
             db()->execute("DELETE FROM {$this->tableName()} WHERE `key` = ?", [(string) $row['key']]);
+            $this->notifySaved([(string) $row['key'] => null]);
             $count++;
         }
         return $count;
@@ -136,43 +167,46 @@ class SettingModel extends Model
     public function saveBatch(array $settings): void
     {
         $this->cache = null;
-        foreach ($settings as $key => $value) {
-            $row = db()->fetchOne(
-                "SELECT id FROM {$this->tableName()} WHERE `key` = ?",
-                [(string) $key]
-            );
-            if ($row) {
-                db()->execute(
-                    "UPDATE {$this->tableName()} SET `value` = ? WHERE `key` = ?",
-                    [(string) $value, (string) $key]
+        $saved = [];
+        try {
+            foreach ($settings as $key => $value) {
+                $row = db()->fetchOne(
+                    "SELECT id FROM {$this->tableName()} WHERE `key` = ?",
+                    [(string) $key]
                 );
-            } else {
-                // 新键：从 defaults.php 取正确的 group/name/type/tip（取不到才退回 basic），
-                // 避免任意页面保存的设置都堆进"基础设置"、显示成裸 key。
-                $grp = 'basic';
-                $nm  = (string) $key;
-                $tp  = 'text';
-                $tip = '';
-                if (function_exists('getDefaults')) {
-                    foreach (getDefaults() as $g => $items) {
-                        if (isset($items[$key])) {
-                            $grp = (string) $g;
-                            $nm  = (string) ($items[$key]['name'] ?? $key);
-                            $tp  = (string) ($items[$key]['type'] ?? 'text');
-                            $tip = (string) ($items[$key]['tip'] ?? '');
-                            break;
+                if ($row) {
+                    db()->execute(
+                        "UPDATE {$this->tableName()} SET `value` = ? WHERE `key` = ?",
+                        [(string) $value, (string) $key]
+                    );
+                } else {
+                    // 新键：从 defaults.php 取正确的 group/name/type/tip（取不到才退回 basic），
+                    // 避免任意页面保存的设置都堆进"基础设置"、显示成裸 key。
+                    $grp = 'basic';
+                    $nm  = (string) $key;
+                    $tp  = 'text';
+                    $tip = '';
+                    if (function_exists('getDefaults')) {
+                        foreach (getDefaults() as $g => $items) {
+                            if (isset($items[$key])) {
+                                $grp = (string) $g;
+                                $nm  = (string) ($items[$key]['name'] ?? $key);
+                                $tp  = (string) ($items[$key]['type'] ?? 'text');
+                                $tip = (string) ($items[$key]['tip'] ?? '');
+                                break;
+                            }
                         }
                     }
+                    db()->execute(
+                        "INSERT INTO {$this->tableName()} (`key`, `value`, `group`, `name`, `tip`, `type`) VALUES (?, ?, ?, ?, ?, ?)",
+                        [(string) $key, (string) $value, $grp, $nm, $tip, $tp]
+                    );
                 }
-                db()->execute(
-                    "INSERT INTO {$this->tableName()} (`key`, `value`, `group`, `name`, `tip`, `type`) VALUES (?, ?, ?, ?, ?, ?)",
-                    [(string) $key, (string) $value, $grp, $nm, $tip, $tp]
-                );
+                $saved[(string) $key] = (string) $value;
             }
-        }
-        // 设置变更后触发 data_changed，让前台 HTML 缓存自动失效
-        if (function_exists('do_action')) {
-            do_action('data_changed', $this->tableName(), 0);
+        } finally {
+            // Some writes may have succeeded before a later SQL error.
+            $this->notifySaved($saved);
         }
     }
 }
