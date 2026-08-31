@@ -5,6 +5,9 @@ if (!$isProductBlox && !$isContentListBlox) {
     return;
 }
 $catalogKind = $isProductBlox ? 'product' : 'article';
+$catalogLanguage = (string) ($page['lang'] ?? siteLang());
+$catalogLanguageLabel = isMultiLangEnabled($isProductBlox ? 'products' : 'contents')
+    ? (availableLanguages()[$catalogLanguage] ?? $catalogLanguage) : __('blox_cond_all_languages');
 ?>
 <template x-if="selEl && selEl.type === '<?= $isProductBlox ? 'product-catalog' : 'content-catalog' ?>'">
     <div x-data="BloxCatalogSource.create(<?= (int) $id ?>, csrf, '<?= e($catalogKind) ?>')" class="pt-2" data-testid="blox-catalog-source">
@@ -14,6 +17,18 @@ $catalogKind = $isProductBlox ? 'product' : 'article';
             <?= e(__($isProductBlox ? 'blox_catalog_products' : 'blox_catalog_articles')) ?>
         </button>
         <div x-show="expanded" id="blox-catalog-items" class="space-y-2 pb-2">
+            <dl class="space-y-1 text-xs text-gray-700" data-testid="blox-catalog-scope">
+                <div class="flex items-start gap-2">
+                    <dt class="shrink-0"><?= e(__('blox_cond_language')) ?></dt>
+                    <dd class="min-w-0 break-words" data-testid="blox-catalog-language" data-language="<?= e($catalogLanguage) ?>"><?= e($catalogLanguageLabel) ?></dd>
+                </div>
+                <div class="flex items-start gap-2">
+                    <dt class="shrink-0"><?= e(__('blox_catalog_scope_label')) ?></dt>
+                    <dd class="min-w-0 break-words" data-testid="blox-catalog-range"><?= e($isProductBlox
+                        ? __('blox_catalog_scope_all_products')
+                        : __('blox_catalog_scope_descendants', ['name' => (string) ($page['name'] ?? '')])) ?></dd>
+                </div>
+            </dl>
             <button type="button" @click="load(page); refreshPreview()" :disabled="loading || previewLoading"
                     :aria-busy="loading || previewLoading" data-testid="blox-catalog-refresh"
                     class="flex items-center justify-center gap-2 w-full min-h-8 px-2 py-1 border border-gray-300 rounded text-xs text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-wait">
@@ -61,7 +76,10 @@ $catalogKind = $isProductBlox ? 'product' : 'article';
                                 <img x-show="item.cover && !imageFailed" :src="item.cover || null" @error="imageFailed = true" alt="" class="w-full h-full object-cover">
                                 <i x-show="!item.cover || imageFailed" class="ti ti-file-text" aria-hidden="true"></i>
                             </span>
-                            <span class="min-w-0 flex-1 break-words" x-text="item.title"></span>
+                            <span class="min-w-0 flex-1 break-words">
+                                <span class="block" x-text="item.title" data-testid="blox-catalog-item-title"></span>
+                                <span class="block text-gray-600" x-show="item.source_label" x-text="item.source_label || ''" data-testid="blox-catalog-item-source"></span>
+                            </span>
                             <i class="ti ti-external-link shrink-0" aria-hidden="true"></i>
                         </a>
                     </li>

@@ -29,7 +29,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         await panel.locator(':scope > button').click();
         const items = panel.getByTestId('blox-catalog-item');
         await expect(items.first()).toBeVisible();
-        const title = (await items.first().innerText()).trim();
+        const title = (await items.first().getByTestId('blox-catalog-item-title').innerText()).trim();
         const href = await items.first().getAttribute('href');
         expect(href).toMatch(new RegExp(`^/admin/${kind}_edit.php\\?id=\\d+$`));
         const snapshot = () => page.evaluate(() => {

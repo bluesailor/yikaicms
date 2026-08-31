@@ -6173,4 +6173,8 @@ voltage|電圧|220V',
     'blox_catalog_page_empty' => 'このページに項目はありません',
     'blox_catalog_first_page' => '最初のページへ',
     'blox_catalog_clear_search' => '検索をクリア',
+    'blox_catalog_scope_label' => '対象範囲',
+    'blox_catalog_scope_all_products' => 'すべてのカテゴリ（未分類の商品を含む）',
+    'blox_catalog_scope_descendants' => ':nameとすべての下位チャネル',
+    'blox_catalog_source_unavailable' => '所属先が未命名または削除済み',
 ];
