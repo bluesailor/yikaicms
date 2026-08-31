@@ -6167,4 +6167,5 @@ voltage|電圧|220V',
     'blox_catalog_retry' => '項目を再読み込み',
     'blox_catalog_previous' => '前の項目',
     'blox_catalog_next' => '次の項目',
+    'blox_catalog_refresh_preview' => 'コンテンツのプレビューを更新',
 ];

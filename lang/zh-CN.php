@@ -6094,4 +6094,5 @@ voltage|电压|220V',
     'blox_catalog_retry' => '重新加载条目',
     'blox_catalog_previous' => '上一页条目',
     'blox_catalog_next' => '下一页条目',
+    'blox_catalog_refresh_preview' => '刷新内容预览',
 ];
