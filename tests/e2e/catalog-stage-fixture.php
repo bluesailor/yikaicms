@@ -51,5 +51,19 @@ foreach (['zh-CN', 'en', 'ja'] as $lang) {
         db()->insert('products', $row + ['category_id' => $category, 'price' => $i, 'sort_order' => 25 - $i]);
         db()->insert('contents', $row + ['channel_id' => $child, 'type' => 'article', 'publish_time' => $i]);
     }
+    foreach (['draft' => ['status' => 0], 'deleted' => ['deleted_at' => 123]] as $suffix => $extra) {
+        $row = $extra + ['title' => 'Stage gate 0 ' . $lang . ' ' . $suffix,
+            'slug' => 'e2e-stage-' . $suffix . '-' . $lang, 'lang' => $lang, 'status' => 1];
+        db()->insert('products', $row + ['category_id' => $category]);
+        db()->insert('contents', $row + ['channel_id' => $child, 'type' => 'article']);
+    }
+    foreach (['case' => ['channel_id' => $child, 'type' => 'case'],
+        'outside' => ['channel_id' => $product['id'], 'type' => 'article']] as $suffix => $extra) {
+        db()->insert('contents', $extra + ['title' => 'Stage gate 0 ' . $lang . ' ' . $suffix,
+            'slug' => 'e2e-stage-' . $suffix . '-' . $lang, 'lang' => $lang, 'status' => 1]);
+    }
+    db()->insert('contents', ['title' => 'Stage gate 0 foreign row in ' . $lang,
+        'slug' => 'e2e-stage-foreign-' . $lang, 'channel_id' => $child, 'type' => 'article',
+        'lang' => $lang === 'en' ? 'ja' : 'en', 'status' => 1]);
 }
 echo json_encode($result, JSON_THROW_ON_ERROR);
