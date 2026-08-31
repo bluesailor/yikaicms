@@ -62,10 +62,8 @@ $sidebarItems = $rightSidebarItems ?? null;
     $hasContact = $phone || $email || $address;
     ?>
     <?php if ($hasContact): ?>
-    <div class="relative bg-slate-900 text-slate-200 overflow-hidden">
-        <div aria-hidden class="absolute -top-12 -right-12 w-40 h-40 bg-primary/30 rounded-full blur-2xl"></div>
-
-        <div class="relative px-5 py-5">
+    <div class="bg-slate-900 text-slate-200">
+        <div class="px-5 py-5">
             <div class="flex items-center gap-3 mb-4">
                 <span class="block w-1 h-5 bg-primary"></span>
                 <span class="text-white font-bold tracking-wide uppercase text-sm">
