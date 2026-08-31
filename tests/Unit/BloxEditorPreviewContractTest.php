@@ -1266,12 +1266,15 @@ final class BloxEditorPreviewContractTest extends TestCase
             "ctrl.type === 'range'",
             "@input=\"setControlValue(ctrl, Number(\$event.target.value))\"",
             "@click=\"openMedia(u => selEl.data[ctrl.key] = u)\"",
-            "openMedia(u => selEl.data[ctrl.key] = u, { usage: 'cta', source: 'official' })",
+            "require __DIR__ . '/home-image-control.php'",
             "'blox-control-' + ctrl.key",
         ] as $token) {
             $this->assertStringContainsString($token, $workspace, "CTA control token {$token} missing");
         }
         $this->assertStringContainsString('getBlockBg(', $theme);
+        $imageControl = $this->source('admin/blox_editor/partials/home-image-control.php');
+        $this->assertStringContainsString('replaceHomeContentImage(ctrl.key)', $imageControl);
+        $this->assertStringContainsString('{ usage: "cta", source: "official" }', $this->source('assets/js/blox-home-content-panel.js'));
     }
 
     public function testWideBackgroundMediaPickerPrioritizesRecommendedImagesWithoutBlockingFallbacks(): void

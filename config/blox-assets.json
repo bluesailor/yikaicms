@@ -38,6 +38,7 @@
     "assets/js/blox-command-runner.js",
     "assets/js/blox-control-rules.js",
     "assets/js/blox-banner-panel.js",
+    "assets/js/blox-home-content-panel.js",
     "assets/js/blox-dialog-focus.js",
     "assets/js/blox-draft-recovery.js",
     "assets/js/blox-draft-summary.js",

@@ -789,6 +789,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-command-runner.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-command-runner.js') ?>"></script>
     <script src="/assets/js/blox-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-control-rules.js') ?>"></script>
     <script src="/assets/js/blox-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-banner-panel.js') ?>"></script>
+    <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
     <script src="/assets/js/blox-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-icon-utils.js') ?>"></script>
     <script src="/assets/js/blox-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-field-store.js') ?>"></script>
@@ -1171,6 +1172,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
             bannerPanelGroup: "common",
+            homeContentGroup: "content",
             homeBannerRuntime: <?= json_encode($homeBannerRuntime, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
@@ -3420,6 +3422,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             ...window.BloxBannerPanel.methods,
+            ...window.BloxHomeContentPanel.methods,
 
             isLoopTemplateChild() {
                 return this.selectedSubEi >= 0 && this.isLoopTemplateHost(this.selTopEl);
@@ -4217,6 +4220,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
             selectElement(si, ci, ei, notifyCanvas) {
                 this.bannerPanelGroup = "common";
+                this.homeContentGroup = "content";
                 this.selectedSi = si;
                 this.selectedCi = ci;
                 this.selectedEi = ei;
@@ -4244,6 +4248,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!this.homeFieldAllowed(el, field)) return;
                 this.selectPath(path, false);
                 this.selectedHomeField = field;
+                if (window.BloxHomeContentPanel.supports(el)) this.homeContentGroup = window.BloxHomeContentPanel.groupFor(field);
                 this.selectedHomeColumn = this.homeFieldGroupKey(el, field);
                 this.panelTab = "content";
                 this.libOpen = false;
@@ -4373,7 +4378,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var controls = (this.elSchema(this.selEl.type).controls || []).filter(function (c) {
                     // 页签归属：控件可在 schema 里显式标 tab（如容器的布局控件全在样式页）；
                     // 未标注的按类型推断——color 归样式，其余归内容
-                    var tab = c.tab || (c.type === "color" ? "style" : "content");
+                    var tab = window.BloxHomeContentPanel.tabFor(self.selEl, c);
                     if (tab !== self.panelTab) return false;
                     if (c.loop_only && !self.isLoopTemplateChild()) return false;
                     if (c.outside_loop_only && self.isLoopTemplateChild()) return false;
@@ -4387,7 +4392,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (self.modifiedOnly && !self.isCtrlModified(c)) return false;
                     return true;
                 });
-                return window.BloxBannerPanel.controls(this.selEl, controls, this.bannerPanelGroup, !!q || this.modifiedOnly || this.panelTab !== "content");
+                var showAll = !!q || this.modifiedOnly || this.panelTab !== "content";
+                controls = window.BloxBannerPanel.controls(this.selEl, controls, this.bannerPanelGroup, showAll);
+                return window.BloxHomeContentPanel.controls(this.selEl, controls, this.homeContentGroup, showAll);
             },
 
             controlRequirementMet(ctrl) {
@@ -4972,6 +4979,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.selectPath(path, false);
                 this.selectedHomeColumn = String(column);
                 this.selectedHomeField = "";
+                if (window.BloxHomeContentPanel.supports(el)) this.homeContentGroup = ["image", "background"].includes(column) ? "media" : "content";
                 this.panelTab = "content";
                 this.libOpen = false;
                 this.openMobileSettings();

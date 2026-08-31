@@ -1421,6 +1421,7 @@ declare(strict_types=1);
                             </template>
 
                             <?php require __DIR__ . '/banner-control-groups.php'; ?>
+                            <?php require __DIR__ . '/home-content-groups.php'; ?>
                             <div class="blox-property-pair-grid" data-testid="blox-element-property-grid">
                             <template x-for="ctrl in visibleCtrls()" :key="ctrl.key">
                                 <div :data-control-key="ctrl.key"
@@ -1812,36 +1813,9 @@ declare(strict_types=1);
                                     <?php // image：图片地址 + 缩略预览 + 媒体库选图（复用 openMedia 弹窗） ?>
                                     <template x-if="ctrl.type === 'image'">
                                         <div>
-                                            <template x-if="selEl && selEl.type === 'home-block' && String((selEl.data || {}).block_type || '') === 'cta' && ctrl.key === 'bg_image'">
-                                                <div class="space-y-2" data-testid="blox-cta-background-control">
-                                                    <div class="relative aspect-[3/2] rounded overflow-hidden border border-gray-200 bg-gray-100">
-                                                        <template x-if="selEl.data[ctrl.key]">
-                                                            <img :src="selEl.data[ctrl.key]" class="w-full h-full object-cover" alt="">
-                                                        </template>
-                                                        <template x-if="!selEl.data[ctrl.key]">
-                                                            <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
-                                                                <i class="ti ti-photo-off text-2xl"></i>
-                                                                <span class="mt-1 text-[10px]" x-text="homeDynamicText.noImage"></span>
-                                                            </div>
-                                                        </template>
-                                                        <button type="button" @click="openMedia(u => selEl.data[ctrl.key] = u, { usage: 'cta', source: 'official' })"
-                                                                data-testid="blox-cta-background-media"
-                                                                class="absolute inset-x-2 bottom-2 h-8 rounded bg-gray-900/80 hover:bg-blue-600 text-white text-xs inline-flex items-center justify-center gap-1.5 transition">
-                                                            <i class="ti ti-photo-edit text-sm"></i><span x-text="homeDynamicText.replaceImage"></span>
-                                                        </button>
-                                                    </div>
-                                                    <details class="rounded border border-gray-200 bg-gray-50">
-                                                        <summary class="px-2.5 py-1.5 text-[10px] text-gray-500 cursor-pointer" x-text="homeDynamicText.imageUrl"></summary>
-                                                        <div class="px-2 pb-2">
-                                                            <input type="text" x-model="selEl.data[ctrl.key]" placeholder="/uploads/images/xx.jpg"
-                                                                   data-testid="blox-cta-background-url"
-                                                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white">
-                                                        </div>
-                                                    </details>
-                                                </div>
-                                            </template>
+                                            <?php require __DIR__ . '/home-image-control.php'; ?>
                                             <?php require __DIR__ . '/banner-image-control.php'; ?>
-                                            <template x-if="selEl && selEl.type !== 'home-banner-item' && !(selEl.type === 'home-block' && String((selEl.data || {}).block_type || '') === 'cta' && ctrl.key === 'bg_image')">
+                                            <template x-if="selEl && selEl.type !== 'home-banner-item' && !BloxHomeContentPanel.isImage(selEl, ctrl.key)">
                                                 <div class="flex items-center gap-2">
                                                     <template x-if="selEl.data[ctrl.key]">
                                                         <img :src="selEl.data[ctrl.key]" class="w-9 h-9 rounded border border-gray-200 object-cover shrink-0" alt="">
@@ -2852,6 +2826,7 @@ declare(strict_types=1);
                                                     <template x-for="field in group.fields" :key="field.key">
                                                         <button type="button"
                                                                 @click.stop="selectHomeField(si + '.0.0', field.key)"
+                                                                :data-home-field-tree="si + '.0.0.' + field.key"
                                                                 class="w-full flex items-center gap-1.5 pl-2 pr-1 py-1 rounded text-left transition"
                                                                 :class="isElSelected(si,0,0) && selectedHomeField === field.key ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'">
                                                             <i class="ti text-xs shrink-0" :class="'ti-' + field.icon"></i>
