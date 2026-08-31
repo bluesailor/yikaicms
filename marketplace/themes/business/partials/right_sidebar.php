@@ -11,7 +11,7 @@
 $activeId = $rightSidebarActiveId ?? $channelId;
 $sidebarItems = $rightSidebarItems ?? null;
 ?>
-<aside class="w-full lg:w-72 space-y-6">
+<aside class="w-full lg:w-72 space-y-6<?php echo is_array($sidebarItems) ? ' business-download-sidebar' : ''; ?>">
 
     <!-- 子栏目导航 -->
     <div class="bg-white border border-slate-200">
