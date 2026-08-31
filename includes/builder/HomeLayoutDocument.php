@@ -613,28 +613,12 @@ public static function isActive(): bool
             return $data;
         }
 
-        $title = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
-        if ($title === '') {
-            $title = homeAboutDefaultTitle();
-        }
-
         $layout = (string) config('home_about_layout', 'text_left');
         $data['override_layout'] = $layout === 'image_left' ? 'image_left' : 'text_left';
         $ratio = (string) config('home_about_ratio', '1_1');
         $data['override_ratio'] = in_array($ratio, ['1_1', '5_7', '7_5', '1_2', '2_1'], true) ? $ratio : '1_1';
         $data['override_breakpoint'] = (string) config('home_about_breakpoint', 'lg') === 'md' ? 'md' : 'lg';
-        $data['override_title'] = $title;
-        $data['override_content'] = configLang('home_about_content', 'home_about_default');
-        $data['override_image'] = (string) config(
-            'home_about_image',
-            '/assets/images/demo/about-office.jpg'
-        );
-        $data['override_tag_title'] = (string) (configJsonLang('home_about_tag_title') ?: config('home_about_tag_title', ''));
-        $data['override_tag_description'] = (string) (configJsonLang('home_about_tag_desc') ?: config('home_about_tag_desc', ''));
-        $data['override_button_text'] = (string) (config('home_about_button', '') ?: __('home_learn_more'));
-        $data['override_button_url'] = (string) config('home_about_link', '');
-
-        return $data;
+        return array_merge($data, HomeAboutContent::resolve());
     }
 
     public static function legacyLabel(string $type): string

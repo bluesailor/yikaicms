@@ -6073,4 +6073,7 @@ voltage|电压|220V',
     'blox_home_panel_layout' => '版式',
     'blox_home_panel_more' => '更多',
     'blox_home_panel_image_inherited' => '沿用原有图片',
+    'blox_home_content_inherited' => '沿用首页内容',
+    'blox_home_content_override' => '本区块自定义',
+    'blox_home_content_restore' => '恢复沿用首页内容',
 ];

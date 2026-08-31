@@ -6146,4 +6146,7 @@ voltage|電圧|220V',
     'blox_home_panel_layout' => '配置',
     'blox_home_panel_more' => 'その他',
     'blox_home_panel_image_inherited' => '元の画像を使用',
+    'blox_home_content_inherited' => 'ホームの内容を継承',
+    'blox_home_content_override' => 'このブロック専用',
+    'blox_home_content_restore' => 'ホームの内容に戻す',
 ];

@@ -723,6 +723,7 @@ foreach ($registryMeta as $type => $m) {
 $catLabels = ['basic' => __('blox_cat_basic'), 'media' => __('blox_cat_media'), 'layout' => __('blox_layout'), 'advanced' => __('blox_cat_advanced'), 'dynamic' => __('blox_cat_dynamic')];
 $homeEditorBlueprints = $isHomeBlox ? HomeBloxBlockSchema::editorBlueprints() : [];
 $homeFieldSeeds = $isHomeBlox ? [
+    'about' => HomeAboutContent::resolve(getChannelBySlug('about', true)),
     'stats' => ['stats_items' => HomeBloxBlockSchema::statsSeedItems()],
     'advantage' => ['advantage_items' => HomeBloxBlockSchema::advantageSeedItems()],
 ] : [];
@@ -1028,7 +1029,7 @@ $canManageBloxDesign = hasPermission('blox_global');
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800" x-data="bloxEditor()" x-init="init()" x-cloak
+<body class="bg-gray-100 text-gray-800" x-data="bloxEditor()" x-cloak
       data-blox-advanced="<?php echo $advancedBloxEnabled ? '1' : '0'; ?>"
       data-blox-recovery-key="<?= e($recoveryKey) ?>"
       data-blox-base-revision="<?= e($baseRevision) ?>">

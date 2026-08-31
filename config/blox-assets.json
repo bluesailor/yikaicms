@@ -48,7 +48,8 @@
     "assets/js/blox-media-client.js",
     "assets/js/blox-preview-client.js",
     "assets/js/blox-responsive.js",
-    "assets/js/blox-template-library.js"
+    "assets/js/blox-template-library.js",
+    "includes/builder/HomeAboutContent.php"
   ],
   "pro": [
     "plugins/blox-example"

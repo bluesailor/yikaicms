@@ -6005,4 +6005,7 @@ voltage|Voltage|220V',
     'blox_home_panel_layout' => 'Layout',
     'blox_home_panel_more' => 'More',
     'blox_home_panel_image_inherited' => 'Using the original image',
+    'blox_home_content_inherited' => 'From homepage settings',
+    'blox_home_content_override' => 'Custom for this block',
+    'blox_home_content_restore' => 'Use homepage content',
 ];
