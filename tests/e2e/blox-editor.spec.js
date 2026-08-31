@@ -6,6 +6,8 @@ const {
   countDynamicHomeBlocks,
   countSections,
   dragElement,
+  editorHasChanges,
+  expectClean,
   frame,
   observeConsole,
   observeUnsafeWrites,
@@ -104,7 +106,7 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test.afterEach(async ({ page }) => {
   if (!consoleEntries || !unsafeWrites) return;
-  const leakedDirtyState = await page.getByTestId('blox-dirty').isVisible().catch(() => false);
+  const leakedDirtyState = await editorHasChanges(page);
   if (leakedDirtyState) await restoreClean(page);
   expect(leakedDirtyState, 'test left the editor dirty').toBe(false);
   expect(unsafeWrites, 'save/publish/rollback request was sent').toEqual([]);
@@ -163,7 +165,8 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     await expect(menu.getByRole('button', { name: /预制区块/ })).toBeVisible();
     await expect(menu.getByRole('link', { name: /前台/ })).toBeVisible();
     await expect(menu.getByRole('button', { name: /保存/ })).toBeVisible();
-    const actionHeights = await menu.locator(':scope > button, :scope > a').evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
+    await expect(page.getByTestId('blox-mobile-preview-retry')).toBeHidden();
+    const actionHeights = await menu.locator(':scope > button:visible, :scope > a:visible').evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
     expect(Math.min(...actionHeights)).toBeGreaterThanOrEqual(44);
     if (testInfo.project.name !== 'mobile-390') return;
     await menu.getByRole('button', { name: /预制区块/ }).click();
@@ -193,7 +196,7 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     await page.getByTestId('blox-add-element-heading').click();
     await expect(page.getByTestId('blox-toast')).toContainText('选择目标区块');
     await expect(page.getByTestId('blox-tree-section')).toHaveCount(sectionCount);
-    await expect(page.getByTestId('blox-dirty')).toBeHidden();
+    await expectClean(page);
     await page.getByTestId('blox-mobile-canvas-view').click();
     await expect(leftPanel).not.toHaveClass(/is-open/);
     await page.getByTestId('blox-mobile-structure').click();
@@ -388,7 +391,7 @@ test('desktop keyboard insertion requires a selected target @ci', async ({ page 
 
   await expect(page.getByTestId('blox-toast')).toContainText('选择目标区块');
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(sectionCount);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, testInfo) => {
@@ -681,7 +684,7 @@ test('home canvas keeps header and footer actions without a redundant page struc
   await expect(footerEdit).not.toHaveAttribute('href', /.+/);
   await expect(headerArea).toHaveAttribute('data-yk-context-url', expectedCanvasHeaderPath);
   await expect(footerArea).toHaveAttribute('data-yk-context-url', /\/admin\/(?:blox_editor\.php\?template=\d+(?:&back=home)?|site_design\.php#site-design-area-footer)$/);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 
   const headerHref = await headerArea.getAttribute('data-yk-context-url');
   const expectedHeaderUrl = new URL(headerHref, page.url()).href;
@@ -752,7 +755,7 @@ test('current theme header allows publishing unsaved canvas changes @ci', async 
 
   // 全局 E2E 安全钩子禁止触发保存/发布；恢复初始值，证明按钮状态不依赖先保存。
   await sticky.uncheck();
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('stable element deep link selects the current header logo @ci', async ({ page }, testInfo) => {
@@ -815,7 +818,7 @@ test('current theme header switches Mega Menu in place and reorders the selected
 
   await undo(page);
   expect(await childTypes()).toEqual(initialTypes);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 
   await expect(page.getByTestId('blox-redo')).toBeEnabled();
   await performPreviewUpdate(page, () => page.getByTestId('blox-redo').click());
@@ -866,7 +869,7 @@ test('section spacing edits the active responsive tier @ci', async ({ page }, te
   expect(typeof restoredDocument.sections[0].settings.padding).toBe('string');
   await expect(tabletDevice).toHaveAttribute('data-responsive-state', 'inherit');
   await expect(inheritButton).toBeHidden();
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('heading visual size overrides one device without changing its level @ci', async ({ page }, testInfo) => {
@@ -989,7 +992,7 @@ test('cover-header banner fills the first viewport @ci', async ({ page }, testIn
   expect(Math.abs(dimensions.height - dimensions.viewport)).toBeLessThanOrEqual(1);
 
   await undo(page);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('banner switching keeps one visible slide when selection index is stale @ci', async ({ page }, testInfo) => {
@@ -1028,7 +1031,7 @@ test('tree column selection preserves canvas scroll @ci', async ({ page }, testI
   await page.waitForTimeout(500);
 
   expect(await canvasScrollTop(page)).toBeCloseTo(before, 1);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('inline edit patches preview and preserves scroll @ci', async ({ page }, testInfo) => {
@@ -1067,7 +1070,7 @@ test('inline edit patches preview and preserves scroll @ci', async ({ page }, te
   await expect.poll(() => canvasScrollTop(page)).toBeCloseTo(scrollBefore, 1);
   await undo(page);
   await undo(page);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('unchanged inline blur does not create history @ci', async ({ page }, testInfo) => {
@@ -1081,7 +1084,7 @@ test('unchanged inline blur does not create history @ci', async ({ page }, testI
   await expect(field).not.toHaveAttribute('contenteditable', /.+/);
   await expect(field).toHaveText(value);
   await expect(page.getByTestId('blox-undo')).toBeDisabled();
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('custom pricing columns edit in place and restore inheritance @local', async ({ page }, testInfo) => {
@@ -1118,7 +1121,7 @@ test('custom pricing columns edit in place and restore inheritance @local', asyn
   contentFrame = await frame(page);
   await expect(contentFrame.getByRole('heading', { name: '专业版', exact: true })).toBeVisible();
   await expect(input).toHaveValue('专业版');
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 
   const planGroups = panel.locator('[data-testid^="blox-custom-column-custom-columns-"]');
   await expect(planGroups).toHaveCount(3);
@@ -1155,7 +1158,7 @@ test('custom pricing columns edit in place and restore inheritance @local', asyn
     '[data-yk-home-field$=".columns.1.elements.0.data.text"]'
   ).first()).toHaveText('专业版');
   await expect(page.getByTestId('blox-plan-restore')).toBeHidden();
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('custom FAQ edits individual questions and answers from panel or canvas @local', async ({ page }, testInfo) => {
@@ -1242,7 +1245,7 @@ test('custom FAQ edits individual questions and answers from panel or canvas @lo
   page.once('dialog', (dialog) => dialog.accept());
   await performPreviewUpdate(page, () => page.getByTestId('blox-faq-restore').click());
   await expect(page.getByTestId('blox-faq-restore')).toBeHidden();
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('stale save is blocked and keeps a recoverable local copy @ci', async ({ page }, testInfo) => {
@@ -1279,7 +1282,7 @@ test('stale save is blocked and keeps a recoverable local copy @ci', async ({ pa
   await expect(page.getByTestId('blox-conflict-dialog')).toBeHidden();
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('publish saves the current document before activating it @ci', async ({ page }, testInfo) => {
@@ -1313,7 +1316,7 @@ test('publish saves the current document before activating it @ci', async ({ pag
   await expect(page.getByTestId('blox-publish')).toBeEnabled();
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByTestId('blox-publish').click();
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 
   expect(submitted.action).toBe('publish');
   expect(submitted.baseRevision).toMatch(/^[a-f0-9]{64}$/);
@@ -1322,7 +1325,7 @@ test('publish saves the current document before activating it @ci', async ({ pag
 
   // 请求已被拦截，服务器草稿未改变；重载回到真实基线，避免污染后续用例。
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('clipboard copy paste and undo @ci', async ({ page }, testInfo) => {
@@ -1345,7 +1348,7 @@ test('clipboard copy paste and undo @ci', async ({ page }, testInfo) => {
   await expect(column.getByTestId('blox-tree-element')).toHaveCount(before);
   await undo(page);
   await undo(page);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('cross-column drag survives Sortable rebind @ci', async ({ page }, testInfo) => {
@@ -1375,7 +1378,7 @@ test('cross-column drag survives Sortable rebind @ci', async ({ page }, testInfo
   await undo(page);
   await undo(page);
   await undo(page);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('built-in prebuilt section library filters previews and inserts a fresh section @ci', async ({ page }, testInfo) => {
@@ -1426,7 +1429,7 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
 
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('prebuilt library persists favorites and tracks only successful recent inserts @ci', async ({ page }, testInfo) => {
@@ -1460,7 +1463,7 @@ test('prebuilt library persists favorites and tracks only successful recent inse
   )[0])).toBe('builtin:image-text');
 
   await undo(page);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
   await page.getByTestId('blox-prebuilt-open').click();
   await page.getByTestId('blox-template-quick-recent').click();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
@@ -1660,10 +1663,10 @@ test('prebuilt section drags from the dock into a visible fixed canvas boundary 
     await expect((await frame(page)).getByText('以专业与稳健，陪伴客户长期成长')).toBeVisible();
   } finally {
     if (mouseDown) await page.mouse.up().catch(() => {});
-    if (await page.getByTestId('blox-dirty').isVisible()) await undo(page);
+    if (await editorHasChanges(page)) await undo(page);
   }
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(beforeSections);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('prebuilt section drags to an exact structure boundary without canvas scroll @ci', async ({ page }, testInfo) => {
@@ -1712,10 +1715,10 @@ test('prebuilt section drags to an exact structure boundary without canvas scrol
     await expect((await frame(page)).locator(`[data-yk-sec="${targetIndex + 1}"]`).getByText('以专业与稳健，陪伴客户长期成长')).toBeVisible();
   } finally {
     if (mouseDown) await page.mouse.up().catch(() => {});
-    if (await page.getByTestId('blox-dirty').isVisible()) await undo(page);
+    if (await editorHasChanges(page)) await undo(page);
   }
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(beforeSections);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('legacy service page can switch to editable built-in process template @local', async ({ page }, testInfo) => {
@@ -1771,7 +1774,7 @@ test('legacy service page can switch to editable built-in process template @loca
   await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(1);
   await expect(page.getByTestId('blox-legacy-page-notice')).toBeVisible();
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('local template insertion uses catalog resolve without reload @ci', async ({ page }, testInfo) => {
@@ -1814,7 +1817,7 @@ test('local template insertion uses catalog resolve without reload @ci', async (
   expect(page.url()).toBe(originalURL);
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('template catalog separates local and remote libraries without trapping docked focus @ci', async ({ page }, testInfo) => {
@@ -2068,7 +2071,7 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   await expect(headerPresets).toBeHidden();
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(initialCount);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 
   // 模板模式工具栏：发布模板按钮在场；首页发布/回退不在场
   await expect(page.getByTestId('blox-publish-template')).toBeAttached();
@@ -2089,7 +2092,7 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   await page.getByTestId('blox-save').click();
   const [saveReq, saveRes] = await savePair;
   expect((await saveRes.json()).code).toBe(0);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
@@ -2131,7 +2134,7 @@ test('header state selector drives the semantic preview shell @ci', async ({ pag
   const header = contentFrame.locator('#siteHeader');
   await expect(header).toHaveClass(/yk-header-preview-overlay/);
   await expect(header).toHaveAttribute('data-yk-header-state', 'overlay');
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 
   const opacityRequest = page.waitForRequest((request) => {
     const url = new URL(request.url());
@@ -2147,14 +2150,14 @@ test('header state selector drives the semantic preview shell @ci', async ({ pag
   await expect(page.getByTestId('blox-undo')).toBeEnabled();
   await undo(page);
   await expect(header).toHaveAttribute('style', /--yk-header-overlay-bg:transparent/);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 
   await expect(page.getByTestId('blox-redo')).toBeEnabled();
   await performPreviewUpdate(page, () => page.getByTestId('blox-redo').click());
   await expect(header).toHaveAttribute('style', /--yk-header-overlay-bg:rgba\(255,255,255,0\.55\)/);
   await expect(page.getByTestId('blox-dirty')).toBeVisible();
   await undo(page);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('header preset chooser adapts across viewports @ci', async ({ page }, testInfo) => {
@@ -2280,7 +2283,7 @@ test('footer style library previews and applies practical starters @ci', async (
     await expect(page.getByTestId('blox-dirty')).toBeVisible();
     await undo(page);
     await expect(page.getByTestId('blox-tree-section')).toHaveCount(2);
-    await expect(page.getByTestId('blox-dirty')).toBeHidden();
+    await expectClean(page);
   }
 });
 
@@ -2355,7 +2358,7 @@ test('sticky header behavior and device scope reach the preview shell @ci', asyn
   await performPreviewUpdate(page, () => page.getByTestId('blox-sticky-device-mobile').check());
   await performPreviewUpdate(page, () => page.getByTestId('blox-sticky-behavior').selectOption('always'));
   await performPreviewUpdate(page, () => page.getByTestId('blox-sticky-toggle').locator('input').uncheck());
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('template publishing retries only after explicit conflict confirmation @ci', async ({ page }, testInfo) => {
@@ -2445,7 +2448,7 @@ test('canvas insert rails add section at exact boundary @ci', async ({ page }, t
   // 一次 undo 完整撤销
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 
   // 末尾不再渲染常驻添加栏，避免画布底部出现额外空白和误导性操作条。
   const tailRail = contentFrame.locator('.yk-insert-rail-tail');
@@ -2498,7 +2501,7 @@ test('empty canvas targets open element library at the exact node @ci', async ({
   await undo(page);
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('canvas drag labels and inserts into a container center @ci', async ({ page }, testInfo) => {
@@ -2617,10 +2620,10 @@ test('canvas drag labels and inserts into a container center @ci', async ({ page
     await expect(treeContainer.locator('[data-sort-child-item]')).toHaveCount(1);
     await expect(contentFrame.locator(`[data-yk-el-id="${containerId}"] [data-yk-el-type="heading"]`)).toHaveCount(1);
   } finally {
-    if (await page.getByTestId('blox-dirty').isVisible()) await restoreClean(page);
+    if (await editorHasChanges(page)) await restoreClean(page);
   }
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('native palette drag keeps the canvas fixed and inserts in view @ci', async ({ page }, testInfo) => {
@@ -2698,10 +2701,10 @@ test('native palette drag keeps the canvas fixed and inserts in view @ci', async
     await expect(page.getByTestId('blox-tree-element')).toHaveCount(beforeElements + 1);
     await expect(page.getByTestId('blox-tree-section')).toHaveCount(beforeSections);
   } finally {
-    if (await page.getByTestId('blox-dirty').isVisible()) await restoreClean(page);
+    if (await editorHasChanges(page)) await restoreClean(page);
   }
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(beforeSections);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('palette drag uses a compact ghost and Escape cancels cleanly @ci', async ({ page }, testInfo) => {
@@ -2744,10 +2747,10 @@ test('palette drag uses a compact ghost and Escape cancels cleanly @ci', async (
     await expect(contentFrame.locator('.yk-drop-line')).toBeHidden();
   } finally {
     if (mouseDown) await page.mouse.up().catch(() => {});
-    if (await page.getByTestId('blox-dirty').isVisible()) await restoreClean(page);
+    if (await editorHasChanges(page)) await restoreClean(page);
   }
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 test('structure tree drag labels before and inside intentions @ci', async ({ page }, testInfo) => {
@@ -2809,10 +2812,10 @@ test('structure tree drag labels before and inside intentions @ci', async ({ pag
     );
     await expect(container.locator('[data-sort-child-item]')).toHaveCount(1);
   } finally {
-    if (await page.getByTestId('blox-dirty').isVisible()) await restoreClean(page);
+    if (await editorHasChanges(page)) await restoreClean(page);
   }
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 // ── 面包屑（r14）：选择模型的第二视图，点父级两击内回到区块 ──
 test('breadcrumb reflects selection and climbs to parent @ci', async ({ page }, testInfo) => {
@@ -2829,7 +2832,7 @@ test('breadcrumb reflects selection and climbs to parent @ci', async ({ page }, 
   // 清理：临时标题=加区块+加元素两个历史项，undo 两次回 clean
   await undo(page);
   await undo(page);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });
 
 // ── 点空白取消选择（用户报告的回归，2026-08-08）──
@@ -2940,5 +2943,5 @@ test('page title area presets preview safely and inheritance is read only @ci', 
 
   await dialog.getByRole('button', { name: '取消' }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
 });

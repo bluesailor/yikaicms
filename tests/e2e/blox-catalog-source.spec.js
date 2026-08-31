@@ -15,6 +15,14 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         });
         await openPageEditor(page, id);
         expect(await page.locator('body').innerText()).not.toMatch(/Warning:|Notice:|Fatal error:/);
+        let previews = 0;
+        await page.route('**/admin/blox_page_api.php*', async route => {
+            if (new URLSearchParams(route.request().postData()).get('action') === 'preview') {
+                previews++;
+                await page.waitForTimeout(750);
+            }
+            await route.continue();
+        });
         await page.evaluate(type => {
             const app = window.Alpine.$data(document.body);
             app.sections.forEach((s, si) => s.columns.forEach((c, ci) => c.elements.forEach((e, ei) => {
@@ -23,6 +31,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
                 e.data.show_search = false;
             })));
             app.panelTab = 'content'; app.mobilePanel = 'settings';
+            app.refreshPreview();
         }, type);
         const panel = page.getByTestId('blox-catalog-source');
         await expect(panel).toBeVisible();
@@ -37,6 +46,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
             return JSON.stringify([app.sections, app.selectedSi, app.selectedCi, app.selectedEi]);
         });
         const before = await snapshot(), scroll = await canvasScrollTop(page);
+        expect(previews).toBeGreaterThan(0);
         await page.screenshot({ path: testInfo.outputPath(kind + '-source.png') });
         const opened = context.waitForEvent('page');
         await items.first().click();

@@ -78,27 +78,19 @@ async function countDynamicHomeBlocks(page) {
 }
 
 async function canvasScrollTop(page) {
+  await waitPreviewSettled(page);
   return (await frame(page)).evaluate(() => window.scrollY || document.documentElement.scrollTop || 0);
 }
 
-/**
- * 等预览"settle"（r17 审计方案）：最新 generation 已应用且滚动恢复完成时
- * preview client 在编辑器 window 派发 blox:preview-settled。若当前没有在途/
- * 防抖中的预览（快路径），200ms 内无请求发起则直接放行。
- */
+// Read the existing client state: absence of a settle event is not an idle signal.
 async function waitPreviewSettled(page, timeoutMs = 5000) {
-  await page.evaluate((timeout) => new Promise((resolve) => {
-    let requestSeen = false;
-    const done = () => { cleanup(); resolve(); };
-    const onSettle = () => done();
-    const cleanup = () => window.removeEventListener('blox:preview-settled', onSettle);
-    window.addEventListener('blox:preview-settled', onSettle);
-    // 防抖窗口(300ms)+余量内没有 settle 事件——认为无在途预览
-    setTimeout(() => { if (!requestSeen) done(); }, 450);
-    setTimeout(done, timeout); // 兜底
-    // 有 fetch 在途的近似信号：settle 事件本身；requestSeen 仅由事件置位
-    window.addEventListener('blox:preview-settled', () => { requestSeen = true; }, { once: true });
-  }), timeoutMs);
+  await expect.poll(() => page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    const client = app._previewClient;
+    const canvas = document.querySelector('[data-testid="blox-canvas"]');
+    return !app.previewLoading && (!client || (!client.timer && !client.controller && !client.rebuilding))
+      && canvas?.contentDocument?.readyState === 'complete';
+  }), { timeout: timeoutMs }).toBe(true);
 }
 
 async function scrollCanvasToBottom(page) {
@@ -163,12 +155,23 @@ async function undo(page) {
 }
 
 async function restoreClean(page) {
-  for (let i = 0; i < 20 && await page.getByTestId('blox-dirty').isVisible(); i += 1) {
+  for (let i = 0; i < 20 && await editorHasChanges(page); i += 1) {
     if (!await page.getByTestId('blox-undo').isEnabled()) break;
     await page.getByTestId('blox-undo').click();
     await page.waitForTimeout(60);
   }
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expectClean(page);
+}
+
+async function editorHasChanges(page) {
+  return page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    return app.dirty || app.documentData() !== app._savedDocumentSnapshot;
+  });
+}
+
+async function expectClean(page) {
+  await expect.poll(() => editorHasChanges(page)).toBe(false);
 }
 
 async function dragElement(source, target, page) {
@@ -196,6 +199,8 @@ module.exports = {
   countDynamicHomeBlocks,
   countSections,
   dragElement,
+  editorHasChanges,
+  expectClean,
   frame,
   observeConsole,
   observeUnsafeWrites,

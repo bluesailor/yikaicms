@@ -8,6 +8,11 @@ for (const scope of ['element', 'section', 'container', 'column']) {
     test(`${scope} image control supports replace, clear, undo and cancel @ci`, async ({ page }, testInfo) => {
         const errors = observeConsole(page);
         await openPageEditor(page, fixtures.blox_page);
+        // Isolate every picker opening from media rows left by upload/health tests.
+        await page.route('**/admin/media_api.php?*', route => route.fulfill({ json: { code: 0, data: {
+            items: [{ id: 1, name: 'Fixture image', url: '/images/logo.png', width: 1920, height: 1080 }],
+            pages: 1, total: 1,
+        } } }));
         await performPagePreviewUpdate(page, () => page.evaluate(scope => {
             const app = window.Alpine.$data(document.body);
             app.selectSection(app.sections.length - 1, false);
@@ -43,11 +48,7 @@ for (const scope of ['element', 'section', 'container', 'column']) {
         await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).mediaOpen)).toBe(false);
         await expect(input).toHaveValue('/images/case-demo.jpg');
         expect(await history()).toBe(beforeClear);
-        // A deterministic catalog fixture exercises the real picker buttons and callback.
-        await page.route('**/admin/media_api.php?*', route => route.fulfill({ json: { code: 0, data: {
-            items: [{ id: 1, name: 'Fixture image', url: '/images/logo.png', width: 1920, height: 1080 }],
-            pages: 1, total: 1,
-        } } }));
+        // Exercise the real picker buttons and callback with the same fixture.
         await page.getByTestId(id + '-media').click();
         await performPagePreviewUpdate(page, () => page.getByTestId('blox-media-item').first().click());
         await expect(input).toHaveValue('/images/logo.png');
