@@ -1,32 +1,18 @@
-const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
+const installMarketThemes = require('./theme-market-fixture');
 
 const root = path.resolve(__dirname, '../..');
 const themes = ['business', 'aurora', 'minimal', 'trade'];
-const installed = [];
+let cleanup = () => {};
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.beforeAll(() => {
-    if (!process.env.CI && (path.dirname(root) !== path.resolve(os.tmpdir())
-        || !path.basename(root).startsWith('yikai-e2e-'))) {
-        throw new Error('Run theme-market tests through run-local.js in a disposable site');
-    }
-    for (const slug of themes) {
-        const destination = path.join(root, 'themes', slug);
-        if (fs.existsSync(destination)) throw new Error(`Refusing to overwrite existing theme: ${slug}`);
-        fs.cpSync(path.join(root, 'marketplace/themes', slug), destination, { recursive: true });
-        installed.push(destination);
-    }
+    cleanup = installMarketThemes(root, themes);
 });
 
 test.afterAll(() => {
-    for (const destination of installed) {
-        if (path.dirname(destination) !== path.join(root, 'themes')
-            || !themes.includes(path.basename(destination))) throw new Error('Unsafe test cleanup');
-        fs.rmSync(destination, { recursive: true, force: true });
-    }
+    cleanup();
 });
 
 for (const mode of ['none', 'banner', 'later', 'mobile-hidden', 'blox-none', 'blox-empty']) {

@@ -105,6 +105,10 @@ trait HomeBloxNormalizerTrait
      */
     public static function normalize(array $data): array
     {
+        if (array_key_exists('home_surface', $data)) {
+            $data['home_surface'] = in_array($data['home_surface'], ['auto', 'light', 'dark', 'custom'], true)
+                ? $data['home_surface'] : 'auto';
+        }
         $type = trim((string) ($data['block_type'] ?? ''));
         $data['block_type'] = $type;
         $data['enabled'] = !empty($data['enabled']);

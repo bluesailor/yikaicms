@@ -176,6 +176,13 @@ final class HomeBloxRenderer
                         continue;
                     }
 
+                    // Theme surfaces must not cover backgrounds chosen on the surrounding boxes.
+                    $settings = is_array($section['settings'] ?? null) ? $section['settings'] : [];
+                    $renderElement['data']['_blox_parent_backgrounds'] = [
+                        ['bg_color' => $column['card_bg'] ?? '', 'bg_image' => $column['card_bg_image'] ?? ''],
+                        ['bg_color' => $settings['container_bg'] ?? '', 'bg_image' => $settings['container_bg_image'] ?? ''],
+                        $settings,
+                    ];
                     $dynamicHtml = $renderDynamic($renderElement);
                     if ($dynamicHtml === '') {
                         continue;

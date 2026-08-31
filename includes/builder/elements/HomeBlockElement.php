@@ -54,7 +54,47 @@ final class HomeBlockElement extends AbstractElement
 
     public function controls(): array
     {
-        return HomeBloxBlockSchema::controls();
+        $controls = HomeBloxBlockSchema::controls();
+        $surfaceTypes = [];
+        foreach (function_exists('getThemes') ? getThemes() : [] as $theme) {
+            if (($theme['slug'] ?? '') === currentTheme()) {
+                $surfaceTypes = (array) ($theme['home_surface_types'] ?? []);
+                break;
+            }
+        }
+        $sources = array_values(array_filter(
+            array_keys(HomeBloxBlockSchema::sourceOptions()),
+            static fn (string $type): bool => in_array(explode(':', $type)[0], $surfaceTypes, true)
+        ));
+        if ($sources === []) {
+            return $controls;
+        }
+        $surfaceControl = [
+            'key' => 'home_surface', 'type' => 'select', 'tab' => 'style',
+            'label' => __('blox_home_surface'), 'default' => 'auto',
+            'options' => [
+                'auto' => __('blox_home_surface_auto'),
+                'light' => __('blox_home_surface_light'),
+                'dark' => __('blox_home_surface_dark'),
+                'custom' => __('blox_home_surface_custom'),
+            ],
+            'required' => ['block_type', '=', $sources],
+        ];
+        array_splice($controls, (int) array_search('bg_image', array_column($controls, 'key'), true), 0, [$surfaceControl]);
+        foreach ($controls as &$control) {
+            if (in_array($control['key'] ?? '', ['bg_image', 'bg_color', 'text_light'], true)) {
+                $control['visible_when'] = ['relation' => 'and', 'terms' => [
+                    ['block_type', 'in', array_merge(['cta'], $sources)],
+                    ['home_surface', 'not_in', ['light', 'dark']],
+                ]];
+                unset($control['required']);
+                if ($control['key'] === 'bg_image') {
+                    $control['label'] = __('blox_bg_image');
+                }
+            }
+        }
+        unset($control);
+        return $controls;
     }
 
     public function render(array $data, string $children = ''): string
