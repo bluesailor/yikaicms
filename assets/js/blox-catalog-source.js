@@ -5,18 +5,20 @@
         return {
             expanded: false, keyword: "", items: [], page: 1, hasMore: false,
             loading: false, failed: false, requestId: 0, emptyState: "", resultKeyword: "",
+            requestPage: 1, requestKeyword: "",
             toggle() {
                 this.expanded = !this.expanded;
-                if (this.expanded) this.load(1);
+                if (this.expanded) this.load(this.requestPage, this.requestKeyword);
             },
             destroy() { this.requestId++; },
             editUrl(item) {
                 return ["product", "article"].includes(kind) && Number.isSafeInteger(item.id) && item.id > 0
                     ? "/admin/" + kind + "_edit.php?id=" + item.id : "";
             },
-            async load(page) {
+            async load(page, keyword = this.keyword.trim()) {
                 var requestId = ++this.requestId;
-                var keyword = this.keyword.trim();
+                this.requestPage = page;
+                this.requestKeyword = keyword;
                 this.loading = true;
                 this.failed = false;
                 this.emptyState = "";

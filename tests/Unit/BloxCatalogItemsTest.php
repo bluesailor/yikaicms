@@ -70,6 +70,37 @@ final class BloxCatalogItemsTest extends TestCase
         \BloxCatalogItems::read(['id' => 1, 'type' => 'page'], '', 1);
     }
 
+    public function testNumericZeroSearchMatchesListsAndCountsOnLegacySingleLanguageTables(): void
+    {
+        $this->insertRow('channels', ['id' => 1, 'type' => 'list']);
+        $this->insertRow('product_categories', ['id' => 1]);
+        foreach (['contents' => ['list', 'channel_id'], 'products' => ['product', 'category_id']] as $table => [$type, $parent]) {
+            $model = $type === 'list' ? contentModel() : productModel();
+            $this->insertRow($table, [$parent => 1, 'title' => 'Device 0']);
+            $this->insertRow($table, [$parent => 1, 'title' => 'Summary match', 'summary' => 'Version 0']);
+            $this->insertRow($table, [$parent => 1, 'title' => 'Unrelated']);
+            $this->insertRow($table, [$parent => 1, 'title' => 'Draft 0', 'status' => 0]);
+            $this->insertRow($table, [$parent => 1, 'title' => 'Deleted 0', 'deleted_at' => 123]);
+            $channel = ['id' => 1, 'type' => $type];
+            foreach (['0', 0] as $keyword) {
+                $filters = ['keyword' => $keyword];
+                self::assertCount(2, $model->getList(1, 20, 0, $filters));
+                self::assertSame(2, $model->getCount(1, $filters));
+                self::assertCount(2, \BloxCatalogItems::read($channel, '  ' . $keyword . '  ', 1)['items']);
+            }
+            foreach (['', null] as $keyword) {
+                self::assertSame(3, $model->getCount(1, ['keyword' => $keyword]));
+            }
+            self::assertSame([], \BloxCatalogItems::read($channel, '00', 1)['items']);
+            self::assertSame([], \BloxCatalogItems::read($channel, '0', 2)['items']);
+        }
+        $this->insertRow('products', ['category_id' => 1, 'title' => 'Model match', 'model' => 'X0']);
+        $admin = productModel()->getAdminList(['keyword' => '0', 'status' => '1'], 20, 0);
+        self::assertSame(2, $admin['total']);
+        self::assertCount(2, $admin['items']);
+        self::assertSame(3, productModel()->getCount(1, ['keyword' => '0']));
+    }
+
     public function testSourcesUseJoinedNamesAndDistinguishUnassignedFromMissingParents(): void
     {
         $name = '<img src=x onerror=alert(1)> & Category';

@@ -325,7 +325,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?></span>
                 <?php
                 $totalPages = ceil($total / $perPage);
-                $queryString = http_build_query(array_filter(['category_id' => $categoryId, 'status' => $status, 'keyword' => $keyword]));
+                $queryString = http_build_query(array_filter(
+                    ['category_id' => $categoryId, 'status' => $status, 'keyword' => $keyword],
+                    static fn(mixed $value): bool => $value !== '' && $value !== null
+                ));
                 $baseUrl = '?' . ($queryString ? $queryString . '&' : '');
                 ?>
                 <?php if ($page > 1): ?>

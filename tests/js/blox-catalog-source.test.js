@@ -114,3 +114,48 @@ test('a malformed nonempty response cannot masquerade as no published content', 
     assert.equal(app.failed, true);
     assert.equal(app.emptyState, '');
 });
+
+test('paging, refresh and reopening keep the submitted query without consuming new input', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    const queries = [], app = create(2, '', 'product');
+    global.fetch = async (_, options) => {
+        const query = Object.fromEntries(options.body);
+        queries.push([query.keyword, query.page]);
+        return response([{ id: 1 }], Number(query.page), true);
+    };
+    app.keyword = '  0  ';
+    await app.load(1);
+    app.keyword = 'not submitted';
+    await app.load(2, app.resultKeyword);
+    await app.load(app.requestPage, app.requestKeyword);
+    app.toggle();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(queries, [['0', '1'], ['0', '2'], ['0', '2'], ['0', '2']]);
+    assert.equal(app.keyword, 'not submitted');
+    assert.equal(app.resultKeyword, '0');
+    await app.load(1);
+    assert.deepEqual(queries.at(-1), ['not submitted', '1']);
+});
+
+test('retry preserves the failed request instead of using the last success or unsubmitted input', async t => {
+    const original = global.fetch;
+    t.after(() => { global.fetch = original; });
+    const app = create(2, '', 'article');
+    global.fetch = async () => response([{ id: 1 }]);
+    await app.load(1);
+    app.keyword = 'new search';
+    global.fetch = async () => { throw new Error('offline'); };
+    await app.load(2);
+    app.keyword = 'not submitted';
+    global.fetch = async (_, options) => {
+        assert.equal(options.body.get('keyword'), 'new search');
+        assert.equal(options.body.get('page'), '2');
+        return response([], 2);
+    };
+    await app.load(app.requestPage, app.requestKeyword);
+    assert.equal(app.failed, false);
+    assert.equal(app.resultKeyword, 'new search');
+    assert.equal(app.emptyState, 'page');
+    assert.equal(app.keyword, 'not submitted');
+});
