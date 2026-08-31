@@ -13,9 +13,7 @@ use PHPUnit\Framework\TestCase;
 if (!defined('ROOT_PATH')) {
     define('ROOT_PATH', dirname(__DIR__, 2));
 }
-if (!defined('CMS_VERSION')) {
-    define('CMS_VERSION', '1.14.0');
-}
+require_once ROOT_PATH . '/config/version.php';
 require_once ROOT_PATH . '/includes/ThemeValidator.php';
 
 final class ThemeValidatorTest extends TestCase

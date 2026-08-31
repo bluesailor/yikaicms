@@ -40,7 +40,6 @@ function getChannelUrl(array $channel): string {
     return channelUrl($channel);
 }
 
-$isTransparentHeader = !empty($isHomePage);
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo getLang(); ?>">
@@ -93,7 +92,7 @@ $isTransparentHeader = !empty($isHomePage);
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
     <!-- Navigation bar -->
-    <header id="siteHeader" class="<?php echo $isTransparentHeader ? 'nav-transparent' : 'nav-solid shadow-lg'; ?> transition-all duration-300">
+    <header id="siteHeader" class="nav-solid shadow-lg transition-all duration-300"<?php echo !empty($isHomePage) ? ' data-business-home-header' : ''; ?>>
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16 md:h-20">
                 <!-- Logo -->
