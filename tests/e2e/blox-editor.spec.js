@@ -1571,7 +1571,15 @@ test('prebuilt empty states explain active filters and clear them in one action 
     sessionStorage.removeItem('yikai:blox:template-section-view:v2');
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
+  let catalogRequests = 0;
+  await page.route('**/admin/blox_template_api.php?action=list&**', async route => {
+    catalogRequests++;
+    await page.waitForTimeout(500);
+    await route.continue();
+  });
   await page.getByTestId('blox-prebuilt-open').click();
+  await expect(page.getByTestId('blox-template-item').first()).toBeVisible();
+  expect(catalogRequests).toBeGreaterThan(0);
   const recommendedCount = await page.getByTestId('blox-template-item').count();
   expect(recommendedCount).toBeGreaterThan(0);
 
