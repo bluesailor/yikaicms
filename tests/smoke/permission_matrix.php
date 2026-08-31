@@ -326,6 +326,35 @@ $checked++;
 if (!pmDenied($c, $b)) { echo "  ✓ 放开权限后同样立即生效\n"; }
 else { $fail++; echo "  ✗ 放开权限后仍被拒——说明上一条是误判\n"; }
 
+// Catalog lookup requires both Blox page access and the matching detail permission.
+$catalogIds = [];
+foreach (['product', 'list'] as $catalogType) {
+    $stmt = $pdo3->prepare('SELECT id FROM yikai_channels WHERE type = ? ORDER BY id LIMIT 1');
+    $stmt->execute([$catalogType]);
+    $catalogIds[$catalogType] = (int) $stmt->fetchColumn();
+    $stmt->closeCursor();
+}
+[, $catalogDashboard] = pmReq($jar2, 'GET', '/admin/index.php');
+$catalogToken = pmCsrf($catalogDashboard);
+foreach ([[], ['edit_product'], ['edit_article'], ['edit_product', 'edit_article']] as $detailPermissions) {
+    $pdo3->prepare('UPDATE yikai_roles SET permissions = ? WHERE id = ?')
+        ->execute([json_encode(array_merge(['blox_edit', 'edit_page'], $detailPermissions)), $ISOLATED['roleId']]);
+    foreach ($catalogIds as $catalogType => $catalogId) {
+        [$c, $b] = pmReq($jar2, 'POST', '/admin/blox_page_api.php', [
+            'action' => 'catalog_items', 'id' => $catalogId, '_token' => $catalogToken,
+        ]);
+        $want = in_array($catalogType === 'product' ? 'edit_product' : 'edit_article', $detailPermissions, true);
+        $json = json_decode($b, true);
+        $allowed = $c === 200 && isset($json['data']['items']) && (int) ($json['code'] ?? -1) === 0;
+        $ok = $want ? $allowed : pmDenied($c, $b);
+        $checked++;
+        if (!$ok) $fail++;
+        printf("  %s Catalog %s / %s\n", $ok ? 'PASS' : 'FAIL', $catalogType, implode(',', $detailPermissions));
+    }
+}
+$pdo3->prepare('UPDATE yikai_roles SET permissions = ? WHERE id = ?')
+    ->execute([json_encode(['edit_article', 'delete_article']), $ISOLATED['roleId']]);
+
 // 2) 停用账号——同一会话应被踢回登录页
 $pdo3->prepare('UPDATE yikai_users SET status = 0 WHERE username = ?')->execute([$ISOLATED['user']]);
 [$c, $b] = pmReq($jar2, 'GET', '/admin/article.php');

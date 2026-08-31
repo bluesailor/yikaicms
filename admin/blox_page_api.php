@@ -37,6 +37,16 @@ try {
     $documentClass = $isContentList ? ChannelBloxDocument::class : PageBloxDocument::class;
     $documentClass::load($pageId);
 
+    if ($action === 'catalog_items') {
+        $catalogType = (string) ($targetChannel['type'] ?? '');
+        if (!in_array($catalogType, ['product', 'list'], true)) {
+            error(__('blox_bad_request'));
+        }
+        requirePermission($catalogType === 'product' ? 'edit_product' : 'edit_article');
+        require_once ROOT_PATH . '/includes/builder/BloxCatalogItems.php';
+        success(BloxCatalogItems::read($targetChannel, (string) post('keyword', ''), (int) post('page', '1')));
+    }
+
     if ($action === 'save_page_hero') {
         $heroBgInput = trim((string) post('hero_bg', ''));
         $heroBg = $heroBgInput === '' ? '' : UrlPolicy::image($heroBgInput);

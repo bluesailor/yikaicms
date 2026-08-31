@@ -11,5 +11,6 @@ declare(strict_types=1);
             <span x-text="homeContentSource().label"></span>
         </a>
         <p class="text-xs text-gray-600" x-text="homeContentSource().scope"></p>
+        <?php require __DIR__ . '/catalog-source.php'; ?>
     </div>
 </template>
