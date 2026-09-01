@@ -6078,4 +6078,5 @@ voltage|Voltage|220V',
     'theme_settings_tablet_breakpoint' => 'Tablet breakpoint (px)',
     'theme_settings_mobile_breakpoint' => 'Mobile breakpoint (px)',
     'theme_settings_custom_css' => 'Custom CSS',
+    'admin_help_rewrite' => 'Help: page 404 and URL rewrite setup',
 ];

@@ -42,6 +42,12 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
 
 // 后台品牌文字（左上角 Logo / 页面标题）——页脚共用同一函数，见 adminBrandName()。
 $adminBrand = adminBrandName();
+$adminHelpLang = (string) config('admin_lang', getLang());
+$adminHelpUrl = match ($adminHelpLang) {
+    'en' => 'https://www.yikaicms.com/en/#help',
+    'ja' => 'https://www.yikaicms.com/ja/#help',
+    default => 'https://www.yikaicms.com/#help',
+};
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo getLang(); ?>">
@@ -546,6 +552,15 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                         </div>
                     </div>
                     <?php endif; ?>
+
+                    <!-- 官方帮助：新装站栏目页 404 多数是 URL 重写未配置，入口保持全后台可见。 -->
+                    <a href="<?php echo e($adminHelpUrl); ?>" target="_blank" rel="noopener noreferrer"
+                       data-testid="admin-help-link"
+                       class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                       title="<?php echo e(__('admin_help_rewrite')); ?>"
+                       aria-label="<?php echo e(__('admin_help_rewrite')); ?>">
+                        <i class="ti ti-help-circle text-xl" aria-hidden="true"></i>
+                    </a>
 
                     <a href="/" target="_blank" class="flex items-center gap-1.5 text-sm text-white bg-primary hover:bg-secondary px-3 py-1.5 rounded-full shadow-sm transition whitespace-nowrap" title="<?php echo __('admin_visit_frontend'); ?>">
                         <i class="ti ti-external-link text-base"></i>
