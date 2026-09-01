@@ -26,13 +26,13 @@ $productCatalogGridClass = [
 ][$productCatalogColumns];
 ?>
 <!-- 产品/案例：带侧边栏布局 -->
-        <div class="flex flex-wrap lg:flex-nowrap gap-8">
+        <div class="flex flex-wrap lg:flex-nowrap gap-8" data-product-catalog>
             <?php if ($productCatalogHasSidebar): ?>
             <!-- 左侧分类菜单 -->
-            <div class="w-full lg:w-64 flex-shrink-0 space-y-4">
+            <div class="w-full lg:w-64 flex-shrink-0 space-y-4" data-product-catalog-sidebar>
                 <?php if ($productCatalogShowSearch): ?>
                 <!-- 搜索框 -->
-                <div class="bg-white rounded-lg shadow p-4">
+                <div class="bg-white rounded-lg shadow p-4" data-catalog-search>
                     <form method="get" action="<?php echo channelUrl($channel); ?>">
                         <div class="relative">
                             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
@@ -60,9 +60,9 @@ $productCatalogGridClass = [
 
                 <?php if ($productCatalogShowCategories): ?>
                 <!-- 分类菜单 -->
-                <div class="bg-white rounded-lg shadow overflow-hidden sticky top-20">
+                <div class="bg-white rounded-lg shadow overflow-hidden sticky top-20" data-catalog-categories>
                     <!-- 分类标题 -->
-                    <div class="bg-primary text-white px-4 py-3 font-bold">
+                    <div class="bg-primary text-white px-4 py-3 font-bold" data-catalog-title>
                         <?php echo e($rootChannel['name']); ?>
                     </div>
                     <!-- 分类列表 -->

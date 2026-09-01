@@ -155,9 +155,9 @@ function theme_asset(string $file): string
     $theme = currentTheme();
     $path = ROOT_PATH . "/themes/{$theme}/assets/{$file}";
     if (file_exists($path)) {
-        return "/themes/{$theme}/assets/{$file}";
+        return assetVer("/themes/{$theme}/assets/{$file}");
     }
-    return "/assets/{$file}";
+    return assetVer("/assets/{$file}");
 }
 
 /**

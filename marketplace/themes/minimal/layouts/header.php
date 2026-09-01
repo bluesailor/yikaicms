@@ -148,7 +148,7 @@ function getChannelUrl(array $channel): string {
     <?php do_action('ik_head'); ?>
     <?php echo config('custom_head_code', ''); ?>
 </head>
-<body class="bg-white min-h-screen flex flex-col text-gray-800">
+<body class="minimal-theme bg-white min-h-screen flex flex-col text-gray-800">
 
     <!-- Header -->
     <header id="siteHeader" class="<?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50 bg-white border-b border-gray-200">
