@@ -742,6 +742,8 @@ DROP TABLE IF EXISTS `yikai_download_categories`;
 CREATE TABLE `yikai_download_categories` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL COMMENT '分类名称',
+  `name_en` varchar(100) NOT NULL DEFAULT '' COMMENT '英文名称',
+  `name_ja` varchar(100) NOT NULL DEFAULT '' COMMENT '日文名称',
   `slug` varchar(150) DEFAULT '' COMMENT 'URL别名(伪静态 /download/{slug}.html)',
   `description` varchar(255) DEFAULT '' COMMENT '分类描述',
   `sort_order` int(11) DEFAULT '0' COMMENT '排序',
@@ -754,10 +756,10 @@ CREATE TABLE `yikai_download_categories` (
 
 LOCK TABLES `yikai_download_categories` WRITE;
 /*!40000 ALTER TABLE `yikai_download_categories` DISABLE KEYS */;
-INSERT INTO `yikai_download_categories` (`id`, `name`, `slug`, `description`, `sort_order`, `status`, `created_at`) VALUES
-(1,'软件下载','software','',1,1,1776654080),
-(2,'文档资料','document','',2,1,1776654080),
-(3,'驱动程序','driver','',3,1,1776654080);
+INSERT INTO `yikai_download_categories` (`id`, `name`, `name_en`, `name_ja`, `slug`, `description`, `sort_order`, `status`, `created_at`) VALUES
+(1,'软件下载','Software Downloads','ソフトウェア','software','',1,1,1776654080),
+(2,'文档资料','Documentation','ドキュメント','document','',2,1,1776654080),
+(3,'驱动程序','Drivers','ドライバー','driver','',3,1,1776654080);
 /*!40000 ALTER TABLE `yikai_download_categories` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `yikai_downloads`;

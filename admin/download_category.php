@@ -41,6 +41,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data['slug'] = resolveSlug((string) post('slug'), $data['name'], 'download_categories', $id);
         }
 
+        // 升级后可维护英、日名称；数据库尚未升级时继续保存原有字段，避免后台报错。
+        try {
+            db()->fetchOne("SELECT name_en, name_ja FROM " . downloadCategoryModel()->tableName() . " LIMIT 1");
+            $data['name_en'] = trim((string) post('name_en'));
+            $data['name_ja'] = trim((string) post('name_ja'));
+        } catch (\Throwable $e) {
+            // 等待管理员运行数据库升级。
+        }
+
         if ($id > 0) {
             downloadCategoryModel()->updateById($id, $data);
             adminLog('download_category', 'update', '更新分类：' . $data['name']);
@@ -139,6 +148,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php if (!empty($item['slug'])): ?>
                         <code class="text-xs bg-gray-100 px-2 py-1 rounded ml-2"><?php echo e($item['slug']); ?></code>
                         <?php endif; ?>
+                        <?php if (!empty($item['name_en']) || !empty($item['name_ja'])): ?>
+                        <div class="mt-1 text-xs text-gray-400"><?php echo e(trim((string) ($item['name_en'] ?? '') . ' / ' . (string) ($item['name_ja'] ?? ''), ' /')); ?></div>
+                        <?php endif; ?>
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-500">
                         <?php echo e($item['description'] ?: '-'); ?>
@@ -190,6 +202,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <input type="text" name="name" id="formName" required
                            class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
                 </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('cm_f_name_en')); ?></label>
+                        <input type="text" name="name_en" id="formNameEn"
+                               class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('cm_f_name_ja')); ?></label>
+                        <input type="text" name="name_ja" id="formNameJa"
+                               class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    </div>
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('admin_slug')); ?> (Slug)</label>
                     <input type="text" name="slug" id="formSlug"
@@ -234,6 +258,8 @@ function openModal() {
     document.getElementById('modalTitle').textContent = <?php echo json_encode(__('pcat_add'), JSON_UNESCAPED_UNICODE); ?>;
     document.getElementById('formId').value = 0;
     document.getElementById('formName').value = '';
+    document.getElementById('formNameEn').value = '';
+    document.getElementById('formNameJa').value = '';
     document.getElementById('formSlug').value = '';
     document.getElementById('formDescription').value = '';
     document.getElementById('formSortOrder').value = 0;
@@ -260,6 +286,8 @@ async function editItem(id) {
         document.getElementById('modalTitle').textContent = <?php echo json_encode(__('dcat_edit'), JSON_UNESCAPED_UNICODE); ?>;
         document.getElementById('formId').value = item.id;
         document.getElementById('formName').value = item.name;
+        document.getElementById('formNameEn').value = item.name_en || '';
+        document.getElementById('formNameJa').value = item.name_ja || '';
         document.getElementById('formSlug').value = item.slug || '';
         document.getElementById('formDescription').value = item.description || '';
         document.getElementById('formSortOrder').value = item.sort_order;
