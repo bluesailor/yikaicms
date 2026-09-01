@@ -327,7 +327,38 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────
-section "9. release zip 是否已 build"
+section "9. 前台多语言真实路由"
+# 单元测试能校验翻译选择，却覆盖不到 Web 服务器把 /en/...、/ja/... 交给
+# index.php 时的初始化顺序。候选版和正式发版都必须走一次真实 HTTP catch-all。
+route_spec="tests/e2e/frontend-language-prefix.spec.js"
+if [ ! -f "$route_spec" ]; then
+    fail "$route_spec 不存在"
+elif ! command -v node >/dev/null 2>&1; then
+    fail "未找到 Node.js，无法执行前台多语言真实路由门禁"
+elif [ ! -d node_modules/@playwright/test ]; then
+    fail "Playwright 依赖未安装（先运行 npm ci）"
+else
+    route_log="${TMPDIR:-/tmp}/yikai-release-language-routes-$$.log"
+    route_cmd_status=0
+    if command -v wslpath >/dev/null 2>&1 && command -v powershell.exe >/dev/null 2>&1; then
+        route_ps1=$(wslpath -w "$ROOT_DIR/tools/run-frontend-language-routes.ps1")
+        route_root=$(wslpath -w "$ROOT_DIR")
+        powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass \
+            -File "$route_ps1" -Root "$route_root" >"$route_log" 2>&1 || route_cmd_status=$?
+    else
+        node tests/e2e/run-local.js "$route_spec" --project=desktop-1440 >"$route_log" 2>&1 || route_cmd_status=$?
+    fi
+    if [ "$route_cmd_status" -eq 0 ]; then
+        pass "英文/日文下载页：语言前缀、记录与分类均未回退中文"
+    else
+        fail "前台多语言真实路由未通过"
+        tail -12 "$route_log" | sed 's/^/      /'
+    fi
+    rm -f "$route_log"
+fi
+
+# ─────────────────────────────────────────────────────────────
+section "10. release zip 是否已 build"
 # ─────────────────────────────────────────────────────────────
 
 zip="releases/yikaicms-v${VERSION}.zip"

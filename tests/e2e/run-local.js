@@ -105,7 +105,10 @@ async function main() {
     });
     if (setup.status !== 0) throw new Error('Disposable smoke setup failed');
 
-    server = spawn(php, ['-S', `127.0.0.1:${port}`, '-t', '.'], {
+    // Use the same catch-all shape as the supported Nginx/Apache rules. Plain
+    // `php -S -t .` returns 404 for `/en/foo.html`, so it cannot detect
+    // regressions that only appear after a prefixed URL is handed to index.php.
+    server = spawn(php, ['-S', `127.0.0.1:${port}`, '-t', '.', 'tests/e2e/router.php'], {
       cwd: root,
       env: process.env,
       stdio: ['ignore', 'pipe', 'pipe'],
