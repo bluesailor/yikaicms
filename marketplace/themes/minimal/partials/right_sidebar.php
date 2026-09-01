@@ -14,7 +14,7 @@ $sidebarItems = $rightSidebarItems ?? null;
 <aside class="w-full lg:w-64 space-y-12">
 
     <div>
-        <h3 class="text-xs text-gray-600 tracking-widest uppercase mb-6">
+        <h3 class="minimal-sidebar-title text-xs tracking-widest uppercase mb-6">
             <?php echo e($rightSidebarTitle); ?>
         </h3>
         <ul class="space-y-px">
@@ -22,10 +22,10 @@ $sidebarItems = $rightSidebarItems ?? null;
             <?php foreach ($sidebarItems as $item): ?>
             <li>
                 <a href="<?php echo e((string) ($item['url'] ?? '')); ?>"
-                   class="group flex items-center justify-between gap-2 py-3 text-sm transition-colors border-b border-gray-100
+                   class="minimal-sidebar-link group flex items-center justify-between gap-2 py-3 text-sm transition-colors border-b
                           <?php echo !empty($item['active'])
-                              ? 'text-gray-900 font-medium'
-                              : 'text-gray-600 hover:text-gray-900'; ?>">
+                              ? 'is-active font-medium'
+                              : ''; ?>">
                     <span class="truncate"><?php echo e((string) ($item['label'] ?? '')); ?></span>
                     <span aria-hidden class="text-base <?php echo !empty($item['active']) ? '' : 'opacity-0 group-hover:opacity-100'; ?> transition-opacity">&rarr;</span>
                 </a>
@@ -37,10 +37,10 @@ $sidebarItems = $rightSidebarItems ?? null;
             ?>
             <li>
                 <a href="<?php echo channelUrl($sub); ?>"
-                   class="group flex items-center justify-between gap-2 py-3 text-sm transition-colors border-b border-gray-100
+                   class="minimal-sidebar-link group flex items-center justify-between gap-2 py-3 text-sm transition-colors border-b
                           <?php echo $active
-                              ? 'text-gray-900 font-medium'
-                              : 'text-gray-600 hover:text-gray-900'; ?>">
+                              ? 'is-active font-medium'
+                              : ''; ?>">
                     <span class="truncate"><?php echo e($sub['name']); ?></span>
                     <span aria-hidden class="text-base <?php echo $active ? '' : 'opacity-0 group-hover:opacity-100'; ?> transition-opacity">&rarr;</span>
                 </a>
@@ -57,7 +57,7 @@ $sidebarItems = $rightSidebarItems ?? null;
     ?>
     <?php if ($phone || $email || $address): ?>
     <div>
-        <h3 class="text-xs text-gray-600 tracking-widest uppercase mb-6">
+        <h3 class="minimal-sidebar-title text-xs tracking-widest uppercase mb-6">
             <?php echo __('footer_contact'); ?>
         </h3>
         <div class="space-y-4 text-sm text-gray-600 font-light leading-relaxed">

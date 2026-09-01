@@ -162,7 +162,7 @@ function getChannelUrl(array $channel): string {
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
     <link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/style.css'); ?>">
-    <style>:root { --color-primary: <?php echo config('primary_color', '#2563EB'); ?>; --color-secondary: <?php echo config('secondary_color', '#1D4ED8'); ?>; }</style>
+    <style>:root { --color-primary: <?php echo e(config('primary_color', '#2563EB')); ?>; --color-secondary: <?php echo e(config('secondary_color', '#1D4ED8')); ?>; }<?php echo ThemeSettings::css(); ?></style>
     <?php if (!empty($extraCss)): ?>
     <?php echo $extraCss; ?>
     <?php endif; ?>
@@ -170,7 +170,7 @@ function getChannelUrl(array $channel): string {
     <?php do_action('render_head'); ?>
     <?php echo config('custom_head_code', ''); ?>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
+<body class="yk-site-body bg-gray-50 min-h-screen flex flex-col">
     <!-- top banner -->
     <?php if ($topbarEnabled): ?>
     <div class="text-sm <?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50" style="background-color: <?php echo e($topbarBgColor); ?>" data-yk-topbar>

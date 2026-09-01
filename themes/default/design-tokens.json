@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "colors": {
+    "primary": "#2563EB",
+    "secondary": "#1D4ED8"
+  },
+  "preview": ["#2563EB", "#0EA5E9", "#F8FAFC", "#172033"],
+  "palettes": [
+    {"name": "信赖蓝", "name_en": "Trust blue", "name_ja": "トラストブルー", "primary": "#2563EB", "secondary": "#1D4ED8"},
+    {"name": "晴空蓝", "name_en": "Clear sky", "name_ja": "クリアスカイ", "primary": "#0284C7", "secondary": "#0369A1"},
+    {"name": "企业青", "name_en": "Corporate teal", "name_ja": "コーポレートティール", "primary": "#0F766E", "secondary": "#115E59"}
+  ]
+}
