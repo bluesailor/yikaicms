@@ -60,6 +60,30 @@ final class SiteHealthPageContractTest extends TestCase
         }
     }
 
+    public function testFreshInstallShowsOneTimeRewriteOnboardingOnlyForNewSites(): void
+    {
+        $dashboard = (string) file_get_contents(ROOT_PATH . '/admin/index.php');
+        $installer = (string) file_get_contents(ROOT_PATH . '/install/index.php');
+        $defaults = (string) file_get_contents(ROOT_PATH . '/config/defaults.php');
+
+        self::assertStringContainsString("post('action') === 'dismiss_rewrite_onboarding'", $dashboard);
+        self::assertStringContainsString("settingModel()->saveBatch(['onboarding_rewrite_dismissed' => '1'])", $dashboard);
+        self::assertStringContainsString("config('onboarding_rewrite_dismissed', '1') === '0'", $dashboard);
+        self::assertStringContainsString('data-testid="rewrite-onboarding-notice"', $dashboard);
+        self::assertStringContainsString('data-testid="rewrite-onboarding-help"', $dashboard);
+        self::assertStringContainsString('data-testid="rewrite-onboarding-dismiss"', $dashboard);
+        self::assertStringContainsString("'onboarding_rewrite_dismissed' => ['value' => '1'", $defaults);
+        self::assertStringContainsString("'onboarding_rewrite_dismissed', '0'", $installer);
+
+        foreach (['zh-CN', 'en', 'ja'] as $lang) {
+            $strings = require ROOT_PATH . '/lang/' . $lang . '.php';
+            self::assertArrayHasKey('onb_rewrite_title', $strings);
+            self::assertArrayHasKey('onb_rewrite_body', $strings);
+            self::assertArrayHasKey('onb_rewrite_help', $strings);
+            self::assertArrayHasKey('onb_rewrite_dismiss_failed', $strings);
+        }
+    }
+
     public function testDashboardNoticeSupportsSessionCloseAndPersistentDismissal(): void
     {
         $dashboard = (string) file_get_contents(ROOT_PATH . '/admin/index.php');

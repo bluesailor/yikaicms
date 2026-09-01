@@ -52,6 +52,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_onboard
     success([], 'ok');
 }
 
+// 新装站伪静态提醒：管理员确认后永久关闭
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_rewrite_onboarding') {
+    verifyCsrf();
+    requirePermission('*');
+    settingModel()->saveBatch(['onboarding_rewrite_dismissed' => '1']);
+    success([], 'ok');
+}
+
 // 推荐插件：不再提示（AJAX）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_recommended_plugin') {
     verifyCsrf();
@@ -83,6 +91,8 @@ $onbChannelCount = (int) (db()->fetchOne(
     [siteLang()]
 )['c'] ?? 0);
 $showOnboard = $onbChannelCount === 0 && (string) config('onboarding_channel_dismissed', '') !== '1';
+$showRewriteOnboarding = hasPermission('*')
+    && (string) config('onboarding_rewrite_dismissed', '1') === '0';
 
 // 推荐安装的插件（不随核心包发布，登录后引导去市场装）——仅超管可见
 $recommendedPlugins = [];
@@ -108,6 +118,63 @@ $currentMenu = 'dashboard';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php if ($showRewriteOnboarding): ?>
+<div id="rewriteOnboardingNotice" data-testid="rewrite-onboarding-notice" class="mb-6 flex flex-col gap-4 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex min-w-0 items-start gap-3">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+            <i class="ti ti-route text-xl" aria-hidden="true"></i>
+        </span>
+        <div class="min-w-0">
+            <p class="text-sm font-semibold text-amber-950"><?php echo e(__('onb_rewrite_title')); ?></p>
+            <p class="mt-1 max-w-3xl text-sm leading-6 text-amber-900"><?php echo e(__('onb_rewrite_body')); ?></p>
+        </div>
+    </div>
+    <div class="flex shrink-0 flex-wrap items-center gap-3 self-end sm:flex-nowrap sm:self-auto">
+        <a href="<?php echo e($adminHelpUrl); ?>" target="_blank" rel="noopener noreferrer" data-testid="rewrite-onboarding-help"
+           class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded bg-amber-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2">
+            <i class="ti ti-book-2 text-base" aria-hidden="true"></i>
+            <?php echo e(__('onb_rewrite_help')); ?>
+        </a>
+        <button type="button" id="rewriteOnboardingDismiss" data-testid="rewrite-onboarding-dismiss"
+                class="min-h-10 px-2 py-2 text-sm font-medium text-amber-900 hover:text-amber-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60">
+            <?php echo e(__('onb_dismiss')); ?>
+        </button>
+    </div>
+</div>
+<script>
+(function () {
+    var card = document.getElementById('rewriteOnboardingNotice');
+    var dismissButton = document.getElementById('rewriteOnboardingDismiss');
+    if (!card || !dismissButton) return;
+
+    dismissButton.addEventListener('click', async function () {
+        dismissButton.disabled = true;
+        dismissButton.setAttribute('aria-busy', 'true');
+        var body = new FormData();
+        body.set('_token', '<?php echo csrfToken(); ?>');
+        body.set('action', 'dismiss_rewrite_onboarding');
+        try {
+            var response = await fetch('/admin/index.php', {
+                method: 'POST',
+                body: body,
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            var result = await response.json();
+            if (!response.ok || Number(result.code) !== 0) throw new Error(result.msg || 'request failed');
+            card.remove();
+        } catch (error) {
+            dismissButton.disabled = false;
+            dismissButton.removeAttribute('aria-busy');
+            if (typeof showMessage === 'function') {
+                showMessage(<?php echo json_encode(__('onb_rewrite_dismiss_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+            }
+        }
+    });
+})();
+</script>
+<?php endif; ?>
 
 <?php
 $__healthSummary = json_decode((string) config('site_health_last_summary', ''), true);

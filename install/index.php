@@ -428,6 +428,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             $stmt->execute([$enabledJson]);
 
+            // 仅全新安装显示一次伪静态提醒。默认值保持已关闭，避免旧站升级后突然出现。
+            if ($driver === 'sqlite') {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', 'onboarding_rewrite_dismissed', '0', '新站伪静态提醒', 'switch', 13)");
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', 'onboarding_rewrite_dismissed', '0', '新站伪静态提醒', 'switch', 13) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+            }
+            $stmt->execute();
+
             // 生成配置文件
             $configFile = ROOT_PATH . '/config/config.sample.php';
             if (!file_exists($configFile)) {
