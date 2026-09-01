@@ -6146,4 +6146,5 @@ voltage|电压|220V',
     'theme_settings_tablet_breakpoint' => '平板断点(px)',
     'theme_settings_mobile_breakpoint' => '手机断点(px)',
     'theme_settings_custom_css' => '自定义 CSS',
+    'admin_help_rewrite' => '帮助：栏目页 404 与伪静态配置',
 ];

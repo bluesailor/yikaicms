@@ -6219,4 +6219,5 @@ voltage|電圧|220V',
     'theme_settings_tablet_breakpoint' => 'タブレットブレークポイント(px)',
     'theme_settings_mobile_breakpoint' => 'モバイルブレークポイント(px)',
     'theme_settings_custom_css' => 'カスタム CSS',
+    'admin_help_rewrite' => 'ヘルプ：ページの404とURLリライト設定',
 ];
