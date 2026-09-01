@@ -163,4 +163,14 @@ final class ThemeTemplateResolutionTest extends TestCase
         );
         self::assertStringContainsString('return assetVer("/assets/{$file}");', $functions);
     }
+
+    public function testMinimalCtaAdaptsTextToBackgroundTone(): void
+    {
+        $cta = (string) file_get_contents(ROOT_PATH . '/marketplace/themes/minimal/blocks/cta.php');
+
+        self::assertStringContainsString('$textLight = !empty($blockData[\'text_light\']);', $cta);
+        self::assertStringContainsString('$titleClass = $textLight ? \'text-white\' : \'text-gray-900\';', $cta);
+        self::assertStringContainsString('$descriptionClass = $textLight ? \'text-white/80\' : \'text-gray-500\';', $cta);
+        self::assertStringContainsString('homeTitleDeco($textLight', $cta);
+    }
 }
