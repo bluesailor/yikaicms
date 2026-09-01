@@ -185,4 +185,17 @@ final class ThemeTemplateResolutionTest extends TestCase
             $page
         );
     }
+
+    public function testHistorySidebarUsesThemePartial(): void
+    {
+        $history = (string) file_get_contents(ROOT_PATH . '/history.php');
+
+        self::assertStringContainsString("require theme_path('partials/right_sidebar.php');", $history);
+        self::assertStringContainsString('$rightSidebarChannels = $sidebarChannels;', $history);
+        self::assertStringContainsString('$rightSidebarActiveId = (int) ($historyChannel[\'id\'] ?? 0);', $history);
+        self::assertStringNotContainsString(
+            'font-bold text-dark bg-primary text-white rounded-t-lg',
+            $history
+        );
+    }
 }
