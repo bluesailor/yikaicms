@@ -6079,4 +6079,8 @@ voltage|Voltage|220V',
     'theme_settings_mobile_breakpoint' => 'Mobile breakpoint (px)',
     'theme_settings_custom_css' => 'Custom CSS',
     'admin_help_rewrite' => 'Help: page 404 and URL rewrite setup',
+    'onb_rewrite_title' => 'Enable URL rewriting to prevent page 404 errors',
+    'onb_rewrite_body' => 'After installation, open any child page to verify it. If the home page works but other pages return 404, enable URL rewriting on the server.',
+    'onb_rewrite_help' => 'View setup guide',
+    'onb_rewrite_dismiss_failed' => 'The reminder could not be dismissed. Please try again.',
 ];

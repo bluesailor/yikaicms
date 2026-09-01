@@ -6147,4 +6147,8 @@ voltage|电压|220V',
     'theme_settings_mobile_breakpoint' => '手机断点(px)',
     'theme_settings_custom_css' => '自定义 CSS',
     'admin_help_rewrite' => '帮助：栏目页 404 与伪静态配置',
+    'onb_rewrite_title' => '完成伪静态配置，避免栏目页 404',
+    'onb_rewrite_body' => '安装完成后，请打开任意子栏目检查。若首页正常而栏目页显示 404，需要在服务器启用伪静态或 URL Rewrite。',
+    'onb_rewrite_help' => '查看配置方法',
+    'onb_rewrite_dismiss_failed' => '暂时无法关闭提醒，请稍后重试。',
 ];

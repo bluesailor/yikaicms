@@ -6220,4 +6220,8 @@ voltage|電圧|220V',
     'theme_settings_mobile_breakpoint' => 'モバイルブレークポイント(px)',
     'theme_settings_custom_css' => 'カスタム CSS',
     'admin_help_rewrite' => 'ヘルプ：ページの404とURLリライト設定',
+    'onb_rewrite_title' => 'URLリライトを設定してページの404を防ぐ',
+    'onb_rewrite_body' => 'インストール後、任意の子ページを開いて確認してください。トップページは表示されても他のページが404になる場合は、サーバーでURLリライトを有効にします。',
+    'onb_rewrite_help' => '設定方法を見る',
+    'onb_rewrite_dismiss_failed' => '通知を閉じられませんでした。もう一度お試しください。',
 ];

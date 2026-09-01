@@ -259,6 +259,7 @@ return [
         'site_health_last_at' => ['value' => '0', 'type' => 'number', 'name' => '站点健康检查时间', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 10],
         'site_health_media_summary' => ['value' => '', 'type' => 'json', 'name' => '媒体健康摘要', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 11],
         'dashboard_site_health_dismissed' => ['value' => '0', 'type' => 'switch', 'name' => '控制台站点健康提醒', 'tip' => '用户选择不再提醒后由系统自动关闭', 'sort_order' => 12],
+        'onboarding_rewrite_dismissed' => ['value' => '1', 'type' => 'switch', 'name' => '新站伪静态提醒', 'tip' => '仅全新安装写入待提醒状态，旧站升级默认不显示', 'sort_order' => 13],
     ],
 
 ];
