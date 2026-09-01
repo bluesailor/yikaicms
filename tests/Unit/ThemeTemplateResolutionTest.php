@@ -173,4 +173,16 @@ final class ThemeTemplateResolutionTest extends TestCase
         self::assertStringContainsString('$descriptionClass = $textLight ? \'text-white/80\' : \'text-gray-500\';', $cta);
         self::assertStringContainsString('homeTitleDeco($textLight', $cta);
     }
+
+    public function testStandalonePageSidebarUsesThemePartial(): void
+    {
+        $page = (string) file_get_contents(ROOT_PATH . '/page.php');
+
+        self::assertStringContainsString("require theme_path('partials/right_sidebar.php');", $page);
+        self::assertStringContainsString('$rightSidebarChannels = $sidebarChannels;', $page);
+        self::assertStringNotContainsString(
+            'font-bold text-dark bg-primary text-white rounded-t-lg',
+            $page
+        );
+    }
 }
