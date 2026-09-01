@@ -6,11 +6,12 @@
   "description": "YikaiCMS 默认主题，简洁大方的企业官网模板",
   "description_en": "Default YikaiCMS theme, a clean and simple corporate website template",
   "description_ja": "YikaiCMS 標準テーマ。シンプルで汎用的なコーポレートサイト向けテンプレート。",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Yikai",
   "category": "general",
   "requires_cms": ">=1.14",
   "requires_php": ">=8.0",
   "required_plugins": [],
-  "screenshot": "assets/images/screenshot.jpg"
+  "screenshot": "assets/images/screenshot.jpg",
+  "design_tokens": "design-tokens.json"
 }

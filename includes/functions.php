@@ -14,6 +14,7 @@ if (!defined('ROOT_PATH')) {
 
 require_once __DIR__ . '/frontend_preview.php';
 require_once __DIR__ . '/ThemeRuntime.php';
+require_once __DIR__ . '/ThemeSettings.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
 require_once __DIR__ . '/AdminLogSanitizer.php';
 require_once __DIR__ . '/FormSubmissionToken.php';

@@ -1,5 +1,140 @@
 /* Minimal Theme - Style Overrides */
 
+/*
+ * Fresh minimal palette: cool white canvas, mineral ink and restrained teal.
+ * Keep color semantic so content stays quiet while actions and selection remain clear.
+ */
+.minimal-theme {
+    --minimal-canvas: #fcfefd;
+    --minimal-surface: #f2f8f6;
+    --minimal-surface-blue: #f3f8fc;
+    --minimal-ink: #17383b;
+    --minimal-text: #345256;
+    --minimal-muted: #5e7376;
+    --minimal-accent: #0f766e;
+    --minimal-accent-strong: #115e59;
+    --minimal-secondary: #256d85;
+    --minimal-border: #d8e6e3;
+    --minimal-border-strong: #b8ceca;
+    color: var(--minimal-text);
+    background: var(--minimal-canvas);
+    accent-color: var(--minimal-accent);
+    caret-color: var(--minimal-accent);
+    color-scheme: light;
+}
+
+.minimal-theme::selection,
+.minimal-theme ::selection {
+    color: var(--minimal-ink);
+    background: #cdeae4;
+}
+
+.minimal-theme :focus-visible {
+    outline: 2px solid var(--minimal-accent);
+    outline-offset: 3px;
+}
+
+/* Remap the shared gray utility hierarchy into the theme palette. */
+.minimal-theme.bg-white {
+    background-color: var(--minimal-canvas);
+}
+
+.minimal-theme .bg-white {
+    background-color: #fff;
+}
+
+.minimal-theme .bg-gray-50 {
+    background-color: var(--minimal-surface);
+}
+
+.minimal-theme .bg-gray-100 {
+    background-color: #eaf3f1;
+}
+
+.minimal-theme .bg-gray-200 {
+    background-color: var(--minimal-border);
+}
+
+.minimal-theme .bg-gray-900 {
+    background-color: var(--minimal-accent-strong);
+}
+
+.minimal-theme .text-gray-900 {
+    color: var(--minimal-ink);
+}
+
+.minimal-theme .text-gray-800,
+.minimal-theme .text-gray-700 {
+    color: var(--minimal-text);
+}
+
+.minimal-theme .text-gray-600,
+.minimal-theme .text-gray-500,
+.minimal-theme .text-gray-400,
+.minimal-theme .text-gray-300 {
+    color: var(--minimal-muted);
+}
+
+.minimal-theme .border-gray-100,
+.minimal-theme .border-gray-200,
+.minimal-theme .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--minimal-border);
+}
+
+.minimal-theme .border-gray-300,
+.minimal-theme .border-gray-400 {
+    border-color: var(--minimal-border-strong);
+}
+
+.minimal-theme .border-gray-900 {
+    border-color: var(--minimal-accent);
+}
+
+.minimal-theme .hover\:text-gray-900:hover,
+.minimal-theme .group:hover .group-hover\:text-gray-900 {
+    color: var(--minimal-accent-strong);
+}
+
+.minimal-theme .hover\:border-gray-900:hover,
+.minimal-theme .group:hover .group-hover\:border-gray-900 {
+    border-color: var(--minimal-accent);
+}
+
+.minimal-theme #siteHeader {
+    background-color: rgba(255, 255, 255, 0.96);
+    border-color: var(--minimal-border);
+}
+
+.minimal-theme #siteHeader a:hover,
+.minimal-theme #siteHeader button:hover {
+    color: var(--minimal-accent-strong);
+}
+
+.minimal-theme footer.bg-white {
+    background-color: var(--minimal-surface-blue);
+    border-color: var(--minimal-border);
+}
+
+.minimal-sidebar-title {
+    color: var(--minimal-secondary);
+}
+
+.minimal-sidebar-link {
+    padding-inline: 0.75rem;
+    border-color: var(--minimal-border);
+}
+
+.minimal-sidebar-link:hover {
+    color: var(--minimal-accent-strong);
+    background: var(--minimal-surface);
+}
+
+.minimal-sidebar-link.is-active {
+    color: var(--minimal-accent-strong);
+    background: #e7f4f1;
+    border-color: #b9dcd5;
+}
+
 /* Typography */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Noto Sans SC", sans-serif;
@@ -40,47 +175,47 @@ header a {
     color: #111827;
 }
 
-/* Shared product catalog: preserve the theme's grayscale hierarchy. */
+/* Shared product catalog: use the same restrained accent hierarchy. */
 .minimal-theme [data-product-catalog] .bg-primary {
-    background-color: #111827;
+    background-color: var(--minimal-accent);
 }
 
 .minimal-theme [data-product-catalog] .text-primary {
-    color: #111827;
+    color: var(--minimal-accent-strong);
 }
 
 .minimal-theme [data-product-catalog] .border-primary {
-    border-color: #111827;
+    border-color: var(--minimal-accent);
 }
 
 .minimal-theme [data-catalog-search],
 .minimal-theme [data-catalog-categories] {
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--minimal-border);
     border-radius: 0;
     box-shadow: none;
 }
 
 .minimal-theme [data-catalog-title] {
-    background-color: #111827;
+    background-color: var(--minimal-accent);
     color: #fff;
     font-weight: 500;
 }
 
 .minimal-theme [data-catalog-categories] .bg-blue-50 {
-    background-color: #f9fafb;
+    background-color: #e7f4f1;
 }
 
 .minimal-theme [data-catalog-search] input:focus {
-    border-color: #111827;
-    box-shadow: 0 0 0 1px #111827;
+    border-color: var(--minimal-accent);
+    box-shadow: 0 0 0 1px var(--minimal-accent);
 }
 
 .minimal-theme [data-product-catalog] .hover\:text-primary:hover {
-    color: #111827;
+    color: var(--minimal-accent-strong);
 }
 
 .minimal-theme [data-product-catalog] .hover\:border-primary:hover {
-    border-color: #111827;
+    border-color: var(--minimal-accent);
 }
 
 /* Cards: no shadow anywhere */
@@ -102,13 +237,13 @@ a {
 .prose {
     font-size: 0.938rem;
     line-height: 1.8;
-    color: #4b5563;
+    color: var(--minimal-text);
 }
 
 .prose h1, .prose h2, .prose h3, .prose h4 {
     font-weight: 300;
     letter-spacing: 0.02em;
-    color: #111827;
+    color: var(--minimal-ink);
 }
 
 /* Mobile menu: clean animation */
@@ -144,6 +279,7 @@ img {
     background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-    background: #d1d5db;
+.minimal-theme::-webkit-scrollbar-thumb,
+.minimal-theme ::-webkit-scrollbar-thumb {
+    background: var(--minimal-border-strong);
 }

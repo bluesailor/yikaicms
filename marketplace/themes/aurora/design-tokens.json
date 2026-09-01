@@ -1,8 +1,13 @@
 {
-  "_comment": "设计令牌。结构待第二批正式定义，当前仅承载原 theme.json 里的 colors。",
   "schema_version": 1,
   "colors": {
     "primary": "#6366F1",
     "secondary": "#8B5CF6"
-  }
+  },
+  "preview": ["#101327", "#6366F1", "#8B5CF6", "#22D3EE"],
+  "palettes": [
+    {"name": "极光紫蓝", "name_en": "Aurora indigo", "name_ja": "オーロラインディゴ", "primary": "#6366F1", "secondary": "#8B5CF6"},
+    {"name": "极地青蓝", "name_en": "Polar cyan", "name_ja": "ポーラーシアン", "primary": "#06B6D4", "secondary": "#2563EB"},
+    {"name": "霓虹青绿", "name_en": "Neon teal", "name_ja": "ネオンティール", "primary": "#14B8A6", "secondary": "#6366F1"}
+  ]
 }

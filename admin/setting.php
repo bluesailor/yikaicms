@@ -144,6 +144,9 @@ $items = $tab === 'lang' ? [] : settingModel()->getByGroup($group);
 //    没有填 name/type，否则会以裸 key=value 形式漏出，如 timeline_layout）
 $hiddenKeys = [
     'current_theme',
+    // 模板表现项统一由「主题 > 模板设置」维护，避免与系统基础设置混在一起。
+    'primary_color', 'secondary_color', 'theme_color_profiles', 'theme_style_settings',
+    'banner_height_pc', 'banner_height_mobile', 'banner_fullscreen',
     'site_lang', 'admin_lang', 'admin_languages',
     'enabled_languages', 'show_lang_switcher',
     'translate_api', 'translate_api_key',
