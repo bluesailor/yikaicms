@@ -11,7 +11,27 @@ class DownloadCategoryModel extends Model
      */
     public function getActive(): array
     {
-        return $this->where(['status' => 1], 'sort_order ASC, id ASC');
+        $rows = $this->where(['status' => 1], 'sort_order ASC, id ASC');
+        foreach ($rows as &$row) {
+            $row['name'] = self::localizedName($row);
+        }
+        unset($row);
+        return $rows;
+    }
+
+    /**
+     * 下载分类是全局记录，名称按当前前台语言读取 name_en/name_ja，缺失时回退中文。
+     */
+    public static function localizedName(array $category, ?string $lang = null): string
+    {
+        $lang ??= function_exists('siteLang') ? siteLang() : 'zh-CN';
+        $field = match ($lang) {
+            'en' => 'name_en',
+            'ja' => 'name_ja',
+            default => 'name',
+        };
+        $localized = trim((string) ($category[$field] ?? ''));
+        return $localized !== '' ? $localized : (string) ($category['name'] ?? '');
     }
 
     /** 按 slug 查分类（伪静态路由用）。slug 列未建（未跑迁移）时容错返回 null。 */
