@@ -120,4 +120,22 @@ final class ThemeTemplateResolutionTest extends TestCase
 
         self::assertSame([], $missing, "以下市场主题源码解析不到模板：\n  " . implode("\n  ", $missing));
     }
+
+    public function testEveryMarketplaceThemeSidebarSupportsPrebuiltItems(): void
+    {
+        $missing = [];
+        foreach ($this->marketThemes() as $theme) {
+            $file = ROOT_PATH . '/marketplace/themes/' . $theme . '/partials/right_sidebar.php';
+            $source = is_file($file) ? (string) file_get_contents($file) : '';
+            if (!str_contains($source, 'rightSidebarItems')) {
+                $missing[] = $theme;
+            }
+        }
+
+        self::assertSame(
+            [],
+            $missing,
+            '以下市场主题侧栏不支持下载分类等预构建链接：' . implode(', ', $missing)
+        );
+    }
 }
