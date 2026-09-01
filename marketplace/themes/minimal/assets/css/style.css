@@ -40,6 +40,49 @@ header a {
     color: #111827;
 }
 
+/* Shared product catalog: preserve the theme's grayscale hierarchy. */
+.minimal-theme [data-product-catalog] .bg-primary {
+    background-color: #111827;
+}
+
+.minimal-theme [data-product-catalog] .text-primary {
+    color: #111827;
+}
+
+.minimal-theme [data-product-catalog] .border-primary {
+    border-color: #111827;
+}
+
+.minimal-theme [data-catalog-search],
+.minimal-theme [data-catalog-categories] {
+    border: 1px solid #e5e7eb;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.minimal-theme [data-catalog-title] {
+    background-color: #111827;
+    color: #fff;
+    font-weight: 500;
+}
+
+.minimal-theme [data-catalog-categories] .bg-blue-50 {
+    background-color: #f9fafb;
+}
+
+.minimal-theme [data-catalog-search] input:focus {
+    border-color: #111827;
+    box-shadow: 0 0 0 1px #111827;
+}
+
+.minimal-theme [data-product-catalog] .hover\:text-primary:hover {
+    color: #111827;
+}
+
+.minimal-theme [data-product-catalog] .hover\:border-primary:hover {
+    border-color: #111827;
+}
+
 /* Cards: no shadow anywhere */
 .shadow, .shadow-md, .shadow-lg, .shadow-xl {
     box-shadow: none !important;

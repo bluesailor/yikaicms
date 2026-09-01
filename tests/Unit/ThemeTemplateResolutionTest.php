@@ -138,4 +138,29 @@ final class ThemeTemplateResolutionTest extends TestCase
             '以下市场主题侧栏不支持下载分类等预构建链接：' . implode(', ', $missing)
         );
     }
+
+    public function testSharedProductCatalogExposesThemeStylingHooks(): void
+    {
+        $view = (string) file_get_contents(ROOT_PATH . '/views/list/sidebar.php');
+        $minimalCss = (string) file_get_contents(
+            ROOT_PATH . '/marketplace/themes/minimal/assets/css/style.css'
+        );
+
+        self::assertStringContainsString('data-product-catalog', $view);
+        self::assertStringContainsString('data-product-catalog-sidebar', $view);
+        self::assertStringContainsString('data-catalog-categories', $view);
+        self::assertStringContainsString('[data-product-catalog]', $minimalCss);
+        self::assertStringContainsString('[data-catalog-categories]', $minimalCss);
+    }
+
+    public function testThemeAssetsUseFileVersioning(): void
+    {
+        $functions = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
+
+        self::assertStringContainsString(
+            'return assetVer("/themes/{$theme}/assets/{$file}");',
+            $functions
+        );
+        self::assertStringContainsString('return assetVer("/assets/{$file}");', $functions);
+    }
 }
