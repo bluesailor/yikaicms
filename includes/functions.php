@@ -14,6 +14,7 @@ if (!defined('ROOT_PATH')) {
 
 require_once __DIR__ . '/frontend_preview.php';
 require_once __DIR__ . '/ThemeRuntime.php';
+require_once __DIR__ . '/ThemeSettings.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
 require_once __DIR__ . '/AdminLogSanitizer.php';
 require_once __DIR__ . '/FormSubmissionToken.php';
@@ -155,9 +156,9 @@ function theme_asset(string $file): string
     $theme = currentTheme();
     $path = ROOT_PATH . "/themes/{$theme}/assets/{$file}";
     if (file_exists($path)) {
-        return "/themes/{$theme}/assets/{$file}";
+        return assetVer("/themes/{$theme}/assets/{$file}");
     }
-    return "/assets/{$file}";
+    return assetVer("/assets/{$file}");
 }
 
 /**

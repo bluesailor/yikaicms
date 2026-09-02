@@ -1,8 +1,13 @@
 {
-  "_comment": "设计令牌。结构待第二批正式定义，当前仅承载原 theme.json 里的 colors。",
   "schema_version": 1,
   "colors": {
     "primary": "#3B6CF5",
     "secondary": "#2554d4"
-  }
+  },
+  "preview": ["#0F1B2D", "#3B6CF5", "#B7791F", "#F3F1EC"],
+  "palettes": [
+    {"name": "商务钢蓝", "name_en": "Business steel", "name_ja": "ビジネススチール", "primary": "#3B6CF5", "secondary": "#2554D4"},
+    {"name": "工程海军蓝", "name_en": "Engineering navy", "name_ja": "エンジニアリングネイビー", "primary": "#1F5A7A", "secondary": "#163F55"},
+    {"name": "工业铜色", "name_en": "Industrial copper", "name_ja": "インダストリアルカッパー", "primary": "#B45309", "secondary": "#8A3F08"}
+  ]
 }

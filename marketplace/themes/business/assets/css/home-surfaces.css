@@ -1,0 +1,33 @@
+.business-surface {
+    --business-bg: #ffffff;
+    --business-title: #20252b;
+    --business-copy: #535d68;
+    --business-card: #f4f6f8;
+    --business-border: #dde2e7;
+    --business-link: #2554d4;
+    background-color: var(--business-bg);
+    color: var(--business-title);
+    position: relative;
+}
+.business-surface[data-business-tone="dark"] {
+    --business-bg: #22272e;
+    --business-title: #f6f8fa;
+    --business-copy: #c3cbd4;
+    --business-card: #303740;
+    --business-border: #48515d;
+    --business-link: #a2c6ff;
+}
+.business-surface[data-business-inherited="true"] { background: transparent; }
+.business-surface .business-title { color: var(--business-title); }
+.business-surface .business-copy { color: var(--business-copy); }
+.business-surface .business-card {
+    background-color: var(--business-card);
+    border: 1px solid var(--business-border);
+    border-radius: 8px;
+}
+.business-surface .business-link { color: var(--business-title); }
+.business-surface .group:hover .business-link,
+.business-surface .group:focus-visible .business-link { color: var(--business-link); }
+.business-surface a:focus-visible { outline: 2px solid var(--business-link); outline-offset: 4px; }
+.business-surface .business-card .business-title,
+.business-surface .business-card .business-copy { overflow-wrap: anywhere; }

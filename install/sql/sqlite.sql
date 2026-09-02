@@ -1638,6 +1638,8 @@ DROP TABLE IF EXISTS "yikai_download_categories";
 CREATE TABLE "yikai_download_categories" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "name" TEXT NOT NULL,
+  "name_en" TEXT NOT NULL DEFAULT '',
+  "name_ja" TEXT NOT NULL DEFAULT '',
   "slug" TEXT DEFAULT '',
   "description" TEXT DEFAULT '',
   "sort_order" INTEGER DEFAULT '0',
@@ -1647,10 +1649,10 @@ CREATE TABLE "yikai_download_categories" (
 CREATE INDEX "idx_dlcat_slug_yikai_download_categories" ON "yikai_download_categories" ("slug");
 
 
-INSERT INTO "yikai_download_categories" ("id", "name", "slug", "description", "sort_order", "status", "created_at") VALUES
-(1,'软件下载','software','',1,1,1776654080),
-(2,'文档资料','document','',2,1,1776654080),
-(3,'驱动程序','driver','',3,1,1776654080);
+INSERT INTO "yikai_download_categories" ("id", "name", "name_en", "name_ja", "slug", "description", "sort_order", "status", "created_at") VALUES
+(1,'软件下载','Software Downloads','ソフトウェア','software','',1,1,1776654080),
+(2,'文档资料','Documentation','ドキュメント','document','',2,1,1776654080),
+(3,'驱动程序','Drivers','ドライバー','driver','',3,1,1776654080);
 DROP TABLE IF EXISTS "yikai_downloads";
 CREATE TABLE "yikai_downloads" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -120,4 +120,82 @@ final class ThemeTemplateResolutionTest extends TestCase
 
         self::assertSame([], $missing, "以下市场主题源码解析不到模板：\n  " . implode("\n  ", $missing));
     }
+
+    public function testEveryMarketplaceThemeSidebarSupportsPrebuiltItems(): void
+    {
+        $missing = [];
+        foreach ($this->marketThemes() as $theme) {
+            $file = ROOT_PATH . '/marketplace/themes/' . $theme . '/partials/right_sidebar.php';
+            $source = is_file($file) ? (string) file_get_contents($file) : '';
+            if (!str_contains($source, 'rightSidebarItems')) {
+                $missing[] = $theme;
+            }
+        }
+
+        self::assertSame(
+            [],
+            $missing,
+            '以下市场主题侧栏不支持下载分类等预构建链接：' . implode(', ', $missing)
+        );
+    }
+
+    public function testSharedProductCatalogExposesThemeStylingHooks(): void
+    {
+        $view = (string) file_get_contents(ROOT_PATH . '/views/list/sidebar.php');
+        $minimalCss = (string) file_get_contents(
+            ROOT_PATH . '/marketplace/themes/minimal/assets/css/style.css'
+        );
+
+        self::assertStringContainsString('data-product-catalog', $view);
+        self::assertStringContainsString('data-product-catalog-sidebar', $view);
+        self::assertStringContainsString('data-catalog-categories', $view);
+        self::assertStringContainsString('[data-product-catalog]', $minimalCss);
+        self::assertStringContainsString('[data-catalog-categories]', $minimalCss);
+    }
+
+    public function testThemeAssetsUseFileVersioning(): void
+    {
+        $functions = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
+
+        self::assertStringContainsString(
+            'return assetVer("/themes/{$theme}/assets/{$file}");',
+            $functions
+        );
+        self::assertStringContainsString('return assetVer("/assets/{$file}");', $functions);
+    }
+
+    public function testMinimalCtaAdaptsTextToBackgroundTone(): void
+    {
+        $cta = (string) file_get_contents(ROOT_PATH . '/marketplace/themes/minimal/blocks/cta.php');
+
+        self::assertStringContainsString('$textLight = !empty($blockData[\'text_light\']);', $cta);
+        self::assertStringContainsString('$titleClass = $textLight ? \'text-white\' : \'text-gray-900\';', $cta);
+        self::assertStringContainsString('$descriptionClass = $textLight ? \'text-white/80\' : \'text-gray-500\';', $cta);
+        self::assertStringContainsString('homeTitleDeco($textLight', $cta);
+    }
+
+    public function testStandalonePageSidebarUsesThemePartial(): void
+    {
+        $page = (string) file_get_contents(ROOT_PATH . '/page.php');
+
+        self::assertStringContainsString("require theme_path('partials/right_sidebar.php');", $page);
+        self::assertStringContainsString('$rightSidebarChannels = $sidebarChannels;', $page);
+        self::assertStringNotContainsString(
+            'font-bold text-dark bg-primary text-white rounded-t-lg',
+            $page
+        );
+    }
+
+    public function testHistorySidebarUsesThemePartial(): void
+    {
+        $history = (string) file_get_contents(ROOT_PATH . '/history.php');
+
+        self::assertStringContainsString("require theme_path('partials/right_sidebar.php');", $history);
+        self::assertStringContainsString('$rightSidebarChannels = $sidebarChannels;', $history);
+        self::assertStringContainsString('$rightSidebarActiveId = (int) ($historyChannel[\'id\'] ?? 0);', $history);
+        self::assertStringNotContainsString(
+            'font-bold text-dark bg-primary text-white rounded-t-lg',
+            $history
+        );
+    }
 }

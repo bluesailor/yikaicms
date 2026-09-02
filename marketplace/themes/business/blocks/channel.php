@@ -1,6 +1,7 @@
 <?php
+declare(strict_types=1);
 /**
- * Business 主题 - 栏目区块（新闻深色背景、案例/产品白色背景）
+ * Business 主题 - 栏目区块（按可见顺序交替配色）
  */
 if (empty($currentChannel)) return;
 $hChannel = $currentChannel;
@@ -10,19 +11,19 @@ $perRow = (int) ($hChannel['per_row'] ?? 0);
 $productGrid = AbstractElement::gridClasses($perRow, 3);
 $caseGrid = AbstractElement::gridClasses($perRow, 3);
 $articleGrid = AbstractElement::gridClasses($perRow, 4);
-$bgMap = ['product' => 'bg-white', 'case' => 'bg-gray-50', 'list' => 'section-dark', 'article' => 'section-dark'];
-$sectionBg = $bgMap[$channelType] ?? 'bg-white';
-$isDark = str_contains($sectionBg, 'dark');
+require_once dirname(__DIR__) . '/partials/home-surface.php';
+$surface = businessHomeSurface($block ?? []);
 ?>
-<section class="py-20 <?php echo $sectionBg; ?>">
-    <div class="container mx-auto px-4">
+<section class="py-20 business-surface" <?= $surface['attributes'] ?> <?= $surface['style'] ?>>
+    <?= $surface['overlay'] ?>
+    <div class="<?= e($surface['container'] . ' ' . $surface['content']) ?>">
         <!-- title -->
         <div class="flex items-end justify-between mb-12" data-animate="fade-up">
             <div>
-                <h2 class="text-3xl font-bold <?php echo $isDark ? 'text-white' : 'text-dark'; ?> mb-3"><?php echo e($hChannel['name']); ?></h2>
-                <?php echo homeTitleDeco($isDark, '', '<img src="/themes/business/images/divide.png" alt="" class="mb-2">'); ?>
+                <h2 class="text-3xl font-bold business-title mb-3"><?php echo e($hChannel['name']); ?></h2>
+                <?php echo homeTitleDeco(false, '', '<img src="/themes/business/images/divide.png" alt="" class="mb-2">'); ?>
                 <?php if ($hChannel['description']): ?>
-                <p class="mt-2 <?php echo $isDark ? 'text-gray-400' : 'text-gray-500'; ?>"><?php echo e($hChannel['description']); ?></p>
+                <p class="mt-2 business-copy"><?php echo e($hChannel['description']); ?></p>
                 <?php endif; ?>
             </div>
             <a href="<?php echo e(($hChannel['home_button_url'] ?? '') ?: channelUrl($hChannel)); ?>" class="hidden md:inline-flex items-center gap-1 bg-primary hover:bg-secondary text-white px-5 py-2 rounded-full text-sm font-medium transition">
@@ -47,7 +48,7 @@ $isDark = str_contains($sectionBg, 'dark');
                     </div>
                     <?php endif; ?>
                 </div>
-                <h3 class="text-center text-sm font-medium text-dark group-hover:text-primary transition"><?php echo e($item['title']); ?></h3>
+                <h3 class="text-center text-sm font-medium business-link transition"><?php echo e($item['title']); ?></h3>
             </a>
             <?php endforeach; ?>
         </div>
@@ -62,13 +63,13 @@ $isDark = str_contains($sectionBg, 'dark');
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                     <?php endif; ?>
                 </div>
-                <h3 class="text-center text-sm font-medium <?php echo $isDark ? 'text-gray-200 group-hover:text-white' : 'text-dark group-hover:text-primary'; ?> transition"><?php echo e($item['title']); ?></h3>
+                <h3 class="text-center text-sm font-medium business-link transition"><?php echo e($item['title']); ?></h3>
             </a>
             <?php endforeach; ?>
         </div>
 
         <?php else: ?>
-        <!-- Article grid (dark background, only displaying those with cover images) -->
+        <!-- Article grid: only display items with cover images. -->
         <?php $withCover = array_filter($contents, fn($i) => !empty($i['cover'])); ?>
         <div class="grid <?php echo $articleGrid; ?> gap-6" data-stagger>
             <?php foreach (array_slice($withCover, 0, 4) as $item): ?>
@@ -76,8 +77,8 @@ $isDark = str_contains($sectionBg, 'dark');
                 <div class="aspect-[16/9] bg-gray-700 rounded-lg overflow-hidden mb-3">
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                 </div>
-                <h3 class="font-bold <?php echo $isDark ? 'text-white group-hover:text-blue-300' : 'text-dark group-hover:text-primary'; ?> transition"><?php echo e($item['title']); ?></h3>
-                <p class="text-sm text-gray-500 mt-1"><?php echo date('Y-m-d', (int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?></p>
+                <h3 class="font-bold business-link transition"><?php echo e($item['title']); ?></h3>
+                <p class="text-sm business-copy mt-1"><?php echo date('Y-m-d', (int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?></p>
             </a>
             <?php endforeach; ?>
         </div>

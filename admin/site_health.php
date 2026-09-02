@@ -234,10 +234,18 @@ unset($pageTitle);
             <?php echo $lastAt > 0 ? e(__('health_last_scan') . ': ' . date('Y-m-d H:i', $lastAt)) : e(__('health_never_scanned')); ?>
         </p>
     </div>
-    <button id="healthRun" type="button" class="inline-flex min-h-10 items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
-        <i class="ti ti-shield-check text-lg" aria-hidden="true"></i>
-        <span><?php echo e(__('health_run')); ?></span>
-    </button>
+    <div class="flex flex-wrap items-center gap-2">
+        <a href="<?php echo e($adminHelpUrl); ?>" target="_blank" rel="noopener noreferrer"
+           data-testid="site-health-rewrite-help"
+           class="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+            <i class="ti ti-help-circle text-lg" aria-hidden="true"></i>
+            <span><?php echo e(__('admin_help_rewrite')); ?></span>
+        </a>
+        <button id="healthRun" type="button" class="inline-flex min-h-10 items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
+            <i class="ti ti-shield-check text-lg" aria-hidden="true"></i>
+            <span><?php echo e(__('health_run')); ?></span>
+        </button>
+    </div>
 </div>
 
 <div id="healthSummary" class="grid grid-cols-2 lg:grid-cols-4 border border-gray-200 bg-white rounded-lg overflow-hidden mb-6">

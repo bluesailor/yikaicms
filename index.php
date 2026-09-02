@@ -7,18 +7,29 @@
 
 declare(strict_types=1);
 
+// WordPress/宝塔 catch-all 会保留原始 /en、/ja 路径并把请求交给 index.php。
+// 必须在 init.php 定义 SITE_LANG 前注入 _lang；Dispatcher::run() 里的解析已经太晚。
+require_once __DIR__ . '/includes/Dispatcher.php';
+$__incomingPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+if (empty($_GET['_lang'])) {
+    $__incomingLang = Dispatcher::languagePrefixFromPath($__incomingPath);
+    if ($__incomingLang !== null) {
+        $_GET['_lang'] = $__incomingLang;
+        $_REQUEST['_lang'] = $__incomingLang;
+    }
+}
+
 require_once __DIR__ . '/includes/init.php';
 
 // WP 式单入口路由：主机只配了两行 catch-all（如面板「WordPress 伪静态」预设）时，
 // 伪静态 URL 会落到这里，由 Dispatcher 分发到对应入口文件；配了完整规则的主机
 // 不受影响（服务器层已映射，不经 index.php）。顺带把旧行为里
 // 「任意未知路径渲染首页」的软 404 改为真 404。
-$__reqPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$__reqPath = $__incomingPath;
 if ($__reqPath !== '/' && $__reqPath !== '/index.php') {
-    require_once __DIR__ . '/includes/Dispatcher.php';
     Dispatcher::run();   // 命中即接管并 exit；语言前缀首页（/ja/）设 lang 后返回
 }
-unset($__reqPath);
+unset($__incomingLang, $__incomingPath, $__reqPath);
 
 HtmlCache::start(300);
 

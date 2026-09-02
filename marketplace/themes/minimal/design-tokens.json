@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "colors": {
+    "primary": "#0F766E",
+    "secondary": "#256D85"
+  },
+  "preview": ["#FCFEFD", "#E7F4F1", "#0F766E", "#256D85"],
+  "palettes": [
+    {"name": "清新矿物", "name_en": "Fresh mineral", "name_ja": "フレッシュミネラル", "primary": "#0F766E", "secondary": "#256D85"},
+    {"name": "薄雾蓝", "name_en": "Mist blue", "name_ja": "ミストブルー", "primary": "#256D85", "secondary": "#315B6B"},
+    {"name": "鼠尾草", "name_en": "Soft sage", "name_ja": "ソフトセージ", "primary": "#4D7C6B", "secondary": "#315F57"}
+  ]
+}

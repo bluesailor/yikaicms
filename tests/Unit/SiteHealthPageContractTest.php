@@ -41,11 +41,47 @@ final class SiteHealthPageContractTest extends TestCase
         $menu = (string) file_get_contents(ROOT_PATH . '/admin/includes/sidebar_menu.php');
         $dashboard = (string) file_get_contents(ROOT_PATH . '/admin/index.php');
         $command = (string) file_get_contents(ROOT_PATH . '/includes/commands/site_health.php');
+        $header = (string) file_get_contents(ROOT_PATH . '/admin/includes/header.php');
+        $healthPage = (string) file_get_contents(ROOT_PATH . '/admin/site_health.php');
 
         self::assertStringContainsString("'key'   => 'site_health'", $menu);
         self::assertStringContainsString('/admin/site_health.php', $dashboard);
         self::assertStringContainsString("CLI::register('site:health'", $command);
         self::assertStringContainsString('!empty($opts[\'remote\'])', $command);
+        self::assertStringContainsString('data-testid="admin-help-link"', $header);
+        self::assertStringContainsString('https://www.yikaicms.com/en/#help', $header);
+        self::assertStringContainsString('https://www.yikaicms.com/ja/#help', $header);
+        self::assertStringContainsString('rel="noopener noreferrer"', $header);
+        self::assertStringContainsString('data-testid="site-health-rewrite-help"', $healthPage);
+
+        foreach (['zh-CN', 'en', 'ja'] as $lang) {
+            $strings = require ROOT_PATH . '/lang/' . $lang . '.php';
+            self::assertArrayHasKey('admin_help_rewrite', $strings);
+        }
+    }
+
+    public function testFreshInstallShowsOneTimeRewriteOnboardingOnlyForNewSites(): void
+    {
+        $dashboard = (string) file_get_contents(ROOT_PATH . '/admin/index.php');
+        $installer = (string) file_get_contents(ROOT_PATH . '/install/index.php');
+        $defaults = (string) file_get_contents(ROOT_PATH . '/config/defaults.php');
+
+        self::assertStringContainsString("post('action') === 'dismiss_rewrite_onboarding'", $dashboard);
+        self::assertStringContainsString("settingModel()->saveBatch(['onboarding_rewrite_dismissed' => '1'])", $dashboard);
+        self::assertStringContainsString("config('onboarding_rewrite_dismissed', '1') === '0'", $dashboard);
+        self::assertStringContainsString('data-testid="rewrite-onboarding-notice"', $dashboard);
+        self::assertStringContainsString('data-testid="rewrite-onboarding-help"', $dashboard);
+        self::assertStringContainsString('data-testid="rewrite-onboarding-dismiss"', $dashboard);
+        self::assertStringContainsString("'onboarding_rewrite_dismissed' => ['value' => '1'", $defaults);
+        self::assertStringContainsString("'onboarding_rewrite_dismissed', '0'", $installer);
+
+        foreach (['zh-CN', 'en', 'ja'] as $lang) {
+            $strings = require ROOT_PATH . '/lang/' . $lang . '.php';
+            self::assertArrayHasKey('onb_rewrite_title', $strings);
+            self::assertArrayHasKey('onb_rewrite_body', $strings);
+            self::assertArrayHasKey('onb_rewrite_help', $strings);
+            self::assertArrayHasKey('onb_rewrite_dismiss_failed', $strings);
+        }
     }
 
     public function testDashboardNoticeSupportsSessionCloseAndPersistentDismissal(): void

@@ -12,33 +12,12 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/security.php';   // zipUnsafeEntry
 require_once ROOT_PATH . '/includes/ThemeValidator.php';
+require_once ROOT_PATH . '/includes/ThemeMarket.php';
+require_once ROOT_PATH . '/includes/ThemePalette.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('*');
-
-// 模板市场 API（升级服务器承载，见 update.yikaicms/api/themes/list.php）
-const THEME_MARKET_API = 'https://update.yikaicms.com/api/themes/list.php';
-
-/** GET 一个 URL 返回 body（curl 优先，回退 allow_url_fopen；失败返回 null） */
-function themeMarketHttpGet(string $url, int $timeout = 15): ?string
-{
-    if (function_exists('curl_init')) {
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => $timeout,
-            CURLOPT_SSL_VERIFYPEER => true, CURLOPT_FOLLOWLOCATION => true,
-        ]);
-        $resp = curl_exec($ch);
-        curl_close($ch);
-        return is_string($resp) && $resp !== '' ? $resp : null;
-    }
-    if (ini_get('allow_url_fopen')) {
-        $resp = @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => $timeout]]));
-        return is_string($resp) && $resp !== '' ? $resp : null;
-    }
-    return null;
-}
 
 /** 递归删除主题目录（限定在 themes/ 内，防越界） */
 function deleteThemeDir(string $slug): bool
@@ -157,15 +136,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 
     if ($action === 'market_list') {
         $q = trim((string) ($_POST['q'] ?? ''));
-        $url = THEME_MARKET_API . ($q !== '' ? '?q=' . urlencode($q) : '');
-        $resp = themeMarketHttpGet($url);
-        if ($resp === null) {
+        $data = ThemeMarket::request($q);
+        if ($data === null) {
             echo json_encode(['code' => 1, 'msg' => __('theme_err_market_conn')]);
-            exit;
-        }
-        $data = json_decode($resp, true);
-        if (!is_array($data) || ($data['code'] ?? 1) !== 0) {
-            echo json_encode(['code' => 1, 'msg' => __('theme_err_market_resp')]);
             exit;
         }
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -173,9 +146,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     }
 
     // market_install：以服务端拿到的市场元数据为准（不信任前端传来的 URL/哈希）
-    $resp = themeMarketHttpGet(THEME_MARKET_API);
-    $data = $resp !== null ? json_decode($resp, true) : null;
-    if (!is_array($data) || ($data['code'] ?? 1) !== 0) {
+    $data = ThemeMarket::request();
+    if ($data === null) {
         echo json_encode(['code' => 1, 'msg' => __('theme_err_market_conn')]);
         exit;
     }
@@ -190,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 
     // 下载到临时文件
     $tmpZip = tempnam(sys_get_temp_dir(), 'ykthm');
-    $body = themeMarketHttpGet($item['download_url'], 120);
+    $body = ThemeMarket::downloadPackage((string) $item['download_url']);
     if ($body === null || file_put_contents($tmpZip, $body) === false) {
         @unlink($tmpZip);
         echo json_encode(['code' => 1, 'msg' => __('theme_err_download')]);
@@ -238,6 +210,54 @@ $pageTitle = __('admin_theme');
 $message = '';
 $messageType = '';
 
+// 保存模板外观设置。前台继续读取既有颜色 key；额外按主题保存配置档案。
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_theme_settings') {
+    verifyCsrf();
+
+    $primaryColor = strtoupper(trim((string) ($_POST['primary_color'] ?? '')));
+    $secondaryColor = strtoupper(trim((string) ($_POST['secondary_color'] ?? '')));
+    if (preg_match('/^#[0-9A-F]{6}$/D', $primaryColor) !== 1
+        || preg_match('/^#[0-9A-F]{6}$/D', $secondaryColor) !== 1) {
+        $message = __('theme_settings_invalid_color');
+        $messageType = 'error';
+    } else {
+        $heightPc = max(200, min(1000, postInt('banner_height_pc', 650)));
+        $heightMobile = max(150, min(600, postInt('banner_height_mobile', 300)));
+        $fullscreen = (string) ($_POST['banner_fullscreen'] ?? '0') === '1' ? '1' : '0';
+        $rawThemeStyle = $_POST['theme_style'] ?? [];
+        $themeStyleInput = [];
+        if (is_array($rawThemeStyle)) {
+            foreach ($rawThemeStyle as $key => $value) {
+                if (is_string($key)) {
+                    $themeStyleInput[$key] = $value;
+                }
+            }
+        }
+        $styleSettings = ThemeSettings::normalize($themeStyleInput);
+
+        $activeTheme = currentTheme();
+        $colorProfiles = ThemePalette::profiles((string) config('theme_color_profiles', '{}'));
+        $colorProfiles[$activeTheme] = [
+            'primary' => $primaryColor,
+            'secondary' => $secondaryColor,
+        ];
+
+        settingModel()->saveBatch([
+            'primary_color' => $primaryColor,
+            'secondary_color' => $secondaryColor,
+            'theme_color_profiles' => ThemePalette::encodeProfiles($colorProfiles),
+            'banner_height_pc' => (string) $heightPc,
+            'banner_height_mobile' => (string) $heightMobile,
+            'banner_fullscreen' => $fullscreen,
+            ThemeSettings::KEY => ThemeSettings::encodeProfile($activeTheme, $styleSettings, (string) config(ThemeSettings::KEY, '')),
+        ]);
+        adminLog('theme', 'settings', '更新模板设置（配色与首页轮播）');
+        do_action('data_changed');
+        $message = __('theme_settings_saved');
+        $messageType = 'success';
+    }
+}
+
 // 处理主题切换（页面表单，刷新式）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activate') {
     try {
@@ -251,7 +271,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activ
                 $message = __('theme_err_invalid') . '：' . implode('；', $vr['errors']);
                 $messageType = 'error';
             } else {
-                settingModel()->set('current_theme', $slug);
+                $previousTheme = currentTheme();
+                $colorProfiles = ThemePalette::profiles((string) config('theme_color_profiles', '{}'));
+                $currentPrimary = strtoupper((string) config('primary_color', '#2563EB'));
+                $currentSecondary = strtoupper((string) config('secondary_color', '#1D4ED8'));
+                if (preg_match('/^#[0-9A-F]{6}$/D', $currentPrimary) === 1
+                    && preg_match('/^#[0-9A-F]{6}$/D', $currentSecondary) === 1) {
+                    $colorProfiles[$previousTheme] = [
+                        'primary' => $currentPrimary,
+                        'secondary' => $currentSecondary,
+                    ];
+                }
+                $targetColors = $colorProfiles[(string) $slug]
+                    ?? ThemePalette::definition(ROOT_PATH . '/themes', basename((string) $slug))['colors'];
+                settingModel()->saveBatch([
+                    'current_theme' => (string) $slug,
+                    'primary_color' => $targetColors['primary'],
+                    'secondary_color' => $targetColors['secondary'],
+                    'theme_color_profiles' => ThemePalette::encodeProfiles($colorProfiles),
+                ]);
                 $message = __('theme_switched') . '「' . e($slug) . '」';
                 $messageType = 'success';
             }
@@ -274,9 +312,35 @@ foreach ($themes as &$__t) {
     $__t['_errors']   = $__vr['errors'];
     $__t['_warnings'] = $__vr['warnings'];
     $__t['_coverage'] = themeBlockCoverage($__slug);
+    $__t['_palette'] = ThemePalette::definition(ROOT_PATH . '/themes', $__slug);
 }
 unset($__t);
 $currentTheme = currentTheme();
+$requestedThemeTab = (string) get('tab');
+$initialThemeTab = in_array($requestedThemeTab, ['local', 'market', 'settings'], true)
+    ? $requestedThemeTab
+    : 'local';
+$highlightTheme = preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/D', (string) get('update')) === 1
+    ? (string) get('update') : '';
+
+$themePrimaryColor = (string) config('primary_color', '#2563EB');
+$themeSecondaryColor = (string) config('secondary_color', '#1D4ED8');
+$themeBannerHeightPc = max(200, min(1000, (int) config('banner_height_pc', 650)));
+$themeBannerHeightMobile = max(150, min(600, (int) config('banner_height_mobile', 300)));
+$themeBannerFullscreen = (string) config('banner_fullscreen', '0') === '1';
+$themeStyle = ThemeSettings::read($currentTheme);
+$activeThemeMeta = [];
+foreach ($themes as $themeMeta) {
+    if (($themeMeta['slug'] ?? '') === $currentTheme) {
+        $activeThemeMeta = $themeMeta;
+        break;
+    }
+}
+$activeThemeName = (string) ($activeThemeMeta['name'] ?? $currentTheme);
+$activeThemePalette = (array) ($activeThemeMeta['_palette']
+    ?? ThemePalette::definition(ROOT_PATH . '/themes', $currentTheme));
+$themeColorPresets = (array) ($activeThemePalette['palettes'] ?? []);
+$presetNameKey = getLang() === 'en' ? 'name_en' : (getLang() === 'ja' ? 'name_ja' : 'name');
 
 // 本地已装版本表（市场页签据此显示 已安装/可升级）
 $localThemeVersions = [];
@@ -287,7 +351,7 @@ foreach ($themes as $t) {
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<div class="p-6" x-data="themeManager()">
+<div class="p-6" x-data="themeManager()" x-init="init()">
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-800"><?php echo __('admin_theme'); ?></h1>
         <span class="text-sm text-gray-500"><?php echo __('theme_current'); ?>：<span class="font-medium text-primary"><?php echo e($currentTheme); ?></span></span>
@@ -299,7 +363,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
     <?php endif; ?>
 
-    <!-- 页签：本地主题 / 模板市场 -->
+    <!-- 页签：本地主题 / 模板市场 / 模板设置 -->
     <div class="flex gap-1 mb-6 border-b border-gray-200">
         <button type="button" @click="tab='local'"
             :class="tab==='local' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
@@ -310,6 +374,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             :class="tab==='market' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
             class="px-4 py-2 -mb-px border-b-2 font-medium text-sm cursor-pointer transition">
             <i class="ti ti-shopping-bag mr-1"></i><?php echo __('theme_tab_market'); ?>
+        </button>
+        <button type="button" @click="tab='settings'" data-testid="theme-settings-tab"
+            :class="tab==='settings' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
+            class="px-4 py-2 -mb-px border-b-2 font-medium text-sm cursor-pointer transition">
+            <i class="ti ti-adjustments-horizontal mr-1"></i><?php echo __('theme_tab_settings'); ?>
         </button>
     </div>
 
@@ -358,7 +427,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             $descKey = ($lang === 'en' && !empty($theme['description_en'])) ? 'description_en'
                                 : (($lang === 'ja' && !empty($theme['description_ja'])) ? 'description_ja' : 'description');
                             echo e($theme[$descKey] ?? '');
-                        ?></p>
+                         ?></p>
+                        <?php $__palettePreview = (array) ($theme['_palette']['preview'] ?? []); ?>
+                        <?php if ($__palettePreview !== []): ?>
+                        <div class="mt-3 flex items-center gap-2" aria-label="<?php echo e(__('theme_factory_palette')); ?>">
+                            <span class="text-xs text-gray-400"><?php echo e(__('theme_factory_palette')); ?></span>
+                            <span class="inline-flex overflow-hidden border border-gray-200 rounded" aria-hidden="true">
+                                <?php foreach ($__palettePreview as $__color): ?>
+                                <span class="block w-5 h-5" style="background-color:<?php echo e((string) $__color); ?>"></span>
+                                <?php endforeach; ?>
+                            </span>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="flex items-center gap-4 mt-3 text-xs text-gray-400">
@@ -451,7 +531,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
         <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="theme-market-list">
             <template x-for="t in items" :key="t.slug">
-                <div class="bg-white rounded-lg shadow overflow-hidden flex flex-col" :data-theme-slug="t.slug">
+                <div class="bg-white rounded-lg shadow overflow-hidden flex flex-col"
+                    :class="highlight === t.slug ? 'ring-2 ring-amber-400' : ''" :data-theme-slug="t.slug">
                     <div class="aspect-[16/10] bg-gray-100 relative overflow-hidden">
                         <img x-show="t.screenshot" :src="t.screenshot" :alt="t.name" class="w-full h-full object-cover">
                         <div x-show="!t.screenshot" class="w-full h-full flex items-center justify-center text-gray-300">
@@ -481,12 +562,203 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </template>
         </div>
     </div><!-- /market -->
+
+    <!-- ============ 模板设置 ============ -->
+    <div x-show="tab==='settings'" x-cloak data-testid="theme-settings-panel">
+        <form method="POST" action="/admin/theme.php?tab=settings" class="bg-white rounded-lg shadow max-w-5xl">
+            <?php echo csrfField(); ?>
+            <input type="hidden" name="action" value="save_theme_settings">
+
+            <div class="px-6 py-5 border-b border-gray-100">
+                <div class="flex flex-wrap items-center gap-2">
+                    <h2 class="text-lg font-semibold text-gray-800"><?php echo e(__('theme_settings_title')); ?></h2>
+                    <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded"><?php echo e($activeThemeName); ?></span>
+                </div>
+                <p class="mt-1 text-sm text-gray-500"><?php echo e(__('theme_settings_intro', ['theme' => $activeThemeName])); ?></p>
+            </div>
+
+            <div class="px-6 py-6 border-b border-gray-100">
+                <h3 class="font-medium text-gray-800"><?php echo e(__('theme_settings_colors')); ?></h3>
+                <p class="mt-1 text-sm text-gray-500"><?php echo e(__('theme_settings_colors_hint')); ?></p>
+
+                <div class="mt-4 flex flex-wrap gap-2" aria-label="<?php echo e(__('setting_color_presets')); ?>">
+                    <?php foreach ($themeColorPresets as $preset):
+                        $isPresetActive = strtolower($themePrimaryColor) === strtolower($preset['primary'])
+                            && strtolower($themeSecondaryColor) === strtolower($preset['secondary']);
+                        $presetClass = $isPresetActive
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-400';
+                    ?>
+                    <button type="button"
+                        data-theme-color-preset
+                        data-primary="<?php echo e($preset['primary']); ?>"
+                        data-secondary="<?php echo e($preset['secondary']); ?>"
+                        aria-pressed="<?php echo $isPresetActive ? 'true' : 'false'; ?>"
+                        onclick="applyThemeColorPreset(this)"
+                        class="inline-flex items-center gap-2 px-3 py-2 border rounded-lg text-sm transition focus:outline-none focus:ring-2 focus:ring-primary/30 <?php echo $presetClass; ?>">
+                        <span class="relative w-7 h-4 flex-shrink-0" aria-hidden="true">
+                            <span class="absolute left-0 top-0 w-4 h-4 rounded-full border border-white shadow-sm" style="background: <?php echo e($preset['primary']); ?>"></span>
+                            <span class="absolute right-0 top-0 w-4 h-4 rounded-full border border-white shadow-sm" style="background: <?php echo e($preset['secondary']); ?>"></span>
+                        </span>
+                        <?php
+                        $presetLabel = (string) ($preset[$presetNameKey] ?? $preset['name'] ?? '');
+                        echo e($presetLabel !== '' ? $presetLabel : __('theme_palette_default'));
+                        ?>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                    <?php foreach ([
+                        ['key' => 'primary_color', 'label' => __('setting_primary_color'), 'value' => $themePrimaryColor],
+                        ['key' => 'secondary_color', 'label' => __('setting_secondary_color'), 'value' => $themeSecondaryColor],
+                    ] as $colorField): ?>
+                    <label class="block">
+                        <span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e($colorField['label']); ?></span>
+                        <span class="flex items-center gap-2">
+                            <input type="color"
+                                id="theme_<?php echo e($colorField['key']); ?>_picker"
+                                value="<?php echo e($colorField['value']); ?>"
+                                oninput="syncThemeColorPicker('<?php echo e($colorField['key']); ?>', this.value)"
+                                class="w-11 h-10 p-1 border border-gray-200 rounded-lg cursor-pointer bg-white">
+                            <input type="text"
+                                id="theme_<?php echo e($colorField['key']); ?>"
+                                name="<?php echo e($colorField['key']); ?>"
+                                value="<?php echo e($colorField['value']); ?>"
+                                pattern="#[0-9a-fA-F]{6}"
+                                maxlength="7"
+                                required
+                                oninput="syncThemeColorText('<?php echo e($colorField['key']); ?>', this.value)"
+                                class="flex-1 border border-gray-200 rounded-lg px-3 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+                        </span>
+                    </label>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div class="px-6 py-6 border-b border-gray-100">
+                <h3 class="font-medium text-gray-800"><?php echo e(__('theme_settings_global')); ?></h3>
+                <p class="mt-1 text-sm text-gray-500"><?php echo e(__('theme_settings_global_hint')); ?></p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_layout')); ?></span>
+                        <select name="theme_style[general][site_layout]" class="w-full border border-gray-200 rounded-lg px-3 py-2"><option value="full" <?php echo $themeStyle['general']['site_layout'] === 'full' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_layout_full')); ?></option><option value="boxed" <?php echo $themeStyle['general']['site_layout'] === 'boxed' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_layout_boxed')); ?></option></select>
+                    </label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_max_width')); ?></span>
+                        <input type="number" name="theme_style[general][content_max_width]" value="<?php echo (int) $themeStyle['general']['content_max_width']; ?>" min="760" max="1920" class="w-full border border-gray-200 rounded-lg px-3 py-2">
+                    </label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_site_background')); ?></span><input type="color" name="theme_style[general][site_background]" value="<?php echo e($themeStyle['general']['site_background']); ?>" class="w-11 h-10 p-1 border border-gray-200 rounded-lg"></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_content_background')); ?></span><input type="color" name="theme_style[general][content_background]" value="<?php echo e($themeStyle['general']['content_background']); ?>" class="w-11 h-10 p-1 border border-gray-200 rounded-lg"></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_color_mode')); ?></span><select name="theme_style[general][color_mode]" class="w-full border border-gray-200 rounded-lg px-3 py-2"><option value="light" <?php echo $themeStyle['general']['color_mode'] === 'light' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_light')); ?></option><option value="dark" <?php echo $themeStyle['general']['color_mode'] === 'dark' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_dark')); ?></option><option value="auto" <?php echo $themeStyle['general']['color_mode'] === 'auto' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_auto')); ?></option></select></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_base_font')); ?></span><input type="number" name="theme_style[typography][html_font_size]" value="<?php echo (int) $themeStyle['typography']['html_font_size']; ?>" min="14" max="20" class="w-full border border-gray-200 rounded-lg px-3 py-2"></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_body_font')); ?></span><input type="text" name="theme_style[typography][body_font]" value="<?php echo e((string) $themeStyle['typography']['body_font']); ?>" maxlength="160" class="w-full border border-gray-200 rounded-lg px-3 py-2 font-mono text-xs" placeholder="system / Arial, sans-serif"></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_heading_font')); ?></span><input type="text" name="theme_style[typography][heading_font]" value="<?php echo e((string) $themeStyle['typography']['heading_font']); ?>" maxlength="160" class="w-full border border-gray-200 rounded-lg px-3 py-2 font-mono text-xs" placeholder="system / Arial, sans-serif"></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_section_spacing')); ?></span><input type="number" name="theme_style[spacing][section_padding_y]" value="<?php echo (int) $themeStyle['spacing']['section_padding_y']; ?>" min="0" max="240" class="w-full border border-gray-200 rounded-lg px-3 py-2"></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_button_radius')); ?></span><input type="number" name="theme_style[button][radius]" value="<?php echo (int) $themeStyle['button']['radius']; ?>" min="0" max="32" class="w-full border border-gray-200 rounded-lg px-3 py-2"></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_button_background')); ?></span><input type="color" name="theme_style[button][background]" value="<?php echo e($themeStyle['button']['background']); ?>" class="w-11 h-10 p-1 border border-gray-200 rounded-lg"></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_button_text')); ?></span><input type="color" name="theme_style[button][text]" value="<?php echo e($themeStyle['button']['text']); ?>" class="w-11 h-10 p-1 border border-gray-200 rounded-lg"></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_button_hover')); ?></span><input type="color" name="theme_style[button][hover_background]" value="<?php echo e($themeStyle['button']['hover_background']); ?>" class="w-11 h-10 p-1 border border-gray-200 rounded-lg"></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_tablet_breakpoint')); ?></span><input type="number" name="theme_style[responsive][tablet]" value="<?php echo (int) $themeStyle['responsive']['tablet']; ?>" min="800" max="1400" class="w-full border border-gray-200 rounded-lg px-3 py-2"></label>
+                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_mobile_breakpoint')); ?></span><input type="number" name="theme_style[responsive][mobile]" value="<?php echo (int) $themeStyle['responsive']['mobile']; ?>" min="480" max="900" class="w-full border border-gray-200 rounded-lg px-3 py-2"></label>
+                    <label class="block md:col-span-2"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_custom_css')); ?></span><textarea name="theme_style[custom_css]" rows="5" maxlength="20000" class="w-full border border-gray-200 rounded-lg px-3 py-2 font-mono text-xs" placeholder=".my-class { ... }"><?php echo e((string) $themeStyle['custom_css']); ?></textarea></label>
+                </div>
+            </div>
+
+            <div class="px-6 py-6">
+                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div>
+                        <h3 class="font-medium text-gray-800"><?php echo e(__('theme_settings_banner')); ?></h3>
+                        <p class="mt-1 text-sm text-gray-500"><?php echo e(__('theme_settings_banner_hint')); ?></p>
+                    </div>
+                    <a href="/admin/banner.php" class="inline-flex items-center gap-1 text-sm text-primary hover:underline whitespace-nowrap">
+                        <?php echo e(__('theme_settings_manage_banner')); ?><i class="ti ti-arrow-right"></i>
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                    <label class="block">
+                        <span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('setting_banner_height_pc')); ?></span>
+                        <span class="relative block">
+                            <input type="number" name="banner_height_pc" value="<?php echo $themeBannerHeightPc; ?>" min="200" max="1000" required
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">px</span>
+                        </span>
+                    </label>
+                    <label class="block">
+                        <span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('setting_banner_height_mobile')); ?></span>
+                        <span class="relative block">
+                            <input type="number" name="banner_height_mobile" value="<?php echo $themeBannerHeightMobile; ?>" min="150" max="600" required
+                                class="w-full border border-gray-200 rounded-lg px-3 py-2 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/30">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">px</span>
+                        </span>
+                    </label>
+                </div>
+
+                <label class="mt-5 flex items-start gap-3 cursor-pointer">
+                    <span class="relative mt-0.5 inline-flex flex-shrink-0">
+                        <input type="checkbox" name="banner_fullscreen" value="1" class="sr-only peer" <?php echo $themeBannerFullscreen ? 'checked' : ''; ?>>
+                        <span class="relative w-9 h-5 rounded-full bg-gray-200 transition peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40 peer-checked:bg-primary after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-4"></span>
+                    </span>
+                    <span>
+                        <span class="block text-sm font-medium text-gray-700"><?php echo e(__('theme_settings_fullscreen')); ?></span>
+                        <span class="block mt-0.5 text-sm text-gray-500"><?php echo e(__('theme_settings_fullscreen_hint')); ?></span>
+                    </span>
+                </label>
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end rounded-b-lg">
+                <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary/30 transition">
+                    <i class="ti ti-device-floppy"></i><?php echo e(__('admin_save')); ?>
+                </button>
+            </div>
+        </form>
+    </div><!-- /settings -->
 </div>
 
 <script>
+function setThemePresetState(primary, secondary) {
+    document.querySelectorAll('[data-theme-color-preset]').forEach(function(button) {
+        var active = button.dataset.primary.toUpperCase() === primary.toUpperCase()
+            && button.dataset.secondary.toUpperCase() === secondary.toUpperCase();
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        button.classList.toggle('border-primary', active);
+        button.classList.toggle('bg-primary/10', active);
+        button.classList.toggle('text-primary', active);
+        button.classList.toggle('border-gray-200', !active);
+        button.classList.toggle('text-gray-600', !active);
+    });
+}
+
+function updateThemePresetState() {
+    var primary = document.getElementById('theme_primary_color').value || '';
+    var secondary = document.getElementById('theme_secondary_color').value || '';
+    setThemePresetState(primary, secondary);
+}
+
+function applyThemeColorPreset(button) {
+    ['primary_color', 'secondary_color'].forEach(function(key) {
+        var value = button.dataset[key === 'primary_color' ? 'primary' : 'secondary'];
+        document.getElementById('theme_' + key).value = value;
+        document.getElementById('theme_' + key + '_picker').value = value;
+    });
+    updateThemePresetState();
+}
+
+function syncThemeColorPicker(key, value) {
+    document.getElementById('theme_' + key).value = value.toUpperCase();
+    updateThemePresetState();
+}
+
+function syncThemeColorText(key, value) {
+    if (/^#[0-9a-fA-F]{6}$/.test(value)) {
+        document.getElementById('theme_' + key + '_picker').value = value;
+    }
+    updateThemePresetState();
+}
+
 function themeManager() {
     return {
-        tab: 'local',
+        tab: <?php echo json_encode($initialThemeTab); ?>,
+        highlight: <?php echo json_encode($highlightTheme); ?>,
         q: '',
         items: [],
         loading: false,
@@ -496,6 +768,9 @@ function themeManager() {
         local: <?php echo json_encode($localThemeVersions, JSON_UNESCAPED_UNICODE); ?>,
         lang: <?php echo json_encode(getLang()); ?>,
 
+        init() {
+            if (this.tab === 'market') this.search();
+        },
         openMarket() {
             this.tab = 'market';
             if (!this.loaded && !this.loading) this.search();
