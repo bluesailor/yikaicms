@@ -1949,6 +1949,9 @@ declare(strict_types=1);
                                         <?= e(__('blox_section_name_hint')) ?>
                                     </p>
                                 </div>
+                                <div x-show="selLayer === 'sec'">
+                                    <?php $backgroundSwitcherMode = 'content'; require __DIR__ . '/background-layer-switcher.php'; ?>
+                                </div>
                                 <!-- 区块标题 / 副标题：渲染器会输出成居中的段落头 -->
                                 <div x-show="selLayer === 'sec'">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_field_section_title') ?></label>
@@ -1980,17 +1983,22 @@ declare(strict_types=1);
                             <div x-show="panelTab === 'style'" class="space-y-5">
                                 <?php // 分层随结构树选中：树里选「区块」→ 全宽背景层设置，
                                       // 选「容器」节点 → 内容层设置。一次只显示当前层。 ?>
+                                <div x-show="selLayer === 'sec' || selLayer === 'con'">
+                                    <?php $backgroundSwitcherMode = 'style'; require __DIR__ . '/background-layer-switcher.php'; ?>
+                                </div>
                                 <div x-show="selLayer === 'sec'" class="blox-property-pair-grid" data-testid="blox-section-property-grid">
                                 <!-- 背景色 -->
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_color') ?></label>
                                     <button type="button"
                                             @click="openEditorColorPicker($event, 'section-bg', <?= e($jt('blox_bg_color')) ?>, sel.settings.bg_color, '#ffffff', true, value => sel.settings.bg_color = value)"
+                                            data-testid="blox-section-color-picker-trigger"
                                             class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
                                         <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.bg_color, '#ffffff')"></span>
                                         <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.bg_color, <?= e($jt('blox_empty_transparent')) ?>)"></span>
                                         <i class="ti ti-chevron-down text-sm text-gray-400"></i>
                                     </button>
+                                    <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_background_color_hint')) ?></p>
                                 </div>
                                 <!-- 渐变背景：无/预置色板/自定义双色。叠在背景色/背景图之上 -->
                                 <div class="blox-property-span-full">
@@ -2242,6 +2250,46 @@ declare(strict_types=1);
                                     </div>
                                 </div>
                                 <div x-show="selLayer === 'con'" class="blox-property-pair-grid" data-testid="blox-container-property-grid">
+                                <!-- 容器背景优先展示：从区块摘要进入后无需越过布局设置即可看到实际 URL。 -->
+                                <div class="blox-property-span-full">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_container_bg') ?></label>
+                                    <button type="button"
+                                            @click="openEditorColorPicker($event, 'container-bg', <?= e($jt('blox_container_bg')) ?>, sel.settings.container_bg, '#ffffff', true, value => sel.settings.container_bg = value)"
+                                            data-testid="blox-container-color-picker-trigger"
+                                            class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                        <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.container_bg, '#ffffff')"></span>
+                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.container_bg, <?= e($jt('blox_empty_transparent')) ?>)"></span>
+                                        <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                    </button>
+                                    <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_background_color_hint')) ?></p>
+                                    <div class="mt-3" data-testid="blox-container-background-image">
+                                        <label class="block text-[10px] font-medium text-gray-500 mb-1.5"><?= __('blox_bg_image') ?></label>
+                                        <?php $imageControl = ['scope' => 'container', 'key' => "'container_bg_image'", 'id' => 'blox-container-background-image', 'urlId' => 'blox-container-background-image-url']; require __DIR__ . '/image-control.php'; ?>
+                                        <div x-show="sel.settings.container_bg_image" class="mt-3 space-y-3">
+                                            <div>
+                                                <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
+                                                <button type="button"
+                                                        @click="openEditorColorPicker($event, 'container-overlay', <?= e($jt('blox_bg_overlay_color')) ?>, sel.settings.container_bg_overlay_color, '#000000', true, value => sel.settings.container_bg_overlay_color = value)"
+                                                        data-testid="blox-container-overlay-color"
+                                                        class="flex h-9 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                                    <span class="h-6 w-8 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.container_bg_overlay_color, '#000000')"></span>
+                                                    <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.container_bg_overlay_color, '#000000')"></span>
+                                                    <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                                </button>
+                                            </div>
+                                            <div>
+                                                <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                                                    <span><?= __('blox_overlay_opacity') ?></span>
+                                                    <span x-text="(sel.settings.container_bg_overlay_opacity ?? 0) + '%'"></span>
+                                                </div>
+                                                <input type="range" min="0" max="100" step="5" class="w-full"
+                                                       :value="sel.settings.container_bg_overlay_opacity ?? 0"
+                                                       @input="sel.settings.container_bg_overlay_opacity = parseInt($event.target.value, 10)"
+                                                       data-testid="blox-container-overlay-opacity">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="blox-property-span-full rounded-lg border border-gray-200 bg-gray-50 p-3">
                                     <div class="flex items-center justify-between mb-2">
                                         <span class="text-xs font-medium text-gray-600 inline-flex items-center gap-1">
@@ -2365,45 +2413,6 @@ declare(strict_types=1);
                                                 :class="sel.settings.container_gutter === 'none' ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'">
                                             <?php echo e(__('blox_container_gutter_none')); ?>
                                         </button>
-                                    </div>
-                                </div>
-                                <!-- 容器背景：与区块背景分层，常用「区块深色 + 容器白底圆角」 -->
-                                <div class="blox-property-span-full">
-                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_container_bg') ?></label>
-                                    <button type="button"
-                                            @click="openEditorColorPicker($event, 'container-bg', <?= e($jt('blox_container_bg')) ?>, sel.settings.container_bg, '#ffffff', true, value => sel.settings.container_bg = value)"
-                                            data-testid="blox-container-color-picker-trigger"
-                                            class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
-                                        <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.container_bg, '#ffffff')"></span>
-                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.container_bg, <?= e($jt('blox_empty_transparent')) ?>)"></span>
-                                        <i class="ti ti-chevron-down text-sm text-gray-400"></i>
-                                    </button>
-                                    <div class="mt-3" data-testid="blox-container-background-image">
-                                        <label class="block text-[10px] font-medium text-gray-500 mb-1.5"><?= __('blox_bg_image') ?></label>
-                                        <?php $imageControl = ['scope' => 'container', 'key' => "'container_bg_image'", 'id' => 'blox-container-background-image', 'urlId' => 'blox-container-background-image-url']; require __DIR__ . '/image-control.php'; ?>
-                                        <div x-show="sel.settings.container_bg_image" class="mt-3 space-y-3">
-                                            <div>
-                                                <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
-                                                <button type="button"
-                                                        @click="openEditorColorPicker($event, 'container-overlay', <?= e($jt('blox_bg_overlay_color')) ?>, sel.settings.container_bg_overlay_color, '#000000', true, value => sel.settings.container_bg_overlay_color = value)"
-                                                        data-testid="blox-container-overlay-color"
-                                                        class="flex h-9 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
-                                                    <span class="h-6 w-8 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.container_bg_overlay_color, '#000000')"></span>
-                                                    <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.container_bg_overlay_color, '#000000')"></span>
-                                                    <i class="ti ti-chevron-down text-sm text-gray-400"></i>
-                                                </button>
-                                            </div>
-                                            <div>
-                                                <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
-                                                    <span><?= __('blox_overlay_opacity') ?></span>
-                                                    <span x-text="(sel.settings.container_bg_overlay_opacity ?? 0) + '%'"></span>
-                                                </div>
-                                                <input type="range" min="0" max="100" step="5" class="w-full"
-                                                       :value="sel.settings.container_bg_overlay_opacity ?? 0"
-                                                       @input="sel.settings.container_bg_overlay_opacity = parseInt($event.target.value, 10)"
-                                                       data-testid="blox-container-overlay-opacity">
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                                 <div class="blox-property-span-full grid grid-cols-2 gap-3">
