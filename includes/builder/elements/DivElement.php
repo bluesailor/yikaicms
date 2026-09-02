@@ -42,6 +42,8 @@ final class DivElement extends AbstractElement
     public function category(): string { return 'layout'; }
     public function isContainer(): bool { return true; }
     public function allowedChildren(array $data = []): array { return ['*']; }
+    /** 通用背景：native——背景写在自己的根 div 上，存量输出逐字节不变 */
+    public function backgroundRenderStrategy(): string { return 'native'; }
 
     public function controls(): array
     {
@@ -58,7 +60,7 @@ final class DivElement extends AbstractElement
                 'options' => ['stretch' => __('blox_align_stretch'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'baseline' => __('blox_flex_align_baseline')]],
             ['key' => 'justify', 'type' => 'select', 'label' => __('blox_main_distribute'), 'default' => 'start', 'tab' => 'style',
                 'options' => ['start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'between' => __('blox_align_between'), 'around' => __('blox_flex_around'), 'evenly' => __('blox_flex_evenly')]],
-            ['key' => 'bg_color', 'type' => 'color', 'label' => __('blox_bg_color'), 'default' => '', 'tab' => 'style'],
+            ...$this->backgroundControls(),
             ['key' => 'padding', 'type' => 'select', 'label' => __('blox_padding'), 'default' => 'none', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
             ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
@@ -107,9 +109,9 @@ final class DivElement extends AbstractElement
         }
 
         $style = '';
-        $background = self::cssColor($data['bg_color'] ?? null);
-        if ($background !== null) {
-            $style = ' style="background-color:' . htmlspecialchars($background, ENT_QUOTES) . ';"';
+        $background = self::backgroundDeclarations($data);
+        if ($background !== '') {
+            $style = ' style="' . htmlspecialchars($background, ENT_QUOTES) . '"';
         }
 
         return '<div class="' . $cls . '"' . $style . '>' . $children . '</div>';
