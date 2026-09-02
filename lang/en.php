@@ -6044,4 +6044,5 @@ voltage|Voltage|220V',
     'blox_background_none' => 'Not set',
     'blox_background_edit' => 'Edit background',
     'blox_background_color_hint' => 'Choose a site or recommended color, or enter a custom HEX value.',
+    'blox_home_cta_color_covered_hint' => 'The current image covers the background color. Clear it with the × button above to use a solid color.',
 ];

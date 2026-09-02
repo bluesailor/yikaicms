@@ -6112,4 +6112,5 @@ voltage|电压|220V',
     'blox_background_none' => '未设置',
     'blox_background_edit' => '设置背景',
     'blox_background_color_hint' => '点击可选择站点色、推荐色，或直接输入自定义 HEX 颜色。',
+    'blox_home_cta_color_covered_hint' => '当前背景图会覆盖背景色；要使用纯色背景，请先点击上方的 × 清除图片。',
 ];

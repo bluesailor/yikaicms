@@ -6185,4 +6185,5 @@ voltage|電圧|220V',
     'blox_background_none' => '未設定',
     'blox_background_edit' => '背景を設定',
     'blox_background_color_hint' => 'サイト色または推奨色を選ぶか、HEX カラーを直接入力できます。',
+    'blox_home_cta_color_covered_hint' => '現在の画像が背景色を覆っています。単色にするには、上の × ボタンで画像を削除してください。',
 ];

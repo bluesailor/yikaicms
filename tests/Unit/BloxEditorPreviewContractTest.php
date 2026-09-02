@@ -1274,6 +1274,10 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('getBlockBg(', $theme);
         $imageControl = $this->source('admin/blox_editor/partials/home-image-control.php');
         $this->assertStringContainsString('replaceHomeContentImage(ctrl.key)', $imageControl);
+        $this->assertStringContainsString('data-testid="blox-cta-background-url"', $imageControl);
+        $this->assertStringContainsString('data-testid="blox-cta-background-clear"', $imageControl);
+        $this->assertStringContainsString("setControlValue(ctrl, '')", $imageControl);
+        $this->assertStringContainsString("__('blox_home_cta_color_covered_hint')", $workspace);
         $this->assertStringContainsString('{ usage: "cta", source: "official" }', $this->source('assets/js/blox-home-content-panel.js'));
     }
 
