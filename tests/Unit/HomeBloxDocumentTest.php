@@ -32,6 +32,25 @@ final class HomeBloxDocumentTest extends TestCase
         unset($_GET['preview'], $_GET['blox_draft']);
     }
 
+    /**
+     * 本类不走 Yikai\Tests\TestCase（那边在 setUp 清库），而进程内共享的 :memory: 库会带着
+     * 上一个基类用例留下的 channels 表进来——列集合取决于谁恰好排在前面。
+     * 早先「表不存在才建」的写法因此随执行顺序（CI 无 .phpunit.cache 时）报
+     * "no column named sort_order / is_nav"。这里总是自建完整结构、用完必删。
+     */
+    private function createChannelsTable(): void
+    {
+        db()->execute('DROP TABLE IF EXISTS channels');
+        db()->execute(
+            'CREATE TABLE channels ('
+            . 'id INTEGER PRIMARY KEY AUTOINCREMENT, lang TEXT DEFAULT \'zh-CN\', '
+            . 'translation_group_id INTEGER DEFAULT 0, parent_id INTEGER DEFAULT 0, '
+            . 'name TEXT NOT NULL, slug TEXT NOT NULL, type TEXT DEFAULT \'list\', '
+            . 'is_nav INTEGER DEFAULT 0, is_home INTEGER DEFAULT 0, status INTEGER DEFAULT 1, '
+            . 'sort_order INTEGER DEFAULT 0, created_at INTEGER DEFAULT 0)'
+        );
+    }
+
     public function testLegacyHomeBlocksBecomeSortableBloxSections(): void
     {
         $GLOBALS['_test_config']['home_blocks_config'] = json_encode([
@@ -70,18 +89,8 @@ final class HomeBloxDocumentTest extends TestCase
     public function testLegacyAggregateChannelsExpandIntoConcreteHomepageChannels(): void
     {
         $channelIds = [];
-        $createdTable = !db()->tableExists('channels');
+        $this->createChannelsTable();
         try {
-            if ($createdTable) {
-                db()->execute(
-                    'CREATE TABLE channels ('
-                    . 'id INTEGER PRIMARY KEY AUTOINCREMENT, lang TEXT DEFAULT \'zh-CN\', '
-                    . 'translation_group_id INTEGER DEFAULT 0, parent_id INTEGER DEFAULT 0, '
-                    . 'name TEXT NOT NULL, slug TEXT NOT NULL, type TEXT DEFAULT \'list\', '
-                    . 'is_nav INTEGER DEFAULT 0, is_home INTEGER DEFAULT 0, status INTEGER DEFAULT 1, '
-                    . 'sort_order INTEGER DEFAULT 0, created_at INTEGER DEFAULT 0)'
-                );
-            }
             foreach ([
                 ['name' => 'Migration Products', 'slug' => 'migration-products', 'type' => 'product', 'sort_order' => 901],
                 ['name' => 'Migration News', 'slug' => 'migration-news', 'type' => 'list', 'sort_order' => 902],
@@ -124,27 +133,15 @@ final class HomeBloxDocumentTest extends TestCase
             foreach ($channelIds as $channelId) {
                 db()->delete('channels', 'id = ?', [$channelId]);
             }
-            if ($createdTable) {
-                db()->execute('DROP TABLE channels');
-            }
+            db()->execute('DROP TABLE IF EXISTS channels');
         }
     }
 
     public function testStoredChannelSourceFollowsCurrentLanguageInsteadOfLookingLikeBanner(): void
     {
         $channelIds = [];
-        $createdTable = !db()->tableExists('channels');
+        $this->createChannelsTable();
         try {
-            if ($createdTable) {
-                db()->execute(
-                    'CREATE TABLE channels ('
-                    . 'id INTEGER PRIMARY KEY AUTOINCREMENT, lang TEXT DEFAULT \'zh-CN\', '
-                    . 'translation_group_id INTEGER DEFAULT 0, parent_id INTEGER DEFAULT 0, '
-                    . 'name TEXT NOT NULL, slug TEXT NOT NULL, type TEXT DEFAULT \'list\', '
-                    . 'is_nav INTEGER DEFAULT 0, is_home INTEGER DEFAULT 0, status INTEGER DEFAULT 1, '
-                    . 'sort_order INTEGER DEFAULT 0, created_at INTEGER DEFAULT 0)'
-                );
-            }
             $zhId = db()->insert('channels', [
                 'lang' => 'zh-CN',
                 'translation_group_id' => 0,
@@ -206,9 +203,7 @@ final class HomeBloxDocumentTest extends TestCase
             foreach (array_reverse($channelIds) as $channelId) {
                 db()->delete('channels', 'id = ?', [$channelId]);
             }
-            if ($createdTable) {
-                db()->execute('DROP TABLE channels');
-            }
+            db()->execute('DROP TABLE IF EXISTS channels');
         }
     }
 
