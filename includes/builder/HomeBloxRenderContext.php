@@ -114,11 +114,8 @@ final class HomeBloxRenderContext
 
             if (($channel['type'] ?? '') === 'product') {
                 $contents = $sort === 'recommend'
-                    ? getProducts(0, $limit, 0, ['is_recommend' => true])
+                    ? getProducts(0, $limit, 0, ['sort' => 'recommend_first'])
                     : getProducts(0, $limit, 0);
-                if ($sort === 'recommend' && empty($contents)) {
-                    $contents = getProducts(0, $limit, 0);
-                }
                 $channel['contents'] = $contents;
                 $channel['is_product'] = true;
                 $channel['categories'] = $productCategories;
@@ -410,11 +407,8 @@ final class HomeBloxRenderContext
 
         if (($channel['type'] ?? '') === 'product') {
             $contents = $sort === 'recommend'
-                ? getProducts(0, $limit, 0, ['is_recommend' => true])
+                ? getProducts(0, $limit, 0, ['sort' => 'recommend_first'])
                 : getProducts(0, $limit, 0);
-            if ($sort === 'recommend' && $contents === []) {
-                $contents = getProducts(0, $limit, 0);
-            }
             $channel['contents'] = $contents;
             $channel['is_product'] = true;
             $channel['categories'] = productCategoryModel()->getTopLevel(6);
