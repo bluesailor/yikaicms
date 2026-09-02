@@ -78,6 +78,25 @@ final class TailwindCompiledCssTest extends TestCase
         }
     }
 
+    /** 背景视频三层结构（app.css，2026-09-02 第 5 轮）：定位与点击穿透契约必须在产物里。 */
+    public function testBackgroundVideoLayerCssIsCompiled(): void
+    {
+        $css = file_get_contents(ROOT_PATH . '/assets/css/tailwind.css');
+        self::assertNotFalse($css);
+
+        self::assertStringContainsString('.blox-has-bg{', $css);
+        self::assertStringContainsString('.blox-content{', $css);
+        self::assertMatchesRegularExpression(
+            '/\.blox-bg-media,\.blox-bg-overlay\{[^}]*pointer-events:none/',
+            $css,
+            '背景媒体层必须 pointer-events:none——编辑器画布选中/拖拽依赖此约束。'
+        );
+        self::assertMatchesRegularExpression(
+            '/\.blox-bg-media video\{[^}]*object-fit:cover/',
+            $css
+        );
+    }
+
     public function testBloxScrollAreasUseTailwind43Utilities(): void
     {
         $css = file_get_contents(ROOT_PATH . '/assets/css/tailwind.css');

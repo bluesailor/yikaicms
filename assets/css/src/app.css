@@ -47,6 +47,13 @@
 .blox-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
 .blox-scroll::-webkit-scrollbar-thumb { border-radius: 3px; }
 
+/* Blox 背景视频三层结构（2026-09-02 第 5 轮）：media/overlay 绝对定位不占流、
+   不截点击（编辑器画布选中/拖拽依赖此约束）；内容层承接容器的 flex 布局。 */
+.blox-has-bg { position: relative; overflow: hidden; }
+.blox-bg-media, .blox-bg-overlay { position: absolute; inset: 0; pointer-events: none; }
+.blox-bg-media video { width: 100%; height: 100%; object-fit: cover; }
+.blox-content { position: relative; z-index: 1; }
+
 /* 模板库按面板自身宽度重排；停靠侧栏与宽弹层共用同一套内容驱动断点。 */
 .blox-template-panel {
     container-name: blox-template-panel;

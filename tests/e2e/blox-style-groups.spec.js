@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { openEditor, addTemporaryHeading, observeConsole, restoreClean } = require('./helpers');
+const { openEditor, addTemporaryHeading, observeConsole, restoreClean, frame, performPreviewUpdate } = require('./helpers');
 
 // 样式页签分组（通用背景规划第 2 轮）：chip 切分通用控件循环、有值圆点、
 // 切组不改文档。heading 的样式控件 = 常规（align/color）+ 动画组 → 恰好两组。
@@ -91,6 +91,15 @@ test('container gets the shared background group without chips @ci', async ({ pa
   await expect(page.locator('[data-control-key="bg_image"]')).toBeVisible();
   await expect(page.locator('[data-control-key="bg_overlay"]')).toHaveCount(0);
 
+  // 第 5 轮：设背景视频 → 遮罩控件出现（or 关系），画布出现媒体层且不截点击
+  await performPreviewUpdate(page, () =>
+    page.locator('[data-control-key="bg_video"] input').fill('/uploads/e2e-bg.mp4'));
+  await expect(page.locator('[data-control-key="bg_overlay"]')).toBeVisible();
+  const media = (await frame(page)).locator('.blox-bg-media').first();
+  await expect(media).toBeAttached();
+  expect(await media.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
+
   await restoreClean(page);
-  expect(errors).toEqual([]);
+  // 视频 URL 是本用例故意填的占位（仓库无 mp4 fixture），其 404 属预期；其余控制台错误仍须为零
+  expect(errors.filter((e) => !/404/.test(e))).toEqual([]);
 });

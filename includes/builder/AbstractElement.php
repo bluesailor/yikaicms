@@ -205,8 +205,7 @@ abstract class AbstractElement
         }
         $image = self::cssImageUrl($data['bg_image'] ?? null);
         if ($image !== null && $image !== '') {
-            $overlayKey = $data['bg_overlay'] ?? '';
-            $alpha = is_string($overlayKey) ? (self::BG_OVERLAY_ALPHA[$overlayKey] ?? null) : null;
+            $alpha = self::backgroundOverlayAlpha($data['bg_overlay'] ?? null);
             $layer = self::cssUrlLiteral($image);
             if ($alpha !== null) {
                 $rgba = 'rgba(0,0,0,' . $alpha . ')';
@@ -215,6 +214,47 @@ abstract class AbstractElement
             $decl .= 'background-image:' . $layer . ';background-size:cover;background-position:center;';
         }
         return $decl;
+    }
+
+    /**
+     * 背景视频直链校验（第 5 轮）：合法地址 + 视频扩展名，二者缺一返回 ''。
+     * 平台链接（YouTube/Vimeo 等）不作背景——iframe 背景涉及自动播放与第三方策略，明确暂缓。
+     * 校验口径与 VideoElement 的直链分支一致。
+     */
+    public static function backgroundVideoUrl(array $data): string
+    {
+        $raw = $data['bg_video'] ?? '';
+        if (!is_string($raw)) {
+            return '';
+        }
+        $url = trim($raw);
+        if ($url === '') {
+            return '';
+        }
+        $safe = self::safeHref($url);
+        $path = strtolower((string) parse_url($safe, PHP_URL_PATH));
+        if ($safe === '' || preg_match('/\.(mp4|webm|ogg|ogv|mov|m4v)$/', $path) !== 1) {
+            return '';
+        }
+        return $safe;
+    }
+
+    /**
+     * 遮罩档位 → alpha；图片 gradient 与视频 DOM 层遮罩共用同一映射。
+     * 注意 PHP 会把数字字符串数组键强转 int（'40' => 键 40），故先正则白名单再显式转型。
+     */
+    public static function backgroundOverlayAlpha(mixed $key): ?string
+    {
+        if (!is_string($key) || preg_match('/^(?:40|60|80)$/', $key) !== 1) {
+            return null;
+        }
+        return self::BG_OVERLAY_ALPHA[(int) $key];
+    }
+
+    /** 是否在共享背景组里提供背景视频（第 5 轮：默认关，首批仅 Container 开启） */
+    protected function backgroundVideoEnabled(): bool
+    {
+        return false;
     }
 
     /**
@@ -397,7 +437,14 @@ abstract class AbstractElement
             // 遮罩叠在背景图上提升文字可读性；未设图时无意义，隐藏（渲染端同样只在有图时生效）
             ['key' => 'bg_overlay', 'type' => 'select', 'label' => __('blox_bg_overlay'), 'default' => '', 'tab' => 'style', 'group' => 'background',
                 'options' => ['' => __('blox_bg_overlay_none'), '40' => __('blox_bg_overlay_light'), '60' => __('blox_bg_overlay_medium'), '80' => __('blox_bg_overlay_heavy')],
-                'visible_when' => ['terms' => [['bg_image', 'not_empty']]]],
+                // 显示规则只引用本元素真实存在的键（SchemaContract 强制）：视频键仅在开启视频时纳入
+                'visible_when' => ['relation' => 'or', 'terms' => $this->backgroundVideoEnabled()
+                    ? [['bg_image', 'not_empty'], ['bg_video', 'not_empty']]
+                    : [['bg_image', 'not_empty']]]],
+            ...($this->backgroundVideoEnabled() ? [
+                ['key' => 'bg_video', 'type' => 'video_url', 'label' => __('blox_bg_video'), 'default' => '', 'tab' => 'style', 'group' => 'background',
+                    'help' => __('blox_bg_video_help')],
+            ] : []),
         ];
     }
 

@@ -47,6 +47,8 @@ final class ContainerElement extends AbstractElement
     public function allowedChildren(array $data = []): array { return ['*']; }
     /** 通用背景：native——背景写在自己的根 div 上，存量输出逐字节不变 */
     public function backgroundRenderStrategy(): string { return 'native'; }
+    /** 背景视频首批仅容器（区块级视频背景是真实场景；正文元素无此需求） */
+    protected function backgroundVideoEnabled(): bool { return true; }
 
     public function controls(): array
     {
@@ -79,33 +81,61 @@ final class ContainerElement extends AbstractElement
     public function render(array $data, string $children = ''): string
     {
         // yk-container 是编辑态定位钩子（画布空容器占位用），前台无样式含义——与 yk-col-card 同例
+        // $layout 单独成串：视频分支要把 flex 布局整体移交内容层（radius 留根），
+        // 无视频路径的拼接顺序与历史逐字节一致（radius 仍最后追加）。
         $direction = $data['direction'] ?? 'column';
-        $cls = 'yk-container flex ' . $this->resp($direction, self::DIRECTION_MAP, 'column');
+        $layout = 'flex ' . $this->resp($direction, self::DIRECTION_MAP, 'column');
         $wrap = $data['wrap'] ?? 'auto';
         if ($wrap === 'auto') {
             $wrapClass = $this->resp($direction, self::AUTO_WRAP_MAP, 'column');
             if ($wrapClass !== '') {
-                $cls .= ' ' . $wrapClass;
+                $layout .= ' ' . $wrapClass;
             }
         } elseif ($wrap === 'wrap') {
-            $cls .= ' flex-wrap';
+            $layout .= ' flex-wrap';
         } elseif ($wrap === 'nowrap') {
-            $cls .= ' flex-nowrap';
+            $layout .= ' flex-nowrap';
         }
         $gapClass = $this->resp($data['gap'] ?? 'md', self::GAP_MAP, 'md');
         if ($gapClass !== '') {
-            $cls .= ' ' . $gapClass;
+            $layout .= ' ' . $gapClass;
         }
         foreach ([
             self::ITEMS_MAP[$data['align'] ?? 'stretch'] ?? '',
             self::JUSTIFY_MAP[$data['justify'] ?? 'start'] ?? '',
             $this->resp($data['padding'] ?? 'none', self::PAD_MAP, 'none'),
-            self::RADIUS_MAP[$data['radius'] ?? 'none'] ?? '',
         ] as $c) {
             if ($c !== '') {
-                $cls .= ' ' . $c;
+                $layout .= ' ' . $c;
             }
         }
+        $radiusCls = self::RADIUS_MAP[$data['radius'] ?? 'none'] ?? '';
+
+        $video = self::backgroundVideoUrl($data);
+        if ($video !== '') {
+            // 三层结构（第 5 轮）：media/overlay 绝对定位不占流、pointer-events:none；
+            // 遮罩在视频场景是 DOM 层，不再叠进背景图 gradient（避免双重压暗）；
+            // 色/图仍作根元素底层，视频加载失败时兜底可读。
+            $base = $data;
+            unset($base['bg_overlay']);
+            $style = '';
+            $background = self::backgroundDeclarations($base);
+            if ($background !== '') {
+                $style = ' style="' . htmlspecialchars($background, ENT_QUOTES) . '"';
+            }
+            $alpha = self::backgroundOverlayAlpha($data['bg_overlay'] ?? null);
+            $overlay = $alpha !== null
+                ? '<div class="blox-bg-overlay" style="background:rgba(0,0,0,' . $alpha . ')"></div>'
+                : '';
+            return '<div class="yk-container blox-has-bg' . ($radiusCls !== '' ? ' ' . $radiusCls : '') . '"' . $style . '>'
+                . '<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata" src="'
+                . htmlspecialchars($video, ENT_QUOTES) . '"></video></div>'
+                . $overlay
+                . '<div class="blox-content ' . $layout . '">' . $children . '</div>'
+                . '</div>';
+        }
+
+        $cls = 'yk-container ' . $layout . ($radiusCls !== '' ? ' ' . $radiusCls : '');
         $style = '';
         $background = self::backgroundDeclarations($data);
         if ($background !== '') {
