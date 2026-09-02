@@ -51,3 +51,27 @@ test('style tab partitions controls into groups with has-value dots @ci', async 
   await restoreClean(page);
   expect(errors).toEqual([]);
 });
+
+// 第 3 轮：card 只有 背景+动画、无 常规组——effectiveStyleGroup 须落到第一组，
+// 背景 chip 默认生效且 bg_color 控件可见（root 批次的编辑器回归锚点）。
+test('elements without a general group default to their first group @ci', async ({ page }) => {
+  const errors = observeConsole(page);
+  await openEditor(page);
+  await addTemporaryHeading(page);
+  await page.getByTestId('blox-library-open').click();
+  await page.getByTestId('blox-add-element-card').press('Enter');
+  await page.getByTestId('blox-style-tab').click();
+
+  await expect(page.getByTestId('blox-style-groups')).toBeVisible();
+  await expect(page.getByTestId('blox-style-group-general')).toBeHidden();
+  await expect(page.getByTestId('blox-style-group-background')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-control-key="bg_color"]')).toBeVisible();
+  await expect(page.locator('[data-control-key="animation"]')).toHaveCount(0);
+
+  await page.getByTestId('blox-style-group-animation').click();
+  await expect(page.locator('[data-control-key="animation"]')).toBeVisible();
+  await expect(page.locator('[data-control-key="bg_color"]')).toHaveCount(0);
+
+  await restoreClean(page);
+  expect(errors).toEqual([]);
+});

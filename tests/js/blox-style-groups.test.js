@@ -64,6 +64,25 @@ test('methods.styleGroups: disabled for container block, search, modified-only, 
     assert.deepEqual(styleGroups.methods.styleGroups.call(single), []);
 });
 
+test('methods.effectiveStyleGroup: falls to first present group when styleGroup absent', () => {
+    globalThis.BloxHomeContentPanel = { tabFor: (node, c) => c.tab || 'content' };
+    // card 形态：只有 背景+动画、无 常规——selectElement 重置的 "general" 不在组列表
+    const ctx = Object.assign({}, styleGroups.methods, {
+        selEl: { type: 'card', data: {} },
+        elSchema: () => ({ controls: [bg, anim] }),
+        isSelectedContainerEl: () => false,
+        ctrlQuery: '',
+        modifiedOnly: false,
+        styleGroup: 'general',
+    });
+    assert.equal(styleGroups.methods.effectiveStyleGroup.call(ctx), 'background');
+    ctx.styleGroup = 'animation';
+    assert.equal(styleGroups.methods.effectiveStyleGroup.call(ctx), 'animation');
+    // 分组未启用（单组）时回落 general
+    const single = Object.assign({}, ctx, { elSchema: () => ({ controls: [anim] }), styleGroup: 'background' });
+    assert.equal(styleGroups.methods.effectiveStyleGroup.call(single), 'general');
+});
+
 test('methods.styleTabDot: box value or any modified style control lights the tab', () => {
     globalThis.BloxHomeContentPanel = { tabFor: (node, c) => c.tab || 'content' };
     // 模拟编辑器的 methods 混入（...BloxStyleGroups.methods）

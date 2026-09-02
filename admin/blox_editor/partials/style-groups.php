@@ -16,10 +16,10 @@ declare(strict_types=1);
         <?php foreach (['general', 'background', 'animation'] as $group): ?>
         <button type="button" x-show="styleGroups().includes('<?= e($group) ?>')"
                 @click="setStyleGroup('<?= e($group) ?>')"
-                :aria-pressed="styleGroup === '<?= e($group) ?>'"
+                :aria-pressed="effectiveStyleGroup() === '<?= e($group) ?>'"
                 data-testid="blox-style-group-<?= e($group) ?>"
                 class="min-w-0 flex-1 h-8 rounded px-1 text-xs font-medium whitespace-nowrap inline-flex items-center justify-center gap-1"
-                :class="styleGroup === '<?= e($group) ?>' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'">
+                :class="effectiveStyleGroup() === '<?= e($group) ?>' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'">
             <span><?= e(__('blox_style_group_' . $group)) ?></span>
             <span x-show="styleGroupDot('<?= e($group) ?>')" data-testid="blox-style-group-dot-<?= e($group) ?>"
                   class="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" aria-hidden="true"></span>

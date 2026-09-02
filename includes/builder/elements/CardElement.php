@@ -9,6 +9,8 @@ final class CardElement extends AbstractElement
     public function label(): string { return __('blox_el_card'); }
     public function icon(): string { return 'square-rounded'; }
     public function category(): string { return 'media'; }
+    /** 通用背景：root——渲染后由 BlockRenderer 注入首标签（<div> 或链接态 <a> 均适用） */
+    public function backgroundRenderStrategy(): string { return 'root'; }
 
     public function controls(): array
     {
@@ -17,6 +19,7 @@ final class CardElement extends AbstractElement
             ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => ''],
             ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_ctl_desc'), 'default' => '', 'rows' => 2],
             ['key' => 'link', 'type' => 'url', 'label' => __('blox_ctl_link'), 'default' => '', 'placeholder' => __('blox_empty_unclickable')],
+            ...$this->backgroundControls(),
             ...$this->animationControls(),
         ];
     }

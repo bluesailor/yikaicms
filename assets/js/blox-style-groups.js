@@ -61,6 +61,12 @@
             return present.length > 1 ? present : [];
         },
         setStyleGroup: function (group) { this.styleGroup = group; },
+        /** 当前生效组：styleGroup 不在本元素组列表时落到第一组（如 card 只有 背景+动画、无 常规） */
+        effectiveStyleGroup: function () {
+            var present = this.styleGroups();
+            if (present.indexOf(this.styleGroup) !== -1) return this.styleGroup;
+            return present.length ? present[0] : "general";
+        },
         styleGroupDot: function (group) {
             var self = this;
             return hasModified(group, this.styleTabControls(), function (c) { return self.isCtrlModified(c); });

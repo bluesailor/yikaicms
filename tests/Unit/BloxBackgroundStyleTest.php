@@ -112,6 +112,30 @@ final class BloxBackgroundStyleTest extends TestCase
         $this->assertStringNotContainsString('background-color', $out);
     }
 
+    /** root 策略（第 3 轮）：渲染后由 BlockRenderer 注入首标签；与盒模型声明共存 */
+    public function testRootStrategyInjectsIntoFirstTag(): void
+    {
+        // blockquote 首标签注入
+        $quote = $this->oneEl(['type' => 'quote', 'data' => ['text' => 'Q', 'bg_color' => '#f5f5f5']]);
+        $this->assertStringContainsString('<blockquote', $quote);
+        $this->assertStringContainsString('style="background-color:#f5f5f5;"', $quote);
+
+        // 链接态 card 首标签是 <a>，同样注入；背景声明在盒模型声明之前
+        $card = $this->oneEl(['type' => 'card', 'data' => [
+            'title' => 'T', 'link' => '/x.html', 'bg_color' => '#111827', 'style_padding' => 'md',
+        ]]);
+        $this->assertStringContainsString('<a ', $card);
+        $this->assertStringContainsString('style="background-color:#111827;padding:1rem!important;"', $card);
+
+        // 非法值整属性不出现
+        $bad = $this->oneEl(['type' => 'icon-box', 'data' => ['title' => 'T', 'bg_color' => '#fff;display:none']]);
+        $this->assertStringNotContainsString('background-color', $bad);
+
+        // 未设背景时输出与既有黄金一致：无 style 属性
+        $plain = $this->oneEl(['type' => 'quote', 'data' => ['text' => 'Q']]);
+        $this->assertStringNotContainsString('style=', $plain);
+    }
+
     /** 盒模型服务端闸（行为收紧）：关闭元素直填 style_* 不再被应用；开启元素不受影响 */
     public function testBoxStyleServerSideGate(): void
     {

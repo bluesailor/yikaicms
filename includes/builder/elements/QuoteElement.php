@@ -8,12 +8,15 @@ final class QuoteElement extends AbstractElement
     public function type(): string { return 'quote'; }
     public function label(): string { return __('blox_el_quote'); }
     public function icon(): string { return 'quote'; }
+    /** 通用背景：root——渲染后由 BlockRenderer 注入 blockquote 首标签 */
+    public function backgroundRenderStrategy(): string { return 'root'; }
 
     public function controls(): array
     {
         return [
             ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_quote_text'), 'default' => '', 'rows' => 3],
             ['key' => 'author', 'type' => 'text', 'label' => __('blox_quote_author'), 'default' => ''],
+            ...$this->backgroundControls(),
         ];
     }
 
