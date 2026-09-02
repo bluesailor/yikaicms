@@ -66,6 +66,11 @@ final class ThemeValidatorTest extends TestCase
             $r = ThemeValidator::validateDir($dir, $slug);
             $this->assertSame([], $r['errors'], "市场主题 {$slug} 校验不通过：" . implode('；', $r['errors']));
             $this->assertSame([], $r['warnings'], "市场主题 {$slug} 有警告：" . implode('；', $r['warnings']));
+            $this->assertSame(
+                '>=' . CMS_VERSION,
+                (string) ($r['meta']['requires_cms'] ?? ''),
+                "市场主题 {$slug} 的 requires_cms 必须跟当前 CMS_VERSION 同步"
+            );
         }
     }
 
