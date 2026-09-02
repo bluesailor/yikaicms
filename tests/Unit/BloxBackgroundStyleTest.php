@@ -163,6 +163,61 @@ final class BloxBackgroundStyleTest extends TestCase
         $this->assertStringNotContainsString('bg-black/', $none);
     }
 
+    /** 第 5 轮：背景视频直链校验——合法地址 + 视频扩展名，平台链接与伪协议拒绝 */
+    public function testBackgroundVideoUrlValidation(): void
+    {
+        $this->assertSame('/uploads/bg.mp4', AbstractElement::backgroundVideoUrl(['bg_video' => '/uploads/bg.mp4']));
+        $this->assertSame('https://cdn.example.com/a.webm', AbstractElement::backgroundVideoUrl(['bg_video' => 'https://cdn.example.com/a.webm']));
+        $this->assertSame('', AbstractElement::backgroundVideoUrl([]));
+        $this->assertSame('', AbstractElement::backgroundVideoUrl(['bg_video' => 'javascript:alert(1)']));
+        $this->assertSame('', AbstractElement::backgroundVideoUrl(['bg_video' => 'https://www.youtube.com/watch?v=x']));
+        $this->assertSame('', AbstractElement::backgroundVideoUrl(['bg_video' => '/uploads/readme.txt']));
+        $this->assertSame('', AbstractElement::backgroundVideoUrl(['bg_video' => ['d' => '/a.mp4']]));
+    }
+
+    /** 第 5 轮：容器视频三层结构；遮罩转 DOM 层且不再叠进图片 gradient；非法视频回落原路径 */
+    public function testContainerVideoLayers(): void
+    {
+        $out = $this->oneEl(['type' => 'container', 'data' => [
+            'bg_video' => '/uploads/bg.mp4', 'bg_overlay' => '60',
+            'bg_color' => '#111827', 'bg_image' => '/uploads/a.jpg',
+        ]]);
+        $this->assertStringContainsString('class="yk-container blox-has-bg"', $out);
+        $this->assertStringContainsString('<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata" src="/uploads/bg.mp4"></video></div>', $out);
+        $this->assertStringContainsString('<div class="blox-bg-overlay" style="background:rgba(0,0,0,.6)"></div>', $out);
+        // 底层样式保留色与图，但 gradient 不出现（遮罩已是 DOM 层）
+        $this->assertStringContainsString('background-color:#111827;', $out);
+        $this->assertStringContainsString('background-image:url(&quot;/uploads/a.jpg&quot;)', $out);
+        $this->assertStringNotContainsString('linear-gradient', $out);
+        // flex 布局移交内容层
+        $this->assertStringContainsString('<div class="blox-content flex ', $out);
+
+        // 无遮罩档位 → 无 overlay 层
+        $plain = $this->oneEl(['type' => 'container', 'data' => ['bg_video' => '/uploads/bg.mp4']]);
+        $this->assertStringNotContainsString('blox-bg-overlay', $plain);
+
+        // 非法视频 → 回落无视频路径（无三层结构）
+        $bad = $this->oneEl(['type' => 'container', 'data' => ['bg_video' => 'https://www.youtube.com/watch?v=x']]);
+        $this->assertStringNotContainsString('blox-has-bg', $bad);
+    }
+
+    /** 第 5 轮：视频控件只出现在开启该能力的元素上（首批仅 container） */
+    public function testVideoControlScopedToEnabledElements(): void
+    {
+        $hasVideo = static function (AbstractElement $el): bool {
+            foreach ($el->controls() as $c) {
+                if (($c['key'] ?? '') === 'bg_video') {
+                    return true;
+                }
+            }
+            return false;
+        };
+        $this->assertTrue($hasVideo(BuilderRegistry::get('container')));
+        foreach (['div', 'card', 'quote', 'icon-box'] as $type) {
+            $this->assertFalse($hasVideo(BuilderRegistry::get($type)), $type);
+        }
+    }
+
     /** root 策略（第 3 轮）：渲染后由 BlockRenderer 注入首标签；与盒模型声明共存 */
     public function testRootStrategyInjectsIntoFirstTag(): void
     {
