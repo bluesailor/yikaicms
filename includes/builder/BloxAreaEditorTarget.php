@@ -38,7 +38,7 @@ final class BloxAreaEditorTarget
                 return $fallback;
             }
 
-            if (self::customAreaEnabled($area)) {
+            if (self::customAreaEnabled($area) && self::themeRendersArea($area)) {
                 $templates = bloxTemplateModel()->publishedAreaTemplates($area);
                 $resolved = $templates === [] ? null : BloxAreaResolver::resolve($templates, [
                     'home' => (bool) ($context['home'] ?? false),
@@ -243,16 +243,58 @@ final class BloxAreaEditorTarget
 
     private static function defaultThemeSourceRef(string $area): string
     {
-        if ((string) config('current_theme', 'default') !== 'default') {
+        $theme = self::activeTheme();
+        if ($area === 'footer' && $theme !== 'default') {
             return '';
         }
         if ($area === 'footer') {
             return 'clean-site-footer';
         }
+        if (!in_array($theme, ['default', 'business'], true)) {
+            return '';
+        }
 
         // 该记录仅作为保存目标；编辑首屏由 BloxThemeHeaderDocument 按当前主题设置生成，
         // 因此 Logo 右侧与 Logo 下方两种布局都能从真实生效状态开始编辑。
         return 'clean-site-header';
+    }
+
+    private static function activeTheme(): string
+    {
+        if (defined('ROOT_PATH') && class_exists('ThemeRuntime')) {
+            return ThemeRuntime::resolve((string) config('current_theme', 'default'), ROOT_PATH . '/themes');
+        }
+        return (string) config('current_theme', 'default') === 'business' ? 'business' : 'default';
+    }
+
+    private static function themeRendersArea(string $area): bool
+    {
+        $layout = self::themeLayoutPath($area);
+        if ($layout === null || !is_file($layout)) {
+            return false;
+        }
+        $source = (string) file_get_contents($layout);
+        return preg_match('/\bbloxAreaHtml\s*\(\s*[\'"]' . preg_quote($area, '/') . '[\'"]/', $source) === 1;
+    }
+
+    private static function themeLayoutPath(string $area): ?string
+    {
+        if (!in_array($area, ['header', 'footer'], true) || !defined('ROOT_PATH')) {
+            return null;
+        }
+
+        $override = ROOT_PATH . '/overrides/layouts/' . $area . '.php';
+        if (is_file($override)) {
+            return $override;
+        }
+
+        $themePath = ROOT_PATH . '/themes/' . self::activeTheme() . '/layouts/' . $area . '.php';
+        if (is_file($themePath)) {
+            return $themePath;
+        }
+
+        $fallback = defined('INCLUDES_PATH') ? INCLUDES_PATH . $area . '.php' : ROOT_PATH . '/includes/' . $area . '.php';
+        return is_file($fallback) ? $fallback : null;
     }
 
     private static function editorUrl(string $area, int $id, bool $currentThemeHeader = false, string $back = ''): string

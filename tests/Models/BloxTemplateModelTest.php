@@ -204,6 +204,21 @@ final class BloxTemplateModelTest extends TestCase
                 '/admin/blox_editor.php?template=' . (int) $dormantHeader['id'] . '&open=header-settings',
                 \BloxAreaEditorTarget::url('header', $context)
             );
+
+            $createdBusinessTheme = $this->ensureBusinessThemeFixture();
+            try {
+                $GLOBALS['yikai_config_runtime_overrides'] = [
+                    'current_theme' => 'business',
+                    'blox_custom_header_enabled' => '1',
+                ];
+                $this->assertSame(
+                    '/admin/blox_editor.php?template=' . (int) $themeHeader['id'] . '&current_header=1&open=header-settings',
+                    \BloxAreaEditorTarget::url('header', $context),
+                    'business 原生 Header 没有调用 bloxAreaHtml(header) 时，应编辑当前主题头部而不是旧发布模板'
+                );
+            } finally {
+                $this->removeBusinessThemeFixture($createdBusinessTheme);
+            }
         } finally {
             if ($previousOverrides === null) {
                 unset($GLOBALS['yikai_config_runtime_overrides']);
@@ -211,6 +226,36 @@ final class BloxTemplateModelTest extends TestCase
                 $GLOBALS['yikai_config_runtime_overrides'] = $previousOverrides;
             }
         }
+    }
+
+    private function ensureBusinessThemeFixture(): bool
+    {
+        $dir = ROOT_PATH . '/themes/business';
+        if (is_file($dir . '/theme.json')) {
+            return false;
+        }
+
+        if (!is_dir($dir . '/layouts')) {
+            mkdir($dir . '/layouts', 0777, true);
+        }
+        file_put_contents($dir . '/theme.json', '{"name":"Business","version":"test"}');
+        file_put_contents($dir . '/layouts/header.php', '<?php echo "<header>Business</header>";');
+        file_put_contents($dir . '/layouts/footer.php', '<?php echo "<footer>Business</footer>";');
+        return true;
+    }
+
+    private function removeBusinessThemeFixture(bool $created): void
+    {
+        if (!$created) {
+            return;
+        }
+
+        $dir = ROOT_PATH . '/themes/business';
+        @unlink($dir . '/layouts/header.php');
+        @unlink($dir . '/layouts/footer.php');
+        @rmdir($dir . '/layouts');
+        @unlink($dir . '/theme.json');
+        @rmdir($dir);
     }
 
     public function testAreaDraftStatusProvidesPrivatePreviewUntilPublish(): void
