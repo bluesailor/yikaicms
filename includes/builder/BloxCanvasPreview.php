@@ -307,6 +307,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             $GLOBALS['ykBloxPageId'] = $pageId;
             $currentChannelId = $channelId;
             $currentSlug = $slug;
+            $isHomePage = $scriptName === '/index.php' && $channelId === 0 && $pageId === 0;
             ob_start();
             try {
                 require $layout;
@@ -339,8 +340,15 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                 $bodyStart = stripos($rendered, '<body');
                 $bodyEnd = $bodyStart === false ? false : strpos($rendered, '>', $bodyStart);
                 $mainStart = $bodyEnd === false ? false : stripos($rendered, '<main', $bodyEnd);
+                $themeHeaderScript = '';
+                $themeHeaderScriptPath = '/themes/' . currentTheme() . '/assets/js/header.js';
+                if (is_file(ROOT_PATH . $themeHeaderScriptPath)) {
+                    $themeHeaderScript = '<script src="'
+                        . htmlspecialchars(assetVer($themeHeaderScriptPath), ENT_QUOTES, 'UTF-8')
+                        . '" defer></script>';
+                }
                 return $bodyEnd !== false && $mainStart !== false
-                    ? $themeStyles . substr($rendered, $bodyEnd + 1, $mainStart - $bodyEnd - 1)
+                    ? $themeStyles . substr($rendered, $bodyEnd + 1, $mainStart - $bodyEnd - 1) . $themeHeaderScript
                     : '';
             }
             $footerStart = stripos($rendered, '<footer');
@@ -413,8 +421,9 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                 . ' data-yk-preview-label="' . htmlspecialchars(__('blox_page_content_canvas_label'), ENT_QUOTES, 'UTF-8') . '">'
                 . $pageBody . '</div>'
             : $pageBody;
+        $mainBody = $pageHeroBody . $pageContentBody;
         $body = $hasCanvasContent
-            ? ($headerBody . $pageHeroBody . $pageContentBody . $footerBody)
+            ? ($headerBody . '<main class="flex-1">' . $mainBody . '</main>' . $footerBody)
             : ($pageHeroBody . $pageBody);
     }
 
