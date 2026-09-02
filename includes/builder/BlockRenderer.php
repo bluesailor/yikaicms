@@ -705,10 +705,14 @@ final class BlockRenderer
         return $processor->getUpdatedHtml();
     }
 
-    private static function applyElementBoxStyle(string $html, array $data, string $type): string
+    private static function applyElementBoxStyle(string $html, array $data, AbstractElement $element): string
     {
-        $boxStyle = AbstractElement::boxStyle($data);
-        if ($html === '' || $boxStyle === '' || $type === 'code') {
+        // 服务端能力闸（2026-09-02）：supportsBoxStyles 此前只是编辑器显示开关，文档直填
+        // style_* 仍会被应用。存量扫描（4 棵树 unknown-keys 观测日志 + 33 个仓库模板）
+        // 确认关闭盒模型的元素零 style_* 使用，故收紧为渲染侧强制。原 'code' 特判由
+        // CodeElement::supportsBoxStyles(): false 覆盖，不再单列。
+        $boxStyle = $element->supportsBoxStyles() ? AbstractElement::boxStyle($data) : '';
+        if ($html === '' || $boxStyle === '') {
             return $html;
         }
 
@@ -801,7 +805,7 @@ final class BlockRenderer
             'node_id' => (string) ($el['id'] ?? ''),
         ]);
         $html = BloxFrontendEditTarget::mark($html, $type, (string) ($el['id'] ?? ''));
-        $html = self::applyElementBoxStyle($html, $data, $element->type());
+        $html = self::applyElementBoxStyle($html, $data, $element);
         $html = self::applyGlobalStyle($html, $data, $element->type());
         $html = self::applyElementVisibility($html, $data['_hide_on'] ?? null, $editMode);
         $html = self::markCustomHomeElement($html, $element->type(), $path);

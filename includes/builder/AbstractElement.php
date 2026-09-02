@@ -186,6 +186,18 @@ abstract class AbstractElement
     }
 
     /**
+     * 共享背景值解析（通用背景契约 2026-09-02 第 1 轮）：清洗并生成可安全拼入
+     * style 属性的背景 CSS 声明串。首版仅背景色、标量值——{d,t,m} 响应式数组
+     * 明确拒绝：内联样式派生不出 md:/lg: 变体，响应式只属于类映射通路（respClasses）。
+     * 无有效值返回 ''，调用方据此不输出 style 属性。
+     */
+    public static function backgroundDeclarations(array $data): string
+    {
+        $color = self::cssColor($data['bg_color'] ?? null);
+        return $color === null ? '' : 'background-color:' . $color . ';';
+    }
+
+    /**
      * 通用盒模型间距。接受固定档位或经 cssLength() 白名单校验的精确值，
      * 返回可安全拼入 style 属性的声明。
      * 总值先输出、四边覆盖后输出；同为 !important 时后者精确覆盖元素自带间距。
@@ -330,6 +342,38 @@ abstract class AbstractElement
     public function supportsBoxStyles(): bool
     {
         return true;
+    }
+
+    /**
+     * 背景渲染策略（通用背景契约 2026-09-02 第 1 轮）：
+     * - 'none'：不支持通用背景（默认）；
+     * - 'native'：元素在自己的 render() 里决定背景写到哪个标签，值必须来自
+     *   backgroundDeclarations()，不得自行拼接清洗；
+     * - 'root'：保留值——渲染完成后由 BlockRenderer 注入首标签。注入分支随
+     *   第一个使用该策略的元素一起落地，避免无消费者的死路径。
+     * 字符串而非 enum：composer 承诺 php >= 8.0。
+     *
+     * @psalm-suppress PossiblyUnusedMethod 本轮调用方在 tests/（psalm.xml 未纳入）：
+     *   BloxBackgroundStyleTest 的契约一致性测试；渲染侧消费者随 'root' 首个元素引入。
+     */
+    public function backgroundRenderStrategy(): string
+    {
+        return 'none';
+    }
+
+    /**
+     * 通用背景控件组（策略非 'none' 的元素在 controls() 里展开；首版仅背景色）。
+     * 键名 bg_color 与存量文档一致。必须经 controls() 声明、不得做面板旁路注入——
+     * BloxDocumentPipeline 以 controls() 为合法键登记处，BloxUnknownKeys 的目标
+     * 策略是丢弃未声明键，旁路键未来会被当成未知键剥掉。
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function backgroundControls(): array
+    {
+        return [
+            ['key' => 'bg_color', 'type' => 'color', 'label' => __('blox_bg_color'), 'default' => '', 'tab' => 'style'],
+        ];
     }
 
     /** @return list<string> 元素前台运行所需的本地脚本路径。 */
