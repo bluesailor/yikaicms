@@ -4338,7 +4338,6 @@ $canManageBloxDesign = hasPermission('blox_global');
             visibleCtrls() {
                 if (!this.selEl) return [];
                 if (this.panelTab === "condition") return [];
-                if (this.isSelectedContainerEl() && this.panelTab === "style") return [];
                 var self = this;
                 var q = this.ctrlQuery.trim().toLowerCase();
                 var controls = (this.elSchema(this.selEl.type).controls || []).filter(function (c) {
@@ -4361,6 +4360,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var showAll = !!q || this.modifiedOnly || this.panelTab !== "content";
                 controls = window.BloxBannerPanel.controls(this.selEl, controls, this.bannerPanelGroup, showAll);
                 controls = window.BloxHomeContentPanel.controls(this.selEl, controls, this.homeContentGroup, showAll);
+                // 容器/Div：布局由专用样式块渲染，共享背景组走通用循环（图/遮罩等能力自动到达）
+                if (this.isSelectedContainerEl() && this.panelTab === "style") {
+                    controls = controls.filter(function (c) { return c.group === "background"; });
+                }
                 // 样式页签分组（第 2 轮）：styleGroups() 为空即不启用（搜索/只看已修改/容器专用块/组数≤1）
                 return window.BloxStyleGroups.filter(controls, this.effectiveStyleGroup(), this.panelTab !== "style" || this.styleGroups().length === 0);
             },

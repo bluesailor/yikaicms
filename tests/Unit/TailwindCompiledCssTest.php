@@ -63,6 +63,21 @@ final class TailwindCompiledCssTest extends TestCase
         }
     }
 
+    /** CTA 遮罩档位类（CtaElement::OVERLAY_MAP，2026-09-02 第 4 轮）必须在产物里。 */
+    public function testCtaOverlayTierUtilitiesAreCompiled(): void
+    {
+        $css = file_get_contents(ROOT_PATH . '/assets/css/tailwind.css');
+        self::assertNotFalse($css);
+
+        foreach (['.bg-black\/40', '.bg-black\/60', '.bg-black\/80'] as $selector) {
+            self::assertStringContainsString(
+                $selector,
+                $css,
+                "编译产物缺少 {$selector}——改动 CTA 遮罩档位映射后需重跑 bash tools/build_css.sh。"
+            );
+        }
+    }
+
     public function testBloxScrollAreasUseTailwind43Utilities(): void
     {
         $css = file_get_contents(ROOT_PATH . '/assets/css/tailwind.css');

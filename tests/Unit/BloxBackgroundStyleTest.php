@@ -112,6 +112,57 @@ final class BloxBackgroundStyleTest extends TestCase
         $this->assertStringNotContainsString('background-color', $out);
     }
 
+    /** 第 4 轮：背景图 + 遮罩的声明矩阵（CSS 多背景层，遮罩只在有图时生效） */
+    public function testDeclarationsWithImageAndOverlay(): void
+    {
+        $this->assertSame(
+            'background-image:url("/uploads/a.jpg");background-size:cover;background-position:center;',
+            AbstractElement::backgroundDeclarations(['bg_image' => '/uploads/a.jpg'])
+        );
+        $this->assertSame(
+            'background-image:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,.6)),url("/uploads/a.jpg");background-size:cover;background-position:center;',
+            AbstractElement::backgroundDeclarations(['bg_image' => '/uploads/a.jpg', 'bg_overlay' => '60'])
+        );
+        $this->assertSame(
+            'background-color:#111827;background-image:linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)),url("/uploads/a.jpg");background-size:cover;background-position:center;',
+            AbstractElement::backgroundDeclarations(['bg_color' => '#111827', 'bg_image' => '/uploads/a.jpg', 'bg_overlay' => '40'])
+        );
+        // 遮罩不叠在纯色上；非法档位按无遮罩处理；图非法则整段图声明消失（遮罩随之无效）
+        $this->assertSame('background-color:#111827;', AbstractElement::backgroundDeclarations(['bg_color' => '#111827', 'bg_overlay' => '60']));
+        $this->assertSame(
+            'background-image:url("/uploads/a.jpg");background-size:cover;background-position:center;',
+            AbstractElement::backgroundDeclarations(['bg_image' => '/uploads/a.jpg', 'bg_overlay' => '99'])
+        );
+        $this->assertSame('', AbstractElement::backgroundDeclarations(['bg_image' => 'javascript:alert(1)', 'bg_overlay' => '60']));
+        $this->assertSame('', AbstractElement::backgroundDeclarations(['bg_image' => ['d' => '/uploads/a.jpg']]));
+    }
+
+    /** 第 4 轮：native（container）与 root（card）无需改动即获得图与遮罩 */
+    public function testImageBackgroundFlowsThroughBothStrategies(): void
+    {
+        $container = $this->oneEl(['type' => 'container', 'data' => ['bg_image' => '/uploads/a.jpg', 'bg_overlay' => '60']]);
+        $this->assertStringContainsString('linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,.6)),url(&quot;/uploads/a.jpg&quot;)', $container);
+
+        $card = $this->oneEl(['type' => 'card', 'data' => ['title' => 'T', 'bg_image' => '/uploads/a.jpg']]);
+        $this->assertStringContainsString('background-image:url(', $card);
+    }
+
+    /** 第 4 轮：CTA 遮罩档位——缺省与显式 60 均输出既有 bg-black/60（存量逐字节不变） */
+    public function testCtaOverlayTiers(): void
+    {
+        $legacy = $this->oneEl(['type' => 'cta', 'data' => ['title' => 'T', 'bg_image' => '/uploads/a.jpg']]);
+        $this->assertStringContainsString('<div class="absolute inset-0 bg-black/60"></div>', $legacy);
+
+        $explicit = $this->oneEl(['type' => 'cta', 'data' => ['title' => 'T', 'bg_image' => '/uploads/a.jpg', 'overlay' => '60']]);
+        $this->assertSame($legacy, $explicit);
+
+        $heavy = $this->oneEl(['type' => 'cta', 'data' => ['title' => 'T', 'bg_image' => '/uploads/a.jpg', 'overlay' => '80']]);
+        $this->assertStringContainsString('bg-black/80', $heavy);
+
+        $none = $this->oneEl(['type' => 'cta', 'data' => ['title' => 'T', 'bg_image' => '/uploads/a.jpg', 'overlay' => '']]);
+        $this->assertStringNotContainsString('bg-black/', $none);
+    }
+
     /** root 策略（第 3 轮）：渲染后由 BlockRenderer 注入首标签；与盒模型声明共存 */
     public function testRootStrategyInjectsIntoFirstTag(): void
     {
