@@ -26,7 +26,7 @@ $productCatalogGridClass = [
 ][$productCatalogColumns];
 ?>
 <!-- 产品/案例：带侧边栏布局 -->
-        <div class="flex flex-wrap lg:flex-nowrap gap-8" data-product-catalog>
+        <div class="flex flex-wrap lg:flex-nowrap gap-8" data-product-catalog-layout>
             <?php if ($productCatalogHasSidebar): ?>
             <!-- 左侧分类菜单 -->
             <div class="w-full lg:w-64 flex-shrink-0 space-y-4" data-product-catalog-sidebar>
