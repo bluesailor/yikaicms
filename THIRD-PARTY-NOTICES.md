@@ -89,6 +89,13 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
   项目源码，不产生额外许可证义务。反向核对：清单内前端组件、插件图标库与 PHP 生产
   依赖仍有真实加载点。
 
+- **2026-09-03（v1.19.4 核对）**：本周期未引入或升级任何第三方组件。`composer.json` /
+  `composer.lock`、`package.json` 与 `assets/` 下的第三方目录自 v1.19.3 起零改动（`git diff
+  --stat v1.19.3..main` 核对）。新增的 `assets/js/blox-*.js` 五个脚本（banner-panel /
+  catalog-source / home-content-panel / image-control / style-groups）与 `includes/FooterNavigation.php`、
+  `includes/ThemeMarket.php` 等均为本项目源码，不产生许可义务。市场主题只改本项目自有模板源码，
+  未引入外部资源。反向核对：本周期没有删除任何组件的加载点，v1.19.3 清单内组件的引用关系不变。
+
 - **2026-08-30（v1.19.3 核对）**：本周期未引入任何新的第三方组件，PHP 生产依赖仍为空
   （`composer.json` 的 `require` 只剩 `php` 与 `ext-*` 平台约束，自 v1.19.2 自建拼音模块
   替换 overtrue/pinyin 后再无第三方库）。变动一处，不涉及授权变化：删除标志设计器
