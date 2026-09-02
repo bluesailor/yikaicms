@@ -9,7 +9,7 @@
   "version": "1.0.3",
   "author": "Yikai CMS",
   "category": "creative",
-  "requires_cms": ">=1.19.3",
+  "requires_cms": ">=1.19.4",
   "requires_php": ">=8.0",
   "required_plugins": [],
   "screenshot": "assets/images/screenshot.jpg",

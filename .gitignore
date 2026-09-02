@@ -163,3 +163,8 @@ plugins/*/admin-local.php
 # update 服务器端脚本的本地暂存处（srv2_*.php）。它们不是 CMS 源码，
 # 而打包用的是 git ls-files --others，未忽略就会随发行包装进每个客户站。
 storage/_sl/
+
+# 运行时安装的市场主题（admin/theme.php 落地到 themes/<slug>/，源在 marketplace/themes/）
+# 只跟踪内置 default；其余主题目录不进仓、不进包（build.sh 采集含 --others）。
+/themes/*
+!/themes/default/
