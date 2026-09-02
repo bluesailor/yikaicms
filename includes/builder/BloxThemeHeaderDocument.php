@@ -1,5 +1,5 @@
 <?php
-/** 将 default 主题当前生效的 Header 配置转换为可编辑的 Blox 文档。 */
+/** 将当前主题生效的 Header 配置转换为可编辑的 Blox 文档。 */
 
 declare(strict_types=1);
 
@@ -8,7 +8,11 @@ final class BloxThemeHeaderDocument
     /** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
     public static function current(string $idPrefix = 'theme-header'): array
     {
-        if ((string) config('current_theme', 'default') !== 'default') {
+        $theme = self::activeTheme();
+        if ($theme === 'business') {
+            return self::business($idPrefix);
+        }
+        if ($theme !== 'default') {
             throw new RuntimeException(__('blox_current_header_default_only'));
         }
 
@@ -43,6 +47,62 @@ final class BloxThemeHeaderDocument
             'sections' => $layout === 'below'
                 ? self::belowSections($background, $logoHeight)
                 : [self::rightSection($background, $logoHeight)],
+        ];
+
+        return BloxAreaDocument::process(
+            'header',
+            json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+            $idPrefix
+        );
+    }
+
+    /** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
+    private static function business(string $idPrefix): array
+    {
+        $background = '#1e293b';
+        $text = '#d1d5db';
+        $logoHeight = self::logoHeight((int) config('site_logo_max_height', 48));
+
+        $children = [
+            self::logo($logoHeight, 'light'),
+            self::navigation([
+                'cta_text' => (string) __('detail_consult'),
+                'cta_url' => '/contact.html',
+                'cta_style' => 'solid',
+            ]),
+        ];
+        if ((string) config('show_lang_switcher', '0') === '1') {
+            $children[] = self::languageSwitcher('light');
+        }
+        $children[] = self::drawer([
+            'cta_text' => (string) __('detail_consult'),
+            'cta_url' => '/contact.html',
+            'cta_style' => 'solid',
+        ]);
+
+        $document = [
+            'schema' => BloxDocumentPipeline::SCHEMA_VERSION,
+            'settings' => [
+                'sticky' => true,
+                'sticky_behavior' => 'always',
+                'sticky_devices' => BloxHeaderStates::STICKY_DEVICES,
+                'header_overlay_enabled' => false,
+                'header_states' => [
+                    'normal' => [
+                        'background' => $background,
+                        'text' => $text,
+                        'border' => '',
+                        'shadow' => 'lg',
+                    ],
+                    'stuck' => [
+                        'background' => $background,
+                        'text' => $text,
+                        'border' => '',
+                        'shadow' => 'lg',
+                    ],
+                ],
+            ],
+            'sections' => [self::section($background, [self::container($children)])],
         ];
 
         return BloxAreaDocument::process(
@@ -117,39 +177,47 @@ final class BloxThemeHeaderDocument
     }
 
     /** @return array<string,mixed> */
-    private static function logo(string $height): array
+    private static function logo(string $height, string $tone = 'dark'): array
     {
         return [
             'type' => 'logo',
-            'data' => ['display' => 'image', 'height' => $height, 'tone' => 'dark', 'link_home' => true],
+            'data' => ['display' => 'image', 'height' => $height, 'tone' => $tone, 'link_home' => true],
         ];
     }
 
     /** @return array<string,mixed> */
-    private static function navigation(): array
+    private static function navigation(array $extra = []): array
     {
         return [
             'type' => 'nav-mega',
-            'data' => ['menu_group' => 0, 'show_desc' => false, 'full_width' => false],
+            'data' => ['menu_group' => 0, 'show_desc' => false, 'full_width' => false] + $extra,
         ];
     }
 
     /** @return array<string,mixed> */
-    private static function drawer(): array
+    private static function drawer(array $extra = []): array
     {
         return [
             'type' => 'nav-drawer',
-            'data' => ['menu_group' => 0, 'side' => 'right', 'show_logo' => true],
+            'data' => ['menu_group' => 0, 'side' => 'right', 'show_logo' => true] + $extra,
         ];
     }
 
     /** @return array<string,mixed> */
-    private static function languageSwitcher(): array
+    private static function languageSwitcher(string $tone = 'dark'): array
     {
         return [
             'type' => 'language-switcher',
-            'data' => ['layout' => 'dropdown', 'display' => 'name', 'tone' => 'dark'],
+            'data' => ['layout' => 'dropdown', 'display' => 'name', 'tone' => $tone],
         ];
+    }
+
+    private static function activeTheme(): string
+    {
+        if (defined('ROOT_PATH') && class_exists('ThemeRuntime')) {
+            return ThemeRuntime::resolve((string) config('current_theme', 'default'), ROOT_PATH . '/themes');
+        }
+        return (string) config('current_theme', 'default') === 'business' ? 'business' : 'default';
     }
 
     private static function logoHeight(int $pixels): string

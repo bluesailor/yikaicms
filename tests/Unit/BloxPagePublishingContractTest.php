@@ -101,6 +101,8 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $workspace);
 
         $canvas = $this->source('includes/builder/BloxCanvasPreview.php');
+        $areaTarget = $this->source('includes/builder/BloxAreaEditorTarget.php');
+        $themeHeaderDocument = $this->source('includes/builder/BloxThemeHeaderDocument.php');
         $this->assertStringContainsString("'@@templates_enabled@@' => bloxPageEditorEnabled() ? 'true' : 'false'", $canvas);
         $this->assertStringContainsString('$themeRendersArea = static function (string $area): bool', $canvas);
         $this->assertStringContainsString('bloxAreaHtml\s*\(', $canvas);
@@ -117,6 +119,12 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-context-edit-\' . $area', $canvas);
         // v1.18.6：首页画布的页头编辑入口带 back=home——编辑完页头一键返回首页编辑器
         $this->assertStringContainsString("BloxAreaEditorTarget::url('header', \$areaContext, \$isHomeLayout ? 'home' : '')", $canvas);
+        // 主题原生 Header 没有渲染 bloxAreaHtml('header') 时，不能跳去编辑数据库里仍处于发布状态的旧 Blox Header。
+        $this->assertStringContainsString('self::customAreaEnabled($area) && self::themeRendersArea($area)', $areaTarget);
+        $this->assertStringContainsString('private static function themeRendersArea(string $area): bool', $areaTarget);
+        $this->assertStringContainsString("in_array(\$theme, ['default', 'business'], true)", $areaTarget);
+        $this->assertStringContainsString("\$theme === 'business'", $themeHeaderDocument);
+        $this->assertStringContainsString("\$background = '#1e293b';", $themeHeaderDocument);
         $this->assertStringContainsString("'channel_id' => \$isHomeLayout ? 0 : \$id", $canvas);
         $this->assertStringContainsString("'page_id' => !\$isHomeLayout && \$pageType === 'page' ? \$id : 0", $canvas);
         // 空文档不挂站点页头页脚：新建单页只显示空态引导卡。空态卡是 appendChild 到
