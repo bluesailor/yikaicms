@@ -2,6 +2,9 @@
 declare(strict_types=1);
 /**
  * Business 主题 - 栏目区块（按可见顺序交替配色）
+ *
+ * 历史版本按栏目类型硬编码背景，新闻和核心优势都可能变成深色带。
+ * 现在交给 home-surface 管线统一处理，并允许编辑器为单块指定浅色/深色/自定义背景。
  */
 if (empty($currentChannel)) return;
 $hChannel = $currentChannel;
@@ -74,7 +77,7 @@ $surface = businessHomeSurface($block ?? []);
         <div class="grid <?php echo $articleGrid; ?> gap-6" data-stagger>
             <?php foreach (array_slice($withCover, 0, 4) as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block group">
-                <div class="aspect-[16/9] bg-gray-700 rounded-lg overflow-hidden mb-3">
+                <div class="aspect-[16/9] business-card overflow-hidden mb-3">
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                 </div>
                 <h3 class="font-bold business-link transition"><?php echo e($item['title']); ?></h3>
