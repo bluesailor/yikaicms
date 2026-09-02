@@ -340,15 +340,8 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                 $bodyStart = stripos($rendered, '<body');
                 $bodyEnd = $bodyStart === false ? false : strpos($rendered, '>', $bodyStart);
                 $mainStart = $bodyEnd === false ? false : stripos($rendered, '<main', $bodyEnd);
-                $themeHeaderScript = '';
-                $themeHeaderScriptPath = '/themes/' . currentTheme() . '/assets/js/header.js';
-                if (is_file(ROOT_PATH . $themeHeaderScriptPath)) {
-                    $themeHeaderScript = '<script src="'
-                        . htmlspecialchars(assetVer($themeHeaderScriptPath), ENT_QUOTES, 'UTF-8')
-                        . '" defer></script>';
-                }
                 return $bodyEnd !== false && $mainStart !== false
-                    ? $themeStyles . substr($rendered, $bodyEnd + 1, $mainStart - $bodyEnd - 1) . $themeHeaderScript
+                    ? $themeStyles . substr($rendered, $bodyEnd + 1, $mainStart - $bodyEnd - 1)
                     : '';
             }
             $footerStart = stripos($rendered, '<footer');
