@@ -61,3 +61,38 @@ for (const scope of ['element', 'section', 'container', 'column']) {
         expect(errors).toEqual([]);
     });
 }
+
+test('section background summary reveals the layer that already contains the visible image @ci', async ({ page }, testInfo) => {
+    await openPageEditor(page, fixtures.blox_page);
+    await performPagePreviewUpdate(page, () => page.evaluate(() => {
+        const app = window.Alpine.$data(document.body);
+        app.selectSection(app.sections.length - 1, false);
+        app.sel.settings.bg_color = '';
+        app.sel.settings.bg_image = '';
+        app.sel.settings.container_bg = '#172554';
+        app.sel.settings.container_bg_image = '/themes/default/assets/images/cta/cta-smart-manufacturing.png';
+        app.panelTab = 'content';
+        app.mobilePanel = 'settings';
+        app.refreshPreview();
+    }));
+
+    const summary = page.getByTestId('blox-background-summary');
+    await expect(summary).toBeVisible();
+    await expect(summary.getByTestId('blox-background-layer-container')).toContainText('cta-smart-manufacturing.png');
+    expect(await summary.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+
+    await summary.getByTestId('blox-background-open').click();
+    await expect(page.getByTestId('blox-container-background-image-url')).toHaveValue('/themes/default/assets/images/cta/cta-smart-manufacturing.png');
+    const styleSwitcher = page.getByTestId('blox-background-layer-switcher');
+    await expect(styleSwitcher.getByTestId('blox-background-layer-container')).toHaveAttribute('aria-pressed', 'true');
+    expect(await styleSwitcher.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('background-layer-switcher.png') });
+
+    await styleSwitcher.getByTestId('blox-background-layer-section').click();
+    await expect(page.getByTestId('blox-section-property-grid')).toBeVisible();
+    await expect(styleSwitcher.getByTestId('blox-background-layer-section')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTestId('blox-section-color-picker-trigger').click();
+    await page.getByTestId('blox-editor-color-text').fill('#0f766e');
+    await page.getByTestId('blox-editor-color-text').press('Enter');
+    await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).sel.settings.bg_color)).toBe('#0f766e');
+});
