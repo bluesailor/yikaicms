@@ -35,6 +35,7 @@ final class ProductIdentityTest extends TestCase
         self::assertSame('https://www.yikaicms.com', $identity['product_url']);
         self::assertSame('Yikai', $identity['copyright_holder']);
         self::assertContains('includes/ProductIdentity.php', YikaiProductIdentity::fingerprintFiles(ROOT_PATH));
+        self::assertContains('includes/FooterNavigation.php', YikaiProductIdentity::fingerprintFiles(ROOT_PATH));
         self::assertSame($identity, yikaiCmsIdentity());
     }
 
@@ -98,6 +99,7 @@ final class ProductIdentityTest extends TestCase
         self::assertContains('config/product.php', $runtime['required_files']);
         self::assertContains('config/provenance.php', $runtime['generated_files']);
         self::assertContains('includes/ProductIdentity.php', $runtime['required_files']);
+        self::assertContains('includes/FooterNavigation.php', $runtime['required_files']);
     }
 
     /** @param list<string> $files */
