@@ -1,6 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const panel = require('../../assets/js/blox-home-content-panel');
+const imageControl = require('../../assets/js/blox-image-control');
 const about = { type: 'home-block', data: { block_type: 'about' } };
 const cta = { type: 'home-block', data: { block_type: 'cta' } };
 
@@ -119,4 +120,24 @@ test('media selection uses existing source policy and rejects stale callbacks', 
     panel.methods.replaceHomeContentImage.call(context, 'override_image');
     assert.deepEqual(options, {});
     assert.equal(panel.isImage(about, 'bg_image'), false);
+});
+
+test('clearing a CTA image removes identical outer background copies', () => {
+    const node = { type: 'home-block', data: { block_type: 'cta', bg_image: '/same.jpg' } };
+    const section = { settings: { container_bg_image: '/same.jpg' }, columns: [{ elements: [node] }] };
+    const context = {
+        sel: section,
+        selEl: node,
+        flushHistory() {},
+        runCommand: (_name, fn) => fn.call(context),
+        clearMatchingHomeBackgroundCopies(url, owner, key) {
+            return imageControl.clearMatchingHomeBackgroundCopies(section, url, owner, key);
+        },
+    };
+    Object.assign(context, panel.methods);
+
+    context.setHomeContentImage('bg_image', '');
+
+    assert.equal(node.data.bg_image, '');
+    assert.equal(section.settings.container_bg_image, '');
 });

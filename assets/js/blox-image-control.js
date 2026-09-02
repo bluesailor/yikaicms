@@ -5,6 +5,32 @@
         container: { key: "container_bg_image", prefix: "container_bg_" },
         column: { key: "card_bg_image", prefix: "card_bg_" },
     };
+
+    function clearMatchingHomeBackgroundCopies(section, url, ownerTarget, ownerKey) {
+        url = String(url || "").trim();
+        if (!section || !url) return 0;
+        var cleared = 0;
+        var clear = function (target, key) {
+            if (!target || (target === ownerTarget && key === ownerKey)) return;
+            if (String(target[key] || "").trim() !== url) return;
+            target[key] = "";
+            cleared++;
+        };
+        var settings = section.settings && typeof section.settings === "object" ? section.settings : {};
+        clear(settings, "bg_image");
+        clear(settings, "container_bg_image");
+        (Array.isArray(section.columns) ? section.columns : []).forEach(function (column) {
+            (Array.isArray(column.elements) ? column.elements : []).forEach(function walk(element) {
+                var data = element && element.data && typeof element.data === "object" ? element.data : {};
+                if (element && element.type === "home-block" && data.block_type === "cta") {
+                    clear(data, "bg_image");
+                }
+                (Array.isArray(data.children) ? data.children : []).forEach(walk);
+            });
+        });
+        return cleared;
+    }
+
     var methods = {
         imageControlTarget(scope) {
             if (scope === "element") return this.selEl && this.selEl.data;
@@ -22,8 +48,14 @@
             var background = backgrounds[scope];
             if (scope !== "element" && (!background || key !== background.key)) return;
             if (String(target[key] || "") === url) return;
+            var previousUrl = String(target[key] || "");
+            var section = this.sel;
             if (discrete !== false) this.flushHistory(true);
             this.runCommand("set-image-" + scope, function () {
+                if (scope === "section" || scope === "container") {
+                    clearMatchingHomeBackgroundCopies(section, previousUrl, target, key);
+                    clearMatchingHomeBackgroundCopies(section, url, target, key);
+                }
                 target[key] = url;
                 if (!url || !background) return;
                 var defaults = {};
@@ -49,8 +81,11 @@
         pickContainerBackgroundImage() { this.pickImageControl("container", "container_bg_image"); },
         setColumnBackgroundImage(url) { this.setImageControl("column", "card_bg_image", url); },
         pickColumnBackgroundImage() { this.pickImageControl("column", "card_bg_image"); },
+        clearMatchingHomeBackgroundCopies(url, ownerTarget, ownerKey) {
+            return clearMatchingHomeBackgroundCopies(this.sel, url, ownerTarget, ownerKey);
+        },
     };
-    var api = { methods: methods };
+    var api = { clearMatchingHomeBackgroundCopies: clearMatchingHomeBackgroundCopies, methods: methods };
     if (typeof module !== "undefined" && module.exports) module.exports = api;
     global.BloxImageControl = api;
 })(typeof window !== "undefined" ? window : globalThis);
