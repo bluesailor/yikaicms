@@ -8,6 +8,8 @@ final class IconBoxElement extends AbstractElement
     public function type(): string { return 'icon-box'; }
     public function label(): string { return __('blox_el_icon_box'); }
     public function icon(): string { return 'box'; }
+    /** 通用背景：root——渲染后由 BlockRenderer 注入首标签 */
+    public function backgroundRenderStrategy(): string { return 'root'; }
 
     public function controls(): array
     {
@@ -18,6 +20,7 @@ final class IconBoxElement extends AbstractElement
                 'options' => BloxIcon::motionOptions()],
             ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => ''],
             ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_ctl_desc'), 'default' => '', 'rows' => 2],
+            ...$this->backgroundControls(),
             ...$this->animationControls(),
         ];
     }

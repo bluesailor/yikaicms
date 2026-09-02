@@ -705,14 +705,18 @@ final class BlockRenderer
         return $processor->getUpdatedHtml();
     }
 
-    private static function applyElementBoxStyle(string $html, array $data, AbstractElement $element): string
+    private static function applyElementSharedStyles(string $html, array $data, AbstractElement $element): string
     {
         // 服务端能力闸（2026-09-02）：supportsBoxStyles 此前只是编辑器显示开关，文档直填
         // style_* 仍会被应用。存量扫描（4 棵树 unknown-keys 观测日志 + 33 个仓库模板）
         // 确认关闭盒模型的元素零 style_* 使用，故收紧为渲染侧强制。原 'code' 特判由
         // CodeElement::supportsBoxStyles(): false 覆盖，不再单列。
+        // 背景 root 策略（第 3 轮）：元素正常渲染后由此处把共享背景声明注入首标签；
+        // native 元素（container/div）自行渲染背景，此处不重复注入。
+        $bgStyle = $element->backgroundRenderStrategy() === 'root' ? AbstractElement::backgroundDeclarations($data) : '';
         $boxStyle = $element->supportsBoxStyles() ? AbstractElement::boxStyle($data) : '';
-        if ($html === '' || $boxStyle === '') {
+        $style = $bgStyle . $boxStyle;
+        if ($html === '' || $style === '') {
             return $html;
         }
 
@@ -721,11 +725,11 @@ final class BlockRenderer
             return $html;
         }
         $existingStyle = $processor->getAttribute('style');
-        $style = is_string($existingStyle) ? trim($existingStyle) : '';
-        if ($style !== '' && !str_ends_with($style, ';')) {
-            $style .= ';';
+        $existing = is_string($existingStyle) ? trim($existingStyle) : '';
+        if ($existing !== '' && !str_ends_with($existing, ';')) {
+            $existing .= ';';
         }
-        $processor->setAttribute('style', $style . $boxStyle);
+        $processor->setAttribute('style', $existing . $style);
         return $processor->getUpdatedHtml();
     }
 
@@ -805,7 +809,7 @@ final class BlockRenderer
             'node_id' => (string) ($el['id'] ?? ''),
         ]);
         $html = BloxFrontendEditTarget::mark($html, $type, (string) ($el['id'] ?? ''));
-        $html = self::applyElementBoxStyle($html, $data, $element);
+        $html = self::applyElementSharedStyles($html, $data, $element);
         $html = self::applyGlobalStyle($html, $data, $element->type());
         $html = self::applyElementVisibility($html, $data['_hide_on'] ?? null, $editMode);
         $html = self::markCustomHomeElement($html, $element->type(), $path);

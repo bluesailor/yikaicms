@@ -4362,7 +4362,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 controls = window.BloxBannerPanel.controls(this.selEl, controls, this.bannerPanelGroup, showAll);
                 controls = window.BloxHomeContentPanel.controls(this.selEl, controls, this.homeContentGroup, showAll);
                 // 样式页签分组（第 2 轮）：styleGroups() 为空即不启用（搜索/只看已修改/容器专用块/组数≤1）
-                return window.BloxStyleGroups.filter(controls, this.styleGroup, this.panelTab !== "style" || this.styleGroups().length === 0);
+                return window.BloxStyleGroups.filter(controls, this.effectiveStyleGroup(), this.panelTab !== "style" || this.styleGroups().length === 0);
             },
 
             controlRequirementMet(ctrl) {
