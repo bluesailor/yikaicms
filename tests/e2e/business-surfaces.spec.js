@@ -46,6 +46,12 @@ test('Business preserves custom backgrounds and excludes them from alternation @
     await expect(cta).not.toHaveAttribute('data-business-surface');
 });
 
+test('Business canvas uses the theme header when the active theme owns header rendering @ci', async ({ page }) => {
+    await page.goto(url('published-header', 'preview'));
+    await expect(page.locator('.yk-blox-header')).toHaveCount(0);
+    await expect(page.locator('#siteHeader')).toHaveCSS('background-color', 'rgb(30, 41, 59)');
+});
+
 test('Business respects section container and column backgrounds @ci', async ({ page }) => {
     await page.goto(url('parent'));
     for (let i = 0; i < 3; i++) {

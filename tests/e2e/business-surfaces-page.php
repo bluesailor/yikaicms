@@ -10,7 +10,7 @@ if (!is_file($root . '/tests/smoke/fixtures.json')
 }
 $mode = (string) ($_GET['mode'] ?? 'normal');
 $view = (string) ($_GET['view'] ?? 'front');
-if (!in_array($mode, ['normal', 'custom', 'parent', 'hidden', 'manual'], true)
+if (!in_array($mode, ['normal', 'custom', 'parent', 'hidden', 'manual', 'published-header'], true)
     || !in_array($view, ['front', 'legacy', 'preview', 'editor'], true)) {
     http_response_code(400);
     exit;
@@ -66,6 +66,11 @@ if ($view === 'preview') {
     require_once $root . '/admin/includes/auth.php';
     checkLogin();
     requirePermission('blox_home');
+    if ($mode === 'published-header') {
+        require_once $root . '/includes/builder/bootstrap.php';
+        $headerTemplate = BloxAreaTemplatePresets::install('clean-site-header', 1);
+        bloxTemplateModel()->publishDraft((int) $headerTemplate['id']);
+    }
     require $root . '/includes/builder/BloxCanvasPreview.php';
     $_POST['blox'] = '1';
     $_POST['blocks_data'] = $_POST['blocks_data'] ?? json_encode($sections, JSON_THROW_ON_ERROR);

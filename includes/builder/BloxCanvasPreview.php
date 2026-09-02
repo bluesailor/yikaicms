@@ -209,6 +209,17 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
 
         // 画布同时展示当前页面实际生效的 Blox 页头/页尾，帮助管理员判断整页结构。
         // 它们是只读上下文，不进入当前文档，也不参与当前文档保存。
+        $themeRendersArea = static function (string $area): bool {
+            if (!in_array($area, ['header', 'footer'], true)) {
+                return false;
+            }
+            $layout = theme_path_optional('layouts/' . $area . '.php');
+            if ($layout === null || !is_file($layout)) {
+                return false;
+            }
+            $source = (string) file_get_contents($layout);
+            return preg_match('/\bbloxAreaHtml\s*\(\s*[\'"]' . preg_quote($area, '/') . '[\'"]/', $source) === 1;
+        };
         /** @param array{home:bool,channel_id:int,page_id:int,lang:string} $context */
         $renderPublishedArea = static function (string $area, array $context, string $scriptName): string {
             if (!in_array($area, ['header', 'footer'], true)) {
@@ -366,8 +377,10 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         BlockRenderer::$editChannelId = 0;
         $headerEnabled = (string) config('blox_custom_header_enabled', '1') === '1';
         $footerEnabled = (string) config('blox_custom_footer_enabled', '1') === '1';
-        $headerBlox = $headerEnabled ? $renderPublishedArea('header', $areaContext, $contextScript) : '';
-        $footerBlox = $footerEnabled ? $renderPublishedArea('footer', $areaContext, $contextScript) : '';
+        $headerBlox = $headerEnabled && $themeRendersArea('header')
+            ? $renderPublishedArea('header', $areaContext, $contextScript) : '';
+        $footerBlox = $footerEnabled && $themeRendersArea('footer')
+            ? $renderPublishedArea('footer', $areaContext, $contextScript) : '';
         $headerBody = $wrapContextArea(
             'header',
             $headerBlox !== '' ? $headerBlox : $renderThemeArea(
