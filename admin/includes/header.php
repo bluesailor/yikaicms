@@ -25,6 +25,22 @@ LegacyInstallCleanup::runThrottled(
 require_once __DIR__ . '/sidebar_menu_api.php';
 require_once __DIR__ . '/menu_usage.php';
 $sidebarMenu = resolveAdminSidebar();
+
+// 将数据库迁移状态同步到侧栏入口：首页和其他后台页都能直接看到待处理数量。
+// 升级页仍会再次做完整检查并负责执行，侧栏这里只复用同一套 Migrator 判定。
+$__sidebarPendingMigrations = 0;
+if (hasPermission('*')) {
+    $__sidebarPendingMigrations = pendingMigrationsCount();
+    foreach ($sidebarMenu as &$__sidebarGroup) {
+        foreach (($__sidebarGroup['items'] ?? []) as &$__sidebarItem) {
+            if (($__sidebarItem['key'] ?? '') === 'upgrade') {
+                $__sidebarItem['badge'] = $__sidebarPendingMigrations;
+            }
+        }
+        unset($__sidebarItem);
+    }
+    unset($__sidebarGroup);
+}
 adminMenuUsageRecord($sidebarMenu, (int) ($adminInfo['id'] ?? 0), (string) ($_SERVER['REQUEST_URI'] ?? ''));
 
 // Compute which group should default-open by scanning every item's
@@ -42,6 +58,12 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
 
 // 后台品牌文字（左上角 Logo / 页面标题）——页脚共用同一函数，见 adminBrandName()。
 $adminBrand = adminBrandName();
+$adminHelpLang = (string) config('admin_lang', getLang());
+$adminHelpUrl = match ($adminHelpLang) {
+    'en' => 'https://www.yikaicms.com/en/#help',
+    'ja' => 'https://www.yikaicms.com/ja/#help',
+    default => 'https://www.yikaicms.com/#help',
+};
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo getLang(); ?>">
@@ -547,6 +569,15 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     </div>
                     <?php endif; ?>
 
+                    <!-- 官方帮助：新装站栏目页 404 多数是 URL 重写未配置，入口保持全后台可见。 -->
+                    <a href="<?php echo e($adminHelpUrl); ?>" target="_blank" rel="noopener noreferrer"
+                       data-testid="admin-help-link"
+                       class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                       title="<?php echo e(__('admin_help_rewrite')); ?>"
+                       aria-label="<?php echo e(__('admin_help_rewrite')); ?>">
+                        <i class="ti ti-help-circle text-xl" aria-hidden="true"></i>
+                    </a>
+
                     <a href="/" target="_blank" class="flex items-center gap-1.5 text-sm text-white bg-primary hover:bg-secondary px-3 py-1.5 rounded-full shadow-sm transition whitespace-nowrap" title="<?php echo __('admin_visit_frontend'); ?>">
                         <i class="ti ti-external-link text-base"></i>
                         <span class="hidden sm:inline"><?php echo __('admin_visit_frontend'); ?></span>
@@ -819,7 +850,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
             $__pendingMig = 0;
             if (hasPermission('*') && ($currentMenu ?? '') !== 'upgrade'
                 && (string) config('migrations_ok_version', '') !== (defined('CMS_VERSION') ? CMS_VERSION : '')) {
-                $__pendingMig = pendingMigrationsCount();
+                $__pendingMig = $__sidebarPendingMigrations;
                 if ($__pendingMig === 0 && defined('CMS_VERSION')) {
                     try { settingModel()->set('migrations_ok_version', CMS_VERSION, 'system'); } catch (\Throwable $e) {}
                 }

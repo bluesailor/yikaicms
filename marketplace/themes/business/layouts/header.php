@@ -40,7 +40,6 @@ function getChannelUrl(array $channel): string {
     return channelUrl($channel);
 }
 
-$isTransparentHeader = !empty($isHomePage);
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo getLang(); ?>">
@@ -84,6 +83,9 @@ $isTransparentHeader = !empty($isHomePage);
     .hero-overlay { background: linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.7)); }
     .section-dark { background: #1e293b; color: #e2e8f0; }
     .cta-gradient { background: linear-gradient(135deg, #3B6CF5, #2554d4); }
+    @media (min-width: 1024px) {
+        .business-download-sidebar { margin-top: 4rem; }
+    }
     </style>
     <?php if (!empty($extraCss)): ?><?php echo $extraCss; ?><?php endif; ?>
     <?php do_action('ik_head'); ?>
@@ -93,7 +95,7 @@ $isTransparentHeader = !empty($isHomePage);
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
     <!-- Navigation bar -->
-    <header id="siteHeader" class="<?php echo $isTransparentHeader ? 'nav-transparent' : 'nav-solid shadow-lg'; ?> transition-all duration-300">
+    <header id="siteHeader" class="nav-solid shadow-lg transition-all duration-300"<?php echo !empty($isHomePage) ? ' data-business-home-header' : ''; ?>>
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16 md:h-20">
                 <!-- Logo -->

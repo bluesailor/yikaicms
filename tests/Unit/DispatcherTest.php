@@ -70,6 +70,23 @@ final class DispatcherTest extends TestCase
         $this->assertSame('ja', $home['lang']);
     }
 
+    public function testLanguagePrefixIsAvailableBeforeCmsInitialization(): void
+    {
+        $this->assertSame('en', Dispatcher::languagePrefixFromPath('/en/download-en.html'));
+        $this->assertSame('ja', Dispatcher::languagePrefixFromPath('/ja/'));
+        $this->assertNull(Dispatcher::languagePrefixFromPath('/download.html'));
+
+        $index = (string) file_get_contents(dirname(__DIR__, 2) . '/index.php');
+        $dispatcher = strpos($index, "require_once __DIR__ . '/includes/Dispatcher.php'");
+        $detect = strpos($index, 'Dispatcher::languagePrefixFromPath($__incomingPath)');
+        $init = strpos($index, "require_once __DIR__ . '/includes/init.php'");
+        $this->assertIsInt($dispatcher);
+        $this->assertIsInt($detect);
+        $this->assertIsInt($init);
+        $this->assertLessThan($init, $dispatcher);
+        $this->assertLessThan($init, $detect);
+    }
+
     public function testNoMatchReturnsNull(): void
     {
         $this->assertNull(Dispatcher::match('/no-such-path'));            // 无 .html 后缀

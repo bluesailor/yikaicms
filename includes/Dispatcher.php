@@ -69,6 +69,20 @@ final class Dispatcher
     private const LANG_PREFIXES = ['ja', 'en', 'zh-CN', 'zh-TW'];
 
     /**
+     * 从原始请求路径识别语言前缀，供 index.php 在加载 init.php 前初始化语言。
+     */
+    public static function languagePrefixFromPath(string $path): ?string
+    {
+        $path = ltrim((string) parse_url($path, PHP_URL_PATH), '/');
+        foreach (self::LANG_PREFIXES as $prefix) {
+            if ($path === $prefix || str_starts_with($path, $prefix . '/')) {
+                return $prefix;
+            }
+        }
+        return null;
+    }
+
+    /**
      * 纯匹配：路径（不带开头 / 与查询串）→ ['file'=>目标, 'params'=>[...], 'lang'=>?string]。
      * 返回 null = 未命中；'file' 为 '' 且 lang 非空 = 语言前缀首页（如 /ja/）。
      *
@@ -80,15 +94,10 @@ final class Dispatcher
     public static function match(string $path, ?array $routes = null): ?array
     {
         $path = ltrim($path, '/');
-        $lang = null;
-
         // 语言前缀剥离：/ja/xxx → lang=ja + xxx
-        foreach (self::LANG_PREFIXES as $lp) {
-            if ($path === $lp || str_starts_with($path, $lp . '/')) {
-                $lang = $lp;
-                $path = $path === $lp ? '' : substr($path, strlen($lp) + 1);
-                break;
-            }
+        $lang = self::languagePrefixFromPath('/' . $path);
+        if ($lang !== null) {
+            $path = $path === $lang ? '' : substr($path, strlen($lang) + 1);
         }
         if ($path === '') {
             return $lang !== null ? ['file' => '', 'params' => [], 'lang' => $lang] : null;
