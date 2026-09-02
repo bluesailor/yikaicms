@@ -49,7 +49,28 @@ test('Business preserves custom backgrounds and excludes them from alternation @
 test('Business canvas uses the theme header when the active theme owns header rendering @ci', async ({ page }) => {
     await page.goto(url('published-header', 'preview'));
     await expect(page.locator('.yk-blox-header')).toHaveCount(0);
-    await expect(page.locator('#siteHeader')).toHaveCSS('background-color', 'rgb(30, 41, 59)');
+    const header = page.locator('#siteHeader');
+    await expect(header).toHaveAttribute('data-business-home-header', '');
+    await expect(header).toHaveCSS('background-color', 'rgb(30, 41, 59)');
+    await expect(page.locator('body > main')).toHaveCount(1);
+    await expect(page.locator('script[src*="/themes/business/assets/js/header.js"]')).toHaveCount(1);
+});
+
+test('Business editor iframe keeps the active theme homepage header chrome @ci', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-1440', 'Real editor shell is verified once; preview covers all sizes');
+    await page.route('**/admin/blox_preview.php?home=1', async (route) => {
+        const response = await route.fetch({ url: new URL(url('published-header', 'preview'), route.request().url()).href });
+        await route.fulfill({ response });
+    });
+    await page.goto(url('published-header', 'editor'));
+    await waitPreviewSettled(page);
+    const canvas = await frame(page);
+    await expect(canvas.locator('.yk-blox-header')).toHaveCount(0);
+    const header = canvas.locator('#siteHeader');
+    await expect(header).toHaveAttribute('data-business-home-header', '');
+    await expect(header).toHaveCSS('background-color', 'rgb(30, 41, 59)');
+    await expect(canvas.locator('body > main')).toHaveCount(1);
+    await expect(canvas.locator('script[src*="/themes/business/assets/js/header.js"]')).toHaveCount(1);
 });
 
 test('Business respects section container and column backgrounds @ci', async ({ page }) => {

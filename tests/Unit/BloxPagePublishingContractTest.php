@@ -107,6 +107,9 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('$renderPublishedArea = static function (string $area, array $context, string $scriptName): string', $canvas);
         $this->assertStringContainsString('$headerBlox = $headerEnabled && $themeRendersArea(\'header\')', $canvas);
         $this->assertStringContainsString('$footerBlox = $footerEnabled && $themeRendersArea(\'footer\')', $canvas);
+        $this->assertStringContainsString('$isHomePage = $scriptName === \'/index.php\' && $channelId === 0 && $pageId === 0;', $canvas);
+        $this->assertStringContainsString('$themeHeaderScriptPath = \'/themes/\' . currentTheme() . \'/assets/js/header.js\';', $canvas);
+        $this->assertStringContainsString('\'<main class="flex-1">\' . $mainBody . \'</main>\'', $canvas);
         $this->assertStringContainsString("\$GLOBALS['currentChannelId'] = \$context['channel_id'];", $canvas);
         $this->assertStringContainsString("\$GLOBALS['ykBloxPageId'] = \$context['page_id'];", $canvas);
         $this->assertStringContainsString("require_once ROOT_PATH . '/includes/customer_service.php';", $canvas);
@@ -118,7 +121,8 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("'page_id' => !\$isHomeLayout && \$pageType === 'page' ? \$id : 0", $canvas);
         // 空文档不挂站点页头页脚：新建单页只显示空态引导卡。空态卡是 appendChild 到
         // body 的，挂着 chrome 会让它落在页脚下方（看着像页脚的一部分）。
-        $this->assertStringContainsString('$headerBody . $pageHeroBody . $pageContentBody . $footerBody', $canvas);
+        $this->assertStringContainsString('$mainBody = $pageHeroBody . $pageContentBody;', $canvas);
+        $this->assertStringContainsString('$headerBody . \'<main class="flex-1">\' . $mainBody . \'</main>\' . $footerBody', $canvas);
         $this->assertStringContainsString(': ($pageHeroBody . $pageBody);', $canvas);
         $this->assertStringContainsString('$hasCanvasContent = is_array($canvasBlocks) && $canvasBlocks !== [];', $canvas);
 
