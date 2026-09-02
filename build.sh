@@ -338,6 +338,7 @@ MUST_EXIST=(
     "config/provenance.php"
     "config/release-runtime.php"
     "includes/ProductIdentity.php"
+    "includes/FooterNavigation.php"
     "includes/functions.php"
     "includes/LegacyInstallCleanup.php"
     "includes/SiteHealth.php"

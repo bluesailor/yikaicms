@@ -177,7 +177,9 @@ if ($footerBgLiteral !== '') {
 
         <!-- footer navigation -->
         <?php
-        $footerNav = json_decode(configJsonLang('footer_nav') ?: '[]', true) ?: [];
+        $footerNav = function_exists('footerNavigationGroups')
+            ? footerNavigationGroups()
+            : (json_decode(configJsonLang('footer_nav') ?: '[]', true) ?: []);
         if (!empty($footerNav)):
         ?>
         <div class="border-t border-gray-700">

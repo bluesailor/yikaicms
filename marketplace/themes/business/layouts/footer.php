@@ -6,7 +6,9 @@ $siteName = configRawLang('site_name', 'Yikai CMS');
 $footerNavRaw = function_exists('configJsonLang')
     ? configJsonLang('footer_nav')
     : (config('footer_nav') ?: '');
-$footerNav = $footerNavRaw ? (json_decode($footerNavRaw, true) ?: []) : [];
+$footerNav = function_exists('footerNavigationGroups')
+    ? footerNavigationGroups($footerNavRaw)
+    : ($footerNavRaw ? (json_decode($footerNavRaw, true) ?: []) : []);
 ?>
 
     <!-- CTA Contact Area -->

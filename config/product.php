@@ -22,6 +22,7 @@ return [
         'config/version.php',
         'includes/init.php',
         'includes/functions.php',
+        'includes/FooterNavigation.php',
         'includes/ProductIdentity.php',
         'includes/security.php',
         'includes/License.php',

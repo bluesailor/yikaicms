@@ -181,7 +181,7 @@ if ($footerBgLiteral !== '') {
 
         <!-- footer navigation -->
         <?php
-        $footerNav = json_decode(configJsonLang('footer_nav') ?: '[]', true) ?: [];
+        $footerNav = footerNavigationGroups();
         if (!empty($footerNav)):
         ?>
         <div class="border-t border-gray-700">

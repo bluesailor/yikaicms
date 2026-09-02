@@ -103,7 +103,9 @@ if ($footerBgLiteral !== '') {
 
         <!-- 页脚导航 -->
         <?php
-        $footerNav = json_decode(config('footer_nav') ?: '[]', true) ?: [];
+        $footerNav = function_exists('footerNavigationGroups')
+            ? footerNavigationGroups((string) (config('footer_nav') ?: '[]'))
+            : (json_decode(config('footer_nav') ?: '[]', true) ?: []);
         if (!empty($footerNav)):
         ?>
         <div class="border-t border-gray-700">

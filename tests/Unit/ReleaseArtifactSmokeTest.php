@@ -69,6 +69,7 @@ final class ReleaseArtifactSmokeTest extends TestCase
         $workflow = (string) file_get_contents(ROOT_PATH . '/.github/workflows/ci.yml');
 
         self::assertStringContainsString('"config/release-runtime.php"', $build);
+        self::assertStringContainsString('"includes/FooterNavigation.php"', $build);
         self::assertStringContainsString('"includes/Pinyin.php"', $build);
         self::assertStringContainsString('"includes/pinyin/chars.php"', $build);
         self::assertStringNotContainsString('cp -r "$ROOT_DIR/vendor"', $build);
