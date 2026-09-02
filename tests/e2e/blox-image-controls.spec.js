@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
-const { openPageEditor, performPagePreviewUpdate, observeConsole, waitPreviewSettled, canvasScrollTop } = require('./helpers');
+const { openPageEditor, performPagePreviewUpdate, observeConsole, waitPreviewSettled, canvasScrollTop, frame } = require('./helpers');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 for (const scope of ['element', 'section', 'container', 'column']) {
@@ -92,7 +92,32 @@ test('section background summary reveals the layer that already contains the vis
     await expect(page.getByTestId('blox-section-property-grid')).toBeVisible();
     await expect(styleSwitcher.getByTestId('blox-background-layer-section')).toHaveAttribute('aria-pressed', 'true');
     await page.getByTestId('blox-section-color-picker-trigger').click();
-    await page.getByTestId('blox-editor-color-text').fill('#0f766e');
+    await page.getByTestId('blox-editor-color-text').fill('#16a34a');
     await page.getByTestId('blox-editor-color-text').press('Enter');
-    await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).sel.settings.bg_color)).toBe('#0f766e');
+    await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).sel.settings.bg_color)).toBe('#16a34a');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('blox-editor-color-picker')).toBeHidden();
+
+    await styleSwitcher.getByTestId('blox-background-layer-container').click();
+    await performPagePreviewUpdate(page, () => page.getByTestId('blox-container-background-image-clear').click());
+    await expect(page.getByTestId('blox-container-background-image-url')).toHaveValue('');
+    await page.getByTestId('blox-container-color-picker-trigger').click();
+    await performPagePreviewUpdate(page, () => page.getByTestId('blox-editor-color-clear').click());
+    await styleSwitcher.getByTestId('blox-background-layer-section').click();
+    await waitPreviewSettled(page);
+
+    const state = await page.evaluate(() => {
+        const app = window.Alpine.$data(document.body);
+        return { index: app.selectedSi, settings: app.sel.settings };
+    });
+    expect(state.settings.bg_color).toBe('#16a34a');
+    expect(state.settings.bg_image).toBe('');
+    expect(state.settings.container_bg).toBe('');
+    expect(state.settings.container_bg_image).toBe('');
+    const contentFrame = await frame(page);
+    const canvasSection = contentFrame.locator(`[data-yk-sec="${state.index}"]`);
+    await expect(canvasSection).toHaveAttribute('style', /background-color:\s*#16a34a/i);
+    await expect(canvasSection).not.toHaveAttribute('style', /background-image/i);
+    await canvasSection.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath('solid-green-section.png') });
 });
