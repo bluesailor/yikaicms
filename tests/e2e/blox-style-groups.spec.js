@@ -1,0 +1,53 @@
+const { test, expect } = require('@playwright/test');
+const { openEditor, addTemporaryHeading, observeConsole, restoreClean } = require('./helpers');
+
+// 样式页签分组（通用背景规划第 2 轮）：chip 切分通用控件循环、有值圆点、
+// 切组不改文档。heading 的样式控件 = 常规（align/color）+ 动画组 → 恰好两组。
+// 桌面交互基线（先例：blox-editor.spec.js 的 desktop interaction baseline）。
+test.beforeEach(({}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+});
+
+test('style tab partitions controls into groups with has-value dots @ci', async ({ page }) => {
+  const errors = observeConsole(page);
+  await openEditor(page);
+  await addTemporaryHeading(page);
+  await page.getByTestId('blox-style-tab').click();
+
+  // chip 条出现：常规 + 动画；背景 chip 对 heading 不出现（无 background 组控件）
+  await expect(page.getByTestId('blox-style-groups')).toBeVisible();
+  await expect(page.getByTestId('blox-style-group-general')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('blox-style-group-animation')).toBeVisible();
+  await expect(page.getByTestId('blox-style-group-background')).toBeHidden();
+
+  // 常规组：文字颜色可见、动画控件不渲染
+  await expect(page.locator('[data-control-key="color"]')).toBeVisible();
+  await expect(page.locator('[data-control-key="animation"]')).toHaveCount(0);
+
+  // 切到动画组：控件互换；切组本身不改文档
+  const original = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections));
+  await page.getByTestId('blox-style-group-animation').click();
+  await expect(page.locator('[data-control-key="animation"]')).toBeVisible();
+  await expect(page.locator('[data-control-key="color"]')).toHaveCount(0);
+  expect(await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections))).toBe(original);
+
+  // 圆点：设动画前后（页签点 + 组点）
+  await expect(page.getByTestId('blox-style-tab-dot')).toBeHidden();
+  await expect(page.getByTestId('blox-style-group-dot-animation')).toBeHidden();
+  // 只有 option_icons 的选项按钮带 aria-pressed（设备切换按钮 x-show 隐藏但在 DOM）
+  await page.locator('[data-control-key="animation"] button[aria-pressed]').nth(1).click();
+  await expect(page.getByTestId('blox-style-group-dot-animation')).toBeVisible();
+  await expect(page.getByTestId('blox-style-tab-dot')).toBeVisible();
+
+  // 搜索时回落平铺：chip 条消失、分组过滤停用（'o' 同时命中 color 与 animation 的 key）
+  const search = page.locator('[x-model="ctrlQuery"]');
+  await search.fill('o');
+  await expect(page.getByTestId('blox-style-groups')).toBeHidden();
+  await expect(page.locator('[data-control-key="color"]')).toBeVisible();
+  await expect(page.locator('[data-control-key="animation"]')).toBeVisible();
+  await search.fill('');
+  await expect(page.getByTestId('blox-style-groups')).toBeVisible();
+
+  await restoreClean(page);
+  expect(errors).toEqual([]);
+});

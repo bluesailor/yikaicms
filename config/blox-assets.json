@@ -41,6 +41,7 @@
     "assets/js/blox-control-rules.js",
     "assets/js/blox-banner-panel.js",
     "assets/js/blox-home-content-panel.js",
+    "assets/js/blox-style-groups.js",
     "assets/js/blox-image-control.js",
     "assets/js/blox-catalog-source.js",
     "assets/js/blox-dialog-focus.js",
