@@ -60,9 +60,9 @@ test('CTA copy links and background remain editable without changing tabs @ci', 
   const scroll = await canvasScrollTop(page);
   await page.getByTestId('blox-home-group-media').click();
   for (const key of ['bg_image', 'bg_color', 'bg_overlay_color', 'bg_overlay_opacity', 'text_light']) await expect(field(page, key)).toHaveCount(1);
-  await page.getByTestId('blox-cta-background-control').locator('summary').click();
   await performPreviewUpdate(page, () => page.getByTestId('blox-cta-background-url').fill('/assets/images/demo/banner-2.svg'));
   await expect(cta).toHaveAttribute('style', /banner-2\.svg/);
+  await expect(field(page, 'bg_color').getByText('当前背景图会覆盖背景色')).toBeVisible();
   await waitPreviewSettled(page);
   expect(Math.abs((await canvasScrollTop(page)) - scroll)).toBeLessThan(8);
   await page.screenshot({ path: testInfo.outputPath('cta-background-panel.png') });
@@ -77,6 +77,24 @@ test('CTA copy links and background remain editable without changing tabs @ci', 
   await page.getByTestId('blox-modified-only').click();
   await expect(page.getByTestId('blox-cta-background-url')).toHaveValue('/assets/images/demo/banner-2.svg');
   await expect(groups).toHaveCount(0);
+
+  await page.getByTestId('blox-modified-only').click();
+  await page.getByTestId('blox-home-group-media').click();
+  await performPreviewUpdate(page, () => page.getByTestId('blox-cta-background-clear').click());
+  await expect(page.getByTestId('blox-cta-background-url')).toHaveValue('');
+  await expect(page.getByTestId('blox-cta-background-clear')).toBeDisabled();
+  await expect(field(page, 'bg_color').getByText('当前背景图会覆盖背景色')).toBeHidden();
+  await field(page, 'bg_color').getByTestId('blox-color-picker-trigger').click();
+  await performPreviewUpdate(page, async () => {
+    await page.getByTestId('blox-editor-color-text').fill('#15803d');
+    await page.getByTestId('blox-editor-color-text').press('Enter');
+  });
+  await page.keyboard.press('Escape');
+  await waitPreviewSettled(page);
+  await expect(cta).toHaveAttribute('style', /background:\s*#15803d/i);
+  await expect(cta).not.toHaveAttribute('style', /background-image|url\(/i);
+  await cta.evaluate(node => node.scrollIntoView({ block: 'center', behavior: 'instant' }));
+  await page.screenshot({ path: testInfo.outputPath('cta-solid-green-background.png') });
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
 });

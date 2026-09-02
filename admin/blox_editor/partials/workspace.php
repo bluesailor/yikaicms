@@ -1748,14 +1748,20 @@ declare(strict_types=1);
                                     </template>
 
                                     <template x-if="ctrl.type === 'color'">
-                                        <button type="button"
-                                                @click="openEditorColorPicker($event, 'control-' + ctrl.key, ctrl.label, controlValue(ctrl), '#000000', true, value => setControlValue(ctrl, value))"
-                                                data-testid="blox-color-picker-trigger"
-                                                class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
-                                            <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(controlValue(ctrl), '#000000')"></span>
-                                            <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(controlValue(ctrl), <?= e($jt('blox_empty_default')) ?>)"></span>
-                                            <i class="ti ti-chevron-down text-sm text-gray-400"></i>
-                                        </button>
+                                        <div>
+                                            <button type="button"
+                                                    @click="openEditorColorPicker($event, 'control-' + ctrl.key, ctrl.label, controlValue(ctrl), '#000000', true, value => setControlValue(ctrl, value))"
+                                                    data-testid="blox-color-picker-trigger"
+                                                    class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                                <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(controlValue(ctrl), '#000000')"></span>
+                                                <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(controlValue(ctrl), <?= e($jt('blox_empty_default')) ?>)"></span>
+                                                <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                            </button>
+                                            <p x-show="selEl && selEl.type === 'home-block' && selEl.data.block_type === 'cta' && ctrl.key === 'bg_color' && homeContentImageValue('bg_image')"
+                                               class="mt-1 text-[10px] leading-relaxed text-amber-700">
+                                                <?= e(__('blox_home_cta_color_covered_hint')) ?>
+                                            </p>
+                                        </div>
                                     </template>
 
                                     <?php // icon：旧值无前缀时使用 Tabler；Bootstrap 图标保存为 bi:<name>。 ?>
