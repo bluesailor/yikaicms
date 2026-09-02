@@ -102,9 +102,11 @@ final class BloxPagePublishingContractTest extends TestCase
 
         $canvas = $this->source('includes/builder/BloxCanvasPreview.php');
         $this->assertStringContainsString("'@@templates_enabled@@' => bloxPageEditorEnabled() ? 'true' : 'false'", $canvas);
+        $this->assertStringContainsString('$themeRendersArea = static function (string $area): bool', $canvas);
+        $this->assertStringContainsString('bloxAreaHtml\s*\(', $canvas);
         $this->assertStringContainsString('$renderPublishedArea = static function (string $area, array $context, string $scriptName): string', $canvas);
-        $this->assertStringContainsString('$headerBlox = $headerEnabled ? $renderPublishedArea(\'header\', $areaContext, $contextScript) : \'\';', $canvas);
-        $this->assertStringContainsString('$footerBlox = $footerEnabled ? $renderPublishedArea(\'footer\', $areaContext, $contextScript) : \'\';', $canvas);
+        $this->assertStringContainsString('$headerBlox = $headerEnabled && $themeRendersArea(\'header\')', $canvas);
+        $this->assertStringContainsString('$footerBlox = $footerEnabled && $themeRendersArea(\'footer\')', $canvas);
         $this->assertStringContainsString("\$GLOBALS['currentChannelId'] = \$context['channel_id'];", $canvas);
         $this->assertStringContainsString("\$GLOBALS['ykBloxPageId'] = \$context['page_id'];", $canvas);
         $this->assertStringContainsString("require_once ROOT_PATH . '/includes/customer_service.php';", $canvas);
