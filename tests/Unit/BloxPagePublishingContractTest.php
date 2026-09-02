@@ -110,7 +110,7 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('$headerBlox = $headerEnabled && $themeRendersArea(\'header\')', $canvas);
         $this->assertStringContainsString('$footerBlox = $footerEnabled && $themeRendersArea(\'footer\')', $canvas);
         $this->assertStringContainsString('$isHomePage = $scriptName === \'/index.php\' && $channelId === 0 && $pageId === 0;', $canvas);
-        $this->assertStringContainsString('$themeHeaderScriptPath = \'/themes/\' . currentTheme() . \'/assets/js/header.js\';', $canvas);
+        $this->assertStringNotContainsString('$themeHeaderScriptPath = \'/themes/\' . currentTheme() . \'/assets/js/header.js\';', $canvas);
         $this->assertStringContainsString('\'<main class="flex-1">\' . $mainBody . \'</main>\'', $canvas);
         $this->assertStringContainsString("\$GLOBALS['currentChannelId'] = \$context['channel_id'];", $canvas);
         $this->assertStringContainsString("\$GLOBALS['ykBloxPageId'] = \$context['page_id'];", $canvas);

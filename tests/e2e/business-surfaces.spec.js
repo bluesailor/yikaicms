@@ -53,7 +53,7 @@ test('Business canvas uses the theme header when the active theme owns header re
     await expect(header).toHaveAttribute('data-business-home-header', '');
     await expect(header).toHaveCSS('background-color', 'rgb(30, 41, 59)');
     await expect(page.locator('body > main')).toHaveCount(1);
-    await expect(page.locator('script[src*="/themes/business/assets/js/header.js"]')).toHaveCount(1);
+    await expect(page.locator('script[src*="/themes/business/assets/js/header.js"]')).toHaveCount(0);
 });
 
 test('Business editor iframe keeps the active theme homepage header chrome @ci', async ({ page }, testInfo) => {
@@ -70,7 +70,7 @@ test('Business editor iframe keeps the active theme homepage header chrome @ci',
     await expect(header).toHaveAttribute('data-business-home-header', '');
     await expect(header).toHaveCSS('background-color', 'rgb(30, 41, 59)');
     await expect(canvas.locator('body > main')).toHaveCount(1);
-    await expect(canvas.locator('script[src*="/themes/business/assets/js/header.js"]')).toHaveCount(1);
+    await expect(canvas.locator('script[src*="/themes/business/assets/js/header.js"]')).toHaveCount(0);
 });
 
 test('Business respects section container and column backgrounds @ci', async ({ page }) => {
