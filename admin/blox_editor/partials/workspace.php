@@ -153,7 +153,7 @@ declare(strict_types=1);
                             :class="panelTab === 'content' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'"><?= __('blox_tab_content') ?></button>
                     <button type="button" @click="panelTab = 'style'" data-testid="blox-style-tab"
                             class="flex-1 h-9 text-xs font-semibold border-b-2 transition"
-                            :class="panelTab === 'style' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'"><?= __('blox_tab_style') ?></button>
+                            :class="panelTab === 'style' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'"><span class="inline-flex items-center gap-1"><?= __('blox_tab_style') ?><span x-show="styleTabDot()" data-testid="blox-style-tab-dot" class="w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true"></span></span></button>
                     <button type="button" x-show="advancedMode && (selEl || (sel && !selectedSectionField && selLayer === 'sec'))"
                             @click="panelTab = 'condition'" data-testid="blox-condition-tab"
                             class="flex-1 h-9 text-xs font-semibold border-b-2 transition"
@@ -324,6 +324,8 @@ declare(strict_types=1);
                                        title="<?= e(__('blox_el_name_hint')) ?>"
                                        class="flex-1 min-w-0 text-sm font-medium text-gray-700 border-0 border-b border-transparent focus:border-blue-300 outline-none p-0 bg-transparent">
                             </div>
+
+                            <?php require __DIR__ . '/style-groups.php'; ?>
 
                             <template x-if="selEl && panelTab === 'style'">
                                 <div data-testid="blox-element-visible-devices" class="rounded border border-gray-200 bg-gray-50 p-3">

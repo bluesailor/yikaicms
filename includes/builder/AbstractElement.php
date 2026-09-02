@@ -52,7 +52,7 @@ abstract class AbstractElement
     {
         return [
             [
-                'key' => 'animation', 'type' => 'select', 'label' => __('blox_anim'), 'default' => '', 'tab' => 'style',
+                'key' => 'animation', 'type' => 'select', 'label' => __('blox_anim'), 'default' => '', 'tab' => 'style', 'group' => 'animation',
                 'options' => [
                     '' => __('blox_anim_none'),
                     'fade' => __('blox_anim_fade'),
@@ -73,11 +73,11 @@ abstract class AbstractElement
                 ],
             ],
             [
-                'key' => 'animation_speed', 'type' => 'select', 'label' => __('blox_anim_speed'), 'default' => 'normal', 'tab' => 'style',
+                'key' => 'animation_speed', 'type' => 'select', 'label' => __('blox_anim_speed'), 'default' => 'normal', 'tab' => 'style', 'group' => 'animation',
                 'options' => ['normal' => __('blox_anim_normal'), 'fast' => __('blox_anim_fast'), 'slow' => __('blox_anim_slow')],
             ],
             [
-                'key' => 'animation_delay', 'type' => 'select', 'label' => __('blox_anim_delay'), 'default' => 'none', 'tab' => 'style',
+                'key' => 'animation_delay', 'type' => 'select', 'label' => __('blox_anim_delay'), 'default' => 'none', 'tab' => 'style', 'group' => 'animation',
                 'options' => ['none' => __('blox_anim_delay_none'), 'short' => __('blox_anim_delay_short'), 'medium' => __('blox_anim_delay_medium'), 'long' => __('blox_anim_delay_long')],
             ],
         ];
@@ -372,7 +372,7 @@ abstract class AbstractElement
     protected function backgroundControls(): array
     {
         return [
-            ['key' => 'bg_color', 'type' => 'color', 'label' => __('blox_bg_color'), 'default' => '', 'tab' => 'style'],
+            ['key' => 'bg_color', 'type' => 'color', 'label' => __('blox_bg_color'), 'default' => '', 'tab' => 'style', 'group' => 'background'],
         ];
     }
 

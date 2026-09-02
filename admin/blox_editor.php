@@ -792,6 +792,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-control-rules.js') ?>"></script>
     <script src="/assets/js/blox-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-banner-panel.js') ?>"></script>
     <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
+    <script src="/assets/js/blox-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-groups.js') ?>"></script>
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
@@ -1178,6 +1179,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
             bannerPanelGroup: "common",
+            styleGroup: "general",
             homeContentGroup: "content",
             homeBannerRuntime: <?= json_encode($homeBannerRuntime, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
@@ -3385,6 +3387,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             ...window.BloxBannerPanel.methods,
             ...window.BloxHomeContentPanel.methods,
+            ...window.BloxStyleGroups.methods,
 
             isLoopTemplateChild() {
                 return this.selectedSubEi >= 0 && this.isLoopTemplateHost(this.selTopEl);
@@ -4183,6 +4186,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             selectElement(si, ci, ei, notifyCanvas) {
                 this.bannerPanelGroup = "common";
                 this.homeContentGroup = "content";
+                this.styleGroup = "general";
                 this.selectedSi = si;
                 this.selectedCi = ci;
                 this.selectedEi = ei;
@@ -4356,7 +4360,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 });
                 var showAll = !!q || this.modifiedOnly || this.panelTab !== "content";
                 controls = window.BloxBannerPanel.controls(this.selEl, controls, this.bannerPanelGroup, showAll);
-                return window.BloxHomeContentPanel.controls(this.selEl, controls, this.homeContentGroup, showAll);
+                controls = window.BloxHomeContentPanel.controls(this.selEl, controls, this.homeContentGroup, showAll);
+                // 样式页签分组（第 2 轮）：styleGroups() 为空即不启用（搜索/只看已修改/容器专用块/组数≤1）
+                return window.BloxStyleGroups.filter(controls, this.styleGroup, this.panelTab !== "style" || this.styleGroups().length === 0);
             },
 
             controlRequirementMet(ctrl) {

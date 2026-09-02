@@ -83,6 +83,28 @@ final class BloxBackgroundStyleTest extends TestCase
         }
     }
 
+    /** 共享控件组带 group 键（第 2 轮面板分组的 schema 契约） */
+    public function testSharedControlGroupsDeclareGroupKey(): void
+    {
+        $groupOf = static function (AbstractElement $el, string $key): ?string {
+            foreach ($el->controls() as $c) {
+                if (($c['key'] ?? '') === $key) {
+                    return $c['group'] ?? null;
+                }
+            }
+            return null;
+        };
+        $container = BuilderRegistry::get('container');
+        $this->assertNotNull($container);
+        $this->assertSame('background', $groupOf($container, 'bg_color'));
+
+        $heading = BuilderRegistry::get('heading');
+        $this->assertNotNull($heading);
+        foreach (['animation', 'animation_speed', 'animation_delay'] as $key) {
+            $this->assertSame('animation', $groupOf($heading, $key), $key);
+        }
+    }
+
     /** 策略 none 的元素喂入 bg_color 不得产生背景（服务端契约，而非仅编辑器不显示） */
     public function testNoneStrategyIgnoresBgColor(): void
     {
