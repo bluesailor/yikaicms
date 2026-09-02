@@ -149,7 +149,7 @@ final class ThemeTemplateResolutionTest extends TestCase
         self::assertStringContainsString('data-product-catalog', $view);
         self::assertStringContainsString('data-product-catalog-sidebar', $view);
         self::assertStringContainsString('data-catalog-categories', $view);
-        self::assertStringContainsString('[data-product-catalog]', $minimalCss);
+        self::assertStringContainsString('[data-product-catalog-layout]', $minimalCss);
         self::assertStringContainsString('[data-catalog-categories]', $minimalCss);
     }
 

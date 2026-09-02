@@ -176,15 +176,15 @@ header a {
 }
 
 /* Shared product catalog: use the same restrained accent hierarchy. */
-.minimal-theme [data-product-catalog] .bg-primary {
+.minimal-theme [data-product-catalog-layout] .bg-primary {
     background-color: var(--minimal-accent);
 }
 
-.minimal-theme [data-product-catalog] .text-primary {
+.minimal-theme [data-product-catalog-layout] .text-primary {
     color: var(--minimal-accent-strong);
 }
 
-.minimal-theme [data-product-catalog] .border-primary {
+.minimal-theme [data-product-catalog-layout] .border-primary {
     border-color: var(--minimal-accent);
 }
 
@@ -210,11 +210,11 @@ header a {
     box-shadow: 0 0 0 1px var(--minimal-accent);
 }
 
-.minimal-theme [data-product-catalog] .hover\:text-primary:hover {
+.minimal-theme [data-product-catalog-layout] .hover\:text-primary:hover {
     color: var(--minimal-accent-strong);
 }
 
-.minimal-theme [data-product-catalog] .hover\:border-primary:hover {
+.minimal-theme [data-product-catalog-layout] .hover\:border-primary:hover {
     border-color: var(--minimal-accent);
 }
 
