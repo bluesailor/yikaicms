@@ -185,16 +185,36 @@ abstract class AbstractElement
         ) . ')';
     }
 
+    /** 遮罩档位 → linear-gradient 的 alpha（第 4 轮：CSS 多背景层，遮罩不占 DOM） */
+    private const BG_OVERLAY_ALPHA = ['40' => '.4', '60' => '.6', '80' => '.8'];
+
     /**
-     * 共享背景值解析（通用背景契约 2026-09-02 第 1 轮）：清洗并生成可安全拼入
-     * style 属性的背景 CSS 声明串。首版仅背景色、标量值——{d,t,m} 响应式数组
-     * 明确拒绝：内联样式派生不出 md:/lg: 变体，响应式只属于类映射通路（respClasses）。
+     * 共享背景值解析（通用背景契约 2026-09-02）：清洗并生成可安全拼入 style 属性的
+     * 背景 CSS 声明串。标量值——{d,t,m} 响应式数组明确拒绝：内联样式派生不出
+     * md:/lg: 变体，响应式只属于类映射通路（respClasses）。
+     * 第 4 轮起支持背景图与遮罩：遮罩以 linear-gradient 作为多背景层叠在图上
+     *（不新增 DOM），只在设了背景图时生效；图默认 cover/center。
      * 无有效值返回 ''，调用方据此不输出 style 属性。
      */
     public static function backgroundDeclarations(array $data): string
     {
+        $decl = '';
         $color = self::cssColor($data['bg_color'] ?? null);
-        return $color === null ? '' : 'background-color:' . $color . ';';
+        if ($color !== null) {
+            $decl .= 'background-color:' . $color . ';';
+        }
+        $image = self::cssImageUrl($data['bg_image'] ?? null);
+        if ($image !== null && $image !== '') {
+            $overlayKey = $data['bg_overlay'] ?? '';
+            $alpha = is_string($overlayKey) ? (self::BG_OVERLAY_ALPHA[$overlayKey] ?? null) : null;
+            $layer = self::cssUrlLiteral($image);
+            if ($alpha !== null) {
+                $rgba = 'rgba(0,0,0,' . $alpha . ')';
+                $layer = 'linear-gradient(' . $rgba . ',' . $rgba . '),' . $layer;
+            }
+            $decl .= 'background-image:' . $layer . ';background-size:cover;background-position:center;';
+        }
+        return $decl;
     }
 
     /**
@@ -373,6 +393,11 @@ abstract class AbstractElement
     {
         return [
             ['key' => 'bg_color', 'type' => 'color', 'label' => __('blox_bg_color'), 'default' => '', 'tab' => 'style', 'group' => 'background'],
+            ['key' => 'bg_image', 'type' => 'image', 'label' => __('blox_bg_image'), 'default' => '', 'tab' => 'style', 'group' => 'background'],
+            // 遮罩叠在背景图上提升文字可读性；未设图时无意义，隐藏（渲染端同样只在有图时生效）
+            ['key' => 'bg_overlay', 'type' => 'select', 'label' => __('blox_bg_overlay'), 'default' => '', 'tab' => 'style', 'group' => 'background',
+                'options' => ['' => __('blox_bg_overlay_none'), '40' => __('blox_bg_overlay_light'), '60' => __('blox_bg_overlay_medium'), '80' => __('blox_bg_overlay_heavy')],
+                'visible_when' => ['terms' => [['bg_image', 'not_empty']]]],
         ];
     }
 

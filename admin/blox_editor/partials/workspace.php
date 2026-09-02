@@ -1116,16 +1116,8 @@ declare(strict_types=1);
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_color') ?></label>
-                                        <button type="button"
-                                                @click="openEditorColorPicker($event, 'div-bg', <?= e($jt('blox_bg_color')) ?>, selEl.data.bg_color, '#ffffff', true, value => selEl.data.bg_color = value)"
-                                                class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
-                                            <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(selEl.data.bg_color, '#ffffff')"></span>
-                                            <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(selEl.data.bg_color, <?= e($jt('blox_empty_transparent')) ?>)"></span>
-                                            <i class="ti ti-chevron-down text-sm text-gray-400"></i>
-                                        </button>
-                                    </div>
+                                    <?php // 背景（色/图/遮罩）自第 4 轮起由共享背景组经通用控件循环渲染
+                                          // （visibleCtrls 对容器只放行 group=background），此处不再重复色板 ?>
 
                                     <div class="grid grid-cols-2 gap-3">
                                         <div>

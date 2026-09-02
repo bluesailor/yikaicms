@@ -75,3 +75,22 @@ test('elements without a general group default to their first group @ci', async 
   await restoreClean(page);
   expect(errors).toEqual([]);
 });
+
+// 第 4 轮：容器不出 chips（专用样式块管布局），但共享背景组经通用循环到达——
+// 色/图控件可见，遮罩因 visible_when（未设图）隐藏。
+test('container gets the shared background group without chips @ci', async ({ page }) => {
+  const errors = observeConsole(page);
+  await openEditor(page);
+  await addTemporaryHeading(page);
+  await page.getByTestId('blox-library-open').click();
+  await page.getByTestId('blox-add-element-container').press('Enter');
+  await page.getByTestId('blox-style-tab').click();
+
+  await expect(page.getByTestId('blox-style-groups')).toBeHidden();
+  await expect(page.locator('[data-control-key="bg_color"]')).toBeVisible();
+  await expect(page.locator('[data-control-key="bg_image"]')).toBeVisible();
+  await expect(page.locator('[data-control-key="bg_overlay"]')).toHaveCount(0);
+
+  await restoreClean(page);
+  expect(errors).toEqual([]);
+});

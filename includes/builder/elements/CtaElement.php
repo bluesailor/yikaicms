@@ -5,6 +5,9 @@ declare(strict_types=1);
 
 final class CtaElement extends AbstractElement
 {
+    /** 遮罩档位 → 字面量类名（Tailwind 扫描依赖字面量；'' = 无遮罩） */
+    private const OVERLAY_MAP = ['' => '', '40' => 'bg-black/40', '60' => 'bg-black/60', '80' => 'bg-black/80'];
+
     public function type(): string { return 'cta'; }
     public function label(): string { return __('blox_el_cta'); }
     public function icon(): string { return 'speakerphone'; }
@@ -23,6 +26,10 @@ final class CtaElement extends AbstractElement
             // 背景图：设了即渲染首页同款横幅观感（深色遮罩+白字）；留空保持灰底卡片。
             ['key' => 'bg_image', 'type' => 'image', 'label' => __('blox_cta_bg_image'), 'default' => '',
                 'help' => __('blox_cta_bg_image_help')],
+            // 遮罩档位（第 4 轮）：默认 60 与既有硬编码 bg-black/60 一致，存量文档输出不变
+            ['key' => 'overlay', 'type' => 'select', 'label' => __('blox_bg_overlay'), 'default' => '60', 'tab' => 'style',
+                'options' => ['' => __('blox_bg_overlay_none'), '40' => __('blox_bg_overlay_light'), '60' => __('blox_bg_overlay_medium'), '80' => __('blox_bg_overlay_heavy')],
+                'visible_when' => ['terms' => [['bg_image', 'not_empty']]]],
             ...$this->animationControls(),
         ];
     }
@@ -48,9 +55,11 @@ final class CtaElement extends AbstractElement
         $bgImage = self::cssImageUrl($data['bg_image'] ?? null);
         if ($bgImage !== null && $bgImage !== '') {
             // 背景横幅形态：与首页 CTA 版块同一观感（深色遮罩、白字、圆角胶囊按钮）。
+            $overlayKey = is_string($data['overlay'] ?? null) ? $data['overlay'] : '60';
+            $overlayClass = self::OVERLAY_MAP[$overlayKey] ?? self::OVERLAY_MAP['60'];
             $html = '<div class="relative rounded-xl overflow-hidden my-4 bg-cover bg-center" style="background-image:'
                 . self::cssUrlLiteral($bgImage) . '"' . $this->animationAttrs($data) . '>'
-                . '<div class="absolute inset-0 bg-black/60"></div>'
+                . ($overlayClass !== '' ? '<div class="absolute inset-0 ' . $overlayClass . '"></div>' : '')
                 . '<div class="relative text-center py-16 px-6">';
             if ($title !== '') {
                 $html .= '<h3 class="text-3xl font-bold text-white mb-2">' . $title . '</h3>';
