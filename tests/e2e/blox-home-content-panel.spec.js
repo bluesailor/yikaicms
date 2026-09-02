@@ -80,6 +80,10 @@ test('CTA copy links and background remain editable without changing tabs @ci', 
 
   await page.getByTestId('blox-modified-only').click();
   await page.getByTestId('blox-home-group-media').click();
+  await performPreviewUpdate(page, () => page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    app.sel.settings.container_bg_image = app.selEl.data.bg_image;
+  }));
   await performPreviewUpdate(page, () => page.getByTestId('blox-cta-background-clear').click());
   await expect(page.getByTestId('blox-cta-background-url')).toHaveValue('');
   await expect(page.getByTestId('blox-cta-background-clear')).toBeDisabled();
@@ -91,6 +95,7 @@ test('CTA copy links and background remain editable without changing tabs @ci', 
   });
   await page.keyboard.press('Escape');
   await waitPreviewSettled(page);
+  await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).sel.settings.container_bg_image)).toBe('');
   await expect(cta).toHaveAttribute('style', /background:\s*#15803d/i);
   await expect(cta).not.toHaveAttribute('style', /background-image|url\(/i);
   await cta.evaluate(node => node.scrollIntoView({ block: 'center', behavior: 'instant' }));

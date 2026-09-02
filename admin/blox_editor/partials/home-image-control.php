@@ -22,10 +22,11 @@ declare(strict_types=1);
         </div>
         <template x-if="selEl.data.block_type === 'cta'">
             <div class="flex items-center gap-2">
-                <input type="text" x-model="selEl.data[ctrl.key]" :placeholder="homeContentPlaceholder(ctrl) || '/uploads/images/xx.jpg'" :aria-label="ctrl.label"
+                <input type="text" :value="selEl.data[ctrl.key] || ''" @input="setHomeContentImage(ctrl.key, $event.target.value, false)" @change="flushHistory(true)"
+                       :placeholder="homeContentPlaceholder(ctrl) || '/uploads/images/xx.jpg'" :aria-label="ctrl.label"
                        data-testid="blox-cta-background-url"
                        class="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1.5 text-xs bg-white">
-                <button type="button" @click="setControlValue(ctrl, '')"
+                <button type="button" @click="setHomeContentImage(ctrl.key, '')"
                         :disabled="!String(selEl.data[ctrl.key] || '').trim()"
                         data-testid="blox-cta-background-clear" title="<?= e(__('blox_clear')) ?>" aria-label="<?= e(__('blox_clear')) ?>"
                         class="h-8 w-8 shrink-0 rounded border border-gray-300 text-gray-600 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-30 inline-flex items-center justify-center">
@@ -37,7 +38,8 @@ declare(strict_types=1);
             <details class="rounded border border-gray-200 bg-gray-50">
                 <summary class="px-2.5 py-1.5 text-xs text-gray-600 cursor-pointer" x-text="homeDynamicText.imageUrl"></summary>
                 <div class="px-2 pb-2">
-                    <input type="text" x-model="selEl.data[ctrl.key]" :placeholder="homeContentPlaceholder(ctrl) || '/uploads/images/xx.jpg'" :aria-label="ctrl.label"
+                    <input type="text" :value="selEl.data[ctrl.key] || ''" @input="setHomeContentImage(ctrl.key, $event.target.value, false)" @change="flushHistory(true)"
+                           :placeholder="homeContentPlaceholder(ctrl) || '/uploads/images/xx.jpg'" :aria-label="ctrl.label"
                            data-testid="blox-about-image-url"
                            class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white">
                 </div>
