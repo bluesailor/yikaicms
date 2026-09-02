@@ -62,10 +62,7 @@ foreach ($homeChannels as &$hChannel) {
 
     if ($hChannel['type'] === 'product') {
         if ($sort === 'recommend') {
-            $hChannel['contents'] = getProducts(0, $limit, 0, ['is_recommend' => true]);
-            if (empty($hChannel['contents'])) {
-                $hChannel['contents'] = getProducts(0, $limit, 0);
-            }
+            $hChannel['contents'] = getProducts(0, $limit, 0, ['sort' => 'recommend_first']);
         } else {
             $hChannel['contents'] = getProducts(0, $limit, 0);
         }
