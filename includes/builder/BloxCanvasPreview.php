@@ -320,12 +320,16 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             if ($rendered === '') {
                 return '';
             }
+            $themeStyles = '';
+            if ($area === 'header' && preg_match_all('/<style\b[^>]*>.*?<\/style>/is', $rendered, $styleMatches) > 0) {
+                $themeStyles = implode('', $styleMatches[0]);
+            }
             if ($area === 'header') {
                 $bodyStart = stripos($rendered, '<body');
                 $bodyEnd = $bodyStart === false ? false : strpos($rendered, '>', $bodyStart);
                 $mainStart = $bodyEnd === false ? false : stripos($rendered, '<main', $bodyEnd);
                 return $bodyEnd !== false && $mainStart !== false
-                    ? substr($rendered, $bodyEnd + 1, $mainStart - $bodyEnd - 1)
+                    ? $themeStyles . substr($rendered, $bodyEnd + 1, $mainStart - $bodyEnd - 1)
                     : '';
             }
             $footerStart = stripos($rendered, '<footer');

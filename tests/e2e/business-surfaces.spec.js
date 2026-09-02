@@ -18,6 +18,9 @@ for (const view of ['front', 'legacy', 'preview']) {
         expect(response.status()).toBe(200);
         const count = view === 'legacy' ? 6 : 4; // legacy automatically appends other home channels
         await expect(surfaces(page)).toHaveCount(count);
+        if (view !== 'legacy') {
+            await expect(page.locator('#siteHeader')).toHaveCSS('background-color', 'rgb(30, 41, 59)');
+        }
         await expect.poll(() => tones(page)).toEqual(Array.from({ length: count }, (_, i) => i % 2 ? 'dark' : 'light'));
         await expect(surfaces(page).nth(1)).toHaveCSS('background-color', 'rgb(34, 39, 46)');
         await expect(surfaces(page).nth(3).locator('.business-card').first()).toHaveCSS('background-color', 'rgb(48, 55, 64)');
