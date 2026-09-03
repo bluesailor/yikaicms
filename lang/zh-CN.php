@@ -6205,4 +6205,6 @@ voltage|电压|220V',
     'blox_edit_section_background' => '编辑区块背景',
     'blox_media_sort_smallest' => '文件最小',
     'blox_media_sort_name' => '名称 A-Z',
+    'blox_media_video_preview_loading' => '正在读取视频预览',
+    'blox_media_video_preview_unavailable' => '无法生成预览，仍可选择此视频',
 ];

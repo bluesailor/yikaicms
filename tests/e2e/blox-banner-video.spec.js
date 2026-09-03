@@ -60,6 +60,8 @@ test('a banner slide can switch to video with poster-first mobile fallback @ci',
   await expect(field('video')).toBeVisible();
   await page.getByTestId('blox-banner-replace-video').click();
   await expect(page.getByRole('dialog', { name: labels.chooseMedia, exact: true })).toBeVisible();
+  await expect(page.getByTestId('blox-media-video-preview')).toHaveCount(1);
+  await expect(page.getByTestId('blox-media-video-status')).toHaveAttribute('data-status', 'error', { timeout: 12000 });
   const mediaTypes = page.getByTestId('blox-media-type-tabs');
   await expect(mediaTypes).toBeVisible();
   await mediaTypes.getByRole('tab', { name: labels.image, exact: true }).click();
@@ -103,6 +105,24 @@ test('two real local videos decode, play, and hand off between slides @local', a
 
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
+  await page.route('**/admin/media_api.php?action=list&type=video*', route => route.fulfill({
+    json: {
+      code: 0,
+      data: {
+        items: REAL_VIDEO_SAMPLES.map((sample, index) => ({
+          id: index + 1,
+          name: sample.file,
+          url: sample.url,
+          type: 'video',
+          size: fs.statSync(path.join(process.cwd(), 'uploads', 'videos', sample.file)).size,
+          created_at: 1788451200 - index,
+        })),
+        page: 1,
+        pages: 1,
+        total: 2,
+      },
+    },
+  }));
   await openBanner(page);
   const field = key => page.locator('[data-control-key="' + key + '"]');
 
@@ -131,6 +151,20 @@ test('two real local videos decode, play, and hand off between slides @local', a
   await expect.poll(() => secondVideo.evaluate(video => video.currentTime)).toBeGreaterThan(0.05);
   await expect.poll(() => firstVideo.evaluate(video => ({ paused: video.paused, currentTime: video.currentTime })))
     .toEqual({ paused: true, currentTime: 0 });
+
+  await page.locator('[data-banner-thumb]').first().locator('button').first().click();
+  await page.getByTestId('blox-banner-replace-video').click();
+  await expect(page.getByTestId('blox-media-video-preview')).toHaveCount(2);
+  const firstCard = page.getByTestId('blox-media-item').filter({ hasText: REAL_VIDEO_SAMPLES[0].file });
+  await expect(firstCard.getByTestId('blox-media-video-status')).toHaveAttribute('data-status', 'ready', { timeout: 12000 });
+  await expect.poll(() => firstCard.getByTestId('blox-media-video-preview').evaluate(video => (
+    video.videoWidth > 0 && video.videoHeight > 0 && Number.isFinite(video.duration) && video.duration > 0
+  ))).toBe(true);
+  await expect(firstCard.getByTestId('blox-media-video-duration')).toHaveText(/^\d+:\d{2}$/);
+  await expect(firstCard).toContainText(/\d+×\d+ · \d+:\d{2}/);
+  await page.screenshot({ path: testInfo.outputPath('media-video-first-frames.png') });
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('blox-media-video-preview')).toHaveCount(0);
 
   await page.screenshot({ path: testInfo.outputPath('banner-two-real-videos.png') });
   expect(writes).toEqual([]);

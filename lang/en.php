@@ -6137,4 +6137,6 @@ voltage|Voltage|220V',
     'blox_edit_section_background' => 'Edit section background',
     'blox_media_sort_smallest' => 'Smallest files',
     'blox_media_sort_name' => 'Name A-Z',
+    'blox_media_video_preview_loading' => 'Loading video preview',
+    'blox_media_video_preview_unavailable' => 'Preview unavailable; this video can still be selected',
 ];

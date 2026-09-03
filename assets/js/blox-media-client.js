@@ -88,6 +88,176 @@
         return amount.toFixed(precision).replace(/\.0$/, "") + " " + units[index];
     }
 
+    function formatDuration(value) {
+        var seconds = Number(value);
+        if (!Number.isFinite(seconds) || seconds <= 0) return "";
+        var total = Math.max(1, Math.round(seconds));
+        var hours = Math.floor(total / 3600);
+        var minutes = Math.floor((total % 3600) / 60);
+        var remainder = total % 60;
+        return hours > 0
+            ? hours + ":" + String(minutes).padStart(2, "0") + ":" + String(remainder).padStart(2, "0")
+            : minutes + ":" + String(remainder).padStart(2, "0");
+    }
+
+    function createVideoPreviewQueue(options) {
+        var config = options && typeof options === "object" ? options : {};
+        var maxConcurrent = Math.max(1, Math.min(4, Math.floor(Number(config.maxConcurrent) || 2)));
+        var timeoutMs = Math.max(1000, Math.min(30000, Math.floor(Number(config.timeoutMs) || 10000)));
+        var root = config.root || null;
+        var records = [];
+        var pending = [];
+        var active = 0;
+        var generation = 0;
+        var observer = null;
+
+        function notify(record, patch) {
+            record.state = Object.assign({}, record.state, patch || {});
+            if (record.generation === generation && typeof record.notify === "function") {
+                record.notify(Object.assign({}, record.state));
+            }
+        }
+
+        function detach(record) {
+            if (!record.listeners) return;
+            Object.keys(record.listeners).forEach(function (event) {
+                record.video.removeEventListener(event, record.listeners[event]);
+            });
+            record.listeners = null;
+            if (record.timer) {
+                global.clearTimeout(record.timer);
+                record.timer = null;
+            }
+        }
+
+        function unload(record) {
+            var video = record.video;
+            if (!video || typeof video.removeAttribute !== "function") return;
+            if (video.getAttribute("src")) {
+                video.removeAttribute("src");
+                try { if (typeof video.load === "function") video.load(); } catch (error) { /* 已在销毁，忽略解码器异常。 */ }
+            }
+        }
+
+        function finish(record, status) {
+            if (record.done || record.generation !== generation) return;
+            record.done = true;
+            detach(record);
+            notify(record, { status: status });
+            active = Math.max(0, active - 1);
+            drain();
+        }
+
+        function start(record) {
+            if (record.done || record.started || record.generation !== generation) return;
+            record.started = true;
+            active += 1;
+            notify(record, { status: "loading" });
+
+            var video = record.video;
+            record.listeners = {
+                loadedmetadata: function () {
+                    var width = Math.max(0, Number(video.videoWidth) || 0);
+                    var height = Math.max(0, Number(video.videoHeight) || 0);
+                    var duration = Number.isFinite(Number(video.duration)) ? Math.max(0, Number(video.duration)) : 0;
+                    notify(record, { width: width, height: height, duration: duration });
+                    if (duration > 0.2 && Number(video.currentTime || 0) === 0) {
+                        try { video.currentTime = Math.min(0.1, duration / 2); } catch (error) { /* 首帧仍可由 loadeddata 提供。 */ }
+                    }
+                },
+                loadeddata: function () {
+                    notify(record, {
+                        width: Math.max(0, Number(video.videoWidth) || record.state.width || 0),
+                        height: Math.max(0, Number(video.videoHeight) || record.state.height || 0),
+                        duration: Number.isFinite(Number(video.duration)) ? Math.max(0, Number(video.duration)) : record.state.duration,
+                    });
+                    finish(record, "ready");
+                },
+                error: function () { finish(record, "error"); },
+            };
+            Object.keys(record.listeners).forEach(function (event) {
+                video.addEventListener(event, record.listeners[event]);
+            });
+            record.timer = global.setTimeout(function () { finish(record, "error"); }, timeoutMs);
+
+            try {
+                video.preload = "metadata";
+                video.muted = true;
+                video.playsInline = true;
+                video.setAttribute("src", record.url);
+                if (typeof video.load === "function") video.load();
+            } catch (error) {
+                finish(record, "error");
+            }
+        }
+
+        function drain() {
+            while (active < maxConcurrent && pending.length > 0) {
+                var record = pending.shift();
+                if (record && !record.done && !record.started && record.generation === generation) start(record);
+            }
+        }
+
+        function enqueue(record) {
+            if (record.done || record.started || record.queued || record.generation !== generation) return;
+            record.queued = true;
+            pending.push(record);
+            drain();
+        }
+
+        function ensureObserver() {
+            if (observer || typeof global.IntersectionObserver !== "function") return observer;
+            observer = new global.IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (!entry.isIntersecting) return;
+                    var record = records.find(function (candidate) { return candidate.video === entry.target; });
+                    if (!record) return;
+                    observer.unobserve(entry.target);
+                    enqueue(record);
+                });
+            }, { root: root, rootMargin: "120px 0px" });
+            return observer;
+        }
+
+        function observe(video, url, notifyState) {
+            var normalizedUrl = String(url || "").trim();
+            if (!video || !normalizedUrl || typeof video.addEventListener !== "function") return false;
+            var record = {
+                video: video,
+                url: normalizedUrl,
+                notify: notifyState,
+                generation: generation,
+                state: { status: "idle", width: 0, height: 0, duration: 0 },
+                queued: false,
+                started: false,
+                done: false,
+                listeners: null,
+                timer: null,
+            };
+            records.push(record);
+            notify(record, record.state);
+            var currentObserver = ensureObserver();
+            if (currentObserver) currentObserver.observe(video);
+            else enqueue(record);
+            return true;
+        }
+
+        function reset() {
+            generation += 1;
+            if (observer) observer.disconnect();
+            observer = null;
+            records.forEach(function (record) {
+                detach(record);
+                unload(record);
+            });
+            records = [];
+            pending = [];
+            active = 0;
+        }
+
+        return { observe: observe, reset: reset };
+    }
+
     var mimeExtensions = {
         "image/jpeg": ["jpg", "jpeg"],
         "image/png": ["png"],
@@ -270,6 +440,8 @@
         list: list,
         latestRequestGuard: latestRequestGuard,
         formatBytes: formatBytes,
+        formatDuration: formatDuration,
+        createVideoPreviewQueue: createVideoPreviewQueue,
         prepareImage: prepareImage,
         upload: upload,
     };
