@@ -13,8 +13,12 @@
         var url = endpoint + "?action=list&type=" + encodeURIComponent(type) + "&page=" + encodeURIComponent(page);
         var query = String(keyword || "").trim();
         var usage = String((options && options.usage) || "").trim();
+        var allowedSorts = ["default", "newest", "oldest", "largest", "smallest", "name"];
+        var requestedSort = String((options && options.sort) || "default");
+        var sort = allowedSorts.indexOf(requestedSort) !== -1 ? requestedSort : "default";
         if (query) url += "&keyword=" + encodeURIComponent(query);
         if (usage) url += "&usage=" + encodeURIComponent(usage);
+        if (sort !== "default") url += "&sort=" + encodeURIComponent(sort);
 
         return fetch(url, { cache: "no-store" }).then(payload).then(function (result) {
             var data = result.data && typeof result.data === "object" ? result.data : {};

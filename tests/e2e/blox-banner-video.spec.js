@@ -12,6 +12,7 @@ const REAL_VIDEO_SAMPLES = [
 test('a banner slide can switch to video with poster-first mobile fallback @ci', async ({ page }, testInfo) => {
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
+  const mediaListRequests = [];
   const labels = {
     'zh-CN': { chooseMedia: '从媒体库选择', image: '图片', video: '视频', poster: '只显示封面', play: '播放视频', tooLarge: '超过站点上限' },
     en: { chooseMedia: 'Choose from media library', image: 'Images', video: 'Videos', poster: 'Show poster only', play: 'Play video', tooLarge: 'exceeding the site limit' },
@@ -23,6 +24,33 @@ test('a banner slide can switch to video with poster-first mobile fallback @ci',
     contentType: 'video/mp4',
     body: Buffer.alloc(32),
   }));
+  await page.route('**/admin/media_api.php?action=list*', route => {
+    const url = new URL(route.request().url());
+    const requestedPage = Number(url.searchParams.get('page') || 1);
+    mediaListRequests.push({
+      page: requestedPage,
+      sort: url.searchParams.get('sort') || 'default',
+      type: url.searchParams.get('type') || 'image',
+    });
+    return route.fulfill({
+      json: {
+        code: 0,
+        data: {
+          items: [{
+            id: requestedPage,
+            name: 'media-' + requestedPage,
+            url: '/uploads/videos/banner-test.mp4',
+            type: url.searchParams.get('type') || 'video',
+            size: 4096,
+            created_at: 1788451200,
+          }],
+          page: requestedPage,
+          pages: 3,
+          total: 49,
+        },
+      },
+    });
+  });
 
   await openBanner(page);
   await performPreviewUpdate(page, () => page.locator('[data-banner-thumb]').first().locator('button').first().click());
@@ -38,6 +66,10 @@ test('a banner slide can switch to video with poster-first mobile fallback @ci',
   await expect(mediaTypes.getByRole('tab', { name: labels.image, exact: true })).toHaveAttribute('aria-selected', 'true');
   await mediaTypes.getByRole('tab', { name: labels.video, exact: true }).click();
   await expect(mediaTypes.getByRole('tab', { name: labels.video, exact: true })).toHaveAttribute('aria-selected', 'true');
+  await page.getByTestId('blox-media-sort').selectOption('largest');
+  await expect.poll(() => mediaListRequests.at(-1)).toEqual({ page: 1, sort: 'largest', type: 'video' });
+  await page.getByTestId('blox-media-next').click();
+  await expect.poll(() => mediaListRequests.at(-1)).toEqual({ page: 2, sort: 'largest', type: 'video' });
   await page.locator('[x-ref="mediaDialog"] input[type="file"]').setInputFiles({
     name: 'too-large.mp4',
     mimeType: 'video/mp4',
