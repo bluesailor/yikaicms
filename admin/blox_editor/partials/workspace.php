@@ -2028,9 +2028,28 @@ declare(strict_types=1);
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_image') ?></label>
                                     <?php $imageControl = ['scope' => 'section', 'key' => "'bg_image'", 'id' => 'blox-section-background-image', 'urlId' => 'blox-section-bg-image']; require __DIR__ . '/image-control.php'; ?>
-                                    <div x-show="sel.settings.bg_image" class="mt-3 space-y-3">
+                                </div>
+                                <div class="blox-property-span-full">
+                                    <label for="blox-section-bg-video" class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_bg_video')) ?></label>
+                                    <div class="relative">
+                                        <i class="ti ti-video absolute left-2.5 top-2.5 text-sm text-gray-400" aria-hidden="true"></i>
+                                        <input id="blox-section-bg-video" type="url" x-model.trim="sel.settings.bg_video"
+                                               placeholder="/uploads/banner.mp4" data-testid="blox-section-bg-video"
+                                               class="h-9 w-full rounded border border-gray-200 bg-white pl-8 pr-8 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                        <button type="button" x-show="sel.settings.bg_video" @click="sel.settings.bg_video = ''"
+                                                title="<?= e(__('blox_clear')) ?>" aria-label="<?= e(__('blox_clear')) ?>"
+                                                class="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+                                            <i class="ti ti-x text-sm" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                    <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_bg_video_help')) ?></p>
+                                </div>
+                                <div x-show="sel.settings.bg_image || sel.settings.bg_video" class="blox-property-span-full space-y-3">
+                                    <div>
+                                        <div class="mb-1">
+                                            <label class="block text-xs font-medium text-gray-600"><?= e(__('blox_bg_overlay_color')) ?></label>
+                                        </div>
                                         <div>
-                                            <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
                                             <button type="button"
                                                     @click="openEditorColorPicker($event, 'section-overlay', <?= e($jt('blox_bg_overlay_color')) ?>, sel.settings.bg_overlay_color, '#000000', true, value => sel.settings.bg_overlay_color = value)"
                                                     class="flex h-9 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
@@ -2047,7 +2066,7 @@ declare(strict_types=1);
                                                :value="sel.settings.bg_overlay_opacity ?? 0"
                                                @input="sel.settings.bg_overlay_opacity = parseInt($event.target.value, 10)"
                                                data-testid="blox-section-overlay-opacity">
-                                        <div>
+                                        <div x-show="sel.settings.bg_image">
                                             <label class="block text-[10px] text-gray-400 mb-1.5"><?= e(__('blox_bg_focal_point')) ?></label>
                                             <div class="grid grid-cols-3 gap-1 w-24">
                                                 <template x-for="position in bgPositionOptions" :key="position.key">

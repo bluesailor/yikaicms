@@ -364,6 +364,11 @@ final class BloxDocumentPipeline
             if (array_key_exists('bg_image', $settings)) {
                 $settings['bg_image'] = AbstractElement::cssImageUrl($settings['bg_image']) ?? '';
             }
+            if (array_key_exists('bg_video', $settings)) {
+                $settings['bg_video'] = AbstractElement::backgroundVideoUrl([
+                    'bg_video' => $settings['bg_video'],
+                ]);
+            }
             if (array_key_exists('container_bg_image', $settings)) {
                 $settings['container_bg_image'] = AbstractElement::cssImageUrl($settings['container_bg_image']) ?? '';
             }

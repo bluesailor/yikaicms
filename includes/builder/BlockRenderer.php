@@ -156,6 +156,7 @@ final class BlockRenderer
             $style = '';
             $bgColor = AbstractElement::cssColor($settings['bg_color'] ?? null);
             $bgImage = AbstractElement::cssImageUrl($settings['bg_image'] ?? null);
+            $bgVideo = AbstractElement::backgroundVideoUrl(['bg_video' => $settings['bg_video'] ?? '']);
             if ($bgColor !== null) {
                 $bgOpacity = isset($settings['bg_opacity']) ? (int) $settings['bg_opacity'] : 100;
                 if ($bgOpacity < 100 && preg_match('/^#([0-9a-fA-F]{6})$/', $bgColor, $m)) {
@@ -206,7 +207,8 @@ final class BlockRenderer
                 $overlayColor = $bgColor;
                 $overlayOpacity = max(0, min(100, (int) $settings['bg_opacity']));
             }
-            $hasOverlay = $bgImage !== null && $overlayColor !== null && $overlayOpacity > 0;
+            $hasBackgroundMedia = $bgImage !== null || $bgVideo !== '';
+            $hasOverlay = $hasBackgroundMedia && $overlayColor !== null && $overlayOpacity > 0;
             $styleAttr = $style ? ' style="' . htmlspecialchars($style, ENT_QUOTES) . '"' : '';
 
             $columns = $section['columns'] ?? [];
@@ -259,11 +261,18 @@ final class BlockRenderer
                 $sectionLayoutClass = ' flex '
                     . (self::SECTION_V_ALIGN_MAP[$settings['content_v_align'] ?? 'center'] ?? self::SECTION_V_ALIGN_MAP['center']);
             }
-            if ($hasOverlay) {
+            if ($hasOverlay || $bgVideo !== '') {
                 $sectionLayoutClass .= ' relative overflow-hidden';
             }
             $html .= '<section class="' . $padding . $sectionLayoutClass . $secHideCls . $anchorClass . '"'
                 . $anchorAttr . $styleAttr . $editAttr . $secHideAttr . '>';
+            if ($bgVideo !== '') {
+                $posterAttr = $bgImage !== null
+                    ? ' poster="' . htmlspecialchars($bgImage, ENT_QUOTES) . '"'
+                    : '';
+                $html .= '<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata"'
+                    . $posterAttr . ' src="' . htmlspecialchars($bgVideo, ENT_QUOTES) . '"></video></div>';
+            }
             if ($hasOverlay) {
                 $overlayStyle = 'background-color:' . $overlayColor . ';opacity:' . round($overlayOpacity / 100, 2) . ';';
                 $html .= '<div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="'
@@ -277,7 +286,7 @@ final class BlockRenderer
             if ($minHeight !== '') {
                 $innerCls .= ' w-full';
             }
-            if ($hasOverlay) {
+            if ($hasOverlay || $bgVideo !== '') {
                 $innerCls .= ' relative z-10';
             }
             $innerStyle = '';
