@@ -57,7 +57,7 @@ final class ThemeInstaller
      *     backup:string
      * }
      */
-    public function install(string $zipPath, string $expectedSlug = ''): array
+    public function install(string $zipPath, string $expectedSlug = '', string $expectedVersion = ''): array
     {
         if (!class_exists('ZipArchive')) {
             return $this->result(false, 'no_zip');
@@ -76,6 +76,7 @@ final class ThemeInstaller
 
         $slug = $inspection['slug'];
         $name = $inspection['name'];
+        $version = $inspection['version'];
         $warnings = $inspection['warnings'];
         if ($slug === 'default') {
             $zip->close();
@@ -84,6 +85,10 @@ final class ThemeInstaller
         if ($expectedSlug !== '' && !hash_equals($expectedSlug, $slug)) {
             $zip->close();
             return $this->result(false, 'slug_mismatch', '', $slug, $name, $warnings);
+        }
+        if ($expectedVersion !== '' && !hash_equals($expectedVersion, $version)) {
+            $zip->close();
+            return $this->result(false, 'version_mismatch', '', $slug, $name, $warnings);
         }
 
         $token = date('Ymd-His') . '-' . bin2hex(random_bytes(5));
@@ -196,7 +201,7 @@ final class ThemeInstaller
     }
 
     /**
-     * @return array{ok:bool,code:string,detail:string,slug:string,name:string,warnings:list<string>}
+     * @return array{ok:bool,code:string,detail:string,slug:string,name:string,version:string,warnings:list<string>}
      */
     private function inspectArchive(ZipArchive $zip): array
     {
@@ -207,17 +212,17 @@ final class ThemeInstaller
                 continue;
             }
             if ($slug !== '' && $slug !== $match[1]) {
-                return ['ok' => false, 'code' => 'invalid', 'detail' => 'ZIP contains multiple theme roots', 'slug' => '', 'name' => '', 'warnings' => []];
+                return ['ok' => false, 'code' => 'invalid', 'detail' => 'ZIP contains multiple theme roots', 'slug' => '', 'name' => '', 'version' => '', 'warnings' => []];
             }
             $slug = $match[1];
         }
         if ($slug === '') {
-            return ['ok' => false, 'code' => 'no_json', 'detail' => '', 'slug' => '', 'name' => '', 'warnings' => []];
+            return ['ok' => false, 'code' => 'no_json', 'detail' => '', 'slug' => '', 'name' => '', 'version' => '', 'warnings' => []];
         }
 
         $meta = json_decode((string) $zip->getFromName($slug . '/theme.json'), true);
         if (!is_array($meta) || empty($meta['name'])) {
-            return ['ok' => false, 'code' => 'bad_json', 'detail' => '', 'slug' => '', 'name' => '', 'warnings' => []];
+            return ['ok' => false, 'code' => 'bad_json', 'detail' => '', 'slug' => '', 'name' => '', 'version' => '', 'warnings' => []];
         }
         $validation = ThemeValidator::validateMeta($meta, $slug);
         foreach (ThemeValidator::REQUIRED_FILES as $requiredFile) {
@@ -232,17 +237,18 @@ final class ThemeInstaller
                 'detail' => implode('; ', $validation['errors']),
                 'slug' => $slug,
                 'name' => (string) $meta['name'],
+                'version' => (string) ($meta['version'] ?? ''),
                 'warnings' => $validation['warnings'],
             ];
         }
 
         $unsafe = zipUnsafeEntry($zip);
         if ($unsafe !== null) {
-            return ['ok' => false, 'code' => 'unsafe', 'detail' => $unsafe, 'slug' => $slug, 'name' => (string) $meta['name'], 'warnings' => $validation['warnings']];
+            return ['ok' => false, 'code' => 'unsafe', 'detail' => $unsafe, 'slug' => $slug, 'name' => (string) $meta['name'], 'version' => (string) ($meta['version'] ?? ''), 'warnings' => $validation['warnings']];
         }
         $resourceViolation = zipResourceViolation($zip);
         if ($resourceViolation !== null) {
-            return ['ok' => false, 'code' => 'resource', 'detail' => $resourceViolation, 'slug' => $slug, 'name' => (string) $meta['name'], 'warnings' => $validation['warnings']];
+            return ['ok' => false, 'code' => 'resource', 'detail' => $resourceViolation, 'slug' => $slug, 'name' => (string) $meta['name'], 'version' => (string) ($meta['version'] ?? ''), 'warnings' => $validation['warnings']];
         }
 
         return [
@@ -251,6 +257,7 @@ final class ThemeInstaller
             'detail' => '',
             'slug' => $slug,
             'name' => (string) $meta['name'],
+            'version' => (string) ($meta['version'] ?? ''),
             'warnings' => $validation['warnings'],
         ];
     }

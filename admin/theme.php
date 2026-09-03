@@ -42,6 +42,7 @@ function themeInstallMessage(array $result): string
         'bad_json' => 'theme_err_badjson',
         'unsafe' => 'theme_err_unsafe',
         'slug_mismatch' => 'theme_err_slug_mismatch',
+        'version_mismatch' => 'theme_err_version_mismatch',
         'default_protected' => 'theme_err_default_protected',
         'staging_create', 'backup_create' => 'theme_err_staging',
         'extract' => 'theme_err_extract',
@@ -99,16 +100,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
         exit;
     }
 
+    $remoteVersion = (string) ($item['version'] ?? '');
+    $localVersions = ThemeMarket::localVersions(ROOT_PATH . '/themes');
+    if (!ThemeMarket::isRemoteVersionNewer($localVersions, $slug, $remoteVersion)) {
+        adminLog('theme', 'market_install_blocked', 'Theme marketplace downgrade blocked: ' . $slug
+            . ' local=' . ($localVersions[$slug] ?? 'unknown') . ' remote=' . $remoteVersion);
+        echo json_encode(['code' => 1, 'msg' => __('theme_err_not_newer')]);
+        exit;
+    }
+
     // 下载到临时文件
     $tmpZip = tempnam(sys_get_temp_dir(), 'ykthm');
     if (!is_string($tmpZip)) {
         echo json_encode(['code' => 1, 'msg' => __('theme_err_staging')]);
         exit;
     }
-    $body = ThemeMarket::downloadPackage((string) $item['download_url']);
-    if ($body === null || file_put_contents($tmpZip, $body) === false) {
+    $download = ThemeMarket::downloadPackageToFile((string) $item['download_url'], $tmpZip);
+    if (!$download['ok']) {
         @unlink($tmpZip);
-        echo json_encode(['code' => 1, 'msg' => __('theme_err_download')]);
+        $downloadMessage = $download['code'] === 'too_large'
+            ? __('theme_err_download_too_large')
+            : __('theme_err_download');
+        echo json_encode(['code' => 1, 'msg' => $downloadMessage]);
         exit;
     }
 
@@ -123,18 +136,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 
     // 来源：RSA-SHA256 验签（规范串 slug|version|sha256:hash，公钥同在线升级）
     require_once ROOT_PATH . '/includes/License.php';
-    $sig = base64_decode((string) ($item['sig'] ?? ''), true);
-    $canonical = $slug . '|' . ($item['version'] ?? '') . '|sha256:' . $expected;
-    if ($sig === false || $sig === ''
-        || !function_exists('openssl_verify')
-        || openssl_verify($canonical, $sig, license_pubkey(), OPENSSL_ALGO_SHA256) !== 1) {
+    if (!ThemeMarket::verifyPackageSignature(
+        $slug,
+        $remoteVersion,
+        'sha256:' . $expected,
+        (string) ($item['sig'] ?? ''),
+        license_pubkey()
+    )) {
         @unlink($tmpZip);
         echo json_encode(['code' => 1, 'msg' => __('theme_err_sig')]);
         exit;
     }
 
     $installer = new ThemeInstaller(ROOT_PATH . '/themes', ROOT_PATH . '/storage');
-    $installResult = $installer->install($tmpZip, $slug);
+    $installResult = $installer->install($tmpZip, $slug, $remoteVersion);
     @unlink($tmpZip);
     $msg = themeInstallMessage($installResult);
     if ($installResult['ok']) {
