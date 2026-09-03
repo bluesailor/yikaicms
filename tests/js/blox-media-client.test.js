@@ -72,6 +72,96 @@ test("formatBytes keeps upload metrics compact and readable", function () {
     assert.equal(global.BloxMediaClient.formatBytes(5 * 1024 * 1024), "5 MB");
 });
 
+test("formatDuration keeps short and long video labels compact", function () {
+    assert.equal(global.BloxMediaClient.formatDuration(0), "");
+    assert.equal(global.BloxMediaClient.formatDuration(8.4), "0:08");
+    assert.equal(global.BloxMediaClient.formatDuration(75), "1:15");
+    assert.equal(global.BloxMediaClient.formatDuration(3672), "1:01:12");
+});
+
+test("video previews start only when visible and keep bounded concurrency", function () {
+    const originalObserver = global.IntersectionObserver;
+    let observerCallback = null;
+    let disconnected = false;
+    const observed = [];
+    global.IntersectionObserver = function (callback) {
+        observerCallback = callback;
+        this.observe = function (video) { observed.push(video); };
+        this.unobserve = function () {};
+        this.disconnect = function () { disconnected = true; };
+    };
+
+    function video() {
+        const listeners = {};
+        const attributes = {};
+        return {
+            videoWidth: 0,
+            videoHeight: 0,
+            duration: NaN,
+            currentTime: 0,
+            loadCalls: 0,
+            addEventListener: function (event, callback) { listeners[event] = callback; },
+            removeEventListener: function (event, callback) {
+                if (listeners[event] === callback) delete listeners[event];
+            },
+            setAttribute: function (key, value) { attributes[key] = value; },
+            getAttribute: function (key) { return attributes[key] || null; },
+            removeAttribute: function (key) { delete attributes[key]; },
+            load: function () { this.loadCalls += 1; },
+            emit: function (event) { if (listeners[event]) listeners[event](); },
+        };
+    }
+
+    const first = video();
+    const second = video();
+    const third = video();
+    const states = [[], [], []];
+    const queue = global.BloxMediaClient.createVideoPreviewQueue({ maxConcurrent: 2 });
+
+    try {
+        queue.observe(first, "/uploads/videos/first.mp4", state => states[0].push(state));
+        queue.observe(second, "/uploads/videos/second.mp4", state => states[1].push(state));
+        queue.observe(third, "/uploads/videos/third.mp4", state => states[2].push(state));
+        assert.equal(observed.length, 3);
+        assert.equal(first.loadCalls + second.loadCalls + third.loadCalls, 0);
+
+        observerCallback(observed.map(target => ({ target, isIntersecting: true })));
+        assert.equal(first.loadCalls, 1);
+        assert.equal(second.loadCalls, 1);
+        assert.equal(third.loadCalls, 0);
+
+        first.videoWidth = 1920;
+        first.videoHeight = 1080;
+        first.duration = 8.4;
+        first.emit("loadedmetadata");
+        assert.equal(first.currentTime, 0.1);
+        first.emit("loadeddata");
+        assert.equal(states[0].at(-1).status, "ready");
+        assert.deepEqual(
+            { width: states[0].at(-1).width, height: states[0].at(-1).height, duration: states[0].at(-1).duration },
+            { width: 1920, height: 1080, duration: 8.4 }
+        );
+        assert.equal(third.loadCalls, 1);
+
+        second.emit("error");
+        assert.equal(states[1].at(-1).status, "error");
+        third.videoWidth = 1280;
+        third.videoHeight = 720;
+        third.duration = 65;
+        third.emit("loadedmetadata");
+        third.emit("loadeddata");
+        assert.equal(states[2].at(-1).status, "ready");
+    } finally {
+        queue.reset();
+        global.IntersectionObserver = originalObserver;
+    }
+
+    assert.equal(disconnected, true);
+    assert.equal(first.getAttribute("src"), null);
+    assert.equal(second.getAttribute("src"), null);
+    assert.equal(third.getAttribute("src"), null);
+});
+
 test("upload keeps FormData, adds CSRF, and returns only a valid URL as success", async function () {
     nextResponse = { code: 0, data: { url: "/uploads/logo.png" } };
     const result = await global.BloxMediaClient.upload("/media", new Blob(["x"]), { csrf: "token-1" });

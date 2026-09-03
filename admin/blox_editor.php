@@ -1514,6 +1514,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'iconHintMany' => __('blox_icon_hint_many'),
                 'iconHintCount' => __('blox_icon_hint_count'),
                 'mediaLoadFailed' => __('blox_media_load_failed'),
+                'mediaVideoPreviewLoading' => __('blox_media_video_preview_loading'),
+                'mediaVideoPreviewUnavailable' => __('blox_media_video_preview_unavailable'),
                 'mediaSourceLocal' => __('official_media_source_local'),
                 'mediaSourceOfficial' => __('official_media_source_official'),
                 'officialMediaPreview' => __('official_media_preview'),
@@ -3090,6 +3092,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             mediaUsage: "",
             mediaPreferredMinWidth: 0,
             mediaRequestGuard: window.BloxMediaClient.latestRequestGuard(),
+            _mediaVideoPreviewQueue: null,
             _mediaTarget: null,   // 选中回调：拿到 url 写进哪个字段
             _mediaTargets: null,
             _mediaImageUsage: "",
@@ -3119,6 +3122,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             closeMedia() {
                 if (!this.mediaOpen) return;
                 var root = this.$refs.mediaDialog;
+                this.resetMediaVideoPreviews();
                 this.mediaOpen = false;
                 this._mediaTarget = null;
                 this._mediaTargets = null;
@@ -3157,6 +3161,8 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             loadMedia(page) {
                 var self = this;
+                this.resetMediaVideoPreviews();
+                this.mediaItems = [];
                 var requestId = this.mediaRequestGuard.begin();
                 this.mediaLoading = true;
                 this.mediaPage = page;
@@ -3202,13 +3208,45 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             mediaDimensions(item) {
-                var width = Math.max(0, Number((item && item.width) || 0));
-                var height = Math.max(0, Number((item && item.height) || 0));
+                var preview = this.mediaVideoPreview(item);
+                var width = Math.max(0, Number((preview && preview.width) || (item && item.width) || 0));
+                var height = Math.max(0, Number((preview && preview.height) || (item && item.height) || 0));
                 var bytes = Math.max(0, Number((item && item.size) || 0));
                 var values = [];
                 if (width > 0 && height > 0) values.push(Math.round(width) + "×" + Math.round(height));
+                if (preview && preview.duration > 0) values.push(window.BloxMediaClient.formatDuration(preview.duration));
                 if (bytes > 0) values.push(window.BloxMediaClient.formatBytes(bytes));
                 return values.join(" · ");
+            },
+
+            mediaVideoPreview(item) {
+                return item && item._videoPreview && typeof item._videoPreview === "object"
+                    ? item._videoPreview
+                    : { status: "idle", width: 0, height: 0, duration: 0 };
+            },
+
+            mediaVideoStatusText(item) {
+                return this.mediaVideoPreview(item).status === "error"
+                    ? this.uiText.mediaVideoPreviewUnavailable
+                    : this.uiText.mediaVideoPreviewLoading;
+            },
+
+            registerMediaVideoPreview(video, item) {
+                if (!this.mediaOpen || this.mediaType !== "video" || !video || !item) return;
+                if (!this._mediaVideoPreviewQueue) {
+                    this._mediaVideoPreviewQueue = window.BloxMediaClient.createVideoPreviewQueue({
+                        root: this.$refs.mediaScroll,
+                        maxConcurrent: 2,
+                    });
+                }
+                this._mediaVideoPreviewQueue.observe(video, item.url, function (state) {
+                    item._videoPreview = state;
+                });
+            },
+
+            resetMediaVideoPreviews() {
+                if (this._mediaVideoPreviewQueue) this._mediaVideoPreviewQueue.reset();
+                this._mediaVideoPreviewQueue = null;
             },
 
             mediaDate(item) {

@@ -530,7 +530,7 @@ declare(strict_types=1);
                  data-testid="blox-media-wide-background-hint">
                 <i class="ti ti-photo mr-1" aria-hidden="true"></i><?= e(__('blox_media_wide_background_hint')) ?>
             </div>
-            <div class="h-[400px] overflow-y-auto blox-scroll p-3">
+            <div class="h-[400px] overflow-y-auto blox-scroll p-3" x-ref="mediaScroll">
                 <p x-show="mediaLoading" class="text-center text-gray-400 text-sm py-12"><?= __('theme_market_loading') ?></p>
                 <p x-show="!mediaLoading && mediaItems.length === 0" class="text-center text-gray-400 text-sm py-12"
                    x-text="mediaSource === 'official' ? uiText.officialMediaEmpty : (mediaType === 'video' ? <?= e($jt('blox_no_videos_hint')) ?> : <?= e($jt('blox_no_images_hint')) ?>)">
@@ -547,8 +547,25 @@ declare(strict_types=1);
                                     <img :src="it.url" class="w-full h-full object-contain" loading="lazy" alt="">
                                 </template>
                                 <template x-if="mediaType === 'video'">
-                                    <span class="flex h-full w-full items-center justify-center bg-gray-950 text-gray-300">
-                                        <i class="ti ti-video text-3xl" aria-hidden="true"></i>
+                                    <span class="relative flex h-full w-full items-center justify-center overflow-hidden bg-gray-950 text-gray-300">
+                                        <video x-init="registerMediaVideoPreview($el, it)"
+                                               data-testid="blox-media-video-preview"
+                                               class="h-full w-full object-contain transition-opacity duration-200"
+                                               :class="mediaVideoPreview(it).status === 'ready' ? 'opacity-100' : 'opacity-0'"
+                                               preload="none" muted playsinline aria-hidden="true"></video>
+                                        <span data-testid="blox-media-video-status"
+                                              :data-status="mediaVideoPreview(it).status"
+                                              x-show="mediaVideoPreview(it).status !== 'ready'"
+                                              class="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-center text-[10px] leading-4 text-gray-300">
+                                            <i class="ti text-2xl"
+                                               :class="mediaVideoPreview(it).status === 'error' ? 'ti-alert-circle text-amber-300' : 'ti-loader-2 animate-spin'"
+                                               aria-hidden="true"></i>
+                                            <span x-text="mediaVideoStatusText(it)"></span>
+                                        </span>
+                                        <span x-show="mediaVideoPreview(it).status === 'ready' && mediaVideoPreview(it).duration > 0"
+                                              data-testid="blox-media-video-duration"
+                                              class="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-[9px] tabular-nums text-white"
+                                              x-text="window.BloxMediaClient.formatDuration(mediaVideoPreview(it).duration)"></span>
                                     </span>
                                 </template>
                             </span>

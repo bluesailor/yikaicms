@@ -6278,4 +6278,6 @@ voltage|電圧|220V',
     'blox_edit_section_background' => 'セクション背景を編集',
     'blox_media_sort_smallest' => 'ファイルサイズが小さい順',
     'blox_media_sort_name' => '名前 A-Z',
+    'blox_media_video_preview_loading' => '動画プレビューを読み込み中',
+    'blox_media_video_preview_unavailable' => 'プレビューできませんが、この動画は選択できます',
 ];
