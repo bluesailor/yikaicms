@@ -43,6 +43,7 @@ final class BloxSecurityBoundaryTest extends TestCase
                 'container_bg_overlay_opacity' => -50,
                 'bg_image' => 'javascript:alert(1)',
                 'bg_video' => 'javascript:alert(1)',
+                'text_tone' => 'light;position:fixed',
                 'bg_position' => 'center;position:fixed',
                 'min_height' => '10000px',
                 'content_v_align' => 'end;position:fixed',
@@ -72,6 +73,7 @@ final class BloxSecurityBoundaryTest extends TestCase
         self::assertSame(0, $section['settings']['container_bg_overlay_opacity']);
         self::assertSame('', $section['settings']['bg_image']);
         self::assertSame('', $section['settings']['bg_video']);
+        self::assertSame('auto', $section['settings']['text_tone']);
         self::assertSame('', $section['settings']['bg_position']);
         self::assertSame('', $section['settings']['min_height']);
         self::assertSame('', $section['settings']['content_v_align']);

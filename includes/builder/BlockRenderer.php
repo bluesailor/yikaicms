@@ -76,6 +76,59 @@ final class BlockRenderer
         'start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end',
     ];
 
+    private static function backgroundTextTone(
+        array $settings,
+        ?string $bgColor,
+        ?string $bgImage,
+        string $bgVideo,
+        string $bgGradient,
+        ?string $overlayColor,
+        int $overlayOpacity
+    ): string {
+        $requested = in_array(($settings['text_tone'] ?? null), ['auto', 'light', 'dark'], true)
+            ? (string) $settings['text_tone']
+            : 'auto';
+        if ($requested !== 'auto') {
+            return $requested;
+        }
+
+        if (($bgImage !== null || $bgVideo !== '') && $overlayColor !== null && $overlayOpacity >= 35) {
+            $overlayTone = self::textToneForColor($overlayColor);
+            if ($overlayTone !== '') {
+                return $overlayTone;
+            }
+        }
+        if ($bgImage !== null || $bgVideo !== '' || $bgGradient !== '') {
+            return 'light';
+        }
+
+        return $bgColor !== null ? self::textToneForColor($bgColor) : '';
+    }
+
+    private static function textToneForColor(string $color): string
+    {
+        $red = $green = $blue = null;
+        if (preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6})$/i', $color, $matches) === 1) {
+            $hex = $matches[1];
+            if (strlen($hex) === 3) {
+                $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+            }
+            $red = hexdec(substr($hex, 0, 2));
+            $green = hexdec(substr($hex, 2, 2));
+            $blue = hexdec(substr($hex, 4, 2));
+        } elseif (preg_match('/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i', $color, $matches) === 1) {
+            $red = min(255, (int) $matches[1]);
+            $green = min(255, (int) $matches[2]);
+            $blue = min(255, (int) $matches[3]);
+        }
+        if ($red === null || $green === null || $blue === null) {
+            return '';
+        }
+
+        $brightness = ($red * 299 + $green * 587 + $blue * 114) / 1000;
+        return $brightness > 150 ? 'dark' : 'light';
+    }
+
     /**
      * 编辑定位上下文：>0 时输出编辑器内部索引与持久 section id。
      * 前台正文必须通过 renderFrontEditableContentBody() 短暂开启，避免页头/页尾误绑定到正文编辑器。
@@ -209,6 +262,16 @@ final class BlockRenderer
             }
             $hasBackgroundMedia = $bgImage !== null || $bgVideo !== '';
             $hasOverlay = $hasBackgroundMedia && $overlayColor !== null && $overlayOpacity > 0;
+            $textTone = self::backgroundTextTone(
+                $settings,
+                $bgColor,
+                $bgImage,
+                $bgVideo,
+                $bgGrad,
+                $hasOverlay ? $overlayColor : null,
+                $overlayOpacity
+            );
+            $textToneAttr = $textTone !== '' ? ' data-blox-text-tone="' . $textTone . '"' : '';
             $styleAttr = $style ? ' style="' . htmlspecialchars($style, ENT_QUOTES) . '"' : '';
 
             $columns = $section['columns'] ?? [];
@@ -265,7 +328,7 @@ final class BlockRenderer
                 $sectionLayoutClass .= ' relative overflow-hidden';
             }
             $html .= '<section class="' . $padding . $sectionLayoutClass . $secHideCls . $anchorClass . '"'
-                . $anchorAttr . $styleAttr . $editAttr . $secHideAttr . '>';
+                . $anchorAttr . $textToneAttr . $styleAttr . $editAttr . $secHideAttr . '>';
             if ($bgVideo !== '') {
                 BloxAssetCollector::addScript('/assets/js/blox-background-video.js');
                 $mobileVideoMode = ($settings['bg_video_mobile_mode'] ?? 'poster') === 'video' ? 'video' : 'poster';
