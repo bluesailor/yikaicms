@@ -38,6 +38,17 @@ repo_git() {
     "$GIT_BIN" -C "$GIT_ROOT" "$@"
 }
 
+create_upgrade_zip() {
+    local source_dir="$1"
+    local output_zip="$2"
+    local entry_prefix="${3:-}"
+    if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
+        source_dir="$(wslpath -w "$source_dir")"
+        output_zip="$(wslpath -w "$output_zip")"
+    fi
+    php tools/create-upgrade-zip.php "$source_dir" "$output_zip" "$entry_prefix"
+}
+
 # 正式构建只能来自可追溯的干净提交。未提交和未跟踪文件都会进入当前工作树包，
 # 因而不能仅在 provenance 中标记 source_dirty 后继续生成发行物。
 WORKTREE_STATUS="$(repo_git status --porcelain --untracked-files=normal)"
@@ -415,7 +426,7 @@ ZIP_FILE="$RELEASE_DIR/${PACKAGE_NAME}.zip"
 rm -f "$ZIP_FILE"
 
 # ZIP 条目顺序是分批升级协议的一部分：依赖必须先于调用者，升级入口和版本号最后切换。
-php tools/create-upgrade-zip.php "$PKG_DIR" "$ZIP_FILE" "$PACKAGE_NAME/"
+create_upgrade_zip "$PKG_DIR" "$ZIP_FILE" "$PACKAGE_NAME/"
 
 # ---- 生成校验和 ----
 echo "[5/5] 生成 SHA256 校验和..."
@@ -569,7 +580,7 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
 
         DELTA_ZIP="$RELEASE_DIR/delta-${base}-to-${VERSION}.zip"
         rm -f "$DELTA_ZIP"
-        php tools/create-upgrade-zip.php "$DELTA_DIR" "$DELTA_ZIP"
+        create_upgrade_zip "$DELTA_DIR" "$DELTA_ZIP"
 
         # 必须用客户端同样的 ZipArchive 语义复验。Windows Compress-Archive 会把条目写成
         # payload\...，哈希虽正确，但升级器按 payload/ 匹配时会得到 0 个文件。
