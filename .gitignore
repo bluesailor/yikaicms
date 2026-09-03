@@ -165,6 +165,6 @@ plugins/*/admin-local.php
 storage/_sl/
 
 # 运行时安装的市场主题（admin/theme.php 落地到 themes/<slug>/，源在 marketplace/themes/）
-# 只跟踪内置 default；其余主题目录不进仓、不进包（build.sh 采集含 --others）。
+# 源码树只跟踪 default；build.sh 会从市场源码显式复制预装主题，不能采集本地安装副本。
 /themes/*
 !/themes/default/

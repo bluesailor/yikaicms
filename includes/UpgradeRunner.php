@@ -201,6 +201,13 @@ function uo_is_protected(string $rel): bool
     $rel = trim(str_replace('\\', '/', $rel), '/');
     if ($rel === '') return false;
 
+    // default 是核心回退主题，随 CMS 更新；其余主题安装后归站点所有，只能通过
+    // 主题市场的事务化安装器升级，完整 CMS 包也不得覆盖客户修改。
+    if (preg_match('#^themes/([^/]+)(?:/|$)#D', $rel, $matches) === 1
+        && ($matches[1] ?? '') !== 'default') {
+        return true;
+    }
+
     $parts = explode('/', $rel);
     for ($i = count($parts); $i > 0; $i--) {
         if (in_array(implode('/', array_slice($parts, 0, $i)), UO_EXCLUDES, true)) {
