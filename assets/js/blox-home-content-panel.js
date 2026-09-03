@@ -3,7 +3,6 @@
 
     var contentKeys = ["override_title", "override_content", "override_description", "override_button_text", "override_button_url"];
     var imageKeys = ["override_image", "override_tag_title", "override_tag_description"];
-    var backgroundKeys = ["bg_image", "bg_color", "bg_overlay_color", "bg_overlay_opacity", "text_light"];
     var inheritedKeys = ["override_title", "override_content", "override_image", "override_tag_title", "override_tag_description", "override_button_text", "override_button_url"];
 
     function supports(node) {
@@ -12,13 +11,12 @@
 
     function groupFor(key) {
         if (contentKeys.includes(key)) return "content";
-        if (imageKeys.includes(key) || backgroundKeys.includes(key)) return "media";
+        if (imageKeys.includes(key)) return "media";
         if (["override_layout", "override_breakpoint", "override_ratio"].includes(key) || key.startsWith("title_decor_")) return "layout";
         return "more";
     }
 
     function tabFor(node, control) {
-        if (supports(node) && node.data.block_type === "cta" && backgroundKeys.includes(control.key)) return "content";
         return control.tab || (control.type === "color" ? "style" : "content");
     }
 
@@ -71,6 +69,14 @@
             this.homeContentGroup = group;
             this.selectedHomeField = "";
             this.selectedHomeColumn = "";
+        },
+        openHomeContentGroup(group) {
+            if (group === "media" && supports(this.selEl) && this.selEl.data.block_type === "cta") {
+                this.selectSection(this.selectedSi);
+                this.panelTab = "style";
+                return;
+            }
+            this.setHomeContentGroup(group);
         },
         replaceHomeContentImage(key) {
             var node = this.selEl;

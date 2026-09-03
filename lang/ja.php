@@ -6275,6 +6275,7 @@ voltage|電圧|220V',
     'blox_media_sort_newest' => '新しい順',
     'blox_media_sort_oldest' => '古い順',
     'blox_media_sort_largest' => 'ファイルサイズが大きい順',
+    'blox_edit_section_background' => 'セクション背景を編集',
     'blox_media_sort_smallest' => 'ファイルサイズが小さい順',
     'blox_media_sort_name' => '名前 A-Z',
 ];

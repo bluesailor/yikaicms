@@ -128,7 +128,7 @@ declare(strict_types=1);
                         <i class="ti ti-adjustments text-sm shrink-0"></i>
                         <span class="truncate" x-text="panelTitle()"></span>
                     </span>
-                    <?php // 元素设置里给「回到区块」出口，否则选了元素就没法改区块本身 ?>
+                    <?php // 元素背景统一归所在区块；从任意元素可一步进入区块样式。 ?>
                     <button type="button"
                             x-show="selEl && selEl.type === 'home-banner-item'"
                             @click="selectElement(selectedSi, selectedCi, selectedEi)"
@@ -136,9 +136,11 @@ declare(strict_types=1);
                             class="text-[10px] text-amber-600 hover:text-amber-700 inline-flex items-center gap-0.5 shrink-0">
                         <i class="ti ti-arrow-left text-xs"></i><?= __('blox_banner_overall_settings') ?>
                     </button>
-                    <button type="button" x-show="selEl && selEl.type !== 'home-banner-item'" @click="selectSection(selectedSi)"
-                            class="text-[10px] text-gray-400 hover:text-blue-500 inline-flex items-center gap-0.5 shrink-0">
-                        <i class="ti ti-arrow-back-up text-xs"></i><?= __('blox_section_label') ?>
+                    <button type="button" x-show="selEl && selEl.type !== 'home-banner-item'"
+                            @click="selectSection(selectedSi); panelTab = 'style'"
+                            data-testid="blox-edit-section-background"
+                            class="text-[10px] text-gray-500 hover:text-blue-600 inline-flex items-center gap-1 shrink-0">
+                        <i class="ti ti-photo-video text-xs"></i><?= e(__('blox_edit_section_background')) ?>
                     </button>
                     <button type="button" @click="libOpen = true" data-testid="blox-library-open"
                             class="ml-auto shrink-0 text-xs font-medium text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2.5 py-1 inline-flex items-center gap-1">

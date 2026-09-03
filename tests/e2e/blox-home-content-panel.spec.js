@@ -48,7 +48,7 @@ test('about starts with content and image edits preserve text and undo @ci', asy
   expect(errors).toEqual([]);
 });
 
-test('CTA copy links and background remain editable without changing tabs @ci', async ({ page }, testInfo) => {
+test('CTA copy stays local while its background uses the generic section editor @ci', async ({ page }, testInfo) => {
   const errors = observeConsole(page), writes = observeUnsafeWrites(page);
   await openBlock(page, 'cta');
   await performPreviewUpdate(page, () => field(page, 'override_button_text').locator('input').fill('Contact draft'));
@@ -56,27 +56,22 @@ test('CTA copy links and background remain editable without changing tabs @ci', 
   const cta = (await frame(page)).locator('[data-yk-home="cta"]').first();
   await expect(cta.locator('a').first()).toHaveAttribute('href', '/contact.html?from=draft');
   await expect(cta.locator('a').first()).toContainText('Contact draft');
+  await expect(cta).toHaveClass(/bg-primary/);
   await waitPreviewSettled(page);
   const scroll = await canvasScrollTop(page);
+  for (const key of ['bg_image', 'bg_color', 'bg_overlay_color', 'bg_overlay_opacity', 'text_light']) await expect(field(page, key)).toHaveCount(0);
+  await expect(page.getByTestId('blox-home-group-media')).toContainText('编辑区块背景');
   await page.getByTestId('blox-home-group-media').click();
-  for (const key of ['bg_image', 'bg_color', 'bg_overlay_color', 'bg_overlay_opacity', 'text_light']) await expect(field(page, key)).toHaveCount(1);
-  await page.getByTestId('blox-cta-background-control').locator('summary').click();
-  await performPreviewUpdate(page, () => page.getByTestId('blox-cta-background-url').fill('/assets/images/demo/banner-2.svg'));
-  await expect(cta).toHaveAttribute('style', /banner-2\.svg/);
+  await expect(page.getByTestId('blox-style-tab')).toHaveAttribute('class', /border-blue-500/);
+  await expect(page.getByTestId('blox-section-background-video-media')).toBeVisible();
+  await performPreviewUpdate(page, () => page.getByTestId('blox-section-bg-video').fill('/uploads/videos/blox-test-flower.mp4'));
+  const section = cta.locator('xpath=ancestor::*[@data-yk-sec][1]');
+  await expect(section.locator('[data-blox-background-video]')).toHaveAttribute('data-blox-video-src', '/uploads/videos/blox-test-flower.mp4');
+  await expect(cta).not.toHaveClass(/bg-primary/);
+  await expect(cta).toHaveClass(/text-white/);
   await waitPreviewSettled(page);
   expect(Math.abs((await canvasScrollTop(page)) - scroll)).toBeLessThan(8);
-  await page.screenshot({ path: testInfo.outputPath('cta-background-panel.png') });
-  const groups = page.getByTestId('blox-home-content-groups');
-  expect(await groups.locator('button').evaluateAll(nodes => nodes.every(node => node.scrollWidth <= node.clientWidth + 1))).toBe(true);
-  await page.getByTestId('blox-home-group-content').click();
-  await expect(field(page, 'override_button_text').locator('input')).toHaveValue('Contact draft');
-  await page.locator('input[x-model="ctrlQuery"]').fill('bg_image');
-  await expect(page.getByTestId('blox-cta-background-media')).toBeVisible();
-  await expect(groups).toHaveCount(0);
-  await page.locator('input[x-model="ctrlQuery"]').fill('');
-  await page.getByTestId('blox-modified-only').click();
-  await expect(page.getByTestId('blox-cta-background-url')).toHaveValue('/assets/images/demo/banner-2.svg');
-  await expect(groups).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('cta-generic-video-background.png') });
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
 });

@@ -1537,6 +1537,45 @@ function getBlockBg(array $block, string $defaultClass = ''): array
     $layout = $block['layout'] ?? 'container';
     $container = $layout === 'full' ? 'w-full px-4 md:px-8' : 'container mx-auto px-4';
 
+    // 首页动态区块仍由主题模板输出自己的默认底色。外层 Blox 区块已经配置
+    // 背景时，只去掉主题默认的 bg-* 绘制，保留 text-* 等内容样式，避免
+    // CTA 的默认蓝底盖住统一配置在区块层的视频、图片或渐变。
+    if (!$bgImage && !$bgColor) {
+        $hasParentBackground = false;
+        $parentBackgrounds = is_array($block['_blox_parent_backgrounds'] ?? null)
+            ? $block['_blox_parent_backgrounds']
+            : [];
+        foreach ($parentBackgrounds as $parentBackground) {
+            if (!is_array($parentBackground)) {
+                continue;
+            }
+            if (class_exists('AbstractElement')) {
+                $hasPaint = AbstractElement::backgroundDeclarations($parentBackground) !== '';
+                $hasVideo = AbstractElement::backgroundVideoUrl($parentBackground) !== '';
+            } else {
+                $hasPaint = trim((string) ($parentBackground['bg_color'] ?? '')) !== ''
+                    || trim((string) ($parentBackground['bg_image'] ?? '')) !== ''
+                    || trim((string) ($parentBackground['bg_gradient'] ?? '')) !== '';
+                $hasVideo = trim((string) ($parentBackground['bg_video'] ?? '')) !== '';
+            }
+            if ($hasPaint || $hasVideo) {
+                $hasParentBackground = true;
+                break;
+            }
+        }
+        if ($hasParentBackground) {
+            if ($defaultClass === '@auto') {
+                $defaultClass = '';
+            } else {
+                $classes = preg_split('/\s+/', trim($defaultClass)) ?: [];
+                $defaultClass = implode(' ', array_values(array_filter(
+                    $classes,
+                    static fn (string $class): bool => !str_starts_with($class, 'bg-')
+                )));
+            }
+        }
+    }
+
     // '@auto'：内容区块未显式配背景时，按渲染顺序在 白 / 浅灰 间斑马交替，
     // 保证相邻内容区块背景色不同、有清晰间隔（强色区块 banner/advantage/cta 不参与）。
     if ($defaultClass === '@auto') {
@@ -2808,6 +2847,10 @@ function renderAlbumShortcode(int $albumId): string
 
 /**
  * 渲染轮播图短码为 Swiper 轮播
+ *
+ * Builder bootstrap 在调用此函数前加载轮播元素类；functions.php 自身先于
+ * builder 类装载，因此静态分析无法从本文件的加载顺序证明该类型存在。
+ * @psalm-suppress UndefinedClass
  */
 function renderBannerShortcode(string $slug): string
 {
