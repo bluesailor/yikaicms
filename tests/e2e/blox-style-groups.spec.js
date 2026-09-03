@@ -96,9 +96,13 @@ test('container gets the shared background group without chips @ci', async ({ pa
     page.locator('[data-control-key="bg_video"] input').fill('/uploads/e2e-bg.mp4'));
   await expect(page.locator('[data-control-key="bg_overlay"]')).toBeVisible();
   await expect(page.locator('[data-control-key="bg_video_mobile_mode"]')).toBeVisible();
+  await expect(page.getByTestId('blox-element-background-image-help')).toBeVisible();
+  await performPreviewUpdate(page, () =>
+    page.locator('[data-control-key="bg_image"] input').fill('/assets/images/demo/about-office.jpg'));
   const media = (await frame(page)).locator('.blox-bg-media').first();
   await expect(media).toBeAttached();
   await expect(media.locator('video')).toHaveAttribute('data-blox-mobile-video', 'poster');
+  await expect(media.locator('video')).toHaveAttribute('poster', '/assets/images/demo/about-office.jpg');
   expect(await media.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
 
   await restoreClean(page);
@@ -115,9 +119,12 @@ test('section background video is visible at the section layer @ci', async ({ pa
   const videoInput = page.getByTestId('blox-section-bg-video');
   await expect(videoInput).toBeVisible();
   await performPreviewUpdate(page, () => videoInput.fill('/uploads/e2e-section-bg.mp4'));
+  await expect(page.getByTestId('blox-section-background-image-help')).toBeVisible();
+  await performPreviewUpdate(page, () => page.getByTestId('blox-section-bg-image').fill('/assets/images/demo/about-office.jpg'));
   await expect(page.getByTestId('blox-section-overlay-opacity')).toBeVisible();
   const video = (await frame(page)).locator('section .blox-bg-media video').first();
   await expect(video).toHaveAttribute('src', '/uploads/e2e-section-bg.mp4');
+  await expect(video).toHaveAttribute('poster', '/assets/images/demo/about-office.jpg');
   await expect(video).toHaveAttribute('data-blox-mobile-video', 'poster');
 
   await performPreviewUpdate(page, () => page.getByTestId('blox-section-bg-video-mobile').selectOption('video'));

@@ -6139,4 +6139,5 @@ voltage|Voltage|220V',
     'blox_media_sort_name' => 'Name A-Z',
     'blox_media_video_preview_loading' => 'Loading video preview',
     'blox_media_video_preview_unavailable' => 'Preview unavailable; this video can still be selected',
+    'blox_bg_video_poster_help' => 'When a background video is set, this image is used before loading, on mobile poster mode, and if playback fails.',
 ];

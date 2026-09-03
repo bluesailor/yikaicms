@@ -1836,7 +1836,9 @@ declare(strict_types=1);
                                         </p>
                                     </template>
                                     <template x-if="ctrl.help">
-                                        <p class="mt-1 text-[10px] text-gray-400 leading-relaxed" x-text="ctrl.help"></p>
+                                        <p class="mt-1 text-[10px] text-gray-400 leading-relaxed"
+                                           :data-testid="ctrl.key === 'bg_image' ? 'blox-element-background-image-help' : null"
+                                           x-text="ctrl.help"></p>
                                     </template>
                                 </div>
                             </template>
@@ -2038,6 +2040,8 @@ declare(strict_types=1);
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_image') ?></label>
                                     <?php $imageControl = ['scope' => 'section', 'key' => "'bg_image'", 'id' => 'blox-section-background-image', 'urlId' => 'blox-section-bg-image']; require __DIR__ . '/image-control.php'; ?>
+                                    <p x-show="sel.settings.bg_video" data-testid="blox-section-background-image-help"
+                                       class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_bg_video_poster_help')) ?></p>
                                 </div>
                                 <div class="blox-property-span-full">
                                     <label for="blox-section-bg-video" class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_bg_video')) ?></label>

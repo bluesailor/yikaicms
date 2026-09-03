@@ -6280,4 +6280,5 @@ voltage|電圧|220V',
     'blox_media_sort_name' => '名前 A-Z',
     'blox_media_video_preview_loading' => '動画プレビューを読み込み中',
     'blox_media_video_preview_unavailable' => 'プレビューできませんが、この動画は選択できます',
+    'blox_bg_video_poster_help' => '背景動画も設定した場合、この画像は読み込み前、モバイルのポスター表示、再生失敗時の代替として使われます。',
 ];

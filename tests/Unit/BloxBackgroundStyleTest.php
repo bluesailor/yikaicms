@@ -184,7 +184,7 @@ final class BloxBackgroundStyleTest extends TestCase
             'bg_color' => '#111827', 'bg_image' => '/uploads/a.jpg',
         ]]);
         $this->assertStringContainsString('class="yk-container blox-has-bg"', $out);
-        $this->assertStringContainsString('<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="poster" data-blox-video-src="/uploads/bg.mp4"></video></div>', $out);
+        $this->assertStringContainsString('<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="poster" data-blox-video-src="/uploads/bg.mp4" poster="/uploads/a.jpg"></video></div>', $out);
         $this->assertStringContainsString('<div class="blox-bg-overlay" style="background:rgba(0,0,0,.6)"></div>', $out);
         // 底层样式保留色与图，但 gradient 不出现（遮罩已是 DOM 层）
         $this->assertStringContainsString('background-color:#111827;', $out);
@@ -196,6 +196,13 @@ final class BloxBackgroundStyleTest extends TestCase
         // 无遮罩档位 → 无 overlay 层
         $plain = $this->oneEl(['type' => 'container', 'data' => ['bg_video' => '/uploads/bg.mp4']]);
         $this->assertStringNotContainsString('blox-bg-overlay', $plain);
+        $this->assertStringNotContainsString(' poster=', $plain);
+
+        $badPoster = $this->oneEl(['type' => 'container', 'data' => [
+            'bg_video' => '/uploads/bg.mp4', 'bg_image' => 'javascript:alert(1)',
+        ]]);
+        $this->assertStringContainsString('data-blox-video-src="/uploads/bg.mp4"', $badPoster);
+        $this->assertStringNotContainsString(' poster=', $badPoster);
 
         // 非法视频 → 回落无视频路径（无三层结构）
         $bad = $this->oneEl(['type' => 'container', 'data' => ['bg_video' => 'https://www.youtube.com/watch?v=x']]);
