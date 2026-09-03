@@ -85,7 +85,8 @@ final class UpgradeEntryOrderTest extends TestCase
     {
         $build = (string) file_get_contents(ROOT_PATH . '/build.sh');
 
-        self::assertSame(2, substr_count($build, 'php tools/create-upgrade-zip.php'));
+        self::assertSame(1, substr_count($build, 'php tools/create-upgrade-zip.php'));
+        self::assertSame(2, substr_count($build, 'create_upgrade_zip "'));
         self::assertStringNotContainsString('zip -r -q "$ZIP_FILE"', $build);
         self::assertStringNotContainsString('zip -r -q "$DELTA_ZIP"', $build);
     }
