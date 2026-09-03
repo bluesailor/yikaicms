@@ -6207,4 +6207,5 @@ voltage|电压|220V',
     'blox_media_sort_name' => '名称 A-Z',
     'blox_media_video_preview_loading' => '正在读取视频预览',
     'blox_media_video_preview_unavailable' => '无法生成预览，仍可选择此视频',
+    'blox_bg_video_poster_help' => '同时设置背景视频时，此图片会作为加载前封面、手机封面和播放失败兜底。',
 ];

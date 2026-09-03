@@ -431,9 +431,13 @@ abstract class AbstractElement
      */
     protected function backgroundControls(): array
     {
+        $imageControl = ['key' => 'bg_image', 'type' => 'image', 'label' => __('blox_bg_image'), 'default' => '', 'tab' => 'style', 'group' => 'background'];
+        if ($this->backgroundVideoEnabled()) {
+            $imageControl['help'] = __('blox_bg_video_poster_help');
+        }
         return [
             ['key' => 'bg_color', 'type' => 'color', 'label' => __('blox_bg_color'), 'default' => '', 'tab' => 'style', 'group' => 'background'],
-            ['key' => 'bg_image', 'type' => 'image', 'label' => __('blox_bg_image'), 'default' => '', 'tab' => 'style', 'group' => 'background'],
+            $imageControl,
             // 遮罩叠在背景图上提升文字可读性；未设图时无意义，隐藏（渲染端同样只在有图时生效）
             ['key' => 'bg_overlay', 'type' => 'select', 'label' => __('blox_bg_overlay'), 'default' => '', 'tab' => 'style', 'group' => 'background',
                 'options' => ['' => __('blox_bg_overlay_none'), '40' => __('blox_bg_overlay_light'), '60' => __('blox_bg_overlay_medium'), '80' => __('blox_bg_overlay_heavy')],
