@@ -444,6 +444,10 @@ abstract class AbstractElement
             ...($this->backgroundVideoEnabled() ? [
                 ['key' => 'bg_video', 'type' => 'video_url', 'label' => __('blox_bg_video'), 'default' => '', 'tab' => 'style', 'group' => 'background',
                     'help' => __('blox_bg_video_help')],
+                ['key' => 'bg_video_mobile_mode', 'type' => 'select', 'label' => __('blox_bg_video_mobile_mode'), 'default' => 'poster', 'tab' => 'style', 'group' => 'background',
+                    'options' => ['poster' => __('blox_bg_video_mobile_poster'), 'video' => __('blox_bg_video_mobile_play')],
+                    'visible_when' => ['terms' => [['bg_video', 'not_empty']]],
+                    'help' => __('blox_bg_video_mobile_help')],
             ] : []),
         ];
     }

@@ -267,10 +267,12 @@ final class BlockRenderer
             $html .= '<section class="' . $padding . $sectionLayoutClass . $secHideCls . $anchorClass . '"'
                 . $anchorAttr . $styleAttr . $editAttr . $secHideAttr . '>';
             if ($bgVideo !== '') {
+                $mobileVideoMode = ($settings['bg_video_mobile_mode'] ?? 'poster') === 'video' ? 'video' : 'poster';
                 $posterAttr = $bgImage !== null
                     ? ' poster="' . htmlspecialchars($bgImage, ENT_QUOTES) . '"'
                     : '';
                 $html .= '<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata"'
+                    . ' data-blox-mobile-video="' . $mobileVideoMode . '"'
                     . $posterAttr . ' src="' . htmlspecialchars($bgVideo, ENT_QUOTES) . '"></video></div>';
             }
             if ($hasOverlay) {

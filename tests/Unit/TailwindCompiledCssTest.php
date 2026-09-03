@@ -95,6 +95,14 @@ final class TailwindCompiledCssTest extends TestCase
             '/\.blox-bg-media video\{[^}]*object-fit:cover/',
             $css
         );
+        self::assertMatchesRegularExpression(
+            '/@media \(prefers-reduced-motion:reduce\)\{\.blox-bg-media video\{display:none/',
+            $css
+        );
+        self::assertMatchesRegularExpression(
+            '/@media \(max-width:767px\)\{\.blox-bg-media video\[data-blox-mobile-video=poster\]\{display:none/',
+            $css
+        );
     }
 
     public function testBloxScrollAreasUseTailwind43Utilities(): void

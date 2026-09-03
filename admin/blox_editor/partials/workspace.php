@@ -1524,8 +1524,8 @@ declare(strict_types=1);
                                         </div>
                                     </template>
 
-                                    <?php // Banner 视频使用带预览与媒体库的专用控件；其它 URL 沿用文本输入。 ?>
-                                    <template x-if="['text','url','video_url'].indexOf(ctrl.type) !== -1 && !(selEl && selEl.type === 'home-banner-item' && ctrl.key === 'video')">
+                                    <?php // 视频 URL 统一走可上传/选择的媒体控件；Banner 另有带封面预览的专用控件。 ?>
+                                    <template x-if="['text','url'].indexOf(ctrl.type) !== -1">
                                         <input type="text" x-model="selEl.data[ctrl.key]" :placeholder="homeContentPlaceholder(ctrl)"
                                                :class="homeContentField(ctrl.key) ? 'placeholder:text-gray-600' : ''"
                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm">
@@ -1533,6 +1533,10 @@ declare(strict_types=1);
 
                                     <template x-if="ctrl.type === 'video_url' && selEl && selEl.type === 'home-banner-item' && ctrl.key === 'video'">
                                         <?php require __DIR__ . '/banner-video-control.php'; ?>
+                                    </template>
+
+                                    <template x-if="ctrl.type === 'video_url' && !(selEl && selEl.type === 'home-banner-item' && ctrl.key === 'video')">
+                                        <?php $videoControl = ['scope' => 'element', 'key' => 'ctrl.key', 'id' => 'blox-element-video', 'urlId' => 'blox-element-video-url']; require __DIR__ . '/video-control.php'; ?>
                                     </template>
 
                                     <template x-if="ctrl.type === 'textarea'">
@@ -2035,18 +2039,20 @@ declare(strict_types=1);
                                 </div>
                                 <div class="blox-property-span-full">
                                     <label for="blox-section-bg-video" class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_bg_video')) ?></label>
-                                    <div class="relative">
-                                        <i class="ti ti-video absolute left-2.5 top-2.5 text-sm text-gray-400" aria-hidden="true"></i>
-                                        <input id="blox-section-bg-video" type="url" x-model.trim="sel.settings.bg_video"
-                                               placeholder="/uploads/banner.mp4" data-testid="blox-section-bg-video"
-                                               class="h-9 w-full rounded border border-gray-200 bg-white pl-8 pr-8 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100">
-                                        <button type="button" x-show="sel.settings.bg_video" @click="sel.settings.bg_video = ''"
-                                                title="<?= e(__('blox_clear')) ?>" aria-label="<?= e(__('blox_clear')) ?>"
-                                                class="absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700">
-                                            <i class="ti ti-x text-sm" aria-hidden="true"></i>
-                                        </button>
-                                    </div>
+                                    <?php $videoControl = ['scope' => 'section', 'key' => "'bg_video'", 'id' => 'blox-section-background-video', 'urlId' => 'blox-section-bg-video']; require __DIR__ . '/video-control.php'; ?>
                                     <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_bg_video_help')) ?></p>
+                                </div>
+                                <div x-show="sel.settings.bg_video" class="blox-property-span-full">
+                                    <label for="blox-section-bg-video-mobile" class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_bg_video_mobile_mode')) ?></label>
+                                    <select id="blox-section-bg-video-mobile"
+                                            :value="sel.settings.bg_video_mobile_mode || 'poster'"
+                                            @change="sel.settings.bg_video_mobile_mode = $event.target.value"
+                                            data-testid="blox-section-bg-video-mobile"
+                                            class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm bg-white">
+                                        <option value="poster"><?= e(__('blox_bg_video_mobile_poster')) ?></option>
+                                        <option value="video"><?= e(__('blox_bg_video_mobile_play')) ?></option>
+                                    </select>
+                                    <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_bg_video_mobile_help')) ?></p>
                                 </div>
                                 <div x-show="sel.settings.bg_image || sel.settings.bg_video" class="blox-property-span-full space-y-3">
                                     <div>

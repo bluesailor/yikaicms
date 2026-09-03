@@ -63,6 +63,8 @@ function makeSlider(attributes = {}, withWrapper = true, top = 0, slideCount = 3
 function run({ sliders = [], reduceMotion = false, mobile = false, scrollTop = 0, saveData = false, hidden = false } = {}) {
     const listeners = {};
     const instances = [];
+    const timers = new Map();
+    let nextTimerId = 1;
     const document = {
         readyState: 'complete',
         hidden,
@@ -74,6 +76,8 @@ function run({ sliders = [], reduceMotion = false, mobile = false, scrollTop = 0
         pageYOffset: scrollTop,
         navigator: { connection: { saveData } },
         addEventListener(type, fn) { listeners['window:' + type] = fn; },
+        setTimeout(fn) { const id = nextTimerId++; timers.set(id, fn); return id; },
+        clearTimeout(id) { timers.delete(id); },
         matchMedia: query => ({ matches: query.includes('max-width') ? mobile : reduceMotion }),
         Swiper: function Swiper(element, options) {
             const instance = {
@@ -102,7 +106,7 @@ function run({ sliders = [], reduceMotion = false, mobile = false, scrollTop = 0
     const context = { window, document, WeakMap, Number, Math, parseInt };
     context.globalThis = context;
     vm.runInNewContext(SRC, context);
-    return { window, document, listeners, instances };
+    return { window, document, listeners, instances, timers };
 }
 
 test('creates one scoped Swiper instance per banner', () => {
@@ -227,6 +231,35 @@ test('an inactive video load error does not restart autoplay over the active vid
 
     assert.strictEqual(instance.autoplay.startCalls, 0);
     assert.strictEqual(instance.autoplay.stopCalls, 1);
+});
+
+test('a stalled active video restores carousel timing after no playback progress', () => {
+    const video = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 2, [video]);
+    const { instances, timers } = run({ sliders: [slider] });
+
+    video.currentTime = 4;
+    video.listeners.waiting();
+    assert.strictEqual(timers.size, 1);
+    Array.from(timers.values())[0]();
+
+    assert.strictEqual(instances[0].autoplay.startCalls, 1);
+    assert.ok(video.pauseCalls >= 2);
+    assert.strictEqual(video.classList.contains('blox-banner-video-ready'), false);
+});
+
+test('stalled callback from an inactive video cannot restart carousel timing', () => {
+    const firstVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const secondVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 2, [firstVideo, secondVideo]);
+    const { instances, timers } = run({ sliders: [slider] });
+
+    firstVideo.listeners.stalled();
+    const callback = Array.from(timers.values())[0];
+    instances[0].activeIndex = 1;
+    callback();
+
+    assert.strictEqual(instances[0].autoplay.startCalls, 0);
 });
 
 test('mobile poster mode and reduced motion do not start banner video', () => {

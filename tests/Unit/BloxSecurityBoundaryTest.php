@@ -87,6 +87,7 @@ final class BloxSecurityBoundaryTest extends TestCase
         $processed = BloxDocumentPipeline::process((string) json_encode([[
             'settings' => [
                 'bg_video' => '/uploads/hero.webm',
+                'bg_video_mobile_mode' => 'unsafe',
                 'container_bg_image' => '/uploads/container.jpg',
                 'container_bg_overlay_color' => '#123456',
                 'container_bg_overlay_opacity' => 35,
@@ -101,6 +102,7 @@ final class BloxSecurityBoundaryTest extends TestCase
 
         $section = $processed['sections'][0];
         self::assertSame('/uploads/hero.webm', $section['settings']['bg_video']);
+        self::assertSame('poster', $section['settings']['bg_video_mobile_mode']);
         self::assertSame('/uploads/container.jpg', $section['settings']['container_bg_image']);
         self::assertSame('#123456', $section['settings']['container_bg_overlay_color']);
         self::assertSame(35, $section['settings']['container_bg_overlay_opacity']);

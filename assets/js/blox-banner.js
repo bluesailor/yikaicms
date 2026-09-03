@@ -3,7 +3,9 @@
 
     var states = new WeakMap();
     var videoBindings = new WeakMap();
+    var videoStallTimers = new WeakMap();
     var viewportListenersBound = false;
+    var VIDEO_STALL_TIMEOUT = 8000;
 
     function numberAttribute(element, name, fallback, min, max) {
         var value = parseInt(element.getAttribute(name) || '', 10);
@@ -74,6 +76,7 @@
 
     function pauseVideo(video, reset) {
         if (!video) return;
+        clearVideoStallTimer(video);
         if (typeof video.pause === 'function') video.pause();
         if (reset) {
             try { video.currentTime = 0; } catch (error) { /* Some streams are not seekable yet. */ }
@@ -84,6 +87,39 @@
     function controlAutoplay(instance, action) {
         var autoplay = instance && instance.autoplay;
         if (autoplay && typeof autoplay[action] === 'function') autoplay[action]();
+    }
+
+    function clearVideoStallTimer(video) {
+        var timer = videoStallTimers.get(video);
+        if (timer !== undefined) {
+            window.clearTimeout(timer);
+            videoStallTimers.delete(video);
+        }
+    }
+
+    function restoreAutoplayForVideo(slider, video) {
+        clearVideoStallTimer(video);
+        if (video.classList) video.classList.remove('blox-banner-video-ready');
+        var state = states.get(slider);
+        if (state && autoplayEnabled(state.config, state.reduceMotion) && activeVideo(slider, state.instance) === video) {
+            controlAutoplay(state.instance, 'start');
+        }
+    }
+
+    function watchStalledVideo(slider, video) {
+        clearVideoStallTimer(video);
+        var stalledAt = Number(video.currentTime) || 0;
+        var timer = window.setTimeout(function () {
+            videoStallTimers.delete(video);
+            var state = states.get(slider);
+            if (!state || activeVideo(slider, state.instance) !== video) return;
+            var currentTime = Number(video.currentTime) || 0;
+            if (Math.abs(currentTime - stalledAt) > 0.05) return;
+            if (video.classList) video.classList.remove('blox-banner-video-ready');
+            pauseVideo(video, false);
+            if (autoplayEnabled(state.config, state.reduceMotion)) controlAutoplay(state.instance, 'start');
+        }, VIDEO_STALL_TIMEOUT);
+        videoStallTimers.set(video, timer);
     }
 
     function autoplayEnabled(config, reduceMotion) {
@@ -112,16 +148,16 @@
         if (!video || videoBindings.get(video) === slider || typeof video.addEventListener !== 'function') return;
         videoBindings.set(video, slider);
         video.addEventListener('playing', function () {
+            clearVideoStallTimer(video);
             if (video.classList) video.classList.add('blox-banner-video-ready');
         });
         video.addEventListener('error', function () {
-            if (video.classList) video.classList.remove('blox-banner-video-ready');
-            var state = states.get(slider);
-            if (state && autoplayEnabled(state.config, state.reduceMotion) && activeVideo(slider, state.instance) === video) {
-                controlAutoplay(state.instance, 'start');
-            }
+            restoreAutoplayForVideo(slider, video);
         });
+        video.addEventListener('waiting', function () { watchStalledVideo(slider, video); });
+        video.addEventListener('stalled', function () { watchStalledVideo(slider, video); });
         video.addEventListener('ended', function () {
+            clearVideoStallTimer(video);
             if (video.classList) video.classList.remove('blox-banner-video-ready');
             var state = states.get(slider);
             if (!state || activeVideo(slider, state.instance) !== video) return;
