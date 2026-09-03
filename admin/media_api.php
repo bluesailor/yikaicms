@@ -3,7 +3,7 @@
  * YikaiCMS - 媒体库 JSON API
  *
  * 供媒体库选择弹窗调用，返回 JSON 数据
- * GET  ?action=list&type=image&keyword=xxx&page=1
+ * GET  ?action=list&type=image&keyword=xxx&sort=newest&page=1
  * POST ?action=upload  (file字段)
  *
  * PHP 8.0+
@@ -54,6 +54,7 @@ if ($action === 'list') {
     }
     $keyword = $_GET['keyword'] ?? '';
     $usage   = (string) ($_GET['usage'] ?? '');
+    $sort    = MediaModel::normalizeSort((string) ($_GET['sort'] ?? MediaModel::SORT_DEFAULT));
     $page    = max(1, (int)($_GET['page'] ?? 1));
     $perPage = 24;
     $offset  = ($page - 1) * $perPage;
@@ -63,26 +64,43 @@ if ($action === 'list') {
         'type'                => $type,
         'keyword'             => $keyword,
         'preferred_min_width' => $preferredMinWidth,
+        'sort'                => $sort,
     ]);
 
-    // 内置主题图片排在上传媒体前面，并与数据库结果共用一套连续分页。
-    // 即使当前页已被内置图片填满，仍查询一次媒体模型以取得准确总数。
+    // 默认顺序延续内置图片优先；显式排序时，两类素材进入同一顺序后再连续分页。
     $bundledItems = BundledMediaLibrary::search((string) $type, (string) $keyword);
-    if ($preferredMinWidth > 0) {
-        usort($bundledItems, static function (array $left, array $right) use ($preferredMinWidth): int {
-            $leftRank = (int) ($left['width'] ?? 0) >= $preferredMinWidth ? 0 : 1;
-            $rightRank = (int) ($right['width'] ?? 0) >= $preferredMinWidth ? 0 : 1;
-            return $leftRank <=> $rightRank;
-        });
-    }
     $bundledTotal = count($bundledItems);
-    $pageBundled = array_slice($bundledItems, $offset, $perPage);
-    $databaseLimit = $perPage - count($pageBundled);
-    $databaseOffset = max(0, $offset - $bundledTotal);
-    $result = mediaModel()->getList($filters, max(1, $databaseLimit), $databaseOffset);
-    $databaseItems = $databaseLimit > 0 ? array_slice($result['items'], 0, $databaseLimit) : [];
+    if ($sort === MediaModel::SORT_DEFAULT) {
+        if ($preferredMinWidth > 0) {
+            usort($bundledItems, static fn(array $left, array $right): int => MediaModel::compareItems(
+                $left,
+                $right,
+                MediaModel::SORT_DEFAULT,
+                $preferredMinWidth
+            ));
+        }
+        $pageBundled = array_slice($bundledItems, $offset, $perPage);
+        $databaseLimit = $perPage - count($pageBundled);
+        $databaseOffset = max(0, $offset - $bundledTotal);
+        // 即使本页已被内置图片填满，仍取一次模型结果以获得准确总数。
+        $result = mediaModel()->getList($filters, max(1, $databaseLimit), $databaseOffset);
+        $databaseItems = $databaseLimit > 0 ? array_slice($result['items'], 0, $databaseLimit) : [];
+        $items = array_merge($pageBundled, $databaseItems);
+    } else {
+        // 内置素材数量很少。数据库从 offset - bundledTotal 开始取一个扩大窗口，
+        // 足以覆盖内置素材插入排序后可能产生的全部位移，无需加载整张媒体表。
+        $databaseOffset = max(0, $offset - $bundledTotal);
+        $result = mediaModel()->getList($filters, $perPage + $bundledTotal, $databaseOffset);
+        $mergedItems = array_merge($bundledItems, $result['items']);
+        usort($mergedItems, static fn(array $left, array $right): int => MediaModel::compareItems(
+            $left,
+            $right,
+            $sort,
+            $preferredMinWidth
+        ));
+        $items = array_slice($mergedItems, max(0, $offset - $databaseOffset), $perPage);
+    }
 
-    $items  = array_merge($pageBundled, $databaseItems);
     $total  = $bundledTotal + (int) $result['total'];
     $pages  = (int)ceil($total / $perPage);
 

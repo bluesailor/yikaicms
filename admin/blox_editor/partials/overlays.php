@@ -488,10 +488,22 @@ declare(strict_types=1);
                     <i class="ti ti-cloud-download"></i><span x-text="uiText.mediaSourceOfficial"></span>
                 </button>
             </div>
-            <div class="p-3 border-b border-gray-100 shrink-0 flex gap-2">
+            <div class="p-3 border-b border-gray-100 shrink-0 flex flex-wrap gap-2">
                 <input type="text" x-model="mediaKeyword" @keydown.enter.prevent="loadMedia(1)"
-                       data-dialog-initial
-                       placeholder="<?= e(__('blox_search_files')) ?>" class="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
+                        data-dialog-initial
+                       placeholder="<?= e(__('blox_search_files')) ?>" class="min-w-48 flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
+                <label x-show="mediaSource === 'local'" class="relative min-w-36">
+                    <span class="sr-only"><?= e(__('blox_media_sort_label')) ?></span>
+                    <select x-model="mediaSort" @change="loadMedia(1)" data-testid="blox-media-sort"
+                            class="h-8 w-full border border-gray-200 rounded bg-white pl-2 pr-7 text-xs text-gray-600">
+                        <option value="default"><?= e(__('blox_media_sort_default')) ?></option>
+                        <option value="newest"><?= e(__('blox_media_sort_newest')) ?></option>
+                        <option value="oldest"><?= e(__('blox_media_sort_oldest')) ?></option>
+                        <option value="largest"><?= e(__('blox_media_sort_largest')) ?></option>
+                        <option value="smallest"><?= e(__('blox_media_sort_smallest')) ?></option>
+                        <option value="name"><?= e(__('blox_media_sort_name')) ?></option>
+                    </select>
+                </label>
                 <button type="button" @click="loadMedia(1)"
                         class="shrink-0 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded px-3 py-1.5 transition"><?= __('search') ?></button>
                 <?php // 上传即选用：上传的目的就是马上要用这个媒体 ?>
@@ -547,8 +559,11 @@ declare(strict_types=1);
                                       x-text="<?= e($jt('blox_media_recommended')) ?>"></span>
                             </span>
                             <span x-show="mediaDimensions(it)"
-                                  class="block px-2 pb-1.5 pt-0.5 text-[10px] tabular-nums text-gray-400"
+                                  class="block px-2 pt-0.5 text-[10px] tabular-nums text-gray-400"
                                   x-text="mediaDimensions(it)"></span>
+                            <span x-show="mediaDate(it)"
+                                  class="block px-2 pb-1.5 pt-0.5 text-[10px] tabular-nums text-gray-400"
+                                  x-text="mediaDate(it)"></span>
                         </button>
                     </template>
                 </div>
@@ -587,10 +602,10 @@ declare(strict_types=1);
             <div class="h-11 px-4 flex items-center justify-between border-t border-gray-100 shrink-0 text-xs text-gray-500">
                 <span x-text="<?= e($jt('blox_media_total')) ?>.replace(':n', mediaTotal)"></span>
                 <div class="flex items-center gap-2">
-                    <button type="button" :disabled="mediaPage <= 1" @click="loadMedia(mediaPage - 1)"
+                    <button type="button" :disabled="mediaPage <= 1" @click="loadMedia(mediaPage - 1)" data-testid="blox-media-prev"
                             class="px-2 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-40"><?= __('list_prev_page') ?></button>
-                    <span x-text="mediaPage + ' / ' + Math.max(mediaPages, 1)"></span>
-                    <button type="button" :disabled="mediaPage >= mediaPages" @click="loadMedia(mediaPage + 1)"
+                    <span class="min-w-14 text-center tabular-nums" x-text="mediaPage + ' / ' + Math.max(mediaPages, 1)"></span>
+                    <button type="button" :disabled="mediaPage >= mediaPages" @click="loadMedia(mediaPage + 1)" data-testid="blox-media-next"
                             class="px-2 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-40"><?= __('list_next_page') ?></button>
                 </div>
             </div>

@@ -3083,6 +3083,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             mediaLoading: false,
             mediaSource: "local",
             mediaType: "image",
+            mediaSort: "default",
             mediaCanSwitchType: false,
             mediaEntitlement: { canImport: false, reason: "" },
             mediaImporting: "",
@@ -3161,7 +3162,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.mediaPage = page;
                 var request = this.mediaSource === "official"
                     ? window.OfficialMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage })
-                    : window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage, type: this.mediaType });
+                    : window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, {
+                        usage: this.mediaUsage,
+                        type: this.mediaType,
+                        sort: this.mediaSort,
+                    });
                 request
                     .then(function (result) {
                         if (!self.mediaRequestGuard.isCurrent(requestId)) return;
@@ -3197,13 +3202,23 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             mediaDimensions(item) {
-                if (this.mediaType === "video") {
-                    var bytes = Math.max(0, Number((item && item.size) || 0));
-                    return bytes > 0 ? window.BloxMediaClient.formatBytes(bytes) : "";
-                }
                 var width = Math.max(0, Number((item && item.width) || 0));
                 var height = Math.max(0, Number((item && item.height) || 0));
-                return width > 0 && height > 0 ? Math.round(width) + "×" + Math.round(height) : "";
+                var bytes = Math.max(0, Number((item && item.size) || 0));
+                var values = [];
+                if (width > 0 && height > 0) values.push(Math.round(width) + "×" + Math.round(height));
+                if (bytes > 0) values.push(window.BloxMediaClient.formatBytes(bytes));
+                return values.join(" · ");
+            },
+
+            mediaDate(item) {
+                var timestamp = Math.max(0, Number((item && item.created_at) || 0));
+                if (timestamp <= 0) return "";
+                var date = new Date(timestamp * 1000);
+                if (!Number.isFinite(date.getTime())) return "";
+                var month = String(date.getMonth() + 1).padStart(2, "0");
+                var day = String(date.getDate()).padStart(2, "0");
+                return date.getFullYear() + "-" + month + "-" + day;
             },
 
             mediaItemName(item) {

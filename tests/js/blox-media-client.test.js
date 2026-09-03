@@ -44,6 +44,16 @@ test("list can request local videos without exposing arbitrary media types", asy
     assert.match(lastRequest.url, /type=image/);
 });
 
+test("list forwards only supported media sort modes", async function () {
+    nextResponse = { code: 0, data: { items: [], pages: 1, total: 0 } };
+    await global.BloxMediaClient.list("/media", 2, "", { type: "video", sort: "largest" });
+    assert.match(lastRequest.url, /page=2/);
+    assert.match(lastRequest.url, /sort=largest/);
+
+    await global.BloxMediaClient.list("/media", 1, "", { sort: "size DESC; DROP TABLE media" });
+    assert.doesNotMatch(lastRequest.url, /sort=/);
+});
+
 test("latest request guard rejects stale responses and invalidates pending work", function () {
     const guard = global.BloxMediaClient.latestRequestGuard();
     const first = guard.begin();
