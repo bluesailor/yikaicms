@@ -26,12 +26,13 @@ function video(mode = 'poster') {
 }
 
 function run({ item = video(), mobile = false, reduced = false, saveData = false, hidden = false } = {}) {
+    let items = [item];
     const listeners = {};
     const mediaListeners = {};
     const connectionListeners = {};
     const document = {
         readyState: 'complete', hidden,
-        querySelectorAll(selector) { return selector === '[data-blox-background-video]' ? [item] : []; },
+        querySelectorAll(selector) { return selector === '[data-blox-background-video]' ? items : []; },
         addEventListener(name, fn) { listeners[name] = fn; },
     };
     const window = {
@@ -46,7 +47,10 @@ function run({ item = video(), mobile = false, reduced = false, saveData = false
         },
     };
     vm.runInNewContext(SRC, { window, document, WeakMap });
-    return { window, document, listeners, mediaListeners, connectionListeners, item };
+    return {
+        window, document, listeners, mediaListeners, connectionListeners, item,
+        replaceItems(next) { items = next; },
+    };
 }
 
 test('desktop video receives its source only when runtime playback is allowed', () => {
@@ -78,4 +82,29 @@ test('page visibility pauses and resumes without discarding the loaded source', 
     state.document.hidden = false;
     state.listeners.visibilitychange();
     assert.equal(state.item.playCalls, 2);
+});
+
+test('content replacement unloads detached background videos before binding replacements', () => {
+    const first = video('video');
+    const second = video('video');
+    const state = run({ item: first });
+    assert.equal(first.getAttribute('src'), '/uploads/background.mp4');
+
+    state.replaceItems([second]);
+    state.listeners['blox:content-updated']();
+
+    assert.ok(first.pauseCalls >= 1);
+    assert.equal(first.getAttribute('src'), null);
+    assert.ok(first.loadCalls >= 1);
+    assert.equal(second.getAttribute('src'), '/uploads/background.mp4');
+    assert.equal(second.playCalls, 1);
+
+    state.replaceItems([first]);
+    state.listeners['blox:content-updated']();
+    assert.equal(first.getAttribute('src'), '/uploads/background.mp4');
+    const pausesBeforeSecondRemoval = first.pauseCalls;
+    state.replaceItems([]);
+    state.listeners['blox:content-updated']();
+    assert.ok(first.pauseCalls > pausesBeforeSecondRemoval);
+    assert.equal(first.getAttribute('src'), null);
 });
