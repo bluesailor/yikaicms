@@ -86,8 +86,14 @@
         if (autoplay && typeof autoplay[action] === 'function') autoplay[action]();
     }
 
+    function autoplayEnabled(config, reduceMotion) {
+        return !reduceMotion && config.autoplay > 0;
+    }
+
     function videoCanPlay(video, reduceMotion) {
         if (reduceMotion) return false;
+        var connection = window.navigator && window.navigator.connection;
+        if (connection && connection.saveData) return false;
         var mobilePoster = video.getAttribute('data-blox-mobile-video') !== 'video';
         var mobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
         return !(mobile && mobilePoster);
@@ -111,7 +117,7 @@
         video.addEventListener('error', function () {
             if (video.classList) video.classList.remove('blox-banner-video-ready');
             var state = states.get(slider);
-            if (state && state.config.autoplay > 0 && activeVideo(slider, state.instance) === video) {
+            if (state && autoplayEnabled(state.config, state.reduceMotion) && activeVideo(slider, state.instance) === video) {
                 controlAutoplay(state.instance, 'start');
             }
         });
@@ -120,7 +126,7 @@
             var state = states.get(slider);
             if (!state || activeVideo(slider, state.instance) !== video) return;
             var count = slider.querySelectorAll('.swiper-wrapper > .swiper-slide').length;
-            if (count > 1 && state.config.autoplay > 0 && typeof state.instance.slideNext === 'function') {
+            if (count > 1 && autoplayEnabled(state.config, state.reduceMotion) && typeof state.instance.slideNext === 'function') {
                 state.instance.slideNext();
             } else if (count === 1) {
                 try { video.currentTime = 0; } catch (error) { /* Ignore non-seekable streams. */ }
@@ -130,25 +136,29 @@
         });
     }
 
-    function syncVideos(slider, instance, config, reduceMotion) {
+    function syncVideos(slider, instance, config, reduceMotion, preserveActivePosition) {
         var videos = videosFor(slider);
-        videos.forEach(function (video) {
-            bindVideo(slider, video);
-            pauseVideo(video, true);
+        var currentVideo = activeVideo(slider, instance);
+        videos.forEach(function (candidate) {
+            bindVideo(slider, candidate);
+            pauseVideo(candidate, !preserveActivePosition || candidate !== currentVideo);
         });
-        var video = activeVideo(slider, instance);
-        if (!video || !videoCanPlay(video, reduceMotion)) {
-            if (config.autoplay > 0) controlAutoplay(instance, 'start');
+        if (document.hidden) {
+            if (autoplayEnabled(config, reduceMotion)) controlAutoplay(instance, 'stop');
+            return;
+        }
+        if (!currentVideo || !videoCanPlay(currentVideo, reduceMotion)) {
+            if (autoplayEnabled(config, reduceMotion)) controlAutoplay(instance, 'start');
             return;
         }
 
-        if (config.autoplay > 0) controlAutoplay(instance, 'stop');
+        if (autoplayEnabled(config, reduceMotion)) controlAutoplay(instance, 'stop');
         var playback;
-        try { playback = video.play(); } catch (error) { playback = null; }
+        try { playback = currentVideo.play(); } catch (error) { playback = null; }
         if (playback && typeof playback.catch === 'function') {
             playback.catch(function () {
-                if (video.classList) video.classList.remove('blox-banner-video-ready');
-                if (config.autoplay > 0 && activeVideo(slider, instance) === video) {
+                if (currentVideo.classList) currentVideo.classList.remove('blox-banner-video-ready');
+                if (autoplayEnabled(config, reduceMotion) && activeVideo(slider, instance) === currentVideo) {
                     controlAutoplay(instance, 'start');
                 }
             });
@@ -233,6 +243,19 @@
         bindViewportListeners();
     }
 
+    function handleVisibilityChange() {
+        document.querySelectorAll('[data-blox-banner]').forEach(function (slider) {
+            var state = states.get(slider);
+            if (!state || !state.instance) return;
+            if (document.hidden) {
+                videosFor(slider).forEach(function (video) { pauseVideo(video, false); });
+                if (autoplayEnabled(state.config, state.reduceMotion)) controlAutoplay(state.instance, 'stop');
+                return;
+            }
+            syncVideos(slider, state.instance, state.config, state.reduceMotion, true);
+        });
+    }
+
     function show(slider, index) {
         if (!slider || typeof slider.querySelectorAll !== 'function') return false;
         initSlider(slider);
@@ -262,4 +285,5 @@
     document.addEventListener('blox:content-updated', function (event) {
         init(event.detail && event.detail.root ? event.detail.root : document);
     });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 })(window, document);

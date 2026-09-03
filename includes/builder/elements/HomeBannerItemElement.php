@@ -262,7 +262,7 @@ final class HomeBannerItemElement extends AbstractElement
         return $poster
             . '<video data-blox-banner-video data-blox-banner-bg data-blox-mobile-video="'
             . htmlspecialchars($item['video_mobile_mode'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-            . '" muted playsinline preload="metadata" aria-hidden="true" tabindex="-1"'
+            . '" muted playsinline preload="none" aria-hidden="true" tabindex="-1"'
             . $posterUrl . ' src="'
             . htmlspecialchars($item['video'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
             . '"></video>';

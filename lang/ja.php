@@ -6263,4 +6263,5 @@ voltage|電圧|220V',
     'bn_video_mobile_tip' => 'モバイル通信量を抑えるため、ポスター表示を推奨します。',
     'bn_video_required' => '有効な動画ファイルを選択するか、MP4/WebM などの動画直リンクを入力してください。',
     'mp_pick_video_title' => 'メディアから動画を選択',
+    'media_upload_too_large' => 'ファイルサイズ :size はサイトの上限 :limit を超えています。',
 ];

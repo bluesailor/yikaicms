@@ -1490,6 +1490,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'mediaFailed' => __('blox_media_failed'),
                 'uploadedSelected' => __('blox_uploaded_selected'),
                 'uploadedOptimized' => __('blox_uploaded_optimized'),
+                'uploadTooLarge' => __('media_upload_too_large'),
                 'uploadFailed' => __('blox_upload_failed'),
                 'confirmDeleteContainer' => __('blox_confirm_delete_container'),
                 'confirmDeleteSection' => __('blox_confirm_delete_section'),
@@ -3169,6 +3170,10 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             mediaDimensions(item) {
+                if (this.mediaType === "video") {
+                    var bytes = Math.max(0, Number((item && item.size) || 0));
+                    return bytes > 0 ? window.BloxMediaClient.formatBytes(bytes) : "";
+                }
                 var width = Math.max(0, Number((item && item.width) || 0));
                 var height = Math.max(0, Number((item && item.height) || 0));
                 return width > 0 && height > 0 ? Math.round(width) + "×" + Math.round(height) : "";
@@ -3303,6 +3308,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 window.BloxMediaClient.upload("/admin/media_api.php", file, {
                     csrf: this.csrf,
                     type: this.mediaType,
+                    maxBytes: <?php echo max(0, (int) UPLOAD_MAX_SIZE); ?>,
                     maxDimension: <?php echo max(0, (int) config('upload_max_width', 1920)); ?>,
                     quality: <?php echo max(50, min(95, (int) config('upload_jpeg_quality', 85))) / 100; ?>,
                 })
@@ -3310,6 +3316,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                         if (result.ok) {
                             self.toast(self.mediaUploadMessage(result));
                             self.pickMedia(result.url);
+                        } else if (result.error === "too_large") {
+                            self.toast(self.uiText.uploadTooLarge
+                                .replace(":size", window.BloxMediaClient.formatBytes(result.originalBytes))
+                                .replace(":limit", window.BloxMediaClient.formatBytes(result.limitBytes)));
                         } else {
                             self.toast(result.message || self.uiText.uploadFailedShort);
                         }

@@ -6122,4 +6122,5 @@ voltage|Voltage|220V',
     'bn_video_mobile_tip' => 'Poster-only is recommended to reduce mobile data usage.',
     'bn_video_required' => 'Choose a valid video file or enter a direct MP4/WebM video URL.',
     'mp_pick_video_title' => 'Choose video from media',
+    'media_upload_too_large' => 'The file is :size, exceeding the site limit of :limit.',
 ];

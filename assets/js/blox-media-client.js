@@ -222,6 +222,20 @@
     function upload(endpoint, file, options) {
         var config = options && typeof options === "object" ? options : {};
         var type = config.type === "video" ? "video" : "image";
+        var maxBytes = Math.max(0, Number(config.maxBytes) || 0);
+        var originalBytes = Math.max(0, Number(file && file.size) || 0);
+        if (maxBytes > 0 && originalBytes > maxBytes) {
+            return Promise.resolve({
+                ok: false,
+                message: "",
+                url: "",
+                optimized: false,
+                originalBytes: originalBytes,
+                uploadBytes: 0,
+                error: "too_large",
+                limitBytes: maxBytes,
+            });
+        }
         var preparation = type === "video" ? Promise.resolve(file) : prepareImage(file, config);
         return preparation.then(function (prepared) {
             var body = new FormData();

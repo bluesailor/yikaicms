@@ -6190,4 +6190,5 @@ voltage|电压|220V',
     'bn_video_mobile_tip' => '建议使用封面模式，减少移动网络流量。',
     'bn_video_required' => '请选择有效的视频文件，或填写 MP4/WebM 等视频直链。',
     'mp_pick_video_title' => '从媒体库选择视频',
+    'media_upload_too_large' => '文件大小 :size，超过站点上限 :limit。',
 ];
