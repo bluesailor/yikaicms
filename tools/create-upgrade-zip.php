@@ -32,8 +32,9 @@ foreach ($iterator as $file) {
         continue;
     }
     $path = $file->getPathname();
-    $rel = str_replace('\\', '/', substr($path, strlen($source) + 1));
-    $entries[] = ['rel' => $rel, 'path' => $path];
+    $archiveRel = str_replace('\\', '/', substr($path, strlen($source) + 1));
+    $targetRel = str_starts_with($archiveRel, 'payload/') ? substr($archiveRel, 8) : $archiveRel;
+    $entries[] = ['rel' => $targetRel, 'archive_rel' => $archiveRel, 'path' => $path];
 }
 
 $entries = UpgradeEntryOrder::sort(
@@ -58,7 +59,7 @@ if ($zip->open($temporary, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true)
 }
 
 foreach ($entries as $entry) {
-    $name = $prefix . $entry['rel'];
+    $name = $prefix . ($entry['archive_rel'] ?? $entry['rel']);
     if (!$zip->addFile($entry['path'], $name)) {
         $zip->close();
         @unlink($temporary);

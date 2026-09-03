@@ -107,4 +107,53 @@ PHP;
             UpgradeEntryOrder::dependencies('includes/Consumer.php', $source)
         );
     }
+
+    public function testZipCreatorOrdersDeltaPayloadByTargetPath(): void
+    {
+        $root = sys_get_temp_dir() . '/yikai-delta-order-' . bin2hex(random_bytes(4));
+        $payload = $root . '/payload';
+        self::assertTrue(mkdir($payload . '/includes', 0755, true));
+        file_put_contents($root . '/.delta-manifest.json', '{"from":"1.19.3","to":"1.19.5","deleted":[]}');
+        file_put_contents($payload . '/index.php', "<?php require_once ROOT_PATH . '/includes/Dispatcher.php';");
+        file_put_contents($payload . '/includes/Dispatcher.php', '<?php final class Dispatcher {}');
+        file_put_contents($payload . '/config-version.php', '<?php return "1.19.5";');
+        $zipPath = $root . '/result.zip';
+
+        $command = escapeshellarg(PHP_BINARY)
+            . ' ' . escapeshellarg(ROOT_PATH . '/tools/create-upgrade-zip.php')
+            . ' ' . escapeshellarg($root)
+            . ' ' . escapeshellarg($zipPath);
+        exec($command, $output, $status);
+        self::assertSame(0, $status, implode("\n", $output));
+
+        $zip = new ZipArchive();
+        self::assertTrue($zip->open($zipPath));
+        $names = [];
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if ($name !== false) {
+                $names[] = $name;
+            }
+        }
+        $zip->close();
+
+        self::assertLessThan(
+            array_search('payload/index.php', $names, true),
+            array_search('payload/includes/Dispatcher.php', $names, true)
+        );
+        $this->removeTree($root);
+    }
+
+    private function removeTree(string $path): void
+    {
+        if (!is_dir($path)) {
+            @unlink($path);
+            return;
+        }
+        foreach (array_diff(scandir($path) ?: [], ['.', '..']) as $name) {
+            $child = $path . '/' . $name;
+            is_dir($child) ? $this->removeTree($child) : @unlink($child);
+        }
+        @rmdir($path);
+    }
 }
