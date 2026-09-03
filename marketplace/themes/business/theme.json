@@ -6,7 +6,7 @@
   "description": "深色商务风模板，适合建筑、工程、制造业等企业网站",
   "description_en": "Dark business theme, ideal for construction, engineering and manufacturing websites",
   "description_ja": "ダーク基調のビジネステーマ。建設・エンジニアリング・製造業のコーポレートサイト向け。",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "author": "Yikai CMS",
   "category": "manufacturing",
   "requires_cms": ">=1.19.5",
