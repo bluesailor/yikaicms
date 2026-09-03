@@ -18,7 +18,7 @@ declare(strict_types=1);
             <button type="button" @click="replaceBannerControlVideo()"
                     data-testid="blox-banner-replace-video"
                     class="absolute inset-x-2 bottom-2 h-8 rounded bg-gray-900/85 text-xs text-white hover:bg-gray-900 inline-flex items-center justify-center gap-1.5">
-                <i class="ti ti-video-plus text-sm" aria-hidden="true"></i><?= e(__('blox_banner_choose_video')) ?>
+                <i class="ti ti-library-plus text-sm" aria-hidden="true"></i><?= e(__('blox_pick_media')) ?>
             </button>
         </div>
         <details class="border-t border-gray-200">

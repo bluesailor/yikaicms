@@ -451,8 +451,8 @@ declare(strict_types=1);
         <div class="relative bg-white rounded-xl shadow-2xl w-[860px] max-w-[90vw] flex flex-col">
             <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                 <span id="blox-media-dialog-title" class="text-sm font-semibold text-gray-700 inline-flex items-center gap-1.5">
-                    <i class="ti text-base text-blue-500" :class="mediaType === 'video' ? 'ti-video' : 'ti-photo'"></i>
-                    <span x-text="mediaType === 'video' ? <?= e($jt('blox_banner_choose_video')) ?> : <?= e($jt('blox_pick_from_media')) ?>"></span>
+                    <i class="ti text-base text-blue-500" :class="mediaType === 'video' ? 'ti-video' : 'ti-photo'" aria-hidden="true"></i>
+                    <span x-text="mediaCanSwitchType ? <?= e($jt('blox_pick_media')) ?> : (mediaType === 'video' ? <?= e($jt('blox_banner_choose_video')) ?> : <?= e($jt('blox_pick_from_media')) ?>)"></span>
                 </span>
                 <button type="button" @click="closeMedia()" class="text-gray-400 hover:text-gray-600 p-1" aria-label="<?= e(__('close')) ?>">
                     <i class="ti ti-x text-base"></i>

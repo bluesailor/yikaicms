@@ -6269,4 +6269,5 @@ voltage|電圧|220V',
     'blox_bg_video_mobile_poster' => 'ポスターのみ表示',
     'blox_bg_video_mobile_play' => '動画を再生',
     'blox_bg_video_mobile_help' => '通信量と初期表示の待ち時間を抑えるため、既定ではポスターのみ表示します。',
+    'blox_pick_media' => 'メディアライブラリから選択',
 ];

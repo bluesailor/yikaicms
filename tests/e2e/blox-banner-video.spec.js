@@ -13,9 +13,9 @@ test('a banner slide can switch to video with poster-first mobile fallback @ci',
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
   const labels = {
-    'zh-CN': { image: '图片', video: '视频', poster: '只显示封面', play: '播放视频', tooLarge: '超过站点上限' },
-    en: { image: 'Images', video: 'Videos', poster: 'Show poster only', play: 'Play video', tooLarge: 'exceeding the site limit' },
-    ja: { image: '画像', video: '動画', poster: 'ポスターのみ表示', play: '動画を再生', tooLarge: 'サイトの上限' },
+    'zh-CN': { chooseMedia: '从媒体库选择', image: '图片', video: '视频', poster: '只显示封面', play: '播放视频', tooLarge: '超过站点上限' },
+    en: { chooseMedia: 'Choose from media library', image: 'Images', video: 'Videos', poster: 'Show poster only', play: 'Play video', tooLarge: 'exceeding the site limit' },
+    ja: { chooseMedia: 'メディアライブラリから選択', image: '画像', video: '動画', poster: 'ポスターのみ表示', play: '動画を再生', tooLarge: 'サイトの上限' },
   }[process.env.BLOX_E2E_SITE_LANG || 'zh-CN'];
 
   await page.route('**/uploads/videos/banner-test.mp4', route => route.fulfill({
@@ -31,6 +31,7 @@ test('a banner slide can switch to video with poster-first mobile fallback @ci',
   await performPreviewUpdate(page, () => field('media_type').getByRole('button', { name: labels.video, exact: true }).click());
   await expect(field('video')).toBeVisible();
   await page.getByTestId('blox-banner-replace-video').click();
+  await expect(page.getByRole('dialog', { name: labels.chooseMedia, exact: true })).toBeVisible();
   const mediaTypes = page.getByTestId('blox-media-type-tabs');
   await expect(mediaTypes).toBeVisible();
   await mediaTypes.getByRole('tab', { name: labels.image, exact: true }).click();
