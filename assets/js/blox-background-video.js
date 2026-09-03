@@ -2,6 +2,7 @@
     'use strict';
 
     var bindings = new WeakMap();
+    var managedVideos = new Set();
     var listenersBound = false;
 
     function videosFor(root) {
@@ -53,7 +54,9 @@
     }
 
     function bind(video) {
-        if (bindings.has(video) || typeof video.addEventListener !== 'function') return;
+        if (typeof video.addEventListener !== 'function') return;
+        managedVideos.add(video);
+        if (bindings.has(video)) return;
         bindings.set(video, true);
         video.addEventListener('playing', function () {
             if (preferenceAllows(video) && !document.hidden && video.classList) {
@@ -66,7 +69,13 @@
     }
 
     function syncAll() {
-        videosFor(document).forEach(function (video) { bind(video); sync(video); });
+        var current = videosFor(document);
+        managedVideos.forEach(function (video) {
+            if (current.indexOf(video) !== -1) return;
+            pause(video, true);
+            managedVideos.delete(video);
+        });
+        current.forEach(function (video) { bind(video); sync(video); });
     }
 
     function bindListeners() {
