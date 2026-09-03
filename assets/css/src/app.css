@@ -52,6 +52,12 @@
 .blox-has-bg { position: relative; overflow: hidden; }
 .blox-bg-media, .blox-bg-overlay { position: absolute; inset: 0; pointer-events: none; }
 .blox-bg-media video { width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 767px) {
+    .blox-bg-media video[data-blox-mobile-video="poster"] { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .blox-bg-media video { display: none; }
+}
 .blox-content { position: relative; z-index: 1; }
 
 /* 模板库按面板自身宽度重排；停靠侧栏与宽弹层共用同一套内容驱动断点。 */

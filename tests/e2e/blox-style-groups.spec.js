@@ -95,8 +95,10 @@ test('container gets the shared background group without chips @ci', async ({ pa
   await performPreviewUpdate(page, () =>
     page.locator('[data-control-key="bg_video"] input').fill('/uploads/e2e-bg.mp4'));
   await expect(page.locator('[data-control-key="bg_overlay"]')).toBeVisible();
+  await expect(page.locator('[data-control-key="bg_video_mobile_mode"]')).toBeVisible();
   const media = (await frame(page)).locator('.blox-bg-media').first();
   await expect(media).toBeAttached();
+  await expect(media.locator('video')).toHaveAttribute('data-blox-mobile-video', 'poster');
   expect(await media.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
 
   await restoreClean(page);
@@ -116,6 +118,11 @@ test('section background video is visible at the section layer @ci', async ({ pa
   await expect(page.getByTestId('blox-section-overlay-opacity')).toBeVisible();
   const video = (await frame(page)).locator('section .blox-bg-media video').first();
   await expect(video).toHaveAttribute('src', '/uploads/e2e-section-bg.mp4');
+  await expect(video).toHaveAttribute('data-blox-mobile-video', 'poster');
+
+  await performPreviewUpdate(page, () => page.getByTestId('blox-section-bg-video-mobile').selectOption('video'));
+  await expect((await frame(page)).locator('section .blox-bg-media video').first())
+    .toHaveAttribute('data-blox-mobile-video', 'video');
 
   await restoreClean(page);
   expect(errors.filter((e) => !/404/.test(e))).toEqual([]);

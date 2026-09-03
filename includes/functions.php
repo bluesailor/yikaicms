@@ -2381,7 +2381,7 @@ function uploadFile(array $file, string $type = 'images'): array
         'rar'  => ['application/x-rar-compressed', 'application/vnd.rar', 'application/x-rar'],
         '7z'   => ['application/x-7z-compressed', 'application/x-7z'],
         'mp4'  => ['video/mp4', 'application/mp4'],
-        'webm' => ['video/webm', 'application/octet-stream'],
+        'webm' => ['video/webm'],
         'ogg'  => ['video/ogg', 'application/ogg'],
         'ogv'  => ['video/ogg', 'application/ogg'],
         'mov'  => ['video/quicktime'],
@@ -2395,7 +2395,9 @@ function uploadFile(array $file, string $type = 'images'): array
         if ($finfo) {
             finfo_close($finfo);
         }
-        if ($detectedMime !== '' && $detectedMime !== false && !in_array($detectedMime, $mimeMap[$ext])) {
+        if ($detectedMime !== ''
+            && $detectedMime !== false
+            && !uploadMimeMatches($ext, $detectedMime, $file['tmp_name'], $mimeMap[$ext])) {
             return ['error' => '文件内容与扩展名不匹配'];
         }
     }

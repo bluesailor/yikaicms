@@ -369,6 +369,10 @@ final class BloxDocumentPipeline
                     'bg_video' => $settings['bg_video'],
                 ]);
             }
+            if (array_key_exists('bg_video_mobile_mode', $settings)
+                && !in_array((string) $settings['bg_video_mobile_mode'], ['poster', 'video'], true)) {
+                $settings['bg_video_mobile_mode'] = 'poster';
+            }
             if (array_key_exists('container_bg_image', $settings)) {
                 $settings['container_bg_image'] = AbstractElement::cssImageUrl($settings['container_bg_image']) ?? '';
             }

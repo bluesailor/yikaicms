@@ -113,6 +113,7 @@ final class ContainerElement extends AbstractElement
 
         $video = self::backgroundVideoUrl($data);
         if ($video !== '') {
+            $mobileVideoMode = ($data['bg_video_mobile_mode'] ?? 'poster') === 'video' ? 'video' : 'poster';
             // 三层结构（第 5 轮）：media/overlay 绝对定位不占流、pointer-events:none；
             // 遮罩在视频场景是 DOM 层，不再叠进背景图 gradient（避免双重压暗）；
             // 色/图仍作根元素底层，视频加载失败时兜底可读。
@@ -128,7 +129,8 @@ final class ContainerElement extends AbstractElement
                 ? '<div class="blox-bg-overlay" style="background:rgba(0,0,0,' . $alpha . ')"></div>'
                 : '';
             return '<div class="yk-container blox-has-bg' . ($radiusCls !== '' ? ' ' . $radiusCls : '') . '"' . $style . '>'
-                . '<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata" src="'
+                . '<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata" data-blox-mobile-video="'
+                . $mobileVideoMode . '" src="'
                 . htmlspecialchars($video, ENT_QUOTES) . '"></video></div>'
                 . $overlay
                 . '<div class="blox-content ' . $layout . '">' . $children . '</div>'
