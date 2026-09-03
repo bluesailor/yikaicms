@@ -6202,6 +6202,7 @@ voltage|电压|220V',
     'blox_media_sort_newest' => '最新上传',
     'blox_media_sort_oldest' => '最早上传',
     'blox_media_sort_largest' => '文件最大',
+    'blox_edit_section_background' => '编辑区块背景',
     'blox_media_sort_smallest' => '文件最小',
     'blox_media_sort_name' => '名称 A-Z',
 ];

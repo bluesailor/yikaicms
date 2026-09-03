@@ -66,6 +66,20 @@ final class HomeBlockElement extends AbstractElement
             array_keys(HomeBloxBlockSchema::sourceOptions()),
             static fn (string $type): bool => in_array(explode(':', $type)[0], $surfaceTypes, true)
         ));
+        // 背景统一归外层区块设置。旧 CTA 字段继续由 schema 读取和渲染，
+        // 这里只停止为新编辑暴露第二套入口；声明了主题 surface 的区块仍保留
+        // 自身色调/图片能力。
+        $surfaceStyleKeys = ['bg_image', 'bg_color', 'text_light'];
+        $controls = array_values(array_filter(
+            $controls,
+            static function (array $control) use ($sources, $surfaceStyleKeys): bool {
+                $key = (string) ($control['key'] ?? '');
+                if (in_array($key, ['bg_overlay_color', 'bg_overlay_opacity'], true)) {
+                    return false;
+                }
+                return $sources !== [] || !in_array($key, $surfaceStyleKeys, true);
+            }
+        ));
         if ($sources === []) {
             return $controls;
         }
@@ -84,7 +98,7 @@ final class HomeBlockElement extends AbstractElement
         foreach ($controls as &$control) {
             if (in_array($control['key'] ?? '', ['bg_image', 'bg_color', 'text_light'], true)) {
                 $control['visible_when'] = ['relation' => 'and', 'terms' => [
-                    ['block_type', 'in', array_merge(['cta'], $sources)],
+                    ['block_type', 'in', $sources],
                     ['home_surface', 'not_in', ['light', 'dark']],
                 ]];
                 unset($control['required']);

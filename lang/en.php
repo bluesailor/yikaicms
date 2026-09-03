@@ -6134,6 +6134,7 @@ voltage|Voltage|220V',
     'blox_media_sort_newest' => 'Newest uploaded',
     'blox_media_sort_oldest' => 'Oldest uploaded',
     'blox_media_sort_largest' => 'Largest files',
+    'blox_edit_section_background' => 'Edit section background',
     'blox_media_sort_smallest' => 'Smallest files',
     'blox_media_sort_name' => 'Name A-Z',
 ];
