@@ -12,6 +12,7 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/security.php';   // zipUnsafeEntry
 require_once ROOT_PATH . '/includes/ThemeValidator.php';
+require_once ROOT_PATH . '/includes/ThemeInstaller.php';
 require_once ROOT_PATH . '/includes/ThemeMarket.php';
 require_once ROOT_PATH . '/includes/ThemePalette.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
@@ -19,106 +20,42 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('*');
 
-/** 递归删除主题目录（限定在 themes/ 内，防越界） */
-function deleteThemeDir(string $slug): bool
-{
-    $slug = basename($slug);
-    if ($slug === '' || $slug === 'default') return false;   // default 不可删
-    $dir = ROOT_PATH . '/themes/' . $slug;
-    if (!is_dir($dir)) return false;
-    $it = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
-        RecursiveIteratorIterator::CHILD_FIRST
-    );
-    foreach ($it as $f) {
-        $f->isDir() ? @rmdir($f->getPathname()) : @unlink($f->getPathname());
-    }
-    return @rmdir($dir);
-}
-
 /**
- * 从本地 ZIP 安装主题（上传安装与市场安装共用）。
- * 校验 theme.json、zip-slip 防护、解压到 themes/。
- * @return array{0: bool, 1: string, 2: string} [成功?, 消息, slug]
+ * @param array{ok:bool,code:string,detail:string,slug:string,name:string,warnings:list<string>,backup:string} $result
  */
-function installThemeFromZip(string $zipPath): array
+function themeInstallMessage(array $result): string
 {
-    if (!class_exists('ZipArchive')) {
-        return [false, __('theme_err_nozip'), ''];
-    }
-    $zip = new ZipArchive();
-    if ($zip->open($zipPath) !== true) {
-        return [false, __('theme_err_openzip'), ''];
-    }
-
-    // 查找 slug/theme.json 确定主题标识
-    $themeSlug = null;
-    for ($i = 0; $i < $zip->numFiles; $i++) {
-        $name = $zip->getNameIndex($i);
-        if (preg_match('#^([a-z0-9][a-z0-9\-]*[a-z0-9]|[a-z0-9])/theme\.json$#', $name, $m)) {
-            $themeSlug = $m[1];
-            break;
+    if ($result['ok']) {
+        $message = __('theme_installed_ok') . '：' . ($result['name'] !== '' ? $result['name'] : $result['slug']);
+        if ($result['warnings'] !== []) {
+            $message .= '（' . count($result['warnings']) . ' ' . __('theme_install_warning_count') . '：'
+                . implode('；', array_slice($result['warnings'], 0, 3))
+                . (count($result['warnings']) > 3 ? '…' : '') . '）';
         }
-    }
-    if (!$themeSlug) {
-        $zip->close();
-        return [false, __('theme_err_nojson'), ''];
+        return $message;
     }
 
-    $meta = json_decode((string) $zip->getFromName($themeSlug . '/theme.json'), true);
-    if (!is_array($meta) || empty($meta['name'])) {
-        $zip->close();
-        return [false, __('theme_err_badjson'), ''];
-    }
-
-    // 元数据完整校验（规范见 yikaicms-docs/theme-schema.md）。
-    // 此前只查 name：要求 CMS 1.20 的主题也照装不误，缺 layouts/header.php 的包
-    // 装完切过去才发现整站白屏。这里在**解压之前**判掉。
-    $vr = ThemeValidator::validateMeta($meta, $themeSlug);
-
-    // 必需文件在 zip 条目里查（此时还没落盘，validateDir 用不上）
-    foreach (ThemeValidator::REQUIRED_FILES as $need) {
-        if ($zip->locateName($themeSlug . '/' . $need) === false) {
-            $vr['errors'][] = "缺少 {$need}（主题无法渲染）";
-        }
-    }
-    if ($vr['errors'] !== []) {
-        $zip->close();
-        return [false, __('theme_err_invalid') . '：' . implode('；', $vr['errors']), ''];
-    }
-    // 警告不拦安装，攒起来随成功消息一并回显，让作者看得到该补什么
-    $GLOBALS['__themeInstallWarnings'] = $vr['warnings'];
-
-    // zip-slip 防护：任一条目会逃出目录则拒绝，绝不 extractTo
-    $unsafe = zipUnsafeEntry($zip);
-    if ($unsafe !== null) {
-        $zip->close();
-        return [false, __('theme_err_unsafe') . '：' . $unsafe, ''];
-    }
-    // zip bomb 防护：文件数/解压总量/单文件/压缩比
-    $violation = zipResourceViolation($zip);
-    if ($violation !== null) {
-        $zip->close();
-        return [false, __('zip_resource_blocked', ['reason' => $violation]), ''];
-    }
-
-    $themesDir = ROOT_PATH . '/themes';
-    if (!is_dir($themesDir)) {
-        @mkdir($themesDir, 0755, true);
-    }
-    if (is_dir($themesDir . '/' . $themeSlug)) {
-        deleteThemeDir($themeSlug);
-    }
-    $zip->extractTo($themesDir);
-    $zip->close();
-
-    $msg = __('theme_installed_ok') . '：' . ($meta['name'] ?? $themeSlug);
-    $warn = (array) ($GLOBALS['__themeInstallWarnings'] ?? []);
-    if ($warn !== []) {
-        $msg .= '（' . count($warn) . ' 项提示：' . implode('；', array_slice($warn, 0, 3))
-            . (count($warn) > 3 ? '…' : '') . '）';
-    }
-    return [true, $msg, $themeSlug];
+    $key = match ($result['code']) {
+        'no_zip' => 'theme_err_nozip',
+        'open_zip' => 'theme_err_openzip',
+        'no_json' => 'theme_err_nojson',
+        'bad_json' => 'theme_err_badjson',
+        'unsafe' => 'theme_err_unsafe',
+        'slug_mismatch' => 'theme_err_slug_mismatch',
+        'default_protected' => 'theme_err_default_protected',
+        'staging_create', 'backup_create' => 'theme_err_staging',
+        'extract' => 'theme_err_extract',
+        'backup_move', 'activate' => 'theme_err_replace',
+        'rollback_failed' => 'theme_err_rollback',
+        'cleanup' => 'theme_err_cleanup',
+        default => 'theme_err_invalid',
+    };
+    $message = $result['code'] === 'resource'
+        ? __('zip_resource_blocked', ['reason' => $result['detail']])
+        : __($key);
+    return $result['detail'] !== '' && $result['code'] !== 'resource'
+        ? $message . '：' . $result['detail']
+        : $message;
 }
 
 // ============================================================
@@ -145,6 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
         exit;
     }
 
+    verifyCsrf();
+
     // market_install：以服务端拿到的市场元数据为准（不信任前端传来的 URL/哈希）
     $data = ThemeMarket::request();
     if ($data === null) {
@@ -162,6 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 
     // 下载到临时文件
     $tmpZip = tempnam(sys_get_temp_dir(), 'ykthm');
+    if (!is_string($tmpZip)) {
+        echo json_encode(['code' => 1, 'msg' => __('theme_err_staging')]);
+        exit;
+    }
     $body = ThemeMarket::downloadPackage((string) $item['download_url']);
     if ($body === null || file_put_contents($tmpZip, $body) === false) {
         @unlink($tmpZip);
@@ -190,18 +133,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
         exit;
     }
 
-    [$ok, $msg, $themeSlug] = installThemeFromZip($tmpZip);
+    $installer = new ThemeInstaller(ROOT_PATH . '/themes', ROOT_PATH . '/storage');
+    $installResult = $installer->install($tmpZip, $slug);
     @unlink($tmpZip);
-    if ($ok && $themeSlug !== $slug) {
-        // 包内 slug 与市场条目不符：清掉刚解压的目录，拒绝
-        deleteThemeDir($themeSlug);
-        echo json_encode(['code' => 1, 'msg' => __('theme_err_slug_mismatch')]);
-        exit;
+    $msg = themeInstallMessage($installResult);
+    if ($installResult['ok']) {
+        adminLog('theme', 'market_install', 'Theme marketplace install: ' . $installResult['slug'] . ' v' . ($item['version'] ?? ''));
+    } else {
+        adminLog('theme', 'market_install_failed', 'Theme marketplace install failed: ' . $slug
+            . ' [' . $installResult['code'] . '] ' . $installResult['detail']);
     }
-    if ($ok) {
-        adminLog('theme', 'market_install', '市场安装模板: ' . $themeSlug . ' v' . ($item['version'] ?? ''));
-    }
-    echo json_encode(['code' => $ok ? 0 : 1, 'msg' => $msg]);
+    echo json_encode(['code' => $installResult['ok'] ? 0 : 1, 'msg' => $msg]);
     exit;
 }
 

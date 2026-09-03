@@ -739,6 +739,13 @@ return [
     'theme_err_hash' => 'SHA256 校验不通过，包可能损坏或被篡改，已丢弃',
     'theme_err_sig' => '模板包签名验证失败，已丢弃',
     'theme_err_slug_mismatch' => '模板包内容与市场条目不符，已拒绝',
+    'theme_err_default_protected' => '默认主题受系统保护，不能通过安装包覆盖',
+    'theme_err_staging' => '无法创建主题暂存或备份目录，原主题未变更',
+    'theme_err_extract' => '主题包解压失败，原主题未变更',
+    'theme_err_replace' => '无法切换到新主题文件，已恢复原主题',
+    'theme_err_rollback' => '主题安装失败且自动恢复未完成，请从主题备份目录人工恢复',
+    'theme_err_cleanup' => '主题安装的暂存文件无法安全清理，已取消本次安装',
+    'theme_install_warning_count' => '项提示',
 
     // 后台通用
     'admin_backend' => '后台管理系统',

@@ -5,6 +5,7 @@
 # 用法：
 #   bash tools/release-precheck.sh 1.7.0
 #   bash tools/release-precheck.sh 1.7.0 --candidate
+#   bash tools/release-precheck.sh 1.7.0 --candidate --baseline=v1.6.9
 #
 # 任一红灯（FAIL）退出码非 0；黄灯（WARN）只提醒不阻塞。
 # 设计目标：本地一行命令验证 release-process.md 全部硬性要求。
@@ -23,10 +24,12 @@ fi
 # ───── 参数 ─────
 VERSION=""
 MODE="release"
+BASELINE="${YK_RELEASE_BASELINE:-}"
 for arg in "$@"; do
     case "$arg" in
         --candidate) MODE="candidate" ;;
         --release) MODE="release" ;;
+        --baseline=*) BASELINE="${arg#--baseline=}" ;;
         -*)
             echo "${R}未知参数: $arg${X}"
             exit 2
@@ -41,13 +44,17 @@ for arg in "$@"; do
     esac
 done
 if [ -z "$VERSION" ]; then
-    echo "${R}用法: bash tools/release-precheck.sh <version> [--candidate]${X}"
+    echo "${R}用法: bash tools/release-precheck.sh <version> [--candidate] [--baseline=<git-ref>]${X}"
     echo "示例: bash tools/release-precheck.sh 1.7.0"
     exit 2
 fi
 
 # 标准化：去掉可能的 v 前缀
 VERSION="${VERSION#v}"
+if [ -n "$BASELINE" ] && ! [[ "$BASELINE" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]]; then
+    echo "${R}无效的 schema 比较基线: $BASELINE${X}"
+    exit 2
+fi
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
@@ -236,16 +243,27 @@ section "5. migrations/ 升级项提醒"
 # Migrator::loadAll()，新增项只能放 migrations/*.php。
 upgrade_count=$(find migrations -maxdepth 1 -type f -name '20*.php' 2>/dev/null | wc -l | tr -d ' ')
 info "migrations/ 当前共 $upgrade_count 条独立迁移"
-if git rev-parse --verify HEAD~1 > /dev/null 2>&1; then
+schema_baseline="$BASELINE"
+if [ -z "$schema_baseline" ]; then
+    # HEAD^ 避免在正式 tag 本身执行时把该 tag 当作自己的比较基线。
+    schema_baseline=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^ 2>/dev/null || true)
+    [ -n "$schema_baseline" ] || schema_baseline=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)
+fi
+if [ -n "$schema_baseline" ] && git rev-parse --verify "${schema_baseline}^{commit}" > /dev/null 2>&1; then
+    info "schema 比较基线: $schema_baseline"
     # `grep -c` 在 0 匹配时退出码非 0 + set -u 触发，需带 || true 兜底
-    schema_changed=$(git diff HEAD~1 -- install/sql/mysql.sql 2>/dev/null \
+    schema_changed=$(git diff "$schema_baseline" -- install/sql/mysql.sql 2>/dev/null \
         | grep -cE "^[+-]CREATE TABLE|^[+-]ALTER TABLE|^[+-].*ADD (COLUMN|KEY|INDEX|UNIQUE|FOREIGN)" || true)
     schema_changed=${schema_changed:-0}
     if [ "${schema_changed}" -gt 0 ] 2>/dev/null; then
-        warn "近一次 commit 改动了 install/sql/mysql.sql (${schema_changed} 行 schema 关键字)，请确认 migrations/ 已加对应独立迁移"
+        warn "自 $schema_baseline 起 install/sql/mysql.sql 有 ${schema_changed} 行 schema 关键字变化，请确认 migrations/ 已加对应独立迁移"
     else
-        pass "近一次 commit 未改动 schema，无需新增 upgrade 项"
+        pass "自 $schema_baseline 起未改动 schema，无需新增 upgrade 项"
     fi
+elif [ -n "$schema_baseline" ]; then
+    warn "schema 比较基线无效：$schema_baseline"
+else
+    warn "未找到可用的正式版本标签，请用 --baseline=<git-ref> 指定 schema 比较基线"
 fi
 
 # ─────────────────────────────────────────────────────────────
