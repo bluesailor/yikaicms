@@ -76,6 +76,20 @@ test('CTA copy stays local while its background uses the generic section editor 
   expect(errors).toEqual([]);
 });
 
+test('right tree keeps style context when moving from container to section @ci', async ({ page }) => {
+  const section = await openBlock(page, 'cta');
+  const structure = page.getByTestId('blox-mobile-structure');
+  if (await structure.isVisible()) await structure.click();
+  await section.getByTestId('blox-tree-container').click();
+  await expect(page.getByTestId('blox-style-tab')).toHaveAttribute('class', /border-blue-500/);
+  await expect(page.getByText('容器宽度', { exact: true })).toBeVisible();
+  if (await structure.isVisible()) await structure.click();
+  await section.getByTestId('blox-tree-section-label').click();
+  await expect(page.getByTestId('blox-style-tab')).toHaveAttribute('class', /border-blue-500/);
+  await expect(page.getByTestId('blox-section-background-video-media')).toBeVisible();
+  await expect(page.getByTestId('blox-section-name-control')).toBeHidden();
+});
+
 test('structure field and column selection reveal their group without losing edits @ci', async ({ page }) => {
   const section = await openBlock(page, 'about');
   const original = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections));

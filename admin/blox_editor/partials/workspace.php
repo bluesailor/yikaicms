@@ -2709,7 +2709,7 @@ declare(strict_types=1);
                     <p class="text-xs text-gray-400 text-center py-8"><?= __('blox_click_any_element') ?></p>
                 </template>
                 <template x-for="(section, si) in sections" :key="section.id">
-                    <div @click="selectSection(si)"
+                    <div @click="selectSectionFromTree(si)"
                          @contextmenu.prevent.stop="openCtx($event, 'section', {si: si})"
                          :data-section-id="section.id" :data-section-index="si"
                          :data-section-label="sectionLabel(section, si)" data-testid="blox-tree-section"
