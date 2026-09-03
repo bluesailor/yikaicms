@@ -14,6 +14,7 @@ namespace Yikai\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use AbstractElement;
+use BloxAssetCollector;
 use BlockRenderer;
 use BuilderRegistry;
 
@@ -183,7 +184,7 @@ final class BloxBackgroundStyleTest extends TestCase
             'bg_color' => '#111827', 'bg_image' => '/uploads/a.jpg',
         ]]);
         $this->assertStringContainsString('class="yk-container blox-has-bg"', $out);
-        $this->assertStringContainsString('<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata" data-blox-mobile-video="poster" src="/uploads/bg.mp4"></video></div>', $out);
+        $this->assertStringContainsString('<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="poster" data-blox-video-src="/uploads/bg.mp4"></video></div>', $out);
         $this->assertStringContainsString('<div class="blox-bg-overlay" style="background:rgba(0,0,0,.6)"></div>', $out);
         // 底层样式保留色与图，但 gradient 不出现（遮罩已是 DOM 层）
         $this->assertStringContainsString('background-color:#111827;', $out);
@@ -204,6 +205,7 @@ final class BloxBackgroundStyleTest extends TestCase
     /** 区块背景视频使用与容器元素相同的安全直链与三层结构，背景图同时作为 poster 和兜底。 */
     public function testSectionVideoLayers(): void
     {
+        BloxAssetCollector::reset();
         $out = BlockRenderer::render(json_encode([[
             'settings' => [
                 'bg_video' => '/uploads/section.mp4',
@@ -216,9 +218,10 @@ final class BloxBackgroundStyleTest extends TestCase
 
         $this->assertStringContainsString('<section class="py-8 relative overflow-hidden"', $out);
         $this->assertStringContainsString(
-            '<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata" data-blox-mobile-video="poster" poster="/uploads/poster.jpg" src="/uploads/section.mp4"></video></div>',
+            '<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="poster" data-blox-video-src="/uploads/section.mp4" poster="/uploads/poster.jpg"></video></div>',
             $out
         );
+        $this->assertContains('/assets/js/blox-background-video.js', BloxAssetCollector::scripts());
         $this->assertStringContainsString('style="background-color:#102030;opacity:0.55;"', $out);
         $this->assertStringContainsString('<div class="max-w-6xl mx-auto px-4 relative z-10">', $out);
 

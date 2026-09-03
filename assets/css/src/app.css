@@ -51,7 +51,8 @@
    不截点击（编辑器画布选中/拖拽依赖此约束）；内容层承接容器的 flex 布局。 */
 .blox-has-bg { position: relative; overflow: hidden; }
 .blox-bg-media, .blox-bg-overlay { position: absolute; inset: 0; pointer-events: none; }
-.blox-bg-media video { width: 100%; height: 100%; object-fit: cover; }
+.blox-bg-media video { width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.blox-bg-media video.blox-bg-video-ready { opacity: 1; }
 @media (max-width: 767px) {
     .blox-bg-media video[data-blox-mobile-video="poster"] { display: none; }
 }

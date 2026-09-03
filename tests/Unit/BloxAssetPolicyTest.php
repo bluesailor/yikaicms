@@ -43,6 +43,7 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertSame([
             'assets/css/blox-banner.css',
             'assets/js/blox-banner.js',
+            'assets/js/blox-background-video.js',
             'assets/js/blox-counter.js',
             'assets/js/blox-language-switcher.js',
             'assets/js/blox-nav-drawer.js',
