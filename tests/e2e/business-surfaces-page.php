@@ -51,7 +51,12 @@ $document = json_encode(['sections' => $sections], JSON_THROW_ON_ERROR);
 $GLOBALS['yikai_config_runtime_overrides'] = [
     'current_theme' => 'business', 'home_layout_active' => '0',
     'home_blox_active' => $view === 'legacy' ? '0' : '1',
-    'home_blox_draft' => $document, 'home_blox_published' => $document,
+    // 编辑器走 HomeBloxDocument::load() 读 DATA_KEY，前台走 loadPublished() 读 PUBLISHED_KEY，
+    // 两个都要覆盖。原先只写了 home_blox_published 和一个并不存在的 home_blox_draft 键，
+    // 于是 view=editor 显示的是站点真实首页文档，用例里的区块序号全靠巧合成立。
+    // 字面量而非类常量：此处 builder bootstrap 尚未载入。
+    'home_blox_data' => $document,      // HomeBloxDocument::DATA_KEY
+    'home_blox_published' => $document, // HomeBloxDocument::PUBLISHED_KEY
     'home_blocks_config' => json_encode($blocks, JSON_THROW_ON_ERROR),
     'html_cache_enabled' => '0',
 ];
