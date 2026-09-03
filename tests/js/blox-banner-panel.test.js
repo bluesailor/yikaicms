@@ -41,8 +41,8 @@ test('mobile thumbnail fallback never materializes an override in the document',
     assert.equal(panel.methods.bannerImageUrl.call(context, 'image'), '/desktop.jpg');
 });
 
-test('cancelled or stale image choices do not change the selected slide', () => {
-    const node = { type: 'home-banner-item', data: { image: '/desktop.jpg', image_mobile: '' } };
+test('banner image picker can switch the main slide to video without changing mobile or poster pickers', () => {
+    const node = { type: 'home-banner-item', data: { media_type: 'image', image: '/desktop.jpg', image_mobile: '', video: '' } };
     let callback;
     let options;
     const context = {
@@ -58,12 +58,24 @@ test('cancelled or stale image choices do not change the selected slide', () => 
     assert.equal(node.data.image_mobile, '');
     context.selEl = node;
     panel.methods.replaceBannerControlImage.call(context, 'image');
-    assert.deepEqual(options, { usage: 'hero-bg' });
+    assert.equal(options.usage, 'hero-bg');
+    assert.equal(typeof options.targets.image, 'function');
+    assert.equal(typeof options.targets.video, 'function');
     callback('/replacement.jpg');
     assert.equal(node.data.image, '/replacement.jpg');
+    assert.equal(node.data.media_type, 'image');
+    options.targets.video('/uploads/videos/launch.mp4');
+    assert.equal(node.data.media_type, 'video');
+    assert.equal(node.data.video, '/uploads/videos/launch.mp4');
+
+    panel.methods.replaceBannerControlImage.call(context, 'image');
+    assert.deepEqual(options, {});
+    callback('/poster.jpg');
+    assert.equal(node.data.media_type, 'video');
+    assert.equal(node.data.image, '/poster.jpg');
 });
 
-test('video picker is local-only and writes media type with the selected URL', () => {
+test('video picker can browse both media types and applies the selected type', () => {
     const node = { type: 'home-banner-item', data: { media_type: 'image', video: '' } };
     let callback;
     let options;
@@ -73,10 +85,16 @@ test('video picker is local-only and writes media type with the selected URL', (
         runCommand: (_name, fn) => fn.call(context),
     };
     panel.methods.replaceBannerControlVideo.call(context);
-    assert.deepEqual(options, { type: 'video' });
+    assert.equal(options.type, 'video');
+    assert.equal(options.usage, 'hero-bg');
+    assert.equal(typeof options.targets.image, 'function');
+    assert.equal(typeof options.targets.video, 'function');
     callback('/uploads/videos/launch.mp4');
     assert.equal(node.data.media_type, 'video');
     assert.equal(node.data.video, '/uploads/videos/launch.mp4');
+    options.targets.image('/replacement.jpg');
+    assert.equal(node.data.media_type, 'image');
+    assert.equal(node.data.image, '/replacement.jpg');
 });
 
 test('invalid indices and directions cannot mutate slides', () => {

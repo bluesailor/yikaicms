@@ -458,6 +458,22 @@ declare(strict_types=1);
                     <i class="ti ti-x text-base"></i>
                 </button>
             </div>
+            <div x-show="mediaCanSwitchType" data-testid="blox-media-type-tabs"
+                 class="h-10 px-3 border-b border-gray-100 shrink-0 flex items-center gap-1"
+                 role="tablist" aria-label="<?= e(__('blox_banner_media_type')) ?>">
+                <button type="button" role="tab" @click="setMediaType('image')"
+                        :aria-selected="mediaType === 'image'"
+                        class="h-7 px-3 rounded text-xs font-semibold inline-flex items-center gap-1.5 transition"
+                        :class="mediaType === 'image' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'">
+                    <i class="ti ti-photo" aria-hidden="true"></i><?= e(__('media_type_image')) ?>
+                </button>
+                <button type="button" role="tab" @click="setMediaType('video')"
+                        :aria-selected="mediaType === 'video'"
+                        class="h-7 px-3 rounded text-xs font-semibold inline-flex items-center gap-1.5 transition"
+                        :class="mediaType === 'video' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'">
+                    <i class="ti ti-video" aria-hidden="true"></i><?= e(__('media_type_video')) ?>
+                </button>
+            </div>
             <div x-show="mediaType === 'image'" class="h-10 px-3 border-b border-gray-100 shrink-0 flex items-center gap-1" role="tablist" aria-label="<?= e(__('official_media_source_label')) ?>">
                 <button type="button" role="tab" @click="setMediaSource('local')"
                         :aria-selected="mediaSource === 'local'"
