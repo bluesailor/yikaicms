@@ -3083,18 +3083,28 @@ $canManageBloxDesign = hasPermission('blox_global');
             mediaLoading: false,
             mediaSource: "local",
             mediaType: "image",
+            mediaCanSwitchType: false,
             mediaEntitlement: { canImport: false, reason: "" },
             mediaImporting: "",
             mediaUsage: "",
             mediaPreferredMinWidth: 0,
             mediaRequestGuard: window.BloxMediaClient.latestRequestGuard(),
             _mediaTarget: null,   // 选中回调：拿到 url 写进哪个字段
+            _mediaTargets: null,
+            _mediaImageUsage: "",
 
             openMedia(setter, options) {
                 options = options || {};
-                this._mediaTarget = setter;
                 this.mediaType = options.type === "video" ? "video" : "image";
-                this.mediaUsage = String(options.usage || "");
+                this._mediaTargets = options.targets
+                    && typeof options.targets.image === "function"
+                    && typeof options.targets.video === "function"
+                    ? options.targets
+                    : null;
+                this.mediaCanSwitchType = this._mediaTargets !== null;
+                this._mediaTarget = this.mediaCanSwitchType ? this._mediaTargets[this.mediaType] : setter;
+                this._mediaImageUsage = String(options.usage || "");
+                this.mediaUsage = this.mediaType === "image" ? this._mediaImageUsage : "";
                 this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
                 this.mediaSource = options.source === "official" && this.mediaType === "image" ? "official" : "local";
                 this.mediaEntitlement = { canImport: false, reason: "" };
@@ -3110,13 +3120,30 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var root = this.$refs.mediaDialog;
                 this.mediaOpen = false;
                 this._mediaTarget = null;
+                this._mediaTargets = null;
+                this.mediaCanSwitchType = false;
                 this.mediaType = "image";
                 this.mediaUsage = "";
+                this._mediaImageUsage = "";
                 this.mediaPreferredMinWidth = 0;
                 this.mediaImporting = "";
                 this.mediaRequestGuard.invalidate();
                 this.mediaLoading = false;
                 this.releaseDialog(root);
+            },
+
+            setMediaType(type) {
+                if (!this.mediaCanSwitchType || !["image", "video"].includes(type) || type === this.mediaType) return;
+                this.mediaRequestGuard.invalidate();
+                this.mediaType = type;
+                this._mediaTarget = this._mediaTargets[type];
+                this.mediaUsage = type === "image" ? this._mediaImageUsage : "";
+                this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
+                this.mediaSource = "local";
+                this.mediaKeyword = "";
+                this.mediaEntitlement = { canImport: false, reason: "" };
+                this.mediaImporting = "";
+                this.loadMedia(1);
             },
 
             setMediaSource(source) {
