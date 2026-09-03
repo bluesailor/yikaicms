@@ -50,6 +50,12 @@ final class ContainerElement extends AbstractElement
     /** 背景视频首批仅容器（区块级视频背景是真实场景；正文元素无此需求） */
     protected function backgroundVideoEnabled(): bool { return true; }
 
+    /** @param array<string,mixed> $data @return list<string> */
+    public function scriptsFor(array $data): array
+    {
+        return self::backgroundVideoUrl($data) !== '' ? ['/assets/js/blox-background-video.js'] : [];
+    }
+
     public function controls(): array
     {
         // 容器没有内容型设置——它的「内容」就是子元素（结构树里管理），
@@ -129,8 +135,8 @@ final class ContainerElement extends AbstractElement
                 ? '<div class="blox-bg-overlay" style="background:rgba(0,0,0,' . $alpha . ')"></div>'
                 : '';
             return '<div class="yk-container blox-has-bg' . ($radiusCls !== '' ? ' ' . $radiusCls : '') . '"' . $style . '>'
-                . '<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata" data-blox-mobile-video="'
-                . $mobileVideoMode . '" src="'
+                . '<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="'
+                . $mobileVideoMode . '" data-blox-video-src="'
                 . htmlspecialchars($video, ENT_QUOTES) . '"></video></div>'
                 . $overlay
                 . '<div class="blox-content ' . $layout . '">' . $children . '</div>'

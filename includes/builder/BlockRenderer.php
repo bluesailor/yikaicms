@@ -267,13 +267,15 @@ final class BlockRenderer
             $html .= '<section class="' . $padding . $sectionLayoutClass . $secHideCls . $anchorClass . '"'
                 . $anchorAttr . $styleAttr . $editAttr . $secHideAttr . '>';
             if ($bgVideo !== '') {
+                BloxAssetCollector::addScript('/assets/js/blox-background-video.js');
                 $mobileVideoMode = ($settings['bg_video_mobile_mode'] ?? 'poster') === 'video' ? 'video' : 'poster';
                 $posterAttr = $bgImage !== null
                     ? ' poster="' . htmlspecialchars($bgImage, ENT_QUOTES) . '"'
                     : '';
-                $html .= '<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata"'
-                    . ' data-blox-mobile-video="' . $mobileVideoMode . '"'
-                    . $posterAttr . ' src="' . htmlspecialchars($bgVideo, ENT_QUOTES) . '"></video></div>';
+                $html .= '<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none"'
+                    . ' data-blox-background-video data-blox-mobile-video="' . $mobileVideoMode . '"'
+                    . ' data-blox-video-src="' . htmlspecialchars($bgVideo, ENT_QUOTES) . '"'
+                    . $posterAttr . '></video></div>';
             }
             if ($hasOverlay) {
                 $overlayStyle = 'background-color:' . $overlayColor . ';opacity:' . round($overlayOpacity / 100, 2) . ';';
