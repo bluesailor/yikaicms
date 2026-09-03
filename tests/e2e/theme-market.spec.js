@@ -19,7 +19,10 @@ test('core install keeps only default locally and discovers optional market them
   const consoleEntries = observeConsole(page);
   const unsafeWrites = observeUnsafeWrites(page);
 
-  await page.route('**/admin/theme.php', async (route) => {
+  // 页面用 fetch('') 发 POST，即当前地址（可能带 ?tab=market&update=business）。
+  // 模式不带尾部 * 时匹配不到带查询串的 URL，请求会穿透到真实服务端并触发对
+  // update.yikaicms.com 的出站调用——CI 因此依赖外网可用性（v1.19.4 曾据此误判为抖动）。
+  await page.route('**/admin/theme.php*', async (route) => {
     const request = route.request();
     if (request.method() !== 'POST') {
       await route.continue();
@@ -56,7 +59,7 @@ test('theme update link opens the market and highlights its theme @ci', async ({
   test.skip(testInfo.project.name !== 'desktop-1440', 'one focused theme-link check is sufficient');
   const consoleEntries = observeConsole(page);
 
-  await page.route('**/admin/theme.php', async (route) => {
+  await page.route('**/admin/theme.php*', async (route) => {
     const request = route.request();
     if (request.method() !== 'POST') {
       await route.continue();
