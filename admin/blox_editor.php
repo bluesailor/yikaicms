@@ -6964,6 +6964,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.canvasBridge().post(message);
             },
 
+            /** Right-tree layer changes keep the user's content/style working context. */
+            selectSectionFromTree(si, notifyCanvas) {
+                var nextPanelTab = this.panelTab === "style" ? "style" : "content";
+                this.selectSection(si, notifyCanvas);
+                this.panelTab = nextPanelTab;
+            },
+
             selectSection(si, notifyCanvas) {
                 this.selectedSi = si;
                 this.targetCi = 0;
