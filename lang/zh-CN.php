@@ -6165,4 +6165,5 @@ voltage|电压|220V',
     'onb_rewrite_body' => '安装完成后，请打开任意子栏目检查。若首页正常而栏目页显示 404，需要在服务器启用伪静态或 URL Rewrite。',
     'onb_rewrite_help' => '查看配置方法',
     'onb_rewrite_dismiss_failed' => '暂时无法关闭提醒，请稍后重试。',
+    'upgrade_php_version_required' => '此版本在线升级要求 PHP :required 或更高版本，当前为 PHP :current。请先在主机面板切换到 PHP :required 或更高版本，再重新检查更新。',
 ];
