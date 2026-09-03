@@ -69,6 +69,13 @@ test('CTA copy stays local while its background uses the generic section editor 
   await expect(section.locator('[data-blox-background-video]')).toHaveAttribute('data-blox-video-src', '/uploads/videos/blox-test-flower.mp4');
   await expect(cta).not.toHaveClass(/bg-primary/);
   await expect(cta).toHaveClass(/text-white/);
+  await expect(section).toHaveAttribute('data-blox-text-tone', 'light');
+  await performPreviewUpdate(page, () => page.getByTestId('blox-section-text-tone-dark').click());
+  await expect(section).toHaveAttribute('data-blox-text-tone', 'dark');
+  await expect(cta.locator('h2')).toHaveCSS('color', 'rgb(17, 24, 39)');
+  await performPreviewUpdate(page, () => page.getByTestId('blox-section-text-tone-auto').click());
+  await expect(section).toHaveAttribute('data-blox-text-tone', 'light');
+  await expect(cta.locator('h2')).toHaveCSS('color', 'rgb(255, 255, 255)');
   await waitPreviewSettled(page);
   expect(Math.abs((await canvasScrollTop(page)) - scroll)).toBeLessThan(8);
   await page.screenshot({ path: testInfo.outputPath('cta-generic-video-background.png') });

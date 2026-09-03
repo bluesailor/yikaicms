@@ -2094,6 +2094,27 @@ declare(strict_types=1);
                                         </div>
                                     </div>
                                 </div>
+                                <div class="blox-property-span-full">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_page_hero_text_tone')) ?></label>
+                                    <div class="grid grid-cols-3 overflow-hidden rounded border border-gray-200 bg-white"
+                                         role="group" aria-label="<?= e(__('blox_page_hero_text_tone')) ?>">
+                                        <template x-for="tone in [
+                                            {key:'auto', label:<?= e($jt('blox_page_hero_tone_auto')) ?>, icon:'adjustments'},
+                                            {key:'light', label:<?= e($jt('blox_page_hero_tone_light')) ?>, icon:'sun'},
+                                            {key:'dark', label:<?= e($jt('blox_page_hero_tone_dark')) ?>, icon:'moon'}
+                                        ]" :key="tone.key">
+                                            <button type="button"
+                                                    @click="sel.settings.text_tone = tone.key"
+                                                    :aria-pressed="(sel.settings.text_tone || 'auto') === tone.key"
+                                                    :data-testid="'blox-section-text-tone-' + tone.key"
+                                                    class="h-9 min-w-0 border-r border-gray-200 px-1.5 text-xs last:border-r-0 inline-flex items-center justify-center gap-1 transition"
+                                                    :class="(sel.settings.text_tone || 'auto') === tone.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'">
+                                                <i class="ti text-sm shrink-0" :class="'ti-' + tone.icon" aria-hidden="true"></i>
+                                                <span class="truncate" x-text="tone.label"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_section_min_height')) ?></label>
                                     <select :value="sel.settings.min_height || ''" @change="sel.settings.min_height = $event.target.value"

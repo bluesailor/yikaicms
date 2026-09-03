@@ -7782,7 +7782,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     id: this.uid("s"), type: "section",
                     settings: {
                         title: "", subtitle: "",
-                        bg_color: "", bg_image: "", bg_video: "", bg_video_mobile_mode: "poster", bg_gradient: "", bg_opacity: 100,
+                        bg_color: "", bg_image: "", bg_video: "", bg_video_mobile_mode: "poster", bg_gradient: "", bg_opacity: 100, text_tone: "auto",
                         // 新区块默认宽容器（1280px）——用户定的现代默认；旧区块存的值不受影响
                         padding: "md", max_width: "wide", max_width_px: 1280,
                         container_bg: "", container_bg_image: "", container_bg_overlay_color: "", container_bg_overlay_opacity: 0,

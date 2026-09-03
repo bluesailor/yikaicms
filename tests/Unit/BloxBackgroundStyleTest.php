@@ -239,6 +239,28 @@ final class BloxBackgroundStyleTest extends TestCase
         $this->assertStringContainsString('data-blox-mobile-video="video"', $mobileVideo);
     }
 
+    public function testSectionBackgroundTextToneResolution(): void
+    {
+        $render = static fn(array $settings): string => BlockRenderer::render((string) json_encode([[
+            'settings' => $settings,
+            'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'Tone']]]]],
+        ]], JSON_THROW_ON_ERROR));
+
+        $this->assertStringContainsString('data-blox-text-tone="light"', $render(['bg_color' => '#111827']));
+        $this->assertStringContainsString('data-blox-text-tone="dark"', $render(['bg_color' => '#f8fafc']));
+        $this->assertStringContainsString('data-blox-text-tone="light"', $render(['bg_video' => '/uploads/bg.mp4']));
+        $this->assertStringContainsString('data-blox-text-tone="dark"', $render([
+            'bg_image' => '/uploads/bg.jpg',
+            'bg_overlay_color' => '#ffffff',
+            'bg_overlay_opacity' => 60,
+        ]));
+        $this->assertStringContainsString('data-blox-text-tone="dark"', $render([
+            'bg_color' => '#111827',
+            'text_tone' => 'dark',
+        ]));
+        $this->assertStringNotContainsString('data-blox-text-tone=', $render([]));
+    }
+
     /** 第 5 轮：视频控件只出现在开启该能力的元素上（首批仅 container） */
     public function testVideoControlScopedToEnabledElements(): void
     {

@@ -476,3 +476,13 @@ html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
 }
 
 /* 内置 Header 起步模板的结构预览：只表达布局，不绑定真实 Logo、菜单或站点文案。 */
+/* 区块文字色调覆盖主题工具类；元素自身的行内颜色仍然优先。 */
+[data-blox-text-tone="light"],
+[data-blox-text-tone="light"] :is(h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote) {
+  color: #fff;
+}
+
+[data-blox-text-tone="dark"],
+[data-blox-text-tone="dark"] :is(h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote) {
+  color: #111827;
+}
