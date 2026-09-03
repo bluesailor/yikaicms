@@ -90,4 +90,21 @@ final class UpgradeEntryOrderTest extends TestCase
         self::assertStringNotContainsString('zip -r -q "$ZIP_FILE"', $build);
         self::assertStringNotContainsString('zip -r -q "$DELTA_ZIP"', $build);
     }
+
+    public function testLazyRuntimeIncludesDoNotOverrideActivationTiers(): void
+    {
+        $source = <<<'PHP'
+<?php
+require_once __DIR__ . '/Immediate.php';
+function renderLater(): void
+{
+    require_once ROOT_PATH . '/page.php';
+}
+PHP;
+
+        self::assertSame(
+            ['includes/Immediate.php'],
+            UpgradeEntryOrder::dependencies('includes/Consumer.php', $source)
+        );
+    }
 }

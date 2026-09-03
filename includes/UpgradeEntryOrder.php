@@ -86,11 +86,11 @@ final class UpgradeEntryOrder
         $dependencies = [];
         $patterns = [
             [
-                '/\b(?:require|require_once|include|include_once)\s*(?:\(\s*)?ROOT_PATH\s*\.\s*([\'\"])([^\'\"]+\.php)\1/i',
+                '/^(?:\(\s*)?ROOT_PATH\s*\.\s*([\'\"])([^\'\"]+\.php)\1/i',
                 static fn (array $match): string => ltrim((string) $match[2], '/'),
             ],
             [
-                '/\b(?:require|require_once|include|include_once)\s*(?:\(\s*)?dirname\(__DIR__(?:\s*,\s*(\d+))?\)\s*\.\s*([\'\"])([^\'\"]+\.php)\2/i',
+                '/^(?:\(\s*)?dirname\(__DIR__(?:\s*,\s*(\d+))?\)\s*\.\s*([\'\"])([^\'\"]+\.php)\2/i',
                 static function (array $match) use ($rel): string {
                     $base = dirname($rel);
                     $levels = isset($match[1]) && $match[1] !== '' ? (int) $match[1] : 1;
@@ -101,27 +101,83 @@ final class UpgradeEntryOrder
                 },
             ],
             [
-                '/\b(?:require|require_once|include|include_once)\s*(?:\(\s*)?__DIR__\s*\.\s*([\'\"])([^\'\"]+\.php)\1/i',
+                '/^(?:\(\s*)?__DIR__\s*\.\s*([\'\"])([^\'\"]+\.php)\1/i',
                 static fn (array $match): string => dirname($rel) . '/' . ltrim((string) $match[2], '/'),
             ],
             [
-                '/\b(?:require|require_once|include|include_once)\s*(?:\(\s*)?([\'\"])([^\'\"]+\.php)\1/i',
+                '/^(?:\(\s*)?([\'\"])([^\'\"]+\.php)\1/i',
                 static fn (array $match): string => dirname($rel) . '/' . (string) $match[2],
             ],
         ];
 
-        foreach ($patterns as [$pattern, $resolve]) {
-            if (preg_match_all($pattern, $source, $matches, PREG_SET_ORDER) === false) {
-                continue;
-            }
-            foreach ($matches as $match) {
+        foreach (self::topLevelRequireExpressions($source) as $expression) {
+            foreach ($patterns as [$pattern, $resolve]) {
+                if (preg_match($pattern, $expression, $match) !== 1) {
+                    continue;
+                }
                 $dependency = self::normalize($resolve($match));
                 if ($dependency !== '') {
                     $dependencies[] = $dependency;
                 }
+                break;
             }
         }
         return array_values(array_unique($dependencies));
+    }
+
+    /** @return list<string> */
+    private static function topLevelRequireExpressions(string $source): array
+    {
+        $tokens = token_get_all($source);
+        $scopeStack = [];
+        $scopeDepth = 0;
+        $pendingScope = false;
+        $expressions = [];
+        $count = count($tokens);
+
+        for ($i = 0; $i < $count; $i++) {
+            $token = $tokens[$i];
+            if (is_array($token) && in_array($token[0], [T_FUNCTION, T_CLASS, T_INTERFACE, T_TRAIT, T_ENUM], true)) {
+                $pendingScope = true;
+                continue;
+            }
+            if ($token === '{') {
+                $opensScope = $pendingScope;
+                $scopeStack[] = $opensScope;
+                if ($opensScope) {
+                    $scopeDepth++;
+                }
+                $pendingScope = false;
+                continue;
+            }
+            if ($token === '}') {
+                $opensScope = array_pop($scopeStack);
+                if ($opensScope === true) {
+                    $scopeDepth--;
+                }
+                continue;
+            }
+            if ($token === ';') {
+                $pendingScope = false;
+                continue;
+            }
+            if (!is_array($token)
+                || !in_array($token[0], [T_REQUIRE, T_REQUIRE_ONCE, T_INCLUDE, T_INCLUDE_ONCE], true)
+                || $scopeDepth > 0) {
+                continue;
+            }
+
+            $expression = '';
+            for ($j = $i + 1; $j < $count; $j++) {
+                $next = $tokens[$j];
+                if ($next === ';') {
+                    break;
+                }
+                $expression .= is_array($next) ? $next[1] : $next;
+            }
+            $expressions[] = trim($expression);
+        }
+        return $expressions;
     }
 
     /** @param array<string, array<string, string>> $entries */
