@@ -25,11 +25,14 @@ function video(mode = 'poster') {
     };
 }
 
-function run({ item = video(), mobile = false, reduced = false, saveData = false, hidden = false } = {}) {
+function run({ item = video(), mobile = false, reduced = false, saveData = false, hidden = false, observer = false } = {}) {
     let items = [item];
     const listeners = {};
     const mediaListeners = {};
     const connectionListeners = {};
+    const observed = [];
+    const unobserved = [];
+    let observerCallback = null;
     const document = {
         readyState: 'complete', hidden,
         querySelectorAll(selector) { return selector === '[data-blox-background-video]' ? items : []; },
@@ -46,10 +49,18 @@ function run({ item = video(), mobile = false, reduced = false, saveData = false
             };
         },
     };
+    if (observer) {
+        window.IntersectionObserver = class {
+            constructor(callback) { observerCallback = callback; }
+            observe(target) { observed.push(target); }
+            unobserve(target) { unobserved.push(target); }
+        };
+    }
     vm.runInNewContext(SRC, { window, document, WeakMap });
     return {
-        window, document, listeners, mediaListeners, connectionListeners, item,
+        window, document, listeners, mediaListeners, connectionListeners, observed, unobserved, item,
         replaceItems(next) { items = next; },
+        intersect(target, isIntersecting) { observerCallback([{ target, isIntersecting }]); },
     };
 }
 
@@ -84,6 +95,24 @@ test('page visibility pauses and resumes without discarding the loaded source', 
     assert.equal(state.item.playCalls, 2);
 });
 
+test('viewport observer defers the source, pauses far videos, and resumes nearby videos', () => {
+    const state = run({ item: video('video'), observer: true });
+    assert.deepEqual(state.observed, [state.item]);
+    assert.equal(state.item.getAttribute('src'), null);
+    assert.equal(state.item.playCalls, 0);
+
+    state.intersect(state.item, true);
+    assert.equal(state.item.getAttribute('src'), '/uploads/background.mp4');
+    assert.equal(state.item.playCalls, 1);
+
+    state.intersect(state.item, false);
+    assert.ok(state.item.pauseCalls >= 1);
+    assert.equal(state.item.getAttribute('src'), '/uploads/background.mp4');
+
+    state.intersect(state.item, true);
+    assert.equal(state.item.playCalls, 2);
+});
+
 test('content replacement unloads detached background videos before binding replacements', () => {
     const first = video('video');
     const second = video('video');
@@ -107,4 +136,24 @@ test('content replacement unloads detached background videos before binding repl
     state.listeners['blox:content-updated']();
     assert.ok(first.pauseCalls > pausesBeforeSecondRemoval);
     assert.equal(first.getAttribute('src'), null);
+});
+
+test('content replacement transfers viewport observation and release ownership', () => {
+    const first = video('video');
+    const second = video('video');
+    const state = run({ item: first, observer: true });
+    state.intersect(first, true);
+
+    state.replaceItems([second]);
+    state.listeners['blox:content-updated']();
+    assert.deepEqual(state.unobserved, [first]);
+    assert.deepEqual(state.observed, [first, second]);
+    assert.equal(first.getAttribute('src'), null);
+    assert.equal(second.getAttribute('src'), null);
+
+    state.intersect(first, true);
+    assert.equal(first.getAttribute('src'), null);
+    state.intersect(second, true);
+    assert.equal(second.getAttribute('src'), '/uploads/background.mp4');
+    assert.equal(second.playCalls, 1);
 });

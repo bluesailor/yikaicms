@@ -49,6 +49,11 @@ test('about starts with content and image edits preserve text and undo @ci', asy
 });
 
 test('CTA copy stays local while its background uses the generic section editor @ci', async ({ page }, testInfo) => {
+  await page.route('**/uploads/videos/blox-test-flower.mp4', route => route.fulfill({
+    status: 200,
+    contentType: 'video/mp4',
+    body: Buffer.alloc(32),
+  }));
   const errors = observeConsole(page), writes = observeUnsafeWrites(page);
   await openBlock(page, 'cta');
   await performPreviewUpdate(page, () => field(page, 'override_button_text').locator('input').fill('Contact draft'));
