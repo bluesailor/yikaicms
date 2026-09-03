@@ -101,6 +101,25 @@ test("video upload preserves the original file and uses the video upload bucket"
     assert.equal(lastRequest.options.body.get("file").size, file.size);
 });
 
+test("oversized video is rejected before creating an upload request", async function () {
+    const previousRequest = lastRequest;
+    const file = new Blob(["123456"]);
+    Object.defineProperty(file, "name", { value: "large.mp4" });
+    const result = await global.BloxMediaClient.upload("/media", file, { type: "video", maxBytes: 5 });
+
+    assert.deepEqual(result, {
+        ok: false,
+        message: "",
+        url: "",
+        optimized: false,
+        originalBytes: 6,
+        uploadBytes: 0,
+        error: "too_large",
+        limitBytes: 5,
+    });
+    assert.equal(lastRequest, previousRequest);
+});
+
 test("large browser images are resized proportionally before upload", async function () {
     const originalCreateImageBitmap = global.createImageBitmap;
     const originalDocument = global.document;

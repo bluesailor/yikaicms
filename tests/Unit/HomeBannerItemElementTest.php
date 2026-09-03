@@ -119,6 +119,7 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertStringContainsString('data-blox-mobile-video="poster"', $html);
         $this->assertStringContainsString('poster="/uploads/launch.jpg"', $html);
         $this->assertStringContainsString('src="/uploads/videos/launch.mp4"', $html);
+        $this->assertStringContainsString('preload="none"', $html);
         $this->assertStringNotContainsString('autoplay', $html);
 
         foreach (['javascript:alert(1)', 'https://www.youtube.com/watch?v=x', '/uploads/readme.txt'] as $unsafe) {

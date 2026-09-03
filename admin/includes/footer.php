@@ -391,6 +391,8 @@
     <script>
     // ===== 媒体库选择器 =====
     (function() {
+        var _mpMaxUploadBytes = <?php echo max(0, (int) UPLOAD_MAX_SIZE); ?>;
+        var _mpUploadTooLarge = <?php echo json_encode(__('media_upload_too_large'), JSON_UNESCAPED_UNICODE); ?>;
         var _mpCallback = null;
         var _mpSelected = null;
         var _mpType = 'image';
@@ -506,7 +508,10 @@
                         html += '<i class="ti ti-file text-4xl text-gray-400" aria-hidden="true"></i>';
                     }
                     html += '</div>';
-                    html += '<div class="p-1.5"><div class="text-xs text-gray-600 truncate">' + _escHtml(it.name) + '</div></div>';
+                    var mediaSize = Number(it.size || 0) > 0 ? _mpFormatBytes(it.size) : '';
+                    html += '<div class="p-1.5"><div class="text-xs text-gray-600 truncate">' + _escHtml(it.name) + '</div>'
+                         + (mediaSize ? '<div class="mt-0.5 text-[10px] text-gray-400">' + _escHtml(mediaSize) + '</div>' : '')
+                         + '</div>';
                     // 选中遮罩 + 大勾
                     html += '<div class="mp-check absolute inset-0 bg-primary/20 flex items-center justify-center pointer-events-none' + (isSel ? '' : ' hidden') + '">'
                          + '<div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg">'
@@ -667,6 +672,13 @@
         window._mpUpload = async function(input) {
             if (!input.files[0]) return;
             var file = input.files[0];
+            if (_mpMaxUploadBytes > 0 && Number(file.size || 0) > _mpMaxUploadBytes) {
+                showMessage(_mpUploadTooLarge
+                    .replace(':size', _mpFormatBytes(file.size))
+                    .replace(':limit', _mpFormatBytes(_mpMaxUploadBytes)), 'error');
+                input.value = '';
+                return;
+            }
             var formData = new FormData();
             formData.append('file', file);
             formData.append('type', _mpType === 'video' ? 'videos' : 'images');
@@ -690,6 +702,15 @@
 
         function _escAttr(s) { return _escHtml(String(s || '')).replace(/'/g, '&#39;'); }
         function _escHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        function _mpFormatBytes(value) {
+            var bytes = Math.max(0, Number(value) || 0);
+            if (bytes < 1024) return Math.round(bytes) + ' B';
+            var units = ['KB', 'MB', 'GB'];
+            var amount = bytes / 1024;
+            var index = 0;
+            while (amount >= 1024 && index < units.length - 1) { amount /= 1024; index++; }
+            return amount.toFixed(amount < 10 ? 1 : 0).replace(/\.0$/, '') + ' ' + units[index];
+        }
     })();
     </script>
 

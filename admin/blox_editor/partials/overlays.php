@@ -478,7 +478,7 @@ declare(strict_types=1);
                        placeholder="<?= e(__('blox_search_files')) ?>" class="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
                 <button type="button" @click="loadMedia(1)"
                         class="shrink-0 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded px-3 py-1.5 transition"><?= __('search') ?></button>
-                <?php // 上传即选用：上传的目的就是马上要用这张图 ?>
+                <?php // 上传即选用：上传的目的就是马上要用这个媒体 ?>
                 <label x-show="mediaSource === 'local'" class="shrink-0 text-sm border rounded px-3 py-1.5 inline-flex items-center gap-1 transition"
                        :class="mediaUploading ? 'border-gray-200 text-gray-400 cursor-wait' : 'border-blue-200 text-blue-500 hover:border-blue-400 hover:text-blue-600 cursor-pointer'">
                     <i class="ti text-base" :class="mediaUploading ? 'ti-loader-2 animate-spin' : 'ti-upload'"></i>
