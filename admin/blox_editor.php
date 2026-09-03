@@ -3081,6 +3081,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             mediaKeyword: "",
             mediaLoading: false,
             mediaSource: "local",
+            mediaType: "image",
             mediaEntitlement: { canImport: false, reason: "" },
             mediaImporting: "",
             mediaUsage: "",
@@ -3091,9 +3092,10 @@ $canManageBloxDesign = hasPermission('blox_global');
             openMedia(setter, options) {
                 options = options || {};
                 this._mediaTarget = setter;
+                this.mediaType = options.type === "video" ? "video" : "image";
                 this.mediaUsage = String(options.usage || "");
                 this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
-                this.mediaSource = options.source === "official" ? "official" : "local";
+                this.mediaSource = options.source === "official" && this.mediaType === "image" ? "official" : "local";
                 this.mediaEntitlement = { canImport: false, reason: "" };
                 this.mediaImporting = "";
                 this.mediaOpen = true;
@@ -3107,6 +3109,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var root = this.$refs.mediaDialog;
                 this.mediaOpen = false;
                 this._mediaTarget = null;
+                this.mediaType = "image";
                 this.mediaUsage = "";
                 this.mediaPreferredMinWidth = 0;
                 this.mediaImporting = "";
@@ -3116,6 +3119,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             setMediaSource(source) {
+                if (source === "official" && this.mediaType !== "image") return;
                 this.mediaSource = source === "official" ? "official" : "local";
                 this.mediaEntitlement = { canImport: false, reason: "" };
                 this.mediaImporting = "";
@@ -3129,7 +3133,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.mediaPage = page;
                 var request = this.mediaSource === "official"
                     ? window.OfficialMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage })
-                    : window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage });
+                    : window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage, type: this.mediaType });
                 request
                     .then(function (result) {
                         if (!self.mediaRequestGuard.isCurrent(requestId)) return;
@@ -3298,6 +3302,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.mediaUploading = true;
                 window.BloxMediaClient.upload("/admin/media_api.php", file, {
                     csrf: this.csrf,
+                    type: this.mediaType,
                     maxDimension: <?php echo max(0, (int) config('upload_max_width', 1920)); ?>,
                     quality: <?php echo max(50, min(95, (int) config('upload_jpeg_quality', 85))) / 100; ?>,
                 })

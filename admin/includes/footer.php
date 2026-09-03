@@ -352,7 +352,7 @@
         <div class="absolute inset-0 bg-black/50" onclick="_mpClose()"></div>
         <div class="relative mx-auto my-6 bg-white rounded-lg shadow-xl w-full max-w-5xl flex flex-col" style="max-height:calc(100vh - 3rem)">
             <div class="px-6 py-4 border-b flex justify-between items-center flex-shrink-0">
-                <h3 class="font-bold text-gray-800"><?php echo e(__('mp_pick_title')); ?></h3>
+                <h3 id="mpPickerTitle" class="font-bold text-gray-800"><?php echo e(__('mp_pick_title')); ?></h3>
                 <button onclick="_mpClose()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
             </div>
             <div id="mpSourceTabs" class="px-6 pt-3 flex items-center gap-1 flex-shrink-0" role="tablist" aria-label="<?php echo e(__('official_media_source_label')); ?>">
@@ -413,12 +413,19 @@
             _mpCallback = callback;
             _mpSelected = null;
             _mpType = options.type || 'image';
+            if (_mpType !== 'video') _mpType = 'image';
             _mpUsage = String(options.usage || '');
             _mpSource = options.source === 'official' && _mpType === 'image' ? 'official' : 'local';
             _mpImporting = '';
             _mpEntitlement = { canImport: false, reason: '' };
             _mpPage = 1;
             document.getElementById('mpKeyword').value = '';
+            document.getElementById('mpPickerTitle').textContent = _mpType === 'video'
+                ? <?php echo json_encode(__('mp_pick_video_title'), JSON_UNESCAPED_UNICODE); ?>
+                : <?php echo json_encode(__('mp_pick_title'), JSON_UNESCAPED_UNICODE); ?>;
+            document.getElementById('mpFileInput').accept = _mpType === 'video'
+                ? 'video/mp4,video/webm,video/ogg,video/quicktime'
+                : 'image/*';
             document.getElementById('mpConfirmBtn').disabled = true;
             document.getElementById('mediaPickerModal').classList.remove('hidden');
             _mpSyncSourceUi();
@@ -493,8 +500,10 @@
                          + '<div class="aspect-square bg-gray-100 flex items-center justify-center">';
                     if (it.type === 'image') {
                         html += '<img src="' + _escAttr(it.url) + '" class="w-full h-full object-cover" loading="lazy">';
+                    } else if (it.type === 'video') {
+                        html += '<i class="ti ti-video text-4xl text-gray-400" aria-hidden="true"></i>';
                     } else {
-                        html += '<div class="text-3xl text-gray-400">\uD83D\uDCC4</div>';
+                        html += '<i class="ti ti-file text-4xl text-gray-400" aria-hidden="true"></i>';
                     }
                     html += '</div>';
                     html += '<div class="p-1.5"><div class="text-xs text-gray-600 truncate">' + _escHtml(it.name) + '</div></div>';
@@ -660,7 +669,7 @@
             var file = input.files[0];
             var formData = new FormData();
             formData.append('file', file);
-            formData.append('type', 'images');
+            formData.append('type', _mpType === 'video' ? 'videos' : 'images');
 
             try {
                 var resp = await fetch('/admin/media_api.php?action=upload', { method: 'POST', body: formData });

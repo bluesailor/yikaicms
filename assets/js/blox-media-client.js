@@ -8,7 +8,9 @@
     }
 
     function list(endpoint, page, keyword, options) {
-        var url = endpoint + "?action=list&type=image&page=" + encodeURIComponent(page);
+        var requestedType = String((options && options.type) || "image");
+        var type = requestedType === "video" ? "video" : "image";
+        var url = endpoint + "?action=list&type=" + encodeURIComponent(type) + "&page=" + encodeURIComponent(page);
         var query = String(keyword || "").trim();
         var usage = String((options && options.usage) || "").trim();
         if (query) url += "&keyword=" + encodeURIComponent(query);
@@ -219,10 +221,15 @@
 
     function upload(endpoint, file, options) {
         var config = options && typeof options === "object" ? options : {};
-        return prepareImage(file, config).then(function (prepared) {
+        var type = config.type === "video" ? "video" : "image";
+        var preparation = type === "video" ? Promise.resolve(file) : prepareImage(file, config);
+        return preparation.then(function (prepared) {
             var body = new FormData();
-            body.append("file", prepared, imageName(file, config.filename, prepared && prepared.type));
-            body.append("type", "images");
+            var filename = type === "video"
+                ? String(config.filename || (file && file.name) || "banner.mp4")
+                : imageName(file, config.filename, prepared && prepared.type);
+            body.append("file", prepared, filename);
+            body.append("type", type === "video" ? "videos" : "images");
             if (config.csrf) body.append("_token", String(config.csrf));
 
             return fetch(endpoint + "?action=upload", { method: "POST", body: body })

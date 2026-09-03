@@ -451,13 +451,14 @@ declare(strict_types=1);
         <div class="relative bg-white rounded-xl shadow-2xl w-[860px] max-w-[90vw] flex flex-col">
             <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                 <span id="blox-media-dialog-title" class="text-sm font-semibold text-gray-700 inline-flex items-center gap-1.5">
-                    <i class="ti ti-photo text-base text-blue-500"></i><?= __('blox_pick_from_media') ?>
+                    <i class="ti text-base text-blue-500" :class="mediaType === 'video' ? 'ti-video' : 'ti-photo'"></i>
+                    <span x-text="mediaType === 'video' ? <?= e($jt('blox_banner_choose_video')) ?> : <?= e($jt('blox_pick_from_media')) ?>"></span>
                 </span>
                 <button type="button" @click="closeMedia()" class="text-gray-400 hover:text-gray-600 p-1" aria-label="<?= e(__('close')) ?>">
                     <i class="ti ti-x text-base"></i>
                 </button>
             </div>
-            <div class="h-10 px-3 border-b border-gray-100 shrink-0 flex items-center gap-1" role="tablist" aria-label="<?= e(__('official_media_source_label')) ?>">
+            <div x-show="mediaType === 'image'" class="h-10 px-3 border-b border-gray-100 shrink-0 flex items-center gap-1" role="tablist" aria-label="<?= e(__('official_media_source_label')) ?>">
                 <button type="button" role="tab" @click="setMediaSource('local')"
                         :aria-selected="mediaSource === 'local'"
                         class="h-7 px-3 rounded text-xs font-semibold inline-flex items-center gap-1.5 transition"
@@ -481,8 +482,8 @@ declare(strict_types=1);
                 <label x-show="mediaSource === 'local'" class="shrink-0 text-sm border rounded px-3 py-1.5 inline-flex items-center gap-1 transition"
                        :class="mediaUploading ? 'border-gray-200 text-gray-400 cursor-wait' : 'border-blue-200 text-blue-500 hover:border-blue-400 hover:text-blue-600 cursor-pointer'">
                     <i class="ti text-base" :class="mediaUploading ? 'ti-loader-2 animate-spin' : 'ti-upload'"></i>
-                    <span x-text="mediaUploading ? <?= e($jt('blox_uploading')) ?> : <?= e($jt('blox_upload_image')) ?>"></span>
-                    <input type="file" accept="image/*" class="hidden" :disabled="mediaUploading"
+                    <span x-text="mediaUploading ? <?= e($jt('blox_uploading')) ?> : (mediaType === 'video' ? <?= e($jt('blox_upload_video')) ?> : <?= e($jt('blox_upload_image')) ?>)"></span>
+                    <input type="file" :accept="mediaType === 'video' ? 'video/mp4,video/webm,video/ogg,video/quicktime' : 'image/*'" class="hidden" :disabled="mediaUploading"
                            @change="uploadMedia($event.target.files[0]); $event.target.value = ''">
                 </label>
                 <label x-show="templateEntry === 'sections' && templatePurposeOptions().length > 1" class="relative min-w-36">
@@ -504,7 +505,7 @@ declare(strict_types=1);
             <div class="h-[400px] overflow-y-auto blox-scroll p-3">
                 <p x-show="mediaLoading" class="text-center text-gray-400 text-sm py-12"><?= __('theme_market_loading') ?></p>
                 <p x-show="!mediaLoading && mediaItems.length === 0" class="text-center text-gray-400 text-sm py-12"
-                   x-text="mediaSource === 'official' ? uiText.officialMediaEmpty : <?= e($jt('blox_no_images_hint')) ?>">
+                   x-text="mediaSource === 'official' ? uiText.officialMediaEmpty : (mediaType === 'video' ? <?= e($jt('blox_no_videos_hint')) ?> : <?= e($jt('blox_no_images_hint')) ?>)">
                 </p>
                 <div x-show="mediaSource === 'local' && !mediaLoading && mediaItems.length > 0"
                      data-testid="blox-media-grid"
@@ -514,7 +515,14 @@ declare(strict_types=1);
                                 data-testid="blox-media-item"
                                 class="group/mp min-w-0 border-2 border-gray-100 hover:border-blue-400 rounded-lg overflow-hidden bg-white transition text-left">
                             <span class="block aspect-[3/2] bg-gray-100 p-1.5">
-                                <img :src="it.url" class="w-full h-full object-contain" loading="lazy" alt="">
+                                <template x-if="mediaType === 'image'">
+                                    <img :src="it.url" class="w-full h-full object-contain" loading="lazy" alt="">
+                                </template>
+                                <template x-if="mediaType === 'video'">
+                                    <span class="flex h-full w-full items-center justify-center bg-gray-950 text-gray-300">
+                                        <i class="ti ti-video text-3xl" aria-hidden="true"></i>
+                                    </span>
+                                </template>
                             </span>
                             <span class="flex min-w-0 items-center gap-1.5 px-2 pt-1.5">
                                 <span class="min-w-0 flex-1 truncate text-[11px] text-gray-600" x-text="it.name"></span>

@@ -50,8 +50,38 @@ final class HomeBannerItemElement extends AbstractElement
                 ],
                 'help' => __('blox_home_banner_content_motion_help'),
             ],
-            ['key' => 'image', 'type' => 'image', 'label' => __('blox_home_banner_image'), 'default' => ''],
+            [
+                'key' => 'media_type',
+                'type' => 'select',
+                'label' => __('blox_banner_media_type'),
+                'default' => 'image',
+                'options' => [
+                    'image' => __('media_type_image'),
+                    'video' => __('media_type_video'),
+                ],
+                'option_icons' => [
+                    'image' => 'photo',
+                    'video' => 'video',
+                ],
+            ],
+            ['key' => 'video', 'type' => 'video_url', 'label' => __('blox_banner_video'), 'default' => '', 'placeholder' => '/uploads/videos/banner.mp4'],
+            ['key' => 'image', 'type' => 'image', 'label' => __('blox_banner_image_or_poster'), 'default' => ''],
             ['key' => 'image_mobile', 'type' => 'image', 'label' => __('bn_mobile_image'), 'default' => ''],
+            [
+                'key' => 'video_mobile_mode',
+                'type' => 'select',
+                'label' => __('blox_banner_video_mobile_mode'),
+                'default' => 'poster',
+                'options' => [
+                    'poster' => __('blox_banner_video_mobile_poster'),
+                    'video' => __('blox_banner_video_mobile_play'),
+                ],
+                'option_icons' => [
+                    'poster' => 'photo',
+                    'video' => 'player-play',
+                ],
+                'help' => __('blox_banner_video_mobile_help'),
+            ],
             [
                 'key' => 'background_motion',
                 'type' => 'select',
@@ -112,6 +142,9 @@ final class HomeBannerItemElement extends AbstractElement
         }
         $item['image'] = self::safeUrl((string) ($data['image'] ?? ''), false);
         $item['image_mobile'] = self::safeUrl((string) ($data['image_mobile'] ?? ''), false);
+        $item['video'] = self::backgroundVideoUrl(['bg_video' => $data['video'] ?? '']);
+        $item['media_type'] = ($data['media_type'] ?? 'image') === 'video' ? 'video' : 'image';
+        $item['video_mobile_mode'] = ($data['video_mobile_mode'] ?? 'poster') === 'video' ? 'video' : 'poster';
         foreach (['btn1_url', 'btn2_url', 'link_url'] as $key) {
             $item[$key] = self::safeUrl((string) ($data[$key] ?? ''), true);
         }
@@ -200,6 +233,39 @@ final class HomeBannerItemElement extends AbstractElement
             . ' alt="' . $alt . '" decoding="async" class="' . $class . '"></picture>';
 
         return $html;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @psalm-api Theme template entry point.
+     */
+    public static function responsiveMediaHtml(array $data): string
+    {
+        $item = self::normalize($data);
+        $poster = self::responsiveImageHtml(
+            $item,
+            'absolute inset-0 w-full h-full object-cover'
+        );
+        if ($poster === '') {
+            $poster = '<div class="absolute inset-0 bg-gradient-to-r from-gray-800 via-gray-700 to-gray-900" data-blox-banner-poster></div>';
+        } else {
+            $poster = str_replace(' data-blox-banner-bg>', ' data-blox-banner-bg data-blox-banner-poster>', $poster);
+        }
+
+        if ($item['media_type'] !== 'video' || $item['video'] === '') {
+            return $poster;
+        }
+
+        $posterUrl = $item['image'] !== ''
+            ? ' poster="' . htmlspecialchars($item['image'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+            : '';
+        return $poster
+            . '<video data-blox-banner-video data-blox-banner-bg data-blox-mobile-video="'
+            . htmlspecialchars($item['video_mobile_mode'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+            . '" muted playsinline preload="metadata" aria-hidden="true" tabindex="-1"'
+            . $posterUrl . ' src="'
+            . htmlspecialchars($item['video'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+            . '"></video>';
     }
 
     /** @param array<string, mixed> $banner @return array<string, mixed> */

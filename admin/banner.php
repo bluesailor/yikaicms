@@ -43,11 +43,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $contentMotion = post('content_motion', 'inherit');
         $backgroundMotion = post('background_motion', 'inherit');
+        $mediaType = post('media_type', 'image') === 'video' ? 'video' : 'image';
+        $video = AbstractElement::backgroundVideoUrl(['bg_video' => post('video')]);
+        if ($mediaType === 'video' && $video === '') {
+            error(__('bn_video_required'));
+        }
         $data = [
             'title' => post('title'),
             'subtitle' => post('subtitle'),
             'image' => post('image'),
             'image_mobile' => post('image_mobile'),
+            'media_type' => $mediaType,
+            'video' => $video,
+            'video_mobile_mode' => post('video_mobile_mode', 'poster') === 'video' ? 'video' : 'poster',
             'btn1_text' => post('btn1_text'),
             // safeUrl：拒 javascript: 等伪协议（HTML 转义防不了），与友链同一套「存取双校验」
             'btn1_url' => safeUrl((string) post('btn1_url')),
@@ -366,7 +374,7 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_image'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo e(__('bn_media')); ?></th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_title_label'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('label_group'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
@@ -389,7 +397,14 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
                         <span class="cursor-move text-gray-400">&#9776;</span>
                     </td>
                     <td class="px-4 py-3">
-                        <?php if ($item['image']): ?>
+                        <?php if (($item['media_type'] ?? 'image') === 'video'): ?>
+                        <div class="relative inline-flex h-12 w-20 items-center justify-center overflow-hidden rounded bg-gray-900 text-white">
+                            <?php if (!empty($item['image'])): ?>
+                            <img src="<?php echo e($item['image']); ?>" class="absolute inset-0 h-full w-full object-cover opacity-55" alt="">
+                            <?php endif; ?>
+                            <i class="ti ti-player-play-filled relative text-xl" aria-hidden="true"></i>
+                        </div>
+                        <?php elseif ($item['image']): ?>
                         <div class="relative inline-block">
                             <img src="<?php echo e($item['image']); ?>" class="h-12 w-20 object-cover rounded">
                             <?php if (!empty($item['image_mobile'])): ?>
@@ -483,6 +498,32 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
                 <input type="text" name="subtitle" id="editSubtitle" class="w-full border rounded px-4 py-2">
             </div>
 
+            <div>
+                <label class="block text-gray-700 mb-2"><?php echo e(__('bn_media_type')); ?></label>
+                <input type="hidden" name="media_type" id="editMediaType" value="image">
+                <div class="grid grid-cols-2 gap-1 rounded border border-gray-200 bg-gray-50 p-1" role="group" aria-label="<?php echo e(__('bn_media_type')); ?>">
+                    <button type="button" data-banner-media-type="image" onclick="setBannerMediaType('image')"
+                            class="h-9 rounded text-sm inline-flex items-center justify-center gap-2 transition">
+                        <i class="ti ti-photo" aria-hidden="true"></i><?php echo e(__('media_type_image')); ?>
+                    </button>
+                    <button type="button" data-banner-media-type="video" onclick="setBannerMediaType('video')"
+                            class="h-9 rounded text-sm inline-flex items-center justify-center gap-2 transition">
+                        <i class="ti ti-video" aria-hidden="true"></i><?php echo e(__('media_type_video')); ?>
+                    </button>
+                </div>
+            </div>
+
+            <div id="editVideoField" class="hidden">
+                <label class="block text-gray-700 mb-1"><?php echo e(__('bn_video_url')); ?></label>
+                <div class="flex gap-2">
+                    <input type="url" name="video" id="editVideo" class="flex-1 border rounded px-4 py-2" placeholder="/uploads/videos/banner.mp4">
+                    <button type="button" onclick="pickVideoFromMedia()" class="bg-blue-500 hover:bg-blue-600 text-white w-10 h-10 rounded inline-flex items-center justify-center" title="<?php echo e(__('bn_choose_video')); ?>">
+                        <i class="ti ti-video-plus" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(__('bn_video_url_tip')); ?></p>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('label_btn1_text'); ?></label>
@@ -506,7 +547,7 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
             </div>
 
             <div>
-                <label class="block text-gray-700 mb-1"><?php echo __('label_image'); ?></label>
+                <label class="block text-gray-700 mb-1" id="editImageLabel"><?php echo e(__('bn_image_or_poster')); ?></label>
                 <div class="flex gap-2">
                     <input type="text" name="image" id="editImage" class="flex-1 border rounded px-4 py-2">
                     <button type="button" onclick="uploadImage('editImage')" class="bg-gray-500 hover:bg-gray-600 text-white w-10 h-10 rounded inline-flex items-center justify-center" title="<?php echo e(__('admin_choose_file')); ?>"><i class="ti ti-upload"></i></button>
@@ -525,6 +566,15 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
                 </div>
                 <div id="mobileImagePreview" class="mt-2"></div>
                 <p class="text-xs text-gray-400 mt-1"><?php echo e(__('bn_mobile_image_tip')); ?></p>
+            </div>
+
+            <div id="editVideoMobileField" class="hidden">
+                <label class="block text-gray-700 mb-1"><?php echo e(__('bn_video_mobile_mode')); ?></label>
+                <select name="video_mobile_mode" id="editVideoMobileMode" class="w-full border rounded px-4 py-2">
+                    <option value="poster"><?php echo e(__('bn_video_mobile_poster')); ?></option>
+                    <option value="video"><?php echo e(__('bn_video_mobile_play')); ?></option>
+                </select>
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(__('bn_video_mobile_tip')); ?></p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -613,7 +663,8 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
                     </div>
                 </div>
                 <div id="bannerLivePreview" data-blox-banner data-blox-content-motion="none" data-blox-background-motion="none" class="blox-banner-static-active relative h-52 overflow-hidden bg-gray-900 rounded">
-                    <img id="bannerPreviewImage" src="" alt="" class="absolute inset-0 w-full h-full object-cover hidden" data-blox-banner-bg>
+                    <img id="bannerPreviewImage" alt="" class="absolute inset-0 w-full h-full object-cover hidden" data-blox-banner-bg>
+                    <video id="bannerPreviewVideo" class="absolute inset-0 hidden h-full w-full object-cover" muted loop playsinline preload="metadata"></video>
                     <div class="absolute inset-0 bg-black/30 flex items-center justify-center px-6">
                         <div class="text-center text-white max-w-xl">
                             <h3 id="bannerPreviewTitle" class="text-2xl font-bold" data-blox-layer style="--blox-layer-order:0"></h3>
@@ -710,6 +761,8 @@ function openEditModal(item = null) {
     document.getElementById('editBtn2Url').value = item?.btn2_url || '';
     document.getElementById('editImage').value = item?.image || '';
     document.getElementById('editImageMobile').value = item?.image_mobile || '';
+    document.getElementById('editVideo').value = item?.video || '';
+    document.getElementById('editVideoMobileMode').value = item?.video_mobile_mode || 'poster';
     document.getElementById('editLinkUrl').value = item?.link_url || '';
     document.getElementById('editLinkTarget').value = item?.link_target || '_self';
     document.getElementById('editPosition').value = item?.position || 'home';
@@ -720,12 +773,34 @@ function openEditModal(item = null) {
     setBannerScheduleValue('editStartTime', item?.start_time);
     setBannerScheduleValue('editEndTime', item?.end_time);
 
+    setBannerMediaType(item?.media_type || 'image', false);
     renderBannerImageThumb('imagePreview', item?.image || '');
     renderBannerImageThumb('mobileImagePreview', item?.image_mobile || '');
     setBannerPreviewMode('desktop');
     renderBannerPreview();
 
     document.getElementById('editModal').classList.remove('hidden');
+}
+
+function setBannerMediaType(type, refresh = true) {
+    type = type === 'video' ? 'video' : 'image';
+    document.getElementById('editMediaType').value = type;
+    document.getElementById('editVideoField').classList.toggle('hidden', type !== 'video');
+    document.getElementById('editVideoMobileField').classList.toggle('hidden', type !== 'video');
+    document.getElementById('editImageLabel').textContent = type === 'video'
+        ? <?php echo json_encode(__('bn_video_poster'), JSON_UNESCAPED_UNICODE); ?>
+        : <?php echo json_encode(__('label_image'), JSON_UNESCAPED_UNICODE); ?>;
+    document.querySelectorAll('[data-banner-media-type]').forEach(function(button) {
+        const active = button.dataset.bannerMediaType === type;
+        button.classList.toggle('bg-white', active);
+        button.classList.toggle('text-blue-600', active);
+        button.classList.toggle('shadow-sm', active);
+        button.classList.toggle('ring-1', active);
+        button.classList.toggle('ring-blue-200', active);
+        button.classList.toggle('text-gray-500', !active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    if (refresh) renderBannerPreview();
 }
 
 function formatBannerDateTime(timestamp) {
@@ -777,13 +852,29 @@ function resolvedBannerMotion(fieldId, groupKey, fallback) {
 function renderBannerPreview() {
     const root = document.getElementById('bannerLivePreview');
     const image = document.getElementById('bannerPreviewImage');
-    if (!root || !image) return;
+    const video = document.getElementById('bannerPreviewVideo');
+    if (!root || !image || !video) return;
 
     const desktopImage = document.getElementById('editImage')?.value.trim() || '';
     const mobileImage = document.getElementById('editImageMobile')?.value.trim() || '';
     const imageUrl = bannerPreviewMode === 'mobile' ? (mobileImage || desktopImage) : desktopImage;
-    image.src = imageUrl;
+    if (imageUrl) image.setAttribute('src', imageUrl);
+    else image.removeAttribute('src');
     image.classList.toggle('hidden', imageUrl === '');
+    const mediaType = document.getElementById('editMediaType')?.value || 'image';
+    const videoUrl = document.getElementById('editVideo')?.value.trim() || '';
+    const mobileMode = document.getElementById('editVideoMobileMode')?.value || 'poster';
+    const showVideo = mediaType === 'video' && videoUrl !== ''
+        && (bannerPreviewMode !== 'mobile' || mobileMode === 'video');
+    if (video.getAttribute('src') !== videoUrl) video.setAttribute('src', videoUrl);
+    video.poster = imageUrl;
+    video.classList.toggle('hidden', !showVideo);
+    if (showVideo) {
+        const play = video.play();
+        if (play && typeof play.catch === 'function') play.catch(function() {});
+    } else {
+        video.pause();
+    }
     document.getElementById('bannerPreviewTitle').textContent = document.getElementById('editTitle')?.value || '';
     document.getElementById('bannerPreviewSubtitle').textContent = document.getElementById('editSubtitle')?.value || '';
 
@@ -829,7 +920,7 @@ function setBannerPreviewMode(mode) {
 }
 
 [
-    'editTitle', 'editSubtitle', 'editBtn1Text', 'editBtn2Text', 'editImage', 'editImageMobile',
+    'editTitle', 'editSubtitle', 'editBtn1Text', 'editBtn2Text', 'editImage', 'editImageMobile', 'editVideo', 'editVideoMobileMode',
     'editContentMotion', 'editBackgroundMotion', 'editPosition'
 ].forEach(function(id) {
     document.getElementById(id)?.addEventListener('input', renderBannerPreview);
@@ -837,6 +928,7 @@ function setBannerPreviewMode(mode) {
 });
 
 function closeModal() {
+    document.getElementById('bannerPreviewVideo')?.pause();
     document.getElementById('editModal').classList.add('hidden');
 }
 
@@ -898,6 +990,13 @@ function pickImageFromMedia(targetId = 'editImage') {
     openMediaPicker(function(url) {
         setBannerImage(targetId, url);
     });
+}
+
+function pickVideoFromMedia() {
+    openMediaPicker(function(url) {
+        document.getElementById('editVideo').value = url;
+        setBannerMediaType('video');
+    }, { type: 'video' });
 }
 
 function openSettingsModal() {
