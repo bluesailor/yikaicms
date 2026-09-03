@@ -6196,4 +6196,5 @@ voltage|电压|220V',
     'blox_bg_video_mobile_poster' => '只显示封面',
     'blox_bg_video_mobile_play' => '播放视频',
     'blox_bg_video_mobile_help' => '默认只显示背景图封面，减少手机流量和首屏等待。',
+    'blox_pick_media' => '从媒体库选择',
 ];

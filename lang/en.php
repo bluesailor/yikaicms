@@ -6128,4 +6128,5 @@ voltage|Voltage|220V',
     'blox_bg_video_mobile_poster' => 'Show poster only',
     'blox_bg_video_mobile_play' => 'Play video',
     'blox_bg_video_mobile_help' => 'Poster-only is the default to reduce mobile data and first-view delay.',
+    'blox_pick_media' => 'Choose from media library',
 ];
