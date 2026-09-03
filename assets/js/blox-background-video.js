@@ -4,6 +4,7 @@
     var bindings = new WeakMap();
     var managedVideos = new Set();
     var listenersBound = false;
+    var viewportObserver = null;
 
     function videosFor(root) {
         root = root && root.querySelectorAll ? root : document;
@@ -37,6 +38,11 @@
             pause(video, true);
             return;
         }
+        var state = bindings.get(video);
+        if (state && !state.nearViewport) {
+            pause(video, false);
+            return;
+        }
         if (document.hidden) {
             pause(video, false);
             return;
@@ -56,22 +62,39 @@
     function bind(video) {
         if (typeof video.addEventListener !== 'function') return;
         managedVideos.add(video);
-        if (bindings.has(video)) return;
-        bindings.set(video, true);
-        video.addEventListener('playing', function () {
-            if (preferenceAllows(video) && !document.hidden && video.classList) {
-                video.classList.add('blox-bg-video-ready');
-            }
-        });
-        video.addEventListener('error', function () {
-            if (video.classList) video.classList.remove('blox-bg-video-ready');
-        });
+        var state = bindings.get(video);
+        if (!state) {
+            state = { nearViewport: viewportObserver === null, observed: false };
+            bindings.set(video, state);
+            video.addEventListener('playing', function () {
+                var current = bindings.get(video);
+                if (preferenceAllows(video) && current && current.nearViewport && !document.hidden && video.classList) {
+                    video.classList.add('blox-bg-video-ready');
+                }
+            });
+            video.addEventListener('error', function () {
+                if (video.classList) video.classList.remove('blox-bg-video-ready');
+            });
+        }
+        if (viewportObserver && !state.observed) {
+            state.nearViewport = false;
+            state.observed = true;
+            viewportObserver.observe(video);
+        } else if (!viewportObserver) {
+            state.nearViewport = true;
+        }
     }
 
     function syncAll() {
         var current = videosFor(document);
         managedVideos.forEach(function (video) {
             if (current.indexOf(video) !== -1) return;
+            var state = bindings.get(video);
+            if (viewportObserver && state && state.observed) viewportObserver.unobserve(video);
+            if (state) {
+                state.nearViewport = false;
+                state.observed = false;
+            }
             pause(video, true);
             managedVideos.delete(video);
         });
@@ -81,6 +104,16 @@
     function bindListeners() {
         if (listenersBound) return;
         listenersBound = true;
+        if (typeof window.IntersectionObserver === 'function') {
+            viewportObserver = new window.IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    var state = bindings.get(entry.target);
+                    if (!state || !state.observed || !managedVideos.has(entry.target)) return;
+                    state.nearViewport = entry.isIntersecting;
+                    sync(entry.target);
+                });
+            }, { rootMargin: '400px 0px' });
+        }
         document.addEventListener('visibilitychange', syncAll);
         document.addEventListener('blox:content-updated', syncAll);
         if (typeof window.addEventListener === 'function') window.addEventListener('resize', syncAll);
@@ -94,8 +127,8 @@
     }
 
     function init(root) {
-        videosFor(root).forEach(function (video) { bind(video); sync(video); });
         bindListeners();
+        videosFor(root).forEach(function (video) { bind(video); sync(video); });
     }
 
     window.BloxBackgroundVideo = { init: init };
