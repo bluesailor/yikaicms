@@ -66,10 +66,29 @@ if ($view === 'preview') {
     require_once $root . '/admin/includes/auth.php';
     checkLogin();
     requirePermission('blox_home');
+    // published-header 模式需要「存在一个已发布的 Blox 页头」来证明主题接管渲染时画布仍用主题页头。
+    // 这个发布落在共享的隔离站点数据库里，之前从不还原：后续 site-design / blox-default-areas 等
+    // 依赖「无已发布 Blox 页头」的用例在同一站点里全部失败（CI 单 worker 顺序执行必现，单跑各 spec 不现）。
+    // 这里记录发布前状态，渲染结束后原样还原。outputBloxCanvasPreview() 内部会 exit，
+    // PHP 在 exit 时不执行 finally，所以还原挂在 shutdown 函数上。
     if ($mode === 'published-header') {
         require_once $root . '/includes/builder/bootstrap.php';
+        $before = bloxTemplateModel()->findWhere(['source' => 'builtin', 'source_ref' => 'clean-site-header']);
         $headerTemplate = BloxAreaTemplatePresets::install('clean-site-header', 1);
-        bloxTemplateModel()->publishDraft((int) $headerTemplate['id']);
+        $headerId = (int) $headerTemplate['id'];
+        bloxTemplateModel()->publishDraft($headerId);
+        register_shutdown_function(static function () use ($before, $headerId): void {
+            if (!$before) {
+                bloxTemplateModel()->deleteById($headerId);
+            } elseif ((int) ($before['status'] ?? 0) !== 1) {
+                // 原样还原：status / published_at / published_data 三个发布态字段都回到发布前的值
+                bloxTemplateModel()->updateById($headerId, [
+                    'status' => 0,
+                    'published_at' => (int) ($before['published_at'] ?? 0),
+                    'published_data' => $before['published_data'] ?? null,
+                ]);
+            }
+        });
     }
     require $root . '/includes/builder/BloxCanvasPreview.php';
     $_POST['blox'] = '1';
