@@ -105,7 +105,7 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertStringContainsString('blox-assets.php" list "$scope"', $build);
         self::assertStringContainsString('blox-assets.php" list pro', $build);
         self::assertStringContainsString('blox-assets.php" verify-free', $build);
-        self::assertStringContainsString('WIN_SOURCE=$(wslpath -w "$TMP_DIR")', $build);
+        self::assertStringContainsString('php tools/create-upgrade-zip.php "$PKG_DIR" "$ZIP_FILE" "$PACKAGE_NAME/"', $build);
         self::assertStringNotContainsString('"assets/js/blox-draft-recovery.js"', $build);
         self::assertStringNotContainsString('"assets/js/blox-dialog-focus.js"', $build);
         self::assertSame(2, substr_count($build, 'for scope in core runtime'));

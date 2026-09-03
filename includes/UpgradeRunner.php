@@ -14,6 +14,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/LegacyInstallCleanup.php';
+require_once __DIR__ . '/UpgradeEntryOrder.php';
 
 final class UpgradeApplyState
 {
@@ -303,7 +304,13 @@ function uo_zip_entries(ZipArchive $zip, string $prefix): array
         if (uo_is_protected($rel)) continue;
         $out[] = ['name' => $name, 'rel' => $rel];
     }
-    return $out;
+    return UpgradeEntryOrder::sort(
+        $out,
+        static function (array $entry) use ($zip): string {
+            $source = $zip->getFromName((string) ($entry['name'] ?? ''));
+            return $source === false ? '' : (string) $source;
+        }
+    );
 }
 
 /** 分批覆盖的进度状态文件路径 */

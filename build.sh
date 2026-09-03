@@ -414,20 +414,8 @@ echo "[4/5] 创建 ZIP 包..."
 ZIP_FILE="$RELEASE_DIR/${PACKAGE_NAME}.zip"
 rm -f "$ZIP_FILE"
 
-# 优先使用 zip 命令，其次用 PowerShell（WSL 环境）
-if command -v zip &>/dev/null; then
-    cd "$TMP_DIR"
-    zip -r -q "$ZIP_FILE" "$PACKAGE_NAME"
-    cd "$ROOT_DIR"
-else
-    # WSL 环境：压缩临时根目录，保持与 zip 分支相同的版本目录外壳。
-    WIN_SOURCE=$(wslpath -w "$TMP_DIR")
-    WIN_ZIP=$(wslpath -w "$ZIP_FILE")
-    powershell.exe -Command "
-        Add-Type -AssemblyName System.IO.Compression.FileSystem
-        [System.IO.Compression.ZipFile]::CreateFromDirectory('$WIN_SOURCE', '$WIN_ZIP')
-    "
-fi
+# ZIP 条目顺序是分批升级协议的一部分：依赖必须先于调用者，升级入口和版本号最后切换。
+php tools/create-upgrade-zip.php "$PKG_DIR" "$ZIP_FILE" "$PACKAGE_NAME/"
 
 # ---- 生成校验和 ----
 echo "[5/5] 生成 SHA256 校验和..."
@@ -581,12 +569,7 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
 
         DELTA_ZIP="$RELEASE_DIR/delta-${base}-to-${VERSION}.zip"
         rm -f "$DELTA_ZIP"
-        if command -v zip &>/dev/null; then
-            ( cd "$DELTA_DIR" && zip -r -q "$DELTA_ZIP" .delta-manifest.json payload )
-        else
-            WIN_SRC=$(wslpath -w "$DELTA_DIR"); WIN_DZ=$(wslpath -w "$DELTA_ZIP")
-            powershell.exe -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::CreateFromDirectory('$WIN_SRC', '$WIN_DZ')"
-        fi
+        php tools/create-upgrade-zip.php "$DELTA_DIR" "$DELTA_ZIP"
 
         # 必须用客户端同样的 ZipArchive 语义复验。Windows Compress-Archive 会把条目写成
         # payload\...，哈希虽正确，但升级器按 payload/ 匹配时会得到 0 个文件。
