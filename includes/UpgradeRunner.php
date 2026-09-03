@@ -290,7 +290,7 @@ function uo_copy_tree(string $src, string $dst, string $baseRel = ''): array
  * 列出 zip 内 $prefix 下的所有「文件」条目，返回 [['name'=>zip内条目名, 'rel'=>目标相对路径], ...]。
  * 套用 UO_EXCLUDES；跳过目录条目与越界路径。不解压——供逐条流式写入用（规避共享主机上 extractTo 失败/挂起）。
  */
-function uo_zip_entries(ZipArchive $zip, string $prefix): array
+function uo_zip_entries(ZipArchive $zip, string $prefix, ?callable $sorter = null): array
 {
     $out = [];
     $plen = strlen($prefix);
@@ -304,13 +304,21 @@ function uo_zip_entries(ZipArchive $zip, string $prefix): array
         if (uo_is_protected($rel)) continue;
         $out[] = ['name' => $name, 'rel' => $rel];
     }
-    return UpgradeEntryOrder::sort(
-        $out,
-        static function (array $entry) use ($zip): string {
-            $source = $zip->getFromName((string) ($entry['name'] ?? ''));
-            return $source === false ? '' : (string) $source;
-        }
-    );
+    $read = static function (array $entry) use ($zip): string {
+        $source = $zip->getFromName((string) ($entry['name'] ?? ''));
+        return $source === false ? '' : (string) $source;
+    };
+    try {
+        return $sorter !== null
+            ? $sorter($out, $read)
+            : UpgradeEntryOrder::sort($out, $read);
+    } catch (Throwable $e) {
+        // Official packages are already written in dependency-safe order. If a
+        // future parser regression occurs, preserve archive order so the updater
+        // can still apply the package that repairs its own sorter.
+        error_log('Upgrade entry ordering failed; using signed archive order: ' . $e->getMessage());
+        return $out;
+    }
 }
 
 /** 分批覆盖的进度状态文件路径 */

@@ -6097,4 +6097,5 @@ voltage|Voltage|220V',
     'onb_rewrite_body' => 'After installation, open any child page to verify it. If the home page works but other pages return 404, enable URL rewriting on the server.',
     'onb_rewrite_help' => 'View setup guide',
     'onb_rewrite_dismiss_failed' => 'The reminder could not be dismissed. Please try again.',
+    'upgrade_php_version_required' => 'This online update requires PHP :required or later; the current version is PHP :current. Switch the site to PHP :required or later in the hosting control panel, then check for updates again.',
 ];

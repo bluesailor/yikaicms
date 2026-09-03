@@ -21,20 +21,26 @@ if ($version === '') {
 }
 
 try {
-    fwrite(STDOUT, "[1/3] Update channel scenarios\n");
+    fwrite(STDOUT, "[1/4] Update channel scenarios\n");
     $channelOutput = ReleaseUploadGuard::runPhpScript(
         $updateRoot . '/tests/update-check-channel.php'
     );
     fwrite(STDOUT, "  {$channelOutput}\n");
 
-    fwrite(STDOUT, "[2/3] Release signatures\n");
+    fwrite(STDOUT, "[2/4] Update runtime gate\n");
+    $runtimeOutput = ReleaseUploadGuard::runPhpScript(
+        $updateRoot . '/tests/update-runtime-gate.php'
+    );
+    fwrite(STDOUT, "  {$runtimeOutput}\n");
+
+    fwrite(STDOUT, "[3/4] Release signatures\n");
     $signatureOutput = ReleaseUploadGuard::runPhpScript(
         $updateRoot . '/bin/verify-release-signatures.php',
         ['--required']
     );
     fwrite(STDOUT, "  {$signatureOutput}\n");
 
-    fwrite(STDOUT, "[3/3] Upload manifest, hashes and build mtimes\n");
+    fwrite(STDOUT, "[4/4] Upload manifest, hashes and build mtimes\n");
     $plan = ReleaseUploadGuard::inspect($updateRoot, $releaseDir, $version);
 } catch (Throwable $e) {
     fwrite(STDERR, "RELEASE UPLOAD BLOCKED: {$e->getMessage()}\n");

@@ -134,10 +134,14 @@ final class UpgradeEntryOrder
         $pendingScope = false;
         $expressions = [];
         $count = count($tokens);
+        $scopeTokens = [T_FUNCTION, T_CLASS, T_INTERFACE, T_TRAIT];
+        if (defined('T_ENUM')) {
+            $scopeTokens[] = (int) constant('T_ENUM');
+        }
 
         for ($i = 0; $i < $count; $i++) {
             $token = $tokens[$i];
-            if (is_array($token) && in_array($token[0], [T_FUNCTION, T_CLASS, T_INTERFACE, T_TRAIT, T_ENUM], true)) {
+            if (is_array($token) && in_array($token[0], $scopeTokens, true)) {
                 $pendingScope = true;
                 continue;
             }

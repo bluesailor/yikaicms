@@ -176,6 +176,7 @@ final class ReleaseUploadGuardTest extends TestCase
 
         self::assertStringContainsString('delta-*-to-"$VERSION".zip', $build);
         self::assertStringContainsString('/tests/update-check-channel.php', $cli);
+        self::assertStringContainsString('/tests/update-runtime-gate.php', $cli);
         self::assertStringContainsString('/bin/verify-release-signatures.php', $cli);
         self::assertStringContainsString("['--required']", $cli);
         self::assertStringContainsString('PACKAGES FIRST', $cli);
@@ -221,6 +222,7 @@ final class ReleaseUploadGuardTest extends TestCase
             'releases' => [[
                 'version' => '1.18.4',
                 'channel' => 'stable',
+                'min_php' => '8.0',
                 'package' => $fullName,
                 'hash' => $fullHash,
                 'deltas' => [$this->delta + ['sig' => 'delta-signature']],
