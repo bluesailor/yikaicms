@@ -191,7 +191,18 @@ final class ThemeInstallerTest extends TestCase
         self::assertDirectoryDoesNotExist($this->themesRoot . '/minimal');
     }
 
-    private function themeZip(string $slug, string $header): string
+    public function testUnexpectedCatalogVersionIsRejectedBeforeExtraction(): void
+    {
+        $result = (new ThemeInstaller($this->themesRoot, $this->storageRoot))
+            ->install($this->themeZip('business', 'new-header', '1.0.1'), 'business', '1.0.2');
+
+        self::assertFalse($result['ok']);
+        self::assertSame('version_mismatch', $result['code']);
+        self::assertDirectoryDoesNotExist($this->themesRoot . '/business');
+        self::assertSame([], glob($this->storageRoot . '/theme-staging/*') ?: []);
+    }
+
+    private function themeZip(string $slug, string $header, string $version = '1.0.0'): string
     {
         $zipPath = $this->root . '/' . $slug . '-' . bin2hex(random_bytes(3)) . '.zip';
         $zip = new ZipArchive();
@@ -204,7 +215,7 @@ final class ThemeInstallerTest extends TestCase
             'description' => 'Test theme',
             'description_en' => 'Test theme',
             'description_ja' => 'Test theme',
-            'version' => '1.0.0',
+            'version' => $version,
             'author' => 'YikaiCMS',
             'category' => 'general',
             'requires_cms' => '>=1.0',
