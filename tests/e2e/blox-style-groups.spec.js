@@ -103,3 +103,20 @@ test('container gets the shared background group without chips @ci', async ({ pa
   // 视频 URL 是本用例故意填的占位（仓库无 mp4 fixture），其 404 属预期；其余控制台错误仍须为零
   expect(errors.filter((e) => !/404/.test(e))).toEqual([]);
 });
+
+test('section background video is visible at the section layer @ci', async ({ page }) => {
+  const errors = observeConsole(page);
+  await openEditor(page);
+  await page.getByTestId('blox-tree-section').first().click();
+  await page.getByTestId('blox-style-tab').click();
+
+  const videoInput = page.getByTestId('blox-section-bg-video');
+  await expect(videoInput).toBeVisible();
+  await performPreviewUpdate(page, () => videoInput.fill('/uploads/e2e-section-bg.mp4'));
+  await expect(page.getByTestId('blox-section-overlay-opacity')).toBeVisible();
+  const video = (await frame(page)).locator('section .blox-bg-media video').first();
+  await expect(video).toHaveAttribute('src', '/uploads/e2e-section-bg.mp4');
+
+  await restoreClean(page);
+  expect(errors.filter((e) => !/404/.test(e))).toEqual([]);
+});

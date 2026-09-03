@@ -201,6 +201,35 @@ final class BloxBackgroundStyleTest extends TestCase
         $this->assertStringNotContainsString('blox-has-bg', $bad);
     }
 
+    /** 区块背景视频使用与容器元素相同的安全直链与三层结构，背景图同时作为 poster 和兜底。 */
+    public function testSectionVideoLayers(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [
+                'bg_video' => '/uploads/section.mp4',
+                'bg_image' => '/uploads/poster.jpg',
+                'bg_overlay_color' => '#102030',
+                'bg_overlay_opacity' => 55,
+            ],
+            'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'Above video']]]]],
+        ]], JSON_THROW_ON_ERROR));
+
+        $this->assertStringContainsString('<section class="py-8 relative overflow-hidden"', $out);
+        $this->assertStringContainsString(
+            '<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata" poster="/uploads/poster.jpg" src="/uploads/section.mp4"></video></div>',
+            $out
+        );
+        $this->assertStringContainsString('style="background-color:#102030;opacity:0.55;"', $out);
+        $this->assertStringContainsString('<div class="max-w-6xl mx-auto px-4 relative z-10">', $out);
+
+        $bad = BlockRenderer::render(json_encode([[
+            'settings' => ['bg_video' => 'https://www.youtube.com/watch?v=x'],
+            'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'Safe']]]]],
+        ]], JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('<video', $bad);
+        $this->assertStringNotContainsString('relative overflow-hidden', $bad);
+    }
+
     /** 第 5 轮：视频控件只出现在开启该能力的元素上（首批仅 container） */
     public function testVideoControlScopedToEnabledElements(): void
     {
