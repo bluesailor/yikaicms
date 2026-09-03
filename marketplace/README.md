@@ -14,7 +14,7 @@ Version policy:
   current `CMS_VERSION`; update it whenever the CMS version changes.
 - Bump a theme's own `version` whenever its source changes or it depends on a
   new CMS/Blox/theme-runtime capability.
-- See `docs/theme-versioning-policy.md` for the full release discipline.
+- The full release discipline lives in the internal engineering docs (yikaicms-docs/theme-versioning-policy.md), which are not part of the public repository.
 
 Current market themes:
 
