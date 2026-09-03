@@ -81,6 +81,14 @@ final class UpgradeEntryOrderTest extends TestCase
         self::assertSame(['includes/Dispatcher.php', 'index.php'], array_column($entries, 'rel'));
     }
 
+    public function testFullUpgradeProtectsEveryNonDefaultTheme(): void
+    {
+        self::assertFalse(uo_is_protected('themes/default/layouts/header.php'));
+        self::assertTrue(uo_is_protected('themes/business/layouts/header.php'));
+        self::assertTrue(uo_is_protected('themes/minimal/theme.json'));
+        self::assertTrue(uo_is_protected('themes/customer-custom/assets/style.css'));
+    }
+
     public function testZipEnumerationFallsBackToArchiveOrderWhenSorterFails(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'yikai-order-fallback-');

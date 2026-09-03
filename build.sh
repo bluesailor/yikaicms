@@ -123,7 +123,8 @@ mkdir -p "$RELEASE_DIR"
 
 # ---- 复制文件（当前工作树源码）----
 # tracked + 未忽略的新文件构成当前源码；再过滤已从工作树移走但索引尚未提交删除的路径。
-# 后续 EXCLUDES 仍负责剔除 tests、marketplace、开发工具等，不会把市场源码带进运行包。
+# 后续 EXCLUDES 仍负责剔除 tests、marketplace、开发工具等。仅明确列入
+# BUNDLED_THEMES 的市场主题会复制到运行包的 themes/ 目录。
 echo "[1/5] 复制项目文件（当前工作树源码）..."
 FILE_LIST="$TMP_DIR/worktree-files.list"
 : > "$FILE_LIST"
@@ -152,6 +153,23 @@ for scope in core runtime; do
             cp "$source_path" "$target_path"
         fi
     done < <(php "bin/blox-assets.php" list "$scope")
+done
+
+# 新安装默认提供三套模板：default 来自 themes/default；Business、Minimal 的
+# 唯一源码仍在 marketplace/themes。这里只复制到完整包的运行目录，避免仓库里
+# 再维护一份容易漂移的副本。在线升级会保护所有非 default 主题，不覆盖客户修改。
+BUNDLED_THEMES=("business" "minimal")
+for theme in "${BUNDLED_THEMES[@]}"; do
+    source_dir="$ROOT_DIR/marketplace/themes/$theme"
+    target_dir="$PKG_DIR/themes/$theme"
+    if [ ! -f "$source_dir/theme.json" ] \
+        || [ ! -f "$source_dir/layouts/header.php" ] \
+        || [ ! -f "$source_dir/layouts/footer.php" ]; then
+        echo "Error: 预装模板不完整: $theme"
+        exit 1
+    fi
+    mkdir -p "$target_dir"
+    cp -a "$source_dir/." "$target_dir/"
 done
 
 # 缓存命名空间随每个全量/增量发行包变化。HtmlCache 将它纳入缓存键，部署覆盖后
@@ -260,8 +278,8 @@ EXCLUDES=(
     # 的增强件；免费层 llms.txt / 实时分析 / SERP 预览 / 手动推送 装上即得。
     "plugins/seo"
 
-    # 主题：运行包只内置 default。aurora/business/minimal/trade 的源码集中在
-    # marketplace/themes/，由 update.yikaicms.com 主题市场签名分发，不进入 CMS 包。
+    # 主题市场源码目录本身不进入运行包。Business、Minimal 会在上面的显式步骤中
+    # 复制到 themes/ 作为新安装预装模板；Aurora、Trade 仍由主题市场签名分发。
     "marketplace"
 
     # Blox 资产由 config/blox-assets.json 单一登记。core/runtime 随免费包，pro 排除。
