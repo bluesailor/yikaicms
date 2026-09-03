@@ -22,6 +22,9 @@ final class HomeBannerItemElementTest extends TestCase
             'subtitle' => '<script>alert(1)</script>Welcome',
             'image' => '/uploads/banner.jpg',
             'image_mobile' => 'https://example.com/banner-mobile.jpg',
+            'media_type' => 'video',
+            'video' => '/uploads/videos/launch.mp4',
+            'video_mobile_mode' => 'video',
             'btn1_url' => 'javascript:alert(1)',
             'btn2_url' => 'mailto:sales@example.com',
             'link_target' => 'popup',
@@ -33,6 +36,9 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertSame('alert(1)Welcome', $item['subtitle']);
         $this->assertSame('/uploads/banner.jpg', $item['image']);
         $this->assertSame('https://example.com/banner-mobile.jpg', $item['image_mobile']);
+        $this->assertSame('video', $item['media_type']);
+        $this->assertSame('/uploads/videos/launch.mp4', $item['video']);
+        $this->assertSame('video', $item['video_mobile_mode']);
         $this->assertSame('', $item['btn1_url']);
         $this->assertSame('mailto:sales@example.com', $item['btn2_url']);
         $this->assertSame('_self', $item['link_target']);
@@ -51,6 +57,9 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertSame('inherit', $controls['content_motion']['default']);
         $this->assertSame('inherit', $controls['background_motion']['default']);
         $this->assertSame('', $controls['image_mobile']['default']);
+        $this->assertSame('image', $controls['media_type']['default']);
+        $this->assertSame('', $controls['video']['default']);
+        $this->assertSame('poster', $controls['video_mobile_mode']['default']);
         $this->assertSame('settings', $controls['content_motion']['option_icons']['inherit']);
         $this->assertArrayHasKey('clip-reveal', $controls['content_motion']['options']);
         $this->assertArrayHasKey('blur-up', $controls['content_motion']['options']);
@@ -92,6 +101,35 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertStringNotContainsString('<source', HomeBannerItemElement::responsiveImageHtml([
             'image' => '/uploads/desktop.jpg',
         ]));
+    }
+
+    public function testResponsiveVideoKeepsPosterAndRejectsUnsafeOrNonVideoUrls(): void
+    {
+        $html = HomeBannerItemElement::responsiveMediaHtml([
+            'title' => 'Launch',
+            'media_type' => 'video',
+            'video' => '/uploads/videos/launch.mp4',
+            'image' => '/uploads/launch.jpg',
+            'image_mobile' => '/uploads/launch-mobile.jpg',
+            'video_mobile_mode' => 'poster',
+        ]);
+
+        $this->assertStringContainsString('data-blox-banner-poster', $html);
+        $this->assertStringContainsString('data-blox-banner-video', $html);
+        $this->assertStringContainsString('data-blox-mobile-video="poster"', $html);
+        $this->assertStringContainsString('poster="/uploads/launch.jpg"', $html);
+        $this->assertStringContainsString('src="/uploads/videos/launch.mp4"', $html);
+        $this->assertStringNotContainsString('autoplay', $html);
+
+        foreach (['javascript:alert(1)', 'https://www.youtube.com/watch?v=x', '/uploads/readme.txt'] as $unsafe) {
+            $fallback = HomeBannerItemElement::responsiveMediaHtml([
+                'media_type' => 'video',
+                'video' => $unsafe,
+                'image' => '/uploads/fallback.jpg',
+            ]);
+            $this->assertStringNotContainsString('<video', $fallback);
+            $this->assertStringContainsString('/uploads/fallback.jpg', $fallback);
+        }
     }
 
     public function testLocalizedContentKeepsCustomPresentationAndMatchesTranslationGroups(): void

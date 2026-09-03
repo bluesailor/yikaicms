@@ -2,6 +2,7 @@
     'use strict';
 
     var states = new WeakMap();
+    var videoBindings = new WeakMap();
     var viewportListenersBound = false;
 
     function numberAttribute(element, name, fallback, min, max) {
@@ -65,17 +66,116 @@
         window.addEventListener('resize', function () { refreshViewportHeights(document); });
     }
 
+    function videosFor(slider) {
+        return slider && typeof slider.querySelectorAll === 'function'
+            ? Array.from(slider.querySelectorAll('[data-blox-banner-video]'))
+            : [];
+    }
+
+    function pauseVideo(video, reset) {
+        if (!video) return;
+        if (typeof video.pause === 'function') video.pause();
+        if (reset) {
+            try { video.currentTime = 0; } catch (error) { /* Some streams are not seekable yet. */ }
+            if (video.classList) video.classList.remove('blox-banner-video-ready');
+        }
+    }
+
+    function controlAutoplay(instance, action) {
+        var autoplay = instance && instance.autoplay;
+        if (autoplay && typeof autoplay[action] === 'function') autoplay[action]();
+    }
+
+    function videoCanPlay(video, reduceMotion) {
+        if (reduceMotion) return false;
+        var mobilePoster = video.getAttribute('data-blox-mobile-video') !== 'video';
+        var mobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+        return !(mobile && mobilePoster);
+    }
+
+    function activeVideo(slider, instance) {
+        var slides = slider.querySelectorAll('.swiper-wrapper > .swiper-slide');
+        var index = Math.max(0, Number(instance && instance.activeIndex) || 0);
+        var slide = slides[index];
+        return slide && typeof slide.querySelector === 'function'
+            ? slide.querySelector('[data-blox-banner-video]')
+            : null;
+    }
+
+    function bindVideo(slider, video) {
+        if (!video || videoBindings.get(video) === slider || typeof video.addEventListener !== 'function') return;
+        videoBindings.set(video, slider);
+        video.addEventListener('playing', function () {
+            if (video.classList) video.classList.add('blox-banner-video-ready');
+        });
+        video.addEventListener('error', function () {
+            if (video.classList) video.classList.remove('blox-banner-video-ready');
+            var state = states.get(slider);
+            if (state && state.config.autoplay > 0 && activeVideo(slider, state.instance) === video) {
+                controlAutoplay(state.instance, 'start');
+            }
+        });
+        video.addEventListener('ended', function () {
+            if (video.classList) video.classList.remove('blox-banner-video-ready');
+            var state = states.get(slider);
+            if (!state || activeVideo(slider, state.instance) !== video) return;
+            var count = slider.querySelectorAll('.swiper-wrapper > .swiper-slide').length;
+            if (count > 1 && state.config.autoplay > 0 && typeof state.instance.slideNext === 'function') {
+                state.instance.slideNext();
+            } else if (count === 1) {
+                try { video.currentTime = 0; } catch (error) { /* Ignore non-seekable streams. */ }
+                var replay = video.play();
+                if (replay && typeof replay.catch === 'function') replay.catch(function () {});
+            }
+        });
+    }
+
+    function syncVideos(slider, instance, config, reduceMotion) {
+        var videos = videosFor(slider);
+        videos.forEach(function (video) {
+            bindVideo(slider, video);
+            pauseVideo(video, true);
+        });
+        var video = activeVideo(slider, instance);
+        if (!video || !videoCanPlay(video, reduceMotion)) {
+            if (config.autoplay > 0) controlAutoplay(instance, 'start');
+            return;
+        }
+
+        if (config.autoplay > 0) controlAutoplay(instance, 'stop');
+        var playback;
+        try { playback = video.play(); } catch (error) { playback = null; }
+        if (playback && typeof playback.catch === 'function') {
+            playback.catch(function () {
+                if (video.classList) video.classList.remove('blox-banner-video-ready');
+                if (config.autoplay > 0 && activeVideo(slider, instance) === video) {
+                    controlAutoplay(instance, 'start');
+                }
+            });
+        }
+    }
+
     function initSlider(slider) {
         var signature = signatureFor(slider);
         var previousState = states.get(slider);
-        if (previousState && previousState.signature === signature) return;
+        if (previousState && previousState.signature === signature) {
+            if (previousState.instance && typeof previousState.instance.update === 'function') previousState.instance.update();
+            syncVideos(slider, previousState.instance, previousState.config, previousState.reduceMotion);
+            return;
+        }
         if (previousState && previousState.instance && typeof previousState.instance.destroy === 'function') {
+            videosFor(slider).forEach(function (video) { pauseVideo(video, true); });
             previousState.instance.destroy(true, true);
         }
 
         var wrapper = slider.querySelector('.swiper-wrapper');
         if (!wrapper) {
-            states.set(slider, { signature: signature, instance: null });
+            states.set(slider, {
+                signature: signature,
+                instance: null,
+                config: configFor(slider),
+                reduceMotion: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+            });
             slider.classList.add('blox-banner-static-active');
             return;
         }
@@ -99,12 +199,26 @@
                 pauseOnMouseEnter: config.pauseHover
             } : false,
             pagination: config.pagination && pagination ? { el: pagination, clickable: true } : false,
-            navigation: config.navigation && previous && next ? { prevEl: previous, nextEl: next } : false
+            navigation: config.navigation && previous && next ? { prevEl: previous, nextEl: next } : false,
+            on: {
+                slideChangeTransitionStart: function () {
+                    videosFor(slider).forEach(function (video) { pauseVideo(video, true); });
+                },
+                slideChangeTransitionEnd: function (swiper) {
+                    syncVideos(slider, swiper, config, reduceMotion);
+                }
+            }
         };
         if (options.effect === 'fade') options.fadeEffect = { crossFade: true };
 
         slider.bloxBanner = new window.Swiper(slider, options);
-        states.set(slider, { signature: signature, instance: slider.bloxBanner });
+        states.set(slider, {
+            signature: signature,
+            instance: slider.bloxBanner,
+            config: config,
+            reduceMotion: reduceMotion
+        });
+        syncVideos(slider, slider.bloxBanner, config, reduceMotion);
     }
 
     function init(root) {

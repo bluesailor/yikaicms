@@ -60,6 +60,7 @@ final class BloxAssetPolicyTest extends TestCase
             'migrations/20260812_banner_group_height_mode.php',
             'migrations/20260812_banner_group_runtime.php',
             'migrations/20260812_banner_item_runtime.php',
+            'migrations/20260904_banner_video.php',
         ], $policy['runtime']);
     }
 

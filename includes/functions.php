@@ -2348,10 +2348,14 @@ function uploadFile(array $file, string $type = 'images'): array
 
     // 检查文件类型
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $videoTypes = defined('UPLOAD_VIDEO_TYPES')
+        ? array_values(array_filter(array_map('strval', (array) constant('UPLOAD_VIDEO_TYPES'))))
+        : ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v'];
     $allowedTypes = match ($type) {
         'images' => UPLOAD_IMAGE_TYPES,
         'files' => UPLOAD_FILE_TYPES,
-        default => array_merge(UPLOAD_IMAGE_TYPES, UPLOAD_FILE_TYPES)
+        'videos' => $videoTypes,
+        default => array_merge(UPLOAD_IMAGE_TYPES, UPLOAD_FILE_TYPES, $videoTypes)
     };
 
     if (!in_array($ext, $allowedTypes)) {
@@ -2376,6 +2380,12 @@ function uploadFile(array $file, string $type = 'images'): array
         'zip'  => ['application/zip', 'application/x-zip-compressed'],
         'rar'  => ['application/x-rar-compressed', 'application/vnd.rar', 'application/x-rar'],
         '7z'   => ['application/x-7z-compressed', 'application/x-7z'],
+        'mp4'  => ['video/mp4', 'application/mp4'],
+        'webm' => ['video/webm', 'application/octet-stream'],
+        'ogg'  => ['video/ogg', 'application/ogg'],
+        'ogv'  => ['video/ogg', 'application/ogg'],
+        'mov'  => ['video/quicktime'],
+        'm4v'  => ['video/x-m4v', 'video/mp4'],
     ];
     // MIME 内容校验（防伪造扩展名）。fileinfo 扩展为可选：未安装则跳过此项检查，
     // 上传仍受扩展名白名单 + 图片 getimagesize 校验保护（强烈建议装 fileinfo 以获得完整防护）。

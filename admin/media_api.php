@@ -43,14 +43,14 @@ if (((defined('DEMO_MODE') && DEMO_MODE) || (defined('DEMO_SANDBOX') && DEMO_SAN
 
 // 列表查询
 if ($action === 'list') {
-    // 选择器对内容编辑者开放（要插图就得能选图），但**不是媒体管理员的人只能看图片**：
+    // 选择器对内容编辑者开放（排版时需要选图/视频），但非媒体管理员不能查看其它文件：
     // 文档与压缩包是对外分发的资料，不该因为「能写文章」就能翻出来。
     if (!canUploadImage()) {
         ma_deny('没有媒体库权限');
     }
     $type = $_GET['type'] ?? 'image';
-    if (!canManageMedia()) {
-        $type = 'image';   // 忽略客户端传的 type，强制只列图片
+    if (!canManageMedia() && !in_array($type, ['image', 'video'], true)) {
+        $type = 'image';   // 内容编辑者可取图片/视频，其它分发文件仍仅媒体管理员可见
     }
     $keyword = $_GET['keyword'] ?? '';
     $usage   = (string) ($_GET['usage'] ?? '');
@@ -150,6 +150,7 @@ if ($action === 'scan' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
     $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
     $fileExts  = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z'];
+    $videoExts = ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v'];
 
     $known = [];
     foreach (db()->fetchAll('SELECT url FROM ' . DB_PREFIX . 'media') as $r) {
@@ -167,7 +168,8 @@ if ($action === 'scan' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $ext = strtolower($f->getExtension());
         $isImage = in_array($ext, $imageExts, true);
-        if (!$isImage && !in_array($ext, $fileExts, true)) {
+        $isVideo = in_array($ext, $videoExts, true);
+        if (!$isImage && !$isVideo && !in_array($ext, $fileExts, true)) {
             continue;
         }
         $path = str_replace('\\', '/', $f->getPathname());
@@ -198,7 +200,7 @@ if ($action === 'scan' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             'name'       => $f->getFilename(),
             'path'       => $path,
             'url'        => $url,
-            'type'       => $isImage ? 'image' : 'file',
+            'type'       => $isImage ? 'image' : ($isVideo ? 'video' : 'file'),
             'ext'        => $ext,
             'mime'       => function_exists('mime_content_type') ? (mime_content_type($path) ?: '') : '',
             'size'       => $f->getSize(),
@@ -240,7 +242,9 @@ if ($action === 'upload' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         'name'       => $result['name'],
         'path'       => $result['path'],
         'url'        => $result['url'],
-        'type'       => in_array($result['ext'], ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']) ? 'image' : 'file',
+        'type'       => in_array($result['ext'], ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'], true)
+            ? 'image'
+            : (in_array($result['ext'], ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v'], true) ? 'video' : 'file'),
         'ext'        => $result['ext'],
         'mime'       => mime_content_type($result['path']) ?: '',
         'size'       => $result['size'],

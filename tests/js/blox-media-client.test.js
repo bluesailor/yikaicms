@@ -35,6 +35,15 @@ test("list forwards the wide background usage without changing ordinary requests
     assert.doesNotMatch(lastRequest.url, /usage=/);
 });
 
+test("list can request local videos without exposing arbitrary media types", async function () {
+    nextResponse = { code: 0, data: { items: [], pages: 1, total: 0 } };
+    await global.BloxMediaClient.list("/media", 1, "", { type: "video" });
+    assert.match(lastRequest.url, /type=video/);
+
+    await global.BloxMediaClient.list("/media", 1, "", { type: "file" });
+    assert.match(lastRequest.url, /type=image/);
+});
+
 test("latest request guard rejects stale responses and invalidates pending work", function () {
     const guard = global.BloxMediaClient.latestRequestGuard();
     const first = guard.begin();
@@ -78,6 +87,18 @@ test("server failures remain structured for the editor toast", async function ()
     assert.equal(result.message, "Upload rejected");
     assert.equal(result.url, "");
     assert.equal(result.optimized, false);
+});
+
+test("video upload preserves the original file and uses the video upload bucket", async function () {
+    nextResponse = { code: 0, data: { url: "/uploads/videos/launch.mp4" } };
+    const file = new Blob(["video"]);
+    Object.defineProperty(file, "name", { value: "launch.mp4" });
+    const result = await global.BloxMediaClient.upload("/media", file, { type: "video" });
+
+    assert.equal(result.ok, true);
+    assert.equal(lastRequest.options.body.get("type"), "videos");
+    assert.equal(lastRequest.options.body.get("file").name, "launch.mp4");
+    assert.equal(lastRequest.options.body.get("file").size, file.size);
 });
 
 test("large browser images are resized proportionally before upload", async function () {

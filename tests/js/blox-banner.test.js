@@ -9,7 +9,33 @@ const SRC = fs.readFileSync(
     'utf8'
 );
 
-function makeSlider(attributes = {}, withWrapper = true, top = 0, slideCount = 3) {
+function makeVideo(attributes = {}) {
+    const listeners = {};
+    const classes = new Set();
+    return {
+        attributes,
+        listeners,
+        currentTime: 12,
+        playCalls: 0,
+        pauseCalls: 0,
+        classList: {
+            add(name) { classes.add(name); },
+            remove(name) { classes.delete(name); },
+            contains(name) { return classes.has(name); },
+        },
+        getAttribute(name) { return Object.prototype.hasOwnProperty.call(attributes, name) ? String(attributes[name]) : null; },
+        addEventListener(type, fn) { listeners[type] = fn; },
+        play() { this.playCalls += 1; return Promise.resolve(); },
+        pause() { this.pauseCalls += 1; },
+    };
+}
+
+function makeSlider(attributes = {}, withWrapper = true, top = 0, slideCount = 3, slideVideos = []) {
+    const slides = Array.from({ length: slideCount }, (_, index) => ({
+        querySelector(selector) {
+            return selector === '[data-blox-banner-video]' ? (slideVideos[index] || null) : null;
+        },
+    }));
     const nodes = {
         '.swiper-wrapper': withWrapper ? {} : null,
         '.swiper-pagination': { role: 'pagination' },
@@ -27,14 +53,14 @@ function makeSlider(attributes = {}, withWrapper = true, top = 0, slideCount = 3
         matches(selector) { return selector === '[data-blox-banner]'; },
         querySelector(selector) { return nodes[selector] || null; },
         querySelectorAll(selector) {
-            return selector === '.swiper-wrapper > .swiper-slide'
-                ? Array.from({ length: slideCount }, () => ({}))
-                : [];
+            if (selector === '.swiper-wrapper > .swiper-slide') return slides;
+            if (selector === '[data-blox-banner-video]') return slideVideos.filter(Boolean);
+            return [];
         },
     };
 }
 
-function run({ sliders = [], reduceMotion = false, scrollTop = 0 } = {}) {
+function run({ sliders = [], reduceMotion = false, mobile = false, scrollTop = 0 } = {}) {
     const listeners = {};
     const instances = [];
     const document = {
@@ -46,17 +72,26 @@ function run({ sliders = [], reduceMotion = false, scrollTop = 0 } = {}) {
     const window = {
         pageYOffset: scrollTop,
         addEventListener(type, fn) { listeners['window:' + type] = fn; },
-        matchMedia: () => ({ matches: reduceMotion }),
+        matchMedia: query => ({ matches: query.includes('max-width') ? mobile : reduceMotion }),
         Swiper: function Swiper(element, options) {
             const instance = {
                 element,
                 options,
                 destroyed: false,
                 updated: false,
+                activeIndex: 0,
                 slideIndex: null,
+                nextCalls: 0,
+                autoplay: {
+                    startCalls: 0,
+                    stopCalls: 0,
+                    start() { this.startCalls += 1; },
+                    stop() { this.stopCalls += 1; },
+                },
                 destroy() { this.destroyed = true; },
                 update() { this.updated = true; },
                 slideTo(index) { this.slideIndex = index; },
+                slideNext() { this.nextCalls += 1; },
             };
             instances.push(instance);
             return instance;
@@ -143,4 +178,63 @@ test('programmatic selection reuses one instance and clamps stale indexes', () =
     assert.strictEqual(instances.length, 1);
     assert.strictEqual(instances[0].updated, true);
     assert.strictEqual(instances[0].slideIndex, 1);
+});
+
+test('only the active video plays and its full duration owns autoplay timing', async () => {
+    const firstVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const secondVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 2, [firstVideo, secondVideo]);
+    const { instances } = run({ sliders: [slider] });
+    const instance = instances[0];
+
+    assert.strictEqual(firstVideo.playCalls, 1);
+    assert.ok(firstVideo.pauseCalls >= 1);
+    assert.strictEqual(secondVideo.playCalls, 0);
+    assert.strictEqual(instance.autoplay.stopCalls, 1);
+
+    firstVideo.listeners.playing();
+    assert.strictEqual(firstVideo.classList.contains('blox-banner-video-ready'), true);
+    firstVideo.listeners.ended();
+    assert.strictEqual(instance.nextCalls, 1);
+});
+
+test('slide transitions pause the previous video and play the newly active video', () => {
+    const firstVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const secondVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 2, [firstVideo, secondVideo]);
+    const { instances } = run({ sliders: [slider] });
+    const instance = instances[0];
+
+    instance.options.on.slideChangeTransitionStart();
+    instance.activeIndex = 1;
+    instance.options.on.slideChangeTransitionEnd(instance);
+
+    assert.ok(firstVideo.pauseCalls >= 2);
+    assert.strictEqual(firstVideo.currentTime, 0);
+    assert.strictEqual(secondVideo.playCalls, 1);
+});
+
+test('an inactive video load error does not restart autoplay over the active video', () => {
+    const firstVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const secondVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 2, [firstVideo, secondVideo]);
+    const { instances } = run({ sliders: [slider] });
+    const instance = instances[0];
+
+    secondVideo.listeners.error();
+
+    assert.strictEqual(instance.autoplay.startCalls, 0);
+    assert.strictEqual(instance.autoplay.stopCalls, 1);
+});
+
+test('mobile poster mode and reduced motion do not start banner video', () => {
+    const mobileVideo = makeVideo({ 'data-blox-mobile-video': 'poster' });
+    const mobileSlider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 1, [mobileVideo]);
+    run({ sliders: [mobileSlider], mobile: true });
+    assert.strictEqual(mobileVideo.playCalls, 0);
+
+    const reducedVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const reducedSlider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 1, [reducedVideo]);
+    run({ sliders: [reducedSlider], reduceMotion: true });
+    assert.strictEqual(reducedVideo.playCalls, 0);
 });
