@@ -2091,6 +2091,25 @@ declare(strict_types=1);
                                     </select>
                                     <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_bg_video_mobile_help')) ?></p>
                                 </div>
+                                <div x-cloak
+                                     x-show="sectionBackgroundVideoObstructionCount() > 0"
+                                     data-testid="blox-bg-video-obstruction"
+                                     role="status"
+                                     aria-live="polite"
+                                     class="blox-property-span-full border-l-2 border-amber-400 bg-amber-50 px-3 py-2.5 text-amber-900">
+                                    <div class="flex items-start gap-2">
+                                        <i class="ti ti-layers-subtract mt-0.5 shrink-0" aria-hidden="true"></i>
+                                        <p class="min-w-0 text-[11px] leading-relaxed"
+                                           x-text="backgroundVideoObstructionText.warning.replace(':count', String(sectionBackgroundVideoObstructionCount()))"></p>
+                                    </div>
+                                    <button type="button"
+                                            @click="clearSectionBackgroundVideoObstructions()"
+                                            data-testid="blox-clear-bg-video-obstructions"
+                                            class="mt-2 inline-flex h-8 items-center gap-1.5 rounded border border-amber-300 bg-white px-2.5 text-xs font-medium text-amber-900 hover:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200">
+                                        <i class="ti ti-eraser" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_bg_video_obstruction_clear')) ?></span>
+                                    </button>
+                                </div>
                                 <div x-show="sel.settings.bg_image || sel.settings.bg_video" class="blox-property-span-full space-y-3">
                                     <div>
                                         <div class="mb-1">

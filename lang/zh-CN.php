@@ -6258,4 +6258,7 @@ voltage|电压|220V',
     'blox_batch_paste_done' => '已粘贴 :count 项',
     'blox_batch_paste_rejected' => '当前位置无法粘贴该内容，已取消。',
     'blox_batch_failed' => '批量操作失败，内容已还原。',
+    'blox_bg_video_obstruction_warning' => '检测到 :count 处子背景，可能遮挡当前背景视频。',
+    'blox_bg_video_obstruction_clear' => '清除子背景',
+    'blox_bg_video_obstruction_cleared' => '已清除 :count 处子背景',
 ];

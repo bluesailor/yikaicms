@@ -5,12 +5,13 @@
  *
  * 设计：深色 hero + 大字号 gradient title + glassmorphism CTA + 背景 banner 图作为氛围 (低透明度)
  */
+HomeBannerItemElement::registerRuntimeAssets();
 ?>
 <section class="relative min-h-[560px] md:min-h-[640px] flex items-center overflow-hidden"<?php echo HomeBloxBlockSchema::bannerRuntimeAttributes($block ?? []); ?><?php echo !empty($banners[0]) ? HomeBannerItemElement::motionAttributes($banners[0]) : ''; ?>>
-    <!-- Background banner image (faded) -->
-    <?php if (!empty($banners) && !empty($banners[0]['image'])): ?>
-    <div class="absolute inset-0">
-        <?php echo HomeBannerItemElement::responsiveImageHtml(array_replace($banners[0], ['title' => '']), 'w-full h-full object-cover opacity-25'); ?>
+    <!-- Background banner media (faded) -->
+    <?php if (!empty($banners) && (!empty($banners[0]['image']) || (($banners[0]['media_type'] ?? '') === 'video' && !empty($banners[0]['video'])))): ?>
+    <div class="absolute inset-0 opacity-25">
+        <?php echo HomeBannerItemElement::responsiveMediaHtml(array_replace($banners[0], ['title' => ''])); ?>
         <div class="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/70 to-slate-950"></div>
     </div>
     <?php endif; ?>

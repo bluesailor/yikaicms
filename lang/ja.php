@@ -6331,4 +6331,7 @@ voltage|電圧|220V',
     'blox_batch_paste_done' => ':count 件貼り付けました',
     'blox_batch_paste_rejected' => '現在の対象には貼り付けできないため、キャンセルしました。',
     'blox_batch_failed' => '一括操作に失敗したため、変更を元に戻しました。',
+    'blox_bg_video_obstruction_warning' => ':count か所の子背景が、この背景動画を覆う可能性があります。',
+    'blox_bg_video_obstruction_clear' => '子背景をクリア',
+    'blox_bg_video_obstruction_cleared' => ':count か所の子背景をクリアしました',
 ];

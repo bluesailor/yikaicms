@@ -209,9 +209,10 @@ $bannerHeightCss = $bannerFullscreen
 @media (min-width: 768px) { .banner-swiper { height: calc(100vh - var(--hg-banner-offset, 70px)); height: calc(100svh - var(--hg-banner-offset, 70px)); } }'
     : '.banner-swiper { height: ' . $bannerHeightMobile . 'px; }
 @media (min-width: 768px) { .banner-swiper { height: ' . $bannerHeightPC . 'px; } }';
+BloxAssetCollector::addStyle('/assets/css/blox-banner.css');
 $extraCss = '
 <link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">
-<link rel="stylesheet" href="' . e(assetVer('/assets/css/blox-banner.css')) . '">
+' . BloxAssetCollector::renderStyles() . '
 <style>
 ' . $bannerHeightCss . '
 .banner-swiper .swiper-pagination-bullet-active { opacity: 1; background: ' . $primaryColor . '; width: 24px; border-radius: 6px; }

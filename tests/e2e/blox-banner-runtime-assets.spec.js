@@ -19,6 +19,9 @@ test('homepage loads the banner runtime once after its video policy @ci', async 
   expect(bannerIndex).toBeGreaterThan(policyIndex);
   expect(scripts.filter(path => path === '/assets/js/blox-video-policy.js')).toHaveLength(1);
   expect(scripts.filter(path => path === '/assets/js/blox-banner.js')).toHaveLength(1);
+  const bannerStyles = page.locator('link[rel="stylesheet"][href*="/assets/css/blox-banner.css"]');
+  await expect(bannerStyles).toHaveCount(1);
+  expect(await bannerStyles.evaluate(node => node.parentElement && node.parentElement.tagName)).toBe('HEAD');
   await expect.poll(() => page.evaluate(() => ({
     banner: typeof window.BloxBanner,
     policy: typeof window.BloxVideoPolicy,

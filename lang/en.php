@@ -6190,4 +6190,7 @@ voltage|Voltage|220V',
     'blox_batch_paste_done' => 'Pasted :count item(s)',
     'blox_batch_paste_rejected' => 'This target cannot accept the clipboard content; paste was cancelled.',
     'blox_batch_failed' => 'Batch action failed; changes were reverted.',
+    'blox_bg_video_obstruction_warning' => ':count child background(s) may cover this background video.',
+    'blox_bg_video_obstruction_clear' => 'Clear child backgrounds',
+    'blox_bg_video_obstruction_cleared' => 'Cleared :count child background(s)',
 ];
