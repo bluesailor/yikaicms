@@ -6176,4 +6176,8 @@ voltage|电压|220V',
     'onb_rewrite_help' => '查看配置方法',
     'onb_rewrite_dismiss_failed' => '暂时无法关闭提醒，请稍后重试。',
     'upgrade_php_version_required' => '此版本在线升级要求 PHP :required 或更高版本，当前为 PHP :current。请先在主机面板切换到 PHP :required 或更高版本，再重新检查更新。',
+    'blox_area_preset_business_footer_name' => 'Business 主题网页脚',
+    'blox_area_preset_business_footer_desc' => '保留 Business 合作行动区，并提供深色导航与动态版权备案的可编辑网页脚。',
+    'blox_area_preset_minimal_footer_name' => 'Minimal 主题网页脚',
+    'blox_area_preset_minimal_footer_desc' => '浅色留白与动态版权备案组成的紧凑网页脚，保持 Minimal 的简洁风格。',
 ];
