@@ -166,6 +166,12 @@ $currentMenu = 'theme';
 $pageTitle = __('admin_theme');
 $message = '';
 $messageType = '';
+$themeFlash = $_SESSION['theme_flash'] ?? null;
+unset($_SESSION['theme_flash']);
+if (is_array($themeFlash) && is_string($themeFlash['message'] ?? null)) {
+    $message = $themeFlash['message'];
+    $messageType = ($themeFlash['type'] ?? '') === 'success' ? 'success' : 'error';
+}
 
 // 保存模板外观设置。前台继续读取既有颜色 key；额外按主题保存配置档案。
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_theme_settings') {
@@ -217,6 +223,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
 
 // 处理主题切换（页面表单，刷新式）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activate') {
+    verifyCsrf();
+
     try {
         $slug = $_POST['slug'] ?? '';
         $themeDir = ROOT_PATH . '/themes/' . basename($slug);
@@ -247,8 +255,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activ
                     'secondary_color' => $targetColors['secondary'],
                     'theme_color_profiles' => ThemePalette::encodeProfiles($colorProfiles),
                 ]);
-                $message = __('theme_switched') . '「' . e($slug) . '」';
-                $messageType = 'success';
+                $_SESSION['theme_flash'] = [
+                    'message' => __('theme_switched') . '「' . (string) $slug . '」',
+                    'type' => 'success',
+                ];
+                redirect('/admin/theme.php');
             }
         } else {
             $message = __('theme_not_found');
