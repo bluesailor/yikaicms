@@ -14,6 +14,7 @@ namespace Yikai\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use AbstractElement;
+use BloxAssetCollector;
 use BlockRenderer;
 use BuilderRegistry;
 
@@ -183,7 +184,7 @@ final class BloxBackgroundStyleTest extends TestCase
             'bg_color' => '#111827', 'bg_image' => '/uploads/a.jpg',
         ]]);
         $this->assertStringContainsString('class="yk-container blox-has-bg"', $out);
-        $this->assertStringContainsString('<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata" src="/uploads/bg.mp4"></video></div>', $out);
+        $this->assertStringContainsString('<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="poster" data-blox-video-src="/uploads/bg.mp4" poster="/uploads/a.jpg"></video></div>', $out);
         $this->assertStringContainsString('<div class="blox-bg-overlay" style="background:rgba(0,0,0,.6)"></div>', $out);
         // 底层样式保留色与图，但 gradient 不出现（遮罩已是 DOM 层）
         $this->assertStringContainsString('background-color:#111827;', $out);
@@ -195,10 +196,79 @@ final class BloxBackgroundStyleTest extends TestCase
         // 无遮罩档位 → 无 overlay 层
         $plain = $this->oneEl(['type' => 'container', 'data' => ['bg_video' => '/uploads/bg.mp4']]);
         $this->assertStringNotContainsString('blox-bg-overlay', $plain);
+        $this->assertStringNotContainsString(' poster=', $plain);
+
+        $badPoster = $this->oneEl(['type' => 'container', 'data' => [
+            'bg_video' => '/uploads/bg.mp4', 'bg_image' => 'javascript:alert(1)',
+        ]]);
+        $this->assertStringContainsString('data-blox-video-src="/uploads/bg.mp4"', $badPoster);
+        $this->assertStringNotContainsString(' poster=', $badPoster);
 
         // 非法视频 → 回落无视频路径（无三层结构）
         $bad = $this->oneEl(['type' => 'container', 'data' => ['bg_video' => 'https://www.youtube.com/watch?v=x']]);
         $this->assertStringNotContainsString('blox-has-bg', $bad);
+    }
+
+    /** 区块背景视频使用与容器元素相同的安全直链与三层结构，背景图同时作为 poster 和兜底。 */
+    public function testSectionVideoLayers(): void
+    {
+        BloxAssetCollector::reset();
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [
+                'bg_video' => '/uploads/section.mp4',
+                'bg_image' => '/uploads/poster.jpg',
+                'bg_overlay_color' => '#102030',
+                'bg_overlay_opacity' => 55,
+            ],
+            'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'Above video']]]]],
+        ]], JSON_THROW_ON_ERROR));
+
+        $this->assertStringContainsString('<section class="py-8 relative overflow-hidden"', $out);
+        $this->assertStringContainsString(
+            '<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="poster" data-blox-video-src="/uploads/section.mp4" poster="/uploads/poster.jpg"></video></div>',
+            $out
+        );
+        $this->assertSame(
+            ['/assets/js/blox-video-policy.js', '/assets/js/blox-background-video.js'],
+            BloxAssetCollector::scripts()
+        );
+        $this->assertStringContainsString('style="background-color:#102030;opacity:0.55;"', $out);
+        $this->assertStringContainsString('<div class="max-w-6xl mx-auto px-4 relative z-10">', $out);
+
+        $bad = BlockRenderer::render(json_encode([[
+            'settings' => ['bg_video' => 'https://www.youtube.com/watch?v=x'],
+            'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'Safe']]]]],
+        ]], JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('<video', $bad);
+        $this->assertStringNotContainsString('relative overflow-hidden', $bad);
+
+        $mobileVideo = BlockRenderer::render(json_encode([[
+            'settings' => ['bg_video' => '/uploads/section.mp4', 'bg_video_mobile_mode' => 'video'],
+            'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'Video']]]]],
+        ]], JSON_THROW_ON_ERROR));
+        $this->assertStringContainsString('data-blox-mobile-video="video"', $mobileVideo);
+    }
+
+    public function testSectionBackgroundTextToneResolution(): void
+    {
+        $render = static fn(array $settings): string => BlockRenderer::render((string) json_encode([[
+            'settings' => $settings,
+            'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'Tone']]]]],
+        ]], JSON_THROW_ON_ERROR));
+
+        $this->assertStringContainsString('data-blox-text-tone="light"', $render(['bg_color' => '#111827']));
+        $this->assertStringContainsString('data-blox-text-tone="dark"', $render(['bg_color' => '#f8fafc']));
+        $this->assertStringContainsString('data-blox-text-tone="light"', $render(['bg_video' => '/uploads/bg.mp4']));
+        $this->assertStringContainsString('data-blox-text-tone="dark"', $render([
+            'bg_image' => '/uploads/bg.jpg',
+            'bg_overlay_color' => '#ffffff',
+            'bg_overlay_opacity' => 60,
+        ]));
+        $this->assertStringContainsString('data-blox-text-tone="dark"', $render([
+            'bg_color' => '#111827',
+            'text_tone' => 'dark',
+        ]));
+        $this->assertStringNotContainsString('data-blox-text-tone=', $render([]));
     }
 
     /** 第 5 轮：视频控件只出现在开启该能力的元素上（首批仅 container） */

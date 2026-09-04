@@ -92,7 +92,16 @@ final class TailwindCompiledCssTest extends TestCase
             '背景媒体层必须 pointer-events:none——编辑器画布选中/拖拽依赖此约束。'
         );
         self::assertMatchesRegularExpression(
-            '/\.blox-bg-media video\{[^}]*object-fit:cover/',
+            '/\.blox-bg-media video\{[^}]*object-fit:cover[^}]*opacity:0/',
+            $css
+        );
+        self::assertStringContainsString('.blox-bg-media video.blox-bg-video-ready{opacity:1}', $css);
+        self::assertMatchesRegularExpression(
+            '/@media \(prefers-reduced-motion:reduce\)\{\.blox-bg-media video\{display:none/',
+            $css
+        );
+        self::assertMatchesRegularExpression(
+            '/@media \(max-width:767px\)\{\.blox-bg-media video\[data-blox-mobile-video=poster\]\{display:none/',
             $css
         );
     }

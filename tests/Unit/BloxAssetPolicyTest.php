@@ -42,7 +42,9 @@ final class BloxAssetPolicyTest extends TestCase
         $policy = $this->policy();
         self::assertSame([
             'assets/css/blox-banner.css',
+            'assets/js/blox-video-policy.js',
             'assets/js/blox-banner.js',
+            'assets/js/blox-background-video.js',
             'assets/js/blox-counter.js',
             'assets/js/blox-language-switcher.js',
             'assets/js/blox-nav-drawer.js',
@@ -60,6 +62,7 @@ final class BloxAssetPolicyTest extends TestCase
             'migrations/20260812_banner_group_height_mode.php',
             'migrations/20260812_banner_group_runtime.php',
             'migrations/20260812_banner_item_runtime.php',
+            'migrations/20260904_banner_video.php',
         ], $policy['runtime']);
     }
 

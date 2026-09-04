@@ -24,7 +24,8 @@ final class OfficialMediaPickerContractTest extends TestCase
         $overlays = $this->source('admin/blox_editor/partials/overlays.php');
 
         self::assertStringContainsString('/assets/js/official-media-client.js', $editor);
-        self::assertStringContainsString('this.mediaSource = options.source === "official" ? "official" : "local";', $editor);
+        self::assertStringContainsString('this.mediaSource = options.source === "official" && this.mediaType === "image" ? "official" : "local";', $editor);
+        self::assertStringContainsString('if (source === "official" && this.mediaType !== "image") return;', $editor);
         self::assertStringContainsString('setMediaSource(source)', $editor);
         self::assertStringContainsString('window.OfficialMediaClient.list', $editor);
         self::assertStringContainsString('window.OfficialMediaClient.importAsset', $editor);

@@ -4,12 +4,47 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const SRC = fs.readFileSync(
+const POLICY_SRC = fs.readFileSync(
+    path.join(__dirname, '..', '..', 'assets', 'js', 'blox-video-policy.js'),
+    'utf8'
+);
+const BANNER_SRC = fs.readFileSync(
     path.join(__dirname, '..', '..', 'assets', 'js', 'blox-banner.js'),
     'utf8'
 );
 
-function makeSlider(attributes = {}, withWrapper = true, top = 0, slideCount = 3) {
+function makeVideo(attributes = {}) {
+    attributes = { 'data-blox-video-src': '/uploads/banner.mp4', ...attributes };
+    const listeners = {};
+    const classes = new Set();
+    return {
+        attributes,
+        listeners,
+        currentTime: 12,
+        playCalls: 0,
+        pauseCalls: 0,
+        loadCalls: 0,
+        classList: {
+            add(name) { classes.add(name); },
+            remove(name) { classes.delete(name); },
+            contains(name) { return classes.has(name); },
+        },
+        getAttribute(name) { return Object.prototype.hasOwnProperty.call(attributes, name) ? String(attributes[name]) : null; },
+        setAttribute(name, value) { attributes[name] = String(value); },
+        removeAttribute(name) { delete attributes[name]; },
+        addEventListener(type, fn) { listeners[type] = fn; },
+        play() { this.playCalls += 1; return Promise.resolve(); },
+        pause() { this.pauseCalls += 1; },
+        load() { this.loadCalls += 1; },
+    };
+}
+
+function makeSlider(attributes = {}, withWrapper = true, top = 0, slideCount = 3, slideVideos = []) {
+    const slides = Array.from({ length: slideCount }, (_, index) => ({
+        querySelector(selector) {
+            return selector === '[data-blox-banner-video]' ? (slideVideos[index] || null) : null;
+        },
+    }));
     const nodes = {
         '.swiper-wrapper': withWrapper ? {} : null,
         '.swiper-pagination': { role: 'pagination' },
@@ -27,36 +62,60 @@ function makeSlider(attributes = {}, withWrapper = true, top = 0, slideCount = 3
         matches(selector) { return selector === '[data-blox-banner]'; },
         querySelector(selector) { return nodes[selector] || null; },
         querySelectorAll(selector) {
-            return selector === '.swiper-wrapper > .swiper-slide'
-                ? Array.from({ length: slideCount }, () => ({}))
-                : [];
+            if (selector === '.swiper-wrapper > .swiper-slide') return slides;
+            if (selector === '[data-blox-banner-video]') return slideVideos.filter(Boolean);
+            return [];
         },
     };
 }
 
-function run({ sliders = [], reduceMotion = false, scrollTop = 0 } = {}) {
+function run({ sliders = [], reduceMotion = false, mobile = false, scrollTop = 0, saveData = false, hidden = false } = {}) {
     const listeners = {};
     const instances = [];
+    const timers = new Map();
+    const mediaListeners = {};
+    const connectionListeners = {};
+    const mediaState = { reduceMotion, mobile };
+    let nextTimerId = 1;
     const document = {
         readyState: 'complete',
+        hidden,
         documentElement: { scrollTop },
         querySelectorAll(selector) { return selector === '[data-blox-banner]' ? sliders : []; },
         addEventListener(type, fn) { listeners[type] = fn; },
     };
     const window = {
         pageYOffset: scrollTop,
+        navigator: { connection: { saveData, addEventListener(type, fn) { connectionListeners[type] = fn; } } },
         addEventListener(type, fn) { listeners['window:' + type] = fn; },
-        matchMedia: () => ({ matches: reduceMotion }),
+        setTimeout(fn) { const id = nextTimerId++; timers.set(id, fn); return id; },
+        clearTimeout(id) { timers.delete(id); },
+        matchMedia: query => {
+            const type = query.includes('max-width') ? 'mobile' : 'motion';
+            return {
+                matches: type === 'mobile' ? mediaState.mobile : mediaState.reduceMotion,
+                addEventListener(name, fn) { mediaListeners[type + ':' + name] = fn; },
+            };
+        },
         Swiper: function Swiper(element, options) {
             const instance = {
                 element,
                 options,
                 destroyed: false,
                 updated: false,
+                activeIndex: 0,
                 slideIndex: null,
+                nextCalls: 0,
+                autoplay: {
+                    startCalls: 0,
+                    stopCalls: 0,
+                    start() { this.startCalls += 1; },
+                    stop() { this.stopCalls += 1; },
+                },
                 destroy() { this.destroyed = true; },
                 update() { this.updated = true; },
                 slideTo(index) { this.slideIndex = index; },
+                slideNext() { this.nextCalls += 1; },
             };
             instances.push(instance);
             return instance;
@@ -64,8 +123,9 @@ function run({ sliders = [], reduceMotion = false, scrollTop = 0 } = {}) {
     };
     const context = { window, document, WeakMap, Number, Math, parseInt };
     context.globalThis = context;
-    vm.runInNewContext(SRC, context);
-    return { window, listeners, instances };
+    vm.runInNewContext(POLICY_SRC, context);
+    vm.runInNewContext(BANNER_SRC, context);
+    return { window, document, listeners, instances, timers, mediaListeners, connectionListeners, mediaState };
 }
 
 test('creates one scoped Swiper instance per banner', () => {
@@ -143,4 +203,170 @@ test('programmatic selection reuses one instance and clamps stale indexes', () =
     assert.strictEqual(instances.length, 1);
     assert.strictEqual(instances[0].updated, true);
     assert.strictEqual(instances[0].slideIndex, 1);
+});
+
+test('only the active video plays and its full duration owns autoplay timing', async () => {
+    const firstVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const secondVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 2, [firstVideo, secondVideo]);
+    const { instances } = run({ sliders: [slider] });
+    const instance = instances[0];
+
+    assert.strictEqual(firstVideo.playCalls, 1);
+    assert.strictEqual(firstVideo.getAttribute('src'), '/uploads/banner.mp4');
+    assert.ok(firstVideo.pauseCalls >= 1);
+    assert.strictEqual(secondVideo.playCalls, 0);
+    assert.strictEqual(secondVideo.getAttribute('src'), null);
+    assert.strictEqual(instance.autoplay.stopCalls, 1);
+
+    firstVideo.listeners.playing();
+    assert.strictEqual(firstVideo.classList.contains('blox-banner-video-ready'), true);
+    firstVideo.listeners.ended();
+    assert.strictEqual(instance.nextCalls, 1);
+});
+
+test('slide transitions pause the previous video and play the newly active video', () => {
+    const firstVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const secondVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 2, [firstVideo, secondVideo]);
+    const { instances } = run({ sliders: [slider] });
+    const instance = instances[0];
+
+    instance.options.on.slideChangeTransitionStart();
+    instance.activeIndex = 1;
+    instance.options.on.slideChangeTransitionEnd(instance);
+
+    assert.ok(firstVideo.pauseCalls >= 2);
+    assert.strictEqual(firstVideo.currentTime, 0);
+    assert.strictEqual(firstVideo.getAttribute('src'), null);
+    assert.strictEqual(secondVideo.playCalls, 1);
+    assert.strictEqual(secondVideo.getAttribute('src'), '/uploads/banner.mp4');
+});
+
+test('an inactive video load error does not restart autoplay over the active video', () => {
+    const firstVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const secondVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 2, [firstVideo, secondVideo]);
+    const { instances } = run({ sliders: [slider] });
+    const instance = instances[0];
+
+    secondVideo.listeners.error();
+
+    assert.strictEqual(instance.autoplay.startCalls, 0);
+    assert.strictEqual(instance.autoplay.stopCalls, 1);
+});
+
+test('a stalled active video restores carousel timing after no playback progress', () => {
+    const video = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 2, [video]);
+    const { instances, timers } = run({ sliders: [slider] });
+
+    video.currentTime = 4;
+    video.listeners.waiting();
+    assert.strictEqual(timers.size, 1);
+    Array.from(timers.values())[0]();
+
+    assert.strictEqual(instances[0].autoplay.startCalls, 1);
+    assert.ok(video.pauseCalls >= 2);
+    assert.strictEqual(video.classList.contains('blox-banner-video-ready'), false);
+});
+
+test('stalled callback from an inactive video cannot restart carousel timing', () => {
+    const firstVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const secondVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 2, [firstVideo, secondVideo]);
+    const { instances, timers } = run({ sliders: [slider] });
+
+    firstVideo.listeners.stalled();
+    const callback = Array.from(timers.values())[0];
+    instances[0].activeIndex = 1;
+    callback();
+
+    assert.strictEqual(instances[0].autoplay.startCalls, 0);
+});
+
+test('mobile poster mode and reduced motion do not start banner video', () => {
+    const mobileVideo = makeVideo({ 'data-blox-mobile-video': 'poster' });
+    const mobileSlider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 1, [mobileVideo]);
+    run({ sliders: [mobileSlider], mobile: true });
+    assert.strictEqual(mobileVideo.playCalls, 0);
+    assert.strictEqual(mobileVideo.getAttribute('src'), null);
+
+    const reducedVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const reducedSlider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 1, [reducedVideo]);
+    const reduced = run({ sliders: [reducedSlider], reduceMotion: true });
+    assert.strictEqual(reducedVideo.playCalls, 0);
+    assert.strictEqual(reducedVideo.getAttribute('src'), null);
+    assert.strictEqual(reduced.instances[0].autoplay.startCalls, 0);
+});
+
+test('save-data keeps the poster and leaves image carousel timing available', () => {
+    const video = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 1, [video]);
+    const { instances } = run({ sliders: [slider], saveData: true });
+
+    assert.strictEqual(video.playCalls, 0);
+    assert.strictEqual(video.getAttribute('src'), null);
+    assert.strictEqual(instances[0].autoplay.startCalls, 1);
+});
+
+test('a delayed playing event from an inactive slide cannot reveal its video', () => {
+    const firstVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const secondVideo = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 2, [firstVideo, secondVideo]);
+    const { instances } = run({ sliders: [slider] });
+
+    instances[0].activeIndex = 1;
+    firstVideo.listeners.playing();
+
+    assert.strictEqual(firstVideo.classList.contains('blox-banner-video-ready'), false);
+});
+
+test('crossing into a mobile poster viewport unloads the active source', () => {
+    const video = makeVideo({ 'data-blox-mobile-video': 'poster' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 1, [video]);
+    const state = run({ sliders: [slider] });
+    assert.strictEqual(video.getAttribute('src'), '/uploads/banner.mp4');
+
+    state.mediaState.mobile = true;
+    state.mediaListeners['mobile:change']();
+
+    assert.strictEqual(video.getAttribute('src'), null);
+    assert.ok(video.loadCalls >= 2);
+});
+
+test('enabling reduced motion rebuilds the slider without animation or video', () => {
+    const video = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-effect': 'fade', 'data-blox-autoplay': '5' }, true, 0, 1, [video]);
+    const state = run({ sliders: [slider] });
+    const first = state.instances[0];
+
+    state.mediaState.reduceMotion = true;
+    state.mediaListeners['motion:change']();
+
+    assert.strictEqual(first.destroyed, true);
+    assert.strictEqual(state.instances.length, 2);
+    assert.strictEqual(state.instances[1].options.effect, 'slide');
+    assert.strictEqual(state.instances[1].options.speed, 0);
+    assert.strictEqual(state.instances[1].options.autoplay, false);
+    assert.strictEqual(video.getAttribute('src'), null);
+});
+
+test('page visibility pauses and resumes the active video without losing position', () => {
+    const video = makeVideo({ 'data-blox-mobile-video': 'video' });
+    const slider = makeSlider({ 'data-blox-autoplay': '5' }, true, 0, 1, [video]);
+    const { document, listeners, instances } = run({ sliders: [slider] });
+    const initialPauseCalls = video.pauseCalls;
+
+    video.currentTime = 1.25;
+    document.hidden = true;
+    listeners.visibilitychange();
+    assert.ok(video.pauseCalls > initialPauseCalls);
+    assert.strictEqual(video.currentTime, 1.25);
+
+    document.hidden = false;
+    listeners.visibilitychange();
+    assert.strictEqual(video.playCalls, 2);
+    assert.strictEqual(video.currentTime, 1.25);
+    assert.ok(instances[0].autoplay.stopCalls >= 3);
 });

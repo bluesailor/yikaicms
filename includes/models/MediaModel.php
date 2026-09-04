@@ -3,8 +3,74 @@ declare(strict_types=1);
 
 class MediaModel extends Model
 {
+    public const SORT_DEFAULT = 'default';
+    public const SORT_NEWEST = 'newest';
+    public const SORT_OLDEST = 'oldest';
+    public const SORT_LARGEST = 'largest';
+    public const SORT_SMALLEST = 'smallest';
+    public const SORT_NAME = 'name';
+
     protected string $table = 'media';
     protected string $defaultOrder = 'id DESC';
+
+    public static function normalizeSort(string $sort): string
+    {
+        return in_array($sort, [
+            self::SORT_DEFAULT,
+            self::SORT_NEWEST,
+            self::SORT_OLDEST,
+            self::SORT_LARGEST,
+            self::SORT_SMALLEST,
+            self::SORT_NAME,
+        ], true) ? $sort : self::SORT_DEFAULT;
+    }
+
+    /**
+     * 与数据库 ORDER BY 使用同一规则，供内置素材和上传素材合并分页。
+     *
+     * @param array<string,mixed> $left
+     * @param array<string,mixed> $right
+     */
+    public static function compareItems(array $left, array $right, string $sort, int $preferredMinWidth = 0): int
+    {
+        $sort = self::normalizeSort($sort);
+        $preferredMinWidth = max(0, min(10000, $preferredMinWidth));
+        if ($preferredMinWidth > 0) {
+            $leftPreferred = (int) ($left['width'] ?? 0) >= $preferredMinWidth ? 0 : 1;
+            $rightPreferred = (int) ($right['width'] ?? 0) >= $preferredMinWidth ? 0 : 1;
+            if ($leftPreferred !== $rightPreferred) {
+                return $leftPreferred <=> $rightPreferred;
+            }
+        }
+
+        if ($sort === self::SORT_DEFAULT) {
+            $leftBuiltin = !empty($left['builtin']) ? 0 : 1;
+            $rightBuiltin = !empty($right['builtin']) ? 0 : 1;
+            if ($leftBuiltin !== $rightBuiltin) {
+                return $leftBuiltin <=> $rightBuiltin;
+            }
+        }
+
+        $comparison = match ($sort) {
+            self::SORT_NEWEST => (int) ($right['created_at'] ?? 0) <=> (int) ($left['created_at'] ?? 0),
+            self::SORT_OLDEST => (int) ($left['created_at'] ?? 0) <=> (int) ($right['created_at'] ?? 0),
+            self::SORT_LARGEST => (int) ($right['size'] ?? 0) <=> (int) ($left['size'] ?? 0),
+            self::SORT_SMALLEST => (int) ($left['size'] ?? 0) <=> (int) ($right['size'] ?? 0),
+            self::SORT_NAME => strnatcasecmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? '')),
+            default => (int) ($right['id'] ?? 0) <=> (int) ($left['id'] ?? 0),
+        };
+        if ($comparison !== 0) {
+            return $comparison;
+        }
+
+        $ascendingId = in_array($sort, [self::SORT_OLDEST, self::SORT_SMALLEST], true);
+        $leftId = is_numeric($left['id'] ?? null) ? (int) $left['id'] : 0;
+        $rightId = is_numeric($right['id'] ?? null) ? (int) $right['id'] : 0;
+        $idComparison = $ascendingId ? ($leftId <=> $rightId) : ($rightId <=> $leftId);
+        return $idComparison !== 0
+            ? $idComparison
+            : strcmp((string) ($left['url'] ?? ''), (string) ($right['url'] ?? ''));
+    }
 
     /**
      * 获取媒体列表（分页+筛选）
@@ -14,6 +80,7 @@ class MediaModel extends Model
         $where = [];
         $params = [];
         $preferredMinWidth = max(0, min(10000, (int) ($filters['preferred_min_width'] ?? 0)));
+        $sort = self::normalizeSort((string) ($filters['sort'] ?? self::SORT_DEFAULT));
 
         if (!empty($filters['type'])) {
             $where[] = 'type = ?';
@@ -31,7 +98,14 @@ class MediaModel extends Model
             $params
         );
 
-        $order = $this->defaultOrder;
+        $order = match ($sort) {
+            self::SORT_NEWEST => 'created_at DESC, id DESC',
+            self::SORT_OLDEST => 'created_at ASC, id ASC',
+            self::SORT_LARGEST => 'size DESC, id DESC',
+            self::SORT_SMALLEST => 'size ASC, id ASC',
+            self::SORT_NAME => 'name ASC, id DESC',
+            default => $this->defaultOrder,
+        };
         if ($preferredMinWidth > 0 && (($filters['type'] ?? '') === 'image')) {
             $order = "CASE WHEN width >= {$preferredMinWidth} THEN 0 ELSE 1 END ASC, {$order}";
         }

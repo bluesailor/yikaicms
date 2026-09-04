@@ -42,6 +42,8 @@ final class BloxSecurityBoundaryTest extends TestCase
                 'container_bg_overlay_color' => '#000;position:fixed',
                 'container_bg_overlay_opacity' => -50,
                 'bg_image' => 'javascript:alert(1)',
+                'bg_video' => 'javascript:alert(1)',
+                'text_tone' => 'light;position:fixed',
                 'bg_position' => 'center;position:fixed',
                 'min_height' => '10000px',
                 'content_v_align' => 'end;position:fixed',
@@ -70,6 +72,8 @@ final class BloxSecurityBoundaryTest extends TestCase
         self::assertSame('', $section['settings']['container_bg_overlay_color']);
         self::assertSame(0, $section['settings']['container_bg_overlay_opacity']);
         self::assertSame('', $section['settings']['bg_image']);
+        self::assertSame('', $section['settings']['bg_video']);
+        self::assertSame('auto', $section['settings']['text_tone']);
         self::assertSame('', $section['settings']['bg_position']);
         self::assertSame('', $section['settings']['min_height']);
         self::assertSame('', $section['settings']['content_v_align']);
@@ -84,6 +88,8 @@ final class BloxSecurityBoundaryTest extends TestCase
     {
         $processed = BloxDocumentPipeline::process((string) json_encode([[
             'settings' => [
+                'bg_video' => '/uploads/hero.webm',
+                'bg_video_mobile_mode' => 'unsafe',
                 'container_bg_image' => '/uploads/container.jpg',
                 'container_bg_overlay_color' => '#123456',
                 'container_bg_overlay_opacity' => 35,
@@ -97,6 +103,8 @@ final class BloxSecurityBoundaryTest extends TestCase
         ]], JSON_THROW_ON_ERROR));
 
         $section = $processed['sections'][0];
+        self::assertSame('/uploads/hero.webm', $section['settings']['bg_video']);
+        self::assertSame('poster', $section['settings']['bg_video_mobile_mode']);
         self::assertSame('/uploads/container.jpg', $section['settings']['container_bg_image']);
         self::assertSame('#123456', $section['settings']['container_bg_overlay_color']);
         self::assertSame(35, $section['settings']['container_bg_overlay_opacity']);

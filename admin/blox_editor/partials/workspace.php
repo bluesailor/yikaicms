@@ -128,7 +128,7 @@ declare(strict_types=1);
                         <i class="ti ti-adjustments text-sm shrink-0"></i>
                         <span class="truncate" x-text="panelTitle()"></span>
                     </span>
-                    <?php // 元素设置里给「回到区块」出口，否则选了元素就没法改区块本身 ?>
+                    <?php // 元素背景统一归所在区块；从任意元素可一步进入区块样式。 ?>
                     <button type="button"
                             x-show="selEl && selEl.type === 'home-banner-item'"
                             @click="selectElement(selectedSi, selectedCi, selectedEi)"
@@ -136,9 +136,11 @@ declare(strict_types=1);
                             class="text-[10px] text-amber-600 hover:text-amber-700 inline-flex items-center gap-0.5 shrink-0">
                         <i class="ti ti-arrow-left text-xs"></i><?= __('blox_banner_overall_settings') ?>
                     </button>
-                    <button type="button" x-show="selEl && selEl.type !== 'home-banner-item'" @click="selectSection(selectedSi)"
-                            class="text-[10px] text-gray-400 hover:text-blue-500 inline-flex items-center gap-0.5 shrink-0">
-                        <i class="ti ti-arrow-back-up text-xs"></i><?= __('blox_section_label') ?>
+                    <button type="button" x-show="selEl && selEl.type !== 'home-banner-item'"
+                            @click="selectSection(selectedSi); panelTab = 'style'"
+                            data-testid="blox-edit-section-background"
+                            class="text-[10px] text-gray-500 hover:text-blue-600 inline-flex items-center gap-1 shrink-0">
+                        <i class="ti ti-photo-video text-xs"></i><?= e(__('blox_edit_section_background')) ?>
                     </button>
                     <button type="button" @click="libOpen = true" data-testid="blox-library-open"
                             class="ml-auto shrink-0 text-xs font-medium text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2.5 py-1 inline-flex items-center gap-1">
@@ -1524,11 +1526,19 @@ declare(strict_types=1);
                                         </div>
                                     </template>
 
-                                    <?php // url / video_url 是数据契约类型（保存管线定向清洗），编辑体验同普通文本框 ?>
-                                    <template x-if="['text','url','video_url'].indexOf(ctrl.type) !== -1">
+                                    <?php // 视频 URL 统一走可上传/选择的媒体控件；Banner 另有带封面预览的专用控件。 ?>
+                                    <template x-if="['text','url'].indexOf(ctrl.type) !== -1">
                                         <input type="text" x-model="selEl.data[ctrl.key]" :placeholder="homeContentPlaceholder(ctrl)"
                                                :class="homeContentField(ctrl.key) ? 'placeholder:text-gray-600' : ''"
                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm">
+                                    </template>
+
+                                    <template x-if="ctrl.type === 'video_url' && selEl && selEl.type === 'home-banner-item' && ctrl.key === 'video'">
+                                        <?php require __DIR__ . '/banner-video-control.php'; ?>
+                                    </template>
+
+                                    <template x-if="ctrl.type === 'video_url' && !(selEl && selEl.type === 'home-banner-item' && ctrl.key === 'video')">
+                                        <?php $videoControl = ['scope' => 'element', 'key' => 'ctrl.key', 'id' => 'blox-element-video', 'urlId' => 'blox-element-video-url']; require __DIR__ . '/video-control.php'; ?>
                                     </template>
 
                                     <template x-if="ctrl.type === 'textarea'">
@@ -1826,7 +1836,9 @@ declare(strict_types=1);
                                         </p>
                                     </template>
                                     <template x-if="ctrl.help">
-                                        <p class="mt-1 text-[10px] text-gray-400 leading-relaxed" x-text="ctrl.help"></p>
+                                        <p class="mt-1 text-[10px] text-gray-400 leading-relaxed"
+                                           :data-testid="ctrl.key === 'bg_image' ? 'blox-element-background-image-help' : null"
+                                           x-text="ctrl.help"></p>
                                     </template>
                                 </div>
                             </template>
@@ -2028,9 +2040,32 @@ declare(strict_types=1);
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_image') ?></label>
                                     <?php $imageControl = ['scope' => 'section', 'key' => "'bg_image'", 'id' => 'blox-section-background-image', 'urlId' => 'blox-section-bg-image']; require __DIR__ . '/image-control.php'; ?>
-                                    <div x-show="sel.settings.bg_image" class="mt-3 space-y-3">
+                                    <p x-show="sel.settings.bg_video" data-testid="blox-section-background-image-help"
+                                       class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_bg_video_poster_help')) ?></p>
+                                </div>
+                                <div class="blox-property-span-full">
+                                    <label for="blox-section-bg-video" class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_bg_video')) ?></label>
+                                    <?php $videoControl = ['scope' => 'section', 'key' => "'bg_video'", 'id' => 'blox-section-background-video', 'urlId' => 'blox-section-bg-video']; require __DIR__ . '/video-control.php'; ?>
+                                    <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_bg_video_help')) ?></p>
+                                </div>
+                                <div x-show="sel.settings.bg_video" class="blox-property-span-full">
+                                    <label for="blox-section-bg-video-mobile" class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_bg_video_mobile_mode')) ?></label>
+                                    <select id="blox-section-bg-video-mobile"
+                                            :value="sel.settings.bg_video_mobile_mode || 'poster'"
+                                            @change="sel.settings.bg_video_mobile_mode = $event.target.value"
+                                            data-testid="blox-section-bg-video-mobile"
+                                            class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm bg-white">
+                                        <option value="poster"><?= e(__('blox_bg_video_mobile_poster')) ?></option>
+                                        <option value="video"><?= e(__('blox_bg_video_mobile_play')) ?></option>
+                                    </select>
+                                    <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_bg_video_mobile_help')) ?></p>
+                                </div>
+                                <div x-show="sel.settings.bg_image || sel.settings.bg_video" class="blox-property-span-full space-y-3">
+                                    <div>
+                                        <div class="mb-1">
+                                            <label class="block text-xs font-medium text-gray-600"><?= e(__('blox_bg_overlay_color')) ?></label>
+                                        </div>
                                         <div>
-                                            <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
                                             <button type="button"
                                                     @click="openEditorColorPicker($event, 'section-overlay', <?= e($jt('blox_bg_overlay_color')) ?>, sel.settings.bg_overlay_color, '#000000', true, value => sel.settings.bg_overlay_color = value)"
                                                     class="flex h-9 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
@@ -2047,7 +2082,7 @@ declare(strict_types=1);
                                                :value="sel.settings.bg_overlay_opacity ?? 0"
                                                @input="sel.settings.bg_overlay_opacity = parseInt($event.target.value, 10)"
                                                data-testid="blox-section-overlay-opacity">
-                                        <div>
+                                        <div x-show="sel.settings.bg_image">
                                             <label class="block text-[10px] text-gray-400 mb-1.5"><?= e(__('blox_bg_focal_point')) ?></label>
                                             <div class="grid grid-cols-3 gap-1 w-24">
                                                 <template x-for="position in bgPositionOptions" :key="position.key">
@@ -2061,6 +2096,27 @@ declare(strict_types=1);
                                                 </template>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                                <div class="blox-property-span-full">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_page_hero_text_tone')) ?></label>
+                                    <div class="grid grid-cols-3 overflow-hidden rounded border border-gray-200 bg-white"
+                                         role="group" aria-label="<?= e(__('blox_page_hero_text_tone')) ?>">
+                                        <template x-for="tone in [
+                                            {key:'auto', label:<?= e($jt('blox_page_hero_tone_auto')) ?>, icon:'adjustments'},
+                                            {key:'light', label:<?= e($jt('blox_page_hero_tone_light')) ?>, icon:'sun'},
+                                            {key:'dark', label:<?= e($jt('blox_page_hero_tone_dark')) ?>, icon:'moon'}
+                                        ]" :key="tone.key">
+                                            <button type="button"
+                                                    @click="sel.settings.text_tone = tone.key"
+                                                    :aria-pressed="(sel.settings.text_tone || 'auto') === tone.key"
+                                                    :data-testid="'blox-section-text-tone-' + tone.key"
+                                                    class="h-9 min-w-0 border-r border-gray-200 px-1.5 text-xs last:border-r-0 inline-flex items-center justify-center gap-1 transition"
+                                                    :class="(sel.settings.text_tone || 'auto') === tone.key ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'">
+                                                <i class="ti text-sm shrink-0" :class="'ti-' + tone.icon" aria-hidden="true"></i>
+                                                <span class="truncate" x-text="tone.label"></span>
+                                            </button>
+                                        </template>
                                     </div>
                                 </div>
                                 <div>
@@ -2678,7 +2734,7 @@ declare(strict_types=1);
                     <p class="text-xs text-gray-400 text-center py-8"><?= __('blox_click_any_element') ?></p>
                 </template>
                 <template x-for="(section, si) in sections" :key="section.id">
-                    <div @click="selectSection(si)"
+                    <div @click="selectSectionFromTree(si)"
                          @contextmenu.prevent.stop="openCtx($event, 'section', {si: si})"
                          :data-section-id="section.id" :data-section-index="si"
                          :data-section-label="sectionLabel(section, si)" data-testid="blox-tree-section"

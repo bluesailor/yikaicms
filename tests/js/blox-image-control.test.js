@@ -57,3 +57,17 @@ test('typing updates the document immediately but leaves history batching to the
     assert.equal(app.selEl.data.src, '/typed.jpg');
     assert.equal(app.flushes, 0);
 });
+
+for (const [scope, key] of [['section', 'bg_video'], ['element', 'bg_video']]) {
+    test(`${scope}: video picker is type-scoped and ignores a stale target`, () => {
+        const app = editor();
+        app.pickVideoControl(scope, key);
+        assert.deepEqual(app.options, { type: 'video' });
+        app.pick('/uploads/videos/background.mp4');
+        assert.equal(app.videoControlValue(scope, key), '/uploads/videos/background.mp4');
+        app.pickVideoControl(scope, key);
+        app.sel = { settings: {} }; app.selEl = { data: {} };
+        app.pick('/uploads/videos/wrong-target.mp4');
+        assert.equal(app.videoControlValue(scope, key), '');
+    });
+}
