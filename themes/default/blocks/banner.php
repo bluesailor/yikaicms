@@ -3,6 +3,7 @@
  * 首页区块：Banner轮播图
  * 变量：$banners
  */
+HomeBannerItemElement::registerRuntimeAssets();
 ?>
 <section class="relative">
     <div class="swiper banner-swiper"<?php echo HomeBloxBlockSchema::bannerRuntimeAttributes($block ?? []); ?>>
@@ -11,14 +12,7 @@
                 <?php foreach ($banners as $banner): ?>
                 <div class="swiper-slide"<?php echo HomeBannerItemElement::motionAttributes($banner); ?><?php echo !empty($banner['_blox_path']) ? ' data-yk-el="' . e($banner['_blox_path']) . '" data-yk-el-type="home-banner-item"' : ''; ?>>
                     <?php if (!empty($banner['image']) || (($banner['media_type'] ?? '') === 'video' && !empty($banner['video']))): ?>
-                        <?php $bannerLink = safeUrl((string) $banner['link_url']); ?>
-                        <?php if ($bannerLink): ?>
-                        <a href="<?php echo e($bannerLink); ?>" target="<?php echo e($banner['link_target']); ?>" class="block w-full h-full">
-                            <?php echo HomeBannerItemElement::responsiveMediaHtml($banner); ?>
-                        </a>
-                        <?php else: ?>
-                        <?php echo HomeBannerItemElement::responsiveMediaHtml($banner); ?>
-                        <?php endif; ?>
+                        <?php echo HomeBannerItemElement::responsiveLinkedMediaHtml($banner); ?>
                     <?php else: ?>
                         <div class="w-full h-full bg-gradient-to-r from-gray-800 via-gray-700 to-gray-900"></div>
                     <?php endif; ?>

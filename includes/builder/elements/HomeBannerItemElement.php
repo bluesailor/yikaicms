@@ -268,6 +268,28 @@ final class HomeBannerItemElement extends AbstractElement
             . '"></video>';
     }
 
+    /** @param array<string, mixed> $data */
+    public static function responsiveLinkedMediaHtml(array $data): string
+    {
+        $item = self::normalize($data);
+        $media = self::responsiveMediaHtml($item);
+        if ($item['link_url'] === '') {
+            return $media;
+        }
+
+        return '<a href="' . htmlspecialchars($item['link_url'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+            . '" target="' . htmlspecialchars($item['link_target'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+            . '" class="block w-full h-full">' . $media . '</a>';
+    }
+
+    /** @psalm-api Theme template entry point. */
+    public static function registerRuntimeAssets(): void
+    {
+        BloxAssetCollector::addStyle('/assets/css/blox-banner.css');
+        BloxAssetCollector::addScript('/assets/js/blox-video-policy.js');
+        BloxAssetCollector::addScript('/assets/js/blox-banner.js');
+    }
+
     /** @param array<string, mixed> $banner @return array<string, mixed> */
     public static function fromLegacy(array $banner): array
     {

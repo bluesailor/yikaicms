@@ -2891,15 +2891,9 @@ function renderBannerShortcode(string $slug): string
     $html .= '<div class="swiper-wrapper">';
 
     foreach ($banners as $b) {
+        $b = HomeBannerItemElement::normalize($b);
         $html .= '<div class="swiper-slide"' . HomeBannerItemElement::motionAttributes($b) . '>';
-        $imageHtml = HomeBannerItemElement::responsiveImageHtml($b);
-        if ($b['link_url']) {
-            $html .= '<a href="' . e($b['link_url']) . '" target="' . e($b['link_target']) . '" class="block w-full h-full">';
-            $html .= $imageHtml;
-            $html .= '</a>';
-        } else {
-            $html .= $imageHtml;
-        }
+        $html .= HomeBannerItemElement::responsiveLinkedMediaHtml($b);
         if ($b['title']) {
             $html .= '<div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">';
             $html .= '<div class="text-center text-white px-4 w-full max-w-4xl">';

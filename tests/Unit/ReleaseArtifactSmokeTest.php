@@ -98,6 +98,32 @@ final class ReleaseArtifactSmokeTest extends TestCase
         self::assertStringContainsString('includes/UpgradeEntryOrder.php', implode("\n", $errors));
     }
 
+    public function testReplacementCharacterInInstallSeedFailsArtifactSmoke(): void
+    {
+        $root = $this->tempDir . '/yikaicms-v9.9.9';
+        file_put_contents($root . '/install/seed_data_ja.json', "{\"text\":\"damaged \xEF\xBF\xBD\"}\n");
+
+        $errors = (new ReleaseArtifactSmoke($this->manifest))->inspectDirectory($root);
+
+        self::assertStringContainsString(
+            'Install seed contains Unicode replacement characters: install/seed_data_ja.json',
+            implode("\n", $errors)
+        );
+    }
+
+    public function testInvalidUtf8InInstallSqlFailsArtifactSmoke(): void
+    {
+        $root = $this->tempDir . '/yikaicms-v9.9.9';
+        file_put_contents($root . '/install/sql/mysql.sql', "SELECT '\xC3\x28';\n");
+
+        $errors = (new ReleaseArtifactSmoke($this->manifest))->inspectDirectory($root);
+
+        self::assertStringContainsString(
+            'Install seed is not valid UTF-8: install/sql/mysql.sql',
+            implode("\n", $errors)
+        );
+    }
+
     public function testZipInspectionUsesTheExtractedArtifactAndRejectsForbiddenFiles(): void
     {
         $root = $this->tempDir . '/yikaicms-v9.9.9';
