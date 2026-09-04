@@ -1841,6 +1841,10 @@ test('legacy service page can switch to editable built-in process template @loca
 
 test('local template insertion uses catalog resolve without reload @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  const localTemplateId = Number(fixtures.blox_template);
+  expect(localTemplateId).toBeGreaterThan(0);
   await page.route('**/admin/blox_template_api.php?action=list**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -1850,7 +1854,7 @@ test('local template insertion uses catalog resolve without reload @ci', async (
         msg: 'ok',
         data: {
           items: [{
-            key: 'local:1',
+            key: `local:${localTemplateId}`,
             type: 'section',
             name: 'E2E 本地区块',
             source: 'local',
@@ -1870,7 +1874,9 @@ test('local template insertion uses catalog resolve without reload @ci', async (
   await page.getByTestId('blox-prebuilt-open').click();
   const item = page.getByTestId('blox-template-item');
   await expect(item).toHaveCount(1);
-  await expect(item.getByTestId('blox-template-edit')).toHaveAttribute('href', '/admin/blox_editor.php?template=1');
+  await expect(item.getByTestId('blox-template-edit')).toHaveAttribute(
+    'href', `/admin/blox_editor.php?template=${localTemplateId}`,
+  );
   await item.getByTestId('blox-template-insert').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   await expect((await frame(page)).locator('[data-yk-el-type="heading"]', {
@@ -2022,9 +2028,9 @@ test('template manager exposes safe local header and footer starters @ci', async
 
   const presets = page.getByTestId('blox-area-presets');
   await expect(presets).toBeVisible();
-  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(11);
+  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(13);
   await expect(presets.locator('.ti-layout-navbar')).toHaveCount(6);
-  await expect(presets.locator('.ti-layout-bottombar')).toHaveCount(5);
+  await expect(presets.locator('.ti-layout-bottombar')).toHaveCount(7);
   await expect(page.getByTestId('blox-default-theme-status')).toBeVisible();
 
   const areaRow = page.locator('tbody tr').filter({ has: page.getByTestId('blox-condition-toggle') }).first();
@@ -2313,7 +2319,7 @@ test('footer style library previews and applies practical starters @ci', async (
 
   const dialog = page.getByTestId('blox-header-presets');
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByTestId('blox-header-preset-apply')).toHaveCount(5);
+  await expect(dialog.getByTestId('blox-header-preset-apply')).toHaveCount(7);
   await expect(dialog).toContainText('紧凑网页脚');
   await expect(dialog).toContainText('联系方式网页脚');
   await expect(dialog).toContainText('搜索导航网页脚');
