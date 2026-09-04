@@ -164,7 +164,7 @@ function getChannelUrl(array $channel): string {
                 </a>
 
                 <!-- Desktop Navigation -->
-                <nav class="hidden md:flex items-center gap-8">
+                <nav class="hidden xl:flex items-center gap-8 whitespace-nowrap">
                     <?php foreach ($navChannels as $navItem): ?>
                     <?php
                     $hasChildren = !empty($navItem['children']);
@@ -225,7 +225,9 @@ function getChannelUrl(array $channel): string {
                 </nav>
 
                 <!-- Mobile Hamburger -->
-                <button id="mobileMenuBtn" class="md:hidden p-2 text-gray-600" aria-label="<?php echo e(__('menu_label')); ?>">
+                <button id="mobileMenuBtn" type="button" aria-controls="mobileMenu" aria-expanded="false"
+                        class="xl:hidden inline-flex h-11 w-11 items-center justify-center rounded-md text-gray-600 transition hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400/50"
+                        aria-label="<?php echo e(__('menu_label')); ?>">
                     <div class="hamburger" id="hamburgerIcon">
                         <span></span>
                         <span></span>
@@ -236,7 +238,7 @@ function getChannelUrl(array $channel): string {
         </div>
 
         <!-- Mobile Menu -->
-        <nav id="mobileMenu" class="md:hidden hidden border-t border-gray-100 bg-white">
+        <nav id="mobileMenu" class="xl:hidden hidden border-t border-gray-100 bg-white">
             <div class="container mx-auto px-6 py-6 space-y-4">
                 <?php foreach ($navChannels as $navItem): ?>
                 <a href="<?php echo getChannelUrl($navItem); ?>"

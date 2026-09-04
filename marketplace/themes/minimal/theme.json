@@ -6,7 +6,7 @@
   "description": "极简风格主题，大留白、无装饰、注重内容呈现，适合设计公司和创意工作室",
   "description_en": "Minimalist theme with generous whitespace, no ornaments and content-first layout — ideal for design agencies and creative studios",
   "description_ja": "余白を活かした装飾のないミニマルテーマ。コンテンツ重視で、デザイン会社やクリエイティブスタジオに最適",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "author": "Yikai CMS",
   "category": "creative",
   "requires_cms": ">=1.19.5",

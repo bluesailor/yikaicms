@@ -77,7 +77,10 @@ $footerNav = function_exists('footerNavigationGroups')
 
     <script>
     document.getElementById('mobileMenuBtn')?.addEventListener('click', function() {
-        document.getElementById('mobileMenu').classList.toggle('hidden');
+        var menu = document.getElementById('mobileMenu');
+        if (!menu) return;
+        menu.classList.toggle('hidden');
+        this.setAttribute('aria-expanded', menu.classList.contains('hidden') ? 'false' : 'true');
     });
 
     // 滚动动画

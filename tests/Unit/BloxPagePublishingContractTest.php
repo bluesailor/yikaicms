@@ -143,7 +143,10 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('if ((template[2] || template[4]) && value.area !== "header") return null;', $bridge);
         $this->assertStringContainsString('payload = areaEditPayload(data.ykEditArea);', $bridge);
         $this->assertStringContainsString('this.onEditArea(payload);', $bridge);
-        $this->assertStringContainsString('onEditArea: function (payload) { window.location.assign(payload.url); }', $editor);
+        // 画布里的页头/页尾编辑入口也必须经过统一的未保存离开保护，不能直接跳转。
+        $this->assertStringContainsString('onEditArea: function (payload) { self.navigateEditorTo(payload.url); }', $editor);
+        $this->assertStringContainsString('navigateEditorTo(href) {', $editor);
+        $this->assertStringContainsString('this.hasUnsavedChanges() && !window.confirm(this.uiText.leaveUnsavedConfirm)', $editor);
         $this->assertStringContainsString('onEditPageHero: function () { self.openPageHeroSettings(); }', $editor);
 
         $templateApi = $this->source('admin/blox_template_api.php');

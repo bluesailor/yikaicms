@@ -6158,7 +6158,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                         self.scrollInitialFooterIntoView();
                     },
                     onAreaMatch: function (match) { self.ctxMatch = match; },
-                    onEditArea: function (payload) { window.location.assign(payload.url); },
+                    onEditArea: function (payload) { self.navigateEditorTo(payload.url); },
                     onEditPageHero: function () { self.openPageHeroSettings(); },
                     // 画布空态双入口：模板库起步 / 空白区块起步
                     onEmptyAction: function (action) {
@@ -8925,13 +8925,21 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             requestEditorBack(event) {
+                this.requestEditorNavigation(event);
+            },
+
+            requestEditorNavigation(event) {
                 if (!event || event.defaultPrevented || event.button !== 0
                     || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
                 if (!this.hasUnsavedChanges()) return;
                 event.preventDefault();
-                if (!window.confirm(this.uiText.leaveUnsavedConfirm)) return;
                 var href = event.currentTarget && event.currentTarget.href;
-                if (!href) return;
+                this.navigateEditorTo(href);
+            },
+
+            navigateEditorTo(href) {
+                if (typeof href !== "string" || href === "") return;
+                if (this.hasUnsavedChanges() && !window.confirm(this.uiText.leaveUnsavedConfirm)) return;
                 this._allowEditorLeave = true;
                 window.location.assign(href);
             },

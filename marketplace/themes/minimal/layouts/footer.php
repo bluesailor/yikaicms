@@ -45,6 +45,7 @@ $footerTextColor = config('footer_text_color', '#9ca3af');
             const hamburger = document.getElementById('hamburgerIcon');
             menu?.classList.toggle('hidden');
             hamburger?.classList.toggle('active');
+            this.setAttribute('aria-expanded', menu?.classList.contains('hidden') ? 'false' : 'true');
         });
     </script>
 
