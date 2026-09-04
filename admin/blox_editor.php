@@ -784,6 +784,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
+    <script src="/assets/js/blox-multi-select.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-select.js') ?>"></script>
     <script src="/assets/js/blox-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-icon-utils.js') ?>"></script>
     <script src="/assets/js/blox-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-field-store.js') ?>"></script>
     <?php // 系统富文本编辑器（richtext 控件的「可视化编辑」弹窗用；按需 init） ?>
@@ -3438,6 +3439,12 @@ $canManageBloxDesign = hasPermission('blox_global');
             selectedCi: -1,
             selectedEi: -1,
             selectedSubEi: -1,
+            // 同级多选（R1）：稳定 id 集合，仅同列/同容器/根区块内；批量操作条由 multiSelActive 门控
+            multiSel: null,
+            multiText: <?php echo json_encode([
+                'count' => __('blox_multi_selected_count'),
+                'hint' => __('blox_multi_hint'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             selectedSectionField: "",
             selectedHomeField: "",
             homeFieldRevision: 0,
@@ -4030,6 +4037,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             selectSectionField(si, field, notifyCanvas) {
+                this.multiSelClear();
                 if (!this.sections[si] || (field !== "title" && field !== "subtitle")) return;
                 this.selectSection(si, false);
                 this.selectedSectionField = field;
@@ -4300,6 +4308,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
             },
             selectElement(si, ci, ei, notifyCanvas) {
+                this.multiSelClear();
                 this.bannerPanelGroup = "common";
                 this.homeContentGroup = "content";
                 this.styleGroup = "general";
@@ -4352,6 +4361,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             selectChild(si, ci, ei, k, notifyCanvas) {
+                this.multiSelClear();
                 this.selectElement(si, ci, ei, false);
                 this.selectedSubEi = k;
                 this.panelTab = this.isSelectedContainerEl() ? "style" : "content";
@@ -6097,6 +6107,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 });
                 window.addEventListener("keydown", function (e) {
                     if (e.key === "Escape" && self.canvasDragActive) { e.preventDefault(); self.finishPaletteDrag(); return; }
+                    if (e.key === "Escape" && self.multiSelActive()) { e.preventDefault(); self.multiSelReset(); return; }
                     if (e.key === "Escape" && self.ctx.open) { e.preventDefault(); self.closeCtx(); return; }
                     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
                     var activeEditor = window.tinymce && tinymce.activeEditor;
@@ -6124,6 +6135,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 // 数据变更 → 与保存基线比较、记录历史、重渲染画布并重绑结构树拖拽
                 this.$watch("sections", function() {
                     self._insertAt = null; // 定点插入覆盖位一次性生效
+                    self.multiSelReset(); // 文档一旦变化，多选集合与锚点一并失效
                     var currentData = self.historyData();
                     if (self._ready) {
                         self.dirty = self.documentData() !== self._savedDocumentSnapshot;
@@ -6166,11 +6178,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                     onPickSectionField: function (payload) { self.selectSectionField(payload.si, payload.field, false); },
                     onPickHomeColumn: function (payload) { self.selectHomeColumn(payload.path, payload.column, false); },
                     onPickHomeField: function (payload) { self.selectHomeField(payload.path, payload.field, false); },
-                    onPickElement: function (target) { self.selectElementTarget(target, false); },
+                    onPickElement: function (target) { self.canvasPickElement(target); },
                     onEditElement: function (target) { self.selectElementTarget(target, false); self.quickEditSelected(); },
                     onPickColumn: function (si, ci) { self.selectColumn(si, ci, false); },
                     onPickContainer: function (si) { self.selectContainer(si, false); },
-                    onPickSection: function (target) { self.selectSectionTarget(target, false); },
+                    onPickSection: function (target) { self.canvasPickSection(target); },
+                    onMultiIds: function () { },
+                    onEscape: function () { self.multiSelClear(); },
                     onClear: function () { self.deselectAll(); },
                     onAreaHit: function (id) {
                         self.ctxHit = id;
@@ -6498,7 +6512,229 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.selectedHomeField = "";
                 this.selectedHomeColumn = "";
                 this.selLayer = "sec";
+                this.multiSelClear();
                 this.highlightCanvasSelection();
+            },
+
+            // ---- 同级多选（R1：选择模型；批量操作条为空壳，操作在后续轮次填充） ----
+            // 集合按稳定 id 存储；模块缺失时降级为纯单选（不抛错）。
+            multiSelModule() {
+                var M = window.YikaiBloxMultiSelect;
+                return M && typeof M.applyClick === "function" && typeof M.create === "function" ? M : null;
+            },
+
+            multiSelActive() {
+                var M = this.multiSelModule();
+                return !!(M && M.active(this.multiSel));
+            },
+
+            multiSelCount() {
+                var M = this.multiSelModule();
+                return M ? M.count(this.multiSel) : 0;
+            },
+
+            isMultiSelected(id) {
+                var M = this.multiSelModule();
+                return !!(M && M.has(this.multiSel, id) && M.active(this.multiSel));
+            },
+
+            /** 只折叠「激活」的多选集合；休眠锚点保留（shift 区间从上次单击项起算）。单选入口调用。 */
+            multiSelClear() {
+                if (this._keepMulti) return;
+                var M = this.multiSelModule();
+                if (!M || !M.active(this.multiSel)) return;
+                this.multiSel = M.create();
+                this.syncMultiSelectionToCanvas();
+            },
+
+            /** 全量重置（Esc / 文档变化）：休眠锚点一并清掉。 */
+            multiSelReset() {
+                if (this._keepMulti) return;
+                var M = this.multiSelModule();
+                if (!M || !this.multiSel || !this.multiSel.ids || !this.multiSel.ids.length) return;
+                this.multiSel = M.create();
+                this.syncMultiSelectionToCanvas();
+            },
+
+            /** 普通点击：留下休眠锚点供后续 shift 区间起算（不改变单选的任何可见行为）。 */
+            multiPlainClick(level, parent, id, siblings) {
+                var M = this.multiSelModule();
+                if (!M) return;
+                this.multiSel = M.applyClick(this.multiSel, {
+                    mode: "plain", level: level, parent: parent, id: id, siblings: siblings,
+                }).state;
+            },
+
+            syncMultiSelectionToCanvas() {
+                var M = this.multiSelModule();
+                var ids = M && M.active(this.multiSel) ? this.multiSel.ids.slice(0, 100) : [];
+                this.canvasBridge().post({ ykMultiIds: ids });
+            },
+
+            /**
+             * 修饰键点击入口：shift=区间，ctrl/cmd=增减，普通点击返回 false 由调用方走原单选。
+             * siblings 是同父级下按文档顺序的稳定 id 列表，作为 shift 区间的基准。
+             */
+            multiModClick(event, level, parent, id, siblings) {
+                if (!event || (!event.shiftKey && !event.ctrlKey && !event.metaKey)) {
+                    this.multiPlainClick(level, parent, id, siblings);
+                    return false;
+                }
+                var M = this.multiSelModule();
+                if (!M || !id || !Array.isArray(siblings) || siblings.indexOf(id) === -1) {
+                    this.multiSelClear();
+                    return false;
+                }
+                var result = M.applyClick(this.multiSel, {
+                    mode: event.shiftKey ? "shift" : "toggle",
+                    level: level,
+                    parent: parent,
+                    id: id,
+                    siblings: siblings,
+                });
+                this.multiSel = result.state;
+                this.syncMultiSelectionToCanvas();
+                return true;
+            },
+
+            elementScopeAt(si, ci) {
+                var section = this.sections[si];
+                var column = section && section.columns ? section.columns[ci] : null;
+                if (!section || !column || !section.id || !column.id) return null;
+                return {
+                    parent: String(section.id) + "/" + String(column.id),
+                    siblings: (column.elements || []).map(function (el) { return String(el.id || ""); }),
+                };
+            },
+
+            childScopeAt(si, ci, ei) {
+                var section = this.sections[si];
+                var column = section && section.columns ? section.columns[ci] : null;
+                var host = column && column.elements ? column.elements[ei] : null;
+                if (!host || !host.id) return null;
+                var children = (host.data && host.data.children) || [];
+                return {
+                    parent: "children:" + String(host.id),
+                    siblings: children.map(function (child) { return String(child.id || ""); }),
+                };
+            },
+
+            sectionScope() {
+                return {
+                    parent: "root",
+                    siblings: this.sections.map(function (section) { return String(section.id || ""); }),
+                };
+            },
+
+            treeSectionClick(event, si) {
+                var scope = this.sectionScope();
+                if (!this.multiModClick(event, "section", scope.parent, String((this.sections[si] || {}).id || ""), scope.siblings)) {
+                    this.selectSectionFromTree(si);
+                    return;
+                }
+                this._keepMulti = true;
+                this.selectSectionFromTree(si);
+                this._keepMulti = false;
+            },
+
+            treeElementClick(event, si, ci, ei) {
+                var scope = this.elementScopeAt(si, ci);
+                if (!this.multiModClick(event, "element", scope ? scope.parent : "", this.elementIdAt(si, ci, ei), scope ? scope.siblings : [])) {
+                    this.selectElement(si, ci, ei);
+                    return;
+                }
+                this._keepMulti = true;
+                this.selectElement(si, ci, ei);
+                this._keepMulti = false;
+            },
+
+            treeChildClick(event, si, ci, ei, cei) {
+                var scope = this.childScopeAt(si, ci, ei);
+                if (!this.multiModClick(event, "child", scope ? scope.parent : "", this.childIdAt(si, ci, ei, cei), scope ? scope.siblings : [])) {
+                    this.selectChild(si, ci, ei, cei);
+                    return;
+                }
+                this._keepMulti = true;
+                this.selectChild(si, ci, ei, cei);
+                this._keepMulti = false;
+            },
+
+            elementIdAt(si, ci, ei) {
+                var section = this.sections[si];
+                var column = section && section.columns ? section.columns[ci] : null;
+                var el = column && column.elements ? column.elements[ei] : null;
+                return el && el.id ? String(el.id) : "";
+            },
+
+            childIdAt(si, ci, ei, cei) {
+                var section = this.sections[si];
+                var column = section && section.columns ? section.columns[ci] : null;
+                var el = column && column.elements ? column.elements[ei] : null;
+                var children = el && el.data && el.data.children ? el.data.children : [];
+                var child = children[cei];
+                return child && child.id ? String(child.id) : "";
+            },
+
+            /** 画布带修饰键的元素点击（path 深度区分元素/子元素）；无修饰键走原单选。 */
+            canvasPickElement(target) {
+                if (target && target.mods && (target.mods.shift || target.mods.toggle)) {
+                    var parts = String(target.path || "").split(".").map(function (v) { return parseInt(v, 10); });
+                    if (parts.length === 4) {
+                        var childScope = this.childScopeAt(parts[0], parts[1], parts[2]);
+                        var childId = this.childIdAt(parts[0], parts[1], parts[2], parts[3]);
+                        if (this.multiModClick(this.modsFrom(target.mods), "child", childScope ? childScope.parent : "", childId, childScope ? childScope.siblings : [])) {
+                            this._keepMulti = true;
+                            this.selectChild(parts[0], parts[1], parts[2], parts[3], false);
+                            this._keepMulti = false;
+                            return;
+                        }
+                    } else if (parts.length === 3) {
+                        var scope = this.elementScopeAt(parts[0], parts[1]);
+                        if (this.multiModClick(this.modsFrom(target.mods), "element", scope ? scope.parent : "", this.elementIdAt(parts[0], parts[1], parts[2]), scope ? scope.siblings : [])) {
+                            this._keepMulti = true;
+                            this.selectElement(parts[0], parts[1], parts[2], false);
+                            this._keepMulti = false;
+                            return;
+                        }
+                    }
+                }
+                this.multiSelPlainFallback(target, "element");
+                this.selectElementTarget(target, false);
+            },
+
+            canvasPickSection(target) {
+                if (target && target.mods && (target.mods.shift || target.mods.toggle)) {
+                    var scope = this.sectionScope();
+                    if (this.multiModClick(this.modsFrom(target.mods), "section", scope.parent, String(target.id || ""), scope.siblings)) {
+                        this._keepMulti = true;
+                        this.selectSectionTarget(target, false);
+                        this._keepMulti = false;
+                        return;
+                    }
+                }
+                this.multiSelPlainFallback(target, "section");
+                this.selectSectionTarget(target, false);
+            },
+
+            /** 画布普通点击：与树普通点击同语义——留休眠锚点，再走原单选。 */
+            multiSelPlainFallback(target, level) {
+                var parts = String((target && target.path) || "").split(".").map(function (v) { return parseInt(v, 10); });
+                if (level === "section") {
+                    var scope = this.sectionScope();
+                    this.multiPlainClick("section", scope.parent, String((target && target.id) || ""), scope.siblings);
+                    return;
+                }
+                if (parts.length === 4) {
+                    var childScope = this.childScopeAt(parts[0], parts[1], parts[2]);
+                    this.multiPlainClick("child", childScope ? childScope.parent : "", this.childIdAt(parts[0], parts[1], parts[2], parts[3]), childScope ? childScope.siblings : []);
+                    return;
+                }
+                var elScope = this.elementScopeAt(parts[0], parts[1]);
+                this.multiPlainClick("element", elScope ? elScope.parent : "", this.elementIdAt(parts[0], parts[1], parts[2]), elScope ? elScope.siblings : []);
+            },
+
+            modsFrom(mods) {
+                return { shiftKey: !!(mods && mods.shift), ctrlKey: !!(mods && mods.toggle), metaKey: false };
             },
 
             handleCanvasDrop(payload) { return this.runCommand("canvas-drop", function () { return this._handleCanvasDropRaw(payload); }); },
@@ -7021,6 +7257,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 else if (this.selectedSi >= 0) message.ykHighlight = this.selectedSi;
                 else return;
                 this.canvasBridge().post(message);
+                this.syncMultiSelectionToCanvas();
             },
 
             /** Right-tree layer changes keep the user's content/style working context. */
@@ -7031,6 +7268,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             selectSection(si, notifyCanvas) {
+                this.multiSelClear();
                 this.selectedSi = si;
                 this.targetCi = 0;
                 this.selectedCi = -1;
@@ -7050,6 +7288,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             /** Select the section's inner container layer separately from the section background layer. */
             selectContainer(si, notifyCanvas) {
+                this.multiSelClear();
                 this.selectedSi = si;
                 this.targetCi = 0;
                 this.selectedCi = -1;
@@ -7068,6 +7307,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             selectColumn(si, ci, notifyCanvas) {
+                this.multiSelClear();
                 if (!this.sections[si] || !this.sections[si].columns[ci]) return;
                 this.selectedSi = si;
                 this.targetCi = ci;
