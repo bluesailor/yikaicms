@@ -11,14 +11,53 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/MediaOptimization.php';
+require_once ROOT_PATH . '/includes/MediaUsageAudit.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('media');
 
+$auditMediaUsage = static function (array $rows): array {
+    try {
+        return MediaUsageAudit::audit($rows);
+    } catch (Throwable $e) {
+        adminLog('media', 'usage_audit_failed', 'Media usage audit failed: ' . get_class($e));
+        error(__('media_usage_audit_failed'));
+    }
+};
+
 // 处理 AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
+
+    if ($action === 'usage') {
+        $ids = MediaOptimization::normalizeIds($_POST['ids'] ?? []);
+        $id = postInt('id');
+        if ($id > 0) {
+            $ids[] = $id;
+            $ids = array_values(array_unique($ids));
+        }
+        if (count($ids) > MediaOptimization::MAX_BATCH) {
+            error(__('media_delete_batch_limit', ['count' => MediaOptimization::MAX_BATCH]));
+        }
+        $usage = $auditMediaUsage(mediaModel()->getByIds($ids));
+        $blocked = array_filter($usage, static fn(array $item): bool => $item['count'] > 0);
+        $references = [];
+        foreach ($blocked as $mediaId => $summary) {
+            foreach ($summary['items'] as $item) {
+                $item['media_id'] = (int) $mediaId;
+                $references[] = $item;
+            }
+        }
+        success([
+            'blocked' => $blocked !== [],
+            'files' => count($blocked),
+            'count' => array_sum(array_column($blocked, 'count')),
+            'message' => $blocked === [] ? '' : MediaUsageAudit::blockedMessage($usage, count($ids) > 1),
+            'references' => array_slice($references, 0, 50),
+            'references_truncated' => count($references) > 50,
+        ], '');
+    }
 
     if ($action === 'delete') {
         $id = postInt('id');
@@ -26,6 +65,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $deletedFiles = 0;
 
         if ($media) {
+            $usage = $auditMediaUsage([$media]);
+            if (($usage[$id]['count'] ?? 0) > 0) {
+                adminLog('media', 'delete_blocked', "Blocked deletion of media ID: $id; references: " . $usage[$id]['count']);
+                error(MediaUsageAudit::blockedMessage($usage));
+            }
             $deletedFiles = MediaOptimization::deleteArtifacts($media);
         }
 
@@ -38,7 +82,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
             $normalizedIds = MediaOptimization::normalizeIds($ids);
+            if (count($normalizedIds) > MediaOptimization::MAX_BATCH) {
+                error(__('media_delete_batch_limit', ['count' => MediaOptimization::MAX_BATCH]));
+            }
             $rows = mediaModel()->getByIds($normalizedIds);
+            $usage = $auditMediaUsage($rows);
+            if (array_filter($usage, static fn(array $item): bool => $item['count'] > 0) !== []) {
+                $blockedIds = array_keys(array_filter($usage, static fn(array $item): bool => $item['count'] > 0));
+                adminLog('media', 'batch_delete_blocked', 'Blocked batch deletion of media IDs: ' . implode(',', $blockedIds));
+                error(MediaUsageAudit::blockedMessage($usage, true));
+            }
             $deletedFiles = 0;
             foreach ($rows as $media) {
                 $deletedFiles += MediaOptimization::deleteArtifacts($media);
@@ -679,6 +732,12 @@ function copyUrl(url) {
 }
 
 async function deleteMedia(id) {
+    const usage = await checkMediaUsage([id]);
+    if (!usage) return;
+    if (usage.blocked) {
+        showMessage(usage.message, 'error');
+        return;
+    }
     if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
 
     const formData = new FormData();
@@ -728,6 +787,13 @@ async function batchDelete() {
         return;
     }
 
+    const ids = Array.from(checked).map((el) => Number(el.value));
+    const usage = await checkMediaUsage(ids);
+    if (!usage) return;
+    if (usage.blocked) {
+        showMessage(usage.message, 'error');
+        return;
+    }
     if (!confirm(<?php echo json_encode(__('media_del_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', checked.length))) return;
 
     const formData = new FormData();
@@ -742,6 +808,24 @@ async function batchDelete() {
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
+    }
+}
+
+async function checkMediaUsage(ids) {
+    const formData = new FormData();
+    formData.append('action', 'usage');
+    ids.forEach((id) => formData.append('ids[]', String(id)));
+    try {
+        const response = await fetch('', { method: 'POST', body: formData });
+        const data = await safeJson(response);
+        if (data.code !== 0) {
+            showMessage(data.msg || <?php echo json_encode(__('media_usage_audit_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+            return null;
+        }
+        return data.data;
+    } catch (error) {
+        showMessage(<?php echo json_encode(__('media_usage_audit_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+        return null;
     }
 }
 

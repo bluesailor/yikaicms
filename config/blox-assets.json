@@ -23,6 +23,7 @@
     "includes/builder/BloxDesignDependencies.php",
     "includes/PageHeroStyleResolver.php",
     "includes/PageHeroDesignDraft.php",
+    "includes/MediaUsageAudit.php",
     "admin/blox_design.php",
     "admin/blox_design_api.php",
     "includes/builder/BloxAreaTemplatePresets.php",
