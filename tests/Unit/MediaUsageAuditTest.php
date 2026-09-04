@@ -48,9 +48,20 @@ final class MediaUsageAuditTest extends TestCase
             'draft_data' => $this->document([['type' => 'home-banner-item', 'data' => ['video' => $url]]]),
             'published_data' => '',
         ]);
+        $this->insertRow('contents', [
+            'id' => 15,
+            'channel_id' => 12,
+            'title' => 'Published story',
+            'blocks_data' => $this->document([['type' => 'video', 'data' => ['url' => $url]]]),
+        ]);
+        $this->insertRow('blocks_library', [
+            'id' => 6,
+            'name' => 'Video callout',
+            'data' => $this->document([['type' => 'container', 'data' => ['bg_video' => $url]]]),
+        ]);
 
         $audit = MediaUsageAudit::audit([['id' => 9, 'url' => $url]]);
-        self::assertSame(4, $audit[9]['count']);
+        self::assertSame(6, $audit[9]['count']);
         $kinds = array_values(array_unique(array_column($audit[9]['items'], 'kind')));
         sort($kinds);
         self::assertSame(['background_video', 'banner_video', 'video_element'], $kinds);
@@ -67,6 +78,44 @@ final class MediaUsageAuditTest extends TestCase
         ]);
 
         self::assertSame(0, MediaUsageAudit::audit([['id' => 3, 'url' => $url]])[3]['count']);
+    }
+
+    public function testFindsImageElementsAndBackgroundsInSlashEscapedJson(): void
+    {
+        $url = '/uploads/images/brand-scene.jpg';
+        $document = json_encode([[
+            'id' => 's1',
+            'settings' => [
+                'bg_image' => $url,
+                'container_bg_image' => $url,
+            ],
+            'columns' => [[
+                'id' => 'c1',
+                'card_bg_image' => $url,
+                'elements' => [
+                    ['type' => 'container', 'data' => ['bg_image' => $url]],
+                    ['type' => 'image', 'data' => [
+                        'src' => $url,
+                        'loop_fallback' => $url,
+                        'link_url' => $url,
+                    ]],
+                    ['type' => 'card', 'data' => ['image' => $url, 'link' => $url]],
+                ],
+            ]],
+        ]], JSON_THROW_ON_ERROR);
+        self::assertStringContainsString('\\/uploads\\/images', $document);
+        $this->insertRow('settings', [
+            'id' => 2,
+            'key' => 'home_blox_data',
+            'value' => $document,
+        ]);
+
+        $audit = MediaUsageAudit::audit([['id' => 4, 'url' => $url]]);
+
+        self::assertSame(7, $audit[4]['count']);
+        $kinds = array_values(array_unique(array_column($audit[4]['items'], 'kind')));
+        sort($kinds);
+        self::assertSame(['background_image', 'card_image', 'image_element'], $kinds);
     }
 
     public function testMalformedCandidateFailsClosed(): void
@@ -106,6 +155,22 @@ final class MediaUsageAuditTest extends TestCase
         }
 
         self::assertSame(1, $audit[8]['count']);
+    }
+
+    public function testDoesNotMatchExternalHostWithTheSamePath(): void
+    {
+        $path = '/uploads/hero.jpg';
+        $this->insertRow('banners', [
+            'id' => 1,
+            'title' => 'External hero',
+            'image' => 'https://cdn.example.test' . $path,
+            'image_mobile' => '',
+            'video' => '',
+        ]);
+
+        $audit = MediaUsageAudit::audit([['id' => 8, 'url' => $path]]);
+
+        self::assertSame(0, $audit[8]['count']);
     }
 
     public function testAuditsMultipleMediaRowsWithoutCrossMatching(): void
