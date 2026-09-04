@@ -9,6 +9,8 @@ final class BloxAssetCollector
     private static array $scripts = [];
     /** @var array<string,true> */
     private static array $styles = [];
+    /** @var array<string,true> */
+    private static array $renderedStyles = [];
     private static bool $booted = false;
 
     public static function bootstrap(): void
@@ -51,7 +53,11 @@ final class BloxAssetCollector
     {
         $html = '';
         foreach (array_keys(self::$styles) as $path) {
+            if (isset(self::$renderedStyles[$path])) {
+                continue;
+            }
             $html .= '<link rel="stylesheet" href="' . htmlspecialchars(self::assetUrl($path), ENT_QUOTES) . '">' . "\n";
+            self::$renderedStyles[$path] = true;
         }
         return $html;
     }
@@ -90,6 +96,7 @@ final class BloxAssetCollector
     {
         self::$scripts = [];
         self::$styles = [];
+        self::$renderedStyles = [];
     }
 
     private static function validLocalAsset(string $path, string $extension): bool

@@ -134,3 +134,40 @@ test('section background video is visible at the section layer @ci', async ({ pa
   await restoreClean(page);
   expect(errors.filter((e) => !/404/.test(e))).toEqual([]);
 });
+
+test('section video warns about child backgrounds and clears them as one undoable action @ci', async ({ page }) => {
+  const errors = observeConsole(page);
+  await openEditor(page);
+  await page.getByTestId('blox-tree-section').first().click();
+  await page.getByTestId('blox-style-tab').click();
+  await performPreviewUpdate(page, () => page.getByTestId('blox-section-bg-video').fill('/uploads/e2e-section-bg.mp4'));
+
+  const state = await page.evaluate(async () => {
+    const app = window.Alpine.$data(document.body);
+    app.sel.settings.container_bg = '#ffffff';
+    const child = app.sel.columns.flatMap((column) => column.elements || [])[0];
+    child.data.bg_image = '/assets/images/demo/about-office.jpg';
+    await window.Alpine.nextTick();
+    return { sectionId: app.sel.id, childType: child.type };
+  });
+  expect(state.sectionId).toBeTruthy();
+  expect(state.childType).toBeTruthy();
+
+  const warning = page.getByTestId('blox-bg-video-obstruction');
+  await expect(warning).toBeVisible();
+  await expect(warning).toContainText('2');
+  await page.getByTestId('blox-clear-bg-video-obstructions').click();
+  await expect(warning).toBeHidden();
+  expect(await page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    const child = app.sel.columns.flatMap((column) => column.elements || [])[0];
+    return {
+      video: app.sel.settings.bg_video,
+      container: app.sel.settings.container_bg,
+      child: child.data.bg_image,
+    };
+  })).toEqual({ video: '/uploads/e2e-section-bg.mp4', container: '', child: '' });
+
+  await restoreClean(page);
+  expect(errors.filter((e) => !/404/.test(e))).toEqual([]);
+});
