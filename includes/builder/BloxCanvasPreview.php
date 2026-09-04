@@ -508,6 +508,7 @@ body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
 .yk-inline-editing:focus{box-shadow:0 0 0 4px rgba(37,99,235,.12)}
 .yk-pick-overlay{position:fixed;z-index:2147483646;pointer-events:none;border:2px solid #3b82f6;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.8),0 6px 18px rgba(37,99,235,.18)}
 .yk-pick-label{position:fixed;z-index:2147483647;pointer-events:none;background:#2563eb;color:#fff;font:12px/1.4 system-ui,sans-serif;padding:2px 6px;border-radius:4px;box-shadow:0 4px 12px rgba(37,99,235,.25)}
+.yk-multi-selected{outline:2px dashed #2563eb;outline-offset:2px}
 .yk-drop-line{position:fixed;z-index:2147483645;display:none;height:3px;min-width:36px;background:#2563eb;border-radius:999px;box-shadow:0 0 0 2px rgba(255,255,255,.9),0 2px 8px rgba(37,99,235,.35);pointer-events:none}
 .yk-drop-line:before,.yk-drop-line:after{content:'';position:absolute;top:50%;width:8px;height:8px;background:#2563eb;border-radius:50%;transform:translateY(-50%)}
 .yk-drop-line:before{left:-2px}.yk-drop-line:after{right:-2px}
@@ -603,6 +604,11 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         var id = node.getAttribute('data-yk-el-id') || '';
         var path = node.getAttribute('data-yk-el') || '';
         return id && pathParts(path).length >= 3 ? { id: id, path: path } : null;
+    }
+    // 同级多选的修饰键：shift=区间，ctrl/cmd=增减；无修饰键返回 null 走单选。
+    function pickMods(e) {
+        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) return null;
+        return { shift: !!e.shiftKey, toggle: !!(e.ctrlKey || e.metaKey) };
     }
     function homeFieldTarget(node) {
         if (!node) return null;
@@ -1029,6 +1035,14 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         var el = e.target.closest('[data-yk-el]');
         if (el) {
             var path = el.getAttribute('data-yk-el') || '';
+            var mods = pickMods(e);
+            if (mods) {
+                // 修饰键点击（同级多选）：不画单选描边，多选描边由编辑器回传 ykMultiIds
+                var mTarget = elementTarget(el);
+                if (mTarget) postToEditor({ ykPickElement: { id: mTarget.id, path: mTarget.path, mods: mods } });
+                else postToEditor({ ykPickEl: path, mods: mods });
+                return;
+            }
             highlightEl(path);
             var target = elementTarget(el);
             postToEditor(target ? { ykPickElement: target } : { ykPickEl: path });
@@ -1059,6 +1073,11 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         }
         var section = sectionTarget(s);
         if (section) {
+            var sMods = pickMods(e);
+            if (sMods) {
+                postToEditor({ ykPickSection: section, mods: sMods });
+                return;
+            }
             highlightSection(section.si);
             postToEditor({ ykPickSection: section });
         } else {
@@ -1219,6 +1238,10 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             if (shouldScroll && col) col.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             return;
         }
+        if (Array.isArray(d.ykMultiIds)) {
+            applyMultiSelection(d.ykMultiIds);
+            return;
+        }
         if (typeof d.ykHighlightSectionId === 'string' && d.ykHighlightSectionId) {
             var stableTarget = document.querySelector('[data-yk-sec-id="' + cssEscape(d.ykHighlightSectionId) + '"]');
             if (stableTarget) {
@@ -1341,6 +1364,19 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             : @@pea_column@@;
         syncOverlay();
         startOverlayTracking();
+    }
+    // 同级多选描边：清掉旧多选类；多选激活时同时清单选描边避免双高亮。
+    function applyMultiSelection(ids) {
+        var marked = document.querySelectorAll('.yk-multi-selected');
+        for (var i = 0; i < marked.length; i++) marked[i].classList.remove('yk-multi-selected');
+        if (!Array.isArray(ids) || ids.length < 2) return;
+        clearLayerSelections();
+        for (var j = 0; j < ids.length; j++) {
+            if (typeof ids[j] !== 'string' || !ids[j]) continue;
+            var node = document.querySelector('[data-yk-el-id="' + cssEscape(ids[j]) + '"]')
+                || document.querySelector('[data-yk-sec-id="' + cssEscape(ids[j]) + '"]');
+            if (node) node.classList.add('yk-multi-selected');
+        }
     }
     function highlightEl(path) {
         clearLayerSelections();
@@ -1654,6 +1690,9 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         } });
     });
     document.addEventListener('dragend', hideDropLine, true);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') postToEditor({ ykEscape: true });
+    });
     document.addEventListener('dragleave', function (e) {
         if (e.target === document.documentElement || e.target === document.body) hideDropLine();
     }, true);
