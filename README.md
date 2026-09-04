@@ -1,15 +1,14 @@
 # Yikai CMS v1.19.6
 
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
-[![PHP](https://img.shields.io/badge/PHP-8.2%20%7C%208.3%20%7C%208.4-777BB4.svg?logo=php)](https://www.php.net/)
+[![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg?logo=php)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-免费商用-green.svg)](./LICENSE)
-[![Tests](https://img.shields.io/badge/tests-349%20passing-brightgreen.svg)](./tests)
 
-**简体中文** · YikaiCMS - 轻量、安全、开箱即用的企业建站系统。PHP 8.2+、MySQL/SQLite、Tailwind CSS v4、插件 Hooks、AI 内容助手，支持简体中文、English、日本語多语言网站建设。
+**简体中文** · YikaiCMS - 轻量、安全、开箱即用的企业建站系统。PHP 8.0+（建议 8.2+）、MySQL/SQLite、Tailwind CSS v4、插件 Hooks、AI 内容助手，支持简体中文、English、日本語多语言网站建设。
 
-**English** · YikaiCMS is a lightweight, secure, and ready-to-use CMS for business websites. Built with PHP 8.2+, MySQL/SQLite, Tailwind CSS v4, Plugin Hooks, and AI Content Assistant. Supports multilingual websites in Chinese, English, and Japanese.
+**English** · YikaiCMS is a lightweight, secure, and ready-to-use CMS for business websites. Built with PHP 8.0+ (8.2+ recommended), MySQL/SQLite, Tailwind CSS v4, Plugin Hooks, and AI Content Assistant. Supports multilingual websites in Chinese, English, and Japanese.
 
-**日本語** · YikaiCMS は、軽量・安全・すぐに使える企業向け CMS です。PHP 8.2+、MySQL/SQLite、Tailwind CSS v4、プラグイン Hooks、AI コンテンツアシスタントを搭載し、中国語・英語・日本語の多言語サイト構築に対応しています。
+**日本語** · YikaiCMS は、軽量・安全・すぐに使える企業向け CMS です。PHP 8.0+（8.2+ 推奨）、MySQL/SQLite、Tailwind CSS v4、プラグイン Hooks、AI コンテンツアシスタントを搭載し、中国語・英語・日本語の多言語サイト構築に対応しています。
 
 官网：[https://www.yikaicms.com](https://www.yikaicms.com) · 演示：[https://demo.yikaicms.com](https://demo.yikaicms.com)
 
@@ -47,8 +46,8 @@
 - **标签打通** — `{yk:list type=模型key}` 标签与构建器动态列表直接消费模型内容
 
 ### 主题系统
-- **3 套随包主题** — Default（标准）、Business（深色商务风）、Aurora（渐变现代风）
-- **模板市场** — Minimal（极简）等主题在后台「主题 → 模板市场」按需安装
+- **3 套随包主题** — Default（标准）、Business（深色商务风）、Minimal（极简）
+- **模板市场** — Aurora（渐变现代风）、Trade 等主题在后台「主题 → 模板市场」按需安装
 - **文件覆盖机制** — layouts / blocks / partials 三层模板
 - **主题规范** — theme.json Schema v1，安装时校验版本要求与必需模板；预览截图、后台一键切换
 

@@ -13,6 +13,7 @@ if (!defined('ROOT_PATH')) {
 }
 
 require_once __DIR__ . '/frontend_preview.php';
+require_once __DIR__ . '/http_response.php';
 require_once __DIR__ . '/ThemeRuntime.php';
 require_once __DIR__ . '/ThemeSettings.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
@@ -283,7 +284,10 @@ function success(mixed $data = [], ?string $msg = null): void
  */
 function error(?string $msg = null, int $code = 1): void
 {
-    json(['code' => $code, 'msg' => $msg ?? __('operation_failed'), 'data' => null]);
+    json(
+        ['code' => $code, 'msg' => $msg ?? __('operation_failed'), 'data' => null],
+        applicationErrorHttpStatus($code)
+    );
 }
 
 // ============================================================

@@ -2927,7 +2927,11 @@ test('Bootstrap icon picker selects and renders without reload @ci', async ({ pa
   await page.getByTestId('blox-library-open').click();
   await page.getByTestId('blox-add-element-icon').press('Enter');
   await expect(page.getByTestId('blox-icon-value')).toBeVisible();
+  expect(await page.evaluate(() => performance.getEntriesByType('resource')
+    .some((entry) => entry.name.includes('/assets/icons/blox-icon-catalog.json')))).toBe(false);
+  const catalogResponse = page.waitForResponse((response) => response.url().includes('/assets/icons/blox-icon-catalog.json'));
   await page.getByTestId('blox-icon-library-toggle').click();
+  expect((await catalogResponse).ok()).toBe(true);
   await page.getByTestId('blox-icon-provider-bootstrap').click();
   await page.getByTestId('blox-icon-search').fill('house-door');
   await expect(page.getByTestId('blox-icon-option-bi-house-door')).toBeVisible();

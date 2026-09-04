@@ -2474,6 +2474,7 @@ return [
     'blox_icon_hint_none' => '没有匹配「:q」的图标',
     'blox_icon_hint_many' => '匹配较多，仅显示前 96 个，继续输入缩小范围',
     'blox_icon_hint_count' => '共 :n 个匹配',
+    'blox_icon_catalog_failed' => '图标库加载失败，请重试',
     'blox_media_load_failed' => '媒体库加载失败',
     'blox_upload_failed_short' => '上传失败',
     'blox_settings_of' => ':t 设置',

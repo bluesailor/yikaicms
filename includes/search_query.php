@@ -26,3 +26,13 @@ function globalSearchQuery(string $prefix): string
              WHERE d.status = 1 AND (d.title LIKE ? OR d.description LIKE ?)
             ORDER BY sort_time DESC LIMIT ? OFFSET ?";
 }
+
+/** Download-only search normalizes description to the common result-card schema. */
+function downloadSearchQuery(string $prefix): string
+{
+    return "SELECT d.*, d.description AS summary, dc.name AS category_name, 'download' AS _type
+            FROM {$prefix}downloads d
+            LEFT JOIN {$prefix}download_categories dc ON d.category_id = dc.id
+            WHERE d.status = 1 AND (d.title LIKE ? OR d.description LIKE ?)
+            ORDER BY d.created_at DESC LIMIT ? OFFSET ?";
+}

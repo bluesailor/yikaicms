@@ -32,6 +32,23 @@ final class SearchQueryTest extends TestCase
         self::assertSame(['product', 'download', 'article'], array_column($rows, 'type'));
     }
 
+    public function testDownloadSearchAlwaysExposesDescriptionAsSummary(): void
+    {
+        $pdo = new PDO('sqlite::memory:');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $this->createSchema($pdo);
+        $pdo->exec("INSERT INTO test_download_categories VALUES (1, 'Downloads')");
+        $pdo->exec("INSERT INTO test_downloads VALUES (3, 'Manual', 'Readable description', 200, 1, 1)");
+
+        $statement = $pdo->prepare(downloadSearchQuery('test_'));
+        $statement->execute(['%Manual%', '%Manual%', 15, 0]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        self::assertIsArray($row);
+        self::assertSame('Readable description', $row['summary']);
+        self::assertSame('download', $row['_type']);
+    }
+
     private function createSchema(PDO $pdo): void
     {
         $pdo->exec('CREATE TABLE test_channels (id INTEGER, name TEXT, slug TEXT)');

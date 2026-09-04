@@ -747,18 +747,6 @@ if ($isHomeBlox) {
     }
 }
 
-/**
- * 图标名全集从本地字体 CSS 提取。旧值无前缀时仍属于 Tabler；Bootstrap 值保存为 bi:<name>，
- * 避免同名图标冲突。选择器最多只渲染 96 个匹配结果。
- */
-$tablerIcons = [];
-if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROOT_PATH . '/assets/tabler/tabler-icons.min.css'), $_tiM)) {
-    $tablerIcons = array_values(array_unique($_tiM[1]));
-}
-$bootstrapIcons = [];
-if (preg_match_all('/\.bi-([a-z0-9-]+)::before/', (string) @file_get_contents(ROOT_PATH . '/assets/bootstrap-icons/bootstrap-icons.min.css'), $_biM)) {
-    $bootstrapIcons = array_map(static fn (string $name): string => 'bi:' . $name, array_values(array_unique($_biM[1])));
-}
 $businessIconPresets = BloxIcon::businessPresets();
 $bloxDesignSystem = BloxDesignSystem::snapshot();
 $canManageBloxDesign = hasPermission('blox_global');
@@ -1515,6 +1503,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'iconHintNone' => __('blox_icon_hint_none'),
                 'iconHintMany' => __('blox_icon_hint_many'),
                 'iconHintCount' => __('blox_icon_hint_count'),
+                'iconCatalogFailed' => __('blox_icon_catalog_failed'),
                 'mediaLoadFailed' => __('blox_media_load_failed'),
                 'mediaVideoPreviewLoading' => __('blox_media_video_preview_loading'),
                 'mediaVideoPreviewUnavailable' => __('blox_media_video_preview_unavailable'),
@@ -1852,8 +1841,10 @@ $canManageBloxDesign = hasPermission('blox_global');
             ],
 
             // ── 图标选择器（icon 控件） ─────────────────────
-            tablerIcons: <?php echo json_encode($tablerIcons); ?>,
-            bootstrapIcons: <?php echo json_encode($bootstrapIcons); ?>,
+            tablerIcons: [],
+            bootstrapIcons: [],
+            iconCatalogLoaded: false,
+            iconCatalogLoading: false,
             businessIconPresets: <?php echo json_encode($businessIconPresets, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             iconPick: "",               // 当前展开选择器的控件 key（"" = 都收起）
             iconQuery: "",
@@ -1889,11 +1880,38 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.iconPick = key;
                 this.iconQuery = "";
                 this.iconProvider = this.iconProviderForValue(value);
+                this.loadIconCatalog();
             },
 
             setIconProvider(provider) {
                 this.iconProvider = provider === "bootstrap" ? "bootstrap" : "tabler";
                 this.iconQuery = "";
+                this.loadIconCatalog();
+            },
+
+            loadIconCatalog() {
+                if (this.iconCatalogLoaded || this.iconCatalogLoading) return;
+                this.iconCatalogLoading = true;
+                var self = this;
+                fetch(<?php echo json_encode(assetVer('/assets/icons/blox-icon-catalog.json')); ?>, {
+                    credentials: "same-origin",
+                    headers: { "Accept": "application/json" },
+                })
+                    .then(function (response) {
+                        if (!response.ok) throw new Error("icon catalog " + response.status);
+                        return response.json();
+                    })
+                    .then(function (catalog) {
+                        self.tablerIcons = Array.isArray(catalog.tabler) ? catalog.tabler : [];
+                        self.bootstrapIcons = Array.isArray(catalog.bootstrap) ? catalog.bootstrap : [];
+                        self.iconCatalogLoaded = true;
+                    })
+                    .catch(function () {
+                        self.toast(self.uiText.iconCatalogFailed);
+                    })
+                    .finally(function () {
+                        self.iconCatalogLoading = false;
+                    });
             },
 
             iconLibrary() {
@@ -1913,6 +1931,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             iconHint() {
+                if (this.iconCatalogLoading) return this.uiText.revisionLoading;
                 var q = this.iconQuery.trim();
                 var icons = this.iconLibrary();
                 if (!q) return this.uiText.iconHintDefault.replace(":n", icons.length);

@@ -348,6 +348,33 @@ else
     bad "前台全部搜索失败"
 fi
 
+if "$CURL_BIN" -fsS --get "$BASE/search.php" \
+    --data-urlencode "keyword=产品" --data-urlencode "type=download" \
+    >.pkgtest/front-search-download.html 2>/dev/null \
+    && ! grep -Eqi 'Fatal error|Uncaught|Undefined array key.*summary' .pkgtest/front-search-download.html \
+    && { [ -z "$BASE_INTERNAL" ] || ! grep -Fq 'Undefined array key "summary"' /tmp/pkgserver.log; }; then
+    ok "前台下载搜索无 summary 警告"
+else
+    bad "前台下载搜索出现运行时警告"
+fi
+
+# 新安装默认启用 ja；先用包内目标 PHP 关闭它，再向真实前台传显式语言参数。
+# PHP 内置服务器不解析 /ja/ rewrite，因此这里验证的是 init.php 的最终 HTTP 裁决；
+# 服务器层前缀覆盖由路由契约测试负责。
+if cp tests/smoke/package_language_contract.php "$UNPACK_WSL/package-language-contract.php" \
+    && "$PHP_DIR/php.exe" "$UNPACK_WIN/package-language-contract.php" >/tmp/pkglanguage.log 2>&1; then
+    DISABLED_LANG_STATUS="$("$CURL_BIN" -sS -o .pkgtest/disabled-language.html -w '%{http_code}' "$BASE/index.php?_lang=ja" 2>/dev/null | tr -d '\r')"
+    if [ "$DISABLED_LANG_STATUS" = "404" ] \
+        && grep -Fqi 'X-Robots-Tag' <("$CURL_BIN" -sSI "$BASE/index.php?_lang=ja" 2>/dev/null); then
+        ok "未启用语言前缀返回 404 且禁止索引"
+    else
+        bad "未启用语言仍可渲染默认语言（HTTP $DISABLED_LANG_STATUS）"
+    fi
+else
+    bad "无法准备未启用语言验证数据"; tail -10 /tmp/pkglanguage.log | sed 's/^/      /'
+fi
+rm -f "$UNPACK_WSL/package-language-contract.php"
+
 echo
 if [ "$FAIL" = "0" ]; then
     echo "${G}✓ PHP $PHP_LEG / $DB_KIND：发行包装机冒烟通过${X}"
