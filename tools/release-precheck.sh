@@ -350,6 +350,29 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────
+section "6a. 模板市场封面资源"
+# ─────────────────────────────────────────────────────────────
+
+# 封面既是升级服务器注册表的一部分，也是后台官方模板卡片的展示依赖。
+# 候选版检查本地源文件；正式发版再用 GET 复核线上资源，避免 HEAD 被服务器策略误判。
+template_cover_check="$WORKSPACE_DIR/update.yikaicms/bin/check-template-covers.sh"
+if [ ! -f "$template_cover_check" ]; then
+    fail "$template_cover_check 不存在，无法校验模板封面"
+elif [ "$MODE" = "candidate" ]; then
+    if bash "$template_cover_check"; then
+        pass "模板注册表、封面路径和本地封面文件校验通过"
+    else
+        fail "模板封面本地校验失败"
+    fi
+else
+    if bash "$template_cover_check" --remote; then
+        pass "模板注册表、封面路径和线上 GET 资源校验通过"
+    else
+        fail "模板封面线上校验失败"
+    fi
+fi
+
+# ─────────────────────────────────────────────────────────────
 section "7. 官网 yikaicms.com（index.html / changelog.html）"
 # ─────────────────────────────────────────────────────────────
 

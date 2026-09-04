@@ -97,6 +97,8 @@ test.beforeEach(async ({ page }, testInfo) => {
     'header preset chooser adapts across viewports @ci',
     'footer style library previews and applies practical starters @ci',
     'shared color picker adapts across viewports @ci',
+    'official template market renders cover and no-cover fallback @ci',
+    'remote template outage keeps local editor areas available @ci',
   ];
   test.skip(testInfo.project.name !== 'desktop-1440' && !crossViewportTitles.includes(testInfo.title), 'desktop interaction baseline');
   consoleEntries = observeConsole(page);
@@ -1956,8 +1958,7 @@ test('template catalog separates local and remote libraries without trapping doc
   await expect(opener).toBeFocused();
 });
 
-test('official template market renders cover and no-cover fallback @ci', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop management baseline');
+test('official template market renders cover and no-cover fallback @ci', async ({ page }) => {
   const coverBytes = require('fs').readFileSync(
     require('path').resolve(__dirname, '../../assets/images/blox-templates/section-cta-banner.png')
   );
@@ -1976,6 +1977,22 @@ test('official template market renders cover and no-cover fallback @ci', async (
   );
   await expect(uncovered.getByTestId('blox-official-thumbnail').locator('img')).toHaveCount(0);
   await expect(uncovered.getByTestId('blox-official-thumbnail').locator('.ti-layout-grid')).toBeVisible();
+
+  const overflow = await list.evaluate((element) => Math.max(
+    0,
+    element.scrollWidth - document.documentElement.clientWidth
+  ));
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test('remote template outage keeps local editor areas available @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440' || process.env.BLOX_E2E_REMOTE_FAILURE !== '1', 'opt-in remote outage check');
+  await page.goto('/admin/blox_templates.php?refresh_official=1', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.getByTestId('blox-current-areas')).toBeVisible();
+  await expect(page.getByTestId('blox-official-refresh')).toBeVisible();
+  await expect(page.getByTestId('blox-official-list')).toHaveCount(0);
+  await expect(page.locator('.ti-cloud-off')).toBeVisible();
 });
 
 test('real remote template channel @local', async ({ page }, testInfo) => {

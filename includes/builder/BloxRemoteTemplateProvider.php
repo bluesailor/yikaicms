@@ -262,7 +262,9 @@ final class BloxRemoteTemplateProvider
             }
         }
 
-        $url = $this->endpoint . ($query !== [] ? '?' . http_build_query($query) : '');
+        $url = $this->endpoint . ($query !== []
+            ? (str_contains($this->endpoint, '?') ? '&' : '?') . http_build_query($query)
+            : '');
         $response = ($this->httpGet)($url, 15, self::MAX_CATALOG_BYTES);
         if (!is_string($response) || $response === '') {
             $this->rememberFailure($cacheKey);

@@ -137,7 +137,8 @@ async function main() {
     const e2eEnv = { ...process.env };
 
     if (useTemplateFixture) {
-      e2eEnv.YIKAI_BLOX_TEMPLATE_API_BASE = `http://127.0.0.1:${fixturePort}/template-market-fixture.php`;
+      const fixtureQuery = process.env.BLOX_E2E_REMOTE_FAILURE === '1' ? '?mode=unavailable' : '';
+      e2eEnv.YIKAI_BLOX_TEMPLATE_API_BASE = `http://127.0.0.1:${fixturePort}/template-market-fixture.php${fixtureQuery}`;
       fixtureServer = spawn(php, ['-S', `127.0.0.1:${fixturePort}`, 'tests/e2e/template-market-server.php'], {
         cwd: root,
         env: e2eEnv,
