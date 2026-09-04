@@ -2575,6 +2575,7 @@ return [
     'blox_icon_hint_none' => '「:q」に一致するアイコンがありません',
     'blox_icon_hint_many' => '一致が多いため先頭の96件のみ表示。入力を続けて絞り込んでください',
     'blox_icon_hint_count' => '一致 :n 件',
+    'blox_icon_catalog_failed' => 'アイコンライブラリを読み込めませんでした。もう一度お試しください。',
     'blox_media_load_failed' => 'メディアライブラリの読み込みに失敗しました',
     'blox_upload_failed_short' => 'アップロードに失敗しました',
     'blox_settings_of' => ':t の設定',

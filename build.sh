@@ -10,6 +10,7 @@
 # 输出：
 #   releases/yikaicms-v{版本}.zip
 #   releases/yikaicms-v{版本}.sha256
+#   releases/yikaicms-v{版本}.evidence.json（构建提交、产物哈希、CI 链接）
 # ============================================================
 
 set -e
@@ -386,6 +387,8 @@ MUST_EXIST=(
     "includes/ProductIdentity.php"
     "includes/FooterNavigation.php"
     "includes/functions.php"
+    "includes/http_response.php"
+    "includes/language_request.php"
     "includes/LegacyInstallCleanup.php"
     "includes/SiteHealth.php"
     "includes/HomeSettingsLanguageDefaults.php"
@@ -402,6 +405,7 @@ MUST_EXIST=(
     "deploy/aliyun-nginx-minimal.txt"
     "migrations/20260817_repair_non_zh_home_factory_defaults.php"
     "assets/css/tailwind.css"
+    "assets/icons/blox-icon-catalog.json"
     "includes/Pinyin.php"
     "includes/pinyin/chars.php"
     "includes/pinyin/phrases.php"
@@ -477,6 +481,15 @@ if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev
     VERIFY_ZIP_FILE="$(wslpath -w "$ZIP_FILE")"
 fi
 php tools/release-artifact-smoke.php "$VERIFY_ZIP_FILE"
+
+# 发布包故意不携带 tests；用旁车证据把实际 ZIP、源码提交和该提交的 CI 页面绑定，
+# 发布说明必须附此文件或等价链接，禁止再写不可复核的固定测试数量。
+EVIDENCE_FILE="$RELEASE_DIR/${PACKAGE_NAME}.evidence.json"
+VERIFY_EVIDENCE_FILE="$EVIDENCE_FILE"
+if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
+    VERIFY_EVIDENCE_FILE="$(wslpath -w "$EVIDENCE_FILE")"
+fi
+php tools/build-release-evidence.php "$VERIFY_ZIP_FILE" "$VERSION" "$SOURCE_COMMIT" "$VERIFY_EVIDENCE_FILE"
 
 # ============================================================
 # 生成增量升级包（delta）
@@ -672,6 +685,7 @@ echo "=========================================="
 echo " 打包完成!"
 echo "=========================================="
 echo " 文件: $ZIP_FILE"
+echo " 证据: $EVIDENCE_FILE"
 echo " 大小: $ZIP_SIZE"
 echo " SHA256: $SHA_VALUE"
 echo " 文件数: $FILE_COUNT"

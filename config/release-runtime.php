@@ -19,6 +19,8 @@ return [
         'config/version.php',
         'includes/init.php',
         'includes/functions.php',
+        'includes/http_response.php',
+        'includes/language_request.php',
         'includes/FooterNavigation.php',
         'includes/ProductIdentity.php',
         'includes/frontend_preview.php',
@@ -79,6 +81,7 @@ return [
         'deploy/nginx-baota.conf',
         'deploy/aliyun-nginx-minimal.txt',
         'assets/css/tailwind.css',
+        'assets/icons/blox-icon-catalog.json',
     ],
     'generated_files' => [
         'config/build.php',

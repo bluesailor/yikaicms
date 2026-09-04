@@ -2406,6 +2406,7 @@ return [
     'blox_icon_hint_none' => 'No icons match ":q"',
     'blox_icon_hint_many' => 'Many matches; showing first 96 — keep typing to narrow down',
     'blox_icon_hint_count' => ':n matches',
+    'blox_icon_catalog_failed' => 'Unable to load the icon library. Please try again.',
     'blox_media_load_failed' => 'Media library failed to load',
     'blox_upload_failed_short' => 'Upload failed',
     'blox_settings_of' => ':t settings',

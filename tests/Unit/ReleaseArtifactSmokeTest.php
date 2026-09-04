@@ -76,6 +76,17 @@ final class ReleaseArtifactSmokeTest extends TestCase
         }
     }
 
+    public function testCurrentReleaseRuntimeDependenciesAreExplicitlyCovered(): void
+    {
+        foreach ([
+            'includes/http_response.php',
+            'includes/language_request.php',
+            'assets/icons/blox-icon-catalog.json',
+        ] as $path) {
+            self::assertContains($path, $this->manifest['required_files']);
+        }
+    }
+
     /** 清单不是摆设：升级排序器缺失必须让产物冒烟红。 */
     public function testMissingUpgradeEntryOrderFailsArtifactSmoke(): void
     {

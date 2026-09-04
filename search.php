@@ -53,11 +53,7 @@ if ($keyword !== '') {
             [$kw, $kw]
         );
         $results = db()->fetchAll(
-            "SELECT d.*, dc.name as category_name, 'download' as _type
-             FROM " . DB_PREFIX . "downloads d
-             LEFT JOIN " . DB_PREFIX . "download_categories dc ON d.category_id = dc.id
-             WHERE d.status = 1 AND (d.title LIKE ? OR d.description LIKE ?)
-             ORDER BY d.created_at DESC LIMIT ? OFFSET ?",
+            downloadSearchQuery(DB_PREFIX),
             [$kw, $kw, $perPage, $offset]
         );
 

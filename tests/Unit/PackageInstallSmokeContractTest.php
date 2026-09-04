@@ -87,6 +87,21 @@ final class PackageInstallSmokeContractTest extends TestCase
         self::assertStringContainsString('"type=all"', $script);
         self::assertStringContainsString('前台全部搜索可用', $script);
         self::assertStringContainsString("Fatal error|Uncaught|PDOException", $script);
+        self::assertStringContainsString('前台下载搜索无 summary 警告', $script);
+        self::assertStringContainsString('Undefined array key "summary"', $script);
+    }
+
+    public function testPackageInstallRejectsADisabledLanguageAtRuntime(): void
+    {
+        $script = file_get_contents(dirname(__DIR__, 2) . '/tools/package-install-test.sh');
+        $contract = file_get_contents(dirname(__DIR__) . '/smoke/package_language_contract.php');
+
+        self::assertIsString($script);
+        self::assertIsString($contract);
+        self::assertStringContainsString('package_language_contract.php', $script);
+        self::assertStringContainsString('DISABLED_LANG_STATUS', $script);
+        self::assertStringContainsString('X-Robots-Tag', $script);
+        self::assertStringContainsString("['zh-CN', 'en']", $contract);
     }
 
     public function testPackageInstallExecutesSvgSecurityContractWithTheTargetPhp(): void
