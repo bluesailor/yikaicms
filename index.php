@@ -264,9 +264,11 @@ if ($bannerFullscreen) {
 <script>(function(){function s(){var b=document.querySelector(".banner-swiper");if(!b)return;var t=b.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0);document.documentElement.style.setProperty("--hg-banner-offset",Math.round(t)+"px");}window.addEventListener("DOMContentLoaded",s);window.addEventListener("load",s);window.addEventListener("resize",s);s();})();</script>';
 }
 
+BloxAssetCollector::addScript('/assets/js/blox-video-policy.js');
+BloxAssetCollector::addScript('/assets/js/blox-banner.js');
+
 $extraJs = '
 <script src="/assets/swiper/swiper-bundle.min.js"></script>
-<script src="' . e(assetVer('/assets/js/blox-banner.js')) . '"></script>
 <script>
 // 首页产品分类筛选
 (function() {
