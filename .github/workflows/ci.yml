@@ -147,6 +147,10 @@ jobs:
             | xargs -0 -n50 php -l > /tmp/vendor-lint.log 2>&1 \
             || { grep -B1 -E 'Errors parsing|Parse error' /tmp/vendor-lint.log; exit 1; }
 
+      - name: PHP 8.0 upgrade entry ordering smoke
+        if: ${{ matrix.php == '8.0' }}
+        run: php tests/smoke/php80_upgrade_entry_order.php
+
       # 全新安装 ≡ 老站跑完全部迁移。install SQL 与 migrations 是两条独立演进的
       # 路径，两个方向都漏过（v1.11.0 新装缺列 500 / cile.cn 升级缺 9 列），单向
       # 检查抓不全。排在装机之前：本步不依赖 config.php，且失败时后面都没意义。
@@ -356,6 +360,60 @@ jobs:
       - name: Blox i18n gate (strict scope incl. paid sources)
         if: steps.blox_src.outputs.present == 'true'
         run: php tools/check_blox_i18n.php
+
+  # ─── 真实 N-1 包升级：从已发布的 v1.19.5 完整包安装旧站，再让 PHP 8.2
+  # ─── 通过在线升级的 prepare/batch/finalize 管道覆盖当前完整包并跑完迁移。
+  # ─── v1.19.5 的旧排序器在 PHP 8.0 会先因 T_ENUM 致命，无法由新包自修；
+  # ─── 发布渠道必须把本次“升级过程”门槛设为 8.2，升级完成后仍可运行 PHP 8.0。
+  # ─── 这条专门守住源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
+  n-minus-one-upgrade:
+    name: PHP 8.2 N-1 Package Upgrade
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-root --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_mysql, curl, json, gd, fileinfo, dom, simplexml, zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Install production dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress
+
+      - name: Build current full package
+        run: bash build.sh 1.19.6 --no-delta
+
+      - name: Fetch and verify published v1.19.5 package
+        run: |
+          curl -fL --retry 3 -o /tmp/yikaicms-v1.19.5.zip \
+            https://github.com/bluesailor/yikaicms/releases/download/v1.19.5/yikaicms-v1.19.5.zip
+          echo "6c2a6625173b801e60475ef7b763554ed181e380214a0dae24f5425db8780050  /tmp/yikaicms-v1.19.5.zip" | sha256sum -c -
+
+      - name: Upgrade real v1.19.5 package to candidate
+        run: >-
+          php tests/smoke/package_upgrade.php
+          --from-package=/tmp/yikaicms-v1.19.5.zip
+          --to-package=releases/yikaicms-v1.19.6.zip
+          --from=1.19.5 --to=1.19.6
+          --db=mysql --db-host=127.0.0.1 --db-port=3306
+          --db-user=root --db-pass=ci-root
 
   # ─── 真实免费发行包：不能只在源工作树上验证资产分类。注入完整源码后运行
   # ─── build.sh，校验 ZIP 哈希，再解包对最终产物执行 verify-free。

@@ -10,6 +10,7 @@ declare(strict_types=1);
 // 定义安装目录
 define('INSTALL_PATH', __DIR__);
 define('ROOT_PATH', dirname(__DIR__));
+require_once INSTALL_PATH . '/validation.php';
 
 // 读取 CMS 版本号（单一可信来源：config/version.php）
 $cmsVersion = '1.0.0';
@@ -334,6 +335,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $adminEmail = $_POST['admin_email'] ?? '';
             $siteName = $_POST['site_name'] ?? 'Yikai CMS';
             $siteUrl = $_POST['site_url'] ?? '';
+
+            // 必须在连接数据库、导入 SQL 和写 installed.lock 之前服务端拒绝。
+            // 浏览器的 required/minlength 可被脚本请求完全绕过。
+            if (!installerAdminPasswordValid((string) $adminPass)) {
+                ob_end_clean();
+                echo json_encode([
+                    'success' => false,
+                    'code' => 'admin_password_too_short',
+                    'message' => $L['error_admin_pass_length'],
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
 
             // 校验范围：lang/*.php 实际存在的 code（扫文件，扩展时无需改代码）
             $_installerSupported = [];

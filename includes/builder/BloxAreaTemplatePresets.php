@@ -62,6 +62,22 @@ final class BloxAreaTemplatePresets
             'preview' => 'footer-columns',
             'feature_keys' => ['blox_footer_feature_light', 'blox_footer_feature_navigation', 'blox_footer_feature_legal'],
         ],
+        'business-site-footer' => [
+            'type' => 'footer',
+            'file' => 'business-site-footer.json',
+            'name_key' => 'blox_area_preset_business_footer_name',
+            'description_key' => 'blox_area_preset_business_footer_desc',
+            'preview' => 'footer-columns-dark',
+            'feature_keys' => ['blox_footer_feature_dark', 'blox_footer_feature_navigation', 'blox_footer_feature_legal'],
+        ],
+        'minimal-site-footer' => [
+            'type' => 'footer',
+            'file' => 'minimal-site-footer.json',
+            'name_key' => 'blox_area_preset_minimal_footer_name',
+            'description_key' => 'blox_area_preset_minimal_footer_desc',
+            'preview' => 'footer-compact',
+            'feature_keys' => ['blox_footer_feature_light', 'blox_footer_feature_compact', 'blox_footer_feature_legal'],
+        ],
         'corporate-site-footer' => [
             'type' => 'footer',
             'file' => 'corporate-site-footer.json',

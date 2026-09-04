@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yikai\Tests\Unit;
 
 use BlockRenderer;
+use BloxAssetCollector;
 use BuilderRegistry;
 use HomeBannerItemElement;
 use HomeBloxRenderContext;
@@ -22,6 +23,9 @@ final class HomeBannerItemElementTest extends TestCase
             'subtitle' => '<script>alert(1)</script>Welcome',
             'image' => '/uploads/banner.jpg',
             'image_mobile' => 'https://example.com/banner-mobile.jpg',
+            'media_type' => 'video',
+            'video' => '/uploads/videos/launch.mp4',
+            'video_mobile_mode' => 'video',
             'btn1_url' => 'javascript:alert(1)',
             'btn2_url' => 'mailto:sales@example.com',
             'link_target' => 'popup',
@@ -33,6 +37,9 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertSame('alert(1)Welcome', $item['subtitle']);
         $this->assertSame('/uploads/banner.jpg', $item['image']);
         $this->assertSame('https://example.com/banner-mobile.jpg', $item['image_mobile']);
+        $this->assertSame('video', $item['media_type']);
+        $this->assertSame('/uploads/videos/launch.mp4', $item['video']);
+        $this->assertSame('video', $item['video_mobile_mode']);
         $this->assertSame('', $item['btn1_url']);
         $this->assertSame('mailto:sales@example.com', $item['btn2_url']);
         $this->assertSame('_self', $item['link_target']);
@@ -51,6 +58,9 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertSame('inherit', $controls['content_motion']['default']);
         $this->assertSame('inherit', $controls['background_motion']['default']);
         $this->assertSame('', $controls['image_mobile']['default']);
+        $this->assertSame('image', $controls['media_type']['default']);
+        $this->assertSame('', $controls['video']['default']);
+        $this->assertSame('poster', $controls['video_mobile_mode']['default']);
         $this->assertSame('settings', $controls['content_motion']['option_icons']['inherit']);
         $this->assertArrayHasKey('clip-reveal', $controls['content_motion']['options']);
         $this->assertArrayHasKey('blur-up', $controls['content_motion']['options']);
@@ -92,6 +102,115 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertStringNotContainsString('<source', HomeBannerItemElement::responsiveImageHtml([
             'image' => '/uploads/desktop.jpg',
         ]));
+    }
+
+    public function testResponsiveVideoKeepsPosterAndRejectsUnsafeOrNonVideoUrls(): void
+    {
+        $html = HomeBannerItemElement::responsiveMediaHtml([
+            'title' => 'Launch',
+            'media_type' => 'video',
+            'video' => '/uploads/videos/launch.mp4',
+            'image' => '/uploads/launch.jpg',
+            'image_mobile' => '/uploads/launch-mobile.jpg',
+            'video_mobile_mode' => 'poster',
+        ]);
+
+        $this->assertStringContainsString('data-blox-banner-poster', $html);
+        $this->assertStringContainsString('data-blox-banner-video', $html);
+        $this->assertStringContainsString('data-blox-mobile-video="poster"', $html);
+        $this->assertStringContainsString('poster="/uploads/launch.jpg"', $html);
+        $this->assertStringContainsString('data-blox-video-src="/uploads/videos/launch.mp4"', $html);
+        $this->assertStringNotContainsString(' src="/uploads/videos/launch.mp4"', $html);
+        $this->assertStringContainsString('preload="none"', $html);
+        $this->assertStringNotContainsString('autoplay', $html);
+
+        foreach (['javascript:alert(1)', 'https://www.youtube.com/watch?v=x', '/uploads/readme.txt'] as $unsafe) {
+            $fallback = HomeBannerItemElement::responsiveMediaHtml([
+                'media_type' => 'video',
+                'video' => $unsafe,
+                'image' => '/uploads/fallback.jpg',
+            ]);
+            $this->assertStringNotContainsString('<video', $fallback);
+            $this->assertStringContainsString('/uploads/fallback.jpg', $fallback);
+        }
+    }
+
+    public function testLinkedMediaUsesNormalizedSafeLink(): void
+    {
+        $linked = HomeBannerItemElement::responsiveLinkedMediaHtml([
+            'media_type' => 'video',
+            'video' => '/uploads/videos/launch.mp4',
+            'image' => '/uploads/launch.jpg',
+            'link_url' => 'https://example.com/launch?from=banner&amp;lang=en',
+            'link_target' => '_blank',
+        ]);
+        $unsafe = HomeBannerItemElement::responsiveLinkedMediaHtml([
+            'image' => '/uploads/launch.jpg',
+            'link_url' => 'javascript:alert(1)',
+        ]);
+
+        $this->assertStringStartsWith('<a href="https://example.com/launch?', $linked);
+        $this->assertStringContainsString('target="_blank"', $linked);
+        $this->assertStringContainsString('data-blox-banner-video', $linked);
+        $this->assertStringNotContainsString('<a ', $unsafe);
+    }
+
+    public function testAllBundledBannerTemplatesRenderVideoMedia(): void
+    {
+        $banner = [
+            'title' => 'Launch',
+            'subtitle' => 'Video banner',
+            'media_type' => 'video',
+            'video' => '/uploads/videos/launch.webm',
+            'image' => '/uploads/launch.jpg',
+            'image_mobile' => '',
+            'video_mobile_mode' => 'poster',
+            'btn1_text' => '',
+            'btn1_url' => '',
+            'btn2_text' => '',
+            'btn2_url' => '',
+            'link_url' => '',
+            'link_target' => '_self',
+        ];
+
+        foreach ([
+            'default' => ROOT_PATH . '/themes/default/blocks/banner.php',
+            'business' => ROOT_PATH . '/marketplace/themes/business/blocks/banner.php',
+            'minimal' => ROOT_PATH . '/marketplace/themes/minimal/blocks/banner.php',
+            'legacy-fallback' => ROOT_PATH . '/includes/blocks/banner.php',
+        ] as $name => $template) {
+            BloxAssetCollector::reset();
+            $banners = [$banner];
+            $block = [];
+            $siteName = 'YikaiCMS';
+            ob_start();
+            include $template;
+            $html = (string) ob_get_clean();
+
+            $this->assertStringContainsString('data-blox-banner-video', $html, $name);
+            $this->assertStringContainsString(
+                'data-blox-video-src="/uploads/videos/launch.webm"',
+                $html,
+                $name
+            );
+            $this->assertStringContainsString('data-blox-banner-poster', $html, $name);
+            $this->assertContains('/assets/css/blox-banner.css', BloxAssetCollector::styles(), $name);
+            $this->assertContains('/assets/js/blox-video-policy.js', BloxAssetCollector::scripts(), $name);
+            $this->assertContains('/assets/js/blox-banner.js', BloxAssetCollector::scripts(), $name);
+        }
+    }
+
+    public function testBannerShortcodeUsesTheSharedVideoRenderer(): void
+    {
+        $source = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
+        $start = strpos($source, 'function renderBannerShortcode');
+        $end = strpos($source, 'function isJsonFields', $start === false ? 0 : $start);
+
+        $this->assertNotFalse($start);
+        $this->assertNotFalse($end);
+        $shortcode = substr($source, (int) $start, (int) $end - (int) $start);
+        $this->assertStringContainsString('HomeBannerItemElement::responsiveLinkedMediaHtml($b)', $shortcode);
+        $this->assertStringNotContainsString('HomeBannerItemElement::responsiveImageHtml($b)', $shortcode);
     }
 
     public function testLocalizedContentKeepsCustomPresentationAndMatchesTranslationGroups(): void

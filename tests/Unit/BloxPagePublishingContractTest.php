@@ -37,6 +37,20 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('verifyCsrf();', $api);
     }
 
+    public function testAuthenticatedBloxPublicationRegistersBothPublicCacheInvalidators(): void
+    {
+        $auth = $this->source('admin/includes/auth.php');
+        $hooks = strpos($auth, "require_once ROOT_PATH . '/includes/hooks.php';");
+        $htmlCache = strpos($auth, "require_once ROOT_PATH . '/includes/HtmlCache.php';");
+        $staticHtml = strpos($auth, "require_once ROOT_PATH . '/includes/StaticHtml.php';");
+
+        self::assertIsInt($hooks);
+        self::assertIsInt($htmlCache, 'Blox 独立 API 未注册 HtmlCache 失效钩子，发布后访客仍会命中旧缓存。');
+        self::assertIsInt($staticHtml);
+        self::assertGreaterThan($hooks, $htmlCache);
+        self::assertGreaterThan($htmlCache, $staticHtml);
+    }
+
     public function testFreeEditionPageEditingIsSeparatedFromAdvancedFeatureLicense(): void
     {
         $functions = $this->source('includes/functions.php');
@@ -123,6 +137,8 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('self::customAreaEnabled($area) && self::themeRendersArea($area)', $areaTarget);
         $this->assertStringContainsString('private static function themeRendersArea(string $area): bool', $areaTarget);
         $this->assertStringContainsString("in_array(\$theme, ['default', 'business'], true)", $areaTarget);
+        $this->assertStringContainsString("'business' => 'business-site-footer'", $areaTarget);
+        $this->assertStringContainsString("'minimal' => 'minimal-site-footer'", $areaTarget);
         $this->assertStringContainsString("\$theme === 'business'", $themeHeaderDocument);
         $this->assertStringContainsString("\$background = '#1e293b';", $themeHeaderDocument);
         $this->assertStringContainsString("'channel_id' => \$isHomeLayout ? 0 : \$id", $canvas);
@@ -141,7 +157,10 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('if ((template[2] || template[4]) && value.area !== "header") return null;', $bridge);
         $this->assertStringContainsString('payload = areaEditPayload(data.ykEditArea);', $bridge);
         $this->assertStringContainsString('this.onEditArea(payload);', $bridge);
-        $this->assertStringContainsString('onEditArea: function (payload) { window.location.assign(payload.url); }', $editor);
+        // 画布里的页头/页尾编辑入口也必须经过统一的未保存离开保护，不能直接跳转。
+        $this->assertStringContainsString('onEditArea: function (payload) { self.navigateEditorTo(payload.url); }', $editor);
+        $this->assertStringContainsString('navigateEditorTo(href) {', $editor);
+        $this->assertStringContainsString('this.hasUnsavedChanges() && !window.confirm(this.uiText.leaveUnsavedConfirm)', $editor);
         $this->assertStringContainsString('onEditPageHero: function () { self.openPageHeroSettings(); }', $editor);
 
         $templateApi = $this->source('admin/blox_template_api.php');
@@ -163,6 +182,12 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringNotContainsString('if (this.dirty) { this.toast(this.uiText.tplPublishRequiresSaved); return; }', $editor);
         $this->assertStringContainsString('@click="publishTemplate()" :disabled="saving"', $header);
         $this->assertStringContainsString("__('blox_tpl_publish_saves_current')", $header);
+
+        foreach (['business', 'minimal'] as $theme) {
+            $footer = $this->source('marketplace/themes/' . $theme . '/layouts/footer.php');
+            $this->assertStringContainsString("bloxAreaHtml('footer')", $footer);
+            $this->assertStringContainsString("if (\$ykBloxFooter !== '')", $footer);
+        }
     }
 
     public function testFreshInstallHasNoEditorSwitchWhileHistoricalUpgradeRemainsCompatible(): void

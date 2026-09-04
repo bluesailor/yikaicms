@@ -5,10 +5,12 @@
 # 用法：
 #   bash build.sh          # 自动从 config/version.php 读取版本号
 #   bash build.sh 1.2.0    # 手动指定版本号
+#   bash build.sh 1.2.0 --no-delta  # 只构建完整安装包（候选装机/审计）
 #
 # 输出：
 #   releases/yikaicms-v{版本}.zip
 #   releases/yikaicms-v{版本}.sha256
+#   releases/yikaicms-v{版本}.evidence.json（构建提交、产物哈希、CI 链接）
 # ============================================================
 
 set -e
@@ -58,9 +60,25 @@ if [ -n "$WORKTREE_STATUS" ]; then
     exit 1
 fi
 
+# 参数：版本号可省略；--no-delta 仅用于候选装机/审计，正式发布默认仍生成增量包。
+VERSION_ARG=""
+BUILD_DELTAS=1
+for arg in "$@"; do
+    case "$arg" in
+        --no-delta) BUILD_DELTAS=0 ;;
+        *)
+            if [ -n "$VERSION_ARG" ]; then
+                echo "Error: 未知或重复参数 '$arg'"
+                exit 1
+            fi
+            VERSION_ARG="$arg"
+            ;;
+    esac
+done
+
 # 版本号：优先使用参数，否则从 config/version.php 提取（版本号单一可信来源）
-if [ -n "$1" ]; then
-    VERSION="$1"
+if [ -n "$VERSION_ARG" ]; then
+    VERSION="$VERSION_ARG"
 else
     VERSION=$(grep -oP "CMS_VERSION',\s*'\\K[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" config/version.php 2>/dev/null || echo "")
     if [ -z "$VERSION" ]; then
@@ -123,7 +141,8 @@ mkdir -p "$RELEASE_DIR"
 
 # ---- 复制文件（当前工作树源码）----
 # tracked + 未忽略的新文件构成当前源码；再过滤已从工作树移走但索引尚未提交删除的路径。
-# 后续 EXCLUDES 仍负责剔除 tests、marketplace、开发工具等，不会把市场源码带进运行包。
+# 后续 EXCLUDES 仍负责剔除 tests、marketplace、开发工具等。仅明确列入
+# BUNDLED_THEMES 的市场主题会复制到运行包的 themes/ 目录。
 echo "[1/5] 复制项目文件（当前工作树源码）..."
 FILE_LIST="$TMP_DIR/worktree-files.list"
 : > "$FILE_LIST"
@@ -152,6 +171,23 @@ for scope in core runtime; do
             cp "$source_path" "$target_path"
         fi
     done < <(php "bin/blox-assets.php" list "$scope")
+done
+
+# 新安装默认提供三套模板：default 来自 themes/default；Business、Minimal 的
+# 唯一源码仍在 marketplace/themes。这里只复制到完整包的运行目录，避免仓库里
+# 再维护一份容易漂移的副本。在线升级会保护所有非 default 主题，不覆盖客户修改。
+BUNDLED_THEMES=("business" "minimal")
+for theme in "${BUNDLED_THEMES[@]}"; do
+    source_dir="$ROOT_DIR/marketplace/themes/$theme"
+    target_dir="$PKG_DIR/themes/$theme"
+    if [ ! -f "$source_dir/theme.json" ] \
+        || [ ! -f "$source_dir/layouts/header.php" ] \
+        || [ ! -f "$source_dir/layouts/footer.php" ]; then
+        echo "Error: 预装模板不完整: $theme"
+        exit 1
+    fi
+    mkdir -p "$target_dir"
+    cp -a "$source_dir/." "$target_dir/"
 done
 
 # 缓存命名空间随每个全量/增量发行包变化。HtmlCache 将它纳入缓存键，部署覆盖后
@@ -260,8 +296,8 @@ EXCLUDES=(
     # 的增强件；免费层 llms.txt / 实时分析 / SERP 预览 / 手动推送 装上即得。
     "plugins/seo"
 
-    # 主题：运行包只内置 default。aurora/business/minimal/trade 的源码集中在
-    # marketplace/themes/，由 update.yikaicms.com 主题市场签名分发，不进入 CMS 包。
+    # 主题市场源码目录本身不进入运行包。Business、Minimal 会在上面的显式步骤中
+    # 复制到 themes/ 作为新安装预装模板；Aurora、Trade 仍由主题市场签名分发。
     "marketplace"
 
     # Blox 资产由 config/blox-assets.json 单一登记。core/runtime 随免费包，pro 排除。
@@ -351,6 +387,8 @@ MUST_EXIST=(
     "includes/ProductIdentity.php"
     "includes/FooterNavigation.php"
     "includes/functions.php"
+    "includes/http_response.php"
+    "includes/language_request.php"
     "includes/LegacyInstallCleanup.php"
     "includes/SiteHealth.php"
     "includes/HomeSettingsLanguageDefaults.php"
@@ -367,6 +405,7 @@ MUST_EXIST=(
     "deploy/aliyun-nginx-minimal.txt"
     "migrations/20260817_repair_non_zh_home_factory_defaults.php"
     "assets/css/tailwind.css"
+    "assets/icons/blox-icon-catalog.json"
     "includes/Pinyin.php"
     "includes/pinyin/chars.php"
     "includes/pinyin/phrases.php"
@@ -443,6 +482,15 @@ if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev
 fi
 php tools/release-artifact-smoke.php "$VERIFY_ZIP_FILE"
 
+# 发布包故意不携带 tests；用旁车证据把实际 ZIP、源码提交和该提交的 CI 页面绑定，
+# 发布说明必须附此文件或等价链接，禁止再写不可复核的固定测试数量。
+EVIDENCE_FILE="$RELEASE_DIR/${PACKAGE_NAME}.evidence.json"
+VERIFY_EVIDENCE_FILE="$EVIDENCE_FILE"
+if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
+    VERIFY_EVIDENCE_FILE="$(wslpath -w "$EVIDENCE_FILE")"
+fi
+php tools/build-release-evidence.php "$VERIFY_ZIP_FILE" "$VERSION" "$SOURCE_COMMIT" "$VERIFY_EVIDENCE_FILE"
+
 # ============================================================
 # 生成增量升级包（delta）
 #   目的：从最近 N 个历史版本各生成一个「只含变化文件」的小包，
@@ -451,6 +499,12 @@ php tools/release-artifact-smoke.php "$VERIFY_ZIP_FILE"
 #   结构：delta-<from>-to-<VERSION>.zip = .delta-manifest.json + payload/ 镜像树
 #   安全：客户端只在「当前版本 == delta.from」时使用，否则回退全量包。
 # ============================================================
+if [ "$BUILD_DELTAS" = "0" ]; then
+    echo "[+] 已按 --no-delta 跳过增量升级包（仅保留完整安装包）"
+    rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
+          "$RELEASE_DIR"/delta-*-to-"$VERSION".sha256 \
+          "$RELEASE_DIR/deltas-v${VERSION}.json"
+else
 echo "[+] 生成增量升级包（delta）..."
 DELTA_COUNT="${DELTA_BASES:-3}"        # 回溯的历史版本数（可用环境变量覆盖）
 DELTA_FLOOR="${DELTA_FLOOR:-1.12.1}"   # 下限：更老版本的历史目录差异大，统一走全量包更稳
@@ -616,6 +670,7 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
         DELTA_META_FILE="$RELEASE_DIR/deltas-v${VERSION}.json"
         { echo '"deltas": ['; printf '  %s,\n' "${DELTA_JSON_ITEMS[@]}" | sed '$ s/,$//'; echo ']'; } > "$DELTA_META_FILE"
         echo "  → deltas 元数据已写入 $(basename "$DELTA_META_FILE")（粘进 releases.json 对应版本条目）"
+    fi
 fi
 
 # ---- 清理 ----
@@ -630,6 +685,7 @@ echo "=========================================="
 echo " 打包完成!"
 echo "=========================================="
 echo " 文件: $ZIP_FILE"
+echo " 证据: $EVIDENCE_FILE"
 echo " 大小: $ZIP_SIZE"
 echo " SHA256: $SHA_VALUE"
 echo " 文件数: $FILE_COUNT"

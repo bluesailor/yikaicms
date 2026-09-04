@@ -13,6 +13,7 @@ if (!defined('ROOT_PATH')) {
 }
 
 require_once __DIR__ . '/frontend_preview.php';
+require_once __DIR__ . '/http_response.php';
 require_once __DIR__ . '/ThemeRuntime.php';
 require_once __DIR__ . '/ThemeSettings.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
@@ -245,8 +246,9 @@ function postInt(string $key, int $default = 0): int
 
 /**
  * 跳转URL
+ * @return never
  */
-function redirect(string $url): never
+function redirect(string $url): void
 {
     header('Location: ' . $url);
     exit;
@@ -254,8 +256,9 @@ function redirect(string $url): never
 
 /**
  * JSON响应
+ * @return never
  */
-function json(mixed $data, int $code = 200): never
+function json(mixed $data, int $code = 200): void
 {
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');
@@ -265,8 +268,9 @@ function json(mixed $data, int $code = 200): never
 
 /**
  * 成功响应
+ * @return never
  */
-function success(mixed $data = [], ?string $msg = null): never
+function success(mixed $data = [], ?string $msg = null): void
 {
     // 默认参数不能调函数，所以用 null 当「未指定」的哨兵：
     // 200+ 个调用点都不传 msg，写死中文会让英/日后台每次操作都弹一句中文。
@@ -276,10 +280,14 @@ function success(mixed $data = [], ?string $msg = null): never
 
 /**
  * 错误响应
+ * @return never
  */
-function error(?string $msg = null, int $code = 1): never
+function error(?string $msg = null, int $code = 1): void
 {
-    json(['code' => $code, 'msg' => $msg ?? __('operation_failed'), 'data' => null]);
+    json(
+        ['code' => $code, 'msg' => $msg ?? __('operation_failed'), 'data' => null],
+        applicationErrorHttpStatus($code)
+    );
 }
 
 // ============================================================
@@ -1537,6 +1545,45 @@ function getBlockBg(array $block, string $defaultClass = ''): array
     $layout = $block['layout'] ?? 'container';
     $container = $layout === 'full' ? 'w-full px-4 md:px-8' : 'container mx-auto px-4';
 
+    // 首页动态区块仍由主题模板输出自己的默认底色。外层 Blox 区块已经配置
+    // 背景时，只去掉主题默认的 bg-* 绘制，保留 text-* 等内容样式，避免
+    // CTA 的默认蓝底盖住统一配置在区块层的视频、图片或渐变。
+    if (!$bgImage && !$bgColor) {
+        $hasParentBackground = false;
+        $parentBackgrounds = is_array($block['_blox_parent_backgrounds'] ?? null)
+            ? $block['_blox_parent_backgrounds']
+            : [];
+        foreach ($parentBackgrounds as $parentBackground) {
+            if (!is_array($parentBackground)) {
+                continue;
+            }
+            if (class_exists('AbstractElement')) {
+                $hasPaint = AbstractElement::backgroundDeclarations($parentBackground) !== '';
+                $hasVideo = AbstractElement::backgroundVideoUrl($parentBackground) !== '';
+            } else {
+                $hasPaint = trim((string) ($parentBackground['bg_color'] ?? '')) !== ''
+                    || trim((string) ($parentBackground['bg_image'] ?? '')) !== ''
+                    || trim((string) ($parentBackground['bg_gradient'] ?? '')) !== '';
+                $hasVideo = trim((string) ($parentBackground['bg_video'] ?? '')) !== '';
+            }
+            if ($hasPaint || $hasVideo) {
+                $hasParentBackground = true;
+                break;
+            }
+        }
+        if ($hasParentBackground) {
+            if ($defaultClass === '@auto') {
+                $defaultClass = '';
+            } else {
+                $classes = preg_split('/\s+/', trim($defaultClass)) ?: [];
+                $defaultClass = implode(' ', array_values(array_filter(
+                    $classes,
+                    static fn (string $class): bool => !str_starts_with($class, 'bg-')
+                )));
+            }
+        }
+    }
+
     // '@auto'：内容区块未显式配背景时，按渲染顺序在 白 / 浅灰 间斑马交替，
     // 保证相邻内容区块背景色不同、有清晰间隔（强色区块 banner/advantage/cta 不参与）。
     if ($defaultClass === '@auto') {
@@ -2348,10 +2395,14 @@ function uploadFile(array $file, string $type = 'images'): array
 
     // 检查文件类型
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $videoTypes = defined('UPLOAD_VIDEO_TYPES')
+        ? array_values(array_filter(array_map('strval', (array) constant('UPLOAD_VIDEO_TYPES'))))
+        : ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v'];
     $allowedTypes = match ($type) {
         'images' => UPLOAD_IMAGE_TYPES,
         'files' => UPLOAD_FILE_TYPES,
-        default => array_merge(UPLOAD_IMAGE_TYPES, UPLOAD_FILE_TYPES)
+        'videos' => $videoTypes,
+        default => array_merge(UPLOAD_IMAGE_TYPES, UPLOAD_FILE_TYPES, $videoTypes)
     };
 
     if (!in_array($ext, $allowedTypes)) {
@@ -2376,6 +2427,12 @@ function uploadFile(array $file, string $type = 'images'): array
         'zip'  => ['application/zip', 'application/x-zip-compressed'],
         'rar'  => ['application/x-rar-compressed', 'application/vnd.rar', 'application/x-rar'],
         '7z'   => ['application/x-7z-compressed', 'application/x-7z'],
+        'mp4'  => ['video/mp4', 'application/mp4'],
+        'webm' => ['video/webm'],
+        'ogg'  => ['video/ogg', 'application/ogg'],
+        'ogv'  => ['video/ogg', 'application/ogg'],
+        'mov'  => ['video/quicktime'],
+        'm4v'  => ['video/x-m4v', 'video/mp4'],
     ];
     // MIME 内容校验（防伪造扩展名）。fileinfo 扩展为可选：未安装则跳过此项检查，
     // 上传仍受扩展名白名单 + 图片 getimagesize 校验保护（强烈建议装 fileinfo 以获得完整防护）。
@@ -2385,7 +2442,9 @@ function uploadFile(array $file, string $type = 'images'): array
         if ($finfo) {
             finfo_close($finfo);
         }
-        if ($detectedMime !== '' && $detectedMime !== false && !in_array($detectedMime, $mimeMap[$ext])) {
+        if ($detectedMime !== ''
+            && $detectedMime !== false
+            && !uploadMimeMatches($ext, $detectedMime, $file['tmp_name'], $mimeMap[$ext])) {
             return ['error' => '文件内容与扩展名不匹配'];
         }
     }
@@ -2796,6 +2855,10 @@ function renderAlbumShortcode(int $albumId): string
 
 /**
  * 渲染轮播图短码为 Swiper 轮播
+ *
+ * Builder bootstrap 在调用此函数前加载轮播元素类；functions.php 自身先于
+ * builder 类装载，因此静态分析无法从本文件的加载顺序证明该类型存在。
+ * @psalm-suppress UndefinedClass
  */
 function renderBannerShortcode(string $slug): string
 {
@@ -2828,15 +2891,9 @@ function renderBannerShortcode(string $slug): string
     $html .= '<div class="swiper-wrapper">';
 
     foreach ($banners as $b) {
+        $b = HomeBannerItemElement::normalize($b);
         $html .= '<div class="swiper-slide"' . HomeBannerItemElement::motionAttributes($b) . '>';
-        $imageHtml = HomeBannerItemElement::responsiveImageHtml($b);
-        if ($b['link_url']) {
-            $html .= '<a href="' . e($b['link_url']) . '" target="' . e($b['link_target']) . '" class="block w-full h-full">';
-            $html .= $imageHtml;
-            $html .= '</a>';
-        } else {
-            $html .= $imageHtml;
-        }
+        $html .= HomeBannerItemElement::responsiveLinkedMediaHtml($b);
         if ($b['title']) {
             $html .= '<div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">';
             $html .= '<div class="text-center text-white px-4 w-full max-w-4xl">';
@@ -2869,6 +2926,7 @@ function renderBannerShortcode(string $slug): string
 
     $uidJson = json_encode($uid, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
     $swiperJsJson = json_encode(assetVer('/assets/swiper/swiper-bundle.min.js'), JSON_UNESCAPED_SLASHES);
+    $policyJsJson = json_encode(assetVer('/assets/js/blox-video-policy.js'), JSON_UNESCAPED_SLASHES);
     $runtimeJsJson = json_encode(assetVer('/assets/js/blox-banner.js'), JSON_UNESCAPED_SLASHES);
     $html .= '<script>(function(){';
     $html .= 'var root=document.getElementById(' . $uidJson . ');if(!root)return;';
@@ -2878,7 +2936,8 @@ function renderBannerShortcode(string $slug): string
     $html .= 'if(!found){var script=document.createElement("script");script.src=src;script.onload=next;document.body.appendChild(script);return;}';
     $html .= 'var tries=0,timer=setInterval(function(){if(ready()||++tries>100){clearInterval(timer);if(ready())next();}},50);}';
     $html .= 'load(' . $swiperJsJson . ',function(){return typeof window.Swiper==="function";},function(){';
-    $html .= 'load(' . $runtimeJsJson . ',function(){return !!window.BloxBanner;},init);});';
+    $html .= 'load(' . $policyJsJson . ',function(){return !!window.BloxVideoPolicy;},function(){';
+    $html .= 'load(' . $runtimeJsJson . ',function(){return !!window.BloxBanner;},init);});});';
     $html .= '})();</script>';
 
     return $html;

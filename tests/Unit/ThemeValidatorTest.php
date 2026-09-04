@@ -2,7 +2,8 @@
 /**
  * 主题包校验器测试（规范见 yikaicms-docs/theme-schema.md）。
  *
- * 核心包只内置 default；可选主题源码放 marketplace/themes，由市场签名分发。
+ * 源码树的 themes/ 只跟踪 default；预装与可选主题源码放 marketplace/themes。
+ * build.sh 会把 Business、Minimal 复制进完整安装包，其余主题由市场签名分发。
  * 两处都必须通过同一套主题包校验，避免“移到市场后就不测”的质量降级。
  */
 
@@ -38,12 +39,12 @@ final class ThemeValidatorTest extends TestCase
         ], $override);
     }
 
-    // ── 内置主题（最重要的一条）────────────────────────────
+    // ── 核心主题源码（最重要的一条）──────────────────────────
 
-    public function testBundledThemesAllValid(): void
+    public function testCoreThemeSourceOnlyContainsDefault(): void
     {
         $dirs = glob(ROOT_PATH . '/themes/*', GLOB_ONLYDIR) ?: [];
-        $this->assertSame(['default'], array_map('basename', $dirs), '核心包运行时只能内置 default 主题');
+        $this->assertSame(['default'], array_map('basename', $dirs), '源码树 themes/ 只能跟踪 default 主题');
 
         foreach ($dirs as $dir) {
             $slug = basename($dir);

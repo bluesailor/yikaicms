@@ -113,6 +113,7 @@ async function clearSelection(page) {
 
 async function addTemporaryHeading(page, columns = 1) {
   await clearSelection(page);
+  await waitPreviewSettled(page);
   const before = await countSections(page);
   const headingBefore = await (await frame(page)).locator('[data-yk-el-type="heading"]').count();
   await page.getByTestId(`blox-add-section-${columns}`).click();

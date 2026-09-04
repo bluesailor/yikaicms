@@ -39,11 +39,12 @@ if (isset($result['error'])) {
 }
 
 // 保存到媒体库
+$mediaType = MediaModel::typeForExtension((string) $result['ext']);
 $mediaData = [
     'name' => $result['name'],
     'path' => $result['path'],
     'url' => $result['url'],
-    'type' => in_array($result['ext'], ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']) ? 'image' : 'file',
+    'type' => $mediaType,
     'ext' => $result['ext'],
     'mime' => mime_content_type($result['path']) ?: '',
     'size' => $result['size'],
@@ -61,4 +62,5 @@ success([
     'url' => $result['url'],
     'name' => $result['name'],
     'size' => $result['size'],
+    'type' => $mediaType,
 ]);

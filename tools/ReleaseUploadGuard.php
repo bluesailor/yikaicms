@@ -186,6 +186,10 @@ final class ReleaseUploadGuard
             if ($releaseVersion === '' || !in_array($channel, ['stable', 'beta'], true)) {
                 throw new RuntimeException("Release {$releaseVersion} has a missing or invalid channel");
             }
+            $minimumPhp = trim((string) ($release['min_php'] ?? ''));
+            if (preg_match('/^\d+\.\d+(?:\.\d+)?$/D', $minimumPhp) !== 1) {
+                throw new RuntimeException("Release {$releaseVersion} has a missing or invalid min_php");
+            }
             $registeredChannel = is_array($versions[$releaseVersion] ?? null)
                 ? (string) ($versions[$releaseVersion]['channel'] ?? '')
                 : '';

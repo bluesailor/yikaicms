@@ -747,18 +747,6 @@ if ($isHomeBlox) {
     }
 }
 
-/**
- * 图标名全集从本地字体 CSS 提取。旧值无前缀时仍属于 Tabler；Bootstrap 值保存为 bi:<name>，
- * 避免同名图标冲突。选择器最多只渲染 96 个匹配结果。
- */
-$tablerIcons = [];
-if (preg_match_all('/\.ti-([a-z0-9-]+):before/', (string) @file_get_contents(ROOT_PATH . '/assets/tabler/tabler-icons.min.css'), $_tiM)) {
-    $tablerIcons = array_values(array_unique($_tiM[1]));
-}
-$bootstrapIcons = [];
-if (preg_match_all('/\.bi-([a-z0-9-]+)::before/', (string) @file_get_contents(ROOT_PATH . '/assets/bootstrap-icons/bootstrap-icons.min.css'), $_biM)) {
-    $bootstrapIcons = array_map(static fn (string $name): string => 'bi:' . $name, array_values(array_unique($_biM[1])));
-}
 $businessIconPresets = BloxIcon::businessPresets();
 $bloxDesignSystem = BloxDesignSystem::snapshot();
 $canManageBloxDesign = hasPermission('blox_global');
@@ -1129,6 +1117,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             saving: false,
             cacheClearing: false,
             dirty: false,
+            _allowEditorLeave: false,
             _ready: false,
             toastMsg: "",
             _previewClient: null,
@@ -1490,6 +1479,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'mediaFailed' => __('blox_media_failed'),
                 'uploadedSelected' => __('blox_uploaded_selected'),
                 'uploadedOptimized' => __('blox_uploaded_optimized'),
+                'uploadTooLarge' => __('media_upload_too_large'),
                 'uploadFailed' => __('blox_upload_failed'),
                 'confirmDeleteContainer' => __('blox_confirm_delete_container'),
                 'confirmDeleteSection' => __('blox_confirm_delete_section'),
@@ -1505,6 +1495,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'saveStatusFailed' => __('blox_save_status_failed'),
                 'draftSaved' => __('blox_save_status_draft'),
                 'unsaved' => __('blox_dirty'),
+                'leaveUnsavedConfirm' => __('blox_leave_unsaved_confirm'),
                 'savingDraft' => __('blox_saving'),
                 'revisionLoading' => __('loading'),
                 'revisionPreviewFailed' => __('blox_revision_preview_failed'),
@@ -1512,7 +1503,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'iconHintNone' => __('blox_icon_hint_none'),
                 'iconHintMany' => __('blox_icon_hint_many'),
                 'iconHintCount' => __('blox_icon_hint_count'),
+                'iconCatalogFailed' => __('blox_icon_catalog_failed'),
                 'mediaLoadFailed' => __('blox_media_load_failed'),
+                'mediaVideoPreviewLoading' => __('blox_media_video_preview_loading'),
+                'mediaVideoPreviewUnavailable' => __('blox_media_video_preview_unavailable'),
                 'mediaSourceLocal' => __('official_media_source_local'),
                 'mediaSourceOfficial' => __('official_media_source_official'),
                 'officialMediaPreview' => __('official_media_preview'),
@@ -1847,8 +1841,10 @@ $canManageBloxDesign = hasPermission('blox_global');
             ],
 
             // ── 图标选择器（icon 控件） ─────────────────────
-            tablerIcons: <?php echo json_encode($tablerIcons); ?>,
-            bootstrapIcons: <?php echo json_encode($bootstrapIcons); ?>,
+            tablerIcons: [],
+            bootstrapIcons: [],
+            iconCatalogLoaded: false,
+            iconCatalogLoading: false,
             businessIconPresets: <?php echo json_encode($businessIconPresets, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             iconPick: "",               // 当前展开选择器的控件 key（"" = 都收起）
             iconQuery: "",
@@ -1884,11 +1880,38 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.iconPick = key;
                 this.iconQuery = "";
                 this.iconProvider = this.iconProviderForValue(value);
+                this.loadIconCatalog();
             },
 
             setIconProvider(provider) {
                 this.iconProvider = provider === "bootstrap" ? "bootstrap" : "tabler";
                 this.iconQuery = "";
+                this.loadIconCatalog();
+            },
+
+            loadIconCatalog() {
+                if (this.iconCatalogLoaded || this.iconCatalogLoading) return;
+                this.iconCatalogLoading = true;
+                var self = this;
+                fetch(<?php echo json_encode(assetVer('/assets/icons/blox-icon-catalog.json')); ?>, {
+                    credentials: "same-origin",
+                    headers: { "Accept": "application/json" },
+                })
+                    .then(function (response) {
+                        if (!response.ok) throw new Error("icon catalog " + response.status);
+                        return response.json();
+                    })
+                    .then(function (catalog) {
+                        self.tablerIcons = Array.isArray(catalog.tabler) ? catalog.tabler : [];
+                        self.bootstrapIcons = Array.isArray(catalog.bootstrap) ? catalog.bootstrap : [];
+                        self.iconCatalogLoaded = true;
+                    })
+                    .catch(function () {
+                        self.toast(self.uiText.iconCatalogFailed);
+                    })
+                    .finally(function () {
+                        self.iconCatalogLoading = false;
+                    });
             },
 
             iconLibrary() {
@@ -1908,6 +1931,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             iconHint() {
+                if (this.iconCatalogLoading) return this.uiText.revisionLoading;
                 var q = this.iconQuery.trim();
                 var icons = this.iconLibrary();
                 if (!q) return this.uiText.iconHintDefault.replace(":n", icons.length);
@@ -3081,19 +3105,33 @@ $canManageBloxDesign = hasPermission('blox_global');
             mediaKeyword: "",
             mediaLoading: false,
             mediaSource: "local",
+            mediaType: "image",
+            mediaSort: "default",
+            mediaCanSwitchType: false,
             mediaEntitlement: { canImport: false, reason: "" },
             mediaImporting: "",
             mediaUsage: "",
             mediaPreferredMinWidth: 0,
             mediaRequestGuard: window.BloxMediaClient.latestRequestGuard(),
+            _mediaVideoPreviewQueue: null,
             _mediaTarget: null,   // 选中回调：拿到 url 写进哪个字段
+            _mediaTargets: null,
+            _mediaImageUsage: "",
 
             openMedia(setter, options) {
                 options = options || {};
-                this._mediaTarget = setter;
-                this.mediaUsage = String(options.usage || "");
+                this.mediaType = options.type === "video" ? "video" : "image";
+                this._mediaTargets = options.targets
+                    && typeof options.targets.image === "function"
+                    && typeof options.targets.video === "function"
+                    ? options.targets
+                    : null;
+                this.mediaCanSwitchType = this._mediaTargets !== null;
+                this._mediaTarget = this.mediaCanSwitchType ? this._mediaTargets[this.mediaType] : setter;
+                this._mediaImageUsage = String(options.usage || "");
+                this.mediaUsage = this.mediaType === "image" ? this._mediaImageUsage : "";
                 this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
-                this.mediaSource = options.source === "official" ? "official" : "local";
+                this.mediaSource = options.source === "official" && this.mediaType === "image" ? "official" : "local";
                 this.mediaEntitlement = { canImport: false, reason: "" };
                 this.mediaImporting = "";
                 this.mediaOpen = true;
@@ -3105,9 +3143,14 @@ $canManageBloxDesign = hasPermission('blox_global');
             closeMedia() {
                 if (!this.mediaOpen) return;
                 var root = this.$refs.mediaDialog;
+                this.resetMediaVideoPreviews();
                 this.mediaOpen = false;
                 this._mediaTarget = null;
+                this._mediaTargets = null;
+                this.mediaCanSwitchType = false;
+                this.mediaType = "image";
                 this.mediaUsage = "";
+                this._mediaImageUsage = "";
                 this.mediaPreferredMinWidth = 0;
                 this.mediaImporting = "";
                 this.mediaRequestGuard.invalidate();
@@ -3115,7 +3158,22 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.releaseDialog(root);
             },
 
+            setMediaType(type) {
+                if (!this.mediaCanSwitchType || !["image", "video"].includes(type) || type === this.mediaType) return;
+                this.mediaRequestGuard.invalidate();
+                this.mediaType = type;
+                this._mediaTarget = this._mediaTargets[type];
+                this.mediaUsage = type === "image" ? this._mediaImageUsage : "";
+                this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
+                this.mediaSource = "local";
+                this.mediaKeyword = "";
+                this.mediaEntitlement = { canImport: false, reason: "" };
+                this.mediaImporting = "";
+                this.loadMedia(1);
+            },
+
             setMediaSource(source) {
+                if (source === "official" && this.mediaType !== "image") return;
                 this.mediaSource = source === "official" ? "official" : "local";
                 this.mediaEntitlement = { canImport: false, reason: "" };
                 this.mediaImporting = "";
@@ -3124,12 +3182,18 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             loadMedia(page) {
                 var self = this;
+                this.resetMediaVideoPreviews();
+                this.mediaItems = [];
                 var requestId = this.mediaRequestGuard.begin();
                 this.mediaLoading = true;
                 this.mediaPage = page;
                 var request = this.mediaSource === "official"
                     ? window.OfficialMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage })
-                    : window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage });
+                    : window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, {
+                        usage: this.mediaUsage,
+                        type: this.mediaType,
+                        sort: this.mediaSort,
+                    });
                 request
                     .then(function (result) {
                         if (!self.mediaRequestGuard.isCurrent(requestId)) return;
@@ -3165,9 +3229,55 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             mediaDimensions(item) {
-                var width = Math.max(0, Number((item && item.width) || 0));
-                var height = Math.max(0, Number((item && item.height) || 0));
-                return width > 0 && height > 0 ? Math.round(width) + "×" + Math.round(height) : "";
+                var preview = this.mediaVideoPreview(item);
+                var width = Math.max(0, Number((preview && preview.width) || (item && item.width) || 0));
+                var height = Math.max(0, Number((preview && preview.height) || (item && item.height) || 0));
+                var bytes = Math.max(0, Number((item && item.size) || 0));
+                var values = [];
+                if (width > 0 && height > 0) values.push(Math.round(width) + "×" + Math.round(height));
+                if (preview && preview.duration > 0) values.push(window.BloxMediaClient.formatDuration(preview.duration));
+                if (bytes > 0) values.push(window.BloxMediaClient.formatBytes(bytes));
+                return values.join(" · ");
+            },
+
+            mediaVideoPreview(item) {
+                return item && item._videoPreview && typeof item._videoPreview === "object"
+                    ? item._videoPreview
+                    : { status: "idle", width: 0, height: 0, duration: 0 };
+            },
+
+            mediaVideoStatusText(item) {
+                return this.mediaVideoPreview(item).status === "error"
+                    ? this.uiText.mediaVideoPreviewUnavailable
+                    : this.uiText.mediaVideoPreviewLoading;
+            },
+
+            registerMediaVideoPreview(video, item) {
+                if (!this.mediaOpen || this.mediaType !== "video" || !video || !item) return;
+                if (!this._mediaVideoPreviewQueue) {
+                    this._mediaVideoPreviewQueue = window.BloxMediaClient.createVideoPreviewQueue({
+                        root: this.$refs.mediaScroll,
+                        maxConcurrent: 2,
+                    });
+                }
+                this._mediaVideoPreviewQueue.observe(video, item.url, function (state) {
+                    item._videoPreview = state;
+                });
+            },
+
+            resetMediaVideoPreviews() {
+                if (this._mediaVideoPreviewQueue) this._mediaVideoPreviewQueue.reset();
+                this._mediaVideoPreviewQueue = null;
+            },
+
+            mediaDate(item) {
+                var timestamp = Math.max(0, Number((item && item.created_at) || 0));
+                if (timestamp <= 0) return "";
+                var date = new Date(timestamp * 1000);
+                if (!Number.isFinite(date.getTime())) return "";
+                var month = String(date.getMonth() + 1).padStart(2, "0");
+                var day = String(date.getDate()).padStart(2, "0");
+                return date.getFullYear() + "-" + month + "-" + day;
             },
 
             mediaItemName(item) {
@@ -3298,6 +3408,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.mediaUploading = true;
                 window.BloxMediaClient.upload("/admin/media_api.php", file, {
                     csrf: this.csrf,
+                    type: this.mediaType,
+                    maxBytes: <?php echo max(0, (int) UPLOAD_MAX_SIZE); ?>,
                     maxDimension: <?php echo max(0, (int) config('upload_max_width', 1920)); ?>,
                     quality: <?php echo max(50, min(95, (int) config('upload_jpeg_quality', 85))) / 100; ?>,
                 })
@@ -3305,6 +3417,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                         if (result.ok) {
                             self.toast(self.mediaUploadMessage(result));
                             self.pickMedia(result.url);
+                        } else if (result.error === "too_large") {
+                            self.toast(self.uiText.uploadTooLarge
+                                .replace(":size", window.BloxMediaClient.formatBytes(result.originalBytes))
+                                .replace(":limit", window.BloxMediaClient.formatBytes(result.limitBytes)));
                         } else {
                             self.toast(result.message || self.uiText.uploadFailedShort);
                         }
@@ -5968,7 +6084,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 window.addEventListener("drop", function (e) { self.treeSectionDrop(e); }, true);
                 // 未保存离开守卫：dirty 时关闭/刷新标签页要过浏览器确认
                 window.addEventListener("beforeunload", function (e) {
-                    if (self.dirty || self.contactCardsChanged || self.contactFormChanged) { e.preventDefault(); e.returnValue = ""; }
+                    if (!self._allowEditorLeave && self.hasUnsavedChanges()) { e.preventDefault(); e.returnValue = ""; }
                 });
                 window.addEventListener("pagehide", function () {
                     self.finishLeftPanelResize();
@@ -6061,7 +6177,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                         self.scrollInitialFooterIntoView();
                     },
                     onAreaMatch: function (match) { self.ctxMatch = match; },
-                    onEditArea: function (payload) { window.location.assign(payload.url); },
+                    onEditArea: function (payload) { self.navigateEditorTo(payload.url); },
                     onEditPageHero: function () { self.openPageHeroSettings(); },
                     // 画布空态双入口：模板库起步 / 空白区块起步
                     onEmptyAction: function (action) {
@@ -6907,6 +7023,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.canvasBridge().post(message);
             },
 
+            /** Right-tree layer changes keep the user's content/style working context. */
+            selectSectionFromTree(si, notifyCanvas) {
+                var nextPanelTab = this.panelTab === "style" ? "style" : "content";
+                this.selectSection(si, notifyCanvas);
+                this.panelTab = nextPanelTab;
+            },
+
             selectSection(si, notifyCanvas) {
                 this.selectedSi = si;
                 this.targetCi = 0;
@@ -7718,7 +7841,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     id: this.uid("s"), type: "section",
                     settings: {
                         title: "", subtitle: "",
-                        bg_color: "", bg_image: "", bg_gradient: "", bg_opacity: 100,
+                        bg_color: "", bg_image: "", bg_video: "", bg_video_mobile_mode: "poster", bg_gradient: "", bg_opacity: 100, text_tone: "auto",
                         // 新区块默认宽容器（1280px）——用户定的现代默认；旧区块存的值不受影响
                         padding: "md", max_width: "wide", max_width_px: 1280,
                         container_bg: "", container_bg_image: "", container_bg_overlay_color: "", container_bg_overlay_opacity: 0,
@@ -8814,6 +8937,30 @@ $canManageBloxDesign = hasPermission('blox_global');
                 } catch (error) {
                     return;
                 }
+            },
+
+            hasUnsavedChanges() {
+                return this.dirty || this.contactCardsChanged || this.contactFormChanged;
+            },
+
+            requestEditorBack(event) {
+                this.requestEditorNavigation(event);
+            },
+
+            requestEditorNavigation(event) {
+                if (!event || event.defaultPrevented || event.button !== 0
+                    || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+                if (!this.hasUnsavedChanges()) return;
+                event.preventDefault();
+                var href = event.currentTarget && event.currentTarget.href;
+                this.navigateEditorTo(href);
+            },
+
+            navigateEditorTo(href) {
+                if (typeof href !== "string" || href === "") return;
+                if (this.hasUnsavedChanges() && !window.confirm(this.uiText.leaveUnsavedConfirm)) return;
+                this._allowEditorLeave = true;
+                window.location.assign(href);
             },
 
             acceptSavedDocument(payload, savedData, res) {

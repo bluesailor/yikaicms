@@ -352,7 +352,7 @@
         <div class="absolute inset-0 bg-black/50" onclick="_mpClose()"></div>
         <div class="relative mx-auto my-6 bg-white rounded-lg shadow-xl w-full max-w-5xl flex flex-col" style="max-height:calc(100vh - 3rem)">
             <div class="px-6 py-4 border-b flex justify-between items-center flex-shrink-0">
-                <h3 class="font-bold text-gray-800"><?php echo e(__('mp_pick_title')); ?></h3>
+                <h3 id="mpPickerTitle" class="font-bold text-gray-800"><?php echo e(__('mp_pick_title')); ?></h3>
                 <button onclick="_mpClose()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
             </div>
             <div id="mpSourceTabs" class="px-6 pt-3 flex items-center gap-1 flex-shrink-0" role="tablist" aria-label="<?php echo e(__('official_media_source_label')); ?>">
@@ -391,6 +391,8 @@
     <script>
     // ===== 媒体库选择器 =====
     (function() {
+        var _mpMaxUploadBytes = <?php echo max(0, (int) UPLOAD_MAX_SIZE); ?>;
+        var _mpUploadTooLarge = <?php echo json_encode(__('media_upload_too_large'), JSON_UNESCAPED_UNICODE); ?>;
         var _mpCallback = null;
         var _mpSelected = null;
         var _mpType = 'image';
@@ -413,12 +415,19 @@
             _mpCallback = callback;
             _mpSelected = null;
             _mpType = options.type || 'image';
+            if (_mpType !== 'video') _mpType = 'image';
             _mpUsage = String(options.usage || '');
             _mpSource = options.source === 'official' && _mpType === 'image' ? 'official' : 'local';
             _mpImporting = '';
             _mpEntitlement = { canImport: false, reason: '' };
             _mpPage = 1;
             document.getElementById('mpKeyword').value = '';
+            document.getElementById('mpPickerTitle').textContent = _mpType === 'video'
+                ? <?php echo json_encode(__('mp_pick_video_title'), JSON_UNESCAPED_UNICODE); ?>
+                : <?php echo json_encode(__('mp_pick_title'), JSON_UNESCAPED_UNICODE); ?>;
+            document.getElementById('mpFileInput').accept = _mpType === 'video'
+                ? 'video/mp4,video/webm,video/ogg,video/quicktime'
+                : 'image/*';
             document.getElementById('mpConfirmBtn').disabled = true;
             document.getElementById('mediaPickerModal').classList.remove('hidden');
             _mpSyncSourceUi();
@@ -493,11 +502,16 @@
                          + '<div class="aspect-square bg-gray-100 flex items-center justify-center">';
                     if (it.type === 'image') {
                         html += '<img src="' + _escAttr(it.url) + '" class="w-full h-full object-cover" loading="lazy">';
+                    } else if (it.type === 'video') {
+                        html += '<i class="ti ti-video text-4xl text-gray-400" aria-hidden="true"></i>';
                     } else {
-                        html += '<div class="text-3xl text-gray-400">\uD83D\uDCC4</div>';
+                        html += '<i class="ti ti-file text-4xl text-gray-400" aria-hidden="true"></i>';
                     }
                     html += '</div>';
-                    html += '<div class="p-1.5"><div class="text-xs text-gray-600 truncate">' + _escHtml(it.name) + '</div></div>';
+                    var mediaSize = Number(it.size || 0) > 0 ? _mpFormatBytes(it.size) : '';
+                    html += '<div class="p-1.5"><div class="text-xs text-gray-600 truncate">' + _escHtml(it.name) + '</div>'
+                         + (mediaSize ? '<div class="mt-0.5 text-[10px] text-gray-400">' + _escHtml(mediaSize) + '</div>' : '')
+                         + '</div>';
                     // 选中遮罩 + 大勾
                     html += '<div class="mp-check absolute inset-0 bg-primary/20 flex items-center justify-center pointer-events-none' + (isSel ? '' : ' hidden') + '">'
                          + '<div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg">'
@@ -658,9 +672,16 @@
         window._mpUpload = async function(input) {
             if (!input.files[0]) return;
             var file = input.files[0];
+            if (_mpMaxUploadBytes > 0 && Number(file.size || 0) > _mpMaxUploadBytes) {
+                showMessage(_mpUploadTooLarge
+                    .replace(':size', _mpFormatBytes(file.size))
+                    .replace(':limit', _mpFormatBytes(_mpMaxUploadBytes)), 'error');
+                input.value = '';
+                return;
+            }
             var formData = new FormData();
             formData.append('file', file);
-            formData.append('type', 'images');
+            formData.append('type', _mpType === 'video' ? 'videos' : 'images');
 
             try {
                 var resp = await fetch('/admin/media_api.php?action=upload', { method: 'POST', body: formData });
@@ -681,6 +702,15 @@
 
         function _escAttr(s) { return _escHtml(String(s || '')).replace(/'/g, '&#39;'); }
         function _escHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        function _mpFormatBytes(value) {
+            var bytes = Math.max(0, Number(value) || 0);
+            if (bytes < 1024) return Math.round(bytes) + ' B';
+            var units = ['KB', 'MB', 'GB'];
+            var amount = bytes / 1024;
+            var index = 0;
+            while (amount >= 1024 && index < units.length - 1) { amount /= 1024; index++; }
+            return amount.toFixed(amount < 10 ? 1 : 0).replace(/\.0$/, '') + ' ' + units[index];
+        }
     })();
     </script>
 

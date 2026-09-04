@@ -907,9 +907,10 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (["\$action === 'save_area_copy'", "in_array(\$type, ['header', 'footer'], true)", "'editor-copy'"] as $token) {
             $this->assertStringContainsString($token, $api, "header copy API token {$token} missing");
         }
-        $this->assertStringContainsString("\$body = \$templateArea === 'header' || \$areaOnly", $preview);
-        $this->assertStringContainsString('? $editableArea', $preview);
         $this->assertStringContainsString("if (\$templateArea === 'footer' && !\$areaOnly)", $preview);
+        $this->assertStringContainsString('$contextHeader = renderBloxCanvasThemeArea(', $preview);
+        $this->assertStringContainsString("\$contextHeader . \$contextBody . '</div>'", $preview);
+        $this->assertStringContainsString('$body = $editableArea;', $preview);
     }
 
     public function testCanvasUsesOneRegionContractForHeaderHeroContentAndFooter(): void

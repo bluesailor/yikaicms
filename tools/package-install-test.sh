@@ -8,7 +8,7 @@
 #
 # 用法：
 #   bash tools/package-install-test.sh --php=8.2 --db=sqlite
-#   bash tools/package-install-test.sh --php=8.0 --db=mysql
+#   bash tools/package-install-test.sh --php=8.0 --db=mysql --host=127.0.0.1
 #   bash tools/package-install-test.sh --matrix            # 跑预设三腿
 #   bash tools/package-install-test.sh --php=8.5 --db=mysql --keep   # 失败后保留现场
 #   bash tools/package-install-test.sh --php=8.0 --db=mysql --base=http://ykpkg80.yikai
@@ -43,19 +43,27 @@ MYSQL_PASS="123456"
 ADMIN_USER="admin"
 ADMIN_PASS="smoke@Test123"
 
-PHP_LEG=""; DB_KIND="sqlite"; ZIP=""; BASE=""; KEEP=0; MATRIX=0; SITE_LANG="zh-CN"
+PHP_LEG=""; DB_KIND="sqlite"; ZIP=""; BASE=""; SERVE_HOST=""; KEEP=0; MATRIX=0; SITE_LANG="zh-CN"
 for arg in "$@"; do
     case "$arg" in
         --php=*)  PHP_LEG="${arg#*=}" ;;
         --db=*)   DB_KIND="${arg#*=}" ;;
         --zip=*)  ZIP="${arg#*=}" ;;
         --base=*) BASE="${arg#*=}" ;;
+        --host=*) SERVE_HOST="${arg#*=}" ;;
         --lang=*) SITE_LANG="${arg#*=}" ;;
         --keep)   KEEP=1 ;;
         --matrix) MATRIX=1 ;;
         *) echo "${R}未知参数: $arg${X}"; exit 2 ;;
     esac
 done
+
+# WSL 的 127.0.0.1 不是 Windows PHP 进程的回环地址。显式指定本机 host 时，
+# 改用 Windows curl.exe，让安装请求与被测 php.exe 处于同一网络栈。
+CURL_BIN="curl"
+if [ "$SERVE_HOST" = "127.0.0.1" ] && command -v curl.exe >/dev/null 2>&1; then
+    CURL_BIN="curl.exe"
+fi
 
 php_dir_for() {
     case "$1" in
@@ -170,7 +178,12 @@ ok "包内无 tests/config.php/.git/docs 残留"
 # ───── L2：解包 + 真实安装器 ─────
 echo
 echo "${B}[L2] 装机冒烟${X}"
-rm -rf "$UNPACK_WSL"; mkdir -p "$UNPACK_WSL"
+kill_port
+if [ -e "$UNPACK_WSL" ]; then
+    rm -rf "$UNPACK_WSL" || { bad "无法清理旧解包目录：$UNPACK_WSL"; exit 1; }
+fi
+[ ! -e "$UNPACK_WSL" ] || { bad "旧解包目录仍然存在：$UNPACK_WSL"; exit 1; }
+mkdir -p "$UNPACK_WSL" || { bad "无法创建解包目录：$UNPACK_WSL"; exit 1; }
 unzip -q "$ZIP" -d "$UNPACK_WSL" || { bad "解包失败"; exit 1; }
 INNER="$(find "$UNPACK_WSL" -maxdepth 1 -mindepth 1 -type d | head -1)"
 [ -n "$INNER" ] && [ -f "$INNER/install/index.php" ] || { bad "解包目录里没有 install/index.php"; exit 1; }
@@ -178,31 +191,77 @@ INNER="$(find "$UNPACK_WSL" -maxdepth 1 -mindepth 1 -type d | head -1)"
 mv "$INNER"/* "$INNER"/.[!.]* "$UNPACK_WSL"/ 2>/dev/null; rmdir "$INNER" 2>/dev/null
 ok "已解包到 docroot（$(find "$UNPACK_WSL" -type f | wc -l) 个文件）"
 
+# 用目标 PHP 逐个解析最终包，而不是用构建机 PHP。用于锁住 PHP 8.0 承诺，
+# 可直接抓到 never/enum 等高版本语法混入运行包。
+PHP_LINTED=0
+PHP_LINT_FAILURE=""
+while IFS= read -r -d '' php_file; do
+    relative="${php_file#"$UNPACK_WSL"/}"
+    # Windows php.exe 经 WSL interop 启动时会继承循环的 stdin；不关闭它会偷读
+    # find -print0 的后续文件名，使下一轮只剩下路径尾部并产生假失败。
+    if ! "$PHP_DIR/php.exe" -l "$UNPACK_WIN/$relative" </dev/null >/tmp/pkglint.log 2>&1; then
+        PHP_LINT_FAILURE="$relative"
+        break
+    fi
+    PHP_LINTED=$((PHP_LINTED + 1))
+done < <(find "$UNPACK_WSL" -type f -name '*.php' -print0)
+if [ -n "$PHP_LINT_FAILURE" ]; then
+    bad "目标 PHP 无法解析 $PHP_LINT_FAILURE"
+    sed 's/^/      /' /tmp/pkglint.log | head -8
+    exit 1
+fi
+ok "目标 PHP 全包语法通过（$PHP_LINTED 个 PHP 文件）"
+
 if [ -n "$BASE" ]; then
     note "vhost 模式：使用 $BASE（请确认其 DocumentRoot 指向 $UNPACK_WIN 且绑定 PHP $PHP_LEG）"
 else
     # WSL 下必须绑 0.0.0.0 并用网关 IP 访问：php.exe 是 Windows 进程，
     # 它的 127.0.0.1 与 WSL 的回环不是同一个，绑 127.0.0.1 则 curl/Playwright 全都够不着。
-    HOST_IP="127.0.0.1"
-    if grep -qi microsoft /proc/version 2>/dev/null; then
+    HOST_IP="${SERVE_HOST:-127.0.0.1}"
+    if [ -z "$SERVE_HOST" ] && grep -qi microsoft /proc/version 2>/dev/null; then
         HOST_IP="$(ip route show default | awk '{print $3}' | head -1)"
         [ -n "$HOST_IP" ] || HOST_IP="127.0.0.1"
     fi
     BASE="http://$HOST_IP:$PORT"; BASE_INTERNAL=1
-    kill_port
     ( cd "$UNPACK_WSL" && "$PHP_DIR/php.exe" -S "0.0.0.0:$PORT" -t "$UNPACK_WIN" >/tmp/pkgserver.log 2>&1 & )
     for i in $(seq 1 40); do
-        curl -sf "$BASE/install/index.php" >/dev/null 2>&1 && break
+        "$CURL_BIN" -sf --connect-timeout 2 --max-time 5 "$BASE/install/index.php" >/dev/null 2>&1 && break
         sleep 0.5
     done
-    curl -sf "$BASE/install/index.php" >/dev/null 2>&1 \
+    "$CURL_BIN" -sf --connect-timeout 2 --max-time 5 "$BASE/install/index.php" >/dev/null 2>&1 \
       && ok "php -S 已就绪（PHP $PHP_LEG，端口 $PORT）" \
       || { bad "服务器起不来（$BASE）"; sed 's/^/      /' /tmp/pkgserver.log | head -10; exit 1; }
 fi
 
 # 真实 PHP 版本自证（不是猜，是问服务器要）
-SERVED_PHP="$(curl -sf "$BASE/install/index.php" -o /dev/null -w '%{http_code}' 2>/dev/null)"
+SERVED_PHP="$("$CURL_BIN" -sf "$BASE/install/index.php" -o /dev/null -w '%{http_code}' 2>/dev/null | tr -d '\r')"
 note "install/index.php 响应码 $SERVED_PHP"
+mkdir -p .pkgtest
+
+# 空密码必须在连接数据库、导入 SQL 与写 installed.lock 前被拒绝。SQLite 腿
+# 真实发一次绕过浏览器 minlength 的脚本请求；若旧漏洞回潮，后续安装会被锁死。
+if [ "$DB_KIND" = "sqlite" ]; then
+    EMPTY_PASS_RESP="$("$CURL_BIN" -fsS -X POST "$BASE/install/index.php" \
+        --data-urlencode "action=install" \
+        --data-urlencode "db_driver=sqlite" \
+        --data-urlencode "db_prefix=yikai_" \
+        --data-urlencode "admin_user=admin" \
+        --data-urlencode "admin_pass=" \
+        --data-urlencode "site_name=YikaiCMS Empty Password Probe" \
+        --data-urlencode "site_lang=zh-CN" \
+        --data-urlencode "admin_lang=zh-CN" 2>/tmp/pkgempty-pass.log)" || true
+    printf '%s' "$EMPTY_PASS_RESP" >.pkgtest/empty-password-response.json
+    if php -r '
+        $p = json_decode((string) @file_get_contents(".pkgtest/empty-password-response.json"), true);
+        exit(is_array($p) && empty($p["success"]) && ($p["code"] ?? "") === "admin_password_too_short" ? 0 : 1);
+    ' && [ ! -f "$UNPACK_WSL/installed.lock" ]; then
+        ok "安装器服务端拒绝空管理员密码且未落锁"
+    else
+        bad "安装器未安全拒绝空管理员密码"
+        echo "      响应: $(echo "$EMPTY_PASS_RESP" | head -c 300)"
+        exit 1
+    fi
+fi
 
 INSTALL_ARGS=(--data-urlencode "action=install"
     --data-urlencode "db_prefix=yikai_"
@@ -227,10 +286,10 @@ else
     INSTALL_ARGS+=(--data-urlencode "db_driver=sqlite")
 fi
 
-RESP="$(curl -fsS -X POST "$BASE/install/index.php" "${INSTALL_ARGS[@]}" 2>/tmp/pkginstall.log)" || true
+RESP="$("$CURL_BIN" -fsS -X POST "$BASE/install/index.php" "${INSTALL_ARGS[@]}" 2>/tmp/pkginstall.log)" || true
 # 经文件而非环境变量传给 php：WSL 里的 php 是 Windows php.exe，它不继承 WSL 的环境变量，
 # getenv() 恒为 false，会把成功的安装误判成失败。文件路径也必须是相对的（同上）。
-mkdir -p .pkgtest && printf '%s' "$RESP" > .pkgtest/install-response.json
+printf '%s' "$RESP" > .pkgtest/install-response.json
 if php -r '
     $p = json_decode((string) @file_get_contents(".pkgtest/install-response.json"), true);
     exit(is_array($p) && !empty($p["success"]) ? 0 : 1);
@@ -246,20 +305,78 @@ fi
 # ───── L2b：后台冒烟（跑在包站上，不是源码树）─────
 echo
 echo "${B}[L2b] 后台冒烟（对象 = 解包站）${X}"
-if SMOKE_BASE="$BASE" php tests/smoke/admin_crud.php >/tmp/pkgcrud.log 2>&1; then
+if php tests/smoke/admin_crud.php --base="$BASE" --root="$UNPACK_WIN" >/tmp/pkgcrud.log 2>&1; then
     ok "admin_crud 通过"
 else
     bad "admin_crud 失败"; tail -25 /tmp/pkgcrud.log | sed 's/^/      /'
 fi
-if SMOKE_BASE="$BASE" php tests/smoke/admin_pages.php >/tmp/pkgpages.log 2>&1; then
+if php tests/smoke/admin_pages.php --base="$BASE" --root="$UNPACK_WIN" >/tmp/pkgpages.log 2>&1; then
     ok "admin_pages 通过（$(grep -oE '[0-9]+ 页' /tmp/pkgpages.log | tail -1)）"
 else
     bad "admin_pages 失败"; tail -25 /tmp/pkgpages.log | sed 's/^/      /'
 fi
 
+# 契约脚本必须在解包站里、由被测 PHP 执行，避免再次误测源码树。
+if cp tests/smoke/package_home_contract.php "$UNPACK_WSL/package-home-contract.php" \
+    && "$PHP_DIR/php.exe" "$UNPACK_WIN/package-home-contract.php" >/tmp/pkghome.log 2>&1; then
+    ok "$(tail -1 /tmp/pkghome.log | tr -d '\r')"
+else
+    bad "中文首页契约失败"; tail -20 /tmp/pkghome.log | sed 's/^/      /'
+fi
+rm -f "$UNPACK_WSL/package-home-contract.php"
+
+if cp tests/smoke/package_security_contract.php "$UNPACK_WSL/package-security-contract.php" \
+    && "$PHP_DIR/php.exe" "$UNPACK_WIN/package-security-contract.php" >/tmp/pkgsecurity.log 2>&1; then
+    ok "$(tail -1 /tmp/pkgsecurity.log | tr -d '\r')"
+else
+    bad "SVG 安全契约失败"; tail -20 /tmp/pkgsecurity.log | sed 's/^/      /'
+fi
+rm -f "$UNPACK_WSL/package-security-contract.php"
+
 # ───── L2c：前台可达 ─────
-FRONT="$(curl -sf -o /dev/null -w '%{http_code}' "$BASE/" 2>/dev/null)"
+FRONT="$("$CURL_BIN" -sf -o /dev/null -w '%{http_code}' "$BASE/" 2>/dev/null | tr -d '\r')"
 [ "$FRONT" = "200" ] && ok "前台首页 200" || bad "前台首页返回 $FRONT"
+if "$CURL_BIN" -fsS "$BASE/" >.pkgtest/front-home.html 2>/dev/null \
+    && grep -Fq '数字化转型解决方案' .pkgtest/front-home.html; then
+    ok "前台首页已渲染中文 Banner"
+else
+    bad "前台首页未渲染中文 Banner"
+fi
+if "$CURL_BIN" -fsS --get "$BASE/search.php" \
+    --data-urlencode "keyword=数字" --data-urlencode "type=all" \
+    >.pkgtest/front-search-all.html 2>/dev/null \
+    && ! grep -Eqi 'Fatal error|Uncaught|PDOException' .pkgtest/front-search-all.html; then
+    ok "前台全部搜索可用"
+else
+    bad "前台全部搜索失败"
+fi
+
+if "$CURL_BIN" -fsS --get "$BASE/search.php" \
+    --data-urlencode "keyword=产品" --data-urlencode "type=download" \
+    >.pkgtest/front-search-download.html 2>/dev/null \
+    && ! grep -Eqi 'Fatal error|Uncaught|Undefined array key.*summary' .pkgtest/front-search-download.html \
+    && { [ -z "$BASE_INTERNAL" ] || ! grep -Fq 'Undefined array key "summary"' /tmp/pkgserver.log; }; then
+    ok "前台下载搜索无 summary 警告"
+else
+    bad "前台下载搜索出现运行时警告"
+fi
+
+# 新安装默认启用 ja；先用包内目标 PHP 关闭它，再向真实前台传显式语言参数。
+# PHP 内置服务器不解析 /ja/ rewrite，因此这里验证的是 init.php 的最终 HTTP 裁决；
+# 服务器层前缀覆盖由路由契约测试负责。
+if cp tests/smoke/package_language_contract.php "$UNPACK_WSL/package-language-contract.php" \
+    && "$PHP_DIR/php.exe" "$UNPACK_WIN/package-language-contract.php" >/tmp/pkglanguage.log 2>&1; then
+    DISABLED_LANG_STATUS="$("$CURL_BIN" -sS -o .pkgtest/disabled-language.html -w '%{http_code}' "$BASE/index.php?_lang=ja" 2>/dev/null | tr -d '\r')"
+    if [ "$DISABLED_LANG_STATUS" = "404" ] \
+        && grep -Fqi 'X-Robots-Tag' <("$CURL_BIN" -sSI "$BASE/index.php?_lang=ja" 2>/dev/null); then
+        ok "未启用语言前缀返回 404 且禁止索引"
+    else
+        bad "未启用语言仍可渲染默认语言（HTTP $DISABLED_LANG_STATUS）"
+    fi
+else
+    bad "无法准备未启用语言验证数据"; tail -10 /tmp/pkglanguage.log | sed 's/^/      /'
+fi
+rm -f "$UNPACK_WSL/package-language-contract.php"
 
 echo
 if [ "$FAIL" = "0" ]; then

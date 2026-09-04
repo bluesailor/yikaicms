@@ -128,6 +128,7 @@ return [
     // Errors
     'error_already_installed' => 'Already installed. To reinstall, delete the installed.lock file first.',
     'error_php_version' => 'PHP version is too low. PHP 8.0 or newer is required.',
+    'error_admin_pass_length' => 'The administrator password must contain at least 6 characters.',
     'error_dir_not_writable' => 'Directory is not writable: ',
     'error_db_connect' => 'Database connection failed: ',
     'error_db_create' => 'Failed to create database: ',

@@ -95,11 +95,42 @@ test('container gets the shared background group without chips @ci', async ({ pa
   await performPreviewUpdate(page, () =>
     page.locator('[data-control-key="bg_video"] input').fill('/uploads/e2e-bg.mp4'));
   await expect(page.locator('[data-control-key="bg_overlay"]')).toBeVisible();
+  await expect(page.locator('[data-control-key="bg_video_mobile_mode"]')).toBeVisible();
+  await expect(page.getByTestId('blox-element-background-image-help')).toBeVisible();
+  await performPreviewUpdate(page, () =>
+    page.locator('[data-control-key="bg_image"] input').fill('/assets/images/demo/about-office.jpg'));
   const media = (await frame(page)).locator('.blox-bg-media').first();
   await expect(media).toBeAttached();
+  await expect(media.locator('video')).toHaveAttribute('data-blox-mobile-video', 'poster');
+  await expect(media.locator('video')).toHaveAttribute('poster', '/assets/images/demo/about-office.jpg');
   expect(await media.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
 
   await restoreClean(page);
   // 视频 URL 是本用例故意填的占位（仓库无 mp4 fixture），其 404 属预期；其余控制台错误仍须为零
+  expect(errors.filter((e) => !/404/.test(e))).toEqual([]);
+});
+
+test('section background video is visible at the section layer @ci', async ({ page }) => {
+  const errors = observeConsole(page);
+  await openEditor(page);
+  await page.getByTestId('blox-tree-section').first().click();
+  await page.getByTestId('blox-style-tab').click();
+
+  const videoInput = page.getByTestId('blox-section-bg-video');
+  await expect(videoInput).toBeVisible();
+  await performPreviewUpdate(page, () => videoInput.fill('/uploads/e2e-section-bg.mp4'));
+  await expect(page.getByTestId('blox-section-background-image-help')).toBeVisible();
+  await performPreviewUpdate(page, () => page.getByTestId('blox-section-bg-image').fill('/assets/images/demo/about-office.jpg'));
+  await expect(page.getByTestId('blox-section-overlay-opacity')).toBeVisible();
+  const video = (await frame(page)).locator('section .blox-bg-media video').first();
+  await expect(video).toHaveAttribute('src', '/uploads/e2e-section-bg.mp4');
+  await expect(video).toHaveAttribute('poster', '/assets/images/demo/about-office.jpg');
+  await expect(video).toHaveAttribute('data-blox-mobile-video', 'poster');
+
+  await performPreviewUpdate(page, () => page.getByTestId('blox-section-bg-video-mobile').selectOption('video'));
+  await expect((await frame(page)).locator('section .blox-bg-media video').first())
+    .toHaveAttribute('data-blox-mobile-video', 'video');
+
+  await restoreClean(page);
   expect(errors.filter((e) => !/404/.test(e))).toEqual([]);
 });

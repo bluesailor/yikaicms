@@ -43,6 +43,87 @@ final class ReleaseArtifactSmokeTest extends TestCase
         self::assertStringContainsString('Chinese slug probe returned an unreadable value', implode("\n", $errors));
     }
 
+    /**
+     * 在线升级链路必须整条进必含清单。
+     *
+     * 升级缺文件比前台缺文件重：前台是页面报错，升级是站点卡在「升到一半」——新入口已落盘、
+     * 依赖还没写入，第二轮请求再也起不来（v1.19.4 事故形态）。这条链路此前只有
+     * _inline_upgrades.php 一项在清单里，等于没守；v1.19.5 的 UpgradeEntryOrder.php
+     * 在 PHP 8.0 上 T_ENUM 致命、演示站实测缺失 StaticHtmlUrlPolicy.php，都因此没被审包拦下。
+     */
+    public function testUpgradeChainIsCoveredByTheRuntimeManifest(): void
+    {
+        $chain = [
+            'admin/upgrade_online.php',
+            'includes/UpgradeRunner.php',
+            'includes/UpgradeEntryOrder.php',
+            'includes/UpgradeDatabaseRollback.php',
+            'includes/UpgradeHealth.php',
+            'includes/UpdateChannel.php',
+            'includes/UpdatePackageSignature.php',
+            'includes/Migrator.php',
+            'includes/Backup.php',
+            'includes/StaticHtmlUrlPolicy.php',
+        ];
+
+        foreach ($chain as $path) {
+            self::assertContains(
+                $path,
+                $this->manifest['required_files'],
+                "升级链路文件未登记进 config/release-runtime.php：{$path}。"
+                . '缺了它，发行包少这个文件时审包与产物冒烟都不会报，装上升级到一半才会挂。'
+            );
+        }
+    }
+
+    public function testCurrentReleaseRuntimeDependenciesAreExplicitlyCovered(): void
+    {
+        foreach ([
+            'includes/http_response.php',
+            'includes/language_request.php',
+            'assets/icons/blox-icon-catalog.json',
+        ] as $path) {
+            self::assertContains($path, $this->manifest['required_files']);
+        }
+    }
+
+    /** 清单不是摆设：升级排序器缺失必须让产物冒烟红。 */
+    public function testMissingUpgradeEntryOrderFailsArtifactSmoke(): void
+    {
+        $root = $this->tempDir . '/yikaicms-v9.9.9';
+        unlink($root . '/includes/UpgradeEntryOrder.php');
+
+        $errors = (new ReleaseArtifactSmoke($this->manifest))->inspectDirectory($root);
+        self::assertNotSame([], $errors);
+        self::assertStringContainsString('includes/UpgradeEntryOrder.php', implode("\n", $errors));
+    }
+
+    public function testReplacementCharacterInInstallSeedFailsArtifactSmoke(): void
+    {
+        $root = $this->tempDir . '/yikaicms-v9.9.9';
+        file_put_contents($root . '/install/seed_data_ja.json', "{\"text\":\"damaged \xEF\xBF\xBD\"}\n");
+
+        $errors = (new ReleaseArtifactSmoke($this->manifest))->inspectDirectory($root);
+
+        self::assertStringContainsString(
+            'Install seed contains Unicode replacement characters: install/seed_data_ja.json',
+            implode("\n", $errors)
+        );
+    }
+
+    public function testInvalidUtf8InInstallSqlFailsArtifactSmoke(): void
+    {
+        $root = $this->tempDir . '/yikaicms-v9.9.9';
+        file_put_contents($root . '/install/sql/mysql.sql', "SELECT '\xC3\x28';\n");
+
+        $errors = (new ReleaseArtifactSmoke($this->manifest))->inspectDirectory($root);
+
+        self::assertStringContainsString(
+            'Install seed is not valid UTF-8: install/sql/mysql.sql',
+            implode("\n", $errors)
+        );
+    }
+
     public function testZipInspectionUsesTheExtractedArtifactAndRejectsForbiddenFiles(): void
     {
         $root = $this->tempDir . '/yikaicms-v9.9.9';
