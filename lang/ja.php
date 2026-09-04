@@ -6318,4 +6318,6 @@ voltage|電圧|220V',
     'media_usage_kind_card_image' => 'カード画像',
     'media_usage_kind_unknown' => 'メディア参照',
     'blox_leave_unsaved_confirm' => 'サーバーに保存されていない変更があります。このまま戻りますか？',
+    'blox_multi_selected_count' => ':count 件選択中',
+    'blox_multi_hint' => 'Shift+クリックで範囲選択、Ctrl/Cmd+クリックで追加・解除、Esc で解除します。一括操作は近日提供予定。',
 ];

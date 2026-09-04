@@ -54,6 +54,7 @@
     "assets/js/blox-media-client.js",
     "assets/js/blox-preview-client.js",
     "assets/js/blox-responsive.js",
+    "assets/js/blox-multi-select.js",
     "assets/js/blox-template-library.js",
     "includes/builder/HomeAboutContent.php"
   ],
@@ -93,6 +94,7 @@
     "tests/Unit/BloxEditorPreviewContractTest.php",
     "tests/Unit/BloxRemoteTemplateProviderTest.php",
     "tests/Unit/BloxTemplateCatalogTest.php",
-    "tests/Unit/BloxTemplateImporterTest.php"
+    "tests/Unit/BloxTemplateImporterTest.php",
+    "tests/Unit/BloxMultiSelectContractTest.php"
   ]
 }
