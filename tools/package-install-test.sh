@@ -191,6 +191,25 @@ INNER="$(find "$UNPACK_WSL" -maxdepth 1 -mindepth 1 -type d | head -1)"
 mv "$INNER"/* "$INNER"/.[!.]* "$UNPACK_WSL"/ 2>/dev/null; rmdir "$INNER" 2>/dev/null
 ok "已解包到 docroot（$(find "$UNPACK_WSL" -type f | wc -l) 个文件）"
 
+# 用目标 PHP 逐个解析最终包，而不是用构建机 PHP。用于锁住 PHP 8.0 承诺，
+# 可直接抓到 never/enum 等高版本语法混入运行包。
+PHP_LINTED=0
+PHP_LINT_FAILURE=""
+while IFS= read -r -d '' php_file; do
+    relative="${php_file#"$UNPACK_WSL"/}"
+    if ! "$PHP_DIR/php.exe" -l "$UNPACK_WIN/$relative" >/tmp/pkglint.log 2>&1; then
+        PHP_LINT_FAILURE="$relative"
+        break
+    fi
+    PHP_LINTED=$((PHP_LINTED + 1))
+done < <(find "$UNPACK_WSL" -type f -name '*.php' -print0)
+if [ -n "$PHP_LINT_FAILURE" ]; then
+    bad "目标 PHP 无法解析 $PHP_LINT_FAILURE"
+    sed 's/^/      /' /tmp/pkglint.log | head -8
+    exit 1
+fi
+ok "目标 PHP 全包语法通过（$PHP_LINTED 个 PHP 文件）"
+
 if [ -n "$BASE" ]; then
     note "vhost 模式：使用 $BASE（请确认其 DocumentRoot 指向 $UNPACK_WIN 且绑定 PHP $PHP_LEG）"
 else
@@ -215,6 +234,31 @@ fi
 # 真实 PHP 版本自证（不是猜，是问服务器要）
 SERVED_PHP="$("$CURL_BIN" -sf "$BASE/install/index.php" -o /dev/null -w '%{http_code}' 2>/dev/null | tr -d '\r')"
 note "install/index.php 响应码 $SERVED_PHP"
+
+# 空密码必须在连接数据库、导入 SQL 与写 installed.lock 前被拒绝。SQLite 腿
+# 真实发一次绕过浏览器 minlength 的脚本请求；若旧漏洞回潮，后续安装会被锁死。
+if [ "$DB_KIND" = "sqlite" ]; then
+    EMPTY_PASS_RESP="$("$CURL_BIN" -fsS -X POST "$BASE/install/index.php" \
+        --data-urlencode "action=install" \
+        --data-urlencode "db_driver=sqlite" \
+        --data-urlencode "db_prefix=yikai_" \
+        --data-urlencode "admin_user=admin" \
+        --data-urlencode "admin_pass=" \
+        --data-urlencode "site_name=YikaiCMS Empty Password Probe" \
+        --data-urlencode "site_lang=zh-CN" \
+        --data-urlencode "admin_lang=zh-CN" 2>/tmp/pkgempty-pass.log)" || true
+    printf '%s' "$EMPTY_PASS_RESP" >.pkgtest/empty-password-response.json
+    if php -r '
+        $p = json_decode((string) @file_get_contents(".pkgtest/empty-password-response.json"), true);
+        exit(is_array($p) && empty($p["success"]) && ($p["code"] ?? "") === "admin_password_too_short" ? 0 : 1);
+    ' && [ ! -f "$UNPACK_WSL/installed.lock" ]; then
+        ok "安装器服务端拒绝空管理员密码且未落锁"
+    else
+        bad "安装器未安全拒绝空管理员密码"
+        echo "      响应: $(echo "$EMPTY_PASS_RESP" | head -c 300)"
+        exit 1
+    fi
+fi
 
 INSTALL_ARGS=(--data-urlencode "action=install"
     --data-urlencode "db_prefix=yikai_"

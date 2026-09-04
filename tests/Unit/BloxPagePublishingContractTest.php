@@ -37,6 +37,20 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('verifyCsrf();', $api);
     }
 
+    public function testAuthenticatedBloxPublicationRegistersBothPublicCacheInvalidators(): void
+    {
+        $auth = $this->source('admin/includes/auth.php');
+        $hooks = strpos($auth, "require_once ROOT_PATH . '/includes/hooks.php';");
+        $htmlCache = strpos($auth, "require_once ROOT_PATH . '/includes/HtmlCache.php';");
+        $staticHtml = strpos($auth, "require_once ROOT_PATH . '/includes/StaticHtml.php';");
+
+        self::assertIsInt($hooks);
+        self::assertIsInt($htmlCache, 'Blox 独立 API 未注册 HtmlCache 失效钩子，发布后访客仍会命中旧缓存。');
+        self::assertIsInt($staticHtml);
+        self::assertGreaterThan($hooks, $htmlCache);
+        self::assertGreaterThan($htmlCache, $staticHtml);
+    }
+
     public function testFreeEditionPageEditingIsSeparatedFromAdvancedFeatureLicense(): void
     {
         $functions = $this->source('includes/functions.php');

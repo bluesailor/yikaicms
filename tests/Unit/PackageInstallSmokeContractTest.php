@@ -100,4 +100,24 @@ final class PackageInstallSmokeContractTest extends TestCase
         self::assertStringContainsString("javascript:alert(\\'x\\')", $contract);
         self::assertStringContainsString('java&#x73;cript:alert(1)', $contract);
     }
+
+    public function testPackageInstallLintsEveryRuntimeFileWithTheTargetPhp(): void
+    {
+        $script = file_get_contents(dirname(__DIR__, 2) . '/tools/package-install-test.sh');
+
+        self::assertIsString($script);
+        self::assertStringContainsString('find "$UNPACK_WSL" -type f -name \'*.php\' -print0', $script);
+        self::assertStringContainsString('"$PHP_DIR/php.exe" -l "$UNPACK_WIN/$relative"', $script);
+        self::assertStringContainsString('目标 PHP 全包语法通过', $script);
+    }
+
+    public function testPackageInstallProbesEmptyAdministratorPasswordBeforeInstallation(): void
+    {
+        $script = file_get_contents(dirname(__DIR__, 2) . '/tools/package-install-test.sh');
+
+        self::assertIsString($script);
+        self::assertStringContainsString('"admin_pass="', $script);
+        self::assertStringContainsString('admin_password_too_short', $script);
+        self::assertStringContainsString('[ ! -f "$UNPACK_WSL/installed.lock" ]', $script);
+    }
 }

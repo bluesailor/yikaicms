@@ -245,8 +245,9 @@ function postInt(string $key, int $default = 0): int
 
 /**
  * 跳转URL
+ * @return never
  */
-function redirect(string $url): never
+function redirect(string $url): void
 {
     header('Location: ' . $url);
     exit;
@@ -254,8 +255,9 @@ function redirect(string $url): never
 
 /**
  * JSON响应
+ * @return never
  */
-function json(mixed $data, int $code = 200): never
+function json(mixed $data, int $code = 200): void
 {
     http_response_code($code);
     header('Content-Type: application/json; charset=utf-8');
@@ -265,8 +267,9 @@ function json(mixed $data, int $code = 200): never
 
 /**
  * 成功响应
+ * @return never
  */
-function success(mixed $data = [], ?string $msg = null): never
+function success(mixed $data = [], ?string $msg = null): void
 {
     // 默认参数不能调函数，所以用 null 当「未指定」的哨兵：
     // 200+ 个调用点都不传 msg，写死中文会让英/日后台每次操作都弹一句中文。
@@ -276,8 +279,9 @@ function success(mixed $data = [], ?string $msg = null): never
 
 /**
  * 错误响应
+ * @return never
  */
-function error(?string $msg = null, int $code = 1): never
+function error(?string $msg = null, int $code = 1): void
 {
     json(['code' => $code, 'msg' => $msg ?? __('operation_failed'), 'data' => null]);
 }

@@ -38,7 +38,8 @@ if (!function_exists('license_pubkey') && is_file(ROOT_PATH . '/includes/License
     require_once ROOT_PATH . '/includes/License.php';
 }
 
-function uo_json(array $d): never
+/** @return never */
+function uo_json(array $d): void
 {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($d, JSON_UNESCAPED_UNICODE);

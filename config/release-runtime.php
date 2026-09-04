@@ -51,6 +51,7 @@ return [
         'includes/builder/BloxDocumentPipeline.php',
         'includes/builder/BloxValueSanitizer.php',
         'install/index.php',
+        'install/validation.php',
         'install/sql/mysql.sql',
         'install/sql/sqlite.sql',
         'themes/default/layouts/header.php',

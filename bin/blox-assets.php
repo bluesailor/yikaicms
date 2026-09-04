@@ -90,7 +90,8 @@ function verifyBloxJavascriptClassification(string $root, array $policy): void
     }
 }
 
-function usage(): never
+/** @return never */
+function usage(): void
 {
     fwrite(STDERR, "Usage:\n");
     fwrite(STDERR, "  php bin/blox-assets.php list <core|pro|runtime|private>\n");

@@ -116,4 +116,25 @@ final class InstallSqlMigrationParityTest extends TestCase
         self::assertLessThan($finalize, $configWrite);
         self::assertLessThan($lockWrite, $finalize);
     }
+
+    public function testInstallerRejectsAnEmptyOrShortAdministratorPasswordOnTheServer(): void
+    {
+        $validation = ROOT_PATH . '/install/validation.php';
+        self::assertFileExists($validation, '安装器缺少可独立测试的服务端输入校验。');
+        if (!is_file($validation)) {
+            return;
+        }
+
+        require_once $validation;
+        self::assertFalse(installerAdminPasswordValid(''));
+        self::assertFalse(installerAdminPasswordValid('12345'));
+        self::assertTrue(installerAdminPasswordValid('123456'));
+
+        $installer = (string) file_get_contents(ROOT_PATH . '/install/index.php');
+        $validationCall = strpos($installer, 'installerAdminPasswordValid((string) $adminPass)');
+        $databaseConnect = strpos($installer, '// 连接数据库');
+        self::assertIsInt($validationCall);
+        self::assertIsInt($databaseConnect);
+        self::assertLessThan($databaseConnect, $validationCall, '密码必须在建表和写 installed.lock 前拒绝。');
+    }
 }
