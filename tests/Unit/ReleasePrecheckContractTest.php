@@ -13,8 +13,9 @@ final class ReleasePrecheckContractTest extends TestCase
 
         self::assertStringContainsString('--baseline=*', $source);
         self::assertStringContainsString('YK_RELEASE_BASELINE', $source);
-        self::assertStringContainsString("git describe --tags --abbrev=0 --match 'v[0-9]*'", $source);
-        self::assertStringContainsString('git diff "$schema_baseline" -- install/sql/mysql.sql', $source);
+        self::assertStringContainsString("repo_git describe --tags --abbrev=0 --match 'v[0-9]*'", $source);
+        self::assertStringContainsString('repo_git show "${schema_baseline}:install/sql/mysql.sql"', $source);
+        self::assertStringContainsString('php tools/release-schema-diff.php', $source);
         self::assertStringNotContainsString('git diff HEAD~1 -- install/sql/mysql.sql', $source);
     }
 }

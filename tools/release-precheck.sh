@@ -57,7 +57,25 @@ if [ -n "$BASELINE" ] && ! [[ "$BASELINE" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]]; t
 fi
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+WORKSPACE_DIR="$(cd "$ROOT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
+
+# Windows-created worktrees store a Windows path in .git. Native WSL Git cannot
+# resolve it, while git.exe can when the root is converted to a Windows path.
+GIT_ROOT="$ROOT_DIR"
+GIT_BIN=""
+if git -C "$GIT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    GIT_BIN="git"
+elif command -v git.exe >/dev/null 2>&1 && command -v wslpath >/dev/null 2>&1; then
+    GIT_ROOT="$(wslpath -m "$ROOT_DIR")"
+    if git.exe -C "$GIT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+        GIT_BIN="git.exe"
+    fi
+fi
+repo_git() {
+    [ -n "$GIT_BIN" ] || return 127
+    "$GIT_BIN" -C "$GIT_ROOT" "$@"
+}
 
 echo "${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${X}"
 if [ "$MODE" = "candidate" ]; then
@@ -70,6 +88,22 @@ echo
 
 FAIL=0
 WARN=0
+PRECHECK_TEMP_FILES=()
+
+# A FAIL must never be masked by a later successful command or a future early exit.
+precheck_exit_guard() {
+    local status=$?
+    local file
+    trap - EXIT
+    for file in "${PRECHECK_TEMP_FILES[@]}"; do
+        [ -n "$file" ] && rm -f "$file"
+    done
+    if [ "$FAIL" -gt 0 ] && [ "$status" -eq 0 ]; then
+        status=1
+    fi
+    exit "$status"
+}
+trap precheck_exit_guard EXIT
 
 pass() { echo "  ${G}✓${X} $1"; }
 fail() { echo "  ${R}✗${X} $1"; FAIL=$((FAIL+1)); }
@@ -246,17 +280,25 @@ info "migrations/ 当前共 $upgrade_count 条独立迁移"
 schema_baseline="$BASELINE"
 if [ -z "$schema_baseline" ]; then
     # HEAD^ 避免在正式 tag 本身执行时把该 tag 当作自己的比较基线。
-    schema_baseline=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^ 2>/dev/null || true)
-    [ -n "$schema_baseline" ] || schema_baseline=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)
+    schema_baseline=$(repo_git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD^ 2>/dev/null || true)
+    [ -n "$schema_baseline" ] || schema_baseline=$(repo_git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)
 fi
-if [ -n "$schema_baseline" ] && git rev-parse --verify "${schema_baseline}^{commit}" > /dev/null 2>&1; then
+if [ -n "$schema_baseline" ] && repo_git rev-parse --verify "${schema_baseline}^{commit}" > /dev/null 2>&1; then
     info "schema 比较基线: $schema_baseline"
-    # `grep -c` 在 0 匹配时退出码非 0 + set -u 触发，需带 || true 兜底
-    schema_changed=$(git diff "$schema_baseline" -- install/sql/mysql.sql 2>/dev/null \
-        | grep -cE "^[+-]CREATE TABLE|^[+-]ALTER TABLE|^[+-].*ADD (COLUMN|KEY|INDEX|UNIQUE|FOREIGN)" || true)
-    schema_changed=${schema_changed:-0}
-    if [ "${schema_changed}" -gt 0 ] 2>/dev/null; then
-        warn "自 $schema_baseline 起 install/sql/mysql.sql 有 ${schema_changed} 行 schema 关键字变化，请确认 migrations/ 已加对应独立迁移"
+    schema_before=".release-precheck-schema-before-$$.sql"
+    PRECHECK_TEMP_FILES+=("$schema_before")
+    if repo_git show "${schema_baseline}:install/sql/mysql.sql" > "$schema_before" 2>/dev/null \
+        && schema_result=$(php tools/release-schema-diff.php "$schema_before" install/sql/mysql.sql 2>/dev/null); then
+        schema_changed=$(printf '%s\n' "$schema_result" | sed -n 's/^COUNT=//p')
+        schema_tables=$(printf '%s\n' "$schema_result" | sed -n 's/^TABLES=//p')
+    else
+        schema_changed=""
+        schema_tables=""
+    fi
+    if [ -z "$schema_changed" ]; then
+        warn "无法解析 $schema_baseline 与当前 install SQL 的 schema 差异"
+    elif [ "$schema_changed" -gt 0 ] 2>/dev/null; then
+        warn "自 $schema_baseline 起 ${schema_changed} 张表的结构有变化（${schema_tables}），请确认 migrations/ 已加对应独立迁移"
     else
         pass "自 $schema_baseline 起未改动 schema，无需新增 upgrade 项"
     fi
@@ -270,21 +312,38 @@ fi
 section "6. update.yikaicms 升级服务器（releases.json）"
 # ─────────────────────────────────────────────────────────────
 
-releases_json="/mnt/d/phpstudy_pro/WWW/update.yikaicms/data/releases.json"
+releases_json="$WORKSPACE_DIR/update.yikaicms/data/releases.json"
 if [ "$MODE" = "candidate" ]; then
     info "候选阶段不修改升级服务器，跳过渠道版本校验"
+    if [ "$VERSION" = "1.19.6" ]; then
+        info "v1.19.6 发布条目必须设置 min_php >= 8.2（v1.19.5 的 PHP 8.0 升级器无法自更新）"
+    fi
 elif [ -f "$releases_json" ]; then
-    latest=$(python3 -c "import json; print(json.load(open('$releases_json'))['latest'])" 2>/dev/null)
+    releases_native="$releases_json"
+    if command -v cygpath >/dev/null 2>&1; then
+        releases_native=$(cygpath -w "$releases_json")
+    elif command -v wslpath >/dev/null 2>&1 && php -r 'exit(DIRECTORY_SEPARATOR === "\\" ? 0 : 1);' 2>/dev/null; then
+        releases_native=$(wslpath -w "$releases_json")
+    fi
+    latest=$(php -r '$d=json_decode((string)file_get_contents($argv[1]),true); echo is_array($d)?($d["latest"]??""):"";' "$releases_native" 2>/dev/null)
     if [ "$latest" = "$VERSION" ]; then
         pass "releases.json  latest = '$latest'"
     else
         fail "releases.json  latest = '${latest:-解析失败}'  (期望: '$VERSION')"
     fi
-    has_entry=$(python3 -c "import json; d=json.load(open('$releases_json')); print('yes' if any(r['version']=='$VERSION' for r in d['releases']) else 'no')" 2>/dev/null)
+    has_entry=$(php -r '$d=json_decode((string)file_get_contents($argv[1]),true); foreach((array)($d["releases"]??[]) as $r){if(($r["version"]??"")===$argv[2]){echo "yes";exit;}} echo "no";' "$releases_native" "$VERSION" 2>/dev/null)
     if [ "$has_entry" = "yes" ]; then
         pass "releases.json  含 v${VERSION} 条目"
     else
         fail "releases.json  无 v${VERSION} 条目"
+    fi
+    if [ "$VERSION" = "1.19.6" ] && [ "$has_entry" = "yes" ]; then
+        entry_min_php=$(php -r '$d=json_decode((string)file_get_contents($argv[1]),true); foreach((array)($d["releases"]??[]) as $r){if(($r["version"]??"")===$argv[2]){echo (string)($r["min_php"]??"");exit;}}' "$releases_native" "$VERSION" 2>/dev/null)
+        if [ -n "$entry_min_php" ] && php -r 'exit(version_compare($argv[1], "8.2", ">=") ? 0 : 1);' "$entry_min_php" 2>/dev/null; then
+            pass "v1.19.6 在线升级过程门槛 min_php = '$entry_min_php'（可绕开 v1.19.5/PHP 8.0 的 T_ENUM 致命错误）"
+        else
+            fail "v1.19.6 releases.json 必须设置 min_php >= 8.2（当前: '${entry_min_php:-未设置}'）"
+        fi
     fi
 else
     warn "$releases_json 不存在（跳过升级服务器校验）"
@@ -294,7 +353,7 @@ fi
 section "7. 官网 yikaicms.com（index.html / changelog.html）"
 # ─────────────────────────────────────────────────────────────
 
-site="/mnt/d/phpstudy_pro/WWW/yikaicms.com.yikai"
+site="$WORKSPACE_DIR/yikaicms.com.yikai"
 if [ "$MODE" = "candidate" ]; then
     info "候选阶段不更新官网，跳过渠道版本校验"
 else
@@ -321,7 +380,7 @@ fi
 section "8. 演示站 demo.yikaicms config"
 # ─────────────────────────────────────────────────────────────
 
-demo_cfg="/mnt/d/phpstudy_pro/WWW/demo.yikaicms/config/config.php"
+demo_cfg="$WORKSPACE_DIR/demo.yikaicms/config/config.php"
 if [ "$MODE" = "candidate" ]; then
     info "候选阶段不升级演示站，跳过版本校验"
 elif [ -f "$demo_cfg" ]; then
