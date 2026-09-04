@@ -1956,6 +1956,28 @@ test('template catalog separates local and remote libraries without trapping doc
   await expect(opener).toBeFocused();
 });
 
+test('official template market renders cover and no-cover fallback @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop management baseline');
+  const coverBytes = require('fs').readFileSync(
+    require('path').resolve(__dirname, '../../assets/images/blox-templates/section-cta-banner.png')
+  );
+  await page.route('**/assets/templates/*.png', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'image/png', body: coverBytes });
+  });
+  await page.goto('/admin/blox_templates.php?refresh_official=1', { waitUntil: 'domcontentloaded' });
+
+  const list = page.getByTestId('blox-official-list');
+  await expect(list).toBeVisible();
+  const covered = page.getByTestId('blox-official-card-fixture-cover-template');
+  const uncovered = page.getByTestId('blox-official-card-fixture-no-cover-template');
+  await expect(covered.getByTestId('blox-official-thumbnail').locator('img')).toBeVisible();
+  await expect(covered.getByTestId('blox-official-thumbnail').locator('img')).toHaveAttribute(
+    'src', 'https://update.yikaicms.com/assets/templates/cta-centered.png'
+  );
+  await expect(uncovered.getByTestId('blox-official-thumbnail').locator('img')).toHaveCount(0);
+  await expect(uncovered.getByTestId('blox-official-thumbnail').locator('.ti-layout-grid')).toBeVisible();
+});
+
 test('real remote template channel @local', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440' || process.env.BLOX_E2E_REMOTE !== '1', 'opt-in signed remote channel check');
   await page.getByTestId('blox-prebuilt-open').click();

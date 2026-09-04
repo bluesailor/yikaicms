@@ -47,7 +47,9 @@ final class BloxRemoteTemplateProvider
                 && openssl_verify($canonical, $decoded, license_pubkey(), OPENSSL_ALGO_SHA256) === 1;
         };
         $this->language = $language ?? (function_exists('getLang') ? getLang() : 'zh-CN');
-        $this->endpoint = $endpoint;
+        // 只允许测试/隔离环境替换目录接口；生产默认仍固定到官方服务。
+        $testEndpoint = trim((string) getenv('YIKAI_BLOX_TEMPLATE_API_BASE'));
+        $this->endpoint = $endpoint === self::API_URL && $testEndpoint !== '' ? $testEndpoint : $endpoint;
         $useDefaultCache = $httpGet === null && $endpoint === self::API_URL;
         $this->cacheGet = $cacheGet ?? ($useDefaultCache && function_exists('cacheGet')
             ? static fn (string $key): mixed => cacheGet($key)
