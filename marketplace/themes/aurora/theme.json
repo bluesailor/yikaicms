@@ -9,7 +9,7 @@
   "version": "1.0.3",
   "author": "Yikai",
   "category": "tech",
-  "requires_cms": ">=1.19.5",
+  "requires_cms": ">=1.19.6",
   "requires_php": ">=8.0.0",
   "required_plugins": [],
   "screenshot": "assets/images/screenshot.jpg",
