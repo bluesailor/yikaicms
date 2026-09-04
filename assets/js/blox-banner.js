@@ -66,6 +66,18 @@
         viewportListenersBound = true;
         window.addEventListener('load', function () { refreshViewportHeights(document); });
         window.addEventListener('resize', function () { refreshViewportHeights(document); });
+        if (window.matchMedia) {
+            var motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+            if (typeof motion.addEventListener === 'function') motion.addEventListener('change', syncPlaybackPolicy);
+            else if (typeof motion.addListener === 'function') motion.addListener(syncPlaybackPolicy);
+            var mobile = window.matchMedia('(max-width: 767px)');
+            if (typeof mobile.addEventListener === 'function') mobile.addEventListener('change', syncPlaybackPolicy);
+            else if (typeof mobile.addListener === 'function') mobile.addListener(syncPlaybackPolicy);
+        }
+        var connection = window.navigator && window.navigator.connection;
+        if (connection && typeof connection.addEventListener === 'function') {
+            connection.addEventListener('change', syncPlaybackPolicy);
+        }
     }
 
     function videosFor(slider) {
@@ -127,12 +139,24 @@
     }
 
     function videoCanPlay(video, reduceMotion) {
-        if (reduceMotion) return false;
-        var connection = window.navigator && window.navigator.connection;
-        if (connection && connection.saveData) return false;
-        var mobilePoster = video.getAttribute('data-blox-mobile-video') !== 'video';
-        var mobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
-        return !(mobile && mobilePoster);
+        return !!(window.BloxVideoPolicy
+            && window.BloxVideoPolicy.allowsPlayback(video, { reduceMotion: reduceMotion }));
+    }
+
+    function unloadVideo(video) {
+        if (!video || !video.getAttribute('src')) return;
+        video.removeAttribute('src');
+        if (typeof video.load === 'function') video.load();
+    }
+
+    function activateVideoSource(video) {
+        var source = video && video.getAttribute('data-blox-video-src');
+        if (!source) return false;
+        if (video.getAttribute('src') !== source) {
+            video.setAttribute('src', source);
+            if (typeof video.load === 'function') video.load();
+        }
+        return true;
     }
 
     function activeVideo(slider, instance) {
@@ -149,6 +173,9 @@
         videoBindings.set(video, slider);
         video.addEventListener('playing', function () {
             clearVideoStallTimer(video);
+            var state = states.get(slider);
+            if (!state || document.hidden || activeVideo(slider, state.instance) !== video
+                || !videoCanPlay(video, state.reduceMotion)) return;
             if (video.classList) video.classList.add('blox-banner-video-ready');
         });
         video.addEventListener('error', function () {
@@ -178,17 +205,23 @@
         videos.forEach(function (candidate) {
             bindVideo(slider, candidate);
             pauseVideo(candidate, !preserveActivePosition || candidate !== currentVideo);
+            if (candidate !== currentVideo) unloadVideo(candidate);
         });
         if (document.hidden) {
             if (autoplayEnabled(config, reduceMotion)) controlAutoplay(instance, 'stop');
             return;
         }
         if (!currentVideo || !videoCanPlay(currentVideo, reduceMotion)) {
+            if (currentVideo) unloadVideo(currentVideo);
             if (autoplayEnabled(config, reduceMotion)) controlAutoplay(instance, 'start');
             return;
         }
 
         if (autoplayEnabled(config, reduceMotion)) controlAutoplay(instance, 'stop');
+        if (!activateVideoSource(currentVideo)) {
+            if (autoplayEnabled(config, reduceMotion)) controlAutoplay(instance, 'start');
+            return;
+        }
         var playback;
         try { playback = currentVideo.play(); } catch (error) { playback = null; }
         if (playback && typeof playback.catch === 'function') {
@@ -210,7 +243,7 @@
             return;
         }
         if (previousState && previousState.instance && typeof previousState.instance.destroy === 'function') {
-            videosFor(slider).forEach(function (video) { pauseVideo(video, true); });
+            videosFor(slider).forEach(function (video) { pauseVideo(video, true); unloadVideo(video); });
             previousState.instance.destroy(true, true);
         }
 
@@ -220,15 +253,14 @@
                 signature: signature,
                 instance: null,
                 config: configFor(slider),
-                reduceMotion: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+                reduceMotion: !!(window.BloxVideoPolicy && window.BloxVideoPolicy.prefersReducedMotion())
             });
             slider.classList.add('blox-banner-static-active');
             return;
         }
         if (typeof window.Swiper !== 'function') return;
 
-        var reduceMotion = window.matchMedia
-            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var reduceMotion = !!(window.BloxVideoPolicy && window.BloxVideoPolicy.prefersReducedMotion());
         var config = configFor(slider);
         var pagination = slider.querySelector('.swiper-pagination');
         var previous = slider.querySelector('.swiper-button-prev');
@@ -286,6 +318,20 @@
             if (document.hidden) {
                 videosFor(slider).forEach(function (video) { pauseVideo(video, false); });
                 if (autoplayEnabled(state.config, state.reduceMotion)) controlAutoplay(state.instance, 'stop');
+                return;
+            }
+            syncVideos(slider, state.instance, state.config, state.reduceMotion, true);
+        });
+    }
+
+    function syncPlaybackPolicy() {
+        document.querySelectorAll('[data-blox-banner]').forEach(function (slider) {
+            var state = states.get(slider);
+            if (!state || !state.instance) return;
+            var reduceMotion = !!(window.BloxVideoPolicy && window.BloxVideoPolicy.prefersReducedMotion());
+            if (state.reduceMotion !== reduceMotion) {
+                state.signature = '';
+                initSlider(slider);
                 return;
             }
             syncVideos(slider, state.instance, state.config, state.reduceMotion, true);

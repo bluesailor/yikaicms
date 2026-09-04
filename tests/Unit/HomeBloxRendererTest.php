@@ -183,7 +183,10 @@ final class HomeBloxRendererTest extends TestCase
         HomeBloxRenderer::render($sections, static fn (array $element): string => '<div>Banner</div>');
 
         $this->assertSame(['/assets/css/blox-banner.css'], BloxAssetCollector::styles());
-        $this->assertSame(['/assets/js/blox-banner.js'], BloxAssetCollector::scripts());
+        $this->assertSame(
+            ['/assets/js/blox-video-policy.js', '/assets/js/blox-banner.js'],
+            BloxAssetCollector::scripts()
+        );
     }
 
     public function testEmptyDynamicBlockDoesNotCollectUnusedRuntimeAssets(): void

@@ -228,7 +228,10 @@ final class BloxBackgroundStyleTest extends TestCase
             '<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="poster" data-blox-video-src="/uploads/section.mp4" poster="/uploads/poster.jpg"></video></div>',
             $out
         );
-        $this->assertContains('/assets/js/blox-background-video.js', BloxAssetCollector::scripts());
+        $this->assertSame(
+            ['/assets/js/blox-video-policy.js', '/assets/js/blox-background-video.js'],
+            BloxAssetCollector::scripts()
+        );
         $this->assertStringContainsString('style="background-color:#102030;opacity:0.55;"', $out);
         $this->assertStringContainsString('<div class="max-w-6xl mx-auto px-4 relative z-10">', $out);
 
