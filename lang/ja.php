@@ -6313,4 +6313,5 @@ voltage|電圧|220V',
     'media_usage_kind_background_video' => '背景動画',
     'media_usage_kind_video_element' => '動画要素',
     'media_usage_kind_unknown' => 'メディア参照',
+    'blox_leave_unsaved_confirm' => 'サーバーに保存されていない変更があります。このまま戻りますか？',
 ];

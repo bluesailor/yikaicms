@@ -6240,4 +6240,5 @@ voltage|电压|220V',
     'media_usage_kind_background_video' => '背景视频',
     'media_usage_kind_video_element' => '视频元素',
     'media_usage_kind_unknown' => '媒体引用',
+    'blox_leave_unsaved_confirm' => '当前有未保存的修改，这些内容尚未保存到服务器。仍要返回吗？',
 ];

@@ -699,6 +699,36 @@ test('home canvas keeps header and footer actions without a redundant page struc
   await expect(page.getByTestId('blox-publish-template')).toContainText('发布并使用');
 });
 
+test('dirty area editor confirms and returns to the home editor @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop navigation baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  const areaUrl = `/admin/blox_editor.php?template=${fixtures.blox_header_template}&back=home`;
+  await page.goto(areaUrl, { waitUntil: 'domcontentloaded' });
+  await addTemporaryHeading(page);
+  await expect(page.getByTestId('blox-dirty')).toBeVisible();
+
+  const back = page.getByTestId('blox-back');
+  let cancelledConfirmSeen = false;
+  page.once('dialog', async (dialog) => {
+    cancelledConfirmSeen = dialog.type() === 'confirm' && dialog.message().includes('未保存');
+    await dialog.dismiss();
+  });
+  await back.click();
+  expect(cancelledConfirmSeen).toBe(true);
+  await expect(page).toHaveURL(new URL(areaUrl, page.url()).href);
+
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('confirm');
+    await dialog.accept();
+  });
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/admin/blox_editor.php' && url.search === '?home=1'),
+    back.click(),
+  ]);
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+});
+
 test('stale header edit links recover to the current effective header @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop redirect baseline');
   const contentFrame = await frame(page);
