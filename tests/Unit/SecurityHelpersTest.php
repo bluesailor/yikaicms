@@ -123,6 +123,34 @@ final class SecurityHelpersTest extends TestCase
         $this->assertStringNotContainsString('javascript:', $out);
     }
 
+    public function testSvgNeutralizesJavascriptHrefContainingNestedQuotes(): void
+    {
+        $svg = '<svg><a href="javascript:alert(\'x\')"><text>x</text></a></svg>';
+        $out = sanitizeSvg($svg);
+        $this->assertStringNotContainsString('javascript:', $out);
+    }
+
+    public function testSvgNeutralizesEntityObfuscatedJavascriptHref(): void
+    {
+        $svg = '<svg><a href="java&#x73;cript:alert(1)"><text>x</text></a></svg>';
+        $out = sanitizeSvg($svg);
+        $this->assertStringNotContainsString('javascript:', html_entity_decode($out, ENT_QUOTES | ENT_HTML5));
+    }
+
+    public function testSvgFallbackNeutralizesQuotedAndEncodedJavascriptHref(): void
+    {
+        foreach ([
+            '<svg><a href="javascript:alert(\'x\')"><text>x</text></a></svg>',
+            '<svg><a href="java&#x73;cript:alert(1)"><text>x</text></a></svg>',
+        ] as $svg) {
+            $out = sanitizeSvgFallback($svg);
+            $this->assertStringNotContainsString(
+                'javascript:',
+                html_entity_decode($out, ENT_QUOTES | ENT_HTML5)
+            );
+        }
+    }
+
     public function testSvgStripsForeignObjectAndDoctype(): void
     {
         $svg = '<!DOCTYPE svg><svg><foreignObject><body>hi</body></foreignObject></svg>';

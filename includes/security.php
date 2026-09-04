@@ -41,15 +41,89 @@ function sanitizeSvg(string $svg): string
     // 去掉 DOCTYPE / 实体声明（防 XXE / 实体炸弹）与 XML 处理指令
     $svg = preg_replace('/<!DOCTYPE.*?>/is', '', $svg) ?? $svg;
     $svg = preg_replace('/<\?xml.*?\?>/is', '', $svg) ?? $svg;
+
+    if (!class_exists(DOMDocument::class)) {
+        return sanitizeSvgFallback($svg);
+    }
+
+    $previousErrors = libxml_use_internal_errors(true);
+    try {
+        $document = new DOMDocument();
+        $loaded = $document->loadXML($svg, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
+        $root = $document->documentElement;
+        if (!$loaded || !$root instanceof DOMElement || strtolower($root->localName) !== 'svg') {
+            return sanitizeSvgFallback($svg);
+        }
+
+        $elements = [];
+        foreach ($document->getElementsByTagName('*') as $element) {
+            if ($element instanceof DOMElement) {
+                $elements[] = $element;
+            }
+        }
+
+        $dangerousElements = ['script', 'foreignobject', 'iframe', 'embed', 'object', 'animate', 'set', 'handler', 'style'];
+        foreach ($elements as $element) {
+            if (in_array(strtolower($element->localName), $dangerousElements, true)) {
+                $element->parentNode?->removeChild($element);
+                continue;
+            }
+
+            for ($index = $element->attributes->length - 1; $index >= 0; $index--) {
+                $attribute = $element->attributes->item($index);
+                if (!$attribute instanceof DOMAttr) {
+                    continue;
+                }
+                $name = strtolower($attribute->localName ?: $attribute->name);
+                $qualifiedName = strtolower($attribute->name);
+                $value = $attribute->value;
+                if (str_starts_with($name, 'on')
+                    || ((in_array($name, ['href', 'src'], true) || $qualifiedName === 'xlink:href')
+                        && svgHasDangerousUrl($value))
+                    || ($name === 'style' && svgHasDangerousCss($value))) {
+                    $element->removeAttributeNode($attribute);
+                }
+            }
+        }
+
+        $clean = $document->saveXML($root);
+        return is_string($clean) ? $clean : sanitizeSvgFallback($svg);
+    } finally {
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousErrors);
+    }
+}
+
+function svgHasDangerousUrl(string $value): bool
+{
+    $decoded = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $normalized = strtolower((string) preg_replace('/[\x00-\x20\x7f]+/', '', $decoded));
+    return str_starts_with($normalized, 'javascript:') || str_starts_with($normalized, 'data:');
+}
+
+function svgHasDangerousCss(string $value): bool
+{
+    $decoded = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return preg_match('/(?:javascript\s*:|data\s*:|expression\s*\(|@import|-moz-binding)/i', $decoded) === 1;
+}
+
+function sanitizeSvgFallback(string $svg): string
+{
     // 危险元素整段删除（含内容）
-    $svg = preg_replace('#<\s*(script|foreignObject|iframe|embed|object|animate|set|handler)\b[^>]*>.*?<\s*/\s*\1\s*>#is', '', $svg) ?? $svg;
+    $svg = preg_replace('#<\s*(script|foreignObject|iframe|embed|object|animate|set|handler|style)\b[^>]*>.*?<\s*/\s*\1\s*>#is', '', $svg) ?? $svg;
     // 危险元素的自闭合 / 落单开标签
-    $svg = preg_replace('#<\s*(script|foreignObject|iframe|embed|object|animate|set|handler)\b[^>]*/?>#is', '', $svg) ?? $svg;
+    $svg = preg_replace('#<\s*(script|foreignObject|iframe|embed|object|animate|set|handler|style)\b[^>]*/?>#is', '', $svg) ?? $svg;
     // on* 事件处理属性（onload / onclick …）
     $svg = preg_replace('/\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/is', '', $svg) ?? $svg;
-    // href / xlink:href / src 里的 javascript: 或 data:（保留普通 http/相对引用）
-    $svg = preg_replace('/(href|xlink:href|src)\s*=\s*("|\')\s*(javascript|data)\s*:[^"\']*\2/is', '$1=$2#$2', $svg) ?? $svg;
-    return $svg;
+    // 分支分别匹配单双引号，允许属性值内出现另一种引号。
+    return preg_replace_callback(
+        '/\b(href|xlink:href|src)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))/is',
+        static function (array $matches): string {
+            $value = (string) ($matches[2] !== '' ? $matches[2] : ($matches[3] !== '' ? $matches[3] : $matches[4]));
+            return svgHasDangerousUrl($value) ? $matches[1] . '="#"' : $matches[0];
+        },
+        $svg
+    ) ?? $svg;
 }
 
 /**
