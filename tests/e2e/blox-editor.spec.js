@@ -729,6 +729,28 @@ test('dirty area editor confirms and returns to the home editor @ci', async ({ p
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
 });
 
+test('dirty home canvas confirms before opening an area editor @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop navigation baseline');
+  await addTemporaryHeading(page);
+  await waitPreviewSettled(page);
+  await expect(page.getByTestId('blox-dirty')).toBeVisible();
+
+  const contentFrame = await frame(page);
+  const headerEdit = contentFrame.getByTestId('blox-context-edit-header');
+  const leaveConfirm = new Promise((resolve) => {
+    page.once('dialog', async (dialog) => {
+      const seen = dialog.type() === 'confirm' && dialog.message().includes('未保存');
+      await dialog.dismiss();
+      resolve(seen);
+    });
+  });
+  await pointerClick(page, headerEdit);
+
+  expect(await leaveConfirm).toBe(true);
+  await expect(page).toHaveURL(/\/admin\/blox_editor\.php\?home=1$/);
+  await restoreClean(page);
+});
+
 test('stale header edit links recover to the current effective header @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop redirect baseline');
   const contentFrame = await frame(page);

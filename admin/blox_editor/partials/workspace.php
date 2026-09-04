@@ -2721,6 +2721,7 @@ declare(strict_types=1);
                         <span x-show="ctxMatch && ctxMatch.languageSpecific" x-text="' · ' + areaMatchText.language"></span>
                     </p>
                     <a href="/admin/blox_templates.php?type=<?php echo e((string) $templateType); ?>#blox-current-areas"
+                       @click="requestEditorNavigation($event)" data-testid="blox-area-current-manage"
                        class="mt-1.5 inline-flex items-center gap-1 text-[10px] font-medium text-blue-700 hover:text-blue-900">
                         <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i><span x-text="areaMatchText.manage"></span>
                     </a>
