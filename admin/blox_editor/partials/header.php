@@ -23,6 +23,7 @@ declare(strict_types=1);
                 : (($editorBackTo ?? '') === 'home' ? __('blox_back_to_home_editor') : __('admin_back'));
             ?>
             <a href="<?php echo e($bloxBackUrl); ?>" data-testid="blox-back"
+               @click="requestEditorBack($event)"
                data-frontend-return="<?= $hasFrontendReturn ? '1' : '0' ?>"
                class="text-gray-300 hover:text-white inline-flex items-center gap-1 text-sm shrink-0" title="<?= e($bloxBackTitle) ?>">
                 <i class="ti ti-chevron-left text-lg"></i>
@@ -55,6 +56,7 @@ declare(strict_types=1);
                 <?php foreach ($pageLanguageVersions as $languageVersion): ?>
                     <?php if ($languageVersion['id'] > 0): ?>
                     <a href="<?= e(BloxAreaEditorTarget::withReturnTo('/admin/blox_editor.php?id=' . (int) $languageVersion['id'], (string) ($editorReturnTo ?? ''))) ?>"
+                       @click="requestEditorNavigation($event)"
                        data-testid="blox-language-<?= e($languageVersion['code']) ?>"
                        title="<?= e($languageVersion['label'] . ($languageVersion['has_blox'] ? '' : ' · ' . __('blox_language_no_blox'))) ?>"
                        <?php if ($languageVersion['current']): ?>aria-current="page"<?php endif; ?>
@@ -64,6 +66,7 @@ declare(strict_types=1);
                     </a>
                     <?php else: ?>
                     <a href="/admin/page_edit.php?id=<?= (int) $page['id'] ?>"
+                       @click="requestEditorNavigation($event)"
                        data-testid="blox-language-<?= e($languageVersion['code']) ?>"
                        title="<?= e($languageVersion['label'] . ' · ' . __('lse_create_version')) ?>"
                        class="min-w-7 h-6 rounded px-1.5 text-[10px] font-semibold text-gray-500 hover:bg-gray-700 hover:text-amber-300 inline-flex items-center justify-center transition">
@@ -78,6 +81,7 @@ declare(strict_types=1);
             <?php endif; ?>
             <?php if ($templateId && $templateType === 'header' && !$customHeaderEnabled): ?>
             <a href="/admin/blox_templates.php?type=header"
+               @click="requestEditorNavigation($event)"
                data-testid="blox-header-disabled-status"
                title="<?= e(__('blox_custom_header_disabled_hint')) ?>"
                class="text-[10px] font-medium bg-amber-500/15 text-amber-300 px-1.5 py-0.5 rounded shrink-0 hover:bg-amber-500/25">
@@ -447,6 +451,7 @@ declare(strict_types=1);
                     ? BloxAreaEditorTarget::withReturnTo('/admin/blox_editor.php?id=' . (int) $languageVersion['id'], (string) ($editorReturnTo ?? ''))
                     : '/admin/page_edit.php?id=' . (int) $page['id']; ?>
                 <a href="<?= e($mobileLanguageUrl) ?>"
+                   @click="requestEditorNavigation($event)"
                    data-testid="blox-mobile-language-<?= e($languageVersion['code']) ?>">
                     <i class="ti ti-language"></i><?= e($languageVersion['label']) ?><?= $languageVersion['current'] ? ' · ' . e(__('lse_current')) : '' ?>
                 </a>

@@ -4,6 +4,88 @@
 declare(strict_types=1);
 
 /**
+ * Render the current theme-owned area without its document shell.
+ *
+ * @psalm-suppress UnusedParam Theme layout files consume title and slug from this require scope.
+ * @psalm-suppress UnusedVariable Theme layout files consume the prepared page variables from this require scope.
+ */
+function renderBloxCanvasThemeArea(
+    string $area,
+    string $scriptName,
+    int $channelId,
+    int $pageId,
+    string $title,
+    string $slug
+): string {
+    $layout = theme_path_optional('layouts/' . $area . '.php');
+    if ($layout === null || !is_file($layout)) {
+        return '';
+    }
+    if ($area === 'footer' && !function_exists('renderCustomerService')) {
+        require_once ROOT_PATH . '/includes/customer_service.php';
+    }
+    $pageTitle = $title;
+    $pageDescription = '';
+    $pageKeywords = '';
+    $canonicalUrl = siteBaseUrl() . '/';
+    $ogType = 'website';
+    $ogImage = '';
+    $jsonLd = [];
+    $extraCss = '';
+    $extraJs = '';
+    $savedScriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+    $savedChannelId = $GLOBALS['currentChannelId'] ?? null;
+    $savedPageId = $GLOBALS['ykBloxPageId'] ?? null;
+    $_SERVER['SCRIPT_NAME'] = $scriptName;
+    $GLOBALS['currentChannelId'] = $channelId;
+    $GLOBALS['ykBloxPageId'] = $pageId;
+    $currentChannelId = $channelId;
+    $currentSlug = $slug;
+    $isHomePage = $scriptName === '/index.php' && $channelId === 0 && $pageId === 0;
+    ob_start();
+    try {
+        require $layout;
+        $rendered = (string) ob_get_clean();
+    } catch (Throwable $e) {
+        ob_end_clean();
+        error_log('[bloxCanvasPreview] theme ' . $area . ': ' . $e->getMessage());
+        $rendered = '';
+    } finally {
+        $_SERVER['SCRIPT_NAME'] = $savedScriptName;
+        if ($savedChannelId === null) {
+            unset($GLOBALS['currentChannelId']);
+        } else {
+            $GLOBALS['currentChannelId'] = $savedChannelId;
+        }
+        if ($savedPageId === null) {
+            unset($GLOBALS['ykBloxPageId']);
+        } else {
+            $GLOBALS['ykBloxPageId'] = $savedPageId;
+        }
+    }
+    if ($rendered === '') {
+        return '';
+    }
+    $themeStyles = '';
+    if ($area === 'header' && preg_match_all('/<style\b[^>]*>.*?<\/style>/is', $rendered, $styleMatches) > 0) {
+        $themeStyles = implode('', $styleMatches[0]);
+    }
+    if ($area === 'header') {
+        $bodyStart = stripos($rendered, '<body');
+        $bodyEnd = $bodyStart === false ? false : strpos($rendered, '>', $bodyStart);
+        $mainStart = $bodyEnd === false ? false : stripos($rendered, '<main', $bodyEnd);
+        return $bodyEnd !== false && $mainStart !== false
+            ? $themeStyles . substr($rendered, $bodyEnd + 1, $mainStart - $bodyEnd - 1)
+            : '';
+    }
+    $footerStart = stripos($rendered, '<footer');
+    $footerEnd = $footerStart === false ? false : stripos($rendered, '</footer>', $footerStart);
+    return $footerStart !== false && $footerEnd !== false
+        ? substr($rendered, $footerStart, $footerEnd + strlen('</footer>') - $footerStart)
+        : '';
+}
+
+/**
  * 不写 `: never`——那是 PHP 8.1 才有的类型，而本项目承诺支持 8.0
  * （8.0 会把它当成一个不存在的类名，Psalm 也会如实报 UndefinedClass）。
  */
@@ -24,7 +106,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         // 首页没有真实 channel id，但编辑态仍需要一个非零标记开关输出 data-yk-* 定位属性。
         BlockRenderer::$editChannelId = $isHomeLayout ? 1 : $id;
     }
-    // 页头模板只显示可编辑页头；页尾保留正文只读上下文，帮助判断落底效果。
+    // 页头模板只显示可编辑页头；页尾保留当前页头与正文只读上下文，帮助判断整页落底效果。
     $templateArea = (string) ($_GET['template_area'] ?? '');
     if ($isHomeLayout && in_array($templateArea, ['header', 'footer'], true)) {
         $previewDocument = BloxAreaDocument::decode($templateArea, $previewJson);
@@ -117,9 +199,22 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             . ' data-yk-ctx-hit-name="' . htmlspecialchars($ctxHitName, ENT_QUOTES) . '"'
             . ' data-yk-ctx-hit-scope="' . htmlspecialchars($ctxHitScope, ENT_QUOTES) . '"'
             . ' data-yk-ctx-hit-language="' . ($ctxHitLanguageSpecific ? '1' : '0') . '">' . $editableArea . '</div>';
-        $body = $templateArea === 'header' || $areaOnly
-            ? $editableArea
-            : '<div class="yk-ctx-dim" aria-hidden="true">' . $contextBody . '</div>' . $editableArea;
+        if ($templateArea === 'footer' && !$areaOnly) {
+            $contextScript = $ctxType === 'home' ? '/index.php' : ($ctxType === 'page' ? '/page.php' : '/list.php');
+            $contextId = (int) ($ctxRow['id'] ?? 0);
+            $contextHeader = renderBloxCanvasThemeArea(
+                'header',
+                $contextScript,
+                $contextId,
+                $ctxType === 'page' ? $contextId : 0,
+                $ctxType === 'home' ? __('home') : (string) ($ctxRow['name'] ?? ''),
+                $ctxType === 'home' ? '' : (string) ($ctxRow['slug'] ?? '')
+            );
+            $body = '<div class="yk-ctx-dim" aria-hidden="true">' . $contextHeader . $contextBody . '</div>'
+                . $editableArea;
+        } else {
+            $body = $editableArea;
+        }
     } else {
         // 空文档不渲染站点页头页脚：新建单页只该看到空态引导卡。挂着 chrome 有两个坏处——
         // 空态卡是 appendChild 到 body 的，会落在页脚**下方**（看着像页脚的一部分）；
@@ -271,85 +366,14 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         // 自定义区域未启用或没有命中时，画布仍需显示当前主题的默认头尾，
         // 否则管理员看到的页面比例会与前台不一致。这里只截取主题布局的 body 区域，
         // 不把主题的 html/head/main 外壳嵌入预览 iframe。
-        /**
-         * @psalm-suppress UnusedVariable 本闭包内变量均供 require 的主题布局模板使用
-         * @psalm-suppress UnusedClosureParam Psalm 无法跟踪 require 模板读取的局部变量
-         */
-        $renderThemeArea = static function (
+        $renderThemeArea = static fn (
             string $area,
             string $scriptName,
             int $channelId,
             int $pageId,
             string $title,
             string $slug
-        ): string {
-            $layout = theme_path_optional('layouts/' . $area . '.php');
-            if ($layout === null || !is_file($layout)) {
-                return '';
-            }
-            if ($area === 'footer' && !function_exists('renderCustomerService')) {
-                require_once ROOT_PATH . '/includes/customer_service.php';
-            }
-            $pageTitle = $title;
-            $pageDescription = '';
-            $pageKeywords = '';
-            $canonicalUrl = siteBaseUrl() . '/';
-            $ogType = 'website';
-            $ogImage = '';
-            $jsonLd = [];
-            $extraCss = '';
-            $extraJs = '';
-            $savedScriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
-            $savedChannelId = $GLOBALS['currentChannelId'] ?? null;
-            $savedPageId = $GLOBALS['ykBloxPageId'] ?? null;
-            $_SERVER['SCRIPT_NAME'] = $scriptName;
-            $GLOBALS['currentChannelId'] = $channelId;
-            $GLOBALS['ykBloxPageId'] = $pageId;
-            $currentChannelId = $channelId;
-            $currentSlug = $slug;
-            $isHomePage = $scriptName === '/index.php' && $channelId === 0 && $pageId === 0;
-            ob_start();
-            try {
-                require $layout;
-                $rendered = (string) ob_get_clean();
-            } catch (Throwable $e) {
-                ob_end_clean();
-                error_log('[bloxCanvasPreview] theme ' . $area . ': ' . $e->getMessage());
-                $rendered = '';
-            } finally {
-                $_SERVER['SCRIPT_NAME'] = $savedScriptName;
-                if ($savedChannelId === null) {
-                    unset($GLOBALS['currentChannelId']);
-                } else {
-                    $GLOBALS['currentChannelId'] = $savedChannelId;
-                }
-                if ($savedPageId === null) {
-                    unset($GLOBALS['ykBloxPageId']);
-                } else {
-                    $GLOBALS['ykBloxPageId'] = $savedPageId;
-                }
-            }
-            if ($rendered === '') {
-                return '';
-            }
-            $themeStyles = '';
-            if ($area === 'header' && preg_match_all('/<style\b[^>]*>.*?<\/style>/is', $rendered, $styleMatches) > 0) {
-                $themeStyles = implode('', $styleMatches[0]);
-            }
-            if ($area === 'header') {
-                $bodyStart = stripos($rendered, '<body');
-                $bodyEnd = $bodyStart === false ? false : strpos($rendered, '>', $bodyStart);
-                $mainStart = $bodyEnd === false ? false : stripos($rendered, '<main', $bodyEnd);
-                return $bodyEnd !== false && $mainStart !== false
-                    ? $themeStyles . substr($rendered, $bodyEnd + 1, $mainStart - $bodyEnd - 1)
-                    : '';
-            }
-            $footerStart = stripos($rendered, '<footer');
-            $footerEnd = $footerStart === false ? false : stripos($rendered, '</footer>', $footerStart);
-            return $footerStart !== false && $footerEnd !== false
-                ? substr($rendered, $footerStart, $footerEnd + strlen('</footer>') - $footerStart)
-                : '';
-        };
+        ): string => renderBloxCanvasThemeArea($area, $scriptName, $channelId, $pageId, $title, $slug);
 
         $canEditContextArea = function_exists('hasPermission') && hasPermission('blox_global');
         $wrapContextArea = static function (string $area, string $html, string $source, string $editUrl) use ($canEditContextArea): string {

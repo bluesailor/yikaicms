@@ -32,4 +32,15 @@ final class UpgradeOnlineApplyContractTest extends TestCase
         // finalize 成功路径删除状态文件——重放批次由 invalid_state 兜住。
         self::assertStringContainsString('@unlink($sf)', $source);
     }
+
+    public function testOnlineUpgradeRejectsAReleaseAboveTheCurrentPhpVersion(): void
+    {
+        $source = file_get_contents(ROOT_PATH . '/admin/upgrade_online.php');
+        self::assertNotFalse($source);
+
+        self::assertStringContainsString("\$data['data']['min_php']", $source);
+        self::assertStringContainsString("version_compare(PHP_VERSION, \$minPhp, '<')", $source);
+        self::assertStringContainsString("'error_code' => 'php_version_too_low'", $source);
+        self::assertStringContainsString("__('upgrade_php_version_required'", $source);
+    }
 }

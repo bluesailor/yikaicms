@@ -51,7 +51,14 @@
    不截点击（编辑器画布选中/拖拽依赖此约束）；内容层承接容器的 flex 布局。 */
 .blox-has-bg { position: relative; overflow: hidden; }
 .blox-bg-media, .blox-bg-overlay { position: absolute; inset: 0; pointer-events: none; }
-.blox-bg-media video { width: 100%; height: 100%; object-fit: cover; }
+.blox-bg-media video { width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.blox-bg-media video.blox-bg-video-ready { opacity: 1; }
+@media (max-width: 767px) {
+    .blox-bg-media video[data-blox-mobile-video="poster"] { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .blox-bg-media video { display: none; }
+}
 .blox-content { position: relative; z-index: 1; }
 
 /* 模板库按面板自身宽度重排；停靠侧栏与宽弹层共用同一套内容驱动断点。 */
@@ -469,3 +476,13 @@ html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
 }
 
 /* 内置 Header 起步模板的结构预览：只表达布局，不绑定真实 Logo、菜单或站点文案。 */
+/* 区块文字色调覆盖主题工具类；元素自身的行内颜色仍然优先。 */
+[data-blox-text-tone="light"],
+[data-blox-text-tone="light"] :is(h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote) {
+  color: #fff;
+}
+
+[data-blox-text-tone="dark"],
+[data-blox-text-tone="dark"] :is(h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote) {
+  color: #111827;
+}

@@ -153,6 +153,9 @@ CREATE TABLE "yikai_banners" (
   "btn2_url" TEXT NOT NULL DEFAULT '',
   "image" TEXT NOT NULL,
   "image_mobile" TEXT NOT NULL DEFAULT '',
+  "media_type" TEXT NOT NULL DEFAULT 'image',
+  "video" TEXT NOT NULL DEFAULT '',
+  "video_mobile_mode" TEXT NOT NULL DEFAULT 'poster',
   "link_url" TEXT NOT NULL DEFAULT '',
   "link_target" TEXT NOT NULL DEFAULT '_self',
   "start_time" INTEGER NOT NULL DEFAULT '0',
@@ -211,6 +214,11 @@ CREATE TABLE "yikai_blox_templates" (
 );
 CREATE INDEX "idx_blox_templates_type_yikai_blox_templates" ON "yikai_blox_templates" ("type","status","updated_at");
 CREATE INDEX "idx_blox_templates_source_yikai_blox_templates" ON "yikai_blox_templates" ("source");
+
+INSERT INTO "yikai_blox_templates" ("id","type","name","source","source_ref","schema_version","draft_data","requirements","metadata") VALUES
+(1,'footer','Clean Site Footer','builtin','clean-site-footer',1,'{"schema":1,"settings":[],"sections":[{"id":"tpl_6f1b2b2ba493_s_0","type":"section","settings":{"padding":"lg","max_width":"wide","gap":"lg","bg_color":"#f9fafb","align_items":"center"},"columns":[{"id":"tpl_6f1b2b2ba493_c_0_0","elements":[{"id":"tpl_6f1b2b2ba493_e_0_0_0","type":"heading","data":{"site_field":"site_name","level":"h3","visual_size":"lg","align":"left"}},{"id":"tpl_6f1b2b2ba493_e_0_0_1","type":"text","data":{"site_field":"site_description"}}],"span":4},{"id":"tpl_6f1b2b2ba493_c_0_1","elements":[{"id":"tpl_6f1b2b2ba493_e_0_1_0","type":"nav","data":{"menu_group":0,"parent":"","nav_only":"1","dropdown":"0","wrap_class":"flex flex-wrap gap-4 text-gray-600"}}],"span":8}]},{"id":"tpl_6f1b2b2ba493_s_1","type":"section","settings":{"padding":"sm","max_width":"wide","gap":"none","bg_color":"#f3f4f6"},"columns":[{"id":"tpl_6f1b2b2ba493_c_1_0","elements":[{"id":"tpl_6f1b2b2ba493_e_1_0_0","type":"site-copyright","data":{"show_icp":"1","show_police":"1","align":"center","tone":"dark"}}]}]}]}','{"elements":["heading","nav","site-copyright","text"],"plugins":[],"design_tokens":[],"design_styles":[]}','{"schema":1,"purpose":"general","page_types":["general"],"industries":[],"content_slots":[],"cta_type":"none","required_plugins":[],"language_coverage":[],"image_ratio":"","min_cms_version":"","priority":0}'),
+(2,'footer','Business Theme Footer','builtin','business-site-footer',1,'{"schema":1,"settings":[],"sections":[{"id":"tpl_80e1e40d9e69_s_0","type":"section","settings":{"padding":"sm","max_width":"wide","gap":"none","bg_color":"#0f172a","align_items":"center"},"columns":[{"id":"tpl_80e1e40d9e69_c_0_0","elements":[{"id":"tpl_80e1e40d9e69_e_0_0_0","type":"nav","data":{"menu_group":0,"parent":"","nav_only":"1","dropdown":"0","wrap_class":"flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-gray-300"}}]}]},{"id":"tpl_80e1e40d9e69_s_1","type":"section","settings":{"padding":"sm","max_width":"wide","gap":"none","bg_color":"#020617"},"columns":[{"id":"tpl_80e1e40d9e69_c_1_0","elements":[{"id":"tpl_80e1e40d9e69_e_1_0_0","type":"site-copyright","data":{"show_icp":"1","show_police":"1","align":"center","tone":"light"}}]}]}]}','{"elements":["nav","site-copyright"],"plugins":[],"design_tokens":[],"design_styles":[]}','{"schema":1,"purpose":"general","page_types":["general"],"industries":[],"content_slots":[],"cta_type":"none","required_plugins":[],"language_coverage":[],"image_ratio":"","min_cms_version":"","priority":0}'),
+(3,'footer','Minimal Theme Footer','builtin','minimal-site-footer',1,'{"schema":1,"settings":[],"sections":[{"id":"tpl_4a1dc71a8518_s_0","type":"section","settings":{"padding":"md","max_width":"wide","gap":"none","bg_color":"#ffffff","align_items":"center"},"columns":[{"id":"tpl_4a1dc71a8518_c_0_0","elements":[{"id":"tpl_4a1dc71a8518_e_0_0_0","type":"site-copyright","data":{"show_icp":"1","show_police":"1","align":"center","tone":"dark"}}]}]}]}','{"elements":["site-copyright"],"plugins":[],"design_tokens":[],"design_styles":[]}','{"schema":1,"purpose":"general","page_types":["general"],"industries":[],"content_slots":[],"cta_type":"none","required_plugins":[],"language_coverage":[],"image_ratio":"","min_cms_version":"","priority":0}');
 
 
 DROP TABLE IF EXISTS "yikai_blox_remote_template_states";

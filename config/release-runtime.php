@@ -26,6 +26,8 @@ return [
         'includes/ThemeSettings.php',
         'includes/ThemePalette.php',
         'includes/ThemeMarket.php',
+        'includes/ThemeValidator.php',
+        'includes/ThemeInstaller.php',
         'includes/security.php',
         'includes/AdminLogSanitizer.php',
         'includes/FormSubmissionToken.php',

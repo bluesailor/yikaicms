@@ -7,7 +7,7 @@
 
     function groupFor(key, node) {
         if (node && node.type === "home-banner-item") {
-            if (key === "image_mobile") return "mobile";
+            if (["image_mobile", "video_mobile_mode"].includes(key)) return "mobile";
             if (["content_motion", "background_motion"].includes(key)) return "motion";
             if (["btn1_text", "btn1_url", "btn2_text", "btn2_url", "link_url", "link_target"].includes(key)) return "playback";
             return "common";
@@ -20,9 +20,17 @@
 
     function controls(node, list, group, showAll) {
         if (!supports(node) || showAll) return list;
-        var visible = list.filter(function (control) { return groupFor(control.key, node) === group; });
+        var visible = list.filter(function (control) {
+            if (groupFor(control.key, node) !== group) return false;
+            if (node.type === "home-banner-item") {
+                var video = (node.data || {}).media_type === "video";
+                if (control.key === "video" && !video) return false;
+                if (control.key === "video_mobile_mode" && !video) return false;
+            }
+            return true;
+        });
         if (node.type === "home-banner-item" && group === "common") {
-            var order = ["image", "title", "subtitle"];
+            var order = ["media_type", "video", "image", "title", "subtitle"];
             visible.sort(function (a, b) { return order.indexOf(a.key) - order.indexOf(b.key); });
         }
         return visible;
@@ -66,10 +74,55 @@
             var node = this.selEl;
             if (!node || node.type !== "home-banner-item" || !["image", "image_mobile"].includes(key)) return;
             var self = this;
-            this.openMedia(function (url) {
+            var switchesPrimaryMedia = key === "image" && node.data.media_type !== "video";
+            var applyImage = function (url) {
                 if (self.selEl !== node) return;
-                self.runCommand("replace-banner-control-image", function () { node.data[key] = url; });
-            }, key === "image_mobile" ? {} : { usage: "hero-bg" });
+                self.runCommand("replace-banner-control-image", function () {
+                    node.data[key] = url;
+                    if (switchesPrimaryMedia) node.data.media_type = "image";
+                });
+            };
+            var options = !switchesPrimaryMedia ? {} : {
+                usage: "hero-bg",
+                targets: {
+                    image: applyImage,
+                    video: function (url) {
+                        if (self.selEl !== node) return;
+                        self.runCommand("replace-banner-control-video", function () {
+                            node.data.media_type = "video";
+                            node.data.video = url;
+                        });
+                    },
+                },
+            };
+            this.openMedia(applyImage, options);
+        },
+
+        replaceBannerControlVideo() {
+            var node = this.selEl;
+            if (!node || node.type !== "home-banner-item") return;
+            var self = this;
+            var applyVideo = function (url) {
+                if (self.selEl !== node) return;
+                self.runCommand("replace-banner-control-video", function () {
+                    node.data.media_type = "video";
+                    node.data.video = url;
+                });
+            };
+            this.openMedia(applyVideo, {
+                type: "video",
+                usage: "hero-bg",
+                targets: {
+                    image: function (url) {
+                        if (self.selEl !== node) return;
+                        self.runCommand("replace-banner-control-image", function () {
+                            node.data.media_type = "image";
+                            node.data.image = url;
+                        });
+                    },
+                    video: applyVideo,
+                },
+            });
         },
 
         resetBannerMobileImage() {

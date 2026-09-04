@@ -310,8 +310,7 @@ if (!$i18nOnly) {
     $headerTemplate = BloxTemplateImporter::importJson($headerTemplateJson, 1, 'builtin', 'clean-site-header');
     $headerTemplateId = (int) $headerTemplate['id'];
 
-    $footerTemplateJson = (string) file_get_contents(ROOT_PATH . '/templates/blox/areas/clean-site-footer.json');
-    $footerTemplate = BloxTemplateImporter::importJson($footerTemplateJson, 1, 'builtin', 'clean-site-footer');
+    $footerTemplate = BloxAreaTemplatePresets::install('clean-site-footer', 1);
     $footerTemplateId = (int) $footerTemplate['id'];
 }
 

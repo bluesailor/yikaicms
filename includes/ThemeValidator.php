@@ -18,6 +18,7 @@
 
 declare(strict_types=1);
 
+/** @psalm-suppress ParadoxicalCondition Direct access can load this file without the application bootstrap. */
 if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }

@@ -1,8 +1,11 @@
 # Theme marketplace sources
 
-`themes/` is the runtime installation directory and the CMS package only bundles `default`.
+`themes/` is the runtime installation directory. The source tree tracks only `default` there;
+the full package build also stages `business` and `minimal` from the marketplace sources so a
+new installation starts with three choices. CMS upgrades treat every non-default theme as
+site-owned content and never overwrite it.
 
-Optional themes live under `marketplace/themes/{slug}` as packaging sources. They must be
+Optional themes live under `marketplace/themes/{slug}` as their single packaging source. They must be
 packed, hashed, and RSA-signed by `update.yikaicms/bin/pack-themes.sh` before publication.
 The resulting ZIP files are installed by `admin/theme.php` into `themes/{slug}`.
 

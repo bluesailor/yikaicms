@@ -76,11 +76,11 @@ test('home content groups partition controls without mutating source data', () =
     assert.equal(panel.supports({ type: 'home-block', data: { block_type: 'banner' } }), false);
 });
 
-test('CTA background controls are discoverable together without changing schema tabs', () => {
+test('background controls retain their schema tabs instead of becoming CTA-only content controls', () => {
     for (const key of ['bg_image', 'bg_color', 'bg_overlay_color', 'bg_overlay_opacity', 'text_light']) {
         const control = { key, tab: 'style' };
-        assert.equal(panel.tabFor(cta, control), 'content');
-        assert.equal(panel.groupFor(key), 'media');
+        assert.equal(panel.tabFor(cta, control), 'style');
+        assert.equal(panel.groupFor(key), 'more');
         assert.equal(panel.tabFor(about, control), 'style');
         assert.equal(control.tab, 'style');
     }
@@ -97,6 +97,26 @@ test('switching groups clears field focus only and keeps document data intact', 
     assert.equal(context.selEl, about);
     panel.methods.setHomeContentGroup.call(context, 'invalid');
     assert.equal(context.homeContentGroup, 'layout');
+});
+
+test('CTA background group opens the generic parent section background', () => {
+    let selected = -1;
+    const context = Object.assign({
+        selEl: cta,
+        selectedSi: 5,
+        panelTab: 'content',
+        selectSection: index => { selected = index; },
+    }, panel.methods);
+    context.openHomeContentGroup('media');
+    assert.equal(selected, 5);
+    assert.equal(context.panelTab, 'style');
+
+    context.selEl = about;
+    context.homeContentGroup = 'content';
+    context.selectedHomeField = 'override_title';
+    context.selectedHomeColumn = 'text';
+    context.openHomeContentGroup('media');
+    assert.equal(context.homeContentGroup, 'media');
 });
 
 test('media selection uses existing source policy and rejects stale callbacks', () => {

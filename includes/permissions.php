@@ -182,6 +182,12 @@ function canUploadImage(): bool
         || hasPermission('media') || hasPermission('banner') || hasPermission('link');
 }
 
+/** 视频用于 Banner / 页面排版，权限边界与图片一致。 */
+function canUploadVideo(): bool
+{
+    return canUploadImage();
+}
+
 /**
  * 能否上传文档 / 压缩包。
  * 比图片严得多：这类文件不是「排版需要」，而是对外分发的资料，
@@ -204,7 +210,11 @@ function canManageMedia(): bool
  */
 function canUploadType(string $type): bool
 {
-    return $type === 'images' ? canUploadImage() : canUploadFile();
+    return match ($type) {
+        'images' => canUploadImage(),
+        'videos' => canUploadVideo(),
+        default => canUploadFile(),
+    };
 }
 
 /**

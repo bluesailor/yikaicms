@@ -28,6 +28,7 @@ let server = null;
 let playwright = null;
 let setupAttempted = false;
 let serverLog = '';
+const localVideoSampleNames = ['blox-test-flower.mp4', 'blox-test-friday.mp4'];
 
 function runPhp(args, env = process.env) {
   return spawnSync(php, args, { cwd: root, env, stdio: 'inherit' });
@@ -37,6 +38,23 @@ function persistServerLog() {
   if (!serverLog) return;
   fs.mkdirSync(path.dirname(serverLogPath), { recursive: true });
   fs.writeFileSync(serverLogPath, serverLog, 'utf8');
+}
+
+function copyLocalVideoSamples() {
+  const configured = String(process.env.BLOX_E2E_VIDEO_SAMPLES || '').trim();
+  if (!configured) return;
+
+  const sourceDir = path.resolve(configured);
+  const targetDir = path.join(root, 'uploads', 'videos');
+  fs.mkdirSync(targetDir, { recursive: true });
+  for (const name of localVideoSampleNames) {
+    const source = path.join(sourceDir, name);
+    if (!fs.existsSync(source) || !fs.statSync(source).isFile()) {
+      throw new Error(`Missing local video sample: ${source}`);
+    }
+    fs.copyFileSync(source, path.join(targetDir, name));
+  }
+  console.log(`Local video samples copied from: ${sourceDir}`);
 }
 
 function canListen(candidate) {
@@ -95,6 +113,7 @@ async function main() {
   try {
     root = createSite(sourceRoot);
     console.log(`Isolated test site: ${root}`);
+    copyLocalVideoSamples();
     port = await choosePort();
     baseURL = `http://127.0.0.1:${port}`;
     setupAttempted = true;
