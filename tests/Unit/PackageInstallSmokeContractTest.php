@@ -89,6 +89,11 @@ final class PackageInstallSmokeContractTest extends TestCase
         self::assertStringContainsString("Fatal error|Uncaught|PDOException", $script);
         self::assertStringContainsString('前台下载搜索无 summary 警告', $script);
         self::assertStringContainsString('Undefined array key "summary"', $script);
+        self::assertStringContainsString('php.exe" -l "$UNPACK_WIN/$relative" </dev/null', $script);
+        self::assertStringContainsString("note \"install/index.php 响应码 \$SERVED_PHP\"\nmkdir -p .pkgtest", $script);
+
+        $crud = (string) file_get_contents(dirname(__DIR__) . '/smoke/admin_crud.php');
+        self::assertStringContainsString('$csrfCode !== 403', $crud);
     }
 
     public function testPackageInstallRejectsADisabledLanguageAtRuntime(): void
@@ -102,6 +107,7 @@ final class PackageInstallSmokeContractTest extends TestCase
         self::assertStringContainsString('DISABLED_LANG_STATUS', $script);
         self::assertStringContainsString('X-Robots-Tag', $script);
         self::assertStringContainsString("['zh-CN', 'en']", $contract);
+        self::assertSame(1, substr_count($contract, "require ROOT_PATH . '/config/"));
     }
 
     public function testPackageInstallExecutesSvgSecurityContractWithTheTargetPhp(): void

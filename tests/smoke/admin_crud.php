@@ -142,7 +142,7 @@ echo "✓ 登录成功\n";
     'key' => 'remote:pricing-3col',
 ]);
 $csrfJson = json_decode($csrfBody, true);
-if ($csrfCode !== 200 || !is_array($csrfJson) || (int) ($csrfJson['code'] ?? 0) !== 403) {
+if ($csrfCode !== 403 || !is_array($csrfJson) || (int) ($csrfJson['code'] ?? 0) !== 403) {
     fwrite(STDERR, "❌ Blox 模板解析端点未拒绝无 CSRF token 的 POST\n");
     exit(2);
 }
