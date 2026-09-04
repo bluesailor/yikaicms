@@ -25,6 +25,9 @@ initLang();
 
 // 加载钩子系统与插件
 require_once ROOT_PATH . '/includes/hooks.php';
+// Blox 等独立后台 API 不走 includes/init.php；必须在这里注册按需 HTML 缓存
+// 的 data_changed/setting_saved 失效钩子，否则发布成功后匿名访客仍命中旧页面。
+require_once ROOT_PATH . '/includes/HtmlCache.php';
 require_once ROOT_PATH . '/includes/Compatibility.php';
 Compatibility::bootstrap();
 require_once ROOT_PATH . '/includes/DemoSandbox.php';
