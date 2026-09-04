@@ -9,7 +9,21 @@
  */
 declare(strict_types=1);
 
-$BASE = getenv('SMOKE_BASE') ?: 'http://127.0.0.1:8080';
+/** @return ?string */
+function smokeOption(string $name): ?string
+{
+    global $argv;
+    $prefix = '--' . $name . '=';
+    foreach ($argv ?? [] as $argument) {
+        if (is_string($argument) && str_starts_with($argument, $prefix)) {
+            return substr($argument, strlen($prefix));
+        }
+    }
+    return null;
+}
+
+$BASE = smokeOption('base') ?: (getenv('SMOKE_BASE') ?: 'http://127.0.0.1:8080');
+$SMOKE_ROOT = smokeOption('root') ?: (getenv('SMOKE_SITE_ROOT') ?: dirname(__DIR__, 2));
 $JAR  = sys_get_temp_dir() . '/smoke_cookies_' . getmypid() . '.txt';
 @unlink($JAR);
 $fx = json_decode(@file_get_contents(__DIR__ . '/fixtures.json') ?: '{}', true) ?: [];
@@ -19,9 +33,12 @@ $fx = json_decode(@file_get_contents(__DIR__ . '/fixtures.json') ?: '{}', true) 
  * hard-coded SQLite connection here made the HTTP smoke silently verify a
  * different database when the site itself ran on MySQL.
  */
-function smokeDatabase(): PDO
+function smokeDatabase(string $root): PDO
 {
-    $root = dirname(__DIR__, 2);
+    $root = rtrim($root, '/\\');
+    if (!is_file($root . '/config/config.php')) {
+        throw new RuntimeException("Smoke target has no installed config: {$root}");
+    }
     if (!defined('ROOT_PATH')) {
         define('ROOT_PATH', $root);
     }
@@ -41,7 +58,7 @@ function smokeDatabase(): PDO
     return $pdo;
 }
 
-$directDb = smokeDatabase();
+$directDb = smokeDatabase($SMOKE_ROOT);
 
 function req(string $method, string $url, array $post = null): array
 {
