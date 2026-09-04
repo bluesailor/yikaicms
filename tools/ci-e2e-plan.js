@@ -38,13 +38,13 @@ function shardsForPath(input, root = path.resolve(__dirname, '..')) {
     return new Set(ALL);
   }
 
-  if (/^(?:admin\/(?:media(?:_api)?|upload|banner)\.php|includes\/models\/(?:Media|Banner)Model\.php|includes\/(?:Media|ResponsiveImage)|includes\/blocks\/banner\.php|assets\/js\/blox-(?:banner|video)|themes\/[^/]+\/blocks\/banner\.php)/i.test(file)) {
+  if (/^(?:admin\/(?:media(?:_api)?|upload|banner)\.php|admin\/blox_editor\/partials\/(?:banner|video)|includes\/models\/(?:Media|Banner)Model\.php|includes\/(?:BundledMediaLibrary|Media|RemoteOfficialMedia|ResponsiveImage)|includes\/commands\/media\.php|includes\/blocks\/banner\.php|includes\/builder\/elements\/(?:Banner|HomeBannerItem|Video)Element\.php|assets\/js\/(?:blox-(?:background-video|banner|media|video)|media-library|official-media)|(?:marketplace\/)?themes\/[^/]+\/blocks\/banner\.php)/i.test(file)) {
     return new Set(['media']);
   }
   if (/^(?:admin\/(?:blox_templates|blox_template_api|blox_design|site_design|theme)\.php|includes\/(?:Theme|builder\/Blox(?:Area|Design|Header|Template|ThemeHeader))|marketplace\/themes\/|themes\/)/i.test(file)) {
     return new Set(['design']);
   }
-  if (/^(?:lang\/|includes\/(?:i18n|language)|admin\/role\.php|tests\/e2e\/blox-home-language\.spec\.js|deploy\/)/i.test(file)) {
+  if (/^(?:lang\/|includes\/(?:i18n|language|HomeSettingsLanguageDefaults)|includes\/builder\/(?:BloxAreaLanguageManager|BloxResponsiveValue)\.php|includes\/builder\/elements\/LanguageSwitcherElement\.php|admin\/role\.php|admin\/blox_templates\/partials\/language-areas\.php|assets\/js\/blox-(?:language-switcher|responsive)\.js|tests\/e2e\/blox-home-language\.spec\.js|deploy\/)/i.test(file)) {
     return new Set(['locale']);
   }
   if (/^(?:admin\/blox_editor|admin\/blox_(?:home|page|preview)_api|includes\/builder\/|assets\/js\/blox-|admin\/|controllers\/|includes\/)/i.test(file)) {

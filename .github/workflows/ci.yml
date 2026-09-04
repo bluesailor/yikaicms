@@ -5,8 +5,10 @@ on:
     # release/** 必须在列：稳定候选分支才是真正出版本的地方，
     # 它上面的修复如果不跑 CI，等于发版前最后一段路没有护栏。
     branches: [main, master, develop, 'release/**', 'hotfix/**']
+    tags: ['v*']
   pull_request:
-    branches: [main, master, develop, 'release/**']
+    branches: [main, master, develop, 'release/**', 'hotfix/**']
+    types: [opened, synchronize, reopened, labeled]
 
 # Cancel in-progress runs from the same branch when a new commit lands.
 concurrency:
@@ -519,7 +521,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          FORCE_FULL: ${{ github.event_name != 'pull_request' || startsWith(github.base_ref, 'release/') || contains(github.event.pull_request.labels.*.name, 'full-browser-matrix') }}
+          FORCE_FULL: ${{ github.event_name != 'pull_request' || startsWith(github.base_ref, 'release/') || startsWith(github.head_ref, 'release/') || startsWith(github.base_ref, 'hotfix/') || startsWith(github.head_ref, 'hotfix/') || contains(github.event.pull_request.labels.*.name, 'full-browser-matrix') }}
         run: |
           if [[ "$FORCE_FULL" == "true" ]]; then
             node tools/ci-e2e-plan.js --full

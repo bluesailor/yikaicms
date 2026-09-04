@@ -11,9 +11,25 @@ const root = path.resolve(__dirname, '../..');
 
 test('browser paths select only their relevant shard', () => {
   assert.deepEqual(plan(['admin/upload.php'], { root }), ['media']);
+  assert.deepEqual(plan(['assets/js/blox-media-client.js'], { root }), ['media']);
+  assert.deepEqual(plan(['admin/blox_editor/partials/banner-manager.php'], { root }), ['media']);
+  assert.deepEqual(plan(['includes/builder/elements/HomeBannerItemElement.php'], { root }), ['media']);
+  assert.deepEqual(plan(['marketplace/themes/minimal/blocks/banner.php'], { root }), ['media']);
   assert.deepEqual(plan(['admin/blox_templates.php'], { root }), ['design']);
   assert.deepEqual(plan(['lang/ja.php'], { root }), ['locale']);
+  assert.deepEqual(plan(['assets/js/blox-responsive.js'], { root }), ['locale']);
+  assert.deepEqual(plan(['includes/builder/BloxResponsiveValue.php'], { root }), ['locale']);
   assert.deepEqual(plan(['admin/blox_home_api.php'], { root }), ['core']);
+});
+
+test('release, hotfix and version tag events keep full browser gates', () => {
+  const workflow = require('node:fs').readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8');
+  assert.match(workflow, /tags: \['v\*'\]/);
+  assert.match(workflow, /startsWith\(github\.base_ref, 'release\/'\)/);
+  assert.match(workflow, /startsWith\(github\.head_ref, 'release\/'\)/);
+  assert.match(workflow, /startsWith\(github\.base_ref, 'hotfix\/'\)/);
+  assert.match(workflow, /startsWith\(github\.head_ref, 'hotfix\/'\)/);
+  assert.match(workflow, /types: \[opened, synchronize, reopened, labeled\]/);
 });
 
 test('tagged specs select their declared shard', () => {
