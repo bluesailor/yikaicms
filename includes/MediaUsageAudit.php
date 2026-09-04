@@ -262,6 +262,18 @@ final class MediaUsageAudit
             return;
         }
 
+        foreach (['bg_image', 'container_bg_image', 'card_bg_image'] as $imageKey) {
+            if (array_key_exists($imageKey, $value)) {
+                self::addReference(
+                    $targets,
+                    $result,
+                    $value[$imageKey],
+                    'background_image',
+                    $source,
+                    $path . '.' . $imageKey
+                );
+            }
+        }
         if (array_key_exists('bg_video', $value)) {
             self::addReference($targets, $result, $value['bg_video'], 'background_video', $source, $path . '.bg_video');
         }
@@ -269,6 +281,18 @@ final class MediaUsageAudit
         $data = is_array($value['data'] ?? null) ? $value['data'] : [];
         if ($type === 'video') {
             self::addReference($targets, $result, $data['url'] ?? '', 'video_element', $source, $path . '.data.url');
+        } elseif ($type === 'image') {
+            self::addReference($targets, $result, $data['src'] ?? '', 'image_element', $source, $path . '.data.src');
+            self::addReference(
+                $targets,
+                $result,
+                $data['loop_fallback'] ?? '',
+                'image_element',
+                $source,
+                $path . '.data.loop_fallback'
+            );
+        } elseif ($type === 'card') {
+            self::addReference($targets, $result, $data['image'] ?? '', 'card_image', $source, $path . '.data.image');
         } elseif ($type === 'home-banner-item') {
             self::addReference($targets, $result, $data['image'] ?? '', 'banner_image', $source, $path . '.data.image');
             self::addReference($targets, $result, $data['image_mobile'] ?? '', 'banner_mobile_image', $source, $path . '.data.image_mobile');
@@ -350,14 +374,27 @@ final class MediaUsageAudit
     {
         $needles = [];
         $url = trim(html_entity_decode($url, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-        if ($url !== '') {
-            $needles[$url] = true;
-        }
+        self::addSearchNeedles($needles, $url);
         $path = parse_url($url, PHP_URL_PATH);
         if (is_string($path) && $path !== '') {
-            $needles[$path] = true;
+            self::addSearchNeedles($needles, $path);
         }
         return array_keys($needles);
+    }
+
+    /** @param array<string,bool> $needles */
+    private static function addSearchNeedles(array &$needles, string $value): void
+    {
+        if ($value === '') {
+            return;
+        }
+        $needles[$value] = true;
+        // 历史文档可能由默认 json_encode() 生成，斜杠会保存为 `\/`。
+        // SQL 预筛也必须识别该形式，后续仍由 JSON 解析和语义字段检查决定是否引用。
+        $jsonEscaped = str_replace('/', '\\/', $value);
+        if ($jsonEscaped !== $value) {
+            $needles[$jsonEscaped] = true;
+        }
     }
 
     private static function referenceKey(string $url): string

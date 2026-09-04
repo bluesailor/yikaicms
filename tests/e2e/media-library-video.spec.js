@@ -1,7 +1,25 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const { test, expect } = require('@playwright/test');
 const { observeConsole } = require('./helpers');
+
+function updateMediaAuditFixture(action, key, value = '', url = '') {
+  const script = [
+    'define("ROOT_PATH", getcwd());',
+    'require ROOT_PATH . "/includes/init.php";',
+    'if ($argv[1] === "add") {',
+    '  db()->insert("settings", ["group" => "blox", "key" => $argv[2], "value" => base64_decode($argv[3], true), "type" => "textarea", "name" => "", "tip" => "", "options" => null, "sort_order" => 0]);',
+    '} else {',
+    '  db()->delete("settings", "`key` = ?", [$argv[2]]);',
+    '  if ($argv[4] !== "") db()->delete("media", "url = ?", [$argv[4]]);',
+    '}',
+  ].join(' ');
+  execFileSync('php', ['-r', script, action, key, Buffer.from(value).toString('base64'), url], {
+    cwd: process.cwd(),
+    stdio: 'pipe',
+  });
+}
 
 async function scanMedia(page) {
   await page.goto('/admin/media.php', { waitUntil: 'domcontentloaded' });
@@ -95,22 +113,30 @@ test('standalone media library extracts first frames from two real videos @local
 
 test('media deletion is blocked while a banner references the video @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'Destructive reference guard is sampled once.');
-  const name = `media-usage-${process.pid}-${Date.now()}.mp4`;
+  const token = `media-usage-${process.pid}-${Date.now()}`;
+  const name = `${token}-used.mp4`;
+  const unusedName = `${token}-unused.mp4`;
   const videoPath = path.join(process.cwd(), 'uploads', 'videos', name);
+  const unusedPath = path.join(process.cwd(), 'uploads', 'videos', unusedName);
   const videoUrl = `/uploads/videos/${name}`;
   fs.mkdirSync(path.dirname(videoPath), { recursive: true });
   fs.writeFileSync(videoPath, Buffer.alloc(64));
+  fs.writeFileSync(unusedPath, Buffer.alloc(32));
   let bannerId = 0;
 
   try {
     await scanMedia(page);
-    await page.goto(`/admin/media.php?type=video&keyword=${encodeURIComponent(name)}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`/admin/media.php?type=video&keyword=${encodeURIComponent(token)}`, { waitUntil: 'domcontentloaded' });
     const csrf = await page.locator('meta[name="csrf-token"]').getAttribute('content');
     expect(csrf).toBeTruthy();
     const card = page.locator('[data-media-card]').filter({ hasText: name });
+    const unusedCard = page.locator('[data-media-card]').filter({ hasText: unusedName });
     await expect(card).toHaveCount(1);
+    await expect(unusedCard).toHaveCount(1);
     const mediaId = Number(await card.getAttribute('data-id'));
+    const unusedMediaId = Number(await unusedCard.getAttribute('data-id'));
     expect(mediaId).toBeGreaterThan(0);
+    expect(unusedMediaId).toBeGreaterThan(0);
 
     const created = await page.request.post('/admin/banner.php', { form: {
       _token: csrf,
@@ -181,20 +207,33 @@ test('media deletion is blocked while a banner references the video @ci', async 
     expect(fs.existsSync(videoPath)).toBe(true);
     await expect(card).toHaveCount(1);
 
+    const batchBlocked = await page.evaluate(async (ids) => {
+      const body = new FormData();
+      body.append('action', 'batch_delete');
+      ids.forEach((id) => body.append('ids[]', String(id)));
+      return (await fetch('', { method: 'POST', body })).json();
+    }, [mediaId, unusedMediaId]);
+    expect(batchBlocked.code).not.toBe(0);
+    expect(fs.existsSync(videoPath)).toBe(true);
+    expect(fs.existsSync(unusedPath)).toBe(true);
+    await expect(card).toHaveCount(1);
+    await expect(unusedCard).toHaveCount(1);
+
     const removedBanner = await page.request.post('/admin/banner.php', {
       form: { _token: csrf, action: 'delete', id: String(bannerId) },
     });
     expect((await removedBanner.json()).code).toBe(0);
     bannerId = 0;
 
-    const deleted = await page.evaluate(async (id) => {
+    const deleted = await page.evaluate(async (ids) => {
       const body = new FormData();
-      body.append('action', 'delete');
-      body.append('id', String(id));
+      body.append('action', 'batch_delete');
+      ids.forEach((id) => body.append('ids[]', String(id)));
       return (await fetch('', { method: 'POST', body })).json();
-    }, mediaId);
+    }, [mediaId, unusedMediaId]);
     expect(deleted.code).toBe(0);
     expect(fs.existsSync(videoPath)).toBe(false);
+    expect(fs.existsSync(unusedPath)).toBe(false);
   } finally {
     if (bannerId > 0) {
       await page.goto('/admin/banner.php', { waitUntil: 'domcontentloaded' });
@@ -204,5 +243,63 @@ test('media deletion is blocked while a banner references the video @ci', async 
       });
     }
     fs.rmSync(videoPath, { force: true });
+    fs.rmSync(unusedPath, { force: true });
+  }
+});
+
+test('media deletion is blocked by slash-escaped Blox image references @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'Destructive Blox reference guard is sampled once.');
+  const token = `media-blox-usage-${process.pid}-${Date.now()}`.toLowerCase();
+  const name = `${token}.png`;
+  const imagePath = path.join(process.cwd(), 'uploads', 'images', name);
+  const imageUrl = `/uploads/images/${name}`;
+  const settingKey = `home_blox_data_${token}`;
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+  fs.mkdirSync(path.dirname(imagePath), { recursive: true });
+  fs.writeFileSync(imagePath, png);
+
+  try {
+    await scanMedia(page);
+    await page.goto(`/admin/media.php?type=image&keyword=${encodeURIComponent(name)}`, { waitUntil: 'domcontentloaded' });
+    const card = page.locator('[data-media-card]').filter({ hasText: name });
+    await expect(card).toHaveCount(1);
+    const mediaId = Number(await card.getAttribute('data-id'));
+    expect(mediaId).toBeGreaterThan(0);
+
+    const document = JSON.stringify([{
+      id: 'audit-section',
+      settings: { bg_image: imageUrl },
+      columns: [{
+        id: 'audit-column',
+        elements: [{ type: 'image', data: { src: imageUrl, link_url: imageUrl } }],
+      }],
+    }]).replaceAll('/', '\\/');
+    updateMediaAuditFixture('add', settingKey, document);
+
+    const usage = await page.evaluate(async (id) => {
+      const body = new FormData();
+      body.append('action', 'usage');
+      body.append('id', String(id));
+      return (await fetch('', { method: 'POST', body })).json();
+    }, mediaId);
+    expect(usage.code).toBe(0);
+    expect(usage.data).toMatchObject({ blocked: true, files: 1, count: 2 });
+    expect(usage.data.references.map(reference => reference.kind).sort()).toEqual([
+      'background_image',
+      'image_element',
+    ]);
+
+    const blocked = await page.evaluate(async (id) => {
+      const body = new FormData();
+      body.append('action', 'delete');
+      body.append('id', String(id));
+      return (await fetch('', { method: 'POST', body })).json();
+    }, mediaId);
+    expect(blocked.code).not.toBe(0);
+    expect(fs.existsSync(imagePath)).toBe(true);
+    await expect(card).toHaveCount(1);
+  } finally {
+    updateMediaAuditFixture('remove', settingKey, '', imageUrl);
+    fs.rmSync(imagePath, { force: true });
   }
 });
