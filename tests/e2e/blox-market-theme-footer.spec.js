@@ -14,6 +14,9 @@ test.afterAll(() => cleanup());
 
 async function activateTheme(page, slug) {
   await page.goto('/admin/theme.php', { waitUntil: 'domcontentloaded' });
+  if (await page.locator('main').getByText(`当前主题：${slug}`, { exact: false }).isVisible()) {
+    return;
+  }
   const form = page.locator(`form:has(input[name="slug"][value="${slug}"])`);
   await expect(form).toBeVisible();
   page.once('dialog', (dialog) => dialog.accept());
@@ -53,6 +56,30 @@ async function pointerClick(page, locator) {
     element.dispatchEvent(new MouseEvent('click', options));
   });
 }
+
+test('default homepage opens its active Blox footer directly @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+
+  await activateTheme(page, 'default');
+  await openEditor(page);
+
+  const contentFrame = await frame(page);
+  const footerArea = contentFrame.locator('[data-yk-context-area="footer"]');
+  const footerEdit = contentFrame.getByTestId('blox-context-edit-footer');
+  const footerUrl = new URL(
+    await footerArea.getAttribute('data-yk-context-url'),
+    page.url()
+  ).href;
+
+  expect(footerUrl).toMatch(/\/admin\/blox_editor\.php\?template=\d+&back=home$/);
+  await Promise.all([
+    page.waitForURL(footerUrl, { waitUntil: 'domcontentloaded' }),
+    pointerClick(page, footerEdit),
+  ]);
+
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+  await expect((await frame(page)).locator('[data-yk-area="footer"]')).toBeVisible();
+});
 
 for (const slug of ['business', 'minimal']) {
   test(`${slug} homepage can open the footer editor @ci`, async ({ page }, testInfo) => {
