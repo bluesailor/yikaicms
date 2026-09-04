@@ -785,6 +785,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
     <script src="/assets/js/blox-multi-select.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-select.js') ?>"></script>
+    <script src="/assets/js/blox-multi-actions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-actions.js') ?>"></script>
     <script src="/assets/js/blox-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-icon-utils.js') ?>"></script>
     <script src="/assets/js/blox-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-field-store.js') ?>"></script>
     <?php // 系统富文本编辑器（richtext 控件的「可视化编辑」弹窗用；按需 init） ?>
@@ -3441,9 +3442,24 @@ $canManageBloxDesign = hasPermission('blox_global');
             selectedSubEi: -1,
             // 同级多选（R1）：稳定 id 集合，仅同列/同容器/根区块内；批量操作条由 multiSelActive 门控
             multiSel: null,
+            // 批量剪贴板（R2）：有序列表 {level, parent, items}；单选剪贴板（clipboard）不受影响
+            batchClipboard: null,
             multiText: <?php echo json_encode([
                 'count' => __('blox_multi_selected_count'),
+                'clipboardCount' => __('blox_batch_clipboard_count'),
                 'hint' => __('blox_multi_hint'),
+                'actions' => [
+                    'delete' => __('blox_batch_delete'),
+                    'duplicate' => __('blox_batch_duplicate'),
+                    'cut' => __('blox_batch_cut'),
+                    'paste' => __('blox_batch_paste'),
+                ],
+                'deleteDone' => __('blox_batch_delete_done'),
+                'duplicateDone' => __('blox_batch_duplicate_done'),
+                'cutDone' => __('blox_batch_cut_done'),
+                'pasteDone' => __('blox_batch_paste_done'),
+                'pasteRejected' => __('blox_batch_paste_rejected'),
+                'failed' => __('blox_batch_failed'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             selectedSectionField: "",
             selectedHomeField: "",
@@ -6528,6 +6544,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return !!(M && M.active(this.multiSel));
             },
 
+            batchClipboardCount() {
+                return this.batchClipboard && Array.isArray(this.batchClipboard.items) ? this.batchClipboard.items.length : 0;
+            },
+
             multiSelCount() {
                 var M = this.multiSelModule();
                 return M ? M.count(this.multiSel) : 0;
@@ -6735,6 +6755,127 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             modsFrom(mods) {
                 return { shiftKey: !!(mods && mods.shift), ctrlKey: !!(mods && mods.toggle), metaKey: false };
+            },
+
+            // ---- 批量动作（R2：删除/复制/剪切/粘贴）。数组运算在 blox-multi-actions.js，这里只做薄命令 ----
+            actionsModule() {
+                var A = window.YikaiBloxMultiActions;
+                return A && typeof A.removeByIds === "function" && typeof A.appendCloned === "function" ? A : null;
+            },
+
+            /** 把多选作用域解析为「可整体重建的数组引用」；解析逻辑在纯模块（缺失时降级失败）。 */
+            multiScopeContext() {
+                var A = this.actionsModule();
+                if (!A) return null;
+                return A.scopeContext(this.sections, this.multiSel.level, this.multiSel.parent);
+            },
+
+            replaceList(list, next) {
+                list.length = 0;
+                for (var i = 0; i < next.length; i++) list.push(next[i]);
+            },
+
+            batchDelete() {
+                var A = this.actionsModule();
+                if (!A || !this.multiSelActive()) return;
+                this.runCommand("batch-delete", function () { this._runBatchActionRaw("delete", A); });
+            },
+
+            batchDuplicate() {
+                var A = this.actionsModule();
+                if (!A || !this.multiSelActive()) return;
+                this.runCommand("batch-duplicate", function () { this._runBatchActionRaw("duplicate", A); });
+            },
+
+            batchCut() {
+                var A = this.actionsModule();
+                if (!A || !this.multiSelActive()) return;
+                this.runCommand("batch-cut", function () { this._runBatchActionRaw("cut", A); });
+            },
+
+            batchPaste() {
+                var A = this.actionsModule();
+                if (!A) return;
+                this.runCommand("batch-paste", function () { this._runBatchPasteRaw(A); });
+            },
+
+            batchDone(count, label) {
+                this.toast(this.multiText[label].replace(":count", count));
+            },
+
+            _runBatchActionRaw(kind, A) {
+                var ctx = this.multiScopeContext();
+                var ids = this.multiSel ? this.multiSel.ids.slice() : [];
+                if (!ctx || !ids.length) { this.toast(this.multiText.failed); return; }
+                var self = this;
+                var idFactory = function () { return self.uid(ctx.level === "section" ? "s" : "e"); };
+
+                if (kind === "delete") {
+                    var removed = A.removeByIds(ctx.list, ids);
+                    if (!removed.removed.length) { this.toast(this.multiText.failed); return; }
+                    this.replaceList(ctx.list, removed.list);
+                    this.deselectAll();
+                    this.batchDone(removed.removed.length, "deleteDone");
+                    return;
+                }
+                if (kind === "duplicate") {
+                    var dup = A.duplicateByIds(ctx.list, ids, idFactory);
+                    if (!dup.newIds.length) { this.toast(this.multiText.failed); return; }
+                    this.replaceList(ctx.list, dup.list);
+                    this.batchDone(dup.newIds.length, "duplicateDone");
+                    return;
+                }
+                if (kind === "cut") {
+                    var picked = A.pickByIds(ctx.list, ids);
+                    if (!picked.items.length) { this.toast(this.multiText.failed); return; }
+                    this.batchClipboard = {
+                        level: ctx.level,
+                        parent: ctx.parent,
+                        items: JSON.parse(JSON.stringify(picked.items)),
+                    };
+                    var cut = A.removeByIds(ctx.list, ids);
+                    this.replaceList(ctx.list, cut.list);
+                    this.deselectAll();
+                    this.batchDone(picked.items.length, "cutDone");
+                    return;
+                }
+                this.toast(this.multiText.failed);
+            },
+
+            /** 粘贴目标：剪贴板层级必须与当前选中上下文同层（区块剪贴板粘到根，元素/子元素粘回原类容器）。 */
+            pasteTargetContext(clipLevel) {
+                if (clipLevel === "section") {
+                    return { level: "section", list: this.sections };
+                }
+                var path = this.selectedPath();
+                if (!path) return null;
+                var parts = path.split(".");
+                if (clipLevel === "element" && parts.length === 3) {
+                    var scope = this.elementScopeAt(parseInt(parts[0], 10), parseInt(parts[1], 10));
+                    if (!scope) return null;
+                    var column = this.sections[parseInt(parts[0], 10)].columns[parseInt(parts[1], 10)];
+                    return { level: "element", list: column.elements };
+                }
+                if (clipLevel === "child" && parts.length === 4) {
+                    var childScope = this.childScopeAt(parseInt(parts[0], 10), parseInt(parts[1], 10), parseInt(parts[2], 10));
+                    if (!childScope) return null;
+                    var host = this.sections[parseInt(parts[0], 10)].columns[parseInt(parts[1], 10)].elements[parseInt(parts[2], 10)];
+                    host.data.children = host.data.children || [];
+                    return { level: "child", list: host.data.children };
+                }
+                return null;
+            },
+
+            _runBatchPasteRaw(A) {
+                var clip = this.batchClipboard;
+                if (!clip || !clip.items || !clip.items.length) { this.toast(this.multiText.pasteRejected); return; }
+                var target = this.pasteTargetContext(clip.level);
+                if (!target) { this.toast(this.multiText.pasteRejected); return; }
+                var self = this;
+                var pasted = A.appendCloned(target.list, clip.items, function () { return self.uid(target.level === "section" ? "s" : "e"); });
+                if (!pasted.newIds.length) { this.toast(this.multiText.failed); return; }
+                this.replaceList(target.list, pasted.list);
+                this.batchDone(pasted.newIds.length, "pasteDone");
             },
 
             handleCanvasDrop(payload) { return this.runCommand("canvas-drop", function () { return this._handleCanvasDropRaw(payload); }); },

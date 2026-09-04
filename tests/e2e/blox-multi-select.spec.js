@@ -13,6 +13,7 @@ const {
 
 let consoleEntries = null;
 let unsafeWrites = null;
+let allowCommandError = false; // 失败回滚用例注入异常，runner 的 console.error 是预期诊断
 
 test.beforeEach(async ({ page }, testInfo) => {
   test.skip(
@@ -22,6 +23,7 @@ test.beforeEach(async ({ page }, testInfo) => {
   );
   consoleEntries = observeConsole(page);
   unsafeWrites = observeUnsafeWrites(page);
+  allowCommandError = false;
   await openEditor(page);
 });
 
@@ -38,6 +40,12 @@ test.afterEach(async ({ page }) => {
   }
   expect(leakedDirtyState, 'test left the editor dirty').toBe(false);
   expect(unsafeWrites, 'save/publish/rollback request was sent').toEqual([]);
+  if (allowCommandError) {
+    const expected = consoleEntries.filter((entry) => entry.includes('[blox command] batch-delete'));
+    expect(expected, '注入失败应恰好产生一条命令错误诊断').toHaveLength(1);
+    expect(consoleEntries.filter((entry) => !entry.includes('[blox command] batch-delete'))).toEqual([]);
+    return;
+  }
   expect(consoleEntries, 'browser console must stay clean').toEqual([]);
 });
 
@@ -57,10 +65,10 @@ async function pinLastSection(page) {
   return sections.nth(await sections.count() - 1);
 }
 
-async function makeSameColumnTrio(page) {
+async function makeSameColumn(page, total) {
   await addTemporaryHeading(page, 1);
   const section = await pinLastSection(page);
-  for (const expected of [2, 3]) {
+  for (const expected of Array.from({ length: total - 1 }, (_, i) => i + 2)) {
     await page.getByTestId('blox-library-open').last().click();
     await page.getByTestId('blox-add-element-heading').press('Enter');
     await expect(section.getByTestId('blox-tree-element')).toHaveCount(expected);
@@ -69,6 +77,7 @@ async function makeSameColumnTrio(page) {
   await waitPreviewSettled(page);
   return section;
 }
+const makeSameColumnTrio = (page) => makeSameColumn(page, 3);
 
 async function multiState(row) {
   return row.getAttribute('data-multi-selected');
@@ -181,6 +190,158 @@ test('section rows multi-select at document root @ci @shard-core', async ({ page
 
   await page.keyboard.press('Escape');
   await expect(batchBar).toBeHidden();
+  await restore(page);
+});
+
+test('batch delete removes five items and a single undo restores them all @ci @shard-core', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop batch delete baseline');
+
+  const section = await makeSameColumn(page, 5);
+  const rows = section.getByTestId('blox-tree-element');
+  await rows.nth(0).locator('[data-element-drag-handle]').click();
+  await rows.nth(4).locator('[data-element-drag-handle]').click({ modifiers: ['Shift'] });
+  await expect(page.getByTestId('blox-batch-count')).toContainText('5');
+
+  await page.getByTestId('blox-batch-delete').click();
+  await expect(page.getByTestId('blox-batch-bar')).toBeHidden();
+  await expect(rows).toHaveCount(0);
+  await expect(page.getByTestId('blox-toast')).toContainText('5');
+
+  // 一次撤销，5 项全部恢复
+  await undo(page);
+  await expect(rows).toHaveCount(5);
+  await restore(page);
+});
+
+test('batch duplicate inserts same-order copies with fresh ids and one-shot undo @ci @shard-core', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop batch duplicate baseline');
+
+  const section = await makeSameColumn(page, 3);
+  const rows = section.getByTestId('blox-tree-element');
+  await rows.nth(0).locator('[data-element-drag-handle]').click();
+  await rows.nth(2).locator('[data-element-drag-handle]').click({ modifiers: ['Shift'] });
+  const before = await rows.evaluateAll((nodes) => nodes.map((n) => n.getAttribute('data-item-id')));
+
+  await page.getByTestId('blox-batch-duplicate').click();
+  await expect(rows).toHaveCount(6);
+  await waitPreviewSettled(page);
+  const after = await page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    return app.sections[app.selectedSi].columns[0].elements.map((e) => e.id);
+  });
+  assertUnique(after);
+  // 原件位置不变；副本（新 id）紧随集合最后一项之后
+  expect(after.slice(0, 3)).toEqual(before);
+  expect(before.includes(after[3])).toBe(false);
+  expect(before.includes(after[5])).toBe(false);
+
+  await undo(page);
+  await expect(rows).toHaveCount(3);
+  await restore(page);
+});
+
+function assertUnique(ids) {
+  const seen = new Set();
+  ids.forEach((id) => {
+    expect(seen.has(id)).toBe(false);
+    seen.add(id);
+  });
+}
+
+test('batch cut keeps clipboard order and paste re-inserts with fresh ids @ci @shard-core', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop cut/paste baseline');
+
+  await addTemporaryHeading(page, 1);
+  // 钉住临时区块下标：批量剪切会 deselectAll，selectedSi 不能作为定位依据
+  const sectionIndex = await page.evaluate(() => window.Alpine.$data(document.body).sections.length - 1);
+  const section = page.getByTestId('blox-tree-section').nth(sectionIndex);
+  const rows = section.getByTestId('blox-tree-element');
+  const paste = page.getByTestId('blox-batch-paste');
+  await expect(paste).toBeDisabled();
+  // 补到 4 个同列元素（每次插入会收起元素库，需重开）
+  for (const expected of [2, 3, 4]) {
+    await page.getByTestId('blox-library-open').last().click();
+    await page.getByTestId('blox-add-element-heading').press('Enter');
+    await expect(rows).toHaveCount(expected);
+  }
+  await waitPreviewSettled(page);
+
+  const readColumn = () => page.evaluate((si) => {
+    const app = window.Alpine.$data(document.body);
+    return app.sections[si].columns[0].elements.map((e) => e.id);
+  }, sectionIndex);
+
+  // 剪切第 2、3 项（0 起）
+  await rows.nth(1).locator('[data-element-drag-handle]').click();
+  await rows.nth(2).locator('[data-element-drag-handle]').click({ modifiers: ['Shift'] });
+  const before = await readColumn();
+
+  await page.getByTestId('blox-batch-cut').click();
+  await expect(rows).toHaveCount(2);
+  expect(await readColumn()).toEqual([before[0], before[3]]);
+  // 剪贴板非空：批量条保持可见，粘贴可点击（删除/复制/剪切随多选消失而禁用）
+  await expect(paste).toBeEnabled();
+  await expect(page.getByTestId('blox-batch-delete')).toBeDisabled();
+
+  // 选一个剩余元素作为粘贴目标列上下文（程序化，避免树折叠态的可见性竞态）→ 追加到列尾
+  await page.evaluate((si) => window.Alpine.$data(document.body).selectElement(si, 0, 0, false), sectionIndex);
+  await expect(paste).toBeVisible();
+  await expect(paste).toBeEnabled();
+  await page.evaluate(() => window.Alpine.$data(document.body).batchPaste());
+  await expect(rows).toHaveCount(4);
+  await waitPreviewSettled(page);
+
+  const after = await readColumn();
+  // 剩余项原地不动；粘贴项全部是新 id（每个副本重配 id，不与旧 id 冲突），顺序保持剪贴板序
+  expect(after[0]).toBe(before[0]);
+  expect(after[1]).toBe(before[3]);
+  assertUnique(after);
+  expect(after.slice(2)).not.toContain(before[1]);
+  expect(after.slice(2)).not.toContain(before[2]);
+
+  await undo(page);
+  await expect(rows).toHaveCount(2);
+  await restore(page);
+});
+
+test('paste without a target context is rejected loudly, not dropped silently @ci @shard-core', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'paste rejection baseline');
+
+  const section = await makeSameColumn(page, 2);
+  const rows = section.getByTestId('blox-tree-element');
+  await rows.nth(0).locator('[data-element-drag-handle]').click();
+  await rows.nth(1).locator('[data-element-drag-handle]').click({ modifiers: ['Shift'] });
+  await page.getByTestId('blox-batch-cut').click();
+  await expect(rows).toHaveCount(0);
+
+  // 取消选择（无粘贴上下文）→ 粘贴必须拒绝并提示，不静默丢弃
+  const clear = page.getByTestId('blox-clear-selection');
+  if (await clear.isVisible()) await clear.click();
+  await page.getByTestId('blox-batch-paste').click();
+  await expect(page.getByTestId('blox-toast')).toBeVisible();
+  await expect(rows).toHaveCount(0);
+  await restore(page);
+});
+
+test('batch delete failure rolls back document, history and stays clean @ci @shard-core', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'batch rollback baseline');
+
+  const section = await makeSameColumn(page, 3);
+  const rows = section.getByTestId('blox-tree-element');
+  await rows.nth(0).locator('[data-element-drag-handle]').click();
+  await rows.nth(2).locator('[data-element-drag-handle]').click({ modifiers: ['Shift'] });
+  const undoBefore = await page.evaluate(() => window.Alpine.$data(document.body).canUndo());
+
+  // 真实失败注入：数组运算层抛错 → 命令层快照回滚
+  allowCommandError = true;
+  await page.evaluate(() => {
+    window.YikaiBloxMultiActions.removeByIds = function () { throw new Error('boom'); };
+  });
+  await page.getByTestId('blox-batch-delete').click();
+  await expect(page.getByTestId('blox-toast')).toBeVisible();
+  await expect(rows).toHaveCount(3);
+  expect(await page.evaluate(() => window.Alpine.$data(document.body).canUndo())).toBe(undoBefore);
+  // 失败回滚不产生新历史；清理本用例造的数据
   await restore(page);
 });
 

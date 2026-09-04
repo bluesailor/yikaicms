@@ -121,15 +121,34 @@ declare(strict_types=1);
                 </div>
             </div>
 
-            <!-- ── 同级多选批量操作条（R1 空壳：计数与提示；删除/复制等由下一轮填充） ── -->
-            <div x-show="multiSelActive()" x-cloak class="flex-1 flex flex-col min-h-0" data-testid="blox-batch-bar">
+            <!-- ── 同级多选批量操作条（R2：删除/复制/剪切/粘贴；每操作一次 runCommand） ── -->
+            <div x-show="multiSelActive() || !!batchClipboard" x-cloak class="flex-1 flex flex-col min-h-0" data-testid="blox-batch-bar">
                 <div class="h-10 px-3 flex items-center gap-2 border-b border-gray-100 shrink-0">
                     <i class="ti ti-checks text-sm shrink-0 text-blue-500"></i>
                     <span class="text-xs font-semibold text-gray-500 tracking-wide" data-testid="blox-batch-count"
-                          x-text="multiText.count.replace(':count', multiSelCount())"></span>
+                          x-text="multiSelActive() ? multiText.count.replace(':count', multiSelCount()) : multiText.clipboardCount.replace(':count', batchClipboardCount())"></span>
                 </div>
-                <div class="p-3">
-                    <p class="text-xs leading-relaxed text-gray-500" x-text="multiText.hint"></p>
+                <div class="p-3 space-y-2">
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button type="button" @click="batchDelete()" data-testid="blox-batch-delete" :disabled="!multiSelActive()" :class="multiSelActive() ? '' : 'opacity-40 cursor-not-allowed'"
+                                class="h-8 rounded border border-red-200 text-red-600 hover:border-red-400 hover:bg-red-50 text-xs font-medium transition disabled:cursor-not-allowed">
+                            <?php echo e(__('blox_batch_delete')); ?>
+                        </button>
+                        <button type="button" @click="batchDuplicate()" data-testid="blox-batch-duplicate" :disabled="!multiSelActive()" :class="multiSelActive() ? '' : 'opacity-40 cursor-not-allowed'"
+                                class="h-8 rounded border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 text-xs font-medium transition disabled:cursor-not-allowed">
+                            <?php echo e(__('blox_batch_duplicate')); ?>
+                        </button>
+                        <button type="button" @click="batchCut()" data-testid="blox-batch-cut" :disabled="!multiSelActive()" :class="multiSelActive() ? '' : 'opacity-40 cursor-not-allowed'"
+                                class="h-8 rounded border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 text-xs font-medium transition disabled:cursor-not-allowed">
+                            <?php echo e(__('blox_batch_cut')); ?>
+                        </button>
+                        <button type="button" @click="batchPaste()" data-testid="blox-batch-paste"
+                                :disabled="!batchClipboard" :class="batchClipboard ? '' : 'opacity-40 cursor-not-allowed'"
+                                class="h-8 rounded border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 text-xs font-medium transition disabled:cursor-not-allowed">
+                            <?php echo e(__('blox_batch_paste')); ?>
+                        </button>
+                    </div>
+                    <p class="text-[11px] leading-relaxed text-gray-400" x-text="multiText.hint"></p>
                 </div>
             </div>
 
