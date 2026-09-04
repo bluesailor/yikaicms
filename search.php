@@ -9,6 +9,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
+require_once __DIR__ . '/includes/search_query.php';
 
 $keyword = trim(get('keyword', ''));
 $type = get('type', 'all'); // all, article, product, case, download
@@ -108,24 +109,7 @@ if ($keyword !== '') {
         $results = db()->fetchAll(
             // c.type 除了别名成 _type（供下方分支判断），还要以原名选出——
             // contentUrl() 读的是 type，只有 _type 会让文章链接退化成 404 地址
-            "(SELECT c.id, c.title, c.summary, c.cover, c.publish_time as sort_time, c.type as _type, c.type,
-                     ch.name as channel_name, ch.slug as channel_slug
-              FROM " . DB_PREFIX . "contents c
-              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-              WHERE c.status = 1 AND (c.title LIKE ? OR c.summary LIKE ?))
-             UNION ALL
-             (SELECT p.id, p.title, p.summary, p.cover, p.updated_at as sort_time, 'product' as _type, 'product' as type,
-                     pc.name as channel_name, pc.slug as channel_slug
-              FROM " . DB_PREFIX . "products p
-              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-              WHERE p.status = 1 AND (p.title LIKE ? OR p.summary LIKE ?))
-             UNION ALL
-             (SELECT d.id, d.title, d.description as summary, '' as cover, d.created_at as sort_time, 'download' as _type, 'download' as type,
-                     dc.name as channel_name, '' as channel_slug
-              FROM " . DB_PREFIX . "downloads d
-              LEFT JOIN " . DB_PREFIX . "download_categories dc ON d.category_id = dc.id
-              WHERE d.status = 1 AND (d.title LIKE ? OR d.description LIKE ?))
-             ORDER BY sort_time DESC LIMIT ? OFFSET ?",
+            globalSearchQuery(DB_PREFIX),
             [$kw, $kw, $kw, $kw, $kw, $kw, $perPage, $offset]
         );
     }

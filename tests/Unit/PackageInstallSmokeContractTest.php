@@ -77,4 +77,27 @@ final class PackageInstallSmokeContractTest extends TestCase
         self::assertStringContainsString('数字化转型解决方案', $contract);
         self::assertStringContainsString("grep -Fq '数字化转型解决方案'", $script);
     }
+
+    public function testPackageInstallExercisesAllSearchOnTheExtractedSite(): void
+    {
+        $script = file_get_contents(dirname(__DIR__, 2) . '/tools/package-install-test.sh');
+
+        self::assertIsString($script);
+        self::assertStringContainsString('"$BASE/search.php"', $script);
+        self::assertStringContainsString('"type=all"', $script);
+        self::assertStringContainsString('前台全部搜索可用', $script);
+        self::assertStringContainsString("Fatal error|Uncaught|PDOException", $script);
+    }
+
+    public function testPackageInstallExecutesSvgSecurityContractWithTheTargetPhp(): void
+    {
+        $script = file_get_contents(dirname(__DIR__, 2) . '/tools/package-install-test.sh');
+        $contract = file_get_contents(dirname(__DIR__) . '/smoke/package_security_contract.php');
+
+        self::assertIsString($script);
+        self::assertIsString($contract);
+        self::assertStringContainsString('"$PHP_DIR/php.exe" "$UNPACK_WIN/package-security-contract.php"', $script);
+        self::assertStringContainsString("javascript:alert(\\'x\\')", $contract);
+        self::assertStringContainsString('java&#x73;cript:alert(1)', $contract);
+    }
 }

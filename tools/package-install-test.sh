@@ -278,6 +278,14 @@ else
 fi
 rm -f "$UNPACK_WSL/package-home-contract.php"
 
+if cp tests/smoke/package_security_contract.php "$UNPACK_WSL/package-security-contract.php" \
+    && "$PHP_DIR/php.exe" "$UNPACK_WIN/package-security-contract.php" >/tmp/pkgsecurity.log 2>&1; then
+    ok "$(tail -1 /tmp/pkgsecurity.log | tr -d '\r')"
+else
+    bad "SVG 安全契约失败"; tail -20 /tmp/pkgsecurity.log | sed 's/^/      /'
+fi
+rm -f "$UNPACK_WSL/package-security-contract.php"
+
 # ───── L2c：前台可达 ─────
 FRONT="$("$CURL_BIN" -sf -o /dev/null -w '%{http_code}' "$BASE/" 2>/dev/null | tr -d '\r')"
 [ "$FRONT" = "200" ] && ok "前台首页 200" || bad "前台首页返回 $FRONT"
@@ -286,6 +294,14 @@ if "$CURL_BIN" -fsS "$BASE/" >.pkgtest/front-home.html 2>/dev/null \
     ok "前台首页已渲染中文 Banner"
 else
     bad "前台首页未渲染中文 Banner"
+fi
+if "$CURL_BIN" -fsS --get "$BASE/search.php" \
+    --data-urlencode "keyword=数字" --data-urlencode "type=all" \
+    >.pkgtest/front-search-all.html 2>/dev/null \
+    && ! grep -Eqi 'Fatal error|Uncaught|PDOException' .pkgtest/front-search-all.html; then
+    ok "前台全部搜索可用"
+else
+    bad "前台全部搜索失败"
 fi
 
 echo
