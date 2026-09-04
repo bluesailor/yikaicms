@@ -505,6 +505,11 @@ test('assignment matrix copies a page-specific design and restores inheritance @
     await expect.poll(() => publishResults.length).toBe(2);
     expect(publishResults[0].code).toBe(409);
     expect(publishResults[1].code).toBe(0);
+    const expectedConflict = consoleEntries.findIndex(
+      (entry) => entry.includes('Failed to load resource') && entry.includes('409 (Conflict)'),
+    );
+    expect(expectedConflict, 'the guarded publish retry must surface one HTTP 409').toBeGreaterThanOrEqual(0);
+    consoleEntries.splice(expectedConflict, 1);
 
     await page.goto(`/admin/blox_templates.php?type=header&context=${encodeURIComponent(contextKey)}#blox-assignment-matrix`, {
       waitUntil: 'domcontentloaded',
