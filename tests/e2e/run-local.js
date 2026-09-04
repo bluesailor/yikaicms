@@ -25,6 +25,7 @@ const reportDir = process.env.BLOX_E2E_REPORT_DIR
 const serverLogPath = process.env.BLOX_E2E_SERVER_LOG
   || path.join(outputDir, 'php-server.log');
 let server = null;
+let fixtureServer = null;
 let playwright = null;
 let setupAttempted = false;
 let serverLog = '';
@@ -76,11 +77,11 @@ async function choosePort() {
   throw new Error('No free local port found between 8080 and 8099');
 }
 
-function waitForServer(timeoutMs = 15_000) {
+function waitForServerAt(url, timeoutMs = 15_000) {
   const startedAt = Date.now();
   return new Promise((resolve, reject) => {
     const probe = () => {
-      const request = http.get(`${baseURL}/admin/login.php`, (response) => {
+      const request = http.get(url, (response) => {
         response.resume();
         if (response.statusCode && response.statusCode < 500) {
           resolve();
@@ -102,6 +103,10 @@ function waitForServer(timeoutMs = 15_000) {
   });
 }
 
+function waitForServer(timeoutMs = 15_000) {
+  return waitForServerAt(`${baseURL}/admin/login.php`, timeoutMs);
+}
+
 async function main() {
   let exitCode = 1;
   let interrupted = false;
@@ -116,6 +121,12 @@ async function main() {
     copyLocalVideoSamples();
     port = await choosePort();
     baseURL = `http://127.0.0.1:${port}`;
+    const useTemplateFixture = process.env.BLOX_E2E_REMOTE !== '1';
+    let fixturePort = 0;
+    if (useTemplateFixture) {
+      fixturePort = port + 1;
+      while (!await canListen(fixturePort)) fixturePort += 1;
+    }
     setupAttempted = true;
     const setup = runPhp(['tests/smoke/setup.php', `--lang=${smokeLang}`], {
       ...process.env,
@@ -123,13 +134,24 @@ async function main() {
       SMOKE_BLOX_ADVANCED: freeMode ? '0' : (process.env.SMOKE_BLOX_ADVANCED || '1'),
     });
     if (setup.status !== 0) throw new Error('Disposable smoke setup failed');
+    const e2eEnv = { ...process.env };
+
+    if (useTemplateFixture) {
+      e2eEnv.YIKAI_BLOX_TEMPLATE_API_BASE = `http://127.0.0.1:${fixturePort}/template-market-fixture.php`;
+      fixtureServer = spawn(php, ['-S', `127.0.0.1:${fixturePort}`, 'tests/e2e/template-market-server.php'], {
+        cwd: root,
+        env: e2eEnv,
+        stdio: ['ignore', 'ignore', 'pipe'],
+      });
+      await waitForServerAt(`http://127.0.0.1:${fixturePort}/template-market-fixture.php`);
+    }
 
     // Use the same catch-all shape as the supported Nginx/Apache rules. Plain
     // `php -S -t .` returns 404 for `/en/foo.html`, so it cannot detect
     // regressions that only appear after a prefixed URL is handed to index.php.
     server = spawn(php, ['-S', `127.0.0.1:${port}`, '-t', '.', 'tests/e2e/router.php'], {
       cwd: root,
-      env: process.env,
+      env: e2eEnv,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     const collectLog = (chunk) => {
@@ -151,7 +173,7 @@ async function main() {
     playwright = spawn(process.execPath, [playwrightCli, 'test', ...playwrightArgs], {
       cwd: root,
       env: {
-        ...process.env,
+        ...e2eEnv,
         BLOX_E2E_BASE_URL: baseURL,
         BLOX_E2E_STORAGE_STATE: path.join(sourceRoot, 'test-results', `e2e-auth-${runId}.json`),
         BLOX_E2E_OUTPUT_DIR: outputDir,
@@ -180,6 +202,9 @@ async function main() {
       });
       server.kill();
       await stopped;
+    }
+    if (fixtureServer && !fixtureServer.killed) {
+      fixtureServer.kill();
     }
     if (setupAttempted) {
       const restore = runPhp(['tests/smoke/setup.php', '--restore']);
