@@ -8,7 +8,7 @@
 #
 # 用法：
 #   bash tools/package-install-test.sh --php=8.2 --db=sqlite
-#   bash tools/package-install-test.sh --php=8.0 --db=mysql
+#   bash tools/package-install-test.sh --php=8.0 --db=mysql --host=127.0.0.1
 #   bash tools/package-install-test.sh --matrix            # 跑预设三腿
 #   bash tools/package-install-test.sh --php=8.5 --db=mysql --keep   # 失败后保留现场
 #   bash tools/package-install-test.sh --php=8.0 --db=mysql --base=http://ykpkg80.yikai
@@ -43,19 +43,27 @@ MYSQL_PASS="123456"
 ADMIN_USER="admin"
 ADMIN_PASS="smoke@Test123"
 
-PHP_LEG=""; DB_KIND="sqlite"; ZIP=""; BASE=""; KEEP=0; MATRIX=0; SITE_LANG="zh-CN"
+PHP_LEG=""; DB_KIND="sqlite"; ZIP=""; BASE=""; SERVE_HOST=""; KEEP=0; MATRIX=0; SITE_LANG="zh-CN"
 for arg in "$@"; do
     case "$arg" in
         --php=*)  PHP_LEG="${arg#*=}" ;;
         --db=*)   DB_KIND="${arg#*=}" ;;
         --zip=*)  ZIP="${arg#*=}" ;;
         --base=*) BASE="${arg#*=}" ;;
+        --host=*) SERVE_HOST="${arg#*=}" ;;
         --lang=*) SITE_LANG="${arg#*=}" ;;
         --keep)   KEEP=1 ;;
         --matrix) MATRIX=1 ;;
         *) echo "${R}未知参数: $arg${X}"; exit 2 ;;
     esac
 done
+
+# WSL 的 127.0.0.1 不是 Windows PHP 进程的回环地址。显式指定本机 host 时，
+# 改用 Windows curl.exe，让安装请求与被测 php.exe 处于同一网络栈。
+CURL_BIN="curl"
+if [ "$SERVE_HOST" = "127.0.0.1" ] && command -v curl.exe >/dev/null 2>&1; then
+    CURL_BIN="curl.exe"
+fi
 
 php_dir_for() {
     case "$1" in
@@ -170,7 +178,12 @@ ok "包内无 tests/config.php/.git/docs 残留"
 # ───── L2：解包 + 真实安装器 ─────
 echo
 echo "${B}[L2] 装机冒烟${X}"
-rm -rf "$UNPACK_WSL"; mkdir -p "$UNPACK_WSL"
+kill_port
+if [ -e "$UNPACK_WSL" ]; then
+    rm -rf "$UNPACK_WSL" || { bad "无法清理旧解包目录：$UNPACK_WSL"; exit 1; }
+fi
+[ ! -e "$UNPACK_WSL" ] || { bad "旧解包目录仍然存在：$UNPACK_WSL"; exit 1; }
+mkdir -p "$UNPACK_WSL" || { bad "无法创建解包目录：$UNPACK_WSL"; exit 1; }
 unzip -q "$ZIP" -d "$UNPACK_WSL" || { bad "解包失败"; exit 1; }
 INNER="$(find "$UNPACK_WSL" -maxdepth 1 -mindepth 1 -type d | head -1)"
 [ -n "$INNER" ] && [ -f "$INNER/install/index.php" ] || { bad "解包目录里没有 install/index.php"; exit 1; }
@@ -183,25 +196,24 @@ if [ -n "$BASE" ]; then
 else
     # WSL 下必须绑 0.0.0.0 并用网关 IP 访问：php.exe 是 Windows 进程，
     # 它的 127.0.0.1 与 WSL 的回环不是同一个，绑 127.0.0.1 则 curl/Playwright 全都够不着。
-    HOST_IP="127.0.0.1"
-    if grep -qi microsoft /proc/version 2>/dev/null; then
+    HOST_IP="${SERVE_HOST:-127.0.0.1}"
+    if [ -z "$SERVE_HOST" ] && grep -qi microsoft /proc/version 2>/dev/null; then
         HOST_IP="$(ip route show default | awk '{print $3}' | head -1)"
         [ -n "$HOST_IP" ] || HOST_IP="127.0.0.1"
     fi
     BASE="http://$HOST_IP:$PORT"; BASE_INTERNAL=1
-    kill_port
     ( cd "$UNPACK_WSL" && "$PHP_DIR/php.exe" -S "0.0.0.0:$PORT" -t "$UNPACK_WIN" >/tmp/pkgserver.log 2>&1 & )
     for i in $(seq 1 40); do
-        curl -sf "$BASE/install/index.php" >/dev/null 2>&1 && break
+        "$CURL_BIN" -sf --connect-timeout 2 --max-time 5 "$BASE/install/index.php" >/dev/null 2>&1 && break
         sleep 0.5
     done
-    curl -sf "$BASE/install/index.php" >/dev/null 2>&1 \
+    "$CURL_BIN" -sf --connect-timeout 2 --max-time 5 "$BASE/install/index.php" >/dev/null 2>&1 \
       && ok "php -S 已就绪（PHP $PHP_LEG，端口 $PORT）" \
       || { bad "服务器起不来（$BASE）"; sed 's/^/      /' /tmp/pkgserver.log | head -10; exit 1; }
 fi
 
 # 真实 PHP 版本自证（不是猜，是问服务器要）
-SERVED_PHP="$(curl -sf "$BASE/install/index.php" -o /dev/null -w '%{http_code}' 2>/dev/null)"
+SERVED_PHP="$("$CURL_BIN" -sf "$BASE/install/index.php" -o /dev/null -w '%{http_code}' 2>/dev/null | tr -d '\r')"
 note "install/index.php 响应码 $SERVED_PHP"
 
 INSTALL_ARGS=(--data-urlencode "action=install"
@@ -227,7 +239,7 @@ else
     INSTALL_ARGS+=(--data-urlencode "db_driver=sqlite")
 fi
 
-RESP="$(curl -fsS -X POST "$BASE/install/index.php" "${INSTALL_ARGS[@]}" 2>/tmp/pkginstall.log)" || true
+RESP="$("$CURL_BIN" -fsS -X POST "$BASE/install/index.php" "${INSTALL_ARGS[@]}" 2>/tmp/pkginstall.log)" || true
 # 经文件而非环境变量传给 php：WSL 里的 php 是 Windows php.exe，它不继承 WSL 的环境变量，
 # getenv() 恒为 false，会把成功的安装误判成失败。文件路径也必须是相对的（同上）。
 mkdir -p .pkgtest && printf '%s' "$RESP" > .pkgtest/install-response.json
@@ -258,7 +270,7 @@ else
 fi
 
 # ───── L2c：前台可达 ─────
-FRONT="$(curl -sf -o /dev/null -w '%{http_code}' "$BASE/" 2>/dev/null)"
+FRONT="$("$CURL_BIN" -sf -o /dev/null -w '%{http_code}' "$BASE/" 2>/dev/null | tr -d '\r')"
 [ "$FRONT" = "200" ] && ok "前台首页 200" || bad "前台首页返回 $FRONT"
 
 echo
