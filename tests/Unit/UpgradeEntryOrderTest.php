@@ -81,6 +81,41 @@ final class UpgradeEntryOrderTest extends TestCase
         self::assertSame(['includes/Dispatcher.php', 'index.php'], array_column($entries, 'rel'));
     }
 
+    public function testFullUpgradeProtectsEveryNonDefaultTheme(): void
+    {
+        self::assertFalse(uo_is_protected('themes/default/layouts/header.php'));
+        self::assertTrue(uo_is_protected('themes/business/layouts/header.php'));
+        self::assertTrue(uo_is_protected('themes/minimal/theme.json'));
+        self::assertTrue(uo_is_protected('themes/customer-custom/assets/style.css'));
+    }
+
+    public function testZipEnumerationFallsBackToArchiveOrderWhenSorterFails(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'yikai-order-fallback-');
+        self::assertNotFalse($path);
+        @unlink($path);
+        $zip = new ZipArchive();
+        self::assertTrue($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE));
+        $zip->addFromString('payload/includes/Dependency.php', '<?php final class Dependency {}');
+        $zip->addFromString('payload/index.php', "<?php require_once ROOT_PATH . '/includes/Dependency.php';");
+        $zip->close();
+
+        $zip = new ZipArchive();
+        self::assertTrue($zip->open($path));
+        $entries = uo_zip_entries(
+            $zip,
+            'payload/',
+            static function (array $entries, callable $read): array {
+                unset($entries, $read);
+                throw new Error('simulated parser incompatibility');
+            }
+        );
+        $zip->close();
+        @unlink($path);
+
+        self::assertSame(['includes/Dependency.php', 'index.php'], array_column($entries, 'rel'));
+    }
+
     public function testBuildScriptAlwaysUsesOrderedZipCreator(): void
     {
         $build = (string) file_get_contents(ROOT_PATH . '/build.sh');

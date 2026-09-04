@@ -73,6 +73,14 @@ test('Business editor iframe keeps the active theme homepage header chrome @ci',
     await expect(canvas.locator('script[src*="/themes/business/assets/js/header.js"]')).toHaveCount(0);
 });
 
+test('Business footer editor keeps the actual theme header as read-only context @ci', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-1440', 'one focused footer context check is sufficient');
+    await page.goto(url('footer-editor', 'preview'));
+    await expect(page.locator('[data-yk-area="footer"]')).toBeVisible();
+    await expect(page.locator('.yk-ctx-dim #siteHeader')).toBeVisible();
+    await expect(page.locator('.yk-blox-header')).toHaveCount(0);
+});
+
 test('Business respects section container and column backgrounds @ci', async ({ page }) => {
     await page.goto(url('parent'));
     for (let i = 0; i < 3; i++) {

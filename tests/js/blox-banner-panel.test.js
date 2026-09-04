@@ -21,11 +21,15 @@ test('search and modified-only include every group; unrelated elements stay unch
 
 test('slide content prioritizes image and text; links and motion retain all fields', () => {
     const slide = { type: 'home-banner-item', data: {} };
-    const fields = ['title', 'subtitle', 'content_motion', 'image', 'image_mobile', 'background_motion', 'btn1_text', 'btn1_url', 'btn2_text', 'btn2_url', 'link_url', 'link_target'].map(key => ({ key }));
-    assert.deepEqual(panel.controls(slide, fields, 'common', false).map(c => c.key), ['image', 'title', 'subtitle']);
+    const fields = ['title', 'subtitle', 'content_motion', 'media_type', 'video', 'image', 'image_mobile', 'video_mobile_mode', 'background_motion', 'btn1_text', 'btn1_url', 'btn2_text', 'btn2_url', 'link_url', 'link_target'].map(key => ({ key }));
+    assert.deepEqual(panel.controls(slide, fields, 'common', false).map(c => c.key), ['media_type', 'image', 'title', 'subtitle']);
     const all = ['common', 'playback', 'motion', 'mobile'].flatMap(group => panel.controls(slide, fields, group, false));
-    assert.deepEqual(all.map(c => c.key).sort(), fields.map(c => c.key).sort());
+    assert.deepEqual(all.map(c => c.key).sort(), fields.filter(c => !['video', 'video_mobile_mode'].includes(c.key)).map(c => c.key).sort());
     assert.equal(panel.controls(slide, fields, 'common', true), fields);
+
+    slide.data.media_type = 'video';
+    assert.deepEqual(panel.controls(slide, fields, 'common', false).map(c => c.key), ['media_type', 'video', 'image', 'title', 'subtitle']);
+    assert.deepEqual(panel.controls(slide, fields, 'mobile', false).map(c => c.key), ['image_mobile', 'video_mobile_mode']);
 });
 
 test('mobile thumbnail fallback never materializes an override in the document', () => {
@@ -37,8 +41,8 @@ test('mobile thumbnail fallback never materializes an override in the document',
     assert.equal(panel.methods.bannerImageUrl.call(context, 'image'), '/desktop.jpg');
 });
 
-test('cancelled or stale image choices do not change the selected slide', () => {
-    const node = { type: 'home-banner-item', data: { image: '/desktop.jpg', image_mobile: '' } };
+test('banner image picker can switch the main slide to video without changing mobile or poster pickers', () => {
+    const node = { type: 'home-banner-item', data: { media_type: 'image', image: '/desktop.jpg', image_mobile: '', video: '' } };
     let callback;
     let options;
     const context = {
@@ -54,8 +58,42 @@ test('cancelled or stale image choices do not change the selected slide', () => 
     assert.equal(node.data.image_mobile, '');
     context.selEl = node;
     panel.methods.replaceBannerControlImage.call(context, 'image');
-    assert.deepEqual(options, { usage: 'hero-bg' });
+    assert.equal(options.usage, 'hero-bg');
+    assert.equal(typeof options.targets.image, 'function');
+    assert.equal(typeof options.targets.video, 'function');
     callback('/replacement.jpg');
+    assert.equal(node.data.image, '/replacement.jpg');
+    assert.equal(node.data.media_type, 'image');
+    options.targets.video('/uploads/videos/launch.mp4');
+    assert.equal(node.data.media_type, 'video');
+    assert.equal(node.data.video, '/uploads/videos/launch.mp4');
+
+    panel.methods.replaceBannerControlImage.call(context, 'image');
+    assert.deepEqual(options, {});
+    callback('/poster.jpg');
+    assert.equal(node.data.media_type, 'video');
+    assert.equal(node.data.image, '/poster.jpg');
+});
+
+test('video picker can browse both media types and applies the selected type', () => {
+    const node = { type: 'home-banner-item', data: { media_type: 'image', video: '' } };
+    let callback;
+    let options;
+    const context = {
+        selEl: node,
+        openMedia: (apply, opts) => { callback = apply; options = opts; },
+        runCommand: (_name, fn) => fn.call(context),
+    };
+    panel.methods.replaceBannerControlVideo.call(context);
+    assert.equal(options.type, 'video');
+    assert.equal(options.usage, 'hero-bg');
+    assert.equal(typeof options.targets.image, 'function');
+    assert.equal(typeof options.targets.video, 'function');
+    callback('/uploads/videos/launch.mp4');
+    assert.equal(node.data.media_type, 'video');
+    assert.equal(node.data.video, '/uploads/videos/launch.mp4');
+    options.targets.image('/replacement.jpg');
+    assert.equal(node.data.media_type, 'image');
     assert.equal(node.data.image, '/replacement.jpg');
 });
 

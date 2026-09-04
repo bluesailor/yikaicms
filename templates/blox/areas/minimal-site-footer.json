@@ -1,0 +1,33 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "footer",
+  "name": "Minimal Theme Footer",
+  "requires": {
+    "elements": ["site-copyright"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "md",
+          "max_width": "wide",
+          "gap": "none",
+          "bg_color": "#ffffff",
+          "align_items": "center"
+        },
+        "columns": [
+          {
+            "elements": [
+              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "center", "tone": "dark"}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

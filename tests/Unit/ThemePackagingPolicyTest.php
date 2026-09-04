@@ -18,6 +18,17 @@ final class ThemePackagingPolicyTest extends TestCase
         self::assertStringContainsString('"marketplace"', $script);
     }
 
+    public function testFullPackageStagesBusinessAndMinimalFromMarketplaceSources(): void
+    {
+        $script = file_get_contents(ROOT_PATH . '/build.sh');
+
+        self::assertIsString($script);
+        self::assertStringContainsString('BUNDLED_THEMES=("business" "minimal")', $script);
+        self::assertStringContainsString('source_dir="$ROOT_DIR/marketplace/themes/$theme"', $script);
+        self::assertStringContainsString('target_dir="$PKG_DIR/themes/$theme"', $script);
+        self::assertStringContainsString('cp -a "$source_dir/." "$target_dir/"', $script);
+    }
+
     public function testDeltaUpdatesNeverDeleteInstalledThemes(): void
     {
         $script = file_get_contents(ROOT_PATH . '/build.sh');

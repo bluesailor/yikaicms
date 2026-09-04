@@ -59,6 +59,26 @@
     overflow: hidden;
 }
 
+[data-blox-banner-video] {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 240ms ease-out;
+}
+
+[data-blox-banner-video].blox-banner-video-ready {
+    opacity: 1;
+}
+
+[data-blox-banner-content] {
+    z-index: 2;
+}
+
 [data-blox-navigation="0"] .swiper-button-prev,
 [data-blox-navigation="0"] .swiper-button-next,
 [data-blox-pagination="0"] .swiper-pagination {
@@ -195,5 +215,9 @@
     [data-blox-banner] [data-blox-banner-bg] {
         animation: none !important;
         transform: none !important;
+    }
+
+    [data-blox-banner-video] {
+        display: none;
     }
 }

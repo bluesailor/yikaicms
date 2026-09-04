@@ -699,6 +699,58 @@ test('home canvas keeps header and footer actions without a redundant page struc
   await expect(page.getByTestId('blox-publish-template')).toContainText('发布并使用');
 });
 
+test('dirty area editor confirms and returns to the home editor @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop navigation baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  const areaUrl = `/admin/blox_editor.php?template=${fixtures.blox_header_template}&back=home`;
+  await page.goto(areaUrl, { waitUntil: 'domcontentloaded' });
+  await addTemporaryHeading(page);
+  await expect(page.getByTestId('blox-dirty')).toBeVisible();
+
+  const back = page.getByTestId('blox-back');
+  let cancelledConfirmSeen = false;
+  page.once('dialog', async (dialog) => {
+    cancelledConfirmSeen = dialog.type() === 'confirm' && dialog.message().includes('未保存');
+    await dialog.dismiss();
+  });
+  await back.click();
+  expect(cancelledConfirmSeen).toBe(true);
+  await expect(page).toHaveURL(new URL(areaUrl, page.url()).href);
+
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('confirm');
+    await dialog.accept();
+  });
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/admin/blox_editor.php' && url.search === '?home=1'),
+    back.click(),
+  ]);
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+});
+
+test('dirty home canvas confirms before opening an area editor @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop navigation baseline');
+  await addTemporaryHeading(page);
+  await waitPreviewSettled(page);
+  await expect(page.getByTestId('blox-dirty')).toBeVisible();
+
+  const contentFrame = await frame(page);
+  const headerEdit = contentFrame.getByTestId('blox-context-edit-header');
+  const leaveConfirm = new Promise((resolve) => {
+    page.once('dialog', async (dialog) => {
+      const seen = dialog.type() === 'confirm' && dialog.message().includes('未保存');
+      await dialog.dismiss();
+      resolve(seen);
+    });
+  });
+  await pointerClick(page, headerEdit);
+
+  expect(await leaveConfirm).toBe(true);
+  await expect(page).toHaveURL(/\/admin\/blox_editor\.php\?home=1$/);
+  await restoreClean(page);
+});
+
 test('stale header edit links recover to the current effective header @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop redirect baseline');
   const contentFrame = await frame(page);
@@ -729,6 +781,7 @@ test('footer template opens with the editable footer visible at the bottom of th
   const footerArea = contentFrame.locator('[data-yk-area="footer"]');
   await expect(footerArea).toBeVisible();
   await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(1);
+  await expect(contentFrame.locator('.yk-ctx-dim header').first()).toBeVisible();
   await expect.poll(async () => contentFrame.evaluate(() => {
     const footer = document.querySelector('[data-yk-area="footer"]');
     if (!footer) return false;

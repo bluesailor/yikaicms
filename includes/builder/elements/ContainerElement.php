@@ -50,6 +50,14 @@ final class ContainerElement extends AbstractElement
     /** 背景视频首批仅容器（区块级视频背景是真实场景；正文元素无此需求） */
     protected function backgroundVideoEnabled(): bool { return true; }
 
+    /** @param array<string,mixed> $data @return list<string> */
+    public function scriptsFor(array $data): array
+    {
+        return self::backgroundVideoUrl($data) !== ''
+            ? ['/assets/js/blox-video-policy.js', '/assets/js/blox-background-video.js']
+            : [];
+    }
+
     public function controls(): array
     {
         // 容器没有内容型设置——它的「内容」就是子元素（结构树里管理），
@@ -113,6 +121,11 @@ final class ContainerElement extends AbstractElement
 
         $video = self::backgroundVideoUrl($data);
         if ($video !== '') {
+            $mobileVideoMode = ($data['bg_video_mobile_mode'] ?? 'poster') === 'video' ? 'video' : 'poster';
+            $poster = self::cssImageUrl($data['bg_image'] ?? null);
+            $posterAttr = $poster !== null
+                ? ' poster="' . htmlspecialchars($poster, ENT_QUOTES) . '"'
+                : '';
             // 三层结构（第 5 轮）：media/overlay 绝对定位不占流、pointer-events:none；
             // 遮罩在视频场景是 DOM 层，不再叠进背景图 gradient（避免双重压暗）；
             // 色/图仍作根元素底层，视频加载失败时兜底可读。
@@ -128,8 +141,9 @@ final class ContainerElement extends AbstractElement
                 ? '<div class="blox-bg-overlay" style="background:rgba(0,0,0,' . $alpha . ')"></div>'
                 : '';
             return '<div class="yk-container blox-has-bg' . ($radiusCls !== '' ? ' ' . $radiusCls : '') . '"' . $style . '>'
-                . '<div class="blox-bg-media" aria-hidden="true"><video autoplay muted loop playsinline preload="metadata" src="'
-                . htmlspecialchars($video, ENT_QUOTES) . '"></video></div>'
+                . '<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="'
+                . $mobileVideoMode . '" data-blox-video-src="'
+                . htmlspecialchars($video, ENT_QUOTES) . '"' . $posterAttr . '></video></div>'
                 . $overlay
                 . '<div class="blox-content ' . $layout . '">' . $children . '</div>'
                 . '</div>';

@@ -123,6 +123,8 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('self::customAreaEnabled($area) && self::themeRendersArea($area)', $areaTarget);
         $this->assertStringContainsString('private static function themeRendersArea(string $area): bool', $areaTarget);
         $this->assertStringContainsString("in_array(\$theme, ['default', 'business'], true)", $areaTarget);
+        $this->assertStringContainsString("'business' => 'business-site-footer'", $areaTarget);
+        $this->assertStringContainsString("'minimal' => 'minimal-site-footer'", $areaTarget);
         $this->assertStringContainsString("\$theme === 'business'", $themeHeaderDocument);
         $this->assertStringContainsString("\$background = '#1e293b';", $themeHeaderDocument);
         $this->assertStringContainsString("'channel_id' => \$isHomeLayout ? 0 : \$id", $canvas);
@@ -141,7 +143,10 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('if ((template[2] || template[4]) && value.area !== "header") return null;', $bridge);
         $this->assertStringContainsString('payload = areaEditPayload(data.ykEditArea);', $bridge);
         $this->assertStringContainsString('this.onEditArea(payload);', $bridge);
-        $this->assertStringContainsString('onEditArea: function (payload) { window.location.assign(payload.url); }', $editor);
+        // 画布里的页头/页尾编辑入口也必须经过统一的未保存离开保护，不能直接跳转。
+        $this->assertStringContainsString('onEditArea: function (payload) { self.navigateEditorTo(payload.url); }', $editor);
+        $this->assertStringContainsString('navigateEditorTo(href) {', $editor);
+        $this->assertStringContainsString('this.hasUnsavedChanges() && !window.confirm(this.uiText.leaveUnsavedConfirm)', $editor);
         $this->assertStringContainsString('onEditPageHero: function () { self.openPageHeroSettings(); }', $editor);
 
         $templateApi = $this->source('admin/blox_template_api.php');
@@ -163,6 +168,12 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringNotContainsString('if (this.dirty) { this.toast(this.uiText.tplPublishRequiresSaved); return; }', $editor);
         $this->assertStringContainsString('@click="publishTemplate()" :disabled="saving"', $header);
         $this->assertStringContainsString("__('blox_tpl_publish_saves_current')", $header);
+
+        foreach (['business', 'minimal'] as $theme) {
+            $footer = $this->source('marketplace/themes/' . $theme . '/layouts/footer.php');
+            $this->assertStringContainsString("bloxAreaHtml('footer')", $footer);
+            $this->assertStringContainsString("if (\$ykBloxFooter !== '')", $footer);
+        }
     }
 
     public function testFreshInstallHasNoEditorSwitchWhileHistoricalUpgradeRemainsCompatible(): void

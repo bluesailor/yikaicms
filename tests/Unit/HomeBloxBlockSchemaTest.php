@@ -348,7 +348,10 @@ final class HomeBloxBlockSchemaTest extends TestCase
     public function testHomeBannerBlockCollectsOnlyItsPublishedRuntimeAssets(): void
     {
         $element = new \HomeBlockElement();
-        $this->assertSame(['/assets/js/blox-banner.js'], $element->scriptsFor(['block_type' => 'banner']));
+        $this->assertSame(
+            ['/assets/js/blox-video-policy.js', '/assets/js/blox-banner.js'],
+            $element->scriptsFor(['block_type' => 'banner'])
+        );
         $this->assertSame(['/assets/css/blox-banner.css'], $element->stylesFor(['block_type' => 'banner']));
         $this->assertSame([], $element->scriptsFor(['block_type' => 'about']));
         $this->assertSame([], $element->stylesFor(['block_type' => 'about']));

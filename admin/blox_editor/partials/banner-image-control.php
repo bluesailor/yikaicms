@@ -21,7 +21,9 @@ declare(strict_types=1);
             <button type="button" @click="replaceBannerControlImage(ctrl.key)"
                     :data-testid="'blox-banner-replace-' + ctrl.key"
                     class="absolute inset-x-2 bottom-2 h-8 rounded bg-gray-900/80 hover:bg-gray-900 text-white text-xs inline-flex items-center justify-center gap-1.5">
-                <i class="ti ti-photo-edit text-sm" aria-hidden="true"></i><span x-text="homeDynamicText.replaceImage"></span>
+                <i class="ti text-sm" aria-hidden="true"
+                   :class="ctrl.key === 'image' && selEl.data.media_type !== 'video' ? 'ti-library-plus' : 'ti-photo-edit'"></i>
+                <span x-text="ctrl.key === 'image' && selEl.data.media_type !== 'video' ? <?= e($jt('blox_pick_media')) ?> : homeDynamicText.replaceImage"></span>
             </button>
         </div>
         <template x-if="ctrl.key === 'image_mobile' && selEl.data.image_mobile">

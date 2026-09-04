@@ -108,7 +108,7 @@ function getChannelUrl(array $channel): string {
                 </a>
 
                 <!-- Desktop navigation -->
-                <nav class="hidden md:flex items-center gap-1">
+                <nav class="hidden xl:flex items-center gap-1 whitespace-nowrap">
                     <?php foreach ($navChannels as $navItem):
                         $hasChildren = !empty($navItem['children']);
                         $isActive = !empty($navItem['_is_home'])
@@ -144,14 +144,16 @@ function getChannelUrl(array $channel): string {
                 </nav>
 
                 <!-- mobile menu button -->
-                <button id="mobileMenuBtn" class="md:hidden p-2 text-white" aria-label="<?php echo __('menu_label'); ?>">
+                <button id="mobileMenuBtn" type="button" aria-controls="mobileMenu" aria-expanded="false"
+                        class="xl:hidden inline-flex h-11 w-11 items-center justify-center rounded-md text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                        aria-label="<?php echo e(__('menu_label')); ?>">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
             </div>
         </div>
 
         <!-- Mobile menu -->
-        <nav id="mobileMenu" class="md:hidden hidden bg-slate-800 border-t border-slate-700">
+        <nav id="mobileMenu" class="xl:hidden hidden bg-slate-800 border-t border-slate-700">
             <div class="container mx-auto px-4 py-4">
                 <?php foreach ($navChannels as $navItem): ?>
                 <a href="<?php echo getChannelUrl($navItem); ?>" class="block py-2 text-gray-300 hover:text-white"><?php echo e($navItem['name']); ?></a>
