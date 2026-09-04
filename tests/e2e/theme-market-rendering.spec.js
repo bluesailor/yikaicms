@@ -23,9 +23,12 @@ for (const mode of ['none', 'banner', 'later', 'mobile-hidden', 'blox-none', 'bl
         const header = page.locator('#siteHeader');
         await expect(header).toHaveClass(new RegExp(overlay ? 'nav-transparent' : 'nav-solid'));
         if (!overlay) await expect(header).toHaveCSS('background-color', 'rgb(30, 41, 59)');
-        if (testInfo.project.name === 'mobile-390') {
+        const compactNavigation = (testInfo.project.use?.viewport?.width ?? 1440) < 1280;
+        if (compactNavigation) {
+            await expect(page.locator('#mobileMenuBtn')).toHaveAttribute('aria-expanded', 'false');
             await page.locator('#mobileMenuBtn').click();
             await expect(page.locator('#mobileMenu')).toBeVisible();
+            await expect(page.locator('#mobileMenuBtn')).toHaveAttribute('aria-expanded', 'true');
         } else {
             await expect(header.locator('nav').first()).toBeVisible();
         }
@@ -66,13 +69,21 @@ test('Business without JavaScript remains readable @ci', async ({ browser }) => 
 });
 
 for (const theme of themes.filter((slug) => slug !== 'business')) {
-    test(`market theme renders after installation: ${theme} @ci`, async ({ page }) => {
+    test(`market theme renders after installation: ${theme} @ci`, async ({ page }, testInfo) => {
         const errors = [];
         page.on('pageerror', (error) => errors.push(error.message));
         const response = await page.goto(`/tests/e2e/theme-market-page.php?theme=${theme}&mode=banner`);
         expect(response.status()).toBe(200);
         await expect(page.locator('header')).toBeVisible();
         await expect(page.locator('footer')).toBeVisible();
+        const compactNavigation = (testInfo.project.use?.viewport?.width ?? 1440) < 1280;
+        if (theme === 'minimal' && compactNavigation) {
+            const menuButton = page.locator('#mobileMenuBtn');
+            await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
+            await menuButton.click();
+            await expect(page.locator('#mobileMenu')).toBeVisible();
+            await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
+        }
         expect(await page.locator('body').innerText()).not.toMatch(/Fatal error|Uncaught Error|Warning:/);
         expect(errors).toEqual([]);
     });

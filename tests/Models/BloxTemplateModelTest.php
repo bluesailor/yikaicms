@@ -169,6 +169,29 @@ final class BloxTemplateModelTest extends TestCase
         $this->assertCount(1, bloxTemplateModel()->catalog('header'));
     }
 
+    public function testBundledThemeFooterMigrationInstallsOnlyMissingPresets(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+
+        $business = \BloxAreaTemplatePresets::install('business-site-footer', 7);
+        bloxTemplateModel()->updateDraft((int) $business['id'], '[]', []);
+        $migration = require ROOT_PATH . '/migrations/20260904_bundled_theme_footer_templates.php';
+
+        $this->assertFalse(($migration['check'])());
+        $message = ($migration['php'])();
+        $this->assertSame('已补齐 2 个内置主题网页脚模板。', $message);
+        $this->assertTrue(($migration['check'])());
+
+        foreach (['clean-site-footer', 'business-site-footer', 'minimal-site-footer'] as $slug) {
+            $this->assertNotNull(bloxTemplateModel()->findWhere([
+                'source' => 'builtin',
+                'source_ref' => $slug,
+            ]));
+        }
+        $preserved = bloxTemplateModel()->findForExport((int) $business['id']);
+        $this->assertSame('[]', $preserved['draft_data']);
+    }
+
     public function testAreaEditorTargetFollowsTheActuallyRenderedHeader(): void
     {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';

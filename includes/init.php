@@ -22,6 +22,7 @@ require_once ROOT_PATH . '/config/config.php';
 
 // 加载公共函数
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/language_request.php';
 
 // 加载 Model 层
 require_once ROOT_PATH . '/includes/models/autoload.php';
@@ -36,6 +37,7 @@ initLang();
 //
 // URL 前缀总是被认；这是显式信号，且 SEO 必须保证 /en/foo 始终展示英文。
 // cookie 仅在 show_lang_switcher='1' 时生效（避免悄悄改变默认语言行为）。
+$disabledLanguagePrefix = false;
 if (!defined('SITE_LANG')) {
     $defaultSiteLang = (string)config('site_lang', 'zh-CN');
     $detected = $defaultSiteLang;
@@ -47,8 +49,15 @@ if (!defined('SITE_LANG')) {
         $supported = array_keys(availableLanguages());
     }
 
-    if (!empty($_GET['_lang']) && in_array($_GET['_lang'], $supported, true)) {
-        $detected = (string)$_GET['_lang'];
+    $requestedUrlLanguage = trim((string) ($_GET['_lang'] ?? ''));
+    $disabledLanguagePrefix = languagePrefixIsDisabled(
+        $requestedUrlLanguage,
+        availableLanguages(),
+        array_values(array_map('strval', $supported))
+    );
+
+    if ($requestedUrlLanguage !== '' && in_array($requestedUrlLanguage, $supported, true)) {
+        $detected = $requestedUrlLanguage;
     } elseif ((string)config('show_lang_switcher', '0') === '1'
               && !empty($_COOKIE['site_lang'])
               && in_array($_COOKIE['site_lang'], $supported, true)) {
@@ -100,6 +109,15 @@ require_once ROOT_PATH . '/includes/plugin.php';
 require_once ROOT_PATH . '/includes/License.php';
 require_once ROOT_PATH . '/includes/admin_bar.php';   // 前台管理工具条（登录管理员可见）
 require_once ROOT_PATH . '/includes/front_edit.php';  // 前台就地编辑覆盖层（管理员悬停编辑区块）
+
+// 已安装语言包但未启用的显式 URL 前缀不能回落成默认语言正文，否则形成软 404
+// 与重复内容。完整初始化后走主题 404，确保头尾、插件钩子和语言文案都可用。
+if ($disabledLanguagePrefix) {
+    if (!headers_sent()) {
+        header('X-Robots-Tag: noindex, nofollow');
+    }
+    render404();
+}
 
 // 定时发布：到点的定时内容（status=3）自动上线为已发布（status=1）。
 // 无需 cron，由访问触发；限流每 60 秒最多扫描一次。

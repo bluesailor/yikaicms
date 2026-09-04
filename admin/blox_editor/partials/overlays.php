@@ -451,13 +451,30 @@ declare(strict_types=1);
         <div class="relative bg-white rounded-xl shadow-2xl w-[860px] max-w-[90vw] flex flex-col">
             <div class="h-12 px-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                 <span id="blox-media-dialog-title" class="text-sm font-semibold text-gray-700 inline-flex items-center gap-1.5">
-                    <i class="ti ti-photo text-base text-blue-500"></i><?= __('blox_pick_from_media') ?>
+                    <i class="ti text-base text-blue-500" :class="mediaType === 'video' ? 'ti-video' : 'ti-photo'" aria-hidden="true"></i>
+                    <span x-text="mediaCanSwitchType ? <?= e($jt('blox_pick_media')) ?> : (mediaType === 'video' ? <?= e($jt('blox_banner_choose_video')) ?> : <?= e($jt('blox_pick_from_media')) ?>)"></span>
                 </span>
                 <button type="button" @click="closeMedia()" class="text-gray-400 hover:text-gray-600 p-1" aria-label="<?= e(__('close')) ?>">
                     <i class="ti ti-x text-base"></i>
                 </button>
             </div>
-            <div class="h-10 px-3 border-b border-gray-100 shrink-0 flex items-center gap-1" role="tablist" aria-label="<?= e(__('official_media_source_label')) ?>">
+            <div x-show="mediaCanSwitchType" data-testid="blox-media-type-tabs"
+                 class="h-10 px-3 border-b border-gray-100 shrink-0 flex items-center gap-1"
+                 role="tablist" aria-label="<?= e(__('blox_banner_media_type')) ?>">
+                <button type="button" role="tab" @click="setMediaType('image')"
+                        :aria-selected="mediaType === 'image'"
+                        class="h-7 px-3 rounded text-xs font-semibold inline-flex items-center gap-1.5 transition"
+                        :class="mediaType === 'image' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'">
+                    <i class="ti ti-photo" aria-hidden="true"></i><?= e(__('media_type_image')) ?>
+                </button>
+                <button type="button" role="tab" @click="setMediaType('video')"
+                        :aria-selected="mediaType === 'video'"
+                        class="h-7 px-3 rounded text-xs font-semibold inline-flex items-center gap-1.5 transition"
+                        :class="mediaType === 'video' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'">
+                    <i class="ti ti-video" aria-hidden="true"></i><?= e(__('media_type_video')) ?>
+                </button>
+            </div>
+            <div x-show="mediaType === 'image'" class="h-10 px-3 border-b border-gray-100 shrink-0 flex items-center gap-1" role="tablist" aria-label="<?= e(__('official_media_source_label')) ?>">
                 <button type="button" role="tab" @click="setMediaSource('local')"
                         :aria-selected="mediaSource === 'local'"
                         class="h-7 px-3 rounded text-xs font-semibold inline-flex items-center gap-1.5 transition"
@@ -471,18 +488,30 @@ declare(strict_types=1);
                     <i class="ti ti-cloud-download"></i><span x-text="uiText.mediaSourceOfficial"></span>
                 </button>
             </div>
-            <div class="p-3 border-b border-gray-100 shrink-0 flex gap-2">
+            <div class="p-3 border-b border-gray-100 shrink-0 flex flex-wrap gap-2">
                 <input type="text" x-model="mediaKeyword" @keydown.enter.prevent="loadMedia(1)"
-                       data-dialog-initial
-                       placeholder="<?= e(__('blox_search_files')) ?>" class="flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
+                        data-dialog-initial
+                       placeholder="<?= e(__('blox_search_files')) ?>" class="min-w-48 flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
+                <label x-show="mediaSource === 'local'" class="relative min-w-36">
+                    <span class="sr-only"><?= e(__('blox_media_sort_label')) ?></span>
+                    <select x-model="mediaSort" @change="loadMedia(1)" data-testid="blox-media-sort"
+                            class="h-8 w-full border border-gray-200 rounded bg-white pl-2 pr-7 text-xs text-gray-600">
+                        <option value="default"><?= e(__('blox_media_sort_default')) ?></option>
+                        <option value="newest"><?= e(__('blox_media_sort_newest')) ?></option>
+                        <option value="oldest"><?= e(__('blox_media_sort_oldest')) ?></option>
+                        <option value="largest"><?= e(__('blox_media_sort_largest')) ?></option>
+                        <option value="smallest"><?= e(__('blox_media_sort_smallest')) ?></option>
+                        <option value="name"><?= e(__('blox_media_sort_name')) ?></option>
+                    </select>
+                </label>
                 <button type="button" @click="loadMedia(1)"
                         class="shrink-0 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded px-3 py-1.5 transition"><?= __('search') ?></button>
-                <?php // 上传即选用：上传的目的就是马上要用这张图 ?>
+                <?php // 上传即选用：上传的目的就是马上要用这个媒体 ?>
                 <label x-show="mediaSource === 'local'" class="shrink-0 text-sm border rounded px-3 py-1.5 inline-flex items-center gap-1 transition"
                        :class="mediaUploading ? 'border-gray-200 text-gray-400 cursor-wait' : 'border-blue-200 text-blue-500 hover:border-blue-400 hover:text-blue-600 cursor-pointer'">
                     <i class="ti text-base" :class="mediaUploading ? 'ti-loader-2 animate-spin' : 'ti-upload'"></i>
-                    <span x-text="mediaUploading ? <?= e($jt('blox_uploading')) ?> : <?= e($jt('blox_upload_image')) ?>"></span>
-                    <input type="file" accept="image/*" class="hidden" :disabled="mediaUploading"
+                    <span x-text="mediaUploading ? <?= e($jt('blox_uploading')) ?> : (mediaType === 'video' ? <?= e($jt('blox_upload_video')) ?> : <?= e($jt('blox_upload_image')) ?>)"></span>
+                    <input type="file" :accept="mediaType === 'video' ? 'video/mp4,video/webm,video/ogg,video/quicktime' : 'image/*'" class="hidden" :disabled="mediaUploading"
                            @change="uploadMedia($event.target.files[0]); $event.target.value = ''">
                 </label>
                 <label x-show="templateEntry === 'sections' && templatePurposeOptions().length > 1" class="relative min-w-36">
@@ -501,10 +530,10 @@ declare(strict_types=1);
                  data-testid="blox-media-wide-background-hint">
                 <i class="ti ti-photo mr-1" aria-hidden="true"></i><?= e(__('blox_media_wide_background_hint')) ?>
             </div>
-            <div class="h-[400px] overflow-y-auto blox-scroll p-3">
+            <div class="h-[400px] overflow-y-auto blox-scroll p-3" x-ref="mediaScroll">
                 <p x-show="mediaLoading" class="text-center text-gray-400 text-sm py-12"><?= __('theme_market_loading') ?></p>
                 <p x-show="!mediaLoading && mediaItems.length === 0" class="text-center text-gray-400 text-sm py-12"
-                   x-text="mediaSource === 'official' ? uiText.officialMediaEmpty : <?= e($jt('blox_no_images_hint')) ?>">
+                   x-text="mediaSource === 'official' ? uiText.officialMediaEmpty : (mediaType === 'video' ? <?= e($jt('blox_no_videos_hint')) ?> : <?= e($jt('blox_no_images_hint')) ?>)">
                 </p>
                 <div x-show="mediaSource === 'local' && !mediaLoading && mediaItems.length > 0"
                      data-testid="blox-media-grid"
@@ -514,7 +543,31 @@ declare(strict_types=1);
                                 data-testid="blox-media-item"
                                 class="group/mp min-w-0 border-2 border-gray-100 hover:border-blue-400 rounded-lg overflow-hidden bg-white transition text-left">
                             <span class="block aspect-[3/2] bg-gray-100 p-1.5">
-                                <img :src="it.url" class="w-full h-full object-contain" loading="lazy" alt="">
+                                <template x-if="mediaType === 'image'">
+                                    <img :src="it.url" class="w-full h-full object-contain" loading="lazy" alt="">
+                                </template>
+                                <template x-if="mediaType === 'video'">
+                                    <span class="relative flex h-full w-full items-center justify-center overflow-hidden bg-gray-950 text-gray-300">
+                                        <video x-init="registerMediaVideoPreview($el, it)"
+                                               data-testid="blox-media-video-preview"
+                                               class="h-full w-full object-contain transition-opacity duration-200"
+                                               :class="mediaVideoPreview(it).status === 'ready' ? 'opacity-100' : 'opacity-0'"
+                                               preload="none" muted playsinline aria-hidden="true"></video>
+                                        <span data-testid="blox-media-video-status"
+                                              :data-status="mediaVideoPreview(it).status"
+                                              x-show="mediaVideoPreview(it).status !== 'ready'"
+                                              class="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-center text-[10px] leading-4 text-gray-300">
+                                            <i class="ti text-2xl"
+                                               :class="mediaVideoPreview(it).status === 'error' ? 'ti-alert-circle text-amber-300' : 'ti-loader-2 animate-spin'"
+                                               aria-hidden="true"></i>
+                                            <span x-text="mediaVideoStatusText(it)"></span>
+                                        </span>
+                                        <span x-show="mediaVideoPreview(it).status === 'ready' && mediaVideoPreview(it).duration > 0"
+                                              data-testid="blox-media-video-duration"
+                                              class="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-[9px] tabular-nums text-white"
+                                              x-text="window.BloxMediaClient.formatDuration(mediaVideoPreview(it).duration)"></span>
+                                    </span>
+                                </template>
                             </span>
                             <span class="flex min-w-0 items-center gap-1.5 px-2 pt-1.5">
                                 <span class="min-w-0 flex-1 truncate text-[11px] text-gray-600" x-text="it.name"></span>
@@ -523,8 +576,11 @@ declare(strict_types=1);
                                       x-text="<?= e($jt('blox_media_recommended')) ?>"></span>
                             </span>
                             <span x-show="mediaDimensions(it)"
-                                  class="block px-2 pb-1.5 pt-0.5 text-[10px] tabular-nums text-gray-400"
+                                  class="block px-2 pt-0.5 text-[10px] tabular-nums text-gray-400"
                                   x-text="mediaDimensions(it)"></span>
+                            <span x-show="mediaDate(it)"
+                                  class="block px-2 pb-1.5 pt-0.5 text-[10px] tabular-nums text-gray-400"
+                                  x-text="mediaDate(it)"></span>
                         </button>
                     </template>
                 </div>
@@ -563,10 +619,10 @@ declare(strict_types=1);
             <div class="h-11 px-4 flex items-center justify-between border-t border-gray-100 shrink-0 text-xs text-gray-500">
                 <span x-text="<?= e($jt('blox_media_total')) ?>.replace(':n', mediaTotal)"></span>
                 <div class="flex items-center gap-2">
-                    <button type="button" :disabled="mediaPage <= 1" @click="loadMedia(mediaPage - 1)"
+                    <button type="button" :disabled="mediaPage <= 1" @click="loadMedia(mediaPage - 1)" data-testid="blox-media-prev"
                             class="px-2 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-40"><?= __('list_prev_page') ?></button>
-                    <span x-text="mediaPage + ' / ' + Math.max(mediaPages, 1)"></span>
-                    <button type="button" :disabled="mediaPage >= mediaPages" @click="loadMedia(mediaPage + 1)"
+                    <span class="min-w-14 text-center tabular-nums" x-text="mediaPage + ' / ' + Math.max(mediaPages, 1)"></span>
+                    <button type="button" :disabled="mediaPage >= mediaPages" @click="loadMedia(mediaPage + 1)" data-testid="blox-media-next"
                             class="px-2 py-1 border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-40"><?= __('list_next_page') ?></button>
                 </div>
             </div>
@@ -1462,7 +1518,7 @@ declare(strict_types=1);
     </div>
 
     <!-- toast -->
-    <div x-show="toastMsg" x-transition data-testid="blox-toast"
+    <div x-show="toastMsg" data-testid="blox-toast"
          role="status" aria-live="polite" aria-atomic="true"
          class="pointer-events-none fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50"
          x-text="toastMsg" style="display:none"></div>

@@ -33,6 +33,10 @@ $footerNav = function_exists('footerNavigationGroups')
     <?php endif; ?>
 
     <!-- footer -->
+    <?php $ykBloxFooter = function_exists('bloxAreaHtml') ? bloxAreaHtml('footer') : ''; ?>
+    <?php if ($ykBloxFooter !== ''): ?>
+    <?php echo $ykBloxFooter; // Blox 页脚接管；未发布时保留主题原生页脚 ?>
+    <?php else: ?>
     <footer class="bg-slate-900 text-gray-400">
         <?php if (!empty($footerNav)): ?>
         <div class="border-b border-slate-800">
@@ -69,10 +73,14 @@ $footerNav = function_exists('footerNavigationGroups')
             </div>
         </div>
     </footer>
+    <?php endif; ?>
 
     <script>
     document.getElementById('mobileMenuBtn')?.addEventListener('click', function() {
-        document.getElementById('mobileMenu').classList.toggle('hidden');
+        var menu = document.getElementById('mobileMenu');
+        if (!menu) return;
+        menu.classList.toggle('hidden');
+        this.setAttribute('aria-expanded', menu.classList.contains('hidden') ? 'false' : 'true');
     });
 
     // 滚动动画

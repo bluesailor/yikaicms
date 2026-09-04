@@ -141,4 +141,37 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
             );
         }
     }
+
+    public function testPackagedRuntimeSourceDoesNotUsePhp81NeverReturnTypes(): void
+    {
+        $roots = ['admin', 'api', 'bin', 'config', 'controllers', 'includes', 'install', 'migrations', 'plugins', 'themes', 'marketplace/themes'];
+        $violations = [];
+        foreach ($roots as $relativeRoot) {
+            $absoluteRoot = ROOT_PATH . '/' . $relativeRoot;
+            if (!is_dir($absoluteRoot)) {
+                continue;
+            }
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($absoluteRoot, FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($iterator as $file) {
+                if (!$file->isFile() || strtolower($file->getExtension()) !== 'php') {
+                    continue;
+                }
+                $source = (string) file_get_contents($file->getPathname());
+                $code = '';
+                foreach (token_get_all($source) as $token) {
+                    if (is_array($token) && in_array($token[0], [T_COMMENT, T_DOC_COMMENT], true)) {
+                        continue;
+                    }
+                    $code .= is_array($token) ? $token[1] : $token;
+                }
+                if (preg_match('/\)\s*:\s*never\b/i', $code) === 1) {
+                    $violations[] = str_replace('\\', '/', substr($file->getPathname(), strlen(ROOT_PATH) + 1));
+                }
+            }
+        }
+
+        self::assertSame([], $violations, 'PHP 8.0 无法解析 never 返回类型：' . implode(', ', $violations));
+    }
 }

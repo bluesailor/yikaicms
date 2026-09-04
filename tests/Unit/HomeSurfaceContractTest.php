@@ -27,7 +27,11 @@ final class HomeSurfaceContractTest extends TestCase
     public function testRendererPassesNearestBackgroundFirstWithoutChangingInput(): void
     {
         $sections = [[
-            'settings' => ['bg_color' => '#111111', 'container_bg' => '#222222'],
+            'settings' => [
+                'bg_color' => '#111111',
+                'container_bg' => '#222222',
+                'bg_video' => '/uploads/videos/section.mp4',
+            ],
             'columns' => [['card_bg' => '#333333', 'elements' => [[
                 'type' => 'home-block', 'data' => ['block_type' => 'about', 'enabled' => true],
             ]]]],
@@ -39,7 +43,33 @@ final class HomeSurfaceContractTest extends TestCase
             return '<p>About</p>';
         });
         self::assertSame(['#333333', '#222222', '#111111'], array_column($received, 'bg_color'));
+        self::assertSame('/uploads/videos/section.mp4', $received[2]['bg_video']);
         self::assertSame($original, $sections);
+    }
+
+    public function testDefaultThemeUsesOnlyTheGenericSectionBackgroundEditor(): void
+    {
+        $runtimeKey = 'yikai_config_runtime_overrides';
+        $hadPrevious = array_key_exists($runtimeKey, $GLOBALS);
+        $previous = $GLOBALS[$runtimeKey] ?? null;
+        $GLOBALS[$runtimeKey] = array_merge(
+            is_array($previous) ? $previous : [],
+            ['current_theme' => 'default']
+        );
+
+        try {
+            $element = new \HomeBlockElement();
+            $keys = array_column($element->controls(), 'key');
+            foreach (['bg_image', 'bg_color', 'bg_overlay_color', 'bg_overlay_opacity', 'text_light'] as $key) {
+                self::assertNotContains($key, $keys);
+            }
+        } finally {
+            if ($hadPrevious) {
+                $GLOBALS[$runtimeKey] = $previous;
+            } else {
+                unset($GLOBALS[$runtimeKey]);
+            }
+        }
     }
 
     public function testAssetCollectorStillRejectsRemoteTraversalAndNonAssetThemePaths(): void

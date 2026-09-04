@@ -63,6 +63,38 @@ class InstallSeedDemoTest extends TestCase
     /**
      * @dataProvider driverProvider
      */
+    public function testSeedIsValidUtf8WithoutReplacementCharacters(string $driver): void
+    {
+        $sql = $this->seed($driver);
+
+        $this->assertSame(1, preg_match('//u', $sql), "安装种子必须是合法 UTF-8 ({$driver})");
+        $this->assertStringNotContainsString(
+            "\xEF\xBF\xBD",
+            $sql,
+            "安装种子不得包含 Unicode 替换字符 U+FFFD ({$driver})"
+        );
+    }
+
+    public function testJsonSeedSourcesAreValidUtf8WithoutReplacementCharacters(): void
+    {
+        $paths = glob(dirname(__DIR__, 2) . '/install/seed_data_*.json') ?: [];
+        $this->assertNotEmpty($paths);
+
+        foreach ($paths as $path) {
+            $seed = (string) file_get_contents($path);
+            $name = basename($path);
+            $this->assertSame(1, preg_match('//u', $seed), "JSON 种子必须是合法 UTF-8 ({$name})");
+            $this->assertStringNotContainsString(
+                "\xEF\xBF\xBD",
+                $seed,
+                "JSON 种子不得包含 Unicode 替换字符 U+FFFD ({$name})"
+            );
+        }
+    }
+
+    /**
+     * @dataProvider driverProvider
+     */
     public function testDemoDataPresentWhenKept(string $driver): void
     {
         $sql = $this->seed($driver);

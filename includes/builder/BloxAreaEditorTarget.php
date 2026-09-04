@@ -244,11 +244,13 @@ final class BloxAreaEditorTarget
     private static function defaultThemeSourceRef(string $area): string
     {
         $theme = self::activeTheme();
-        if ($area === 'footer' && $theme !== 'default') {
-            return '';
-        }
         if ($area === 'footer') {
-            return 'clean-site-footer';
+            return match ($theme) {
+                'default' => 'clean-site-footer',
+                'business' => 'business-site-footer',
+                'minimal' => 'minimal-site-footer',
+                default => '',
+            };
         }
         if (!in_array($theme, ['default', 'business'], true)) {
             return '';

@@ -128,6 +128,7 @@ return [
     // エラー
     'error_already_installed' => 'インストール済みです。再インストールするには installed.lock を削除してください。',
     'error_php_version' => 'PHP バージョンが古いです。8.0以上が必要です。',
+    'error_admin_pass_length' => '管理者パスワードは6文字以上にしてください。',
     'error_dir_not_writable' => 'ディレクトリに書き込めません：',
     'error_db_connect' => 'データベース接続に失敗しました：',
     'error_db_create' => 'データベースの作成に失敗しました：',

@@ -10,7 +10,7 @@ if (!is_file($root . '/tests/smoke/fixtures.json')
 }
 $mode = (string) ($_GET['mode'] ?? 'normal');
 $view = (string) ($_GET['view'] ?? 'front');
-if (!in_array($mode, ['normal', 'custom', 'parent', 'hidden', 'manual', 'published-header'], true)
+if (!in_array($mode, ['normal', 'custom', 'parent', 'hidden', 'manual', 'published-header', 'footer-editor'], true)
     || !in_array($view, ['front', 'legacy', 'preview', 'editor'], true)) {
     http_response_code(400);
     exit;
@@ -94,6 +94,15 @@ if ($view === 'preview') {
                 ]);
             }
         });
+    }
+    if ($mode === 'footer-editor') {
+        $footerPreset = BloxAreaTemplatePresets::editorCatalog('footer')[0];
+        $_GET['template_area'] = 'footer';
+        $_POST['blocks_data'] = json_encode([
+            'schema' => BloxDocumentPipeline::SCHEMA_VERSION,
+            'settings' => $footerPreset['settings'],
+            'sections' => $footerPreset['sections'],
+        ], JSON_THROW_ON_ERROR);
     }
     require $root . '/includes/builder/BloxCanvasPreview.php';
     $_POST['blox'] = '1';

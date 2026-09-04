@@ -52,6 +52,25 @@ final class ReleaseArtifactSmoke
             }
         }
 
+        $seedPaths = ['install/sql/mysql.sql', 'install/sql/sqlite.sql'];
+        foreach (glob($root . '/install/seed_data_*.json') ?: [] as $seedFile) {
+            $seedPaths[] = 'install/' . basename($seedFile);
+        }
+        foreach ($seedPaths as $path) {
+            $file = $root . '/' . $path;
+            if (!is_file($file)) {
+                continue;
+            }
+            $sql = file_get_contents($file);
+            if (!is_string($sql) || preg_match('//u', $sql) !== 1) {
+                $errors[] = 'Install seed is not valid UTF-8: ' . $path;
+                continue;
+            }
+            if (str_contains($sql, "\xEF\xBF\xBD")) {
+                $errors[] = 'Install seed contains Unicode replacement characters: ' . $path;
+            }
+        }
+
         $probe = $this->runRuntimeProbe($root);
         if ($probe['exit'] !== 0) {
             $errors[] = 'Runtime probe failed: ' . trim($probe['output']);

@@ -73,6 +73,7 @@ define('STORAGE_PATH', ROOT_PATH . '/storage/');
 define('UPLOAD_MAX_SIZE', 10 * 1024 * 1024);  // 10MB
 define('UPLOAD_IMAGE_TYPES', ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']);
 define('UPLOAD_FILE_TYPES', ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z']);
+define('UPLOAD_VIDEO_TYPES', ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v']);
 
 // ============================================================
 // 安全配置

@@ -154,12 +154,13 @@ $params = [$_viewLang];
 if ($channelId > 0) {
     $where[] = 'a.channel_id = ?';
     $params[] = $channelId;
-} elseif (!empty($newsChildIds)) {
-    $placeholders = implode(',', array_fill(0, count($newsChildIds), '?'));
-    // 同时纳入「未分类」文章(channel_id=0 的 article)：分类未选中时文章会存成 0，
-    // 若不显示就会在后台彻底消失、连修改/删除的入口都没有。列出来才能找回并归类。
+} elseif ($newsChannelId > 0) {
+    // 编辑器未选子栏目时会回退到 news 根栏目，因此列表范围必须同时包含根栏目和子栏目。
+    // channel_id=0 是更早版本留下的未分类文章，也继续显示，避免后台失去修改入口。
+    $newsScopeIds = array_values(array_unique(array_merge([$newsChannelId], $newsChildIds)));
+    $placeholders = implode(',', array_fill(0, count($newsScopeIds), '?'));
     $where[] = "(a.channel_id IN ({$placeholders}) OR (a.channel_id = 0 AND a.type = 'article'))";
-    $params = array_merge($params, $newsChildIds);
+    $params = array_merge($params, $newsScopeIds);
 }
 
 if (isset($status) && $status !== '') {

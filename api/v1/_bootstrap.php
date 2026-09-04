@@ -52,14 +52,20 @@ if ($key !== '') {
 
 apiThrottle();
 
-/** 成功信封（HTTP 200）。 */
-function apiOk(mixed $data): never
+/**
+ * 成功信封（HTTP 200）。
+ * @return never
+ */
+function apiOk(mixed $data): void
 {
     json(['code' => 0, 'msg' => 'ok', 'data' => $data], 200);
 }
 
-/** 错误信封（带真实 HTTP 状态码）。 */
-function apiError(string $msg, int $http = 400): never
+/**
+ * 错误信封（带真实 HTTP 状态码）。
+ * @return never
+ */
+function apiError(string $msg, int $http = 400): void
 {
     json(['code' => $http, 'msg' => $msg, 'data' => null], $http);
 }

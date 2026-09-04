@@ -2,6 +2,7 @@
 /**
  * Business 主题 - 全屏 Hero Banner
  */
+HomeBannerItemElement::registerRuntimeAssets();
 ?>
 <section class="relative">
     <div class="swiper banner-swiper h-full"<?php echo HomeBloxBlockSchema::bannerRuntimeAttributes($block ?? []); ?>>
@@ -9,8 +10,8 @@
             <?php if (!empty($banners)): ?>
             <?php foreach ($banners as $banner): ?>
             <div class="swiper-slide relative"<?php echo HomeBannerItemElement::motionAttributes($banner); ?><?php echo !empty($banner['_blox_path']) ? ' data-yk-el="' . e($banner['_blox_path']) . '" data-yk-el-type="home-banner-item"' : ''; ?>>
-                <?php if (!empty($banner['image'])): ?>
-                <?php echo HomeBannerItemElement::responsiveImageHtml($banner); ?>
+                <?php if (!empty($banner['image']) || (($banner['media_type'] ?? '') === 'video' && !empty($banner['video']))): ?>
+                <?php echo HomeBannerItemElement::responsiveLinkedMediaHtml($banner); ?>
                 <?php else: ?>
                 <div class="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900"></div>
                 <?php endif; ?>

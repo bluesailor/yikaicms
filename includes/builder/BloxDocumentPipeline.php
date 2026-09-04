@@ -364,6 +364,19 @@ final class BloxDocumentPipeline
             if (array_key_exists('bg_image', $settings)) {
                 $settings['bg_image'] = AbstractElement::cssImageUrl($settings['bg_image']) ?? '';
             }
+            if (array_key_exists('bg_video', $settings)) {
+                $settings['bg_video'] = AbstractElement::backgroundVideoUrl([
+                    'bg_video' => $settings['bg_video'],
+                ]);
+            }
+            if (array_key_exists('bg_video_mobile_mode', $settings)
+                && !in_array((string) $settings['bg_video_mobile_mode'], ['poster', 'video'], true)) {
+                $settings['bg_video_mobile_mode'] = 'poster';
+            }
+            if (array_key_exists('text_tone', $settings)
+                && !in_array((string) $settings['text_tone'], ['auto', 'light', 'dark'], true)) {
+                $settings['text_tone'] = 'auto';
+            }
             if (array_key_exists('container_bg_image', $settings)) {
                 $settings['container_bg_image'] = AbstractElement::cssImageUrl($settings['container_bg_image']) ?? '';
             }

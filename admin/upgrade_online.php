@@ -38,7 +38,8 @@ if (!function_exists('license_pubkey') && is_file(ROOT_PATH . '/includes/License
     require_once ROOT_PATH . '/includes/License.php';
 }
 
-function uo_json(array $d): never
+/** @return never */
+function uo_json(array $d): void
 {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($d, JSON_UNESCAPED_UNICODE);
@@ -124,6 +125,20 @@ if ($action !== '') {
         }
         $data = $resp ? json_decode($resp, true) : null;
         if (!is_array($data)) uo_json(['code' => 1, 'msg' => '无法连接更新服务器或返回格式错误']);
+        $minPhp = trim((string) ($data['data']['min_php'] ?? ''));
+        if ((int) ($data['code'] ?? 1) === 0
+            && !empty($data['data']['has_update'])
+            && preg_match('/^\d+\.\d+(?:\.\d+)?$/D', $minPhp) === 1
+            && version_compare(PHP_VERSION, $minPhp, '<')) {
+            uo_json([
+                'code' => 1,
+                'error_code' => 'php_version_too_low',
+                'msg' => __('upgrade_php_version_required', [
+                    'required' => $minPhp,
+                    'current' => PHP_VERSION,
+                ]),
+            ]);
+        }
         $data['current_version'] = $cur;
         uo_json($data);
     }

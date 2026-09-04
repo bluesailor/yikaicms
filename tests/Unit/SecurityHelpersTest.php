@@ -16,6 +16,31 @@ require_once ROOT_PATH . '/includes/security.php';
 
 final class SecurityHelpersTest extends TestCase
 {
+    public function testFakeWebmWithGenericBinaryMimeIsRejected(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'yk_webm_fake_');
+        self::assertIsString($path);
+        file_put_contents($path, '<?php echo "not video";');
+        try {
+            self::assertFalse(uploadMimeMatches('webm', 'application/octet-stream', $path, ['video/webm']));
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testGenericMimeWebmRequiresEbmlSignature(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'yk_webm_valid_');
+        self::assertIsString($path);
+        file_put_contents($path, "\x1A\x45\xDF\xA3" . random_bytes(16));
+        try {
+            self::assertTrue(uploadMimeMatches('webm', 'application/octet-stream', $path, ['video/webm']));
+            self::assertTrue(uploadMimeMatches('webm', 'video/webm', $path, ['video/webm']));
+        } finally {
+            @unlink($path);
+        }
+    }
+
     // ---- zipUnsafeEntry ----
 
     private function makeZip(array $entries): string
@@ -96,6 +121,34 @@ final class SecurityHelpersTest extends TestCase
         $svg = '<svg><a xlink:href="javascript:alert(1)"><text>x</text></a></svg>';
         $out = sanitizeSvg($svg);
         $this->assertStringNotContainsString('javascript:', $out);
+    }
+
+    public function testSvgNeutralizesJavascriptHrefContainingNestedQuotes(): void
+    {
+        $svg = '<svg><a href="javascript:alert(\'x\')"><text>x</text></a></svg>';
+        $out = sanitizeSvg($svg);
+        $this->assertStringNotContainsString('javascript:', $out);
+    }
+
+    public function testSvgNeutralizesEntityObfuscatedJavascriptHref(): void
+    {
+        $svg = '<svg><a href="java&#x73;cript:alert(1)"><text>x</text></a></svg>';
+        $out = sanitizeSvg($svg);
+        $this->assertStringNotContainsString('javascript:', html_entity_decode($out, ENT_QUOTES | ENT_HTML5));
+    }
+
+    public function testSvgFallbackNeutralizesQuotedAndEncodedJavascriptHref(): void
+    {
+        foreach ([
+            '<svg><a href="javascript:alert(\'x\')"><text>x</text></a></svg>',
+            '<svg><a href="java&#x73;cript:alert(1)"><text>x</text></a></svg>',
+        ] as $svg) {
+            $out = sanitizeSvgFallback($svg);
+            $this->assertStringNotContainsString(
+                'javascript:',
+                html_entity_decode($out, ENT_QUOTES | ENT_HTML5)
+            );
+        }
     }
 
     public function testSvgStripsForeignObjectAndDoctype(): void

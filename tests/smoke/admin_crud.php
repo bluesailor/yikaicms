@@ -9,7 +9,21 @@
  */
 declare(strict_types=1);
 
-$BASE = getenv('SMOKE_BASE') ?: 'http://127.0.0.1:8080';
+/** @return ?string */
+function smokeOption(string $name): ?string
+{
+    global $argv;
+    $prefix = '--' . $name . '=';
+    foreach ($argv ?? [] as $argument) {
+        if (is_string($argument) && str_starts_with($argument, $prefix)) {
+            return substr($argument, strlen($prefix));
+        }
+    }
+    return null;
+}
+
+$BASE = smokeOption('base') ?: (getenv('SMOKE_BASE') ?: 'http://127.0.0.1:8080');
+$SMOKE_ROOT = smokeOption('root') ?: (getenv('SMOKE_SITE_ROOT') ?: dirname(__DIR__, 2));
 $JAR  = sys_get_temp_dir() . '/smoke_cookies_' . getmypid() . '.txt';
 @unlink($JAR);
 $fx = json_decode(@file_get_contents(__DIR__ . '/fixtures.json') ?: '{}', true) ?: [];
@@ -19,9 +33,12 @@ $fx = json_decode(@file_get_contents(__DIR__ . '/fixtures.json') ?: '{}', true) 
  * hard-coded SQLite connection here made the HTTP smoke silently verify a
  * different database when the site itself ran on MySQL.
  */
-function smokeDatabase(): PDO
+function smokeDatabase(string $root): PDO
 {
-    $root = dirname(__DIR__, 2);
+    $root = rtrim($root, '/\\');
+    if (!is_file($root . '/config/config.php')) {
+        throw new RuntimeException("Smoke target has no installed config: {$root}");
+    }
     if (!defined('ROOT_PATH')) {
         define('ROOT_PATH', $root);
     }
@@ -41,7 +58,37 @@ function smokeDatabase(): PDO
     return $pdo;
 }
 
-$directDb = smokeDatabase();
+$directDb = smokeDatabase($SMOKE_ROOT);
+
+function smokeArticleChannel(PDO $pdo): int
+{
+    $table = DB_PREFIX . 'channels';
+    $settings = DB_PREFIX . 'settings';
+    $siteLang = (string) ($pdo->query(
+        "SELECT value FROM {$settings} WHERE `key` = 'site_lang' LIMIT 1"
+    )->fetchColumn() ?: 'zh-CN');
+    $sourceGroup = (int) ($pdo->query(
+        "SELECT translation_group_id FROM {$table} WHERE slug = 'news' LIMIT 1"
+    )->fetchColumn() ?: 0);
+    if ($sourceGroup <= 0) {
+        return 0;
+    }
+
+    $rootStatement = $pdo->prepare(
+        "SELECT id FROM {$table} WHERE translation_group_id = ? AND lang = ? AND parent_id = 0 LIMIT 1"
+    );
+    $rootStatement->execute([$sourceGroup, $siteLang]);
+    $rootId = (int) ($rootStatement->fetchColumn() ?: 0);
+    if ($rootId <= 0) {
+        return 0;
+    }
+
+    $childStatement = $pdo->prepare(
+        "SELECT id FROM {$table} WHERE parent_id = ? AND lang = ? AND status = 1 ORDER BY sort_order, id LIMIT 1"
+    );
+    $childStatement->execute([$rootId, $siteLang]);
+    return (int) ($childStatement->fetchColumn() ?: $rootId);
+}
 
 function req(string $method, string $url, array $post = null): array
 {
@@ -95,15 +142,16 @@ echo "✓ 登录成功\n";
     'key' => 'remote:pricing-3col',
 ]);
 $csrfJson = json_decode($csrfBody, true);
-if ($csrfCode !== 200 || !is_array($csrfJson) || (int) ($csrfJson['code'] ?? 0) !== 403) {
+if ($csrfCode !== 403 || !is_array($csrfJson) || (int) ($csrfJson['code'] ?? 0) !== 403) {
     fwrite(STDERR, "❌ Blox 模板解析端点未拒绝无 CSRF token 的 POST\n");
     exit(2);
 }
 echo "✓ Blox 模板解析 CSRF 拒绝行为正常\n";
 
-$chId  = $fx['channel_list'] ?: ($fx['channel_any'] ?: 1);
-$pcId  = $fx['product_cat'] ?: 0;
-$dcId  = $fx['download_cat'] ?: 0;
+$chId  = (int) (($fx['channel_list'] ?? 0) ?: (($fx['channel_any'] ?? 0) ?: 1));
+$articleChId = (int) (($fx['article_channel'] ?? 0) ?: smokeArticleChannel($directDb));
+$pcId  = (int) ($fx['product_cat'] ?? 0);
+$dcId  = (int) ($fx['download_cat'] ?? 0);
 
 // 唯一标记：建完要回列表页找它——只判「保存返回成功」会漏掉「存进去了但
 // 列表查不到」这类 bug（新建行 lang 落错桶，客户英文站实测：分类/友链/时间线
@@ -115,7 +163,7 @@ $cases = [
     ['栏目',     '/admin/channel.php',       '/admin/channel.php',       ['action' => 'save', 'name' => '冒烟栏目' . $mark, 'slug' => 'smoke-ch-' . mt_rand(1000, 9999), 'type' => 'list', 'parent_id' => 0], '/admin/channel.php', '冒烟栏目' . $mark],
     ['产品',     '/admin/product_edit.php',  '/admin/product_edit.php',  ['title' => '冒烟产品' . $mark, 'category_id' => $pcId, 'status' => 1], '/admin/product.php', '冒烟产品' . $mark],
     ['内容',     '/admin/content_edit.php?channel_id=' . $chId, '/admin/content_edit.php', ['title' => '冒烟内容' . $mark, 'channel_id' => $chId, 'status' => 1], '', ''],
-    ['文章',     '/admin/article_edit.php',  '/admin/article_edit.php',  ['title' => '冒烟文章' . $mark, 'channel_id' => $chId, 'status' => 1], '/admin/article.php', '冒烟文章' . $mark],
+    ['文章',     '/admin/article_edit.php',  '/admin/article_edit.php',  ['title' => '冒烟文章' . $mark, 'channel_id' => $articleChId, 'status' => 1], '/admin/article.php', '冒烟文章' . $mark],
     ['下载',     '/admin/download_edit.php', '/admin/download_edit.php', ['title' => '冒烟下载' . $mark, 'category_id' => $dcId, 'status' => 1], '/admin/download.php', '冒烟下载' . $mark],
     ['招聘',     '/admin/job_edit.php',      '/admin/job_edit.php',      ['title' => '冒烟职位' . $mark, 'content' => '测试', 'location' => '上海', 'status' => 1], '/admin/job.php', '冒烟职位' . $mark],
     // ── 以下四类原先完全不在冒烟清单里，正是 lang bug 的藏身处 ──

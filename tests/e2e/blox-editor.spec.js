@@ -699,6 +699,58 @@ test('home canvas keeps header and footer actions without a redundant page struc
   await expect(page.getByTestId('blox-publish-template')).toContainText('发布并使用');
 });
 
+test('dirty area editor confirms and returns to the home editor @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop navigation baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  const areaUrl = `/admin/blox_editor.php?template=${fixtures.blox_header_template}&back=home`;
+  await page.goto(areaUrl, { waitUntil: 'domcontentloaded' });
+  await addTemporaryHeading(page);
+  await expect(page.getByTestId('blox-dirty')).toBeVisible();
+
+  const back = page.getByTestId('blox-back');
+  let cancelledConfirmSeen = false;
+  page.once('dialog', async (dialog) => {
+    cancelledConfirmSeen = dialog.type() === 'confirm' && dialog.message().includes('未保存');
+    await dialog.dismiss();
+  });
+  await back.click();
+  expect(cancelledConfirmSeen).toBe(true);
+  await expect(page).toHaveURL(new URL(areaUrl, page.url()).href);
+
+  page.once('dialog', async (dialog) => {
+    expect(dialog.type()).toBe('confirm');
+    await dialog.accept();
+  });
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/admin/blox_editor.php' && url.search === '?home=1'),
+    back.click(),
+  ]);
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+});
+
+test('dirty home canvas confirms before opening an area editor @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop navigation baseline');
+  await addTemporaryHeading(page);
+  await waitPreviewSettled(page);
+  await expect(page.getByTestId('blox-dirty')).toBeVisible();
+
+  const contentFrame = await frame(page);
+  const headerEdit = contentFrame.getByTestId('blox-context-edit-header');
+  const leaveConfirm = new Promise((resolve) => {
+    page.once('dialog', async (dialog) => {
+      const seen = dialog.type() === 'confirm' && dialog.message().includes('未保存');
+      await dialog.dismiss();
+      resolve(seen);
+    });
+  });
+  await pointerClick(page, headerEdit);
+
+  expect(await leaveConfirm).toBe(true);
+  await expect(page).toHaveURL(/\/admin\/blox_editor\.php\?home=1$/);
+  await restoreClean(page);
+});
+
 test('stale header edit links recover to the current effective header @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop redirect baseline');
   const contentFrame = await frame(page);
@@ -729,6 +781,7 @@ test('footer template opens with the editable footer visible at the bottom of th
   const footerArea = contentFrame.locator('[data-yk-area="footer"]');
   await expect(footerArea).toBeVisible();
   await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(1);
+  await expect(contentFrame.locator('.yk-ctx-dim header').first()).toBeVisible();
   await expect.poll(async () => contentFrame.evaluate(() => {
     const footer = document.querySelector('[data-yk-area="footer"]');
     if (!footer) return false;
@@ -1788,6 +1841,10 @@ test('legacy service page can switch to editable built-in process template @loca
 
 test('local template insertion uses catalog resolve without reload @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const fixtures = JSON.parse(require('fs').readFileSync(
+    require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  const localTemplateId = Number(fixtures.blox_template);
+  expect(localTemplateId).toBeGreaterThan(0);
   await page.route('**/admin/blox_template_api.php?action=list**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -1797,7 +1854,7 @@ test('local template insertion uses catalog resolve without reload @ci', async (
         msg: 'ok',
         data: {
           items: [{
-            key: 'local:1',
+            key: `local:${localTemplateId}`,
             type: 'section',
             name: 'E2E 本地区块',
             source: 'local',
@@ -1817,7 +1874,9 @@ test('local template insertion uses catalog resolve without reload @ci', async (
   await page.getByTestId('blox-prebuilt-open').click();
   const item = page.getByTestId('blox-template-item');
   await expect(item).toHaveCount(1);
-  await expect(item.getByTestId('blox-template-edit')).toHaveAttribute('href', '/admin/blox_editor.php?template=1');
+  await expect(item.getByTestId('blox-template-edit')).toHaveAttribute(
+    'href', `/admin/blox_editor.php?template=${localTemplateId}`,
+  );
   await item.getByTestId('blox-template-insert').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   await expect((await frame(page)).locator('[data-yk-el-type="heading"]', {
@@ -1969,9 +2028,9 @@ test('template manager exposes safe local header and footer starters @ci', async
 
   const presets = page.getByTestId('blox-area-presets');
   await expect(presets).toBeVisible();
-  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(11);
+  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(13);
   await expect(presets.locator('.ti-layout-navbar')).toHaveCount(6);
-  await expect(presets.locator('.ti-layout-bottombar')).toHaveCount(5);
+  await expect(presets.locator('.ti-layout-bottombar')).toHaveCount(7);
   await expect(page.getByTestId('blox-default-theme-status')).toBeVisible();
 
   const areaRow = page.locator('tbody tr').filter({ has: page.getByTestId('blox-condition-toggle') }).first();
@@ -2260,7 +2319,7 @@ test('footer style library previews and applies practical starters @ci', async (
 
   const dialog = page.getByTestId('blox-header-presets');
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByTestId('blox-header-preset-apply')).toHaveCount(5);
+  await expect(dialog.getByTestId('blox-header-preset-apply')).toHaveCount(7);
   await expect(dialog).toContainText('紧凑网页脚');
   await expect(dialog).toContainText('联系方式网页脚');
   await expect(dialog).toContainText('搜索导航网页脚');
@@ -2874,7 +2933,11 @@ test('Bootstrap icon picker selects and renders without reload @ci', async ({ pa
   await page.getByTestId('blox-library-open').click();
   await page.getByTestId('blox-add-element-icon').press('Enter');
   await expect(page.getByTestId('blox-icon-value')).toBeVisible();
+  expect(await page.evaluate(() => performance.getEntriesByType('resource')
+    .some((entry) => entry.name.includes('/assets/icons/blox-icon-catalog.json')))).toBe(false);
+  const catalogResponse = page.waitForResponse((response) => response.url().includes('/assets/icons/blox-icon-catalog.json'));
   await page.getByTestId('blox-icon-library-toggle').click();
+  expect((await catalogResponse).ok()).toBe(true);
   await page.getByTestId('blox-icon-provider-bootstrap').click();
   await page.getByTestId('blox-icon-search').fill('house-door');
   await expect(page.getByTestId('blox-icon-option-bi-house-door')).toBeVisible();

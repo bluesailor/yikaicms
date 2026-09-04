@@ -363,13 +363,13 @@ test('frontend return target preserves source and guards unsaved edits @local', 
   });
   await expect(page.getByTestId('blox-dirty')).toBeVisible();
 
-  let beforeUnloadSeen = false;
+  let leaveConfirmSeen = false;
   page.once('dialog', async (dialog) => {
-    beforeUnloadSeen = dialog.type() === 'beforeunload';
+    leaveConfirmSeen = dialog.type() === 'confirm' && dialog.message().includes('未保存');
     await dialog.dismiss();
   });
   await back.click();
-  expect(beforeUnloadSeen).toBe(true);
+  expect(leaveConfirmSeen).toBe(true);
   await expect(page).toHaveURL(new RegExp('/admin/blox_editor\\.php'));
 
   await expect(page.getByTestId('blox-undo')).toBeEnabled();
