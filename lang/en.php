@@ -6108,4 +6108,8 @@ voltage|Voltage|220V',
     'onb_rewrite_help' => 'View setup guide',
     'onb_rewrite_dismiss_failed' => 'The reminder could not be dismissed. Please try again.',
     'upgrade_php_version_required' => 'This online update requires PHP :required or later; the current version is PHP :current. Switch the site to PHP :required or later in the hosting control panel, then check for updates again.',
+    'blox_area_preset_business_footer_name' => 'Business theme footer',
+    'blox_area_preset_business_footer_desc' => 'Keeps the Business contact callout and adds an editable dark footer with navigation and dynamic legal details.',
+    'blox_area_preset_minimal_footer_name' => 'Minimal theme footer',
+    'blox_area_preset_minimal_footer_desc' => 'A compact light footer with generous spacing and dynamic legal details that preserves the Minimal style.',
 ];

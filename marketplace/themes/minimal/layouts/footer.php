@@ -9,6 +9,10 @@ $footerTextColor = config('footer_text_color', '#9ca3af');
     <?php do_action('ik_footer_before'); ?>
 
     <!-- Footer -->
+    <?php $ykBloxFooter = function_exists('bloxAreaHtml') ? bloxAreaHtml('footer') : ''; ?>
+    <?php if ($ykBloxFooter !== ''): ?>
+    <?php echo $ykBloxFooter; // Blox 页脚接管；未发布时保留主题原生页脚 ?>
+    <?php else: ?>
     <footer class="mt-auto border-t border-gray-200 bg-white">
         <div class="container mx-auto px-6 lg:px-8 py-8">
             <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
@@ -32,6 +36,7 @@ $footerTextColor = config('footer_text_color', '#9ca3af');
             </div>
         </div>
     </footer>
+    <?php endif; ?>
 
     <script>
         // Mobile menu toggle

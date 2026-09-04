@@ -98,18 +98,14 @@ for (const slug of ['business', 'minimal']) {
         await footerArea.getAttribute('data-yk-context-url'),
         page.url()
       ).href;
+      expect(footerUrl).toMatch(/\/admin\/blox_editor\.php\?template=\d+&back=home$/);
       await Promise.all([
         page.waitForURL(footerUrl, { waitUntil: 'domcontentloaded' }),
         pointerClick(page, footerEdit),
       ]);
 
-      await expect(page).toHaveURL(/\/admin\/(?:blox_editor\.php\?template=\d+|site_design\.php#site-design-area-footer)$/);
-      if (new URL(page.url()).pathname.endsWith('/blox_editor.php')) {
-        await expect(page.getByTestId('blox-canvas')).toBeVisible();
-        await expect((await frame(page)).locator('[data-yk-area="footer"]')).toBeVisible();
-      } else {
-        await expect(page.getByTestId('site-design-area-footer')).toBeVisible();
-      }
+      await expect(page.getByTestId('blox-canvas')).toBeVisible();
+      await expect((await frame(page)).locator('[data-yk-area="footer"]')).toBeVisible();
     } finally {
       await activateTheme(page, 'default');
     }

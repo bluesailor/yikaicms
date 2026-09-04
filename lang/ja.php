@@ -6249,4 +6249,8 @@ voltage|電圧|220V',
     'onb_rewrite_help' => '設定方法を見る',
     'onb_rewrite_dismiss_failed' => '通知を閉じられませんでした。もう一度お試しください。',
     'upgrade_php_version_required' => 'このオンライン更新には PHP :required 以降が必要です。現在は PHP :current です。サーバー管理画面で PHP :required 以降へ切り替えてから、更新を再確認してください。',
+    'blox_area_preset_business_footer_name' => 'Business テーマフッター',
+    'blox_area_preset_business_footer_desc' => 'Business のお問い合わせ導線を保持し、ナビゲーションと動的な著作権・登録情報を備えた編集可能なダークフッターです。',
+    'blox_area_preset_minimal_footer_name' => 'Minimal テーマフッター',
+    'blox_area_preset_minimal_footer_desc' => '余白と動的な著作権・登録情報で Minimal の簡潔さを保つ、編集可能なライトフッターです。',
 ];
