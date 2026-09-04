@@ -63,4 +63,18 @@ final class PackageInstallSmokeContractTest extends TestCase
         self::assertStringContainsString('无法清理旧解包目录', $script);
         self::assertStringContainsString('旧解包目录仍然存在', $script);
     }
+
+    public function testPackageInstallComparesTheFreshChineseHomepageContract(): void
+    {
+        $script = file_get_contents(dirname(__DIR__, 2) . '/tools/package-install-test.sh');
+        $contract = file_get_contents(dirname(__DIR__) . '/smoke/package_home_contract.php');
+
+        self::assertIsString($script);
+        self::assertIsString($contract);
+        self::assertStringContainsString('package_home_contract.php', $script);
+        self::assertStringContainsString('中文首页契约通过', $contract);
+        self::assertStringContainsString("['business', 'default', 'minimal']", $contract);
+        self::assertStringContainsString('数字化转型解决方案', $contract);
+        self::assertStringContainsString("grep -Fq '数字化转型解决方案'", $script);
+    }
 }

@@ -269,9 +269,24 @@ else
     bad "admin_pages 失败"; tail -25 /tmp/pkgpages.log | sed 's/^/      /'
 fi
 
+# 契约脚本必须在解包站里、由被测 PHP 执行，避免再次误测源码树。
+if cp tests/smoke/package_home_contract.php "$UNPACK_WSL/package-home-contract.php" \
+    && "$PHP_DIR/php.exe" "$UNPACK_WIN/package-home-contract.php" >/tmp/pkghome.log 2>&1; then
+    ok "$(tail -1 /tmp/pkghome.log | tr -d '\r')"
+else
+    bad "中文首页契约失败"; tail -20 /tmp/pkghome.log | sed 's/^/      /'
+fi
+rm -f "$UNPACK_WSL/package-home-contract.php"
+
 # ───── L2c：前台可达 ─────
 FRONT="$("$CURL_BIN" -sf -o /dev/null -w '%{http_code}' "$BASE/" 2>/dev/null | tr -d '\r')"
 [ "$FRONT" = "200" ] && ok "前台首页 200" || bad "前台首页返回 $FRONT"
+if "$CURL_BIN" -fsS "$BASE/" >.pkgtest/front-home.html 2>/dev/null \
+    && grep -Fq '数字化转型解决方案' .pkgtest/front-home.html; then
+    ok "前台首页已渲染中文 Banner"
+else
+    bad "前台首页未渲染中文 Banner"
+fi
 
 echo
 if [ "$FAIL" = "0" ]; then
