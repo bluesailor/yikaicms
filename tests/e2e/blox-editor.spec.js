@@ -729,6 +729,7 @@ test('footer template opens with the editable footer visible at the bottom of th
   const footerArea = contentFrame.locator('[data-yk-area="footer"]');
   await expect(footerArea).toBeVisible();
   await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(1);
+  await expect(contentFrame.locator('.yk-ctx-dim header').first()).toBeVisible();
   await expect.poll(async () => contentFrame.evaluate(() => {
     const footer = document.querySelector('[data-yk-area="footer"]');
     if (!footer) return false;
