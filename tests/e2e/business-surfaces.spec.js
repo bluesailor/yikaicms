@@ -11,7 +11,7 @@ const surfaces = (page) => page.locator('[data-business-surface]');
 const tones = (page) => surfaces(page).evaluateAll((nodes) => nodes.map((node) => node.dataset.businessTone));
 
 for (const view of ['front', 'legacy', 'preview']) {
-    test(`Business alternates real sections in ${view} @ci`, async ({ page }, testInfo) => {
+    test(`Business alternates real sections in ${view} @ci @shard-design`, async ({ page }, testInfo) => {
         const errors = [];
         page.on('pageerror', (error) => errors.push(error.message));
         const response = await page.goto(url('normal', view));
@@ -35,7 +35,7 @@ for (const view of ['front', 'legacy', 'preview']) {
     });
 }
 
-test('Business preserves custom backgrounds and excludes them from alternation @ci', async ({ page }) => {
+test('Business preserves custom backgrounds and excludes them from alternation @ci @shard-design', async ({ page }) => {
     await page.goto(url('custom'));
     await expect(surfaces(page)).toHaveCount(4);
     await expect(surfaces(page).nth(0)).toHaveCSS('background-color', 'rgb(238, 245, 236)');
@@ -46,7 +46,7 @@ test('Business preserves custom backgrounds and excludes them from alternation @
     await expect(cta).not.toHaveAttribute('data-business-surface');
 });
 
-test('Business canvas uses the theme header when the active theme owns header rendering @ci', async ({ page }) => {
+test('Business canvas uses the theme header when the active theme owns header rendering @ci @shard-design', async ({ page }) => {
     await page.goto(url('published-header', 'preview'));
     await expect(page.locator('.yk-blox-header')).toHaveCount(0);
     const header = page.locator('#siteHeader');
@@ -56,7 +56,7 @@ test('Business canvas uses the theme header when the active theme owns header re
     await expect(page.locator('script[src*="/themes/business/assets/js/header.js"]')).toHaveCount(0);
 });
 
-test('Business editor iframe keeps the active theme homepage header chrome @ci', async ({ page }, testInfo) => {
+test('Business editor iframe keeps the active theme homepage header chrome @ci @shard-design', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-1440', 'Real editor shell is verified once; preview covers all sizes');
     await page.route('**/admin/blox_preview.php?home=1', async (route) => {
         const response = await route.fetch({ url: new URL(url('published-header', 'preview'), route.request().url()).href });
@@ -73,7 +73,7 @@ test('Business editor iframe keeps the active theme homepage header chrome @ci',
     await expect(canvas.locator('script[src*="/themes/business/assets/js/header.js"]')).toHaveCount(0);
 });
 
-test('Business footer editor keeps the actual theme header as read-only context @ci', async ({ page }, testInfo) => {
+test('Business footer editor keeps the actual theme header as read-only context @ci @shard-design', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-1440', 'one focused footer context check is sufficient');
     await page.goto(url('footer-editor', 'preview'));
     await expect(page.locator('[data-yk-area="footer"]')).toBeVisible();
@@ -81,7 +81,7 @@ test('Business footer editor keeps the actual theme header as read-only context 
     await expect(page.locator('.yk-blox-header')).toHaveCount(0);
 });
 
-test('Business respects section container and column backgrounds @ci', async ({ page }) => {
+test('Business respects section container and column backgrounds @ci @shard-design', async ({ page }) => {
     await page.goto(url('parent'));
     for (let i = 0; i < 3; i++) {
         await expect(surfaces(page).nth(i)).toHaveAttribute('data-business-inherited', 'true');
@@ -91,14 +91,14 @@ test('Business respects section container and column backgrounds @ci', async ({ 
     await expect(surfaces(page).nth(3)).toHaveAttribute('data-business-tone', 'light');
 });
 
-test('Business explicit tones take precedence without erasing custom data @ci', async ({ page }) => {
+test('Business explicit tones take precedence without erasing custom data @ci @shard-design', async ({ page }) => {
     await page.goto(url('manual'));
     await expect.poll(() => tones(page)).toEqual(['dark', 'light', 'light', 'dark']);
     await expect(surfaces(page).first()).toHaveCSS('background-color', 'rgb(34, 39, 46)');
 });
 
 for (const view of ['front', 'preview']) {
-    test(`Business mobile-hidden sections do not shift the ${view} rhythm @ci`, async ({ page }, testInfo) => {
+    test(`Business mobile-hidden sections do not shift the ${view} rhythm @ci @shard-design`, async ({ page }, testInfo) => {
         await page.goto(url('hidden', view));
         await expect(surfaces(page)).toHaveCount(4);
         const mobile = testInfo.project.name === 'mobile-390';
@@ -107,7 +107,7 @@ for (const view of ['front', 'preview']) {
     });
 }
 
-test('Business reordering recolors without scrolling @ci', async ({ page }) => {
+test('Business reordering recolors without scrolling @ci @shard-design', async ({ page }) => {
     await page.goto(url());
     await expect(surfaces(page)).toHaveCount(4);
     await page.evaluate(() => {
@@ -120,7 +120,7 @@ test('Business reordering recolors without scrolling @ci', async ({ page }) => {
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
-test('Business server-rendered surfaces work without JavaScript @ci', async ({ browser, baseURL }) => {
+test('Business server-rendered surfaces work without JavaScript @ci @shard-design', async ({ browser, baseURL }) => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     try {
@@ -130,7 +130,7 @@ test('Business server-rendered surfaces work without JavaScript @ci', async ({ b
     } finally { await context.close(); }
 });
 
-test('Business editor exposes modes and previews without saving @ci', async ({ page }, testInfo) => {
+test('Business editor exposes modes and previews without saving @ci @shard-design', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-1440', 'Editor controls are verified once; preview covers all sizes');
     const writes = observeUnsafeWrites(page);
     await page.route('**/admin/blox_preview.php?home=1', async (route) => {

@@ -16,7 +16,7 @@ test.afterAll(() => {
 });
 
 for (const mode of ['none', 'banner', 'later', 'mobile-hidden', 'blox-none', 'blox-empty']) {
-    test(`Business header follows visible leading banner: ${mode} @ci`, async ({ page }, testInfo) => {
+    test(`Business header follows visible leading banner: ${mode} @ci @shard-design`, async ({ page }, testInfo) => {
         const response = await page.goto(`/tests/e2e/theme-market-page.php?theme=business&mode=${mode}`);
         expect(response.status()).toBe(200);
         const overlay = mode === 'banner' || (mode === 'mobile-hidden' && testInfo.project.name !== 'mobile-390');
@@ -41,7 +41,7 @@ for (const mode of ['none', 'banner', 'later', 'mobile-hidden', 'blox-none', 'bl
     });
 }
 
-test('Business signed-in mobile menu stays below the admin toolbar @ci', async ({ browser }) => {
+test('Business signed-in mobile menu stays below the admin toolbar @ci @shard-design', async ({ browser }) => {
     const context = await browser.newContext({
         viewport: { width: 390, height: 844 },
         storageState: process.env.BLOX_E2E_STORAGE_STATE || path.join(__dirname, '.auth/admin.json'),
@@ -57,7 +57,7 @@ test('Business signed-in mobile menu stays below the admin toolbar @ci', async (
     }
 });
 
-test('Business without JavaScript remains readable @ci', async ({ browser }) => {
+test('Business without JavaScript remains readable @ci @shard-design', async ({ browser }) => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
     try {
@@ -69,7 +69,7 @@ test('Business without JavaScript remains readable @ci', async ({ browser }) => 
 });
 
 for (const theme of themes.filter((slug) => slug !== 'business')) {
-    test(`market theme renders after installation: ${theme} @ci`, async ({ page }, testInfo) => {
+    test(`market theme renders after installation: ${theme} @ci @shard-design`, async ({ page }, testInfo) => {
         const errors = [];
         page.on('pageerror', (error) => errors.push(error.message));
         const response = await page.goto(`/tests/e2e/theme-market-page.php?theme=${theme}&mode=banner`);

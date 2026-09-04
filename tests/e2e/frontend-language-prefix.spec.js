@@ -19,7 +19,7 @@ const routes = [
   },
 ];
 
-test('language-prefixed download pages keep localized content and categories @ci', async ({ request }, testInfo) => {
+test('language-prefixed download pages keep localized content and categories @ci @shard-locale', async ({ request }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one HTTP routing pass is sufficient');
 
   for (const route of routes) {

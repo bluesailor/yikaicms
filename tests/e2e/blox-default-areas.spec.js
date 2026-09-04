@@ -43,7 +43,7 @@ async function unpublishAreas(page) {
   }
 }
 
-test('published default corporate areas stay responsive @ci', async ({ page }, testInfo) => {
+test('published default corporate areas stay responsive @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'area template management is an advanced feature');
   const consoleEntries = observeConsole(page);
   try {
@@ -361,7 +361,7 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
   }
 });
 
-test('default theme header keeps mobile navigation operable @ci', async ({ page }, testInfo) => {
+test('default theme header keeps mobile navigation operable @ci @shard-design', async ({ page }, testInfo) => {
   await unpublishAreas(page);
   await page.goto('/', { waitUntil: 'networkidle' });
 
@@ -401,7 +401,7 @@ test('default theme header keeps mobile navigation operable @ci', async ({ page 
 
 // v1.18.4 曾把画廊线框预览整体摘除：旧实现在 mobile-390 溢出、从未在 Linux CI 绿过。
 // 重新引入的纯 Tailwind 线框必须在所有视口零水平溢出——这条断言就是当年缺的防线。
-test('area preset gallery wireframes fit the viewport @ci', async ({ page }) => {
+test('area preset gallery wireframes fit the viewport @ci @shard-design', async ({ page }) => {
   test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'area template management is an advanced feature');
   const consoleEntries = observeConsole(page);
   await page.goto('/admin/blox_templates.php?type=header', { waitUntil: 'domcontentloaded' });
@@ -426,7 +426,7 @@ test('area preset gallery wireframes fit the viewport @ci', async ({ page }) => 
   expect(consoleEntries, 'templates gallery must not log browser errors').toEqual([]);
 });
 
-test('multilingual area manager exposes inheritance without horizontal overflow @ci', async ({ page }) => {
+test('multilingual area manager exposes inheritance without horizontal overflow @ci @shard-design', async ({ page }) => {
   test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'area template management is an advanced feature');
   const consoleEntries = observeConsole(page);
   try {
@@ -468,7 +468,7 @@ test('multilingual area manager exposes inheritance without horizontal overflow 
   }
 });
 
-test('assignment matrix copies a page-specific design and restores inheritance @ci', async ({ page }, testInfo) => {
+test('assignment matrix copies a page-specific design and restores inheritance @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one mutating assignment lifecycle is sufficient');
   test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'area template management is an advanced feature');
   const consoleEntries = observeConsole(page);

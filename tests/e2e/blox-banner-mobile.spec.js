@@ -7,7 +7,7 @@ async function showSettings(page) {
   if (await toggle.isVisible()) await toggle.click();
 }
 
-test('mobile image fallback and reset match the actual canvas @ci', async ({ page }, testInfo) => {
+test('mobile image fallback and reset match the actual canvas @ci @shard-media', async ({ page }, testInfo) => {
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
   await openBanner(page);
@@ -39,7 +39,7 @@ test('mobile image fallback and reset match the actual canvas @ci', async ({ pag
   expect(errors).toEqual([]);
 });
 
-test('mobile hidden and fixed height stay independent of desktop display @ci', async ({ page }) => {
+test('mobile hidden and fixed height stay independent of desktop display @ci @shard-media', async ({ page }) => {
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
   const labels = {

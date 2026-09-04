@@ -4,7 +4,7 @@ const path = require('path');
 const { openPageEditor, performPagePreviewUpdate, frame } = require('./helpers');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
-test('failed saves persist, repeated saves coalesce, and in-flight edits remain dirty @ci', async ({ page }, testInfo) => {
+test('failed saves persist, repeated saves coalesce, and in-flight edits remain dirty @ci @shard-core', async ({ page }, testInfo) => {
     await openPageEditor(page, fixtures.blox_page);
     const initial = await page.evaluate(() => window.Alpine.$data(document.body).baseRevision);
     let mode = 'fail', requests = 0, release;
@@ -45,7 +45,7 @@ test('failed saves persist, repeated saves coalesce, and in-flight edits remain 
     await expect(status).toHaveText(await page.evaluate(() => window.Alpine.$data(document.body).uiText.draftSaved));
 });
 
-test('a failed canvas keeps the document and can retry without saving @ci', async ({ page }) => {
+test('a failed canvas keeps the document and can retry without saving @ci @shard-core', async ({ page }) => {
     await openPageEditor(page, fixtures.blox_page);
     const before = await page.evaluate(() => window.Alpine.$data(document.body).documentData());
     const canvasBefore = await (await frame(page)).locator('body').innerText();
@@ -71,7 +71,7 @@ test('a failed canvas keeps the document and can retry without saving @ci', asyn
     expect(writes).toBe(0);
 });
 
-test('malformed or HTTP-error save responses cannot acknowledge an unblurred image edit @ci', async ({ page }) => {
+test('malformed or HTTP-error save responses cannot acknowledge an unblurred image edit @ci @shard-core', async ({ page }) => {
     await openPageEditor(page, fixtures.blox_page);
     await performPagePreviewUpdate(page, () => page.evaluate(() => {
         const app = window.Alpine.$data(document.body);

@@ -497,14 +497,50 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # ─── R31 已完成本地稳定期，R32 将同一受保护运行器提升为强制 CI 门禁。
-  e2e:
-    name: Blox Browser Regression
+  # ─── 浏览器路径规划：普通 PR 只跑受影响分片；main/release/hotfix 推送和
+  # ─── release PR 强制四片全跑。共享运行器或 CI 自身变化也会自动全跑。
+  e2e_plan:
+    name: Blox Browser Plan
     runs-on: ubuntu-latest
-    # 强制门禁（与单测同级）：r8–r10 观察期全绿；r11 首次转强制被并行图标线的
-    # 半成品 404 击穿后回退，图标专项原子入库（icon-library-integration 轮）后恢复。
-    # 浏览器下载偶发卡死；单次 7 分钟超时后自动重试，整项留足测试执行时间。
-    timeout-minutes: 30
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_shards: ${{ steps.plan.outputs.has_shards }}
+      summary: ${{ steps.plan.outputs.summary }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate browser shard ownership
+        run: node tests/e2e/validate-shards.js
+
+      - name: Select browser shards
+        id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          FORCE_FULL: ${{ github.event_name != 'pull_request' || startsWith(github.base_ref, 'release/') || contains(github.event.pull_request.labels.*.name, 'full-browser-matrix') }}
+        run: |
+          if [[ "$FORCE_FULL" == "true" ]]; then
+            node tools/ci-e2e-plan.js --full
+          else
+            git diff --name-only "$BASE_SHA" "$HEAD_SHA" > /tmp/e2e-changed-files.txt
+            node tools/ci-e2e-plan.js --files-file=/tmp/e2e-changed-files.txt
+          fi
+          summary="$(sed -n 's/^summary=//p' "$GITHUB_OUTPUT" | tail -1)"
+          echo "### Browser shards: ${summary:-none}" >> "$GITHUB_STEP_SUMMARY"
+
+  # ─── 四个分片各自在独立 runner、固定端口、临时站点和 SQLite 库中运行。
+  # ─── fail-fast=false：一次运行收齐所有分片结果，不因首个失败取消其他证据。
+  e2e_shards:
+    name: Blox Browser / ${{ matrix.label }}
+    needs: e2e_plan
+    if: needs.e2e_plan.outputs.has_shards == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.e2e_plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -545,6 +581,15 @@ jobs:
           node-version: '20'
           cache: npm
 
+      - name: Cache Playwright Chromium
+        if: steps.blox_src.outputs.present == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-chromium-
+
       - name: Install PHP dependencies
         if: steps.blox_src.outputs.present == 'true'
         run: composer install --no-dev --no-interaction --prefer-dist --no-progress
@@ -561,17 +606,11 @@ jobs:
         if: steps.blox_src.outputs.present == 'true'
         run: bash .github/scripts/install-playwright-chromium.sh
 
-      - name: Run Blox browser regression
+      - name: Run browser shard
         if: steps.blox_src.outputs.present == 'true'
         env:
-          BLOX_E2E_OUTPUT_DIR: ${{ github.workspace }}/test-results/e2e
-          BLOX_E2E_REPORT_DIR: ${{ github.workspace }}/playwright-report
-          BLOX_E2E_SERVER_LOG: ${{ github.workspace }}/test-results/e2e/php-server.log
-        run: |
-          node tests/e2e/run-local.js --grep "@ci"
-          node tests/e2e/run-local.js --lang=en tests/e2e/blox-home-language.spec.js --project=desktop-1440
-          node tests/e2e/run-local.js --lang=ja tests/e2e/blox-home-language.spec.js --project=desktop-1440
-          node tests/e2e/run-local.js --free tests/e2e/blox-page.spec.js --project=desktop-1440
+          BLOX_E2E_ARTIFACT_ROOT: ${{ github.workspace }}/test-results/e2e-${{ matrix.shard }}
+        run: node tests/e2e/run-shard.js ${{ matrix.shard }}
 
       - name: Dump application logs on failure
         if: failure() && steps.blox_src.outputs.present == 'true'
@@ -579,19 +618,47 @@ jobs:
           echo "=== storage/logs ==="
           cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
           echo "=== php server log ==="
-          cat test-results/e2e/php-server.log 2>/dev/null || echo "(no server log)"
+          find test-results/e2e-${{ matrix.shard }} -name php-server.log -type f -print -exec cat {} \; 2>/dev/null || echo "(no server log)"
 
       - name: Upload Playwright diagnostics
         if: failure() && steps.blox_src.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: blox-playwright-diagnostics
+          name: blox-playwright-${{ matrix.shard }}-diagnostics
           path: |
-            test-results/e2e
-            playwright-report
+            test-results/e2e-${{ matrix.shard }}
             storage/logs
           if-no-files-found: ignore
           retention-days: 7
+
+  # 保留原有 required-check 名称。分片失败、取消或规划失败都会在这里统一变红；
+  # 文档-only PR 没有浏览器分片时则明确成功，不制造永久 pending 的必需检查。
+  e2e:
+    name: Blox Browser Regression
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [e2e_plan, e2e_shards]
+    steps:
+      - name: Verify browser shard result
+        env:
+          PLAN_RESULT: ${{ needs.e2e_plan.result }}
+          SHARD_RESULT: ${{ needs.e2e_shards.result }}
+          HAS_SHARDS: ${{ needs.e2e_plan.outputs.has_shards }}
+          SHARD_SUMMARY: ${{ needs.e2e_plan.outputs.summary }}
+        run: |
+          echo "Selected shards: ${SHARD_SUMMARY:-unknown}"
+          if [[ "$PLAN_RESULT" != "success" ]]; then
+            echo "Browser shard planning did not succeed: $PLAN_RESULT" >&2
+            exit 1
+          fi
+          if [[ "$HAS_SHARDS" == "true" && "$SHARD_RESULT" != "success" ]]; then
+            echo "One or more browser shards did not succeed: $SHARD_RESULT" >&2
+            exit 1
+          fi
+          if [[ "$HAS_SHARDS" != "true" && "$SHARD_RESULT" != "skipped" ]]; then
+            echo "Expected browser shards to be skipped, got: $SHARD_RESULT" >&2
+            exit 1
+          fi
 
   # ─── Psalm static analysis. Blocking: existing legacy noise is frozen in
   # ─── psalm-baseline.xml, so only NEW issues fail the build. Shrink the

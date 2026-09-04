@@ -8,7 +8,7 @@ const labels = {
   ja: { live: 'バナー管理と同期中', custom: 'このページ専用のスライド', edit: 'スライドを編集', confirm: 'このページのスライド変更を破棄' },
 }[language];
 
-test('banner images edit directly without a takeover step @ci', async ({ page }, testInfo) => {
+test('banner images edit directly without a takeover step @ci @shard-media', async ({ page }, testInfo) => {
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
   await openEditor(page);

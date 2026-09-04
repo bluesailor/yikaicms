@@ -5,7 +5,7 @@ const { openPageEditor, performPagePreviewUpdate, observeConsole, waitPreviewSet
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 for (const scope of ['element', 'section', 'container', 'column']) {
-    test(`${scope} image control supports replace, clear, undo and cancel @ci`, async ({ page }, testInfo) => {
+    test(`${scope} image control supports replace, clear, undo and cancel @ci @shard-media`, async ({ page }, testInfo) => {
         const errors = observeConsole(page);
         await openPageEditor(page, fixtures.blox_page);
         // Isolate every picker opening from media rows left by upload/health tests.

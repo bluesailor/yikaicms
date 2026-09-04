@@ -3,7 +3,7 @@ const { observeConsole } = require('./helpers');
 
 const SESSION_KEY = 'yikaicms.dashboardHealth.closed';
 
-test('dashboard Site Health notice keeps all actions usable across viewports @ci', async ({ page }) => {
+test('dashboard Site Health notice keeps all actions usable across viewports @ci @shard-locale', async ({ page }) => {
   const consoleEntries = observeConsole(page);
   await page.goto('/admin/index.php', { waitUntil: 'domcontentloaded' });
 
@@ -24,7 +24,7 @@ test('dashboard Site Health notice keeps all actions usable across viewports @ci
   expect(consoleEntries, 'dashboard notice must keep the console clean').toEqual([]);
 });
 
-test('dashboard Site Health notice can be disabled persistently @ci', async ({ page }, testInfo) => {
+test('dashboard Site Health notice can be disabled persistently @ci @shard-locale', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-390', 'single persistent settings check after responsive coverage');
   await page.goto('/admin/index.php', { waitUntil: 'domcontentloaded' });
 

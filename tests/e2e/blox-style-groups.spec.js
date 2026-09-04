@@ -8,7 +8,7 @@ test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
 });
 
-test('style tab partitions controls into groups with has-value dots @ci', async ({ page }) => {
+test('style tab partitions controls into groups with has-value dots @ci @shard-design', async ({ page }) => {
   const errors = observeConsole(page);
   await openEditor(page);
   await addTemporaryHeading(page);
@@ -54,7 +54,7 @@ test('style tab partitions controls into groups with has-value dots @ci', async 
 
 // 第 3 轮：card 只有 背景+动画、无 常规组——effectiveStyleGroup 须落到第一组，
 // 背景 chip 默认生效且 bg_color 控件可见（root 批次的编辑器回归锚点）。
-test('elements without a general group default to their first group @ci', async ({ page }) => {
+test('elements without a general group default to their first group @ci @shard-design', async ({ page }) => {
   const errors = observeConsole(page);
   await openEditor(page);
   await addTemporaryHeading(page);
@@ -78,7 +78,7 @@ test('elements without a general group default to their first group @ci', async 
 
 // 第 4 轮：容器不出 chips（专用样式块管布局），但共享背景组经通用循环到达——
 // 色/图控件可见，遮罩因 visible_when（未设图）隐藏。
-test('container gets the shared background group without chips @ci', async ({ page }) => {
+test('container gets the shared background group without chips @ci @shard-design', async ({ page }) => {
   const errors = observeConsole(page);
   await openEditor(page);
   await addTemporaryHeading(page);
@@ -110,7 +110,7 @@ test('container gets the shared background group without chips @ci', async ({ pa
   expect(errors.filter((e) => !/404/.test(e))).toEqual([]);
 });
 
-test('section background video is visible at the section layer @ci', async ({ page }) => {
+test('section background video is visible at the section layer @ci @shard-design', async ({ page }) => {
   const errors = observeConsole(page);
   await openEditor(page);
   await page.getByTestId('blox-tree-section').first().click();

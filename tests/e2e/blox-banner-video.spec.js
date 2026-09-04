@@ -11,7 +11,7 @@ const REAL_VIDEO_SAMPLES = [
 const PICKER_VIDEO_URL = '/uploads/videos/banner-picker-test.mp4';
 const RUNTIME_VIDEO_URL = '/uploads/videos/banner-runtime-test.mp4';
 
-test('a banner slide can switch to video with poster-first mobile fallback @ci', async ({ page }, testInfo) => {
+test('a banner slide can switch to video with poster-first mobile fallback @ci @shard-media', async ({ page }, testInfo) => {
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
   const mediaListRequests = [];

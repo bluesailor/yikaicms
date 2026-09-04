@@ -40,7 +40,7 @@ function observeVideoRequests(page) {
   return requests;
 }
 
-test('mobile poster policy never requests the background video @ci', async ({ page }) => {
+test('mobile poster policy never requests the background video @ci @shard-media', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const requests = observeVideoRequests(page);
   await page.route(`**${VIDEO_URL}`, route => route.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.alloc(32) }));
@@ -52,7 +52,7 @@ test('mobile poster policy never requests the background video @ci', async ({ pa
   expect(requests).toEqual([]);
 });
 
-test('reduced motion never requests the background video @ci', async ({ page }) => {
+test('reduced motion never requests the background video @ci @shard-media', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const requests = observeVideoRequests(page);
   await page.route(`**${VIDEO_URL}`, route => route.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.alloc(32) }));
@@ -63,7 +63,7 @@ test('reduced motion never requests the background video @ci', async ({ page }) 
   expect(requests).toEqual([]);
 });
 
-test('save-data never requests the background video @ci', async ({ page }) => {
+test('save-data never requests the background video @ci @shard-media', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'connection', {
       configurable: true,
@@ -79,7 +79,7 @@ test('save-data never requests the background video @ci', async ({ page }) => {
   expect(requests).toEqual([]);
 });
 
-test('dynamic replacement releases the old video and starts the new node @ci', async ({ page }) => {
+test('dynamic replacement releases the old video and starts the new node @ci @shard-media', async ({ page }) => {
   await page.addInitScript(() => {
     window.__bloxMediaCalls = { play: 0, pause: 0, load: 0 };
     HTMLMediaElement.prototype.play = function () {
@@ -112,7 +112,7 @@ test('dynamic replacement releases the old video and starts the new node @ci', a
   await expect.poll(() => page.evaluate(() => window.__bloxMediaCalls.play)).toBeGreaterThanOrEqual(2);
 });
 
-test('an offscreen background video waits for the viewport and pauses after leaving it @ci', async ({ page }) => {
+test('an offscreen background video waits for the viewport and pauses after leaving it @ci @shard-media', async ({ page }) => {
   const requests = observeVideoRequests(page);
   await page.addInitScript(() => {
     window.__bloxPauseCalls = 0;

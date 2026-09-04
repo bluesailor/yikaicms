@@ -5,7 +5,7 @@ const { openPageEditor, observeConsole } = require('./helpers');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_page], ['content-catalog', 'article', fixtures.channel_list]]) {
-    test(`${kind} catalog identifies language and sources without changing layout or interpreting markup @ci`, async ({ page }, testInfo) => {
+    test(`${kind} catalog identifies language and sources without changing layout or interpreting markup @ci @shard-core`, async ({ page }, testInfo) => {
         const errors = observeConsole(page), writes = [];
         page.on('request', req => {
             if (req.method() === 'POST' && req.url().includes('/admin/blox_page_api.php')) {

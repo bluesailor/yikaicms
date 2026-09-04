@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole } = require('./helpers');
 
-test('standalone design page mutates through the existing API contract @ci', async ({ page }, testInfo) => {
+test('standalone design page mutates through the existing API contract @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop design management interaction baseline');
   const consoleEntries = observeConsole(page);
 
@@ -54,7 +54,7 @@ test('standalone design page mutates through the existing API contract @ci', asy
   expect(consoleEntries, 'standalone design management must keep the console clean').toEqual([]);
 });
 
-test('color picker remains usable inside every supported viewport @ci', async ({ page }) => {
+test('color picker remains usable inside every supported viewport @ci @shard-design', async ({ page }) => {
   const consoleEntries = observeConsole(page);
   await page.goto('/admin/blox_design.php', { waitUntil: 'domcontentloaded' });
   await page.getByTestId('blox-design-page-new-token-color').click();
@@ -82,7 +82,7 @@ test('color picker remains usable inside every supported viewport @ci', async ({
   expect(consoleEntries, 'color picker must keep the console clean').toEqual([]);
 });
 
-test('page title design previews languages and responsive focus without overflow @ci', async ({ page }) => {
+test('page title design previews languages and responsive focus without overflow @ci @shard-design', async ({ page }) => {
   const consoleEntries = observeConsole(page);
   await page.goto('/admin/blox_design.php', { waitUntil: 'domcontentloaded' });
   await page.getByTestId('blox-design-page-tab-page-hero').click();
@@ -131,7 +131,7 @@ test('page title design previews languages and responsive focus without overflow
 // 2026-08-28：Blox 全部能力对免费版开放，命名样式不再受授权限制。
 // 本用例改为守住「免费版拿得到完整设计系统」——锁态 UI 仍由 advanced 标记驱动，
 // 保留在 blox_design.php 里以备日后重划边界，但在免费模式下不应出现。
-test('free mode keeps the full design system available @ci', async ({ page }, testInfo) => {
+test('free mode keeps the full design system available @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop free-mode capability baseline');
   test.skip(process.env.SMOKE_BLOX_ADVANCED !== '0', 'free-mode assertion');
 

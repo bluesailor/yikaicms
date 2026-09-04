@@ -5,7 +5,7 @@ const { openPageEditor, observeConsole, canvasScrollTop } = require('./helpers')
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_page], ['content-catalog', 'article', fixtures.channel_list]]) {
-    test(`${kind} detail entry preserves the Blox draft, selection and canvas position @ci`, async ({ page, context }, testInfo) => {
+    test(`${kind} detail entry preserves the Blox draft, selection and canvas position @ci @shard-core`, async ({ page, context }, testInfo) => {
         const errors = observeConsole(page), writes = [];
         page.on('request', req => {
             if (req.method() === 'POST' && req.url().includes('blox_page_api.php')) {
@@ -69,7 +69,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
     });
 }
 
-test('catalog lookup rejects missing CSRF and non-catalog targets @ci', async ({ page }) => {
+test('catalog lookup rejects missing CSRF and non-catalog targets @ci @shard-core', async ({ page }) => {
     await openPageEditor(page, fixtures.product_page);
     const results = await page.evaluate(async ids => {
         const app = window.Alpine.$data(document.body);
@@ -85,7 +85,7 @@ test('catalog lookup rejects missing CSRF and non-catalog targets @ci', async ({
     for (const result of results) expect(Number(result.code)).not.toBe(0);
 });
 
-test('catalog failure can be retried and paging keeps the query @ci', async ({ page }) => {
+test('catalog failure can be retried and paging keeps the query @ci @shard-core', async ({ page }) => {
     await openPageEditor(page, fixtures.product_page);
     await page.evaluate(() => {
         const app = window.Alpine.$data(document.body);

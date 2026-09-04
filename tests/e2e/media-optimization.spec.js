@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
 
-test('media library repairs responsive image derivatives @ci', async ({ page }, testInfo) => {
+test('media library repairs responsive image derivatives @ci @shard-media', async ({ page }, testInfo) => {
   const root = path.resolve(__dirname, '../..');
   const name = `media-health-${process.pid}-${testInfo.project.name}`.toLowerCase();
   const original = path.join(root, 'uploads', 'images', `${name}.png`);

@@ -11,7 +11,7 @@ test.beforeAll(() => {
 
 test.afterAll(() => cleanup());
 
-test('activating a local theme redirects to its fresh active state @ci', async ({ page }, testInfo) => {
+test('activating a local theme redirects to its fresh active state @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one focused activation check is sufficient');
 
   await page.goto('/admin/theme.php', { waitUntil: 'domcontentloaded' });

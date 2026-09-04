@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole, observeUnsafeWrites } = require('./helpers');
 
-test('website design dashboard routes to existing design capabilities @ci', async ({ page }) => {
+test('website design dashboard routes to existing design capabilities @ci @shard-design', async ({ page }) => {
   const consoleEntries = observeConsole(page);
   const unsafeWrites = observeUnsafeWrites(page);
 
@@ -26,7 +26,7 @@ test('website design dashboard routes to existing design capabilities @ci', asyn
   expect(consoleEntries, 'dashboard and design deep link must keep the console clean').toEqual([]);
 });
 
-test('template library separates site-area types @ci', async ({ page }) => {
+test('template library separates site-area types @ci @shard-design', async ({ page }) => {
   test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'template management is an advanced feature');
 
   await page.goto('/admin/blox_templates.php?type=popup', { waitUntil: 'domcontentloaded' });

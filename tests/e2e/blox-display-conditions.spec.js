@@ -28,7 +28,7 @@ test.afterEach(async ({ page }) => {
   expect(consoleEntries, 'browser console must stay clean').toEqual([]);
 });
 
-test('element conditions create OR groups, AND rules and a canvas marker @ci', async ({ page }) => {
+test('element conditions create OR groups, AND rules and a canvas marker @ci @shard-core', async ({ page }) => {
   await addTemporaryHeading(page);
   await page.getByTestId('blox-condition-tab').click();
   await expect(page.getByTestId('blox-condition-editor')).toBeVisible();

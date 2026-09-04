@@ -11,7 +11,7 @@ test.beforeAll(() => seed('seed'));
 test.afterAll(() => seed('cleanup'));
 
 for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_page], ['content-catalog', 'article', fixtures.channel_list]]) {
-    test(`${kind} query survives paging, refresh, reopening and retry without changing the draft @ci`, async ({ page }, testInfo) => {
+    test(`${kind} query survives paging, refresh, reopening and retry without changing the draft @ci @shard-core`, async ({ page }, testInfo) => {
         const errors = observeConsole(page), requests = [];
         await openPageEditor(page, id);
         await page.evaluate(type => {
@@ -80,7 +80,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         expect(errors).toEqual([]);
     });
 
-    test(`${kind} public and management searches keep numeric zero and unpublished pagination @ci`, async ({ page }) => {
+    test(`${kind} public and management searches keep numeric zero and unpublished pagination @ci @shard-core`, async ({ page }) => {
         const errors = observeConsole(page);
         const response = await page.goto(`/list.php?id=${id}&keyword=0`);
         expect(response.status()).toBe(200);

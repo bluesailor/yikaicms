@@ -35,7 +35,7 @@ async function draftSnapshot(page) {
 }
 
 for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_page], ['content-catalog', 'article', fixtures.channel_list]]) {
-    test(`${kind} saved details refresh without replacing the Blox draft @ci`, async ({ page, context }, testInfo) => {
+    test(`${kind} saved details refresh without replacing the Blox draft @ci @shard-core`, async ({ page, context }, testInfo) => {
         const errors = observeConsole(page), writes = [], detailErrors = [];
         context.on('page', detail => detail.on('pageerror', error => detailErrors.push(error.message)));
         page.on('request', req => {
@@ -93,7 +93,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
     });
 }
 
-test('refresh preserves the query and page, disables duplicates and recovers from failures @ci', async ({ page }, testInfo) => {
+test('refresh preserves the query and page, disables duplicates and recovers from failures @ci @shard-core', async ({ page }, testInfo) => {
     const panel = await openCatalog(page, 'product-catalog', fixtures.product_page);
     const before = await draftSnapshot(page);
     const catalog = (await frame(page)).locator('[data-product-catalog]');

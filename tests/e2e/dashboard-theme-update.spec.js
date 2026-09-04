@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole } = require('./helpers');
 
-test('dashboard presents theme updates separately from CMS updates @ci', async ({ page }) => {
+test('dashboard presents theme updates separately from CMS updates @ci @shard-design', async ({ page }) => {
   const consoleEntries = observeConsole(page);
   await page.addInitScript(() => localStorage.clear());
 

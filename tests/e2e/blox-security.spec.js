@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }, testInfo) => {
   await openEditor(page);
 });
 
-test('preview requires CSRF and blocks submitted code scripts @ci', async ({ page }) => {
+test('preview requires CSRF and blocks submitted code scripts @ci @shard-core', async ({ page }) => {
   const document = [{
     id: 'security-section',
     settings: {},

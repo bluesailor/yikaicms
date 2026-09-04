@@ -16,7 +16,7 @@ function multipartFields(request) {
   return fields;
 }
 
-test('beta update subscription persists and can return to stable @ci', async ({ page }, testInfo) => {
+test('beta update subscription persists and can return to stable @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one persistent settings check is sufficient');
   const consoleEntries = observeConsole(page);
 
@@ -55,7 +55,7 @@ test('beta update subscription persists and can return to stable @ci', async ({ 
   expect(consoleEntries, 'update channel settings must keep the console clean').toEqual([]);
 });
 
-test('online upgrade forwards the selected delta signature @ci', async ({ page }, testInfo) => {
+test('online upgrade forwards the selected delta signature @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one upgrade request contract check is sufficient');
   const consoleEntries = observeConsole(page);
   let submittedSignature = null;

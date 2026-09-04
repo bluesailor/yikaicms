@@ -11,7 +11,7 @@ test.afterAll(() => fixture('cleanup'));
 
 for (const lang of ['zh-CN', 'en', 'ja']) {
     for (const kind of ['product', 'article']) {
-        test(`${lang} ${kind} API ignores forged scope and excludes unpublished or unrelated records @ci`, async ({ page }) => {
+        test(`${lang} ${kind} API ignores forged scope and excludes unpublished or unrelated records @ci @shard-core`, async ({ page }) => {
             const errors = observeConsole(page);
             await openPageEditor(page, data[lang][kind]);
             const before = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).documentData()));

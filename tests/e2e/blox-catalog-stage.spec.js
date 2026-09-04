@@ -10,7 +10,7 @@ test.afterAll(() => fixture('cleanup'));
 
 for (const lang of ['en', 'ja']) {
     for (const [kind, type, parent] of [['product', 'product-catalog', 'category'], ['article', 'content-catalog', 'child']]) {
-        test(`${lang} ${kind} catalog management retains language through search, paging and return @ci`, async ({ page, context }, info) => {
+        test(`${lang} ${kind} catalog management retains language through search, paging and return @ci @shard-core`, async ({ page, context }, info) => {
             const errors = observeConsole(page);
             await openPageEditor(page, data[lang][kind]);
             await page.evaluate(type => {
@@ -60,7 +60,7 @@ for (const lang of ['en', 'ja']) {
             expect(managerErrors).toEqual([]);
         });
 
-        test(`${lang} ${kind} category choices belong to the viewed language @ci`, async ({ page }) => {
+        test(`${lang} ${kind} category choices belong to the viewed language @ci @shard-core`, async ({ page }) => {
             await page.goto(`/admin/${kind}.php?lang=${lang}`);
             const filter = page.locator(`select[name="${kind === 'product' ? 'category_id' : 'channel_id'}"]`);
             const choices = await filter.locator('option').allTextContents();
@@ -70,7 +70,7 @@ for (const lang of ['en', 'ja']) {
     }
 }
 
-test('public category filtering and sorting preserve language and canvas links stay public @ci', async ({ page }) => {
+test('public category filtering and sorting preserve language and canvas links stay public @ci @shard-core', async ({ page }) => {
     const id = data['zh-CN'].product, category = 'e2e-stage-category-zh-CN';
     for (const [sort, first] of [['default', 24], ['newest', 24], ['updated', 24], ['views', 24],
         ['price_asc', 1], ['price_desc', 24], ['not-a-sort', 24]]) {

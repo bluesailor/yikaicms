@@ -4,7 +4,7 @@ const { openBanner, undoBanner: undo } = require('./banner-helpers');
 
 const items = page => page.evaluate(() => JSON.parse(JSON.stringify(window.Alpine.$data(document.body).bannerItems())));
 
-test('slide actions preserve identity, undo as one step and keep canvas position @ci', async ({ page }, testInfo) => {
+test('slide actions preserve identity, undo as one step and keep canvas position @ci @shard-media', async ({ page }, testInfo) => {
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
   await openBanner(page);
@@ -53,7 +53,7 @@ test('slide actions preserve identity, undo as one step and keep canvas position
   expect(errors).toEqual([]);
 });
 
-test('deleting the final slide stays empty and is undoable @ci', async ({ page }) => {
+test('deleting the final slide stays empty and is undoable @ci @shard-media', async ({ page }) => {
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
   await openBanner(page);

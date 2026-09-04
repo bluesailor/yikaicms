@@ -93,10 +93,10 @@ test.beforeEach(async ({ page }, testInfo) => {
   consoleEntries = null;
   unsafeWrites = null;
   const crossViewportTitles = [
-    'viewport contract @ci',
-    'header preset chooser adapts across viewports @ci',
-    'footer style library previews and applies practical starters @ci',
-    'shared color picker adapts across viewports @ci',
+    'viewport contract @ci @shard-locale',
+    'header preset chooser adapts across viewports @ci @shard-design',
+    'footer style library previews and applies practical starters @ci @shard-design',
+    'shared color picker adapts across viewports @ci @shard-design',
   ];
   test.skip(testInfo.project.name !== 'desktop-1440' && !crossViewportTitles.includes(testInfo.title), 'desktop interaction baseline');
   consoleEntries = observeConsole(page);
@@ -114,7 +114,7 @@ test.afterEach(async ({ page }) => {
   expect(consoleEntries, 'browser console must stay clean').toEqual([]);
 });
 
-test('viewport contract @ci', async ({ page }, testInfo) => {
+test('viewport contract @ci @shard-locale', async ({ page }, testInfo) => {
   const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(pageOverflow).toBe(0);
 
@@ -219,7 +219,7 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
   }
 });
 
-test('scroll panels reserve a stable Tailwind 4.3 gutter @ci', async ({ page }, testInfo) => {
+test('scroll panels reserve a stable Tailwind 4.3 gutter @ci @shard-locale', async ({ page }, testInfo) => {
   const assertStableScroller = async (locator) => {
     await expect(locator).toBeVisible();
     const styles = await locator.evaluate((element) => {
@@ -241,7 +241,7 @@ test('scroll panels reserve a stable Tailwind 4.3 gutter @ci', async ({ page }, 
   await page.screenshot({ path: testInfo.outputPath('blox-scroll-panels.png'), fullPage: true });
 });
 
-test('element library keeps favorites and successful recent inserts discoverable @ci', async ({ page }, testInfo) => {
+test('element library keeps favorites and successful recent inserts discoverable @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   await page.evaluate(() => {
     localStorage.removeItem('yikai:blox:element-favorites:v1');
@@ -274,7 +274,7 @@ test('element library keeps favorites and successful recent inserts discoverable
   await restoreClean(page);
 });
 
-test('element library opens in the compact desktop viewport @ci', async ({ page }, testInfo) => {
+test('element library opens in the compact desktop viewport @ci @shard-locale', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'compact desktop breakpoint baseline');
   await page.setViewportSize({ width: 1200, height: 800 });
 
@@ -285,7 +285,7 @@ test('element library opens in the compact desktop viewport @ci', async ({ page 
   await expect(panel.locator('[x-ref="libSearch"]')).toBeFocused();
 });
 
-test('docked prebuilt panel clears the toolbar and leaves Tab untrapped @ci', async ({ page }, testInfo) => {
+test('docked prebuilt panel clears the toolbar and leaves Tab untrapped @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop dock accessibility baseline');
   await page.getByTestId('blox-prebuilt-open').click();
 
@@ -304,7 +304,7 @@ test('docked prebuilt panel clears the toolbar and leaves Tab untrapped @ci', as
   await expect(dialog).toBeHidden();
 });
 
-test('prebuilt panel resizes against its own container without losing scroll @ci', async ({ page }, testInfo) => {
+test('prebuilt panel resizes against its own container without losing scroll @ci @shard-locale', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop prebuilt resize baseline');
   await page.evaluate(() => {
     localStorage.removeItem('yikai:blox:template-panel-width:v1');
@@ -363,7 +363,7 @@ test('prebuilt panel resizes against its own container without losing scroll @ci
   await page.screenshot({ path: testInfo.outputPath('blox-template-container-density.png'), fullPage: true });
 });
 
-test('element category filter narrows the library and resets on reload @ci', async ({ page }, testInfo) => {
+test('element category filter narrows the library and resets on reload @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const category = page.getByTestId('blox-element-category');
   await expect(category).toHaveValue('all');
@@ -383,7 +383,7 @@ test('element category filter narrows the library and resets on reload @ci', asy
   await expect(page.getByTestId('blox-element-group-layout')).toBeVisible();
 });
 
-test('desktop keyboard insertion requires a selected target @ci', async ({ page }, testInfo) => {
+test('desktop keyboard insertion requires a selected target @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   await expect(page.getByTestId('blox-pick-section-hint')).toHaveCount(0);
   const sectionCount = await page.getByTestId('blox-tree-section').count();
@@ -395,7 +395,7 @@ test('desktop keyboard insertion requires a selected target @ci', async ({ page 
   await expectClean(page);
 });
 
-test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, testInfo) => {
+test('desktop element panel resizes by drag and keyboard @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop split-panel baseline');
   const panel = page.getByTestId('blox-left-panel');
   const resizer = page.getByTestId('blox-left-panel-resizer');
@@ -422,7 +422,7 @@ test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, 
   await expect(resizer).toHaveAttribute('aria-valuenow', '288');
 });
 
-test('property controls respond to panel width without losing field state @ci', async ({ page }, testInfo) => {
+test('property controls respond to panel width without losing field state @ci @shard-locale', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop property-panel baseline');
   const panel = page.getByTestId('blox-left-panel');
   const resizer = page.getByTestId('blox-left-panel-resizer');
@@ -486,7 +486,7 @@ test('property controls respond to panel width without losing field state @ci', 
   await expect.poll(() => columnCount(page.getByTestId('blox-element-property-grid'))).toBe(1);
 });
 
-test('desktop structure panel resizes and collapses persistently @ci', async ({ page }, testInfo) => {
+test('desktop structure panel resizes and collapses persistently @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop split-panel baseline');
   const panel = page.getByTestId('blox-right-panel');
   const resizer = page.getByTestId('blox-right-panel-resizer');
@@ -525,7 +525,7 @@ test('desktop structure panel resizes and collapses persistently @ci', async ({ 
   await expect.poll(async () => (await page.getByTestId('blox-right-panel').boundingBox()).width).toBe(256);
 });
 
-test('browser image preprocessing reduces pixels and upload bytes @ci', async ({ page }, testInfo) => {
+test('browser image preprocessing reduces pixels and upload bytes @ci @shard-media', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop browser image baseline');
 
   const metrics = await page.evaluate(async () => {
@@ -564,7 +564,7 @@ test('browser image preprocessing reduces pixels and upload bytes @ci', async ({
   expect(metrics.outputBytes).toBeLessThan(metrics.originalBytes);
 });
 
-test('browser image upload is accepted by the real media API @ci', async ({ page }, testInfo) => {
+test('browser image upload is accepted by the real media API @ci @shard-media', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop browser upload baseline');
   let uploadedUrl = '';
 
@@ -631,7 +631,7 @@ test('browser image upload is accepted by the real media API @ci', async ({ page
   }
 });
 
-test('media API rejects oversized image dimensions before processing @ci', async ({ page }, testInfo) => {
+test('media API rejects oversized image dimensions before processing @ci @shard-media', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop browser upload baseline');
 
   const result = await page.evaluate(async () => {
@@ -664,7 +664,7 @@ test('media API rejects oversized image dimensions before processing @ci', async
   expect(listed.total).toBe(0);
 });
 
-test('home canvas keeps header and footer actions without a redundant page structure action @ci', async ({ page }, testInfo) => {
+test('home canvas keeps header and footer actions without a redundant page structure action @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -699,7 +699,7 @@ test('home canvas keeps header and footer actions without a redundant page struc
   await expect(page.getByTestId('blox-publish-template')).toContainText('发布并使用');
 });
 
-test('dirty area editor confirms and returns to the home editor @ci', async ({ page }, testInfo) => {
+test('dirty area editor confirms and returns to the home editor @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop navigation baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -729,7 +729,7 @@ test('dirty area editor confirms and returns to the home editor @ci', async ({ p
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
 });
 
-test('dirty home canvas confirms before opening an area editor @ci', async ({ page }, testInfo) => {
+test('dirty home canvas confirms before opening an area editor @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop navigation baseline');
   await addTemporaryHeading(page);
   await waitPreviewSettled(page);
@@ -751,7 +751,7 @@ test('dirty home canvas confirms before opening an area editor @ci', async ({ pa
   await restoreClean(page);
 });
 
-test('stale header edit links recover to the current effective header @ci', async ({ page }, testInfo) => {
+test('stale header edit links recover to the current effective header @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop redirect baseline');
   const contentFrame = await frame(page);
   const expectedHeaderUrl = new URL(
@@ -768,7 +768,7 @@ test('stale header edit links recover to the current effective header @ci', asyn
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
 });
 
-test('footer template opens with the editable footer visible at the bottom of the canvas @ci', async ({ page }, testInfo) => {
+test('footer template opens with the editable footer visible at the bottom of the canvas @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop canvas position baseline');
   test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'footer editing is an advanced feature');
   const fixtures = JSON.parse(require('fs').readFileSync(
@@ -791,7 +791,7 @@ test('footer template opens with the editable footer visible at the bottom of th
   }), { timeout: 10000 }).toBe(true);
 });
 
-test('current theme header allows publishing unsaved canvas changes @ci', async ({ page }, testInfo) => {
+test('current theme header allows publishing unsaved canvas changes @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single publish control baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -812,7 +812,7 @@ test('current theme header allows publishing unsaved canvas changes @ci', async 
   await expectClean(page);
 });
 
-test('stable element deep link selects the current header logo @ci', async ({ page }, testInfo) => {
+test('stable element deep link selects the current header logo @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop element locator baseline');
   test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'header editing is an advanced feature');
   const fixtures = JSON.parse(require('fs').readFileSync(
@@ -836,7 +836,7 @@ test('stable element deep link selects the current header logo @ci', async ({ pa
   expect(consoleEntries).toEqual([]);
 });
 
-test('current theme header switches Mega Menu in place and reorders the selected navigation @ci', async ({ page }, testInfo) => {
+test('current theme header switches Mega Menu in place and reorders the selected navigation @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop header editing baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -888,7 +888,7 @@ test('current theme header switches Mega Menu in place and reorders the selected
   await restoreClean(page);
 });
 
-test('section spacing edits the active responsive tier @ci', async ({ page }, testInfo) => {
+test('section spacing edits the active responsive tier @ci @shard-locale', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   await page.getByTestId('blox-tree-section').first().click();
   await page.getByTestId('blox-style-tab').click();
@@ -926,7 +926,7 @@ test('section spacing edits the active responsive tier @ci', async ({ page }, te
   await expectClean(page);
 });
 
-test('heading visual size overrides one device without changing its level @ci', async ({ page }, testInfo) => {
+test('heading visual size overrides one device without changing its level @ci @shard-locale', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const { sectionIndex } = await addTemporaryHeading(page);
   await page.getByTestId('blox-style-tab').click();
@@ -965,7 +965,7 @@ test('heading visual size overrides one device without changing its level @ci', 
   await restoreClean(page);
 });
 
-test('container panel edits and restores responsive child gap @ci', async ({ page }, testInfo) => {
+test('container panel edits and restores responsive child gap @ci @shard-locale', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const before = await countSections(page);
   const clearSelection = page.getByTestId('blox-clear-selection');
@@ -1022,7 +1022,7 @@ test('container panel edits and restores responsive child gap @ci', async ({ pag
   await restoreClean(page);
 });
 
-test('cover-header banner fills the first viewport @ci', async ({ page }, testInfo) => {
+test('cover-header banner fills the first viewport @ci @shard-media', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const contentFrame = await frame(page);
   const bannerTreeItem = page.locator(
@@ -1049,7 +1049,7 @@ test('cover-header banner fills the first viewport @ci', async ({ page }, testIn
   await expectClean(page);
 });
 
-test('banner switching keeps one visible slide when selection index is stale @ci', async ({ page }, testInfo) => {
+test('banner switching keeps one visible slide when selection index is stale @ci @shard-media', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const contentFrame = await frame(page);
   const banner = contentFrame.locator('[data-blox-banner]').first();
@@ -1074,7 +1074,7 @@ test('banner switching keeps one visible slide when selection index is stale @ci
   expect(visual.opacity).toBeGreaterThan(0);
 });
 
-test('tree column selection preserves canvas scroll @ci', async ({ page }, testInfo) => {
+test('tree column selection preserves canvas scroll @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const firstSection = page.getByTestId('blox-tree-section').first();
 
@@ -1088,7 +1088,7 @@ test('tree column selection preserves canvas scroll @ci', async ({ page }, testI
   await expectClean(page);
 });
 
-test('inline edit patches preview and preserves scroll @ci', async ({ page }, testInfo) => {
+test('inline edit patches preview and preserves scroll @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const originalURL = page.url();
   const { sectionIndex } = await addTemporaryHeading(page);
@@ -1127,7 +1127,7 @@ test('inline edit patches preview and preserves scroll @ci', async ({ page }, te
   await expectClean(page);
 });
 
-test('unchanged inline blur does not create history @ci', async ({ page }, testInfo) => {
+test('unchanged inline blur does not create history @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const contentFrame = await frame(page);
   const field = contentFrame.locator('[data-yk-home-field]').filter({ visible: true }).first();
@@ -1302,7 +1302,7 @@ test('custom FAQ edits individual questions and answers from panel or canvas @lo
   await expectClean(page);
 });
 
-test('stale save is blocked and keeps a recoverable local copy @ci', async ({ page }, testInfo) => {
+test('stale save is blocked and keeps a recoverable local copy @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const before = await countSections(page);
   let submittedRevision = '';
@@ -1339,7 +1339,7 @@ test('stale save is blocked and keeps a recoverable local copy @ci', async ({ pa
   await expectClean(page);
 });
 
-test('publish saves the current document before activating it @ci', async ({ page }, testInfo) => {
+test('publish saves the current document before activating it @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const before = await countSections(page);
   let submitted = null;
@@ -1382,7 +1382,7 @@ test('publish saves the current document before activating it @ci', async ({ pag
   await expectClean(page);
 });
 
-test('clipboard copy paste and undo @ci', async ({ page }, testInfo) => {
+test('clipboard copy paste and undo @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const { section, sectionIndex } = await addTemporaryHeading(page);
   const column = section.getByTestId('blox-tree-column').first();
@@ -1405,7 +1405,7 @@ test('clipboard copy paste and undo @ci', async ({ page }, testInfo) => {
   await expectClean(page);
 });
 
-test('cross-column drag survives Sortable rebind @ci', async ({ page }, testInfo) => {
+test('cross-column drag survives Sortable rebind @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const { section, sectionIndex } = await addTemporaryHeading(page, 2);
   const columns = section.getByTestId('blox-tree-column');
@@ -1435,7 +1435,7 @@ test('cross-column drag survives Sortable rebind @ci', async ({ page }, testInfo
   await expectClean(page);
 });
 
-test('built-in prebuilt section library filters previews and inserts a fresh section @ci', async ({ page }, testInfo) => {
+test('built-in prebuilt section library filters previews and inserts a fresh section @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const before = await countSections(page);
 
@@ -1486,7 +1486,7 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   await expectClean(page);
 });
 
-test('prebuilt library persists favorites and tracks only successful recent inserts @ci', async ({ page }, testInfo) => {
+test('prebuilt library persists favorites and tracks only successful recent inserts @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop template preference baseline');
   await page.evaluate(() => {
     localStorage.removeItem('yikai:blox:template-favorites:v1');
@@ -1530,7 +1530,7 @@ test('prebuilt library persists favorites and tracks only successful recent inse
   await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
 });
 
-test('prebuilt compact density shortens the library and persists locally @ci', async ({ page }, testInfo) => {
+test('prebuilt compact density shortens the library and persists locally @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop template density baseline');
   await page.evaluate(() => localStorage.removeItem('yikai:blox:template-density:v1'));
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -1564,7 +1564,7 @@ test('prebuilt compact density shortens the library and persists locally @ci', a
   await expect(page.getByTestId('blox-template-item').first()).toHaveCSS('height', '96px');
 });
 
-test('prebuilt library restores session filters and scroll after closing or inserting @ci', async ({ page }, testInfo) => {
+test('prebuilt library restores session filters and scroll after closing or inserting @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop template session continuity baseline');
   await page.evaluate(() => sessionStorage.removeItem('yikai:blox:template-section-view:v2'));
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -1616,7 +1616,7 @@ test('prebuilt library restores session filters and scroll after closing or inse
   await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
 });
 
-test('prebuilt empty states explain active filters and clear them in one action @ci', async ({ page }, testInfo) => {
+test('prebuilt empty states explain active filters and clear them in one action @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop prebuilt empty state baseline');
   await page.evaluate(() => {
     localStorage.removeItem('yikai:blox:template-favorites:v1');
@@ -1657,7 +1657,7 @@ test('prebuilt empty states explain active filters and clear them in one action 
   ))).toMatchObject({ category: 'all', quickFilter: 'recommended', query: '', scrollTop: 0 });
 });
 
-test('prebuilt section drags from the dock into a visible fixed canvas boundary @ci', async ({ page }, testInfo) => {
+test('prebuilt section drags from the dock into a visible fixed canvas boundary @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
   const beforeSections = await countSections(page);
   await page.getByTestId('blox-prebuilt-open').click();
@@ -1731,7 +1731,7 @@ test('prebuilt section drags from the dock into a visible fixed canvas boundary 
   await expectClean(page);
 });
 
-test('prebuilt section drags to an exact structure boundary without canvas scroll @ci', async ({ page }, testInfo) => {
+test('prebuilt section drags to an exact structure boundary without canvas scroll @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
   const beforeSections = await countSections(page);
   expect(beforeSections).toBeGreaterThan(1);
@@ -1839,7 +1839,7 @@ test('legacy service page can switch to editable built-in process template @loca
   await expectClean(page);
 });
 
-test('local template insertion uses catalog resolve without reload @ci', async ({ page }, testInfo) => {
+test('local template insertion uses catalog resolve without reload @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -1888,7 +1888,7 @@ test('local template insertion uses catalog resolve without reload @ci', async (
   await expectClean(page);
 });
 
-test('template catalog separates local and remote libraries without trapping docked focus @ci', async ({ page }, testInfo) => {
+test('template catalog separates local and remote libraries without trapping docked focus @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   await page.route('**/admin/blox_template_api.php?action=list**', async (route) => {
     await route.fulfill({
@@ -1964,7 +1964,7 @@ test('real remote template channel @local', async ({ page }, testInfo) => {
   await expect(remote).toBeVisible();
 });
 
-test('verified remote install reaches canvas and one-step undo @ci', async ({ page }, testInfo) => {
+test('verified remote install reaches canvas and one-step undo @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'shared database integration baseline');
   const root = require('path').resolve(__dirname, '../..');
   const fixtureScript = require('path').resolve(__dirname, 'remote-template-fixture.php');
@@ -1998,7 +1998,7 @@ test('verified remote install reaches canvas and one-step undo @ci', async ({ pa
 const { execFileSync } = require('child_process');
 const setAdminLang = (lang) => execFileSync('php', ['tests/e2e/set-lang.php', lang], { cwd: require('path').resolve(__dirname, '../..') });
 
-test('editor chrome localizes to en and ja @ci', async ({ page }, testInfo) => {
+test('editor chrome localizes to en and ja @ci @shard-locale', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   try {
     setAdminLang('en');
@@ -2022,7 +2022,7 @@ test('editor chrome localizes to en and ja @ci', async ({ page }, testInfo) => {
 });
 
 // ── 模板模式（r7）：头模板草稿编辑 = 可编辑区 + 首页正文只读灰罩上下文 ──
-test('template manager exposes safe local header and footer starters @ci', async ({ page }, testInfo) => {
+test('template manager exposes safe local header and footer starters @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop management baseline');
   await page.goto('/admin/blox_templates.php', { waitUntil: 'domcontentloaded' });
 
@@ -2055,7 +2055,7 @@ test('template manager exposes safe local header and footer starters @ci', async
   await expect(form.locator('[name="conditions_json"]')).toHaveValue(/"main":"page","ids":\[\d+\]/);
 });
 
-test('template mode edits an isolated header and applies bundled starters @ci', async ({ page }, testInfo) => {
+test('template mode edits an isolated header and applies bundled starters @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -2180,7 +2180,7 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(1);
 });
 
-test('header state selector drives the semantic preview shell @ci', async ({ page }, testInfo) => {
+test('header state selector drives the semantic preview shell @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -2228,7 +2228,7 @@ test('header state selector drives the semantic preview shell @ci', async ({ pag
   await expectClean(page);
 });
 
-test('header preset chooser adapts across viewports @ci', async ({ page }, testInfo) => {
+test('header preset chooser adapts across viewports @ci @shard-design', async ({ page }, testInfo) => {
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
   await page.goto('/admin/blox_editor.php?template=' + fixtures.blox_header_template,
@@ -2301,7 +2301,7 @@ test('header preset chooser adapts across viewports @ci', async ({ page }, testI
   await expect(firstPreviewButton).toBeFocused();
 });
 
-test('footer style library previews and applies practical starters @ci', async ({ page }, testInfo) => {
+test('footer style library previews and applies practical starters @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'footer editing is an advanced feature');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -2355,7 +2355,7 @@ test('footer style library previews and applies practical starters @ci', async (
   }
 });
 
-test('shared color picker adapts across viewports @ci', async ({ page }) => {
+test('shared color picker adapts across viewports @ci @shard-design', async ({ page }) => {
   await page.evaluate(() => {
     const data = window.Alpine.$data(document.body);
     window.__bloxColorResult = '#ffffff';
@@ -2385,7 +2385,7 @@ test('shared color picker adapts across viewports @ci', async ({ page }) => {
   await expect(picker).toBeHidden();
 });
 
-test('sticky header behavior and device scope reach the preview shell @ci', async ({ page }, testInfo) => {
+test('sticky header behavior and device scope reach the preview shell @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -2429,7 +2429,7 @@ test('sticky header behavior and device scope reach the preview shell @ci', asyn
   await expectClean(page);
 });
 
-test('template publishing retries only after explicit conflict confirmation @ci', async ({ page }, testInfo) => {
+test('template publishing retries only after explicit conflict confirmation @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -2468,7 +2468,7 @@ test('template publishing retries only after explicit conflict confirmation @ci'
 });
 
 // ── 模板模式（r9）：URL 上下文驱动隔离预览 + Resolver 命中上报 ──
-test('header preview context reports resolver hit without rendering page body @ci', async ({ page }, testInfo) => {
+test('header preview context reports resolver hit without rendering page body @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -2497,7 +2497,7 @@ test('header preview context reports resolver hit without rendering page body @c
 });
 
 // ── 画布插入轨道（r13）：区块边界精确插入 + 末尾常驻入口 ──
-test('canvas insert rails add section at exact boundary @ci', async ({ page }, testInfo) => {
+test('canvas insert rails add section at exact boundary @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const before = await countSections(page);
   expect(before).toBeGreaterThan(1);
@@ -2524,7 +2524,7 @@ test('canvas insert rails add section at exact boundary @ci', async ({ page }, t
 });
 
 // ── 画布空目标快捷添加（r18）：空列/空容器定位到既有元素库，不刷新页面 ──
-test('empty canvas targets open element library at the exact node @ci', async ({ page }, testInfo) => {
+test('empty canvas targets open element library at the exact node @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const originalURL = page.url();
   const clear = page.getByTestId('blox-clear-selection');
@@ -2572,7 +2572,7 @@ test('empty canvas targets open element library at the exact node @ci', async ({
   await expectClean(page);
 });
 
-test('canvas drag labels and inserts into a container center @ci', async ({ page }, testInfo) => {
+test('canvas drag labels and inserts into a container center @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop canvas drag baseline');
   const clear = page.getByTestId('blox-clear-selection');
   if (await clear.isVisible()) await clear.click();
@@ -2694,7 +2694,7 @@ test('canvas drag labels and inserts into a container center @ci', async ({ page
   await expectClean(page);
 });
 
-test('native palette drag keeps the canvas fixed and inserts in view @ci', async ({ page }, testInfo) => {
+test('native palette drag keeps the canvas fixed and inserts in view @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
   const clear = page.getByTestId('blox-clear-selection');
   if (await clear.isVisible()) await clear.click();
@@ -2775,7 +2775,7 @@ test('native palette drag keeps the canvas fixed and inserts in view @ci', async
   await expectClean(page);
 });
 
-test('palette drag uses a compact ghost and Escape cancels cleanly @ci', async ({ page }, testInfo) => {
+test('palette drag uses a compact ghost and Escape cancels cleanly @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop native drag baseline');
   const clear = page.getByTestId('blox-clear-selection');
   if (await clear.isVisible()) await clear.click();
@@ -2821,7 +2821,7 @@ test('palette drag uses a compact ghost and Escape cancels cleanly @ci', async (
   await expectClean(page);
 });
 
-test('structure tree drag labels before and inside intentions @ci', async ({ page }, testInfo) => {
+test('structure tree drag labels before and inside intentions @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop structure drag baseline');
   const clear = page.getByTestId('blox-clear-selection');
   if (await clear.isVisible()) await clear.click();
@@ -2886,7 +2886,7 @@ test('structure tree drag labels before and inside intentions @ci', async ({ pag
   await expectClean(page);
 });
 // ── 面包屑（r14）：选择模型的第二视图，点父级两击内回到区块 ──
-test('breadcrumb reflects selection and climbs to parent @ci', async ({ page }, testInfo) => {
+test('breadcrumb reflects selection and climbs to parent @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const { section, sectionIndex } = await addTemporaryHeading(page);
   // 选中新加的标题元素 → 面包屑 = 区块 > 列 > 元素（3 项，末项高亮）
@@ -2904,7 +2904,7 @@ test('breadcrumb reflects selection and climbs to parent @ci', async ({ page }, 
 });
 
 // ── 点空白取消选择（用户报告的回归，2026-08-08）──
-test('clicking blank canvas deselects tree selection @ci', async ({ page }, testInfo) => {
+test('clicking blank canvas deselects tree selection @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   // 结构树选中首个区块 → 左栏出现「取消选中（改为插入到末尾）」提示按钮
   await page.getByTestId('blox-tree-section').first().click();
@@ -2925,7 +2925,7 @@ test('clicking blank canvas deselects tree selection @ci', async ({ page }, test
 });
 
 // ── Bootstrap Icons：双图库选择、搜索、预览资源加载 ──
-test('Bootstrap icon picker selects and renders without reload @ci', async ({ page }, testInfo) => {
+test('Bootstrap icon picker selects and renders without reload @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const originalURL = page.url();
   const { sectionIndex } = await addTemporaryHeading(page);
@@ -2954,7 +2954,7 @@ test('Bootstrap icon picker selects and renders without reload @ci', async ({ pa
   await restoreClean(page);
 });
 
-test('business icon preset applies semantic icon and hover motion @ci', async ({ page }, testInfo) => {
+test('business icon preset applies semantic icon and hover motion @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const { sectionIndex } = await addTemporaryHeading(page);
 
@@ -2975,7 +2975,7 @@ test('business icon preset applies semantic icon and hover motion @ci', async ({
   await restoreClean(page);
 });
 
-test('page title area presets preview safely and inheritance is read only @ci', async ({ page }, testInfo) => {
+test('page title area presets preview safely and inheritance is read only @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const fixtures = JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
