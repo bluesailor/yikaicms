@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yikai\Tests\Unit;
 
 use BlockRenderer;
+use BloxAssetCollector;
 use BuilderRegistry;
 use HomeBannerItemElement;
 use HomeBloxRenderContext;
@@ -132,6 +133,84 @@ final class HomeBannerItemElementTest extends TestCase
             $this->assertStringNotContainsString('<video', $fallback);
             $this->assertStringContainsString('/uploads/fallback.jpg', $fallback);
         }
+    }
+
+    public function testLinkedMediaUsesNormalizedSafeLink(): void
+    {
+        $linked = HomeBannerItemElement::responsiveLinkedMediaHtml([
+            'media_type' => 'video',
+            'video' => '/uploads/videos/launch.mp4',
+            'image' => '/uploads/launch.jpg',
+            'link_url' => 'https://example.com/launch?from=banner&amp;lang=en',
+            'link_target' => '_blank',
+        ]);
+        $unsafe = HomeBannerItemElement::responsiveLinkedMediaHtml([
+            'image' => '/uploads/launch.jpg',
+            'link_url' => 'javascript:alert(1)',
+        ]);
+
+        $this->assertStringStartsWith('<a href="https://example.com/launch?', $linked);
+        $this->assertStringContainsString('target="_blank"', $linked);
+        $this->assertStringContainsString('data-blox-banner-video', $linked);
+        $this->assertStringNotContainsString('<a ', $unsafe);
+    }
+
+    public function testAllBundledBannerTemplatesRenderVideoMedia(): void
+    {
+        $banner = [
+            'title' => 'Launch',
+            'subtitle' => 'Video banner',
+            'media_type' => 'video',
+            'video' => '/uploads/videos/launch.webm',
+            'image' => '/uploads/launch.jpg',
+            'image_mobile' => '',
+            'video_mobile_mode' => 'poster',
+            'btn1_text' => '',
+            'btn1_url' => '',
+            'btn2_text' => '',
+            'btn2_url' => '',
+            'link_url' => '',
+            'link_target' => '_self',
+        ];
+
+        foreach ([
+            'default' => ROOT_PATH . '/themes/default/blocks/banner.php',
+            'business' => ROOT_PATH . '/marketplace/themes/business/blocks/banner.php',
+            'minimal' => ROOT_PATH . '/marketplace/themes/minimal/blocks/banner.php',
+            'legacy-fallback' => ROOT_PATH . '/includes/blocks/banner.php',
+        ] as $name => $template) {
+            BloxAssetCollector::reset();
+            $banners = [$banner];
+            $block = [];
+            $siteName = 'YikaiCMS';
+            ob_start();
+            include $template;
+            $html = (string) ob_get_clean();
+
+            $this->assertStringContainsString('data-blox-banner-video', $html, $name);
+            $this->assertStringContainsString(
+                'data-blox-video-src="/uploads/videos/launch.webm"',
+                $html,
+                $name
+            );
+            $this->assertStringContainsString('data-blox-banner-poster', $html, $name);
+            $this->assertContains('/assets/css/blox-banner.css', BloxAssetCollector::styles(), $name);
+            $this->assertContains('/assets/js/blox-video-policy.js', BloxAssetCollector::scripts(), $name);
+            $this->assertContains('/assets/js/blox-banner.js', BloxAssetCollector::scripts(), $name);
+        }
+    }
+
+    public function testBannerShortcodeUsesTheSharedVideoRenderer(): void
+    {
+        $source = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
+        $start = strpos($source, 'function renderBannerShortcode');
+        $end = strpos($source, 'function isJsonFields', $start === false ? 0 : $start);
+
+        $this->assertNotFalse($start);
+        $this->assertNotFalse($end);
+        $shortcode = substr($source, (int) $start, (int) $end - (int) $start);
+        $this->assertStringContainsString('HomeBannerItemElement::responsiveLinkedMediaHtml($b)', $shortcode);
+        $this->assertStringNotContainsString('HomeBannerItemElement::responsiveImageHtml($b)', $shortcode);
     }
 
     public function testLocalizedContentKeepsCustomPresentationAndMatchesTranslationGroups(): void
