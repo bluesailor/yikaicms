@@ -92,3 +92,117 @@ test('standalone media library extracts first frames from two real videos @local
   await page.screenshot({ path: testInfo.outputPath('standalone-real-video-first-frames.png'), fullPage: true });
   expect(errors).toEqual([]);
 });
+
+test('media deletion is blocked while a banner references the video @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'Destructive reference guard is sampled once.');
+  const name = `media-usage-${process.pid}-${Date.now()}.mp4`;
+  const videoPath = path.join(process.cwd(), 'uploads', 'videos', name);
+  const videoUrl = `/uploads/videos/${name}`;
+  fs.mkdirSync(path.dirname(videoPath), { recursive: true });
+  fs.writeFileSync(videoPath, Buffer.alloc(64));
+  let bannerId = 0;
+
+  try {
+    await scanMedia(page);
+    await page.goto(`/admin/media.php?type=video&keyword=${encodeURIComponent(name)}`, { waitUntil: 'domcontentloaded' });
+    const csrf = await page.locator('meta[name="csrf-token"]').getAttribute('content');
+    expect(csrf).toBeTruthy();
+    const card = page.locator('[data-media-card]').filter({ hasText: name });
+    await expect(card).toHaveCount(1);
+    const mediaId = Number(await card.getAttribute('data-id'));
+    expect(mediaId).toBeGreaterThan(0);
+
+    const created = await page.request.post('/admin/banner.php', { form: {
+      _token: csrf,
+      action: 'save',
+      id: '0',
+      title: 'Media usage guard',
+      subtitle: '',
+      image: '',
+      image_mobile: '',
+      media_type: 'video',
+      video: videoUrl,
+      video_mobile_mode: 'poster',
+      btn1_text: '',
+      btn1_url: '',
+      btn2_text: '',
+      btn2_url: '',
+      link_url: '',
+      link_target: '_self',
+      position: 'media-usage-test',
+      start_time: '',
+      end_time: '',
+      content_motion: 'inherit',
+      background_motion: 'inherit',
+      sort_order: '0',
+      status: '1',
+    } });
+    const createdPayload = await created.json();
+    expect(createdPayload.code).toBe(0);
+    bannerId = Number(createdPayload.data.id);
+
+    const usage = await page.evaluate(async (id) => {
+      const body = new FormData();
+      body.append('action', 'usage');
+      body.append('id', String(id));
+      return (await fetch('', { method: 'POST', body })).json();
+    }, mediaId);
+    expect(usage.code).toBe(0);
+    expect(usage.data).toMatchObject({ blocked: true, files: 1, count: 1 });
+    expect(usage.data.references[0]).toMatchObject({
+      media_id: mediaId,
+      source_type: 'banner',
+      source_id: bannerId,
+      kind: 'banner_video',
+      edit_url: '/admin/banner.php',
+    });
+    let confirmDialogs = 0;
+    page.on('dialog', async (dialog) => {
+      confirmDialogs += 1;
+      await dialog.dismiss();
+    });
+    const usageResponse = page.waitForResponse((response) => {
+      return new URL(response.url()).pathname === '/admin/media.php'
+        && response.request().method() === 'POST';
+    });
+    await card.locator('button[onclick^="deleteMedia"]').click({ force: true });
+    expect((await (await usageResponse).json()).data.blocked).toBe(true);
+    await expect(page.locator('body > .bg-red-500')).toContainText(/正在被|used in|使用中/);
+    expect(confirmDialogs).toBe(0);
+
+    const blocked = await page.evaluate(async (id) => {
+      const body = new FormData();
+      body.append('action', 'delete');
+      body.append('id', String(id));
+      return (await fetch('', { method: 'POST', body })).json();
+    }, mediaId);
+    expect(blocked.code).not.toBe(0);
+    expect(blocked.msg).toMatch(/正在被|used in|使用中/);
+    expect(fs.existsSync(videoPath)).toBe(true);
+    await expect(card).toHaveCount(1);
+
+    const removedBanner = await page.request.post('/admin/banner.php', {
+      form: { _token: csrf, action: 'delete', id: String(bannerId) },
+    });
+    expect((await removedBanner.json()).code).toBe(0);
+    bannerId = 0;
+
+    const deleted = await page.evaluate(async (id) => {
+      const body = new FormData();
+      body.append('action', 'delete');
+      body.append('id', String(id));
+      return (await fetch('', { method: 'POST', body })).json();
+    }, mediaId);
+    expect(deleted.code).toBe(0);
+    expect(fs.existsSync(videoPath)).toBe(false);
+  } finally {
+    if (bannerId > 0) {
+      await page.goto('/admin/banner.php', { waitUntil: 'domcontentloaded' });
+      const csrf = await page.locator('meta[name="csrf-token"]').getAttribute('content');
+      await page.request.post('/admin/banner.php', {
+        form: { _token: csrf || '', action: 'delete', id: String(bannerId) },
+      });
+    }
+    fs.rmSync(videoPath, { force: true });
+  }
+});
