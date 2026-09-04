@@ -53,7 +53,9 @@ final class ContainerElement extends AbstractElement
     /** @param array<string,mixed> $data @return list<string> */
     public function scriptsFor(array $data): array
     {
-        return self::backgroundVideoUrl($data) !== '' ? ['/assets/js/blox-background-video.js'] : [];
+        return self::backgroundVideoUrl($data) !== ''
+            ? ['/assets/js/blox-video-policy.js', '/assets/js/blox-background-video.js']
+            : [];
     }
 
     public function controls(): array

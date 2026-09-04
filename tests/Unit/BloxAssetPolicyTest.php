@@ -42,6 +42,7 @@ final class BloxAssetPolicyTest extends TestCase
         $policy = $this->policy();
         self::assertSame([
             'assets/css/blox-banner.css',
+            'assets/js/blox-video-policy.js',
             'assets/js/blox-banner.js',
             'assets/js/blox-background-video.js',
             'assets/js/blox-counter.js',

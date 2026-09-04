@@ -330,6 +330,7 @@ final class BlockRenderer
             $html .= '<section class="' . $padding . $sectionLayoutClass . $secHideCls . $anchorClass . '"'
                 . $anchorAttr . $textToneAttr . $styleAttr . $editAttr . $secHideAttr . '>';
             if ($bgVideo !== '') {
+                BloxAssetCollector::addScript('/assets/js/blox-video-policy.js');
                 BloxAssetCollector::addScript('/assets/js/blox-background-video.js');
                 $mobileVideoMode = ($settings['bg_video_mobile_mode'] ?? 'poster') === 'video' ? 'video' : 'poster';
                 $posterAttr = $bgImage !== null

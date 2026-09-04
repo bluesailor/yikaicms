@@ -263,7 +263,7 @@ final class HomeBannerItemElement extends AbstractElement
             . '<video data-blox-banner-video data-blox-banner-bg data-blox-mobile-video="'
             . htmlspecialchars($item['video_mobile_mode'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
             . '" muted playsinline preload="none" aria-hidden="true" tabindex="-1"'
-            . $posterUrl . ' src="'
+            . $posterUrl . ' data-blox-video-src="'
             . htmlspecialchars($item['video'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
             . '"></video>';
     }

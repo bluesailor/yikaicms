@@ -25,6 +25,7 @@ async function openRuntimePage(page, mobileMode = 'video', offset = 0, videoUrl 
           data-blox-mobile-video="${mobileMode}" data-blox-video-src="${videoUrl}"${posterAttr}></video></div>
         <div class="blox-content"></div>
       </div>
+      <script src="/assets/js/blox-video-policy.js"></script>
       <script src="/assets/js/blox-background-video.js"></script>
     </body></html>`,
   }));

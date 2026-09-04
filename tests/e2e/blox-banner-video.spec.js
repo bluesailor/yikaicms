@@ -8,22 +8,32 @@ const REAL_VIDEO_SAMPLES = [
   { file: 'blox-test-flower.mp4', url: '/uploads/videos/blox-test-flower.mp4' },
   { file: 'blox-test-friday.mp4', url: '/uploads/videos/blox-test-friday.mp4' },
 ];
+const PICKER_VIDEO_URL = '/uploads/videos/banner-picker-test.mp4';
+const RUNTIME_VIDEO_URL = '/uploads/videos/banner-runtime-test.mp4';
 
 test('a banner slide can switch to video with poster-first mobile fallback @ci', async ({ page }, testInfo) => {
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
   const mediaListRequests = [];
+  const runtimeVideoRequests = [];
+  let previewFrame = null;
   const labels = {
     'zh-CN': { chooseMedia: '从媒体库选择', image: '图片', video: '视频', poster: '只显示封面', play: '播放视频', tooLarge: '超过站点上限' },
     en: { chooseMedia: 'Choose from media library', image: 'Images', video: 'Videos', poster: 'Show poster only', play: 'Play video', tooLarge: 'exceeding the site limit' },
     ja: { chooseMedia: 'メディアライブラリから選択', image: '画像', video: '動画', poster: 'ポスターのみ表示', play: '動画を再生', tooLarge: 'サイトの上限' },
   }[process.env.BLOX_E2E_SITE_LANG || 'zh-CN'];
 
-  await page.route('**/uploads/videos/banner-test.mp4', route => route.fulfill({
+  await page.route('**/uploads/videos/banner-*-test.mp4', route => route.fulfill({
     status: 200,
     contentType: 'video/mp4',
     body: Buffer.alloc(32),
   }));
+  page.on('request', request => {
+    if (new URL(request.url()).pathname === RUNTIME_VIDEO_URL
+      && request.frame() === previewFrame) {
+      runtimeVideoRequests.push(request.url());
+    }
+  });
   await page.route('**/admin/media_api.php?action=list*', route => {
     const url = new URL(route.request().url());
     const requestedPage = Number(url.searchParams.get('page') || 1);
@@ -39,7 +49,7 @@ test('a banner slide can switch to video with poster-first mobile fallback @ci',
           items: [{
             id: requestedPage,
             name: 'media-' + requestedPage,
-            url: '/uploads/videos/banner-test.mp4',
+            url: PICKER_VIDEO_URL,
             type: url.searchParams.get('type') || 'video',
             size: 4096,
             created_at: 1788451200,
@@ -53,6 +63,17 @@ test('a banner slide can switch to video with poster-first mobile fallback @ci',
   });
 
   await openBanner(page);
+  const previewDevice = {
+    'desktop-1440': 'desktop',
+    'tablet-768': 'tablet',
+    'mobile-390': 'mobile',
+  }[testInfo.project.name] || 'desktop';
+  await page.evaluate(device => {
+    window.Alpine.$data(document.body).previewDevice = device;
+  }, previewDevice);
+  previewFrame = await frame(page);
+  await expect.poll(() => previewFrame.evaluate(() => window.innerWidth)).toBeGreaterThan(0);
+  const posterBlocksVideo = await previewFrame.evaluate(() => window.innerWidth <= 767);
   await performPreviewUpdate(page, () => page.locator('[data-banner-thumb]').first().locator('button').first().click());
   const field = key => page.locator('[data-control-key="' + key + '"]');
 
@@ -79,18 +100,29 @@ test('a banner slide can switch to video with poster-first mobile fallback @ci',
   });
   await expect(page.getByTestId('blox-toast')).toContainText(labels.tooLarge);
   await page.keyboard.press('Escape');
+  runtimeVideoRequests.length = 0;
   await field('video').locator('summary').click();
-  await performPreviewUpdate(page, () => field('video').locator('input').fill('/uploads/videos/banner-test.mp4'));
+  await performPreviewUpdate(page, () => field('video').locator('input').fill(RUNTIME_VIDEO_URL));
 
-  const video = (await frame(page)).locator('[data-blox-banner-video]').first();
-  await expect(video).toHaveAttribute('src', '/uploads/videos/banner-test.mp4');
+  const video = previewFrame.locator('[data-blox-banner-video]').first();
+  await expect(video).toHaveAttribute('data-blox-video-src', RUNTIME_VIDEO_URL);
   await expect(video).toHaveAttribute('data-blox-mobile-video', 'poster');
+  if (posterBlocksVideo) {
+    await expect(video).not.toHaveAttribute('src', /.+/);
+    await page.waitForTimeout(300);
+    expect(runtimeVideoRequests).toEqual([]);
+  } else {
+    await expect(video).toHaveAttribute('src', RUNTIME_VIDEO_URL);
+    await expect.poll(() => runtimeVideoRequests.length).toBeGreaterThan(0);
+  }
   await page.screenshot({ path: testInfo.outputPath('banner-video-controls.png') });
 
   await page.getByTestId('blox-banner-group-mobile').click();
   await expect(field('video_mobile_mode').getByRole('button', { name: labels.poster, exact: true })).toHaveAttribute('aria-pressed', 'true');
   await performPreviewUpdate(page, () => field('video_mobile_mode').getByRole('button', { name: labels.play, exact: true }).click());
   await expect(video).toHaveAttribute('data-blox-mobile-video', 'video');
+  await expect(video).toHaveAttribute('src', RUNTIME_VIDEO_URL);
+  await expect.poll(() => runtimeVideoRequests.length).toBeGreaterThan(0);
 
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);

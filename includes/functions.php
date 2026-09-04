@@ -2924,6 +2924,7 @@ function renderBannerShortcode(string $slug): string
 
     $uidJson = json_encode($uid, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
     $swiperJsJson = json_encode(assetVer('/assets/swiper/swiper-bundle.min.js'), JSON_UNESCAPED_SLASHES);
+    $policyJsJson = json_encode(assetVer('/assets/js/blox-video-policy.js'), JSON_UNESCAPED_SLASHES);
     $runtimeJsJson = json_encode(assetVer('/assets/js/blox-banner.js'), JSON_UNESCAPED_SLASHES);
     $html .= '<script>(function(){';
     $html .= 'var root=document.getElementById(' . $uidJson . ');if(!root)return;';
@@ -2933,7 +2934,8 @@ function renderBannerShortcode(string $slug): string
     $html .= 'if(!found){var script=document.createElement("script");script.src=src;script.onload=next;document.body.appendChild(script);return;}';
     $html .= 'var tries=0,timer=setInterval(function(){if(ready()||++tries>100){clearInterval(timer);if(ready())next();}},50);}';
     $html .= 'load(' . $swiperJsJson . ',function(){return typeof window.Swiper==="function";},function(){';
-    $html .= 'load(' . $runtimeJsJson . ',function(){return !!window.BloxBanner;},init);});';
+    $html .= 'load(' . $policyJsJson . ',function(){return !!window.BloxVideoPolicy;},function(){';
+    $html .= 'load(' . $runtimeJsJson . ',function(){return !!window.BloxBanner;},init);});});';
     $html .= '})();</script>';
 
     return $html;

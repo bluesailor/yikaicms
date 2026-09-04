@@ -15,13 +15,8 @@
     }
 
     function preferenceAllows(video) {
-        var reduceMotion = window.matchMedia
-            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (reduceMotion) return false;
-        var connection = window.navigator && window.navigator.connection;
-        if (connection && connection.saveData) return false;
-        var mobile = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
-        return !(mobile && video.getAttribute('data-blox-mobile-video') !== 'video');
+        return !!(window.BloxVideoPolicy
+            && window.BloxVideoPolicy.allowsPlayback(video));
     }
 
     function pause(video, unload) {
@@ -116,11 +111,13 @@
         }
         document.addEventListener('visibilitychange', syncAll);
         document.addEventListener('blox:content-updated', syncAll);
-        if (typeof window.addEventListener === 'function') window.addEventListener('resize', syncAll);
         if (window.matchMedia) {
             var motion = window.matchMedia('(prefers-reduced-motion: reduce)');
             if (typeof motion.addEventListener === 'function') motion.addEventListener('change', syncAll);
             else if (typeof motion.addListener === 'function') motion.addListener(syncAll);
+            var mobile = window.matchMedia('(max-width: 767px)');
+            if (typeof mobile.addEventListener === 'function') mobile.addEventListener('change', syncAll);
+            else if (typeof mobile.addListener === 'function') mobile.addListener(syncAll);
         }
         var connection = window.navigator && window.navigator.connection;
         if (connection && typeof connection.addEventListener === 'function') connection.addEventListener('change', syncAll);

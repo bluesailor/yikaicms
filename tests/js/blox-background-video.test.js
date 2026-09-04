@@ -4,7 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const SRC = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'blox-background-video.js'), 'utf8');
+const POLICY_SRC = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'blox-video-policy.js'), 'utf8');
+const BACKGROUND_SRC = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'blox-background-video.js'), 'utf8');
 
 function video(mode = 'poster') {
     const attrs = { 'data-blox-video-src': '/uploads/background.mp4', 'data-blox-mobile-video': mode };
@@ -30,6 +31,7 @@ function run({ item = video(), mobile = false, reduced = false, saveData = false
     const listeners = {};
     const mediaListeners = {};
     const connectionListeners = {};
+    const mediaState = { mobile, reduced };
     const observed = [];
     const unobserved = [];
     let observerCallback = null;
@@ -44,7 +46,7 @@ function run({ item = video(), mobile = false, reduced = false, saveData = false
         matchMedia(query) {
             const key = query.includes('max-width') ? 'mobile' : 'motion';
             return {
-                matches: key === 'mobile' ? mobile : reduced,
+                matches: key === 'mobile' ? mediaState.mobile : mediaState.reduced,
                 addEventListener(name, fn) { mediaListeners[key + ':' + name] = fn; },
             };
         },
@@ -56,9 +58,11 @@ function run({ item = video(), mobile = false, reduced = false, saveData = false
             unobserve(target) { unobserved.push(target); }
         };
     }
-    vm.runInNewContext(SRC, { window, document, WeakMap });
+    const context = { window, document, WeakMap, Set };
+    vm.runInNewContext(POLICY_SRC, context);
+    vm.runInNewContext(BACKGROUND_SRC, context);
     return {
-        window, document, listeners, mediaListeners, connectionListeners, observed, unobserved, item,
+        window, document, listeners, mediaListeners, connectionListeners, mediaState, observed, unobserved, item,
         replaceItems(next) { items = next; },
         intersect(target, isIntersecting) { observerCallback([{ target, isIntersecting }]); },
     };
@@ -93,6 +97,18 @@ test('page visibility pauses and resumes without discarding the loaded source', 
     state.document.hidden = false;
     state.listeners.visibilitychange();
     assert.equal(state.item.playCalls, 2);
+});
+
+test('mobile policy changes unload once without binding resize playback churn', () => {
+    const state = run({ item: video('poster') });
+    assert.equal(state.item.getAttribute('src'), '/uploads/background.mp4');
+    assert.equal(state.listeners['window:resize'], undefined);
+
+    state.mediaState.mobile = true;
+    state.mediaListeners['mobile:change']();
+
+    assert.equal(state.item.getAttribute('src'), null);
+    assert.ok(state.item.loadCalls >= 1);
 });
 
 test('viewport observer defers the source, pauses far videos, and resumes nearby videos', () => {
