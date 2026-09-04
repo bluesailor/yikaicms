@@ -1518,7 +1518,7 @@ declare(strict_types=1);
     </div>
 
     <!-- toast -->
-    <div x-show="toastMsg" x-transition data-testid="blox-toast"
+    <div x-show="toastMsg" data-testid="blox-toast"
          role="status" aria-live="polite" aria-atomic="true"
          class="pointer-events-none fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50"
          x-text="toastMsg" style="display:none"></div>
