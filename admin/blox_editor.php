@@ -1129,6 +1129,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             saving: false,
             cacheClearing: false,
             dirty: false,
+            _allowEditorLeave: false,
             _ready: false,
             toastMsg: "",
             _previewClient: null,
@@ -1506,6 +1507,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'saveStatusFailed' => __('blox_save_status_failed'),
                 'draftSaved' => __('blox_save_status_draft'),
                 'unsaved' => __('blox_dirty'),
+                'leaveUnsavedConfirm' => __('blox_leave_unsaved_confirm'),
                 'savingDraft' => __('blox_saving'),
                 'revisionLoading' => __('loading'),
                 'revisionPreviewFailed' => __('blox_revision_preview_failed'),
@@ -6063,7 +6065,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 window.addEventListener("drop", function (e) { self.treeSectionDrop(e); }, true);
                 // 未保存离开守卫：dirty 时关闭/刷新标签页要过浏览器确认
                 window.addEventListener("beforeunload", function (e) {
-                    if (self.dirty || self.contactCardsChanged || self.contactFormChanged) { e.preventDefault(); e.returnValue = ""; }
+                    if (!self._allowEditorLeave && self.hasUnsavedChanges()) { e.preventDefault(); e.returnValue = ""; }
                 });
                 window.addEventListener("pagehide", function () {
                     self.finishLeftPanelResize();
@@ -8916,6 +8918,22 @@ $canManageBloxDesign = hasPermission('blox_global');
                 } catch (error) {
                     return;
                 }
+            },
+
+            hasUnsavedChanges() {
+                return this.dirty || this.contactCardsChanged || this.contactFormChanged;
+            },
+
+            requestEditorBack(event) {
+                if (!event || event.defaultPrevented || event.button !== 0
+                    || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+                if (!this.hasUnsavedChanges()) return;
+                event.preventDefault();
+                if (!window.confirm(this.uiText.leaveUnsavedConfirm)) return;
+                var href = event.currentTarget && event.currentTarget.href;
+                if (!href) return;
+                this._allowEditorLeave = true;
+                window.location.assign(href);
             },
 
             acceptSavedDocument(payload, savedData, res) {

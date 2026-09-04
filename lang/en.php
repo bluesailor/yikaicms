@@ -6172,4 +6172,5 @@ voltage|Voltage|220V',
     'media_usage_kind_background_video' => 'background video',
     'media_usage_kind_video_element' => 'video element',
     'media_usage_kind_unknown' => 'media reference',
+    'blox_leave_unsaved_confirm' => 'You have unsaved changes that are not saved to the server. Return anyway?',
 ];

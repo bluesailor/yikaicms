@@ -23,6 +23,7 @@ declare(strict_types=1);
                 : (($editorBackTo ?? '') === 'home' ? __('blox_back_to_home_editor') : __('admin_back'));
             ?>
             <a href="<?php echo e($bloxBackUrl); ?>" data-testid="blox-back"
+               @click="requestEditorBack($event)"
                data-frontend-return="<?= $hasFrontendReturn ? '1' : '0' ?>"
                class="text-gray-300 hover:text-white inline-flex items-center gap-1 text-sm shrink-0" title="<?= e($bloxBackTitle) ?>">
                 <i class="ti ti-chevron-left text-lg"></i>
