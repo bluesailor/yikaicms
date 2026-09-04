@@ -166,9 +166,7 @@ if ($action === 'scan' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         ma_deny('没有媒体管理权限');
     }
     verifyCsrf();
-    $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-    $fileExts  = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z'];
-    $videoExts = ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v'];
+    $supportedExts = MediaModel::supportedExtensions();
 
     $known = [];
     foreach (db()->fetchAll('SELECT url FROM ' . DB_PREFIX . 'media') as $r) {
@@ -185,9 +183,9 @@ if ($action === 'scan' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             continue;
         }
         $ext = strtolower($f->getExtension());
-        $isImage = in_array($ext, $imageExts, true);
-        $isVideo = in_array($ext, $videoExts, true);
-        if (!$isImage && !$isVideo && !in_array($ext, $fileExts, true)) {
+        $mediaType = MediaModel::typeForExtension($ext);
+        $isImage = $mediaType === 'image';
+        if (!in_array($ext, $supportedExts, true)) {
             continue;
         }
         $path = str_replace('\\', '/', $f->getPathname());
@@ -218,7 +216,7 @@ if ($action === 'scan' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             'name'       => $f->getFilename(),
             'path'       => $path,
             'url'        => $url,
-            'type'       => $isImage ? 'image' : ($isVideo ? 'video' : 'file'),
+            'type'       => $mediaType,
             'ext'        => $ext,
             'mime'       => function_exists('mime_content_type') ? (mime_content_type($path) ?: '') : '',
             'size'       => $f->getSize(),
@@ -256,13 +254,12 @@ if ($action === 'upload' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    $mediaType = MediaModel::typeForExtension((string) $result['ext']);
     $mediaData = [
         'name'       => $result['name'],
         'path'       => $result['path'],
         'url'        => $result['url'],
-        'type'       => in_array($result['ext'], ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'], true)
-            ? 'image'
-            : (in_array($result['ext'], ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v'], true) ? 'video' : 'file'),
+        'type'       => $mediaType,
         'ext'        => $result['ext'],
         'mime'       => mime_content_type($result['path']) ?: '',
         'size'       => $result['size'],
@@ -282,6 +279,7 @@ if ($action === 'upload' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             'url'  => $result['url'],
             'name' => $result['name'],
             'size' => $result['size'],
+            'type' => $mediaType,
         ],
     ], JSON_UNESCAPED_UNICODE);
     exit;

@@ -175,6 +175,7 @@ $add('授权管理', 'GET', '/admin/license.php',  ['contributor' => 'deny', 'ed
 $add('媒体库管理页（要 media）', 'GET',  '/admin/media.php',                ['contributor' => 'deny',  'editor' => 'allow']);
 $add('媒体选择器·列表',        'GET',  '/admin/media_api.php?action=list', ['contributor' => 'allow', 'editor' => 'allow']);
 $add('上传图片',               'POST', '/admin/upload.php',               ['contributor' => 'allow', 'editor' => 'allow'], ['type' => 'images']);
+$add('上传视频',               'POST', '/admin/upload.php',               ['contributor' => 'allow', 'editor' => 'allow'], ['type' => 'videos']);
 // 投稿者只有 edit_article：不该能上传 pdf/zip。内容编辑有 edit_download，可以。
 $add('上传文档/压缩包',        'POST', '/admin/upload.php',               ['contributor' => 'deny',  'editor' => 'allow'], ['type' => 'files']);
 
