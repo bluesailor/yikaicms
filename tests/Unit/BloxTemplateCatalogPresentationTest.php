@@ -62,4 +62,14 @@ final class BloxTemplateCatalogPresentationTest extends TestCase
         self::assertSame('', $method->invoke(null, '/uploads/../config/config.php'));
         self::assertSame('', $method->invoke(null, '/themes/default/card.png'));
     }
+
+    public function testOfficialTemplateCardsRenderAStableCoverSlot(): void
+    {
+        $source = (string) file_get_contents(ROOT_PATH . '/admin/blox_templates.php');
+
+        self::assertStringContainsString('$officialThumbnail = trim((string) ($ot[\'thumbnail\'] ?? \'\'));', $source);
+        self::assertStringContainsString('data-testid="blox-official-thumbnail"', $source);
+        self::assertStringContainsString('loading="lazy" decoding="async"', $source);
+        self::assertStringContainsString('ti-layout-grid text-4xl', $source);
+    }
 }
