@@ -197,7 +197,9 @@ PHP_LINTED=0
 PHP_LINT_FAILURE=""
 while IFS= read -r -d '' php_file; do
     relative="${php_file#"$UNPACK_WSL"/}"
-    if ! "$PHP_DIR/php.exe" -l "$UNPACK_WIN/$relative" >/tmp/pkglint.log 2>&1; then
+    # Windows php.exe 经 WSL interop 启动时会继承循环的 stdin；不关闭它会偷读
+    # find -print0 的后续文件名，使下一轮只剩下路径尾部并产生假失败。
+    if ! "$PHP_DIR/php.exe" -l "$UNPACK_WIN/$relative" </dev/null >/tmp/pkglint.log 2>&1; then
         PHP_LINT_FAILURE="$relative"
         break
     fi
@@ -234,6 +236,7 @@ fi
 # 真实 PHP 版本自证（不是猜，是问服务器要）
 SERVED_PHP="$("$CURL_BIN" -sf "$BASE/install/index.php" -o /dev/null -w '%{http_code}' 2>/dev/null | tr -d '\r')"
 note "install/index.php 响应码 $SERVED_PHP"
+mkdir -p .pkgtest
 
 # 空密码必须在连接数据库、导入 SQL 与写 installed.lock 前被拒绝。SQLite 腿
 # 真实发一次绕过浏览器 minlength 的脚本请求；若旧漏洞回潮，后续安装会被锁死。
@@ -286,7 +289,7 @@ fi
 RESP="$("$CURL_BIN" -fsS -X POST "$BASE/install/index.php" "${INSTALL_ARGS[@]}" 2>/tmp/pkginstall.log)" || true
 # 经文件而非环境变量传给 php：WSL 里的 php 是 Windows php.exe，它不继承 WSL 的环境变量，
 # getenv() 恒为 false，会把成功的安装误判成失败。文件路径也必须是相对的（同上）。
-mkdir -p .pkgtest && printf '%s' "$RESP" > .pkgtest/install-response.json
+printf '%s' "$RESP" > .pkgtest/install-response.json
 if php -r '
     $p = json_decode((string) @file_get_contents(".pkgtest/install-response.json"), true);
     exit(is_array($p) && !empty($p["success"]) ? 0 : 1);
