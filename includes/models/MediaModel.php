@@ -13,6 +13,43 @@ class MediaModel extends Model
     protected string $table = 'media';
     protected string $defaultOrder = 'id DESC';
 
+    /** @param list<string> $fallback @return list<string> */
+    private static function configuredExtensions(string $constantName, array $fallback): array
+    {
+        if (!defined($constantName)) {
+            return $fallback;
+        }
+        return array_values(array_filter(array_map(
+            static fn(mixed $extension): string => strtolower(ltrim(trim((string) $extension), '.')),
+            (array) constant($constantName)
+        )));
+    }
+
+    /** @return list<string> */
+    public static function supportedExtensions(): array
+    {
+        return array_values(array_unique(array_merge(
+            self::configuredExtensions('UPLOAD_IMAGE_TYPES', ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']),
+            self::configuredExtensions('UPLOAD_FILE_TYPES', ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z']),
+            self::configuredExtensions('UPLOAD_VIDEO_TYPES', ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v'])
+        )));
+    }
+
+    public static function typeForExtension(string $extension): string
+    {
+        $extension = strtolower(ltrim(trim($extension), '.'));
+        $imageExtensions = self::configuredExtensions('UPLOAD_IMAGE_TYPES', ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']);
+        $videoExtensions = self::configuredExtensions('UPLOAD_VIDEO_TYPES', ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v']);
+
+        if (in_array($extension, $imageExtensions, true)) {
+            return 'image';
+        }
+        if (in_array($extension, $videoExtensions, true)) {
+            return 'video';
+        }
+        return 'file';
+    }
+
     public static function normalizeSort(string $sort): string
     {
         return in_array($sort, [

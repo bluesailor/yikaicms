@@ -73,6 +73,38 @@ test('standalone media library filters, sorts, and paginates video cards @ci', a
   }
 });
 
+test('standalone upload endpoint persists videos in the video library @ci', async ({ page }) => {
+  const filename = `standalone-upload-${process.pid}-${Date.now()}.webm`;
+  let uploadedUrl = '';
+
+  try {
+    await page.goto('/admin/media.php', { waitUntil: 'domcontentloaded' });
+    const payload = await page.evaluate(async (name) => {
+      const bytes = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0x42, 0x86, 0x81, 0x01]);
+      const body = new FormData();
+      body.append('file', new File([bytes], name, { type: 'video/webm' }));
+      body.append('type', 'videos');
+      const response = await fetch('/admin/upload.php', { method: 'POST', body });
+      return response.json();
+    }, filename);
+
+    expect(payload.code).toBe(0);
+    expect(payload.data.type).toBe('video');
+    expect(payload.data.url).toMatch(/^\/uploads\/videos\//);
+    uploadedUrl = payload.data.url;
+
+    await page.goto(`/admin/media.php?type=video&keyword=${encodeURIComponent(filename)}`, { waitUntil: 'domcontentloaded' });
+    const card = page.locator('#mediaGrid [data-media-card]');
+    await expect(card).toHaveCount(1);
+    await expect(card.locator('[data-media-video-preview]')).toHaveAttribute('data-src', uploadedUrl);
+  } finally {
+    if (uploadedUrl) {
+      updateMediaAuditFixture('delete', `cleanup-${filename}`, '', uploadedUrl);
+      fs.rmSync(path.join(process.cwd(), uploadedUrl.replace(/^\/+/, '')), { force: true });
+    }
+  }
+});
+
 test('standalone media library extracts first frames from two real videos @local', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'Real video decoding is sampled once on desktop.');
   const samples = ['blox-test-flower.mp4', 'blox-test-friday.mp4'];

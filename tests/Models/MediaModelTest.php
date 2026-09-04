@@ -51,6 +51,17 @@ final class MediaModelTest extends TestCase
         return new MediaModel();
     }
 
+    public function testMediaTypeIsDerivedFromTheSharedExtensionPolicy(): void
+    {
+        self::assertSame('image', MediaModel::typeForExtension('.JPG'));
+        self::assertSame('video', MediaModel::typeForExtension('WEBM'));
+        self::assertSame('video', MediaModel::typeForExtension('mp4'));
+        self::assertSame('file', MediaModel::typeForExtension('pdf'));
+        self::assertSame('file', MediaModel::typeForExtension('php'));
+        self::assertContains('webm', MediaModel::supportedExtensions());
+        self::assertContains('pdf', MediaModel::supportedExtensions());
+    }
+
     public function testListSupportsWhitelistedDateSizeAndNameSorts(): void
     {
         $model = $this->seed();
