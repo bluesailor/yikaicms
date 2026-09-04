@@ -32,4 +32,14 @@ final class PackageInstallSmokeContractTest extends TestCase
             self::assertStringContainsString("Option('base')", $source, $name);
         }
     }
+
+    public function testBuildCanCreateAnInstallOnlyCandidateWithoutDeltas(): void
+    {
+        $script = file_get_contents(dirname(__DIR__, 2) . '/build.sh');
+
+        self::assertIsString($script);
+        self::assertStringContainsString('--no-delta', $script);
+        self::assertStringContainsString('if [ "$BUILD_DELTAS" = "0" ]', $script);
+        self::assertStringContainsString('deltas-v${VERSION}.json', $script);
+    }
 }

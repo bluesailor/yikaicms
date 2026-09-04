@@ -5,6 +5,7 @@
 # 用法：
 #   bash build.sh          # 自动从 config/version.php 读取版本号
 #   bash build.sh 1.2.0    # 手动指定版本号
+#   bash build.sh 1.2.0 --no-delta  # 只构建完整安装包（候选装机/审计）
 #
 # 输出：
 #   releases/yikaicms-v{版本}.zip
@@ -58,9 +59,25 @@ if [ -n "$WORKTREE_STATUS" ]; then
     exit 1
 fi
 
+# 参数：版本号可省略；--no-delta 仅用于候选装机/审计，正式发布默认仍生成增量包。
+VERSION_ARG=""
+BUILD_DELTAS=1
+for arg in "$@"; do
+    case "$arg" in
+        --no-delta) BUILD_DELTAS=0 ;;
+        *)
+            if [ -n "$VERSION_ARG" ]; then
+                echo "Error: 未知或重复参数 '$arg'"
+                exit 1
+            fi
+            VERSION_ARG="$arg"
+            ;;
+    esac
+done
+
 # 版本号：优先使用参数，否则从 config/version.php 提取（版本号单一可信来源）
-if [ -n "$1" ]; then
-    VERSION="$1"
+if [ -n "$VERSION_ARG" ]; then
+    VERSION="$VERSION_ARG"
 else
     VERSION=$(grep -oP "CMS_VERSION',\s*'\\K[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" config/version.php 2>/dev/null || echo "")
     if [ -z "$VERSION" ]; then
@@ -469,6 +486,12 @@ php tools/release-artifact-smoke.php "$VERIFY_ZIP_FILE"
 #   结构：delta-<from>-to-<VERSION>.zip = .delta-manifest.json + payload/ 镜像树
 #   安全：客户端只在「当前版本 == delta.from」时使用，否则回退全量包。
 # ============================================================
+if [ "$BUILD_DELTAS" = "0" ]; then
+    echo "[+] 已按 --no-delta 跳过增量升级包（仅保留完整安装包）"
+    rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
+          "$RELEASE_DIR"/delta-*-to-"$VERSION".sha256 \
+          "$RELEASE_DIR/deltas-v${VERSION}.json"
+else
 echo "[+] 生成增量升级包（delta）..."
 DELTA_COUNT="${DELTA_BASES:-3}"        # 回溯的历史版本数（可用环境变量覆盖）
 DELTA_FLOOR="${DELTA_FLOOR:-1.12.1}"   # 下限：更老版本的历史目录差异大，统一走全量包更稳
@@ -634,6 +657,7 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
         DELTA_META_FILE="$RELEASE_DIR/deltas-v${VERSION}.json"
         { echo '"deltas": ['; printf '  %s,\n' "${DELTA_JSON_ITEMS[@]}" | sed '$ s/,$//'; echo ']'; } > "$DELTA_META_FILE"
         echo "  → deltas 元数据已写入 $(basename "$DELTA_META_FILE")（粘进 releases.json 对应版本条目）"
+    fi
 fi
 
 # ---- 清理 ----
