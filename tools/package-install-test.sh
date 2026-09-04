@@ -246,12 +246,12 @@ fi
 # ───── L2b：后台冒烟（跑在包站上，不是源码树）─────
 echo
 echo "${B}[L2b] 后台冒烟（对象 = 解包站）${X}"
-if SMOKE_BASE="$BASE" php tests/smoke/admin_crud.php >/tmp/pkgcrud.log 2>&1; then
+if php tests/smoke/admin_crud.php --base="$BASE" --root="$UNPACK_WIN" >/tmp/pkgcrud.log 2>&1; then
     ok "admin_crud 通过"
 else
     bad "admin_crud 失败"; tail -25 /tmp/pkgcrud.log | sed 's/^/      /'
 fi
-if SMOKE_BASE="$BASE" php tests/smoke/admin_pages.php >/tmp/pkgpages.log 2>&1; then
+if php tests/smoke/admin_pages.php --base="$BASE" --root="$UNPACK_WIN" >/tmp/pkgpages.log 2>&1; then
     ok "admin_pages 通过（$(grep -oE '[0-9]+ 页' /tmp/pkgpages.log | tail -1)）"
 else
     bad "admin_pages 失败"; tail -25 /tmp/pkgpages.log | sed 's/^/      /'

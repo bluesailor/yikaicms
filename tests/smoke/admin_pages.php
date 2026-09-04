@@ -17,7 +17,20 @@
  */
 declare(strict_types=1);
 
-$BASE = getenv('SMOKE_BASE') ?: 'http://127.0.0.1:8080';
+/** @return ?string */
+function pageSmokeOption(string $name): ?string
+{
+    global $argv;
+    $prefix = '--' . $name . '=';
+    foreach ($argv ?? [] as $argument) {
+        if (is_string($argument) && str_starts_with($argument, $prefix)) {
+            return substr($argument, strlen($prefix));
+        }
+    }
+    return null;
+}
+
+$BASE = pageSmokeOption('base') ?: (getenv('SMOKE_BASE') ?: 'http://127.0.0.1:8080');
 $JAR  = sys_get_temp_dir() . '/smoke_pages_cookies_' . getmypid() . '.txt';
 @unlink($JAR);
 
@@ -67,7 +80,15 @@ if ($c !== 302) {
 echo "✓ 登录成功\n";
 
 // ---- 页面清单：admin/*.php 全量自动发现，显式排除有副作用/非页面项 ----
-$root = dirname(__DIR__, 2);
+// 发行包装机必须枚举解包站，而不是源码树；普通源码 smoke 不传环境变量时保持原行为。
+$root = rtrim(
+    pageSmokeOption('root') ?: (getenv('SMOKE_SITE_ROOT') ?: dirname(__DIR__, 2)),
+    '/\\'
+);
+if (!is_dir($root . '/admin')) {
+    fwrite(STDERR, "❌ 后台冒烟目标缺少 admin 目录：{$root}\n");
+    exit(2);
+}
 $skip = [
     'logout.php',          // GET 即登出，会打断后续遍历
 ];
