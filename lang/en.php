@@ -6177,4 +6177,6 @@ voltage|Voltage|220V',
     'media_usage_kind_card_image' => 'card image',
     'media_usage_kind_unknown' => 'media reference',
     'blox_leave_unsaved_confirm' => 'You have unsaved changes that are not saved to the server. Return anyway?',
+    'blox_multi_selected_count' => ':count selected',
+    'blox_multi_hint' => 'Shift+click to select a range, Ctrl/Cmd+click to add or remove, Esc to clear. Batch actions are coming soon.',
 ];

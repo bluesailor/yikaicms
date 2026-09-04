@@ -6245,4 +6245,6 @@ voltage|电压|220V',
     'media_usage_kind_card_image' => '卡片图片',
     'media_usage_kind_unknown' => '媒体引用',
     'blox_leave_unsaved_confirm' => '当前有未保存的修改，这些内容尚未保存到服务器。仍要返回吗？',
+    'blox_multi_selected_count' => '已选 :count 项',
+    'blox_multi_hint' => 'Shift+点击选区间，Ctrl/Cmd+点击增减选择，Esc 取消。批量操作即将提供。',
 ];

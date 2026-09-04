@@ -279,3 +279,57 @@ test("页面标题区入口只接受来自当前画布的布尔协议", function
     assert.equal(current.bridge.handleMessage({ source: {}, data: { ykEditPageHero: true } }), false);
     assert.deepEqual(current.calls, [["editPageHero"]]);
 });
+
+test("元素点击的修饰键随载荷通过边界，非法修饰键整体丢弃", function () {
+    const current = fixture();
+    const message = (mods) => ({ source: current.frameWindow, data: {
+        ykPickElement: Object.assign({ id: "e_1", path: "0.1.2" }, mods ? { mods } : {}),
+    } });
+
+    assert.equal(current.bridge.handleMessage(message({ shift: true, toggle: false })), true);
+    assert.deepEqual(current.calls, [["element", { id: "e_1", path: "0.1.2", mods: { shift: true, toggle: false } }]]);
+
+    current.calls.length = 0;
+    assert.equal(current.bridge.handleMessage(message({ shift: "yes", toggle: false })), true);
+    assert.deepEqual(current.calls, [["element", { id: "e_1", path: "0.1.2" }]]);
+
+    current.calls.length = 0;
+    assert.equal(current.bridge.handleMessage(message({ shift: 1, toggle: 0 })), true);
+    assert.deepEqual(current.calls, [["element", { id: "e_1", path: "0.1.2" }]]);
+});
+
+test("区块点击同样透传修饰键", function () {
+    const current = fixture();
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykPickSection: { id: "s_1", si: 0, mods: { shift: false, toggle: true } },
+    } }), true);
+    assert.deepEqual(current.calls, [["section", { id: "s_1", si: 0, mods: { shift: false, toggle: true } }]]);
+});
+
+test("ykMultiIds 只保留合法稳定 id，最多 100 个", function () {
+    const received = [];
+    const current = fixture({
+        onMultiIds: function (ids) { received.push(ids); },
+    });
+    const garbage = ["s_ok", "", "bad\nid", 42, null, "s_fine"];
+    for (let i = 0; i < 120; i += 1) garbage.push("s_bulk_" + i);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykMultiIds: garbage } }), true);
+    assert.equal(received.length, 1);
+    assert.equal(received[0].length, 100);
+    assert.equal(received[0][0], "s_ok");
+    assert.ok(received[0].includes("s_fine"));
+    assert.ok(received[0].every((id) => typeof id === "string" && id.length > 0));
+
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykMultiIds: "nope" } }), false);
+});
+
+test("画布 Escape 上报清空多选", function () {
+    const escapes = [];
+    const current = fixture({
+        onEscape: function () { escapes.push(1); },
+    });
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEscape: true } }), true);
+    assert.equal(escapes.length, 1);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEscape: "yes" } }), false);
+    assert.equal(escapes.length, 1);
+});
