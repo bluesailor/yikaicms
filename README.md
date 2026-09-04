@@ -234,14 +234,12 @@ location / {
 
 ## 许可证
 
-自 **v1.16.1** 起，本项目采用 [《YikaiCMS 软件许可协议》](LICENSE)，Copyright (c) 2026 Yikai：
+本项目采用 [《YikaiCMS 软件许可协议》](LICENSE)，Copyright (c) 2026 Yikai：
 
 - **免费商用**——个人与企业建站、为客户提供建站服务、修改源码、开发并出售自己的主题与插件，均无需付费；
 - **前台无署名要求**——是否显示版权信息由你决定；
 - 免费使用时，**后台**的 Powered by YikaiCMS 标识、官网链接与版本号需保留（取得商业授权可隐藏）；
 - **软件本体的再分发、改名贴牌与上架软件市场需另行书面授权**——为单一客户交付建站成果不属于再分发。
-
-v1.15.x 及更早版本仍按其随附的 [MIT 协议](LICENSE-MIT-HISTORICAL)执行，该授权不可撤回。
 
 随包第三方组件按其各自协议授权，清单见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
 
