@@ -44,6 +44,31 @@
                 if (self.imageControlTarget(scope) === target) self.setImageControl(scope, key, url);
             }, scope === "element" ? {} : { usage: "hero-bg" });
         },
+        videoControlTarget(scope) {
+            if (scope === "element") return this.selEl && this.selEl.data;
+            if (scope === "section") return this.sel && this.sel.settings;
+            return null;
+        },
+        videoControlValue(scope, key) {
+            var target = this.videoControlTarget(scope);
+            return String(target && target[key] || "");
+        },
+        setVideoControl(scope, key, url, discrete) {
+            var target = this.videoControlTarget(scope);
+            if (!target || typeof url !== "string" || ["__proto__", "prototype", "constructor"].includes(key)) return;
+            if ((scope === "section" && key !== "bg_video") || (scope !== "section" && scope !== "element")) return;
+            if (String(target[key] || "") === url) return;
+            if (discrete !== false) this.flushHistory(true);
+            this.runCommand("set-video-" + scope, function () { target[key] = url; });
+            if (discrete !== false) this.flushHistory(true);
+        },
+        pickVideoControl(scope, key) {
+            var target = this.videoControlTarget(scope), self = this;
+            if (!target) return;
+            this.openMedia(function (url) {
+                if (self.videoControlTarget(scope) === target) self.setVideoControl(scope, key, url);
+            }, { type: "video" });
+        },
         setSectionBackgroundImage(url) { this.setImageControl("section", "bg_image", url); },
         setContainerBackgroundImage(url) { this.setImageControl("container", "container_bg_image", url); },
         pickContainerBackgroundImage() { this.pickImageControl("container", "container_bg_image"); },

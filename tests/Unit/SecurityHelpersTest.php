@@ -16,6 +16,31 @@ require_once ROOT_PATH . '/includes/security.php';
 
 final class SecurityHelpersTest extends TestCase
 {
+    public function testFakeWebmWithGenericBinaryMimeIsRejected(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'yk_webm_fake_');
+        self::assertIsString($path);
+        file_put_contents($path, '<?php echo "not video";');
+        try {
+            self::assertFalse(uploadMimeMatches('webm', 'application/octet-stream', $path, ['video/webm']));
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function testGenericMimeWebmRequiresEbmlSignature(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'yk_webm_valid_');
+        self::assertIsString($path);
+        file_put_contents($path, "\x1A\x45\xDF\xA3" . random_bytes(16));
+        try {
+            self::assertTrue(uploadMimeMatches('webm', 'application/octet-stream', $path, ['video/webm']));
+            self::assertTrue(uploadMimeMatches('webm', 'video/webm', $path, ['video/webm']));
+        } finally {
+            @unlink($path);
+        }
+    }
+
     // ---- zipUnsafeEntry ----
 
     private function makeZip(array $entries): string

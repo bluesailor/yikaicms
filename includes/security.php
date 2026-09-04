@@ -75,6 +75,31 @@ function trustedIframeHost(string $src): bool
 }
 
 /**
+ * 判断上传文件的检测 MIME 是否与扩展名匹配。
+ * WebM 在部分 fileinfo 数据库中会回落为 octet-stream，此时只接受 EBML 文件头，
+ * 不能把通用二进制 MIME 整类加入白名单。
+ *
+ * @param list<string> $allowedMimes
+ */
+function uploadMimeMatches(string $extension, string $detectedMime, string $path, array $allowedMimes): bool
+{
+    if (in_array($detectedMime, $allowedMimes, true)) {
+        return true;
+    }
+    if ($extension !== 'webm' || $detectedMime !== 'application/octet-stream') {
+        return false;
+    }
+
+    $handle = @fopen($path, 'rb');
+    if ($handle === false) {
+        return false;
+    }
+    $signature = fread($handle, 4);
+    fclose($handle);
+    return $signature === "\x1A\x45\xDF\xA3";
+}
+
+/**
  * ZIP 解压资源限制（Zip Bomb 防护）：小 ZIP 解压出巨大体积会耗尽磁盘/inode/
  * PHP 超时。在 extractTo / 逐条流式写入之前调用，与 zipUnsafeEntry 同批。
  *

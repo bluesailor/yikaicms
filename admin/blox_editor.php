@@ -1490,6 +1490,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'mediaFailed' => __('blox_media_failed'),
                 'uploadedSelected' => __('blox_uploaded_selected'),
                 'uploadedOptimized' => __('blox_uploaded_optimized'),
+                'uploadTooLarge' => __('media_upload_too_large'),
                 'uploadFailed' => __('blox_upload_failed'),
                 'confirmDeleteContainer' => __('blox_confirm_delete_container'),
                 'confirmDeleteSection' => __('blox_confirm_delete_section'),
@@ -1513,6 +1514,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'iconHintMany' => __('blox_icon_hint_many'),
                 'iconHintCount' => __('blox_icon_hint_count'),
                 'mediaLoadFailed' => __('blox_media_load_failed'),
+                'mediaVideoPreviewLoading' => __('blox_media_video_preview_loading'),
+                'mediaVideoPreviewUnavailable' => __('blox_media_video_preview_unavailable'),
                 'mediaSourceLocal' => __('official_media_source_local'),
                 'mediaSourceOfficial' => __('official_media_source_official'),
                 'officialMediaPreview' => __('official_media_preview'),
@@ -3081,19 +3084,33 @@ $canManageBloxDesign = hasPermission('blox_global');
             mediaKeyword: "",
             mediaLoading: false,
             mediaSource: "local",
+            mediaType: "image",
+            mediaSort: "default",
+            mediaCanSwitchType: false,
             mediaEntitlement: { canImport: false, reason: "" },
             mediaImporting: "",
             mediaUsage: "",
             mediaPreferredMinWidth: 0,
             mediaRequestGuard: window.BloxMediaClient.latestRequestGuard(),
+            _mediaVideoPreviewQueue: null,
             _mediaTarget: null,   // 选中回调：拿到 url 写进哪个字段
+            _mediaTargets: null,
+            _mediaImageUsage: "",
 
             openMedia(setter, options) {
                 options = options || {};
-                this._mediaTarget = setter;
-                this.mediaUsage = String(options.usage || "");
+                this.mediaType = options.type === "video" ? "video" : "image";
+                this._mediaTargets = options.targets
+                    && typeof options.targets.image === "function"
+                    && typeof options.targets.video === "function"
+                    ? options.targets
+                    : null;
+                this.mediaCanSwitchType = this._mediaTargets !== null;
+                this._mediaTarget = this.mediaCanSwitchType ? this._mediaTargets[this.mediaType] : setter;
+                this._mediaImageUsage = String(options.usage || "");
+                this.mediaUsage = this.mediaType === "image" ? this._mediaImageUsage : "";
                 this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
-                this.mediaSource = options.source === "official" ? "official" : "local";
+                this.mediaSource = options.source === "official" && this.mediaType === "image" ? "official" : "local";
                 this.mediaEntitlement = { canImport: false, reason: "" };
                 this.mediaImporting = "";
                 this.mediaOpen = true;
@@ -3105,9 +3122,14 @@ $canManageBloxDesign = hasPermission('blox_global');
             closeMedia() {
                 if (!this.mediaOpen) return;
                 var root = this.$refs.mediaDialog;
+                this.resetMediaVideoPreviews();
                 this.mediaOpen = false;
                 this._mediaTarget = null;
+                this._mediaTargets = null;
+                this.mediaCanSwitchType = false;
+                this.mediaType = "image";
                 this.mediaUsage = "";
+                this._mediaImageUsage = "";
                 this.mediaPreferredMinWidth = 0;
                 this.mediaImporting = "";
                 this.mediaRequestGuard.invalidate();
@@ -3115,7 +3137,22 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.releaseDialog(root);
             },
 
+            setMediaType(type) {
+                if (!this.mediaCanSwitchType || !["image", "video"].includes(type) || type === this.mediaType) return;
+                this.mediaRequestGuard.invalidate();
+                this.mediaType = type;
+                this._mediaTarget = this._mediaTargets[type];
+                this.mediaUsage = type === "image" ? this._mediaImageUsage : "";
+                this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
+                this.mediaSource = "local";
+                this.mediaKeyword = "";
+                this.mediaEntitlement = { canImport: false, reason: "" };
+                this.mediaImporting = "";
+                this.loadMedia(1);
+            },
+
             setMediaSource(source) {
+                if (source === "official" && this.mediaType !== "image") return;
                 this.mediaSource = source === "official" ? "official" : "local";
                 this.mediaEntitlement = { canImport: false, reason: "" };
                 this.mediaImporting = "";
@@ -3124,12 +3161,18 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             loadMedia(page) {
                 var self = this;
+                this.resetMediaVideoPreviews();
+                this.mediaItems = [];
                 var requestId = this.mediaRequestGuard.begin();
                 this.mediaLoading = true;
                 this.mediaPage = page;
                 var request = this.mediaSource === "official"
                     ? window.OfficialMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage })
-                    : window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage });
+                    : window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, {
+                        usage: this.mediaUsage,
+                        type: this.mediaType,
+                        sort: this.mediaSort,
+                    });
                 request
                     .then(function (result) {
                         if (!self.mediaRequestGuard.isCurrent(requestId)) return;
@@ -3165,9 +3208,55 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             mediaDimensions(item) {
-                var width = Math.max(0, Number((item && item.width) || 0));
-                var height = Math.max(0, Number((item && item.height) || 0));
-                return width > 0 && height > 0 ? Math.round(width) + "×" + Math.round(height) : "";
+                var preview = this.mediaVideoPreview(item);
+                var width = Math.max(0, Number((preview && preview.width) || (item && item.width) || 0));
+                var height = Math.max(0, Number((preview && preview.height) || (item && item.height) || 0));
+                var bytes = Math.max(0, Number((item && item.size) || 0));
+                var values = [];
+                if (width > 0 && height > 0) values.push(Math.round(width) + "×" + Math.round(height));
+                if (preview && preview.duration > 0) values.push(window.BloxMediaClient.formatDuration(preview.duration));
+                if (bytes > 0) values.push(window.BloxMediaClient.formatBytes(bytes));
+                return values.join(" · ");
+            },
+
+            mediaVideoPreview(item) {
+                return item && item._videoPreview && typeof item._videoPreview === "object"
+                    ? item._videoPreview
+                    : { status: "idle", width: 0, height: 0, duration: 0 };
+            },
+
+            mediaVideoStatusText(item) {
+                return this.mediaVideoPreview(item).status === "error"
+                    ? this.uiText.mediaVideoPreviewUnavailable
+                    : this.uiText.mediaVideoPreviewLoading;
+            },
+
+            registerMediaVideoPreview(video, item) {
+                if (!this.mediaOpen || this.mediaType !== "video" || !video || !item) return;
+                if (!this._mediaVideoPreviewQueue) {
+                    this._mediaVideoPreviewQueue = window.BloxMediaClient.createVideoPreviewQueue({
+                        root: this.$refs.mediaScroll,
+                        maxConcurrent: 2,
+                    });
+                }
+                this._mediaVideoPreviewQueue.observe(video, item.url, function (state) {
+                    item._videoPreview = state;
+                });
+            },
+
+            resetMediaVideoPreviews() {
+                if (this._mediaVideoPreviewQueue) this._mediaVideoPreviewQueue.reset();
+                this._mediaVideoPreviewQueue = null;
+            },
+
+            mediaDate(item) {
+                var timestamp = Math.max(0, Number((item && item.created_at) || 0));
+                if (timestamp <= 0) return "";
+                var date = new Date(timestamp * 1000);
+                if (!Number.isFinite(date.getTime())) return "";
+                var month = String(date.getMonth() + 1).padStart(2, "0");
+                var day = String(date.getDate()).padStart(2, "0");
+                return date.getFullYear() + "-" + month + "-" + day;
             },
 
             mediaItemName(item) {
@@ -3298,6 +3387,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.mediaUploading = true;
                 window.BloxMediaClient.upload("/admin/media_api.php", file, {
                     csrf: this.csrf,
+                    type: this.mediaType,
+                    maxBytes: <?php echo max(0, (int) UPLOAD_MAX_SIZE); ?>,
                     maxDimension: <?php echo max(0, (int) config('upload_max_width', 1920)); ?>,
                     quality: <?php echo max(50, min(95, (int) config('upload_jpeg_quality', 85))) / 100; ?>,
                 })
@@ -3305,6 +3396,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                         if (result.ok) {
                             self.toast(self.mediaUploadMessage(result));
                             self.pickMedia(result.url);
+                        } else if (result.error === "too_large") {
+                            self.toast(self.uiText.uploadTooLarge
+                                .replace(":size", window.BloxMediaClient.formatBytes(result.originalBytes))
+                                .replace(":limit", window.BloxMediaClient.formatBytes(result.limitBytes)));
                         } else {
                             self.toast(result.message || self.uiText.uploadFailedShort);
                         }
@@ -6907,6 +7002,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.canvasBridge().post(message);
             },
 
+            /** Right-tree layer changes keep the user's content/style working context. */
+            selectSectionFromTree(si, notifyCanvas) {
+                var nextPanelTab = this.panelTab === "style" ? "style" : "content";
+                this.selectSection(si, notifyCanvas);
+                this.panelTab = nextPanelTab;
+            },
+
             selectSection(si, notifyCanvas) {
                 this.selectedSi = si;
                 this.targetCi = 0;
@@ -7718,7 +7820,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     id: this.uid("s"), type: "section",
                     settings: {
                         title: "", subtitle: "",
-                        bg_color: "", bg_image: "", bg_gradient: "", bg_opacity: 100,
+                        bg_color: "", bg_image: "", bg_video: "", bg_video_mobile_mode: "poster", bg_gradient: "", bg_opacity: 100, text_tone: "auto",
                         // 新区块默认宽容器（1280px）——用户定的现代默认；旧区块存的值不受影响
                         padding: "md", max_width: "wide", max_width_px: 1280,
                         container_bg: "", container_bg_image: "", container_bg_overlay_color: "", container_bg_overlay_opacity: 0,
