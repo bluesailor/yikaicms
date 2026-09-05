@@ -59,28 +59,6 @@ function themeInstallMessage(array $result): string
         : $message;
 }
 
-function deleteThemeDirectory(string $directory): bool
-{
-    $real = realpath($directory);
-    $themesRoot = realpath(ROOT_PATH . '/themes');
-    if ($real === false || $themesRoot === false || !is_dir($real)
-        || !str_starts_with(str_replace('\\', '/', $real) . '/', str_replace('\\', '/', $themesRoot) . '/')) {
-        return false;
-    }
-
-    $iterator = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($real, FilesystemIterator::SKIP_DOTS),
-        RecursiveIteratorIterator::CHILD_FIRST
-    );
-    foreach ($iterator as $item) {
-        $ok = $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
-        if (!$ok) {
-            return false;
-        }
-    }
-    return @rmdir($real);
-}
-
 // ============================================================
 // AJAX（JSON）：模板市场列表 / 市场安装
 // ============================================================
@@ -297,45 +275,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
     verifyCsrf();
 
     $slug = trim((string) ($_POST['slug'] ?? ''));
-    $current = currentTheme();
-    if (preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/D', $slug) !== 1) {
-        $message = __('theme_err_badslug');
-        $messageType = 'error';
-    } elseif ($slug === 'default') {
-        $message = __('theme_err_delete_default');
-        $messageType = 'error';
-    } elseif ($slug === $current) {
-        $message = __('theme_err_delete_active');
+    $installer = new ThemeInstaller(ROOT_PATH . '/themes', ROOT_PATH . '/storage');
+    $deleteResult = $installer->removeInstalled($slug, currentTheme());
+    if (!$deleteResult['ok']) {
+        $message = __(match ($deleteResult['code']) {
+            'bad_slug' => 'theme_err_badslug',
+            'default_protected' => 'theme_err_delete_default',
+            'active_protected' => 'theme_err_delete_active',
+            'not_found' => 'theme_not_found',
+            default => 'theme_err_delete_failed',
+        });
         $messageType = 'error';
     } else {
-        $themeDir = ROOT_PATH . '/themes/' . $slug;
-        if (!is_dir($themeDir) || !is_file($themeDir . '/theme.json')) {
-            $message = __('theme_not_found');
-            $messageType = 'error';
-        } elseif (!deleteThemeDirectory($themeDir)) {
-            $message = __('theme_err_delete_failed');
-            $messageType = 'error';
-        } else {
-            $colorProfiles = ThemePalette::profiles((string) config('theme_color_profiles', '{}'));
-            unset($colorProfiles[$slug]);
-            $decodedStyle = json_decode((string) config(ThemeSettings::KEY, ''), true);
-            $settings = [
-                'theme_color_profiles' => ThemePalette::encodeProfiles($colorProfiles),
-            ];
-            if (is_array($decodedStyle) && is_array($decodedStyle['themes'] ?? null)) {
-                $themeStyles = $decodedStyle['themes'];
-                unset($themeStyles[$slug]);
-                $settings[ThemeSettings::KEY] = json_encode(
-                    ['schema_version' => 1, 'themes' => $themeStyles],
-                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-                ) ?: '{}';
-            }
-            settingModel()->saveBatch($settings);
-            adminLog('theme', 'delete', '删除主题：' . $slug);
-            do_action('data_changed');
-            $message = __('theme_deleted_ok') . '：' . $slug;
-            $messageType = 'success';
+        $colorProfiles = ThemePalette::profiles((string) config('theme_color_profiles', '{}'));
+        unset($colorProfiles[$slug]);
+        $decodedStyle = json_decode((string) config(ThemeSettings::KEY, ''), true);
+        $settings = [
+            'theme_color_profiles' => ThemePalette::encodeProfiles($colorProfiles),
+        ];
+        if (is_array($decodedStyle) && is_array($decodedStyle['themes'] ?? null)) {
+            $themeStyles = $decodedStyle['themes'];
+            unset($themeStyles[$slug]);
+            $settings[ThemeSettings::KEY] = json_encode(
+                ['schema_version' => 1, 'themes' => $themeStyles],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ) ?: '{}';
         }
+        settingModel()->saveBatch($settings);
+        adminLog('theme', 'delete', '删除主题：' . $slug);
+        do_action('data_changed');
+        $message = __('theme_deleted_ok') . '：' . $slug;
+        $messageType = 'success';
     }
 }
 
