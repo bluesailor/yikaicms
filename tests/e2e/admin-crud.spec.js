@@ -86,6 +86,32 @@ test('product legacy structured specs render and edit through real inputs @ci @a
   await expect(page.locator('body')).not.toContainText('Array to string conversion');
 });
 
+test('product named specification list preserves labels through rename delete add save and frontend @ci @admin-crud', async ({ page }) => {
+  const id = execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'admin-spec-fixture.php'), 'list'], { cwd: root, encoding: 'utf8' }).trim();
+  await page.goto(`/admin/product_edit.php?id=${id}`);
+  await expect(page.locator('#specsList .spec-key').first()).toHaveValue('型号');
+  await expect(page.locator('#specsList .spec-val').first()).toHaveValue('IGW-100');
+  await page.locator('#specsList .spec-key').first().fill('设备型号');
+  await page.locator('#specsList .spec-key').first().press('Tab');
+  await page.locator('#specsList .spec-val').first().fill('IGW-200');
+  await page.locator('#specsList .spec-val').first().press('Tab');
+  await page.locator('#specsList button').nth(1).click();
+  page.once('dialog', dialog => dialog.accept('功率'));
+  await page.locator('button[onclick="addSpecRow()"]').click();
+  await page.locator('#specsList .spec-val').last().fill('0');
+  await page.locator('#specsList .spec-val').last().press('Tab');
+  await save(page, 'product');
+  await page.goto(`/admin/product_edit.php?id=${id}`);
+  const expected = [{ name: '设备型号', value: 'IGW-200' }, { name: '材质', value: 'Aluminum' }, { name: '功率', value: '0' }];
+  expect(JSON.parse(await page.locator('#specsInput').inputValue())).toEqual(expected);
+  await expect(page.locator('#specsList .spec-key').first()).toHaveValue('设备型号');
+  await page.goto(`/product.php?id=${id}`);
+  const specs = page.locator('#tab-specs');
+  await expect(specs).toContainText('设备型号');
+  await expect(specs).toContainText('IGW-200');
+  await expect(specs).toContainText('功率');
+});
+
 for (const query of ['yk_route=product_list&cat=smart-device', 'yk_route=list&slug=news', 'yk_route=list&slug=cases', 'yk_route=download_list']) {
   test(`catalog form preserves ${query} after search and reload @ci @admin-crud`, async ({ page }) => {
     const fixture = action => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'dynamic-url-fixture.php'), action], { cwd: root });

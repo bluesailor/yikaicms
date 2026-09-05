@@ -15,6 +15,18 @@ require ROOT_PATH . '/includes/models/autoload.php';
 if (DB_DRIVER !== 'sqlite' || parse_url(SITE_URL, PHP_URL_HOST) !== '127.0.0.1') {
     throw new RuntimeException('Local SQLite required');
 }
+if (($argv[1] ?? '') === 'list') {
+    echo productModel()->create([
+        'title' => 'E2E list specs', 'slug' => 'e2e-list-specs-' . uniqid(),
+        'lang' => siteLang(), 'status' => 1, 'category_id' => 1,
+        'specs' => json_encode([
+            ['name' => '型号', 'value' => 'IGW-100'],
+            ['name' => '尺寸', 'value' => '120 x 90 mm'],
+            ['name' => '材质', 'value' => 'Aluminum'],
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+    ]);
+    exit;
+}
 echo productModel()->create([
     'title' => 'E2E legacy specs', 'slug' => 'e2e-legacy-specs-' . uniqid(),
     'lang' => siteLang(), 'status' => 0,
