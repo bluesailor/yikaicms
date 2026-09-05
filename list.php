@@ -460,10 +460,9 @@ $horizRootChannel = $channel;
             <?php else: ?>
             <div></div>
             <?php endif; ?>
-            <?php $listUsesDynamicRoute = (function_exists('isDynamicUrlMode') && isDynamicUrlMode())
-                || (($_GET['yk_route'] ?? '') === 'list')
-                || str_contains((string) ($_SERVER['REQUEST_URI'] ?? ''), 'yk_route=list'); ?>
-            <form method="get" action="<?php echo $listUsesDynamicRoute ? '/index.php' : channelUrl($channel); ?>" class="flex items-center gap-2">
+            <?php $listUrl = channelUrl($channel); ?>
+            <?php $listUsesDynamicRoute = str_contains($listUrl, 'yk_route='); ?>
+            <form method="get" action="<?php echo $listUsesDynamicRoute ? '/index.php' : $listUrl; ?>" class="flex items-center gap-2">
                 <?php if ($listUsesDynamicRoute): ?>
                 <input type="hidden" name="yk_route" value="list">
                 <input type="hidden" name="slug" value="<?php echo e((string) ($channel['slug'] ?? '')); ?>">
