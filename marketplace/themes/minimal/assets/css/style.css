@@ -218,6 +218,33 @@ header a {
     border-color: var(--minimal-accent);
 }
 
+/* News index: compact editorial rows instead of full-width image cards. */
+.minimal-news-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    background: #fff;
+}
+
+.minimal-news-card__media {
+    aspect-ratio: 16 / 9;
+}
+
+.minimal-news-card__body {
+    align-self: center;
+    max-width: 48rem;
+}
+
+@media (min-width: 768px) {
+    .minimal-news-card.has-media {
+        grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr);
+    }
+
+    .minimal-news-card__media {
+        aspect-ratio: auto;
+        height: 11rem;
+    }
+}
+
 /* Cards: no shadow anywhere */
 .shadow, .shadow-md, .shadow-lg, .shadow-xl {
     box-shadow: none !important;

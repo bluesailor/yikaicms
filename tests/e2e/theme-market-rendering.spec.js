@@ -99,3 +99,25 @@ for (const theme of themes.filter((slug) => slug !== 'business')) {
         expect(errors).toEqual([]);
     });
 }
+
+test('Minimal news list keeps images compact and responsive @ci', async ({ page }, testInfo) => {
+    const response = await page.goto('/tests/e2e/theme-market-news-page.php');
+    expect(response.status()).toBe(200);
+    const card = page.locator('[data-minimal-news-card]').first();
+    const media = card.locator('[data-minimal-news-media]');
+    await expect(card).toBeVisible();
+    await expect(media).toBeVisible();
+
+    const cardBox = await card.boundingBox();
+    const mediaBox = await media.boundingBox();
+    expect(cardBox).not.toBeNull();
+    expect(mediaBox).not.toBeNull();
+    if ((testInfo.project.use?.viewport?.width ?? 1440) >= 768) {
+        expect(mediaBox.width).toBeLessThanOrEqual(290);
+        expect(mediaBox.height).toBeLessThanOrEqual(180);
+        expect(mediaBox.width / cardBox.width).toBeLessThan(0.4);
+    } else {
+        expect(mediaBox.width / cardBox.width).toBeGreaterThan(0.95);
+        expect(mediaBox.height).toBeLessThan(240);
+    }
+});
