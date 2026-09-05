@@ -670,7 +670,7 @@ function renderSpecs() {
         var div = document.createElement('div');
         div.className = 'flex items-center gap-2';
         div.innerHTML = '<span class="w-32 text-sm text-gray-600 px-1 truncate" title="' + escapeAttr(specPresets[key].label) + '">' + escapeAttr(specPresets[key].label) + '</span>' +
-            '<input type="text" value="' + escapeAttr(specsData[key]) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo __("admin_spec_val_ph"); ?>" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
+            '<input type="text" value="' + escapeAttr(formatSpecValue(specsData[key])) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo __("admin_spec_val_ph"); ?>" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
             '<button type="button" onclick="removeSpec(\'' + escapeAttr(key) + '\')" class="text-red-400 hover:text-red-600 text-lg font-bold" title="<?php echo e(__('admin_remove')); ?>">&times;</button>';
         list.appendChild(div);
     });
@@ -680,7 +680,7 @@ function renderSpecs() {
         var label = specLabels[key] || key;
         div.innerHTML = '<input type="text" value="' + escapeAttr(key) + '" class="spec-key w-32 border rounded px-3 py-1.5 text-sm bg-gray-50" placeholder="<?php echo e(__('admin_spec_key')); ?>" onchange="updateSpecKey(this)" data-old="' + escapeAttr(key) + '">' +
             '<span class="text-gray-300">:</span>' +
-            '<input type="text" value="' + escapeAttr(specsData[key]) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo e(__('admin_spec_value')); ?>" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
+            '<input type="text" value="' + escapeAttr(formatSpecValue(specsData[key])) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo e(__('admin_spec_value')); ?>" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
             '<span class="text-xs text-gray-400 w-16 truncate" title="' + escapeAttr(label) + '">' + escapeAttr(label) + '</span>' +
             '<button type="button" onclick="removeSpec(\'' + escapeAttr(key) + '\')" class="text-red-400 hover:text-red-600 text-lg font-bold">&times;</button>';
         list.appendChild(div);
@@ -691,7 +691,7 @@ function syncSpecs() {
     document.getElementById('specsInput').value = JSON.stringify(specsData);
     renderSpecs();
     // 折叠标题上的已填计数同步
-    var filled = Object.keys(specsData).filter(function (k) { return String(specsData[k]).trim() !== ''; }).length;
+    var filled = Object.keys(specsData).filter(function (k) { return formatSpecValue(specsData[k]).trim() !== ''; }).length;
     var cnt = document.getElementById('specsCount');
     if (cnt) cnt.textContent = filled > 0 ? '（' + filled + '）' : '';
 }
@@ -731,6 +731,17 @@ function removeSpec(key) {
 
 function escapeAttr(s) {
     return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;');
+}
+
+function formatSpecValue(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'object') {
+        if (Object.prototype.hasOwnProperty.call(value, 'value')) {
+            return formatSpecValue(value.value);
+        }
+        try { return JSON.stringify(value); } catch (e) { return ''; }
+    }
+    return String(value);
 }
 
 renderSpecs();
