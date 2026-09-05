@@ -128,7 +128,7 @@ declare(strict_types=1);
                     <span class="text-xs font-semibold text-gray-500 tracking-wide" data-testid="blox-batch-count"
                           x-text="multiSelActive() ? multiText.count.replace(':count', multiSelCount()) : multiText.clipboardCount.replace(':count', batchClipboardCount())"></span>
                 </div>
-                <div class="p-3 space-y-2">
+                <div class="flex-1 overflow-y-auto blox-scroll p-3 space-y-3">
                     <div class="grid grid-cols-2 gap-1.5">
                         <button type="button" @click="batchDelete()" data-testid="blox-batch-delete" :disabled="!multiSelActive()" :class="multiSelActive() ? '' : 'opacity-40 cursor-not-allowed'"
                                 class="h-8 rounded border border-red-200 text-red-600 hover:border-red-400 hover:bg-red-50 text-xs font-medium transition disabled:cursor-not-allowed">
@@ -149,6 +149,65 @@ declare(strict_types=1);
                         </button>
                     </div>
                     <p class="text-[11px] leading-relaxed text-gray-400" x-text="multiText.hint"></p>
+
+                    <template x-if="window.YikaiBloxBatchProperties && multiSelActive()">
+                        <div class="border-t border-gray-100 pt-3" data-testid="blox-batch-style-panel">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-gray-600">
+                                    <i class="ti ti-adjustments-horizontal shrink-0 text-sm text-blue-500"></i>
+                                    <span><?= e(__('blox_batch_style_title')) ?></span>
+                                </span>
+                                <span x-show="batchPropertySameType()"
+                                      class="max-w-28 truncate text-[10px] text-gray-400"
+                                      x-text="batchPropertyTypeLabel()"></span>
+                            </div>
+
+                            <p x-show="multiSel.level === 'section'"
+                               class="mt-2 text-[11px] leading-relaxed text-gray-400"><?= e(__('blox_batch_style_sections_unsupported')) ?></p>
+                            <p x-show="multiSel.level !== 'section' && !batchPropertySameType()"
+                               class="mt-2 text-[11px] leading-relaxed text-amber-600"><?= e(__('blox_batch_style_same_type_required')) ?></p>
+
+                            <div x-show="batchPropertySameType()" class="mt-3 space-y-3">
+                                <template x-for="ctrl in batchStyleControls()" :key="'batch-'+ctrl.key">
+                                    <label class="block">
+                                        <span class="mb-1 block text-[11px] font-medium text-gray-500" x-text="ctrl.label"></span>
+                                        <select :value="batchControlDisplay(ctrl)"
+                                                @change="batchApplyControl(ctrl, $event.target.value, <?= e($jt('blox_batch_style_done')) ?>)"
+                                                :data-testid="'blox-batch-style-' + ctrl.key"
+                                                class="w-full rounded border border-gray-200 bg-white px-2 py-1.5 text-xs">
+                                            <option value="__mixed__" disabled :hidden="!batchControlState(ctrl).mixed"><?= e(__('blox_batch_style_mixed')) ?></option>
+                                            <template x-for="option in batchControlOptions(ctrl)" :key="ctrl.key+'-'+option.value">
+                                                <option :value="option.value" x-text="option.label"></option>
+                                            </template>
+                                        </select>
+                                    </label>
+                                </template>
+
+                                <template x-for="kind in batchBoxKinds()" :key="'batch-spacing-'+kind.key">
+                                    <label class="block">
+                                        <span class="mb-1 block text-[11px] font-medium text-gray-500" x-text="kind.label"></span>
+                                        <select :value="batchSpacingDisplay(kind.key)"
+                                                @change="batchApplySpacing(kind.key, $event.target.value, <?= e($jt('blox_batch_style_done')) ?>)"
+                                                :data-testid="'blox-batch-spacing-' + kind.key"
+                                                class="w-full rounded border border-gray-200 bg-white px-2 py-1.5 text-xs">
+                                            <option value="__mixed__" disabled :hidden="!batchSpacingState(kind.key).mixed"><?= e(__('blox_batch_style_mixed')) ?></option>
+                                            <template x-for="option in batchSpacingOptions(kind.key)" :key="kind.key+'-'+option.k">
+                                                <option :value="option.k" x-text="option.label"></option>
+                                            </template>
+                                        </select>
+                                    </label>
+                                </template>
+
+                                <p x-show="batchStyleControls().length === 0 && batchBoxKinds().length === 0"
+                                   class="text-[11px] leading-relaxed text-gray-400"><?= e(__('blox_batch_style_empty')) ?></p>
+                                <p x-show="batchHasResponsiveControls()"
+                                   class="text-[10px] leading-relaxed text-blue-500"
+                                   x-text="<?= e($jt('blox_batch_current_device')) ?>.replace(':device', responsiveDeviceTitle(previewDevice))"></p>
+                                <p x-show="batchBoxKinds().length > 0"
+                                   class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_batch_spacing_hint')) ?></p>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
 
