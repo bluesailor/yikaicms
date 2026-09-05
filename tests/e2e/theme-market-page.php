@@ -18,7 +18,8 @@ if (!in_array($theme, ['business', 'aurora', 'minimal', 'trade'], true)
 
 $banner = ['type' => 'banner', 'enabled' => true];
 $about = ['type' => 'about', 'enabled' => true];
-$blocks = $mode === 'none' ? [$about] : ($mode === 'later' ? [$about, $banner] : [$banner, $about]);
+$cta = ['type' => 'cta', 'enabled' => true];
+$blocks = $mode === 'none' ? [$about, $cta] : ($mode === 'later' ? [$about, $banner, $cta] : [$banner, $about, $cta]);
 $sections = [[
     'settings' => ['padding' => 'none', 'max_width' => 'full', 'container_gutter' => 'none'],
     'columns' => [['span' => 12, 'elements' => [[

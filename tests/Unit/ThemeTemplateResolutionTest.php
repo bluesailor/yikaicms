@@ -172,6 +172,8 @@ final class ThemeTemplateResolutionTest extends TestCase
         self::assertStringContainsString('$titleClass = $textLight ? \'text-white\' : \'text-gray-900\';', $cta);
         self::assertStringContainsString('$descriptionClass = $textLight ? \'text-white/80\' : \'text-gray-500\';', $cta);
         self::assertStringContainsString('homeTitleDeco($textLight', $cta);
+        self::assertStringContainsString('max-w-3xl mx-auto text-center', $cta);
+        self::assertStringContainsString('max-w-xl mx-auto', $cta);
     }
 
     public function testStandalonePageSidebarUsesThemePartial(): void
