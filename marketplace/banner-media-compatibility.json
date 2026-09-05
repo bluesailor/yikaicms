@@ -16,7 +16,7 @@
     "business": {
       "mode": "native",
       "renderer": "responsiveLinkedMediaHtml",
-      "version": "1.0.11",
+      "version": "1.0.12",
       "template": "marketplace/themes/business/blocks/banner.php"
     },
     "minimal": {

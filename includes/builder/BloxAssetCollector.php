@@ -62,6 +62,12 @@ final class BloxAssetCollector
         return $html;
     }
 
+    /** Re-emit collected styles after a captured theme footer discarded hook output. */
+    public static function rewindRenderedStyles(): void
+    {
+        self::$renderedStyles = [];
+    }
+
     public static function renderScripts(): string
     {
         $html = '';
