@@ -786,6 +786,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
     <script src="/assets/js/blox-multi-select.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-select.js') ?>"></script>
     <script src="/assets/js/blox-multi-actions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-actions.js') ?>"></script>
+    <script src="/assets/js/blox-multi-properties.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-properties.js') ?>"></script>
     <script src="/assets/js/blox-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-icon-utils.js') ?>"></script>
     <script src="/assets/js/blox-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-field-store.js') ?>"></script>
     <?php // 系统富文本编辑器（richtext 控件的「可视化编辑」弹窗用；按需 init） ?>
@@ -1034,7 +1035,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
     <script>
     function bloxEditor() {
-        return {
+        return Object.assign({
             sections: <?php echo $initBlocks; ?>,
             pageHero: <?php echo json_encode($pageHero, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             pageHeroOpen: false,
@@ -6759,7 +6760,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return { shiftKey: !!(mods && mods.shift), ctrlKey: !!(mods && mods.toggle), metaKey: false };
             },
 
-            // ---- 批量动作（R2）：数组运算在 blox-multi-actions.js，这里只做薄命令 ----
+            // 批量数组运算在独立模块，这里只保留命令桥接。
             actionsModule() {
                 var A = window.YikaiBloxMultiActions;
                 return A
@@ -6769,7 +6770,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                     && typeof A.planPaste === "function" ? A : null;
             },
 
-            /** 把多选作用域解析为「可整体重建的数组引用」；解析逻辑在纯模块（缺失时降级失败）。 */
             multiScopeContext() {
                 var A = this.actionsModule();
                 if (!A) return null;
@@ -6809,7 +6809,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.toast(this.multiText[label].replace(":count", count));
             },
 
-            /** 删除/复制/剪切共用编排：挑集合、上下限检查、重建数组全在纯模块；这里只落盘与提示。 */
             _runBatchActionRaw(kind, A) {
                 var ctx = this.multiScopeContext();
                 var ids = this.multiSel ? this.multiSel.ids.slice() : [];
@@ -6839,7 +6838,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                 };
             },
 
-            /** 粘贴目标：剪贴板层级必须与当前选中上下文同层（区块剪贴板粘到根，元素/子元素粘回原类容器）。 */
             pasteTargetContext(clipLevel) {
                 if (clipLevel === "section") {
                     return { level: "section", list: this.sections };
@@ -9454,7 +9452,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     .catch(function () { self.toast(<?php echo json_encode(__('admin_failed'), JSON_UNESCAPED_UNICODE); ?>); })
                     .finally(function () { self.cacheClearing = false; });
             },
-        };
+        }, window.YikaiBloxBatchProperties ? window.YikaiBloxBatchProperties.mixin() : {});
     }
     </script>
 </body>
