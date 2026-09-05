@@ -59,6 +59,28 @@ function themeInstallMessage(array $result): string
         : $message;
 }
 
+function deleteThemeDirectory(string $directory): bool
+{
+    $real = realpath($directory);
+    $themesRoot = realpath(ROOT_PATH . '/themes');
+    if ($real === false || $themesRoot === false || !is_dir($real)
+        || !str_starts_with(str_replace('\\', '/', $real) . '/', str_replace('\\', '/', $themesRoot) . '/')) {
+        return false;
+    }
+
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($real, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($iterator as $item) {
+        $ok = $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        if (!$ok) {
+            return false;
+        }
+    }
+    return @rmdir($real);
+}
+
 // ============================================================
 // AJAX（JSON）：模板市场列表 / 市场安装
 // ============================================================
@@ -271,6 +293,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activ
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_theme') {
+    verifyCsrf();
+
+    $slug = trim((string) ($_POST['slug'] ?? ''));
+    $current = currentTheme();
+    if (preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/D', $slug) !== 1) {
+        $message = __('theme_err_badslug');
+        $messageType = 'error';
+    } elseif ($slug === 'default') {
+        $message = __('theme_err_delete_default');
+        $messageType = 'error';
+    } elseif ($slug === $current) {
+        $message = __('theme_err_delete_active');
+        $messageType = 'error';
+    } else {
+        $themeDir = ROOT_PATH . '/themes/' . $slug;
+        if (!is_dir($themeDir) || !is_file($themeDir . '/theme.json')) {
+            $message = __('theme_not_found');
+            $messageType = 'error';
+        } elseif (!deleteThemeDirectory($themeDir)) {
+            $message = __('theme_err_delete_failed');
+            $messageType = 'error';
+        } else {
+            $colorProfiles = ThemePalette::profiles((string) config('theme_color_profiles', '{}'));
+            unset($colorProfiles[$slug]);
+            $decodedStyle = json_decode((string) config(ThemeSettings::KEY, ''), true);
+            $settings = [
+                'theme_color_profiles' => ThemePalette::encodeProfiles($colorProfiles),
+            ];
+            if (is_array($decodedStyle) && is_array($decodedStyle['themes'] ?? null)) {
+                $themeStyles = $decodedStyle['themes'];
+                unset($themeStyles[$slug]);
+                $settings[ThemeSettings::KEY] = json_encode(
+                    ['schema_version' => 1, 'themes' => $themeStyles],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ) ?: '{}';
+            }
+            settingModel()->saveBatch($settings);
+            adminLog('theme', 'delete', '删除主题：' . $slug);
+            do_action('data_changed');
+            $message = __('theme_deleted_ok') . '：' . $slug;
+            $messageType = 'success';
+        }
+    }
+}
+
 $themes = getThemes();
 // 每套主题附上校验结果与区块覆盖，供卡片展示。
 // 覆盖率是**扫文件系统**得出的（theme.json 的 supports 声明五套里三套与实际不符，已废弃）。
@@ -452,6 +520,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php echo __('theme_activate'); ?>
                         </button>
                     </form>
+                    <?php if ($theme['slug'] !== 'default'): ?>
+                    <form method="POST" class="inline" onsubmit="return confirm('<?php echo e(__('theme_delete_confirm')); ?>')">
+                        <?php echo csrfField(); ?>
+                        <input type="hidden" name="action" value="delete_theme">
+                        <input type="hidden" name="slug" value="<?php echo e($theme['slug']); ?>">
+                        <button type="submit" class="px-3 py-2 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50 transition cursor-pointer">
+                            <i class="ti ti-trash mr-1"></i><?php echo __('admin_delete'); ?>
+                        </button>
+                    </form>
+                    <?php endif; ?>
                     <?php else: ?>
                     <span class="px-4 py-2 bg-gray-100 text-gray-500 text-sm rounded-lg"><?php echo __('theme_activated'); ?></span>
                     <?php endif; ?>
