@@ -106,7 +106,8 @@ unset($_heroChannelBackup);
             <?php else: ?>
             <div></div>
             <?php endif; ?>
-            <form method="get" action="<?php echo e(isDynamicUrlMode() ? dynamicUrl('news', $category ? ['cat' => $category['slug']] : []) : ($category ? '/news/' . e($category['slug']) . '.html' : '/news.html')); ?>" class="flex items-center gap-2">
+            <form method="get" action="<?php echo e(dynamicFormAction($category ? '/news/' . $category['slug'] . '.html' : '/news.html')); ?>" class="flex items-center gap-2">
+                <?php echo dynamicFormHiddenInputs('news', $category ? ['cat' => $category['slug']] : []); ?>
                 <div class="relative">
                     <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                            placeholder="<?php echo __('news_search_placeholder'); ?>"

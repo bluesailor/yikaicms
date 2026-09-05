@@ -57,7 +57,7 @@ $navChannels = getNavChannels();
 // SEO: OpenGraph & JSON-LD
 $ogType = 'article';
 $siteUrl = siteBaseUrl();
-$canonicalUrl = $siteUrl . contentUrl($content);
+$canonicalUrl = $siteUrl . contentPrettyUrl($content);
 if (!empty($content['cover'])) {
     $ogImage = $content['cover'];
 }

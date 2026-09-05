@@ -75,7 +75,7 @@ $currentSlug = 'product';
 // SEO: OpenGraph & JSON-LD
 $ogType = 'product';
 $siteUrl = siteBaseUrl();
-$canonicalUrl = $siteUrl . productUrl($product);
+$canonicalUrl = $siteUrl . productPrettyUrl($product);
 if (!empty($product['cover'])) {
     $ogImage = $product['cover'];
 }

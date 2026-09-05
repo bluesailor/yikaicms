@@ -137,9 +137,11 @@ final class Dispatcher
         }
 
         $lang = self::queryLanguage($query);
-        if (array_key_exists('lang', $query)
-            && (self::queryScalar($query, 'lang') === null || $lang === null)) {
-            return null;
+        foreach (['lang', '_lang'] as $languageKey) {
+            if (array_key_exists($languageKey, $query)
+                && (self::queryScalar($query, $languageKey) === null || $lang === null)) {
+                return null;
+            }
         }
 
         $prefix = $lang === null ? '' : '/' . $lang;
@@ -328,7 +330,12 @@ final class Dispatcher
     /** @param array<string,mixed> $query */
     private static function queryLanguage(array $query): ?string
     {
-        $lang = self::queryScalar($query, 'lang');
+        $publicLang = self::queryScalar($query, 'lang');
+        $internalLang = self::queryScalar($query, '_lang');
+        if ($publicLang !== null && $internalLang !== null && $publicLang !== $internalLang) {
+            return null;
+        }
+        $lang = $publicLang ?? $internalLang;
         return $lang !== null && in_array($lang, self::LANG_PREFIXES, true) ? $lang : null;
     }
 

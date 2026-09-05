@@ -139,6 +139,13 @@ final class DispatcherTest extends TestCase
         $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'home', 'lang' => 'fr']));
         $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'search', 'type' => 'sql']));
         $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'list', 'slug' => 'news', 'page' => '0']));
+        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'home', 'lang' => 'ja', '_lang' => 'zh-CN']));
+        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'home', 'lang' => ['ja']]));
+        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'home', '_lang' => ['ja']]));
+
+        $sameLanguage = Dispatcher::dynamicQuery(['yk_route' => 'home', 'lang' => 'ja', '_lang' => 'ja']);
+        $this->assertNotNull($sameLanguage);
+        $this->assertSame('ja', $sameLanguage['lang']);
     }
 
     public function testIndexPreparesDynamicQueryBeforeInitialization(): void

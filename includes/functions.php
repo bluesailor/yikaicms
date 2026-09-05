@@ -1127,8 +1127,11 @@ function isDynamicUrlMode(): bool
     return urlMode() === 'query';
 }
 
-/** @param array<string,mixed> $params */
-function dynamicUrl(string $route, array $params = [], ?string $lang = null): string
+/**
+ * @param array<string,mixed> $params
+ * @return array<string,mixed>
+ */
+function dynamicRouteQuery(string $route, array $params = [], ?string $lang = null): array
 {
     $query = ['yk_route' => $route];
     foreach ($params as $key => $value) {
@@ -1137,7 +1140,32 @@ function dynamicUrl(string $route, array $params = [], ?string $lang = null): st
     $defaultLang = (string) config('site_lang', 'zh-CN');
     $targetLang = $lang ?? siteLang();
     if ($targetLang !== '' && $targetLang !== $defaultLang) $query['lang'] = $targetLang;
+    return $query;
+}
+
+/** @param array<string,mixed> $params */
+function dynamicUrl(string $route, array $params = [], ?string $lang = null): string
+{
+    $query = dynamicRouteQuery($route, $params, $lang);
     return '/index.php?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+}
+
+function dynamicFormAction(string $prettyAction): string
+{
+    return isDynamicUrlMode() ? '/index.php' : $prettyAction;
+}
+
+/** @param array<string,mixed> $params */
+function dynamicFormHiddenInputs(string $route, array $params = [], ?string $lang = null): string
+{
+    if (!isDynamicUrlMode()) return '';
+
+    $html = '';
+    foreach (dynamicRouteQuery($route, $params, $lang) as $name => $value) {
+        $html .= '<input type="hidden" name="' . htmlspecialchars((string) $name, ENT_QUOTES)
+            . '" value="' . htmlspecialchars((string) $value, ENT_QUOTES) . '">';
+    }
+    return $html;
 }
 
 function dynamicUrlIfEnabled(string $route, array $params = []): ?string
@@ -1163,7 +1191,6 @@ function channelUrl(array $channel): string
         return e($channel['link_url']);
     }
 
-    $prefix = langPrefix();
     $slug = (string) ($channel['slug'] ?? '');
     $id = (int) ($channel['id'] ?? 0);
     $type = (string) ($channel['type'] ?? 'list');
@@ -1187,7 +1214,18 @@ function channelUrl(array $channel): string
         }
         return dynamicUrl('list', $slug !== '' ? ['slug' => $slug] : ['id' => $id]);
     }
-    if (empty($slug)) {
+    return channelPrettyUrl($channel);
+}
+
+function channelPrettyUrl(array $channel): string
+{
+    if (($channel['type'] ?? '') === 'link') {
+        return (string) ($channel['link_url'] ?? '');
+    }
+
+    $prefix = langPrefix();
+    $slug = (string) ($channel['slug'] ?? '');
+    if ($slug === '') {
         if ($channel['type'] === 'page') {
             return $prefix . '/page/' . $channel['id'] . '.html';
         } else {
@@ -1348,26 +1386,20 @@ function contentUrl(array $content): string
             . '检查取数的 SELECT 是否漏了 c.type。id=' . (string) ($content['id'] ?? '?'));
     }
 
-    $prefix = langPrefix();
     $slug = (string) ($content['slug'] ?? '');
-    $channelSlug = (string) ($content['channel_slug'] ?? '');
     $channelType = (string) ($content['channel_type'] ?? '');
     $id = (int) ($content['id'] ?? 0);
     $safeSlug = preg_match('/^[a-z0-9_-]+$/', $slug) === 1 ? $slug : '';
+    if (!isDynamicUrlMode()) return contentPrettyUrl($content);
 
     // 下载类型使用 /download/detail/{id}.html
     if ($channelType === 'download') {
-        if (isDynamicUrlMode()) return dynamicUrl('download', $safeSlug !== '' ? ['slug' => $safeSlug] : ['id' => $id]);
-        return $prefix . '/download/detail/' . $content['id'] . '.html';
+        return dynamicUrl('download', $safeSlug !== '' ? ['slug' => $safeSlug] : ['id' => $id]);
     }
 
     // 案例类型使用 /case/{slug}.html 或 /case/{id}.html
     if ($channelType === 'case') {
-        if (isDynamicUrlMode()) return dynamicUrl('case', $safeSlug !== '' ? ['slug' => $safeSlug] : ['id' => $id]);
-        if (!empty($slug)) {
-            return $prefix . '/case/' . $slug . '.html';
-        }
-        return $prefix . '/case/' . $content['id'] . '.html';
+        return dynamicUrl('case', $safeSlug !== '' ? ['slug' => $safeSlug] : ['id' => $id]);
     }
 
     // 文章类型固定走 /news/article/{slug|id}.html —— 与 .htaccess / nginx 的
@@ -1376,8 +1408,7 @@ function contentUrl(array $content): string
     // 前台各处（news.php、首页栏目区块）曾各自硬编码绕开本函数，现统一由此出。
     // 注意按内容自身的 type 判断：新闻子栏目的 channel_type 是 'list'，不是 'article'
     if (($content['type'] ?? '') === 'article') {
-        if (isDynamicUrlMode()) return dynamicUrl('article', $safeSlug !== '' ? ['slug' => $safeSlug] : ['id' => $id]);
-        return $prefix . '/news/article/' . (!empty($slug) ? $slug : $content['id']) . '.html';
+        return dynamicUrl('article', $safeSlug !== '' ? ['slug' => $safeSlug] : ['id' => $id]);
     }
 
     // 自定义模型：/<url_prefix>/<slug>.html（url_prefix 空则用 model_key），
@@ -1385,19 +1416,40 @@ function contentUrl(array $content): string
     if ($channelType !== '' && !empty($slug)) {
         $pmap = contentModelModel()->prefixMap();
         if (isset($pmap[$channelType])) {
-            if (isDynamicUrlMode()) return dynamicUrl('detail', ['id' => $id]);
-            return $prefix . '/' . $pmap[$channelType] . '/' . $slug . '.html';
+            return dynamicUrl('detail', ['id' => $id]);
         }
     }
 
-    // 如果内容和栏目都有slug，使用友好URL
-    if (!empty($slug) && !empty($channelSlug)) {
+    return dynamicUrl('detail', ['id' => $id]);
+}
+
+function contentPrettyUrl(array $content): string
+{
+    $prefix = langPrefix();
+    $slug = (string) ($content['slug'] ?? '');
+    $channelSlug = (string) ($content['channel_slug'] ?? '');
+    $channelType = (string) ($content['channel_type'] ?? '');
+    $id = (int) ($content['id'] ?? 0);
+
+    if ($channelType === 'download') {
+        return $prefix . '/download/detail/' . $id . '.html';
+    }
+    if ($channelType === 'case') {
+        return $prefix . '/case/' . ($slug !== '' ? $slug : $id) . '.html';
+    }
+    if (($content['type'] ?? '') === 'article') {
+        return $prefix . '/news/article/' . ($slug !== '' ? $slug : $id) . '.html';
+    }
+    if ($channelType !== '' && $slug !== '') {
+        $prefixMap = contentModelModel()->prefixMap();
+        if (isset($prefixMap[$channelType])) {
+            return $prefix . '/' . $prefixMap[$channelType] . '/' . $slug . '.html';
+        }
+    }
+    if ($slug !== '' && $channelSlug !== '') {
         return $prefix . '/' . $channelSlug . '/' . $slug . '.html';
     }
-
-    // 否则使用ID格式
-    if (isDynamicUrlMode()) return dynamicUrl('detail', ['id' => $id]);
-    return $prefix . '/detail/' . $content['id'] . '.html';
+    return $prefix . '/detail/' . $id . '.html';
 }
 
 /**
@@ -1458,21 +1510,23 @@ function addProductViews(int $id): int
  */
 function productUrl(array $product): string
 {
-    $prefix = langPrefix();
     $slug = (string) ($product['slug'] ?? '');
-    $categorySlug = (string) ($product['category_slug'] ?? '');
     if (isDynamicUrlMode()) {
         $safeSlug = preg_match('/^[a-z0-9_-]+$/', $slug) === 1 ? $slug : '';
         return dynamicUrl('product', $safeSlug !== '' ? ['slug' => $safeSlug] : ['id' => (int) ($product['id'] ?? 0)]);
     }
+    return productPrettyUrl($product);
+}
 
-    // 如果产品和分类都有slug，使用友好URL
-    if (!empty($slug) && !empty($categorySlug)) {
+function productPrettyUrl(array $product): string
+{
+    $prefix = langPrefix();
+    $slug = (string) ($product['slug'] ?? '');
+    $categorySlug = (string) ($product['category_slug'] ?? '');
+    if ($slug !== '' && $categorySlug !== '') {
         return $prefix . '/product/' . $categorySlug . '/' . $slug . '.html';
     }
-
-    // 否则使用ID格式
-    return $prefix . '/product/' . $product['id'] . '.html';
+    return $prefix . '/product/' . (int) ($product['id'] ?? 0) . '.html';
 }
 
 /**
