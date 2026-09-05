@@ -13,9 +13,7 @@ $catalogRootChannel = is_array($rootChannel ?? null) ? $rootChannel : $catalogCu
 $catalogCategories = is_array($categories ?? null) ? $categories : [];
 $catalogContents = is_array($contents ?? null) ? $contents : [];
 $catalogBaseUrl = channelUrl($catalogCurrentChannel);
-$catalogUsesDynamicRoute = (function_exists('isDynamicUrlMode') && isDynamicUrlMode())
-    || (($_GET['yk_route'] ?? '') === 'list')
-    || str_contains((string) ($_SERVER['REQUEST_URI'] ?? ''), 'yk_route=list');
+$catalogUsesDynamicRoute = str_contains($catalogBaseUrl, 'yk_route=');
 ?>
 <div data-content-catalog>
     <?php if ($contentCatalogShowCategories || $contentCatalogShowSearch): ?>
