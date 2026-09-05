@@ -252,7 +252,7 @@ final class BloxAreaEditorTarget
                 default => '',
             };
         }
-        if (!in_array($theme, ['default', 'business'], true)) {
+        if (!in_array($theme, ['default', 'business', 'minimal'], true)) {
             return '';
         }
 

@@ -235,12 +235,41 @@ final class BloxTemplateModelTest extends TestCase
                     'blox_custom_header_enabled' => '1',
                 ];
                 $this->assertSame(
+                    '/admin/blox_editor.php?template=' . (int) $dormantHeader['id'] . '&open=header-settings',
+                    \BloxAreaEditorTarget::url('header', $context),
+                    'business 原生 Header 已调用 bloxAreaHtml(header)：开启且模板命中时，编辑目标应是实际命中的发布模板'
+                );
+
+                $GLOBALS['yikai_config_runtime_overrides']['blox_custom_header_enabled'] = '0';
+                $this->assertSame(
                     '/admin/blox_editor.php?template=' . (int) $themeHeader['id'] . '&current_header=1&open=header-settings',
                     \BloxAreaEditorTarget::url('header', $context),
-                    'business 原生 Header 没有调用 bloxAreaHtml(header) 时，应编辑当前主题头部而不是旧发布模板'
+                    'business 停用自定义 Header 时，应从 business 实际显示的原生 Header 开始编辑'
                 );
             } finally {
                 $this->removeBusinessThemeFixture($createdBusinessTheme);
+            }
+
+            $createdMinimalTheme = $this->ensureMinimalThemeFixture();
+            try {
+                $GLOBALS['yikai_config_runtime_overrides'] = [
+                    'current_theme' => 'minimal',
+                    'blox_custom_header_enabled' => '1',
+                ];
+                $this->assertSame(
+                    '/admin/blox_editor.php?template=' . (int) $dormantHeader['id'] . '&open=header-settings',
+                    \BloxAreaEditorTarget::url('header', $context),
+                    'minimal 原生 Header 已调用 bloxAreaHtml(header)：开启且模板命中时，编辑目标应是实际命中的发布模板'
+                );
+
+                $GLOBALS['yikai_config_runtime_overrides']['blox_custom_header_enabled'] = '0';
+                $this->assertSame(
+                    '/admin/blox_editor.php?template=' . (int) $themeHeader['id'] . '&current_header=1&open=header-settings',
+                    \BloxAreaEditorTarget::url('header', $context),
+                    'minimal 停用自定义 Header 时，应从 minimal 实际显示的原生 Header 开始编辑，而不是泛化设计系统入口'
+                );
+            } finally {
+                $this->removeMinimalThemeFixture($createdMinimalTheme);
             }
         } finally {
             if ($previousOverrides === null) {
@@ -253,27 +282,61 @@ final class BloxTemplateModelTest extends TestCase
 
     private function ensureBusinessThemeFixture(): bool
     {
-        $dir = ROOT_PATH . '/themes/business';
+        return $this->ensureRuntimeThemeFromMarketplace('business');
+    }
+
+    private function ensureMinimalThemeFixture(): bool
+    {
+        return $this->ensureRuntimeThemeFromMarketplace('minimal');
+    }
+
+    /**
+     * 保证 themes/<theme> 运行副本与 marketplace 唯一源码一致（已安装则不动）。
+     * 页头编辑目标解析读取的是运行目录（ThemeRuntime::resolve / themeRendersArea），
+     * CI 没有"已安装主题"，需要从唯一源码同步最小骨架（theme.json + header/footer），
+     * 且必须同步真实源码——Business/Minimal 原生 Header 已调用 bloxAreaHtml，
+     * 旧的"伪造无 Blox 页头"夹具会让断言与实际渲染相反。
+     */
+    private function ensureRuntimeThemeFromMarketplace(string $theme): bool
+    {
+        $dir = ROOT_PATH . '/themes/' . $theme;
         if (is_file($dir . '/theme.json')) {
             return false;
         }
 
-        if (!is_dir($dir . '/layouts')) {
-            mkdir($dir . '/layouts', 0777, true);
+        $source = ROOT_PATH . '/marketplace/themes/' . $theme;
+        foreach (['theme.json', 'layouts/header.php', 'layouts/footer.php'] as $rel) {
+            if (!is_file($source . '/' . $rel)) {
+                self::fail("marketplace/themes/{$theme} 缺少 {$rel}，无法建立运行时夹具");
+            }
         }
-        file_put_contents($dir . '/theme.json', '{"name":"Business","version":"test"}');
-        file_put_contents($dir . '/layouts/header.php', '<?php echo "<header>Business</header>";');
-        file_put_contents($dir . '/layouts/footer.php', '<?php echo "<footer>Business</footer>";');
+        foreach (['theme.json', 'layouts/header.php', 'layouts/footer.php'] as $rel) {
+            $dst = $dir . '/' . $rel;
+            if (!is_dir(dirname($dst))) {
+                mkdir(dirname($dst), 0777, true);
+            }
+            copy($source . '/' . $rel, $dst);
+        }
         return true;
     }
 
     private function removeBusinessThemeFixture(bool $created): void
     {
+        $this->removeRuntimeThemeFixture('business', $created);
+    }
+
+    private function removeMinimalThemeFixture(bool $created): void
+    {
+        $this->removeRuntimeThemeFixture('minimal', $created);
+    }
+
+    private function removeRuntimeThemeFixture(string $theme, bool $created): void
+    {
         if (!$created) {
             return;
         }
 
-        $dir = ROOT_PATH . '/themes/business';
+        $dir = ROOT_PATH . '/themes/' . $theme;
         @unlink($dir . '/layouts/header.php');
         @unlink($dir . '/layouts/footer.php');
         @rmdir($dir . '/layouts');
