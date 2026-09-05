@@ -27,6 +27,9 @@ for (const lang of ['en', 'ja']) {
             const manager = await opened;
             await manager.waitForLoadState('domcontentloaded');
             const managerErrors = observeConsole(manager);
+            const stablePageSizeUrl = new URL(manager.url());
+            stablePageSizeUrl.searchParams.set('per_page', '20');
+            await manager.goto(stablePageSizeUrl.href);
             const search = manager.locator('input[name="keyword"]');
             await search.fill('Stage gate 0');
             await search.press('Enter');

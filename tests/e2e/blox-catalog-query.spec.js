@@ -88,7 +88,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         await expect(page.locator('body')).not.toContainText('Catalog Unrelated');
         await expect(page.locator('body')).not.toContainText('Catalog Zero 0 0');
         const lang = process.env.BLOX_E2E_SITE_LANG || 'zh-CN';
-        await page.goto(`/admin/${kind}.php?keyword=0&status=0&lang=${lang}`);
+        await page.goto(`/admin/${kind}.php?keyword=0&status=0&lang=${lang}&per_page=20`);
         await expect(page.locator('table')).not.toContainText('Catalog Unrelated');
         await expect(page.locator('table')).not.toContainText('Catalog Zero 0 1');
         // Use the page parameter rather than a language-specific link label.
@@ -96,6 +96,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         const url = new URL(href, page.url());
         expect(url.searchParams.get('keyword')).toBe('0');
         expect(url.searchParams.get('status')).toBe('0');
+        expect(url.searchParams.get('per_page')).toBe('20');
         await page.goto(url.href);
         await expect(page.locator('input[name="keyword"]')).toHaveValue('0');
         await expect(page.locator('table')).toContainText('Catalog Zero 0 0');
