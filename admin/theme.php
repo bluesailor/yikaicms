@@ -68,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     $slug = trim($_POST['slug'] ?? '');
 
     if ($action === 'market_install' && !preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug)) {
+        http_response_code(422);
         echo json_encode(['code' => 1, 'msg' => __('theme_err_badslug')]);
         exit;
     }

@@ -128,6 +128,19 @@ test('Business server-rendered surfaces work without JavaScript @ci', async ({ b
     } finally { await context.close(); }
 });
 
+for (const type of ['case', 'article']) {
+    test(`Business preserves all eight ${type} records and their order @ci`, async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'desktop-1440', 'server rendering is verified once');
+        const response = await page.goto(`/tests/e2e/business-channel-counts-page.php?type=${type}`);
+        expect(response.status()).toBe(200);
+        const titles = await page.locator('h3').allTextContents();
+        expect(titles).toEqual(Array.from({ length: 8 }, (_, i) => `Fixture ${type} ${i + 1}`));
+        if (type === 'article') {
+            await expect(page.locator('.fa-newspaper')).toHaveCount(1);
+        }
+    });
+}
+
 test('Business editor exposes modes and previews without saving @ci', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-1440', 'Editor controls are verified once; preview covers all sizes');
     const writes = observeUnsafeWrites(page);
