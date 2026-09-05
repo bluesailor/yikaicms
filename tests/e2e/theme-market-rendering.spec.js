@@ -90,6 +90,10 @@ for (const theme of themes.filter((slug) => slug !== 'business')) {
             await expect(content).toBeVisible();
             await expect(content.locator('h1')).not.toHaveText('');
             await expect(content.locator('a').first()).not.toHaveText('');
+            const ctaContent = page.locator('[data-minimal-cta-content]');
+            await expect(ctaContent).toBeVisible();
+            await expect(ctaContent).toHaveCSS('text-align', 'center');
+            await expect(ctaContent.locator('h2')).not.toHaveText('');
         }
         expect(await page.locator('body').innerText()).not.toMatch(/Fatal error|Uncaught Error|Warning:/);
         expect(errors).toEqual([]);
