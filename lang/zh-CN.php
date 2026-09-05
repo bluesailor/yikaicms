@@ -567,6 +567,8 @@ return [
     'setting_url_mode_tip' => '漂亮URL需要服务器 Rewrite；动态URL通过 index.php 工作，不依赖 Rewrite。',
     'setting_opt_url_mode_pretty' => '漂亮URL（需要Rewrite）',
     'setting_opt_url_mode_query' => '动态URL（无需Rewrite）',
+    'setting_example_url_mode_pretty' => '示例：/news/article/digital-transformation-report.html',
+    'setting_example_url_mode_query' => '示例：/index.php?yk_route=article&id=12',
     'setting_site_name' => '站点名称',
     'setting_site_keywords' => 'SEO关键词',
     'setting_site_description' => 'SEO描述',

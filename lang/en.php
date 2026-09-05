@@ -533,6 +533,8 @@ return [
     'setting_url_mode_tip' => 'Pretty URLs require server rewrite rules. Dynamic URLs use index.php and do not require Rewrite.',
     'setting_opt_url_mode_pretty' => 'Pretty URLs (Rewrite required)',
     'setting_opt_url_mode_query' => 'Dynamic URLs (no Rewrite required)',
+     'setting_example_url_mode_pretty' => 'Example: /news/article/digital-transformation-report.html',
+     'setting_example_url_mode_query' => 'Example: /index.php?yk_route=article&id=12',
     'setting_site_favicon' => 'Site Icon',
     'setting_site_favicon_tip' => 'Browser tab icon: .ico or .png, square, 32×32 or 48×48 recommended (.ico can bundle 16/32/48 sizes for best compatibility)',
     'setting_favicon_make' => 'No icon yet? Generate one online with Logo Maker →',

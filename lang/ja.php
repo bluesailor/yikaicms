@@ -599,6 +599,8 @@ return [
     'setting_url_mode_tip' => 'きれいなURLにはサーバーのRewrite設定が必要です。動的URLはindex.phpを使うためRewrite不要です。',
     'setting_opt_url_mode_pretty' => 'きれいなURL（Rewrite必要）',
     'setting_opt_url_mode_query' => '動的URL（Rewrite不要）',
+    'setting_example_url_mode_pretty' => '例：/news/article/digital-transformation-report.html',
+    'setting_example_url_mode_query' => '例：/index.php?yk_route=article&id=12',
     'setting_site_favicon' => 'サイトアイコン',
     'setting_site_favicon_tip' => 'ブラウザタブのアイコン：.ico または .png、正方形、32×32 か 48×48 推奨（.ico は 16/32/48 の複数サイズを同梱でき、互換性が最良）',
     'setting_favicon_make' => 'アイコンがない場合は「ロゴメーカー」でオンライン生成 →',
