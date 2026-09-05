@@ -154,6 +154,10 @@ function getChannelUrl(array $channel): string {
 <body class="minimal-theme bg-white min-h-screen flex flex-col text-gray-800">
 
     <!-- Header -->
+    <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
+    <?php if ($ykBloxHeader !== ''): ?>
+    <?php echo $ykBloxHeader; // Blox 页眉接管；未发布或未命中时保留主题原生页眉 ?>
+    <?php else: ?>
     <header id="siteHeader" class="<?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50 bg-white border-b border-gray-200">
         <div class="container mx-auto px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
@@ -270,6 +274,7 @@ function getChannelUrl(array $channel): string {
             </div>
         </nav>
     </header>
+    <?php endif; ?>
 
     <?php do_action('ik_header_after'); ?>
 
