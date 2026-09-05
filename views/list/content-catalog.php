@@ -77,7 +77,13 @@ $catalogBaseUrl = channelUrl($catalogCurrentChannel);
 
     <?php
     $totalPages = (int) ceil(((int) $total) / max(1, (int) $perPage));
-    $pageUrl = static function (int $targetPage) use ($catalogBaseUrl, $keyword): string {
+    $pageUrl = static function (int $targetPage) use ($catalogBaseUrl, $keyword, $catalogCurrentChannel): string {
+        if (function_exists('isDynamicUrlMode') && isDynamicUrlMode()) {
+            if (function_exists('dynamicChannelPageUrl')) {
+                return dynamicChannelPageUrl($catalogCurrentChannel, $targetPage, $keyword !== '' ? ['keyword' => $keyword] : [])
+                    ?? dynamicUrl('list', ['id' => (int) ($catalogCurrentChannel['id'] ?? 0), 'page' => $targetPage]);
+            }
+        }
         $base = $targetPage === 1
             ? $catalogBaseUrl
             : (preg_replace('/\.html$/', '/page/' . $targetPage . '.html', $catalogBaseUrl) ?: $catalogBaseUrl);

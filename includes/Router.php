@@ -74,6 +74,23 @@ final class Router
         if (!isset(self::$routes[$name])) {
             throw new \InvalidArgumentException("Unknown route: {$name}");
         }
+        // 运行期 URL 模式由站点设置统一控制。Router 单独被插件调用时，
+        // functions.php 可能尚未加载，故保留漂亮 URL 作为安全默认值。
+        if (function_exists('isDynamicUrlMode') && isDynamicUrlMode()) {
+            $dynamicRoute = [
+                'home' => 'home', 'search' => 'search', 'news' => 'news',
+                'article' => 'article', 'detail' => 'detail', 'channel' => 'list',
+                'product' => 'product', 'product.category' => 'product_list',
+                'job' => 'job', 'contact' => 'contact',
+            ][$name] ?? null;
+            if ($dynamicRoute !== null) {
+                if ($name === 'product.category') {
+                    $params = ['cat' => $params['slug'] ?? $params['id'] ?? null]
+                        + array_diff_key($params, ['slug' => true, 'id' => true]);
+                }
+                return dynamicUrl($dynamicRoute, $params);
+            }
+        }
         return (string) (self::$routes[$name]['builder'])($params);
     }
 

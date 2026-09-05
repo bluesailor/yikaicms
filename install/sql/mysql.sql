@@ -1334,6 +1334,7 @@ INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `ti
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (12,'basic','admin_logo','','image','后台Logo','留空显示文字',NULL,21);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (240,'basic','admin_logo_max_height','80','number','后台Logo最大高度(px)','Logo 按原始比例显示，高度不超过此值（如图片偏高可调小，例如 60）',NULL,22);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (13,'basic','admin_copyright','','text','后台版权','留空不显示',NULL,22);
+INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (247,'url','url_mode','pretty','select','URL访问模式','漂亮URL需要服务器 Rewrite；动态URL通过 index.php 工作，不依赖 Rewrite。','{"pretty":"漂亮URL（需要Rewrite）","query":"动态URL（无需Rewrite）"}',0);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (14,'header','topbar_enabled','0','select','顶部通栏','','{\"0\":\"隐藏\",\"1\":\"显示\"}',0);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (15,'header','topbar_bg_color','#f3f4f6','color','通栏背景色','',NULL,1);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (16,'header','topbar_left','','code','通栏左侧内容','',NULL,2);

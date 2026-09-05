@@ -138,7 +138,7 @@ require_once theme_path('layouts/header.php');
     <div class="container mx-auto px-4">
         <div class="max-w-2xl mx-auto">
             <h1 class="text-white text-2xl font-bold text-center mb-6"><?php echo __('search_title'); ?></h1>
-            <form method="GET" action="/search.php" class="relative">
+            <form method="GET" action="<?php echo e(searchUrl()); ?>" class="relative">
                 <input type="hidden" name="type" value="<?php echo e($type); ?>" id="searchType">
                 <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                        class="w-full px-5 py-3.5 pr-14 rounded-lg text-base border-0 shadow-lg focus:ring-2 focus:ring-blue-300 outline-none"
@@ -168,7 +168,7 @@ require_once theme_path('layouts/header.php');
             <?php foreach ($typeLabels as $tk => $tl):
                 $cnt = $typeCounts[$tk] ?? 0;
                 $isCurrentType = ($tk === $type);
-                $tabUrl = '/search.php?keyword=' . urlencode($keyword) . ($tk !== 'all' ? '&type=' . $tk : '');
+                $tabUrl = searchUrl($keyword, $tk);
             ?>
             <a href="<?php echo e($tabUrl); ?>"
                class="px-4 py-2 rounded-full text-sm border transition <?php echo $isCurrentType
@@ -256,14 +256,14 @@ require_once theme_path('layouts/header.php');
         ?>
         <div class="flex justify-center mt-8 gap-2">
             <?php if ($page > 1): ?>
-            <a href="?keyword=<?php echo urlencode($keyword); ?>&type=<?php echo e($type); ?>&page=<?php echo $page - 1; ?>" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50"><?php echo __('list_prev_page'); ?></a>
+            <a href="<?php echo e(searchUrl($keyword, $type, $page - 1)); ?>" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50"><?php echo __('list_prev_page'); ?></a>
             <?php endif; ?>
             <?php for ($i = max(1, $page - 3); $i <= min($totalPages, $page + 3); $i++): ?>
-            <a href="?keyword=<?php echo urlencode($keyword); ?>&type=<?php echo e($type); ?>&page=<?php echo $i; ?>"
+            <a href="<?php echo e(searchUrl($keyword, $type, $i)); ?>"
                class="px-4 py-2 border rounded-lg text-sm <?php echo $i === $page ? 'bg-primary text-white border-primary' : 'hover:bg-gray-50'; ?>"><?php echo $i; ?></a>
             <?php endfor; ?>
             <?php if ($page < $totalPages): ?>
-            <a href="?keyword=<?php echo urlencode($keyword); ?>&type=<?php echo e($type); ?>&page=<?php echo $page + 1; ?>" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50"><?php echo __('list_next_page'); ?></a>
+            <a href="<?php echo e(searchUrl($keyword, $type, $page + 1)); ?>" class="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50"><?php echo __('list_next_page'); ?></a>
             <?php endif; ?>
         </div>
         <?php endif; ?>

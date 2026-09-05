@@ -124,9 +124,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     success();
 }
 
-$tab = $_GET['tab'] ?? 'basic';
+$tab = (string) ($_GET['tab'] ?? 'basic');
 $groupMap = [
     'basic'  => 'basic',
+    'url'    => 'url',
     'header' => 'header',
     'footer' => 'footer',
     'code'   => 'code',
@@ -243,6 +244,7 @@ $__sectionKeyMap = [
     __('sset_sec_icp') => 'icp',
     __('sset_sec_upload') => 'upload',
     __('sset_sec_admin_brand') => 'admin_brand',
+    __('sset_sec_url')        => 'url',
     __('sset_sec_other')     => 'other',
 ];
 $sectionLabel = function (string $sec) use ($__sectionKeyMap): string {
@@ -286,6 +288,7 @@ $_aLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) 
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
         <a href="/admin/setting.php?tab=basic<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_basic'); ?></a>
+        <a href="/admin/setting.php?tab=url<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'url' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_url'); ?></a>
         <a href="/admin/setting.php?tab=header<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'header' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_header'); ?></a>
         <a href="/admin/setting.php?tab=footer<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_footer'); ?></a>
         <a href="/admin/setting.php?tab=code<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'code' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_code'); ?></a>
@@ -457,7 +460,7 @@ async function saveAdminLanguages() {
     <input type="hidden" name="tab_hint" value="<?php echo e($tab); ?>">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="font-bold text-gray-800"><?php echo ['basic'=>__('setting_tab_basic'),'header'=>__('setting_tab_header'),'footer'=>__('setting_tab_footer'),'code'=>__('setting_tab_code')][$tab] ?? __('setting_tab_basic'); ?></h2>
+            <h2 class="font-bold text-gray-800"><?php echo ['basic'=>__('setting_tab_basic'),'url'=>__('setting_tab_url'),'header'=>__('setting_tab_header'),'footer'=>__('setting_tab_footer'),'code'=>__('setting_tab_code')][$tab] ?? __('setting_tab_basic'); ?></h2>
             <button type="button" onclick="restoreAllDefaults()" class="text-xs text-gray-400 hover:text-red-500 transition inline-flex items-center gap-1" title="<?php echo __('setting_restore_all_tip'); ?>">
                 <i class="ti ti-refresh text-sm"></i>
                 <?php echo __('setting_restore_defaults'); ?>
