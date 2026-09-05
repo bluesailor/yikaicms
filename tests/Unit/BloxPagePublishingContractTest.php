@@ -136,7 +136,8 @@ final class BloxPagePublishingContractTest extends TestCase
         // 主题原生 Header 没有渲染 bloxAreaHtml('header') 时，不能跳去编辑数据库里仍处于发布状态的旧 Blox Header。
         $this->assertStringContainsString('self::customAreaEnabled($area) && self::themeRendersArea($area)', $areaTarget);
         $this->assertStringContainsString('private static function themeRendersArea(string $area): bool', $areaTarget);
-        $this->assertStringContainsString("in_array(\$theme, ['default', 'business'], true)", $areaTarget);
+        // v1.19.7：三套预装主题（default/business/minimal）都参与"编辑当前页头"契约
+        $this->assertStringContainsString("in_array(\$theme, ['default', 'business', 'minimal'], true)", $areaTarget);
         $this->assertStringContainsString("'business' => 'business-site-footer'", $areaTarget);
         $this->assertStringContainsString("'minimal' => 'minimal-site-footer'", $areaTarget);
         $this->assertStringContainsString("\$theme === 'business'", $themeHeaderDocument);
