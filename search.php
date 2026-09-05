@@ -16,6 +16,7 @@ $type = get('type', 'all'); // all, article, product, case, download
 $page = max(1, getInt('page', 1));
 $perPage = 15;
 $offset = ($page - 1) * $perPage;
+$searchLang = siteLang() === 'zh-TW' ? 'zh-CN' : siteLang();
 
 $results = [];
 $total = 0;
@@ -34,70 +35,70 @@ if ($keyword !== '') {
     if ($type === 'product') {
         // 产品搜索
         $total = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND (title LIKE ? OR summary LIKE ? OR model LIKE ?)",
-            [$kw, $kw, $kw]
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND lang = ? AND (title LIKE ? OR summary LIKE ? OR model LIKE ?)",
+            [$searchLang, $kw, $kw, $kw]
         );
         $results = db()->fetchAll(
             "SELECT p.*, pc.name as category_name, pc.slug as category_slug, 'product' as _type
              FROM " . DB_PREFIX . "products p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.status = 1 AND (p.title LIKE ? OR p.summary LIKE ? OR p.model LIKE ?)
+             WHERE p.status = 1 AND p.lang = ? AND (p.title LIKE ? OR p.summary LIKE ? OR p.model LIKE ?)
              ORDER BY p.updated_at DESC LIMIT ? OFFSET ?",
-            [$kw, $kw, $kw, $perPage, $offset]
+            [$searchLang, $kw, $kw, $kw, $perPage, $offset]
         );
 
     } elseif ($type === 'download') {
         // 下载搜索
         $total = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND (title LIKE ? OR description LIKE ?)",
-            [$kw, $kw]
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND lang = ? AND (title LIKE ? OR description LIKE ?)",
+            [$searchLang, $kw, $kw]
         );
         $results = db()->fetchAll(
             downloadSearchQuery(DB_PREFIX),
-            [$kw, $kw, $perPage, $offset]
+            [$searchLang, $kw, $kw, $perPage, $offset]
         );
 
     } elseif ($type === 'case') {
         // 案例搜索
         $total = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND type = 'case' AND (title LIKE ? OR summary LIKE ?)",
-            [$kw, $kw]
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND lang = ? AND type = 'case' AND (title LIKE ? OR summary LIKE ?)",
+            [$searchLang, $kw, $kw]
         );
         $results = db()->fetchAll(
             "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, 'case' as _type
              FROM " . DB_PREFIX . "contents c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-             WHERE c.status = 1 AND c.type = 'case' AND (c.title LIKE ? OR c.summary LIKE ?)
+             WHERE c.status = 1 AND c.lang = ? AND c.type = 'case' AND (c.title LIKE ? OR c.summary LIKE ?)
              ORDER BY c.publish_time DESC LIMIT ? OFFSET ?",
-            [$kw, $kw, $perPage, $offset]
+            [$searchLang, $kw, $kw, $perPage, $offset]
         );
 
     } elseif ($type === 'article') {
         // 文章搜索（排除案例）
         $total = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND type != 'case' AND (title LIKE ? OR summary LIKE ?)",
-            [$kw, $kw]
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND lang = ? AND type != 'case' AND (title LIKE ? OR summary LIKE ?)",
+            [$searchLang, $kw, $kw]
         );
         $results = db()->fetchAll(
             "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, 'article' as _type
              FROM " . DB_PREFIX . "contents c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-             WHERE c.status = 1 AND c.type != 'case' AND (c.title LIKE ? OR c.summary LIKE ?)
+             WHERE c.status = 1 AND c.lang = ? AND c.type != 'case' AND (c.title LIKE ? OR c.summary LIKE ?)
              ORDER BY c.publish_time DESC LIMIT ? OFFSET ?",
-            [$kw, $kw, $perPage, $offset]
+            [$searchLang, $kw, $kw, $perPage, $offset]
         );
 
     } else {
         // 全部搜索：合并内容 + 产品 + 下载
         // 内容（文章+案例）
         $contentTotal = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND (title LIKE ? OR summary LIKE ?)", [$kw, $kw]
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND lang = ? AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]
         );
         $productTotal = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND (title LIKE ? OR summary LIKE ?)", [$kw, $kw]
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND lang = ? AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]
         );
         $downloadTotal = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND (title LIKE ? OR description LIKE ?)", [$kw, $kw]
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND lang = ? AND (title LIKE ? OR description LIKE ?)", [$searchLang, $kw, $kw]
         );
         $total = $contentTotal + $productTotal + $downloadTotal;
 
@@ -106,7 +107,7 @@ if ($keyword !== '') {
             // c.type 除了别名成 _type（供下方分支判断），还要以原名选出——
             // contentUrl() 读的是 type，只有 _type 会让文章链接退化成 404 地址
             globalSearchQuery(DB_PREFIX),
-            [$kw, $kw, $kw, $kw, $kw, $kw, $perPage, $offset]
+            [$searchLang, $kw, $kw, $searchLang, $kw, $kw, $searchLang, $kw, $kw, $perPage, $offset]
         );
     }
 }
@@ -115,10 +116,10 @@ if ($keyword !== '') {
 $typeCounts = [];
 if ($keyword !== '') {
     $kw = '%' . $keyword . '%';
-    $typeCounts['article'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND type != 'case' AND (title LIKE ? OR summary LIKE ?)", [$kw, $kw]);
-    $typeCounts['product'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND (title LIKE ? OR summary LIKE ?)", [$kw, $kw]);
-    $typeCounts['case'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND type = 'case' AND (title LIKE ? OR summary LIKE ?)", [$kw, $kw]);
-    $typeCounts['download'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND (title LIKE ? OR description LIKE ?)", [$kw, $kw]);
+    $typeCounts['article'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND lang = ? AND type != 'case' AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]);
+    $typeCounts['product'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND lang = ? AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]);
+    $typeCounts['case'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND lang = ? AND type = 'case' AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]);
+    $typeCounts['download'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND lang = ? AND (title LIKE ? OR description LIKE ?)", [$searchLang, $kw, $kw]);
     $typeCounts['all'] = array_sum($typeCounts);
 }
 
@@ -138,7 +139,8 @@ require_once theme_path('layouts/header.php');
     <div class="container mx-auto px-4">
         <div class="max-w-2xl mx-auto">
             <h1 class="text-white text-2xl font-bold text-center mb-6"><?php echo __('search_title'); ?></h1>
-            <form method="GET" action="<?php echo e(searchUrl()); ?>" class="relative">
+            <form method="GET" action="<?php echo e(dynamicFormAction(searchUrl())); ?>" class="relative">
+                <?php echo dynamicFormHiddenInputs('search'); ?>
                 <input type="hidden" name="type" value="<?php echo e($type); ?>" id="searchType">
                 <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                        class="w-full px-5 py-3.5 pr-14 rounded-lg text-base border-0 shadow-lg focus:ring-2 focus:ring-blue-300 outline-none"

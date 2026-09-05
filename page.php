@@ -239,7 +239,7 @@ $navChannels = getNavChannels();
 
 // SEO: OpenGraph & canonical
 $siteUrl = siteBaseUrl();
-$canonicalUrl = $siteUrl . channelUrl($channel);
+$canonicalUrl = $siteUrl . channelPrettyUrl($channel);
 if (!empty($channel['image'])) {
     $ogImage = $channel['image'];
 }

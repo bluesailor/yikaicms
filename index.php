@@ -16,7 +16,16 @@ $__dynamicRequested = $__isIndexRequest && array_key_exists('yk_route', $_GET);
 /** @var array<string,mixed> $__queryInput */
 $__queryInput = is_array($_GET) ? $_GET : [];
 $__dynamicHit = $__dynamicRequested ? Dispatcher::dynamicQuery($__queryInput) : null;
-if (empty($_GET['_lang'])) {
+if ($__dynamicRequested) {
+    // query 模式只信任 Dispatcher 规范化后的语言。外部同时传 lang/_lang 时
+    // 必须一致；无效输入先移除，待完整初始化后返回主题化 404。
+    if ($__dynamicHit !== null && $__dynamicHit['lang'] !== null) {
+        $_GET['_lang'] = $__dynamicHit['lang'];
+        $_REQUEST['_lang'] = $__dynamicHit['lang'];
+    } else {
+        unset($_GET['_lang'], $_REQUEST['_lang']);
+    }
+} elseif (empty($_GET['_lang'])) {
     $__incomingLang = $__dynamicHit['lang'] ?? Dispatcher::dynamicLanguage($__queryInput)
         ?? Dispatcher::languagePrefixFromPath($__incomingPath);
     if ($__incomingLang !== null) {
