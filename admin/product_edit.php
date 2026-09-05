@@ -648,10 +648,21 @@ var specLabels = {
 // 预置参数（产品设置配置）：显示名并入标签映射；「从预置补齐」按缺哪补哪，不覆盖已填值
 var specPresets = <?php echo json_encode($specPresets, JSON_UNESCAPED_UNICODE); ?>;
 Object.keys(specPresets).forEach(function (k) { specLabels[k] = specPresets[k].label; });
+function specName(key) {
+    var item = specsData[key];
+    return Array.isArray(specsData) && item && typeof item === 'object' && typeof item.name === 'string' ? item.name : key;
+}
+function hasSpecName(name) {
+    return Object.keys(specsData).some(function (key) { return specName(key) === name; });
+}
 function fillSpecPresets() {
     var added = 0;
     Object.keys(specPresets).forEach(function (k) {
-        if (!specsData.hasOwnProperty(k)) { specsData[k] = specPresets[k].value || ''; added++; }
+        if (!hasSpecName(k)) {
+            if (Array.isArray(specsData)) specsData.push({name: k, value: specPresets[k].value || ''});
+            else specsData[k] = specPresets[k].value || '';
+            added++;
+        }
     });
     if (added) syncSpecs();
 }
@@ -660,8 +671,8 @@ function renderSpecs() {
     var list = document.getElementById('specsList');
     list.innerHTML = '';
     // WooCommerce 式排布：预置参数（固定显示名、按预置顺序）在前，自定义键值行在后
-    var presetOrder = Object.keys(specPresets).filter(function (k) { return specsData.hasOwnProperty(k); });
-    var customKeys = Object.keys(specsData).filter(function (k) { return !specPresets.hasOwnProperty(k); });
+    var presetOrder = Array.isArray(specsData) ? [] : Object.keys(specPresets).filter(function (k) { return Object.prototype.hasOwnProperty.call(specsData, k); });
+    var customKeys = Object.keys(specsData).filter(function (k) { return !presetOrder.includes(k); });
     if (presetOrder.length + customKeys.length === 0) {
         list.innerHTML = '<div class="text-sm text-gray-400 py-2"><?php echo __("admin_no_specs"); ?></div>';
         return;
@@ -677,8 +688,8 @@ function renderSpecs() {
     customKeys.forEach(function(key) {
         var div = document.createElement('div');
         div.className = 'flex items-center gap-2';
-        var label = specLabels[key] || key;
-        div.innerHTML = '<input type="text" value="' + escapeAttr(key) + '" class="spec-key w-32 border rounded px-3 py-1.5 text-sm bg-gray-50" placeholder="<?php echo e(__('admin_spec_key')); ?>" onchange="updateSpecKey(this)" data-old="' + escapeAttr(key) + '">' +
+        var label = specLabels[specName(key)] || specName(key);
+        div.innerHTML = '<input type="text" value="' + escapeAttr(specName(key)) + '" class="spec-key w-32 border rounded px-3 py-1.5 text-sm bg-gray-50" placeholder="<?php echo e(__('admin_spec_key')); ?>" onchange="updateSpecKey(this)" data-old="' + escapeAttr(key) + '">' +
             '<span class="text-gray-300">:</span>' +
             '<input type="text" value="' + escapeAttr(formatSpecValue(specsData[key])) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo e(__('admin_spec_value')); ?>" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
             '<span class="text-xs text-gray-400 w-16 truncate" title="' + escapeAttr(label) + '">' + escapeAttr(label) + '</span>' +
@@ -700,8 +711,9 @@ function addSpecRow() {
     var key = prompt('<?php echo __("admin_spec_key_prompt"); ?>');
     if (!key) return;
     key = key.trim();
-    if (specsData.hasOwnProperty(key)) { alert('<?php echo __("admin_spec_exists"); ?>'); return; }
-    specsData[key] = '';
+    if (hasSpecName(key)) { alert('<?php echo __("admin_spec_exists"); ?>'); return; }
+    if (Array.isArray(specsData)) specsData.push({name: key, value: ''});
+    else specsData[key] = '';
     syncSpecs();
     // 聚焦到新行的值输入框
     var inputs = document.querySelectorAll('.spec-val');
@@ -711,8 +723,14 @@ function addSpecRow() {
 function updateSpecKey(el) {
     var oldKey = el.dataset.old;
     var newKey = el.value.trim();
-    if (!newKey || newKey === oldKey) return;
-    if (specsData.hasOwnProperty(newKey)) { alert('<?php echo __("admin_spec_exists"); ?>'); el.value = oldKey; return; }
+    if (!newKey || newKey === specName(oldKey)) { el.value = specName(oldKey); return; }
+    if (hasSpecName(newKey)) { alert('<?php echo __("admin_spec_exists"); ?>'); el.value = specName(oldKey); return; }
+    if (Array.isArray(specsData)) {
+        if (specsData[oldKey] && typeof specsData[oldKey] === 'object') specsData[oldKey].name = newKey;
+        else specsData[oldKey] = {name: newKey, value: specsData[oldKey]};
+        syncSpecs();
+        return;
+    }
     specsData[newKey] = specsData[oldKey];
     delete specsData[oldKey];
     syncSpecs();
@@ -720,12 +738,15 @@ function updateSpecKey(el) {
 
 function updateSpecVal(el) {
     var key = el.dataset.key;
-    specsData[key] = el.value;
+    if (Array.isArray(specsData) && specsData[key] && typeof specsData[key] === 'object' && Object.prototype.hasOwnProperty.call(specsData[key], 'value')) {
+        specsData[key].value = el.value;
+    } else specsData[key] = el.value;
     document.getElementById('specsInput').value = JSON.stringify(specsData);
 }
 
 function removeSpec(key) {
-    delete specsData[key];
+    if (Array.isArray(specsData)) specsData.splice(Number(key), 1);
+    else delete specsData[key];
     syncSpecs();
 }
 
