@@ -113,6 +113,20 @@ $downloadClearUrl = $downloadUsesDynamicRoute
                         </tbody>
                     </table>
                 </div>
+                <?php
+                $totalPages = (int) ceil($total / $perPage);
+                $pageUrl = static function (int $number) use ($channel, $keyword, $dlCatId): string {
+                    $params = [];
+                    if ($keyword !== '') $params['keyword'] = $keyword;
+                    if ($dlCatId > 0) $params['cat'] = $dlCatId;
+                    if (isDynamicUrlMode()) {
+                        return dynamicUrl('list', array_merge($params, ['id' => (int) $channel['id'], 'page' => $number]));
+                    }
+                    $params['page'] = $number;
+                    return channelUrl($channel) . '?' . http_build_query($params);
+                };
+                require theme_path('partials/pagination.php');
+                ?>
                 <?php else: ?>
                 <div class="text-center py-16 text-gray-500 bg-white rounded-lg">
                     <?php echo __('no_content'); ?>

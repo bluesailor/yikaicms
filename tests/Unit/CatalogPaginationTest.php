@@ -39,4 +39,23 @@ final class CatalogPaginationTest extends TestCase
             self::assertFalse(validCatalogPageSize($value));
         }
     }
+
+    public function testChannelOverridePrecedesTypeAndIsIsolated(): void
+    {
+        $before = $GLOBALS['yikai_config_runtime_overrides'] ?? [];
+        try {
+            $GLOBALS['yikai_config_runtime_overrides'] = [
+                'catalog_case_page_size' => '16',
+                'catalog_channel_42_page_size' => '8',
+            ];
+            self::assertSame(8, catalogPageSize('case', 12, 42));
+            self::assertSame(16, catalogPageSize('case', 12, 43));
+            $GLOBALS['yikai_config_runtime_overrides']['catalog_channel_42_page_size'] = '';
+            self::assertSame(16, catalogPageSize('case', 12, 42));
+            $GLOBALS['yikai_config_runtime_overrides']['catalog_channel_42_page_size'] = '101';
+            self::assertSame(16, catalogPageSize('case', 12, 42));
+        } finally {
+            $GLOBALS['yikai_config_runtime_overrides'] = $before;
+        }
+    }
 }

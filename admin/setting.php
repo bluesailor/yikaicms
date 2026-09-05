@@ -34,6 +34,17 @@ $_currentLangKeys = $TAB_LANG_KEYS[$_tabForLang] ?? [];
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? 'save';
+    if ($action === 'save_channel_pagination') {
+        verifyCsrf();
+        $channelId = postInt('channel_id');
+        $target = channelModel()->find($channelId);
+        if (!$target || !in_array($target['type'], ['list', 'product', 'case', 'download', 'job'], true)) error(__('admin_bad_params'), 422);
+        $value = $_POST['channel_page_size'] ?? null;
+        if (!validCatalogPageSize($value)) error(__('catalog_page_size_invalid'), 422);
+        settingModel()->saveBatch(['catalog_channel_' . $channelId . '_page_size' => $value]);
+        adminLog('setting', 'update', 'Channel pagination: ' . $channelId);
+        success();
+    }
 
     // 恢复默认值
     if ($action === 'restore_defaults') {
@@ -113,6 +124,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('catalog_page_size_invalid'), 422);
         }
     }
+    foreach (array_keys($settings) as $key) {
+        if (str_starts_with((string) $key, 'catalog_channel_')) error(__('admin_bad_params'), 422);
+    }
 
     // header/footer tab + 非默认语言：lang-able key 重定向到 <key>_<lang>
     // tab 关联的 lang keys 在 $TAB_LANG_KEYS 里定义
@@ -142,6 +156,9 @@ $groupMap = [
     // 'lang' tab 不对应任何 settings 组——靠两个独立卡片渲染
 ];
 $group = $groupMap[$tab] ?? 'basic';
+$paginationChannel = $tab === 'pagination' && getInt('channel_id') > 0
+    ? channelModel()->find(getInt('channel_id')) : null;
+if ($paginationChannel && !in_array($paginationChannel['type'], ['list', 'product', 'case', 'download', 'job'], true)) $paginationChannel = null;
 
 // lang tab 不读 settings 行
 $items = $tab === 'lang' ? [] : settingModel()->getByGroup($group);
@@ -472,6 +489,17 @@ async function saveAdminLanguages() {
 <?php endif; ?>
 
 <?php if ($tab !== 'lang'): ?>
+<?php if ($paginationChannel): ?>
+<form id="channelPaginationForm" class="space-y-3 mb-6">
+    <input type="hidden" name="action" value="save_channel_pagination">
+    <input type="hidden" name="channel_id" value="<?= (int) $paginationChannel['id'] ?>">
+    <h2 class="font-bold text-gray-800"><?= e(__('catalog_channel_pagination')) ?>: <?= e((string) $paginationChannel['name']) ?></h2>
+    <label for="channel-page-size"><?= e(__('catalog_channel_page_size')) ?></label>
+    <input id="channel-page-size" type="number" min="1" max="100" step="1" name="channel_page_size" class="border rounded px-4 py-2" value="<?= e((string) config('catalog_channel_' . (int) $paginationChannel['id'] . '_page_size', '')) ?>">
+    <p class="text-sm text-gray-500"><?= e(__('catalog_channel_inherit')) ?></p>
+    <button type="submit" class="bg-primary text-white px-4 py-2 rounded"><?= e(__('admin_save')) ?></button>
+</form>
+<?php endif; ?>
 <form id="settingForm" class="space-y-6">
     <?php echo adminLangField(); ?>
     <input type="hidden" name="tab_hint" value="<?php echo e($tab); ?>">
@@ -1005,6 +1033,10 @@ document.getElementById('settingForm')?.addEventListener('submit', function (e) 
         successMsg: '<?php echo __('admin_saved'); ?>',
         errorMsg:   '<?php echo __('admin_request_failed'); ?>',
     });
+});
+document.getElementById('channelPaginationForm')?.addEventListener('submit', function (event) {
+    event.preventDefault();
+    adminSave(this, { url: location.href });
 });
 
 // ========== 页脚导航编辑器 ==========
