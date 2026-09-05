@@ -25,8 +25,9 @@ final class BloxAreaEditorTarget
      * @param string $back 返回目的地白名单标记（如 'home'=首页编辑器）。
      *                     从首页/页面编辑器画布跳来的用户，编辑完页头要能一键回到
      *                     出发点——此前固定回模板列表页，是「编辑页头很绕」的主断点。
+     * @param string $themesRoot 可选主题根，用于隔离验证；生产调用保持空值。
      */
-    public static function url(string $area, array $context = [], string $back = ''): string
+    public static function url(string $area, array $context = [], string $back = '', string $themesRoot = ''): string
     {
         if (!in_array($area, ['header', 'footer'], true)) {
             return '/admin/site_design.php';
@@ -38,7 +39,7 @@ final class BloxAreaEditorTarget
                 return $fallback;
             }
 
-            if (self::customAreaEnabled($area) && self::themeRendersArea($area)) {
+            if (self::customAreaEnabled($area) && self::themeRendersArea($area, $themesRoot)) {
                 $templates = bloxTemplateModel()->publishedAreaTemplates($area);
                 $resolved = $templates === [] ? null : BloxAreaResolver::resolve($templates, [
                     'home' => (bool) ($context['home'] ?? false),
@@ -55,7 +56,7 @@ final class BloxAreaEditorTarget
             // 自定义区域停用或当前上下文没有命中时，前台实际显示主题布局。
             // default 主题的内置起步模板是该布局的可编辑对应物；不能退回去编辑
             // 一个仍在数据库中、但当前没有参与渲染的已发布模板。
-            $sourceRef = self::defaultThemeSourceRef($area);
+            $sourceRef = self::defaultThemeSourceRef($area, $themesRoot);
             if ($sourceRef === '') {
                 return $fallback;
             }
@@ -241,9 +242,9 @@ final class BloxAreaEditorTarget
         return (string) config($key, '1') === '1';
     }
 
-    private static function defaultThemeSourceRef(string $area): string
+    private static function defaultThemeSourceRef(string $area, string $themesRoot = ''): string
     {
-        $theme = self::activeTheme();
+        $theme = self::activeTheme($themesRoot);
         if ($area === 'footer') {
             return match ($theme) {
                 'default' => 'clean-site-footer',
@@ -261,17 +262,18 @@ final class BloxAreaEditorTarget
         return 'clean-site-header';
     }
 
-    private static function activeTheme(): string
+    private static function activeTheme(string $themesRoot = ''): string
     {
         if (defined('ROOT_PATH') && class_exists('ThemeRuntime')) {
-            return ThemeRuntime::resolve((string) config('current_theme', 'default'), ROOT_PATH . '/themes');
+            $root = $themesRoot !== '' ? $themesRoot : ROOT_PATH . '/themes';
+            return ThemeRuntime::resolve((string) config('current_theme', 'default'), $root);
         }
         return (string) config('current_theme', 'default') === 'business' ? 'business' : 'default';
     }
 
-    private static function themeRendersArea(string $area): bool
+    private static function themeRendersArea(string $area, string $themesRoot = ''): bool
     {
-        $layout = self::themeLayoutPath($area);
+        $layout = self::themeLayoutPath($area, $themesRoot);
         if ($layout === null || !is_file($layout)) {
             return false;
         }
@@ -279,7 +281,7 @@ final class BloxAreaEditorTarget
         return preg_match('/\bbloxAreaHtml\s*\(\s*[\'"]' . preg_quote($area, '/') . '[\'"]/', $source) === 1;
     }
 
-    private static function themeLayoutPath(string $area): ?string
+    private static function themeLayoutPath(string $area, string $themesRoot = ''): ?string
     {
         if (!in_array($area, ['header', 'footer'], true) || !defined('ROOT_PATH')) {
             return null;
@@ -290,7 +292,8 @@ final class BloxAreaEditorTarget
             return $override;
         }
 
-        $themePath = ROOT_PATH . '/themes/' . self::activeTheme() . '/layouts/' . $area . '.php';
+        $root = $themesRoot !== '' ? rtrim($themesRoot, '/\\') : ROOT_PATH . '/themes';
+        $themePath = $root . '/' . self::activeTheme($root) . '/layouts/' . $area . '.php';
         if (is_file($themePath)) {
             return $themePath;
         }

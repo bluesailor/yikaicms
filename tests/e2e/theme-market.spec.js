@@ -83,3 +83,17 @@ test('theme update link opens the market and highlights its theme @ci', async ({
   await expect(business).toHaveClass(/ring-amber-400/);
   expect(consoleEntries, 'focused theme market should keep the console clean').toEqual([]);
 });
+
+test('invalid theme market slugs return a real client error @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'one authenticated HTTP contract check is sufficient');
+  await page.goto('/admin/theme.php', { waitUntil: 'domcontentloaded' });
+  const token = await page.locator('meta[name="csrf-token"]').getAttribute('content');
+  const result = await page.evaluate(async (csrf) => {
+    const body = new URLSearchParams({ action: 'market_install', slug: '../invalid', _token: csrf || '' });
+    const response = await fetch('/admin/theme.php', { method: 'POST', body });
+    return { status: response.status, json: await response.json() };
+  }, token);
+
+  expect(result.status).toBe(422);
+  expect(result.json.code).toBe(1);
+});
