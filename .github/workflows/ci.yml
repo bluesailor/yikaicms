@@ -502,12 +502,16 @@ jobs:
 
   # ─── R31 已完成本地稳定期，R32 将同一受保护运行器提升为强制 CI 门禁。
   e2e:
-    name: Blox Browser Regression
+    name: Blox Browser Regression (${{ matrix.project }})
     runs-on: ubuntu-latest
     # 强制门禁（与单测同级）：r8–r10 观察期全绿；r11 首次转强制被并行图标线的
     # 半成品 404 击穿后回退，图标专项原子入库（icon-library-integration 轮）后恢复。
-    # 浏览器下载偶发卡死；单次 7 分钟超时后自动重试，整项留足测试执行时间。
+    # 三个视口各自使用独立站点、端口和数据库并行回归，避免串行矩阵在 30 分钟内被截断。
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-1440, tablet-768, mobile-390]
     steps:
       - uses: actions/checkout@v4
 
@@ -567,11 +571,19 @@ jobs:
       - name: Run Blox browser regression
         if: steps.blox_src.outputs.present == 'true'
         env:
-          BLOX_E2E_OUTPUT_DIR: ${{ github.workspace }}/test-results/e2e
-          BLOX_E2E_REPORT_DIR: ${{ github.workspace }}/playwright-report
-          BLOX_E2E_SERVER_LOG: ${{ github.workspace }}/test-results/e2e/php-server.log
+          BLOX_E2E_OUTPUT_DIR: ${{ github.workspace }}/test-results/e2e-${{ matrix.project }}
+          BLOX_E2E_REPORT_DIR: ${{ github.workspace }}/playwright-report-${{ matrix.project }}
+          BLOX_E2E_SERVER_LOG: ${{ github.workspace }}/test-results/e2e-${{ matrix.project }}/php-server.log
         run: |
-          node tests/e2e/run-local.js --grep "@ci"
+          node tests/e2e/run-local.js --grep "@ci" --project=${{ matrix.project }}
+
+      - name: Run desktop supplementary browser regression
+        if: steps.blox_src.outputs.present == 'true' && matrix.project == 'desktop-1440'
+        env:
+          BLOX_E2E_OUTPUT_DIR: ${{ github.workspace }}/test-results/e2e-supplementary
+          BLOX_E2E_REPORT_DIR: ${{ github.workspace }}/playwright-report-supplementary
+          BLOX_E2E_SERVER_LOG: ${{ github.workspace }}/test-results/e2e-supplementary/php-server.log
+        run: |
           node tests/e2e/run-local.js --lang=en tests/e2e/blox-home-language.spec.js --project=desktop-1440
           node tests/e2e/run-local.js --lang=ja tests/e2e/blox-home-language.spec.js --project=desktop-1440
           node tests/e2e/run-local.js --free tests/e2e/blox-page.spec.js --project=desktop-1440
@@ -582,16 +594,18 @@ jobs:
           echo "=== storage/logs ==="
           cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
           echo "=== php server log ==="
-          cat test-results/e2e/php-server.log 2>/dev/null || echo "(no server log)"
+          cat test-results/e2e-${{ matrix.project }}/php-server.log 2>/dev/null || cat test-results/e2e-supplementary/php-server.log 2>/dev/null || echo "(no server log)"
 
       - name: Upload Playwright diagnostics
         if: failure() && steps.blox_src.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: blox-playwright-diagnostics
+          name: blox-playwright-diagnostics-${{ matrix.project }}
           path: |
-            test-results/e2e
-            playwright-report
+            test-results/e2e-${{ matrix.project }}
+            playwright-report-${{ matrix.project }}
+            test-results/e2e-supplementary
+            playwright-report-supplementary
             storage/logs
           if-no-files-found: ignore
           retention-days: 7
