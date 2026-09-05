@@ -1117,6 +1117,46 @@ function listShowEl(?array $opts, string $el): bool
 /**
  * 获取栏目URL（SEO友好）
  */
+function urlMode(): string
+{
+    return (string) config('url_mode', 'pretty') === 'query' ? 'query' : 'pretty';
+}
+
+function isDynamicUrlMode(): bool
+{
+    return urlMode() === 'query';
+}
+
+/** @param array<string,mixed> $params */
+function dynamicUrl(string $route, array $params = [], ?string $lang = null): string
+{
+    $query = ['yk_route' => $route];
+    foreach ($params as $key => $value) {
+        if ($value !== null && $value !== '' && $value !== false) $query[$key] = $value;
+    }
+    $defaultLang = (string) config('site_lang', 'zh-CN');
+    $targetLang = $lang ?? siteLang();
+    if ($targetLang !== '' && $targetLang !== $defaultLang) $query['lang'] = $targetLang;
+    return '/index.php?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+}
+
+function dynamicUrlIfEnabled(string $route, array $params = []): ?string
+{
+    return isDynamicUrlMode() ? dynamicUrl($route, $params) : null;
+}
+
+function searchUrl(string $keyword = '', string $type = 'all', int $page = 1): string
+{
+    $params = [];
+    if ($keyword !== '') $params['keyword'] = $keyword;
+    if ($type !== '' && $type !== 'all') $params['type'] = $type;
+    if ($page > 1) $params['page'] = $page;
+    $dynamic = dynamicUrlIfEnabled('search', $params);
+    if ($dynamic !== null) return $dynamic;
+    $url = langPrefix() . '/search.php';
+    return $params === [] ? $url : $url . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+}
+
 function channelUrl(array $channel): string
 {
     if ($channel['type'] === 'link') {
@@ -1124,7 +1164,29 @@ function channelUrl(array $channel): string
     }
 
     $prefix = langPrefix();
-    $slug = $channel['slug'] ?? '';
+    $slug = (string) ($channel['slug'] ?? '');
+    $id = (int) ($channel['id'] ?? 0);
+    $type = (string) ($channel['type'] ?? 'list');
+    if (isDynamicUrlMode()) {
+        if ($type === 'page') {
+            if ($slug === '') return dynamicUrl('page', ['id' => $id]);
+            $params = ['slug' => $slug];
+            if (!empty($channel['parent_id'])) {
+                $parent = getChannel((int) $channel['parent_id']);
+                if ($parent && !empty($parent['slug'])) $params['parent'] = (string) $parent['slug'];
+            }
+            return dynamicUrl('page', $params);
+        }
+        if ($type === 'product') {
+            $isRoot = (int) ($channel['parent_id'] ?? 0) === 0;
+            return dynamicUrl('product_list', !$isRoot && $slug !== '' ? ['cat' => $slug] : []);
+        }
+        if ($type === 'download') {
+            $isRoot = (int) ($channel['parent_id'] ?? 0) === 0;
+            return dynamicUrl('download_list', !$isRoot && $slug !== '' ? ['cat' => $slug] : []);
+        }
+        return dynamicUrl('list', $slug !== '' ? ['slug' => $slug] : ['id' => $id]);
+    }
     if (empty($slug)) {
         if ($channel['type'] === 'page') {
             return $prefix . '/page/' . $channel['id'] . '.html';
@@ -1144,6 +1206,30 @@ function channelUrl(array $channel): string
     } else {
         return $prefix . '/' . $slug . '.html';
     }
+}
+
+/**
+ * 生成栏目分页的动态 URL；漂亮 URL 由调用方保留既有拼接规则。
+ * @param array<string,mixed> $params
+ */
+function dynamicChannelPageUrl(array $channel, int $page = 1, array $params = []): ?string
+{
+    if (!isDynamicUrlMode()) return null;
+    $type = (string) ($channel['type'] ?? 'list');
+    $slug = (string) ($channel['slug'] ?? '');
+    if ($type === 'product') {
+        $route = 'product_list';
+        if ((int) ($channel['parent_id'] ?? 0) !== 0 && $slug !== '') $params['cat'] = $slug;
+    } elseif ($type === 'download') {
+        $route = 'download_list';
+        if ((int) ($channel['parent_id'] ?? 0) !== 0 && $slug !== '') $params['cat'] = $slug;
+    } else {
+        $route = 'list';
+        if ($slug !== '') $params['slug'] = $slug;
+        else $params['id'] = (int) ($channel['id'] ?? 0);
+    }
+    if ($page > 1) $params['page'] = $page;
+    return dynamicUrl($route, $params);
 }
 
 // ============================================================
@@ -1263,17 +1349,21 @@ function contentUrl(array $content): string
     }
 
     $prefix = langPrefix();
-    $slug = $content['slug'] ?? '';
-    $channelSlug = $content['channel_slug'] ?? '';
-    $channelType = $content['channel_type'] ?? '';
+    $slug = (string) ($content['slug'] ?? '');
+    $channelSlug = (string) ($content['channel_slug'] ?? '');
+    $channelType = (string) ($content['channel_type'] ?? '');
+    $id = (int) ($content['id'] ?? 0);
+    $safeSlug = preg_match('/^[a-z0-9_-]+$/', $slug) === 1 ? $slug : '';
 
     // 下载类型使用 /download/detail/{id}.html
     if ($channelType === 'download') {
+        if (isDynamicUrlMode()) return dynamicUrl('download', $safeSlug !== '' ? ['slug' => $safeSlug] : ['id' => $id]);
         return $prefix . '/download/detail/' . $content['id'] . '.html';
     }
 
     // 案例类型使用 /case/{slug}.html 或 /case/{id}.html
     if ($channelType === 'case') {
+        if (isDynamicUrlMode()) return dynamicUrl('case', $safeSlug !== '' ? ['slug' => $safeSlug] : ['id' => $id]);
         if (!empty($slug)) {
             return $prefix . '/case/' . $slug . '.html';
         }
@@ -1286,6 +1376,7 @@ function contentUrl(array $content): string
     // 前台各处（news.php、首页栏目区块）曾各自硬编码绕开本函数，现统一由此出。
     // 注意按内容自身的 type 判断：新闻子栏目的 channel_type 是 'list'，不是 'article'
     if (($content['type'] ?? '') === 'article') {
+        if (isDynamicUrlMode()) return dynamicUrl('article', $safeSlug !== '' ? ['slug' => $safeSlug] : ['id' => $id]);
         return $prefix . '/news/article/' . (!empty($slug) ? $slug : $content['id']) . '.html';
     }
 
@@ -1294,6 +1385,7 @@ function contentUrl(array $content): string
     if ($channelType !== '' && !empty($slug)) {
         $pmap = contentModelModel()->prefixMap();
         if (isset($pmap[$channelType])) {
+            if (isDynamicUrlMode()) return dynamicUrl('detail', ['id' => $id]);
             return $prefix . '/' . $pmap[$channelType] . '/' . $slug . '.html';
         }
     }
@@ -1304,6 +1396,7 @@ function contentUrl(array $content): string
     }
 
     // 否则使用ID格式
+    if (isDynamicUrlMode()) return dynamicUrl('detail', ['id' => $id]);
     return $prefix . '/detail/' . $content['id'] . '.html';
 }
 
@@ -1312,6 +1405,7 @@ function contentUrl(array $content): string
  */
 function jobUrl(array $job): string
 {
+    if (isDynamicUrlMode()) return dynamicUrl('job', ['id' => (int) ($job['id'] ?? 0)]);
     return langPrefix() . '/job/' . $job['id'] . '.html';
 }
 
@@ -1365,8 +1459,12 @@ function addProductViews(int $id): int
 function productUrl(array $product): string
 {
     $prefix = langPrefix();
-    $slug = $product['slug'] ?? '';
-    $categorySlug = $product['category_slug'] ?? '';
+    $slug = (string) ($product['slug'] ?? '');
+    $categorySlug = (string) ($product['category_slug'] ?? '');
+    if (isDynamicUrlMode()) {
+        $safeSlug = preg_match('/^[a-z0-9_-]+$/', $slug) === 1 ? $slug : '';
+        return dynamicUrl('product', $safeSlug !== '' ? ['slug' => $safeSlug] : ['id' => (int) ($product['id'] ?? 0)]);
+    }
 
     // 如果产品和分类都有slug，使用友好URL
     if (!empty($slug) && !empty($categorySlug)) {
@@ -1459,6 +1557,10 @@ function getProductCategoryBySlug(string $slug): ?array
  */
 function productCategoryUrl(array $category): string
 {
+    if (isDynamicUrlMode()) {
+        $slug = (string) ($category['slug'] ?? '');
+        return dynamicUrl('product_list', $slug !== '' ? ['cat' => $slug] : ['cat' => (int) ($category['id'] ?? 0)]);
+    }
     $prefix = langPrefix();
     $slug = $category['slug'] ?? '';
     if (!empty($slug)) {
@@ -1473,6 +1575,10 @@ function productCategoryUrl(array $category): string
  */
 function downloadCategoryUrl(array $category): string
 {
+    if (isDynamicUrlMode()) {
+        $slug = (string) ($category['slug'] ?? '');
+        return dynamicUrl('download_list', $slug !== '' ? ['cat' => $slug] : ['cat' => (int) ($category['id'] ?? 0)]);
+    }
     $prefix = langPrefix();
     $slug = $category['slug'] ?? '';
     if (!empty($slug)) {
@@ -2890,8 +2996,9 @@ function renderBannerShortcode(string $slug): string
     $html .= '<div id="' . e($uid) . '" class="swiper ' . e($uid) . '"' . $runtimeAttributes . '>';
     $html .= '<div class="swiper-wrapper">';
 
-    foreach ($banners as $b) {
-        $b = HomeBannerItemElement::normalize($b);
+    $bannerCount = count($banners);
+    for ($bannerIndex = 0; $bannerIndex < $bannerCount; $bannerIndex++) {
+        $b = HomeBannerItemElement::normalize($banners[$bannerIndex]);
         $html .= '<div class="swiper-slide"' . HomeBannerItemElement::motionAttributes($b) . '>';
         $html .= HomeBannerItemElement::responsiveLinkedMediaHtml($b);
         if ($b['title']) {
@@ -3718,6 +3825,21 @@ function langUrl(string $url, string $lang = ''): string
 {
     $lang = $lang ?: siteLang();
     $defaultLang = (string)config('site_lang', 'zh-CN');
+    if (isDynamicUrlMode()) {
+        $parts = parse_url($url);
+        $path = is_array($parts) ? (string) ($parts['path'] ?? '/') : $url;
+        $query = [];
+        if (is_array($parts) && isset($parts['query'])) parse_str((string) $parts['query'], $query);
+        if (($query['yk_route'] ?? '') !== '') {
+            if ($lang === $defaultLang) unset($query['lang']);
+            else $query['lang'] = $lang;
+            return $path . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+        }
+        if ($path === '/' || trim($path, '/') === '' || trim($path, '/') === $defaultLang
+            || in_array(trim($path, '/'), ['en', 'ja', 'zh-CN', 'zh-TW'], true)) {
+            return dynamicUrl('home', [], $lang);
+        }
+    }
     if ($lang === $defaultLang) return $url;
     return '/' . $lang . ltrim($url, '/');
 }

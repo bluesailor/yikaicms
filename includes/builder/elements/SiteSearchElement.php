@@ -29,7 +29,7 @@ final class SiteSearchElement extends AbstractElement
         $light = ($data['tone'] ?? 'dark') === 'light';
         $showLabel = array_key_exists('show_label', $data)
             && !in_array($data['show_label'], [false, 0, '0', '', null], true);
-        $action = (function_exists('langPrefix') ? langPrefix() : '') . '/search.php';
+        $action = function_exists('searchUrl') ? searchUrl() : ((function_exists('langPrefix') ? langPrefix() : '') . '/search.php');
         $keyword = isset($_GET['keyword']) && is_string($_GET['keyword']) ? trim($_GET['keyword']) : '';
         $inputClass = $light
             ? 'border-white/30 bg-white/10 text-white placeholder:text-white/60 focus:border-white'

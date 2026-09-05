@@ -130,7 +130,7 @@ final class Dispatcher
         $route = self::queryScalar($query, 'yk_route');
         if ($route === null || !in_array($route, [
             'home', 'search', 'news', 'article', 'list', 'page', 'product',
-            'product_list', 'case', 'download', 'download_list', 'job',
+            'product_list', 'case', 'download', 'download_list', 'detail', 'job',
             'contact', 'history',
         ], true)) {
             return null;
@@ -176,6 +176,9 @@ final class Dispatcher
             $cat = self::slugQuery($query, 'cat');
             if (array_key_exists('cat', $query) && $cat === null) return null;
             $params = [];
+            $optional = self::optionalQueryParams($query, ['keyword']);
+            if ($optional === null) return null;
+            $params += $optional;
             $canonical = $prefix . '/news.html';
             if ($cat !== null) {
                 $params['cat'] = $cat;
@@ -199,10 +202,20 @@ final class Dispatcher
             ];
         }
 
+        if ($route === 'detail') {
+            $identity = self::identityQuery($query);
+            if ($identity === null) return null;
+            return ['file' => 'detail.php', 'params' => $identity['params'], 'lang' => $lang,
+                'canonical' => $prefix . '/detail/' . $identity['value'] . '.html'];
+        }
+
         if ($route === 'list') {
             $identity = self::identityQuery($query);
             if ($identity === null) return null;
             $params = $identity['params'];
+            $optional = self::optionalQueryParams($query, ['keyword', 'sort', 'brand', 'tag', 'pmin', 'pmax']);
+            if ($optional === null) return null;
+            $params += $optional;
             $canonical = $identity['kind'] === 'id'
                 ? $prefix . '/list/' . $identity['value'] . '.html'
                 : $prefix . '/' . $identity['value'] . '.html';
@@ -242,6 +255,9 @@ final class Dispatcher
             $fixedSlug = $route === 'product_list' ? 'product' : 'download';
             $base = $prefix . '/' . $fixedSlug;
             $params = ['slug' => $fixedSlug];
+            $optional = self::optionalQueryParams($query, ['keyword', 'sort', 'brand', 'tag', 'pmin', 'pmax']);
+            if ($optional === null) return null;
+            $params += $optional;
             if ($cat !== null) {
                 $params['cat'] = $cat;
                 $base .= '/' . $cat;
@@ -341,6 +357,19 @@ final class Dispatcher
         return $id !== null
             ? ['kind' => 'id', 'value' => $id, 'params' => ['id' => $id]]
             : ['kind' => 'slug', 'value' => $slug, 'params' => ['slug' => $slug]];
+    }
+
+    /** @param array<string,mixed> $query @param string[] $keys @return array<string,string>|null */
+    private static function optionalQueryParams(array $query, array $keys): ?array
+    {
+        $params = [];
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $query)) continue;
+            $value = self::queryScalar($query, $key);
+            if ($value === null || strlen($value) > 200) return null;
+            if ($value !== '') $params[$key] = $value;
+        }
+        return $params;
     }
 
     /**

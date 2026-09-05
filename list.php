@@ -526,6 +526,14 @@ $horizRootChannel = $channel;
         <?php
         $totalPages = (int)ceil($total / $perPage);
         $pageUrl = function(int $p) use ($channel, $keyword, $productCategory, $currentSort): string {
+            if (isDynamicUrlMode()) {
+                $params = [];
+                if ($keyword !== '') $params['keyword'] = $keyword;
+                if ($currentSort !== 'default') $params['sort'] = $currentSort;
+                if ($productCategory && !empty($productCategory['slug'])) $params['cat'] = (string) $productCategory['slug'];
+                return dynamicChannelPageUrl($channel, $p, $params)
+                    ?? dynamicUrl('list', ['id' => (int) ($channel['id'] ?? 0), 'page' => $p]);
+            }
             $extraParams = '';
             if ($keyword !== '') $extraParams .= '&keyword=' . urlencode($keyword);
             if (isset($currentSort) && $currentSort !== 'default') $extraParams .= '&sort=' . urlencode($currentSort);
@@ -592,6 +600,10 @@ $horizRootChannel = $channel;
         <?php
         $totalPages = (int)ceil($total / $perPage);
         $pageUrl = function(int $p) use ($channel, $keyword): string {
+            if (isDynamicUrlMode()) {
+                return dynamicChannelPageUrl($channel, $p, $keyword !== '' ? ['keyword' => $keyword] : [])
+                    ?? dynamicUrl('list', ['id' => (int) ($channel['id'] ?? 0), 'page' => $p]);
+            }
             $slug = $channel['slug'] ?? '';
             $keywordParam = $keyword !== '' ? '?keyword=' . urlencode($keyword) : '';
             if ($p === 1) {

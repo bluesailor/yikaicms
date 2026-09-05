@@ -111,6 +111,23 @@ final class DispatcherTest extends TestCase
         $this->assertSame('search.php', $search['file']);
         $this->assertSame(['keyword' => '智能', 'type' => 'download', 'page' => '2'], $search['params']);
         $this->assertSame('/search.html', $search['canonical']);
+
+        $detail = Dispatcher::dynamicQuery([
+            'yk_route' => 'detail',
+            'id' => '12',
+            'keyword' => 'ignored',
+        ]);
+        $this->assertSame('detail.php', $detail['file']);
+        $this->assertSame(['id' => '12'], $detail['params']);
+        $this->assertSame('/detail/12.html', $detail['canonical']);
+
+        $list = Dispatcher::dynamicQuery([
+            'yk_route' => 'list',
+            'slug' => 'news',
+            'page' => '2',
+            'keyword' => '智能',
+        ]);
+        $this->assertSame(['slug' => 'news', 'keyword' => '智能', 'page' => '2'], $list['params']);
     }
 
     public function testDynamicQueryRejectsAmbiguousOrUnsafeInput(): void

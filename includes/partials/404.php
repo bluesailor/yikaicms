@@ -13,7 +13,7 @@ $__msg = isset($notFoundMessage) && $notFoundMessage !== '' ? (string) $notFound
         <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mt-2"><?php echo e($__msg); ?></h1>
         <p class="text-gray-500 mt-3"><?php echo e(__('error_404_desc')); ?></p>
 
-        <form action="/search.php" method="get" class="mt-8 flex items-center gap-2 max-w-md mx-auto">
+        <form action="<?php echo e(function_exists('searchUrl') ? searchUrl() : '/search.php'); ?>" method="get" class="mt-8 flex items-center gap-2 max-w-md mx-auto">
             <input type="text" name="q" placeholder="<?php echo e(__('error_404_search_placeholder')); ?>"
                    class="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary">
             <button type="submit" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-3 rounded-lg text-sm transition whitespace-nowrap">
