@@ -117,6 +117,233 @@ final class Dispatcher
     }
 
     /**
+     * 解析未配置 rewrite 时的 index.php 查询入口。
+     *
+     * 这不是第二套路由系统：返回值与 match() 保持同一形状，最终仍由现有页面入口渲染。
+     * 只接受文档化的 yk_route 白名单，避免把任意 GET 参数变成文件或 SQL 入口。
+     *
+     * @param array<string,mixed> $query
+     * @return array{file:string, params:array<string,string>, lang:?string, canonical:string}|null
+     */
+    public static function dynamicQuery(array $query): ?array
+    {
+        $route = self::queryScalar($query, 'yk_route');
+        if ($route === null || !in_array($route, [
+            'home', 'search', 'news', 'article', 'list', 'page', 'product',
+            'product_list', 'case', 'download', 'download_list', 'job',
+            'contact', 'history',
+        ], true)) {
+            return null;
+        }
+
+        $lang = self::queryLanguage($query);
+        if (array_key_exists('lang', $query)
+            && (self::queryScalar($query, 'lang') === null || $lang === null)) {
+            return null;
+        }
+
+        $prefix = $lang === null ? '' : '/' . $lang;
+        $page = self::positiveQuery($query, 'page');
+        if (array_key_exists('page', $query) && $page === null) {
+            return null;
+        }
+
+        if ($route === 'home') {
+            return ['file' => '', 'params' => [], 'lang' => $lang, 'canonical' => $prefix . '/'];
+        }
+        if ($route === 'contact') {
+            return ['file' => 'contact.php', 'params' => [], 'lang' => $lang, 'canonical' => $prefix . '/contact.html'];
+        }
+        if ($route === 'history') {
+            return ['file' => 'history.php', 'params' => [], 'lang' => $lang, 'canonical' => $prefix . '/about/history.html'];
+        }
+        if ($route === 'search') {
+            $keyword = self::queryScalar($query, 'keyword') ?? '';
+            $type = self::queryScalar($query, 'type') ?? 'all';
+            if ((array_key_exists('keyword', $query) && self::queryScalar($query, 'keyword') === null)
+                || (array_key_exists('type', $query) && self::queryScalar($query, 'type') === null)) {
+                return null;
+            }
+            if (!in_array($type, ['all', 'article', 'product', 'case', 'download'], true)) {
+                return null;
+            }
+            $params = ['keyword' => $keyword, 'type' => $type];
+            if ($page !== null) $params['page'] = $page;
+            return ['file' => 'search.php', 'params' => $params, 'lang' => $lang, 'canonical' => $prefix . '/search.html'];
+        }
+
+        if ($route === 'news') {
+            $cat = self::slugQuery($query, 'cat');
+            if (array_key_exists('cat', $query) && $cat === null) return null;
+            $params = [];
+            $canonical = $prefix . '/news.html';
+            if ($cat !== null) {
+                $params['cat'] = $cat;
+                $canonical = $prefix . '/news/' . $cat . '.html';
+            }
+            if ($page !== null) {
+                $params['page'] = $page;
+                $canonical = $prefix . ($cat !== null ? '/news/' . $cat : '/news') . '/page/' . $page . '.html';
+            }
+            return ['file' => 'news.php', 'params' => $params, 'lang' => $lang, 'canonical' => $canonical];
+        }
+
+        if ($route === 'article') {
+            $identity = self::identityQuery($query);
+            if ($identity === null) return null;
+            return [
+                'file' => 'article.php',
+                'params' => $identity['params'],
+                'lang' => $lang,
+                'canonical' => $prefix . '/news/article/' . $identity['value'] . '.html',
+            ];
+        }
+
+        if ($route === 'list') {
+            $identity = self::identityQuery($query);
+            if ($identity === null) return null;
+            $params = $identity['params'];
+            $canonical = $identity['kind'] === 'id'
+                ? $prefix . '/list/' . $identity['value'] . '.html'
+                : $prefix . '/' . $identity['value'] . '.html';
+            if ($page !== null) {
+                $params['page'] = $page;
+                $canonical = $identity['kind'] === 'id'
+                    ? $prefix . '/list/' . $identity['value'] . '/page/' . $page . '.html'
+                    : $prefix . '/' . $identity['value'] . '/page/' . $page . '.html';
+            }
+            return ['file' => 'list.php', 'params' => $params, 'lang' => $lang, 'canonical' => $canonical];
+        }
+
+        if ($route === 'page') {
+            $id = self::positiveQuery($query, 'id');
+            $slug = self::slugQuery($query, 'slug');
+            $parent = self::slugQuery($query, 'parent');
+            if (array_key_exists('id', $query) && $id === null) return null;
+            if (array_key_exists('slug', $query) && $slug === null) return null;
+            if ($id === null && $slug === null) return null;
+            if ($id !== null && $slug !== null) return null;
+            if ($parent !== null && $id !== null) return null;
+            if (array_key_exists('parent', $query) && $parent === null) return null;
+            $params = $id !== null ? ['id' => $id] : ['slug' => $slug];
+            $canonical = $id !== null ? $prefix . '/page/' . $id . '.html' : $prefix . '/';
+            if ($id === null && $parent !== null) {
+                $params['parent'] = $parent;
+                $canonical = $prefix . '/' . $parent . '/' . $slug . '.html';
+            } elseif ($id === null) {
+                $canonical = $prefix . '/' . $slug . '.html';
+            }
+            return ['file' => 'page.php', 'params' => $params, 'lang' => $lang, 'canonical' => $canonical];
+        }
+
+        if ($route === 'product_list' || $route === 'download_list') {
+            $cat = self::slugQuery($query, 'cat');
+            if ($cat === null && array_key_exists('cat', $query)) return null;
+            $fixedSlug = $route === 'product_list' ? 'product' : 'download';
+            $base = $prefix . '/' . $fixedSlug;
+            $params = ['slug' => $fixedSlug];
+            if ($cat !== null) {
+                $params['cat'] = $cat;
+                $base .= '/' . $cat;
+            }
+            if ($page !== null) {
+                $params['page'] = $page;
+                $base .= '/page/' . $page;
+            }
+            return ['file' => 'list.php', 'params' => $params, 'lang' => $lang, 'canonical' => $base . '.html'];
+        }
+
+        if ($route === 'product') {
+            $identity = self::identityQuery($query);
+            if ($identity === null) return null;
+            return ['file' => 'product.php', 'params' => $identity['params'], 'lang' => $lang,
+                'canonical' => $prefix . '/product/' . $identity['value'] . '.html'];
+        }
+
+        if ($route === 'case' || $route === 'download') {
+            $identity = self::identityQuery($query);
+            if ($identity === null) return null;
+            $base = $route === 'case' ? '/case/' : '/download/detail/';
+            return ['file' => 'detail.php', 'params' => $identity['params'], 'lang' => $lang,
+                'canonical' => $prefix . $base . $identity['value'] . '.html'];
+        }
+
+        if ($route === 'job') {
+            $id = self::positiveQuery($query, 'id');
+            if ($id === null) return null;
+            return ['file' => 'job_detail.php', 'params' => ['id' => $id], 'lang' => $lang,
+                'canonical' => $prefix . '/job/' . $id . '.html'];
+        }
+
+        return null;
+    }
+
+    /** @param array<string,mixed> $query */
+    public static function dynamicLanguage(array $query): ?string
+    {
+        if (!array_key_exists('yk_route', $query)) return null;
+        return self::queryLanguage($query);
+    }
+
+    /** @param array{file:string, params:array<string,string>, lang:?string, canonical:string} $hit */
+    public static function runDynamic(array $hit): void
+    {
+        if ($hit['lang'] !== null) {
+            $_GET['_lang'] = $hit['lang'];
+            $_REQUEST['_lang'] = $hit['lang'];
+        }
+        $_SERVER['YK_CANONICAL_PATH'] = $hit['canonical'];
+        foreach ($hit['params'] as $key => $value) {
+            $_GET[$key] = $value;
+            $_REQUEST[$key] = $value;
+        }
+        if ($hit['file'] === '') return;
+        require ROOT_PATH . '/' . $hit['file'];
+        exit;
+    }
+
+    /** @param array<string,mixed> $query */
+    private static function queryScalar(array $query, string $key): ?string
+    {
+        if (!array_key_exists($key, $query)) return null;
+        return is_string($query[$key]) ? trim($query[$key]) : null;
+    }
+
+    /** @param array<string,mixed> $query */
+    private static function queryLanguage(array $query): ?string
+    {
+        $lang = self::queryScalar($query, 'lang');
+        return $lang !== null && in_array($lang, self::LANG_PREFIXES, true) ? $lang : null;
+    }
+
+    /** @param array<string,mixed> $query */
+    private static function positiveQuery(array $query, string $key): ?string
+    {
+        $value = self::queryScalar($query, $key);
+        return $value !== null && preg_match('/^[1-9]\d*$/', $value) === 1 ? $value : null;
+    }
+
+    /** @param array<string,mixed> $query */
+    private static function slugQuery(array $query, string $key): ?string
+    {
+        $value = self::queryScalar($query, $key);
+        return $value !== null && preg_match('/^[a-z0-9_-]+$/', $value) === 1 ? $value : null;
+    }
+
+    /** @param array<string,mixed> $query */
+    private static function identityQuery(array $query): ?array
+    {
+        $id = self::positiveQuery($query, 'id');
+        $slug = self::slugQuery($query, 'slug');
+        if (($id !== null) === ($slug !== null)) return null;
+        if (array_key_exists('id', $query) && $id === null) return null;
+        if (array_key_exists('slug', $query) && $slug === null) return null;
+        return $id !== null
+            ? ['kind' => 'id', 'value' => $id, 'params' => ['id' => $id]]
+            : ['kind' => 'slug', 'value' => $slug, 'params' => ['slug' => $slug]];
+    }
+
+    /**
      * 分发当前请求。命中 → require 目标入口并 exit；语言前缀首页 → 设 lang 后返回（继续走首页）；
      * 未命中 → 主题化 404 并 exit。仅应在「路径非 / 且非 /index.php」时调用。
      */

@@ -16,7 +16,10 @@ if (empty($pageTitle) && !empty($seoTitle)) {
 }
 
 $siteUrl = siteBaseUrl();
-$canonicalUrl = $canonicalUrl ?? ($siteUrl . ($_SERVER['REQUEST_URI'] ?? '/'));
+$__ykCanonicalPath = trim((string) ($_SERVER['YK_CANONICAL_PATH'] ?? ''));
+$canonicalUrl = $canonicalUrl ?? ($siteUrl . ($__ykCanonicalPath !== ''
+    ? $__ykCanonicalPath
+    : ($_SERVER['REQUEST_URI'] ?? '/')));
 $ogImage = SiteAsset::availableUrl((string) (config('seo_og_image', '') ?: $siteLogo));
 if ($ogImage && !str_starts_with($ogImage, 'http')) $ogImage = $siteUrl . $ogImage;
 

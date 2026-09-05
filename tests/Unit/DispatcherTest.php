@@ -87,6 +87,54 @@ final class DispatcherTest extends TestCase
         $this->assertLessThan($init, $detect);
     }
 
+    public function testDynamicQueryUsesAWhitelistAndMirrorsExistingEntrypoints(): void
+    {
+        $home = Dispatcher::dynamicQuery(['yk_route' => 'home', 'lang' => 'ja']);
+        $this->assertSame(['file' => '', 'params' => [], 'lang' => 'ja', 'canonical' => '/ja/'], $home);
+
+        $article = Dispatcher::dynamicQuery(['yk_route' => 'article', 'slug' => 'release-note', 'lang' => 'en']);
+        $this->assertSame('article.php', $article['file']);
+        $this->assertSame(['slug' => 'release-note'], $article['params']);
+        $this->assertSame('/en/news/article/release-note.html', $article['canonical']);
+
+        $page = Dispatcher::dynamicQuery(['yk_route' => 'page', 'parent' => 'service-ja', 'slug' => 'process-ja']);
+        $this->assertSame('page.php', $page['file']);
+        $this->assertSame(['slug' => 'process-ja', 'parent' => 'service-ja'], $page['params']);
+        $this->assertSame('/service-ja/process-ja.html', $page['canonical']);
+
+        $search = Dispatcher::dynamicQuery([
+            'yk_route' => 'search',
+            'keyword' => '智能',
+            'type' => 'download',
+            'page' => '2',
+        ]);
+        $this->assertSame('search.php', $search['file']);
+        $this->assertSame(['keyword' => '智能', 'type' => 'download', 'page' => '2'], $search['params']);
+        $this->assertSame('/search.html', $search['canonical']);
+    }
+
+    public function testDynamicQueryRejectsAmbiguousOrUnsafeInput(): void
+    {
+        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'unknown']));
+        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'article', 'id' => '1', 'slug' => 'post']));
+        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'article', 'slug' => '../admin']));
+        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'job', 'id' => '0']));
+        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'home', 'lang' => 'fr']));
+        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'search', 'type' => 'sql']));
+        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'list', 'slug' => 'news', 'page' => '0']));
+    }
+
+    public function testIndexPreparesDynamicQueryBeforeInitialization(): void
+    {
+        $index = (string) file_get_contents(dirname(__DIR__, 2) . '/index.php');
+        $decode = strpos($index, 'Dispatcher::dynamicQuery($__queryInput)');
+        $init = strpos($index, "require_once __DIR__ . '/includes/init.php'");
+        $this->assertIsInt($decode);
+        $this->assertIsInt($init);
+        $this->assertLessThan($init, $decode);
+        $this->assertStringContainsString("YK_CANONICAL_PATH", (string) file_get_contents(dirname(__DIR__, 2) . '/includes/Dispatcher.php'));
+    }
+
     public function testNoMatchReturnsNull(): void
     {
         $this->assertNull(Dispatcher::match('/no-such-path'));            // 无 .html 后缀
