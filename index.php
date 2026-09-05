@@ -11,8 +11,14 @@ declare(strict_types=1);
 // 必须在 init.php 定义 SITE_LANG 前注入 _lang；Dispatcher::run() 里的解析已经太晚。
 require_once __DIR__ . '/includes/Dispatcher.php';
 $__incomingPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$__isIndexRequest = $__incomingPath === '/' || $__incomingPath === '/index.php';
+$__dynamicRequested = $__isIndexRequest && array_key_exists('yk_route', $_GET);
+/** @var array<string,mixed> $__queryInput */
+$__queryInput = is_array($_GET) ? $_GET : [];
+$__dynamicHit = $__dynamicRequested ? Dispatcher::dynamicQuery($__queryInput) : null;
 if (empty($_GET['_lang'])) {
-    $__incomingLang = Dispatcher::languagePrefixFromPath($__incomingPath);
+    $__incomingLang = $__dynamicHit['lang'] ?? Dispatcher::dynamicLanguage($__queryInput)
+        ?? Dispatcher::languagePrefixFromPath($__incomingPath);
     if ($__incomingLang !== null) {
         $_GET['_lang'] = $__incomingLang;
         $_REQUEST['_lang'] = $__incomingLang;
@@ -20,6 +26,13 @@ if (empty($_GET['_lang'])) {
 }
 
 require_once __DIR__ . '/includes/init.php';
+
+if ($__dynamicRequested && $__dynamicHit === null) {
+    render404(__('error_page_not_found'));
+}
+if ($__dynamicHit !== null) {
+    Dispatcher::runDynamic($__dynamicHit); // 首页返回；其它查询路由在此 require 并 exit
+}
 
 // WP 式单入口路由：主机只配了两行 catch-all（如面板「WordPress 伪静态」预设）时，
 // 伪静态 URL 会落到这里，由 Dispatcher 分发到对应入口文件；配了完整规则的主机
@@ -29,7 +42,7 @@ $__reqPath = $__incomingPath;
 if ($__reqPath !== '/' && $__reqPath !== '/index.php') {
     Dispatcher::run();   // 命中即接管并 exit；语言前缀首页（/ja/）设 lang 后返回
 }
-unset($__incomingLang, $__incomingPath, $__reqPath);
+unset($__incomingLang, $__incomingPath, $__reqPath, $__isIndexRequest, $__dynamicRequested, $__dynamicHit);
 
 HtmlCache::start(300);
 
