@@ -13,6 +13,9 @@ $catalogRootChannel = is_array($rootChannel ?? null) ? $rootChannel : $catalogCu
 $catalogCategories = is_array($categories ?? null) ? $categories : [];
 $catalogContents = is_array($contents ?? null) ? $contents : [];
 $catalogBaseUrl = channelUrl($catalogCurrentChannel);
+$catalogUsesDynamicRoute = (function_exists('isDynamicUrlMode') && isDynamicUrlMode())
+    || (($_GET['yk_route'] ?? '') === 'list')
+    || str_contains((string) ($_SERVER['REQUEST_URI'] ?? ''), 'yk_route=list');
 ?>
 <div data-content-catalog>
     <?php if ($contentCatalogShowCategories || $contentCatalogShowSearch): ?>
@@ -35,7 +38,11 @@ $catalogBaseUrl = channelUrl($catalogCurrentChannel);
         <?php endif; ?>
 
         <?php if ($contentCatalogShowSearch): ?>
-        <form method="get" action="<?php echo e($catalogBaseUrl); ?>" class="flex items-center gap-2">
+        <form method="get" action="<?php echo $catalogUsesDynamicRoute ? '/index.php' : e($catalogBaseUrl); ?>" class="flex items-center gap-2">
+            <?php if ($catalogUsesDynamicRoute): ?>
+            <input type="hidden" name="yk_route" value="list">
+            <input type="hidden" name="slug" value="<?php echo e((string) ($catalogCurrentChannel['slug'] ?? '')); ?>">
+            <?php endif; ?>
             <div class="relative">
                 <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                        placeholder="<?php echo e(__('news_search_placeholder')); ?>"
