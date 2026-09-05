@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { observeConsole, observeUnsafeWrites, performPreviewUpdate, frame } = require('./helpers');
 const { openBanner } = require('./banner-helpers');
 
-test('banner settings groups stay searchable without modifying the document @ci', async ({ page }, testInfo) => {
+test('banner settings groups stay searchable without modifying the document @ci @shard-media', async ({ page }, testInfo) => {
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
   await openBanner(page);
@@ -29,7 +29,7 @@ test('banner settings groups stay searchable without modifying the document @ci'
   expect(errors).toEqual([]);
 });
 
-test('modified-only filtering finds fields outside the active group @ci', async ({ page }) => {
+test('modified-only filtering finds fields outside the active group @ci @shard-media', async ({ page }) => {
   await openBanner(page);
   await page.getByTestId('blox-banner-group-motion').click();
   const speed = page.locator('[data-control-key="banner_speed"] input');

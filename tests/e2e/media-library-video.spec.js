@@ -31,7 +31,7 @@ async function scanMedia(page) {
   await page.waitForLoadState('networkidle');
 }
 
-test('standalone media library filters, sorts, and paginates video cards @ci', async ({ page }, testInfo) => {
+test('standalone media library filters, sorts, and paginates video cards @ci @shard-media', async ({ page }, testInfo) => {
   const keyword = `media-page-${process.pid}-${testInfo.project.name}`.toLowerCase();
   const videoDir = path.join(process.cwd(), 'uploads', 'videos');
   fs.mkdirSync(videoDir, { recursive: true });
@@ -73,7 +73,7 @@ test('standalone media library filters, sorts, and paginates video cards @ci', a
   }
 });
 
-test('standalone upload endpoint persists videos in the video library @ci', async ({ page }) => {
+test('standalone upload endpoint persists videos in the video library @ci @shard-media', async ({ page }) => {
   const filename = `standalone-upload-${process.pid}-${Date.now()}.webm`;
   let uploadedUrl = '';
 
@@ -143,7 +143,7 @@ test('standalone media library extracts first frames from two real videos @local
   expect(errors).toEqual([]);
 });
 
-test('media deletion is blocked while a banner references the video @ci', async ({ page }, testInfo) => {
+test('media deletion is blocked while a banner references the video @ci @shard-media', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'Destructive reference guard is sampled once.');
   const token = `media-usage-${process.pid}-${Date.now()}`;
   const name = `${token}-used.mp4`;
@@ -279,7 +279,7 @@ test('media deletion is blocked while a banner references the video @ci', async 
   }
 });
 
-test('media deletion is blocked by slash-escaped Blox image references @ci', async ({ page }, testInfo) => {
+test('media deletion is blocked by slash-escaped Blox image references @ci @shard-media', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'Destructive Blox reference guard is sampled once.');
   const token = `media-blox-usage-${process.pid}-${Date.now()}`.toLowerCase();
   const name = `${token}.png`;

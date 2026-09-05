@@ -16,7 +16,7 @@ async function openBlock(page, type) {
 
 const field = (page, key) => page.locator('[data-control-key="' + key + '"]');
 
-test('about starts with content and image edits preserve text and undo @ci', async ({ page }, testInfo) => {
+test('about starts with content and image edits preserve text and undo @ci @shard-media', async ({ page }, testInfo) => {
   const errors = observeConsole(page), writes = observeUnsafeWrites(page);
   await openBlock(page, 'about');
   const original = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections));
@@ -48,7 +48,7 @@ test('about starts with content and image edits preserve text and undo @ci', asy
   expect(errors).toEqual([]);
 });
 
-test('CTA copy stays local while its background uses the generic section editor @ci', async ({ page }, testInfo) => {
+test('CTA copy stays local while its background uses the generic section editor @ci @shard-media', async ({ page }, testInfo) => {
   await page.route('**/uploads/videos/blox-test-flower.mp4', route => route.fulfill({
     status: 200,
     contentType: 'video/mp4',
@@ -88,7 +88,7 @@ test('CTA copy stays local while its background uses the generic section editor 
   expect(errors).toEqual([]);
 });
 
-test('right tree keeps style context when moving from container to section @ci', async ({ page }) => {
+test('right tree keeps style context when moving from container to section @ci @shard-media', async ({ page }) => {
   const section = await openBlock(page, 'cta');
   const structure = page.getByTestId('blox-mobile-structure');
   if (await structure.isVisible()) await structure.click();
@@ -102,7 +102,7 @@ test('right tree keeps style context when moving from container to section @ci',
   await expect(page.getByTestId('blox-section-name-control')).toBeHidden();
 });
 
-test('structure field and column selection reveal their group without losing edits @ci', async ({ page }) => {
+test('structure field and column selection reveal their group without losing edits @ci @shard-media', async ({ page }) => {
   const section = await openBlock(page, 'about');
   const original = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections));
   const structure = page.getByTestId('blox-mobile-structure');
@@ -117,7 +117,7 @@ test('structure field and column selection reveal their group without losing edi
   expect(await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections))).toBe(original);
 });
 
-test('clicking the company image in the canvas opens its image settings @ci', async ({ page }) => {
+test('clicking the company image in the canvas opens its image settings @ci @shard-media', async ({ page }) => {
   const errors = observeConsole(page), writes = observeUnsafeWrites(page);
   await openBlock(page, 'about');
   const canvasButton = page.getByTestId('blox-mobile-canvas-view');

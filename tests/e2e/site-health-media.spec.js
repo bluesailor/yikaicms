@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
 
-test('site health scans media in bounded batches and opens issue samples @ci', async ({ page }, testInfo) => {
+test('site health scans media in bounded batches and opens issue samples @ci @shard-media', async ({ page }, testInfo) => {
   test.setTimeout(60_000);
   const root = path.resolve(__dirname, '../..');
   const directory = path.join(root, 'uploads', 'images');

@@ -29,7 +29,7 @@ async function inheritedAbout(page) {
   return { before, seeds };
 }
 
-test('inherited copy and thumbnail match the canvas without materializing overrides @ci', async ({ page }, testInfo) => {
+test('inherited copy and thumbnail match the canvas without materializing overrides @ci @shard-core', async ({ page }, testInfo) => {
   const errors = observeConsole(page), writes = observeUnsafeWrites(page);
   const { before, seeds } = await inheritedAbout(page);
   const title = field(page, 'override_title').locator('input');
@@ -51,7 +51,7 @@ test('inherited copy and thumbnail match the canvas without materializing overri
   expect(writes).toEqual([]);
 });
 
-test('restoring an image or title preserves other fields and can be undone @ci', async ({ page }, testInfo) => {
+test('restoring an image or title preserves other fields and can be undone @ci @shard-core', async ({ page }, testInfo) => {
   const errors = observeConsole(page), writes = observeUnsafeWrites(page);
   const { seeds } = await inheritedAbout(page);
   await performPreviewUpdate(page, () => field(page, 'override_title').locator('input').fill('Inheritance draft title'));
@@ -88,7 +88,7 @@ test('restoring an image or title preserves other fields and can be undone @ci',
   expect(writes).toEqual([]);
 });
 
-test('saving the disposable draft keeps inheritance and leaves the public homepage unchanged @ci', async ({ page }) => {
+test('saving the disposable draft keeps inheritance and leaves the public homepage unchanged @ci @shard-core', async ({ page }) => {
   const errors = observeConsole(page), writes = observeUnsafeWrites(page);
   await inheritedAbout(page);
   const draftTitle = 'Only in the inherited-content draft';

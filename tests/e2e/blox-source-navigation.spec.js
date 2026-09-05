@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { openEditor, performPreviewUpdate, observeConsole, observeUnsafeWrites, canvasScrollTop } = require('./helpers');
 
-test('shared source opens the relevant panel without disturbing the editor @ci', async ({ page, context }) => {
+test('shared source opens the relevant panel without disturbing the editor @ci @shard-core', async ({ page, context }) => {
     const errors = observeConsole(page), writes = observeUnsafeWrites(page);
     await openEditor(page);
     await performPreviewUpdate(page, () => page.evaluate(() => {

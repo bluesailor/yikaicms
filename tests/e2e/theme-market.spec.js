@@ -15,7 +15,7 @@ const marketThemes = ['aurora', 'business', 'minimal', 'trade'].map((slug) => ({
   download_url: `https://update.yikaicms.com/packages/themes/${slug}-v1.0.0.zip`,
 }));
 
-test('core install keeps only default locally and discovers optional market themes @ci', async ({ page }) => {
+test('core install keeps only default locally and discovers optional market themes @ci @shard-design', async ({ page }) => {
   const consoleEntries = observeConsole(page);
   const unsafeWrites = observeUnsafeWrites(page);
 
@@ -55,7 +55,7 @@ test('core install keeps only default locally and discovers optional market them
   expect(consoleEntries, 'theme manager should keep the browser console clean').toEqual([]);
 });
 
-test('theme update link opens the market and highlights its theme @ci', async ({ page }, testInfo) => {
+test('theme update link opens the market and highlights its theme @ci @shard-design', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one focused theme-link check is sufficient');
   const consoleEntries = observeConsole(page);
 

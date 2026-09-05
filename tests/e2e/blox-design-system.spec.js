@@ -63,7 +63,7 @@ test.afterEach(async ({ page }) => {
   expect(consoleEntries, 'browser console must stay clean').toEqual([]);
 });
 
-test('token catalog and named preset apply through stable references @ci', async ({ page }) => {
+test('token catalog and named preset apply through stable references @ci @shard-design', async ({ page }) => {
   await page.getByTestId('blox-design-open').click();
   await expect(page.getByTestId('blox-design-token-row')).toHaveCount(3);
   await expect(page.getByTestId('blox-design-usage').filter({ hasText: '2' })).toBeVisible();

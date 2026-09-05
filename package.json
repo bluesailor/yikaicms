@@ -5,7 +5,9 @@
     "css": "tailwindcss -i assets/css/src/app.css -o assets/css/tailwind.css --minify",
     "css:watch": "tailwindcss -i assets/css/src/app.css -o assets/css/tailwind.css --watch",
     "test:e2e": "playwright test",
-    "test:e2e:local": "node tests/e2e/run-local.js"
+    "test:e2e:local": "node tests/e2e/run-local.js",
+    "test:e2e:shard": "node tests/e2e/run-shard.js",
+    "test:e2e:shards:check": "node tests/e2e/validate-shards.js"
   },
   "dependencies": {
     "@tailwindcss/cli": "4.3.3",

@@ -114,7 +114,7 @@ async function assertFooterEditorContext(page, theme, testInfo) {
   }
 }
 
-test('default homepage opens its active Blox footer directly @ci', async ({ page }, testInfo) => {
+test('default homepage opens its active Blox footer directly @ci @shard-design', async ({ page }, testInfo) => {
   await activateTheme(page, 'default');
   await openEditor(page);
 
@@ -137,7 +137,7 @@ test('default homepage opens its active Blox footer directly @ci', async ({ page
 });
 
 for (const slug of ['business', 'minimal']) {
-  test(`${slug} homepage can open the footer editor @ci`, async ({ page }, testInfo) => {
+  test(`${slug} homepage can open the footer editor @ci @shard-design`, async ({ page }, testInfo) => {
     try {
       await activateTheme(page, slug);
       await openEditor(page);

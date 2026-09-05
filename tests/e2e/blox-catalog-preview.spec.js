@@ -5,7 +5,7 @@ const { openPageEditor, frame, performPagePreviewUpdate, observeConsole } = requ
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 for (const [type, id] of [['product-catalog', fixtures.product_page], ['content-catalog', fixtures.channel_list]]) {
-    test(`${type} previews public controls, responsive layout and unsaved changes @ci`, async ({ page }, testInfo) => {
+    test(`${type} previews public controls, responsive layout and unsaved changes @ci @shard-core`, async ({ page }, testInfo) => {
         const errors = observeConsole(page), writes = [];
         page.on('request', request => {
             if (request.method() === 'POST' && request.url().includes('/admin/blox_page_api.php')) {

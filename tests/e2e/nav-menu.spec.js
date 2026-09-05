@@ -9,7 +9,7 @@ async function submitForm(page, form) {
   await page.waitForLoadState('domcontentloaded');
 }
 
-test('Home navigation settings live in the menu manager @ci', async ({ page }, testInfo) => {
+test('Home navigation settings live in the menu manager @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop menu management baseline');
 
   await page.goto('/admin/nav_menu.php', { waitUntil: 'domcontentloaded' });

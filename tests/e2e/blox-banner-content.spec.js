@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { observeConsole, observeUnsafeWrites } = require('./helpers');
 const { openBanner } = require('./banner-helpers');
 
-test('slide editing starts with image and copy, preserving links across groups @ci', async ({ page }, testInfo) => {
+test('slide editing starts with image and copy, preserving links across groups @ci @shard-media', async ({ page }, testInfo) => {
   const errors = observeConsole(page);
   const writes = observeUnsafeWrites(page);
   await openBanner(page);

@@ -65,7 +65,7 @@ test.afterEach(async ({ page }) => {
   expect(consoleEntries, 'browser console must stay clean').toEqual([]);
 });
 
-test('local recovery draft can be explicitly discarded @ci', async ({ page }) => {
+test('local recovery draft can be explicitly discarded @ci @shard-core', async ({ page }) => {
   await expect(page.getByTestId('blox-recovery-restore')).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('blox-recovery-dialog')).toBeVisible();
@@ -75,7 +75,7 @@ test('local recovery draft can be explicitly discarded @ci', async ({ page }) =>
   expect(await page.evaluate((storageKey) => localStorage.getItem(storageKey), recoveryKey)).toBeNull();
 });
 
-test('local recovery draft can be restored and undone @ci', async ({ page }) => {
+test('local recovery draft can be restored and undone @ci @shard-core', async ({ page }) => {
   const originalCount = await countSections(page);
   await page.getByTestId('blox-recovery-restore').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(1);

@@ -9,7 +9,7 @@ function settings(values) {
   ], { cwd: root, encoding: 'utf8' }));
 }
 
-test('sandbox blocks static output and infrastructure pages on GET and POST @ci', async ({ page }, testInfo) => {
+test('sandbox blocks static output and infrastructure pages on GET and POST @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'shared disposable settings');
   const previous = settings({ demo_mode: '0', demo_owner_token: 'owner-fixture-token', cron_token: 'cron-fixture-token' });
   try {
@@ -44,7 +44,7 @@ test('sandbox blocks static output and infrastructure pages on GET and POST @ci'
   }
 });
 
-test('static base URL rejects cross-origin settings through the real endpoint @ci', async ({ page }, testInfo) => {
+test('static base URL rejects cross-origin settings through the real endpoint @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'shared disposable settings');
   await page.goto('/admin/static_html.php');
   const token = await page.locator('meta[name="csrf-token"]').getAttribute('content');

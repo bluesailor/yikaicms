@@ -34,7 +34,7 @@ async function snapshot(page) {
 }
 
 for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_page], ['content-catalog', 'article', fixtures.channel_list]]) {
-    test(`${kind} empty states retain management access and clear search without changing the draft @ci`, async ({ page }, testInfo) => {
+    test(`${kind} empty states retain management access and clear search without changing the draft @ci @shard-core`, async ({ page }, testInfo) => {
         const errors = observeConsole(page), reads = [];
         let unpublished = true;
         await page.route('**/admin/blox_page_api.php', async route => {
@@ -88,7 +88,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
     });
 }
 
-test('an empty later page returns to the same search and failures never look unpublished @ci', async ({ page }, testInfo) => {
+test('an empty later page returns to the same search and failures never look unpublished @ci @shard-core', async ({ page }, testInfo) => {
     const errors = observeConsole(page), queries = [];
     let failing = false;
     await page.route('**/admin/blox_page_api.php', async route => {

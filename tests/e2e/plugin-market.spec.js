@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole, observeUnsafeWrites } = require('./helpers');
 
-test('plugin market deep link filters by slug and renders install label @ci', async ({ page }) => {
+test('plugin market deep link filters by slug and renders install label @ci @shard-design', async ({ page }) => {
   const consoleEntries = observeConsole(page);
   const unsafeWrites = observeUnsafeWrites(page);
   const queries = [];

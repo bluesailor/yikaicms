@@ -17,7 +17,7 @@ const fixtures = JSON.parse(fs.readFileSync(
   'utf8'
 ));
 
-test('page canvas includes the effective readonly header and footer @ci', async ({ page }, testInfo) => {
+test('page canvas includes the effective readonly header and footer @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop canvas context baseline');
   expect(fixtures.blox_page).toBeGreaterThan(0);
 
@@ -38,7 +38,7 @@ test('page canvas includes the effective readonly header and footer @ci', async 
   await expectClean(page);
 });
 
-test('page draft stays private until explicit publish @ci', async ({ page }, testInfo) => {
+test('page draft stays private until explicit publish @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single write-path baseline');
   expect(fixtures.blox_page).toBeGreaterThan(0);
 
@@ -219,7 +219,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   expect(consoleEntries).toEqual([]);
 });
 
-test('free mode opens homepage and local templates while remote resolve stays locked @ci', async ({ page }, testInfo) => {
+test('free mode opens homepage and local templates while remote resolve stays locked @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single free-edition capability baseline');
   test.skip(process.env.SMOKE_BLOX_ADVANCED !== '0', 'free-mode assertion');
 

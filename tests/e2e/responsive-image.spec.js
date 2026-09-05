@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
 
-test('responsive image candidates select by viewport @ci', async ({ page }, testInfo) => {
+test('responsive image candidates select by viewport @ci @shard-media', async ({ page }, testInfo) => {
   const root = path.resolve(__dirname, '../..');
   const name = `e2e-responsive-${process.pid}-${testInfo.project.name}`.toLowerCase();
   const original = path.join(root, 'uploads', 'images', `${name}.png`);

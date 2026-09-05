@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole } = require('./helpers');
 
-test('image pixel limit stays on the upload tab and supports an explicit off switch @ci', async ({ page }, testInfo) => {
+test('image pixel limit stays on the upload tab and supports an explicit off switch @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single persistent security-settings check');
   const consoleEntries = observeConsole(page);
 
@@ -40,7 +40,7 @@ test('image pixel limit stays on the upload tab and supports an explicit off swi
   expect(consoleEntries, 'upload security settings must keep the console clean').toEqual([]);
 });
 
-test('trusted proxy and admin whitelist settings reject lockout and ignore spoofed headers @ci', async ({ page }, testInfo) => {
+test('trusted proxy and admin whitelist settings reject lockout and ignore spoofed headers @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single persistent security-settings check');
   const consoleEntries = observeConsole(page);
 

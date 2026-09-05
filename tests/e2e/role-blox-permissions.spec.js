@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole } = require('./helpers');
 
-test('role modal explains Blox scopes and keeps dependencies coherent @ci', async ({ page }, testInfo) => {
+test('role modal explains Blox scopes and keeps dependencies coherent @ci @shard-locale', async ({ page }, testInfo) => {
   const consoleEntries = observeConsole(page);
   await page.goto('/admin/role.php', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: /添加角色|Add Role|ロールを追加/ }).click();
@@ -38,7 +38,7 @@ test('role modal explains Blox scopes and keeps dependencies coherent @ci', asyn
   }
 });
 
-test('role save rejects a code-only Blox permission set @ci', async ({ page }, testInfo) => {
+test('role save rejects a code-only Blox permission set @ci @shard-locale', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one authenticated server-side validation is sufficient');
   await page.goto('/admin/role.php', { waitUntil: 'domcontentloaded' });
 
