@@ -487,7 +487,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php echo csrfField(); ?>
                         <input type="hidden" name="action" value="activate">
                         <input type="hidden" name="slug" value="<?php echo e($theme['slug']); ?>">
-                        <button type="submit" class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90 transition cursor-pointer">
+                        <button type="submit" data-testid="theme-activate" class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90 transition cursor-pointer">
                             <?php echo __('theme_activate'); ?>
                         </button>
                     </form>

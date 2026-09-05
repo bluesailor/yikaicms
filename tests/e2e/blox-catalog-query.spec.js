@@ -92,7 +92,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         await expect(page.locator('table')).not.toContainText('Catalog Unrelated');
         await expect(page.locator('table')).not.toContainText('Catalog Zero 0 1');
         // Use the page parameter rather than a language-specific link label.
-        const href = await page.locator('a[href*="page=2"]').first().getAttribute('href');
+        const href = await page.locator('a[href*="&page=2"], a[href^="?page=2"]').first().getAttribute('href');
         const url = new URL(href, page.url());
         expect(url.searchParams.get('keyword')).toBe('0');
         expect(url.searchParams.get('status')).toBe('0');

@@ -107,6 +107,7 @@ $_defaultLang = $_lang['default'];
 $_viewLang    = $_lang['view'];
 $_enabledList = $_lang['enabled'];
 $_langLabels  = availableLanguages();
+$paginationLang = $_viewLang;
 
 $categoryFilters = ['status' => 1];
 if (isMultiLangEnabled('product_categories')) {
@@ -331,7 +332,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php
                 $totalPages = ceil($total / $perPage);
                 $queryString = http_build_query(array_filter(
-                    ['category_id' => $categoryId, 'status' => $status, 'keyword' => $keyword, 'lang' => $_viewLang],
+                    [
+                        'category_id' => $categoryId,
+                        'status' => $status,
+                        'product_type' => $productType,
+                        'keyword' => $keyword,
+                        'lang' => $paginationLang,
+                        'per_page' => $perPage,
+                    ],
                     static fn(mixed $value): bool => $value !== '' && $value !== null
                 ));
                 $baseUrl = '?' . ($queryString ? $queryString . '&' : '');
