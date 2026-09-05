@@ -13,6 +13,7 @@ namespace Yikai\Tests\Controllers;
 use Yikai\Tests\TestCase;
 
 require_once dirname(__DIR__, 2) . '/controllers/list/NewsListController.php';
+require_once dirname(__DIR__, 2) . '/includes/catalog_pagination.php';
 require_once __DIR__ . '/_fixtures/helpers.php';
 
 class NewsListControllerTest extends TestCase

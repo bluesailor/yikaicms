@@ -20,7 +20,7 @@ final class BloxCatalogPreview
             $id = (int) $channel['id'];
             $context = ListRouter::dispatch($type)->prepare($channel, [
                 'channelId' => $id, 'slug' => (string) ($channel['slug'] ?? ''),
-                'page' => 1, 'perPage' => 12, 'keyword' => '', 'cat' => '', 'sort' => '',
+                'page' => 1, 'perPage' => catalogPageSize($type), 'keyword' => '', 'cat' => '', 'sort' => '',
             ]);
             $context['rootChannel'] = $channel;
             if ($type === 'product') {

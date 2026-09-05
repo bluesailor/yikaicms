@@ -39,7 +39,7 @@ final class ListRouter
             'channelId' => $channelId,
             'slug'      => $slug,
             'page'      => max(1, getInt('page', 1)),
-            'perPage'   => 12,
+            'perPage'   => catalogPageSize((string) ($channel['type'] ?? 'list')),
             'keyword'   => trim(get('keyword', '')),
             'cat'       => get('cat', ''),
             'sort'      => get('sort', ''),

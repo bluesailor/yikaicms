@@ -25,6 +25,7 @@ if (!in_array($action, ['pretty', 'query', 'business', 'minimal'], true)) {
     throw new RuntimeException('Invalid fixture mode');
 }
 $settings = ['url_mode', 'current_theme', 'home_layout_active', 'enabled_languages', 'html_cache_enabled'];
+$settings = array_merge($settings, array_keys(getDefaults('pagination')));
 if (!is_file($file)) {
     $before = [];
     foreach ($settings as $key) $before[$key] = config($key, '');

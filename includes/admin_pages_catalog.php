@@ -44,6 +44,7 @@ if (!function_exists('adminPagesCatalog')) {
             ['url'=>'/admin/setting_member.php',   'title'=>'会员设置',     'keywords'=>'会员注册 登录策略 是否开放注册',                                         'group'=>'数据'],
 
             // 站点
+            ['url'=>'/admin/setting.php?tab=pagination', 'title'=>'列表与分页', 'keywords'=>'分页 每页 列表数量 产品 新闻 案例 下载 招聘 pagination page size', 'group'=>'站点'],
             ['url'=>'/admin/setting.php?tab=basic', 'title'=>'基本设置',     'keywords'=>'网站标题 网站名称 网站描述 关键词 LOGO favicon 备案 ICP 后台标题 颜色',       'group'=>'站点'],
             ['url'=>'/admin/setting.php?tab=url',   'title'=>'URL 与链接',   'keywords'=>'URL 链接 网址 伪静态 Rewrite rewrite 动态URL index.php 无需Rewrite',              'group'=>'站点'],
             ['url'=>'/admin/setting.php?tab=header','title'=>'页头设置',     'keywords'=>'页头 头部 header 导航 logo 吸顶 sticky 透明度',                         'group'=>'站点'],

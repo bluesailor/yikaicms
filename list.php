@@ -55,7 +55,7 @@ $keyword = trim(get('keyword', ''));
 
 // 分页
 $page = max(1, getInt('page', 1));
-$perPage = 12;
+$perPage = catalogPageSize((string) $channel['type']);
 $offset = ($page - 1) * $perPage;
 
 // 搜索条件
