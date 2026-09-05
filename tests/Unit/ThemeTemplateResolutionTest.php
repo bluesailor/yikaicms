@@ -176,6 +176,18 @@ final class ThemeTemplateResolutionTest extends TestCase
         self::assertStringContainsString('max-w-xl mx-auto', $cta);
     }
 
+    public function testMinimalNewsCardsUseCompactResponsiveMedia(): void
+    {
+        $card = (string) file_get_contents(ROOT_PATH . '/marketplace/themes/minimal/partials/article-card.php');
+        $css = (string) file_get_contents(ROOT_PATH . '/marketplace/themes/minimal/assets/css/style.css');
+
+        self::assertStringContainsString('data-minimal-news-card', $card);
+        self::assertStringContainsString('data-minimal-news-media', $card);
+        self::assertStringContainsString('grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr);', $css);
+        self::assertStringContainsString('height: 11rem;', $css);
+        self::assertStringContainsString('aspect-ratio: 16 / 9;', $css);
+    }
+
     public function testStandalonePageSidebarUsesThemePartial(): void
     {
         $page = (string) file_get_contents(ROOT_PATH . '/page.php');
