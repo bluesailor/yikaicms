@@ -6296,4 +6296,7 @@ voltage|电压|220V',
     'setting_catalog_download_page_size_tip' => '留空沿用原值；适用于前台列表，不影响首页展示数量。',
     'setting_catalog_job_page_size' => '招聘每页数量',
     'setting_catalog_job_page_size_tip' => '留空沿用原值；适用于前台列表，不影响首页展示数量。',
+    'catalog_channel_pagination' => '当前栏目分页',
+    'catalog_channel_page_size' => '当前栏目每页数量',
+    'catalog_channel_inherit' => '留空沿用类型默认值；此设置即时生效，不属于 Blox 草稿。',
 ];

@@ -6369,4 +6369,7 @@ voltage|電圧|220V',
     'setting_catalog_download_page_size_tip' => '空欄の場合は従来の値を使用します。公開一覧に適用され、ホームの表示件数には影響しません。',
     'setting_catalog_job_page_size' => '求人の表示件数',
     'setting_catalog_job_page_size_tip' => '空欄の場合は従来の値を使用します。公開一覧に適用され、ホームの表示件数には影響しません。',
+    'catalog_channel_pagination' => 'このカテゴリーのページ送り',
+    'catalog_channel_page_size' => 'このカテゴリーの表示件数',
+    'catalog_channel_inherit' => '空欄の場合は種類別の既定値を使用します。Bloxの下書きとは別に即時反映されます。',
 ];

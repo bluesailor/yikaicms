@@ -6228,4 +6228,7 @@ voltage|Voltage|220V',
     'setting_catalog_download_page_size_tip' => 'Leave blank to retain the existing value. Applies to public lists, not homepage counts.',
     'setting_catalog_job_page_size' => 'Jobs per page',
     'setting_catalog_job_page_size_tip' => 'Leave blank to retain the existing value. Applies to public lists, not homepage counts.',
+    'catalog_channel_pagination' => 'Current channel pagination',
+    'catalog_channel_page_size' => 'Items per page for this channel',
+    'catalog_channel_inherit' => 'Leave blank to use the type default. This setting takes effect immediately, outside Blox drafts.',
 ];

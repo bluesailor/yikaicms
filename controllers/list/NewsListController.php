@@ -23,11 +23,11 @@ final class NewsListController
         $categoryId   = (int)($req['cat_id'] ?? 0);
         $keyword      = trim((string)($req['keyword'] ?? ''));
         $page         = max(1, (int)($req['page'] ?? 1));
-        $perPage      = catalogPageSize('article', 10);
 
         // news 顶级栏目（lang-aware）
         $newsChannel   = getChannelBySlug('news', true);
         $newsChannelId = $newsChannel ? (int)$newsChannel['id'] : 0;
+        $perPage = catalogPageSize('article', 10, $newsChannelId);
 
         // 当前分类：优先 slug，其次 id
         $category = null;
