@@ -40,6 +40,20 @@ final class ThemeInstallerTest extends TestCase
         self::assertStringNotContainsString('$zip->extractTo($themesDir)', $source);
     }
 
+    public function testLocalThemeDeletionIsCsrfCheckedAndProtected(): void
+    {
+        $source = file_get_contents(ROOT_PATH . '/admin/theme.php');
+        self::assertNotFalse($source);
+
+        $action = strpos($source, "'delete_theme'");
+        $csrf = strpos($source, 'verifyCsrf();', (int) $action);
+        self::assertIsInt($action);
+        self::assertIsInt($csrf);
+        self::assertStringContainsString("\$slug === 'default'", $source);
+        self::assertStringContainsString("\$slug === \$current", $source);
+        self::assertStringContainsString("ROOT_PATH . '/themes/' . \$slug", $source);
+    }
+
     public function testNewThemeIsValidatedInStagingBeforeInstallation(): void
     {
         $zip = $this->themeZip('minimal', 'new-header');
