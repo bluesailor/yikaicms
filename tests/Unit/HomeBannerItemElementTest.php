@@ -202,6 +202,47 @@ final class HomeBannerItemElementTest extends TestCase
         }
     }
 
+    public function testBundledBannerTemplatesKeepContentAndPrimaryAction(): void
+    {
+        $banner = [
+            'title' => 'A focused launch',
+            'subtitle' => 'Clear supporting copy',
+            'media_type' => 'image',
+            'image' => '/uploads/launch.jpg',
+            'image_mobile' => '',
+            'video' => '',
+            'video_mobile_mode' => 'poster',
+            'btn1_text' => 'Explore now',
+            'btn1_url' => '/contact.html',
+            'btn2_text' => '',
+            'btn2_url' => '',
+            'link_url' => '',
+            'link_target' => '_self',
+        ];
+
+        foreach ([
+            'default' => ROOT_PATH . '/themes/default/blocks/banner.php',
+            'business' => ROOT_PATH . '/marketplace/themes/business/blocks/banner.php',
+            'minimal' => ROOT_PATH . '/marketplace/themes/minimal/blocks/banner.php',
+        ] as $name => $template) {
+            BloxAssetCollector::reset();
+            $banners = [$banner];
+            $block = [];
+            $siteName = 'YikaiCMS';
+            ob_start();
+            include $template;
+            $html = (string) ob_get_clean();
+
+            if ($name === 'minimal') {
+                $this->assertStringContainsString('data-blox-banner-content', $html, $name);
+            }
+            $this->assertStringContainsString('A focused launch', $html, $name);
+            $this->assertStringContainsString('Clear supporting copy', $html, $name);
+            $this->assertStringContainsString('href="/contact.html"', $html, $name);
+            $this->assertStringContainsString('Explore now', $html, $name);
+        }
+    }
+
     public function testThemeMarketplaceBannerCompatibilityChecklistMatchesSources(): void
     {
         $manifest = json_decode(

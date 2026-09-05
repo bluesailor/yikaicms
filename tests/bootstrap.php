@@ -98,6 +98,10 @@ if (!function_exists('e')) {
         return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }
+if (!function_exists('safeUrl')) {
+    require_once ROOT_PATH . '/includes/UrlPolicy.php';
+    function safeUrl(string $url): string { return UrlPolicy::href($url); }
+}
 if (!function_exists('getDefaults')) {
     // 镜像 includes/functions.php 的 getDefaults()：从 config/defaults.php 读默认设置。
     function getDefaults(string $group = ''): array {
