@@ -141,7 +141,7 @@ $channelId = getInt('channel_id');
 $status = get('status', '');
 $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
-$perPage = 20;
+$perPage = adminListPageSize('article', $page);
 
 $offset = ($page - 1) * $perPage;
 
@@ -209,6 +209,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 筛选栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <form method="get" class="p-4 flex flex-wrap items-center gap-4">
+            <?php echo renderAdminPageSize($perPage); ?>
         <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
         <select name="channel_id" class="border rounded px-3 py-2 text-sm">
             <option value=""><?php echo __('admin_all'); ?></option>

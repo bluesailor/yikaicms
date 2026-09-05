@@ -6372,4 +6372,6 @@ voltage|電圧|220V',
     'catalog_channel_pagination' => 'このカテゴリーのページ送り',
     'catalog_channel_page_size' => 'このカテゴリーの表示件数',
     'catalog_channel_inherit' => '空欄の場合は種類別の既定値を使用します。Bloxの下書きとは別に即時反映されます。',
+    'admin_list_page_size' => 'ページ表示件数',
+    'admin_list_page_size_option' => '1ページ :count 件',
 ];

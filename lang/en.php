@@ -6231,4 +6231,6 @@ voltage|Voltage|220V',
     'catalog_channel_pagination' => 'Current channel pagination',
     'catalog_channel_page_size' => 'Items per page for this channel',
     'catalog_channel_inherit' => 'Leave blank to use the type default. This setting takes effect immediately, outside Blox drafts.',
+    'admin_list_page_size' => 'Items per page',
+    'admin_list_page_size_option' => ':count per page',
 ];

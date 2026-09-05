@@ -6299,4 +6299,6 @@ voltage|电压|220V',
     'catalog_channel_pagination' => '当前栏目分页',
     'catalog_channel_page_size' => '当前栏目每页数量',
     'catalog_channel_inherit' => '留空沿用类型默认值；此设置即时生效，不属于 Blox 草稿。',
+    'admin_list_page_size' => '每页数量',
+    'admin_list_page_size_option' => '每页 :count 条',
 ];
