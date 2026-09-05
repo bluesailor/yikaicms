@@ -33,7 +33,7 @@ for (const lang of ['en', 'ja']) {
             await expect(manager).toHaveURL(new RegExp(`[?&]lang=${lang}(?:&|$)`));
             await expect(manager.locator('table')).toContainText('Stage gate 0 ' + lang);
             await expect(manager.locator('table')).not.toContainText('Stage gate 0 zh-CN');
-            const next = manager.locator('a[href*="page=2"]').first();
+            const next = manager.locator('a[href*="&page=2"], a[href^="?page=2"]').first();
             const nextUrl = new URL(await next.getAttribute('href'), manager.url());
             expect(nextUrl.searchParams.get('lang')).toBe(lang);
             await next.click();

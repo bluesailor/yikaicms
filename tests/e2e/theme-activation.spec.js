@@ -18,21 +18,22 @@ test('activating a local theme redirects to its fresh active state @ci', async (
   const business = page.getByTestId('theme-local-list').locator('[data-theme-slug="business"]');
   const defaultTheme = page.getByTestId('theme-local-list').locator('[data-theme-slug="default"]');
   page.on('dialog', (dialog) => dialog.accept());
+  const activateButton = (card) => card.getByTestId('theme-activate');
 
   try {
     await Promise.all([
       page.waitForURL((url) => url.pathname === '/admin/theme.php' && url.search === ''),
-      business.locator('button[type="submit"]').click(),
+      activateButton(business).click(),
     ]);
 
     await expect(page.locator('body')).toContainText('business');
     await expect(business).toHaveClass(/ring-2/);
     await expect(business.locator('button[type="submit"]')).toHaveCount(0);
   } finally {
-    if (await defaultTheme.locator('button[type="submit"]').count()) {
+    if (await activateButton(defaultTheme).count()) {
       await Promise.all([
         page.waitForURL((url) => url.pathname === '/admin/theme.php' && url.search === ''),
-        defaultTheme.locator('button[type="submit"]').click(),
+        activateButton(defaultTheme).click(),
       ]);
     }
   }

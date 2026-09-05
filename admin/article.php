@@ -25,6 +25,7 @@ $_defaultLang = $_lang['default'];
 $_viewLang    = $_lang['view'];
 $_enabledList = $_lang['enabled'];
 $_langLabels  = availableLanguages();
+$paginationLang = $_viewLang;
 
 // 获取视图语言下的 news 栏目。
 // 注意：翻译流程会给 slug 加 -{lang} 后缀（news → news-ja），不能按 slug 直查。
@@ -369,7 +370,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php
             $totalPages = (int)ceil($total / $perPage);
             $qstr = http_build_query(array_filter(
-                ['channel_id' => $channelId, 'status' => $status, 'keyword' => $keyword, 'lang' => $_viewLang],
+                [
+                    'channel_id' => $channelId,
+                    'status' => $status,
+                    'keyword' => $keyword,
+                    'lang' => $paginationLang,
+                    'per_page' => $perPage,
+                ],
                 static fn(mixed $value): bool => $value !== '' && $value !== null
             ));
             ?>
