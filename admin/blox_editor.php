@@ -6770,7 +6770,11 @@ $canManageBloxDesign = hasPermission('blox_global');
             // ---- 批量动作（R2）：数组运算在 blox-multi-actions.js，这里只做薄命令 ----
             actionsModule() {
                 var A = window.YikaiBloxMultiActions;
-                return A && typeof A.removeByIds === "function" && typeof A.appendCloned === "function" ? A : null;
+                return A
+                    && typeof A.removeByIds === "function"
+                    && typeof A.appendCloned === "function"
+                    && typeof A.planBatchAction === "function"
+                    && typeof A.planPaste === "function" ? A : null;
             },
 
             /** 把多选作用域解析为「可整体重建的数组引用」；解析逻辑在纯模块（缺失时降级失败）。 */
