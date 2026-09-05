@@ -210,7 +210,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <script>
 const RECYCLE_TYPE = <?php echo json_encode($activeType); ?>;
 const CSRF = <?php echo json_encode(csrfToken()); ?>;
-const T = {
+const recycleText = {
     restoreConfirm: <?php echo json_encode(__('recycle_restore_confirm')); ?>,
     purgeConfirm: <?php echo json_encode(__('recycle_purge_confirm')); ?>,
     emptyConfirm: <?php echo json_encode(__('recycle_empty_confirm')); ?>,
@@ -224,9 +224,9 @@ async function recyclePost(action, id) {
     if (data.code === 0) { location.reload(); }
     else { alert(data.msg || 'error'); }
 }
-function restoreItem(id) { if (confirm(T.restoreConfirm)) recyclePost('restore', id); }
-function purgeItem(id) { if (confirm(T.purgeConfirm)) recyclePost('purge', id); }
-function emptyTrash() { if (confirm(T.emptyConfirm)) recyclePost('empty', 0); }
+function restoreItem(id) { if (confirm(recycleText.restoreConfirm)) recyclePost('restore', id); }
+function purgeItem(id) { if (confirm(recycleText.purgeConfirm)) recyclePost('purge', id); }
+function emptyTrash() { if (confirm(recycleText.emptyConfirm)) recyclePost('empty', 0); }
 </script>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
