@@ -184,7 +184,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     // 默认折叠：已填有值的产品自动展开（有内容就该看见），全空/新建保持收起不占版面
                     $__specsFilled = 0;
                     foreach ((array) (json_decode($__specsInit, true) ?: []) as $__sv) {
-                        if (trim((string) $__sv) !== '') {
+                        $___specValueFilled = is_array($__sv)
+                            ? (bool) array_filter($__sv, static fn(mixed $v): bool => is_scalar($v)
+                                ? trim((string) $v) !== ''
+                                : !empty($v))
+                            : trim((string) $__sv) !== '';
+                        if ($___specValueFilled) {
                             $__specsFilled++;
                         }
                     }
