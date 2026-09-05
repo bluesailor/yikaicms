@@ -101,16 +101,18 @@ test('minimal homepage keeps its native header editable as the current theme hea
   expect(headerUrl).toMatch(/\/admin\/blox_editor\.php\?template=\d+&current_header=1&back=home&open=header-settings$/);
 
   if (compact) {
-    // 紧凑画布不进入页头编辑器，仅校验入口指向正确
-    await activateTheme(page, 'default');
-    return;
+    await page.goto(headerUrl, { waitUntil: 'domcontentloaded' });
+  } else {
+    await Promise.all([
+      page.waitForURL(headerUrl, { waitUntil: 'domcontentloaded' }),
+      pointerClick(page, headerEdit),
+    ]);
   }
-
-  await Promise.all([
-    page.waitForURL(headerUrl, { waitUntil: 'domcontentloaded' }),
-    pointerClick(page, headerEdit),
-  ]);
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
+
+  // Minimal 原生页头使用普通下拉导航；编辑起点不能把它悄悄换成 Mega Menu。
+  await expect(page.locator('[data-sort-child-item][data-element-type="nav"]')).toHaveCount(1);
+  await expect(page.locator('[data-sort-child-item][data-element-type="nav-mega"]')).toHaveCount(0);
 
   // 编辑起点是 Minimal 原生页头的可编辑对应物：白底 + Logo/导航/抽屉
   const content = await frame(page);
@@ -144,7 +146,7 @@ test('minimal frontend header is visible and does not overflow @ci', async ({ pa
   expect(metrics.headerWidth).toBeLessThanOrEqual(metrics.viewportWidth + 1);
   expect(metrics.headerHeight).toBeGreaterThanOrEqual(44);
   expect(metrics.headerHeight).toBeLessThanOrEqual(testInfo.project.name === 'mobile-390' ? 176 : 160);
-  if (testInfo.project.name === 'mobile-390') {
+  if (testInfo.project.name !== 'desktop-1440') {
     expect(metrics.menuButton).not.toBeNull();
     expect(metrics.menuButton.width).toBeGreaterThanOrEqual(43);
     expect(metrics.menuButton.height).toBeGreaterThanOrEqual(43);

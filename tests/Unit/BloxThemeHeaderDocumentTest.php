@@ -132,8 +132,11 @@ final class BloxThemeHeaderDocumentTest extends TestCase
             self::assertSame('#ffffff', $document['sections'][0]['settings']['bg_color']);
 
             $children = $document['sections'][0]['columns'][0]['elements'][0]['data']['children'];
-            self::assertSame(['logo', 'nav-mega', 'language-switcher', 'nav-drawer'], array_column($children, 'type'));
+            self::assertSame(['logo', 'nav', 'language-switcher', 'nav-drawer'], array_column($children, 'type'));
             self::assertSame('dark', $children[0]['data']['tone']);
+            self::assertSame('1', $children[1]['data']['dropdown']);
+            self::assertSame('1', $children[1]['data']['desktop_only']);
+            self::assertSame('flex flex-nowrap items-center gap-8 whitespace-nowrap', $children[1]['data']['wrap_class']);
 
             // sticky 跟随 header_sticky 设置，语言切换关闭时不出现语言元素
             $GLOBALS['yikai_config_runtime_overrides']['header_sticky'] = '0';
@@ -141,7 +144,7 @@ final class BloxThemeHeaderDocumentTest extends TestCase
             $document = BloxThemeHeaderDocument::current('test-current-minimal-header');
             self::assertFalse($document['settings']['sticky']);
             $children = $document['sections'][0]['columns'][0]['elements'][0]['data']['children'];
-            self::assertSame(['logo', 'nav-mega', 'nav-drawer'], array_column($children, 'type'));
+            self::assertSame(['logo', 'nav', 'nav-drawer'], array_column($children, 'type'));
 
             // 生成的文档 ID 唯一（BloxAreaDocument::process 的硬性契约）
             $ids = [];
