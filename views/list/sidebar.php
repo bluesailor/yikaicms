@@ -33,7 +33,10 @@ $productCatalogGridClass = [
                 <?php if ($productCatalogShowSearch): ?>
                 <!-- 搜索框 -->
                 <div class="bg-white rounded-lg shadow p-4" data-catalog-search>
-                    <form method="get" action="<?php echo channelUrl($channel); ?>">
+                    <form method="get" action="<?php echo ($isProductType && isDynamicUrlMode()) ? '/index.php' : channelUrl($channel); ?>">
+                        <?php if ($isProductType && isDynamicUrlMode()): ?>
+                        <input type="hidden" name="yk_route" value="product_list">
+                        <?php endif; ?>
                         <?php if ($isProductType && $productCategory && !empty($productCategory['slug'])): ?>
                         <input type="hidden" name="cat" value="<?php echo e((string) $productCategory['slug']); ?>">
                         <?php endif; ?>
@@ -176,7 +179,10 @@ $productCatalogGridClass = [
             <!-- 右侧产品列表 -->
             <div class="flex-1 min-w-0">
                 <?php if (!$productCatalogHasSidebar && $productCatalogShowSearch): ?>
-                <form method="get" action="<?php echo channelUrl($channel); ?>" class="mb-6 flex items-center gap-2 max-w-md">
+                <form method="get" action="<?php echo ($isProductType && isDynamicUrlMode()) ? '/index.php' : channelUrl($channel); ?>" class="mb-6 flex items-center gap-2 max-w-md">
+                    <?php if ($isProductType && isDynamicUrlMode()): ?>
+                    <input type="hidden" name="yk_route" value="product_list">
+                    <?php endif; ?>
                     <?php if ($isProductType && $productCategory && !empty($productCategory['slug'])): ?>
                     <input type="hidden" name="cat" value="<?php echo e((string) $productCategory['slug']); ?>">
                     <?php endif; ?>
