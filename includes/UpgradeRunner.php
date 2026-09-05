@@ -225,12 +225,33 @@ function uo_is_legacy_install_upgrade(string $rel): bool
 
 function uo_dir(): string { return ROOT_PATH . '/storage/upgrade'; }
 
+/**
+ * 幂等删除临时文件。
+ *
+ * 在线升级会被重试、断点续传和回滚反复调用；文件已经被上一轮清理掉
+ * 是正常状态，不应再触发 Warning。只有文件或符号链接实际存在时才调用
+ * unlink，避免依赖 @ 去掩盖缺失文件日志。
+ */
+function uo_unlink_if_exists(string $path): bool
+{
+    if (!is_file($path) && !is_link($path)) {
+        return true;
+    }
+    return @unlink($path);
+}
+
 function uo_rrmdir(string $d): void
 {
-    if (!is_dir($d)) { @unlink($d); return; }
+    if (is_link($d) || is_file($d)) {
+        uo_unlink_if_exists($d);
+        return;
+    }
+    if (!is_dir($d)) {
+        return;
+    }
     foreach (array_diff(scandir($d) ?: [], ['.', '..']) as $it) {
         $p = $d . '/' . $it;
-        is_dir($p) ? uo_rrmdir($p) : @unlink($p);
+        (is_dir($p) && !is_link($p)) ? uo_rrmdir($p) : uo_unlink_if_exists($p);
     }
     @rmdir($d);
 }
@@ -728,7 +749,7 @@ function upgrade_complete(): array
             return ['code' => 1, 'msg' => '升级已完成，但临时安装包清理失败，将在下一轮重试'];
         }
     }
-    if (!@unlink($sf) && is_file($sf)) {
+    if (!uo_unlink_if_exists($sf)) {
         return ['code' => 1, 'msg' => '升级已完成，但事务状态清理失败，将在下一轮重试'];
     }
     return ['code' => 0, 'msg' => '升级事务已完成并清理'];
@@ -1105,7 +1126,9 @@ function upgrade_download_chunk(
     }
 
     $part = uo_download_part_file();
-    $state = json_decode((string) @file_get_contents(uo_download_state_file()), true);
+    $stateFile = uo_download_state_file();
+    $stateRaw = is_file($stateFile) ? @file_get_contents($stateFile) : false;
+    $state = is_string($stateRaw) ? json_decode($stateRaw, true) : null;
     $step = uo_download_step($url, $part, is_array($state) ? $state : [], $hash, $ver, $fetcher);
 
     if ($step['error'] !== '') {
@@ -1142,7 +1165,7 @@ function uo_download_step(string $url, string $part, array $state, string $hash,
     if (!$sameTarget) {
         // 换了目标包：旧的半截文件一律作废，否则会把两个包的字节拼在一起，
         // 而 SHA256 要到最后才发现——那时已经白下了整包。
-        @unlink($part);
+        uo_unlink_if_exists($part);
         $state = ['url' => $url, 'hash' => $hash, 'version' => $ver, 'total' => null, 'started_at' => time()];
     }
 
@@ -1217,25 +1240,29 @@ function uo_download_reset_part(string $path): void
 /** 收尾：校验 SHA256、落位成 package.zip、写验签上下文。 */
 function uo_download_finalize(string $part, string $hash, string $ver, string $owner, ?int $total): array
 {
+    if (!is_file($part)) {
+        uo_unlink_if_exists(uo_download_state_file());
+        return ['code' => 1, 'msg' => '下载临时文件不存在，无法校验安装包，请重新下载'];
+    }
     $actual = hash_file('sha256', $part);
     if (!hash_equals(strtolower($hash), strtolower((string) $actual))) {
-        @unlink($part);
-        @unlink(uo_download_state_file());
+        uo_unlink_if_exists($part);
+        uo_unlink_if_exists(uo_download_state_file());
         return ['code' => 1, 'msg' => 'SHA256 校验不通过，包可能损坏或被篡改，已删除'];
     }
     $pkg = uo_dir() . '/package.zip';
-    @unlink($pkg);
+    uo_unlink_if_exists($pkg);
     if (!@rename($part, $pkg)) {
         return ['code' => 1, 'msg' => '安装包已校验，但无法落位到 package.zip'];
     }
-    @unlink(uo_download_state_file());
+    uo_unlink_if_exists(uo_download_state_file());
     if (!uo_write_json_locked(uo_package_meta_file(), [
         'version' => $ver,
         'hash' => 'sha256:' . $hash,
         'verified_at' => time(),
         'owner' => $owner === 'auto' ? 'auto' : 'manual',
     ])) {
-        @unlink($pkg);
+        uo_unlink_if_exists($pkg);
         return ['code' => 1, 'msg' => '安装包已校验，但验签上下文无法持久化，已拒绝继续'];
     }
     return ['code' => 0, 'done' => true, 'msg' => '下载并校验通过', 'size' => (int) filesize($pkg), 'signed' => true, 'total' => $total];

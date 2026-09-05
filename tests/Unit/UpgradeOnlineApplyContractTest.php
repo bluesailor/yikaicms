@@ -30,7 +30,7 @@ final class UpgradeOnlineApplyContractTest extends TestCase
         // 失败清单在删状态文件前落持久日志，供事后补文件。
         self::assertStringContainsString('upgrade-failures.log', $source);
         // finalize 成功路径删除状态文件——重放批次由 invalid_state 兜住。
-        self::assertStringContainsString('@unlink($sf)', $source);
+        self::assertStringContainsString('uo_unlink_if_exists($sf)', $source);
     }
 
     public function testOnlineUpgradeRejectsAReleaseAboveTheCurrentPhpVersion(): void
