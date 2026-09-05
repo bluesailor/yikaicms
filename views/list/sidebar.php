@@ -70,7 +70,7 @@ $productCatalogGridClass = [
                         <?php if ($isProductType): ?>
                         <!-- 产品分类 -->
                         <a href="<?php echo channelUrl($rootChannel); ?>"
-                           class="block px-4 py-3 hover:bg-gray-50 transition <?php echo ($channel['parent_id'] == 0) ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
+                           class="block px-4 py-3 hover:bg-gray-50 transition <?php echo ($productCategoryId === 0 && $keyword === '') ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
                             <?php echo __('all'); ?><?php echo __('list_product'); ?>
                         </a>
                         <?php if ($channel['parent_id'] > 0): ?>
