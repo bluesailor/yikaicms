@@ -45,6 +45,7 @@ if (!function_exists('adminPagesCatalog')) {
 
             // 站点
             ['url'=>'/admin/setting.php',          'title'=>'基本设置',     'keywords'=>'网站标题 网站名称 网站描述 关键词 LOGO favicon 备案 ICP 后台标题 页脚 footer 颜色', 'group'=>'站点'],
+            ['url'=>'/admin/setting.php?tab=url',   'title'=>'URL 与链接',   'keywords'=>'URL 链接 网址 伪静态 Rewrite rewrite 动态URL index.php 无需Rewrite',              'group'=>'站点'],
             ['url'=>'/admin/setting_home.php',     'title'=>'首页设置',     'keywords'=>'首页板块 首页配置 home page',                                            'group'=>'站点'],
             ['url'=>'/admin/setting_contact.php',  'title'=>'联系方式',     'keywords'=>'联系方式 电话 邮箱 邮件 公司地址 微信 二维码 客服 contact phone email address', 'group'=>'站点'],
             ['url'=>'/admin/setting_social.php',   'title'=>'社交账号',     'keywords'=>'社交 微博 抖音 知乎 facebook twitter linkedin instagram social',         'group'=>'站点'],
