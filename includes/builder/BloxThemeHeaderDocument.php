@@ -131,7 +131,7 @@ final class BloxThemeHeaderDocument
 
         $children = [
             self::logo($logoHeight),
-            self::navigation(),
+            self::standardNavigation(),
         ];
         if ((string) config('show_lang_switcher', '0') === '1') {
             $children[] = self::languageSwitcher();
@@ -249,6 +249,22 @@ final class BloxThemeHeaderDocument
         return [
             'type' => 'nav-mega',
             'data' => ['menu_group' => 0, 'show_desc' => false, 'full_width' => false] + $extra,
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private static function standardNavigation(array $extra = []): array
+    {
+        return [
+            'type' => 'nav',
+            'data' => [
+                'menu_group' => 0,
+                'parent' => '',
+                'nav_only' => true,
+                'dropdown' => true,
+                'desktop_only' => true,
+                'wrap_class' => 'flex flex-nowrap items-center gap-8 whitespace-nowrap',
+            ] + $extra,
         ];
     }
 
