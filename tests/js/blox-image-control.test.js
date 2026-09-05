@@ -71,3 +71,63 @@ for (const [scope, key] of [['section', 'bg_video'], ['element', 'bg_video']]) {
         assert.equal(app.videoControlValue(scope, key), '');
     });
 }
+
+test('section video detects and clears child backgrounds without changing its own media', () => {
+    const app = editor();
+    app.backgroundVideoObstructionText = { cleared: 'cleared :count' };
+    app.toast = (message) => { app.message = message; };
+    app.sel = {
+        settings: {
+            bg_video: '/uploads/videos/parent.mp4',
+            bg_image: '/uploads/parent-poster.jpg',
+            bg_overlay_opacity: 40,
+            container_bg: '#ffffff',
+            container_bg_overlay_opacity: 45,
+        },
+        columns: [{
+            card_bg_image: '/uploads/column.jpg',
+            card_bg_overlay_color: '#000000',
+            card_bg_overlay_opacity: 30,
+            elements: [{
+                type: 'home-block',
+                data: {
+                    bg_color: '#f8fafc',
+                    bg_overlay_color: '#111827',
+                    bg_overlay_opacity: 55,
+                    children: [{
+                        type: 'container',
+                        data: { bg_gradient: 'linear-gradient(red, blue)', bg_overlay: '60' },
+                    }],
+                },
+            }],
+        }],
+    };
+
+    assert.equal(app.sectionBackgroundVideoObstructionCount(), 4);
+    assert.equal(app.clearSectionBackgroundVideoObstructions(), 4);
+    assert.equal(app.sel.settings.bg_video, '/uploads/videos/parent.mp4');
+    assert.equal(app.sel.settings.bg_image, '/uploads/parent-poster.jpg');
+    assert.equal(app.sel.settings.bg_overlay_opacity, 40);
+    assert.equal(app.sel.settings.container_bg, '');
+    assert.equal(app.sel.settings.container_bg_overlay_opacity, 0);
+    assert.equal(app.sel.columns[0].card_bg_image, '');
+    assert.equal(app.sel.columns[0].card_bg_overlay_color, '');
+    assert.equal(app.sel.columns[0].elements[0].data.bg_color, '');
+    assert.equal(app.sel.columns[0].elements[0].data.bg_overlay_opacity, 0);
+    assert.equal(app.sel.columns[0].elements[0].data.children[0].data.bg_gradient, '');
+    assert.equal(app.sel.columns[0].elements[0].data.children[0].data.bg_overlay, '');
+    assert.equal(app.sectionBackgroundVideoObstructionCount(), 0);
+    assert.equal(app.flushes, 2);
+    assert.equal(app.message, 'cleared 4');
+});
+
+test('child backgrounds are ignored until the selected section has a video', () => {
+    const app = editor();
+    app.sel = {
+        settings: {},
+        columns: [{ elements: [{ type: 'home-block', data: { bg_image: '/child.jpg' } }] }],
+    };
+    assert.equal(app.sectionBackgroundVideoObstructionCount(), 0);
+    assert.equal(app.clearSectionBackgroundVideoObstructions(), 0);
+    assert.equal(app.sel.columns[0].elements[0].data.bg_image, '/child.jpg');
+});

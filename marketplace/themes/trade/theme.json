@@ -6,12 +6,15 @@
   "description": "外贸 / 进出口行业主题：浅色国际化、产品与案例网格优先、询盘转化醒目，适合外贸企业、工厂出口、跨境 B2B 站点。",
   "description_en": "Foreign-trade / import-export theme: clean international look, product & case grids first, prominent inquiry CTAs. Ideal for export manufacturers and cross-border B2B sites.",
   "description_ja": "貿易・輸出入向けテーマ：クリーンで国際的なデザイン、製品・実績グリッド重視、問い合わせ導線を強調。輸出メーカーや越境 B2B サイトに最適。",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "Yikai CMS",
   "category": "trade",
   "requires_cms": ">=1.19.6",
   "requires_php": ">=8.0.0",
   "required_plugins": [],
+  "capabilities": {
+    "banner_video": true
+  },
   "screenshot": "assets/images/screenshot.jpg",
   "design_tokens": "design-tokens.json"
 }

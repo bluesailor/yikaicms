@@ -225,6 +225,7 @@ final class ThemeMarket
         $url = trim((string) ($theme['download_url'] ?? ''));
         $hash = strtolower(trim((string) ($theme['hash'] ?? '')));
         $signature = base64_decode((string) ($theme['sig'] ?? ''), true);
+        $screenshot = trim((string) ($theme['screenshot'] ?? ''));
         $requiresCms = trim((string) ($theme['requires_cms'] ?? ''));
         $requiresPhp = trim((string) ($theme['requires_php'] ?? ''));
         $sizeKb = filter_var($theme['size_kb'] ?? null, FILTER_VALIDATE_INT);
@@ -250,10 +251,26 @@ final class ThemeMarket
         $theme['package'] = $package;
         $theme['download_url'] = $url;
         $theme['hash'] = $hash;
+        $theme['screenshot'] = self::officialScreenshotUrl($screenshot, $slug);
         $theme['requires_cms'] = $requiresCms;
         $theme['requires_php'] = $requiresPhp;
         $theme['size_kb'] = $sizeKb;
         return $theme;
+    }
+
+    private static function officialScreenshotUrl(string $url, string $slug): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return '';
+        }
+        return ($parts['scheme'] ?? '') === 'https'
+            && strtolower((string) ($parts['host'] ?? '')) === 'update.yikaicms.com'
+            && !isset($parts['user']) && !isset($parts['pass']) && !isset($parts['port'])
+            && !isset($parts['query']) && !isset($parts['fragment'])
+            && (string) ($parts['path'] ?? '') === '/assets/themes/' . $slug . '/screenshot.jpg'
+            ? $url
+            : '';
     }
 
     private static function officialConstraintSatisfied(string $actual, string $constraint): bool

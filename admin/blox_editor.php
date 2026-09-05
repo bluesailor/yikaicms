@@ -2219,6 +2219,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.sel.settings.bg_gradient = "linear-gradient(" + this.gradDir + "deg," + this.gradA + " 0%," + this.gradB + " 100%)";
             },
 
+            backgroundVideoObstructionText: {
+                warning: <?= $jt('blox_bg_video_obstruction_warning') ?>,
+                cleared: <?= $jt('blox_bg_video_obstruction_cleared') ?>,
+            },
             ...window.BloxImageControl.methods,
 
             // ── 渐变背景预置（值原样存 settings.bg_gradient；渲染器有白名单校验） ──
