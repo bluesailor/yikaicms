@@ -652,6 +652,33 @@ async function saveAdminLanguages() {
                     </p>
                     <?php endif; ?>
 
+                    <?php elseif ($item['type'] === 'radio'): ?>
+                    <div class="space-y-3" role="radiogroup" aria-label="<?php echo e(__((string) $item['name'])); ?>">
+                        <?php
+                        $options = json_decode($item['options'] ?? '{}', true) ?: [];
+                        foreach ($options as $optKey => $optLabel):
+                            $__optKey = (string) $optKey;
+                            $__optLangKey = 'setting_opt_' . $item['key'] . '_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $__optKey);
+                            $__optText = __($__optLangKey);
+                            if ($__optText === $__optLangKey) {
+                                $__optText = (string) $optLabel;
+                            }
+                            $__exampleKey = 'setting_example_' . $item['key'] . '_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $__optKey);
+                            $__exampleText = __($__exampleKey);
+                        ?>
+                        <label class="flex items-start gap-3 border rounded-lg px-4 py-3 cursor-pointer hover:border-primary transition <?php echo $item['value'] === $__optKey ? 'border-primary bg-primary/5' : 'border-gray-200'; ?>">
+                            <input type="radio" name="settings[<?php echo e($item['key']); ?>]" value="<?php echo e($__optKey); ?>"
+                                   class="mt-1" <?php echo $item['value'] === $__optKey ? 'checked' : ''; ?>>
+                            <span class="min-w-0">
+                                <span class="block text-sm font-medium text-gray-800"><?php echo e($__optText); ?></span>
+                                <?php if ($__exampleText !== $__exampleKey): ?>
+                                <code class="mt-1 block text-xs text-gray-500 break-all"><?php echo e($__exampleText); ?></code>
+                                <?php endif; ?>
+                            </span>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
+
                     <?php elseif ($item['type'] === 'select'): ?>
                     <select name="settings[<?php echo e($item['key']); ?>]" class="w-full border rounded px-4 py-2">
                         <?php
