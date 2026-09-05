@@ -92,6 +92,74 @@ final class UpgradeDownloadResumeTest extends TestCase
         self::assertSame($payload, (string) file_get_contents($this->part), '旧字节必须被丢弃，不能拼接');
     }
 
+    public function testSwitchingPackageWithMissingPartialFileIsQuiet(): void
+    {
+        $warnings = [];
+        set_error_handler(static function (int $severity, string $message) use (&$warnings): bool {
+            $warnings[] = $message;
+            return true;
+        });
+
+        try {
+            $payload = random_bytes(8_000);
+            $hash = hash('sha256', $payload);
+            $stale = ['url' => self::URL, 'hash' => str_repeat('f', 64), 'version' => '1.0.0', 'total' => 17];
+
+            $step = uo_download_step(self::URL, $this->part, $stale, $hash, '9.9.9', $this->server($payload));
+        } finally {
+            restore_error_handler();
+        }
+
+        self::assertSame([], $warnings, '清理不存在的断点文件不应产生 Warning');
+        self::assertSame('', $step['error']);
+        self::assertTrue($step['complete']);
+    }
+
+    public function testCleanupHelpersAreIdempotentForMissingPaths(): void
+    {
+        $missingFile = $this->part . '-missing';
+        $missingDirectory = $this->part . '-directory';
+        $warnings = [];
+        set_error_handler(static function (int $severity, string $message) use (&$warnings): bool {
+            $warnings[] = $message;
+            return true;
+        });
+
+        try {
+            self::assertTrue(uo_unlink_if_exists($missingFile));
+            uo_rrmdir($missingDirectory);
+        } finally {
+            restore_error_handler();
+        }
+
+        self::assertSame([], $warnings, '重复清理不存在的路径不应产生 Warning');
+    }
+
+    public function testFinalizeRejectsMissingPartialFileWithoutWarning(): void
+    {
+        $warnings = [];
+        set_error_handler(static function (int $severity, string $message) use (&$warnings): bool {
+            $warnings[] = $message;
+            return true;
+        });
+
+        try {
+            $result = uo_download_finalize(
+                $this->part . '-missing',
+                str_repeat('a', 64),
+                '9.9.9',
+                'manual',
+                null
+            );
+        } finally {
+            restore_error_handler();
+        }
+
+        self::assertSame([], $warnings, '临时下载文件缺失时不应触发 hash/unlink Warning');
+        self::assertSame(1, $result['code']);
+        self::assertStringContainsString('临时文件不存在', $result['msg']);
+    }
+
     public function testServerIgnoringRangeResetsInsteadOfConcatenating(): void
     {
         $payload = random_bytes(40_000);
