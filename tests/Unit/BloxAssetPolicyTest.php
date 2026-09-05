@@ -147,10 +147,11 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertStringContainsString('name: yikaicms-free-${{ github.sha }}', $workflow);
         self::assertSame(3, substr_count($workflow, 'bash .github/scripts/inject-blox.sh'));
 
-        self::assertStringContainsString('node tests/e2e/run-local.js --grep "@ci"', $workflow);
+        self::assertStringContainsString('node tests/e2e/run-local.js --grep "@ci" --project=${{ matrix.project }}', $workflow);
         self::assertStringContainsString('node tests/e2e/run-local.js --free', $workflow);
         self::assertStringContainsString('BLOX_E2E_SERVER_LOG:', $workflow);
-        self::assertStringContainsString('test-results/e2e/php-server.log', $workflow);
+        self::assertStringContainsString('test-results/e2e-${{ matrix.project }}/php-server.log', $workflow);
+        self::assertStringContainsString('test-results/e2e-supplementary/php-server.log', $workflow);
         self::assertStringContainsString('persistServerLog()', $runner);
         self::assertStringContainsString('php tests/smoke/blox_upgrade_compat.php --from="$tag"', $workflow);
         foreach (['v1.12.9', 'v1.14.0', 'v1.17.0', 'v1.17.3.2'] as $tag) {
