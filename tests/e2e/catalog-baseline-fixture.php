@@ -21,7 +21,7 @@ if ($action === 'restore') {
     }
     exit;
 }
-if (!in_array($action, ['pretty', 'query', 'business', 'minimal'], true)) {
+if (!in_array($action, ['pretty', 'query', 'business', 'minimal', 'cache-pretty'], true)) {
     throw new RuntimeException('Invalid fixture mode');
 }
 $settings = ['url_mode', 'current_theme', 'home_layout_active', 'enabled_languages', 'html_cache_enabled'];
@@ -35,5 +35,5 @@ settingModel()->saveBatch([
     'url_mode' => in_array($action, ['query', 'pretty'], true) ? $action : 'pretty',
     'current_theme' => in_array($action, ['business', 'minimal'], true) ? $action : 'default',
     'home_layout_active' => '0', 'enabled_languages' => '["zh-CN","en","ja"]',
-    'html_cache_enabled' => '0',
+    'html_cache_enabled' => $action === 'cache-pretty' ? '1' : '0',
 ]);
