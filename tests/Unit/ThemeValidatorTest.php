@@ -43,14 +43,31 @@ final class ThemeValidatorTest extends TestCase
 
     public function testCoreThemeSourceOnlyContainsDefault(): void
     {
-        $dirs = glob(ROOT_PATH . '/themes/*', GLOB_ONLYDIR) ?: [];
-        $this->assertSame(['default'], array_map('basename', $dirs), '源码树 themes/ 只能跟踪 default 主题');
+        // 显式验证核心源码 themes/default;themes/business|minimal 是开发站运行时
+        // 安装副本(ignored),存在与否不代表源码树状态,不做目录清单断言。
+        $defaultDir = ROOT_PATH . '/themes/default';
+        $this->assertDirectoryExists($defaultDir, '核心主题源码 themes/default 必须存在');
 
-        foreach ($dirs as $dir) {
-            $slug = basename($dir);
-            $r = ThemeValidator::validateDir($dir, $slug);
-            $this->assertSame([], $r['errors'], "内置主题 {$slug} 校验不通过：" . implode('；', $r['errors']));
-            $this->assertSame([], $r['warnings'], "内置主题 {$slug} 有警告：" . implode('；', $r['warnings']));
+        $r = ThemeValidator::validateDir($defaultDir, 'default');
+        $this->assertSame([], $r['errors'], '内置主题 default 校验不通过：' . implode('；', $r['errors']));
+        $this->assertSame([], $r['warnings'], '内置主题 default 有警告：' . implode('；', $r['warnings']));
+
+        // 源码唯一性改由 git 跟踪清单约束：themes/ 下只允许跟踪 themes/default/**。
+        // 运行副本不应被 git 跟踪（配合 .gitignore、ThemePackagingPolicyTest 与
+        // build.sh 的 marketplace 来源断言共同兜底）。
+        $cmd = 'cd ' . escapeshellarg(ROOT_PATH) . ' && git ls-files themes/';
+        $tracked = shell_exec($cmd);
+        $this->assertIsString($tracked, 'git ls-files themes/ 执行失败，无法核对源码唯一性');
+
+        $files = array_values(array_filter(explode("
+", (string) $tracked), 'strlen'));
+        $this->assertNotEmpty($files, 'git 未跟踪任何 themes/ 文件，源码唯一性无从谈起');
+        foreach ($files as $file) {
+            $this->assertStringStartsWith(
+                'themes/default/',
+                $file,
+                "源码树 themes/ 只允许跟踪 themes/default/**，实际跟踪了: {$file}"
+            );
         }
     }
 
