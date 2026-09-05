@@ -9,7 +9,7 @@
   "version": "1.0.3",
   "author": "Yikai CMS",
   "category": "trade",
-  "requires_cms": ">=1.19.6",
+  "requires_cms": ">=1.19.7",
   "requires_php": ">=8.0.0",
   "required_plugins": [],
   "capabilities": {
