@@ -36,7 +36,7 @@ $__lo = $listOpts ?? null;
         </h3>
         <?php if (listShowEl($__lo, 'summary')): ?>
         <p class="mt-2 text-gray-500 text-sm line-clamp-2">
-            <?php echo e($item['summary'] ?: cutStr(strip_tags($item['content']), 120)); ?>
+            <?php echo e(($item['summary'] ?? '') ?: cutStr(strip_tags($item['content'] ?? ''), 120)); ?>
         </p>
         <?php endif; ?>
         <div class="mt-3 flex items-center gap-4 text-xs text-gray-400">
