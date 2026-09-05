@@ -39,6 +39,13 @@ $KNOWN = [
     'php80-new-features' => "<p>PHP 8.0 是 PHP 语言的重大版本更新，带来了众多令人兴奋的新特性和性能改进。本文将深入解析其中最重要的变化。</p>\n<h3>JIT 编译器</h3>\n<p>PHP 8.0 引入了 JIT（即时编译）支持，在计算密集型场景下性能提升可达3倍。虽然对典型 Web 应用提升有限，但在数据处理和科学计算场景表现优异。</p>\n<h3>命名参数</h3>\n<pre><code>htmlspecialchars(\$string, double_encode: false);</code></pre>\n<p>命名参数使代码更具可读性，不再需要记忆参数顺序。</p>\n<h3>联合类型</h3>\n<pre><code>function foo(int|string \$id): void {}</code></pre>\n<p>原生支持联合类型声明，减少对 PHPDoc 注释的依赖。</p>\n<h3>Match 表达式</h3>\n<pre><code>\$result = match(\$status) {\n    1 => \"active\",\n    2 => \"inactive\",\n    default => \"unknown\",\n};</code></pre>\n<p>match 是 switch 的现代替代，支持严格比较和返回值。</p>\n<h3>Null 安全运算符</h3>\n<pre><code>\$country = \$user?->getAddress()?->country;</code></pre>\n<p>链式调用中优雅处理 null 值，避免冗长的 null 检查。</p>",
 ];
 
+// 只对已确认的字段做逐字替换；未知内容不自动猜测，避免误改用户数据。
+$REPLACEMENTS = [
+    'process' => [
+        'プロジェ���ト' => 'プロジェクト',
+    ],
+];
+
 $fixedCount = 0;
 
 foreach ($rows as $r) {
@@ -64,6 +71,25 @@ foreach ($rows as $r) {
             $db->execute(
                 "UPDATE {$table} SET content = :c, updated_at = :t WHERE id = :id",
                 [':c' => $KNOWN[$slug], ':t' => time(), ':id' => $id]
+            );
+            $fixedCount++;
+        }
+    } elseif (isset($REPLACEMENTS[$slug])) {
+        $clean = $orig;
+        foreach ($REPLACEMENTS[$slug] as $broken => $replacement) {
+            $clean = str_replace($broken, $replacement, $clean);
+        }
+
+        if ($clean === $orig) {
+            echo "    ! 没有命中已确认的逐字修复规则，保持不变。\n";
+            continue;
+        }
+
+        echo "    → 应用已确认的逐字替换。\n";
+        if (!$dry) {
+            $db->execute(
+                "UPDATE {$table} SET content = :c, updated_at = :t WHERE id = :id",
+                [':c' => $clean, ':t' => time(), ':id' => $id]
             );
             $fixedCount++;
         }

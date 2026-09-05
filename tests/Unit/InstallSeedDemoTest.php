@@ -326,4 +326,19 @@ class InstallSeedDemoTest extends TestCase
         $this->assertSame(0, (int) $pdo->query('SELECT COUNT(*) FROM yikai_products')->fetchColumn(), '剥离后不应有演示产品');
         $this->assertGreaterThan(0, (int) $pdo->query('SELECT COUNT(*) FROM yikai_channels')->fetchColumn(), '栏目骨架应保留');
     }
+
+    public function testSqliteBaselineFixtureIsValidUtf8WithoutReplacementCharacters(): void
+    {
+        $path = dirname(__DIR__) . '/fixtures/schema-baseline-sqlite.sql';
+        $sql = (string) file_get_contents($path);
+
+        $this->assertSame(1, preg_match('//u', $sql), 'SQLite 基线夹具必须是合法 UTF-8');
+        $this->assertStringNotContainsString(
+            "\xEF\xBF\xBD",
+            $sql,
+            'SQLite 基线夹具不得包含 Unicode 替换字符 U+FFFD'
+        );
+        $this->assertStringContainsString('プロジェクト', $sql);
+        $this->assertStringContainsString('導入プロセス', $sql);
+    }
 }
