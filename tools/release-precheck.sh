@@ -270,6 +270,30 @@ for lang in zh-CN en ja; do
 done
 
 # ─────────────────────────────────────────────────────────────
+section "4a. 演示数据 UTF-8 完整性"
+# 安装 SQL、测试夹具和已配置的本地三语演示库统一检查 U+FFFD。
+# 扫描器只读数据库；候选树没有 config.php 时只检查文件并明确跳过数据库。
+replacement_scan_php="$(command -v php 2>/dev/null || true)"
+if [ -z "$replacement_scan_php" ] && [ -f /mnt/d/phpstudy_pro/Extensions/php/php8.2.9nts/php.exe ]; then
+    replacement_scan_php=/mnt/d/phpstudy_pro/Extensions/php/php8.2.9nts/php.exe
+fi
+if [ -z "$replacement_scan_php" ]; then
+    fail "未找到 PHP 可执行，无法执行演示数据 U+FFFD 扫描"
+else
+    replacement_scan_log="${TMPDIR:-/tmp}/yikai-release-mojibake-$$.log"
+    PRECHECK_TEMP_FILES+=("$replacement_scan_log")
+    replacement_scan_status=0
+    "$replacement_scan_php" tools/scan_demo_mojibake.php >"$replacement_scan_log" 2>&1 || replacement_scan_status=$?
+    if [ "$replacement_scan_status" -eq 0 ]; then
+        pass "安装/测试夹具及可用本地三语演示库未发现 U+FFFD"
+        sed -n '1,3p' "$replacement_scan_log" | sed 's/^/      /'
+    else
+        fail "演示数据 U+FFFD 扫描未通过"
+        cat "$replacement_scan_log" | sed 's/^/      /'
+    fi
+fi
+
+# ─────────────────────────────────────────────────────────────
 section "5. migrations/ 升级项提醒"
 # ─────────────────────────────────────────────────────────────
 

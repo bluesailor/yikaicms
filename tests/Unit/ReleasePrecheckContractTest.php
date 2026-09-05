@@ -18,4 +18,14 @@ final class ReleasePrecheckContractTest extends TestCase
         self::assertStringContainsString('php tools/release-schema-diff.php', $source);
         self::assertStringNotContainsString('git diff HEAD~1 -- install/sql/mysql.sql', $source);
     }
+
+    public function testDemoEncodingScanIsPartOfTheReleaseGate(): void
+    {
+        $source = file_get_contents(ROOT_PATH . '/tools/release-precheck.sh');
+        self::assertNotFalse($source);
+
+        self::assertStringContainsString('tools/scan_demo_mojibake.php', $source);
+        self::assertStringContainsString('演示数据 UTF-8 完整性', $source);
+        self::assertStringContainsString('演示数据 U+FFFD 扫描未通过', $source);
+    }
 }
