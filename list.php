@@ -385,7 +385,10 @@ $horizRootChannel = $channel;
                 ，<?php echo e(__('search')); ?> "<span class="text-primary"><?php echo e($keyword); ?></span>"
                 <?php endif; ?>
             </div>
-            <form method="get" action="<?php echo channelUrl($channel); ?>" class="flex items-center gap-2">
+            <form method="get" action="<?php echo ($isProductType && isDynamicUrlMode()) ? '/index.php' : channelUrl($channel); ?>" class="flex items-center gap-2">
+                <?php if ($isProductType && isDynamicUrlMode()): ?>
+                <input type="hidden" name="yk_route" value="product_list">
+                <?php endif; ?>
                 <?php if ($isProductType && $productCategory && !empty($productCategory['slug'])): ?>
                 <input type="hidden" name="cat" value="<?php echo e((string) $productCategory['slug']); ?>">
                 <?php endif; ?>
