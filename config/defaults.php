@@ -45,6 +45,13 @@ return [
     // ============================================================
     // URL 与链接
     // ============================================================
+    'pagination' => [
+        'catalog_product_page_size' => ['value' => '', 'type' => 'number', 'name' => 'Products', 'tip' => ''],
+        'catalog_article_page_size' => ['value' => '', 'type' => 'number', 'name' => 'Articles', 'tip' => ''],
+        'catalog_case_page_size' => ['value' => '', 'type' => 'number', 'name' => 'Cases', 'tip' => ''],
+        'catalog_download_page_size' => ['value' => '', 'type' => 'number', 'name' => 'Downloads', 'tip' => ''],
+        'catalog_job_page_size' => ['value' => '', 'type' => 'number', 'name' => 'Jobs', 'tip' => ''],
+    ],
     'url' => [
         'url_mode' => [
             'value' => 'pretty',

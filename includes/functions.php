@@ -3929,3 +3929,4 @@ function langUrl(string $url, string $lang = ''): string
 
 // 权限能力目录（角色勾选 / 页面守卫 / 权限迁移 共用；函数内才调 __()，加载顺序无碍）
 require_once __DIR__ . '/permissions.php';
+require_once __DIR__ . '/catalog_pagination.php';
