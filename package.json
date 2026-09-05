@@ -5,7 +5,8 @@
     "css": "tailwindcss -i assets/css/src/app.css -o assets/css/tailwind.css --minify",
     "css:watch": "tailwindcss -i assets/css/src/app.css -o assets/css/tailwind.css --watch",
     "test:e2e": "playwright test",
-    "test:e2e:local": "node tests/e2e/run-local.js"
+    "test:e2e:local": "node tests/e2e/run-local.js",
+    "test:e2e:admin-crud": "node tests/e2e/run-local.js tests/e2e/admin-crud.spec.js --project=desktop-1440"
   },
   "dependencies": {
     "@tailwindcss/cli": "4.3.3",
