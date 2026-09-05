@@ -8,6 +8,10 @@
 (function (global) {
     "use strict";
 
+    function isObject(value) {
+        return !!value && typeof value === "object";
+    }
+
     function idOf(item) {
         return item && item.id !== undefined && item.id !== null ? String(item.id) : "";
     }
@@ -49,22 +53,45 @@
         return { items: picked, missing: missing };
     }
 
-    function cloneItem(item, idFactory) {
-        var twin = JSON.parse(JSON.stringify(item));
-        var assign = function (node) {
-            node.id = idFactory();
-            var children = node.data && Array.isArray(node.data.children) ? node.data.children : [];
-            children.forEach(assign);
-        };
-        assign(twin);
+    // 结构化克隆：区块=section→columns[*]→elements[*]→data.children[*] 四层，
+    // 每一层都重配 id（kind 决定前缀：section/column/element）；漏层就会留下重复 ID。
+    function cloneElement(el, idFactory) {
+        var twin = JSON.parse(JSON.stringify(el));
+        twin.id = idFactory("element");
+        var children = twin.data && Array.isArray(twin.data.children) ? twin.data.children : [];
+        children.forEach(function (child, index) {
+            children[index] = cloneElement(child, idFactory);
+        });
         return twin;
+    }
+    function cloneColumn(column, idFactory) {
+        var twin = JSON.parse(JSON.stringify(column));
+        twin.id = idFactory("column");
+        var elements = Array.isArray(twin.elements) ? twin.elements : [];
+        elements.forEach(function (el, index) {
+            elements[index] = cloneElement(el, idFactory);
+        });
+        return twin;
+    }
+    function cloneSection(section, idFactory) {
+        var twin = JSON.parse(JSON.stringify(section));
+        twin.id = idFactory("section");
+        var columns = Array.isArray(twin.columns) ? twin.columns : [];
+        columns.forEach(function (col, index) {
+            columns[index] = cloneColumn(col, idFactory);
+        });
+        return twin;
+    }
+    function cloneByKind(item, idFactory, kind) {
+        if (kind === "section") return cloneSection(item, idFactory);
+        return cloneElement(item, idFactory);
     }
 
     /**
      * 复制给定 id 集合：副本按文档顺序紧跟集合最后一项之后插入，每个副本（含后代）
      * 重新分配 id。返回新列表与副本 id（文档顺序）。
      */
-    function duplicateByIds(list, ids, idFactory) {
+    function duplicateByIds(list, ids, idFactory, kind) {
         var source = Array.isArray(list) ? list : [];
         var picked = pickByIds(source, ids);
         var idSet = (ids || []).map(String);
@@ -80,7 +107,7 @@
         var newIds = [];
         var insertClones = function () {
             picked.items.forEach(function (origin) {
-                var twin = cloneItem(origin, idFactory);
+                var twin = cloneByKind(origin, idFactory, kind);
                 newIds.push(idOf(twin));
                 result.push(twin);
             });
@@ -95,11 +122,11 @@
     /**
      * 粘贴：把 items（已按文档顺序的剪贴板内容）追加到列表末尾，逐项重配 id。
      */
-    function appendCloned(list, items, idFactory) {
+    function appendCloned(list, items, idFactory, kind) {
         var result = (Array.isArray(list) ? list : []).slice();
         var newIds = [];
         (items || []).forEach(function (origin) {
-            var twin = cloneItem(origin, idFactory);
+            var twin = cloneByKind(origin, idFactory, kind);
             newIds.push(idOf(twin));
             result.push(twin);
         });
@@ -136,9 +163,61 @@
             });
             if (!host || !host.data) return null;
             host.data.children = host.data.children || [];
-            return { level: "child", list: host.data.children };
+            return { level: "child", list: host.data.children, host: host };
         }
         return null;
+    }
+
+    /**
+     * 批量删除/剪切/复制的编排计划：挑集合、做上限/下限检查、产出新数组。
+     * 宿主业务规则由调用方折叠成 maxCount/minCount（0 = 不限）；
+     * 返回 error: "minimum" | "limit" | "failed" 时调用方不得改动文档。
+     */
+    function planBatchAction(kind, list, ids, idFactory, cloneKind, maxCount, minCount) {
+        var source = Array.isArray(list) ? list : [];
+        var picked = pickByIds(source, ids);
+        if (!picked.items.length) return { error: "failed" };
+        var resulting = source.length - picked.items.length;
+        if (kind === "delete" || kind === "cut") {
+            if (minCount && resulting < minCount) return { error: "minimum" };
+            return {
+                list: removeByIds(source, ids).list,
+                picked: picked.items,
+                removed: picked.items.length,
+                error: null,
+            };
+        }
+        if (kind === "duplicate") {
+            resulting = source.length + picked.items.length;
+            if (maxCount && resulting > maxCount) return { error: "limit" };
+            var dup = duplicateByIds(source, ids, idFactory, cloneKind);
+            return { list: dup.list, newIds: dup.newIds, removed: 0, error: null };
+        }
+        return { error: "failed" };
+    }
+
+    /**
+     * 批量粘贴编排：追加剪贴板内容并重配 id；opts.maxCount 为宿主上限，
+     * opts.canNest(item, twin) 为容器的逐项许可（返回 false 即整体拒绝）。
+     * 拒绝时返回 error，调用方不得改动文档。
+     */
+    function planPaste(list, items, idFactory, cloneKind, opts) {
+        var source = Array.isArray(list) ? list : [];
+        var incoming = (items || []).filter(isObject);
+        if (!incoming.length) return { error: "empty" };
+        var maxCount = opts && opts.maxCount;
+        if (maxCount && source.length + incoming.length > maxCount) return { error: "limit" };
+        var result = source.slice();
+        var newIds = [];
+        for (var i = 0; i < incoming.length; i++) {
+            var twin = cloneByKind(incoming[i], idFactory, cloneKind);
+            if (opts && typeof opts.canNest === "function" && !opts.canNest(incoming[i], twin)) {
+                return { error: "rejected" };
+            }
+            newIds.push(idOf(twin));
+            result.push(twin);
+        }
+        return { list: result, newIds: newIds, error: null };
     }
 
     var api = {
@@ -147,6 +226,8 @@
         duplicateByIds: duplicateByIds,
         appendCloned: appendCloned,
         scopeContext: scopeContext,
+        planBatchAction: planBatchAction,
+        planPaste: planPaste,
     };
 
     global.YikaiBloxMultiActions = api;

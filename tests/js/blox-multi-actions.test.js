@@ -10,6 +10,14 @@ function item(id, extra) {
     return Object.assign({ id }, extra || {});
 }
 
+function assertUnique(ids) {
+    const seen = new Set();
+    ids.forEach((id) => {
+        assert.equal(seen.has(id), false, "duplicate id: " + id);
+        seen.add(id);
+    });
+}
+
 test("removeByIds rebuilds the list and reports removed in document order", () => {
     const list = [item("a"), item("b"), item("c"), item("d")];
     const r = Actions.removeByIds(list, ["b", "d"]);
@@ -65,6 +73,56 @@ test("appendCloned appends in clipboard order with fresh ids", () => {
     assert.deepEqual(r.newIds, ["n_1", "n_2"]);
 });
 
+test("section duplication rebuilds ids for the whole tree (section/column/element/child)", () => {
+    seq = 0;
+    const kindFactory = (kind) => kind.slice(0, 1) + "_" + (++seq);
+    const section = {
+        id: "s1",
+        columns: [{
+            id: "c1",
+            elements: [{ id: "e1", data: { children: [{ id: "k1", data: {} }] } }],
+        }],
+    };
+    const r = Actions.duplicateByIds([section], ["s1"], kindFactory, "section");
+    assert.equal(r.list.length, 2);
+    const twin = r.list[1];
+    // 四层全部拿到新 id
+    assert.notEqual(twin.id, "s1");
+    assert.notEqual(twin.columns[0].id, "c1");
+    assert.notEqual(twin.columns[0].elements[0].id, "e1");
+    assert.notEqual(twin.columns[0].elements[0].data.children[0].id, "k1");
+    // 原树 + 副本整棵树无重复 id
+    const collect = (node, out) => {
+        out.push(node.id);
+        (node.columns || []).forEach((c) => collect(c, out));
+        (node.elements || []).forEach((e) => collect(e, out));
+        ((node.data || {}).children || []).forEach((k) => collect(k, out));
+    };
+    const all = [];
+    collect(r.list[0], all);
+    collect(r.list[1], all);
+    assertUnique(all);
+    // 副本结构与顺序保持
+    assert.equal(twin.columns.length, 1);
+    assert.equal(twin.columns[0].elements.length, 1);
+    assert.equal(twin.columns[0].elements[0].data.children.length, 1);
+});
+
+test("appendCloned with section kind rebuilds the whole tree too", () => {
+    seq = 100;
+    const kindFactory = (kind) => kind.slice(0, 1) + "_" + (++seq);
+    const clip = [{
+        id: "s9",
+        columns: [{ id: "c9", elements: [{ id: "e9", data: { children: [{ id: "k9", data: {} }] } }] }],
+    }];
+    const r = Actions.appendCloned([], clip, kindFactory, "section");
+    const twin = r.list[0];
+    assert.notEqual(twin.id, "s9");
+    assert.notEqual(twin.columns[0].id, "c9");
+    assert.notEqual(twin.columns[0].elements[0].id, "e9");
+    assert.notEqual(twin.columns[0].elements[0].data.children[0].id, "k9");
+});
+
 test("determinism: identical input yields identical output", () => {
     seq = 5;
     const a = Actions.duplicateByIds([item("a"), item("b")], ["b"], newId);
@@ -93,4 +151,26 @@ test("scopeContext returns null for dangling scopes; empty root stays valid for 
     assert.deepEqual(emptyRoot, { level: "section", list: [] });
     assert.equal(Actions.scopeContext([{ id: "s1", columns: [] }], "child", "children:gone"), null);
     assert.equal(Actions.scopeContext([{ id: "s1", columns: [] }], "weird", "x"), null);
+});
+
+test("planPaste appends fresh-id clones in clipboard order", () => {
+    seq = 0;
+    const r = Actions.planPaste([item("keep")], [item("x"), item("y")], newId, "element", {});
+    assert.deepEqual(r.list.map((i) => i.id), ["keep", "n_1", "n_2"]);
+    assert.equal(r.error, null);
+});
+
+test("planPaste enforces host max count", () => {
+    const r = Actions.planPaste([item("a"), item("b")], [item("x")], newId, "element", { maxCount: 2 });
+    assert.equal(r.error, "limit");
+    // 拒绝时不得产出新数组供写入
+    assert.equal(r.list, undefined);
+});
+
+test("planPaste canNest rejection refuses the whole batch", () => {
+    const r = Actions.planPaste([item("keep")], [item("ok"), item("bad")], newId, "element", {
+        canNest: (item) => item.id !== "bad",
+    });
+    assert.equal(r.error, "rejected");
+    assert.equal(r.list, undefined);
 });

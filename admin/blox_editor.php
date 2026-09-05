@@ -3553,12 +3553,25 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             syncProcessNumbers() {
-                var host = this.processHost();
+                this.syncProcessNumbersFor(this.processHost());
+            },
+
+            /** 批量动作按宿主重排流程编号（auto_number 关闭时不覆盖手写编号）。 */
+            syncProcessNumbersFor(host) {
                 if (!host || !host.data || host.data.auto_number === false) return;
-                this.processItems().forEach(function (item, index) {
+                var children = host.data && Array.isArray(host.data.children) ? host.data.children : [];
+                children.forEach(function (item, index) {
                     item.data = item.data && typeof item.data === "object" ? item.data : {};
                     item.data.number = String(index + 1).padStart(2, "0");
                 });
+            },
+
+            /** 批量子元素宿主约束（process-steps：1–20 步）；返回拒绝文案或 null。 */
+            batchChildHostGuard(host, resultingCount) {
+                if (!host || host.type !== "process-steps") return null;
+                if (resultingCount < 1) return this.processText.minimum;
+                if (resultingCount > 20) return this.processText.limit;
+                return null;
             },
 
             addProcessItem() {
@@ -6591,10 +6604,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.canvasBridge().post({ ykMultiIds: ids });
             },
 
-            /**
-             * 修饰键点击入口：shift=区间，ctrl/cmd=增减，普通点击返回 false 由调用方走原单选。
-             * siblings 是同父级下按文档顺序的稳定 id 列表，作为 shift 区间的基准。
-             */
+            /** 修饰键点击入口：shift=区间、ctrl/cmd=增减；普通点击返回 false 走原单选。siblings=同父级文档序稳定 id。 */
             multiModClick(event, level, parent, id, siblings) {
                 if (!event || (!event.shiftKey && !event.ctrlKey && !event.metaKey)) {
                     this.multiPlainClick(level, parent, id, siblings);
@@ -6757,7 +6767,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return { shiftKey: !!(mods && mods.shift), ctrlKey: !!(mods && mods.toggle), metaKey: false };
             },
 
-            // ---- 批量动作（R2：删除/复制/剪切/粘贴）。数组运算在 blox-multi-actions.js，这里只做薄命令 ----
+            // ---- 批量动作（R2）：数组运算在 blox-multi-actions.js，这里只做薄命令 ----
             actionsModule() {
                 var A = window.YikaiBloxMultiActions;
                 return A && typeof A.removeByIds === "function" && typeof A.appendCloned === "function" ? A : null;
@@ -6803,43 +6813,34 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.toast(this.multiText[label].replace(":count", count));
             },
 
+            /** 删除/复制/剪切共用编排：挑集合、上下限检查、重建数组全在纯模块；这里只落盘与提示。 */
             _runBatchActionRaw(kind, A) {
                 var ctx = this.multiScopeContext();
                 var ids = this.multiSel ? this.multiSel.ids.slice() : [];
                 if (!ctx || !ids.length) { this.toast(this.multiText.failed); return; }
-                var self = this;
-                var idFactory = function () { return self.uid(ctx.level === "section" ? "s" : "e"); };
-
-                if (kind === "delete") {
-                    var removed = A.removeByIds(ctx.list, ids);
-                    if (!removed.removed.length) { this.toast(this.multiText.failed); return; }
-                    this.replaceList(ctx.list, removed.list);
-                    this.deselectAll();
-                    this.batchDone(removed.removed.length, "deleteDone");
-                    return;
-                }
-                if (kind === "duplicate") {
-                    var dup = A.duplicateByIds(ctx.list, ids, idFactory);
-                    if (!dup.newIds.length) { this.toast(this.multiText.failed); return; }
-                    this.replaceList(ctx.list, dup.list);
-                    this.batchDone(dup.newIds.length, "duplicateDone");
-                    return;
-                }
+                var isSteps = !!(ctx.host && ctx.host.type === "process-steps");
+                var plan = A.planBatchAction(kind, ctx.list, ids, this.batchIdFactory(), ctx.level === "section" ? "section" : "element", isSteps ? 20 : 0, isSteps ? 1 : 0);
+                if (plan.error === "minimum") { this.toast(this.processText.minimum); return; }
+                if (plan.error === "limit") { this.toast(this.processText.limit); return; }
+                if (plan.error) { this.toast(this.multiText.failed); return; }
                 if (kind === "cut") {
-                    var picked = A.pickByIds(ctx.list, ids);
-                    if (!picked.items.length) { this.toast(this.multiText.failed); return; }
-                    this.batchClipboard = {
-                        level: ctx.level,
-                        parent: ctx.parent,
-                        items: JSON.parse(JSON.stringify(picked.items)),
-                    };
-                    var cut = A.removeByIds(ctx.list, ids);
-                    this.replaceList(ctx.list, cut.list);
-                    this.deselectAll();
-                    this.batchDone(picked.items.length, "cutDone");
-                    return;
+                    this.batchClipboard = { level: ctx.level, parent: ctx.parent, items: JSON.parse(JSON.stringify(plan.picked)) };
                 }
-                this.toast(this.multiText.failed);
+                this.replaceList(ctx.list, plan.list);
+                if (kind === "delete" || kind === "cut") this.deselectAll(); // 复制后保留原选择
+                if (isSteps) this.syncProcessNumbersFor(ctx.host);
+                var label = kind === "delete" ? "deleteDone" : (kind === "duplicate" ? "duplicateDone" : "cutDone");
+                var count = kind === "duplicate" ? plan.newIds.length : plan.removed;
+                this.batchDone(count, label);
+            },
+
+            batchIdFactory() {
+                var self = this;
+                return function (kind) {
+                    if (kind === "section") return self.uid("s");
+                    if (kind === "column") return self.uid("c");
+                    return self.uid("e");
+                };
             },
 
             /** 粘贴目标：剪贴板层级必须与当前选中上下文同层（区块剪贴板粘到根，元素/子元素粘回原类容器）。 */
@@ -6857,11 +6858,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                     return { level: "element", list: column.elements };
                 }
                 if (clipLevel === "child" && parts.length === 4) {
-                    var childScope = this.childScopeAt(parseInt(parts[0], 10), parseInt(parts[1], 10), parseInt(parts[2], 10));
-                    if (!childScope) return null;
                     var host = this.sections[parseInt(parts[0], 10)].columns[parseInt(parts[1], 10)].elements[parseInt(parts[2], 10)];
+                    if (!host) return null;
                     host.data.children = host.data.children || [];
-                    return { level: "child", list: host.data.children };
+                    return { level: "child", list: host.data.children, host: host };
                 }
                 return null;
             },
@@ -6872,10 +6872,21 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var target = this.pasteTargetContext(clip.level);
                 if (!target) { this.toast(this.multiText.pasteRejected); return; }
                 var self = this;
-                var pasted = A.appendCloned(target.list, clip.items, function () { return self.uid(target.level === "section" ? "s" : "e"); });
-                if (!pasted.newIds.length) { this.toast(this.multiText.failed); return; }
-                this.replaceList(target.list, pasted.list);
-                this.batchDone(pasted.newIds.length, "pasteDone");
+                var isChild = target.level === "child";
+                var host = target.host || null;
+                // 与单项粘贴同一容器许可（canNest 逐项校验在模块内）
+                if (isChild && (!host || !this.elSchema(host.type).container)) { this.toast(this.multiText.pasteRejected); return; }
+                var plan = A.planPaste(target.list, clip.items, this.batchIdFactory(), clip.level === "section" ? "section" : "element", {
+                    maxCount: isChild && host.type === "process-steps" ? 20 : 0,
+                    canNest: isChild ? function (item) { return self.canNestElement(host, item); } : null,
+                });
+                if (plan.error === "limit") { this.toast(this.processText.limit); return; }
+                if (plan.error) { this.toast(this.multiText.pasteRejected); return; }
+                this.replaceList(target.list, plan.list);
+                // Banner 宿主切自定义数据，否则前台仍渲染继承项
+                if (isChild && this.isHomeBannerHost(host)) host.data.items_mode = "custom";
+                if (isChild && host.type === "process-steps") this.syncProcessNumbersFor(host);
+                this.batchDone(plan.newIds.length, "pasteDone");
             },
 
             handleCanvasDrop(payload) { return this.runCommand("canvas-drop", function () { return this._handleCanvasDropRaw(payload); }); },

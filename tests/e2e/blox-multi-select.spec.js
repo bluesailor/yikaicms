@@ -304,6 +304,152 @@ test('batch cut keeps clipboard order and paste re-inserts with fresh ids @ci @s
   await restore(page);
 });
 
+test('process-steps host rules bind batch actions and resync numbers @ci @shard-core', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'process-steps batch baseline');
+
+  await addTemporaryHeading(page, 1);
+  const section = await pinLastSection(page);
+  // 插入流程步骤元素（种子 3 步）
+  await page.getByTestId('blox-library-open').last().click();
+  await page.getByTestId('blox-add-element-process-steps').press('Enter');
+  await waitPreviewSettled(page);
+  await page.keyboard.press('Escape');
+
+  const hostRow = section.locator('[data-testid="blox-tree-element"][data-element-type="process-steps"]');
+  await expect(hostRow).toHaveCount(1);
+  const childRows = hostRow.locator('[data-sort-child-item]');
+  await expect(childRows).toHaveCount(3);
+
+  const state = () => page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    // 批量删除会 deselectAll：宿主按全文档扫描定位，不依赖 selectedSi
+    for (const s of app.sections) {
+      for (const c of (s.columns || [])) {
+        const host = (c.elements || []).find((e) => e.type === 'process-steps');
+        if (host) return {
+          ids: (host.data.children || []).map((c2) => c2.id),
+          numbers: (host.data.children || []).map((c2) => (c2.data || {}).number),
+        };
+      }
+    }
+    return null;
+  });
+  const childHandles = () => hostRow.locator('[data-child-drag-handle]');
+
+  const undoBefore = await page.evaluate(() => window.Alpine.$data(document.body).canUndo());
+
+  // 全选 3 步批量删除 → 拒绝（至少保留 1 步），不产生撤销项
+  await childHandles().nth(0).click();
+  await childHandles().nth(2).click({ modifiers: ['Shift'] });
+  await page.getByTestId('blox-batch-delete').click();
+  await expect(page.getByTestId('blox-toast')).toBeVisible();
+  await expect(childRows).toHaveCount(3);
+  expect(await page.evaluate(() => window.Alpine.$data(document.body).canUndo())).toBe(undoBefore);
+
+  // 复制到 19 步 → 再次复制被拒（上限 20）。选中在预览重渲染窗口可能未生效：等按钮启用再点。
+  const dupButton = page.getByTestId('blox-batch-duplicate');
+  let guard = 0;
+  while (guard < 15) {
+    const n = await page.evaluate(() => {
+      const app = window.Alpine.$data(document.body);
+      const si = app.selectedSi;
+      const host = app.sections[si].columns[0].elements.find((e) => e.type === 'process-steps');
+      return host.data.children.length;
+    });
+    if (n >= 19) break;
+    await childHandles().nth(0).click();
+    await childHandles().nth(1).click({ modifiers: ['Control'] });
+    await expect(dupButton).toBeEnabled({ timeout: 5000 });
+    await dupButton.click();
+    await page.waitForTimeout(120);
+    guard += 1;
+  }
+  const capped = (await state()).ids.length;
+  expect(capped).toBe(19);
+  // 满员后再复制 → 拒绝且数量不变
+  await childHandles().nth(0).click();
+  await childHandles().nth(1).click({ modifiers: ['Control'] });
+  await expect(dupButton).toBeEnabled({ timeout: 5000 });
+  await dupButton.click();
+  await expect(page.getByTestId('blox-toast')).toBeVisible();
+  expect((await state()).ids.length).toBe(capped);
+
+  // 删除中间两步：编号重新连续（auto_number 默认开）
+  await childHandles().nth(1).click();
+  await childHandles().nth(2).click({ modifiers: ['Shift'] });
+  await page.getByTestId('blox-batch-delete').click();
+  await expect(page.getByTestId('blox-batch-bar')).toBeHidden();
+  const numbers = (await state()).numbers;
+  expect(numbers).toEqual(numbers.map((_, i) => String(i + 1).padStart(2, '0')));
+  await restore(page);
+});
+
+test('banner host flips to custom items after batch paste @ci @shard-core', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'banner paste baseline');
+
+  // 宿主行挂在其区块展开子树里：先选中该区块
+  await ensureTreeVisible(page);
+  const bannerSectionIndex = await page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    return app.sections.findIndex((s) => (s.columns || []).some((c) => (c.elements || []).some((e) => e.type === 'home-block' && String((e.data || {}).block_type || '') === 'banner')));
+  });
+  expect(bannerSectionIndex).toBeGreaterThanOrEqual(0);
+  const bannerSectionRow = page.getByTestId('blox-tree-section').nth(bannerSectionIndex);
+  // 种子 Banner 是继承模式（data.children 为空）。注入 3 个子 slide 并保留遗留态：
+  // 这正是「有 children 但未切 custom」的数据形态，用于验证批量粘贴后的 items_mode 翻转。
+  await page.evaluate((si) => {
+    const app = window.Alpine.$data(document.body);
+    const col = app.sections[si].columns[0];
+    const host = col.elements.find((e) => e.type === 'home-block' && String((e.data || {}).block_type || '') === 'banner');
+    host.data = host.data || {};
+    host.data.items_mode = '';
+    host.data.children = ['a', 'b', 'c'].map((t) => ({ id: 'slide_' + t, type: 'home-banner-item', data: {} }));
+  }, bannerSectionIndex);
+  await bannerSectionRow.click();
+  const hostRow = bannerSectionRow.locator('[data-testid="blox-tree-element"][data-element-type="home-block"][data-home-block-type="banner"]').first();
+  await expect(hostRow).toBeVisible();
+  await hostRow.click();
+  const childHandles = () => hostRow.locator('[data-child-drag-handle]');
+  const slideCount = await childHandles().count();
+  expect(slideCount).toBeGreaterThanOrEqual(2);
+
+  const itemsMode = () => page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    const si = app.selectedSi;
+    const col = si >= 0 && app.sections[si] ? app.sections[si].columns[0] : null;
+    const host = col ? col.elements.find((e) => e.type === 'home-block' && String((e.data || {}).block_type || '') === 'banner') : null;
+    return host ? { mode: (host.data.items_mode || '') || 'inherit', count: (host.data.children || []).length } : null;
+  });
+
+  // 批量剪切两枚 slide（批量需 ≥2）→ 剩余 slide 提供子元素上下文 → 粘贴 → items_mode 必须切到 custom
+  // 首击普通选择（与既有单选一致）；修饰键点击偶发未注册（CDP 拖拽提升竞态）：未启用则重选。
+  const cutButton = page.getByTestId('blox-batch-cut');
+  await childHandles().nth(0).click();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await childHandles().nth(1).click({ modifiers: ['Control'] });
+    const enabled = await cutButton.isEnabled().catch(() => false);
+    if (enabled) break;
+  }
+  await expect(cutButton).toBeEnabled({ timeout: 5000 });
+  await cutButton.click();
+  await expect(childHandles()).toHaveCount(slideCount - 2);
+  await expect(page.getByTestId('blox-batch-bar')).toBeVisible();
+
+  // 剩余 slide 建立子元素上下文：剪切会折叠树，先重新展开区块
+  await bannerSectionRow.click();
+  await expect(childHandles().first()).toBeVisible();
+  await childHandles().nth(0).click();
+  const paste = page.getByTestId('blox-batch-paste');
+  await expect(paste).toBeVisible();
+  await expect(paste).toBeEnabled();
+  await page.evaluate(() => window.Alpine.$data(document.body).batchPaste());
+  await waitPreviewSettled(page);
+  const after = await itemsMode();
+  expect(after.count).toBe(slideCount);
+  expect(after.mode).toBe('custom');
+  await restore(page);
+});
+
 test('paste without a target context is rejected loudly, not dropped silently @ci @shard-core', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'paste rejection baseline');
 
@@ -332,10 +478,10 @@ test('batch delete failure rolls back document, history and stays clean @ci @sha
   await rows.nth(2).locator('[data-element-drag-handle]').click({ modifiers: ['Shift'] });
   const undoBefore = await page.evaluate(() => window.Alpine.$data(document.body).canUndo());
 
-  // 真实失败注入：数组运算层抛错 → 命令层快照回滚
+  // 真实失败注入：编排层抛错 → 命令层快照回滚（文档不变、无新历史）
   allowCommandError = true;
   await page.evaluate(() => {
-    window.YikaiBloxMultiActions.removeByIds = function () { throw new Error('boom'); };
+    window.YikaiBloxMultiActions.planBatchAction = function () { throw new Error('boom'); };
   });
   await page.getByTestId('blox-batch-delete').click();
   await expect(page.getByTestId('blox-toast')).toBeVisible();
