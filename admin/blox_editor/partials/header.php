@@ -417,7 +417,8 @@ declare(strict_types=1);
                  @keydown.escape.window="mobileActionsOpen = false" class="blox-mobile-actions-menu">
                 <p class="px-3 py-2 text-xs text-gray-600 break-words" role="status" aria-live="polite" x-text="saveStatusText()" data-testid="blox-mobile-save-status"></p>
                 <?php $previewRetryId = 'blox-mobile-preview-retry'; require __DIR__ . '/preview-retry.php'; ?>
-                <button type="button" @click="undo(); mobileActionsOpen = false" :disabled="!canUndo()">
+                <button type="button" @click="undo(); mobileActionsOpen = false" :disabled="!canUndo()"
+                        data-testid="blox-mobile-undo">
                     <i class="ti ti-arrow-back-up"></i><?php echo e(__('blox_undo')); ?>
                 </button>
                 <button type="button" @click="redo(); mobileActionsOpen = false" :disabled="!canRedo()">
@@ -461,7 +462,8 @@ declare(strict_types=1);
                     <i class="ti ti-rocket"></i><?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_draft')); ?>
                 </button>
 <?php endif; ?>
-                <button type="button" @click="openElementLibrary(); mobileActionsOpen = false">
+                <button type="button" @click="openElementLibrary(); mobileActionsOpen = false"
+                        data-testid="blox-mobile-add-elements">
                     <i class="ti ti-circle-plus"></i><?php echo e(__('blox_open_elements')); ?>
                 </button>
 <?php if ($templateId && in_array(($templateType ?? ''), ['header', 'footer'], true)): ?>
