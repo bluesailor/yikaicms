@@ -44,6 +44,9 @@ foreach (contentModelModel()->allActive() as $_m) {
 // 获取相册列表（用于相册类型栏目）
 $albums = albumModel()->query("SELECT id, name FROM " . albumModel()->tableName() . " ORDER BY sort_order DESC, id ASC");
 
+// 新建栏目并明确保存站点源语言， 不能使用数据库默认语言
+$sourceLang = (string) config('site_lang', 'zh-CN');
+
 // 处理 AJAX 请求
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
@@ -149,6 +152,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             channelModel()->updateById($id, $data);
             adminLog('channel', 'update', __('admin_edit') . '：' . $data['name']);
         } else {
+            // 新栏目属于网站源语言
+            $data['lang'] = $sourceLang;
             $data['created_at'] = time();
             $id = channelModel()->create($data);
             adminLog('channel', 'create', __('admin_add') . '：' . $data['name']);
