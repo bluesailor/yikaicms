@@ -98,7 +98,7 @@ $status = get('status', '');
 $productType = get('product_type', '');
 $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
-$perPage = 20;
+$perPage = adminListPageSize('product', $page);
 
 $offset = ($page - 1) * $perPage;
 // 视图语言（?lang=en/ja 切换）
@@ -157,6 +157,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
+            <?php echo renderAdminPageSize($perPage); ?>
             <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
             <select name="category_id" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?></option>
