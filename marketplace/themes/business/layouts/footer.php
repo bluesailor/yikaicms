@@ -11,27 +11,6 @@ $footerNav = function_exists('footerNavigationGroups')
     : ($footerNavRaw ? (json_decode($footerNavRaw, true) ?: []) : []);
 ?>
 
-    <!-- CTA Contact Area -->
-    <?php if (empty($hideCta) && empty($GLOBALS['ik_hide_footer_cta'])): ?>
-    <section class="cta-gradient py-16 text-white text-center">
-        <div class="container mx-auto px-4">
-            <h2 class="text-3xl font-bold mb-4"><?php echo e(config('home_cta_title', '') ?: __('home_cta_title')); ?></h2>
-            <p class="text-xl opacity-90 mb-8"><?php echo e(config('home_cta_desc', '') ?: __('home_cta_desc')); ?></p>
-            <?php if ($qrcode = config('contact_qrcode')): ?>
-            <div class="inline-block bg-white p-3 rounded-xl mb-4">
-                <img src="<?php echo e($qrcode); ?>" alt="QR Code" class="w-32 h-32">
-            </div>
-            <?php endif; ?>
-            <?php if ($phone = configRawLang('contact_phone')): ?>
-            <p class="opacity-80 mb-6"><?php echo __('contact_phone'); ?>：<?php echo e($phone); ?></p>
-            <?php endif; ?>
-            <a href="/contact.html" class="inline-block bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-bold transition">
-                <?php echo __('detail_consult'); ?>
-            </a>
-        </div>
-    </section>
-    <?php endif; ?>
-
     <!-- footer -->
     <?php $ykBloxFooter = function_exists('bloxAreaHtml') ? bloxAreaHtml('footer') : ''; ?>
     <?php if ($ykBloxFooter !== ''): ?>

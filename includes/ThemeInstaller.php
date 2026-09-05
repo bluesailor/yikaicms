@@ -201,6 +201,41 @@ final class ThemeInstaller
     }
 
     /**
+     * Remove an inactive installed theme without allowing traversal or symlink escapes.
+     *
+     * @return array{ok:bool,code:string,detail:string,slug:string,name:string,warnings:list<string>,backup:string}
+     */
+    public function removeInstalled(string $slug, string $activeSlug): array
+    {
+        if (preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/D', $slug) !== 1) {
+            return $this->result(false, 'bad_slug', '', $slug);
+        }
+        if ($slug === 'default') {
+            return $this->result(false, 'default_protected', '', $slug);
+        }
+        if ($slug === $activeSlug) {
+            return $this->result(false, 'active_protected', '', $slug);
+        }
+
+        $directory = $this->themesRoot . '/' . $slug;
+        $realDirectory = realpath($directory);
+        $realRoot = realpath($this->themesRoot);
+        if ($realDirectory === false || $realRoot === false || !is_dir($realDirectory)
+            || !is_file($realDirectory . '/theme.json')) {
+            return $this->result(false, 'not_found', '', $slug);
+        }
+        $normalizedDirectory = str_replace('\\', '/', $realDirectory) . '/';
+        $normalizedRoot = rtrim(str_replace('\\', '/', $realRoot), '/') . '/';
+        if (!str_starts_with($normalizedDirectory, $normalizedRoot)) {
+            return $this->result(false, 'unsafe', '', $slug);
+        }
+        if (!(($this->removeDirectory)($realDirectory))) {
+            return $this->result(false, 'delete_failed', '', $slug);
+        }
+        return $this->result(true, 'deleted', '', $slug);
+    }
+
+    /**
      * @return array{ok:bool,code:string,detail:string,slug:string,name:string,version:string,warnings:list<string>}
      */
     private function inspectArchive(ZipArchive $zip): array

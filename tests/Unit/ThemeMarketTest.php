@@ -32,6 +32,7 @@ final class ThemeMarketTest extends TestCase
         self::assertCount(1, $response['data']['themes']);
         self::assertSame('business', $response['data']['themes'][0]['slug']);
         self::assertSame('sha256:' . str_repeat('a', 64), $response['data']['themes'][0]['hash']);
+        self::assertSame('https://update.yikaicms.com/assets/themes/business/screenshot.jpg', $response['data']['themes'][0]['screenshot']);
     }
 
     /** @dataProvider invalidMetadataProvider */
@@ -118,6 +119,27 @@ final class ThemeMarketTest extends TestCase
     {
         self::assertNull(ThemeMarket::request('', static fn (string $_url): string => '<html>error</html>'));
         self::assertNull(ThemeMarket::request('', static fn (string $_url): string => '{"code":1}'));
+    }
+
+    public function testCatalogScreenshotMustUseOfficialStaticThemePath(): void
+    {
+        $response = ThemeMarket::request('', fn (string $_url): string => json_encode([
+            'code' => 0,
+            'data' => ['themes' => [
+                $this->catalogTheme(['screenshot' => 'https://example.com/theme.jpg']),
+                $this->catalogTheme([
+                    'slug' => 'minimal',
+                    'version' => '1.0.2',
+                    'package' => 'minimal-v1.0.2.zip',
+                    'download_url' => 'https://update.yikaicms.com/packages/themes/minimal-v1.0.2.zip',
+                    'screenshot' => 'https://update.yikaicms.com/assets/themes/business/screenshot.jpg',
+                ]),
+            ]],
+        ], JSON_THROW_ON_ERROR));
+
+        self::assertNotNull($response);
+        self::assertSame('', $response['data']['themes'][0]['screenshot']);
+        self::assertSame('', $response['data']['themes'][1]['screenshot']);
     }
 
     public function testPackageDownloadRejectsNonOfficialLocationsBeforeRequest(): void
@@ -269,6 +291,7 @@ final class ThemeMarketTest extends TestCase
             'sig' => base64_encode('signature'),
             'requires_cms' => '>=1.0.0',
             'requires_php' => '>=8.0.0',
+            'screenshot' => 'https://update.yikaicms.com/assets/themes/business/screenshot.jpg',
         ], $override);
     }
 

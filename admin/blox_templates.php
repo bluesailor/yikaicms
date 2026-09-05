@@ -1166,6 +1166,16 @@ function confirmAreaPublish(form) {
                     && trim((string) ($remoteState['backup_draft'] ?? '')) !== '';
             ?>
             <div class="rounded-lg border border-gray-200 p-4 flex flex-col gap-2" data-testid="blox-official-card-<?php echo e($slug); ?>">
+                <?php $officialThumbnail = trim((string) ($ot['thumbnail'] ?? '')); ?>
+                <div class="relative h-32 overflow-hidden rounded-md border border-gray-100 bg-gray-50" data-testid="blox-official-thumbnail">
+                    <?php if ($officialThumbnail !== ''): ?>
+                    <img src="<?php echo e($officialThumbnail); ?>" alt="<?php echo e((string) $ot['name']); ?>" loading="lazy" decoding="async" class="h-full w-full object-cover">
+                    <?php else: ?>
+                    <div class="flex h-full items-center justify-center text-gray-300" aria-hidden="true">
+                        <i class="ti ti-layout-grid text-4xl"></i>
+                    </div>
+                    <?php endif; ?>
+                </div>
                 <div class="flex items-center gap-2">
                     <span class="font-medium text-gray-900"><?php echo e((string) $ot['name']); ?></span>
                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500"><?php echo e($typeLabels[(string) $ot['type']] ?? (string) $ot['type']); ?></span>
