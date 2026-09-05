@@ -40,7 +40,7 @@ $surface = businessHomeSurface($block ?? []);
         <?php if ($hChannel['is_product'] ?? false): ?>
         <!-- Product grid -->
         <div class="grid <?php echo $productGrid; ?> gap-6" data-stagger>
-            <?php foreach (array_slice($contents, 0, 6) as $item): ?>
+            <?php foreach ($contents as $item): ?>
             <a href="<?php echo productUrl($item); ?>" class="block group">
                 <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
                     <?php if ($item['cover']): ?>

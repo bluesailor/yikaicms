@@ -188,6 +188,22 @@ final class ThemeTemplateResolutionTest extends TestCase
         self::assertStringContainsString('aspect-ratio: 16 / 9;', $css);
     }
 
+    public function testBusinessHomepageProductGridDoesNotOverridePreparedContentLimit(): void
+    {
+        $source = (string) file_get_contents(
+            ROOT_PATH . '/marketplace/themes/business/blocks/channel.php'
+        );
+        $productStart = strpos($source, "if (\$hChannel['is_product'] ?? false)");
+        $productEnd = strpos($source, "elseif (\$channelType === 'case')", $productStart ?: 0);
+
+        self::assertNotFalse($productStart);
+        self::assertNotFalse($productEnd);
+        $productBranch = substr($source, (int) $productStart, (int) $productEnd - (int) $productStart);
+
+        self::assertStringContainsString('foreach ($contents as $item)', $productBranch);
+        self::assertStringNotContainsString('array_slice(', $productBranch);
+    }
+
     public function testStandalonePageSidebarUsesThemePartial(): void
     {
         $page = (string) file_get_contents(ROOT_PATH . '/page.php');
