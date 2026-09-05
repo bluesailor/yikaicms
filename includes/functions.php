@@ -686,7 +686,36 @@ function configLang(string $configKey, string $langKey = ''): string
     $lang = siteLang();
     $langVal = config($configKey . '_' . $lang, '');
     if ($langVal !== '') return $langVal;
-    return config($configKey, '') ?: __($langKey);
+    $baseValue = (string) config($configKey, '');
+
+    // Home settings are seeded in Chinese for backwards compatibility. When
+    // an older site has no *_en/*_ja row, do not expose that factory copy on
+    // a localized homepage; reuse the same synthetic fallback as the settings
+    // editor. Custom values remain untouched because the resolver only treats
+    // an exact factory value as a leaked seed.
+    if ($baseValue !== '' && !in_array($lang, ['zh-CN', 'zh-TW'], true)) {
+        $homeDefaults = function_exists('getDefaults') ? getDefaults('home') : [];
+        $classFile = ROOT_PATH . '/includes/HomeSettingsLanguageDefaults.php';
+        if ($homeDefaults !== [] && is_file($classFile)) {
+            require_once $classFile;
+            if (class_exists('HomeSettingsLanguageDefaults')
+                && HomeSettingsLanguageDefaults::isLeakedFactoryValue(
+                    $configKey,
+                    $baseValue,
+                    $lang,
+                    $homeDefaults
+                )) {
+                $localizedDefault = HomeSettingsLanguageDefaults::localizedValue(
+                    $configKey,
+                    $lang,
+                    $homeDefaults
+                );
+                if ($localizedDefault !== '') return $localizedDefault;
+            }
+        }
+    }
+
+    return $baseValue !== '' ? $baseValue : __($langKey);
 }
 
 /**

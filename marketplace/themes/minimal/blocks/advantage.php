@@ -11,6 +11,7 @@ $advLangKeys = [
     ['title' => 'home_adv_4_title', 'desc' => 'home_adv_4_desc'],
 ];
 $bg = getBlockBg($block ?? [], 'bg-white');
+$advantageDescription = configLang('home_advantage_desc', 'home_advantage_desc');
 $_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
     ? $ykHomeFieldAttr
     : static fn (string $field): string => '';
@@ -22,15 +23,15 @@ $_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
             <h2<?php echo $_homeFieldAttr('override_title'); ?> class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
             <?php echo homeTitleDeco(false, '', '<div class="w-12 h-px bg-gray-900 mt-4"></div>'); ?>
             <p<?php echo $_homeFieldAttr('override_description'); ?> class="mt-6 text-gray-500 max-w-xl text-sm leading-relaxed">
-                <?php echo e(config('home_advantage_desc', '') ?: __('home_advantage_desc')); ?>
+                <?php echo e($advantageDescription); ?>
             </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-gray-200" data-stagger>
             <?php for ($i = 0; $i < 4; $i++):
                 $n = $i + 1;
-                $title = config("home_adv_{$n}_title", '') ?: __($advLangKeys[$i]['title']);
-                $desc  = config("home_adv_{$n}_desc",  '') ?: __($advLangKeys[$i]['desc']);
+                $title = configLang("home_adv_{$n}_title", $advLangKeys[$i]['title']);
+                $desc  = configLang("home_adv_{$n}_desc", $advLangKeys[$i]['desc']);
             ?>
             <div class="bg-white p-8 lg:p-10 group">
                 <div class="text-xs text-gray-300 font-mono mb-6 tracking-widest">

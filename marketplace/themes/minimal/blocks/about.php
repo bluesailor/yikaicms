@@ -5,6 +5,10 @@
  */
 $aboutLayout = config('home_about_layout', 'text_left');
 $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
+$aboutContent = configLang('home_about_content', 'home_about_default');
+if ($aboutContent === '') {
+    $aboutContent = configLang('site_description', '');
+}
 $aboutTagTitle = config('home_about_tag_title', '');
 $aboutTagDesc = config('home_about_tag_desc', '');
 // 版块标题：后台可自定义（home_about_title）；留空回退到「关于」+ 站点名称
@@ -27,7 +31,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e($aboutTitle); ?></h2>
                 <?php echo homeTitleDeco(false, '', '<div class="w-12 h-px bg-gray-900 mt-4"></div>'); ?>
                 <p class="text-gray-500 leading-relaxed mt-8 text-sm">
-                    <?php echo e(config('home_about_content', config('site_description', ''))); ?>
+                    <?php echo e($aboutContent); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
                 <a href="<?php echo e(config('home_about_link', '') ?: channelUrl($aboutChannel)); ?>" class="inline-block mt-8 text-sm tracking-wide text-gray-500 border-b border-gray-300 pb-1 hover:text-gray-900 hover:border-gray-900 transition">
@@ -41,7 +45,7 @@ $bg = getBlockBg($block ?? [], 'bg-white');
                 <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e($aboutTitle); ?></h2>
                 <?php echo homeTitleDeco(false, '', '<div class="w-12 h-px bg-gray-900 mt-4"></div>'); ?>
                 <p class="text-gray-500 leading-relaxed mt-8 text-sm">
-                    <?php echo e(config('home_about_content', config('site_description', ''))); ?>
+                    <?php echo e($aboutContent); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
                 <a href="<?php echo e(config('home_about_link', '') ?: channelUrl($aboutChannel)); ?>" class="inline-block mt-8 text-sm tracking-wide text-gray-500 border-b border-gray-300 pb-1 hover:text-gray-900 hover:border-gray-900 transition">
