@@ -84,6 +84,13 @@ for (const theme of themes.filter((slug) => slug !== 'business')) {
             await expect(page.locator('#mobileMenu')).toBeVisible();
             await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
         }
+        if (theme === 'minimal') {
+            const banner = page.locator('[data-blox-banner]').first();
+            const content = banner.locator('.swiper-slide-active [data-blox-banner-content]');
+            await expect(content).toBeVisible();
+            await expect(content.locator('h1')).not.toHaveText('');
+            await expect(content.locator('a').first()).not.toHaveText('');
+        }
         expect(await page.locator('body').innerText()).not.toMatch(/Fatal error|Uncaught Error|Warning:/);
         expect(errors).toEqual([]);
     });
