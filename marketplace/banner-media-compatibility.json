@@ -22,7 +22,7 @@
     "minimal": {
       "mode": "native",
       "renderer": "responsiveLinkedMediaHtml",
-      "version": "1.0.9",
+      "version": "1.0.10",
       "template": "marketplace/themes/minimal/blocks/banner.php"
     },
     "trade": {
