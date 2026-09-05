@@ -3566,14 +3566,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                 });
             },
 
-            /** 批量子元素宿主约束（process-steps：1–20 步）；返回拒绝文案或 null。 */
-            batchChildHostGuard(host, resultingCount) {
-                if (!host || host.type !== "process-steps") return null;
-                if (resultingCount < 1) return this.processText.minimum;
-                if (resultingCount > 20) return this.processText.limit;
-                return null;
-            },
-
             addProcessItem() {
                 var host = this.processHost();
                 var items = this.processItems();
