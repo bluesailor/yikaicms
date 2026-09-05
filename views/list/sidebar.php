@@ -34,6 +34,9 @@ $productCatalogGridClass = [
                 <!-- 搜索框 -->
                 <div class="bg-white rounded-lg shadow p-4" data-catalog-search>
                     <form method="get" action="<?php echo channelUrl($channel); ?>">
+                        <?php if ($isProductType && $productCategory && !empty($productCategory['slug'])): ?>
+                        <input type="hidden" name="cat" value="<?php echo e((string) $productCategory['slug']); ?>">
+                        <?php endif; ?>
                         <div class="relative">
                             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                                    placeholder="<?php echo __('search_placeholder'); ?>"
@@ -174,6 +177,9 @@ $productCatalogGridClass = [
             <div class="flex-1 min-w-0">
                 <?php if (!$productCatalogHasSidebar && $productCatalogShowSearch): ?>
                 <form method="get" action="<?php echo channelUrl($channel); ?>" class="mb-6 flex items-center gap-2 max-w-md">
+                    <?php if ($isProductType && $productCategory && !empty($productCategory['slug'])): ?>
+                    <input type="hidden" name="cat" value="<?php echo e((string) $productCategory['slug']); ?>">
+                    <?php endif; ?>
                     <div class="relative flex-1">
                         <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                                placeholder="<?php echo __('list_search_product'); ?>"

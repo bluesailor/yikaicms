@@ -386,6 +386,9 @@ $horizRootChannel = $channel;
                 <?php endif; ?>
             </div>
             <form method="get" action="<?php echo channelUrl($channel); ?>" class="flex items-center gap-2">
+                <?php if ($isProductType && $productCategory && !empty($productCategory['slug'])): ?>
+                <input type="hidden" name="cat" value="<?php echo e((string) $productCategory['slug']); ?>">
+                <?php endif; ?>
                 <div class="relative">
                     <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                            placeholder="<?php echo __('list_search_product'); ?>"
