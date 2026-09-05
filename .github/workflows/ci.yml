@@ -361,15 +361,18 @@ jobs:
         if: steps.blox_src.outputs.present == 'true'
         run: php tools/check_blox_i18n.php
 
-  # ─── 真实 N-1 包升级：从已发布的 v1.19.5 完整包安装旧站，再让 PHP 8.2
-  # ─── 通过在线升级的 prepare/batch/finalize 管道覆盖当前完整包并跑完迁移。
-  # ─── v1.19.5 的旧排序器在 PHP 8.0 会先因 T_ENUM 致命，无法由新包自修；
-  # ─── 发布渠道必须把本次“升级过程”门槛设为 8.2，升级完成后仍可运行 PHP 8.0。
-  # ─── 这条专门守住源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
+  # ─── 真实 N-1 包升级：从已发布的 v1.19.6 完整包安装旧站，再通过
+  # ─── prepare/batch/finalize 管道覆盖当前候选完整包并跑完迁移。
+  # ─── PHP 8.0 与 8.2 各跑一次，守住旧共享主机与推荐运行环境两条路径。
+  # ─── 这条专门覆盖源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
   n-minus-one-upgrade:
-    name: PHP 8.2 N-1 Package Upgrade
+    name: PHP ${{ matrix.php }} N-1 Package Upgrade
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.0', '8.2']
     services:
       mysql:
         image: mysql:5.7
@@ -386,10 +389,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup PHP 8.2
+      - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ matrix.php }}
           extensions: mbstring, pdo_mysql, curl, json, gd, fileinfo, dom, simplexml, zip
           tools: composer:v2
           coverage: none
@@ -398,20 +401,20 @@ jobs:
         run: composer install --no-dev --no-interaction --prefer-dist --no-progress
 
       - name: Build current full package
-        run: bash build.sh 1.19.6 --no-delta
+        run: bash build.sh 1.19.7 --no-delta
 
-      - name: Fetch and verify published v1.19.5 package
+      - name: Fetch and verify published v1.19.6 package
         run: |
-          curl -fL --retry 3 -o /tmp/yikaicms-v1.19.5.zip \
-            https://github.com/bluesailor/yikaicms/releases/download/v1.19.5/yikaicms-v1.19.5.zip
-          echo "6c2a6625173b801e60475ef7b763554ed181e380214a0dae24f5425db8780050  /tmp/yikaicms-v1.19.5.zip" | sha256sum -c -
+          curl -fL --retry 3 -o /tmp/yikaicms-v1.19.6.zip \
+            https://github.com/bluesailor/yikaicms/releases/download/v1.19.6/yikaicms-v1.19.6.zip
+          echo "acac251a555215247f7d2e4dfd2bed6ea3b25c59174d17653ef62f42aab4fe88  /tmp/yikaicms-v1.19.6.zip" | sha256sum -c -
 
-      - name: Upgrade real v1.19.5 package to candidate
+      - name: Upgrade real v1.19.6 package to candidate
         run: >-
           php tests/smoke/package_upgrade.php
-          --from-package=/tmp/yikaicms-v1.19.5.zip
-          --to-package=releases/yikaicms-v1.19.6.zip
-          --from=1.19.5 --to=1.19.6
+          --from-package=/tmp/yikaicms-v1.19.6.zip
+          --to-package=releases/yikaicms-v1.19.7.zip
+          --from=1.19.6 --to=1.19.7
           --db=mysql --db-host=127.0.0.1 --db-port=3306
           --db-user=root --db-pass=ci-root
 
