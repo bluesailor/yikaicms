@@ -1774,6 +1774,7 @@ declare(strict_types=1);
                                         <div x-data="{ showSrc: false }">
                                             <button type="button"
                                                     @click="openRte(() => selEl.data[ctrl.key], v => selEl.data[ctrl.key] = v)"
+                                                    data-testid="blox-richtext-edit"
                                                     class="w-full inline-flex items-center justify-center gap-1.5 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded-lg py-2 transition">
                                                 <i class="ti ti-edit text-base"></i><?= __('blox_edit_content') ?>
                                             </button>
