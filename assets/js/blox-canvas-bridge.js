@@ -18,7 +18,10 @@
 
     function sectionTargetPayload(value) {
         if (!isObject(value) || !isSectionId(value.id) || !isIndex(value.si)) return null;
-        return { id: value.id, si: value.si };
+        var target = { id: value.id, si: value.si };
+        var mods = pickModsPayload(value.mods);
+        if (mods) target.mods = mods;
+        return target;
     }
 
     function isElementPath(value) {
@@ -29,9 +32,19 @@
         return typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value);
     }
 
+    // 同级多选修饰键：可选字段，出现时必须为布尔对；非法整体丢弃（fail-closed）。
+    function pickModsPayload(value) {
+        if (value === undefined || value === null) return undefined;
+        if (!isObject(value) || typeof value.shift !== "boolean" || typeof value.toggle !== "boolean") return undefined;
+        return { shift: value.shift, toggle: value.toggle };
+    }
+
     function elementTargetPayload(value) {
         if (!isObject(value) || !isSectionId(value.id) || !isElementPath(value.path)) return null;
-        return { id: value.id, path: value.path };
+        var target = { id: value.id, path: value.path };
+        var mods = pickModsPayload(value.mods);
+        if (mods) target.mods = mods;
+        return target;
     }
 
     function isFieldName(value) {
@@ -203,6 +216,8 @@
         this.onQuickAdd = options.onQuickAdd || noop;
         this.onInsertAt = options.onInsertAt || noop;
         this.onDropRejected = options.onDropRejected || noop;
+        this.onMultiIds = options.onMultiIds || noop;
+        this.onEscape = options.onEscape || noop;
         this.lastDropId = "";
         this.started = false;
         this.boundMessage = this.handleMessage.bind(this);
@@ -250,6 +265,14 @@
             payload = contextPayload(data.ykContext);
             if (!payload) return false;
             this.onContext(payload);
+            return true;
+        }
+        if (Array.isArray(data.ykMultiIds)) {
+            this.onMultiIds(data.ykMultiIds.filter(isSectionId).slice(0, 100));
+            return true;
+        }
+        if (data.ykEscape === true) {
+            this.onEscape();
             return true;
         }
         if (data.ykDrop !== undefined) {

@@ -121,8 +121,39 @@ declare(strict_types=1);
                 </div>
             </div>
 
-            <!-- ── 设置（选中区块/元素且未打开元素库） ── -->
-            <div x-show="sel && !libOpen" class="flex-1 flex flex-col min-h-0">
+            <!-- ── 同级多选批量操作条（R2：删除/复制/剪切/粘贴；每操作一次 runCommand） ── -->
+            <div x-show="multiSelActive() || !!batchClipboard" x-cloak class="flex-1 flex flex-col min-h-0" data-testid="blox-batch-bar">
+                <div class="h-10 px-3 flex items-center gap-2 border-b border-gray-100 shrink-0">
+                    <i class="ti ti-checks text-sm shrink-0 text-blue-500"></i>
+                    <span class="text-xs font-semibold text-gray-500 tracking-wide" data-testid="blox-batch-count"
+                          x-text="multiSelActive() ? multiText.count.replace(':count', multiSelCount()) : multiText.clipboardCount.replace(':count', batchClipboardCount())"></span>
+                </div>
+                <div class="p-3 space-y-2">
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button type="button" @click="batchDelete()" data-testid="blox-batch-delete" :disabled="!multiSelActive()" :class="multiSelActive() ? '' : 'opacity-40 cursor-not-allowed'"
+                                class="h-8 rounded border border-red-200 text-red-600 hover:border-red-400 hover:bg-red-50 text-xs font-medium transition disabled:cursor-not-allowed">
+                            <?php echo e(__('blox_batch_delete')); ?>
+                        </button>
+                        <button type="button" @click="batchDuplicate()" data-testid="blox-batch-duplicate" :disabled="!multiSelActive()" :class="multiSelActive() ? '' : 'opacity-40 cursor-not-allowed'"
+                                class="h-8 rounded border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 text-xs font-medium transition disabled:cursor-not-allowed">
+                            <?php echo e(__('blox_batch_duplicate')); ?>
+                        </button>
+                        <button type="button" @click="batchCut()" data-testid="blox-batch-cut" :disabled="!multiSelActive()" :class="multiSelActive() ? '' : 'opacity-40 cursor-not-allowed'"
+                                class="h-8 rounded border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 text-xs font-medium transition disabled:cursor-not-allowed">
+                            <?php echo e(__('blox_batch_cut')); ?>
+                        </button>
+                        <button type="button" @click="batchPaste()" data-testid="blox-batch-paste"
+                                :disabled="!batchClipboard" :class="batchClipboard ? '' : 'opacity-40 cursor-not-allowed'"
+                                class="h-8 rounded border border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-600 text-xs font-medium transition disabled:cursor-not-allowed">
+                            <?php echo e(__('blox_batch_paste')); ?>
+                        </button>
+                    </div>
+                    <p class="text-[11px] leading-relaxed text-gray-400" x-text="multiText.hint"></p>
+                </div>
+            </div>
+
+            <!-- ── 设置（选中区块/元素且未打开元素库；多选时让位给批量操作条） ── -->
+            <div x-show="sel && !libOpen && !multiSelActive()" class="flex-1 flex flex-col min-h-0">
                 <div class="h-10 px-3 flex items-center gap-2 border-b border-gray-100 shrink-0">
                     <span class="text-xs font-semibold text-gray-500 tracking-wide inline-flex items-center gap-1 min-w-0">
                         <i class="ti ti-adjustments text-sm shrink-0"></i>
@@ -2735,12 +2766,13 @@ declare(strict_types=1);
                     <p class="text-xs text-gray-400 text-center py-8"><?= __('blox_click_any_element') ?></p>
                 </template>
                 <template x-for="(section, si) in sections" :key="section.id">
-                    <div @click="selectSectionFromTree(si)"
+                    <div @click="treeSectionClick($event, si)"
                          @contextmenu.prevent.stop="openCtx($event, 'section', {si: si})"
                          :data-section-id="section.id" :data-section-index="si"
+                         :data-multi-selected="isMultiSelected(section.id) ? '1' : '0'"
                          :data-section-label="sectionLabel(section, si)" data-testid="blox-tree-section"
                          class="rounded-lg border cursor-pointer transition group"
-                         :class="selectedSi === si ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-200'">
+                         :class="isMultiSelected(section.id) ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-300' : (selectedSi === si ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-200')">
                         <div data-section-drag-handle class="blox-tree-drop-node flex items-center gap-2 px-2.5 py-2">
                             <span x-cloak x-show="treeDropMatches('template-section:' + si + ':before')"
                                   class="blox-tree-drop-line is-before" data-testid="blox-tree-drop-indicator"
@@ -2862,14 +2894,15 @@ declare(strict_types=1);
                                         <template x-for="(el, ei) in col.elements" :key="el.id">
                                             <div :data-item-id="el.id"
                                                  :data-element-type="el.type"
+                                                 :data-multi-selected="isMultiSelected(el.id) ? '1' : '0'"
                                                  :data-home-block-type="el.type === 'home-block' ? (((el.data || {}).block_type) || '') : ''"
                                                  data-sort-el-item data-testid="blox-tree-element">
-                                                <div data-element-drag-handle @click.stop="selectElement(si, ci, ei)"
+                                                <div data-element-drag-handle @click.stop="treeElementClick($event, si, ci, ei)"
                                                      @contextmenu.prevent.stop="openCtx($event, 'element', {si: si, ci: ci, ei: ei})"
                                                      @dragover="treeElementDragOver($event, si, ci, ei, el)"
                                                      @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
                                                      class="blox-tree-drop-node flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/el transition"
-                                                     :class="treeDropMatches('element:' + si + '.' + ci + '.' + ei + ':inside') ? (treeDropIntent && treeDropIntent.valid ? 'blox-tree-drop-inside-valid' : 'blox-tree-drop-inside-invalid') : (isElSelected(si,ci,ei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
+                                                     :class="treeDropMatches('element:' + si + '.' + ci + '.' + ei + ':inside') ? (treeDropIntent && treeDropIntent.valid ? 'blox-tree-drop-inside-valid' : 'blox-tree-drop-inside-invalid') : isMultiSelected(el.id) ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-300' : (treeDropMatches('element:' + si + '.' + ci + '.' + ei + ':inside') ? (treeDropIntent && treeDropIntent.valid ? 'blox-tree-drop-inside-valid' : 'blox-tree-drop-inside-invalid') : (isElSelected(si,ci,ei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'))">
                                                     <i class="ti text-xs shrink-0" :class="'ti-' + elIcon(el.type)"></i>
                                                     <span class="text-xs truncate flex-1" x-text="elLabel(el)"></span>
                                                     <span class="hidden group-hover/el:flex items-center gap-0.5 shrink-0">
@@ -2908,13 +2941,15 @@ declare(strict_types=1);
                                                             <p class="text-[10px] text-gray-300 pl-2 py-0.5" x-text="el.type === 'list-dynamic' ? <?php echo htmlspecialchars(json_encode(__('blox_loop_template_empty'), JSON_UNESCAPED_UNICODE), ENT_QUOTES); ?> : (el.type === 'home-block' ? homeDynamicText.inherit : <?= e($jt('blox_empty_container')) ?>)"></p>
                                                         </template>
                                                         <template x-for="(cel, cei) in (el.data.children || [])" :key="cel.id">
-                                                            <div data-child-drag-handle @click.stop="selectChild(si, ci, ei, cei)"
+                                                            <div data-child-drag-handle @click.stop="treeChildClick($event, si, ci, ei, cei)"
                                                                  @contextmenu.prevent.stop="openCtx($event, 'child', {si: si, ci: ci, ei: ei, cei: cei})"
                                                                  @dragover="treeChildDragOver($event, si, ci, ei, cei)"
                                                                  @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
-                                                                 :data-item-id="cel.id" :data-element-type="cel.type" data-sort-child-item
+                                                                 :data-item-id="cel.id" :data-element-type="cel.type"
+                                                                 :data-multi-selected="isMultiSelected(cel.id) ? '1' : '0'"
+                                                                 data-sort-child-item
                                                                  class="blox-tree-drop-node flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/cel transition"
-                                                                 :class="isChildSelected(si,ci,ei,cei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'">
+                                                                 :class="isMultiSelected(cel.id) ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-300' : (isChildSelected(si,ci,ei,cei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
                                                                 <i class="ti text-xs shrink-0" :class="'ti-' + elIcon(cel.type)"></i>
                                                                 <span class="text-xs truncate flex-1" x-text="elLabel(cel)"></span>
                                                                 <span class="hidden group-hover/cel:flex items-center gap-0.5 shrink-0">
