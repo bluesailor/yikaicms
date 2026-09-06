@@ -58,7 +58,8 @@
     "assets/js/blox-multi-actions.js",
     "assets/js/blox-multi-properties.js",
     "assets/js/blox-template-library.js",
-    "includes/builder/HomeAboutContent.php"
+    "includes/builder/HomeAboutContent.php",
+    "includes/builder/BannerContentLayout.php"
   ],
   "pro": [
     "plugins/blox-example"

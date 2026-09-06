@@ -1802,7 +1802,7 @@ declare(strict_types=1);
                                     <?php // schema 带 option_icons 的 select → 图标按钮组（方向/对齐这类
                                           // 方位语义选项，图标比文字下拉直观；悬停出完整文字说明） ?>
                                     <template x-if="ctrl.type === 'select' && ctrl.option_icons">
-                                        <div :class="ctrl.key === 'animation' ? 'grid grid-cols-4 gap-1' : 'flex gap-1'">
+                                        <div :class="ctrl.option_columns === 3 ? 'grid grid-cols-3 gap-1' : (ctrl.key === 'animation' ? 'grid grid-cols-4 gap-1' : 'flex gap-1')">
                                             <template x-for="(lbl, val) in controlOptions(ctrl)" :key="val">
                                                 <button type="button" @click="setControlValue(ctrl, val)" :title="lbl"
                                                         :aria-label="lbl"

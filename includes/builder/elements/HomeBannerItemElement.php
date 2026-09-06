@@ -19,6 +19,7 @@ final class HomeBannerItemElement extends AbstractElement
     public function controls(): array
     {
         return [
+            ...BannerContentLayout::controls(true),
             ['key' => 'title', 'type' => 'text', 'label' => __('blox_home_banner_title'), 'default' => ''],
             ['key' => 'subtitle', 'type' => 'textarea', 'label' => __('blox_home_banner_subtitle'), 'default' => ''],
             [
@@ -136,7 +137,7 @@ final class HomeBannerItemElement extends AbstractElement
     /** @param array<string, mixed> $data @return array<string, mixed> */
     public static function normalize(array $data): array
     {
-        $item = [];
+        $item = BannerContentLayout::normalize($data);
         foreach (['title' => 200, 'subtitle' => 500, 'btn1_text' => 100, 'btn2_text' => 100] as $key => $limit) {
             $item[$key] = mb_substr(trim(strip_tags((string) ($data[$key] ?? ''))), 0, $limit);
         }

@@ -34,6 +34,7 @@ trait HomeBloxSchemaControlsTrait
         $buttonSources = array_merge(['about', 'cta'], $collectionSources);
 
         return [
+            ...BannerContentLayout::controls(),
             [
                 'key' => 'block_type',
                 'type' => 'select',

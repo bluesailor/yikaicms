@@ -207,6 +207,7 @@ trait HomeBloxNormalizerTrait
         $data['stats_tablet_columns'] = in_array($tabletColumns, ['2', '4'], true) ? $tabletColumns : '4';
 
         if ($type === 'banner') {
+            $data = array_replace($data, BannerContentLayout::normalize($data));
             $data = array_replace($data, self::bannerRuntimeConfig($data));
         }
 

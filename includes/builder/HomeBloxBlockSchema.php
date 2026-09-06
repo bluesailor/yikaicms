@@ -8,6 +8,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/BannerContentLayout.php';
 require_once __DIR__ . '/HomeBlox/HomeBloxSchemaControlsTrait.php';
 require_once __DIR__ . '/HomeBlox/HomeBloxCustomOverridesTrait.php';
 require_once __DIR__ . '/HomeBlox/HomeBloxNormalizerTrait.php';

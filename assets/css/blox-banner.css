@@ -1,3 +1,79 @@
+/* Content positioning uses a separate box, leaving animated layers untouched. */
+@media (min-width: 768px) {
+    [data-blox-banner] [data-blox-layout-desktop="1"] {
+        display: flex;
+        align-items: var(--blox-layout-desktop-vertical);
+        justify-content: var(--blox-layout-desktop-horizontal);
+        box-sizing: border-box;
+        padding: calc(40px + max(var(--blox-layout-desktop-y), calc(-1 * var(--blox-layout-desktop-y))))
+            calc(24px + max(var(--blox-layout-desktop-x), calc(-1 * var(--blox-layout-desktop-x))));
+    }
+    [data-blox-banner] [data-blox-layout-desktop="1"] [data-blox-banner-shell] { display: contents; }
+    [data-blox-banner] [data-blox-layout-desktop="1"] [data-blox-banner-box] {
+        width: var(--blox-layout-desktop-width);
+        max-width: 100%;
+        min-width: 0;
+        max-height: 100%;
+        overflow: auto;
+        pointer-events: auto;
+        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
+        text-align: var(--blox-layout-desktop-align);
+        transform: translate(var(--blox-layout-desktop-x), var(--blox-layout-desktop-y));
+        overflow-wrap: anywhere;
+    }
+    [data-blox-banner] [data-blox-layout-desktop="1"] [data-blox-banner-box] > [data-blox-layer] {
+        max-width: 100%;
+        margin-inline: 0;
+    }
+    [data-blox-banner] [data-blox-layout-desktop="1"] [data-blox-banner-box] > p { margin-bottom: 0; }
+    [data-blox-banner] [data-blox-layout-desktop="1"] [data-blox-banner-buttons] {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: var(--blox-layout-desktop-buttons);
+        gap: 12px;
+        margin-top: var(--blox-layout-desktop-gap);
+    }
+}
+@media (max-width: 767px) {
+    [data-blox-banner] [data-blox-layout-mobile="1"] {
+        display: flex;
+        align-items: var(--blox-layout-mobile-vertical);
+        justify-content: var(--blox-layout-mobile-horizontal);
+        box-sizing: border-box;
+        padding: calc(40px + max(var(--blox-layout-mobile-y), calc(-1 * var(--blox-layout-mobile-y))))
+            calc(24px + max(var(--blox-layout-mobile-x), calc(-1 * var(--blox-layout-mobile-x))));
+    }
+    [data-blox-banner] [data-blox-layout-mobile="1"] [data-blox-banner-shell] { display: contents; }
+    [data-blox-banner] [data-blox-layout-mobile="1"] [data-blox-banner-box] {
+        width: var(--blox-layout-mobile-width);
+        max-width: 100%;
+        min-width: 0;
+        max-height: 100%;
+        overflow: auto;
+        pointer-events: auto;
+        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
+        text-align: var(--blox-layout-mobile-align);
+        transform: translate(var(--blox-layout-mobile-x), var(--blox-layout-mobile-y));
+        overflow-wrap: anywhere;
+    }
+    [data-blox-banner] [data-blox-layout-mobile="1"] [data-blox-banner-box] > [data-blox-layer] {
+        max-width: 100%;
+        margin-inline: 0;
+    }
+    [data-blox-banner] [data-blox-layout-mobile="1"] [data-blox-banner-box] > p { margin-bottom: 0; }
+    [data-blox-banner] [data-blox-layout-mobile="1"] [data-blox-banner-buttons] {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: var(--blox-layout-mobile-buttons);
+        gap: 12px;
+        margin-top: var(--blox-layout-mobile-gap);
+    }
+}
+
 [data-blox-banner] {
     --blox-banner-speed: 700ms;
     --blox-banner-stagger: 120ms;
