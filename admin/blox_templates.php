@@ -1199,7 +1199,7 @@ function confirmAreaPublish(form) {
                 <?php endif; ?>
                 <div class="mt-1 flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-3">
                     <?php if (!$remoteStateReady): ?>
-                    <a href="/admin/upgrade.php" class="text-xs text-amber-600 hover:text-amber-700">
+                    <a href="/admin/upgrade.php?tab=check" class="text-xs text-amber-600 hover:text-amber-700">
                         <i class="ti ti-database-cog"></i> <?php echo __('blox_tpl_remote_upgrade_first'); ?>
                     </a>
                     <?php elseif ($installedId === 0 && empty($ot['locked'])): ?>

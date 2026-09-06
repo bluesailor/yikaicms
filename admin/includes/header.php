@@ -863,6 +863,6 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     <p class="font-bold"><?php echo str_replace(':n', (string) (int) $__pendingMig, e(__('mig_pending_title'))); ?></p>
                     <p class="mt-1"><?php echo e(__('mig_pending_desc')); ?></p>
                 </div>
-                <a href="/admin/upgrade.php" class="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition"><?php echo e(__('mig_upgrade_now')); ?> →</a>
+                <a href="/admin/upgrade.php?tab=check" class="flex-shrink-0 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition"><?php echo e(__('mig_upgrade_now')); ?> →</a>
             </div>
             <?php endif; ?>

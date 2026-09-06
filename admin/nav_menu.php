@@ -394,7 +394,7 @@ function ykToggleNavIcons(el) {
     <?php if (!$navMenusReady): ?>
     <span class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
         <i class="ti ti-alert-triangle"></i> <?php echo e(__('nav_menu_need_upgrade')); ?>
-        <a href="/admin/upgrade.php" class="underline font-medium"><?php echo e(__('nav_menu_go_upgrade')); ?></a>
+        <a href="/admin/upgrade.php?tab=check" class="underline font-medium"><?php echo e(__('nav_menu_go_upgrade')); ?></a>
     </span>
     <?php else: ?>
     <form method="post" class="inline-flex items-center gap-1">
