@@ -1,4 +1,4 @@
-# Yikai CMS v1.19.7
+# Yikai CMS v1.19.8
 
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg?logo=php)](https://www.php.net/)
