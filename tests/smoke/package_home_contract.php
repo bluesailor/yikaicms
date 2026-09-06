@@ -45,7 +45,7 @@ $setting->execute(['home_blox_published']);
 $homeJson = (string) $setting->fetchColumn();
 $home = json_decode($homeJson, true);
 
-contractAssert(CMS_VERSION === '1.19.7', '安装包版本不是 1.19.7');
+contractAssert(CMS_VERSION === '1.19.8', '安装包版本不是 1.19.8');
 contractAssert($siteLang === 'zh-CN', '默认语言不是 zh-CN');
 contractAssert(is_array($home), 'home_blox_published 不是有效 JSON');
 
