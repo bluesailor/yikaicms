@@ -70,7 +70,6 @@ test('template library separates site-area types @ci', async ({ page }) => {
   await expect(headerToggleForm.locator('input[name="action"]')).toHaveValue('set_custom_area_enabled');
   await expect(headerToggleForm.locator('input[name="area"]')).toHaveValue('header');
   await expect(headerToggleForm.locator('input[name="enabled"]')).toHaveValue('1');
-
   page.once('dialog', dialog => dialog.accept());
   await Promise.all([
     page.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/admin/blox_templates.php')),

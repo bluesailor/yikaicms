@@ -164,3 +164,14 @@ for (const slug of ['business', 'minimal']) {
     }
   });
 }
+
+test('business secondary pages do not render the homepage CTA from the shared footer @ci', async ({ page }) => {
+  try {
+    await activateTheme(page, 'business');
+    await page.goto('/news.html', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('准备好开始合作了吗？', { exact: true })).toHaveCount(0);
+    await expect(page.locator('footer')).toBeVisible();
+  } finally {
+    await activateTheme(page, 'default');
+  }
+});

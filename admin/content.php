@@ -11,6 +11,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/admin/includes/list_ui.php';
 
 checkLogin();
 if (!hasAnyContentPerm()) requirePermission('edit_article');
@@ -75,7 +76,7 @@ $type = get('type');
 $status = get('status', '');
 $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
-$perPage = 20;
+$perPage = adminListPageSize('content', $page);
 
 // 视图语言（?lang=en/ja 切换）
 $_lang        = adminLangView();
@@ -181,6 +182,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <i class="ti ti-search text-base"></i>
                 <?php echo __('admin_filter'); ?>
             </button>
+
+            <?php echo renderAdminPageSize($perPage); ?>
         </form>
 
         <a href="/admin/content_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
@@ -313,6 +316,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     'type' => $type,
                     'status' => $status,
                     'keyword' => $keyword,
+                    'per_page' => $perPage,
                 ]));
                 $baseUrl = '?' . ($queryString ? $queryString . '&' : '');
                 $totalPages = ceil($total / $perPage);
