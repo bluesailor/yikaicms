@@ -106,7 +106,7 @@ $must200 = [
     '/admin/setting_cache.php', '/admin/setting_api.php', '/admin/setting_seo.php',
     '/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/channel.php',
     '/admin/banner.php', '/admin/media.php', '/admin/form.php', '/admin/role.php',
-    '/admin/blox_templates.php', '/admin/upgrade.php', '/admin/upgrade_online.php',
+    '/admin/blox_templates.php', '/admin/upgrade_online.php',
 ];
 $must200 = array_values(array_intersect($must200, $pages));
 
