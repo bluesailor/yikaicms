@@ -469,10 +469,11 @@ html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
 
 /* Dropdowns and mobile drawers are independent surfaces, not header-state text. */
 .yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) {
-    color: #374151 !important;
+    --yk-header-surface-text: #374151;
+    color: var(--yk-header-surface-text) !important;
 }
-.yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) :is(a, button, [class*="text-"]) {
-    color: inherit !important;
+.yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) :is(li, a, button, [class*="text-"]) {
+    color: var(--yk-header-surface-text) !important;
 }
 
 /* 内置 Header 起步模板的结构预览：只表达布局，不绑定真实 Logo、菜单或站点文案。 */

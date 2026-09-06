@@ -145,6 +145,10 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       await expect(drawerPanel).toHaveAttribute('aria-hidden', 'false');
       await expect(drawerPanel.locator('form[role="search"]')).toBeVisible();
       await expect(drawerPanel.locator('[data-yk-language-switcher="inline"]')).toBeVisible();
+      const drawerLink = drawerPanel.locator('ul li a').first();
+      await expect(drawerLink).toBeVisible();
+      await expect.poll(() => drawerLink.evaluate((element) => getComputedStyle(element).color))
+        .toBe('rgb(55, 65, 81)');
       await page.keyboard.press('Escape');
       await expect(drawerPanel).toBeHidden();
       await expect(drawerOpen).toHaveAttribute('aria-expanded', 'false');
