@@ -136,6 +136,28 @@ final class BloxAreaTemplatePresets
     }
 
     /**
+     * 返回内置区域模板的当前语言显示名称；用户自建/远程模板保留原名。
+     *
+     * 数据库中的内置模板名称是导入包的稳定英文标识，不能直接当作界面文案。
+     * 只按 source + source_ref + type 命中，避免误翻译用户恰好使用相同 source_ref 的模板。
+     *
+     * @param array<string,mixed> $template
+     */
+    public static function displayName(array $template): string
+    {
+        $fallback = trim((string) ($template['name'] ?? ''));
+        $slug = trim((string) ($template['source_ref'] ?? ''));
+        $preset = self::PRESETS[$slug] ?? null;
+        if (($template['source'] ?? '') !== 'builtin'
+            || !is_array($preset)
+            || (string) ($preset['type'] ?? '') !== (string) ($template['type'] ?? '')) {
+            return $fallback;
+        }
+
+        return __((string) $preset['name_key']);
+    }
+
+    /**
      * 编辑器直接读取随包预置，避免要求用户先把它们安装成数据库模板。
      *
      * @return list<array{

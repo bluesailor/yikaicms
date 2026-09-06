@@ -181,7 +181,10 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             ]);
             $ctxHitId = (int) ($resolveHit['id'] ?? 0);
             if ($resolveHit !== null) {
-                $ctxHitName = (string) ($resolveHit['name'] ?? ('#' . $ctxHitId));
+                $ctxHitName = BloxAreaTemplatePresets::displayName($resolveHit);
+                if ($ctxHitName === '') {
+                    $ctxHitName = '#' . $ctxHitId;
+                }
                 $ctxExplanation = BloxAreaResolver::explain($resolveHit, [
                     'home' => $ctxType === 'home',
                     'channel_id' => $ctxType === 'channel' ? (int) ($ctxRow['id'] ?? 0) : 0,
