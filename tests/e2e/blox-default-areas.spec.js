@@ -432,6 +432,45 @@ test('drawer navigation stays readable under the overlay header @ci', async ({ p
   }
 });
 
+test('mega navigation stays readable under the overlay header @ci', async ({ page }, testInfo) => {
+  test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'area template management is an advanced feature');
+  test.skip(testInfo.project.name !== 'desktop-1440', 'Mega Menu is desktop-only');
+  await page.addInitScript(() => {
+    const apply = () => document.documentElement
+      && document.documentElement.classList.add('yk-home-header-overlay');
+    apply();
+    document.addEventListener('readystatechange', apply);
+    document.addEventListener('DOMContentLoaded', apply);
+  });
+  try {
+    await page.goto('/admin/blox_templates.php', { waitUntil: 'domcontentloaded' });
+    for (const template of AREA_TEMPLATES) await installAndPublish(page, template);
+
+    const fixtures = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+    await page.goto(`${fixtures.blox_page_url}&preview=1`, { waitUntil: 'networkidle' });
+    await expect.poll(() => page.evaluate(
+      () => document.documentElement.classList.contains('yk-home-header-overlay'),
+    )).toBe(true);
+
+    const header = page.locator('.yk-blox-header');
+    await expect(header).toHaveAttribute('data-yk-overlay-enabled', '1');
+    await expect(header).not.toHaveClass(/yk-stuck/);
+    const megaItem = header.locator('.yk-mega > ul > li').filter({
+      has: page.locator('.yk-mega-panel'),
+    }).first();
+    const panel = megaItem.locator('.yk-mega-panel');
+    await expect(megaItem).toBeVisible();
+    await megaItem.hover();
+    await expect(panel).toBeVisible();
+    await expect(panel.locator('a')).not.toHaveCount(0);
+    await expect.poll(() => panel.locator('a').evaluateAll(
+      (elements) => [...new Set(elements.map((element) => getComputedStyle(element).color))].sort(),
+    )).toEqual(['rgb(55, 65, 81)']);
+  } finally {
+    await unpublishAreas(page);
+  }
+});
+
 test('default theme header keeps mobile navigation operable @ci', async ({ page }, testInfo) => {
   await unpublishAreas(page);
   await page.goto('/', { waitUntil: 'networkidle' });
