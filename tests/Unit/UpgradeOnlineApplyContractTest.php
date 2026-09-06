@@ -43,4 +43,20 @@ final class UpgradeOnlineApplyContractTest extends TestCase
         self::assertStringContainsString("'error_code' => 'php_version_too_low'", $source);
         self::assertStringContainsString("__('upgrade_php_version_required'", $source);
     }
+
+    public function testUpgradeEntrypointsOpenOnlineUpgradeAndKeepMigrationExplicit(): void
+    {
+        $legacy = file_get_contents(ROOT_PATH . '/admin/upgrade.php');
+        $online = file_get_contents(ROOT_PATH . '/admin/upgrade_online.php');
+        $sidebar = file_get_contents(ROOT_PATH . '/admin/includes/sidebar_menu.php');
+        self::assertNotFalse($legacy);
+        self::assertNotFalse($online);
+        self::assertNotFalse($sidebar);
+
+        self::assertStringContainsString("array_key_exists('tab', \$_GET)", $legacy);
+        self::assertStringContainsString("header('Location: /admin/upgrade_online.php', true, 302)", $legacy);
+        self::assertStringContainsString("'url'         => '/admin/upgrade_online.php'", $sidebar);
+        self::assertStringContainsString('href="upgrade.php?tab=check"', $online);
+        self::assertStringContainsString("location.href = 'upgrade.php?tab=check'", $online);
+    }
 }

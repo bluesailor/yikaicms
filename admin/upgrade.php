@@ -16,6 +16,13 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('*');
 
+// /admin/upgrade.php 是历史入口；无标签访问时统一进入程序在线升级。
+// 数据库迁移仍通过显式 tab=check 进入，避免在线升级完成后的迁移步骤被再次导回在线页。
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && !array_key_exists('tab', $_GET)) {
+    header('Location: /admin/upgrade_online.php', true, 302);
+    exit;
+}
+
 // _columnExists / _sqlToSqlite：迁移 check/执行常用的兼容工具，与 includes/Migrator.php
 // 中同名函数完全一致。用 function_exists 守卫，无论本页与 Migrator.php 谁先加载都不重复定义。
 if (!function_exists('_columnExists')) {
@@ -256,8 +263,7 @@ foreach ($upgrades as $up) {
     }
 }
 
-// 默认标签：有待执行迁移时进「数据库升级」（要紧事优先），否则进「升级配置」——
-// 数据库升级是少用的恢复动作，不该做门面
+// 显式 tab=check 才进入数据库升级；无 tab 已在上方兼容重定向到在线升级。
 $tab = $_GET['tab'] ?? (!empty($pendingUpgrades) ? 'check' : 'config');
 // ── 升级记录：操作日志里 module='upgrade' 的两类条目（程序文件覆盖 / 数据库迁移）──
 // 升完级最想知道的是「刚才到底动了什么、什么时候动的」，这些 adminLog 早就在记，
@@ -476,7 +482,7 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
                 ]);
             ?></p>
             <p>3. <?php echo e(__('upg_help_3')); ?></p>
-            <p>4. 升级完成后，建议访问 <a href="/admin/upgrade.php" class="text-primary hover:underline"><?php echo __('upgrade_check'); ?></a> 页面执行数据库升级。</p>
+            <p>4. 升级完成后，建议访问 <a href="/admin/upgrade.php?tab=check" class="text-primary hover:underline"><?php echo __('upgrade_check'); ?></a> 页面执行数据库升级。</p>
         </div>
     </div>
 </div>
