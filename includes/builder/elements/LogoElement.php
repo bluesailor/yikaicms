@@ -72,7 +72,8 @@ final class LogoElement extends AbstractElement
         $body = !isset($data['link_home']) || (string) $data['link_home'] !== '0'
             ? '<a href="' . htmlspecialchars($homeUrl, ENT_QUOTES) . '" class="' . $wrap . ' no-underline">' . $inner . '</a>'
             : '<span class="' . $wrap . '">' . $inner . '</span>';
-        return '<div' . $this->animationAttrs($data) . '>' . $body . '</div>';
+        // 页头导航可能是不换行的宽菜单；Logo 是品牌锚点，不能被 flex 挤成 0px。
+        return '<div class="shrink-0"' . $this->animationAttrs($data) . '>' . $body . '</div>';
     }
 
 }
