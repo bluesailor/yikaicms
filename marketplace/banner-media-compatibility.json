@@ -16,13 +16,13 @@
     "business": {
       "mode": "native",
       "renderer": "responsiveLinkedMediaHtml",
-      "version": "1.0.13",
+      "version": "1.0.14",
       "template": "marketplace/themes/business/blocks/banner.php"
     },
     "minimal": {
       "mode": "native",
       "renderer": "responsiveLinkedMediaHtml",
-      "version": "1.0.13",
+      "version": "1.0.15",
       "template": "marketplace/themes/minimal/blocks/banner.php"
     },
     "trade": {
