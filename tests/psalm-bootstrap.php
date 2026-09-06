@@ -31,6 +31,7 @@ require_once ROOT_PATH . '/config/config.php.example';
 require_once ROOT_PATH . '/config/database.php';          // db(), Database 类
 require_once ROOT_PATH . '/includes/security.php';        // zipUnsafeEntry()/sanitizeSvg()（functions.php 依赖）
 require_once ROOT_PATH . '/install/validation.php';       // 安装器服务端输入校验
+require_once ROOT_PATH . '/includes/HomeSettingsLanguageDefaults.php';
 require_once ROOT_PATH . '/includes/functions.php';       // post/config/e/__/success/error/...
 require_once ROOT_PATH . '/includes/models/autoload.php'; // channelModel()/productModel()/...
 require_once ROOT_PATH . '/includes/TagEngine.php';       // TagEngine 模板标签
