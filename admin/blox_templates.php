@@ -835,9 +835,14 @@ function confirmAreaPublish(form) {
                 $isHeader = $areaType === 'header';
                 $areaDisabledHintKey = $isHeader ? 'blox_custom_header_disabled_hint' : 'blox_custom_footer_disabled_hint';
                 $areaPreservedKey = $isHeader ? 'blox_custom_header_preserved' : 'blox_custom_footer_preserved';
-                $areaDisableKey = $isHeader ? 'blox_custom_header_disable' : 'blox_custom_footer_disable';
-                $areaEnableKey = $isHeader ? 'blox_custom_header_enable' : 'blox_custom_footer_enable';
                 $areaConfirmKey = $isHeader ? 'blox_custom_header_disable_confirm' : 'blox_custom_footer_disable_confirm';
+                $areaStateKey = $isHeader
+                    ? ($areaEnabled ? 'blox_custom_header_status_enabled' : 'blox_custom_header_status_disabled')
+                    : ($areaEnabled ? 'blox_custom_footer_status_enabled' : 'blox_custom_footer_status_disabled');
+                $areaDisabledBadgeKey = $isHeader ? 'blox_custom_header_disabled_badge' : 'blox_custom_footer_disabled_badge';
+                $areaMethodKey = $isHeader ? 'blox_custom_header_method' : 'blox_custom_footer_method';
+                $areaCustomOptionKey = $isHeader ? 'blox_custom_header_option' : 'blox_custom_footer_option';
+                $areaThemeOptionKey = $isHeader ? 'blox_custom_header_theme_option' : 'blox_custom_footer_theme_option';
                 // 布局示意：内置预设装出来的模板画它对应的线框（published 行不带 source 列，
                 // 用 slug→id 登记表按 id 反查），其余（自建/远程/主题回退）给区域通用示例
                 $previewSource = $resolved ?: $resolvedCandidate;
@@ -853,24 +858,26 @@ function confirmAreaPublish(form) {
                     <div class="min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-2">
                             <h3 class="font-medium text-gray-900"><?php echo e($typeLabels[$areaType]); ?></h3>
+                            <span class="px-2 py-0.5 text-[10px] font-semibold <?php echo $areaEnabled ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'; ?>" data-testid="blox-custom-<?php echo e($areaType); ?>-state"><?php echo e(__($areaStateKey)); ?></span>
                             <?php if (!$areaEnabled): ?>
-                            <span class="bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700" data-testid="blox-current-area-source-disabled"><?php echo e(__('blox_custom_header_disabled_badge')); ?></span>
+                            <span class="bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700" data-testid="blox-current-area-source-disabled"><?php echo e(__($areaDisabledBadgeKey)); ?></span>
                             <?php elseif ($resolved): ?>
                             <span class="bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700" data-testid="blox-current-area-source-blox"><?php echo e(__('blox_current_source_blox')); ?></span>
                             <?php else: ?>
                             <span class="bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600" data-testid="blox-current-area-source-theme"><?php echo e(__('blox_current_source_theme')); ?></span>
                             <?php endif; ?>
                         </div>
-                        <?php if (!$areaEnabled): ?>
-                        <div class="mt-2 font-semibold text-gray-900"><?php echo e(__('blox_current_theme_fallback', ['theme' => $currentTheme])); ?></div>
-                        <p class="mt-1 text-xs text-gray-500"><?php echo e(__($areaDisabledHintKey)); ?></p>
-                        <?php elseif ($resolved): ?>
-                        <div class="mt-2 font-semibold text-gray-900"><?php echo e(BloxAreaTemplatePresets::displayName($resolved)); ?> <span class="text-xs font-normal text-gray-400">#<?php echo (int) $resolved['id']; ?></span></div>
-                        <p class="mt-1 text-xs text-gray-500"><?php echo e(BloxAreaConditions::summary($resolved['conditions'] ?? null, $conditionEntities)); ?></p>
-                        <?php else: ?>
-                        <div class="mt-2 font-semibold text-gray-900"><?php echo e(__('blox_current_theme_fallback', ['theme' => $currentTheme])); ?></div>
-                        <p class="mt-1 text-xs text-gray-500"><?php echo e(__('blox_current_no_match')); ?></p>
-                        <?php endif; ?>
+                        <div class="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                            <span class="text-gray-500"><?php echo e(__('blox_current_use_label')); ?></span>
+                            <?php if ($areaEnabled && $resolved): ?>
+                            <strong class="text-gray-900"><?php echo e(BloxAreaTemplatePresets::displayName($resolved)); ?> <span class="text-xs font-normal text-gray-400">#<?php echo (int) $resolved['id']; ?></span></strong>
+                            <span class="bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700" data-testid="blox-current-area-in-use"><?php echo e(__('blox_current_use_badge')); ?></span>
+                            <?php else: ?>
+                            <strong class="text-gray-900"><?php echo e(__('blox_current_theme_fallback', ['theme' => $currentTheme])); ?></strong>
+                            <span class="bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600" data-testid="blox-current-area-theme-default"><?php echo e(__('blox_current_theme_badge')); ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500"><?php echo e($areaEnabled && $resolved ? BloxAreaConditions::summary($resolved['conditions'] ?? null, $conditionEntities) : __($areaEnabled ? 'blox_current_no_match' : $areaDisabledHintKey)); ?></p>
                     </div>
                 </div>
 
@@ -895,23 +902,35 @@ function confirmAreaPublish(form) {
                 </div>
 
                 <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-3">
+                    <div class="flex w-full flex-wrap items-center gap-2" role="group" aria-label="<?php echo e(__($areaMethodKey)); ?>">
+                        <span class="mr-1 text-xs font-medium text-gray-500"><?php echo e(__($areaMethodKey)); ?></span>
+                    <form method="post" class="contents">
+                        <?php echo csrfField(); ?>
+                        <input type="hidden" name="action" value="set_custom_area_enabled">
+                        <input type="hidden" name="area" value="<?php echo e($areaType); ?>">
+                        <input type="hidden" name="enabled" value="1">
+                        <input type="hidden" name="context" value="<?php echo e($areaContextKey); ?>">
+                        <button type="submit"
+                                aria-pressed="<?php echo $areaEnabled ? 'true' : 'false'; ?>"
+                                data-testid="blox-custom-<?php echo e($areaType); ?>-choice-custom"
+                                class="inline-flex h-8 items-center gap-2 border px-2.5 text-xs font-medium <?php echo $areaEnabled ? 'border-primary bg-primary/10 text-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'; ?>">
+                            <i class="ti <?php echo $areaEnabled ? 'ti-circle-dot' : 'ti-circle'; ?>" aria-hidden="true"></i>
+                            <?php echo e(__($areaCustomOptionKey)); ?>
+                        </button>
+                    </form>
                     <form method="post" class="contents" <?php echo $areaEnabled ? 'onsubmit="return confirm(' . e(json_encode(__($areaConfirmKey), JSON_UNESCAPED_UNICODE)) . ')"' : ''; ?>>
                         <?php echo csrfField(); ?>
                         <input type="hidden" name="action" value="set_custom_area_enabled">
                         <input type="hidden" name="area" value="<?php echo e($areaType); ?>">
-                        <input type="hidden" name="enabled" value="<?php echo $areaEnabled ? '0' : '1'; ?>">
+                        <input type="hidden" name="enabled" value="0">
                         <input type="hidden" name="context" value="<?php echo e($areaContextKey); ?>">
-                        <button type="submit"
-                                role="switch"
-                                aria-checked="<?php echo $areaEnabled ? 'true' : 'false'; ?>"
-                                data-testid="blox-custom-<?php echo e($areaType); ?>-toggle"
-                                class="inline-flex h-8 items-center gap-2 border px-2.5 text-xs font-medium <?php echo $areaEnabled ? 'border-gray-300 text-gray-600 hover:border-red-300 hover:text-red-600' : 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'; ?>">
-                            <span class="relative inline-flex h-4 w-7 items-center rounded-full <?php echo $areaEnabled ? 'bg-emerald-500' : 'bg-gray-300'; ?>" aria-hidden="true">
-                                <span class="h-3 w-3 rounded-full bg-white transition-transform <?php echo $areaEnabled ? 'translate-x-3.5' : 'translate-x-0.5'; ?>"></span>
-                            </span>
-                            <?php echo e($areaEnabled ? __($areaDisableKey) : __($areaEnableKey)); ?>
+                        <button type="submit" aria-pressed="<?php echo $areaEnabled ? 'false' : 'true'; ?>" data-testid="blox-custom-<?php echo e($areaType); ?>-choice-theme" class="inline-flex h-8 items-center gap-2 border px-2.5 text-xs font-medium <?php echo !$areaEnabled ? 'border-primary bg-primary/10 text-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'; ?>">
+                            <i class="ti <?php echo !$areaEnabled ? 'ti-circle-dot' : 'ti-circle'; ?>" aria-hidden="true"></i>
+                            <?php echo e(__($areaThemeOptionKey)); ?>
                         </button>
                     </form>
+                    </div>
+                    <div class="w-full text-xs text-gray-500" data-testid="blox-custom-<?php echo e($areaType); ?>-scope"><i class="ti ti-world mr-1" aria-hidden="true"></i><?php echo e(__('blox_custom_area_scope_global')); ?></div>
                     <?php if ($resolved): ?>
                     <a href="/admin/blox_editor.php?template=<?php echo (int) $resolved['id']; ?>&amp;area_lang=<?php echo e(rawurlencode($selectedContextLanguage)); ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75"><i class="ti ti-edit"></i><?php echo e(__('blox_current_edit')); ?></a>
                     <?php elseif (!$areaEnabled && $resolvedCandidate): ?>
