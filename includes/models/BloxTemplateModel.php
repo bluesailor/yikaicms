@@ -124,7 +124,7 @@ final class BloxTemplateModel extends Model
         }
         try {
             return db()->fetchAll(
-                'SELECT id,name,published_data,conditions,published_at FROM ' . DB_PREFIX . 'blox_templates'
+                'SELECT id,name,type,source,source_ref,published_data,conditions,published_at FROM ' . DB_PREFIX . 'blox_templates'
                 . ' WHERE status = 1 AND type = ? AND published_data IS NOT NULL'
                 . ' ORDER BY id ASC',
                 [$area]

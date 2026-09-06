@@ -12,6 +12,9 @@ final class BloxThemeHeaderDocument
         if ($theme === 'business') {
             return self::business($idPrefix);
         }
+        if ($theme === 'minimal') {
+            return self::minimal($idPrefix);
+        }
         if ($theme !== 'default') {
             throw new RuntimeException(__('blox_current_header_default_only'));
         }
@@ -112,6 +115,61 @@ final class BloxThemeHeaderDocument
         );
     }
 
+    /**
+     * Minimal 页头文档:与 marketplace/themes/minimal 原生 Header 对齐——
+     * 白底、细边框(gray-200)、随 header_sticky 设置、Logo+普通导航+语言切换+移动抽屉。
+     *
+     * @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string}
+     */
+    private static function minimal(string $idPrefix): array
+    {
+        $background = '#ffffff';
+        $text = '#4b5563';
+        $border = '#e5e7eb';
+        $sticky = (string) config('header_sticky', '1') === '1';
+        $logoHeight = self::logoHeight((int) config('site_logo_max_height', 32));
+
+        $children = [
+            self::logo($logoHeight),
+            self::standardNavigation(),
+        ];
+        if ((string) config('show_lang_switcher', '0') === '1') {
+            $children[] = self::languageSwitcher();
+        }
+        $children[] = self::drawer();
+
+        $document = [
+            'schema' => BloxDocumentPipeline::SCHEMA_VERSION,
+            'settings' => [
+                'sticky' => $sticky,
+                'sticky_behavior' => 'always',
+                'sticky_devices' => BloxHeaderStates::STICKY_DEVICES,
+                'header_overlay_enabled' => false,
+                'header_states' => [
+                    'normal' => [
+                        'background' => $background,
+                        'text' => $text,
+                        'border' => $border,
+                        'shadow' => 'none',
+                    ],
+                    'stuck' => [
+                        'background' => $background,
+                        'text' => $text,
+                        'border' => $border,
+                        'shadow' => 'sm',
+                    ],
+                ],
+            ],
+            'sections' => [self::section($background, [self::container($children)])],
+        ];
+
+        return BloxAreaDocument::process(
+            'header',
+            json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+            $idPrefix
+        );
+    }
+
     /** @return array<string,mixed> */
     private static function rightSection(string $background, string $logoHeight): array
     {
@@ -191,6 +249,22 @@ final class BloxThemeHeaderDocument
         return [
             'type' => 'nav-mega',
             'data' => ['menu_group' => 0, 'show_desc' => false, 'full_width' => false] + $extra,
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private static function standardNavigation(array $extra = []): array
+    {
+        return [
+            'type' => 'nav',
+            'data' => [
+                'menu_group' => 0,
+                'parent' => '',
+                'nav_only' => true,
+                'dropdown' => true,
+                'desktop_only' => true,
+                'wrap_class' => 'flex flex-nowrap items-center gap-8 whitespace-nowrap',
+            ] + $extra,
         ];
     }
 

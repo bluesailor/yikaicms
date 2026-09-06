@@ -175,8 +175,10 @@ final class HomeBannerItemElementTest extends TestCase
 
         foreach ([
             'default' => ROOT_PATH . '/themes/default/blocks/banner.php',
+            'aurora' => ROOT_PATH . '/marketplace/themes/aurora/blocks/banner.php',
             'business' => ROOT_PATH . '/marketplace/themes/business/blocks/banner.php',
             'minimal' => ROOT_PATH . '/marketplace/themes/minimal/blocks/banner.php',
+            'trade' => ROOT_PATH . '/marketplace/themes/trade/blocks/banner.php',
             'legacy-fallback' => ROOT_PATH . '/includes/blocks/banner.php',
         ] as $name => $template) {
             BloxAssetCollector::reset();
@@ -197,6 +199,97 @@ final class HomeBannerItemElementTest extends TestCase
             $this->assertContains('/assets/css/blox-banner.css', BloxAssetCollector::styles(), $name);
             $this->assertContains('/assets/js/blox-video-policy.js', BloxAssetCollector::scripts(), $name);
             $this->assertContains('/assets/js/blox-banner.js', BloxAssetCollector::scripts(), $name);
+        }
+    }
+
+    public function testBundledBannerTemplatesKeepContentAndPrimaryAction(): void
+    {
+        $banner = [
+            'title' => 'A focused launch',
+            'subtitle' => 'Clear supporting copy',
+            'media_type' => 'image',
+            'image' => '/uploads/launch.jpg',
+            'image_mobile' => '',
+            'video' => '',
+            'video_mobile_mode' => 'poster',
+            'btn1_text' => 'Explore now',
+            'btn1_url' => '/contact.html',
+            'btn2_text' => '',
+            'btn2_url' => '',
+            'link_url' => '',
+            'link_target' => '_self',
+        ];
+
+        foreach ([
+            'default' => ROOT_PATH . '/themes/default/blocks/banner.php',
+            'business' => ROOT_PATH . '/marketplace/themes/business/blocks/banner.php',
+            'minimal' => ROOT_PATH . '/marketplace/themes/minimal/blocks/banner.php',
+        ] as $name => $template) {
+            BloxAssetCollector::reset();
+            $banners = [$banner];
+            $block = [];
+            $siteName = 'YikaiCMS';
+            ob_start();
+            include $template;
+            $html = (string) ob_get_clean();
+
+            if ($name === 'minimal') {
+                $this->assertStringContainsString('data-blox-banner-content', $html, $name);
+            }
+            $this->assertStringContainsString('A focused launch', $html, $name);
+            $this->assertStringContainsString('Clear supporting copy', $html, $name);
+            $this->assertStringContainsString('href="/contact.html"', $html, $name);
+            $this->assertStringContainsString('Explore now', $html, $name);
+        }
+    }
+
+    public function testThemeMarketplaceBannerCompatibilityChecklistMatchesSources(): void
+    {
+        $manifest = json_decode(
+            (string) file_get_contents(ROOT_PATH . '/marketplace/banner-media-compatibility.json'),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+        $marketThemes = array_map(
+            'basename',
+            glob(ROOT_PATH . '/marketplace/themes/*', GLOB_ONLYDIR) ?: []
+        );
+        sort($marketThemes);
+        $listedThemes = array_values(array_diff(array_keys($manifest['themes']), ['default']));
+        sort($listedThemes);
+
+        $this->assertSame($marketThemes, $listedThemes);
+        $this->assertSame(
+            'HomeBannerItemElement responsive media',
+            $manifest['contract']
+        );
+
+        foreach ($manifest['themes'] as $slug => $entry) {
+            $template = ROOT_PATH . '/' . $entry['template'];
+            $this->assertFileExists($template, $slug);
+            if ($slug !== 'default') {
+                $meta = json_decode(
+                    (string) file_get_contents(ROOT_PATH . '/marketplace/themes/' . $slug . '/theme.json'),
+                    true,
+                    512,
+                    JSON_THROW_ON_ERROR
+                );
+                $this->assertSame($meta['version'], $entry['version'], $slug);
+                $this->assertTrue($meta['capabilities']['banner_video'] ?? false, $slug);
+            }
+            if ($entry['mode'] === 'default-fallback') {
+                $this->assertFileDoesNotExist(
+                    ROOT_PATH . '/marketplace/themes/' . $slug . '/blocks/banner.php',
+                    $slug
+                );
+                continue;
+            }
+            $source = (string) file_get_contents($template);
+            $this->assertStringContainsString('HomeBannerItemElement::registerRuntimeAssets()', $source, $slug);
+            $renderer = (string) ($entry['renderer'] ?? '');
+            $this->assertContains($renderer, ['responsiveMediaHtml', 'responsiveLinkedMediaHtml'], $slug);
+            $this->assertStringContainsString('HomeBannerItemElement::' . $renderer . '(', $source, $slug);
         }
     }
 

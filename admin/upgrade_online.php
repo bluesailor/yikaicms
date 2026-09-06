@@ -241,7 +241,7 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
         <button id="uo-upgrade" class="hidden px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition">
             <i class="ti ti-bolt mr-1"></i>一键升级到 <span id="uo-target"></span>
         </button>
-        <a href="upgrade.php" id="uo-migrate" class="hidden px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">
+        <a href="upgrade.php?tab=check" id="uo-migrate" class="hidden px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">
             <i class="ti ti-database mr-1"></i>下一步：升级数据库 →
         </a>
     </div>
@@ -471,7 +471,7 @@ document.getElementById('uo-upgrade').onclick = async () => {
         const timer = setInterval(() => {
             sec--;
             if (lbl) lbl.textContent = `程序文件已更新到 v${ver}。${sec} 秒后自动前往完成 ${what}…`;
-            if (sec <= 0) { clearInterval(timer); location.href = 'upgrade.php'; }
+            if (sec <= 0) { clearInterval(timer); location.href = 'upgrade.php?tab=check'; }
         }, 1000);
     }
 };

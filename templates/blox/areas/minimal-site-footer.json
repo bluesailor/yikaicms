@@ -4,7 +4,7 @@
   "type": "footer",
   "name": "Minimal Theme Footer",
   "requires": {
-    "elements": ["site-copyright"],
+    "elements": ["logo", "text", "nav", "site-contact", "site-copyright"],
     "plugins": []
   },
   "document": {
@@ -14,16 +14,37 @@
       {
         "type": "section",
         "settings": {
-          "padding": "md",
+          "padding": {"d": "lg", "m": "md"},
           "max_width": "wide",
-          "gap": "none",
+          "gap": "lg",
           "bg_color": "#ffffff",
-          "align_items": "center"
+          "align_items": "start",
+          "tablet_stack": true
         },
         "columns": [
           {
+            "span": 5,
             "elements": [
-              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "center", "tone": "dark"}}
+              {"type": "logo", "data": {"display": "image", "height": "sm", "tone": "dark", "link_home": true}},
+              {"type": "text", "data": {"site_field": "site_description"}}
+            ]
+          },
+          {
+            "span": 7,
+            "elements": [
+              {"type": "nav", "data": {"menu_group": 0, "parent": "", "nav_only": true, "dropdown": false, "wrap_class": "flex flex-wrap gap-x-6 gap-y-4 mb-6 text-sm text-gray-700"}},
+              {"type": "site-contact", "data": {"show_phone": true, "show_email": true, "show_address": false, "show_hours": false, "show_icons": false, "layout": "inline", "tone": "dark"}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "settings": {"padding": "sm", "max_width": "wide", "gap": "none", "bg_color": "#f2f8f6"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "left", "tone": "dark"}}
             ]
           }
         ]

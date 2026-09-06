@@ -34,6 +34,17 @@ $_currentLangKeys = $TAB_LANG_KEYS[$_tabForLang] ?? [];
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? 'save';
+    if ($action === 'save_channel_pagination') {
+        verifyCsrf();
+        $channelId = postInt('channel_id');
+        $target = channelModel()->find($channelId);
+        if (!$target || !in_array($target['type'], ['list', 'product', 'case', 'download', 'job'], true)) error(__('admin_bad_params'), 422);
+        $value = $_POST['channel_page_size'] ?? null;
+        if (!validCatalogPageSize($value)) error(__('catalog_page_size_invalid'), 422);
+        settingModel()->saveBatch(['catalog_channel_' . $channelId . '_page_size' => $value]);
+        adminLog('setting', 'update', 'Channel pagination: ' . $channelId);
+        success();
+    }
 
     // 恢复默认值
     if ($action === 'restore_defaults') {
@@ -106,6 +117,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $settings = $_POST['settings'] ?? [];
+    if (!is_array($settings)) error(__('admin_bad_params'), 422);
+    verifyCsrf();
+    foreach (array_keys(getDefaults('pagination')) as $key) {
+        if (array_key_exists($key, $settings) && !validCatalogPageSize($settings[$key])) {
+            error(__('catalog_page_size_invalid'), 422);
+        }
+    }
+    foreach (array_keys($settings) as $key) {
+        if (str_starts_with((string) $key, 'catalog_channel_')) error(__('admin_bad_params'), 422);
+    }
 
     // header/footer tab + 非默认语言：lang-able key 重定向到 <key>_<lang>
     // tab 关联的 lang keys 在 $TAB_LANG_KEYS 里定义
@@ -124,18 +145,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     success();
 }
 
-$tab = $_GET['tab'] ?? 'basic';
+$tab = (string) ($_GET['tab'] ?? 'basic');
 $groupMap = [
     'basic'  => 'basic',
+    'url'    => 'url',
+    'pagination' => 'pagination',
     'header' => 'header',
     'footer' => 'footer',
     'code'   => 'code',
     // 'lang' tab 不对应任何 settings 组——靠两个独立卡片渲染
 ];
 $group = $groupMap[$tab] ?? 'basic';
+$paginationChannel = $tab === 'pagination' && getInt('channel_id') > 0
+    ? channelModel()->find(getInt('channel_id')) : null;
+if ($paginationChannel && !in_array($paginationChannel['type'], ['list', 'product', 'case', 'download', 'job'], true)) $paginationChannel = null;
 
 // lang tab 不读 settings 行
 $items = $tab === 'lang' ? [] : settingModel()->getByGroup($group);
+if ($group === 'pagination') {
+    $items = [];
+    foreach (getDefaults('pagination') as $key => $definition) {
+        $items[] = array_merge($definition, ['key' => $key, 'value' => (string) config($key, ''), 'group' => $group]);
+    }
+}
 
 // 过滤掉不应在主设置页渲染的条目：
 // 1) admin_menu_* / ai_* / current_theme — 由专门页面管理
@@ -243,6 +275,7 @@ $__sectionKeyMap = [
     __('sset_sec_icp') => 'icp',
     __('sset_sec_upload') => 'upload',
     __('sset_sec_admin_brand') => 'admin_brand',
+    __('sset_sec_url')        => 'url',
     __('sset_sec_other')     => 'other',
 ];
 $sectionLabel = function (string $sec) use ($__sectionKeyMap): string {
@@ -276,6 +309,8 @@ if ($_langAware) {
     border-color: var(--color-primary, #3B82F6);
     box-shadow: 0 0 0 1px var(--color-primary, #3B82F6);
 }
+#setting-tabs { flex-wrap: wrap; }
+#setting-tabs > a { white-space: nowrap; }
 </style>
 
 <!-- Tab 导航 -->
@@ -284,8 +319,10 @@ if ($_langAware) {
 $_aLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) : '';
 ?>
 <div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
+    <div id="setting-tabs" class="flex border-b">
         <a href="/admin/setting.php?tab=basic<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_basic'); ?></a>
+        <a href="/admin/setting.php?tab=url<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'url' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_url'); ?></a>
+        <a href="/admin/setting.php?tab=pagination<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'pagination' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_pagination'); ?></a>
         <a href="/admin/setting.php?tab=header<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'header' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_header'); ?></a>
         <a href="/admin/setting.php?tab=footer<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_footer'); ?></a>
         <a href="/admin/setting.php?tab=code<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'code' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_code'); ?></a>
@@ -452,12 +489,23 @@ async function saveAdminLanguages() {
 <?php endif; ?>
 
 <?php if ($tab !== 'lang'): ?>
+<?php if ($paginationChannel): ?>
+<form id="channelPaginationForm" class="space-y-3 mb-6">
+    <input type="hidden" name="action" value="save_channel_pagination">
+    <input type="hidden" name="channel_id" value="<?= (int) $paginationChannel['id'] ?>">
+    <h2 class="font-bold text-gray-800"><?= e(__('catalog_channel_pagination')) ?>: <?= e((string) $paginationChannel['name']) ?></h2>
+    <label for="channel-page-size"><?= e(__('catalog_channel_page_size')) ?></label>
+    <input id="channel-page-size" type="number" min="1" max="100" step="1" name="channel_page_size" class="border rounded px-4 py-2" value="<?= e((string) config('catalog_channel_' . (int) $paginationChannel['id'] . '_page_size', '')) ?>">
+    <p class="text-sm text-gray-500"><?= e(__('catalog_channel_inherit')) ?></p>
+    <button type="submit" class="bg-primary text-white px-4 py-2 rounded"><?= e(__('admin_save')) ?></button>
+</form>
+<?php endif; ?>
 <form id="settingForm" class="space-y-6">
     <?php echo adminLangField(); ?>
     <input type="hidden" name="tab_hint" value="<?php echo e($tab); ?>">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="font-bold text-gray-800"><?php echo ['basic'=>__('setting_tab_basic'),'header'=>__('setting_tab_header'),'footer'=>__('setting_tab_footer'),'code'=>__('setting_tab_code')][$tab] ?? __('setting_tab_basic'); ?></h2>
+            <h2 class="font-bold text-gray-800"><?php echo ['basic'=>__('setting_tab_basic'),'url'=>__('setting_tab_url'),'pagination'=>__('setting_tab_pagination'),'header'=>__('setting_tab_header'),'footer'=>__('setting_tab_footer'),'code'=>__('setting_tab_code')][$tab] ?? __('setting_tab_basic'); ?></h2>
             <button type="button" onclick="restoreAllDefaults()" class="text-xs text-gray-400 hover:text-red-500 transition inline-flex items-center gap-1" title="<?php echo __('setting_restore_all_tip'); ?>">
                 <i class="ti ti-refresh text-sm"></i>
                 <?php echo __('setting_restore_defaults'); ?>
@@ -649,6 +697,33 @@ async function saveAdminLanguages() {
                     </p>
                     <?php endif; ?>
 
+                    <?php elseif ($item['type'] === 'radio'): ?>
+                    <div class="space-y-3" role="radiogroup" aria-label="<?php echo e(__((string) $item['name'])); ?>">
+                        <?php
+                        $options = json_decode($item['options'] ?? '{}', true) ?: [];
+                        foreach ($options as $optKey => $optLabel):
+                            $__optKey = (string) $optKey;
+                            $__optLangKey = 'setting_opt_' . $item['key'] . '_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $__optKey);
+                            $__optText = __($__optLangKey);
+                            if ($__optText === $__optLangKey) {
+                                $__optText = (string) $optLabel;
+                            }
+                            $__exampleKey = 'setting_example_' . $item['key'] . '_' . preg_replace('/[^a-zA-Z0-9_]/', '_', $__optKey);
+                            $__exampleText = __($__exampleKey);
+                        ?>
+                        <label class="flex items-start gap-3 border rounded-lg px-4 py-3 cursor-pointer hover:border-primary transition <?php echo $item['value'] === $__optKey ? 'border-primary bg-primary/5' : 'border-gray-200'; ?>">
+                            <input type="radio" name="settings[<?php echo e($item['key']); ?>]" value="<?php echo e($__optKey); ?>"
+                                   class="mt-1" <?php echo $item['value'] === $__optKey ? 'checked' : ''; ?>>
+                            <span class="min-w-0">
+                                <span class="block text-sm font-medium text-gray-800"><?php echo e($__optText); ?></span>
+                                <?php if ($__exampleText !== $__exampleKey): ?>
+                                <code class="mt-1 block text-xs text-gray-500 break-all"><?php echo e($__exampleText); ?></code>
+                                <?php endif; ?>
+                            </span>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
+
                     <?php elseif ($item['type'] === 'select'): ?>
                     <select name="settings[<?php echo e($item['key']); ?>]" class="w-full border rounded px-4 py-2">
                         <?php
@@ -731,6 +806,7 @@ async function saveAdminLanguages() {
                     <?php elseif ($item['type'] === 'number'): ?>
                     <input type="number" name="settings[<?php echo e($item['key']); ?>]"
                            value="<?php echo e($item['value']); ?>"
+                           <?php if ($group === 'pagination'): ?>min="1" max="100" step="1"<?php endif; ?>
                            class="w-full border rounded px-4 py-2">
 
                     <?php else: ?>
@@ -957,6 +1033,10 @@ document.getElementById('settingForm')?.addEventListener('submit', function (e) 
         successMsg: '<?php echo __('admin_saved'); ?>',
         errorMsg:   '<?php echo __('admin_request_failed'); ?>',
     });
+});
+document.getElementById('channelPaginationForm')?.addEventListener('submit', function (event) {
+    event.preventDefault();
+    adminSave(this, { url: location.href });
 });
 
 // ========== 页脚导航编辑器 ==========

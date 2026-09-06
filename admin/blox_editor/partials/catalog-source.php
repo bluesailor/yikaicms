@@ -11,6 +11,9 @@ $catalogLanguageLabel = isMultiLangEnabled($isProductBlox ? 'products' : 'conten
 ?>
 <template x-if="selEl && selEl.type === '<?= $isProductBlox ? 'product-catalog' : 'content-catalog' ?>'">
     <div x-data="BloxCatalogSource.create(<?= (int) $id ?>, csrf, '<?= e($catalogKind) ?>')" class="pt-2" data-testid="blox-catalog-source">
+        <p class="text-xs text-gray-700"><?= e(__('catalog_page_size_current', ['count' => catalogPageSize((string) ($page['type'] ?? 'list'), 12, (int) $id)])) ?>
+            <a href="/admin/setting.php?tab=pagination&amp;channel_id=<?= (int) $id ?>" target="_blank" rel="noopener" class="text-primary"><?= e(__('catalog_channel_pagination')) ?></a>
+        </p>
         <button type="button" @click="toggle()" :aria-expanded="expanded" aria-controls="blox-catalog-items"
                 class="flex items-center gap-1 w-full min-h-8 text-left text-xs font-medium text-gray-800">
             <i class="ti shrink-0" :class="expanded ? 'ti-chevron-down' : 'ti-chevron-right'" aria-hidden="true"></i>

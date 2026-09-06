@@ -361,15 +361,18 @@ jobs:
         if: steps.blox_src.outputs.present == 'true'
         run: php tools/check_blox_i18n.php
 
-  # ─── 真实 N-1 包升级：从已发布的 v1.19.5 完整包安装旧站，再让 PHP 8.2
-  # ─── 通过在线升级的 prepare/batch/finalize 管道覆盖当前完整包并跑完迁移。
-  # ─── v1.19.5 的旧排序器在 PHP 8.0 会先因 T_ENUM 致命，无法由新包自修；
-  # ─── 发布渠道必须把本次“升级过程”门槛设为 8.2，升级完成后仍可运行 PHP 8.0。
-  # ─── 这条专门守住源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
+  # ─── 真实 N-1 包升级：从已发布的 v1.19.6 完整包安装旧站，再通过
+  # ─── prepare/batch/finalize 管道覆盖当前候选完整包并跑完迁移。
+  # ─── PHP 8.0 与 8.2 各跑一次，守住旧共享主机与推荐运行环境两条路径。
+  # ─── 这条专门覆盖源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
   n-minus-one-upgrade:
-    name: PHP 8.2 N-1 Package Upgrade
+    name: PHP ${{ matrix.php }} N-1 Package Upgrade
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.0', '8.2']
     services:
       mysql:
         image: mysql:5.7
@@ -386,10 +389,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup PHP 8.2
+      - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ matrix.php }}
           extensions: mbstring, pdo_mysql, curl, json, gd, fileinfo, dom, simplexml, zip
           tools: composer:v2
           coverage: none
@@ -398,20 +401,20 @@ jobs:
         run: composer install --no-dev --no-interaction --prefer-dist --no-progress
 
       - name: Build current full package
-        run: bash build.sh 1.19.6 --no-delta
+        run: bash build.sh 1.19.7 --no-delta
 
-      - name: Fetch and verify published v1.19.5 package
+      - name: Fetch and verify published v1.19.6 package
         run: |
-          curl -fL --retry 3 -o /tmp/yikaicms-v1.19.5.zip \
-            https://github.com/bluesailor/yikaicms/releases/download/v1.19.5/yikaicms-v1.19.5.zip
-          echo "6c2a6625173b801e60475ef7b763554ed181e380214a0dae24f5425db8780050  /tmp/yikaicms-v1.19.5.zip" | sha256sum -c -
+          curl -fL --retry 3 -o /tmp/yikaicms-v1.19.6.zip \
+            https://github.com/bluesailor/yikaicms/releases/download/v1.19.6/yikaicms-v1.19.6.zip
+          echo "acac251a555215247f7d2e4dfd2bed6ea3b25c59174d17653ef62f42aab4fe88  /tmp/yikaicms-v1.19.6.zip" | sha256sum -c -
 
-      - name: Upgrade real v1.19.5 package to candidate
+      - name: Upgrade real v1.19.6 package to candidate
         run: >-
           php tests/smoke/package_upgrade.php
-          --from-package=/tmp/yikaicms-v1.19.5.zip
-          --to-package=releases/yikaicms-v1.19.6.zip
-          --from=1.19.5 --to=1.19.6
+          --from-package=/tmp/yikaicms-v1.19.6.zip
+          --to-package=releases/yikaicms-v1.19.7.zip
+          --from=1.19.6 --to=1.19.7
           --db=mysql --db-host=127.0.0.1 --db-port=3306
           --db-user=root --db-pass=ci-root
 
@@ -499,12 +502,16 @@ jobs:
 
   # ─── R31 已完成本地稳定期，R32 将同一受保护运行器提升为强制 CI 门禁。
   e2e:
-    name: Blox Browser Regression
+    name: Blox Browser Regression (${{ matrix.project }})
     runs-on: ubuntu-latest
     # 强制门禁（与单测同级）：r8–r10 观察期全绿；r11 首次转强制被并行图标线的
     # 半成品 404 击穿后回退，图标专项原子入库（icon-library-integration 轮）后恢复。
-    # 浏览器下载偶发卡死；单次 7 分钟超时后自动重试，整项留足测试执行时间。
+    # 三个视口各自使用独立站点、端口和数据库并行回归，避免串行矩阵在 30 分钟内被截断。
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-1440, tablet-768, mobile-390]
     steps:
       - uses: actions/checkout@v4
 
@@ -564,11 +571,19 @@ jobs:
       - name: Run Blox browser regression
         if: steps.blox_src.outputs.present == 'true'
         env:
-          BLOX_E2E_OUTPUT_DIR: ${{ github.workspace }}/test-results/e2e
-          BLOX_E2E_REPORT_DIR: ${{ github.workspace }}/playwright-report
-          BLOX_E2E_SERVER_LOG: ${{ github.workspace }}/test-results/e2e/php-server.log
+          BLOX_E2E_OUTPUT_DIR: ${{ github.workspace }}/test-results/e2e-${{ matrix.project }}
+          BLOX_E2E_REPORT_DIR: ${{ github.workspace }}/playwright-report-${{ matrix.project }}
+          BLOX_E2E_SERVER_LOG: ${{ github.workspace }}/test-results/e2e-${{ matrix.project }}/php-server.log
         run: |
-          node tests/e2e/run-local.js --grep "@ci"
+          node tests/e2e/run-local.js --grep "@ci" --project=${{ matrix.project }}
+
+      - name: Run desktop supplementary browser regression
+        if: steps.blox_src.outputs.present == 'true' && matrix.project == 'desktop-1440'
+        env:
+          BLOX_E2E_OUTPUT_DIR: ${{ github.workspace }}/test-results/e2e-supplementary
+          BLOX_E2E_REPORT_DIR: ${{ github.workspace }}/playwright-report-supplementary
+          BLOX_E2E_SERVER_LOG: ${{ github.workspace }}/test-results/e2e-supplementary/php-server.log
+        run: |
           node tests/e2e/run-local.js --lang=en tests/e2e/blox-home-language.spec.js --project=desktop-1440
           node tests/e2e/run-local.js --lang=ja tests/e2e/blox-home-language.spec.js --project=desktop-1440
           node tests/e2e/run-local.js --free tests/e2e/blox-page.spec.js --project=desktop-1440
@@ -579,16 +594,18 @@ jobs:
           echo "=== storage/logs ==="
           cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
           echo "=== php server log ==="
-          cat test-results/e2e/php-server.log 2>/dev/null || echo "(no server log)"
+          cat test-results/e2e-${{ matrix.project }}/php-server.log 2>/dev/null || cat test-results/e2e-supplementary/php-server.log 2>/dev/null || echo "(no server log)"
 
       - name: Upload Playwright diagnostics
         if: failure() && steps.blox_src.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: blox-playwright-diagnostics
+          name: blox-playwright-diagnostics-${{ matrix.project }}
           path: |
-            test-results/e2e
-            playwright-report
+            test-results/e2e-${{ matrix.project }}
+            playwright-report-${{ matrix.project }}
+            test-results/e2e-supplementary
+            playwright-report-supplementary
             storage/logs
           if-no-files-found: ignore
           retention-days: 7
@@ -631,6 +648,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Setup PHP for CLI error-handler regression
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
       - name: Setup Node
         uses: actions/setup-node@v4
         with:

@@ -4,6 +4,7 @@ declare(strict_types=1);
  * Business 主题 - 优势区块
  */
 $advIcons = getAdvantageIcons();
+$advantageDescription = configLang('home_advantage_desc', 'home_advantage_desc');
 $advDefaults = [
     ['icon' => 'check-circle', 'title' => __('home_adv_1_title'), 'desc' => __('home_adv_1_desc')],
     ['icon' => 'academic-cap', 'title' => __('home_adv_2_title'), 'desc' => __('home_adv_2_desc')],
@@ -22,7 +23,7 @@ $surface = businessHomeSurface($block ?? []);
         <div class="text-center mb-12" data-animate="fade-up">
             <h2<?php echo $_homeFieldAttr('override_title'); ?> class="text-3xl font-bold business-title mb-4"><?php echo e(configLang('home_advantage_title') ?: __('home_our_advantage')); ?></h2>
             <?php echo homeTitleDeco(true, '', '<img src="/themes/business/images/divide.png" alt="" class="mx-auto mb-4">'); ?>
-            <p<?php echo $_homeFieldAttr('override_description'); ?> class="business-copy"><?php echo e(config('home_advantage_desc', '') ?: __('home_advantage_desc')); ?></p>
+            <p<?php echo $_homeFieldAttr('override_description'); ?> class="business-copy"><?php echo e($advantageDescription); ?></p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" data-stagger>
             <?php for ($i = 0; $i < 4; $i++):

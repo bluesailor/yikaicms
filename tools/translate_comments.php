@@ -61,9 +61,11 @@ function ds_translate(string $cn, string $apiKey, string $model, array &$cache):
 
 // 扫描目标目录
 $dirs = [
+    // 源码唯一来源:default 为核心源码,business/minimal 在 marketplace/themes
+    // (themes/ 下同名目录是运行时安装副本,不应作为翻译工具的源码输入)
     ROOT_PATH . '/themes/default',
-    ROOT_PATH . '/themes/business',
-    ROOT_PATH . '/themes/minimal',
+    ROOT_PATH . '/marketplace/themes/business',
+    ROOT_PATH . '/marketplace/themes/minimal',
 ];
 $files = [];
 foreach ($dirs as $dir) {

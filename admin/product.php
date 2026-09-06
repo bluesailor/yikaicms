@@ -98,7 +98,7 @@ $status = get('status', '');
 $productType = get('product_type', '');
 $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
-$perPage = 20;
+$perPage = adminListPageSize('product', $page);
 
 $offset = ($page - 1) * $perPage;
 // 视图语言（?lang=en/ja 切换）
@@ -107,6 +107,7 @@ $_defaultLang = $_lang['default'];
 $_viewLang    = $_lang['view'];
 $_enabledList = $_lang['enabled'];
 $_langLabels  = availableLanguages();
+$paginationLang = $_viewLang;
 
 $categoryFilters = ['status' => 1];
 if (isMultiLangEnabled('product_categories')) {
@@ -157,6 +158,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
+            <?php echo renderAdminPageSize($perPage); ?>
             <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
             <select name="category_id" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?></option>
@@ -330,7 +332,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php
                 $totalPages = ceil($total / $perPage);
                 $queryString = http_build_query(array_filter(
-                    ['category_id' => $categoryId, 'status' => $status, 'keyword' => $keyword, 'lang' => $_viewLang],
+                    [
+                        'category_id' => $categoryId,
+                        'status' => $status,
+                        'product_type' => $productType,
+                        'keyword' => $keyword,
+                        'lang' => $paginationLang,
+                        'per_page' => $perPage,
+                    ],
                     static fn(mixed $value): bool => $value !== '' && $value !== null
                 ));
                 $baseUrl = '?' . ($queryString ? $queryString . '&' : '');

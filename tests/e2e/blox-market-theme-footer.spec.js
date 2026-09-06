@@ -17,7 +17,7 @@ async function activateTheme(page, slug) {
   if (await page.locator('main').getByText(`当前主题：${slug}`, { exact: false }).isVisible()) {
     return;
   }
-  const form = page.locator(`form:has(input[name="slug"][value="${slug}"])`);
+  const form = page.locator(`form:has(input[name="action"][value="activate"]):has(input[name="slug"][value="${slug}"])`);
   await expect(form).toBeVisible();
   page.once('dialog', (dialog) => dialog.accept());
   await Promise.all([

@@ -240,6 +240,65 @@ test('batch duplicate inserts same-order copies with fresh ids and one-shot undo
   await restore(page);
 });
 
+test('batch styles expose mixed values and update all selected headings with one undo @ci @shard-core', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop batch style baseline');
+
+  const section = await makeSameColumnTrio(page);
+  const sectionId = await section.getAttribute('data-section-id');
+  await page.evaluate((id) => {
+    const app = window.Alpine.$data(document.body);
+    const target = app.sections.find((candidate) => candidate.id === id);
+    const elements = target.columns[0].elements;
+    elements[0].data.align = 'left';
+    elements[1].data.align = 'right';
+    elements[2].data.align = 'left';
+    elements[0].data.style_margin_left = 'lg';
+    elements[1].data.style_margin = 'sm';
+  }, sectionId);
+  await waitPreviewSettled(page);
+
+  const rows = section.getByTestId('blox-tree-element');
+  await rows.nth(0).locator('[data-element-drag-handle]').click();
+  await rows.nth(2).locator('[data-element-drag-handle]').click({ modifiers: ['Shift'] });
+  const panel = page.getByTestId('blox-batch-style-panel');
+  await expect(panel).toBeVisible();
+
+  const align = page.getByTestId('blox-batch-style-align');
+  await expect(align).toHaveValue('__mixed__');
+  await align.selectOption('center');
+  await expect(page.getByTestId('blox-toast')).toContainText('3');
+  const readData = () => page.evaluate((id) => {
+    const app = window.Alpine.$data(document.body);
+    return app.sections.find((candidate) => candidate.id === id).columns[0].elements.map((element) => ({
+      align: element.data.align,
+      margin: element.data.style_margin || '',
+      marginLeft: element.data.style_margin_left || '',
+    }));
+  }, sectionId);
+  expect((await readData()).map((data) => data.align)).toEqual(['center', 'center', 'center']);
+
+  await undo(page);
+  expect((await readData()).map((data) => data.align)).toEqual(['left', 'right', 'left']);
+
+  if (!await rows.nth(0).isVisible()) await section.click();
+  await rows.nth(0).locator('[data-element-drag-handle]').click();
+  await rows.nth(2).locator('[data-element-drag-handle]').click({ modifiers: ['Shift'] });
+  await expect(panel).toBeVisible();
+  const margin = page.getByTestId('blox-batch-spacing-margin');
+  await expect(margin).toHaveValue('__mixed__');
+  await margin.selectOption('md');
+  const spaced = await readData();
+  expect(spaced.map((data) => data.margin)).toEqual(['md', 'md', 'md']);
+  expect(spaced.map((data) => data.marginLeft)).toEqual(['', '', '']);
+
+  await undo(page);
+  const restored = await readData();
+  expect(restored[0].marginLeft).toBe('lg');
+  expect(restored[1].margin).toBe('sm');
+  expect(restored[2].margin).toBe('');
+  await restore(page);
+});
+
 function assertUnique(ids) {
   const seen = new Set();
   ids.forEach((id) => {

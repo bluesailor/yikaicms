@@ -4,7 +4,7 @@ declare(strict_types=1);
  * Business 主题 - 关于我们（交替配色，左图右文）
  */
 $aboutImage = config('home_about_image', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80');
-$aboutContent = config('home_about_content', '') ?: __('home_about_default');
+$aboutContent = configLang('home_about_content', 'home_about_default');
 $aboutTitle = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
 if ($aboutTitle === '') { $aboutTitle = homeAboutDefaultTitle(); }
 require_once dirname(__DIR__) . '/partials/home-surface.php';

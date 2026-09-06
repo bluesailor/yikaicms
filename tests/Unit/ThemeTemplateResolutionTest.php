@@ -17,17 +17,17 @@ use PHPUnit\Framework\TestCase;
  */
 final class ThemeTemplateResolutionTest extends TestCase
 {
-    /** @return list<string> 所有随仓库的主题目录名 */
+    /**
+     * 核心源码主题清单:显式列 default。
+     * themes/ 下可能存在开发站运行时安装副本(business/minimal,ignored),
+     * 不能用 glob(themes/*) 把运行副本误当成随仓库源码;市场主题另走
+     * marketThemes()(marketplace/themes 唯一源码)用例覆盖。
+     *
+     * @return list<string>
+     */
     private function themes(): array
     {
-        $out = [];
-        foreach ((array) glob(ROOT_PATH . '/themes/*', GLOB_ONLYDIR) as $dir) {
-            if (is_file($dir . '/theme.json')) {
-                $out[] = basename($dir);
-            }
-        }
-        sort($out);
-        return $out;
+        return ['default'];
     }
 
     /** @return list<string> 市场主题源码目录名 */
@@ -172,6 +172,36 @@ final class ThemeTemplateResolutionTest extends TestCase
         self::assertStringContainsString('$titleClass = $textLight ? \'text-white\' : \'text-gray-900\';', $cta);
         self::assertStringContainsString('$descriptionClass = $textLight ? \'text-white/80\' : \'text-gray-500\';', $cta);
         self::assertStringContainsString('homeTitleDeco($textLight', $cta);
+        self::assertStringContainsString('max-w-3xl mx-auto text-center', $cta);
+        self::assertStringContainsString('max-w-xl mx-auto', $cta);
+    }
+
+    public function testMinimalNewsCardsUseCompactResponsiveMedia(): void
+    {
+        $card = (string) file_get_contents(ROOT_PATH . '/marketplace/themes/minimal/partials/article-card.php');
+        $css = (string) file_get_contents(ROOT_PATH . '/marketplace/themes/minimal/assets/css/style.css');
+
+        self::assertStringContainsString('data-minimal-news-card', $card);
+        self::assertStringContainsString('data-minimal-news-media', $card);
+        self::assertStringContainsString('grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr);', $css);
+        self::assertStringContainsString('height: 11rem;', $css);
+        self::assertStringContainsString('aspect-ratio: 16 / 9;', $css);
+    }
+
+    public function testBusinessHomepageProductGridDoesNotOverridePreparedContentLimit(): void
+    {
+        $source = (string) file_get_contents(
+            ROOT_PATH . '/marketplace/themes/business/blocks/channel.php'
+        );
+        $productStart = strpos($source, "if (\$hChannel['is_product'] ?? false)");
+        $productEnd = strpos($source, "elseif (\$channelType === 'case')", $productStart ?: 0);
+
+        self::assertNotFalse($productStart);
+        self::assertNotFalse($productEnd);
+        $productBranch = substr($source, (int) $productStart, (int) $productEnd - (int) $productStart);
+
+        self::assertStringContainsString('foreach ($contents as $item)', $productBranch);
+        self::assertStringNotContainsString('array_slice(', $productBranch);
     }
 
     public function testStandalonePageSidebarUsesThemePartial(): void

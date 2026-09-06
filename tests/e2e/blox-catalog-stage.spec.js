@@ -27,13 +27,16 @@ for (const lang of ['en', 'ja']) {
             const manager = await opened;
             await manager.waitForLoadState('domcontentloaded');
             const managerErrors = observeConsole(manager);
+            const stablePageSizeUrl = new URL(manager.url());
+            stablePageSizeUrl.searchParams.set('per_page', '20');
+            await manager.goto(stablePageSizeUrl.href);
             const search = manager.locator('input[name="keyword"]');
             await search.fill('Stage gate 0');
             await search.press('Enter');
             await expect(manager).toHaveURL(new RegExp(`[?&]lang=${lang}(?:&|$)`));
             await expect(manager.locator('table')).toContainText('Stage gate 0 ' + lang);
             await expect(manager.locator('table')).not.toContainText('Stage gate 0 zh-CN');
-            const next = manager.locator('a[href*="page=2"]').first();
+            const next = manager.locator('a[href*="&page=2"], a[href^="?page=2"]').first();
             const nextUrl = new URL(await next.getAttribute('href'), manager.url());
             expect(nextUrl.searchParams.get('lang')).toBe(lang);
             await next.click();

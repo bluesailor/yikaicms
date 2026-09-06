@@ -43,7 +43,7 @@ final class VideoElement extends AbstractElement
             . '<script>(function(){if(window.__ykPlyr)return;window.__ykPlyr=1;'
             . 'var c=document.createElement("link");c.rel="stylesheet";c.href="/assets/plyr/plyr.min.css";document.head.appendChild(c);'
             . 'var s=document.createElement("script");s.src="/assets/plyr/plyr.min.js";'
-            . 's.onload=function(){document.querySelectorAll(".ykt-plyr:not([data-plyr-ready])").forEach(function(v){v.setAttribute("data-plyr-ready","1");new Plyr(v);});};'
+            . 's.onload=function(){var base=window.location.origin&&window.location.origin!=="null"?window.location.origin:(document.referrer?new URL(document.referrer).origin:"");var iconUrl=base+"/assets/plyr/plyr.svg";document.querySelectorAll(".ykt-plyr:not([data-plyr-ready])").forEach(function(v){v.setAttribute("data-plyr-ready","1");new Plyr(v,{iconUrl:iconUrl});});};'
             . 'document.head.appendChild(s);})();</script>';
     }
 

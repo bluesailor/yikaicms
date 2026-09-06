@@ -40,6 +40,65 @@ final class ThemeInstallerTest extends TestCase
         self::assertStringNotContainsString('$zip->extractTo($themesDir)', $source);
     }
 
+    public function testLocalThemeDeletionIsCsrfCheckedAndProtected(): void
+    {
+        $source = file_get_contents(ROOT_PATH . '/admin/theme.php');
+        self::assertNotFalse($source);
+
+        $action = strpos($source, "'delete_theme'");
+        $csrf = strpos($source, 'verifyCsrf();', (int) $action);
+        self::assertIsInt($action);
+        self::assertIsInt($csrf);
+        self::assertStringContainsString('->removeInstalled($slug, currentTheme())', $source);
+    }
+
+    public function testInactiveInstalledThemeCanBeRemovedWithoutTouchingSiblings(): void
+    {
+        $this->writeInstalledTheme('default', 'default-header');
+        $this->writeInstalledTheme('business', 'business-header');
+
+        $result = (new ThemeInstaller($this->themesRoot, $this->storageRoot))
+            ->removeInstalled('business', 'default');
+
+        self::assertTrue($result['ok']);
+        self::assertSame('deleted', $result['code']);
+        self::assertDirectoryDoesNotExist($this->themesRoot . '/business');
+        self::assertFileExists($this->themesRoot . '/default/layouts/header.php');
+    }
+
+    public function testDefaultActiveInvalidAndMissingThemesAreNotRemoved(): void
+    {
+        $this->writeInstalledTheme('default', 'default-header');
+        $this->writeInstalledTheme('business', 'business-header');
+        $installer = new ThemeInstaller($this->themesRoot, $this->storageRoot);
+
+        self::assertSame('default_protected', $installer->removeInstalled('default', 'business')['code']);
+        self::assertSame('active_protected', $installer->removeInstalled('business', 'business')['code']);
+        self::assertSame('bad_slug', $installer->removeInstalled('../business', 'default')['code']);
+        self::assertSame('not_found', $installer->removeInstalled('minimal', 'default')['code']);
+        self::assertDirectoryExists($this->themesRoot . '/default');
+        self::assertDirectoryExists($this->themesRoot . '/business');
+    }
+
+    public function testDeletionFailureIsReportedAndKeepsTheThemeVisible(): void
+    {
+        $this->writeInstalledTheme('business', 'business-header');
+        $installer = new ThemeInstaller(
+            $this->themesRoot,
+            $this->storageRoot,
+            null,
+            null,
+            null,
+            static fn (string $_directory): bool => false
+        );
+
+        $result = $installer->removeInstalled('business', 'default');
+
+        self::assertFalse($result['ok']);
+        self::assertSame('delete_failed', $result['code']);
+        self::assertDirectoryExists($this->themesRoot . '/business');
+    }
+
     public function testNewThemeIsValidatedInStagingBeforeInstallation(): void
     {
         $zip = $this->themeZip('minimal', 'new-header');

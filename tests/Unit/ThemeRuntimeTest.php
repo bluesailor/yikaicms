@@ -18,8 +18,16 @@ final class ThemeRuntimeTest extends TestCase
 
     public function testRemovedMarketplaceThemeFallsBackToDefault(): void
     {
-        self::assertDirectoryDoesNotExist(ROOT_PATH . '/themes/business');
-        self::assertSame('default', ThemeRuntime::resolve('business', ROOT_PATH . '/themes'));
+        // Business/Minimal 源码只存在于 marketplace/themes;themes/ 下的同名目录是
+        // 开发站运行时安装副本(ignored)。用临时主题根模拟"Business 未安装",
+        // 不再断言真实 ROOT_PATH/themes/business 不存在。
+        $root = sys_get_temp_dir() . '/yikai-theme-runtime-' . bin2hex(random_bytes(5));
+        mkdir($root, 0777, true);
+        try {
+            self::assertSame('default', ThemeRuntime::resolve('business', $root));
+        } finally {
+            @rmdir($root);
+        }
     }
 
     public function testUnsafeOrIncompleteThemeFallsBackToDefault(): void

@@ -68,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     $slug = trim($_POST['slug'] ?? '');
 
     if ($action === 'market_install' && !preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug)) {
+        http_response_code(422);
         echo json_encode(['code' => 1, 'msg' => __('theme_err_badslug')]);
         exit;
     }
@@ -271,6 +272,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activ
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_theme') {
+    verifyCsrf();
+
+    $slug = trim((string) ($_POST['slug'] ?? ''));
+    $installer = new ThemeInstaller(ROOT_PATH . '/themes', ROOT_PATH . '/storage');
+    $deleteResult = $installer->removeInstalled($slug, currentTheme());
+    if (!$deleteResult['ok']) {
+        $message = __(match ($deleteResult['code']) {
+            'bad_slug' => 'theme_err_badslug',
+            'default_protected' => 'theme_err_delete_default',
+            'active_protected' => 'theme_err_delete_active',
+            'not_found' => 'theme_not_found',
+            default => 'theme_err_delete_failed',
+        });
+        $messageType = 'error';
+    } else {
+        $colorProfiles = ThemePalette::profiles((string) config('theme_color_profiles', '{}'));
+        unset($colorProfiles[$slug]);
+        $decodedStyle = json_decode((string) config(ThemeSettings::KEY, ''), true);
+        $settings = [
+            'theme_color_profiles' => ThemePalette::encodeProfiles($colorProfiles),
+        ];
+        if (is_array($decodedStyle) && is_array($decodedStyle['themes'] ?? null)) {
+            $themeStyles = $decodedStyle['themes'];
+            unset($themeStyles[$slug]);
+            $settings[ThemeSettings::KEY] = json_encode(
+                ['schema_version' => 1, 'themes' => $themeStyles],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ) ?: '{}';
+        }
+        settingModel()->saveBatch($settings);
+        adminLog('theme', 'delete', '删除主题：' . $slug);
+        do_action('data_changed');
+        $message = __('theme_deleted_ok') . '：' . $slug;
+        $messageType = 'success';
+    }
+}
+
 $themes = getThemes();
 // 每套主题附上校验结果与区块覆盖，供卡片展示。
 // 覆盖率是**扫文件系统**得出的（theme.json 的 supports 声明五套里三套与实际不符，已废弃）。
@@ -448,10 +487,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php echo csrfField(); ?>
                         <input type="hidden" name="action" value="activate">
                         <input type="hidden" name="slug" value="<?php echo e($theme['slug']); ?>">
-                        <button type="submit" class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90 transition cursor-pointer">
+                        <button type="submit" data-testid="theme-activate" class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90 transition cursor-pointer">
                             <?php echo __('theme_activate'); ?>
                         </button>
                     </form>
+                    <?php if ($theme['slug'] !== 'default'): ?>
+                    <form method="POST" class="inline" onsubmit="return confirm('<?php echo e(__('theme_delete_confirm')); ?>')">
+                        <?php echo csrfField(); ?>
+                        <input type="hidden" name="action" value="delete_theme">
+                        <input type="hidden" name="slug" value="<?php echo e($theme['slug']); ?>">
+                        <button type="submit" class="px-3 py-2 border border-red-200 text-red-600 text-sm rounded-lg hover:bg-red-50 transition cursor-pointer">
+                            <i class="ti ti-trash mr-1"></i><?php echo __('admin_delete'); ?>
+                        </button>
+                    </form>
+                    <?php endif; ?>
                     <?php else: ?>
                     <span class="px-4 py-2 bg-gray-100 text-gray-500 text-sm rounded-lg"><?php echo __('theme_activated'); ?></span>
                     <?php endif; ?>

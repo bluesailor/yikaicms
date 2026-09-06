@@ -309,6 +309,99 @@ class InstallSeedDemoTest extends TestCase
     }
 
     /**
+     * 产品演示 INSERT 必须落在 yikai_products 建表语句之后。
+     *
+     * 背景：c4b66b94 曾把产品 19-36 的 18 条 INSERT 误放进 yikai_album_photos 的
+     * demo 段（建表之前），MySQL 全新安装会因表不存在而失败。此门禁对双驱动
+     * 同时生效，防止未来再出现"INSERT 早于建表"的段错位。
+     *
+     * @dataProvider driverProvider
+     */
+    public function testProductInsertsComeAfterProductSchema(string $driver): void
+    {
+        $sql = $this->seed($driver);
+        $q   = $driver === 'sqlite' ? '"' : '`';
+
+        $createPos = mb_strpos($sql, "CREATE TABLE {$q}yikai_products{$q}");
+        $insertPos = mb_strpos($sql, $this->insertOf($driver, 'products'));
+
+        $this->assertNotFalse($createPos, "应有 yikai_products 建表语句 ({$driver})");
+        $this->assertNotFalse($insertPos, "应有产品演示 INSERT ({$driver})");
+        $this->assertLessThan(
+            $insertPos,
+            $createPos,
+            "yikai_products 建表必须早于第一条产品 INSERT ({$driver})"
+        );
+    }
+
+    /**
+     * 双驱动都应包含 36 条产品 INSERT，且翻译组结构完整：
+     * 12 个 translation_group_id、三语（zh-CN/en/ja）各 12 条。
+     *
+     * @dataProvider driverProvider
+     */
+    public function testDemoProductsContainTwelveTranslationGroupsPerLanguage(string $driver): void
+    {
+        $sql     = $this->seed($driver);
+        $pattern = '/INSERT INTO [`"]yikai_products[`"] \([^)]+\) VALUES \((\d+),\'([a-zA-Z-]+)\',(\d+),/';
+        preg_match_all($pattern, $sql, $matches, PREG_SET_ORDER);
+
+        $this->assertCount(36, $matches, "产品演示 INSERT 应为 36 条 ({$driver})");
+
+        $groups  = [];
+        $perLang = [];
+        $ids     = [];
+        foreach ($matches as $m) {
+            $ids[]                = (int) $m[1];
+            $perLang[$m[2]]       = ($perLang[$m[2]] ?? 0) + 1;
+            $groups[(int) $m[3]]  = true;
+        }
+
+        $this->assertCount(36, array_unique($ids), "产品 ID 应唯一且连续使用 36 个 ({$driver})");
+        $this->assertSame(12, $perLang['zh-CN'] ?? 0, "中文产品 12 条 ({$driver})");
+        $this->assertSame(12, $perLang['en'] ?? 0, "英文产品 12 条 ({$driver})");
+        $this->assertSame(12, $perLang['ja'] ?? 0, "日文产品 12 条 ({$driver})");
+        $this->assertCount(3, $perLang, "不应存在其他语言的产品 ({$driver})");
+        $this->assertCount(12, $groups, "应有 12 个翻译组 ({$driver})");
+    }
+
+    /**
+     * SQLite 含 demo 整体执行后：产品总数 36、三语各 12、翻译组 12。
+     * （MySQL 无法在单测内执行，由真实安装器/CI MySQL 5.7 smoke 覆盖。）
+     */
+    public function testSqliteDemoProductsTotalsAfterFullLoad(): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite 未启用');
+        }
+
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec($this->seed('sqlite'));
+
+        $this->assertSame(36, (int) $pdo->query('SELECT COUNT(*) FROM yikai_products')->fetchColumn());
+        $this->assertSame(12, (int) $pdo->query("SELECT COUNT(*) FROM yikai_products WHERE lang = 'zh-CN'")->fetchColumn());
+        $this->assertSame(12, (int) $pdo->query("SELECT COUNT(*) FROM yikai_products WHERE lang = 'en'")->fetchColumn());
+        $this->assertSame(12, (int) $pdo->query("SELECT COUNT(*) FROM yikai_products WHERE lang = 'ja'")->fetchColumn());
+        $this->assertSame(
+            12,
+            (int) $pdo->query('SELECT COUNT(DISTINCT translation_group_id) FROM yikai_products')->fetchColumn()
+        );
+    }
+
+    /**
+     * 新增六个演示产品封面必须真实存在，防止安装站首页出现 404 封面。
+     */
+    public function testNewDemoProductCoversExist(): void
+    {
+        $demoDir = dirname(__DIR__, 2) . '/assets/images/demo/';
+        foreach (range(107, 112) as $n) {
+            $file = "product-{$n}.svg";
+            $this->assertFileExists($demoDir . $file, "演示封面应存在: {$file}");
+        }
+    }
+
+    /**
      * 关键回归防线：SQLite 种子在「不安装演示数据」（剥离 @demo 区块）后仍是合法 SQL。
      * 若 @demo 标记被误插进多行 INSERT 的字符串内容中间，剥离会切断语句，
      * 整体 exec 会报 near "<" —— 本测试正是为拦截这类错位。
@@ -325,5 +418,20 @@ class InstallSeedDemoTest extends TestCase
         // 骨架保留、演示内容清空
         $this->assertSame(0, (int) $pdo->query('SELECT COUNT(*) FROM yikai_products')->fetchColumn(), '剥离后不应有演示产品');
         $this->assertGreaterThan(0, (int) $pdo->query('SELECT COUNT(*) FROM yikai_channels')->fetchColumn(), '栏目骨架应保留');
+    }
+
+    public function testSqliteBaselineFixtureIsValidUtf8WithoutReplacementCharacters(): void
+    {
+        $path = dirname(__DIR__) . '/fixtures/schema-baseline-sqlite.sql';
+        $sql = (string) file_get_contents($path);
+
+        $this->assertSame(1, preg_match('//u', $sql), 'SQLite 基线夹具必须是合法 UTF-8');
+        $this->assertStringNotContainsString(
+            "\xEF\xBF\xBD",
+            $sql,
+            'SQLite 基线夹具不得包含 Unicode 替换字符 U+FFFD'
+        );
+        $this->assertStringContainsString('プロジェクト', $sql);
+        $this->assertStringContainsString('導入プロセス', $sql);
     }
 }

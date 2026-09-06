@@ -929,6 +929,9 @@ function ykPickChannelIcon(name) {
             <form id="channelForm" class="p-6 space-y-4">
                 <input type="hidden" name="action" value="save">
                 <input type="hidden" name="id" value="<?php echo $editChannel['id'] ?? 0; ?>">
+                <?php if ($editChannel && in_array($editChannel['type'], ['list', 'product', 'case', 'download', 'job'], true)): ?>
+                <a href="/admin/setting.php?tab=pagination&amp;channel_id=<?= (int) $editChannel['id'] ?>" target="_blank" rel="noopener" class="text-primary"><?= e(__('catalog_channel_pagination')) ?></a>
+                <?php endif; ?>
 
                 <div>
                     <label class="block text-gray-700 text-sm mb-1"><?= __('admin_parent_category') ?></label>

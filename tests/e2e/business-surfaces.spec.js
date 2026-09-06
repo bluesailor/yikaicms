@@ -46,17 +46,16 @@ test('Business preserves custom backgrounds and excludes them from alternation @
     await expect(cta).not.toHaveAttribute('data-business-surface');
 });
 
-test('Business canvas uses the theme header when the active theme owns header rendering @ci', async ({ page }) => {
+test('Business canvas uses the published Blox header and keeps one page shell @ci', async ({ page }) => {
     await page.goto(url('published-header', 'preview'));
-    await expect(page.locator('.yk-blox-header')).toHaveCount(0);
-    const header = page.locator('#siteHeader');
-    await expect(header).toHaveAttribute('data-business-home-header', '');
-    await expect(header).toHaveCSS('background-color', 'rgb(30, 41, 59)');
+    await expect(page.locator('.yk-blox-header')).toHaveCount(1);
+    await expect(page.locator('#siteHeader.yk-blox-header')).toHaveCount(1);
+    await expect(page.locator('#siteHeader')).toHaveCount(1);
     await expect(page.locator('body > main')).toHaveCount(1);
     await expect(page.locator('script[src*="/themes/business/assets/js/header.js"]')).toHaveCount(0);
 });
 
-test('Business editor iframe keeps the active theme homepage header chrome @ci', async ({ page }, testInfo) => {
+test('Business editor iframe shows the published Blox header as homepage context @ci', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-1440', 'Real editor shell is verified once; preview covers all sizes');
     await page.route('**/admin/blox_preview.php?home=1', async (route) => {
         const response = await route.fetch({ url: new URL(url('published-header', 'preview'), route.request().url()).href });
@@ -65,10 +64,9 @@ test('Business editor iframe keeps the active theme homepage header chrome @ci',
     await page.goto(url('published-header', 'editor'));
     await waitPreviewSettled(page);
     const canvas = await frame(page);
-    await expect(canvas.locator('.yk-blox-header')).toHaveCount(0);
-    const header = canvas.locator('#siteHeader');
-    await expect(header).toHaveAttribute('data-business-home-header', '');
-    await expect(header).toHaveCSS('background-color', 'rgb(30, 41, 59)');
+    await expect(canvas.locator('.yk-blox-header')).toHaveCount(1);
+    await expect(canvas.locator('#siteHeader.yk-blox-header')).toHaveCount(1);
+    await expect(canvas.locator('#siteHeader')).toHaveCount(1);
     await expect(canvas.locator('body > main')).toHaveCount(1);
     await expect(canvas.locator('script[src*="/themes/business/assets/js/header.js"]')).toHaveCount(0);
 });
@@ -129,6 +127,19 @@ test('Business server-rendered surfaces work without JavaScript @ci', async ({ b
         await expect(surfaces(page).nth(1)).toHaveCSS('background-color', 'rgb(34, 39, 46)');
     } finally { await context.close(); }
 });
+
+for (const type of ['case', 'article']) {
+    test(`Business preserves all eight ${type} records and their order @ci`, async ({ page }, testInfo) => {
+        test.skip(testInfo.project.name !== 'desktop-1440', 'server rendering is verified once');
+        const response = await page.goto(`/tests/e2e/business-channel-counts-page.php?type=${type}`);
+        expect(response.status()).toBe(200);
+        const titles = await page.locator('h3').allTextContents();
+        expect(titles).toEqual(Array.from({ length: 8 }, (_, i) => `Fixture ${type} ${i + 1}`));
+        if (type === 'article') {
+            await expect(page.locator('.fa-newspaper')).toHaveCount(1);
+        }
+    });
+}
 
 test('Business editor exposes modes and previews without saving @ci', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-1440', 'Editor controls are verified once; preview covers all sizes');

@@ -127,6 +127,35 @@ function renderCoverCell(string $cover, string $sizeCls = 'w-10 h-10'): string
         . '<i class="ti ti-photo text-lg"></i></span>';
 }
 
+/** Keep list preferences session-local and separate from public pagination. */
+function adminListPageSize(string $list, int &$page): int
+{
+    $adminId = (int) ($_SESSION['admin_id'] ?? 0);
+    $saved = $_SESSION['admin_list_sizes'][$adminId][$list] ?? 20;
+    $saved = in_array($saved, [20, 50, 100], true) ? $saved : 20;
+    $requested = $_GET['per_page'] ?? null;
+    if (is_string($requested) && in_array($requested, ['20', '50', '100'], true)) {
+        $size = (int) $requested;
+        if ($size !== $saved) {
+            $page = 1;
+        }
+        $_SESSION['admin_list_sizes'][$adminId][$list] = $size;
+        return $size;
+    }
+    return $saved;
+}
+
+function renderAdminPageSize(int $size): string
+{
+    $html = '<select name="per_page" aria-label="' . e(__('admin_list_page_size'))
+        . '" class="border rounded px-3 py-2" onchange="this.form.requestSubmit()">';
+    foreach ([20, 50, 100] as $option) {
+        $html .= '<option value="' . $option . '"' . ($size === $option ? ' selected' : '') . '>'
+            . e(__('admin_list_page_size_option', ['count' => $option])) . '</option>';
+    }
+    return $html . '</select>';
+}
+
 /** 状态 + 日期合并单元格（状态可点切换，下方为时间）。 */
 function renderStatusDateCell(int $id, int $status, int $ts, string $toggleFn = 'toggleStatus'): string
 {

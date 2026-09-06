@@ -7,15 +7,18 @@
  * @var ?array $listOpts - 栏目「列表显示元素」配置（channelListOptions()），null = 全显示
  */
 $__lo = $listOpts ?? null;
+$showCover = listShowEl($__lo, 'cover') && !empty($item['cover']);
 ?>
-<a href="<?php echo e($item['url'] ?? contentUrl($item)); ?>" class="block border border-gray-200 hover:border-gray-400 transition group">
-    <?php if (listShowEl($__lo, 'cover') && $item['cover']): ?>
-    <div class="aspect-[16/10] overflow-hidden">
+<a href="<?php echo e($item['url'] ?? contentUrl($item)); ?>"
+   class="minimal-news-card<?php echo $showCover ? ' has-media' : ''; ?> border border-gray-200 hover:border-gray-400 transition group"
+   data-minimal-news-card>
+    <?php if ($showCover): ?>
+    <div class="minimal-news-card__media overflow-hidden" data-minimal-news-media>
         <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>"
              class="w-full h-full object-cover">
     </div>
     <?php endif; ?>
-    <div class="p-5">
+    <div class="minimal-news-card__body p-5">
         <?php if (listShowEl($__lo, 'date')): ?>
         <div class="text-xs text-gray-300 mb-3">
             <?php echo date('Y.m.d', (int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?>

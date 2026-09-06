@@ -26,6 +26,29 @@ Current market themes:
 - `minimal`
 - `trade`
 
+Banner media compatibility is tracked in `marketplace/banner-media-compatibility.json`.
+Every listed native theme must render Banner images and videos through the recorded
+`HomeBannerItemElement` shared media method. A `default-fallback` theme intentionally
+omits its own Banner template and inherits the supported default one.
+Market ZIPs also carry `capabilities.banner_video: true` in `theme.json`; the checklist
+test keeps that package metadata aligned. Update the checklist and bump the affected
+theme version whenever this contract changes.
+
+Development workflow:
+
+- Edit official optional themes only in `marketplace/themes/{slug}`. Never copy changes back from an
+  installed `themes/{slug}` directory, because installed themes are site-owned and may contain customer
+  modifications.
+- Keep theme source changes in a dedicated branch and pull request. Core runtime changes required by a
+  theme may accompany that theme branch, but unrelated Blox editor features must stay in their own branch.
+- For combined release testing, create a short-lived integration branch from the latest `main`; do not use
+  the integration branch as a new source of truth.
+- Port reviewed commits or explicit files from stale worktrees. Do not merge a stale dirty worktree wholesale.
+- A source change requires a theme SemVer bump. Preserve the newest compatible manifest fields when changes
+  overlap, including `requires_cms` and `capabilities`.
+- Before publication, validate the source manifest, generated ZIP manifest, update-server `themes.json`,
+  SHA256, RSA signature, screenshot URL and changelog as one release unit.
+
 `marketplace/retired/` is local archival material and is intentionally ignored and excluded
 from release packages. The old `blox` theme shell is retired because the Blox editor now uses
 the supported `default` theme directly.

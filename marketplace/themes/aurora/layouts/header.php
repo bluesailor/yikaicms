@@ -34,7 +34,10 @@ if (empty($pageTitle) && !empty($seoTitle)) {
 
 // SEO 变量
 $siteUrl = siteBaseUrl();
-$canonicalUrl = $canonicalUrl ?? ($siteUrl . ($_SERVER['REQUEST_URI'] ?? '/'));
+$__ykCanonicalPath = trim((string) ($_SERVER['YK_CANONICAL_PATH'] ?? ''));
+$canonicalUrl = $canonicalUrl ?? ($siteUrl . ($__ykCanonicalPath !== ''
+    ? $__ykCanonicalPath
+    : ($_SERVER['REQUEST_URI'] ?? '/')));
 $ogType = $ogType ?? 'website';
 $ogImage = SiteAsset::availableUrl((string) ($ogImage ?? config('seo_og_image', '') ?: $siteLogo));
 if ($ogImage && !str_starts_with($ogImage, 'http')) {
