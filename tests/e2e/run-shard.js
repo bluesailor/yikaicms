@@ -31,7 +31,6 @@ const artifactRoot = path.resolve(
   process.env.BLOX_E2E_ARTIFACT_ROOT
     || path.join(sourceRoot, 'test-results', 'e2e-shards', `${shardKey}-${process.pid}-${Date.now()}`)
 );
-fs.mkdirSync(artifactRoot, { recursive: true });
 
 if (listOnly) {
   console.log(JSON.stringify({
@@ -44,6 +43,9 @@ if (listOnly) {
   }, null, 2));
   process.exit(0);
 }
+
+// --list 是纯查询，不该留下空产物目录，所以建目录放在提前返回之后。
+fs.mkdirSync(artifactRoot, { recursive: true });
 
 const defaultProjects = ['desktop-1440', 'tablet-768', 'mobile-390'];
 

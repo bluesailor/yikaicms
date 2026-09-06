@@ -15,13 +15,20 @@ const SHARDS = Object.freeze({
 const SHARD_KEYS = Object.freeze(Object.keys(SHARDS));
 const PHASE_PORT_STEP = 10;
 const INSTANCE_PORT_SPAN = 10_000;
+// 分片基址相隔 1000，留 100 缓冲。phase 数量长到越界必须炸，不能静默借用下一个
+// 分片的基址——并行跑时那会让两个一次性站点抢同一个端口。
+const SHARD_PORT_WINDOW = 900;
 
 function phasePort(key, phaseIndex, slot = 0) {
   const shard = SHARDS[key];
   if (!shard || !Number.isInteger(phaseIndex) || phaseIndex < 0 || !Number.isInteger(slot) || slot < 0) {
     throw new Error('Invalid browser phase port request');
   }
-  return shard.port + (slot * INSTANCE_PORT_SPAN) + (phaseIndex * PHASE_PORT_STEP);
+  const offset = phaseIndex * PHASE_PORT_STEP;
+  if (offset + PHASE_PORT_STEP > SHARD_PORT_WINDOW) {
+    throw new Error(`Browser shard ${key} exceeded its ${SHARD_PORT_WINDOW}-port window at phase ${phaseIndex}`);
+  }
+  return shard.port + (slot * INSTANCE_PORT_SPAN) + offset;
 }
 
 // A spec file runs in one fresh site. This keeps tests that intentionally seed
@@ -108,6 +115,7 @@ module.exports = {
   SHARD_KEYS,
   PHASE_PORT_STEP,
   INSTANCE_PORT_SPAN,
+  SHARD_PORT_WINDOW,
   phasePort,
   shardForSpec,
   specsForShard,

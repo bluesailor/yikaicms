@@ -382,6 +382,56 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
   }
 });
 
+// v1.19.8 R9 事故防线：首页覆盖态（透明页眉）下，抽屉是独立表面。旧规则里覆盖态
+// 选择器带 html + 头部属性 + :not(.yk-stuck)，特异性高过抽屉表面规则，会把白底
+// 抽屉里的链接一起染成白色。R9 的断言跑在内容页（无覆盖 class）上，看不到这个状态。
+test('drawer navigation stays readable under the overlay header @ci', async ({ page }, testInfo) => {
+  test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'area template management is an advanced feature');
+  test.skip(testInfo.project.name === 'desktop-1440', 'drawer is xl:hidden; desktop uses the mega panel');
+  // index.php 进入覆盖态就是往 <html> 加这个类。init script 早于页面脚本执行，
+  // 那一刻 documentElement 可能还不存在，所以补一次文档就绪后的重试。
+  // 颜色断言一律走 expect.poll，等 Tailwind transition 落定后再比。
+  await page.addInitScript(() => {
+    const apply = () => document.documentElement
+      && document.documentElement.classList.add('yk-home-header-overlay');
+    apply();
+    document.addEventListener('readystatechange', apply);
+    document.addEventListener('DOMContentLoaded', apply);
+  });
+  try {
+    await page.goto('/admin/blox_templates.php', { waitUntil: 'domcontentloaded' });
+    for (const template of AREA_TEMPLATES) await installAndPublish(page, template);
+
+    const fixtures = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
+    await page.goto(`${fixtures.blox_page_url}&preview=1`, { waitUntil: 'networkidle' });
+
+    // 覆盖态必须真的成立，否则这条用例会在错误的状态下空跑成功——正是 R9 的漏法。
+    await expect.poll(() => page.evaluate(
+      () => document.documentElement.classList.contains('yk-home-header-overlay'),
+    )).toBe(true);
+    const header = page.locator('.yk-blox-header');
+    await expect(header).toHaveAttribute('data-yk-overlay-enabled', '1');
+    await expect(header).not.toHaveClass(/yk-stuck/);
+
+    const panel = header.locator('[data-yk-drawer-panel]');
+    await header.locator('[data-yk-drawer-open]').click();
+    await expect(panel).toBeVisible();
+    await expect(panel).toHaveAttribute('aria-hidden', 'false');
+
+    const colorOf = (locator) => locator.evaluate((element) => getComputedStyle(element).color);
+    // 一级与二级菜单链接全部落在抽屉表面色上；空集合会让断言失败，不会静默通过。
+    await expect.poll(() => panel.locator('ul a').evaluateAll(
+      (elements) => [...new Set(elements.map((element) => getComputedStyle(element).color))].sort(),
+    )).toEqual(['rgb(55, 65, 81)']);
+    await expect.poll(() => colorOf(panel.locator('[data-yk-drawer-close]'))).toBe('rgb(55, 65, 81)');
+    await expect.poll(() => colorOf(panel.locator('input[type="search"]'))).toBe('rgb(55, 65, 81)');
+    // 实心底色按钮保留自带的 text-white：深灰配 bg-primary 只有 2.0:1。
+    await expect.poll(() => colorOf(panel.locator('form[role="search"] button[type="submit"]'))).toBe('rgb(255, 255, 255)');
+  } finally {
+    await unpublishAreas(page);
+  }
+});
+
 test('default theme header keeps mobile navigation operable @ci', async ({ page }, testInfo) => {
   await unpublishAreas(page);
   await page.goto('/', { waitUntil: 'networkidle' });
