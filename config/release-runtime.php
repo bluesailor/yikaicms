@@ -19,6 +19,7 @@ return [
         'config/version.php',
         'includes/init.php',
         'includes/functions.php',
+        'includes/HomeSettingsLanguageDefaults.php',
         'includes/http_response.php',
         'includes/language_request.php',
         'includes/FooterNavigation.php',
