@@ -25,10 +25,16 @@ async function installAndPublish(page, template) {
   await expect(installForm).toHaveCount(1);
   await submit(page, installForm);
 
-  const rows = page.locator('tbody tr').filter({ hasText: template.name });
-  await expect(rows.first()).toBeVisible();
-  if (await rows.locator('form:has(input[name="action"][value="unpublish"])').count()) return;
-  const publishForm = rows.locator('form:has(input[name="action"][value="publish"])').first();
+  const importedId = new URL(page.url()).searchParams.get('imported');
+  expect(importedId, `installing ${template.slug} should redirect with its template id`).toMatch(/^\d+$/);
+  const templateForms = page.locator('form').filter({
+    has: page.locator(`input[name="id"][value="${importedId}"]`),
+  });
+  await expect(templateForms.first()).toBeVisible();
+  if (await templateForms.locator('input[name="action"][value="unpublish"]').count()) return;
+  const publishForm = templateForms.filter({
+    has: page.locator('input[name="action"][value="publish"]'),
+  }).first();
   await expect(publishForm).toHaveCount(1);
   await submit(page, publishForm);
 }
