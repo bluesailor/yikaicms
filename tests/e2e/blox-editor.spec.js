@@ -985,7 +985,15 @@ test('container panel edits and restores responsive child gap @ci', async ({ pag
 
   const previewRequest = page.waitForRequest((request) => {
     const url = new URL(request.url());
-    return request.method() === 'POST' && url.pathname === '/admin/blox_preview.php';
+    if (request.method() !== 'POST' || url.pathname !== '/admin/blox_preview.php') return false;
+    try {
+      const body = new URLSearchParams(request.postData() || '');
+      const document = JSON.parse(body.get('blocks_data') || '{}');
+      const data = document.sections[before].columns[0].elements[0].data;
+      return data.gap && typeof data.gap === 'object' && data.gap.t === 'xl';
+    } catch (error) {
+      return false;
+    }
   });
   await page.getByTestId('blox-container-gap-xl').click();
   const request = await previewRequest;

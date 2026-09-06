@@ -965,7 +965,9 @@ function confirmAreaPublish(form) {
             <div class="mt-3 overflow-x-auto border border-gray-200 bg-white">
                 <table class="w-full min-w-[44rem] text-left text-sm">
                     <thead class="bg-gray-50 text-xs text-gray-500">
-                        <tr>
+                        <tr data-template-id="<?php echo $templateId; ?>"
+                            data-template-source="<?php echo e((string) ($template['source'] ?? '')); ?>"
+                            data-template-source-ref="<?php echo e((string) ($template['source_ref'] ?? '')); ?>">
                             <th class="px-4 py-3 font-medium"><?php echo e(__('blox_assignment_matrix_scope')); ?></th>
                             <th class="px-4 py-3 font-medium"><?php echo e(__('blox_assignment_matrix_language')); ?></th>
                             <?php foreach ($overviewTypes as $areaType): ?>
