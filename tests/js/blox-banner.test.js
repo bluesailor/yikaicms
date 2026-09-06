@@ -59,6 +59,7 @@ function makeSlider(attributes = {}, withWrapper = true, top = 0, slideCount = 3
         classList: { add(name) { classes.add(name); }, contains(name) { return classes.has(name); } },
         getBoundingClientRect() { return { top }; },
         getAttribute(name) { return Object.prototype.hasOwnProperty.call(attributes, name) ? String(attributes[name]) : null; },
+        setAttribute(name, value) { attributes[name] = String(value); },
         matches(selector) { return selector === '[data-blox-banner]'; },
         querySelector(selector) { return nodes[selector] || null; },
         querySelectorAll(selector) {
@@ -69,7 +70,8 @@ function makeSlider(attributes = {}, withWrapper = true, top = 0, slideCount = 3
     };
 }
 
-function run({ sliders = [], reduceMotion = false, mobile = false, scrollTop = 0, saveData = false, hidden = false } = {}) {
+function run({ sliders = [], reduceMotion = false, mobile = false, scrollTop = 0, saveData = false, hidden = false,
+    overlay = false, headerBottom = 0, headerStuck = false } = {}) {
     const listeners = {};
     const instances = [];
     const timers = new Map();
@@ -77,10 +79,20 @@ function run({ sliders = [], reduceMotion = false, mobile = false, scrollTop = 0
     const connectionListeners = {};
     const mediaState = { reduceMotion, mobile };
     let nextTimerId = 1;
+    const rootClasses = new Set(overlay ? ['yk-home-header-overlay'] : []);
+    const header = {
+        classList: { contains(name) { return headerStuck && name === 'yk-stuck'; } },
+        getBoundingClientRect() { return { top: 0, bottom: headerBottom }; },
+    };
     const document = {
         readyState: 'complete',
         hidden,
-        documentElement: { scrollTop },
+        documentElement: { scrollTop, classList: { contains(name) { return rootClasses.has(name); } } },
+        querySelector(selector) {
+            if (selector.includes('[data-yk-overlay-enabled="1"]') && !headerStuck) return header;
+            if (selector === '#siteHeader:not(.yk-blox-header)' && !headerStuck) return header;
+            return null;
+        },
         querySelectorAll(selector) { return selector === '[data-blox-banner]' ? sliders : []; },
         addEventListener(type, fn) { listeners[type] = fn; },
     };
@@ -193,6 +205,26 @@ test('screen height mode measures the banner offset below the header', () => {
     assert.strictEqual(slider.style.values['--blox-banner-offset'], '100px');
     assert.strictEqual(typeof listeners['window:resize'], 'function');
     assert.strictEqual(typeof window.BloxBanner.refreshViewportHeights, 'function');
+});
+
+test('overlay header height becomes a banner content safety inset', () => {
+    const slider = makeSlider();
+    const { window } = run({ sliders: [slider], overlay: true, headerBottom: 92 });
+
+    assert.strictEqual(slider.style.values['--blox-banner-safe-top'], '92px');
+    assert.strictEqual(slider.attributes['data-blox-overlay-safe'], '1');
+    window.BloxBanner.refreshHeaderSafety(slider);
+    assert.strictEqual(slider.style.values['--blox-banner-safe-top'], '92px');
+});
+
+test('non-overlay and stuck headers do not reserve banner space', () => {
+    const ordinary = makeSlider();
+    const stuck = makeSlider();
+    run({ sliders: [ordinary], overlay: false, headerBottom: 92 });
+    run({ sliders: [stuck], overlay: true, headerBottom: 92, headerStuck: true });
+
+    assert.strictEqual(ordinary.style.values['--blox-banner-safe-top'], '0px');
+    assert.strictEqual(stuck.style.values['--blox-banner-safe-top'], '0px');
 });
 
 test('programmatic selection reuses one instance and clamps stale indexes', () => {

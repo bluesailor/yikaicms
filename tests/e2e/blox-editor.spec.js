@@ -99,6 +99,7 @@ test.beforeEach(async ({ page }, testInfo) => {
     'shared color picker adapts across viewports @ci',
     'official template market renders cover and no-cover fallback @ci',
     'remote template outage keeps local editor areas available @ci',
+    'banner content reserves the measured overlay header height @ci',
   ];
   test.skip(testInfo.project.name !== 'desktop-1440' && !crossViewportTitles.includes(testInfo.title), 'desktop interaction baseline');
   consoleEntries = observeConsole(page);
@@ -1057,6 +1058,41 @@ test('cover-header banner fills the first viewport @ci', async ({ page }, testIn
 
   await undo(page);
   await expectClean(page);
+});
+
+test('banner content reserves the measured overlay header height @ci', async ({ page }) => {
+  const contentFrame = await frame(page);
+  const banner = contentFrame.locator('[data-blox-banner]').first();
+  await expect(banner).toBeVisible();
+
+  const measurements = await banner.evaluate((element) => {
+    const header = element.ownerDocument.querySelector('.yk-blox-header')
+      || element.ownerDocument.querySelector('#siteHeader');
+    if (!header || !window.BloxBanner || typeof window.BloxBanner.refreshHeaderSafety !== 'function') {
+      return null;
+    }
+    element.ownerDocument.documentElement.classList.add('yk-home-header-overlay');
+    if (header.classList.contains('yk-blox-header')) {
+      header.setAttribute('data-yk-overlay-enabled', '1');
+    }
+    window.BloxBanner.refreshHeaderSafety(element);
+    const headerBox = header.getBoundingClientRect();
+    const content = element.querySelector('[data-blox-banner-content]');
+    const bannerStyle = getComputedStyle(element);
+    const contentStyle = content && getComputedStyle(content);
+    return {
+      headerBottom: headerBox.bottom,
+      safeTop: Number.parseFloat(bannerStyle.getPropertyValue('--blox-banner-safe-top')),
+      contentPaddingTop: contentStyle ? Number.parseFloat(contentStyle.paddingTop) : 0,
+      safeFlag: element.getAttribute('data-blox-overlay-safe'),
+    };
+  });
+
+  expect(measurements).not.toBeNull();
+  expect(measurements.headerBottom).toBeGreaterThan(0);
+  expect(measurements.safeFlag).toBe('1');
+  expect(measurements.safeTop).toBeGreaterThanOrEqual(Math.floor(measurements.headerBottom));
+  expect(measurements.contentPaddingTop).toBeGreaterThanOrEqual(measurements.safeTop);
 });
 
 test('banner switching keeps one visible slide when selection index is stale @ci', async ({ page }, testInfo) => {
