@@ -55,10 +55,35 @@
         slider.style.setProperty('--blox-banner-offset', Math.max(0, Math.round(rect.top + scrollTop)) + 'px');
     }
 
+    function refreshHeaderSafety(slider) {
+        if (!slider || !slider.style || typeof slider.style.setProperty !== 'function') return;
+        var safeTop = 0;
+        var root = document.documentElement;
+        if (root && root.classList && typeof root.classList.contains === 'function'
+            && root.classList.contains('yk-home-header-overlay') && typeof document.querySelector === 'function') {
+            var header = document.querySelector('.yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck)')
+                || document.querySelector('#siteHeader:not(.yk-blox-header)');
+            if (header && (!header.classList || !header.classList.contains || !header.classList.contains('yk-stuck'))
+                && typeof header.getBoundingClientRect === 'function') {
+                var rect = header.getBoundingClientRect();
+                if (rect && rect.bottom > 0) safeTop = Math.max(0, Math.ceil(rect.bottom));
+            }
+        }
+        slider.style.setProperty('--blox-banner-safe-top', safeTop + 'px');
+        if (typeof slider.setAttribute === 'function') {
+            slider.setAttribute('data-blox-overlay-safe', safeTop > 0 ? '1' : '0');
+        }
+    }
+
+    function refreshViewportLayout(slider) {
+        refreshViewportHeight(slider);
+        refreshHeaderSafety(slider);
+    }
+
     function refreshViewportHeights(root) {
         root = root && root.querySelectorAll ? root : document;
-        if (root.matches && root.matches('[data-blox-banner]')) refreshViewportHeight(root);
-        root.querySelectorAll('[data-blox-banner]').forEach(refreshViewportHeight);
+        if (root.matches && root.matches('[data-blox-banner]')) refreshViewportLayout(root);
+        root.querySelectorAll('[data-blox-banner]').forEach(refreshViewportLayout);
     }
 
     function bindViewportListeners() {
@@ -307,7 +332,7 @@
             sliders.push(slider);
         });
         sliders.forEach(initSlider);
-        sliders.forEach(refreshViewportHeight);
+        sliders.forEach(refreshViewportLayout);
         bindViewportListeners();
     }
 
@@ -357,7 +382,8 @@
         init: init,
         show: show,
         configFor: configFor,
-        refreshViewportHeights: refreshViewportHeights
+        refreshViewportHeights: refreshViewportHeights,
+        refreshHeaderSafety: refreshHeaderSafety
     };
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () { init(document); }, { once: true });

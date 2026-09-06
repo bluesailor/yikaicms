@@ -1,11 +1,17 @@
 /* Content positioning uses a separate box, leaving animated layers untouched. */
+/* 覆盖式页头由运行时量出实际高度；没有覆盖态时该值为 0，不改变旧布局。 */
+[data-blox-banner] [data-blox-banner-content] {
+    box-sizing: border-box;
+    padding-block-start: var(--blox-banner-safe-top, 0px);
+}
+
 @media (min-width: 768px) {
     [data-blox-banner] [data-blox-layout-desktop="1"] {
         display: flex;
         align-items: var(--blox-layout-desktop-vertical);
         justify-content: var(--blox-layout-desktop-horizontal);
         box-sizing: border-box;
-        padding: calc(40px + max(var(--blox-layout-desktop-y), calc(-1 * var(--blox-layout-desktop-y))))
+        padding: max(calc(40px + max(var(--blox-layout-desktop-y), calc(-1 * var(--blox-layout-desktop-y)))), calc(var(--blox-banner-safe-top, 0px) + 16px))
             calc(24px + max(var(--blox-layout-desktop-x), calc(-1 * var(--blox-layout-desktop-x))));
     }
     [data-blox-banner] [data-blox-layout-desktop="1"] [data-blox-banner-shell] { display: contents; }
@@ -42,7 +48,7 @@
         align-items: var(--blox-layout-mobile-vertical);
         justify-content: var(--blox-layout-mobile-horizontal);
         box-sizing: border-box;
-        padding: calc(40px + max(var(--blox-layout-mobile-y), calc(-1 * var(--blox-layout-mobile-y))))
+        padding: max(calc(40px + max(var(--blox-layout-mobile-y), calc(-1 * var(--blox-layout-mobile-y)))), calc(var(--blox-banner-safe-top, 0px) + 16px))
             calc(24px + max(var(--blox-layout-mobile-x), calc(-1 * var(--blox-layout-mobile-x))));
     }
     [data-blox-banner] [data-blox-layout-mobile="1"] [data-blox-banner-shell] { display: contents; }
@@ -81,6 +87,7 @@
     --blox-banner-height-pc: 650px;
     --blox-banner-height-mobile: 300px;
     --blox-banner-offset: 70px;
+    --blox-banner-safe-top: 0px;
 }
 
 @media (max-width: 767px) {
