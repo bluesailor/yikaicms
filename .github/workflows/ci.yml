@@ -361,7 +361,7 @@ jobs:
         if: steps.blox_src.outputs.present == 'true'
         run: php tools/check_blox_i18n.php
 
-  # ─── 真实 N-1 包升级：从已发布的 v1.19.6 完整包安装旧站，再通过
+  # ─── 真实 N-1 包升级：从已发布的 v1.19.7 完整包安装旧站，再通过
   # ─── prepare/batch/finalize 管道覆盖当前候选完整包并跑完迁移。
   # ─── PHP 8.0 与 8.2 各跑一次，守住旧共享主机与推荐运行环境两条路径。
   # ─── 这条专门覆盖源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
@@ -401,20 +401,22 @@ jobs:
         run: composer install --no-dev --no-interaction --prefer-dist --no-progress
 
       - name: Build current full package
-        run: bash build.sh 1.19.7 --no-delta
-
-      - name: Fetch and verify published v1.19.6 package
         run: |
-          curl -fL --retry 3 -o /tmp/yikaicms-v1.19.6.zip \
-            https://github.com/bluesailor/yikaicms/releases/download/v1.19.6/yikaicms-v1.19.6.zip
-          echo "acac251a555215247f7d2e4dfd2bed6ea3b25c59174d17653ef62f42aab4fe88  /tmp/yikaicms-v1.19.6.zip" | sha256sum -c -
+          VERSION="$(php -r "require 'config/version.php'; echo CMS_VERSION;")"
+          bash build.sh "$VERSION" --no-delta
 
-      - name: Upgrade real v1.19.6 package to candidate
+      - name: Fetch and verify published v1.19.7 package
+        run: |
+          curl -fL --retry 3 -o /tmp/yikaicms-v1.19.7.zip \
+            https://github.com/bluesailor/yikaicms/releases/download/v1.19.7/yikaicms-v1.19.7.zip
+          echo "e890c2b7af61fd8c70b8b97b3d10c6d1eb9371ac2a7ccf77d00785c5eb9888e6  /tmp/yikaicms-v1.19.7.zip" | sha256sum -c -
+
+      - name: Upgrade real v1.19.7 package to candidate
         run: >-
           php tests/smoke/package_upgrade.php
-          --from-package=/tmp/yikaicms-v1.19.6.zip
-          --to-package=releases/yikaicms-v1.19.7.zip
-          --from=1.19.6 --to=1.19.7
+          --from-package=/tmp/yikaicms-v1.19.7.zip
+          --to-package=releases/yikaicms-v$(php -r "require 'config/version.php'; echo CMS_VERSION;").zip
+          --from=1.19.7 --to=$(php -r "require 'config/version.php'; echo CMS_VERSION;")
           --db=mysql --db-host=127.0.0.1 --db-port=3306
           --db-user=root --db-pass=ci-root
 
@@ -667,6 +669,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
+      - name: Install Node dependencies
+        run: npm ci --ignore-scripts
       # Run inside the test directory so Node discovers *.test.js without shell globs or directory-argument assumptions.
       - name: node --test
         working-directory: tests/js
