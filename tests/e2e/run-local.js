@@ -9,6 +9,8 @@ const sourceRoot = path.resolve(__dirname, '../..');
 let root = '';
 const php = process.env.PHP_BINARY || 'php';
 let port = Number(process.env.BLOX_E2E_PORT || 0);
+const portBase = Number(process.env.BLOX_E2E_PORT_BASE || 0);
+const portRange = Number(process.env.BLOX_E2E_PORT_RANGE || 0);
 let baseURL = '';
 const runId = `${process.pid}-${Date.now()}`;
 const requestedArgs = process.argv.slice(2);
@@ -71,10 +73,14 @@ async function choosePort() {
     if (!await canListen(port)) throw new Error(`BLOX_E2E_PORT ${port} is already in use`);
     return port;
   }
-  for (let candidate = 8080; candidate <= 8099; candidate += 1) {
-    if (await canListen(candidate)) return candidate;
+  const first = portBase > 0 ? portBase : 8080;
+  const last = portBase > 0 && portRange > 0 ? portBase + portRange - 1 : 8099;
+  for (let candidate = first; candidate <= last; candidate += 1) {
+    // The adjacent fixture port must also be free. This keeps a phase's
+    // main server and template fixture inside its own port window.
+    if (await canListen(candidate) && await canListen(candidate + 1)) return candidate;
   }
-  throw new Error('No free local port found between 8080 and 8099');
+  throw new Error(`No free local port found between ${first} and ${last}`);
 }
 
 function waitForServerAt(url, timeoutMs = 15_000) {
@@ -171,17 +177,34 @@ async function main() {
     }
 
     const playwrightCli = require.resolve('@playwright/test/cli');
+    const playwrightEnv = {
+      ...e2eEnv,
+      BLOX_E2E_BASE_URL: baseURL,
+      BLOX_E2E_STORAGE_STATE: path.join(sourceRoot, 'test-results', `e2e-auth-${runId}.json`),
+      BLOX_E2E_OUTPUT_DIR: outputDir,
+      BLOX_E2E_REPORT_DIR: reportDir,
+      SMOKE_BLOX_ADVANCED: freeMode ? '0' : (process.env.SMOKE_BLOX_ADVANCED || '1'),
+      BLOX_E2E_SITE_LANG: smokeLang,
+    };
+    if (process.env.BLOX_E2E_EXPECT_TESTS === '1') {
+      const listing = spawnSync(process.execPath, [playwrightCli, 'test', ...playwrightArgs, '--list'], {
+        cwd: root,
+        env: playwrightEnv,
+        encoding: 'utf8',
+      });
+      const listingOutput = `${listing.stdout || ''}${listing.stderr || ''}`;
+      const totalMatch = listingOutput.match(/Total:\s*(\d+)\s+tests?/i);
+      const total = totalMatch ? Number(totalMatch[1]) : 0;
+      if (listing.status !== 0 || total < 1) {
+        console.error(`Expected at least one executable browser test, got ${total}.`);
+        console.error(listingOutput.slice(-8_000));
+        throw new Error('Browser phase selected no executable tests');
+      }
+      console.log(`Browser phase test list: ${total} test(s)`);
+    }
     playwright = spawn(process.execPath, [playwrightCli, 'test', ...playwrightArgs], {
       cwd: root,
-      env: {
-        ...e2eEnv,
-        BLOX_E2E_BASE_URL: baseURL,
-        BLOX_E2E_STORAGE_STATE: path.join(sourceRoot, 'test-results', `e2e-auth-${runId}.json`),
-        BLOX_E2E_OUTPUT_DIR: outputDir,
-        BLOX_E2E_REPORT_DIR: reportDir,
-        SMOKE_BLOX_ADVANCED: freeMode ? '0' : (process.env.SMOKE_BLOX_ADVANCED || '1'),
-        BLOX_E2E_SITE_LANG: smokeLang,
-      },
+      env: playwrightEnv,
       stdio: 'inherit',
     });
     exitCode = await new Promise((resolve, reject) => {

@@ -26,7 +26,7 @@ test('test snapshot copies pending edits but never uses site config or runtime d
         assert.equal(fs.readFileSync(path.join(site, 'index.php'), 'utf8'), 'pending edit');
         assert.equal(fs.readFileSync(path.join(site, 'new.php'), 'utf8'), 'new file');
         assert.equal(fs.existsSync(path.join(site, 'config/config.php')), false);
-        assert.deepEqual(fs.readdirSync(path.join(site, 'storage')), []);
+        assert.deepEqual(fs.readdirSync(path.join(site, 'storage')).sort(), ['cache', 'login_throttle', 'logs']);
         fs.mkdirSync(path.join(site, 'config'), { recursive: true });
         fs.writeFileSync(path.join(site, 'config/config.php'), 'test config');
         assert.equal(fs.readFileSync(path.join(source, 'config/config.php'), 'utf8'), 'private');

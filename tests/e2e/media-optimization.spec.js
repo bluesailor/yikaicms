@@ -6,12 +6,14 @@ const { test, expect } = require('@playwright/test');
 test('media library repairs responsive image derivatives @ci', async ({ page }, testInfo) => {
   const root = path.resolve(__dirname, '../..');
   const name = `media-health-${process.pid}-${testInfo.project.name}`.toLowerCase();
-  const original = path.join(root, 'uploads', 'images', `${name}.png`);
+  const directory = path.join(root, 'uploads', 'images');
+  fs.mkdirSync(directory, { recursive: true });
+  const original = path.join(directory, `${name}.png`);
   const createImage = [
     '$path = $argv[1];',
     '$image = imagecreatetruecolor(1200, 675);',
     'imagefill($image, 0, 0, imagecolorallocate($image, 38, 112, 92));',
-    'imagepng($image, $path);',
+    'if (!imagepng($image, $path)) { fwrite(STDERR, "imagepng failed\\n"); exit(1); }',
     'imagedestroy($image);',
   ].join(' ');
   execFileSync('php', ['-r', createImage, original], { cwd: root });

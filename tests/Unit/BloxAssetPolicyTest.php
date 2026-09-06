@@ -137,8 +137,12 @@ final class BloxAssetPolicyTest extends TestCase
     {
         $workflow = file_get_contents(ROOT_PATH . '/.github/workflows/ci.yml');
         $runner = file_get_contents(ROOT_PATH . '/tests/e2e/run-local.js');
+        $shardRunner = file_get_contents(ROOT_PATH . '/tests/e2e/run-shard.js');
+        $shardDefinitions = file_get_contents(ROOT_PATH . '/tests/e2e/shards.js');
         self::assertIsString($workflow);
         self::assertIsString($runner);
+        self::assertIsString($shardRunner);
+        self::assertIsString($shardDefinitions);
 
         self::assertStringContainsString('free-package:', $workflow);
         self::assertStringContainsString('run: bash build.sh', $workflow);
@@ -147,11 +151,18 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertStringContainsString('name: yikaicms-free-${{ github.sha }}', $workflow);
         self::assertSame(3, substr_count($workflow, 'bash .github/scripts/inject-blox.sh'));
 
-        self::assertStringContainsString('node tests/e2e/run-local.js --grep "@ci" --project=${{ matrix.project }}', $workflow);
-        self::assertStringContainsString('node tests/e2e/run-local.js --free', $workflow);
-        self::assertStringContainsString('BLOX_E2E_SERVER_LOG:', $workflow);
-        self::assertStringContainsString('test-results/e2e-${{ matrix.project }}/php-server.log', $workflow);
-        self::assertStringContainsString('test-results/e2e-supplementary/php-server.log', $workflow);
+        self::assertStringContainsString('node tests/e2e/run-shard.js ${{ matrix.shard }}', $workflow);
+        self::assertStringContainsString('BLOX_E2E_ARTIFACT_ROOT:', $workflow);
+        self::assertStringContainsString('test-results/e2e-shard-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}', $workflow);
+        self::assertStringContainsString('find test-results/e2e-shard-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}', $workflow);
+        self::assertStringContainsString('test -f admin/blox_editor.php', $workflow);
+        self::assertStringContainsString('BLOX_E2E_EXPECT_TESTS', $shardRunner);
+        self::assertStringContainsString("grep: '@language'", $shardDefinitions);
+        self::assertStringContainsString("name: 'language-en'", $shardDefinitions);
+        self::assertStringContainsString("name: 'language-ja'", $shardDefinitions);
+        self::assertStringContainsString("name: 'free-mode'", $shardDefinitions);
+        self::assertStringContainsString('--slot=', $shardRunner);
+        self::assertStringContainsString('BLOX_E2E_SERVER_LOG:', $shardRunner);
         self::assertStringContainsString('persistServerLog()', $runner);
         self::assertStringContainsString('php tests/smoke/blox_upgrade_compat.php --from="$tag"', $workflow);
         foreach (['v1.12.9', 'v1.14.0', 'v1.17.0', 'v1.17.3.2'] as $tag) {

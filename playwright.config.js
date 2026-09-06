@@ -6,9 +6,16 @@ const storageState = process.env.BLOX_E2E_STORAGE_STATE
   || path.join(__dirname, 'tests/e2e/.auth/admin.json');
 const outputDir = process.env.BLOX_E2E_OUTPUT_DIR || 'test-results/e2e';
 const reportDir = process.env.BLOX_E2E_REPORT_DIR || 'playwright-report';
+const specFilter = String(process.env.BLOX_E2E_SPEC_FILTER || '').trim();
+const specFilterPattern = specFilter
+  ? new RegExp(`(?:^|[\\\\/])${specFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)
+  : undefined;
 
 module.exports = defineConfig({
   testDir: './tests/e2e',
+  // A shard phase requests one file through the disposable site's own test
+  // directory; do not pass a source-worktree path to Playwright.
+  testMatch: specFilterPattern,
   fullyParallel: false,
   workers: 1,
   timeout: 45_000,

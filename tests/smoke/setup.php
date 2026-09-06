@@ -131,6 +131,13 @@ $dbFile = $root . '/storage/database.sqlite';
 @mkdir($root . '/storage', 0777, true);
 @mkdir($root . '/storage/cache', 0777, true);
 @mkdir($root . '/uploads', 0777, true);
+foreach (['images', 'files', 'videos', 'albums'] as $uploadDirectory) {
+    @mkdir($root . '/uploads/' . $uploadDirectory, 0777, true);
+}
+$runtimeDirectories = ['logs', 'login_throttle', 'backups', 'security', 'upgrade'];
+foreach ($runtimeDirectories as $runtimeDirectory) {
+    @mkdir($root . '/storage/' . $runtimeDirectory, 0777, true);
+}
 @unlink($dbFile);
 $pdo = new PDO('sqlite:' . $dbFile);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
