@@ -6,14 +6,15 @@
   "description": "注重内容与留白的极简主题，浅色页脚包含品牌简介、导航、联系方式与独立版权栏，适合设计公司和创意工作室",
   "description_en": "A content-first minimalist theme with generous whitespace and a light footer featuring brand details, navigation, contacts and a separate legal row. Ideal for design agencies and creative studios.",
   "description_ja": "コンテンツと余白を重視したミニマルテーマ。明るいフッターにブランド紹介、ナビゲーション、連絡先、独立した著作権欄を備え、デザイン会社やクリエイティブスタジオに最適です。",
-  "version": "1.0.13",
+  "version": "1.0.15",
   "author": "Yikai CMS",
   "category": "creative",
   "requires_cms": ">=1.19.7",
   "requires_php": ">=8.0.0",
   "required_plugins": [],
   "capabilities": {
-    "banner_video": true
+    "banner_video": true,
+    "banner_content_layout": true
   },
   "screenshot": "assets/images/screenshot.jpg",
   "design_tokens": "design-tokens.json"
