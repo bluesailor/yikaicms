@@ -11,8 +11,23 @@ declare(strict_types=1);
 // 必须在 init.php 定义 SITE_LANG 前注入 _lang；Dispatcher::run() 里的解析已经太晚。
 require_once __DIR__ . '/includes/Dispatcher.php';
 $__incomingPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-if (empty($_GET['_lang'])) {
-    $__incomingLang = Dispatcher::languagePrefixFromPath($__incomingPath);
+$__isIndexRequest = $__incomingPath === '/' || $__incomingPath === '/index.php';
+$__dynamicRequested = $__isIndexRequest && array_key_exists('yk_route', $_GET);
+/** @var array<string,mixed> $__queryInput */
+$__queryInput = is_array($_GET) ? $_GET : [];
+$__dynamicHit = $__dynamicRequested ? Dispatcher::dynamicQuery($__queryInput) : null;
+if ($__dynamicRequested) {
+    // query 模式只信任 Dispatcher 规范化后的语言。外部同时传 lang/_lang 时
+    // 必须一致；无效输入先移除，待完整初始化后返回主题化 404。
+    if ($__dynamicHit !== null && $__dynamicHit['lang'] !== null) {
+        $_GET['_lang'] = $__dynamicHit['lang'];
+        $_REQUEST['_lang'] = $__dynamicHit['lang'];
+    } else {
+        unset($_GET['_lang'], $_REQUEST['_lang']);
+    }
+} elseif (empty($_GET['_lang'])) {
+    $__incomingLang = $__dynamicHit['lang'] ?? Dispatcher::dynamicLanguage($__queryInput)
+        ?? Dispatcher::languagePrefixFromPath($__incomingPath);
     if ($__incomingLang !== null) {
         $_GET['_lang'] = $__incomingLang;
         $_REQUEST['_lang'] = $__incomingLang;
@@ -20,6 +35,13 @@ if (empty($_GET['_lang'])) {
 }
 
 require_once __DIR__ . '/includes/init.php';
+
+if ($__dynamicRequested && $__dynamicHit === null) {
+    render404(__('error_page_not_found'));
+}
+if ($__dynamicHit !== null) {
+    Dispatcher::runDynamic($__dynamicHit); // 首页返回；其它查询路由在此 require 并 exit
+}
 
 // WP 式单入口路由：主机只配了两行 catch-all（如面板「WordPress 伪静态」预设）时，
 // 伪静态 URL 会落到这里，由 Dispatcher 分发到对应入口文件；配了完整规则的主机
@@ -29,7 +51,7 @@ $__reqPath = $__incomingPath;
 if ($__reqPath !== '/' && $__reqPath !== '/index.php') {
     Dispatcher::run();   // 命中即接管并 exit；语言前缀首页（/ja/）设 lang 后返回
 }
-unset($__incomingLang, $__incomingPath, $__reqPath);
+unset($__incomingLang, $__incomingPath, $__reqPath, $__isIndexRequest, $__dynamicRequested, $__dynamicHit);
 
 HtmlCache::start(300);
 
@@ -209,9 +231,10 @@ $bannerHeightCss = $bannerFullscreen
 @media (min-width: 768px) { .banner-swiper { height: calc(100vh - var(--hg-banner-offset, 70px)); height: calc(100svh - var(--hg-banner-offset, 70px)); } }'
     : '.banner-swiper { height: ' . $bannerHeightMobile . 'px; }
 @media (min-width: 768px) { .banner-swiper { height: ' . $bannerHeightPC . 'px; } }';
+BloxAssetCollector::addStyle('/assets/css/blox-banner.css');
 $extraCss = '
 <link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">
-<link rel="stylesheet" href="' . e(assetVer('/assets/css/blox-banner.css')) . '">
+' . BloxAssetCollector::renderStyles() . '
 <style>
 ' . $bannerHeightCss . '
 .banner-swiper .swiper-pagination-bullet-active { opacity: 1; background: ' . $primaryColor . '; width: 24px; border-radius: 6px; }
@@ -264,9 +287,11 @@ if ($bannerFullscreen) {
 <script>(function(){function s(){var b=document.querySelector(".banner-swiper");if(!b)return;var t=b.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0);document.documentElement.style.setProperty("--hg-banner-offset",Math.round(t)+"px");}window.addEventListener("DOMContentLoaded",s);window.addEventListener("load",s);window.addEventListener("resize",s);s();})();</script>';
 }
 
+BloxAssetCollector::addScript('/assets/js/blox-video-policy.js');
+BloxAssetCollector::addScript('/assets/js/blox-banner.js');
+
 $extraJs = '
 <script src="/assets/swiper/swiper-bundle.min.js"></script>
-<script src="' . e(assetVer('/assets/js/blox-banner.js')) . '"></script>
 <script>
 // 首页产品分类筛选
 (function() {

@@ -175,7 +175,7 @@ final class BloxAreaDocumentTest extends TestCase
             'search-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-search'], 2],
             'clean-site-footer.json' => ['footer', ['heading', 'nav', 'site-copyright', 'text'], 2],
             'business-site-footer.json' => ['footer', ['nav', 'site-copyright'], 2],
-            'minimal-site-footer.json' => ['footer', ['site-copyright'], 1],
+            'minimal-site-footer.json' => ['footer', ['logo', 'nav', 'site-contact', 'site-copyright', 'text'], 2],
             'corporate-site-footer.json' => ['footer', ['container', 'logo', 'nav', 'site-contact', 'site-copyright', 'social-links'], 2],
             'compact-site-footer.json' => ['footer', ['logo', 'site-copyright', 'social-links'], 1],
             'contact-site-footer.json' => ['footer', ['container', 'logo', 'site-contact', 'site-copyright', 'social-links'], 2],
@@ -229,7 +229,7 @@ final class BloxAreaDocumentTest extends TestCase
                 'search',
                 'footer-columns',
                 'footer-columns-dark',
-                'footer-compact',
+                'footer-columns',
                 'footer-columns-dark',
                 'footer-compact',
                 'footer-contact',
@@ -257,6 +257,28 @@ final class BloxAreaDocumentTest extends TestCase
         self::assertSame([], BloxAreaTemplatePresets::editorCatalog('popup'));
     }
 
+    public function testBuiltinAreaTemplateDisplayNameUsesLanguageKeyButCustomNameIsUntouched(): void
+    {
+        self::assertSame(
+            __('blox_area_preset_header_name'),
+            BloxAreaTemplatePresets::displayName([
+                'type' => 'header',
+                'name' => 'Clean Site Header',
+                'source' => 'builtin',
+                'source_ref' => 'clean-site-header',
+            ])
+        );
+        self::assertSame(
+            'Clean Site Header',
+            BloxAreaTemplatePresets::displayName([
+                'type' => 'header',
+                'name' => 'Clean Site Header',
+                'source' => 'user',
+                'source_ref' => 'clean-site-header',
+            ])
+        );
+    }
+
     public function testFooterEditorCatalogProvidesPracticalDynamicDocuments(): void
     {
         $catalog = BloxAreaTemplatePresets::editorCatalog('footer');
@@ -272,7 +294,7 @@ final class BloxAreaDocumentTest extends TestCase
             self::assertNotEmpty($preset['features']);
         }
         self::assertSame(2, count($catalog[1]['sections']));
-        self::assertSame(1, count($catalog[2]['sections']));
+        self::assertSame(2, count($catalog[2]['sections']));
         self::assertSame(3, count($catalog[6]['sections']));
     }
 
@@ -294,7 +316,12 @@ final class BloxAreaDocumentTest extends TestCase
         self::assertSame('#0f172a', $business['document']['sections'][0]['settings']['bg_color']);
         self::assertSame(['nav', 'site-copyright'], $business['requires']['elements']);
         self::assertSame('#ffffff', $minimal['document']['sections'][0]['settings']['bg_color']);
-        self::assertSame(['site-copyright'], $minimal['requires']['elements']);
+        self::assertSame(['logo', 'text', 'nav', 'site-contact', 'site-copyright'], $minimal['requires']['elements']);
+        $columns = $minimal['document']['sections'][0]['columns'];
+        self::assertSame(['logo', 'text'], array_column($columns[0]['elements'], 'type'));
+        self::assertSame('site_description', $columns[0]['elements'][1]['data']['site_field']);
+        self::assertSame(['nav', 'site-contact'], array_column($columns[1]['elements'], 'type'));
+        self::assertFalse($columns[1]['elements'][1]['data']['show_address']);
     }
 
     public function testHeaderStartersKeepDistinctWidthAndBrandAlignmentContracts(): void

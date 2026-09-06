@@ -46,6 +46,7 @@ return [
         'includes/pinyin/AUTHORS.txt',
         'includes/image.php',
         'includes/permissions.php',
+        'includes/catalog_pagination.php',
         'includes/UrlPolicy.php',
         'includes/HtmlPolicy.php',
         'includes/builder/bootstrap.php',

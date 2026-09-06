@@ -40,7 +40,7 @@ $surface = businessHomeSurface($block ?? []);
         <?php if ($hChannel['is_product'] ?? false): ?>
         <!-- Product grid -->
         <div class="grid <?php echo $productGrid; ?> gap-6" data-stagger>
-            <?php foreach (array_slice($contents, 0, 6) as $item): ?>
+            <?php foreach ($contents as $item): ?>
             <a href="<?php echo productUrl($item); ?>" class="block group">
                 <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
                     <?php if ($item['cover']): ?>
@@ -59,7 +59,7 @@ $surface = businessHomeSurface($block ?? []);
         <?php elseif ($channelType === 'case'): ?>
         <!-- Case Grid -->
         <div class="grid <?php echo $caseGrid; ?> gap-6" data-stagger>
-            <?php foreach (array_slice($contents, 0, 6) as $item): ?>
+            <?php foreach ($contents as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block group">
                 <div class="aspect-[4/3] bg-gray-200 rounded-lg overflow-hidden mb-3">
                     <?php if ($item['cover']): ?>
@@ -72,13 +72,18 @@ $surface = businessHomeSurface($block ?? []);
         </div>
 
         <?php else: ?>
-        <!-- Article grid: only display items with cover images. -->
-        <?php $withCover = array_filter($contents, fn($i) => !empty($i['cover'])); ?>
+        <!-- Article grid -->
         <div class="grid <?php echo $articleGrid; ?> gap-6" data-stagger>
-            <?php foreach (array_slice($withCover, 0, 4) as $item): ?>
+            <?php foreach ($contents as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block group">
                 <div class="aspect-[16/9] business-card overflow-hidden mb-3">
+                    <?php if (!empty($item['cover'])): ?>
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    <?php else: ?>
+                    <div class="w-full h-full flex items-center justify-center text-gray-400" aria-hidden="true">
+                        <i class="fa-regular fa-newspaper text-4xl"></i>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <h3 class="font-bold business-link transition"><?php echo e($item['title']); ?></h3>
                 <p class="text-sm business-copy mt-1"><?php echo date('Y-m-d', (int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?></p>

@@ -228,19 +228,48 @@ final class BloxTemplateModelTest extends TestCase
                 \BloxAreaEditorTarget::url('header', $context)
             );
 
-            $createdBusinessTheme = $this->ensureBusinessThemeFixture();
+            $businessThemesRoot = $this->createMarketplaceThemeFixture('business');
             try {
                 $GLOBALS['yikai_config_runtime_overrides'] = [
                     'current_theme' => 'business',
                     'blox_custom_header_enabled' => '1',
                 ];
                 $this->assertSame(
+                    '/admin/blox_editor.php?template=' . (int) $dormantHeader['id'] . '&open=header-settings',
+                    \BloxAreaEditorTarget::url('header', $context, '', $businessThemesRoot),
+                    'business 原生 Header 已调用 bloxAreaHtml(header)：开启且模板命中时，编辑目标应是实际命中的发布模板'
+                );
+
+                $GLOBALS['yikai_config_runtime_overrides']['blox_custom_header_enabled'] = '0';
+                $this->assertSame(
                     '/admin/blox_editor.php?template=' . (int) $themeHeader['id'] . '&current_header=1&open=header-settings',
-                    \BloxAreaEditorTarget::url('header', $context),
-                    'business 原生 Header 没有调用 bloxAreaHtml(header) 时，应编辑当前主题头部而不是旧发布模板'
+                    \BloxAreaEditorTarget::url('header', $context, '', $businessThemesRoot),
+                    'business 停用自定义 Header 时，应从 business 实际显示的原生 Header 开始编辑'
                 );
             } finally {
-                $this->removeBusinessThemeFixture($createdBusinessTheme);
+                $this->removeThemeFixture($businessThemesRoot);
+            }
+
+            $minimalThemesRoot = $this->createMarketplaceThemeFixture('minimal');
+            try {
+                $GLOBALS['yikai_config_runtime_overrides'] = [
+                    'current_theme' => 'minimal',
+                    'blox_custom_header_enabled' => '1',
+                ];
+                $this->assertSame(
+                    '/admin/blox_editor.php?template=' . (int) $dormantHeader['id'] . '&open=header-settings',
+                    \BloxAreaEditorTarget::url('header', $context, '', $minimalThemesRoot),
+                    'minimal 原生 Header 已调用 bloxAreaHtml(header)：开启且模板命中时，编辑目标应是实际命中的发布模板'
+                );
+
+                $GLOBALS['yikai_config_runtime_overrides']['blox_custom_header_enabled'] = '0';
+                $this->assertSame(
+                    '/admin/blox_editor.php?template=' . (int) $themeHeader['id'] . '&current_header=1&open=header-settings',
+                    \BloxAreaEditorTarget::url('header', $context, '', $minimalThemesRoot),
+                    'minimal 停用自定义 Header 时，应从 minimal 实际显示的原生 Header 开始编辑，而不是泛化设计系统入口'
+                );
+            } finally {
+                $this->removeThemeFixture($minimalThemesRoot);
             }
         } finally {
             if ($previousOverrides === null) {
@@ -251,34 +280,40 @@ final class BloxTemplateModelTest extends TestCase
         }
     }
 
-    private function ensureBusinessThemeFixture(): bool
+    /**
+     * 从 marketplace 唯一源码建立独立主题根，不读取或覆盖用户已安装主题。
+     */
+    private function createMarketplaceThemeFixture(string $theme): string
     {
-        $dir = ROOT_PATH . '/themes/business';
-        if (is_file($dir . '/theme.json')) {
-            return false;
+        $source = ROOT_PATH . '/marketplace/themes/' . $theme;
+        $root = sys_get_temp_dir() . '/yikai-theme-fixture-' . $theme . '-' . bin2hex(random_bytes(6));
+        $dir = $root . '/' . $theme;
+        foreach (['theme.json', 'layouts/header.php', 'layouts/footer.php'] as $rel) {
+            if (!is_file($source . '/' . $rel)) {
+                self::fail("marketplace/themes/{$theme} 缺少 {$rel}，无法建立运行时夹具");
+            }
         }
-
-        if (!is_dir($dir . '/layouts')) {
-            mkdir($dir . '/layouts', 0777, true);
+        foreach (['theme.json', 'layouts/header.php', 'layouts/footer.php'] as $rel) {
+            $dst = $dir . '/' . $rel;
+            if (!is_dir(dirname($dst))) {
+                mkdir(dirname($dst), 0777, true);
+            }
+            copy($source . '/' . $rel, $dst);
         }
-        file_put_contents($dir . '/theme.json', '{"name":"Business","version":"test"}');
-        file_put_contents($dir . '/layouts/header.php', '<?php echo "<header>Business</header>";');
-        file_put_contents($dir . '/layouts/footer.php', '<?php echo "<footer>Business</footer>";');
-        return true;
+        return $root;
     }
 
-    private function removeBusinessThemeFixture(bool $created): void
+    private function removeThemeFixture(string $root): void
     {
-        if (!$created) {
-            return;
+        $items = glob($root . '/*', GLOB_ONLYDIR) ?: [];
+        foreach ($items as $dir) {
+            @unlink($dir . '/layouts/header.php');
+            @unlink($dir . '/layouts/footer.php');
+            @rmdir($dir . '/layouts');
+            @unlink($dir . '/theme.json');
+            @rmdir($dir);
         }
-
-        $dir = ROOT_PATH . '/themes/business';
-        @unlink($dir . '/layouts/header.php');
-        @unlink($dir . '/layouts/footer.php');
-        @rmdir($dir . '/layouts');
-        @unlink($dir . '/theme.json');
-        @rmdir($dir);
+        @rmdir($root);
     }
 
     public function testAreaDraftStatusProvidesPrivatePreviewUntilPublish(): void

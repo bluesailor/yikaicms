@@ -55,7 +55,7 @@ $keyword = trim(get('keyword', ''));
 
 // 分页
 $page = max(1, getInt('page', 1));
-$perPage = 12;
+$perPage = catalogPageSize((string) $channel['type'], 12, (int) $channel['id']);
 $offset = ($page - 1) * $perPage;
 
 // 搜索条件
@@ -385,7 +385,13 @@ $horizRootChannel = $channel;
                 ，<?php echo e(__('search')); ?> "<span class="text-primary"><?php echo e($keyword); ?></span>"
                 <?php endif; ?>
             </div>
-            <form method="get" action="<?php echo channelUrl($channel); ?>" class="flex items-center gap-2">
+            <form method="get" action="<?php echo ($isProductType && isDynamicUrlMode()) ? '/index.php' : channelUrl($channel); ?>" class="flex items-center gap-2">
+                <?php if ($isProductType && isDynamicUrlMode()): ?>
+                <input type="hidden" name="yk_route" value="product_list">
+                <?php endif; ?>
+                <?php if ($isProductType && $productCategory && !empty($productCategory['slug'])): ?>
+                <input type="hidden" name="cat" value="<?php echo e((string) $productCategory['slug']); ?>">
+                <?php endif; ?>
                 <div class="relative">
                     <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                            placeholder="<?php echo __('list_search_product'); ?>"
@@ -454,7 +460,13 @@ $horizRootChannel = $channel;
             <?php else: ?>
             <div></div>
             <?php endif; ?>
-            <form method="get" action="<?php echo channelUrl($channel); ?>" class="flex items-center gap-2">
+            <?php $listUrl = channelUrl($channel); ?>
+            <?php $listUsesDynamicRoute = str_contains($listUrl, 'yk_route='); ?>
+            <form method="get" action="<?php echo $listUsesDynamicRoute ? '/index.php' : $listUrl; ?>" class="flex items-center gap-2">
+                <?php if ($listUsesDynamicRoute): ?>
+                <input type="hidden" name="yk_route" value="list">
+                <input type="hidden" name="slug" value="<?php echo e((string) ($channel['slug'] ?? '')); ?>">
+                <?php endif; ?>
                 <div class="relative">
                     <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                            placeholder="<?php echo __('search_placeholder'); ?>"
@@ -526,6 +538,14 @@ $horizRootChannel = $channel;
         <?php
         $totalPages = (int)ceil($total / $perPage);
         $pageUrl = function(int $p) use ($channel, $keyword, $productCategory, $currentSort): string {
+            if (isDynamicUrlMode()) {
+                $params = [];
+                if ($keyword !== '') $params['keyword'] = $keyword;
+                if ($currentSort !== 'default') $params['sort'] = $currentSort;
+                if ($productCategory && !empty($productCategory['slug'])) $params['cat'] = (string) $productCategory['slug'];
+                return dynamicChannelPageUrl($channel, $p, $params)
+                    ?? dynamicUrl('list', ['id' => (int) ($channel['id'] ?? 0), 'page' => $p]);
+            }
             $extraParams = '';
             if ($keyword !== '') $extraParams .= '&keyword=' . urlencode($keyword);
             if (isset($currentSort) && $currentSort !== 'default') $extraParams .= '&sort=' . urlencode($currentSort);
@@ -592,6 +612,10 @@ $horizRootChannel = $channel;
         <?php
         $totalPages = (int)ceil($total / $perPage);
         $pageUrl = function(int $p) use ($channel, $keyword): string {
+            if (isDynamicUrlMode()) {
+                return dynamicChannelPageUrl($channel, $p, $keyword !== '' ? ['keyword' => $keyword] : [])
+                    ?? dynamicUrl('list', ['id' => (int) ($channel['id'] ?? 0), 'page' => $p]);
+            }
             $slug = $channel['slug'] ?? '';
             $keywordParam = $keyword !== '' ? '?keyword=' . urlencode($keyword) : '';
             if ($p === 1) {

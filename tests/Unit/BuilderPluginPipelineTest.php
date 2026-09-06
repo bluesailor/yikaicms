@@ -317,6 +317,31 @@ final class BuilderPluginPipelineTest extends TestCase
         $this->assertCount(1, BloxAssetCollector::styles());
     }
 
+    public function testAssetCollectorOutputsEachStyleOnlyOnceAcrossHeadAndFooter(): void
+    {
+        BloxAssetCollector::addStyle('/plugins/blox-example/assets/notice.css');
+
+        $head = BloxAssetCollector::renderStyles();
+        $footer = BloxAssetCollector::renderStyles();
+
+        $this->assertStringContainsString('/plugins/blox-example/assets/notice.css', $head);
+        $this->assertSame('', $footer);
+        $this->assertSame(['/plugins/blox-example/assets/notice.css'], BloxAssetCollector::styles());
+    }
+
+    public function testPreviewCanReplayStylesDiscardedByCapturedThemeFooter(): void
+    {
+        BloxAssetCollector::addStyle('/plugins/blox-example/assets/notice.css');
+        $discardedFooter = BloxAssetCollector::renderStyles();
+
+        BloxAssetCollector::rewindRenderedStyles();
+        $previewHead = BloxAssetCollector::renderStyles();
+
+        $this->assertStringContainsString('/plugins/blox-example/assets/notice.css', $discardedFooter);
+        $this->assertStringContainsString('/plugins/blox-example/assets/notice.css', $previewHead);
+        $this->assertSame('', BloxAssetCollector::renderStyles());
+    }
+
     /** @param array<int,array<string,mixed>> $elements @return array<int,array<string,mixed>> */
     private function sections(array $elements): array
     {

@@ -26,6 +26,11 @@ $_viewLang    = $_lang['view'];
 
 // 保存设置
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
+    if (isset($_POST['catalog_product_page_size'])) {
+        if (!validCatalogPageSize($_POST['catalog_product_page_size'])) error(__('catalog_page_size_invalid'), 422);
+        settingModel()->saveBatch(['catalog_product_page_size' => $_POST['catalog_product_page_size']]);
+    }
     settingModel()->set('product_layout', post('product_layout', 'sidebar'));
     settingModel()->set('show_price', post('show_price', '0'));
     settingModel()->set('product_spec_presets', trim((string) ($_POST['product_spec_presets'] ?? '')));
@@ -71,6 +76,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="p-6">
         <form id="settingForm" class="space-y-6 max-w-xl">
     <?php echo adminLangField(); ?>
+            <div>
+                <label for="catalog-page-size"><?= e(__('setting_catalog_product_page_size')) ?></label>
+                <input id="catalog-page-size" type="number" min="1" max="100" step="1" name="catalog_product_page_size" value="<?= e((string) config('catalog_product_page_size', '')) ?>" class="border rounded px-4 py-2">
+                <p class="text-sm text-gray-500"><?= e(__('setting_catalog_product_page_size_tip')) ?></p>
+                <a href="/admin/setting.php?tab=pagination" class="text-primary"><?= e(__('setting_tab_pagination')) ?></a>
+            </div>
             <!-- 产品列表版式 -->
             <div>
                 <label class="font-medium text-gray-800"><?php echo e(__('psetting_layout')); ?></label>

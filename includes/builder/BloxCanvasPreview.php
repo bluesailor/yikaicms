@@ -181,7 +181,10 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             ]);
             $ctxHitId = (int) ($resolveHit['id'] ?? 0);
             if ($resolveHit !== null) {
-                $ctxHitName = (string) ($resolveHit['name'] ?? ('#' . $ctxHitId));
+                $ctxHitName = BloxAreaTemplatePresets::displayName($resolveHit);
+                if ($ctxHitName === '') {
+                    $ctxHitName = '#' . $ctxHitId;
+                }
                 $ctxExplanation = BloxAreaResolver::explain($resolveHit, [
                     'home' => $ctxType === 'home',
                     'channel_id' => $ctxType === 'channel' ? (int) ($ctxRow['id'] ?? 0) : 0,
@@ -1954,6 +1957,9 @@ HTML;
         ]);
     }
 
+    // Theme footer capture runs ik_footer_scripts inside an output buffer whose tail is discarded.
+    // Keep the collected assets, but make their styles eligible for the real preview head again.
+    BloxAssetCollector::rewindRenderedStyles();
     $previewStyles = BloxAssetCollector::renderStyles();
     // 画布与后台同源，Code 元素中的脚本不能继承管理员权限运行。nonce 按会话稳定，
     // 既让可信画布脚本执行，也保证连续预览的 head 签名一致、仍可做局部 DOM patch。

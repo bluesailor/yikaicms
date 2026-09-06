@@ -31,7 +31,8 @@ $pcColClass = [1 => 'sm:grid-cols-1', 2 => 'sm:grid-cols-2', 3 => 'sm:grid-cols-
         </div>
 
         <?php if ($pcSearch): ?>
-        <form action="/product.html" method="get" class="max-w-md mx-auto mb-8">
+        <form action="<?php echo e(dynamicFormAction('/product.html')); ?>" method="get" class="max-w-md mx-auto mb-8">
+            <?php echo dynamicFormHiddenInputs('product_list'); ?>
             <div class="relative">
                 <input type="text" name="keyword" placeholder="<?php echo e(__('home_pc_search_ph')); ?>"
                        class="w-full border border-gray-200 rounded-lg pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">

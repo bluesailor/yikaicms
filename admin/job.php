@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $status = get('status', '');
 $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
-$perPage = 20;
+$perPage = adminListPageSize('job', $page);
 $offset = ($page - 1) * $perPage;
 
 // 视图语言
@@ -105,6 +105,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
+            <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
+            <?php echo renderAdminPageSize($perPage); ?>
             <select name="status" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?></option>
                 <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>><?php echo e(__('job_status_open')); ?></option>
@@ -208,7 +210,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?></span>
                 <?php
                 $totalPages = ceil($total / $perPage);
-                $queryString = http_build_query(array_filter(['status' => $status, 'keyword' => $keyword]));
+                $queryString = http_build_query(array_filter(['status' => $status, 'keyword' => $keyword, 'lang' => $_viewLang], static fn($value) => $value !== '' && $value !== null));
                 $baseUrl = '?' . ($queryString ? $queryString . '&' : '');
                 ?>
                 <?php if ($page > 1): ?>

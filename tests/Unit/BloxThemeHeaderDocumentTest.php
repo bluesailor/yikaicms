@@ -106,6 +106,68 @@ final class BloxThemeHeaderDocumentTest extends TestCase
         }
     }
 
+    public function testMinimalThemeHeaderStartsFromCleanWhiteHeader(): void
+    {
+        $createdTheme = $this->ensureMinimalThemeFixture();
+        $previous = $GLOBALS['yikai_config_runtime_overrides'] ?? null;
+        try {
+            $GLOBALS['yikai_config_runtime_overrides'] = [
+                'current_theme' => 'minimal',
+                'header_sticky' => '1',
+                'site_logo_max_height' => '32',
+                'show_lang_switcher' => '1',
+            ];
+
+            $document = BloxThemeHeaderDocument::current('test-current-minimal-header');
+
+            self::assertTrue($document['settings']['sticky']);
+            self::assertFalse($document['settings']['header_overlay_enabled']);
+            self::assertSame('#ffffff', $document['settings']['header_states']['normal']['background']);
+            self::assertSame('#4b5563', $document['settings']['header_states']['normal']['text']);
+            self::assertSame('#e5e7eb', $document['settings']['header_states']['normal']['border']);
+            self::assertSame('none', $document['settings']['header_states']['normal']['shadow']);
+            self::assertSame('#e5e7eb', $document['settings']['header_states']['stuck']['border']);
+            self::assertSame('sm', $document['settings']['header_states']['stuck']['shadow']);
+            self::assertCount(1, $document['sections']);
+            self::assertSame('#ffffff', $document['sections'][0]['settings']['bg_color']);
+
+            $children = $document['sections'][0]['columns'][0]['elements'][0]['data']['children'];
+            self::assertSame(['logo', 'nav', 'language-switcher', 'nav-drawer'], array_column($children, 'type'));
+            self::assertSame('dark', $children[0]['data']['tone']);
+            self::assertSame('1', $children[1]['data']['dropdown']);
+            self::assertSame('1', $children[1]['data']['desktop_only']);
+            self::assertSame('flex flex-nowrap items-center gap-8 whitespace-nowrap', $children[1]['data']['wrap_class']);
+
+            // sticky 跟随 header_sticky 设置，语言切换关闭时不出现语言元素
+            $GLOBALS['yikai_config_runtime_overrides']['header_sticky'] = '0';
+            $GLOBALS['yikai_config_runtime_overrides']['show_lang_switcher'] = '0';
+            $document = BloxThemeHeaderDocument::current('test-current-minimal-header');
+            self::assertFalse($document['settings']['sticky']);
+            $children = $document['sections'][0]['columns'][0]['elements'][0]['data']['children'];
+            self::assertSame(['logo', 'nav', 'nav-drawer'], array_column($children, 'type'));
+
+            // 生成的文档 ID 唯一（BloxAreaDocument::process 的硬性契约）
+            $ids = [];
+            array_walk_recursive(
+                $document['sections'],
+                function ($value) use (&$ids): void {
+                    if (is_string($value) && preg_match('/^[a-z0-9-]+$/', $value) === 1 && str_contains($value, '-header')) {
+                        $ids[$value] = ($ids[$value] ?? 0) + 1;
+                    }
+                }
+            );
+            $duplicated = array_filter($ids, fn (int $count): bool => $count > 1);
+            self::assertSame([], $duplicated);
+        } finally {
+            if ($previous === null) {
+                unset($GLOBALS['yikai_config_runtime_overrides']);
+            } else {
+                $GLOBALS['yikai_config_runtime_overrides'] = $previous;
+            }
+            $this->removeMinimalThemeFixture($createdTheme);
+        }
+    }
+
     public function testBusinessThemeHeaderStartsFromVisibleDarkHeader(): void
     {
         $createdTheme = $this->ensureBusinessThemeFixture();
@@ -146,27 +208,59 @@ final class BloxThemeHeaderDocumentTest extends TestCase
 
     private function ensureBusinessThemeFixture(): bool
     {
-        $dir = ROOT_PATH . '/themes/business';
+        return $this->ensureRuntimeThemeFromMarketplace('business');
+    }
+
+    private function ensureMinimalThemeFixture(): bool
+    {
+        return $this->ensureRuntimeThemeFromMarketplace('minimal');
+    }
+
+    /**
+     * 保证 themes/<theme> 运行副本与 marketplace 唯一源码一致（已安装则不动）。
+     * ThemeRuntime::resolve 需要运行目录里存在 theme.json + header/footer 才会
+     * 认可该主题；CI 无已安装主题，从唯一源码同步最小骨架。
+     */
+    private function ensureRuntimeThemeFromMarketplace(string $theme): bool
+    {
+        $dir = ROOT_PATH . '/themes/' . $theme;
         if (is_file($dir . '/theme.json')) {
             return false;
         }
 
-        if (!is_dir($dir . '/layouts')) {
-            mkdir($dir . '/layouts', 0777, true);
+        $source = ROOT_PATH . '/marketplace/themes/' . $theme;
+        foreach (['theme.json', 'layouts/header.php', 'layouts/footer.php'] as $rel) {
+            if (!is_file($source . '/' . $rel)) {
+                self::fail("marketplace/themes/{$theme} 缺少 {$rel}，无法建立运行时夹具");
+            }
         }
-        file_put_contents($dir . '/theme.json', '{"name":"Business","version":"test"}');
-        file_put_contents($dir . '/layouts/header.php', '<?php echo "<header>Business</header>";');
-        file_put_contents($dir . '/layouts/footer.php', '<?php echo "<footer>Business</footer>";');
+        foreach (['theme.json', 'layouts/header.php', 'layouts/footer.php'] as $rel) {
+            $dst = $dir . '/' . $rel;
+            if (!is_dir(dirname($dst))) {
+                mkdir(dirname($dst), 0777, true);
+            }
+            copy($source . '/' . $rel, $dst);
+        }
         return true;
     }
 
     private function removeBusinessThemeFixture(bool $created): void
     {
+        $this->removeRuntimeThemeFixture('business', $created);
+    }
+
+    private function removeMinimalThemeFixture(bool $created): void
+    {
+        $this->removeRuntimeThemeFixture('minimal', $created);
+    }
+
+    private function removeRuntimeThemeFixture(string $theme, bool $created): void
+    {
         if (!$created) {
             return;
         }
 
-        $dir = ROOT_PATH . '/themes/business';
+        $dir = ROOT_PATH . '/themes/' . $theme;
         @unlink($dir . '/layouts/header.php');
         @unlink($dir . '/layouts/footer.php');
         @rmdir($dir . '/layouts');

@@ -13,6 +13,7 @@ $catalogRootChannel = is_array($rootChannel ?? null) ? $rootChannel : $catalogCu
 $catalogCategories = is_array($categories ?? null) ? $categories : [];
 $catalogContents = is_array($contents ?? null) ? $contents : [];
 $catalogBaseUrl = channelUrl($catalogCurrentChannel);
+$catalogUsesDynamicRoute = str_contains($catalogBaseUrl, 'yk_route=');
 ?>
 <div data-content-catalog>
     <?php if ($contentCatalogShowCategories || $contentCatalogShowSearch): ?>
@@ -35,7 +36,11 @@ $catalogBaseUrl = channelUrl($catalogCurrentChannel);
         <?php endif; ?>
 
         <?php if ($contentCatalogShowSearch): ?>
-        <form method="get" action="<?php echo e($catalogBaseUrl); ?>" class="flex items-center gap-2">
+        <form method="get" action="<?php echo $catalogUsesDynamicRoute ? '/index.php' : e($catalogBaseUrl); ?>" class="flex items-center gap-2">
+            <?php if ($catalogUsesDynamicRoute): ?>
+            <input type="hidden" name="yk_route" value="list">
+            <input type="hidden" name="slug" value="<?php echo e((string) ($catalogCurrentChannel['slug'] ?? '')); ?>">
+            <?php endif; ?>
             <div class="relative">
                 <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                        placeholder="<?php echo e(__('news_search_placeholder')); ?>"
@@ -77,7 +82,13 @@ $catalogBaseUrl = channelUrl($catalogCurrentChannel);
 
     <?php
     $totalPages = (int) ceil(((int) $total) / max(1, (int) $perPage));
-    $pageUrl = static function (int $targetPage) use ($catalogBaseUrl, $keyword): string {
+    $pageUrl = static function (int $targetPage) use ($catalogBaseUrl, $keyword, $catalogCurrentChannel): string {
+        if (function_exists('isDynamicUrlMode') && isDynamicUrlMode()) {
+            if (function_exists('dynamicChannelPageUrl')) {
+                return dynamicChannelPageUrl($catalogCurrentChannel, $targetPage, $keyword !== '' ? ['keyword' => $keyword] : [])
+                    ?? dynamicUrl('list', ['id' => (int) ($catalogCurrentChannel['id'] ?? 0), 'page' => $targetPage]);
+            }
+        }
         $base = $targetPage === 1
             ? $catalogBaseUrl
             : (preg_replace('/\.html$/', '/page/' . $targetPage . '.html', $catalogBaseUrl) ?: $catalogBaseUrl);

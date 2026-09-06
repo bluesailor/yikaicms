@@ -90,7 +90,7 @@ $categoryId = getInt('category_id');
 $status = get('status', '');
 $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
-$perPage = 20;
+$perPage = adminListPageSize('download', $page);
 
 // 视图语言
 $_lang        = adminLangView();
@@ -120,6 +120,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
+            <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
+            <?php echo renderAdminPageSize($perPage); ?>
             <select name="category_id" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?></option>
                 <?php foreach ($categories as $cat): ?>
@@ -268,7 +270,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $total, e(__('admin_total_n'))); ?></span>
                 <?php
                 $totalPages = ceil($total / $perPage);
-                $queryString = http_build_query(array_filter(['category_id' => $categoryId, 'status' => $status, 'keyword' => $keyword]));
+                $queryString = http_build_query(array_filter(['category_id' => $categoryId, 'status' => $status, 'keyword' => $keyword, 'lang' => $_viewLang], static fn($value) => $value !== '' && $value !== null));
                 $baseUrl = '?' . ($queryString ? $queryString . '&' : '');
                 ?>
                 <?php if ($page > 1): ?>

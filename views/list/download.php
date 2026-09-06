@@ -10,13 +10,19 @@
  * already mounts theme partials via `require theme_path(...)`.
  */
 $hasDlSidebar = !empty($rightSidebarChannels) || !empty($rightSidebarItems);
+$downloadListUrl = channelUrl($channel);
+$downloadUsesDynamicRoute = str_contains($downloadListUrl, 'yk_route=');
+$downloadClearUrl = $downloadUsesDynamicRoute
+    ? dynamicUrl('download_list', $dlCatId > 0 ? ['cat' => (int) $dlCatId] : [])
+    : $downloadListUrl . ($dlCatId > 0 ? '?cat=' . (int) $dlCatId : '');
 ?>
 <!-- 下载：表格 + 右侧分类导航（数据来自 yikai_downloads 表；分类来自 download_categories） -->
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
             <div class="w-full <?php echo $hasDlSidebar ? 'lg:flex-1' : ''; ?>">
                 <div class="flex flex-wrap items-center justify-end gap-3 mb-6">
-                    <form method="get" action="<?php echo channelUrl($channel); ?>" class="flex items-center gap-2">
-                        <?php if ($dlCatId > 0): ?>
+                    <form method="get" action="<?php echo e(dynamicFormAction($downloadListUrl)); ?>" class="flex items-center gap-2">
+                        <?php echo dynamicFormHiddenInputs('download_list', $dlCatId > 0 ? ['cat' => (int) $dlCatId] : []); ?>
+                        <?php if (!$downloadUsesDynamicRoute && $dlCatId > 0): ?>
                         <input type="hidden" name="cat" value="<?php echo $dlCatId; ?>">
                         <?php endif; ?>
                         <div class="relative">
@@ -30,7 +36,7 @@ $hasDlSidebar = !empty($rightSidebarChannels) || !empty($rightSidebarItems);
                             </button>
                         </div>
                         <?php if ($keyword !== ''): ?>
-                        <a href="<?php echo channelUrl($channel); ?><?php echo $dlCatId > 0 ? '?cat=' . $dlCatId : ''; ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
+                        <a href="<?php echo e($downloadClearUrl); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
@@ -107,6 +113,20 @@ $hasDlSidebar = !empty($rightSidebarChannels) || !empty($rightSidebarItems);
                         </tbody>
                     </table>
                 </div>
+                <?php
+                $totalPages = (int) ceil($total / $perPage);
+                $pageUrl = static function (int $number) use ($channel, $keyword, $dlCatId): string {
+                    $params = [];
+                    if ($keyword !== '') $params['keyword'] = $keyword;
+                    if ($dlCatId > 0) $params['cat'] = $dlCatId;
+                    if (isDynamicUrlMode()) {
+                        return dynamicUrl('list', array_merge($params, ['id' => (int) $channel['id'], 'page' => $number]));
+                    }
+                    $params['page'] = $number;
+                    return channelUrl($channel) . '?' . http_build_query($params);
+                };
+                require theme_path('partials/pagination.php');
+                ?>
                 <?php else: ?>
                 <div class="text-center py-16 text-gray-500 bg-white rounded-lg">
                     <?php echo __('no_content'); ?>

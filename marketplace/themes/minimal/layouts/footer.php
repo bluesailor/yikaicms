@@ -1,9 +1,7 @@
     </main>
 
 <?php
-// 页脚设置
-$footerBgColor = config('footer_bg_color', '#1f2937');
-$footerTextColor = config('footer_text_color', '#9ca3af');
+// 与 Blox 起步页脚使用相同的动态元素，站点资料和语言切换保持一致。
 ?>
 
     <?php do_action('ik_footer_before'); ?>
@@ -13,26 +11,20 @@ $footerTextColor = config('footer_text_color', '#9ca3af');
     <?php if ($ykBloxFooter !== ''): ?>
     <?php echo $ykBloxFooter; // Blox 页脚接管；未发布时保留主题原生页脚 ?>
     <?php else: ?>
-    <footer class="mt-auto border-t border-gray-200 bg-white">
-        <div class="container mx-auto px-6 lg:px-8 py-8">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
-                <div>
-                    &copy; <?php echo date('Y'); ?> <?php echo e(configRawLang('site_name', 'Yikai CMS')); ?>
+    <footer class="minimal-footer" data-testid="minimal-theme-footer">
+        <div class="minimal-footer-inner">
+            <div class="minimal-footer-main">
+                <div class="minimal-footer-brand">
+                    <?php echo (new LogoElement())->render(['display' => 'image', 'height' => 'sm', 'tone' => 'dark', 'link_home' => true]); ?>
+                    <?php echo (new TextElement())->render(['site_field' => 'site_description']); ?>
                 </div>
-                <div class="flex items-center gap-6">
-                    <?php if (siteLang() === 'zh-CN'): ?>
-                        <?php if ($icp = config('site_icp')): ?>
-                        <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-gray-600 transition">
-                            <?php echo e($icp); ?>
-                        </a>
-                        <?php endif; ?>
-                        <?php if ($police = config('site_police')): ?>
-                        <a href="http://www.beian.gov.cn/" target="_blank" rel="nofollow" class="hover:text-gray-600 transition">
-                            <?php echo e($police); ?>
-                        </a>
-                        <?php endif; ?>
-                    <?php endif; ?>
+                <div class="minimal-footer-directory">
+                    <?php echo (new NavElement())->render(['menu_group' => 0, 'nav_only' => true, 'dropdown' => false, 'wrap_class' => 'minimal-footer-nav']); ?>
+                    <?php echo (new SiteContactElement())->render(['show_phone' => true, 'show_email' => true, 'show_address' => false, 'show_hours' => false, 'show_icons' => false, 'layout' => 'inline', 'tone' => 'dark']); ?>
                 </div>
+            </div>
+            <div class="minimal-footer-legal">
+                <?php echo (new SiteCopyrightElement())->render(['show_icp' => true, 'show_police' => true, 'align' => 'left', 'tone' => 'dark']); ?>
             </div>
         </div>
     </footer>

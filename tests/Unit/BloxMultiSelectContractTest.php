@@ -125,6 +125,42 @@ final class BloxMultiSelectContractTest extends TestCase
         }
     }
 
+    public function testBatchPropertyEditorUsesPureRegisteredModuleAndOneCommand(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+        $module = $this->source('assets/js/blox-multi-properties.js');
+        $policy = json_decode($this->source('config/blox-assets.json'), true, 512, JSON_THROW_ON_ERROR);
+
+        self::assertStringContainsString('assets/js/blox-multi-properties.js', $editor);
+        self::assertContains('assets/js/blox-multi-properties.js', $policy['core']);
+        self::assertStringContainsString('global.YikaiBloxBatchProperties', $module);
+        self::assertStringContainsString('module.exports', $module);
+        self::assertSame(2, substr_count($module, 'runCommand("batch-set-style"'), '控件与间距各一个命令入口');
+        foreach (['document.', 'fetch(', 'localStorage', 'postMessage'] as $forbidden) {
+            self::assertStringNotContainsString($forbidden, $module, "批量属性模块不得包含 {$forbidden}");
+        }
+        foreach (['blox-batch-style-panel', 'blox-batch-style-', 'blox-batch-spacing-'] as $testId) {
+            self::assertStringContainsString($testId, $workspace);
+        }
+    }
+
+    public function testBatchPropertyLangKeysExistInAllThreeLanguages(): void
+    {
+        $keys = [
+            'blox_batch_style_title', 'blox_batch_style_mixed', 'blox_batch_style_same_type_required',
+            'blox_batch_style_sections_unsupported', 'blox_batch_style_empty', 'blox_batch_style_done',
+            'blox_batch_current_device', 'blox_batch_spacing_hint',
+        ];
+        foreach ($keys as $key) {
+            foreach (['zh-CN', 'en', 'ja'] as $lang) {
+                $table = require ROOT_PATH . "/lang/{$lang}.php";
+                self::assertArrayHasKey($key, $table, "{$lang} 缺少 {$key}");
+                self::assertNotSame('', trim((string) $table[$key]), "{$lang} 的 {$key} 不能为空");
+            }
+        }
+    }
+
     private function source(string $path): string
     {
         $file = ROOT_PATH . '/' . $path;

@@ -200,7 +200,7 @@ if ($_i18nReady) {
     echo renderAdminLangSwitcher($_viewLang, __('fd_lang_hint'));
 } else {
     echo '<div class="bg-amber-50 border border-amber-300 text-amber-800 rounded-lg px-4 py-3 mb-4 text-sm">'
-       . str_replace(':link', '<a href="/admin/upgrade.php" class="underline">' . e(__('admin_system_upgrade')) . '</a>', e(__('fd_i18n_not_ready')))
+       . str_replace(':link', '<a href="/admin/upgrade.php?tab=check" class="underline">' . e(__('admin_system_upgrade')) . '</a>', e(__('fd_i18n_not_ready')))
        . '</div>';
 }
 ?>

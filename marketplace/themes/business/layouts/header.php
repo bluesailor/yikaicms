@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 $siteName = configRawLang('site_name', 'Yikai CMS');
 $siteLogo = SiteAsset::availableUrl((string) configRawLang('site_logo', ''));
+$siteLogoMaxHeight = max(32, min(64, (int) (config('site_logo_max_height', '48') ?: 48)));
 $siteKeywords = config('site_keywords', '');
 $siteDescription = config('site_description', '');
 $primaryColor = config('primary_color', '#3B6CF5');
@@ -15,7 +16,10 @@ if (empty($pageTitle) && !empty($seoTitle)) {
 }
 
 $siteUrl = siteBaseUrl();
-$canonicalUrl = $canonicalUrl ?? ($siteUrl . ($_SERVER['REQUEST_URI'] ?? '/'));
+$__ykCanonicalPath = trim((string) ($_SERVER['YK_CANONICAL_PATH'] ?? ''));
+$canonicalUrl = $canonicalUrl ?? ($siteUrl . ($__ykCanonicalPath !== ''
+    ? $__ykCanonicalPath
+    : ($_SERVER['REQUEST_URI'] ?? '/')));
 $ogImage = SiteAsset::availableUrl((string) (config('seo_og_image', '') ?: $siteLogo));
 if ($ogImage && !str_starts_with($ogImage, 'http')) $ogImage = $siteUrl . $ogImage;
 
@@ -95,13 +99,17 @@ function getChannelUrl(array $channel): string {
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
     <!-- Navigation bar -->
+    <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
+    <?php if ($ykBloxHeader !== ''): ?>
+    <?php echo $ykBloxHeader; // Blox 页眉接管；未发布时保留主题原生页眉 ?>
+    <?php else: ?>
     <header id="siteHeader" class="nav-solid shadow-lg transition-all duration-300"<?php echo !empty($isHomePage) ? ' data-business-home-header' : ''; ?>>
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16 md:h-20">
                 <!-- Logo -->
                 <a href="/" class="flex items-center gap-2">
                     <?php if ($siteLogo): ?>
-                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="h-10 md:h-12">
+                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="w-auto" style="height:<?php echo $siteLogoMaxHeight; ?>px;max-height:64px;">
                     <?php else: ?>
                     <span class="text-xl font-bold"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
@@ -166,6 +174,7 @@ function getChannelUrl(array $channel): string {
             </div>
         </nav>
     </header>
+    <?php endif; ?>
 
     <?php do_action('ik_header_after'); ?>
 

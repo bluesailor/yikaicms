@@ -26,7 +26,7 @@ $buttonClass = $textLight
 <section class="py-28 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?> px-6 lg:px-8">
-        <div class="max-w-3xl" data-animate="fade-up">
+        <div class="max-w-3xl mx-auto text-center" data-animate="fade-up" data-minimal-cta-content>
             <div class="text-xs <?php echo $eyebrowClass; ?> font-mono tracking-widest uppercase mb-4">
                 — <?php echo 'Get in touch'; ?>
             </div>
@@ -34,7 +34,7 @@ $buttonClass = $textLight
                 <?php echo e($ctaTitle); ?>
             </h2>
             <?php echo homeTitleDeco($textLight, '', ''); ?>
-            <p<?php echo $_homeFieldAttr('override_description'); ?> class="mt-8 <?php echo $descriptionClass; ?> text-base leading-relaxed max-w-xl">
+            <p<?php echo $_homeFieldAttr('override_description'); ?> class="mt-8 <?php echo $descriptionClass; ?> text-base leading-relaxed max-w-xl mx-auto">
                 <?php echo e($ctaDesc); ?>
             </p>
             <a<?php echo $_homeFieldAttr('override_button_text'); ?> href="<?php echo e($ctaLink); ?>"

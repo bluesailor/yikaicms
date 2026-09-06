@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "contract": "HomeBannerItemElement responsive media",
+  "themes": {
+    "default": {
+      "mode": "native",
+      "renderer": "responsiveLinkedMediaHtml",
+      "template": "themes/default/blocks/banner.php"
+    },
+    "aurora": {
+      "mode": "native",
+      "renderer": "responsiveMediaHtml",
+      "version": "1.0.4",
+      "template": "marketplace/themes/aurora/blocks/banner.php"
+    },
+    "business": {
+      "mode": "native",
+      "renderer": "responsiveLinkedMediaHtml",
+      "version": "1.0.13",
+      "template": "marketplace/themes/business/blocks/banner.php"
+    },
+    "minimal": {
+      "mode": "native",
+      "renderer": "responsiveLinkedMediaHtml",
+      "version": "1.0.12",
+      "template": "marketplace/themes/minimal/blocks/banner.php"
+    },
+    "trade": {
+      "mode": "native",
+      "renderer": "responsiveLinkedMediaHtml",
+      "version": "1.0.3",
+      "template": "marketplace/themes/trade/blocks/banner.php"
+    }
+  }
+}

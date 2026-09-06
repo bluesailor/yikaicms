@@ -25,6 +25,7 @@ $_defaultLang = $_lang['default'];
 $_viewLang    = $_lang['view'];
 $_enabledList = $_lang['enabled'];
 $_langLabels  = availableLanguages();
+$paginationLang = $_viewLang;
 
 // 获取视图语言下的 news 栏目。
 // 注意：翻译流程会给 slug 加 -{lang} 后缀（news → news-ja），不能按 slug 直查。
@@ -141,7 +142,7 @@ $channelId = getInt('channel_id');
 $status = get('status', '');
 $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
-$perPage = 20;
+$perPage = adminListPageSize('article', $page);
 
 $offset = ($page - 1) * $perPage;
 
@@ -209,6 +210,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 筛选栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
     <form method="get" class="p-4 flex flex-wrap items-center gap-4">
+            <?php echo renderAdminPageSize($perPage); ?>
         <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
         <select name="channel_id" class="border rounded px-3 py-2 text-sm">
             <option value=""><?php echo __('admin_all'); ?></option>
@@ -368,7 +370,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php
             $totalPages = (int)ceil($total / $perPage);
             $qstr = http_build_query(array_filter(
-                ['channel_id' => $channelId, 'status' => $status, 'keyword' => $keyword, 'lang' => $_viewLang],
+                [
+                    'channel_id' => $channelId,
+                    'status' => $status,
+                    'keyword' => $keyword,
+                    'lang' => $paginationLang,
+                    'per_page' => $perPage,
+                ],
                 static fn(mixed $value): bool => $value !== '' && $value !== null
             ));
             ?>

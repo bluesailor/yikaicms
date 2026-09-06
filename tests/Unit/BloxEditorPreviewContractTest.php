@@ -840,6 +840,8 @@ final class BloxEditorPreviewContractTest extends TestCase
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
         $overlays = $this->source('admin/blox_editor/partials/overlays.php');
         $preview = $this->source('includes/builder/BloxCanvasPreview.php');
+        $templatesAdmin = $this->source('admin/blox_templates.php');
+        $languageAreas = $this->source('admin/blox_templates/partials/language-areas.php');
 
         foreach ([
             'BloxAreaTemplatePresets::editorCatalog($templateType)',
@@ -908,6 +910,10 @@ final class BloxEditorPreviewContractTest extends TestCase
             $this->assertStringContainsString($token, $api, "header copy API token {$token} missing");
         }
         $this->assertStringContainsString("if (\$templateArea === 'footer' && !\$areaOnly)", $preview);
+        $this->assertStringContainsString('BloxAreaTemplatePresets::displayName($resolveHit)', $preview);
+        $this->assertStringContainsString('BloxAreaTemplatePresets::displayName($resolved)', $templatesAdmin);
+        $this->assertStringContainsString('BloxAreaTemplatePresets::displayName($matchedTemplate)', $templatesAdmin);
+        $this->assertStringContainsString('BloxAreaTemplatePresets::displayName($candidate ?? [])', $languageAreas);
         $this->assertStringContainsString('$contextHeader = renderBloxCanvasThemeArea(', $preview);
         $this->assertStringContainsString("\$contextHeader . \$contextBody . '</div>'", $preview);
         $this->assertStringContainsString('$body = $editableArea;', $preview);

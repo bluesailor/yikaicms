@@ -92,12 +92,12 @@ unset($_heroChannelBackup);
         <div class="flex flex-wrap items-center justify-between gap-4 py-4">
             <?php if (!empty($categories)): ?>
             <div class="flex flex-wrap gap-3">
-                <a href="/news.html"
+                <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('news') : '/news.html'); ?>"
                    class="px-4 py-2 rounded-full text-sm <?php echo !$category && $keyword === '' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
                     <?php echo __('all'); ?>
                 </a>
                 <?php foreach ($categories as $cat): ?>
-                <a href="/news/<?php echo e($cat['slug']); ?>.html"
+                <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('news', ['cat' => $cat['slug']]) : '/news/' . e($cat['slug']) . '.html'); ?>"
                    class="px-4 py-2 rounded-full text-sm <?php echo (int) ($category['id'] ?? 0) === (int) $cat['id'] ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
                     <?php echo e($cat['name']); ?>
                 </a>
@@ -106,7 +106,8 @@ unset($_heroChannelBackup);
             <?php else: ?>
             <div></div>
             <?php endif; ?>
-            <form method="get" action="<?php echo $category ? '/news/' . e($category['slug']) . '.html' : '/news.html'; ?>" class="flex items-center gap-2">
+            <form method="get" action="<?php echo e(dynamicFormAction($category ? '/news/' . $category['slug'] . '.html' : '/news.html')); ?>" class="flex items-center gap-2">
+                <?php echo dynamicFormHiddenInputs('news', $category ? ['cat' => $category['slug']] : []); ?>
                 <div class="relative">
                     <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                            placeholder="<?php echo __('news_search_placeholder'); ?>"
@@ -118,7 +119,7 @@ unset($_heroChannelBackup);
                     </button>
                 </div>
                 <?php if ($keyword !== ''): ?>
-                <a href="<?php echo $category ? '/news/' . e($category['slug']) . '.html' : '/news.html'; ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
+                <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('news', $category ? ['cat' => $category['slug']] : []) : ($category ? '/news/' . e($category['slug']) . '.html' : '/news.html')); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -151,6 +152,12 @@ unset($_heroChannelBackup);
         <?php
         $totalPages = (int)ceil($total / $perPage);
         $pageUrl = function(int $p) use ($category, $keyword): string {
+            if (isDynamicUrlMode()) {
+                $params = $category ? ['cat' => (string) $category['slug']] : [];
+                if ($keyword !== '') $params['keyword'] = $keyword;
+                if ($p > 1) $params['page'] = $p;
+                return dynamicUrl('news', $params);
+            }
             $base = $category ? '/news/' . $category['slug'] : '/news';
             $keywordParam = $keyword !== '' ? '?keyword=' . urlencode($keyword) : '';
             if ($p === 1) {

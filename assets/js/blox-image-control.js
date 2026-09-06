@@ -5,6 +5,26 @@
         container: { key: "container_bg_image", prefix: "container_bg_" },
         column: { key: "card_bg_image", prefix: "card_bg_" },
     };
+    function hasBackgroundValue(value) {
+        return value !== null && value !== undefined && String(value).trim() !== "";
+    }
+    function collectBackgroundTarget(result, target, paintKeys, cleanupKeys) {
+        if (!target || typeof target !== "object") return;
+        var active = paintKeys.filter(function (key) { return hasBackgroundValue(target[key]); });
+        if (active.length) result.push({ target: target, keys: active.concat(cleanupKeys || []) });
+    }
+    function collectElementBackgrounds(result, element) {
+        if (!element || typeof element !== "object") return;
+        var data = element.data;
+        collectBackgroundTarget(
+            result,
+            data,
+            ["bg_color", "bg_image", "bg_gradient", "bg_video"],
+            ["bg_overlay", "bg_overlay_color", "bg_overlay_opacity"]
+        );
+        var children = data && Array.isArray(data.children) ? data.children : [];
+        children.forEach(function (child) { collectElementBackgrounds(result, child); });
+    }
     var methods = {
         imageControlTarget(scope) {
             if (scope === "element") return this.selEl && this.selEl.data;
@@ -74,6 +94,51 @@
         pickContainerBackgroundImage() { this.pickImageControl("container", "container_bg_image"); },
         setColumnBackgroundImage(url) { this.setImageControl("column", "card_bg_image", url); },
         pickColumnBackgroundImage() { this.pickImageControl("column", "card_bg_image"); },
+        sectionBackgroundVideoObstructions() {
+            var section = this.sel;
+            if (!section || !section.settings || !hasBackgroundValue(section.settings.bg_video)) return [];
+            var result = [];
+            collectBackgroundTarget(
+                result,
+                section.settings,
+                ["container_bg", "container_bg_image"],
+                ["container_bg_overlay_color", "container_bg_overlay_opacity"]
+            );
+            (Array.isArray(section.columns) ? section.columns : []).forEach(function (column) {
+                collectBackgroundTarget(
+                    result,
+                    column,
+                    ["card_bg", "card_bg_image"],
+                    ["card_bg_overlay_color", "card_bg_overlay_opacity"]
+                );
+                (Array.isArray(column.elements) ? column.elements : []).forEach(function (element) {
+                    collectElementBackgrounds(result, element);
+                });
+            });
+            return result;
+        },
+        sectionBackgroundVideoObstructionCount() {
+            return this.sectionBackgroundVideoObstructions().length;
+        },
+        clearSectionBackgroundVideoObstructions() {
+            var obstructions = this.sectionBackgroundVideoObstructions();
+            if (!obstructions.length) return 0;
+            this.flushHistory(true);
+            this.runCommand("clear-section-video-obstructions", function () {
+                obstructions.forEach(function (entry) {
+                    entry.keys.forEach(function (key) {
+                        if (Object.prototype.hasOwnProperty.call(entry.target, key)) {
+                            entry.target[key] = key.endsWith("_opacity") ? 0 : "";
+                        }
+                    });
+                });
+            });
+            this.flushHistory(true);
+            if (this.toast && this.backgroundVideoObstructionText) {
+                this.toast(this.backgroundVideoObstructionText.cleared.replace(":count", String(obstructions.length)));
+            }
+            return obstructions.length;
+        },
     };
     var api = { methods: methods };
     if (typeof module !== "undefined" && module.exports) module.exports = api;

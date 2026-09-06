@@ -75,8 +75,8 @@ final class BloxAreaTemplatePresets
             'file' => 'minimal-site-footer.json',
             'name_key' => 'blox_area_preset_minimal_footer_name',
             'description_key' => 'blox_area_preset_minimal_footer_desc',
-            'preview' => 'footer-compact',
-            'feature_keys' => ['blox_footer_feature_light', 'blox_footer_feature_compact', 'blox_footer_feature_legal'],
+            'preview' => 'footer-columns',
+            'feature_keys' => ['blox_footer_feature_light', 'blox_footer_feature_navigation', 'blox_footer_feature_legal'],
         ],
         'corporate-site-footer' => [
             'type' => 'footer',
@@ -133,6 +133,28 @@ final class BloxAreaTemplatePresets
             ];
         }
         return $items;
+    }
+
+    /**
+     * 返回内置区域模板的当前语言显示名称；用户自建/远程模板保留原名。
+     *
+     * 数据库中的内置模板名称是导入包的稳定英文标识，不能直接当作界面文案。
+     * 只按 source + source_ref + type 命中，避免误翻译用户恰好使用相同 source_ref 的模板。
+     *
+     * @param array<string,mixed> $template
+     */
+    public static function displayName(array $template): string
+    {
+        $fallback = trim((string) ($template['name'] ?? ''));
+        $slug = trim((string) ($template['source_ref'] ?? ''));
+        $preset = self::PRESETS[$slug] ?? null;
+        if (($template['source'] ?? '') !== 'builtin'
+            || !is_array($preset)
+            || (string) ($preset['type'] ?? '') !== (string) ($template['type'] ?? '')) {
+            return $fallback;
+        }
+
+        return __((string) $preset['name_key']);
     }
 
     /**

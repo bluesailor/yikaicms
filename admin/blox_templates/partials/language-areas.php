@@ -87,11 +87,11 @@ if ($selectedLanguageAreaRow === null || $defaultLanguageAreaRow === null) {
                         </span>
                     </div>
                     <p class="mt-1 truncate text-sm text-gray-700" data-testid="blox-language-area-template">
-                        <?php echo e((string) ($candidate['name'] ?? __('blox_current_theme_fallback', ['theme' => $currentTheme]))); ?>
+                        <?php echo e(BloxAreaTemplatePresets::displayName($candidate ?? []) ?: __('blox_current_theme_fallback', ['theme' => $currentTheme])); ?>
                     </p>
                     <p class="mt-1 text-xs leading-5 text-gray-500">
                         <?php if ($draft !== null && $mode !== 'independent'): ?>
-                            <?php echo e(__('blox_language_area_draft_hint', ['name' => (string) $draft['name']])); ?>
+                            <?php echo e(__('blox_language_area_draft_hint', ['name' => BloxAreaTemplatePresets::displayName($draft)])); ?>
                         <?php elseif ($mode === 'inherit'): ?>
                             <?php echo e(__('blox_language_area_inherit_hint', ['language' => (string) $defaultLanguageAreaRow['label']])); ?>
                         <?php elseif ($mode === 'advanced'): ?>

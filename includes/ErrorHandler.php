@@ -175,7 +175,7 @@ final class ErrorHandler
             : '服务器内部错误，详情已记录到错误日志（后台 → 系统信息 → 错误日志）';
 
         if (PHP_SAPI === 'cli') {
-            fwrite(STDERR, "[YikaiCMS] $detail\n");
+            file_put_contents('php://stderr', "[YikaiCMS] $detail\n");
             if ($exit) {
                 exit(1);
             }
