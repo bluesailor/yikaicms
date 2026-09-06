@@ -118,7 +118,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     }
     $download = ThemeMarket::downloadPackageToFile((string) $item['download_url'], $tmpZip);
     if (!$download['ok']) {
-        @unlink($tmpZip);
+        if (is_file($tmpZip)) {
+            @unlink($tmpZip);
+        }
         $downloadMessage = $download['code'] === 'too_large'
             ? __('theme_err_download_too_large')
             : __('theme_err_download');
@@ -130,7 +132,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     $expected = strtolower((string) preg_replace('/^sha256:/', '', $item['hash']));
     $actual = strtolower((string) hash_file('sha256', $tmpZip));
     if (!hash_equals($expected, $actual)) {
-        @unlink($tmpZip);
+        if (is_file($tmpZip)) {
+            @unlink($tmpZip);
+        }
         echo json_encode(['code' => 1, 'msg' => __('theme_err_hash')]);
         exit;
     }
@@ -144,14 +148,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
         (string) ($item['sig'] ?? ''),
         license_pubkey()
     )) {
-        @unlink($tmpZip);
+        if (is_file($tmpZip)) {
+            @unlink($tmpZip);
+        }
         echo json_encode(['code' => 1, 'msg' => __('theme_err_sig')]);
         exit;
     }
 
     $installer = new ThemeInstaller(ROOT_PATH . '/themes', ROOT_PATH . '/storage');
     $installResult = $installer->install($tmpZip, $slug, $remoteVersion);
-    @unlink($tmpZip);
+    if (is_file($tmpZip)) {
+        @unlink($tmpZip);
+    }
     $msg = themeInstallMessage($installResult);
     if ($installResult['ok']) {
         adminLog('theme', 'market_install', 'Theme marketplace install: ' . $installResult['slug'] . ' v' . ($item['version'] ?? ''));
