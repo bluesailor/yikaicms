@@ -31,6 +31,7 @@ final class LogoElementOverrideTest extends TestCase
     public function testDefaultFollowsSiteLogoWithPresetHeight(): void
     {
         $out = $this->renderLogo(['display' => 'image']);
+        $this->assertStringContainsString('<div class="shrink-0">', $out);
         $this->assertStringContainsString('src="/images/logo.png"', $out);
         $this->assertStringContainsString('class="h-10 w-auto"', $out);
     }
