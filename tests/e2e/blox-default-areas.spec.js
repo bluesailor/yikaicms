@@ -42,9 +42,11 @@ async function installAndPublish(page, template) {
 async function unpublishAreas(page) {
   await page.goto('/admin/blox_templates.php', { waitUntil: 'domcontentloaded' });
   for (const template of AREA_TEMPLATES) {
-    const rows = page.locator('tbody tr').filter({ hasText: template.name });
-    if (!await rows.first().isVisible().catch(() => false)) continue;
-    const form = rows.locator('form:has(input[name="action"][value="unpublish"])').first();
+    const rows = page.locator('tbody tr[data-template-source="builtin"]');
+    const matchingRows = rows.filter({
+      has: page.locator(`input[name="action"][value="unpublish"]`),
+    });
+    const form = matchingRows.locator('form:has(input[name="action"][value="unpublish"])').first();
     if (await form.count()) await submit(page, form);
   }
 }
