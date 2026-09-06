@@ -229,7 +229,7 @@ final class BloxAreaDocumentTest extends TestCase
                 'search',
                 'footer-columns',
                 'footer-columns-dark',
-                'footer-compact',
+                'footer-columns',
                 'footer-columns-dark',
                 'footer-compact',
                 'footer-contact',

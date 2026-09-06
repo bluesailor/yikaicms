@@ -75,8 +75,8 @@ final class BloxAreaTemplatePresets
             'file' => 'minimal-site-footer.json',
             'name_key' => 'blox_area_preset_minimal_footer_name',
             'description_key' => 'blox_area_preset_minimal_footer_desc',
-            'preview' => 'footer-compact',
-            'feature_keys' => ['blox_footer_feature_light', 'blox_footer_feature_compact', 'blox_footer_feature_legal'],
+            'preview' => 'footer-columns',
+            'feature_keys' => ['blox_footer_feature_light', 'blox_footer_feature_navigation', 'blox_footer_feature_legal'],
         ],
         'corporate-site-footer' => [
             'type' => 'footer',
