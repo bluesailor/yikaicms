@@ -6,6 +6,8 @@
     }
 
     function groupFor(key, node) {
+        if (key.startsWith("banner_layout_mobile_")) return "mobile";
+        if (key.startsWith("banner_layout_desktop_")) return "layout";
         if (node && node.type === "home-banner-item") {
             if (["image_mobile", "video_mobile_mode"].includes(key)) return "mobile";
             if (["content_motion", "background_motion"].includes(key)) return "motion";

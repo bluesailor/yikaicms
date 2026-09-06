@@ -4,6 +4,17 @@ const panel = require('../../assets/js/blox-banner-panel');
 const banner = { type: 'home-block', data: { block_type: 'banner' } };
 const controls = ['banner_height_mode', 'banner_mobile_mode', 'banner_autoplay', 'banner_speed', 'label'].map(key => ({ key }));
 
+test('layout controls have a reachable group for both the banner and each slide', () => {
+    const fields = ['desktop', 'mobile'].flatMap(device =>
+        ['enabled', 'position', 'x', 'y', 'width', 'align', 'buttons', 'gap']
+            .map(key => ({ key: `banner_layout_${device}_${key}` })));
+    for (const element of [banner, { type: 'home-banner-item', data: {} }]) {
+        assert.deepEqual(panel.controls(element, fields, 'layout', false), fields.slice(0, 8));
+        assert.deepEqual(panel.controls(element, fields, 'mobile', false), fields.slice(8));
+        assert.equal(panel.controls(element, fields, 'common', true), fields);
+    }
+});
+
 test('banner groups partition controls without changing data or order', () => {
     const original = JSON.stringify(controls);
     assert.deepEqual(panel.controls(banner, controls, 'common', false).map(c => c.key), ['banner_height_mode', 'label']);
