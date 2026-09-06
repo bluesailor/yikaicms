@@ -26,6 +26,8 @@ const reportDir = process.env.BLOX_E2E_REPORT_DIR
   || path.join(sourceRoot, 'playwright-report', runId);
 const serverLogPath = process.env.BLOX_E2E_SERVER_LOG
   || path.join(outputDir, 'php-server.log');
+const expectTests = process.env.BLOX_E2E_EXPECT_TESTS === '1';
+const jsonReportPath = path.join(outputDir, 'phase-results.json');
 let server = null;
 let fixtureServer = null;
 let playwright = null;
@@ -185,8 +187,9 @@ async function main() {
       BLOX_E2E_REPORT_DIR: reportDir,
       SMOKE_BLOX_ADVANCED: freeMode ? '0' : (process.env.SMOKE_BLOX_ADVANCED || '1'),
       BLOX_E2E_SITE_LANG: smokeLang,
+      ...(expectTests ? { BLOX_E2E_JSON_REPORT: jsonReportPath } : {}),
     };
-    if (process.env.BLOX_E2E_EXPECT_TESTS === '1') {
+    if (expectTests) {
       const listing = spawnSync(process.execPath, [playwrightCli, 'test', ...playwrightArgs, '--list'], {
         cwd: root,
         env: playwrightEnv,
@@ -211,6 +214,26 @@ async function main() {
       playwright.once('error', reject);
       playwright.once('exit', (code) => resolve(code === null ? 1 : code));
     });
+    if (exitCode === 0 && expectTests) {
+      // --list 只证明「选中了用例」。运行期全部 test.skip() 的 phase 同样退出 0，
+      // 于是缺 env 或缺夹具会让整个 phase 空转成绿。浏览器门禁必须要求真的跑通过用例。
+      let executed = -1;
+      try {
+        const report = JSON.parse(fs.readFileSync(jsonReportPath, 'utf8'));
+        executed = Number(report && report.stats && report.stats.expected) || 0;
+      } catch (error) {
+        console.error(`Cannot read browser phase result report: ${jsonReportPath}`);
+      }
+      if (executed < 1) {
+        console.error(executed < 0
+          ? 'Browser phase produced no result report; refusing to count it as a pass.'
+          : 'Browser phase executed 0 tests — every selected test was skipped at runtime.');
+        console.error('A phase that runs nothing is not a passing phase; check its runtime skip conditions.');
+        exitCode = 1;
+      } else {
+        console.log(`Browser phase executed: ${executed} test(s)`);
+      }
+    }
     if (exitCode !== 0 && serverLog) {
       console.error('\n=== PHP development server (last 20 KB) ===\n' + serverLog);
     }

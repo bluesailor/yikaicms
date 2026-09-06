@@ -20,9 +20,20 @@ function shardsForPath(input, root = path.resolve(__dirname, '..')) {
     return new Set([shardForSpec(file)]);
   }
 
+  // 截图基线属于它自己的 spec：tests/e2e/<name>.spec.js-snapshots/...
+  const snapshot = file.match(/^tests\/e2e\/([^/]+\.spec\.js)-snapshots\//i);
+  if (snapshot) return new Set([shardForSpec(snapshot[1])]);
+
   // Runner, fixture, browser config, CSS and installation changes invalidate
   // every browser lane because they change the disposable site or its runtime.
-  if (/^(?:\.github\/workflows\/ci\.yml|\.github\/scripts\/(?:inject-blox|install-playwright-chromium)\.sh|playwright\.config\.js|package(?:-lock)?\.json|tests\/e2e\/(?:helpers|global-setup|isolated-site|router|run-local|run-shard|shards|validate-shards)\.js|tests\/smoke\/(?:setup|fixtures)\.php|tools\/ci-e2e-plan\.js)$/i.test(file)) {
+  if (/^(?:\.github\/workflows\/ci\.yml|\.github\/scripts\/(?:inject-blox|install-playwright-chromium)\.sh|playwright\.config\.js|package(?:-lock)?\.json|tests\/smoke\/(?:setup|fixtures)\.php|tools\/ci-e2e-plan\.js)$/i.test(file)) {
+    return new Set(ALL);
+  }
+  // 其余 tests/e2e 文件都是支撑件：runner、helper、夹具、假站点页面，以及
+  // router.php —— 它是每个分片一次性站点的前端控制器。按「谁 require 了它」
+  // 反查归属太脆（R7 漏了 banner-helpers.js 和 router.php），一律跑全矩阵：
+  // 宁可多跑一遍，也不要让真正受影响的分片在 PR 上根本不启动。
+  if (/^tests\/e2e\//i.test(file)) {
     return new Set(ALL);
   }
   if (/^(?:install\/sql\/|migrations\/|config\/blox-assets\.json|assets\/css\/)/i.test(file)

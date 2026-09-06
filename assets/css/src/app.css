@@ -428,7 +428,10 @@
 }
 .yk-blox-header[data-yk-normal-bg="1"] > section { background: transparent !important; }
 .yk-blox-header[data-yk-normal-border="1"] { border-bottom: 1px solid var(--yk-header-normal-border); }
-.yk-blox-header[data-yk-normal-text="1"] :is(a, button, [class*="text-"]) { color: var(--yk-header-normal-text) !important; }
+/* 页眉状态文字只染页眉自身的表面。下拉面板与移动抽屉是独立表面（见下方
+   --yk-header-surface-text），必须排除——否则覆盖态那条祖先更长的规则特异性
+   更高，会把白底面板里的链接一起染白（v1.19.8 R9 事故）。 */
+.yk-blox-header[data-yk-normal-text="1"] :is(a, button, [class*="text-"]):not(.yk-mega-panel, [data-yk-drawer-panel], .yk-mega-panel *, [data-yk-drawer-panel] *) { color: var(--yk-header-normal-text) !important; }
 
 html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck),
 .yk-blox-header.yk-header-preview-overlay {
@@ -442,8 +445,8 @@ html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk
 }
 html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck) > section,
 .yk-blox-header.yk-header-preview-overlay > section { background: transparent !important; }
-html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck) :is(a, button, [class*="text-"]),
-.yk-blox-header.yk-header-preview-overlay :is(a, button, [class*="text-"]) {
+html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck) :is(a, button, [class*="text-"]):not(.yk-mega-panel, [data-yk-drawer-panel], .yk-mega-panel *, [data-yk-drawer-panel] *),
+.yk-blox-header.yk-header-preview-overlay :is(a, button, [class*="text-"]):not(.yk-mega-panel, [data-yk-drawer-panel], .yk-mega-panel *, [data-yk-drawer-panel] *) {
     color: var(--yk-header-overlay-text, #fff) !important;
 }
 
@@ -462,8 +465,8 @@ html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
 }
 .yk-blox-header.yk-stuck > section,
 .yk-blox-header.yk-header-preview-stuck > section { background: transparent !important; }
-.yk-blox-header.yk-stuck :is(a, button, [class*="text-"]),
-.yk-blox-header.yk-header-preview-stuck :is(a, button, [class*="text-"]) {
+.yk-blox-header.yk-stuck :is(a, button, [class*="text-"]):not(.yk-mega-panel, [data-yk-drawer-panel], .yk-mega-panel *, [data-yk-drawer-panel] *),
+.yk-blox-header.yk-header-preview-stuck :is(a, button, [class*="text-"]):not(.yk-mega-panel, [data-yk-drawer-panel], .yk-mega-panel *, [data-yk-drawer-panel] *) {
     color: var(--yk-header-stuck-text, #111827) !important;
 }
 
@@ -472,7 +475,7 @@ html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
     --yk-header-surface-text: #374151;
     color: var(--yk-header-surface-text) !important;
 }
-.yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) :is(li, a, button, [class*="text-"]) {
+.yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) :is(li, a, button, [class*="text-"]):not([class~="bg-primary"]) {
     color: var(--yk-header-surface-text) !important;
 }
 

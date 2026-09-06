@@ -7,6 +7,8 @@ const storageState = process.env.BLOX_E2E_STORAGE_STATE
 const outputDir = process.env.BLOX_E2E_OUTPUT_DIR || 'test-results/e2e';
 const reportDir = process.env.BLOX_E2E_REPORT_DIR || 'playwright-report';
 const specFilter = String(process.env.BLOX_E2E_SPEC_FILTER || '').trim();
+// 分片 runner 用这份机器可读结果判断「这一 phase 真的跑过用例」——全跳过不算通过。
+const jsonReport = String(process.env.BLOX_E2E_JSON_REPORT || '').trim();
 const specFilterPattern = specFilter
   ? new RegExp(`(?:^|[\\\\/])${specFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)
   : undefined;
@@ -25,6 +27,7 @@ module.exports = defineConfig({
   reporter: [
     ['list'],
     ['html', { outputFolder: reportDir, open: 'never' }],
+    ...(jsonReport ? [['json', { outputFile: jsonReport }]] : []),
   ],
   // 截图基线按平台分套：CI(Linux) 与本地(Windows) 字体渲染有 1-2px 尺寸差，
   // 单套基线会让另一平台永远红。新平台首跑用 --update-snapshots 生成本套基线。
