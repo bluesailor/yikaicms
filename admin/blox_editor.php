@@ -242,7 +242,7 @@ if ($isHomeBlox) {
     }
     $page = [
         'id' => 0,
-        'name' => (string) $templateRow['name'],
+        'name' => BloxAreaTemplatePresets::displayName($templateRow),
         'slug' => '',
         'description' => '',
     ];

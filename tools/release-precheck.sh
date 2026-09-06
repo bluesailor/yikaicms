@@ -6,6 +6,7 @@
 #   bash tools/release-precheck.sh 1.7.0
 #   bash tools/release-precheck.sh 1.7.0 --candidate
 #   bash tools/release-precheck.sh 1.7.0 --candidate --baseline=v1.6.9
+#   bash tools/release-precheck.sh 1.7.0 --post-release
 #
 # 任一红灯（FAIL）退出码非 0；黄灯（WARN）只提醒不阻塞。
 # 设计目标：本地一行命令验证 release-process.md 全部硬性要求。
@@ -25,11 +26,14 @@ fi
 VERSION=""
 MODE="release"
 BASELINE="${YK_RELEASE_BASELINE:-}"
+REMOTE_NAME="${YK_RELEASE_REMOTE:-origin}"
 for arg in "$@"; do
     case "$arg" in
         --candidate) MODE="candidate" ;;
         --release) MODE="release" ;;
+        --post-release) MODE="post-release" ;;
         --baseline=*) BASELINE="${arg#--baseline=}" ;;
+        --remote=*) REMOTE_NAME="${arg#--remote=}" ;;
         -*)
             echo "${R}未知参数: $arg${X}"
             exit 2
@@ -44,7 +48,7 @@ for arg in "$@"; do
     esac
 done
 if [ -z "$VERSION" ]; then
-    echo "${R}用法: bash tools/release-precheck.sh <version> [--candidate] [--baseline=<git-ref>]${X}"
+    echo "${R}用法: bash tools/release-precheck.sh <version> [--candidate|--post-release] [--baseline=<git-ref>] [--remote=<name>]${X}"
     echo "示例: bash tools/release-precheck.sh 1.7.0"
     exit 2
 fi
@@ -53,6 +57,10 @@ fi
 VERSION="${VERSION#v}"
 if [ -n "$BASELINE" ] && ! [[ "$BASELINE" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]]; then
     echo "${R}无效的 schema 比较基线: $BASELINE${X}"
+    exit 2
+fi
+if ! [[ "$REMOTE_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]]; then
+    echo "${R}无效的 Git remote: $REMOTE_NAME${X}"
     exit 2
 fi
 
@@ -80,6 +88,8 @@ repo_git() {
 echo "${B}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${X}"
 if [ "$MODE" = "candidate" ]; then
     echo "${B}  Yikai CMS 候选版预检 — 目标版本: v${VERSION}${X}"
+elif [ "$MODE" = "post-release" ]; then
+    echo "${B}  Yikai CMS 发布后同步门禁 — 目标版本: v${VERSION}${X}"
 else
     echo "${B}  Yikai CMS 发版预检 — 目标版本: v${VERSION}${X}"
 fi
@@ -110,6 +120,69 @@ fail() { echo "  ${R}✗${X} $1"; FAIL=$((FAIL+1)); }
 warn() { echo "  ${Y}⚠${X} $1"; WARN=$((WARN+1)); }
 info() { echo "  ${D}·${X} $1"; }
 section() { echo; echo "${B}[$1]${X}"; }
+
+if [ "$MODE" = "post-release" ]; then
+    section "发布标签与 main 同步"
+    remote_url=$(repo_git config --get "remote.${REMOTE_NAME}.url" 2>/dev/null || true)
+    if [ -z "$remote_url" ]; then
+        fail "Git remote '$REMOTE_NAME' 不存在"
+    else
+        if repo_git ls-remote --exit-code "$REMOTE_NAME" "refs/tags/v${VERSION}" >/dev/null 2>&1 \
+            || repo_git ls-remote --exit-code "$REMOTE_NAME" "refs/tags/v${VERSION}^{}" >/dev/null 2>&1; then
+            pass "$REMOTE_NAME 已存在 v${VERSION} 标签"
+        else
+            fail "$REMOTE_NAME 缺少 v${VERSION} 标签"
+        fi
+        if repo_git fetch --quiet --no-tags "$REMOTE_NAME" \
+            "refs/heads/main:refs/remotes/${REMOTE_NAME}/main" \
+            "refs/tags/v${VERSION}:refs/tags/v${VERSION}"; then
+            pass "已读取远端 main 与 v${VERSION} 的提交对象"
+        else
+            fail "无法读取远端 main 或 v${VERSION}"
+        fi
+    fi
+
+    tag_ref="refs/tags/v${VERSION}"
+    main_ref="refs/remotes/${REMOTE_NAME}/main"
+    if repo_git rev-parse --verify "${tag_ref}^{commit}" >/dev/null 2>&1 \
+        && repo_git rev-parse --verify "${main_ref}^{commit}" >/dev/null 2>&1; then
+        tag_commit=$(repo_git rev-parse "${tag_ref}^{commit}")
+        main_commit=$(repo_git rev-parse "${main_ref}^{commit}")
+        if repo_git merge-base --is-ancestor "$tag_commit" "$main_ref"; then
+            pass "v${VERSION} 已合入远端 main（tag ${tag_commit:0:12} → main ${main_commit:0:12}）"
+        else
+            fail "v${VERSION} 尚未合入远端 main（tag ${tag_commit:0:12}，main ${main_commit:0:12}）"
+        fi
+
+        main_readme=$(repo_git show "${main_ref}:README.md" 2>/dev/null \
+            | head -1 | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1 || true)
+        if [ "$main_readme" = "$VERSION" ]; then
+            pass "远端 main README 版本 = v${VERSION}"
+        else
+            fail "远端 main README 版本 = '${main_readme:-未找到}'（期望 v${VERSION}）"
+        fi
+
+        main_config=$(repo_git show "${main_ref}:config/version.php" 2>/dev/null \
+            | grep -oE "CMS_VERSION',\s*'[0-9.]+'" \
+            | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1 || true)
+        if [ "$main_config" = "$VERSION" ]; then
+            pass "远端 main config/version.php = v${VERSION}"
+        else
+            fail "远端 main config/version.php = '${main_config:-未找到}'（期望 v${VERSION}）"
+        fi
+    else
+        fail "无法解析远端 v${VERSION} 或 main 提交，跳过祖先关系检查"
+    fi
+
+    echo
+    if [ "$FAIL" -eq 0 ]; then
+        echo "${G}✓ 发布后同步门禁通过：默认分支已跟上 v${VERSION}${X}"
+        exit 0
+    fi
+    echo "${R}✗ 发布后同步门禁未通过：$FAIL 个 FAIL${X}"
+    echo "${R}  先合并 release 分支到 main，再重新运行本检查。${X}"
+    exit 1
+fi
 
 # ─────────────────────────────────────────────────────────────
 section "1. 版本号一致性"

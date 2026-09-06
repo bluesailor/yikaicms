@@ -865,7 +865,7 @@ function confirmAreaPublish(form) {
                         <div class="mt-2 font-semibold text-gray-900"><?php echo e(__('blox_current_theme_fallback', ['theme' => $currentTheme])); ?></div>
                         <p class="mt-1 text-xs text-gray-500"><?php echo e(__($areaDisabledHintKey)); ?></p>
                         <?php elseif ($resolved): ?>
-                        <div class="mt-2 font-semibold text-gray-900"><?php echo e((string) $resolved['name']); ?> <span class="text-xs font-normal text-gray-400">#<?php echo (int) $resolved['id']; ?></span></div>
+                        <div class="mt-2 font-semibold text-gray-900"><?php echo e(BloxAreaTemplatePresets::displayName($resolved)); ?> <span class="text-xs font-normal text-gray-400">#<?php echo (int) $resolved['id']; ?></span></div>
                         <p class="mt-1 text-xs text-gray-500"><?php echo e(BloxAreaConditions::summary($resolved['conditions'] ?? null, $conditionEntities)); ?></p>
                         <?php else: ?>
                         <div class="mt-2 font-semibold text-gray-900"><?php echo e(__('blox_current_theme_fallback', ['theme' => $currentTheme])); ?></div>
@@ -885,7 +885,7 @@ function confirmAreaPublish(form) {
                     <?php elseif (!$resolved && $latestDraft): ?>
                     <div class="flex items-center gap-2 text-amber-700" data-testid="blox-current-area-draft">
                         <i class="ti ti-pencil"></i>
-                        <span><?php echo e(__('blox_current_draft_ready', ['name' => (string) $latestDraft['name'], 'count' => count($area['drafts'])])); ?></span>
+                        <span><?php echo e(__('blox_current_draft_ready', ['name' => BloxAreaTemplatePresets::displayName($latestDraft), 'count' => count($area['drafts'])])); ?></span>
                     </div>
                     <?php elseif (!$resolved): ?>
                     <div class="flex items-center gap-2 text-gray-500"><i class="ti ti-info-circle"></i><span><?php echo e(__('blox_current_no_draft')); ?></span></div>
@@ -968,7 +968,7 @@ function confirmAreaPublish(form) {
                             foreach ($overviewTypes as $areaType) {
                                 $matchedTemplate = $assignmentRow['areas'][$areaType]['template'] ?? null;
                                 if (is_array($matchedTemplate)) {
-                                    $searchParts[] = (string) ($matchedTemplate['name'] ?? '');
+                                    $searchParts[] = BloxAreaTemplatePresets::displayName($matchedTemplate);
                                 }
                             }
                             $searchText = strtolower(implode(' ', $searchParts));
@@ -1006,7 +1006,7 @@ function confirmAreaPublish(form) {
                                    class="inline-flex items-center gap-1 font-medium text-blue-700 hover:text-blue-900"
                                    data-testid="blox-assignment-template">
                                     <i class="ti <?php echo $areaType === 'header' ? 'ti-layout-navbar' : 'ti-layout-bottombar'; ?>"></i>
-                                    <span><?php echo e((string) ($matchedTemplate['name'] ?? '')); ?></span>
+                                    <span><?php echo e(BloxAreaTemplatePresets::displayName($matchedTemplate)); ?></span>
                                 </a>
                                 <?php if ($matchExplanation !== null): ?>
                                 <p class="mt-1 text-[10px] text-gray-500" data-testid="blox-assignment-source">
@@ -1292,7 +1292,7 @@ function confirmAreaPublish(form) {
                     ?>
                         <tr>
                             <td class="px-5 py-3">
-                                <div class="font-medium text-gray-900"><?php echo e((string) $template['name']); ?></div>
+                                <div class="font-medium text-gray-900"><?php echo e(BloxAreaTemplatePresets::displayName($template)); ?></div>
                                 <?php if ($isAreaTemplate): ?>
                                 <div class="mt-1 max-w-md text-xs text-gray-500" data-testid="blox-condition-summary">
                                     <i class="ti ti-target-arrow mr-1"></i><?php echo e($areaConditionSummaries[$templateId] ?? ''); ?>

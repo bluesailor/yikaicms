@@ -257,6 +257,28 @@ final class BloxAreaDocumentTest extends TestCase
         self::assertSame([], BloxAreaTemplatePresets::editorCatalog('popup'));
     }
 
+    public function testBuiltinAreaTemplateDisplayNameUsesLanguageKeyButCustomNameIsUntouched(): void
+    {
+        self::assertSame(
+            __('blox_area_preset_header_name'),
+            BloxAreaTemplatePresets::displayName([
+                'type' => 'header',
+                'name' => 'Clean Site Header',
+                'source' => 'builtin',
+                'source_ref' => 'clean-site-header',
+            ])
+        );
+        self::assertSame(
+            'Clean Site Header',
+            BloxAreaTemplatePresets::displayName([
+                'type' => 'header',
+                'name' => 'Clean Site Header',
+                'source' => 'user',
+                'source_ref' => 'clean-site-header',
+            ])
+        );
+    }
+
     public function testFooterEditorCatalogProvidesPracticalDynamicDocuments(): void
     {
         $catalog = BloxAreaTemplatePresets::editorCatalog('footer');
