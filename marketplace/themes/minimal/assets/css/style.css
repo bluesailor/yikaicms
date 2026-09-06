@@ -1,23 +1,14 @@
 /* Minimal Theme - Style Overrides */
 
-/* Native footer: brand first, a compact directory, then legal information. */
+/* Native footer: a quiet legal row; richer footers belong to Blox templates. */
 .minimal-footer { background: #fff; border-top: 1px solid var(--minimal-border); margin-top: auto; }
 .minimal-footer-inner { max-width: 1280px; margin-inline: auto; padding-inline: 24px; }
-.minimal-footer-main { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 64px; padding-block: 48px 32px; }
-.minimal-footer-brand { display: grid; align-content: start; gap: 16px; max-width: 360px; }
-.minimal-footer-brand img { max-width: 100%; object-fit: contain; }
-.minimal-footer-brand p { margin: 0; color: var(--minimal-muted); font-size: 14px; line-height: 1.8; }
-.minimal-footer-directory { display: grid; align-content: start; gap: 24px; min-width: 0; }
-.minimal-footer-nav { display: flex; flex-wrap: wrap; gap: 0 24px; margin: 0; padding: 0; list-style: none; }
-.minimal-footer-nav a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; color: var(--minimal-ink); }
 .minimal-footer a { overflow-wrap: anywhere; }
 .minimal-footer a:hover { text-decoration: underline; text-underline-offset: 4px; }
-.minimal-footer-legal { border-top: 1px solid var(--minimal-border); padding-block: 24px; }
+.minimal-footer-legal { padding-block: 20px; }
 @media (max-width: 767px) {
     .minimal-footer-inner { padding-inline: 20px; }
-    .minimal-footer-main { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 32px 24px; }
-    .minimal-footer-brand { max-width: none; }
-    .minimal-footer-directory { gap: 16px; }
+    .minimal-footer-legal { padding-block: 16px; }
 }
 
 /*

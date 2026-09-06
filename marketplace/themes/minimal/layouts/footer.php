@@ -1,9 +1,5 @@
     </main>
 
-<?php
-// 与 Blox 起步页脚使用相同的动态元素，站点资料和语言切换保持一致。
-?>
-
     <?php do_action('ik_footer_before'); ?>
 
     <!-- Footer -->
@@ -13,18 +9,8 @@
     <?php else: ?>
     <footer class="minimal-footer" data-testid="minimal-theme-footer">
         <div class="minimal-footer-inner">
-            <div class="minimal-footer-main">
-                <div class="minimal-footer-brand">
-                    <?php echo (new LogoElement())->render(['display' => 'image', 'height' => 'sm', 'tone' => 'dark', 'link_home' => true]); ?>
-                    <?php echo (new TextElement())->render(['site_field' => 'site_description']); ?>
-                </div>
-                <div class="minimal-footer-directory">
-                    <?php echo (new NavElement())->render(['menu_group' => 0, 'nav_only' => true, 'dropdown' => false, 'wrap_class' => 'minimal-footer-nav']); ?>
-                    <?php echo (new SiteContactElement())->render(['show_phone' => true, 'show_email' => true, 'show_address' => false, 'show_hours' => false, 'show_icons' => false, 'layout' => 'inline', 'tone' => 'dark']); ?>
-                </div>
-            </div>
             <div class="minimal-footer-legal">
-                <?php echo (new SiteCopyrightElement())->render(['show_icp' => true, 'show_police' => true, 'align' => 'left', 'tone' => 'dark']); ?>
+                <?php echo (new SiteCopyrightElement())->render(['show_icp' => true, 'show_police' => true, 'align' => 'center', 'tone' => 'dark']); ?>
             </div>
         </div>
     </footer>
