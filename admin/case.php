@@ -95,7 +95,7 @@ $channelId = getInt('channel_id');
 $status = get('status', '');
 $keyword = get('keyword');
 $page = max(1, getInt('page', 1));
-$perPage = 20;
+$perPage = adminListPageSize('case', $page);
 
 // 视图语言（?lang=en/ja 切换）
 $_lang        = adminLangView();
@@ -187,6 +187,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <i class="ti ti-search text-base"></i>
                 <?php echo __('admin_filter'); ?>
             </button>
+
+            <?php echo renderAdminPageSize($perPage); ?>
         </form>
 
         <a href="/admin/content_edit.php?type=case" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
@@ -285,7 +287,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <span class="text-sm text-gray-500"><?php echo sprintf(__('admin_total_items'), $total); ?></span>
                 <?php
                 $totalPages = ceil($total / $perPage);
-                $queryString = http_build_query(array_filter(['channel_id' => $channelId, 'status' => $status, 'keyword' => $keyword]));
+                $queryString = http_build_query(array_filter(['channel_id' => $channelId, 'status' => $status, 'keyword' => $keyword, 'per_page' => $perPage]));
                 $baseUrl = '?' . ($queryString ? $queryString . '&' : '');
                 ?>
                 <?php if ($page > 1): ?>
