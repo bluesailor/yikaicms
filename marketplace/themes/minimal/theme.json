@@ -6,10 +6,10 @@
   "description": "注重内容与留白的极简主题，原生页脚收敛为轻量版权栏；需要更多内容时可使用 Blox 页脚模板。",
   "description_en": "A content-first minimalist theme with generous whitespace and a quiet copyright-only native footer; use a Blox footer template for richer content.",
   "description_ja": "コンテンツと余白を重視したミニマルテーマ。標準フッターを著作権表示だけに絞り、より豊かな内容には Blox フッターテンプレートを使用できます。",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "author": "Yikai CMS",
   "category": "creative",
-  "requires_cms": ">=1.19.7",
+  "requires_cms": ">=1.19.8",
   "requires_php": ">=8.0.0",
   "required_plugins": [],
   "capabilities": {
