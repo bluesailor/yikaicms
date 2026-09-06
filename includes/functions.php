@@ -24,6 +24,7 @@ require_once __DIR__ . '/ProductIdentity.php';
 require_once __DIR__ . '/SiteHealth.php';
 require_once __DIR__ . '/FooterNavigation.php';
 require_once __DIR__ . '/Pinyin.php';     // 汉字转拼音（slug 用），自建词库、无 vendor 依赖
+require_once __DIR__ . '/HomeSettingsLanguageDefaults.php';
 
 // ============================================================
 // 全局错误自检测（装在这里而非 config.php：升级不覆盖客户的
