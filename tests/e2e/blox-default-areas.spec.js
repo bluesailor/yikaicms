@@ -7,6 +7,11 @@ const AREA_TEMPLATES = [
   { slug: 'corporate-site-header', name: 'Corporate Site Header' },
   { slug: 'corporate-site-footer', name: 'Corporate Site Footer' },
 ];
+const CLEANUP_AREA_SLUGS = [
+  'clean-site-header',
+  'clean-site-footer',
+  ...AREA_TEMPLATES.map((template) => template.slug),
+];
 
 async function submit(page, form) {
   // waitForNavigation 已废弃且有竞态（重定向落在同 URL 时可能挂满 45s，CI 偶发）。
@@ -41,13 +46,17 @@ async function installAndPublish(page, template) {
 
 async function unpublishAreas(page) {
   await page.goto('/admin/blox_templates.php', { waitUntil: 'domcontentloaded' });
-  for (const template of AREA_TEMPLATES) {
-    const rows = page.locator('tbody tr[data-template-source="builtin"]');
-    const matchingRows = rows.filter({
-      has: page.locator(`input[name="action"][value="unpublish"]`),
-    });
+  for (const slug of CLEANUP_AREA_SLUGS) {
+    const matchingRows = page.locator(
+      `tbody tr[data-template-source="builtin"][data-template-source-ref="${slug}"]`,
+    );
     const form = matchingRows.locator('form:has(input[name="action"][value="unpublish"])').first();
-    if (await form.count()) await submit(page, form);
+    if (await form.count()) {
+      await submit(page, form);
+      await expect(
+        matchingRows.locator('form:has(input[name="action"][value="unpublish"])'),
+      ).toHaveCount(0);
+    }
   }
 }
 

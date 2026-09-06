@@ -21,7 +21,19 @@ function createSite(source) {
       const target = path.join(source, dependency);
       if (fs.existsSync(target)) fs.symlinkSync(target, path.join(root, dependency), process.platform === 'win32' ? 'junction' : 'dir');
     }
-    fs.mkdirSync(path.join(root, 'storage'), { recursive: true });
+    for (const directory of [
+      'storage',
+      'storage/cache',
+      'storage/logs',
+      'storage/login_throttle',
+      'uploads',
+      'uploads/images',
+      'uploads/files',
+      'uploads/videos',
+      'uploads/albums',
+    ]) {
+      fs.mkdirSync(path.join(root, directory), { recursive: true });
+    }
     return root;
   } catch (error) {
     removeSite(root);

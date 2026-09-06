@@ -7,13 +7,14 @@ test('site health scans media in bounded batches and opens issue samples @ci', a
   test.setTimeout(60_000);
   const root = path.resolve(__dirname, '../..');
   const directory = path.join(root, 'uploads', 'images');
+  fs.mkdirSync(directory, { recursive: true });
   const prefix = `site-health-batch-${process.pid}-${testInfo.project.name}`.toLowerCase();
   const first = path.join(directory, `${prefix}-01.png`);
   const createImage = [
     '$path = $argv[1];',
     '$image = imagecreatetruecolor(40, 40);',
     'imagefill($image, 0, 0, imagecolorallocate($image, 38, 112, 92));',
-    'imagepng($image, $path);',
+    'if (!imagepng($image, $path)) { fwrite(STDERR, "imagepng failed\\n"); exit(1); }',
     'imagedestroy($image);',
   ].join(' ');
   execFileSync('php', ['-r', createImage, first], { cwd: root });

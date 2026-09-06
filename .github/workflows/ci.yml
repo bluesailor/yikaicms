@@ -500,44 +500,58 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # ─── R31 已完成本地稳定期，R32 将同一受保护运行器提升为强制 CI 门禁。
-  e2e:
-    name: Blox Browser Regression (${{ matrix.project }})
+  # ─── R7：四个独立浏览器分片。PR 按路径分流；主线、发布候选和非 PR
+  # ─── 事件跑完整矩阵。每个 spec 由 run-shard.js 建立独立临时站点/数据库。
+  e2e_plan:
+    name: Plan Blox browser shards
     runs-on: ubuntu-latest
-    # 强制门禁（与单测同级）：r8–r10 观察期全绿；r11 首次转强制被并行图标线的
-    # 半成品 404 击穿后回退，图标专项原子入库（icon-library-integration 轮）后恢复。
-    # 三个视口各自使用独立站点、端口和数据库并行回归，避免串行矩阵在 30 分钟内被截断。
-    timeout-minutes: 30
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_shards: ${{ steps.plan.outputs.has_shards }}
+      summary: ${{ steps.plan.outputs.summary }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select browser shards
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            node tools/ci-e2e-plan.js --full
+            exit 0
+          fi
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > /tmp/yikai-changed-files.txt
+          node tools/ci-e2e-plan.js --files-file=/tmp/yikai-changed-files.txt
+
+  e2e_shards:
+    name: Blox Browser Regression (${{ matrix.shard }})
+    needs: e2e_plan
+    if: needs.e2e_plan.outputs.has_shards == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
-      matrix:
-        project: [desktop-1440, tablet-768, mobile-390]
+      matrix: ${{ fromJSON(needs.e2e_plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
-      # 付费源码注入：BLOX_DEPLOY_KEY（deploy key 私钥，只读授权 yikaicms-blox）
-      # 在场时浅克隆私库并覆盖进构建树；不在场（fork / 无权环境）时静默跳过，
-      # 由后续 presence guard 显式标注 skipped。密钥用完即删。
       - name: Inject Blox paid sources
         env:
           BLOX_DEPLOY_KEY: ${{ secrets.BLOX_DEPLOY_KEY }}
         run: bash .github/scripts/inject-blox.sh
 
-      # Blox 编辑器源码属付费包，不随公开仓库分发（.gitignore 付费源码规则）。
-      # 干净 checkout 里没有它时，后续步骤全部跳过并显式标注 skipped——
-      # 「跳过」必须和「失败」长得不一样，否则这个 job 会永久红并被无视。
       - name: Check Blox source presence
-        id: blox_src
         run: |
-          if [ -f admin/blox_editor.php ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Blox browser baseline skipped::admin/blox_editor.php is not present in this checkout (paid-source distribution rules). Baseline SKIPPED, not failed. Inject the paid sources (private CI) to run it."
-          fi
+          test -f admin/blox_editor.php || {
+            echo "::error title=Blox browser baseline unavailable::planned browser shard is missing admin/blox_editor.php"
+            exit 1
+          }
 
       - name: Setup PHP
-        if: steps.blox_src.outputs.present == 'true'
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
@@ -546,69 +560,65 @@ jobs:
           coverage: none
 
       - name: Setup Node
-        if: steps.blox_src.outputs.present == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
 
       - name: Install PHP dependencies
-        if: steps.blox_src.outputs.present == 'true'
         run: composer install --no-dev --no-interaction --prefer-dist --no-progress
 
       - name: Verify Blox paid asset composition
-        if: steps.blox_src.outputs.present == 'true'
         run: php bin/blox-assets.php verify-source .
 
       - name: Install Node dependencies
-        if: steps.blox_src.outputs.present == 'true'
         run: npm ci
 
       - name: Install Chromium
-        if: steps.blox_src.outputs.present == 'true'
         run: bash .github/scripts/install-playwright-chromium.sh
 
-      - name: Run Blox browser regression
-        if: steps.blox_src.outputs.present == 'true'
+      - name: Run browser shard
         env:
-          BLOX_E2E_OUTPUT_DIR: ${{ github.workspace }}/test-results/e2e-${{ matrix.project }}
-          BLOX_E2E_REPORT_DIR: ${{ github.workspace }}/playwright-report-${{ matrix.project }}
-          BLOX_E2E_SERVER_LOG: ${{ github.workspace }}/test-results/e2e-${{ matrix.project }}/php-server.log
-        run: |
-          node tests/e2e/run-local.js --grep "@ci" --project=${{ matrix.project }}
-
-      - name: Run desktop supplementary browser regression
-        if: steps.blox_src.outputs.present == 'true' && matrix.project == 'desktop-1440'
-        env:
-          BLOX_E2E_OUTPUT_DIR: ${{ github.workspace }}/test-results/e2e-supplementary
-          BLOX_E2E_REPORT_DIR: ${{ github.workspace }}/playwright-report-supplementary
-          BLOX_E2E_SERVER_LOG: ${{ github.workspace }}/test-results/e2e-supplementary/php-server.log
-        run: |
-          node tests/e2e/run-local.js --lang=en tests/e2e/blox-home-language.spec.js --project=desktop-1440
-          node tests/e2e/run-local.js --lang=ja tests/e2e/blox-home-language.spec.js --project=desktop-1440
-          node tests/e2e/run-local.js --free tests/e2e/blox-page.spec.js --project=desktop-1440
+          BLOX_E2E_ARTIFACT_ROOT: ${{ github.workspace }}/test-results/e2e-shard-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: node tests/e2e/run-shard.js ${{ matrix.shard }}
 
       - name: Dump application logs on failure
-        if: failure() && steps.blox_src.outputs.present == 'true'
+        if: failure()
         run: |
           echo "=== storage/logs ==="
           cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
-          echo "=== php server log ==="
-          cat test-results/e2e-${{ matrix.project }}/php-server.log 2>/dev/null || cat test-results/e2e-supplementary/php-server.log 2>/dev/null || echo "(no server log)"
+          echo "=== shard server logs ==="
+          find test-results/e2e-shard-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }} -name php-server.log -type f -print -exec tail -100 {} \; 2>/dev/null || true
 
       - name: Upload Playwright diagnostics
-        if: failure() && steps.blox_src.outputs.present == 'true'
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: blox-playwright-diagnostics-${{ matrix.project }}
+          name: blox-playwright-diagnostics-${{ matrix.shard }}
           path: |
-            test-results/e2e-${{ matrix.project }}
-            playwright-report-${{ matrix.project }}
-            test-results/e2e-supplementary
-            playwright-report-supplementary
+            test-results/e2e-shard-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
             storage/logs
           if-no-files-found: ignore
           retention-days: 7
+
+  e2e:
+    name: Blox Browser Regression
+    if: always()
+    needs: [e2e_plan, e2e_shards]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce planned browser coverage
+        env:
+          PLAN_RESULT: ${{ needs.e2e_plan.result }}
+          SHARDS_RESULT: ${{ needs.e2e_shards.result }}
+          HAS_SHARDS: ${{ needs.e2e_plan.outputs.has_shards }}
+          SUMMARY: ${{ needs.e2e_plan.outputs.summary }}
+        run: |
+          echo "Planned browser shards: ${SUMMARY:-none}"
+          test "$PLAN_RESULT" = success
+          if [ "$HAS_SHARDS" = true ]; then
+            test "$SHARDS_RESULT" = success
+          fi
 
   # ─── Psalm static analysis. Blocking: existing legacy noise is frozen in
   # ─── psalm-baseline.xml, so only NEW issues fail the build. Shrink the
