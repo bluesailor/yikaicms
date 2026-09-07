@@ -6176,4 +6176,5 @@ voltage|Voltage|220V',
     'media_usage_kind_card_image' => 'card image',
     'media_usage_kind_unknown' => 'media reference',
     'blox_leave_unsaved_confirm' => 'You have unsaved changes that are not saved to the server. Return anyway?',
+    'blox_home_partners_custom' => 'Use page-specific partners (up to 12; blank names are hidden)',
 ];

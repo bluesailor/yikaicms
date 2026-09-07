@@ -6244,4 +6244,5 @@ voltage|电压|220V',
     'media_usage_kind_card_image' => '卡片图片',
     'media_usage_kind_unknown' => '媒体引用',
     'blox_leave_unsaved_confirm' => '当前有未保存的修改，这些内容尚未保存到服务器。仍要返回吗？',
+    'blox_home_partners_custom' => '使用本页合作伙伴（最多 12 项，名称留空不显示）',
 ];

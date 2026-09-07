@@ -278,6 +278,8 @@ final class HomeBloxRenderContext
             'testimonials' => $testimonials,
             'stats' => $stats,
             'advantages' => $advantages,
+            'links' => $type === 'partners' && !empty($block['partners_custom'])
+                ? $block['partner_items'] : null,
             'ykHomeEdit' => $ykHomeEdit,
             'ykHomePath' => $path,
             'ykHomeFieldAttr' => $ykHomeFieldAttr,
