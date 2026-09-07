@@ -6355,4 +6355,5 @@ voltage|电压|220V',
     'blox_source_snapshot' => '共享样式快照',
     'blox_source_missing' => '共享定义与快照均不可用',
     'blox_source_reset' => '清除当前元素的局部值',
+    'blox_about_convert_standard' => '转为通用区块',
 ];
