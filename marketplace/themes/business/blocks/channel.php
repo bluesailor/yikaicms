@@ -40,7 +40,7 @@ $surface = businessHomeSurface($block ?? []);
         <?php if ($hChannel['is_product'] ?? false): ?>
         <!-- Product grid -->
         <div class="grid <?php echo $productGrid; ?> gap-6" data-stagger>
-            <?php foreach (array_slice($contents, 0, 6) as $item): ?>
+            <?php foreach ($contents as $item): ?>
             <a href="<?php echo productUrl($item); ?>" class="block group">
                 <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-3">
                     <?php if ($item['cover']): ?>
@@ -51,7 +51,13 @@ $surface = businessHomeSurface($block ?? []);
                     </div>
                     <?php endif; ?>
                 </div>
-                <h3 class="text-center text-sm font-medium business-link transition"><?php echo e($item['title']); ?></h3>
+                <h3 class="text-sm font-medium business-link transition"><?php echo e($item['title']); ?></h3>
+                <?php if (!empty($item['model'])): ?>
+                <p class="mt-2 text-xs business-copy"><?= e(__('product_model')) ?>: <?= e((string) $item['model']) ?></p>
+                <?php endif; ?>
+                <?php if (!empty($item['summary'])): ?>
+                <p class="mt-2 text-sm business-copy line-clamp-2"><?= e((string) $item['summary']) ?></p>
+                <?php endif; ?>
             </a>
             <?php endforeach; ?>
         </div>
@@ -59,26 +65,30 @@ $surface = businessHomeSurface($block ?? []);
         <?php elseif ($channelType === 'case'): ?>
         <!-- Case Grid -->
         <div class="grid <?php echo $caseGrid; ?> gap-6" data-stagger>
-            <?php foreach (array_slice($contents, 0, 6) as $item): ?>
+            <?php foreach ($contents as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block group">
                 <div class="aspect-[4/3] bg-gray-200 rounded-lg overflow-hidden mb-3">
                     <?php if ($item['cover']): ?>
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                     <?php endif; ?>
                 </div>
-                <h3 class="text-center text-sm font-medium business-link transition"><?php echo e($item['title']); ?></h3>
+                <h3 class="text-sm font-medium business-link transition"><?php echo e($item['title']); ?></h3>
+                <?php if (!empty($item['summary'])): ?>
+                <p class="mt-2 text-sm business-copy line-clamp-2"><?= e((string) $item['summary']) ?></p>
+                <?php endif; ?>
             </a>
             <?php endforeach; ?>
         </div>
 
         <?php else: ?>
-        <!-- Article grid: only display items with cover images. -->
-        <?php $withCover = array_filter($contents, fn($i) => !empty($i['cover'])); ?>
+        <!-- The document owns item counts; a missing cover must not hide content. -->
         <div class="grid <?php echo $articleGrid; ?> gap-6" data-stagger>
-            <?php foreach (array_slice($withCover, 0, 4) as $item): ?>
+            <?php foreach ($contents as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block group">
                 <div class="aspect-[16/9] business-card overflow-hidden mb-3">
+                    <?php if (!empty($item['cover'])): ?>
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    <?php endif; ?>
                 </div>
                 <h3 class="font-bold business-link transition"><?php echo e($item['title']); ?></h3>
                 <p class="text-sm business-copy mt-1"><?php echo date('Y-m-d', (int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?></p>
@@ -87,6 +97,11 @@ $surface = businessHomeSurface($block ?? []);
         </div>
         <?php endif; ?>
 
+        <?php if ($hChannel['is_product'] ?? false): ?>
+        <div class="mt-8 flex justify-end">
+            <a href="<?= e(langUrl('/contact.html')) ?>" class="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded text-sm font-medium"><?= e(__('detail_consult')) ?> <i class="ti ti-arrow-right" aria-hidden="true"></i></a>
+        </div>
+        <?php endif; ?>
         <!-- View more on mobile -->
         <div class="mt-8 text-center md:hidden">
             <a href="<?php echo e(($hChannel['home_button_url'] ?? '') ?: channelUrl($hChannel)); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full text-sm transition">

@@ -358,6 +358,10 @@ final class BlockRenderer
                 $innerCls .= ' relative z-10';
             }
             $innerStyle = '';
+            if (($settings['max_width'] ?? 'default') === 'default') {
+                // ThemeSettings owns this variable; named widths and exact page overrides remain explicit.
+                $innerStyle .= 'max-width:var(--yk-content-max-width,72rem);';
+            }
             if (($settings['max_width'] ?? '') === 'custom') {
                 $px = (int) ($settings['max_width_px'] ?? 0);
                 if ($px >= 320 && $px <= 3840) {

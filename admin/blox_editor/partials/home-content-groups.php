@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 ?>
-<template x-if="BloxHomeContentPanel.supports(selEl) && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
+<template x-if="BloxHomeContentPanel.supports(selEl) && (!ctaQuickTarget() || ctaQuickDetails) && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
     <div role="group" aria-label="<?= e(__('blox_home_panel_groups')) ?>" data-testid="blox-home-content-groups"
          class="flex gap-1 border-b border-gray-200 pb-2">
         <?php foreach (['content', 'media', 'layout', 'more'] as $group): ?>

@@ -792,6 +792,8 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-control-rules.js') ?>"></script>
     <script src="/assets/js/blox-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-banner-panel.js') ?>"></script>
     <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
+    <script src="/assets/js/blox-cta-quick.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-cta-quick.js') ?>"></script>
+    <script src="/assets/js/blox-style-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-source.js') ?>"></script>
     <script src="/assets/js/blox-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-groups.js') ?>"></script>
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
@@ -1348,6 +1350,16 @@ $canManageBloxDesign = hasPermission('blox_global');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             homeEditorBlueprints: <?php echo json_encode($homeEditorBlueprints, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             homeFieldSeeds: <?php echo json_encode($homeFieldSeeds, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            ctaQuickSeeds: <?= json_encode([
+                'title' => configLang('home_cta_title', 'home_cta_title'),
+                'text' => configLang('home_cta_desc', 'home_cta_desc'),
+                'btn_text' => (string) (config('home_cta_button', '') ?: __('detail_consult')),
+                'btn_url' => (string) (config('home_cta_link', '') ?: '/contact.html'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+            styleSourceText: <?= json_encode(array_combine(
+                ['theme', 'local', 'mobile', 'tablet', 'fromDesktop', 'fromTablet', 'global', 'token', 'default'],
+                array_map(fn(string $key): string => __('blox_exp_source_' . $key), ['theme', 'local', 'mobile', 'tablet', 'fromDesktop', 'fromTablet', 'global', 'token', 'default'])
+            ), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             homeSourceLinks: <?= json_encode($bloxSourceLinks, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             homeText: <?php echo json_encode([
                 'publishConfirm' => __('blox_publish_confirm'),
@@ -3486,6 +3498,8 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             ...window.BloxBannerPanel.methods,
             ...window.BloxHomeContentPanel.methods,
+            ...window.BloxCtaQuick.methods,
+            ...window.BloxStyleSource.methods,
             ...window.BloxStyleGroups.methods,
 
             isLoopTemplateChild() {
@@ -4437,6 +4451,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             /** 元素设置的可见控件：页签归属（color→样式，其余→内容）+ 搜索 + 只看已修改 */
             visibleCtrls() {
                 if (!this.selEl) return [];
+                if (this.ctaQuickTarget() && !this.ctaQuickDetails && this.panelTab === "content" && !this.ctrlQuery.trim() && !this.modifiedOnly) return [];
                 if (this.panelTab === "condition") return [];
                 var self = this;
                 var q = this.ctrlQuery.trim().toLowerCase();
