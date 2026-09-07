@@ -62,6 +62,20 @@ function themeInstallMessage(array $result): string
 // ============================================================
 // AJAX（JSON）：模板市场列表 / 市场安装
 // ============================================================
+/**
+ * 丢弃下载暂存文件。
+ *
+ * 只在文件确实存在时才删：无条件 @unlink 在文件已不存在时会记一条
+ * "No such file or directory" 警告，它被 @ 抑制了却仍进错误日志，
+ * 于是真正的失败原因被这条噪音盖住（2026-09-07 演示站就是这么被误导的）。
+ */
+function themeDiscardStaged(string $path): void
+{
+    if ($path !== '' && is_file($path)) {
+        @unlink($path);
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['market_list', 'market_install'], true)) {
     header('Content-Type: application/json; charset=utf-8');
     $action = $_POST['action'];
@@ -113,12 +127,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     // 下载到临时文件
     $tmpZip = tempnam(sys_get_temp_dir(), 'ykthm');
     if (!is_string($tmpZip)) {
+        adminLog('theme', 'market_staging_failed', 'Theme marketplace staging failed: ' . $slug
+            . ' cannot create a temp file in ' . sys_get_temp_dir());
         echo json_encode(['code' => 1, 'msg' => __('theme_err_staging')]);
         exit;
     }
     $download = ThemeMarket::downloadPackageToFile((string) $item['download_url'], $tmpZip);
     if (!$download['ok']) {
-        @unlink($tmpZip);
+        // 失败码（invalid_url / open_target / invalid_limit / too_large / http_error /
+        // write_error）是唯一能分辨到底哪一步断的信息。丢掉它，运维在服务器日志里就只剩
+        // 下面那条 @unlink 警告——2026-09-07 演示站主题装不上三次，查到的就只有那条假线索。
+        adminLog('theme', 'market_download_failed', 'Theme marketplace download failed: ' . $slug
+            . ' [' . $download['code'] . '] ' . $item['download_url']);
+        themeDiscardStaged($tmpZip);
         $downloadMessage = $download['code'] === 'too_large'
             ? __('theme_err_download_too_large')
             : __('theme_err_download');
@@ -130,7 +151,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     $expected = strtolower((string) preg_replace('/^sha256:/', '', $item['hash']));
     $actual = strtolower((string) hash_file('sha256', $tmpZip));
     if (!hash_equals($expected, $actual)) {
-        @unlink($tmpZip);
+        // 包哈希与注册表不符：可能只是传输损坏，也可能是包被换过。这是安全事件，
+        // 必须留痕——原来这条路径什么都不记，事后无从判断发生过几次、针对哪个包。
+        adminLog('theme', 'market_hash_mismatch', 'Theme marketplace hash mismatch: ' . $slug
+            . ' v' . $remoteVersion . ' expected=' . $expected . ' actual=' . $actual);
+        themeDiscardStaged($tmpZip);
         echo json_encode(['code' => 1, 'msg' => __('theme_err_hash')]);
         exit;
     }
@@ -144,14 +169,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
         (string) ($item['sig'] ?? ''),
         license_pubkey()
     )) {
-        @unlink($tmpZip);
+        // 验签不过：包哈希对得上但签名不对，比哈希不符更可疑。同样必须留痕。
+        adminLog('theme', 'market_signature_rejected', 'Theme marketplace signature rejected: ' . $slug
+            . ' v' . $remoteVersion . ' sha256:' . $expected);
+        themeDiscardStaged($tmpZip);
         echo json_encode(['code' => 1, 'msg' => __('theme_err_sig')]);
         exit;
     }
 
     $installer = new ThemeInstaller(ROOT_PATH . '/themes', ROOT_PATH . '/storage');
     $installResult = $installer->install($tmpZip, $slug, $remoteVersion);
-    @unlink($tmpZip);
+    themeDiscardStaged($tmpZip);
     $msg = themeInstallMessage($installResult);
     if ($installResult['ok']) {
         adminLog('theme', 'market_install', 'Theme marketplace install: ' . $installResult['slug'] . ' v' . ($item['version'] ?? ''));
