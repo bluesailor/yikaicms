@@ -211,6 +211,20 @@ final class BloxBuiltinTemplateProvider
                 'content_slots' => ['heading', 'text', 'icon', 'button'], 'cta_type' => 'contact', 'priority' => 96,
             ],
         ],
+        'friend-links' => [
+            'type' => 'section',
+            'file' => 'friend-links.json',
+            'contexts' => ['home'],
+            'name_key' => 'link_title',
+            'description_key' => 'blox_builtin_section_friend_links_desc',
+            'keywords_key' => 'blox_builtin_section_friend_links_keywords',
+            'category' => 'business',
+            'thumbnail' => '/assets/images/blox-templates/section-friend-links.svg',
+            'metadata' => [
+                'purpose' => 'content', 'page_types' => ['home'],
+                'content_slots' => ['heading', 'logos', 'links'], 'priority' => 86,
+            ],
+        ],
         'client-logo-wall' => [
             'type' => 'section',
             'file' => 'client-logo-wall.json',
@@ -331,6 +345,12 @@ final class BloxBuiltinTemplateProvider
         $prepared = BloxTemplateImporter::prepare($json);
         if ($prepared['type'] !== $preset['type']) {
             throw new RuntimeException(__('blox_builtin_template_invalid'));
+        }
+
+        if ($slug === 'friend-links') {
+            $prepared['sections'][0]['name'] = __('link_title');
+            $prepared['sections'][0]['columns'][0]['elements'][0]['data']['label'] = __('link_title');
+            $prepared['sections'][0]['columns'][0]['elements'][0]['data']['override_title'] = __('link_title');
         }
 
         return [

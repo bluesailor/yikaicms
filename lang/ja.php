@@ -6336,4 +6336,6 @@ voltage|電圧|220V',
     'blox_exp_source_token' => 'デザイン変数',
     'blox_exp_source_default' => '要素の初期値',
     'blox_layout_overlay' => '画像の隅に重ねる',
+    'blox_builtin_section_friend_links_desc' => '管理画面のパートナーリンクを表示します。ロゴがない場合は名前を表示し、区画内で個別設定もできます。',
+    'blox_builtin_section_friend_links_keywords' => 'パートナー リンク ロゴ',
 ];
