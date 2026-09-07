@@ -6079,6 +6079,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                 window.addEventListener("keydown", function (e) {
                     if (e.key === "Escape" && self.canvasDragActive) { e.preventDefault(); self.finishPaletteDrag(); return; }
                     if (e.key === "Escape" && self.ctx.open) { e.preventDefault(); self.closeCtx(); return; }
+                    if (e.key === "Escape" && !e.defaultPrevented) {
+                        var escapeTarget = document.activeElement;
+                        var editing = escapeTarget && (escapeTarget.matches("input, textarea, select") || escapeTarget.isContentEditable);
+                        var dialogOpen = Array.from(document.querySelectorAll('[role="dialog"]')).some(function (dialog) { return dialog.getClientRects().length > 0; });
+                        if (!editing && !dialogOpen && self.sel) { e.preventDefault(); self.deselectAll(); }
+                        return;
+                    }
                     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
                     var activeEditor = window.tinymce && tinymce.activeEditor;
                     if (activeEditor && typeof activeEditor.hasFocus === "function" && activeEditor.hasFocus()) return;
@@ -6479,6 +6486,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.selectedHomeField = "";
                 this.selectedHomeColumn = "";
                 this.selLayer = "sec";
+                this._insertAt = null;
+                this.libOpen = false;
+                this.mobilePanel = "library";
+                if (typeof this.multiSelReset === "function") this.multiSelReset();
                 this.highlightCanvasSelection();
             },
 

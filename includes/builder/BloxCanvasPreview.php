@@ -1654,6 +1654,12 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         } });
     });
     document.addEventListener('dragend', hideDropLine, true);
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !e.defaultPrevented) {
+            e.preventDefault();
+            postToEditor({ ykClear: true });
+        }
+    });
     document.addEventListener('dragleave', function (e) {
         if (e.target === document.documentElement || e.target === document.body) hideDropLine();
     }, true);

@@ -146,6 +146,12 @@ declare(strict_types=1);
                             class="ml-auto shrink-0 text-xs font-medium text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2.5 py-1 inline-flex items-center gap-1">
                         <i class="ti ti-plus text-sm"></i><?= __('blox_element_label') ?>
                     </button>
+                    <button type="button" @click="deselectAll()" data-testid="blox-deselect"
+                            title="<?= e(__('blox_deselect_append')) ?>"
+                            aria-label="<?= e(__('blox_deselect_append')) ?>"
+                            class="shrink-0 text-gray-400 hover:text-blue-600">
+                        <i class="ti ti-x text-sm" aria-hidden="true"></i>
+                    </button>
                 </div>
 
                 <!-- 内容 / 样式 页签 -->
