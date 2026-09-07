@@ -261,6 +261,18 @@ trait HomeBloxNormalizerTrait
         }
         $data['advantage_items'] = $advantages;
 
+        $data['partners_custom'] = !empty($data['partners_custom']);
+        $partners = [];
+        foreach (array_slice(is_array($data['partner_items'] ?? null) ? $data['partner_items'] : [], 0, 12) as $item) {
+            $item = is_array($item) ? $item : [];
+            $partners[] = [
+                'name' => mb_substr(trim(strip_tags((string) ($item['name'] ?? ''))), 0, 100),
+                'url' => self::safeUrl((string) ($item['url'] ?? ''), true),
+                'logo' => self::safeUrl((string) ($item['logo'] ?? ''), false),
+            ];
+        }
+        $data['partner_items'] = $partners;
+
         $testimonials = [];
         foreach (array_slice(is_array($data['testimonial_items'] ?? null) ? $data['testimonial_items'] : [], 0, 12) as $item) {
             if (!is_array($item)) {
