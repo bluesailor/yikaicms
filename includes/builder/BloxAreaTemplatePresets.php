@@ -12,7 +12,7 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_header_name',
             'description_key' => 'blox_area_preset_header_desc',
             'preview' => 'content-left',
-            'feature_keys' => ['blox_header_feature_content_width', 'blox_header_feature_mega_menu'],
+            'feature_keys' => ['blox_header_feature_content_width', 'blox_header_feature_mega_menu', 'blox_header_feature_language'],
         ],
         'full-width-site-header' => [
             'type' => 'header',
@@ -20,7 +20,7 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_full_width_header_name',
             'description_key' => 'blox_area_preset_full_width_header_desc',
             'preview' => 'viewport-left',
-            'feature_keys' => ['blox_header_feature_full_width', 'blox_header_feature_mega_menu'],
+            'feature_keys' => ['blox_header_feature_full_width', 'blox_header_feature_mega_menu', 'blox_header_feature_language'],
         ],
         'centered-site-header' => [
             'type' => 'header',
@@ -28,7 +28,7 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_centered_header_name',
             'description_key' => 'blox_area_preset_centered_header_desc',
             'preview' => 'centered-brand',
-            'feature_keys' => ['blox_header_feature_centered_brand', 'blox_header_feature_single_row'],
+            'feature_keys' => ['blox_header_feature_centered_brand', 'blox_header_feature_single_row', 'blox_header_feature_language'],
         ],
         'corporate-site-header' => [
             'type' => 'header',
@@ -36,7 +36,7 @@ final class BloxAreaTemplatePresets
             'name_key' => 'blox_area_preset_corporate_header_name',
             'description_key' => 'blox_area_preset_corporate_header_desc',
             'preview' => 'corporate',
-            'feature_keys' => ['blox_header_feature_dark_topbar', 'blox_header_feature_sticky', 'blox_header_feature_search'],
+            'feature_keys' => ['blox_header_feature_dark_topbar', 'blox_header_feature_sticky', 'blox_header_feature_search', 'blox_header_feature_language'],
         ],
         'topbar-site-header' => [
             'type' => 'header',

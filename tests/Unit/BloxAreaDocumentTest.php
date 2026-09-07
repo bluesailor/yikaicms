@@ -167,9 +167,9 @@ final class BloxAreaDocumentTest extends TestCase
     public function testBundledAreaPackagesPassTheSameImporterAsUploadedTemplates(): void
     {
         $expected = [
-            'clean-site-header.json' => ['header', ['container', 'logo', 'nav-drawer', 'nav-mega'], 1],
-            'full-width-site-header.json' => ['header', ['container', 'logo', 'nav-drawer', 'nav-mega'], 1],
-            'centered-site-header.json' => ['header', ['container', 'logo', 'nav', 'nav-drawer'], 1],
+            'clean-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega'], 1],
+            'full-width-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega'], 1],
+            'centered-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav', 'nav-drawer'], 1],
             'corporate-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact', 'site-search'], 2],
             'topbar-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact'], 2],
             'search-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-search'], 2],
@@ -323,7 +323,7 @@ final class BloxAreaDocumentTest extends TestCase
         $centeredContainer = $centered['document']['sections'][0]['columns'][0]['elements'][0]['data'];
         self::assertSame('column', $centeredContainer['direction']);
         self::assertSame('center', $centeredContainer['align']);
-        self::assertSame(['logo', 'nav', 'nav-drawer'], array_column($centeredContainer['children'], 'type'));
+        self::assertSame(['logo', 'nav', 'language-switcher', 'nav-drawer'], array_column($centeredContainer['children'], 'type'));
 
         $topbar = $readPackage('topbar-site-header.json');
         self::assertSame(['m'], $topbar['document']['sections'][0]['settings']['hide_on']);
@@ -332,6 +332,54 @@ final class BloxAreaDocumentTest extends TestCase
         $search = $readPackage('search-site-header.json');
         self::assertSame('wide', $search['document']['sections'][0]['columns'][1]['elements'][0]['data']['layout']);
         self::assertSame('#111827', $search['document']['sections'][1]['settings']['bg_color']);
+    }
+
+    public function testEveryHeaderPresetHasOneVisibleLanguageSwitcherAtEveryBreakpoint(): void
+    {
+        $catalog = BloxAreaTemplatePresets::editorCatalog('header');
+        self::assertCount(6, $catalog);
+        foreach ($catalog as $preset) {
+            self::assertContains(__('blox_header_feature_language'), $preset['features'], $preset['slug']);
+            foreach (['m', 't', 'd'] as $device) {
+                $visible = [];
+                $walk = static function (array $elements) use (&$walk, &$visible, $device): void {
+                    foreach ($elements as $element) {
+                        $data = $element['data'] ?? [];
+                        if (in_array($device, $data['_hide_on'] ?? [], true)) {
+                            continue;
+                        }
+                        if (($element['type'] ?? '') === 'language-switcher') {
+                            $visible[] = $data;
+                        }
+                        $walk($data['children'] ?? []);
+                    }
+                };
+                foreach ($preset['sections'] as $section) {
+                    if (in_array($device, $section['settings']['hide_on'] ?? [], true)) {
+                        continue;
+                    }
+                    foreach ($section['columns'] as $column) {
+                        if (!in_array($device, $column['hide_on'] ?? [], true)) {
+                            $walk($column['elements']);
+                        }
+                    }
+                }
+                self::assertCount(1, $visible, $preset['slug'] . '/' . $device);
+                foreach (['zh-CN', 'en', 'ja'] as $current) {
+                    $html = LanguageSwitcherElement::renderForLanguages(
+                        ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語'], $current, 'zh-CN',
+                        ['zh-CN', 'en', 'ja'], '/', $visible[0]
+                    );
+                    self::assertStringContainsString('hreflang="en"', $html);
+                    self::assertStringContainsString('hreflang="ja"', $html);
+                    self::assertStringContainsString('href="/en/"', $html);
+                    self::assertStringContainsString('href="/ja/"', $html);
+                }
+                self::assertSame('', LanguageSwitcherElement::renderForLanguages(
+                    ['zh-CN' => '中文'], 'zh-CN', 'zh-CN', ['zh-CN'], '/', $visible[0]
+                ));
+            }
+        }
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */
