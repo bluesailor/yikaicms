@@ -44,18 +44,18 @@ final class HomeAboutContent
                 'url' => $values['override_button_url'], 'variant' => 'primary', 'shape' => 'pill', 'align' => 'left']);
         }
         $image = [$node('image', 'image', ['src' => $values['override_image'], 'alt' => $values['override_title']])];
-        $caption = [];
-        if ($values['override_tag_title'] !== '') {
-            $caption[] = $node('tag_title', 'heading', ['text' => $values['override_tag_title'],
-                'level' => 'h3', 'visual_size' => 'lg', 'color' => '#ffffff', 'align' => 'left', 'style_margin_bottom' => 'none']);
-        }
-        if ($values['override_tag_description'] !== '') {
-            $caption[] = $node('tag_body', 'text', ['html' => '<p class="text-white">'
-                . $escape($values['override_tag_description']) . '</p>']);
-        }
-        if ($caption !== []) {
-            $image[] = $node('caption', 'div', ['bg_color' => '#2563eb', 'padding' => 'sm',
-                'radius' => 'md', 'style_margin_top' => '12px', 'children' => $caption]);
+        if ($values['override_tag_title'] !== '' || $values['override_tag_description'] !== '') {
+            // Keep the badge in a single ordinary rich-text child: the editor supports one child level.
+            $badgeHtml = '<div class="bg-primary text-white rounded-lg p-6">';
+            if ($values['override_tag_title'] !== '') {
+                $badgeHtml .= '<h3 class="text-xl font-bold text-white m-0">' . $escape($values['override_tag_title']) . '</h3>';
+            }
+            if ($values['override_tag_description'] !== '') {
+                $badgeHtml .= '<p class="text-white m-0">' . $escape($values['override_tag_description']) . '</p>';
+            }
+            $badge = $node('caption', 'text', ['html' => $badgeHtml . '</div>']);
+            $image = [$node('image_badge', 'div', ['display' => 'overlay', 'radius' => 'xl',
+                'children' => [$image[0], $badge]])];
         }
         $columns = [
             ['id' => $id . '_text', 'span' => $spans[0], 'elements' => $text],

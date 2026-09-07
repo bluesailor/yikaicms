@@ -6429,4 +6429,5 @@ voltage|電圧|220V',
     'blox_source_missing' => '共通定義とスナップショットがありません',
     'blox_source_reset' => 'この要素の個別値を解除',
     'blox_about_convert_standard' => '標準セクションに変換',
+    'blox_layout_overlay' => '画像の隅に重ねる',
 ];

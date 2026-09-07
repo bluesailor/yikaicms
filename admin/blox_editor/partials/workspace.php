@@ -1122,6 +1122,11 @@ declare(strict_types=1);
                                                     :class="selEl.data.display === 'flex' ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'">
                                                 <i class="ti ti-layout-columns text-base"></i><span>Flex</span>
                                             </button>
+                                            <button type="button" @click="selEl.data.display = 'overlay'"
+                                                    class="h-9 rounded border inline-flex items-center justify-center gap-1.5 text-xs transition"
+                                                    :class="selEl.data.display === 'overlay' ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'">
+                                                <i class="ti ti-layers-intersect text-base"></i><span><?= e(__('blox_layout_overlay')) ?></span>
+                                            </button>
                                         </div>
                                     </div>
 

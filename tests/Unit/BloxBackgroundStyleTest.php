@@ -26,7 +26,8 @@ final class BloxBackgroundStyleTest extends TestCase
     private function oneEl(array $el): string
     {
         return BlockRenderer::render(json_encode([[
-            'settings' => [],
+            // Keep theme-inherited container width declarations outside these element-style assertions.
+            'settings' => ['max_width' => 'wide'],
             'columns'  => [['elements' => [$el]]],
         ]]));
     }
@@ -233,7 +234,7 @@ final class BloxBackgroundStyleTest extends TestCase
             BloxAssetCollector::scripts()
         );
         $this->assertStringContainsString('style="background-color:#102030;opacity:0.55;"', $out);
-        $this->assertStringContainsString('<div class="max-w-6xl mx-auto px-4 relative z-10">', $out);
+        $this->assertStringContainsString('<div class="max-w-6xl mx-auto px-4 relative z-10" style="max-width:var(--yk-content-max-width,72rem);">', $out);
 
         $bad = BlockRenderer::render(json_encode([[
             'settings' => ['bg_video' => 'https://www.youtube.com/watch?v=x'],
