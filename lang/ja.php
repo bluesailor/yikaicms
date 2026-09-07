@@ -6319,4 +6319,6 @@ voltage|電圧|220V',
     'blox_leave_unsaved_confirm' => 'サーバーに保存されていない変更があります。このまま戻りますか？',
     'blox_home_partners_custom' => 'このページ専用のパートナー（最大12件、名前が空欄の項目は非表示）',
     'blox_about_convert_standard' => '標準セクションに変換',
+    'blox_left_panel_collapse' => '左パネルを折りたたむ',
+    'blox_left_panel_expand' => '左パネルを展開',
 ];

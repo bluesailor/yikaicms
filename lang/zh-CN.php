@@ -6246,4 +6246,6 @@ voltage|电压|220V',
     'blox_leave_unsaved_confirm' => '当前有未保存的修改，这些内容尚未保存到服务器。仍要返回吗？',
     'blox_home_partners_custom' => '使用本页合作伙伴（最多 12 项，名称留空不显示）',
     'blox_about_convert_standard' => '转为通用区块',
+    'blox_left_panel_collapse' => '收起左侧面板',
+    'blox_left_panel_expand' => '展开左侧面板',
 ];
