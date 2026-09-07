@@ -6287,4 +6287,5 @@ voltage|Voltage|220V',
     'blox_source_snapshot' => 'Shared style snapshot',
     'blox_source_missing' => 'Shared definition and snapshot unavailable',
     'blox_source_reset' => 'Clear the local element value',
+    'blox_about_convert_standard' => 'Convert to standard section',
 ];

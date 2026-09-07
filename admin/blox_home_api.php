@@ -27,6 +27,23 @@ if (($_POST['action'] ?? '') === 'preview') {
     outputBloxCanvasPreview(true, 0);
 }
 $action = (string) ($_POST['action'] ?? '');
+if ($action === 'convert_about') {
+    try {
+        $raw = (string) ($_POST['block_data'] ?? '{}');
+        if (strlen($raw) > 200000) {
+            error(__('blox_bad_request'));
+        }
+        $block = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
+        if (!is_array($block) || ($block['block_type'] ?? '') !== 'about') {
+            error(__('blox_bad_request'));
+        }
+        // Conversion is a draft command; it never writes or publishes by itself.
+        $section = HomeAboutContent::toSection($block, 'about_' . bin2hex(random_bytes(6)), getChannelBySlug('about', true));
+        success(['section' => $section]);
+    } catch (Throwable $e) {
+        error($e->getMessage());
+    }
+}
 $currentDocumentJson = static function (): string {
     $current = HomeBloxDocument::load();
     return json_encode([
