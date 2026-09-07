@@ -134,6 +134,7 @@ config/config.php.bak.*
 storage/backup_*.sql
 storage/*.sql
 storage/lang-shadow-backup-*.json
+storage/release-channel-audit-*.json
 storage/logs/blox-unknown-keys.json
 storage/security/
 # 只匹配仓库根目录：不加前导斜杠会匹配任意层级，

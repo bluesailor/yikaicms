@@ -174,13 +174,30 @@ if [ "$MODE" = "post-release" ]; then
         fail "无法解析远端 v${VERSION} 或 main 提交，跳过祖先关系检查"
     fi
 
+    # 只验「标签合入 main」就结束，是 v1.19.8 被记成「发布全部完成」的直接原因：
+    # 发布之后没有任何工具看过官网、本地归档和模板市场。渠道核对必须在这里跑。
+    section "发布后渠道核对"
+    channel_audit="$ROOT_DIR/tools/release-channel-audit.php"
+    if [ ! -f "$channel_audit" ]; then
+        fail "$channel_audit 不存在，无法核对发布渠道"
+    else
+        channel_json="$ROOT_DIR/storage/release-channel-audit-v${VERSION}.json"
+        mkdir -p "$ROOT_DIR/storage" 2>/dev/null || true
+        # --online：发布后核对不看线上就没有意义；不加它线上项会记「未执行」并如实失败。
+        if php "$channel_audit" "$VERSION" --post-release --online --json="$channel_json"; then
+            pass "所有必需渠道已验证（报告: $channel_json）"
+        else
+            fail "渠道核对未通过——「未执行」不算通过，补齐后重跑（报告: $channel_json）"
+        fi
+    fi
+
     echo
     if [ "$FAIL" -eq 0 ]; then
-        echo "${G}✓ 发布后同步门禁通过：默认分支已跟上 v${VERSION}${X}"
+        echo "${G}✓ 发布后门禁通过：默认分支已跟上 v${VERSION}，且所有必需渠道已验证${X}"
         exit 0
     fi
-    echo "${R}✗ 发布后同步门禁未通过：$FAIL 个 FAIL${X}"
-    echo "${R}  先合并 release 分支到 main，再重新运行本检查。${X}"
+    echo "${R}✗ 发布后门禁未通过：$FAIL 个 FAIL${X}"
+    echo "${R}  标签未合入 main 就先合并；渠道未同步就补齐渠道。两者都不修完，本版不得记为发布完成。${X}"
     exit 1
 fi
 
