@@ -22,8 +22,11 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/ReleaseChannelOnlineChecks.php';
+
 final class ReleaseChannelAudit
 {
+    use ReleaseChannelOnlineChecks;
     public const VERIFIED = 'verified';
     public const FAILED = 'failed';
     public const SKIPPED = 'skipped';
@@ -59,6 +62,13 @@ final class ReleaseChannelAudit
             'demo' => self::demo($config, $version, $workspace, $fetcher),
             'github' => self::github($config, $version, $fetcher),
         ];
+        foreach (['website', 'update_server', 'market', 'github'] as $name) {
+            $onlineChecks = $fetcher === null
+                ? [self::check('Online verification', null, 'Not requested; local preparation is not online evidence')]
+                : self::onlineChecks($name, $config, $version, $workspace, $fetcher);
+            $channels[$name]['checks'] = array_merge($channels[$name]['checks'], $onlineChecks);
+            $channels[$name]['status'] = self::statusOf($channels[$name]['checks']);
+        }
 
         // 候选阶段：线上渠道允许尚未同步，降级为「未执行」而不是失败。
         // 但本地归档任何时候都必须成立——包都没打出来就没什么好核对的。
@@ -156,7 +166,7 @@ final class ReleaseChannelAudit
                 $checks[] = self::check("首页 {$lang} 版本号", true, "最高版本 {$version}{$note}", $evidence);
             }
 
-            if ($downloadUrl !== '' && str_contains($html, $downloadUrl)) {
+            if (self::hasCurrentDownload($html, $downloadUrl)) {
                 $checks[] = self::check("首页 {$lang} 下载入口", true, $downloadUrl, $evidence);
             } else {
                 $checks[] = self::check(
@@ -266,7 +276,12 @@ final class ReleaseChannelAudit
 
         // 增量包：以本版的 delta 清单为准。没有清单 = 本版不发增量，属正常。
         $manifestPath = $dir . '/' . str_replace('{version}', $version, (string) $cfg['delta_manifest']);
-        $deltas = self::deltaManifest($manifestPath);
+        try {
+            $deltas = self::deltaManifest($manifestPath);
+        } catch (RuntimeException $e) {
+            $checks[] = self::check('增量包清单', false, $e->getMessage(), self::evidence($manifestPath), true);
+            return self::channel('本地归档', self::FAILED, $checks);
+        }
         if ($deltas === null) {
             $checks[] = self::check('增量包清单', true, '本版无 delta 清单，按不发增量处理');
         } else {
@@ -281,7 +296,7 @@ final class ReleaseChannelAudit
                 }
                 $expected = preg_replace('/^sha256:/', '', (string) ($delta['hash'] ?? '')) ?? '';
                 $actual = hash_file('sha256', $path);
-                if ($expected !== '' && is_string($actual) && !hash_equals($expected, $actual)) {
+                if (preg_match('/^[a-f0-9]{64}$/D', $expected) !== 1 || !is_string($actual) || !hash_equals($expected, $actual)) {
                     $mismatch[] = $name;
                 }
             }
@@ -316,7 +331,7 @@ final class ReleaseChannelAudit
             return self::channel('升级服务器', self::FAILED, [self::check(
                 '升级服务器目录',
                 false,
-                '找不到升级服务器目录；请设置 ' . (string) ($cfg['dir_env'] ?? '')
+                '找不到升级服务器目录；请设置 ' . (string) ($cfg['dir_env'] ?? ''), null, true
             )]);
         }
         $archiveDir = self::resolveDir(self::section($config, 'archive'), $workspace);
@@ -356,7 +371,7 @@ final class ReleaseChannelAudit
         $cfg = self::section($config, 'market');
         $updateRoot = self::resolveDir(self::section($config, 'update_server'), $workspace);
         if ($updateRoot === null) {
-            return self::channel('模板市场', self::FAILED, [self::check('升级服务器目录', false, '不可用，无法读取主题注册表')]);
+            return self::channel('模板市场', self::FAILED, [self::check('升级服务器目录', false, '不可用，无法读取主题注册表', null, true)]);
         }
         $registryPath = $updateRoot . '/' . (string) $cfg['registry'];
         $registry = self::readJson($registryPath);
@@ -582,6 +597,7 @@ final class ReleaseChannelAudit
     /** @return list<string> 文档顺序的版本号（不去重） */
     private static function versionTokens(string $html): array
     {
+        $html = self::visibleDocument($html)->textContent;
         if (preg_match_all(self::VERSION_TOKEN, $html, $matches) < 1) {
             return [];
         }
@@ -657,21 +673,32 @@ final class ReleaseChannelAudit
         }
         // 清单文件是「裸的键值片段」，与 ReleaseUploadGuard 的读法保持一致。
         $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw) ?? $raw;
+        $json = '{' . trim($raw) . '}';
         try {
-            $decoded = json_decode('{' . trim($raw) . '}', true, 512, JSON_THROW_ON_ERROR);
+            $decoded = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             try {
+                $json = $raw;
                 $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
             } catch (JsonException) {
-                return [];
+                throw new RuntimeException('Invalid delta manifest JSON');
             }
         }
-        $deltas = is_array($decoded) && is_array($decoded['deltas'] ?? null) ? $decoded['deltas'] : [];
+        $object = json_decode($json);
+        if (!$object instanceof stdClass || !is_array($object->deltas ?? null)
+            || !is_array($decoded) || !is_array($decoded['deltas'] ?? null) || !array_is_list($decoded['deltas'])) {
+            throw new RuntimeException('Invalid delta manifest structure');
+        }
+        $deltas = $decoded['deltas'];
         $result = [];
         foreach ($deltas as $delta) {
-            if (is_array($delta)) {
-                $result[] = $delta;
+            if (!is_array($delta)
+                || preg_match('/^\\d+\\.\\d+\\.\\d+(?:\\.\\d+)?$/D', (string) ($delta['from'] ?? '')) !== 1
+                || preg_match('/^delta-[0-9.]+-to-[0-9.]+\\.zip$/D', (string) ($delta['package'] ?? '')) !== 1
+                || preg_match('/^(?:sha256:)?[a-f0-9]{64}$/D', (string) ($delta['hash'] ?? '')) !== 1) {
+                throw new RuntimeException('Invalid delta identity or SHA256');
             }
+            $result[] = $delta;
         }
         return $result;
     }
