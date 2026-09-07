@@ -6342,4 +6342,8 @@ voltage|电压|220V',
     'blox_banner_position_bottom_left' => '左下',
     'blox_banner_position_bottom_center' => '中下',
     'blox_banner_position_bottom_right' => '右下',
+    'blox_style_binding_none' => '未绑定全局样式 · 当前元素设置',
+    'blox_style_binding_shared' => '当前元素已绑定全局样式',
+    'blox_style_binding_remove' => '解除当前元素绑定',
+    'blox_style_binding_remove_hint' => '保留当前元素的局部设置，不修改全局定义',
 ];

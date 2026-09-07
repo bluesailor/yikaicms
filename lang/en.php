@@ -6274,4 +6274,8 @@ voltage|Voltage|220V',
     'blox_banner_position_bottom_left' => 'bottom left',
     'blox_banner_position_bottom_center' => 'bottom center',
     'blox_banner_position_bottom_right' => 'bottom right',
+    'blox_style_binding_none' => 'No shared style bound · Element settings',
+    'blox_style_binding_shared' => 'This element references a shared style',
+    'blox_style_binding_remove' => 'Unbind this element',
+    'blox_style_binding_remove_hint' => 'Keep local element settings without changing the shared definition',
 ];

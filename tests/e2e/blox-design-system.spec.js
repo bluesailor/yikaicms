@@ -92,6 +92,13 @@ test('token catalog and named preset apply through stable references @ci', async
   await expect(styled).toHaveCount(1);
   await expect(styled).toHaveAttribute('style', /background-color:var\(--yk-color-primary\)!important/);
 
+  await expect(page.getByTestId('blox-style-binding-remove')).toBeVisible();
+  await performPreviewUpdate(page, () => page.getByTestId('blox-style-binding-remove').click());
+  await expect(page.getByTestId('blox-global-style-select')).toHaveValue('');
+  await expect(page.getByTestId('blox-style-binding-remove')).toBeHidden();
+  await expect(canvas.locator('[data-yk-global-style="s_card"]')).toHaveCount(0);
+  await expect(canvas.locator('[data-yk-el-type="icon"] i')).toHaveAttribute('style', /color:var\(--yk-color-c_accent\)/);
+
   await restoreClean(page);
 });
 
