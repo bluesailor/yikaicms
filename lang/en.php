@@ -6195,4 +6195,6 @@ voltage|Voltage|220V',
     'blox_exp_source_token' => 'Design token',
     'blox_exp_source_default' => 'Element default',
     'blox_layout_overlay' => 'Image corner overlay',
+    'blox_builtin_section_friend_links_desc' => 'Show active partner links: logos when available, otherwise names. Links can also be customized in this section.',
+    'blox_builtin_section_friend_links_keywords' => 'partners friend links logos',
 ];

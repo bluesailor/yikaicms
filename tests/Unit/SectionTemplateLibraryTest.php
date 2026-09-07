@@ -119,6 +119,42 @@ final class SectionTemplateLibraryTest extends TestCase
         );
     }
 
+    public function testFriendLinksPresetImportsAsLiveHomePartnersWithFreshIds(): void
+    {
+        $provider = new BloxBuiltinTemplateProvider();
+        $items = array_column($provider->items('home'), null, 'key');
+        self::assertArrayHasKey('builtin:friend-links', $items);
+        self::assertSame(__('link_title'), $items['builtin:friend-links']['name']);
+        self::assertFileExists(ROOT_PATH . $items['builtin:friend-links']['thumbnail']);
+        self::assertNotContains('builtin:friend-links', array_column($provider->items('page'), 'key'));
+
+        $first = $provider->resolve('friend-links', 'home')['sections'][0];
+        $second = $provider->resolve('friend-links', 'home')['sections'][0];
+        self::assertNotSame($first['id'], $second['id']);
+        $element = $first['columns'][0]['elements'][0];
+        self::assertNotSame($element['id'], $second['columns'][0]['elements'][0]['id']);
+        self::assertSame('home-block', $element['type']);
+        self::assertSame(__('link_title'), $first['name']);
+        $data = HomeBloxBlockSchema::normalize($element['data']);
+        self::assertSame('partners', $data['block_type']);
+        self::assertSame(__('link_title'), $data['override_title']);
+        self::assertTrue($data['enabled']);
+        self::assertFalse($data['partners_custom']);
+
+        // A null collection lets the existing template read active links from the model.
+        $template = tempnam(sys_get_temp_dir(), 'yk-friend-links-');
+        self::assertNotFalse($template);
+        file_put_contents($template, '<?php echo $links === null ? "LIVE_LINKS" : "CUSTOM_LINKS"; echo e(config("home_links_title"));');
+        try {
+            $context = HomeBloxRenderContext::fromHomePageData([], ['partners' => $template], [], [], null, [], true);
+            $html = $context->renderLegacyBlock($element);
+            self::assertStringContainsString('LIVE_LINKS', $html);
+            self::assertStringContainsString(e(__('link_title')), $html);
+        } finally {
+            unlink($template);
+        }
+    }
+
     public function testHighFrequencySectionsCarryPageIntentMetadata(): void
     {
         $provider = new BloxBuiltinTemplateProvider();

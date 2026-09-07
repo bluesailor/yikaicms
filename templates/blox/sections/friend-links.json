@@ -1,0 +1,19 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Friend links",
+    "requires": {"elements": ["home-block"], "plugins": []},
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [{
+            "type": "section",
+            "settings": {"padding": "none", "max_width": "full", "container_gutter": "none", "gap": "none"},
+            "columns": [{"elements": [{
+                "type": "home-block",
+                "data": {"block_type": "partners", "enabled": true, "partners_custom": false}
+            }]}]
+        }]
+    }
+}

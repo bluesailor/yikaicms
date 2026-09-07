@@ -6263,4 +6263,6 @@ voltage|电压|220V',
     'blox_exp_source_token' => '设计变量',
     'blox_exp_source_default' => '元素默认',
     'blox_layout_overlay' => '图片角标叠放',
+    'blox_builtin_section_friend_links_desc' => '显示后台合作伙伴中的友情链接：有 Logo 显示图片，无 Logo 显示名称；也可在区块内自定义。',
+    'blox_builtin_section_friend_links_keywords' => '合作伙伴 友情链接 链接 Logo',
 ];
