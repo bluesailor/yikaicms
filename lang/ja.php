@@ -6335,4 +6335,5 @@ voltage|電圧|220V',
     'blox_exp_source_global' => 'グローバルスタイル優先',
     'blox_exp_source_token' => 'デザイン変数',
     'blox_exp_source_default' => '要素の初期値',
+    'blox_layout_overlay' => '画像の隅に重ねる',
 ];

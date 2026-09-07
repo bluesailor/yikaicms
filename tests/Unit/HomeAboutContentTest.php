@@ -82,7 +82,11 @@ final class HomeAboutContentTest extends TestCase
         ], 'snapshot');
         self::assertSame([4, 8], array_column($section['columns'], 'span'));
         self::assertFalse($section['settings']['tablet_stack']);
-        self::assertSame('/uploads/about.jpg', $section['columns'][0]['elements'][0]['data']['src']);
+        $visual = $section['columns'][0]['elements'][0];
+        self::assertSame('div', $visual['type']);
+        self::assertSame('overlay', $visual['data']['display']);
+        self::assertSame('/uploads/about.jpg', $visual['data']['children'][0]['data']['src']);
+        self::assertArrayNotHasKey('style_margin_top', $visual['data']['children'][1]['data']);
         $text = $section['columns'][1]['elements'];
         self::assertSame(['heading', 'divider', 'text', 'button'], array_column($text, 'type'));
         self::assertSame('Independent title', $text[0]['data']['text']);
@@ -96,6 +100,8 @@ final class HomeAboutContentTest extends TestCase
         $html = BlockRenderer::render($json);
         self::assertStringContainsString('Independent title', $html);
         self::assertStringContainsString('Quality', $html);
+        self::assertStringContainsString('yk-div-overlay', $html);
+        self::assertContains('/assets/css/blox-overlay.css', BloxAssetCollector::styles());
         self::assertStringNotContainsString('<script>alert', $html);
         $GLOBALS['yikai_config_runtime_overrides']['home_about_title'] = 'Changed site title';
         self::assertSame($html, BlockRenderer::render($json));

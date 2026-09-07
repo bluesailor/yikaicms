@@ -1,0 +1,15 @@
+/* Ordinary Div layout: the first child is the image, later children sit over its lower left corner.
+   Editor wrappers use display:contents; target their rendered children too. */
+.yk-div-overlay { display:grid; isolation:isolate; overflow:hidden; }
+.yk-div-overlay .prose :is(h1,h2,h3,h4,p) { margin-block:0; }
+.yk-div-overlay > *,
+.yk-div-overlay > .yk-edit-el > * { grid-area:1 / 1; min-width:0; }
+.yk-div-overlay > :not(:first-child),
+.yk-div-overlay > .yk-edit-el:not(:first-child) > * {
+    align-self:end;
+    justify-self:start;
+    margin:clamp(12px,3vw,24px);
+    max-width:calc(100% - 24px);
+    z-index:1;
+    overflow-wrap:anywhere;
+}

@@ -6262,4 +6262,5 @@ voltage|电压|220V',
     'blox_exp_source_global' => '全局样式优先',
     'blox_exp_source_token' => '设计变量',
     'blox_exp_source_default' => '元素默认',
+    'blox_layout_overlay' => '图片角标叠放',
 ];
