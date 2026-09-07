@@ -342,6 +342,14 @@ public static function isActive(): bool
                     continue;
                 }
             }
+            if ($type === 'about') {
+                $sections[] = HomeAboutContent::toSection(
+                    self::legacyBlockData($type, !empty($block['enabled']), $block),
+                    'home_s_' . $index,
+                    getChannelBySlug('about', true)
+                );
+                continue;
+            }
             $sections[] = [
                 'id'       => 'home_s_' . $index,
                 'type'     => 'section',

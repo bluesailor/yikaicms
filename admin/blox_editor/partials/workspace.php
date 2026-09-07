@@ -630,6 +630,12 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <template x-if="homeMode && selEl && selEl.type === 'home-block' && String((selEl.data || {}).block_type || '') === 'about' && panelTab === 'content'">
+                                <button type="button" @click="convertHomeAbout()" :disabled="convertingHomeAbout"
+                                        data-testid="blox-convert-about" class="w-full px-3 py-2 rounded border border-blue-200 text-blue-600 text-xs">
+                                    <?= e(__('blox_about_convert_standard')) ?>
+                                </button>
+                            </template>
                             <template x-if="selEl && selectedHomeColumn && !selectedHomeField && selEl.type === 'home-block' && String((selEl.data || {}).block_type || '') === 'about' && panelTab === 'content'">
                                 <div data-home-column-editor class="rounded border border-cyan-200 bg-cyan-50/60 p-3">
                                     <div class="flex items-center gap-2">

@@ -5,6 +5,80 @@ declare(strict_types=1);
 final class HomeAboutContent
 {
     /**
+     * Snapshot a legacy reference as ordinary, independently editable Blox nodes.
+     * Empty overrides retain their existing meaning: inherit the site value.
+     * @param array<string,mixed> $block
+     * @param array<string,mixed>|null $aboutChannel
+     * @return array<string,mixed>
+     */
+    public static function toSection(array $block = [], string $id = 'about', ?array $aboutChannel = null): array
+    {
+        $values = self::resolve($aboutChannel);
+        foreach ($values as $key => $fallback) {
+            $override = trim((string) ($block[$key] ?? ''));
+            $values[$key] = $override !== '' ? $override : $fallback;
+        }
+        $option = static function (string $key, string $fallback) use ($block): string {
+            $override = trim((string) ($block['override_' . $key] ?? ''));
+            return $override !== '' ? $override : (string) config('home_about_' . $key, $fallback);
+        };
+        $spans = match ($option('ratio', '1_1')) {
+            '5_7' => [5, 7], '7_5' => [7, 5], '1_2' => [4, 8], '2_1' => [8, 4],
+            default => [6, 6],
+        };
+        $node = static fn(string $suffix, string $type, array $data): array => [
+            'id' => $id . '_' . $suffix, 'type' => $type, 'data' => $data,
+        ];
+        $escape = static fn(string $text): string => htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $light = !empty($block['text_light']);
+        $text = [
+            $node('title', 'heading', ['text' => $values['override_title'], 'level' => 'h2',
+                'visual_size' => ['d' => '3xl', 'm' => '2xl'], 'align' => 'left', 'color' => $light ? '#ffffff' : '']),
+            $node('divider', 'divider', ['style' => 'solid', 'width' => 3, 'color' => '#2563eb',
+                'spacing' => 'sm', 'style_margin_right' => '88%']),
+            $node('body', 'text', ['html' => '<p class="text-lg leading-relaxed' . ($light ? ' text-white' : '') . '">'
+                . $escape($values['override_content']) . '</p>', 'style_margin_top' => '24px', 'style_margin_bottom' => '24px']),
+        ];
+        if ($values['override_button_url'] !== '') {
+            $text[] = $node('button', 'button', ['text' => $values['override_button_text'],
+                'url' => $values['override_button_url'], 'variant' => 'primary', 'shape' => 'pill', 'align' => 'left']);
+        }
+        $image = [$node('image', 'image', ['src' => $values['override_image'], 'alt' => $values['override_title']])];
+        $caption = [];
+        if ($values['override_tag_title'] !== '') {
+            $caption[] = $node('tag_title', 'heading', ['text' => $values['override_tag_title'],
+                'level' => 'h3', 'visual_size' => 'lg', 'color' => '#ffffff', 'align' => 'left', 'style_margin_bottom' => 'none']);
+        }
+        if ($values['override_tag_description'] !== '') {
+            $caption[] = $node('tag_body', 'text', ['html' => '<p class="text-white">'
+                . $escape($values['override_tag_description']) . '</p>']);
+        }
+        if ($caption !== []) {
+            $image[] = $node('caption', 'div', ['bg_color' => '#2563eb', 'padding' => 'sm',
+                'radius' => 'md', 'style_margin_top' => '12px', 'children' => $caption]);
+        }
+        $columns = [
+            ['id' => $id . '_text', 'span' => $spans[0], 'elements' => $text],
+            ['id' => $id . '_visual', 'span' => $spans[1], 'elements' => $image],
+        ];
+        if ($option('layout', 'text_left') === 'image_left') {
+            $columns = array_reverse($columns);
+        }
+        $settings = ['padding' => ['d' => 'xl', 'm' => 'lg'], 'max_width' => ($block['layout'] ?? '') === 'full' ? 'full' : 'wide',
+            'gap' => 'xl', 'container_gutter' => 'default', 'align_items' => 'center', 'tablet_stack' => $option('breakpoint', 'lg') !== 'md'];
+        foreach (['bg_color', 'bg_image', 'bg_opacity', 'bg_overlay_color', 'bg_overlay_opacity'] as $key) {
+            if (array_key_exists($key, $block)) {
+                $settings[$key] = $block[$key];
+            }
+        }
+        if (isset($block['enabled']) && !$block['enabled']) {
+            $settings['hidden'] = true;
+        }
+        return ['id' => $id, 'type' => 'section', 'name' => __('blox_hb_about'),
+            'settings' => $settings, 'columns' => $columns];
+    }
+
+    /**
      * Resolve the same values for the theme, editor hints and legacy import.
      * Runtime block overrides are already applied by HomeBloxRenderContext.
      * @param array<string, mixed>|null $aboutChannel
