@@ -6289,4 +6289,5 @@ voltage|Voltage|220V',
     'blox_source_reset' => 'Clear the local element value',
     'blox_about_convert_standard' => 'Convert to standard section',
     'blox_layout_overlay' => 'Image corner overlay',
+    'blox_home_partners_custom' => 'Use page-specific partners (up to 12; blank names are hidden)',
 ];

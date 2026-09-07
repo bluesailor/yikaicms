@@ -6430,4 +6430,5 @@ voltage|電圧|220V',
     'blox_source_reset' => 'この要素の個別値を解除',
     'blox_about_convert_standard' => '標準セクションに変換',
     'blox_layout_overlay' => '画像の隅に重ねる',
+    'blox_home_partners_custom' => 'このページ専用のパートナー（最大12件、名前が空欄の項目は非表示）',
 ];

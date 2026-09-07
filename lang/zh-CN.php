@@ -6357,4 +6357,5 @@ voltage|电压|220V',
     'blox_source_reset' => '清除当前元素的局部值',
     'blox_about_convert_standard' => '转为通用区块',
     'blox_layout_overlay' => '图片角标叠放',
+    'blox_home_partners_custom' => '使用本页合作伙伴（最多 12 项，名称留空不显示）',
 ];
