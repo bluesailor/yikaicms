@@ -6317,4 +6317,5 @@ voltage|電圧|220V',
     'media_usage_kind_card_image' => 'カード画像',
     'media_usage_kind_unknown' => 'メディア参照',
     'blox_leave_unsaved_confirm' => 'サーバーに保存されていない変更があります。このまま戻りますか？',
+    'blox_home_partners_custom' => 'このページ専用のパートナー（最大12件、名前が空欄の項目は非表示）',
 ];

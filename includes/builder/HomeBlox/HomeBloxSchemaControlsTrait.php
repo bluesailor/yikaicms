@@ -35,6 +35,13 @@ trait HomeBloxSchemaControlsTrait
 
         return [
             [
+                'key' => 'partners_custom',
+                'type' => 'checkbox',
+                'label' => __('blox_home_partners_custom'),
+                'default' => false,
+                'required' => ['block_type', '=', 'partners'],
+            ],
+            [
                 'key' => 'block_type',
                 'type' => 'select',
                 'label' => __('blox_home_source'),
@@ -666,6 +673,17 @@ trait HomeBloxSchemaControlsTrait
         foreach (['testimonials', 'partners', 'product_categories'] as $type) {
             $blueprints[$type] = $headingBlueprint;
         }
+        $blueprints['partners']['groups'][] = [
+            'key' => 'partners',
+            'label' => __('blox_hb_partners'),
+            'icon' => 'link',
+            'repeat' => 12,
+            'fields' => [
+                ['key' => 'partner_items.{index}.name', 'icon' => 'forms', 'label' => __('link_name'), 'control' => 'text'],
+                ['key' => 'partner_items.{index}.url', 'icon' => 'link', 'label' => __('link_url'), 'control' => 'url'],
+                ['key' => 'partner_items.{index}.logo', 'icon' => 'photo', 'label' => __('link_logo'), 'control' => 'image'],
+            ],
+        ];
         foreach (array_keys(self::sourceOptions()) as $type) {
             if (str_starts_with($type, 'channel:')) {
                 $blueprints[$type] = $headingBlueprint;
