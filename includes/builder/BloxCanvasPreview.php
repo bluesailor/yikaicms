@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/BloxPreviewShell.php';
+
 /**
  * Render the current theme-owned area without its document shell.
  *
@@ -66,16 +68,13 @@ function renderBloxCanvasThemeArea(
     if ($rendered === '') {
         return '';
     }
-    $themeStyles = '';
-    if ($area === 'header' && preg_match_all('/<style\b[^>]*>.*?<\/style>/is', $rendered, $styleMatches) > 0) {
-        $themeStyles = implode('', $styleMatches[0]);
-    }
     if ($area === 'header') {
+        BloxPreviewShell::capture($rendered);
         $bodyStart = stripos($rendered, '<body');
         $bodyEnd = $bodyStart === false ? false : strpos($rendered, '>', $bodyStart);
         $mainStart = $bodyEnd === false ? false : stripos($rendered, '<main', $bodyEnd);
         return $bodyEnd !== false && $mainStart !== false
-            ? $themeStyles . substr($rendered, $bodyEnd + 1, $mainStart - $bodyEnd - 1)
+            ? substr($rendered, $bodyEnd + 1, $mainStart - $bodyEnd - 1)
             : '';
     }
     $footerStart = stripos($rendered, '<footer');
@@ -100,7 +99,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
     BloxElementPolicy::assertJsonAllowed($previewJson);
     BloxQueryLoopPolicy::assertJsonAllowed($previewJson);
     BloxDisplayConditions::assertJsonAllowed($previewJson);
-    BlockRenderer::$showHidden = true;
+    BlockRenderer::$showHidden = $bloxCanvas;
     if ($bloxCanvas) {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
         // 首页没有真实 channel id，但编辑态仍需要一个非零标记开关输出 data-yk-* 定位属性。
@@ -406,16 +405,10 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             ? $renderPublishedArea('header', $areaContext, $contextScript) : '';
         $footerBlox = $footerEnabled && $themeRendersArea('footer')
             ? $renderPublishedArea('footer', $areaContext, $contextScript) : '';
+        $themeHeaderBody = $renderThemeArea('header', $contextScript, $areaContext['channel_id'], $areaContext['page_id'], $contextTitle, $contextSlug);
         $headerBody = $wrapContextArea(
             'header',
-            $headerBlox !== '' ? $headerBlox : $renderThemeArea(
-                'header',
-                $contextScript,
-                $areaContext['channel_id'],
-                $areaContext['page_id'],
-                $contextTitle,
-                $contextSlug
-            ),
+            $headerBlox !== '' ? $headerBlox : $themeHeaderBody,
             $headerBlox !== '' ? 'blox' : 'theme',
             BloxAreaEditorTarget::url('header', $areaContext, $isHomeLayout ? 'home' : '')
         );
@@ -440,7 +433,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             : $pageBody;
         $mainBody = $pageHeroBody . $pageContentBody;
         $body = $hasCanvasContent
-            ? ($headerBody . '<main class="flex-1">' . $mainBody . '</main>' . $footerBody)
+            ? ($headerBody . BloxPreviewShell::$main . $mainBody . '</main>' . $footerBody)
             : ($pageHeroBody . $pageBody);
     }
 
@@ -1921,6 +1914,9 @@ HTML;
         ]);
     }
 
+    if (!BloxPreviewShell::$captured) {
+        renderBloxCanvasThemeArea('header', '/index.php', 0, 0, __('home'), '');
+    }
     $previewStyles = BloxAssetCollector::renderStyles();
     // 画布与后台同源，Code 元素中的脚本不能继承管理员权限运行。nonce 按会话稳定，
     // 既让可信画布脚本执行，也保证连续预览的 head 签名一致、仍可做局部 DOM patch。
@@ -1958,7 +1954,8 @@ HTML;
         . '<base target="_blank">'
         . BloxDesignSystem::styleTag()
         . $previewStyles
-        . '<style>body{margin:0;background:#fff}</style></head><body>'
+        . BloxPreviewShell::$styles
+        . '</head>' . BloxPreviewShell::$body
         . $body
         . '<script' . $nonceAttr . ' src="' . assetVer('/assets/swiper/swiper-bundle.min.js') . '"></script>'
         . $previewScripts

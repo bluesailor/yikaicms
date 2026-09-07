@@ -191,6 +191,7 @@ declare(strict_types=1);
                 </div>
 
                 <div class="flex-1 overflow-y-auto blox-scroll p-4" data-testid="blox-property-scroll">
+                    <?php require __DIR__ . '/cta-quick.php'; ?>
                     <template x-if="panelTab === 'content' && isNavigationElementSelected()">
                         <div class="mb-4 space-y-3 border-b border-gray-100 pb-4" data-testid="blox-navigation-quick-settings">
                             <div>
@@ -1471,6 +1472,7 @@ declare(strict_types=1);
                                     </template>
 
                                     <?php require __DIR__ . '/home-content-source.php'; ?>
+                                    <?php require __DIR__ . '/style-source.php'; ?>
                                     <p x-show="ctrl.responsive && previewDevice !== 'desktop'"
                                        class="-mt-0.5 mb-1.5 text-[10px] text-gray-400 flex items-center gap-1">
                                         <i class="ti" :class="controlResponsiveState(ctrl).overridden ? 'ti-adjustments' : 'ti-link'"></i>
@@ -1933,7 +1935,7 @@ declare(strict_types=1);
                     <!-- ── 区块设置：内容 / 样式 两页签 ── -->
                     <template x-if="sel && !selEl && !selectedSectionField && panelTab !== 'condition'">
                         <div>
-                            <div x-show="panelTab === 'content'" class="space-y-5">
+                            <div x-show="panelTab === 'content' && (!ctaQuickTarget() || ctaQuickDetails || ctrlQuery.trim() || modifiedOnly)" class="space-y-5">
                                 <template x-if="selLayer === 'con'">
                                     <p class="text-xs text-gray-400 leading-relaxed">
                                         <?= __('blox_container_help') ?>
@@ -2007,6 +2009,7 @@ declare(strict_types=1);
                                 <div x-show="selLayer === 'sec'" class="blox-property-pair-grid" data-testid="blox-section-property-grid">
                                 <!-- 背景色 -->
                                 <div class="blox-property-span-full">
+                                    <?php $sourceField = 'bg_color'; $sourceFallback = ''; require __DIR__ . '/section-style-source.php'; ?>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_color') ?></label>
                                     <button type="button"
                                             @click="openEditorColorPicker($event, 'section-bg', <?= e($jt('blox_bg_color')) ?>, sel.settings.bg_color, '#ffffff', true, value => sel.settings.bg_color = value)"
@@ -2405,6 +2408,7 @@ declare(strict_types=1);
                                 <!-- 容器宽度：预设四档 + 自定义 px -->
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_container_width') ?></label>
+                                    <?php $sourceField = 'max_width'; $sourceFallback = 'default'; require __DIR__ . '/section-style-source.php'; ?>
                                     <select x-model="sel.settings.max_width"
                                             class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm bg-white">
                                         <option value="default"><?= __('blox_width_default') ?></option>

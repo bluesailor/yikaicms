@@ -1,5 +1,14 @@
 /* Minimal Theme - Style Overrides */
 
+:root { --yk-content-max-width:1080px; }
+.minimal-theme .container { max-width:var(--yk-content-max-width); }
+.minimal-theme .minimal-showcase { padding-block:clamp(3rem,7vw,7rem); }
+.minimal-theme .minimal-showcase .grid { column-gap:2.5rem; row-gap:3.5rem; }
+.minimal-theme .minimal-showcase h2 { font-size:clamp(1.75rem,3vw,2.75rem); line-height:1.25; }
+.minimal-theme .minimal-showcase .minimal-work-image { aspect-ratio:3/2; }
+.minimal-theme .minimal-showcase .minimal-work-card { border:0; }
+.minimal-theme .minimal-showcase .minimal-work-card h3 { font-size:1rem; line-height:1.6; }
+
 /*
  * Fresh minimal palette: cool white canvas, mineral ink and restrained teal.
  * Keep color semantic so content stays quiet while actions and selection remain clear.

@@ -3,17 +3,19 @@
  * Minimal Theme - Channel Block
  * Variables: $currentChannel, $block
  */
+declare(strict_types=1);
+
 if (empty($currentChannel)) return;
 $bg = getBlockBg($block ?? [], 'bg-white');
 $hChannel = $currentChannel;
 $channelType = $hChannel['type'];
 $contents = $hChannel['contents'];
 $perRow = (int) ($hChannel['per_row'] ?? 0);
-$productGrid = AbstractElement::gridClasses($perRow, 4);
-$caseGrid = AbstractElement::gridClasses($perRow, 3);
-$articleGrid = AbstractElement::gridClasses($perRow, 4);
+$productGrid = AbstractElement::gridClasses($perRow, 2);
+$caseGrid = AbstractElement::gridClasses($perRow, 2);
+$articleGrid = AbstractElement::gridClasses($perRow, 3);
 ?>
-<section class="py-20 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
+<section class="minimal-showcase py-20 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?> px-6 lg:px-8">
         <!-- Section Title -->
@@ -45,8 +47,8 @@ $articleGrid = AbstractElement::gridClasses($perRow, 4);
 
         <div class="grid <?php echo $productGrid; ?> gap-6" id="productGrid">
             <?php foreach ($contents as $item): ?>
-            <a href="<?php echo productUrl($item); ?>" class="product-item block border border-gray-200 hover:border-gray-400 transition group" data-category="<?php echo $item['category_id'] ?? 0; ?>">
-                <div class="aspect-[4/3] overflow-hidden">
+            <a href="<?php echo productUrl($item); ?>" class="minimal-work-card product-item block border border-gray-200 hover:border-gray-400 transition group" data-category="<?php echo $item['category_id'] ?? 0; ?>">
+                <div class="minimal-work-image aspect-[4/3] overflow-hidden">
                     <?php if ($item['cover']): ?>
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover">
                     <?php else: ?>
@@ -73,8 +75,8 @@ $articleGrid = AbstractElement::gridClasses($perRow, 4);
         <!-- Cases -->
         <div class="grid <?php echo $caseGrid; ?> gap-8">
             <?php foreach ($contents as $item): ?>
-            <a href="<?php echo contentUrl($item); ?>" class="block border border-gray-200 hover:border-gray-400 transition group">
-                <div class="aspect-[4/3] overflow-hidden">
+            <a href="<?php echo contentUrl($item); ?>" class="minimal-work-card block border border-gray-200 hover:border-gray-400 transition group">
+                <div class="minimal-work-image aspect-[4/3] overflow-hidden">
                     <?php if ($item['cover']): ?>
                     <img loading="lazy" src="<?php echo e(thumbnail($item['cover'], 'medium')); ?>" alt="<?php echo e($item['title']); ?>" class="w-full h-full object-cover">
                     <?php else: ?>
