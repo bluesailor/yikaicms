@@ -6194,4 +6194,5 @@ voltage|Voltage|220V',
     'blox_exp_source_global' => 'Global style takes precedence',
     'blox_exp_source_token' => 'Design token',
     'blox_exp_source_default' => 'Element default',
+    'blox_layout_overlay' => 'Image corner overlay',
 ];
