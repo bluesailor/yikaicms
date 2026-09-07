@@ -70,16 +70,22 @@ if (!is_file($configPath)) {
  * 查询串判断版本，而主题包动辄百 KB 起，没必要一律读回内存。
  */
 $fetcher = static function (string $url, bool $wantBody = false): array {
-    $bodyFile = $wantBody ? tempnam(sys_get_temp_dir(), 'yk-fetch-') : null;
-    $sink = $bodyFile ?? (PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null');
+    $bodyFile = tempnam(sys_get_temp_dir(), 'yk-fetch-');
+    if (!is_string($bodyFile)) {
+        return ['status' => 0, 'type' => '', 'bytes' => 0, 'error' => 'cannot create evidence file'];
+    }
+    $sink = $bodyFile;
     $command = [
-        'curl', '-sS', '-L', '--max-time', '30',
+        'curl', '-sS', '-L', '--max-time', '120', '--connect-timeout', '15',
+        '--proto', '=https', '--proto-redir', '=https', '--max-filesize', '268435456',
+        '-A', 'YikaiCMS-ReleaseChannelAudit',
         '-o', $sink,
         '-w', '%{http_code}|%{content_type}|%{size_download}',
         $url,
     ];
     $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
     if (!is_resource($process)) {
+        @unlink($bodyFile);
         return ['status' => 0, 'type' => '', 'bytes' => 0, 'error' => 'cannot start curl'];
     }
     $stdout = (string) stream_get_contents($pipes[1]);
@@ -89,15 +95,16 @@ $fetcher = static function (string $url, bool $wantBody = false): array {
     $code = proc_close($process);
 
     $body = '';
-    if ($bodyFile !== null) {
+    $sha256 = hash_file('sha256', $bodyFile);
+    if ($wantBody) {
         // 只读回前 512 KB：版本探针在 <head>/资源引用里，不需要整页。
         $handle = @fopen($bodyFile, 'rb');
         if (is_resource($handle)) {
             $body = (string) fread($handle, 512 * 1024);
             fclose($handle);
         }
-        @unlink($bodyFile);
     }
+    @unlink($bodyFile);
 
     $parts = array_pad(explode('|', trim($stdout)), 3, '');
     if ($code !== 0) {
@@ -112,7 +119,7 @@ $fetcher = static function (string $url, bool $wantBody = false): array {
     }
     return [
         'status' => (int) $parts[0], 'type' => $parts[1], 'bytes' => (int) $parts[2],
-        'error' => '', 'body' => $body,
+        'error' => '', 'body' => $body, 'sha256' => is_string($sha256) ? $sha256 : '',
     ];
 };
 

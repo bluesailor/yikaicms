@@ -272,6 +272,106 @@ final class ReleaseChannelAuditTest extends TestCase
 
     // ── 辅助 ──────────────────────────────────────────────────────────
 
+    public function testOldDownloadCannotBeHiddenByCommentsScriptsOrPlainText(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $path = $this->workspace . '/yikaicms.com.yikai/index.html';
+        $target = 'https://update.yikaicms.com/packages/yikaicms-v9.9.9.zip';
+        foreach (['<!-- v9.9.9 ' . $target . ' -->', '<script>"v9.9.9 ' . $target . '"</script>', '<p>v9.9.9 ' . $target . '</p>'] as $noise) {
+            file_put_contents($path, $this->homeHtml('9.9.8') . $noise);
+            $report = $this->audit(ReleaseChannelAudit::MODE_POST_RELEASE, $this->okFetcher());
+            self::assertFalse($report['ok']);
+            self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['website']['status']);
+        }
+    }
+
+    public function testMissingUpdateDirectoryIsNeverCandidateOptional(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $config = $this->config();
+        $config['update_server']['dir_default'] = 'missing-update';
+        foreach ([ReleaseChannelAudit::MODE_CANDIDATE, ReleaseChannelAudit::MODE_POST_RELEASE] as $mode) {
+            $report = ReleaseChannelAudit::run($config, self::VERSION, $mode, $this->workspace);
+            self::assertFalse($report['ok']);
+            self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['market']['status']);
+        }
+    }
+
+    public function testMalformedDeltaManifestCannotPassCandidateArchive(): void
+    {
+        $this->workspace = $this->buildFixture();
+        foreach (['{BROKEN JSON', '{}', '{"deltas":{}}', '{"deltas":[{"from":"9.9.8","package":"delta-9.9.8-to-9.9.9.zip"}]}'] as $invalid) {
+            file_put_contents($this->workspace . '/yikaicms.yikai/releases/deltas-v9.9.9.json', $invalid);
+            $report = $this->audit(ReleaseChannelAudit::MODE_CANDIDATE);
+            self::assertFalse($report['ok']);
+            self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['archive']['status']);
+        }
+    }
+
+    public function testOnlineRequestCoverageIncludesEveryReleaseChannel(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $fetch = $this->okFetcher();
+        $requests = [];
+        $report = $this->audit(ReleaseChannelAudit::MODE_POST_RELEASE, static function (string $url, bool $body) use ($fetch, &$requests): array {
+            $requests[] = $url;
+            return $fetch($url, $body);
+        });
+        self::assertTrue($report['ok'], $this->describe($report));
+        foreach (['index.html', 'en/index.html', 'ja/index.html', 'changelog.html', 'en/changelog.html', 'ja/changelog.html'] as $page) {
+            self::assertContains('https://www.yikaicms.com/' . $page, $requests);
+        }
+        foreach (['https://update.yikaicms.com/catalog.json', 'https://update.yikaicms.com/api/themes/list.php',
+            'https://update.yikaicms.com/packages/yikaicms-v9.9.9.zip',
+            'https://update.yikaicms.com/packages/delta-9.9.8-to-9.9.9.zip',
+            'https://api.github.com/repos/bluesailor/yikaicms/releases/tags/v9.9.9',
+            'https://api.github.com/repos/bluesailor/yikaicms/commits/v9.9.9',
+            'https://github.com/bluesailor/yikaicms/releases/download/v9.9.9/yikaicms-v9.9.9.zip'] as $url) {
+            self::assertContains($url, $requests);
+        }
+    }
+
+    public function testUnavailableReadOnlyCatalogCannotClaimPostReleaseSuccess(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $config = $this->config();
+        $config['update_server']['catalog_url'] = '';
+        $report = ReleaseChannelAudit::run($config, self::VERSION, ReleaseChannelAudit::MODE_POST_RELEASE, $this->workspace, $this->okFetcher());
+        self::assertFalse($report['ok']);
+        self::assertSame(ReleaseChannelAudit::SKIPPED, $report['channels']['update_server']['status']);
+        self::assertCount(2, array_filter($report['channels']['update_server']['checks'], static fn (array $check): bool => $check['name'] === 'Online package SHA256' && $check['ok'] === true));
+    }
+
+    public function testRemoteFailuresCannotBeMaskedByCorrectLocalFiles(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $fetch = $this->okFetcher();
+        $cases = [
+            ['website', 'https://www.yikaicms.com/ja/index.html', 'body', $this->homeHtml('9.9.8')],
+            ['update_server', 'https://update.yikaicms.com/packages/yikaicms-v9.9.9.zip', 'status', 404],
+            ['update_server', 'https://update.yikaicms.com/packages/delta-9.9.8-to-9.9.9.zip', 'sha256', hash('sha256', 'wrong')],
+            ['update_server', 'https://update.yikaicms.com/catalog.json', 'body', '{"latest":"9.9.8","releases":[]}'],
+            ['market', 'https://update.yikaicms.com/packages/themes/business-v1.0.15.zip', 'sha256', hash('sha256', 'wrong')],
+            ['market', 'https://update.yikaicms.com/api/themes/list.php', 'body', '{"code":0,"data":{"themes":[{"slug":"aurora"}]}}'],
+            ['github', 'https://api.github.com/repos/bluesailor/yikaicms/releases/tags/v9.9.9', 'body', '<html>Login</html>'],
+            ['github', 'https://api.github.com/repos/bluesailor/yikaicms/releases/tags/v9.9.9', 'body', '{"draft":true,"prerelease":false,"tag_name":"v9.9.9","published_at":"2026-09-08T00:00:00Z","assets":[]}'],
+            ['github', 'https://api.github.com/repos/bluesailor/yikaicms/releases/tags/v9.9.9', 'body', '{"draft":false,"prerelease":false,"tag_name":"v9.9.9","published_at":"2026-09-08T00:00:00Z","assets":[]}'],
+            ['github', 'https://api.github.com/repos/bluesailor/yikaicms/commits/v9.9.9', 'body', '{"sha":"wrong"}'],
+            ['github', 'https://github.com/bluesailor/yikaicms/releases/download/v9.9.9/yikaicms-v9.9.9.zip', 'sha256', hash('sha256', 'wrong')],
+        ];
+        foreach ($cases as [$channel, $target, $key, $value]) {
+            $report = $this->audit(ReleaseChannelAudit::MODE_POST_RELEASE, static function (string $url, bool $body) use ($fetch, $target, $key, $value): array {
+                $result = $fetch($url, $body);
+                if ($url === $target) {
+                    $result[$key] = $value;
+                }
+                return $result;
+            });
+            self::assertFalse($report['ok'], $target);
+            self::assertSame(ReleaseChannelAudit::FAILED, $report['channels'][$channel]['status'], $target);
+        }
+    }
+
     /** @return array<string,mixed> */
     private function audit(string $mode, ?callable $fetcher = null): array
     {
@@ -281,15 +381,42 @@ final class ReleaseChannelAuditTest extends TestCase
     /** @param string $demoAssetVersion 演示站前台资源查询串报出的版本 */
     private function okFetcher(string $demoAssetVersion = self::VERSION): callable
     {
-        return static fn (string $url, bool $wantBody = false): array => [
-            'status' => 200,
-            'type' => str_ends_with($url, '.zip') ? 'application/zip' : 'text/html',
-            'bytes' => 4096,
-            'error' => '',
-            'body' => $wantBody
-                ? '<html><script src="/assets/js/code-copy.js?v=' . $demoAssetVersion . '" defer></script></html>'
-                : '',
-        ];
+        return function (string $url, bool $wantBody = false) use ($demoAssetVersion): array {
+            $root = $this->workspace;
+            $body = '<html>Release</html>';
+            if (str_starts_with($url, 'https://www.yikaicms.com/')) {
+                $path = $root . '/yikaicms.com.yikai/' . substr($url, strlen('https://www.yikaicms.com/'));
+                if (!is_file($path)) {
+                    return ['status' => 404, 'type' => 'text/html', 'bytes' => 0, 'error' => ''];
+                }
+                $body = (string) file_get_contents($path);
+            } elseif (str_contains($url, 'demo.yikaicms.com')) {
+                $body = '<script src="/assets/js/code-copy.js?v=' . $demoAssetVersion . '"></script>';
+            } elseif (str_ends_with($url, '/catalog.json')) {
+                $body = (string) file_get_contents($root . '/update.yikaicms/data/releases.json');
+            } elseif (str_contains($url, '/api/themes/list.php')) {
+                $data = json_decode((string) file_get_contents($root . '/update.yikaicms/data/themes.json'), true);
+                foreach ($data['themes'] as &$theme) {
+                    $theme['download_url'] = 'https://update.yikaicms.com/packages/themes/' . $theme['package'];
+                }
+                unset($theme);
+                $body = (string) json_encode(['code' => 0, 'data' => $data]);
+            } elseif (str_contains($url, 'api.github.com') && str_contains($url, '/commits/')) {
+                $body = (string) json_encode(['sha' => str_repeat('a', 40)]);
+            } elseif (str_contains($url, 'api.github.com')) {
+                $body = (string) json_encode(['draft' => false, 'prerelease' => false, 'tag_name' => 'v9.9.9',
+                    'published_at' => '2026-09-08T00:00:00Z', 'assets' => [
+                        ['name' => 'yikaicms-v9.9.9.zip', 'state' => 'uploaded'],
+                        ['name' => 'yikaicms-v9.9.9.sha256', 'state' => 'uploaded'],
+                    ]]);
+            } elseif (str_contains($url, '/packages/') || str_contains($url, '/releases/download/')) {
+                $file = basename($url);
+                $dir = str_contains($url, '/packages/themes/') ? '/update.yikaicms/packages/themes/' : '/yikaicms.yikai/releases/';
+                $body = (string) file_get_contents($root . $dir . $file);
+            }
+            return ['status' => 200, 'type' => str_ends_with($url, '.zip') ? 'application/zip' : 'text/html',
+                'bytes' => strlen($body), 'error' => '', 'body' => $wantBody ? $body : '', 'sha256' => hash('sha256', $body)];
+        };
     }
 
     /** @return array<string,mixed> */
@@ -299,6 +426,7 @@ final class ReleaseChannelAuditTest extends TestCase
         return [
             'schema' => 1,
             'website' => [
+                'base_url' => 'https://www.yikaicms.com',
                 'dir_env' => 'YK_TEST_WEBSITE_DIR',
                 'dir_default' => 'yikaicms.com.yikai',
                 'home_pages' => ['zh-CN' => 'index.html', 'en' => 'en/index.html', 'ja' => 'ja/index.html'],
@@ -314,16 +442,19 @@ final class ReleaseChannelAuditTest extends TestCase
                 'delta_manifest' => 'deltas-v{version}.json',
             ],
             'update_server' => [
+                'catalog_url' => 'https://update.yikaicms.com/catalog.json',
+                'package_url' => 'https://update.yikaicms.com/packages/{package}',
                 'dir_env' => 'YK_TEST_UPDATE_ROOT',
                 'dir_default' => 'update.yikaicms',
                 'catalog' => 'data/releases.json',
                 'registry' => 'data/release-registry.json',
             ],
             'market' => [
+                'registry_url' => 'https://update.yikaicms.com/api/themes/list.php',
                 'registry' => 'data/themes.json',
                 'approved' => ['business', 'minimal'],
                 'delisted' => ['aurora', 'trade'],
-                'package_url' => 'https://update.yikaicms.com/packages/{package}',
+                'package_url' => 'https://update.yikaicms.com/packages/themes/{package}',
             ],
             'demo' => [
                 'dir_env' => 'YK_TEST_DEMO_DIR',

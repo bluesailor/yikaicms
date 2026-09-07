@@ -20,6 +20,7 @@ return [
 
     // 官网。six pages：三语首页 + 三语更新日志，缺一不可。
     'website' => [
+        'base_url' => 'https://www.yikaicms.com',
         // 相对 workspace（仓库父目录）；YK_WEBSITE_DIR 可覆盖为绝对路径。
         'dir_env' => 'YK_WEBSITE_DIR',
         'dir_default' => 'yikaicms.com.yikai',
@@ -50,6 +51,9 @@ return [
 
     // 升级服务器。复用既有 ReleaseUploadGuard，不另造一套判定。
     'update_server' => [
+        'package_url' => 'https://update.yikaicms.com/packages/{package}',
+        // 数据目录禁止公开访问。只允许运维配置专用只读元数据地址；未配置不能证明线上目录已同步。
+        'catalog_url' => getenv('YK_RELEASE_CATALOG_URL') ?: '',
         'dir_env' => 'YK_UPDATE_ROOT',
         'dir_default' => 'update.yikaicms',
         'catalog' => 'data/releases.json',
@@ -59,11 +63,12 @@ return [
     // 模板市场。approved 是「当前批准上架清单」，不是「源码里有哪些主题」。
     // default 随核心分发，不走市场包，因此不在这里。
     'market' => [
+        'registry_url' => 'https://update.yikaicms.com/api/themes/list.php',
         'registry' => 'data/themes.json',
         'approved' => ['business', 'minimal'],
         // 明确记录已下架的 slug：它们**必须不在**注册表里，出现即失败。
         'delisted' => ['aurora', 'trade'],
-        'package_url' => 'https://update.yikaicms.com/packages/{package}',
+        'package_url' => 'https://update.yikaicms.com/packages/themes/{package}',
     ],
 
     // 演示站 demo.yikaicms.com。
