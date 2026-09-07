@@ -8,7 +8,7 @@
  *
  * 定位（Bricks 做法）：菜单 li 不做定位上下文，面板 absolute inset-x-0 相对
  * **元素根**展开 → 面板天然与导航容器同宽，零边界溢出（Avada 边界感知的
- * 零成本替代）。开闭：CSS hover + focus-within（键盘可达），无 JS。
+ * 零成本替代）。开闭：CSS hover + focus-within（键盘可达）；溢出项由共用脚本收进「更多」。
  *
  * 内建 `hidden xl:flex`：mega menu 语义即桌面导航——较窄屏幕配 nav-drawer（r8），
  * 与 NavElement+hide_on 的组合同一模式。
@@ -25,6 +25,11 @@ final class NavMegaElement extends AbstractElement
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }
     public function supportsBoxStyles(): bool { return false; }
+
+    public function scripts(): array
+    {
+        return ['/assets/js/blox-nav-overflow.js'];
+    }
 
     public function controls(): array
     {
@@ -209,7 +214,8 @@ final class NavMegaElement extends AbstractElement
         }
 
         return '<nav class="yk-mega relative hidden xl:flex min-w-0 flex-1 justify-end" aria-label="' . htmlspecialchars(__('blox_el_nav_mega'), ENT_QUOTES) . '">'
-            . '<ul class="flex flex-nowrap items-center gap-1 whitespace-nowrap">' . $items . self::ctaHtml($data) . '</ul></nav>';
+            . '<ul class="flex flex-nowrap items-center gap-1 whitespace-nowrap" data-yk-nav-overflow="'
+            . htmlspecialchars(__('nav_more'), ENT_QUOTES) . '">' . $items . self::ctaHtml($data) . '</ul></nav>';
     }
 
     /** @param array<string,mixed> $kid 面板列：子栏目标题（可点）+ 可选描述 + 孙级链接列表 */
