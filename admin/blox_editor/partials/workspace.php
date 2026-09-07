@@ -1268,6 +1268,16 @@ declare(strict_types=1);
                                                 <option :value="style.id" x-text="globalStyleLabel(style)"></option>
                                             </template>
                                         </select>
+                                        <div data-testid="blox-style-binding-status" class="mt-2 text-xs text-gray-600">
+                                            <span x-show="!selEl.data._global_style"><?= e(__('blox_style_binding_none')) ?></span>
+                                            <span x-show="!!selEl.data._global_style"><?= e(__('blox_style_binding_shared')) ?></span>
+                                        </div>
+                                        <button x-show="!!selEl.data._global_style" type="button"
+                                                data-testid="blox-style-binding-remove" @click="applyGlobalStyle('')"
+                                                class="mt-2 text-xs text-gray-600 hover:text-emerald-600"
+                                                title="<?= e(__('blox_style_binding_remove_hint')) ?>">
+                                            <i class="ti ti-unlink" aria-hidden="true"></i> <?= e(__('blox_style_binding_remove')) ?>
+                                        </button>
                                     </div>
                                     <div class="flex items-center justify-between">
                                         <span class="text-xs font-semibold text-gray-600 inline-flex items-center gap-1.5">

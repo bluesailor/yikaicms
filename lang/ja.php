@@ -6415,4 +6415,8 @@ voltage|電圧|220V',
     'blox_banner_position_bottom_left' => '左下',
     'blox_banner_position_bottom_center' => '下中央',
     'blox_banner_position_bottom_right' => '右下',
+    'blox_style_binding_none' => '共通スタイル未設定 · 要素の設定',
+    'blox_style_binding_shared' => 'この要素は共通スタイルを参照しています',
+    'blox_style_binding_remove' => 'この要素の関連付けを解除',
+    'blox_style_binding_remove_hint' => '要素の個別設定を保持し、共通定義は変更しません',
 ];
