@@ -6178,4 +6178,6 @@ voltage|Voltage|220V',
     'blox_leave_unsaved_confirm' => 'You have unsaved changes that are not saved to the server. Return anyway?',
     'blox_home_partners_custom' => 'Use page-specific partners (up to 12; blank names are hidden)',
     'blox_about_convert_standard' => 'Convert to standard section',
+    'blox_left_panel_collapse' => 'Collapse left panel',
+    'blox_left_panel_expand' => 'Expand left panel',
 ];

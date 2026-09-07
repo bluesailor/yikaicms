@@ -19,6 +19,7 @@ function selectedState() {
         sections: [{ id: 'one' }, { id: 'two' }], dirty: false,
         get sel() { return this.sections[this.selectedSi] || null; },
         multiSelReset() { this.multiReset = true; },
+        expandLeftPanel() { this.leftPanelCollapsed = false; },
         highlightCanvasSelection() { this.highlighted = this.selectedSi; },
         deselectAll: new Function(clearBody),
         ctx: { open: false },

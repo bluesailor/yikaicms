@@ -1777,6 +1777,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 )
             ), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             leftPanelWidth: 288,
+            leftPanelCollapsed: false,
+            leftPanelCollapsedStorageKey: "yikai:blox:left-panel-collapsed:v1",
             leftPanelMin: 240,
             leftPanelMax: 480,
             leftPanelResizing: false,
@@ -4275,6 +4277,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             openMobileSettings() {
+                this.expandLeftPanel();
                 if (window.innerWidth < 1440 && this.selectedSi >= 0) {
                     this.mobilePanel = "settings";
                     this.libOpen = false;
@@ -6530,6 +6533,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             /** 取消全部选择（点画布空白/宿主空白触发）——回到「插入到末尾」的初始语义。 */
             deselectAll() {
+                this.expandLeftPanel();
                 this.selectedSi = -1;
                 this.selectedCi = -1;
                 this.selectedEi = -1;
@@ -7938,21 +7942,48 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             leftPanelStyle() {
                 this.canvasViewportTick;
-                return window.innerWidth >= 1440 ? "width:" + this.leftPanelWidth + "px" : "";
+                return window.innerWidth >= 1440 ? "width:" + (this.leftPanelCollapsed ? 40 : this.leftPanelWidth) + "px" : "";
+            },
+
+            leftPanelContentVisible() {
+                this.canvasViewportTick;
+                return window.innerWidth < 1440 || !this.leftPanelCollapsed;
+            },
+
+            expandLeftPanel() {
+                if (!this.leftPanelCollapsed) return;
+                this.leftPanelCollapsed = false;
+                this.canvasViewportTick++;
+                this.persistLeftPanelWidth();
+            },
+
+            toggleLeftPanel() {
+                this.finishLeftPanelResize();
+                this.leftPanelCollapsed = !this.leftPanelCollapsed;
+                this.canvasViewportTick++;
+                this.persistLeftPanelWidth();
+                this.$nextTick(function () {
+                    var buttons = document.querySelectorAll('[data-testid="blox-left-panel-toggle"]');
+                    var visible = Array.from(buttons).find(function (button) { return button.getClientRects().length > 0; });
+                    if (visible) visible.focus({ preventScroll: true });
+                });
             },
 
             restoreLeftPanelWidth() {
                 try {
                     var stored = window.localStorage.getItem(this.leftPanelStorageKey);
                     if (stored !== null) this.leftPanelWidth = this.clampLeftPanelWidth(stored);
+                    this.leftPanelCollapsed = window.localStorage.getItem(this.leftPanelCollapsedStorageKey) === "1";
                 } catch (error) {
                     this.leftPanelWidth = 288;
+                    this.leftPanelCollapsed = false;
                 }
             },
 
             persistLeftPanelWidth() {
                 try {
                     window.localStorage.setItem(this.leftPanelStorageKey, String(this.leftPanelWidth));
+                    window.localStorage.setItem(this.leftPanelCollapsedStorageKey, this.leftPanelCollapsed ? "1" : "0");
                 } catch (error) {
                     // 隐私模式或禁用存储时仍保留本次会话内的宽度。
                 }
@@ -8100,6 +8131,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             openElementLibrary() {
+                this.expandLeftPanel();
                 this.libOpen = true;
                 if (window.innerWidth < 1440) this.mobilePanel = "library";
                 var self = this;

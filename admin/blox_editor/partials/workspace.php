@@ -11,6 +11,10 @@ declare(strict_types=1);
                class="blox-mobile-panel blox-property-panel w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col"
                :class="mobilePanel === 'library' || mobilePanel === 'settings' ? 'is-open' : ''"
                :style="leftPanelStyle()">
+            <div x-show="!leftPanelContentVisible()" x-cloak class="h-10 flex items-center justify-center border-b border-gray-100 shrink-0">
+                <?php require __DIR__ . '/left-panel-toggle.php'; ?>
+            </div>
+            <div id="blox-left-panel-content" x-show="leftPanelContentVisible()" class="flex-1 flex flex-col min-h-0">
 
             <!-- ── 元素库（无选中或 libOpen） ── -->
             <div x-show="!sel || libOpen" class="flex-1 flex flex-col min-h-0">
@@ -22,6 +26,7 @@ declare(strict_types=1);
                             class="text-[10px] text-gray-400 hover:text-blue-500 inline-flex items-center gap-0.5">
                         <i class="ti ti-arrow-back-up text-xs"></i><?= __('blox_back_to_settings') ?>
                     </button>
+                    <?php require __DIR__ . '/left-panel-toggle.php'; ?>
                 </div>
                 <div class="p-2 border-b border-gray-100 shrink-0">
                     <div class="flex items-center gap-1.5">
@@ -152,6 +157,7 @@ declare(strict_types=1);
                             class="shrink-0 text-gray-400 hover:text-blue-600">
                         <i class="ti ti-x text-sm" aria-hidden="true"></i>
                     </button>
+                    <?php require __DIR__ . '/left-panel-toggle.php'; ?>
                 </div>
 
                 <!-- 内容 / 样式 页签 -->
@@ -2574,9 +2580,11 @@ declare(strict_types=1);
                     </template>
                 </div>
             </div>
+            </div>
         </aside>
 
         <div data-testid="blox-left-panel-resizer"
+             x-show="!leftPanelCollapsed"
              class="blox-panel-resizer"
              :class="leftPanelResizing ? 'is-active' : ''"
              role="separator" aria-orientation="vertical" tabindex="0"
