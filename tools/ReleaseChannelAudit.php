@@ -35,7 +35,7 @@ final class ReleaseChannelAudit
 
     /**
      * @param array<string,mixed> $config
-     * @param null|callable(string):array{status:int,type:string,bytes:int,error:string} $fetcher
+     * @param null|callable(string,bool):array{status:int,type:string,bytes:int,error:string,body?:string} $fetcher
      * @return array<string,mixed>
      */
     public static function run(
@@ -56,6 +56,7 @@ final class ReleaseChannelAudit
             'archive' => self::archive($config, $version, $workspace),
             'update_server' => self::updateServer($config, $version, $workspace),
             'market' => self::market($config, $version, $workspace, $fetcher),
+            'demo' => self::demo($config, $version, $workspace, $fetcher),
             'github' => self::github($config, $version, $fetcher),
         ];
 
@@ -433,6 +434,78 @@ final class ReleaseChannelAudit
         return self::channel('模板市场', self::statusOf($checks), $checks, ['approved' => $approved]);
     }
 
+    // ── 演示站：线上版本才是判据，本地副本只作上下文 ──────────────────
+
+    /**
+     * @param array<string,mixed> $config
+     * @return array<string,mixed>
+     */
+    private static function demo(array $config, string $version, string $workspace, ?callable $fetcher): array
+    {
+        $cfg = self::section($config, 'demo');
+        $checks = [];
+
+        // 本地副本：只记状态，不作判据。2026-07-30 起线上走在线更新，
+        // 本地那份不再是部署源；拿它当门禁只会制造长期噪音。
+        $dir = self::resolveDir($cfg, $workspace);
+        if ($dir === null) {
+            $checks[] = self::info('本地副本', '未配置或不存在（不作判据，线上走在线更新）');
+        } else {
+            $hasConfig = is_file($dir . '/config/config.php');
+            $checks[] = self::info(
+                '本地副本',
+                $hasConfig ? "存在且有 config.php: {$dir}" : "目录存在但为空/无 config.php: {$dir}（不作判据）"
+            );
+        }
+
+        $url = (string) ($cfg['url'] ?? '');
+        if ($fetcher === null) {
+            $checks[] = self::check('线上版本', null, "未提供 fetcher，本项未执行：{$url}");
+            return self::channel('演示站', self::statusOf($checks), $checks, ['expected_version' => $version]);
+        }
+
+        $host = parse_url($url, PHP_URL_HOST);
+        if (parse_url($url, PHP_URL_SCHEME) !== 'https' || !is_string($host) || $host === '') {
+            $checks[] = self::check('线上版本', false, "拒绝请求非 https 或主机不明的地址: {$url}", null, true);
+            return self::channel('演示站', self::FAILED, $checks, ['expected_version' => $version]);
+        }
+
+        $result = $fetcher($url, true);
+        $error = trim((string) ($result['error'] ?? ''));
+        $status = (int) ($result['status'] ?? 0);
+        if ($error !== '') {
+            $checks[] = self::check('线上版本', false, "请求未完成（{$error}）：{$url}");
+        } elseif ($status !== 200) {
+            $checks[] = self::check('线上版本', false, "HTTP {$status}：{$url}");
+        } else {
+            $body = (string) ($result['body'] ?? '');
+            $pattern = (string) ($cfg['asset_version_pattern'] ?? '');
+            $found = [];
+            if ($pattern !== '' && preg_match_all($pattern, $body, $m) > 0) {
+                $found = array_values(array_unique(array_map('strval', $m[1])));
+            }
+            if ($found === []) {
+                // 探针失效本身要报出来，不能当成「版本对不上」，更不能当成通过。
+                $checks[] = self::check(
+                    '线上版本',
+                    false,
+                    "页面里没有可识别的资源版本查询串（探针可能已失效，需要复核 asset_version_pattern）：{$url}"
+                );
+            } elseif ($found === [$version]) {
+                $checks[] = self::check('线上版本', true, "资源版本 {$version}（{$url}）", $url);
+            } else {
+                $checks[] = self::check(
+                    '线上版本',
+                    false,
+                    '资源版本为 ' . implode(', ', $found) . "，期望 {$version}——演示站尚未升级：{$url}",
+                    $url
+                );
+            }
+        }
+
+        return self::channel('演示站', self::statusOf($checks), $checks, ['expected_version' => $version]);
+    }
+
     // ── GitHub Release ────────────────────────────────────────────────
 
     /**
@@ -455,7 +528,7 @@ final class ReleaseChannelAudit
     // ── 通用 ──────────────────────────────────────────────────────────
 
     /**
-     * @param callable(string):array{status:int,type:string,bytes:int,error:string} $fetcher
+     * @param callable(string,bool):array{status:int,type:string,bytes:int,error:string} $fetcher
      * @return array<string,mixed>
      */
     private static function remoteCheck(string $name, string $url, callable $fetcher, string $expectType): array
@@ -467,7 +540,7 @@ final class ReleaseChannelAudit
             return self::check($name, false, "拒绝请求非 https 或主机不明的地址: {$url}");
         }
 
-        $result = $fetcher($url);
+        $result = $fetcher($url, false);
         $status = (int) ($result['status'] ?? 0);
         $type = (string) ($result['type'] ?? '');
         $bytes = (int) ($result['bytes'] ?? 0);
@@ -647,6 +720,26 @@ final class ReleaseChannelAudit
             'detail' => $detail,
             'evidence' => $evidence,
             'invariant' => $invariant,
+            'informational' => false,
+        ];
+    }
+
+    /**
+     * 只记录上下文、不参与判定的条目。
+     *
+     * 需要它是因为「未执行」有强含义：发布后阶段它会让整体不通过。而演示站的本地副本
+     * 这类信息既不是待办也不是失败——把它记成「未执行」会让一条其实已经核对完的渠道
+     * 无故变红，那就又造出一个假红。
+     */
+    private static function info(string $name, string $detail): array
+    {
+        return [
+            'name' => $name,
+            'ok' => null,
+            'detail' => $detail,
+            'evidence' => null,
+            'invariant' => false,
+            'informational' => true,
         ];
     }
 
@@ -670,6 +763,9 @@ final class ReleaseChannelAudit
     {
         $sawSkipped = false;
         foreach ($checks as $check) {
+            if (($check['informational'] ?? false) === true) {
+                continue;
+            }
             if ($check['ok'] === false) {
                 return self::FAILED;
             }

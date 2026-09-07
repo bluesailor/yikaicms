@@ -66,6 +66,21 @@ return [
         'package_url' => 'https://update.yikaicms.com/packages/{package}',
     ],
 
+    // 演示站 demo.yikaicms.com。
+    //
+    // 本地副本自 2026-07-30 起不再是部署源（线上走在线更新），所以**本地目录只作为
+    // 上下文记录，不作为判据**；真正的判据是线上站点自己报出来的版本。
+    //
+    // 版本探针：前台资源查询串就是 CMS_VERSION（includes/functions.php:2878
+    // 的 code-copy.js?v=<CMS_VERSION>）。它是公开可读且直连版本号的信号，
+    // 比翻页面文案可靠——演示内容里本来就有一堆无关数字。
+    'demo' => [
+        'dir_env' => 'YK_DEMO_DIR',
+        'dir_default' => 'demo.yikaicms.yikai',
+        'url' => 'https://demo.yikaicms.com/',
+        'asset_version_pattern' => '/\/assets\/[^"\'>\s]+\?v=(\d+\.\d+\.\d+(?:\.\d+)?)/',
+    ],
+
     // GitHub Release。发布后核对用。
     'github' => [
         'repo' => 'bluesailor/yikaicms',
@@ -73,5 +88,5 @@ return [
     ],
 
     // 候选阶段允许尚未同步的渠道。post-release 阶段这些一律必须「已验证」。
-    'candidate_optional' => ['website', 'update_server', 'market', 'github'],
+    'candidate_optional' => ['website', 'update_server', 'market', 'github', 'demo'],
 ];
