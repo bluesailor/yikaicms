@@ -486,3 +486,8 @@ html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
 [data-blox-text-tone="dark"] :is(h1, h2, h3, h4, h5, h6, p, li, dt, dd, blockquote) {
   color: #111827;
 }
+
+/* Primary search actions keep their contrast inside independent navigation panels. */
+.yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) [role="search"] button.bg-primary {
+  color: #fff !important;
+}
