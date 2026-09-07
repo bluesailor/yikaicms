@@ -63,11 +63,18 @@ if (!is_file($configPath)) {
     exit(2);
 }
 
-/** 真实网络取数：只做 GET，绝不碰 install/upgrade 类写操作路径。 */
-$fetcher = static function (string $url): array {
+/**
+ * 真实网络取数：只做 GET，绝不碰 install/upgrade 类写操作路径。
+ *
+ * $wantBody 为真时才把正文落到临时文件再读回来——演示站要靠正文里的资源版本
+ * 查询串判断版本，而主题包动辄百 KB 起，没必要一律读回内存。
+ */
+$fetcher = static function (string $url, bool $wantBody = false): array {
+    $bodyFile = $wantBody ? tempnam(sys_get_temp_dir(), 'yk-fetch-') : null;
+    $sink = $bodyFile ?? (PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null');
     $command = [
         'curl', '-sS', '-L', '--max-time', '30',
-        '-o', PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null',
+        '-o', $sink,
         '-w', '%{http_code}|%{content_type}|%{size_download}',
         $url,
     ];
@@ -81,6 +88,17 @@ $fetcher = static function (string $url): array {
     fclose($pipes[2]);
     $code = proc_close($process);
 
+    $body = '';
+    if ($bodyFile !== null) {
+        // 只读回前 512 KB：版本探针在 <head>/资源引用里，不需要整页。
+        $handle = @fopen($bodyFile, 'rb');
+        if (is_resource($handle)) {
+            $body = (string) fread($handle, 512 * 1024);
+            fclose($handle);
+        }
+        @unlink($bodyFile);
+    }
+
     $parts = array_pad(explode('|', trim($stdout)), 3, '');
     if ($code !== 0) {
         // curl 自己没跑成：这是本机/网络问题，不是线上资源坏了，也不许自动归因为 WAF。
@@ -89,9 +107,13 @@ $fetcher = static function (string $url): array {
             'type' => $parts[1],
             'bytes' => (int) $parts[2],
             'error' => 'curl exit ' . $code . ' ' . preg_replace('/\s+/', ' ', trim($stderr)),
+            'body' => $body,
         ];
     }
-    return ['status' => (int) $parts[0], 'type' => $parts[1], 'bytes' => (int) $parts[2], 'error' => ''];
+    return [
+        'status' => (int) $parts[0], 'type' => $parts[1], 'bytes' => (int) $parts[2],
+        'error' => '', 'body' => $body,
+    ];
 };
 
 $config = require $configPath;

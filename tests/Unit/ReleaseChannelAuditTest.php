@@ -184,6 +184,45 @@ final class ReleaseChannelAuditTest extends TestCase
         self::assertStringContainsString('could not resolve host', $detail);
     }
 
+    // ── 演示站：线上版本是判据，本地副本只作上下文 ─────────────────────
+
+    public function testDemoSiteStillOnTheOldVersionFails(): void
+    {
+        $this->workspace = $this->buildFixture();
+
+        // 演示站没升级：前台资源查询串仍报上一版。这是「发布记为完成、演示站还没动」
+        // 的唯一可公开观测信号。
+        $report = $this->audit(ReleaseChannelAudit::MODE_POST_RELEASE, $this->okFetcher('9.9.8'));
+        self::assertFalse($report['ok']);
+        self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['demo']['status']);
+        self::assertStringContainsString('演示站尚未升级', $this->detailOf($report['channels']['demo'], '线上版本'));
+    }
+
+    public function testDemoVersionProbeGoingBlindIsAFailureNotAPass(): void
+    {
+        $this->workspace = $this->buildFixture();
+
+        // 页面拿得到，但里面没有资源版本查询串——探针失效。这种情况必须报出来，
+        // 否则「读不到版本」会被当成「版本没问题」。
+        $report = $this->audit(ReleaseChannelAudit::MODE_POST_RELEASE, static fn (string $url, bool $wantBody = false): array
+            => ['status' => 200, 'type' => 'text/html', 'bytes' => 512, 'error' => '',
+                'body' => $wantBody ? '<html><body>no assets here</body></html>' : '']);
+        self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['demo']['status']);
+        self::assertStringContainsString('探针可能已失效', $this->detailOf($report['channels']['demo'], '线上版本'));
+    }
+
+    public function testDemoLocalCopyIsContextNotAGate(): void
+    {
+        $this->workspace = $this->buildFixture();
+        // fixture 里根本没有 demo 本地目录，线上版本正确即应通过。
+        $report = $this->audit(ReleaseChannelAudit::MODE_POST_RELEASE, $this->okFetcher());
+        self::assertSame(ReleaseChannelAudit::VERIFIED, $report['channels']['demo']['status']);
+        // 本地副本仍要出现在报告里，只是不参与判定。
+        $local = $this->checkOf($report['channels']['demo'], '本地副本');
+        self::assertNull($local['ok']);
+        self::assertTrue($local['informational']);
+    }
+
     // ── 模板市场：批准清单是唯一依据 ───────────────────────────────────
 
     public function testDelistedThemeReappearingFails(): void
@@ -239,10 +278,18 @@ final class ReleaseChannelAuditTest extends TestCase
         return ReleaseChannelAudit::run($this->config(), self::VERSION, $mode, $this->workspace, $fetcher);
     }
 
-    private function okFetcher(): callable
+    /** @param string $demoAssetVersion 演示站前台资源查询串报出的版本 */
+    private function okFetcher(string $demoAssetVersion = self::VERSION): callable
     {
-        return static fn (string $url): array
-            => ['status' => 200, 'type' => str_ends_with($url, '.zip') ? 'application/zip' : 'text/html', 'bytes' => 4096, 'error' => ''];
+        return static fn (string $url, bool $wantBody = false): array => [
+            'status' => 200,
+            'type' => str_ends_with($url, '.zip') ? 'application/zip' : 'text/html',
+            'bytes' => 4096,
+            'error' => '',
+            'body' => $wantBody
+                ? '<html><script src="/assets/js/code-copy.js?v=' . $demoAssetVersion . '" defer></script></html>'
+                : '',
+        ];
     }
 
     /** @return array<string,mixed> */
@@ -278,11 +325,17 @@ final class ReleaseChannelAuditTest extends TestCase
                 'delisted' => ['aurora', 'trade'],
                 'package_url' => 'https://update.yikaicms.com/packages/{package}',
             ],
+            'demo' => [
+                'dir_env' => 'YK_TEST_DEMO_DIR',
+                'dir_default' => 'demo.yikaicms.yikai',
+                'url' => 'https://demo.yikaicms.com/',
+                'asset_version_pattern' => '/\/assets\/[^"\'>\s]+\?v=(\d+\.\d+\.\d+(?:\.\d+)?)/',
+            ],
             'github' => [
                 'repo' => 'bluesailor/yikaicms',
                 'release_url' => 'https://github.com/bluesailor/yikaicms/releases/tag/v{version}',
             ],
-            'candidate_optional' => ['website', 'update_server', 'market', 'github'],
+            'candidate_optional' => ['website', 'update_server', 'market', 'github', 'demo'],
         ];
     }
 
