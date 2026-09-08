@@ -124,6 +124,8 @@ $cfg = preg_replace("/define\('SITE_URL',\s*'[^']*'\)/", "define('SITE_URL', '" 
 // 旁路会无条件放行高级能力，只有走真实授权判定（无 key → license_free）才能模拟免费版。
 $smokeDebug = getenv('SMOKE_BLOX_ADVANCED') === '0' ? 'false' : 'true';
 $cfg = preg_replace("/define\('DEBUG',\s*(?:true|false)\)/", "define('DEBUG', " . $smokeDebug . ")", $cfg);
+// Match installed sites: strict public form tokens need a per-site secret.
+$cfg .= "\nif (!defined('ENCRYPT_KEY')) define('ENCRYPT_KEY', " . var_export(bin2hex(random_bytes(32)), true) . ");\n";
 file_put_contents($root . '/config/config.php', $cfg);
 
 // 2) 重建 sqlite 数据库文件 + 导入 schema
