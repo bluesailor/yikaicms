@@ -37,6 +37,13 @@
             || (Array.isArray(v) && v.length === 0);
     }
 
+    // Match BloxValueSanitizer::truthy; persisted checkbox values are '1'/'0'.
+    function checkboxValue(value) {
+        if (typeof value === "boolean") return value;
+        var text = typeof value === "string" || typeof value === "number" ? String(value).trim().toLowerCase() : "";
+        return ["", "0", "false", "off", "no"].indexOf(text) === -1;
+    }
+
     function termMet(term, getValue) {
         var op = String(term[1]);
         if (OPS.indexOf(op) === -1) return false; // fail-closed：未知操作符
@@ -70,7 +77,7 @@
             : results.indexOf(false) === -1;
     }
 
-    var api = { normalizeRule: normalizeRule, visibleWhenMet: visibleWhenMet, OPS: OPS };
+    var api = { normalizeRule: normalizeRule, visibleWhenMet: visibleWhenMet, checkboxValue: checkboxValue, OPS: OPS };
     if (typeof module !== "undefined" && module.exports) {
         module.exports = api;
     }

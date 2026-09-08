@@ -5,6 +5,15 @@ const rules = require("../../assets/js/blox-control-rules.js");
 
 const get = (data) => (key) => data[key];
 
+test("checkbox controls match PHP false strings and scalar defaults after reload", () => {
+    for (const value of [false, 0, "0", " false ", "OFF", "no", "", null, undefined, [], {}]) {
+        assert.equal(rules.checkboxValue(value), false, JSON.stringify(value));
+    }
+    for (const value of [true, 1, "1", "true", "on", "yes"]) {
+        assert.equal(rules.checkboxValue(value), true, JSON.stringify(value));
+    }
+});
+
 test("无规则/空 terms = 显示", () => {
     assert.equal(rules.visibleWhenMet({}, get({})), true);
     assert.equal(rules.visibleWhenMet({ visible_when: { terms: [] } }, get({})), true);
