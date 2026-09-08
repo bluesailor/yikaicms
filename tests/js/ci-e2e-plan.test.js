@@ -131,6 +131,16 @@ test('classic theme copy and legacy carousel have exactly one owning CI phase', 
   }
 });
 
+test('native theme language navigation is executed once by design CI', () => {
+  const spec = 'theme-language-navigation.spec.js';
+  assert.deepEqual(plan([`tests/e2e/${spec}`], { root }), ['design']);
+  const phases = SHARD_KEYS.flatMap(key => phasesForShard(key).map(phase => ({ key, ...phase })));
+  const matches = phases.filter(phase => path.basename(phase.spec) === spec);
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].key, 'design');
+  assert.equal(matches[0].grep, '@ci');
+});
+
 test('CI workflow keeps a planning job, four-shard fanout, and required aggregator', () => {
   const workflow = require('node:fs').readFileSync(path.resolve(root, '.github/workflows/ci.yml'), 'utf8');
   assert.match(workflow, /e2e_plan:/);

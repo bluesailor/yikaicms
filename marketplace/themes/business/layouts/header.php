@@ -24,6 +24,12 @@ $ogImage = SiteAsset::availableUrl((string) (config('seo_og_image', '') ?: $site
 if ($ogImage && !str_starts_with($ogImage, 'http')) $ogImage = $siteUrl . $ogImage;
 
 $navChannels = getDefaultNavigation(isset($navChannels) && is_array($navChannels) ? $navChannels : null);
+$nativeLanguageSwitcher = config('show_lang_switcher', '0') === '1'
+    ? LanguageSwitcherElement::renderForLanguages(enabledLanguages(), siteLang(),
+        (string) config('site_lang', 'zh-CN'), array_keys(availableLanguages()),
+        (string) ($_SERVER['REQUEST_URI'] ?? '/'), ['layout' => 'dropdown', 'tone' => 'light'])
+    : '';
+
 $currentChannelId = $currentChannelId ?? 0;
 $currentSlug = $currentSlug ?? '';
 
@@ -84,6 +90,8 @@ function getChannelUrl(array $channel): string {
     .nav-solid .nav-submenu a { color: #4b5563; }
     .nav-solid .nav-dropdown-menu a:hover,
     .nav-solid .nav-submenu a:hover { color: var(--color-primary, #3B6CF5); }
+    #siteHeader [data-yk-language-menu] a { color: #374151; }
+    #siteHeader [data-yk-language-menu] a[aria-current] { color: #1f2937; }
     .hero-overlay { background: linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.7)); }
     .section-dark { background: #1e293b; color: #e2e8f0; }
     .cta-gradient { background: linear-gradient(135deg, #3B6CF5, #2554d4); }
@@ -105,9 +113,9 @@ function getChannelUrl(array $channel): string {
     <?php else: ?>
     <header id="siteHeader" class="nav-solid shadow-lg transition-all duration-300"<?php echo !empty($isHomePage) ? ' data-business-home-header' : ''; ?>>
         <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between h-16 md:h-20">
+            <div class="flex items-center justify-between gap-4 h-16 md:h-20">
                 <!-- Logo -->
-                <a href="/" class="flex items-center gap-2">
+                <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('home') : langPrefix() . '/'); ?>" class="flex shrink-0 items-center gap-2">
                     <?php if ($siteLogo): ?>
                     <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="w-auto" style="height:<?php echo $siteLogoMaxHeight; ?>px;max-height:64px;">
                     <?php else: ?>
@@ -130,7 +138,7 @@ function getChannelUrl(array $channel): string {
                          之前的 Tailwind `group-hover:opacity-100/visible` 没被编译进
                          tailwind.css，导致下拉永远 opacity-0 / invisible 的空白 bug。 -->
                     <div class="nav-dropdown">
-                        <a href="<?php echo $navUrl; ?>" class="nav-link px-4 py-2 text-sm font-medium transition inline-flex items-center gap-1 <?php echo $isActive ? 'font-bold' : ''; ?>">
+                        <a href="<?php echo $navUrl; ?>" class="nav-link px-2 py-2 text-sm font-medium transition inline-flex items-center gap-1 <?php echo $isActive ? 'font-bold' : ''; ?>">
                             <?php echo e($navItem['name']); ?>
                             <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </a>
@@ -139,7 +147,7 @@ function getChannelUrl(array $channel): string {
                         </div>
                     </div>
                     <?php else: ?>
-                    <a href="<?php echo $navUrl; ?>" class="nav-link px-4 py-2 text-sm font-medium transition <?php echo $isActive ? 'font-bold' : ''; ?>">
+                    <a href="<?php echo $navUrl; ?>" class="nav-link px-2 py-2 text-sm font-medium transition <?php echo $isActive ? 'font-bold' : ''; ?>">
                         <?php echo e($navItem['name']); ?>
                     </a>
                     <?php endif; ?>
@@ -149,6 +157,7 @@ function getChannelUrl(array $channel): string {
                     <a href="/contact.html" class="ml-3 bg-primary hover:bg-secondary text-white px-5 py-2 rounded-full text-sm font-medium transition">
                         <?php echo __('detail_consult'); ?>
                     </a>
+                    <?php echo $nativeLanguageSwitcher; ?>
                 </nav>
 
                 <!-- mobile menu button -->
@@ -171,6 +180,11 @@ function getChannelUrl(array $channel): string {
                 </div>
                 <?php endif; ?>
                 <?php endforeach; ?>
+                <?php if ($nativeLanguageSwitcher !== ''): ?>
+                <div data-yk-mobile-language class="border-t border-slate-700 pt-4 flex justify-end [&_summary]:min-h-11 [&_a]:min-h-11">
+                    <?php echo $nativeLanguageSwitcher; ?>
+                </div>
+                <?php endif; ?>
             </div>
         </nav>
     </header>

@@ -34,7 +34,7 @@ if ($action === 'prepare') {
     $blocks = json_decode(config('home_blocks_config', '[]'), true, 512, JSON_THROW_ON_ERROR);
     $blocks = array_values(array_filter($blocks, static fn(array $block): bool => !str_starts_with($block['type'] ?? '', 'custom:')));
     $values = ['blox_custom_header_enabled' => '0', 'blox_custom_footer_enabled' => '0', 'show_lang_switcher' => '1',
-        'home_blocks_config' => json_encode($blocks, JSON_THROW_ON_ERROR)];
+        'home_blocks_config' => json_encode($blocks, JSON_THROW_ON_ERROR), 'header_nav_layout' => 'right'];
     if (!is_file($backup)) {
         $before = ['settings' => [], 'rows' => []];
         foreach ($values as $key => $value) $before['settings'][$key] = config($key, '');
@@ -63,6 +63,11 @@ if ($action === 'prepare') {
         db()->update($row['table'], ['title' => $title, 'content' => '<p>' . e($title) . '</p>' . $row['content']], 'id = ?', [$row['id']]);
     }
     settingModel()->saveBatch($values);
+    exit;
+}
+if (in_array($action, ['nav-right', 'nav-below'], true)) {
+    if (!is_file($backup)) throw new RuntimeException('Prepare fixture first');
+    settingModel()->saveBatch(['header_nav_layout' => $action === 'nav-below' ? 'below' : 'right']);
     exit;
 }
 if ($action !== 'manifest') throw new RuntimeException('Invalid action');

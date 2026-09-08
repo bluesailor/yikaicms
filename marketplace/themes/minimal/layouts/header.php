@@ -52,6 +52,12 @@ $ogDescription = $pageDescription ?? $siteDescription;
 // 获取导航栏目（带子栏目）
 $navChannels = getDefaultNavigation(isset($navChannels) && is_array($navChannels) ? $navChannels : null);
 
+$nativeLanguageSwitcher = config('show_lang_switcher', '0') === '1'
+    ? LanguageSwitcherElement::renderForLanguages(enabledLanguages(), siteLang(),
+        (string) config('site_lang', 'zh-CN'), array_keys(availableLanguages()),
+        (string) ($_SERVER['REQUEST_URI'] ?? '/'), ['layout' => 'dropdown', 'tone' => 'dark'])
+    : '';
+
 // 当前栏目
 $currentChannelId = $currentChannelId ?? 0;
 $currentSlug = $currentSlug ?? '';
@@ -160,18 +166,18 @@ function getChannelUrl(array $channel): string {
     <?php else: ?>
     <header id="siteHeader" class="<?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50 bg-white border-b border-gray-200">
         <div class="container mx-auto px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
+            <div class="flex items-center justify-between gap-6 h-20">
                 <!-- Logo -->
-                <a href="/" class="flex items-center gap-3">
+                <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('home') : langPrefix() . '/'); ?>" class="flex shrink-0 items-center gap-3">
                     <?php if ($siteLogo): ?>
-                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="h-8">
+                    <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="h-8 w-auto">
                     <?php else: ?>
                     <span class="text-lg font-light tracking-wide text-gray-900"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
                 </a>
 
                 <!-- Desktop Navigation -->
-                <nav class="hidden xl:flex items-center gap-8 whitespace-nowrap">
+                <nav class="hidden xl:flex items-center gap-4 whitespace-nowrap">
                     <?php foreach ($navChannels as $navItem): ?>
                     <?php
                     $hasChildren = !empty($navItem['children']);
@@ -205,30 +211,7 @@ function getChannelUrl(array $channel): string {
                     <a href="/member/login.php" class="text-sm text-gray-500 hover:text-gray-900 transition"><?php echo e(__('login_button')); ?></a>
                     <?php endif; ?>
                     <?php endif; ?>
-                    <?php if (config('show_lang_switcher', '0') === '1' && count(enabledLanguages()) > 1): ?>
-                    <span class="w-px h-4 bg-gray-200"></span>
-                    <div class="relative" id="langSwitcher">
-                        <button type="button" onclick="document.getElementById('langDropdown').classList.toggle('hidden')" class="text-sm text-gray-500 hover:text-gray-900 transition inline-flex items-center gap-1">
-                            <?php echo e(enabledLanguages()[siteLang()] ?? siteLang()); ?>
-                            <svg class="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>
-                        <div id="langDropdown" class="hidden absolute right-0 mt-2 bg-white border border-gray-100 shadow-sm py-1 min-w-[100px] z-50">
-                            <?php foreach (enabledLanguages() as $lk => $lv): ?>
-                            <a href="javascript:switchLang('<?php echo $lk; ?>')" class="block px-4 py-2 text-sm hover:bg-gray-50 <?php echo siteLang() === $lk ? 'text-gray-900 font-medium' : 'text-gray-500'; ?>"><?php echo e($lv); ?></a>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                    <script>
-                    document.addEventListener('click', function (e) { var s = document.getElementById('langSwitcher'); if (s && !s.contains(e.target)) document.getElementById('langDropdown').classList.add('hidden'); });
-                    function switchLang(lang) {
-                        var defaultLang = <?php echo json_encode((string) config('site_lang', 'zh-CN')); ?>;
-                        document.cookie = 'site_lang=' + lang + ';path=/;max-age=' + (365 * 86400);
-                        var path = location.pathname.replace(/^\/(ja|en|zh-CN)\//, '/');
-                        if (lang !== defaultLang) { path = '/' + lang + path; }
-                        location.href = path + location.search;
-                    }
-                    </script>
-                    <?php endif; ?>
+                    <?php echo $nativeLanguageSwitcher; ?>
                 </nav>
 
                 <!-- Mobile Hamburger -->
@@ -269,6 +252,11 @@ function getChannelUrl(array $channel): string {
                     <a href="/member/register.php" class="block text-sm text-gray-600 hover:text-gray-900 mt-2"><?php echo e(__('member_register')); ?></a>
                     <?php endif; ?>
                     <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                <?php if ($nativeLanguageSwitcher !== ''): ?>
+                <div data-yk-mobile-language class="border-t border-gray-100 pt-4 flex justify-end [&_summary]:min-h-11 [&_a]:min-h-11">
+                    <?php echo $nativeLanguageSwitcher; ?>
                 </div>
                 <?php endif; ?>
             </div>
