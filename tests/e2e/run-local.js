@@ -5,6 +5,7 @@ const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 
 const { createSite, removeSite } = require('./isolated-site');
+const { startLoggedServer, logTail, stopServer } = require('./server-process');
 const sourceRoot = path.resolve(__dirname, '../..');
 let root = '';
 const php = process.env.PHP_BINARY || 'php';
@@ -32,7 +33,8 @@ let server = null;
 let fixtureServer = null;
 let playwright = null;
 let setupAttempted = false;
-let serverLog = '';
+let temporaryServerLog = '';
+let temporaryFixtureLog = '';
 const localVideoSampleNames = ['blox-test-flower.mp4', 'blox-test-friday.mp4'];
 
 function runPhp(args, env = process.env) {
@@ -40,9 +42,14 @@ function runPhp(args, env = process.env) {
 }
 
 function persistServerLog() {
-  if (!serverLog) return;
-  fs.mkdirSync(path.dirname(serverLogPath), { recursive: true });
-  fs.writeFileSync(serverLogPath, serverLog, 'utf8');
+  for (const [source, target] of [
+    [temporaryServerLog, serverLogPath],
+    [temporaryFixtureLog, path.join(path.dirname(serverLogPath), 'template-server.log')],
+  ]) {
+    if (!source || !fs.existsSync(source)) continue;
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.copyFileSync(source, target);
+  }
 }
 
 function copyLocalVideoSamples() {
@@ -125,6 +132,8 @@ async function main() {
   process.once('SIGINT', onInterrupt);
   try {
     root = createSite(sourceRoot);
+    temporaryServerLog = path.join(root, 'storage/e2e-php-server.log');
+    temporaryFixtureLog = path.join(root, 'storage/e2e-template-server.log');
     console.log(`Isolated test site: ${root}`);
     copyLocalVideoSamples();
     port = await choosePort();
@@ -147,27 +156,20 @@ async function main() {
     if (useTemplateFixture) {
       const fixtureQuery = process.env.BLOX_E2E_REMOTE_FAILURE === '1' ? '?mode=unavailable' : '';
       e2eEnv.YIKAI_BLOX_TEMPLATE_API_BASE = `http://127.0.0.1:${fixturePort}/template-market-fixture.php${fixtureQuery}`;
-      fixtureServer = spawn(php, ['-S', `127.0.0.1:${fixturePort}`, 'tests/e2e/template-market-server.php'], {
+      fixtureServer = startLoggedServer(php, ['-S', `127.0.0.1:${fixturePort}`, 'tests/e2e/template-market-server.php'], {
         cwd: root,
         env: e2eEnv,
-        stdio: ['ignore', 'ignore', 'pipe'],
-      });
+      }, temporaryFixtureLog);
       await waitForServerAt(`http://127.0.0.1:${fixturePort}/template-market-fixture.php`);
     }
 
     // Use the same catch-all shape as the supported Nginx/Apache rules. Plain
     // `php -S -t .` returns 404 for `/en/foo.html`, so it cannot detect
     // regressions that only appear after a prefixed URL is handed to index.php.
-    server = spawn(php, ['-S', `127.0.0.1:${port}`, '-t', '.', 'tests/e2e/router.php'], {
+    server = startLoggedServer(php, ['-S', `127.0.0.1:${port}`, '-t', '.', 'tests/e2e/router.php'], {
       cwd: root,
       env: e2eEnv,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    const collectLog = (chunk) => {
-      serverLog = (serverLog + String(chunk)).slice(-20_000);
-    };
-    server.stdout.on('data', collectLog);
-    server.stderr.on('data', collectLog);
+    }, temporaryServerLog);
     await waitForServer();
 
     if (adminSmoke || permissionSmoke) {
@@ -234,31 +236,29 @@ async function main() {
         console.log(`Browser phase executed: ${executed} test(s)`);
       }
     }
-    if (exitCode !== 0 && serverLog) {
-      console.error('\n=== PHP development server (last 20 KB) ===\n' + serverLog);
+    if (exitCode !== 0) {
+      console.error('\n=== PHP development server (last 20 KB) ===\n' + logTail(temporaryServerLog));
     }
     if (interrupted) exitCode = 130;
   } catch (error) {
+    exitCode = 1;
     console.error(error instanceof Error ? error.message : String(error));
-    if (serverLog) console.error(serverLog);
+    console.error(logTail(temporaryServerLog));
   } finally {
-    if (server && !server.killed) {
-      const stopped = new Promise((resolve) => {
-        server.once('exit', resolve);
-        setTimeout(resolve, 2_000);
-      });
-      server.kill();
-      await stopped;
+    let serversStopped = true;
+    for (const child of [server, fixtureServer]) {
+      try { await stopServer(child); } catch (error) {
+        serversStopped = false;
+        exitCode = 1;
+        console.error(error.message);
+      }
     }
-    if (fixtureServer && !fixtureServer.killed) {
-      fixtureServer.kill();
-    }
-    if (setupAttempted) {
+    if (setupAttempted && serversStopped) {
       const restore = runPhp(['tests/smoke/setup.php', '--restore']);
       if (restore.status !== 0) exitCode = 1;
     }
-    if (exitCode !== 0) persistServerLog();
-    if (root) removeSite(root);
+    persistServerLog();
+    if (root && serversStopped) removeSite(root);
     process.removeListener('SIGINT', onInterrupt);
     process.exitCode = exitCode;
   }
