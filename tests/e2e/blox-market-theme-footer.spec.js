@@ -79,15 +79,23 @@ async function assertFooterEditorContext(page, theme, testInfo) {
     if (!header) return null;
     const rect = header.getBoundingClientRect();
     const visible = (node) => {
+      // Closed details can retain descendant boxes in Chromium; only the summary is shown.
+      for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+        if (parent.tagName === 'DETAILS' && !parent.open
+            && !parent.querySelector(':scope > summary')?.contains(node)) return false;
+      }
       const style = getComputedStyle(node);
       const box = node.getBoundingClientRect();
       return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
     };
     const menuButton = header.querySelector('#mobileMenuBtn, [data-yk-drawer-open]');
     const buttonRect = menuButton && visible(menuButton) ? menuButton.getBoundingClientRect() : null;
-    const navRows = new Set(Array.from(header.querySelectorAll('nav a'))
-      .filter(visible)
-      .map((link) => Math.round(link.getBoundingClientRect().top)));
+    const navLinks = Array.from(header.querySelectorAll('nav a')).filter(visible).map((link) => {
+      const box = link.getBoundingClientRect();
+      return { text: link.textContent.trim(), top: box.top, bottom: box.bottom, height: box.height,
+        submenu: !!link.closest('.nav-dropdown-menu, .nav-submenu') };
+    });
+    const navRows = new Set(navLinks.map((link) => Math.round(link.top)));
     return {
       mobile,
       viewportWidth: window.innerWidth,
@@ -96,8 +104,13 @@ async function assertFooterEditorContext(page, theme, testInfo) {
       headerHeight: rect.height,
       menuButton: buttonRect ? { width: buttonRect.width, height: buttonRect.height } : null,
       navRows: navRows.size,
+      navLinks,
     };
   }, compact);
+
+  await testInfo.attach('footer-context-navigation', {
+    body: JSON.stringify(metrics, null, 2), contentType: 'application/json',
+  });
 
   expect(metrics).not.toBeNull();
   expect(metrics.documentWidth).toBeLessThanOrEqual(metrics.viewportWidth + 1);
