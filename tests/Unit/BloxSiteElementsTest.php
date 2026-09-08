@@ -66,6 +66,18 @@ final class BloxSiteElementsTest extends TestCase
         ));
     }
 
+    public function testNumericDetailLanguageSwitchKeepsRealPhpEntry(): void
+    {
+        foreach (['article', 'product', 'detail'] as $entry) {
+            self::assertSame('/' . $entry . '.php?id=12&page=2&_lang=ja', LanguageSwitcherElement::switchUrl(
+                '/en/' . $entry . '.php?id=12&_lang=en&lang=en&page=2', 'ja', 'zh-CN', ['zh-CN', 'en', 'ja']
+            ));
+            self::assertSame('/' . $entry . '.php?id=12', LanguageSwitcherElement::switchUrl(
+                '/' . $entry . '.php?id=12&_lang=ja', 'en', 'en', ['zh-CN', 'en', 'ja']
+            ));
+        }
+    }
+
     public function testLanguageSwitcherDefaultsToAccessibleDropdown(): void
     {
         $element = new LanguageSwitcherElement();

@@ -343,6 +343,21 @@ class ProductModel extends Model
         );
     }
 
+    /** Resolve public numeric links like slug links, without admitting drafts. */
+    public function getPublishedForLanguage(int $id): ?array
+    {
+        $source = $this->getPublished($id);
+        $lang = siteLang();
+        if (!$source || ($source['lang'] ?? $lang) === $lang) return $source;
+        $group = (int) (($source['translation_group_id'] ?? 0) ?: $source['id']);
+        $translated = db()->fetchColumn(
+            "SELECT id FROM {$this->tableName()} WHERE translation_group_id = ? AND lang = ?"
+            . ' AND status = 1 AND deleted_at IS NULL ORDER BY id LIMIT 1',
+            [$group, $lang]
+        );
+        return $translated ? ($this->getPublished((int) $translated) ?? $source) : $source;
+    }
+
     /**
      * 按 slug 查找（JOIN 分类）
      */
