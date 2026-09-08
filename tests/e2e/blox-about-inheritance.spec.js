@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+require('./legacy-about-fixture')(test);
 const { openEditor, frame, performPreviewUpdate, observeConsole, observeUnsafeWrites, canvasScrollTop, waitPreviewSettled } = require('./helpers');
 
 const field = (page, key) => page.locator('[data-control-key="' + key + '"]');
