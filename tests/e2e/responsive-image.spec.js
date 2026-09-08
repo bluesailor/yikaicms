@@ -29,7 +29,7 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
     '}',
   ].join(' ');
 
-  execFileSync('php', ['-r', script, JSON.stringify([
+  execFileSync(process.env.PHP_BINARY || 'php', ['-r', script, JSON.stringify([
     [original, 1200, 675, 26, 86, 138],
     [medium, 600, 338, 32, 112, 92],
     [thumb, 300, 300, 46, 124, 104],

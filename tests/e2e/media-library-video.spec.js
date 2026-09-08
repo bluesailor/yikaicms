@@ -15,7 +15,7 @@ function updateMediaAuditFixture(action, key, value = '', url = '') {
     '  if ($argv[4] !== "") db()->delete("media", "url = ?", [$argv[4]]);',
     '}',
   ].join(' ');
-  execFileSync('php', ['-r', script, action, key, Buffer.from(value).toString('base64'), url], {
+  execFileSync(process.env.PHP_BINARY || 'php', ['-r', script, action, key, Buffer.from(value).toString('base64'), url], {
     cwd: process.cwd(),
     stdio: 'pipe',
   });
