@@ -24,6 +24,9 @@ $ogImage = SiteAsset::availableUrl((string) (config('seo_og_image', '') ?: $site
 if ($ogImage && !str_starts_with($ogImage, 'http')) $ogImage = $siteUrl . $ogImage;
 
 $navChannels = getDefaultNavigation(isset($navChannels) && is_array($navChannels) ? $navChannels : null);
+$consultChannel = getChannelBySlug('contact', true);
+$consultUrl = $consultChannel ? channelUrl($consultChannel)
+    : (isDynamicUrlMode() ? dynamicUrl('contact') : langPrefix() . '/contact.html');
 $nativeLanguageSwitcher = config('show_lang_switcher', '0') === '1'
     ? LanguageSwitcherElement::renderForLanguages(enabledLanguages(), siteLang(),
         (string) config('site_lang', 'zh-CN'), array_keys(availableLanguages()),
@@ -154,7 +157,7 @@ function getChannelUrl(array $channel): string {
                     <?php endforeach; ?>
 
                     <!-- CTA button -->
-                    <a href="/contact.html" class="ml-3 bg-primary hover:bg-secondary text-white px-5 py-2 rounded-full text-sm font-medium transition">
+                    <a data-testid="theme-header-consult" href="<?php echo e($consultUrl); ?>" class="ml-3 bg-primary hover:bg-secondary text-white px-5 py-2 rounded-full text-sm font-medium transition">
                         <?php echo __('detail_consult'); ?>
                     </a>
                     <?php echo $nativeLanguageSwitcher; ?>

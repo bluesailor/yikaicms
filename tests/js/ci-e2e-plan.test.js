@@ -132,7 +132,7 @@ test('classic theme copy and legacy carousel have exactly one owning CI phase', 
 });
 
 test('native theme language navigation is executed once by design CI', () => {
-  for (const spec of ['theme-language-navigation.spec.js', 'theme-language-routes.spec.js']) {
+  for (const spec of ['theme-language-navigation.spec.js', 'theme-language-routes.spec.js', 'theme-business-consult.spec.js']) {
   assert.deepEqual(plan([`tests/e2e/${spec}`], { root }), ['design']);
   const phases = SHARD_KEYS.flatMap(key => phasesForShard(key).map(phase => ({ key, ...phase })));
   const matches = phases.filter(phase => path.basename(phase.spec) === spec);
