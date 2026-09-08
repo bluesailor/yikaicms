@@ -50,6 +50,10 @@ function persistServerLog() {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.copyFileSync(source, target);
   }
+  const netLogDir = root && path.join(root, 'storage/e2e-netlog');
+  if (netLogDir && fs.existsSync(netLogDir)) {
+    fs.cpSync(netLogDir, path.join(path.dirname(serverLogPath), 'chromium-netlog'), { recursive: true });
+  }
 }
 
 function copyLocalVideoSamples() {
