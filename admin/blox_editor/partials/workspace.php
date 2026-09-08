@@ -579,12 +579,12 @@ declare(strict_types=1);
                                             <div class="space-y-2">
                                                 <div>
                                                     <label class="block text-[10px] font-medium text-gray-500 mb-1"><?= e(__('setting_contact_form_title')) ?></label>
-                                                    <input type="text" x-model="contactForm.title" @input="contactFormChanged = true" maxlength="100"
+                                                    <input type="text" data-testid="blox-contact-form-title" x-model="contactForm.title" @input="contactFormChanged = true" maxlength="100"
                                                            class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs">
                                                 </div>
                                                 <div>
                                                     <label class="block text-[10px] font-medium text-gray-500 mb-1"><?= e(__('setting_contact_form_desc')) ?></label>
-                                                    <textarea x-model="contactForm.description" @input="contactFormChanged = true" maxlength="1000" rows="2"
+                                                    <textarea data-testid="blox-contact-form-description" x-model="contactForm.description" @input="contactFormChanged = true" maxlength="1000" rows="2"
                                                               class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs resize-y"></textarea>
                                                 </div>
                                             </div>
@@ -622,12 +622,12 @@ declare(strict_types=1);
                                                             <div class="grid grid-cols-2 gap-2">
                                                                 <div>
                                                                     <label class="block text-[10px] font-medium text-gray-500 mb-1"><?= e(__('label_title')) ?></label>
-                                                                    <input type="text" x-model="field.label" @input="contactFormChanged = true" maxlength="80"
+                                                                    <input type="text" data-testid="blox-contact-field-label" x-model="field.label" @input="contactFormChanged = true" maxlength="80"
                                                                            class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs">
                                                                 </div>
                                                                 <div>
                                                                     <label class="block text-[10px] font-medium text-gray-500 mb-1"><?= e(__('blox_contact_form_key')) ?></label>
-                                                                    <input type="text" x-model="field.key" @input="contactFormChanged = true" maxlength="40" spellcheck="false"
+                                                                    <input type="text" data-testid="blox-contact-field-key" x-model="field.key" @input="contactFormChanged = true" maxlength="40" spellcheck="false"
                                                                            class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs font-mono">
                                                                 </div>
                                                             </div>
@@ -642,7 +642,7 @@ declare(strict_types=1);
                                                             </div>
                                                             <div>
                                                                 <label class="block text-[10px] font-medium text-gray-500 mb-1"><?= e(__('blox_contact_form_placeholder')) ?></label>
-                                                                <input type="text" x-model="field.placeholder" @input="contactFormChanged = true" maxlength="160"
+                                                                <input type="text" data-testid="blox-contact-field-placeholder" x-model="field.placeholder" @input="contactFormChanged = true" maxlength="160"
                                                                        class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs">
                                                             </div>
                                                             <div class="grid grid-cols-2 gap-2">
@@ -667,7 +667,7 @@ declare(strict_types=1);
                                             <div class="space-y-2 pt-1 border-t border-gray-100">
                                                 <div>
                                                     <label class="block text-[10px] font-medium text-gray-500 mb-1"><?= e(__('setting_contact_form_success')) ?></label>
-                                                    <input type="text" x-model="contactForm.success_message" @input="contactFormChanged = true" maxlength="255"
+                                                    <input type="text" data-testid="blox-contact-form-success" x-model="contactForm.success_message" @input="contactFormChanged = true" maxlength="255"
                                                            class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs">
                                                 </div>
                                                 <button type="button" role="switch" :aria-checked="contactForm.captcha" @click="contactForm.captcha = !contactForm.captcha; contactFormChanged = true"
@@ -1234,9 +1234,11 @@ declare(strict_types=1);
                                         </div>
                                         <div>
                                             <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_radius') ?></label>
+                                            <?php $styleSourceControl = "{ key: 'radius', default: 'none' }"; require __DIR__ . '/style-source.php'; ?>
                                             <div class="grid grid-cols-3 gap-1">
                                                 <template x-for="opt in containerRadiusOptions" :key="'er'+opt.k">
                                                     <button type="button" @click="selEl.data.radius = opt.k"
+                                                            :data-testid="'blox-container-radius-' + opt.k"
                                                             class="h-8 rounded text-xs border transition"
                                                             :class="(selEl.data.radius || 'none') === opt.k ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'"
                                                             x-text="opt.label"></button>
@@ -1552,6 +1554,7 @@ declare(strict_types=1);
                                         </div>
                                     </template>
 
+                                    <?php $styleSourceControl = 'ctrl'; require __DIR__ . '/style-source.php'; ?>
                                     <?php require __DIR__ . '/home-content-source.php'; ?>
                                     <p x-show="ctrl.responsive && previewDevice !== 'desktop'"
                                        class="-mt-0.5 mb-1.5 text-[10px] text-gray-400 flex items-center gap-1">
@@ -1846,7 +1849,7 @@ declare(strict_types=1);
                                     <template x-if="ctrl.type === 'checkbox'">
                                         <label class="flex items-center gap-2 cursor-pointer">
                                             <input type="checkbox" class="rounded border-gray-300"
-                                                   :checked="!!controlValue(ctrl)"
+                                                   :checked="BloxControlRules.checkboxValue(controlValue(ctrl))"
                                                    @change="setControlValue(ctrl, $event.target.checked)">
                                             <span class="text-xs font-medium text-gray-600" x-text="ctrl.label"></span>
                                         </label>

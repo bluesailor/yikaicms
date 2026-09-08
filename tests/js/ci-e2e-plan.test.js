@@ -13,6 +13,8 @@ const root = path.resolve(__dirname, '../..');
 
 test('browser paths select their relevant shard', () => {
   assert.deepEqual(plan(['admin/upload.php'], { root }), ['media']);
+  assert.deepEqual(plan(['assets/js/blox-style-sources.js'], { root }), ['core', 'design']);
+  assert.deepEqual(plan(['admin/blox_editor/partials/style-source.php'], { root }), ['core', 'design']);
   assert.deepEqual(plan(['admin/blox_templates.php'], { root }), ['design']);
   assert.deepEqual(plan(['lang/ja.php'], { root }), ['locale']);
   assert.deepEqual(plan(['admin/blox_home_api.php'], { root }), ['core']);
