@@ -31,7 +31,9 @@ foreach (['en', 'ja', 'zh-CN'] as $language) {
     }
 }
 if ($action === 'hash') {
-    echo hash('sha256', (string) config('home_blox_published', ''));
+    $state = db()->fetchAll('SELECT `key`, `value` FROM ' . DB_PREFIX . 'settings WHERE `key` IN (?, ?, ?, ?) ORDER BY `key`',
+        ['home_blox_data', 'home_blox_published', 'home_blox_history', 'home_blox_active']);
+    echo hash('sha256', json_encode($state, JSON_THROW_ON_ERROR));
     exit;
 }
 if ($action === 'restore') {
@@ -85,6 +87,9 @@ $channel = getChannelBySlug('about');
 $urls = [];
 foreach (['zh-CN', 'en', 'ja'] as $language) {
     $row = channelModel()->siblingForLang((int) $channel['id'], $language);
-    $urls[$language] = langPrefix($language) . channelUrl($row);
+    $urls[$language] = [
+        'href' => langPrefix($language) . channelUrl($row),
+        'destination' => langPrefix($language) . channelUrl(pagePrimaryEditTarget($row)),
+    ];
 }
 echo json_encode($urls, JSON_THROW_ON_ERROR);

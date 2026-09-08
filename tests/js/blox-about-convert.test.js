@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const editor = fs.readFileSync(path.resolve(__dirname, '../../admin/blox_editor.php'), 'utf8');
+const editor = fs.readFileSync(path.resolve(__dirname, '../../admin/blox_editor/partials/control-editing.php'), 'utf8');
 const body = editor.match(/async convertHomeAbout\(useSiteDefaults = false\) \{([\s\S]*?)\n            \},/)[1]
     .replace(/<\?=([\s\S]*?)\?>/g, '"conflict"');
 
