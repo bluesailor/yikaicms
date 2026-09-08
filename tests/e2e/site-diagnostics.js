@@ -9,6 +9,16 @@ function logs() {
     .map(name => [name, fs.readFileSync(path.join(dir, name), 'utf8')]));
 }
 const test = base.extend({
+  launchOptions: [async ({ launchOptions }, use, info) => {
+    if (process.env.BLOX_E2E_NET_LOG !== '1') return use(launchOptions);
+    if (!path.basename(root).startsWith('yikai-e2e-')) throw new Error('NetLog requires a disposable test site');
+    const dir = path.join(root, 'storage/e2e-netlog');
+    fs.mkdirSync(dir, { recursive: true });
+    await use({ ...launchOptions, args: [
+      ...(launchOptions.args || []),
+      `--log-net-log=${path.join(dir, `worker-${info.workerIndex}.json`)}`,
+    ] });
+  }, { scope: 'worker', option: true }],
   diagnostics: [async ({ page, baseURL }, use, info) => {
     expect(new URL(baseURL).hostname).toBe('127.0.0.1');
     expect(path.basename(root)).toMatch(/^yikai-e2e-/);
