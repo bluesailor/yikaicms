@@ -175,7 +175,9 @@ if ($jsonOut !== '') {
 }
 
 if ($report['ok'] === true) {
-    fwrite(STDOUT, "渠道核对通过：本模式下所有必需渠道均已验证。\n");
+    fwrite(STDOUT, $mode === ReleaseChannelAudit::MODE_CANDIDATE
+        ? "候选准备检查通过；线上未执行项不代表发布完成。\n"
+        : "渠道核对通过：本模式下所有必需渠道均已验证。\n");
     exit(0);
 }
 
