@@ -120,6 +120,17 @@ test('locale extra phases have real language/free markers', () => {
   }
 });
 
+test('classic theme copy and legacy carousel have exactly one owning CI phase', () => {
+  const phases = SHARD_KEYS.flatMap(key => phasesForShard(key).map(phase => ({ key, ...phase })));
+  for (const [spec, owner] of [['theme-classic-language.spec.js', 'design'], ['home-language-carousel.spec.js', 'locale']]) {
+    assert.deepEqual(plan([`tests/e2e/${spec}`], { root }), [owner]);
+    const matches = phases.filter(phase => path.basename(phase.spec) === spec);
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].key, owner);
+    assert.equal(matches[0].grep, '@ci');
+  }
+});
+
 test('CI workflow keeps a planning job, four-shard fanout, and required aggregator', () => {
   const workflow = require('node:fs').readFileSync(path.resolve(root, '.github/workflows/ci.yml'), 'utf8');
   assert.match(workflow, /e2e_plan:/);
