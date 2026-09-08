@@ -19,7 +19,7 @@ async function switchTo(page, language, info) {
   const mobile = info.project.name !== 'desktop-1440';
   if (mobile) await page.locator('#mobileMenuBtn').click();
   const scope = page.locator(mobile ? '#mobileMenu' : '#siteHeader');
-  const switcher = scope.locator('[data-yk-language-switcher]:visible');
+  const switcher = scope.locator('[data-yk-language-switcher]').filter({ visible: true });
   await switcher.locator('summary').click();
   const response = page.waitForResponse(r => r.request().isNavigationRequest() && r.request().frame() === page.mainFrame());
   await switcher.locator(`a[hreflang="${language}"]`).click();
