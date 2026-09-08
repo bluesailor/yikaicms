@@ -1,6 +1,7 @@
 {
   "version": 2,
   "core": [
+    "includes/builder/HomeAboutLocalization.php",
     "admin/blox_editor.php",
     "admin/blox_editor",
     "admin/blox_cache_api.php",
