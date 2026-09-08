@@ -1,7 +1,13 @@
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./site-diagnostics');
+
+function loadedImagePath(locator) {
+  // currentSrc can be empty while the browser selects a new srcset candidate.
+  return locator.evaluate(element => element.complete && element.naturalWidth > 0 && element.currentSrc
+    ? new URL(element.currentSrc).pathname : '');
+}
 
 test('responsive image candidates select by viewport @ci', async ({ page }, testInfo) => {
   const root = path.resolve(__dirname, '../..');
@@ -11,6 +17,7 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
   const thumb = path.join(root, 'uploads', 'images', `${name}_thumb.png`);
   const alternate = path.join(root, 'uploads', 'images', `${name}-alt.png`);
   const alternateMedium = path.join(root, 'uploads', 'images', `${name}-alt_medium.png`);
+  const plain = path.join(root, 'uploads', 'images', `${name}-plain.png`);
   const script = [
     '$files = json_decode($argv[1], true);',
     'foreach ($files as $file) {',
@@ -28,6 +35,7 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
     [thumb, 300, 300, 46, 124, 104],
     [alternate, 1000, 750, 128, 66, 34],
     [alternateMedium, 500, 375, 174, 92, 50],
+    [plain, 400, 300, 94, 82, 133],
   ])], { cwd: root });
 
   try {
@@ -46,11 +54,10 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
     await expect(cardImage).toHaveAttribute('height', '338');
     await expect(cardImage).toHaveAttribute('srcset', new RegExp(`${name}_medium\\.png 600w, .*${name}\\.png 1200w`));
 
-    const selected = await image.evaluate((element) => new URL(element.currentSrc).pathname);
     const expected = testInfo.project.name === 'mobile-390'
       ? `/uploads/images/${name}_medium.png`
       : `/uploads/images/${name}.png`;
-    expect(selected).toBe(expected);
+    await expect.poll(() => loadedImagePath(image)).toBe(expected);
 
     const previewLink = page.getByTestId('preview-original');
     const previewThumb = page.getByTestId('preview-thumb');
@@ -59,7 +66,7 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
     await expect(previewThumb).not.toHaveAttribute('srcset', /.+/);
     await expect(previewThumb).toHaveAttribute('width', '300');
     await expect(previewThumb).toHaveAttribute('height', '300');
-    await expect.poll(() => previewThumb.evaluate((element) => new URL(element.currentSrc).pathname))
+    await expect.poll(() => loadedImagePath(previewThumb))
       .toBe(`/uploads/images/${name}_thumb.png`);
 
     const builderImage = page.getByTestId('builder-image').locator('img');
@@ -94,18 +101,22 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
     await expect(galleryMain).toHaveAttribute('sizes', '(min-width: 1024px) 50vw, 100vw');
     await expect(galleryMain).toHaveAttribute('width', '500');
     await expect(galleryMain).toHaveAttribute('height', '375');
-    await expect.poll(() => galleryMain.evaluate((element) => new URL(element.currentSrc).pathname)).toContain(`${name}-alt`);
+    const alternateExpected = testInfo.project.name === 'mobile-390'
+      ? `/uploads/images/${name}-alt_medium.png` : `/uploads/images/${name}-alt.png`;
+    await expect.poll(() => loadedImagePath(galleryMain)).toBe(alternateExpected);
 
     await page.getByTestId('product-gallery-plain').click();
-    await expect(galleryMain).toHaveAttribute('src', '/uploads/images/plain-fallback.png');
+    await expect(galleryMain).toHaveAttribute('src', `/uploads/images/${name}-plain.png`);
     await expect(galleryMain).not.toHaveAttribute('srcset', /.+/);
     await expect(galleryMain).not.toHaveAttribute('sizes', /.+/);
     await expect(galleryMain).not.toHaveAttribute('width', /.+/);
     await expect(galleryMain).not.toHaveAttribute('height', /.+/);
+    await expect.poll(() => loadedImagePath(galleryMain)).toBe(`/uploads/images/${name}-plain.png`);
   } finally {
-    for (const file of [original, medium, thumb, alternate, alternateMedium]) {
+    for (const file of [original, medium, thumb, alternate, alternateMedium, plain]) {
       fs.rmSync(file.replace(/\.png$/, '.webp'), { force: true });
     }
+    fs.rmSync(plain, { force: true });
     fs.rmSync(alternateMedium, { force: true });
     fs.rmSync(alternate, { force: true });
     fs.rmSync(medium, { force: true });

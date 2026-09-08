@@ -7,6 +7,7 @@ require_once dirname(__DIR__, 3) . '/includes/init.php';
 $name = preg_replace('/[^a-z0-9-]/', '', strtolower((string) ($_GET['name'] ?? '')));
 $url = '/uploads/images/' . ($name !== '' ? $name : 'missing-responsive-fixture') . '.png';
 $alternateUrl = '/uploads/images/' . ($name !== '' ? $name . '-alt' : 'missing-responsive-fixture-alt') . '.png';
+$plainUrl = '/uploads/images/' . ($name !== '' ? $name . '-plain' : 'missing-responsive-fixture-plain') . '.png';
 $gallerySizes = '(min-width: 1024px) 50vw, 100vw';
 $galleryVariants = array_map(
     static function (string $image) use ($gallerySizes): array {
@@ -16,6 +17,7 @@ $galleryVariants = array_map(
     },
     [$url, $alternateUrl]
 );
+$galleryVariants[] = ['src' => $plainUrl, 'srcset' => '', 'sizes' => '', 'width' => 0, 'height' => 0];
 ?>
 <!doctype html>
 <html lang="en">
@@ -77,6 +79,9 @@ $galleryVariants = array_map(
     <div data-testid="builder-dynamic-card">
         <?php
         TagEngine::setItem([
+            'id' => 1,
+            'type' => 'article',
+            'lang' => siteLang(),
             'cover' => $url,
             'title' => 'Dynamic card fixture',
             'url' => '/dynamic-card.html',
@@ -88,7 +93,6 @@ $galleryVariants = array_map(
     <script src="/assets/js/product-gallery.js"></script>
     <script>
     var fixtureVariants = <?php echo json_encode($galleryVariants, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-    fixtureVariants.push({src: '/uploads/images/plain-fallback.png', srcset: '', sizes: '', width: 0, height: 0});
     function switchFixtureImage(idx) {
         window.YikaiProductGallery.applyImageVariant(
             document.querySelector('[data-testid="product-gallery-main"]'),
