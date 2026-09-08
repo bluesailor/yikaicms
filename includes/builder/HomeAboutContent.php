@@ -14,6 +14,7 @@ final class HomeAboutContent
     public static function toSection(array $block = [], string $id = 'about', ?array $aboutChannel = null): array
     {
         $values = self::resolve($aboutChannel);
+        $inherited = $values;
         foreach ($values as $key => $fallback) {
             $override = trim((string) ($block[$key] ?? ''));
             $values[$key] = $override !== '' ? $override : $fallback;
@@ -74,8 +75,8 @@ final class HomeAboutContent
         if (isset($block['enabled']) && !$block['enabled']) {
             $settings['hidden'] = true;
         }
-        return ['id' => $id, 'type' => 'section', 'name' => __('blox_hb_about'),
-            'settings' => $settings, 'columns' => $columns];
+        return HomeAboutLocalization::bind(['id' => $id, 'type' => 'section', 'name' => __('blox_hb_about'),
+            'settings' => $settings, 'columns' => $columns], $inherited);
     }
 
     /**
@@ -87,14 +88,17 @@ final class HomeAboutContent
     public static function resolve(?array $aboutChannel = null): array
     {
         $title = trim((string) (configJsonLang('home_about_title') ?: config('home_about_title', '')));
-        $link = (string) config('home_about_link', '');
+        $link = (string) config('home_about_link_' . siteLang(), '');
+        $link = $link !== '' ? $link : (string) config('home_about_link', '');
+        $button = (string) config('home_about_button_' . siteLang(), '');
+        $button = $button !== '' ? $button : (string) config('home_about_button', '');
         return [
             'override_title' => $title !== '' ? $title : homeAboutDefaultTitle(),
             'override_content' => configLang('home_about_content', 'home_about_default'),
             'override_image' => (string) config('home_about_image', '/assets/images/demo/about-office.jpg'),
             'override_tag_title' => (string) (configJsonLang('home_about_tag_title') ?: config('home_about_tag_title', '')),
             'override_tag_description' => (string) (configJsonLang('home_about_tag_desc') ?: config('home_about_tag_desc', '')),
-            'override_button_text' => (string) (config('home_about_button', '') ?: __('home_learn_more')),
+            'override_button_text' => $button !== '' ? $button : __('home_learn_more'),
             'override_button_url' => $aboutChannel ? ($link ?: channelUrl($aboutChannel)) : $link,
         ];
     }
