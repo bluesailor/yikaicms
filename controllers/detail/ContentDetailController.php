@@ -25,7 +25,7 @@ final class ContentDetailController extends DetailController
             return null;
         }
 
-        $content = contentModel()->getPublished($id);
+        $content = contentModel()->getPublishedForLanguage($id);
 
         // 草稿预览：带合法签名且是签发者本人时放行，否则维持 404。
         // token 绑定管理员 ID + 2 小时时间片，链接外泄给他人也打不开。
@@ -46,6 +46,7 @@ final class ContentDetailController extends DetailController
         if (!$content) {
             return null;
         }
+        $id = (int) $content['id'];
 
         // Side effect: bump the view counter once per render.（预览不计入浏览量）
         if (!$isPreview) {
