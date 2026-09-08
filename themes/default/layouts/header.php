@@ -69,6 +69,12 @@ if (!empty($_SESSION['admin_id']) && function_exists('bloxTemplateModel') && fun
         . ' data-yk-edit-label="' . e(__('fe_edit_layout')) . '"';
 }
 
+$nativeLanguageSwitcher = config('show_lang_switcher', '0') === '1'
+    ? LanguageSwitcherElement::renderForLanguages(enabledLanguages(), siteLang(),
+        (string) config('site_lang', 'zh-CN'), array_keys(availableLanguages()),
+        (string) ($_SERVER['REQUEST_URI'] ?? '/'), ['layout' => 'dropdown', 'tone' => 'dark'])
+    : '';
+
 // 当前栏目
 $currentChannelId = $currentChannelId ?? 0;
 $currentSlug = $currentSlug ?? '';
@@ -207,11 +213,12 @@ function getChannelUrl(array $channel): string {
     <?php echo $ykBloxHeader; // Blox 头模板接管；区域壳自身携带实际模板编辑地址 ?>
     <?php else: ?>
     <header id="siteHeader" class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>"<?php echo $ykHeaderTemplateEditAttr; ?>>
+        <style>#siteHeader [data-yk-language-trigger] { color: <?php echo e($headerTextColor); ?>; }</style>
         <?php if ($headerNavLayout === 'below'): ?>
         <!-- Layout: Logo on top, full-width banner below navigation -->
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between min-h-16">
-                <a href="/" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
+                <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('home') : langPrefix() . '/'); ?>" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
                     <?php if ($siteLogo): ?>
                     <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteLogoAlt); ?>" class="w-auto max-w-full" style="max-height: <?php echo $siteLogoMaxH; ?>px">
                     <?php else: ?>
@@ -233,6 +240,7 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
+                <div class="hidden xl:block"><?php echo $nativeLanguageSwitcher; ?></div>
                 <button id="mobileMenuBtn" type="button" aria-controls="mobileMenu" aria-expanded="false"
                         class="xl:hidden inline-flex h-11 w-11 items-center justify-center rounded-md transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         style="color: <?php echo e($headerTextColor); ?>" aria-label="<?php echo __('menu_label'); ?>">
@@ -283,7 +291,7 @@ function getChannelUrl(array $channel): string {
         <!-- Layout: Logo left + Navigation right (default) -->
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between min-h-16">
-                <a href="/" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
+                <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('home') : langPrefix() . '/'); ?>" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
                     <?php if ($siteLogo): ?>
                     <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteLogoAlt); ?>" class="w-auto max-w-full" style="max-height: <?php echo $siteLogoMaxH; ?>px">
                     <?php else: ?>
@@ -334,22 +342,7 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                     <?php endif; ?>
                     <?php endif; ?>
-                    <?php if (config('show_lang_switcher', '0') === '1' && count(enabledLanguages()) > 1): ?>
-                    <span class="w-px h-4 bg-gray-300 mx-1"></span>
-                    <div class="relative" id="langSwitcher">
-                        <button onclick="document.getElementById('langDropdown').classList.toggle('hidden')" class="px-2 py-2 hover:text-primary transition text-sm inline-flex items-center gap-1" style="color: <?php echo e($headerTextColor); ?>">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
-                            <?php echo enabledLanguages()[siteLang()] ?? siteLang(); ?>
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        </button>
-                        <div id="langDropdown" class="hidden absolute right-0 mt-1 bg-white rounded shadow-lg border py-1 min-w-[100px] z-50">
-                            <?php foreach (enabledLanguages() as $lk => $lv): ?>
-                            <a href="javascript:switchLang('<?php echo $lk; ?>')" class="block px-4 py-2 text-sm hover:bg-gray-100 <?php echo siteLang() === $lk ? 'text-primary font-medium' : 'text-gray-700'; ?>"><?php echo e($lv); ?></a>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                    <script>document.addEventListener('click',function(e){if(!document.getElementById('langSwitcher').contains(e.target))document.getElementById('langDropdown').classList.add('hidden')});</script>
-                    <?php endif; ?>
+                    <?php echo $nativeLanguageSwitcher; ?>
                 </nav>
                 <button id="mobileMenuBtn" type="button" aria-controls="mobileMenu" aria-expanded="false"
                         class="xl:hidden inline-flex h-11 w-11 items-center justify-center rounded-md transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
@@ -398,15 +391,8 @@ function getChannelUrl(array $channel): string {
                 </div>
                 <?php endif; ?>
                 <?php if (config('show_lang_switcher', '0') === '1' && count(enabledLanguages()) > 1): ?>
-                <div data-yk-mobile-language class="mt-2 border-t border-gray-100 pt-3 [&_a]:inline-flex [&_a]:min-h-11 [&_a]:items-center">
-                    <?php echo LanguageSwitcherElement::renderForLanguages(
-                        enabledLanguages(),
-                        siteLang(),
-                        (string) config('site_lang', 'zh-CN'),
-                        array_keys(availableLanguages()),
-                        (string) ($_SERVER['REQUEST_URI'] ?? '/'),
-                        ['layout' => 'inline', 'display' => 'name', 'show_flag' => false, 'tone' => 'dark']
-                    ); ?>
+                <div data-yk-mobile-language class="mt-2 border-t border-gray-100 pt-3 flex justify-end [&_summary]:min-h-11 [&_a]:min-h-11">
+                    <?php echo $nativeLanguageSwitcher; ?>
                 </div>
                 <?php endif; ?>
             </div>
@@ -415,21 +401,6 @@ function getChannelUrl(array $channel): string {
     <?php endif; ?>
 
     <?php do_action('ik_header_after'); ?>
-
-    <!-- Language Switcher JS -->
-    <?php if (config('show_lang_switcher', '0') === '1'): ?>
-    <script>
-    function switchLang(lang) {
-        var defaultLang = <?php echo json_encode((string)config('site_lang', 'zh-CN')); ?>;
-        document.cookie = 'site_lang=' + lang + ';path=/;max-age=' + (365*86400);
-        var path = location.pathname.replace(/^\/(ja|en|zh-CN)\//, '/');
-        if (lang !== defaultLang) {
-            path = '/' + lang + path;
-        }
-        location.href = path + location.search;
-    }
-    </script>
-    <?php endif; ?>
 
     <!-- Main content -->
     <main class="flex-1">
