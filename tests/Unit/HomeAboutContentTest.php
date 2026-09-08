@@ -94,7 +94,7 @@ final class HomeAboutContentTest extends TestCase
         self::assertSame('/en/about.html', $text[3]['data']['url']);
         $json = json_encode(['schema' => 1, 'settings' => [], 'sections' => [$section]], JSON_THROW_ON_ERROR);
         self::assertStringNotContainsString('home-block', $json);
-        self::assertStringNotContainsString('override_', $json);
+        self::assertArrayNotHasKey('override_title', $text[0]['data']);
         $prepared = BloxDocumentPipeline::process($json);
         self::assertNotEmpty($prepared);
         $html = BlockRenderer::render($json);
