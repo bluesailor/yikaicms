@@ -46,6 +46,26 @@ final class BloxSiteElementsTest extends TestCase
         ));
     }
 
+    public function testQueryLanguageSwitchKeepsRealEntryAndReplacesStaleLanguage(): void
+    {
+        $languages = ['zh-CN', 'en', 'ja'];
+        self::assertSame('/index.php?yk_route=home&lang=en', LanguageSwitcherElement::switchUrl(
+            '/index.php?yk_route=home', 'en', 'zh-CN', $languages
+        ));
+        self::assertSame('/index.php?yk_route=product&slug=gateway&page=2&lang=ja', LanguageSwitcherElement::switchUrl(
+            '/en/index.php?yk_route=product&slug=gateway&lang=en&_lang=zh-CN&page=2', 'ja', 'zh-CN', $languages
+        ));
+        self::assertSame('/index.php?yk_route=home', LanguageSwitcherElement::switchUrl(
+            '/index.php?yk_route=home&lang=ja&_lang=ja', 'zh-CN', 'zh-CN', $languages
+        ));
+        self::assertSame('/index.php?yk_route=home', LanguageSwitcherElement::switchUrl(
+            '/index.php?yk_route=home&lang=zh-CN', 'en', 'en', $languages
+        ));
+        self::assertSame('/index.php?yk_route=search&keyword=%E6%99%BA%E8%83%BD&lang=ja', LanguageSwitcherElement::switchUrl(
+            '/index.php?yk_route=search&keyword=%E6%99%BA%E8%83%BD&lang[]=en', 'ja', 'zh-CN', $languages
+        ));
+    }
+
     public function testLanguageSwitcherDefaultsToAccessibleDropdown(): void
     {
         $element = new LanguageSwitcherElement();
