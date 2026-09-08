@@ -78,6 +78,16 @@ test('responsive publishing is scheduled once by the locale CI phase', () => {
   assert.equal(matches[0].grep, '@ci');
 });
 
+test('image replacement and button alignment publish through the media CI phase', () => {
+  const spec = 'blox-media-image-publishing.spec.js';
+  assert.deepEqual(plan([`tests/e2e/${spec}`], { root }), ['media']);
+  const phases = SHARD_KEYS.flatMap(key => phasesForShard(key).map(phase => ({ key, ...phase })));
+  const matches = phases.filter(phase => path.basename(phase.spec) === spec);
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].key, 'media');
+  assert.equal(matches[0].grep, '@ci');
+});
+
 test('locale extra phases have real language/free markers', () => {
   const phases = extraPhasesForShard('locale', path.resolve(root, 'tests/e2e'));
   assert.deepEqual(phases.map((phase) => phase.name), ['language-en', 'language-ja', 'free-mode']);
