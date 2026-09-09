@@ -781,6 +781,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-banner-panel.js') ?>"></script>
     <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
     <script src="/assets/js/blox-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-groups.js') ?>"></script>
+    <script src="/assets/js/blox-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-sources.js') ?>"></script>
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
@@ -4608,29 +4609,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return value;
             },
 
-            setControlValue(ctrl, value) {
-                if (!this.selEl) return;
-                this.prepareBannerControlEdit(ctrl.key, value);
-                var oldLabel = String((this.selEl.data || {}).label || "");
-                this.selEl.data[ctrl.key] = ctrl.responsive && window.BloxResponsive
-                    ? window.BloxResponsive.setFor(
-                        this.selEl.data[ctrl.key],
-                        this.previewDevice,
-                        value,
-                        this.controlOptions(ctrl),
-                        ctrl.default ?? ""
-                    )
-                    : value;
-                if (this.selEl.type === "list-dynamic" && ctrl.key === "query_source") {
-                    this.normalizeSourceControls();
-                }
-                if (this.selEl.type === "home-block" && ctrl.key === "block_type") {
-                    var defaultLabel = String(((this.elSchema("home-block").defaults || {}).label) || "");
-                    if (!oldLabel || oldLabel === "首页区块" || oldLabel === defaultLabel) {
-                        this.selEl.data.label = this.homeBlockSourceLabel();
-                    }
-                }
-            },
+            <?php require __DIR__ . '/blox_editor/partials/control-editing.php'; ?>
 
             responsiveDeviceKey() {
                 return window.BloxResponsive
@@ -4789,6 +4768,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     this.toast(String(this.homeDynamicText.faqLimit || "").replace(":n", String(max)), "error");
                     return;
                 }
+                this.flushHistory(true);
                 items.push({
                     question: this.homeDynamicText.faqNewQuestion,
                     answer: this.homeDynamicText.faqNewAnswer,
@@ -4801,6 +4781,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var items = this.accordionItems();
                 var position = Number(index);
                 if (!Number.isInteger(position) || position < 0 || position >= items.length) return;
+                this.flushHistory(true);
                 items.splice(position, 1);
                 this.storeAccordionItems(items);
                 this.highlightCanvasSelection(false);
@@ -4816,6 +4797,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             moveAccordionItem(index, delta) {
                 if (!this.accordionItemCanMove(index, delta)) return;
+                this.flushHistory(true);
                 var position = Number(index);
                 this.storeAccordionItems(window.BloxHomeFieldStore.moveItem(
                     this.accordionItems(),

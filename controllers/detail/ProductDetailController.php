@@ -24,10 +24,11 @@ final class ProductDetailController extends DetailController
             return null;
         }
 
-        $product = productModel()->getPublished($id);
+        $product = productModel()->getPublishedForLanguage($id);
         if (!$product) {
             return null;
         }
+        $id = (int) $product['id'];
 
         // 副作用：每次渲染自增一次浏览量。
         addProductViews($id);

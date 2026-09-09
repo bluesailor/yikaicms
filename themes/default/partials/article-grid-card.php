@@ -20,7 +20,7 @@ $__gridOpts = $listOpts ?? null;
     <div class="p-5">
         <h3 class="line-clamp-2 text-lg font-bold text-dark transition group-hover:text-primary"><?php echo e($item['title']); ?></h3>
         <?php if (listShowEl($__gridOpts, 'summary')): ?>
-        <p class="mt-2 line-clamp-2 text-sm text-gray-500"><?php echo e($item['summary'] ?: cutStr(strip_tags($item['content']), 100)); ?></p>
+        <p class="mt-2 line-clamp-2 text-sm text-gray-500"><?php echo e(($item['summary'] ?? '') ?: cutStr(strip_tags((string) ($item['content'] ?? '')), 100)); ?></p>
         <?php endif; ?>
         <div class="mt-4 flex flex-wrap items-center gap-3 text-xs text-gray-400">
             <?php if (listShowEl($__gridOpts, 'channel') && !empty($item['channel_name'])): ?><span class="text-primary"><?php echo e($item['channel_name']); ?></span><?php endif; ?>

@@ -1,6 +1,7 @@
 {
   "version": 2,
   "core": [
+    "includes/builder/HomeAboutLocalization.php",
     "admin/blox_editor.php",
     "admin/blox_editor",
     "admin/blox_cache_api.php",
@@ -43,6 +44,7 @@
     "assets/js/blox-banner-panel.js",
     "assets/js/blox-home-content-panel.js",
     "assets/js/blox-style-groups.js",
+    "assets/js/blox-style-sources.js",
     "assets/js/blox-image-control.js",
     "assets/js/blox-catalog-source.js",
     "assets/js/blox-dialog-focus.js",
@@ -65,6 +67,7 @@
     "plugins/blox-example"
   ],
   "runtime": [
+    "assets/css/blox-overlay.css",
     "assets/css/blox-banner.css",
     "assets/js/blox-video-policy.js",
     "assets/js/blox-banner.js",

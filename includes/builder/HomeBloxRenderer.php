@@ -133,6 +133,7 @@ final class HomeBloxRenderer
                 continue;
             }
 
+            $section = HomeAboutLocalization::localize($section);
             $renderSection = $section;
             $renderColumns = [];
             foreach (($section['columns'] ?? []) as $columnIndex => $column) {

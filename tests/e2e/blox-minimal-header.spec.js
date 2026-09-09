@@ -59,6 +59,11 @@ async function headerMetrics(page, headerSelector) {
     if (!header) return null;
     const rect = header.getBoundingClientRect();
     const visible = (node) => {
+      // Closed details descendants may have boxes but are not displayed.
+      for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+        if (parent.tagName === 'DETAILS' && !parent.open
+            && !parent.querySelector(':scope > summary')?.contains(node)) return false;
+      }
       const style = getComputedStyle(node);
       const box = node.getBoundingClientRect();
       return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
@@ -80,6 +85,15 @@ async function headerMetrics(page, headerSelector) {
     };
   }, headerSelector);
 }
+
+test('header metrics exclude closed details but retain opened menu rows @ci', async ({ page }) => {
+  await page.setContent('<header id="test-header"><nav><a href="#">Home</a><details><summary>Languages</summary><div><a style="display:block" href="#en">English</a><a style="display:block" href="#ja">Japanese</a><a style="display:block" href="#zh">Chinese</a></div></details></nav></header>');
+  expect((await headerMetrics(page, '#test-header')).navRows).toBe(1);
+  await page.locator('summary').click();
+  expect((await headerMetrics(page, '#test-header')).navRows).toBe(4);
+  await page.locator('summary').click();
+  expect((await headerMetrics(page, '#test-header')).navRows).toBe(1);
+});
 
 test('minimal homepage keeps its native header editable as the current theme header @ci', async ({ page }, testInfo) => {
   const compact = testInfo.project.name !== 'desktop-1440';

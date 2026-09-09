@@ -71,4 +71,69 @@ final class HomeAboutContentTest extends TestCase
             self::assertSame($url, HomeAboutContent::resolve()['override_button_url']);
         }
     }
+
+    public function testStandardSectionPreservesOverridesAndContainsOnlyGenericElements(): void
+    {
+        $section = HomeAboutContent::toSection([
+            'override_title' => 'Independent title', 'override_content' => '<script>alert(1)</script> & text',
+            'override_image' => '/uploads/about.jpg', 'override_button_url' => '/en/about.html',
+            'override_tag_title' => 'Service', 'override_tag_description' => 'Quality',
+            'override_ratio' => '2_1', 'override_layout' => 'image_left', 'override_breakpoint' => 'md',
+        ], 'snapshot');
+        self::assertSame([4, 8], array_column($section['columns'], 'span'));
+        self::assertFalse($section['settings']['tablet_stack']);
+        $visual = $section['columns'][0]['elements'][0];
+        self::assertSame('div', $visual['type']);
+        self::assertSame('overlay', $visual['data']['display']);
+        self::assertSame('/uploads/about.jpg', $visual['data']['children'][0]['data']['src']);
+        self::assertArrayNotHasKey('style_margin_top', $visual['data']['children'][1]['data']);
+        $text = $section['columns'][1]['elements'];
+        self::assertSame(['heading', 'divider', 'text', 'button'], array_column($text, 'type'));
+        self::assertSame('Independent title', $text[0]['data']['text']);
+        self::assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt; &amp; text', $text[2]['data']['html']);
+        self::assertSame('/en/about.html', $text[3]['data']['url']);
+        $json = json_encode(['schema' => 1, 'settings' => [], 'sections' => [$section]], JSON_THROW_ON_ERROR);
+        self::assertStringNotContainsString('home-block', $json);
+        self::assertArrayNotHasKey('override_title', $text[0]['data']);
+        $prepared = BloxDocumentPipeline::process($json);
+        self::assertNotEmpty($prepared);
+        $html = BlockRenderer::render($json);
+        self::assertStringContainsString('Independent title', $html);
+        self::assertStringContainsString('Quality', $html);
+        self::assertStringContainsString('yk-div-overlay', $html);
+        self::assertContains('/assets/css/blox-overlay.css', BloxAssetCollector::styles());
+        self::assertStringNotContainsString('<script>alert', $html);
+        $GLOBALS['yikai_config_runtime_overrides']['home_about_title'] = 'Changed site title';
+        self::assertSame($html, BlockRenderer::render($json));
+    }
+
+    public function testDisabledAndEmptyOverridesRetainTheirMeaning(): void
+    {
+        $section = HomeAboutContent::toSection(['enabled' => false, 'override_title' => ' ', 'bg_color' => '#112233']);
+        self::assertTrue($section['settings']['hidden']);
+        self::assertTrue($section['settings']['tablet_stack']);
+        self::assertSame('#112233', $section['settings']['bg_color']);
+        self::assertSame('Company', $section['columns'][0]['elements'][0]['data']['text']);
+        self::assertSame('', BlockRenderer::render(json_encode(['schema' => 1, 'sections' => [$section]], JSON_THROW_ON_ERROR)));
+    }
+
+    public function testLegacyImportCreatesStandardAboutSections(): void
+    {
+        $created = !db()->tableExists('channels');
+        if ($created) {
+            db()->execute('CREATE TABLE channels (id INTEGER PRIMARY KEY, slug TEXT, status INTEGER)');
+        }
+        $GLOBALS['yikai_config_runtime_overrides']['home_blocks_config'] = json_encode([
+            ['type' => 'about', 'enabled' => true],
+        ], JSON_THROW_ON_ERROR);
+        try {
+            $section = HomeLayoutDocument::legacySectionsForImport()[0];
+            self::assertCount(2, $section['columns']);
+            self::assertSame('heading', $section['columns'][0]['elements'][0]['type']);
+        } finally {
+            if ($created) {
+                db()->execute('DROP TABLE channels');
+            }
+        }
+    }
 }

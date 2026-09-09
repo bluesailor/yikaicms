@@ -1,6 +1,7 @@
 <?php
+declare(strict_types=1);
 /**
- * 首页产品轮播插件 v1.1.0
+ * 首页产品轮播插件 v1.1.2
  *
  * 通过核心的首页版块扩展钩子接入，无需改动核心：
  *   home_block_types      —— 注册「产品轮播」版块类型
@@ -16,6 +17,8 @@
 if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
+
+require_once __DIR__ . '/products.php';
 
 // ── 1. 注册版块类型 ───────────────────────────────────────────
 add_filter('home_block_types', function (array $blockMeta): array {
@@ -190,11 +193,7 @@ add_filter('home_block_render', function (string $html, string $type, array $blo
     if (empty($ids)) {
         return $html;
     }
-    $products = [];
-    foreach ($ids as $pid) {
-        $p = productModel()->getPublished($pid);
-        if ($p) { $products[] = $p; }
-    }
+    $products = productCarouselProducts($ids, siteLang());
     if (empty($products)) {
         return $html;
     }
@@ -221,7 +220,7 @@ add_filter('home_block_render', function (string $html, string $type, array $blo
                 <div class="yk-pc-track" style="display:flex;transition:transform .5s ease;">
                     <?php foreach ($products as $p): ?>
                     <div class="yk-pc-item" style="flex:0 0 100%;box-sizing:border-box;padding:0 12px;">
-                        <a href="<?php echo productUrl($p); ?>" class="yk-pc-card"
+                        <a href="<?php echo e(productUrl($p)); ?>" class="yk-pc-card"
                            style="display:block;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);text-decoration:none;color:inherit;transition:box-shadow .3s;height:100%;">
                             <div style="aspect-ratio:4/3;overflow:hidden;background:#f3f4f6;">
                                 <?php if (!empty($p['cover'])): ?>

@@ -13,6 +13,8 @@ const root = path.resolve(__dirname, '../..');
 
 test('browser paths select their relevant shard', () => {
   assert.deepEqual(plan(['admin/upload.php'], { root }), ['media']);
+  assert.deepEqual(plan(['assets/js/blox-style-sources.js'], { root }), ['core', 'design']);
+  assert.deepEqual(plan(['admin/blox_editor/partials/style-source.php'], { root }), ['core', 'design']);
   assert.deepEqual(plan(['admin/blox_templates.php'], { root }), ['design']);
   assert.deepEqual(plan(['lang/ja.php'], { root }), ['locale']);
   assert.deepEqual(plan(['admin/blox_home_api.php'], { root }), ['core']);
@@ -56,6 +58,56 @@ test('every executable shard owns at least one tracked CI spec', () => {
   }
 });
 
+test('background video publishing is scheduled by the media CI phase', () => {
+  const spec = 'blox-background-video-publishing.spec.js';
+  assert.deepEqual(plan([`tests/e2e/${spec}`], { root }), ['media']);
+  const phases = SHARD_KEYS.flatMap(key => phasesForShard(key).map(phase => ({ key, ...phase })));
+  const matches = phases.filter(phase => path.basename(phase.spec) === spec);
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].key, 'media');
+  assert.equal(matches[0].grep, '@ci');
+});
+
+test('responsive publishing is scheduled once by the locale CI phase', () => {
+  const spec = 'blox-element-responsive-publishing.spec.js';
+  assert.deepEqual(plan([`tests/e2e/${spec}`], { root }), ['locale']);
+  const phases = SHARD_KEYS.flatMap(key => phasesForShard(key).map(phase => ({ key, ...phase })));
+  const matches = phases.filter(phase => path.basename(phase.spec) === spec);
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].key, 'locale');
+  assert.equal(matches[0].grep, '@ci');
+});
+
+test('image replacement and button alignment publish through the media CI phase', () => {
+  const spec = 'blox-media-image-publishing.spec.js';
+  assert.deepEqual(plan([`tests/e2e/${spec}`], { root }), ['media']);
+  const phases = SHARD_KEYS.flatMap(key => phasesForShard(key).map(phase => ({ key, ...phase })));
+  const matches = phases.filter(phase => path.basename(phase.spec) === spec);
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].key, 'media');
+  assert.equal(matches[0].grep, '@ci');
+});
+
+test('container layout publishing is scheduled once by the locale CI phase', () => {
+  const spec = 'blox-element-responsive-layout-publishing.spec.js';
+  assert.deepEqual(plan([`tests/e2e/${spec}`], { root }), ['locale']);
+  const phases = SHARD_KEYS.flatMap(key => phasesForShard(key).map(phase => ({ key, ...phase })));
+  const matches = phases.filter(phase => path.basename(phase.spec) === spec);
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].key, 'locale');
+  assert.equal(matches[0].grep, '@ci');
+});
+
+test('three-theme site baseline is scheduled once by the design CI phase', () => {
+  const spec = 'theme-site-baseline.spec.js';
+  assert.deepEqual(plan([`tests/e2e/${spec}`], { root }), ['design']);
+  const phases = SHARD_KEYS.flatMap(key => phasesForShard(key).map(phase => ({ key, ...phase })));
+  const matches = phases.filter(phase => path.basename(phase.spec) === spec);
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].key, 'design');
+  assert.equal(matches[0].grep, '@ci');
+});
+
 test('locale extra phases have real language/free markers', () => {
   const phases = extraPhasesForShard('locale', path.resolve(root, 'tests/e2e'));
   assert.deepEqual(phases.map((phase) => phase.name), ['language-en', 'language-ja', 'free-mode']);
@@ -65,6 +117,28 @@ test('locale extra phases have real language/free markers', () => {
   for (const phase of phases) {
     assert.equal(require('node:fs').existsSync(phase.spec), true);
     assert.match(require('node:fs').readFileSync(phase.spec, 'utf8'), new RegExp(phase.grep.replace('@', '\\@')));
+  }
+});
+
+test('classic theme copy and legacy carousel have exactly one owning CI phase', () => {
+  const phases = SHARD_KEYS.flatMap(key => phasesForShard(key).map(phase => ({ key, ...phase })));
+  for (const [spec, owner] of [['theme-classic-language.spec.js', 'design'], ['home-language-carousel.spec.js', 'locale']]) {
+    assert.deepEqual(plan([`tests/e2e/${spec}`], { root }), [owner]);
+    const matches = phases.filter(phase => path.basename(phase.spec) === spec);
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].key, owner);
+    assert.equal(matches[0].grep, '@ci');
+  }
+});
+
+test('native theme language navigation is executed once by design CI', () => {
+  for (const spec of ['theme-language-navigation.spec.js', 'theme-language-routes.spec.js', 'theme-business-consult.spec.js']) {
+  assert.deepEqual(plan([`tests/e2e/${spec}`], { root }), ['design']);
+  const phases = SHARD_KEYS.flatMap(key => phasesForShard(key).map(phase => ({ key, ...phase })));
+  const matches = phases.filter(phase => path.basename(phase.spec) === spec);
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].key, 'design');
+  assert.equal(matches[0].grep, '@ci');
   }
 });
 

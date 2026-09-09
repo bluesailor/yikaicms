@@ -318,7 +318,7 @@ fi
 
 # 契约脚本必须在解包站里、由被测 PHP 执行，避免再次误测源码树。
 if cp tests/smoke/package_home_contract.php "$UNPACK_WSL/package-home-contract.php" \
-    && "$PHP_DIR/php.exe" "$UNPACK_WIN/package-home-contract.php" >/tmp/pkghome.log 2>&1; then
+    && "$PHP_DIR/php.exe" "$UNPACK_WIN/package-home-contract.php" "$VERSION" >/tmp/pkghome.log 2>&1; then
     ok "$(tail -1 /tmp/pkghome.log | tr -d '\r')"
 else
     bad "中文首页契约失败"; tail -20 /tmp/pkghome.log | sed 's/^/      /'

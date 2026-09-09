@@ -58,6 +58,7 @@ require_once __DIR__ . '/PageBloxDocument.php';
 require_once __DIR__ . '/ChannelBloxDocument.php';
 require_once __DIR__ . '/BloxPublicationStatus.php';
 require_once __DIR__ . '/HomeAboutContent.php';
+require_once __DIR__ . '/HomeAboutLocalization.php';
 require_once __DIR__ . '/HomeLayoutDocument.php';
 require_once __DIR__ . '/HomeBloxRenderContext.php';
 require_once __DIR__ . '/BloxFrontendEditTarget.php';

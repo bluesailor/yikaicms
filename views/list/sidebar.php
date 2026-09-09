@@ -256,6 +256,18 @@ $productCatalogGridClass = [
                 $totalPages = (int)ceil($total / $perPage);
                 $currentSort = $currentSort ?? 'default';
                 $pageUrl = function(int $p) use ($channel, $keyword, $isProductType, $productCategory, $currentSort): string {
+                    if (isDynamicUrlMode()) {
+                        $params = [];
+                        if ($keyword !== '') $params['keyword'] = $keyword;
+                        if ($isProductType && $currentSort !== 'default') $params['sort'] = $currentSort;
+                        if ($isProductType && !empty($productCategory['slug'])) $params['cat'] = (string) $productCategory['slug'];
+                        foreach (['brand', 'tag', 'pmin', 'pmax'] as $filter) {
+                            $value = $_GET[$filter] ?? '';
+                            if (is_string($value) && trim($value) !== '') $params[$filter] = trim($value);
+                        }
+                        return dynamicChannelPageUrl($channel, $p, $params)
+                            ?? dynamicUrl('list', ['id' => (int) ($channel['id'] ?? 0), 'page' => $p]);
+                    }
                     $extraParams = '';
                     if ($keyword !== '') $extraParams .= '&keyword=' . urlencode($keyword);
                     if ($isProductType && isset($currentSort) && $currentSort !== 'default') $extraParams .= '&sort=' . urlencode($currentSort);
