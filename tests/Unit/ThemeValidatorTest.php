@@ -84,10 +84,11 @@ final class ThemeValidatorTest extends TestCase
             $r = ThemeValidator::validateDir($dir, $slug);
             $this->assertSame([], $r['errors'], "市场主题 {$slug} 校验不通过：" . implode('；', $r['errors']));
             $this->assertSame([], $r['warnings'], "市场主题 {$slug} 有警告：" . implode('；', $r['warnings']));
-            $this->assertSame(
-                '>=' . CMS_VERSION,
-                (string) ($r['meta']['requires_cms'] ?? ''),
-                "市场主题 {$slug} 的 requires_cms 必须跟当前 CMS_VERSION 同步"
+            $requirement = (string) ($r['meta']['requires_cms'] ?? '');
+            $this->assertMatchesRegularExpression('/^>=\d+\.\d+\.\d+$/D', $requirement);
+            $this->assertTrue(
+                ThemeValidator::satisfies(CMS_VERSION, $requirement),
+                "市场主题 {$slug} 的最低 CMS 版本必须被当前版本满足"
             );
         }
     }
@@ -149,6 +150,8 @@ final class ThemeValidatorTest extends TestCase
     public static function constraintProvider(): array
     {
         return [
+            'new release accepts previous minimum' => ['1.19.9', '>=1.19.8', true],
+            'old release rejects newer minimum' => ['1.19.8', '>=1.19.9', false],
             '>= 满足'      => ['1.14.0', '>=1.14', true],
             '>= 不满足'    => ['1.13.3', '>=1.14', false],
             '裸版本号视作 >=' => ['1.14.0', '1.14', true],

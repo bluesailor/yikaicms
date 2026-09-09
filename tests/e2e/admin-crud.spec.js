@@ -3,6 +3,28 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const root = path.resolve(__dirname, '../..');
 
+async function checkVisitor(browser, baseURL, kind, id, title, content, deleted = false) {
+  const context = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
+  try {
+    const visitor = await context.newPage();
+    const errors = [];
+    visitor.on('pageerror', error => errors.push(error.message));
+    const response = await visitor.goto(`/index.php?yk_route=${kind}&id=${id}`);
+    expect(response.status()).toBe(deleted ? 404 : 200);
+    await expect(visitor.locator('#ik-adminbar')).toHaveCount(0);
+    if (deleted) {
+      await expect(visitor.locator('body')).not.toContainText(title);
+      await expect(visitor.locator('body')).not.toContainText(content);
+    } else {
+      await expect(visitor.getByRole('heading', { name: title, exact: true }).first()).toBeVisible();
+      await expect(visitor.locator('body')).toContainText(content);
+    }
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+  }
+}
+
 async function save(page, kind) {
   const responsePromise = page.waitForResponse(r => r.request().method() === 'POST'
     && new URL(r.url()).pathname === `/admin/${kind}_edit.php`);
@@ -17,7 +39,7 @@ async function save(page, kind) {
 }
 
 for (const kind of ['article', 'product']) {
-  test(`${kind}: browser create, edit, cancel delete and trash @ci @admin-crud`, async ({ page }) => {
+  test(`${kind}: browser create, edit, cancel delete and trash @ci @admin-crud`, async ({ page, browser, baseURL }) => {
     const title = `E2E中文${Date.now()}`;
     await page.goto(`/admin/${kind}_edit.php`);
     await page.locator('[name="title"]').fill(title);
@@ -33,6 +55,7 @@ for (const kind of ['article', 'product']) {
     if (kind === 'product') await page.locator('[name="model"]').fill('E2E-100');
     const id = await save(page, kind);
     expect(Number(id)).toBeGreaterThan(0);
+    await checkVisitor(browser, baseURL, kind, id, title, 'E2E body 中文 content');
     const createdRow = page.locator('tr').filter({ has: page.locator(`input[name="ids[]"][value="${id}"]`) });
     await expect(createdRow).toContainText(title);
     await createdRow.hover();
@@ -50,6 +73,7 @@ for (const kind of ['article', 'product']) {
     await page.goto(`/admin/${kind}_edit.php?id=${id}`);
     await expect(page.locator('[name="title"]')).toHaveValue(title + ' updated');
     await expect(bodyEditor).toContainText('E2E body updated');
+    await checkVisitor(browser, baseURL, kind, id, title + ' updated', 'E2E body updated');
     await page.goto(`/admin/${kind}.php`);
     const row = page.locator('tr').filter({ has: page.locator(`a[href*="${kind}_edit.php?id=${id}"]`) });
     const deleteButton = row.locator(`button[onclick^="${kind === 'article' ? 'deleteItem' : 'deleteProduct'}("]`);
@@ -57,11 +81,13 @@ for (const kind of ['article', 'product']) {
     page.once('dialog', dialog => dialog.dismiss());
     await deleteButton.click();
     await expect(row).toBeVisible();
+    await checkVisitor(browser, baseURL, kind, id, title + ' updated', 'E2E body updated');
     page.once('dialog', dialog => dialog.accept());
     await deleteButton.click();
     await expect(row).toHaveCount(0);
     await page.reload();
     await expect(page.locator(`a[href*="${kind}_edit.php?id=${id}"]`)).toHaveCount(0);
+    await checkVisitor(browser, baseURL, kind, id, title + ' updated', 'E2E body updated', true);
     await page.goto(`/admin/recycle.php?type=${kind === 'article' ? 'content' : 'product'}`);
     await expect(page.locator('body')).toContainText(title + ' updated');
   });

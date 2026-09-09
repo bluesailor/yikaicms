@@ -49,7 +49,7 @@ final class DivElement extends AbstractElement
     {
         return [
             ['key' => 'display', 'type' => 'select', 'label' => __('blox_display_mode'), 'default' => 'block', 'tab' => 'style',
-                'options' => ['block' => __('blox_block_level'), 'flex' => 'Flex']],
+                'options' => ['block' => __('blox_block_level'), 'flex' => 'Flex', 'overlay' => __('blox_layout_overlay')]],
             ['key' => 'direction', 'type' => 'select', 'label' => __('blox_direction'), 'default' => 'column', 'tab' => 'style', 'responsive' => true,
                 'options' => ['column' => __('blox_dir_column_stack'), 'row' => __('blox_dir_row_wrap')]],
             ['key' => 'wrap', 'type' => 'select', 'label' => __('blox_flex_wrap'), 'default' => 'auto', 'tab' => 'style',
@@ -68,10 +68,16 @@ final class DivElement extends AbstractElement
         ];
     }
 
+    public function stylesFor(array $data): array
+    {
+        return ($data['display'] ?? '') === 'overlay' ? ['/assets/css/blox-overlay.css'] : [];
+    }
+
     public function render(array $data, string $children = ''): string
     {
         $display = ($data['display'] ?? 'block') === 'flex' ? 'flex' : 'block';
         $cls = 'yk-div';
+        if (($data['display'] ?? '') === 'overlay') $cls .= ' yk-div-overlay';
         if ($display === 'flex') {
             $direction = $data['direction'] ?? 'column';
             $cls .= ' flex ' . $this->resp($direction, self::DIRECTION_MAP, 'column');

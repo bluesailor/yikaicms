@@ -47,6 +47,9 @@ function shardsForPath(input, root = path.resolve(__dirname, '..')) {
   if (/^(?:lang\/|includes\/(?:i18n|language|HomeSettingsLanguageDefaults)|includes\/builder\/(?:BloxAreaLanguageManager|BloxResponsiveValue)\.php|includes\/builder\/elements\/LanguageSwitcherElement\.php|admin\/role\.php|admin\/blox_templates\/partials\/language-areas\.php|assets\/js\/blox-(?:language-switcher|responsive)\.js|deploy\/)/i.test(file)) {
     return new Set(['locale']);
   }
+  if (/^(?:assets\/js\/blox-style-sources\.js|admin\/blox_editor\/partials\/style-source\.php)$/i.test(file)) {
+    return new Set(['core', 'design']);
+  }
   if (/^(?:admin\/(?:blox_templates|blox_template_api|blox_design|site_design|theme)\.php|includes\/(?:Theme|builder\/Blox(?:Area|Design|Header|Template|ThemeHeader))|marketplace\/themes\/|themes\/|templates\/blox\/areas\/)/i.test(file)) {
     return new Set(['design']);
   }

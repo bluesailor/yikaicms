@@ -2051,7 +2051,7 @@ test('verified remote install reaches canvas and one-step undo @ci', async ({ pa
   test.skip(testInfo.project.name !== 'desktop-1440', 'shared database integration baseline');
   const root = require('path').resolve(__dirname, '../..');
   const fixtureScript = require('path').resolve(__dirname, 'remote-template-fixture.php');
-  const installed = JSON.parse(execFileSync('php', [fixtureScript, 'seed'], { cwd: root, encoding: 'utf8' }).trim());
+  const installed = JSON.parse(execFileSync(process.env.PHP_BINARY || 'php', [fixtureScript, 'seed'], { cwd: root, encoding: 'utf8' }).trim());
   try {
     const fixtures = JSON.parse(require('fs').readFileSync(
       require('path').resolve(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -2070,7 +2070,7 @@ test('verified remote install reaches canvas and one-step undo @ci', async ({ pa
     await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
     await expect(page.getByTestId('blox-tree-section')).toHaveCount(initialCount);
   } finally {
-    execFileSync('php', [fixtureScript, 'cleanup'], { cwd: root });
+    execFileSync(process.env.PHP_BINARY || 'php', [fixtureScript, 'cleanup'], { cwd: root });
   }
 });
 
@@ -2079,7 +2079,7 @@ test('verified remote install reaches canvas and one-step undo @ci', async ({ pa
 // 与中文同在 CJK 统一表意区间——改为断言日语标记文案已生效。
 // 结构树/画布不在断言范围：它们显示用户文档内容（中文示例数据），属合法中文。
 const { execFileSync } = require('child_process');
-const setAdminLang = (lang) => execFileSync('php', ['tests/e2e/set-lang.php', lang], { cwd: require('path').resolve(__dirname, '../..') });
+const setAdminLang = (lang) => execFileSync(process.env.PHP_BINARY || 'php', ['tests/e2e/set-lang.php', lang], { cwd: require('path').resolve(__dirname, '../..') });
 
 test('editor chrome localizes to en and ja @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');

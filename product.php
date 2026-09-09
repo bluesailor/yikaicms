@@ -109,23 +109,23 @@ require_once theme_path('layouts/header.php');
 <!-- 面包屑 -->
 <div class="bg-gray-100 py-4">
     <div class="container mx-auto px-4">
-        <div class="flex items-center gap-2 text-sm text-gray-600">
-            <a href="/" class="hover:text-primary"><?php echo __('breadcrumb_home'); ?></a>
-            <span>/</span>
+        <nav aria-label="<?php echo e(__('breadcrumb_nav')); ?>" class="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+            <a href="/" class="shrink-0 hover:text-primary"><?php echo __('breadcrumb_home'); ?></a>
+            <span aria-hidden="true" class="shrink-0">/</span>
             <?php if ($productChannel): ?>
-            <a href="<?php echo channelUrl($productChannel); ?>" class="hover:text-primary">
+            <a href="<?php echo e(channelUrl($productChannel)); ?>" class="shrink-0 hover:text-primary">
                 <?php echo e($productChannel['name']); ?>
             </a>
-            <span>/</span>
+            <span aria-hidden="true" class="shrink-0">/</span>
             <?php endif; ?>
             <?php if ($productCategory): ?>
-            <a href="<?php echo productCategoryUrl($productCategory); ?>" class="hover:text-primary">
+            <a href="<?php echo e(productCategoryUrl($productCategory)); ?>" class="shrink-0 hover:text-primary">
                 <?php echo e($productCategory['name']); ?>
             </a>
-            <span>/</span>
+            <span aria-hidden="true" class="shrink-0">/</span>
             <?php endif; ?>
-            <span class="text-primary"><?php echo e($product['title']); ?></span>
-        </div>
+            <span aria-current="page" class="min-w-0 max-w-full text-primary [overflow-wrap:anywhere]"><?php echo e($product['title']); ?></span>
+        </nav>
     </div>
 </div>
 

@@ -17,7 +17,7 @@ test('site health scans media in bounded batches and opens issue samples @ci', a
     'if (!imagepng($image, $path)) { fwrite(STDERR, "imagepng failed\\n"); exit(1); }',
     'imagedestroy($image);',
   ].join(' ');
-  execFileSync('php', ['-r', createImage, first], { cwd: root });
+  execFileSync(process.env.PHP_BINARY || 'php', ['-r', createImage, first], { cwd: root });
   for (let index = 2; index <= 25; index += 1) {
     fs.copyFileSync(first, path.join(directory, `${prefix}-${String(index).padStart(2, '0')}.png`));
   }

@@ -176,6 +176,21 @@ final class LanguageSwitcherElement extends AbstractElement
         if ($keepQuery && is_array($parts) && isset($parts['query']) && $parts['query'] !== '') {
             parse_str((string) $parts['query'], $queryParams);
             unset($queryParams['_lang']);
+            // Real PHP detail entry files must not become virtual /en/*.php paths.
+            if (in_array($path, ['/article.php', '/product.php', '/detail.php'], true)) {
+                unset($queryParams['lang']);
+                if ($language !== $defaultLanguage) $queryParams['_lang'] = $language;
+                return $path . '?' . http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
+            }
+            // Query routing has one real entry file; language belongs in its query, not a virtual directory.
+            if ($path === '/index.php' && is_string($queryParams['yk_route'] ?? null)
+                && $queryParams['yk_route'] !== '') {
+                unset($queryParams['lang']);
+                if ($language !== $defaultLanguage) {
+                    $queryParams['lang'] = $language;
+                }
+                return '/index.php?' . http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
+            }
             $encoded = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
             $query = $encoded === '' ? '' : '?' . $encoded;
         }

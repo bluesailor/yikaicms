@@ -16,6 +16,8 @@ async function openBlock(page, type) {
 
 const field = (page, key) => page.locator('[data-control-key="' + key + '"]');
 
+test.describe('legacy About content', () => {
+require('./legacy-about-fixture')(test);
 test('about starts with content and image edits preserve text and undo @ci', async ({ page }, testInfo) => {
   const errors = observeConsole(page), writes = observeUnsafeWrites(page);
   await openBlock(page, 'about');
@@ -46,6 +48,8 @@ test('about starts with content and image edits preserve text and undo @ci', asy
   await expect(page.getByTestId('blox-about-image-url')).toHaveValue(imageBefore);
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
+});
+
 });
 
 test('CTA copy stays local while its background uses the generic section editor @ci', async ({ page }, testInfo) => {
@@ -102,6 +106,8 @@ test('right tree keeps style context when moving from container to section @ci',
   await expect(page.getByTestId('blox-section-name-control')).toBeHidden();
 });
 
+test.describe('legacy About selection', () => {
+require('./legacy-about-fixture')(test);
 test('structure field and column selection reveal their group without losing edits @ci', async ({ page }) => {
   const section = await openBlock(page, 'about');
   const original = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections));
@@ -136,4 +142,5 @@ test('clicking the company image in the canvas opens its image settings @ci', as
   await expect(page.getByTestId('blox-about-image-media')).toBeVisible();
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
+});
 });

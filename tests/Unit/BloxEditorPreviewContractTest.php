@@ -14,11 +14,12 @@ use PHPUnit\Framework\TestCase;
 
 final class BloxEditorPreviewContractTest extends TestCase
 {
-    public function testSchemaDefaultsDriveCheckboxesAndConditionalControls(): void
+    public function testSchemaDefaultsDriveConditionalControls(): void
     {
         $editor = $this->source('admin/blox_editor.php');
 
-        $this->assertStringContainsString(':checked="!!controlValue(ctrl)"', $editor);
+        // Checkbox values are covered by blox-control-rules.test.js and the
+        // catalog reopening browser test, not a source truthiness expression.
         // r15 起条件显示走 BloxControlRules 模块（依赖值解析仍取 schema 控件的当前值）
         $this->assertStringContainsString('var dependency = (self.elSchema(self.selEl.type).controls || []).find(function (item) { return item.key === key; });', $editor);
         $this->assertStringContainsString('return dependency ? self.controlValue(dependency) : (self.selEl.data || {})[key];', $editor);
@@ -412,6 +413,7 @@ final class BloxEditorPreviewContractTest extends TestCase
                 'admin/blox_editor/partials/header.php',
                 'admin/blox_editor/partials/workspace.php',
                 'admin/blox_editor/partials/overlays.php',
+                'admin/blox_editor/partials/control-editing.php',
             ]));
         }
         if ($path === 'admin/page_edit_advance.php') {

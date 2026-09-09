@@ -16,7 +16,7 @@ test('media library repairs responsive image derivatives @ci', async ({ page }, 
     'if (!imagepng($image, $path)) { fwrite(STDERR, "imagepng failed\\n"); exit(1); }',
     'imagedestroy($image);',
   ].join(' ');
-  execFileSync('php', ['-r', createImage, original], { cwd: root });
+  execFileSync(process.env.PHP_BINARY || 'php', ['-r', createImage, original], { cwd: root });
 
   try {
     await page.goto('/admin/media.php', { waitUntil: 'domcontentloaded' });

@@ -32,7 +32,7 @@ if (!is_file($file)) {
     file_put_contents($file, json_encode($before, JSON_THROW_ON_ERROR));
 }
 settingModel()->saveBatch([
-    'url_mode' => in_array($action, ['query', 'pretty'], true) ? $action : 'pretty',
+    'url_mode' => ($argv[2] ?? '') === 'query' ? 'query' : (in_array($action, ['query', 'pretty'], true) ? $action : 'pretty'),
     'current_theme' => in_array($action, ['business', 'minimal'], true) ? $action : 'default',
     'home_layout_active' => '0', 'enabled_languages' => '["zh-CN","en","ja"]',
     'html_cache_enabled' => $action === 'cache-pretty' ? '1' : '0',

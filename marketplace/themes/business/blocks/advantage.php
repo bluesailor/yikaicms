@@ -40,8 +40,8 @@ $surface = businessHomeSurface($block ?? []);
                     <svg class="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20"><?php echo $iconSvg; ?></svg>
                     <?php endif; ?>
                 </div>
-                <h3<?php echo $_homeFieldAttr('advantage_items.' . $i . '.title'); ?> class="text-lg font-bold business-title mb-2"><?php echo e(config("home_adv_{$n}_title", $advDefaults[$i]['title'])); ?></h3>
-                <p<?php echo $_homeFieldAttr('advantage_items.' . $i . '.description'); ?> class="business-copy text-sm"><?php echo e(config("home_adv_{$n}_desc", $advDefaults[$i]['desc'])); ?></p>
+                <h3<?php echo $_homeFieldAttr('advantage_items.' . $i . '.title'); ?> class="text-lg font-bold business-title mb-2"><?php echo e(configLang("home_adv_{$n}_title")); ?></h3>
+                <p<?php echo $_homeFieldAttr('advantage_items.' . $i . '.description'); ?> class="business-copy text-sm"><?php echo e(configLang("home_adv_{$n}_desc")); ?></p>
             </div>
             <?php endfor; ?>
         </div>

@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+require('./legacy-about-fixture')(test);
 const { openEditor, performPreviewUpdate, observeConsole, observeUnsafeWrites, canvasScrollTop } = require('./helpers');
 
 test('shared source opens the relevant panel without disturbing the editor @ci', async ({ page, context }) => {
