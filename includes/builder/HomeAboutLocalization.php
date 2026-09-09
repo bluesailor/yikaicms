@@ -30,9 +30,22 @@ final class HomeAboutLocalization
             $parts = [];
             foreach ($rule[2] as $key) {
                 $value = $inherited[$key] ?? '';
-                if ($value !== '' && ($field === 'html'
-                    ? str_contains($original, '>' . e($value) . '<')
-                    : $original === $value)) {
+                if ($value === '') {
+                    continue;
+                }
+                if ($field === 'html') {
+                    // 必须与 HomeAboutContent 生成 HTML 时用的是同一个转义函数。
+                    // 用生产 e() 会在非法 UTF-8 上返回空串，needle 退化成 '><'，
+                    // 命中 </h3><p 这类标签缝隙，读取期把译文插成标签外裸文本（F1）。
+                    $needle = self::needle($value);
+                    // 退化或多处命中都不能建立绑定：宁可不翻译，也不要错翻或改写结构。
+                    if ($needle === null || substr_count($original, $needle) !== 1) {
+                        continue;
+                    }
+                    $parts[$key] = $value;
+                    continue;
+                }
+                if ($original === $value) {
                     $parts[$key] = $value;
                 }
             }
@@ -103,6 +116,7 @@ final class HomeAboutLocalization
                 }
                 // Edited fields detach automatically. A missing translation never erases the saved content.
                 $replacements = [];
+                $collisions = [];
                 foreach ($entry['parts'] as $key => $source) {
                     $allowedKeys = match ($field) {
                         'url' => ['override_button_url'], 'alt' => ['override_title'],
@@ -113,18 +127,53 @@ final class HomeAboutLocalization
                         continue;
                     }
                     if ($field === 'html') {
-                        $replacements['>' . e($source) . '<'] = '>' . e($target[$key]) . '<';
+                        $needle = self::needle((string) $source);
+                        if ($needle === null || substr_count($entry['source'], $needle) !== 1) {
+                            // 退化串或多处命中：跳过，不做替换。
+                            continue;
+                        }
+                        if (isset($replacements[$needle]) && $replacements[$needle] !== '>' . self::escape($target[$key]) . '<') {
+                            // 标题与描述文本相同，但译文不同：strtr 无法按位置区分，
+                            // 两边都撤掉而不是让后者覆盖前者（F4）。
+                            $collisions[$needle] = true;
+                            continue;
+                        }
+                        $replacements[$needle] = '>' . self::escape($target[$key]) . '<';
                     } elseif ($entry['source'] === $source) {
                         $data[$field] = $target[$key];
                     }
                 }
                 if ($field === 'html') {
-                    $data[$field] = strtr($entry['source'], $replacements);
+                    foreach (array_keys($collisions) as $needle) {
+                        unset($replacements[$needle]);
+                    }
+                    $data[$field] = $replacements === [] ? $entry['source'] : strtr($entry['source'], $replacements);
                 }
             }
             $element['data'] = $data;
             return $element;
         });
+    }
+
+    /**
+     * 与 HomeAboutContent 生成 HTML 时**同一个**转义。
+     * 单独留一个入口，避免两端再次漂开（v1.19.9 审计 F1 的根因就是漂开了）。
+     */
+    private static function escape(string $text): string
+    {
+        return HomeAboutContent::escape($text);
+    }
+
+    /**
+     * 构造用于在生成 HTML 里定位某个继承值的匹配串。
+     *
+     * 转义后为空说明这个值无法在 HTML 里被可靠定位（例如含非法 UTF-8），
+     * 此时返回 null —— 绝不能退化成 '><'，那会命中标签缝隙。
+     */
+    private static function needle(string $value): ?string
+    {
+        $escaped = self::escape($value);
+        return $escaped === '' ? null : '>' . $escaped . '<';
     }
 
     /** @param array<string,mixed> $section @param callable(array<string,mixed>):array<string,mixed> $visit @return array<string,mixed> */
@@ -206,7 +255,7 @@ final class HomeAboutLocalization
         }
         if ($role === 'body') {
             foreach (['', ' text-white'] as $tone) {
-                if ($original === '<p class="text-lg leading-relaxed' . $tone . '">' . e($values['override_content']) . '</p>') {
+                if ($original === '<p class="text-lg leading-relaxed' . $tone . '">' . self::escape($values['override_content']) . '</p>') {
                     return true;
                 }
             }
@@ -217,10 +266,10 @@ final class HomeAboutLocalization
             foreach (['', ' m-0'] as $margin) {
                 $html = '<div class="bg-primary text-white rounded-lg p-6">';
                 if ($values['override_tag_title'] !== '') {
-                    $html .= '<h3 class="text-xl font-bold text-white m-0">' . e($values['override_tag_title']) . '</h3>';
+                    $html .= '<h3 class="text-xl font-bold text-white m-0">' . self::escape($values['override_tag_title']) . '</h3>';
                 }
                 if ($values['override_tag_description'] !== '') {
-                    $html .= '<p class="text-white' . $margin . '">' . e($values['override_tag_description']) . '</p>';
+                    $html .= '<p class="text-white' . $margin . '">' . self::escape($values['override_tag_description']) . '</p>';
                 }
                 if ($original === $html . '</div>') {
                     return true;
