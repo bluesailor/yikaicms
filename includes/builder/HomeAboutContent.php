@@ -5,6 +5,19 @@ declare(strict_types=1);
 final class HomeAboutContent
 {
     /**
+     * About 这一族**唯一**的 HTML 转义入口：生成徽章/正文时用它，
+     * HomeAboutLocalization 反查那段 HTML 时也必须用它。
+     *
+     * 两端一旦用不同 flags 就会出事：生产 e() 没有 ENT_SUBSTITUTE，遇到非法 UTF-8
+     * 返回空串，匹配串退化成 '><'，正好命中 </h3><p 这类标签缝隙，读取期 strtr
+     * 会把译文插成标签外裸文本（v1.19.9 审计 F1）。收敛到一个函数就不会再漂。
+     */
+    public static function escape(string $text): string
+    {
+        return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    /**
      * Snapshot a legacy reference as ordinary, independently editable Blox nodes.
      * Empty overrides retain their existing meaning: inherit the site value.
      * @param array<string,mixed> $block
@@ -30,7 +43,7 @@ final class HomeAboutContent
         $node = static fn(string $suffix, string $type, array $data): array => [
             'id' => $id . '_' . $suffix, 'type' => $type, 'data' => $data,
         ];
-        $escape = static fn(string $text): string => htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $escape = static fn(string $text): string => self::escape($text);
         $light = !empty($block['text_light']);
         $text = [
             $node('title', 'heading', ['text' => $values['override_title'], 'level' => 'h2',

@@ -94,8 +94,13 @@ if (!function_exists('__')) {
     }
 }
 if (!function_exists('e')) {
+    // 必须与生产 includes/functions.php:203 **逐字一致**（只有 ENT_QUOTES）。
+    // 这里曾多带 ENT_SUBSTITUTE，比生产宽容：非法 UTF-8 在测试里被替换成 U+FFFD，
+    // 在生产却返回空串。后果是依赖 e() 边界的缺陷能躲过整个单测套件——
+    // About 徽章 HTML 被改写那个问题就是这么漏掉的。
+    // HomeAboutEscapingTest::testBootstrapStubMatchesProductionEscaping 守住这条一致性。
     function e(?string $value): string {
-        return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
     }
 }
 if (!function_exists('safeUrl')) {
