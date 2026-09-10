@@ -377,6 +377,27 @@ trait HomeBloxSchemaControlsTrait
                 'help' => __('blox_counter_auto_help'),
             ],
             [
+                'key' => 'stats_number_color', 'type' => 'color', 'label' => __('blox_stats_number_color'),
+                'default' => '', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+            ],
+            [
+                'key' => 'stats_icon_color', 'type' => 'color', 'label' => __('blox_stats_icon_color'),
+                'default' => '', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+            ],
+            [
+                'key' => 'stats_label_color', 'type' => 'color', 'label' => __('blox_stats_label_color'),
+                'default' => '', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+            ],
+            [
+                'key' => 'stats_divider_color', 'type' => 'color', 'label' => __('blox_stats_divider_color'),
+                'default' => '', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+            ],
+            [
+                'key' => 'stats_divider', 'type' => 'select', 'label' => __('blox_stats_divider'),
+                'default' => 'inherit', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+                'options' => ['inherit' => __('blox_stats_divider_inherit'), 'show' => __('blox_stats_divider_show'), 'hide' => __('blox_stats_divider_hide')],
+            ],
+            [
                 'key' => 'stats_mobile_columns',
                 'type' => 'select',
                 'label' => __('blox_cols_mobile'),

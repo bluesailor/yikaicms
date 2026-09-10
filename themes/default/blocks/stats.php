@@ -51,21 +51,33 @@ $statGridClass = match ($statMobileColumns . '_' . $statTabletColumns) {
 $statGridEditAttr = !empty($ykHomeEdit)
     ? ' data-yk-home-stats-columns="' . $statMobileColumns . ':' . $statTabletColumns . ':4"'
     : '';
+$statPalette = $statLightDefault
+    ? ['number' => '#17212b', 'icon' => '#647f9f', 'label' => '#56616e', 'divider' => '#e2e7ec']
+    : ['number' => '#ffffff', 'icon' => 'rgba(255,255,255,0.9)', 'label' => '#d1d5db', 'divider' => 'rgba(255,255,255,0.25)'];
+$statVariables = '';
+foreach ($statPalette as $part => $fallback) {
+    $color = AbstractElement::cssColor(config('home_stat_' . $part . '_color', '')) ?: $fallback;
+    $statVariables .= '--stat-' . $part . ':' . $color . ';';
+}
+$statDivider = (string) config('home_stat_divider', 'inherit');
+$statDividerVisible = $statDivider === 'show' || ($statDivider !== 'hide' && $statLightDefault);
+$statVariables .= '--stat-divider-width:' . ($statDividerVisible ? '1px' : '0') . ';';
 ?>
-<?php if ($statLightDefault): ?>
 <style>
+.yk-stats .stat-icon { color: var(--stat-icon); }
+.yk-stats .stat-number { color: var(--stat-number); }
+.yk-stats .stat-label { color: var(--stat-label); }
 .yk-stats-light .stat-item { min-width: 0; padding: 8px 12px; }
-.yk-stats-light .stat-icon { display: block; font-size: 30px; color: #647f9f; margin: 0 0 12px; }
-.yk-stats-light .stat-number { color: #17212b; line-height: 1.2; }
-.yk-stats-light .stat-label { color: #56616e; margin-top: 8px; }
+.yk-stats-light .stat-icon { display: block; font-size: 30px; margin: 0 0 12px; }
+.yk-stats-light .stat-number { line-height: 1.2; }
+.yk-stats-light .stat-label { margin-top: 8px; }
 @media (min-width: 1024px) {
-    .yk-stats-light .stat-item + .stat-item { border-left: 1px solid #e2e7ec; }
+    .yk-stats .stat-item + .stat-item { border-left: var(--stat-divider-width) solid var(--stat-divider); }
 }
 </style>
-<?php endif; ?>
-<section class="py-12 <?php echo $statLightDefault ? 'yk-stats-light ' : ''; ?><?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
+<section class="yk-stats py-12 <?php echo $statLightDefault ? 'yk-stats-light ' : ''; ?><?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
-    <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
+    <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>" style="<?php echo e($statVariables); ?>">
         <?php $statIconDefaults = ['award', 'users', 'briefcase', 'thumb-up']; ?>
         <div class="<?php echo e($statGridClass); ?>" data-stagger<?php echo $statGridEditAttr . $statCounterAttr; ?>>
             <?php for ($i = 1; $i <= 4; $i++):
