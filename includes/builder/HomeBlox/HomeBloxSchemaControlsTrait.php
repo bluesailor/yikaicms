@@ -409,6 +409,16 @@ trait HomeBloxSchemaControlsTrait
                 'required' => ['block_type', '=', 'about'],
             ],
             [
+                'key' => 'override_tag_background', 'type' => 'color',
+                'label' => __('blox_home_about_tag_background'), 'default' => '',
+                'tab' => 'style', 'required' => ['block_type', '=', 'about'],
+            ],
+            [
+                'key' => 'override_tag_color', 'type' => 'color',
+                'label' => __('blox_home_about_tag_color'), 'default' => '',
+                'tab' => 'style', 'required' => ['block_type', '=', 'about'],
+            ],
+            [
                 'key' => 'override_button_text',
                 'type' => 'text',
                 'label' => __('blox_home_override_button_text'),

@@ -6462,4 +6462,6 @@ voltage|電圧|220V',
     'form_ip_changed' => '同じ IP のメッセージ件数が変わりました。再確認してください。',
     'form_ip_failed' => '禁止または削除を完了できませんでした。再試行してください。',
     'form_ip_denied' => 'この IP からは現在フォームを送信できません。電話またはメールでご連絡ください。',
+    'blox_home_about_tag_background' => 'バッジの背景色',
+    'blox_home_about_tag_color' => 'バッジの文字色',
 ];

@@ -147,6 +147,9 @@ trait HomeBloxNormalizerTrait
             $value = trim(strip_tags((string) ($data[$key] ?? '')));
             $data[$key] = mb_substr($value, 0, $length);
         }
+        foreach (['override_tag_background', 'override_tag_color'] as $key) {
+            $data[$key] = AbstractElement::cssColor($data[$key] ?? null) ?? '';
+        }
         $aboutLayout = (string) ($data['override_layout'] ?? 'text_left');
         $data['override_layout'] = $aboutLayout === 'image_left' ? 'image_left' : 'text_left';
         $aboutRatio = (string) ($data['override_ratio'] ?? '1_1');

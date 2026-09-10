@@ -140,6 +140,8 @@ trait HomeBloxRuntimeTrait
                 'override_image' => 'home_about_image',
                 'override_tag_title' => 'home_about_tag_title',
                 'override_tag_description' => 'home_about_tag_desc',
+                'override_tag_background' => 'home_about_tag_background',
+                'override_tag_color' => 'home_about_tag_color',
                 'override_button_text' => 'home_about_button',
                 'override_button_url' => 'home_about_link',
             ],

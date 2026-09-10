@@ -6321,4 +6321,6 @@ voltage|Voltage|220V',
     'form_ip_changed' => 'The number of messages from this IP changed. Review and confirm again.',
     'form_ip_failed' => 'Blocking or cleanup could not be completed. Please retry.',
     'form_ip_denied' => 'This IP cannot submit forms at present. Please contact the site by phone or email.',
+    'blox_home_about_tag_background' => 'Badge background',
+    'blox_home_about_tag_color' => 'Badge text color',
 ];
