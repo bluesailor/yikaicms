@@ -182,6 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     themeDiscardStaged($tmpZip);
     $msg = themeInstallMessage($installResult);
     if ($installResult['ok']) {
+        do_action('data_changed');
         adminLog('theme', 'market_install', 'Theme marketplace install: ' . $installResult['slug'] . ' v' . ($item['version'] ?? ''));
     } else {
         adminLog('theme', 'market_install_failed', 'Theme marketplace install failed: ' . $slug
