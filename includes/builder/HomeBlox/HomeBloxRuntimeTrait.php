@@ -201,6 +201,10 @@ trait HomeBloxRuntimeTrait
             }
         }
         if ($type === 'stats') {
+            foreach (['number', 'icon', 'label', 'divider'] as $part) {
+                $overrides['home_stat_' . $part . '_color'] = AbstractElement::cssColor($block['stats_' . $part . '_color'] ?? null) ?? '';
+            }
+            $overrides['home_stat_divider'] = in_array($block['stats_divider'] ?? '', ['show', 'hide'], true) ? $block['stats_divider'] : 'inherit';
             $counterEnabled = !array_key_exists('counter_enabled', $block) || !empty($block['counter_enabled']);
             $overrides['home_stat_counter_enabled'] = $counterEnabled ? '1' : '0';
             $overrides['home_stat_counter_start'] = (string) max(0, min(1000000, (int) ($block['counter_start'] ?? 0)));
