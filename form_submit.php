@@ -26,6 +26,7 @@ function rejectFormSpam(string $key, int $status, int $retry = 0, array $params 
 
 // Count attempts before token/field validation, using the existing IP policy and limits.
 $clientIp = getClientIp();
+if (formModerationModel()->isBlocked($clientIp)) rejectFormSpam('form_ip_denied', 403);
 $spamGuard = new FormSpamGuard(STORAGE_PATH . '/form_throttle', defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '');
 $maxSubmits = max(1, min(100, (int) config('form_max_submits', 5)));
 $windowSeconds = max(1, min(1440, (int) config('form_throttle_minutes', 5))) * 60;

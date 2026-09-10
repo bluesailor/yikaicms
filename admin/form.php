@@ -35,6 +35,28 @@ $statusColors = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
+    if (in_array($action, ['ip_info', 'block_ip', 'unblock_ip'], true)) {
+        try {
+            if ($action === 'ip_info') success(formModerationModel()->inspect(postInt('id')));
+            if ($action === 'unblock_ip') {
+                if (!is_string($_POST['ip'] ?? null)) error(__('form_ip_invalid'), 400);
+                $ip = $_POST['ip'];
+                formModerationModel()->unblock($ip);
+                adminLog('form', 'unblock_ip', 'Form IP unblocked: ' . $ip);
+                success([], __('form_ip_unblocked'));
+            }
+            $delete = $_POST['delete_messages'] ?? '0';
+            if (!in_array($delete, ['0', '1'], true)) error(__('form_ip_invalid'), 400);
+            $result = formModerationModel()->blockFromForm(postInt('id'), $delete === '1', postInt('expected_count'), (int) $_SESSION['admin_id']);
+            adminLog('form', 'block_ip', 'Form IP blocked: ' . $result['ip'] . '; deleted: ' . $result['deleted']);
+            success($result, __('form_ip_done', ['count' => $result['deleted']]));
+        } catch (RuntimeException $error) {
+            $key = $error->getMessage();
+            if (in_array($key, ['form_ip_missing', 'form_ip_invalid', 'form_ip_changed'], true)) error(__($key), $key === 'form_ip_changed' ? 409 : 400);
+            error(__('form_ip_failed'), 500);
+        }
+    }
+
     if ($action === 'update_status') {
         $id = postInt('id');
         $status = postInt('status');
@@ -93,6 +115,7 @@ $totalAll = array_sum($statusCounts);
 $result = formModel()->getList($filters, $perPage, $offset);
 $total = $result['total'];
 $forms = $result['items'];
+$blockedIps = formModerationModel()->blockedIps();
 
 $pageTitle = __('admin_form');
 $currentMenu = 'form';
@@ -148,6 +171,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 
 <!-- 列表 -->
+<details class="bg-white rounded-lg shadow mb-6 p-4" data-testid="form-ip-blocklist">
+    <summary class="cursor-pointer font-medium"><?= e(__('form_ip_list')) ?> (<?= count($blockedIps) ?>)</summary>
+    <p class="text-sm text-gray-500 my-3"><?= e(__('form_ip_scope')) ?></p>
+    <?php foreach ($blockedIps as $blocked): ?>
+    <div class="flex items-center justify-between gap-3 border-t py-2">
+        <span class="text-sm break-all"><?= e($blocked['ip']) ?></span>
+        <button type="button" class="text-primary text-sm shrink-0" onclick="unblockFormIp(<?= e(json_encode($blocked['ip'])) ?>)"><?= e(__('form_ip_unblock')) ?></button>
+    </div>
+    <?php endforeach; ?>
+</details>
 <div class="bg-white rounded-lg shadow">
     <form id="listForm">
         <div class="overflow-x-auto">
@@ -259,14 +292,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 详情弹窗 -->
 <div id="detailModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg">
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-label="<?= e(__('inq_detail_title')) ?>">
         <div class="px-6 py-4 border-b flex justify-between items-center">
             <h3 class="font-bold text-gray-800"><?php echo __('inq_detail_title'); ?></h3>
-            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+            <button type="button" onclick="closeModal()" class="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-primary" aria-label="<?= e(__('close')) ?>" title="<?= e(__('close')) ?>"><i class="ti ti-x text-2xl" aria-hidden="true"></i></button>
         </div>
         <div class="p-6" id="detailContent"></div>
+        <div class="px-6 pb-4">
+            <button type="button" id="blockIpButton" onclick="prepareIpBlock()" class="text-red-600 text-sm inline-flex items-center gap-1"><i class="ti ti-ban" aria-hidden="true"></i><?= e(__('form_ip_block')) ?></button>
+            <div id="ipBlockConfirm" class="hidden border-t mt-3 pt-3 space-y-3" data-testid="form-ip-confirm">
+                <p id="ipBlockSummary" class="text-sm break-all"></p>
+                <p class="text-sm text-gray-500"><?= e(__('form_ip_scope')) ?></p>
+                <label class="flex gap-2 items-start text-sm"><input type="checkbox" id="ipDeleteMessages" class="mt-1"><span><?= e(__('form_ip_delete')) ?></span></label>
+                <p class="text-sm text-red-600"><?= e(__('form_ip_delete_warning')) ?></p>
+                <div class="flex gap-3">
+                    <button type="button" id="ipBlockApply" onclick="applyIpBlock()" class="bg-red-600 text-white rounded px-3 py-2 text-sm"><?= e(__('form_ip_confirm')) ?></button>
+                    <button type="button" onclick="cancelIpBlock()" class="border rounded px-3 py-2 text-sm"><?= e(__('cancel')) ?></button>
+                </div>
+            </div>
+        </div>
         <div class="px-6 py-4 border-t">
-            <form id="statusForm" class="flex gap-4 items-center">
+            <form id="statusForm" class="flex flex-wrap gap-4 items-center">
                 <input type="hidden" name="action" value="update_status">
                 <input type="hidden" name="id" id="detailId">
                 <select name="status" class="border rounded px-3 py-2">
@@ -296,6 +342,8 @@ function escapeHtml(str) {
 }
 
 function showDetail(item) {
+    cancelIpBlock();
+    document.getElementById('blockIpButton').disabled = !item.ip;
     document.getElementById('detailId').value = item.id;
     let productLine = '';
     if (item.product_id && parseInt(item.product_id) > 0) {
@@ -319,6 +367,58 @@ function showDetail(item) {
 
 function closeModal() {
     document.getElementById('detailModal').classList.add('hidden');
+}
+
+let ipBlockPlan = null;
+function cancelIpBlock() {
+    ipBlockPlan = null;
+    document.getElementById('ipBlockConfirm').classList.add('hidden');
+    document.getElementById('ipDeleteMessages').checked = false;
+}
+async function formIpRequest(values) {
+    const body = new FormData();
+    Object.entries(values).forEach(([key, value]) => body.append(key, value));
+    const result = await safeJson(await fetch('/admin/form.php', { method: 'POST', body }));
+    if (result.code !== 0) throw new Error(result.msg);
+    return result;
+}
+async function prepareIpBlock() {
+    const id = document.getElementById('detailId').value;
+    const button = document.getElementById('blockIpButton');
+    button.disabled = true;
+    try {
+        const result = await formIpRequest({ action: 'ip_info', id });
+        if (document.getElementById('detailId').value !== id) return;
+        ipBlockPlan = { ...result.data, id };
+        document.getElementById('ipBlockSummary').textContent = <?= json_encode(__('form_ip_summary'), JSON_HEX_TAG) ?>.replace(':ip', result.data.ip).replace(':count', result.data.count);
+        document.getElementById('ipDeleteMessages').checked = false;
+        document.getElementById('ipBlockConfirm').classList.remove('hidden');
+        document.getElementById('ipBlockApply').focus();
+    } catch (error) { showMessage(error.message, 'error'); }
+    finally { button.disabled = false; }
+}
+async function applyIpBlock() {
+    if (!ipBlockPlan) return;
+    const button = document.getElementById('ipBlockApply');
+    const plan = ipBlockPlan;
+    button.disabled = true;
+    try {
+        const result = await formIpRequest({ action: 'block_ip', id: plan.id, expected_count: plan.count, delete_messages: document.getElementById('ipDeleteMessages').checked ? '1' : '0' });
+        showMessage(result.msg);
+        const listUrl = new URL(location.href);
+        listUrl.searchParams.delete('view');
+        history.replaceState(null, '', listUrl);
+        setTimeout(() => location.reload(), 800);
+    } catch (error) { showMessage(error.message, 'error'); }
+    finally { button.disabled = false; }
+}
+async function unblockFormIp(ip) {
+    if (!confirm(<?= json_encode(__('form_ip_unblock_confirm'), JSON_HEX_TAG) ?>.replace(':ip', ip))) return;
+    try {
+        const result = await formIpRequest({ action: 'unblock_ip', ip });
+        showMessage(result.msg);
+        setTimeout(() => location.reload(), 800);
+    } catch (error) { showMessage(error.message, 'error'); }
 }
 
 document.getElementById('statusForm').addEventListener('submit', async function(e) {
