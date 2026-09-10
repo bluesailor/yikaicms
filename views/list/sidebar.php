@@ -74,7 +74,7 @@ $productCatalogGridClass = [
                 <!-- 分类菜单 -->
                 <div class="bg-white rounded-lg shadow overflow-hidden sticky top-20" data-catalog-categories>
                     <!-- 分类标题 -->
-                    <div class="bg-gray-100 text-gray-900 px-4 py-3 text-base font-semibold border-b border-gray-200" data-catalog-title>
+                    <div class="bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200" data-catalog-title>
                         <?php echo e($rootChannel['name']); ?>
                     </div>
                     <!-- 分类列表 -->

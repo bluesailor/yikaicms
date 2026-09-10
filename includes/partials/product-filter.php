@@ -56,10 +56,10 @@ $toggleUrl = static function (string $param, int $id) use ($curFilters, $buildUr
 $clearParams = array_intersect_key($curFilters, ['keyword' => 1, 'sort' => 1]);
 ?>
 <div class="bg-white rounded-lg shadow overflow-hidden">
-    <div class="flex items-center justify-between bg-primary text-white px-4 py-3 font-bold">
+    <div class="flex items-center justify-between bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200">
         <span><?php echo __('filter_title'); ?></span>
         <?php if (!empty($filterActive)): ?>
-        <a href="<?php echo e($buildUrl($clearParams)); ?>" class="text-xs font-normal text-white/80 hover:text-white">
+        <a href="<?php echo e($buildUrl($clearParams)); ?>" class="text-sm font-normal text-primary hover:underline">
             <?php echo __('filter_clear'); ?>
         </a>
         <?php endif; ?>

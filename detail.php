@@ -329,7 +329,7 @@ require_once theme_path('layouts/header.php');
                 <?php if (!empty($downloadSidebarCats)): ?>
                 <!-- 下载分类 -->
                 <div class="bg-white rounded-lg shadow">
-                    <div class="px-4 py-3 border-b font-bold text-dark bg-primary text-white rounded-t-lg"><?php echo __('list_download_category'); ?></div>
+                    <div class="bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200 rounded-t-lg"><?php echo __('list_download_category'); ?></div>
                     <div class="divide-y">
                         <?php foreach ($downloadSidebarCats as $cat): ?>
                         <a href="<?php echo channelUrl($cat); ?>"
