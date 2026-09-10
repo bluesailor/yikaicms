@@ -59,11 +59,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data['slug'] = resolveSlug($data['slug'], $data['name'], 'product_categories', $id);
 
         if ($id > 0) {
-            productCategoryModel()->updateById($id, $data);
+            try {
+                $id = productRouteModel()->saveEntity('category', $id, $data, post('custom_url', productRouteModel()->pathFor('category', $id)));
+            } catch (InvalidArgumentException $e) { error(__($e->getMessage())); }
             adminLog('product_category', 'update', "更新产品分类ID: $id");
         } else {
             $data['created_at'] = time();
-            $id = productCategoryModel()->create($data);
+            try {
+                $id = productRouteModel()->saveEntity('category', 0, $data, post('custom_url'));
+            } catch (InvalidArgumentException $e) { error(__($e->getMessage())); }
             adminLog('product_category', 'create', "创建产品分类ID: $id");
         }
 
@@ -144,6 +148,10 @@ $_langLabels  = availableLanguages();
 
 // 列当前 view-lang 的行（直接走 lang 过滤分支）
 $categories = productCategoryModel()->getFlatOptions(0, 0, $_viewLang);
+foreach ($categories as &$category) {
+    $category['custom_url'] = productRouteModel()->pathFor('category', (int) $category['id']);
+}
+unset($category);
 
 // 加载翻译状态徽标索引
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
@@ -271,7 +279,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         ?>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <button onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
+                        <button data-testid="product-category-edit" onclick='openEditModal(<?php echo json_encode($item, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <i class="ti ti-pencil text-sm"></i>
                             <?php echo __('admin_edit'); ?></button>
@@ -322,6 +330,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div>
                 <label class="block text-gray-700 mb-1"><?php echo __('admin_slug'); ?> (Slug)</label>
                 <input type="text" name="slug" id="editSlug" class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('pcat_slug_ph')); ?>">
+                <label for="editCustomUrl" class="block text-gray-700 mt-4 mb-1"><?php echo e(__('product_url_label')); ?></label>
+                <input type="text" name="custom_url" id="editCustomUrl" class="w-full border rounded px-4 py-2" placeholder="/products/medical/" maxlength="1500">
+                <p class="text-xs text-gray-500 mt-1"><?php echo e(__('product_url_hint')); ?></p>
             </div>
 
             <div class="grid grid-cols-3 gap-4">
@@ -379,6 +390,7 @@ function openEditModal(item = null) {
     document.getElementById('editParentId').value = item?.parent_id || 0;
     document.getElementById('editName').value = item?.name || '';
     document.getElementById('editSlug').value = item?.slug || '';
+    document.getElementById('editCustomUrl').value = item?.custom_url || '';
     document.getElementById('editSortOrder').value = item?.sort_order || 0;
     document.getElementById('editStatus').value = item?.status ?? 1;
     document.getElementById('editIsNav').value = (item && (item.is_nav === 0 || item.is_nav === '0')) ? 0 : 1;

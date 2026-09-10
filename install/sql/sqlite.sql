@@ -2702,6 +2702,16 @@ INSERT OR IGNORE INTO "yikai_settings" ("group", "key", "value", "type", "name",
 ('contact', 'map_baidu_ak',    '',   'text', '百度地图 ak',     '中文版选 baidu 时填，lbsyun.baidu.com 申请 JavaScript API ak', 8);
 
 -- 后台菜单使用记录（控制台「最近使用」数据源；对应迁移 20260801_admin_menu_usage）
+CREATE TABLE "yikai_product_routes" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "entity_type" TEXT NOT NULL,
+  "entity_id" INTEGER NOT NULL,
+  "path" TEXT NOT NULL,
+  "path_key" TEXT NOT NULL,
+  UNIQUE ("entity_type", "entity_id"),
+  UNIQUE ("path_key")
+);
+
 CREATE TABLE "yikai_admin_menu_usage" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "admin_id" INTEGER NOT NULL,
