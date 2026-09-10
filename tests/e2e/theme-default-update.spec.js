@@ -19,7 +19,7 @@ test('Default update explains file replacement and cancelling never installs @ci
   await expect(card).toBeVisible();
   let message = '';
   page.once('dialog', async dialog => { message = dialog.message(); await dialog.dismiss(); });
-  await card.getByRole('button', { name: '更新', exact: true }).click();
+  await card.getByRole('button', { name: '升级', exact: true }).click();
   await expect.poll(() => message).toContain('备份');
   expect(message).toContain('Blox');
   expect(message).toContain('直接修改');
