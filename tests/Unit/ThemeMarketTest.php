@@ -28,7 +28,7 @@ final class ThemeMarketTest extends TestCase
         ], JSON_THROW_ON_ERROR));
 
         self::assertNotNull($response);
-        self::assertSame('https://update.yikaicms.com/api/themes/list.php', $this->capturedUrl(''));
+        self::assertSame('https://update.yikaicms.com/api/themes/list.php?capabilities=default-update-v1', $this->capturedUrl(''));
         self::assertCount(1, $response['data']['themes']);
         self::assertSame('business', $response['data']['themes'][0]['slug']);
         self::assertSame('sha256:' . str_repeat('a', 64), $response['data']['themes'][0]['hash']);
@@ -111,7 +111,7 @@ final class ThemeMarketTest extends TestCase
         self::assertIsInt($gate);
         self::assertIsInt($download);
         self::assertLessThan($download, $gate);
-        self::assertStringContainsString('->install($tmpZip, $slug, $remoteVersion)', $source);
+        self::assertStringContainsString("->install(\$tmpZip, \$slug, \$remoteVersion, (string) (\$item['sig'] ?? ''))", $source);
         self::assertStringNotContainsString('ThemeMarket::downloadPackage(', $source);
     }
 

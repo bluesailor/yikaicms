@@ -6357,4 +6357,5 @@ voltage|电压|220V',
     'blox_source_reset' => '清除当前元素的局部值',
     'blox_about_convert_standard' => '转为通用区块',
     'blox_layout_overlay' => '图片角标叠放',
+    'theme_default_update_notice' => '将更新内置 Default 主题文件，并保留更新前的文件备份。直接修改过的主题文件会被替换；Blox 设计、网站设置和上传素材不会修改。',
 ];

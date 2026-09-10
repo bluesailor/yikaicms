@@ -6289,4 +6289,5 @@ voltage|Voltage|220V',
     'blox_source_reset' => 'Clear the local element value',
     'blox_about_convert_standard' => 'Convert to standard section',
     'blox_layout_overlay' => 'Image corner overlay',
+    'theme_default_update_notice' => 'This updates the bundled Default theme files and keeps a backup of the previous files. Direct theme-file edits will be replaced; Blox designs, site settings and uploaded media will not be changed.',
 ];

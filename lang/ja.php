@@ -6430,4 +6430,5 @@ voltage|電圧|220V',
     'blox_source_reset' => 'この要素の個別値を解除',
     'blox_about_convert_standard' => '標準セクションに変換',
     'blox_layout_overlay' => '画像の隅に重ねる',
+    'theme_default_update_notice' => '標準 Default テーマのファイルを更新し、更新前のバックアップを保存します。直接編集したテーマファイルは置き換えられます。Blox デザイン、サイト設定、アップロード済みの素材は変更しません。',
 ];

@@ -57,7 +57,7 @@ final class ThemeInstaller
      *     backup:string
      * }
      */
-    public function install(string $zipPath, string $expectedSlug = '', string $expectedVersion = ''): array
+    public function install(string $zipPath, string $expectedSlug = '', string $expectedVersion = '', string $signature = ''): array
     {
         if (!class_exists('ZipArchive')) {
             return $this->result(false, 'no_zip');
@@ -79,8 +79,18 @@ final class ThemeInstaller
         $version = $inspection['version'];
         $warnings = $inspection['warnings'];
         if ($slug === 'default') {
-            $zip->close();
-            return $this->result(false, 'default_protected', '', $slug, $name, $warnings);
+            // Do not trust a caller's verified flag. Bind the official signature to these exact bytes.
+            require_once __DIR__ . '/ThemeMarket.php';
+            require_once __DIR__ . '/License.php';
+            $localVersions = ThemeMarket::localVersions($this->themesRoot);
+            if ($expectedSlug !== 'default' || $expectedVersion !== $version
+                || !isset($localVersions['default'])
+                || !ThemeMarket::isRemoteVersionNewer($localVersions, 'default', $version)
+                || !ThemeMarket::verifyPackageSignature('default', $version,
+                    'sha256:' . (string) hash_file('sha256', $zipPath), $signature, license_pubkey())) {
+                $zip->close();
+                return $this->result(false, 'default_protected', '', $slug, $name, $warnings);
+            }
         }
         if ($expectedSlug !== '' && !hash_equals($expectedSlug, $slug)) {
             $zip->close();
