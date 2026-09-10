@@ -1555,7 +1555,7 @@ return [
     'sec_ip_rule_invalid'          => 'IP または CIDR ルールが無効です：:rule',
     'sec_ip_whitelist_lockout'     => '保存を拒否しました。新しいルールに現在のクライアント IP（:ip）が含まれず、管理画面にアクセスできなくなります。',
     'auth_admin_ip_denied'         => '現在の IP（:ip）は管理画面のアクセス許可リストに含まれていません。',
-    'sec_form_throttle_hint'       => 'デフォルト：同一 IP あたり 5 分間で最大 5 回の送信',
+    'sec_form_throttle_hint'       => '初期設定は同一 IP あたり 5 分間に成功 5 回まで、全フォームで共有します。失敗した試行も制限されます。同じ内容は 10 分間重複して受け付けません。',
 
     // role.php 列
     'role_name'        => 'ロール名',
@@ -6440,4 +6440,9 @@ voltage|電圧|220V',
     'blox_partners_logo' => 'メディアからロゴを選択',
     'blox_partners_add' => 'パートナーを追加',
     'blox_partners_copy' => '共通リストをコピー',
+    'form_guard_payload' => 'フォームの形式が正しくないか、内容が長すぎます。確認して再度お試しください。',
+    'form_guard_field' => '「:field」の形式、長さ、必須項目をご確認ください。',
+    'form_guard_duplicate' => '同じ内容はすでに送信されています。重複して送信しないでください。',
+    'form_guard_throttle' => '送信回数が多すぎます。しばらくしてから再度お試しください。',
+    'form_guard_unavailable' => '現在フォームを受け付けられません。しばらくしてから再度お試しください。',
 ];

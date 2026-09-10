@@ -14,6 +14,7 @@
     <projectFiles>
         <file name="article.php" />
         <file name="contact.php" />
+        <file name="form_submit.php" />
         <file name="detail.php" />
         <file name="history.php" />
         <file name="index.php" />

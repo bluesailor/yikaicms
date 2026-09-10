@@ -3403,6 +3403,7 @@ function renderFormTemplate(string $slug): string
     $html = '<div class="shortcode-form" id="' . e($formId) . '-wrap">';
     $html .= '<form id="' . e($formId) . '" onsubmit="return submitShortcodeForm(event, \'' . e($slug) . '\')">';
     $html .= '<input type="hidden" name="form_slug" value="' . e($slug) . '">';
+    $html .= '<input type="hidden" name="_lang" value="' . e(siteLang()) . '">';
     // 反垃圾：蜜罐字段（正常用户不可见，机器人易填）+ 签名时间戳（防提交过快）
     $html .= '<input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">';
     $_fts = time();
@@ -3422,7 +3423,7 @@ function renderFormTemplate(string $slug): string
     $html .= 'e.preventDefault();var form=e.target;var btn=form.querySelector("button[type=submit]");';
     $html .= 'btn.disabled=true;btn.textContent=' . json_encode(__('form_submitting')) . ';';
     $html .= 'var fd=new FormData(form);';
-    $html .= 'fetch("/form_submit.php",{method:"POST",body:fd}).then(r=>r.json()).then(function(data){';
+    $html .= 'fetch("/form_submit.php?_lang="+encodeURIComponent(fd.get("_lang")||""),{method:"POST",body:fd}).then(r=>r.json()).then(function(data){';
     $html .= 'var msgEl=document.getElementById("shortcode-form-"+slug+"-msg");';
     $html .= 'msgEl.classList.remove("hidden","bg-green-50","text-green-600","bg-red-50","text-red-600");';
     $html .= 'if(data.code===0){msgEl.className+=" bg-green-50 text-green-600";msgEl.textContent=data.msg;form.reset();}';
