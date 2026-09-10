@@ -44,7 +44,7 @@ function renderFrontEdit(): void
       .yk-logo-btns { position: absolute; top: -10px; right: -10px; z-index: 99991; display: none; gap: 4px; }
       [data-yk-logo]:hover .yk-logo-btns, .yk-logo-btns:hover { display: flex; }
       #siteHeader [data-yk-logo]::after, .yk-blox-header [data-yk-logo]::after,
-      .yk-blox-footer [data-yk-logo]::after { display: none; }
+      .yk-blox-footer [data-yk-logo]::after, [data-yk-footer] [data-yk-logo]::after { display: none; }
       .yk-return-focus { scroll-margin-top: 50px; outline: 3px solid #2563eb; outline-offset: 4px;
         animation: yk-return-focus 2.4s cubic-bezier(.16,1,.3,1) both; }
       #yk-return-focus-status { position: fixed; z-index: 99998; top: 46px; left: 50%;
@@ -405,7 +405,7 @@ function renderFrontEdit(): void
         sec.addEventListener('mouseleave', scheduleHide);
       }
       function isSiteChromeEditTarget(target) {
-        return !!(target && target.closest('#siteHeader,.yk-blox-header,.yk-blox-footer'));
+        return !!(target && target.closest('#siteHeader,.yk-blox-header,.yk-blox-footer,[data-yk-footer]'));
       }
       // 本脚本在 ik_footer_before 处执行，页脚等位于其后的元素此刻尚未入 DOM，
       // 故延到 DOMContentLoaded 再扫描绑定（Logo/导航/首页区块在前，也一并延后无碍）。
