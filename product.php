@@ -243,6 +243,11 @@ require_once theme_path('layouts/header.php');
                         </h3>
                         <form id="inquiryForm" class="space-y-3">
                             <input type="hidden" name="form_slug" value="product-inquiry">
+                            <input type="hidden" name="_lang" value="<?= e(siteLang()) ?>">
+                            <?php $inquiryTimestamp = time(); ?>
+                            <input type="hidden" name="form_ts" value="<?= $inquiryTimestamp ?>">
+                            <input type="hidden" name="form_sig" value="<?= e(FormSubmissionToken::sign('product-inquiry', $inquiryTimestamp, defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '')) ?>">
+                            <input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
                             <input type="hidden" name="product_id" value="<?php echo (int)$product['id']; ?>">
                             <input type="hidden" name="product_title" value="<?php echo e($product['title']); ?>">
                             <div class="grid grid-cols-2 gap-3">
@@ -478,7 +483,7 @@ document.getElementById('inquiryForm').addEventListener('submit', function(e) {
     msg.classList.add('hidden');
 
     var formData = new FormData(this);
-    fetch('/form_submit.php', { method: 'POST', body: formData })
+    fetch('/form_submit.php?_lang=' + encodeURIComponent(formData.get('_lang') || ''), { method: 'POST', body: formData })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             msg.classList.remove('hidden');
