@@ -390,15 +390,69 @@ class InstallSeedDemoTest extends TestCase
     }
 
     /**
-     * 新增六个演示产品封面必须真实存在，防止安装站首页出现 404 封面。
+     * 旧站可能仍引用 SVG，新增 WebP 不得删除旧文件。
      */
     public function testNewDemoProductCoversExist(): void
     {
         $demoDir = dirname(__DIR__, 2) . '/assets/images/demo/';
-        foreach (range(107, 112) as $n) {
+        foreach (range(101, 112) as $n) {
             $file = "product-{$n}.svg";
             $this->assertFileExists($demoDir . $file, "演示封面应存在: {$file}");
         }
+    }
+
+    /** @dataProvider driverProvider */
+    public function testDemoProductImagesMatchTranslationGroups(string $driver): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite is required');
+        }
+        $root = dirname(__DIR__, 2);
+        require_once $root . '/includes/DatabaseMaintenance.php';
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec($this->seed('sqlite'));
+        if ($driver === 'mysql') {
+            // These portable INSERTs use the SQLite schema to verify their data, not MySQL DDL.
+            $pdo->exec('DELETE FROM yikai_products');
+            foreach (\DatabaseMaintenance::splitSql($this->seed('mysql')) as $statement) {
+                if (str_starts_with($statement, 'INSERT INTO `yikai_products` ')) {
+                    $pdo->exec($statement);
+                }
+            }
+        }
+        $rows = $pdo->query('SELECT lang, translation_group_id, cover FROM yikai_products')->fetchAll(\PDO::FETCH_ASSOC);
+        $this->assertCount(36, $rows);
+        $languages = [];
+        foreach ($rows as $row) {
+            $group = (int) $row['translation_group_id'];
+            $this->assertGreaterThanOrEqual(1, $group);
+            $this->assertLessThanOrEqual(12, $group);
+            $this->assertSame('/assets/images/demo/product-' . (100 + $group) . '-v2.webp', $row['cover']);
+            $languages[$group][] = $row['lang'];
+        }
+        $this->assertCount(12, $languages);
+        foreach ($languages as $groupLanguages) {
+            sort($groupLanguages);
+            $this->assertSame(['en', 'ja', 'zh-CN'], $groupLanguages);
+        }
+    }
+
+    public function testDemoProductWebpDimensionsAndPayload(): void
+    {
+        $total = 0;
+        foreach (range(101, 112) as $id) {
+            $file = dirname(__DIR__, 2) . "/assets/images/demo/product-{$id}-v2.webp";
+            $this->assertFileExists($file);
+            $info = getimagesize($file);
+            $this->assertIsArray($info);
+            $this->assertSame([1200, 900, IMAGETYPE_WEBP], array_slice($info, 0, 3));
+            $bytes = filesize($file);
+            $this->assertGreaterThan(1024, $bytes);
+            $this->assertLessThan(100 * 1024, $bytes);
+            $total += $bytes;
+        }
+        $this->assertLessThan(750 * 1024, $total);
     }
 
     /**
