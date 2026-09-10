@@ -19,10 +19,22 @@ if ($action === 'setup') {
         if (!$row) throw new RuntimeException('Seed form missing');
         $templates[] = $row;
     }
-    $settings = ['form_max_submits' => config('form_max_submits', '5'), 'form_throttle_minutes' => config('form_throttle_minutes', '5')];
+    $settings = ['form_max_submits' => config('form_max_submits', '5'), 'form_throttle_minutes' => config('form_throttle_minutes', '5'),
+        'html_cache_enabled' => config('html_cache_enabled', '0'), 'html_cache_ttl' => config('html_cache_ttl', '300'),
+        'form_signature_max_age' => config('form_signature_max_age', '7200')];
     file_put_contents($statePath, json_encode(compact('templates', 'settings'), JSON_THROW_ON_ERROR));
     foreach ($templates as $row) formTemplateModel()->updateById((int) $row['id'], ['captcha' => 0]);
     settingModel()->saveBatch(['form_max_submits' => '5', 'form_throttle_minutes' => '5']);
+} elseif ($action === 'captcha' || $action === 'short-expiry') {
+    if (!is_file($statePath)) throw new RuntimeException('Prepare fixture first');
+    if ($action === 'captcha') {
+        foreach (['contact', 'product-inquiry'] as $slug) {
+            $row = formTemplateModel()->findBySlug($slug);
+            formTemplateModel()->updateById((int) $row['id'], ['captcha' => 1]);
+        }
+    } else {
+        settingModel()->saveBatch(['html_cache_enabled' => '1', 'html_cache_ttl' => '300', 'form_signature_max_age' => '5']);
+    }
 } elseif ($action === 'restore') {
     if (is_file($statePath)) {
         $state = json_decode((string) file_get_contents($statePath), true, 512, JSON_THROW_ON_ERROR);

@@ -6304,4 +6304,5 @@ voltage|Voltage|220V',
     'form_guard_duplicate' => 'You have already submitted this content. Please do not submit it again.',
     'form_guard_throttle' => 'Too many submission attempts. Please try again later.',
     'form_guard_unavailable' => 'We cannot receive your form right now. Please try again later.',
+    'form_token_refreshed' => 'This form expired and its security token has been refreshed. Your entries are preserved. Wait two seconds and submit again; re-enter the verification code if shown.',
 ];

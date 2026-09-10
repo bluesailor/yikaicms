@@ -9,6 +9,7 @@ require_once __DIR__ . '/includes/init.php';
 require_once __DIR__ . '/includes/FormSpamGuard.php';
 
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['code' => 1, 'msg' => '无效请求']);
@@ -67,6 +68,17 @@ if ($signaturePresent) {
         max(0, (int) config('form_signature_max_age', '0'))
     );
     if (!$validSignature) {
+        // Only an authentic expired token may be renewed; never save or replay this request.
+        $maxAge = max(0, (int) config('form_signature_max_age', '0'));
+        if ($maxAge > 0 && time() - $_fts > $maxAge
+            && FormSubmissionToken::verify($slug, $_fts, $_fsig, $secret, $securityVersion < 2)
+            && formTemplateModel()->findBySlug($slug) !== null) {
+            $timestamp = time();
+            echo json_encode(['code' => 1, 'msg' => __('form_token_refreshed'), 'refresh_token' => [
+                'form_ts' => $timestamp, 'form_sig' => FormSubmissionToken::sign($slug, $timestamp, $secret),
+            ]], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
         echo json_encode(['code' => 1, 'msg' => '表单安全令牌无效，请刷新页面后重试']);
         exit;
     }

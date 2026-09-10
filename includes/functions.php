@@ -3324,6 +3324,16 @@ function renderFormTagHtml(array $tag): string
     }
 }
 
+function renderFormCaptcha(bool $enabled): string
+{
+    if (!$enabled) return '';
+    return '<div class="form-captcha" style="display:flex;gap:10px;align-items:center;margin:0 0 1rem">'
+        . '<input type="text" name="captcha_code" required autocomplete="off" maxlength="6" aria-label="' . e(__('form_captcha')) . '" placeholder="' . e(__('form_captcha')) . '" style="flex:1;min-width:0;padding:.6rem .85rem;border:1px solid #d1d5db;border-radius:.5rem;font-size:1rem;outline:none">'
+        . '<button type="button" aria-label="' . e(__('form_captcha_refresh')) . '" onclick="this.querySelector(\'img\').src=\'/captcha.php?\'+Date.now()" style="padding:0;border:0;background:none;cursor:pointer;flex:none">'
+        . '<img src="/captcha.php" alt="' . e(__('form_captcha')) . '" style="height:42px;width:120px;border-radius:.5rem;border:1px solid #e5e7eb">'
+        . '</button></div>';
+}
+
 /**
  * 渲染表单模板为HTML（支持 CF7 风格模板和旧版 JSON）
  */
@@ -3381,13 +3391,7 @@ function renderFormTemplate(string $slug): string
     );
 
     // 验证码（模板「启用验证码」时，插在提交按钮之前；内联样式，主题无关）
-    $captchaHtml = '';
-    if (!empty($template['captcha'])) {
-        $captchaHtml = '<div class="form-captcha" style="display:flex;gap:10px;align-items:center;margin:0 0 1rem">'
-            . '<input type="text" name="captcha_code" required autocomplete="off" maxlength="6" placeholder="' . e(__('form_captcha')) . '" style="flex:1;padding:.6rem .85rem;border:1px solid #d1d5db;border-radius:.5rem;font-size:1rem;outline:none">'
-            . '<img src="/captcha.php" alt="captcha" title="' . e(__('form_captcha_refresh')) . '" onclick="this.src=\'/captcha.php?\'+Date.now()" style="cursor:pointer;height:42px;width:120px;border-radius:.5rem;border:1px solid #e5e7eb;flex:none">'
-            . '</div>';
-    }
+    $captchaHtml = renderFormCaptcha(!empty($template['captcha']));
 
     // 替换 submit 标签（前面插入验证码）
     $renderedBody = preg_replace_callback(
@@ -3428,6 +3432,7 @@ function renderFormTemplate(string $slug): string
     $html .= 'msgEl.classList.remove("hidden","bg-green-50","text-green-600","bg-red-50","text-red-600");';
     $html .= 'if(data.code===0){msgEl.className+=" bg-green-50 text-green-600";msgEl.textContent=data.msg;form.reset();}';
     $html .= 'else{msgEl.className+=" bg-red-50 text-red-600";msgEl.textContent=data.msg;}';
+    $html .= 'if(data.refresh_token){["form_ts","form_sig"].forEach(function(key){var field=form.elements.namedItem(key);if(field){field.value=String(data.refresh_token[key]);field.defaultValue=field.value;}});}';
     $html .= 'var _ci=form.querySelector("img[src*=captcha]");if(_ci)_ci.src="/captcha.php?"+Date.now();';
     $html .= 'msgEl.classList.remove("hidden");btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';';
     $html .= '}).catch(function(){btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';});return false;};';

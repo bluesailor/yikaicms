@@ -264,6 +264,7 @@ require_once theme_path('layouts/header.php');
                             </div>
                             <textarea name="content" required rows="3" placeholder="<?php echo __('product_field_msg_ph'); ?>"
                                       class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none resize-y"><?php echo e(sprintf(__('product_default_inq_msg'), $product['title'])); ?></textarea>
+                            <?= renderFormCaptcha(!empty(formTemplateModel()->findBySlug('product-inquiry')['captcha'])) ?>
                             <button type="submit" id="inquiryBtn"
                                     class="w-full bg-primary hover:bg-secondary text-white py-2.5 rounded text-sm font-medium transition">
                                 <?php echo __('product_btn_submit_inq'); ?>
@@ -495,6 +496,15 @@ document.getElementById('inquiryForm').addEventListener('submit', function(e) {
                 msg.className = 'text-sm text-center text-red-600';
                 msg.textContent = data.msg;
             }
+            var form = document.getElementById('inquiryForm');
+            if (data.refresh_token) {
+                ['form_ts', 'form_sig'].forEach(function(key) {
+                    var field = form.elements.namedItem(key);
+                    if (field) { field.value = String(data.refresh_token[key]); field.defaultValue = field.value; }
+                });
+            }
+            var captcha = form.querySelector('img[src*="captcha.php"]');
+            if (captcha) captcha.src = '/captcha.php?' + Date.now();
             btn.disabled = false;
             btn.textContent = '<?php echo __("product_btn_submit_inq"); ?>';
         })
