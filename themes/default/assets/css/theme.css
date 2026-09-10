@@ -1,0 +1,19 @@
+/* Translucent surfaces, not translucent text: keep image captions readable. */
+.yk-default-about-badge,
+.yk-default-recommend-badge {
+    background-color: rgba(237, 243, 252, 0.96);
+    background-color: color-mix(in srgb, var(--color-primary, #2563eb) 10%, rgba(255, 255, 255, 0.96));
+    color: #203a5f;
+    border: 1px solid rgba(80, 110, 150, 0.18);
+    letter-spacing: 0;
+}
+
+.yk-default-about-badge {
+    max-width: calc(100% - 2rem);
+    overflow-wrap: anywhere;
+    box-shadow: 0 4px 12px rgba(24, 46, 76, 0.08);
+}
+
+.yk-default-recommend-badge {
+    font-weight: 600;
+}
