@@ -107,7 +107,11 @@ $bg = getBlockBg($block ?? [], '@auto');
                 <div class="relative overflow-hidden rounded-lg bg-gray-100 shadow-sm aspect-[4/3]">
                     <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($aboutImage, 'medium', $aboutImageSizes); ?> alt="<?php echo __('home_about_title'); ?>" class="u-img w-full h-full object-cover">
                     <?php if ($aboutTagTitle || $aboutTagDesc): ?>
-                    <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
+                    <?php
+                    $aboutTagBackground = AbstractElement::cssColor(config('home_about_tag_background', '')) ?: 'rgba(239,246,255,0.94)';
+                    $aboutTagColor = AbstractElement::cssColor(config('home_about_tag_color', '')) ?: '#1e3a8a';
+                    ?>
+                    <div class="absolute bottom-4 left-4 px-4 py-3 rounded-lg shadow-lg" style="background-color:<?php echo e($aboutTagBackground); ?>;color:<?php echo e($aboutTagColor); ?>">
                         <?php if ($aboutTagTitle): ?>
                         <div class="font-bold text-lg"><?php echo e($aboutTagTitle); ?></div>
                         <?php endif; ?>

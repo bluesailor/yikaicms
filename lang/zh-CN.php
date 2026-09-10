@@ -6389,4 +6389,6 @@ voltage|电压|220V',
     'form_ip_changed' => '同 IP 的留言数量已变化，请重新确认后操作。',
     'form_ip_failed' => '操作失败，未完成封禁或清理，请重试。',
     'form_ip_denied' => '此 IP 暂时无法提交表单，请通过电话或邮件联系网站。',
+    'blox_home_about_tag_background' => '角标背景色',
+    'blox_home_about_tag_color' => '角标文字颜色',
 ];
