@@ -1443,7 +1443,7 @@ return [
     'sec_ip_rule_invalid'          => 'Invalid IP or CIDR rule: :rule',
     'sec_ip_whitelist_lockout'     => 'Save rejected: the new rules exclude the current client IP (:ip) and would lock the admin area.',
     'auth_admin_ip_denied'         => 'The current IP (:ip) is not allowed to access the admin area.',
-    'sec_form_throttle_hint'       => 'Default: max 5 submissions per IP every 5 minutes',
+    'sec_form_throttle_hint'       => 'Default: 5 successful submissions per IP in 5 minutes, shared across forms. Failed attempts are also rate-limited. Identical content is not accepted again for 10 minutes.',
 
     // role.php columns
     'role_name'        => 'Role Name',
@@ -6299,4 +6299,9 @@ voltage|Voltage|220V',
     'blox_partners_logo' => 'Choose logo from media',
     'blox_partners_add' => 'Add partner',
     'blox_partners_copy' => 'Copy shared list',
+    'form_guard_payload' => 'The form data is invalid or too long. Please check it and try again.',
+    'form_guard_field' => 'Check the format, length and required value of :field.',
+    'form_guard_duplicate' => 'You have already submitted this content. Please do not submit it again.',
+    'form_guard_throttle' => 'Too many submission attempts. Please try again later.',
+    'form_guard_unavailable' => 'We cannot receive your form right now. Please try again later.',
 ];

@@ -1509,7 +1509,7 @@ return [
     'sec_ip_rule_invalid'          => 'IP 或 CIDR 规则无效：:rule',
     'sec_ip_whitelist_lockout'     => '保存已拒绝：新规则不包含当前客户端 IP（:ip），会导致后台被锁定。',
     'auth_admin_ip_denied'         => '当前 IP（:ip）不在后台访问白名单中。',
-    'sec_form_throttle_hint'       => '默认：同一 IP 每 5 分钟最多提交 5 次',
+    'sec_form_throttle_hint'       => '默认同一 IP 每 5 分钟最多成功提交 5 次，各表单共用额度；失败尝试也有限流。10 分钟内不重复接收相同内容。',
 
     // role.php 列表
     'role_name'        => '角色名称',
@@ -6367,4 +6367,9 @@ voltage|电压|220V',
     'blox_partners_logo' => '从媒体库选择 Logo',
     'blox_partners_add' => '添加合作伙伴',
     'blox_partners_copy' => '复制后台列表',
+    'form_guard_payload' => '表单数据格式不正确或内容过长，请检查后重试。',
+    'form_guard_field' => '请检查“:field”的格式、长度及必填内容。',
+    'form_guard_duplicate' => '您已提交相同内容，请勿重复提交。',
+    'form_guard_throttle' => '提交尝试过于频繁，请稍后再试。',
+    'form_guard_unavailable' => '暂时无法接收表单，请稍后重试。',
 ];
