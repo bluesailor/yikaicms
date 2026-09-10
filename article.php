@@ -246,7 +246,7 @@ require theme_path('partials/page-hero.php');
                 <!-- 相关文章 -->
                 <?php if (!empty($relatedArticles)): ?>
                 <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="bg-primary text-white px-4 py-3 font-bold">
+                    <div class="bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200">
                         <?php echo __('related_articles'); ?>
                     </div>
                     <div class="divide-y">
