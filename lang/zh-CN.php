@@ -6372,4 +6372,5 @@ voltage|电压|220V',
     'form_guard_duplicate' => '您已提交相同内容，请勿重复提交。',
     'form_guard_throttle' => '提交尝试过于频繁，请稍后再试。',
     'form_guard_unavailable' => '暂时无法接收表单，请稍后重试。',
+    'form_token_refreshed' => '表单已过期，安全令牌已更新。填写内容已保留，请等待两秒后再次提交；如有验证码，请重新填写。',
 ];
