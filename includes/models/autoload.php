@@ -70,6 +70,10 @@ function formModel(): FormModel {
     static $i; return $i ??= new FormModel();
 }
 
+function formModerationModel(): FormModerationModel {
+    static $i; return $i ??= new FormModerationModel();
+}
+
 function formTemplateModel(): FormTemplateModel {
     static $i; return $i ??= new FormTemplateModel();
 }
