@@ -39,6 +39,107 @@
     }
 
     var methods = {
+        openContentParent(kind) {
+            var node = this.selEl;
+            if (!node) return;
+            this.contentReturnTarget = {
+                id: String(node.id || ""), sectionId: this.selectedSectionId(),
+                parentId: kind === "banner" ? String((this.selTopEl || {}).id || "") : "",
+                kind: kind, label: this.panelTitle(), group: this.homeContentGroup,
+                field: this.selectedHomeField, column: this.selectedHomeColumn,
+                bannerGroup: this.bannerPanelGroup,
+            };
+            if (kind === "banner") this.selectElement(this.selectedSi, this.selectedCi, this.selectedEi, false);
+            else this.selectSection(this.selectedSi, false);
+            this.panelTab = kind === "banner" ? "content" : "style";
+            this.highlightCanvasSelection(false);
+        },
+        contentReturnAvailable() {
+            var target = this.contentReturnTarget;
+            if (!target || this.selectedSectionId() !== target.sectionId || !this.elementPathById(target.id)) return false;
+            return target.kind === "banner"
+                ? !!this.selEl && this.selEl.id === target.parentId
+                : !this.selEl && this.selLayer === "sec";
+        },
+        returnToContent() {
+            if (!this.contentReturnAvailable()) return;
+            var target = this.contentReturnTarget;
+            var path = this.elementPathById(target.id);
+            this.selectPath(path, false);
+            this.homeContentGroup = target.group;
+            this.bannerPanelGroup = target.bannerGroup;
+            this.selectedHomeField = target.field;
+            this.selectedHomeColumn = target.column;
+            this.panelTab = "content";
+            this.contentReturnTarget = null;
+            this.highlightCanvasSelection(false);
+        },
+        isPartnersBlock() {
+            return !!(this.selEl && this.selEl.type === "home-block" && this.selEl.data.block_type === "partners");
+        },
+        partnerItems() {
+            if (!this.isPartnersBlock()) return [];
+            var data = this.selEl.data.partners_custom ? this.selEl.data : (this.homeFieldSeeds.partners || {});
+            return Array.isArray(data.partner_items) ? data.partner_items : [];
+        },
+        setPartnersMode(custom) {
+            if (!this.isPartnersBlock() || !!this.selEl.data.partners_custom === custom) return;
+            var node = this.selEl;
+            this.flushHistory(true);
+            this.runCommand("partners-source", function () {
+                if (custom && !Array.isArray(node.data.partner_items)) node.data.partner_items = [];
+                node.data.partners_custom = custom;
+            });
+            this.selectedHomeField = "";
+            this.selectedHomeColumn = "";
+            this.flushHistory(true);
+        },
+        copySharedPartners() {
+            if (!this.isPartnersBlock() || !this.selEl.data.partners_custom || this.partnerItems().length) return;
+            var node = this.selEl, seeds = (this.homeFieldSeeds.partners || {}).partner_items || [];
+            this.flushHistory(true);
+            this.runCommand("partners-copy-shared", function () {
+                node.data.partner_items = seeds.slice(0, 12).map(function (item) {
+                    return { name: item.name || "", url: item.url || "", logo: item.logo || "" };
+                });
+            });
+            this.flushHistory(true);
+        },
+        changePartner(action, index) {
+            if (!this.isPartnersBlock() || !this.selEl.data.partners_custom) return;
+            var node = this.selEl, items = this.partnerItems();
+            if (action === "add" ? items.length >= 12 : !Number.isInteger(index) || !items[index]) return;
+            if (action === "up" && index === 0) return;
+            if (action === "down" && index === items.length - 1) return;
+            if (!["add", "remove", "up", "down"].includes(action)) return;
+            this.flushHistory(true);
+            this.runCommand("partners-" + action, function () {
+                var next = items.slice();
+                if (action === "add") next.push({ name: "", url: "", logo: "" });
+                else if (action === "remove") next.splice(index, 1);
+                else { var target = index + (action === "up" ? -1 : 1); next.splice(target, 0, next.splice(index, 1)[0]); }
+                node.data.partner_items = next;
+            });
+            this.selectedHomeField = "";
+            this.selectedHomeColumn = "";
+            this.flushHistory(true);
+        },
+        setPartnerField(index, key, value) {
+            if (!this.isPartnersBlock() || !this.selEl.data.partners_custom || !Number.isInteger(index)
+                || !this.partnerItems()[index] || !["name", "url", "logo"].includes(key)) return;
+            var node = this.selEl;
+            this.runCommand("partners-field", function () { node.data.partner_items[index][key] = value; });
+        },
+        replacePartnerLogo(index) {
+            if (!this.isPartnersBlock() || !this.selEl.data.partners_custom) return;
+            var node = this.selEl, item = this.partnerItems()[index], self = this;
+            if (!item) return;
+            this.openMedia(function (url) {
+                if (self.selEl !== node || !node.data.partners_custom) return;
+                var current = node.data.partner_items.indexOf(item);
+                if (current >= 0) self.setPartnerField(current, "logo", url);
+            });
+        },
         homeContentSource() {
             var node = this.selEl;
             if (!node) return null;
@@ -72,8 +173,7 @@
         },
         openHomeContentGroup(group) {
             if (group === "media" && supports(this.selEl) && this.selEl.data.block_type === "cta") {
-                this.selectSection(this.selectedSi);
-                this.panelTab = "style";
+                this.openContentParent("background");
                 return;
             }
             this.setHomeContentGroup(group);

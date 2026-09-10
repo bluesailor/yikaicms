@@ -7,13 +7,20 @@ $bloxSourceLinks = [];
 $sourceLang = rawurlencode(($isProductBlox || $isContentListBlox)
     ? (string) ($page['lang'] ?? siteLang()) : siteLang());
 if (hasPermission('*')) {
-    foreach (['about', 'cta', 'stats', 'advantage', 'testimonials', 'partners'] as $sourceType) {
+    foreach (['about', 'cta', 'stats', 'advantage', 'testimonials'] as $sourceType) {
         $bloxSourceLinks[$sourceType] = [
             'url' => '/admin/setting_home.php?lang=' . $sourceLang . '#home-source-' . $sourceType,
             'label' => __('blox_source_manage_shared'),
             'scope' => __('blox_source_shared_scope'),
         ];
     }
+}
+if (hasPermission('link')) {
+    $bloxSourceLinks['partners'] = [
+        'url' => '/admin/link.php?lang=' . $sourceLang,
+        'label' => __('blox_partners_manage'),
+        'scope' => '',
+    ];
 }
 if (hasPermission('edit_product')) {
     $bloxSourceLinks['product-catalog'] = [

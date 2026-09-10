@@ -552,8 +552,6 @@ public static function isActive(): bool
 
         if ($type === 'partners') {
             $data['override_title'] = configLang('home_links_title', 'footer_partners');
-            $data['partner_items'] = db()->tableExists('links')
-                ? array_slice(linkModel()->getActive(), 0, 12) : [];
             return $data;
         }
 

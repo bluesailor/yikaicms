@@ -80,6 +80,25 @@ final class MediaUsageAuditTest extends TestCase
         self::assertSame(0, MediaUsageAudit::audit([['id' => 3, 'url' => $url]])[3]['count']);
     }
 
+    public function testPartnerLogosStayProtectedWhenSwitchingBackToSharedData(): void
+    {
+        $url = '/uploads/images/partner.png';
+        foreach (['home_blox_data' => true, 'home_blox_published' => false] as $key => $custom) {
+            $this->insertRow('settings', ['key' => $key, 'value' => $this->document([
+                ['type' => 'home-block', 'data' => ['block_type' => 'partners', 'partners_custom' => $custom,
+                    'partner_items' => [null, ['name' => 'Logo', 'logo' => $url], ['name' => 'Link only', 'url' => $url]],
+                ]],
+            ])]);
+        }
+        $audit = MediaUsageAudit::audit([['id' => 13, 'url' => $url]]);
+        self::assertSame(2, $audit[13]['count']);
+        foreach ($audit[13]['items'] as $reference) {
+            self::assertSame('image_element', $reference['kind']);
+            self::assertStringEndsWith('.data.partner_items.1.logo', $reference['path']);
+        }
+        self::assertNotSame('', MediaUsageAudit::blockedMessage($audit));
+    }
+
     public function testFindsImageElementsAndBackgroundsInSlashEscapedJson(): void
     {
         $url = '/uploads/images/brand-scene.jpg';

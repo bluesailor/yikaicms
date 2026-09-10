@@ -690,7 +690,6 @@ final class BloxEditorPreviewContractTest extends TestCase
             'message.ykBannerSlide = this.selectedSubEi',
             'message.ykBannerPath = this.selectedSi + "." + this.selectedCi + "." + this.selectedEi',
             'data-testid="blox-banner-overall-settings"',
-            '@click="selectElement(selectedSi, selectedCi, selectedEi)"',
             'aspect-[16/7]',
         ] as $token) {
             $this->assertStringContainsString($token, $editor, "banner editor token {$token} missing");

@@ -433,11 +433,11 @@ declare(strict_types=1);
                     <i class="ti ti-history"></i><?php echo e(__('revision_history')); ?>
                 </button>
 <?php endif; ?>
-                <button type="button" @click="save(); mobileActionsOpen = false" :disabled="saving || homeActionBusy || pageActionBusy">
+                <button type="button" @click="save(); mobileActionsOpen = false" :disabled="saving || homeActionBusy || pageActionBusy" data-testid="blox-mobile-save">
                     <i class="ti ti-device-floppy"></i><?php echo e(($isHomeBlox || !$templateId) ? __('blox_save_draft') : __('save')); ?>
                 </button>
 <?php if ($isHomeBlox): ?>
-                <button type="button" @click="publishHome(); mobileActionsOpen = false" :disabled="homeActionBusy || saving">
+                <button type="button" @click="publishHome(); mobileActionsOpen = false" :disabled="homeActionBusy || saving" data-testid="blox-mobile-publish">
                     <i class="ti ti-rocket"></i><?php echo e(__('blox_publish')); ?>
                 </button>
                 <button type="button" @click="rollbackHome(); mobileActionsOpen = false" :disabled="homeActionBusy || !homePublished">

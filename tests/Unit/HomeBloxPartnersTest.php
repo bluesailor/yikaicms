@@ -31,6 +31,11 @@ final class HomeBloxPartnersTest extends TestCase
         ]);
         self::assertSame('', $sparse['partner_items'][0]['name']);
         self::assertSame('Second', $sparse['partner_items'][1]['name']);
+        $malformed = HomeBloxBlockSchema::normalize([
+            'block_type' => 'partners', 'partners_custom' => true,
+            'partner_items' => [['name' => [], 'url' => ['javascript:alert(1)'], 'logo' => new \stdClass()]],
+        ]);
+        self::assertSame(['name' => '', 'url' => '', 'logo' => ''], $malformed['partner_items'][0]);
     }
 
     public function testRuntimePassesCustomPartnersAndEditorMarkers(): void
