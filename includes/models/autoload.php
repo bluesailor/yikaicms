@@ -42,6 +42,10 @@ function productCategoryModel(): ProductCategoryModel {
     static $i; return $i ??= new ProductCategoryModel();
 }
 
+function productRouteModel(): ProductRouteModel {
+    static $i; return $i ??= new ProductRouteModel();
+}
+
 function albumModel(): AlbumModel {
     static $i; return $i ??= new AlbumModel();
 }

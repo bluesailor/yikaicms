@@ -1550,6 +1550,8 @@ function productUrl(array $product): string
 
 function productPrettyUrl(array $product): string
 {
+    $custom = productRouteModel()->pathFor('product', (int) ($product['id'] ?? 0));
+    if ($custom !== '') return $custom;
     $prefix = langPrefix();
     $slug = (string) ($product['slug'] ?? '');
     $categorySlug = (string) ($product['category_slug'] ?? '');
@@ -1641,6 +1643,10 @@ function getProductCategoryBySlug(string $slug): ?array
  */
 function productCategoryUrl(array $category): string
 {
+    if (!isDynamicUrlMode()) {
+        $custom = productRouteModel()->pathFor('category', (int) ($category['id'] ?? 0));
+        if ($custom !== '') return $custom;
+    }
     if (isDynamicUrlMode()) {
         $slug = (string) ($category['slug'] ?? '');
         return dynamicUrl('product_list', $slug !== '' ? ['cat' => $slug] : ['cat' => (int) ($category['id'] ?? 0)]);
@@ -3937,3 +3943,4 @@ function langUrl(string $url, string $lang = ''): string
 // 权限能力目录（角色勾选 / 页面守卫 / 权限迁移 共用；函数内才调 __()，加载顺序无碍）
 require_once __DIR__ . '/permissions.php';
 require_once __DIR__ . '/catalog_pagination.php';
+require_once __DIR__ . '/product_routes.php';

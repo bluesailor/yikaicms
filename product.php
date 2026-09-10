@@ -76,6 +76,9 @@ $currentSlug = 'product';
 $ogType = 'product';
 $siteUrl = siteBaseUrl();
 $canonicalUrl = $siteUrl . productPrettyUrl($product);
+if (isDynamicUrlMode() && productRouteModel()->pathFor('product', (int) $product['id']) !== '') {
+    $canonicalUrl = $siteUrl . productUrl($product);
+}
 if (!empty($product['cover'])) {
     $ogImage = $product['cover'];
 }
