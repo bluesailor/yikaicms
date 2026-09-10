@@ -107,12 +107,12 @@ $bg = getBlockBg($block ?? [], '@auto');
                 <div class="relative overflow-hidden rounded-lg bg-gray-100 shadow-sm aspect-[4/3]">
                     <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($aboutImage, 'medium', $aboutImageSizes); ?> alt="<?php echo __('home_about_title'); ?>" class="u-img w-full h-full object-cover">
                     <?php if ($aboutTagTitle || $aboutTagDesc): ?>
-                    <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
+                    <div class="yk-default-about-badge absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg">
                         <?php if ($aboutTagTitle): ?>
                         <div class="font-bold text-lg"><?php echo e($aboutTagTitle); ?></div>
                         <?php endif; ?>
                         <?php if ($aboutTagDesc): ?>
-                        <div class="text-sm opacity-90"><?php echo e($aboutTagDesc); ?></div>
+                        <div class="text-sm"><?php echo e($aboutTagDesc); ?></div>
                         <?php endif; ?>
                     </div>
                     <?php endif; ?>
