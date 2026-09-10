@@ -725,6 +725,7 @@ $homeEditorBlueprints = $isHomeBlox ? HomeBloxBlockSchema::editorBlueprints() : 
 require __DIR__ . '/blox_editor/source-links.php';
 $homeFieldSeeds = $isHomeBlox ? [
     'about' => HomeAboutContent::resolve(getChannelBySlug('about', true)),
+    'partners' => ['partner_items' => db()->tableExists('links') ? array_slice(linkModel()->getActive(), 0, 12) : []],
     'stats' => ['stats_items' => HomeBloxBlockSchema::statsSeedItems()],
     'advantage' => ['advantage_items' => HomeBloxBlockSchema::advantageSeedItems()],
 ] : [];
@@ -1174,6 +1175,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             bannerPanelGroup: "common",
             styleGroup: "general",
             homeContentGroup: "content",
+            contentReturnTarget: null,
             homeBannerRuntime: <?= json_encode($homeBannerRuntime, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             headerTemplateMode: <?php echo $templateId && $templateType === 'header' ? 'true' : 'false'; ?>,
             footerTemplateMode: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
@@ -5117,8 +5119,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var blueprint = this.homeFieldBlueprint(el);
                 var groups = [];
                 (blueprint.groups || []).forEach(function (source) {
+                    if (source.key === "partners" && !el.data.partners_custom) return;
                     if (source.columnRepeaterKey || source.tree === false) return;
                     var repeat = Math.max(1, Math.min(12, Number(source.repeat) || 1));
+                    if (source.key === "partners") repeat = Math.min(12, (el.data.partner_items || []).length);
                     for (var index = 0; index < repeat; index++) {
                         var fields = (source.fields || []).map(function (field) {
                             var copy = Object.assign({}, field);
@@ -5128,7 +5132,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                         groups.push({
                             key: String(source.key || "group") + (repeat > 1 ? "-" + index : ""),
                             label: String(source.label || ""),
-                            displayLabel: repeat > 1 ? String(source.label || "") + " " + (index + 1) : String(source.label || ""),
+                            displayLabel: source.key === "partners" && el.data.partner_items[index].name
+                                ? el.data.partner_items[index].name
+                                : (repeat > 1 ? String(source.label || "") + " " + (index + 1) : String(source.label || "")),
                             icon: String(source.icon || "box"),
                             numbered: !!source.numbered,
                             repeated: repeat > 1,

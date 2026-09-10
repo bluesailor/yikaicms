@@ -23,6 +23,9 @@ test('slide editing starts with image and copy, preserving links across groups @
   await page.screenshot({ path: testInfo.outputPath('banner-content.png') });
   await page.getByTestId('blox-banner-overall-settings').click();
   await expect(field('banner_height_mode')).toBeVisible();
+  await page.getByTestId('blox-return-content').click();
+  await expect(field('title').locator('input')).toHaveValue('A long enterprise carousel title');
+  await expect(page.getByTestId('blox-return-content')).toHaveCount(0);
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
 });

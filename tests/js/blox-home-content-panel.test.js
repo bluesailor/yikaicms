@@ -104,6 +104,9 @@ test('CTA background group opens the generic parent section background', () => {
     const context = Object.assign({
         selEl: cta,
         selectedSi: 5,
+        selectedSectionId: () => 's5',
+        panelTitle: () => 'CTA',
+        highlightCanvasSelection: scroll => assert.equal(scroll, false),
         panelTab: 'content',
         selectSection: index => { selected = index; },
     }, panel.methods);
@@ -117,6 +120,78 @@ test('CTA background group opens the generic parent section background', () => {
     context.selectedHomeColumn = 'text';
     context.openHomeContentGroup('media');
     assert.equal(context.homeContentGroup, 'media');
+});
+
+test('return target resolves stable IDs and disappears for missing or unrelated nodes', () => {
+    const node = { id: 'e1', type: 'heading', data: { text: 'About' } };
+    let path = '0.0.1', selected, sectionId = 's1';
+    const context = Object.assign({
+        selEl: node, selectedSi: 0, selectedSectionId: () => sectionId,
+        panelTitle: () => 'About', homeContentGroup: 'content',
+        highlightCanvasSelection: scroll => assert.equal(scroll, false),
+        selectedHomeField: '', selectedHomeColumn: '',
+        selectSection: () => { context.selEl = null; context.selLayer = 'sec'; },
+        elementPathById: id => id === 'e1' ? path : '',
+        selectPath: value => { selected = value; context.selEl = node; },
+    }, panel.methods);
+    context.openContentParent('background');
+    assert.equal(context.contentReturnAvailable(), true);
+    sectionId = 's2';
+    assert.equal(context.contentReturnAvailable(), false);
+    sectionId = 's1';
+    path = '';
+    context.returnToContent();
+    assert.equal(selected, undefined);
+    path = '0.1.2';
+    context.returnToContent();
+    assert.equal(selected, '0.1.2');
+    assert.equal(context.panelTab, 'content');
+    assert.equal(context.contentReturnTarget, null);
+});
+
+test('partners mode, ordered actions and media callbacks protect data sources and empty local lists', () => {
+    const shared = [{ name: 'Shared', url: '/shared', logo: '/old.svg' }];
+    const node = { type: 'home-block', data: { block_type: 'partners' } };
+    const commands = [], snapshots = [];
+    let callback;
+    const context = Object.assign({
+        selEl: node, homeFieldSeeds: { partners: { partner_items: shared } },
+        flushHistory: () => {},
+        runCommand: (name, change) => { commands.push(name); snapshots.push(JSON.stringify(node.data)); change(); },
+        openMedia: fn => { callback = fn; },
+    }, panel.methods);
+    context.changePartner('add');
+    assert.equal(commands.length, 0);
+    context.setPartnersMode(true);
+    context.copySharedPartners();
+    context.setPartnerField(0, 'name', 'Local');
+    assert.equal(shared[0].name, 'Shared');
+    context.changePartner('add');
+    context.setPartnerField(1, 'name', 'Second');
+    context.replacePartnerLogo(1);
+    context.changePartner('up', 1);
+    callback('/new.svg');
+    assert.equal(context.partnerItems()[0].name, 'Second');
+    assert.equal(context.partnerItems()[0].logo, '/new.svg');
+    context.replacePartnerLogo(0);
+    context.changePartner('remove', 0);
+    callback('/stale.svg');
+    assert.equal(context.partnerItems()[0].logo, '/old.svg');
+    context.changePartner('remove', 0);
+    assert.deepEqual(context.partnerItems(), []);
+    context.setPartnersMode(false);
+    assert.equal(context.partnerItems(), shared);
+    context.setPartnersMode(true);
+    assert.deepEqual(context.partnerItems(), []);
+    for (let index = 0; index < 14; index++) context.changePartner('add');
+    assert.equal(context.partnerItems().length, 12);
+    const count = commands.length;
+    context.changePartner('down', 11);
+    context.setPartnerField(12, 'name', 'Out of range');
+    context.setPartnerField(0, '__proto__', 'Unsafe');
+    assert.equal(commands.length, count);
+    node.data = JSON.parse(snapshots[0]);
+    assert.equal(context.partnerItems(), shared);
 });
 
 test('media selection uses existing source policy and rejects stale callbacks', () => {

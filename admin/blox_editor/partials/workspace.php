@@ -221,13 +221,13 @@ declare(strict_types=1);
                     <?php // 元素背景统一归所在区块；从任意元素可一步进入区块样式。 ?>
                     <button type="button"
                             x-show="selEl && selEl.type === 'home-banner-item'"
-                            @click="selectElement(selectedSi, selectedCi, selectedEi)"
+                            @click="openContentParent('banner')"
                             data-testid="blox-banner-overall-settings"
                             class="text-[10px] text-amber-600 hover:text-amber-700 inline-flex items-center gap-0.5 shrink-0">
                         <i class="ti ti-arrow-left text-xs"></i><?= __('blox_banner_overall_settings') ?>
                     </button>
                     <button type="button" x-show="selEl && selEl.type !== 'home-banner-item'"
-                            @click="selectSection(selectedSi); panelTab = 'style'"
+                            @click="openContentParent('background')"
                             data-testid="blox-edit-section-background"
                             class="text-[10px] text-gray-500 hover:text-blue-600 inline-flex items-center gap-1 shrink-0">
                         <i class="ti ti-photo-video text-xs"></i><?= e(__('blox_edit_section_background')) ?>
@@ -239,6 +239,14 @@ declare(strict_types=1);
                 </div>
 
                 <!-- 内容 / 样式 页签 -->
+                <template x-if="contentReturnAvailable()">
+                    <button type="button" @click="returnToContent()" data-testid="blox-return-content"
+                            class="px-3 py-2 text-xs text-blue-700 hover:bg-blue-50 inline-flex items-center gap-2 border-b border-gray-100">
+                        <i class="ti ti-arrow-left" aria-hidden="true"></i>
+                        <span><?= e(__('blox_return_content')) ?></span>
+                        <span class="truncate min-w-0" x-text="contentReturnTarget.label"></span>
+                    </button>
+                </template>
                 <div class="flex items-stretch border-b border-gray-100 shrink-0">
                     <button type="button" @click="panelTab = 'content'" data-testid="blox-content-tab"
                             class="flex-1 h-9 text-xs font-semibold border-b-2 transition"
@@ -695,6 +703,7 @@ declare(strict_types=1);
                             </template>
 
                             <?php require __DIR__ . '/source-link.php'; ?>
+                            <?php require __DIR__ . '/partners-manager.php'; ?>
                             <template x-if="selEl && selEl.type === 'home-block' && panelTab === 'content'">
                                 <div class="rounded border border-blue-200 bg-blue-50/60 p-3">
                                     <div class="flex items-start gap-3">
@@ -706,7 +715,7 @@ declare(strict_types=1);
                                                 <p class="text-xs font-semibold text-gray-700 truncate" x-text="homeBlockSourceLabel()"></p>
                                                 <span class="text-[9px] px-1.5 py-0.5 rounded border"
                                                       :class="selEl.data.enabled !== false ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-gray-200 bg-white text-gray-400'"
-                                                      x-text="selEl.data.enabled === false ? homeDynamicText.disabled : (hasCustomBannerItems() ? homeDynamicText.customItems : homeDynamicText.liveData)"></span>
+                                                      x-text="selEl.data.enabled === false ? homeDynamicText.disabled : ((hasCustomBannerItems() || (isPartnersBlock() && selEl.data.partners_custom)) ? homeDynamicText.customItems : homeDynamicText.liveData)"></span>
                                             </div>
                                             <p class="mt-1 text-[10px] text-gray-500 leading-relaxed" x-text="homeBlockSummary()"></p>
                                         </div>

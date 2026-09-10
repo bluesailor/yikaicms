@@ -266,9 +266,9 @@ trait HomeBloxNormalizerTrait
         foreach (array_slice(is_array($data['partner_items'] ?? null) ? $data['partner_items'] : [], 0, 12) as $item) {
             $item = is_array($item) ? $item : [];
             $partners[] = [
-                'name' => mb_substr(trim(strip_tags((string) ($item['name'] ?? ''))), 0, 100),
-                'url' => self::safeUrl((string) ($item['url'] ?? ''), true),
-                'logo' => self::safeUrl((string) ($item['logo'] ?? ''), false),
+                'name' => mb_substr(trim(strip_tags(is_scalar($item['name'] ?? null) ? (string) $item['name'] : '')), 0, 100),
+                'url' => self::safeUrl(is_string($item['url'] ?? null) ? $item['url'] : '', true),
+                'logo' => self::safeUrl(is_string($item['logo'] ?? null) ? $item['logo'] : '', false),
             ];
         }
         $data['partner_items'] = $partners;

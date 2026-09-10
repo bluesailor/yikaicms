@@ -88,6 +88,9 @@ test('CTA copy stays local while its background uses the generic section editor 
   await waitPreviewSettled(page);
   expect(Math.abs((await canvasScrollTop(page)) - scroll)).toBeLessThan(8);
   await page.screenshot({ path: testInfo.outputPath('cta-generic-video-background.png') });
+  await page.getByTestId('blox-return-content').click();
+  await expect(field(page, 'override_button_text').locator('input')).toHaveValue('Contact draft');
+  await expect(field(page, 'override_button_url').locator('input')).toHaveValue('/contact.html?from=draft');
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
 });
@@ -139,6 +142,10 @@ test('clicking the company image in the canvas opens its image settings @ci', as
   });
   await page.mouse.click(point.x, point.y);
   await expect(page.getByTestId('blox-home-group-media')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('blox-about-image-media')).toBeVisible();
+  await page.getByTestId('blox-edit-section-background').click();
+  await expect(page.getByTestId('blox-section-background-video-media')).toBeVisible();
+  await page.getByTestId('blox-return-content').click();
   await expect(page.getByTestId('blox-about-image-media')).toBeVisible();
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);

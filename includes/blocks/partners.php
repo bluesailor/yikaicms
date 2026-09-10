@@ -9,7 +9,7 @@ $links = $links ?? linkModel()->getActive();
 $links = array_filter($links, static fn (array $link): bool => trim((string) ($link['name'] ?? '')) !== '');
 if (empty($links)) return;
 $bg = getBlockBg($block ?? [], '@auto');
-$partnerFieldAttr = $ykHomeFieldAttr ?? static fn (string $field): string => '';
+$partnerFieldAttr = $ykHomeFieldAttr ?? static fn (string $_field): string => '';
 $partnerCustom = !empty($block['partners_custom']);
 ?>
 <section class="py-12 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?><?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-partners'; ?>><?php echo $bg['overlay']; ?>
