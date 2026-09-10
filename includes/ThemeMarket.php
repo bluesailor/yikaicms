@@ -14,7 +14,8 @@ final class ThemeMarket
      */
     public static function request(string $query = '', ?callable $transport = null): ?array
     {
-        $url = self::API . ($query !== '' ? '?q=' . rawurlencode($query) : '');
+        $url = self::API . '?capabilities=default-update-v1'
+            . ($query !== '' ? '&q=' . rawurlencode($query) : '');
         $body = $transport !== null ? $transport($url) : self::httpGet($url);
         if (!is_string($body) || $body === '') {
             return null;
