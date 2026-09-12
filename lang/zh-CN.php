@@ -6399,4 +6399,7 @@ voltage|电压|220V',
     'blox_stats_divider_inherit' => '跟随默认样式',
     'blox_stats_divider_show' => '显示',
     'blox_stats_divider_hide' => '隐藏',
+    'blox_builtin_restaurant_name' => '餐厅（单页版）',
+    'blox_builtin_restaurant_desc' => '浅紫色中式餐厅单页，包含菜品画廊、品牌故事、用餐服务、招牌菜单、厨师团队、预约留言与常见问题，配套五张中餐生成图片。',
+    'blox_builtin_restaurant_keywords' => '餐厅 中式餐馆 中餐 家宴 餐饮 美食 单页 预约 菜单 点心 restaurant Chinese dining food',
 ];

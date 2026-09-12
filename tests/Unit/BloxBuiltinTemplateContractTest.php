@@ -34,6 +34,7 @@ final class BloxBuiltinTemplateContractTest extends TestCase
     public static function templates(): array
     {
         return [
+            'restaurant' => ['restaurant-landing', ['好好吃饭', '招牌红烧肉', '清蒸鲜鱼', '手作小笼包', '预约座位']],
             '公司介绍' => ['company-intro', ['以专业与稳健', '成立年份', '为什么选择我们', '研发设计', '立即咨询']],
             '联系我们' => ['contact-page', ['联系我们', '常见问题', '多久能收到回复', '工作时间']],
             '服务流程' => ['service-process', ['每一步都清晰可控', '需求沟通', '测试验收', '方案与计划', '合作前常见问题']],
@@ -135,6 +136,49 @@ final class BloxBuiltinTemplateContractTest extends TestCase
             self::assertNotSame('', $items[$key]['description']);
             // 缩略图缺失在界面上是一张碎图，属于「发出去才被发现」的那类问题
             self::assertFileExists(ROOT_PATH . $items[$key]['thumbnail']);
+        }
+    }
+
+    public function testRestaurantProviderPreservesLocalImagesAndReservationAnchors(): void
+    {
+        $provider = new BloxBuiltinTemplateProvider();
+        $items = array_column($provider->items('page'), null, 'key');
+        self::assertArrayHasKey('builtin:restaurant-landing', $items);
+        self::assertFileExists(ROOT_PATH . $items['builtin:restaurant-landing']['thumbnail']);
+
+        $template = $provider->resolve('restaurant-landing');
+        $anchors = [];
+        $links = [];
+        $images = [];
+        foreach ($template['sections'] as $section) {
+            $anchors[] = $section['settings']['anchor_id'] ?? '';
+            foreach ($section['columns'] as $column) {
+                foreach ($column['elements'] as $element) {
+                    $data = $element['data'] ?? [];
+                    foreach (['url', 'link'] as $key) {
+                        if (str_starts_with((string) ($data[$key] ?? ''), '#')) {
+                            $links[] = substr($data[$key], 1);
+                        }
+                    }
+                    foreach (['src', 'image'] as $key) {
+                        if (!empty($data[$key])) {
+                            $images[$data[$key]] = true;
+                        }
+                    }
+                }
+            }
+        }
+        self::assertContains('restaurant-reservation', $links);
+        self::assertSame([], array_values(array_diff($links, $anchors)));
+        self::assertCount(count($anchors), array_unique($anchors));
+        self::assertCount(5, $images);
+        foreach (array_keys($images) as $path) {
+            self::assertStringStartsWith('/assets/images/blox-templates/restaurant-', $path);
+            self::assertFileExists(ROOT_PATH . $path);
+            $size = getimagesize(ROOT_PATH . $path);
+            self::assertIsArray($size);
+            self::assertGreaterThanOrEqual(1024, $size[0]);
+            self::assertSame('image/webp', $size['mime']);
         }
     }
 
