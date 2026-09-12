@@ -14,9 +14,10 @@
       "icon-box",
       "quote",
       "contact_form",
-      "contact_cards",
       "accordion",
-      "container"
+      "container",
+      "site-contact",
+      "divider"
     ],
     "plugins": []
   },
@@ -669,9 +670,64 @@
                 }
               },
               {
-                "type": "contact_cards",
+                "type": "container",
                 "data": {
-                  "cols": "2"
+                  "direction": "column",
+                  "gap": "sm",
+                  "padding": "md",
+                  "radius": "xl",
+                  "bg_color": "#ffffff",
+                  "children": [
+                    {
+                      "type": "heading",
+                      "data": {
+                        "text": "联系门店",
+                        "level": "h3",
+                        "visual_size": "lg",
+                        "align": "left",
+                        "color": "#302e3a",
+                        "style_margin_bottom": "0"
+                      }
+                    },
+                    {
+                      "type": "site-contact",
+                      "data": {
+                        "show_phone": true,
+                        "show_email": true,
+                        "show_address": true,
+                        "show_hours": false,
+                        "show_icons": true,
+                        "layout": "stacked",
+                        "tone": "dark"
+                      }
+                    },
+                    {
+                      "type": "divider",
+                      "data": {
+                        "style": "solid",
+                        "width": 1,
+                        "color": "#e9e5f3",
+                        "spacing": "sm"
+                      }
+                    },
+                    {
+                      "type": "heading",
+                      "data": {
+                        "text": "营业时间",
+                        "level": "h3",
+                        "visual_size": "sm",
+                        "align": "left",
+                        "color": "#7650ef",
+                        "style_margin_bottom": "0"
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "data": {
+                        "html": "<p style=\"margin:0\"><strong>每日 10:00–24:00</strong></p><p style=\"margin:8px 0 0;font-size:13px\">示例时间，实际营业安排请联系门店确认。</p>"
+                      }
+                    }
+                  ]
                 }
               }
             ]
