@@ -24,6 +24,7 @@ final class BloxTemplateCatalogTest extends TestCase
                 published_data TEXT,
                 requirements TEXT,
                 metadata TEXT,
+                conditions TEXT,
                 thumbnail TEXT NOT NULL DEFAULT '',
                 status INTEGER NOT NULL DEFAULT 0,
                 admin_id INTEGER NOT NULL DEFAULT 0,
@@ -104,6 +105,25 @@ final class BloxTemplateCatalogTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('blox_tpl_not_published');
         \BloxTemplateCatalog::resolve('local:' . $id, 'home');
+    }
+
+    public function testImportedPageFrameSurvivesLocalPublishExportAndResolve(): void
+    {
+        $package = (string) file_get_contents(ROOT_PATH . '/templates/blox/pages/restaurant-landing.json');
+        $prepared = \BloxTemplateImporter::prepare($package);
+        $id = bloxTemplateModel()->createDraft('page', 'Restaurant page', $prepared['draft_json']);
+        bloxTemplateModel()->publishDraft($id);
+        // A newer draft must not leak its frame settings into the published catalog.
+        $draft = json_decode($prepared['draft_json'], true, 512, JSON_THROW_ON_ERROR);
+        $draft['settings']['page_header_hidden'] = false;
+        bloxTemplateModel()->updateDraft($id, json_encode($draft, JSON_THROW_ON_ERROR), $prepared['requirements']);
+        $resolved = \BloxTemplateCatalog::resolve('local:' . $id);
+        $this->assertSame($prepared['settings'], $resolved['settings']);
+        $row = bloxTemplateModel()->findForExport($id);
+        $exported = \BloxTemplateImporter::exportJson($row);
+        $roundTrip = \BloxTemplateImporter::prepare($exported);
+        $this->assertSame($prepared['settings'], $roundTrip['settings']);
+        $this->assertNotSame($resolved['sections'][0]['id'], $roundTrip['sections'][0]['id']);
     }
 
     private function sectionJson(string $sectionId, string $elementId): string

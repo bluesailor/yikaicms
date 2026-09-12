@@ -15,14 +15,121 @@
       "quote",
       "contact_form",
       "contact_cards",
-      "accordion"
+      "accordion",
+      "container"
     ],
     "plugins": []
   },
   "document": {
     "schema": 1,
-    "settings": {},
+    "settings": {
+      "page_header_hidden": true,
+      "page_footer_hidden": true,
+      "page_sidebar_hidden": true,
+      "page_breadcrumb_hidden": true,
+      "page_title_hidden": true
+    },
     "sections": [
+      {
+        "type": "section",
+        "name": "餐厅专属页头与导航",
+        "settings": {
+          "anchor_id": "restaurant-header",
+          "padding": "sm",
+          "max_width": "wide",
+          "bg_color": "#ffffff"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "container",
+                "data": {
+                  "direction": "row",
+                  "gap": "sm",
+                  "align": "center",
+                  "justify": "between",
+                  "wrap": "wrap",
+                  "children": [
+                    {
+                      "type": "heading",
+                      "data": {
+                        "text": "拾味餐厅",
+                        "level": "h2",
+                        "visual_size": "xl",
+                        "align": "center",
+                        "color": "#302e3a",
+                        "url": "#restaurant-home"
+                      }
+                    },
+                    {
+                      "type": "button",
+                      "data": {
+                        "text": "关于我们",
+                        "url": "#restaurant-about",
+                        "variant": "ghost",
+                        "color": "#302e3a",
+                        "align": "center"
+                      }
+                    },
+                    {
+                      "type": "button",
+                      "data": {
+                        "text": "用餐服务",
+                        "url": "#restaurant-services",
+                        "variant": "ghost",
+                        "color": "#302e3a",
+                        "align": "center"
+                      }
+                    },
+                    {
+                      "type": "button",
+                      "data": {
+                        "text": "招牌菜单",
+                        "url": "#restaurant-menu",
+                        "variant": "ghost",
+                        "color": "#302e3a",
+                        "align": "center"
+                      }
+                    },
+                    {
+                      "type": "button",
+                      "data": {
+                        "text": "厨师团队",
+                        "url": "#restaurant-team",
+                        "variant": "ghost",
+                        "color": "#302e3a",
+                        "align": "center"
+                      }
+                    },
+                    {
+                      "type": "button",
+                      "data": {
+                        "text": "常见问题",
+                        "url": "#restaurant-faq",
+                        "variant": "ghost",
+                        "color": "#302e3a",
+                        "align": "center"
+                      }
+                    },
+                    {
+                      "type": "button",
+                      "data": {
+                        "text": "预约订座",
+                        "url": "#restaurant-reservation",
+                        "variant": "primary",
+                        "bg_color": "#7651e8",
+                        "color": "#ffffff",
+                        "align": "center"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
       {
         "type": "section",
         "name": "餐厅首屏",
@@ -644,7 +751,7 @@
       },
       {
         "type": "section",
-        "name": "餐厅尾部引导",
+        "name": "餐厅专属页脚",
         "settings": {
           "padding": {
             "d": "xl",
@@ -694,6 +801,22 @@
                 "type": "text",
                 "data": {
                   "html": "<p class=\"yk-copy yk-copy--center\"><a href=\"#restaurant-about\">关于我们</a> · <a href=\"#restaurant-services\">用餐服务</a> · <a href=\"#restaurant-menu\">招牌菜单</a> · <a href=\"#restaurant-team\">厨师团队</a> · <a href=\"#restaurant-faq\">常见问题</a></p>"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p class=\"yk-copy yk-copy--center\">拾味餐厅 · 一餐一聚，皆有滋味。</p>"
+                }
+              },
+              {
+                "type": "button",
+                "data": {
+                  "text": "返回页首",
+                  "url": "#restaurant-header",
+                  "variant": "ghost",
+                  "color": "#302e3a",
+                  "align": "center"
                 }
               }
             ]

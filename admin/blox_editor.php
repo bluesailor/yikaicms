@@ -1308,6 +1308,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             docSettings: <?php echo json_encode((object) $docSettings, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             homeMode: <?php echo $isHomeBlox ? 'true' : 'false'; ?>,
+            pageTemplateTarget: <?php echo !$isHomeBlox && (($templateId && ($templateType ?? '') === 'page') || (!$templateId && ($page['type'] ?? '') === 'page')) ? 'true' : 'false'; ?>,
             homePublished: <?php echo $isHomeBlox && HomeBloxDocument::isActive() && HomeBloxDocument::hasPublished() ? 'true' : 'false'; ?>,
             homeActionBusy: false,
             pageMode: <?php echo !$isHomeBlox && !$templateId ? 'true' : 'false'; ?>,
@@ -3079,6 +3080,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                             var fresh = window.BloxTemplateLibrary.freshSections(
                                 sections,
                                 function (prefix) { return self.uid(prefix); }
+                            );
+                            self.docSettings = window.BloxTemplateLibrary.applyPageSettings(
+                                self.docSettings, template, mode, self.pageTemplateTarget
                             );
                             var at = replacing ? 0 : (requestedIndex === null
                                 ? self.insertIndex()

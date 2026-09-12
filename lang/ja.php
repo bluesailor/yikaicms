@@ -6473,6 +6473,6 @@ voltage|電圧|220V',
     'blox_stats_divider_show' => '表示',
     'blox_stats_divider_hide' => '非表示',
     'blox_builtin_restaurant_name' => 'レストラン（シングルページ）',
-    'blox_builtin_restaurant_desc' => '淡いラベンダー色の中華料理店ページ。料理ギャラリー、紹介、サービス、メニュー、調理チーム、予約問い合わせ、FAQと中華料理の生成画像5点を収録。',
+    'blox_builtin_restaurant_desc' => '独自のヘッダー、ページ内ナビゲーション、フッターを備えた中華料理店ページ。読み込み時にこのページの既存ヘッダー、フッター、タイトル、パンくずを非表示にします。メニュー、予約問い合わせ、FAQ、生成画像5点を収録。',
     'blox_builtin_restaurant_keywords' => 'レストラン 中華料理 飲食 点心 メニュー 予約 シングルページ restaurant Chinese',
 ];

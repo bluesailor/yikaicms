@@ -139,6 +139,25 @@ final class BloxBuiltinTemplateContractTest extends TestCase
         }
     }
 
+    public function testRestaurantFramePreferencesSurvivePackageAndProviderResolution(): void
+    {
+        $prepared = BloxTemplateImporter::prepare((string) file_get_contents(
+            ROOT_PATH . '/templates/blox/pages/restaurant-landing.json'
+        ));
+        $resolved = (new BloxBuiltinTemplateProvider())->resolve('restaurant-landing');
+        $expected = array_fill_keys([
+            'page_header_hidden', 'page_footer_hidden', 'page_breadcrumb_hidden', 'page_title_hidden', 'page_sidebar_hidden',
+        ], true);
+        self::assertSame($expected, $prepared['settings']);
+        self::assertSame($expected, $resolved['settings']);
+        self::assertSame($expected, json_decode($prepared['draft_json'], true)['settings']);
+        self::assertSame('restaurant-header', $resolved['sections'][0]['settings']['anchor_id']);
+        self::assertSame('restaurant-footer', $resolved['sections'][array_key_last($resolved['sections'])]['settings']['anchor_id']);
+        $header = BlockRenderer::render(json_encode([$resolved['sections'][0]], JSON_THROW_ON_ERROR));
+        self::assertStringContainsString('href="#restaurant-menu"', $header);
+        self::assertStringContainsString('href="#restaurant-reservation"', $header);
+    }
+
     public function testRestaurantProviderPreservesLocalImagesAndReservationAnchors(): void
     {
         $provider = new BloxBuiltinTemplateProvider();

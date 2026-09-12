@@ -335,7 +335,7 @@ final class BloxBuiltinTemplateProvider
         return $items;
     }
 
-    /** @return array{key:string,type:string,name:string,source:string,provider:string,sections:array<int,array<string,mixed>>} */
+    /** @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>} */
     public function resolve(string $slug, string $context = 'page'): array
     {
         $preset = self::PRESETS[$slug] ?? null;
@@ -357,6 +357,7 @@ final class BloxBuiltinTemplateProvider
             'name' => __((string) $preset['name_key']),
             'source' => 'builtin',
             'provider' => 'yikaicms',
+            'settings' => $prepared['settings'],
             'sections' => $prepared['sections'],
         ];
     }

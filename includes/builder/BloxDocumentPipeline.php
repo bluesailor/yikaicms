@@ -192,6 +192,11 @@ final class BloxDocumentPipeline
             return [];
         }
         $clean = [];
+        foreach (['page_header_hidden', 'page_footer_hidden', 'page_breadcrumb_hidden', 'page_title_hidden', 'page_sidebar_hidden'] as $key) {
+            if (array_key_exists($key, $settings)) {
+                $clean[$key] = in_array($settings[$key], [true, 1, '1'], true);
+            }
+        }
         if (array_key_exists('sticky', $settings)) {
             $clean['sticky'] = !empty($settings['sticky']);
         }

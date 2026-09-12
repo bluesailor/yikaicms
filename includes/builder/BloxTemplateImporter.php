@@ -162,7 +162,7 @@ final class BloxTemplateImporter
     /**
      * @return array{
      *   type:string,name:string,schema_version:int,thumbnail:string,
-     *   sections:array<int,array<string,mixed>>,draft_json:string,
+     *   settings:array<string,mixed>,sections:array<int,array<string,mixed>>,draft_json:string,
      *   requirements:array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>},
      *   metadata:array<string,mixed>
      * }
@@ -253,6 +253,7 @@ final class BloxTemplateImporter
             'name' => $name,
             'schema_version' => self::VERSION,
             'thumbnail' => self::safeThumbnail((string) ($package['thumbnail'] ?? '')),
+            'settings' => $processed['settings'],
             'sections' => $processed['sections'],
             'draft_json' => $processed['json'],
             'requirements' => [

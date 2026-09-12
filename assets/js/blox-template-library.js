@@ -231,6 +231,21 @@
         });
     }
 
+    function applyPageSettings(current, template, mode, pageTarget) {
+        if (!pageTarget || !template || template.type !== "page") return current;
+        var result = Object.assign({}, current || {});
+        var settings = template.settings && typeof template.settings === "object"
+            && !Array.isArray(template.settings) ? template.settings : {};
+        // Only page frame preferences may cross a full-page import; area and product settings stay local.
+        ["page_header_hidden", "page_footer_hidden", "page_breadcrumb_hidden", "page_title_hidden", "page_sidebar_hidden"].forEach(function (key) {
+            if (mode === "replace") delete result[key];
+            if (Object.prototype.hasOwnProperty.call(settings, key)) {
+                result[key] = settings[key] === true || settings[key] === 1 || settings[key] === "1";
+            }
+        });
+        return result;
+    }
+
     function freshSections(sections, uid) {
         return sections.map(function (section) {
             var copy = JSON.parse(JSON.stringify(section || {}));
@@ -326,6 +341,7 @@
         lockLabel: lockLabel,
         hasLockedRemote: hasLockedRemote,
         freshSections: freshSections,
+        applyPageSettings: applyPageSettings,
         documentFingerprint: documentFingerprint,
     };
 })(window);
