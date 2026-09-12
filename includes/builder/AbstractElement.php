@@ -53,6 +53,7 @@ abstract class AbstractElement
         return [
             [
                 'key' => 'animation', 'type' => 'select', 'label' => __('blox_anim'), 'default' => '', 'tab' => 'style', 'group' => 'animation',
+                'option_preview' => 'entrance',
                 'options' => [
                     '' => __('blox_anim_none'),
                     'fade' => __('blox_anim_fade'),
@@ -64,13 +65,19 @@ abstract class AbstractElement
                 ],
                 'option_icons' => [
                     '' => 'ban',
-                    'fade' => 'opacity',
+                    'fade' => 'contrast',
                     'fade-up' => 'arrow-up',
                     'fade-down' => 'arrow-down',
                     'fade-left' => 'arrow-right',
                     'fade-right' => 'arrow-left',
                     'zoom-in' => 'zoom-in',
                 ],
+            ],
+            [
+                'key' => 'animation_trigger', 'type' => 'select', 'label' => __('blox_anim_trigger'),
+                'default' => 'viewport', 'tab' => 'style', 'group' => 'animation',
+                'options' => ['viewport' => __('blox_anim_trigger_viewport'), 'load' => __('blox_anim_trigger_load')],
+                'required' => ['animation', '!=', ''],
             ],
             [
                 'key' => 'animation_speed', 'type' => 'select', 'label' => __('blox_anim_speed'), 'default' => 'normal', 'tab' => 'style', 'group' => 'animation',
@@ -92,6 +99,8 @@ abstract class AbstractElement
         }
 
         $attrs = ' data-animate="' . $animation . '"';
+        $trigger = ($data['animation_trigger'] ?? 'viewport') === 'load' ? 'load' : 'viewport';
+        $attrs .= ' data-animate-trigger="' . $trigger . '"';
         $speed = is_string($data['animation_speed'] ?? null) ? $data['animation_speed'] : 'normal';
         if (in_array($speed, ['fast', 'slow'], true)) {
             $attrs .= ' data-animate-speed="' . $speed . '"';

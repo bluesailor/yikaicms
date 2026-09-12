@@ -532,6 +532,9 @@ function resolveSlug(string $input, string $title, string $table, int $excludeId
  */
 function getLang(): string
 {
+    if (defined('YK_PRODUCT_NATIVE_PREVIEW') && YK_PRODUCT_NATIVE_PREVIEW === true && defined('SITE_LANG')) {
+        return SITE_LANG;
+    }
     static $lang = null;
     if ($lang !== null) return $lang;
 
@@ -1859,20 +1862,11 @@ function homeAboutDefaultTitle(): string
 }
 
 /**
- * 首页版块标题文字：按 home_title_style 决定配色。
- * split → 前两字（中文）/首词（英文）主题色、其余同色；其它样式 → 整体同色。
+ * 首页版块标题保持整体配色；兼容旧 split 配置但不再自动拆分文字。
  */
 function homeTitleInner(string $title): string
 {
-    if (config('home_title_style', 'underline') !== 'split') {
-        return e($title);
-    }
-    if (preg_match('/^[\x{4e00}-\x{9fff}]/u', $title)) {
-        return '<span class="text-primary">' . e(mb_substr($title, 0, 2)) . '</span>' . e(mb_substr($title, 2));
-    }
-    $words = explode(' ', $title, 2);
-    return '<span class="text-primary">' . e($words[0]) . '</span>'
-        . (isset($words[1]) ? ' ' . e($words[1]) : '');
+    return e($title);
 }
 
 /**

@@ -286,11 +286,13 @@ $breadcrumbItems = [];
 foreach ($breadcrumbs as $bc) {
     $breadcrumbItems[] = ['name' => $bc['name'], 'url' => channelUrl($bc)];
 }
-require theme_path('partials/page-hero.php');
+if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame'])) {
+    require theme_path('partials/page-hero.php');
+}
 ?>
 
-<section class="py-12">
-    <div class="container mx-auto px-4">
+<section class="<?php echo $isBloxPage ? '' : 'py-12'; ?>">
+    <div class="<?php echo $isBloxPage && empty($sidebarChannels) ? '' : 'container mx-auto px-4'; ?>">
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
             <!-- 主内容区 -->
             <div class="w-full <?php echo !empty($sidebarChannels) ? 'lg:flex-1' : ''; ?>">
@@ -361,7 +363,7 @@ require theme_path('partials/page-hero.php');
 
                 <?php elseif ($content): ?>
                 <!-- 单页类型展示 -->
-                <article class="bg-white rounded-lg shadow p-6 md:p-8">
+                <article class="<?php echo $isBloxPage ? 'yk-blox-page-content' : 'bg-white rounded-lg shadow p-6 md:p-8'; ?>">
                     <?php if ($content['cover'] && (int)($channel['show_cover'] ?? 1) === 1): ?>
                     <div class="mb-6">
                         <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($content['cover'], 'medium', '(min-width: 1024px) 896px, 100vw'); ?> alt="<?php echo e($content['title']); ?>"
@@ -370,13 +372,10 @@ require theme_path('partials/page-hero.php');
                     <?php endif; ?>
 
                     <?php
-                    // Blox 正文按持久 section id 暴露区块深链；普通正文仍使用整块编辑入口。
-                    // 管理员浏览不走 HtmlCache（见 HtmlCache::isCacheable），定位标记不会进入公开缓存。
-                    $__pageEditAttr = (($content['content_type'] ?? '') !== 'blocks')
-                        ? frontEditAttr($content, $channel, '✎ ' . __('ab_edit_page')) : '';
+                    // 单页统一从管理条编辑；保留 Blox 定位标记以兼容旧链接的返回定位。
                     ?>
-                    <div class="prose prose-lg max-w-none"<?php echo $__pageEditAttr; ?>>
-                        <?php echo renderFrontEditableContentBody($content, (int) $channel['id']); ?>
+                    <div data-yk-page-edit-only class="<?php echo $isBloxPage ? '' : 'prose prose-lg max-w-none'; ?>">
+                        <?php echo PageTitleElement::withPage($channel, static fn(): string => renderFrontEditableContentBody($content, (int) $channel['id'])); ?>
                     </div>
 
                     <!-- 图片相册 -->

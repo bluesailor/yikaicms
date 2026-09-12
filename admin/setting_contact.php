@@ -86,18 +86,16 @@ $pageTitle = __('scontact_title');
 $currentMenu = 'setting_contact';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/module_nav.php';
+adminModuleTabStart([
+    'info' => [__('contact_info_title'), 'address-book'],
+    'form' => [__('contact_form_config'), 'forms'],
+    'map' => [__('sc_tab_map'), 'map'],
+], $tab, __('scontact_title'), '/admin/setting_contact.php', ['lang' => (string) $_viewLang]);
 
 echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang, __('scontact_lang_tip')));
 ?>
 
-<!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/setting_contact.php<?php echo $_lang['qs']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_info_title'); ?></a>
-        <a href="/admin/setting_contact.php?tab=form<?php echo $_lang['qsAmp']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'form' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('contact_form_config'); ?></a>
-        <a href="/admin/setting_contact.php?tab=map<?php echo $_lang['qsAmp']; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'map' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo e(__('sc_tab_map')); ?></a>
-    </div>
-</div>
 
 <form id="settingForm" class="space-y-6">
     <?php echo adminLangField(); ?>
@@ -662,4 +660,5 @@ document.getElementById('settingForm').addEventListener('submit', function (e) {
 });
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

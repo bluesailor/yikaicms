@@ -157,16 +157,14 @@ $pageTitle = __('sys_title');
 $currentMenu = in_array($tab, ['log', 'errorlog'], true) ? 'system_log' : 'system';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/module_nav.php';
+adminModuleTabStart([
+    'info' => [__('sys_info'), 'info-circle'],
+    'log' => [__('sys_stat_log'), 'history'],
+    'errorlog' => [__('sys_error_log'), 'alert-triangle'],
+], $tab, __('sys_title'), '/admin/system.php');
 ?>
 
-<!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/system.php" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sys_info'); ?></a>
-        <a href="/admin/system.php?tab=log" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'log' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sys_stat_log'); ?></a>
-        <a href="/admin/system.php?tab=errorlog" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'errorlog' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sys_error_log'); ?></a>
-    </div>
-</div>
 
 <?php if ($tab === 'info'): ?>
 <div class="space-y-6">
@@ -577,4 +575,5 @@ async function clearErrorLog() {
 </script>
 <?php endif; ?>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

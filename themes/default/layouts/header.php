@@ -180,6 +180,7 @@ function getChannelUrl(array $channel): string {
     <?php echo config('custom_head_code', ''); ?>
 </head>
 <body class="yk-site-body bg-gray-50 min-h-screen flex flex-col">
+    <?php if (empty($GLOBALS['ykBloxPageFrame']['page_header_hidden'])): ?>
     <!-- top banner -->
     <?php if ($topbarEnabled): ?>
     <div class="text-sm <?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50" style="background-color: <?php echo e($topbarBgColor); ?>" data-yk-topbar>
@@ -398,6 +399,7 @@ function getChannelUrl(array $channel): string {
             </div>
         </nav>
     </header>
+    <?php endif; ?>
     <?php endif; ?>
 
     <?php do_action('ik_header_after'); ?>

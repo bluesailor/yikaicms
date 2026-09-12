@@ -14,6 +14,9 @@ final class BloxSectionMetadata
         'process', 'faq', 'cta', 'contact', 'testimonials', 'content',
     ];
     private const CTA_TYPES = ['none', 'learn-more', 'contact', 'quote', 'download', 'purchase', 'subscribe'];
+    private const VARIANTS = ['standard', 'split', 'centered', 'cards', 'side-by-side', 'minimal', 'dynamic'];
+    private const DATA_SOURCES = ['static', 'dynamic'];
+    private const STATES = ['loading', 'empty', 'error'];
 
     /** @return list<string> */
     public static function pageTypes(): array
@@ -25,6 +28,12 @@ final class BloxSectionMetadata
     public static function purposes(): array
     {
         return self::PURPOSES;
+    }
+
+    /** @return list<string> */
+    public static function variants(): array
+    {
+        return self::VARIANTS;
     }
 
     /** @return array<string,mixed> */
@@ -45,6 +54,9 @@ final class BloxSectionMetadata
             'language_coverage' => self::languageList($metadata['language_coverage'] ?? []),
             'image_ratio' => self::imageRatio($metadata['image_ratio'] ?? ''),
             'min_cms_version' => self::version($metadata['min_cms_version'] ?? ''),
+            'variant' => self::enumValue($metadata['variant'] ?? '', self::VARIANTS, 'standard'),
+            'data_source' => self::enumValue($metadata['data_source'] ?? '', self::DATA_SOURCES, 'static'),
+            'states' => self::slugList($metadata['states'] ?? [], self::STATES, 3),
             'priority' => max(0, min(100, (int) ($metadata['priority'] ?? 0))),
         ];
     }

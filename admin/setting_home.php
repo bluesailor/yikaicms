@@ -519,24 +519,6 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
     <input type="hidden" name="settings[home_blocks_config]" id="blocksConfigJson">
     <input type="hidden" name="settings[home_testimonials]" id="testimonialsJson">
 
-    <!-- 全局只控制标题文字；装饰由 Blox 各版块独立设置 -->
-    <div class="bg-white rounded-lg shadow p-5 mb-3">
-        <div class="flex items-center gap-3 flex-wrap">
-            <label class="font-medium text-gray-800 whitespace-nowrap"><?php echo e(__('shome_title_style')); ?></label>
-            <select name="settings[home_title_style]" class="border rounded px-3 py-1.5 text-sm bg-white">
-                <?php
-                $__ts = config('home_title_style', 'underline') === 'split' ? 'split' : 'underline';
-                foreach ([
-                    'underline' => __('shome_title_style_uniform'),
-                    'split'     => __('shome_title_style_split'),
-                ] as $k => $label): ?>
-                <option value="<?php echo $k; ?>" <?php echo $__ts === $k ? 'selected' : ''; ?>><?php echo $label; ?></option>
-                <?php endforeach; ?>
-            </select>
-            <span class="text-xs text-gray-400"><?php echo e(__('shome_title_style_scope')); ?></span>
-        </div>
-    </div>
-
     <!-- 添加自定义版块（从预设库） -->
     <?php require_once ROOT_PATH . '/includes/builder/presets.php'; $__presets = builderPresets()['sections'] ?? []; ?>
     <div class="mb-3" x-data="{ openAdd: false }">

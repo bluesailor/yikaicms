@@ -36,6 +36,9 @@ final class BloxSectionMetadataTest extends TestCase
         self::assertSame(['zh-CN', 'en'], $metadata['language_coverage']);
         self::assertSame('16:9', $metadata['image_ratio']);
         self::assertSame('1.19.2', $metadata['min_cms_version']);
+        self::assertSame('standard', $metadata['variant']);
+        self::assertSame('static', $metadata['data_source']);
+        self::assertSame([], $metadata['states']);
         self::assertSame(100, $metadata['priority']);
     }
 
@@ -46,6 +49,21 @@ final class BloxSectionMetadataTest extends TestCase
         self::assertSame('general', $metadata['purpose']);
         self::assertSame(['general'], $metadata['page_types']);
         self::assertSame(0, $metadata['priority']);
+        self::assertSame('standard', $metadata['variant']);
+        self::assertSame('static', $metadata['data_source']);
+    }
+
+    public function testDynamicVariantMetadataIsBounded(): void
+    {
+        $metadata = BloxSectionMetadata::normalize([
+            'variant' => 'dynamic',
+            'data_source' => 'dynamic',
+            'states' => ['loading', 'empty', 'error', 'invalid'],
+        ]);
+
+        self::assertSame('dynamic', $metadata['variant']);
+        self::assertSame('dynamic', $metadata['data_source']);
+        self::assertSame(['loading', 'empty', 'error'], $metadata['states']);
     }
 
     public function testLanguageCoverageUsesTheInstalledLanguageCatalog(): void

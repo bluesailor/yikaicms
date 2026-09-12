@@ -1,0 +1,18 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Soft feature cards",
+    "requires": {"elements": ["heading", "text", "icon-box"], "plugins": []},
+    "document": {"schema": 1, "settings": {}, "sections": [{
+        "type": "section",
+        "name": "柔和优势卡片",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg", "bg_color": "#f8fafc"},
+        "columns": [
+            {"elements": [{"type": "heading", "data": {"text": "让每个交付节点都更可控", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}}, {"type": "text", "data": {"html": "<p class=\"yk-copy\">从第一屏到询盘，从内容维护到持续优化，保持一致的体验与可执行的规则。</p>"}}]},
+            {"elements": [{"type": "icon-box", "data": {"icon": "target", "title": "目标清楚", "text": "先梳理访客要完成的动作，再组织页面内容与入口。"}}]},
+            {"elements": [{"type": "icon-box", "data": {"icon": "adjustments", "title": "修改直接", "text": "文字、图片、按钮和背景都能在对应位置直接调整。"}}]},
+            {"elements": [{"type": "icon-box", "data": {"icon": "chart-line", "title": "结果可看", "text": "产品、案例和表单使用动态数据，减少重复维护。"}}]}
+        ]
+    }]}
+}

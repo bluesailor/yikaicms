@@ -29,15 +29,9 @@ $pageTitle = __('member_settings');
 $currentMenu = 'setting_member';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require ROOT_PATH . '/admin/includes/workflow_nav.php';
 ?>
 
-<!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/member.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('member_list'); ?></a>
-        <a href="/admin/setting_member.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('member_settings'); ?></a>
-    </div>
-</div>
 
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow p-6 space-y-6">
@@ -150,4 +144,5 @@ function copyToClipboard(elId, btn) {
 }
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

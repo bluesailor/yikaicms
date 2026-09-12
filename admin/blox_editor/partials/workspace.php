@@ -413,21 +413,24 @@ declare(strict_types=1);
 
                     <!-- ── 元素设置：按 BuilderRegistry 的 controls() 生成 ── -->
                     <template x-if="selEl && panelTab !== 'condition'">
-                        <div class="space-y-4">
+                        <div class="space-y-3">
                             <?php // 元素重命名：标题即输入框（借鉴思路来自可视化构建器惯例）；
                                   // 存 el.name（blocks_data 顶层扩展键，渲染器只读 type/data 不受影响） ?>
                             <div class="flex items-center gap-2 pb-2 border-b border-gray-100">
-                                <i class="ti text-base text-blue-500 shrink-0" :class="'ti-' + elIcon(selEl ? selEl.type : '')"></i>
+                                <span class="h-8 w-8 shrink-0 rounded-lg border border-blue-100 bg-blue-50 text-blue-600 inline-flex items-center justify-center">
+                                    <i class="ti text-base" :class="'ti-' + elIcon(selEl ? selEl.type : '')"></i>
+                                </span>
                                 <input type="text" :value="selEl ? (selEl.name || '') : ''"
                                        @input="selEl && (selEl.name = $event.target.value)"
                                        :placeholder="selEl ? (elSchema(selEl.type).label || selEl.type) : ''"
                                        title="<?= e(__('blox_el_name_hint')) ?>"
-                                       class="flex-1 min-w-0 text-sm font-medium text-gray-700 border-0 border-b border-transparent focus:border-blue-300 outline-none p-0 bg-transparent">
+                                       class="flex-1 min-w-0 text-sm font-semibold text-gray-800 border-0 border-b border-transparent focus:border-blue-300 outline-none p-0 bg-transparent">
                             </div>
 
                             <?php require __DIR__ . '/style-groups.php'; ?>
+                            <?php require __DIR__ . '/visual-select.php'; ?>
 
-                            <template x-if="selEl && panelTab === 'style'">
+                            <template x-if="selEl && panelTab === 'style' && commonStyleVisible()">
                                 <div data-testid="blox-element-visible-devices" class="rounded border border-gray-200 bg-gray-50 p-3">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_visible_devices')) ?></label>
                                     <div class="grid grid-cols-3 gap-1">
@@ -961,6 +964,13 @@ declare(strict_types=1);
                                                   @input="setSelectedHomeFieldValue($event.target.value)"
                                                   class="w-full border border-cyan-200 bg-white rounded px-2.5 py-2 text-sm"></textarea>
                                     </template>
+                                    <template x-if="selectedHomeFieldDefinition().control === 'faq_answer'">
+                                        <div data-testid="blox-home-faq-answer">
+                                            <template x-for="fieldKey in [selEl.id + ':' + selectedHomeField]" :key="fieldKey">
+                                                <?php $compactRichtextHomeFaq = true; require __DIR__ . '/compact-richtext.php'; $compactRichtextHomeFaq = false; ?>
+                                            </template>
+                                        </div>
+                                    </template>
                                     <template x-if="selectedHomeFieldDefinition().control === 'richtext'">
                                         <div class="space-y-2">
                                             <button type="button"
@@ -1269,7 +1279,7 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
-                            <template x-if="selEl && panelTab === 'style' && supportsBoxStyles(selEl.type)">
+                            <template x-if="selEl && panelTab === 'style' && commonStyleVisible() && supportsBoxStyles(selEl.type)">
                                 <div class="rounded border border-gray-200 bg-gray-50 p-3 space-y-3">
                                     <div x-show="advancedMode" class="pb-3 border-b border-gray-200">
                                         <div class="flex items-center justify-between mb-1.5">
@@ -1541,13 +1551,22 @@ declare(strict_types=1);
 
                             <?php require __DIR__ . '/banner-control-groups.php'; ?>
                             <?php require __DIR__ . '/home-content-groups.php'; ?>
-                            <div class="blox-property-pair-grid" data-testid="blox-element-property-grid">
-                            <template x-for="ctrl in visibleCtrls()" :key="ctrl.key">
-                                <div :data-control-key="ctrl.key"
-                                     :class="ctrl.responsive || ['textarea','richtext','image','about_layout','faq_repeater','org_repeater'].indexOf(ctrl.type) !== -1 ? 'blox-property-span-full' : ''">
-                                    <template x-if="ctrl.type !== 'checkbox'">
+                            <?php require __DIR__ . '/heading-content.php'; ?>
+                            <div class="blox-property-pair-grid" data-testid="blox-element-property-grid" x-show="!headingPanelVisible()">
+                            <template x-for="(ctrl, ctrlIndex) in visibleCtrls()" :key="ctrl.compact_richtext ? selEl.id + ':' + ctrl.key : ctrl.key">
+                                <div class="contents">
+                                <template x-if="controlSectionStart(ctrl, ctrlIndex)">
+                                    <div class="col-span-full flex items-center gap-2 pt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                        <i class="ti text-sm text-blue-400" :class="'ti-' + (ctrl.section_icon || 'adjustments')" aria-hidden="true"></i>
+                                        <span x-text="ctrl.section"></span>
+                                        <span class="h-px flex-1 bg-gray-100"></span>
+                                    </div>
+                                </template>
+                                <div :data-control-key="ctrl.key" x-show="!ctrl.option_preview"
+                                     :class="ctrl.responsive || ctrl.key === 'faq_style' || ['textarea','richtext','image','about_layout','faq_repeater','org_repeater'].indexOf(ctrl.type) !== -1 ? 'blox-property-span-full' : ''">
+                                    <template x-if="ctrl.type !== 'checkbox' && !ctrl.compact_richtext">
                                         <div class="flex items-center justify-between gap-2 mb-1.5">
-                                            <label class="block text-xs font-medium text-gray-600" x-text="ctrl.label"></label>
+                                            <label class="block text-[11px] font-semibold text-gray-700" x-text="ctrl.label"></label>
                                             <div x-show="ctrl.responsive" class="flex items-center gap-1">
                                                 <div class="inline-flex rounded border border-gray-200 bg-gray-50 p-0.5">
                                                     <template x-for="d in devices" :key="ctrl.key + '-' + d.key">
@@ -1664,10 +1683,13 @@ declare(strict_types=1);
                                         <?php $videoControl = ['scope' => 'element', 'key' => 'ctrl.key', 'id' => 'blox-element-video', 'urlId' => 'blox-element-video-url']; require __DIR__ . '/video-control.php'; ?>
                                     </template>
 
-                                    <template x-if="ctrl.type === 'textarea'">
+                                    <template x-if="ctrl.type === 'textarea' && !ctrl.compact_richtext">
                                         <textarea x-model="selEl.data[ctrl.key]" rows="3" :placeholder="homeContentPlaceholder(ctrl)"
                                                   :class="homeContentField(ctrl.key) ? 'placeholder:text-gray-600' : ''"
                                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm"></textarea>
+                                    </template>
+                                    <template x-if="ctrl.compact_richtext">
+                                        <?php require __DIR__ . '/compact-richtext.php'; ?>
                                     </template>
 
                                     <template x-if="ctrl.type === 'faq_repeater'">
@@ -1679,14 +1701,14 @@ declare(strict_types=1);
                                                         data-testid="blox-accordion-add"
                                                         class="h-7 rounded border border-blue-200 bg-white px-2 text-[10px] font-medium text-blue-600 hover:border-blue-400 hover:bg-blue-50 inline-flex items-center gap-1">
                                                     <i class="ti ti-plus text-sm"></i>
-                                                    <span x-text="homeDynamicText.faqAdd"></span>
+                                                    <span x-text="ctrl.add_label || homeDynamicText.faqAdd"></span>
                                                 </button>
                                             </div>
-                                            <template x-for="(item, index) in accordionItems(selEl)" :key="index">
+                                            <template x-for="(item, index) in accordionItems(selEl)" :key="accordionAnswerKey(index)">
                                                 <div data-testid="blox-accordion-item" class="rounded border border-gray-200 bg-gray-50/70 p-2.5 space-y-2">
                                                     <div class="flex items-center gap-1">
                                                         <span class="min-w-0 flex-1 text-[10px] font-semibold text-gray-500"
-                                                              x-text="(index + 1) + '. ' + (item.question || homeDynamicText.faqNewQuestion)"></span>
+                                                              x-text="(index + 1) + '. ' + (item.question || ctrl.new_title || homeDynamicText.faqNewQuestion)"></span>
                                                         <button type="button" @click.stop="moveAccordionItem(index, -1)"
                                                                 :disabled="!accordionItemCanMove(index, -1)"
                                                                 data-testid="blox-accordion-move-up"
@@ -1703,26 +1725,21 @@ declare(strict_types=1);
                                                         </button>
                                                         <button type="button" @click.stop="deleteAccordionItem(index)"
                                                                 data-testid="blox-accordion-delete"
-                                                                :title="homeDynamicText.faqDelete" :aria-label="homeDynamicText.faqDelete"
+                                                                :title="ctrl.delete_label || homeDynamicText.faqDelete" :aria-label="ctrl.delete_label || homeDynamicText.faqDelete"
                                                                 class="w-7 h-7 rounded text-gray-400 hover:bg-red-50 hover:text-red-600 inline-flex items-center justify-center">
                                                             <i class="ti ti-trash text-sm"></i>
                                                         </button>
                                                     </div>
                                                     <div>
                                                         <label class="mb-1 block text-[10px] font-medium text-gray-500"
-                                                               x-text="homeDynamicText.faqQuestion"></label>
+                                                               x-text="ctrl.title_label || homeDynamicText.faqQuestion"></label>
                                                         <input type="text" :value="item.question"
                                                                @input="setAccordionItem(index, 'question', $event.target.value)"
                                                                data-testid="blox-accordion-question"
                                                                class="w-full rounded border border-gray-200 bg-white px-2 py-1.5 text-sm">
                                                     </div>
-                                                    <div>
-                                                        <label class="mb-1 block text-[10px] font-medium text-gray-500"
-                                                               x-text="homeDynamicText.faqAnswer"></label>
-                                                        <textarea rows="3" :value="item.answer"
-                                                                  @input="setAccordionItem(index, 'answer', $event.target.value)"
-                                                                  data-testid="blox-accordion-answer"
-                                                                  class="w-full resize-y rounded border border-gray-200 bg-white px-2 py-1.5 text-sm"></textarea>
+                                                    <div data-testid="blox-accordion-answer">
+                                                        <?php $compactRichtextFaq = true; require __DIR__ . '/compact-richtext.php'; $compactRichtextFaq = false; ?>
                                                     </div>
                                                 </div>
                                             </template>
@@ -1821,7 +1838,7 @@ declare(strict_types=1);
                                         </div>
                                     </template>
 
-                                    <template x-if="ctrl.type === 'select' && !ctrl.option_icons">
+                                    <template x-if="ctrl.type === 'select' && !ctrl.option_icons && !ctrl.option_preview && ctrl.key !== 'faq_style'">
                                         <select :value="controlValue(ctrl)"
                                                 @change="setControlValue(ctrl, $event.target.value)"
                                                 :data-testid="'blox-control-' + ctrl.key"
@@ -1830,6 +1847,97 @@ declare(strict_types=1);
                                                 <option :value="val" :selected="controlValue(ctrl) === val" x-text="lbl"></option>
                                             </template>
                                         </select>
+                                    </template>
+
+                                    <template x-if="ctrl.type === 'select' && ctrl.key === 'faq_style'">
+                                        <div class="grid gap-2" role="group" :aria-label="ctrl.label" data-testid="blox-control-faq_style">
+                                            <template x-for="(lbl, val) in controlOptions(ctrl)" :key="val">
+                                                <button type="button" @click="setControlValue(ctrl, val)"
+                                                        :data-testid="'blox-faq-style-' + val" :aria-label="lbl"
+                                                        :aria-pressed="controlValue(ctrl) === val"
+                                                        class="flex min-h-[68px] min-w-0 items-center gap-3 rounded-lg border bg-white px-3 py-2 text-left transition hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                                        :class="controlValue(ctrl) === val ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-200' : 'border-gray-200'">
+                                                    <span aria-hidden="true" class="flex h-11 w-16 shrink-0 flex-col"
+                                                          :class="val === 'default' ? 'divide-y divide-gray-200 rounded border border-gray-200 bg-white' : (val === 'divided' ? 'divide-y divide-gray-300' : 'gap-1')">
+                                                        <span class="flex min-h-0 flex-1 items-center justify-between px-1.5"
+                                                              :class="val === 'soft' ? 'rounded border border-gray-200 bg-gray-100' : ''">
+                                                            <span class="h-1 w-6 rounded-sm bg-gray-400"></span>
+                                                            <i class="ti text-[10px] text-gray-500" :class="val === 'default' ? 'ti-chevron-down' : 'ti-minus'"></i>
+                                                        </span>
+                                                        <span class="flex min-h-0 flex-1 items-center justify-between px-1.5"
+                                                              :class="val === 'soft' ? 'rounded border border-gray-200 bg-gray-100' : ''">
+                                                            <span class="h-1 w-8 rounded-sm bg-gray-300"></span>
+                                                            <i class="ti text-[10px] text-gray-500" :class="val === 'default' ? 'ti-chevron-down' : 'ti-plus'"></i>
+                                                        </span>
+                                                    </span>
+                                                    <span class="min-w-0 break-words text-xs font-medium leading-5 text-gray-700" x-text="lbl"></span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <?php // 按钮样式使用真实的小按钮预览，让新手按视觉选择，不必先理解变体术语。 ?>
+                                    <template x-if="ctrl.type === 'button_style'">
+                                        <div class="grid grid-cols-2 gap-2" role="group" :aria-label="ctrl.label"
+                                             :data-testid="'blox-control-' + ctrl.key">
+                                            <template x-for="(lbl, val) in controlOptions(ctrl)" :key="val">
+                                                <button type="button" @click="setControlValue(ctrl, val)"
+                                                        :data-testid="'blox-button-style-' + val"
+                                                        :aria-label="lbl" :aria-pressed="controlValue(ctrl) === val"
+                                                        class="flex min-h-[72px] min-w-0 flex-col items-center justify-center rounded-lg border bg-white px-2 py-2 text-center transition hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                                        :class="controlValue(ctrl) === val ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-200' : 'border-gray-200'">
+                                                    <span class="mx-auto inline-flex w-16 min-w-0 max-w-full items-center justify-center rounded-md border px-1.5 py-1 text-[11px] font-medium leading-4 transition"
+                                                          :style="buttonStylePreviewStyle(val)"><?= e(__('blox_el_button')) ?></span>
+                                                    <span class="mt-1.5 block max-w-full break-words text-[11px] font-medium leading-4 text-gray-600" x-text="lbl"></span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <?php // 按钮图标位置使用左右排列示意图，避免用户凭文字猜测图标会出现在哪里。 ?>
+                                    <template x-if="ctrl.type === 'button_icon_position'">
+                                        <div class="grid grid-cols-2 gap-2" role="group" :aria-label="ctrl.label"
+                                             :data-testid="'blox-control-' + ctrl.key">
+                                            <template x-for="(lbl, val) in controlOptions(ctrl)" :key="val">
+                                                <button type="button" @click="setControlValue(ctrl, val)"
+                                                        :data-testid="'blox-button-icon-position-' + val"
+                                                        :aria-label="lbl" :aria-pressed="controlValue(ctrl) === val"
+                                                        class="flex min-h-[72px] min-w-0 flex-col items-center justify-center rounded-lg border bg-white px-2 py-2 text-center transition hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                                        :class="controlValue(ctrl) === val ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-200' : 'border-gray-200'">
+                                                    <span class="mx-auto inline-flex w-16 min-w-0 max-w-full items-center justify-center gap-1 rounded-md border border-gray-300 bg-white px-1.5 py-1 text-[11px] font-medium leading-4 text-gray-700 shadow-sm">
+                                                        <template x-if="val === 'left'"><i aria-hidden="true" class="ti ti-star shrink-0 text-blue-500"></i></template>
+                                                        <span><?= e(__('blox_el_button')) ?></span>
+                                                        <template x-if="val === 'right'"><i aria-hidden="true" class="ti ti-star shrink-0 text-blue-500"></i></template>
+                                                    </span>
+                                                    <span class="mt-1.5 block max-w-full break-words text-[11px] font-medium leading-4 text-gray-600" x-text="lbl"></span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <?php // 悬停效果用静态小预览表达变化，实际效果由按钮元素保存的值控制。 ?>
+                                    <template x-if="ctrl.type === 'button_hover_effect'">
+                                        <div class="grid grid-cols-2 gap-2" role="group" :aria-label="ctrl.label"
+                                             :data-testid="'blox-control-' + ctrl.key">
+                                            <template x-for="(lbl, val) in controlOptions(ctrl)" :key="val">
+                                                <button type="button" @click="setControlValue(ctrl, val)"
+                                                        :data-testid="'blox-button-hover-effect-' + val"
+                                                        :aria-label="lbl" :aria-pressed="controlValue(ctrl) === val"
+                                                        class="flex min-h-[72px] min-w-0 flex-col items-center justify-center rounded-lg border bg-white px-2 py-2 text-center transition hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                                        :class="controlValue(ctrl) === val ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-200' : 'border-gray-200'">
+                                                    <span class="mx-auto inline-flex w-16 min-w-0 max-w-full items-center justify-center rounded-md border border-gray-300 bg-primary px-1.5 py-1 text-[11px] font-medium leading-4 text-white"
+                                                          :style="val === 'lift' ? 'transform:translateY(-3px);box-shadow:0 4px 10px rgba(15,23,42,.24)' : (val === 'bright' ? 'filter:brightness(.82);box-shadow:inset 0 0 0 999px rgba(0,0,0,.08)' : (val === 'none' ? 'opacity:.55;background:#94a3b8;border-color:#94a3b8' : ''))">
+                                                        <?= e(__('blox_el_button')) ?>
+                                                    </span>
+                                                    <span class="mt-1.5 flex max-w-full items-center justify-center gap-1 text-[11px] font-medium leading-4 text-gray-600">
+                                                        <template x-if="val === 'lift'"><i aria-hidden="true" class="ti ti-arrow-up shrink-0 text-[10px] text-blue-500"></i></template>
+                                                        <template x-if="val === 'bright'"><i aria-hidden="true" class="ti ti-sun shrink-0 text-[10px] text-blue-500"></i></template>
+                                                        <template x-if="val === 'none'"><i aria-hidden="true" class="ti ti-ban shrink-0 text-[10px] text-gray-400"></i></template>
+                                                        <span class="min-w-0 break-words" x-text="lbl"></span>
+                                                    </span>
+                                                </button>
+                                            </template>
+                                        </div>
                                     </template>
 
                                     <?php // schema 带 option_icons 的 select → 图标按钮组（方向/对齐这类
@@ -1889,12 +1997,19 @@ declare(strict_types=1);
                                     <?php // icon：旧值无前缀时使用 Tabler；Bootstrap 图标保存为 bi:<name>。 ?>
                                     <template x-if="ctrl.type === 'icon'">
                                         <div>
-                                            <div class="flex items-center gap-2">
+                                            <div class="flex items-center gap-1.5">
                                                 <span class="w-9 h-9 rounded border border-gray-200 flex items-center justify-center text-gray-600 shrink-0">
                                                     <i class="text-lg" :class="iconClass(selEl.data[ctrl.key])"></i>
                                                 </span>
                                                 <input type="text" x-model="selEl.data[ctrl.key]" data-testid="blox-icon-value" placeholder="<?= e(__('blox_icon_ph')) ?>"
-                                                       class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm">
+                                                       class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-50">
+                                                <button type="button" x-show="String(selEl.data[ctrl.key] || 'none') !== 'none'"
+                                                        @click="selEl.data[ctrl.key] = 'none'"
+                                                        data-testid="blox-icon-clear"
+                                                        title="<?= e(__('blox_clear')) ?>" aria-label="<?= e(__('blox_clear')) ?>"
+                                                        class="h-9 w-8 shrink-0 rounded border border-gray-200 bg-white text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-500 inline-flex items-center justify-center transition">
+                                                    <i class="ti ti-x text-sm"></i>
+                                                </button>
                                                 <button type="button" data-testid="blox-icon-library-toggle"
                                                         @click="toggleIconPicker(ctrl.key, selEl.data[ctrl.key])"
                                                         class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"
@@ -1954,7 +2069,7 @@ declare(strict_types=1);
                                     </template>
 
                                     <?php // 未覆盖的控件类型：明说，而不是静默留空 ?>
-                                    <template x-if="['text','url','video_url','textarea','richtext','select','number','range','checkbox','color','icon','image','about_layout','about_breakpoint'].indexOf(ctrl.type) === -1">
+                                    <template x-if="['text','url','video_url','textarea','richtext','select','button_style','button_icon_position','button_hover_effect','number','range','checkbox','color','icon','image','about_layout','about_breakpoint','faq_repeater','org_repeater'].indexOf(ctrl.type) === -1">
                                         <p class="text-[10px] text-amber-600 leading-relaxed">
                                             <?= __('blox_ctrl_unsupported_pre') ?>（<span x-text="ctrl.type"></span>）<?= __('blox_ctrl_unsupported_post') ?>
                                         </p>
@@ -1964,6 +2079,7 @@ declare(strict_types=1);
                                            :data-testid="ctrl.key === 'bg_image' ? 'blox-element-background-image-help' : null"
                                            x-text="ctrl.help"></p>
                                     </template>
+                                </div>
                                 </div>
                             </template>
                             </div>
@@ -2758,7 +2874,9 @@ declare(strict_types=1);
                     </span>
                 </template>
             </div>
-            <div class="flex-1 flex items-start justify-center p-3" @click.self="deselectAll()">
+            <div x-ref="canvasViewport" data-testid="blox-canvas-viewport"
+                 :style="previewViewportStyle()"
+                 class="flex-1 min-h-0 flex items-start justify-center p-3" @click.self="deselectAll()">
             <div class="relative" :style="previewShellStyle()">
                 <iframe x-ref="canvas" data-testid="blox-canvas"
                         class="bg-white shadow-xl border-0 rounded"
@@ -2819,6 +2937,9 @@ declare(strict_types=1);
                     <i class="ti ti-list-tree text-sm"></i><?= __('blox_mobile_structure') ?>
                     <span class="text-[10px] font-normal opacity-70" x-text="sections.length"></span>
                 </span>
+                <button type="button" x-show="rightPanelContentVisible() && selectedSi >= 0" @click="deselectAll()" data-testid="blox-clear-selection"
+                        title="<?= e(__('blox_deselect_append')) ?>" aria-label="<?= e(__('blox_deselect_append')) ?>"
+                        class="h-8 w-8 ml-auto shrink-0 rounded text-gray-500 hover:bg-gray-100 inline-flex items-center justify-center"><i class="ti ti-square-off" aria-hidden="true"></i></button>
                 <button type="button" data-testid="blox-right-panel-toggle"
                         class="blox-structure-collapse h-7 w-7 shrink-0 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 inline-flex items-center justify-center"
                         :title="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
@@ -2883,8 +3004,9 @@ declare(strict_types=1);
                          :data-section-id="section.id" :data-section-index="si"
                          :data-multi-selected="isMultiSelected(section.id) ? '1' : '0'"
                          :data-section-label="sectionLabel(section, si)" data-testid="blox-tree-section"
-                         class="rounded-lg border cursor-pointer transition group"
-                         :class="isMultiSelected(section.id) ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-300' : (selectedSi === si ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-200')">
+                         class="group">
+                        <div data-testid="blox-tree-section-card" class="rounded-lg border cursor-pointer transition"
+                             :class="isMultiSelected(section.id) ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-300' : (selectedSi === si ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-200')">
                         <div data-section-drag-handle class="blox-tree-drop-node flex items-center gap-2 px-2.5 py-2">
                             <span x-cloak x-show="treeDropMatches('template-section:' + si + ':before')"
                                   class="blox-tree-drop-line is-before" data-testid="blox-tree-drop-indicator"
@@ -3142,26 +3264,17 @@ declare(strict_types=1);
                                     class="p-1 text-gray-400 hover:text-red-500" title="<?= e(__('delete')) ?>">
                                 <i class="ti ti-trash text-sm"></i></button>
                         </div>
+                        </div>
+                        <div x-show="selectedSi === si || si === sections.length - 1" class="flex items-center gap-2 py-2" data-testid="blox-tree-section-boundary">
+                            <span class="flex-1 border-t border-dashed border-gray-300" aria-hidden="true"></span>
+                            <button type="button" @click.stop="openSectionInsert(si + 1, $event)" @contextmenu.stop data-testid="blox-section-insert-after"
+                                    aria-haspopup="dialog" class="min-h-8 px-2 rounded border border-gray-200 bg-white text-xs text-blue-700 hover:border-blue-300 hover:bg-blue-50 inline-flex items-center justify-center gap-1">
+                                <i class="ti ti-plus" aria-hidden="true"></i><?= e(__('blox_insert_section_here')) ?>
+                            </button>
+                            <span class="flex-1 border-t border-dashed border-gray-300" aria-hidden="true"></span>
+                        </div>
                     </div>
                 </template>
-            </div>
-            <!-- 加区块 -->
-            <div x-show="rightPanelContentVisible()" class="border-t border-gray-100 p-2 shrink-0">
-                <div class="flex items-center justify-between mb-1.5 px-1">
-                    <span class="text-[10px] text-gray-400"><?= __('blox_add_section_cols') ?></span>
-                    <span class="text-[10px] text-blue-500" x-text="insertHint()"></span>
-                </div>
-                <div class="grid grid-cols-6 gap-1">
-                    <template x-for="n in [1,2,3,4,5,6]" :key="n">
-                        <button type="button" @click="addSection(n)" :title="n + <?= e($jt('blox_n_col_section')) ?>" :data-testid="'blox-add-section-' + n"
-                                class="h-9 rounded-md border border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-500 text-xs font-medium transition"
-                                x-text="n"></button>
-                    </template>
-                </div>
-                <button type="button" x-show="selectedSi >= 0" @click="selectedSi = -1" data-testid="blox-clear-selection"
-                        class="w-full mt-1.5 text-[10px] text-gray-400 hover:text-gray-600 py-1">
-                    <?= __('blox_deselect_append') ?>
-                </button>
             </div>
         </aside>
     </div>

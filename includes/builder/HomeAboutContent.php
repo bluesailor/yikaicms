@@ -55,19 +55,22 @@ final class HomeAboutContent
         ];
         if ($values['override_button_url'] !== '') {
             $text[] = $node('button', 'button', ['text' => $values['override_button_text'],
-                'url' => $values['override_button_url'], 'variant' => 'primary', 'shape' => 'pill', 'align' => 'left']);
+                'url' => $values['override_button_url'], 'variant' => 'soft', 'shape' => 'rounded', 'align' => 'left']);
         }
         $image = [$node('image', 'image', ['src' => $values['override_image'], 'alt' => $values['override_title']])];
         if ($values['override_tag_title'] !== '' || $values['override_tag_description'] !== '') {
             // Keep the badge in a single ordinary rich-text child: the editor supports one child level.
-            $badgeHtml = '<div class="bg-primary text-white rounded-lg p-6">';
+            $badgeHtml = '';
             if ($values['override_tag_title'] !== '') {
-                $badgeHtml .= '<h3 class="text-xl font-bold text-white m-0">' . $escape($values['override_tag_title']) . '</h3>';
+                $badgeHtml .= '<h3 class="text-xl font-bold text-inherit m-0">' . $escape($values['override_tag_title']) . '</h3>';
             }
             if ($values['override_tag_description'] !== '') {
-                $badgeHtml .= '<p class="text-white m-0">' . $escape($values['override_tag_description']) . '</p>';
+                $badgeHtml .= '<p class="text-inherit m-0">' . $escape($values['override_tag_description']) . '</p>';
             }
-            $badge = $node('caption', 'text', ['html' => $badgeHtml . '</div>']);
+            $badge = $node('caption', 'text', ['html' => $badgeHtml,
+                'bg_color' => AbstractElement::cssColor($option('tag_background', '')) ?: 'rgba(239,246,255,0.94)',
+                'color' => AbstractElement::cssColor($option('tag_color', '')) ?: '#1e3a8a',
+                'radius' => 'md', 'style_padding' => '24px']);
             $image = [$node('image_badge', 'div', ['display' => 'overlay', 'radius' => 'xl',
                 'children' => [$image[0], $badge]])];
         }

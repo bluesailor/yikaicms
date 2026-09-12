@@ -30,7 +30,25 @@ final class PageHeroStyleResolverTest extends TestCase
             'focal_y' => 50,
             'alignment' => 'center',
             'text_tone' => 'auto',
+            'layout' => 'banner',
+            'breadcrumb_style' => 'minimal',
+            'breadcrumb_spacing' => 'standard',
+            'breadcrumb_tone' => 'default',
         ], $custom['options']);
+    }
+
+    public function testBreadcrumbOptionsSurviveInheritanceAndRejectUnknownValues(): void
+    {
+        $input = ['layout' => 'compact', 'breadcrumb_style' => 'contained', 'breadcrumb_spacing' => 'relaxed', 'breadcrumb_tone' => 'blue'];
+        $encoded = PageHeroStyleResolver::encodeOptions($input);
+        $resolved = PageHeroStyleResolver::resolve(['hero_style_source' => 'global'], false, null, '', $encoded);
+        foreach ($input as $key => $value) {
+            self::assertSame($value, $resolved['options'][$key]);
+        }
+        $invalid = PageHeroStyleResolver::normalizeOptions(['breadcrumb_style' => ['soft'], 'breadcrumb_spacing' => '100px', 'breadcrumb_tone' => 'url(x)']);
+        self::assertSame('minimal', $invalid['breadcrumb_style']);
+        self::assertSame('standard', $invalid['breadcrumb_spacing']);
+        self::assertSame('default', $invalid['breadcrumb_tone']);
     }
 
     public function testParentModeUsesNearestAncestorWithAnExplicitBackground(): void

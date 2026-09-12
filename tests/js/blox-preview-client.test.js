@@ -62,6 +62,13 @@ function fakeFrame() {
 }
 
 async function run() {
+    const signatureClient = new window.BloxPreviewClient({});
+    const shell = { outerHTML: '<header>Theme header</header>', hasAttribute: () => false };
+    const section = { outerHTML: '<section>Content</section>', hasAttribute: (key) => key === 'data-yk-sec' };
+    const rail = { outerHTML: '<div class="yk-insert-rail">Add section</div>', hasAttribute: () => false, classList: { contains: (name) => name === 'yk-insert-rail' } };
+    const sourceDoc = { head: { children: [] }, body: { children: [shell, section] } };
+    const liveDoc = { head: { children: [] }, body: { children: [shell, rail, section, rail] } };
+    assert.equal(signatureClient.documentSignature(liveDoc), signatureClient.documentSignature(sourceDoc), 'outside insertion controls must not invalidate section patching');
     const pending = [];
     const loading = [];
     const errors = [];

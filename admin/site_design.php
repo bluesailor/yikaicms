@@ -103,6 +103,68 @@ $areaRows = [
     'popup' => ['label' => __('site_design_area_popup'), 'icon' => 'ti-window'],
 ];
 
+$designContexts = [];
+$designLanguages = enabledLanguages();
+foreach ([siteLang() => ($designLanguages[siteLang()] ?? siteLang())] + $designLanguages as $code => $label) {
+    $key = $code === siteLang() ? 'home' : 'home:' . $code;
+    $designContexts[$key] = [
+        'label' => __('blox_current_context_home') . ' · ' . $label,
+        'context' => ['home' => true, 'channel_id' => 0, 'page_id' => 0, 'lang' => $code],
+        'url' => langUrl('/', $code),
+    ];
+}
+if ($advancedBloxEnabled && $canManageGlobalBlox) {
+    $designEntities = BloxAreaConditions::entityOptions();
+    foreach (['channel', 'page'] as $scope) {
+        foreach ($designEntities[$scope] as $entity) {
+            $key = $scope . ':' . $entity['id'];
+            $target = BloxAreaAssignmentManager::contextFromKey($key, $designEntities, siteLang());
+            $designContexts[$key] = $target;
+        }
+    }
+}
+$designContextInput = $_GET['context'] ?? 'home';
+$designContextKey = is_string($designContextInput) ? $designContextInput : 'home';
+if (!isset($designContexts[$designContextKey])) {
+    $designContextKey = 'home';
+}
+$designContext = $designContexts[$designContextKey];
+$designPreviewUrl = (string) ($designContext['url'] ?? '');
+if ($designPreviewUrl === '') {
+    $previewChannel = channelModel()->find((int) explode(':', $designContextKey, 2)[1]);
+    $designPreviewUrl = $previewChannel ? channelUrl($previewChannel) : langUrl('/', siteLang());
+}
+$designAreaState = [];
+if ($advancedBloxEnabled && $canManageGlobalBlox) {
+    $publishedFrame = [];
+    if (str_starts_with($designContextKey, 'page:')) {
+        $pageState = PageBloxDocument::load((int) $designContext['context']['page_id']);
+        if ($pageState['has_published']) {
+            $publishedFrame = BloxDocumentPipeline::decode($pageState['published_document_json'])['settings'] ?? [];
+        }
+    }
+    foreach (['header', 'footer'] as $area) {
+        $publication = BloxAreaEditorTarget::publicationState($area, $designContext['context']);
+        $resolved = in_array($publication['status'], ['ready', 'conditional'], true) ? $publication['template'] : null;
+        $editUrl = BloxAreaEditorTarget::url($area, $designContext['context']);
+        if (str_starts_with($editUrl, '/admin/blox_editor.php?')) {
+            $editUrl .= '&area_lang=' . rawurlencode($designContext['context']['lang'])
+                . '&preview_context=' . rawurlencode($designContextKey);
+            $editUrl = BloxAreaEditorTarget::withReturnTo($editUrl, $designPreviewUrl);
+        } else {
+            $editUrl = '';
+        }
+        $stored = $resolved ? bloxTemplateModel()->find((int) $resolved['id']) : null;
+        $designAreaState[$area] = [
+            'publication' => $publication,
+            'hidden' => !empty($publishedFrame['page_' . $area . '_hidden']),
+            'resolved' => $resolved,
+            'edit_url' => $editUrl,
+            'changed' => $stored && (string) ($stored['draft_data'] ?? '') !== (string) ($stored['published_data'] ?? ''),
+        ];
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
     $action = (string) post('action', '');
@@ -181,6 +243,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <section>
+        <?php if ($advancedBloxEnabled && $canManageGlobalBlox): ?>
+        <a href="/admin/product_design.php" data-testid="site-design-products" class="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary"><i class="ti ti-package" aria-hidden="true"></i><?= e(__('blox_tpl_type_product-detail')) ?><i class="ti ti-arrow-right" aria-hidden="true"></i></a>
+        <?php endif; ?>
         <div class="mb-3 flex items-center justify-between gap-3">
             <h2 class="text-sm font-semibold text-gray-900"><?php echo e(__('site_design_section_edit')); ?></h2>
         </div>
@@ -218,6 +283,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <section>
         <h2 class="mb-3 text-sm font-semibold text-gray-900"><?php echo e(__('site_design_section_areas')); ?></h2>
+        <?php if ($advancedBloxEnabled && $canManageGlobalBlox): ?>
+        <form method="get" class="mb-3 flex flex-wrap items-center gap-3">
+            <label for="site-design-context" class="text-sm font-medium text-gray-700"><?php echo e(__('blox_current_context')); ?></label>
+            <select name="context" id="site-design-context" data-testid="site-design-context" class="h-10 max-w-full border border-gray-300 bg-white px-2 text-sm">
+                <?php foreach ($designContexts as $key => $option): ?>
+                <option value="<?php echo e($key); ?>" <?php echo $key === $designContextKey ? 'selected' : ''; ?>><?php echo e($option['label']); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" class="inline-flex h-10 items-center gap-2 border border-gray-300 bg-white px-3 text-sm"><i class="ti ti-eye"></i><?php echo e(__('site_design_inspect')); ?></button>
+            <a data-testid="site-design-context-preview" href="<?php echo e($designPreviewUrl); ?>" target="_blank" rel="noopener" class="text-sm text-primary"><?php echo e(__('blox_current_preview')); ?></a>
+        </form>
+        <?php endif; ?>
         <div class="divide-y divide-gray-200 border-y border-gray-200 bg-white">
             <?php foreach ($areaRows as $type => $area):
                 $currentDraftTemplateId = $areaTemplateDraftId[$type] ?? 0;
@@ -228,14 +305,41 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             ?>
             <div class="flex flex-wrap items-center gap-4 px-5 py-4" data-testid="site-design-area-<?php echo e($type); ?>" id="site-design-area-<?php echo e($type); ?>">
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center bg-gray-100 text-gray-600"><i class="ti <?php echo e($area['icon']); ?> text-xl"></i></span>
-                <div class="min-w-0 flex-1">
+                <div class="site-design-area-copy">
                     <div class="font-medium text-gray-900"><?php echo e($area['label']); ?></div>
                     <div class="mt-0.5 text-xs text-gray-500"><?php echo e($statusLabel); ?></div>
+                    <?php if (isset($designAreaState[$type])): $state = $designAreaState[$type]; ?>
+                    <p class="mt-1 text-sm text-gray-700" data-testid="site-design-area-source">
+                        <?php echo e(__(!$state['hidden'] && $state['publication']['status'] === 'conditional' ? 'site_design_rule_selected' : 'blox_current_use_label')); ?>
+                        <?php if ($state['hidden']): ?>
+                        <strong><?php echo e(__('site_design_area_hidden')); ?></strong>
+                        <?php else: ?>
+                        <strong><?php echo e($state['resolved'] ? BloxAreaTemplatePresets::displayName($state['resolved']) : __('blox_current_theme_fallback', ['theme' => $currentTheme])); ?></strong>
+                        <?php if ($state['publication']['status'] !== 'conditional'): ?><span><?php echo e(__($state['resolved'] ? 'blox_current_use_badge' : 'blox_current_theme_badge')); ?></span><?php endif; ?>
+                        <?php endif; ?>
+                    </p>
+                    <?php if ($state['resolved'] && !$state['hidden']): ?>
+                    <p class="mt-1 text-xs text-gray-500"><?php echo e(BloxAreaConditions::summary($state['resolved']['conditions'] ?? null, $designEntities)); ?></p>
+                    <?php endif; ?>
+                    <?php if ($state['changed']): ?><p class="mt-1 text-xs text-amber-700"><?php echo e(__('blox_page_unpublished_changes')); ?></p><?php endif; ?>
+                    <?php if (!$state['hidden'] && $state['publication']['status'] !== 'ready'): ?>
+                    <p class="mt-1 text-xs text-gray-600" data-testid="site-design-area-reason"><?php echo e(__('site_design_reason_' . $state['publication']['status'], ['name' => $state['publication']['template'] ? BloxAreaTemplatePresets::displayName($state['publication']['template']) : ''])); ?></p>
+                    <?php endif; ?>
+                    <?php endif; ?>
                 </div>
                 <?php if ($advancedBloxEnabled && $canManageGlobalBlox): ?>
                 <div class="flex flex-wrap items-center gap-2">
-                    <?php if (in_array($type, ['header', 'footer'], true) && $currentDraftTemplateId > 0): ?>
-                    <a href="/admin/blox_editor.php?template=<?php echo $currentDraftTemplateId; ?>" class="inline-flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100">
+                    <?php if (isset($designAreaState[$type]) && !$designAreaState[$type]['hidden'] && in_array($designAreaState[$type]['publication']['status'], ['empty', 'invalid', 'hidden'], true)):
+                        $repairUrl = '/admin/blox_editor.php?template=' . (int) $designAreaState[$type]['publication']['template']['id']
+                            . '&area_lang=' . rawurlencode($designContext['context']['lang']) . '&preview_context=' . rawurlencode($designContextKey);
+                    ?>
+                    <a data-testid="site-design-area-repair" href="<?php echo e(BloxAreaEditorTarget::withReturnTo($repairUrl, $designPreviewUrl)); ?>" class="text-sm text-primary"><?php echo e(__('site_design_repair_template')); ?></a>
+                    <?php endif; ?>
+                    <?php if (!empty($designAreaState[$type]['hidden']) && $canEditPages && str_starts_with($designContextKey, 'page:')): ?>
+                    <a data-testid="site-design-hidden-page-edit" href="<?php echo e(BloxAreaEditorTarget::withReturnTo('/admin/blox_editor.php?id=' . (int) $designContext['context']['page_id'], $designPreviewUrl)); ?>" class="text-sm text-primary"><?php echo e(__('site_design_edit_page')); ?></a>
+                    <?php endif; ?>
+                    <?php if (!empty($designAreaState[$type]['edit_url']) && !$designAreaState[$type]['hidden']): ?>
+                    <a data-testid="site-design-area-edit" href="<?php echo e($designAreaState[$type]['edit_url']); ?>" class="inline-flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100">
                         <i class="ti ti-edit"></i><?php echo e(__('blox_tpl_open_editor')); ?>
                     </a>
                     <?php endif; ?>
@@ -255,12 +359,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </button>
                     </form>
                     <?php endif; ?>
-                    <a href="/admin/blox_templates.php?type=<?php echo e($type); ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75">
+                    <a href="/admin/blox_templates.php?type=<?php echo e($type); ?>&amp;context=<?php echo e(rawurlencode($designContextKey)); ?>" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:opacity-75">
                         <?php echo e(__('site_design_manage')); ?><i class="ti ti-arrow-right"></i>
                     </a>
                 </div>
                 <?php else: ?>
                 <span class="text-xs text-gray-400"><i class="ti ti-lock mr-1"></i><?php echo e(__('site_design_advanced_locked')); ?></span>
+                <?php endif; ?>
+                <?php if (isset($designAreaState[$type]) && !$designAreaState[$type]['hidden']): ?>
+                <details class="w-full" data-site-area-preview="<?php echo e($type); ?>" data-url="<?php echo e($designPreviewUrl); ?>" data-loading="<?php echo e(__('site_design_preview_loading')); ?>" data-error="<?php echo e(__('site_design_preview_error')); ?>">
+                    <summary class="cursor-pointer text-sm text-gray-600"><?php echo e(__('site_design_preview_published')); ?></summary>
+                    <div class="site-area-preview mt-3" data-preview-surface></div>
+                    <p class="mt-2 text-xs text-gray-500" role="status" data-preview-status></p>
+                </details>
                 <?php endif; ?>
             </div>
             <?php endforeach; ?>
@@ -323,4 +434,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php endif; ?>
 </div>
 
+<?php if ($advancedBloxEnabled && $canManageGlobalBlox): ?>
+<script src="/assets/js/site-design-preview.js?v=<?php echo (int) filemtime(ROOT_PATH . '/assets/js/site-design-preview.js'); ?>" defer></script>
+<?php endif; ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

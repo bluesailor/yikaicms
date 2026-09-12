@@ -109,7 +109,12 @@ final class BloxAreaAssignmentManager
             }
         }
 
-        $source = bloxTemplateModel()->findForExport($sourceId);
+        $source = $sourceId === 0 ? [
+            'type' => $area,
+            'status' => 1,
+            'name' => __('blox_tpl_type_' . $area),
+            'published_data' => '{"schema":1,"settings":{},"sections":[]}',
+        ] : bloxTemplateModel()->findForExport($sourceId);
         if (!$source || (string) ($source['type'] ?? '') !== $area
             || (int) ($source['status'] ?? 0) !== 1
             || trim((string) ($source['published_data'] ?? '')) === '') {

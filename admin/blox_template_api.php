@@ -280,6 +280,10 @@ try {
         }
 
         $publishedDocument = $processed !== null ? $processed['json'] : $currentDraft;
+        if ($type === 'product-detail') {
+            require_once ROOT_PATH . '/includes/HtmlCache.php';
+            HtmlCache::invalidate();
+        }
         $response = [
             'id' => $id,
             'base_revision' => $templateFingerprint($type, $publishedDocument),

@@ -192,6 +192,9 @@ final class BloxDocumentPipeline
             return [];
         }
         $clean = [];
+        if (array_key_exists('product_template', $settings)) {
+            $clean['product_template'] = ProductTemplateDocument::normalizeScope($settings['product_template']);
+        }
         foreach (['page_header_hidden', 'page_footer_hidden', 'page_breadcrumb_hidden', 'page_title_hidden', 'page_sidebar_hidden'] as $key) {
             if (array_key_exists($key, $settings)) {
                 $clean[$key] = in_array($settings[$key], [true, 1, '1'], true);
@@ -497,9 +500,22 @@ final class BloxDocumentPipeline
             // text 截长 / richtext 净化 / url 与 image 与 video 拒伪协议 /
             // number 边界 / select 必属 options / checkbox 与 icon 归一。
             // 直接构造 blocks_data 提交同样过这一层。
-            $data[$key] = BloxValueSanitizer::sanitize($control, $data[$key]);
+            if (!empty($control['compact_richtext'])
+                && ($data[$control['format_key'] ?? ''] ?? null) === 'html') {
+                // Bound serialized HTML, not its input: entities expand when saved.
+                $data[$key] = HtmlPolicy::description(is_scalar($data[$key]) ? (string) $data[$key] : '');
+            } else {
+                $data[$key] = BloxValueSanitizer::sanitize($control, $data[$key]);
+            }
         }
         // Unknown Data Key 策略 v1.18.6 为 dry-run：只观测记录，不丢弃（兼容优先）
+        if ($type === 'heading' && array_key_exists('html_id', $data)) {
+            $data['html_id'] = self::normalizeSectionAnchorId($data['html_id']);
+        }
+        if (in_array($type, ['accordion', 'tabs'], true) && is_array($data['items'] ?? null)) {
+            $data['items'] = AccordionElement::normalizeItems($data['items']);
+            if ($type === 'tabs') $data['items'] = array_slice($data['items'], 0, 12);
+        }
         if ($registered !== null) {
             BloxUnknownKeys::observe($type, $declaredKeys, $data);
         }

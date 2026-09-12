@@ -134,6 +134,7 @@ final class HomeBloxRenderer
             }
 
             $section = HomeAboutLocalization::localize($section);
+            $section = HomeFaqContent::localize($section);
             $renderSection = $section;
             $renderColumns = [];
             foreach (($section['columns'] ?? []) as $columnIndex => $column) {

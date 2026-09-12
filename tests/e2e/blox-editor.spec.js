@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const {
   addTemporaryHeading,
+  openSectionInsertAtEnd,
   canvasScrollTop,
   countCanvasSections,
   countDynamicHomeBlocks,
@@ -493,7 +494,7 @@ test('desktop structure panel resizes and collapses persistently @ci', async ({ 
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop split-panel baseline');
   const panel = page.getByTestId('blox-right-panel');
   const resizer = page.getByTestId('blox-right-panel-resizer');
-  const toggle = page.getByTestId('blox-right-panel-toggle');
+  const toggle = page.getByTestId('blox-toolbar-structure-toggle');
   const canvasHost = page.getByTestId('blox-canvas-host');
 
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
@@ -517,12 +518,17 @@ test('desktop structure panel resizes and collapses persistently @ci', async ({ 
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(resizer).toBeHidden();
-  await expect.poll(async () => (await panel.boundingBox()).width).toBe(40);
+  await expect(panel).toBeHidden();
+  await expect(page.getByTestId('blox-section-insert-open')).toHaveCount(0);
+  await expect.poll(async () => {
+    const box = await page.getByTestId('blox-canvas').boundingBox();
+    return Math.abs(box.x + box.width - page.viewportSize().width);
+  }).toBeLessThanOrEqual(1);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:right-panel-collapsed:v1'))).toBe('1');
 
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('blox-right-panel-toggle')).toHaveAttribute('aria-expanded', 'false');
-  await page.getByTestId('blox-right-panel-toggle').click();
+  await expect(page.getByTestId('blox-toolbar-structure-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await page.getByTestId('blox-toolbar-structure-toggle').click();
   await expect.poll(async () => (await page.getByTestId('blox-right-panel').boundingBox()).width).toBe(320);
   await page.getByTestId('blox-right-panel-resizer').dblclick();
   await expect.poll(async () => (await page.getByTestId('blox-right-panel').boundingBox()).width).toBe(256);
@@ -973,6 +979,7 @@ test('container panel edits and restores responsive child gap @ci', async ({ pag
   const before = await countSections(page);
   const clearSelection = page.getByTestId('blox-clear-selection');
   if (await clearSelection.isVisible()) await clearSelection.click();
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   await page.getByTestId('blox-library-open').click();
@@ -1367,6 +1374,7 @@ test('stale save is blocked and keeps a recoverable local copy @ci', async ({ pa
     });
   });
 
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   await page.getByTestId('blox-save').click();
@@ -1411,6 +1419,7 @@ test('publish saves the current document before activating it @ci', async ({ pag
     });
   });
 
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-dirty')).toBeVisible();
   await expect(page.getByTestId('blox-publish')).toBeEnabled();
@@ -1489,14 +1498,14 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByTestId('blox-template-quick-recommended')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('推荐用于：首页')).toBeVisible();
-  await expect(page.getByTestId('blox-template-item')).toHaveCount(14);
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(23);
   await expect.poll(() => page.getByTestId('blox-template-panel').evaluate((panel) => (
     panel.scrollWidth <= panel.clientWidth
   ))).toBe(true);
   await page.getByTestId('blox-template-quick-all').click();
 
   const builtins = page.locator('[data-testid="blox-template-item"][data-template-key^="builtin:"]');
-  await expect(builtins).toHaveCount(18);
+  await expect(builtins).toHaveCount(27);
   const firstPreview = builtins.first().locator('img');
   await expect(firstPreview).toBeVisible();
   await expect.poll(() => firstPreview.evaluate((image) => (
@@ -1518,9 +1527,18 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:testimonial-quote"]')).toBeVisible();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:faq-accordion"]')).toBeVisible();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:download-guide"]')).toBeVisible();
-  await expect(builtins).toHaveCount(6);
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:faq-split"]')).toBeVisible();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:article-grid-dynamic"]')).toBeVisible();
+  await expect(builtins).toHaveCount(8);
 
   await category.selectOption('all');
+  const dataSource = page.getByTestId('blox-template-data-source');
+  await dataSource.selectOption('dynamic');
+  await expect(builtins).toHaveCount(3);
+  await dataSource.selectOption('all');
+  const dynamicProducts = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:product-grid-dynamic"]');
+  await expect(dynamicProducts.getByTestId('blox-template-dynamic-badge')).toBeVisible();
+  await expect(dynamicProducts.getByTestId('blox-template-variant-badge')).toContainText('动态数据');
   const hero = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
   await hero.getByTestId('blox-template-insert').click();
   await expect(page.locator('[x-ref="templateDialog"]')).toBeHidden();
@@ -2234,6 +2252,7 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   const seedDoc = JSON.stringify(JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, 'fixtures/header-template.json'), 'utf8')).document);
   const before = await countSections(page);
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   const savePair = Promise.all([
@@ -2579,19 +2598,24 @@ test('header preview context reports resolver hit without rendering page body @c
   await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(0);
 });
 
-// ── 画布插入轨道（r13）：区块边界精确插入 + 末尾常驻入口 ──
+// 画布和结构面板共用布局选择器，新增操作仍由单条命令完成。
 test('canvas insert rails add section at exact boundary @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const before = await countSections(page);
   expect(before).toBeGreaterThan(1);
   const contentFrame = await frame(page);
 
-  // 第 2 个区块的上缘轨道：点「+」出快捷面板，选两列 → 新区块插在 index 1
+  await page.getByTestId('blox-tree-section').first().click();
+  // 首区块下缘居中入口，选择两列后插在 index 1。
   const rail = contentFrame.locator('[data-yk-insert="1"]');
-  await rail.evaluate((el) => el.click());
-  const pop = contentFrame.locator('.yk-insert-pop');
+  expect(await rail.evaluate((button) => button.closest('[data-yk-sec]') === null)).toBe(true);
+  const treeCard = page.getByTestId('blox-tree-section').first().getByTestId('blox-tree-section-card');
+  await expect(treeCard.getByTestId('blox-section-insert-after')).toHaveCount(0);
+  await expect(page.getByTestId('blox-tree-section').first().getByTestId('blox-section-insert-after')).toBeVisible();
+  await pointerClick(page, rail);
+  const pop = page.getByTestId('blox-section-insert-picker');
   await expect(pop).toBeVisible();
-  await pop.locator('.yk-insert-pop-btn').nth(1).evaluate((el) => el.click()); // 两列
+  await pop.getByTestId('blox-add-section-2').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   // 插入即选中，且位置正确（selectedSi=1 → 结构树第 2 项高亮由选择态保证；直接断言画布新区块两列）
   await expect(contentFrame.locator('[data-yk-sec="1"] [data-yk-col]')).toHaveCount(2);
@@ -2614,6 +2638,7 @@ test('empty canvas targets open element library at the exact node @ci', async ({
   if (await clear.isVisible()) await clear.click();
 
   const before = await countSections(page);
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-2').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   const sectionIndex = before;
@@ -2628,8 +2653,6 @@ test('empty canvas targets open element library at the exact node @ci', async ({
   const headingTile = page.getByTestId('blox-add-element-heading');
   const secondColumnBefore = await columns.nth(1).getByTestId('blox-tree-element').count();
   await headingTile.click();
-  await expect(columns.nth(1).getByTestId('blox-tree-element')).toHaveCount(secondColumnBefore);
-  await headingTile.dragTo(columns.nth(1));
   await expect(columns.nth(1).getByTestId('blox-tree-element')).toHaveCount(secondColumnBefore + 1);
 
   await waitPreviewSettled(page);
@@ -2643,7 +2666,7 @@ test('empty canvas targets open element library at the exact node @ci', async ({
   contentFrame = await frame(page);
   const containerAdd = contentFrame.locator(`[data-yk-quick-add="container:${sectionIndex}.0.0"]`);
   await pointerClick(page, containerAdd);
-  await page.getByTestId('blox-add-element-heading').press('Enter');
+  await page.getByTestId('blox-add-element-heading').click();
   await expect(contentFrame.locator(`[data-yk-el="${sectionIndex}.0.0.0"]`)).toHaveCount(1);
   expect(page.url()).toBe(originalURL);
 
@@ -2662,6 +2685,7 @@ test('canvas drag labels and inserts into a container center @ci', async ({ page
 
   const before = await countSections(page);
   try {
+    await openSectionInsertAtEnd(page);
     await page.getByTestId('blox-add-section-1').click();
     const section = page.getByTestId('blox-tree-section').last();
     await page.getByTestId('blox-library-open').click();
@@ -2911,6 +2935,7 @@ test('structure tree drag labels before and inside intentions @ci', async ({ pag
 
   const before = await countSections(page);
   try {
+    await openSectionInsertAtEnd(page);
     await page.getByTestId('blox-add-section-1').click();
     const section = page.getByTestId('blox-tree-section').last();
     await page.getByTestId('blox-library-open').click();

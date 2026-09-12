@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$testKey || strpos($testKey, '***') !== false) {
             $testKey = AiService::decryptKey(config('ai_api_key', ''));
         }
-        $testAi = new AiService($_POST['ai_provider'] ?? 'openai', $testKey, $_POST['ai_model'] ?? '');
+        $testAi = new AiService($_POST['ai_provider'] ?? 'openai', $testKey, $_POST['ai_model'] ?? '', trim((string) ($_POST['ai_base_url'] ?? '')));
         $result = $testAi->chat('Reply "OK".', 'You are a test assistant. Just reply with what the user asks.', 0.1);
         echo json_encode($result, JSON_UNESCAPED_UNICODE);
         exit;
@@ -158,7 +158,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             </button>
                         </div>
                     </div>
-                    <input type="hidden" name="ai_model" id="aiModelInput" value="<?php echo e($currentModel); ?>">
+                    <input type="text" name="ai_model" id="aiModelInput" value="<?php echo e($currentModel); ?>" aria-label="<?php echo e(__('ai_model_label')); ?>" class="w-full border rounded-lg px-4 py-2.5 text-sm" oninput="selectModel(this.value)">
                     <div id="aiModelGrid" class="flex flex-wrap gap-2"></div>
                 </div>
                 <div>
@@ -224,6 +224,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <script>
 var providers = <?php echo json_encode($providers, JSON_UNESCAPED_UNICODE); ?>;
 var currentModel = <?php echo json_encode($currentModel); ?>;
+var previousProvider = null;
+var modelDrafts = Object.create(null);
 
 function getProvider() { return document.querySelector('input[name="ai_provider"]:checked')?.value || 'openai'; }
 
@@ -246,15 +248,19 @@ function selectModel(m) {
 
 function onProviderChange() {
     var p = getProvider(), cfg = providers[p];
+    if (!cfg) return;
+    if (previousProvider !== null) modelDrafts[previousProvider] = document.getElementById('aiModelInput').value;
+    var selectedModel = previousProvider === null ? currentModel : (modelDrafts[p] || '');
+    previousProvider = p;
     var grid = document.getElementById('aiModelGrid'); grid.innerHTML = '';
     var defBtn = document.createElement('button'); defBtn.type = 'button'; defBtn.dataset.model = '';
     defBtn.textContent = <?php echo json_encode(__('ai_default_model'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', cfg['default']); defBtn.onclick = function(){ selectModel(''); }; grid.appendChild(defBtn);
-    cfg.models.forEach(function(m) {
+    cfg.models.slice(0, 4).forEach(function(m) {
         var b = document.createElement('button'); b.type = 'button'; b.dataset.model = m;
         b.textContent = m; b.onclick = function(){ selectModel(m); }; grid.appendChild(b);
     });
     grid.querySelectorAll('button').forEach(function(b){ b.className = 'model-btn'; });
-    selectModel(currentModel); updateProviderStyle();
+    selectModel(selectedModel); updateProviderStyle();
     document.getElementById('aiBaseUrl').placeholder = <?php echo json_encode(__('ai_base_url_default'), JSON_UNESCAPED_UNICODE); ?>.replace(':url', cfg.base_url);
 }
 onProviderChange();
@@ -294,16 +300,16 @@ function syncModels(btn) {
 
 // 官方接口不需要 API Key：切到 yikai 时隐藏 Key 输入、显示授权状态
 (function () {
-    var sel = document.querySelector('[name="ai_provider"]');
-    if (!sel) return;
+    var selectors = document.querySelectorAll('[name="ai_provider"]');
+    if (!selectors.length) return;
     function sync() {
-        var isOfficial = sel.value === 'yikai';
+        var isOfficial = getProvider() === 'yikai';
         var kf = document.getElementById('apiKeyField');
         var yi = document.getElementById('yikaiKeyInfo');
         if (kf) kf.classList.toggle('hidden', isOfficial);
         if (yi) yi.classList.toggle('hidden', !isOfficial);
     }
-    sel.addEventListener('change', sync);
+    selectors.forEach(function(sel) { sel.addEventListener('change', sync); });
     sync();
 })();
 </script>

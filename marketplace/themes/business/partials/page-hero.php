@@ -24,11 +24,13 @@ $heroBgCss = UrlPolicy::cssImageLiteral($heroBg);
 <?php if ($heroBgCss !== ''): ?>
 
 <!-- 有封面图时：breadcrumb 仍用浅色带（在图上方），标题压在图上 -->
+<?php if (empty($GLOBALS['ykBloxPageFrame']['page_breadcrumb_hidden'])): ?>
 <div class="bg-slate-100 border-b border-slate-200">
     <div class="container mx-auto px-4 py-3">
         <?php $style = 'default'; require theme_path('partials/breadcrumb.php'); ?>
     </div>
 </div>
+<?php endif; ?>
 <section class="relative py-20 bg-cover bg-center" style="background-image: <?php echo e($heroBgCss); ?>">
     <div class="absolute inset-0 bg-slate-900/70"></div>
     <div aria-hidden class="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-primary via-secondary to-primary"></div>
@@ -50,11 +52,13 @@ $heroBgCss = UrlPolicy::cssImageLiteral($heroBg);
 <?php else: ?>
 
 <!-- 无封面图：breadcrumb 灰色带（slate-100，比 body 的 gray-50 明显深一档） -->
+<?php if (empty($GLOBALS['ykBloxPageFrame']['page_breadcrumb_hidden'])): ?>
 <div class="bg-slate-100 border-b border-slate-200">
     <div class="container mx-auto px-4 py-3">
         <?php $style = 'default'; require theme_path('partials/breadcrumb.php'); ?>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- 标题区：白底，padding 收紧（之前 py-16 上下 128px 实测留白太空） -->
 <section class="relative py-6 md:py-8 bg-white border-b border-slate-200 overflow-hidden">

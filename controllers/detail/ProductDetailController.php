@@ -18,7 +18,7 @@ final class ProductDetailController extends DetailController
     /**
      * @return array<string,mixed>|null
      */
-    public function prepare(int $id): ?array
+    public function prepare(int $id, bool $countView = true): ?array
     {
         if ($id <= 0) {
             return null;
@@ -31,7 +31,7 @@ final class ProductDetailController extends DetailController
         $id = (int) $product['id'];
 
         // 副作用：每次渲染自增一次浏览量。
-        addProductViews($id);
+        if ($countView) addProductViews($id);
 
         $categoryId = (int) $product['category_id'];
 

@@ -102,6 +102,11 @@ final class BuilderRegistry
         foreach ([
             // 静态元素
             new HeadingElement(),
+            new PageTitleElement(),
+            new ProductFieldElement('title'),
+            new ProductFieldElement('image'),
+            new ProductFieldElement('content'),
+            new ProductFieldElement('button'),
             new TextElement(),
             new ImageElement(),
             new ButtonElement(),
@@ -117,6 +122,7 @@ final class BuilderRegistry
             new VideoElement(),
             new IconBoxElement(),
             new AccordionElement(),
+            new TabsElement(),
             new OrgChartElement(),
             new StatItemElement(),
             new ProcessStepElement(),

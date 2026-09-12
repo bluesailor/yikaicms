@@ -13,6 +13,7 @@
     function reveal(element) {
         if (element.hasAttribute('data-animate') || element.hasAttribute('data-stagger')) {
             element.classList.add('animated');
+            element.classList.remove('yk-animate-pending');
         }
         if (!element.hasAttribute('data-aos')) {
             return;
@@ -34,18 +35,31 @@
         return;
     }
 
-    var observer = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-            if (!entry.isIntersecting) return;
-            reveal(entry.target);
-            observer.unobserve(entry.target);
+    try {
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                reveal(entry.target);
+                observer.unobserve(entry.target);
+            });
+        }, {
+            threshold: 0.15,
+            rootMargin: '0px 0px -40px 0px'
         });
-    }, {
-        threshold: 0.15,
-        rootMargin: '0px 0px -40px 0px'
-    });
 
-    elements.forEach(function (element) {
-        observer.observe(element);
-    });
+        elements.forEach(function (element) {
+            if (element.classList.contains('animated')) return;
+            element.classList.add('yk-animate-pending');
+            if (element.getAttribute('data-animate-trigger') === 'load') {
+                // Commit the initial frame before starting a page-ready entrance.
+                window.requestAnimationFrame(function () {
+                    window.requestAnimationFrame(function () { reveal(element); });
+                });
+            } else {
+                observer.observe(element);
+            }
+        });
+    } catch (error) {
+        elements.forEach(reveal);
+    }
 })();

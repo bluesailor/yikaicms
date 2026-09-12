@@ -1,0 +1,16 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Dynamic case grid",
+    "requires": {"elements": ["heading", "text", "list-dynamic"], "plugins": []},
+    "document": {"schema": 1, "settings": {}, "sections": [{
+        "type": "section",
+        "name": "动态案例网格",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg", "bg_color": "#f8fafc"},
+        "columns": [
+            {"elements": [{"type": "heading", "data": {"text": "真实项目与交付结果", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}}, {"type": "text", "data": {"html": "<p class=\"yk-copy\">案例内容由后台统一维护，页面只负责呈现清晰的结果。</p>"}}]},
+            {"elements": [{"type": "list-dynamic", "data": {"query_source": "type:case", "limit": 6, "order": "newest", "show_image": true, "show_title": true, "show_summary": true, "show_date": false, "item_preset": "card", "image_ratio": "landscape", "columns": "3", "empty_mode": "message", "empty": "暂无可展示的案例"}}]}
+        ]
+    }]}
+}

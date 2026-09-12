@@ -11,6 +11,7 @@ $footerNav = function_exists('footerNavigationGroups')
     : ($footerNavRaw ? (json_decode($footerNavRaw, true) ?: []) : []);
 ?>
 
+    <?php if (empty($GLOBALS['ykBloxPageFrame']['page_footer_hidden'])): ?>
     <!-- footer -->
     <?php $ykBloxFooter = function_exists('bloxAreaHtml') ? bloxAreaHtml('footer') : ''; ?>
     <?php if ($ykBloxFooter !== ''): ?>
@@ -52,6 +53,7 @@ $footerNav = function_exists('footerNavigationGroups')
             </div>
         </div>
     </footer>
+    <?php endif; ?>
     <?php endif; ?>
 
     <script>

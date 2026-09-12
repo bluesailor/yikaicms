@@ -73,11 +73,16 @@
             if (!customized) {
                 var override = stored[index] && typeof stored[index] === "object" ? stored[index] : {};
                 base = Object.assign({}, base, override);
+                if (Object.prototype.hasOwnProperty.call(override, "answer") && override.answer_format !== "html") {
+                    delete base.answer_format;
+                }
             }
-            return {
+            var result = {
                 question: String(base.question || ""),
                 answer: String(base.answer || ""),
             };
+            if (base.answer_format === "html") result.answer_format = "html";
+            return result;
         });
     }
 
@@ -86,10 +91,12 @@
         if (Array.isArray(value)) {
             return value.slice(0, limit).map(function (item) {
                 var source = item && typeof item === "object" ? item : {};
-                return {
+                var result = {
                     question: String(source.question ?? ""),
                     answer: String(source.answer ?? ""),
                 };
+                if (source.answer_format === "html") result.answer_format = "html";
+                return result;
             });
         }
         return String(value ?? "").split(/\r\n|\r|\n/).reduce(function (items, line) {

@@ -11,7 +11,9 @@ $ctaLink = config('home_cta_link', '') ?: '/contact.html';
 $_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
     ? $ykHomeFieldAttr
     : static fn (string $field): string => '';
-$bg = getBlockBg($block ?? [], 'cta-gradient text-white');
+// Resolve the theme fallback as a background token so parent Blox media can suppress it.
+$bg = getBlockBg($block ?? [], 'bg-business-cta text-white');
+$bg['class'] = str_replace('bg-business-cta', 'cta-gradient', $bg['class']);
 ?>
 <section class="py-16 text-center <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>

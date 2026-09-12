@@ -38,6 +38,7 @@ final class BloxBuiltinTemplateContractTest extends TestCase
             '公司介绍' => ['company-intro', ['以专业与稳健', '成立年份', '为什么选择我们', '研发设计', '立即咨询']],
             '联系我们' => ['contact-page', ['联系我们', '常见问题', '多久能收到回复', '工作时间']],
             '服务流程' => ['service-process', ['每一步都清晰可控', '需求沟通', '测试验收', '方案与计划', '合作前常见问题']],
+            '品牌服务落地页' => ['brand-service-landing', ['让复杂的业务', '方案设计', '客户反馈', '常见问题', '预约一次方案沟通']],
         ];
     }
 
@@ -130,7 +131,7 @@ final class BloxBuiltinTemplateContractTest extends TestCase
             $items[$item['key']] = $item;
         }
 
-        foreach (['builtin:company-intro', 'builtin:contact-page', 'builtin:service-process'] as $key) {
+        foreach (['builtin:company-intro', 'builtin:contact-page', 'builtin:service-process', 'builtin:brand-service-landing'] as $key) {
             self::assertArrayHasKey($key, $items);
             self::assertNotSame('', $items[$key]['name']);
             self::assertNotSame('', $items[$key]['description']);
@@ -234,7 +235,7 @@ final class BloxBuiltinTemplateContractTest extends TestCase
             $raw = (string) file_get_contents(ROOT_PATH . '/templates/blox/pages/' . $slug . '.json');
             self::assertStringNotContainsString('/uploads/', $raw, $slug . ' 不得引用 /uploads/ 下的素材');
 
-            preg_match_all('#"(/images/[A-Za-z0-9._/-]+)"#', $raw, $matches);
+            preg_match_all('#"(/(?:assets/)?images/[A-Za-z0-9._/-]+)"#', $raw, $matches);
             foreach (array_unique($matches[1]) as $asset) {
                 self::assertFileExists(ROOT_PATH . $asset, $slug . ' 引用了不存在的随包素材');
             }

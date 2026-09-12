@@ -210,21 +210,16 @@ $pageTitle = __('health_title');
 $currentMenu = 'site_health';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/module_nav.php';
+adminModuleTabStart([
+    'status' => [__('health_status_tab'), 'activity'],
+    'info' => [__('health_info_tab'), 'info-circle'],
+], $tab, __('health_title'), '/admin/site_health.php');
 unset($pageTitle);
 ?>
 
 <div data-admin-page="<?php echo e($currentMenu); ?>">
 
-<div class="mb-6 border-b border-gray-200">
-    <nav class="flex gap-6" aria-label="<?php echo e(__('health_tabs_label')); ?>">
-        <a href="/admin/site_health.php" class="py-3 text-sm font-medium border-b-2 <?php echo $tab === 'status' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'; ?>">
-            <?php echo e(__('health_status_tab')); ?>
-        </a>
-        <a href="/admin/site_health.php?tab=info" class="py-3 text-sm font-medium border-b-2 <?php echo $tab === 'info' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-800'; ?>">
-            <?php echo e(__('health_info_tab')); ?>
-        </a>
-    </nav>
-</div>
 
 <?php if ($tab === 'status'): ?>
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -492,4 +487,5 @@ unset($pageTitle);
 </div>
 <?php unset($currentMenu); ?>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

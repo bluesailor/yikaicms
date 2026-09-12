@@ -22,6 +22,14 @@ final class PageBloxDocument
         if ($legacyHtml === '') {
             $legacyHtml = trim((string) ($page['content'] ?? ''));
         }
+        // Mark new blank canvases explicitly; missing settings on older documents retain the theme title.
+        if (!$hasDraft && ($page['type'] ?? '') === 'page' && $legacyHtml === ''
+            && trim((string) ($published['blocks_data'] ?? '')) === ''
+            && (string) ($published['content_type'] ?? 'html') !== 'blocks') {
+            $document = BloxDocumentPipeline::decode($documentJson);
+            $document['settings']['page_title_hidden'] = true;
+            $documentJson = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        }
         $usesLegacyHtml = !$hasDraft
             && trim((string) ($published['blocks_data'] ?? '')) === ''
             && (string) ($published['content_type'] ?? 'html') !== 'blocks'
@@ -44,6 +52,12 @@ final class PageBloxDocument
             'uses_legacy_html' => $usesLegacyHtml,
             'published_at' => (int) ($draft['published_at'] ?? 0),
         ];
+    }
+
+    /** @param array<string,mixed> $settings */
+    public static function usesThemeTitle(array $settings): bool
+    {
+        return !in_array($settings['page_title_hidden'] ?? false, [true, 1, '1'], true);
     }
 
     /** @return array{base_revision:string,has_unpublished_changes:bool,sections:int} */
@@ -78,7 +92,7 @@ final class PageBloxDocument
         $processed = BloxDocumentPipeline::process($blocksJson, 'page');
         $page = $state['page'];
         $published = self::publishedRecord($pageId);
-        $renderedHtml = renderBlocksToHtml($processed['json']);
+        $renderedHtml = PageTitleElement::withPage($state['page'], static fn(): string => renderBlocksToHtml($processed['json']));
         $now = time();
 
         $revisionTargets = [[

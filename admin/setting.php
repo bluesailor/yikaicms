@@ -289,6 +289,16 @@ $currentMenu = 'setting';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/module_nav.php';
+adminModuleTabStart([
+    'basic' => [__('setting_tab_basic'), 'settings'],
+    'url' => [__('setting_tab_url'), 'link'],
+    'pagination' => [__('setting_tab_pagination'), 'list'],
+    'header' => [__('setting_tab_header'), 'layout-navbar'],
+    'footer' => [__('setting_tab_footer'), 'layout-bottombar'],
+    'code' => [__('setting_tab_code'), 'code'],
+    'lang' => [__('setting_tab_lang'), 'language'],
+], $tab, __('setting_page_title'), '/admin/setting.php', ['lang' => (string) $_viewLang]);
 
 if ($_langAware) {
     $_hint = match ($_tabForLang) {
@@ -309,26 +319,8 @@ if ($_langAware) {
     border-color: var(--color-primary, #3B82F6);
     box-shadow: 0 0 0 1px var(--color-primary, #3B82F6);
 }
-#setting-tabs { flex-wrap: wrap; }
-#setting-tabs > a { white-space: nowrap; }
 </style>
 
-<!-- Tab 导航 -->
-<?php
-// 进入/切换 lang-aware tab 时保留 ?lang=；其它 tab 不带 lang 参数（非翻译）
-$_aLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) : '';
-?>
-<div class="bg-white rounded-lg shadow mb-6">
-    <div id="setting-tabs" class="flex border-b">
-        <a href="/admin/setting.php?tab=basic<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_basic'); ?></a>
-        <a href="/admin/setting.php?tab=url<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'url' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_url'); ?></a>
-        <a href="/admin/setting.php?tab=pagination<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'pagination' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_pagination'); ?></a>
-        <a href="/admin/setting.php?tab=header<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'header' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_header'); ?></a>
-        <a href="/admin/setting.php?tab=footer<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_footer'); ?></a>
-        <a href="/admin/setting.php?tab=code<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'code' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_code'); ?></a>
-        <a href="/admin/setting.php?tab=lang<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'lang' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_lang'); ?></a>
-    </div>
-</div>
 
 <?php if ($tab === 'lang'): ?>
 <!-- 前台语言配置（独立卡片）-->
@@ -1166,4 +1158,5 @@ if (typeof _footerNavData !== 'undefined' && document.getElementById('footerNavE
 })();
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

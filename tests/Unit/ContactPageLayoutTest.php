@@ -94,7 +94,7 @@ final class ContactPageLayoutTest extends TestCase
         $source = (string) file_get_contents(ROOT_PATH . '/includes/builder/elements/ContactCardsElement.php');
 
         self::assertStringContainsString(
-            'renderContactCardsHtml($cards, $grid, null, null, false)',
+            'renderContactCardsHtml($cards, $grid, null, null, false, $data)',
             $source
         );
     }

@@ -344,29 +344,37 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="mx-auto w-full overflow-hidden bg-white shadow-sm transition-[max-width] duration-200"
                      data-testid="blox-design-page-hero-frame"
                      :style="'max-width:' + (pageHeroPreviewDevice === 'mobile' ? '390px' : '1180px')">
+                    <template x-if="pageHero.options.layout === 'compact'">
+                        <?php $breadcrumbEffective = 'pageHero.options'; $breadcrumbName = 'currentPageHeroSample().title'; require __DIR__ . '/blox_editor/partials/breadcrumb-preview.php'; ?>
+                    </template>
+                    <template x-if="pageHero.options.layout !== 'compact'">
                     <div class="relative bg-cover px-5 transition-[min-height] duration-200 sm:px-8"
                          :class="pageHeroPreviewHeightClass()"
                          :style="pageHeroPreviewStyle()">
-                        <div x-show="pageHero.background && Number(pageHero.options.overlay_opacity || 0) > 0" class="absolute inset-0 bg-black"
-                             :style="'opacity:' + (Number(pageHero.options.overlay_opacity || 0) / 100)"></div>
-                        <div class="relative flex min-h-[inherit] flex-col justify-center py-8"
-                             :class="pageHero.options.alignment === 'center' ? 'items-center text-center' : 'items-start text-left'">
+                        <template x-if="pageHero.options.layout !== 'compact' && pageHero.background && Number(pageHero.options.overlay_opacity || 0) > 0">
+                            <div class="absolute inset-0 bg-black"
+                                 :style="{ opacity: Number(pageHero.options.overlay_opacity || 0) / 100 }"></div>
+                        </template>
+                        <div class="relative flex min-h-[inherit] flex-col justify-center"
+                             :class="pageHero.options.layout === 'compact' ? 'items-start text-left py-4' : (pageHero.options.alignment === 'center' ? 'items-center text-center py-8' : 'items-start text-left py-8')">
                             <span class="max-w-full truncate text-sm" :class="pageHeroPreviewTone() === 'light' ? 'text-white/70' : 'text-gray-500'">
                                 <span x-text="currentPageHeroSample().home"></span> / <span x-text="currentPageHeroSample().title"></span>
                             </span>
-                            <h3 class="mt-3 max-w-full break-words text-3xl font-semibold sm:text-4xl"
+                            <h3 x-show="pageHero.options.layout !== 'compact'" class="mt-3 max-w-full break-words text-3xl font-semibold sm:text-4xl"
                                 :class="pageHeroPreviewTone() === 'light' ? 'text-white' : 'text-gray-900'"
                                 x-text="currentPageHeroSample().title"></h3>
-                            <p x-show="currentPageHeroSample().description" class="mt-3 max-w-2xl break-words text-sm leading-6 sm:text-base"
+                            <p x-show="pageHero.options.layout !== 'compact' && currentPageHeroSample().description" class="mt-3 max-w-2xl break-words text-sm leading-6 sm:text-base"
                                :class="pageHeroPreviewTone() === 'light' ? 'text-white/80' : 'text-gray-600'"
-                               x-text="currentPageHeroSample().description"></p>
+                                x-text="currentPageHeroSample().description"></p>
                         </div>
                     </div>
+                    </template>
                 </div>
             </div>
         </div>
 
-        <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <?php $breadcrumbOptions = 'pageHero.options'; $breadcrumbEffective = 'pageHero.options'; $breadcrumbDisabled = 'pageHeroBusy'; require __DIR__ . '/blox_editor/partials/breadcrumb-settings.php'; ?>
+        <div x-show="pageHero.options.layout !== 'compact'" class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div class="space-y-4 border-y border-gray-200 bg-white px-4 py-4">
                 <label class="block text-xs font-medium text-gray-600" for="blox-design-page-hero-bg">
                     <?php echo e(__('blox_page_hero_background')); ?>
@@ -456,7 +464,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </button>
                 <button type="button" @click="publishPageHero()" :disabled="pageHeroBusy" data-testid="blox-design-page-hero-publish"
                         class="inline-flex h-10 items-center gap-2 bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50">
-                    <i class="ti ti-rocket"></i><?php echo e(__('blox_publish')); ?>
+                    <i class="ti ti-rocket"></i><?php echo e(__('blox_page_hero_publish_action')); ?>
                 </button>
             </div>
         </div>
@@ -622,6 +630,7 @@ function bloxDesignManager() {
             return this.pageHeroSamples[this.pageHeroLanguage] || Object.values(this.pageHeroSamples)[0] || { home: '', title: '', description: '' };
         },
         pageHeroPreviewStyle() {
+            if (this.pageHero.options.layout === 'compact') return 'background-color:#f9fafb;border-bottom:1px solid #e5e7eb;';
             var style = '';
             var color = String(this.pageHero.options.background_color || '');
             var background = String(this.pageHero.background || '');
@@ -632,6 +641,7 @@ function bloxDesignManager() {
             return style;
         },
         pageHeroPreviewHeightClass() {
+            if (this.pageHero.options.layout === 'compact') return '';
             var height = String(this.pageHero.options.height || 'standard');
             if (this.pageHeroPreviewDevice === 'mobile') {
                 var mobile = String(this.pageHero.options.mobile_height || 'inherit');
@@ -641,6 +651,7 @@ function bloxDesignManager() {
             return height === 'large' ? 'min-h-72' : (height === 'compact' ? 'min-h-36' : 'min-h-52');
         },
         pageHeroPreviewTone() {
+            if (this.pageHero.options.layout === 'compact') return 'dark';
             var tone = String(this.pageHero.options.text_tone || 'auto');
             if (tone !== 'auto') return tone;
             if (String(this.pageHero.background || '')) return 'light';

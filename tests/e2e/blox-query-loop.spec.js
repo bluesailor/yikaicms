@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const {
   countSections,
+  openSectionInsertAtEnd,
   observeConsole,
   observeUnsafeWrites,
   openEditor,
@@ -30,6 +31,7 @@ test.afterEach(async ({ page }) => {
 test('Query Loop exposes pagination and child fallback controls @ci', async ({ page }) => {
   test.setTimeout(60_000);
   const before = await countSections(page);
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
 

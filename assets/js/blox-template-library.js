@@ -59,9 +59,19 @@
                 && list.indexOf(value) === index;
         }).slice(0, 12) : [];
         var priority = Number(metadata.priority);
+        var variants = ["standard", "split", "centered", "cards", "side-by-side", "minimal", "dynamic"];
+        var variant = String(metadata.variant || "standard").trim().toLowerCase();
+        var dataSources = ["static", "dynamic"];
+        var dataSource = String(metadata.data_source || "static").trim().toLowerCase();
+        var states = Array.isArray(metadata.states) ? metadata.states.filter(function (value, index, list) {
+            return ["loading", "empty", "error"].indexOf(value) !== -1 && list.indexOf(value) === index;
+        }).slice(0, 3) : [];
         return Object.assign({}, metadata, {
             schema: 1,
             page_types: pageTypes.length > 0 ? pageTypes : ["general"],
+            variant: variants.indexOf(variant) !== -1 ? variant : "standard",
+            data_source: dataSources.indexOf(dataSource) !== -1 ? dataSource : "static",
+            states: states,
             priority: Number.isFinite(priority) ? Math.max(0, Math.min(100, Math.round(priority))) : 0,
         });
     }
@@ -122,15 +132,21 @@
         return String(normalizeMetadata(item && item.metadata).purpose || "general").trim().toLowerCase();
     }
 
-    function filter(items, query, type, source, category, purpose) {
+    function dataSourceValue(item) {
+        return String(normalizeMetadata(item && item.metadata).data_source || "static").trim().toLowerCase();
+    }
+
+    function filter(items, query, type, source, category, purpose, dataSource) {
         var q = String(query || "").trim().toLowerCase();
         var wantedCategory = String(category || "all").trim().toLowerCase();
         var wantedPurpose = String(purpose || "all").trim().toLowerCase();
+        var wantedDataSource = String(dataSource || "all").trim().toLowerCase();
         return (Array.isArray(items) ? items : []).filter(function (item) {
             if (type !== "all" && item.type !== type) return false;
             if (source && source !== "all" && item.source !== source) return false;
             if (wantedCategory !== "all" && categoryValue(item) !== wantedCategory) return false;
             if (wantedPurpose !== "all" && purposeValue(item) !== wantedPurpose) return false;
+            if (wantedDataSource !== "all" && dataSourceValue(item) !== wantedDataSource) return false;
             if (!q) return true;
             var metadata = normalizeMetadata(item.metadata);
             return String(item.name || "").toLowerCase().indexOf(q) !== -1
@@ -163,6 +179,14 @@
         var seen = {};
         (Array.isArray(items) ? items : []).forEach(function (item) {
             if (item && item.type === "section") seen[purposeValue(item)] = true;
+        });
+        return Object.keys(seen).sort();
+    }
+
+    function dataSources(items) {
+        var seen = {};
+        (Array.isArray(items) ? items : []).forEach(function (item) {
+            if (item && item.type === "section") seen[dataSourceValue(item)] = true;
         });
         return Object.keys(seen).sort();
     }
@@ -331,6 +355,7 @@
         categories: categories,
         categoryLabel: categoryLabel,
         purposes: purposes,
+        dataSources: dataSources,
         purposeLabel: purposeLabel,
         scope: scope,
         scopeCount: scopeCount,

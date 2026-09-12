@@ -108,7 +108,14 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
     }
     // 页头模板只显示可编辑页头；页尾保留当前页头与正文只读上下文，帮助判断整页落底效果。
     $templateArea = (string) ($_GET['template_area'] ?? '');
-    if ($isHomeLayout && in_array($templateArea, ['header', 'footer'], true)) {
+    if ((string) ($_GET['product_template'] ?? '') === '1') {
+        $product = productModel()->getPublished((int) ($_POST['preview_product'] ?? 0));
+        if ($product !== null && ($product['lang'] ?? '') !== siteLang()) $product = null;
+        BlockRenderer::$editChannelId = $bloxCanvas ? 1 : 0;
+        $body = $product === null
+            ? '<p class="p-6 text-gray-700">' . e(__('blox_product_preview_empty')) . '</p>'
+            : ProductTemplateDocument::withProduct($product, static fn(): string => BlockRenderer::render($previewJson));
+    } elseif ($isHomeLayout && in_array($templateArea, ['header', 'footer'], true)) {
         $previewDocument = BloxAreaDocument::decode($templateArea, $previewJson);
         $editableArea = BloxAreaDocument::renderShell(
             $templateArea,
@@ -219,11 +226,9 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             $body = $editableArea;
         }
     } else {
-        // 空文档不渲染站点页头页脚：新建单页只该看到空态引导卡。挂着 chrome 有两个坏处——
-        // 空态卡是 appendChild 到 body 的，会落在页脚**下方**（看着像页脚的一部分）；
-        // 而且页头页脚在这里是只读上下文，喧宾夺主，把注意力从「先加内容」上引开。
-        // 数据源用 POST 的 blocks_data：画布预览全程由编辑器 POST 当前文档驱动。
+        // Empty documents keep the same site frame as populated pages.
         $canvasBlocks = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);
+        $canvasFrame = BloxDocumentPipeline::normalizeDocSettings(is_array($canvasBlocks) ? ($canvasBlocks['settings'] ?? []) : []);
         if (is_array($canvasBlocks) && isset($canvasBlocks['sections']) && is_array($canvasBlocks['sections'])) {
             $canvasBlocks = $canvasBlocks['sections'];
         }
@@ -247,7 +252,9 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         }
 
         $pageHeroBody = '';
-        if (!$isHomeLayout && is_array($pageRow)) {
+        $GLOBALS['ykBloxPageFrame'] = !$isHomeLayout && $pageType === 'page' ? $canvasFrame : [];
+        if (!$isHomeLayout && is_array($pageRow)
+            && ($pageType !== 'page' || PageBloxDocument::usesThemeTitle($canvasFrame))) {
             $breadcrumbItems = [];
             foreach (getBreadcrumb($id) as $breadcrumbRow) {
                 $breadcrumbChannel = getChannel((int) ($breadcrumbRow['id'] ?? 0)) ?: $breadcrumbRow;
@@ -436,15 +443,15 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             BloxAreaEditorTarget::url('footer', $areaContext, $isHomeLayout ? 'home' : '')
         );
         BlockRenderer::$editChannelId = $savedEditChannel;
-        $pageContentBody = $hasCanvasContent
-            ? '<div class="yk-canvas-region yk-page-content-context" data-yk-region="content"'
+        if (!$isHomeLayout && $pageType === 'page') {
+            if (!empty($canvasFrame['page_header_hidden'])) $headerBody = '';
+            if (!empty($canvasFrame['page_footer_hidden'])) $footerBody = '';
+        }
+        $pageContentBody = '<div class="yk-canvas-region yk-page-content-context" data-yk-region="content"'
                 . ' data-yk-preview-label="' . htmlspecialchars(__('blox_page_content_canvas_label'), ENT_QUOTES, 'UTF-8') . '">'
-                . $pageBody . '</div>'
-            : $pageBody;
+                . $pageBody . '</div>';
         $mainBody = $pageHeroBody . $pageContentBody;
-        $body = $hasCanvasContent
-            ? ($headerBody . '<main class="flex-1">' . $mainBody . '</main>' . $footerBody)
-            : ($pageHeroBody . $pageBody);
+        $body = $headerBody . '<main class="flex-1">' . $mainBody . '</main>' . $footerBody;
     }
 
     $bloxInject = '';
@@ -527,17 +534,11 @@ html.yk-palette-dragging{scrollbar-color:transparent transparent}
 html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-webkit-scrollbar-track{background:transparent}
 .yk-empty-hint{border:2px dashed #cbd5e1;border-radius:8px;margin:8px;padding:32px 16px;text-align:center;color:#94a3b8;font-size:13px;font-family:system-ui,sans-serif}
 .yk-empty-hint-sm{margin:0;padding:12px 8px;font-size:12px}
-.yk-insert-rail{position:absolute;top:-14px;left:0;right:0;height:28px;z-index:35;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s ease;pointer-events:auto}
-.yk-insert-rail:hover{opacity:1}
-.yk-insert-rail:before{content:'';position:absolute;left:8px;right:8px;top:50%;height:2px;background:#2563eb;border-radius:999px;transform:translateY(-50%)}
-.yk-insert-rail .yk-insert-btn{position:relative;z-index:1;width:26px;height:26px;border-radius:999px;border:none;background:#2563eb;color:#fff;font:700 15px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,.35)}
-.yk-insert-pop{position:fixed;z-index:2147483644;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:8px;box-shadow:0 10px 30px rgba(15,23,42,.16)}
-.yk-insert-pop-btn{display:flex;align-items:center;justify-content:center;min-width:44px;height:36px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;transition:border-color .12s}
-.yk-insert-pop-btn:hover{border-color:#2563eb}
-.yk-insert-pop-bars{display:flex;gap:2px}
-.yk-insert-pop-bars i{width:7px;height:18px;border-radius:2px;background:#cbd5e1}
-.yk-insert-pop-btn:hover .yk-insert-pop-bars i{background:#2563eb}
-.yk-insert-pop-tpl{padding:0 12px;font:500 12px/1 system-ui,sans-serif;color:#475569}
+.yk-insert-rail{position:relative;box-sizing:border-box;height:48px;min-height:48px;padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:12px;background:#f8fafc;clear:both}
+.yk-insert-rail:before,.yk-insert-rail:after{content:'';flex:1;border-top:1px dashed #cbd5e1}
+.yk-insert-rail .yk-insert-btn{min-width:32px;height:32px;padding:0 10px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;color:#1d4ed8;font:500 12px/1 system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;flex-shrink:0}
+.yk-insert-rail .yk-insert-btn:hover{border-color:#2563eb;background:#eff6ff}
+.yk-insert-btn:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
 .yk-empty-doc{margin:48px auto;max-width:520px;padding:48px 24px}
 .yk-empty-doc p{margin:0 0 18px;font-size:14px}
 .yk-empty-btn{display:inline-flex;align-items:center;margin:0 6px;padding:7px 16px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#475569;font:500 13px/1.4 system-ui,sans-serif;cursor:pointer;transition:border-color .15s,color .15s}
@@ -547,7 +548,11 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
 .yk-empty-hint .yk-empty-btn{margin-left:8px;padding:4px 12px;font-size:12px}
 .yk-empty-doc .yk-empty-btn{margin:0 6px;padding:7px 16px;font-size:13px}
 .banner-swiper{height:min(52vw,520px)}
+[data-yk-el-type="home-banner-item"] [data-blox-banner-box] h2,
+[data-yk-el-type="home-banner-item"] [data-blox-banner-box] p{pointer-events:auto;cursor:text}
 @media(max-width:767px){.banner-swiper{height:300px}}
+/* Editing never depends on an entrance animation having completed. */
+[data-animate], [data-stagger] > *, [data-aos]{opacity:1;transform:none;transition:none}
 </style>
 <script>
 (function () {
@@ -1048,7 +1053,11 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             }
             highlightEl(path);
             var target = elementTarget(el);
-            postToEditor(target ? { ykPickElement: target } : { ykPickEl: path });
+            var panel = el.getAttribute('data-yk-el-type') === 'home-banner-item'
+                ? (e.target.closest('[data-blox-banner-buttons] a') ? 'banner-links'
+                    : e.target.closest('[data-blox-banner-box] h2, [data-blox-banner-box] p') ? 'banner-content' : '') : '';
+            if (target && panel) target.panel = panel;
+            postToEditor(target ? { ykPickElement: target } : { ykPickEl: path, ykPickPanel: panel });
             return;
         }
         var col = e.target.closest('[data-yk-col]');
@@ -1166,11 +1175,16 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
     var ykDragType = '';      // 编辑器 palette dragstart 广播的当前拖拽类型（dragend 清空）
     window.addEventListener('message', function (e) {
         if (e.source !== window.parent || e.origin !== editorOrigin) return;
-        var d = e.data || {};
+        if (!e.data || typeof e.data !== 'object' || Array.isArray(e.data)) return;
+        var d = e.data;
         var shouldScroll = d.ykScroll === true;
         if (d.ykDragRules && typeof d.ykDragRules === 'object') { ykDragRules = d.ykDragRules; return; }
         if ('ykDragType' in d) { ykDragType = typeof d.ykDragType === 'string' ? d.ykDragType : ''; return; }
         if (d.ykPaletteDrag) { handlePaletteDragMessage(d.ykPaletteDrag); return; }
+        if (d.ykReplayAnimation && typeof d.ykReplayAnimation === 'object') {
+            replayAnimation(d.ykReplayAnimation);
+            return;
+        }
         if (Number.isInteger(d.ykBannerSlide)) {
             var bannerNode = null;
             if (typeof d.ykBannerPath === 'string' && /^\d+\.\d+\.\d+$/.test(d.ykBannerPath)) {
@@ -1699,7 +1713,6 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
     document.addEventListener('dragleave', function (e) {
         if (e.target === document.documentElement || e.target === document.body) hideDropLine();
     }, true);
-    var animationObserver = null;
     function contentNodes(root, selector) {
         var nodes = [];
         if (root && root.matches && root.matches(selector)) nodes.push(root);
@@ -1725,25 +1738,40 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         });
     }
     function setupAnimations(root) {
-        var animatedNodes = contentNodes(root, '[data-animate], [data-stagger]');
-        if (!animatedNodes.length) return;
-        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (reduceMotion || !('IntersectionObserver' in window)) {
-            animatedNodes.forEach(function (node) { node.classList.add('animated'); });
-            return;
-        }
-        if (!animationObserver) {
-            animationObserver = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (!entry.isIntersecting) return;
-                    entry.target.classList.add('animated');
-                    animationObserver.unobserve(entry.target);
-                });
-            }, { threshold: 0.12, rootMargin: '0px 0px -24px 0px' });
-        }
-        animatedNodes.forEach(function (node) {
-            if (!node.classList.contains('animated')) animationObserver.observe(node);
+        contentNodes(root, '[data-animate], [data-stagger], [data-aos]').forEach(function (node) {
+            node.classList.add('animated');
+            if (node.hasAttribute('data-aos')) node.classList.add('aos-animate');
+            node.classList.remove('yk-animate-pending');
         });
+    }
+    function replayAnimation(target) {
+        var host = null;
+        if (typeof target.id === 'string' && target.id.length <= 128 && target.id) {
+            host = document.querySelector('[data-yk-el-id="' + cssEscape(target.id) + '"]');
+        }
+        if (!host && typeof target.path === 'string' && /^\d+(?:\.\d+){2,8}$/.test(target.path)) {
+            host = document.querySelector('[data-yk-el="' + cssEscape(target.path) + '"]');
+        }
+        if (!host) return;
+        var node = host.matches('[data-animate]') ? host : host.querySelector('[data-animate]');
+        if (!node || typeof node.animate !== 'function') return;
+        if (node.ykEntrancePreview) node.ykEntrancePreview.cancel();
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var transforms = {
+            'fade': 'none', 'fade-up': 'translateY(40px)', 'fade-down': 'translateY(-40px)',
+            'fade-left': 'translateX(-40px)', 'fade-right': 'translateX(40px)', 'zoom-in': 'scale(0.9)'
+        };
+        var effect = node.getAttribute('data-animate');
+        if (!Object.prototype.hasOwnProperty.call(transforms, effect)) return;
+        var speed = node.getAttribute('data-animate-speed');
+        var delay = node.getAttribute('data-animate-delay');
+        var duration = speed === 'fast' ? 450 : (speed === 'slow' ? 1000 : 700);
+        var wait = delay === 'short' ? 150 : (delay === 'medium' ? 300 : (delay === 'long' ? 600 : 0));
+        node.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+        node.ykEntrancePreview = node.animate([
+            { opacity: 0, transform: transforms[effect] },
+            { opacity: 1, transform: 'none' }
+        ], { duration: duration, delay: wait, easing: 'ease', fill: 'backwards' });
     }
     function emptyActionButton(action, label, primary) {
         var b = document.createElement('button');
@@ -1773,8 +1801,8 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         // 每次预览更新先清旧卡再按需重建（删光区块要出现、插入内容要消失）。
         var exist = document.querySelector('.yk-empty-doc');
         if (exist) exist.remove();
-        if (document.querySelectorAll('[data-yk-sec]').length > 0) return;
-        var host = document.querySelector('[data-yk-area]') || document.body;
+        var host = document.querySelector('[data-yk-region="content"]') || document.querySelector('[data-yk-area]') || document.body;
+        if (host.querySelectorAll('[data-yk-sec]').length > 0) return;
         var d = document.createElement('div');
         d.className = 'yk-empty-hint yk-empty-doc';
         var p = document.createElement('p');
@@ -1833,59 +1861,25 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
     // ── r13 画布就地添加：section 边界插入轨道（VvvebJs NewSection 机制的 bridge 版）──
     // 辅助节点只存在于画布，不进保存文档；动作经 ykInsertAt postMessage 白名单出画布。
     function insertPopover(index, anchorRect) {
-        var old = document.querySelector('.yk-insert-pop');
-        if (old) old.remove();
-        var pop = document.createElement('div');
-        pop.className = 'yk-insert-pop';
-        var layouts = [[12], [6, 6], [4, 4, 4], [3, 3, 3, 3]];
-        layouts.forEach(function (spans) {
-            var b = document.createElement('button');
-            b.type = 'button';
-            b.className = 'yk-insert-pop-btn';
-            b.title = @@pea_n_columns@@.replace(':n', spans.length);
-            var bars = document.createElement('span');
-            bars.className = 'yk-insert-pop-bars';
-            spans.forEach(function () {
-                var i = document.createElement('i');
-                bars.appendChild(i);
-            });
-            b.appendChild(bars);
-            b.addEventListener('click', function (e) {
-                e.stopPropagation();
-                pop.remove();
-                postToEditor({ ykInsertAt: { index: index, kind: 'layout', spans: spans } });
-            });
-            pop.appendChild(b);
-        });
-        if (@@templates_enabled@@) {
-            var tpl = document.createElement('button');
-            tpl.type = 'button';
-            tpl.className = 'yk-insert-pop-btn yk-insert-pop-tpl';
-            tpl.textContent = @@pea_template_library@@;
-            tpl.addEventListener('click', function (e) {
-                e.stopPropagation();
-                pop.remove();
-                postToEditor({ ykInsertAt: { index: index, kind: 'templates' } });
-            });
-            pop.appendChild(tpl);
-        }
-        pop.style.left = Math.max(8, anchorRect.left + anchorRect.width / 2 - 120) + 'px';
-        pop.style.top = Math.max(8, anchorRect.top + 18) + 'px';
-        document.body.appendChild(pop);
-        setTimeout(function () {
-            document.addEventListener('click', function close() {
-                pop.remove();
-                document.removeEventListener('click', close);
-            }, { once: true });
-        }, 0);
+        postToEditor({ ykInsertAt: { index: index, kind: 'picker', anchor: {
+            x: Math.max(0, anchorRect.left + anchorRect.width / 2), y: Math.max(0, anchorRect.bottom)
+        } } });
     }
-    function makeRail(index) {
+    function makeRail(index, after) {
         var rail = document.createElement('div');
-        rail.className = 'yk-insert-rail';
+        rail.className = 'yk-insert-rail' + (after ? ' is-after' : '');
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'yk-insert-btn';
-        btn.textContent = '＋';
+        var icon = document.createElement('i');
+        icon.className = 'ti ti-plus';
+        icon.setAttribute('aria-hidden', 'true');
+        btn.appendChild(icon);
+        var label = document.createElement('span');
+        label.textContent = @@blox_insert_section@@;
+        btn.appendChild(label);
+        btn.setAttribute('aria-label', @@blox_insert_section_here@@);
+        btn.setAttribute('aria-haspopup', 'dialog');
         btn.setAttribute('data-yk-insert', String(index));
         btn.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -1901,9 +1895,10 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         secs.forEach(function (sec) {
             var i = parseInt(sec.getAttribute('data-yk-sec'), 10);
             if (isNaN(i)) return;
-            sec.appendChild(makeRail(i)); // 上缘：插到该区块之前
+            // 同级插入入口在区块外，避免被区块背景/裁切误认为内部操作。
+            if (i === 0) sec.before(makeRail(i, false));
+            sec.after(makeRail(i + 1, true));
         });
-        // 末尾常驻条：插到最后
     }
     function setupCanvasContent(root) {
         setupColumnResizers();
@@ -1940,6 +1935,8 @@ HTML;
                 'invalid' => __('blox_drop_invalid'),
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '@@pea_add_blank_section@@' => json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE),
+            '@@blox_insert_section@@' => json_encode(__('blox_insert_section'), JSON_UNESCAPED_UNICODE),
+            '@@blox_insert_section_here@@' => json_encode(__('blox_insert_section_here'), JSON_UNESCAPED_UNICODE),
             '@@pea_add_element@@' => json_encode(__('pea_add_element'), JSON_UNESCAPED_UNICODE),
             '@@pea_canvas_empty@@' => json_encode(__('pea_canvas_empty'), JSON_UNESCAPED_UNICODE),
             '@@pea_column@@' => json_encode(__('pea_column'), JSON_UNESCAPED_UNICODE),

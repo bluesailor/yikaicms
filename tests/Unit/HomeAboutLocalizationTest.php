@@ -125,7 +125,9 @@ final class HomeAboutLocalizationTest extends TestCase
         $section['columns'][0]['span'] = 7;
         $section['columns'][0]['elements'][0]['data']['text'] = 'Customer title';
         $caption = &$section['columns'][1]['elements'][0]['data']['children'][1]['data']['html'];
-        $caption = str_replace('<p class="text-white m-0">', '<p class="text-white">', $caption);
+        $caption = '<div class="bg-primary text-white rounded-lg p-6">'
+            . '<h3 class="text-xl font-bold text-white m-0">Original badge</h3>'
+            . '<p class="text-white">Original caption</p></div>';
         unset($caption);
         $before = json_encode($section);
         define('SITE_LANG', 'en');

@@ -62,22 +62,40 @@ foreach ($statPalette as $part => $fallback) {
 $statDivider = (string) config('home_stat_divider', 'inherit');
 $statDividerVisible = $statDivider === 'show' || ($statDivider !== 'hide' && $statLightDefault);
 $statVariables .= '--stat-divider-width:' . ($statDividerVisible ? '1px' : '0') . ';';
+$statLayout = (string) config('home_stat_layout', 'inherit');
+if (!in_array($statLayout, ['stacked', 'inline', 'numbers'], true)) $statLayout = 'inherit';
 ?>
 <style>
+.yk-stats-image { overflow: hidden; isolation: isolate; }
+.yk-stats-image::before { content: ''; position: absolute; inset: 0; background: inherit; pointer-events: none; z-index: -1; }
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+    .yk-stats-image::before { animation: yk-stat-image-drift 24s ease-in-out infinite alternate; }
+}
+@keyframes yk-stat-image-drift { from { transform: scale(1); } to { transform: scale(1.07); } }
 .yk-stats .stat-icon { color: var(--stat-icon); }
 .yk-stats .stat-number { color: var(--stat-number); }
 .yk-stats .stat-label { color: var(--stat-label); }
+.yk-stats-layout-stacked .stat-icon { display: block; margin: 0 0 12px; }
+.yk-stats-layout-inline .stat-item { display: grid; grid-template-columns: auto auto; justify-content: center; align-content: center; align-items: center; column-gap: 12px; }
+.yk-stats-layout-inline .stat-icon { grid-column: 1; grid-row: 1; margin: 0; font-size: 30px; }
+.yk-stats-layout-inline .stat-number { grid-column: 2; grid-row: 1; margin: 0; }
+.yk-stats-layout-inline .stat-label { grid-column: 1 / -1; margin-top: 8px; }
+.yk-stats-layout-numbers .stat-icon { display: none; }
 .yk-stats-light .stat-item { min-width: 0; padding: 8px 12px; }
 .yk-stats-light .stat-icon { display: block; font-size: 30px; margin: 0 0 12px; }
 .yk-stats-light .stat-number { line-height: 1.2; }
 .yk-stats-light .stat-label { margin-top: 8px; }
+@media (max-width: 767px) {
+    .yk-stats-layout-inherit .stat-icon { display: block; font-size: 30px; margin: 0 0 12px; }
+    .yk-stats-layout-inherit .stat-number { display: block; }
+}
 @media (min-width: 1024px) {
     .yk-stats .stat-item + .stat-item { border-left: var(--stat-divider-width) solid var(--stat-divider); }
 }
 </style>
-<section class="yk-stats py-12 <?php echo $statLightDefault ? 'yk-stats-light ' : ''; ?><?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
+<section class="yk-stats py-12 <?php echo str_contains($bg['style'], 'url(') ? 'yk-stats-image ' : ''; ?><?php echo $statLightDefault ? 'yk-stats-light ' : ''; ?><?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
-    <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>" style="<?php echo e($statVariables); ?>">
+    <div class="yk-stats-layout-<?php echo e($statLayout); ?> <?php echo $bg['container']; ?> <?php echo $bg['content']; ?>" style="<?php echo e($statVariables); ?>">
         <?php $statIconDefaults = ['award', 'users', 'briefcase', 'thumb-up']; ?>
         <div class="<?php echo e($statGridClass); ?>" data-stagger<?php echo $statGridEditAttr . $statCounterAttr; ?>>
             <?php for ($i = 1; $i <= 4; $i++):

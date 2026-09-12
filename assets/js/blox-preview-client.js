@@ -105,7 +105,8 @@
             if (!node.classList) return true;
             return !node.classList.contains("yk-pick-overlay")
                 && !node.classList.contains("yk-pick-label")
-                && !node.classList.contains("yk-drop-line");
+                && !node.classList.contains("yk-drop-line")
+                && !node.classList.contains("yk-insert-rail");
         }).map(function (node) {
             return node.outerHTML || "";
         }).join("\n");

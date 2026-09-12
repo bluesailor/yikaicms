@@ -8,17 +8,20 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../TagEngine.php';
 require_once __DIR__ . '/../UrlPolicy.php';   // AbstractElement::safeHref/cssImageUrl 的权威实现
+require_once __DIR__ . '/../HtmlPolicy.php';
 require_once __DIR__ . '/../PageHeroStyleResolver.php';
 require_once __DIR__ . '/../PageHeroDesignDraft.php';
 require_once __DIR__ . '/BloxResponsiveValue.php';
 require_once __DIR__ . '/AbstractElement.php';
 require_once __DIR__ . '/BloxHeaderStates.php';
 require_once __DIR__ . '/BloxIcon.php';
+require_once __DIR__ . '/BloxImageFraming.php';
 require_once __DIR__ . '/../BloxNavIconMatcher.php';   // 语义词典在 includes/ 顶层（非 Blox UI 文案）
 require_once __DIR__ . '/BloxPluginRegistry.php';
 require_once __DIR__ . '/BloxAssetCollector.php';
 require_once __DIR__ . '/DynamicListItemSchema.php';
 require_once __DIR__ . '/DynamicSiteData.php';
+require_once __DIR__ . '/ProductTemplateDocument.php';
 require_once __DIR__ . '/BloxQueryLoopPolicy.php';
 require_once __DIR__ . '/BloxElementPolicy.php';
 require_once __DIR__ . '/BloxDisplayConditions.php';
@@ -59,6 +62,7 @@ require_once __DIR__ . '/ChannelBloxDocument.php';
 require_once __DIR__ . '/BloxPublicationStatus.php';
 require_once __DIR__ . '/HomeAboutContent.php';
 require_once __DIR__ . '/HomeAboutLocalization.php';
+require_once __DIR__ . '/HomeFaqContent.php';
 require_once __DIR__ . '/HomeLayoutDocument.php';
 require_once __DIR__ . '/HomeBloxRenderContext.php';
 require_once __DIR__ . '/BloxFrontendEditTarget.php';

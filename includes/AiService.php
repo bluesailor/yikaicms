@@ -21,24 +21,37 @@ class AiService
     // 供应商配置表
     private const PROVIDERS = [
         // 官方中转：不需要用户自备 Key，凭本站授权码调用，额度由授权等级决定。
-        // 请求发往 update.yikaicms.com，真实上游 Key 只存在于服务端。
+        // 预留 api.yikaicms.com，真实上游 Key 只存在于服务端。
         'yikai' => [
             'name_key' => 'ai_provider_yikai_name',
             'name'     => 'YikaiCMS',
-            'base_url' => 'https://update.yikaicms.com/api/ai',
+            'base_url' => 'https://api.yikaicms.com/v1/',
             // 可用模型由服务端下发（「同步最新模型」拉取），此处不写死型号，
             // 免得客户端与服务端上游调整脱节、用户配到已下线的模型。
             'models'   => [],
             'default'  => '',
             'format'   => 'openai',
         ],
-        // 内置清单 2026-08 校准：优先滚动别名（不绑日期，最抗过期）；带日期/代次的型号
-        // 由「同步最新模型」从中心源拉取覆盖。改动后用设置页「测试连接」逐家实测。
+        // 内置推荐清单核对于 2026-09-11；旧型号仍可手工输入。
+        'custom_openai' => [
+            'name' => 'OpenAI Compatible',
+            'base_url' => '',
+            'models' => [],
+            'default' => '',
+            'format' => 'openai',
+        ],
+        'custom_anthropic' => [
+            'name' => 'Anthropic Compatible',
+            'base_url' => '',
+            'models' => [],
+            'default' => '',
+            'format' => 'anthropic',
+        ],
         'deepseek' => [
             'name'     => 'DeepSeek',
             'base_url' => 'https://api.deepseek.com/v1',
-            'models'   => ['deepseek-chat', 'deepseek-reasoner', 'deepseek-v4-flash', 'deepseek-v4-pro'],
-            'default'  => 'deepseek-chat',
+            'models'   => ['deepseek-flash'],
+            'default'  => 'deepseek-flash',
             'format'   => 'openai',
         ],
         'openai' => [
@@ -51,7 +64,7 @@ class AiService
         'claude' => [
             'name'     => 'Claude (Anthropic)',
             'base_url' => 'https://api.anthropic.com/v1',
-            'models'   => ['claude-sonnet-5', 'claude-haiku-4-5-20251001', 'claude-opus-5', 'claude-fable-5'],
+            'models'   => ['claude-sonnet-5', 'claude-haiku-4-5-20251001', 'claude-opus-5', 'claude-fable-5-1'],
             'default'  => 'claude-sonnet-5',
             'format'   => 'anthropic',
         ],
@@ -59,7 +72,7 @@ class AiService
             'name_key' => 'ai_provider_qwen_name',
             'name'     => 'Qwen',
             'base_url' => 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-            'models'   => ['qwen-plus', 'qwen-turbo', 'qwen-max', 'qwen-long'],
+            'models'   => ['qwen3.7-plus', 'qwen3.7-flash', 'qwen3.7-max', 'qwen-plus'],
             'default'  => 'qwen-plus',
             'format'   => 'openai',
         ],
@@ -67,13 +80,13 @@ class AiService
             'name_key' => 'ai_provider_zhipu_name',
             'name'     => 'Zhipu AI',
             'base_url' => 'https://open.bigmodel.cn/api/paas/v4',
-            'models'   => ['glm-4-flash', 'glm-4-plus', 'glm-4.6', 'glm-5.2'],
+            'models'   => ['glm-5.2', 'glm-5-turbo', 'glm-4.5-flash', 'glm-4-flash'],
             'default'  => 'glm-4-flash',
             'format'   => 'openai',
         ],
     ];
 
-    public function __construct(?string $provider = null, ?string $apiKey = null, ?string $model = null)
+    public function __construct(?string $provider = null, ?string $apiKey = null, ?string $model = null, ?string $baseUrl = null)
     {
         $this->provider = $provider ?: config('ai_provider', 'deepseek');
         $this->apiKey   = $apiKey ?: self::decryptKey(config('ai_api_key', ''));
@@ -84,7 +97,7 @@ class AiService
             $this->apiKey = function_exists('license_key') ? license_key() : '';
         }
         $this->model    = $model ?: config('ai_model', '');
-        $this->baseUrl  = config('ai_base_url', '');
+        $this->baseUrl  = $baseUrl ?? config('ai_base_url', '');
 
         // 使用供应商默认值
         $cfg = self::PROVIDERS[$this->provider] ?? self::PROVIDERS['openai'];
@@ -117,8 +130,8 @@ class AiService
                     ? array_values(array_filter(array_map('strval', $p['models'])))
                     : [];
                 if (isset($providers[$key])) {
-                    if ($models) $providers[$key]['models'] = $models;
-                    if (!empty($p['default']))  $providers[$key]['default'] = (string) $p['default'];
+                    if ($models) $providers[$key]['models'] = array_values(array_unique(array_merge($providers[$key]['models'], $models)));
+                    if ($providers[$key]['default'] === '' && !empty($p['default'])) $providers[$key]['default'] = (string) $p['default'];
                     if (!empty($p['name']))     $providers[$key]['name'] = (string) $p['name'];
                     if (!empty($p['base_url'])) $providers[$key]['base_url'] = (string) $p['base_url'];
                 } elseif ($models && !empty($p['base_url'])) {

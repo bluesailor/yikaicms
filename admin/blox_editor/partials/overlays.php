@@ -2,6 +2,76 @@
 
 declare(strict_types=1);
 ?>
+    <section x-show="sectionInsertOpen" x-cloak x-ref="sectionInsertPicker" :style="sectionInsertStyle"
+             @click.outside="sectionInsertOpen = false" @keydown.escape.prevent.stop="closeSectionInsert()"
+             role="dialog" aria-modal="false" aria-labelledby="blox-section-insert-title" data-testid="blox-section-insert-picker"
+             class="fixed z-[150] bg-white rounded-lg shadow-xl border border-gray-200 p-3 max-h-[calc(100vh-24px)] overflow-y-auto">
+        <header class="flex items-center justify-between gap-2">
+            <h2 id="blox-section-insert-title" class="text-sm font-semibold text-gray-900"><?= e(__('blox_insert_section')) ?></h2>
+            <button type="button" @click="closeSectionInsert()" aria-label="<?= e(__('close')) ?>" class="h-8 w-8 inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded"><i class="ti ti-x text-lg"></i></button>
+        </header>
+        <p class="text-xs text-gray-600 mb-3 break-words" x-text="sectionInsertLabel"></p>
+        <div class="grid grid-cols-3 gap-2">
+            <?php for ($insertCols = 1; $insertCols <= 6; $insertCols++): ?>
+            <button type="button" @click="chooseSectionLayout(<?= $insertCols ?>)" data-layout-choice data-testid="blox-add-section-<?= $insertCols ?>"
+                    class="h-16 min-w-0 rounded border border-gray-300 hover:border-blue-500 hover:bg-blue-50 text-gray-700 inline-flex flex-col items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500">
+                <span class="flex gap-1 w-12 h-4" aria-hidden="true"><?php for ($colBar = 0; $colBar < $insertCols; $colBar++): ?><span class="flex-1 border border-gray-400 bg-gray-100 rounded-sm"></span><?php endfor; ?></span>
+                <span class="text-xs"><?= e(__('pea_n_columns', ['n' => $insertCols])) ?></span>
+            </button>
+            <?php endfor; ?>
+        </div>
+        <?php if (bloxPageEditorEnabled()): ?>
+        <button type="button" @click="chooseSectionTemplate()" class="mt-3 w-full h-9 rounded border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center justify-center gap-2"><i class="ti ti-layout-grid" aria-hidden="true"></i><?= e(__('pea_import_template')) ?></button>
+        <?php endif; ?>
+    </section>
+    <div x-show="pageFrameOpen" x-cloak x-ref="pageFrameDialog" tabindex="-1"
+         @keydown="dialogKeydown($event, $refs.pageFrameDialog, () => closePageFrame())"
+         role="dialog" aria-modal="true" aria-labelledby="blox-page-frame-title"
+         class="fixed inset-0 z-[145] flex items-center justify-center p-4" data-testid="blox-page-frame-dialog">
+        <div class="absolute inset-0 bg-black/50" @click="closePageFrame()"></div>
+        <section class="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-xl">
+            <header class="flex items-center justify-between border-b px-4 py-3">
+                <h2 id="blox-page-frame-title" class="text-sm font-semibold text-gray-900"><?= e(__('blox_page_frame')) ?></h2>
+                <button type="button" @click="closePageFrame()" :disabled="pageUrlSaving" class="h-10 w-10 inline-flex items-center justify-center hover:bg-gray-100" aria-label="<?= e(__('close')) ?>"><i class="ti ti-x text-xl"></i></button>
+            </header>
+            <div class="space-y-3 border-b p-4">
+                <label for="blox-page-url-slug" class="block text-sm font-medium text-gray-900"><?= e(__('blox_page_url_slug')) ?></label>
+                <div class="flex flex-wrap gap-2">
+                    <input id="blox-page-url-slug" type="text" x-model="pageSlugDraft" @input="pageUrlConfirm = false; pageUrlError = ''" :disabled="pageUrlSaving" maxlength="100" spellcheck="false" autocomplete="off"
+                           aria-describedby="blox-page-url-hint blox-page-url-error" :aria-invalid="pageUrlError ? 'true' : 'false'"
+                           class="min-w-0 flex-1 border border-gray-300 rounded px-3 py-2 text-sm" data-dialog-initial data-testid="blox-page-url-slug">
+                    <button type="button" @click="savePageUrl()" :disabled="pageUrlSaving || pageUrlConfirm || pageSlugDraft === pageSlug" data-testid="blox-page-url-save"
+                            class="inline-flex items-center gap-2 border border-gray-300 rounded px-3 py-2 text-sm disabled:opacity-50"><i class="ti" :class="pageUrlSaving ? 'ti-loader-2 animate-spin' : 'ti-device-floppy'"></i><?= e(__('blox_page_url_save')) ?></button>
+                </div>
+                <p id="blox-page-url-hint" class="text-xs leading-5 text-gray-600"><?= e(__('blox_page_url_hint')) ?></p>
+                <a :href="pageUrl" x-text="pageUrl" target="_blank" rel="noopener" class="block break-all text-sm text-blue-700 underline" data-testid="blox-page-url-current"></a>
+                <p x-show="pageUrlError" x-text="pageUrlError" id="blox-page-url-error" role="alert" class="text-sm text-red-700"></p>
+                <div x-show="pageUrlConfirm" class="space-y-3 border-t pt-3" role="group" aria-label="<?= e(__('blox_page_url_save')) ?>">
+                    <p class="text-sm text-gray-900"><?= e(__('blox_page_url_confirm')) ?></p>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" @click="pageUrlConfirm = false" :disabled="pageUrlSaving" class="border rounded px-3 py-2 text-sm"><?= e(__('cancel')) ?></button>
+                        <button type="button" @click="savePageUrl(true)" :disabled="pageUrlSaving" class="border rounded px-3 py-2 text-sm font-medium" data-testid="blox-page-url-confirm"><?= e(__('confirm')) ?></button>
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-4 p-4">
+                <p class="text-sm text-gray-600"><?= e(__('blox_page_frame_scope')) ?></p>
+                <?php foreach (['header' => __('blox_page_frame_show_header'), 'footer' => __('blox_page_frame_show_footer')] as $frameArea => $frameLabel): ?>
+                <label class="flex items-center justify-between gap-4 text-sm text-gray-900">
+                    <span><?= e($frameLabel) ?></span>
+                    <input type="checkbox"
+                           :checked="!pageFrameDraft.page_<?= $frameArea ?>_hidden"
+                           @change="pageFrameDraft.page_<?= $frameArea ?>_hidden = !$event.target.checked"
+                           class="h-5 w-5" data-testid="blox-page-frame-<?= $frameArea ?>">
+                </label>
+                <?php endforeach; ?>
+            </div>
+            <footer class="flex justify-end gap-2 border-t p-4">
+                <button type="button" @click="closePageFrame()" :disabled="pageUrlSaving" class="border rounded px-4 py-2 text-sm"><?= e(__('cancel')) ?></button>
+                <button type="button" @click="applyPageFrame()" :disabled="pageUrlSaving" class="rounded bg-blue-600 text-white px-4 py-2 text-sm" data-testid="blox-page-frame-apply"><?= e(__('blox_page_frame_apply')) ?></button>
+            </footer>
+        </section>
+    </div>
     <!-- 元素、区块、列和容器共用的颜色选择器。值仍保存为 HEX 或稳定站点令牌引用。 -->
     <div x-show="colorPicker.open" x-cloak @keydown.escape.window="closeEditorColorPicker()"
          class="fixed inset-0 z-[170]" data-testid="blox-editor-color-picker-layer">
@@ -181,23 +251,23 @@ declare(strict_types=1);
                 </span>
                 <span class="min-w-0 flex-1">
                     <strong id="blox-page-hero-dialog-title" class="block text-sm font-semibold text-gray-900" x-text="pageHeroText.title"></strong>
-                    <span class="mt-0.5 block text-xs leading-5 text-gray-500" x-text="pageHeroText.description"></span>
+                    <span class="mt-0.5 block text-xs leading-5 text-gray-500" x-text="pageHero.name"></span>
                 </span>
                 <button type="button" @click="closePageHeroSettings()" :disabled="pageHeroSaving"
                         class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40"
-                        :aria-label="templateText.close" :title="templateText.close">
+                        aria-label="<?= e(__('close')) ?>" title="<?= e(__('close')) ?>">
                     <i class="ti ti-x"></i>
                 </button>
             </header>
             <div class="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
                 <label class="flex items-center justify-between gap-4 border-b border-gray-100 pb-4">
                     <span>
-                        <strong class="block text-sm font-medium text-gray-800" x-text="pageHeroText.visible"></strong>
-                        <span class="mt-1 block text-xs text-gray-500" x-text="pageHero.name"></span>
+                        <strong class="block text-sm font-medium text-gray-800"><?= e(__('blox_hero_area_visible')) ?></strong>
                     </span>
                     <input type="checkbox" x-model="pageHero.show_hero" data-dialog-initial
                            class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 </label>
+                <div x-show="pageHero.show_hero" class="space-y-4">
                 <fieldset>
                     <legend class="mb-2 text-sm font-medium text-gray-800" x-text="pageHeroText.styleSource"></legend>
                     <div class="grid grid-cols-3 gap-2">
@@ -220,12 +290,12 @@ declare(strict_types=1);
                             <span x-text="pageHeroText.modeGlobal"></span>
                         </label>
                     </div>
-                    <p class="mt-2 text-xs leading-5 text-gray-500" x-text="pageHeroModeHint()"></p>
+                    <p x-show="pageHero.style_source !== 'self'" class="mt-2 text-xs leading-5 text-gray-500" x-text="pageHeroModeHint()"></p>
                 </fieldset>
-                <div class="flex flex-wrap items-center gap-3 border-y border-gray-100 bg-gray-50 px-3 py-3" data-testid="blox-page-hero-effective-source">
+                <div class="flex flex-wrap items-center gap-3" data-testid="blox-page-hero-effective-source">
                     <span class="min-w-0 flex-1">
-                        <span class="block text-xs text-gray-500" x-text="pageHeroText.effectiveSource"></span>
-                        <strong class="mt-0.5 block text-sm font-medium text-gray-800" x-text="pageHeroEffectiveSourceLabel()"></strong>
+                        <span class="text-xs text-gray-500" x-text="pageHeroText.effectiveSource"></span>
+                        <strong class="text-xs font-medium text-gray-700" x-text="pageHeroEffectiveSourceLabel()"></strong>
                         <span x-show="pageHeroInheritancePathLabel()" class="mt-1 block break-words text-xs leading-5 text-gray-500" x-text="pageHeroInheritancePathLabel()"></span>
                     </span>
                     <button x-show="pageHero.style_source !== 'self'" type="button" @click="copyPageHeroToSelf()"
@@ -239,6 +309,7 @@ declare(strict_types=1);
                         <i class="ti ti-arrow-back-up"></i><span x-text="pageHeroText.restoreInheritance"></span>
                     </button>
                 </div>
+                <?php require __DIR__ . '/breadcrumb-settings.php'; ?>
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-xs font-medium text-gray-600" x-text="pageHeroText.previewDevice"></span>
                     <span class="inline-flex border border-gray-200 bg-gray-50 p-1" role="group" :aria-label="pageHeroText.previewDevice">
@@ -251,33 +322,40 @@ declare(strict_types=1);
                     </span>
                 </div>
                 <div class="flex justify-center overflow-hidden border border-gray-200 bg-gray-100 p-2" data-testid="blox-page-hero-style-preview">
-                    <div class="w-full overflow-hidden bg-gray-900 transition-[max-width] duration-200"
+                    <div class="w-full overflow-hidden bg-white transition-[max-width] duration-200"
                          data-testid="blox-page-hero-preview-frame"
                          :style="'max-width:' + (pageHeroPreviewDevice === 'mobile' ? '390px' : '100%')">
+                    <template x-if="pageHeroPreviewOptions().layout === 'compact'">
+                        <?php require __DIR__ . '/breadcrumb-preview.php'; ?>
+                    </template>
+                    <template x-if="pageHeroPreviewOptions().layout !== 'compact'">
                     <div class="relative bg-cover px-5 transition-[height] duration-200"
                          :class="[
-                            pageHeroPreviewHeight() === 'large' ? 'h-36' : (pageHeroPreviewHeight() === 'compact' ? 'h-20' : 'h-28'),
-                            !pageHeroPreviewBackground() && !pageHeroPreviewOptions().background_color ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900' : ''
+                            pageHeroPreviewOptions().layout === 'compact' ? 'h-12' : (pageHeroPreviewHeight() === 'large' ? 'h-36' : (pageHeroPreviewHeight() === 'compact' ? 'h-20' : 'h-28')),
+                            pageHeroPreviewOptions().layout !== 'compact' && !pageHeroPreviewBackground() && !pageHeroPreviewOptions().background_color ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900' : ''
                          ]"
                          :style="pageHeroPreviewStyle()">
-                        <div x-show="pageHeroPreviewBackground() && Number(pageHeroPreviewOptions().overlay_opacity || 0) > 0"
+                        <template x-if="pageHeroPreviewOptions().layout !== 'compact' && pageHeroPreviewBackground() && Number(pageHeroPreviewOptions().overlay_opacity || 0) > 0">
+                        <div
                              class="absolute inset-0 bg-black"
-                             :style="'opacity:' + (Number(pageHeroPreviewOptions().overlay_opacity || 0) / 100)"></div>
+                             :style="{ opacity: Number(pageHeroPreviewOptions().overlay_opacity || 0) / 100 }"></div>
+                        </template>
                         <div class="relative flex h-full min-w-0 flex-col justify-center"
-                             :class="pageHeroPreviewOptions().alignment === 'center' ? 'items-center text-center' : 'items-start text-left'">
+                             :class="pageHeroPreviewOptions().layout !== 'compact' && pageHeroPreviewOptions().alignment === 'center' ? 'items-center text-center' : 'items-start text-left'">
                             <span class="max-w-full truncate text-[10px]"
                                   :class="pageHeroPreviewTone() === 'light' ? 'text-white/65' : 'text-gray-500'"><?= e(__('breadcrumb_home')) ?> / <span x-text="pageHero.name"></span></span>
-                            <strong class="mt-1 max-w-full truncate text-base"
+                            <strong x-show="pageHeroPreviewOptions().layout !== 'compact'" class="mt-1 max-w-full truncate text-base"
                                     :class="pageHeroPreviewTone() === 'light' ? 'text-white' : 'text-gray-900'"
                                     x-text="pageHero.name"></strong>
-                            <span x-show="pageHero.description" class="mt-1 max-w-[80%] truncate text-[11px]"
+                            <span x-show="pageHeroPreviewOptions().layout !== 'compact' && pageHero.description" class="mt-1 max-w-[80%] truncate text-[11px]"
                                   :class="pageHeroPreviewTone() === 'light' ? 'text-white/75' : 'text-gray-600'"
                                   x-text="pageHero.description"></span>
                         </div>
                     </div>
+                    </template>
                     </div>
                 </div>
-                <div>
+                <div x-show="pageHeroPreviewOptions().layout !== 'compact'" data-testid="blox-page-hero-background-controls">
                     <div class="mb-2 flex items-center justify-between gap-3">
                         <label class="text-sm font-medium text-gray-800" for="blox-page-hero-bg" x-text="pageHeroText.background"></label>
                         <span class="text-xs text-gray-500">
@@ -304,7 +382,7 @@ declare(strict_types=1);
                     </div>
                     <p class="mt-2 text-xs leading-5 text-gray-500" x-show="pageHero.style_source === 'self'" x-text="pageHeroText.backgroundHint"></p>
                 </div>
-                <section class="space-y-4 border-t border-gray-100 pt-4" :class="pageHero.style_source === 'self' ? '' : 'opacity-60'">
+                <section x-show="pageHeroPreviewOptions().layout !== 'compact'" data-testid="blox-page-hero-banner-controls" class="space-y-4 border-t border-gray-100 pt-4" :class="pageHero.style_source === 'self' ? '' : 'opacity-60'">
                     <div>
                         <div class="mb-2 flex items-center justify-between gap-3">
                             <span class="text-sm font-medium text-gray-800" x-text="pageHeroText.presets"></span>
@@ -400,6 +478,7 @@ declare(strict_types=1);
                         </div>
                     </div>
                 </section>
+                </div>
             </div>
             <footer class="flex min-h-14 items-center justify-end gap-2 border-t border-gray-100 px-4 py-3">
                 <button type="button" @click="closePageHeroSettings()" :disabled="pageHeroSaving"
@@ -1158,6 +1237,17 @@ declare(strict_types=1);
                         </template>
                     </select>
                 </label>
+                <label x-show="templateEntry === 'sections' && templateDataSourceOptions().length > 1" class="relative min-w-36">
+                    <span class="sr-only" x-text="templateText.dataSource"></span>
+                    <select x-model="templateDataSource" @change="persistTemplateSectionViewState(); templateSectionScrollTop = 0"
+                            data-testid="blox-template-data-source"
+                            class="w-full h-8 border border-gray-200 rounded bg-white pl-2 pr-7 text-xs text-gray-600">
+                        <option value="all" x-text="templateText.dataSourceAll"></option>
+                        <template x-for="source in templateDataSourceOptions()" :key="source">
+                            <option :value="source" x-text="source === 'dynamic' ? templateText.dataSourceDynamic : templateText.dataSourceStatic"></option>
+                        </template>
+                    </select>
+                </label>
                 <div x-show="templateEntry === 'sections'" role="group" :aria-label="templateText.prebuiltTitle"
                      data-testid="blox-template-quick-filters"
                      class="inline-flex h-8 rounded border border-gray-200 bg-white p-0.5">
@@ -1311,6 +1401,16 @@ declare(strict_types=1);
                                             <span x-show="item.metadata && item.metadata.purpose && item.metadata.purpose !== 'general'"
                                                   class="blox-template-purpose-badge shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-500"
                                                   x-text="templatePurposeLabel(item.metadata.purpose)"></span>
+                                            <span x-show="item.metadata && item.metadata.variant && item.metadata.variant !== 'standard'"
+                                                  data-testid="blox-template-variant-badge"
+                                                  class="shrink-0 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700"
+                                                  :title="templateText.variant"
+                                                  x-text="templateVariantLabel(item.metadata.variant)"></span>
+                                            <span x-show="item.metadata && item.metadata.data_source === 'dynamic'"
+                                                  data-testid="blox-template-dynamic-badge"
+                                                  class="shrink-0 rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-700"
+                                                  :title="templateText.dynamicData"
+                                                  x-text="templateText.dynamicData"></span>
                                         </span>
                                         <span class="mt-0.5 flex min-w-0 items-center gap-1 text-[11px]"
                                               :class="item.locked ? 'text-amber-700' : 'text-gray-400'">

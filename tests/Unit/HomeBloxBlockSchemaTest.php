@@ -888,7 +888,8 @@ PHP);
         $repeater = $contract['repeaters'][0];
         $this->assertSame('help-circle', $repeater['icon']);
         $this->assertSame('text', $repeater['fields'][0]['control']);
-        $this->assertSame('textarea', $repeater['fields'][1]['control']);
+        $this->assertSame('faq_answer', $repeater['fields'][1]['control']);
+        $this->assertSame('answer_format', $repeater['fields'][1]['format_suffix']);
         $this->assertSame(
             'custom_overrides.en.0.columns.0.elements.0.data.accordion_items',
             $repeater['items_key']
@@ -997,6 +998,44 @@ PHP);
             ['question' => '怎样购买|产品？', 'answer' => '联系销售。'],
             ['question' => '提供售后吗？', 'answer' => "包含售后\n与技术支持|服务"],
         ], $result[0]['columns'][0]['elements'][0]['data']['items']);
+    }
+
+    public function testCustomAccordionRichAnswersKeepFormatThroughOverrides(): void
+    {
+        $source = [['columns' => [['elements' => [[
+            'type' => 'accordion',
+            'data' => ['items' => [
+                ['question' => 'Buy?', 'answer' => '<p><strong>Original</strong></p>', 'answer_format' => 'html'],
+                ['question' => 'Support?', 'answer' => 'Plain answer'],
+            ]],
+        ]]]]]];
+        $contract = HomeBloxBlockSchema::customEditorContract('custom:2', $source, 'en');
+        $this->assertSame('html', $contract['seeds']['custom_overrides']['en'][0]['columns'][0]['elements'][0]['data']['accordion_items'][0]['answer_format']);
+        $overrides = [
+            ['question' => 'New question?'],
+            ['answer' => '<p><strong>Included</strong> <a href="javascript:bad()">link</a></p><script>bad()</script>', 'answer_format' => 'html'],
+        ];
+        $data = ['block_type' => 'custom:2', 'custom_overrides' => ['en' => [['columns' => [['elements' => [['data' => ['accordion_items' => $overrides]]]]]]]]];
+        $normalized = HomeBloxBlockSchema::normalize($data);
+        $applied = HomeBloxBlockSchema::applyCustomOverrides($source, $normalized, 'en');
+        $items = $applied[0]['columns'][0]['elements'][0]['data']['items'];
+        $this->assertSame('html', $items[0]['answer_format']);
+        $this->assertSame('<p><strong>Original</strong></p>', $items[0]['answer']);
+        $this->assertSame('html', $items[1]['answer_format']);
+        $this->assertStringContainsString('<strong>Included</strong>', $items[1]['answer']);
+        $this->assertStringNotContainsString('javascript:', $items[1]['answer']);
+        $this->assertStringNotContainsString('<script', $items[1]['answer']);
+
+        $data['custom_overrides']['en'][0]['columns'][0]['elements'][0]['data'] = [
+            'accordion_mode' => 'custom', 'accordion_items' => array_reverse($items),
+        ];
+        $reordered = HomeBloxBlockSchema::applyCustomOverrides($source, HomeBloxBlockSchema::normalize($data), 'en');
+        $this->assertSame(array_reverse($items), $reordered[0]['columns'][0]['elements'][0]['data']['items']);
+
+        $data['custom_overrides']['en'][0]['columns'][0]['elements'][0]['data'] = ['accordion_items' => [['answer' => 'Plain replacement']]];
+        $plain = HomeBloxBlockSchema::applyCustomOverrides($source, HomeBloxBlockSchema::normalize($data), 'en');
+        $this->assertArrayNotHasKey('answer_format', $plain[0]['columns'][0]['elements'][0]['data']['items'][0]);
+        $this->assertSame($source, HomeBloxBlockSchema::applyCustomOverrides($source, $normalized, 'ja'));
     }
 
     public function testCustomAccordionStructuralOverrideCanAddDeleteAndClearItems(): void
