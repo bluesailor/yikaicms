@@ -119,7 +119,7 @@ final class BloxRemoteTemplateProvider
     }
 
     /**
-     * @return array{key:string,type:string,name:string,source:string,provider:string,sections:array<int,array<string,mixed>>}
+     * @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>}
      * @psalm-suppress UnusedParam （$context 是本地/插件/远程三类来源的统一签名；远程目录按 context 过滤需服务端先在 list.php 返回该字段，接入前保留参数不改调用方。）
      */
     public function resolve(string $slug, string $context = 'page'): array
@@ -138,6 +138,7 @@ final class BloxRemoteTemplateProvider
             'name' => $item['name'],
             'source' => 'remote',
             'provider' => self::PROVIDER,
+            'settings' => $prepared['settings'],
             'sections' => $prepared['sections'],
         ];
     }

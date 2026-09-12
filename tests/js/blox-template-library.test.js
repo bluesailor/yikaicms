@@ -34,6 +34,29 @@ global.fetch = function (url, options) {
 };
 require("../../assets/js/blox-template-library.js");
 
+test("full page imports apply only explicit page frame settings without mutating inputs", function () {
+    const current = { page_header_hidden: false, sticky: true };
+    const template = { type: "page", settings: { page_header_hidden: true, page_footer_hidden: "1", page_title_hidden: "false", sticky: false, product_template: { mode: "all" } } };
+    const before = JSON.stringify([current, template]);
+    assert.deepEqual(global.BloxTemplateLibrary.applyPageSettings(current, template, "append", true), {
+        page_header_hidden: true, page_footer_hidden: true, page_title_hidden: false, sticky: true,
+    });
+    assert.equal(JSON.stringify([current, template]), before);
+});
+
+test("section imports and non-page targets never alter page frame preferences", function () {
+    const current = { page_header_hidden: true, page_footer_hidden: true };
+    const settings = { page_header_hidden: false, page_footer_hidden: false };
+    assert.equal(global.BloxTemplateLibrary.applyPageSettings(current, { type: "section", settings }, "replace", true), current);
+    assert.equal(global.BloxTemplateLibrary.applyPageSettings(current, { type: "page", settings }, "replace", false), current);
+});
+
+test("replacing a standalone page with a legacy page restores default frame settings", function () {
+    const current = { page_header_hidden: true, page_footer_hidden: true, page_title_hidden: true, page_sidebar_hidden: true, sticky: true };
+    assert.deepEqual(global.BloxTemplateLibrary.applyPageSettings(current, { type: "page" }, "replace", true), { sticky: true });
+    assert.deepEqual(global.BloxTemplateLibrary.applyPageSettings(current, { type: "page" }, "append", true), current);
+});
+
 test("area comparison counts nested elements without changing documents", function () {
     const current = [{ columns: [{ elements: [
         { type: "container", data: { children: [{ type: "logo" }, { type: "nav" }] } },

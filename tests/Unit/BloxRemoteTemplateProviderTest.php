@@ -69,6 +69,30 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $this->assertSame('marketing', $items[0]['category']);
     }
 
+    public function testRemotePageResolvePreservesValidatedFrameSettings(): void
+    {
+        $data = json_decode($this->templateJson(), true, 512, JSON_THROW_ON_ERROR);
+        $data['type'] = 'page';
+        $data['document'] = [
+            'schema' => 1,
+            'settings' => ['page_header_hidden' => true, 'page_footer_hidden' => true, 'unknown_key' => true],
+            'sections' => $data['document'],
+        ];
+        $package = $this->package(json_encode($data, JSON_THROW_ON_ERROR));
+        $catalog = $this->catalogResponse([$this->catalogItem([
+            'type' => 'page', 'hash' => 'sha256:' . hash('sha256', $package),
+        ])]);
+        $provider = new BloxRemoteTemplateProvider(
+            static fn (string $url): string => str_contains($url, '/packages/templates/') ? $package : $catalog,
+            static fn (): bool => true,
+            'en'
+        );
+        $this->assertSame(
+            ['page_header_hidden' => true, 'page_footer_hidden' => true],
+            $provider->resolve('pricing-3col')['settings']
+        );
+    }
+
     public function testCatalogRejectsUnsafeCategoryAndFallsBackToType(): void
     {
         $catalog = $this->catalogResponse([$this->catalogItem(['category' => '<script>'])]);

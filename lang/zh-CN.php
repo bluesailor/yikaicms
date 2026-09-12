@@ -6400,6 +6400,6 @@ voltage|电压|220V',
     'blox_stats_divider_show' => '显示',
     'blox_stats_divider_hide' => '隐藏',
     'blox_builtin_restaurant_name' => '餐厅（单页版）',
-    'blox_builtin_restaurant_desc' => '浅紫色中式餐厅单页，包含菜品画廊、品牌故事、用餐服务、招牌菜单、厨师团队、预约留言与常见问题，配套五张中餐生成图片。',
+    'blox_builtin_restaurant_desc' => '自带页头、锚点导航与页脚的中式餐厅单页，导入时自动隐藏本页原有页头页脚、标题与面包屑；包含菜单、预约留言、常见问题与五张中餐生成图片。',
     'blox_builtin_restaurant_keywords' => '餐厅 中式餐馆 中餐 家宴 餐饮 美食 单页 预约 菜单 点心 restaurant Chinese dining food',
 ];

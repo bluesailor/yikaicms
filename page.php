@@ -251,7 +251,18 @@ $jsonLd = [
     'url' => $canonicalUrl,
 ];
 
+// Read only the selected publication (or authenticated draft preview), never a draft on anonymous requests.
+$isBloxPage = ($channel['type'] ?? '') === 'page' && ($content['content_type'] ?? '') === 'blocks';
+$GLOBALS['ykBloxPageFrame'] = [];
+if (($content['content_type'] ?? '') === 'blocks' && !empty($content['blocks_data'])) {
+    $pageDocument = BloxDocumentPipeline::decode((string) $content['blocks_data']);
+    $GLOBALS['ykBloxPageFrame'] = $pageDocument['settings'];
+}
+
 // 引入头部
+if ($isBloxPage && !empty($GLOBALS['ykBloxPageFrame']['page_sidebar_hidden'])) {
+    $sidebarChannels = [];
+}
 require_once theme_path('layouts/header.php');
 ?>
 

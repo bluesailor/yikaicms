@@ -6332,6 +6332,6 @@ voltage|Voltage|220V',
     'blox_stats_divider_show' => 'Show',
     'blox_stats_divider_hide' => 'Hide',
     'blox_builtin_restaurant_name' => 'Restaurant (one page)',
-    'blox_builtin_restaurant_desc' => 'A soft lavender Chinese restaurant page with a food gallery, story, services, menu, kitchen team, reservation inquiry and FAQ, including five generated Chinese dining images.',
+    'blox_builtin_restaurant_desc' => 'A Chinese restaurant page with its own header, anchor navigation and footer. Import hides the original header, footer, title and breadcrumbs for this page. Includes a menu, reservation inquiry, FAQ and five generated dining images.',
     'blox_builtin_restaurant_keywords' => 'restaurant Chinese dining food dim sum menu reservation one page',
 ];

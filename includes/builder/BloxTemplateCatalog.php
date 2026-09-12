@@ -97,7 +97,7 @@ final class BloxTemplateCatalog
         return in_array($type, self::EDITOR_TYPES, true);
     }
 
-    /** @return array{key:string,type:string,name:string,source:string,provider:string,sections:array<int,array<string,mixed>>} */
+    /** @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>} */
     public static function resolve(string $key, string $context = 'page'): array
     {
         self::assertContext($context);
@@ -119,7 +119,7 @@ final class BloxTemplateCatalog
         throw new RuntimeException(__('blox_tpl_bad_key'));
     }
 
-    /** @return array{key:string,type:string,name:string,source:string,provider:string,sections:array<int,array<string,mixed>>} */
+    /** @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>} */
     private static function resolveLocal(int $id, string $key): array
     {
         if (!db()->tableExists('blox_templates')) {
@@ -146,11 +146,12 @@ final class BloxTemplateCatalog
             'name' => (string) $row['name'],
             'source' => 'local',
             'provider' => (string) ($row['source'] ?? 'user'),
+            'settings' => $validated['settings'],
             'sections' => $processed['sections'],
         ];
     }
 
-    /** @return array{key:string,type:string,name:string,source:string,provider:string,sections:array<int,array<string,mixed>>} */
+    /** @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>} */
     private static function resolvePlugin(string $slug, string $templateKey, string $key, string $context): array
     {
         foreach (BloxPluginRegistry::templates($context) as $template) {
@@ -163,6 +164,10 @@ final class BloxTemplateCatalog
                 break;
             }
             $sections = self::providerSections($template, $type);
+            $document = $template['document'] ?? $template['data'] ?? [];
+            $settings = BloxDocumentPipeline::normalizeDocSettings(
+                $template['settings'] ?? (is_array($document) ? ($document['settings'] ?? []) : [])
+            );
             $processed = self::processFresh(
                 $sections,
                 'template_' . preg_replace('/[^a-zA-Z0-9_-]+/', '_', $slug . '_' . $templateKey)
@@ -175,6 +180,7 @@ final class BloxTemplateCatalog
                 'name' => trim((string) ($template['name'] ?? $templateKey)),
                 'source' => 'plugin',
                 'provider' => $slug,
+                'settings' => $settings,
                 'sections' => $processed['sections'],
             ];
         }
