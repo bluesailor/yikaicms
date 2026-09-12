@@ -153,6 +153,7 @@ trait HomeBloxNormalizerTrait
         foreach (['stats_number_color', 'stats_icon_color', 'stats_label_color', 'stats_divider_color'] as $key) {
             $data[$key] = AbstractElement::cssColor($data[$key] ?? null) ?? '';
         }
+        $data['stats_layout'] = in_array($data['stats_layout'] ?? '', ['stacked', 'inline', 'numbers'], true) ? $data['stats_layout'] : 'inherit';
         $data['stats_divider'] = in_array($data['stats_divider'] ?? '', ['show', 'hide'], true) ? $data['stats_divider'] : 'inherit';
         $aboutLayout = (string) ($data['override_layout'] ?? 'text_left');
         $data['override_layout'] = $aboutLayout === 'image_left' ? 'image_left' : 'text_left';

@@ -8,19 +8,12 @@ $aboutImage = (string) config('home_about_image', '/assets/images/demo/about-off
 $aboutTagTitle = config('home_about_tag_title', '');
 $aboutTagDesc = config('home_about_tag_desc', '');
 $bg = getBlockBg($block ?? [], 'bg-white');
-// 标题「关于 + 站名」：拼法由语言决定（见 homeAboutDefaultTitle()），
-// 但这里要保留「关于」主题色 + 站名本色的配色，所以按 :site 占位切开分别包 span。
+// 标题顺序由语言决定，整段文字沿用标题颜色。
 $aboutSite = trim((string) configRawLang('site_name', ''));
 if ($aboutSite === '') {
-    $aboutTitleHtml = '<span class="text-primary">' . e(__('home_about_title')) . '</span>';
+    $aboutTitleHtml = e(__('home_about_title'));
 } else {
-    $aboutParts = array_pad(explode(':site', __('home_about_title_site'), 2), 2, '');
-    $aboutTitleHtml = implode(e($aboutSite), array_map(
-        static fn (string $seg): string => trim($seg) === ''
-            ? $seg                                                        // 纯空白照原样，别把分隔丢了
-            : '<span class="text-primary">' . e($seg) . '</span>',
-        $aboutParts
-    ));
+    $aboutTitleHtml = e(str_replace(':site', $aboutSite, __('home_about_title_site')));
 }
 ?>
 <section class="py-16 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>

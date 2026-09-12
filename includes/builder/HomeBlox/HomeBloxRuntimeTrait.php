@@ -204,6 +204,7 @@ trait HomeBloxRuntimeTrait
             foreach (['number', 'icon', 'label', 'divider'] as $part) {
                 $overrides['home_stat_' . $part . '_color'] = AbstractElement::cssColor($block['stats_' . $part . '_color'] ?? null) ?? '';
             }
+            $overrides['home_stat_layout'] = in_array($block['stats_layout'] ?? '', ['stacked', 'inline', 'numbers'], true) ? $block['stats_layout'] : 'inherit';
             $overrides['home_stat_divider'] = in_array($block['stats_divider'] ?? '', ['show', 'hide'], true) ? $block['stats_divider'] : 'inherit';
             $counterEnabled = !array_key_exists('counter_enabled', $block) || !empty($block['counter_enabled']);
             $overrides['home_stat_counter_enabled'] = $counterEnabled ? '1' : '0';

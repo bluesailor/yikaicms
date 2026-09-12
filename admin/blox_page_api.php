@@ -47,6 +47,15 @@ try {
         success(BloxCatalogItems::read($targetChannel, (string) post('keyword', ''), (int) post('page', '1')));
     }
 
+    if ($action === 'save_page_url') {
+        if (!is_array($targetChannel) || ($targetChannel['type'] ?? '') !== 'page') {
+            error(__('blox_bad_request'), 400);
+        }
+        $updatedPage = channelModel()->updatePageSlug($pageId, (string) post('slug', ''), (string) post('expected_slug', ''));
+        adminLog('page', 'save_page_url', 'save page URL #' . $pageId);
+        success(['slug' => $updatedPage['slug'], 'url' => channelUrl($updatedPage)]);
+    }
+
     if ($action === 'save_page_hero') {
         $heroBgInput = trim((string) post('hero_bg', ''));
         $heroBg = $heroBgInput === '' ? '' : UrlPolicy::image($heroBgInput);

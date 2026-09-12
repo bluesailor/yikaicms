@@ -8,7 +8,7 @@ final class BloxCatalogPreview
     {
         $type = (string) ($channel['type'] ?? '');
         if (!in_array($type, ['product', 'list'], true)) {
-            return renderBlocksToHtml($json);
+            return PageTitleElement::withPage($channel, static fn(): string => renderBlocksToHtml($json));
         }
         require_once ROOT_PATH . '/controllers/list/ListRouter.php';
         // Admin query parameters must not become public sort/filter URLs or product filters.

@@ -195,6 +195,7 @@ $currentMenu = 'form';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+require ROOT_PATH . '/admin/includes/workflow_nav.php';
 
 if ($_i18nReady) {
     echo renderAdminLangSwitcher($_viewLang, __('fd_lang_hint'));
@@ -205,20 +206,10 @@ if ($_i18nReady) {
 }
 ?>
 
-<!-- Tab 导航 -->
-<?php
-$_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) : '';
-?>
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/form.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('fd_tab_data'); ?></a>
-        <a href="/admin/form_design.php<?php echo $_langQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('fd_tab_design'); ?></a>
-    </div>
-</div>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
-    <div class="p-4 flex items-center justify-between">
+    <div class="p-4 flex flex-wrap gap-3 items-center justify-between">
         <p class="text-sm text-gray-500"><?php echo __('fd_intro'); ?></p>
         <?php if ($_viewLang === $_defaultLang): ?>
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
@@ -234,7 +225,7 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
 <!-- 列表 -->
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
-        <table class="w-full">
+        <table class="w-full admin-workflow-table">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
@@ -596,4 +587,5 @@ function copyShortcode(el) {
 }
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

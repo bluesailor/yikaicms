@@ -40,6 +40,15 @@ final class SectionTemplateLibraryTest extends TestCase
             'client logo wall' => ['client-logo-wall', 'business', '服务过的客户'],
             'product comparison' => ['product-comparison', 'marketing', '选择适合的方案'],
             'download guide' => ['download-guide', 'content', '资料与下载'],
+            'split hero' => ['hero-split', 'landing', '把复杂业务'],
+            'soft feature cards' => ['feature-cards-soft', 'marketing', '让每个交付节点'],
+            'split faq' => ['faq-split', 'content', '开始合作前'],
+            'testimonial cards' => ['testimonial-grid', 'marketing', '客户如何评价'],
+            'split cta' => ['cta-split', 'marketing', '准备好开始合作了吗'],
+            'minimal logo cloud' => ['logo-cloud-minimal', 'business', '值得长期合作'],
+            'dynamic products' => ['product-grid-dynamic', 'business', '产品与解决方案'],
+            'dynamic cases' => ['case-grid-dynamic', 'business', '真实项目与交付结果'],
+            'dynamic articles' => ['article-grid-dynamic', 'content', '最新资讯'],
         ];
     }
 
@@ -91,6 +100,19 @@ final class SectionTemplateLibraryTest extends TestCase
         self::assertCount(1, $second['sections']);
         self::assertNotSame($first['sections'][0]['id'], $second['sections'][0]['id']);
 
+        $item = null;
+        foreach ($provider->items('page') as $candidate) {
+            if ($candidate['key'] === 'builtin:' . $slug) {
+                $item = $candidate;
+                break;
+            }
+        }
+        if (is_array($item) && ($item['metadata']['data_source'] ?? 'static') === 'dynamic') {
+            $serialized = (string) json_encode($prepared['sections'], JSON_UNESCAPED_UNICODE);
+            self::assertStringContainsString('list-dynamic', $serialized);
+            return;
+        }
+
         $html = BlockRenderer::render((string) json_encode(
             ['schema' => 1, 'settings' => [], 'sections' => $prepared['sections']],
             JSON_UNESCAPED_UNICODE
@@ -141,6 +163,25 @@ final class SectionTemplateLibraryTest extends TestCase
             foreach ($pageTypes as $pageType) {
                 self::assertContains($pageType, $metadata['page_types']);
             }
+        }
+    }
+
+    public function testNewLibraryVariantsExposeVisualAndDataSourceMetadata(): void
+    {
+        $provider = new BloxBuiltinTemplateProvider();
+        $items = [];
+        foreach ($provider->items('page') as $item) {
+            $items[$item['key']] = $item;
+        }
+
+        self::assertSame('split', $items['builtin:hero-split']['metadata']['variant']);
+        self::assertSame('cards', $items['builtin:feature-cards-soft']['metadata']['variant']);
+        self::assertSame('side-by-side', $items['builtin:faq-split']['metadata']['variant']);
+        foreach (['product-grid-dynamic', 'case-grid-dynamic', 'article-grid-dynamic'] as $slug) {
+            $metadata = $items['builtin:' . $slug]['metadata'];
+            self::assertSame('dynamic', $metadata['variant']);
+            self::assertSame('dynamic', $metadata['data_source']);
+            self::assertSame(['loading', 'empty', 'error'], $metadata['states']);
         }
     }
 }

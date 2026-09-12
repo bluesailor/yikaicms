@@ -31,7 +31,13 @@
                             {
                                 "type": "card",
                                 "data": {
-                                    "image": "/assets/images/demo/product-101.svg",
+                                    "image": "/assets/images/blox-templates/landing-brand-about.png",
+                                    "image_ratio": "landscape",
+                                    "image_fit": "cover",
+                                    "image_position": "right",
+                                    "card_layout": "top",
+                                    "card_surface": "border",
+                                    "card_hover": "none",
                                     "title": "研发设计",
                                     "text": "自有设计团队，可承接非标定制与结构优化。",
                                     "link": ""
@@ -44,7 +50,13 @@
                             {
                                 "type": "card",
                                 "data": {
-                                    "image": "/images/case-demo.jpg",
+                                    "image": "/assets/images/blox-templates/landing-brand-hero.png",
+                                    "image_ratio": "landscape",
+                                    "image_fit": "cover",
+                                    "image_position": "right",
+                                    "card_layout": "top",
+                                    "card_surface": "border",
+                                    "card_hover": "none",
                                     "title": "生产制造",
                                     "text": "关键工序自主可控，过程检验记录可追溯。",
                                     "link": ""
@@ -57,7 +69,13 @@
                             {
                                 "type": "card",
                                 "data": {
-                                    "image": "/images/cert-1.jpg",
+                                    "image": "/assets/images/blox-templates/landing-brand-service-calibration.png",
+                                    "image_ratio": "landscape",
+                                    "image_fit": "cover",
+                                    "image_position": "bottom",
+                                    "card_layout": "top",
+                                    "card_surface": "border",
+                                    "card_hover": "none",
                                     "title": "质量管控",
                                     "text": "出厂前逐台检测，随货提供检测报告。",
                                     "link": ""

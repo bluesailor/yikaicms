@@ -1,0 +1,24 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "FAQ split",
+    "requires": {"elements": ["heading", "divider", "accordion", "image"], "plugins": []},
+    "document": {"schema": 1, "settings": {}, "sections": [{
+        "type": "section",
+        "name": "图文问答",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "xl", "content_v_align": "center"},
+        "columns": [
+            {"elements": [{"type": "image", "data": {"src": "/assets/images/blox-templates/landing-brand-about.png", "alt": "方案沟通与项目协作", "image_ratio": "landscape", "image_fit": "cover", "image_position": "right"}}]},
+            {"elements": [
+                {"type": "heading", "data": {"text": "在开始合作前，先把关键问题说清楚", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}},
+                {"type": "divider", "data": {"style": "solid", "width": 3, "color": "#2563eb", "spacing": "sm", "line_length": "short", "line_align": "left"}},
+                {"type": "accordion", "data": {"faq_style": "soft", "open_first": true, "seo_schema": true, "items": [
+                    {"question": "可以先从一个页面开始吗？", "answer": "可以。先从首页、产品详情或联系页开始，确认结构后再扩展到整站。"},
+                    {"question": "已有内容会被覆盖吗？", "answer": "插入区块只会追加到当前草稿；发布前可以撤销，已有内容不会被自动覆盖。"},
+                    {"question": "产品和案例可以自动更新吗？", "answer": "可以使用动态列表，后台新增或修改内容后，前台按规则自动更新。"}
+                ]}}
+            ]}
+        ]
+    }]}
+}

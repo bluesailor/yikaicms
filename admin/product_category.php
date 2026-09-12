@@ -162,18 +162,10 @@ $pageTitle = __('product_tab_category');
 $currentMenu = 'product_category';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/product_nav.php';
 ?>
 
 <!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/product.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('product_tab_list'); ?></a>
-        <a href="/admin/product_category.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('product_tab_category'); ?></a>
-        <a href="/admin/product_brand.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_brand'); ?></a>
-        <a href="/admin/product_tag.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_tag'); ?></a>
-        <a href="/admin/product_setting.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('product_tab_setting'); ?></a>
-    </div>
-</div>
 
 <?php if (count($_enabledList) > 1): ?>
 <!-- 语言切换器 -->
@@ -535,4 +527,4 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
 });
 </script>
 
-<?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
+<?php adminModuleEnd(); require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

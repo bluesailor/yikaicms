@@ -161,6 +161,20 @@ test("section purposes support filtering, labels, and metadata search", function
     assert.equal(global.BloxTemplateLibrary.purposeLabel("company-intro", { purposeCompanyIntro: "Company intro" }), "Company intro");
 });
 
+test("section catalog can isolate dynamic data templates", function () {
+    const items = [
+        { key: "static:hero", type: "section", metadata: { data_source: "static" } },
+        { key: "dynamic:products", type: "section", metadata: { data_source: "dynamic" } },
+        { key: "page:about", type: "page", metadata: { data_source: "static" } },
+    ];
+
+    assert.deepEqual(global.BloxTemplateLibrary.dataSources(items), ["dynamic", "static"]);
+    assert.deepEqual(
+        global.BloxTemplateLibrary.filter(items, "", "section", "all", "all", "all", "dynamic").map((item) => item.key),
+        ["dynamic:products"]
+    );
+});
+
 test("presentation helpers keep local and remote template behavior in one module", function () {
     const items = [
         { key: "local:12", source: "local" },
@@ -269,4 +283,15 @@ test("metadata normalization gives old templates a bounded general fallback", fu
     assert.equal(old.priority, 0);
     assert.deepEqual(unsafe.page_types, ["about"]);
     assert.equal(unsafe.priority, 100);
+    assert.equal(old.variant, "standard");
+    assert.equal(old.data_source, "static");
+    assert.deepEqual(old.states, []);
+    const dynamic = global.BloxTemplateLibrary.normalizeMetadata({
+        variant: "dynamic",
+        data_source: "dynamic",
+        states: ["empty", "error", "loading", "unknown"],
+    });
+    assert.equal(dynamic.variant, "dynamic");
+    assert.equal(dynamic.data_source, "dynamic");
+    assert.deepEqual(dynamic.states, ["empty", "error", "loading"]);
 });

@@ -24,13 +24,14 @@ require_once ROOT_PATH . '/includes/member_auth.php';
 checkLogin();
 
 $isHomeLayout = (string) ($_GET['home'] ?? '') === '1';
+$isProductTemplatePreview = (string) ($_GET['product_template'] ?? '') === '1';
 $pageId = getInt('id');
 $legacyHeaderPresetSlug = trim((string) ($_GET['header_preset'] ?? ''));
 $areaPresetSlug = trim((string) ($_GET['area_preset'] ?? $legacyHeaderPresetSlug));
 $areaPresetType = $legacyHeaderPresetSlug !== '' ? 'header' : trim((string) ($_GET['template_area'] ?? ''));
 $isAreaPresetPreview = $isHomeLayout && $areaPresetSlug !== '';
 $isAreaTemplatePreview = $isHomeLayout && in_array($areaPresetType, ['header', 'footer'], true);
-if ($isAreaTemplatePreview) {
+if ($isAreaTemplatePreview || $isProductTemplatePreview) {
     requirePermission('blox_global');
 } elseif ($isHomeLayout) {
     requirePermission('blox_home');
@@ -44,9 +45,10 @@ if ($isHomeLayout) {
     }
 } elseif (!bloxPageEditorEnabled()) {
     error(__('blox_feature_disabled'));
-} elseif (!$pageId || !channelModel()->findWhere(['id' => $pageId, 'type' => 'page'])) {
+} elseif (!$isProductTemplatePreview && (!$pageId || !channelModel()->findWhere(['id' => $pageId, 'type' => 'page']))) {
     error(__('blox_page_not_found'));
 }
+if ($isProductTemplatePreview && !bloxAdvancedFeaturesEnabled()) error(__('blox_feature_disabled'));
 
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 

@@ -2,8 +2,8 @@
     "use strict";
 
     // 样式页签分组（通用背景规划第 2 轮，2026-09-02）。
-    // 控件按 schema 的 group 键归组，无 group 或未知组落「general」；分组只作用于
-    // visibleCtrls() 的通用控件循环——盒模型、可见设备等硬编码段维持常显，
+    // 控件按 schema 的 group 键归组，无 group 或未知组落「general」；
+    // 盒模型、可见设备和全局样式归入 general，搜索时仍可跨组查看。
     // 容器/Div 的专用样式块（workspace.php isSelectedContainerEl 分支)不参与。
     // 纯函数可被 node --test 直接测；Alpine 接线经 methods 混入编辑器组件
     //（先例：BloxBannerPanel / BloxHomeContentPanel）。
@@ -57,24 +57,32 @@
         styleGroups: function () {
             if (!this.selEl || this.isSelectedContainerEl()) return [];
             if (this.ctrlQuery.trim() || this.modifiedOnly) return [];
-            var present = groups(this.styleTabControls());
+            var present = groups([{ group: "general" }].concat(this.styleTabControls()));
             return present.length > 1 ? present : [];
         },
+        commonStyleVisible: function () {
+            return !this.styleGroups().length || this.effectiveStyleGroup() === "general";
+        },
+        commonStyleModified: function () {
+            var data = this.selEl && this.selEl.data || {};
+            return hasBoxValue(data) || !!data._global_style || (Array.isArray(data._hide_on) && data._hide_on.length > 0);
+        },
         setStyleGroup: function (group) { this.styleGroup = group; },
-        /** 当前生效组：styleGroup 不在本元素组列表时落到第一组（如 card 只有 背景+动画、无 常规） */
+        /** 切换元素后，失效分组回落到常规。 */
         effectiveStyleGroup: function () {
             var present = this.styleGroups();
             if (present.indexOf(this.styleGroup) !== -1) return this.styleGroup;
             return present.length ? present[0] : "general";
         },
         styleGroupDot: function (group) {
+            if (group === "general" && this.commonStyleModified()) return true;
             var self = this;
             return hasModified(group, this.styleTabControls(), function (c) { return self.isCtrlModified(c); });
         },
-        /** 样式页签有值圆点：任一样式控件被改过，或盒模型键有值 */
+        /** 样式页签圆点涵盖通用设置及 schema 控件。 */
         styleTabDot: function () {
             if (!this.selEl) return false;
-            if (hasBoxValue(this.selEl.data || {})) return true;
+            if (this.commonStyleModified()) return true;
             var self = this;
             return this.styleTabControls().some(function (c) { return self.isCtrlModified(c); });
         },

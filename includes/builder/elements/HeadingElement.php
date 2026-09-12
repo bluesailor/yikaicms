@@ -10,6 +10,8 @@ final class HeadingElement extends AbstractElement
         'h2' => ['text-2xl', 'md:text-2xl', 'lg:text-2xl'],
         'h3' => ['text-xl', 'md:text-xl', 'lg:text-xl'],
         'h4' => ['text-lg', 'md:text-lg', 'lg:text-lg'],
+        'h5' => ['text-base', 'md:text-base', 'lg:text-base'],
+        'h6' => ['text-sm', 'md:text-sm', 'lg:text-sm'],
     ];
     private const VISUAL_SIZE_MAP = [
         'sm' => ['text-base', 'md:text-base', 'lg:text-base'],
@@ -31,7 +33,7 @@ final class HeadingElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'text', 'type' => 'text', 'label' => __('blox_seed_heading'), 'default' => '', 'placeholder' => __('blox_heading_ph')],
+            ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_field_title_short'), 'default' => '', 'maxlength' => 2000, 'placeholder' => __('blox_heading_ph')],
             [
                 'key' => 'site_field', 'type' => 'select', 'label' => __('blox_dynamic_site_binding'),
                 'default' => 'none', 'options' => DynamicSiteData::fieldOptions('text'),
@@ -57,7 +59,20 @@ final class HeadingElement extends AbstractElement
                 'required' => ['loop_field', '!=', 'none'],
             ],
             ['key' => 'level', 'type' => 'select', 'label' => __('blox_ctl_level'), 'default' => 'h2',
-                'options' => ['h1' => 'H1', 'h2' => 'H2', 'h3' => 'H3', 'h4' => 'H4']],
+                'options' => ['h1' => 'H1', 'h2' => 'H2', 'h3' => 'H3', 'h4' => 'H4', 'h5' => 'H5', 'h6' => 'H6']],
+            ['key' => 'url', 'type' => 'url', 'label' => __('blox_ctl_link'), 'default' => '', 'placeholder' => __('blox_ctl_link_ph')],
+            ['key' => 'new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab'), 'default' => false],
+            ['key' => 'site_url_field', 'type' => 'select', 'label' => __('blox_dynamic_site_url_binding'),
+                'default' => 'none', 'options' => DynamicSiteData::fieldOptions('url'), 'outside_loop_only' => true],
+            ['key' => 'loop_url_field', 'type' => 'select', 'label' => __('blox_loop_button_url_binding'),
+                'default' => 'none', 'loop_only' => true,
+                'options' => ['none' => __('blox_dynamic_field_none')] + DynamicListItemSchema::fieldOptions('link', 'content'),
+                'source_options' => [
+                    'content' => ['none' => __('blox_dynamic_field_none')] + DynamicListItemSchema::fieldOptions('link', 'content'),
+                    'product' => ['none' => __('blox_dynamic_field_none')] + DynamicListItemSchema::fieldOptions('link', 'product'),
+                ]],
+            ['key' => 'html_id', 'type' => 'text', 'label' => __('blox_heading_anchor'), 'default' => '', 'maxlength' => 64,
+                'outside_loop_only' => true, 'placeholder' => 'services'],
             ['key' => 'visual_size', 'type' => 'select', 'label' => __('blox_font_size'), 'default' => 'auto',
                 'tab' => 'style', 'responsive' => true,
                 'options' => [
@@ -66,15 +81,16 @@ final class HeadingElement extends AbstractElement
                     '4xl' => '48px', '5xl' => '60px', '6xl' => '72px', 'display' => '96px',
                 ]],
             ['key' => 'color', 'type' => 'color', 'label' => __('blox_text_color'), 'default' => '', 'tab' => 'style'],
-            ['key' => 'align', 'type' => 'select', 'label' => __('blox_align'), 'default' => 'left',
-                'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')]],
+            ['key' => 'align', 'type' => 'select', 'label' => __('blox_align'), 'default' => 'left', 'tab' => 'style',
+                'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')],
+                'option_icons' => ['left' => 'align-left', 'center' => 'align-center', 'right' => 'align-right']],
             ...$this->animationControls(),
         ];
     }
 
     public function render(array $data, string $children = ''): string
     {
-        $level = in_array($data['level'] ?? '', ['h1', 'h2', 'h3', 'h4']) ? $data['level'] : 'h2';
+        $level = in_array($data['level'] ?? '', ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'], true) ? $data['level'] : 'h2';
         $sizeMap = ['auto' => self::LEVEL_SIZE_MAP[$level]] + self::VISUAL_SIZE_MAP;
         $size = $this->resp($data['visual_size'] ?? 'auto', $sizeMap, 'auto');
         $align = in_array($data['align'] ?? '', ['left', 'center', 'right'], true) ? $data['align'] : 'left';
@@ -86,7 +102,18 @@ final class HeadingElement extends AbstractElement
         }
         $color = self::cssColor($data['color'] ?? null);
         $style = $color !== null ? ' style="color:' . htmlspecialchars($color, ENT_QUOTES) . ';"' : '';
-        return '<' . $level . ' class="' . $size . ' font-bold mb-4' . $alignCls . '"' . $style
-            . $this->animationAttrs($data) . '>' . htmlspecialchars($text) . '</' . $level . '>';
+        $id = BloxDocumentPipeline::normalizeSectionAnchorId($data['html_id'] ?? '');
+        $idAttr = $id !== '' ? ' id="' . htmlspecialchars($id, ENT_QUOTES) . '"' : '';
+        $rawUrl = (string) ($data['url'] ?? '');
+        $siteUrlField = (string) ($data['site_url_field'] ?? 'none');
+        if ($siteUrlField !== 'none') $rawUrl = DynamicSiteData::value($siteUrlField, 'url');
+        $url = self::safeHref($rawUrl);
+        $text = str_replace(["\r\n", "\r", "\n"], '<br>', htmlspecialchars($text));
+        if ($url !== '') {
+            $target = BloxValueSanitizer::truthy($data['new_tab'] ?? false) ? ' target="_blank" rel="noopener noreferrer"' : '';
+            $text = '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '" class="yk-heading-link"' . $target . '>' . $text . '</a>';
+        }
+        return '<' . $level . ' class="' . $size . ' font-bold mb-4' . $alignCls . ($id !== '' ? ' yk-blox-anchor' : '') . '"' . $style
+            . $idAttr . $this->animationAttrs($data) . '>' . $text . '</' . $level . '>';
     }
 }

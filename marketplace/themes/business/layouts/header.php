@@ -109,6 +109,7 @@ function getChannelUrl(array $channel): string {
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
 
+    <?php if (empty($GLOBALS['ykBloxPageFrame']['page_header_hidden'])): ?>
     <!-- Navigation bar -->
     <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
     <?php if ($ykBloxHeader !== ''): ?>
@@ -191,6 +192,7 @@ function getChannelUrl(array $channel): string {
             </div>
         </nav>
     </header>
+    <?php endif; ?>
     <?php endif; ?>
 
     <?php do_action('ik_header_after'); ?>

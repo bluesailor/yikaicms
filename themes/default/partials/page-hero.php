@@ -17,6 +17,14 @@ $heroStyle = PageHeroStyleResolver::resolve($channel);
 $heroBg = UrlPolicy::image($heroStyle['background']);
 $heroBgCss = UrlPolicy::cssImageLiteral($heroBg);
 $heroOptions = $heroStyle['options'];
+if (($heroOptions['layout'] ?? 'banner') === 'compact') {
+    if (!empty($GLOBALS['ykBloxPageFrame']['page_breadcrumb_hidden'])) return;
+    echo '<div class="yk-breadcrumb-bar" data-style="' . e($heroOptions['breadcrumb_style']) . '" data-spacing="' . e($heroOptions['breadcrumb_spacing']) . '" data-tone="' . e($heroOptions['breadcrumb_tone']) . '"><div class="yk-breadcrumb-inner">';
+    $style = 'compact';
+    require theme_path('partials/breadcrumb.php');
+    echo '</div></div>';
+    return;
+}
 $heroBgColor = $heroOptions['background_color'];
 $heroHeightClass = PageHeroStyleResolver::heightClasses($heroOptions);
 $heroCentered = $heroOptions['alignment'] === 'center';
@@ -51,7 +59,9 @@ if ($heroLegacyGradient) {
     <?php endif; ?>
     <div class="container mx-auto px-4 relative">
         <!-- breadcrumb navigation -->
-        <?php $style = $heroTone === 'light' ? 'light' : 'default'; require theme_path('partials/breadcrumb.php'); ?>
+        <?php if (empty($GLOBALS['ykBloxPageFrame']['page_breadcrumb_hidden'])): ?>
+        <?php $style = $heroTone === 'light' ? 'light' : 'dark'; require theme_path('partials/breadcrumb.php'); ?>
+        <?php endif; ?>
         <div class="<?php echo $heroCentered ? 'text-center' : 'text-left'; ?>">
             <h1 class="text-4xl md:text-5xl font-bold mb-4 <?php echo $heroTone === 'light' ? 'text-white' : 'text-gray-900'; ?>"><?php echo e($channel['name']); ?></h1>
             <?php if ($channel['description']): ?>

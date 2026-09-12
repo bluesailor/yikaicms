@@ -84,7 +84,7 @@ final class PageHeroCustomizationTest extends TestCase
         }
     }
 
-    public function testBloxCanvasShowsAndEditsTheSystemPageHeroWithoutTouchingDocumentData(): void
+    public function testCatalogCanvasKeepsSystemHeroButBloxPagesOwnTheirTitleContent(): void
     {
         $canvas = $this->source('includes/builder/BloxCanvasPreview.php');
         $editor = $this->source('admin/blox_editor.php')
@@ -92,6 +92,9 @@ final class PageHeroCustomizationTest extends TestCase
         $api = $this->source('admin/blox_page_api.php');
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
 
+        $this->assertStringContainsString("if (!\$isHomeLayout && is_array(\$pageRow) && \$pageType !== 'page')", $canvas);
+        $this->assertStringContainsString("if (!\$isBloxPage) require theme_path('partials/page-hero.php');", $this->source('page.php'));
+        $this->assertStringNotContainsString('data-testid="blox-page-frame-hero"', $editor);
         $this->assertStringContainsString('data-yk-page-hero', $canvas);
         $this->assertStringContainsString('PageHeroStyleResolver::resolve($pageRow)', $canvas);
         $this->assertStringContainsString("require theme_path('partials/page-hero.php');", $canvas);

@@ -25,6 +25,9 @@ checkLogin();
 $isHomeBlox = (string) ($_GET['home'] ?? '') === '1';
 $id = getInt('id');
 $templateId = getInt('template'); // 模板模式：编辑 blox_templates 草稿（section/page/header/footer/popup）
+$productPreviewItems = [];
+$productPreviewId = 0;
+$productPreviewLanguage = '';
 if ($isHomeBlox) {
     requirePermission('blox_home');
 } elseif ($templateId < 1) {
@@ -84,6 +87,7 @@ $isCurrentThemeHeaderEdit = false;
 $templateStoredDraft = '';
 $publishedDocumentSource = '[]';
 $initialPreviewContext = 'home';
+$areaFrontPreviewUrl = null;
 $areaPresetDocuments = []; // 页头编辑器直接使用的随包预置，不依赖数据库安装状态
 $areaEditorLanguage = '';
 $areaEditorLanguageLabel = '';
@@ -276,18 +280,26 @@ if ($isHomeBlox) {
         $previewEndpoint = '/admin/blox_preview.php?home=1&template_area=' . $templateType
             . '&_lang=' . rawurlencode($areaEditorLanguage);
         $areaPresetDocuments = BloxAreaTemplatePresets::editorCatalog($templateType);
-        $requestedPreviewContext = trim((string) get('preview_context', ''));
-        if (preg_match('/^(channel|page):(\d+)$/', $requestedPreviewContext, $contextMatch)) {
-            $contextRow = channelModel()->find((int) $contextMatch[2]);
-            $contextType = (string) ($contextRow['type'] ?? '');
-            if ($contextRow !== null && $contextType !== 'redirect') {
-                $initialPreviewContext = $requestedPreviewContext;
-            }
-        }
+        $areaPreviewTarget = BloxAreaEditorTarget::frontPreviewTarget($_GET['preview_context'] ?? '', $areaEditorLanguage);
+        $initialPreviewContext = $areaPreviewTarget['context'];
+        $areaFrontPreviewUrl = $areaPreviewTarget['url'];
     } else {
         // section/page 模板：纯段落预览，借沙盒页通道
         $sandbox = channelModel()->findWhere(['slug' => 'blox-sandbox', 'type' => 'page']);
         $previewEndpoint = '/admin/blox_preview.php?id=' . (int) ($sandbox['id'] ?? 0);
+    }
+    if ($templateType === 'product-detail') {
+        $languages = availableLanguages();
+        $storedScope = BloxDocumentPipeline::decode($initBlocks)['settings']['product_template'] ?? [];
+        $requestedLanguage = get('product_lang', (string) ($storedScope['lang'] ?? config('site_lang', 'zh-CN')));
+        $productPreviewLanguage = is_string($requestedLanguage) && isset($languages[$requestedLanguage])
+            ? $requestedLanguage : (string) config('site_lang', 'zh-CN');
+        $productPreviewItems = array_values(array_filter(
+            productModel()->getList(0, 100, 0, ['lang' => $productPreviewLanguage]),
+            static fn(array $row): bool => ($row['lang'] ?? '') === $productPreviewLanguage
+        ));
+        $productPreviewId = (int) ($productPreviewItems[0]['id'] ?? 0);
+        $previewEndpoint = '/admin/blox_preview.php?product_template=1&_lang=' . rawurlencode($productPreviewLanguage);
     }
 } else {
     $page = channelModel()->find($id);
@@ -533,6 +545,12 @@ if ($isContactBlox) {
 }
 $recoveryKey = 'yikai:blox-recovery:v1:' . (int) ($_SESSION['admin_id'] ?? 0) . ':' . $documentIdentity;
 $docSettings = $bootDoc['settings'];
+if ($templateId && $templateType === 'product-detail') {
+    $docSettings['product_template'] = ProductTemplateDocument::normalizeScope($docSettings['product_template'] ?? null);
+    if (!isset(availableLanguages()[$docSettings['product_template']['lang']])) {
+        $docSettings['product_template']['lang'] = $productPreviewLanguage;
+    }
+}
 $headerPresetSiteData = [
     'logo' => SiteAsset::availableUrl((string) configRawLang('site_logo', '')) !== '',
     'navigation' => getDefaultNavigation() !== [],
@@ -602,6 +620,10 @@ $registryContext = $isHomeBlox
     ? 'home'
     : ($isContentListBlox ? 'content-list' : ($isProductBlox ? 'product' : ($isContactBlox ? 'contact' : 'page')));
 $registryMeta = BuilderRegistry::meta($registryContext);
+if ($templateId && $templateType === 'product-detail') {
+    $registryMeta = BuilderRegistry::meta('product-detail');
+}
+$registryMeta['page-title']['paletteVisible'] = !$isHomeBlox && !$templateId && ($pageType ?? '') === 'page';
 // code 元素 = 前台任意 HTML/脚本输出，独立 blox_code 权限（默认仅超管）。
 // 这里只是藏 UI；真正的闸在 BloxElementPolicy（保存管线按会话能力拒绝提交）。
 if (!hasPermission('blox_code') && isset($registryMeta['code'])) {
@@ -788,11 +810,14 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
     <script src="/assets/js/blox-multi-select.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-select.js') ?>"></script>
     <script src="/assets/js/blox-multi-actions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-actions.js') ?>"></script>
+    <script src="/assets/js/blox-page-settings.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-page-settings.js') ?>"></script>
+    <script src="/assets/js/blox-section-insert.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-section-insert.js') ?>"></script>
     <script src="/assets/js/blox-multi-properties.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-properties.js') ?>"></script>
     <script src="/assets/js/blox-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-icon-utils.js') ?>"></script>
     <script src="/assets/js/blox-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-field-store.js') ?>"></script>
     <?php // 系统富文本编辑器（richtext 控件的「可视化编辑」弹窗用；按需 init） ?>
     <script src="/assets/tinymce/tinymce.min.js"></script>
+    <script src="/assets/js/blox-compact-richtext.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-compact-richtext.js') ?>"></script>
     <style>
         html, body { height: 100%; margin: 0; overflow: hidden; }
         [x-cloak] { display: none !important; }
@@ -1155,6 +1180,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             csrf: "<?php echo csrfToken(); ?>",
             endpoint: "<?php echo $saveEndpoint; ?>",
             previewEndpoint: "<?php echo $previewEndpoint; ?>",
+            productTemplateMode: <?= $templateId && $templateType === 'product-detail' ? 'true' : 'false' ?>,
+            productPreviewId: <?= $productPreviewId ?>,
             previewContext: <?php echo json_encode($initialPreviewContext, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             areaLanguage: <?php echo json_encode($areaEditorLanguage, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             ctxHit: null,
@@ -1633,6 +1660,19 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'purposeContact' => __('blox_template_purpose_contact'),
                 'purposeTestimonials' => __('blox_template_purpose_testimonials'),
                 'purposeContent' => __('blox_template_purpose_content'),
+                'variant' => __('blox_template_variant'),
+                'variantStandard' => __('blox_template_variant_standard'),
+                'variantSplit' => __('blox_template_variant_split'),
+                'variantCentered' => __('blox_template_variant_centered'),
+                'variantCards' => __('blox_template_variant_cards'),
+                'variantSideBySide' => __('blox_template_variant_side_by_side'),
+                'variantMinimal' => __('blox_template_variant_minimal'),
+                'variantDynamic' => __('blox_template_variant_dynamic'),
+                'dynamicData' => __('blox_template_data_dynamic'),
+                'dataSource' => __('blox_template_data_source'),
+                'dataSourceAll' => __('blox_template_data_source_all'),
+                'dataSourceStatic' => __('blox_template_data_source_static'),
+                'dataSourceDynamic' => __('blox_template_data_source_dynamic'),
                 'resultCount' => __('blox_template_result_count'),
                 'localLibrary' => __('blox_template_tab_local'),
                 'remoteLibrary' => __('blox_template_tab_remote'),
@@ -2264,6 +2304,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             templateFilter: "all",
             templateCategory: "all",
             templatePurpose: "all",
+            templateDataSource: "all",
             templateQuickFilter: "recommended",
             templatePageIntent: <?php echo json_encode($templatePageIntent, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             templateDensity: "standard",
@@ -2802,7 +2843,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                     this.templateFilter,
                     "all",
                     this.templateCategory,
-                    this.templatePurpose
+                    this.templatePurpose,
+                    this.templateDataSource
                 );
                 if (this.templateEntry !== "sections") return items;
                 var self = this;
@@ -2852,6 +2894,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (this.templateQuickFilter === "recent") return "recent";
                     if (this.templateCategory !== "all") return "category";
                     if (this.templatePurpose !== "all") return "category";
+                    if (this.templateDataSource !== "all") return "category";
                 }
                 return this.templateScope === "remote" ? "remote" : "local";
             },
@@ -2883,6 +2926,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     String(this.templateQuery || "").trim() !== ""
                     || this.templateCategory !== "all"
                     || this.templatePurpose !== "all"
+                    || this.templateDataSource !== "all"
                     || !["recommended", "all"].includes(this.templateQuickFilter)
                 );
             },
@@ -2892,6 +2936,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.templateQuery = "";
                 this.templateCategory = "all";
                 this.templatePurpose = "all";
+                this.templateDataSource = "all";
                 this.templateQuickFilter = this.templateQuickCount("recommended") > 0 ? "recommended" : "all";
                 var scroller = this.$refs.templateScroll;
                 if (scroller) scroller.scrollTop = 0;
@@ -2916,8 +2961,24 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return window.BloxTemplateLibrary.purposes(this.templateEntryItems());
             },
 
+            templateDataSourceOptions() {
+                var available = window.BloxTemplateLibrary.dataSources(this.templateEntryItems());
+                // 静态/动态是区块目录的稳定契约；目录异步加载或旧缓存期间也要保留筛选入口。
+                return ["static", "dynamic"].filter(function (value) {
+                    return available.indexOf(value) !== -1 || value === "static" || value === "dynamic";
+                });
+            },
+
             templatePurposeLabel(purpose) {
                 return window.BloxTemplateLibrary.purposeLabel(purpose, this.templateText);
+            },
+
+            templateVariantLabel(variant) {
+                var value = String(variant || "standard").trim().toLowerCase();
+                var key = "variant" + value.split("-").map(function (part) {
+                    return part.charAt(0).toUpperCase() + part.slice(1);
+                }).join("");
+                return this.templateText[key] || value;
             },
 
             restoreTemplateSectionViewState() {
@@ -2933,6 +2994,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                     : "all";
                 this.templatePurpose = typeof state.purpose === "string" && /^[a-z0-9_-]{1,80}$/i.test(state.purpose)
                     ? state.purpose
+                    : "all";
+                this.templateDataSource = ["all", "static", "dynamic"].indexOf(state.dataSource) !== -1
+                    ? state.dataSource
                     : "all";
                 this.templateQuickFilter = ["recommended", "all", "favorites", "recent"].indexOf(state.quickFilter) !== -1
                     ? state.quickFilter
@@ -2953,6 +3017,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (this.templatePurpose !== "all"
                     && this.templatePurposeOptions().indexOf(this.templatePurpose) === -1) {
                     this.templatePurpose = "all";
+                    this.templateSectionScrollTop = 0;
+                }
+                if (this.templateDataSource !== "all"
+                    && this.templateDataSourceOptions().indexOf(this.templateDataSource) === -1) {
+                    this.templateDataSource = "all";
                     this.templateSectionScrollTop = 0;
                 }
                 if (this.templateQuickFilter === "recommended" && this.templateQuickCount("recommended") === 0) {
@@ -2982,6 +3051,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                         scope: this.templateScope === "remote" ? "remote" : "local",
                         category: this.templateCategory,
                         purpose: this.templatePurpose,
+                        dataSource: this.templateDataSource,
                         quickFilter: this.templateQuickFilter,
                         query: String(this.templateQuery || "").slice(0, 120),
                         scrollTop: this.templateSectionScrollTop,
@@ -3342,7 +3412,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             mediaUploading: false,
 
-            // ── 富文本弹窗（系统 TinyMCE，按需初始化一次，多控件共用） ──
+            // Rich-text dialogs own their TinyMCE instance and detached popups.
             rteOpen: false,
             _rteTarget: null,
             _rteInited: false,
@@ -3354,6 +3424,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var initial = getter() || "";
                 var self = this;
                 this.$nextTick(function () {
+                    if (!self.rteOpen) return;
                     if (self._rteInited) {
                         var ed = tinymce.get("bloxRte");
                         if (ed) ed.setContent(initial);
@@ -3364,6 +3435,12 @@ $canManageBloxDesign = hasPermission('blox_global');
                         selector: "#bloxRte",
                         language: (document.documentElement.lang || "zh-CN") === "ja" ? "ja" : "zh_CN",
                         height: 420,
+                        formats: {
+                            alignleft: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-left" },
+                            aligncenter: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-center" },
+                            alignright: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-right" }
+                        },
+                        content_style: ".text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}",
                         menubar: false,
                         plugins: "autolink lists link image charmap searchreplace visualblocks code codesample insertdatetime media table wordcount",
                         toolbar: "undo redo | styles fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link image media codesample | table | removeformat code",
@@ -3380,13 +3457,16 @@ $canManageBloxDesign = hasPermission('blox_global');
                                     .catch(function () { reject(self.uiText.uploadFailedShort); });
                             });
                         },
-                        // 图片对话框的「浏览」→ blox 自己的媒体库弹窗（z-index 已压在 TinyMCE 之上）
+                        // Reuse the editor media library.
                         file_picker_types: "image",
                         file_picker_callback: function (cb, value, meta) {
                             if (meta.filetype === "image") self.openMedia(function (u) { cb(u, { alt: "" }); });
                         },
                         setup: function (ed) {
-                            ed.on("init", function () { ed.setContent(initial); });
+                            ed.on("init", function () {
+                                if (!self.rteOpen) { ed.remove(); return; }
+                                ed.setContent(initial);
+                            });
                         }
                     });
                 });
@@ -3395,6 +3475,9 @@ $canManageBloxDesign = hasPermission('blox_global');
             closeRte() {
                 if (!this.rteOpen) return;
                 var root = this.$refs.rteDialog;
+                var editor = window.tinymce && tinymce.get("bloxRte");
+                if (editor) editor.remove();
+                this._rteInited = false;
                 this.rteOpen = false;
                 this._rteTarget = null;
                 this.releaseDialog(root);
@@ -4465,7 +4548,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (Object.prototype.hasOwnProperty.call(previous, "menu_group")) {
                         next.menu_group = previous.menu_group;
                     }
-                    ["_conditions", "_global_style", "_global_style_snapshot", "animation", "animation_speed", "animation_delay"].forEach(function (key) {
+                    ["_conditions", "_global_style", "_global_style_snapshot", "animation", "animation_trigger", "animation_speed", "animation_delay"].forEach(function (key) {
                         if (!Object.prototype.hasOwnProperty.call(previous, key)) return;
                         var value = previous[key];
                         next[key] = value && typeof value === "object"
@@ -4494,12 +4577,56 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             /** 元素设置的可见控件：页签归属（color→样式，其余→内容）+ 搜索 + 只看已修改 */
+            headingPanelVisible() {
+                return this.selEl && this.selEl.type === "heading" && this.panelTab === "content"
+                    && !this.ctrlQuery.trim() && !this.modifiedOnly;
+            },
+
+            headingControl(key) {
+                return (this.elSchema("heading").controls || []).find(function (control) { return control.key === key; }) || {};
+            },
+
+            headingBindingKey(slot) {
+                if (slot === "url") return this.isLoopTemplateChild() ? "loop_url_field" : "site_url_field";
+                return this.isLoopTemplateChild() ? "loop_field" : "site_field";
+            },
+
+            headingBound(slot) {
+                var value = this.controlValue(this.headingControl(this.headingBindingKey(slot)));
+                return !!value && value !== "none";
+            },
+
+            headingBindingLabel(slot) {
+                var control = this.headingControl(this.headingBindingKey(slot));
+                return this.controlOptions(control)[this.controlValue(control)] || "";
+            },
+
+            headingIdDuplicate() {
+                var selected = this.selEl;
+                var id = String(selected && selected.data.html_id || "").trim().replace(/^#/, "").toLowerCase();
+                if (!id) return false;
+                var count = 0;
+                function visit(elements) {
+                    (elements || []).forEach(function (element) {
+                        var data = element.data || {};
+                        if (element.type === "heading" && String(data.html_id || "").trim().replace(/^#/, "").toLowerCase() === id) count++;
+                        if (element.type !== "list-dynamic") visit(data.children);
+                    });
+                }
+                this.sections.forEach(function (section) {
+                    if (String(section.settings && section.settings.anchor_id || "").trim().replace(/^#/, "").toLowerCase() === id) count++;
+                    (section.columns || []).forEach(function (column) { visit(column.elements); });
+                });
+                return count > 1;
+            },
+
             visibleCtrls() {
                 if (!this.selEl) return [];
                 if (this.panelTab === "condition") return [];
                 var self = this;
                 var q = this.ctrlQuery.trim().toLowerCase();
                 var controls = (this.elSchema(this.selEl.type).controls || []).filter(function (c) {
+                    if (c.editor_hidden) return false;
                     // 页签归属：控件可在 schema 里显式标 tab（如容器的布局控件全在样式页）；
                     // 未标注的按类型推断——color 归样式，其余归内容
                     var tab = window.BloxHomeContentPanel.tabFor(self.selEl, c);
@@ -4525,6 +4652,12 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
                 // 样式页签分组（第 2 轮）：styleGroups() 为空即不启用（搜索/只看已修改/容器专用块/组数≤1）
                 return window.BloxStyleGroups.filter(controls, this.effectiveStyleGroup(), this.panelTab !== "style" || this.styleGroups().length === 0);
+            },
+
+            controlSectionStart(ctrl, index) {
+                if (!ctrl || !ctrl.section) return false;
+                var controls = this.visibleCtrls();
+                return index === 0 || !controls[index - 1] || controls[index - 1].section !== ctrl.section;
             },
 
             controlRequirementMet(ctrl) {
@@ -4560,6 +4693,18 @@ $canManageBloxDesign = hasPermission('blox_global');
                     }
                 }
                 return options;
+            },
+
+            buttonStylePreviewStyle(value) {
+                var styles = {
+                    primary: 'background:#2563eb;color:#fff;border-color:#2563eb;',
+                    dark: 'background:#111827;color:#fff;border-color:#111827;',
+                    outline: 'background:#fff;color:#1f2937;border-color:#9ca3af;',
+                    soft: 'background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;',
+                    ghost: 'background:transparent;color:#4b5563;border-color:transparent;',
+                    link: 'background:transparent;color:#2563eb;border-color:transparent;text-decoration:underline;text-underline-offset:2px;'
+                };
+                return styles[String(value)] || styles.primary;
             },
 
             normalizeSourceControls() {
@@ -4734,10 +4879,28 @@ $canManageBloxDesign = hasPermission('blox_global');
                 );
             },
 
+            accordionEditRevision: 0,
+            accordionAnswerKey(index) {
+                return (this.selEl ? this.selEl.id : "") + ":" + this.accordionEditRevision + ":" + index;
+            },
+            accordionAnswer(index) {
+                var item = this.accordionItems()[index];
+                if (!this.selEl || !item) return { id: null };
+                return { id: this.accordionAnswerKey(index), text: item.answer, format: item.answer_format, allowLinks: true };
+            },
+            setAccordionAnswer(index, text, format) {
+                var items = this.accordionItems();
+                if (!Number.isInteger(index) || !items[index]) return;
+                items[index].answer = String(text ?? "");
+                if (format === "html") items[index].answer_format = "html";
+                else delete items[index].answer_format;
+                this.storeAccordionItems(items);
+            },
+
             accordionItems(el) {
                 var node = el || this.selEl;
-                if (!node || node.type !== "accordion") return [];
-                var control = (this.elSchema("accordion").controls || []).find(function (item) {
+                if (!node || !["accordion", "tabs"].includes(node.type)) return [];
+                var control = (this.elSchema(node.type).controls || []).find(function (item) {
                     return item.key === "items";
                 }) || {};
                 var data = node.data && typeof node.data === "object" ? node.data : {};
@@ -4746,8 +4909,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             storeAccordionItems(items) {
-                if (!this.selEl || this.selEl.type !== "accordion") return;
-                var control = (this.elSchema("accordion").controls || []).find(function (item) {
+                if (!this.selEl || !["accordion", "tabs"].includes(this.selEl.type)) return;
+                var control = (this.elSchema(this.selEl.type).controls || []).find(function (item) {
                     return item.key === "items";
                 }) || {};
                 this.selEl.data = this.selEl.data && typeof this.selEl.data === "object" ? this.selEl.data : {};
@@ -4766,19 +4929,20 @@ $canManageBloxDesign = hasPermission('blox_global');
             addAccordionItem() {
                 var items = this.accordionItems();
                 var max = 30;
-                var control = (this.elSchema("accordion").controls || []).find(function (item) {
+                var control = (this.elSchema(this.selEl ? this.selEl.type : "accordion").controls || []).find(function (item) {
                     return item.key === "items";
                 });
                 if (control) max = Math.max(1, Math.min(30, Number(control.max) || 30));
                 if (items.length >= max) {
-                    this.toast(String(this.homeDynamicText.faqLimit || "").replace(":n", String(max)), "error");
+                    this.toast(control && control.limit_label || String(this.homeDynamicText.faqLimit || "").replace(":n", String(max)), "error");
                     return;
                 }
                 this.flushHistory(true);
                 items.push({
-                    question: this.homeDynamicText.faqNewQuestion,
-                    answer: this.homeDynamicText.faqNewAnswer,
+                    question: control && control.new_title || this.homeDynamicText.faqNewQuestion,
+                    answer: control && control.new_body || this.homeDynamicText.faqNewAnswer,
                 });
+                this.accordionEditRevision++;
                 this.storeAccordionItems(items);
                 this.highlightCanvasSelection(false);
             },
@@ -4789,6 +4953,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!Number.isInteger(position) || position < 0 || position >= items.length) return;
                 this.flushHistory(true);
                 items.splice(position, 1);
+                this.accordionEditRevision++;
                 this.storeAccordionItems(items);
                 this.highlightCanvasSelection(false);
             },
@@ -4805,6 +4970,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!this.accordionItemCanMove(index, delta)) return;
                 this.flushHistory(true);
                 var position = Number(index);
+                this.accordionEditRevision++;
                 this.storeAccordionItems(window.BloxHomeFieldStore.moveItem(
                     this.accordionItems(),
                     position,
@@ -5168,6 +5334,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                                 icon: String(field.icon || "box"),
                                 label: String(field.label || ""),
                                 control: String(field.control || "text"),
+                                format_key: field.format_suffix ? String(repeater.items_key || "") + "." + index + "." + field.format_suffix : "",
                             };
                         });
                         groups.push({
@@ -5611,6 +5778,26 @@ $canManageBloxDesign = hasPermission('blox_global');
                     && !this.homeFieldStoredValue(this.selEl, this.selectedHomeField).found);
             },
 
+            selectedHomeFaqAnswer() {
+                this.homeFieldRevision;
+                var field = this.selectedHomeFieldDefinition();
+                if (!this.selEl || !field || field.control !== "faq_answer") return { id: null };
+                var stored = this.homeFieldStoredValue(this.selEl, field.key);
+                var format = stored.found
+                    ? this.homeFieldStoredValue(this.selEl, field.format_key).value
+                    : this.homeFieldValue(this.selEl, field.format_key);
+                return { id: this.selEl.id + ":" + field.key, text: this.selectedHomeFieldValue(), format: format, allowLinks: true };
+            },
+
+            setSelectedHomeFaqAnswer(text, format) {
+                var field = this.selectedHomeFieldDefinition();
+                if (!this.selEl || !field || field.control !== "faq_answer") return;
+                var type = String((this.selEl.data || {}).block_type || "");
+                var seeds = this.homeFieldSeeds[type] || {};
+                window.BloxHomeFieldStore.setValue(this.selEl, field.format_key, format === "html" ? "html" : "", seeds);
+                this.setHomeFieldValue(this.selEl, field.key, String(text ?? ""));
+            },
+
             setHomeFieldValue(el, field, value) {
                 if (!this.homeFieldAllowed(el, field)) return;
                 var type = String((((el || {}).data) || {}).block_type || "");
@@ -5627,6 +5814,10 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             resetSelectedCustomHomeField() {
                 if (!this.selEl || this.selectedHomeField.indexOf("custom_overrides.") !== 0) return;
+                var field = this.selectedHomeFieldDefinition();
+                if (field && field.control === "faq_answer") {
+                    window.BloxHomeFieldStore.deleteValue(this.selEl, field.format_key);
+                }
                 if (window.BloxHomeFieldStore.deleteValue(this.selEl, this.selectedHomeField)) {
                     this.homeFieldRevision++;
                 }
@@ -6150,6 +6341,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                         self.pasteSelection();
                     }
                 });
+                this.$watch("libOpen", function (open) { if (!open) self.quickAddTargetId = ""; });
                 // 数据变更 → 与保存基线比较、记录历史、重渲染画布并重绑结构树拖拽
                 this.$watch("sections", function() {
                     self._insertAt = null; // 定点插入覆盖位一次性生效
@@ -6196,7 +6388,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     onPickSectionField: function (payload) { self.selectSectionField(payload.si, payload.field, false); },
                     onPickHomeColumn: function (payload) { self.selectHomeColumn(payload.path, payload.column, false); },
                     onPickHomeField: function (payload) { self.selectHomeField(payload.path, payload.field, false); },
-                    onPickElement: function (target) { self.canvasPickElement(target); },
+                    onPickElement: function (target) { self.canvasPickElement(target); self.openPickedBannerPanel(target); },
                     onEditElement: function (target) { self.selectElementTarget(target, false); self.quickEditSelected(); },
                     onPickColumn: function (si, ci) { self.selectColumn(si, ci, false); },
                     onPickContainer: function (si) { self.selectContainer(si, false); },
@@ -6220,8 +6412,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                         self.deselectAll();
                         self.addSection(1);
                     },
-                    // 空列/空容器就地「+」（r18）：只负责定位并打开既有元素库，
-                    // 插入仍走 addElement/Validator/历史命令，不建立第二条写入路径。
+                    // Quick-add uses the same validated insertion command as the palette.
                     onQuickAdd: function (payload) { self.openElementLibraryAt(payload); },
                     // 画布插入轨道（r13）：边界/末尾「+」的定点插入
                     onInsertAt: function (payload) { self.insertAtBoundary(payload); },
@@ -6270,6 +6461,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             pageHeroPreviewStyle() {
                 var options = this.pageHeroPreviewOptions();
+                if (options.layout === "compact") return "background-color:#f9fafb;background-image:none;border-bottom:1px solid #e5e7eb;";
                 var background = this.pageHeroPreviewBackground();
                 var color = String(options.background_color || "");
                 var style = "";
@@ -6291,6 +6483,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             pageHeroPreviewTone() {
                 var options = this.pageHeroPreviewOptions();
+                if (options.layout === "compact") return "dark";
                 var tone = String(options.text_tone || "auto");
                 if (tone !== "auto") return tone;
                 if (this.pageHeroPreviewBackground()) return "light";
@@ -6313,7 +6506,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     minimal: { background_color: "#f8fafc", overlay_opacity: 0, height: "compact", mobile_height: "inherit", focal_x: 50, focal_y: 50, alignment: "left", text_tone: "dark" },
                 };
                 if (!presets[name]) return;
-                this.pageHero.style_options = Object.assign({}, presets[name]);
+                this.pageHero.style_options = Object.assign({}, this.pageHero.style_options, presets[name], { layout: "banner" });
             },
 
             pageHeroModeHint() {
@@ -6411,6 +6604,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             openElementLibraryAt(payload) {
+                this.quickAddTargetId = "";
                 payload = payload || {};
                 if (payload.kind === "column") {
                     var section = this.sections[payload.sec];
@@ -6424,29 +6618,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                     return;
                 }
                 this.libQuery = "";
+                this.quickAddTargetId = this.quickAddContextId();
                 this.libOpen = true;
                 if (window.innerWidth < 1440) this.mobilePanel = "library";
                 var self = this;
                 this.$nextTick(function () {
                     if (self.$refs.libSearch) self.$refs.libSearch.focus();
                 });
-            },
-
-            /**
-             * 画布插入轨道：在指定 section 边界定点插入。
-             * _insertAt 覆盖 insertIndex()，既有插入函数（addSection/insertTemplate）
-             * 零改动获得定点能力；覆盖位在下一次文档变化（watcher）自动失效——
-             * layout 立即消费；templates 打开面板等用户选中模板时消费，中途取消
-             * 后从侧栏再加则回默认位置语义。
-             */
-            insertAtBoundary(payload) {
-                this._insertAt = payload.index;
-                if (payload.kind === "templates") {
-                    this.openPrebuiltSections();
-                    return;
-                }
-                var spans = payload.kind === "layout" && Array.isArray(payload.spans) ? payload.spans : 1;
-                this.addSection(spans);
             },
 
             /**
@@ -6920,6 +7098,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     getHost: function () { return self.$refs.canvasHost; },
                     getDocument: function () { return JSON.parse(self.documentData()); },
                     getParams: function () {
+                        if (self.productTemplateMode) return { preview_product: String(self.productPreviewId) };
                         return self.headerTemplateMode ? { header_state: self.headerPreviewState } : {};
                     },
                     setLoading: function (loading) { self.previewLoading = loading; },
@@ -6958,13 +7137,23 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (this._canvasResizeObserver) this._canvasResizeObserver.disconnect();
                     this._canvasResizeObserver = new ResizeObserver(update);
                     this._canvasResizeObserver.observe(host);
+                    if (this.$refs.canvasViewport) this._canvasResizeObserver.observe(this.$refs.canvasViewport);
                 }
             },
 
             previewCanvasAvailable() {
                 this.canvasViewportTick;
-                var host = this.$refs.canvasHost;
-                return Math.max(320, (host ? host.clientWidth : 1280) - 24);
+                var viewport = this.$refs.canvasViewport;
+                var host = viewport || this.$refs.canvasHost;
+                var css = viewport ? window.getComputedStyle(viewport) : null;
+                var padding = css ? (parseFloat(css.paddingLeft) || 0) + (parseFloat(css.paddingRight) || 0) : 24;
+                return Math.max(320, (host ? host.clientWidth : 1280) - padding);
+            },
+
+            previewViewportStyle() {
+                this.canvasViewportTick;
+                return window.innerWidth >= 1440 && this.rightPanelCollapsed && this.previewDevice === 'desktop'
+                    ? 'padding-right:0' : '';
             },
 
             previewDesktopWidth() {
@@ -6977,7 +7166,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             previewShellStyle() {
-                var visualHeight = "calc(100vh - 5rem)";
+                var visualHeight = this.previewCanvasHeight() + "px";
                 if (this.previewDevice !== "desktop") {
                     return "width:" + this.previewWidth() + ";height:" + visualHeight + ";max-width:100%;overflow:hidden";
                 }
@@ -6986,14 +7175,23 @@ $canManageBloxDesign = hasPermission('blox_global');
                     + ";max-width:100%;overflow:hidden";
             },
 
+            previewCanvasHeight() {
+                this.canvasViewportTick;
+                var viewport = this.$refs.canvasViewport;
+                if (!viewport) return Math.max(1, window.innerHeight - 80);
+                var css = window.getComputedStyle(viewport);
+                // Use the space remaining below notices and the selection breadcrumb.
+                return Math.max(1, viewport.clientHeight - (parseFloat(css.paddingTop) || 0) - (parseFloat(css.paddingBottom) || 0));
+            },
+
             previewFrameStyle() {
                 if (this.previewDevice !== "desktop") {
                     return "width:100%;height:100%;transform:none";
                 }
                 var scale = this.previewScale();
                 var desktopWidth = this.previewDesktopWidth();
-                var visualHeight = Math.max(480, window.innerHeight - 80);
-                return "width:" + desktopWidth + "px;height:" + Math.round(visualHeight / scale) + "px;zoom:" + scale
+                var visualHeight = this.previewCanvasHeight();
+                return "width:" + desktopWidth + "px;height:" + Math.floor(visualHeight / scale) + "px;zoom:" + scale
                     + ";transform:none";
             },
 
@@ -7280,6 +7478,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                     })
                     .catch(function (error) { self.toast(error.message || self.contactFormText.failed); })
                     .finally(function () { self.contactFormSaving = false; });
+            },
+
+            replayElementAnimation() {
+                if (!this.selEl || !this.selEl.data.animation || this.previewLoading) return;
+                this.canvasBridge().post({ ykReplayAnimation: {
+                    id: this.selectedElementId(), path: this.selectedPath()
+                } });
             },
 
             selectedPath() {
@@ -8357,7 +8562,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             rightPanelStyle() {
                 this.canvasViewportTick;
                 if (window.innerWidth < 1440) return "";
-                return "width:" + (this.rightPanelCollapsed ? 40 : this.rightPanelWidth) + "px";
+                return this.rightPanelCollapsed ? "display:none" : "width:" + this.rightPanelWidth + "px";
             },
 
             rightPanelContentVisible() {
@@ -8558,10 +8763,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.persistTemplateLibraryPreferences();
             },
 
-            /**
-             * 精细指针的普通单击只选中元素卡片，不立即改文档；拖放负责表达落点。
-             * 键盘与触屏没有可靠拖放能力，通过 Enter/点击插入；已有区块时必须先明确目标。
-             */
+            // Explicit canvas targets allow click-to-insert; the general palette keeps drag intent.
             syncPaletteInputMode() {
                 this.paletteTapMode = window.innerWidth <= 1023
                     || !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
@@ -8571,12 +8773,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!el) return;
                 this.paletteSelected = el.type;
                 var keyboard = !event || event.detail === 0;
-                if (keyboard || this.paletteTapMode) {
+                if (keyboard || this.paletteTapMode || this.hasQuickAddTarget()) {
                     if (this.sections.length > 0 && this.selectedSi < 0) {
                         this.paletteSelected = "";
                         this.toast(this.uiText.pickSectionFirst);
                         return;
                     }
+                    this.quickAddTargetId = "";
                     this.addElement(el);
                     this.paletteSelected = "";
                     return;
@@ -8954,12 +9157,6 @@ $canManageBloxDesign = hasPermission('blox_global');
              * data 用注册表给的 defaults 深拷贝——直接引用会让多次插入共享同一个对象，
              * 改一个全变。
              */
-            addElement(el, target) {
-                var before = this.historyData();
-                var outcome = this.runCommand("add-element", function () { return this._addElementRaw(el, target); });
-                if (outcome && outcome.ok && this.historyData() !== before) this.rememberRecentElement(el.type);
-                return outcome;
-            },
             _addElementRaw(el, target) {
                 // 合成项「区块」：插顶层 section（1 列起步；多列预设在右下角）
                 if (el.type === "__section") { this.addSection(1); return; }
@@ -9448,7 +9645,17 @@ $canManageBloxDesign = hasPermission('blox_global');
                     .catch(function () { self.toast(<?php echo json_encode(__('admin_failed'), JSON_UNESCAPED_UNICODE); ?>); })
                     .finally(function () { self.cacheClearing = false; });
             },
-        }, window.YikaiBloxBatchProperties ? window.YikaiBloxBatchProperties.mixin() : {});
+        }, window.YikaiBloxBatchProperties ? window.YikaiBloxBatchProperties.mixin() : {},
+            window.YikaiBloxSectionInsert.mixin(<?= json_encode(['after' => __('blox_insert_after_named'), 'start' => __('blox_insert_at_start'), 'changed' => __('blox_insert_target_changed')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>),
+            window.YikaiBloxPageSettings.mixin(<?= json_encode([
+                'id' => (int) $id,
+                'slug' => (string) ($page['slug'] ?? ''),
+                'url' => (!$isHomeBlox && !$templateId) ? channelUrl($page) : '',
+                'text' => [
+                    'invalid' => __('blox_page_url_invalid'), 'failed' => __('blox_page_url_failed'),
+                    'saved' => __('blox_page_url_saved'),
+                ],
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>));
     }
     </script>
 </body>

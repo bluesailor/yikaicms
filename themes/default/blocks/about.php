@@ -92,14 +92,16 @@ $bg = getBlockBg($block ?? [], '@auto');
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="<?php echo e($aboutGridClass); ?>"<?php echo $aboutGridEditAttr; ?>>
             <div class="<?php echo e($aboutTextClass); ?>"<?php echo $aboutTextEditAttr; ?> data-animate="<?php echo $aboutIsImageLeft ? 'fade-left' : 'fade-right'; ?>">
-                <h2 class="blk-title mb-2"><?php echo homeTitleInner($aboutTitle); ?></h2>
-                <?php echo homeTitleDeco(false, 'st-left'); ?>
+                <div class="yk-about-heading w-fit max-w-full">
+                    <h2 class="blk-title mb-2"><?php echo e($aboutTitle); ?></h2>
+                    <?php echo homeTitleDeco(false); ?>
+                </div>
                 <p class="text-gray-600 text-lg leading-relaxed mb-6 mt-6">
                     <?php echo e($aboutContent['override_content']); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
-                <a href="<?php echo e($aboutContent['override_button_url']); ?>" class="u-btn-primary inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
-                    <?php echo e($aboutContent['override_button_text']); ?> &raquo;
+                <a href="<?php echo e($aboutContent['override_button_url']); ?>" class="yk-about-more inline-flex items-center gap-3 border border-gray-300 bg-gray-50 text-gray-800 hover:bg-gray-100 hover:border-gray-400 px-5 py-3 rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-4">
+                    <?php echo e($aboutContent['override_button_text']); ?> <i class="<?php echo e(BloxIcon::classes('arrow-right', 'arrow-right')); ?>" aria-hidden="true"></i>
                 </a>
                 <?php endif; ?>
             </div>

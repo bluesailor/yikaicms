@@ -85,6 +85,7 @@ async function canvasScrollTop(page) {
 // Read the existing client state: absence of a settle event is not an idle signal.
 async function waitPreviewSettled(page, timeoutMs = 5000) {
   await expect.poll(() => page.evaluate(() => {
+    if (!window.Alpine || !document.body._x_dataStack) return false;
     const app = window.Alpine.$data(document.body);
     const client = app._previewClient;
     const canvas = document.querySelector('[data-testid="blox-canvas"]');
@@ -111,15 +112,35 @@ async function clearSelection(page) {
   if (await button.isVisible()) await button.click();
 }
 
+async function openSectionInsertAtEnd(page) {
+  const insert = page.getByTestId('blox-section-insert-after').last();
+  if (await insert.count()) {
+    if (!await insert.isVisible()) {
+      const mobile = page.getByTestId('blox-mobile-structure');
+      if (await mobile.isVisible()) await mobile.click();
+      else await page.getByTestId('blox-toolbar-structure-toggle').click();
+    }
+    await insert.click();
+    return;
+  }
+  const canvasView = page.getByTestId('blox-mobile-canvas-view');
+  if (await canvasView.isVisible()) await canvasView.click();
+  await (await frame(page)).locator('.yk-empty-doc .yk-empty-btn').last().click();
+}
+
 async function addTemporaryHeading(page, columns = 1) {
   await clearSelection(page);
   await waitPreviewSettled(page);
   const before = await countSections(page);
   const headingBefore = await (await frame(page)).locator('[data-yk-el-type="heading"]').count();
+  const mobile = await page.getByTestId('blox-mobile-structure').isVisible();
+  if (mobile) await page.getByTestId('blox-mobile-structure').click();
+  await openSectionInsertAtEnd(page);
   await page.getByTestId(`blox-add-section-${columns}`).click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   const section = page.getByTestId('blox-tree-section').last();
-  await page.getByTestId('blox-library-open').click();
+  if (mobile) await page.getByTestId('blox-mobile-library').click();
+  else await page.getByTestId('blox-library-open').click();
   await page.getByTestId('blox-add-element-heading').press('Enter');
   await expect(section.getByTestId('blox-tree-element')).toHaveCount(1);
   await expect((await frame(page)).locator('[data-yk-el-type="heading"]')).toHaveCount(headingBefore + 1);
@@ -193,6 +214,7 @@ async function dragElement(source, target, page) {
 }
 
 module.exports = {
+  openSectionInsertAtEnd,
   addTemporaryHeading,
   canvasScrollTop,
   waitPreviewSettled,

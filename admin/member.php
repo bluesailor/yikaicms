@@ -129,21 +129,15 @@ $pageTitle = __('admin_member');
 $currentMenu = 'member';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require ROOT_PATH . '/admin/includes/workflow_nav.php';
 ?>
 
-<!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/member.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('member_list'); ?></a>
-        <a href="/admin/setting_member.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('member_settings'); ?></a>
-    </div>
-</div>
 
 <!-- 搜索栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
-    <form method="get" class="p-4 flex gap-4 items-center">
+    <form method="get" class="p-4 flex flex-wrap gap-4 items-center">
         <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
-               class="border rounded px-4 py-2 w-64" placeholder="<?php echo __('member_search_ph'); ?>">
+               class="border rounded px-4 py-2 w-64 max-w-full" placeholder="<?php echo __('member_search_ph'); ?>">
         <button type="submit" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded"><?php echo __('btn_search'); ?></button>
         <?php if ($keyword): ?>
         <a href="/admin/member.php" class="text-gray-500 hover:text-gray-700 text-sm"><?php echo __('member_clear'); ?></a>
@@ -159,7 +153,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 列表 -->
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
-        <table class="w-full">
+        <table class="w-full admin-workflow-table">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
@@ -371,4 +365,5 @@ async function deleteMember(id) {
 }
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

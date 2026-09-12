@@ -476,4 +476,5 @@ document.getElementById('uo-upgrade').onclick = async () => {
     }
 };
 </script>
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

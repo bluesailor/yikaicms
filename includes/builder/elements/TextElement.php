@@ -8,6 +8,7 @@ final class TextElement extends AbstractElement
     public function type(): string { return 'text'; }
     public function label(): string { return __('blox_el_text'); }
     public function icon(): string { return 'align-left'; }
+    public function backgroundRenderStrategy(): string { return 'root'; }
 
     // richtext 由构建器 wangEditor 弹窗接管（hasCustomUI），此处仅供默认值 / 元数据
     public function controls(): array
@@ -43,6 +44,10 @@ final class TextElement extends AbstractElement
                 'default' => '', 'loop_only' => true, 'advanced' => true,
                 'required' => ['loop_field', '!=', 'none'],
             ],
+            ...$this->backgroundControls(),
+            ['key' => 'color', 'type' => 'color', 'label' => __('blox_text_color'), 'default' => '', 'tab' => 'style'],
+            ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
+                'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
             ...$this->animationControls(),
         ];
     }
@@ -61,6 +66,10 @@ final class TextElement extends AbstractElement
             $value = DynamicSiteData::value($siteField, 'text', (string) ($data['site_fallback'] ?? ''));
             $html = '<p>' . e($value) . '</p>';
         }
-        return '<div class="prose prose-lg max-w-none"' . $this->animationAttrs($data) . '>' . $html . '</div>';
+        $radiusKey = is_string($data['radius'] ?? null) ? $data['radius'] : 'none';
+        $radius = ['none' => '', 'md' => ' rounded-lg', 'xl' => ' rounded-2xl'][$radiusKey] ?? '';
+        $color = self::cssColor($data['color'] ?? null);
+        $style = $color !== null ? ' style="color:' . htmlspecialchars($color, ENT_QUOTES) . ';"' : '';
+        return '<div class="prose prose-lg max-w-none' . $radius . '"' . $style . $this->animationAttrs($data) . '>' . $html . '</div>';
     }
 }

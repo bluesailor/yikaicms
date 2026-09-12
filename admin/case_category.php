@@ -164,15 +164,9 @@ $pageTitle = __('case_tab_category');
 $currentMenu = 'case';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require ROOT_PATH . '/admin/includes/workflow_nav.php';
 ?>
 
-<!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/case.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('case_tab_list'); ?></a>
-        <a href="/admin/case_category.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('case_tab_category'); ?></a>
-    </div>
-</div>
 
 <div class="bg-blue-50 border border-blue-200 text-blue-800 text-sm rounded-lg px-4 py-3 mb-4">
     <i class="ti ti-info-circle mr-1"></i><?php echo e(__('ccat_notice')); ?>
@@ -196,7 +190,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 列表 -->
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
-        <table class="w-full">
+        <table class="w-full admin-workflow-table">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="w-10 px-4 py-3"><input type="checkbox" id="checkAll" class="rounded" onchange="toggleAll(this)"></th>
@@ -414,4 +408,5 @@ function pickImageFromMedia() {
 }
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

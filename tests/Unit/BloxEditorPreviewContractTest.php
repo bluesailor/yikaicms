@@ -264,14 +264,16 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString(':placeholder="ctrl.placeholder ?? (ctrl.default ?? \'\')"', $workspace);
     }
 
-    public function testFrontendPreviewLinkUsesCleanPublishedPageMode(): void
+    public function testFrontendPreviewLinkUsesTheResolvedPageDraftUrl(): void
     {
         $header = $this->source('admin/blox_editor/partials/header.php');
 
         // v1.18.6：预览目标服务端按编辑对象决定——页头/页尾模板指首页，
         // 区块/弹窗模板不显示（此前模板模式拼出坏链接 /.html?preview）
         $this->assertStringContainsString("in_array(\$templateType ?? '', ['header', 'footer'], true)", $header);
-        $this->assertStringContainsString("'.html?preview'", $header);
+        $this->assertStringContainsString('$frontPreviewUrl = channelUrl($page);', $header);
+        $this->assertStringContainsString(':href="pageFrontPreviewUrl()"', $header);
+        $this->assertStringContainsString('preview=draft&blox_draft=page:', $header);
         $this->assertStringContainsString('if ($frontPreviewUrl !== null):', $header);
         $this->assertStringContainsString('data-testid="blox-front-preview"', $header);
         $this->assertStringContainsString('ti ti-eye text-base', $header);
@@ -289,9 +291,12 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('return self.historyStore().snapshot(self.historyData());', $editor);
         $this->assertStringContainsString('self.applyHistorySnapshot(snapshot);', $editor);
         // 七个结构命令全部走委托入口
-        foreach (['delete-section', 'delete-element', 'paste', 'canvas-drop', 'apply-layout', 'add-section', 'add-element'] as $cmd) {
+        foreach (['delete-section', 'delete-element', 'paste', 'canvas-drop', 'apply-layout', 'add-section'] as $cmd) {
             $this->assertStringContainsString('this.runCommand("' . $cmd . '"', $editor);
         }
+        $this->assertStringContainsString('<script src="/assets/js/blox-page-settings.js?v=', $editor);
+        $this->assertStringContainsString('window.YikaiBloxPageSettings.mixin(', $editor);
+        $this->assertStringContainsString('this.runCommand("add-element"', $this->source('assets/js/blox-page-settings.js'));
         // 模板插入应用段 silent 执行，错误提示走既有 catch 面板
         $this->assertStringContainsString('self.commandRunner().execute("insert-template"', $editor);
         $this->assertStringContainsString('}, { silent: true });', $editor);
@@ -309,8 +314,13 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         // 注入层：轨道每次画布更新先清后建（不进保存文档），动作全部经 postMessage
         $this->assertStringContainsString("querySelectorAll('.yk-insert-rail, .yk-insert-pop').forEach", $advance);
-        $this->assertStringContainsString("postToEditor({ ykInsertAt: { index: index, kind: 'layout', spans: spans } })", $advance);
-        $this->assertStringContainsString("postToEditor({ ykInsertAt: { index: index, kind: 'templates' } })", $advance);
+        $this->assertStringContainsString("postToEditor({ ykInsertAt: { index: index, kind: 'picker', anchor:", $canvasPreview);
+        $this->assertStringContainsString('sec.after(makeRail(i + 1, true))', $canvasPreview);
+        $this->assertStringNotContainsString('sec.appendChild(makeRail', $canvasPreview);
+        $this->assertStringContainsString('/assets/js/blox-section-insert.js', $editor);
+        $this->assertStringContainsString('window.YikaiBloxSectionInsert.mixin(', $editor);
+        $assets = json_decode($this->source('config/blox-assets.json'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertContains('assets/js/blox-section-insert.js', $assets['core']);
         $this->assertStringNotContainsString('yk-insert-rail-tail', $advance);
         $this->assertStringContainsString("querySelectorAll('[data-yk-sec]')", $canvasPreview);
         $this->assertStringNotContainsString('yk-insert-rail-tail', $canvasPreview);

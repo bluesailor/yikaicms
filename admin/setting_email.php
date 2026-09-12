@@ -121,6 +121,22 @@ $currentMenu = 'setting_email';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/module_nav.php';
+$emailModuleItems = [];
+foreach ($tabs as $tabId => $emailTab) {
+    $emailContext = ['tab' => $tabId];
+    if ($tabId !== 'smtp') {
+        $emailContext['lang'] = (string) $_viewLang;
+    }
+    $emailModuleItems[] = [
+        'label' => $emailTab['title'],
+        'url' => '/admin/setting_email.php?' . http_build_query($emailContext, '', '&', PHP_QUERY_RFC3986),
+        'icon' => substr($emailTab['icon'], 3),
+        'active' => $activeTab === $tabId,
+        'testid' => 'admin-module-tab-' . $tabId,
+    ];
+}
+adminModuleStart($emailModuleItems, __('email_page_title'));
 
 if ($_emailLangAware) {
     echo renderAdminLangSwitcher($_viewLang, __('email_lang_tip'));
@@ -131,22 +147,6 @@ if ($_emailLangAware) {
     <p class="text-gray-500"><?php echo __('email_page_intro'); ?></p>
 </div>
 
-<!-- Tab 导航 -->
-<?php
-// 模板 tab 链接保留 ?lang= 视图；smtp tab 链接不带 lang（SMTP 不分语言）
-$_emailLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) : '';
-?>
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b overflow-x-auto">
-        <?php foreach ($tabs as $tabId => $tab): ?>
-        <?php $_tabHref = ($tabId === 'smtp') ? '?tab=smtp' : ('?tab=' . urlencode($tabId) . $_emailLangQS); ?>
-        <a href="<?php echo e($_tabHref); ?>"
-           class="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition <?php echo $activeTab === $tabId ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">
-            <i class="ti <?php echo e($tab['icon']); ?> mr-1.5"></i><?php echo e($tab['title']); ?>
-        </a>
-        <?php endforeach; ?>
-    </div>
-</div>
 
 <?php if ($activeTab === 'smtp'): ?>
 <!-- ============ SMTP 配置 ============ -->
@@ -451,4 +451,5 @@ function insertVar(varName) {
 
 <?php endif; ?>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

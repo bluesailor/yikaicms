@@ -481,6 +481,10 @@ public static function isActive(): bool
         }
 
         $title = trim((string) ($custom['title'] ?? ''));
+        $faq = HomeFaqContent::toSection(['block_type' => $type], 'home_custom_' . $number . '_faq');
+        if ($faq !== null) {
+            return [$faq];
+        }
         $sections = self::normalizeSections($blocks);
         foreach ($sections as $sectionIndex => &$section) {
             $prefix = 'home_custom_' . $number . '_' . $sectionIndex . '_';

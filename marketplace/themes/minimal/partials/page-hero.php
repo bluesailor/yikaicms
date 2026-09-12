@@ -10,6 +10,7 @@
 <section class="bg-white pt-6 md:pt-8 pb-12 md:pb-16">
     <div class="container mx-auto px-6 lg:px-8">
         <!-- Breadcrumb -->
+        <?php if (empty($GLOBALS['ykBloxPageFrame']['page_breadcrumb_hidden'])): ?>
         <div class="flex items-center gap-2 text-xs text-gray-400 mb-8">
             <a href="/" class="hover:text-gray-600 transition"><?php echo __('breadcrumb_home'); ?></a>
             <?php foreach ($breadcrumbItems as $i => $item): ?>
@@ -21,6 +22,7 @@
             <?php endif; ?>
             <?php endforeach; ?>
         </div>
+        <?php endif; ?>
         <!-- Title -->
         <div class="text-center">
             <h1 class="text-3xl md:text-4xl font-light text-gray-900 tracking-wide"><?php echo e($channel['name']); ?></h1>

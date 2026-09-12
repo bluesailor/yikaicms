@@ -92,18 +92,10 @@ $currentMenu = 'product';
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 $transStatus = loadTransStatus('brands');
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/product_nav.php';
 echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('brand_lang_tip')));
 ?>
 
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/product.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_list'); ?></a>
-        <a href="/admin/product_category.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_category'); ?></a>
-        <a href="/admin/product_brand.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('product_tab_brand'); ?></a>
-        <a href="/admin/product_tag.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_tag'); ?></a>
-        <a href="/admin/product_setting.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_setting'); ?></a>
-    </div>
-</div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- 品牌列表 -->
@@ -278,4 +270,4 @@ async function deleteBrand(id) {
 }
 </script>
 
-<?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
+<?php adminModuleEnd(); require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

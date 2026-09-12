@@ -9,7 +9,7 @@
 declare(strict_types=1);
 
 // 定义根目录
-define('ROOT_PATH', dirname(__DIR__));
+if (!defined('ROOT_PATH')) define('ROOT_PATH', dirname(__DIR__));
 
 // 检查是否已安装
 if (!file_exists(ROOT_PATH . '/installed.lock')) {

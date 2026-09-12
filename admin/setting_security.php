@@ -144,17 +144,15 @@ $pageTitle = __('sec_title');
 $currentMenu = 'setting_security';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/module_nav.php';
+adminModuleTabStart([
+    'login' => [__('sec_login_security'), 'lock'],
+    'login_logs' => [__('sec_login_history'), 'history'],
+    'upload' => [__('sec_upload_security'), 'upload'],
+    'logs' => [__('sec_log_management'), 'file-text'],
+], $tab, __('sec_title'), '/admin/setting_security.php');
 ?>
 
-<!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b overflow-x-auto">
-        <a href="/admin/setting_security.php" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'login' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sec_login_security'); ?></a>
-        <a href="/admin/setting_security.php?tab=login_logs" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'login_logs' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sec_login_history'); ?></a>
-        <a href="/admin/setting_security.php?tab=upload" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'upload' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sec_upload_security'); ?></a>
-        <a href="/admin/setting_security.php?tab=logs" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'logs' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('sec_log_management'); ?></a>
-    </div>
-</div>
 
 <?php if ($tab === 'login'): ?>
 <!-- ==================== 登录安全 ==================== -->
@@ -662,4 +660,5 @@ async function clearThrottle() {
 }
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

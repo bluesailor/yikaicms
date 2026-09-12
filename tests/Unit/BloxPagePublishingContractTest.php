@@ -144,11 +144,12 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("\$background = '#1e293b';", $themeHeaderDocument);
         $this->assertStringContainsString("'channel_id' => \$isHomeLayout ? 0 : \$id", $canvas);
         $this->assertStringContainsString("'page_id' => !\$isHomeLayout && \$pageType === 'page' ? \$id : 0", $canvas);
-        // 空文档不挂站点页头页脚：新建单页只显示空态引导卡。空态卡是 appendChild 到
-        // body 的，挂着 chrome 会让它落在页脚下方（看着像页脚的一部分）。
+        // Empty pages retain site chrome; onboarding belongs inside the content region.
         $this->assertStringContainsString('$mainBody = $pageHeroBody . $pageContentBody;', $canvas);
         $this->assertStringContainsString('$headerBody . \'<main class="flex-1">\' . $mainBody . \'</main>\' . $footerBody', $canvas);
-        $this->assertStringContainsString(': ($pageHeroBody . $pageBody);', $canvas);
+        $this->assertStringNotContainsString(': ($pageHeroBody . $pageBody);', $canvas);
+        $this->assertStringContainsString("document.querySelector('[data-yk-region=\"content\"]')", $canvas);
+        $this->assertStringContainsString("host.querySelectorAll('[data-yk-sec]').length > 0", $canvas);
         $this->assertStringContainsString('$hasCanvasContent = is_array($canvasBlocks) && $canvasBlocks !== [];', $canvas);
 
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');

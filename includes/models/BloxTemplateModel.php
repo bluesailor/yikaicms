@@ -8,7 +8,7 @@ final class BloxTemplateModel extends Model
     protected string $table = 'blox_templates';
     protected string $defaultOrder = 'updated_at DESC, id DESC';
 
-    public const TYPES = ['section', 'page', 'header', 'footer', 'popup'];
+    public const TYPES = ['section', 'page', 'header', 'footer', 'popup', 'product-detail'];
     private const SOURCES = ['user', 'import', 'builtin', 'plugin', 'remote'];
 
     public static function validType(string $type): bool
@@ -149,6 +149,17 @@ final class BloxTemplateModel extends Model
         }
     }
 
+    /** @return list<array<string,mixed>> */
+    public function publishedProductTemplates(): array
+    {
+        if (!db()->tableExists('blox_templates')) return [];
+        return db()->fetchAll(
+            'SELECT id,type,status,published_data FROM ' . DB_PREFIX . 'blox_templates'
+            . ' WHERE type = ? AND status = 1 AND published_data IS NOT NULL ORDER BY id DESC',
+            ['product-detail']
+        );
+    }
+
     /** @return array<string,mixed>|null */
     public function findPublishedForEditor(int $id): ?array
     {
@@ -259,6 +270,26 @@ final class BloxTemplateModel extends Model
             'updated_at' => time(),
             'published_at' => 0,
         ]);
+    }
+
+    public function switchProductSource(int $id, string $source, string $expectedHash): void
+    {
+        $row = $this->findForExport($id);
+        if (!$row || $row['type'] !== 'product-detail' || (int) $row['status'] !== 1) {
+            throw new RuntimeException(__('blox_tpl_not_found'));
+        }
+        $previous = (string) ($row['published_data'] ?? '');
+        if (!hash_equals(hash('sha256', $previous), $expectedHash)) {
+            throw new RuntimeException(__('blox_save_conflict'));
+        }
+        $next = ProductTemplateDocument::changeSource($previous, $source);
+        if ($previous === $next) return;
+        $affected = db()->execute(
+            'UPDATE ' . DB_PREFIX . 'blox_templates SET published_data = ?, updated_at = ?'
+            . ' WHERE id = ? AND type = ? AND status = 1 AND published_data = ?',
+            [$next, time(), $id, 'product-detail', $previous]
+        );
+        if ($affected !== 1) throw new RuntimeException(__('blox_save_conflict'));
     }
 
     /** @param array{elements?:list<string>,plugins?:list<string>,design_tokens?:list<string>,design_styles?:list<string>} $requirements

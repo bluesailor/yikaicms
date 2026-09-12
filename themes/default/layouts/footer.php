@@ -118,6 +118,7 @@ if ($footerBgLiteral !== '') {
 
     <?php do_action('ik_footer_before'); ?>
 
+    <?php if (empty($GLOBALS['ykBloxPageFrame']['page_footer_hidden'])): ?>
     <!-- footer -->
     <?php $ykBloxFooter = function_exists('bloxAreaHtml') ? bloxAreaHtml('footer') : ''; ?>
     <?php if ($ykBloxFooter !== ''): ?>
@@ -249,6 +250,7 @@ if ($footerBgLiteral !== '') {
             </div>
         </div>
     </footer>
+    <?php endif; ?>
     <?php endif; ?>
 
     <script>

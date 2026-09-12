@@ -47,12 +47,15 @@
                                     "style": "solid",
                                     "width": 3,
                                     "color": "#2563eb",
+                                    "line_length": "short",
+                                    "line_align": "center",
                                     "spacing": "sm"
                                 }
                             },
                             {
                                 "type": "accordion",
                                 "data": {
+                                    "faq_style": "divided",
                                     "open_first": true,
                                     "seo_schema": true,
                                     "items": [

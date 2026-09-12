@@ -2,7 +2,7 @@
 /**
  * 前台就地编辑覆盖层
  *
- * Blox 页面保留顶部管理条的「编辑此页」作为主入口；桌面端区块悬停入口通过
+ * 单页正文统一使用顶部管理条的「编辑此页」；其他桌面端区块悬停入口通过
  * focus_section=<持久 section id> / focus_element=<持久 element id> 精确定位。
  * 首页和触摸设备不叠加区块操作层。
  */
@@ -338,11 +338,13 @@ function renderFrontEdit(): void
         var footer = document.querySelector('.yk-blox-footer[data-yk-edit]');
         addArea(header, 'header', regionLabels.editHeader);
         document.querySelectorAll('[data-yk-sec-id]').forEach(function (section, index) {
+          if (isPageContentEditTarget(section)) return;
           if (section.closest('.yk-blox-header,.yk-blox-footer')) return;
           var fallbackLabel = regionLabels.section.replace(':n', String(index + 1));
           add('body', editUrl(section), section.getAttribute('data-yk-sec-label') || fallbackLabel);
         });
         document.querySelectorAll('[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(function (target) {
+          if (isPageContentEditTarget(target)) return;
           if (target === header || target === footer || target.closest('.yk-blox-header,.yk-blox-footer')) return;
           if (target.hasAttribute('data-yk-sec-id')) return;
           add('body', editUrl(target), (editLabel(target) || '').replace(/^✎\s*/, ''));
@@ -407,6 +409,9 @@ function renderFrontEdit(): void
       function isSiteChromeEditTarget(target) {
         return !!(target && target.closest('#siteHeader,.yk-blox-header,.yk-blox-footer,[data-yk-footer]'));
       }
+      function isPageContentEditTarget(target) {
+        return !!(target && target.closest('[data-yk-page-edit-only]'));
+      }
       // 本脚本在 ik_footer_before 处执行，页脚等位于其后的元素此刻尚未入 DOM，
       // 故延到 DOMContentLoaded 再扫描绑定（Logo/导航/首页区块在前，也一并延后无碍）。
       function onReady(fn) {
@@ -415,7 +420,7 @@ function renderFrontEdit(): void
       }
       onReady(function () {
         document.querySelectorAll('[data-yk-element-edit][data-yk-element-id],[data-yk-sec-id],[data-yk-nav],[data-yk-footer],[data-yk-partners],[data-yk-edit]').forEach(function (target) {
-          if (isSiteChromeEditTarget(target)) return;
+          if (isSiteChromeEditTarget(target) || isPageContentEditTarget(target)) return;
           attach(target);
         });
         buildRegionNavigator();
@@ -445,7 +450,7 @@ function renderFrontEdit(): void
       ); ?>;
       onReady(function () {
         document.querySelectorAll('[data-yk-logo]').forEach(function (logo) {
-          if (isSiteChromeEditTarget(logo)) return;
+          if (isSiteChromeEditTarget(logo) || isPageContentEditTarget(logo)) return;
           var wrap = document.createElement('span');
           wrap.className = 'yk-logo-btns';
           var b = document.createElement('span');

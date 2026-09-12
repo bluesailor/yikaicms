@@ -44,7 +44,7 @@ test('hasModified: per-group dot via injected predicate', () => {
     assert.equal(styleGroups.hasModified('general', [bg, anim, plain], modified), false);
 });
 
-test('methods.styleGroups: disabled for container block, search, modified-only, <2 groups', () => {
+test('methods.styleGroups: includes common settings, bypasses container and filters', () => {
     const schema = { controls: [bg, anim, plain] };
     // 模拟编辑器的 methods 混入（...BloxStyleGroups.methods）
     const base = Object.assign({}, styleGroups.methods, {
@@ -61,12 +61,12 @@ test('methods.styleGroups: disabled for container block, search, modified-only, 
     assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, ctrlQuery: 'pad' }), []);
     assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, modifiedOnly: true }), []);
     const single = { ...base, elSchema: () => ({ controls: [anim] }) };
-    assert.deepEqual(styleGroups.methods.styleGroups.call(single), []);
+    assert.deepEqual(styleGroups.methods.styleGroups.call(single), ['general', 'animation']);
 });
 
 test('methods.effectiveStyleGroup: falls to first present group when styleGroup absent', () => {
     globalThis.BloxHomeContentPanel = { tabFor: (node, c) => c.tab || 'content' };
-    // card 形态：只有 背景+动画、无 常规——selectElement 重置的 "general" 不在组列表
+    // Common settings remain available even when the schema only has background and animation.
     const ctx = Object.assign({}, styleGroups.methods, {
         selEl: { type: 'card', data: {} },
         elSchema: () => ({ controls: [bg, anim] }),
@@ -75,10 +75,15 @@ test('methods.effectiveStyleGroup: falls to first present group when styleGroup 
         modifiedOnly: false,
         styleGroup: 'general',
     });
-    assert.equal(styleGroups.methods.effectiveStyleGroup.call(ctx), 'background');
+    assert.equal(styleGroups.methods.effectiveStyleGroup.call(ctx), 'general');
+    assert.equal(ctx.commonStyleVisible(), true);
     ctx.styleGroup = 'animation';
     assert.equal(styleGroups.methods.effectiveStyleGroup.call(ctx), 'animation');
-    // 分组未启用（单组）时回落 general
+    assert.equal(ctx.commonStyleVisible(), false);
+    ctx.styleGroup = 'background';
+    assert.equal(ctx.commonStyleVisible(), false);
+    assert.equal(({ ...ctx, ctrlQuery: 'padding' }).commonStyleVisible(), true);
+    // An unavailable selected group falls back to general.
     const single = Object.assign({}, ctx, { elSchema: () => ({ controls: [anim] }), styleGroup: 'background' });
     assert.equal(styleGroups.methods.effectiveStyleGroup.call(single), 'general');
 });
@@ -94,6 +99,12 @@ test('methods.styleTabDot: box value or any modified style control lights the ta
     assert.equal(styleGroups.methods.styleTabDot.call(ctx), true);
     ctx.selEl.data = {};
     assert.equal(styleGroups.methods.styleTabDot.call(ctx), false);
+    ctx.selEl.data = { _hide_on: ['m'] };
+    assert.equal(ctx.styleGroupDot('general'), true);
+    assert.equal(ctx.styleTabDot(), true);
+    ctx.selEl.data = { _global_style: 'test' };
+    assert.equal(ctx.styleGroupDot('general'), true);
+    ctx.selEl.data = {};
     ctx.isCtrlModified = () => true;
     assert.equal(styleGroups.methods.styleTabDot.call(ctx), true);
     assert.equal(styleGroups.methods.styleTabDot.call({ ...ctx, selEl: null }), false);

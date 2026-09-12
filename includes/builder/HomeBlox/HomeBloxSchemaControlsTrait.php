@@ -393,6 +393,11 @@ trait HomeBloxSchemaControlsTrait
                 'default' => '', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
             ],
             [
+                'key' => 'stats_layout', 'type' => 'select', 'label' => __('blox_stats_layout'),
+                'default' => 'inherit', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+                'options' => ['inherit' => __('blox_stats_divider_inherit'), 'stacked' => __('blox_stats_layout_stacked'), 'inline' => __('blox_stats_layout_inline'), 'numbers' => __('blox_stats_layout_numbers')],
+            ],
+            [
                 'key' => 'stats_divider', 'type' => 'select', 'label' => __('blox_stats_divider'),
                 'default' => 'inherit', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
                 'options' => ['inherit' => __('blox_stats_divider_inherit'), 'show' => __('blox_stats_divider_show'), 'hide' => __('blox_stats_divider_hide')],
@@ -902,6 +907,9 @@ trait HomeBloxSchemaControlsTrait
                             $itemPrefix = $elementPrefix . 'accordion_items.' . $itemIndex . '.';
                             self::setNestedValue($seeds, $itemPrefix . 'question', $item['question']);
                             self::setNestedValue($seeds, $itemPrefix . 'answer', $item['answer']);
+                            if (($item['answer_format'] ?? '') === 'html') {
+                                self::setNestedValue($seeds, $itemPrefix . 'answer_format', 'html');
+                            }
                         }
                         $repeaters[] = [
                             'key' => 'custom-faq-' . $sectionIndex . '-' . $columnIndex . '-' . $elementIndex,
@@ -921,7 +929,8 @@ trait HomeBloxSchemaControlsTrait
                                     'suffix' => 'answer',
                                     'icon' => 'message-circle',
                                     'label' => __('blox_home_faq_answer'),
-                                    'control' => 'textarea',
+                                    'control' => 'faq_answer',
+                                    'format_suffix' => 'answer_format',
                                 ],
                             ],
                         ];

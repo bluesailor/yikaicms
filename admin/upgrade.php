@@ -1003,4 +1003,5 @@ async function saveUpdateChannel(toggle) {
 <?php endif; ?>
 <?php endif; ?>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

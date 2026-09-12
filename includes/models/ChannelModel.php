@@ -6,6 +6,34 @@ class ChannelModel extends Model
     protected string $table = 'channels';
     protected string $defaultOrder = 'sort_order ASC, id ASC';
 
+    /** Change only a single page's slug; never rewrite its Blox or legacy content. */
+    public function updatePageSlug(int $id, string $slug, string $expectedSlug): array
+    {
+        $page = $this->findWhere(['id' => $id, 'type' => 'page']);
+        if (!$page || (string) $page['slug'] !== $expectedSlug) {
+            throw new RuntimeException(__('blox_save_conflict'));
+        }
+        $slug = strtolower(trim($slug));
+        if (!preg_match('/^[a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?$/D', $slug)) {
+            throw new RuntimeException(__('blox_page_url_invalid'));
+        }
+        if ($slug === $expectedSlug) {
+            return $page;
+        }
+        // Fixed controller routes cannot be assigned to ordinary content pages.
+        $reserved = ['index', 'admin', 'install', 'api', 'search', 'product', 'download', 'album', 'job', 'contact', 'history', 'login', 'register', 'member'];
+        if (in_array($slug, $reserved, true) || in_array($expectedSlug, $reserved, true)
+            || $this->count(['slug' => $slug]) > 0) {
+            throw new RuntimeException(__('blox_page_url_unavailable'));
+        }
+        $changed = db()->update('channels', ['slug' => $slug, 'updated_at' => time()], 'id = ? AND slug = ?', [$id, $expectedSlug]);
+        if (!$changed) {
+            throw new RuntimeException(__('blox_save_conflict'));
+        }
+        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
+        return array_merge($page, ['slug' => $slug]);
+    }
+
     /**
      * 按 slug 查找
      */

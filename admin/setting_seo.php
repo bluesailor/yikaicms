@@ -94,6 +94,14 @@ $currentMenu = 'setting_seo';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/module_nav.php';
+adminModuleTabStart([
+    'basic' => [__('seo_tab_basic'), 'search'],
+    'social' => [__('seo_tab_social'), 'share'],
+    'verify' => [__('seo_tab_verify'), 'shield-check'],
+    'sitemap' => ['Sitemap', 'sitemap'],
+    'robots' => ['Robots.txt', 'robot'],
+], $tab, __('seo_title'), '/admin/setting_seo.php', ['lang' => (string) $_viewLang]);
 
 echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('seo_lang_hint')));
 ?>
@@ -119,16 +127,6 @@ $__seoPluginHere = is_dir(ROOT_PATH . '/plugins/seo');
 </div>
 <?php endif; ?>
 
-<!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b overflow-x-auto">
-        <a href="/admin/setting_seo.php" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('seo_tab_basic'); ?></a>
-        <a href="/admin/setting_seo.php?tab=social<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'social' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('seo_tab_social'); ?></a>
-        <a href="/admin/setting_seo.php?tab=verify<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'verify' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('seo_tab_verify'); ?></a>
-        <a href="/admin/setting_seo.php?tab=sitemap<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'sitemap' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">Sitemap</a>
-        <a href="/admin/setting_seo.php?tab=robots<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 whitespace-nowrap <?php echo $tab === 'robots' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>">Robots.txt</a>
-    </div>
-</div>
 
 <?php if ($tab === 'basic'): ?>
 <!-- ==================== 基础设置 ==================== -->
@@ -430,4 +428,5 @@ function selectMedia(inputId) {
 }
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

@@ -213,6 +213,20 @@ test('ykInsertAt 白名单：index/kind/spans 全校验（r13 插入轨道）', 
     assert.deepEqual(got.map(function (p) { return p.kind; }), ['layout', 'templates', 'blank']);
 });
 
+test('section picker messages require a finite nonnegative canvas anchor', function () {
+    const got = [];
+    const current = fixture({ onInsertAt: (p) => got.push(p) });
+    const send = (anchor) => current.bridge.handleMessage({ source: current.frameWindow, data: { ykInsertAt: { index: 1, kind: 'picker', anchor } } });
+    for (const anchor of [null, {}, { x: -1, y: 1 }, { x: 2, y: NaN }, { x: '2', y: 1 }, { x: 1, y: Infinity }]) {
+        assert.equal(send(anchor), false);
+    }
+    assert.equal(send({ x: 320, y: 450 }), true);
+    assert.equal(got.length, 1);
+    assert.equal(got[0].kind, 'picker');
+    assert.equal(got[0].anchor.x, 320);
+    assert.equal(got[0].anchor.y, 450);
+});
+
 test('ykDropRejected 具名拒因白名单（r14）', function () {
     const got = [];
     const current = fixture({ onDropRejected: function (r) { got.push(r); } });

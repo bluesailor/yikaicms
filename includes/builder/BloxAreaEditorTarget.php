@@ -10,6 +10,23 @@ final class BloxAreaEditorTarget
     private const RETURN_RECEIPT_LIMIT = 8;
     private const RETURN_RECEIPT_TTL = 600;
 
+    /** @return array{context:string,url:string} */
+    public static function frontPreviewTarget(mixed $key, string $language): array
+    {
+        $context = 'home';
+        $url = langUrl('/', $language);
+        if (is_string($key) && preg_match('/^(channel|page):(\d+)$/', trim($key), $matches)) {
+            $row = channelModel()->siblingForLang((int) $matches[2], $language);
+            $type = (string) ($row['type'] ?? '');
+            if ($row !== null && !in_array($type, ['redirect', 'link'], true)
+                && (($matches[1] === 'page') === ($type === 'page'))) {
+                $context = $matches[1] . ':' . (int) $row['id'];
+                $url = channelUrl($row);
+            }
+        }
+        return ['context' => $context, 'url' => $url . (str_contains($url, '?') ? '&preview' : '?preview')];
+    }
+
     /** @param array<string,mixed> $template */
     public static function isThemeFallbackTemplate(array $template, string $area): bool
     {
@@ -39,14 +56,8 @@ final class BloxAreaEditorTarget
                 return $fallback;
             }
 
-            if (self::customAreaEnabled($area) && self::themeRendersArea($area, $themesRoot)) {
-                $templates = bloxTemplateModel()->publishedAreaTemplates($area);
-                $resolved = $templates === [] ? null : BloxAreaResolver::resolve($templates, [
-                    'home' => (bool) ($context['home'] ?? false),
-                    'channel_id' => max(0, (int) ($context['channel_id'] ?? 0)),
-                    'page_id' => max(0, (int) ($context['page_id'] ?? 0)),
-                    'lang' => trim((string) ($context['lang'] ?? siteLang())),
-                ]);
+            $resolved = self::publishedTemplate($area, $context, $themesRoot);
+            if ($resolved !== null) {
                 $resolvedId = (int) ($resolved['id'] ?? 0);
                 if ($resolvedId > 0) {
                     return self::editorUrl($area, $resolvedId, false, $back);
@@ -72,6 +83,65 @@ final class BloxAreaEditorTarget
             error_log('[BloxAreaEditorTarget] ' . $e->getMessage());
             return $fallback;
         }
+    }
+
+    /** @param array<string,mixed> $context @return array<string,mixed>|null */
+    public static function publishedTemplate(string $area, array $context = [], string $themesRoot = ''): ?array
+    {
+        $state = self::publicationState($area, $context, $themesRoot);
+        return in_array($state['status'], ['ready', 'conditional'], true) ? $state['template'] : null;
+    }
+
+    /**
+     * Inspect publication data without rendering elements or running plugin hooks in the admin.
+     * @param array<string,mixed> $context
+     * @return array{status:string,template:array<string,mixed>|null}
+     */
+    public static function publicationState(string $area, array $context = [], string $themesRoot = ''): array
+    {
+        if (!in_array($area, ['header', 'footer'], true)
+            || !self::themeRendersArea($area, $themesRoot)) {
+            return ['status' => 'native', 'template' => null];
+        }
+        if (!self::customAreaEnabled($area)) {
+            return ['status' => 'disabled', 'template' => null];
+        }
+        if (!db()->tableExists('blox_templates')) {
+            return ['status' => 'unmatched', 'template' => null];
+        }
+        $template = BloxAreaResolver::resolve(bloxTemplateModel()->publishedAreaTemplates($area), [
+            'home' => (bool) ($context['home'] ?? false),
+            'channel_id' => max(0, (int) ($context['channel_id'] ?? 0)),
+            'page_id' => max(0, (int) ($context['page_id'] ?? 0)),
+            'lang' => trim((string) ($context['lang'] ?? siteLang())),
+        ]);
+        if ($template === null) {
+            return ['status' => 'unmatched', 'template' => null];
+        }
+        // Inspect the winning rule only: the frontend does not try a lower-ranked template.
+        try {
+            $document = BloxAreaDocument::decode($area, (string) ($template['published_data'] ?? ''));
+        } catch (RuntimeException) {
+            return ['status' => 'invalid', 'template' => $template];
+        }
+        if ($document['sections'] === []) {
+            return ['status' => 'empty', 'template' => $template];
+        }
+        $runtimeDependent = false;
+        foreach ($document['sections'] as $section) {
+            // Library references and conditional visibility require the real frontend context.
+            if (!is_array($section) || !empty($section['library_id'])) {
+                $runtimeDependent = true;
+                continue;
+            }
+            if (!empty($section['settings']['hidden'])) continue;
+            if (BloxDisplayConditions::hasInput($section['settings']['_conditions'] ?? null)) {
+                $runtimeDependent = true;
+                continue;
+            }
+            return ['status' => 'ready', 'template' => $template];
+        }
+        return ['status' => $runtimeDependent ? 'conditional' : 'hidden', 'template' => $template];
     }
 
     public static function normalizeReturnTo(mixed $value): string

@@ -60,6 +60,16 @@ test("FAQ items merge sparse edits until structural customization takes over", (
     assert.deepEqual(seeds[1], { question: "Q2", answer: "A2" });
 });
 
+test("FAQ rich answers retain explicit formats across overrides and moves", () => {
+    const seeds = [{ question: "Q1", answer: "<p><strong>A1</strong></p>", answer_format: "html" }];
+    assert.equal(store.faqItems(seeds, [{ question: "Renamed" }], false, 30)[0].answer_format, "html");
+    assert.equal(store.faqItems(seeds, [{ answer: "Plain" }], false, 30)[0].answer_format, undefined);
+    const html = { question: "Q2", answer: '<p><a href="/contact.html">Contact</a></p>', answer_format: "html" };
+    const items = store.faqItems(seeds, [seeds[0], html], true, 30);
+    assert.deepEqual(store.moveItem(items, 1, 0), [html, seeds[0]]);
+    assert.deepEqual(store.parseAccordionItems(items, 30), items);
+});
+
 test("standard accordion reads the legacy storage format", () => {
     const parsed = store.parseAccordionItems("Question one|Answer one\r\n|Draft answer\nQuestion two", 30);
 

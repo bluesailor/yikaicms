@@ -3,6 +3,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 const {
   addTemporaryHeading,
+  openSectionInsertAtEnd,
   expectClean,
   frame,
   observeConsole,
@@ -23,6 +24,7 @@ test('page canvas includes the effective readonly header and footer @ci', async 
 
   await openPageEditor(page, fixtures.blox_page);
   const contentFrame = await frame(page);
+  await expect(contentFrame.locator('[data-yk-region="page-hero"]')).toBeVisible();
   const headerArea = contentFrame.locator('[data-yk-context-area="header"]');
   const footerArea = contentFrame.locator('[data-yk-context-area="footer"]');
   const header = contentFrame.getByTestId('blox-context-edit-header');
@@ -47,6 +49,8 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await page.goto(sourceUrl, { waitUntil: 'domcontentloaded' });
   const source = new URL(page.url());
   const sourceReturnTo = source.pathname + source.search;
+  const legacyTitle = await page.getByRole('heading', { level: 1 }).first().innerText();
+  expect(legacyTitle.trim()).not.toBe('');
   const editorHref = await page.locator('.ik-ab-page-edit').getAttribute('href');
   expect(editorHref).toBeTruthy();
   await page.goto(editorHref, { waitUntil: 'domcontentloaded' });
@@ -155,6 +159,11 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await expect(page.getByTestId('blox-draft-preview-bar')).toContainText('正在预览草稿');
   await expect(page.locator('#ik-adminbar')).toHaveCount(0);
   expect(await page.content()).toContain(marker);
+  // Layout documents must not inherit the classic article's typography wrapper.
+  const draftHeading = page.getByRole('heading', { name: marker, exact: true });
+  await expect(draftHeading).toBeVisible();
+  expect(await draftHeading.evaluate((element) => !!element.closest('.prose'))).toBe(false);
+  await expect(page.locator('article.yk-blox-page-content')).not.toHaveClass(/shadow|rounded|p-6/);
   await page.getByText('退出预览').click();
   await page.waitForLoadState('domcontentloaded');
   expect(page.url()).not.toContain('preview=draft');
@@ -186,6 +195,10 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await page.getByTestId('blox-publish-page').click();
   expect((await (await failedPublishResponse).json()).code).toBe(1);
   expect(await page.getByTestId('blox-back').getAttribute('href')).not.toContain('yk_edit_receipt');
+  await expect(page.getByTestId('blox-publish-page')).toBeEnabled();
+  await expect(page.getByTestId('blox-publish-page')).not.toContainText('已发布');
+  await expect(page.getByTestId('blox-front-preview')).toContainText('预览草稿');
+  await expect(page.getByTestId('blox-front-preview')).toHaveAttribute('href', /preview=draft/);
 
   page.once('dialog', (dialog) => dialog.accept());
   const publishResponse = page.waitForResponse((candidate) => {
@@ -199,6 +212,12 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   expect(publishResult.data.return_receipt).toMatch(/^[a-f0-9]{48}$/);
   await expectClean(page);
   await expect(draftSummaryOpen).toBeHidden();
+  await expect(page.getByTestId('blox-publish-page')).toBeDisabled();
+  await expect(page.getByTestId('blox-publish-page')).toContainText('已发布');
+  await expect(page.getByTestId('blox-front-preview')).toContainText('查看已发布页面');
+  expect(await page.getByTestId('blox-front-preview').getAttribute('href')).not.toMatch(/preview=|blox_draft=/);
+  await expect(page.getByTestId('blox-mobile-publish-page')).toBeDisabled();
+  await expect(page.getByTestId('blox-mobile-front-preview')).toContainText('查看已发布页面');
 
   const publishedBack = new URL(await page.getByTestId('blox-back').getAttribute('href'), 'http://yikaicms.local');
   expect(publishedBack.searchParams.get('yk_edit_receipt')).toBe(publishResult.data.return_receipt);
@@ -212,6 +231,10 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await expect(page.locator('[data-draft-kind="page"]')).toHaveCount(0);
   expect(page.url()).not.toContain('yk_edit_receipt');
   expect(await page.content()).toContain(marker);
+
+  await expect(page.getByRole('heading', { level: 1, name: legacyTitle, exact: true })).toBeVisible();
+  const liveHeading = page.getByRole('heading', { name: marker, exact: true });
+  expect(await liveHeading.evaluate((element) => !!element.closest('.prose'))).toBe(false);
 
   const publishedFrontend = await page.request.get(`${fixtures.blox_page_url}&preview=1&v=${Date.now()}`);
   expect(publishedFrontend.ok()).toBe(true);
@@ -510,6 +533,7 @@ test('standard page accordion has structured FAQ editing @local', async ({ page 
   if (await clearSelection.isVisible()) await clearSelection.click();
 
   const sectionsBefore = await page.getByTestId('blox-tree-section').count();
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(sectionsBefore + 1);
   await page.getByTestId('blox-library-open').click();

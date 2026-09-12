@@ -39,6 +39,17 @@
     }
 
     var methods = {
+        openPickedBannerPanel(target) {
+            if (!target || !["banner-content", "banner-links"].includes(target.panel)
+                || (target.mods && (target.mods.shift || target.mods.toggle))) return;
+            var path = target.id ? this.elementPathById(target.id) : target.path;
+            var node = this.elementAtPath(path);
+            if (!node || node !== this.selEl || node.type !== "home-banner-item") return;
+            this.bannerPanelGroup = target.panel === "banner-links" ? "playback" : "common";
+            this.panelTab = "content";
+            this.ctrlQuery = "";
+        },
+
         inheritedBannerRuntime() {
             return this.isHomeBannerHost(this.selEl) && (this.selEl.data.banner_height_mode || "inherit") === "inherit"
                 ? this.homeBannerRuntime : null;

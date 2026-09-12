@@ -579,6 +579,7 @@ $typeLabels = [
     'header' => __('blox_tpl_type_header'),
     'footer' => __('blox_tpl_type_footer'),
     'popup' => __('blox_tpl_type_popup'),
+    'product-detail' => __('blox_tpl_type_product-detail'),
 ];
 $assignmentSourceLabels = [
     'default' => __('blox_assignment_source_default'),
@@ -675,6 +676,19 @@ $sourceLabels = [
 $GLOBALS['pageTitle'] = __('admin_blox_templates');
 $GLOBALS['currentMenu'] = 'blox_templates';
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/module_nav.php';
+$moduleTypeIcons = ['all' => 'layout-grid', 'section' => 'layout-rows', 'page' => 'file', 'header' => 'layout-navbar', 'footer' => 'layout-bottombar', 'popup' => 'app-window', 'product-detail' => 'package'];
+$moduleTypeItems = [];
+foreach (array_merge(['all'], BloxTemplateModel::TYPES) as $moduleType) {
+    $moduleTypeItems[] = [
+        'label' => $moduleType === 'all' ? __('blox_tpl_filter_all') : ($typeLabels[$moduleType] ?? $moduleType),
+        'url' => '/admin/blox_templates.php' . ($moduleType === 'all' ? '' : '?type=' . rawurlencode($moduleType)),
+        'icon' => $moduleTypeIcons[$moduleType] ?? 'file',
+        'active' => $filterType === $moduleType,
+        'testid' => 'blox-template-filter-' . $moduleType,
+    ];
+}
+adminModuleStart($moduleTypeItems, __('blox_tpl_filter_label'), 'blox-template-type-filter');
 ?>
 <script>
 function condForm(initial, entities, languages) {
@@ -779,19 +793,6 @@ function confirmAreaPublish(form) {
         <div class="bg-white px-4 py-3"><div class="text-xs text-gray-500"><?php echo __('blox_tpl_format'); ?></div><div class="mt-1 text-xl font-semibold">JSON v1</div></div>
     </div>
 
-    <nav class="flex flex-wrap gap-1 border-y border-gray-200 bg-white p-2" aria-label="<?php echo e(__('blox_tpl_filter_label')); ?>" data-testid="blox-template-type-filter">
-        <?php foreach (array_merge(['all'], BloxTemplateModel::TYPES) as $type):
-            $label = $type === 'all' ? __('blox_tpl_filter_all') : ($typeLabels[$type] ?? $type);
-            $active = $filterType === $type;
-        ?>
-        <a href="/admin/blox_templates.php<?php echo $type === 'all' ? '' : '?type=' . e($type); ?>"
-           data-testid="blox-template-filter-<?php echo e($type); ?>"
-           <?php echo $active ? 'aria-current="page"' : ''; ?>
-           class="inline-flex h-9 items-center px-3 text-sm <?php echo $active ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'; ?>">
-            <?php echo e($label); ?>
-        </a>
-        <?php endforeach; ?>
-    </nav>
 
     <?php if (in_array($filterType, ['all', 'header', 'footer'], true)):
         $overviewTypes = in_array($filterType, ['header', 'footer'], true) ? [$filterType] : ['header', 'footer'];
@@ -1040,7 +1041,12 @@ function confirmAreaPublish(form) {
                                     <i class="ti ti-alert-triangle mr-0.5"></i><?php echo e(__('blox_assignment_conflict_count', ['count' => count($dedicatedTemplates)])); ?>
                                 </p>
                                 <?php endif; ?>
-                                <?php if ($canManageDedicated && $dedicatedTemplates === []): ?>
+                                <?php else: ?>
+                                <span class="inline-flex items-center gap-1 text-gray-500" data-testid="blox-assignment-theme">
+                                    <i class="ti ti-palette"></i><?php echo e(__('blox_current_theme_fallback', ['theme' => $currentTheme])); ?>
+                                </span>
+                                <?php endif; ?>
+                                <?php if ($assignment['enabled'] && $canManageDedicated && $dedicatedTemplates === []): ?>
                                 <form method="post" class="mt-2">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="create_area_assignment_draft">
@@ -1050,10 +1056,10 @@ function confirmAreaPublish(form) {
                                     <button type="submit" class="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:opacity-75"
                                             data-testid="<?php echo $dedicatedDrafts !== [] ? 'blox-assignment-continue-draft' : 'blox-assignment-copy-dedicated'; ?>">
                                         <i class="ti <?php echo $dedicatedDrafts !== [] ? 'ti-edit' : 'ti-copy-plus'; ?>"></i>
-                                        <?php echo e(__($dedicatedDrafts !== [] ? 'blox_assignment_continue_draft' : 'blox_assignment_copy_dedicated')); ?>
+                                        <?php echo e(__($dedicatedDrafts !== [] ? 'blox_assignment_continue_draft' : (is_array($matchedTemplate) ? 'blox_assignment_copy_dedicated' : 'blox_assignment_create_dedicated'))); ?>
                                     </button>
                                 </form>
-                                <?php elseif ($canManageDedicated): ?>
+                                <?php elseif ($assignment['enabled'] && $canManageDedicated): ?>
                                 <form method="post" class="mt-2" onsubmit="return confirm(<?php echo e(json_encode(__('blox_assignment_restore_confirm'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)); ?>)">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="restore_area_assignment_inheritance">
@@ -1064,11 +1070,6 @@ function confirmAreaPublish(form) {
                                         <i class="ti ti-arrow-back-up"></i><?php echo e(__('blox_assignment_restore')); ?>
                                     </button>
                                 </form>
-                                <?php endif; ?>
-                                <?php else: ?>
-                                <span class="inline-flex items-center gap-1 text-gray-500" data-testid="blox-assignment-theme">
-                                    <i class="ti ti-palette"></i><?php echo e(__('blox_current_theme_fallback', ['theme' => $currentTheme])); ?>
-                                </span>
                                 <?php endif; ?>
                             </td>
                             <?php endforeach; ?>
@@ -1562,4 +1563,4 @@ function confirmAreaPublish(form) {
     <?php endif; ?>
 </div>
 
-<?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
+<?php adminModuleEnd(); require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

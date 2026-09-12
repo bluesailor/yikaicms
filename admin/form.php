@@ -121,15 +121,9 @@ $pageTitle = __('admin_form');
 $currentMenu = 'form';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require ROOT_PATH . '/admin/includes/workflow_nav.php';
 ?>
 
-<!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/form.php" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('inq_tab_data'); ?></a>
-        <a href="/admin/form_design.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('inq_tab_design'); ?></a>
-    </div>
-</div>
 
 <!-- 状态快捷筛选 -->
 <div class="flex gap-2 mb-4 flex-wrap">
@@ -184,7 +178,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow">
     <form id="listForm">
         <div class="overflow-x-auto">
-            <table class="w-full">
+        <table class="w-full admin-workflow-table">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left">
@@ -475,4 +469,5 @@ showDetail(<?php echo json_encode($viewItem, JSON_HEX_TAG | JSON_HEX_AMP); ?>);
 <?php endif; ?>
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

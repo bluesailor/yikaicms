@@ -9,7 +9,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
-HtmlCache::start(600);
+$isNativeProductPreview = defined('YK_PRODUCT_NATIVE_PREVIEW') && YK_PRODUCT_NATIVE_PREVIEW === true;
+if (!$isNativeProductPreview) HtmlCache::start(600);
 
 $productId = getInt('id');
 $slug = trim((string) get('slug', ''));
@@ -30,7 +31,7 @@ if ($productId <= 0) {
 // 数据装配交给 ProductDetailController：产品载入、浏览量自增、分类/相关/上下篇、
 // 图片组与规格解析。与 detail.php / article.php 同款、逻辑由 ProductDetailControllerTest 守护。
 require_once __DIR__ . '/controllers/detail/ProductDetailController.php';
-$_vars = (new ProductDetailController())->prepare($productId);
+$_vars = (new ProductDetailController())->prepare($productId, !$isNativeProductPreview);
 if ($_vars === null) {
     header('HTTP/1.1 404 Not Found');
     render404(__('error_product_not_found'));
@@ -102,8 +103,17 @@ if (!empty($product['price']) && $product['price'] > 0) {
     ];
 }
 
-// 引入头部
+// Native detail markup and its scripts remain an indivisible fallback.
+$productTemplateHtml = $isNativeProductPreview ? '' : ProductTemplateDocument::renderPublished($product);
+// Collect template assets before the theme emits its head.
 require_once theme_path('layouts/header.php');
+if ($isNativeProductPreview) {
+    echo '<div role="status" class="border-b bg-gray-50 px-4 py-3 text-sm text-gray-700" data-testid="product-native-preview">'
+        . e(__('blox_product_native_preview_status')) . '</div>';
+}
+if (trim($productTemplateHtml) !== '') {
+    echo $productTemplateHtml;
+} else {
 ?>
 
 <!-- 面包屑 -->
@@ -242,6 +252,7 @@ require_once theme_path('layouts/header.php');
                             <?php echo __('product_inquiry'); ?>
                         </h3>
                         <form id="inquiryForm" class="space-y-3">
+                            <?php if ($isNativeProductPreview): ?><fieldset disabled class="space-y-3"><?php endif; ?>
                             <input type="hidden" name="form_slug" value="product-inquiry">
                             <input type="hidden" name="_lang" value="<?= e(siteLang()) ?>">
                             <?php $inquiryTimestamp = time(); ?>
@@ -270,6 +281,7 @@ require_once theme_path('layouts/header.php');
                                 <?php echo __('product_btn_submit_inq'); ?>
                             </button>
                             <p id="inquiryMsg" class="text-sm text-center hidden"></p>
+                            <?php if ($isNativeProductPreview): ?></fieldset><?php endif; ?>
                         </form>
                     </div>
                 </div>
@@ -518,5 +530,6 @@ document.getElementById('inquiryForm').addEventListener('submit', function(e) {
 });
 </script>
 
+<?php } ?>
 <?php require_once theme_path('layouts/footer.php'); ?>
-<?php HtmlCache::end(); ?>
+<?php if (!$isNativeProductPreview) HtmlCache::end(); ?>

@@ -18,6 +18,7 @@ declare(strict_types=1);
                 : (($editorBackTo ?? '') === 'home'
                     ? '/admin/blox_editor.php?home=1'
                     : ($templateId ? $templateManagerBack : ($isHomeBlox ? '/admin/setting_home.php' : '/admin/page.php')));
+            if ($templateId && $templateType === 'product-detail' && !$hasFrontendReturn) $bloxBackUrl = '/admin/product_design.php';
             $bloxBackTitle = $hasFrontendReturn
                 ? __('blox_return_to_page')
                 : (($editorBackTo ?? '') === 'home' ? __('blox_back_to_home_editor') : __('admin_back'));
@@ -341,6 +342,13 @@ declare(strict_types=1);
                     <i class="ti ti-circle-plus text-lg"></i>
                 </button>
             </div>
+<?php if (!$isHomeBlox && !$templateId && ($pageType ?? '') === 'page'): ?>
+            <button type="button" @click="openPageFrame()" data-testid="blox-page-frame-open"
+                    class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800"
+                    title="<?= e(__('blox_page_frame')) ?>" aria-label="<?= e(__('blox_page_frame')) ?>">
+                <i class="ti ti-layout text-lg"></i>
+            </button>
+<?php endif; ?>
 <?php if ($canManageBloxDesign): ?>
             <button type="button" @click="openDesignSystem()" data-testid="blox-design-open"
                     class="text-gray-300 hover:text-emerald-300 text-sm inline-flex items-center gap-1 px-2 py-1.5 transition-colors"
@@ -363,20 +371,28 @@ declare(strict_types=1);
             $frontPreviewUrl = null;
             if ($templateId) {
                 if (in_array($templateType ?? '', ['header', 'footer'], true)) {
-                    $frontPreviewUrl = langUrl('/', $areaEditorLanguage);
-                    $frontPreviewUrl .= str_contains($frontPreviewUrl, '?') ? '&preview' : '?preview';
+                    $frontPreviewUrl = $areaFrontPreviewUrl;
                 }
             } elseif ($isHomeBlox) {
                 $frontPreviewUrl = '/?preview';
             } else {
-                $frontPreviewUrl = '/' . $page['slug'] . '.html?preview';
+                $frontPreviewUrl = channelUrl($page);
+                $frontPreviewUrl .= str_contains($frontPreviewUrl, '?') ? '&preview=draft&blox_draft=page:' . (int) $id : '?preview=draft&blox_draft=page:' . (int) $id;
             }
             ?>
+            <button type="button" @click="toggleRightPanel()" data-testid="blox-toolbar-structure-toggle"
+                    class="h-8 rounded text-gray-300 hover:text-white hover:bg-gray-800 inline-flex items-center gap-1 px-2"
+                    :class="!rightPanelCollapsed ? 'bg-gray-800 text-white' : ''"
+                    :title="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
+                    :aria-label="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
+                    :aria-expanded="String(!rightPanelCollapsed)" aria-controls="blox-structure-panel">
+                <i class="ti ti-list-tree text-base" aria-hidden="true"></i><span class="text-xs"><?= e(__('blox_mobile_structure')) ?></span>
+            </button>
             <?php if ($frontPreviewUrl !== null): ?>
-            <a href="<?php echo e($frontPreviewUrl); ?>" target="_blank" rel="noopener"
+            <a href="<?php echo e($frontPreviewUrl); ?>" <?= !$isHomeBlox && !$templateId ? ':href="pageFrontPreviewUrl()"' : '' ?> target="_blank" rel="noopener"
                data-testid="blox-front-preview"
-               class="text-gray-300 hover:text-white text-sm inline-flex items-center gap-1 px-2 py-1.5" title="<?= e(__('blox_front_preview')) ?>">
-                <i class="ti ti-eye text-base"></i><span class="text-xs"><?php echo e(__('blox_front_preview')); ?></span>
+               class="text-gray-300 hover:text-white text-sm inline-flex items-center gap-1 px-2 py-1.5">
+                <i class="ti ti-eye text-base"></i><span class="text-xs" <?php if (!$isHomeBlox && !$templateId): ?>x-text="pageIsPublishedCurrent() ? <?= e($jt('blox_page_view_published')) ?> : <?= e($jt('ab_preview_draft')) ?>"<?php endif; ?>><?php echo e(__('blox_front_preview')); ?></span>
             </a>
             <?php endif; ?>
             <div class="inline-flex items-center gap-1" data-testid="blox-save-publish-actions">
@@ -398,10 +414,11 @@ declare(strict_types=1);
                     <i class="ti ti-rocket text-base"></i><?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_draft')); ?>
                 </button>
 <?php else: ?>
-                <button type="button" @click="publishPage()" :disabled="pageActionBusy || saving" data-testid="blox-publish-page"
+                <button type="button" @click="publishPage()" :disabled="pageActionBusy || saving || pageIsPublishedCurrent()" :aria-busy="pageActionBusy ? 'true' : 'false'" data-testid="blox-publish-page"
                         class="h-8 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium px-3 rounded inline-flex items-center justify-center gap-1.5 transition"
                         title="<?php echo e(__('blox_page_publish_saves_current')); ?>">
-                    <i class="ti ti-rocket text-base"></i><?php echo e(__('blox_page_publish')); ?>
+                    <i class="ti text-base" :class="pageActionBusy ? 'ti-loader-2 animate-spin' : (pageIsPublishedCurrent() ? 'ti-check' : 'ti-rocket')"></i>
+                    <span aria-live="polite" x-text="pageActionBusy ? <?= e($jt('blox_page_publishing')) ?> : (pageIsPublishedCurrent() ? <?= e($jt('dl_published')) ?> : (pagePublished ? <?= e($jt('blox_page_publish_update')) ?> : <?= e($jt('blox_page_publish')) ?>))"><?php echo e(__('blox_page_publish')); ?></span>
                 </button>
 <?php endif; ?>
             </div>
@@ -415,6 +432,9 @@ declare(strict_types=1);
             </button>
             <div x-show="mobileActionsOpen" x-cloak @click.outside="mobileActionsOpen = false"
                  @keydown.escape.window="mobileActionsOpen = false" class="blox-mobile-actions-menu">
+<?php if (!$isHomeBlox && !$templateId && ($pageType ?? '') === 'page'): ?>
+                <button type="button" @click="openPageFrame()"><i class="ti ti-layout"></i><?= e(__('blox_page_frame')) ?></button>
+<?php endif; ?>
                 <p class="px-3 py-2 text-xs text-gray-600 break-words" role="status" aria-live="polite" x-text="saveStatusText()" data-testid="blox-mobile-save-status"></p>
                 <?php $previewRetryId = 'blox-mobile-preview-retry'; require __DIR__ . '/preview-retry.php'; ?>
                 <button type="button" @click="undo(); mobileActionsOpen = false" :disabled="!canUndo()"
@@ -444,8 +464,9 @@ declare(strict_types=1);
                     <i class="ti ti-restore"></i><?php echo e(__('blox_rollback')); ?>
                 </button>
 <?php elseif (!$templateId): ?>
-                <button type="button" @click="publishPage(); mobileActionsOpen = false" :disabled="pageActionBusy || saving">
-                    <i class="ti ti-rocket"></i><?php echo e(__('blox_page_publish')); ?>
+                <button type="button" @click="publishPage(); mobileActionsOpen = false" :disabled="pageActionBusy || saving || pageIsPublishedCurrent()" :aria-busy="pageActionBusy ? 'true' : 'false'" data-testid="blox-mobile-publish-page">
+                    <i class="ti" :class="pageActionBusy ? 'ti-loader-2 animate-spin' : (pageIsPublishedCurrent() ? 'ti-check' : 'ti-rocket')"></i>
+                    <span x-text="pageActionBusy ? <?= e($jt('blox_page_publishing')) ?> : (pageIsPublishedCurrent() ? <?= e($jt('dl_published')) ?> : (pagePublished ? <?= e($jt('blox_page_publish_update')) ?> : <?= e($jt('blox_page_publish')) ?>))"><?php echo e(__('blox_page_publish')); ?></span>
                 </button>
                 <?php foreach ($pageLanguageVersions as $languageVersion): ?>
                 <?php $mobileLanguageUrl = $languageVersion['id'] > 0
@@ -458,7 +479,7 @@ declare(strict_types=1);
                 </a>
                 <?php endforeach; ?>
 <?php else: ?>
-                <button type="button" @click="publishTemplate(); mobileActionsOpen = false" :disabled="saving">
+                <button type="button" @click="publishTemplate(); mobileActionsOpen = false" :disabled="saving" data-testid="blox-mobile-publish-template">
                     <i class="ti ti-rocket"></i><?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_draft')); ?>
                 </button>
 <?php endif; ?>
@@ -489,10 +510,47 @@ declare(strict_types=1);
                     <i class="ti" :class="cacheClearing ? 'ti-loader-2 animate-spin' : 'ti-database-off'"></i><?php echo e(__('scache_clear_now')); ?>
                 </button>
 <?php endif; ?>
-                <a :href="homeMode ? '/?preview' : ('/' + '<?php echo e($page['slug']); ?>' + '.html?preview')" target="_blank" rel="noopener"
-                   @click="mobileActionsOpen = false">
-                    <i class="ti ti-eye"></i><?php echo e(__('blox_front_preview')); ?>
+                <?php if ($frontPreviewUrl !== null): ?>
+                <a href="<?= e($frontPreviewUrl) ?>" <?= !$isHomeBlox && !$templateId ? ':href="pageFrontPreviewUrl()"' : '' ?> target="_blank" rel="noopener"
+                   @click="mobileActionsOpen = false" data-testid="blox-mobile-front-preview">
+                    <i class="ti ti-eye"></i><span <?php if (!$isHomeBlox && !$templateId): ?>x-text="pageIsPublishedCurrent() ? <?= e($jt('blox_page_view_published')) ?> : <?= e($jt('ab_preview_draft')) ?>"<?php endif; ?>><?php echo e(__('blox_front_preview')); ?></span>
                 </a>
+                <?php endif; ?>
             </div>
         </div>
     </header>
+    <?php if ($templateId && $templateType === 'product-detail'): ?>
+    <details class="border-b border-gray-200 bg-white px-4 py-2 text-sm" data-testid="product-template-settings">
+        <summary class="cursor-pointer font-medium text-gray-900"><?= e(__('blox_product_settings')) ?></summary>
+        <div class="flex flex-wrap items-end gap-4 py-3">
+            <label class="min-w-0 flex-1">
+                <span class="block mb-1"><?= e(__('blox_product_preview')) ?></span>
+                <select x-model="productPreviewId" @change="schedulePreview()" data-testid="product-template-preview" class="w-full border border-gray-300 rounded px-2 py-2">
+                    <option value="0"><?= e(__('blox_product_choose')) ?></option>
+                    <?php foreach ($productPreviewItems as $previewItem): ?>
+                    <option value="<?= (int) $previewItem['id'] ?>"><?= e((string) $previewItem['title']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
+                <span class="block mb-1"><?= e(__('blox_product_scope')) ?></span>
+                <select x-model="docSettings.product_template.mode" @change="$nextTick(() => markDocumentSettingsChanged())" data-testid="product-template-scope" class="border border-gray-300 rounded px-2 py-2">
+                    <option value="selected"><?= e(__('blox_product_selected')) ?></option>
+                    <option value="all"><?= e(__('blox_product_all')) ?></option>
+                </select>
+            </label>
+            <label>
+                <span class="block mb-1"><?= e(__('blox_product_language')) ?></span>
+                <input readonly :value="docSettings.product_template.lang" data-testid="product-template-language" class="w-28 border border-gray-300 rounded px-2 py-2">
+            </label>
+        </div>
+        <div x-show="docSettings.product_template.mode === 'selected'" class="max-h-40 overflow-auto border-t border-gray-200 py-2">
+            <?php foreach ($productPreviewItems as $previewItem): ?>
+            <label class="flex items-center gap-2 py-1">
+                <input type="checkbox" x-model.number="docSettings.product_template.ids" @change="$nextTick(() => markDocumentSettingsChanged())" value="<?= (int) $previewItem['id'] ?>" data-testid="product-template-target-<?= (int) $previewItem['id'] ?>">
+                <span><?= e((string) $previewItem['title']) ?></span>
+            </label>
+            <?php endforeach; ?>
+        </div>
+    </details>
+    <?php endif; ?>
