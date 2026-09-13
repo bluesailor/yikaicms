@@ -135,6 +135,38 @@ final class DetailTemplatePublishGuard
     }
 
     /**
+     * 按真实分类树展开子级的扫描范围（发布检查与影响预览共用）。
+     *
+     * @param list<array<string,mixed>|null> $scopes
+     * @return array{langs:list<string>,all:bool,items:list<int>,categories:list<int>}
+     */
+    public static function domainFor(string $contentType, array $scopes): array
+    {
+        return self::domain($contentType, $scopes, static function (int $id) use ($contentType): array {
+            $ids = $contentType === 'product'
+                ? productCategoryModel()->getChildIds($id)
+                : channelModel()->getChildIds($id);
+            return array_values(array_map('intval', $ids));
+        });
+    }
+
+    /**
+     * 已发布候选的指纹材料：模板 ID + 发布内容摘要（顺序无关）。
+     *
+     * @param list<array<string,mixed>> $candidates
+     * @return list<array{0:int,1:string}>
+     */
+    public static function candidateMarks(array $candidates): array
+    {
+        $marks = array_map(static fn (array $candidate): array => [
+            (int) ($candidate['id'] ?? 0),
+            sha1((string) ($candidate['published_data'] ?? '')),
+        ], $candidates);
+        sort($marks);
+        return $marks;
+    }
+
+    /**
      * 准备一次检查：候选（发布前/后）、范围、条件是否变化、指纹。不扫描内容。
      *
      * @param array<string,mixed>|null $draftScope 草稿的有效条件（见 DetailTemplateProvider::scopeFromSettings）
@@ -151,18 +183,8 @@ final class DetailTemplatePublishGuard
             }
         }
         $after = DetailTemplateProvider::injectDraft($before, $contentType, $templateId, $draftScope ?? []);
-        $domain = self::domain($contentType, [$oldScope, $draftScope], static function (int $id) use ($contentType): array {
-            $ids = $contentType === 'product'
-                ? productCategoryModel()->getChildIds($id)
-                : channelModel()->getChildIds($id);
-            return array_values(array_map('intval', $ids));
-        });
-
-        $candidateMarks = array_map(static fn (array $candidate): array => [
-            (int) ($candidate['id'] ?? 0),
-            sha1((string) ($candidate['published_data'] ?? '')),
-        ], $before);
-        sort($candidateMarks);
+        $domain = self::domainFor($contentType, [$oldScope, $draftScope]);
+        $candidateMarks = self::candidateMarks($before);
 
         return [
             'content_type' => $contentType,
@@ -368,7 +390,7 @@ final class DetailTemplatePublishGuard
      * @param array{langs:list<string>,all:bool,items:list<int>,categories:list<int>} $domain
      * @return array{0:string,1:string,2:list<mixed>}|null [表, WHERE, 参数]；范围为空时 null
      */
-    private static function domainQuery(string $contentType, array $domain): ?array
+    public static function domainQuery(string $contentType, array $domain): ?array
     {
         if ($domain['langs'] === [] || (!$domain['all'] && $domain['items'] === [] && $domain['categories'] === [])) {
             return null;
@@ -405,7 +427,7 @@ final class DetailTemplatePublishGuard
      * @param list<string> $langs
      * @return list<list<int>>
      */
-    private static function contentStats(string $contentType, array $langs): array
+    public static function contentStats(string $contentType, array $langs): array
     {
         if ($langs === []) {
             return [];
