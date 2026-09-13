@@ -303,6 +303,13 @@ if ($isHomeBlox) {
         ));
         $productPreviewId = (int) ($productPreviewItems[0]['id'] ?? 0);
         $previewEndpoint = '/admin/blox_preview.php?product_template=1&_lang=' . rawurlencode($productPreviewLanguage);
+        // TASK-006：完整条件面板的"分类"目标（产品＝产品分类；一次查表，面板内不再查库）
+        $conditionContentType = 'product';
+        $conditionLang = $productPreviewLanguage;
+        $conditionCategories = [];
+        foreach (productCategoryModel()->all() as $categoryRow) {
+            $conditionCategories[] = ['id' => (int) ($categoryRow['id'] ?? 0), 'name' => (string) ($categoryRow['name'] ?? '')];
+        }
     } elseif ($templateType === 'article-detail') {
         $languages = availableLanguages();
         $storedScope = BloxDocumentPipeline::decode($initBlocks)['settings']['detail_template'] ?? [];
@@ -317,6 +324,14 @@ if ($isHomeBlox) {
         ));
         $articlePreviewId = (int) ($articlePreviewItems[0]['id'] ?? 0);
         $previewEndpoint = '/admin/blox_preview.php?article_template=1&_lang=' . rawurlencode($articlePreviewLanguage);
+        // TASK-006：文章的分类即栏目；按预览语言取一次
+        $conditionContentType = 'article';
+        $conditionLang = $articlePreviewLanguage;
+        $conditionCategories = [];
+        foreach (channelModel()->all() as $channelRow) {
+            if ((string) ($channelRow['lang'] ?? '') !== $articlePreviewLanguage) continue;
+            $conditionCategories[] = ['id' => (int) ($channelRow['id'] ?? 0), 'name' => (string) ($channelRow['name'] ?? '')];
+        }
     }
 } else {
     $page = channelModel()->find($id);
@@ -843,6 +858,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-groups.js') ?>"></script>
     <script src="/assets/js/blox-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-sources.js') ?>"></script>
     <script src="/assets/js/blox-detail-scope.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-scope.js') ?>"></script>
+    <script src="/assets/js/blox-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-conditions.js') ?>"></script>
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
@@ -1924,6 +1940,17 @@ $canManageBloxDesign = hasPermission('blox_global');
             ctrlQuery: "",              // 设置搜索关键词（仅元素设置）
             // TASK-003 R02：通用设置（间距/设备可见性/全局样式）的检索文本——它们不在 schema 里，
             // 但常规分组必须可达、也应当能被"间距/设备"之类关键词搜到
+            // TASK-006：完整条件面板（仅详情模板模式使用；rows 为 null 表示未启用）
+            conditionContentType: <?php echo json_encode($conditionContentType ?? '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            // 新建模板还没有 v2 契约时，语言只能来自编辑器的当前语言；否则提交会因空 lang 被服务端拒绝
+            conditionLang: <?php echo json_encode($conditionLang ?? '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            conditionCategories: <?php echo json_encode($conditionCategories ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            conditionItems: <?php echo json_encode(array_values(array_map(
+                static fn(array $row): array => ['id' => (int) ($row['id'] ?? 0), 'name' => (string) ($row['title'] ?? '')],
+                $templateType === 'product-detail' ? $productPreviewItems : $articlePreviewItems
+            )), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            conditionRows: null,
+            conditionBaseline: null,
             styleCommonSearchText: <?php echo json_encode(implode(' ', [__('blox_style_group_general'), __('blox_spacing'), __('blox_visible_devices')]), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             styleGroupLabels: <?php echo json_encode([
                 'general' => __('blox_style_group_general'),
@@ -6192,6 +6219,62 @@ $canManageBloxDesign = hasPermission('blox_global');
                     : false;
             },
 
+            /** TASK-006：面板首次展开时从已加载的 v2 作用域生成行，并记下基线。 */
+            conditionEnsure() {
+                if (this.conditionRows !== null) return;
+                var scope = (this.docSettings && this.docSettings.detail_template) || {};
+                this.conditionRows = window.BloxDetailConditions.rowsFromScope(scope);
+                this.conditionBaseline = scope;
+            },
+
+            conditionAdd(side, kind) {
+                this.conditionEnsure();
+                this.conditionRows[side].push({ kind: kind, ids: [], include_children: kind === 'category' });
+            },
+
+            conditionRemove(side, index) {
+                this.conditionEnsure();
+                this.conditionRows[side].splice(index, 1);
+            },
+
+            /** 条件相对基线是否已修改（只比 include/exclude）。 */
+            conditionDirty() {
+                this.conditionEnsure();
+                return window.BloxDetailConditions.changed(this.conditionBaseline, this.conditionRows);
+            },
+
+            conditionProblems() {
+                this.conditionEnsure();
+                return window.BloxDetailConditions.problems(this.conditionRows);
+            },
+
+            conditionScope() {
+                this.conditionEnsure();
+                var scope = (this.docSettings && this.docSettings.detail_template) || {};
+                return window.BloxDetailConditions.scopeFromRows(this.conditionRows, {
+                    content_type: this.conditionContentType,
+                    lang: scope.lang || this.conditionLang,
+                    source: scope.source || 'custom',
+                    priority: typeof scope.priority === 'number' ? scope.priority : 0,
+                });
+            },
+
+            /**
+             * 保存/发布时是否附带完整条件提交。
+             * - 文档已有 v2 契约：始终附带（面板行与 v2 无损往返，且绝不触发旧 v1 投影同步）；
+             * - 只有 v1 的文档：仅当用户**明确改了条件**才附带（即此刻才转换为 v2）；
+             * - 其它情况返回 null，交由旧路径（产品仍走 ui_scope）。
+             */
+            conditionSubmitPayload() {
+                if (this.conditionContentType === '') return null;
+                this.conditionEnsure();
+                var scope = (this.docSettings && this.docSettings.detail_template) || {};
+                var documentHasV2 = !!(scope && typeof scope === 'object' && Number(scope.version) === 2);
+                if (!documentHasV2 && !this.conditionDirty()) return null;
+                if (this.conditionProblems().length) return null;   // 面板会给出提示，不提交非法数据
+                return JSON.stringify(this.conditionScope());
+            },
+
             /** 模式切换只重写 include；'none' 表示保存草稿但不应用（不等于全站）。 */
             setArticleScopeMode(mode) {
                 // TASK-005 A：简单控件整体替换 include，含按栏目等规则时会静默删除 → 入口拦截
@@ -9701,7 +9784,12 @@ $canManageBloxDesign = hasPermission('blox_global');
                 body.set("action", "publish");
                 body.set("id", "<?php echo (int) $templateId; ?>");
                 body.set("blocks_data", payload);
-                <?php if ($templateType === 'product-detail'): ?>body.set("ui_scope", "1");<?php endif; ?>
+                <?php if ($templateType === 'product-detail' || $templateType === 'article-detail'): ?>
+                <?php // TASK-006：条件交由完整面板后不再发送 ui_scope（两者互斥）；仅 v1 文档且未改条件时保留旧路径 ?>
+                var _condPayload = self.conditionSubmitPayload();
+                if (_condPayload !== null) { body.set("conditions_json", _condPayload); self._submittedConditionScope = self.conditionScope(); }
+                <?php if ($templateType === 'product-detail'): ?>else { body.set("ui_scope", "1"); }<?php endif; ?>
+                <?php endif; ?>
                 body.set("base_revision", this.baseRevision);
                 body.set("_token", this.csrf);
                 var replaceThemeArea = "<?php echo e($replaceThemeAreaOnPublish); ?>";
@@ -9834,6 +9922,14 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             acceptSavedDocument(payload, savedData, res) {
                 this.saveOutcome = "";
+                // TASK-006：条件经完整通道提交成功后，本地文档与基线同步为该值（指示灯清除，后续改正文不回退条件）
+                if (this._submittedConditionScope) {
+                    if (!this.docSettings || typeof this.docSettings !== 'object') this.docSettings = {};
+                    this.docSettings.detail_template = this._submittedConditionScope;
+                    this.conditionBaseline = this._submittedConditionScope;
+                    this.conditionRows = window.BloxDetailConditions.rowsFromScope(this._submittedConditionScope);
+                    this._submittedConditionScope = null;
+                }
                 this.failedAction = "";
                 if (res.data && typeof res.data.base_revision === "string") {
                     this.baseRevision = res.data.base_revision;
@@ -9913,7 +10009,12 @@ $canManageBloxDesign = hasPermission('blox_global');
                 body.set("action", "save_draft");
                 body.set("id", "<?php echo (int) $templateId; ?>");
                 body.set("blocks_data", payload);
-                <?php if ($templateType === 'product-detail'): ?>body.set("ui_scope", "1");<?php endif; ?>
+                <?php if ($templateType === 'product-detail' || $templateType === 'article-detail'): ?>
+                <?php // TASK-006：条件交由完整面板后不再发送 ui_scope（两者互斥）；仅 v1 文档且未改条件时保留旧路径 ?>
+                var _condPayload = self.conditionSubmitPayload();
+                if (_condPayload !== null) { body.set("conditions_json", _condPayload); self._submittedConditionScope = self.conditionScope(); }
+                <?php if ($templateType === 'product-detail'): ?>else { body.set("ui_scope", "1"); }<?php endif; ?>
+                <?php endif; ?>
                 <?php elseif ($isHomeBlox): ?>
                 body.set("blocks_data", payload);
                 <?php else: ?>
