@@ -1920,6 +1920,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 ['k' => 'custom', 'label' => __('blox_spacing_custom'), 'short' => '✎'],
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             ctrlQuery: "",              // 设置搜索关键词（仅元素设置）
+            // TASK-003 R02：通用设置（间距/设备可见性/全局样式）的检索文本——它们不在 schema 里，
+            // 但常规分组必须可达、也应当能被"间距/设备"之类关键词搜到
+            styleCommonSearchText: <?php echo json_encode(implode(' ', [__('blox_style_group_general'), __('blox_spacing'), __('blox_visible_devices')]), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             styleGroupLabels: <?php echo json_encode([
                 'general' => __('blox_style_group_general'),
                 'background' => __('blox_style_group_background'),
@@ -4814,9 +4817,15 @@ $canManageBloxDesign = hasPermission('blox_global');
                         && !self.selEl.data.animation) return false;
                     return true;
                 });
+                // TASK-003 R02：通用设置不是 schema 控件，但常规分组必须可达（无搜索时始终在列）
+                controls.unshift(window.BloxStyleGroups.commonMarker(this.styleCommonSearchText));
                 return window.BloxStyleGroups.visibleCandidates(controls, {
                     isExcluded: function () { return false; },
-                    isModified: function (c) { return self.isCtrlModified(c); },
+                    isModified: function (c) {
+                        // 占位项没有 schema 控件可判，用"通用设置是否被改过"回答（只看已修改时决定它是否在列）
+                        if (c && c.key === 'common_style') return self.commonStyleModified();
+                        return self.isCtrlModified(c);
+                    },
                     // 关键词命中：控件名/键 + 所在区块名 + 所属分组名（TASK-003 D）
                     query: this.ctrlQuery,
                     modifiedOnly: this.modifiedOnly,
