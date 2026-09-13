@@ -36,6 +36,9 @@ if ($_vars === null) {
     header('HTTP/1.1 404 Not Found');
     render404(__('error_product_not_found'));
 }
+// 详情模板上下文需要控制器的派生数据（相册 / 参数 / 上下篇 / 相关），
+// 产品行本身没有这些；extract 后 $_vars 会销毁，故先留一份。
+$productTemplateVars = $_vars;
 extract($_vars, EXTR_OVERWRITE);
 unset($_vars);
 
@@ -104,7 +107,8 @@ if (!empty($product['price']) && $product['price'] > 0) {
 }
 
 // Native detail markup and its scripts remain an indivisible fallback.
-$productTemplateHtml = $isNativeProductPreview ? '' : ProductTemplateDocument::renderPublished($product);
+$productTemplateHtml = $isNativeProductPreview ? '' : ProductTemplateDocument::renderPublished($productTemplateVars);
+unset($productTemplateVars);
 // Collect template assets before the theme emits its head.
 require_once theme_path('layouts/header.php');
 if ($isNativeProductPreview) {

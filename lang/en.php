@@ -6622,4 +6622,8 @@ voltage|Voltage|220V',
     'blox_article_settings' => 'Article detail settings',
     'blox_article_scope_none' => 'Not applied yet (draft only)',
     'blox_article_scope_item' => 'Selected articles',
+    'blox_product_gallery' => 'Product gallery',
+    'blox_product_specs' => 'Product specs',
+    'blox_product_prev_next' => 'Previous / next product',
+    'blox_product_related' => 'Related products',
 ];

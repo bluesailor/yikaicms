@@ -22,6 +22,69 @@ final class ProductTemplateDocument
         }
     }
 
+    /**
+     * 把控制器输出归一为渲染上下文（单一契约处）。
+     *
+     * 兼容两种入参：ProductDetailController::prepare() 的返回值（含 productImages/specs/
+     * prevProduct/nextProduct/relatedProducts），或产品行本身（旧调用方式）。
+     * 相册与参数只存在于控制器结果里，产品行本身没有——这正是此前模板拿不到它们的原因。
+     *
+     * @param array<string,mixed> $input
+     * @return array<string,mixed>
+     */
+    public static function normalizeContext(array $input): array
+    {
+        $product = is_array($input['product'] ?? null) ? $input['product'] : $input;
+
+        $images = [];
+        foreach (is_array($input['productImages'] ?? null) ? $input['productImages'] : [] as $image) {
+            if (is_string($image) && $image !== '') {
+                $images[] = $image;
+            }
+        }
+
+        $specs = [];
+        foreach (is_array($input['specs'] ?? null) ? $input['specs'] : [] as $spec) {
+            if (!is_array($spec)) {
+                continue;
+            }
+            $name = trim((string) ($spec['name'] ?? ''));
+            $value = trim((string) ($spec['value'] ?? ''));
+            if ($name === '' && $value === '') {
+                continue;   // 空参数不上前台（与原生规格表同规则）
+            }
+            $specs[] = ['name' => $name, 'value' => $value];
+        }
+
+        $related = [];
+        foreach (is_array($input['relatedProducts'] ?? null) ? $input['relatedProducts'] : [] as $row) {
+            if (is_array($row) && trim((string) ($row['title'] ?? '')) !== '') {
+                $related[] = $row;
+            }
+        }
+
+        return [
+            'id' => (int) ($product['id'] ?? 0),
+            'title' => (string) ($product['title'] ?? ''),
+            'subtitle' => (string) ($product['subtitle'] ?? ''),
+            'summary' => (string) ($product['summary'] ?? ''),
+            'content' => (string) ($product['content'] ?? ''),
+            'cover' => (string) ($product['cover'] ?? ''),
+            'model' => (string) ($product['model'] ?? ''),
+            'price' => (string) ($product['price'] ?? ''),
+            'market_price' => (string) ($product['market_price'] ?? ''),
+            'tags' => (string) ($product['tags'] ?? ''),
+            'lang' => (string) ($product['lang'] ?? ''),
+            'category_id' => (int) ($product['category_id'] ?? 0),
+            'images' => $images,
+            'specs' => $specs,
+            'category' => is_array($input['productCategory'] ?? null) ? $input['productCategory'] : null,
+            'prev' => is_array($input['prevProduct'] ?? null) ? $input['prevProduct'] : null,
+            'next' => is_array($input['nextProduct'] ?? null) ? $input['nextProduct'] : null,
+            'related' => $related,
+        ];
+    }
+
     /** Missing or malformed scope never means all products. */
     public static function normalizeScope(mixed $value): array
     {
@@ -88,15 +151,19 @@ final class ProductTemplateDocument
         return $winner;
     }
 
-    public static function renderPublished(array $product): string
+    /**
+     * @param array<string,mixed> $input 控制器返回值或产品行（见 normalizeContext）
+     */
+    public static function renderPublished(array $input): string
     {
         if (!bloxPageEditorEnabled() || !bloxAdvancedFeaturesEnabled()) return '';
-        $template = self::resolve(bloxTemplateModel()->publishedProductTemplates(), $product);
+        $context = self::normalizeContext($input);
+        $template = self::resolve(bloxTemplateModel()->publishedProductTemplates(), $context);
         if ($template === null) return '';
         try {
             // A native rule must stop resolution, not fall through to another custom layout.
             if (self::usesNative($template)) return '';
-            $html = self::withProduct($product, static fn(): string => BlockRenderer::render((string) $template['published_data']));
+            $html = self::withProduct($context, static fn(): string => BlockRenderer::render((string) $template['published_data']));
             if (trim(strip_tags($html)) === '' && !preg_match('/<(?:img|video|iframe)\b/i', $html)) return '';
             return '<div class="yk-blox-product-detail" data-template-id="' . (int) $template['id'] . '">' . $html . '</div>';
         } catch (Throwable $e) {
