@@ -6772,4 +6772,7 @@ voltage|電圧|220V',
     'blox_product_inquiry_preview' => 'プレビューモード：ここから実際のお問い合わせは送信されません',
     'blox_template_publish' => 'テンプレートを公開',
     'blox_template_publishing' => '公開中…',
+    'blox_preview_content' => 'プレビュー内容',
+    'blox_editor_type_product_detail' => '製品詳細テンプレート',
+    'blox_editor_type_article_detail' => '記事詳細テンプレート',
 ];

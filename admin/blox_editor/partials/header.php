@@ -37,6 +37,25 @@ declare(strict_types=1);
                 <span class="text-[10px] font-medium bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded"><?= __('label_experimental') ?></span>
             </span>
             <span class="blox-header-page min-w-0 text-gray-400 text-sm truncate">/ <?php echo e($isHomeBlox ? __('blox_home_draft') : $page['name']); ?></span>
+            <?php
+            // 详情模板要在顶栏说清"这是哪种模板"：名字来自 BloxAreaTemplatePresets::displayName()
+            // （真实模板名，不是样本标题），这里补上真实编辑类型徽标。
+            // 窄屏隐藏（hidden sm:inline-flex）：小屏优先保住模板名与右侧动作按钮，不挤压不覆盖。
+            $editorTypeBadge = '';
+            if ($templateId && in_array($templateType, ['product-detail', 'article-detail'], true)) {
+                // 用"模板"而非类型页名：作者在编辑器里，要一眼看出自己在编辑模板
+                $editorTypeBadge = $templateType === 'product-detail'
+                    ? __('blox_editor_type_product_detail')
+                    : __('blox_editor_type_article_detail');
+            }
+            ?>
+            <?php if ($editorTypeBadge !== ''): ?>
+            <span data-testid="blox-editor-type-badge"
+                  class="hidden sm:inline-flex shrink-0 items-center gap-1 rounded bg-gray-700/60 px-1.5 py-0.5 text-[10px] font-medium text-gray-300"
+                  title="<?php echo e($editorTypeBadge); ?>">
+                <i class="ti ti-template" aria-hidden="true"></i><?php echo e($editorTypeBadge); ?>
+            </span>
+            <?php endif; ?>
             <?php if ($areaEditorLanguage !== ''): ?>
             <span data-testid="blox-area-language-context"
                   class="blox-header-area-language inline-flex shrink-0 items-center gap-1 rounded bg-cyan-400/10 px-1.5 py-0.5 text-[10px] font-medium text-cyan-200"
@@ -521,18 +540,26 @@ declare(strict_types=1);
         </div>
     </header>
     <?php if ($templateId && $templateType === 'product-detail'): ?>
+    <?php // 预览内容是"当前编辑对象"的一部分，必须常驻可见；此前藏在折叠面板里，作者看不到在预览哪条样本 ?>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-gray-200 bg-white px-4 py-2 text-sm" data-testid="blox-preview-content-bar">
+        <?php // 窄屏顶栏放不下类型徽标（会挤压按钮）：类型改在这里出现，保证小屏也知道在编辑哪种模板 ?>
+        <span class="sm:hidden shrink-0 inline-flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600" data-testid="blox-editor-type-badge-compact"><?= e($editorTypeBadge ?? __('blox_editor_type_product_detail')) ?></span>
+        <span class="shrink-0 font-medium text-gray-900"><?= e(__('blox_preview_content')) ?></span>
+        <label class="min-w-0 flex-1 sm:max-w-md">
+            <span class="sr-only"><?= e(__('blox_product_preview')) ?></span>
+            <select x-model="productPreviewId" @change="schedulePreview()" data-testid="product-template-preview" class="w-full border border-gray-300 rounded px-2 py-1.5">
+                <option value="0"><?= e(__('blox_product_choose')) ?></option>
+                <?php foreach ($productPreviewItems as $previewItem): ?>
+                <option value="<?= (int) $previewItem['id'] ?>"><?= e((string) $previewItem['title']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <span class="min-w-0 truncate text-gray-500"><?= e((string) ($page['name'] ?? '')) ?></span>
+    </div>
     <details class="border-b border-gray-200 bg-white px-4 py-2 text-sm" data-testid="product-template-settings">
         <summary class="cursor-pointer font-medium text-gray-900"><?= e(__('blox_product_settings')) ?></summary>
         <div class="flex flex-wrap items-end gap-4 py-3">
-            <label class="min-w-0 flex-1">
-                <span class="block mb-1"><?= e(__('blox_product_preview')) ?></span>
-                <select x-model="productPreviewId" @change="schedulePreview()" data-testid="product-template-preview" class="w-full border border-gray-300 rounded px-2 py-2">
-                    <option value="0"><?= e(__('blox_product_choose')) ?></option>
-                    <?php foreach ($productPreviewItems as $previewItem): ?>
-                    <option value="<?= (int) $previewItem['id'] ?>"><?= e((string) $previewItem['title']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
+            <label>
             <label>
                 <span class="block mb-1"><?= e(__('blox_product_scope')) ?></span>
                 <select x-model="docSettings.product_template.mode" @change="$nextTick(() => markDocumentSettingsChanged())" data-testid="product-template-scope" class="border border-gray-300 rounded px-2 py-2">
@@ -556,18 +583,26 @@ declare(strict_types=1);
     </details>
     <?php endif; ?>
     <?php if ($templateId && $templateType === 'article-detail'): ?>
+    <?php // 同上：预览文章常驻单列，不藏在折叠面板里 ?>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-gray-200 bg-white px-4 py-2 text-sm" data-testid="blox-preview-content-bar">
+        <?php // 同上：窄屏类型徽标落在这一行 ?>
+        <span class="sm:hidden shrink-0 inline-flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600" data-testid="blox-editor-type-badge-compact"><?= e($editorTypeBadge ?? __('blox_editor_type_article_detail')) ?></span>
+        <span class="shrink-0 font-medium text-gray-900"><?= e(__('blox_preview_content')) ?></span>
+        <label class="min-w-0 flex-1 sm:max-w-md">
+            <span class="sr-only"><?= e(__('blox_article_preview')) ?></span>
+            <select x-model="articlePreviewId" @change="schedulePreview()" data-testid="article-template-preview" class="w-full border border-gray-300 rounded px-2 py-1.5">
+                <option value="0"><?= e(__('blox_article_choose')) ?></option>
+                <?php foreach ($articlePreviewItems as $previewItem): ?>
+                <option value="<?= (int) $previewItem['id'] ?>"><?= e((string) $previewItem['title']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <span class="min-w-0 truncate text-gray-500"><?= e((string) ($page['name'] ?? '')) ?></span>
+    </div>
     <details class="border-b border-gray-200 bg-white px-4 py-2 text-sm" data-testid="article-template-settings">
         <summary class="cursor-pointer font-medium text-gray-900"><?= e(__('blox_article_settings')) ?></summary>
         <div class="flex flex-wrap items-end gap-4 py-3">
-            <label class="min-w-0 flex-1">
-                <span class="block mb-1"><?= e(__('blox_article_preview')) ?></span>
-                <select x-model="articlePreviewId" @change="schedulePreview()" data-testid="article-template-preview" class="w-full border border-gray-300 rounded px-2 py-2">
-                    <option value="0"><?= e(__('blox_article_choose')) ?></option>
-                    <?php foreach ($articlePreviewItems as $previewItem): ?>
-                    <option value="<?= (int) $previewItem['id'] ?>"><?= e((string) $previewItem['title']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
+            <label>
             <label>
                 <span class="block mb-1"><?= e(__('blox_article_scope')) ?></span>
                 <select :value="articleScopeMode()" @change="setArticleScopeMode($event.target.value)" data-testid="article-template-scope" class="border border-gray-300 rounded px-2 py-2">
