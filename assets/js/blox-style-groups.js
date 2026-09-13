@@ -64,6 +64,26 @@
         });
     }
 
+    /**
+     * 可见候选集（TASK-003 R01）：**分组计算与最终渲染必须用同一批候选控件**。
+     *
+     * 此前 styleGroups() 直接拿未过滤的 styleTabControls() 算命中组，隐藏控件（editor_hidden、
+     * 条件不满足、循环上下文、动画开关关闭等）也参与计算 → 会造出"幽灵分组"，
+     * 于是有可见命中时仍可能默认落进空分组。这里把"先按宿主谓词排除、再按检索/只看已修改过滤"
+     * 固化为唯一的候选集入口；分组筛选由调用方（visibleCtrls）在其后做，二者不相互递归。
+     *
+     * @param {Array} controls 宿主提供的原始控件（同一类型、同一页签）
+     * @param {{isExcluded?: Function, isModified?: Function, query?: string, modifiedOnly?: boolean, groupLabels?: Object}} options
+     */
+    function visibleCandidates(controls, options) {
+        var opts = options || {};
+        var isExcluded = typeof opts.isExcluded === "function" ? opts.isExcluded : null;
+        var kept = (controls || []).filter(function (c) {
+            return !(isExcluded && isExcluded(c));
+        });
+        return searchFilter(kept, opts.query, opts.modifiedOnly, opts.isModified, opts.groupLabels);
+    }
+
     /** 盒模型键是否设了值——与服务端 boxStyle() 同口径：只认非空字符串 */
     function hasBoxValue(data) {
         return BOX_KEYS.some(function (k) {
@@ -88,17 +108,13 @@
         },
         /**
          * 空数组 = 不启用分组（容器专用块、组数不足 2）。
-         * TASK-003 D：搜索 / 只看已修改时**不再清空分组**，改为只列出"有命中的组"——
-         * 这样命中分组仍可逐组切换查看（此前整体平铺，分组信息全丢）。
+         * TASK-003 D + R01：搜索 / 只看已修改时不再清空分组，只列**有命中的组**；
+         * 候选集一律取自宿主的可见候选（styleCandidates），与最终渲染同源——
+         * 隐藏控件不得参与分组计算（否则会出现默认落进空分组的幽灵组）。
          */
         styleGroups: function () {
             if (!this.selEl || this.isSelectedContainerEl()) return [];
-            var self = this;
-            var searching = !!this.ctrlQuery.trim() || this.modifiedOnly;
-            var source = searching
-                ? searchFilter(this.styleTabControls(), this.ctrlQuery, this.modifiedOnly,
-                    function (c) { return self.isCtrlModified(c); }, this.styleGroupLabels)
-                : [{ group: "general" }].concat(this.styleTabControls());
+            var source = typeof this.styleCandidates === "function" ? this.styleCandidates() : [];
             var present = groups(source);
             return present.length > 1 ? present : [];
         },
@@ -132,7 +148,8 @@
 
     var api = {
         ORDER: ORDER, BOX_KEYS: BOX_KEYS, groupOf: groupOf, groups: groups,
-        searchHaystack: searchHaystack, matchesQuery: matchesQuery, searchFilter: searchFilter,
+        searchHaystack: searchHaystack, matchesQuery: matchesQuery,
+        searchFilter: searchFilter, visibleCandidates: visibleCandidates,
         filter: filter, hasBoxValue: hasBoxValue, hasModified: hasModified, methods: methods,
     };
     if (typeof module !== "undefined" && module.exports) module.exports = api;
