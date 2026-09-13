@@ -8800,8 +8800,28 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.setRightPanelWidth(256);
             },
 
+            /** 结构面板此刻是否展开（窄屏看抽屉，宽屏看右栏折叠态）——按钮文案/aria 与开关动作都用它。 */
+            structurePanelExpanded() {
+                // 触碰 canvasViewportTick：window.innerWidth 不是响应式依赖，跨断点缩放后
+                // 不这样登记一下，按钮的 title/aria-expanded 会停留在旧值（沿用 rightPanelContentVisible() 的既有做法）
+                this.canvasViewportTick;
+                return this.isNarrowWorkspace() ? this.mobilePanel === 'structure' : !this.rightPanelCollapsed;
+            },
+
+            /** <1440：结构面板是抽屉（显隐由 mobilePanel 决定，rightPanelCollapsed 无意义）。 */
+            isNarrowWorkspace() {
+                return window.innerWidth < 1440;
+            },
+
             toggleRightPanel() {
                 this.finishRightPanelResize();
+                // TASK-003 C：窄屏下原来只翻转 rightPanelCollapsed，而抽屉显隐看 mobilePanel，
+                // 于是"收起"是个空操作（面板宽高为 0 也不变）。窄屏改操作抽屉，宽屏维持折叠态。
+                if (this.isNarrowWorkspace()) {
+                    this.mobilePanel = this.mobilePanel === 'structure' ? '' : 'structure';
+                    this.canvasViewportTick++;
+                    return;
+                }
                 this.rightPanelCollapsed = !this.rightPanelCollapsed;
                 this.canvasViewportTick++;
                 this.persistRightPanelState();

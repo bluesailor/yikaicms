@@ -183,7 +183,11 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('@keydown.left.prevent="resizeRightPanelBy(16)"', $workspace);
         $this->assertStringContainsString('@dblclick="resetRightPanelWidth()"', $workspace);
         $this->assertStringContainsString('data-testid="blox-right-panel-toggle"', $workspace);
-        $this->assertStringContainsString(':aria-expanded="String(!rightPanelCollapsed)"', $workspace);
+        // TASK-003 C：折叠控件要反映"此刻是否展开"的有效状态——窄屏结构面板是抽屉
+        // （显隐看 mobilePanel），只绑 rightPanelCollapsed 会在窄屏显示相反的状态与文案
+        $this->assertStringContainsString(':aria-expanded="String(structurePanelExpanded())"', $workspace);
+        $this->assertStringContainsString('structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand', $workspace);
+        $this->assertStringContainsString('@click="toggleRightPanel()"', $workspace);
         $this->assertStringContainsString('yikai:blox:right-panel-width:v1', $editor);
         $this->assertStringContainsString('yikai:blox:right-panel-collapsed:v1', $editor);
     }

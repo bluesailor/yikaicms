@@ -410,10 +410,10 @@ declare(strict_types=1);
             ?>
             <button type="button" @click="toggleRightPanel()" data-testid="blox-toolbar-structure-toggle"
                     class="h-8 rounded text-gray-300 hover:text-white hover:bg-gray-800 inline-flex items-center gap-1 px-2"
-                    :class="!rightPanelCollapsed ? 'bg-gray-800 text-white' : ''"
-                    :title="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
-                    :aria-label="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
-                    :aria-expanded="String(!rightPanelCollapsed)" aria-controls="blox-structure-panel">
+                    :class="structurePanelExpanded() ? 'bg-gray-800 text-white' : ''"
+                    :title="structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand"
+                    :aria-label="structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand"
+                    :aria-expanded="String(structurePanelExpanded())" aria-controls="blox-structure-panel">
                 <i class="ti ti-list-tree text-base" aria-hidden="true"></i><span class="text-xs"><?= e(__('blox_mobile_structure')) ?></span>
             </button>
             <button type="button" @click="restoreWorkspace()" data-testid="blox-workspace-restore"

@@ -2942,11 +2942,11 @@ declare(strict_types=1);
                         class="h-8 w-8 ml-auto shrink-0 rounded text-gray-500 hover:bg-gray-100 inline-flex items-center justify-center"><i class="ti ti-square-off" aria-hidden="true"></i></button>
                 <button type="button" data-testid="blox-right-panel-toggle"
                         class="blox-structure-collapse h-7 w-7 shrink-0 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 inline-flex items-center justify-center"
-                        :title="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
-                        :aria-label="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
-                        :aria-expanded="String(!rightPanelCollapsed)" aria-controls="blox-structure-panel"
+                        :title="structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand"
+                        :aria-label="structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand"
+                        :aria-expanded="String(structurePanelExpanded())" aria-controls="blox-structure-panel"
                         @click="toggleRightPanel()">
-                    <i class="ti text-sm" :class="rightPanelCollapsed ? 'ti-chevron-left' : 'ti-chevron-right'"></i>
+                    <i class="ti text-sm" :class="structurePanelExpanded() ? 'ti-chevron-right' : 'ti-chevron-left'"></i>
                 </button>
             </div>
             <div x-show="rightPanelContentVisible()" class="border-b border-gray-100 p-2 shrink-0">
