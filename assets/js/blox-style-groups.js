@@ -92,6 +92,21 @@
         });
     }
 
+    /**
+     * 常规（通用设置）占位项（TASK-003 R02）。
+     *
+     * 间距、设备可见性、全局样式等通用设置**不一定在元素 schema 里**（由独立块渲染），
+     * 但它们属于常规分组、必须可达：原先无搜索时靠 `[{group:'general'}]` 合成组保证，
+     * R01 改成"只用可见候选"后该合成项丢失 → schema 只有 background/animation 的元素
+     * 常规组永远选不中、通用设置整块消失。这里将其做成正式占位项：
+     * 分组与检索都当普通候选对待，是否排除由宿主的 isExcluded 决定。
+     *
+     * @param {string} searchText 通用设置的可检索文本（由调用方传入本地化文案）
+     */
+    function commonMarker(searchText) {
+        return { key: "common_style", group: "general", label: typeof searchText === "string" ? searchText : "" };
+    }
+
     function hasModified(group, styleControls, isModified) {
         return (styleControls || []).some(function (c) {
             return groupOf(c) === group && isModified(c);
@@ -149,7 +164,7 @@
     var api = {
         ORDER: ORDER, BOX_KEYS: BOX_KEYS, groupOf: groupOf, groups: groups,
         searchHaystack: searchHaystack, matchesQuery: matchesQuery,
-        searchFilter: searchFilter, visibleCandidates: visibleCandidates,
+        searchFilter: searchFilter, visibleCandidates: visibleCandidates, commonMarker: commonMarker,
         filter: filter, hasBoxValue: hasBoxValue, hasModified: hasModified, methods: methods,
     };
     if (typeof module !== "undefined" && module.exports) module.exports = api;

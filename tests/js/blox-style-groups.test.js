@@ -220,3 +220,54 @@ test('styleGroups never counts hidden controls into groups', () => {
     const single = { ...base, styleCandidates: () => candidates('颜色').filter((c) => c !== visibleAnimation) };
     assert.deepEqual(styleGroups.methods.styleGroups.call(single), []);
 });
+
+// TASK-003 R02：常规（通用设置）入口必须可达——通用设置不在 schema 里，
+// 但无搜索时必须始终可选中；搜索/只看已修改时按通用设置自身的匹配/修改决定。
+// 本用例**不手工注入 general**，候选集用生产helper commonMarker() 构造。
+test('host contract: general group stays reachable via commonMarker', () => {
+    const labels = { general: '常规 间距 设备可见性', background: '背景', animation: '动画' };
+    const bgCtl = { key: 'bg_color', tab: 'style', group: 'background', label: '背景色' };
+    const animCtl = { key: 'animation', tab: 'style', group: 'animation', label: '动画' };
+    const hostCandidates = (opts) => styleGroups.visibleCandidates(
+        [styleGroups.commonMarker(labels.general), bgCtl, animCtl],
+        {
+            isExcluded: () => false,
+            isModified: (c) => (c.key === 'common_style' ? !!opts.commonModified : !!opts.modified),
+            query: opts.query, modifiedOnly: opts.modifiedOnly, groupLabels: labels,
+        }
+    );
+    const host = (opts) => Object.assign({}, styleGroups.methods, {
+        selEl: { type: 'card', data: {} },
+        isSelectedContainerEl: () => false,
+        ctrlQuery: opts.query || '',
+        modifiedOnly: !!opts.modifiedOnly,
+        styleGroup: opts.styleGroup || 'general',
+        styleGroupLabels: labels,
+        styleCandidates: () => hostCandidates(opts),
+    });
+
+    // 无搜索：schema 只有 background/animation，常规仍需在列且可选中
+    const idle = host({});
+    assert.deepEqual(styleGroups.methods.styleGroups.call(idle), ['general', 'background', 'animation']);
+    assert.equal(styleGroups.methods.effectiveStyleGroup.call(idle), 'general');
+    assert.equal(idle.commonStyleVisible(), true);
+
+    // 搜索通用文案（间距/设备）→ 通用设置仍在候选里（可达）；此时只命中一组，故不启用分组
+    const generalSearch = host({ query: '设备' });
+    assert.equal(generalSearch.styleCandidates().some((c) => c.key === 'common_style'), true);
+    assert.deepEqual(styleGroups.methods.styleGroups.call(generalSearch), []);
+    // 搜索只命中背景 → 常规不占位（不留空组），当前分组落到有命中的组
+    const bgOnly = host({ query: '背景色', styleGroup: 'general' });
+    assert.deepEqual(styleGroups.methods.styleGroups.call(bgOnly), []);
+    assert.equal(styleGroups.filter(bgOnly.styleCandidates(), 'general', false).some((c) => c.key === 'common_style'), false);
+
+    // 只看已修改：通用设置被改过 → 常规在列；没改过 → 不占位
+    assert.deepEqual(
+        styleGroups.methods.styleGroups.call(host({ modifiedOnly: true, commonModified: true, modified: true })),
+        ['general', 'background', 'animation']
+    );
+    assert.deepEqual(
+        styleGroups.methods.styleGroups.call(host({ modifiedOnly: true, commonModified: false })),
+        []
+    );
+});
