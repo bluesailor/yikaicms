@@ -371,6 +371,41 @@ test('prebuilt panel resizes against its own container without losing scroll @ci
   await page.screenshot({ path: testInfo.outputPath('blox-template-container-density.png'), fullPage: true });
 });
 
+test('restoring the workspace never touches the shared legacy preference @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop workspace preference baseline');
+  // TASK-002-R01 第 1 点：旧版全局键是"没有隔离键的账号"的回退来源，
+  // 恢复工作区只能在本账号作用域写默认值，绝不能删掉共享旧键（否则会影响别的账号）。
+  await page.evaluate(() => {
+    Object.keys(localStorage)
+      .filter((key) => key.indexOf('yikai:blox:') === 0)
+      .forEach((key) => localStorage.removeItem(key));
+    localStorage.setItem('yikai:blox:left-panel-width:v1', '344');
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+
+  const adopted = await page.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).leftPanelWidth);
+  expect(adopted, '本账号没有隔离键时应回退读到共享旧键').not.toBe(288);
+
+  await page.getByTestId('blox-workspace-restore').click();
+
+  // 共享旧键必须原样保留（别的账号仍要靠它回退）
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:left-panel-width:v1'))).toBe('344');
+  const afterRestore = await page.evaluate(() => {
+    const data = window.Alpine.$data(document.querySelector('[x-data]'));
+    return { left: data.leftPanelWidth, scoped: localStorage.getItem(data.workspacePrefPrefix + 'left-panel-width') };
+  });
+  expect(afterRestore.left).toBe(288);
+  expect(afterRestore.scoped, '本作用域写入默认值以阻止再次回退').toBe('288');
+
+  // 本账号刷新后仍是默认（不再回到旧键的 344），且旧键依旧存在
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+  const persisted = await page.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).leftPanelWidth);
+  expect(persisted).toBe(288);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:left-panel-width:v1'))).toBe('344');
+});
+
 test('element category filter narrows the library and resets on reload @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const category = page.getByTestId('blox-element-category');

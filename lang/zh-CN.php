@@ -6707,4 +6707,5 @@ voltage|电压|220V',
     'blox_save_status_clean' => '未修改',
     'blox_save_status_published' => '已发布',
     'blox_save_status_conflict' => '版本冲突',
+    'blox_publish_status_failed' => '发布失败，修改仍保留在编辑器',
 ];

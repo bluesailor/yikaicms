@@ -1179,6 +1179,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             previewLoading: false,
             previewFailed: false,
             saveOutcome: "",
+            // 失败时的动作归属：发布失败不要显示成"保存失败"
+            failedAction: "",
             saving: false,
             cacheClearing: false,
             dirty: false,
@@ -1576,6 +1578,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'saveStatusClean' => __('blox_save_status_clean'),
                 'saveStatusPublished' => __('blox_save_status_published'),
                 'saveStatusConflict' => __('blox_save_status_conflict'),
+                'publishStatusFailed' => __('blox_publish_status_failed'),
                 'revisionLoading' => __('loading'),
                 'revisionPreviewFailed' => __('blox_revision_preview_failed'),
                 'iconHintDefault' => __('blox_icon_hint_default'),
@@ -2749,34 +2752,28 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
             },
 
-            /** 本作用域内的偏好键名（恢复工作区时逐个清掉）。 */
-            workspacePrefNames() {
-                return [
-                    ["left-panel-width", this.leftPanelStorageKey],
-                    ["right-panel-width", this.rightPanelStorageKey],
-                    ["right-panel-collapsed", this.rightPanelCollapsedStorageKey],
-                    ["template-panel-width", this.templatePanelStorageKey],
-                ];
-            },
 
             /**
              * 恢复工作区：只把面板显隐/宽度复位并清掉本作用域偏好键，
              * 不触碰文档 JSON、设计内容或保存状态（恢复后 dirty 不应变化）。
              */
+            /**
+             * 恢复工作区：把本作用域的面板偏好写回默认值，**不删共享旧键**。
+             *
+             * TASK-002-R01：旧版全局键是所有账号共用的回退来源；此前这里连它一起删，
+             * 会让"恢复工作区"越过本账号作用域、改掉别的账号下次读到的宽度。
+             * 现在改为把默认值写进本作用域键——本账号从此不再回退旧键，别人的旧键原样保留。
+             */
             restoreWorkspace() {
+                var self = this;
                 this.leftPanelWidth = 288;
                 this.rightPanelWidth = 256;
                 this.rightPanelCollapsed = false;
                 this.templatePanelWidth = 520;
-                var self = this;
-                this.workspacePrefNames().forEach(function (pair) {
-                    try {
-                        window.localStorage.removeItem(self.workspacePrefKey(pair[0]));
-                        if (pair[1]) window.localStorage.removeItem(pair[1]);
-                    } catch (error) {
-                        // 存储不可用：内存值已复位即可
-                    }
-                });
+                this.writeWorkspacePref("left-panel-width", 288, this.leftPanelStorageKey);
+                this.writeWorkspacePref("right-panel-width", 256, this.rightPanelStorageKey);
+                this.writeWorkspacePref("right-panel-collapsed", "0", this.rightPanelCollapsedStorageKey);
+                this.writeWorkspacePref("template-panel-width", 520, this.templatePanelStorageKey);
                 if (typeof this.toast === "function") this.toast(this.uiText.workspaceRestored);
             },
 
@@ -9553,6 +9550,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                         }
                         if (!res || res.success === false
                             || (typeof res.code !== "undefined" && Number(res.code) !== 0)) {
+                            self.saveOutcome = "failed";
+                            self.failedAction = "publish";
                             self.toast((res && (res.message || res.msg)) || self.homeText.actionFailed);
                             return;
                         }
@@ -9564,7 +9563,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                         self.homePublished = action === "publish";
                         self.toast(action === "publish" ? self.homeText.publishDone : self.homeText.rollbackDone);
                     })
-                    .catch(function () { self.toast(self.homeText.actionFailed); })
+                    .catch(function () {
+                        self.saveOutcome = "failed";
+                        self.failedAction = "publish";
+                        self.toast(self.homeText.actionFailed);
+                    })
                     .finally(function () { self.homeActionBusy = false; });
             },
 
@@ -9585,6 +9588,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     .catch(function () {
                         // 请求失败必须落到状态位（红），不能只弹一条 toast 就当没事
                         self.saveOutcome = "failed";
+                        self.failedAction = "publish";
                         self.toast(self.uiText.saveFailed);
                     })
                     .finally(function () { self.templateActionBusy = false; self.saving = false; });
@@ -9626,6 +9630,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                         else {
                             // 接口返回了但没落库（权限/授权/校验失败）：同样是失败态，不许变绿
                             self.saveOutcome = "failed";
+                            self.failedAction = "publish";
                             self.toast(self.uiText.saveFailedMsg.replace(":msg", res.msg || ""));
                         }
                     });
@@ -9656,6 +9661,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                         var ok = res && res.success !== false
                             && (typeof res.code === "undefined" || Number(res.code) === 0);
                         if (!ok) {
+                            // 页面发布失败：与模板分支一致地落到失败状态位（TASK-002-R01 第 2 点）
+                            self.saveOutcome = "failed";
+                            self.failedAction = "publish";
                             self.toast((res && (res.message || res.msg)) || self.pageText.actionFailed);
                             return;
                         }
@@ -9666,7 +9674,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                         self.pageHasUnpublishedChanges = false;
                         self.toast(self.pageText.publishDone);
                     })
-                    .catch(function() { self.toast(self.pageText.actionFailed); })
+                    .catch(function() {
+                        self.saveOutcome = "failed";
+                        self.failedAction = "publish";
+                        self.toast(self.pageText.actionFailed);
+                    })
                     .finally(function() { self.pageActionBusy = false; });
             },
 
@@ -9720,6 +9732,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             acceptSavedDocument(payload, savedData, res) {
                 this.saveOutcome = "";
+                this.failedAction = "";
                 if (res.data && typeof res.data.base_revision === "string") {
                     this.baseRevision = res.data.base_revision;
                 }
@@ -9757,7 +9770,8 @@ $canManageBloxDesign = hasPermission('blox_global');
              */
             saveStatusState() {
                 if (this.conflictOpen) return "conflict";
-                if (this.templateActionBusy) return "publishing";
+                // 模板发布与页面发布都要显示"发布中"，不能只覆盖模板分支（TASK-002-R01 第 2 点）
+                if (this.templateActionBusy || this.pageActionBusy || this.homeActionBusy) return "publishing";
                 if (this.saving) return "saving";
                 if (this.saveOutcome === "failed") return "failed";
                 if (this.dirty) return "dirty";
@@ -9771,7 +9785,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                     case "conflict": return this.uiText.saveStatusConflict;
                     case "publishing": return this.uiText.templatePublishing;
                     case "saving": return this.uiText.savingDraft;
-                    case "failed": return this.uiText.saveStatusFailed;
+                    // 失败时说明动作：发布失败不该显示成"保存失败"（同披澄清动作，不扩展状态框架）
+                    case "failed": return this.failedAction === "publish"
+                        ? this.uiText.publishStatusFailed
+                        : this.uiText.saveStatusFailed;
                     case "dirty": return this.uiText.unsaved;
                     case "saved": return this.uiText.draftSaved;
                     case "published": return this.uiText.saveStatusPublished;
@@ -9824,10 +9841,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                             self.toast(self.uiText.saved);
                         } else {
                             self.saveOutcome = "failed";
+                            self.failedAction = "save";
                             self.toast(self.uiText.saveFailedMsg.replace(":msg", (res && (res.message || res.msg)) || ""));
                         }
                     })
-                    .catch(function() { self.saveOutcome = "failed"; self.toast(self.uiText.saveFailed); })
+                    .catch(function() { self.saveOutcome = "failed"; self.failedAction = "save"; self.toast(self.uiText.saveFailed); })
                     .finally(function() { self.saving = false; });
             },
 

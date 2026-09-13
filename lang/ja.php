@@ -6780,4 +6780,5 @@ voltage|電圧|220V',
     'blox_save_status_clean' => '変更なし',
     'blox_save_status_published' => '公開済み',
     'blox_save_status_conflict' => 'バージョン競合',
+    'blox_publish_status_failed' => '公開に失敗しました（変更はエディタに残っています）',
 ];
