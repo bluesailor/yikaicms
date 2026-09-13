@@ -223,11 +223,12 @@ test('condition edits made while a save is in flight survive the response', asyn
     await page.getByTestId('blox-save').click();
     await saved;
 
-    // 保存尚未返回时再加一条排除规则
+    // 保存尚未返回时再加一条排除规则，并顺手改优先级（TASK-007 也要覆盖这类并发编辑）
     await page.getByTestId('blox-cond-add-exclude-item').click();
     const excludeIds = await page.getByTestId('blox-cond-exclude-target-0')
       .locator('option').evaluateAll((options) => options.map((option) => option.value));
     await page.getByTestId('blox-cond-exclude-target-0').selectOption(excludeIds[0]);
+    await page.getByTestId('blox-cond-priority').fill('3');
     release();
 
     // 回执到达后：当前文档必须是 B（不能被旧提交覆盖），全局仍 dirty，恢复稿保留
@@ -245,6 +246,7 @@ test('condition edits made while a save is in flight survive the response', asyn
       };
     });
     expect(afterAccept.documentScope.exclude, '当前文档必须保留保存期间的新编辑').toEqual([{ kind: 'item', ids: [Number(excludeIds[0])], include_children: false }]);
+    expect(afterAccept.documentScope.priority, '保存期间改的优先级也要保留在当前文档').toBe(3);
     expect(afterAccept.documentScope.include).toEqual([{ kind: 'item', ids: [Number(productIds[0])], include_children: false }]);
     expect(afterAccept.dirty, '当前文档与已保存快照不同 → 必须仍是未保存').toBe(true);
     expect(afterAccept.unsavedGlobal).toBe(true);
@@ -265,10 +267,88 @@ test('condition edits made while a save is in flight survive the response', asyn
     const secondBody = new URLSearchParams((await second).postData() || '');
     const secondScope = JSON.parse(secondBody.get('conditions_json') || 'null');
     expect(secondScope.exclude, '第二次保存要带上保存期间的新编辑').toEqual([{ kind: 'item', ids: [Number(excludeIds[0])], include_children: false }]);
+    expect(secondScope.priority, '第二次保存也要带上保存期间改的优先级').toBe(3);
     await expect(page.getByTestId('blox-cond-dirty')).toBeHidden();
     expect(await page.evaluate(() => window.Alpine.$data(document.body).hasUnsavedChanges())).toBe(false);
   } finally {
     release();
+    if (id) fixture('restore', id);
+  }
+});
+
+// TASK-007：优先级可编辑，且必须与规则一起进脏判断、保存快照与校验
+test('priority is editable, saved, and blocked when out of range', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'desktop condition-panel baseline');
+  test.setTimeout(120000);
+  page.setDefaultTimeout(15000);
+  page.on('dialog', (dialog) => dialog.accept());
+  const submits = [];
+  page.on('request', (request) => {
+    if (!request.url().includes('/admin/blox_template_api.php')) return;
+    if ((new URLSearchParams(request.postData() || '').get('action') || '') === 'save_draft') submits.push(request);
+  });
+  let id;
+  try {
+    await page.goto('/admin/site_design.php');
+    await page.getByTestId('site-design-products').click();
+    await page.getByTestId('product-design-name').fill(`TB-R2 cond-priority ${info.project.name}`);
+    await page.locator('select[name="language"]').selectOption('zh-CN');
+    await page.getByTestId('product-design-create').click();
+    await expect(page).toHaveURL(/blox_editor.php\?template=/);
+    id = new URL(page.url()).searchParams.get('template');
+    const editor = page.url();
+    await waitPreviewSettled(page);
+    await page.getByTestId('product-template-settings').locator('summary').click();
+
+    // 先存一条规则，作为"其他规则不变"的对照
+    await page.getByTestId('blox-cond-add-include-item').click();
+    const productIds = await page.getByTestId('blox-cond-include-target-0')
+      .locator('option').evaluateAll((options) => options.map((option) => option.value));
+    await page.getByTestId('blox-cond-include-target-0').selectOption(productIds[0]);
+    await page.getByTestId('blox-cond-priority').fill('7');
+    await expect(page.getByTestId('blox-cond-dirty')).toBeVisible();
+    expect(await page.evaluate(() => window.Alpine.$data(document.body).hasUnsavedChanges()), '只改优先级也要标脏').toBe(true);
+
+    const saved = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
+      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+    await page.getByTestId('blox-save').click();
+    const posted = JSON.parse(new URLSearchParams((await saved).postData() || '').get('conditions_json') || 'null');
+    expect(posted.priority, '只改优先级也要提交').toBe(7);
+    const stored = JSON.parse(JSON.parse(fixture('read', id)).draft_data).settings.detail_template;
+    expect(stored.priority).toBe(7);
+    expect(stored.include).toEqual([{ kind: 'item', ids: [Number(productIds[0])], include_children: false }]);
+    await expect(page.getByTestId('blox-cond-dirty')).toBeHidden();
+
+    // 越界必须被拦下：不发请求、库内不变、提示具体原因
+    for (const bad of ['101', '-1']) {
+      await page.getByTestId('blox-cond-priority').fill(bad);
+      await expect(page.getByTestId('blox-cond-problems-priority')).toBeVisible();
+      submits.length = 0;
+      await page.getByTestId('blox-save').click();
+      await page.waitForTimeout(600);
+      expect(submits, `优先级 ${bad} 不得发出保存请求`).toEqual([]);
+      expect(JSON.parse(JSON.parse(fixture('read', id)).draft_data).settings.detail_template.priority).toBe(7);
+      expect(await page.evaluate(() => window.Alpine.$data(document.body).conditionSubmitState())).toBe('invalid');
+    }
+
+    // 改回原值：问题消失、回到干净状态
+    await page.getByTestId('blox-cond-priority').fill('7');
+    await expect(page.getByTestId('blox-cond-problems-priority')).toBeHidden();
+    await expect(page.getByTestId('blox-cond-dirty')).toBeHidden();
+    expect(await page.evaluate(() => window.Alpine.$data(document.body).conditionSubmitState())).toBe('valid');
+
+    // 重开：优先级与规则都在
+    await page.goto(editor);
+    await waitPreviewSettled(page);
+    if (await page.getByTestId('blox-recovery-dialog').isVisible().catch(() => false)) {
+      await page.getByTestId('blox-recovery-discard').click();
+    }
+    await page.getByTestId('product-template-settings').locator('summary').click();
+    await expect(page.getByTestId('blox-cond-priority')).toHaveValue('7');
+    await expect(page.getByTestId('blox-cond-include-kind-0')).toHaveValue('item');
+    await expect(page.getByTestId('blox-cond-include-target-0')).toHaveValues([productIds[0]]);
+    await expect(page.getByTestId('blox-cond-dirty')).toBeHidden();
+  } finally {
     if (id) fixture('restore', id);
   }
 });
