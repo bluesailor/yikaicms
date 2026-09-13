@@ -7176,6 +7176,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                     getDocument: function () { return JSON.parse(self.documentData()); },
                     getParams: function () {
                         if (self.productTemplateMode) return { preview_product: String(self.productPreviewId) };
+                        // 文章样本预览：与产品同款通道参数，缺它画布只会显示"没有可预览的已发布文章"
+                        if (self.articleTemplateMode) return { preview_article: String(self.articlePreviewId) };
                         return self.headerTemplateMode ? { header_state: self.headerPreviewState } : {};
                     },
                     setLoading: function (loading) { self.previewLoading = loading; },
