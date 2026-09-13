@@ -108,7 +108,30 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
     }
     // 页头模板只显示可编辑页头；页尾保留当前页头与正文只读上下文，帮助判断整页落底效果。
     $templateArea = (string) ($_GET['template_area'] ?? '');
-    if ((string) ($_GET['product_template'] ?? '') === '1') {
+    if ((string) ($_GET['article_template'] ?? '') === '1') {
+        // 文章样本预览：只读取数，**刻意不走 ContentDetailController::prepare()**——
+        // 那条路径会自增浏览量，编辑器换样本不得污染统计。
+        $article = contentModel()->getPublished((int) ($_POST['preview_article'] ?? 0));
+        if ($article !== null && ($article['lang'] ?? '') !== siteLang()) $article = null;
+        BlockRenderer::$editChannelId = $bloxCanvas ? 1 : 0;
+        if ($article === null) {
+            $body = '<p class="p-6 text-gray-700">' . e(__('blox_article_preview_empty')) . '</p>';
+        } else {
+            $channelId = (int) ($article['channel_id'] ?? 0);
+            $articleContext = ArticleTemplateDocument::contextFrom([
+                'content' => $article,
+                'channelId' => $channelId,
+                'channel' => $channelId > 0 ? getChannel($channelId) : null,
+                'prevContent' => $channelId > 0 ? contentModel()->getPrev($channelId, (int) $article['id']) : null,
+                'nextContent' => $channelId > 0 ? contentModel()->getNext($channelId, (int) $article['id']) : null,
+                'relatedContents' => $channelId > 0 ? contentModel()->getRelated($channelId, (int) $article['id']) : [],
+            ]);
+            $body = ArticleTemplateDocument::withContent(
+                $articleContext,
+                static fn(): string => BlockRenderer::render($previewJson)
+            );
+        }
+    } elseif ((string) ($_GET['product_template'] ?? '') === '1') {
         $product = productModel()->getPublished((int) ($_POST['preview_product'] ?? 0));
         if ($product !== null && ($product['lang'] ?? '') !== siteLang()) $product = null;
         BlockRenderer::$editChannelId = $bloxCanvas ? 1 : 0;
