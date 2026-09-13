@@ -311,7 +311,11 @@ test('docked prebuilt panel clears the toolbar and leaves Tab untrapped @ci', as
 test('prebuilt panel resizes against its own container without losing scroll @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop prebuilt resize baseline');
   await page.evaluate(() => {
-    localStorage.removeItem('yikai:blox:template-panel-width:v1');
+    // TASK-002 第 5 项：工作区偏好现在带"站点 + 账号"作用域前缀，
+    // 清空整个 yikai:blox: 命名空间，避免上一轮的旧键或新键残留影响默认值断言
+    Object.keys(localStorage)
+      .filter((key) => key.indexOf('yikai:blox:') === 0)
+      .forEach((key) => localStorage.removeItem(key));
     localStorage.setItem('yikai:blox:template-density:v1', 'standard');
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -341,7 +345,7 @@ test('prebuilt panel resizes against its own container without losing scroll @ci
   await expect.poll(columnCount).toBe(2);
   await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeGreaterThanOrEqual(scrollBeforeResize - 2);
   await expect.poll(() => panel.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:template-panel-width:v1'))).toBe('616');
+  // 持久化改由下面的 reload 行为断言覆盖：键名现在带作用域前缀，不再对裸键做文本断言
   await page.screenshot({ path: testInfo.outputPath('blox-template-docked-resized.png'), fullPage: true });
 
   await page.reload({ waitUntil: 'domcontentloaded' });

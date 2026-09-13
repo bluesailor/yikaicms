@@ -407,6 +407,11 @@ declare(strict_types=1);
                     :aria-expanded="String(!rightPanelCollapsed)" aria-controls="blox-structure-panel">
                 <i class="ti ti-list-tree text-base" aria-hidden="true"></i><span class="text-xs"><?= e(__('blox_mobile_structure')) ?></span>
             </button>
+            <button type="button" @click="restoreWorkspace()" data-testid="blox-workspace-restore"
+                    class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800 transition"
+                    title="<?php echo e(__('blox_workspace_restore')); ?>" aria-label="<?php echo e(__('blox_workspace_restore')); ?>">
+                <i class="ti ti-layout-sidebar-right-expand text-base" aria-hidden="true"></i>
+            </button>
             <?php if ($frontPreviewUrl !== null): ?>
             <a href="<?php echo e($frontPreviewUrl); ?>" <?= !$isHomeBlox && !$templateId ? ':href="pageFrontPreviewUrl()"' : '' ?> target="_blank" rel="noopener"
                data-testid="blox-front-preview"
