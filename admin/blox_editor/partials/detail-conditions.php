@@ -123,6 +123,39 @@ declare(strict_types=1);
                 </div>
             </template>
         </div>
+        <?php // 第三轮：发布冲突检查。结论来自服务端对真实内容的前后对比；未完成、已停止都不等于通过 ?>
+        <div class="mt-3 border-t border-gray-200 pt-2" data-testid="blox-publish-check">
+            <p class="text-xs font-medium text-gray-700"><?= e(__('blox_pubcheck_title')) ?></p>
+            <div class="mt-1 flex flex-wrap items-center gap-2">
+                <button type="button" @click="runPublishCheckNow()" :disabled="publishCheckBusy" data-testid="blox-publish-check-run"
+                        class="text-[11px] px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"><?= e(__('blox_pubcheck_run')) ?></button>
+                <button type="button" x-show="publishCheckBusy" x-cloak @click="cancelPublishCheck()" data-testid="blox-publish-check-cancel"
+                        class="text-[11px] px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"><?= e(__('blox_pubcheck_cancel')) ?></button>
+            </div>
+            <template x-if="publishCheck">
+                <div class="mt-2 rounded border px-2 py-2 text-[11px] leading-relaxed"
+                     :class="publishCheck.status === 'conflict' ? 'border-red-200 bg-red-50 text-red-700' : (publishCheck.status === 'clear' ? 'border-gray-200 bg-gray-50 text-gray-700' : 'border-amber-200 bg-amber-50 text-amber-700')"
+                     data-testid="blox-publish-check-result" :data-status="publishCheckBusy ? 'running' : publishCheck.status">
+                    <p data-testid="blox-publish-check-summary" x-text="publishCheckSummary()"></p>
+                    <p x-show="publishCheckIsStale()" x-cloak data-testid="blox-publish-check-stale" class="mt-1"><?= e(__('blox_pubcheck_stale')) ?></p>
+                    <ul x-show="publishCheck.conflicts && publishCheck.conflicts.length" class="mt-1 space-y-1">
+                        <template x-for="item in (publishCheck.conflicts || [])" :key="item.content_id">
+                            <li class="flex flex-wrap items-center gap-x-2 gap-y-1" :data-testid="'blox-publish-conflict-' + item.content_id">
+                                <span class="font-medium" x-text="publishCheckText('item', { id: item.content_id, lang: item.lang }) + (item.published ? '' : ' ' + publishCheckText('unpublished'))"></span>
+                                <span x-text="publishCheckText(item.kind === 'exposed' ? 'exposed' : 'member')"></span>
+                                <span><?= e(__('blox_pubcheck_templates')) ?></span>
+                                <template x-for="templateId in (item.template_ids || [])" :key="item.content_id + '-' + templateId">
+                                    <a class="underline" :href="'/admin/blox_editor.php?template=' + templateId" target="_blank" rel="noopener"
+                                       :data-testid="'blox-publish-conflict-template-' + templateId" x-text="publishCheckTemplateLabel(templateId)"></a>
+                                </template>
+                                <button type="button" @click="conditionDiagnose(item.content_id)" :data-testid="'blox-publish-conflict-diagnose-' + item.content_id"
+                                        class="px-1.5 py-0.5 rounded border border-current"><?= e(__('blox_pubcheck_diagnose')) ?></button>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </template>
+        </div>
         <?php // 说清"不应用"与"主题默认"的区别：前者是空 include，后者是 source=native ?>
         <p class="text-[11px] leading-relaxed text-gray-500" data-testid="blox-cond-notes"><?= e(__('blox_cond_notes')) ?></p>
         <p x-show="conditionDirty()" x-cloak data-testid="blox-cond-dirty" class="mt-1 text-[11px] text-amber-600"><?= e(__('blox_cond_dirty')) ?></p>

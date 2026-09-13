@@ -575,7 +575,7 @@ declare(strict_types=1);
         <div class="flex flex-wrap items-end gap-4 py-3">
             <label>
                 <span class="block mb-1"><?= e(__('blox_product_language')) ?></span>
-                <input readonly :value="docSettings.product_template.lang" data-testid="product-template-language" class="w-28 border border-gray-300 rounded px-2 py-2">
+                <input readonly :value="(docSettings.detail_template && docSettings.detail_template.lang) || (docSettings.product_template && docSettings.product_template.lang) || conditionLang" data-testid="product-template-language" class="w-28 border border-gray-300 rounded px-2 py-2">
             </label>
         </div>
         <?php require __DIR__ . '/detail-conditions.php'; ?>
@@ -603,7 +603,7 @@ declare(strict_types=1);
         <div class="flex flex-wrap items-end gap-4 py-3">
             <label>
                 <span class="block mb-1"><?= e(__('blox_article_language')) ?></span>
-                <input readonly :value="docSettings.detail_template.lang" data-testid="article-template-language" class="w-28 border border-gray-300 rounded px-2 py-2">
+                <input readonly :value="(docSettings.detail_template && docSettings.detail_template.lang) || conditionLang" data-testid="article-template-language" class="w-28 border border-gray-300 rounded px-2 py-2">
             </label>
         </div>
         <p class="pb-2 text-[11px] leading-relaxed text-gray-500"><?= e(__('blox_article_rule_priority')) ?></p>

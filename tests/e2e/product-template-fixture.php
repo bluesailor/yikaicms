@@ -75,6 +75,18 @@ if ($action === 'products') {
     bloxTemplateModel()->publishDraft($newId);
     HtmlCache::invalidate();
     echo json_encode(['id' => $newId], JSON_THROW_ON_ERROR);
+} elseif ($action === 'setting') {
+    // 发布检查的行数上限只在隔离站调小，用来覆盖"必须完成分页检查"的路径
+    $key = (string) ($argv[3] ?? '');
+    if (!in_array($key, ['blox_detail_publish_sync_rows', 'blox_detail_publish_page_rows'], true)) {
+        throw new RuntimeException('Unsupported setting');
+    }
+    if (($argv[4] ?? '') === '') {
+        db()->execute('DELETE FROM ' . DB_PREFIX . 'settings WHERE "key" = ?', [$key]);
+    } else {
+        settingModel()->set($key, (string) $argv[4], 'blox');
+    }
+    echo 'ok';
 } elseif ($action === 'limited-user') {
     // 只有 Blox 全站设计权限、没有产品/文章编辑权限的后台账号（诊断权限用例）
     db()->execute('DELETE FROM ' . DB_PREFIX . "users WHERE username = 'tbr2_limited'");

@@ -309,7 +309,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new RuntimeException(__('blox_cond_publish_confirm_required') . '：' . $conflictMessage);
                     }
                 }
-                bloxTemplateModel()->publishDraft($id);
+                $detailContentType = ($row['type'] ?? '') === 'product-detail'
+                    ? 'product'
+                    : (($row['type'] ?? '') === 'article-detail' ? 'article' : '');
+                if ($detailContentType !== '') {
+                    // 第三轮：列表页直接发布同样过冲突保护；只做上限内的同步检查，范围更大时请在编辑器完成分页检查
+                    db()->beginTransaction();
+                    try {
+                        DetailTemplatePublishGuard::lockForPublish((string) $row['type'], $id);
+                        $detailSettings = BloxDocumentPipeline::decode((string) ($row['draft_data'] ?? ''))['settings'] ?? [];
+                        $detailPrep = DetailTemplatePublishGuard::prepare(
+                            $detailContentType,
+                            $id,
+                            DetailTemplateProvider::scopeFromSettings($detailContentType, is_array($detailSettings) ? $detailSettings : [])
+                        );
+                        $detailProgress = DetailTemplatePublishGuard::mergeProgress(
+                            null,
+                            $detailPrep['fingerprint'],
+                            DetailTemplatePublishGuard::scan($detailPrep, 0, DetailTemplatePublishGuard::syncRowLimit(), 3.0)
+                        );
+                        if (!DetailTemplatePublishGuard::progressAllowsPublish($detailProgress, $detailPrep['fingerprint'])) {
+                            throw new RuntimeException(__($detailProgress['found'] > 0 ? 'blox_publish_conflict_blocked' : 'blox_publish_check_required'));
+                        }
+                        bloxTemplateModel()->publishDraft($id);
+                        db()->commit();
+                    } catch (Throwable $publishError) {
+                        db()->rollback();
+                        throw $publishError;
+                    }
+                } else {
+                    bloxTemplateModel()->publishDraft($id);
+                }
                 adminLog('blox_template', 'publish', '发布 Blox 模板 #' . $id);
             } else {
                 bloxTemplateModel()->unpublish($id);

@@ -38,14 +38,7 @@ final class DetailTemplateProvider
             }
             $settings = is_array($document['settings'] ?? null) ? $document['settings'] : [];
 
-            $scope = null;
-            if (array_key_exists('detail_template', $settings)) {
-                $scope = DetailTemplateResolver::normalizeScope($settings['detail_template']);
-            } elseif ($contentType === 'product' && array_key_exists('product_template', $settings)) {
-                // 旧规则只读适配：不写回、不发布，仅参与同一判定
-                $legacy = is_array($settings['product_template']) ? $settings['product_template'] : [];
-                $scope = DetailTemplateResolver::legacyScope($legacy);
-            }
+            $scope = self::scopeFromSettings($contentType, $settings);
             if ($scope === null) {
                 continue;   // 没有条件声明的模板不参与自动匹配（不等于 all）
             }
@@ -63,6 +56,24 @@ final class DetailTemplateProvider
         }
 
         return $rows;
+    }
+
+    /**
+     * 文档设置里的有效条件（渲染候选、发布检查共用）：v2 优先；只有 v1 产品规则时只读适配。
+     *
+     * @param array<string,mixed> $settings
+     * @return array<string,mixed>|null null=没有条件声明，不参与自动匹配（不等于 all）
+     */
+    public static function scopeFromSettings(string $contentType, array $settings): ?array
+    {
+        if (array_key_exists('detail_template', $settings)) {
+            return DetailTemplateResolver::normalizeScope($settings['detail_template']);
+        }
+        if ($contentType === 'product' && array_key_exists('product_template', $settings)) {
+            // 旧规则只读适配：不写回、不发布，仅参与同一判定
+            return DetailTemplateResolver::legacyScope(is_array($settings['product_template']) ? $settings['product_template'] : []);
+        }
+        return null;
     }
 
     /**
@@ -104,6 +115,8 @@ final class DetailTemplateProvider
 
         $templateType = DetailTemplateResolver::templateTypeFor($contentType);
         $scope = DetailTemplateResolver::normalizeScope($draftScope);
+        // 未迁移的 v1 草稿（发布检查会传入）保留 v1 并列语义，不能因注入而变成"新并列"
+        $scope['legacy'] = ($draftScope['legacy'] ?? false) === true;
         if ($templateId <= 0 || $templateType === '' || $scope['content_type'] !== $contentType
             || !DetailTemplateResolver::scopeIsUsable($scope)) {
             return $kept;
