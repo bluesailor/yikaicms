@@ -91,4 +91,58 @@ final class ProductInquiryElementTest extends TestCase
         $this->assertSame('blox_product_inquiry', $element->label());
         $this->assertNotSame('product-inquiry', $element->label());
     }
+
+    /**
+     * R04-2 前半：脚本没跑起来时，字段不能落进 URL。
+     *
+     * 浏览器按表单自身的 method/action 提交；缺 method 时默认 GET，会把姓名/电话
+     * 拼进当前页查询串。这里锁死「显式 POST + 受控地址」，并确认提交目标只有一处。
+     */
+    public function testPublishedFormSubmitsByPostToControlledEndpoint(): void
+    {
+        $html = self::renderWith(['id' => 12, 'title' => '示例产品']);
+
+        $this->assertStringContainsString('method="post"', $html);
+        $this->assertStringContainsString('action="/form_submit.php?_lang=', $html);
+        $this->assertStringNotContainsString('data-yk-inquiry-endpoint', $html, '提交目标只保留 action 一处');
+        $this->assertStringContainsString('form.getAttribute("action")', $html, '脚本从 action 取地址');
+        $this->assertStringContainsString('if(preview||endpoint==="")', $html, '无地址/预览态一律不发请求');
+    }
+
+    /**
+     * R04-2 后半：预览态不得产生真实询价。
+     *
+     * 用与原生「主题默认预览」同款做法（product.php 的 fieldset disabled）：
+     * 字段禁用 + 按钮禁用 + 不输出提交目标，脚本再拦一层。
+     */
+    public function testPreviewModeIsStructurallyUnsubmittable(): void
+    {
+        $element = new ProductInquiryElement();
+        ProductTemplateDocument::markPreview();
+        try {
+            $html = self::renderWith(['id' => 12, 'title' => '示例产品']);
+        } finally {
+            ProductTemplateDocument::markPreview(false);   // 静态标记不能漏给后续用例
+        }
+
+        $this->assertStringContainsString('data-yk-preview="1"', $html);
+        $this->assertStringContainsString('<fieldset disabled', $html);
+        $this->assertStringContainsString(' disabled class=', $html, '提交按钮也要禁用');
+        $this->assertStringNotContainsString('action="', $html, '预览态不得带真实提交地址');
+        $this->assertStringNotContainsString('method="post"', $html);
+        $this->assertStringContainsString('blox_product_inquiry_preview', $html, '需明确告知不会提交');
+        // 令牌与蜜罐字段照常输出：作者看到的布局就是发布后的布局
+        $this->assertStringContainsString('name="form_sig"', $html);
+        $this->assertStringContainsString('name="hp_url"', $html);
+    }
+
+    /** 发布态不得被预览标记污染（前台真实提交必须仍然可用）。 */
+    public function testPreviewFlagDoesNotLeakIntoPublishedRender(): void
+    {
+        ProductTemplateDocument::markPreview(false);
+        $html = self::renderWith(['id' => 5, 'title' => 'T']);
+
+        $this->assertStringNotContainsString('data-yk-preview="1"', $html);
+        $this->assertStringContainsString('method="post"', $html);
+    }
 }

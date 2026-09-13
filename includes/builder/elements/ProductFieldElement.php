@@ -76,12 +76,18 @@ final class ProductFieldElement extends AbstractElement
                 $items = [];
                 foreach ($images as $image) {
                     if (!is_string($image) || $image === '') continue;
-                    $items[] = '<img alt="' . e($title) . '" loading="lazy" decoding="async" '
+                    // 锚点带原图 href：PhotoSwipe 接管时用它做大图，脚本缺失时退化为普通链接
+                    $items[] = '<a href="' . e($image) . '" data-yk-gallery-item'
+                        . ' data-yk-gallery-full="' . e($image) . '"'
+                        . ' data-yk-gallery-alt="' . e($title) . '"'
+                        . ' aria-label="' . e(__('blox_product_gallery_zoom')) . '"'
+                        . ' class="block aspect-square overflow-hidden rounded-lg bg-gray-100">'
+                        . '<img alt="' . e($title) . '" loading="lazy" decoding="async" '
                         . responsiveImageAttributes($image, 'medium', '(min-width: 1024px) 25vw, 50vw')
-                        . ' class="w-full h-full object-cover">';
+                        . ' class="w-full h-full object-cover"></a>';
                 }
                 if ($items === []) return '';
-                $data['html'] = '<div class="yk-product-gallery grid grid-cols-2 md:grid-cols-3 gap-3">'
+                $data['html'] = '<div class="yk-product-gallery grid grid-cols-2 md:grid-cols-3 gap-3" data-yk-gallery>'
                     . implode('', $items) . '</div>';
                 break;
 
@@ -143,6 +149,49 @@ final class ProductFieldElement extends AbstractElement
                 $data['url'] = productPrettyUrl($product);
                 break;
         }
+        // 派生业务字段的标记是引擎自己拼的（每个值都过 e()），不是用户富文本：
+        // 不能走 TextElement 的 sanitizeHtml——净化会把 data-yk-gallery-* 这类交互属性
+        // 连同灯箱锚点一起剥掉，相册就点不开了。内容字段仍走 delegate 保持既有净化。
+        if (in_array($this->field, ['gallery', 'specs', 'prev-next', 'related'], true)) {
+            return $this->textShell($data, (string) ($data['html'] ?? ''));
+        }
         return $this->delegate()->render($data);
+    }
+
+    /** 与 TextElement 同款外观壳（prose + 圆角 + 颜色 + 动画），区别是不做富文本净化。 */
+    private function textShell(array $data, string $html): string
+    {
+        $radiusKey = is_string($data['radius'] ?? null) ? $data['radius'] : 'none';
+        $radius = ['none' => '', 'md' => ' rounded-lg', 'xl' => ' rounded-2xl'][$radiusKey] ?? '';
+        $color = self::cssColor($data['color'] ?? null);
+        $style = $color !== null ? ' style="color:' . htmlspecialchars($color, ENT_QUOTES) . ';"' : '';
+
+        return '<div class="prose prose-lg max-w-none' . $radius . '"' . $style
+            . $this->animationAttrs($data) . '>' . $html . '</div>';
+    }
+
+    /**
+     * 相册灯箱依赖：站点既有 PhotoSwipe 资源 + 绑定脚本。
+     *
+     * 走 BloxAssetCollector（元素声明 → 页面按实际渲染节点去重输出），
+     * 不在这里手写灯箱：放大/滑动/键盘/关闭动画都是 PhotoSwipe 的行为，
+     * 与原生 product.php 共用同一批本地资源（无 CDN）。
+     *
+     * @return list<string>
+     */
+    public function scripts(): array
+    {
+        if ($this->field !== 'gallery') return [];
+        return [
+            '/assets/photoswipe/photoswipe.umd.min.js',
+            '/assets/photoswipe/photoswipe-lightbox.umd.min.js',
+            '/assets/js/blox-product-gallery.js',
+        ];
+    }
+
+    /** @return list<string> */
+    public function styles(): array
+    {
+        return $this->field === 'gallery' ? ['/assets/photoswipe/photoswipe.css'] : [];
     }
 }

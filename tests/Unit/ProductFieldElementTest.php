@@ -90,6 +90,70 @@ final class ProductFieldElementTest extends TestCase
         $this->assertSame('', $empty, '无相册时整块隐藏，不显示假图');
     }
 
+    /**
+     * R04-1：相册必须接上站点既有 PhotoSwipe 灯箱，而不是只有 img 网格。
+     *
+     * 这里断言的是「可点击放大的连接结构 + 引擎资源到位」，放大/滑动/键盘本身由
+     * PhotoSwipe 提供（浏览器实测另有机动）。纯 img 网格会在这里失败。
+     */
+    public function testGalleryWiresExistingPhotoSwipeInsteadOfPlainImageGrid(): void
+    {
+        $gallery = new ProductFieldElement('gallery');
+        $html = ProductTemplateDocument::withProduct(
+            ProductTemplateDocument::normalizeContext(self::controllerVars()),
+            static fn(): string => $gallery->render([])
+        );
+
+        // 每张图一个可点击锚点，且 href 指原图（大图浏览），不是缩略图
+        $this->assertSame(2, substr_count($html, 'data-yk-gallery-item'), '每张图都要有灯箱锚点');
+        $this->assertStringContainsString('href="/uploads/cover.jpg"', $html);
+        $this->assertStringContainsString('data-yk-gallery-full="/uploads/cover.jpg"', $html);
+        $this->assertStringContainsString('data-yk-gallery>', $html, '容器需带 data-yk-gallery 供绑定');
+        $this->assertStringContainsString('blox_product_gallery_zoom', $html, '放大入口需可访问名称（lang key）');
+
+        // 灯箱引擎与绑定脚本：走资源收集器声明 → 页面按实际渲染节点输出去重后的本地资源
+        BloxAssetCollector::reset();
+        BloxAssetCollector::collectElement($gallery, []);
+        $this->assertSame([
+            '/assets/photoswipe/photoswipe.umd.min.js',
+            '/assets/photoswipe/photoswipe-lightbox.umd.min.js',
+            '/assets/js/blox-product-gallery.js',
+        ], BloxAssetCollector::scripts(), '相册需声明 PhotoSwipe 引擎与绑定脚本');
+        $this->assertSame(['/assets/photoswipe/photoswipe.css'], BloxAssetCollector::styles());
+
+        // 其它派生的文本字段不得顺手带上相册资源
+        BloxAssetCollector::reset();
+        BloxAssetCollector::collectElement(new ProductFieldElement('specs'), []);
+        $this->assertSame([], BloxAssetCollector::scripts());
+        $this->assertSame([], BloxAssetCollector::styles());
+        BloxAssetCollector::reset();
+
+        $this->assertStringNotContainsString('cdn.', $html);
+        $this->assertStringNotContainsString('http://', $html);
+    }
+
+    public function testGalleryEscapesImagePathAndSkipsLightboxWhenEmpty(): void
+    {
+        $gallery = new ProductFieldElement('gallery');
+        $html = ProductTemplateDocument::withProduct(
+            ProductTemplateDocument::normalizeContext([
+                'product' => ['id' => 1, 'title' => 'T'],
+                'productImages' => ['/uploads/ok.jpg', '"><script>alert(1)</script>'],
+            ]),
+            static fn(): string => $gallery->render([])
+        );
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
+        $this->assertStringContainsString('&quot;&gt;&lt;script&gt;', $html);
+
+        // 没有相册就不该为它加载灯箱资源
+        $empty = ProductTemplateDocument::withProduct(
+            ProductTemplateDocument::normalizeContext(['id' => 1, 'title' => 'T']),
+            static fn(): string => $gallery->render([])
+        );
+        $this->assertSame('', $empty);
+        $this->assertStringNotContainsString('photoswipe', $empty);
+    }
+
     public function testSpecsRenderAndHideWhenEmpty(): void
     {
         $specs = new ProductFieldElement('specs');

@@ -132,12 +132,24 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             );
         }
     } elseif ((string) ($_GET['product_template'] ?? '') === '1') {
-        $product = productModel()->getPublished((int) ($_POST['preview_product'] ?? 0));
-        if ($product !== null && ($product['lang'] ?? '') !== siteLang()) $product = null;
+        // 只读样本预览：走前台同一个控制器（countView=false，不增浏览量），
+        // 并把预览态标记打开——否则相册/参数/上下篇/相关这些跨表上下文在画布里全为空，
+        // 动态元素也分不清自己是在预览（会把询价真提交出去）。
+        // 前台控制器只被 product.php 显式 require（不在自动加载范围内），预览端点需自己引入
+        require_once ROOT_PATH . '/controllers/detail/ProductDetailController.php';
+        ProductTemplateDocument::markPreview();
+        $productContext = (new ProductDetailController())->prepare((int) ($_POST['preview_product'] ?? 0), false);
+        if ($productContext !== null && (string) ($productContext['product']['lang'] ?? '') !== siteLang()) {
+            // 语言不匹配不是"回退到原文"，而是没有可预览样本
+            $productContext = null;
+        }
         BlockRenderer::$editChannelId = $bloxCanvas ? 1 : 0;
-        $body = $product === null
+        $body = $productContext === null
             ? '<p class="p-6 text-gray-700">' . e(__('blox_product_preview_empty')) . '</p>'
-            : ProductTemplateDocument::withProduct($product, static fn(): string => BlockRenderer::render($previewJson));
+            : ProductTemplateDocument::withProduct(
+                ProductTemplateDocument::normalizeContext($productContext),
+                static fn(): string => BlockRenderer::render($previewJson)
+            );
     } elseif ($isHomeLayout && in_array($templateArea, ['header', 'footer'], true)) {
         $previewDocument = BloxAreaDocument::decode($templateArea, $previewJson);
         $editableArea = BloxAreaDocument::renderShell(

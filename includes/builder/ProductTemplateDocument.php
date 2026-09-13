@@ -6,9 +6,27 @@ final class ProductTemplateDocument
 {
     private static ?array $product = null;
 
+    /**
+     * 预览态标记：画布/样本预览下，动态元素不得触发真实业务动作（如询价真实提交）。
+     * 由预览入口显式打开，前台发布渲染不设此标记。
+     */
+    private static bool $preview = false;
+
     public static function currentProduct(): ?array
     {
         return self::$product;
+    }
+
+    public static function markPreview(bool $preview = true): void
+    {
+        self::$preview = $preview;
+    }
+
+    public static function isPreview(): bool
+    {
+        // 前台「主题默认预览」走常量（product.php 已在那条路径上禁用交互），
+        // 画布预览走标记：两者都是预览，都不许落真实数据。
+        return self::$preview || (defined('YK_PRODUCT_NATIVE_PREVIEW') && YK_PRODUCT_NATIVE_PREVIEW === true);
     }
 
     public static function withProduct(array $product, callable $render): string
@@ -66,6 +84,9 @@ final class ProductTemplateDocument
         return [
             'id' => (int) ($product['id'] ?? 0),
             'title' => (string) ($product['title'] ?? ''),
+            // slug/分类 slug 透传：productPrettyUrl 靠它们出静态化地址，缺了就退回 /product/{id}.html
+            'slug' => (string) ($product['slug'] ?? ''),
+            'category_slug' => (string) ($product['category_slug'] ?? ''),
             'subtitle' => (string) ($product['subtitle'] ?? ''),
             'summary' => (string) ($product['summary'] ?? ''),
             'content' => (string) ($product['content'] ?? ''),
@@ -102,6 +123,14 @@ final class ProductTemplateDocument
         return $scope;
     }
 
+    /**
+     * v1 语义判定：命中模板若声明 source=native，表示这一条规则改用系统默认。
+     *
+     * 统一判定入口（DetailTemplateProvider）已内含同样语义，产品侧不再调用它；
+     * 保留是因为它是 v1 规则的只读适配，测试与历史调用仍依赖。
+     *
+     * @psalm-suppress PossiblyUnusedMethod v1 只读适配，测试覆盖中
+     */
     public static function usesNative(?array $template): bool
     {
         if ($template === null) return true;
@@ -128,7 +157,14 @@ final class ProductTemplateDocument
             && ($scope['mode'] === 'all' || in_array((int) ($product['id'] ?? 0), $scope['ids'], true));
     }
 
-    /** Specific products win; equal scopes use the highest template ID. */
+    /**
+     * v1 排序：指定产品优先，同范围取较大模板 ID。
+     *
+     * 发布渲染自本轮起走统一判定入口（DetailTemplateProvider::resolveFor），不再走这里；
+     * 保留作为 v1 规则的只读适配与语义参照，测试锁定其行为。
+     *
+     * @psalm-suppress PossiblyUnusedMethod v1 只读适配，测试覆盖中
+     */
     public static function resolve(array $templates, array $product): ?array
     {
         $winner = null;

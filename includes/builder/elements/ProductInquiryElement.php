@@ -73,20 +73,13 @@ final class ProductInquiryElement extends AbstractElement
         $radiusKey = is_string($data['radius'] ?? null) ? $data['radius'] : 'md';
         $radius = ['none' => '', 'md' => ' rounded-lg', 'xl' => ' rounded-2xl'][$radiusKey] ?? '';
 
-        $html = '<div class="yk-product-inquiry' . $radius . '" data-yk-product-inquiry="' . $productId . '">'
-            . '<h3 class="mb-3 flex items-center gap-2 text-sm font-bold text-dark">'
-            . '<i class="ti ti-message-chatbot text-primary" aria-hidden="true"></i>' . e(__('product_inquiry')) . '</h3>'
-            . '<form id="' . e($formId) . '" class="space-y-3" data-yk-inquiry-endpoint="/form_submit.php?_lang=' . rawurlencode($lang) . '">'
-            . '<input type="hidden" name="form_slug" value="product-inquiry">'
-            . '<input type="hidden" name="_lang" value="' . e($lang) . '">'
-            . '<input type="hidden" name="form_ts" value="' . (int) $timestamp . '">'
-            . '<input type="hidden" name="form_sig" value="' . e($signature) . '">'
-            . '<input type="hidden" name="product_id" value="' . $productId . '">'
-            . '<input type="hidden" name="product_title" value="' . e($productTitle) . '">'
-            // 蜜罐：正常用户看不到；机器人填了会被 form_submit.php 静默丢弃
-            . '<input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" '
-            . 'style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">'
-            . '<div class="grid grid-cols-2 gap-3">'
+        // 预览态（画布样本预览）不得落真实数据：与原生「主题默认预览」同款做法——
+        // product.php 也是用 fieldset disabled 包住询价表单。字段被禁用后表单从结构上
+        // 就提交不出内容，脚本再拦一层，避免有人在开发者工具里放开后误提交。
+        $isPreview = ProductTemplateDocument::isPreview();
+        $endpoint = '/form_submit.php?_lang=' . rawurlencode($lang);
+
+        $fields = '<div class="grid grid-cols-2 gap-3">'
             . '<input type="text" name="name" required placeholder="' . e(__('product_field_name_ph')) . '" class="w-full rounded border border-gray-300 px-3 py-2 text-sm">'
             . '<input type="tel" name="phone" required placeholder="' . e(__('product_field_phone_ph')) . '" class="w-full rounded border border-gray-300 px-3 py-2 text-sm">'
             . '</div>'
@@ -96,16 +89,39 @@ final class ProductInquiryElement extends AbstractElement
             . '</div>'
             . '<textarea name="content" required rows="3" class="w-full rounded border border-gray-300 px-3 py-2 text-sm">' . e($defaultMessage) . '</textarea>'
             . $captchaHtml
-            . '<button type="submit" id="' . e($buttonId) . '" class="w-full rounded bg-primary py-2.5 text-sm font-medium text-white hover:bg-secondary transition">'
-            . e(__('product_btn_submit_inq')) . '</button>'
+            . '<button type="submit" id="' . e($buttonId) . '"' . ($isPreview ? ' disabled' : '')
+            . ' class="w-full rounded bg-primary py-2.5 text-sm font-medium text-white hover:bg-secondary transition">'
+            . e(__('product_btn_submit_inq')) . '</button>';
+
+        // 显式 POST + 受控提交地址：脚本没跑起来时（被拦/加载失败）浏览器按 POST 提交到
+        // form_submit.php，姓名电话落在请求体里，不会像默认 GET 那样拼进当前页查询串。
+        $formAttrs = $isPreview
+            ? ' data-yk-preview="1"'
+            : ' method="post" action="' . e($endpoint) . '"';
+
+        $html = '<div class="yk-product-inquiry' . $radius . '" data-yk-product-inquiry="' . $productId . '">'
+            . '<h3 class="mb-3 flex items-center gap-2 text-sm font-bold text-dark">'
+            . '<i class="ti ti-message-chatbot text-primary" aria-hidden="true"></i>' . e(__('product_inquiry')) . '</h3>'
+            . ($isPreview ? '<p class="mb-2 text-xs text-amber-600">' . e(__('blox_product_inquiry_preview')) . '</p>' : '')
+            . '<form id="' . e($formId) . '" class="space-y-3"' . $formAttrs . '>'
+            . '<input type="hidden" name="form_slug" value="product-inquiry">'
+            . '<input type="hidden" name="_lang" value="' . e($lang) . '">'
+            . '<input type="hidden" name="form_ts" value="' . (int) $timestamp . '">'
+            . '<input type="hidden" name="form_sig" value="' . e($signature) . '">'
+            . '<input type="hidden" name="product_id" value="' . $productId . '">'
+            . '<input type="hidden" name="product_title" value="' . e($productTitle) . '">'
+            // 蜜罐：正常用户看不到；机器人填了会被 form_submit.php 静默丢弃
+            . '<input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" '
+            . 'style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">'
+            . ($isPreview ? '<fieldset disabled class="space-y-3">' . $fields . '</fieldset>' : $fields)
             . '<p id="' . e($msgId) . '" class="hidden text-center text-sm" role="status" aria-live="polite"></p>'
             . '</form></div>';
 
-        return $html . $this->script($formId, $buttonId, $msgId);
+        return $html . $this->script($formId, $buttonId, $msgId, $isPreview);
     }
 
     /** 提交脚本：只绑定本实例的表单，重复插入不会重复绑定。 */
-    private function script(string $formId, string $buttonId, string $msgId): string
+    private function script(string $formId, string $buttonId, string $msgId, bool $isPreview): string
     {
         $form = json_encode($formId);
         $button = json_encode($buttonId);
@@ -113,6 +129,7 @@ final class ProductInquiryElement extends AbstractElement
         $submitting = json_encode(__('product_submitting'));
         $submitLabel = json_encode(__('product_btn_submit_inq'));
         $networkError = json_encode(__('product_network_error'));
+        $previewNotice = json_encode(__('blox_product_inquiry_preview'));
 
         return '<script>(function(){'
             . 'var form=document.getElementById(' . $form . ');'
@@ -120,9 +137,16 @@ final class ProductInquiryElement extends AbstractElement
             . 'form.dataset.ykBound="1";'
             . 'var btn=document.getElementById(' . $button . ');'
             . 'var msg=document.getElementById(' . $message . ');'
-            . 'var endpoint=form.getAttribute("data-yk-inquiry-endpoint")||"/form_submit.php";'
+            // 提交目标读表单自己的 action（服务端已写成 POST + form_submit.php）；
+            // 预览态没有 action，脚本也不该找备用地址出去
+            . 'var endpoint=form.getAttribute("action")||"";'
+            . 'var preview=' . ($isPreview ? 'true' : 'form.getAttribute("data-yk-preview")==="1"') . ';'
             . 'form.addEventListener("submit",function(e){'
             . 'e.preventDefault();'
+            // 预览态：只提示，不发请求——预览永远不能产生真实询价
+            . 'if(preview||endpoint===""){'
+            . 'if(msg){msg.classList.remove("hidden");msg.className="text-center text-sm text-amber-600";msg.textContent=' . $previewNotice . ';}'
+            . 'return;}'
             . 'btn.disabled=true;'
             . 'if(msg){msg.classList.add("hidden");}'
             . 'fetch(endpoint,{method:"POST",body:new FormData(form)})'
