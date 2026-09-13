@@ -37,6 +37,8 @@ if ($_vars === null) {
     header('HTTP/1.1 404 Not Found');
     render404(__('error_content_not_found'));
 }
+// 详情模板渲染上下文需要控制器原始返回值（下面 extract 后 $_vars 即销毁）
+$contentTemplateVars = $_vars;
 extract($_vars, EXTR_OVERWRITE);
 unset($_vars);
 
@@ -73,8 +75,21 @@ if (!empty($content['cover'])) {
     $jsonLd['image'] = $siteUrl . $content['cover'];
 }
 
+// 详情模板解析：与 article.php 同一契约——按**内容自身的类型**（contents.type）判定，
+// 而不是按入口文件名。案例 / 下载 / 自定义模型等其他类型不参与模板套用，原行为不变。
+$detailTemplateHtml = '';
+if (ArticleTemplateDocument::supportsContentType($contentTemplateVars['content']['type'] ?? '')) {
+    $detailTemplateHtml = ArticleTemplateDocument::renderPublished(
+        ArticleTemplateDocument::contextFrom($contentTemplateVars)
+    );
+}
+unset($contentTemplateVars);
+
 // 引入头部
 require_once theme_path('layouts/header.php');
+if (trim($detailTemplateHtml) !== '') {
+    echo $detailTemplateHtml;
+} else {
 ?>
 
 <!-- 面包屑 -->
@@ -494,5 +509,6 @@ document.addEventListener('keydown', function(e) {
 </script>
 <?php endif; ?>
 
+<?php } ?>
 <?php require_once theme_path('layouts/footer.php'); ?>
 <?php HtmlCache::end(); ?>

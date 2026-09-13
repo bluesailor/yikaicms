@@ -59,6 +59,21 @@ final class ArticleTemplateDocument
     }
 
     /**
+     * 哪些内容类型套用文章详情模板。
+     *
+     * 这是「按内容真实类型接入」的唯一判定点——`article.php` 与 `detail.php` 共用它，
+     * 避免两处各自内联字符串比较而漂移。案例 / 下载 / 招聘 / 产品 / 单页等一律为 false，
+     * 保持各自既有原生分支不变（任务书 §3.4.2）。
+     *
+     * 注意 contents.type 与 channels.type 是两套词表：新闻子栏目的 channel_type 是 'list'，
+     * 而内容自身的 type 才是 'article'（见 includes/functions.php 的 contentUrl() 注释）。
+     */
+    public static function supportsContentType(mixed $type): bool
+    {
+        return is_string($type) && $type === 'article';
+    }
+
+    /**
      * 把 ContentDetailController::prepare() 的输出归一为渲染上下文（单一契约处）。
      * 动态字段元素只认这里产出的键名，入口文件不自行拼装，
      * 避免 article.php / detail.php 各拼一套导致字段漂移。
