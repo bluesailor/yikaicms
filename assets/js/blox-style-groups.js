@@ -93,18 +93,35 @@
     }
 
     /**
-     * 常规（通用设置）占位项（TASK-003 R02）。
+     * 常规（通用设置）占位项（TASK-003 R02/R03）。
      *
      * 间距、设备可见性、全局样式等通用设置**不一定在元素 schema 里**（由独立块渲染），
      * 但它们属于常规分组、必须可达：原先无搜索时靠 `[{group:'general'}]` 合成组保证，
      * R01 改成"只用可见候选"后该合成项丢失 → schema 只有 background/animation 的元素
-     * 常规组永远选不中、通用设置整块消失。这里将其做成正式占位项：
-     * 分组与检索都当普通候选对待，是否排除由宿主的 isExcluded 决定。
+     * 常规组永远选不中、通用设置整块消失。
+     *
+     * **它不是控件**（R03）：只参与分组计算与通用设置的检索匹配，不进最终渲染列表，
+     * 用专用标记 `common_marker` 与合法 schema key 区分（不靠 key 名去猜）。
      *
      * @param {string} searchText 通用设置的可检索文本（由调用方传入本地化文案）
      */
     function commonMarker(searchText) {
-        return { key: "common_style", group: "general", label: typeof searchText === "string" ? searchText : "" };
+        return {
+            key: "common_style",
+            common_marker: true,
+            group: "general",
+            label: typeof searchText === "string" ? searchText : "",
+        };
+    }
+
+    /** 是否为通用设置占位项（渲染前必须剔除）。 */
+    function isCommonMarker(control) {
+        return !!(control && control.common_marker === true);
+    }
+
+    /** 剔除占位项，只留真实控件（visibleCtrls 的最终返回值走它）。 */
+    function withoutCommonMarker(controls) {
+        return (controls || []).filter(function (c) { return !isCommonMarker(c); });
     }
 
     function hasModified(group, styleControls, isModified) {
@@ -164,7 +181,8 @@
     var api = {
         ORDER: ORDER, BOX_KEYS: BOX_KEYS, groupOf: groupOf, groups: groups,
         searchHaystack: searchHaystack, matchesQuery: matchesQuery,
-        searchFilter: searchFilter, visibleCandidates: visibleCandidates, commonMarker: commonMarker,
+        searchFilter: searchFilter, visibleCandidates: visibleCandidates,
+        commonMarker: commonMarker, isCommonMarker: isCommonMarker, withoutCommonMarker: withoutCommonMarker,
         filter: filter, hasBoxValue: hasBoxValue, hasModified: hasModified, methods: methods,
     };
     if (typeof module !== "undefined" && module.exports) module.exports = api;

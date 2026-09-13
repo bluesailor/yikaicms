@@ -232,7 +232,7 @@ test('host contract: general group stays reachable via commonMarker', () => {
         [styleGroups.commonMarker(labels.general), bgCtl, animCtl],
         {
             isExcluded: () => false,
-            isModified: (c) => (c.key === 'common_style' ? !!opts.commonModified : !!opts.modified),
+            isModified: (c) => (styleGroups.isCommonMarker(c) ? !!opts.commonModified : !!opts.modified),
             query: opts.query, modifiedOnly: opts.modifiedOnly, groupLabels: labels,
         }
     );
@@ -270,4 +270,39 @@ test('host contract: general group stays reachable via commonMarker', () => {
         styleGroups.methods.styleGroups.call(host({ modifiedOnly: true, commonModified: false })),
         []
     );
+});
+
+// TASK-003 R03：占位项只参与分组/匹配，最终渲染列表必须剔除它，且不进内容页签
+test('commonMarker drives grouping but never reaches the rendered control list', () => {
+    const labels = { general: '常规 间距 设备可见性', background: '背景', animation: '动画' };
+    const bgCtl = { key: 'bg_color', tab: 'style', group: 'background', label: '背景色', type: 'color' };
+    const animCtl = { key: 'animation', tab: 'style', group: 'animation', label: '动画', type: 'select' };
+    const marker = styleGroups.commonMarker(labels.general);
+
+    assert.equal(styleGroups.isCommonMarker(marker), true);
+    assert.equal(styleGroups.isCommonMarker(bgCtl), false, '合法 schema 控件不得被误判为占位项');
+
+    const candidates = [marker, bgCtl, animCtl];
+    // 分组仍能看到 general（可达性不丢）
+    assert.deepEqual(styleGroups.groups(candidates), ['general', 'background', 'animation']);
+    // 但渲染列表里不能出现它（含"当前分组=general"时的落盘结果）
+    const rendered = styleGroups.withoutCommonMarker(candidates);
+    assert.equal(rendered.some((c) => styleGroups.isCommonMarker(c)), false);
+    assert.deepEqual(rendered.map((c) => c.key), ['bg_color', 'animation']);
+    assert.deepEqual(styleGroups.filter(candidates, 'general', false).map((c) => c.key), ['common_style'], '分组筛选本身仍认可占位项所属的常规组');
+    assert.deepEqual(styleGroups.withoutCommonMarker(styleGroups.filter(candidates, 'general', false)), [], '常规组没有真实控件时渲染结果为空（通用设置由独立块渲染）');
+
+    // 模拟宿主：候选集含占位项 → styleGroups 含 general；渲染列表剔除占位项
+    const host = Object.assign({}, styleGroups.methods, {
+        selEl: { type: 'card', data: {} },
+        isSelectedContainerEl: () => false,
+        ctrlQuery: '', modifiedOnly: false, styleGroup: 'general',
+        styleCandidates: () => candidates,
+    });
+    assert.deepEqual(styleGroups.methods.styleGroups.call(host), ['general', 'background', 'animation']);
+    assert.equal(styleGroups.methods.effectiveStyleGroup.call(host), 'general');
+    const renderedList = styleGroups.withoutCommonMarker(
+        styleGroups.filter(host.styleCandidates(), styleGroups.methods.effectiveStyleGroup.call(host), false)
+    );
+    assert.deepEqual(renderedList, [], '常规分组渲染时不会把占位项当控件输出');
 });
