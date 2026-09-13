@@ -31,6 +31,39 @@
         return (list || []).filter(function (c) { return groupOf(c) === activeGroup; });
     }
 
+    /**
+     * 检索可匹配文本：控件名 / 控件键 / 所在区块名 / 所属分组名（TASK-003 D）。
+     * 纯函数，供 node --test 直接测。
+     */
+    function searchHaystack(control, groupLabel) {
+        if (!control) return "";
+        return [control.label, control.key, control.section, groupLabel]
+            .filter(function (v) { return typeof v === "string" && v !== ""; })
+            .join(" ")
+            .toLowerCase();
+    }
+
+    /** 关键词是否命中该控件；空关键词一律命中。 */
+    function matchesQuery(control, query, groupLabel) {
+        var q = String(query === undefined || query === null ? "" : query).trim().toLowerCase();
+        if (q === "") return true;
+        return searchHaystack(control, groupLabel).indexOf(q) !== -1;
+    }
+
+    /**
+     * 搜索 / 只看已修改过滤（模块内纯逻辑）：
+     * 命中范围＝控件名/键 + 所在区块名 + 所属分组名；只看已修改走注入的谓词。
+     * 惰性调用谓词：不需要时（modifiedOnly=false）不依赖宿主提供 isModified。
+     */
+    function searchFilter(controls, query, modifiedOnly, isModified, groupLabels) {
+        return (controls || []).filter(function (c) {
+            var label = (groupLabels || {})[groupOf(c)] || "";
+            if (!matchesQuery(c, query, label)) return false;
+            if (modifiedOnly && !(typeof isModified === "function" && isModified(c))) return false;
+            return true;
+        });
+    }
+
     /** 盒模型键是否设了值——与服务端 boxStyle() 同口径：只认非空字符串 */
     function hasBoxValue(data) {
         return BOX_KEYS.some(function (k) {
@@ -53,11 +86,20 @@
                 return global.BloxHomeContentPanel.tabFor(self.selEl, c) === "style";
             });
         },
-        /** 空数组 = 不启用分组（容器专用块、搜索中、只看已修改、组数不足 2） */
+        /**
+         * 空数组 = 不启用分组（容器专用块、组数不足 2）。
+         * TASK-003 D：搜索 / 只看已修改时**不再清空分组**，改为只列出"有命中的组"——
+         * 这样命中分组仍可逐组切换查看（此前整体平铺，分组信息全丢）。
+         */
         styleGroups: function () {
             if (!this.selEl || this.isSelectedContainerEl()) return [];
-            if (this.ctrlQuery.trim() || this.modifiedOnly) return [];
-            var present = groups([{ group: "general" }].concat(this.styleTabControls()));
+            var self = this;
+            var searching = !!this.ctrlQuery.trim() || this.modifiedOnly;
+            var source = searching
+                ? searchFilter(this.styleTabControls(), this.ctrlQuery, this.modifiedOnly,
+                    function (c) { return self.isCtrlModified(c); }, this.styleGroupLabels)
+                : [{ group: "general" }].concat(this.styleTabControls());
+            var present = groups(source);
             return present.length > 1 ? present : [];
         },
         commonStyleVisible: function () {
@@ -90,6 +132,7 @@
 
     var api = {
         ORDER: ORDER, BOX_KEYS: BOX_KEYS, groupOf: groupOf, groups: groups,
+        searchHaystack: searchHaystack, matchesQuery: matchesQuery, searchFilter: searchFilter,
         filter: filter, hasBoxValue: hasBoxValue, hasModified: hasModified, methods: methods,
     };
     if (typeof module !== "undefined" && module.exports) module.exports = api;

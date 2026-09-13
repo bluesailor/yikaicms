@@ -53,15 +53,69 @@ test('methods.styleGroups: includes common settings, bypasses container and filt
         isSelectedContainerEl: () => false,
         ctrlQuery: '',
         modifiedOnly: false,
+        isCtrlModified: () => false,
+        styleGroupLabels: { general: '常规', background: '背景', animation: '动画' },
     });
     globalThis.BloxHomeContentPanel = { tabFor: (node, c) => c.tab || 'content' };
 
     assert.deepEqual(styleGroups.methods.styleGroups.call(base), ['general', 'background', 'animation']);
     assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, isSelectedContainerEl: () => true }), []);
-    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, ctrlQuery: 'pad' }), []);
-    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, modifiedOnly: true }), []);
+    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, ctrlQuery: 'pad' }), [], '无命中时不启用分组');
+    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, modifiedOnly: true }), [], '只看已修改且无修改时不启用分组');
     const single = { ...base, elSchema: () => ({ controls: [anim] }) };
     assert.deepEqual(styleGroups.methods.styleGroups.call(single), ['general', 'animation']);
+});
+
+// TASK-003 D：搜索时不再清空分组——只列出"有命中的组"，命中分组仍可逐组查看
+test('methods.styleGroups: keeps only groups that have search hits', () => {
+    // 带可检索文案的夹具：bg/anim 共享「卡片」，plain 只有「圆角」
+    const bgCard = { key: 'bg_color', tab: 'style', group: 'background', label: '卡片阴影' };
+    const animCard = { key: 'animation', tab: 'style', group: 'animation', label: '卡片动画' };
+    const plainCard = { key: 'radius', tab: 'style', label: '圆角' };
+    const base = Object.assign({}, styleGroups.methods, {
+        selEl: { type: 'card', data: {} },
+        elSchema: () => ({ controls: [bgCard, animCard, plainCard] }),
+        isSelectedContainerEl: () => false,
+        ctrlQuery: '',
+        modifiedOnly: false,
+        isCtrlModified: () => false,
+        styleGroupLabels: { general: '常规', background: '背景', animation: '动画' },
+    });
+    globalThis.BloxHomeContentPanel = { tabFor: (node, c) => c.tab || 'content' };
+
+    // 命中两组 → 只列这两组（此前一律返回 [] 而整体平铺，分组信息全丢）
+    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, ctrlQuery: '卡片' }), ['background', 'animation']);
+    // 只命中一组 → 不启用分组（平铺等价，避免单组 chip 噪音）
+    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, ctrlQuery: '圆角' }), []);
+    // 只看已修改且两组各有修改 → 列出这两组
+    assert.deepEqual(
+        styleGroups.methods.styleGroups.call({
+            ...base,
+            modifiedOnly: true,
+            isCtrlModified: (c) => c === bgCard || c === animCard,
+        }),
+        ['background', 'animation']
+    );
+});
+
+test('matchesQuery / searchFilter: section and group names are searchable', () => {
+    const sectioned = { group: 'background', label: 'Background image', section: '卡片外观' };
+    const plain = { group: 'general', label: 'Padding', key: 'style_padding' };
+    const labels = { general: '常规', background: '背景', animation: '动画' };
+
+    assert.equal(styleGroups.matchesQuery(sectioned, '', labels), true, '空关键词一律命中');
+    assert.equal(styleGroups.matchesQuery(sectioned, 'background', labels), true, '控件名命中');
+    assert.equal(styleGroups.matchesQuery(sectioned, '卡片', labels), true, '所在区块名命中');
+    assert.equal(styleGroups.matchesQuery(sectioned, '背景', labels.background), true, '所属分组名命中');
+    assert.equal(styleGroups.matchesQuery(plain, '背景', labels.general), false, '不命中就是不命中');
+
+    assert.deepEqual(styleGroups.searchFilter([sectioned, plain], '卡片', false, null, labels), [sectioned]);
+    assert.deepEqual(styleGroups.searchFilter([sectioned, plain], '', false, null, labels), [sectioned, plain]);
+    assert.deepEqual(
+        styleGroups.searchFilter([sectioned, plain], '', true, (c) => c === plain, labels),
+        [plain],
+        '只看已修改只保留谓词为真的控件'
+    );
 });
 
 test('methods.effectiveStyleGroup: falls to first present group when styleGroup absent', () => {

@@ -1242,6 +1242,9 @@ $canManageBloxDesign = hasPermission('blox_global');
             advancedMode: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
             bannerPanelGroup: "common",
             styleGroup: "general",
+            // TASK-003 D：搜索前的分组选择（清除搜索后恢复）；连同当时的选中元素一起记，避免切元素后串状态
+            _styleGroupBeforeSearch: null,
+            _styleGroupBeforeSearchKey: "",
             homeContentGroup: "content",
             contentReturnTarget: null,
             homeBannerRuntime: <?= json_encode($homeBannerRuntime, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
@@ -1917,6 +1920,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                 ['k' => 'custom', 'label' => __('blox_spacing_custom'), 'short' => '✎'],
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             ctrlQuery: "",              // 设置搜索关键词（仅元素设置）
+            styleGroupLabels: <?php echo json_encode([
+                'general' => __('blox_style_group_general'),
+                'background' => __('blox_style_group_background'),
+                'animation' => __('blox_style_group_animation'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             modifiedOnly: false,        // 只看已修改的设置项
             libQuery: "",
             libCategory: "all",
@@ -4757,6 +4765,48 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return count > 1;
             },
 
+            /** 当前选中元素的稳定标识（"搜索前分组"只在同一元素内恢复）。 */
+            selectionKey() {
+                return this.selectedSi + ":" + this.selectedCi + ":" + this.selectedEi;
+            },
+
+            /**
+             * 关键词是否命中控件（TASK-003 D）：除控件名/键外，还纳入所在**区块名**与所属**分组名**。
+             */
+            ctrlMatchesQuery(ctrl) {
+                var group = window.BloxStyleGroups.groupOf(ctrl);
+                return window.BloxStyleGroups.matchesQuery(ctrl, this.ctrlQuery, (this.styleGroupLabels || {})[group] || "");
+            },
+
+            /** 搜索/只看已修改过滤后的样式控件（不含分组选择）——供 styleGroups() 判断哪些组有命中。 */
+            searchFilteredStyleControls() {
+                var self = this;
+                return this.styleTabControls().filter(function (c) {
+                    if (!self.ctrlMatchesQuery(c)) return false;
+                    if (self.modifiedOnly && !self.isCtrlModified(c)) return false;
+                    return true;
+                });
+            },
+
+            /**
+             * 搜索词变化：进入搜索时记住当前分组，清除搜索时恢复。
+             * 只在同一元素内恢复——切换元素不该继承上一个元素的分组选择（TASK-003 D）。
+             */
+            onCtrlQueryChanged(value) {
+                if (String(value || "").trim() !== "") {
+                    if (this._styleGroupBeforeSearch === null) {
+                        this._styleGroupBeforeSearch = this.styleGroup;
+                        this._styleGroupBeforeSearchKey = this.selectionKey();
+                    }
+                    return;
+                }
+                var saved = this._styleGroupBeforeSearch;
+                var savedKey = this._styleGroupBeforeSearchKey;
+                this._styleGroupBeforeSearch = null;
+                this._styleGroupBeforeSearchKey = "";
+                if (saved !== null && savedKey === this.selectionKey()) this.styleGroup = saved;
+            },
+
             visibleCtrls() {
                 if (!this.selEl) return [];
                 if (this.panelTab === "condition") return [];
@@ -4775,8 +4825,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (!self.controlRequirementMet(c)) return false;
                     if ((c.key === "animation_speed" || c.key === "animation_delay")
                         && !self.selEl.data.animation) return false;
-                    if (q && String(c.label || "").toLowerCase().indexOf(q) === -1
-                          && String(c.key).toLowerCase().indexOf(q) === -1) return false;
+                    // 关键词命中：控件名/键 + 所在区块名 + 所属分组名（TASK-003 D）
+                    if (!self.ctrlMatchesQuery(c)) return false;
                     if (self.modifiedOnly && !self.isCtrlModified(c)) return false;
                     return true;
                 });
@@ -6522,6 +6572,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                     }
                 });
                 this.$watch("libOpen", function (open) { if (!open) self.quickAddTargetId = ""; });
+                // TASK-003 D：搜索词变化时保存/恢复分组选择（清空搜索即还原，且不跨元素串状态）
+                this.$watch("ctrlQuery", function (value) { self.onCtrlQueryChanged(value); });
                 // 数据变更 → 与保存基线比较、记录历史、重渲染画布并重绑结构树拖拽
                 this.$watch("sections", function() {
                     self._insertAt = null; // 定点插入覆盖位一次性生效
