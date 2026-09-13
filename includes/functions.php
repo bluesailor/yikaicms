@@ -3652,16 +3652,8 @@ function dictTranslateTo(string $text, string $targetLang): ?string
     return dictTranslate($text, 'zh', $to);
 }
 
-/**
- * 生成带语言前缀的 URL
- */
-function langUrl(string $url, string $lang = ''): string
-{
-    $lang = $lang ?: siteLang();
-    $defaultLang = (string)config('site_lang', 'zh-CN');
-    if ($lang === $defaultLang) return $url;
-    return '/' . $lang . ltrim($url, '/');
-}
+// 生成带语言前缀的 URL（langUrl；独立文件便于单测直接加载）
+require_once __DIR__ . '/lang_url.php';
 
 // 权限能力目录（角色勾选 / 页面守卫 / 权限迁移 共用；函数内才调 __()，加载顺序无碍）
 require_once __DIR__ . '/permissions.php';
