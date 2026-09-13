@@ -230,12 +230,43 @@ test('condition edits made while a save is in flight survive the response', asyn
     await page.getByTestId('blox-cond-exclude-target-0').selectOption(excludeIds[0]);
     release();
 
-    // 回执到达后：新编辑仍在（面板保留 + 仍标记已修改），库内是本次已提交的那一份
+    // 回执到达后：当前文档必须是 B（不能被旧提交覆盖），全局仍 dirty，恢复稿保留
     await expect(page.getByTestId('blox-cond-exclude-kind-0')).toHaveValue('item');
     await expect(page.getByTestId('blox-cond-dirty')).toBeVisible();
+    const afterAccept = await page.evaluate(() => {
+      const data = window.Alpine.$data(document.body);
+      const key = document.body.getAttribute('data-blox-recovery-key');
+      return {
+        documentScope: JSON.parse(JSON.stringify(data.docSettings.detail_template)),
+        rowsExclude: JSON.parse(JSON.stringify(data.conditionRows.exclude)),
+        dirty: data.dirty,
+        unsavedGlobal: data.hasUnsavedChanges(),
+        recoveryKey: key,
+      };
+    });
+    expect(afterAccept.documentScope.exclude, '当前文档必须保留保存期间的新编辑').toEqual([{ kind: 'item', ids: [Number(excludeIds[0])], include_children: false }]);
+    expect(afterAccept.documentScope.include).toEqual([{ kind: 'item', ids: [Number(productIds[0])], include_children: false }]);
+    expect(afterAccept.dirty, '当前文档与已保存快照不同 → 必须仍是未保存').toBe(true);
+    expect(afterAccept.unsavedGlobal).toBe(true);
+    // 恢复稿是延迟写入的（默认 1200ms），等它落盘；未保存时绝不能被清掉
+    expect(afterAccept.recoveryKey).toBeTruthy();
+    await expect.poll(
+      () => page.evaluate((key) => !!localStorage.getItem(key), afterAccept.recoveryKey),
+      { message: '未保存就不能清掉恢复稿', timeout: 5000 },
+    ).toBe(true);
     const stored = JSON.parse(JSON.parse(fixture('read', id)).draft_data).settings.detail_template;
     expect(stored.include).toEqual([{ kind: 'item', ids: [Number(productIds[0])], include_children: false }]);
     expect(stored.exclude, '保存期间新增的排除规则尚未提交').toEqual([]);
+
+    // 下一次保存必须发送 B（期间的新编辑），且发送后回到干净状态
+    const second = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
+      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+    await page.getByTestId('blox-save').click();
+    const secondBody = new URLSearchParams((await second).postData() || '');
+    const secondScope = JSON.parse(secondBody.get('conditions_json') || 'null');
+    expect(secondScope.exclude, '第二次保存要带上保存期间的新编辑').toEqual([{ kind: 'item', ids: [Number(excludeIds[0])], include_children: false }]);
+    await expect(page.getByTestId('blox-cond-dirty')).toBeHidden();
+    expect(await page.evaluate(() => window.Alpine.$data(document.body).hasUnsavedChanges())).toBe(false);
   } finally {
     release();
     if (id) fixture('restore', id);
