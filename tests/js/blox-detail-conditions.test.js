@@ -82,3 +82,32 @@ test('saved scope stays clean after the panel rebuilds its rows', () => {
     assert.equal(conditions.changed(saved, rows), true, '真正改动仍要报出');
     assert.equal(conditions.changed({ include: [{ kind: 'all', ids: [], include_children: false }] }, { include: [{ kind: 'all' }] }), false, 'all 规则的形状差异不算变更');
 });
+
+test('legacy product scope adapts v1 without writing v2', () => {
+    // mode=all → 一条 all 规则；v1 的 source/lang 保留
+    const all = conditions.legacyProductScope({ mode: 'all', ids: [6, 1], lang: 'zh-CN', source: 'native' });
+    assert.deepEqual(all.include, [{ kind: 'all' }]);
+    assert.equal(all.lang, 'zh-CN');
+    assert.equal(all.source, 'native');
+    assert.equal(all.priority, 0);
+    assert.equal(all.exclude.length, 0);
+    assert.ok(!('version' in all), '适配视图不带 version，免得被当成已声明的 v2 契约');
+
+    // mode=selected → 一条 item 规则，id 与多选框取值同型（字符串）
+    assert.deepEqual(conditions.legacyProductScope({ mode: 'selected', ids: [6, 1] }).include, [{ kind: 'item', ids: ['6', '1'] }]);
+
+    // v1 的 selected + 空 ids = 未应用（空 include），不是 all
+    assert.deepEqual(conditions.legacyProductScope({ mode: 'selected', ids: [] }).include, []);
+    assert.deepEqual(conditions.legacyProductScope({}).include, []);
+
+    // 脏 id 被过滤，缺省 source 归 custom
+    const dirty = conditions.legacyProductScope({ mode: 'selected', ids: ['0', '-2', 'x', '3', '3'] });
+    assert.deepEqual(dirty.include, [{ kind: 'item', ids: ['3'] }]);
+    assert.equal(dirty.source, 'custom');
+
+    // 适配出的行模型应与该视图"未修改"（打开面板不能一进来就是脏的）
+    ['all', 'selected', 'none'].forEach((mode) => {
+        const view = conditions.legacyProductScope({ mode: mode, ids: [6, 1] });
+        assert.equal(conditions.changed(view, conditions.rowsFromScope(view)), false, mode);
+    });
+});

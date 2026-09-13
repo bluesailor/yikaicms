@@ -53,10 +53,15 @@ final class DetailConditionInput
         }
 
         $priority = $raw['priority'] ?? 0;
-        if (!is_int($priority) && !(is_string($priority) && preg_match('/^\d+$/D', $priority) === 1)) {
+        // 先判"是不是整数"，再判范围：负数与超限都归到 priority_out_of_range，非数字才是 bad_priority
+        if (!is_int($priority) && !(is_string($priority) && preg_match('/^-?\d+$/D', $priority) === 1)) {
             return self::fail('bad_priority');
         }
-        $priority = max(0, min(DetailTemplateResolver::MAX_PRIORITY, (int) $priority));
+        $priority = (int) $priority;
+        if ($priority < 0 || $priority > DetailTemplateResolver::MAX_PRIORITY) {
+            // 严格校验：超出范围要报错，不能静默夹取成边界值（用户提交的和落库的必须一致）
+            return self::fail('priority_out_of_range');
+        }
 
         $include = self::rules($raw['include'] ?? [], true);
         if (isset($include['error'])) {
@@ -122,14 +127,15 @@ final class DetailConditionInput
             }
             $clean = [];
             foreach (array_values($ids) as $id) {
-                if (is_int($id)) {
-                    $value = $id;
-                } elseif (is_string($id) && preg_match('/^[1-9][0-9]{0,9}$/', $id) === 1) {
-                    $value = (int) $id;
-                } else {
+                if (!is_int($id) && !is_string($id)) {
                     return ['error' => 'bad_id_at_' . $index];
                 }
-                $clean[] = $value;
+                // 与 resolver 的 normalizeIds 同一口径（正整数、无前导零、最多 10 位）：
+                // 整数分支也必须走这条规则，否则 0 与负数会被"直接赋值"放过去
+                if (preg_match('/^[1-9][0-9]{0,9}$/', (string) $id) !== 1) {
+                    return ['error' => 'bad_id_at_' . $index];
+                }
+                $clean[] = (int) $id;
             }
             $clean = array_values(array_unique($clean));
 

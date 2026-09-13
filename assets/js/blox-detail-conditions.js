@@ -31,6 +31,34 @@
     }
 
     /**
+     * v1 产品模板的**只读适配**：{mode:all|selected, ids[], lang, source} → 面板的初始视图。
+     * 与 DetailTemplateResolver::legacyScope() 同一语义（v1 只有产品详情模板）：
+     *   mode=all      → 一条 all 规则
+     *   mode=selected → 一条 item 规则；ids 为空表示 v1 的"未应用"（空 include），不是 all
+     * 仅在打开面板时用于生成初始行，**绝不写回文档**；也不带 version，避免被误当成已声明的 v2 契约。
+     */
+    function legacyProductScope(legacy) {
+        var source = legacy && typeof legacy === 'object' ? legacy : {};
+        var include;
+        if (source.mode === 'all') {
+            include = [{ kind: 'all' }];
+        } else {
+            var ids = (Array.isArray(source.ids) ? source.ids : [])
+                .map(function (id) { return String(id); })
+                .filter(function (id) { return Number(id) > 0; })
+                .filter(function (id, index, list) { return list.indexOf(id) === index; });
+            include = ids.length ? [{ kind: 'item', ids: ids }] : [];
+        }
+        return {
+            lang: typeof source.lang === 'string' ? source.lang : '',
+            source: source.source === 'native' ? 'native' : 'custom',
+            priority: 0,
+            include: include,
+            exclude: [],
+        };
+    }
+
+    /**
      * 行模型 → v2 作用域（供 conditions_json 提交）。
      * base 携带不编辑但必须原样保留的字段：content_type / lang / source / priority。
      * 空目标的行会被剔除（面板另有 conditionProblems() 先拦，避免提交后被服务端拒绝）。
@@ -98,6 +126,7 @@
 
     var api = {
         rowsFromScope: rowsFromScope,
+        legacyProductScope: legacyProductScope,
         scopeFromRows: scopeFromRows,
         signature: signature,
         changed: changed,

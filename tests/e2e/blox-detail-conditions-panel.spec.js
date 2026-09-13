@@ -45,6 +45,8 @@ test('detail condition panel round-trips complete rules without the legacy ui_sc
     expect(productIds.length).toBeGreaterThan(0);
     await page.getByTestId('blox-cond-exclude-target-0').selectOption(productIds[0]);
     await expect(page.getByTestId('blox-cond-dirty')).toBeVisible();
+    // 只改条件也要点亮全局"未保存"：保存载荷与离开保护都以文档为准（TASK-006-R01 保存状态项）
+    expect(await page.evaluate(() => window.Alpine.$data(document.body).hasUnsavedChanges())).toBe(true);
 
     const expectedInclude = [{ kind: 'category', ids: [Number(categoryIds[0])], include_children: true }];
     const expectedExclude = [{ kind: 'item', ids: [Number(productIds[0])], include_children: false }];
@@ -81,6 +83,161 @@ test('detail condition panel round-trips complete rules without the legacy ui_sc
     await expect(page.getByTestId('blox-cond-exclude-target-0')).toHaveValues([productIds[0]]);
     await expect(page.getByTestId('blox-cond-dirty')).toBeHidden();
   } finally {
+    if (id) fixture('restore', id);
+  }
+});
+
+// TASK-006-R01 P1a：非法条件必须中止保存，不能退回旧路径把用户改动丢掉
+test('invalid panel conditions abort the save instead of submitting anything', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'desktop condition-panel baseline');
+  test.setTimeout(120000);
+  page.setDefaultTimeout(15000);
+  page.on('dialog', (dialog) => dialog.accept());
+  const submits = [];
+  page.on('request', (request) => {
+    if (!request.url().includes('/admin/blox_template_api.php')) return;
+    const action = new URLSearchParams(request.postData() || '').get('action') || '';
+    if (action === 'save_draft' || action === 'publish') submits.push(action);
+  });
+  let id;
+  try {
+    await page.goto('/admin/site_design.php');
+    await page.getByTestId('site-design-products').click();
+    await page.getByTestId('product-design-name').fill(`TB-R2 cond-block ${info.project.name}`);
+    await page.locator('select[name="language"]').selectOption('zh-CN');
+    await page.getByTestId('product-design-create').click();
+    await expect(page).toHaveURL(/blox_editor.php\?template=/);
+    id = new URL(page.url()).searchParams.get('template');
+    await waitPreviewSettled(page);
+    await page.getByTestId('product-template-settings').locator('summary').click();
+
+    // 先存一份合法条件（走完整通道）
+    await page.getByTestId('blox-cond-add-include-item').click();
+    const productIds = await page.getByTestId('blox-cond-include-target-0')
+      .locator('option').evaluateAll((options) => options.map((option) => option.value));
+    await page.getByTestId('blox-cond-include-target-0').selectOption(productIds[0]);
+    const firstSave = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
+      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+    await page.getByTestId('blox-save').click();
+    await firstSave;
+    const baseline = JSON.parse(JSON.parse(fixture('read', id)).draft_data).settings.detail_template;
+    expect(baseline.include).toEqual([{ kind: 'item', ids: [Number(productIds[0])], include_children: false }]);
+
+    // 再加一条没选目标的规则 → 面板报问题，保存必须整条中止
+    await page.getByTestId('blox-cond-add-exclude-item').click();
+    await expect(page.getByTestId('blox-cond-problems')).toBeVisible();
+    submits.length = 0;
+    await page.getByTestId('blox-save').click();
+    await expect(page.getByTestId('blox-toast')).toBeVisible();
+    await expect(page.getByTestId('blox-save')).toBeEnabled();
+    await page.waitForTimeout(800);
+    expect(submits, '非法条件不得发出任何保存请求').toEqual([]);
+    await expect(page.getByTestId('blox-cond-exclude-kind-0')).toHaveValue('item');
+    const after = JSON.parse(JSON.parse(fixture('read', id)).draft_data).settings.detail_template;
+    expect(after, '库内条件应保持上一次合法值').toEqual(baseline);
+  } finally {
+    if (id) fixture('restore', id);
+  }
+});
+
+// TASK-006-R01 P1b：v1 文档只读适配进面板，改条件后原范围必须保留
+test('v1 product scope enters the panel read-only and survives a condition edit', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'desktop condition-panel baseline');
+  test.setTimeout(120000);
+  page.setDefaultTimeout(15000);
+  page.on('dialog', (dialog) => dialog.accept());
+  const id = JSON.parse(fixture('pair')).selected;
+  try {
+    // 打开前：这是 v1 文档——只有 product_template，没有 v2 契约
+    const before = JSON.parse(JSON.parse(fixture('read', id)).draft_data).settings;
+    expect(before.detail_template).toBeUndefined();
+    const legacyIds = before.product_template.ids.map(String);
+    expect(legacyIds.length).toBeGreaterThan(0);
+
+    await page.goto(`/admin/blox_editor.php?template=${id}`);
+    await waitPreviewSettled(page);
+    if (await page.getByTestId('blox-recovery-dialog').isVisible().catch(() => false)) {
+      await page.getByTestId('blox-recovery-discard').click();
+    }
+    await page.getByTestId('product-template-settings').locator('summary').click();
+
+    // 只打开：v1 范围应作为初始模型出现，且不得写进文档
+    await expect(page.getByTestId('blox-cond-include-kind-0')).toHaveValue('item');
+    await expect(page.getByTestId('blox-cond-include-target-0')).toHaveValues(legacyIds);
+    expect(await page.evaluate(() => window.Alpine.$data(document.body).conditionDirty())).toBe(false);
+    expect(JSON.parse(JSON.parse(fixture('read', id)).draft_data).settings.detail_template, '只打开面板不得写文档').toBeUndefined();
+
+    // 明确改条件（加一条排除）后保存：原 include 必须原样保留，只新增 exclude
+    await page.getByTestId('blox-cond-add-exclude-item').click();
+    const productIds = await page.getByTestId('blox-cond-exclude-target-0')
+      .locator('option').evaluateAll((options) => options.map((option) => option.value));
+    await page.getByTestId('blox-cond-exclude-target-0').selectOption(productIds[0]);
+    const saved = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
+      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+    await page.getByTestId('blox-save').click();
+    const body = new URLSearchParams((await saved).postData() || '');
+    const posted = JSON.parse(body.get('conditions_json') || 'null');
+    expect(posted.include, 'v1 原范围保留').toEqual([{ kind: 'item', ids: legacyIds.map(Number), include_children: false }]);
+    expect(posted.exclude).toEqual([{ kind: 'item', ids: [Number(productIds[0])], include_children: false }]);
+    const stored = JSON.parse(JSON.parse(fixture('read', id)).draft_data).settings.detail_template;
+    expect(stored.include).toEqual(posted.include);
+    expect(stored.exclude).toEqual(posted.exclude);
+  } finally {
+    fixture('restore', id);
+  }
+});
+
+// TASK-006-R01 保存状态：保存期间的新编辑不能被保存回执重置掉
+test('condition edits made while a save is in flight survive the response', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'desktop condition-panel baseline');
+  test.setTimeout(120000);
+  page.setDefaultTimeout(15000);
+  page.on('dialog', (dialog) => dialog.accept());
+  let release = () => {};
+  const gate = new Promise((resolve) => { release = resolve; });
+  let id;
+  try {
+    await page.goto('/admin/site_design.php');
+    await page.getByTestId('site-design-products').click();
+    await page.getByTestId('product-design-name').fill(`TB-R2 cond-inflight ${info.project.name}`);
+    await page.locator('select[name="language"]').selectOption('zh-CN');
+    await page.getByTestId('product-design-create').click();
+    await expect(page).toHaveURL(/blox_editor.php\?template=/);
+    id = new URL(page.url()).searchParams.get('template');
+    await waitPreviewSettled(page);
+    await page.getByTestId('product-template-settings').locator('summary').click();
+    await page.getByTestId('blox-cond-add-include-item').click();
+    const productIds = await page.getByTestId('blox-cond-include-target-0')
+      .locator('option').evaluateAll((options) => options.map((option) => option.value));
+    await page.getByTestId('blox-cond-include-target-0').selectOption(productIds[0]);
+
+    // 把保存响应卡住，好在"保存中"这段时间里继续编辑条件
+    await page.route('**/admin/blox_template_api.php', async (route) => {
+      const action = new URLSearchParams(route.request().postData() || '').get('action') || '';
+      if (action !== 'save_draft') { await route.continue(); return; }
+      await gate;
+      await route.continue();
+    });
+    const saved = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
+      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+    await page.getByTestId('blox-save').click();
+    await saved;
+
+    // 保存尚未返回时再加一条排除规则
+    await page.getByTestId('blox-cond-add-exclude-item').click();
+    const excludeIds = await page.getByTestId('blox-cond-exclude-target-0')
+      .locator('option').evaluateAll((options) => options.map((option) => option.value));
+    await page.getByTestId('blox-cond-exclude-target-0').selectOption(excludeIds[0]);
+    release();
+
+    // 回执到达后：新编辑仍在（面板保留 + 仍标记已修改），库内是本次已提交的那一份
+    await expect(page.getByTestId('blox-cond-exclude-kind-0')).toHaveValue('item');
+    await expect(page.getByTestId('blox-cond-dirty')).toBeVisible();
+    const stored = JSON.parse(JSON.parse(fixture('read', id)).draft_data).settings.detail_template;
+    expect(stored.include).toEqual([{ kind: 'item', ids: [Number(productIds[0])], include_children: false }]);
+    expect(stored.exclude, '保存期间新增的排除规则尚未提交').toEqual([]);
+  } finally {
+    release();
     if (id) fixture('restore', id);
   }
 });
