@@ -60,12 +60,38 @@ test('rows without a target are reported before submit and dropped from payload'
     assert.deepEqual(conditions.scopeFromRows(rows, base).include, [], '空目标行不落库');
 });
 
-test('changed compares include/exclude only (priority/source handled elsewhere)', () => {
+test('changed covers include/exclude and priority, but not source/lang', () => {
     const before = { include: [{ kind: 'all' }], exclude: [], priority: 0, source: 'custom' };
-    assert.equal(conditions.changed(before, { include: [{ kind: 'all' }], exclude: [], priority: 9, source: 'native' }), false);
+    // TASK-007：priority 也是面板可编辑项，只改它同样要算脏
+    assert.equal(conditions.changed(before, { include: [{ kind: 'all' }], exclude: [], priority: 9 }), true, '只改优先级算脏');
+    assert.equal(conditions.changed(before, { include: [{ kind: 'all' }], exclude: [], priority: '3' }), true, '数字串同样参与比较');
+    assert.equal(conditions.changed(before, { include: [{ kind: 'all' }], exclude: [], priority: 0 }), false);
+    assert.equal(conditions.changed({ ...before, priority: 5 }, { include: [{ kind: 'all' }], exclude: [], priority: '5' }), false, '5 与 "5" 等价，不该假阳性');
+    // source/lang 不可编辑，不参与比较（只要求原样保留）
+    assert.equal(conditions.changed(before, { include: [{ kind: 'all' }], exclude: [], priority: 0, source: 'native', lang: 'en' }), false);
     assert.equal(conditions.changed(before, { include: [], exclude: [] }), true);
     assert.equal(conditions.changed(before, { include: [{ kind: 'all' }, { kind: 'item', ids: [1] }], exclude: [] }), true);
     assert.equal(conditions.changed(before, { include: [{ kind: 'all' }], exclude: [{ kind: 'category', ids: [2] }] }), true);
+});
+
+test('priority validation and problem reporting follow the resolver range', () => {
+    assert.equal(conditions.isValidPriority(0), true);
+    assert.equal(conditions.isValidPriority(100), true);
+    assert.equal(conditions.isValidPriority('100'), true, '数字串接受');
+    assert.equal(conditions.isValidPriority(101), false, '超出 MAX_PRIORITY');
+    assert.equal(conditions.isValidPriority(-1), false);
+    assert.equal(conditions.isValidPriority(''), false, '空输入非法');
+    assert.equal(conditions.isValidPriority('abc'), false);
+    assert.equal(conditions.isValidPriority(3.5), false, '必须整数');
+    assert.equal(conditions.isValidPriority(50, 10), false, '范围以传入的 max 为准');
+
+    const rows = { include: [{ kind: 'all' }], exclude: [] };
+    assert.deepEqual(conditions.problems(rows, 0, 100), []);
+    assert.deepEqual(conditions.problems(rows, 101, 100).map((p) => p.code), ['bad_priority']);
+    assert.deepEqual(conditions.problems(rows, '', 100).map((p) => p.code), ['bad_priority']);
+    // 优先级问题与"没选目标"可以同时报出
+    const broken = { include: [{ kind: 'item', ids: [] }], exclude: [] };
+    assert.deepEqual(conditions.problems(broken, -1, 100).map((p) => p.code), ['bad_priority', 'missing_target']);
 });
 
 test('saved scope stays clean after the panel rebuilds its rows', () => {

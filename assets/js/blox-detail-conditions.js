@@ -97,22 +97,47 @@
     }
 
     /**
-     * 只比较面板负责的字段：include / exclude，且先归一成行模型的统一形状。
-     * 为什么要归一：基线来自服务端归一后的作用域（`all` 规则可能带或不带 ids/子级），
-     * 而行模型总是补齐这三列——直接比原样会得出"保存成功却仍显示已修改"的假阳性。
+     * 归一成"面板负责的字段"：include/exclude（统一成行模型形状）＋ priority。
+     * 为什么要归一：基线来自服务端归一后的作用域（`all` 规则可能带或不带 ids/子级、priority 可能是数字或数字串），
+     * 行模型总是补齐这几列——直接比原样会得出"保存成功却仍显示已修改"的假阳性。
+     * priority 是面板可编辑的第二类输入，**必须**参与比较（TASK-007）：只改优先级也要能标脏、能保存。
+     * source/lang 不参与：它们不是面板可编辑项，只要求原样保留。
      */
-    function signature(scope) {
-        return JSON.stringify(rowsFromScope(scope));
+    function panelState(input) {
+        var rows = rowsFromScope(input);
+        var value = input && typeof input === 'object' ? input : {};
+        var priority = Number(value.priority);
+        return {
+            include: rows.include,
+            exclude: rows.exclude,
+            priority: isFinite(priority) && Math.floor(priority) === priority ? priority : 0,
+        };
     }
 
-    /** 条件是否相对基线发生了变化（决定保存时是否附带 conditions_json）。 */
+    /** 面板状态的签名（形状统一，不依赖服务端是否补齐字段）。 */
+    function signature(input) {
+        return JSON.stringify(panelState(input));
+    }
+
+    /** 面板状态相对基线是否发生了变化（决定保存时是否附带 conditions_json）。 */
     function changed(before, after) {
         return signature(before) !== signature(after);
     }
 
+    /** 优先级是否合法：0..max 的整数（含数字字符串；空串＝未填，算非法）。 */
+    function isValidPriority(value, maxPriority) {
+        var max = Number.isInteger(maxPriority) && maxPriority > 0 ? maxPriority : 100;
+        if (value === '' || value === null || typeof value === 'undefined') return false;
+        var number = Number(value);
+        return isFinite(number) && Math.floor(number) === number && number >= 0 && number <= max;
+    }
+
     /** 提交前的可读问题清单（空数组＝可提交）。 */
-    function problems(rows) {
+    function problems(rows, priority, maxPriority) {
         var out = [];
+        if (typeof priority !== 'undefined' && priority !== null && !isValidPriority(priority, maxPriority)) {
+            out.push({ side: '', index: -1, code: 'bad_priority' });
+        }
         ['include', 'exclude'].forEach(function (side) {
             (rows && Array.isArray(rows[side]) ? rows[side] : []).forEach(function (row, index) {
                 if (!row) return;
@@ -128,8 +153,10 @@
         rowsFromScope: rowsFromScope,
         legacyProductScope: legacyProductScope,
         scopeFromRows: scopeFromRows,
+        panelState: panelState,
         signature: signature,
         changed: changed,
+        isValidPriority: isValidPriority,
         problems: problems,
     };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -1952,6 +1952,9 @@ $canManageBloxDesign = hasPermission('blox_global');
             )), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             conditionRows: null,
             conditionBaseline: null,
+            // TASK-007：优先级是面板可编辑的第二类输入，必须与规则一起参与脏判断、保存快照与提交
+            conditionPriority: 0,
+            conditionMaxPriority: <?php echo (int) DetailTemplateResolver::MAX_PRIORITY; ?>,
             // 打开面板时文档的原始条件与"是否已声明 v2"：用于只读适配与"改回原样不转换"
             conditionBase: null,
             conditionOriginalScope: null,
@@ -6243,6 +6246,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.conditionBase = base;
                 this.conditionRows = window.BloxDetailConditions.rowsFromScope(base);
                 this.conditionBaseline = base;
+                // TASK-007：优先级跟着基线初始化（非法/缺失按 0），此后由控件维护
+                this.conditionPriority = window.BloxDetailConditions.isValidPriority(base && base.priority, this.conditionMaxPriority)
+                    ? Number(base.priority) : 0;
             },
 
             /** 打开时的只读基线：v1 产品走 product_template；其它按 detail_template 的简化 include 视图读。 */
@@ -6299,15 +6305,40 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.$nextTick(() => this.markDocumentSettingsChanged());
             },
 
-            /** 条件是否相对基线已修改（只比 include/exclude）。 */
+            /**
+             * 面板负责的完整状态（规则行 + 优先级）。脏判断、保存快照与提交都以它为准，
+             * 不能只比较 include/exclude——那样"只改优先级"既不标脏也存不下去（TASK-007）。
+             */
+            conditionPanelState() {
+                this.conditionEnsure();
+                return {
+                    include: this.conditionRows.include,
+                    exclude: this.conditionRows.exclude,
+                    priority: this.conditionPriority,
+                };
+            },
+
+            /** 面板状态相对基线是否已修改（规则 include/exclude + 优先级）。 */
             conditionDirty() {
                 this.conditionEnsure();
-                return window.BloxDetailConditions.changed(this.conditionBaseline, this.conditionRows);
+                return window.BloxDetailConditions.changed(this.conditionBaseline, this.conditionPanelState());
             },
 
             conditionProblems() {
                 this.conditionEnsure();
-                return window.BloxDetailConditions.problems(this.conditionRows);
+                return window.BloxDetailConditions.problems(this.conditionRows, this.conditionPriority, this.conditionMaxPriority);
+            },
+
+            /** 面板上是否出现了某类问题（文案分开显示，原因要具体）。 */
+            conditionHasProblem(code) {
+                return this.conditionProblems().some(function (problem) { return problem.code === code; });
+            },
+
+            /** 优先级控件入口：只负责把输入回灌到状态并同步文档，合法性交给 conditionProblems。 */
+            conditionPriorityChanged(value) {
+                this.conditionEnsure();
+                this.conditionPriority = value;
+                this.syncConditionDocument();
             },
 
             conditionScope() {
@@ -6317,7 +6348,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                     content_type: this.conditionContentType,
                     lang: base.lang || this.conditionLang,
                     source: base.source || 'custom',
-                    priority: typeof base.priority === 'number' ? base.priority : 0,
+                    // TASK-007：优先级取面板当前值（控件维护），不再回读文档
+                    priority: Number(this.conditionPriority) || 0,
                 });
             },
 

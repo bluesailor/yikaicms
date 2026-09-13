@@ -11,6 +11,17 @@ declare(strict_types=1);
 <template x-if="conditionContentType !== ''">
     <div class="border-t border-gray-200 mt-3 pt-3" data-testid="blox-detail-conditions" x-init="conditionEnsure()">
         <p class="text-xs font-medium text-gray-700 mb-2"><?= e(__('blox_cond_title')) ?></p>
+        <?php // TASK-007：优先级不是"必定胜出"——更具体的规则先决定命中，这里只在具体度相同时比较 ?>
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+            <label class="inline-flex items-center gap-1 text-xs text-gray-600">
+                <span><?= e(__('blox_cond_priority')) ?></span>
+                <input type="number" min="0" :max="conditionMaxPriority" step="1"
+                       x-model="conditionPriority" @change="conditionPriorityChanged($event.target.value)"
+                       data-testid="blox-cond-priority"
+                       class="w-20 border border-gray-300 rounded px-2 py-1 text-xs">
+            </label>
+            <span class="text-[11px] leading-relaxed text-gray-500" data-testid="blox-cond-priority-hint"><?= e(__('blox_cond_priority_hint')) ?></span>
+        </div>
         <?php foreach (['include' => 'blox_cond_include', 'exclude' => 'blox_cond_exclude'] as $side => $sideLabel): ?>
         <div class="mb-3">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
@@ -61,6 +72,8 @@ declare(strict_types=1);
         <?php // 说清"不应用"与"主题默认"的区别：前者是空 include，后者是 source=native ?>
         <p class="text-[11px] leading-relaxed text-gray-500" data-testid="blox-cond-notes"><?= e(__('blox_cond_notes')) ?></p>
         <p x-show="conditionDirty()" x-cloak data-testid="blox-cond-dirty" class="mt-1 text-[11px] text-amber-600"><?= e(__('blox_cond_dirty')) ?></p>
-        <p x-show="conditionProblems().length" x-cloak data-testid="blox-cond-problems" class="mt-1 text-[11px] text-red-600"><?= e(__('blox_cond_problem_target')) ?></p>
+        <?php // 原因要具体：优先级越界与"规则没选目标"是两件事，分开说 ?>
+        <p x-show="conditionHasProblem('missing_target')" x-cloak data-testid="blox-cond-problems" class="mt-1 text-[11px] text-red-600"><?= e(__('blox_cond_problem_target')) ?></p>
+        <p x-show="conditionHasProblem('bad_priority')" x-cloak data-testid="blox-cond-problems-priority" class="mt-1 text-[11px] text-red-600"><?= e(__('blox_cond_problem_priority', ['max' => (string) DetailTemplateResolver::MAX_PRIORITY])) ?></p>
     </div>
 </template>
