@@ -84,6 +84,7 @@ final class DetailTemplateProvider
      * @param list<array{id:int,name:string}> $options 已有选项
      * @param array<string,mixed>|null $scope 文档里的有效条件
      * @return list<array<string,mixed>>
+     * @psalm-suppress PossiblyUnusedMethod 调用方是 admin/blox_editor.php 模板里输出给编辑器的选项 JSON。
      */
     public static function optionsWithReferences(string $contentType, string $kind, array $options, ?array $scope, string $lang): array
     {
