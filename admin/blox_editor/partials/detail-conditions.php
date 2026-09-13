@@ -86,15 +86,22 @@ declare(strict_types=1);
                      data-testid="blox-diagnose-result">
                     <p data-testid="blox-diagnose-verdict" class="font-medium text-gray-900" x-text="conditionDiagnosisVerdictText()"></p>
                     <p x-show="conditionDiagnosisIsStale()" x-cloak data-testid="blox-diagnose-stale" class="mt-1 text-amber-600"><?= e(__('blox_diag_stale')) ?></p>
+                    <p x-show="conditionDiagnosisMatchText()" x-cloak data-testid="blox-diagnose-match" class="mt-1" x-text="conditionDiagnosisMatchText()"></p>
+                    <p x-show="conditionDiagnosis && conditionDiagnosis.others_conflicted" x-cloak data-testid="blox-diagnose-others-conflicted" class="mt-1 text-amber-600"><?= e(__('blox_diag_others_conflicted')) ?></p>
+                    <p x-show="conditionDiagnosisMissingText()" x-cloak data-testid="blox-diagnose-missing" class="mt-1 text-amber-600" x-text="conditionDiagnosisMissingText()"></p>
+                    <p x-show="conditionDiagnosis && conditionDiagnosis.content && conditionDiagnosis.content.published === false" x-cloak data-testid="blox-diagnose-unpublished" class="mt-1 text-gray-500"><?= e(__('blox_diag_unpublished')) ?></p>
                     <dl class="mt-1 grid grid-cols-[auto_1fr] gap-x-2">
+                        <dt class="text-gray-500"><?= e(__('blox_diag_content_label')) ?></dt>
+                        <dd data-testid="blox-diagnose-content"
+                            x-text="conditionDiagnosis && conditionDiagnosis.content ? ('#' + conditionDiagnosis.content.id + ' · ' + conditionDiagnosis.content.lang) : ''"></dd>
                         <dt class="text-gray-500"><?= e(__('blox_diag_winner_label')) ?></dt>
                         <dd data-testid="blox-diagnose-winner">
                             <?php // 两个 span 各有 testid：隐藏的"无"不会污染命中模板 ID 的断言 ?>
                             <span data-testid="blox-diagnose-winner-id"
-                                  x-show="conditionDiagnosis && conditionDiagnosis.winner && conditionDiagnosis.winner.template_id"
-                                  x-text="conditionDiagnosis && conditionDiagnosis.winner ? conditionDiagnosis.winner.template_id : ''"></span>
+                                  x-show="conditionDiagnosisDeciderId() > 0"
+                                  x-text="conditionDiagnosisDeciderId() > 0 ? conditionDiagnosisDeciderId() : ''"></span>
                             <span data-testid="blox-diagnose-winner-none"
-                                  x-show="conditionDiagnosis && conditionDiagnosis.winner && !conditionDiagnosis.winner.template_id"><?= e(__('blox_diag_none')) ?></span>
+                                  x-show="conditionDiagnosis && conditionDiagnosis.winner && conditionDiagnosisDeciderId() === 0"><?= e(__('blox_diag_none')) ?></span>
                         </dd>
                         <dt class="text-gray-500"><?= e(__('blox_diag_reason_label')) ?></dt>
                         <dd data-testid="blox-diagnose-reason" x-text="conditionDiagnosisReasonText()"></dd>

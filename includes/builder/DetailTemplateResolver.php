@@ -232,7 +232,7 @@ final class DetailTemplateResolver
      * @param list<array<string,mixed>> $candidates 候选模板（含 id/type/status/lang/source/scope/legacy）
      * @param array<string,mixed> $context 内容上下文（见 normalizeContext）
      * @param array<string,mixed>|null $binding 内容级手动绑定（见 normalizeBinding）
-     * @return array{template_id:int|null,source:string,rule_version:int,reason:string,
+     * @return array{template_id:int|null,decided_template_id:int|null,source:string,rule_version:int,reason:string,
      *               specificity:array{level:int,detail:int},matched_include:list<int>,
      *               matched_exclude:list<int>,conflicts:list<array{template_id:int,dimension:string}>,template:array|null}
      * @psalm-suppress PossiblyUnusedMethod 调用方在 product.php / article.php / detail.php / admin/ 与 tests/
@@ -250,7 +250,7 @@ final class DetailTemplateResolver
         if ($bind['mode'] === 'template') {
             $pinned = self::findBoundTemplate($candidates, $bind['template_id'], $ctx);
             if ($pinned !== null) {
-                return self::result($pinned['id'], self::SOURCE_CUSTOM, self::REASON_BINDING_TEMPLATE, 0, 0, [], [], [], $pinned);
+                return self::result($pinned['id'], self::SOURCE_CUSTOM, self::REASON_BINDING_TEMPLATE, 0, 0, [], [], [], $pinned, $pinned['id']);
             }
             // 失效/被删/类型语言不符：回退系统默认并留失效信号，绝不自动改选另一套
             return self::result(null, self::SOURCE_NATIVE, self::REASON_BINDING_INVALID);
@@ -290,14 +290,6 @@ final class DetailTemplateResolver
 
         $winner = $tied[0];
         $conflicts = [];
-        $reason = $winner['reason'];
-
-        // 命中模板自身声明 native：终止决策（与 v1 的 usesNative() 一致），
-        // 不得回落到另一套自定义模板。
-        if (($winner['source'] ?? self::SOURCE_CUSTOM) === self::SOURCE_NATIVE) {
-            return self::result(null, self::SOURCE_NATIVE, self::REASON_TEMPLATE_NATIVE, $winner['level'], $winner['detail']);
-        }
-
         if (count($tied) > 1) {
             $allLegacy = true;
             foreach ($tied as $row) {
@@ -308,23 +300,40 @@ final class DetailTemplateResolver
             }
             if (!$allLegacy) {
                 // 新规则并列：确定性兜底 + 诊断清单，由发布前流程要求用户解决
-                $reason = self::REASON_CONFLICTED;
                 foreach ($tied as $row) {
                     $conflicts[] = ['template_id' => $row['id'], 'dimension' => self::LEGACY_DIMENSION];
                 }
             }
         }
 
+        // 命中模板自身声明 native：终止决策（与 v1 的 usesNative() 一致），不得回落到另一套自定义模板。
+        // 并列照样报出：靠模板 ID 兜底决定"走默认"同样是未解决的业务冲突（前台输出不受影响）。
+        if (($winner['source'] ?? self::SOURCE_CUSTOM) === self::SOURCE_NATIVE) {
+            return self::result(
+                null,
+                self::SOURCE_NATIVE,
+                self::REASON_TEMPLATE_NATIVE,
+                $winner['level'],
+                $winner['detail'],
+                [],
+                [],
+                $conflicts,
+                null,
+                $winner['id']
+            );
+        }
+
         return self::result(
             $winner['id'],
             self::SOURCE_CUSTOM,
-            $reason,
+            $conflicts !== [] ? self::REASON_CONFLICTED : $winner['reason'],
             $winner['level'],
             $winner['detail'],
             $winner['matched_include'],
             $winner['matched_exclude'],
             $conflicts,
-            $winner['template']
+            $winner['template'],
+            $winner['id']
         );
     }
 
@@ -551,6 +560,7 @@ final class DetailTemplateResolver
      * @param list<int> $matchedExclude
      * @param list<array{template_id:int,dimension:string}> $conflicts
      * @param array<string,mixed>|null $template
+     * @param int|null $decidedTemplateId 实际决定输出的模板（含"自身声明 native"的胜出模板）
      * @return array<string,mixed>
      */
     private static function result(
@@ -562,10 +572,13 @@ final class DetailTemplateResolver
         array $matchedInclude = [],
         array $matchedExclude = [],
         array $conflicts = [],
-        ?array $template = null
+        ?array $template = null,
+        ?int $decidedTemplateId = null
     ): array {
         return [
             'template_id' => $templateId,
+            // 自定义胜出时＝template_id；模板自身声明 native 时 template_id 为空，这里仍记下是谁决定了走默认
+            'decided_template_id' => $decidedTemplateId,
             'source' => $source,
             'rule_version' => self::VERSION,
             'reason' => $reason,

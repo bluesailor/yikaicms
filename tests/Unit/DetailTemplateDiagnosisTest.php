@@ -131,6 +131,42 @@ final class DetailTemplateDiagnosisTest extends TestCase
         $this->assertSame('lost', DetailTemplateProvider::verdictFor('ok', $templateId, ['template_id' => 9, 'reason' => DetailTemplateResolver::REASON_SPECIFIC_ITEM]));
     }
 
+    public function testVerdictNamesNativeDecisionsAndTiesAmongOthers(): void
+    {
+        $native = ['template_id' => null, 'decided_template_id' => 7, 'reason' => DetailTemplateResolver::REASON_TEMPLATE_NATIVE, 'conflicts' => []];
+        $this->assertSame('native', DetailTemplateProvider::verdictFor('ok', 7, $native), '本模板决定走主题默认，不是"没有模板命中"');
+        $this->assertSame('lost', DetailTemplateProvider::verdictFor('ok', 3, $native), '别的模板决定走默认，本模板不生效');
+
+        $othersTied = [
+            'template_id' => 9, 'decided_template_id' => 9, 'reason' => DetailTemplateResolver::REASON_CONFLICTED,
+            'conflicts' => [['template_id' => 9], ['template_id' => 4]],
+        ];
+        $this->assertSame('lost', DetailTemplateProvider::verdictFor('ok', 7, $othersTied), '并列发生在其它模板之间');
+        $this->assertSame('conflicted', DetailTemplateProvider::verdictFor('ok', 4, $othersTied), 'ID 兜底落败的并列成员仍是冲突');
+        $this->assertSame('conflicted', DetailTemplateProvider::verdictFor('ok', 9, $othersTied), 'ID 兜底胜出也不代表无冲突');
+    }
+
+    public function testDraftMatchExplainsExclusionWithTheSameResolver(): void
+    {
+        $ctx = self::context();
+        $this->assertSame('matched', DetailTemplateProvider::draftMatchFor('product', 7, self::draft(), $ctx, 'ok'));
+
+        $excluded = self::draft(['exclude' => [['kind' => 'category', 'ids' => [5], 'include_children' => false]]]);
+        $this->assertSame('excluded', DetailTemplateProvider::draftMatchFor('product', 7, $excluded, $ctx, 'ok'));
+
+        $elsewhere = self::draft(['include' => [['kind' => 'item', 'ids' => [99], 'include_children' => false]]]);
+        $this->assertSame('not_included', DetailTemplateProvider::draftMatchFor('product', 7, $elsewhere, $ctx, 'ok'));
+
+        $ancestorOnly = self::draft(['include' => [['kind' => 'category', 'ids' => [5], 'include_children' => false]]]);
+        $this->assertSame('not_included', DetailTemplateProvider::draftMatchFor(
+            'product', 7, $ancestorOnly, self::context(['categories' => [['id' => 8, 'distance' => 0], ['id' => 5, 'distance' => 1]]]), 'ok'
+        ), '未开"含子级"时祖先分类不命中');
+
+        $native = self::draft(['source' => 'native']);
+        $this->assertSame('matched', DetailTemplateProvider::draftMatchFor('product', 7, $native, $ctx, 'ok'), 'native 草稿命中也算命中');
+        $this->assertSame('not_considered', DetailTemplateProvider::draftMatchFor('product', 7, self::draft(), $ctx, 'lang_mismatch'));
+    }
+
     public function testRealTieIsDetectedThroughTheSameResolver(): void
     {
         // 两条规则完全相同、同级同优先级：resolve() 会报 conflicted（不新造算法，走真实判定）
