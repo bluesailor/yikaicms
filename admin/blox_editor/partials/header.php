@@ -619,7 +619,8 @@ declare(strict_types=1);
             <label>
             <label>
                 <span class="block mb-1"><?= e(__('blox_article_scope')) ?></span>
-                <select :value="articleScopeMode()" @change="setArticleScopeMode($event.target.value)" data-testid="article-template-scope" class="border border-gray-300 rounded px-2 py-2">
+                <?php // TASK-005 A：含按栏目等规则时锁定，避免简单控件整体替换 include 造成静默丢失 ?>
+                <select :value="articleScopeMode()" @change="setArticleScopeMode($event.target.value)" :disabled="articleScopeLocked()" :aria-describedby="articleScopeLocked() ? 'blox-article-scope-locked' : null" data-testid="article-template-scope" class="border border-gray-300 rounded px-2 py-2 disabled:opacity-60 disabled:cursor-not-allowed">
                     <option value="none"><?= e(__('blox_article_scope_none')) ?></option>
                     <option value="all"><?= e(__('blox_article_scope_all')) ?></option>
                     <option value="item"><?= e(__('blox_article_scope_item')) ?></option>
@@ -633,11 +634,14 @@ declare(strict_types=1);
         <div x-show="articleScopeMode() === 'item'" class="max-h-40 overflow-auto border-t border-gray-200 py-2">
             <?php foreach ($articlePreviewItems as $previewItem): ?>
             <label class="flex items-center gap-2 py-1">
-                <input type="checkbox" :checked="articleScopeHasId(<?= (int) $previewItem['id'] ?>)" @change="toggleArticleScopeId(<?= (int) $previewItem['id'] ?>, $event.target.checked)" data-testid="article-template-target-<?= (int) $previewItem['id'] ?>">
+                <input type="checkbox" :checked="articleScopeHasId(<?= (int) $previewItem['id'] ?>)" @change="toggleArticleScopeId(<?= (int) $previewItem['id'] ?>, $event.target.checked)" :disabled="articleScopeLocked()" data-testid="article-template-target-<?= (int) $previewItem['id'] ?>" class="disabled:opacity-60 disabled:cursor-not-allowed">
                 <span><?= e((string) $previewItem['title']) ?></span>
             </label>
             <?php endforeach; ?>
         </div>
+        <?php // 锁定说明：只说范围为何被锁与原因，不提供尚未实现的完整条件编辑入口（不给虚假链接） ?>
+        <p x-show="articleScopeLocked()" x-cloak id="blox-article-scope-locked" data-testid="article-scope-locked"
+           class="pb-2 text-[11px] leading-relaxed text-amber-600"><?= e(__('blox_article_scope_locked')) ?></p>
         <p class="pb-2 text-[11px] leading-relaxed text-gray-500"><?= e(__('blox_article_rule_priority')) ?></p>
     </details>
     <?php endif; ?>
