@@ -6702,4 +6702,6 @@ voltage|电压|220V',
     'blox_preview_content' => '预览内容',
     'blox_editor_type_product_detail' => '产品详情模板',
     'blox_editor_type_article_detail' => '文章详情模板',
+    'blox_workspace_restore' => '恢复工作区',
+    'blox_workspace_restored' => '工作区已恢复默认（仅影响面板显隐与宽度）',
 ];

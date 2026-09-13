@@ -562,6 +562,9 @@ if ($isContactBlox) {
     $bootDoc['sections'] = completeContactSeedSections($bootDoc['sections']);
 }
 $recoveryKey = 'yikai:blox-recovery:v1:' . (int) ($_SESSION['admin_id'] ?? 0) . ':' . $documentIdentity;
+// 工作区偏好（面板显隐/宽度）的作用域前缀：站点指纹 + 账号（见 workspacePrefPrefix）
+$workspacePrefPrefix = 'yikai:blox:ws:v2:' . (int) ($_SESSION['admin_id'] ?? 0) . ':'
+    . substr(sha1((string) ($_SERVER['HTTP_HOST'] ?? '')), 0, 8) . ':';
 $docSettings = $bootDoc['settings'];
 if ($templateId && $templateType === 'product-detail') {
     $docSettings['product_template'] = ProductTemplateDocument::normalizeScope($docSettings['product_template'] ?? null);
@@ -1569,6 +1572,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'savingDraft' => __('blox_saving'),
                 // 发布中与保存中是两个动作：模板发布期间状态位要说"发布中…"，不能显示"保存中"
                 'templatePublishing' => __('blox_template_publishing'),
+                'workspaceRestored' => __('blox_workspace_restored'),
                 'revisionLoading' => __('loading'),
                 'revisionPreviewFailed' => __('blox_revision_preview_failed'),
                 'iconHintDefault' => __('blox_icon_hint_default'),
@@ -1854,6 +1858,9 @@ $canManageBloxDesign = hasPermission('blox_global');
             leftPanelMin: 240,
             leftPanelMax: 480,
             leftPanelResizing: false,
+            // 工作区偏好按站点 + 账号隔离：localStorage 本身按源隔离，这里再显式叠一层
+            // 站点指纹与 admin_id，避免同一浏览器里多个账号共用一套面板宽度/收起状态。
+            workspacePrefPrefix: <?php echo json_encode($workspacePrefPrefix, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             leftPanelStorageKey: "yikai:blox:left-panel-width:v1",
             _leftPanelResizeStartX: 0,
             _leftPanelResizeStartWidth: 288,
@@ -2701,22 +2708,73 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             restoreTemplatePanelWidth() {
-                try {
-                    var stored = window.localStorage.getItem(this.templatePanelStorageKey);
-                    if (stored !== null && Number.isFinite(Number(stored))) {
-                        this.templatePanelWidth = Math.round(Math.max(this.templatePanelMin, Math.min(this.templatePanelMax, Number(stored))));
-                    }
-                } catch (error) {
-                    this.templatePanelWidth = 520;
+                var stored = this.readWorkspacePref("template-panel-width", this.templatePanelStorageKey);
+                if (stored !== null && Number.isFinite(Number(stored))) {
+                    this.templatePanelWidth = Math.round(Math.max(this.templatePanelMin, Math.min(this.templatePanelMax, Number(stored))));
                 }
             },
 
             persistTemplatePanelWidth() {
+                this.writeWorkspacePref("template-panel-width", this.templatePanelWidth, this.templatePanelStorageKey);
+            },
+
+            /** 工作区偏好键（站点 + 账号隔离）。 */
+            workspacePrefKey(name) {
+                return (this.workspacePrefPrefix || "yikai:blox:ws:v2::") + name;
+            },
+
+            /**
+             * 读工作区偏好：先读隔离键，缺省时只读回退旧版全局键（升级不丢已调好的宽度）。
+             * 存储不可用（隐私模式/被策略禁用）时返回 null，交由各 restore 用默认值兜底。
+             */
+            readWorkspacePref(name, legacyKey) {
                 try {
-                    window.localStorage.setItem(this.templatePanelStorageKey, String(this.templatePanelWidth));
+                    var scoped = window.localStorage.getItem(this.workspacePrefKey(name));
+                    if (scoped !== null) return scoped;
+                    return legacyKey ? window.localStorage.getItem(legacyKey) : null;
                 } catch (error) {
-                    // 禁用本地存储时仍保留当前页面生命周期内的宽度。
+                    return null;
                 }
+            },
+
+            /** 写工作区偏好：只写隔离键；存储不可用时保留本次会话内的值，不抛错。 */
+            writeWorkspacePref(name, value, legacyKey) {
+                try {
+                    window.localStorage.setItem(this.workspacePrefKey(name), String(value));
+                } catch (error) {
+                    // 存储不可用：本次会话内仍然生效，不影响编辑
+                }
+            },
+
+            /** 本作用域内的偏好键名（恢复工作区时逐个清掉）。 */
+            workspacePrefNames() {
+                return [
+                    ["left-panel-width", this.leftPanelStorageKey],
+                    ["right-panel-width", this.rightPanelStorageKey],
+                    ["right-panel-collapsed", this.rightPanelCollapsedStorageKey],
+                    ["template-panel-width", this.templatePanelStorageKey],
+                ];
+            },
+
+            /**
+             * 恢复工作区：只把面板显隐/宽度复位并清掉本作用域偏好键，
+             * 不触碰文档 JSON、设计内容或保存状态（恢复后 dirty 不应变化）。
+             */
+            restoreWorkspace() {
+                this.leftPanelWidth = 288;
+                this.rightPanelWidth = 256;
+                this.rightPanelCollapsed = false;
+                this.templatePanelWidth = 520;
+                var self = this;
+                this.workspacePrefNames().forEach(function (pair) {
+                    try {
+                        window.localStorage.removeItem(self.workspacePrefKey(pair[0]));
+                        if (pair[1]) window.localStorage.removeItem(pair[1]);
+                    } catch (error) {
+                        // 存储不可用：内存值已复位即可
+                    }
+                });
+                if (typeof this.toast === "function") this.toast(this.uiText.workspaceRestored);
             },
 
             setTemplatePanelWidth(value, persist) {
@@ -8607,20 +8665,12 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             restoreLeftPanelWidth() {
-                try {
-                    var stored = window.localStorage.getItem(this.leftPanelStorageKey);
-                    if (stored !== null) this.leftPanelWidth = this.clampLeftPanelWidth(stored);
-                } catch (error) {
-                    this.leftPanelWidth = 288;
-                }
+                var stored = this.readWorkspacePref("left-panel-width", this.leftPanelStorageKey);
+                if (stored !== null) this.leftPanelWidth = this.clampLeftPanelWidth(stored);
             },
 
             persistLeftPanelWidth() {
-                try {
-                    window.localStorage.setItem(this.leftPanelStorageKey, String(this.leftPanelWidth));
-                } catch (error) {
-                    // 隐私模式或禁用存储时仍保留本次会话内的宽度。
-                }
+                this.writeWorkspacePref("left-panel-width", this.leftPanelWidth, this.leftPanelStorageKey);
             },
 
             setLeftPanelWidth(value, persist) {
@@ -8693,23 +8743,14 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             restoreRightPanelState() {
-                try {
-                    var storedWidth = window.localStorage.getItem(this.rightPanelStorageKey);
-                    if (storedWidth !== null) this.rightPanelWidth = this.clampRightPanelWidth(storedWidth);
-                    this.rightPanelCollapsed = window.localStorage.getItem(this.rightPanelCollapsedStorageKey) === "1";
-                } catch (error) {
-                    this.rightPanelWidth = 256;
-                    this.rightPanelCollapsed = false;
-                }
+                var storedWidth = this.readWorkspacePref("right-panel-width", this.rightPanelStorageKey);
+                if (storedWidth !== null) this.rightPanelWidth = this.clampRightPanelWidth(storedWidth);
+                this.rightPanelCollapsed = this.readWorkspacePref("right-panel-collapsed", this.rightPanelCollapsedStorageKey) === "1";
             },
 
             persistRightPanelState() {
-                try {
-                    window.localStorage.setItem(this.rightPanelStorageKey, String(this.rightPanelWidth));
-                    window.localStorage.setItem(this.rightPanelCollapsedStorageKey, this.rightPanelCollapsed ? "1" : "0");
-                } catch (error) {
-                    // 隐私模式或禁用存储时仍保留本次会话状态。
-                }
+                this.writeWorkspacePref("right-panel-width", this.rightPanelWidth, this.rightPanelStorageKey);
+                this.writeWorkspacePref("right-panel-collapsed", this.rightPanelCollapsed ? "1" : "0", this.rightPanelCollapsedStorageKey);
             },
 
             setRightPanelWidth(value, persist) {
