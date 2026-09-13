@@ -57,7 +57,8 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test.afterEach(async ({ page }) => {
   if (!consoleEntries || !unsafeWrites) return;
-  const leakedDirtyState = await page.getByTestId('blox-dirty').isVisible().catch(() => false);
+  // TASK-002 第 1 项：状态位现在始终有文案，"脏"改看 data-state 而非可见性
+  const leakedDirtyState = (await page.getByTestId('blox-dirty').getAttribute('data-state').catch(() => null)) === 'dirty';
   if (leakedDirtyState) await restoreClean(page);
   expect(leakedDirtyState, 'test left the editor dirty').toBe(false);
   expect(unsafeWrites, 'design-system E2E must not save or publish').toEqual([]);

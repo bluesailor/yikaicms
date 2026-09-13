@@ -6777,4 +6777,7 @@ voltage|電圧|220V',
     'blox_editor_type_article_detail' => '記事詳細テンプレート',
     'blox_workspace_restore' => 'ワークスペースを復元',
     'blox_workspace_restored' => 'ワークスペースを初期状態に戻しました（パネルの表示と幅のみ）',
+    'blox_save_status_clean' => '変更なし',
+    'blox_save_status_published' => '公開済み',
+    'blox_save_status_conflict' => 'バージョン競合',
 ];

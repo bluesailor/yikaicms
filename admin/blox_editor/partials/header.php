@@ -127,8 +127,8 @@ declare(strict_types=1);
         </div>
 
         <div class="blox-header-actions flex items-center gap-2 shrink-0" data-testid="blox-desktop-actions">
-            <span class="text-xs max-w-28 truncate" :class="dirty || saveOutcome === 'failed' ? 'text-amber-300' : 'text-gray-300'"
-                  role="status" aria-live="polite" :title="saveStatusText()" x-text="saveStatusText()" data-testid="blox-dirty"></span>
+            <span class="text-xs max-w-28 truncate" :class="dirty || saveOutcome === 'failed' || conflictOpen ? 'text-amber-300' : 'text-gray-300'"
+                  role="status" aria-live="polite" :title="saveStatusText()" x-text="saveStatusText()" :data-state="saveStatusState()" data-testid="blox-dirty"></span>
             <div class="flex items-center gap-0.5 border-r border-gray-700 pr-2 mr-0.5">
                 <button type="button" @click="undo()" :disabled="!canUndo()" data-testid="blox-undo"
                         title="<?php echo e(__('blox_undo_shortcut')); ?>" aria-label="<?php echo e(__('blox_undo')); ?>"
