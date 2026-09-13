@@ -31,6 +31,32 @@ $processTemplateDocument = static function (string $type, int $id, string $json)
     // 但**只有后台 UI 明确声明提交**（ui_scope=1）才允许同步：纯 v2 文档没有旧字段、
     // 或旧镜像过期（例如历史上被补写成空 ids）时，绝不能拿它覆盖有效 v2 条件。
     $syncUiScope = (string) post('ui_scope', '') === '1';
+    // TASK-006：完整条件面板的提交与旧简化投影**互斥**——完整路径绝不经过 applyUiScope，
+    // 否则旧处理会用 v1 字段重写 all/item，覆盖面板提交的多条规则。
+    $conditionsRaw = trim((string) post('conditions_json', ''));
+    if ($conditionsRaw !== '') {
+        if ($syncUiScope) {
+            error(__('blox_detail_conditions_flag_conflict'), 400);
+        }
+        $expectedContentType = $type === 'product-detail' ? 'product' : ($type === 'article-detail' ? 'article' : '');
+        if ($expectedContentType === '' || trim($json) === '' || trim($json) === '[]') {
+            error(__('blox_detail_conditions_bad_template'), 400);
+        }
+        // 先校验、后落库：非法请求不得报成功，也不得改动库内文档（用户草稿保留在客户端）
+        $validated = DetailConditionInput::validate(
+            json_decode($conditionsRaw, true),
+            $expectedContentType,
+            availableLanguages()
+        );
+        if (empty($validated['ok'])) {
+            error(__('blox_detail_conditions_invalid', ['reason' => (string) ($validated['error'] ?? '')]), 400);
+        }
+        $document = BloxDocumentPipeline::decode($json);
+        if (!is_array($document['settings'] ?? null)) $document['settings'] = [];
+        // 运行时以 v2 为准；这里**只写 detail_template**，不动历史 v1 镜像、不删减完整规则
+        $document['settings']['detail_template'] = $validated['scope'];
+        $json = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    }
     if ($syncUiScope && $type === 'product-detail' && trim($json) !== '' && trim($json) !== '[]') {
         try {
             $document = BloxDocumentPipeline::decode($json);
