@@ -6639,4 +6639,5 @@ voltage|Voltage|220V',
     'blox_save_status_clean' => 'No changes',
     'blox_save_status_published' => 'Published',
     'blox_save_status_conflict' => 'Version conflict',
+    'blox_publish_status_failed' => 'Publish failed, your changes are still in the editor',
 ];
