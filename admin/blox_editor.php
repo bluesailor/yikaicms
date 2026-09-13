@@ -842,6 +842,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
     <script src="/assets/js/blox-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-groups.js') ?>"></script>
     <script src="/assets/js/blox-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-sources.js') ?>"></script>
+    <script src="/assets/js/blox-detail-scope.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-scope.js') ?>"></script>
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
@@ -1580,6 +1581,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 // 发布中与保存中是两个动作：模板发布期间状态位要说"发布中…"，不能显示"保存中"
                 'templatePublishing' => __('blox_template_publishing'),
                 'workspaceRestored' => __('blox_workspace_restored'),
+                'articleScopeLocked' => __('blox_article_scope_locked'),
                 'saveStatusClean' => __('blox_save_status_clean'),
                 'saveStatusPublished' => __('blox_save_status_published'),
                 'saveStatusConflict' => __('blox_save_status_conflict'),
@@ -6180,8 +6182,20 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             articleScopeHasId(id) { return this.articleScopeIds().indexOf(Number(id)) !== -1; },
 
+            /**
+             * 简单范围 UI 是否被锁定（TASK-005 A）：include 含简单控件无法无损表达的规则时锁定。
+             * 仅限"改范围"这一动作；保存页面其它改动不受影响。
+             */
+            articleScopeLocked() {
+                return window.BloxDetailScope
+                    ? !window.BloxDetailScope.canEditWithSimpleUi(this.docSettings.detail_template)
+                    : false;
+            },
+
             /** 模式切换只重写 include；'none' 表示保存草稿但不应用（不等于全站）。 */
             setArticleScopeMode(mode) {
+                // TASK-005 A：简单控件整体替换 include，含按栏目等规则时会静默删除 → 入口拦截
+                if (this.articleScopeLocked()) { this.toast(this.uiText.articleScopeLocked); return; }
                 var scope = this.docSettings.detail_template || {};
                 if (mode === 'all') scope.include = [{ kind: 'all' }];
                 else if (mode === 'item') scope.include = [{ kind: 'item', ids: this.articleScopeIds() }];
@@ -6192,6 +6206,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             toggleArticleScopeId(id, checked) {
+                // TASK-005 A：同上——勾选也会整体替换 include
+                if (this.articleScopeLocked()) { this.toast(this.uiText.articleScopeLocked); return; }
                 var ids = this.articleScopeIds();
                 var value = Number(id);
                 var at = ids.indexOf(value);
