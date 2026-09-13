@@ -112,6 +112,8 @@ final class BuilderRegistry
             new ProductFieldElement('specs'),
             new ProductFieldElement('prev-next'),
             new ProductFieldElement('related'),
+            // 真实询价/联系动作（复用 form_submit + 令牌 + 蜜罐，不是链回产品的假按钮）
+            new ProductInquiryElement(),
             // 文章详情动态字段（article-detail 上下文专用）
             new ArticleFieldElement('title'),
             new ArticleFieldElement('summary'),

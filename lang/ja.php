@@ -6767,4 +6767,5 @@ voltage|電圧|220V',
     'blox_product_specs' => '製品仕様',
     'blox_product_prev_next' => '前の製品 / 次の製品',
     'blox_product_related' => '関連製品',
+    'blox_product_inquiry' => '製品お問い合わせフォーム',
 ];

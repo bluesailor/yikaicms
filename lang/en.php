@@ -6626,4 +6626,5 @@ voltage|Voltage|220V',
     'blox_product_specs' => 'Product specs',
     'blox_product_prev_next' => 'Previous / next product',
     'blox_product_related' => 'Related products',
+    'blox_product_inquiry' => 'Product inquiry form',
 ];

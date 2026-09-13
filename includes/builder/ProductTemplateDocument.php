@@ -158,12 +158,13 @@ final class ProductTemplateDocument
     {
         if (!bloxPageEditorEnabled() || !bloxAdvancedFeaturesEnabled()) return '';
         $context = self::normalizeContext($input);
-        $template = self::resolve(bloxTemplateModel()->publishedProductTemplates(), $context);
-        if ($template === null) return '';
+        // 统一判定入口：v2 的 detail_template 与 v1 的 product_template（只读适配）都经它，
+        // 不再在产品侧保留第二套排序。native 终止语义由解析器统一处理。
+        $resolution = DetailTemplateProvider::resolveFor('product', $context);
+        $template = is_array($resolution['template'] ?? null) ? $resolution['template'] : null;
+        if ($template === null || $resolution['source'] !== DetailTemplateResolver::SOURCE_CUSTOM) return '';
         try {
-            // A native rule must stop resolution, not fall through to another custom layout.
-            if (self::usesNative($template)) return '';
-            $html = self::withProduct($context, static fn(): string => BlockRenderer::render((string) $template['published_data']));
+            $html = self::withProduct($context, static fn(): string => BlockRenderer::render((string) ($template['published_data'] ?? '')));
             if (trim(strip_tags($html)) === '' && !preg_match('/<(?:img|video|iframe)\b/i', $html)) return '';
             return '<div class="yk-blox-product-detail" data-template-id="' . (int) $template['id'] . '">' . $html . '</div>';
         } catch (Throwable $e) {
