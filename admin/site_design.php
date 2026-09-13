@@ -245,6 +245,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <section>
         <?php if ($advancedBloxEnabled && $canManageGlobalBlox): ?>
         <a href="/admin/product_design.php" data-testid="site-design-products" class="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary"><i class="ti ti-package" aria-hidden="true"></i><?= e(__('blox_tpl_type_product-detail')) ?><i class="ti ti-arrow-right" aria-hidden="true"></i></a>
+        <a href="/admin/article_design.php" data-testid="site-design-articles" class="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary"><i class="ti ti-article" aria-hidden="true"></i><?= e(__('blox_tpl_type_article-detail')) ?><i class="ti ti-arrow-right" aria-hidden="true"></i></a>
         <?php endif; ?>
         <div class="mb-3 flex items-center justify-between gap-3">
             <h2 class="text-sm font-semibold text-gray-900"><?php echo e(__('site_design_section_edit')); ?></h2>

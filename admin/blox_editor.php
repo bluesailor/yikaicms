@@ -28,6 +28,9 @@ $templateId = getInt('template'); // 模板模式：编辑 blox_templates 草稿
 $productPreviewItems = [];
 $productPreviewId = 0;
 $productPreviewLanguage = '';
+$articlePreviewItems = [];
+$articlePreviewId = 0;
+$articlePreviewLanguage = '';
 if ($isHomeBlox) {
     requirePermission('blox_home');
 } elseif ($templateId < 1) {
@@ -300,6 +303,20 @@ if ($isHomeBlox) {
         ));
         $productPreviewId = (int) ($productPreviewItems[0]['id'] ?? 0);
         $previewEndpoint = '/admin/blox_preview.php?product_template=1&_lang=' . rawurlencode($productPreviewLanguage);
+    } elseif ($templateType === 'article-detail') {
+        $languages = availableLanguages();
+        $storedScope = BloxDocumentPipeline::decode($initBlocks)['settings']['detail_template'] ?? [];
+        $requestedLanguage = get('article_lang', (string) ($storedScope['lang'] ?? config('site_lang', 'zh-CN')));
+        $articlePreviewLanguage = is_string($requestedLanguage) && isset($languages[$requestedLanguage])
+            ? $requestedLanguage : (string) config('site_lang', 'zh-CN');
+        // 样本只列已发布且同语言的文章；与产品分支同口径
+        $articlePreviewItems = array_values(array_filter(
+            contentModel()->getList(0, 100, 0, ['lang' => $articlePreviewLanguage, 'type' => 'article']),
+            static fn(array $row): bool => ($row['lang'] ?? '') === $articlePreviewLanguage
+                && ($row['type'] ?? '') === 'article'
+        ));
+        $articlePreviewId = (int) ($articlePreviewItems[0]['id'] ?? 0);
+        $previewEndpoint = '/admin/blox_preview.php?article_template=1&_lang=' . rawurlencode($articlePreviewLanguage);
     }
 } else {
     $page = channelModel()->find($id);
@@ -501,6 +518,7 @@ $templatePageIntentKey = match ($templatePageIntent) {
     'about' => 'blox_page_intent_about',
     'product-list' => 'blox_page_intent_product_list',
     'product-detail' => 'blox_page_intent_product_detail',
+    'article-detail' => 'blox_page_intent_article_detail',
     'content-list' => 'blox_page_intent_content_list',
     'case' => 'blox_page_intent_case',
     'contact' => 'blox_page_intent_contact',
@@ -550,6 +568,17 @@ if ($templateId && $templateType === 'product-detail') {
     if (!isset(availableLanguages()[$docSettings['product_template']['lang']])) {
         $docSettings['product_template']['lang'] = $productPreviewLanguage;
     }
+}
+if ($templateId && $templateType === 'article-detail') {
+    // 模板自身的类型/语言是这里补的：缺失时按本编辑器上下文补齐，而不是让条件变成不可用
+    $articleScope = DetailTemplateResolver::normalizeScope($docSettings['detail_template'] ?? null);
+    if ($articleScope['content_type'] === '') {
+        $articleScope['content_type'] = 'article';
+    }
+    if ($articleScope['lang'] === '' || !isset(availableLanguages()[$articleScope['lang']])) {
+        $articleScope['lang'] = $articlePreviewLanguage;
+    }
+    $docSettings['detail_template'] = $articleScope;
 }
 $headerPresetSiteData = [
     'logo' => SiteAsset::availableUrl((string) configRawLang('site_logo', '')) !== '',
@@ -622,6 +651,9 @@ $registryContext = $isHomeBlox
 $registryMeta = BuilderRegistry::meta($registryContext);
 if ($templateId && $templateType === 'product-detail') {
     $registryMeta = BuilderRegistry::meta('product-detail');
+}
+if ($templateId && $templateType === 'article-detail') {
+    $registryMeta = BuilderRegistry::meta('article-detail');
 }
 $registryMeta['page-title']['paletteVisible'] = !$isHomeBlox && !$templateId && ($pageType ?? '') === 'page';
 // code 元素 = 前台任意 HTML/脚本输出，独立 blox_code 权限（默认仅超管）。
@@ -1182,6 +1214,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             previewEndpoint: "<?php echo $previewEndpoint; ?>",
             productTemplateMode: <?= $templateId && $templateType === 'product-detail' ? 'true' : 'false' ?>,
             productPreviewId: <?= $productPreviewId ?>,
+            articleTemplateMode: <?= $templateId && $templateType === 'article-detail' ? 'true' : 'false' ?>,
+            articlePreviewId: <?= $articlePreviewId ?>,
             previewContext: <?php echo json_encode($initialPreviewContext, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             areaLanguage: <?php echo json_encode($areaEditorLanguage, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             ctxHit: null,
@@ -5961,6 +5995,49 @@ $canManageBloxDesign = hasPermission('blox_global');
                     return;
                 }
                 recovery.queue(data, this.baseRevision);
+            },
+
+            // ---- 文章详情模板条件（v2）：面板只操作 include 规则，不要求在模板里手写 JSON ----
+            articleScopeInclude() {
+                var scope = this.docSettings && this.docSettings.detail_template ? this.docSettings.detail_template : {};
+                return Array.isArray(scope.include) ? scope.include : [];
+            },
+
+            articleScopeMode() {
+                var include = this.articleScopeInclude();
+                if (!include.length) return 'none';
+                return include[0] && include[0].kind === 'all' ? 'all' : 'item';
+            },
+
+            articleScopeIds() {
+                var rule = this.articleScopeInclude().find(function (item) { return item && item.kind === 'item'; });
+                return rule && Array.isArray(rule.ids) ? rule.ids.slice() : [];
+            },
+
+            articleScopeHasId(id) { return this.articleScopeIds().indexOf(Number(id)) !== -1; },
+
+            /** 模式切换只重写 include；'none' 表示保存草稿但不应用（不等于全站）。 */
+            setArticleScopeMode(mode) {
+                var scope = this.docSettings.detail_template || {};
+                if (mode === 'all') scope.include = [{ kind: 'all' }];
+                else if (mode === 'item') scope.include = [{ kind: 'item', ids: this.articleScopeIds() }];
+                else scope.include = [];
+                this.docSettings.detail_template = scope;
+                this.$nextTick(() => this.markDocumentSettingsChanged());
+                this.schedulePreview();
+            },
+
+            toggleArticleScopeId(id, checked) {
+                var ids = this.articleScopeIds();
+                var value = Number(id);
+                var at = ids.indexOf(value);
+                if (checked && at === -1) ids.push(value);
+                if (!checked && at !== -1) ids.splice(at, 1);
+                var scope = this.docSettings.detail_template || {};
+                scope.include = [{ kind: 'item', ids: ids }];
+                this.docSettings.detail_template = scope;
+                this.$nextTick(() => this.markDocumentSettingsChanged());
+                this.schedulePreview();
             },
 
             markDocumentSettingsChanged() {

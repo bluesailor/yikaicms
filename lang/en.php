@@ -6619,4 +6619,7 @@ voltage|Voltage|220V',
     'blox_article_rule_removed' => 'This rule was taken down; another matching template may take over. The design is kept.',
     'blox_article_rule_priority' => 'Selected articles win over all-articles; within the same scope the higher template ID is used. Choosing the theme default keeps this rule; taking it down lets other templates take over.',
     'blox_article_native_preview_status' => 'Read-only preview: this is the native article detail page; no custom template is applied.',
+    'blox_article_settings' => 'Article detail settings',
+    'blox_article_scope_none' => 'Not applied yet (draft only)',
+    'blox_article_scope_item' => 'Selected articles',
 ];

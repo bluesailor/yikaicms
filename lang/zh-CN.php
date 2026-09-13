@@ -6687,4 +6687,7 @@ voltage|电压|220V',
     'blox_article_rule_removed' => '此规则已撤下，其他匹配模板可能接管；设计仍保留。',
     'blox_article_rule_priority' => '指定文章优先于全部文章；同范围使用编号较大的模板。选择主题默认会保留此规则，撤下规则则允许其他模板接管。',
     'blox_article_native_preview_status' => '只读预览：当前显示的是主题默认文章详情页，不会套用自定义模板。',
+    'blox_article_settings' => '文章详情页设置',
+    'blox_article_scope_none' => '暂不应用（仅保存草稿）',
+    'blox_article_scope_item' => '指定文章',
 ];

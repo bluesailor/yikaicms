@@ -554,3 +554,40 @@ declare(strict_types=1);
         </div>
     </details>
     <?php endif; ?>
+    <?php if ($templateId && $templateType === 'article-detail'): ?>
+    <details class="border-b border-gray-200 bg-white px-4 py-2 text-sm" data-testid="article-template-settings">
+        <summary class="cursor-pointer font-medium text-gray-900"><?= e(__('blox_article_settings')) ?></summary>
+        <div class="flex flex-wrap items-end gap-4 py-3">
+            <label class="min-w-0 flex-1">
+                <span class="block mb-1"><?= e(__('blox_article_preview')) ?></span>
+                <select x-model="articlePreviewId" @change="schedulePreview()" data-testid="article-template-preview" class="w-full border border-gray-300 rounded px-2 py-2">
+                    <option value="0"><?= e(__('blox_article_choose')) ?></option>
+                    <?php foreach ($articlePreviewItems as $previewItem): ?>
+                    <option value="<?= (int) $previewItem['id'] ?>"><?= e((string) $previewItem['title']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
+                <span class="block mb-1"><?= e(__('blox_article_scope')) ?></span>
+                <select :value="articleScopeMode()" @change="setArticleScopeMode($event.target.value)" data-testid="article-template-scope" class="border border-gray-300 rounded px-2 py-2">
+                    <option value="none"><?= e(__('blox_article_scope_none')) ?></option>
+                    <option value="all"><?= e(__('blox_article_scope_all')) ?></option>
+                    <option value="item"><?= e(__('blox_article_scope_item')) ?></option>
+                </select>
+            </label>
+            <label>
+                <span class="block mb-1"><?= e(__('blox_article_language')) ?></span>
+                <input readonly :value="docSettings.detail_template.lang" data-testid="article-template-language" class="w-28 border border-gray-300 rounded px-2 py-2">
+            </label>
+        </div>
+        <div x-show="articleScopeMode() === 'item'" class="max-h-40 overflow-auto border-t border-gray-200 py-2">
+            <?php foreach ($articlePreviewItems as $previewItem): ?>
+            <label class="flex items-center gap-2 py-1">
+                <input type="checkbox" :checked="articleScopeHasId(<?= (int) $previewItem['id'] ?>)" @change="toggleArticleScopeId(<?= (int) $previewItem['id'] ?>, $event.target.checked)" data-testid="article-template-target-<?= (int) $previewItem['id'] ?>">
+                <span><?= e((string) $previewItem['title']) ?></span>
+            </label>
+            <?php endforeach; ?>
+        </div>
+        <p class="pb-2 text-[11px] leading-relaxed text-gray-500"><?= e(__('blox_article_rule_priority')) ?></p>
+    </details>
+    <?php endif; ?>
