@@ -7,6 +7,7 @@
  * 命中语义一律由服务端 DetailTemplateResolver 判定，本面板不做客户端匹配。
  */
 declare(strict_types=1);
+$conditionAllLabel = __(($templateType ?? '') === 'product-detail' ? 'blox_product_all' : 'blox_article_scope_all');
 ?>
 <template x-if="conditionContentType !== ''">
     <div class="border-t border-gray-200 mt-3 pt-3" data-testid="blox-detail-conditions" x-init="conditionEnsure()">
@@ -32,7 +33,7 @@ declare(strict_types=1);
                 <span class="flex flex-wrap gap-1">
                     <?php if ($side === 'include'): ?>
                     <button type="button" @click="conditionAdd('include', 'all')" data-testid="blox-cond-add-include-all"
-                            class="text-[11px] px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"><?= e(__('blox_article_scope_all')) ?></button>
+                            class="text-[11px] px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"><?= e($conditionAllLabel) ?></button>
                     <?php endif; ?>
                     <button type="button" @click="conditionAdd('<?= e($side) ?>', 'item')" data-testid="blox-cond-add-<?= e($side) ?>-item"
                             class="text-[11px] px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"><?= e(__('blox_cond_add_item')) ?></button>
@@ -46,7 +47,7 @@ declare(strict_types=1);
                     <select x-model="row.kind" @change="conditionKindChanged('<?= e($side) ?>', index)" :data-testid="'blox-cond-<?= e($side) ?>-kind-' + index"
                             class="border border-gray-300 rounded px-2 py-1 text-xs">
                         <?php if ($side === 'include'): ?>
-                        <option value="all"><?= e(__('blox_article_scope_all')) ?></option>
+                        <option value="all"><?= e($conditionAllLabel) ?></option>
                         <?php endif; ?>
                         <option value="item"><?= e(__('blox_cond_kind_item')) ?></option>
                         <option value="category"><?= e(__('blox_cond_kind_category')) ?></option>

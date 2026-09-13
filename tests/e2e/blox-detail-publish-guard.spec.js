@@ -4,7 +4,7 @@ const path = require('path');
 const { waitPreviewSettled } = require('./helpers');
 
 // 第三轮：发布冲突保护。所有结论由服务端对真实内容做发布前/后对比；这里验证真实点击下的行为与库内结果。
-// 每个用例恰好出现一次被阻止的发布（HTTP 409），由站点诊断夹具按预期消费，其余浏览器错误仍会让用例失败。
+// 每个用例恰好出现一次被阻止的发布（HTTP 409），在用例内登记给站点诊断夹具，其余浏览器错误仍会让用例失败。
 const run = (...args) => execFileSync(process.env.PHP_BINARY || 'php',
   [path.join(__dirname, 'product-template-fixture.php'), ...args.map(String)],
   { cwd: path.resolve(__dirname, '../..'), encoding: 'utf8' });
@@ -14,11 +14,10 @@ const scope = (overrides) => JSON.stringify({
   include: [{ kind: 'all', ids: [], include_children: false }], exclude: [], ...overrides,
 });
 
-test.use({
-  expectedHttpErrors: async ({ baseURL }, use) => {
-    await use([{ status: 409, method: 'POST', action: 'publish', url: new URL('/admin/blox_template_api.php', baseURL).href }]);
-  },
-});
+/** 本用例会恰好出现一次被阻止的发布：登记给站点诊断夹具（跳过的用例不登记）。 */
+function expectOneBlockedPublish(baseURL, expectedHttpErrors) {
+  expectedHttpErrors.push({ status: 409, method: 'POST', action: 'publish', url: new URL('/admin/blox_template_api.php', baseURL).href });
+}
 
 async function createTemplate(page, kind, name) {
   await page.goto('/admin/site_design.php');
@@ -61,8 +60,9 @@ async function clickPublish(page, log) {
   return log.slice(before).find((entry) => entry.action === 'publish');
 }
 
-test('a new product tie blocks publishing without touching live versions; the draft still saves and a fix publishes', async ({ page }, info) => {
+test('a new product tie blocks publishing without touching live versions; the draft still saves and a fix publishes', async ({ page, baseURL, expectedHttpErrors }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'desktop publish-guard baseline');
+  expectOneBlockedPublish(baseURL, expectedHttpErrors);
   test.setTimeout(180000);
   page.setDefaultTimeout(15000);
   page.on('dialog', (dialog) => dialog.accept());
@@ -118,8 +118,9 @@ test('a new product tie blocks publishing without touching live versions; the dr
   }
 });
 
-test('article templates are protected by the same publish check', async ({ page }, info) => {
+test('article templates are protected by the same publish check', async ({ page, baseURL, expectedHttpErrors }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'desktop publish-guard baseline');
+  expectOneBlockedPublish(baseURL, expectedHttpErrors);
   test.setTimeout(120000);
   page.setDefaultTimeout(15000);
   page.on('dialog', (dialog) => dialog.accept());
@@ -142,8 +143,9 @@ test('article templates are protected by the same publish check', async ({ page 
   }
 });
 
-test('an unchanged historical tie can be republished, but editing conditions inside the tie is blocked', async ({ page }, info) => {
+test('an unchanged historical tie can be republished, but editing conditions inside the tie is blocked', async ({ page, baseURL, expectedHttpErrors }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'desktop publish-guard baseline');
+  expectOneBlockedPublish(baseURL, expectedHttpErrors);
   test.setTimeout(120000);
   page.setDefaultTimeout(15000);
   page.on('dialog', (dialog) => dialog.accept());
@@ -172,8 +174,9 @@ test('an unchanged historical tie can be republished, but editing conditions ins
   }
 });
 
-test('a large scope must finish a paged check before publishing, and no page before the last reports a pass', async ({ page }, info) => {
+test('a large scope must finish a paged check before publishing, and no page before the last reports a pass', async ({ page, baseURL, expectedHttpErrors }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'desktop publish-guard baseline');
+  expectOneBlockedPublish(baseURL, expectedHttpErrors);
   test.setTimeout(180000);
   page.setDefaultTimeout(15000);
   page.on('dialog', (dialog) => dialog.accept());
@@ -209,8 +212,9 @@ test('a large scope must finish a paged check before publishing, and no page bef
   }
 });
 
-test('a stopped check shows as stopped, and a passed check is not trusted once another template goes live', async ({ page }, info) => {
+test('a stopped check shows as stopped, and a passed check is not trusted once another template goes live', async ({ page, baseURL, expectedHttpErrors }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'desktop publish-guard baseline');
+  expectOneBlockedPublish(baseURL, expectedHttpErrors);
   test.setTimeout(180000);
   page.setDefaultTimeout(15000);
   page.on('dialog', (dialog) => dialog.accept());
