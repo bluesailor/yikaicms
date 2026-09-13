@@ -28,7 +28,8 @@ declare(strict_types=1);
             </div>
             <template x-for="(row, index) in (conditionRows ? conditionRows['<?= e($side) ?>'] : [])" :key="'<?= e($side) ?>-' + index">
                 <div class="flex flex-wrap items-center gap-2 py-1" :data-testid="'blox-cond-<?= e($side) ?>-row-' + index">
-                    <select x-model="row.kind" :data-testid="'blox-cond-<?= e($side) ?>-kind-' + index"
+                    <?php // 每次编辑都要同步进文档设置：否则"只改条件"不会点亮全局未保存态（R01 保存状态项） ?>
+                    <select x-model="row.kind" @change="conditionKindChanged('<?= e($side) ?>', index)" :data-testid="'blox-cond-<?= e($side) ?>-kind-' + index"
                             class="border border-gray-300 rounded px-2 py-1 text-xs">
                         <?php if ($side === 'include'): ?>
                         <option value="all"><?= e(__('blox_article_scope_all')) ?></option>
@@ -37,7 +38,7 @@ declare(strict_types=1);
                         <option value="category"><?= e(__('blox_cond_kind_category')) ?></option>
                     </select>
                     <template x-if="row.kind !== 'all'">
-                        <select multiple x-model="row.ids" :data-testid="'blox-cond-<?= e($side) ?>-target-' + index"
+                        <select multiple x-model="row.ids" @change="syncConditionDocument()" :data-testid="'blox-cond-<?= e($side) ?>-target-' + index"
                                 class="border border-gray-300 rounded px-2 py-1 text-xs min-w-[12rem] max-h-24">
                             <?php // 选项由 x-for 后建，x-model 的首次同步可能早于选项存在——那样重开时会"看着没选中"。
                                   // 所以每条 option 自己按 row.ids 绑定 selected，不依赖先后顺序。 ?>
@@ -48,7 +49,7 @@ declare(strict_types=1);
                         </select>
                     </template>
                     <label x-show="row.kind === 'category'" class="inline-flex items-center gap-1 text-[11px] text-gray-600">
-                        <input type="checkbox" x-model="row.include_children" :data-testid="'blox-cond-<?= e($side) ?>-children-' + index">
+                        <input type="checkbox" x-model="row.include_children" @change="syncConditionDocument()" :data-testid="'blox-cond-<?= e($side) ?>-children-' + index">
                         <span><?= e(__('blox_scope_children')) ?></span>
                     </label>
                     <button type="button" @click="conditionRemove('<?= e($side) ?>', index)" :data-testid="'blox-cond-remove-<?= e($side) ?>-' + index"

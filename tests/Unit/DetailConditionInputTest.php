@@ -128,7 +128,49 @@ final class DetailConditionInputTest extends TestCase
 
         $input = self::valid();
         $input['priority'] = DetailTemplateResolver::MAX_PRIORITY + 50;
-        $this->assertSame(DetailTemplateResolver::MAX_PRIORITY, DetailConditionInput::validate($input, 'product', self::languages())['scope']['priority']);
+        $this->assertSame('priority_out_of_range', DetailConditionInput::validate($input, 'product', self::languages())['error'], '超限报错，不静默夹取');
+    }
+
+    /** 回归 TASK-006-R01 P2：整数分支此前直接赋值，0 / 负数被放行，字符串却被拒。 */
+    public function testIntegerIdsFollowTheSameRuleAsStrings(): void
+    {
+        foreach ([0, -3, '0', '-3', '01', 1.5, true, null] as $badId) {
+            $input = self::valid();
+            $input['include'] = [['kind' => 'item', 'ids' => [$badId]]];
+            $result = DetailConditionInput::validate($input, 'product', self::languages());
+            $this->assertFalse($result['ok'], 'id ' . var_export($badId, true) . ' 必须被拒绝');
+            $this->assertStringContainsString('bad_id_at_0', $result['error']);
+        }
+
+        // 与 resolver 同口径：正整数、无前导零、最多 10 位；字符串形式同样接受
+        $input = self::valid();
+        $input['include'] = [['kind' => 'item', 'ids' => [9999999999, '123']]];
+        $this->assertSame([9999999999, 123], DetailConditionInput::validate($input, 'product', self::languages())['scope']['include'][0]['ids']);
+
+        $input = self::valid();
+        $input['include'] = [['kind' => 'item', 'ids' => [10000000000]]];
+        $this->assertStringContainsString('bad_id_at_0', DetailConditionInput::validate($input, 'product', self::languages())['error'], '11 位越界');
+    }
+
+    public function testPriorityOutOfRangeIsAnErrorNotAClamp(): void
+    {
+        foreach ([-1, '-1', DetailTemplateResolver::MAX_PRIORITY + 1, '2147483648'] as $bad) {
+            $input = self::valid();
+            $input['priority'] = $bad;
+            $this->assertSame(
+                'priority_out_of_range',
+                DetailConditionInput::validate($input, 'product', self::languages())['error'],
+                'priority ' . var_export($bad, true) . ' 必须报错'
+            );
+        }
+
+        $input = self::valid();
+        $input['priority'] = DetailTemplateResolver::MAX_PRIORITY;
+        $this->assertSame(DetailTemplateResolver::MAX_PRIORITY, DetailConditionInput::validate($input, 'product', self::languages())['scope']['priority'], '上限本身合法');
+
+        $input = self::valid();
+        $input['priority'] = '0';
+        $this->assertSame(0, DetailConditionInput::validate($input, 'product', self::languages())['scope']['priority'], '0 合法（数字字符串同样接受）');
     }
 
     public function testValidationIsPure(): void
