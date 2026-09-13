@@ -284,6 +284,23 @@ final class DetailTemplateResolverTest extends TestCase
         $this->assertSame($first, DetailTemplateResolver::resolve($shuffled, self::ctx()), '候选顺序不得影响结果');
     }
 
+    public function testTemplateDeclaringNativeIsTerminalWhenItWins(): void
+    {
+        // v1 语义：先按具体度决出胜者，胜者 source=native 则终止（不得回落另一套自定义布局）
+        $nativeAll = self::candidate(9, ['source' => 'native']);
+        $customAll = self::candidate(7);
+        $customItem = self::candidate(3, ['include' => [['kind' => 'item', 'ids' => [12]]]]);
+
+        // 胜者是 native → 终止
+        $this->assertSame('template_native', DetailTemplateResolver::resolve([$nativeAll, $customAll], self::ctx())['reason']);
+        $this->assertNull(DetailTemplateResolver::resolve([$nativeAll], self::ctx())['template_id']);
+
+        // 更具体的自定义规则胜出时照常生效（native 只在其胜出时终止）
+        $winner = DetailTemplateResolver::resolve([$customItem, $nativeAll], self::ctx());
+        $this->assertSame(3, $winner['template_id']);
+        $this->assertSame('specific_item', $winner['reason']);
+    }
+
     public function testNoCandidatesDegradesToNativeNotSiteWide(): void
     {
         $result = DetailTemplateResolver::resolve([], self::ctx());

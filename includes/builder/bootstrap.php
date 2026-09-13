@@ -23,6 +23,8 @@ require_once __DIR__ . '/DynamicListItemSchema.php';
 require_once __DIR__ . '/DynamicSiteData.php';
 require_once __DIR__ . '/ProductTemplateDocument.php';
 require_once __DIR__ . '/DetailTemplateResolver.php';   // 详情模板条件判定（v2 纯判定层，自包含无依赖）
+require_once __DIR__ . '/DetailTemplateProvider.php';   // 候选模板 + 内容上下文准备（唯一取数处）
+require_once __DIR__ . '/ArticleTemplateDocument.php';  // 文章详情模板渲染/起始布局
 require_once __DIR__ . '/BloxQueryLoopPolicy.php';
 require_once __DIR__ . '/BloxElementPolicy.php';
 require_once __DIR__ . '/BloxDisplayConditions.php';
