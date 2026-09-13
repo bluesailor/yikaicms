@@ -4213,6 +4213,45 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return this.selectedSi === si && this.selectedCi === ci && this.selectedEi < 0 && this.selLayer === "col";
             },
 
+            /**
+             * 画布选中后把结构面板滚到对应行（结构树三类行都带 data-selected）。
+             *
+             * 三条约束都来自 TASK-002 第 4 项：
+             * - 尊重收起：面板不可见、或该行的祖先被折叠（行高为 0）时不滚动，也不强行展开；
+             * - 不循环滚动：行已完整可见就直接返回，只有越界才补差值，且直接改 scrollTop
+             *   （不用 smooth 动画，避免滚动事件与监听互相触发）；
+             * - 不抢焦点：只滚动，never focus()。
+             */
+            revealTreeSelection() {
+                var self = this;
+                this.$nextTick(function () { self.revealTreeRowOnce(); });
+                // 选中后结构树还会展开/重排（x-show 子树晚一步出现），只滚一次会滚早；
+                // 再补一次并清掉上一次的定时器，保证同一次选择最多两次、不会自激。
+                window.clearTimeout(this._revealTimer);
+                this._revealTimer = window.setTimeout(function () { self.revealTreeRowOnce(); }, 180);
+            },
+
+            /** 单次定位：已完整可见就直接返回（幂等，重复调用不会抖动）。 */
+            revealTreeRowOnce() {
+                if (typeof this.rightPanelContentVisible === "function" && !this.rightPanelContentVisible()) return;
+                var panel = this.$refs.tree;
+                if (!panel || !panel.getBoundingClientRect().height) return;
+                // 由内到外取"最深选中行"：元素选了就定位到元素行，不要只滚到它所在的区块行
+                // （区块行的 selectedSi 命中也会是 1，按 DOM 顺序查会先命中外层）
+                var row = panel.querySelector('[data-testid=blox-tree-element][data-selected="1"]')
+                    || panel.querySelector('[data-testid=blox-tree-column][data-selected="1"]')
+                    || panel.querySelector('[data-testid=blox-tree-container][data-selected="1"]')
+                    || panel.querySelector('[data-testid=blox-tree-section][data-selected="1"]');
+                if (!row) return;
+                var rowRect = row.getBoundingClientRect();
+                if (!rowRect.height) return;
+                var panelRect = panel.getBoundingClientRect();
+                if (rowRect.top >= panelRect.top && rowRect.bottom <= panelRect.bottom) return;
+                panel.scrollTop = panel.scrollTop + (rowRect.top < panelRect.top
+                    ? rowRect.top - panelRect.top
+                    : rowRect.bottom - panelRect.bottom);
+            },
+
             selectedCol() {
                 var s = this.sel;
                 if (!s || this.selectedCi < 0 || !s.columns[this.selectedCi]) return null;
@@ -6469,11 +6508,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                     onPickSectionField: function (payload) { self.selectSectionField(payload.si, payload.field, false); },
                     onPickHomeColumn: function (payload) { self.selectHomeColumn(payload.path, payload.column, false); },
                     onPickHomeField: function (payload) { self.selectHomeField(payload.path, payload.field, false); },
-                    onPickElement: function (target) { self.canvasPickElement(target); self.openPickedBannerPanel(target); },
-                    onEditElement: function (target) { self.selectElementTarget(target, false); self.quickEditSelected(); },
-                    onPickColumn: function (si, ci) { self.selectColumn(si, ci, false); },
-                    onPickContainer: function (si) { self.selectContainer(si, false); },
-                    onPickSection: function (target) { self.canvasPickSection(target); },
+                    onPickElement: function (target) { self.canvasPickElement(target); self.openPickedBannerPanel(target); self.revealTreeSelection(); },
+                    onEditElement: function (target) { self.selectElementTarget(target, false); self.quickEditSelected(); self.revealTreeSelection(); },
+                    onPickColumn: function (si, ci) { self.selectColumn(si, ci, false); self.revealTreeSelection(); },
+                    onPickContainer: function (si) { self.selectContainer(si, false); self.revealTreeSelection(); },
+                    onPickSection: function (target) { self.canvasPickSection(target); self.revealTreeSelection(); },
                     onMultiIds: function () { },
                     onEscape: function () { self.multiSelClear(); },
                     onClear: function () { self.deselectAll(); },
