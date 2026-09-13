@@ -195,6 +195,11 @@ final class BloxDocumentPipeline
         if (array_key_exists('product_template', $settings)) {
             $clean['product_template'] = ProductTemplateDocument::normalizeScope($settings['product_template']);
         }
+        // 详情页模板条件 v2（DS-BLOX-01）。与 v1 的 product_template 并存：旧键只读保留，
+        // 新键走统一判定层；此处不做迁移，避免「保存即改写旧规则」。
+        if (array_key_exists('detail_template', $settings)) {
+            $clean['detail_template'] = DetailTemplateResolver::normalizeScope($settings['detail_template']);
+        }
         foreach (['page_header_hidden', 'page_footer_hidden', 'page_breadcrumb_hidden', 'page_title_hidden', 'page_sidebar_hidden'] as $key) {
             if (array_key_exists($key, $settings)) {
                 $clean[$key] = in_array($settings[$key], [true, 1, '1'], true);

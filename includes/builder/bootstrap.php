@@ -22,6 +22,7 @@ require_once __DIR__ . '/BloxAssetCollector.php';
 require_once __DIR__ . '/DynamicListItemSchema.php';
 require_once __DIR__ . '/DynamicSiteData.php';
 require_once __DIR__ . '/ProductTemplateDocument.php';
+require_once __DIR__ . '/DetailTemplateResolver.php';   // 详情模板条件判定（v2 纯判定层，自包含无依赖）
 require_once __DIR__ . '/BloxQueryLoopPolicy.php';
 require_once __DIR__ . '/BloxElementPolicy.php';
 require_once __DIR__ . '/BloxDisplayConditions.php';
