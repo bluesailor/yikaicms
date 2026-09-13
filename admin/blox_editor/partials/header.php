@@ -594,6 +594,7 @@ declare(strict_types=1);
             </label>
             <?php endforeach; ?>
         </div>
+        <?php require __DIR__ . '/detail-conditions.php'; ?>
     </details>
     <?php endif; ?>
     <?php if ($templateId && $templateType === 'article-detail'): ?>
@@ -643,5 +644,6 @@ declare(strict_types=1);
         <p x-show="articleScopeLocked()" x-cloak id="blox-article-scope-locked" data-testid="article-scope-locked"
            class="pb-2 text-[11px] leading-relaxed text-amber-600"><?= e(__('blox_article_scope_locked')) ?></p>
         <p class="pb-2 text-[11px] leading-relaxed text-gray-500"><?= e(__('blox_article_rule_priority')) ?></p>
+        <?php require __DIR__ . '/detail-conditions.php'; ?>
     </details>
     <?php endif; ?>
