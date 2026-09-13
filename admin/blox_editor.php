@@ -4771,24 +4771,6 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             /**
-             * 关键词是否命中控件（TASK-003 D）：除控件名/键外，还纳入所在**区块名**与所属**分组名**。
-             */
-            ctrlMatchesQuery(ctrl) {
-                var group = window.BloxStyleGroups.groupOf(ctrl);
-                return window.BloxStyleGroups.matchesQuery(ctrl, this.ctrlQuery, (this.styleGroupLabels || {})[group] || "");
-            },
-
-            /** 搜索/只看已修改过滤后的样式控件（不含分组选择）——供 styleGroups() 判断哪些组有命中。 */
-            searchFilteredStyleControls() {
-                var self = this;
-                return this.styleTabControls().filter(function (c) {
-                    if (!self.ctrlMatchesQuery(c)) return false;
-                    if (self.modifiedOnly && !self.isCtrlModified(c)) return false;
-                    return true;
-                });
-            },
-
-            /**
              * 搜索词变化：进入搜索时记住当前分组，清除搜索时恢复。
              * 只在同一元素内恢复——切换元素不该继承上一个元素的分组选择（TASK-003 D）。
              */
@@ -4807,11 +4789,16 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (saved !== null && savedKey === this.selectionKey()) this.styleGroup = saved;
             },
 
-            visibleCtrls() {
-                if (!this.selEl) return [];
-                if (this.panelTab === "condition") return [];
+            /**
+             * 可见候选控件（TASK-003 R01）：应用**除分组筛选外**的全部可见性判断
+             *（隐藏标记、页签归属、循环上下文、条件依赖、动画开关、检索、只看已修改）。
+             *
+             * 分组计算（styleGroups）与最终渲染（visibleCtrls）都必须取自这里，
+             * 否则隐藏控件会造出幽灵分组、导致默认落进空分组；两者不相互递归。
+             */
+            styleCandidates() {
+                if (!this.selEl || this.panelTab === "condition") return [];
                 var self = this;
-                var q = this.ctrlQuery.trim().toLowerCase();
                 var controls = (this.elSchema(this.selEl.type).controls || []).filter(function (c) {
                     if (c.editor_hidden) return false;
                     // 页签归属：控件可在 schema 里显式标 tab（如容器的布局控件全在样式页）；
@@ -4825,19 +4812,30 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (!self.controlRequirementMet(c)) return false;
                     if ((c.key === "animation_speed" || c.key === "animation_delay")
                         && !self.selEl.data.animation) return false;
-                    // 关键词命中：控件名/键 + 所在区块名 + 所属分组名（TASK-003 D）
-                    if (!self.ctrlMatchesQuery(c)) return false;
-                    if (self.modifiedOnly && !self.isCtrlModified(c)) return false;
                     return true;
                 });
-                var showAll = !!q || this.modifiedOnly || this.panelTab !== "content";
+                return window.BloxStyleGroups.visibleCandidates(controls, {
+                    isExcluded: function () { return false; },
+                    isModified: function (c) { return self.isCtrlModified(c); },
+                    // 关键词命中：控件名/键 + 所在区块名 + 所属分组名（TASK-003 D）
+                    query: this.ctrlQuery,
+                    modifiedOnly: this.modifiedOnly,
+                    groupLabels: this.styleGroupLabels,
+                });
+            },
+
+            visibleCtrls() {
+                if (!this.selEl) return [];
+                if (this.panelTab === "condition") return [];
+                var controls = this.styleCandidates();
+                var showAll = !!this.ctrlQuery.trim() || this.modifiedOnly || this.panelTab !== "content";
                 controls = window.BloxBannerPanel.controls(this.selEl, controls, this.bannerPanelGroup, showAll);
                 controls = window.BloxHomeContentPanel.controls(this.selEl, controls, this.homeContentGroup, showAll);
                 // 容器/Div：布局由专用样式块渲染，共享背景组走通用循环（图/遮罩等能力自动到达）
                 if (this.isSelectedContainerEl() && this.panelTab === "style") {
                     controls = controls.filter(function (c) { return c.group === "background"; });
                 }
-                // 样式页签分组（第 2 轮）：styleGroups() 为空即不启用（搜索/只看已修改/容器专用块/组数≤1）
+                // 样式页签分组（第 2 轮）：styleGroups() 为空即不启用（容器专用块/组数≤1）
                 return window.BloxStyleGroups.filter(controls, this.effectiveStyleGroup(), this.panelTab !== "style" || this.styleGroups().length === 0);
             },
 
