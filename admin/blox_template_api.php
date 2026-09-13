@@ -349,6 +349,58 @@ try {
         }
         success($response);
     }
+    // TASK-008：单条真实内容的**只读**条件诊断。不写库、不激活模板、不落库结果；
+    // 候选与上下文都走既有 provider/resolver，同一判定引擎，不另立匹配算法。
+    if ($action === 'diagnose_conditions' && $method === 'POST') {
+        verifyCsrf();
+        $id = (int) post('id', '0');
+        $row = bloxTemplateModel()->findForExport($id);
+        if (!$row) {
+            error(__('blox_tpl_not_found'));
+        }
+        $type = (string) ($row['type'] ?? '');
+        $requireTemplateLicense($type);
+        requireBloxTemplateTypePermission($type);
+        $diagnoseContentType = $type === 'product-detail' ? 'product' : ($type === 'article-detail' ? 'article' : '');
+        if ($diagnoseContentType === '') {
+            error(__('blox_diag_not_detail_template'), 400);
+        }
+        // 内容侧沿用既有内容权限模式（产品 edit_product / 文章 edit_article），
+        // 无权与不存在返回同一条反馈，不回显标题正文。
+        requirePermission($diagnoseContentType === 'product' ? 'edit_product' : 'edit_article');
+
+        // 草稿必填：只有模板 ID 时不能冒称"诊断当前未保存的规则"
+        $diagnoseDraft = trim((string) post('conditions_json', ''));
+        if ($diagnoseDraft === '') {
+            error(__('blox_diag_draft_required'), 400);
+        }
+        $diagnoseScope = DetailConditionInput::validate(
+            json_decode($diagnoseDraft, true),
+            $diagnoseContentType,
+            availableLanguages()
+        );
+        if (empty($diagnoseScope['ok'])) {
+            error(__('blox_detail_conditions_invalid', ['reason' => (string) ($diagnoseScope['error'] ?? '')]), 400);
+        }
+
+        $diagnoseContentId = (int) post('content_id', '0');
+        $diagnoseContent = $diagnoseContentId > 0
+            ? ($diagnoseContentType === 'product' ? productModel()->find($diagnoseContentId) : contentModel()->find($diagnoseContentId))
+            : null;
+        if (!is_array($diagnoseContent)
+            || ($diagnoseContentType === 'article' && (string) ($diagnoseContent['type'] ?? '') !== 'article')) {
+            error(__('blox_diag_content_unavailable'), 404);
+        }
+
+        success([
+            'diagnosis' => DetailTemplateProvider::diagnoseFor(
+                $diagnoseContentType,
+                $diagnoseContent,
+                $id,
+                $diagnoseScope['scope']
+            ),
+        ]);
+    }
     if ($action === 'get' && $method === 'POST') {
         verifyCsrf();
         $context = (string) post('context', 'page');

@@ -69,6 +69,53 @@ declare(strict_types=1);
             </template>
         </div>
         <?php endforeach; ?>
+        <?php // TASK-008：只读诊断——拿当前条件去问同一个 resolver "这条内容会命谁"，不写库、不改草稿 ?>
+        <div class="mt-3 border-t border-gray-200 pt-2" data-testid="blox-cond-diagnose">
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" @click="conditionDiagnose()" :disabled="conditionDiagnosisBusy"
+                        data-testid="blox-diagnose-run"
+                        class="text-[11px] px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60">
+                    <span x-show="!conditionDiagnosisBusy"><?= e(__('blox_diag_button')) ?></span>
+                    <span x-show="conditionDiagnosisBusy" x-cloak><?= e(__('blox_diag_running')) ?></span>
+                </button>
+            </div>
+            <p x-show="conditionDiagnosisError" x-cloak data-testid="blox-diagnose-error"
+               class="mt-1 text-[11px] text-red-600" x-text="conditionDiagnosisError"></p>
+            <template x-if="conditionDiagnosis">
+                <div class="mt-2 rounded border border-gray-200 bg-gray-50 px-2 py-2 text-[11px] leading-relaxed text-gray-700"
+                     data-testid="blox-diagnose-result">
+                    <p data-testid="blox-diagnose-verdict" class="font-medium text-gray-900" x-text="conditionDiagnosisVerdictText()"></p>
+                    <p x-show="conditionDiagnosisIsStale()" x-cloak data-testid="blox-diagnose-stale" class="mt-1 text-amber-600"><?= e(__('blox_diag_stale')) ?></p>
+                    <dl class="mt-1 grid grid-cols-[auto_1fr] gap-x-2">
+                        <dt class="text-gray-500"><?= e(__('blox_diag_winner_label')) ?></dt>
+                        <dd data-testid="blox-diagnose-winner">
+                            <?php // 两个 span 各有 testid：隐藏的"无"不会污染命中模板 ID 的断言 ?>
+                            <span data-testid="blox-diagnose-winner-id"
+                                  x-show="conditionDiagnosis && conditionDiagnosis.winner && conditionDiagnosis.winner.template_id"
+                                  x-text="conditionDiagnosis && conditionDiagnosis.winner ? conditionDiagnosis.winner.template_id : ''"></span>
+                            <span data-testid="blox-diagnose-winner-none"
+                                  x-show="conditionDiagnosis && conditionDiagnosis.winner && !conditionDiagnosis.winner.template_id"><?= e(__('blox_diag_none')) ?></span>
+                        </dd>
+                        <dt class="text-gray-500"><?= e(__('blox_diag_reason_label')) ?></dt>
+                        <dd data-testid="blox-diagnose-reason" x-text="conditionDiagnosisReasonText()"></dd>
+                        <dt class="text-gray-500"><?= e(__('blox_diag_specificity_label')) ?></dt>
+                        <dd data-testid="blox-diagnose-specificity"
+                            x-text="conditionDiagnosis && conditionDiagnosis.winner ? (conditionDiagnosis.winner.specificity.level + ' / ' + conditionDiagnosis.winner.specificity.detail) : ''"></dd>
+                        <dt class="text-gray-500"><?= e(__('blox_diag_priority_label')) ?></dt>
+                        <dd data-testid="blox-diagnose-priority" x-text="conditionDiagnosis && conditionDiagnosis.draft ? conditionDiagnosis.draft.priority : ''"></dd>
+                        <template x-if="conditionDiagnosis && conditionDiagnosis.conflicts && conditionDiagnosis.conflicts.length">
+                            <dt class="text-gray-500"><?= e(__('blox_diag_conflicts_label')) ?></dt>
+                        </template>
+                        <template x-if="conditionDiagnosis && conditionDiagnosis.conflicts && conditionDiagnosis.conflicts.length">
+                            <dd data-testid="blox-diagnose-conflicts"
+                                x-text="conditionDiagnosis.conflicts.map(function (c) { return c.template_id; }).join(', ')"></dd>
+                        </template>
+                    </dl>
+                    <?php // 单条内容的结果不能当成全站结论（任务书明确要求） ?>
+                    <p class="mt-1 text-gray-500"><?= e(__('blox_diag_single_only')) ?></p>
+                </div>
+            </template>
+        </div>
         <?php // 说清"不应用"与"主题默认"的区别：前者是空 include，后者是 source=native ?>
         <p class="text-[11px] leading-relaxed text-gray-500" data-testid="blox-cond-notes"><?= e(__('blox_cond_notes')) ?></p>
         <p x-show="conditionDirty()" x-cloak data-testid="blox-cond-dirty" class="mt-1 text-[11px] text-amber-600"><?= e(__('blox_cond_dirty')) ?></p>
