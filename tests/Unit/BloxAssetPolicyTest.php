@@ -41,6 +41,9 @@ final class BloxAssetPolicyTest extends TestCase
     {
         $policy = $this->policy();
         self::assertSame([
+            // 这两个在 HEAD 时就已在 runtime，字面量没跟上（继承失败，非本轮引入）
+            'assets/css/blox-tabs.css',
+            'assets/js/blox-tabs.js',
             'assets/css/blox-overlay.css',
             'assets/css/blox-banner.css',
             'assets/js/blox-video-policy.js',
@@ -60,6 +63,7 @@ final class BloxAssetPolicyTest extends TestCase
             'includes/builder/BloxPopupRuntime.php',
             'assets/css/blox-popup.css',
             'assets/js/blox-popup.js',
+            'assets/js/blox-product-gallery.js',
             'migrations/20260812_banner_group_height_mode.php',
             'migrations/20260812_banner_group_runtime.php',
             'migrations/20260812_banner_item_runtime.php',

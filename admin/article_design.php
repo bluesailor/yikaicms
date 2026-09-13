@@ -53,7 +53,7 @@ $templates = bloxTemplateModel()->catalog('article-detail');
 $published = array_column(bloxTemplateModel()->publishedDetailTemplates('article-detail'), null, 'id');
 $languages = availableLanguages();
 $previewArticles = [];
-foreach ($languages as $code => $label) {
+foreach (array_keys($languages) as $code) {
     $previewArticles[(string) $code] = array_values(array_filter(
         contentModel()->getList(0, 100, 0, ['lang' => (string) $code, 'type' => 'article']),
         static fn(array $row): bool => ($row['lang'] ?? '') === $code && ($row['type'] ?? '') === 'article'
