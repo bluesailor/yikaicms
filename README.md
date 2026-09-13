@@ -12,6 +12,14 @@
 
 官网：[https://www.yikaicms.com](https://www.yikaicms.com) · 演示：[https://demo.yikaicms.com](https://demo.yikaicms.com)
 
+## 开发文档
+
+- [AI 开发阅读入口](./deploy/AI-DEVELOPMENT.md)
+- [插件开发指南](./deploy/PLUGIN-DEVELOPMENT.md)
+- [网站模板开发指南](./deploy/THEME-DEVELOPMENT.md)
+
+适用于开发者及不同 AI 编程助手，不包含 BLOX 编辑器插件开发。
+
 ## 功能特性
 
 ### AI 内容助手
