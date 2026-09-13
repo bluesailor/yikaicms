@@ -291,8 +291,40 @@ try {
             error($conflictMessage, 409);
         }
 
+        $publishContentType = $type === 'product-detail' ? 'product' : ($type === 'article-detail' ? 'article' : '');
         db()->beginTransaction();
         try {
+            if ($publishContentType !== '') {
+                // 第三轮：事务内先加锁再校验，两个并发发布不能都基于旧候选集通过；
+                // 只有会话里"已扫完、无新并列、指纹一致"的检查才可免扫，否则在上限内同步检查一次。
+                DetailTemplatePublishGuard::lockForPublish($type, $id);
+                $publishSettings = $processed !== null
+                    ? $processed['settings']
+                    : (BloxDocumentPipeline::decode($currentDraft)['settings'] ?? []);
+                $publishPrep = DetailTemplatePublishGuard::prepare(
+                    $publishContentType,
+                    $id,
+                    DetailTemplateProvider::scopeFromSettings($publishContentType, is_array($publishSettings) ? $publishSettings : [])
+                );
+                $publishChecked = $_SESSION['blox_detail_publish_check'][$id] ?? null;
+                if (!DetailTemplatePublishGuard::progressAllowsPublish(is_array($publishChecked) ? $publishChecked : null, $publishPrep['fingerprint'])) {
+                    $publishProgress = DetailTemplatePublishGuard::mergeProgress(
+                        null,
+                        $publishPrep['fingerprint'],
+                        DetailTemplatePublishGuard::scan($publishPrep, 0, DetailTemplatePublishGuard::syncRowLimit(), 3.0)
+                    );
+                    if (!DetailTemplatePublishGuard::progressAllowsPublish($publishProgress, $publishPrep['fingerprint'])) {
+                        db()->rollback();
+                        $_SESSION['blox_detail_publish_check'][$id] = $publishProgress;
+                        $publishReport = DetailTemplatePublishGuard::report($publishProgress);
+                        json([
+                            'code' => 409,
+                            'msg' => __($publishReport['status'] === 'conflict' ? 'blox_publish_conflict_blocked' : 'blox_publish_check_required'),
+                            'data' => ['detail_publish' => $publishReport],
+                        ], 409);
+                    }
+                }
+            }
             if ($processed !== null) {
                 bloxTemplateModel()->updateDraft(
                     $id,
@@ -321,6 +353,7 @@ try {
             throw $e;
         }
 
+        unset($_SESSION['blox_detail_publish_check'][$id]);
         $publishedDocument = $processed !== null ? $processed['json'] : $currentDraft;
         if ($type === 'product-detail') {
             require_once ROOT_PATH . '/includes/HtmlCache.php';
@@ -348,6 +381,40 @@ try {
             );
         }
         success($response);
+    }
+    // 第三轮：发布冲突检查（只读、分页、可续查）。请求体与发布相同（blocks_data + 条件字段），
+    // 进度记在会话里；指纹（草稿条件/已发布候选/相关内容）一变就从头开始，未扫完绝不报通过。
+    if ($action === 'check_publish_conflicts' && $method === 'POST') {
+        verifyCsrf();
+        $id = (int) post('id', '0');
+        $row = bloxTemplateModel()->findForExport($id);
+        if (!$row) {
+            error(__('blox_tpl_not_found'));
+        }
+        $type = (string) ($row['type'] ?? '');
+        $requireTemplateLicense($type);
+        requireBloxTemplateTypePermission($type);
+        $checkContentType = $type === 'product-detail' ? 'product' : ($type === 'article-detail' ? 'article' : '');
+        if ($checkContentType === '') {
+            error(__('blox_diag_not_detail_template'), 400);
+        }
+        $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'));
+        $prep = DetailTemplatePublishGuard::prepare(
+            $checkContentType,
+            $id,
+            DetailTemplateProvider::scopeFromSettings($checkContentType, $processed['settings'])
+        );
+        $previous = (string) post('restart', '') === '1' ? null : ($_SESSION['blox_detail_publish_check'][$id] ?? null);
+        $progress = DetailTemplatePublishGuard::mergeProgress(is_array($previous) ? $previous : null, $prep['fingerprint'], null);
+        if (!$progress['complete'] && $progress['found'] === 0) {
+            $progress = DetailTemplatePublishGuard::mergeProgress(
+                $progress,
+                $prep['fingerprint'],
+                DetailTemplatePublishGuard::scan($prep, $progress['next'], DetailTemplatePublishGuard::pageRowLimit(), 2.0)
+            );
+        }
+        $_SESSION['blox_detail_publish_check'][$id] = $progress;
+        success(['check' => DetailTemplatePublishGuard::report($progress)]);
     }
     // TASK-008：单条真实内容的**只读**条件诊断。不写库、不激活模板、不落库结果；
     // 候选与上下文都走既有 provider/resolver，同一判定引擎，不另立匹配算法。

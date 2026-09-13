@@ -1965,6 +1965,25 @@ $canManageBloxDesign = hasPermission('blox_global');
             conditionDiagnosisBusy: false,
             conditionDiagnosisError: '',
             conditionTemplateId: <?php echo (int) $templateId; ?>,
+            // 第三轮：发布冲突检查的本地状态（结论只来自服务端；停止或未完成都不算通过）
+            conditionDiagnosisContentOverride: 0,
+            publishCheck: null,
+            publishCheckBusy: false,
+            publishCheckSeq: 0,
+            publishCheckKey: '',
+            publishCheckTexts: <?php echo json_encode([
+                'running' => __('blox_pubcheck_running'),
+                'clear' => __('blox_pubcheck_clear'),
+                'conflict' => __('blox_pubcheck_conflict'),
+                'incomplete' => __('blox_pubcheck_incomplete'),
+                'cancelled' => __('blox_pubcheck_cancelled'),
+                'failed' => __('blox_pubcheck_failed'),
+                'item' => __('blox_pubcheck_item'),
+                'member' => __('blox_pubcheck_member'),
+                'exposed' => __('blox_pubcheck_exposed'),
+                'unpublished' => __('blox_pubcheck_unpublished'),
+                'self' => __('blox_pubcheck_self'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             conditionDiagText: <?php echo json_encode([
                 'running' => __('blox_diag_running'),
                 'button' => __('blox_diag_button'),
@@ -6388,6 +6407,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             /** 诊断对象＝编辑器上方"预览内容"选中的那条（没有选择就不诊断）。 */
             conditionDiagnoseContentId() {
+                if (this.conditionDiagnosisContentOverride > 0) return this.conditionDiagnosisContentOverride;
                 var raw = this.conditionContentType === 'product' ? this.productPreviewId : this.articlePreviewId;
                 return Number(raw) > 0 ? Number(raw) : 0;
             },
@@ -6452,9 +6472,11 @@ $canManageBloxDesign = hasPermission('blox_global');
              * 只读诊断：拿"当前面板条件 + 预览内容"问服务端同一个 resolver 会怎么判。
              * 非法条件不发请求；请求带序号，只显示最新一次的结果（乱序响应直接丢弃）。
              */
-            conditionDiagnose() {
+            conditionDiagnose(contentId) {
                 var self = this;
                 if (this.conditionContentType === '' || this.conditionDiagnosisBusy) return;
+                // 发布冲突列表里的"诊断这条"可指定内容；普通按钮仍诊断上方预览内容
+                this.conditionDiagnosisContentOverride = Number(contentId) > 0 ? Number(contentId) : 0;
                 if (this.conditionSubmitState() === 'invalid') {
                     this.blockForInvalidConditions();
                     return;
@@ -6549,6 +6571,111 @@ $canManageBloxDesign = hasPermission('blox_global');
             conditionSubmission() {
                 var state = this.conditionSubmitState();
                 return { state: state, scope: state === 'valid' ? this.conditionScope() : null };
+            },
+
+            // ---- 第三轮：发布冲突检查（与发布请求同一份文档与条件；结论由服务端对真实内容前后对比给出） ----
+
+            /** 检查结论对应的条件：条件一改，旧结论只能算过期参考（发布时服务端会重新校验）。 */
+            publishCheckKeyFor(condition) {
+                var submission = condition || this.conditionSubmission();
+                return JSON.stringify({ state: submission.state, scope: submission.scope });
+            },
+
+            publishCheckIsStale() {
+                return this.publishCheck !== null && !this.publishCheckBusy && this.publishCheckKey !== this.publishCheckKeyFor();
+            },
+
+            publishCheckText(key, params) {
+                var text = (this.publishCheckTexts || {})[key] || '';
+                Object.keys(params || {}).forEach(function (name) { text = text.split(':' + name).join(String(params[name])); });
+                return text;
+            },
+
+            publishCheckSummary() {
+                var check = this.publishCheck;
+                if (!check) return '';
+                if (this.publishCheckBusy) return this.publishCheckText('running', { scanned: check.scanned || 0, total: check.total || 0 });
+                if (check.status === 'clear') return this.publishCheckText('clear', { total: check.total || 0 });
+                if (check.status === 'conflict') return this.publishCheckText('conflict', { count: check.found || 0 });
+                if (check.status === 'cancelled') return this.publishCheckText('cancelled');
+                return this.publishCheckText('incomplete', { scanned: check.scanned || 0, total: check.total || 0 });
+            },
+
+            publishCheckTemplateLabel(id) {
+                var names = (this.publishCheck && this.publishCheck.template_names) || {};
+                var label = '#' + id + (names[String(id)] ? ' ' + names[String(id)] : '');
+                return Number(id) === Number(this.conditionTemplateId) ? label + ' ' + this.publishCheckText('self') : label;
+            },
+
+            /** 检查请求的文档与条件字段（与发布一致；不改动保存回执用的条件快照）。 */
+            publishCheckBody(payload, condition) {
+                var body = new URLSearchParams();
+                body.set('action', 'check_publish_conflicts');
+                body.set('id', String(this.conditionTemplateId));
+                body.set('blocks_data', payload);
+                if (condition.state === 'valid') body.set('conditions_json', JSON.stringify(condition.scope));
+                else if (condition.state === 'unchanged' && this.conditionContentType === 'product') body.set('ui_scope', '1');
+                body.set('_token', this.csrf);
+                return body;
+            },
+
+            /** 手动检查入口：当前画布与条件，从头逐页检查到有结论为止。 */
+            runPublishCheckNow() {
+                var condition = this.conditionSubmission();
+                if (condition.state === 'invalid') {
+                    this.blockForInvalidConditions();
+                    return;
+                }
+                this.runPublishCheck(this.documentData(), condition, true);
+            },
+
+            /**
+             * 分页检查：服务端在会话里记进度、每页有行数与时间上限；直到 clear / conflict，或被停止、出错。
+             * @return Promise<object|null> 最终报告；被停止、出错或仍未完成时为 null
+             */
+            runPublishCheck(payload, condition, restart) {
+                var self = this;
+                if (this.conditionContentType === '' || this.conditionTemplateId <= 0) return Promise.resolve(null);
+                var seq = ++this.publishCheckSeq;
+                this.publishCheckBusy = true;
+                this.publishCheckKey = this.publishCheckKeyFor(condition);
+                var first = restart === true;
+                var pages = 0;
+                var step = function () {
+                    var body = self.publishCheckBody(payload, condition);
+                    if (first) body.set('restart', '1');
+                    first = false;
+                    pages++;
+                    return fetch('/admin/blox_template_api.php', { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function (r) { return r.json().catch(function () { return { code: 1 }; }); })
+                        .then(function (res) {
+                            if (seq !== self.publishCheckSeq) return null;   // 已停止，或有更新的检查
+                            if (Number(res.code) !== 0 || !res.data || !res.data.check) {
+                                self.toast((res && res.msg) || self.publishCheckText('failed'));
+                                return null;
+                            }
+                            self.publishCheck = res.data.check;
+                            // 内容在检查期间持续变化会让指纹反复重置：设上限，停在"未完成"而不是无限重试
+                            if (res.data.check.status === 'incomplete') return pages < 500 ? step() : null;
+                            return res.data.check;
+                        });
+                };
+                return step()
+                    .catch(function () {
+                        if (seq === self.publishCheckSeq) self.toast(self.publishCheckText('failed'));
+                        return null;
+                    })
+                    .finally(function () {
+                        if (seq === self.publishCheckSeq) self.publishCheckBusy = false;
+                    });
+            },
+
+            /** 停止检查：未完成的检查不能用于发布（服务端同样不认）。 */
+            cancelPublishCheck() {
+                if (!this.publishCheckBusy) return;
+                this.publishCheckSeq++;
+                this.publishCheckBusy = false;
+                this.publishCheck = Object.assign({}, this.publishCheck || {}, { status: 'cancelled' });
             },
 
             /** 非法条件被拦下时，把面板摊开并滚到可见处——原因必须能看见才谈得上修。 */
@@ -10050,7 +10177,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     .finally(function () { self.templateActionBusy = false; self.saving = false; });
             },
 
-            submitTemplatePublish(confirmConflict, payload, savedData, condition) {
+            submitTemplatePublish(confirmConflict, payload, savedData, condition, rechecked) {
                 var self = this;
                 var body = new URLSearchParams();
                 body.set("action", "publish");
@@ -10078,6 +10205,26 @@ $canManageBloxDesign = hasPermission('blox_global');
                     .then(function (r) { return r.json().catch(function () { return { code: 1 }; }); })
                     .then(function (res) {
                         if (Number(res.code) === 409) {
+                            var detailPublish = res.data && res.data.detail_publish;
+                            if (detailPublish) {
+                                // 发布冲突保护：不提供"仍然发布"，只给结论与调整入口；草稿与线上版本都没被改动
+                                self.publishCheck = detailPublish;
+                                self.publishCheckKey = self.publishCheckKeyFor(condition);
+                                self.$nextTick(function () { self.revealConditionPanel(); });
+                                if (detailPublish.status === 'incomplete' && !rechecked) {
+                                    return self.runPublishCheck(payload, condition, false).then(function (report) {
+                                        if (report && report.status === 'clear') {
+                                            return self.submitTemplatePublish(confirmConflict, payload, savedData, condition, true);
+                                        }
+                                        self.saveOutcome = "failed";
+                                        self.failedAction = "publish";
+                                    });
+                                }
+                                self.saveOutcome = "failed";
+                                self.failedAction = "publish";
+                                self.toast(res.msg || "");
+                                return;
+                            }
                             if (res.msg === self.uiText.saveConflict) {
                                 self.showSaveConflict();
                                 return;
@@ -10091,6 +10238,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                             self.acceptSavedDocument(payload, savedData, res);
                             self.acceptPublishedDocument(payload);
                             self.setEditorReturnReceipt(res.data && res.data.return_receipt);
+                            self.publishCheck = null;
                             var activated = res.data && res.data.activated_area;
                             self.toast(activated ? self.uiText.tplPublishedAndUsed : self.uiText.tplPublished);
                         }
