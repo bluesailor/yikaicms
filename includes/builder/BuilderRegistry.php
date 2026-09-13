@@ -107,6 +107,11 @@ final class BuilderRegistry
             new ProductFieldElement('image'),
             new ProductFieldElement('content'),
             new ProductFieldElement('button'),
+            // 产品派生业务字段：相册 / 参数 / 上下篇 / 相关（空值整块隐藏）
+            new ProductFieldElement('gallery'),
+            new ProductFieldElement('specs'),
+            new ProductFieldElement('prev-next'),
+            new ProductFieldElement('related'),
             // 文章详情动态字段（article-detail 上下文专用）
             new ArticleFieldElement('title'),
             new ArticleFieldElement('summary'),

@@ -6763,4 +6763,8 @@ voltage|電圧|220V',
     'blox_article_settings' => '記事詳細ページ設定',
     'blox_article_scope_none' => 'まだ適用しない（下書きのみ）',
     'blox_article_scope_item' => '指定した記事',
+    'blox_product_gallery' => '製品ギャラリー',
+    'blox_product_specs' => '製品仕様',
+    'blox_product_prev_next' => '前の製品 / 次の製品',
+    'blox_product_related' => '関連製品',
 ];

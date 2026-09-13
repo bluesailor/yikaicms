@@ -6690,4 +6690,8 @@ voltage|电压|220V',
     'blox_article_settings' => '文章详情页设置',
     'blox_article_scope_none' => '暂不应用（仅保存草稿）',
     'blox_article_scope_item' => '指定文章',
+    'blox_product_gallery' => '产品相册',
+    'blox_product_specs' => '产品参数',
+    'blox_product_prev_next' => '上一个 / 下一个产品',
+    'blox_product_related' => '相关产品',
 ];
