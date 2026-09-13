@@ -705,7 +705,9 @@ test('home canvas keeps header and footer actions without a redundant page struc
   expect(page.url()).toBe(expectedHeaderUrl);
   await expect(page.locator('.blox-header-page')).toContainText('当前网页头');
   await expect(page.getByTestId('blox-sticky-toggle').locator('input')).not.toBeChecked();
-  await expect(page.getByTestId('blox-publish-template')).toContainText('发布并使用');
+  // 02 轮：发布按钮按对象命名——模板页统一叫「发布模板」；「发布并使用」改由 title 承载（同一动作）
+  await expect(page.getByTestId('blox-publish-template')).toContainText('发布模板');
+  await expect(page.getByTestId('blox-publish-template')).toHaveAttribute('title', '发布并使用');
 });
 
 test('dirty area editor confirms and returns to the home editor @ci', async ({ page }, testInfo) => {

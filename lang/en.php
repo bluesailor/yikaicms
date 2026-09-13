@@ -6629,4 +6629,6 @@ voltage|Voltage|220V',
     'blox_product_inquiry' => 'Product inquiry form',
     'blox_product_gallery_zoom' => 'Click to zoom',
     'blox_product_inquiry_preview' => 'Preview mode: no real inquiry is submitted here',
+    'blox_template_publish' => 'Publish template',
+    'blox_template_publishing' => 'Publishing...',
 ];
