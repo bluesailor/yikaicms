@@ -308,6 +308,8 @@ if ($isHomeBlox) {
         $conditionLang = $productPreviewLanguage;
         $conditionCategories = [];
         foreach (productCategoryModel()->all() as $categoryRow) {
+            // 与文章栏目一致：只列模板语言的分类（跨语言分类永远匹配不到，列出来只会误导）
+            if ((string) ($categoryRow['lang'] ?? '') !== $productPreviewLanguage) continue;
             $conditionCategories[] = ['id' => (int) ($categoryRow['id'] ?? 0), 'name' => (string) ($categoryRow['name'] ?? '')];
         }
     } elseif ($templateType === 'article-detail') {
@@ -1943,11 +1945,25 @@ $canManageBloxDesign = hasPermission('blox_global');
             conditionContentType: <?php echo json_encode($conditionContentType ?? '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             // 新建模板还没有 v2 契约时，语言只能来自编辑器的当前语言；否则提交会因空 lang 被服务端拒绝
             conditionLang: <?php echo json_encode($conditionLang ?? '', JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            conditionCategories: <?php echo json_encode($conditionCategories ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            conditionItems: <?php echo json_encode(array_values(array_map(
-                static fn(array $row): array => ['id' => (int) ($row['id'] ?? 0), 'name' => (string) ($row['title'] ?? '')],
-                $templateType === 'product-detail' ? $productPreviewItems : $articlePreviewItems
-            )), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            <?php
+            // 第五轮：规则里已引用但不在预览前 100 条里的目标补进选项；真正缺失的由面板显示为"缺失"
+            $conditionScopeForOptions = ($conditionContentType ?? '') !== ''
+                ? DetailTemplateProvider::scopeFromSettings((string) $conditionContentType, is_array($docSettings ?? null) ? $docSettings : [])
+                : null;
+            $conditionOptionLang = (string) ($conditionLang ?? '');
+            ?>
+            conditionCategories: <?php echo json_encode(array_values(($conditionContentType ?? '') !== ''
+                ? DetailTemplateProvider::optionsWithReferences((string) $conditionContentType, 'category', $conditionCategories ?? [], $conditionScopeForOptions, $conditionOptionLang)
+                : []), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            conditionItems: <?php echo json_encode(array_values(($conditionContentType ?? '') !== ''
+                ? DetailTemplateProvider::optionsWithReferences((string) $conditionContentType, 'item', array_values(array_map(
+                    static fn(array $row): array => ['id' => (int) ($row['id'] ?? 0), 'name' => (string) ($row['title'] ?? '')],
+                    $templateType === 'product-detail' ? $productPreviewItems : $articlePreviewItems
+                )), $conditionScopeForOptions, $conditionOptionLang)
+                : []), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            conditionTexts: <?php echo json_encode([
+                'missing' => __('blox_cond_missing_target'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             conditionRows: null,
             conditionBaseline: null,
             // TASK-007：优先级是面板可编辑的第二类输入，必须与规则一起参与脏判断、保存快照与提交
@@ -6343,6 +6359,22 @@ $canManageBloxDesign = hasPermission('blox_global');
             conditionAdd(side, kind) {
                 this.conditionEnsure();
                 this.conditionRows[side].push({ kind: kind, ids: [], include_children: kind === 'category' });
+                this.syncConditionDocument();
+            },
+
+            /** 规则里引用、但下拉选项里找不到的目标（已删除或语言不同）：单独显示，可逐个移除。 */
+            conditionMissingIds(row) {
+                if (!row || row.kind === 'all') return [];
+                var options = row.kind === 'category' ? this.conditionCategories : this.conditionItems;
+                var known = (options || []).map(function (opt) { return String(opt.id); });
+                return (row.ids || []).map(String).filter(function (id) { return known.indexOf(id) === -1; });
+            },
+
+            conditionRemoveId(side, index, id) {
+                this.conditionEnsure();
+                var row = this.conditionRows[side][index];
+                if (!row) return;
+                row.ids = (row.ids || []).map(String).filter(function (value) { return value !== String(id); });
                 this.syncConditionDocument();
             },
 
