@@ -93,6 +93,19 @@ require ROOT_PATH . '/admin/includes/header.php';
         <button class="rounded bg-gray-900 text-white px-4 py-2" data-testid="article-design-create"><i class="ti ti-plus" aria-hidden="true"></i> <?= e(__('blox_article_create')) ?></button>
     </form>
     <div class="divide-y divide-gray-200">
+        <?php
+        // TASK-005-R01：栏目名称映射整页只查一次（懒加载），不放进模板循环
+        $channelNameMap = null;
+        $loadChannelNames = static function () use (&$channelNameMap): array {
+            if ($channelNameMap === null) {
+                $channelNameMap = [];
+                foreach (channelModel()->all() as $channelRow) {
+                    $channelNameMap[(int) ($channelRow['id'] ?? 0)] = (string) ($channelRow['name'] ?? '');
+                }
+            }
+            return $channelNameMap;
+        };
+        ?>
         <?php foreach ($templates as $template): ?>
         <?php
         $live = $published[(int) $template['id']] ?? null;
@@ -138,11 +151,8 @@ require ROOT_PATH . '/admin/includes/header.php';
 
             // 栏目条件逐条呈现（含子级），纳入与排除分开；只描述存储规则
             if (DetailScopeSummary::hasCategory($scope)) {
-                $channelNames = [];
-                foreach (channelModel()->all() as $channelRow) {
-                    $channelNames[(int) ($channelRow['id'] ?? 0)] = (string) ($channelRow['name'] ?? '');
-                }
                 $channelRules = DetailScopeSummary::categoryRules($scope);
+                $channelNames = $loadChannelNames();
                 $channelParts = [];
                 foreach ([['include', 'blox_scope_channel_include'], ['exclude', 'blox_scope_channel_exclude']] as $sidePair) {
                     foreach (DetailScopeSummary::labelled($channelRules[$sidePair[0]], $channelNames) as $channelRule) {
