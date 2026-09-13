@@ -1957,7 +1957,6 @@ $canManageBloxDesign = hasPermission('blox_global');
             conditionOriginalScope: null,
             conditionDocumentHadV2: false,
             conditionDocumentHadScopeKey: false,
-            _submittedConditionRowsSignature: "",
             styleCommonSearchText: <?php echo json_encode(implode(' ', [__('blox_style_group_general'), __('blox_spacing'), __('blox_visible_devices')]), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             styleGroupLabels: <?php echo json_encode([
                 'general' => __('blox_style_group_general'),
@@ -6346,7 +6345,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                     var scope = this.conditionScope();
                     body.set('conditions_json', JSON.stringify(scope));
                     this._submittedConditionScope = scope;
-                    this._submittedConditionRowsSignature = window.BloxDetailConditions.signature(this.conditionRows);
                 }
                 return state;
             },
@@ -10019,23 +10017,24 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             acceptSavedDocument(payload, savedData, res) {
                 this.saveOutcome = "";
-                // TASK-006：条件经完整通道提交成功后，本地文档与基线同步为该值（指示灯清除，后续改正文不回退条件）
+                // TASK-006-R02：这里有三份不同的东西，不能混：
+                //   提交快照 _submittedConditionScope —— 服务器刚存下的那一份（新的已保存基线）
+                //   当前文档 docSettings.detail_template —— 必须反映"面板现在的行"
+                //   面板 conditionRows —— 用户当前的编辑，可能已经比提交快照更新
+                // 所以推进基线之后要把**当前行同步回当前文档**，绝不能用旧快照覆盖当前值：
+                // 只保留 UI 行、文档却写回旧提交，会让 documentData() 等于已提交载荷 → 误判干净 →
+                // 恢复稿被清掉、离开页面时新条件丢失。
                 if (this._submittedConditionScope) {
                     if (!this.docSettings || typeof this.docSettings !== 'object') this.docSettings = {};
                     var submitted = this._submittedConditionScope;
-                    var submittedSignature = this._submittedConditionRowsSignature;
-                    this.docSettings.detail_template = submitted;
                     this.conditionBase = submitted;
                     this.conditionBaseline = submitted;
                     this.conditionDocumentHadV2 = true;
                     this.conditionDocumentHadScopeKey = true;
                     this.conditionOriginalScope = submitted;
-                    // 保存期间又改了条件：保留用户更新的行（基线已推进，仍显示"已修改"），不要用旧快照覆盖
-                    if (window.BloxDetailConditions.signature(this.conditionRows) === submittedSignature) {
-                        this.conditionRows = window.BloxDetailConditions.rowsFromScope(submitted);
-                    }
+                    // 无并发编辑时回到提交值；期间有新编辑时写入新值（并把 dirty 重新点亮）
+                    this.syncConditionDocument();
                     this._submittedConditionScope = null;
-                    this._submittedConditionRowsSignature = "";
                 }
                 this.failedAction = "";
                 if (res.data && typeof res.data.base_revision === "string") {
