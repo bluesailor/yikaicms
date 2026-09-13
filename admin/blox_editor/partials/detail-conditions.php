@@ -156,6 +156,90 @@ declare(strict_types=1);
                 </div>
             </template>
         </div>
+        <?php // 第四轮：影响范围预览。只读；没检查完的数字只代表已检查部分，不写成总数 ?>
+        <div class="mt-3 border-t border-gray-200 pt-2" data-testid="blox-impact">
+            <p class="text-xs font-medium text-gray-700"><?= e(__('blox_impact_title')) ?></p>
+            <div class="mt-1 flex flex-wrap items-center gap-2">
+                <button type="button" @click="runImpactPreview(false)" :disabled="impactBusy" data-testid="blox-impact-run"
+                        class="text-[11px] px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60"><?= e(__('blox_impact_run')) ?></button>
+                <button type="button" x-show="impactPreview && !impactPreview.complete && impactPreview.next > 0 && !impactBusy && !impactIsStale()" x-cloak
+                        @click="runImpactPreview(true)" data-testid="blox-impact-more"
+                        class="text-[11px] px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"><?= e(__('blox_impact_more')) ?></button>
+                <button type="button" x-show="impactBusy" x-cloak @click="cancelImpactPreview()" data-testid="blox-impact-cancel"
+                        class="text-[11px] px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"><?= e(__('blox_impact_cancel')) ?></button>
+            </div>
+            <p x-show="impactError" x-cloak data-testid="blox-impact-error" class="mt-1 text-[11px] text-red-600" x-text="impactError"></p>
+            <template x-if="impactPreview">
+                <div class="mt-2 rounded border border-gray-200 bg-gray-50 px-2 py-2 text-[11px] leading-relaxed text-gray-700"
+                     data-testid="blox-impact-result" :data-status="impactStatus()">
+                    <p data-testid="blox-impact-summary" x-text="impactSummary()"></p>
+                    <p x-show="impactPreview.cancelled" x-cloak data-testid="blox-impact-cancelled" class="mt-1 text-amber-700"><?= e(__('blox_impact_cancelled')) ?></p>
+                    <p x-show="impactIsStale()" x-cloak data-testid="blox-impact-stale" class="mt-1 text-amber-700"><?= e(__('blox_impact_stale')) ?></p>
+                    <p x-show="impactCheckedAtText()" class="mt-1 text-gray-500" data-testid="blox-impact-checked-at" x-text="impactCheckedAtText()"></p>
+                    <div class="mt-2" data-testid="blox-impact-group-won">
+                        <p><span class="font-medium"><?= e(__('blox_impact_group_won')) ?></span> <span data-testid="blox-impact-count-won" x-text="impactCountText('won')"></span></p>
+                        <ul class="mt-1 space-y-1">
+                            <template x-for="item in ((impactPreview.samples || {})['won'] || [])" :key="'won-' + item.id">
+                                <li :data-testid="'blox-impact-sample-won-' + item.id">
+                                    <template x-if="item.url">
+                                        <a class="underline" :href="item.url" target="_blank" rel="noopener" :data-testid="'blox-impact-link-' + item.id" x-text="'#' + item.id + ' ' + item.title + ' · ' + item.lang"></a>
+                                    </template>
+                                    <template x-if="!item.url">
+                                        <span x-text="'#' + item.id + ' ' + item.title + ' · ' + item.lang + ' ' + impactText('unpublished')"></span>
+                                    </template>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                    <div class="mt-2" data-testid="blox-impact-group-conflicted">
+                        <p><span class="font-medium"><?= e(__('blox_impact_group_conflicted')) ?></span> <span data-testid="blox-impact-count-conflicted" x-text="impactCountText('conflicted')"></span></p>
+                        <ul class="mt-1 space-y-1">
+                            <template x-for="item in ((impactPreview.samples || {})['conflicted'] || [])" :key="'conflicted-' + item.id">
+                                <li :data-testid="'blox-impact-sample-conflicted-' + item.id">
+                                    <template x-if="item.url">
+                                        <a class="underline" :href="item.url" target="_blank" rel="noopener" :data-testid="'blox-impact-link-' + item.id" x-text="'#' + item.id + ' ' + item.title + ' · ' + item.lang"></a>
+                                    </template>
+                                    <template x-if="!item.url">
+                                        <span x-text="'#' + item.id + ' ' + item.title + ' · ' + item.lang + ' ' + impactText('unpublished')"></span>
+                                    </template>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                    <div class="mt-2" data-testid="blox-impact-group-lost">
+                        <p><span class="font-medium"><?= e(__('blox_impact_group_lost')) ?></span> <span data-testid="blox-impact-count-lost" x-text="impactCountText('lost')"></span></p>
+                        <ul class="mt-1 space-y-1">
+                            <template x-for="item in ((impactPreview.samples || {})['lost'] || [])" :key="'lost-' + item.id">
+                                <li :data-testid="'blox-impact-sample-lost-' + item.id">
+                                    <template x-if="item.url">
+                                        <a class="underline" :href="item.url" target="_blank" rel="noopener" :data-testid="'blox-impact-link-' + item.id" x-text="'#' + item.id + ' ' + item.title + ' · ' + item.lang"></a>
+                                    </template>
+                                    <template x-if="!item.url">
+                                        <span x-text="'#' + item.id + ' ' + item.title + ' · ' + item.lang + ' ' + impactText('unpublished')"></span>
+                                    </template>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                    <div class="mt-2" data-testid="blox-impact-group-excluded">
+                        <p><span class="font-medium"><?= e(__('blox_impact_group_excluded')) ?></span> <span data-testid="blox-impact-count-excluded" x-text="impactCountText('excluded')"></span></p>
+                        <ul class="mt-1 space-y-1">
+                            <template x-for="item in ((impactPreview.samples || {})['excluded'] || [])" :key="'excluded-' + item.id">
+                                <li :data-testid="'blox-impact-sample-excluded-' + item.id">
+                                    <template x-if="item.url">
+                                        <a class="underline" :href="item.url" target="_blank" rel="noopener" :data-testid="'blox-impact-link-' + item.id" x-text="'#' + item.id + ' ' + item.title + ' · ' + item.lang"></a>
+                                    </template>
+                                    <template x-if="!item.url">
+                                        <span x-text="'#' + item.id + ' ' + item.title + ' · ' + item.lang + ' ' + impactText('unpublished')"></span>
+                                    </template>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                    <p class="mt-2 text-gray-500"><?= e(__('blox_impact_note')) ?></p>
+                </div>
+            </template>
+        </div>
         <?php // 说清"不应用"与"主题默认"的区别：前者是空 include，后者是 source=native ?>
         <p class="text-[11px] leading-relaxed text-gray-500" data-testid="blox-cond-notes"><?= e(__('blox_cond_notes')) ?></p>
         <p x-show="conditionDirty()" x-cloak data-testid="blox-cond-dirty" class="mt-1 text-[11px] text-amber-600"><?= e(__('blox_cond_dirty')) ?></p>

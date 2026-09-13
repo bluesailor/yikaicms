@@ -416,6 +416,38 @@ try {
         $_SESSION['blox_detail_publish_check'][$id] = $progress;
         success(['check' => DetailTemplatePublishGuard::report($progress)]);
     }
+    // 第四轮：影响范围预览（只读、分页）。与发布检查同一份文档/条件和同一套粗筛范围，逐条交给 resolver；
+    // 内容权限与后台内容列表一致；游标与指纹由客户端带回，指纹对不上就从头统计，不混用旧计数。
+    if ($action === 'preview_impact' && $method === 'POST') {
+        verifyCsrf();
+        $id = (int) post('id', '0');
+        $row = bloxTemplateModel()->findForExport($id);
+        if (!$row) {
+            error(__('blox_tpl_not_found'));
+        }
+        $type = (string) ($row['type'] ?? '');
+        $requireTemplateLicense($type);
+        requireBloxTemplateTypePermission($type);
+        $previewContentType = $type === 'product-detail' ? 'product' : ($type === 'article-detail' ? 'article' : '');
+        if ($previewContentType === '') {
+            error(__('blox_diag_not_detail_template'), 400);
+        }
+        if (!hasPermission($previewContentType === 'product' ? 'edit_product' : 'edit_article')) {
+            error(__('blox_impact_forbidden'), 403);
+        }
+        $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'));
+        $previewScope = DetailTemplateProvider::scopeFromSettings($previewContentType, $processed['settings']);
+        $cursor = max(0, (int) post('cursor', '0'));
+        $page = DetailTemplateImpactPreview::scan($previewContentType, $id, $previewScope, $cursor, DetailTemplatePublishGuard::pageRowLimit(), 1.5);
+        $restarted = $cursor > 0 && (string) post('fingerprint', '') !== $page['fingerprint'];
+        if ($restarted) {
+            $page = DetailTemplateImpactPreview::scan($previewContentType, $id, $previewScope, 0, DetailTemplatePublishGuard::pageRowLimit(), 1.5);
+        }
+        $page['restarted'] = $restarted;
+        $page['lang'] = is_array($previewScope) ? (string) ($previewScope['lang'] ?? '') : '';
+        $page['checked_at'] = time();
+        success(['preview' => $page]);
+    }
     // TASK-008：单条真实内容的**只读**条件诊断。不写库、不激活模板、不落库结果；
     // 候选与上下文都走既有 provider/resolver，同一判定引擎，不另立匹配算法。
     if ($action === 'diagnose_conditions' && $method === 'POST') {
