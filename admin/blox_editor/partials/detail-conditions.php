@@ -16,7 +16,7 @@ declare(strict_types=1);
             <label class="inline-flex items-center gap-1 text-xs text-gray-600">
                 <span><?= e(__('blox_cond_priority')) ?></span>
                 <input type="number" min="0" :max="conditionMaxPriority" step="1"
-                       x-model="conditionPriority" @change="conditionPriorityChanged($event.target.value)"
+                       x-model="conditionPriority" @input="conditionPriorityChanged($event.target.value)"
                        data-testid="blox-cond-priority"
                        class="w-20 border border-gray-300 rounded px-2 py-1 text-xs">
             </label>

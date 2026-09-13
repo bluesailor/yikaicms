@@ -574,25 +574,9 @@ declare(strict_types=1);
         <summary class="cursor-pointer font-medium text-gray-900"><?= e(__('blox_product_settings')) ?></summary>
         <div class="flex flex-wrap items-end gap-4 py-3">
             <label>
-            <label>
-                <span class="block mb-1"><?= e(__('blox_product_scope')) ?></span>
-                <select x-model="docSettings.product_template.mode" @change="$nextTick(() => markDocumentSettingsChanged())" data-testid="product-template-scope" class="border border-gray-300 rounded px-2 py-2">
-                    <option value="selected"><?= e(__('blox_product_selected')) ?></option>
-                    <option value="all"><?= e(__('blox_product_all')) ?></option>
-                </select>
-            </label>
-            <label>
                 <span class="block mb-1"><?= e(__('blox_product_language')) ?></span>
                 <input readonly :value="docSettings.product_template.lang" data-testid="product-template-language" class="w-28 border border-gray-300 rounded px-2 py-2">
             </label>
-        </div>
-        <div x-show="docSettings.product_template.mode === 'selected'" class="max-h-40 overflow-auto border-t border-gray-200 py-2">
-            <?php foreach ($productPreviewItems as $previewItem): ?>
-            <label class="flex items-center gap-2 py-1">
-                <input type="checkbox" x-model.number="docSettings.product_template.ids" @change="$nextTick(() => markDocumentSettingsChanged())" value="<?= (int) $previewItem['id'] ?>" data-testid="product-template-target-<?= (int) $previewItem['id'] ?>">
-                <span><?= e((string) $previewItem['title']) ?></span>
-            </label>
-            <?php endforeach; ?>
         </div>
         <?php require __DIR__ . '/detail-conditions.php'; ?>
     </details>
@@ -618,31 +602,10 @@ declare(strict_types=1);
         <summary class="cursor-pointer font-medium text-gray-900"><?= e(__('blox_article_settings')) ?></summary>
         <div class="flex flex-wrap items-end gap-4 py-3">
             <label>
-            <label>
-                <span class="block mb-1"><?= e(__('blox_article_scope')) ?></span>
-                <?php // TASK-005 A：含按栏目等规则时锁定，避免简单控件整体替换 include 造成静默丢失 ?>
-                <select :value="articleScopeMode()" @change="setArticleScopeMode($event.target.value)" :disabled="articleScopeLocked()" :aria-describedby="articleScopeLocked() ? 'blox-article-scope-locked' : null" data-testid="article-template-scope" class="border border-gray-300 rounded px-2 py-2 disabled:opacity-60 disabled:cursor-not-allowed">
-                    <option value="none"><?= e(__('blox_article_scope_none')) ?></option>
-                    <option value="all"><?= e(__('blox_article_scope_all')) ?></option>
-                    <option value="item"><?= e(__('blox_article_scope_item')) ?></option>
-                </select>
-            </label>
-            <label>
                 <span class="block mb-1"><?= e(__('blox_article_language')) ?></span>
                 <input readonly :value="docSettings.detail_template.lang" data-testid="article-template-language" class="w-28 border border-gray-300 rounded px-2 py-2">
             </label>
         </div>
-        <div x-show="articleScopeMode() === 'item'" class="max-h-40 overflow-auto border-t border-gray-200 py-2">
-            <?php foreach ($articlePreviewItems as $previewItem): ?>
-            <label class="flex items-center gap-2 py-1">
-                <input type="checkbox" :checked="articleScopeHasId(<?= (int) $previewItem['id'] ?>)" @change="toggleArticleScopeId(<?= (int) $previewItem['id'] ?>, $event.target.checked)" :disabled="articleScopeLocked()" data-testid="article-template-target-<?= (int) $previewItem['id'] ?>" class="disabled:opacity-60 disabled:cursor-not-allowed">
-                <span><?= e((string) $previewItem['title']) ?></span>
-            </label>
-            <?php endforeach; ?>
-        </div>
-        <?php // 锁定说明：只说范围为何被锁与原因，不提供尚未实现的完整条件编辑入口（不给虚假链接） ?>
-        <p x-show="articleScopeLocked()" x-cloak id="blox-article-scope-locked" data-testid="article-scope-locked"
-           class="pb-2 text-[11px] leading-relaxed text-amber-600"><?= e(__('blox_article_scope_locked')) ?></p>
         <p class="pb-2 text-[11px] leading-relaxed text-gray-500"><?= e(__('blox_article_rule_priority')) ?></p>
         <?php require __DIR__ . '/detail-conditions.php'; ?>
     </details>

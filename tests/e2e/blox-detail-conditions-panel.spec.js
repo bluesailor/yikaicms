@@ -146,7 +146,8 @@ test('v1 product scope enters the panel read-only and survives a condition edit'
   test.setTimeout(120000);
   page.setDefaultTimeout(15000);
   page.on('dialog', (dialog) => dialog.accept());
-  const id = JSON.parse(fixture('pair')).selected;
+  const pair = JSON.parse(fixture('pair'));
+  const id = pair.selected;
   try {
     // 打开前：这是 v1 文档——只有 product_template，没有 v2 契约
     const before = JSON.parse(JSON.parse(fixture('read', id)).draft_data).settings;
@@ -184,6 +185,7 @@ test('v1 product scope enters the panel read-only and survives a condition edit'
     expect(stored.exclude).toEqual(posted.exclude);
   } finally {
     fixture('restore', id);
+    fixture('restore', pair.global);
   }
 });
 

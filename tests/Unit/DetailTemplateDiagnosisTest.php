@@ -144,6 +144,8 @@ final class DetailTemplateDiagnosisTest extends TestCase
         $conflictIds = array_column($result['conflicts'], 'template_id');
         sort($conflictIds);
         $this->assertSame([7, 9], $conflictIds, '并列双方都列出（含注入的草稿）');
+        $this->assertSame('conflicted', DetailTemplateProvider::verdictFor('ok', 7, $result));
+        $this->assertSame('lost', DetailTemplateProvider::verdictFor('ok', 3, $result));
     }
 
     public function testOwnOldPublishedVersionNeverTiesWithItself(): void

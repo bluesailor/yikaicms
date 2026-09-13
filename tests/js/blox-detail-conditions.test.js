@@ -41,7 +41,7 @@ test('scopeFromRows preserves untouched fields and normalizes shapes', () => {
     assert.deepEqual(scope.include, [
         { kind: 'category', ids: [5], include_children: true },
         { kind: 'item', ids: [7], include_children: false },   // item 的子级归 false
-        { kind: 'all' },
+        { kind: 'all', ids: [], include_children: false },     // 与服务端归一后的形状一致
     ]);
     assert.deepEqual(scope.exclude, [{ kind: 'category', ids: [12], include_children: false }]);
 });
@@ -107,6 +107,37 @@ test('saved scope stays clean after the panel rebuilds its rows', () => {
     rows.include[1].ids.push(21);
     assert.equal(conditions.changed(saved, rows), true, '真正改动仍要报出');
     assert.equal(conditions.changed({ include: [{ kind: 'all', ids: [], include_children: false }] }, { include: [{ kind: 'all' }] }), false, 'all 规则的形状差异不算变更');
+});
+
+test('editing projection keeps unfinished rows and the raw priority', () => {
+    const rows = {
+        include: [{ kind: 'all' }, { kind: 'item', ids: [] }],
+        exclude: [{ kind: 'category', ids: ['4', '4', '0'], include_children: true }],
+    };
+    const scope = conditions.editingScope(rows, base, '');
+    assert.equal(scope.version, 2);
+    assert.equal(scope.lang, 'zh-CN');
+    assert.equal(scope.priority, '', '非法输入原样保留，不改写成 0');
+    assert.deepEqual(scope.include, [
+        { kind: 'all', ids: [], include_children: false },
+        { kind: 'item', ids: [], include_children: false },
+    ], '空目标行保留，才能在撤销/恢复后重现问题');
+    assert.deepEqual(scope.exclude, [{ kind: 'category', ids: [4], include_children: true }]);
+
+    // 回读：行与原始优先级都回到面板
+    const back = conditions.rowsFromScope(scope);
+    assert.equal(back.include.length, 2);
+    assert.equal(conditions.priorityInput(scope, 100), '');
+    assert.equal(conditions.priorityInput({ priority: '12' }, 100), 12);
+    assert.equal(conditions.priorityInput({ priority: 101 }, 100), 101, '越界值带回原值，由 problems 报出');
+    assert.equal(conditions.priorityInput({}, 100), 0, '缺失按 0');
+});
+
+test('an emptied priority is a change even when the saved value is 0', () => {
+    const saved = { include: [{ kind: 'all' }], exclude: [], priority: 0 };
+    assert.equal(conditions.changed(saved, { include: [{ kind: 'all' }], exclude: [], priority: '' }), true);
+    assert.equal(conditions.changed(saved, { include: [{ kind: 'all' }], exclude: [] }), false, '缺失字段仍按 0');
+    assert.equal(conditions.changed({ ...saved, priority: 2 }, { ...saved, priority: '2.5' }), true);
 });
 
 test('legacy product scope adapts v1 without writing v2', () => {

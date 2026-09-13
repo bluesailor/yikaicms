@@ -48,20 +48,22 @@ test('product detail template binds preview and published records independently 
     }
     const afterPreview = JSON.parse(fixture('products'));
     expect(afterPreview.map(p => p.views)).toEqual(products.map(p => p.views));
-    await page.getByTestId(`product-template-target-${products[0].id}`).check();
+    // 应用范围只由完整条件面板编辑（旧的简化范围控件已移除）
+    await page.getByTestId('blox-cond-add-include-item').click();
+    await page.getByTestId('blox-cond-include-target-0').selectOption(String(products[0].id));
     await command(page, 'save_draft', 'blox-save');
     const stored = JSON.parse(fixture('read', id));
     for (const product of products) expect(stored.draft_data).not.toContain(product.title);
     await page.goto(editor);
     await waitPreviewSettled(page);
     await page.getByTestId('product-template-settings').locator('summary').click();
-    await expect(page.getByTestId(`product-template-target-${products[0].id}`)).toBeChecked();
+    await expect(page.getByTestId('blox-cond-include-target-0')).toHaveValues([String(products[0].id)]);
     await command(page, 'publish', 'blox-publish-template');
     await front.goto(products[0].url);
     await expect(front.locator('.yk-blox-product-detail h1')).toHaveText(products[0].title);
     await front.goto(products[1].url);
     await expect(front.locator('.yk-blox-product-detail')).toHaveCount(0);
-    await page.getByTestId('product-template-scope').selectOption('all');
+    await page.getByTestId('blox-cond-include-kind-0').selectOption('all');
     await command(page, 'save_draft', 'blox-save');
     await front.reload();
     await expect(front.locator('.yk-blox-product-detail')).toHaveCount(0);
