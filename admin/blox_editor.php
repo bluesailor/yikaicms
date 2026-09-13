@@ -1376,6 +1376,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             pagePublished: <?php echo $pageHasPublished ? 'true' : 'false'; ?>,
             pageHasUnpublishedChanges: <?php echo $pageHasUnpublishedChanges ? 'true' : 'false'; ?>,
             pageActionBusy: false,
+            // 模板发布独立于"保存中"：按钮要能显示"发布中…"，而保存/发布是两个不同动作
+            templateActionBusy: false,
             contactManage: <?php echo json_encode($contactManageActions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             contactEndpoint: "/admin/blox_contact_api.php?id=<?php echo (int) $id; ?>",
             contactCards: <?php echo json_encode($contactCards, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
@@ -1565,6 +1567,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'unsaved' => __('blox_dirty'),
                 'leaveUnsavedConfirm' => __('blox_leave_unsaved_confirm'),
                 'savingDraft' => __('blox_saving'),
+                // 发布中与保存中是两个动作：模板发布期间状态位要说"发布中…"，不能显示"保存中"
+                'templatePublishing' => __('blox_template_publishing'),
                 'revisionLoading' => __('loading'),
                 'revisionPreviewFailed' => __('blox_revision_preview_failed'),
                 'iconHintDefault' => __('blox_icon_hint_default'),
@@ -9492,9 +9496,15 @@ $canManageBloxDesign = hasPermission('blox_global');
                     : (this.uiText.tplAreaLanguagePublishConfirm || this.uiText.tplPublishConfirm);
                 if (!confirm(publishConfirm)) return;
                 this.saving = true;
+                // 发布是独立动作：按钮显示"发布中…"，不能和"保存中"共用同一个态
+                this.templateActionBusy = true;
                 this.submitTemplatePublish(false, payload, savedData)
-                    .catch(function () { self.toast(self.uiText.saveFailed); })
-                    .finally(function () { self.saving = false; });
+                    .catch(function () {
+                        // 请求失败必须落到状态位（红），不能只弹一条 toast 就当没事
+                        self.saveOutcome = "failed";
+                        self.toast(self.uiText.saveFailed);
+                    })
+                    .finally(function () { self.templateActionBusy = false; self.saving = false; });
             },
 
             submitTemplatePublish(confirmConflict, payload, savedData) {
@@ -9530,7 +9540,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                             var activated = res.data && res.data.activated_area;
                             self.toast(activated ? self.uiText.tplPublishedAndUsed : self.uiText.tplPublished);
                         }
-                        else self.toast(self.uiText.saveFailedMsg.replace(":msg", res.msg || ""));
+                        else {
+                            // 接口返回了但没落库（权限/授权/校验失败）：同样是失败态，不许变绿
+                            self.saveOutcome = "failed";
+                            self.toast(self.uiText.saveFailedMsg.replace(":msg", res.msg || ""));
+                        }
                     });
             },
 
@@ -9646,6 +9660,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             saveStatusText() {
+                if (this.templateActionBusy) return this.uiText.templatePublishing;
                 if (this.saving) return this.uiText.savingDraft;
                 if (this.saveOutcome === "failed") return this.uiText.saveStatusFailed;
                 if (this.dirty) return this.uiText.unsaved;

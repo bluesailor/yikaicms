@@ -408,10 +408,11 @@ declare(strict_types=1);
                     <i class="ti ti-rocket text-base"></i><?php echo e(__('blox_publish')); ?>
                 </button>
 <?php elseif ($templateId): ?>
-                <button type="button" @click="publishTemplate()" :disabled="saving" data-testid="blox-publish-template"
+                <button type="button" @click="publishTemplate()" :disabled="templateActionBusy || saving" :aria-busy="templateActionBusy ? 'true' : 'false'" data-testid="blox-publish-template"
                         class="h-8 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium px-3 rounded inline-flex items-center justify-center gap-1.5 transition"
-                        title="<?php echo e(__('blox_tpl_publish_saves_current')); ?>">
-                    <i class="ti ti-rocket text-base"></i><?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_draft')); ?>
+                        title="<?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_saves_current')); ?>">
+                    <i class="ti text-base" :class="templateActionBusy ? 'ti-loader-2 animate-spin' : 'ti-rocket'"></i>
+                    <span aria-live="polite" x-text="templateActionBusy ? <?= e($jt('blox_template_publishing')) ?> : <?= e($jt('blox_template_publish')) ?>"><?php echo e(__('blox_template_publish')); ?></span>
                 </button>
 <?php else: ?>
                 <button type="button" @click="publishPage()" :disabled="pageActionBusy || saving || pageIsPublishedCurrent()" :aria-busy="pageActionBusy ? 'true' : 'false'" data-testid="blox-publish-page"
@@ -479,8 +480,8 @@ declare(strict_types=1);
                 </a>
                 <?php endforeach; ?>
 <?php else: ?>
-                <button type="button" @click="publishTemplate(); mobileActionsOpen = false" :disabled="saving" data-testid="blox-mobile-publish-template">
-                    <i class="ti ti-rocket"></i><?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_draft')); ?>
+                <button type="button" @click="publishTemplate(); mobileActionsOpen = false" :disabled="templateActionBusy || saving" :aria-busy="templateActionBusy ? 'true' : 'false'" data-testid="blox-mobile-publish-template" title="<?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_saves_current')); ?>">
+                    <i class="ti" :class="templateActionBusy ? 'ti-loader-2 animate-spin' : 'ti-rocket'"></i><span x-text="templateActionBusy ? <?= e($jt('blox_template_publishing')) ?> : <?= e($jt('blox_template_publish')) ?>"><?php echo e(__('blox_template_publish')); ?></span>
                 </button>
 <?php endif; ?>
                 <button type="button" @click="openElementLibrary(); mobileActionsOpen = false"

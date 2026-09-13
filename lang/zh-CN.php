@@ -6697,4 +6697,6 @@ voltage|电压|220V',
     'blox_product_inquiry' => '产品询价表单',
     'blox_product_gallery_zoom' => '点击放大',
     'blox_product_inquiry_preview' => '预览模式：此处不会提交真实询价',
+    'blox_template_publish' => '发布模板',
+    'blox_template_publishing' => '发布中…',
 ];
