@@ -857,7 +857,6 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
     <script src="/assets/js/blox-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-groups.js') ?>"></script>
     <script src="/assets/js/blox-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-sources.js') ?>"></script>
-    <script src="/assets/js/blox-detail-scope.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-scope.js') ?>"></script>
     <script src="/assets/js/blox-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-conditions.js') ?>"></script>
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
@@ -1597,7 +1596,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                 // 发布中与保存中是两个动作：模板发布期间状态位要说"发布中…"，不能显示"保存中"
                 'templatePublishing' => __('blox_template_publishing'),
                 'workspaceRestored' => __('blox_workspace_restored'),
-                'articleScopeLocked' => __('blox_article_scope_locked'),
                 'conditionSaveBlocked' => __('blox_cond_save_blocked'),
                 'saveStatusClean' => __('blox_save_status_clean'),
                 'saveStatusPublished' => __('blox_save_status_published'),
@@ -6243,56 +6241,43 @@ $canManageBloxDesign = hasPermission('blox_global');
                 recovery.queue(data, this.baseRevision);
             },
 
-            // ---- 文章详情模板条件（v2）：面板只操作 include 规则，不要求在模板里手写 JSON ----
-            articleScopeInclude() {
-                var scope = this.docSettings && this.docSettings.detail_template ? this.docSettings.detail_template : {};
-                return Array.isArray(scope.include) ? scope.include : [];
-            },
-
-            articleScopeMode() {
-                var include = this.articleScopeInclude();
-                if (!include.length) return 'none';
-                return include[0] && include[0].kind === 'all' ? 'all' : 'item';
-            },
-
-            articleScopeIds() {
-                var rule = this.articleScopeInclude().find(function (item) { return item && item.kind === 'item'; });
-                return rule && Array.isArray(rule.ids) ? rule.ids.slice() : [];
-            },
-
-            articleScopeHasId(id) { return this.articleScopeIds().indexOf(Number(id)) !== -1; },
-
             /**
-             * 简单范围 UI 是否被锁定（TASK-005 A）：include 含简单控件无法无损表达的规则时锁定。
-             * 仅限"改范围"这一动作；保存页面其它改动不受影响。
-             */
-            articleScopeLocked() {
-                return window.BloxDetailScope
-                    ? !window.BloxDetailScope.canEditWithSimpleUi(this.docSettings.detail_template)
-                    : false;
-            },
-
-            /**
-             * 面板首次展开时生成初始行并记基线。
+             * 面板行的装载入口。
              * - 文档已声明 v2：直接用（面板行与 v2 无损往返）；
              * - 只有 v1：做**只读适配**（产品取 product_template，其它取 detail_template 的简化 include），
              *   使 v1 模板打开面板不是空白、加一条条件也不会丢掉原有范围；适配**不改文档**，
              *   要到用户确实改了条件、保存时才写成 v2。
+             * 已保存基线只在首次打开时从文档建立，之后只由保存成功回执推进：撤销/恢复稿换回来的是
+             * "当前文档"，不是服务器上的版本，拿它当基线会把与服务器不同的内容判成"未修改"。
              */
             conditionEnsure() {
                 if (this.conditionRows !== null) return;
                 var settings = (this.docSettings && typeof this.docSettings === 'object') ? this.docSettings : {};
                 var stored = settings.detail_template || {};
-                this.conditionDocumentHadScopeKey = Object.prototype.hasOwnProperty.call(settings, 'detail_template');
-                this.conditionOriginalScope = stored;
-                this.conditionDocumentHadV2 = !!(stored && typeof stored === 'object' && Number(stored.version) === 2);
-                var base = this.conditionDocumentHadV2 ? stored : this.conditionLegacyBase(stored);
-                this.conditionBase = base;
-                this.conditionRows = window.BloxDetailConditions.rowsFromScope(base);
-                this.conditionBaseline = base;
-                // TASK-007：优先级跟着基线初始化（非法/缺失按 0），此后由控件维护
-                this.conditionPriority = window.BloxDetailConditions.isValidPriority(base && base.priority, this.conditionMaxPriority)
-                    ? Number(base.priority) : 0;
+                var storedIsV2 = !!(stored && typeof stored === 'object' && Number(stored.version) === 2);
+                var view = storedIsV2 ? stored : this.conditionLegacyBase(stored);
+                if (this.conditionBaseline === null) {
+                    this.conditionDocumentHadScopeKey = Object.prototype.hasOwnProperty.call(settings, 'detail_template');
+                    this.conditionOriginalScope = stored;
+                    this.conditionDocumentHadV2 = storedIsV2;
+                    this.conditionBase = view;
+                    this.conditionBaseline = view;
+                }
+                this.conditionRows = window.BloxDetailConditions.rowsFromScope(view);
+                // TASK-007：优先级跟着文档初始化；编辑中途留下的非法输入原样带回（不悄悄变成 0）
+                this.conditionPriority = window.BloxDetailConditions.priorityInput(view, this.conditionMaxPriority);
+            },
+
+            /** 撤销/重做、恢复稿替换了文档设置：面板行按新文档重建（保留已保存基线），旧诊断作废。 */
+            conditionReloadFromDocument() {
+                if (this.conditionContentType === '') return;
+                this.conditionRows = null;
+                this.conditionEnsure();
+                this.conditionDiagnosisSeq++;
+                this.conditionDiagnosis = null;
+                this.conditionDiagnosisKey = '';
+                this.conditionDiagnosisError = '';
+                this.conditionDiagnosisBusy = false;
             },
 
             /** 打开时的只读基线：v1 产品走 product_template；其它按 detail_template 的简化 include 视图读。 */
@@ -6339,7 +6324,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (this.conditionContentType === '') return;
                 this.conditionEnsure();
                 if (!this.docSettings || typeof this.docSettings !== 'object') this.docSettings = {};
-                if (this.conditionDirty()) {
+                if (this.conditionProblems().length) {
+                    // 改到一半的非法状态也要进文档：否则文档与已保存值相同，历史、未保存标记、离开保护与
+                    // 恢复稿都会当它没改过。这份投影不会被提交——保存/发布先被 conditionSubmitState() 拦下。
+                    this.docSettings.detail_template = window.BloxDetailConditions.editingScope(
+                        this.conditionRows, this.conditionScopeBase(), this.conditionPriority
+                    );
+                } else if (this.conditionDirty()) {
                     this.docSettings.detail_template = this.conditionScope();
                 } else if (this.conditionDocumentHadScopeKey) {
                     this.docSettings.detail_template = this.conditionOriginalScope;
@@ -6470,16 +6461,21 @@ $canManageBloxDesign = hasPermission('blox_global');
                     });
             },
 
-            conditionScope() {
-                this.conditionEnsure();
+            /** 面板不编辑、但提交必须原样保留的字段（来自已保存基线，避免 source/lang 漂移）。 */
+            conditionScopeBase() {
                 var base = this.conditionBase || {};
-                return window.BloxDetailConditions.scopeFromRows(this.conditionRows, {
+                return {
                     content_type: this.conditionContentType,
                     lang: base.lang || this.conditionLang,
                     source: base.source || 'custom',
                     // TASK-007：优先级取面板当前值（控件维护），不再回读文档
                     priority: Number(this.conditionPriority) || 0,
-                });
+                };
+            },
+
+            conditionScope() {
+                this.conditionEnsure();
+                return window.BloxDetailConditions.scopeFromRows(this.conditionRows, this.conditionScopeBase());
             },
 
             /**
@@ -6500,14 +6496,21 @@ $canManageBloxDesign = hasPermission('blox_global');
              * 把条件字段写进保存/发布请求体。
              * @return string 'invalid' | 'valid' | 'unchanged'
              */
-            applyConditionSubmit(body) {
-                var state = this.conditionSubmitState();
-                if (state === 'valid') {
-                    var scope = this.conditionScope();
-                    body.set('conditions_json', JSON.stringify(scope));
-                    this._submittedConditionScope = scope;
+            applyConditionSubmit(body, captured) {
+                var submission = captured || this.conditionSubmission();
+                // 每次提交先清空：失败的提交或走旧路径的提交，绝不能在下一次成功回执里被当成"刚保存的条件"
+                this._submittedConditionScope = null;
+                if (submission.state === 'valid') {
+                    body.set('conditions_json', JSON.stringify(submission.scope));
+                    this._submittedConditionScope = submission.scope;
                 }
-                return state;
+                return submission.state;
+            },
+
+            /** 与文档载荷同一时刻取下的条件提交（发布重试时沿用，不能换成重试那一刻的面板）。 */
+            conditionSubmission() {
+                var state = this.conditionSubmitState();
+                return { state: state, scope: state === 'valid' ? this.conditionScope() : null };
             },
 
             /** 非法条件被拦下时，把面板摊开并滚到可见处——原因必须能看见才谈得上修。 */
@@ -6526,34 +6529,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.$nextTick(() => this.revealConditionPanel());
             },
 
-            /** 模式切换只重写 include；'none' 表示保存草稿但不应用（不等于全站）。 */
-            setArticleScopeMode(mode) {
-                // TASK-005 A：简单控件整体替换 include，含按栏目等规则时会静默删除 → 入口拦截
-                if (this.articleScopeLocked()) { this.toast(this.uiText.articleScopeLocked); return; }
-                var scope = this.docSettings.detail_template || {};
-                if (mode === 'all') scope.include = [{ kind: 'all' }];
-                else if (mode === 'item') scope.include = [{ kind: 'item', ids: this.articleScopeIds() }];
-                else scope.include = [];
-                this.docSettings.detail_template = scope;
-                this.$nextTick(() => this.markDocumentSettingsChanged());
-                this.schedulePreview();
-            },
-
-            toggleArticleScopeId(id, checked) {
-                // TASK-005 A：同上——勾选也会整体替换 include
-                if (this.articleScopeLocked()) { this.toast(this.uiText.articleScopeLocked); return; }
-                var ids = this.articleScopeIds();
-                var value = Number(id);
-                var at = ids.indexOf(value);
-                if (checked && at === -1) ids.push(value);
-                if (!checked && at !== -1) ids.splice(at, 1);
-                var scope = this.docSettings.detail_template || {};
-                scope.include = [{ kind: 'item', ids: ids }];
-                this.docSettings.detail_template = scope;
-                this.$nextTick(() => this.markDocumentSettingsChanged());
-                this.schedulePreview();
-            },
-
             markDocumentSettingsChanged() {
                 if (this._ready && !this._historyApplying) this.queueHistory(this.historyData());
                 this.dirty = this.documentData() !== this._savedDocumentSnapshot;
@@ -6566,6 +6541,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     var document = JSON.parse(this.recoveryDraft.data);
                     if (!document || !Array.isArray(document.sections)) throw new Error("invalid recovery document");
                     this.docSettings = document.settings && typeof document.settings === "object" ? document.settings : {};
+                    this.conditionReloadFromDocument();
                     this.normalizeHeaderSettings();
                     this.sections = document.sections;
                     this.normalizeIds();
@@ -6801,6 +6777,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (typeof snapshot.settings === "string") {
                     var settings = JSON.parse(snapshot.settings);
                     this.docSettings = settings && typeof settings === "object" ? settings : {};
+                    this.conditionReloadFromDocument();
                     this.normalizeHeaderSettings();
                 }
                 this.restoreHistorySelection(snapshot.selection);
@@ -10011,6 +9988,12 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.flushHistory(true);
                 var savedData = this.historyData();
                 var payload = this.documentData();
+                var condition = this.conditionSubmission();
+                if (condition.state === 'invalid') {
+                    // 先拦再问：非法条件不应先弹"确认发布"再告诉用户发不了
+                    this.blockForInvalidConditions();
+                    return;
+                }
                 var replaceThemeArea = "<?php echo e($replaceThemeAreaOnPublish); ?>";
                 var publishConfirm = replaceThemeArea
                     ? this.uiText.tplPublishReplaceConfirm
@@ -10019,7 +10002,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.saving = true;
                 // 发布是独立动作：按钮显示"发布中…"，不能和"保存中"共用同一个态
                 this.templateActionBusy = true;
-                this.submitTemplatePublish(false, payload, savedData)
+                this.submitTemplatePublish(false, payload, savedData, condition)
                     .catch(function () {
                         // 请求失败必须落到状态位（红），不能只弹一条 toast 就当没事
                         self.saveOutcome = "failed";
@@ -10029,7 +10012,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     .finally(function () { self.templateActionBusy = false; self.saving = false; });
             },
 
-            submitTemplatePublish(confirmConflict, payload, savedData) {
+            submitTemplatePublish(confirmConflict, payload, savedData, condition) {
                 var self = this;
                 var body = new URLSearchParams();
                 body.set("action", "publish");
@@ -10037,7 +10020,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 body.set("blocks_data", payload);
                 <?php if ($templateType === 'product-detail' || $templateType === 'article-detail'): ?>
                 <?php // TASK-006：条件交由完整面板后不再发送 ui_scope（两者互斥）；仅 v1 文档且未改条件时保留旧路径 ?>
-                var _condState = self.applyConditionSubmit(body);
+                var _condState = self.applyConditionSubmit(body, condition);
                 if (_condState === 'invalid') {
                     // R01 P1：非法条件不发布。调用方链在 Promise 上（.catch/.finally 负责复位按钮态），
                     // 所以这里必须返回 resolved Promise 而不是裸 return。
@@ -10062,7 +10045,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                                 return;
                             }
                             if (!confirmConflict && window.confirm(res.msg || self.uiText.tplPublishConfirm)) {
-                                return self.submitTemplatePublish(true, payload, savedData);
+                                return self.submitTemplatePublish(true, payload, savedData, condition);
                             }
                             return;
                         }

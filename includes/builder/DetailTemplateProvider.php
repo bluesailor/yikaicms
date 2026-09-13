@@ -153,6 +153,14 @@ final class DetailTemplateProvider
         if ($winnerId === 0) {
             return 'no_match';
         }
+        // A tied draft remains conflicted even when the ID tie-break selects another template.
+        if (($result['reason'] ?? '') === DetailTemplateResolver::REASON_CONFLICTED) {
+            foreach ($result['conflicts'] ?? [] as $conflict) {
+                if ((int) ($conflict['template_id'] ?? 0) === $templateId) {
+                    return 'conflicted';
+                }
+            }
+        }
         if ($winnerId !== $templateId) {
             return 'lost';
         }

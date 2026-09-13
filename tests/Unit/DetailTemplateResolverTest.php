@@ -340,6 +340,7 @@ final class DetailTemplateResolverTest extends TestCase
         $this->assertSame('product', $decoded['settings']['detail_template']['content_type']);
         $this->assertTrue($decoded['settings']['detail_template']['include'][0]['include_children']);
         $this->assertSame([99], $decoded['settings']['detail_template']['exclude'][0]['ids']);
+        $this->assertArrayNotHasKey('legacy', $decoded['settings']['detail_template'], '内部标记不落盘');
 
         // 畸形条件经管线后是「不可用作用域」，不是全站
         $bad = BloxDocumentPipeline::normalizeDocSettings(['detail_template' => ['content_type' => 'nope', 'include' => [['kind' => 'all']]]]);

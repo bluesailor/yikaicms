@@ -199,6 +199,8 @@ final class BloxDocumentPipeline
         // 新键走统一判定层；此处不做迁移，避免「保存即改写旧规则」。
         if (array_key_exists('detail_template', $settings)) {
             $clean['detail_template'] = DetailTemplateResolver::normalizeScope($settings['detail_template']);
+            // legacy 是 resolver 内部标记（只由 legacyScope() 设置），落盘会让库内形状与提交的条件不一致
+            unset($clean['detail_template']['legacy']);
         }
         foreach (['page_header_hidden', 'page_footer_hidden', 'page_breadcrumb_hidden', 'page_title_hidden', 'page_sidebar_hidden'] as $key) {
             if (array_key_exists($key, $settings)) {

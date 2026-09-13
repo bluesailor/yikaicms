@@ -78,12 +78,11 @@
             (rows && Array.isArray(rows[side]) ? rows[side] : []).forEach(function (row) {
                 if (!row) return;
                 if (row.kind === 'all') {
-                    scope[side].push({ kind: 'all' });
+                    // 与服务端 DetailConditionInput 归一后的形状一致：保存后客户端快照＝库内内容
+                    scope[side].push({ kind: 'all', ids: [], include_children: false });
                     return;
                 }
-                var ids = (Array.isArray(row.ids) ? row.ids : []).map(Number)
-                    .filter(function (id) { return Number.isInteger(id) && id > 0; });
-                ids = ids.filter(function (id, index) { return ids.indexOf(id) === index; });
+                var ids = cleanIds(row.ids);
                 if (!ids.length) return;
                 scope[side].push({
                     kind: row.kind,
@@ -96,6 +95,57 @@
         return scope;
     }
 
+    /** 行内目标 id → 去重的正整数列表（保持首次出现顺序）。 */
+    function cleanIds(raw) {
+        var ids = (Array.isArray(raw) ? raw : []).map(Number)
+            .filter(function (id) { return Number.isInteger(id) && id > 0; });
+        return ids.filter(function (id, index) { return ids.indexOf(id) === index; });
+    }
+
+    /**
+     * 编辑中的文档投影：面板存在问题（空目标行、非法优先级）时写进文档设置的形状。
+     * 与 scopeFromRows 不同，它**保留**空目标行和原始优先级输入——否则文档与已保存值相同，
+     * 历史记录、未保存标记、离开保护与恢复稿都会把"改到一半"当成"没改过"。
+     * 这份投影永远不会被提交：保存与发布先经 problems() 在客户端拦下，服务端另有严格校验。
+     */
+    function editingScope(rows, base, priority) {
+        var origin = base || {};
+        var scope = {
+            version: 2,
+            content_type: origin.content_type,
+            lang: origin.lang,
+            source: origin.source,
+            priority: priority === undefined || priority === null ? 0 : priority,
+            include: [],
+            exclude: [],
+        };
+        ['include', 'exclude'].forEach(function (side) {
+            (rows && Array.isArray(rows[side]) ? rows[side] : []).forEach(function (row) {
+                if (!row) return;
+                if (row.kind === 'all') {
+                    scope[side].push({ kind: 'all', ids: [], include_children: false });
+                    return;
+                }
+                scope[side].push({
+                    kind: row.kind,
+                    ids: cleanIds(row.ids),
+                    include_children: row.kind === 'category' && row.include_children === true,
+                });
+            });
+        });
+        return scope;
+    }
+
+    /**
+     * 文档里的优先级 → 面板输入值。缺失按 0；合法值转数字；
+     * 编辑中途留下的非法输入（空串、越界、小数）原样带回，不能被悄悄改写成 0 而看起来"合法"。
+     */
+    function priorityInput(scope, maxPriority) {
+        var value = scope && typeof scope === 'object' ? scope.priority : undefined;
+        if (value === undefined || value === null) return 0;
+        return isValidPriority(value, maxPriority) ? Number(value) : value;
+    }
+
     /**
      * 归一成"面板负责的字段"：include/exclude（统一成行模型形状）＋ priority。
      * 为什么要归一：基线来自服务端归一后的作用域（`all` 规则可能带或不带 ids/子级、priority 可能是数字或数字串），
@@ -106,12 +156,24 @@
     function panelState(input) {
         var rows = rowsFromScope(input);
         var value = input && typeof input === 'object' ? input : {};
-        var priority = Number(value.priority);
         return {
             include: rows.include,
             exclude: rows.exclude,
-            priority: isFinite(priority) && Math.floor(priority) === priority ? priority : 0,
+            priority: comparablePriority(value.priority),
         };
+    }
+
+    /**
+     * 可比较的优先级：缺失＝0，整数值（含数字串）转数字；空串等非整数输入保留为带标记的字符串。
+     * 若把空串也当成 0，基线为 0 时"清空优先级"会被判成没改过，保存却又被拦下——两边自相矛盾。
+     */
+    function comparablePriority(raw) {
+        if (raw === undefined || raw === null) return 0;
+        if (raw !== '' && typeof raw !== 'boolean') {
+            var number = Number(raw);
+            if (isFinite(number) && Math.floor(number) === number) return number;
+        }
+        return 'invalid:' + String(raw);
     }
 
     /** 面板状态的签名（形状统一，不依赖服务端是否补齐字段）。 */
@@ -153,6 +215,8 @@
         rowsFromScope: rowsFromScope,
         legacyProductScope: legacyProductScope,
         scopeFromRows: scopeFromRows,
+        editingScope: editingScope,
+        priorityInput: priorityInput,
         panelState: panelState,
         signature: signature,
         changed: changed,

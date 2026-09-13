@@ -96,7 +96,12 @@ test('diagnosis of a product content uses the real resolver and stays read-only'
     await expect(page.getByTestId('blox-diagnose-reason')).not.toContainText('按分类/栏目命中');
     await expect(page.getByTestId('blox-diagnose-stale')).toBeHidden();
     await expect(page.getByTestId('blox-diagnose-verdict')).not.toContainText('会命中本模板');
-    await expect(page.getByTestId('blox-diagnose-winner-none')).toBeVisible();
+    // 本模板被排除后可能无人命中，也可能由站点上其它已发布模板接手：两者都说明排除生效。
+    // 不能假设测试站没有其它候选（演示数据或别的用例都可能留下已发布模板）。
+    await expect.poll(async () => {
+      if (await page.getByTestId('blox-diagnose-winner-none').isVisible()) return 'none';
+      return ((await page.getByTestId('blox-diagnose-winner-id').textContent()) || '').trim();
+    }).not.toBe(String(id));
   } finally {
     if (id) fixture('restore', id);
   }
