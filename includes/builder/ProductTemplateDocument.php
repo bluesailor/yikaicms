@@ -124,10 +124,101 @@ final class ProductTemplateDocument
     }
 
     /**
+     * 该文档是否已经使用 v2 详情条件（产品侧的权威契约）。
+     *
+     * TASK-002-R02：渲染侧（DetailTemplateProvider）v2 优先，但后台写入此前只改 v1，
+     * 于是"切换 native / 改范围"对 v2 文档不生效。读写都必须先看这里。
+     *
+     * @param array<string,mixed> $document
+     */
+    public static function hasDetailTemplate(array $document): bool
+    {
+        $raw = $document['settings']['detail_template'] ?? null;
+        return is_array($raw) && (int) ($raw['version'] ?? 0) === DetailTemplateResolver::VERSION;
+    }
+
+    /**
+     * 权威作用域（v1 形态视图）：v2 存在时以 v2 为准，否则读 v1。
+     *
+     * 渲染、后台展示、后台写入三处都必须经过它，避免"渲染看 v2、后台改 v1"的分叉。
+     * v2 的 category 规则无法用 v1 形态表达，这里只映射 item/all（展示用途），写入时另见 applyUiScope()。
+     *
+     * @param array<string,mixed> $document
+     * @return array{mode:string,ids:list<int>,lang:string,source?:string}
+     */
+    public static function authoritativeScope(array $document): array
+    {
+        if (!self::hasDetailTemplate($document)) {
+            return self::normalizeScope($document['settings']['product_template'] ?? null);
+        }
+
+        $v2 = DetailTemplateResolver::normalizeScope($document['settings']['detail_template']);
+        $mode = 'selected';
+        $ids = [];
+        foreach ($v2['include'] as $rule) {
+            $kind = (string) ($rule['kind'] ?? '');
+            if ($kind === 'all') {
+                $mode = 'all';
+                $ids = [];
+                break;
+            }
+            if ($kind === 'item') {
+                foreach ((array) ($rule['ids'] ?? []) as $id) {
+                    $ids[] = (int) $id;
+                }
+            }
+        }
+
+        $scope = ['mode' => $mode, 'ids' => array_values(array_unique($ids)), 'lang' => (string) $v2['lang']];
+        if ($v2['source'] === DetailTemplateResolver::SOURCE_NATIVE) $scope['source'] = 'native';
+        return $scope;
+    }
+
+    /**
+     * 把后台 UI 的 v1 形态作用域写回文档：v2 存在时写进 v2（保留其中的 category 规则），
+     * 否则维持既有 v1 行为（历史模板不被改写）。
+     *
+     * @param array<string,mixed> $document
+     * @param mixed $uiScope 后台表单来源（可能脏数据，经 normalizeScope）
+     * @return array<string,mixed>
+     */
+    public static function applyUiScope(array $document, mixed $uiScope): array
+    {
+        if (!is_array($document['settings'] ?? null)) $document['settings'] = [];
+        $scope = self::normalizeScope($uiScope);
+
+        if (!self::hasDetailTemplate($document)) {
+            $document['settings']['product_template'] = $scope;
+            return $document;
+        }
+
+        $v2 = DetailTemplateResolver::normalizeScope($document['settings']['detail_template']);
+        // 只替换 item/all 规则，保留 category 等 UI 表达不了的规则
+        $kept = [];
+        foreach ($v2['include'] as $rule) {
+            if (in_array((string) ($rule['kind'] ?? ''), ['item', 'all'], true)) continue;
+            $kept[] = $rule;
+        }
+        $include = $scope['mode'] === 'all'
+            ? [['kind' => 'all', 'ids' => [], 'include_children' => false]]
+            : [['kind' => 'item', 'ids' => array_values(array_map('intval', $scope['ids'])), 'include_children' => false]];
+        $v2['include'] = array_merge($include, $kept);
+        $v2['lang'] = $scope['lang'];
+        $v2['source'] = ($scope['source'] ?? '') === 'native'
+            ? DetailTemplateResolver::SOURCE_NATIVE
+            : DetailTemplateResolver::SOURCE_CUSTOM;
+        $document['settings']['detail_template'] = $v2;
+        // v1 镜像同步，避免后台/旧读取方看到过期值；但没有 v1 的文档不主动创建
+        if (isset($document['settings']['product_template'])) {
+            $document['settings']['product_template'] = $scope;
+        }
+        return $document;
+    }
+
+    /**
      * v1 语义判定：命中模板若声明 source=native，表示这一条规则改用系统默认。
      *
-     * 统一判定入口（DetailTemplateProvider）已内含同样语义，产品侧不再调用它；
-     * 保留是因为它是 v1 规则的只读适配，测试与历史调用仍依赖。
+     * v2 文档同样适用（source 存在 v2 里）；保留该入口是因为测试与历史调用仍依赖。
      *
      * @psalm-suppress PossiblyUnusedMethod v1 只读适配，测试覆盖中
      */
@@ -135,7 +226,7 @@ final class ProductTemplateDocument
     {
         if ($template === null) return true;
         $document = BloxDocumentPipeline::decode((string) ($template['published_data'] ?? ''));
-        return (self::normalizeScope($document['settings']['product_template'] ?? null)['source'] ?? '') === 'native';
+        return (self::authoritativeScope($document)['source'] ?? '') === 'native';
     }
 
     /** Switch only the published output source, retaining its layout and scope. */
@@ -143,10 +234,11 @@ final class ProductTemplateDocument
     {
         if (!in_array($source, ['native', 'custom'], true)) throw new InvalidArgumentException(__('blox_bad_request'));
         $document = BloxDocumentPipeline::decode($json);
-        $scope = self::normalizeScope($document['settings']['product_template'] ?? null);
+        $scope = self::authoritativeScope($document);
         unset($scope['source']);
         if ($source === 'native') $scope['source'] = 'native';
-        $document['settings']['product_template'] = $scope;
+        // 写回权威契约：v2 文档写 v2，v1 文档写 v1（TASK-002-R02）
+        $document = self::applyUiScope($document, $scope);
         return json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 

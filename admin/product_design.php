@@ -99,7 +99,8 @@ require ROOT_PATH . '/admin/includes/header.php';
         $scope = null;
         if ($live !== null) {
             try {
-                $scope = ProductTemplateDocument::normalizeScope(BloxDocumentPipeline::decode((string) $live['published_data'])['settings']['product_template'] ?? null);
+                // TASK-002-R02：展示必须与渲染同源——v2 存在时以 v2 为准
+                $scope = ProductTemplateDocument::authoritativeScope(BloxDocumentPipeline::decode((string) $live['published_data']));
             } catch (Throwable) {
                 // Keep the editor and deactivate action reachable for a damaged document.
             }
