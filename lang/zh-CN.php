@@ -6699,4 +6699,7 @@ voltage|电压|220V',
     'blox_product_inquiry_preview' => '预览模式：此处不会提交真实询价',
     'blox_template_publish' => '发布模板',
     'blox_template_publishing' => '发布中…',
+    'blox_preview_content' => '预览内容',
+    'blox_editor_type_product_detail' => '产品详情模板',
+    'blox_editor_type_article_detail' => '文章详情模板',
 ];
