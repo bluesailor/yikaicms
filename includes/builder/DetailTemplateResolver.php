@@ -49,6 +49,8 @@ final class DetailTemplateResolver
     public const REASON_BINDING_TEMPLATE = 'binding_template';
     public const REASON_BINDING_NATIVE = 'binding_native';
     public const REASON_BINDING_INVALID = 'binding_invalid';
+    /** 命中的模板自身声明「输出系统默认」——终止决策，不再往下找另一套自定义布局。 */
+    public const REASON_TEMPLATE_NATIVE = 'template_native';
     public const REASON_SPECIFIC_ITEM = 'specific_item';
     public const REASON_SPECIFIC_CATEGORY = 'specific_category';
     public const REASON_TYPE_ALL = 'type_all';
@@ -290,6 +292,12 @@ final class DetailTemplateResolver
         $conflicts = [];
         $reason = $winner['reason'];
 
+        // 命中模板自身声明 native：终止决策（与 v1 的 usesNative() 一致），
+        // 不得回落到另一套自定义模板。
+        if (($winner['source'] ?? self::SOURCE_CUSTOM) === self::SOURCE_NATIVE) {
+            return self::result(null, self::SOURCE_NATIVE, self::REASON_TEMPLATE_NATIVE, $winner['level'], $winner['detail']);
+        }
+
         if (count($tied) > 1) {
             $allLegacy = true;
             foreach ($tied as $row) {
@@ -382,6 +390,7 @@ final class DetailTemplateResolver
             'level' => $level,
             'detail' => $detail,
             'priority' => (int) $scope['priority'],
+            'source' => (string) $scope['source'],
             'legacy' => ($scope['legacy'] ?? false) === true,
             'matched_include' => $hits,
             'matched_exclude' => [],

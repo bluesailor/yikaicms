@@ -152,11 +152,25 @@ final class BloxTemplateModel extends Model
     /** @return list<array<string,mixed>> */
     public function publishedProductTemplates(): array
     {
+        return $this->publishedDetailTemplates('product-detail');
+    }
+
+    /**
+     * 已发布的详情模板（product-detail / article-detail）。
+     * 与产品模板共用同一取数口径：status=1 且已发布，ID 倒序（兜底确定性）。
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function publishedDetailTemplates(string $type): array
+    {
+        if (!in_array($type, ['product-detail', 'article-detail'], true)) {
+            return [];
+        }
         if (!db()->tableExists('blox_templates')) return [];
         return db()->fetchAll(
             'SELECT id,type,status,published_data FROM ' . DB_PREFIX . 'blox_templates'
             . ' WHERE type = ? AND status = 1 AND published_data IS NOT NULL ORDER BY id DESC',
-            ['product-detail']
+            [$type]
         );
     }
 
@@ -274,20 +288,34 @@ final class BloxTemplateModel extends Model
 
     public function switchProductSource(int $id, string $source, string $expectedHash): void
     {
+        $this->switchDetailSource($id, 'product-detail', $source, $expectedHash);
+    }
+
+    /**
+     * 切换详情模板的输出源（native/custom），保留布局与作用域。
+     * 用 expectedHash 做乐观并发：内容被人改过就报冲突，不静默覆盖。
+     */
+    public function switchDetailSource(int $id, string $type, string $source, string $expectedHash): void
+    {
+        if (!in_array($type, ['product-detail', 'article-detail'], true)) {
+            throw new RuntimeException(__('blox_tpl_not_found'));
+        }
         $row = $this->findForExport($id);
-        if (!$row || $row['type'] !== 'product-detail' || (int) $row['status'] !== 1) {
+        if (!$row || $row['type'] !== $type || (int) $row['status'] !== 1) {
             throw new RuntimeException(__('blox_tpl_not_found'));
         }
         $previous = (string) ($row['published_data'] ?? '');
         if (!hash_equals(hash('sha256', $previous), $expectedHash)) {
             throw new RuntimeException(__('blox_save_conflict'));
         }
-        $next = ProductTemplateDocument::changeSource($previous, $source);
+        $next = $type === 'article-detail'
+            ? ArticleTemplateDocument::changeSource($previous, $source)
+            : ProductTemplateDocument::changeSource($previous, $source);
         if ($previous === $next) return;
         $affected = db()->execute(
             'UPDATE ' . DB_PREFIX . 'blox_templates SET published_data = ?, updated_at = ?'
             . ' WHERE id = ? AND type = ? AND status = 1 AND published_data = ?',
-            [$next, time(), $id, 'product-detail', $previous]
+            [$next, time(), $id, $type, $previous]
         );
         if ($affected !== 1) throw new RuntimeException(__('blox_save_conflict'));
     }
