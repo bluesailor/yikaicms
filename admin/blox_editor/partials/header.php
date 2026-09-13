@@ -38,15 +38,24 @@ declare(strict_types=1);
             </span>
             <span class="blox-header-page min-w-0 text-gray-400 text-sm truncate">/ <?php echo e($isHomeBlox ? __('blox_home_draft') : $page['name']); ?></span>
             <?php
-            // 详情模板要在顶栏说清"这是哪种模板"：名字来自 BloxAreaTemplatePresets::displayName()
-            // （真实模板名，不是样本标题），这里补上真实编辑类型徽标。
-            // 窄屏隐藏（hidden sm:inline-flex）：小屏优先保住模板名与右侧动作按钮，不挤压不覆盖。
+            // 顶栏要说清"我在编辑哪种对象"（TASK-003 A）：名字来自 BloxAreaTemplatePresets::displayName()
+            // （真实模板名，不是样本标题）。
+            // 覆盖范围与"避免重复徽标"的取舍：
+            // - 产品/文章详情模板、弹窗、单页（模板或页面编辑器）→ 本徽标；
+            // - 页头/页脚 → 已有的区域语言+上下文徽标（blox-area-language-context）已说明类型，不再叠加；
+            // - 首页 → 名称位已写「首页草稿」，同样不叠加。
+            // 窄屏隐藏（hidden sm:inline-flex）：小屏优先保住名称与右侧动作按钮，不挤压不覆盖。
             $editorTypeBadge = '';
-            if ($templateId && in_array($templateType, ['product-detail', 'article-detail'], true)) {
-                // 用"模板"而非类型页名：作者在编辑器里，要一眼看出自己在编辑模板
-                $editorTypeBadge = $templateType === 'product-detail'
-                    ? __('blox_editor_type_product_detail')
-                    : __('blox_editor_type_article_detail');
+            if ($templateId) {
+                $editorTypeBadge = match ($templateType) {
+                    'product-detail' => __('blox_editor_type_product_detail'),
+                    'article-detail' => __('blox_editor_type_article_detail'),
+                    'popup' => __('blox_tpl_type_popup'),
+                    'page' => __('blox_editor_type_page'),
+                    default => '',
+                };
+            } elseif (!$isHomeBlox && $id > 0) {
+                $editorTypeBadge = __('blox_editor_type_page');
             }
             ?>
             <?php if ($editorTypeBadge !== ''): ?>
