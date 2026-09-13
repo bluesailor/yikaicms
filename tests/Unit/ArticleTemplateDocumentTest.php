@@ -210,6 +210,18 @@ final class ArticleTemplateDocumentTest extends TestCase
         });
     }
 
+    public function testSupportsContentTypeOnlyForArticle(): void
+    {
+        // 「按内容真实类型接入」的唯一判定点：案例/下载/招聘/产品/单页一律不得被接管
+        $this->assertTrue(ArticleTemplateDocument::supportsContentType('article'));
+        foreach (['case', 'download', 'job', 'product', 'page', 'list', '', 'Article', null, 123, ['article']] as $type) {
+            $this->assertFalse(
+                ArticleTemplateDocument::supportsContentType($type),
+                '非文章类型不得套用文章模板：' . json_encode($type)
+            );
+        }
+    }
+
     public function testPaletteVisibilityIsArticleTemplateOnly(): void
     {
         $element = new ArticleFieldElement('title');
