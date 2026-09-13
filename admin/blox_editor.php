@@ -9602,6 +9602,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 body.set("action", "publish");
                 body.set("id", "<?php echo (int) $templateId; ?>");
                 body.set("blocks_data", payload);
+                <?php if ($templateType === 'product-detail'): ?>body.set("ui_scope", "1");<?php endif; ?>
                 body.set("base_revision", this.baseRevision);
                 body.set("_token", this.csrf);
                 var replaceThemeArea = "<?php echo e($replaceThemeAreaOnPublish); ?>";
@@ -9813,6 +9814,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 body.set("action", "save_draft");
                 body.set("id", "<?php echo (int) $templateId; ?>");
                 body.set("blocks_data", payload);
+                <?php if ($templateType === 'product-detail'): ?>body.set("ui_scope", "1");<?php endif; ?>
                 <?php elseif ($isHomeBlox): ?>
                 body.set("blocks_data", payload);
                 <?php else: ?>

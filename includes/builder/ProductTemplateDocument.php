@@ -178,14 +178,20 @@ final class ProductTemplateDocument
      * 把后台 UI 的 v1 形态作用域写回文档：v2 存在时写进 v2（保留其中的 category 规则），
      * 否则维持既有 v1 行为（历史模板不被改写）。
      *
+     * **缺省输入不等于"用户清空"**（TASK-002-R03）：纯 v2 文档没有 v1 镜像，若把
+     * `settings.product_template ?? []` 当作用户意图写回，会把合法的 v2 include/lang 覆盖成空值，
+     * 保存后模板直接失去匹配能力。因此 null / 空数组 / 缺 lang（无法匹配任何内容）一律原样返回。
+     *
      * @param array<string,mixed> $document
-     * @param mixed $uiScope 后台表单来源（可能脏数据，经 normalizeScope）
+     * @param mixed $uiScope 后台表单来源（可能脏数据或缺失，经 normalizeScope）
      * @return array<string,mixed>
      */
     public static function applyUiScope(array $document, mixed $uiScope): array
     {
         if (!is_array($document['settings'] ?? null)) $document['settings'] = [];
+        if (!is_array($uiScope) || $uiScope === []) return $document;
         $scope = self::normalizeScope($uiScope);
+        if ($scope['lang'] === '') return $document;   // 没有语言的作用域匹配不到任何内容，不写
 
         if (!self::hasDetailTemplate($document)) {
             $document['settings']['product_template'] = $scope;
@@ -229,16 +235,37 @@ final class ProductTemplateDocument
         return (self::authoritativeScope($document)['source'] ?? '') === 'native';
     }
 
-    /** Switch only the published output source, retaining its layout and scope. */
+    /**
+     * Switch only the published output source, retaining its layout and scope.
+     *
+     * 只改 source：v2 文档直接写 v2（作用域原样保留，作用域不可识别时也仍能切默认），
+     * 没有 v2 的历史模板维持原 v1 行为。不经过 applyUiScope——切默认不是"提交范围"。
+     */
     public static function changeSource(string $json, string $source): string
     {
         if (!in_array($source, ['native', 'custom'], true)) throw new InvalidArgumentException(__('blox_bad_request'));
         $document = BloxDocumentPipeline::decode($json);
-        $scope = self::authoritativeScope($document);
+
+        if (self::hasDetailTemplate($document)) {
+            $v2 = $document['settings']['detail_template'];
+            $v2['source'] = $source === 'native'
+                ? DetailTemplateResolver::SOURCE_NATIVE
+                : DetailTemplateResolver::SOURCE_CUSTOM;
+            $document['settings']['detail_template'] = $v2;
+            // 有 v1 镜像则同步，没有就不创建
+            if (isset($document['settings']['product_template'])) {
+                $mirror = self::normalizeScope($document['settings']['product_template']);
+                unset($mirror['source']);
+                if ($source === 'native') $mirror['source'] = 'native';
+                $document['settings']['product_template'] = $mirror;
+            }
+            return json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        }
+
+        $scope = self::normalizeScope($document['settings']['product_template'] ?? null);
         unset($scope['source']);
         if ($source === 'native') $scope['source'] = 'native';
-        // 写回权威契约：v2 文档写 v2，v1 文档写 v1（TASK-002-R02）
-        $document = self::applyUiScope($document, $scope);
+        $document['settings']['product_template'] = $scope;
         return json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 
