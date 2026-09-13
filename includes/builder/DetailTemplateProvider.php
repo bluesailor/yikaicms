@@ -66,6 +66,150 @@ final class DetailTemplateProvider
     }
 
     /**
+     * 诊断用候选（TASK-008，只读）：在已发布候选基础上**移除该模板自己的旧发布版本**，
+     * 再把待诊断草稿作为**同一个 id**、status=1 的候选注入——语义是"如果现在发布它"。
+     * 为什么不新建匹配算法：注入后仍交给同一个 `DetailTemplateResolver::resolve()` 排序与判定，
+     * 候选形状与 `candidates()` 完全一致，不复制任何命中逻辑。
+     *
+     * 草稿不可用（空 include / 类型语言不齐）时**不注入**，由调用方如实告知"当前条件不参与匹配"，
+     * 而不是让它以空条件参与后装作命中。
+     *
+     * @param array<string,mixed> $draftScope 已严格校验的 v2 作用域（或等价的归一化输入）
+     * @return list<array<string,mixed>>
+     */
+    public static function candidatesWithDraft(string $contentType, int $templateId, array $draftScope): array
+    {
+        return self::injectDraft(self::candidates($contentType), $contentType, $templateId, $draftScope);
+    }
+
+    /**
+     * 候选注入的**纯函数**部分（便于单测，不查库）：
+     * 移除同 id 的旧发布候选，草稿可用时以同 id、status=1 追加。
+     *
+     * @param list<array<string,mixed>> $candidates 既有候选（通常来自 candidates()）
+     * @return list<array<string,mixed>>
+     */
+    public static function injectDraft(array $candidates, string $contentType, int $templateId, array $draftScope): array
+    {
+        $kept = [];
+        foreach ($candidates as $candidate) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+            if ($templateId > 0 && (int) ($candidate['id'] ?? 0) === $templateId) {
+                continue;   // 自身旧发布版本退出：诊断的是"发布后的它"，不能与自己并列
+            }
+            $kept[] = $candidate;
+        }
+
+        $templateType = DetailTemplateResolver::templateTypeFor($contentType);
+        $scope = DetailTemplateResolver::normalizeScope($draftScope);
+        if ($templateId <= 0 || $templateType === '' || $scope['content_type'] !== $contentType
+            || !DetailTemplateResolver::scopeIsUsable($scope)) {
+            return $kept;
+        }
+
+        $kept[] = [
+            'id' => $templateId,
+            'type' => $templateType,
+            'status' => 1,
+            'lang' => (string) $scope['lang'],
+            'source' => (string) $scope['source'],
+            'priority' => (int) $scope['priority'],
+            'scope' => $scope,
+            'published_data' => '',
+        ];
+
+        return $kept;
+    }
+
+    /**
+     * 草稿能否参与匹配的前置条件（纯函数；用 resolver 的公共工具，不是命中判断）。
+     *
+     * @param array<string,mixed> $scope 已归一化的草稿作用域
+     * @param array<string,mixed> $context 已归一化的内容上下文
+     * @return string 'ok' | 'scope_unusable' | 'lang_mismatch'
+     */
+    public static function preconditionFor(array $scope, string $contentType, array $context): string
+    {
+        $usable = $scope['content_type'] === $contentType && DetailTemplateResolver::scopeIsUsable($scope);
+        if (!$usable) {
+            return 'scope_unusable';
+        }
+        return (string) $scope['lang'] === (string) ($context['lang'] ?? '') ? 'ok' : 'lang_mismatch';
+    }
+
+    /**
+     * 把 resolve() 的结果命名为可读判定（纯函数，只做比较，不重新判定）。
+     *
+     * @param array<string,mixed> $result DetailTemplateResolver::resolve() 的原始输出
+     */
+    public static function verdictFor(string $precondition, int $templateId, array $result): string
+    {
+        if ($precondition !== 'ok') {
+            return 'not_considered';
+        }
+        $winnerId = isset($result['template_id']) ? (int) $result['template_id'] : 0;
+        if ($winnerId === 0) {
+            return 'no_match';
+        }
+        if ($winnerId !== $templateId) {
+            return 'lost';
+        }
+        return (string) ($result['reason'] ?? '') === DetailTemplateResolver::REASON_CONFLICTED ? 'conflicted' : 'won';
+    }
+
+    /**
+     * 单条真实内容的只读诊断（TASK-008）。
+     *
+     * 结果里的 `winner` / `conflicts` 一律来自 `DetailTemplateResolver::resolve()` 的原样输出；
+     * 本地只额外做三件事：① 用 resolver 的公共工具判断草稿的**前置条件**（是否参与匹配）；
+     * ② 把 winner 与注入 id 的比较命名为 verdict；③ 回显上下文里已有的字段（不含标题正文）。
+     *
+     * @param array<string,mixed> $content 产品行或内容行
+     * @param array<string,mixed> $draftScope
+     * @return array<string,mixed>
+     */
+    public static function diagnoseFor(string $contentType, array $content, int $templateId, array $draftScope): array
+    {
+        $context = self::context($contentType, $content);
+        $scope = DetailTemplateResolver::normalizeScope($draftScope);
+        $result = DetailTemplateResolver::resolve(
+            self::candidatesWithDraft($contentType, $templateId, $draftScope),
+            $context
+        );
+
+        // 前置条件：决定了这份草稿有没有参与匹配（不是命中判断，命中判断只属于 resolve()）
+        $precondition = self::preconditionFor($scope, $contentType, $context);
+        $winnerId = isset($result['template_id']) ? (int) $result['template_id'] : 0;
+
+        return [
+            'template_id' => $templateId,
+            'template_type' => DetailTemplateResolver::templateTypeFor($contentType),
+            'content_type' => $contentType,
+            'content' => [
+                'id' => (int) ($context['content_id'] ?? 0),
+                'lang' => (string) ($context['lang'] ?? ''),
+                'categories' => $context['categories'] ?? [],
+            ],
+            'draft' => [
+                'injected' => $precondition === 'ok',
+                'precondition' => $precondition,
+                'lang' => (string) $scope['lang'],
+                'priority' => (int) $scope['priority'],
+            ],
+            'winner' => [
+                'template_id' => $winnerId > 0 ? $winnerId : null,
+                'source' => (string) ($result['source'] ?? ''),
+                'reason' => (string) ($result['reason'] ?? ''),
+                'specificity' => $result['specificity'] ?? ['level' => 0, 'detail' => 0],
+            ],
+            'conflicts' => $result['conflicts'] ?? [],
+            'verdict' => self::verdictFor($precondition, $templateId, $result),
+        ];
+    }
+
+    /**
      * 内容上下文。content_type 取 contents.type（product/article）；
      * categories 带「与内容的距离」（0=直属），供判定具体度。
      *

@@ -1960,6 +1960,50 @@ $canManageBloxDesign = hasPermission('blox_global');
             conditionOriginalScope: null,
             conditionDocumentHadV2: false,
             conditionDocumentHadScopeKey: false,
+            // TASK-008：只读诊断的本地状态（不写回草稿、不影响 dirty）
+            conditionDiagnosis: null,
+            conditionDiagnosisKey: '',
+            conditionDiagnosisSeq: 0,
+            conditionDiagnosisBusy: false,
+            conditionDiagnosisError: '',
+            conditionTemplateId: <?php echo (int) $templateId; ?>,
+            conditionDiagText: <?php echo json_encode([
+                'running' => __('blox_diag_running'),
+                'button' => __('blox_diag_button'),
+                'stale' => __('blox_diag_stale'),
+                'failed' => __('blox_diag_failed'),
+                'needContent' => __('blox_diag_need_content'),
+                'none' => __('blox_diag_none'),
+                'winnerLabel' => __('blox_diag_winner_label'),
+                'reasonLabel' => __('blox_diag_reason_label'),
+                'specificityLabel' => __('blox_diag_specificity_label'),
+                'priorityLabel' => __('blox_diag_priority_label'),
+                'conflictsLabel' => __('blox_diag_conflicts_label'),
+                'singleOnly' => __('blox_diag_single_only'),
+                'verdicts' => [
+                    'won' => __('blox_diag_verdict_won'),
+                    'conflicted' => __('blox_diag_verdict_conflicted'),
+                    'lost' => __('blox_diag_verdict_lost'),
+                    'no_match' => __('blox_diag_verdict_no_match'),
+                    'not_considered' => __('blox_diag_verdict_not_considered'),
+                ],
+                'preconditions' => [
+                    'scope_unusable' => __('blox_diag_precondition_scope_unusable'),
+                    'lang_mismatch' => __('blox_diag_precondition_lang_mismatch'),
+                ],
+                // 原因码一律走译文，界面不出现裸枚举（任务书：UI 翻译原因）
+                'reasons' => [
+                    DetailTemplateResolver::REASON_BINDING_TEMPLATE => __('blox_diag_reason_binding_template'),
+                    DetailTemplateResolver::REASON_BINDING_NATIVE => __('blox_diag_reason_binding_native'),
+                    DetailTemplateResolver::REASON_BINDING_INVALID => __('blox_diag_reason_binding_invalid'),
+                    DetailTemplateResolver::REASON_TEMPLATE_NATIVE => __('blox_diag_reason_template_native'),
+                    DetailTemplateResolver::REASON_SPECIFIC_ITEM => __('blox_diag_reason_specific_item'),
+                    DetailTemplateResolver::REASON_SPECIFIC_CATEGORY => __('blox_diag_reason_specific_category'),
+                    DetailTemplateResolver::REASON_TYPE_ALL => __('blox_diag_reason_type_all'),
+                    DetailTemplateResolver::REASON_NO_CANDIDATE => __('blox_diag_reason_no_candidate'),
+                    DetailTemplateResolver::REASON_CONFLICTED => __('blox_diag_reason_conflicted'),
+                ],
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             styleCommonSearchText: <?php echo json_encode(implode(' ', [__('blox_style_group_general'), __('blox_spacing'), __('blox_visible_devices')]), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             styleGroupLabels: <?php echo json_encode([
                 'general' => __('blox_style_group_general'),
@@ -6339,6 +6383,91 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.conditionEnsure();
                 this.conditionPriority = value;
                 this.syncConditionDocument();
+            },
+
+            // ---- TASK-008：单条真实内容的只读诊断（不写库、不写回草稿、不影响 dirty） ----
+
+            /** 诊断对象＝编辑器上方"预览内容"选中的那条（没有选择就不诊断）。 */
+            conditionDiagnoseContentId() {
+                var raw = this.conditionContentType === 'product' ? this.productPreviewId : this.articlePreviewId;
+                return Number(raw) > 0 ? Number(raw) : 0;
+            },
+
+            /** 结果对应的内容＋条件签名：条件一改，旧结果即视为过期（不自动重查）。 */
+            conditionDiagnosisRequestKey() {
+                this.conditionEnsure();
+                return JSON.stringify(this.conditionScope()) + '|' + this.conditionDiagnoseContentId();
+            },
+
+            conditionDiagnosisIsStale() {
+                return this.conditionDiagnosis !== null && this.conditionDiagnosisKey !== this.conditionDiagnosisRequestKey();
+            },
+
+            conditionDiagnosisVerdictText() {
+                var diag = this.conditionDiagnosis;
+                if (!diag) return '';
+                var text = (this.conditionDiagText.verdicts || {})[diag.verdict] || '';
+                if (diag.verdict === 'not_considered' && diag.draft) {
+                    var pre = (this.conditionDiagText.preconditions || {})[diag.draft.precondition];
+                    if (pre) text += '：' + pre;
+                }
+                return text;
+            },
+
+            conditionDiagnosisReasonText() {
+                var diag = this.conditionDiagnosis;
+                if (!diag || !diag.winner) return '';
+                return (this.conditionDiagText.reasons || {})[diag.winner.reason] || '';
+            },
+
+            /**
+             * 只读诊断：拿"当前面板条件 + 预览内容"问服务端同一个 resolver 会怎么判。
+             * 非法条件不发请求；请求带序号，只显示最新一次的结果（乱序响应直接丢弃）。
+             */
+            conditionDiagnose() {
+                var self = this;
+                if (this.conditionContentType === '' || this.conditionDiagnosisBusy) return;
+                if (this.conditionSubmitState() === 'invalid') {
+                    this.blockForInvalidConditions();
+                    return;
+                }
+                var contentId = this.conditionDiagnoseContentId();
+                if (contentId <= 0) {
+                    this.toast(this.conditionDiagText.needContent);
+                    return;
+                }
+                if (this.conditionTemplateId <= 0) return;
+
+                var scope = this.conditionScope();
+                var seq = ++this.conditionDiagnosisSeq;
+                var key = JSON.stringify(scope) + '|' + contentId;
+                this.conditionDiagnosisBusy = true;
+                this.conditionDiagnosisError = '';
+
+                var body = new URLSearchParams();
+                body.set('action', 'diagnose_conditions');
+                body.set('id', String(this.conditionTemplateId));
+                body.set('content_id', String(contentId));
+                body.set('conditions_json', JSON.stringify(scope));
+                body.set('_token', this.csrf);
+
+                fetch('/admin/blox_template_api.php', { method: 'POST', body: body })
+                    .then(function (r) { return r.json().catch(function () { return { code: 1 }; }); })
+                    .then(function (res) {
+                        if (seq !== self.conditionDiagnosisSeq) return;   // 乱序：旧请求不得覆盖新结果
+                        if (Number(res.code) !== 0 || !res.data || !res.data.diagnosis) {
+                            self.conditionDiagnosisError = (res && res.msg) || self.conditionDiagText.failed;
+                            return;
+                        }
+                        self.conditionDiagnosis = res.data.diagnosis;
+                        self.conditionDiagnosisKey = key;
+                    })
+                    .catch(function () {
+                        if (seq === self.conditionDiagnosisSeq) self.conditionDiagnosisError = self.conditionDiagText.failed;
+                    })
+                    .finally(function () {
+                        if (seq === self.conditionDiagnosisSeq) self.conditionDiagnosisBusy = false;
+                    });
             },
 
             conditionScope() {

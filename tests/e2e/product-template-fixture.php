@@ -43,7 +43,11 @@ if ($action === 'products') {
     echo json_encode(['selected' => $selected, 'global' => $global], JSON_THROW_ON_ERROR);
 } elseif (in_array($action, ['read', 'restore'], true)) {
     $row = bloxTemplateModel()->findForExport($id);
-    if (($row['type'] ?? '') !== 'product-detail' || !str_starts_with($row['name'], 'TB-R2 ')) throw new RuntimeException('Test template required');
+    // 仍以「详情模板 + TB-R2 前缀」为护栏；TASK-008 的诊断用例也需要读文章模板，
+    // 因此允许 article-detail（护栏不变，只是不再只认产品）。
+    if (!in_array($row['type'] ?? '', ['product-detail', 'article-detail'], true) || !str_starts_with($row['name'], 'TB-R2 ')) {
+        throw new RuntimeException('Test template required');
+    }
     if ($action === 'read') echo json_encode($row, JSON_THROW_ON_ERROR);
     else { db()->delete('blox_templates', 'id = ?', [$id]); HtmlCache::invalidate(); }
 } else throw new RuntimeException('Invalid action');
