@@ -100,7 +100,26 @@ require ROOT_PATH . '/admin/includes/header.php';
         if ($live !== null) {
             try {
                 // TASK-002-R02：展示必须与渲染同源——v2 存在时以 v2 为准
-                $scope = ProductTemplateDocument::authoritativeScope(BloxDocumentPipeline::decode((string) $live['published_data']));
+                $decoded = BloxDocumentPipeline::decode((string) $live['published_data']);
+                $scope = ProductTemplateDocument::authoritativeScope($decoded);
+                // TASK-005 B：分类规则只存在于完整 v2 规则里，v1 投影会丢掉它们 → 另读原始规则
+                $rawScope = DetailTemplateResolver::normalizeScope($decoded['settings']['detail_template'] ?? null);
+                if (DetailScopeSummary::hasCategory($rawScope)) {
+                    $categoryNames = [];
+                    foreach (productCategoryModel()->all() as $categoryRow) {
+                        $categoryNames[(int) ($categoryRow['id'] ?? 0)] = (string) ($categoryRow['name'] ?? '');
+                    }
+                    $categoryRules = DetailScopeSummary::categoryRules($rawScope);
+                    $categoryParts = [];
+                    foreach ([['include', 'blox_scope_cat_include'], ['exclude', 'blox_scope_cat_exclude']] as $sidePair) {
+                        foreach (DetailScopeSummary::labelled($categoryRules[$sidePair[0]], $categoryNames) as $categoryRule) {
+                            $categoryParts[] = __($sidePair[1], ['names' => implode(', ', $categoryRule['labels'])])
+                                . ($categoryRule['include_children'] ? __('blox_scope_children') : '');
+                        }
+                    }
+                    // 只呈现存储规则，不声称最终命中数量
+                    $scopeCategoryText = implode('; ', $categoryParts);
+                }
             } catch (Throwable) {
                 // Keep the editor and deactivate action reachable for a damaged document.
             }
@@ -110,6 +129,9 @@ require ROOT_PATH . '/admin/includes/header.php';
             <div class="min-w-0"><strong class="break-words"><?= e((string) $template['name']) ?></strong><span class="ml-3 text-sm text-gray-600"><?= e(__((int) $template['status'] === 1 ? 'blox_product_published' : 'blox_product_draft')) ?></span>
                 <?php if ($scope !== null): ?>
                 <p class="mt-1 text-sm text-gray-600"><?= e(__('blox_product_scope')) ?>: <?= e((string) ($languages[$scope['lang']] ?? $scope['lang'])) ?> · <?= e($scope['mode'] === 'all' ? __('blox_product_all') : __('blox_product_scope_count', ['count' => count($scope['ids'])])) ?></p>
+                <?php if (($scopeCategoryText ?? '') !== ''): ?>
+                <p class="mt-1 text-sm text-gray-600" data-testid="product-design-category-rules"><?= e($scopeCategoryText) ?></p>
+                <?php endif; ?>
                 <p class="mt-1 text-sm text-gray-900" data-testid="product-design-source"><?= e(__('blox_product_rule_output')) ?>: <?= e(__(($scope['source'] ?? '') === 'native' ? 'blox_product_source_native' : 'blox_product_source_custom')) ?></p>
                 <?php endif; ?>
             </div>

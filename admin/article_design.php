@@ -107,19 +107,60 @@ require ROOT_PATH . '/admin/includes/header.php';
             }
         }
         $scopeText = '';
+        $scopeCategoryText = '';
         if ($scope !== null) {
-            $kind = $scope['include'][0]['kind'] ?? '';
-            $scopeText = $kind === 'all'
-                ? __('blox_article_scope_all')
-                : ($kind === 'item'
-                    ? __('blox_article_scope_count', ['count' => count($scope['include'][0]['ids'] ?? [])])
-                    : __('blox_article_scope_none'));
+            // TASK-005 B：不再只看 include[0]（混合 all/item/category 会被误标成"暂不应用"）
+            $includeRules = is_array($scope['include'] ?? null) ? $scope['include'] : [];
+            $hasAll = false;
+            $itemCount = 0;
+            $categoryRuleCount = 0;
+            foreach ($includeRules as $includeRule) {
+                $ruleKind = (string) ($includeRule['kind'] ?? '');
+                if ($ruleKind === 'all') {
+                    $hasAll = true;
+                } elseif ($ruleKind === 'item') {
+                    $itemCount += count(is_array($includeRule['ids'] ?? null) ? $includeRule['ids'] : []);
+                } elseif ($ruleKind === 'category') {
+                    $categoryRuleCount++;
+                }
+            }
+            if ($includeRules === []) {
+                $scopeText = __('blox_article_scope_none');
+            } elseif ($hasAll) {
+                $scopeText = __('blox_article_scope_all');
+            } elseif ($itemCount > 0) {
+                $scopeText = __('blox_article_scope_count', ['count' => $itemCount]);
+            } elseif ($categoryRuleCount > 0) {
+                $scopeText = __('blox_article_scope_category', ['count' => $categoryRuleCount]);
+            } else {
+                $scopeText = __('blox_article_scope_none');
+            }
+
+            // 栏目条件逐条呈现（含子级），纳入与排除分开；只描述存储规则
+            if (DetailScopeSummary::hasCategory($scope)) {
+                $channelNames = [];
+                foreach (channelModel()->all() as $channelRow) {
+                    $channelNames[(int) ($channelRow['id'] ?? 0)] = (string) ($channelRow['name'] ?? '');
+                }
+                $channelRules = DetailScopeSummary::categoryRules($scope);
+                $channelParts = [];
+                foreach ([['include', 'blox_scope_channel_include'], ['exclude', 'blox_scope_channel_exclude']] as $sidePair) {
+                    foreach (DetailScopeSummary::labelled($channelRules[$sidePair[0]], $channelNames) as $channelRule) {
+                        $channelParts[] = __($sidePair[1], ['names' => implode(', ', $channelRule['labels'])])
+                            . ($channelRule['include_children'] ? __('blox_scope_children') : '');
+                    }
+                }
+                $scopeCategoryText = implode('; ', $channelParts);
+            }
         }
         ?>
         <div class="flex flex-wrap items-center justify-between gap-3 py-4" data-testid="article-design-row-<?= (int) $template['id'] ?>">
             <div class="min-w-0"><strong class="break-words"><?= e((string) $template['name']) ?></strong><span class="ml-3 text-sm text-gray-600"><?= e(__((int) $template['status'] === 1 ? 'blox_article_status_published' : 'blox_article_status_draft')) ?></span>
                 <?php if ($scope !== null): ?>
                 <p class="mt-1 text-sm text-gray-600"><?= e(__('blox_article_scope')) ?>: <?= e((string) ($languages[$scope['lang']] ?? $scope['lang'])) ?> · <?= e($scopeText) ?></p>
+                <?php if (($scopeCategoryText ?? '') !== ''): ?>
+                <p class="mt-1 text-sm text-gray-600" data-testid="article-design-category-rules"><?= e($scopeCategoryText) ?></p>
+                <?php endif; ?>
                 <p class="mt-1 text-sm text-gray-900" data-testid="article-design-source"><?= e(__('blox_article_rule_output')) ?>: <?= e(__(($scope['source'] ?? '') === 'native' ? 'blox_article_source_native' : 'blox_article_source_custom')) ?></p>
                 <?php endif; ?>
             </div>
