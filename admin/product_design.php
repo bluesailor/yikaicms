@@ -93,10 +93,25 @@ require ROOT_PATH . '/admin/includes/header.php';
         <button class="rounded bg-gray-900 text-white px-4 py-2" data-testid="product-design-create"><i class="ti ti-plus" aria-hidden="true"></i> <?= e(__('blox_product_create')) ?></button>
     </form>
     <div class="divide-y divide-gray-200">
+        <?php
+        // TASK-005-R01：名称映射整页只查一次（懒加载，没有分类规则时根本不查），不放进模板循环
+        $categoryNameMap = null;
+        $loadCategoryNames = static function () use (&$categoryNameMap): array {
+            if ($categoryNameMap === null) {
+                $categoryNameMap = [];
+                foreach (productCategoryModel()->all() as $categoryRow) {
+                    $categoryNameMap[(int) ($categoryRow['id'] ?? 0)] = (string) ($categoryRow['name'] ?? '');
+                }
+            }
+            return $categoryNameMap;
+        };
+        ?>
         <?php foreach ($templates as $template): ?>
         <?php
         $live = $published[(int) $template['id']] ?? null;
         $scope = null;
+        // TASK-005-R01：摘要必须逐行重置，否则上一行的分类摘要会残留到本行
+        $scopeCategoryText = '';
         if ($live !== null) {
             try {
                 // TASK-002-R02：展示必须与渲染同源——v2 存在时以 v2 为准
@@ -105,11 +120,8 @@ require ROOT_PATH . '/admin/includes/header.php';
                 // TASK-005 B：分类规则只存在于完整 v2 规则里，v1 投影会丢掉它们 → 另读原始规则
                 $rawScope = DetailTemplateResolver::normalizeScope($decoded['settings']['detail_template'] ?? null);
                 if (DetailScopeSummary::hasCategory($rawScope)) {
-                    $categoryNames = [];
-                    foreach (productCategoryModel()->all() as $categoryRow) {
-                        $categoryNames[(int) ($categoryRow['id'] ?? 0)] = (string) ($categoryRow['name'] ?? '');
-                    }
                     $categoryRules = DetailScopeSummary::categoryRules($rawScope);
+                    $categoryNames = $loadCategoryNames();
                     $categoryParts = [];
                     foreach ([['include', 'blox_scope_cat_include'], ['exclude', 'blox_scope_cat_exclude']] as $sidePair) {
                         foreach (DetailScopeSummary::labelled($categoryRules[$sidePair[0]], $categoryNames) as $categoryRule) {
