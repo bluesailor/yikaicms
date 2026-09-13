@@ -3002,6 +3002,7 @@ declare(strict_types=1);
                     <div @click="treeSectionClick($event, si)"
                          @contextmenu.prevent.stop="openCtx($event, 'section', {si: si})"
                          :data-section-id="section.id" :data-section-index="si"
+                         :data-selected="selectedSi === si ? '1' : '0'"
                          :data-multi-selected="isMultiSelected(section.id) ? '1' : '0'"
                          :data-section-label="sectionLabel(section, si)" data-testid="blox-tree-section"
                          class="group">
@@ -3031,6 +3032,7 @@ declare(strict_types=1);
                             <div class="px-2 pb-1">
                                 <div @click.stop="selectContainer(si)"
                                      data-testid="blox-tree-container"
+                                     :data-selected="isContainerSelected(si) ? '1' : '0'"
                                      @contextmenu.prevent.stop="openCtx($event, 'container', {si: si})"
                                      @dragover="treeColumnDragOver($event, si, 0, 'section-container:' + si + '.0')"
                                      @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
@@ -3105,6 +3107,7 @@ declare(strict_types=1);
                                          @dragover="treeColumnDragOver($event, si, ci, 'column:' + si + '.' + ci)"
                                          @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
                                          :data-si="si" :data-ci="ci" data-sort-elements data-testid="blox-tree-column"
+                                         :data-selected="isColumnSelected(si, ci) ? '1' : '0'"
                                          class="blox-tree-drop-node rounded transition">
                                         <?php // 单列时不显示列标题——只有一列，说「列1」是噪音 ?>
                                         <div @click.stop="selectColumn(si, ci)"
@@ -3130,7 +3133,8 @@ declare(strict_types=1);
                                                  :data-element-type="el.type"
                                                  :data-multi-selected="isMultiSelected(el.id) ? '1' : '0'"
                                                  :data-home-block-type="el.type === 'home-block' ? (((el.data || {}).block_type) || '') : ''"
-                                                 data-sort-el-item data-testid="blox-tree-element">
+                                                 data-sort-el-item data-testid="blox-tree-element"
+                                                 :data-selected="(isElSelected(si, ci, ei) || isMultiSelected(el.id)) ? '1' : '0'">
                                                 <div data-element-drag-handle @click.stop="treeElementClick($event, si, ci, ei)"
                                                      @contextmenu.prevent.stop="openCtx($event, 'element', {si: si, ci: ci, ei: ei})"
                                                      @dragover="treeElementDragOver($event, si, ci, ei, el)"
