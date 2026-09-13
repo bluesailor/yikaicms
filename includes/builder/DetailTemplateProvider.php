@@ -77,6 +77,57 @@ final class DetailTemplateProvider
     }
 
     /**
+     * 条件面板的下拉选项补齐：规则里已引用、但不在预览列表（前 100 条）里的内容/分类，
+     * 按草稿语言批量补进选项并标记 referenced；真正不存在或语言不同的 ID 不补，由面板显示为"缺失"。
+     * 否则重开模板时这些目标在多选框里"看起来没选"，用户会误以为规则丢了。
+     *
+     * @param list<array{id:int,name:string}> $options 已有选项
+     * @param array<string,mixed>|null $scope 文档里的有效条件
+     * @return list<array<string,mixed>>
+     */
+    public static function optionsWithReferences(string $contentType, string $kind, array $options, ?array $scope, string $lang): array
+    {
+        if (!is_array($scope) || $lang === '' || !in_array($kind, ['item', 'category'], true)) {
+            return $options;
+        }
+        $listed = [];
+        foreach ($options as $option) {
+            $listed[(int) ($option['id'] ?? 0)] = true;
+        }
+        $wanted = [];
+        foreach (['include', 'exclude'] as $side) {
+            foreach (is_array($scope[$side] ?? null) ? $scope[$side] : [] as $rule) {
+                if (($rule['kind'] ?? '') !== $kind) {
+                    continue;
+                }
+                foreach (is_array($rule['ids'] ?? null) ? $rule['ids'] : [] as $id) {
+                    if ((int) $id > 0 && !isset($listed[(int) $id])) {
+                        $wanted[(int) $id] = true;
+                    }
+                }
+            }
+        }
+        if ($wanted === []) {
+            return $options;
+        }
+        $ids = array_slice(array_keys($wanted), 0, 1000);
+        $in = implode(',', array_fill(0, count($ids), '?'));
+        if ($kind === 'item') {
+            $sql = $contentType === 'product'
+                ? 'SELECT id, title AS name FROM ' . DB_PREFIX . 'products WHERE lang = ? AND deleted_at IS NULL AND id IN (' . $in . ')'
+                : 'SELECT id, title AS name FROM ' . DB_PREFIX . "contents WHERE lang = ? AND type = 'article' AND deleted_at IS NULL AND id IN (" . $in . ')';
+        } else {
+            $sql = $contentType === 'product'
+                ? 'SELECT id, name FROM ' . DB_PREFIX . 'product_categories WHERE lang = ? AND id IN (' . $in . ')'
+                : 'SELECT id, name FROM ' . DB_PREFIX . 'channels WHERE lang = ? AND id IN (' . $in . ')';
+        }
+        foreach (db()->fetchAll($sql, array_merge([$lang], $ids)) as $row) {
+            $options[] = ['id' => (int) $row['id'], 'name' => (string) ($row['name'] ?? ''), 'referenced' => true];
+        }
+        return $options;
+    }
+
+    /**
      * 诊断用候选（TASK-008，只读）：在已发布候选基础上**移除该模板自己的旧发布版本**，
      * 再把待诊断草稿作为**同一个 id**、status=1 的候选注入——语义是"如果现在发布它"。
      * 为什么不新建匹配算法：注入后仍交给同一个 `DetailTemplateResolver::resolve()` 排序与判定，
