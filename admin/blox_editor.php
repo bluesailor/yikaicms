@@ -4817,13 +4817,16 @@ $canManageBloxDesign = hasPermission('blox_global');
                         && !self.selEl.data.animation) return false;
                     return true;
                 });
-                // TASK-003 R02：通用设置不是 schema 控件，但常规分组必须可达（无搜索时始终在列）
-                controls.unshift(window.BloxStyleGroups.commonMarker(this.styleCommonSearchText));
+                // TASK-003 R02/R03：通用设置不是 schema 控件，但常规分组必须可达（无搜索时始终在列）。
+                // 只在样式页签插入占位项：它是分组与匹配用的标记，不是控件，绝不进内容页签。
+                if (this.panelTab === "style") {
+                    controls.unshift(window.BloxStyleGroups.commonMarker(this.styleCommonSearchText));
+                }
                 return window.BloxStyleGroups.visibleCandidates(controls, {
                     isExcluded: function () { return false; },
                     isModified: function (c) {
                         // 占位项没有 schema 控件可判，用"通用设置是否被改过"回答（只看已修改时决定它是否在列）
-                        if (c && c.key === 'common_style') return self.commonStyleModified();
+                        if (window.BloxStyleGroups.isCommonMarker(c)) return self.commonStyleModified();
                         return self.isCtrlModified(c);
                     },
                     // 关键词命中：控件名/键 + 所在区块名 + 所属分组名（TASK-003 D）
@@ -4836,7 +4839,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             visibleCtrls() {
                 if (!this.selEl) return [];
                 if (this.panelTab === "condition") return [];
-                var controls = this.styleCandidates();
+                // TASK-003 R03：渲染列表一律不含通用占位项——它只服务分组与匹配（styleGroups 另走 styleCandidates）
+                var controls = window.BloxStyleGroups.withoutCommonMarker(this.styleCandidates());
                 var showAll = !!this.ctrlQuery.trim() || this.modifiedOnly || this.panelTab !== "content";
                 controls = window.BloxBannerPanel.controls(this.selEl, controls, this.bannerPanelGroup, showAll);
                 controls = window.BloxHomeContentPanel.controls(this.selEl, controls, this.homeContentGroup, showAll);
