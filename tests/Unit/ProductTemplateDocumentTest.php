@@ -166,8 +166,7 @@ final class ProductTemplateDocumentTest extends TestCase
         $this->assertSame([7], ProductTemplateDocument::normalizeScope($mirrored['settings']['product_template'])['ids'], 'v1 镜像同步更新');
     }
 
-    /** TASK-002-R02 针对性用例 ③：v1-only 历史模板行为不变（不主动创建 v2）。 */
-    public function testLegacyV1DocumentsKeepTheirBehaviour(): void
+    /** TASK-002-R02 针对性用例 ③：v1-only 历史模板行为不变（不主动创建 v2）。 */    public function testLegacyV1DocumentsKeepTheirBehaviour(): void
     {
         $document = [
             'schema' => 1,
@@ -185,5 +184,79 @@ final class ProductTemplateDocumentTest extends TestCase
         $this->assertSame('all', $edited['settings']['product_template']['mode']);
         $this->assertArrayNotHasKey('detail_template', $edited['settings']);
         $this->assertSame('all', ProductTemplateDocument::authoritativeScope($edited)['mode']);
+    }
+
+    /**
+     * TASK-002-R03 针对性用例：纯 v2 文档没有旧镜像时，保存/发布路径不得以"缺省空值"覆盖它。
+     *
+     * 保存/发布统一入口传的是 `settings.product_template ?? null`——缺失必须视为"后台没提交这一项"，
+     * 而不是"用户清空了条件"。此前传 `?? []` 会把 all/custom 模板清成 selected/空 ids/空 lang。
+     */
+    public function testPureV2DocumentSurvivesMissingUiScopeOnSavePath(): void
+    {
+        $document = [
+            'schema' => 1,
+            'settings' => [
+                'detail_template' => [
+                    'version' => 2, 'content_type' => 'product', 'lang' => 'zh-CN', 'source' => 'custom',
+                    'priority' => 0, 'include' => [['kind' => 'all', 'ids' => [], 'include_children' => false]],
+                    'exclude' => [], 'legacy' => false,
+                ],
+            ],
+            'sections' => [],
+        ];
+        $json = json_encode($document, JSON_THROW_ON_ERROR);
+
+        // 入口实际传的三种"没有这一项"的形态，都必须原样返回
+        foreach ([null, [], ''] as $missing) {
+            $saved = ProductTemplateDocument::applyUiScope($document, $missing);
+            $this->assertSame($json, json_encode($saved, JSON_THROW_ON_ERROR), '缺省输入不得改写纯 v2 文档');
+        }
+        // 明确的能力断言：all 模板保存后仍然匹配全部产品
+        $scope = ProductTemplateDocument::authoritativeScope($document);
+        $this->assertSame('all', $scope['mode']);
+        $this->assertSame('zh-CN', $scope['lang']);
+        $this->assertNotSame('native', $scope['source'] ?? 'custom');
+
+        // 缺 lang 的脏数据同样不写（匹配不到任何内容的值不该落盘）
+        $this->assertSame(
+            $json,
+            json_encode(ProductTemplateDocument::applyUiScope($document, ['mode' => 'selected', 'ids' => [3], 'lang' => '']), JSON_THROW_ON_ERROR)
+        );
+
+        // 而"确实提交了有效作用域"时仍要写进 v2（不能因为加了守卫就丢掉同步能力）
+        $edited = ProductTemplateDocument::applyUiScope($document, ['mode' => 'selected', 'ids' => [7], 'lang' => 'zh-CN']);
+        $this->assertSame([7], ProductTemplateDocument::authoritativeScope($edited)['ids']);
+        $this->assertArrayNotHasKey('product_template', $edited['settings'], '纯 v2 文档不应凭空长出 v1 字段');
+    }
+
+    /** TASK-002-R02/R03：切 source 只动 source——纯 v2 的作用域、缺 lang 的脏文档都要保住。 */
+    public function testChangeSourceOnlyTouchesSource(): void
+    {
+        $document = [
+            'schema' => 1,
+            'settings' => [
+                'detail_template' => [
+                    'version' => 2, 'content_type' => 'product', 'lang' => 'zh-CN', 'source' => 'custom',
+                    'priority' => 0, 'include' => [['kind' => 'all', 'ids' => [], 'include_children' => false]],
+                    'exclude' => [], 'legacy' => false,
+                ],
+            ],
+            'sections' => [],
+        ];
+        $native = BloxDocumentPipeline::decode(
+            ProductTemplateDocument::changeSource(json_encode($document, JSON_THROW_ON_ERROR), 'native')
+        );
+        $this->assertSame('native', $native['settings']['detail_template']['source']);
+        $this->assertSame([['kind' => 'all', 'ids' => [], 'include_children' => false]], $native['settings']['detail_template']['include']);
+        $this->assertSame('zh-CN', $native['settings']['detail_template']['lang']);
+
+        // 作用域不可识别（缺 lang）时，changeSource 仍只改 source、不碰作用域。
+        // 注意：解码会对缺 lang 的 v2 作用域做 fail-closed 归一（整块回默认），所以这里断言
+        // 的是 changeSource 的**输出文本**，而不是再解码一次的结果（那是解析器既有语义，非本缺陷范围）。
+        $damaged = ['schema' => 1, 'settings' => ['detail_template' => ['version' => 2, 'content_type' => 'product', 'lang' => '', 'source' => 'custom', 'include' => [], 'exclude' => []]], 'sections' => []];
+        $switchedJson = ProductTemplateDocument::changeSource(json_encode($damaged, JSON_THROW_ON_ERROR), 'native');
+        $this->assertStringContainsString('"source":"native"', $switchedJson);
+        $this->assertStringNotContainsString('product_template', $switchedJson, 'v2 文档不应被改写成 v1');
     }
 }

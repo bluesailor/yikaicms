@@ -27,13 +27,16 @@ $requireTemplateLicense = static function (string $type) use ($advancedBloxEnabl
 
 /** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
 $processTemplateDocument = static function (string $type, int $id, string $json): array {
-    // TASK-002-R02：产品模板的权威条件是 v2；后台表单只认 v1 字段，这里统一写回 v2，
-    // 避免"后台改 v1、前台仍按 v2 渲染"的分叉（v1-only 历史模板行为不变）。
-    if ($type === 'product-detail' && trim($json) !== '' && trim($json) !== '[]') {
+    // TASK-002-R02/R03：产品模板的权威条件是 v2；后台表单只认 v1 字段，保存/发布时写回 v2。
+    // 但**只有后台 UI 明确声明提交**（ui_scope=1）才允许同步：纯 v2 文档没有旧字段、
+    // 或旧镜像过期（例如历史上被补写成空 ids）时，绝不能拿它覆盖有效 v2 条件。
+    $syncUiScope = (string) post('ui_scope', '') === '1';
+    if ($syncUiScope && $type === 'product-detail' && trim($json) !== '' && trim($json) !== '[]') {
         try {
             $document = BloxDocumentPipeline::decode($json);
             $json = json_encode(
-                ProductTemplateDocument::applyUiScope($document, $document['settings']['product_template'] ?? []),
+                // 只在后台确实提交了旧形态作用域时才同步；缺失一律视为"没这一项"（TASK-002-R03）
+                ProductTemplateDocument::applyUiScope($document, $document['settings']['product_template'] ?? null),
                 JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
             );
         } catch (Throwable $scopeError) {
