@@ -301,6 +301,24 @@ final class DetailTemplateResolverTest extends TestCase
         $this->assertSame('specific_item', $winner['reason']);
     }
 
+    public function testNativeWinnerStillReportsTheTieAndWhoDecided(): void
+    {
+        $nativeAll = self::candidate(9, ['source' => 'native']);
+        $customAll = self::candidate(4);
+        $result = DetailTemplateResolver::resolve([$customAll, $nativeAll], self::ctx());
+
+        $this->assertSame('template_native', $result['reason']);
+        $this->assertNull($result['template_id'], '前台仍输出主题默认');
+        $this->assertNull($result['template']);
+        $this->assertSame(9, $result['decided_template_id'], 'ID 兜底选中的是声明 native 的模板');
+        $this->assertEqualsCanonicalizing([4, 9], array_column($result['conflicts'], 'template_id'), '并列不因终止决策被隐藏');
+
+        $this->assertSame(4, DetailTemplateResolver::resolve([$customAll], self::ctx())['decided_template_id']);
+        $this->assertNull(DetailTemplateResolver::resolve([], self::ctx())['decided_template_id']);
+        $pinned = DetailTemplateResolver::resolve([$customAll], self::ctx(), ['mode' => 'template', 'template_id' => 4]);
+        $this->assertSame(4, $pinned['decided_template_id']);
+    }
+
     public function testNoCandidatesDegradesToNativeNotSiteWide(): void
     {
         $result = DetailTemplateResolver::resolve([], self::ctx());

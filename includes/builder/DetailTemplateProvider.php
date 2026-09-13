@@ -149,22 +149,103 @@ final class DetailTemplateProvider
         if ($precondition !== 'ok') {
             return 'not_considered';
         }
-        $winnerId = isset($result['template_id']) ? (int) $result['template_id'] : 0;
-        if ($winnerId === 0) {
+        // 本模板是并列成员：无论 ID 兜底选中了谁，业务上都是未解决的冲突
+        foreach ($result['conflicts'] ?? [] as $conflict) {
+            if ((int) ($conflict['template_id'] ?? 0) === $templateId) {
+                return 'conflicted';
+            }
+        }
+        $decidedId = (int) ($result['decided_template_id'] ?? ($result['template_id'] ?? 0));
+        if ($decidedId === 0) {
             return 'no_match';
         }
-        // A tied draft remains conflicted even when the ID tie-break selects another template.
-        if (($result['reason'] ?? '') === DetailTemplateResolver::REASON_CONFLICTED) {
-            foreach ($result['conflicts'] ?? [] as $conflict) {
-                if ((int) ($conflict['template_id'] ?? 0) === $templateId) {
-                    return 'conflicted';
+        if ($decidedId !== $templateId) {
+            return 'lost';
+        }
+        if ((string) ($result['reason'] ?? '') === DetailTemplateResolver::REASON_TEMPLATE_NATIVE) {
+            return 'native';   // 本模板决定了这条内容，但它声明输出主题默认
+        }
+        return (string) ($result['reason'] ?? '') === DetailTemplateResolver::REASON_CONFLICTED ? 'conflicted' : 'won';
+    }
+
+    /**
+     * 草稿**单独**面对这条内容时是否命中（纯函数）：只把草稿一个候选交给同一个 resolve()；
+     * 未命中时再去掉排除规则问一次，区分"被排除"与"纳入条件不包含它"。不另写匹配。
+     *
+     * @param array<string,mixed> $draftScope
+     * @param array<string,mixed> $context
+     * @return string 'matched' | 'excluded' | 'not_included' | 'not_considered'
+     */
+    public static function draftMatchFor(string $contentType, int $templateId, array $draftScope, array $context, string $precondition): string
+    {
+        if ($precondition !== 'ok') {
+            return 'not_considered';
+        }
+        $alone = DetailTemplateResolver::resolve(self::injectDraft([], $contentType, $templateId, $draftScope), $context);
+        if ((int) ($alone['decided_template_id'] ?? 0) === $templateId) {
+            return 'matched';
+        }
+        $withoutExclude = $draftScope;
+        $withoutExclude['exclude'] = [];
+        $open = DetailTemplateResolver::resolve(self::injectDraft([], $contentType, $templateId, $withoutExclude), $context);
+        return (int) ($open['decided_template_id'] ?? 0) === $templateId ? 'excluded' : 'not_included';
+    }
+
+    /**
+     * 草稿规则引用了但当前已不存在（已删除，或语言与草稿不同）的内容 / 分类 ID。
+     * 只报告事实、不改写规则：缺失引用在 resolver 里只是"匹配不到"，诊断需要把原因说出来。
+     * 每类最多两次批量查询（按 500 分块），不逐条查。
+     *
+     * @param array<string,mixed> $draftScope
+     * @return array{items:list<int>,categories:list<int>}
+     */
+    public static function missingReferences(string $contentType, array $draftScope): array
+    {
+        $scope = DetailTemplateResolver::normalizeScope($draftScope);
+        $wanted = ['item' => [], 'category' => []];
+        foreach (['include', 'exclude'] as $side) {
+            foreach ($scope[$side] as $rule) {
+                if (!isset($wanted[$rule['kind']])) {
+                    continue;
+                }
+                foreach ($rule['ids'] as $id) {
+                    $wanted[$rule['kind']][(int) $id] = true;
                 }
             }
         }
-        if ($winnerId !== $templateId) {
-            return 'lost';
+        if ($scope['content_type'] !== $contentType || $scope['lang'] === '') {
+            return ['items' => [], 'categories' => []];
         }
-        return (string) ($result['reason'] ?? '') === DetailTemplateResolver::REASON_CONFLICTED ? 'conflicted' : 'won';
+        $itemSql = $contentType === 'product'
+            ? 'SELECT id FROM ' . DB_PREFIX . 'products WHERE lang = ? AND deleted_at IS NULL AND id IN (%s)'
+            : 'SELECT id FROM ' . DB_PREFIX . "contents WHERE lang = ? AND type = 'article' AND deleted_at IS NULL AND id IN (%s)";
+        $categorySql = $contentType === 'product'
+            ? 'SELECT id FROM ' . DB_PREFIX . 'product_categories WHERE lang = ? AND id IN (%s)'
+            : 'SELECT id FROM ' . DB_PREFIX . 'channels WHERE lang = ? AND id IN (%s)';
+
+        return [
+            'items' => self::absentIds(array_keys($wanted['item']), $itemSql, (string) $scope['lang']),
+            'categories' => self::absentIds(array_keys($wanted['category']), $categorySql, (string) $scope['lang']),
+        ];
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return list<int>
+     */
+    private static function absentIds(array $ids, string $sqlTemplate, string $lang): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+        $found = [];
+        foreach (array_chunk($ids, 500) as $chunk) {
+            $sql = sprintf($sqlTemplate, implode(',', array_fill(0, count($chunk), '?')));
+            foreach (db()->fetchAll($sql, array_merge([$lang], $chunk)) as $row) {
+                $found[(int) ($row['id'] ?? 0)] = true;
+            }
+        }
+        return array_values(array_filter($ids, static fn (int $id): bool => !isset($found[$id])));
     }
 
     /**
@@ -190,6 +271,8 @@ final class DetailTemplateProvider
         // 前置条件：决定了这份草稿有没有参与匹配（不是命中判断，命中判断只属于 resolve()）
         $precondition = self::preconditionFor($scope, $contentType, $context);
         $winnerId = isset($result['template_id']) ? (int) $result['template_id'] : 0;
+        $conflicts = $result['conflicts'] ?? [];
+        $selfInConflict = in_array($templateId, array_map('intval', array_column($conflicts, 'template_id')), true);
 
         return [
             'template_id' => $templateId,
@@ -199,20 +282,28 @@ final class DetailTemplateProvider
                 'id' => (int) ($context['content_id'] ?? 0),
                 'lang' => (string) ($context['lang'] ?? ''),
                 'categories' => $context['categories'] ?? [],
+                // 前台只展示已发布内容：未发布时结果表示"发布后"的判定
+                'published' => (int) ($content['status'] ?? 0) === 1,
             ],
             'draft' => [
                 'injected' => $precondition === 'ok',
                 'precondition' => $precondition,
                 'lang' => (string) $scope['lang'],
                 'priority' => (int) $scope['priority'],
+                'source' => (string) $scope['source'],
+                'match' => self::draftMatchFor($contentType, $templateId, $draftScope, $context, $precondition),
+                'missing_references' => self::missingReferences($contentType, $draftScope),
             ],
             'winner' => [
                 'template_id' => $winnerId > 0 ? $winnerId : null,
+                'decided_template_id' => isset($result['decided_template_id']) ? (int) $result['decided_template_id'] : null,
                 'source' => (string) ($result['source'] ?? ''),
                 'reason' => (string) ($result['reason'] ?? ''),
                 'specificity' => $result['specificity'] ?? ['level' => 0, 'detail' => 0],
             ],
-            'conflicts' => $result['conflicts'] ?? [],
+            'conflicts' => $conflicts,
+            // 并列发生在其它模板之间：本模板不受影响，但这条内容实际仍靠模板 ID 兜底
+            'others_conflicted' => $conflicts !== [] && !$selfInConflict,
             'verdict' => self::verdictFor($precondition, $templateId, $result),
         ];
     }

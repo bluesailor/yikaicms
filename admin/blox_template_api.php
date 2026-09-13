@@ -365,9 +365,9 @@ try {
         if ($diagnoseContentType === '') {
             error(__('blox_diag_not_detail_template'), 400);
         }
-        // 内容侧沿用既有内容权限模式（产品 edit_product / 文章 edit_article），
-        // 无权与不存在返回同一条反馈，不回显标题正文。
-        requirePermission($diagnoseContentType === 'product' ? 'edit_product' : 'edit_article');
+        // 内容侧沿用既有内容权限键（产品 edit_product / 文章 edit_article）。无权与不存在返回同一条 JSON
+        // 反馈且不回显标题正文；不用 requirePermission()——请求不带 AJAX 头时它输出 HTML，前端只能报"诊断失败"。
+        $canReadDiagnoseContent = hasPermission($diagnoseContentType === 'product' ? 'edit_product' : 'edit_article');
 
         // 草稿必填：只有模板 ID 时不能冒称"诊断当前未保存的规则"
         $diagnoseDraft = trim((string) post('conditions_json', ''));
@@ -384,7 +384,7 @@ try {
         }
 
         $diagnoseContentId = (int) post('content_id', '0');
-        $diagnoseContent = $diagnoseContentId > 0
+        $diagnoseContent = $canReadDiagnoseContent && $diagnoseContentId > 0
             ? ($diagnoseContentType === 'product' ? productModel()->find($diagnoseContentId) : contentModel()->find($diagnoseContentId))
             : null;
         if (!is_array($diagnoseContent)

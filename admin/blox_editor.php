@@ -1978,8 +1978,16 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'priorityLabel' => __('blox_diag_priority_label'),
                 'conflictsLabel' => __('blox_diag_conflicts_label'),
                 'singleOnly' => __('blox_diag_single_only'),
+                'missingItems' => __('blox_diag_missing_items'),
+                'missingCategories' => __('blox_diag_missing_categories'),
+                'matches' => [
+                    'matched' => __('blox_diag_match_matched'),
+                    'excluded' => __('blox_diag_match_excluded'),
+                    'not_included' => __('blox_diag_match_not_included'),
+                ],
                 'verdicts' => [
                     'won' => __('blox_diag_verdict_won'),
+                    'native' => __('blox_diag_verdict_native'),
                     'conflicted' => __('blox_diag_verdict_conflicted'),
                     'lost' => __('blox_diag_verdict_lost'),
                     'no_match' => __('blox_diag_verdict_no_match'),
@@ -6405,6 +6413,35 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return text;
             },
 
+            /** 草稿单独面对这条内容时是否命中；没命中要说清是被排除还是纳入条件不包含它。 */
+            conditionDiagnosisMatchText() {
+                var diag = this.conditionDiagnosis;
+                if (!diag || !diag.draft || !diag.draft.match) return '';
+                return (this.conditionDiagText.matches || {})[diag.draft.match] || '';
+            },
+
+            /** 规则引用了已不存在（或语言不同）的内容/分类：只报事实，不替用户改规则。 */
+            conditionDiagnosisMissingText() {
+                var diag = this.conditionDiagnosis;
+                var missing = diag && diag.draft ? diag.draft.missing_references : null;
+                if (!missing) return '';
+                var parts = [];
+                if (Array.isArray(missing.items) && missing.items.length) {
+                    parts.push(this.conditionDiagText.missingItems.replace(':ids', missing.items.join(', ')));
+                }
+                if (Array.isArray(missing.categories) && missing.categories.length) {
+                    parts.push(this.conditionDiagText.missingCategories.replace(':ids', missing.categories.join(', ')));
+                }
+                return parts.join(' ');
+            },
+
+            /** 实际决定输出的模板 ID（模板自身声明 native 时 template_id 为空，仍要显示是谁）。 */
+            conditionDiagnosisDeciderId() {
+                var winner = this.conditionDiagnosis && this.conditionDiagnosis.winner;
+                if (!winner) return 0;
+                return Number(winner.decided_template_id || winner.template_id || 0);
+            },
+
             conditionDiagnosisReasonText() {
                 var diag = this.conditionDiagnosis;
                 if (!diag || !diag.winner) return '';
@@ -6442,7 +6479,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 body.set('conditions_json', JSON.stringify(scope));
                 body.set('_token', this.csrf);
 
-                fetch('/admin/blox_template_api.php', { method: 'POST', body: body })
+                // 带 AJAX 头：权限不足等拒绝一律回 JSON，界面才能显示具体原因而不是"诊断失败"
+                fetch('/admin/blox_template_api.php', { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(function (r) { return r.json().catch(function () { return { code: 1 }; }); })
                     .then(function (res) {
                         if (seq !== self.conditionDiagnosisSeq) return;   // 乱序：旧请求不得覆盖新结果

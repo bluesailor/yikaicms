@@ -50,4 +50,42 @@ if ($action === 'products') {
     }
     if ($action === 'read') echo json_encode($row, JSON_THROW_ON_ERROR);
     else { db()->delete('blox_templates', 'id = ?', [$id]); HtmlCache::invalidate(); }
+} elseif ($action === 'scope') {
+    // 直接写入 TB-R2 测试模板的草稿条件（如 native、缺失引用），并经真实文档管道归一化
+    $row = bloxTemplateModel()->findForExport($id);
+    if (!in_array($row['type'] ?? '', ['product-detail', 'article-detail'], true) || !str_starts_with((string) ($row['name'] ?? ''), 'TB-R2 ')) {
+        throw new RuntimeException('Test template required');
+    }
+    $document = BloxDocumentPipeline::decode((string) $row['draft_data']);
+    $document['settings']['detail_template'] = json_decode((string) ($argv[3] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+    $json = BloxDocumentPipeline::process(json_encode($document, JSON_THROW_ON_ERROR), 'tpl' . $id)['json'];
+    bloxTemplateModel()->updateDraft($id, $json, []);
+    echo $json;
+} elseif ($action === 'publish-scope') {
+    // 建一个只含 v2 条件的已发布测试模板（作为"其它已发布候选"）
+    $scope = json_decode((string) ($argv[3] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+    $name = 'TB-R2 ' . preg_replace('/[^A-Za-z0-9 _-]/', '', (string) ($argv[4] ?? 'scope'));
+    $type = ($scope['content_type'] ?? '') === 'article' ? 'article-detail' : 'product-detail';
+    $seed = $type === 'article-detail' ? ArticleTemplateDocument::seed((string) $scope['lang']) : ProductTemplateDocument::seed((string) $scope['lang']);
+    $document = BloxDocumentPipeline::decode($seed);
+    unset($document['settings']['product_template']);
+    $document['settings']['detail_template'] = $scope;
+    $json = BloxDocumentPipeline::process(json_encode($document, JSON_THROW_ON_ERROR), 'template')['json'];
+    $newId = bloxTemplateModel()->createDraft($type, $name, $json);
+    bloxTemplateModel()->publishDraft($newId);
+    HtmlCache::invalidate();
+    echo json_encode(['id' => $newId], JSON_THROW_ON_ERROR);
+} elseif ($action === 'limited-user') {
+    // 只有 Blox 全站设计权限、没有产品/文章编辑权限的后台账号（诊断权限用例）
+    db()->execute('DELETE FROM ' . DB_PREFIX . "users WHERE username = 'tbr2_limited'");
+    db()->execute('DELETE FROM ' . DB_PREFIX . "roles WHERE name = 'TB-R2 limited'");
+    if (($argv[2] ?? '') !== 'remove') {
+        $now = time();
+        $roleId = (int) db()->insert('roles', ['name' => 'TB-R2 limited', 'permissions' => json_encode(['blox_global']), 'status' => 1, 'created_at' => $now]);
+        db()->insert('users', [
+            'username' => 'tbr2_limited', 'password' => password_hash('Limited@Test123', PASSWORD_BCRYPT), 'nickname' => 'tbr2_limited',
+            'email' => 'tbr2@t.local', 'role_id' => $roleId, 'status' => 1, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        echo json_encode(['username' => 'tbr2_limited', 'password' => 'Limited@Test123'], JSON_THROW_ON_ERROR);
+    }
 } else throw new RuntimeException('Invalid action');
