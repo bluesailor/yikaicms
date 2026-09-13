@@ -567,7 +567,9 @@ $workspacePrefPrefix = 'yikai:blox:ws:v2:' . (int) ($_SESSION['admin_id'] ?? 0) 
     . substr(sha1((string) ($_SERVER['HTTP_HOST'] ?? '')), 0, 8) . ':';
 $docSettings = $bootDoc['settings'];
 if ($templateId && $templateType === 'product-detail') {
-    $docSettings['product_template'] = ProductTemplateDocument::normalizeScope($docSettings['product_template'] ?? null);
+    // TASK-002-R02：v2 文档（settings.detail_template）才是权威；这里把 v1 形态的 UI 字段
+    // 用它回填一次，后台才不会显示/编辑到过期的 v1 值；保存时由服务端写回 v2。
+    $docSettings['product_template'] = ProductTemplateDocument::authoritativeScope($bootDoc);
     if (!isset(availableLanguages()[$docSettings['product_template']['lang']])) {
         $docSettings['product_template']['lang'] = $productPreviewLanguage;
     }

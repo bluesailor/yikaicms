@@ -27,6 +27,19 @@ $requireTemplateLicense = static function (string $type) use ($advancedBloxEnabl
 
 /** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
 $processTemplateDocument = static function (string $type, int $id, string $json): array {
+    // TASK-002-R02：产品模板的权威条件是 v2；后台表单只认 v1 字段，这里统一写回 v2，
+    // 避免"后台改 v1、前台仍按 v2 渲染"的分叉（v1-only 历史模板行为不变）。
+    if ($type === 'product-detail' && trim($json) !== '' && trim($json) !== '[]') {
+        try {
+            $document = BloxDocumentPipeline::decode($json);
+            $json = json_encode(
+                ProductTemplateDocument::applyUiScope($document, $document['settings']['product_template'] ?? []),
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+            );
+        } catch (Throwable $scopeError) {
+            // 文档本身有问题时交给下游既有校验报错，不在这里吞掉
+        }
+    }
     return BloxAreaDocument::isArea($type)
         ? BloxAreaDocument::process($type, $json, 'tpl' . $id)
         : ($type === 'popup'
