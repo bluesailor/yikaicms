@@ -6,7 +6,7 @@ declare(strict_types=1);
 final class BloxSectionMetadata
 {
     private const PAGE_TYPES = [
-        'general', 'home', 'about', 'product-list', 'product-detail', 'content-list',
+        'general', 'home', 'about', 'product-list', 'product-detail', 'article-detail', 'content-list',
         'case', 'contact', 'jobs', 'service', 'landing',
     ];
     private const PURPOSES = [

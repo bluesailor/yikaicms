@@ -6760,4 +6760,7 @@ voltage|電圧|220V',
     'blox_article_rule_removed' => 'このルールを解除しました。他の一致テンプレートが引き継ぐ場合があります。デザインは保持されます。',
     'blox_article_rule_priority' => '指定した記事はすべての記事より優先されます。同一範囲では番号の大きいテンプレートを使用します。テーマ標準を選ぶとこのルールは保持され、解除すると他のテンプレートが引き継ぎます。',
     'blox_article_native_preview_status' => '読み取り専用プレビュー：標準の記事詳細ページを表示しています。カスタムテンプレートは適用されません。',
+    'blox_article_settings' => '記事詳細ページ設定',
+    'blox_article_scope_none' => 'まだ適用しない（下書きのみ）',
+    'blox_article_scope_item' => '指定した記事',
 ];

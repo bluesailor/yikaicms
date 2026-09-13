@@ -8,7 +8,7 @@ final class BloxTemplateModel extends Model
     protected string $table = 'blox_templates';
     protected string $defaultOrder = 'updated_at DESC, id DESC';
 
-    public const TYPES = ['section', 'page', 'header', 'footer', 'popup', 'product-detail'];
+    public const TYPES = ['section', 'page', 'header', 'footer', 'popup', 'product-detail', 'article-detail'];
     private const SOURCES = ['user', 'import', 'builtin', 'plugin', 'remote'];
 
     public static function validType(string $type): bool

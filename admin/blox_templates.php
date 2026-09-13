@@ -580,6 +580,7 @@ $typeLabels = [
     'footer' => __('blox_tpl_type_footer'),
     'popup' => __('blox_tpl_type_popup'),
     'product-detail' => __('blox_tpl_type_product-detail'),
+    'article-detail' => __('blox_tpl_type_article-detail'),
 ];
 $assignmentSourceLabels = [
     'default' => __('blox_assignment_source_default'),
@@ -677,7 +678,7 @@ $GLOBALS['pageTitle'] = __('admin_blox_templates');
 $GLOBALS['currentMenu'] = 'blox_templates';
 require_once ROOT_PATH . '/admin/includes/header.php';
 require_once ROOT_PATH . '/admin/includes/module_nav.php';
-$moduleTypeIcons = ['all' => 'layout-grid', 'section' => 'layout-rows', 'page' => 'file', 'header' => 'layout-navbar', 'footer' => 'layout-bottombar', 'popup' => 'app-window', 'product-detail' => 'package'];
+$moduleTypeIcons = ['all' => 'layout-grid', 'section' => 'layout-rows', 'page' => 'file', 'header' => 'layout-navbar', 'footer' => 'layout-bottombar', 'popup' => 'app-window', 'product-detail' => 'package', 'article-detail' => 'article'];
 $moduleTypeItems = [];
 foreach (array_merge(['all'], BloxTemplateModel::TYPES) as $moduleType) {
     $moduleTypeItems[] = [
