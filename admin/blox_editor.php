@@ -1573,6 +1573,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 // 发布中与保存中是两个动作：模板发布期间状态位要说"发布中…"，不能显示"保存中"
                 'templatePublishing' => __('blox_template_publishing'),
                 'workspaceRestored' => __('blox_workspace_restored'),
+                'saveStatusClean' => __('blox_save_status_clean'),
+                'saveStatusPublished' => __('blox_save_status_published'),
+                'saveStatusConflict' => __('blox_save_status_conflict'),
                 'revisionLoading' => __('loading'),
                 'revisionPreviewFailed' => __('blox_revision_preview_failed'),
                 'iconHintDefault' => __('blox_icon_hint_default'),
@@ -9739,12 +9742,41 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
             },
 
+            /** 当前画布是否就是线上已发布的那一版（用于"已发布"状态词）。 */
+            isCanvasPublishedCurrent() {
+                if (!this.publishedDocument) return false;
+                if (typeof this.draftSummary !== "function") return !this.dirty;
+                return !this.draftSummary().changed;
+            },
+
+            /**
+             * 保存/发布反馈的状态机（TASK-002 第 1 项要区分八态）：
+             * conflict 版本冲突 / publishing 发布中 / saving 保存中 / failed 失败 /
+             * dirty 未保存 / saved 草稿已保存 / published 已发布 / clean 未修改。
+             * 顺序即优先级：正在发生的动作 > 失败 > 未保存 > 刚保存成功 > 已发布 > 未修改。
+             */
+            saveStatusState() {
+                if (this.conflictOpen) return "conflict";
+                if (this.templateActionBusy) return "publishing";
+                if (this.saving) return "saving";
+                if (this.saveOutcome === "failed") return "failed";
+                if (this.dirty) return "dirty";
+                if (this.saveOutcome === "saved") return "saved";
+                if (this.isCanvasPublishedCurrent()) return "published";
+                return "clean";
+            },
+
             saveStatusText() {
-                if (this.templateActionBusy) return this.uiText.templatePublishing;
-                if (this.saving) return this.uiText.savingDraft;
-                if (this.saveOutcome === "failed") return this.uiText.saveStatusFailed;
-                if (this.dirty) return this.uiText.unsaved;
-                return this.saveOutcome === "saved" ? this.uiText.draftSaved : "";
+                switch (this.saveStatusState()) {
+                    case "conflict": return this.uiText.saveStatusConflict;
+                    case "publishing": return this.uiText.templatePublishing;
+                    case "saving": return this.uiText.savingDraft;
+                    case "failed": return this.uiText.saveStatusFailed;
+                    case "dirty": return this.uiText.unsaved;
+                    case "saved": return this.uiText.draftSaved;
+                    case "published": return this.uiText.saveStatusPublished;
+                    default: return this.uiText.saveStatusClean;
+                }
             },
 
             save() {

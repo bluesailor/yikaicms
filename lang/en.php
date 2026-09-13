@@ -6636,4 +6636,7 @@ voltage|Voltage|220V',
     'blox_editor_type_article_detail' => 'Article detail template',
     'blox_workspace_restore' => 'Restore workspace',
     'blox_workspace_restored' => 'Workspace restored to defaults (panel visibility and widths only)',
+    'blox_save_status_clean' => 'No changes',
+    'blox_save_status_published' => 'Published',
+    'blox_save_status_conflict' => 'Version conflict',
 ];

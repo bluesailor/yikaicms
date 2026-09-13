@@ -21,7 +21,8 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test.afterEach(async ({ page }) => {
   if (!consoleEntries || !unsafeWrites) return;
-  const leakedDirtyState = await page.getByTestId('blox-dirty').isVisible().catch(() => false);
+  // TASK-002 第 1 项：状态位现在始终有文案（未修改/已发布…），"脏"改看 data-state 而非可见性
+  const leakedDirtyState = (await page.getByTestId('blox-dirty').getAttribute('data-state').catch(() => null)) === 'dirty';
   if (leakedDirtyState) await restoreClean(page);
   expect(leakedDirtyState, 'test left the editor dirty').toBe(false);
   expect(unsafeWrites, 'Query Loop E2E must not save or publish').toEqual([]);
@@ -66,5 +67,5 @@ test('Query Loop exposes pagination and child fallback controls @ci', async ({ p
 
   await performPreviewUpdate(page, () => page.locator('[data-control-key="loop_fallback"] input').fill('Untitled'));
   await restoreClean(page);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expect(page.getByTestId('blox-dirty')).not.toHaveAttribute('data-state', 'dirty');
 });
