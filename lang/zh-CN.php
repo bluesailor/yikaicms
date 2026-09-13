@@ -6694,4 +6694,5 @@ voltage|电压|220V',
     'blox_product_specs' => '产品参数',
     'blox_product_prev_next' => '上一个 / 下一个产品',
     'blox_product_related' => '相关产品',
+    'blox_product_inquiry' => '产品询价表单',
 ];
