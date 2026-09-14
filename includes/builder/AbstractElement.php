@@ -43,6 +43,12 @@ abstract class AbstractElement
         return [];
     }
 
+    /** Trusted render target within this element's HTML; null means the outer root. */
+    public function compiledCssTargetTag(): ?string
+    {
+        return null;
+    }
+
     /**
      * 常用内容元素共享的入场动画设置。
      *

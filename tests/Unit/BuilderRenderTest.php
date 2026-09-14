@@ -672,7 +672,7 @@ final class BuilderRenderTest extends TestCase
         $this->assertSame([
             'text', 'site_field', 'site_fallback', 'loop_field', 'loop_fallback',
             'level', 'url', 'new_tab', 'site_url_field', 'loop_url_field', 'html_id',
-            'visual_size', 'color', 'align', 'animation', 'animation_trigger', 'animation_speed', 'animation_delay',
+            'visual_size', 'type_font_size', 'type_line_height', 'color', 'align', 'animation', 'animation_trigger', 'animation_speed', 'animation_delay',
         ], $keys);
         // defaults 从 controls 推导
         $this->assertSame([
@@ -688,6 +688,8 @@ final class BuilderRenderTest extends TestCase
             'loop_url_field' => 'none',
             'html_id' => '',
             'visual_size' => 'auto',
+            'type_font_size' => '',
+            'type_line_height' => '',
             'color' => '',
             'align' => 'left',
             'animation' => '',

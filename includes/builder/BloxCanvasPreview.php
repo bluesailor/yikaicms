@@ -96,6 +96,48 @@ function renderBloxCanvasThemeArea(
 }
 
 /**
+ * 预览的可信基线只从服务端读取目标文档本身；客户端提交的内容永远不作为基线。
+ * 读不到明确目标时返回 null，按新建内容的能力规则检查。
+ */
+function bloxPreviewTrustedJson(bool $isHomeLayout, int $id): ?string
+{
+    $templateId = (int) ($_GET['template_id'] ?? 0);
+    if ($templateId > 0) {
+        $row = bloxTemplateModel()->findForExport($templateId);
+        $type = (string) ($row['type'] ?? '');
+        $expected = match (true) {
+            (string) ($_GET['product_template'] ?? '') === '1' => ['product-detail'],
+            (string) ($_GET['article_template'] ?? '') === '1' => ['article-detail'],
+            (string) ($_GET['template_area'] ?? '') !== '' => [(string) $_GET['template_area']],
+            default => ['section', 'page', 'popup'],
+        };
+        if (!$row || !in_array($type, $expected, true)) {
+            return null;
+        }
+        requireBloxTemplateTypePermission($type);
+        return trim((string) ($row['draft_data'] ?? '')) !== '' ? (string) $row['draft_data'] : '[]';
+    }
+    if ($isHomeLayout) {
+        if ((string) ($_GET['template_area'] ?? '') !== '') {
+            return null;
+        }
+        $home = HomeBloxDocument::load();
+        return json_encode(['schema' => $home['schema'], 'settings' => $home['settings'], 'sections' => $home['sections']],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    }
+    $channel = $id > 0 ? channelModel()->find($id) : null;
+    try {
+        return match ((string) ($channel['type'] ?? '')) {
+            'page', 'product' => PageBloxDocument::load($id)['document_json'],
+            'list' => ChannelBloxDocument::load($id)['document_json'],
+            default => null,
+        };
+    } catch (RuntimeException) {
+        return null;
+    }
+}
+
+/**
  * 不写 `: never`——那是 PHP 8.1 才有的类型，而本项目承诺支持 8.0
  * （8.0 会把它当成一个不存在的类名，Psalm 也会如实报 UndefinedClass）。
  */
@@ -107,9 +149,11 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
     // 编辑器预览/画布里隐藏的区块照常显示（灰显标注），否则一隐藏就从画布消失、没法再点回来
     require_once ROOT_PATH . '/includes/builder/bootstrap.php';
     $previewJson = (string) ($_POST['blocks_data'] ?? '[]');
-    BloxElementPolicy::assertJsonAllowed($previewJson);
-    BloxQueryLoopPolicy::assertJsonAllowed($previewJson);
-    BloxDisplayConditions::assertJsonAllowed($previewJson);
+    // 与保存同一套作者能力检查（含全局样式）：旧高级配置按服务端同文档基线保留，新增或改动仍被拒绝。
+    BloxDocumentPipeline::assertAuthoringAllowed(
+        BloxDocumentPipeline::decode($previewJson)['sections'],
+        bloxPreviewTrustedJson($isHomeLayout, $id)
+    );
     BlockRenderer::$showHidden = true;
     if ($bloxCanvas) {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';

@@ -314,98 +314,8 @@ declare(strict_types=1);
                         </div>
                     </template>
 
-                    <template x-if="displayConditionsEnabled && panelTab === 'condition' && conditionTarget()">
-                        <div class="space-y-3" data-testid="blox-condition-editor">
-                            <div class="rounded border border-violet-200 bg-violet-50/60 p-3">
-                                <div class="flex items-start gap-2">
-                                    <i class="ti ti-adjustments-code text-base text-violet-600 mt-0.5"></i>
-                                    <p class="text-[10px] leading-relaxed text-gray-500" x-text="conditionText.hint"></p>
-                                </div>
-                            </div>
-
-                            <template x-if="conditionGroups().length === 0">
-                                <button type="button" @click="addConditionGroup()" data-testid="blox-condition-empty-add"
-                                        class="w-full min-h-24 rounded border-2 border-dashed border-gray-200 text-gray-400 hover:border-violet-300 hover:text-violet-600 inline-flex flex-col items-center justify-center gap-2 transition">
-                                    <i class="ti ti-adjustments-plus text-xl"></i>
-                                    <span class="text-xs" x-text="conditionText.empty"></span>
-                                </button>
-                            </template>
-
-                            <template x-for="(group, groupIndex) in conditionGroups()" :key="groupIndex">
-                                <div>
-                                    <div x-show="groupIndex > 0" class="flex items-center gap-2 py-1.5">
-                                        <span class="h-px flex-1 bg-gray-200"></span>
-                                        <span class="text-[10px] font-semibold text-violet-500" x-text="conditionText.or"></span>
-                                        <span class="h-px flex-1 bg-gray-200"></span>
-                                    </div>
-                                    <div class="rounded border border-gray-200 bg-white overflow-hidden" :data-testid="'blox-condition-group-' + groupIndex">
-                                        <div class="h-8 px-2.5 flex items-center border-b border-gray-100 bg-gray-50">
-                                            <span class="text-[10px] font-semibold text-gray-500"
-                                                  x-text="conditionText.group.replace(':n', groupIndex + 1)"></span>
-                                            <button type="button" @click="removeConditionGroup(groupIndex)"
-                                                    class="ml-auto w-6 h-6 rounded text-gray-400 hover:bg-red-50 hover:text-red-600 inline-flex items-center justify-center"
-                                                    title="<?= e(__('admin_delete')) ?>"><i class="ti ti-trash text-sm"></i></button>
-                                        </div>
-                                        <div class="p-2.5 space-y-2">
-                                            <template x-for="(rule, ruleIndex) in group.rules" :key="ruleIndex">
-                                                <div>
-                                                    <div x-show="ruleIndex > 0" class="text-center text-[9px] font-semibold text-gray-400 py-0.5"
-                                                         x-text="conditionText.and"></div>
-                                                    <div class="rounded border border-gray-200 p-2 space-y-1.5" :data-testid="'blox-condition-rule-' + groupIndex + '-' + ruleIndex">
-                                                        <div class="flex gap-1.5">
-                                                            <select x-model="rule.type" @change="conditionTypeChanged(rule)" data-testid="blox-condition-type"
-                                                                    class="min-w-0 flex-1 border border-gray-200 rounded px-1.5 py-1.5 text-[11px] bg-white">
-                                                                <option value="login" x-text="conditionText.login"></option>
-                                                                <option value="date" x-text="conditionText.date"></option>
-                                                                <option value="channel" x-text="conditionText.channel"></option>
-                                                                <option value="url" x-text="conditionText.url"></option>
-                                                            </select>
-                                                            <select x-model="rule.operator" data-testid="blox-condition-operator"
-                                                                    class="min-w-0 flex-1 border border-gray-200 rounded px-1.5 py-1.5 text-[11px] bg-white">
-                                                                <template x-for="option in conditionOperators(rule.type)" :key="option.value">
-                                                                    <option :value="option.value" x-text="option.label"></option>
-                                                                </template>
-                                                            </select>
-                                                            <button type="button" @click="removeConditionRule(groupIndex, ruleIndex)"
-                                                                    class="w-7 h-7 rounded text-gray-400 hover:bg-red-50 hover:text-red-600 inline-flex items-center justify-center shrink-0"
-                                                                    title="<?= e(__('admin_delete')) ?>"><i class="ti ti-x text-sm"></i></button>
-                                                        </div>
-                                                        <select x-show="rule.type === 'login'" x-model="rule.value" data-testid="blox-condition-value-login"
-                                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px] bg-white">
-                                                            <option value="logged_in" x-text="conditionText.loggedIn"></option>
-                                                            <option value="logged_out" x-text="conditionText.loggedOut"></option>
-                                                        </select>
-                                                        <input x-show="rule.type === 'date'" type="date" x-model="rule.value" data-testid="blox-condition-value-date"
-                                                               class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px]">
-                                                        <select x-show="rule.type === 'channel'" x-model.number="rule.value" data-testid="blox-condition-value-channel"
-                                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px] bg-white">
-                                                            <option value="" x-text="conditionText.selectChannel"></option>
-                                                            <template x-for="channel in conditionChannels" :key="channel.value">
-                                                                <option :value="channel.value" x-text="channel.label"></option>
-                                                            </template>
-                                                        </select>
-                                                        <input x-show="rule.type === 'url'" type="text" x-model="rule.value" data-testid="blox-condition-value-url"
-                                                               :placeholder="conditionText.urlPlaceholder"
-                                                               class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px]">
-                                                    </div>
-                                                </div>
-                                            </template>
-                                            <button type="button" @click="addConditionRule(groupIndex)" data-testid="blox-condition-add-rule"
-                                                    class="w-full h-8 rounded border border-dashed border-violet-200 text-violet-600 hover:bg-violet-50 text-[10px] font-medium inline-flex items-center justify-center gap-1">
-                                                <i class="ti ti-plus text-sm"></i><span x-text="conditionText.addRule"></span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-
-                            <button x-show="conditionGroups().length > 0" type="button" @click="addConditionGroup()"
-                                    data-testid="blox-condition-add-group"
-                                    class="w-full h-9 rounded border border-violet-200 text-violet-600 hover:bg-violet-50 text-xs font-medium inline-flex items-center justify-center gap-1.5">
-                                <i class="ti ti-folders text-sm"></i><span x-text="conditionText.addGroup"></span>
-                            </button>
-                        </div>
-                    </template>
+                    <?php // 元素/区块显示条件编辑面板由 blox-pro 作者端模块输出 ?>
+                    <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_condition'); ?>
 
                     <!-- ── 元素设置：按 BuilderRegistry 的 controls() 生成 ── -->
                     <template x-if="selEl && panelTab !== 'condition'">
@@ -998,25 +908,8 @@ declare(strict_types=1);
 
                             <?php require __DIR__ . '/banner-manager.php'; ?>
 
-                            <template x-if="selEl && selEl.type === 'list-dynamic' && panelTab === 'professional' && professionalFeatures.query_loop.allowed">
-                                <div class="rounded border border-violet-200 bg-violet-50/60 p-3 space-y-2">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="text-xs font-semibold text-violet-700 inline-flex items-center gap-1.5">
-                                            <i class="ti ti-repeat text-sm"></i>
-                                            <?php echo e(__('blox_loop_template_title')); ?>
-                                        </span>
-                                        <span class="text-[10px] rounded border px-1.5 py-0.5"
-                                              :class="hasLoopTemplate() ? 'border-violet-200 bg-white text-violet-600' : 'border-gray-200 bg-white text-gray-500'"
-                                              x-text="hasLoopTemplate() ? <?php echo htmlspecialchars(json_encode(__('blox_loop_template_custom'), JSON_UNESCAPED_UNICODE), ENT_QUOTES); ?> : <?php echo htmlspecialchars(json_encode(__('blox_loop_template_preset'), JSON_UNESCAPED_UNICODE), ENT_QUOTES); ?>"></span>
-                                    </div>
-                                    <p class="text-[10px] leading-relaxed text-gray-500"><?php echo e(__('blox_loop_template_help')); ?></p>
-                                    <button type="button" @click="libOpen = true" data-testid="blox-library-open"
-                                            class="w-full h-8 rounded border border-violet-200 bg-white text-violet-600 hover:border-violet-300 text-xs inline-flex items-center justify-center gap-1.5">
-                                        <i class="ti ti-plus text-sm"></i>
-                                        <?php echo e(__('blox_loop_add_child')); ?>
-                                    </button>
-                                </div>
-                            </template>
+                            <?php // 动态循环模板面板由 blox-pro 作者端模块输出 ?>
+                            <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_loop_template'); ?>
 
                             <template x-if="processHost() && panelTab === 'content'">
                                 <div class="overflow-hidden rounded-lg border border-gray-200 bg-white" data-testid="blox-process-manager">
@@ -1277,36 +1170,8 @@ declare(strict_types=1);
 
                             <template x-if="selEl && panelTab === 'style' && commonStyleVisible() && supportsBoxStyles(selEl.type)">
                                 <div class="rounded border border-gray-200 bg-gray-50 p-3 space-y-3">
-                                    <div x-show="professionalOpen && stylePresetsEnabled" class="pb-3 border-b border-gray-200">
-                                        <div class="flex items-center justify-between mb-1.5">
-                                            <label class="text-xs font-semibold text-gray-600 inline-flex items-center gap-1.5">
-                                                <i class="ti ti-components text-sm text-emerald-500"></i><?= e(__('blox_global_style')) ?>
-                                            </label>
-                                            <button x-show="canManageDesign" type="button" @click="openDesignSystem('styles')"
-                                                    class="w-7 h-7 inline-flex items-center justify-center rounded text-gray-400 hover:text-emerald-600 hover:bg-white"
-                                                    title="<?= e(__('blox_design_system')) ?>">
-                                                <i class="ti ti-settings text-sm"></i>
-                                            </button>
-                                        </div>
-                                        <select :value="selEl.data._global_style || ''" @change="applyGlobalStyle($event.target.value)"
-                                                data-testid="blox-global-style-select"
-                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white">
-                                            <option value=""><?= e(__('blox_design_no_style')) ?></option>
-                                            <template x-for="style in globalStyleOptions(selEl.data._global_style)" :key="style.id">
-                                                <option :value="style.id" x-text="globalStyleLabel(style)"></option>
-                                            </template>
-                                        </select>
-                                        <div data-testid="blox-style-binding-status" class="mt-2 text-xs text-gray-600">
-                                            <span x-show="!selEl.data._global_style"><?= e(__('blox_style_binding_none')) ?></span>
-                                            <span x-show="!!selEl.data._global_style"><?= e(__('blox_style_binding_shared')) ?></span>
-                                        </div>
-                                        <button x-show="!!selEl.data._global_style" type="button"
-                                                data-testid="blox-style-binding-remove" @click="applyGlobalStyle('')"
-                                                class="mt-2 text-xs text-gray-600 hover:text-emerald-600"
-                                                title="<?= e(__('blox_style_binding_remove_hint')) ?>">
-                                            <i class="ti ti-unlink" aria-hidden="true"></i> <?= e(__('blox_style_binding_remove')) ?>
-                                        </button>
-                                    </div>
+                                    <?php // 全局命名样式选择由 blox-pro 作者端模块输出 ?>
+                                    <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_style_preset'); ?>
                                     <div class="flex items-center justify-between">
                                         <span class="text-xs font-semibold text-gray-600 inline-flex items-center gap-1.5">
                                             <i class="ti ti-box-margin text-sm text-blue-500"></i>
@@ -1966,6 +1831,16 @@ declare(strict_types=1);
                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm">
                                     </template>
 
+                                    <template x-if="ctrl.type === 'css_length'">
+                                        <div class="flex items-center gap-2" :data-testid="'blox-control-' + ctrl.key">
+                                            <input type="number" :value="cssLengthValue(ctrl)" @input="setCssLengthValue(ctrl, $event.target.value)"
+                                                   :min="ctrl.min ?? null" :max="ctrl.max ?? null" :step="ctrl.step ?? 1"
+                                                   :placeholder="cssLengthPlaceholder(ctrl)"
+                                                   class="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
+                                            <span x-show="ctrl.unit" class="shrink-0 text-xs text-gray-400" x-text="ctrl.unit"></span>
+                                        </div>
+                                    </template>
+
                                     <template x-if="ctrl.type === 'range'">
                                         <div class="flex items-center gap-3" :data-testid="'blox-control-' + ctrl.key">
                                             <input type="range" :value="controlValue(ctrl)"
@@ -2072,7 +1947,7 @@ declare(strict_types=1);
                                     </template>
 
                                     <?php // 未覆盖的控件类型：明说，而不是静默留空 ?>
-                                    <template x-if="['text','url','video_url','textarea','richtext','select','button_style','button_icon_position','button_hover_effect','number','range','checkbox','color','icon','image','about_layout','about_breakpoint','faq_repeater','org_repeater','table_grid'].indexOf(ctrl.type) === -1">
+                                    <template x-if="['text','url','video_url','textarea','richtext','select','button_style','button_icon_position','button_hover_effect','number','range','css_length','checkbox','color','icon','image','about_layout','about_breakpoint','faq_repeater','org_repeater','table_grid'].indexOf(ctrl.type) === -1">
                                         <p class="text-[10px] text-amber-600 leading-relaxed">
                                             <?= __('blox_ctrl_unsupported_pre') ?>（<span x-text="ctrl.type"></span>）<?= __('blox_ctrl_unsupported_post') ?>
                                         </p>
@@ -2415,6 +2290,13 @@ declare(strict_types=1);
                                 </div>
                                 <!-- 上下内边距 -->
                                 <div>
+                                    <label class="mb-2 flex items-center gap-2 text-xs text-gray-600">
+                                        <input type="checkbox" data-testid="blox-section-padding-global"
+                                               :checked="sel.settings.padding == null"
+                                               @change="if ($event.target.checked) { delete sel.settings.padding; } else { sel.settings.padding = 'md'; }">
+                                        <?= e(__('blox_section_spacing_global')) ?>
+                                    </label>
+                                    <div x-show="sel.settings.padding != null">
                                     <div class="flex items-center justify-between gap-2 mb-1.5">
                                         <label class="block text-xs font-medium text-gray-600"><?= __('blox_section_spacing') ?></label>
                                         <div class="flex items-center gap-1">
@@ -2453,6 +2335,7 @@ declare(strict_types=1);
                                         <i class="ti" :class="sectionResponsiveState('padding', 'md').overridden ? 'ti-adjustments' : 'ti-link'"></i>
                                         <span x-text="responsiveStatusText(sectionResponsiveState('padding', 'md'))"></span>
                                     </p>
+                                    </div>
                                 </div>
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_visible_devices') ?></label>

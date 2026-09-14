@@ -26,6 +26,29 @@ final class BloxDocumentPipeline
      */
     public const SCHEMA_VERSION = 1;
 
+    /**
+     * 保存与预览共用的作者能力检查。$trustedJson 必须是服务端读取的同一文档；
+     * 专业能力不可用时，只有与它完全一致的受保护字段才被视为保留而非新增。
+     *
+     * @param array<int,mixed> $sections
+     */
+    public static function assertAuthoringAllowed(array $sections, ?string $trustedJson): void
+    {
+        BloxElementPolicy::assertSectionsAllowed($sections);
+        $validationSections = $sections;
+        $denied = BloxFeaturePolicy::denied();
+        if ($trustedJson !== null && $denied !== []) {
+            require_once __DIR__ . '/BloxProtectedFields.php';
+            // Validate raw structures before removing unchanged protected fields for entitlement checks.
+            BloxDisplayConditions::assertSectionsAllowed($sections, true);
+            BloxDesignSystem::assertSectionsAllowed($sections, true);
+            $validationSections = BloxProtectedFields::forValidation($sections, self::decode($trustedJson)['sections'], $denied);
+        }
+        BloxQueryLoopPolicy::assertSectionsAllowed($validationSections);
+        BloxDisplayConditions::assertSectionsAllowed($validationSections);
+        BloxDesignSystem::assertSectionsAllowed($validationSections);
+    }
+
     /** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
     public static function process(
         string $json,
@@ -41,20 +64,7 @@ final class BloxDocumentPipeline
         }
 
         BloxDocumentValidator::assertValidSections($sections);
-        BloxElementPolicy::assertSectionsAllowed($sections);
-        $validationSections = $sections;
-        $denied = array_values(array_filter(['query_loop', 'display_conditions', 'style_presets'],
-            static fn(string $feature): bool => !BloxFeaturePolicy::allows($feature)));
-        if ($trustedJson !== null && $denied !== []) {
-            require_once __DIR__ . '/BloxProtectedFields.php';
-            // Validate raw structures before removing unchanged protected fields for entitlement checks.
-            BloxDisplayConditions::assertSectionsAllowed($sections, true);
-            BloxDesignSystem::assertSectionsAllowed($sections, true);
-            $validationSections = BloxProtectedFields::forValidation($sections, self::decode($trustedJson)['sections'], $denied);
-        }
-        BloxQueryLoopPolicy::assertSectionsAllowed($validationSections);
-        BloxDisplayConditions::assertSectionsAllowed($validationSections);
-        BloxDesignSystem::assertSectionsAllowed($validationSections);
+        self::assertAuthoringAllowed($sections, $trustedJson);
         $normalized = self::normalizeSections($sections, $idPrefix);
         BloxDocumentValidator::assertValidSections($normalized);
 
@@ -506,6 +516,11 @@ final class BloxDocumentPipeline
                 $declaredKeys[] = $key;
             }
             if ($key === '' || !array_key_exists($key, $data)) {
+                continue;
+            }
+            // 声明式 CSS 控件（E05）：空值=未设置、0 有效、非法值清为未设置，不回落数字默认值。
+            if (($control['type'] ?? '') === BloxCssCompiler::CONTROL_TYPE) {
+                $data[$key] = BloxCssCompiler::sanitizeValue($control, $data[$key]);
                 continue;
             }
             // responsive 值先行结构化归一，之后不再进标量清洗

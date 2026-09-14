@@ -205,6 +205,12 @@ final class BlockRenderer
 
             $padding = AbstractElement::respClasses($settings['padding'] ?? 'md', self::PADDING_MAP, 'md');
             $maxWidth = self::MAXWIDTH_MAP[$settings['max_width'] ?? 'default'] ?? 'max-w-6xl';
+            if (!isset($settings['padding']) && BloxDesignTheme::hasSectionSpacing()) {
+                $padding .= ' yk-section-space-theme';
+            }
+            if (($settings['max_width'] ?? 'default') === 'default' && BloxDesignTheme::hasContentWidth()) {
+                $maxWidth .= ' yk-width-theme';
+            }
 
             $style = '';
             $bgColor = AbstractElement::cssColor($settings['bg_color'] ?? null);
@@ -810,11 +816,53 @@ final class BlockRenderer
         return $processor->getUpdatedHtml();
     }
 
+    /**
+     * 声明式 CSS（E05）：属性与作用域来自可信 controls()，文档只提供值。
+     * 输出写入元素根标签（内联声明或固定变量类），不产生额外节点，局部 SSR 单根协议不变。
+     */
+    private static function applyCompiledCss(string $html, array $data, AbstractElement $element): string
+    {
+        if ($html === '') {
+            return $html;
+        }
+        try {
+            $compiled = BloxCssCompiler::compile($element->controls(), $data);
+        } catch (InvalidArgumentException $e) {
+            // 插件 schema 声明错误只记录、不输出样式，不能让整页渲染失败。
+            error_log('Blox declarative CSS skipped [' . $element->type() . ']: ' . $e->getMessage());
+            return $html;
+        }
+        if ($compiled['style'] === '' && $compiled['classes'] === []) {
+            return $html;
+        }
+        $processor = new HtmlTagRewriter($html);
+        if (!$processor->nextTag($element->compiledCssTargetTag())) {
+            return $html;
+        }
+        if ($compiled['style'] !== '') {
+            $existing = $processor->getAttribute('style');
+            $style = is_string($existing) ? trim($existing) : '';
+            if ($style !== '' && !str_ends_with($style, ';')) {
+                $style .= ';';
+            }
+            $processor->setAttribute('style', $style . $compiled['style']);
+        }
+        if ($compiled['classes'] !== []) {
+            $existingClass = $processor->getAttribute('class');
+            $processor->setAttribute('class', trim((is_string($existingClass) ? $existingClass : '') . ' ' . implode(' ', $compiled['classes'])));
+        }
+        return $processor->getUpdatedHtml();
+    }
+
     private static function applyGlobalStyle(string $html, array $data, string $type): string
     {
         $id = trim((string) ($data['_global_style'] ?? ''));
+        // 未绑定命名样式的元素占绝大多数：先短路，避免逐元素解析设计快照与回退快照。
+        if ($html === '' || $id === '' || $type === 'code') {
+            return $html;
+        }
         $declarations = BloxDesignSystem::styleDeclarations($id, $data['_global_style_snapshot'] ?? null);
-        if ($html === '' || $id === '' || $declarations === '' || $type === 'code') {
+        if ($declarations === '') {
             return $html;
         }
         $processor = new HtmlTagRewriter($html);
@@ -887,6 +935,7 @@ final class BlockRenderer
         ]);
         $html = BloxFrontendEditTarget::mark($html, $type, (string) ($el['id'] ?? ''));
         $html = self::applyElementSharedStyles($html, $data, $element);
+        $html = self::applyCompiledCss($html, $data, $element);
         $html = self::applyGlobalStyle($html, $data, $element->type());
         $html = self::applyElementVisibility($html, $data['_hide_on'] ?? null, $editMode);
         $html = self::markCustomHomeElement($html, $element->type(), $path);

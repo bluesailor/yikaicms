@@ -117,6 +117,33 @@ final class HtmlCache
         }
     }
 
+    private static bool $pendingInvalidation = false;
+
+    /**
+     * 数据变更后的整页缓存失效：事务中推迟到提交之后（同一事务只清一次），回滚则不清。
+     * 提交前清缓存会让并发的匿名请求在提交前把旧页面重新写回缓存。
+     */
+    public static function invalidateAfterCommit(): void
+    {
+        if (!function_exists('db')) {
+            self::invalidate();
+            return;
+        }
+        if (self::$pendingInvalidation) {
+            return;
+        }
+        self::$pendingInvalidation = true;
+        db()->afterCommit(
+            static function (): void {
+                self::$pendingInvalidation = false;
+                self::invalidate();
+            },
+            static function (): void {
+                self::$pendingInvalidation = false;
+            }
+        );
+    }
+
     /**
      * 清除缓存（全部或按 key 前缀）
      */
@@ -300,7 +327,7 @@ add_action('data_changed', function (string $table = '', $id = null, array $sett
     static $skipTables = ['admin_logs', 'ai_logs', 'login_throttle', 'form_throttle'];
     if (in_array($table, $skipTables, true)) return;
     if ($table === 'settings' && !SettingModel::affectsPageCache($settings)) return;
-    HtmlCache::invalidate();
+    HtmlCache::invalidateAfterCommit();
 });
 
 // 2) 兼容老钩子（如果有插件还在用）
@@ -309,5 +336,5 @@ add_action('after_save_product', function (): void { HtmlCache::invalidate(); })
 add_action('after_delete_content', function (): void { HtmlCache::invalidate(); });
 add_action('after_delete_product', function (): void { HtmlCache::invalidate(); });
 add_action('setting_saved', function (array $settings = []): void {
-    if (SettingModel::affectsPageCache($settings)) HtmlCache::invalidate();
+    if (SettingModel::affectsPageCache($settings)) HtmlCache::invalidateAfterCommit();
 });

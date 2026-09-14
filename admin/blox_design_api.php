@@ -54,6 +54,21 @@ try {
         adminLog('blox_design', $action, 'Blox global page hero ' . $action);
         success($snapshot);
     }
+    if (in_array($action, ['theme_snapshot', 'theme_save_draft', 'theme_publish'], true)) {
+        if ($action === 'theme_snapshot') {
+            success(BloxDesignTheme::snapshot());
+        }
+        $themeInput = json_decode((string) post('theme', '{}'), true);
+        if (!is_array($themeInput)) {
+            error(__('blox_design_invalid'));
+        }
+        $revision = (int) post('revision', '0');
+        $snapshot = $action === 'theme_publish'
+            ? BloxDesignTheme::publish($themeInput, $revision)
+            : BloxDesignTheme::saveDraft($themeInput, $revision);
+        adminLog('blox_design', $action, 'Blox global theme ' . $action);
+        success($snapshot);
+    }
     if ($action === 'usage') {
         success(BloxDesignDependencies::usageSnapshot());
     }
@@ -76,7 +91,7 @@ try {
     adminLog('blox_design', $action, 'Blox design system ' . $action . ' ' . mb_substr($input['id'], 0, 48));
     success($state);
 } catch (RuntimeException $e) {
-    if ($e->getMessage() === __('blox_save_conflict')) {
+    if (in_array($e->getMessage(), [__('blox_save_conflict'), __('blox_design_conflict')], true)) {
         error($e->getMessage(), 409);
     }
     error($e->getMessage());

@@ -38,11 +38,18 @@ final class BloxDesignSystem
     /** @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>} */
     public static function snapshot(): array
     {
-        return self::fromRaw(
-            (string) config(self::SETTING_KEY, ''),
-            (string) config('primary_color', '#2563EB'),
-            (string) config('secondary_color', '#1D4ED8')
-        );
+        $raw = (string) config(self::SETTING_KEY, '');
+        $primary = (string) config('primary_color', '#2563EB');
+        $secondary = (string) config('secondary_color', '#1D4ED8');
+        // 请求内缓存：渲染时每个带样式的元素都会取快照。以原始设置值为键，写入新值后键变化自然失效。
+        static $cacheKey = null;
+        static $cached = null;
+        $key = hash('sha256', $raw . "\0" . $primary . "\0" . $secondary . "\0" . (function_exists('siteLang') ? siteLang() : ''));
+        if ($cacheKey !== $key || $cached === null) {
+            $cached = self::fromRaw($raw, $primary, $secondary);
+            $cacheKey = $key;
+        }
+        return $cached;
     }
 
     /**
@@ -101,7 +108,10 @@ final class BloxDesignSystem
                 $declarations .= '--yk-color-' . $id . ':' . $value . ';';
             }
         }
-        return $declarations === '' ? '' : '<style id="yk-blox-design-tokens">:root{' . $declarations . '}</style>';
+        $tag = $declarations === '' ? '' : '<style id="yk-blox-design-tokens">:root{' . $declarations . '}</style>';
+        // 已发布的全站主题（E04）；未配置时为空串，输出与之前逐字节一致。
+        $theme = class_exists(BloxDesignTheme::class) ? BloxDesignTheme::compile(BloxDesignTheme::published()) : '';
+        return $theme === '' ? $tag : $tag . '<style id="yk-blox-design-theme">' . $theme . '</style>';
     }
 
     /** @psalm-suppress PossiblyUnusedMethod 公开设计令牌 API（付费 Blox 编辑器/插件消费，不随本仓库分发） */
@@ -203,6 +213,11 @@ final class BloxDesignSystem
      */
     public static function mutate(string $action, array $input, bool $advanced): array
     {
+        // 先取库内原始值再读快照：两次读取之间若有并发修改，锁内比较必然失败而不是后写覆盖前写。
+        $raw = BloxDocumentWriteLock::rawSettings([self::SETTING_KEY]);
+        if (function_exists('settingModel')) {
+            settingModel()->clearCache();
+        }
         $state = self::snapshot();
         $expected = (int) ($input['revision'] ?? 0);
         if ($expected > 0 && $expected !== $state['revision']) {
@@ -223,7 +238,9 @@ final class BloxDesignSystem
         }
 
         $state['revision']++;
-        self::persist($state);
+        BloxDocumentWriteLock::settings(self::SETTING_KEY, $raw, static function () use ($state): void {
+            self::persist($state);
+        }, '', 'blox');
         return self::snapshot();
     }
 
@@ -389,11 +406,17 @@ final class BloxDesignSystem
         }
         $out = [];
         foreach (['color', 'background', 'border_color'] as $key) {
+            if (isset($item[$key]) && !is_string($item[$key])) {
+                return null;
+            }
             $raw = trim((string) ($item[$key] ?? ''));
             if ($raw !== '' && AbstractElement::cssColor($raw) === null) {
                 return null;
             }
             $out[$key] = $raw === '' ? '' : (string) AbstractElement::cssColor($raw);
+        }
+        if (isset($item['radius']) && !is_string($item['radius'])) {
+            return null;
         }
         $radius = (string) ($item['radius'] ?? 'none');
         $out['radius'] = array_key_exists($radius, self::RADIUS_MAP) ? $radius : 'none';

@@ -112,6 +112,8 @@ final class BloxAreaLanguageManager
         }
 
         $document = BloxAreaDocument::decode($area, $sourceJson);
+        // 语言副本是新模板行：不继承来源文档的旧专业配置保留，按新建能力检查。
+        BloxDocumentPipeline::assertAuthoringAllowed($document['sections'], null);
         $draftJson = json_encode([
             'schema' => BloxDocumentPipeline::SCHEMA_VERSION,
             'settings' => $document['settings'],

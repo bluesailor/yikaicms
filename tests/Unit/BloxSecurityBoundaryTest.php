@@ -148,7 +148,12 @@ final class BloxSecurityBoundaryTest extends TestCase
         $this->assertBefore($preview, 'verifyCsrf();', 'outputBloxCanvasPreview(');
 
         self::assertStringContainsString('Content-Security-Policy', $this->source('includes/builder/BloxCanvasPreview.php'));
-        self::assertStringContainsString('BloxElementPolicy::assertJsonAllowed($previewJson);', $this->source('includes/builder/BloxCanvasPreview.php'));
+        // E03：预览与保存共用作者能力检查，代码元素策略仍在渲染前执行。
+        $canvasPreview = $this->source('includes/builder/BloxCanvasPreview.php');
+        $this->assertBefore($canvasPreview, 'BloxDocumentPipeline::assertAuthoringAllowed(', 'BlockRenderer::$showHidden = true;');
+        $pipeline = $this->source('includes/builder/BloxDocumentPipeline.php');
+        $authoring = substr($pipeline, (int) strpos($pipeline, 'public static function assertAuthoringAllowed'));
+        self::assertStringContainsString('BloxElementPolicy::assertSectionsAllowed($sections);', substr($authoring, 0, (int) strpos($authoring, 'public static function process')));
         self::assertStringContainsString("script-src 'self' 'nonce-", $this->source('includes/builder/BloxCanvasPreview.php'));
         self::assertStringContainsString('$body = (string) preg_replace', $this->source('includes/builder/BloxCanvasPreview.php'));
     }

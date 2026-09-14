@@ -67,7 +67,12 @@ final class PageBloxDocument
         $state = self::load($pageId);
         self::assertRevision($state['document_json'], $baseRevision);
         $processed = BloxDocumentPipeline::process($blocksJson, 'page', trustedJson: $state['document_json']);
-        bloxPageDraftModel()->saveForPage($pageId, $processed['json'], $adminId);
+        BloxDocumentWriteLock::channel(
+            $pageId,
+            $state,
+            static fn(): array => self::load($pageId),
+            static fn(): int => bloxPageDraftModel()->saveForPage($pageId, $processed['json'], $adminId)
+        );
 
         $published = self::publishedRecord($pageId);
         $publishedJson = self::publishedDocumentJson($published, $state['page']);
@@ -90,33 +95,32 @@ final class PageBloxDocument
         $state = self::load($pageId);
         self::assertRevision($state['document_json'], $baseRevision);
         $processed = BloxDocumentPipeline::process($blocksJson, 'page', trustedJson: $state['document_json']);
-        $page = $state['page'];
-        $published = self::publishedRecord($pageId);
         $renderedHtml = PageTitleElement::withPage($state['page'], static fn(): string => renderBlocksToHtml($processed['json']));
         $now = time();
 
-        $revisionTargets = [[
-            'table' => 'channels',
-            'id' => $pageId,
-            'fields' => [
-                'content' => (string) ($page['content'] ?? ''),
-            ],
-        ]];
-        if ($published) {
-            $revisionTargets[] = [
-                'table' => 'contents',
-                'id' => (int) $published['id'],
+        $contentId = BloxDocumentWriteLock::channel($pageId, $state, static fn(): array => self::load($pageId), static function () use ($pageId, $processed, $adminId, $renderedHtml, $now): int {
+            // 锁内重读：版本快照要记录真正被覆盖的那一份线上内容。
+            $page = self::page($pageId);
+            $published = self::publishedRecord($pageId);
+            $revisionTargets = [[
+                'table' => 'channels',
+                'id' => $pageId,
                 'fields' => [
-                    'content' => (string) ($published['content'] ?? ''),
-                    'content_type' => (string) ($published['content_type'] ?? 'blocks'),
-                    'blocks_data' => $published['blocks_data'] ?? null,
+                    'content' => (string) ($page['content'] ?? ''),
                 ],
-            ];
-        }
+            ]];
+            if ($published) {
+                $revisionTargets[] = [
+                    'table' => 'contents',
+                    'id' => (int) $published['id'],
+                    'fields' => [
+                        'content' => (string) ($published['content'] ?? ''),
+                        'content_type' => (string) ($published['content_type'] ?? 'blocks'),
+                        'blocks_data' => $published['blocks_data'] ?? null,
+                    ],
+                ];
+            }
 
-        $database = db();
-        $database->beginTransaction();
-        try {
             bloxPageDraftModel()->saveForPage($pageId, $processed['json'], $adminId);
             recordContentRevision(
                 'page',
@@ -153,11 +157,8 @@ final class PageBloxDocument
                 ]);
             }
             bloxPageDraftModel()->markPublished($pageId, $now);
-            $database->commit();
-        } catch (Throwable $e) {
-            $database->rollback();
-            throw $e;
-        }
+            return $contentId;
+        });
 
         cacheClear();
         do_action('data_changed', DB_PREFIX . 'contents', $contentId);
@@ -168,6 +169,43 @@ final class PageBloxDocument
             'has_unpublished_changes' => false,
             'sections' => count($processed['sections']),
         ];
+    }
+
+    /**
+     * 版本快照里的 Blox 文档；纯 HTML 版本返回空串。
+     *
+     * @param array<string,mixed> $revision
+     */
+    public static function revisionBlocks(array $revision): string
+    {
+        $snapshot = json_decode((string) ($revision['snapshot'] ?? ''), true);
+        foreach (is_array($snapshot['targets'] ?? null) ? $snapshot['targets'] : [] as $target) {
+            if (is_array($target) && ($target['table'] ?? '') === 'contents') {
+                return trim((string) ($target['fields']['blocks_data'] ?? ''));
+            }
+        }
+        return '';
+    }
+
+    /**
+     * 恢复历史版本。历史属于同一页面不代表可重新开启任意旧专业配置：
+     * 以当前服务端文档为基线按能力检查（纯 HTML 版本视为空文档，不能借此静默删除受保护内容），
+     * 写回与草稿同步在同一把栏目锁内完成。
+     *
+     * @param array<string,mixed> $revision 已由调用方校验归属的版本行
+     */
+    public static function restoreRevision(int $pageId, array $revision, int $adminId = 0, string $adminName = ''): int
+    {
+        self::assertStorageAvailable();
+        $state = self::load($pageId);
+        $blocks = self::revisionBlocks($revision);
+        BloxDocumentPipeline::process($blocks !== '' ? $blocks : '[]', 'page', trustedJson: $state['document_json']);
+
+        return BloxDocumentWriteLock::channel($pageId, $state, static fn(): array => self::load($pageId), static function () use ($pageId, $revision, $adminId, $adminName): int {
+            $restored = contentRevisionModel()->restoreRevision((int) $revision['id'], $adminId, $adminName);
+            self::syncDraftFromPublished($pageId, $adminId);
+            return $restored;
+        });
     }
 
     public static function syncDraftFromPublished(int $pageId, int $adminId = 0): void
@@ -353,14 +391,7 @@ final class PageBloxDocument
 
     private static function assertRevision(string $currentJson, string $baseRevision): void
     {
-        // Protected-content preservation requires an explicit matching version.
-        if ($baseRevision === '' && (!BloxFeaturePolicy::allows('query_loop')
-            || !BloxFeaturePolicy::allows('display_conditions') || !BloxFeaturePolicy::allows('style_presets'))) {
-            throw new RuntimeException(__('blox_save_conflict'));
-        }
-        if ($baseRevision !== '' && !BloxDocumentPipeline::revisionMatches($currentJson, $baseRevision)) {
-            throw new RuntimeException(__('blox_save_conflict'));
-        }
+        BloxDocumentWriteLock::assertRevision($currentJson, $baseRevision);
     }
 
     private static function assertStorageAvailable(): void

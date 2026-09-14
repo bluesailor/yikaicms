@@ -55,6 +55,8 @@ class PluginModel extends Model
             'status'       => 0,
             'activated_at' => 0,
         ], 'slug = ?', [$slug]);
+        // 停用插件会去掉其前台输出，必须让整页缓存失效（启用走 create/update 已有此通知）。
+        if (function_exists('do_action')) do_action('data_changed', $this->table);
     }
 
     /**
@@ -75,9 +77,11 @@ class PluginModel extends Model
      */
     public function deleteBySlug(string $slug): int
     {
-        return db()->execute(
+        $deleted = db()->execute(
             "DELETE FROM {$this->tableName()} WHERE slug = ?",
             [$slug]
         );
+        if (function_exists('do_action')) do_action('data_changed', $this->table);
+        return $deleted;
     }
 }

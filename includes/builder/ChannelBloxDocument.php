@@ -45,7 +45,12 @@ final class ChannelBloxDocument
         $state = self::load($channelId);
         self::assertRevision($state['document_json'], $baseRevision);
         $processed = BloxDocumentPipeline::process($blocksJson, 'page', trustedJson: $state['document_json']);
-        bloxPageDraftModel()->saveForPage($channelId, $processed['json'], $adminId);
+        BloxDocumentWriteLock::channel(
+            $channelId,
+            $state,
+            static fn(): array => self::load($channelId),
+            static fn(): int => bloxPageDraftModel()->saveForPage($channelId, $processed['json'], $adminId)
+        );
         $published = self::publishedJson($channelId);
 
         return [
@@ -70,15 +75,12 @@ final class ChannelBloxDocument
         self::assertRevision($state['document_json'], $baseRevision);
         $processed = BloxDocumentPipeline::process($blocksJson, 'page', trustedJson: $state['document_json']);
 
-        $database = db();
-        $database->beginTransaction();
-        try {
-            $rowId = bloxPageDraftModel()->publishForPage($channelId, $processed['json'], $adminId);
-            $database->commit();
-        } catch (Throwable $e) {
-            $database->rollback();
-            throw $e;
-        }
+        $rowId = BloxDocumentWriteLock::channel(
+            $channelId,
+            $state,
+            static fn(): array => self::load($channelId),
+            static fn(): int => bloxPageDraftModel()->publishForPage($channelId, $processed['json'], $adminId)
+        );
 
         cacheClear();
         do_action('data_changed', DB_PREFIX . 'blox_page_drafts', $rowId);
@@ -190,14 +192,7 @@ final class ChannelBloxDocument
 
     private static function assertRevision(string $currentJson, string $baseRevision): void
     {
-        // Protected-content preservation requires an explicit matching version.
-        if ($baseRevision === '' && (!BloxFeaturePolicy::allows('query_loop')
-            || !BloxFeaturePolicy::allows('display_conditions') || !BloxFeaturePolicy::allows('style_presets'))) {
-            throw new RuntimeException(__('blox_save_conflict'));
-        }
-        if ($baseRevision !== '' && !BloxDocumentPipeline::revisionMatches($currentJson, $baseRevision)) {
-            throw new RuntimeException(__('blox_save_conflict'));
-        }
+        BloxDocumentWriteLock::assertRevision($currentJson, $baseRevision);
     }
 
     private static function assertDraftStorage(): void

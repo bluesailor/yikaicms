@@ -78,12 +78,17 @@ class SettingModel extends Model
         }
     }
 
-    /** Empty/unknown payloads conservatively invalidate; only known runtime stamps are exempt. */
+    /** 只写草稿、前台不读取的设置键；发布时会另写正式键并照常失效。 */
+    private const DRAFT_ONLY_KEYS = ['blox_design_theme_draft', 'home_blox_data', 'page_hero_design_draft'];
+
+    /** Empty/unknown payloads conservatively invalidate; only known runtime stamps and draft-only keys are exempt. */
     public static function affectsPageCache(array $settings): bool
     {
         if ($settings === []) return true;
         foreach (array_keys($settings) as $key) {
-            if ($key !== 'sched_sweep_at' && !preg_match('/^cron_[a-z0-9_]+_(last|status|msg|ms)$/D', (string) $key)) {
+            if ($key !== 'sched_sweep_at'
+                && !in_array((string) $key, self::DRAFT_ONLY_KEYS, true)
+                && !preg_match('/^cron_[a-z0-9_]+_(last|status|msg|ms)$/D', (string) $key)) {
                 return true;
             }
         }

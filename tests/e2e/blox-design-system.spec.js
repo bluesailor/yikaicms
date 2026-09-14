@@ -78,6 +78,8 @@ test('token catalog and named preset apply through stable references @ci', async
   await page.getByTestId('blox-library-open').click();
   await page.getByTestId('blox-add-element-icon').press('Enter');
   await page.getByTestId('blox-style-tab').click();
+  // 全局样式选择在默认折叠的专业功能区内（由 blox-pro 作者端模块提供）。
+  await page.getByTestId('blox-professional-features').locator('summary').click();
 
   await performPreviewUpdate(page, async () => {
     await page.getByTestId('blox-color-picker-trigger').click();
@@ -114,6 +116,7 @@ test('stored style sources reset only the local value and undo restores it @ci',
   await page.keyboard.press('Escape');
   await addTemporaryHeading(page);
   await page.getByTestId('blox-style-tab').click();
+  await page.getByTestId('blox-professional-features').locator('summary').click();
   const source = page.getByTestId('blox-style-source-color');
   await expect(source).toHaveAttribute('data-local-source', 'css');
   await performPreviewUpdate(page, async () => {

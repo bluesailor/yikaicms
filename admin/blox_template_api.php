@@ -36,7 +36,7 @@ $requireTemplateLicense = static function (string $type) use ($advancedBloxEnabl
 };
 
 /** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
-$processTemplateDocument = static function (string $type, int $id, string $json): array {
+$processTemplateDocument = static function (string $type, int $id, string $json, ?string $trustedJson = null): array {
     // TASK-002-R02/R03：产品模板的权威条件是 v2；后台表单只认 v1 字段，保存/发布时写回 v2。
     // 但**只有后台 UI 明确声明提交**（ui_scope=1）才允许同步：纯 v2 文档没有旧字段、
     // 或旧镜像过期（例如历史上被补写成空 ids）时，绝不能拿它覆盖有效 v2 条件。
@@ -79,17 +79,30 @@ $processTemplateDocument = static function (string $type, int $id, string $json)
             // 文档本身有问题时交给下游既有校验报错，不在这里吞掉
         }
     }
+    // $trustedJson 只能是同一模板行的库内草稿；导入、复制、另存不传，按新建能力检查。
     return BloxAreaDocument::isArea($type)
-        ? BloxAreaDocument::process($type, $json, 'tpl' . $id)
+        ? BloxAreaDocument::process($type, $json, 'tpl' . $id, $trustedJson)
         : ($type === 'popup'
-            ? BloxPopupDocument::process($json, 'tpl' . $id)
-            : BloxDocumentPipeline::process($json, 'tpl' . $id));
+            ? BloxPopupDocument::process($json, 'tpl' . $id, $trustedJson)
+            : BloxDocumentPipeline::process($json, 'tpl' . $id, trustedJson: $trustedJson));
 };
 
 $templateRevisionMatches = static function (string $type, string $json, string $revision): bool {
     return $type === 'popup'
         ? BloxPopupDocument::revisionMatches($json, $revision)
         : BloxDocumentPipeline::revisionMatches($json, $revision);
+};
+
+/** @param array<string,mixed> $row */
+$templateDraft = static fn(array $row): string => trim((string) ($row['draft_data'] ?? '')) !== ''
+    ? (string) $row['draft_data']
+    : '[]';
+
+// 专业能力不可用时保留旧配置必须基于明确版本：缺失或不匹配的 base_revision 均拒绝。
+$assertTemplateRevision = static function (string $type, string $json, string $revision) use ($templateRevisionMatches): void {
+    if ($revision === '' ? BloxFeaturePolicy::denied() !== [] : !$templateRevisionMatches($type, $json, $revision)) {
+        error(__('blox_save_conflict'), 409);
+    }
 };
 
 $templateFingerprint = static function (string $type, string $json): string {
@@ -123,12 +136,8 @@ try {
         $currentDraft = trim((string) ($row['draft_data'] ?? '')) !== ''
             ? (string) $row['draft_data']
             : '[]';
-        $baseRevision = trim((string) post('base_revision', ''));
-        $revisionMatches = $templateRevisionMatches($type, $currentDraft, $baseRevision);
-        if ($baseRevision !== '' && !$revisionMatches) {
-            error(__('blox_save_conflict'), 409);
-        }
-        $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'));
+        $assertTemplateRevision($type, $currentDraft, trim((string) post('base_revision', '')));
+        $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'), $currentDraft);
         $requirements = BloxTemplateImporter::deriveRequirements($processed['sections']);
         try {
             bloxTemplateModel()->updateDraft($id, $processed['json'], $requirements, (string) ($row['draft_data'] ?? ''));
@@ -238,11 +247,8 @@ try {
         $currentDraft = trim($currentDraftRaw) !== '' ? $currentDraftRaw : '[]';
         $processed = null;
         if (array_key_exists('blocks_data', $_POST)) {
-            $baseRevision = trim((string) post('base_revision', ''));
-            if ($baseRevision !== '' && !$templateRevisionMatches($type, $currentDraft, $baseRevision)) {
-                error(__('blox_save_conflict'), 409);
-            }
-            $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'));
+            $assertTemplateRevision($type, $currentDraft, trim((string) post('base_revision', '')));
+            $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'), $currentDraft);
         }
         $replaceThemeArea = strtolower(trim((string) post('replace_theme_area', '')));
         $replaceTheme = $replaceThemeArea !== '';
@@ -403,7 +409,8 @@ try {
         if ($checkContentType === '') {
             error(__('blox_diag_not_detail_template'), 400);
         }
-        $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'));
+        // 只读扫描同样以本模板库内草稿为可信基线，旧专业配置不应让基础编辑者无法检查冲突。
+        $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'), $templateDraft($row));
         $prep = DetailTemplatePublishGuard::prepare(
             $checkContentType,
             $id,
@@ -440,7 +447,7 @@ try {
         if (!hasPermission($previewContentType === 'product' ? 'edit_product' : 'edit_article')) {
             error(__('blox_impact_forbidden'), 403);
         }
-        $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'));
+        $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'), $templateDraft($row));
         $previewScope = DetailTemplateProvider::scopeFromSettings($previewContentType, $processed['settings']);
         $cursor = max(0, (int) post('cursor', '0'));
         $page = DetailTemplateImpactPreview::scan($previewContentType, $id, $previewScope, $cursor, DetailTemplatePublishGuard::pageRowLimit(), 1.5);

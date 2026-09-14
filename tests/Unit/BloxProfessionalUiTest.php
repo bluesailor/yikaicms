@@ -20,8 +20,30 @@ final class BloxProfessionalUiTest extends TestCase
         self::assertSame('available', BloxProfessionalUi::state('free', true, []));
     }
 
+    public function testFreeFeatureWithoutAuthoringModuleOnlyPointsToThePlugin(): void
+    {
+        self::assertSame('module_install', BloxProfessionalUi::state('free', false, ['installed' => false], false));
+        self::assertSame('module_enable', BloxProfessionalUi::state('free', false, ['installed' => true, 'active' => false], false));
+        foreach (['zh-CN', 'en', 'ja'] as $language) {
+            $strings = require ROOT_PATH . '/lang/' . $language . '.php';
+            foreach (['module_install', 'module_enable', 'action_module_install', 'action_module_enable'] as $key) {
+                self::assertNotEmpty($strings['blox_professional_' . $key]);
+            }
+        }
+        // 授权档不因模块参数改变原有购买/授权判定。
+        self::assertSame('license', BloxProfessionalUi::state('licensed', false, [], false));
+        // 未迁出的能力不要求作者端模块。
+        self::assertTrue(BloxProfessionalUi::moduleLoaded('not_a_module_feature'));
+    }
+
     public function testFreeFeaturesHaveNoCommercialMessageOrAction(): void
     {
+        // 免费期 blox-pro 随包启用：加载其作者端模块后，三项免费能力均无提示与跳转。
+        if (!function_exists('add_action')) {
+            require_once ROOT_PATH . '/includes/hooks.php';
+        }
+        require_once ROOT_PATH . '/plugins/blox-pro/editor.php';
+        self::assertTrue(BloxProfessionalUi::moduleLoaded('display_conditions'));
         foreach (BloxProfessionalUi::snapshot() as $feature) {
             self::assertTrue($feature['allowed']);
             self::assertSame('', $feature['message']);
