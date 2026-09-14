@@ -149,3 +149,7 @@ function contentRevisionModel(): ContentRevisionModel {
 function navMenuModel(): NavMenuModel {
     static $i; return $i ??= new NavMenuModel();
 }
+
+function doLoginLinkModel(): DoLoginLinkModel {
+    static $i; return $i ??= new DoLoginLinkModel();
+}

@@ -243,7 +243,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <section>
-        <?php if ($advancedBloxEnabled && $canManageGlobalBlox): ?>
+        <?php if (bloxPageEditorEnabled() && $canManageGlobalBlox): ?>
         <a href="/admin/product_design.php" data-testid="site-design-products" class="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary"><i class="ti ti-package" aria-hidden="true"></i><?= e(__('blox_tpl_type_product-detail')) ?><i class="ti ti-arrow-right" aria-hidden="true"></i></a>
         <a href="/admin/article_design.php" data-testid="site-design-articles" class="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary"><i class="ti ti-article" aria-hidden="true"></i><?= e(__('blox_tpl_type_article-detail')) ?><i class="ti ti-arrow-right" aria-hidden="true"></i></a>
         <?php endif; ?>

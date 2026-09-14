@@ -1,0 +1,14 @@
+{
+    "name": "BLOX 专业扩展",
+    "name_en": "BLOX Pro",
+    "name_ja": "BLOX Pro",
+    "version": "1.0.0",
+    "description": "面向已购买并激活专业授权的站点，开放 BLOX 高级编辑能力。需要 CMS v1.20.0+ 及 blox 模块授权；基础编辑与默认详情页编辑不受影响。",
+    "description_en": "Advanced BLOX authoring for sites with an activated professional license. Requires CMS v1.20.0+ and the blox module. Basic editing and default detail templates remain free.",
+    "description_ja": "有効化済みのプロフェッショナルライセンス向け BLOX 高度編集機能。CMS v1.20.0 以降と blox モジュールの権利が必要です。基本編集と標準詳細テンプレートの編集は無料のままです。",
+    "author": "Yikai CMS",
+    "requires_php": "8.2",
+    "requires_cms": "1.20.0",
+    "tier": "pro",
+    "module": "blox"
+}

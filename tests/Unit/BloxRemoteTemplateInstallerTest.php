@@ -74,7 +74,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         ];
     }
 
-    public function testAuthorizedJourneyBrowsesVerifiesImportsAndReinstallsIdempotently(): void
+    public function testImportedCopyHasIndependentIdentityAndNoManagedUpdateState(): void
     {
         $package = $this->package($this->templateJson());
         $hash = 'sha256:' . hash('sha256', $package);
@@ -83,7 +83,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         $canonical = [];
         $provider = new BloxRemoteTemplateProvider(
             static function (string $url) use ($catalog, $package, &$catalogUrls): string {
-                if (str_contains($url, '/packages/templates/')) {
+                if (str_contains($url, '/api/templates/download.php')) {
                     return $package;
                 }
                 $catalogUrls[] = $url;
@@ -102,12 +102,17 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
 
         $installer = new BloxRemoteTemplateInstaller($provider);
         $first = $installer->install('pricing-3col', 9);
-        $second = $installer->install('pricing-3col', 9);
+        $second = $installer->importCopy('pricing-3col', 9);
 
         $this->assertFalse($first['updated']);
-        $this->assertTrue($second['updated']);
-        $this->assertSame($first['id'], $second['id']);
-        $this->assertSame(1, (int) db()->fetchColumn('SELECT COUNT(*) FROM blox_templates'));
+        $this->assertNotSame($first['id'], $second['id']);
+        $this->assertSame(2, (int) db()->fetchColumn('SELECT COUNT(*) FROM blox_templates'));
+        $copy = bloxTemplateModel()->findForExport($second['id']);
+        $this->assertSame('import', $copy['source']);
+        $this->assertSame('pricing-3col', $copy['source_ref']);
+        $this->assertSame(0, (int) $copy['status']);
+        $this->assertNull($copy['published_data']);
+        $this->assertNull(bloxRemoteTemplateStateModel()->forTemplate($second['id']));
         $row = db()->fetchOne('SELECT * FROM blox_templates WHERE id = ?', [$first['id']]);
         $this->assertSame('remote', $row['source']);
         $this->assertSame('pricing-3col', $row['source_ref']);
@@ -115,7 +120,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         $this->assertSame(9, (int) $row['admin_id']);
         $state = db()->fetchOne('SELECT * FROM blox_remote_template_states WHERE template_id = ?', [$first['id']]);
         $this->assertSame('1.0.0', $state['installed_version']);
-        $this->assertStringContainsString('Pricing plans', (string) $state['backup_draft']);
+        $this->assertNull($state['backup_draft']);
         $this->assertNotEmpty($canonical);
         $this->assertSame('pricing-3col|1.0.0|' . $hash, $canonical[0]);
         $this->assertNotEmpty($catalogUrls);
@@ -129,7 +134,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         $v1Item = $this->catalogItem([
             'version' => '1.0.0',
             'hash' => 'sha256:' . hash('sha256', $v1Package),
-            'download_url' => 'https://update.yikaicms.com/packages/templates/pricing-3col-v1.0.0.zip',
+            'download_url' => 'https://update.yikaicms.com/api/templates/download.php?protocol_version=2&slug=pricing-3col&version=1.0.0',
         ]);
         $v1Installer = new BloxRemoteTemplateInstaller($this->provider($v1Package, $v1Item, true));
         $installed = $v1Installer->install('pricing-3col', 9);
@@ -139,10 +144,12 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         $v2Item = $this->catalogItem([
             'version' => '1.1.0',
             'hash' => 'sha256:' . hash('sha256', $v2Package),
-            'download_url' => 'https://update.yikaicms.com/packages/templates/pricing-3col-v1.1.0.zip',
+            'download_url' => 'https://update.yikaicms.com/api/templates/download.php?protocol_version=2&slug=pricing-3col&version=1.1.0',
         ]);
         $v2Installer = new BloxRemoteTemplateInstaller($this->provider($v2Package, $v2Item, true));
-        $updated = $v2Installer->install('pricing-3col', 9);
+        $updated = $v2Installer->update(
+            $installed['id'], BloxRemoteTemplateInstaller::revision(bloxTemplateModel()->findForExport($installed['id'])), '1.1.0'
+        );
 
         $this->assertTrue($updated['updated']);
         $this->assertTrue($updated['backup_created']);
@@ -171,13 +178,15 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         $packageRequests = 0;
         $catalog = $this->catalogResponse($this->catalogItem([
             'tier' => 'pro',
+            'access' => 'licensed',
+            'module' => 'blox',
             'paid' => true,
             'entitled' => false,
             'locked_reason' => 'license_expired',
         ]));
         $provider = new BloxRemoteTemplateProvider(
             static function (string $url) use ($catalog, &$packageRequests): string {
-                if (str_contains($url, '/packages/templates/')) {
+                if (str_contains($url, '/api/templates/download.php')) {
                     $packageRequests++;
                     return 'must-not-download';
                 }
@@ -236,12 +245,91 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         $this->assertStringContainsString('$serviceActive ? __(\'lic_support_active\')', $admin);
     }
 
+    public function testInstallCannotReplaceAnExistingDraft(): void
+    {
+        $package = $this->package($this->templateJson());
+        $installer = new BloxRemoteTemplateInstaller($this->provider($package, $this->catalogItem([
+            'hash' => 'sha256:' . hash('sha256', $package),
+        ]), true));
+        $first = $installer->install('pricing-3col');
+        $before = bloxTemplateModel()->findForExport($first['id']);
+        $this->expectExceptionMessage('blox_tpl_remote_already_imported');
+        try {
+            $installer->install('pricing-3col');
+        } finally {
+            $this->assertSame($before, bloxTemplateModel()->findForExport($first['id']));
+            $this->assertSame(1, (int) db()->fetchColumn('SELECT COUNT(*) FROM blox_templates'));
+        }
+    }
+
+    public function testUpdateRejectsMissingStaleRevisionAndChangedRemoteVersion(): void
+    {
+        $package = $this->package($this->templateJson());
+        $installer = new BloxRemoteTemplateInstaller($this->provider($package, $this->catalogItem([
+            'hash' => 'sha256:' . hash('sha256', $package),
+        ]), true));
+        $first = $installer->install('pricing-3col');
+        $row = bloxTemplateModel()->findForExport($first['id']);
+        $revision = BloxRemoteTemplateInstaller::revision($row);
+        foreach ([['', '1.0.0', 'blox_save_conflict'],
+            [str_repeat('0', 64), '1.0.0', 'blox_save_conflict'],
+            [$revision, '2.0.0', 'blox_tpl_remote_version_conflict']] as [$base, $version, $message]) {
+            try {
+                $installer->update($first['id'], $base, $version);
+                $this->fail('Conflicting updates must be rejected');
+            } catch (RuntimeException $e) {
+                $this->assertSame($message, $e->getMessage());
+            }
+            $this->assertSame($row, bloxTemplateModel()->findForExport($first['id']));
+            $this->assertNull(bloxRemoteTemplateStateModel()->forTemplate($first['id'])['backup_draft']);
+        }
+    }
+
+    public function testEditDuringDownloadCannotBeOverwritten(): void
+    {
+        $package = $this->package($this->templateJson());
+        $item = $this->catalogItem(['hash' => 'sha256:' . hash('sha256', $package)]);
+        $first = (new BloxRemoteTemplateInstaller($this->provider($package, $item, true)))->install('pricing-3col');
+        $revision = BloxRemoteTemplateInstaller::revision(bloxTemplateModel()->findForExport($first['id']));
+        $catalog = $this->catalogResponse($item);
+        $provider = new BloxRemoteTemplateProvider(
+            static function (string $url) use ($package, $catalog, $first): string {
+                if (str_contains($url, '/api/templates/download.php')) {
+                    bloxTemplateModel()->saveMetadata($first['id'], ['purpose' => 'cta']);
+                    return $package;
+                }
+                return $catalog;
+            },
+            static fn (): bool => true
+        );
+        $this->expectExceptionMessage('blox_save_conflict');
+        try {
+            (new BloxRemoteTemplateInstaller($provider))->update($first['id'], $revision, '1.0.0');
+        } finally {
+            $row = bloxTemplateModel()->findForExport($first['id']);
+            $this->assertSame('cta', json_decode($row['metadata'], true)['purpose']);
+            $this->assertNull(bloxRemoteTemplateStateModel()->forTemplate($first['id'])['backup_draft']);
+        }
+    }
+
+    public function testCopyCannotBeUsedAsManagedUpdateTarget(): void
+    {
+        $package = $this->package($this->templateJson());
+        $installer = new BloxRemoteTemplateInstaller($this->provider($package, $this->catalogItem([
+            'hash' => 'sha256:' . hash('sha256', $package),
+        ]), true));
+        $copy = $installer->importCopy('pricing-3col');
+        $row = bloxTemplateModel()->findForExport($copy['id']);
+        $this->expectExceptionMessage('blox_tpl_not_found');
+        $installer->update($copy['id'], BloxRemoteTemplateInstaller::revision($row), '1.0.0');
+    }
+
     /** @param array<string,mixed> $item */
     private function provider(string $package, array $item, bool $signatureValid): BloxRemoteTemplateProvider
     {
         $catalog = $this->catalogResponse($item);
         return new BloxRemoteTemplateProvider(
-            static fn (string $url): string => str_contains($url, '/packages/templates/') ? $package : $catalog,
+            static fn (string $url): string => str_contains($url, '/api/templates/download.php') ? $package : $catalog,
             static fn (): bool => $signatureValid
         );
     }
@@ -254,13 +342,15 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
             'type' => 'section',
             'category' => 'marketing',
             'tier' => 'pro',
+            'access' => 'licensed',
+            'module' => 'blox',
             'name' => 'Three-column pricing',
             'version' => '1.0.0',
             'hash' => 'sha256:' . str_repeat('0', 64),
             'sig' => 'valid-signature',
             'paid' => true,
             'entitled' => true,
-            'download_url' => 'https://update.yikaicms.com/packages/templates/pricing-3col-v1.0.0.zip',
+            'download_url' => 'https://update.yikaicms.com/api/templates/download.php?protocol_version=2&slug=pricing-3col&version=1.0.0',
             'locked_reason' => '',
         ], $overrides);
     }
@@ -270,7 +360,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
     {
         return json_encode([
             'code' => 0,
-            'data' => ['updated_at' => '2026-08-29', 'templates' => [$item]],
+            'data' => ['protocol_version' => 2, 'updated_at' => '2026-08-29', 'templates' => [$item]],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 

@@ -724,7 +724,7 @@
                     {
                       "type": "text",
                       "data": {
-                        "html": "<p style=\"margin:0\"><strong>每日 10:00–24:00</strong></p><p style=\"margin:8px 0 0;font-size:13px\">示例时间，实际营业安排请联系门店确认。</p>"
+                        "html": "<p class=\"m-0\"><strong>每日 10:00–24:00</strong></p><p class=\"mt-2 mb-0 text-sm\">示例时间，实际营业安排请联系门店确认。</p>"
                       }
                     }
                   ]

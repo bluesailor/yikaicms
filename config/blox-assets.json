@@ -1,6 +1,15 @@
 {
   "version": 2,
   "core": [
+    "config/blox-feature-policy.php",
+    "includes/builder/BloxFeaturePolicy.php",
+    "includes/builder/BloxProfessionalUi.php",
+    "includes/builder/BloxProtectedFields.php",
+    "includes/builder/detail-editor-bootstrap.php",
+    "includes/builder/DetailConditionInput.php",
+    "includes/builder/DetailTemplatePublishGuard.php",
+    "includes/builder/DetailTemplateImpactPreview.php",
+    "includes/builder/BloxTemplateEditPolicy.php",
     "includes/builder/HomeAboutLocalization.php",
     "admin/blox_editor.php",
     "admin/blox_editor",
@@ -13,7 +22,6 @@
     "admin/blox_templates.php",
     "includes/builder/BloxCanvasPreview.php",
     "includes/builder/BloxCatalogPreview.php",
-    "includes/builder/elements/PageTitleElement.php",
     "includes/builder/BloxCatalogItems.php",
     "includes/builder/BloxAreaDocument.php",
     "includes/builder/BloxThemeHeaderDocument.php",
@@ -48,6 +56,7 @@
     "assets/js/blox-style-sources.js",
     "assets/js/blox-detail-conditions.js",
     "assets/js/blox-image-control.js",
+    "assets/js/blox-table-control.js",
     "assets/js/blox-catalog-source.js",
     "assets/js/blox-dialog-focus.js",
     "assets/js/blox-draft-recovery.js",
@@ -70,9 +79,23 @@
     "includes/builder/BannerContentLayout.php"
   ],
   "pro": [
-    "plugins/blox-example"
+    "plugins/blox-example",
+    "plugins/blox-pro"
   ],
   "runtime": [
+    "includes/builder/bootstrap.php",
+    "includes/builder/BlockRenderer.php",
+    "includes/builder/BuilderRegistry.php",
+    "includes/builder/AbstractElement.php",
+    "includes/builder/elements",
+    "includes/builder/BloxDocumentPipeline.php",
+    "includes/builder/ProductTemplateDocument.php",
+    "includes/builder/ArticleTemplateDocument.php",
+    "includes/builder/DetailTemplateResolver.php",
+    "includes/builder/DetailTemplateProvider.php",
+    "includes/builder/DynamicLoopTemplateRenderer.php",
+    "includes/builder/BloxAssetCollector.php",
+    "assets/css/blox-table.css",
     "assets/css/blox-tabs.css",
     "assets/js/blox-tabs.js",
     "assets/css/blox-overlay.css",

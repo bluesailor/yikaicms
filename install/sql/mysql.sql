@@ -1704,3 +1704,19 @@ CREATE TABLE `yikai_admin_menu_usage` (
   UNIQUE KEY `uniq_admin_url` (`admin_id`, `url`),
   KEY `idx_admin_last` (`admin_id`, `last_used_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `yikai_dologin_links` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) unsigned NOT NULL,
+  `created_by` int(11) unsigned NOT NULL,
+  `token_hash` varchar(64) NOT NULL,
+  `identity_hash` varchar(64) NOT NULL,
+  `note` varchar(200) NOT NULL DEFAULT '',
+  `created_at` int(11) NOT NULL,
+  `expires_at` int(11) NOT NULL,
+  `used_at` int(11) NOT NULL DEFAULT 0,
+  `revoked_at` int(11) NOT NULL DEFAULT 0,
+  `used_ip` varchar(45) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `dologin_token` (`token_hash`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

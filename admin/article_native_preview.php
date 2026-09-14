@@ -8,7 +8,8 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requireBloxTemplateTypePermission('article-detail');
-if (!bloxPageEditorEnabled() || !bloxAdvancedFeaturesEnabled()) error(__('blox_feature_disabled'));
+require_once ROOT_PATH . '/includes/builder/BloxTemplateEditPolicy.php';
+if (!bloxPageEditorEnabled() || !BloxTemplateEditPolicy::allows('article-detail', bloxAdvancedFeaturesEnabled())) error(__('blox_feature_disabled'));
 
 // 只读预览：与前台同一渲染路径，但显式禁用模板套用与整页缓存，避免"预览成功其实走了模板"
 $previewArticle = contentModel()->getPublished(getInt('id'));

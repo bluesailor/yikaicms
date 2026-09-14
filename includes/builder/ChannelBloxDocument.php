@@ -44,7 +44,7 @@ final class ChannelBloxDocument
         self::assertDraftStorage();
         $state = self::load($channelId);
         self::assertRevision($state['document_json'], $baseRevision);
-        $processed = BloxDocumentPipeline::process($blocksJson, 'page');
+        $processed = BloxDocumentPipeline::process($blocksJson, 'page', trustedJson: $state['document_json']);
         bloxPageDraftModel()->saveForPage($channelId, $processed['json'], $adminId);
         $published = self::publishedJson($channelId);
 
@@ -68,7 +68,7 @@ final class ChannelBloxDocument
         }
         $state = self::load($channelId);
         self::assertRevision($state['document_json'], $baseRevision);
-        $processed = BloxDocumentPipeline::process($blocksJson, 'page');
+        $processed = BloxDocumentPipeline::process($blocksJson, 'page', trustedJson: $state['document_json']);
 
         $database = db();
         $database->beginTransaction();
@@ -190,6 +190,11 @@ final class ChannelBloxDocument
 
     private static function assertRevision(string $currentJson, string $baseRevision): void
     {
+        // Protected-content preservation requires an explicit matching version.
+        if ($baseRevision === '' && (!BloxFeaturePolicy::allows('query_loop')
+            || !BloxFeaturePolicy::allows('display_conditions') || !BloxFeaturePolicy::allows('style_presets'))) {
+            throw new RuntimeException(__('blox_save_conflict'));
+        }
         if ($baseRevision !== '' && !BloxDocumentPipeline::revisionMatches($currentJson, $baseRevision)) {
             throw new RuntimeException(__('blox_save_conflict'));
         }

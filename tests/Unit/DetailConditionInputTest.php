@@ -12,7 +12,7 @@ final class DetailConditionInputTest extends TestCase
 {
     public static function setUpBeforeClass(): void
     {
-        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        require_once ROOT_PATH . '/includes/builder/detail-editor-bootstrap.php';
     }
 
     /** @return array<string,mixed> */

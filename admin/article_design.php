@@ -7,7 +7,8 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requireBloxTemplateTypePermission('article-detail');
-if (!bloxPageEditorEnabled() || !bloxAdvancedFeaturesEnabled()) error(__('blox_feature_disabled'));
+require_once ROOT_PATH . '/includes/builder/BloxTemplateEditPolicy.php';
+if (!bloxPageEditorEnabled() || !BloxTemplateEditPolicy::allows('article-detail', bloxAdvancedFeaturesEnabled())) error(__('blox_feature_disabled'));
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
 $message = '';

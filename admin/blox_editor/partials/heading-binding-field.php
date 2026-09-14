@@ -7,6 +7,7 @@ $headingSlot = $headingIsText ? 'text' : 'url';
     <div class="blox-heading-field-label">
         <label for="blox-heading-<?= e($headingSlot) ?>"><?= e(__($headingIsText ? 'blox_field_title_short' : 'blox_ctl_link')) ?></label>
         <button type="button" class="blox-heading-binding-button" @click="bindingOpen = !bindingOpen"
+                x-show="professionalControlAccessible(headingBindingKey('<?= e($headingSlot) ?>'))"
                 :class="headingBound('<?= e($headingSlot) ?>') ? 'is-bound' : ''" :aria-expanded="bindingOpen"
                 data-testid="blox-heading-<?= e($headingSlot) ?>-binding"
                 title="<?= e(__('blox_heading_dynamic')) ?>" aria-label="<?= e(__('blox_heading_dynamic')) ?>">
@@ -14,11 +15,12 @@ $headingSlot = $headingIsText ? 'text' : 'url';
         </button>
     </div>
     <div x-show="headingBound('<?= e($headingSlot) ?>')" class="blox-heading-bound-value">
-        <button type="button" @click="bindingOpen = !bindingOpen">
+        <button type="button" @click="bindingOpen = !bindingOpen" :disabled="!professionalControlAccessible(headingBindingKey('<?= e($headingSlot) ?>'))">
             <i class="ti ti-database" aria-hidden="true"></i>
             <span x-text="headingBindingLabel('<?= e($headingSlot) ?>')"></span>
         </button>
         <button type="button" class="blox-heading-unbind" @click="selEl.data[headingBindingKey('<?= e($headingSlot) ?>')] = 'none'; bindingOpen = false"
+                x-show="professionalControlAccessible(headingBindingKey('<?= e($headingSlot) ?>'))"
                 title="<?= e(__('blox_heading_unbind')) ?>" aria-label="<?= e(__('blox_heading_unbind')) ?>">
             <i class="ti ti-x" aria-hidden="true"></i>
         </button>
@@ -30,7 +32,7 @@ $headingSlot = $headingIsText ? 'text' : 'url';
         <input id="blox-heading-url" type="text" x-show="!headingBound('url')" x-model="selEl.data.url"
                placeholder="<?= e(__('blox_heading_link_ph')) ?>" data-testid="blox-heading-url">
     <?php endif; ?>
-    <div x-show="bindingOpen" x-cloak class="blox-heading-binding-options">
+    <div x-show="bindingOpen && professionalControlAccessible(headingBindingKey('<?= e($headingSlot) ?>'))" x-cloak class="blox-heading-binding-options">
         <label for="blox-heading-<?= e($headingSlot) ?>-source"><?= e(__('blox_heading_dynamic')) ?></label>
         <select id="blox-heading-<?= e($headingSlot) ?>-source"
                 :value="controlValue(headingControl(headingBindingKey('<?= e($headingSlot) ?>')))"

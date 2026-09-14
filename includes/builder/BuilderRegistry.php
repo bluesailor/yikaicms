@@ -138,6 +138,7 @@ final class BuilderRegistry
             new IconBoxElement(),
             new AccordionElement(),
             new TabsElement(),
+            new TableElement(),
             new OrgChartElement(),
             new StatItemElement(),
             new ProcessStepElement(),

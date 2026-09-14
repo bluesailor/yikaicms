@@ -280,7 +280,7 @@ return [
             [
                 'key'     => 'blox_templates',
                 'perm'    => 'blox_global',
-                'visible' => !function_exists('bloxAdvancedFeaturesEnabled') || bloxAdvancedFeaturesEnabled(),
+                'visible' => !function_exists('bloxPageEditorEnabled') || bloxPageEditorEnabled(),
                 'label'   => __('admin_blox_templates'),
                 'url'     => '/admin/blox_templates.php',
                 'icon'    => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6l2 2h8v14H4V4zm4 6h8m-8 4h6"></path>',

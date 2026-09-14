@@ -100,11 +100,12 @@ declare(strict_types=1);
                                         </button>
                                         <button type="button" @click.stop="toggleElementFavorite(el.type)"
                                                 :data-testid="(grp.quick ? 'blox-quick-favorite-element-' : 'blox-favorite-element-') + el.type"
+                                                :aria-pressed="isElementFavorite(el.type)"
                                                 :title="(isElementFavorite(el.type) ? elementLibraryText.removeFavorite : elementLibraryText.addFavorite).replace(':label', el.label)"
                                                 :aria-label="(isElementFavorite(el.type) ? elementLibraryText.removeFavorite : elementLibraryText.addFavorite).replace(':label', el.label)"
-                                                class="absolute top-0.5 right-0.5 w-7 h-7 inline-flex items-center justify-center rounded text-gray-300 hover:text-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition"
-                                                :class="isElementFavorite(el.type) ? 'text-amber-500' : ''">
-                                            <i class="ti text-sm" :class="isElementFavorite(el.type) ? 'ti-star-filled' : 'ti-star'"></i>
+                                                class="absolute top-0.5 right-0.5 w-7 h-7 inline-flex items-center justify-center rounded hover:text-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition"
+                                                :class="isElementFavorite(el.type) ? 'bg-amber-50 text-amber-600' : 'text-gray-400'">
+                                            <i class="ti ti-star text-sm" aria-hidden="true"></i>
                                         </button>
                                     </div>
                                 </template>
@@ -254,15 +255,10 @@ declare(strict_types=1);
                     <button type="button" @click="panelTab = 'style'" data-testid="blox-style-tab"
                             class="flex-1 h-9 text-xs font-semibold border-b-2 transition"
                             :class="panelTab === 'style' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'"><span class="inline-flex items-center gap-1"><?= __('blox_tab_style') ?><span x-show="styleTabDot()" data-testid="blox-style-tab-dot" class="w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true"></span></span></button>
-                    <button type="button" x-show="advancedMode && (selEl || (sel && !selectedSectionField && selLayer === 'sec'))"
-                            @click="panelTab = 'condition'" data-testid="blox-condition-tab"
-                            class="flex-1 h-9 text-xs font-semibold border-b-2 transition"
-                            :class="panelTab === 'condition' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400 hover:text-gray-600'">
-                        <?= __('blox_tab_conditions') ?>
-                    </button>
                 </div>
 
                 <?php // 设置搜索 + 只看已修改：仅元素设置（数据驱动才筛得动）；区块设置项少不筛 ?>
+                <?php require __DIR__ . '/professional-features.php'; ?>
                 <div x-show="selEl && panelTab !== 'condition'" class="p-2 border-b border-gray-100 shrink-0 flex items-center gap-1">
                     <div class="relative flex-1">
                         <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2"></i>
@@ -318,7 +314,7 @@ declare(strict_types=1);
                         </div>
                     </template>
 
-                    <template x-if="panelTab === 'condition' && conditionTarget()">
+                    <template x-if="displayConditionsEnabled && panelTab === 'condition' && conditionTarget()">
                         <div class="space-y-3" data-testid="blox-condition-editor">
                             <div class="rounded border border-violet-200 bg-violet-50/60 p-3">
                                 <div class="flex items-start gap-2">
@@ -1002,7 +998,7 @@ declare(strict_types=1);
 
                             <?php require __DIR__ . '/banner-manager.php'; ?>
 
-                            <template x-if="selEl && selEl.type === 'list-dynamic' && panelTab === 'content'">
+                            <template x-if="selEl && selEl.type === 'list-dynamic' && panelTab === 'professional' && professionalFeatures.query_loop.allowed">
                                 <div class="rounded border border-violet-200 bg-violet-50/60 p-3 space-y-2">
                                     <div class="flex items-center justify-between gap-2">
                                         <span class="text-xs font-semibold text-violet-700 inline-flex items-center gap-1.5">
@@ -1281,7 +1277,7 @@ declare(strict_types=1);
 
                             <template x-if="selEl && panelTab === 'style' && commonStyleVisible() && supportsBoxStyles(selEl.type)">
                                 <div class="rounded border border-gray-200 bg-gray-50 p-3 space-y-3">
-                                    <div x-show="advancedMode" class="pb-3 border-b border-gray-200">
+                                    <div x-show="professionalOpen && stylePresetsEnabled" class="pb-3 border-b border-gray-200">
                                         <div class="flex items-center justify-between mb-1.5">
                                             <label class="text-xs font-semibold text-gray-600 inline-flex items-center gap-1.5">
                                                 <i class="ti ti-components text-sm text-emerald-500"></i><?= e(__('blox_global_style')) ?>
@@ -1563,7 +1559,7 @@ declare(strict_types=1);
                                     </div>
                                 </template>
                                 <div :data-control-key="ctrl.key" x-show="!ctrl.option_preview"
-                                     :class="ctrl.responsive || ctrl.key === 'faq_style' || ['textarea','richtext','image','about_layout','faq_repeater','org_repeater'].indexOf(ctrl.type) !== -1 ? 'blox-property-span-full' : ''">
+                                     :class="ctrl.responsive || ctrl.key === 'faq_style' || ctrl.key === 'table_style' || ctrl.key === 'custom_style' || ['textarea','richtext','image','about_layout','faq_repeater','org_repeater','table_grid'].indexOf(ctrl.type) !== -1 ? 'blox-property-span-full' : ''">
                                     <template x-if="ctrl.type !== 'checkbox' && !ctrl.compact_richtext">
                                         <div class="flex items-center justify-between gap-2 mb-1.5">
                                             <label class="block text-[11px] font-semibold text-gray-700" x-text="ctrl.label"></label>
@@ -1744,6 +1740,13 @@ declare(strict_types=1);
                                                 </div>
                                             </template>
                                         </div>
+                                    </template>
+
+                                    <template x-if="ctrl.type === 'table_grid'">
+                                        <button type="button" @click="openTableExpanded()" data-testid="blox-table-expand"
+                                                class="w-full h-9 inline-flex items-center justify-center gap-2 rounded border border-gray-300 bg-white text-sm text-gray-700 hover:border-blue-400 hover:text-blue-700">
+                                            <i class="ti ti-arrows-maximize" aria-hidden="true"></i><?= e(__('blox_table_expand')) ?>
+                                        </button>
                                     </template>
 
                                     <template x-if="ctrl.type === 'org_repeater'">
@@ -2069,7 +2072,7 @@ declare(strict_types=1);
                                     </template>
 
                                     <?php // 未覆盖的控件类型：明说，而不是静默留空 ?>
-                                    <template x-if="['text','url','video_url','textarea','richtext','select','button_style','button_icon_position','button_hover_effect','number','range','checkbox','color','icon','image','about_layout','about_breakpoint','faq_repeater','org_repeater'].indexOf(ctrl.type) === -1">
+                                    <template x-if="['text','url','video_url','textarea','richtext','select','button_style','button_icon_position','button_hover_effect','number','range','checkbox','color','icon','image','about_layout','about_breakpoint','faq_repeater','org_repeater','table_grid'].indexOf(ctrl.type) === -1">
                                         <p class="text-[10px] text-amber-600 leading-relaxed">
                                             <?= __('blox_ctrl_unsupported_pre') ?>（<span x-text="ctrl.type"></span>）<?= __('blox_ctrl_unsupported_post') ?>
                                         </p>

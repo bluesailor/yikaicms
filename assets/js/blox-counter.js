@@ -38,6 +38,7 @@
         element.textContent = config.start + suffix;
 
         function tick(now) {
+            if (element.isConnected === false) return;
             var progress = Math.min((now - startedAt) / duration, 1);
             var eased = 1 - Math.pow(1 - progress, 3);
             var value = config.start + ((target - config.start) * eased);
@@ -100,5 +101,15 @@
     }
     document.addEventListener('blox:content-updated', function (event) {
         init(event.detail && event.detail.root ? event.detail.root : document);
+    });
+    document.addEventListener('blox:content-removing', function (event) {
+        var root = event.detail && event.detail.root;
+        if (!root || !root.querySelectorAll) return;
+        var groups = Array.from(root.querySelectorAll('[data-blox-counter]'));
+        if (root.matches && root.matches('[data-blox-counter]')) groups.push(root);
+        groups.forEach(function (group) {
+            if (observer) observer.unobserve(group);
+            bound.delete(group);
+        });
     });
 })(window, document);

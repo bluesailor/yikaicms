@@ -13,7 +13,11 @@
                 pageUrlConfirm: false,
                 pageUrlError: "",
                 pageUrlText: initial.text || {},
-                addElement: function (el, target) {
+                addElement: function (el, target, tableReady) {
+                    if (el.type === 'table' && !tableReady && typeof this.openTableCreate === 'function') {
+                        this.openTableCreate(el, target);
+                        return;
+                    }
                     var before = this.historyData();
                     var outcome = this.runCommand("add-element", function () {
                         this._addElementRaw(el, target);

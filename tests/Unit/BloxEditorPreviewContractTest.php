@@ -461,7 +461,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('self.captureScroll(frame)', $client);
         $this->assertStringContainsString('self.finishUpdate(frame, scrollState)', $client);
         $this->assertStringContainsString('if (sequence !== self.sequence) return;', $client);
-        $this->assertStringContainsString('if (self.patchFrame(frame, html))', $client);
+        $this->assertStringContainsString('if (!self.rebuilding && self.patchFrame(frame, html))', $client);
         $this->assertStringContainsString('new currentDoc.defaultView.CustomEvent("blox:content-updated"', $client);
 
         $listener = strpos($client, 'frame.addEventListener("load"');
@@ -1590,6 +1590,10 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
         $this->assertStringContainsString("'blox-quick-favorite-element-' : 'blox-favorite-element-'", $workspace);
         $this->assertStringContainsString('@click.stop="toggleElementFavorite(el.type)"', $workspace);
+        $this->assertStringContainsString(':aria-pressed="isElementFavorite(el.type)"', $workspace);
+        $this->assertStringContainsString('<i class="ti ti-star text-sm" aria-hidden="true"></i>', $workspace);
+        $this->assertStringNotContainsString('ti-star-filled', $workspace);
+        $this->assertStringContainsString('.ti-star:', $this->source('assets/tabler/tabler-icons.min.css'));
         $this->assertStringContainsString('focus-visible:ring-2', $workspace);
     }
 

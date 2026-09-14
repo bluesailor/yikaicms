@@ -24,10 +24,7 @@ require_once __DIR__ . '/DynamicSiteData.php';
 require_once __DIR__ . '/ProductTemplateDocument.php';
 require_once __DIR__ . '/DetailTemplateResolver.php';   // 详情模板条件判定（v2 纯判定层，自包含无依赖）
 require_once __DIR__ . '/DetailTemplateProvider.php';   // 候选模板 + 内容上下文准备（唯一取数处）
-require_once __DIR__ . '/DetailTemplatePublishGuard.php';   // 发布前后并列对比（有界扫描，判定交给 resolver）
-require_once __DIR__ . '/DetailTemplateImpactPreview.php';  // 影响范围预览（只读分页，复用发布检查的范围与 resolver）
 require_once __DIR__ . '/DetailScopeSummary.php';       // 作用域只读摘要（后台展示用，不参与判定）
-require_once __DIR__ . '/DetailConditionInput.php';     // 完整条件提交的严格校验（不静默丢弃）
 require_once __DIR__ . '/ArticleTemplateDocument.php';  // 文章详情模板渲染/起始布局
 require_once __DIR__ . '/BloxQueryLoopPolicy.php';
 require_once __DIR__ . '/BloxElementPolicy.php';
@@ -49,6 +46,7 @@ require_once __DIR__ . '/BloxAreaDocument.php';
 require_once __DIR__ . '/BloxThemeHeaderDocument.php';
 require_once __DIR__ . '/BloxPopupDocument.php';
 require_once __DIR__ . '/BloxTemplateImporter.php';
+require_once __DIR__ . '/BloxTemplateEditPolicy.php';
 require_once __DIR__ . '/BloxAreaTemplatePresets.php';
 require_once __DIR__ . '/BloxSectionMetadata.php';
 require_once __DIR__ . '/BloxBuiltinTemplateProvider.php';

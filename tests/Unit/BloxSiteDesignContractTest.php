@@ -12,7 +12,11 @@ final class BloxSiteDesignContractTest extends TestCase
 {
     public function testTemplateTaxonomySeparatesReusableAndSiteAreaTypes(): void
     {
-        self::assertSame(['section', 'page', 'header', 'footer', 'popup'], BloxTemplateModel::TYPES);
+        self::assertSame(['section', 'page', 'header', 'footer', 'popup', 'product-detail', 'article-detail'], BloxTemplateModel::TYPES);
+        foreach (['product-detail', 'article-detail'] as $type) {
+            self::assertTrue(BloxTemplateModel::validType($type));
+            self::assertFalse(BloxTemplateModel::conditionalType($type));
+        }
         self::assertFalse(BloxTemplateModel::conditionalType('section'));
         self::assertFalse(BloxTemplateModel::conditionalType('page'));
         self::assertTrue(BloxTemplateModel::conditionalType('header'));
