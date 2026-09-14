@@ -36,6 +36,48 @@ final class BloxProtectedFieldsTest extends TestCase
         BloxProtectedFields::forValidation($next, $trusted, ['query_loop']);
     }
 
+    private function loopDocument(): array
+    {
+        return [['id' => 's1', 'columns' => [['id' => 'c1', 'elements' => [
+            ['id' => 'loop', 'type' => 'list-dynamic', 'data' => ['source' => 'article', 'pagination_mode' => 'numbers', 'children' => [
+                ['id' => 'h1', 'type' => 'heading', 'data' => ['text' => 'Title', 'loop_field' => 'title']],
+                ['id' => 't1', 'type' => 'text', 'data' => ['html' => '<p>Intro</p>', 'loop_fallback' => 'None']],
+            ]]],
+        ]]]]];
+    }
+
+    public function testLoopTemplateChildrenAllowOrdinaryEditsButFreezeStructureAndBindings(): void
+    {
+        $trusted = $this->loopDocument();
+        $next = $trusted;
+        $next[0]['columns'][0]['elements'][0]['data']['children'][1]['data']['html'] = '<p>Changed</p>';
+        $next[0]['columns'][0]['elements'][0]['data']['children'][1]['data']['loop_fallback'] = 'Empty';
+        $next[0]['columns'][0]['elements'][0]['data']['children'][0]['data']['text'] = 'Shown when unbound';
+        $validation = BloxProtectedFields::forValidation($next, $trusted, ['query_loop']);
+        // 校验副本不再携带模板子树，原始提交保持不变。
+        self::assertArrayNotHasKey('children', $validation[0]['columns'][0]['elements'][0]['data']);
+        self::assertCount(2, $next[0]['columns'][0]['elements'][0]['data']['children']);
+
+        foreach (['binding', 'add', 'reorder', 'retype', 'pagination'] as $mode) {
+            $changed = $trusted;
+            $children = &$changed[0]['columns'][0]['elements'][0]['data']['children'];
+            switch ($mode) {
+                case 'binding': $children[0]['data']['loop_field'] = 'summary'; break;
+                case 'add': $children[] = ['id' => 'b1', 'type' => 'button', 'data' => ['text' => 'More']]; break;
+                case 'reorder': $children = array_reverse($children); break;
+                case 'retype': $children[1]['type'] = 'heading'; break;
+                case 'pagination': $changed[0]['columns'][0]['elements'][0]['data']['pagination_mode'] = 'none'; break;
+            }
+            unset($children);
+            try {
+                BloxProtectedFields::forValidation($changed, $trusted, ['query_loop']);
+                self::fail('Accepted loop change: ' . $mode);
+            } catch (RuntimeException $error) {
+                self::assertNotSame('', $error->getMessage());
+            }
+        }
+    }
+
     public function testProtectedFieldsCannotBeChangedDroppedCopiedOrMoved(): void
     {
         foreach (['change', 'drop', 'copy', 'move', 'type', 'duplicate_id'] as $mode) {

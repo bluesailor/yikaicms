@@ -128,6 +128,8 @@ class ContentRevisionModel extends Model
             $fields = $t['fields'];
             $fields['updated_at'] = time();
             db()->update($t['table'], $fields, 'id = ?', [$t['id']]);
+            // 原始 update 不经 Model 通知；恢复会改前台内容，逐表触发失效（事务中由缓存层推迟到提交后）。
+            if (function_exists('do_action')) do_action('data_changed', $t['table'], $t['id']);
             $n++;
         }
         return $n;

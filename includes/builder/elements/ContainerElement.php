@@ -72,6 +72,10 @@ final class ContainerElement extends AbstractElement
                 'options' => ['auto' => __('blox_flex_wrap_auto'), 'wrap' => __('blox_flex_wrap_on'), 'nowrap' => __('blox_flex_wrap_off')]],
             ['key' => 'gap', 'type' => 'select', 'label' => __('blox_child_gap'), 'default' => 'md', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
+            // 声明式间距（E05 试点）：留空沿用上面的档位；填写后以实例样式覆盖。
+            ['key' => 'gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_gap'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'gap']]],
             ['key' => 'align', 'type' => 'select', 'label' => __('blox_cross_align'), 'default' => 'stretch', 'tab' => 'style',
                 'options' => ['stretch' => __('blox_align_stretch'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'baseline' => __('blox_flex_align_baseline')],
                 'option_icons' => ['stretch' => 'arrows-vertical', 'start' => 'layout-align-top', 'center' => 'layout-align-middle', 'end' => 'layout-align-bottom', 'baseline' => 'align-box-bottom-center']],
@@ -107,6 +111,10 @@ final class ContainerElement extends AbstractElement
         $gapClass = $this->resp($data['gap'] ?? 'md', self::GAP_MAP, 'md');
         if ($gapClass !== '') {
             $layout .= ' ' . $gapClass;
+        }
+        // 全站容器间距（E04）只接管保持默认档位的容器；显式档位或响应式设置优先。未配置主题时输出不变。
+        if (($data['gap'] ?? 'md') === 'md' && class_exists(BloxDesignTheme::class) && BloxDesignTheme::hasContainerGap()) {
+            $layout .= ' yk-gap-theme';
         }
         foreach ([
             self::ITEMS_MAP[$data['align'] ?? 'stretch'] ?? '',

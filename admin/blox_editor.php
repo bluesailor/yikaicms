@@ -292,7 +292,7 @@ if ($isHomeBlox) {
         // 页头只显示可编辑区域；页尾保留正文落底上下文。页面上下文仅供前台同一套
         // Resolver 报告模板命中，不在独立区域画布里伪装成整页预览入口。
         $previewEndpoint = '/admin/blox_preview.php?home=1&template_area=' . $templateType
-            . '&_lang=' . rawurlencode($areaEditorLanguage);
+            . '&_lang=' . rawurlencode($areaEditorLanguage) . '&template_id=' . (int) $templateId;
         $areaPresetDocuments = BloxAreaTemplatePresets::editorCatalog($templateType);
         $areaPreviewTarget = BloxAreaEditorTarget::frontPreviewTarget($_GET['preview_context'] ?? '', $areaEditorLanguage);
         $initialPreviewContext = $areaPreviewTarget['context'];
@@ -300,7 +300,8 @@ if ($isHomeBlox) {
     } else {
         // section/page 模板：纯段落预览，借沙盒页通道
         $sandbox = channelModel()->findWhere(['slug' => 'blox-sandbox', 'type' => 'page']);
-        $previewEndpoint = '/admin/blox_preview.php?id=' . (int) ($sandbox['id'] ?? 0);
+        // template_id 让预览以模板自身草稿为可信基线，而不是沙盒页的文档。
+        $previewEndpoint = '/admin/blox_preview.php?id=' . (int) ($sandbox['id'] ?? 0) . '&template_id=' . (int) $templateId;
     }
     if ($templateType === 'product-detail') {
         $languages = availableLanguages();
@@ -313,7 +314,7 @@ if ($isHomeBlox) {
             static fn(array $row): bool => ($row['lang'] ?? '') === $productPreviewLanguage
         ));
         $productPreviewId = (int) ($productPreviewItems[0]['id'] ?? 0);
-        $previewEndpoint = '/admin/blox_preview.php?product_template=1&_lang=' . rawurlencode($productPreviewLanguage);
+        $previewEndpoint = '/admin/blox_preview.php?product_template=1&_lang=' . rawurlencode($productPreviewLanguage) . '&template_id=' . (int) $templateId;
         // TASK-006：完整条件面板的"分类"目标（产品＝产品分类；一次查表，面板内不再查库）
         $conditionContentType = 'product';
         $conditionLang = $productPreviewLanguage;
@@ -336,7 +337,7 @@ if ($isHomeBlox) {
                 && ($row['type'] ?? '') === 'article'
         ));
         $articlePreviewId = (int) ($articlePreviewItems[0]['id'] ?? 0);
-        $previewEndpoint = '/admin/blox_preview.php?article_template=1&_lang=' . rawurlencode($articlePreviewLanguage);
+        $previewEndpoint = '/admin/blox_preview.php?article_template=1&_lang=' . rawurlencode($articlePreviewLanguage) . '&template_id=' . (int) $templateId;
         // TASK-006：文章的分类即栏目；按预览语言取一次
         $conditionContentType = 'article';
         $conditionLang = $articlePreviewLanguage;
@@ -694,25 +695,10 @@ $registryMeta['page-title']['paletteVisible'] = !$isHomeBlox && !$templateId && 
 if (!hasPermission('blox_code') && isset($registryMeta['code'])) {
     $registryMeta['code']['paletteVisible'] = false;
 }
-$advancedQueryLoopEnabled = BloxQueryLoopPolicy::advancedEnabled();
 require_once ROOT_PATH . '/includes/builder/BloxProfessionalUi.php';
 $professionalFeatures = BloxProfessionalUi::snapshot();
-$displayConditionChannels = [];
-foreach (channelModel()->getFlatList() as $conditionChannel) {
-    $conditionType = (string) ($conditionChannel['type'] ?? '');
-    if (empty($conditionChannel['status']) || in_array($conditionType, ['page', 'link', 'redirect'], true)) {
-        continue;
-    }
-    $conditionId = (int) ($conditionChannel['id'] ?? 0);
-    if ($conditionId < 1) {
-        continue;
-    }
-    $displayConditionChannels[] = [
-        'value' => $conditionId,
-        'label' => str_repeat('— ', max(0, min(4, (int) ($conditionChannel['_level'] ?? 0))))
-            . ((string) ($conditionChannel['name'] ?? '') ?: ('#' . $conditionId)),
-    ];
-}
+// 专业控件与循环子元素只在能力可用且 blox-pro 作者端模块已加载时下发；保存校验仍由 BloxQueryLoopPolicy 负责。
+$advancedQueryLoopEnabled = !empty($professionalFeatures['query_loop']['allowed']);
 $contactManageActions = [
     'contact_cards' => ['url' => '/admin/setting_contact.php', 'label' => __('page_contact_manage_cards'), 'icon' => 'address-book'],
     'contact_form' => ['url' => '/admin/form_design.php', 'label' => __('page_contact_manage_form'), 'icon' => 'forms'],
@@ -889,6 +875,8 @@ $canManageBloxDesign = hasPermission('blox_global');
     <?php // 系统富文本编辑器（richtext 控件的「可视化编辑」弹窗用；按需 init） ?>
     <script src="/assets/tinymce/tinymce.min.js"></script>
     <script src="/assets/js/blox-compact-richtext.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-compact-richtext.js') ?>"></script>
+    <?php // 作者端扩展模块（如 blox-pro）在 Alpine 组件定义前注入自己的脚本与数据 ?>
+    <?php if (function_exists('do_action')) do_action('blox_editor_scripts'); ?>
     <style>
         html, body { height: 100%; margin: 0; overflow: hidden; }
         [x-cloak] { display: none !important; }
@@ -1295,8 +1283,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 else if (feature === 'style_presets') { this.panelTab = 'style'; this.styleGroup = 'general'; }
                 else this.panelTab = 'professional';
             },
-            displayConditionsEnabled: <?php echo BloxFeaturePolicy::allows('display_conditions') ? 'true' : 'false'; ?>,
-            stylePresetsEnabled: <?php echo BloxFeaturePolicy::allows('style_presets') ? 'true' : 'false'; ?>,
+            // 能力可用且作者端模块已加载才开放条件面板；保存校验仍只看能力策略。
+            displayConditionsEnabled: <?php echo !empty($professionalFeatures['display_conditions']['allowed']) ? 'true' : 'false'; ?>,
+            stylePresetsEnabled: <?php echo !empty($professionalFeatures['style_presets']['allowed']) ? 'true' : 'false'; ?>,
             bannerPanelGroup: "common",
             styleGroup: "general",
             // TASK-003 D：搜索前的分组选择（清除搜索后恢复）；连同当时的选中元素一起记，避免切元素后串状态
@@ -1405,34 +1394,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'manageColors' => __('blox_color_manage'),
                 'clear' => __('blox_clear'),
                 'close' => __('close'),
-            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            conditionChannels: <?php echo json_encode($displayConditionChannels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            conditionText: <?php echo json_encode([
-                'empty' => __('blox_display_conditions_empty'),
-                'hint' => __('blox_display_conditions_hint'),
-                'group' => __('blox_display_conditions_group'),
-                'and' => __('blox_display_conditions_and'),
-                'or' => __('blox_display_conditions_or'),
-                'addGroup' => __('blox_display_conditions_add_group'),
-                'addRule' => __('blox_display_conditions_add_rule'),
-                'login' => __('blox_display_condition_login'),
-                'date' => __('blox_display_condition_date'),
-                'channel' => __('blox_display_condition_channel'),
-                'url' => __('blox_display_condition_url'),
-                'is' => __('blox_display_operator_is'),
-                'isNot' => __('blox_display_operator_is_not'),
-                'before' => __('blox_display_operator_before'),
-                'on' => __('blox_display_operator_on'),
-                'after' => __('blox_display_operator_after'),
-                'equals' => __('blox_display_operator_equals'),
-                'notEquals' => __('blox_display_operator_not_equals'),
-                'contains' => __('blox_display_operator_contains'),
-                'notContains' => __('blox_display_operator_not_contains'),
-                'startsWith' => __('blox_display_operator_starts_with'),
-                'loggedIn' => __('blox_display_value_logged_in'),
-                'loggedOut' => __('blox_display_value_logged_out'),
-                'selectChannel' => __('blox_display_select_channel'),
-                'urlPlaceholder' => __('blox_display_url_placeholder'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             docSettings: <?php echo json_encode((object) $docSettings, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             homeMode: <?php echo $isHomeBlox ? 'true' : 'false'; ?>,
@@ -1613,6 +1574,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'deleteItem' => __('blox_ctx_delete_item'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             uiText: <?php echo json_encode([
+                'cssUnset' => __('blox_css_unset_hint'),
                 'mediaFailed' => __('blox_media_failed'),
                 'uploadedSelected' => __('blox_uploaded_selected'),
                 'uploadedOptimized' => __('blox_uploaded_optimized'),
@@ -2270,19 +2232,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 });
             },
 
-            globalStyleOptions(currentId) {
-                var items = this.activeGlobalStyles();
-                currentId = String(currentId || "");
-                if (!currentId || items.some(function (style) { return style.id === currentId; })) return items;
-                var archived = (this.designSystem.styles || []).find(function (style) { return style.id === currentId; });
-                return archived ? items.concat([archived]) : items;
-            },
-
-            globalStyleLabel(style) {
-                return style.status === "archived"
-                    ? style.name + " · " + this.designText.archived
-                    : style.name;
-            },
+            // 全局样式选择方法（globalStyleOptions/globalStyleLabel/applyGlobalStyle）由 blox-pro 作者端模块提供。
 
             colorTokenRef(id) {
                 return /^[a-z][a-z0-9_-]{0,47}$/.test(String(id || ""))
@@ -2380,25 +2330,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var green = parseInt(color.slice(3, 5), 16);
                 var blue = parseInt(color.slice(5, 7), 16);
                 return ((red * 299 + green * 587 + blue * 114) / 1000) > 150 ? "text-gray-900" : "text-white";
-            },
-
-            applyGlobalStyle(id) {
-                if (!this.selEl) return;
-                id = String(id || "");
-                if (!id) {
-                    this.selEl.data._global_style = "";
-                    this.selEl.data._global_style_snapshot = {};
-                    return;
-                }
-                var style = (this.designSystem.styles || []).find(function (item) { return item.id === id; });
-                if (!style) return;
-                this.selEl.data._global_style = id;
-                this.selEl.data._global_style_snapshot = {
-                    color: style.color || "",
-                    background: style.background || "",
-                    border_color: style.border_color || "",
-                    radius: style.radius || "none"
-                };
             },
 
             openDesignSystem(tab) {
@@ -3915,6 +3846,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             ...window.BloxBannerPanel.methods,
             ...window.BloxHomeContentPanel.methods,
             ...window.BloxStyleGroups.methods,
+            // 作者端扩展模块（blox-pro）提供的面板方法；未启用时为空，核心编辑照常可用。
+            ...((window.BloxProEditor || {}).methods || {}),
 
             isLoopTemplateChild() {
                 return this.selectedSubEi >= 0 && this.isLoopTemplateHost(this.selTopEl);
@@ -4607,84 +4540,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return null;
             },
 
-            conditionGroups() {
-                var target = this.conditionTarget();
-                return target && Array.isArray(target._conditions) ? target._conditions : [];
-            },
-
-            defaultConditionRule() {
-                return { type: "login", operator: "is", value: "logged_in" };
-            },
-
-            addConditionGroup() {
-                var target = this.conditionTarget();
-                if (!target) return;
-                if (!Array.isArray(target._conditions)) target._conditions = [];
-                if (target._conditions.length >= 10) return;
-                target._conditions.push({ rules: [this.defaultConditionRule()] });
-            },
-
-            removeConditionGroup(groupIndex) {
-                var target = this.conditionTarget();
-                if (!target || !Array.isArray(target._conditions)) return;
-                target._conditions.splice(groupIndex, 1);
-                if (!target._conditions.length) delete target._conditions;
-            },
-
-            addConditionRule(groupIndex) {
-                var group = this.conditionGroups()[groupIndex];
-                if (!group) return;
-                if (!Array.isArray(group.rules)) group.rules = [];
-                if (group.rules.length < 10) group.rules.push(this.defaultConditionRule());
-            },
-
-            removeConditionRule(groupIndex, ruleIndex) {
-                var group = this.conditionGroups()[groupIndex];
-                if (!group || !Array.isArray(group.rules)) return;
-                group.rules.splice(ruleIndex, 1);
-                if (!group.rules.length) this.removeConditionGroup(groupIndex);
-            },
-
-            conditionTypeChanged(rule) {
-                if (!rule) return;
-                if (rule.type === "login") {
-                    rule.operator = "is";
-                    rule.value = "logged_in";
-                } else if (rule.type === "date") {
-                    rule.operator = "on";
-                    var today = new Date();
-                    rule.value = today.getFullYear() + "-"
-                        + String(today.getMonth() + 1).padStart(2, "0") + "-"
-                        + String(today.getDate()).padStart(2, "0");
-                } else if (rule.type === "channel") {
-                    rule.operator = "is";
-                    rule.value = this.conditionChannels.length ? this.conditionChannels[0].value : "";
-                } else {
-                    rule.type = "url";
-                    rule.operator = "contains";
-                    rule.value = "/";
-                }
-            },
-
-            conditionOperators(type) {
-                if (type === "login") return [{ value: "is", label: this.conditionText.is }];
-                if (type === "date") return [
-                    { value: "before", label: this.conditionText.before },
-                    { value: "on", label: this.conditionText.on },
-                    { value: "after", label: this.conditionText.after },
-                ];
-                if (type === "channel") return [
-                    { value: "is", label: this.conditionText.is },
-                    { value: "is_not", label: this.conditionText.isNot },
-                ];
-                return [
-                    { value: "equals", label: this.conditionText.equals },
-                    { value: "not_equals", label: this.conditionText.notEquals },
-                    { value: "contains", label: this.conditionText.contains },
-                    { value: "not_contains", label: this.conditionText.notContains },
-                    { value: "starts_with", label: this.conditionText.startsWith },
-                ];
-            },
+            // 显示条件编辑方法由 blox-pro 作者端模块提供（plugins/blox-pro/assets/blox-pro-editor.js）。
 
             setColumnSpanT(t) {
                 var col = this.selectedCol();
@@ -5212,6 +5068,42 @@ $canManageBloxDesign = hasPermission('blox_global');
                     ctrl.default ?? "",
                     device
                 );
+            },
+
+            // 声明式 CSS 控件（E05）：空串=未设置（沿用默认），0 有效；响应式时按当前预览设备写 {d,t,m} 槽位。
+            cssLengthSlots(ctrl) {
+                var raw = this.selEl && this.selEl.data ? this.selEl.data[ctrl.key] : "";
+                if (raw && typeof raw === "object") return { d: raw.d ?? "", t: raw.t ?? "", m: raw.m ?? "" };
+                return { d: raw === undefined || raw === null ? "" : raw, t: "", m: "" };
+            },
+
+            cssLengthDevice(ctrl) {
+                return ctrl.responsive && ["t", "m"].includes(this.previewDevice) ? this.previewDevice : "d";
+            },
+
+            cssLengthValue(ctrl) {
+                var value = this.cssLengthSlots(ctrl)[this.cssLengthDevice(ctrl)];
+                return value === undefined || value === null ? "" : String(value);
+            },
+
+            cssLengthPlaceholder(ctrl) {
+                var slots = this.cssLengthSlots(ctrl);
+                var device = this.cssLengthDevice(ctrl);
+                var inherited = device === "m" ? (slots.t !== "" ? slots.t : slots.d) : (device === "t" ? slots.d : "");
+                return inherited !== "" ? String(inherited) : this.uiText.cssUnset;
+            },
+
+            setCssLengthValue(ctrl, raw) {
+                if (!this.selEl) return;
+                var text = String(raw ?? "").trim();
+                var value = text === "" || !isFinite(Number(text)) ? "" : Number(text);
+                if (!ctrl.responsive) {
+                    this.selEl.data[ctrl.key] = value;
+                    return;
+                }
+                var slots = this.cssLengthSlots(ctrl);
+                slots[this.cssLengthDevice(ctrl)] = value;
+                this.selEl.data[ctrl.key] = slots.d === "" && slots.t === "" && slots.m === "" ? "" : slots;
             },
 
             inheritControlValue(ctrl) {

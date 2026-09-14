@@ -30,6 +30,8 @@ $advancedBloxEnabled = bloxAdvancedFeaturesEnabled();
 $tableReady = db()->tableExists('blox_templates');
 $errorMessage = '';
 $notice = '';
+$importReview = null;
+$importJson = '';
 $filterType = strtolower(trim((string) get('type', 'all')));
 if ($filterType !== 'all' && !BloxTemplateModel::validType($filterType)) {
     $filterType = 'all';
@@ -251,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('/admin/blox_editor.php?template=' . $id);
         }
 
-        if ($action === 'import') {
+        if ($action === 'import' || $action === 'import_confirm') {
             $json = trim((string) post('template_json', ''));
             $file = $_FILES['template_file'] ?? null;
             if (is_array($file) && (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
@@ -276,14 +278,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException(__('blox_tpl_pick_or_paste'));
             }
 
-            // r6：四类模板均可导入管理（importJson 内部完整校验）。header/footer 经激活条件前台生效，画布插入目录仍只 section/page。
-            $result = BloxTemplateImporter::importJson($json, (int) ($_SESSION['admin_id'] ?? 0));
-            adminLog(
-                'blox_template',
-                'import',
-                '导入 Blox 模板 #' . $result['id'] . ' ' . $result['name']
-            );
-            redirect('/admin/blox_templates.php?imported=' . $result['id']);
+            $importJson = $json;
+            $importReview = BloxTemplateImporter::prepare($json);
+            if ($action === 'import_confirm') {
+                $options = ['style_mode' => $_POST['style_mode'] ?? 'keep'];
+                foreach (['tokens', 'styles'] as $kind) {
+                    // post() trims scalar strings; mappings are structured form arrays.
+                    $map = $_POST['design_' . $kind] ?? [];
+                    if (!is_array($map)) {
+                        throw new RuntimeException(__('blox_import_design_invalid'));
+                    }
+                    $options[$kind] = array_filter($map, static fn(mixed $value): bool => $value !== '');
+                }
+                $result = BloxTemplateImporter::importJson($json, (int) ($_SESSION['admin_id'] ?? 0), 'import', '', $options);
+                adminLog(
+                    'blox_template',
+                    'import',
+                    'Import Blox template #' . $result['id'] . ' ' . $result['name']
+                );
+                redirect('/admin/blox_templates.php?imported=' . $result['id']);
+            }
         }
 
         if ($action === 'install_remote') {
@@ -432,7 +446,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('/admin/blox_templates.php?status=1');
         }
 
-        throw new RuntimeException(__('blox_invalid_action'));
+        if ($action !== 'import') {
+            throw new RuntimeException(__('blox_invalid_action'));
+        }
     } catch (Throwable $e) {
         $errorMessage = $e->getMessage();
     }
@@ -1347,11 +1363,15 @@ function confirmAreaPublish(form) {
         <?php endif; ?>
     </section>
 
+    <?php if ($importReview !== null): ?>
+        <?php require __DIR__ . '/blox_templates/partials/import-review.php'; ?>
+    <?php endif; ?>
+
     <section class="border-y border-gray-200 bg-white">
         <div class="px-5 py-4 border-b border-gray-200">
             <h2 class="font-semibold text-gray-900"><?php echo __('blox_tpl_import_title'); ?></h2>
         </div>
-        <form method="post" enctype="multipart/form-data" class="grid gap-4 p-5 lg:grid-cols-[minmax(0,320px)_1fr_auto] lg:items-end">
+        <form method="post" action="#blox-import-review" enctype="multipart/form-data" class="grid gap-4 p-5 lg:grid-cols-[minmax(0,320px)_1fr_auto] lg:items-end">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="import">
             <div>
@@ -1368,7 +1388,7 @@ function confirmAreaPublish(form) {
             <button type="submit" <?php echo $tableReady ? '' : 'disabled'; ?>
                     class="inline-flex h-10 items-center justify-center gap-2 bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300">
                 <i class="ti ti-file-import"></i>
-                <?php echo __('blox_tpl_import_hint'); ?>
+                <?php echo __('blox_import_review'); ?>
             </button>
         </form>
     </section>

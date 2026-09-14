@@ -121,6 +121,8 @@ final class BloxAreaAssignmentManager
             throw new RuntimeException(__('blox_assignment_source_missing'));
         }
         $document = BloxAreaDocument::decode($area, (string) $source['published_data']);
+        // 分配副本是新模板行：不继承来源文档的旧专业配置保留，按新建能力检查。
+        BloxDocumentPipeline::assertAuthoringAllowed($document['sections'], null);
         $draftJson = json_encode([
             'schema' => BloxDocumentPipeline::SCHEMA_VERSION,
             'settings' => $document['settings'],

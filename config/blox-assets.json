@@ -36,6 +36,7 @@
     "includes/MediaUsageAudit.php",
     "admin/blox_design.php",
     "admin/blox_design_api.php",
+    "plugins/blox-pro",
     "includes/builder/BloxAreaTemplatePresets.php",
     "includes/builder/BloxAreaEditorTarget.php",
     "includes/builder/BloxFrontendEditTarget.php",
@@ -79,8 +80,7 @@
     "includes/builder/BannerContentLayout.php"
   ],
   "pro": [
-    "plugins/blox-example",
-    "plugins/blox-pro"
+    "plugins/blox-example"
   ],
   "runtime": [
     "includes/builder/bootstrap.php",

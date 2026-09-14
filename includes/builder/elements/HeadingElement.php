@@ -80,6 +80,13 @@ final class HeadingElement extends AbstractElement
                     'lg' => '20px', 'xl' => '24px', '2xl' => '30px', '3xl' => '36px',
                     '4xl' => '48px', '5xl' => '60px', '6xl' => '72px', 'display' => '96px',
                 ]],
+            // 声明式排版（E05 试点）：留空沿用视觉字号档位与全站排版，填写后以实例样式覆盖。
+            ['key' => 'type_font_size', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_font_size'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 8, 'max' => 160, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'font-size']]],
+            ['key' => 'type_line_height', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_line_height'),
+                'default' => '', 'tab' => 'style', 'min' => 0.8, 'max' => 3, 'step' => 0.1,
+                'css' => [['property' => 'line-height']]],
             ['key' => 'color', 'type' => 'color', 'label' => __('blox_text_color'), 'default' => '', 'tab' => 'style'],
             ['key' => 'align', 'type' => 'select', 'label' => __('blox_align'), 'default' => 'left', 'tab' => 'style',
                 'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')],
@@ -113,7 +120,13 @@ final class HeadingElement extends AbstractElement
             $target = BloxValueSanitizer::truthy($data['new_tab'] ?? false) ? ' target="_blank" rel="noopener noreferrer"' : '';
             $text = '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '" class="yk-heading-link"' . $target . '>' . $text . '</a>';
         }
-        return '<' . $level . ' class="' . $size . ' font-bold mb-4' . $alignCls . ($id !== '' ? ' yk-blox-anchor' : '') . '"' . $style
+        // 全站排版（E04）只接管未设置视觉字号的标题；未配置主题时不追加任何类，输出逐字节不变。
+        $visualSize = $data['visual_size'] ?? 'auto';
+        $autoSize = is_array($visualSize)
+            ? array_filter($visualSize, static fn(mixed $value): bool => $value !== 'auto' && $value !== '' && $value !== null) === []
+            : in_array($visualSize, ['auto', '', null], true);
+        $themeCls = $autoSize && class_exists(BloxDesignTheme::class) && BloxDesignTheme::hasTypography($level) ? ' yk-type-' . $level : '';
+        return '<' . $level . ' class="' . $size . ' font-bold mb-4' . $alignCls . ($id !== '' ? ' yk-blox-anchor' : '') . $themeCls . '"' . $style
             . $idAttr . $this->animationAttrs($data) . '>' . $text . '</' . $level . '>';
     }
 }

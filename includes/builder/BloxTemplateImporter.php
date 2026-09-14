@@ -21,15 +21,16 @@ final class BloxTemplateImporter
     public const VERSION = 1;
     public const MAX_BYTES = 2_000_000;
 
-    /** @return array{id:int,type:string,name:string,sections:int} */
+    /** @param array<string,mixed> $designOptions @return array{id:int,type:string,name:string,sections:int} */
     public static function importJson(
         string $json,
         int $adminId = 0,
         string $source = 'import',
-        string $sourceRef = ''
+        string $sourceRef = '',
+        array $designOptions = []
     ): array
     {
-        $prepared = self::prepare($json);
+        $prepared = self::prepare($json, $designOptions);
         db()->beginTransaction();
         try {
             $id = bloxTemplateModel()->createDraft(
@@ -128,6 +129,7 @@ final class BloxTemplateImporter
             'name' => $name,
             'thumbnail' => self::safeThumbnail((string) ($template['thumbnail'] ?? '')),
             'requires' => $requirements,
+            'design' => BloxDesignDependencies::exportDefinitions($requirements),
             'metadata' => BloxSectionMetadata::normalize(self::decodeStoredMetadata($template['metadata'] ?? null)),
             'meta' => [
                 'source' => (string) ($template['source'] ?? ''),
@@ -174,10 +176,11 @@ final class BloxTemplateImporter
      *   type:string,name:string,schema_version:int,thumbnail:string,
      *   settings:array<string,mixed>,sections:array<int,array<string,mixed>>,draft_json:string,
      *   requirements:array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>},
-     *   metadata:array<string,mixed>
+     *   metadata:array<string,mixed>,design_diagnostics:array<string,mixed>
      * }
+     * @param array<string,mixed> $designOptions
      */
-    public static function prepare(string $json): array
+    public static function prepare(string $json, array $designOptions = []): array
     {
         if (strlen($json) > self::MAX_BYTES) {
             throw new RuntimeException(__('blox_tpl_too_large'));
@@ -233,6 +236,25 @@ final class BloxTemplateImporter
             throw new RuntimeException(__('blox_tpl_missing_plugins', ['list' => implode('、', $missingPlugins)]));
         }
 
+        $definitions = is_array($package['design'] ?? null) ? $package['design'] : [];
+        // Include colors used only by a portable style snapshot in the review.
+        $rawSections = self::applyDesignOptions($rawSections, [], $definitions);
+        $inferred = self::inferRequirements($rawSections);
+        $designRequirements = [
+            'design_tokens' => array_values(array_unique(array_merge($declared['design_tokens'], $inferred['design_tokens']))),
+            'design_styles' => array_values(array_unique(array_merge($declared['design_styles'], $inferred['design_styles']))),
+        ];
+        $designDiagnostic = BloxDesignDependencies::diagnoseImport($designRequirements, $definitions);
+        $rawSections = self::applyDesignOptions($rawSections, $designOptions, $definitions);
+        $inferred = self::inferRequirements($rawSections);
+        // Remapped/removed references must not retain stale dependency IDs.
+        foreach (['tokens', 'styles'] as $kind) {
+            $map = $designOptions[$kind] ?? [];
+            $declared['design_' . $kind] = array_map(static fn(string $id): string => $map[$id] ?? $id, $declared['design_' . $kind]);
+        }
+        if (($designOptions['style_mode'] ?? 'keep') === 'detach') {
+            $declared['design_styles'] = [];
+        }
         $withoutIds = BloxDocumentPipeline::withoutNodeIds($rawSections);
         // 文档级 settings（如 header 的 sticky）随模板包走 v1 信封进出，不在提取 sections 时丢失
         $rawSettings = is_array($package['document']) ? ($package['document']['settings'] ?? null) : null;
@@ -273,7 +295,62 @@ final class BloxTemplateImporter
                 'design_styles' => $requiredStyles,
             ],
             'metadata' => BloxSectionMetadata::normalize($package['metadata'] ?? []),
+            'design_diagnostics' => $designDiagnostic,
         ];
+    }
+
+    /** @param array<int,mixed> $sections @param array<string,mixed> $options @param array<string,mixed> $definitions @return array<int,mixed> */
+    private static function applyDesignOptions(array $sections, array $options, array $definitions): array
+    {
+        $mode = $options['style_mode'] ?? 'keep';
+        if (!in_array($mode, ['keep', 'detach'], true)) {
+            throw new RuntimeException(__('blox_import_design_invalid'));
+        }
+        $snapshot = BloxDesignSystem::snapshot();
+        $maps = [];
+        foreach (['tokens', 'styles'] as $kind) {
+            $maps[$kind] = $options[$kind] ?? [];
+            if (!is_array($maps[$kind])) {
+                throw new RuntimeException(__('blox_import_design_invalid'));
+            }
+            $targets = array_column(array_filter($snapshot[$kind], static fn(array $item): bool => ($item['status'] ?? '') !== 'archived'), null, 'id');
+            foreach ($maps[$kind] as $from => $to) {
+                if (!is_string($from) || preg_match('/^[a-z][a-z0-9_-]{0,47}$/D', $from) !== 1
+                    || !is_string($to) || !isset($targets[$to])) {
+                    throw new RuntimeException(__('blox_import_design_invalid'));
+                }
+            }
+        }
+        $sourceStyles = [];
+        foreach (is_array($definitions['styles'] ?? null) ? $definitions['styles'] : [] as $style) {
+            if (is_array($style) && is_string($style['id'] ?? null)) {
+                $sourceStyles[$style['id']] = BloxDesignSystem::normalizeStyleSnapshot($style);
+            }
+        }
+        $localStyles = array_column($snapshot['styles'], null, 'id');
+        $visit = static function (array $node) use (&$visit, $maps, $mode, $sourceStyles, $localStyles): array {
+            if (is_string($node['_global_style'] ?? null)) {
+                $id = $node['_global_style'];
+                if ($mode === 'detach') {
+                    unset($node['_global_style'], $node['_global_style_snapshot']);
+                } elseif (isset($maps['styles'][$id])) {
+                    $node['_global_style'] = $maps['styles'][$id];
+                    $node['_global_style_snapshot'] = BloxDesignSystem::normalizeStyleSnapshot($localStyles[$node['_global_style']]);
+                } elseif (!isset($node['_global_style_snapshot']) && isset($sourceStyles[$id])) {
+                    $node['_global_style_snapshot'] = $sourceStyles[$id];
+                }
+            }
+            foreach ($node as $key => $value) {
+                if (is_array($value)) {
+                    $node[$key] = $visit($value);
+                } elseif (is_string($value) && preg_match('/^var\(--yk-color-([a-z][a-z0-9_-]{0,47})\)$/D', $value, $match) === 1
+                    && isset($maps['tokens'][$match[1]])) {
+                    $node[$key] = BloxDesignSystem::colorReference($maps['tokens'][$match[1]]);
+                }
+            }
+            return $node;
+        };
+        return $visit($sections);
     }
 
     /** @return array<string,mixed> */

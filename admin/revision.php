@@ -78,14 +78,18 @@ if ($action === 'restore') {
     }
     $rev = $loadOwned((int) input('rev_id', 0));
     try {
-        $n = $model->restoreRevision(
-            (int) $rev['id'],
-            (int) ($_SESSION['admin_id'] ?? 0),
-            (string) ($_SESSION['admin_username'] ?? '')
-        );
+        $adminId = (int) ($_SESSION['admin_id'] ?? 0);
+        $adminName = (string) ($_SESSION['admin_username'] ?? '');
         if ($type === 'page' && db()->tableExists('blox_page_drafts')) {
             require_once ROOT_PATH . '/includes/builder/bootstrap.php';
-            PageBloxDocument::syncDraftFromPublished($targetId, (int) ($_SESSION['admin_id'] ?? 0));
+            // 恢复 Blox 结构属于结构编辑：与页面编辑接口同样要求 blox_edit。
+            $pageState = PageBloxDocument::load($targetId);
+            if ($pageState['has_draft'] || $pageState['has_published'] || PageBloxDocument::revisionBlocks($rev) !== '') {
+                requirePermission('blox_edit');
+            }
+            $n = PageBloxDocument::restoreRevision($targetId, $rev, $adminId, $adminName);
+        } else {
+            $n = $model->restoreRevision((int) $rev['id'], $adminId, $adminName);
         }
         adminLog($type, 'restore', "恢复版本 #{$rev['id']} → {$type} #{$targetId}");
         cacheClear();

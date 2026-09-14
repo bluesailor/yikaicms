@@ -31,6 +31,8 @@ test.afterEach(async ({ page }) => {
 
 test('element conditions create OR groups, AND rules and a canvas marker @ci', async ({ page }) => {
   await addTemporaryHeading(page);
+  // 专业功能区默认折叠（ROUND-06 克制界面）；条件面板由 blox-pro 作者端模块提供。
+  await page.getByTestId('blox-professional-features').locator('summary').click();
   await page.getByTestId('blox-condition-tab').click();
   await expect(page.getByTestId('blox-condition-editor')).toBeVisible();
 

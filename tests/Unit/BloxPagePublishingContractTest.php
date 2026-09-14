@@ -172,7 +172,9 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("post('replace_theme_area', '')", $templateApi);
         $this->assertStringContainsString('BloxAreaEditorTarget::isThemeFallbackTemplate($row, $type)', $templateApi);
         $this->assertStringContainsString("array_key_exists('blocks_data', \$_POST)", $templateApi);
-        $this->assertStringContainsString('$templateRevisionMatches($type, $currentDraft, $baseRevision)', $templateApi);
+        // E03：模板版本前提统一走 $assertTemplateRevision（专业能力不可用时缺失版本也拒绝）。
+        $this->assertStringContainsString("\$assertTemplateRevision(\$type, \$currentDraft, trim((string) post('base_revision', '')));", $templateApi);
+        $this->assertStringContainsString('!$templateRevisionMatches($type, $json, $revision)', $templateApi);
         $this->assertStringContainsString('bloxTemplateModel()->updateDraft(', $templateApi);
         $this->assertStringContainsString('BloxTemplateImporter::deriveRequirements($processed[\'sections\'])', $templateApi);
         $this->assertStringContainsString('db()->beginTransaction();', $templateApi);
@@ -365,11 +367,21 @@ final class BloxPagePublishingContractTest extends TestCase
         $saveBody = substr($document, (int) $saveStart, (int) $publishStart - (int) $saveStart);
         $this->assertStringContainsString('bloxPageDraftModel()->saveForPage', $saveBody);
         $this->assertStringNotContainsString('contentModel()->updateById', $saveBody);
-        $this->assertStringContainsString('$database->beginTransaction();', $document);
-        $this->assertStringContainsString('contentModel()->updateById', $document);
-        $this->assertStringContainsString("'status' => 1", $document);
-        $this->assertStringContainsString('$database->commit();', $document);
-        $this->assertStringContainsString('$database->rollback();', $document);
+        // E03：发布写入移入锁内闭包，事务开合由 BloxDocumentWriteLock 统一承担。
+        $syncStart = strpos($document, 'public static function syncDraftFromPublished');
+        $this->assertNotFalse($syncStart);
+        $publishBody = substr($document, (int) $publishStart, (int) $syncStart - (int) $publishStart);
+        $lockStart = strpos($publishBody, 'BloxDocumentWriteLock::channel(');
+        $this->assertNotFalse($lockStart);
+        $lockedBody = substr($publishBody, (int) $lockStart);
+        $this->assertStringContainsString('contentModel()->updateById', $lockedBody);
+        $this->assertStringContainsString("'status' => 1", $lockedBody);
+        $this->assertStringContainsString('recordContentRevision(', $lockedBody);
+        $this->assertStringNotContainsString('contentModel()->updateById', substr($publishBody, 0, (int) $lockStart));
+        $lock = $this->source('includes/builder/BloxDocumentWriteLock.php');
+        $this->assertStringContainsString('$database->beginTransaction();', $lock);
+        $this->assertStringContainsString('$database->commit();', $lock);
+        $this->assertStringContainsString('$database->rollback();', $lock);
     }
 
     private function source(string $path): string

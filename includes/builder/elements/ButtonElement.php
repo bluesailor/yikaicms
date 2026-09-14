@@ -9,6 +9,7 @@ final class ButtonElement extends AbstractElement
     public function label(): string { return __('blox_el_button'); }
     public function icon(): string { return 'square-rounded'; }
     public function backgroundRenderStrategy(): string { return 'native'; }
+    public function compiledCssTargetTag(): ?string { return 'a'; }
 
     public function controls(): array
     {
@@ -99,6 +100,16 @@ final class ButtonElement extends AbstractElement
                     'rounded' => __('blox_button_shape_rounded'),
                     'pill' => __('blox_button_shape_pill'),
                 ]],
+            // 声明式尺寸（E05 试点）：留空沿用 px-6 py-3 与形状/全站按钮设置。
+            ['key' => 'btn_padding_x', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_padding_x'),
+                'default' => '', 'tab' => 'style', 'min' => 0, 'max' => 96, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'padding-inline']]],
+            ['key' => 'btn_padding_y', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_padding_y'),
+                'default' => '', 'tab' => 'style', 'min' => 0, 'max' => 96, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'padding-block']]],
+            ['key' => 'btn_radius', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_radius'),
+                'default' => '', 'tab' => 'style', 'min' => 0, 'max' => 999, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'border-radius']]],
             ...$this->animationControls(),
         ];
     }
@@ -154,6 +165,10 @@ final class ButtonElement extends AbstractElement
             'none' => '',
         ][$hoverEffect];
         $shapeClass = ($data['shape'] ?? 'rounded') === 'pill' ? 'rounded-full' : 'rounded-lg';
+        // 全站按钮默认（E04）只作用于默认圆角按钮；胶囊形状视为局部明确值。未配置主题时输出不变。
+        if (($data['shape'] ?? 'rounded') !== 'pill' && class_exists(BloxDesignTheme::class) && BloxDesignTheme::hasButtons()) {
+            $shapeClass .= ' yk-btn-theme';
+        }
         $color = self::cssColor($data['color'] ?? null);
         $inlineColor = $color !== null ? 'color:' . $color . ';' : (in_array($variant, ['primary', 'dark'], true) ? 'color:#fff;' : '');
         $inlineStyle = $inlineColor . self::backgroundDeclarations($data) . 'text-decoration:none';

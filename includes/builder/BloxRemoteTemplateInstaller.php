@@ -153,6 +153,11 @@ final class BloxRemoteTemplateInstaller
         $requirements = self::decodeArray((string) ($state['backup_requirements'] ?? ''));
         $metadata = self::decodeArray((string) ($state['backup_metadata'] ?? ''));
         $currentDraft = (string) ($template['draft_data'] ?? '');
+        // 备份来自同一模板的旧草稿：以当前草稿为可信基线，旧专业配置不能借回滚重新开启或改动。
+        BloxDocumentPipeline::assertAuthoringAllowed(
+            BloxDocumentPipeline::decode($backupDraft)['sections'],
+            trim($currentDraft) !== '' ? $currentDraft : '[]'
+        );
         $restoredVersion = trim((string) ($state['backup_version'] ?? ''));
         db()->beginTransaction();
         try {

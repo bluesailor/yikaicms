@@ -239,6 +239,8 @@ final class BloxTemplateModel extends Model
         if ($affected < 1) {
             throw new RuntimeException(__('blox_tpl_not_found'));
         }
+        // 激活条件决定前台用哪套页头/页尾，改动后整页缓存必须失效。
+        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
     }
 
     /** 保存目录推荐元数据；正文和发布状态不受影响。 */
@@ -258,6 +260,7 @@ final class BloxTemplateModel extends Model
         if ($affected < 1 && !$this->find($id)) {
             throw new RuntimeException(__('blox_tpl_not_found'));
         }
+        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
     }
 
     public function publishDraft(int $id): void

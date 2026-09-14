@@ -1063,7 +1063,11 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('HomeBloxDocument::saveDraft(', $api);
         $this->assertStringContainsString('HomeBloxDocument::publishDraft()', $api);
         $this->assertStringContainsString('HomeBloxDocument::saveAndPublish(', $api);
-        $this->assertStringContainsString('BloxDocumentPipeline::revisionMatches($currentDocumentJson(), $baseRevision)', $api);
+        // E03：revision 比对移入文档类，与保护字段比较、锁内写入同属一次原子保存。
+        $this->assertStringContainsString("trim((string) (\$_POST['base_revision'] ?? ''))", $api);
+        $this->assertStringContainsString("__('blox_save_conflict') ? 409", $api);
+        $this->assertStringContainsString('BloxDocumentWriteLock::assertRevision($trustedJson, $baseRevision);', $bloxDocument);
+        $this->assertStringContainsString('BloxDocumentWriteLock::settings(self::ACTIVE_KEY, $raw,', $bloxDocument);
         $this->assertStringContainsString('body.set("blocks_data", payload);', $editor);
         $this->assertStringContainsString('body.set("base_revision", this.baseRevision);', $editor);
         $this->assertStringContainsString('self.acceptSavedDocument(payload, savedData, res);', $editor);

@@ -233,10 +233,13 @@ final class BloxAreaTemplatePresets
 
         $existing = bloxTemplateModel()->findWhere(['source' => 'builtin', 'source_ref' => $slug]);
         if ($existing) {
+            // 官方预置按新内容检查；以读到的草稿做比较写入，不覆盖期间他人保存的修改。
+            BloxDocumentPipeline::assertAuthoringAllowed($prepared['sections'], null);
             bloxTemplateModel()->updateDraft(
                 (int) $existing['id'],
                 $prepared['draft_json'],
-                $prepared['requirements']
+                $prepared['requirements'],
+                (string) ($existing['draft_data'] ?? '')
             );
             return [
                 'id' => (int) $existing['id'],

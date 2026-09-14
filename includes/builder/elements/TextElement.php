@@ -45,6 +45,10 @@ final class TextElement extends AbstractElement
                 'required' => ['loop_field', '!=', 'none'],
             ],
             ...$this->backgroundControls(),
+            ['key' => 'typography_role', 'type' => 'select', 'label' => __('blox_design_theme_role'),
+                'default' => 'body', 'tab' => 'style', 'options' => [
+                    'body' => __('blox_design_theme_role_body'), 'caption' => __('blox_design_theme_role_caption'),
+                ]],
             ['key' => 'color', 'type' => 'color', 'label' => __('blox_text_color'), 'default' => '', 'tab' => 'style'],
             ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
                 'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
@@ -70,6 +74,8 @@ final class TextElement extends AbstractElement
         $radius = ['none' => '', 'md' => ' rounded-lg', 'xl' => ' rounded-2xl'][$radiusKey] ?? '';
         $color = self::cssColor($data['color'] ?? null);
         $style = $color !== null ? ' style="color:' . htmlspecialchars($color, ENT_QUOTES) . ';"' : '';
-        return '<div class="prose prose-lg max-w-none' . $radius . '"' . $style . $this->animationAttrs($data) . '>' . $html . '</div>';
+        $role = ($data['typography_role'] ?? 'body') === 'caption' ? 'caption' : 'body';
+        $themeClass = class_exists(BloxDesignTheme::class) && BloxDesignTheme::hasTypography($role) ? ' yk-type-' . $role : '';
+        return '<div class="prose prose-lg max-w-none' . $radius . $themeClass . '"' . $style . $this->animationAttrs($data) . '>' . $html . '</div>';
     }
 }

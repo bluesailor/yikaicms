@@ -2,7 +2,26 @@
 
 状态：本地开发候选，不是已发布的付费功能包。
 
-## 使用条件
+## 组成
+
+- `access.php` / `main.php`：授权桥（`blox_pro_feature_allowed`），只在 `licensed` 档被核心调用。
+- `editor.php`：作者端模块注册。只挂编辑器钩子 `blox_editor_scripts`、`blox_editor_panel`，不参与保存校验与前台渲染。
+- 已迁入的作者端模块（`BLOX_PRO_EDITOR_MODULES`），交互方法在 `assets/blox-pro-editor.js`，以 `window.BloxProEditor.methods` 混入编辑器：
+  - `display_conditions`：元素/区块显示条件编辑面板（`editor/conditions-panel.php`）及条件增删改方法。
+  - `style_presets`：元素全局样式选择器（`editor/style-preset-picker.php`）及 `globalStyleOptions/globalStyleLabel/applyGlobalStyle`。
+  - `query_loop`：循环模板面板（`editor/loop-template-card.php`）；专业控件与循环子元素仅在本模块加载时下发给编辑器。
+- 与核心基础输入交织的共用逻辑（标题绑定弹层、循环宿主判断、设计系统对话框）留在核心，模块缺失时按同一开关收起。
+
+核心保留：能力策略、服务端保护字段比较与保存校验、条件匹配与前台渲染、样式快照输出。
+停用或删除插件后，旧文档照常渲染，受保护字段照常保留；编辑器只是不再显示对应面板，并提示前往插件管理。
+
+## 分发（当前：免费期）
+
+- `config/blox-feature-policy.php` 三项均为 `free` 期间，本插件列入 `config/blox-assets.json` 的 `core`，随完整包分发并默认启用：
+  新装由 `install/sql/*.sql` 登记为启用；已装站点由迁移 `20260914_enable_blox_pro_editor_modules` 补登记（不覆盖管理员已停用状态）。
+- 任一能力切换为 `licensed` 之前，必须把本插件移回 `pro` 清单并走服务端受控下载；`BloxProAccessTest` 以策略文件为准校验这一对应关系。
+
+## 使用条件（licensed 档）
 
 - CMS v1.20.0+、PHP 8.2+。
 - 通过插件管理正常安装并启用 `blox-pro`。
@@ -12,20 +31,16 @@
 
 ## 编辑边界
 
-当前桥接能力：`query_loop`（动态循环及字段绑定）、`display_conditions`（显示条件）、`style_presets`（全局样式预设）。
-
 核心 `config/blox-feature-policy.php` 决定每项为 `free`、`licensed` 或 `disabled`。
 `licensed` 必须同时满足：插件已加载且仍启用、CMS 版本符合、拥有模块、功能位于插件白名单。
-`free` 不调用插件或授权服务。未知功能默认拒绝。
+`free` 不调用授权服务。未知功能默认拒绝。
 
 基础编辑、默认产品/文章详情页编辑不收费。模板和全站主题下载由市场服务单独判断，不能用本地插件布尔值代替下载授权。
 
-**本候选尚未把现有三个功能改为收费。** 旧文档差异保存保护完成后才能切换策略：未授权用户仍可修改基本内容，但不能借保存、复制、导入或恢复新增收费配置。发布渲染始终留在免费核心；停用、删除插件不得删除内容或阻断已发布页面。
+**本候选尚未把现有三个功能改为收费。** 旧文档保护（单页/栏目/首页/模板/预览/单页历史恢复）已接入；切换策略前仍需完成剩余作者端迁移与 v1.20.0 安装/启停验收。
 
 ## 包与上架
 
-- 插件目录列入 `config/blox-assets.json` 的 `pro` 清单，不随免费 CMS 包分发。
-- 当前包是授权桥接实现，不等于已将全部高级编辑源码迁出核心，也不是源码加密方案。
-- 正式上架前完成旧文档保护、高级编辑实现分包、v1.20.0 正常安装/启用/停用验收。
+- 当前包含授权桥与第一个实质作者端模块，不是源码加密方案。
 - 付费 ZIP 必须走服务端受控下载，不得上传到公开静态 ZIP 地址；校验专业授权、绑定域名、CMS 最低版本和包版本，并保留 SHA256/RSA 校验。
-- 本地开发不自动启用插件、不改站点授权、不提升 CMS 版本，不自动发布到市场。
+- 本地开发不自动改站点授权、不提升 CMS 版本，不自动发布到市场。

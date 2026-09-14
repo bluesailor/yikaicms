@@ -60,6 +60,63 @@ final class BloxDesignDependencies
         ];
     }
 
+    /** @param array<string,mixed> $requirements @return array{tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>} */
+    public static function exportDefinitions(array $requirements): array
+    {
+        $snapshot = BloxDesignSystem::snapshot();
+        $styles = array_values(array_filter($snapshot['styles'], static fn(array $item): bool =>
+            in_array($item['id'], $requirements['design_styles'] ?? [], true)));
+        $styleRefs = self::referencesFromSections($styles);
+        $tokenIds = array_merge($requirements['design_tokens'] ?? [], $styleRefs['design_tokens']);
+        $tokens = array_values(array_filter($snapshot['tokens'], static fn(array $item): bool =>
+            in_array($item['id'], $tokenIds, true)));
+        return ['tokens' => $tokens, 'styles' => $styles];
+    }
+
+    /**
+     * Definitions are diagnostic metadata, never instructions to overwrite local settings.
+     * @param array<string,mixed> $requirements
+     * @param array<string,mixed> $definitions
+     * @param array<string,mixed>|null $snapshot
+     * @return array<string,mixed>
+     */
+    public static function diagnoseImport(array $requirements, array $definitions, ?array $snapshot = null): array
+    {
+        $snapshot ??= BloxDesignSystem::snapshot();
+        $result = self::diagnose($requirements, $snapshot);
+        foreach (['tokens', 'styles'] as $kind) {
+            $local = self::catalogById($snapshot[$kind] ?? []);
+            $source = self::catalogById(is_array($definitions[$kind] ?? null) ? $definitions[$kind] : []);
+            $result['conflicting_' . $kind] = [];
+            $result['same_name_' . $kind] = [];
+            $result['unverified_' . $kind] = [];
+            foreach (self::stringList($requirements['design_' . $kind] ?? []) as $id) {
+                if (!isset($source[$id])) {
+                    if (isset($local[$id])) {
+                        $result['unverified_' . $kind][] = $id;
+                    }
+                    continue;
+                }
+                if (isset($local[$id])) {
+                    $sourceValue = $kind === 'tokens' ? ($source[$id]['value'] ?? null) : BloxDesignSystem::normalizeStyleSnapshot($source[$id]);
+                    $localValue = $kind === 'tokens' ? ($local[$id]['value'] ?? null) : BloxDesignSystem::normalizeStyleSnapshot($local[$id]);
+                    if ($sourceValue !== $localValue) {
+                        $result['conflicting_' . $kind][] = $id;
+                    }
+                }
+                $name = $source[$id]['name'] ?? null;
+                if (is_string($name) && $name !== '') {
+                    foreach ($local as $localId => $item) {
+                        if ($id !== $localId && ($item['name'] ?? '') === $name) {
+                            $result['same_name_' . $kind][] = $id . ' -> ' . $localId;
+                        }
+                    }
+                }
+            }
+        }
+        return $result;
+    }
+
     /** @return array{tokens:array<string,array{count:int,sources:list<array<string,mixed>>}>,styles:array<string,array{count:int,sources:list<array<string,mixed>>}>} */
     public static function usageSnapshot(): array
     {
@@ -89,9 +146,10 @@ final class BloxDesignDependencies
         }
         try {
             if (db()->tableExists('contents')) {
+                // 回收站中的内容不再算作引用，否则已删除页面会让样式永远显示“使用中”。
                 $rows = db()->fetchAll(
                     'SELECT id,channel_id,title,blocks_data FROM ' . DB_PREFIX . 'contents'
-                    . ' WHERE blocks_data IS NOT NULL AND blocks_data <> ?',
+                    . ' WHERE blocks_data IS NOT NULL AND blocks_data <> ? AND deleted_at IS NULL',
                     ['']
                 );
                 foreach ($rows as $row) {
@@ -102,6 +160,26 @@ final class BloxDesignDependencies
                         'label' => (string) ($row['title'] ?? ''),
                         'state' => 'published',
                     ]);
+                }
+            }
+        } catch (Throwable) {
+        }
+        try {
+            if (db()->tableExists('blox_page_drafts')) {
+                // 单页草稿与栏目落地页的已发布数据都存在这里（ChannelBloxDocument::saveAndPublish）。
+                $hasPublished = function_exists('bloxPageDraftModel') && bloxPageDraftModel()->hasPublishedStorage();
+                $rows = db()->fetchAll(
+                    'SELECT page_id,draft_data' . ($hasPublished ? ',published_data' : '') . ' FROM ' . DB_PREFIX . 'blox_page_drafts'
+                );
+                foreach ($rows as $row) {
+                    foreach (['draft_data' => 'draft', 'published_data' => 'published'] as $field => $state) {
+                        self::indexJson($usage, (string) ($row[$field] ?? ''), [
+                            'type' => 'page_draft',
+                            'id' => (int) ($row['page_id'] ?? 0),
+                            'label' => '#' . (int) ($row['page_id'] ?? 0),
+                            'state' => $state,
+                        ]);
+                    }
                 }
             }
         } catch (Throwable) {

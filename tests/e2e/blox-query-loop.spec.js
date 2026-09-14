@@ -38,6 +38,13 @@ test('Query Loop exposes pagination and child fallback controls @ci', async ({ p
 
   await page.getByTestId('blox-library-open').last().click();
   await page.getByTestId('blox-add-element-list-dynamic').press('Enter');
+  // 高级控件只在专业功能页签显示；专业功能区默认折叠，循环面板由 blox-pro 作者端模块提供。
+  const openQueryLoop = async () => {
+    const professional = page.getByTestId('blox-professional-features');
+    if (!(await professional.evaluate((node) => node.open))) await professional.locator('summary').click();
+    await page.getByTestId('blox-professional-query_loop').click();
+  };
+  await openQueryLoop();
   const pagination = page.locator('[data-control-key="pagination_mode"] select');
   await expect(pagination).toBeVisible();
 
@@ -46,9 +53,11 @@ test('Query Loop exposes pagination and child fallback controls @ci', async ({ p
     const request = page.waitForRequest((candidate) => {
       const url = new URL(candidate.url());
       const body = new URLSearchParams(candidate.postData() || '');
+      // 插入元素时的在途预览可能晚到；只认已携带本次分页选择的那一次预览。
       return candidate.method() === 'POST'
         && url.pathname === '/admin/blox_preview.php'
-        && body.get('action') === 'preview';
+        && body.get('action') === 'preview'
+        && /"pagination_mode":"numbers"/.test(body.get('blocks_data') || '');
     });
     await pagination.selectOption('numbers');
     previewRequest = await request;
@@ -61,11 +70,16 @@ test('Query Loop exposes pagination and child fallback controls @ci', async ({ p
 
   await page.getByTestId('blox-library-open').last().click();
   await page.getByTestId('blox-add-element-heading').press('Enter');
-  await expect(page.locator('[data-control-key="loop_field"] select')).toBeVisible();
+  await openQueryLoop();
   await expect(page.locator('[data-control-key="loop_fallback"] input')).toBeVisible();
   await expect(page.locator('[data-control-key="site_field"]')).toHaveCount(0);
-
   await performPreviewUpdate(page, () => page.locator('[data-control-key="loop_fallback"] input').fill('Untitled'));
+  await page.getByTestId('blox-content-tab').click();
+  // 标题的循环字段绑定由标题面板的绑定弹层提供（heading-binding-field.php），不再是通用 select 控件。
+  await page.getByTestId('blox-heading-text-binding').click();
+  await expect(page.getByTestId('blox-heading-text-source')).toBeVisible();
+  await expect(page.locator('[data-control-key="site_field"]')).toHaveCount(0);
+
   await restoreClean(page);
   await expect(page.getByTestId('blox-dirty')).not.toHaveAttribute('data-state', 'dirty');
 });

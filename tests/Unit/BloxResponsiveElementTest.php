@@ -173,8 +173,9 @@ final class BloxResponsiveElementTest extends TestCase
     public function testResponsiveControlsAreDeclaredInElementSchemas(): void
     {
         foreach ([
-            [new HeadingElement(), ['visual_size']],
-            [new ContainerElement(), ['direction', 'gap', 'padding']],
+            // E05：声明式 CSS 试点控件同样按断点存储（type_font_size / gap_px）。
+            [new HeadingElement(), ['visual_size', 'type_font_size']],
+            [new ContainerElement(), ['direction', 'gap', 'gap_px', 'padding']],
             [new DivElement(), ['direction', 'gap', 'padding']],
         ] as [$element, $keys]) {
             $responsive = [];

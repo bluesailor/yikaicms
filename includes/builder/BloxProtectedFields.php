@@ -4,6 +4,12 @@ declare(strict_types=1);
 /** Compare protected authoring fields against server-owned document data only. */
 final class BloxProtectedFields
 {
+    /** 站点字段与循环字段绑定；fallback、截断长度属于普通展示设置，不在保护范围内。 */
+    private const BINDING_KEYS = [
+        'site_field', 'site_image_field', 'site_text_field', 'site_url_field',
+        'loop_field', 'loop_url_field', 'loop_alt_field', 'loop_link_field', 'loop_text_field',
+    ];
+
     public static function forValidation(array $sections, array $trusted, array $denied): array
     {
         $before = [];
@@ -58,24 +64,42 @@ final class BloxProtectedFields
         $data = $element['data'] ?? [];
         $fields = [];
         $keys = [];
+        $loopHost = false;
         if (in_array('display_conditions', $denied, true)) $keys[] = '_conditions';
         if (in_array('style_presets', $denied, true)) $keys = array_merge($keys, ['_global_style', '_global_style_snapshot']);
         if (in_array('query_loop', $denied, true)) {
-            $keys = array_merge($keys, ['site_field', 'site_image_field', 'site_text_field', 'site_url_field']);
-            if (($element['type'] ?? '') === 'list-dynamic') $keys = array_merge($keys, ['children', 'template', 'pagination_mode']);
+            $keys = array_merge($keys, self::BINDING_KEYS);
+            if (($element['type'] ?? '') === 'list-dynamic') {
+                $keys = array_merge($keys, ['template', 'pagination_mode']);
+                $loopHost = true;
+            }
         }
         foreach ($keys as $key) {
             $value = $data[$key] ?? null;
             if ($value !== null && $value !== '' && $value !== [] && $value !== 'none') $fields[$key] = $value;
             unset($data[$key]);
         }
+        $children = is_array($data['children'] ?? null) ? $data['children'] : [];
+        if ($loopHost && $children !== []) {
+            // 循环模板只冻结结构（顺序、ID、类型）；子元素的字段绑定逐个比较，普通文案与样式可改。
+            $fields['children'] = array_map(
+                static fn(mixed $child): array => is_array($child) ? [(string) ($child['id'] ?? ''), (string) ($child['type'] ?? '')] : ['', ''],
+                array_values($children)
+            );
+        }
         if ($fields !== []) {
             if ($id === '' || $parent === '' || str_starts_with($parent, '/')) throw new RuntimeException(__('blox_protected_fields_changed'));
             ksort($fields);
             $protected['element:' . $id] = ['parent' => $parent, 'type' => $element['type'], 'fields' => $fields];
         }
-        foreach ($data['children'] ?? [] as $index => $child) {
-            $data['children'][$index] = self::element($child, $id, $denied, $protected, $seen);
+        foreach ($children as $index => $child) {
+            if (is_array($child)) {
+                $data['children'][$index] = self::element($child, $id, $denied, $protected, $seen);
+            }
+        }
+        if ($loopHost) {
+            // 结构与绑定已由上面的投影比较；校验副本移除未变的模板子树，避免旧模板被整体判为新增。
+            unset($data['children']);
         }
         $element['data'] = $data;
         return $element;

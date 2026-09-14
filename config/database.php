@@ -25,6 +25,8 @@ class Database
     private static ?self $instance = null;
     private PDO $pdo;
     private string $driver;
+    /** @var list<array{0:callable,1:?callable}> 事务提交后执行的回调（回滚时丢弃） */
+    private array $afterCommit = [];
 
     private function __construct()
     {
@@ -253,7 +255,13 @@ class Database
      */
     public function commit(): bool
     {
-        return $this->pdo->commit();
+        $ok = $this->pdo->commit();
+        $callbacks = $this->afterCommit;
+        $this->afterCommit = [];
+        foreach ($callbacks as [$onCommit, $onRollback]) {
+            $ok ? $onCommit() : ($onRollback !== null ? $onRollback() : null);
+        }
+        return $ok;
     }
 
     /**
@@ -261,7 +269,28 @@ class Database
      */
     public function rollback(): bool
     {
-        return $this->pdo->rollBack();
+        $callbacks = $this->afterCommit;
+        $this->afterCommit = [];
+        $ok = $this->pdo->rollBack();
+        foreach ($callbacks as [, $onRollback]) {
+            if ($onRollback !== null) {
+                $onRollback();
+            }
+        }
+        return $ok;
+    }
+
+    /**
+     * 提交后执行：不在事务中立即执行；事务中登记到提交成功后，回滚则丢弃。
+     * 用于页面缓存失效等副作用，避免在数据提交前让并发请求把旧内容重新缓存。
+     */
+    public function afterCommit(callable $onCommit, ?callable $onRollback = null): void
+    {
+        if (!$this->pdo->inTransaction()) {
+            $onCommit();
+            return;
+        }
+        $this->afterCommit[] = [$onCommit, $onRollback];
     }
 
     /**

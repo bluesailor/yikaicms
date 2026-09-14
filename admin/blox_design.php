@@ -26,6 +26,7 @@ $advancedBloxEnabled = BloxFeaturePolicy::allows('style_presets');
 $designState = BloxDesignSystem::snapshot();
 $designUsage = BloxDesignDependencies::usageSnapshot();
 $pageHeroDesign = PageHeroDesignDraft::snapshot();
+$themeDesign = BloxDesignTheme::snapshot();
 $pageHeroSamples = [];
 $pageHeroLanguagePack = static function (string $languageCode): array {
     $languageFile = ROOT_PATH . '/lang/' . basename($languageCode) . '.php';
@@ -106,6 +107,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 :class="tab === 'pageHero' ? 'border-amber-500 text-amber-700' : 'border-transparent text-gray-500 hover:text-gray-900'">
             <i class="ti ti-layout-navbar-collapse"></i><?php echo e(__('blox_page_hero_title')); ?>
             <span x-show="pageHeroState.has_draft" class="bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700"><?php echo e(__('blox_page_hero_draft')); ?></span>
+        </button>
+        <button type="button" role="tab" data-testid="blox-design-page-tab-theme"
+                @click="tab = 'theme'" :aria-selected="tab === 'theme'"
+                class="inline-flex h-11 items-center gap-2 border-b-2 px-4 text-sm font-medium"
+                :class="tab === 'theme' ? 'border-sky-500 text-sky-700' : 'border-transparent text-gray-500 hover:text-gray-900'">
+            <i class="ti ti-typography"></i><?php echo e(__('blox_design_theme_tab')); ?>
+            <span x-show="themeState.has_draft" class="bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700"><?php echo e(__('blox_page_hero_draft')); ?></span>
         </button>
         <span x-show="busy" class="ml-auto mb-3 inline-flex items-center gap-1 text-xs text-gray-400">
             <i class="ti ti-loader-2 animate-spin"></i><?php echo e(__('loading')); ?>
@@ -480,6 +488,148 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </section>
 
+    <section x-show="tab === 'theme'" x-cloak data-testid="blox-design-page-theme" class="space-y-5">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h2 class="text-sm font-semibold text-gray-900"><?php echo e(__('blox_design_theme_tab')); ?></h2>
+                <p class="mt-1 max-w-3xl text-xs leading-5 text-gray-500"><?php echo e(__('blox_design_theme_hint')); ?></p>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-2 py-1 text-xs" data-testid="blox-design-page-theme-status"
+                  :class="themeState.has_draft ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'">
+                <i class="ti" :class="themeState.has_draft ? 'ti-pencil' : 'ti-circle-check'"></i>
+                <span x-text="themeState.has_draft ? themeText.draftStatus : themeText.publishedStatus"></span>
+            </span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="inline-flex border border-gray-200 bg-gray-50 p-1" role="group" aria-label="<?php echo e(__('blox_design_theme_device')); ?>">
+                <template x-for="device in themeDevices" :key="device.value">
+                    <button type="button" @click="themeDevice = device.value" :aria-pressed="themeDevice === device.value ? 'true' : 'false'"
+                            :data-testid="'blox-design-page-theme-device-' + device.value"
+                            class="inline-flex h-8 items-center gap-1.5 px-3 text-xs font-medium"
+                            :class="themeDevice === device.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'">
+                        <i class="ti" :class="device.icon"></i><span x-text="device.label"></span>
+                    </button>
+                </template>
+            </div>
+            <p class="text-xs text-gray-400"><?php echo e(__('blox_design_theme_device_hint')); ?></p>
+        </div>
+
+        <div class="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+            <fieldset class="space-y-4 border-y border-gray-200 bg-white px-4 py-4" data-testid="blox-design-page-theme-typography">
+                <legend class="px-1 text-xs font-semibold text-gray-700"><?php echo e(__('blox_design_theme_typography')); ?></legend>
+                <div class="flex flex-wrap gap-1" role="group" aria-label="<?php echo e(__('blox_design_theme_role')); ?>">
+                    <template x-for="role in themeRoles" :key="role.value">
+                        <button type="button" @click="themeRole = role.value" :aria-pressed="themeRole === role.value ? 'true' : 'false'"
+                                :data-testid="'blox-design-page-theme-role-' + role.value"
+                                class="h-8 min-w-10 border px-2.5 text-xs font-medium"
+                                :class="themeRole === role.value ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'"
+                                x-text="role.label"></button>
+                    </template>
+                </div>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <label class="block text-xs font-medium text-gray-600">
+                        <span x-text="themeText.size"></span>
+                        <input type="number" min="12" max="96" step="1" data-testid="blox-design-page-theme-size"
+                               :placeholder="themePlaceholder(themeForm.typography[themeRole].size)"
+                               x-model="themeForm.typography[themeRole].size[themeDevice]"
+                               class="mt-1 h-10 w-full border border-gray-300 bg-white px-3 text-sm">
+                    </label>
+                    <label class="block text-xs font-medium text-gray-600"><?php echo e(__('blox_design_theme_weight')); ?>
+                        <select x-model="themeForm.typography[themeRole].weight" data-testid="blox-design-page-theme-weight" class="mt-1 h-10 w-full border border-gray-300 bg-white px-2 text-sm">
+                            <option value=""><?php echo e(__('blox_design_theme_inherit')); ?></option>
+                            <template x-for="weight in ['400', '500', '600', '700', '800']" :key="weight"><option :value="weight" x-text="weight"></option></template>
+                        </select>
+                    </label>
+                    <label class="block text-xs font-medium text-gray-600"><?php echo e(__('blox_design_theme_family')); ?>
+                        <select x-model="themeForm.typography[themeRole].family" class="mt-1 h-10 w-full border border-gray-300 bg-white px-2 text-sm">
+                            <option value=""><?php echo e(__('blox_design_theme_inherit')); ?></option>
+                            <option value="system-sans"><?php echo e(__('blox_design_theme_family_sans')); ?></option>
+                            <option value="system-serif"><?php echo e(__('blox_design_theme_family_serif')); ?></option>
+                            <option value="system-mono"><?php echo e(__('blox_design_theme_family_mono')); ?></option>
+                        </select>
+                    </label>
+                    <label class="block text-xs font-medium text-gray-600"><?php echo e(__('blox_design_theme_line_height')); ?>
+                        <input type="number" min="1" max="2.2" step="0.1" x-model="themeForm.typography[themeRole].line_height"
+                               class="mt-1 h-10 w-full border border-gray-300 bg-white px-3 text-sm">
+                    </label>
+                    <label class="block text-xs font-medium text-gray-600 sm:col-span-2"><?php echo e(__('blox_design_theme_color')); ?>
+                        <select x-model="themeForm.typography[themeRole].color" class="mt-1 h-10 w-full border border-gray-300 bg-white px-2 text-sm">
+                            <option value=""><?php echo e(__('blox_design_theme_inherit')); ?></option>
+                            <template x-for="token in activeTokens()" :key="'theme-color-' + token.id"><option :value="token.id" x-text="token.name"></option></template>
+                        </select>
+                    </label>
+                </div>
+                <p class="text-xs text-gray-400"><?php echo e(__('blox_design_theme_typography_hint')); ?></p>
+            </fieldset>
+
+            <div class="space-y-5">
+                <fieldset class="space-y-3 border-y border-gray-200 bg-white px-4 py-4" data-testid="blox-design-page-theme-buttons">
+                    <legend class="px-1 text-xs font-semibold text-gray-700"><?php echo e(__('blox_design_theme_buttons')); ?></legend>
+                    <div class="grid gap-3 sm:grid-cols-3">
+                        <label class="block text-xs font-medium text-gray-600">
+                            <span x-text="themeText.size"></span>
+                            <input type="number" min="12" max="24" step="1" :placeholder="themePlaceholder(themeForm.buttons.size)"
+                                   x-model="themeForm.buttons.size[themeDevice]" class="mt-1 h-10 w-full border border-gray-300 bg-white px-3 text-sm">
+                        </label>
+                        <label class="block text-xs font-medium text-gray-600"><?php echo e(__('blox_design_theme_padding_x')); ?>
+                            <input type="number" min="0" max="48" step="1" x-model="themeForm.buttons.padding_x" class="mt-1 h-10 w-full border border-gray-300 bg-white px-3 text-sm">
+                        </label>
+                        <label class="block text-xs font-medium text-gray-600"><?php echo e(__('blox_design_theme_padding_y')); ?>
+                            <input type="number" min="0" max="48" step="1" x-model="themeForm.buttons.padding_y" class="mt-1 h-10 w-full border border-gray-300 bg-white px-3 text-sm">
+                        </label>
+                    </div>
+                    <div>
+                        <span class="mb-1.5 block text-xs font-medium text-gray-600"><?php echo e(__('blox_design_radius')); ?></span>
+                        <div class="grid grid-cols-6 border border-gray-200" data-testid="blox-design-page-theme-radius">
+                            <template x-for="item in themeRadiusOptions" :key="'radius-' + item.value">
+                                <label class="cursor-pointer px-1 py-2 text-center text-xs" :class="themeForm.buttons.radius === item.value ? 'bg-gray-900 text-white' : 'text-gray-600'">
+                                    <input type="radio" class="sr-only" x-model="themeForm.buttons.radius" :value="item.value"><span x-text="item.label"></span>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-400"><?php echo e(__('blox_design_theme_buttons_hint')); ?></p>
+                </fieldset>
+
+                <fieldset class="space-y-3 border-y border-gray-200 bg-white px-4 py-4" data-testid="blox-design-page-theme-layout">
+                    <legend class="px-1 text-xs font-semibold text-gray-700"><?php echo e(__('blox_design_theme_layout')); ?></legend>
+                    <label class="block text-xs font-medium text-gray-600"><?php echo e(__('blox_design_theme_content_width')); ?>
+                        <input type="number" min="640" max="1600" step="1" placeholder="1152"
+                               data-testid="blox-design-page-theme-width" x-model="themeForm.layout.content_max_width"
+                               class="mt-1 h-10 w-full border border-gray-300 bg-white px-3 text-sm">
+                    </label>
+                    <label class="block text-xs font-medium text-gray-600"><?php echo e(__('blox_design_theme_section_spacing')); ?>
+                        <input type="number" min="0" max="200" step="1" data-testid="blox-design-page-theme-spacing"
+                               :placeholder="themePlaceholder(themeForm.layout.section_spacing) || '32'"
+                               x-model="themeForm.layout.section_spacing[themeDevice]"
+                               class="mt-1 h-10 w-full border border-gray-300 bg-white px-3 text-sm">
+                    </label>
+                    <label class="block text-xs font-medium text-gray-600"><?php echo e(__('blox_design_theme_container_gap')); ?>
+                        <input type="number" min="0" max="96" step="1" data-testid="blox-design-page-theme-gap"
+                               :placeholder="themePlaceholder(themeForm.layout.container_gap)"
+                               x-model="themeForm.layout.container_gap[themeDevice]" class="mt-1 h-10 w-full border border-gray-300 bg-white px-3 text-sm">
+                    </label>
+                    <p class="text-xs text-gray-400"><?php echo e(__('blox_design_theme_layout_hint')); ?></p>
+                </fieldset>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4">
+            <p class="text-xs leading-5 text-gray-500"><?php echo e(__('blox_design_theme_publish_hint')); ?></p>
+            <div class="flex items-center gap-2">
+                <button type="button" @click="mutateTheme('theme_save_draft')" :disabled="themeBusy" data-testid="blox-design-page-theme-save"
+                        class="inline-flex h-10 items-center gap-2 border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                    <i class="ti ti-device-floppy"></i><?php echo e(__('blox_save_draft')); ?>
+                </button>
+                <button type="button" @click="mutateTheme('theme_publish')" :disabled="themeBusy" data-testid="blox-design-page-theme-publish"
+                        class="inline-flex h-10 items-center gap-2 bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50">
+                    <i class="ti ti-rocket"></i><?php echo e(__('blox_design_theme_publish')); ?>
+                </button>
+            </div>
+        </div>
+    </section>
+
     <div x-show="!advanced" class="border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" data-testid="blox-design-page-advanced-locked">
         <strong><?php echo e(__('blox_design_styles')); ?></strong>
         <span class="ml-1"><?php echo e(__('blox_design_advanced_hint')); ?></span>
@@ -501,6 +651,37 @@ function bloxDesignManager() {
         pageHeroLanguage: <?php echo json_encode((string) array_key_first($pageHeroSamples)); ?>,
         pageHeroPreviewDevice: 'desktop',
         pageHeroBusy: false,
+        themeState: <?php echo json_encode($themeDesign, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        themeForm: null,
+        themeRole: 'h2',
+        themeDevice: 'd',
+        themeBusy: false,
+        themeRoles: [
+            { value: 'h1', label: 'H1' }, { value: 'h2', label: 'H2' }, { value: 'h3', label: 'H3' },
+            { value: 'h4', label: 'H4' }, { value: 'h5', label: 'H5' }, { value: 'h6', label: 'H6' },
+            { value: 'body', label: <?php echo json_encode(__('blox_design_theme_role_body'), JSON_UNESCAPED_UNICODE); ?> },
+            { value: 'caption', label: <?php echo json_encode(__('blox_design_theme_role_caption'), JSON_UNESCAPED_UNICODE); ?> }
+        ],
+        themeDevices: [
+            { value: 'd', icon: 'ti-device-desktop', label: <?php echo json_encode(__('blox_design_theme_device_d'), JSON_UNESCAPED_UNICODE); ?> },
+            { value: 't', icon: 'ti-device-tablet', label: <?php echo json_encode(__('blox_design_theme_device_t'), JSON_UNESCAPED_UNICODE); ?> },
+            { value: 'm', icon: 'ti-device-mobile', label: <?php echo json_encode(__('blox_design_theme_device_m'), JSON_UNESCAPED_UNICODE); ?> }
+        ],
+        themeRadiusOptions: <?php echo json_encode([
+            ['value' => '', 'label' => __('blox_design_theme_inherit')],
+            ['value' => 'none', 'label' => __('blox_spacing_none')],
+            ['value' => 'sm', 'label' => __('blox_spacing_sm')],
+            ['value' => 'md', 'label' => __('blox_spacing_md')],
+            ['value' => 'lg', 'label' => __('blox_spacing_lg')],
+            ['value' => 'full', 'label' => __('blox_design_radius_full')],
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        themeText: <?php echo json_encode([
+            'size' => __('blox_design_theme_size'),
+            'draftStatus' => __('blox_design_theme_draft_status'),
+            'publishedStatus' => __('blox_design_theme_published_status'),
+            'saved' => __('blox_design_theme_saved'),
+            'published' => __('blox_design_theme_published'),
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         csrf: <?php echo json_encode(csrfToken()); ?>,
         busy: false,
         notice: '',
@@ -697,6 +878,75 @@ function bloxDesignManager() {
                 return false;
             } finally {
                 this.pageHeroBusy = false;
+            }
+        },
+        init() {
+            this.themeForm = this.buildThemeForm(this.themeState.draft);
+        },
+        // 表单保存全部角色与 d/t/m 槽位的字符串；空串表示继承，服务端规范化时丢弃，0 保留。
+        buildThemeForm(theme) {
+            var source = theme || {};
+            var responsive = (value) => ({
+                d: value && value.d !== undefined ? String(value.d) : '',
+                t: value && value.t !== undefined ? String(value.t) : '',
+                m: value && value.m !== undefined ? String(value.m) : ''
+            });
+            var typography = {};
+            this.themeRoles.forEach((role) => {
+                var item = (source.typography || {})[role.value] || {};
+                typography[role.value] = {
+                    family: item.family || '', size: responsive(item.size), weight: item.weight || '',
+                    line_height: item.line_height || '', color: item.color || ''
+                };
+            });
+            var buttons = source.buttons || {};
+            var layout = source.layout || {};
+            return {
+                typography: typography,
+                buttons: {
+                    size: responsive(buttons.size),
+                    padding_x: buttons.padding_x !== undefined ? String(buttons.padding_x) : '',
+                    padding_y: buttons.padding_y !== undefined ? String(buttons.padding_y) : '',
+                    radius: buttons.radius || ''
+                },
+                layout: {
+                    content_max_width: layout.content_max_width !== undefined ? String(layout.content_max_width) : '',
+                    section_spacing: responsive(layout.section_spacing),
+                    container_gap: responsive(layout.container_gap)
+                }
+            };
+        },
+        // 平板/手机未填时提示实际沿用的更大屏幕值。
+        themePlaceholder(value) {
+            if (!value) return '';
+            if (this.themeDevice === 't') return value.d || '';
+            if (this.themeDevice === 'm') return value.t || value.d || '';
+            return '';
+        },
+        async mutateTheme(action) {
+            if (this.themeBusy) return false;
+            this.themeBusy = true;
+            this.notice = '';
+            this.error = '';
+            var body = new URLSearchParams();
+            body.set('action', action);
+            body.set('revision', String(this.themeState.revision || 0));
+            body.set('theme', JSON.stringify(this.themeForm || {}));
+            body.set('_token', this.csrf);
+            try {
+                var response = await fetch('/admin/blox_design_api.php', { method: 'POST', body: body });
+                var result = await response.json();
+                if (!result || Number(result.code) !== 0 || !result.data) throw new Error((result && (result.msg || result.message)) || this.text.failed);
+                this.themeState = result.data;
+                this.themeForm = this.buildThemeForm(result.data.draft);
+                this.notice = action === 'theme_publish' ? this.themeText.published : this.themeText.saved;
+                window.setTimeout(() => { this.notice = ''; }, 2200);
+                return true;
+            } catch (error) {
+                this.error = error && error.message ? error.message : this.text.failed;
+                return false;
+            } finally {
+                this.themeBusy = false;
             }
         },
         savePageHeroDraft() { return this.mutatePageHero('page_hero_save_draft'); },
