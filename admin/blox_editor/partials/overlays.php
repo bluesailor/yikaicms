@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 ?>
+    <?php require __DIR__ . '/table-expanded.php'; ?>
+    <?php require __DIR__ . '/table-create.php'; ?>
     <section x-show="sectionInsertOpen" x-cloak x-ref="sectionInsertPicker" :style="sectionInsertStyle"
              @click.outside="sectionInsertOpen = false" @keydown.escape.prevent.stop="closeSectionInsert()"
              role="dialog" aria-modal="false" aria-labelledby="blox-section-insert-title" data-testid="blox-section-insert-picker"
@@ -732,7 +734,7 @@ declare(strict_types=1);
                         :class="designTab === 'colors' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-400 hover:text-gray-700'">
                     <i class="ti ti-color-swatch text-base"></i><span x-text="designText.colors"></span>
                 </button>
-                <button x-show="advancedMode" type="button" role="tab" data-testid="blox-design-tab-styles"
+                <button x-show="stylePresetsEnabled" type="button" role="tab" data-testid="blox-design-tab-styles"
                         @click="designTab = 'styles'" :aria-selected="designTab === 'styles'"
                         class="h-10 px-4 border-b-2 text-xs font-semibold inline-flex items-center gap-2 transition"
                         :class="designTab === 'styles' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-400 hover:text-gray-700'">
@@ -811,7 +813,7 @@ declare(strict_types=1);
                 </details>
             </div>
 
-            <div x-show="designTab === 'styles' && advancedMode" class="min-h-0 flex-1 overflow-y-auto blox-scroll">
+            <div x-show="designTab === 'styles' && stylePresetsEnabled" class="min-h-0 flex-1 overflow-y-auto blox-scroll">
                 <div class="grid grid-cols-[1.1fr_.7fr_repeat(3,1fr)_.7fr_auto] gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
                     <input type="text" x-model="newStyle.name" placeholder="<?= e(__('blox_design_new_style')) ?>" class="min-w-0 border border-gray-200 rounded px-2 py-1.5 text-xs">
                     <input type="text" x-model="newStyle.category" placeholder="<?= e(__('blox_design_category')) ?>" class="min-w-0 border border-gray-200 rounded px-2 py-1.5 text-xs">

@@ -66,7 +66,7 @@ final class PageBloxDocument
         self::assertStorageAvailable();
         $state = self::load($pageId);
         self::assertRevision($state['document_json'], $baseRevision);
-        $processed = BloxDocumentPipeline::process($blocksJson, 'page');
+        $processed = BloxDocumentPipeline::process($blocksJson, 'page', trustedJson: $state['document_json']);
         bloxPageDraftModel()->saveForPage($pageId, $processed['json'], $adminId);
 
         $published = self::publishedRecord($pageId);
@@ -89,7 +89,7 @@ final class PageBloxDocument
         self::assertStorageAvailable();
         $state = self::load($pageId);
         self::assertRevision($state['document_json'], $baseRevision);
-        $processed = BloxDocumentPipeline::process($blocksJson, 'page');
+        $processed = BloxDocumentPipeline::process($blocksJson, 'page', trustedJson: $state['document_json']);
         $page = $state['page'];
         $published = self::publishedRecord($pageId);
         $renderedHtml = PageTitleElement::withPage($state['page'], static fn(): string => renderBlocksToHtml($processed['json']));
@@ -353,6 +353,11 @@ final class PageBloxDocument
 
     private static function assertRevision(string $currentJson, string $baseRevision): void
     {
+        // Protected-content preservation requires an explicit matching version.
+        if ($baseRevision === '' && (!BloxFeaturePolicy::allows('query_loop')
+            || !BloxFeaturePolicy::allows('display_conditions') || !BloxFeaturePolicy::allows('style_presets'))) {
+            throw new RuntimeException(__('blox_save_conflict'));
+        }
         if ($baseRevision !== '' && !BloxDocumentPipeline::revisionMatches($currentJson, $baseRevision)) {
             throw new RuntimeException(__('blox_save_conflict'));
         }

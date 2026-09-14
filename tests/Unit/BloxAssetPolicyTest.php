@@ -40,7 +40,20 @@ final class BloxAssetPolicyTest extends TestCase
     public function testPublishedPageRuntimeAssetsRemainFree(): void
     {
         $policy = $this->policy();
-        self::assertSame([
+        $requiredRuntime = [
+            'includes/builder/bootstrap.php',
+            'includes/builder/BlockRenderer.php',
+            'includes/builder/BuilderRegistry.php',
+            'includes/builder/AbstractElement.php',
+            'includes/builder/elements',
+            'includes/builder/BloxDocumentPipeline.php',
+            'includes/builder/ProductTemplateDocument.php',
+            'includes/builder/ArticleTemplateDocument.php',
+            'includes/builder/DetailTemplateResolver.php',
+            'includes/builder/DetailTemplateProvider.php',
+            'includes/builder/DynamicLoopTemplateRenderer.php',
+            'includes/builder/BloxAssetCollector.php',
+            'assets/css/blox-table.css',
             // 这两个在 HEAD 时就已在 runtime，字面量没跟上（继承失败，非本轮引入）
             'assets/css/blox-tabs.css',
             'assets/js/blox-tabs.js',
@@ -68,7 +81,10 @@ final class BloxAssetPolicyTest extends TestCase
             'migrations/20260812_banner_group_runtime.php',
             'migrations/20260812_banner_item_runtime.php',
             'migrations/20260904_banner_video.php',
-        ], $policy['runtime']);
+        ];
+        foreach ($requiredRuntime as $path) {
+            self::assertContains($path, $policy['runtime']);
+        }
     }
 
     public function testGatedBloxSurfacesShipWithTheCoreAndKeepRuntimeAuthorization(): void
@@ -103,6 +119,33 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertSame([], array_values(array_intersect($policy['core'], $policy['pro'])));
         self::assertSame([], array_values(array_intersect($policy['core'], $policy['runtime'])));
         self::assertSame([], array_values(array_intersect($policy['pro'], $policy['runtime'])));
+    }
+
+    public function testProDirectoryCannotContainFreeRuntimePaths(): void
+    {
+        $root = sys_get_temp_dir() . '/yk-blox-policy-' . bin2hex(random_bytes(8));
+        mkdir($root . '/bin', 0777, true);
+        mkdir($root . '/config');
+        try {
+            copy(ROOT_PATH . '/bin/blox-assets.php', $root . '/bin/blox-assets.php');
+            foreach (['includes/builder', 'INCLUDES/BUILDER/BlockRenderer.php'] as $excluded) {
+                $policy = $this->policy();
+                $policy['pro'][] = $excluded;
+                file_put_contents($root . '/config/blox-assets.json', json_encode($policy, JSON_THROW_ON_ERROR));
+                $lines = [];
+                $exit = 0;
+                exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($root . '/bin/blox-assets.php') . ' list pro 2>&1', $lines, $exit);
+                self::assertSame(1, $exit, $excluded);
+                self::assertStringContainsString('Assets cannot be both', implode("\n", $lines));
+            }
+        } finally {
+            foreach (['bin/blox-assets.php', 'config/blox-assets.json'] as $file) {
+                if (is_file($root . '/' . $file)) unlink($root . '/' . $file);
+            }
+            rmdir($root . '/bin');
+            rmdir($root . '/config');
+            rmdir($root);
+        }
     }
 
     public function testBuildConsumesThePolicyInsteadOfRepeatingEditorPaths(): void

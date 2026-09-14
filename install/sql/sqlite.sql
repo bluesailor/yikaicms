@@ -2713,3 +2713,18 @@ CREATE TABLE "yikai_admin_menu_usage" (
 );
 CREATE UNIQUE INDEX "uniq_admin_url_yikai_admin_menu_usage" ON "yikai_admin_menu_usage" ("admin_id", "url");
 CREATE INDEX "idx_admin_last_yikai_admin_menu_usage" ON "yikai_admin_menu_usage" ("admin_id", "last_used_at");
+
+CREATE TABLE "yikai_dologin_links" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "user_id" INTEGER NOT NULL,
+  "created_by" INTEGER NOT NULL,
+  "token_hash" TEXT NOT NULL,
+  "identity_hash" TEXT NOT NULL,
+  "note" TEXT NOT NULL DEFAULT '',
+  "created_at" INTEGER NOT NULL,
+  "expires_at" INTEGER NOT NULL,
+  "used_at" INTEGER NOT NULL DEFAULT 0,
+  "revoked_at" INTEGER NOT NULL DEFAULT 0,
+  "used_ip" TEXT NOT NULL DEFAULT ''
+);
+CREATE UNIQUE INDEX "dologin_token_yikai_dologin_links" ON "yikai_dologin_links" ("token_hash");

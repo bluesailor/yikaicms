@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/BloxFeaturePolicy.php';
+
 final class BloxDesignSystem
 {
     public const SETTING_KEY = 'blox_design_system';
@@ -418,9 +420,7 @@ final class BloxDesignSystem
 
     private static function advancedEnabled(): bool
     {
-        return function_exists('bloxAdvancedFeaturesEnabled')
-            ? bloxAdvancedFeaturesEnabled()
-            : BloxQueryLoopPolicy::advancedEnabled();
+        return BloxFeaturePolicy::allows('style_presets');
     }
 
     /** @param array<string,mixed> $element */

@@ -311,7 +311,7 @@ final class ProductTemplateDocument
      */
     public static function renderPublished(array $input): string
     {
-        if (!bloxPageEditorEnabled() || !bloxAdvancedFeaturesEnabled()) return '';
+        // Published output is independent of editor and download entitlements.
         $context = self::normalizeContext($input);
         // 统一判定入口：v2 的 detail_template 与 v1 的 product_template（只读适配）都经它，
         // 不再在产品侧保留第二套排序。native 终止语义由解析器统一处理。

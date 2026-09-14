@@ -671,7 +671,8 @@ final class BuilderRenderTest extends TestCase
         $keys = array_column($h->controls(), 'key');
         $this->assertSame([
             'text', 'site_field', 'site_fallback', 'loop_field', 'loop_fallback',
-            'level', 'visual_size', 'color', 'align', 'animation', 'animation_speed', 'animation_delay',
+            'level', 'url', 'new_tab', 'site_url_field', 'loop_url_field', 'html_id',
+            'visual_size', 'color', 'align', 'animation', 'animation_trigger', 'animation_speed', 'animation_delay',
         ], $keys);
         // defaults 从 controls 推导
         $this->assertSame([
@@ -681,10 +682,16 @@ final class BuilderRenderTest extends TestCase
             'loop_field' => 'title',
             'loop_fallback' => '',
             'level' => 'h2',
+            'url' => '',
+            'new_tab' => false,
+            'site_url_field' => 'none',
+            'loop_url_field' => 'none',
+            'html_id' => '',
             'visual_size' => 'auto',
             'color' => '',
             'align' => 'left',
             'animation' => '',
+            'animation_trigger' => 'viewport',
             'animation_speed' => 'normal',
             'animation_delay' => 'none',
         ], $h->defaults());
@@ -1335,7 +1342,7 @@ final class BuilderRenderTest extends TestCase
             $fixture['data']['animation_delay'] = 'medium';
             $out = $this->inner($this->oneEl($fixture));
             $this->assertStringContainsString(
-                'data-animate="fade-up" data-animate-speed="fast" data-animate-delay="medium"',
+                'data-animate="fade-up" data-animate-trigger="viewport" data-animate-speed="fast" data-animate-delay="medium"',
                 $out,
                 $fixture['type']
             );

@@ -110,7 +110,20 @@
             }, { rootMargin: '400px 0px' });
         }
         document.addEventListener('visibilitychange', syncAll);
-        document.addEventListener('blox:content-updated', syncAll);
+        document.addEventListener('blox:content-updated', function (event) {
+            if (event && event.detail && event.detail.root) init(event.detail.root);
+            else syncAll();
+        });
+        document.addEventListener('blox:content-removing', function (event) {
+            if (!event.detail || !event.detail.root) return;
+            videosFor(event.detail.root).forEach(function (video) {
+                if (viewportObserver) viewportObserver.unobserve(video);
+                var state = bindings.get(video);
+                if (state) { state.observed = false; state.nearViewport = false; }
+                managedVideos.delete(video);
+                pause(video, true);
+            });
+        });
         if (window.matchMedia) {
             var motion = window.matchMedia('(prefers-reduced-motion: reduce)');
             if (typeof motion.addEventListener === 'function') motion.addEventListener('change', syncAll);

@@ -34,6 +34,21 @@ function fixture(overrides = {}) {
     return { bridge, frame, frameWindow, calls, sent };
 }
 
+test('table canvas actions require the current frame, stable identity and bounded coordinates', () => {
+    const calls = [];
+    const current = fixture({onTableAction: data => calls.push(data)});
+    const data = {id:'table-1',path:'0.0.0',row:0,column:9,action:'expand'};
+    assert.equal(current.bridge.handleMessage({source:{},data:{ykTableAction:data}}), false);
+    assert.equal(current.bridge.handleMessage({source:current.frameWindow,data:{ykTableAction:data}}), true);
+    for (const invalid of [{...data,action:'publish'}, {...data,column:12}, {...data,id:''}, {...data,row:-1}]) {
+        assert.equal(current.bridge.handleMessage({source:current.frameWindow,data:{ykTableAction:invalid}}), false);
+    }
+    assert.deepEqual(calls, [data]);
+    const cell = {kind:'tableCell',id:'table-1',path:'0.0.0',row:1,column:0,base:'old',value:'new'};
+    assert.equal(current.bridge.handleMessage({source:current.frameWindow,data:{ykInlineEdit:cell}}), true);
+    assert.equal(current.bridge.handleMessage({source:current.frameWindow,data:{ykInlineEdit:{...cell,value:'x'.repeat(4001)}}}), false);
+});
+
 test("只接受当前画布 iframe 的消息", function () {
     const current = fixture();
     assert.equal(current.bridge.handleMessage({ source: {}, data: { ykPick: 2 } }), false);

@@ -5,6 +5,49 @@ use PHPUnit\Framework\TestCase;
 
 final class DetailConditionEditorEntryTest extends TestCase
 {
+    public function testSharedScriptHasTemplateTypeInPageMode(): void
+    {
+        $source = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $default = strpos($source, "\$templateType = '';");
+        $override = strpos($source, "\$templateType = (string) \$templateRow['type'];");
+        $this->assertNotFalse($default);
+        $this->assertNotFalse($override);
+        $this->assertLessThan($override, $default);
+    }
+
+    public function testListPublicationReadsDraftAfterLocking(): void
+    {
+        $source = (string) file_get_contents(ROOT_PATH . '/admin/blox_templates.php');
+        $lock = strpos($source, 'DetailTemplatePublishGuard::lockForPublish');
+        $this->assertNotFalse($lock);
+        $read = strpos($source, '$row = bloxTemplateModel()->find($id);', $lock);
+        $check = strpos($source, '$detailSettings =', $lock);
+        $publish = strpos($source, 'bloxTemplateModel()->publishDraft($id);', $lock);
+        $this->assertNotFalse($read);
+        $this->assertNotFalse($check);
+        $this->assertNotFalse($publish);
+        $this->assertLessThan($check, $read);
+        $this->assertLessThan($publish, $check);
+    }
+
+    public function testApiPublicationRejectsChangedDraftAfterLocking(): void
+    {
+        $source = (string) file_get_contents(ROOT_PATH . '/admin/blox_template_api.php');
+        $lock = strpos($source, 'DetailTemplatePublishGuard::lockForPublish');
+        $this->assertNotFalse($lock);
+        $read = strpos($source, '$lockedRow = bloxTemplateModel()->find($id);', $lock);
+        $guard = strpos($source, "\$lockedRow === null || (string) (\$lockedRow['draft_data'] ?? '') !== \$currentDraftRaw", $lock);
+        $reject = strpos($source, "throw new RuntimeException(__('blox_save_conflict'));", $lock);
+        $check = strpos($source, '$publishSettings =', $lock);
+        $this->assertNotFalse($read);
+        $this->assertNotFalse($guard);
+        $this->assertNotFalse($reject);
+        $this->assertNotFalse($check);
+        $this->assertLessThan($guard, $read);
+        $this->assertLessThan($reject, $guard);
+        $this->assertLessThan($check, $reject);
+    }
+
     public function testPrioritySynchronizesWhileTyping(): void
     {
         $panel = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor/partials/detail-conditions.php');

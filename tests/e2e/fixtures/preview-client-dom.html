@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Preview DOM contract</title>
+<pre id="result">Running</pre>
+<script src="../../../assets/js/blox-preview-client.js?evolution=20260914-lifecycle"></script>
+<script>
+(function () {
+    'use strict';
+    var checks = [];
+    function assert(value, name) { if (!value) throw new Error(name); checks.push(name); }
+    var client = new BloxPreviewClient({});
+    function page(elements, title) {
+        return '<!doctype html><html><head><title>' + (title || 'same') + '</title></head><body>'
+            + '<header>Header</header><main><div data-yk-region="content"><span>Content</span>'
+            + '<section data-yk-sec="0" data-yk-sec-id="stable"><div data-yk-col="0.0">'
+            + elements + '</div></section></div></main></body></html>';
+    }
+    function el(id, content) { return '<div data-yk-el-id="' + id + '">' + content + '</div>'; }
+    try {
+        var initial = page(el('one', '<h1>First</h1>') + el('two', '<details open><summary>FAQ</summary>Answer</details>'));
+        var doc = client.parseHtml(initial);
+        var frame = {contentDocument: doc};
+        client.rememberSections(frame, initial);
+        var section = doc.querySelector('section');
+        var faq = doc.querySelector('details');
+        faq.open = false;
+        var added = page(el('one', '<h1>First</h1>') + el('two', '<details open><summary>FAQ</summary>Answer</details>') + el('three', '<button>New</button>'));
+        assert(client.directSections(doc).length === 1, 'nested content host');
+        assert(client.patchFrame(frame, added), 'append patches');
+        assert(doc.querySelector('section') === section, 'section identity retained');
+        assert(doc.querySelector('details') === faq && !faq.open, 'unchanged FAQ state retained');
+        assert(doc.querySelector('button').textContent === 'New', 'new button inserted');
+        var edited = added.replace('First', 'Edited');
+        assert(client.patchFrame(frame, edited), 'text edit patches');
+        assert(doc.querySelector('h1').textContent === 'Edited', 'text updated');
+        assert(doc.querySelector('details') === faq && !faq.open, 'text edit does not reset FAQ');
+        assert(client.patchFrame(frame, initial), 'undo patches');
+        assert(!doc.querySelector('button'), 'undo removes inserted button');
+        assert(!client.patchFrame(frame, page(el('one', 'Text'), 'changed')), 'real shell change reloads');
+        assert(client.patchReason === 'head-changed', 'fallback classified');
+        var oldDocument = {sections:[{id:'s', columns:[{elements:[{id:'e',type:'heading',data:{text:'old'}}]}]}]};
+        client.lastDocument = oldDocument;
+        client.lastHtml = initial;
+        var newDocument = JSON.parse(JSON.stringify(oldDocument));
+        newDocument.sections[0].columns[0].elements[0].data.text = 'new';
+        assert(client.partialTarget(newDocument) === 'e', 'single simple change uses scoped SSR');
+        newDocument.settings = {page_title_hidden:true};
+        assert(client.partialTarget(newDocument) === null, 'settings change uses full preview');
+        document.getElementById('result').textContent = 'PASS ' + checks.length + '\n' + checks.join('\n');
+    } catch (error) {
+        document.getElementById('result').textContent = 'FAIL: ' + error.message + '\n' + checks.join('\n');
+    }
+})();
+</script>

@@ -118,6 +118,11 @@
 
     function inlineEditPayload(value) {
         if (!isObject(value) || typeof value.value !== "string" || value.value.length > 2097152) return null;
+        if (value.kind === 'tableCell' && isElementPath(value.path) && isSectionId(value.id)
+            && isIndex(value.row) && value.row < 50 && isIndex(value.column) && value.column < 12
+            && typeof value.base === 'string' && value.base.length <= 4000 && value.value.length <= 4000) {
+            return {kind: 'tableCell', id: value.id, path: value.path, row: value.row, column: value.column, base: value.base, value: value.value};
+        }
         if (value.kind === "sectionField") {
             var sectionField = sectionFieldPayload(value);
             return sectionField ? { kind: "sectionField", si: sectionField.si, field: sectionField.field, format: "text", value: value.value } : null;
@@ -199,6 +204,7 @@
         this.onDrop = options.onDrop || noop;
         this.onTemplateDrop = options.onTemplateDrop || noop;
         this.onInlineEdit = options.onInlineEdit || noop;
+        this.onTableAction = options.onTableAction || noop;
         this.onEditSectionField = options.onEditSectionField || noop;
         this.onPickSectionField = options.onPickSectionField || noop;
         this.onPickHomeColumn = options.onPickHomeColumn || noop;
@@ -296,6 +302,14 @@
             payload = inlineEditPayload(data.ykInlineEdit);
             if (!payload) return false;
             this.onInlineEdit(payload);
+            return true;
+        }
+        if (data.ykTableAction !== undefined) {
+            var table = data.ykTableAction;
+            if (!isObject(table) || !isElementPath(table.path) || !isSectionId(table.id)
+                || !isIndex(table.row) || table.row >= 50 || !isIndex(table.column) || table.column >= 12
+                || !['focus', 'blur', 'expand', 'row-add', 'row-delete', 'row-previous', 'row-next', 'column-add', 'column-delete', 'column-previous', 'column-next'].includes(table.action)) return false;
+            this.onTableAction({id: table.id, path: table.path, row: table.row, column: table.column, action: table.action});
             return true;
         }
         payload = sectionFieldPayload(data.ykEditSectionField);

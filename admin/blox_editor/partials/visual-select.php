@@ -23,12 +23,21 @@ declare(strict_types=1);
                         :title="(ctrl.option_hints && ctrl.option_hints[value]) || label"
                         :data-testid="'blox-choice-' + ctrl.key + '-' + value">
                     <span class="blox-choice-preview" :data-kind="ctrl.option_preview" :data-value="value" aria-hidden="true">
-                        <span class="blox-choice-sample" x-show="ctrl.option_preview !== 'entrance' && !ctrl.option_preview.startsWith('image-') && !ctrl.option_preview.startsWith('divider-')">
+                        <span class="blox-choice-sample" x-show="ctrl.option_preview !== 'table' && ctrl.option_preview !== 'entrance' && !ctrl.option_preview.startsWith('image-') && !ctrl.option_preview.startsWith('divider-')">
                             <span class="blox-choice-media"><i class="ti ti-photo"></i></span>
                             <span class="blox-choice-icon"><i class="ti" :class="ctrl.option_preview === 'quote-style' ? 'ti-quote' : (ctrl.option_preview.startsWith('alert-') ? 'ti-' + ((ctrl.option_icons || {})[value] || 'info-circle') : 'ti-star')"></i></span>
                             <span class="blox-choice-copy"><span></span><span></span><span></span></span>
                         </span>
-                        <i x-show="ctrl.option_preview !== 'entrance' && !ctrl.option_preview.startsWith('image-')" class="blox-choice-motion ti" :class="value === 'lift' ? 'ti-arrow-up' : (value === 'zoom' ? 'ti-zoom-in' : (value === 'none' ? 'ti-ban' : 'ti-shadow'))"></i>
+                        <i x-show="ctrl.option_preview !== 'table' && ctrl.option_preview !== 'entrance' && !ctrl.option_preview.startsWith('image-')" class="blox-choice-motion ti" :class="value === 'lift' ? 'ti-arrow-up' : (value === 'zoom' ? 'ti-zoom-in' : (value === 'none' ? 'ti-ban' : 'ti-shadow'))"></i>
+                        <template x-if="ctrl.option_preview === 'table'">
+                            <span class="block w-full px-2">
+                                <template x-for="r in 3" :key="r">
+                                    <span class="grid grid-cols-3 border-b border-gray-300" :class="value === 'striped' && r === 2 ? 'bg-gray-200' : ''" :style="r === 1 && value === 'brand' ? 'background:var(--yk-color-primary,#2563eb)' : (r === 1 && value === 'dark' ? 'background:#1f2937' : '')">
+                                        <template x-for="c in 3" :key="c"><span class="block h-3" :class="value === 'bordered' ? 'border border-gray-300' : ''"></span></template>
+                                    </span>
+                                </template>
+                            </span>
+                        </template>
                         <template x-if="ctrl.option_preview === 'image-ratio'">
                             <span class="blox-image-ratio-sample"><i class="ti ti-photo" aria-hidden="true"></i></span>
                         </template>

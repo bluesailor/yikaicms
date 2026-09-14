@@ -195,6 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             // 带上本站授权码与域名：付费插件的下载地址由服务端按授权下发
             $url = PLUGIN_MARKET_API . '?' . http_build_query(array_filter([
                 'q'      => $q,
+                'cms_version' => defined('CMS_VERSION') ? (string) CMS_VERSION : '',
                 'key'    => function_exists('license_key') ? license_key() : '',
                 'domain' => function_exists('license_domain') ? license_domain() : '',
             ]));
@@ -215,6 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             // 以服务端拿到的市场元数据为准（不信任前端传来的 URL/哈希）；
             // 同样带授权参数，否则付费插件拿不到下载地址
             $resp = pluginMarketHttpGet(PLUGIN_MARKET_API . '?' . http_build_query(array_filter([
+                'cms_version' => defined('CMS_VERSION') ? (string) CMS_VERSION : '',
                 'key'    => function_exists('license_key') ? license_key() : '',
                 'domain' => function_exists('license_domain') ? license_domain() : '',
             ])));
@@ -234,6 +236,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 // 服务端因授权不足未下发下载地址
                 $why = (string) ($item['locked_reason'] ?? '');
                 $tip = match ($why) {
+                    'cms_version_required' => __('plugin_locked_cms_version', ['version' => (string) ($item['requires_cms'] ?? '')]),
+                    'download_unavailable' => __('pl_market_offline'),
                     'expired'         => __('plugin_locked_expired'),
                     'domain_mismatch' => __('plugin_locked_domain'),
                     default           => __('plugin_locked_need_license'),

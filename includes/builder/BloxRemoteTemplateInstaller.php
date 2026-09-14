@@ -15,7 +15,9 @@ final class BloxRemoteTemplateInstaller
     /** @return array{id:int,type:string,name:string,sections:int,previous_sections:int,version:string,updated:bool,backup_created:bool} */
     public function install(string $slug, int $adminId = 0): array
     {
-        // Provider 是授权、服务期、hash、RSA 签名与包内身份的权威闸口。
+        if (bloxTemplateModel()->findWhere(['source' => 'remote', 'source_ref' => $slug])) {
+            throw new RuntimeException(__('blox_tpl_remote_already_imported'));
+        }
         $stateModel = bloxRemoteTemplateStateModel();
         if (!$stateModel->tableReady()) {
             throw new RuntimeException(__('blox_tpl_remote_state_table_missing'));
@@ -23,7 +25,6 @@ final class BloxRemoteTemplateInstaller
         $package = $this->provider->fetchVerifiedPackage($slug);
         $json = $package['json'];
         $version = trim((string) ($package['item']['version'] ?? ''));
-        $prepared = BloxTemplateImporter::prepare($json);
         $existing = bloxTemplateModel()->findWhere(['source' => 'remote', 'source_ref' => $slug]);
 
         if (!$existing) {
@@ -42,18 +43,70 @@ final class BloxRemoteTemplateInstaller
             ];
         }
 
-        $id = (int) $existing['id'];
-        $existingDraft = (string) ($existing['draft_data'] ?? '');
-        $previousSections = self::sectionCount($existingDraft);
+        throw new RuntimeException(__('blox_tpl_remote_already_imported'));
+    }
+
+    /** @return array{id:int,type:string,name:string,sections:int} */
+    public function importCopy(string $slug, int $adminId = 0): array
+    {
+        $package = $this->provider->fetchVerifiedPackage($slug);
+        // Imported copies retain provenance but never match the managed remote source.
+        return BloxTemplateImporter::importJson($package['json'], $adminId, 'import', $slug);
+    }
+
+    /** @param array<string,mixed> $template */
+    public static function revision(array $template): string
+    {
+        return hash('sha256', json_encode([
+            (string) ($template['draft_data'] ?? ''),
+            (string) ($template['requirements'] ?? ''),
+            (string) ($template['metadata'] ?? ''),
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    /** @return array{id:int,type:string,name:string,sections:int,previous_sections:int,version:string,updated:bool,backup_created:bool} */
+    public function update(int $id, string $baseRevision, string $expectedVersion): array
+    {
+        $stateModel = bloxRemoteTemplateStateModel();
+        if (!$stateModel->tableReady()) {
+            throw new RuntimeException(__('blox_tpl_remote_state_table_missing'));
+        }
+        $existing = bloxTemplateModel()->findForExport($id);
+        if (!$existing || ($existing['source'] ?? '') !== 'remote') {
+            throw new RuntimeException(__('blox_tpl_not_found'));
+        }
+        if ($baseRevision === '' || !hash_equals(self::revision($existing), $baseRevision)) {
+            throw new RuntimeException(__('blox_save_conflict'));
+        }
+        $slug = (string) $existing['source_ref'];
+        $package = $this->provider->fetchVerifiedPackage($slug);
+        $version = (string) ($package['item']['version'] ?? '');
+        if ($expectedVersion === '' || !hash_equals($expectedVersion, $version)) {
+            throw new RuntimeException(__('blox_tpl_remote_version_conflict'));
+        }
+        $prepared = BloxTemplateImporter::prepare($package['json']);
+        if ($prepared['type'] !== $existing['type']) {
+            throw new RuntimeException(__('blox_template_remote_invalid'));
+        }
         db()->beginTransaction();
         try {
+            // Re-read after the network request and lock before changing draft or backup.
+            $current = bloxTemplateModel()->findForExport($id, true);
+            if (!$current || ($current['source'] ?? '') !== 'remote'
+                || ($current['source_ref'] ?? '') !== $slug
+                || ($current['type'] ?? '') !== $prepared['type']
+                || !hash_equals(self::revision($current), $baseRevision)) {
+                throw new RuntimeException(__('blox_save_conflict'));
+            }
+            $existingDraft = (string) ($current['draft_data'] ?? '');
+            $previousSections = self::sectionCount($existingDraft);
             // 保留已发布文档、显示条件和发布状态；更新前草稿与依赖留作一次回退点。
             $stateModel->stageUpdate(
                 $id,
                 $version,
                 $existingDraft,
-                (string) ($existing['requirements'] ?? ''),
-                (string) ($existing['metadata'] ?? '')
+                (string) ($current['requirements'] ?? ''),
+                (string) ($current['metadata'] ?? '')
             );
             bloxTemplateModel()->updateDraft(
                 $id,

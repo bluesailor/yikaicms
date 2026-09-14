@@ -98,7 +98,7 @@ final class BloxTemplateModel extends Model
     }
 
     /** @return array<string,mixed>|null */
-    public function findForExport(int $id): ?array
+    public function findForExport(int $id, bool $forUpdate = false): ?array
     {
         if ($id <= 0) {
             return null;
@@ -106,7 +106,8 @@ final class BloxTemplateModel extends Model
 
         return db()->fetchOne(
             'SELECT id,type,name,source,source_ref,schema_version,draft_data,published_data,requirements,metadata,conditions,thumbnail,status,updated_at,published_at'
-            . ' FROM ' . DB_PREFIX . 'blox_templates WHERE id = ?',
+            . ' FROM ' . DB_PREFIX . 'blox_templates WHERE id = ?'
+            . ($forUpdate && !db()->isSqlite() ? ' FOR UPDATE' : ''),
             [$id]
         );
     }

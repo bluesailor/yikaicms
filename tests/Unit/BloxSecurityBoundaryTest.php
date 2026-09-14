@@ -174,16 +174,18 @@ final class BloxSecurityBoundaryTest extends TestCase
         $media = $this->source('admin/media_api.php');
         $upload = $this->source('admin/upload.php');
 
-        self::assertStringContainsString("['header', 'footer', 'popup']", $auth);
+        self::assertStringContainsString("['header', 'footer', 'popup', 'product-detail', 'article-detail']", $auth);
         self::assertStringContainsString("requirePermission('blox_home');", $editor);
         self::assertStringContainsString("requirePermission('blox_edit');", $editor);
-        self::assertStringContainsString("!in_array(\$templateType, ['section', 'page'], true) && !\$advancedBloxEnabled", $editor);
+        self::assertStringContainsString('!BloxTemplateEditPolicy::allows($templateType, $advancedBloxEnabled)', $editor);
         self::assertStringContainsString('requireBloxTemplateTypePermission($templateType);', $editor);
         self::assertStringContainsString("requirePermission('blox_global');", $templateManager);
         self::assertStringContainsString('if (!bloxPageEditorEnabled())', $templates);
         self::assertStringContainsString('$requireTemplateLicense($type);', $templates);
-        self::assertStringContainsString("\$item['locked_reason'] = 'license_missing';", $templates);
-        self::assertBefore($templates, "str_starts_with(\$key, 'remote:')", 'BloxTemplateCatalog::resolve($key, $context)');
+        self::assertStringNotContainsString("\$item['locked_reason'] = 'license_missing';", $templates);
+        self::assertStringNotContainsString("str_starts_with(\$key, 'remote:')", $templates);
+        $remoteProvider = $this->source('includes/builder/BloxRemoteTemplateProvider.php');
+        self::assertBefore($remoteProvider, "if (!empty(\$item['locked']))", '($this->httpGet)($downloadUrl');
         self::assertGreaterThanOrEqual(4, substr_count($templates, 'requireBloxTemplateTypePermission('));
         self::assertStringContainsString("if (\$_SERVER['REQUEST_METHOD'] === 'POST') {\n    verifyCsrf();", $templateManager);
         self::assertStringContainsString("if (\$action === 'rollback_remote')", $templateManager);

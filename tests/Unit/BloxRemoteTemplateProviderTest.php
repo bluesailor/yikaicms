@@ -44,6 +44,8 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $catalog = $this->catalogResponse([
             $this->catalogItem([
                 'tier' => 'pro',
+                'access' => 'licensed',
+                'module' => 'blox',
                 'paid' => true,
                 'entitled' => false,
                 'locked_reason' => 'module_missing',
@@ -83,7 +85,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
             'type' => 'page', 'hash' => 'sha256:' . hash('sha256', $package),
         ])]);
         $provider = new BloxRemoteTemplateProvider(
-            static fn (string $url): string => str_contains($url, '/packages/templates/') ? $package : $catalog,
+            static fn (string $url): string => str_contains($url, '/api/templates/download.php') ? $package : $catalog,
             static fn (): bool => true,
             'en'
         );
@@ -91,6 +93,31 @@ final class BloxRemoteTemplateProviderTest extends TestCase
             ['page_header_hidden' => true, 'page_footer_hidden' => true],
             $provider->resolve('pricing-3col')['settings']
         );
+    }
+
+    public function testBodyInsertionCannotDownloadAreaOrAdvancedTemplates(): void
+    {
+        foreach (['header', 'footer', 'popup', 'product-detail', 'article-detail'] as $type) {
+            $downloads = 0;
+            $catalog = $this->catalogResponse([$this->catalogItem(['type' => $type])]);
+            $provider = new BloxRemoteTemplateProvider(
+                static function (string $url) use ($catalog, &$downloads): string {
+                    if (str_contains($url, '/api/templates/download.php')) {
+                        $downloads++;
+                    }
+                    return $catalog;
+                },
+                static fn (): bool => true,
+                'en'
+            );
+            try {
+                $provider->resolve('pricing-3col');
+                self::fail('Non-body template resolved: ' . $type);
+            } catch (RuntimeException $error) {
+                self::assertSame(__('blox_template_remote_invalid'), $error->getMessage());
+            }
+            self::assertSame(0, $downloads, $type);
+        }
     }
 
     public function testCatalogRejectsUnsafeCategoryAndFallsBackToType(): void
@@ -128,7 +155,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $this->assertSame(100, $metadata['priority']);
     }
 
-    public function testResolveUsesFreshEntitlementCacheVerifiesEachPackageAndDoesNotPersist(): void
+    public function testResolveRefreshesEntitlementsVerifiesEachPackageAndDoesNotPersist(): void
     {
         $package = $this->package($this->templateJson());
         $hash = 'sha256:' . hash('sha256', $package);
@@ -140,7 +167,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $provider = new BloxRemoteTemplateProvider(
             static function (string $url, int $timeout, int $maxBytes) use ($catalog, $package, &$requests): string {
                 $requests++;
-                return str_contains($url, '/packages/templates/') ? $package : $catalog;
+                return str_contains($url, '/api/templates/download.php') ? $package : $catalog;
             },
             static function (string $canonical, string $signature) use (&$canonicalSeen): bool {
                 $canonicalSeen = $canonical;
@@ -164,7 +191,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $this->assertSame('remote:pricing-3col', $first['key']);
         $this->assertSame('heading', $first['sections'][0]['columns'][0]['elements'][0]['type']);
         $this->assertNotSame($first['sections'][0]['id'], $second['sections'][0]['id']);
-        $this->assertSame(3, $requests, '60 秒内只复验一次目录，但每次仍下载并验签模板包');
+        $this->assertSame(4, $requests, 'Every download refreshes entitlements and verifies the package');
         $this->assertSame(604800, $cacheTtl);
         $this->assertSame(0, (int) db()->fetchColumn('SELECT COUNT(*) FROM blox_templates'));
     }
@@ -204,11 +231,11 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $catalog = $this->catalogResponse([$this->catalogItem([
             'slug' => 'header-mega', 'type' => 'header', 'hash' => $hash,
             'package' => 'header-mega-v1.0.0.zip',
-            'download_url' => 'https://update.yikaicms.com/packages/templates/header-mega-v1.0.0.zip',
+            'download_url' => 'https://update.yikaicms.com/api/templates/download.php?protocol_version=2&slug=header-mega&version=1.0.0',
         ])]);
         $canonicalSeen = '';
         $provider = new BloxRemoteTemplateProvider(
-            static fn (string $url): string => str_contains($url, '/packages/templates/') ? $package : $catalog,
+            static fn (string $url): string => str_contains($url, '/api/templates/download.php') ? $package : $catalog,
             static function (string $canonical, string $signature) use (&$canonicalSeen): bool {
                 $canonicalSeen = $canonical;
                 return $signature === 'valid-signature';
@@ -219,7 +246,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $this->assertSame('header-mega|1.0.0|' . $hash, $canonicalSeen);
 
         $bad = new BloxRemoteTemplateProvider(
-            static fn (string $url): string => str_contains($url, '/packages/templates/') ? $package : $catalog,
+            static fn (string $url): string => str_contains($url, '/api/templates/download.php') ? $package : $catalog,
             static fn (): bool => false,
             'zh-CN'
         );
@@ -236,7 +263,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $package = $this->package($noRef);
         $catalog = $this->catalogResponse([$this->catalogItem(['hash' => 'sha256:' . hash('sha256', $package)])]);
         $provider = new BloxRemoteTemplateProvider(
-            static fn (string $url): string => str_contains($url, '/packages/templates/') ? $package : $catalog,
+            static fn (string $url): string => str_contains($url, '/api/templates/download.php') ? $package : $catalog,
             static fn (): bool => true,
             'zh-CN'
         );
@@ -252,10 +279,10 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $pkg2 = $this->package($goodJson);
         $catalog2 = $this->catalogResponse([$this->catalogItem([
             'slug' => 'hd', 'type' => 'header', 'hash' => 'sha256:' . hash('sha256', $pkg2),
-            'download_url' => 'https://update.yikaicms.com/packages/templates/hd-v1.0.0.zip',
+            'download_url' => 'https://update.yikaicms.com/api/templates/download.php?protocol_version=2&slug=hd&version=1.0.0',
         ])]);
         $provider2 = new BloxRemoteTemplateProvider(
-            static fn (string $url): string => str_contains($url, '/packages/templates/') ? $pkg2 : $catalog2,
+            static fn (string $url): string => str_contains($url, '/api/templates/download.php') ? $pkg2 : $catalog2,
             static fn (): bool => true,
             'zh-CN'
         );
@@ -275,7 +302,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         ])]);
         $provider = new BloxRemoteTemplateProvider(
             static fn (string $url, int $timeout, int $maxBytes): string
-                => str_contains($url, '/packages/templates/') ? $package : $catalog,
+                => str_contains($url, '/api/templates/download.php') ? $package : $catalog,
             static fn (string $canonical, string $signature): bool => false
         );
 
@@ -296,7 +323,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         ])]);
         $provider = new BloxRemoteTemplateProvider(
             static fn (string $url, int $timeout, int $maxBytes): string
-                => str_contains($url, '/packages/templates/') ? $package : $catalog,
+                => str_contains($url, '/api/templates/download.php') ? $package : $catalog,
             static fn (string $canonical, string $signature): bool => true
         );
 
@@ -321,7 +348,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         ])]);
         $provider = new BloxRemoteTemplateProvider(
             static fn (string $url, int $timeout, int $maxBytes): string
-                => str_contains($url, '/packages/templates/') ? $package : $catalog,
+                => str_contains($url, '/api/templates/download.php') ? $package : $catalog,
             static fn (string $canonical, string $signature): bool => true
         );
 
@@ -330,6 +357,141 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $this->assertSame('remote:pricing-3col', $resolved['key']);
         $this->assertCount(1, $resolved['sections']);
     }
+    public function testRegisteredTemplateIsFreeButRequiresExplicitEntitlement(): void
+    {
+        $catalog = $this->catalogResponse([$this->catalogItem([
+            'access' => 'registered', 'tier' => 'pro', 'entitled' => false,
+        ])]);
+        $calls = 0;
+        $provider = new BloxRemoteTemplateProvider(static function () use ($catalog, &$calls): string {
+            $calls++;
+            return $catalog;
+        });
+        $item = $provider->installable()[0];
+        $this->assertSame('registered', $item['access']);
+        $this->assertFalse($item['paid']);
+        $this->assertTrue($item['locked']);
+        $this->assertSame('account_required', $item['locked_reason']);
+        $this->expectExceptionMessage('blox_template_remote_account_required');
+        try {
+            $provider->fetchPackageJson('pricing-3col');
+        } finally {
+            $this->assertSame(2, $calls, 'Locked resources must not request a package');
+        }
+    }
+
+    public function testRegisteredTemplateDownloadsWithoutPaidModule(): void
+    {
+        $json = $this->templateJson();
+        $package = $this->package($json);
+        $catalog = $this->catalogResponse([$this->catalogItem([
+            'access' => 'registered', 'hash' => 'sha256:' . hash('sha256', $package),
+        ])]);
+        $provider = new BloxRemoteTemplateProvider(
+            static fn (string $url): string => str_contains($url, '/api/templates/download.php') ? $package : $catalog,
+            static fn (): bool => true
+        );
+        $this->assertSame($json, $provider->fetchPackageJson('pricing-3col'));
+        $this->assertSame('', $provider->installable()[0]['module']);
+    }
+
+    public function testMalformedAccessFailsClosedEvenWhenDownloadUrlExists(): void
+    {
+        foreach ([['access' => null], ['access' => 'unknown'], ['entitled' => null],
+            ['entitled' => 'false'], ['paid' => 0], ['access' => 'registered', 'paid' => true],
+            ['access' => 'licensed', 'paid' => true, 'module' => '']] as $override) {
+            $catalog = $this->catalogResponse([$this->catalogItem($override)]);
+            $calls = 0;
+            $provider = new BloxRemoteTemplateProvider(static function () use ($catalog, &$calls): string {
+                $calls++;
+                return $catalog;
+            });
+            try {
+                $provider->fetchPackageJson('pricing-3col');
+                $this->fail('Invalid access fields must be rejected');
+            } catch (RuntimeException $e) {
+                $this->assertSame('blox_template_remote_protocol', $e->getMessage());
+            }
+            $this->assertSame(1, $calls);
+        }
+    }
+
+    public function testProtocolVersionIsRequiredAndAdvertised(): void
+    {
+        foreach ([null, 1, '2', 3] as $version) {
+            $catalog = json_decode($this->catalogResponse([$this->catalogItem()]), true, 512, JSON_THROW_ON_ERROR);
+            $catalog['data']['protocol_version'] = $version;
+            $urlSeen = '';
+            $provider = new BloxRemoteTemplateProvider(static function (string $url) use ($catalog, &$urlSeen): string {
+                $urlSeen = $url;
+                return json_encode($catalog, JSON_THROW_ON_ERROR);
+            });
+            try {
+                $provider->installable();
+                $this->fail('Unsupported protocol must not fall back');
+            } catch (RuntimeException $e) {
+                $this->assertSame('blox_template_remote_protocol', $e->getMessage());
+            }
+            $this->assertStringContainsString('protocol_version=2', $urlSeen);
+        }
+    }
+
+    public function testDownloadRechecksRevocationInsteadOfUsingBrowseCache(): void
+    {
+        $cache = [];
+        $requests = 0;
+        $allowed = $this->catalogResponse([$this->catalogItem(['access' => 'registered'])]);
+        $denied = $this->catalogResponse([$this->catalogItem([
+            'access' => 'registered', 'entitled' => false, 'locked_reason' => 'binding_revoked',
+        ])]);
+        $provider = new BloxRemoteTemplateProvider(
+            static function () use (&$requests, $allowed, $denied): string {
+                return ++$requests === 1 ? $allowed : $denied;
+            },
+            null, 'en', BloxRemoteTemplateProvider::API_URL,
+            static function (string $key) use (&$cache): mixed { return $cache[$key] ?? null; },
+            static function (string $key, mixed $value) use (&$cache): void { $cache[$key] = $value; }
+        );
+        $this->assertFalse($provider->installable()[0]['locked']);
+        $this->assertFalse($provider->installable()[0]['locked']);
+        $this->assertSame(1, $requests);
+        $this->expectExceptionMessage('blox_template_remote_reconnect');
+        try {
+            $provider->fetchPackageJson('pricing-3col');
+        } finally {
+            $this->assertSame(2, $requests);
+        }
+    }
+
+    public function testOnlyCanonicalControlledDownloadEndpointIsAllowed(): void
+    {
+        $good = $this->catalogItem()['download_url'];
+        foreach ([
+            'https://update.yikaicms.com/packages/templates/pricing-3col-v1.0.0.zip',
+            str_replace('https:', 'http:', $good),
+            str_replace('update.yikaicms.com', 'example.com', $good),
+            str_replace('slug=pricing-3col', 'slug=other', $good),
+            str_replace('version=1.0.0', 'version=2.0.0', $good),
+            $good . '&token=secret', $good . '#fragment',
+        ] as $url) {
+            $catalog = $this->catalogResponse([$this->catalogItem([
+                'hash' => 'sha256:' . str_repeat('0', 64), 'download_url' => $url,
+            ])]);
+            $requests = 0;
+            $provider = new BloxRemoteTemplateProvider(static function () use ($catalog, &$requests): string {
+                $requests++;
+                return $catalog;
+            });
+            try {
+                $provider->fetchPackageJson('pricing-3col');
+                $this->fail('Unsafe download endpoint must be rejected');
+            } catch (RuntimeException $e) {
+                $this->assertSame('blox_template_remote_invalid', $e->getMessage());
+            }
+            $this->assertSame(1, $requests);
+        }
+    }
+
     /** @param array<string,mixed> $overrides @return array<string,mixed> */
     private function catalogItem(array $overrides = []): array
     {
@@ -338,6 +500,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
             'type' => 'section',
             'category' => 'marketing',
             'tier' => 'free',
+            'access' => 'public',
             'name' => '价格表三栏',
             'name_en' => 'Three-column pricing',
             'name_ja' => '3列料金表',
@@ -350,7 +513,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
             'sig' => 'valid-signature',
             'paid' => false,
             'entitled' => true,
-            'download_url' => 'https://update.yikaicms.com/packages/templates/pricing-3col-v1.0.0.zip',
+            'download_url' => 'https://update.yikaicms.com/api/templates/download.php?protocol_version=2&slug=pricing-3col&version=1.0.0',
             'locked_reason' => '',
         ], $overrides);
     }
@@ -360,7 +523,7 @@ final class BloxRemoteTemplateProviderTest extends TestCase
     {
         return json_encode([
             'code' => 0,
-            'data' => ['updated_at' => '2026-08-07', 'templates' => $items],
+            'data' => ['protocol_version' => 2, 'updated_at' => '2026-08-07', 'templates' => $items],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 

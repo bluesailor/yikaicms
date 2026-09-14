@@ -11,7 +11,7 @@ final class DetailTemplatePublishGuardTest extends TestCase
 {
     public static function setUpBeforeClass(): void
     {
-        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        require_once ROOT_PATH . '/includes/builder/detail-editor-bootstrap.php';
     }
 
     /** @param list<int> $ids */
@@ -119,5 +119,24 @@ final class DetailTemplatePublishGuardTest extends TestCase
         $legacy = DetailTemplateResolver::legacyScope(['mode' => 'all', 'lang' => 'zh-CN']);
         $candidates = DetailTemplateProvider::injectDraft([], 'product', 7, $legacy);
         $this->assertTrue($candidates[0]['scope']['legacy'], '未迁移的 v1 草稿注入后仍按 v1 并列语义判定');
+    }
+
+    public function testRowDigestInvalidatesSwappedParents(): void
+    {
+        db()->execute('CREATE TEMPORARY TABLE guard_digest_test (id INTEGER PRIMARY KEY, parent_id INTEGER)');
+        try {
+            db()->execute('INSERT INTO guard_digest_test (id, parent_id) VALUES (1, 10), (2, 20)');
+            $method = new ReflectionMethod(DetailTemplatePublishGuard::class, 'rowDigest');
+            $before = $method->invoke(null, 'guard_digest_test', 'id, parent_id', '1 = 1', []);
+            db()->execute('UPDATE guard_digest_test SET parent_id = CASE id WHEN 1 THEN 20 ELSE 10 END');
+            $after = $method->invoke(null, 'guard_digest_test', 'id, parent_id', '1 = 1', []);
+            $this->assertNotSame($before, $after);
+            $this->assertFalse(DetailTemplatePublishGuard::progressAllowsPublish(
+                ['fingerprint' => $before, 'complete' => true, 'found' => 0],
+                $after
+            ));
+        } finally {
+            db()->execute('DROP TABLE guard_digest_test');
+        }
     }
 }

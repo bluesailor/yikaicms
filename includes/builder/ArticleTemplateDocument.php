@@ -120,9 +120,7 @@ final class ArticleTemplateDocument
      */
     public static function renderPublished(array $content): string
     {
-        if (!bloxPageEditorEnabled() || !bloxAdvancedFeaturesEnabled()) {
-            return '';
-        }
+        // Published output is independent of editor and download entitlements.
         try {
             $resolution = DetailTemplateProvider::resolveFor('article', $content);
         } catch (Throwable $e) {
