@@ -27,7 +27,7 @@ for (const scope of ['element', 'section', 'container', 'column']) {
         const control = page.getByTestId(id + '-control');
         const input = control.locator('input');
         await expect(input).toBeVisible();
-        await performPagePreviewUpdate(page, async () => { await input.fill('/images/case-demo.jpg'); await input.blur(); });
+        await performPagePreviewUpdate(page, async () => { await input.fill('/images/company-about-v2.webp'); await input.blur(); });
         await expect.poll(() => control.locator('img').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
         await waitPreviewSettled(page);
         const beforeScroll = await canvasScrollTop(page);
@@ -38,7 +38,7 @@ for (const scope of ['element', 'section', 'container', 'column']) {
         await expect(page.getByTestId(id + '-clear')).toBeDisabled();
         expect(await history()).toBe(beforeClear + 1);
         await performPagePreviewUpdate(page, () => page.evaluate(() => window.Alpine.$data(document.body).undo()));
-        await expect(input).toHaveValue('/images/case-demo.jpg');
+        await expect(input).toHaveValue('/images/company-about-v2.webp');
         expect(await history()).toBe(beforeClear);
         expect(Math.abs((await canvasScrollTop(page)) - beforeScroll)).toBeLessThan(8);
         await page.getByTestId(id + '-media').click();
@@ -46,7 +46,7 @@ for (const scope of ['element', 'section', 'container', 'column']) {
         // Closing never clears the image or changes the history.
         await page.keyboard.press('Escape');
         await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).mediaOpen)).toBe(false);
-        await expect(input).toHaveValue('/images/case-demo.jpg');
+        await expect(input).toHaveValue('/images/company-about-v2.webp');
         expect(await history()).toBe(beforeClear);
         // Exercise the real picker buttons and callback with the same fixture.
         await page.getByTestId(id + '-media').click();
@@ -55,7 +55,7 @@ for (const scope of ['element', 'section', 'container', 'column']) {
         await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).mediaOpen)).toBe(false);
         expect(await history()).toBe(beforeClear + 1);
         await performPagePreviewUpdate(page, () => page.evaluate(() => window.Alpine.$data(document.body).undo()));
-        await expect(input).toHaveValue('/images/case-demo.jpg');
+        await expect(input).toHaveValue('/images/company-about-v2.webp');
         expect(await control.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
         await page.screenshot({ path: testInfo.outputPath(scope + '-image-control.png') });
         expect(errors).toEqual([]);
@@ -70,7 +70,7 @@ test('section background summary reveals the layer that already contains the vis
         app.sel.settings.bg_color = '';
         app.sel.settings.bg_image = '';
         app.sel.settings.container_bg = '#172554';
-        app.sel.settings.container_bg_image = '/themes/default/assets/images/cta/cta-smart-manufacturing.png';
+        app.sel.settings.container_bg_image = '/themes/default/assets/images/cta/cta-smart-manufacturing.webp';
         app.panelTab = 'content';
         app.mobilePanel = 'settings';
         app.refreshPreview();
@@ -78,11 +78,11 @@ test('section background summary reveals the layer that already contains the vis
 
     const summary = page.getByTestId('blox-background-summary');
     await expect(summary).toBeVisible();
-    await expect(summary.getByTestId('blox-background-layer-container')).toContainText('cta-smart-manufacturing.png');
+    await expect(summary.getByTestId('blox-background-layer-container')).toContainText('cta-smart-manufacturing.webp');
     expect(await summary.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 
     await summary.getByTestId('blox-background-open').click();
-    await expect(page.getByTestId('blox-container-background-image-url')).toHaveValue('/themes/default/assets/images/cta/cta-smart-manufacturing.png');
+    await expect(page.getByTestId('blox-container-background-image-url')).toHaveValue('/themes/default/assets/images/cta/cta-smart-manufacturing.webp');
     const styleSwitcher = page.getByTestId('blox-background-layer-switcher');
     await expect(styleSwitcher.getByTestId('blox-background-layer-container')).toHaveAttribute('aria-pressed', 'true');
     expect(await styleSwitcher.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);

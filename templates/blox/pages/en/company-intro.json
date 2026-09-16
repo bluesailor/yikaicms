@@ -90,7 +90,7 @@
             "elements": [
               {
                 "type": "image",
-                "data": { "src": "/images/case-demo.jpg", "alt": "Photo of our company facilities" }
+                "data": { "src": "/images/company-about-v2.webp", "alt": "Photo of our company facilities" }
               }
             ]
           }
@@ -234,7 +234,7 @@
               {
                 "type": "card",
                 "data": {
-                  "image": "/images/case-demo.jpg",
+                  "image": "/images/company-about-v2.webp",
                   "title": "Manufacturing",
                   "text": "Key processes are kept in-house, with traceable in-process inspection records.",
                   "link": ""
@@ -247,7 +247,7 @@
               {
                 "type": "card",
                 "data": {
-                  "image": "/images/cert-1.jpg",
+                  "image": "/images/certificate-small.webp",
                   "title": "Quality Control",
                   "text": "Every unit is tested before shipment and delivered with an inspection report.",
                   "link": ""

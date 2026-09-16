@@ -9,7 +9,7 @@
         "name": "画像付き問い合わせ誘導",
         "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "xl", "content_v_align": "center", "bg_color": "#eff6ff"},
         "columns": [
-            {"elements": [{"type": "image", "data": {"src": "/assets/images/blox-templates/landing-brand-team.png", "alt": "プロジェクトチームの協働"}}]},
+            {"elements": [{"type": "image", "data": {"src": "/assets/images/blox-templates/landing-brand-team.webp", "alt": "プロジェクトチームの協働"}}]},
             {"elements": [{"type": "heading", "data": {"text": "一緒にプロジェクトを始めませんか？", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}}, {"type": "text", "data": {"html": "<p class=\"yk-copy\">業界、目標、現在の課題をお聞かせください。明確な次のステップをご提案します。</p>"}}, {"type": "button", "data": {"text": "プロジェクト担当者に相談する", "url": "/contact.html", "variant": "primary", "align": "left"}}]}
         ]
     }]}

@@ -9,7 +9,7 @@
         "name": "图文咨询引导",
         "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "xl", "content_v_align": "center", "bg_color": "#eff6ff"},
         "columns": [
-            {"elements": [{"type": "image", "data": {"src": "/assets/images/blox-templates/landing-brand-team.png", "alt": "项目团队协作"}}]},
+            {"elements": [{"type": "image", "data": {"src": "/assets/images/blox-templates/landing-brand-team.webp", "alt": "项目团队协作"}}]},
             {"elements": [{"type": "heading", "data": {"text": "准备好开始合作了吗？", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}}, {"type": "text", "data": {"html": "<p class=\"yk-copy\">告诉我们行业、目标和当前难点，我们会给出清晰的下一步建议。</p>"}}, {"type": "button", "data": {"text": "联系项目顾问", "url": "/contact.html", "variant": "primary", "align": "left"}}]}
         ]
     }]}

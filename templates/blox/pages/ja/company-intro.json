@@ -90,7 +90,7 @@
             "elements": [
               {
                 "type": "image",
-                "data": { "src": "/images/case-demo.jpg", "alt": "社内・施設の写真" }
+                "data": { "src": "/images/company-about-v2.webp", "alt": "社内・施設の写真" }
               }
             ]
           }
@@ -234,7 +234,7 @@
               {
                 "type": "card",
                 "data": {
-                  "image": "/images/case-demo.jpg",
+                  "image": "/images/company-about-v2.webp",
                   "title": "製造",
                   "text": "重要工程は自社で管理し、工程内検査の記録はすべてトレース可能です。",
                   "link": ""
@@ -247,7 +247,7 @@
               {
                 "type": "card",
                 "data": {
-                  "image": "/images/cert-1.jpg",
+                  "image": "/images/certificate-small.webp",
                   "title": "品質管理",
                   "text": "出荷前に全数検査を行い、検査報告書を添付してお届けします。",
                   "link": ""

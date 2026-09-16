@@ -90,7 +90,7 @@
             "elements": [
               {
                 "type": "image",
-                "data": { "src": "/images/case-demo.jpg", "alt": "公司环境照片" }
+                "data": { "src": "/images/company-about-v2.webp", "alt": "公司环境照片" }
               }
             ]
           }
@@ -234,7 +234,7 @@
               {
                 "type": "card",
                 "data": {
-                  "image": "/images/case-demo.jpg",
+                  "image": "/images/company-about-v2.webp",
                   "title": "生产制造",
                   "text": "关键工序自主可控，过程检验记录可追溯。",
                   "link": ""
@@ -247,7 +247,7 @@
               {
                 "type": "card",
                 "data": {
-                  "image": "/images/cert-1.jpg",
+                  "image": "/images/certificate-small.webp",
                   "title": "质量管控",
                   "text": "出厂前逐台检测，随货提供检测报告。",
                   "link": ""
