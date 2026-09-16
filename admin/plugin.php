@@ -397,7 +397,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     x-text="installing === p.slug ? marketText.upgrading : marketText.upgrade"></button>
                         </template>
                         <template x-if="statusOf(p) === 'none' && p.tier === 'pro' && !p.entitled">
-                            <a href="https://www.yikaicms.com/#pricing" target="_blank"
+                            <a href="https://www.yikaicms.com/pro.php" target="_blank" rel="noopener"
                                class="text-sm px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-600 text-white transition cursor-pointer whitespace-nowrap inline-flex items-center gap-1">
                                 <i class="ti ti-key text-sm"></i><?php echo e(__('plugin_get_license')); ?>
                             </a>
@@ -417,7 +417,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <span x-text="p.tier === 'freemium'
                                 ? '<?php echo e(__('plugin_tier_freemium_note')); ?>'
                                 : '<?php echo e(__('plugin_tier_pro_note')); ?>'"></span>
-                            <a href="https://www.yikaicms.com/#pricing" target="_blank"
+                            <a href="https://www.yikaicms.com/pro.php" target="_blank" rel="noopener"
                                class="underline hover:no-underline"><?php echo e(__('plugin_view_license')); ?></a>
                         </p>
                     </template>
