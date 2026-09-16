@@ -98,6 +98,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
+    // 替换图片：保留标题、描述、排序与显示状态，只换图片文件
+    if ($action === 'replace') {
+        $photoId = postInt('photo_id');
+        $photo = albumPhotoModel()->findWhere(['id' => $photoId, 'album_id' => $albumId]);
+        if (!$photo) {
+            error(__('ap_photo_missing'));
+        }
+        if (empty($_FILES['file'])) {
+            error(__('ap_pick_images'));
+        }
+        // 走统一上传：扩展名白名单 + MIME 与 getimagesize 校验 + 超宽压缩
+        $result = uploadFile($_FILES['file'], 'images');
+        if (isset($result['error'])) {
+            error($result['error']);
+        }
+        $oldImage = (string) ($photo['image'] ?? '');
+        $oldThumb = (string) ($photo['thumb'] ?? '');
+        albumPhotoModel()->updateById($photoId, ['image' => $result['url'], 'thumb' => '']);
+        if ($oldImage !== '' && (string) ($album['cover'] ?? '') === $oldImage) {
+            albumModel()->setCover($albumId, $result['url']);
+        }
+        // 旧文件仅在 uploads 内、且不再被任何相册图片/封面或媒体库引用时才删除
+        $uploadsReal = realpath(UPLOADS_PATH);
+        foreach (array_unique(array_filter([$oldImage, $oldThumb])) as $oldUrl) {
+            $path = realpath(ROOT_PATH . $oldUrl);
+            if (!$path || !$uploadsReal || !str_starts_with($path, $uploadsReal . DIRECTORY_SEPARATOR) || !is_file($path)) {
+                continue;
+            }
+            $stillUsed = albumPhotoModel()->count(['image' => $oldUrl]) + albumPhotoModel()->count(['thumb' => $oldUrl])
+                + albumModel()->count(['cover' => $oldUrl]) + mediaModel()->count(['url' => $oldUrl]);
+            if ($stillUsed === 0) {
+                @unlink($path);
+            }
+        }
+        success(['url' => $result['url']]);
+    }
+
     // 删除图片
     if ($action === 'delete') {
         $photoId = postInt('photo_id');
@@ -315,6 +352,20 @@ function ykFallbackCopy(text, cb) {
             <input type="hidden" name="photo_id" id="editPhotoId">
             <div class="p-6 space-y-4">
                 <div>
+                    <div class="relative rounded-lg overflow-hidden bg-gray-100 border" style="aspect-ratio:16/10">
+                        <img id="editPreview" src="" alt="" class="w-full h-full object-contain">
+                    </div>
+                    <div class="mt-2 flex items-center justify-between gap-3">
+                        <p id="editReplaceHint" class="text-xs text-gray-500"><?php echo e(__('ap_replace_hint')); ?></p>
+                        <button type="button" onclick="document.getElementById('editFile').click()"
+                                data-testid="album-photo-replace"
+                                class="shrink-0 px-3 py-1.5 text-sm border border-primary text-primary rounded hover:bg-primary hover:text-white inline-flex items-center gap-1">
+                            <i class="ti ti-replace text-base"></i><?php echo e(__('ap_replace_image')); ?>
+                        </button>
+                    </div>
+                    <input type="file" id="editFile" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden">
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('ap_photo_title')); ?></label>
                     <input type="text" name="title" id="editTitle"
                            class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
@@ -467,28 +518,67 @@ async function setCover(photoId) {
 }
 
 // 编辑图片
+let editPreviewObjectUrl = '';
+function resetEditFile() {
+    const input = document.getElementById('editFile');
+    input.value = '';
+    if (editPreviewObjectUrl) URL.revokeObjectURL(editPreviewObjectUrl);
+    editPreviewObjectUrl = '';
+    document.getElementById('editReplaceHint').textContent = <?php echo json_encode(__('ap_replace_hint'), JSON_UNESCAPED_UNICODE); ?>;
+}
+
+document.getElementById('editFile').addEventListener('change', function () {
+    const file = this.files && this.files[0];
+    if (!file) return;
+    if (editPreviewObjectUrl) URL.revokeObjectURL(editPreviewObjectUrl);
+    editPreviewObjectUrl = URL.createObjectURL(file);
+    document.getElementById('editPreview').src = editPreviewObjectUrl;
+    document.getElementById('editReplaceHint').textContent = <?php echo json_encode(__('ap_replace_pending'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', file.name);
+});
+
 function editPhoto(id, title, description) {
+    resetEditFile();
     document.getElementById('editPhotoId').value = id;
     document.getElementById('editTitle').value = title;
     document.getElementById('editDescription').value = description;
+    const current = document.querySelector(`.photo-item[data-id="${id}"] img`);
+    document.getElementById('editPreview').src = current ? current.getAttribute('src') : '';
     document.getElementById('editModal').classList.remove('hidden');
     document.getElementById('editModal').classList.add('flex');
 }
 
 function closeEditModal() {
+    resetEditFile();
     document.getElementById('editModal').classList.add('hidden');
     document.getElementById('editModal').classList.remove('flex');
 }
 
 async function savePhoto(e) {
     e.preventDefault();
+    const photoId = document.getElementById('editPhotoId').value;
+    const file = document.getElementById('editFile').files[0];
+    if (file) {
+        const replaceData = new FormData();
+        replaceData.append('action', 'replace');
+        replaceData.append('photo_id', photoId);
+        replaceData.append('file', file);
+        const replaced = await safeJson(await fetch('', { method: 'POST', body: replaceData }));
+        if (replaced.code !== 0) {
+            showMessage(replaced.msg || <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+            return;
+        }
+        const img = document.querySelector(`.photo-item[data-id="${photoId}"] img`);
+        if (img) img.src = replaced.data.url;
+    }
     const formData = new FormData(document.getElementById('editForm'));
     formData.append('action', 'update');
     const response = await fetch('', { method: 'POST', body: formData });
     const result = await safeJson(response);
     if (result.code === 0) {
-        showMessage('<?php echo __('admin_saved'); ?>');
+        showMessage(file ? <?php echo json_encode(__('ap_replaced'), JSON_UNESCAPED_UNICODE); ?> : '<?php echo __('admin_saved'); ?>');
         closeEditModal();
+    } else {
+        showMessage(result.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
 
