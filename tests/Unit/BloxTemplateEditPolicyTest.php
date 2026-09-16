@@ -57,7 +57,7 @@ final class BloxTemplateEditPolicyTest extends TestCase
         $api = (string) file_get_contents(ROOT_PATH . '/admin/blox_template_api.php');
         self::assertStringNotContainsString("str_starts_with(\$key, 'remote:')", $api);
         self::assertStringNotContainsString("\$item['locked_reason'] = 'license_missing'", $api);
-        self::assertStringContainsString('BloxTemplateCatalog::resolve($key, $context)', $api);
+        self::assertStringContainsString('BloxTemplateCatalog::resolve($key, $context, bloxTemplateContentLanguage())', $api);
         self::assertStringContainsString('requireBloxTemplateTypePermission($context);', $api);
         self::assertStringContainsString('BloxTemplateEditPolicy::allows($type, $advancedBloxEnabled)', $api);
         $getAction = substr($api, (int) strpos($api, "if (\$action === 'get' && \$method === 'POST')"));

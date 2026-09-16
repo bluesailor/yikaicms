@@ -1,0 +1,44 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "お客様の声",
+    "requires": {
+        "elements": [
+            "quote"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "お客様の声",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "narrow",
+                    "content_v_align": "center"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "quote",
+                                "data": {
+                                    "quote_style": "center",
+                                    "text": "実際のお客様の声をここに掲載しましょう。具体的なプロジェクトや成果に触れた評価は、「対応が良かった」よりもはるかに説得力があります。",
+                                    "author": "〇〇株式会社・購買責任者"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

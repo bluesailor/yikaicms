@@ -108,7 +108,7 @@ final class BloxTemplateCatalog
     }
 
     /** @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,requirements?:array<string,mixed>,design_diagnostics?:array<string,mixed>,package_json?:string,package_version?:string} */
-    public static function resolve(string $key, string $context = 'page'): array
+    public static function resolve(string $key, string $context = 'page', string $language = ''): array
     {
         self::assertContext($context);
         BuilderRegistry::boot();
@@ -117,7 +117,8 @@ final class BloxTemplateCatalog
             return self::resolveLocal((int) $match[1], $key);
         }
         if (preg_match('/^builtin:([a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?)$/', $key, $match) === 1) {
-            return (new BloxBuiltinTemplateProvider())->resolve($match[1], $context);
+            // 内置模板随包带英/日译文；本地、插件、远程模板按原内容导入
+            return (new BloxBuiltinTemplateProvider())->resolve($match[1], $context, $language);
         }
         if (preg_match('/^plugin:([a-z0-9][a-z0-9-]*):([a-zA-Z0-9][a-zA-Z0-9._-]*)$/', $key, $match) === 1) {
             return self::resolvePlugin($match[1], $match[2], $key, $context);

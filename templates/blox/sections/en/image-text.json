@@ -1,0 +1,88 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Company story split",
+    "requires": {
+        "elements": [
+            "heading",
+            "divider",
+            "text",
+            "button",
+            "image"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "Company profile (image and text)",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide",
+                    "gap": "xl",
+                    "content_v_align": "center"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "heading",
+                                "data": {
+                                    "text": "Who we are",
+                                    "level": "h2",
+                                    "visual_size": {
+                                        "d": "3xl",
+                                        "m": "2xl"
+                                    },
+                                    "align": "left"
+                                }
+                            },
+                            {
+                                "type": "divider",
+                                "data": {
+                                    "style": "solid",
+                                    "width": 3,
+                                    "color": "#2563eb",
+                                    "spacing": "sm"
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "data": {
+                                    "html": "<p class=\"yk-copy\">Use this paragraph for your company's background and positioning: when and why it was founded, and what your core business is.</p><p class=\"yk-copy\">Use the second paragraph for scale and capabilities: facility size, equipment, certifications, team makeup, and annual output or service volume. Let verifiable facts do the work instead of adjectives.</p><p class=\"yk-copy\">Use the third paragraph for clients and partnerships: the industries you serve, typical client types, and how you work with them.</p>"
+                                }
+                            },
+                            {
+                                "type": "button",
+                                "data": {
+                                    "text": "Contact us",
+                                    "url": "/contact.html",
+                                    "variant": "primary",
+                                    "align": "left"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "image",
+                                "data": {
+                                    "src": "/images/case-demo.jpg",
+                                    "alt": "Photo of our company premises"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

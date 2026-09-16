@@ -1,0 +1,44 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Customer quote",
+    "requires": {
+        "elements": [
+            "quote"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "Customer testimonial",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "narrow",
+                    "content_v_align": "center"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "quote",
+                                "data": {
+                                    "quote_style": "center",
+                                    "text": "Put a genuine piece of customer feedback here. A review that names a specific project and result is far more convincing than “great service.”",
+                                    "author": "Client name · Head of Procurement"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

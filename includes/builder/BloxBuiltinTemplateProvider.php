@@ -196,13 +196,13 @@ final class BloxBuiltinTemplateProvider
     /**
      * @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,requirements:array<string,mixed>,design_diagnostics:array<string,mixed>,package_json:string,package_version:string}
      */
-    public function resolve(string $slug, string $context = 'page'): array
+    public function resolve(string $slug, string $context = 'page', string $language = ''): array
     {
         $preset = self::PRESETS[$slug] ?? null;
         if ($preset === null || !in_array($context, $preset['contexts'], true)) {
             throw new RuntimeException(__('blox_builtin_template_not_found'));
         }
-        $json = file_get_contents(self::packagePath((string) $preset['type'], (string) $preset['file']));
+        $json = file_get_contents(self::localizedPackagePath((string) $preset['type'], (string) $preset['file'], $language));
         if (!is_string($json)) {
             throw new RuntimeException(__('blox_builtin_template_unreadable'));
         }
@@ -225,6 +225,20 @@ final class BloxBuiltinTemplateProvider
             'package_json' => $json,
             'package_version' => '',
         ];
+    }
+
+    /**
+     * 按页面内容语言取译文包：templates/blox/{sections|pages}/{lang}/{file}；
+     * 没有该语言译文时用原包（中文）。
+     */
+    public static function localizedPackagePath(string $type, string $file, string $language): string
+    {
+        $base = self::packagePath($type, $file);
+        if (preg_match('/^[a-z]{2}(?:-[A-Z]{2})?$/D', $language) !== 1 || $language === 'zh-CN') {
+            return $base;
+        }
+        $localized = dirname($base) . '/' . $language . '/' . basename($base);
+        return is_file($localized) ? $localized : $base;
     }
 
     private static function packagePath(string $type, string $file): string

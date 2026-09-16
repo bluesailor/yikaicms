@@ -29,6 +29,13 @@ require_once ROOT_PATH . '/includes/builder/detail-editor-bootstrap.php';
 
 header('Cache-Control: no-store, max-age=0');
 
+/** 编辑中页面的内容语言（编辑器随请求带 lang）；内置模板据此选英/日译文，只认已启用语言。 */
+function bloxTemplateContentLanguage(): string
+{
+    $language = trim((string) ($_POST['lang'] ?? $_GET['lang'] ?? ''));
+    return $language !== '' && isset(enabledLanguages()[$language]) ? $language : '';
+}
+
 $requireTemplateLicense = static function (string $type) use ($advancedBloxEnabled): void {
     if (!BloxTemplateEditPolicy::allows($type, $advancedBloxEnabled)) {
         error(__('blox_feature_disabled'));
@@ -519,7 +526,7 @@ try {
         $context = (string) post('context', 'page');
         requireBloxTemplateTypePermission($context);
         $key = trim((string) post('key', ''));
-        $template = BloxTemplateCatalog::resolve($key, $context);
+        $template = BloxTemplateCatalog::resolve($key, $context, bloxTemplateContentLanguage());
         requireBloxTemplateTypePermission((string) ($template['type'] ?? $context));
         // package_json 是服务端发评审记录用的包原文，绝不出浏览器。
         unset($template['package_json'], $template['package_version']);
@@ -543,7 +550,7 @@ try {
         $context = (string) post('context', 'page');
         requireBloxTemplateTypePermission($context);
         $key = trim((string) post('key', ''));
-        $template = BloxTemplateCatalog::resolve($key, $context);
+        $template = BloxTemplateCatalog::resolve($key, $context, bloxTemplateContentLanguage());
         requireBloxTemplateTypePermission((string) ($template['type'] ?? $context));
         $packageJson = (string) ($template['package_json'] ?? '');
         $packageVersion = (string) ($template['package_version'] ?? '');

@@ -1,0 +1,68 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Value proposition grid",
+    "requires": {
+        "elements": [
+            "icon-box"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "Three-column strengths",
+                "settings": {
+                    "padding": {
+                        "d": "md",
+                        "m": "sm"
+                    },
+                    "max_width": "wide",
+                    "gap": "lg"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "icon-box",
+                                "data": {
+                                    "icon": "certificate",
+                                    "title": "Fully certified",
+                                    "text": "Certified to major industry standards, with complete quality inspection and compliance documentation."
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "icon-box",
+                                "data": {
+                                    "icon": "adjustments",
+                                    "title": "Tailored solutions",
+                                    "text": "We stay involved from selection to implementation, adapting each solution to your operating conditions instead of offering off-the-shelf products."
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "icon-box",
+                                "data": {
+                                    "icon": "headset",
+                                    "title": "Long-term support",
+                                    "text": "Delivery isn't the finish line. We respond promptly during the warranty period and keep supplying spare parts afterward."
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,308 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "Company Profile",
+  "thumbnail": "/assets/images/blox-templates/company-intro.svg",
+  "requires": {
+    "elements": ["heading", "text", "image", "button", "divider", "icon-box", "card", "quote", "stats-group", "stat-item", "cta"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "Page Header",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "narrow",
+          "gap": "sm",
+          "content_v_align": "center"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p class=\"yk-eyebrow\">About us</p>"
+                }
+              },
+              {
+                "type": "heading",
+                "data": {
+                  "text": "Expertise and reliability that help our clients grow for the long term",
+                  "level": "h1",
+                  "visual_size": { "d": "5xl", "t": "4xl", "m": "3xl" },
+                  "align": "left"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p class=\"yk-lead\">Use two or three sentences here to explain what your company does, who you serve, and what sets you apart. Be specific: your industry, founding year and main products or services are far more memorable than vague adjectives.</p>"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "Company Overview (Image + Text)",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "xl",
+          "content_v_align": "center"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "Who We Are",
+                  "level": "h2",
+                  "visual_size": { "d": "3xl", "m": "2xl" },
+                  "align": "left"
+                }
+              },
+              {
+                "type": "divider",
+                "data": { "style": "solid", "width": 3, "color": "#2563eb", "spacing": "sm" }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p class=\"yk-copy\">Use this paragraph for your company's background and positioning: when and why it was founded, and what your core business is.</p><p class=\"yk-copy\">Use the second paragraph for scale and capabilities: facility size, equipment, certifications, team makeup, and annual capacity or service volume. Replace adjectives with verifiable facts.</p><p class=\"yk-copy\">Use the third paragraph for clients and partnerships: the industries you serve, typical client types and how you work together.</p>"
+                }
+              },
+              {
+                "type": "button",
+                "data": { "text": "Contact Us", "url": "/contact.html", "variant": "primary", "align": "left" }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "image",
+                "data": { "src": "/images/case-demo.jpg", "alt": "Photo of our company facilities" }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "Key Figures",
+        "settings": {
+          "padding": { "d": "lg", "m": "md" },
+          "max_width": "wide",
+          "bg_color": "#f8fafc"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "stats-group",
+                "data": {
+                  "desktop_columns": "4",
+                  "tablet_columns": "2",
+                  "mobile_columns": "2",
+                  "gap": "lg",
+                  "counter_enabled": true,
+                  "counter_start": 0,
+                  "counter_duration": 1600,
+                  "children": [
+                    { "type": "stat-item", "data": { "icon": "calendar", "number": "2008", "label": "Year Founded" } },
+                    { "type": "stat-item", "data": { "icon": "users", "number": "120", "label": "Team Members" } },
+                    { "type": "stat-item", "data": { "icon": "building-factory-2", "number": "3000", "label": "Facility Area (㎡)" } },
+                    { "type": "stat-item", "data": { "icon": "world", "number": "26", "label": "Countries & Regions Served" } }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "Our Strengths",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "lg"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "Why Choose Us",
+                  "level": "h2",
+                  "visual_size": { "d": "3xl", "m": "2xl" },
+                  "align": "center"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p class=\"yk-hint-center\">List three or four of your most compelling reasons. In one sentence each, state what the client gains, not what you have.</p>"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "Strengths (3 Columns)",
+        "settings": {
+          "padding": { "d": "md", "m": "sm" },
+          "max_width": "wide",
+          "gap": "lg"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "certificate",
+                  "title": "Fully Certified",
+                  "text": "Certified to major industry standards, with complete quality inspection and compliance documentation."
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "adjustments",
+                  "title": "Tailored Solutions",
+                  "text": "We stay involved from selection to implementation, adapting solutions to your operating conditions instead of forcing a standard product."
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "headset",
+                  "title": "Long-Term Support",
+                  "text": "Delivery is not the finish line: we provide responsive service during the warranty period and ongoing spare parts support."
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "Capabilities",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "lg",
+          "bg_color": "#f8fafc"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "card",
+                "data": {
+                  "image": "/assets/images/demo/yikaicms-industrial-600.webp",
+                  "title": "R&D and Design",
+                  "text": "Our in-house design team handles custom, non-standard projects and structural optimization.",
+                  "link": ""
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "card",
+                "data": {
+                  "image": "/images/case-demo.jpg",
+                  "title": "Manufacturing",
+                  "text": "Key processes are kept in-house, with traceable in-process inspection records.",
+                  "link": ""
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "card",
+                "data": {
+                  "image": "/images/cert-1.jpg",
+                  "title": "Quality Control",
+                  "text": "Every unit is tested before shipment and delivered with an inspection report.",
+                  "link": ""
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "Client Testimonial",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "narrow",
+          "content_v_align": "center"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "quote",
+                "data": {
+                  "text": "Place a genuine client quote here. Feedback that mentions a specific project and result is far more convincing than “great service.”",
+                  "author": "Client Name · Procurement Manager"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "Call to Action",
+        "settings": {
+          "padding": { "d": "lg", "m": "md" },
+          "max_width": "wide"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "cta",
+                "data": {
+                  "use_home_text": false,
+                  "title": "Want to see what we can do for you?",
+                  "text": "Tell us what you need and we will reply within one business day.",
+                  "btn_text": "Get in Touch",
+                  "btn_url": "/contact.html"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

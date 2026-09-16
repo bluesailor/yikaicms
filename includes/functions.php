@@ -640,13 +640,24 @@ function langDataFor(string $lang): array
  */
 function withSiteLanguageStrings(callable $render): mixed
 {
+    return withLanguageStrings(siteLang(), $render);
+}
+
+/**
+ * 回调期间 __() 按指定内容语言取文案（如英文页面的编辑器插入元素时的占位内容），结束后恢复。
+ *
+ * @template T
+ * @param callable(): T $render
+ * @return T
+ */
+function withLanguageStrings(string $language, callable $render): mixed
+{
     global $_LANG_DATA;
-    $site = siteLang();
-    if ($site === getLang()) {
+    if ($language === '' || $language === getLang()) {
         return $render();
     }
     $saved = loadLangData();
-    $_LANG_DATA = array_merge($saved, langDataFor($site));
+    $_LANG_DATA = array_merge($saved, langDataFor($language));
     try {
         return $render();
     } finally {

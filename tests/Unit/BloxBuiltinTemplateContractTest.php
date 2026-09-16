@@ -225,4 +225,53 @@ final class BloxBuiltinTemplateContractTest extends TestCase
             }
         }
     }
+
+    /**
+     * 英文/日文编辑器插入内置区块、导入整页时取对应语言的译文包。
+     * 译文只换文字：结构、枚举值、链接、图片必须与中文原包逐项一致，且能过导入管线。
+     */
+    public function testEveryBuiltinTemplateShipsEnglishAndJapaneseWithIdenticalStructure(): void
+    {
+        $shape = static function (mixed $value) use (&$shape): mixed {
+            return is_array($value) ? array_map($shape, $value) : (is_string($value) ? 'string' : $value);
+        };
+        $sources = glob(ROOT_PATH . '/templates/blox/{sections,pages}/*.json', GLOB_BRACE) ?: [];
+        self::assertNotEmpty($sources);
+        foreach ($sources as $source) {
+            $original = json_decode((string) file_get_contents($source), true);
+            foreach (['en', 'ja'] as $language) {
+                $file = dirname($source) . '/' . $language . '/' . basename($source);
+                $label = basename(dirname($source)) . '/' . $language . '/' . basename($source);
+                self::assertFileExists($file, $label . ' 缺少译文');
+                $raw = (string) file_get_contents($file);
+                $translated = json_decode($raw, true);
+                // 形状比较同时锁定键、键序、数组长度与所有非文字值
+                self::assertSame($shape($original), $shape($translated), $label . ' 结构或非文字值与原包不一致');
+                self::assertNotEmpty(BloxTemplateImporter::prepare($raw)['sections'], $label);
+                if ($language === 'en') {
+                    self::assertDoesNotMatchRegularExpression('/[\x{4e00}-\x{9fff}]/u', $raw, $label . ' 英文包里仍有中文');
+                } else {
+                    self::assertMatchesRegularExpression('/[\x{3040}-\x{30ff}]/u', $raw, $label . ' 日文包里没有假名');
+                }
+            }
+        }
+    }
+
+    public function testResolveUsesTheEditorContentLanguageAndFallsBackToTheOriginal(): void
+    {
+        $provider = new BloxBuiltinTemplateProvider();
+        $heading = static fn(array $template): string => (string) $template['sections'][0]['columns'][0]['elements'][1]['data']['text'];
+        $original = $heading($provider->resolve('contact-connect', 'page'));
+        $english = $heading($provider->resolve('contact-connect', 'page', 'en'));
+        $japanese = $heading($provider->resolve('contact-connect', 'page', 'ja'));
+
+        self::assertMatchesRegularExpression('/[\x{4e00}-\x{9fff}]/u', $original);
+        self::assertDoesNotMatchRegularExpression('/[\x{4e00}-\x{9fff}]/u', $english);
+        self::assertMatchesRegularExpression('/[\x{3040}-\x{30ff}]/u', $japanese);
+        // 导入评审记录的包原文就是实际插入的译文包
+        self::assertStringContainsString($english, $provider->resolve('contact-connect', 'page', 'en')['package_json']);
+        foreach (['zh-CN', 'zh-TW', '../en', 'EN'] as $fallback) {
+            self::assertSame($original, $heading($provider->resolve('contact-connect', 'page', $fallback)), $fallback);
+        }
+    }
 }
