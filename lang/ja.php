@@ -3334,6 +3334,8 @@ return [
     'ap_replace_pending' => ':name を選択しました。保存すると現在の画像と差し替えます。',
     'ap_replaced' => '画像を差し替えました',
     'ap_photo_missing' => '画像が存在しないか、削除されています',
+    'ap_type_not_allowed' => 'JPG・PNG・GIF・WEBP 画像のみアップロードできます',
+    'ap_uploaded_partial' => ':n 枚アップロード、:m 枚は検証を通過しませんでした：:names',
     'ap_del_confirm' => 'この画像を削除しますか？',
     'ap_del_n_confirm' => '選択した :n 枚の画像を削除しますか？',
     'org_demo_ceo_name' => '氏名',
