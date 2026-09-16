@@ -1,6 +1,6 @@
 <?php
 /**
- * 远程精品区块（首批十二款）打包与校验。
+ * 远程精品区块（首批十二款 + PRO 价格方案三款）打包与校验。
  *
  * 只做「资源准备」：把暂存的随包区块包装成市场契约的模板包 + 目录条目元数据，
  * 逐个过真实的 BloxTemplateImporter 管线证明可导入，并核对元素注册与素材存在。
@@ -109,6 +109,26 @@ $catalog = [
         'desc' => ['zh-CN' => '一句主张加一个按钮的窄条，放在页面收尾促成联系。',
                    'en' => 'A slim band with one claim and one button, placed at the end of a page to prompt contact.',
                    'ja' => '主張とボタンだけの細いバー。ページ末尾で問い合わせを促します。']],
+
+    // ── 价格方案（PRO：需购买授权码且在授权有效期内才可导入；基础版随包提供 pricing-plans）──
+    'pricing-billing-toggle' => ['category' => 'products', 'direction' => '按月/按年切换价格', 'source' => 'pricing-billing-toggle',
+        'access' => 'licensed', 'module' => 'blox',
+        'name' => ['zh-CN' => '按月/按年价格方案', 'en' => 'Pricing with billing switch', 'ja' => '月払い/年払い切替の料金表'],
+        'desc' => ['zh-CN' => '三档套餐带按月/按年切换与优惠提示，推荐档整卡高亮，适合 SaaS 与服务订阅。',
+                   'en' => 'Three plans with a monthly/yearly switch and savings note; the recommended plan is fully highlighted.',
+                   'ja' => '月払い/年払いの切り替えとお得表示付きの 3 プラン。おすすめプランを全面ハイライト。']],
+    'pricing-dark-four' => ['category' => 'products', 'direction' => '深色四档价格', 'source' => 'pricing-dark-four',
+        'access' => 'licensed', 'module' => 'blox',
+        'name' => ['zh-CN' => '深色四档价格', 'en' => 'Four-tier pricing on dark', 'ja' => 'ダーク背景の 4 プラン料金表'],
+        'desc' => ['zh-CN' => '深色通栏背景上的四档方案，从免费试用到私有化部署，一屏看清升级路径。',
+                   'en' => 'Four tiers on a full-width dark band, from free trial to self-hosted, showing the upgrade path at a glance.',
+                   'ja' => '全幅ダーク背景に 4 プラン。無料トライアルからオンプレミスまで一目で比較できます。']],
+    'pricing-faq' => ['category' => 'products', 'direction' => '价格与常见问题', 'source' => 'pricing-faq',
+        'access' => 'licensed', 'module' => 'blox',
+        'name' => ['zh-CN' => '价格与常见问题', 'en' => 'Pricing with FAQ', 'ja' => '料金表とよくある質問'],
+        'desc' => ['zh-CN' => '左侧购买答疑、右侧两档方案，边看价格边解决顾虑，适合项目制报价。',
+                   'en' => 'Buying questions on the left and two plans on the right, answering doubts next to the prices.',
+                   'ja' => '左に購入前の質問、右に 2 プラン。価格を見ながら不安を解消できます。']],
 ];
 
 $version = '1.0.0';
@@ -122,6 +142,9 @@ foreach ($catalog as $slug => $meta) {
         'category' => $meta['category'],
         'direction' => $meta['direction'],
         'version' => $version,
+        // 未声明的沿用服务端目录配置；声明 licensed 的上架为付费模板（tier=pro + module）
+        'access' => $meta['access'] ?? null,
+        'module' => $meta['module'] ?? null,
         'name' => $meta['name'],
         'description' => $meta['desc'],
         'status' => 'ok',

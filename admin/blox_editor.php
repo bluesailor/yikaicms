@@ -4098,6 +4098,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.highlightCanvasSelection(false);
             },
 
+            <?php require __DIR__ . '/blox_editor/partials/pricing-methods.php'; ?>
             orgNodes(el) {
                 var node = el || this.selEl;
                 if (!node || node.type !== "org-chart") return [];
