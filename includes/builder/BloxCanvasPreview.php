@@ -1460,6 +1460,24 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             if (shouldScroll && fieldTarget) fieldTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             return;
         }
+        if (d.ykHighlightRegion && typeof d.ykHighlightRegion === 'object'
+            && typeof d.ykHighlightRegion.id === 'string' && d.ykHighlightRegion.id
+            && typeof d.ykHighlightRegion.region === 'string' && d.ykHighlightRegion.region) {
+            var regionHost = document.querySelector('[data-yk-el-id="' + cssEscape(d.ykHighlightRegion.id) + '"]');
+            if (regionHost) {
+                var regionPath = regionHost.getAttribute('data-yk-el') || '';
+                if (regionPath) highlightEl(regionPath);
+                var regionNode = regionHost.querySelector('[data-catalog-region="' + cssEscape(d.ykHighlightRegion.region) + '"]');
+                if (regionNode) {
+                    if (shouldScroll) {
+                        var regionBox = boxNode(regionNode) || regionNode;
+                        regionBox.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                    }
+                    flashRegion(regionNode);
+                }
+            }
+            return;
+        }
         if (typeof d.ykHighlightElementId === 'string' && d.ykHighlightElementId) {
             var stableElement = document.querySelector('[data-yk-el-id="' + cssEscape(d.ykHighlightElementId) + '"]');
             if (stableElement) {
@@ -1664,6 +1682,20 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
     function cssEscape(v) {
         if (window.CSS && CSS.escape) return CSS.escape(v);
         return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    }
+
+    // 复合元素区域（如 product-catalog 的 工具栏/分类/列表/分页）短暂高亮：
+    // 结构树点击区域时给画布对应位置一个可见反馈；内联样式，无需重编 CSS。
+    function flashRegion(node) {
+        if (!node) return;
+        var prevOutline = node.style.outline;
+        var prevOffset = node.style.outlineOffset;
+        node.style.outline = '2px solid #3b82f6';
+        node.style.outlineOffset = '2px';
+        setTimeout(function () {
+            node.style.outline = prevOutline;
+            node.style.outlineOffset = prevOffset;
+        }, 1200);
     }
 
     function hideDropLine() {

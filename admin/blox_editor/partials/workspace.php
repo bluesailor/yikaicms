@@ -3162,6 +3162,31 @@ declare(strict_types=1);
                                                           data-drop-intent="inside" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'"
                                                           x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
                                                 </div>
+                                                <!-- 复合元素命名区域：稳定、可选中、可展开；不是可删除的 children -->
+                                                <template x-if="elRegions(el.type).length > 0">
+                                                    <div class="ml-3 pl-1.5 border-l border-gray-200 py-0.5"
+                                                         :data-si="si" :data-ci="ci" :data-ei="ei" data-catalog-regions>
+                                                        <button type="button" @click.stop="toggleRegionGroup(el)"
+                                                                :data-testid="'blox-tree-regions-toggle-' + (el.id || '')"
+                                                                :aria-expanded="regionGroupOpen(el) ? 'true' : 'false'"
+                                                                class="w-full flex items-center gap-1 pl-1 pr-1 py-0.5 rounded text-[10px] text-gray-400 hover:text-gray-600">
+                                                            <i class="ti ti-chevron-right text-[10px] transition" :class="regionGroupOpen(el) ? 'rotate-90' : ''"></i>
+                                                            <span><?= e(__('blox_catalog_regions_group')) ?></span>
+                                                        </button>
+                                                        <div x-show="regionGroupOpen(el)" class="space-y-0.5">
+                                                            <template x-for="region in elRegions(el.type)" :key="region.key">
+                                                                <div @click.stop="selectElementRegion(si, ci, ei, region.key)"
+                                                                     :data-testid="'blox-tree-region-' + region.key"
+                                                                     :data-selected="(isElSelected(si, ci, ei) && selectedRegion === region.key) ? '1' : '0'"
+                                                                     class="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer transition"
+                                                                     :class="(isElSelected(si, ci, ei) && selectedRegion === region.key) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'">
+                                                                    <i class="ti text-xs shrink-0" :class="'ti-' + region.icon"></i>
+                                                                    <span class="text-xs truncate flex-1" x-text="region.label"></span>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </template>
                                                 <!-- 容器：子元素嵌套一层（图层式） -->
                                                 <template x-if="elSchema(el.type).container && (el.type !== 'home-block' || String((el.data || {}).block_type || '') === 'banner')">
                                                     <div class="ml-3 pl-1.5 border-l border-gray-200" :data-si="si" :data-ci="ci" :data-ei="ei" data-sort-children>
