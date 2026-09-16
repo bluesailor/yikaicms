@@ -22,6 +22,7 @@ return [
         'includes/HomeSettingsLanguageDefaults.php',
         'includes/http_response.php',
         'includes/language_request.php',
+        'includes/lang_url.php',
         'includes/FooterNavigation.php',
         'includes/ProductIdentity.php',
         'includes/frontend_preview.php',
