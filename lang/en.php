@@ -7140,4 +7140,5 @@ voltage|Voltage|220V',
     'product_url_language' => 'The URL language prefix must match the content language; the default language may omit it.',
     'product_url_upgrade' => 'Run the database upgrade before configuring custom URLs.',
     'product_url_missing' => 'This content no longer exists. Refresh the list.',
+    'theme_default_update_notice' => 'This updates the bundled Default theme files and keeps a backup of the previous files. Direct theme-file edits will be replaced; Blox designs, site settings and uploaded media will not be changed.',
 ];

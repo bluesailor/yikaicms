@@ -37,6 +37,7 @@ final class ThemeMarketTest extends TestCase
         self::assertSame('business & design', $query['q']);
         self::assertSame(license_key(), $query['key']);
         self::assertSame(license_domain(), $query['domain']);
+        self::assertSame('default-update-v1', $query['capabilities']);
         self::assertCount(1, $response['data']['themes']);
         self::assertSame('business', $response['data']['themes'][0]['slug']);
         self::assertSame('sha256:' . str_repeat('a', 64), $response['data']['themes'][0]['hash']);
@@ -191,7 +192,7 @@ final class ThemeMarketTest extends TestCase
         self::assertIsInt($gate);
         self::assertIsInt($download);
         self::assertLessThan($download, $gate);
-        self::assertStringContainsString("->install(\$tmpZip, \$slug, \$remoteVersion, (string) (\$item['source'] ?? 'official'))", $source);
+        self::assertStringContainsString("->install(\$tmpZip, \$slug, \$remoteVersion, (string) (\$item['source'] ?? 'official'), (string) (\$item['sig'] ?? ''))", $source);
         $originGate = strpos($source, '$data = ThemeMarket::withInstalledOrigins');
         self::assertIsInt($originGate);
         self::assertLessThan($download, $originGate);

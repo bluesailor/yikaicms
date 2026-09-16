@@ -21,7 +21,8 @@ final class ThemeMarket
      */
     public static function request(string $query = '', ?callable $transport = null): ?array
     {
-        $url = self::API . '?' . MarketCatalogRequest::query($query);
+        // capabilities：告知官方 API 本站支持签名校验的 default 主题更新
+        $url = self::API . '?' . MarketCatalogRequest::query($query) . '&capabilities=default-update-v1';
         $body = $transport !== null ? $transport($url) : self::httpGet($url);
         if (!is_string($body) || $body === '') {
             return null;

@@ -113,12 +113,13 @@ $bg = getBlockBg($block ?? [], '@auto');
                     $aboutTagBackground = AbstractElement::cssColor(config('home_about_tag_background', '')) ?: 'rgba(239,246,255,0.94)';
                     $aboutTagColor = AbstractElement::cssColor(config('home_about_tag_color', '')) ?: '#1e3a8a';
                     ?>
-                    <div class="absolute bottom-4 left-4 px-4 py-3 rounded-lg shadow-lg" style="background-color:<?php echo e($aboutTagBackground); ?>;color:<?php echo e($aboutTagColor); ?>">
+                    <?php // yk-default-about-badge 提供柔和描边/阴影与换行；可配置的底色与文字色走内联样式优先 ?>
+                    <div class="yk-default-about-badge absolute bottom-4 left-4 px-4 py-3 rounded-lg" style="background-color:<?php echo e($aboutTagBackground); ?>;color:<?php echo e($aboutTagColor); ?>">
                         <?php if ($aboutTagTitle): ?>
                         <div class="font-bold text-lg"><?php echo e($aboutTagTitle); ?></div>
                         <?php endif; ?>
                         <?php if ($aboutTagDesc): ?>
-                        <div class="text-sm opacity-90"><?php echo e($aboutTagDesc); ?></div>
+                        <div class="text-sm"><?php echo e($aboutTagDesc); ?></div>
                         <?php endif; ?>
                     </div>
                     <?php endif; ?>
