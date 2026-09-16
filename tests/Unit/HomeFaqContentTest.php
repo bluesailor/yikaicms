@@ -88,6 +88,58 @@ final class HomeFaqContentTest extends TestCase
         self::assertSame('My own question', $localized['columns'][0]['elements'][0]['data']['items'][1]['question']);
     }
 
+    public function testEditorShowsTheEditingLanguageAndSavesEditsIntoThatTranslation(): void
+    {
+        $this->seed();
+        $section = HomeFaqContent::toSection(['block_type' => 'custom:2'], 'native');
+        $element = &$section['columns'][0]['elements'][0];
+        $element['data'][HomeFaqContent::KEY]['translations']['ja'] = [
+            'title' => 'よくある質問', 'subtitle' => 'サポート',
+            'items' => [['question' => '一つ目？', 'answer' => '回答一'], ['question' => '二つ目？', 'answer' => '回答二']],
+        ];
+        // 中文编辑器里改过第二条答案：日语面板只翻译问题，答案保留中文改动
+        $element['data']['items'][1]['answer'] = 'Edited in Chinese';
+        unset($element);
+        $shared = $section;
+
+        self::assertSame([$shared], HomeFaqContent::forEditor([$shared], 'zh-CN'));
+        $view = HomeFaqContent::forEditor([$shared], 'ja')[0];
+        $items = $view['columns'][0]['elements'][0]['data']['items'];
+        self::assertSame('よくある質問', $view['settings']['title']);
+        self::assertSame(['一つ目？', '回答一'], [$items[0]['question'], $items[0]['answer']]);
+        self::assertSame(['二つ目？', 'Edited in Chinese'], [$items[1]['question'], $items[1]['answer']]);
+
+        // 未改动保存：共享文档原样还原，不带编辑标记
+        $unchanged = json_decode(HomeFaqContent::fromEditorJson(json_encode(['sections' => [$view]], JSON_THROW_ON_ERROR)), true);
+        self::assertSame($shared, $unchanged['sections'][0]);
+
+        // 日语编辑：问题、标题写进日语译文；新增行按普通内容保留；复制行不抢占同一条译文
+        $view['settings']['title'] = '質問集';
+        $viewItems = &$view['columns'][0]['elements'][0]['data']['items'];
+        $viewItems[0]['question'] = '購入方法は？';
+        $viewItems[1]['answer'] = 'Changed again';
+        $viewItems[] = $viewItems[0];
+        $viewItems[] = ['question' => '新しい質問', 'answer' => '新しい回答'];
+        unset($viewItems);
+        $saved = BloxDocumentPipeline::process(HomeFaqContent::fromEditorJson(json_encode([$view], JSON_THROW_ON_ERROR)))['sections'][0];
+        $data = $saved['columns'][0]['elements'][0]['data'];
+        self::assertArrayNotHasKey(HomeFaqContent::EDIT_KEY, $data);
+        self::assertSame('FAQ', $saved['settings']['title']);
+        self::assertSame(['question' => 'First?', 'answer' => 'Answer one'], $data['items'][0]);
+        self::assertSame(['question' => 'Second?', 'answer' => 'Changed again'], $data['items'][1]);
+        self::assertSame(['question' => '購入方法は？', 'answer' => '回答一'], $data['items'][2]);
+        self::assertSame(['question' => '新しい質問', 'answer' => '新しい回答'], $data['items'][3]);
+        $ja = $data[HomeFaqContent::KEY]['translations']['ja'];
+        self::assertSame('質問集', $ja['title']);
+        self::assertSame('購入方法は？', $ja['items'][0]['question']);
+        self::assertSame('回答二', $ja['items'][1]['answer']);
+
+        $render = HomeFaqContent::localize($saved, 'ja');
+        self::assertSame('質問集', $render['settings']['title']);
+        self::assertSame('購入方法は？', $render['columns'][0]['elements'][0]['data']['items'][0]['question']);
+        self::assertSame('First?', HomeFaqContent::localize($saved, 'zh-CN')['columns'][0]['elements'][0]['data']['items'][0]['question']);
+    }
+
     public function testMixedCustomContentIsNeverSilentlyDropped(): void
     {
         $this->seed();

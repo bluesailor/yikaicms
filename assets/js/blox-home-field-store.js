@@ -96,6 +96,8 @@
                     answer: String(source.answer ?? ""),
                 };
                 if (source.answer_format === "html") result.answer_format = "html";
+                // 按语言编辑首页 FAQ 的译文标记，保存时由服务端写回对应语言
+                if (source._i18n && typeof source._i18n === "object") result._i18n = source._i18n;
                 return result;
             });
         }

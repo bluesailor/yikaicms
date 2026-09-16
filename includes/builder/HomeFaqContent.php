@@ -6,6 +6,9 @@ declare(strict_types=1);
 final class HomeFaqContent
 {
     public const KEY = '_home_faq_i18n';
+    /** Editor-only markers: which visible fields are translations, so a save writes them back to that language. */
+    public const EDIT_KEY = '_home_faq_edit';
+    public const ITEM_EDIT_KEY = '_i18n';
 
     /** @param array<string,mixed> $block @param list<string>|null $languages @return array<string,mixed>|null */
     public static function toSection(array $block, string $prefix, ?array $languages = null): ?array
@@ -47,7 +50,7 @@ final class HomeFaqContent
     }
 
     /** Read-only localization; a manually edited field keeps its new value. @param array<string,mixed> $section @return array<string,mixed> */
-    public static function localize(array $section, ?string $language = null): array
+    public static function localize(array $section, ?string $language = null, bool $forEditor = false): array
     {
         $language ??= siteLang();
         foreach ($section['columns'] ?? [] as $ci => $column) {
@@ -65,17 +68,22 @@ final class HomeFaqContent
                 if (!is_array($target)) {
                     continue;
                 }
+                $fields = [];
                 foreach (['title', 'subtitle'] as $field) {
                     if (is_string($target[$field] ?? null) && is_string($binding['source'][$field] ?? null)
                         && ($section['settings'][$field] ?? '') === $binding['source'][$field]) {
                         $section['settings'][$field] = $target[$field];
+                        $fields[] = $field;
                     }
                 }
                 $items = $target['items'] ?? null;
                 if (is_array($items) && is_array($binding['source']['items'] ?? null) && is_array($data['items'] ?? null)) {
                     $section['columns'][$ci]['elements'][$ei]['data']['items'] = self::localizeItems(
-                        $data['items'], $binding['source']['items'], $items
+                        $data['items'], $binding['source']['items'], $items, $forEditor
                     );
+                }
+                if ($forEditor) {
+                    $section['columns'][$ci]['elements'][$ei]['data'][self::EDIT_KEY] = ['lang' => $language, 'fields' => $fields];
                 }
             }
         }
@@ -132,8 +140,118 @@ final class HomeFaqContent
         return $section;
     }
 
+    /**
+     * Homepage editor view in one language: the panel shows the same translated text as the canvas.
+     * @param array<int,mixed> $sections @return array<int,mixed>
+     */
+    public static function forEditor(array $sections, string $language): array
+    {
+        foreach ($sections as $index => $section) {
+            if (is_array($section)) {
+                $sections[$index] = self::localize($section, $language, true);
+            }
+        }
+        return $sections;
+    }
+
+    /**
+     * Reverse forEditor() before saving: marked fields go back into their translation and the shared
+     * document keeps the source-language text, so editing Japanese never overwrites Chinese.
+     */
+    public static function fromEditorJson(string $json): string
+    {
+        if (!str_contains($json, self::EDIT_KEY)) {
+            return $json;
+        }
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) {
+            return $json;
+        }
+        $isList = array_is_list($decoded);
+        $sections = $isList ? $decoded : ($decoded['sections'] ?? null);
+        if (!is_array($sections)) {
+            return $json;
+        }
+        foreach ($sections as $index => $section) {
+            if (is_array($section)) {
+                $sections[$index] = self::fromEditorSection($section);
+            }
+        }
+        if ($isList) {
+            $decoded = $sections;
+        } else {
+            $decoded['sections'] = $sections;
+        }
+        return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: $json;
+    }
+
+    /** @param array<string,mixed> $section @return array<string,mixed> */
+    private static function fromEditorSection(array $section): array
+    {
+        foreach (is_array($section['columns'] ?? null) ? $section['columns'] : [] as $ci => $column) {
+            foreach (is_array($column['elements'] ?? null) ? $column['elements'] : [] as $ei => $element) {
+                if (!is_array($element) || !is_array($element['data'] ?? null)) {
+                    continue;
+                }
+                $data = $element['data'];
+                $edit = $data[self::EDIT_KEY] ?? null;
+                unset($data[self::EDIT_KEY]);
+                $binding = $data[self::KEY] ?? null;
+                $language = is_array($edit) && is_string($edit['lang'] ?? null) ? $edit['lang'] : '';
+                $valid = ($element['type'] ?? '') === 'accordion' && is_array($binding) && $language !== ''
+                    && $language !== ($binding['lang'] ?? '') && is_array($binding['source'] ?? null)
+                    && is_array($binding['translations'][$language] ?? null);
+                $target = $valid ? $binding['translations'][$language] : [];
+                if ($valid) {
+                    foreach (['title', 'subtitle'] as $field) {
+                        if (in_array($field, (array) ($edit['fields'] ?? []), true) && is_string($binding['source'][$field] ?? null)
+                            && is_string($section['settings'][$field] ?? null)) {
+                            $target[$field] = $section['settings'][$field];
+                            $section['settings'][$field] = $binding['source'][$field];
+                        }
+                    }
+                }
+                $seen = [];
+                foreach (is_array($data['items'] ?? null) ? $data['items'] : [] as $j => $item) {
+                    if (!is_array($item)) {
+                        continue;
+                    }
+                    $mark = $item[self::ITEM_EDIT_KEY] ?? null;
+                    unset($item[self::ITEM_EDIT_KEY]);
+                    $k = is_array($mark) ? ($mark['s'] ?? null) : null;
+                    // A duplicated row keeps its translated text as ordinary content instead of claiming the same translation.
+                    if ($valid && is_int($k) && !isset($seen[$k]) && is_array($binding['source']['items'][$k] ?? null)
+                        && is_array($target['items'][$k] ?? null)) {
+                        $seen[$k] = true;
+                        $original = $binding['source']['items'][$k];
+                        foreach (array_intersect(['question', 'answer'], (array) ($mark['f'] ?? [])) as $field) {
+                            if (!is_string($original[$field] ?? null)) {
+                                continue;
+                            }
+                            $target['items'][$k][$field] = (string) ($item[$field] ?? '');
+                            $item[$field] = $original[$field];
+                            if ($field === 'answer') {
+                                if (($item['answer_format'] ?? '') === 'html') $target['items'][$k]['answer_format'] = 'html';
+                                else unset($target['items'][$k]['answer_format']);
+                                if (($original['answer_format'] ?? '') === 'html') $item['answer_format'] = 'html';
+                                else unset($item['answer_format']);
+                            }
+                        }
+                    }
+                    $data['items'][$j] = $item;
+                }
+                if ($valid) {
+                    $binding['translations'][$language] = $target;
+                    $data[self::KEY] = $binding;
+                }
+                $section['columns'][$ci]['elements'][$ei]['data'] = $data;
+            }
+        }
+        return $section;
+    }
+
     /** @param array<int,mixed> $items @param array<int,mixed> $source @param array<int,mixed> $target @return array<int,mixed> */
-    private static function localizeItems(array $items, array $source, array $target): array
+    private static function localizeItems(array $items, array $source, array $target, bool $mark = false): array
     {
         foreach ($items as &$item) {
             if (!is_array($item)) {
@@ -165,6 +283,7 @@ final class HomeFaqContent
             if (!is_array($target[$index] ?? null)) {
                 continue;
             }
+            $fields = [];
             foreach (['question', 'answer'] as $field) {
                 if ($field === 'answer' && ($item['answer_format'] ?? '') !== ($source[$index]['answer_format'] ?? '')) {
                     continue;
@@ -172,11 +291,15 @@ final class HomeFaqContent
                 if (is_string($target[$index][$field] ?? null) && is_string($source[$index][$field] ?? null)
                     && ($item[$field] ?? null) === $source[$index][$field]) {
                     $item[$field] = $target[$index][$field];
+                    $fields[] = $field;
                     if ($field === 'answer') {
                         if (($target[$index]['answer_format'] ?? '') === 'html') $item['answer_format'] = 'html';
                         else unset($item['answer_format']);
                     }
                 }
+            }
+            if ($mark && $fields !== []) {
+                $item[self::ITEM_EDIT_KEY] = ['s' => $index, 'f' => $fields];
             }
         }
         unset($item);
