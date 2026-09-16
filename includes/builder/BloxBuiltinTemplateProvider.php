@@ -145,6 +145,15 @@ final class BloxBuiltinTemplateProvider
             'category' => 'page',
             'thumbnail' => '/assets/images/blox-templates/service-process.png',
         ],
+        'contact-connect' => [
+            'type' => 'page',
+            'file' => 'contact-connect.json',
+            'contexts' => ['page'],
+            'name_key' => 'blox_builtin_contact_name',
+            'description_key' => 'blox_builtin_contact_desc',
+            'category' => 'page',
+            'thumbnail' => '/assets/images/blox-templates/contact-connect.png',
+        ],
         '404-route-lost' => [
             'type' => 'page',
             'file' => '404-route-lost.json',
