@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
-const { openPageEditor, performPagePreviewUpdate, observeConsole, waitPreviewSettled, canvasScrollTop } = require('./helpers');
+const { openPageEditor, performPagePreviewUpdate, observeConsole, waitPreviewSettled, canvasScrollTop, frame } = require('./helpers');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 for (const scope of ['element', 'section', 'container', 'column']) {
@@ -61,3 +61,63 @@ for (const scope of ['element', 'section', 'container', 'column']) {
         expect(errors).toEqual([]);
     });
 }
+
+test('section background summary reveals the layer that already contains the visible image @ci', async ({ page }, testInfo) => {
+    await openPageEditor(page, fixtures.blox_page);
+    await performPagePreviewUpdate(page, () => page.evaluate(() => {
+        const app = window.Alpine.$data(document.body);
+        app.selectSection(app.sections.length - 1, false);
+        app.sel.settings.bg_color = '';
+        app.sel.settings.bg_image = '';
+        app.sel.settings.container_bg = '#172554';
+        app.sel.settings.container_bg_image = '/themes/default/assets/images/cta/cta-smart-manufacturing.png';
+        app.panelTab = 'content';
+        app.mobilePanel = 'settings';
+        app.refreshPreview();
+    }));
+
+    const summary = page.getByTestId('blox-background-summary');
+    await expect(summary).toBeVisible();
+    await expect(summary.getByTestId('blox-background-layer-container')).toContainText('cta-smart-manufacturing.png');
+    expect(await summary.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+
+    await summary.getByTestId('blox-background-open').click();
+    await expect(page.getByTestId('blox-container-background-image-url')).toHaveValue('/themes/default/assets/images/cta/cta-smart-manufacturing.png');
+    const styleSwitcher = page.getByTestId('blox-background-layer-switcher');
+    await expect(styleSwitcher.getByTestId('blox-background-layer-container')).toHaveAttribute('aria-pressed', 'true');
+    expect(await styleSwitcher.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('background-layer-switcher.png') });
+
+    await styleSwitcher.getByTestId('blox-background-layer-section').click();
+    await expect(page.getByTestId('blox-section-property-grid')).toBeVisible();
+    await expect(styleSwitcher.getByTestId('blox-background-layer-section')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTestId('blox-section-color-picker-trigger').click();
+    await page.getByTestId('blox-editor-color-text').fill('#16a34a');
+    await page.getByTestId('blox-editor-color-text').press('Enter');
+    await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).sel.settings.bg_color)).toBe('#16a34a');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('blox-editor-color-picker')).toBeHidden();
+
+    await styleSwitcher.getByTestId('blox-background-layer-container').click();
+    await performPagePreviewUpdate(page, () => page.getByTestId('blox-container-background-image-clear').click());
+    await expect(page.getByTestId('blox-container-background-image-url')).toHaveValue('');
+    await page.getByTestId('blox-container-color-picker-trigger').click();
+    await performPagePreviewUpdate(page, () => page.getByTestId('blox-editor-color-clear').click());
+    await styleSwitcher.getByTestId('blox-background-layer-section').click();
+    await waitPreviewSettled(page);
+
+    const state = await page.evaluate(() => {
+        const app = window.Alpine.$data(document.body);
+        return { index: app.selectedSi, settings: app.sel.settings };
+    });
+    expect(state.settings.bg_color).toBe('#16a34a');
+    expect(state.settings.bg_image).toBe('');
+    expect(state.settings.container_bg).toBe('');
+    expect(state.settings.container_bg_image).toBe('');
+    const contentFrame = await frame(page);
+    const canvasSection = contentFrame.locator(`[data-yk-sec="${state.index}"]`);
+    await expect(canvasSection).toHaveAttribute('style', /background-color:\s*#16a34a/i);
+    await expect(canvasSection).not.toHaveAttribute('style', /background-image/i);
+    await canvasSection.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: testInfo.outputPath('solid-green-section.png') });
+});

@@ -490,6 +490,7 @@ class ProductModel extends Model
 
     public const SORT_MAP = [
         'default'    => 'p.is_top DESC, p.sort_order ASC, p.id DESC',
+        'recommend_first' => 'p.is_recommend DESC, p.is_top DESC, p.sort_order ASC, p.id DESC',
         'newest'     => 'p.created_at DESC, p.id DESC',
         'updated'    => 'p.updated_at DESC, p.id DESC',
         'views'      => 'p.views DESC, p.id DESC',

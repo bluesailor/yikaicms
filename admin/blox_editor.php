@@ -886,6 +886,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-groups.js') ?>"></script>
     <script src="/assets/js/blox-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-sources.js') ?>"></script>
     <script src="/assets/js/blox-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-conditions.js') ?>"></script>
+    <script src="/assets/js/blox-background-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-background-panel.js') ?>"></script>
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
     <script src="/assets/js/blox-table-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-table-control.js') ?>"></script>
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
@@ -2628,6 +2629,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             ...window.BloxStyleGroups.methods,
             // 作者端扩展模块（blox-pro）提供的面板方法；未启用时为空，核心编辑照常可用。
             ...((window.BloxProEditor || {}).methods || {}),
+            ...window.BloxBackgroundPanel.methods,
 
             isLoopTemplateChild() {
                 return this.selectedSubEi >= 0 && this.isLoopTemplateHost(this.selTopEl);
