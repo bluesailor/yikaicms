@@ -1,0 +1,56 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "article-detail",
+  "name": "Classic Article Detail",
+  "requires": {
+    "elements": ["article-title", "article-meta", "article-summary", "article-cover", "article-content", "article-prev-next", "article-related"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "文章头区",
+        "settings": {"padding": "lg", "max_width": "narrow", "gap": "sm", "bg_color": "#ffffff"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "article-title", "data": {"level": "h1"}},
+              {"type": "article-meta", "data": {}},
+              {"type": "article-summary", "data": {}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "正文",
+        "settings": {"padding": "md", "max_width": "narrow", "gap": "md", "bg_color": "#ffffff"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "article-cover", "data": {}},
+              {"type": "article-content", "data": {}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "翻页与推荐",
+        "settings": {"padding": "lg", "max_width": "narrow", "gap": "lg", "bg_color": "#f8fafc"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "article-prev-next", "data": {}},
+              {"type": "article-related", "data": {}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -14,6 +14,33 @@ final class BloxRemoteTemplateStateModel extends Model
         return db()->tableExists($this->table);
     }
 
+    public function provenanceReady(): bool
+    {
+        try {
+            db()->fetchAll('SELECT catalog_origin FROM ' . DB_PREFIX . $this->table . ' WHERE 1 = 0');
+            return true;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    public function requireOrigin(int $templateId, string $expected = '', bool $lock = false): string
+    {
+        $row = db()->fetchOne(
+            'SELECT catalog_origin FROM ' . DB_PREFIX . $this->table . ' WHERE template_id = ?'
+            . ($lock && !db()->isSqlite() ? ' FOR UPDATE' : ''),
+            [$templateId]
+        );
+        $origin = (string) ($row['catalog_origin'] ?? '');
+        if (!in_array($origin, ['official', 'community'], true)) {
+            throw new RuntimeException(__('blox_tpl_remote_origin_unknown'));
+        }
+        if ($expected !== '' && $origin !== $expected) {
+            throw new RuntimeException(__('blox_tpl_remote_origin_changed'));
+        }
+        return $origin;
+    }
+
     /** @return array<string,mixed>|null */
     public function forTemplate(int $templateId): ?array
     {
@@ -43,10 +70,17 @@ final class BloxRemoteTemplateStateModel extends Model
         return $mapped;
     }
 
-    public function rememberInstall(int $templateId, string $version): void
+    public function rememberInstall(int $templateId, string $version, string $origin): void
     {
+        if (!in_array($origin, ['official', 'community'], true)) {
+            throw new RuntimeException(__('blox_tpl_remote_origin_unknown'));
+        }
+        if ($this->forTemplate($templateId)) {
+            $this->requireOrigin($templateId, $origin);
+        }
         $now = time();
         $data = [
+            'catalog_origin' => $origin,
             'installed_version' => self::version($version),
             'backup_version' => '',
             'backup_draft' => null,
@@ -67,8 +101,13 @@ final class BloxRemoteTemplateStateModel extends Model
         string $newVersion,
         string $draft,
         string $requirements,
-        string $metadata
+        string $metadata,
+        string $origin
     ): void {
+        if (!in_array($origin, ['official', 'community'], true)) {
+            throw new RuntimeException(__('blox_tpl_remote_origin_unknown'));
+        }
+        $this->requireOrigin($templateId, $origin, true);
         $current = $this->forTemplate($templateId);
         $data = [
             'installed_version' => self::version($newVersion),

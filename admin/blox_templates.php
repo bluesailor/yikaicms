@@ -31,7 +31,23 @@ $tableReady = db()->tableExists('blox_templates');
 $errorMessage = '';
 $notice = '';
 $importReview = null;
-$importJson = '';
+
+/** 读取检查页提交的设计映射：结构化数组不经 post()（其 trim 会破坏数组）。 */
+function blox_import_style_options_from_post(): array
+{
+    $options = ['style_mode' => is_string($_POST['style_mode'] ?? null) ? $_POST['style_mode'] : 'keep'];
+    if (!in_array($options['style_mode'], ['keep', 'detach'], true)) {
+        throw new RuntimeException(__('blox_import_design_invalid'));
+    }
+    foreach (['tokens', 'styles'] as $kind) {
+        $map = $_POST['design_' . $kind] ?? [];
+        if (!is_array($map)) {
+            throw new RuntimeException(__('blox_import_design_invalid'));
+        }
+        $options[$kind] = array_filter($map, static fn(mixed $value): bool => $value !== '');
+    }
+    return $options;
+}
 $filterType = strtolower(trim((string) get('type', 'all')));
 if ($filterType !== 'all' && !BloxTemplateModel::validType($filterType)) {
     $filterType = 'all';
@@ -278,18 +294,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException(__('blox_tpl_pick_or_paste'));
             }
 
-            $importJson = $json;
             $importReview = BloxTemplateImporter::prepare($json);
             if ($action === 'import_confirm') {
-                $options = ['style_mode' => $_POST['style_mode'] ?? 'keep'];
-                foreach (['tokens', 'styles'] as $kind) {
-                    // post() trims scalar strings; mappings are structured form arrays.
-                    $map = $_POST['design_' . $kind] ?? [];
-                    if (!is_array($map)) {
-                        throw new RuntimeException(__('blox_import_design_invalid'));
-                    }
-                    $options[$kind] = array_filter($map, static fn(mixed $value): bool => $value !== '');
-                }
+                $options = blox_import_style_options_from_post();
                 $result = BloxTemplateImporter::importJson($json, (int) ($_SESSION['admin_id'] ?? 0), 'import', '', $options);
                 adminLog(
                     'blox_template',
@@ -300,33 +307,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        if ($action === 'install_remote') {
-            $slug = trim((string) post('slug', ''));
-            $result = (new BloxRemoteTemplateInstaller())->install($slug, (int) ($_SESSION['admin_id'] ?? 0));
-            adminLog(
-                'blox_template',
-                'install_remote',
-                (!empty($result['updated']) ? '重装' : '安装') . '官方模板 ' . $slug . ' → #' . $result['id']
-            );
-            redirect('/admin/blox_templates.php?'
-                . (!empty($result['updated']) ? 'remote_updated=1' : 'imported=' . $result['id']));
+        // 远程来源统一走检查-确认：先诊断并登记服务端待确认记录，本请求不写模板。
+        if (in_array($action, ['install_remote', 'import_remote_copy', 'update_remote'], true)) {
+            $installer = new BloxRemoteTemplateInstaller();
+            $adminId = (int) ($_SESSION['admin_id'] ?? 0);
+            if ($action === 'update_remote') {
+                $importReviewMeta = $installer->prepareUpdate(
+                    max(0, (int) post('id', 0)),
+                    trim((string) post('base_revision', '')),
+                    $adminId
+                );
+                adminLog('blox_template', 'prepare_update_remote', '检查官方模板更新 ' . $importReviewMeta['slug'] . ' v' . $importReviewMeta['version']);
+            } elseif ($action === 'import_remote_copy') {
+                $importReviewMeta = $installer->prepareCopy(trim((string) post('slug', '')), $adminId);
+                adminLog('blox_template', 'prepare_import_remote_copy', '检查官方模板副本 ' . $importReviewMeta['slug']);
+            } else {
+                $importReviewMeta = $installer->prepareInstall(trim((string) post('slug', '')), $adminId);
+                adminLog('blox_template', 'prepare_install_remote', '检查安装官方模板 ' . $importReviewMeta['slug']);
+            }
+            $importReview = [
+                'name' => $importReviewMeta['name'],
+                'type' => $importReviewMeta['type'],
+                'requirements' => $importReviewMeta['requirements'],
+                'design_diagnostics' => $importReviewMeta['design_diagnostics'],
+                // 评审上下文随检查结果一起交给确认页渲染（partial 不读全局）。
+                'review_meta' => $importReviewMeta,
+            ];
         }
 
-        if ($action === 'import_remote_copy') {
-            $slug = trim((string) post('slug', ''));
-            $result = (new BloxRemoteTemplateInstaller())->importCopy($slug, (int) ($_SESSION['admin_id'] ?? 0));
-            adminLog('blox_template', 'import_remote_copy', 'Remote template copy #' . $result['id']);
-            redirect('/admin/blox_templates.php?imported=' . $result['id']);
-        }
-
-        if ($action === 'update_remote') {
-            $result = (new BloxRemoteTemplateInstaller())->update(
-                max(0, (int) post('id', 0)),
-                trim((string) post('base_revision', '')),
-                trim((string) post('version', ''))
-            );
-            adminLog('blox_template', 'update_remote', 'Remote template draft #' . $result['id']);
-            redirect('/admin/blox_templates.php?remote_updated=1');
+        if ($action === 'import_review_confirm') {
+            $reviewId = trim((string) post('review_id', ''));
+            $operation = (string) post('review_operation', '');
+            if (!in_array($operation, ['install', 'import_copy', 'update'], true) || $reviewId === '') {
+                throw new RuntimeException(__('blox_import_review_invalid'));
+            }
+            try {
+                $options = blox_import_style_options_from_post();
+                $installer = new BloxRemoteTemplateInstaller();
+                $adminId = (int) ($_SESSION['admin_id'] ?? 0);
+                $result = $operation === 'update'
+                    ? $installer->confirmUpdate($reviewId, $options, $adminId)
+                    : ($operation === 'install'
+                        ? $installer->confirmInstall($reviewId, $options, $adminId)
+                        : $installer->confirmCopy($reviewId, $options, $adminId));
+                adminLog(
+                    'blox_template',
+                    'confirm_' . $operation,
+                    '确认官方模板' . ($operation === 'update' ? '更新' : ($operation === 'install' ? '安装' : '副本')) . ' #' . $result['id']
+                );
+                redirect('/admin/blox_templates.php?'
+                    . ($operation === 'update' ? 'remote_updated=1' : 'imported=' . $result['id']));
+            } catch (Throwable $confirmError) {
+                $errorMessage = $confirmError->getMessage();
+                // 失败保留选择：评审未被消费时回到检查页，并回显已提交的映射。
+                $review = BloxImportReview::find($reviewId);
+                if ($review !== null && (int) ($review['consumed_at'] ?? 0) === 0) {
+                    try {
+                        $prepared = BloxTemplateImporter::prepare((string) $review['package_json']);
+                    } catch (Throwable) {
+                        $prepared = null;
+                    }
+                    if ($prepared !== null) {
+                        $importReviewMeta = [
+                            'review_id' => $reviewId,
+                            'operation' => $operation,
+                            'slug' => (string) ($review['source_key'] ?? ''),
+                            'version' => (string) ($review['package_version'] ?? ''),
+                            'name' => $prepared['name'],
+                            'type' => $prepared['type'],
+                            'sections' => count($prepared['sections']),
+                            'previous_sections' => 0,
+                            'requirements' => $prepared['requirements'],
+                            'design_diagnostics' => $prepared['design_diagnostics'],
+                        ];
+                        $submitted = [
+                            'style_mode' => is_string($_POST['style_mode'] ?? null) ? $_POST['style_mode'] : 'keep',
+                            'tokens' => is_array($_POST['design_tokens'] ?? null) ? $_POST['design_tokens'] : [],
+                            'styles' => is_array($_POST['design_styles'] ?? null) ? $_POST['design_styles'] : [],
+                        ];
+                        $importReview = [
+                            'name' => $prepared['name'],
+                            'type' => $prepared['type'],
+                            'requirements' => $prepared['requirements'],
+                            'design_diagnostics' => $prepared['design_diagnostics'],
+                            'review_meta' => $importReviewMeta,
+                            'review_selected' => $submitted,
+                        ];
+                    }
+                }
+            }
         }
 
         if ($action === 'rollback_remote') {
@@ -537,7 +606,7 @@ foreach ($installedRefs as $installedId) {
     }
 }
 $areaPresets = BloxAreaTemplatePresets::catalog();
-if (in_array($filterType, ['header', 'footer'], true)) {
+if (in_array($filterType, ['header', 'footer', 'article-detail', 'product-detail', 'page'], true)) {
     $areaPresets = array_values(array_filter(
         $areaPresets,
         static fn (array $preset): bool => (string) ($preset['type'] ?? '') === $filterType
@@ -752,6 +821,47 @@ $presetPreviewHtml = static function (string $kind): string {
             . '<div class="flex items-start justify-between rounded-t-sm bg-gray-800 px-2 py-1.5">'
             . '<span class="flex flex-col gap-1">' . $logoLight . '</span>' . $lines(3, 'bg-gray-600') . $lines(3, 'bg-gray-600') . '</div>'
             . '<div class="flex justify-center rounded-b-sm bg-gray-900 px-2 py-1"><span class="h-1 w-12 rounded-sm bg-gray-600"></span></div></div>',
+        // 文章详情：窄栏阅读——标题行 + 元信息点 + 正文行
+        'detail-article' => '<div class="flex justify-center">'
+            . '<div class="flex w-3/5 flex-col gap-1 rounded-sm border border-gray-200 bg-white px-2 py-1.5">'
+            . '<span class="h-1.5 w-3/4 rounded-sm bg-gray-600"></span>'
+            . '<span class="flex gap-1"><span class="h-1 w-4 rounded-sm bg-gray-300"></span><span class="h-1 w-4 rounded-sm bg-gray-300"></span></span>'
+            . str_repeat('<span class="h-1 w-full rounded-sm bg-gray-200"></span>', 3) . '</div></div>',
+        // 产品详情：左相册 + 右标题/参数/按钮，下方通栏详情
+        'detail-product' => '<div class="flex flex-col gap-1">'
+            . '<div class="flex gap-1.5 rounded-sm border border-gray-200 bg-white p-1.5">'
+            . '<span class="h-8 w-2/5 rounded-sm bg-gray-300"></span>'
+            . '<span class="flex flex-1 flex-col gap-1"><span class="h-1.5 w-3/4 rounded-sm bg-gray-600"></span>'
+            . '<span class="h-1 w-full rounded-sm bg-gray-200"></span><span class="h-1 w-full rounded-sm bg-gray-200"></span>'
+            . '<span class="mt-0.5 h-2 w-8 rounded-sm bg-primary"></span></span></div>'
+            . '<div class="flex flex-col gap-1 rounded-sm border border-gray-200 bg-white px-2 py-1">'
+            . '<span class="h-1 w-full rounded-sm bg-gray-200"></span><span class="h-1 w-5/6 rounded-sm bg-gray-200"></span></div></div>',
+        // 案例详情：通栏大图 + 居中标题 + 相关案例卡
+        'detail-case' => '<div class="flex flex-col gap-1">'
+            . '<span class="h-6 w-full rounded-sm bg-gray-700"></span>'
+            . '<div class="flex flex-col items-center gap-1"><span class="h-1.5 w-1/2 rounded-sm bg-gray-600"></span>'
+            . '<span class="h-1 w-2/3 rounded-sm bg-gray-200"></span></div>'
+            . '<div class="flex gap-1">' . str_repeat('<span class="h-4 flex-1 rounded-sm bg-gray-200"></span>', 3) . '</div></div>',
+        // 产品中心整页：标题条 + 四格产品网格 + 深色 CTA 条
+        'page-product-center' => '<div class="flex flex-col gap-1">'
+            . '<div class="flex justify-center rounded-sm bg-gray-100 py-1"><span class="h-1.5 w-10 rounded-sm bg-gray-500"></span></div>'
+            . '<div class="grid grid-cols-4 gap-1">' . str_repeat('<span class="h-5 rounded-sm bg-gray-200"></span>', 4) . '</div>'
+            . '<div class="flex justify-center rounded-sm bg-gray-800 py-1"><span class="h-1.5 w-8 rounded-sm bg-gray-500"></span></div></div>',
+        // 新闻中心整页：左对齐标题 + 列表行（缩略图+文字）
+        'page-news-center' => '<div class="flex flex-col gap-1">'
+            . '<span class="h-1.5 w-12 rounded-sm bg-gray-500"></span>'
+            . str_repeat(
+                '<div class="flex items-center gap-1.5 rounded-sm border border-gray-200 bg-white px-1.5 py-1">'
+                . '<span class="h-4 w-6 rounded-sm bg-gray-300"></span>'
+                . '<span class="flex flex-1 flex-col gap-1"><span class="h-1 w-3/4 rounded-sm bg-gray-400"></span>'
+                . '<span class="h-1 w-full rounded-sm bg-gray-200"></span></span></div>',
+                2
+            ) . '</div>',
+        // 案例集整页：居中标题 + 三格封面网格 + 深色 CTA 条
+        'page-case-gallery' => '<div class="flex flex-col gap-1">'
+            . '<div class="flex justify-center"><span class="h-1.5 w-10 rounded-sm bg-gray-500"></span></div>'
+            . '<div class="grid grid-cols-3 gap-1">' . str_repeat('<span class="h-6 rounded-sm bg-gray-300"></span>', 3) . '</div>'
+            . '<div class="flex justify-center rounded-sm bg-gray-800 py-1"><span class="h-1.5 w-8 rounded-sm bg-gray-500"></span></div></div>',
         // 兜底：通用横条
         default => $barRow($logo . $menu, 'w-full'),
     };
@@ -1209,7 +1319,7 @@ function confirmAreaPublish(form) {
     </section>
     <?php endif; ?>
 
-    <?php if (in_array($filterType, ['all', 'header', 'footer'], true)): ?>
+    <?php if (in_array($filterType, ['all', 'header', 'footer', 'article-detail', 'product-detail', 'page'], true)): ?>
     <section class="border-y border-gray-200 bg-white" data-testid="blox-area-presets">
         <div class="border-b border-gray-200 px-5 py-4">
             <h2 class="font-semibold text-gray-900"><?php echo __('blox_area_presets_title'); ?></h2>
@@ -1224,7 +1334,7 @@ function confirmAreaPublish(form) {
             ?>
             <div class="flex min-h-32 flex-col gap-2 rounded border border-gray-200 p-4 transition hover:border-primary hover:shadow-md">
                 <div class="flex items-center gap-2">
-                    <i class="ti <?php echo $preset['type'] === 'header' ? 'ti-layout-navbar' : 'ti-layout-bottombar'; ?> text-gray-500"></i>
+                    <i class="ti ti-<?php echo e($moduleTypeIcons[$preset['type']] ?? 'layout-grid'); ?> text-gray-500"></i>
                     <span class="font-medium text-gray-900"><?php echo e($preset['name']); ?></span>
                     <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500"><?php echo e($typeLabels[$preset['type']]); ?></span>
                 </div>
@@ -1232,7 +1342,12 @@ function confirmAreaPublish(form) {
                 <p class="flex-1 text-xs text-gray-500"><?php echo e($preset['description']); ?></p>
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-[11px] text-gray-400">
+                        <?php // 整页起步装进模板库后，要在目标页面的编辑器里套用，不是装完就生效 ?>
+                        <?php if ($preset['type'] === 'page'): ?>
+                        <?php echo $presetId > 0 ? __('blox_page_preset_apply_hint') : __('blox_area_preset_not_active'); ?>
+                        <?php else: ?>
                         <?php echo $presetId > 0 ? __('blox_area_preset_draft_safe') : __('blox_area_preset_not_active'); ?>
+                        <?php endif; ?>
                     </span>
                     <div class="flex items-center gap-3">
                         <?php if ($presetId > 0): ?>

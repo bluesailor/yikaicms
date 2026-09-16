@@ -1,0 +1,74 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "product-detail",
+  "name": "Classic Product Detail",
+  "requires": {
+    "elements": ["product-gallery", "product-title", "product-specs", "product-button", "product-content", "product-inquiry", "product-prev-next", "product-related"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "产品主区",
+        "settings": {"padding": "lg", "max_width": "default", "gap": "lg", "bg_color": "#ffffff"},
+        "columns": [
+          {
+            "span": 6,
+            "elements": [
+              {"type": "product-gallery", "data": {}}
+            ]
+          },
+          {
+            "span": 6,
+            "elements": [
+              {"type": "product-title", "data": {"level": "h1"}},
+              {"type": "product-specs", "data": {}},
+              {"type": "product-button", "data": {}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "产品详情",
+        "settings": {"padding": "lg", "max_width": "default", "gap": "md", "bg_color": "#ffffff"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "product-content", "data": {}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "询价咨询",
+        "settings": {"padding": "lg", "max_width": "narrow", "gap": "md", "bg_color": "#f8fafc"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "product-inquiry", "data": {}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "上下篇与相关产品",
+        "settings": {"padding": "lg", "max_width": "default", "gap": "lg", "bg_color": "#ffffff"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "product-prev-next", "data": {}},
+              {"type": "product-related", "data": {}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

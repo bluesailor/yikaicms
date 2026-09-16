@@ -315,11 +315,18 @@ final class BloxTemplateModel extends Model
         $next = $type === 'article-detail'
             ? ArticleTemplateDocument::changeSource($previous, $source)
             : ProductTemplateDocument::changeSource($previous, $source);
-        if ($previous === $next) return;
+        $draftBefore = $row['draft_data'] ?? null;
+        $draft = trim((string) $draftBefore) !== '' ? (string) $draftBefore : $previous;
+        $nextDraft = $type === 'article-detail'
+            ? ArticleTemplateDocument::changeSource($draft, $source)
+            : ProductTemplateDocument::changeSource($draft, $source);
+        if ($previous === $next && $draftBefore === $nextDraft) return;
+        // Preserve each layout, but make stale editor revisions fail after a source switch.
         $affected = db()->execute(
-            'UPDATE ' . DB_PREFIX . 'blox_templates SET published_data = ?, updated_at = ?'
-            . ' WHERE id = ? AND type = ? AND status = 1 AND published_data = ?',
-            [$next, time(), $id, $type, $previous]
+            'UPDATE ' . DB_PREFIX . 'blox_templates SET published_data = ?, draft_data = ?, updated_at = ?'
+            . ' WHERE id = ? AND type = ? AND status = 1 AND published_data = ?'
+            . ' AND (draft_data = ? OR (draft_data IS NULL AND ? IS NULL))',
+            [$next, $nextDraft, time(), $id, $type, $previous, $draftBefore, $draftBefore]
         );
         if ($affected !== 1) throw new RuntimeException(__('blox_save_conflict'));
     }

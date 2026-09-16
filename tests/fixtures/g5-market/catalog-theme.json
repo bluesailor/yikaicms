@@ -1,0 +1,40 @@
+{
+    "code": 0,
+    "data": {
+        "updated_at": "2026-09-14",
+        "themes": [
+            {
+                "slug": "acc-189b6-theme",
+                "name": "演示资源",
+                "name_en": "Demo resource",
+                "name_ja": "デモ資源",
+                "description": "用于本地验收的演示投稿。",
+                "description_en": "A local acceptance sample.",
+                "description_ja": "ローカル検収用のサンプル。",
+                "version": "1.0.0",
+                "author": "acc189b6",
+                "category": "business",
+                "requires_cms": ">=1.20.0",
+                "requires_php": ">=8.0.0",
+                "package": "acc-189b6-theme-v1.0.0.zip",
+                "changelog": "首次提交",
+                "source": "community",
+                "download_url": "http://127.0.0.1:18082/api/market/download.php?token=<expires-after-300s>",
+                "hash": "sha256:8c49665ff691d57621963937314d196351f6c0d1462f49709c91e220a8c11692",
+                "sig": "DW15TVwRbZv0vOXdtq/gJorhoLqOItndJiYrvFGt1ixMpfmrO4oP/9r4JH+RVXdwi3SdA8Fy4zAfUIJtFnH9jNcSaWXcxIv3wd6rka5GoVmk9vOcIN2rNXIXdliao3U1Puy28LaHi9D0+GbSBTKyQIVUoi/r0dmwqIaLHOBDUfF1xOmlskoOKtT3YFC5RnzA4SdPxleQOdOOAkJ8EH0eTEUquZrnCqooFPnatxouinOucBdDBui0bNFOYPXwYHgrGdWP3QiRcpxTiiebO+ZEdp7antLNi8DM2TKStQJ5zoDw6ZMgUtP5xdfy6vqG6igvYQrzszMk8wZbBrQaene1Gw==",
+                "size_kb": 1
+            }
+        ],
+        "market": {
+            "test_only": true,
+            "quota": {
+                "subject_type": "ip",
+                "limit": 3,
+                "used": 0,
+                "remaining": 3,
+                "day": "2026-09-15",
+                "timezone": "Asia/Shanghai"
+            }
+        }
+    }
+}

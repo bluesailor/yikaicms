@@ -52,6 +52,17 @@ final class BloxDesignTheme
             'padding_y' => self::integer($rawButtons['padding_y'] ?? null, 0, 48),
             'radius' => isset(self::RADIUS[(string) ($rawButtons['radius'] ?? '')]) ? (string) $rawButtons['radius'] : null,
         ], static fn(mixed $value): bool => $value !== null);
+        $variants = [];
+        $rawVariants = is_array($rawButtons['variants'] ?? null) ? $rawButtons['variants'] : [];
+        foreach (['filled', 'outline', 'text'] as $name) {
+            $variant = self::normalizeVariant($rawVariants[$name] ?? null);
+            if ($variant !== []) {
+                $variants[$name] = $variant;
+            }
+        }
+        if ($variants !== []) {
+            $buttons['variants'] = $variants;
+        }
 
         $rawLayout = is_array($state['layout'] ?? null) ? $state['layout'] : [];
         $layout = array_filter([
@@ -77,8 +88,7 @@ final class BloxDesignTheme
                 : '.yk-type-' . $role;
             $declarations = '';
             if (isset($item['size'])) {
-                self::addResponsive($vars, $prefix . '-size', $item['size'], 'px');
-                $declarations .= 'font-size:var(' . $prefix . '-size);';
+                $declarations .= self::responsiveDeclaration($vars, $rules, $selector, 'font-size', $prefix . '-size', $item['size']);
             }
             if (isset($item['family'])) {
                 $declarations .= 'font-family:' . self::FAMILIES[$item['family']] . ';';
@@ -92,13 +102,14 @@ final class BloxDesignTheme
             if (isset($item['color'])) {
                 $declarations .= 'color:var(--yk-color-' . $item['color'] . ');';
             }
-            $rules[] = $selector . '{' . $declarations . '}';
+            if ($declarations !== '') {
+                $rules[] = $selector . '{' . $declarations . '}';
+            }
         }
 
         $button = '';
         if (isset($theme['buttons']['size'])) {
-            self::addResponsive($vars, '--yk-btn-size', $theme['buttons']['size'], 'px');
-            $button .= 'font-size:var(--yk-btn-size);';
+            $button .= self::responsiveDeclaration($vars, $rules, 'a.yk-btn-theme', 'font-size', '--yk-btn-size', $theme['buttons']['size']);
         }
         if (isset($theme['buttons']['padding_y']) || isset($theme['buttons']['padding_x'])) {
             $button .= 'padding:' . (int) ($theme['buttons']['padding_y'] ?? 12) . 'px ' . (int) ($theme['buttons']['padding_x'] ?? 24) . 'px;';
@@ -108,6 +119,24 @@ final class BloxDesignTheme
         }
         if ($button !== '') {
             $rules[] = 'a.yk-btn-theme{' . $button . '}';
+        }
+        foreach (($theme['buttons']['variants'] ?? []) as $name => $preset) {
+            // Only configured properties override the element's existing variant defaults.
+            $selector = 'a.yk-btn-v-' . $name;
+            $base = self::variantDeclarations($preset);
+            if ($base !== '') {
+                $rules[] = $selector . '{' . $base . '}';
+            }
+            if (isset($preset['hover'])) {
+                $rules[] = $selector . '.yk-btn-v-hover:hover{' . self::variantDeclarations($preset['hover']) . '}';
+            }
+            if (isset($preset['focus_color'])) {
+                $rules[] = $selector . ':focus-visible{outline:2px solid var(--yk-color-' . $preset['focus_color'] . ');outline-offset:2px}';
+            }
+            if (isset($preset['disabled'])) {
+                // aria-disabled 是设计契约：样式先行；当前 button 元素无禁用选项，不声称行为禁用。
+                $rules[] = $selector . '[aria-disabled="true"]{' . self::variantDeclarations($preset['disabled']) . 'opacity:.55;pointer-events:none}';
+            }
         }
 
         if (isset($theme['layout']['content_max_width'])) {
@@ -121,8 +150,10 @@ final class BloxDesignTheme
             $rules[] = 'section.yk-section-space-theme{padding-top:var(--yk-layout-section-spacing);padding-bottom:var(--yk-layout-section-spacing);}';
         }
         if (isset($theme['layout']['container_gap'])) {
-            self::addResponsive($vars, '--yk-layout-gap', $theme['layout']['container_gap'], 'px');
-            $rules[] = 'div.yk-gap-theme{gap:var(--yk-layout-gap);}';
+            $gap = self::responsiveDeclaration($vars, $rules, 'div.yk-gap-theme', 'gap', '--yk-layout-gap', $theme['layout']['container_gap']);
+            if ($gap !== '') {
+                $rules[] = 'div.yk-gap-theme{' . $gap . '}';
+            }
         }
 
         $css = '';
@@ -141,9 +172,33 @@ final class BloxDesignTheme
     /** @var array{typography:array<string,array<string,mixed>>,buttons:array<string,mixed>,layout:array<string,mixed>}|null */
     private static ?array $publishedCache = null;
 
+    /** @var array{typography:array<string,array<string,mixed>>,buttons:array<string,mixed>,layout:array<string,mixed>}|null */
+    private static ?array $previewState = null;
+
+    /**
+     * Scope both compiled styles and consumer markers to this render, including nested previews.
+     * @template T
+     * @param callable():T $render
+     * @return T
+     * @psalm-suppress PossiblyUnusedReturnValue Preserve callback results for nested renderers.
+     */
+    public static function withPreviewState(array $state, callable $render): mixed
+    {
+        $previous = self::$previewState;
+        self::$previewState = self::normalize($state);
+        try {
+            return $render();
+        } finally {
+            self::$previewState = $previous;
+        }
+    }
+
     /** 已发布主题（前台读取，只读设置缓存；同一请求内元素渲染共用一次解析）。 */
     public static function published(): array
     {
+        if (self::$previewState !== null) {
+            return self::$previewState;
+        }
         if (self::$publishedCache === null) {
             $decoded = json_decode((string) (function_exists('config') ? config(self::PUBLISHED_KEY, '') : ''), true);
             self::$publishedCache = self::normalize(is_array($decoded) ? ($decoded['state'] ?? []) : []);
@@ -163,7 +218,36 @@ final class BloxDesignTheme
 
     public static function hasButtons(): bool
     {
-        return self::published()['buttons'] !== [];
+        // yk-btn-theme 是几何规则（尺寸/内边距/圆角）的挂载点；只配置变体颜色时不挂，
+        // 无规则空类会让未配置几何的站点输出偏离基线。
+        $buttons = self::published()['buttons'];
+        return isset($buttons['size']) || isset($buttons['padding_x'])
+            || isset($buttons['padding_y']) || isset($buttons['radius']);
+    }
+
+    /**
+     * 局部按钮变体到主题预设名的映射：primary→filled、outline→outline、ghost→text。
+     * dark/soft/link 无映射；未配置对应预设返回空串，元素保持原路径。
+     */
+    public static function buttonVariantPreset(string $variant): string
+    {
+        $preset = ['primary' => 'filled', 'outline' => 'outline', 'ghost' => 'text'][$variant] ?? '';
+        if ($preset === '' || !isset(self::published()['buttons']['variants'][$preset])) {
+            return '';
+        }
+        return $preset;
+    }
+
+    public static function hasButtonVariantFocus(string $preset): bool
+    {
+        return isset(self::published()['buttons']['variants'][$preset]['focus_color']);
+    }
+
+    public static function hasButtonVariantBorder(string $preset): bool
+    {
+        $variant = self::published()['buttons']['variants'][$preset] ?? [];
+        return isset($variant['border_color']) || isset($variant['hover']['border_color'])
+            || isset($variant['disabled']['border_color']);
     }
 
     public static function hasContainerGap(): bool
@@ -243,7 +327,10 @@ final class BloxDesignTheme
         return is_array($decoded) ? $decoded : [];
     }
 
-    /** @param array{base:list<string>,tablet:list<string>,desktop:list<string>} $vars @param array<string,int> $value */
+    /**
+     * @param array{base:list<string>,tablet:list<string>,desktop:list<string>} $vars
+     * @param array<string,int> $value
+     */
     private static function addResponsive(array &$vars, string $name, array $value, string $unit): void
     {
         // 平板/手机为空时继承上一档；只在该断点值与更宽断点不同时输出，避免冗余覆盖。
@@ -275,6 +362,62 @@ final class BloxDesignTheme
             }
         }
         return $out;
+    }
+
+    /**
+     * Scope partial overrides so wider screens keep their original defaults, not an unset variable.
+     * @param array{base:list<string>,tablet:list<string>,desktop:list<string>} $vars
+     * @param list<string> $rules
+     * @param array<string,int> $value
+     */
+    private static function responsiveDeclaration(array &$vars, array &$rules, string $selector, string $property, string $name, array $value): string
+    {
+        if (isset($value['d'])) {
+            self::addResponsive($vars, $name, $value, 'px');
+            return $property . ':var(' . $name . ');';
+        }
+        foreach (['t' => self::DESKTOP_MIN, 'm' => self::TABLET_MIN] as $device => $limit) {
+            if (isset($value[$device])) {
+                $rules[] = '@media not all and (min-width:' . $limit . 'px){' . $selector . '{'
+                    . $name . ':' . $value[$device] . 'px;' . $property . ':var(' . $name . ');}}';
+            }
+        }
+        return '';
+    }
+
+    /** @return array<string,mixed> 单个变体预设：全空返回 []，未设字段不输出声明 */
+    private static function normalizeVariant(mixed $raw): array
+    {
+        $raw = is_array($raw) ? $raw : [];
+        $state = static function (mixed $source): ?array {
+            $source = is_array($source) ? $source : [];
+            $item = array_filter([
+                'color' => self::token($source['color'] ?? null),
+                'bg' => self::token($source['bg'] ?? null),
+                'border_color' => self::token($source['border_color'] ?? null),
+            ], static fn(mixed $value): bool => $value !== null);
+            return $item === [] ? null : $item;
+        };
+        return array_filter([
+            'color' => self::token($raw['color'] ?? null),
+            'bg' => self::token($raw['bg'] ?? null),
+            'border_color' => self::token($raw['border_color'] ?? null),
+            'hover' => $state($raw['hover'] ?? null),
+            'focus_color' => self::token($raw['focus_color'] ?? null),
+            'disabled' => $state($raw['disabled'] ?? null),
+        ], static fn(mixed $value): bool => $value !== null);
+    }
+
+    /** @param array<string,mixed> $state @return string */
+    private static function variantDeclarations(array $state): string
+    {
+        $css = '';
+        foreach (['color' => 'color', 'bg' => 'background-color', 'border_color' => 'border-color'] as $key => $property) {
+            if (isset($state[$key])) {
+                $css .= $property . ':var(--yk-color-' . $state[$key] . ');';
+            }
+        }
+        return $css;
     }
 
     private static function integer(mixed $value, int $min, int $max): ?int

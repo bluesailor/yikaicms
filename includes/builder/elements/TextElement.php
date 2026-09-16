@@ -14,7 +14,7 @@ final class TextElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'html', 'type' => 'richtext', 'label' => __('blox_ctl_body'), 'default' => ''],
+            ['key' => 'html', 'type' => 'richtext', 'label' => __('blox_ctl_body'), 'default' => '', 'dynamic_tags' => true],
             [
                 'key' => 'site_field', 'type' => 'select', 'label' => __('blox_dynamic_site_binding'),
                 'default' => 'none', 'options' => DynamicSiteData::fieldOptions('text'),
@@ -69,6 +69,8 @@ final class TextElement extends AbstractElement
         if ($siteField !== 'none') {
             $value = DynamicSiteData::value($siteField, 'text', (string) ($data['site_fallback'] ?? ''));
             $html = '<p>' . e($value) . '</p>';
+        } else {
+            $html = DynamicSiteData::interpolateHtml($html);
         }
         $radiusKey = is_string($data['radius'] ?? null) ? $data['radius'] : 'none';
         $radius = ['none' => '', 'md' => ' rounded-lg', 'xl' => ' rounded-2xl'][$radiusKey] ?? '';

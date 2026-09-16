@@ -123,6 +123,48 @@
                 return data.template;
             });
     }
+
+    function postInsertAction(endpoint, action, context, key, reviewId, extra, fallbackMessage, csrf) {
+        var body = new URLSearchParams();
+        body.set("action", action);
+        body.set("context", context);
+        body.set("key", key);
+        if (reviewId) body.set("review_id", reviewId);
+        var options = extra && typeof extra === "object" ? extra : {};
+        if (options.style_mode) body.set("style_mode", options.style_mode);
+        ["tokens", "styles"].forEach(function (kind) {
+            var map = options[kind] && typeof options[kind] === "object" ? options[kind] : {};
+            Object.keys(map).forEach(function (from) {
+                var to = map[from];
+                if (to !== "" && to !== null && to !== undefined) {
+                    body.set("design_" + kind + "[" + from + "]", to);
+                }
+            });
+        });
+        body.set("_token", csrf || "");
+        return fetch(endpoint, { method: "POST", body: body, cache: "no-store" })
+            .then(function (response) { return responseData(response, fallbackMessage); });
+    }
+
+    // 画布插入检查：远程/内置来源返回 review_id 与设计诊断；本地/插件 review_id 为空（走直接插入）。
+    function prepareInsert(endpoint, context, key, fallbackMessage, csrf) {
+        return postInsertAction(endpoint, "prepare_insert", context, key, "", null, fallbackMessage, csrf)
+            .then(function (data) {
+                if (!data.template) throw new Error(fallbackMessage);
+                return data;
+            });
+    }
+
+    // 画布插入确认：只提交 review_id 与映射选择，sections 由服务端按映射重新生成。
+    function confirmInsert(endpoint, context, key, reviewId, options, fallbackMessage, csrf) {
+        return postInsertAction(endpoint, "confirm_insert", context, key, reviewId, options, fallbackMessage, csrf)
+            .then(function (data) {
+                if (!data.template || !Array.isArray(data.template.sections)) {
+                    throw new Error(fallbackMessage);
+                }
+                return data.template;
+            });
+    }
     function categoryValue(item) {
         var value = String(item && item.category || "").trim().toLowerCase();
         return value || String(item && item.type || "").trim().toLowerCase();
@@ -348,6 +390,8 @@
         compareSections: compareSections,
         list: list,
         resolve: resolve,
+        prepareInsert: prepareInsert,
+        confirmInsert: confirmInsert,
         normalizeMetadata: normalizeMetadata,
         recommend: recommend,
         isRecommended: isRecommended,

@@ -23,6 +23,7 @@ final class BlockRenderer
     /** 响应式三档映射（[基类, md:类, lg:类]，字面量写全供 Tailwind 扫描；解析见 AbstractElement::respClasses） */
     private const PADDING_MAP = [
         'none' => ['py-0', 'md:py-0', 'lg:py-0'],
+        'xs'   => ['py-1', 'md:py-1', 'lg:py-1'],
         'sm'   => ['py-4', 'md:py-4', 'lg:py-4'],
         'md'   => ['py-8', 'md:py-8', 'lg:py-8'],
         'lg'   => ['py-12', 'md:py-12', 'lg:py-12'],
@@ -934,6 +935,12 @@ final class BlockRenderer
             'node_id' => (string) ($el['id'] ?? ''),
         ]);
         $html = BloxFrontendEditTarget::mark($html, $type, (string) ($el['id'] ?? ''));
+        if ($editMode && in_array($type, ['heading', 'text', 'button'], true)
+            && preg_match('/\{[a-z_]+\}/', (string) ($data[$type === 'text' ? 'html' : 'text'] ?? ''))) {
+            $dynamicRoot = new HtmlTagRewriter($html);
+            if ($dynamicRoot->nextTag()) $dynamicRoot->setAttribute('data-yk-dynamic-tags', '1');
+            $html = $dynamicRoot->getUpdatedHtml();
+        }
         $html = self::applyElementSharedStyles($html, $data, $element);
         $html = self::applyCompiledCss($html, $data, $element);
         $html = self::applyGlobalStyle($html, $data, $element->type());

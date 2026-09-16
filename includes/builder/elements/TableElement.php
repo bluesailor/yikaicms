@@ -61,21 +61,29 @@ final class TableElement extends AbstractElement
     /** @return array{rows:list<list<string>>,widths:list<int>} */
     public static function normalizeGrid(mixed $value): array
     {
-        $source = is_array($value) && is_array($value['rows'] ?? null) ? array_slice(array_values($value['rows']), 0, self::MAX_ROWS) : [];
+        $input = is_array($value) ? $value : [];
+        /** @var array<array-key,mixed> $rawRows Serialized editor input is not a normalized grid yet. */
+        $rawRows = is_array($input['rows'] ?? null) ? $input['rows'] : [];
+        $source = array_slice(array_values($rawRows), 0, self::MAX_ROWS);
         $rows = [];
         $columns = 1;
         foreach ($source as $row) {
             if (!is_array($row)) continue;
-            $cells = array_map(static fn (mixed $cell): string => is_scalar($cell) ? mb_substr((string) $cell, 0, 2000) : '', array_slice(array_values($row), 0, self::MAX_COLUMNS));
+            $cells = [];
+            foreach (array_slice(array_values($row), 0, self::MAX_COLUMNS) as $cell) {
+                $cells[] = is_scalar($cell) ? mb_substr((string) $cell, 0, 2000) : '';
+            }
             $columns = max($columns, count($cells));
             $rows[] = $cells;
         }
         if ($rows === []) $rows = [['']];
         $rows = array_map(static fn (array $row): array => array_pad($row, $columns, ''), $rows);
-        $rawWidths = is_array($value) && is_array($value['widths'] ?? null) ? array_values($value['widths']) : [];
+        /** @var list<mixed> $rawWidths */
+        $rawWidths = is_array($input['widths'] ?? null) ? array_values($input['widths']) : [];
         $widths = [];
         for ($i = 0; $i < $columns; $i++) {
-            $width = is_scalar($rawWidths[$i] ?? null) && is_numeric($rawWidths[$i]) ? (int) $rawWidths[$i] : 0;
+            $rawWidth = $rawWidths[$i] ?? null;
+            $width = is_numeric($rawWidth) ? (int) $rawWidth : 0;
             $widths[] = $width > 0 ? max(80, min(800, $width)) : 0;
         }
         return ['rows' => $rows, 'widths' => $widths];

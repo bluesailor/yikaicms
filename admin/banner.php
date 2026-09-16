@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $contentMotion = post('content_motion', 'none');
         $backgroundMotion = post('background_motion', 'none');
         $heightMode = post('height_mode', '');
-        if (!in_array($heightMode, ['fixed', 'screen', 'cover-header'], true)) {
+        if (!in_array($heightMode, ['fixed', 'fixed-cover-header', 'screen', 'cover-header'], true)) {
             $heightMode = post('fullscreen', '0') === '1' ? 'screen' : 'fixed';
         }
         $autoplaySeconds = array_key_exists('autoplay_seconds', $_POST)
@@ -166,7 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'height_mobile'  => max(180, min(1200, postInt('height_mobile', 250))),
             'height_mode'    => $heightMode,
             // 兼容尚未识别 height_mode 的旧前台：两种首屏模式至少维持满屏高度。
-            'fullscreen'     => $heightMode === 'fixed' ? 0 : 1,
+            'fullscreen'     => in_array($heightMode, ['screen', 'cover-header'], true) ? 1 : 0,
             'autoplay_delay' => max(0, min(30, $autoplaySeconds)) * 1000,
             'effect'         => in_array($effect, ['fade', 'slide'], true) ? $effect : 'fade',
             'speed'          => max(200, min(2000, postInt('speed', 700))),
@@ -1105,6 +1105,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                         $groupHeightMode = (string) ($g['height_mode'] ?? (!empty($g['fullscreen']) ? 'screen' : 'fixed'));
                         $groupHeightModeKey = match ($groupHeightMode) {
                             'cover-header' => 'blox_banner_height_cover_header',
+                            'fixed-cover-header' => 'blox_banner_height_fixed_cover_header',
                             'screen' => 'blox_banner_height_screen',
                             default => 'blox_banner_height_fixed',
                         };
@@ -1183,7 +1184,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                     <label class="block text-gray-700 mb-2"><?php echo e(__('blox_banner_height_mode')); ?></label>
                     <input type="hidden" name="height_mode" id="groupHeightMode" value="fixed">
                     <input type="hidden" name="fullscreen" id="groupFullscreen" value="0">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" role="group" aria-label="<?php echo e(__('blox_banner_height_mode')); ?>">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" role="group" aria-label="<?php echo e(__('blox_banner_height_mode')); ?>">
                         <button type="button" data-group-choice="height" data-value="fixed" onclick="setGroupChoice('height', 'fixed')"
                                 class="border rounded px-3 py-2 text-sm inline-flex items-center justify-center gap-2 transition" aria-pressed="false">
                             <i class="ti ti-arrows-vertical"></i><?php echo e(__('blox_banner_height_fixed')); ?>
@@ -1191,6 +1192,10 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                         <button type="button" data-group-choice="height" data-value="screen" onclick="setGroupChoice('height', 'screen')"
                                 class="border rounded px-3 py-2 text-sm inline-flex items-center justify-center gap-2 transition" aria-pressed="false">
                             <i class="ti ti-maximize"></i><?php echo e(__('blox_banner_height_screen')); ?>
+                        </button>
+                        <button type="button" data-group-choice="height" data-value="fixed-cover-header" onclick="setGroupChoice('height', 'fixed-cover-header')"
+                                class="border rounded px-3 py-2 text-sm inline-flex items-center justify-center gap-2 transition" aria-pressed="false">
+                            <i class="ti ti-layout-navbar"></i><?php echo e(__('blox_banner_height_fixed_cover_header')); ?>
                         </button>
                         <button type="button" data-group-choice="height" data-value="cover-header" onclick="setGroupChoice('height', 'cover-header')"
                                 class="border rounded px-3 py-2 text-sm inline-flex items-center justify-center gap-2 transition" aria-pressed="false">
@@ -1330,7 +1335,7 @@ function setGroupChoice(key, value) {
         button.classList.toggle('hover:border-blue-300', !active);
     });
     if (key === 'height') {
-        document.getElementById('groupFullscreen').value = value === 'fixed' ? '0' : '1';
+        document.getElementById('groupFullscreen').value = ['screen', 'cover-header'].includes(value) ? '1' : '0';
         groupFsSync();
     }
 }
@@ -1404,7 +1409,7 @@ function groupFsSync() {
     var mode = document.getElementById('groupHeightMode');
     var pc = document.getElementById('groupHeightPc');
     if (!mode || !pc) return;
-    var fullscreen = mode.value !== 'fixed';
+    var fullscreen = ['screen', 'cover-header'].includes(mode.value);
     pc.readOnly = fullscreen;
     var wrap = document.getElementById('groupHeightPcWrap');
     if (wrap) wrap.style.opacity = fullscreen ? '0.45' : '1';

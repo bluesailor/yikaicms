@@ -30,15 +30,18 @@ if (!function_exists('e')) {
  */
 final class BloxBuiltinTemplateContractTest extends TestCase
 {
-    /** @return array<string,array{0:string,1:list<string>}> */
+    /**
+     * 2026-09-16 起随包整页模板缩减为三款（在用的公司介绍 / 服务流程 + 功能性 404）。
+     * 移出的 restaurant-landing / contact-page / brand-service-landing 见
+     * CLAUDE-SECTION-LIBRARY-PROGRESS.md：重设计后进远程精品库，不再随包分发。
+     *
+     * @return array<string,array{0:string,1:list<string>}>
+     */
     public static function templates(): array
     {
         return [
-            'restaurant' => ['restaurant-landing', ['好好吃饭', '招牌红烧肉', '清蒸鲜鱼', '手作小笼包', '预约座位']],
             '公司介绍' => ['company-intro', ['以专业与稳健', '成立年份', '为什么选择我们', '研发设计', '立即咨询']],
-            '联系我们' => ['contact-page', ['联系我们', '常见问题', '多久能收到回复', '工作时间']],
             '服务流程' => ['service-process', ['每一步都清晰可控', '需求沟通', '测试验收', '方案与计划', '合作前常见问题']],
-            '品牌服务落地页' => ['brand-service-landing', ['让复杂的业务', '方案设计', '客户反馈', '常见问题', '预约一次方案沟通']],
         ];
     }
 
@@ -111,19 +114,6 @@ final class BloxBuiltinTemplateContractTest extends TestCase
         self::assertSame([], array_keys($missing), '模板引用了已不存在的元素类型');
     }
 
-    /**
-     * 联系页的三个联系类元素必须在文档里。
-     * 它们的渲染要数据库与完整应用上下文（表单模板、联系方式设置），单元层测不了，
-     * 所以这里只钉结构——真正的渲染由后台页面冒烟与 e2e 覆盖。
-     */
-    public function testContactPageKeepsItsContactElements(): void
-    {
-        $raw = (string) file_get_contents(ROOT_PATH . '/templates/blox/pages/contact-page.json');
-        foreach (['contact_cards', 'contact_form', 'contact_map'] as $type) {
-            self::assertStringContainsString('"' . $type . '"', $raw, '联系页缺少 ' . $type . ' 元素');
-        }
-    }
-
     public function testProviderListsPageTemplatesWithExistingThumbnails(): void
     {
         $items = [];
@@ -131,7 +121,7 @@ final class BloxBuiltinTemplateContractTest extends TestCase
             $items[$item['key']] = $item;
         }
 
-        foreach (['builtin:company-intro', 'builtin:contact-page', 'builtin:service-process', 'builtin:brand-service-landing'] as $key) {
+        foreach (['builtin:company-intro', 'builtin:service-process', 'builtin:404-route-lost'] as $key) {
             self::assertArrayHasKey($key, $items);
             self::assertNotSame('', $items[$key]['name']);
             self::assertNotSame('', $items[$key]['description']);
@@ -140,66 +130,58 @@ final class BloxBuiltinTemplateContractTest extends TestCase
         }
     }
 
-    public function testRestaurantFramePreferencesSurvivePackageAndProviderResolution(): void
+    /**
+     * 整页模板的「页面外框偏好 + 区块锚点」必须完整穿过导入管线。
+     *
+     * 原先靠 restaurant-landing 这份随包模板当夹具；2026-09-16 该模板移出随包目录后，
+     * 改用内联夹具——被保护的是**管线行为**（settings 不被吞、anchor_id 不被重写、
+     * 锚点链接照常渲染），它与目录里恰好有哪几款模板无关，不该随目录增减而失去覆盖。
+     */
+    public function testPageFramePreferencesAndAnchorsSurviveTheImportPipeline(): void
     {
-        $prepared = BloxTemplateImporter::prepare((string) file_get_contents(
-            ROOT_PATH . '/templates/blox/pages/restaurant-landing.json'
-        ));
-        $resolved = (new BloxBuiltinTemplateProvider())->resolve('restaurant-landing');
-        $expected = array_fill_keys([
+        $frame = array_fill_keys([
             'page_header_hidden', 'page_footer_hidden', 'page_breadcrumb_hidden', 'page_title_hidden', 'page_sidebar_hidden',
         ], true);
-        self::assertSame($expected, $prepared['settings']);
-        self::assertSame($expected, $resolved['settings']);
-        self::assertSame($expected, json_decode($prepared['draft_json'], true)['settings']);
-        self::assertSame('restaurant-header', $resolved['sections'][0]['settings']['anchor_id']);
-        self::assertSame('restaurant-footer', $resolved['sections'][array_key_last($resolved['sections'])]['settings']['anchor_id']);
-        $header = BlockRenderer::render(json_encode([$resolved['sections'][0]], JSON_THROW_ON_ERROR));
-        self::assertStringContainsString('href="#restaurant-menu"', $header);
-        self::assertStringContainsString('href="#restaurant-reservation"', $header);
-    }
+        $package = json_encode([
+            'format' => 'yikaicms-blox-template',
+            'version' => 1,
+            'type' => 'page',
+            'name' => 'Frame fixture',
+            'requires' => ['elements' => ['heading', 'button'], 'plugins' => []],
+            'document' => [
+                'schema' => 1,
+                'settings' => $frame,
+                'sections' => [
+                    [
+                        'type' => 'section',
+                        'settings' => ['anchor_id' => 'fixture-header'],
+                        'columns' => [['elements' => [
+                            ['type' => 'heading', 'data' => ['text' => '锚点夹具', 'level' => 'h1']],
+                            ['type' => 'button', 'data' => ['text' => '去预约', 'url' => '#fixture-reservation']],
+                        ]]],
+                    ],
+                    [
+                        'type' => 'section',
+                        'settings' => ['anchor_id' => 'fixture-reservation'],
+                        'columns' => [['elements' => [
+                            ['type' => 'heading', 'data' => ['text' => '预约', 'level' => 'h2']],
+                        ]]],
+                    ],
+                ],
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
-    public function testRestaurantProviderPreservesLocalImagesAndReservationAnchors(): void
-    {
-        $provider = new BloxBuiltinTemplateProvider();
-        $items = array_column($provider->items('page'), null, 'key');
-        self::assertArrayHasKey('builtin:restaurant-landing', $items);
-        self::assertFileExists(ROOT_PATH . $items['builtin:restaurant-landing']['thumbnail']);
+        $prepared = BloxTemplateImporter::prepare($package);
+        self::assertSame($frame, $prepared['settings'], '页面外框偏好不能在导入时被吞掉');
+        self::assertSame($frame, json_decode($prepared['draft_json'], true)['settings']);
+        self::assertSame('fixture-header', $prepared['sections'][0]['settings']['anchor_id']);
+        self::assertSame(
+            'fixture-reservation',
+            $prepared['sections'][array_key_last($prepared['sections'])]['settings']['anchor_id']
+        );
 
-        $template = $provider->resolve('restaurant-landing');
-        $anchors = [];
-        $links = [];
-        $images = [];
-        foreach ($template['sections'] as $section) {
-            $anchors[] = $section['settings']['anchor_id'] ?? '';
-            foreach ($section['columns'] as $column) {
-                foreach ($column['elements'] as $element) {
-                    $data = $element['data'] ?? [];
-                    foreach (['url', 'link'] as $key) {
-                        if (str_starts_with((string) ($data[$key] ?? ''), '#')) {
-                            $links[] = substr($data[$key], 1);
-                        }
-                    }
-                    foreach (['src', 'image'] as $key) {
-                        if (!empty($data[$key])) {
-                            $images[$data[$key]] = true;
-                        }
-                    }
-                }
-            }
-        }
-        self::assertContains('restaurant-reservation', $links);
-        self::assertSame([], array_values(array_diff($links, $anchors)));
-        self::assertCount(count($anchors), array_unique($anchors));
-        self::assertCount(5, $images);
-        foreach (array_keys($images) as $path) {
-            self::assertStringStartsWith('/assets/images/blox-templates/restaurant-', $path);
-            self::assertFileExists(ROOT_PATH . $path);
-            $size = getimagesize(ROOT_PATH . $path);
-            self::assertIsArray($size);
-            self::assertGreaterThanOrEqual(1024, $size[0]);
-            self::assertSame('image/webp', $size['mime']);
-        }
+        $header = BlockRenderer::render(json_encode([$prepared['sections'][0]], JSON_THROW_ON_ERROR));
+        self::assertStringContainsString('href="#fixture-reservation"', $header, '页内锚点链接必须照常渲染');
     }
 
     public function testServiceProcessKeepsSixIndividuallyEditableSteps(): void

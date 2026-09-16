@@ -64,10 +64,12 @@ final class BloxBuiltinTemplateProviderTest extends TestCase
             $items[$item['key']] = $item;
         }
 
-        self::assertSame(1, $items['builtin:hero-intro']['metadata']['schema']);
-        self::assertSame('hero', $items['builtin:hero-intro']['metadata']['purpose']);
-        self::assertContains('home', $items['builtin:hero-intro']['metadata']['page_types']);
-        self::assertSame(95, $items['builtin:hero-intro']['metadata']['priority']);
-        self::assertContains('service', $items['builtin:process-steps']['metadata']['page_types']);
+        // 原以 hero-intro / process-steps 取样；两款 2026-09-16 移出随包目录后改用保留的基础区块，
+        // 断言的仍是同一件事：metadata 经 normalize 带 schema/purpose/page_types/priority。
+        self::assertSame(1, $items['builtin:basic-heading']['metadata']['schema']);
+        self::assertSame('content', $items['builtin:basic-heading']['metadata']['purpose']);
+        self::assertContains('home', $items['builtin:basic-heading']['metadata']['page_types']);
+        self::assertSame(90, $items['builtin:basic-heading']['metadata']['priority']);
+        self::assertContains('service', $items['builtin:feature-grid']['metadata']['page_types']);
     }
 }

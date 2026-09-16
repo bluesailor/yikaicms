@@ -13,7 +13,7 @@ foreach ([
 ] as $route => [$key, $icon]) {
     $productNavItems[] = [
         'label' => __($key),
-        'url' => '/admin/' . $route . '.php?lang=' . rawurlencode((string) $_viewLang),
+        'url' => '/admin/' . $route . '.php?lang=' . rawurlencode((string) ($_viewLang ?? siteLang())),
         'icon' => $icon,
         'active' => $productNavCurrent === $route . '.php',
         'testid' => 'admin-module-' . $route,

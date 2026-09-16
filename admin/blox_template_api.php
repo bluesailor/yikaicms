@@ -245,11 +245,13 @@ try {
         // 时仍兼容原来的“发布现有草稿”；新客户端则在同一事务中保存并发布。
         $currentDraftRaw = (string) ($row['draft_data'] ?? '');
         $currentDraft = trim($currentDraftRaw) !== '' ? $currentDraftRaw : '[]';
-        $processed = null;
-        if (array_key_exists('blocks_data', $_POST)) {
+        $hasSubmittedDocument = array_key_exists('blocks_data', $_POST);
+        if ($hasSubmittedDocument) {
             $assertTemplateRevision($type, $currentDraft, trim((string) post('base_revision', '')));
-            $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'), $currentDraft);
         }
+        $processed = $hasSubmittedDocument
+            ? $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'), $currentDraft)
+            : null;
         $replaceThemeArea = strtolower(trim((string) post('replace_theme_area', '')));
         $replaceTheme = $replaceThemeArea !== '';
         if ($replaceTheme && ($replaceThemeArea !== $type
@@ -519,6 +521,8 @@ try {
         $key = trim((string) post('key', ''));
         $template = BloxTemplateCatalog::resolve($key, $context);
         requireBloxTemplateTypePermission((string) ($template['type'] ?? $context));
+        // package_json 是服务端发评审记录用的包原文，绝不出浏览器。
+        unset($template['package_json'], $template['package_version']);
         if (($template['source'] ?? '') === 'remote') {
             try {
                 adminLog(
@@ -531,6 +535,100 @@ try {
             }
         }
         success(['template' => $template]);
+    }
+
+    // 画布插入检查：远程/内置来源先出诊断并登记服务端评审，确认前不动文档。
+    if ($action === 'prepare_insert' && $method === 'POST') {
+        verifyCsrf();
+        $context = (string) post('context', 'page');
+        requireBloxTemplateTypePermission($context);
+        $key = trim((string) post('key', ''));
+        $template = BloxTemplateCatalog::resolve($key, $context);
+        requireBloxTemplateTypePermission((string) ($template['type'] ?? $context));
+        $packageJson = (string) ($template['package_json'] ?? '');
+        $packageVersion = (string) ($template['package_version'] ?? '');
+        unset($template['package_json'], $template['package_version']);
+        if ($packageJson === '') {
+            // 本地/插件来源没有包概念，也不需要映射等待：保持直接插入路径。
+            success(['template' => $template, 'review_id' => '', 'design_diagnostics' => []]);
+        }
+        $review = BloxImportReview::issue([
+            'operation' => 'canvas_insert',
+            'source_key' => $key,
+            'source_type' => (string) ($template['source'] ?? ''),
+            'template_type' => (string) ($template['type'] ?? ''),
+            'package_json' => $packageJson,
+            'package_version' => $packageVersion,
+            'admin_id' => (int) ($_SESSION['admin_id'] ?? 0),
+        ]);
+        // 检查阶段不下发 sections（确认时按映射重新生成），减小响应并避免旧数据被套用。
+        unset($template['sections'], $template['settings']);
+        if (($template['source'] ?? '') === 'remote') {
+            try {
+                adminLog('blox_template', 'prepare_canvas_insert', '检查画布插入 ' . $key . ' v' . $packageVersion);
+            } catch (Throwable $logError) {
+                error_log('[BloxTemplateApi] Canvas prepare audit log: ' . $logError->getMessage());
+            }
+        }
+        success([
+            'template' => $template,
+            'review_id' => (string) $review['id'],
+            'design_diagnostics' => is_array($template['design_diagnostics'] ?? null) ? $template['design_diagnostics'] : [],
+        ]);
+    }
+
+    // 画布插入确认：只消费服务端评审里的包；映射在服务端重校验后重新生成 sections。
+    if ($action === 'confirm_insert' && $method === 'POST') {
+        verifyCsrf();
+        $context = (string) post('context', 'page');
+        requireBloxTemplateTypePermission($context);
+        $key = trim((string) post('key', ''));
+        $reviewId = trim((string) post('review_id', ''));
+        $review = BloxImportReview::find($reviewId);
+        if ($review === null) {
+            error(__('blox_import_review_invalid'));
+        }
+        if ((int) ($review['admin_id'] ?? 0) !== (int) ($_SESSION['admin_id'] ?? 0)) {
+            error(__('blox_import_review_owner'));
+        }
+        if ((string) ($review['operation'] ?? '') !== 'canvas_insert' || (string) ($review['source_key'] ?? '') !== $key) {
+            error(__('blox_import_review_invalid'));
+        }
+        if ((int) ($review['expires_at'] ?? 0) < time()) {
+            error(__('blox_import_review_expired'));
+        }
+        if (!hash_equals((string) ($review['package_sha256'] ?? ''), hash('sha256', (string) ($review['package_json'] ?? '')))) {
+            error(__('blox_import_review_invalid'));
+        }
+        if ((int) ($review['design_revision'] ?? -1) !== (int) (BloxDesignSystem::snapshot()['revision'] ?? 0)) {
+            error(__('blox_import_design_changed'));
+        }
+        // 结构化读取映射（post() 会 trim 破坏数组）；非法映射由 prepare() 白名单拒绝。
+        $options = ['style_mode' => is_string($_POST['style_mode'] ?? null) ? $_POST['style_mode'] : 'keep'];
+        foreach (['tokens', 'styles'] as $kind) {
+            $map = $_POST['design_' . $kind] ?? [];
+            $options[$kind] = is_array($map) ? array_filter($map, static fn(mixed $value): bool => $value !== '') : [];
+        }
+        try {
+            $prepared = BloxTemplateImporter::prepare((string) $review['package_json'], $options);
+        } catch (Throwable $prepareError) {
+            error($prepareError->getMessage());
+        }
+        if ($prepared['type'] !== (string) ($review['template_type'] ?? '')) {
+            error(__('blox_import_review_invalid'));
+        }
+        requireBloxTemplateTypePermission($prepared['type']);
+        // 画布确认无数据库写入：TTL 内重复确认幂等重放，不重复扣远端下载。
+        bloxImportReviewModel()->claim($reviewId, time());
+        success(['template' => [
+            'key' => $key,
+            'type' => $prepared['type'],
+            'name' => $prepared['name'],
+            'source' => (string) ($review['source_type'] ?? ''),
+            'provider' => '',
+            'settings' => $prepared['settings'],
+            'sections' => $prepared['sections'],
+        ]]);
     }
     error(__('blox_invalid_action'));
 } catch (Throwable $e) {

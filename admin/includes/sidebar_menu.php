@@ -178,13 +178,6 @@ return [
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h6"></path>',
             ],
             [
-                'key'   => 'page',
-                'perm'  => 'edit_page',
-                'label' => __('admin_page'),
-                'url'   => '/admin/page.php',
-                'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>',
-            ],
-            [
                 'key'   => 'setting',
                 'perm'  => '*',
                 'label' => __('admin_setting'),
@@ -263,9 +256,16 @@ return [
         'priority' => 65,
         'items'    => [
             [
+                'key'   => 'page',
+                'perm'  => 'edit_page',
+                'label' => __('website_pages_title'),
+                'url'   => '/admin/page.php',
+                'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>',
+            ],
+            [
                 'key'         => 'site_design',
                 'visible'     => !function_exists('hasAnyBloxPermission') || hasAnyBloxPermission(),
-                'label'       => __('site_design_title'),
+                'label'       => __('website_layout_title'),
                 'url'         => '/admin/site_design.php',
                 'icon'        => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h16v14H4V5zm0 4h16M8 9v10"></path>',
                 'active_keys' => ['site_design'],
@@ -273,7 +273,7 @@ return [
             [
                 'key'   => 'blox_design',
                 'perm'  => 'blox_global',
-                'label' => __('blox_design_system'),
+                'label' => __('website_styles_title'),
                 'url'   => '/admin/blox_design.php',
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 100 18h1.5a1.5 1.5 0 000-3H12a2 2 0 010-4h3a6 6 0 000-12h-3zM7.5 10h.01M9 6.5h.01M14.5 6.5h.01M17 10h.01"></path>',
             ],
@@ -281,7 +281,7 @@ return [
                 'key'     => 'blox_templates',
                 'perm'    => 'blox_global',
                 'visible' => !function_exists('bloxPageEditorEnabled') || bloxPageEditorEnabled(),
-                'label'   => __('admin_blox_templates'),
+                'label'   => __('website_templates_title'),
                 'url'     => '/admin/blox_templates.php',
                 'icon'    => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6l2 2h8v14H4V4zm4 6h8m-8 4h6"></path>',
             ],

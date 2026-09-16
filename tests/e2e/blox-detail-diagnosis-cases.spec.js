@@ -161,6 +161,7 @@ test('diagnosis refuses content the account cannot edit with the same answer as 
   page.on('dialog', (dialog) => dialog.accept());
   let id;
   const account = JSON.parse(run('limited-user'));
+  let articleTemplateId;
   const limited = await browser.newContext({ storageState: { cookies: [], origins: [] } });
   try {
     id = await createProductTemplate(page, `TB-R2 diag-perm ${info.project.name}`);
@@ -168,6 +169,16 @@ test('diagnosis refuses content the account cannot edit with the same answer as 
 
     // 不存在的内容：超管也只得到"不存在或无权查看"
     const token = await page.evaluate(() => window.Alpine.$data(document.body).csrf);
+    const previewRequest = await page.evaluate(() => {
+      const editor = window.Alpine.$data(document.body);
+      return { endpoint: editor.previewEndpoint, document: editor.documentData() };
+    });
+    const productTitle = JSON.parse(run('products')).find((row) => String(row.id) === previewId).title;
+    const previewForm = { action: 'preview', blox: '1', preview_product: previewId,
+      blocks_data: previewRequest.document, _token: token };
+    const allowedPreview = await page.request.post(previewRequest.endpoint, { form: previewForm });
+    expect(allowedPreview.status()).toBe(200);
+    expect(await allowedPreview.text()).toContain(productTitle);
     const missing = await page.request.post('/admin/blox_template_api.php', {
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
       form: { action: 'diagnose_conditions', id, content_id: '987654321', _token: token,
@@ -187,11 +198,20 @@ test('diagnosis refuses content the account cannot edit with the same answer as 
     ]);
     await other.goto(`/admin/blox_editor.php?template=${id}`);
     await waitPreviewSettled(other);
+    const limitedToken = await other.evaluate(() => window.Alpine.$data(document.body).csrf);
+    const deniedPreview = await other.request.post(previewRequest.endpoint, {
+      form: { ...previewForm, _token: limitedToken },
+    });
+    expect(deniedPreview.status()).toBe(200);
+    expect((await deniedPreview.text()).includes(productTitle), 'Designer-only sample preview must not disclose product content').toBe(false);
     if (await other.getByTestId('blox-recovery-dialog').isVisible().catch(() => false)) {
       await other.getByTestId('blox-recovery-discard').click();
     }
     await other.getByTestId('product-template-settings').locator('summary').click();
-    await other.getByTestId('product-template-preview').selectOption(previewId);
+    await expect(other.getByTestId('product-template-preview').locator(`option[value="${previewId}"]`)).toHaveCount(0);
+    expect(await other.evaluate(() => window.Alpine.$data(document.body).conditionItems)).toEqual([]);
+    // Forge the client sample ID: the server must reject it even without a selectable option.
+    await other.evaluate((value) => { window.Alpine.$data(document.body).productPreviewId = Number(value); }, previewId);
     await other.getByTestId('blox-cond-add-include-all').click();
     const denied = other.waitForResponse((r) => new URL(r.url()).pathname === '/admin/blox_template_api.php'
       && new URLSearchParams(r.request().postData() || '').get('action') === 'diagnose_conditions');
@@ -202,9 +222,40 @@ test('diagnosis refuses content the account cannot edit with the same answer as 
     expect(JSON.stringify(deniedBody)).not.toContain('diagnosis');
     await expect(other.getByTestId('blox-diagnose-error')).toHaveText(missingBody.msg);
     await expect(other.getByTestId('blox-diagnose-result')).toHaveCount(0);
+
+    const articleSamples = JSON.parse(run('preview-articles'));
+    articleTemplateId = JSON.parse(run('publish-scope', 0, scope({ content_type: 'article' }), 'preview-permissions')).id;
+    const articleDocument = JSON.parse(run('read', articleTemplateId)).draft_data;
+    const articleEndpoint = `/admin/blox_preview.php?article_template=1&_lang=zh-CN&template_id=${articleTemplateId}`;
+    const articleForm = { action: 'preview', blox: '1', preview_article: String(articleSamples.article.id),
+      blocks_data: articleDocument, _token: limitedToken };
+    // Refresh permissions on every request, including revocation in an already logged-in session.
+    for (const permissions of [[], ['edit_product'], ['edit_article'], ['edit_product', 'edit_article'], []]) {
+      run('limited-permissions', JSON.stringify(['blox_global', ...permissions]));
+      for (const [permission, endpoint, form, title] of [
+        ['edit_product', previewRequest.endpoint, { ...previewForm, _token: limitedToken }, productTitle],
+        ['edit_article', articleEndpoint, articleForm, articleSamples.article.title],
+      ]) {
+        const response = await other.request.post(endpoint, { form });
+        expect(response.status()).toBe(200);
+        expect((await response.text()).includes(title), `${permission}: ${permissions.join(',')}`)
+          .toBe(permissions.includes(permission));
+      }
+    }
+    run('limited-permissions', JSON.stringify(['blox_global', 'edit_article']));
+    const wrongType = await other.request.post(articleEndpoint, {
+      form: { ...articleForm, preview_article: String(articleSamples.other.id) },
+    });
+    expect((await wrongType.text()).includes(articleSamples.other.title)).toBe(false);
+    run('limited-permissions', JSON.stringify(['edit_product', 'edit_article']));
+    const noDesign = await other.request.post(articleEndpoint, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }, form: articleForm,
+    });
+    expect((await noDesign.json()).code).toBe(403);
   } finally {
     await limited.close();
     run('limited-user', 'remove');
     if (id) run('restore', id);
+    if (articleTemplateId) run('restore', articleTemplateId);
   }
 });

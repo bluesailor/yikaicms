@@ -84,27 +84,22 @@ $_defaultLang = $_lang['default'];
 $_viewLang    = $_lang['view'];
 $_enabledList = $_lang['enabled'];
 
-// 获取当前视图语言下的单页 + 图库相册类型栏目
-// （album 型栏目本身是导航入口，内容在相册里维护，一并列出避免用户在「单页」找不到入口）
-// content_type 与草稿只用于展示 Blox 状态；普通单页的主编辑入口统一进入 Blox。
-$hasBloxDraftStorage = db()->tableExists('blox_page_drafts');
-$draftSelect = $hasBloxDraftStorage ? ', bd.id AS blox_draft_id' : ', 0 AS blox_draft_id';
-$draftJoin = $hasBloxDraftStorage
-    ? ' LEFT JOIN ' . DB_PREFIX . 'blox_page_drafts bd ON bd.page_id = c.id'
-    : '';
-$pages = channelModel()->query(
-    'SELECT c.*, p.name as parent_name, ct.content_type' . $draftSelect . ' FROM ' . channelModel()->tableName() . ' c
-     LEFT JOIN ' . channelModel()->tableName() . ' p ON c.parent_id = p.id
-     LEFT JOIN ' . contentModel()->tableName() . ' ct
-            ON ct.channel_id = c.id AND ct.lang = c.lang AND ct.deleted_at IS NULL
-     ' . $draftJoin . '
-     WHERE c.type IN (\'page\', \'album\') AND c.lang = ? ORDER BY c.parent_id ASC, c.sort_order ASC, c.id ASC',
-    [$_viewLang]
-);
-
-// 已停用（status=0）的单页收进下方独立区块，不占主列表（同栏目管理「已停用」页签）
-$hiddenPages = array_values(array_filter($pages, fn($p) => empty($p['status'])));
-$pages = array_values(array_filter($pages, fn($p) => !empty($p['status'])));
+require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+require_once ROOT_PATH . '/admin/includes/website_pages.php';
+$allPages = array_map('websitePagePresentation', channelModel()->websitePages($_viewLang));
+$pageView = in_array(get('view'), ['cards', 'list'], true) ? get('view') : 'cards';
+$pageQuery = mb_substr((string) get('q'), 0, 200);
+$pageFilter = in_array(get('filter'), ['all','active','disabled','changed','draft'], true) ? get('filter') : 'all';
+$filteredPages = websitePagesFilter($allPages, $pageQuery, $pageFilter);
+$pages = array_values(array_filter($filteredPages, static fn(array $page): bool => !empty($page['status'])));
+$hiddenPages = array_values(array_filter($filteredPages, static fn(array $page): bool => empty($page['status'])));
+// 结构页面（栏目首页 + 详情页模板）只在未搜索、未按状态筛选时展示：它们不属于单页集合，
+// 混进搜索结果会让"共 N 个页面"的计数对不上。
+$structuralPages = ($pageQuery === '' && $pageFilter === 'all') ? websiteStructuralPages($_viewLang) : [];
+$homeTitle = websiteHomeTitle($_viewLang);
+$homeUrl = langUrl('/', $_viewLang);
+$showHome = in_array($pageFilter, ['all','active'], true) && ($pageQuery === '' || mb_strpos(mb_strtolower($homeTitle), mb_strtolower($pageQuery)) !== false);
+$pageBrowseUrl = static fn(string $view): string => '/admin/page.php?' . http_build_query(['lang'=>$_viewLang, 'view'=>$view, 'q'=>$pageQuery, 'filter'=>$pageFilter]);
 
 // 获取页脚导航URL列表
 $footerNavUrls = [];
@@ -115,7 +110,7 @@ foreach ($footerNavData as $group) {
     }
 }
 
-$pageTitle = __('admin_page_static');
+$pageTitle = __('website_pages_title');
 $currentMenu = 'page';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
@@ -127,7 +122,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
 ?>
 
 <div class="mb-6 flex items-center justify-between">
-    <p class="text-gray-500"><?php echo __('page_desc'); ?></p>
+    <p class="text-gray-500"><?php echo e(__('website_pages_intro')); ?></p>
     <?php if ($_viewLang === $_defaultLang): ?>
     <button onclick="showCreateModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded transition inline-flex items-center gap-1 whitespace-nowrap cursor-pointer">
         <i class="ti ti-plus text-base"></i>
@@ -138,6 +133,47 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
     <?php endif; ?>
 </div>
 
+<form method="get" class="website-pages-toolbar" role="search">
+    <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
+    <input type="hidden" name="view" value="<?php echo e($pageView); ?>">
+    <label class="website-pages-search"><span class="sr-only"><?php echo e(__('website_pages_search')); ?></span><i class="ti ti-search" aria-hidden="true"></i><input name="q" value="<?php echo e($pageQuery); ?>" placeholder="<?php echo e(__('website_pages_search')); ?>" maxlength="200"></label>
+    <label><span class="sr-only"><?php echo e(__('website_pages_filter')); ?></span><select name="filter" aria-label="<?php echo e(__('website_pages_filter')); ?>">
+    <?php foreach (['all','active','disabled','changed','draft'] as $filter): ?><option value="<?php echo e($filter); ?>" <?php echo $pageFilter === $filter ? 'selected' : ''; ?>><?php echo e(__('website_pages_filter_' . $filter)); ?></option><?php endforeach; ?>
+    </select></label>
+    <button class="website-pages-filter-button" type="submit"><?php echo e(__('website_pages_apply')); ?></button>
+    <span class="website-page-note" role="status"><?php echo e(__('website_pages_count', ['count'=>count($filteredPages)])); ?></span>
+    <nav class="website-pages-view" aria-label="<?php echo e(__('website_pages_view')); ?>">
+        <a href="<?php echo e($pageBrowseUrl('cards')); ?>" <?php echo $pageView === 'cards' ? 'aria-current="page"' : ''; ?>><i class="ti ti-layout-grid" aria-hidden="true"></i><?php echo e(__('website_pages_cards')); ?></a>
+        <a href="<?php echo e($pageBrowseUrl('list')); ?>" <?php echo $pageView === 'list' ? 'aria-current="page"' : ''; ?>><i class="ti ti-list" aria-hidden="true"></i><?php echo e(__('website_pages_list')); ?></a>
+    </nav>
+</form>
+<?php if ($pageView === 'cards'): ?>
+<div class="website-pages-grid">
+    <?php if ($showHome) { echo renderWebsiteHomeCard($_viewLang); } ?>
+    <?php // 已停用永远排在启用页之后，各自保持原有顺序 ?>
+    <?php foreach ($pages as $page) { echo renderWebsitePageCard($page); } ?>
+</div>
+<?php // 栏目首页与详情页模板：同样需要排版，给一个直达编辑器的入口（不做启停/删除） ?>
+<?php if ($structuralPages): ?>
+<h2 class="website-pages-divider is-structural" data-testid="website-structural-divider">
+    <i class="ti ti-layout-board" aria-hidden="true"></i>
+    <span><?php echo e(__('website_structural_section')); ?></span>
+</h2>
+<div class="website-pages-grid">
+    <?php foreach ($structuralPages as $item) { echo renderWebsiteStructuralCard($item); } ?>
+</div>
+<?php endif; ?>
+<?php if ($hiddenPages): ?>
+<h2 class="website-pages-divider" data-testid="website-pages-disabled-divider">
+    <i class="ti ti-eye-off" aria-hidden="true"></i>
+    <span><?php echo e(__('website_pages_disabled_section', ['count' => count($hiddenPages)])); ?></span>
+</h2>
+<div class="website-pages-grid">
+    <?php foreach ($hiddenPages as $page) { echo renderWebsitePageCard($page); } ?>
+</div>
+<?php endif; ?>
+<?php if (!$filteredPages): ?><p class="website-pages-empty"><?php echo e(__('website_pages_empty')); ?> <a href="/admin/page.php?lang=<?php echo e(rawurlencode($_viewLang)); ?>"><?php echo e(__('website_pages_reset')); ?></a></p><?php endif; ?>
+<?php else: ?>
 <!-- 列表 -->
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
@@ -152,18 +188,18 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_sort_order'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_status'); ?></th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo e(__('admin_translate')); ?></th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
             <tbody class="divide-y">
-                <tr class="bg-blue-50/60 hover:bg-blue-50" data-testid="page-home-row">
+                <?php if ($showHome): ?><tr class="bg-blue-50/60 hover:bg-blue-50" data-testid="page-home-row">
                     <td class="px-4 py-3 text-gray-400">-</td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
                             <i class="ti ti-home text-primary text-lg"></i>
                             <div>
                                 <div class="font-medium flex items-center gap-2">
-                                    <?php echo e(__('admin_home')); ?>
+                                    <?php echo e($homeTitle); ?>
                                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 whitespace-nowrap"><?php echo e(__('admin_label_fixed')); ?></span>
                                 </div>
                             </div>
@@ -173,7 +209,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                         <span class="text-xs text-gray-400"><?php echo __('admin_none'); ?></span>
                     </td>
                     <td class="px-4 py-3 text-center">
-                        <code class="text-xs bg-gray-100 px-2 py-1 rounded">/</code>
+                        <code class="text-xs bg-gray-100 px-2 py-1 rounded"><?php echo e($homeUrl); ?></code>
                     </td>
                     <td class="px-4 py-3 text-center">
                         <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-600"><?php echo __('page_main_nav'); ?></span>
@@ -183,23 +219,24 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                         <span class="text-xs px-2 py-1 rounded bg-green-100 text-green-600"><?php echo __('admin_show'); ?></span>
                     </td>
                     <td class="px-4 py-3 text-center text-gray-300">-</td>
-                    <td class="px-4 py-3 text-center">
+                    <td class="px-4 py-3 text-left">
                         <?php if (bloxPageEditorEnabled() && hasPermission('blox_home')): ?>
-                        <a href="/admin/blox_editor.php?home=1"
+                        <a href="/admin/blox_editor.php?home=1&amp;lang=<?php echo e(rawurlencode($_viewLang)); ?>"
                            data-testid="page-home-edit"
                            class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1"
-                           title="<?php echo e(__('site_design_open_home')); ?>">
-                            <i class="ti ti-pencil text-sm"></i>
-                            <?php echo e(__('site_design_open_home')); ?>
+                           title="<?php echo e(__('page_design_web')); ?>">
+                            <i class="ti ti-stack-2 text-sm"></i>
+                            <?php echo e(__('page_design_web')); ?>
                         </a>
                         <?php endif; ?>
-                        <a href="/" target="_blank"
+                        <a href="<?php echo e($homeUrl); ?>" target="_blank"
                            class="text-gray-500 hover:underline text-sm inline-flex items-center gap-1">
                             <i class="ti ti-external-link text-sm"></i>
                             <?php echo __('admin_preview'); ?>
                         </a>
                     </td>
                 </tr>
+                <?php endif; ?>
                 <?php foreach ($pages as $item): ?>
                 <?php
                 $itemUrl = channelUrl($item);
@@ -212,12 +249,10 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                     <td class="px-4 py-3 text-gray-500"><?php echo $item['id']; ?></td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-3">
-                            <?php if ($item['image']): ?>
-                            <img src="<?php echo e($item['image']); ?>" class="w-12 h-8 object-cover rounded">
-                            <?php endif; ?>
                             <div>
                                 <div class="font-medium flex items-center gap-2">
                                     <?php echo e($item['name']); ?>
+                                    <span class="website-publication-label"><?php echo e(__('website_pages_state_' . $item['publication'])); ?></span>
                                     <?php if (($item['type'] ?? '') === 'album'): ?>
                                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 whitespace-nowrap"><?php echo __('admin_album'); ?></span>
                                     <?php endif; ?>
@@ -282,7 +317,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                         <?php endif; ?>
                         <?php endif; ?>
                     </td>
-                    <td class="px-4 py-3 text-center">
+                    <td class="px-4 py-3 text-left">
                         <?php if (($item['type'] ?? '') === 'album'): ?>
                         <?php $albumId = (int)($item['album_id'] ?? 0); ?>
                         <a href="<?php echo $albumId ? '/admin/album_photos.php?id=' . $albumId : '/admin/channel.php?id=' . $item['id']; ?>"
@@ -292,15 +327,13 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                             <?php echo __('admin_content_edit'); ?>
                         </a>
                         <?php else: ?>
-                        <?php $__isBlox = ($item['content_type'] ?? 'html') === 'blocks' || (int) ($item['blox_draft_id'] ?? 0) > 0; ?>
+                        <?php $__isBlox = in_array($item['publication'], ['published','changed','draft'], true); ?>
                         <?php if ($isTimelinePage || $canEditBlox): ?>
                         <a href="<?php echo e($itemEditUrl); ?>"
                            data-testid="page-primary-edit-<?php echo (int) $item['id']; ?>"
                             class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <i class="ti <?php echo $isTimelinePage ? 'ti-timeline' : 'ti-stack-2'; ?> text-sm"></i>
-                            <?php echo $itemEditRedirected
-                                ? e(__('page_edit_redirect_target', ['name' => $itemEditTarget['name'] ?? '']))
-                                : ($isTimelinePage ? e(__('admin_timeline')) : e(__('page_mode_blox'))); ?>
+                            <?php echo e(__($isTimelinePage ? 'admin_content_edit' : 'page_design_web')); ?>
                         </a>
                         <?php else: ?>
                         <span class="text-xs text-gray-400"><i class="ti ti-lock mr-1"></i><?php echo e(__('site_design_advanced_locked')); ?></span>
@@ -373,14 +406,12 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
             <code class="text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-400"><?php echo e($itemUrl); ?></code>
             <span class="flex-1"></span>
             <?php if (($item['type'] ?? '') !== 'album'): ?>
-            <?php $__isBlox = ($item['content_type'] ?? 'html') === 'blocks' || (int) ($item['blox_draft_id'] ?? 0) > 0; ?>
+            <?php $__isBlox = in_array($item['publication'], ['published','changed','draft'], true); ?>
             <?php if ($isTimelinePage || $canEditBlox): ?>
             <a href="<?php echo e($itemEditUrl); ?>"
                data-testid="page-primary-edit-<?php echo (int) $item['id']; ?>"
                class="text-primary hover:underline text-sm inline-flex items-center gap-1 whitespace-nowrap">
-                <i class="ti <?php echo $isTimelinePage ? 'ti-timeline' : 'ti-stack-2'; ?> text-sm"></i><?php echo $itemEditRedirected
-                    ? e(__('page_edit_redirect_target', ['name' => $itemEditTarget['name'] ?? '']))
-                    : ($isTimelinePage ? e(__('admin_timeline')) : e(__('page_mode_blox'))); ?>
+                <i class="ti <?php echo $isTimelinePage ? 'ti-timeline' : 'ti-stack-2'; ?> text-sm"></i><?php echo e(__($isTimelinePage ? 'admin_content_edit' : 'page_design_web')); ?>
             </a>
             <?php else: ?>
             <span class="text-xs text-gray-400"><i class="ti ti-lock mr-1"></i><?php echo e(__('site_design_advanced_locked')); ?></span>
@@ -402,6 +433,8 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
 </div>
 <?php endif; ?>
 
+<?php endif; ?>
+
 <!-- 添加单页弹窗 -->
 <div id="createModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
@@ -420,7 +453,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                 <label class="block text-sm text-gray-700 mb-1"><?php echo __('page_parent'); ?></label>
                 <select id="createParent" class="w-full border rounded px-4 py-2">
                     <option value="0"><?php echo __('admin_top_level'); ?></option>
-                    <?php foreach ($pages as $p): ?>
+                    <?php foreach ($allPages as $p): ?>
                     <?php if (!$p['parent_id']): ?>
                     <option value="<?php echo $p['id']; ?>"><?php echo e($p['name']); ?></option>
                     <?php endif; ?>
@@ -435,6 +468,11 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
 </div>
 
 <script>
+document.addEventListener('click', function(event) {
+    const button = event.target.closest('[data-page-delete]');
+    if (button) deletePage(Number(button.dataset.pageDelete), button.dataset.pageName);
+});
+
 function showCreateModal() {
     document.getElementById('createModal').classList.remove('hidden');
     document.getElementById('createModal').classList.add('flex');

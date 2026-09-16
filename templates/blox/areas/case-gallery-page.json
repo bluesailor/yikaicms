@@ -1,0 +1,52 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "Case Gallery Page",
+  "requires": {
+    "elements": ["page-title", "content-catalog", "cta"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "页面标题",
+        "settings": {"padding": "lg", "max_width": "default", "gap": "sm", "bg_color": "#ffffff"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "page-title", "data": {"align": "center", "show_breadcrumb": true}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "案例网格",
+        "settings": {"padding": "lg", "max_width": "wide", "gap": "lg", "bg_color": "#ffffff"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "content-catalog", "data": {"layout": "grid", "columns": "3", "show_search": false, "show_categories": true, "show_cover": true, "show_summary": false, "show_channel": false, "show_author": false, "show_date": false, "show_views": false}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "咨询引导",
+        "settings": {"padding": "lg", "max_width": "default", "gap": "md", "bg_color": "#0f172a"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "cta", "data": {"use_home_text": true}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

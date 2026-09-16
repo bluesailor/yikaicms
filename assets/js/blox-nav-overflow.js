@@ -19,6 +19,7 @@
         ul.dataset.ykNavOverflowReady = '1';
 
         var label = ul.getAttribute('data-yk-nav-overflow') || 'More';
+        var isMega = !!ul.closest('.yk-mega');
 
         var more = document.createElement('li');
         more.className = 'relative group/nav hidden';
@@ -27,13 +28,14 @@
         link.href = '#';
         link.setAttribute('aria-haspopup', 'true');
         link.className = 'inline-flex items-center gap-1 hover:text-primary';
+        if (isMega) link.className += ' px-3 py-2 font-medium';
         link.appendChild(document.createTextNode(label));
         link.insertAdjacentHTML('beforeend',
             '<svg class="h-3 w-3 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>');
         link.addEventListener('click', function (e) { e.preventDefault(); });
         var panel = document.createElement('ul');
         // 右对齐弹出：「更多」贴菜单尾部，面板左伸避免出屏
-        panel.className = 'absolute right-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block';
+        panel.className = 'yk-nav-panel absolute right-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block group-focus-within/nav:block';
         more.appendChild(link);
         more.appendChild(panel);
 
@@ -57,6 +59,12 @@
             var items = movableItems();
             if (items.length === 0) return false;
             var top = items[0].offsetTop;
+            var bounds = ul.getBoundingClientRect();
+            var visibleItems = items.concat(more.classList.contains('hidden') ? [] : [more], cta ? [cta] : []);
+            for (var j = 0; j < visibleItems.length; j++) {
+                var rect = visibleItems[j].getBoundingClientRect();
+                if (rect.left < bounds.left - 1 || rect.right > bounds.right + 1) return true;
+            }
             for (var i = 1; i < items.length; i++) {
                 if (items[i].offsetTop > top + 1) return true;
             }
@@ -79,7 +87,7 @@
                 item.appendChild(a);
                 frag.appendChild(item);
             }
-            li.querySelectorAll(':scope > ul a').forEach(function (sub) {
+            li.querySelectorAll(':scope > ul a, :scope > .yk-mega-panel a').forEach(function (sub) {
                 var item = document.createElement('li');
                 var a = sub.cloneNode(true);
                 a.className = 'block pl-8 pr-4 py-1.5 text-sm text-gray-500 hover:bg-gray-50 hover:text-primary';
@@ -132,4 +140,5 @@
     } else {
         boot();
     }
+    document.addEventListener('blox:content-updated', boot);
 })();

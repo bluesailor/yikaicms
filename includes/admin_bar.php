@@ -142,7 +142,18 @@ function renderAdminBar(): void
     }
     ?>
     <style>
-      html { margin-top: 34px !important; }
+      html { --yk-adminbar-height: 34px; margin-top: var(--yk-adminbar-height) !important; }
+      /* Absolute and sticky headers do not inherit the document margin. */
+      html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck),
+      html.yk-home-header-overlay #siteHeader:not(.yk-blox-header),
+      html.yk-home-header-overlay body > [data-yk-topbar],
+      html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck,
+      html.yk-home-header-overlay .yk-blox-header.yk-stuck {
+        top: var(--yk-adminbar-height) !important;
+      }
+      html.yk-home-header-overlay body > [data-yk-topbar] + #siteHeader:not(.yk-stuck) {
+        top: calc(var(--yk-adminbar-height) + 2rem) !important;
+      }
       #ik-adminbar { position: fixed; top: 0; left: 0; right: 0; height: 34px; background: #1f2937;
         color: #cbd5e1; font-size: 13px; z-index: 99999; display: flex; align-items: center;
         padding: 0 6px; box-shadow: 0 1px 4px rgba(0,0,0,.3);
@@ -211,7 +222,7 @@ function renderAdminBar(): void
         #ik-adminbar .ik-ab-page-edit-label { display: none; }
         #ik-adminbar .ik-ab-draft-label { display: none; }
       }
-      @media print { #ik-adminbar { display: none; } html { margin-top: 0 !important; } }
+      @media print { #ik-adminbar { display: none; } html { --yk-adminbar-height: 0px; margin-top: 0 !important; } }
     </style>
     <div id="ik-adminbar">
       <a class="ik-ab-brand" href="/admin/" aria-label="<?php echo e(__('ab_dashboard')); ?>">

@@ -6,6 +6,9 @@ $headingSlot = $headingIsText ? 'text' : 'url';
      @click.outside="bindingOpen = false" @keydown.escape.stop="bindingOpen = false">
     <div class="blox-heading-field-label">
         <label for="blox-heading-<?= e($headingSlot) ?>"><?= e(__($headingIsText ? 'blox_field_title_short' : 'blox_ctl_link')) ?></label>
+        <div x-show="!headingBound('<?= e($headingSlot) ?>')">
+            <?php $dynamicTagKey = "'" . $headingSlot . "'"; $dynamicTagLinks = $headingIsText ? 'false' : 'true'; require __DIR__ . '/dynamic-tag-picker.php'; ?>
+        </div>
         <button type="button" class="blox-heading-binding-button" @click="bindingOpen = !bindingOpen"
                 x-show="professionalControlAccessible(headingBindingKey('<?= e($headingSlot) ?>'))"
                 :class="headingBound('<?= e($headingSlot) ?>') ? 'is-bound' : ''" :aria-expanded="bindingOpen"
@@ -27,9 +30,11 @@ $headingSlot = $headingIsText ? 'text' : 'url';
     </div>
     <?php if ($headingIsText): ?>
         <textarea id="blox-heading-text" x-show="!headingBound('text')" x-model="selEl.data.text" rows="3" maxlength="2000"
+                  data-dynamic-key="text" @input="siteTagInput($event, 'text')"
                   placeholder="<?= e(__('blox_heading_ph')) ?>" data-testid="blox-heading-text"></textarea>
     <?php else: ?>
         <input id="blox-heading-url" type="text" x-show="!headingBound('url')" x-model="selEl.data.url"
+               data-dynamic-key="url" @input="siteTagInput($event, 'url')"
                placeholder="<?= e(__('blox_heading_link_ph')) ?>" data-testid="blox-heading-url">
     <?php endif; ?>
     <div x-show="bindingOpen && professionalControlAccessible(headingBindingKey('<?= e($headingSlot) ?>'))" x-cloak class="blox-heading-binding-options">

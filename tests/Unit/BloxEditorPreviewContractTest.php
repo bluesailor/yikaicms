@@ -113,7 +113,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('&amp;area_lang=', $languageAreas);
         $this->assertStringContainsString('rawurlencode($selectedContextLanguage)', $templates);
         $this->assertStringContainsString('rawurlencode($languageCode)', $templates);
-        $this->assertStringContainsString("get('preview_context', '')", $editor);
+        $this->assertStringContainsString("BloxAreaEditorTarget::frontPreviewTarget(\$_GET['preview_context'] ?? '', \$areaEditorLanguage)", $editor);
         $this->assertStringContainsString('previewContext: <?php echo json_encode($initialPreviewContext', $editor);
         $this->assertStringContainsString('var previewLanguage = this.areaLanguage;', $editor);
         $this->assertStringContainsString('$previewLanguages = availableLanguages();', $preview);
@@ -302,7 +302,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('window.YikaiBloxPageSettings.mixin(', $editor);
         $this->assertStringContainsString('this.runCommand("add-element"', $this->source('assets/js/blox-page-settings.js'));
         // 模板插入应用段 silent 执行，错误提示走既有 catch 面板
-        $this->assertStringContainsString('self.commandRunner().execute("insert-template"', $editor);
+        $this->assertStringContainsString('this.commandRunner().execute("insert-template"', $editor);
         $this->assertStringContainsString('}, { silent: true });', $editor);
         // 嵌套吸收：只有最外层捕获快照（addElement→addSection 等仍是一个命令组）
         $this->assertStringContainsString('if (this.depth > 0) {', $runner);
@@ -377,19 +377,25 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $editor);
         $this->assertStringNotContainsString('$isBasicPageRequest', $editor);
-        $this->assertStringContainsString("!in_array(\$templateType, ['section', 'page'], true) && !\$advancedBloxEnabled", $editor);
+        $this->assertStringContainsString('!BloxTemplateEditPolicy::allows($templateType, $advancedBloxEnabled)', $editor);
+        $this->assertStringContainsString('requireBloxTemplateTypePermission($templateType);', $editor);
         $this->assertStringContainsString('data-testid="blox-elements-open"', $editor);
         $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $editor);
         $this->assertStringNotContainsString("openTemplates() {\n                if (!this.advancedMode)", $editor);
         $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $homeApi);
 
         $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $templateApi);
-        $this->assertStringContainsString("\$item['locked_reason'] = 'license_missing';", $templateApi);
-        $remoteGate = strpos($templateApi, "str_starts_with(\$key, 'remote:')");
-        $resolve = strpos($templateApi, 'BloxTemplateCatalog::resolve($key, $context)');
-        $this->assertNotFalse($remoteGate);
-        $this->assertNotFalse($resolve);
-        $this->assertLessThan($resolve, $remoteGate);
+        // Free template editing and per-resource download policy are separate boundaries.
+        $this->assertStringContainsString('BloxTemplateEditPolicy::allows($type, $advancedBloxEnabled)', $templateApi);
+        $this->assertStringNotContainsString("\$item['locked_reason'] = 'license_missing';", $templateApi);
+        $this->assertStringContainsString('requireBloxTemplateTypePermission($context);', $templateApi);
+        $this->assertStringContainsString('BloxTemplateCatalog::resolve($key, $context)', $templateApi);
+        $provider = $this->source('includes/builder/BloxRemoteTemplateProvider.php');
+        $locked = strpos($provider, "if (!empty(\$item['locked']))");
+        $download = strpos($provider, '($this->httpGet)($downloadUrl');
+        $this->assertNotFalse($locked);
+        $this->assertNotFalse($download);
+        $this->assertLessThan($download, $locked);
     }
 
     /** r15：声明式控件显示规则——编辑器走可单测求值器模块，required 归一为兼容别名 */
@@ -419,7 +425,7 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         if ($path === 'admin/blox_editor.php') {
             return implode("\n", array_map(function (string $editorPath): string {
-                $source = file_get_contents(ROOT_PATH . '/' . $editorPath);
+                $source = $editorPath === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : file_get_contents(ROOT_PATH . '/' . $editorPath);
                 $this->assertNotFalse($source, "无法读取 {$editorPath}");
                 return (string) $source;
             }, [
@@ -1410,13 +1416,18 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('self.observeCanvasHost();', $editor);
         $this->assertStringContainsString('new ResizeObserver(update)', $editor);
         $this->assertStringContainsString('requestAnimationFrame(update)', $editor);
-        $this->assertStringContainsString("host.clientWidth : 1280) - 24", $editor);
+        $this->assertStringContainsString('window.getComputedStyle(viewport)', $editor);
+        $this->assertStringContainsString('parseFloat(css.paddingLeft)', $editor);
+        $this->assertStringContainsString('parseFloat(css.paddingRight)', $editor);
+        $this->assertStringContainsString("host.clientWidth : 1280) - padding", $editor);
         $this->assertStringContainsString('justify-center p-3', $editor);
         $this->assertStringContainsString('window.innerHeight - 80', $editor);
         $this->assertStringContainsString('Math.max(1280, Math.round(this.previewCanvasAvailable()))', $editor);
         $this->assertStringNotContainsString('Math.min(1600', $editor);
         $this->assertStringContainsString('this.previewCanvasAvailable() / this.previewDesktopWidth()', $editor);
-        $this->assertStringContainsString('var desktopWidth = this.previewDesktopWidth();', $editor);
+        // R2B：桌面宽度经 previewEffectiveWidth() 取用（自定义预览宽度优先，桌面自动档仍回落到重算宽度）
+        $this->assertStringContainsString('var width = this.previewEffectiveWidth();', $editor);
+        $this->assertStringContainsString('if (this.previewDevice === "desktop") return this.previewDesktopWidth();', $editor);
         $this->assertStringNotContainsString('class="relative transition-all duration-300" :style="previewShellStyle()"', $editor);
     }
 
@@ -1631,7 +1642,7 @@ final class BloxEditorPreviewContractTest extends TestCase
             'restoreTemplateLibraryPreferences()',
             'toggleTemplateFavorite(key)',
             'rememberRecentTemplate(key)',
-            'if (item.type === "section") self.rememberRecentTemplate(item.key);',
+            'if (item.type === "section") this.rememberRecentTemplate(item.key);',
             'templateQuickCount(mode)',
             'rank: self.isTemplateFavorite(item.key) ? 0',
         ] as $token) {

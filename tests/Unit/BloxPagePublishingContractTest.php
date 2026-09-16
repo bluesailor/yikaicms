@@ -153,7 +153,7 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringNotContainsString(': ($pageHeroBody . $pageBody);', $canvas);
         $this->assertStringContainsString("document.querySelector('[data-yk-region=\"content\"]')", $canvas);
         $this->assertStringContainsString("host.querySelectorAll('[data-yk-sec]').length > 0", $canvas);
-        $this->assertStringContainsString('$hasCanvasContent = is_array($canvasBlocks) && $canvasBlocks !== [];', $canvas);
+        $this->assertStringContainsString('$canvasFrame = BloxDocumentPipeline::normalizeDocSettings', $canvas);
 
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
         $this->assertStringContainsString('function areaEditPayload(value)', $bridge);
@@ -261,14 +261,14 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringNotContainsString("renderTransPills((int)\$item['id'], \$transStatus, '/admin/page_edit.php')", $page);
         $this->assertStringNotContainsString("\$__isBlox ? '/admin/blox_editor.php?id=' : '/admin/page_edit.php?id='", $page);
         $this->assertStringContainsString('/admin/blox_editor.php?home=1', $page);
-        $this->assertStringContainsString("__('site_design_open_home')", $page);
+        $this->assertStringContainsString("__('site_design_open_home')", $this->source('admin/includes/website_pages.php'));
         $this->assertStringContainsString("renderTransPills((int)\$item['id'], \$transStatus, '/admin/blox_editor.php')", $page);
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'pagePrimaryEditUrl($item)'));
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'pagePrimaryEditTarget($item)'));
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'channelUrl($item)'));
         $this->assertStringContainsString('isTimelinePageChannel($itemEditTarget)', $page);
         $this->assertStringContainsString('page_redirect_target_badge', $page);
-        $this->assertStringContainsString("e(__('admin_timeline'))", $page);
+        $this->assertStringContainsString("'page_kind'", $this->source('admin/includes/website_pages.php'));
     }
 
     public function testTimelinePageUsesItsRealDataEditorAndCanonicalPreviewPath(): void
@@ -391,6 +391,6 @@ final class BloxPagePublishingContractTest extends TestCase
             // 付费 Blox 源码不随公开仓库分发；无注入的 CI 矩阵跳过，注入 job 与本地全量执行。
             self::markTestSkipped('付费 Blox 源码未注入：' . $path);
         }
-        return (string) file_get_contents($file);
+        return $path === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : (string) file_get_contents($file);
     }
 }

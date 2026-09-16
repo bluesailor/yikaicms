@@ -28,7 +28,7 @@ final class BloxCssCompiler
     /**
      * 编译一个元素实例的声明式 CSS。
      * 全断点相同 → 根标签内联声明；断点不同 → 内联自定义属性 + 固定标记类（规则见 responsiveStylesheet）。
-     * 桌面值是基准：平板空继承桌面，手机空继承平板；没有桌面值的声明不输出，避免变量缺失把主题默认值变成 unset。
+     * 空值继承更宽断点；仅窄屏设置用限定范围的规则，保留宽屏原有样式。
      *
      * @param list<array<string,mixed>> $controls 元素 controls()（可信）
      * @param array<string,mixed> $data 文档值（不可信）
@@ -59,6 +59,15 @@ final class BloxCssCompiler
         $style = '';
         $classes = [];
         foreach ($declarations as $property => $value) {
+            if ($value['d'] === null) {
+                foreach (['t', 'm'] as $device) {
+                    if ($value[$device] !== null) {
+                        $style .= '--yk-r-' . $property . '-' . $device . ':' . $value[$device] . ';';
+                        $classes[] = 'yk-r-' . $property . '-' . $device . '-only';
+                    }
+                }
+                continue;
+            }
             if ($value['d'] === $value['t'] && $value['t'] === $value['m']) {
                 $style .= $property . ':' . $value['d'] . ';';
                 continue;
@@ -71,19 +80,27 @@ final class BloxCssCompiler
         return ['style' => $style, 'classes' => $classes];
     }
 
-    /** 与白名单一一对应的固定响应式规则（随 app.css 编译进静态样式表，不按页面生成）。 */
+    /**
+     * 与白名单一一对应的固定响应式规则（随 app.css 编译进静态样式表，不按页面生成）。
+     * @api Build-time stylesheet contract, not a per-request renderer.
+     */
     public static function responsiveStylesheet(): string
     {
-        $base = $tablet = $desktop = '';
+        $base = $tablet = $desktop = $tabletOnly = $mobileOnly = '';
         foreach (array_keys(self::PROPERTIES) as $property) {
             $selector = '.yk-r-' . $property;
-            $base .= $selector . '{' . $property . ':var(--yk-r-' . $property . '-m)}';
-            $tablet .= $selector . '{' . $property . ':var(--yk-r-' . $property . '-t)}';
-            $desktop .= $selector . '{' . $property . ':var(--yk-r-' . $property . '-d)}';
+            // Explicit instance controls outrank site defaults such as h2.yk-type-h2 without !important.
+            $base .= $selector . $selector . '{' . $property . ':var(--yk-r-' . $property . '-m)}';
+            $tablet .= $selector . $selector . '{' . $property . ':var(--yk-r-' . $property . '-t)}';
+            $desktop .= $selector . $selector . '{' . $property . ':var(--yk-r-' . $property . '-d)}';
+            $tabletOnly .= $selector . '-t-only' . $selector . '-t-only{' . $property . ':var(--yk-r-' . $property . '-t)}';
+            $mobileOnly .= $selector . '-m-only' . $selector . '-m-only{' . $property . ':var(--yk-r-' . $property . '-m)}';
         }
         return $base
             . '@media (min-width:' . self::TABLET_MIN . 'px){' . $tablet . '}'
-            . '@media (min-width:' . self::DESKTOP_MIN . 'px){' . $desktop . '}';
+            . '@media (min-width:' . self::DESKTOP_MIN . 'px){' . $desktop . '}'
+            . '@media not all and (min-width:' . self::DESKTOP_MIN . 'px){' . $tabletOnly . '}'
+            . '@media not all and (min-width:' . self::TABLET_MIN . 'px){' . $mobileOnly . '}';
     }
 
     /** 保存侧清洗：空串/缺失表示未设置，0 保留；越界或非法值清为未设置而不是回落默认数字。 */
@@ -121,17 +138,14 @@ final class BloxCssCompiler
         return [$property];
     }
 
-    /** @return array{d:string,t:string,m:string}|null */
+    /** @return array{d:?string,t:?string,m:string}|null */
     private static function resolve(string $property, mixed $raw): ?array
     {
         $values = is_array($raw) ? $raw : ['d' => $raw];
         $desktop = self::format($property, $values['d'] ?? null);
-        if ($desktop === null) {
-            return null;
-        }
         $tablet = self::format($property, $values['t'] ?? null) ?? $desktop;
         $mobile = self::format($property, $values['m'] ?? null) ?? $tablet;
-        return ['d' => $desktop, 't' => $tablet, 'm' => $mobile];
+        return $mobile === null ? null : ['d' => $desktop, 't' => $tablet, 'm' => $mobile];
     }
 
     private static function format(string $property, mixed $raw): ?string

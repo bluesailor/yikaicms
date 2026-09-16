@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/BloxFeaturePolicy.php';
 
 /** Editor presentation only. Never used to grant writes or render published content. */
+/** @psalm-suppress UnusedClass Used by the separately analysed editor entry. */
 final class BloxProfessionalUi
 {
     /** 作者端面板已迁入 blox-pro 的能力；其余仍由核心编辑器提供。 */

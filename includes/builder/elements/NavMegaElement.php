@@ -26,6 +26,11 @@ final class NavMegaElement extends AbstractElement
     public function isDynamic(): bool { return true; }
     public function supportsBoxStyles(): bool { return false; }
 
+    public function scripts(): array
+    {
+        return ['/assets/js/blox-nav-overflow.js'];
+    }
+
     public function controls(): array
     {
         return [
@@ -209,7 +214,7 @@ final class NavMegaElement extends AbstractElement
         }
 
         return '<nav class="yk-mega relative hidden xl:flex min-w-0 flex-1 justify-end" aria-label="' . htmlspecialchars(__('blox_el_nav_mega'), ENT_QUOTES) . '">'
-            . '<ul class="flex flex-nowrap items-center gap-1 whitespace-nowrap">' . $items . self::ctaHtml($data) . '</ul></nav>';
+            . '<ul data-yk-nav-overflow="' . htmlspecialchars(__('nav_more'), ENT_QUOTES) . '" class="flex flex-wrap items-center justify-end w-full min-w-0 gap-1 whitespace-nowrap">' . $items . self::ctaHtml($data) . '</ul></nav>';
     }
 
     /** @param array<string,mixed> $kid 面板列：子栏目标题（可点）+ 可选描述 + 孙级链接列表 */

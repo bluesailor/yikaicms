@@ -31,7 +31,7 @@ final class HomeBloxRenderer
     public static function legacyStartsWithHeaderOverlayBanner(array $blocks, array $bannerGroup): bool
     {
         $runtime = HomeBloxBlockSchema::bannerGroupRuntimeConfig($bannerGroup);
-        if (($runtime['banner_height_mode'] ?? 'fixed') !== 'cover-header') {
+        if (!in_array($runtime['banner_height_mode'] ?? 'fixed', ['cover-header', 'fixed-cover-header'], true)) {
             return false;
         }
 
@@ -73,7 +73,7 @@ final class HomeBloxRenderer
             $heightMode = (string) ($runtime['banner_height_mode'] ?? 'fixed');
         }
 
-        return $heightMode === 'cover-header';
+        return in_array($heightMode, ['cover-header', 'fixed-cover-header'], true);
     }
 
     /**

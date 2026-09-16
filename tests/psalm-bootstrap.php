@@ -41,6 +41,12 @@ require_once ROOT_PATH . '/includes/builder/AbstractElement.php';
 require_once ROOT_PATH . '/includes/builder/elements/ContentCatalogElement.php';
 require_once ROOT_PATH . '/includes/builder/elements/ProductCatalogElement.php';
 
+// Element files contain declarations only. Register their real symbols so cached
+// analysis can resolve the runtime registry's dynamically loaded classes too.
+foreach (glob(ROOT_PATH . '/includes/builder/elements/*.php') ?: [] as $elementFile) {
+    require_once $elementFile;
+}
+
 // 其余按需加载的运行时助手（前台/会员/时间线）。
 require_once ROOT_PATH . '/includes/blocks/timeline.php';      // getTimelineIcon()
 require_once ROOT_PATH . '/includes/customer_service.php';     // renderCustomerService()

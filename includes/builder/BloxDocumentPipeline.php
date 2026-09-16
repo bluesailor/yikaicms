@@ -238,6 +238,9 @@ final class BloxDocumentPipeline
                 $clean[$key] = in_array($settings[$key], [true, 1, '1'], true);
             }
         }
+        if (array_key_exists('dot_nav', $settings)) {
+            $clean['dot_nav'] = BloxDotNav::normalizeSettings($settings['dot_nav']);
+        }
         if (array_key_exists('sticky', $settings)) {
             $clean['sticky'] = !empty($settings['sticky']);
         }
@@ -390,7 +393,9 @@ final class BloxDocumentPipeline
                 if (array_key_exists($responsiveKey, $settings)) {
                     $settings[$responsiveKey] = BloxResponsiveValue::normalizeStored(
                         $settings[$responsiveKey],
-                        array_fill_keys(['none', 'sm', 'md', 'lg', 'xl'], true),
+                        array_fill_keys($responsiveKey === 'padding'
+                            ? ['none', 'xs', 'sm', 'md', 'lg', 'xl']
+                            : ['none', 'sm', 'md', 'lg', 'xl'], true),
                         $fallback
                     );
                 }
@@ -445,6 +450,14 @@ final class BloxDocumentPipeline
                     $settings[$settingKey] = '';
                 }
             }
+            if (array_key_exists('dot_nav_on', $settings)) {
+                $settings['dot_nav_on'] = in_array($settings['dot_nav_on'], [true, 1, '1'], true);
+            }
+            if (array_key_exists('dot_nav_title', $settings)) {
+                $title = is_string($settings['dot_nav_title']) ? $settings['dot_nav_title'] : '';
+                $title = preg_replace('/[\p{Cc}\p{Cf}]+/u', ' ', $title) ?? '';
+                $settings['dot_nav_title'] = mb_substr(trim($title), 0, 60);
+            }
             if (array_key_exists('anchor_id', $settings)) {
                 $anchorId = self::normalizeSectionAnchorId($settings['anchor_id']);
                 if ($anchorId !== '') {
@@ -475,6 +488,24 @@ final class BloxDocumentPipeline
                 if ($sectionName !== '') {
                     $normalizedSection['name'] = $sectionName;
                 }
+            }
+            // R7A：参与圆点导航的区块必须有稳定唯一锚点。用户未填时由稳定节点 ID
+            // 派生（改名不换锚点），并进入同一份 $usedAnchors 去重。
+            if (!empty($normalizedSection['settings']['dot_nav_on'])
+                && ($normalizedSection['settings']['anchor_id'] ?? '') === '') {
+                $auto = self::normalizeSectionAnchorId('sec-' . $normalizedSection['id']);
+                if ($auto === '') {
+                    $auto = 'sec-' . $sectionIndex;
+                }
+                $autoBase = $auto;
+                $autoSuffix = 2;
+                while (isset($usedAnchors[strtolower($auto)])) {
+                    $suffixText = '-' . $autoSuffix;
+                    $auto = substr($autoBase, 0, 64 - strlen($suffixText)) . $suffixText;
+                    $autoSuffix++;
+                }
+                $usedAnchors[strtolower($auto)] = true;
+                $normalizedSection['settings']['anchor_id'] = $auto;
             }
             $normalized[] = $normalizedSection;
         }

@@ -34,6 +34,19 @@
         return DEVICE_KEYS[String(device || "desktop").toLowerCase()] || "d";
     }
 
+    var PREVIEW_WIDTH_MIN = 320;
+    var PREVIEW_WIDTH_MAX = 2560;
+
+    /**
+     * R2B：数值型预览宽度的钳制。0/空 = 自动（跟随档位默认宽度）；
+     * 其余取整并钳到 320–2560px。预览宽度是工作区状态，不进入文档。
+     */
+    function clampPreviewWidth(raw) {
+        var value = parseInt(raw, 10);
+        if (!Number.isFinite(value) || value <= 0) return 0;
+        return Math.min(PREVIEW_WIDTH_MAX, Math.max(PREVIEW_WIDTH_MIN, value));
+    }
+
     function stored(value, options, fallback) {
         var keys = Object.keys(options || {});
         var safeFallback = has(options, fallback) ? fallback : (keys[0] || "");
@@ -109,6 +122,9 @@
     }
 
     global.BloxResponsive = {
+        clampPreviewWidth: clampPreviewWidth,
+        PREVIEW_WIDTH_MIN: PREVIEW_WIDTH_MIN,
+        PREVIEW_WIDTH_MAX: PREVIEW_WIDTH_MAX,
         normalize: normalize,
         stored: stored,
         deviceKey: deviceKey,

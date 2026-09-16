@@ -67,6 +67,25 @@ class SettingModel extends Model
         $this->cache = null;
     }
 
+    /** Read fresh: a request-local settings snapshot may predate a concurrent publication. */
+    public function htmlCacheGeneration(): string
+    {
+        return (string) db()->fetchColumn(
+            "SELECT `value` FROM {$this->tableName()} WHERE `key` = ?", ['html_cache_generation']
+        );
+    }
+
+    /** Internal stamp: do not emit setting hooks and recursively invalidate the cache. */
+    public function rotateHtmlCacheGeneration(): void
+    {
+        $sql = "INSERT INTO {$this->tableName()} (`key`, `value`, `group`, `name`, `tip`) VALUES (?, ?, ?, ?, ?)";
+        $sql .= db()->isSqlite()
+            ? ' ON CONFLICT (`key`) DO UPDATE SET `value` = excluded.`value`'
+            : ' ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)';
+        db()->execute($sql, ['html_cache_generation', bin2hex(random_bytes(16)), 'system', 'HTML cache generation', '']);
+        $this->clearCache();
+    }
+
     /** @param array<string,mixed> $settings */
     private function notifySaved(array $settings): void
     {

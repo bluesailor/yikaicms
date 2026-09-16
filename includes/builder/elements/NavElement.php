@@ -84,7 +84,7 @@ final class NavElement extends AbstractElement
         }
         return '<li class="relative group/nav"><a href="' . $url . '"' . NavMegaElement::targetAttr($node)
             . ' class="inline-flex items-center gap-1 hover:text-primary">' . $iconHtml . $name . $this->dropdownCaret() . '</a>'
-            . '<ul class="absolute left-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block">'
+            . '<ul class="yk-nav-panel absolute left-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block">'
             . $nested . '</ul></li>';
     }
 
@@ -110,7 +110,7 @@ final class NavElement extends AbstractElement
                     . '<a href="{yk:field name=url /}" class="inline-flex items-center gap-1 hover:text-primary">{yk:field name=name /}'
                     . '{yk:if field=has_children op=eq value=1}' . $this->dropdownCaret() . '{/yk:if}'
                     . '</a>'
-                    . '{yk:subnav wrap=ul class="absolute left-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block"}'
+                    . '{yk:subnav wrap=ul class="yk-nav-panel absolute left-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block"}'
                     . '<li><a href="{yk:field name=url /}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary">{yk:field name=name /}</a></li>'
                     . '{/yk:subnav}</li>'
                 : '<li><a href="{yk:field name=url /}" class="hover:text-primary">{yk:field name=name /}</a></li>';

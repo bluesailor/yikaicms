@@ -73,12 +73,14 @@ trait HomeBloxSchemaControlsTrait
                 'options' => [
                     'inherit' => __('blox_banner_height_inherit'),
                     'fixed' => __('blox_banner_height_fixed'),
+                    'fixed-cover-header' => __('blox_banner_height_fixed_cover_header'),
                     'screen' => __('blox_banner_height_screen'),
                     'cover-header' => __('blox_banner_height_cover_header'),
                 ],
                 'option_icons' => [
                     'inherit' => 'settings',
                     'fixed' => 'arrows-vertical',
+                    'fixed-cover-header' => 'layout-navbar',
                     'screen' => 'maximize',
                     'cover-header' => 'layout-navbar-expand',
                 ],
@@ -94,7 +96,7 @@ trait HomeBloxSchemaControlsTrait
                 'max' => 1600,
                 'step' => 10,
                 'required' => ['block_type', '=', 'banner'],
-                'visible_when' => ['terms' => [['banner_height_mode', '=', 'fixed']]],
+                'visible_when' => ['terms' => [['banner_height_mode', '=', ['fixed', 'fixed-cover-header']]]],
             ],
             [
                 'key' => 'banner_mobile_mode',

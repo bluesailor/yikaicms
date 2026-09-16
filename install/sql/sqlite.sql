@@ -1,6 +1,6 @@
 -- ============================================================
 -- Yikai CMS Install SQL (MySQL)
--- Version: 1.19.9
+-- Version: 1.20.0
 -- Generated: 2026-05-16 20:03:01
 -- ============================================================
 PRAGMA foreign_keys = OFF;
@@ -224,6 +224,7 @@ INSERT INTO "yikai_blox_templates" ("id","type","name","source","source_ref","sc
 DROP TABLE IF EXISTS "yikai_blox_remote_template_states";
 CREATE TABLE "yikai_blox_remote_template_states" (
   "template_id" INTEGER PRIMARY KEY,
+  "catalog_origin" TEXT NOT NULL DEFAULT '',
   "installed_version" TEXT NOT NULL DEFAULT '',
   "backup_version" TEXT NOT NULL DEFAULT '',
   "backup_draft" TEXT,
@@ -231,6 +232,27 @@ CREATE TABLE "yikai_blox_remote_template_states" (
   "backup_metadata" TEXT,
   "backup_created_at" INTEGER NOT NULL DEFAULT 0,
   "updated_at" INTEGER NOT NULL DEFAULT 0
+);
+
+DROP TABLE IF EXISTS "yikai_blox_import_reviews";
+CREATE TABLE "yikai_blox_import_reviews" (
+  "id" TEXT PRIMARY KEY,
+  "catalog_origin" TEXT NOT NULL DEFAULT '',
+  "admin_id" INTEGER NOT NULL DEFAULT 0,
+  "operation" TEXT NOT NULL,
+  "source_key" TEXT NOT NULL,
+  "source_type" TEXT NOT NULL DEFAULT '',
+  "template_type" TEXT NOT NULL DEFAULT '',
+  "package_sha256" TEXT NOT NULL,
+  "package_json" TEXT NOT NULL,
+  "package_version" TEXT NOT NULL DEFAULT '',
+  "target_id" INTEGER NOT NULL DEFAULT 0,
+  "target_revision" TEXT NOT NULL DEFAULT '',
+  "result_ref" TEXT NOT NULL DEFAULT '',
+  "design_revision" INTEGER NOT NULL DEFAULT 0,
+  "created_at" INTEGER NOT NULL DEFAULT 0,
+  "expires_at" INTEGER NOT NULL DEFAULT 0,
+  "consumed_at" INTEGER NOT NULL DEFAULT 0
 );
 
 
@@ -2436,7 +2458,7 @@ INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "ti
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (105,'member','download_require_login','0','switch','下载需要登录','',NULL,2);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (106,'social','social_links','[]','social_links','社交媒体链接','',NULL,1);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (107,'system','current_theme','default','text','当前主题','',NULL,0);
-INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (108,'system','cms_version','1.19.9','text','CMS版本号','',NULL,1);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (108,'system','cms_version','1.20.0','text','CMS版本号','',NULL,1);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (109,'system','site_lang','zh-CN','text','站点语言','',NULL,2);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (110,'system','admin_lang','zh-CN','text','后台语言','',NULL,3);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (111,'basic','html_cache_enabled','1','select','HTML缓存','','{"0":"关闭","1":"开启"}',15);

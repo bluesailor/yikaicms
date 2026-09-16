@@ -43,11 +43,12 @@ final class BloxSiteDesignContractTest extends TestCase
         self::assertStringContainsString('requireAnyBloxPermission();', $source);
         self::assertStringContainsString('$basicBloxEnabled = bloxPageEditorEnabled();', $source);
         self::assertStringContainsString("\$canEditPages = hasPermission('blox_edit') && hasPermission('edit_page');", $source);
-        self::assertStringContainsString("\$canEditHome = hasPermission('blox_home');", $source);
         self::assertStringContainsString("\$canManageGlobalBlox = hasPermission('blox_global');", $source);
-        self::assertStringContainsString('if ($basicBloxEnabled && $canEditHome)', $source);
+        $cards = (string) file_get_contents(ROOT_PATH . '/admin/includes/website_pages.php');
+        self::assertStringContainsString("bloxPageEditorEnabled() && hasPermission('blox_home')", $cards);
         self::assertStringContainsString('if ($advancedBloxEnabled && $canManageGlobalBlox)', $source);
-        self::assertStringContainsString('/admin/blox_editor.php?home=1', $source);
+        self::assertStringContainsString('/admin/blox_editor.php?home=1', $cards);
+        self::assertStringNotContainsString('site_design_section_assets', $source);
         self::assertStringContainsString('/admin/blox_templates.php?type=', $source);
     }
 
