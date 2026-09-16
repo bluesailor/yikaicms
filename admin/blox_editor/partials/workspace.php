@@ -2137,6 +2137,62 @@ declare(strict_types=1);
                                         <i class="ti ti-chevron-down text-sm text-gray-400"></i>
                                     </button>
                                 </div>
+                                <?php // 标题装饰：与首页动态区块同一套选项，普通区块标题也能单独定义 ?>
+                                <template x-if="selectedSectionField === 'title'">
+                                    <div class="space-y-5 border-t border-gray-100 pt-4" data-testid="blox-section-title-decor">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_home_title_decor')) ?></label>
+                                            <div class="grid grid-cols-4 gap-1">
+                                                <?php foreach (['inherit' => 'settings', 'line' => 'minus', 'dot' => 'point-filled', 'none' => 'ban'] as $decorKey => $decorIcon): ?>
+                                                <button type="button" @click="sel.settings.title_decor_style = '<?= $decorKey ?>'"
+                                                        title="<?= e(__('blox_home_title_decor_' . $decorKey)) ?>" aria-label="<?= e(__('blox_home_title_decor_' . $decorKey)) ?>"
+                                                        class="h-8 rounded border inline-flex items-center justify-center transition"
+                                                        :class="(sel.settings.title_decor_style || 'inherit') === '<?= $decorKey ?>' ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'">
+                                                    <i class="ti ti-<?= $decorIcon ?> text-base"></i>
+                                                </button>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                        <template x-if="sel.settings.title_decor_style !== 'none'">
+                                            <div class="space-y-5">
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_home_title_decor_align')) ?></label>
+                                                    <div class="grid grid-cols-4 gap-1">
+                                                        <?php foreach (['inherit' => 'settings', 'left' => 'align-left', 'center' => 'align-center', 'right' => 'align-right'] as $decorKey => $decorIcon): ?>
+                                                        <button type="button" @click="sel.settings.title_decor_align = '<?= $decorKey ?>'"
+                                                                title="<?= e(__('blox_home_title_decor_' . $decorKey)) ?>" aria-label="<?= e(__('blox_home_title_decor_' . $decorKey)) ?>"
+                                                                class="h-8 rounded border inline-flex items-center justify-center transition"
+                                                                :class="(sel.settings.title_decor_align || 'inherit') === '<?= $decorKey ?>' ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'">
+                                                            <i class="ti ti-<?= $decorIcon ?> text-base"></i>
+                                                        </button>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_home_title_decor_color')) ?></label>
+                                                    <button type="button"
+                                                            @click="openEditorColorPicker($event, 'section-title-decor-color', <?= e($jt('blox_home_title_decor_color')) ?>, sel.settings.title_decor_color, '#3b82f6', true, value => sel.settings.title_decor_color = value)"
+                                                            class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                                        <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.title_decor_color, '#3b82f6')"></span>
+                                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.title_decor_color, <?= e($jt('blox_empty_theme_default')) ?>)"></span>
+                                                        <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="grid grid-cols-2 gap-3">
+                                                    <label class="block text-xs font-medium text-gray-600"><?= e(__('blox_home_title_decor_width')) ?>
+                                                        <input type="number" min="0" max="240" x-model.number="sel.settings.title_decor_width"
+                                                               class="mt-1.5 w-full h-8 border border-gray-200 rounded px-2 text-sm">
+                                                    </label>
+                                                    <label class="block text-xs font-medium text-gray-600"><?= e(__('blox_home_title_decor_gap')) ?>
+                                                        <input type="number" min="0" max="80" x-model.number="sel.settings.title_decor_gap"
+                                                               class="mt-1.5 w-full h-8 border border-gray-200 rounded px-2 text-sm">
+                                                    </label>
+                                                </div>
+                                                <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_home_title_decor_default_help')) ?></p>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                     </template>

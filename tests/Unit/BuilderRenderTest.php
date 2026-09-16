@@ -1201,6 +1201,30 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringNotContainsString('display:none', $fallback);
     }
 
+    public function testSectionTitleDecorationMatchesHomeBlockOptions(): void
+    {
+        $render = static fn(array $settings): string => BlockRenderer::render(json_encode(
+            \BloxDocumentPipeline::process(json_encode([[
+                'settings' => ['title' => 'FAQ'] + $settings,
+                'columns' => [['elements' => []]],
+            ]]))
+        ));
+
+        // 未设置装饰项：与旧版逐字节一致
+        $this->assertStringContainsString('</h2><span class="section-title-bar"></span>', $render([]));
+        // 默认对齐跟随标题（旧版左对齐标题下装饰线仍居中）
+        $this->assertStringContainsString('<span class="section-title-bar" style="margin-left:0;margin-right:auto"></span>', $render(['title_align' => 'left']));
+        $this->assertStringContainsString(
+            '<span class="section-title-dot" style="margin-left:auto;margin-right:0;background:#ff0000;width:12px;height:12px;margin-top:20px"></span>',
+            $render(['title_decor_style' => 'dot', 'title_decor_align' => 'right', 'title_decor_color' => '#ff0000', 'title_decor_width' => 12, 'title_decor_gap' => 20])
+        );
+        $this->assertStringNotContainsString('section-title-', $render(['title_decor_style' => 'none']));
+
+        $junk = $render(['title_decor_style' => 'x"><script>', 'title_decor_color' => 'red;}</style>', 'title_decor_width' => 9999, 'title_decor_gap' => -5]);
+        $this->assertStringContainsString('<span class="section-title-bar" style="width:240px"></span>', $junk);
+        $this->assertStringNotContainsString('<script>', $junk);
+    }
+
     public function testSectionGradientBackground(): void
     {
         $grad = 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)';

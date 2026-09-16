@@ -430,7 +430,7 @@ final class BlockRenderer
                 $titleEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.title"' : '';
                 $subEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.subtitle"' : '';
                 $html .= '<' . $titleTag . ' class="blk-title"' . $titleEditAttr . $titleStyle . '>' . htmlspecialchars($secTitle) . '</' . $titleTag . '>';
-                $html .= '<span class="section-title-bar"></span>';
+                $html .= self::sectionTitleDecor($settings);
                 if ($secSub !== '') {
                     $html .= '<p class="blk-sub"' . $subEditAttr . $subtitleStyle . '>' . htmlspecialchars($secSub) . '</p>';
                 }
@@ -671,6 +671,45 @@ final class BlockRenderer
     }
 
     /** 标题字段只接受预设字号和 cssColor() 白名单颜色。 */
+    /**
+     * 区块标题下的装饰线/圆点。未设置任何装饰项时输出与旧版逐字节一致。
+     * 对齐默认跟随标题对齐（旧版左对齐标题下装饰线仍居中）。
+     * @param array<string,mixed> $settings
+     */
+    private static function sectionTitleDecor(array $settings): string
+    {
+        $style = (string) ($settings['title_decor_style'] ?? 'inherit');
+        if ($style === 'none') {
+            return '';
+        }
+        $class = $style === 'dot' ? 'section-title-dot' : 'section-title-bar';
+        $inline = [];
+        $align = (string) ($settings['title_decor_align'] ?? 'inherit');
+        if (!in_array($align, ['left', 'center', 'right'], true)) {
+            $align = in_array(($settings['title_align'] ?? ''), ['left', 'right'], true) ? (string) $settings['title_align'] : '';
+        }
+        if ($align === 'left') {
+            $inline[] = 'margin-left:0;margin-right:auto';
+        } elseif ($align === 'right') {
+            $inline[] = 'margin-left:auto;margin-right:0';
+        }
+        $color = AbstractElement::cssColor($settings['title_decor_color'] ?? null);
+        if ($color !== null) {
+            $inline[] = 'background:' . $color;
+        }
+        $width = max(0, min(240, (int) ($settings['title_decor_width'] ?? 0)));
+        if ($width > 0) {
+            $inline[] = 'width:' . $width . 'px' . ($style === 'dot' ? ';height:' . $width . 'px' : '');
+        }
+        $gap = max(0, min(80, (int) ($settings['title_decor_gap'] ?? 0)));
+        if ($gap > 0) {
+            $inline[] = 'margin-top:' . $gap . 'px';
+        }
+        return '<span class="' . $class . '"'
+            . ($inline === [] ? '' : ' style="' . htmlspecialchars(implode(';', $inline), ENT_QUOTES) . '"')
+            . '></span>';
+    }
+
     private static function sectionFieldStyle(mixed $size, mixed $color, array $sizeMap): string
     {
         $style = '';
