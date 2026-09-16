@@ -304,6 +304,55 @@ final class BloxRemoteTemplateProviderTest extends TestCase
     }
 
     /**
+     * 隔离市场用自己的签名公钥（YIKAI_BLOX_TEMPLATE_PUBKEY），不替换全站授权公钥：
+     * 替换全站公钥会让授权缓存验签失败、每次请求都远程校验，后台每页慢约 2 秒。
+     */
+    public function testIsolatedMarketVerifiesPackagesWithItsOwnPublicKey(): void
+    {
+        $options = ['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA];
+        if (getenv('OPENSSL_CONF') === false && is_file(dirname(PHP_BINARY) . '/extras/ssl/openssl.cnf')) {
+            $options['config'] = dirname(PHP_BINARY) . '/extras/ssl/openssl.cnf';
+        }
+        $key = openssl_pkey_new($options);
+        if ($key === false) {
+            $this->markTestSkipped('OpenSSL key generation unavailable');
+        }
+        $publicB64 = (string) preg_replace('/-----[^-]+-----|\s/', '', openssl_pkey_get_details($key)['key']);
+
+        $base = 'http://market.test/local-market';
+        $package = $this->package($this->templateJson());
+        $hash = 'sha256:' . hash('sha256', $package);
+        openssl_sign('pricing-3col|1.0.0|' . $hash, $signature, $key, OPENSSL_ALGO_SHA256);
+        $catalog = $this->catalogResponse([$this->catalogItem([
+            'hash' => $hash,
+            'sig' => base64_encode($signature),
+            'download_url' => $base . '/download.php?protocol_version=2&slug=pricing-3col&version=1.0.0',
+        ])]);
+        $http = static fn (string $url): string => str_contains($url, '/download.php') ? $package : $catalog;
+
+        putenv('YIKAI_BLOX_TEMPLATE_API_BASE=' . $base . '/list.php');
+        putenv('YIKAI_BLOX_TEMPLATE_PUBKEY=' . $publicB64);
+        try {
+            // 默认验签闭包（不注入）：用隔离市场公钥通过，且全站授权公钥保持官方值
+            $provider = new BloxRemoteTemplateProvider($http, null, 'zh-CN');
+            $this->assertSame($this->templateJson(), $provider->fetchPackageJson('pricing-3col'));
+            $this->assertStringNotContainsString($publicB64, LICENSE_PUBKEY_B64);
+
+            putenv('YIKAI_BLOX_TEMPLATE_PUBKEY');
+            $officialKeyOnly = new BloxRemoteTemplateProvider($http, null, 'zh-CN');
+            try {
+                $officialKeyOnly->fetchPackageJson('pricing-3col');
+                $this->fail('未配置隔离市场公钥时，本地签名的包不能通过官方公钥验签');
+            } catch (RuntimeException $e) {
+                $this->assertSame('blox_template_remote_signature_failed', $e->getMessage());
+            }
+        } finally {
+            putenv('YIKAI_BLOX_TEMPLATE_API_BASE');
+            putenv('YIKAI_BLOX_TEMPLATE_PUBKEY');
+        }
+    }
+
+    /**
      * 隔离市场（YIKAI_BLOX_TEMPLATE_API_BASE）：包与封面只能来自目录接口的同一目录，
      * 哈希与签名照常校验；未设置该变量时同样的地址一律拒绝。
      */
