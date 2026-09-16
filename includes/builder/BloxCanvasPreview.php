@@ -372,7 +372,10 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
             }
             $previewSections = is_array($previewSections) ? $previewSections : [];
             $homePreviewContext = HomeBloxRenderContext::fromCurrentSite($bloxCanvas);
-            $pageBody = HomeBloxRenderer::render($previewSections, [$homePreviewContext, 'renderLegacyBlock']);
+            // 画布内容按页面语言取前台文案（后台请求默认是后台界面语言）
+            $pageBody = withSiteLanguageStrings(
+                static fn (): string => HomeBloxRenderer::render($previewSections, [$homePreviewContext, 'renderLegacyBlock'])
+            );
             $previewBannerGroup = getBannerGroup('home');
             $homeHeaderOverlay = HomeBloxRenderer::startsWithHeaderOverlayBanner(
                 $previewSections,
@@ -386,7 +389,9 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
             $pageRow = channelModel()->find($id);
             $pageType = (string) ($pageRow['type'] ?? '');
             require_once ROOT_PATH . '/includes/builder/BloxCatalogPreview.php';
-            $pageBody = BloxCatalogPreview::render($pageRow ?? [], $previewJson);
+            $pageBody = withSiteLanguageStrings(
+                static fn (): string => BloxCatalogPreview::render($pageRow ?? [], $previewJson)
+            );
         }
 
         $pageHeroBody = '';
@@ -488,7 +493,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
             $GLOBALS['ykBloxPageId'] = $context['page_id'];
             try {
                 $document = BloxAreaDocument::decode($area, $publishedData);
-                $html = BlockRenderer::render($publishedData);
+                $html = withSiteLanguageStrings(static fn (): string => BlockRenderer::render($publishedData));
                 if ($html === '') {
                     return '';
                 }
@@ -521,7 +526,9 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
             int $pageId,
             string $title,
             string $slug
-        ): string => renderBloxCanvasThemeArea($area, $scriptName, $channelId, $pageId, $title, $slug);
+        ): string => withSiteLanguageStrings(
+            static fn (): string => renderBloxCanvasThemeArea($area, $scriptName, $channelId, $pageId, $title, $slug)
+        );
 
         $canEditContextArea = function_exists('hasPermission') && hasPermission('blox_global');
         $wrapContextArea = static function (string $area, string $html, string $source, string $editUrl) use ($canEditContextArea): string {

@@ -594,7 +594,16 @@ function loadLangData(): array
         return $_LANG_DATA;
     }
 
-    $lang = getLang();
+    $_LANG_DATA = langDataFor(getLang());
+    return $_LANG_DATA;
+}
+
+/** 指定语言的完整文案表：目标语言 + 中文兜底 + 站点覆盖层。 */
+function langDataFor(string $lang): array
+{
+    if (preg_match('/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$/D', $lang) !== 1) {
+        $lang = 'zh-CN';
+    }
     $langFile = ROOT_PATH . '/lang/' . $lang . '.php';
 
     // 先加载目标语言，再用中文兜底
@@ -602,7 +611,7 @@ function loadLangData(): array
     $fallbackData = file_exists($fallback) ? require $fallback : [];
     $langData = ($lang !== 'zh-CN' && file_exists($langFile)) ? require $langFile : [];
 
-    $_LANG_DATA = array_merge($fallbackData, $langData);
+    $data = array_merge($fallbackData, $langData);
 
     // 站点语言覆盖层（最高优先级）：lang/overrides/all.php（全语言）+ lang/overrides/{lang}.php。
     // 各站在不改核心 lang/*.php 的前提下改词/加词，升级不冲突。见 lang/overrides/README.md。
@@ -610,12 +619,39 @@ function loadLangData(): array
         if (is_file($ovFile)) {
             $ov = require $ovFile;
             if (is_array($ov) && $ov) {
-                $_LANG_DATA = array_merge($_LANG_DATA, $ov);
+                $data = array_merge($data, $ov);
             }
         }
     }
 
-    return $_LANG_DATA;
+    return $data;
+}
+
+/**
+ * 在后台请求里按「站点语言」渲染前台内容。
+ *
+ * 后台请求的 __() 使用后台界面语言；编辑器画布却要像前台一样显示页面语言的固定文案
+ *（如首页「查看全部」「核心优势」等兜底文案）。回调期间临时换成 siteLang() 的文案表，
+ * 结束后恢复，画布上的编辑器按钮等后台文案不受影响。两种语言相同时直接执行。
+ *
+ * @template T
+ * @param callable(): T $render
+ * @return T
+ */
+function withSiteLanguageStrings(callable $render): mixed
+{
+    global $_LANG_DATA;
+    $site = siteLang();
+    if ($site === getLang()) {
+        return $render();
+    }
+    $saved = loadLangData();
+    $_LANG_DATA = array_merge($saved, langDataFor($site));
+    try {
+        return $render();
+    } finally {
+        $_LANG_DATA = $saved;
+    }
 }
 
 /**
