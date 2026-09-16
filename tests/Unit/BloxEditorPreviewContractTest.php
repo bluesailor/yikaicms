@@ -659,7 +659,7 @@ final class BloxEditorPreviewContractTest extends TestCase
 
     public function testCopyrightAndFilingAreEditedInsideThePanel(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        $editor = $this->source('admin/blox_editor.php') . "\n" . $this->source('admin/blox_editor/partials/site-data-methods.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
         // 版权文字与备案号在面板内直接改，不再跳到站点设置页
