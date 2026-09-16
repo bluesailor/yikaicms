@@ -44,7 +44,7 @@ final class HomeAboutContentTest extends TestCase
 
     public function testMissingImageUsesDefaultButExplicitEmptyImageStaysEmpty(): void
     {
-        self::assertSame('/assets/images/demo/about-office.jpg', HomeAboutContent::resolve()['override_image']);
+        self::assertSame('/assets/images/demo/yikaicms-industrial-600.webp', HomeAboutContent::resolve()['override_image']);
         $GLOBALS['yikai_config_runtime_overrides']['home_about_image'] = '';
         self::assertSame('', HomeAboutContent::resolve()['override_image']);
         $GLOBALS['yikai_config_runtime_overrides']['home_about_image'] = '/uploads/company.jpg';

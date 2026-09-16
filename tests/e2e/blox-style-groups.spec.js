@@ -98,11 +98,11 @@ test('container gets the shared background group without chips @ci', async ({ pa
   await expect(page.locator('[data-control-key="bg_video_mobile_mode"]')).toBeVisible();
   await expect(page.getByTestId('blox-element-background-image-help')).toBeVisible();
   await performPreviewUpdate(page, () =>
-    page.locator('[data-control-key="bg_image"] input').fill('/assets/images/demo/about-office.jpg'));
+    page.locator('[data-control-key="bg_image"] input').fill('/assets/images/demo/yikaicms-industrial-600.webp'));
   const media = (await frame(page)).locator('.blox-bg-media').first();
   await expect(media).toBeAttached();
   await expect(media.locator('video')).toHaveAttribute('data-blox-mobile-video', 'poster');
-  await expect(media.locator('video')).toHaveAttribute('poster', '/assets/images/demo/about-office.jpg');
+  await expect(media.locator('video')).toHaveAttribute('poster', '/assets/images/demo/yikaicms-industrial-600.webp');
   expect(await media.evaluate((el) => getComputedStyle(el).pointerEvents)).toBe('none');
 
   await restoreClean(page);
@@ -120,11 +120,11 @@ test('section background video is visible at the section layer @ci', async ({ pa
   await expect(videoInput).toBeVisible();
   await performPreviewUpdate(page, () => videoInput.fill('/uploads/e2e-section-bg.mp4'));
   await expect(page.getByTestId('blox-section-background-image-help')).toBeVisible();
-  await performPreviewUpdate(page, () => page.getByTestId('blox-section-bg-image').fill('/assets/images/demo/about-office.jpg'));
+  await performPreviewUpdate(page, () => page.getByTestId('blox-section-bg-image').fill('/assets/images/demo/yikaicms-industrial-600.webp'));
   await expect(page.getByTestId('blox-section-overlay-opacity')).toBeVisible();
   const video = (await frame(page)).locator('section .blox-bg-media video').first();
   await expect(video).toHaveAttribute('src', '/uploads/e2e-section-bg.mp4');
-  await expect(video).toHaveAttribute('poster', '/assets/images/demo/about-office.jpg');
+  await expect(video).toHaveAttribute('poster', '/assets/images/demo/yikaicms-industrial-600.webp');
   await expect(video).toHaveAttribute('data-blox-mobile-video', 'poster');
 
   await performPreviewUpdate(page, () => page.getByTestId('blox-section-bg-video-mobile').selectOption('video'));
@@ -146,7 +146,7 @@ test('section video warns about child backgrounds and clears them as one undoabl
     const app = window.Alpine.$data(document.body);
     app.sel.settings.container_bg = '#ffffff';
     const child = app.sel.columns.flatMap((column) => column.elements || [])[0];
-    child.data.bg_image = '/assets/images/demo/about-office.jpg';
+    child.data.bg_image = '/assets/images/demo/yikaicms-industrial-600.webp';
     await window.Alpine.nextTick();
     return { sectionId: app.sel.id, childType: child.type };
   });

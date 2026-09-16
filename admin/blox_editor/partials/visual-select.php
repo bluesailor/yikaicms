@@ -45,7 +45,7 @@ declare(strict_types=1);
                             <span class="blox-divider-sample"><span></span></span>
                         </template>
                         <template x-if="ctrl.option_preview === 'image-fit'">
-                            <span class="blox-image-fit-sample"><img src="/assets/images/demo/about-office.jpg" alt="" loading="lazy" decoding="async"></span>
+                            <span class="blox-image-fit-sample"><img src="/assets/images/demo/yikaicms-industrial-600.webp" alt="" loading="lazy" decoding="async"></span>
                         </template>
                         <template x-if="ctrl.option_preview === 'image-position'">
                             <i class="ti blox-image-position-sample" :class="'ti-' + ((ctrl.option_icons || {})[value] || 'focus-centered')" aria-hidden="true"></i>
