@@ -4,7 +4,7 @@
   "type": "footer",
   "name": "Search Site Footer",
   "requires": {
-    "elements": ["logo", "nav", "site-contact", "site-copyright", "site-search", "social-links"],
+    "elements": ["logo", "nav", "site-contact", "site-copyright", "site-filing", "site-search", "social-links"],
     "plugins": []
   },
   "document": {
@@ -75,7 +75,8 @@
           {
             "span": 8,
             "elements": [
-              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "left", "tone": "light"}}
+              {"type": "site-copyright", "data": {"show_icp": false, "show_police": false, "align": "left", "tone": "light"}},
+              {"type": "site-filing", "data": {"show_icp": true, "show_police": true, "align": "left", "tone": "light"}}
             ]
           },
           {

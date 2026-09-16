@@ -173,13 +173,13 @@ final class BloxAreaDocumentTest extends TestCase
             'corporate-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact', 'site-search'], 2],
             'topbar-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact'], 2],
             'search-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-search'], 2],
-            'clean-site-footer.json' => ['footer', ['heading', 'nav', 'site-copyright', 'text'], 2],
-            'business-site-footer.json' => ['footer', ['nav', 'site-copyright'], 2],
-            'minimal-site-footer.json' => ['footer', ['logo', 'nav', 'site-contact', 'site-copyright', 'text'], 2],
-            'corporate-site-footer.json' => ['footer', ['container', 'logo', 'nav', 'site-contact', 'site-copyright', 'social-links'], 2],
-            'compact-site-footer.json' => ['footer', ['logo', 'site-copyright', 'social-links'], 1],
-            'contact-site-footer.json' => ['footer', ['container', 'logo', 'site-contact', 'site-copyright', 'social-links'], 2],
-            'search-site-footer.json' => ['footer', ['logo', 'nav', 'site-contact', 'site-copyright', 'site-search', 'social-links'], 3],
+            'clean-site-footer.json' => ['footer', ['heading', 'nav', 'site-copyright', 'site-filing', 'text'], 2],
+            'business-site-footer.json' => ['footer', ['nav', 'site-copyright', 'site-filing'], 2],
+            'minimal-site-footer.json' => ['footer', ['logo', 'nav', 'site-contact', 'site-copyright', 'site-filing', 'text'], 2],
+            'corporate-site-footer.json' => ['footer', ['container', 'logo', 'nav', 'site-contact', 'site-copyright', 'site-filing', 'social-links'], 2],
+            'compact-site-footer.json' => ['footer', ['logo', 'site-copyright', 'site-filing', 'social-links'], 1],
+            'contact-site-footer.json' => ['footer', ['container', 'logo', 'site-contact', 'site-copyright', 'site-filing', 'social-links'], 2],
+            'search-site-footer.json' => ['footer', ['logo', 'nav', 'site-contact', 'site-copyright', 'site-filing', 'site-search', 'social-links'], 3],
             // 详情页起步模板与区域模板走同一导入器/管线（详情类型经 BloxDocumentPipeline）
             'classic-article-detail.json' => ['article-detail', ['article-content', 'article-cover', 'article-meta', 'article-prev-next', 'article-related', 'article-summary', 'article-title'], 3],
             'classic-product-detail.json' => ['product-detail', ['product-button', 'product-content', 'product-gallery', 'product-inquiry', 'product-prev-next', 'product-related', 'product-specs', 'product-title'], 4],
@@ -339,9 +339,12 @@ final class BloxAreaDocumentTest extends TestCase
         foreach (array_slice($catalog, 0, 2) as $minimal) {
             self::assertCount(1, $minimal['sections']);
             $elements = $minimal['sections'][0]['columns'][0]['elements'];
-            self::assertSame(['site-copyright'], array_column($elements, 'type'));
-            self::assertSame('1', (string) $elements[0]['data']['show_icp']);
-            self::assertSame('1', (string) $elements[0]['data']['show_police']);
+            // 版权与备案是两个元素，可分别移动、排版；版权元素自身不再输出备案号
+            self::assertSame(['site-copyright', 'site-filing'], array_column($elements, 'type'));
+            self::assertSame('0', (string) $elements[0]['data']['show_icp']);
+            self::assertSame('0', (string) $elements[0]['data']['show_police']);
+            self::assertSame('1', (string) $elements[1]['data']['show_icp']);
+            self::assertSame('1', (string) $elements[1]['data']['show_police']);
         }
         self::assertSame(2, count($catalog[2]['sections']));
         self::assertSame(3, count($catalog[5]['sections']));
@@ -363,9 +366,9 @@ final class BloxAreaDocumentTest extends TestCase
         );
 
         self::assertSame('#0f172a', $business['document']['sections'][0]['settings']['bg_color']);
-        self::assertSame(['nav', 'site-copyright'], $business['requires']['elements']);
+        self::assertSame(['nav', 'site-copyright', 'site-filing'], $business['requires']['elements']);
         self::assertSame('#ffffff', $minimal['document']['sections'][0]['settings']['bg_color']);
-        self::assertSame(['logo', 'text', 'nav', 'site-contact', 'site-copyright'], $minimal['requires']['elements']);
+        self::assertSame(['logo', 'text', 'nav', 'site-contact', 'site-copyright', 'site-filing'], $minimal['requires']['elements']);
         $columns = $minimal['document']['sections'][0]['columns'];
         self::assertSame(['logo', 'text'], array_column($columns[0]['elements'], 'type'));
         self::assertSame('site_description', $columns[0]['elements'][1]['data']['site_field']);

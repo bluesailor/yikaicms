@@ -218,7 +218,7 @@ declare(strict_types=1);
             headerPresetFocusTypes(preset) {
                 var counts = window.BloxTemplateLibrary.elementCounts((preset && preset.sections) || []);
                 var candidates = this.areaPresetType === "footer"
-                    ? ["logo", "nav", "site-contact", "site-search", "social-links", "site-copyright"]
+                    ? ["logo", "nav", "site-contact", "site-search", "social-links", "site-copyright", "site-filing"]
                     : ["logo", counts["nav-mega"] ? "nav-mega" : "nav", "site-search", "language-switcher"];
                 return candidates
                     .filter(function (type, index, all) { return counts[type] && all.indexOf(type) === index; });

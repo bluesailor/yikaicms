@@ -665,15 +665,27 @@ final class BloxEditorPreviewContractTest extends TestCase
         // 版权文字与备案号在面板内直接改，不再跳到站点设置页
         self::assertStringNotContainsString('setting.php?tab=footer', $workspace);
         self::assertStringNotContainsString('setting.php?tab=basic#input_site_icp', $workspace);
+        $saveRow = $this->source('admin/blox_editor/partials/site-data-save.php');
         foreach ([
             'data-testid="blox-copyright-text-input"',
+            "selEl.type === 'site-filing'",
             'data-testid="blox-filing-fields"',
             'x-if="siteCopyrightFilingEditable()"',
-            'data-testid="blox-copyright-save"',
-            '@click="saveSiteCopyright()"',
+            "\$siteDataSaveTestId = 'blox-copyright-save'",
+            "\$siteDataSaveTestId = 'blox-filing-save'",
+            // 旧版「版权 + 备案」合一的元素：面板提示并一键拆成两个同级元素
+            'x-if="copyrightHasFiling() && siteCopyrightFilingEditable()"',
+            '@click="splitCopyrightFiling()"',
         ] as $token) {
             self::assertStringContainsString($token, $workspace, "copyright panel token {$token} missing");
         }
+        self::assertStringContainsString('@click="saveSiteCopyright()"', $saveRow);
+        // 版权面板里不再有备案号输入框：备案号只在备案元素面板编辑
+        $copyrightPanel = substr($workspace, (int) strpos($workspace, "selEl.type === 'site-copyright'"));
+        $copyrightPanel = substr($copyrightPanel, 0, (int) strpos($copyrightPanel, "selEl.type === 'site-filing'"));
+        self::assertStringNotContainsString('blox-filing-icp-input', $copyrightPanel);
+        self::assertStringContainsString('if (ctrl.legacy_filing && !this.copyrightHasFiling()) return false;', $editor);
+        self::assertStringContainsString("'site-copyright' => ['show_icp' => false, 'show_police' => false],", $editor);
         foreach ([
             'siteCopyrightEndpoint: "/admin/blox_site_api.php"',
             'SiteCopyrightSettings::editorState($siteDataLanguage',

@@ -145,6 +145,7 @@ final class BuilderRegistry
             new ProcessStepElement(),
             new LogoElement(),
             new SiteCopyrightElement(),
+            new SiteFilingElement(),
             new SiteContactElement(),
             new SocialLinksElement(),
             new SiteSearchElement(),

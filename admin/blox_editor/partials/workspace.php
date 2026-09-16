@@ -1340,6 +1340,7 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <?php // 站点资料在面板内直接改：按画布预览语言读写，保存即全站生效（不随模板草稿） ?>
                             <template x-if="selEl && selEl.type === 'site-copyright' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
                                 <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-copyright-content-source">
                                     <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
@@ -1347,7 +1348,6 @@ declare(strict_types=1);
                                         <span><?= e(__('blox_copyright_content_source_title')) ?></span>
                                     </div>
                                     <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_copyright_content_source_hint')) ?></p>
-                                    <?php // 面板内直接改站点资料：按画布预览语言读写，保存即全站生效（不随模板草稿） ?>
                                     <label class="block space-y-1" data-testid="blox-copyright-text-field">
                                         <span class="flex items-center justify-between gap-2 text-[11px] text-gray-600">
                                             <span><?= e(__('blox_site_copyright_text')) ?></span>
@@ -1362,6 +1362,28 @@ declare(strict_types=1);
                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white read-only:bg-gray-50 read-only:text-gray-500">
                                         <span class="block text-[10px] text-gray-400"><?= e(__('blox_site_copyright_tokens')) ?></span>
                                     </label>
+                                    <template x-if="copyrightHasFiling() && siteCopyrightFilingEditable()">
+                                        <div class="rounded border border-amber-200 bg-amber-50 p-2 space-y-1.5" data-testid="blox-copyright-legacy-filing">
+                                            <p class="text-[10px] leading-relaxed text-amber-800"><?= e(__('blox_copyright_legacy_filing_hint')) ?></p>
+                                            <button type="button" @click="splitCopyrightFiling()"
+                                                    data-testid="blox-copyright-split-filing"
+                                                    class="h-7 inline-flex items-center gap-1.5 rounded border border-amber-300 bg-white px-2 text-[11px] font-medium text-amber-800 hover:bg-amber-100 transition">
+                                                <i class="ti ti-arrows-split-2 text-sm" aria-hidden="true"></i>
+                                                <span><?= e(__('blox_copyright_split_filing')) ?></span>
+                                            </button>
+                                        </div>
+                                    </template>
+                                    <?php $siteDataSaveTestId = 'blox-copyright-save'; require __DIR__ . '/site-data-save.php'; ?>
+                                </div>
+                            </template>
+
+                            <template x-if="selEl && selEl.type === 'site-filing' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
+                                <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-filing-content-source">
+                                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
+                                        <i class="ti ti-shield-check text-sm text-blue-500" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_filing_content_source_title')) ?></span>
+                                    </div>
+                                    <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_filing_content_source_hint')) ?></p>
                                     <template x-if="siteCopyrightFilingEditable()">
                                         <div class="space-y-2" data-testid="blox-filing-fields">
                                             <label class="block space-y-1">
@@ -1391,16 +1413,7 @@ declare(strict_types=1);
                                        class="text-[10px] leading-relaxed text-gray-400" data-testid="blox-filing-shared-note">
                                         <?= e(__('blox_site_filing_zh_only')) ?>
                                     </p>
-                                    <div x-show="siteCopyright.can_edit" class="flex items-center justify-between gap-2">
-                                        <span class="text-[10px] text-amber-600"><?= e(__('blox_site_copyright_live_note')) ?></span>
-                                        <button type="button" @click="saveSiteCopyright()"
-                                                :disabled="!siteCopyrightChanged || siteCopyrightSaving"
-                                                data-testid="blox-copyright-save"
-                                                class="h-8 shrink-0 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 transition">
-                                            <i class="ti text-sm" :class="siteCopyrightSaving ? 'ti-loader-2 animate-spin' : 'ti-device-floppy'" aria-hidden="true"></i>
-                                            <span><?= e(__('blox_site_copyright_save')) ?></span>
-                                        </button>
-                                    </div>
+                                    <?php $siteDataSaveTestId = 'blox-filing-save'; require __DIR__ . '/site-data-save.php'; ?>
                                 </div>
                             </template>
 
