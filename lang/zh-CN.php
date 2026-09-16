@@ -3246,6 +3246,8 @@ return [
     'ap_replace_pending' => '已选择 :name，保存后替换当前图片。',
     'ap_replaced' => '图片已替换',
     'ap_photo_missing' => '图片不存在或已删除',
+    'ap_type_not_allowed' => '只支持 JPG、PNG、GIF、WEBP 图片',
+    'ap_uploaded_partial' => '已上传 :n 张，:m 张未通过校验：:names',
     'ap_del_confirm' => '确定要删除这张图片吗？',
     'ap_del_n_confirm' => '确定要删除选中的 :n 张图片吗？',
     'org_demo_ceo_name' => '张伟',

@@ -11,6 +11,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/admin/includes/album_upload.php';
 
 checkLogin();
 requirePermission('media');
@@ -35,44 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('ap_pick_images'));
         }
 
-        $uploadDir = '/uploads/albums/' . date('Ym') . '/';
-        $fullDir = ROOT_PATH . $uploadDir;
-        if (!is_dir($fullDir)) {
-            mkdir($fullDir, 0755, true);
-        }
-
-        $uploaded = [];
-        $files = $_FILES['files'];
-
-        for ($i = 0; $i < count($files['name']); $i++) {
-            if ($files['error'][$i] !== UPLOAD_ERR_OK) continue;
-
-            $ext = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
-            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) continue;
-
-            $newName = uniqid() . '.' . $ext;
-            $filePath = $fullDir . $newName;
-
-            if (move_uploaded_file($files['tmp_name'][$i], $filePath)) {
-                $url = $uploadDir . $newName;
-
-                $maxSort = albumPhotoModel()->getMaxSort($albumId);
-
-                $photoId = albumPhotoModel()->create([
-                    'album_id' => $albumId,
-                    'title' => pathinfo($files['name'][$i], PATHINFO_FILENAME),
-                    'image' => $url,
-                    'sort_order' => $maxSort + 1,
-                    'status' => 1,
-                    'created_at' => time(),
-                ]);
-
-                $uploaded[] = [
-                    'id' => $photoId,
-                    'url' => $url,
-                    'title' => pathinfo($files['name'][$i], PATHINFO_FILENAME),
-                ];
-            }
+        ['uploaded' => $uploaded, 'rejected' => $rejected] = albumStoreUploadedPhotos($albumId, $_FILES['files']);
+        if ($uploaded === [] && $rejected !== []) {
+            error($rejected[0]['name'] . '：' . $rejected[0]['error']);
         }
 
         // 更新相册图片数量
@@ -84,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             albumModel()->updateById($albumId, ['cover' => $uploaded[0]['url']]);
         }
 
-        success(['uploaded' => $uploaded, 'count' => count($uploaded)]);
+        success(['uploaded' => $uploaded, 'count' => count($uploaded), 'rejected' => $rejected]);
     }
 
     // 更新图片信息
@@ -109,7 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('ap_pick_images'));
         }
         // 走统一上传：扩展名白名单 + MIME 与 getimagesize 校验 + 超宽压缩
-        $result = uploadFile($_FILES['file'], 'images');
+        $replaceExt = strtolower(pathinfo((string) ($_FILES['file']['name'] ?? ''), PATHINFO_EXTENSION));
+        if (!in_array($replaceExt, ALBUM_PHOTO_EXTENSIONS, true)) {
+            error(__('ap_type_not_allowed'));
+        }
+        $result = uploadFile($_FILES['file'], 'albums');
         if (isset($result['error'])) {
             error($result['error']);
         }
@@ -469,6 +439,15 @@ async function uploadFiles(files) {
             if (xhr.status === 200) {
                 const result = JSON.parse(xhr.responseText);
                 if (result.code === 0) {
+                    const rejected = result.data.rejected || [];
+                    if (rejected.length) {
+                        showMessage(<?php echo json_encode(__('ap_uploaded_partial'), JSON_UNESCAPED_UNICODE); ?>
+                            .replace(':n', result.data.count)
+                            .replace(':m', rejected.length)
+                            .replace(':names', rejected.map(item => item.name + '（' + item.error + '）').join('、')), 'error');
+                        setTimeout(() => location.reload(), 4000);
+                        return;
+                    }
                     showMessage(<?php echo json_encode(__('ap_uploaded_n'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', result.data.count));
                     setTimeout(() => location.reload(), 1000);
                 } else {

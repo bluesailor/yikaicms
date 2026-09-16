@@ -3177,6 +3177,8 @@ return [
     'ap_replace_pending' => ':name selected. It replaces the current image when you save.',
     'ap_replaced' => 'Image replaced',
     'ap_photo_missing' => 'The photo does not exist or was deleted',
+    'ap_type_not_allowed' => 'Only JPG, PNG, GIF and WEBP images are allowed',
+    'ap_uploaded_partial' => ':n uploaded, :m rejected: :names',
     'ap_del_confirm' => 'Delete this image?',
     'ap_del_n_confirm' => 'Delete the :n selected images?',
     'org_demo_ceo_name' => 'Full Name',

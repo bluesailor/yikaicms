@@ -2650,7 +2650,8 @@ function uploadFile(array $file, string $type = 'images'): array
         ? array_values(array_filter(array_map('strval', (array) constant('UPLOAD_VIDEO_TYPES'))))
         : ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v'];
     $allowedTypes = match ($type) {
-        'images' => UPLOAD_IMAGE_TYPES,
+        // albums：相册图片，与 images 同一白名单，只是落在 uploads/albums/
+        'images', 'albums' => UPLOAD_IMAGE_TYPES,
         'files' => UPLOAD_FILE_TYPES,
         'videos' => $videoTypes,
         default => array_merge(UPLOAD_IMAGE_TYPES, UPLOAD_FILE_TYPES, $videoTypes)
