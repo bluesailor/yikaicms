@@ -33,6 +33,14 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 // 对已登录会话立即生效——只调 requirePermission 用的是登录那一刻的权限快照。
 checkLogin();
 $isHomeBlox = (string) ($_GET['home'] ?? '') === '1';
+// 首页编辑器按 ?lang= 临时切换本次请求的主语言（见 bloxHomeEditorLanguage）
+$homeEditorLanguage = '';
+if ($isHomeBlox && !defined('SITE_LANG')) {
+    $homeEditorLanguage = bloxHomeEditorLanguage();
+    define('SITE_LANG', $homeEditorLanguage);
+}
+$homeEditorLangQuery = $homeEditorLanguage !== '' && $homeEditorLanguage !== (string) config('site_lang', 'zh-CN')
+    ? rawurlencode($homeEditorLanguage) : '';
 $id = getInt('id');
 $templateId = getInt('template'); // 模板模式：编辑 blox_templates 草稿（section/page/header/footer/popup）
 $templateType = ''; // Page and home modes also render the shared template JavaScript.
@@ -200,9 +208,9 @@ if ($isHomeBlox) {
         'sections' => $homeDocument['sections'],
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
     $documentIdentity = 'home';
-    $saveEndpoint = '/admin/blox_home_api.php';
+    $saveEndpoint = '/admin/blox_home_api.php' . ($homeEditorLangQuery !== '' ? '?lang=' . $homeEditorLangQuery : '');
     // 首页预览必须走首页上下文，不能借用沙盒页，否则 home-block 只会显示占位卡。
-    $previewEndpoint = '/admin/blox_preview.php?home=1';
+    $previewEndpoint = '/admin/blox_preview.php?home=1' . ($homeEditorLangQuery !== '' ? '&_lang=' . $homeEditorLangQuery : '');
 } elseif ($templateId) {
     $templateRow = bloxTemplateModel()->findForExport($templateId);
     if (!$templateRow) {
@@ -8592,7 +8600,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     body.set("base_revision", this.baseRevision);
                 }
                 body.set("_token", this.csrf);
-                fetch("/admin/blox_home_api.php", { method: "POST", body: body })
+                fetch(this.endpoint, { method: "POST", body: body })
                     .then(function (r) {
                         if (self.authExpiredResponse(r)) return { code: "auth" };
                         return r.json().catch(function () { return { success: false }; });

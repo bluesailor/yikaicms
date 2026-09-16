@@ -79,6 +79,24 @@ declare(strict_types=1);
                 <i class="ti ti-corner-down-right"></i><?php echo e(__('blox_redirected_from_parent', ['parent' => $redirectedFromPage['name']])); ?>
             </span>
             <?php endif; ?>
+            <?php
+            // 首页各语言共用一份文档：切换语言 = 以该语言重新打开编辑器（画布、字段与保存都跟随）
+            $homeLanguages = $isHomeBlox && function_exists('enabledLanguages') ? enabledLanguages() : [];
+            ?>
+            <?php if (count($homeLanguages) > 1): ?>
+            <div data-testid="blox-home-language-switch" role="group" aria-label="<?= e(__('lse_versions')) ?>"
+                 class="blox-header-languages inline-flex items-center rounded border border-gray-700 bg-gray-800 p-0.5 min-w-0 max-w-full overflow-x-auto">
+                <?php foreach ($homeLanguages as $homeLangCode => $homeLangLabel): ?>
+                <?php $homeLangCurrent = $homeLangCode === $homeEditorLanguage; ?>
+                <a href="<?= e('/admin/blox_editor.php?home=1' . ($homeLangCode !== (string) config('site_lang', 'zh-CN') ? '&lang=' . rawurlencode((string) $homeLangCode) : '')) ?>"
+                   data-testid="blox-home-language-<?= e((string) $homeLangCode) ?>" title="<?= e((string) $homeLangLabel) ?>"
+                   <?php if ($homeLangCurrent): ?>aria-current="page"<?php endif; ?>
+                   class="min-w-7 h-6 rounded px-1.5 text-[10px] font-semibold inline-flex items-center justify-center transition <?= $homeLangCurrent ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' ?>">
+                    <?= e(match ((string) $homeLangCode) { 'zh-CN' => 'ZH', 'en' => 'EN', 'ja' => 'JA', default => strtoupper(substr((string) $homeLangCode, 0, 3)) }) ?>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
             <?php if ($pageLanguageVersions !== []): ?>
             <div data-testid="blox-language-switch" role="group" aria-label="<?= e(__('lse_versions')) ?>"
                  class="blox-header-languages inline-flex items-center rounded border border-gray-700 bg-gray-800 p-0.5 min-w-0 max-w-full overflow-x-auto">
@@ -436,7 +454,7 @@ declare(strict_types=1);
                     $frontPreviewUrl = $areaFrontPreviewUrl;
                 }
             } elseif ($isHomeBlox) {
-                $frontPreviewUrl = '/?preview';
+                $frontPreviewUrl = ($homeEditorLangQuery !== '' ? langUrl('/', $homeEditorLanguage) : '/') . '?preview';
             } else {
                 $frontPreviewUrl = channelUrl($page);
                 $frontPreviewUrl .= str_contains($frontPreviewUrl, '?') ? '&preview=draft&blox_draft=page:' . (int) $id : '?preview=draft&blox_draft=page:' . (int) $id;

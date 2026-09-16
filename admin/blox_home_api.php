@@ -18,6 +18,11 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
+// 与编辑器同一编辑语言：?lang= 临时切换本次请求的主语言（见 bloxHomeEditorLanguage）
+if (!defined('SITE_LANG')) {
+    define('SITE_LANG', bloxHomeEditorLanguage());
+}
+
 checkLogin();
 requirePermission('blox_home');
 
