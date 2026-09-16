@@ -30,7 +30,7 @@ $sidebarMenu = resolveAdminSidebar();
 // 升级页仍会再次做完整检查并负责执行，侧栏这里只复用同一套 Migrator 判定。
 $__sidebarPendingMigrations = 0;
 if (hasPermission('*')) {
-    $__sidebarPendingMigrations = pendingMigrationsCount();
+    $__sidebarPendingMigrations = sidebarPendingMigrationsCount();
     foreach ($sidebarMenu as &$__sidebarGroup) {
         foreach (($__sidebarGroup['items'] ?? []) as &$__sidebarItem) {
             if (($__sidebarItem['key'] ?? '') === 'upgrade') {

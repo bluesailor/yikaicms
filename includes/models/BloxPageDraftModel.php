@@ -49,6 +49,17 @@ final class BloxPageDraftModel extends Model
 
     public function hasPublishedStorage(): bool
     {
+        // 与 tableExists 同理只记住「已具备」：页面列表逐项询问（实测一页 60+ 次），迁移补建后仍能重新探测
+        static $available = false;
+        if ($available) {
+            return true;
+        }
+        $available = $this->probePublishedStorage();
+        return $available;
+    }
+
+    private function probePublishedStorage(): bool
+    {
         if (!db()->tableExists('blox_page_drafts')) {
             return false;
         }
