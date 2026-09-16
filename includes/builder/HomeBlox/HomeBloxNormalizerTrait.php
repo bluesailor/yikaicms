@@ -143,6 +143,7 @@ trait HomeBloxNormalizerTrait
             'override_tag_title' => 100,
             'override_tag_description' => 200,
             'override_button_text' => 100,
+            'override_call_text' => 100,
         ] as $key => $length) {
             $value = trim(strip_tags((string) ($data[$key] ?? '')));
             $data[$key] = mb_substr($value, 0, $length);
@@ -165,6 +166,8 @@ trait HomeBloxNormalizerTrait
         $data['override_image'] = self::safeUrl((string) ($data['override_image'] ?? ''), false);
         $data['override_background'] = self::safeUrl((string) ($data['override_background'] ?? ''), false);
         $data['override_button_url'] = self::safeUrl((string) ($data['override_button_url'] ?? ''), true);
+        // 只保留电话号码字符，拼进 tel: 链接也不会越界
+        $data['override_call_phone'] = mb_substr(trim(preg_replace('/[^0-9+\-() .\/]/', '', (string) ($data['override_call_phone'] ?? '')) ?? ''), 0, 40);
         $decorStyle = (string) ($data['title_decor_style'] ?? 'inherit');
         $data['title_decor_style'] = in_array($decorStyle, ['inherit', 'line', 'dot', 'none'], true)
             ? $decorStyle
