@@ -393,6 +393,7 @@ MUST_EXIST=(
     "includes/http_response.php"
     "includes/language_request.php"
     "includes/lang_url.php"
+    "includes/product_routes.php"
     "includes/LegacyInstallCleanup.php"
     "includes/SiteHealth.php"
     "includes/HomeSettingsLanguageDefaults.php"

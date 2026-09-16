@@ -59,6 +59,8 @@
     "assets/js/blox-style-sources.js",
     "assets/js/blox-detail-conditions.js",
     "assets/js/blox-background-panel.js",
+    "assets/js/blox-cta-quick.js",
+    "assets/js/blox-style-source.js",
     "assets/js/blox-image-control.js",
     "assets/js/blox-table-control.js",
     "assets/js/blox-catalog-source.js",

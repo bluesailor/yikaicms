@@ -74,6 +74,7 @@
                   "children": [
                     {"type": "logo", "data": {"display": "image", "height": "md", "tone": "dark", "link_home": true}},
                     {"type": "nav-mega", "data": {"menu_group": 0, "show_desc": false, "full_width": true}},
+                    {"type": "language-switcher", "data": {"layout": "dropdown", "display": "name", "tone": "dark", "_hide_on": ["t", "d"]}},
                     {"type": "nav-drawer", "data": {"menu_group": 0, "side": "right", "show_logo": true}}
                   ]
                 }

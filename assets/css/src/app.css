@@ -934,3 +934,7 @@ fieldset:disabled .blox-breadcrumb-choice, fieldset:disabled .blox-hero-mode-cho
 .website-pages-divider.is-structural { color:#1d4ed8; }
 .website-page-card.website-page-structural { border-style:solid; background:#fbfdff; }
 .website-page-card.website-page-structural.is-disabled { background:#f8fafc; border-style:dashed; }
+/* Primary search actions keep their contrast inside independent navigation panels. */
+.yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) [role="search"] button.bg-primary {
+  color: #fff !important;
+}

@@ -389,10 +389,12 @@ declare(strict_types=1);
             restoreWorkspace() {
                 var self = this;
                 this.leftPanelWidth = 288;
+                this.leftPanelCollapsed = false;
                 this.rightPanelWidth = 256;
                 this.rightPanelCollapsed = false;
                 this.templatePanelWidth = 520;
                 this.writeWorkspacePref("left-panel-width", 288, this.leftPanelStorageKey);
+                this.writeWorkspacePref("left-panel-collapsed", "0", this.leftPanelCollapsedStorageKey);
                 this.writeWorkspacePref("right-panel-width", 256, this.rightPanelStorageKey);
                 this.writeWorkspacePref("right-panel-collapsed", "0", this.rightPanelCollapsedStorageKey);
                 this.writeWorkspacePref("template-panel-width", 520, this.templatePanelStorageKey);

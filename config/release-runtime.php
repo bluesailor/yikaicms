@@ -23,6 +23,7 @@ return [
         'includes/http_response.php',
         'includes/language_request.php',
         'includes/lang_url.php',
+        'includes/product_routes.php',
         'includes/FooterNavigation.php',
         'includes/ProductIdentity.php',
         'includes/frontend_preview.php',

@@ -883,6 +883,8 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-control-rules.js') ?>"></script>
     <script src="/assets/js/blox-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-banner-panel.js') ?>"></script>
     <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
+    <script src="/assets/js/blox-cta-quick.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-cta-quick.js') ?>"></script>
+    <script src="/assets/js/blox-style-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-source.js') ?>"></script>
     <script src="/assets/js/blox-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-groups.js') ?>"></script>
     <script src="/assets/js/blox-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-sources.js') ?>"></script>
     <script src="/assets/js/blox-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-conditions.js') ?>"></script>
@@ -1475,6 +1477,16 @@ $canManageBloxDesign = hasPermission('blox_global');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             homeEditorBlueprints: <?php echo json_encode($homeEditorBlueprints, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             homeFieldSeeds: <?php echo json_encode($homeFieldSeeds, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            ctaQuickSeeds: <?= json_encode([
+                'title' => configLang('home_cta_title', 'home_cta_title'),
+                'text' => configLang('home_cta_desc', 'home_cta_desc'),
+                'btn_text' => (string) (config('home_cta_button', '') ?: __('detail_consult')),
+                'btn_url' => (string) (config('home_cta_link', '') ?: '/contact.html'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+            styleSourceText: <?= json_encode(array_combine(
+                ['theme', 'local', 'mobile', 'tablet', 'fromDesktop', 'fromTablet', 'global', 'token', 'default'],
+                array_map(fn(string $key): string => __('blox_exp_source_' . $key), ['theme', 'local', 'mobile', 'tablet', 'fromDesktop', 'fromTablet', 'global', 'token', 'default'])
+            ), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             homeSourceLinks: <?= json_encode($bloxSourceLinks, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             homeText: <?php echo json_encode([
                 'publishConfirm' => __('blox_publish_confirm'),
@@ -1966,6 +1978,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 )
             ), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             leftPanelWidth: 288,
+            leftPanelCollapsed: false,
+            leftPanelCollapsedStorageKey: "yikai:blox:left-panel-collapsed:v1",
             leftPanelMin: 240,
             leftPanelMax: 480,
             leftPanelResizing: false,
@@ -2626,6 +2640,8 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             ...window.BloxBannerPanel.methods,
             ...window.BloxHomeContentPanel.methods,
+            ...window.BloxCtaQuick.methods,
+            ...window.BloxStyleSource.methods,
             ...window.BloxStyleGroups.methods,
             // 作者端扩展模块（blox-pro）提供的面板方法；未启用时为空，核心编辑照常可用。
             ...((window.BloxProEditor || {}).methods || {}),
@@ -3388,6 +3404,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             openMobileSettings() {
+                this.expandLeftPanel();
                 if (window.innerWidth < 1440 && this.selectedSi >= 0) {
                     this.mobilePanel = "settings";
                     this.libOpen = false;
@@ -3662,6 +3679,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             visibleCtrls() {
                 if (!this.selEl) return [];
+                if (this.ctaQuickTarget() && !this.ctaQuickDetails && this.panelTab === "content" && !this.ctrlQuery.trim() && !this.modifiedOnly) return [];
                 if (this.panelTab === "condition") return [];
                 // TASK-003 R03：渲染列表一律不含通用占位项——它只服务分组与匹配（styleGroups 另走 styleCandidates）
                 var controls = window.BloxStyleGroups.withoutCommonMarker(this.styleCandidates());
@@ -5742,6 +5760,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (e.key === "Escape" && self.canvasDragActive) { e.preventDefault(); self.finishPaletteDrag(); return; }
                     if (e.key === "Escape" && self.multiSelActive()) { e.preventDefault(); self.multiSelReset(); return; }
                     if (e.key === "Escape" && self.ctx.open) { e.preventDefault(); self.closeCtx(); return; }
+                    if (e.key === "Escape" && !e.defaultPrevented) {
+                        var escapeTarget = document.activeElement;
+                        var editing = escapeTarget && (escapeTarget.matches("input, textarea, select") || escapeTarget.isContentEditable);
+                        var dialogOpen = Array.from(document.querySelectorAll('[role="dialog"]')).some(function (dialog) { return dialog.getClientRects().length > 0; });
+                        if (!editing && !dialogOpen && self.sel) { e.preventDefault(); self.deselectAll(); }
+                        return;
+                    }
                     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
                     var activeEditor = window.tinymce && tinymce.activeEditor;
                     if (activeEditor && typeof activeEditor.hasFocus === "function" && activeEditor.hasFocus()) return;
@@ -5821,7 +5846,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     onPickContainer: function (si) { self.selectContainer(si, false); self.revealTreeSelection(); },
                     onPickSection: function (target) { self.canvasPickSection(target); self.revealTreeSelection(); },
                     onMultiIds: function () { },
-                    onEscape: function () { self.multiSelClear(); },
+                    onEscape: function () { if (self.multiSelActive()) self.multiSelClear(); else if (self.sel) self.deselectAll(); },
                     onClear: function () { self.deselectAll(); },
                     onAreaHit: function (id) {
                         self.ctxHit = id;
@@ -6127,6 +6152,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             /** 取消全部选择（点画布空白/宿主空白触发）——回到「插入到末尾」的初始语义。 */
             deselectAll() {
+                this.expandLeftPanel();
                 this.selectedSi = -1;
                 this.selectedCi = -1;
                 this.selectedEi = -1;
@@ -6135,6 +6161,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.selectedHomeField = "";
                 this.selectedHomeColumn = "";
                 this.selLayer = "sec";
+                this._insertAt = null;
+                this.libOpen = false;
+                this.mobilePanel = "library";
                 this.multiSelClear();
                 this.highlightCanvasSelection();
             },
@@ -7646,16 +7675,42 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             leftPanelStyle() {
                 this.canvasViewportTick;
-                return window.innerWidth >= 1440 ? "width:" + this.leftPanelWidth + "px" : "";
+                return window.innerWidth >= 1440 ? "width:" + (this.leftPanelCollapsed ? 40 : this.leftPanelWidth) + "px" : "";
+            },
+
+            leftPanelContentVisible() {
+                this.canvasViewportTick;
+                return window.innerWidth < 1440 || !this.leftPanelCollapsed;
+            },
+
+            expandLeftPanel() {
+                if (!this.leftPanelCollapsed) return;
+                this.leftPanelCollapsed = false;
+                this.canvasViewportTick++;
+                this.persistLeftPanelWidth();
+            },
+
+            toggleLeftPanel() {
+                this.finishLeftPanelResize();
+                this.leftPanelCollapsed = !this.leftPanelCollapsed;
+                this.canvasViewportTick++;
+                this.persistLeftPanelWidth();
+                this.$nextTick(function () {
+                    var buttons = document.querySelectorAll('[data-testid="blox-left-panel-toggle"]');
+                    var visible = Array.from(buttons).find(function (button) { return button.getClientRects().length > 0; });
+                    if (visible) visible.focus({ preventScroll: true });
+                });
             },
 
             restoreLeftPanelWidth() {
                 var stored = this.readWorkspacePref("left-panel-width", this.leftPanelStorageKey);
                 if (stored !== null) this.leftPanelWidth = this.clampLeftPanelWidth(stored);
+                this.leftPanelCollapsed = this.readWorkspacePref("left-panel-collapsed", this.leftPanelCollapsedStorageKey) === "1";
             },
 
             persistLeftPanelWidth() {
                 this.writeWorkspacePref("left-panel-width", this.leftPanelWidth, this.leftPanelStorageKey);
+                this.writeWorkspacePref("left-panel-collapsed", this.leftPanelCollapsed ? "1" : "0", this.leftPanelCollapsedStorageKey);
             },
 
             setLeftPanelWidth(value, persist) {
@@ -7811,6 +7866,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             openElementLibrary() {
+                this.expandLeftPanel();
                 this.libOpen = true;
                 if (window.innerWidth < 1440) this.mobilePanel = "library";
                 var self = this;

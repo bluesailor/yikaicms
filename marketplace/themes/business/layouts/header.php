@@ -73,7 +73,9 @@ function getChannelUrl(array $channel): string {
     <link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/style.css'); ?>">
     <style>
-    :root { --color-primary: <?php echo $primaryColor; ?>; --color-secondary: <?php echo config('secondary_color', '#2554d4'); ?>; }
+    :root { --color-primary: <?php echo e($primaryColor); ?>; --color-secondary: <?php echo e(config('secondary_color', '#2554d4')); ?>; --yk-content-max-width:1280px; }
+    .business-theme .container { max-width:var(--yk-content-max-width); }
+    <?php echo ThemeSettings::css(); ?>
     .nav-transparent { background: transparent; position: absolute; top: 0; left: 0; right: 0; z-index: 50; }
     .nav-transparent a, .nav-transparent button { color: #fff; }
     .nav-transparent .nav-link:hover { color: rgba(255,255,255,0.7); }
@@ -107,7 +109,7 @@ function getChannelUrl(array $channel): string {
     <?php do_action('render_head'); ?>
     <?php echo config('custom_head_code', ''); ?>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
+<body class="yk-site-body business-theme bg-gray-50 min-h-screen flex flex-col">
 
     <?php if (empty($GLOBALS['ykBloxPageFrame']['page_header_hidden'])): ?>
     <!-- Navigation bar -->
