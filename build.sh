@@ -392,6 +392,7 @@ MUST_EXIST=(
     "includes/functions.php"
     "includes/http_response.php"
     "includes/language_request.php"
+    "includes/lang_url.php"
     "includes/LegacyInstallCleanup.php"
     "includes/SiteHealth.php"
     "includes/HomeSettingsLanguageDefaults.php"
