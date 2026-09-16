@@ -158,6 +158,8 @@ trait HomeBloxRuntimeTrait
                 'override_description' => 'home_cta_desc',
                 'override_button_text' => 'home_cta_button',
                 'override_button_url' => 'home_cta_link',
+                'override_call_text' => 'home_cta_call_button',
+                'override_call_phone' => 'contact_phone',
             ],
             'partners' => ['override_title' => 'home_links_title'],
             default => [],
@@ -170,7 +172,7 @@ trait HomeBloxRuntimeTrait
                 continue;
             }
             $overrides[$configKey] = $value;
-            if (in_array($sourceKey, ['override_title', 'override_description', 'override_content', 'override_tag_title', 'override_tag_description'], true)) {
+            if (in_array($sourceKey, ['override_title', 'override_description', 'override_content', 'override_tag_title', 'override_tag_description', 'override_call_phone'], true)) {
                 $overrides[$configKey . '_' . siteLang()] = $value;
             }
         }

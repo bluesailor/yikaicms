@@ -471,6 +471,23 @@ trait HomeBloxSchemaControlsTrait
                 'help' => __('blox_home_override_inherit_help'),
             ],
             [
+                'key' => 'override_call_text',
+                'type' => 'text',
+                'label' => __('blox_home_cta_call_text'),
+                'default' => '',
+                'required' => ['block_type', '=', 'cta'],
+                'placeholder' => __('detail_call'),
+                'help' => __('blox_home_override_inherit_help'),
+            ],
+            [
+                'key' => 'override_call_phone',
+                'type' => 'text',
+                'label' => __('blox_home_cta_call_phone'),
+                'default' => '',
+                'required' => ['block_type', '=', 'cta'],
+                'help' => __('blox_home_cta_call_phone_help'),
+            ],
+            [
                 'key' => 'bg_image',
                 'type' => 'image',
                 'tab' => 'style',
@@ -676,6 +693,9 @@ trait HomeBloxSchemaControlsTrait
                             ['key' => 'override_description', 'icon' => 'align-left', 'label' => __('blox_home_override_description'), 'control' => 'textarea'],
                             ['key' => 'override_button_text', 'icon' => 'click', 'label' => __('blox_home_override_button_text'), 'control' => 'text'],
                             ['key' => 'override_button_url', 'icon' => 'link', 'label' => __('blox_home_override_button_url'), 'control' => 'url'],
+                            // 第二个按钮：致电咨询（有联系电话时显示）
+                            ['key' => 'override_call_text', 'icon' => 'phone', 'label' => __('blox_home_cta_call_text'), 'control' => 'text'],
+                            ['key' => 'override_call_phone', 'icon' => 'phone-call', 'label' => __('blox_home_cta_call_phone'), 'control' => 'text'],
                         ],
                     ],
                     [
