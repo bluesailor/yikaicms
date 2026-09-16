@@ -25,6 +25,8 @@ class Database
     private static ?self $instance = null;
     private PDO $pdo;
     private string $driver;
+    /** @var array<string,true> 已确认存在的表（本连接生命周期内） */
+    private array $existingTables = [];
     /** @var list<array{0:callable,1:?callable}> 事务提交后执行的回调（回滚时丢弃） */
     private array $afterCommit = [];
 
@@ -304,14 +306,23 @@ class Database
     public function tableExists(string $table): bool
     {
         $tableName = DB_PREFIX . $table;
+        // 只缓存「存在」：后台一页会反复问同一张表（实测 50+ 次）。表不会在请求中途消失，
+        // 而「不存在」可能被同一请求里的迁移补建，所以不缓存否定结果。
+        if (isset($this->existingTables[$tableName])) {
+            return true;
+        }
 
         if ($this->driver === 'sqlite') {
             $sql = "SELECT name FROM sqlite_master WHERE type='table' AND name=?";
-            return (bool) $this->fetchOne($sql, [$tableName]);
+            $exists = (bool) $this->fetchOne($sql, [$tableName]);
+        } else {
+            $sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
+            $exists = (bool) $this->fetchOne($sql, [DB_NAME, $tableName]);
         }
-
-        $sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
-        return (bool) $this->fetchOne($sql, [DB_NAME, $tableName]);
+        if ($exists) {
+            $this->existingTables[$tableName] = true;
+        }
+        return $exists;
     }
 
     /**

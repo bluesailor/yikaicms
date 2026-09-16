@@ -1163,6 +1163,31 @@ function pendingMigrationsCount(): int
 }
 
 /**
+ * 侧栏「待执行迁移」角标用的计数：「已全部执行」的结论按迁移文件指纹缓存。
+ *
+ * 全量探测要逐个迁移查库结构（一页后台实测约 90 条 information_schema 查询），
+ * 结构同步后结论几乎不变。指纹 = 版本号 + 迁移文件名与修改时间：升级带来新迁移或改动迁移时
+ * 立即重新探测。「已全部执行」缓存一小时（兼顾数据库被还原这类少见情况）；有待执行迁移时
+ * 只缓存一分钟——迁移有多个执行入口，不逐个清缓存，执行后角标最多一分钟内消失。
+ * 升级页仍直接用 pendingMigrationsCount() 做实时判定。
+ */
+function sidebarPendingMigrationsCount(): int
+{
+    $signature = [];
+    foreach (glob(ROOT_PATH . '/migrations/*.php') ?: [] as $file) {
+        $signature[] = basename($file) . ':' . (int) @filemtime($file);
+    }
+    $fingerprint = hash('sha256', (defined('CMS_VERSION') ? CMS_VERSION : '') . '|' . implode(',', $signature));
+    $cached = cacheGet('sidebar_pending_migrations');
+    if (is_array($cached) && ($cached['fingerprint'] ?? null) === $fingerprint && is_int($cached['count'] ?? null)) {
+        return $cached['count'];
+    }
+    $count = pendingMigrationsCount();
+    cacheSet('sidebar_pending_migrations', ['fingerprint' => $fingerprint, 'count' => $count], $count === 0 ? 3600 : 60);
+    return $count;
+}
+
+/**
  * 栏目列表显示元素配置（list_options 列，JSON 数组存勾选显示的元素键）。
  * 返回 null = 未配置/列不存在 → 全部显示（向后兼容）。
  * 元素键：cover / summary / author / date / views / channel
