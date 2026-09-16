@@ -34,6 +34,7 @@ require_once __DIR__ . '/BloxDesignSystem.php';
 require_once __DIR__ . '/BloxDesignTheme.php';
 require_once __DIR__ . '/BloxDesignDependencies.php';
 require_once __DIR__ . '/HomeBloxBlockSchema.php';
+require_once __DIR__ . '/ProductCatalogLayout.php';   // 产品目录排版设置解析（product-catalog 元素与渲染 partial 共用）
 
 foreach (glob(__DIR__ . '/elements/*.php') ?: [] as $__elFile) {
     require_once $__elFile;

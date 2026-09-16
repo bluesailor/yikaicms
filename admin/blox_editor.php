@@ -796,6 +796,7 @@ foreach ($registryMeta as $type => $m) {
         'missing' => $m['missing'],
         'plugin' => $m['plugin'],
         'treeLabelField' => $m['treeLabelField'],
+        'regions'  => $m['regions'] ?? [],
         'deprecated' => $m['deprecated'],
     ];
 }
@@ -1200,6 +1201,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                 JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT
             ); ?>,
             selectedSi: -1,
+            // 复合元素区域选择（如 product-catalog 的 工具栏/分类/列表/分页）。
+            // 纯工作区状态：不进 documentData/历史/dirty，旧文档不因此产生变更。
+            selectedRegion: "",
+            // 结构树里复合元素区域分组的收起状态（按元素 id）；纯工作区状态，不进文档
+            regionCollapsed: {},
             paletteTapMode: false,
             previewDevice: "desktop",
             // R2B：数值预览宽度（0=自动）。纯工作区状态：不进 documentData/历史/dirty，
@@ -2556,10 +2562,49 @@ $canManageBloxDesign = hasPermission('blox_global');
                     label: type, icon: "box", controls: [], container: false,
                     paletteVisible: false, allowedChildren: [], childRules: [],
                     genericChild: false, supportsBoxStyles: false, scripts: [], styles: [],
-                    missing: true, plugin: null, deprecated: false
+                    regions: [], missing: true, plugin: null, deprecated: false
                 };
             },
             elIcon(type) { return this.elSchema(type).icon || "box"; },
+            elRegions(type) {
+                var regions = this.elSchema(type).regions;
+                return Array.isArray(regions) ? regions : [];
+            },
+            regionGroupOpen(el) {
+                return !(el && el.id && this.regionCollapsed[el.id] === true);
+            },
+            toggleRegionGroup(el) {
+                if (!el || !el.id) return;
+                this.regionCollapsed[el.id] = !this.regionCollapsed[el.id];
+            },
+
+            /**
+             * 当前选中元素 + 选中区域 → 只显示的控件 key 列表；未选区域返回 null（显示全部）。
+             * 区域 key 由元素 schema 的 regions() 声明，编辑器只做过滤，不写文档。
+             */
+            selectedRegionKeys() {
+                if (!this.selEl || !this.selectedRegion) return null;
+                var region = this.elRegions(this.selEl.type).find(function (r) {
+                    return r && r.key === this.selectedRegion;
+                }, this);
+                return region && Array.isArray(region.keys) ? region.keys : null;
+            },
+
+            selectElementRegion(si, ci, ei, key) {
+                var section = this.sections[si];
+                var column = section && section.columns ? section.columns[ci] : null;
+                var el = column && column.elements ? column.elements[ei] : null;
+                if (!el || !this.elRegions(el.type).some(function (r) { return r && r.key === key; })) return;
+                if (!(this.selectedSi === si && this.selectedCi === ci && this.selectedEi === ei)) {
+                    this.selectElement(si, ci, ei, false);
+                }
+                this.selectedRegion = key;
+                this.ctrlQuery = "";
+                this.modifiedOnly = false;
+                this.panelTab = "content";
+                this.openMobileSettings();
+                this.highlightCanvasSelection(true);
+            },
 
             isSelectedContainerEl() {
                 return !!(this.selEl && ["container", "div"].indexOf(this.selEl.type) !== -1);
@@ -3357,6 +3402,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.selectedCi = ci;
                 this.selectedEi = ei;
                 this.selectedSubEi = -1;
+                this.selectedRegion = "";
                 this.selectedSectionField = "";
                 this.selectedHomeField = "";
                 this.selectedHomeColumn = "";
@@ -3579,8 +3625,16 @@ $canManageBloxDesign = hasPermission('blox_global');
             styleCandidates() {
                 if (!this.selEl || this.panelTab === "condition") return [];
                 var self = this;
+                // 复合元素区域：选中区域时只显示该区域声明的控件（跨内容/样式页签，避免漏掉样式页签的列数/图片比例）
+                var regionKeys = this.selectedRegionKeys();
                 var controls = (this.elSchema(this.selEl.type).controls || []).filter(function (c) {
                     if (c.editor_hidden) return false;
+                    if (regionKeys) {
+                        if (regionKeys.indexOf(c.key) === -1) return false;
+                        if (c.loop_only && !self.isLoopTemplateChild()) return false;
+                        if (c.outside_loop_only && self.isLoopTemplateChild()) return false;
+                        return self.controlRequirementMet(c);
+                    }
                     if (self.panelTab === 'professional' ? !c.advanced : !!c.advanced) return false;
                     // 页签归属：控件可在 schema 里显式标 tab（如容器的布局控件全在样式页）；
                     // 未标注的按类型推断——color 归样式，其余归内容
@@ -3597,7 +3651,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 });
                 // TASK-003 R02/R03：通用设置不是 schema 控件，但常规分组必须可达（无搜索时始终在列）。
                 // 只在样式页签插入占位项：它是分组与匹配用的标记，不是控件，绝不进内容页签。
-                if (this.panelTab === "style") {
+                if (this.panelTab === "style" && !regionKeys) {
                     controls.unshift(window.BloxStyleGroups.commonMarker(this.styleCommonSearchText));
                 }
                 return window.BloxStyleGroups.visibleCandidates(controls, {
@@ -6656,6 +6710,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!frame || !frame.contentWindow) return;
                 var path = this.selectedPath();
                 var message = { ykScroll: scrollToSelection === true };
+                // 复合元素区域选择：画布滚动/闪烁到对应区域（与结构树区域节点对应）
+                var regionElementId = this.selectedElementId();
+                if (this.selectedRegion && regionElementId) {
+                    message.ykHighlightRegion = { id: regionElementId, region: this.selectedRegion };
+                }
                 if (this.selectedHomeField && path
                     && this.homeFieldAllowed(this.selTopEl, this.selectedHomeField)) {
                     message.ykHighlightHomeField = { path: path, field: this.selectedHomeField };
