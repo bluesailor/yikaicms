@@ -314,7 +314,31 @@ public static function isActive(): bool
      */
     public static function editorSections(array $sections): array
     {
-        return HomeAboutLocalization::forEditor(HomeFaqContent::forEditor($sections, siteLang()));
+        $sections = HomeAboutLocalization::forEditor(HomeFaqContent::forEditor($sections, siteLang()));
+        // 轮播文字来自该语言的轮播图记录（见 HomeBloxRenderContext）
+        if (function_exists('getBanners')) {
+            $sections = HomeBannerItemElement::forEditor(
+                $sections, getBanners('home', 5), siteLang(), siteLang() === (string) config('site_lang', 'zh-CN')
+            );
+        }
+        return $sections;
+    }
+
+    private static function markBannerEditorChanges(string $json): string
+    {
+        if (!str_contains($json, HomeBannerItemElement::EDIT_KEY)) {
+            return $json;
+        }
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) {
+            return $json;
+        }
+        if (BloxDocumentPipeline::isList($decoded)) {
+            $decoded = HomeBannerItemElement::markEditorChanges($decoded);
+        } elseif (is_array($decoded['sections'] ?? null)) {
+            $decoded['sections'] = HomeBannerItemElement::markEditorChanges($decoded['sections']);
+        }
+        return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: $json;
     }
 
     /** @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
@@ -322,8 +346,9 @@ public static function isActive(): bool
     {
         // 按语言编辑（见 editorSections）：改动写回对应语言，共享文档保留原文。
         $blocksJson = HomeAboutLocalization::markEditorChanges(HomeFaqContent::fromEditorJson($blocksJson));
+        $blocksJson = self::markBannerEditorChanges($blocksJson);
         $processed = BloxDocumentPipeline::process($blocksJson, 'home', trustedJson: $trustedJson);
-        $processed['sections'] = HomeAboutLocalization::fromEditor($processed['sections']);
+        $processed['sections'] = HomeBannerItemElement::fromEditor(HomeAboutLocalization::fromEditor($processed['sections']));
 
         return [
             'schema' => $processed['schema'],

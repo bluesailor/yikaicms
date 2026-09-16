@@ -337,6 +337,48 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertSame('Learn more', $items[0]['btn1_text']);
     }
 
+    public function testEditorShowsLanguageBannersAndSavesEditsAsThatLanguageOnly(): void
+    {
+        $host = static fn (array $children, string $mode = 'custom'): array => [[
+            'id' => 's', 'columns' => [['id' => 'c', 'elements' => [[
+                'id' => 'e', 'type' => 'home-block',
+                'data' => ['block_type' => 'banner', 'items_mode' => $mode, 'children' => $children],
+            ]]]],
+        ]];
+        $children = static fn (array $sections): array => $sections[0]['columns'][0]['elements'][0]['data']['children'];
+        $shared = $host([
+            ['id' => 'a', 'type' => 'home-banner-item', 'data' => ['title' => '中文一', 'btn1_text' => '了解', 'image' => '/one.jpg', 'translation_group_id' => 10]],
+        ]);
+        $english = [['id' => 101, 'translation_group_id' => 10, 'lang' => 'en', 'title' => 'First', 'btn1_text' => 'More']];
+
+        $view = HomeBannerItemElement::forEditor($shared, $english, 'en');
+        $this->assertSame('First', $children($view)[0]['data']['title']);
+        $this->assertSame('More', $children($view)[0]['data']['btn1_text']);
+        $this->assertSame($shared, HomeBannerItemElement::fromEditor(HomeBannerItemElement::markEditorChanges($view)));
+
+        $view[0]['columns'][0]['elements'][0]['data']['children'][0]['data']['title'] = 'Edited';
+        $saved = HomeBannerItemElement::fromEditor(HomeBannerItemElement::markEditorChanges($view));
+        $data = $children($saved)[0]['data'];
+        $this->assertSame('中文一', $data['title']);
+        $this->assertSame('了解', $data['btn1_text']);
+        $this->assertSame(['en' => ['title' => 'Edited']], $data[HomeBannerItemElement::I18N_KEY]);
+        $this->assertArrayNotHasKey(HomeBannerItemElement::EDIT_KEY, $data);
+
+        $items = HomeBannerItemElement::applyLocalizedContent(HomeBannerItemElement::normalizeChildren($children($saved)), $english, 'en');
+        $this->assertSame(['Edited', 'More', '/one.jpg'], [$items[0]['title'], $items[0]['btn1_text'], $items[0]['image']]);
+        $this->assertArrayNotHasKey(HomeBannerItemElement::I18N_KEY, $items[0]);
+        $this->assertSame('Edited', $children(HomeBannerItemElement::forEditor($saved, $english, 'en'))[0]['data']['title']);
+        // 编辑中尚未保存：画布显示正在编辑的值
+        $live = HomeBannerItemElement::applyLocalizedContent(HomeBannerItemElement::normalizeChildren($children($view)), $english, 'en');
+        $this->assertSame('Edited', $live[0]['title']);
+
+        // 默认语言：自定义轮播就是共享内容本身；继承模式显示该语言记录但不加标记
+        $this->assertSame($shared, HomeBannerItemElement::forEditor($shared, $english, 'en', true));
+        $inherit = HomeBannerItemElement::forEditor($host($children($shared), 'inherit'), $english, 'en', true);
+        $this->assertSame('First', $children($inherit)[0]['data']['title']);
+        $this->assertArrayNotHasKey(HomeBannerItemElement::EDIT_KEY, $children($inherit)[0]['data']);
+    }
+
     public function testLocalizedContentFallsBackToDocumentOrderForLegacyChildren(): void
     {
         $customItems = [

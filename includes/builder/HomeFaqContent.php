@@ -167,7 +167,7 @@ final class HomeFaqContent
         if (!is_array($decoded)) {
             return $json;
         }
-        $isList = array_is_list($decoded);
+        $isList = BloxDocumentPipeline::isList($decoded);
         $sections = $isList ? $decoded : ($decoded['sections'] ?? null);
         if (!is_array($sections)) {
             return $json;
