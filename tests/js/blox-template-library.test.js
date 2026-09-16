@@ -295,3 +295,149 @@ test("metadata normalization gives old templates a bounded general fallback", fu
     assert.equal(dynamic.data_source, "dynamic");
     assert.deepEqual(dynamic.states, ["empty", "error", "loading"]);
 });
+
+test("canvas prepare posts prepare_insert and surfaces the server review id", async function () {
+    const originalFetch = global.fetch;
+    const bodies = [];
+    global.fetch = function (url, options) {
+        bodies.push({ url, body: options && options.body });
+        return Promise.resolve({
+            ok: true,
+            status: 200,
+            text: function () {
+                return Promise.resolve(JSON.stringify({
+                    code: 0,
+                    data: {
+                        template: { key: "remote:pricing", name: "Pricing", requirements: { design_tokens: ["remote"] } },
+                        review_id: "abc123",
+                        design_diagnostics: { missing_tokens: ["remote"] },
+                    },
+                }));
+            },
+        });
+    };
+    try {
+        const data = await global.BloxTemplateLibrary.prepareInsert(
+            "/admin/blox_template_api.php", "page", "remote:pricing", "failed", "csrf-token"
+        );
+        assert.equal(bodies.length, 1);
+        assert.equal(String(bodies[0].body.get("action")), "prepare_insert");
+        assert.equal(String(bodies[0].body.get("key")), "remote:pricing");
+        assert.equal(String(bodies[0].body.get("_token")), "csrf-token");
+        assert.equal(data.review_id, "abc123");
+        assert.deepEqual(data.design_diagnostics.missing_tokens, ["remote"]);
+        assert.deepEqual(data.template.requirements.design_tokens, ["remote"]);
+    } finally {
+        global.fetch = originalFetch;
+    }
+});
+
+test("canvas confirm posts structured mappings and returns regenerated sections", async function () {
+    const originalFetch = global.fetch;
+    const bodies = [];
+    global.fetch = function (url, options) {
+        bodies.push({ url, body: options && options.body });
+        return Promise.resolve({
+            ok: true,
+            status: 200,
+            text: function () {
+                return Promise.resolve(JSON.stringify({
+                    code: 0,
+                    data: { template: { key: "remote:pricing", type: "section", sections: [{ type: "section" }] } },
+                }));
+            },
+        });
+    };
+    try {
+        const template = await global.BloxTemplateLibrary.confirmInsert(
+            "/admin/blox_template_api.php", "page", "remote:pricing", "abc123",
+            { style_mode: "detach", tokens: { remote: "primary", ghost: "" }, styles: {} },
+            "failed", "csrf-token"
+        );
+        assert.equal(bodies.length, 1);
+        const body = bodies[0].body;
+        assert.equal(String(body.get("action")), "confirm_insert");
+        assert.equal(String(body.get("style_mode")), "detach");
+        // 空映射不提交；结构化键按 design_tokens[from]=to 序列化，服务端读回数组。
+        assert.equal(String(body.get("design_tokens[remote]")), "primary");
+        assert.equal(body.get("design_tokens[ghost]"), null);
+        assert.equal(template.sections.length, 1);
+    } finally {
+        global.fetch = originalFetch;
+    }
+});
+
+test("canvas confirm rejects responses without sections", async function () {
+    const originalFetch = global.fetch;
+    global.fetch = function () {
+        return Promise.resolve({
+            ok: true,
+            status: 200,
+            text: function () { return Promise.resolve(JSON.stringify({ code: 0, data: { template: {} } })); },
+        });
+    };
+    try {
+        await assert.rejects(
+            global.BloxTemplateLibrary.confirmInsert(
+                "/admin/blox_template_api.php", "page", "remote:pricing", "abc123", {}, "failed", "csrf-token"
+            ),
+            /failed/
+        );
+    } finally {
+        global.fetch = originalFetch;
+    }
+});
+
+test("premium section refusals get a specific label instead of a generic licence prompt", function () {
+    const text = {
+        lockedLicense: "Licence required",
+        lockedExpired: "Renew",
+        lockedModule: "Module missing",
+        lockedDomain: "Domain mismatch",
+        lockedDisabled: "Disabled",
+    };
+    const locked = (reason) => ({ key: "remote:hero-split", source: "remote", locked: true, locked_reason: reason });
+    assert.equal(global.BloxTemplateLibrary.lockLabel(locked("license_expired"), text), "Renew");
+    assert.equal(global.BloxTemplateLibrary.lockLabel(locked("domain_mismatch"), text), "Domain mismatch");
+    assert.equal(global.BloxTemplateLibrary.lockLabel(locked("disabled"), text), "Disabled");
+    assert.equal(global.BloxTemplateLibrary.lockLabel(locked("module_missing"), text), "Module missing");
+    assert.equal(global.BloxTemplateLibrary.lockLabel(locked("license_required"), text), "Licence required");
+    // 未锁定的条目不显示任何锁定文案
+    assert.equal(global.BloxTemplateLibrary.lockLabel({ key: "remote:hero-split", locked: false, locked_reason: "" }, text), "");
+});
+
+test("premium entry shows one notice that matches the entitlement, and none for entitled users", function () {
+    const lib = global.BloxTemplateLibrary;
+    const paid = (reason, locked = true) => ({ key: "remote:" + reason, source: "remote", paid: true, locked, locked_reason: locked ? reason : "" });
+
+    // 有权益：零提示、零锁
+    assert.equal(lib.premiumNotice([paid("", false), paid("", false)], "", true), null);
+    // 无授权码 → 查看专业授权；已填授权码但未生效 → 去后台授权
+    assert.deepEqual({ ...lib.premiumNotice([paid("license_required"), paid("license_required")], "", false) }, { state: "purchase" });
+    assert.deepEqual({ ...lib.premiumNotice([paid("license_required")], "", true) }, { state: "activate" });
+    assert.deepEqual({ ...lib.premiumNotice([paid("license_expired")], "", true) }, { state: "renew" });
+    assert.deepEqual({ ...lib.premiumNotice([paid("domain_mismatch")], "", true) }, { state: "domain" });
+    assert.deepEqual({ ...lib.premiumNotice([paid("disabled")], "", true) }, { state: "disabled" });
+    // 网络/服务失败优先提示重试
+    assert.deepEqual({ ...lib.premiumNotice([paid("license_required")], "offline", false) }, { state: "error" });
+    // 原因不一致、或部分可用 → 逐卡说明
+    assert.deepEqual({ ...lib.premiumNotice([paid("license_expired"), paid("rate_limited")], "", true) }, { state: "mixed" });
+    assert.deepEqual({ ...lib.premiumNotice([paid("rate_limited"), paid("", false)], "", true) }, { state: "mixed" });
+    // 社区免费条目不参与判定
+    assert.equal(lib.premiumNotice([{ key: "remote:c", source: "remote", paid: false, locked: false }], "", false), null);
+});
+
+test("cards do not repeat a lock the notice already explains, and premium badges only mark mixed lists", function () {
+    const lib = global.BloxTemplateLibrary;
+    const locked = { key: "remote:a", source: "remote", paid: true, locked: true, locked_reason: "license_expired" };
+    assert.equal(lib.showCardLock(locked, { state: "renew" }), false);
+    assert.equal(lib.showCardLock(locked, { state: "mixed" }), true);
+    assert.equal(lib.showCardLock(locked, null), true);
+    assert.equal(lib.showCardLock({ key: "remote:b", locked: false }, null), false);
+
+    const premiumOnly = [locked, { ...locked, key: "remote:b" }];
+    assert.equal(lib.showPremiumBadge(locked, premiumOnly), false, "全是精品时不挂徽标");
+    const mixed = [locked, { key: "remote:free", source: "remote", paid: false }];
+    assert.equal(lib.showPremiumBadge(locked, mixed), true, "与免费混排时才用徽标区分");
+    assert.equal(lib.showPremiumBadge(mixed[1], mixed), false);
+});

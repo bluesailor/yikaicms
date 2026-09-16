@@ -52,6 +52,7 @@ final class BloxRolePermissionContractTest extends TestCase
         self::assertStringContainsString("requirePermission('blox_home');", $this->source('admin/blox_home_api.php'));
         self::assertStringContainsString("requirePermission('blox_edit');", $this->source('admin/blox_page_api.php'));
         self::assertStringContainsString("requirePermission('blox_edit');", $this->source('admin/blox_contact_api.php'));
+        self::assertStringContainsString("requirePermission('*');", $this->source('admin/blox_site_api.php'));
         self::assertStringContainsString("requirePermission('blox_global');", $this->source('admin/blox_design_api.php'));
         self::assertStringContainsString("requirePermission('blox_global');", $this->source('admin/blox_templates.php'));
         self::assertStringContainsString("requirePermission('blox_global');", $this->source('admin/blox_cache_api.php'));

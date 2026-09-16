@@ -30,7 +30,10 @@ final class BloxSectionMetadata
         return self::PURPOSES;
     }
 
-    /** @return list<string> */
+    /**
+     * @return list<string>
+     * @api Vocabulary for template authoring clients.
+     */
     public static function variants(): array
     {
         return self::VARIANTS;

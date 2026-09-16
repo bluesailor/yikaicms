@@ -134,3 +134,16 @@ test('rejected insertions do not record a recent element', () => {
     assert.deepEqual(rejected.docSettings, {});
     assert.deepEqual(rejected.recent, []);
 });
+
+test("页面外框草稿的初始形状完整，不会在对话框打开前读到 undefined 属性", () => {
+    // 2026-09-16 回归：初始只给 {}，Alpine 在初始化时求值对话框里的
+    // pageFrameDraft.dot_nav.position / .mobile 绑定，控制台刷 Expression Error。
+    const app = settings('/company.html');
+    assert.equal(typeof app.pageFrameDraft, "object");
+    assert.equal(app.pageFrameDraft.page_header_hidden, false);
+    assert.equal(app.pageFrameDraft.page_footer_hidden, false);
+    // 逐字段断言：mixin 来自 vm 上下文，跨 realm 的对象原型不同，deepEqual 会因此失败
+    assert.equal(app.pageFrameDraft.dot_nav.enabled, false);
+    assert.equal(app.pageFrameDraft.dot_nav.position, "right");
+    assert.equal(app.pageFrameDraft.dot_nav.mobile, false);
+});

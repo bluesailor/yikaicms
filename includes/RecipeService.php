@@ -7,7 +7,7 @@
  *   admin 一键应用即可拉起整套业务骨架（博客站 / 商业站 / FAQ 站等）。
  *
  * 幂等性：
- *   - channels 按 slug 唯一索引：已存在则跳过（默认）或更新（recipe.update_existing=true）
+ *   - channels 按语言/父级/已知别名与同名判重：默认复用，冲突回滚，不自动合并
  *   - extfields 按 (owner_type, field_key) 唯一索引：upsert
  *   - contents 按 (channel + slug) 唯一：已存在则跳过（避免重复种子内容）
  *   - settings 用 settingModel()->set() upsert
@@ -121,50 +121,63 @@ class RecipeService
             'errors'             => [],
         ];
 
-        db()->beginTransaction();
+        // Serialize preset applications before reading channel identities (including aliases).
+        $lock = @fopen(ROOT_PATH . '/storage/.recipe-apply.lock', 'c');
+        if ($lock === false) throw new \RuntimeException(__('chbatch_lock_failed'));
+        if (!flock($lock, LOCK_EX | LOCK_NB)) {
+            fclose($lock);
+            throw new \RuntimeException(__('chbatch_busy'));
+        }
+        $transactionStarted = false;
         try {
+            db()->beginTransaction();
+            $transactionStarted = true;
             // ── channels ──────────────────────────────────────
-            // 先建顶级（parent_slug 为空），再按 parent_slug 解析建子级。
-            // 为支持任意层级，做两遍：第一遍占位（拿到 id 映射），第二遍写 parent_id。
+            // Resolve parents first so matching never moves an existing channel.
             $slugToId = [];
-
-            foreach ($recipe['channels'] as $c) {
-                $cSlug = (string)($c['slug'] ?? '');
-                if ($cSlug === '') {
-                    $report['errors'][] = '跳过无 slug 的 channel';
-                    continue;
-                }
-                $existing = channelModel()->findBySlug($cSlug);
-                if ($existing) {
-                    $slugToId[$cSlug] = (int)$existing['id'];
-                    if ($updateExisting) {
-                        $data = $this->buildChannelData($c, $lang, $now, false);
-                        db()->execute(
-                            "UPDATE " . DB_PREFIX . "channels SET name = ?, seo_title = ?, seo_description = ?, seo_keywords = ?, is_nav = ?, sort_order = ?, updated_at = ? WHERE id = ?",
-                            [$data['name'], $data['seo_title'], $data['seo_description'], $data['seo_keywords'], $data['is_nav'], $data['sort_order'], $now, (int)$existing['id']]
-                        );
-                        $report['channels_updated']++;
-                    } else {
-                        $report['channels_skipped']++;
+            /** @var list<mixed> $pending manifest 数组来自 JSON，条目形状在循环里逐项校验 */
+            $pending = array_values($recipe['channels']);
+            while ($pending !== []) {
+                $progress = false;
+                foreach ($pending as $index => $c) {
+                    $cSlug = (string)($c['slug'] ?? '');
+                    if ($cSlug === '') {
+                        $report['errors'][] = '跳过无 slug 的 channel';
+                        unset($pending[$index]);
+                        $progress = true;
+                        continue;
                     }
-                    continue;
+                    $parentSlug = (string) ($c['parent_slug'] ?? '');
+                    if ($parentSlug !== '' && !isset($slugToId[$parentSlug])) continue;
+                    $parentId = $parentSlug === '' ? 0 : $slugToId[$parentSlug];
+                    $match = channelModel()->matchPreset($c, $lang, $parentId);
+                    if ($match['status'] === 'conflict') {
+                        throw new \RuntimeException(__('chbatch_conflict', ['name' => (string) ($c['name'] ?? $cSlug)]));
+                    }
+                    unset($pending[$index]);
+                    $progress = true;
+                    $existing = $match['channel'];
+                    if ($existing) {
+                        $slugToId[$cSlug] = (int)$existing['id'];
+                        if ($updateExisting) {
+                            $data = $this->buildChannelData($c, $lang, $now, false);
+                            db()->execute(
+                                "UPDATE " . DB_PREFIX . "channels SET name = ?, seo_title = ?, seo_description = ?, seo_keywords = ?, is_nav = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+                                [$data['name'], $data['seo_title'], $data['seo_description'], $data['seo_keywords'], $data['is_nav'], $data['sort_order'], $now, (int)$existing['id']]
+                            );
+                            $report['channels_updated']++;
+                        } else {
+                            $report['channels_skipped']++;
+                        }
+                        continue;
+                    }
+                    $data = $this->buildChannelData($c, $lang, $now, true);
+                    $data['parent_id'] = $parentId;
+                    $newId = (int)channelModel()->create($data);
+                    $slugToId[$cSlug] = $newId;
+                    $report['channels_created']++;
                 }
-                $data = $this->buildChannelData($c, $lang, $now, true);
-                $newId = (int)channelModel()->create($data);
-                $slugToId[$cSlug] = $newId;
-                $report['channels_created']++;
-            }
-
-            // 第二遍：写 parent_id
-            foreach ($recipe['channels'] as $c) {
-                $cSlug = (string)($c['slug'] ?? '');
-                $parentSlug = (string)($c['parent_slug'] ?? '');
-                if ($cSlug === '' || $parentSlug === '') continue;
-                if (!isset($slugToId[$cSlug]) || !isset($slugToId[$parentSlug])) continue;
-                db()->execute(
-                    "UPDATE " . DB_PREFIX . "channels SET parent_id = ? WHERE id = ?",
-                    [$slugToId[$parentSlug], $slugToId[$cSlug]]
-                );
+                if (!$progress) throw new \RuntimeException(__('chbatch_parent_conflict'));
             }
 
             // ── extfields ─────────────────────────────────────
@@ -281,9 +294,13 @@ class RecipeService
             settingModel()->set('recipe_applied', json_encode($history, JSON_UNESCAPED_UNICODE));
 
             db()->commit();
+            $transactionStarted = false;
         } catch (\Throwable $e) {
-            db()->rollback();
+            if ($transactionStarted) db()->rollback();
             throw $e;
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
         }
 
         return $report;
@@ -308,7 +325,7 @@ class RecipeService
     {
         $data = [
             'lang'            => $lang,
-            'parent_id'       => 0, // 第二遍再写
+            'parent_id'       => 0, // Resolved before insertion.
             'name'            => (string)($c['name'] ?? $c['slug']),
             'slug'            => (string)$c['slug'],
             'type'            => (string)($c['type'] ?? 'list'),

@@ -23,6 +23,7 @@ if (!defined('ROOT_PATH')) exit('Access Denied');
 final class HtmlCache
 {
     private static string $currentKey = '';
+    private static string $currentGeneration = '';
     private static bool $buffering = false;
     private static int $ttl = 300;
     private static ?string $dirOverride = null;
@@ -59,13 +60,25 @@ final class HtmlCache
         $ttlConfig = (int)config('html_cache_ttl', 0);
         self::$ttl = $ttlConfig > 0 ? $ttlConfig : $ttl;
 
-        self::$currentKey = self::buildKey();
+        try {
+            self::$currentKey = self::buildKey();
+            if (self::$currentGeneration !== settingModel()->htmlCacheGeneration()) return;
+        } catch (Throwable $e) {
+            // An unknown generation must not be treated as permission to serve an old cache.
+            error_log('[HtmlCache] Cannot read cache generation: ' . $e->getMessage());
+            return;
+        }
         $file = self::pathForKey(self::$currentKey);
 
-        if (is_file($file) && (time() - filemtime($file)) < self::$ttl) {
-            header('X-Cache: HIT');
-            readfile($file);
-            exit;
+        $modified = is_file($file) ? @filemtime($file) : false;
+        if ($modified !== false && (time() - $modified) < self::$ttl) {
+            $cached = @file_get_contents($file);
+            // Missing, unreadable or empty cache files must not replace a live response.
+            if ($cached !== false && $cached !== '') {
+                header('X-Cache: HIT');
+                echo $cached;
+                exit;
+            }
         }
 
         header('X-Cache: MISS');
@@ -104,12 +117,30 @@ final class HtmlCache
             return;
         }
 
+        try {
+            if (self::$currentGeneration !== settingModel()->htmlCacheGeneration()) return;
+        } catch (Throwable $e) {
+            error_log('[HtmlCache] Cannot verify cache generation: ' . $e->getMessage());
+            return;
+        }
+
         $dir = self::dir();
         if (!is_dir($dir)) {
             @mkdir($dir, 0755, true);
         }
+        if (!is_dir($dir)) return;
         $file = self::pathForKey(self::$currentKey);
-        @file_put_contents($file, (string)$html, LOCK_EX);
+        // Readers see the previous complete response or the new one, never a partial write.
+        $temporary = @tempnam($dir, '.html-');
+        if ($temporary === false) return;
+        try {
+            if (realpath(dirname($temporary)) !== realpath($dir)) return;
+            if (@file_put_contents($temporary, $html, LOCK_EX) === strlen($html)) {
+                @rename($temporary, $file);
+            }
+        } finally {
+            if (is_file($temporary)) @unlink($temporary);
+        }
 
         // 顺手小批量清理过期文件（1% 概率），避免专设 cron 也能让目录收敛
         if (mt_rand(1, 100) === 1) {
@@ -149,6 +180,12 @@ final class HtmlCache
      */
     public static function invalidate(?string $prefix = null): int
     {
+        // Rotate before cleanup, even with no directory: an in-flight old render may write later.
+        // Prefix limits file cleanup only; namespace invalidation is deliberately site-wide.
+        // Settings do not yet exist during installation. Normal runtime uses the persistent stamp.
+        if (function_exists('settingModel') && db()->tableExists('settings')) {
+            settingModel()->rotateHtmlCacheGeneration();
+        }
         $dir = self::dir();
         if (!is_dir($dir)) return 0;
         $count = 0;
@@ -244,7 +281,9 @@ final class HtmlCache
         }
         $lang = defined('SITE_LANG') ? SITE_LANG : (string)config('site_lang', 'zh-CN');
         $isMobile = self::isMobile() ? 'm' : 'd';
-        return md5(self::releaseNamespace() . '|' . $uri . '|' . $lang . '|' . $isMobile);
+        // Match the settings snapshot used by this request, not a newer concurrent publication.
+        self::$currentGeneration = (string) settingModel()->get('html_cache_generation', '');
+        return md5(self::releaseNamespace() . '|' . self::$currentGeneration . '|' . $uri . '|' . $lang . '|' . $isMobile);
     }
 
     /** @return array<string,string>|null null 表示参数值不应进入缓存 */

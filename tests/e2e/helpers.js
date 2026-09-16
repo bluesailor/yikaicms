@@ -26,7 +26,12 @@ function observeUnsafeWrites(page) {
     }
     if (url.pathname === '/admin/blox_template_api.php') {
       const action = body.get('action') || '';
-      if (action !== 'save_draft' && action !== 'get') entries.push('template:' + action);
+      // save_draft 是模板用例的预期写入；get 是读。
+      // prepare_insert / confirm_insert 是画布插入的两段式检查（2026-09 新增）：
+      // 前者登记一条 TTL 1800s 的临时评审记录，后者认领它并返回 sections，
+      // 都不改任何已发布输出或前台激活态，不属于本观察器要拦的危险写。
+      const safe = ['save_draft', 'get', 'prepare_insert', 'confirm_insert'];
+      if (!safe.includes(action)) entries.push('template:' + action);
     }
   });
   return entries;

@@ -48,6 +48,8 @@
                 <file name="admin/page_edit.php" />
                 <file name="admin/page_edit_advance.php" />
                 <file name="admin/site_health.php" />
+                <!-- Variables consumed by ignored editor partials through require scope. -->
+                <file name="admin/blox_design.php" />
                 <file name="plugins/seo/admin.php" />
                 <!-- 首页控制器：变量供 require 的主题布局/版块模板使用 -->
                 <file name="index.php" />
@@ -75,6 +77,7 @@
                 <file name="admin/nav_menu.php" />
                 <!-- v1.18.0 新增/改写的独立入口（Blox 设计系统/栏目 API 等） -->
                 <file name="admin/blox_contact_api.php" />
+                <file name="admin/blox_site_api.php" />
                 <file name="admin/blox_design.php" />
                 <file name="admin/blox_design_api.php" />
                 <file name="admin/blox_page_api.php" />

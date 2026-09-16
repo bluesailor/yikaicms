@@ -242,7 +242,7 @@ test('real image uploads replace without distortion and button alignment survive
   await visit(null, 'left', 'HIT');
   await openPageEditor(page, fixtures.blox_page);
   await addTemporaryHeading(page);
-  await performPagePreviewUpdate(page, () => page.locator('[data-control-key="text"] input').first().fill(marker));
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-heading-text').fill(marker));
   await add('image');
   await upload('wide');
   await performPagePreviewUpdate(page, async () => {
@@ -309,7 +309,9 @@ test('real image uploads replace without distortion and button alignment survive
   await media.locator('input[data-dialog-initial]').press('Enter');
   const result = await (await listing).json();
   expect(result.code).toBe(0);
-  expect(result.data.items).toContainEqual(expect.objectContaining({ id: images.wide.id, url: images.wide.url, type: 'image' }));
+  // PDO may return numeric IDs as strings; verify identity across both driver representations.
+  const listedImage = result.data.items.find(item => String(item.id) === String(images.wide.id));
+  expect(listedImage).toEqual(expect.objectContaining({ url: images.wide.url, type: 'image' }));
   const item = page.getByTestId('blox-media-item').filter({ hasText: images.wide.name });
   await expect(item).toHaveCount(1);
   await expect(item.locator('img')).toHaveCSS('object-fit', 'contain');

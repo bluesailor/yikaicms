@@ -66,3 +66,20 @@ test('editing a parent tier updates inherited descendants and preserves explicit
         { d: 'sm', t: 'md' }
     );
 });
+
+// ---- R2B：数值预览宽度钳制（0=自动；320–2560 取整钳制） ----
+test('R2B: clampPreviewWidth clamps to 320-2560 and treats empty/invalid as auto', () => {
+    const clamp = responsive.clampPreviewWidth;
+    assert.equal(clamp(''), 0);
+    assert.equal(clamp(null), 0);
+    assert.equal(clamp('abc'), 0);
+    assert.equal(clamp(0), 0);
+    assert.equal(clamp(-50), 0);
+    assert.equal(clamp('100'), 320);
+    assert.equal(clamp(320), 320);
+    assert.equal(clamp('1024.9'), 1024);
+    assert.equal(clamp(2560), 2560);
+    assert.equal(clamp(99999), 2560);
+    assert.equal(responsive.PREVIEW_WIDTH_MIN, 320);
+    assert.equal(responsive.PREVIEW_WIDTH_MAX, 2560);
+});

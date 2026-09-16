@@ -123,6 +123,48 @@
                 return data.template;
             });
     }
+
+    function postInsertAction(endpoint, action, context, key, reviewId, extra, fallbackMessage, csrf) {
+        var body = new URLSearchParams();
+        body.set("action", action);
+        body.set("context", context);
+        body.set("key", key);
+        if (reviewId) body.set("review_id", reviewId);
+        var options = extra && typeof extra === "object" ? extra : {};
+        if (options.style_mode) body.set("style_mode", options.style_mode);
+        ["tokens", "styles"].forEach(function (kind) {
+            var map = options[kind] && typeof options[kind] === "object" ? options[kind] : {};
+            Object.keys(map).forEach(function (from) {
+                var to = map[from];
+                if (to !== "" && to !== null && to !== undefined) {
+                    body.set("design_" + kind + "[" + from + "]", to);
+                }
+            });
+        });
+        body.set("_token", csrf || "");
+        return fetch(endpoint, { method: "POST", body: body, cache: "no-store" })
+            .then(function (response) { return responseData(response, fallbackMessage); });
+    }
+
+    // 画布插入检查：远程/内置来源返回 review_id 与设计诊断；本地/插件 review_id 为空（走直接插入）。
+    function prepareInsert(endpoint, context, key, fallbackMessage, csrf) {
+        return postInsertAction(endpoint, "prepare_insert", context, key, "", null, fallbackMessage, csrf)
+            .then(function (data) {
+                if (!data.template) throw new Error(fallbackMessage);
+                return data;
+            });
+    }
+
+    // 画布插入确认：只提交 review_id 与映射选择，sections 由服务端按映射重新生成。
+    function confirmInsert(endpoint, context, key, reviewId, options, fallbackMessage, csrf) {
+        return postInsertAction(endpoint, "confirm_insert", context, key, reviewId, options, fallbackMessage, csrf)
+            .then(function (data) {
+                if (!data.template || !Array.isArray(data.template.sections)) {
+                    throw new Error(fallbackMessage);
+                }
+                return data.template;
+            });
+    }
     function categoryValue(item) {
         var value = String(item && item.category || "").trim().toLowerCase();
         return value || String(item && item.type || "").trim().toLowerCase();
@@ -246,7 +288,55 @@
         if (!item || !item.locked) return "";
         if (item.locked_reason === "license_expired") return text.lockedExpired;
         if (item.locked_reason === "module_missing") return text.lockedModule;
+        if (item.locked_reason === "domain_mismatch") return text.lockedDomain;
+        if (item.locked_reason === "disabled") return text.lockedDisabled;
         return text.lockedLicense;
+    }
+
+    /**
+     * 精品区块入口的「一条统一说明」。
+     *
+     * 克制原则（ROUND-06 + 区块库任务书 §7）：不给每张卡叠锁、不反复弹购买；有权益的用户看不到任何提示。
+     * 当所有付费条目因**同一个原因**被锁时，只在入口顶部说一次该怎么办，卡片不再重复锁定文案；
+     * 原因不一致（例如个别款限额）时退回逐卡说明。
+     * 已填授权码却仍是 license_required，视为「已购未激活」，引导去后台授权而不是再去购买。
+     *
+     * @return {{state:string}|null} purchase | activate | renew | domain | disabled | module | error | mixed | null
+     */
+    function premiumNotice(items, remoteError, hasLicenseKey) {
+        if (remoteError) return { state: "error" };
+        var paid = (Array.isArray(items) ? items : []).filter(function (item) {
+            return item && item.source === "remote" && !!item.paid;
+        });
+        var locked = paid.filter(function (item) { return !!item.locked; });
+        if (!locked.length) return null;
+        var reasons = [];
+        locked.forEach(function (item) {
+            var reason = String(item.locked_reason || "license_required");
+            if (reasons.indexOf(reason) === -1) reasons.push(reason);
+        });
+        if (reasons.length !== 1 || locked.length !== paid.length) return { state: "mixed" };
+        switch (reasons[0]) {
+            case "license_required": return { state: hasLicenseKey ? "activate" : "purchase" };
+            case "license_expired": return { state: "renew" };
+            case "domain_mismatch": return { state: "domain" };
+            case "disabled": return { state: "disabled" };
+            case "module_missing": return { state: "module" };
+            default: return { state: "mixed" };
+        }
+    }
+
+    /** 统一说明已经讲清楚时，卡片不再重复锁定文案。 */
+    function showCardLock(item, notice) {
+        return !!(item && item.locked) && (!notice || notice.state === "mixed");
+    }
+
+    /** 列表里全是精品时「精品」徽标是噪音；只有精品与免费混排时才用它区分。 */
+    function showPremiumBadge(item, items) {
+        if (!item || !item.paid) return false;
+        return (Array.isArray(items) ? items : []).some(function (other) {
+            return other && other.source === item.source && !other.paid;
+        });
     }
 
     function hasLockedRemote(items) {
@@ -348,6 +438,8 @@
         compareSections: compareSections,
         list: list,
         resolve: resolve,
+        prepareInsert: prepareInsert,
+        confirmInsert: confirmInsert,
         normalizeMetadata: normalizeMetadata,
         recommend: recommend,
         isRecommended: isRecommended,
@@ -365,6 +457,9 @@
         localEditUrl: localEditUrl,
         lockLabel: lockLabel,
         hasLockedRemote: hasLockedRemote,
+        premiumNotice: premiumNotice,
+        showCardLock: showCardLock,
+        showPremiumBadge: showPremiumBadge,
         freshSections: freshSections,
         applyPageSettings: applyPageSettings,
         documentFingerprint: documentFingerprint,

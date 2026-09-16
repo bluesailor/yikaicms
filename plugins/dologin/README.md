@@ -4,7 +4,7 @@ YikaiCMS 原生插件，借鉴 [DoLogin Security](https://cn.wordpress.org/plugi
 
 ## 使用
 
-1. 要求 YikaiCMS v1.20.0 或更高版本、PHP 8.2 或更高版本。不提供 v1.19.9 兼容适配。v1.20.0 发布包须包含配套的 `admin_login_request` 登录钩子、`DoLoginLinkModel` 与 `20260914_dologin_links` 迁移；旧站应先升级 CMS，不能只复制插件目录。
+1. 要求 YikaiCMS v1.20.0 或更高版本、PHP 8.0 或更高版本。不提供 v1.19.9 兼容适配。v1.20.0 发布包须包含配套的 `admin_login_request` 登录钩子、`DoLoginLinkModel` 与 `20260914_dologin_links` 迁移；旧站应先升级 CMS，不能只复制插件目录。
 2. 后台「插件管理」启用「易登录」，打开插件设置，首次点击「初始化易登录」。系统「数据库升级」及 CLI `migrate:run` 也包含同一迁移。
 3. 超级管理员选择账号、有效期（15 分钟、1 小时、1 天、7 天）及备注，生成后立即复制链接。原始链接只在该响应中显示，不能从记录中恢复。
 4. 接收者打开完整链接，点击「确认登录」。已绑定验证器的账号继续走系统双重验证。

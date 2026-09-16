@@ -46,13 +46,31 @@ final class BloxCssCompilerTest extends TestCase
         self::assertSame(['yk-r-font-size'], $result['classes']);
         // 全断点一致时退化为单条内联声明。
         self::assertSame('font-size:40px;', BloxCssCompiler::compile($controls, ['size' => ['d' => 40, 't' => 40, 'm' => '']])['style']);
-        // 没有桌面基准值时不输出，避免缺失变量把主题默认字号变成 unset。
-        self::assertSame('', BloxCssCompiler::compile($controls, ['size' => ['t' => 30, 'm' => 20]])['style']);
 
         $sheet = BloxCssCompiler::responsiveStylesheet();
         self::assertStringContainsString('.yk-r-font-size{font-size:var(--yk-r-font-size-m)}', $sheet);
         self::assertStringContainsString('@media (min-width:768px){', $sheet);
         self::assertStringContainsString('@media (min-width:1024px){', $sheet);
+    }
+
+    public function testPartialOverridesKeepWiderScreensUntouchedAndPreserveZero(): void
+    {
+        $controls = [$this->control('gap', 'gap')];
+        self::assertSame([
+            'style' => '--yk-r-gap-t:30px;--yk-r-gap-m:0px;',
+            'classes' => ['yk-r-gap-t-only', 'yk-r-gap-m-only'],
+        ], BloxCssCompiler::compile($controls, ['gap' => ['d' => '', 't' => 30, 'm' => 0]]));
+        self::assertSame([
+            'style' => '--yk-r-gap-m:0px;', 'classes' => ['yk-r-gap-m-only'],
+        ], BloxCssCompiler::compile($controls, ['gap' => ['m' => 0]]));
+        self::assertSame('--yk-r-gap-t:30px;--yk-r-gap-m:30px;',
+            BloxCssCompiler::compile($controls, ['gap' => ['t' => 30, 'm' => '']])['style']);
+        self::assertSame(['style' => '', 'classes' => []],
+            BloxCssCompiler::compile($controls, ['gap' => ['d' => '', 't' => '', 'm' => '']]));
+        $css = BloxCssCompiler::responsiveStylesheet();
+        self::assertStringContainsString('@media not all and (min-width:1024px){', $css);
+        self::assertStringContainsString('@media not all and (min-width:768px){', $css);
+        self::assertStringContainsString('.yk-r-gap-m-only{gap:var(--yk-r-gap-m)}', $css);
     }
 
     public function testMaliciousOrOutOfRangeValuesAreDropped(): void

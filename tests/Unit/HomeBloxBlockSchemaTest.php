@@ -195,7 +195,7 @@ final class HomeBloxBlockSchemaTest extends TestCase
         $this->assertSame('inherit', $controls['banner_mobile_mode']['default']);
         $this->assertSame('eye-off', $controls['banner_mobile_mode']['option_icons']['hidden']);
         $this->assertSame(
-            ['terms' => [['banner_height_mode', '=', 'fixed']]],
+            ['terms' => [['banner_height_mode', '=', ['fixed', 'fixed-cover-header']]]],
             $controls['banner_height_pc']['visible_when']
         );
         $this->assertSame(
@@ -324,6 +324,19 @@ final class HomeBloxBlockSchemaTest extends TestCase
         );
 
         $legacy = HomeBloxBlockSchema::normalize(['block_type' => 'banner']);
+        $fixedOverlay = HomeBloxBlockSchema::normalize([
+            'block_type' => 'banner', 'banner_height_mode' => 'fixed-cover-header',
+            'banner_height_pc' => 520, 'banner_height_mobile' => 280,
+        ]);
+        $this->assertSame('fixed-cover-header', $fixedOverlay['banner_height_mode']);
+        $this->assertStringContainsString('data-blox-height-mode="fixed-cover-header"', HomeBloxBlockSchema::bannerRuntimeAttributes($fixedOverlay));
+        $this->assertSame(520, $fixedOverlay['banner_height_pc']);
+        $this->assertSame(280, $fixedOverlay['banner_height_mobile']);
+        $groupOverlay = HomeBloxBlockSchema::bannerGroupRuntimeConfig([
+            'height_mode' => 'fixed-cover-header', 'fullscreen' => 0, 'height_pc' => 520,
+        ]);
+        $this->assertSame('fixed-cover-header', $groupOverlay['banner_height_mode']);
+        $this->assertSame(520, $groupOverlay['banner_height_pc']);
         $this->assertSame('inherit', $legacy['banner_height_mode']);
         $this->assertSame(650, $legacy['banner_height_pc']);
         $this->assertSame(300, $legacy['banner_height_mobile']);

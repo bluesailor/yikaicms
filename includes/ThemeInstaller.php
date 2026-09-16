@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/ThemeValidator.php';
+require_once __DIR__ . '/MarketInstallOrigin.php';
 
 /**
  * Theme package installation with staging, atomic directory replacement and rollback.
@@ -57,8 +58,11 @@ final class ThemeInstaller
      *     backup:string
      * }
      */
-    public function install(string $zipPath, string $expectedSlug = '', string $expectedVersion = ''): array
+    public function install(string $zipPath, string $expectedSlug = '', string $expectedVersion = '', string $origin = 'local'): array
     {
+        if ($origin !== 'local' && ($expectedSlug === '' || $expectedVersion === '')) {
+            return $this->result(false, 'invalid');
+        }
         if (!class_exists('ZipArchive')) {
             return $this->result(false, 'no_zip');
         }
@@ -91,10 +95,48 @@ final class ThemeInstaller
             return $this->result(false, 'version_mismatch', '', $slug, $name, $warnings);
         }
 
+        $lock = null;
+        try {
+            $this->assertOrigin($slug, $origin);
+            $lockRoot = $this->storageRoot . '/theme-locks';
+            if (is_link($this->storageRoot) || is_link($lockRoot)
+                || !(($this->makeDirectory)($lockRoot))) {
+                throw new RuntimeException('staging_create');
+            }
+            $lockPath = $lockRoot . '/' . $slug . '.lock';
+            if (is_link($lockPath)) throw new RuntimeException('unsafe');
+            $lock = @fopen($lockPath, 'c');
+            if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) throw new RuntimeException('busy');
+            $this->assertOrigin($slug, $origin);
+        } catch (RuntimeException $error) {
+            $zip->close();
+            if (is_resource($lock)) fclose($lock);
+            return $this->result(false, $error->getMessage(), '', $slug, $name, $warnings);
+        }
+        try {
+            return $this->installValidated($zip, $inspection, $origin);
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    public function assertOrigin(string $slug, string $origin): void
+    {
+        MarketInstallOrigin::assertAllowed($this->themesRoot, 'theme', $slug, $origin);
+    }
+
+    private function installValidated(ZipArchive $zip, array $inspection, string $origin): array
+    {
+        $slug = $inspection['slug'];
+        $name = $inspection['name'];
+        $version = $inspection['version'];
+        $warnings = $inspection['warnings'];
         $token = date('Ymd-His') . '-' . bin2hex(random_bytes(5));
         $stagingRoot = $this->storageRoot . '/theme-staging';
         $stagingDir = $stagingRoot . '/' . $token;
-        if (!(($this->makeDirectory)($this->themesRoot))
+        if (is_link($this->themesRoot) || is_link($stagingRoot)
+            || !(($this->makeDirectory)($this->themesRoot))
             || !(($this->makeDirectory)($stagingRoot))
             || !(($this->makeDirectory)($stagingDir))) {
             $zip->close();
@@ -138,11 +180,20 @@ final class ThemeInstaller
             );
         }
 
+        try {
+            $this->assertOrigin($slug, $origin);
+            if (!MarketInstallOrigin::write($stagedTheme, 'theme', $slug, $version, $origin)) {
+                throw new RuntimeException('staging_create');
+            }
+        } catch (RuntimeException $error) {
+            ($this->removeDirectory)($stagingDir);
+            return $this->result(false, $error->getMessage(), '', $slug, $name, $warnings);
+        }
         $targetDir = $this->themesRoot . '/' . $slug;
         $backupDir = '';
         if (is_dir($targetDir)) {
             $backupRoot = $this->storageRoot . '/theme-backup';
-            if (!(($this->makeDirectory)($backupRoot))) {
+            if (is_link($backupRoot) || !(($this->makeDirectory)($backupRoot))) {
                 ($this->removeDirectory)($stagingDir);
                 return $this->result(false, 'backup_create', '', $slug, $name, $warnings);
             }
@@ -278,6 +329,15 @@ final class ThemeInstaller
         }
 
         $unsafe = zipUnsafeEntry($zip);
+        for ($i = 0; $unsafe === null && $i < $zip->numFiles; $i++) {
+            $entry = (string) $zip->getNameIndex($i);
+            $opsys = $attributes = 0;
+            $zip->getExternalAttributesIndex($i, $opsys, $attributes);
+            if (MarketInstallOrigin::isReceiptPath($entry)
+                || ($opsys === ZipArchive::OPSYS_UNIX && (($attributes >> 16) & 0170000) === 0120000)) {
+                $unsafe = $entry;
+            }
+        }
         if ($unsafe !== null) {
             return ['ok' => false, 'code' => 'unsafe', 'detail' => $unsafe, 'slug' => $slug, 'name' => (string) $meta['name'], 'version' => (string) ($meta['version'] ?? ''), 'warnings' => $validation['warnings']];
         }

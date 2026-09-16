@@ -2,6 +2,7 @@
 /** Blox 远程模板市场客户端：目录发现、授权状态与签名包解析。 */
 
 declare(strict_types=1);
+require_once dirname(__DIR__) . '/MarketCoverUrl.php';
 
 /**
  * YIKAI_BLOX_AI_ACCESS_NOTICE
@@ -14,6 +15,8 @@ declare(strict_types=1);
  */
 
 require_once dirname(__DIR__) . '/security.php';
+require_once dirname(__DIR__) . '/MarketDownloadUrl.php';
+require_once dirname(__DIR__) . '/MarketCatalogItems.php';
 
 final class BloxRemoteTemplateProvider
 {
@@ -24,7 +27,6 @@ final class BloxRemoteTemplateProvider
     private const MAX_CATALOG_BYTES = 1_000_000;
     private const MAX_PACKAGE_BYTES = 5_000_000;
     private const MAX_ITEMS = 500;
-    private const CATALOG_TTL = 604800;
     private const ENTITLEMENT_TTL = 60;
     /**
      * 拉取失败的负缓存窗口：远程不可达时（15s 超时）不做负缓存的话，
@@ -98,9 +100,8 @@ final class BloxRemoteTemplateProvider
      */
     public function installable(bool $forceRefresh = false): array
     {
-        // 审计 r17-2：目录携带 entitled/locked 授权态——安装场景用 60 秒短 TTL 复验
-        // （新授权用户不再最长 7 天看到锁定态）；编辑器插入目录 items() 的 7 天
-        // 元数据缓存不受影响。forceRefresh 供管理页「刷新授权状态」按钮直穿。
+        // Catalog entries include entitlement state; all browse surfaces use a short TTL.
+        // Download paths always force a fresh catalog regardless of this display cache.
         $catalog = $this->catalog($forceRefresh, self::ENTITLEMENT_TTL);
         $items = [];
         foreach ($catalog['templates'] as $raw) {
@@ -124,14 +125,14 @@ final class BloxRemoteTemplateProvider
     }
 
     /** @return array{item:array<string,mixed>,json:string} */
-    public function fetchVerifiedPackage(string $slug): array
+    public function fetchVerifiedPackage(string $slug, string $expectedOrigin = ''): array
     {
-        [$item, $json] = $this->verifiedPackage($slug);
+        [$item, $json] = $this->verifiedPackage($slug, false, $expectedOrigin);
         return ['item' => $item, 'json' => $json];
     }
 
     /**
-     * @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>}
+     * @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,requirements:array<string,mixed>,design_diagnostics:array<string,mixed>,package_json:string,package_version:string}
      * @psalm-suppress UnusedParam （$context 是本地/插件/远程三类来源的统一签名；远程目录按 context 过滤需服务端先在 list.php 返回该字段，接入前保留参数不改调用方。）
      */
     public function resolve(string $slug, string $context = 'page'): array
@@ -152,6 +153,11 @@ final class BloxRemoteTemplateProvider
             'provider' => self::PROVIDER,
             'settings' => $prepared['settings'],
             'sections' => $prepared['sections'],
+            // 画布插入检查用：requirements/诊断展示给编辑器；package_json 只留服务端发评审记录。
+            'requirements' => $prepared['requirements'],
+            'design_diagnostics' => $prepared['design_diagnostics'],
+            'package_json' => $json,
+            'package_version' => trim((string) ($item['version'] ?? '')),
         ];
     }
 
@@ -159,7 +165,7 @@ final class BloxRemoteTemplateProvider
      * 目录定位 + 下载 + hash + RSA 签名 + 包内 source_ref 复核（resolve 与
      * fetchPackageJson 的共用安检段）。@return array{0:array<string,mixed>,1:string}
      */
-    private function verifiedPackage(string $slug, bool $editorOnly = false): array
+    private function verifiedPackage(string $slug, bool $editorOnly = false, string $expectedOrigin = ''): array
     {
         if (!$this->validSlug($slug)) {
             throw new RuntimeException(__('blox_template_remote_invalid'));
@@ -181,6 +187,9 @@ final class BloxRemoteTemplateProvider
         $item = $this->normalizeItem($raw, $catalog['updated_at'], true);
         if ($item === null || ($editorOnly && !BloxTemplateCatalog::supportsEditorType((string) $item['type']))) {
             throw new RuntimeException(__('blox_template_remote_invalid'));
+        }
+        if ($expectedOrigin !== '' && $expectedOrigin !== $item['catalog_origin']) {
+            throw new RuntimeException(__('blox_tpl_remote_origin_changed'));
         }
         if (!empty($item['locked'])) {
             throw new RuntimeException($this->lockedMessage((string) ($item['locked_reason'] ?? '')));
@@ -244,7 +253,7 @@ final class BloxRemoteTemplateProvider
     }
 
     /** @return array{protocol_version:int,updated_at:string,fetched_at:int,templates:list<array<string,mixed>>} */
-    private function catalog(bool $forceRefresh = false, int $maxAge = self::CATALOG_TTL): array
+    private function catalog(bool $forceRefresh = false, int $maxAge = self::ENTITLEMENT_TTL): array
     {
         $licenseKey = function_exists('license_key') ? license_key() : '';
         $licenseDomain = function_exists('license_domain') ? license_domain() : '';
@@ -253,16 +262,24 @@ final class BloxRemoteTemplateProvider
             'key' => $licenseKey,
             'domain' => $licenseDomain,
         ], static fn (string $value): bool => $value !== '');
-        $cacheKey = 'blox_remote_templates:v2:' . hash(
+        $cacheKey = 'blox_remote_templates:v3:' . hash(
             'sha256',
-            $this->endpoint . '|' . $licenseKey . '|' . $licenseDomain
+            json_encode([$this->endpoint, self::PROTOCOL_VERSION, $licenseKey, $licenseDomain,
+                defined('CMS_VERSION') ? CMS_VERSION : '', $this->language], JSON_THROW_ON_ERROR)
         );
         if ($this->cacheGet !== null && !$forceRefresh) {
+            // A failed explicit refresh must not revive a previous allowed snapshot.
+            $failure = ($this->cacheGet)($cacheKey . ':fail');
+            if (is_array($failure) && (int) ($failure['time'] ?? 0) >= time() - self::FAILURE_TTL) {
+                throw new RuntimeException(($failure['message'] ?? '') === 'blox_template_remote_protocol'
+                    ? __('blox_template_remote_protocol') : __('blox_template_remote_unavailable'));
+            }
             $cached = ($this->cacheGet)($cacheKey);
             $fetchedAt = is_array($cached) ? (int) ($cached['fetched_at'] ?? 0) : 0;
             if (is_array($cached)
                 && ($cached['protocol_version'] ?? null) === self::PROTOCOL_VERSION
-                && $fetchedAt >= time() - max(0, $maxAge)
+                && $fetchedAt <= time()
+                && $fetchedAt >= time() - min(self::ENTITLEMENT_TTL, max(0, $maxAge))
                 && is_string($cached['updated_at'] ?? null)
                 && is_array($cached['templates'] ?? null)
                 && count($cached['templates']) <= self::MAX_ITEMS) {
@@ -272,12 +289,6 @@ final class BloxRemoteTemplateProvider
                     'fetched_at' => $fetchedAt,
                     'templates' => array_values(array_filter($cached['templates'], 'is_array')),
                 ];
-            }
-            // 负缓存命中：短窗口内不再重试远程（管理页「刷新」按钮 forceRefresh 直穿）
-            $failure = ($this->cacheGet)($cacheKey . ':fail');
-            if (is_array($failure) && (int) ($failure['time'] ?? 0) >= time() - self::FAILURE_TTL) {
-                throw new RuntimeException(($failure['message'] ?? '') === 'blox_template_remote_protocol'
-                    ? __('blox_template_remote_protocol') : __('blox_template_remote_unavailable'));
             }
         }
 
@@ -310,10 +321,22 @@ final class BloxRemoteTemplateProvider
             'protocol_version' => self::PROTOCOL_VERSION,
             'updated_at' => trim((string) ($decoded['data']['updated_at'] ?? '')),
             'fetched_at' => time(),
-            'templates' => array_values(array_filter($templates, 'is_array')),
+            'templates' => MarketCatalogItems::select($templates),
         ];
         if ($this->cacheSet !== null) {
-            ($this->cacheSet)($cacheKey, $catalog, self::CATALOG_TTL);
+            $displayCatalog = $catalog;
+            $fields = array_fill_keys([
+                'slug', 'type', 'source', 'category', 'name', 'name_en', 'name_ja',
+                'description', 'description_en', 'description_ja', 'version', 'access',
+                'module', 'paid', 'entitled', 'locked_reason', 'thumbnail', 'thumbnail_url',
+                'metadata', 'meta',
+            ], true);
+            $displayCatalog['templates'] = array_map(
+                static fn (array $item): array => array_intersect_key($item, $fields),
+                $catalog['templates']
+            );
+            ($this->cacheSet)($cacheKey . ':fail', null, 1);
+            ($this->cacheSet)($cacheKey, $displayCatalog, self::ENTITLEMENT_TTL);
         }
         return $catalog;
     }
@@ -352,8 +375,11 @@ final class BloxRemoteTemplateProvider
             'description' => $this->localized($raw, 'description', ''),
             'source' => 'remote',
             'provider' => self::PROVIDER,
+            'catalog_origin' => (string) ($raw['source'] ?? 'official'),
             'category' => $this->safeCategory($raw['category'] ?? $type, $type),
-            'thumbnail' => $this->safeThumbnail($raw['thumbnail'] ?? $raw['thumbnail_url'] ?? ''),
+            'thumbnail' => ($raw['source'] ?? 'official') === 'community'
+                ? MarketCoverUrl::accept($raw['thumbnail'] ?? '', 'template', $slug, (string) ($raw['version'] ?? ''))
+                : $this->safeThumbnail($raw['thumbnail'] ?? $raw['thumbnail_url'] ?? ''),
             'metadata' => BloxSectionMetadata::normalize($raw['metadata'] ?? $raw['meta'] ?? []),
             'version' => trim((string) ($raw['version'] ?? '')),
             'access' => $access,
@@ -383,9 +409,13 @@ final class BloxRemoteTemplateProvider
             'account_required', 'binding_required' => __('blox_template_remote_account_required'),
             'credential_expired', 'binding_revoked', 'site_mismatch', 'account_disabled' => __('blox_template_remote_reconnect'),
             'protocol_unsupported' => __('blox_template_remote_protocol'),
-            'remote_unavailable', 'rate_limited' => __('blox_template_remote_unavailable'),
+            'rate_limited' => __('market_download_rate_limited'),
+            'remote_unavailable', 'catalog_conflict' => __('blox_template_remote_unavailable'),
             'license_expired' => __('blox_template_locked_expired'),
             'module_missing' => __('blox_template_locked_module'),
+            // 精品区块的服务端拒绝原因：分别说明，不笼统报「需要授权」
+            'domain_mismatch' => __('plugin_locked_domain'),
+            'disabled' => __('blox_template_locked_disabled'),
             default => __('blox_template_locked_license'),
         };
     }
@@ -431,8 +461,9 @@ final class BloxRemoteTemplateProvider
 
     private function safeDownloadUrl(string $url, string $slug, string $version): bool
     {
-        // One endpoint and resource identity; no static ZIP fallback or bearer query.
-        return $url === self::DOWNLOAD_URL . '?' . http_build_query([
+        // Legacy identity URL or a short-lived grant at the fixed official market endpoint.
+        // Neither path permits static ZIP fallbacks or arbitrary bearer destinations.
+        return MarketDownloadUrl::isTokenUrl($url) || $url === self::DOWNLOAD_URL . '?' . http_build_query([
             'protocol_version' => self::PROTOCOL_VERSION,
             'slug' => $slug,
             'version' => $version,
@@ -508,11 +539,17 @@ final class BloxRemoteTemplateProvider
         }
         if (ini_get('allow_url_fopen')) {
             $context = stream_context_create([
-                'http' => ['timeout' => $timeout, 'ignore_errors' => false, 'header' => "Accept: application/json\r\n"],
+                'http' => [
+                    'timeout' => $timeout, 'ignore_errors' => false,
+                    'follow_location' => 0, 'max_redirects' => 0,
+                    'header' => "Accept: application/json\r\n",
+                ],
                 'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
             ]);
             $body = @file_get_contents($url, false, $context, 0, $maxBytes + 1);
-            return is_string($body) && $body !== '' && strlen($body) <= $maxBytes ? $body : null;
+            $statusLine = $http_response_header[0] ?? '';
+            $ok = preg_match('/^HTTP\/\S+\s+2\d\d(?:\s|$)/', $statusLine) === 1;
+            return $ok && is_string($body) && $body !== '' && strlen($body) <= $maxBytes ? $body : null;
         }
         return null;
     }

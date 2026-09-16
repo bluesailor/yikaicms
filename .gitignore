@@ -4,6 +4,7 @@ installed.lock
 
 # Runtime data
 storage/database.sqlite
+storage/.recipe-apply.lock
 storage/logs/*.log
 storage/cache/*
 storage/temp/
@@ -169,3 +170,10 @@ storage/_sl/
 # 源码树只跟踪 default；build.sh 会从市场源码显式复制预装主题，不能采集本地安装副本。
 /themes/*
 !/themes/default/
+
+# Local runtime artifacts, never release sources.
+/yikaicms.env.zip
+/storage/form_throttle/
+/storage/stats-migrated.png
+/storage/theme-backup/
+/storage/upgrade/

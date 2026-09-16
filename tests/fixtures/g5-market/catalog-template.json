@@ -1,0 +1,42 @@
+{
+    "code": 0,
+    "data": {
+        "protocol_version": 2,
+        "updated_at": "2026-09-14",
+        "templates": [
+            {
+                "slug": "acc-189b6-hero",
+                "name": "演示资源",
+                "name_en": "Demo resource",
+                "name_ja": "デモ資源",
+                "description": "用于本地验收的演示投稿。",
+                "description_en": "A local acceptance sample.",
+                "description_ja": "ローカル検収用のサンプル。",
+                "version": "1.0.0",
+                "author": "acc189b6",
+                "category": "hero",
+                "type": "section",
+                "access": "public",
+                "paid": false,
+                "entitled": true,
+                "source": "community",
+                "download_url": "http://127.0.0.1:18082/api/market/download.php?token=<expires-after-300s>",
+                "locked_reason": "",
+                "hash": "sha256:0e33542608734e48150a6fa0ba8229c1b543bf2fca2af6ac379977340627a624",
+                "sig": "Hm836DxzdVAddHX4sJL3o6tVzibOyv1gksQNZjqUtT5xYXYCQg6mVnF89VzEKpWQoTKbFq3dLlm5RHIS3oCSIVUkjDE1CkJeXOgpKQlh3Tw4vCZRMC2lLfB+QYzivuxWmG6usQfcY708BMtBwWxlYKZGJPIZsLki2iGl40Mjf1E6mztArJjJsViMjV2SA6qbG5pz4RN0ppR36vTWuOpTTruH2FcmNoM2sVTXds5b2qDopNxRzlgCxdx5bm0Q6r3DLJKBkFKS/4oYjX+JEREO7dubkAtJjjYYpE2mKDc/OnXu2Vzga+oKapUJbVrpw25BuYhM2OvoQRbUuRAizHw1qw==",
+                "size_kb": 1
+            }
+        ],
+        "market": {
+            "test_only": true,
+            "quota": {
+                "subject_type": "ip",
+                "limit": 3,
+                "used": 0,
+                "remaining": 3,
+                "day": "2026-09-15",
+                "timezone": "Asia/Shanghai"
+            }
+        }
+    }
+}

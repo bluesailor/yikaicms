@@ -36,6 +36,7 @@ $isHomeBlox = (string) ($_GET['home'] ?? '') === '1';
 $id = getInt('id');
 $templateId = getInt('template'); // 模板模式：编辑 blox_templates 草稿（section/page/header/footer/popup）
 $templateType = ''; // Page and home modes also render the shared template JavaScript.
+$canReadDetailSamples = true;
 $productPreviewItems = [];
 $productPreviewId = 0;
 $productPreviewLanguage = '';
@@ -309,10 +310,11 @@ if ($isHomeBlox) {
         $requestedLanguage = get('product_lang', (string) ($storedScope['lang'] ?? config('site_lang', 'zh-CN')));
         $productPreviewLanguage = is_string($requestedLanguage) && isset($languages[$requestedLanguage])
             ? $requestedLanguage : (string) config('site_lang', 'zh-CN');
-        $productPreviewItems = array_values(array_filter(
+        $canReadDetailSamples = hasPermission('edit_product');
+        $productPreviewItems = $canReadDetailSamples ? array_values(array_filter(
             productModel()->getList(0, 100, 0, ['lang' => $productPreviewLanguage]),
             static fn(array $row): bool => ($row['lang'] ?? '') === $productPreviewLanguage
-        ));
+        )) : [];
         $productPreviewId = (int) ($productPreviewItems[0]['id'] ?? 0);
         $previewEndpoint = '/admin/blox_preview.php?product_template=1&_lang=' . rawurlencode($productPreviewLanguage) . '&template_id=' . (int) $templateId;
         // TASK-006：完整条件面板的"分类"目标（产品＝产品分类；一次查表，面板内不再查库）
@@ -331,11 +333,12 @@ if ($isHomeBlox) {
         $articlePreviewLanguage = is_string($requestedLanguage) && isset($languages[$requestedLanguage])
             ? $requestedLanguage : (string) config('site_lang', 'zh-CN');
         // 样本只列已发布且同语言的文章；与产品分支同口径
-        $articlePreviewItems = array_values(array_filter(
+        $canReadDetailSamples = hasPermission('edit_article');
+        $articlePreviewItems = $canReadDetailSamples ? array_values(array_filter(
             contentModel()->getList(0, 100, 0, ['lang' => $articlePreviewLanguage, 'type' => 'article']),
             static fn(array $row): bool => ($row['lang'] ?? '') === $articlePreviewLanguage
                 && ($row['type'] ?? '') === 'article'
-        ));
+        )) : [];
         $articlePreviewId = (int) ($articlePreviewItems[0]['id'] ?? 0);
         $previewEndpoint = '/admin/blox_preview.php?article_template=1&_lang=' . rawurlencode($articlePreviewLanguage) . '&template_id=' . (int) $templateId;
         // TASK-006：文章的分类即栏目；按预览语言取一次
@@ -753,6 +756,27 @@ foreach ($registryMeta as $type => $m) {
     ];
 }
 
+// 站点资料语境：版权元素的面板内编辑按「画布正在预览的语言」读写。
+// 语言固定（单语言页头/页尾、带语言的页面）时，其它语言不显示的备案设置整体隐藏；
+// 全站共享模板随预览语言切换编辑对象，备案设置保留并提示仅简体中文页面显示。
+$siteDataDefaultLanguage = (string) config('site_lang', 'zh-CN');
+if ($areaEditorLanguage !== '') {
+    $siteDataLanguage = $areaEditorLanguage;
+    $siteDataLanguageFixed = $areaEditorLanguageManaged;
+} elseif (!$isHomeBlox && !$templateId && trim((string) ($page['lang'] ?? '')) !== '') {
+    $siteDataLanguage = trim((string) $page['lang']);
+    $siteDataLanguageFixed = true;
+} else {
+    $siteDataLanguage = $siteDataDefaultLanguage;
+    $siteDataLanguageFixed = false;
+}
+$siteCopyrightRead = static fn (string $key): string => (string) config($key, '');
+$siteCopyright = SiteCopyrightSettings::editorState($siteDataLanguage, $siteCopyrightRead) + [
+    'language_label' => (string) (availableLanguages()[$siteDataLanguage] ?? $siteDataLanguage),
+    'language_fixed' => $siteDataLanguageFixed,
+    'can_edit' => $canManageGlobalSettings,
+];
+
 /**
  * 元素 schema（全量注册元素，不受插入白名单限制）。
  *
@@ -855,6 +879,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-draft-recovery.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-draft-recovery.js') ?>"></script>
     <script src="/assets/js/blox-draft-summary.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-draft-summary.js') ?>"></script>
     <script src="/assets/js/blox-command-runner.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-command-runner.js') ?>"></script>
+    <script src="/assets/js/blox-style-clipboard.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-clipboard.js') ?>"></script>
     <script src="/assets/js/blox-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-control-rules.js') ?>"></script>
     <script src="/assets/js/blox-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-banner-panel.js') ?>"></script>
     <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
@@ -1198,6 +1223,9 @@ $canManageBloxDesign = hasPermission('blox_global');
             selectedSi: -1,
             paletteTapMode: false,
             previewDevice: "desktop",
+            // R2B：数值预览宽度（0=自动）。纯工作区状态：不进 documentData/历史/dirty，
+            // 不新增 media query，也不改变正在编辑的 d/t/m 档位。
+            previewCustomWidth: 0,
             headerPreviewState: "normal",
             canvasViewportTick: 0,
             previewLoading: false,
@@ -1221,6 +1249,9 @@ $canManageBloxDesign = hasPermission('blox_global');
             _savedSnapshot: "",
             _savedDocumentSnapshot: "",
             _draftRecovery: null,
+            recoveryState: "idle",
+            lastServerSaveAt: 0,
+            sessionExpired: false,
             _pendingInitialFocus: false,
             _pendingInitialFooterScroll: <?php echo $templateId && $templateType === 'footer' ? 'true' : 'false'; ?>,
             recoveryOpen: false,
@@ -1233,6 +1264,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             revisionOpen: false,
             revisionLoading: false,
             revisionRestoring: false,
+            revisionLoadBusy: false,
             revisions: [],
             activeRev: null,
             revisionPreview: "",
@@ -1407,6 +1439,14 @@ $canManageBloxDesign = hasPermission('blox_global');
             // 模板发布独立于"保存中"：按钮要能显示"发布中…"，而保存/发布是两个不同动作
             templateActionBusy: false,
             contactManage: <?php echo json_encode($contactManageActions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            siteCopyrightEndpoint: "/admin/blox_site_api.php",
+            siteCopyright: <?php echo json_encode($siteCopyright, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            siteCopyrightChanged: false,
+            siteCopyrightSaving: false,
+            siteCopyrightText: <?php echo json_encode([
+                'saved' => __('blox_site_copyright_saved'),
+                'failed' => __('blox_save_failed'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             contactEndpoint: "/admin/blox_contact_api.php?id=<?php echo (int) $id; ?>",
             contactCards: <?php echo json_encode($contactCards, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             contactCardIconOptions: <?php echo json_encode($contactCardIconOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
@@ -1646,6 +1686,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'historyLoadFailed' => __('blox_history_load_failed'),
                 'restoreConfirmDirty' => __('blox_restore_confirm_dirty'),
                 'restoreConfirm' => __('blox_restore_confirm'),
+                'revisionLoaded' => __('blox_revision_loaded_canvas'),
+                'revisionLoadFailed' => __('blox_revision_load_failed'),
+                'sessionExpired' => __('blox_session_expired'),
+                'saveRetry' => __('blox_save_retry'),
                 'tplPublishConfirm' => __('blox_tpl_publish_confirm'),
                 'tplAreaLanguagePublishConfirm' => $areaEditorPublishConfirm,
                 'tplPublishReplaceConfirm' => __('blox_tpl_publish_replace_confirm'),
@@ -1674,6 +1718,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'continueEditing' => __('blox_conflict_continue'),
                 'copied' => __('blox_conflict_copied'),
                 'copyFailed' => __('blox_conflict_copy_failed'),
+                'backupUnavailable' => __('blox_recovery_unavailable'),
+                'backupQuota' => __('blox_recovery_quota'),
+                'backupTooLarge' => __('blox_recovery_toolarge'),
+                'savedAtLabel' => __('blox_recovery_saved_at'),
+                'localNote' => __('blox_recovery_local_note'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             templateText: <?php echo json_encode([
                 'title' => __('blox_template_library'),
@@ -1749,6 +1798,18 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'resultCount' => __('blox_template_result_count'),
                 'localLibrary' => __('blox_template_tab_local'),
                 'remoteLibrary' => __('blox_template_tab_remote'),
+                'basicSections' => __('blox_template_tab_basic_sections'),
+                'premiumSections' => __('blox_template_tab_premium_sections'),
+                'premiumPurchase' => __('blox_premium_notice_purchase'),
+                'premiumActivate' => __('blox_premium_notice_activate'),
+                'premiumRetryHint' => __('blox_premium_notice_retry_hint'),
+                'viewPro' => __('blox_premium_view_pro'),
+                'renewPro' => __('blox_premium_renew'),
+                'retry' => __('blox_premium_retry'),
+                // 官网专业授权说明页（固定地址，非用户输入）
+                'proUrl' => 'https://www.yikaicms.com/pro.php',
+                // 只告诉前端「是否已填授权码」，用于区分「去购买」与「已购未激活」；授权码本身不下发
+                'hasLicenseKey' => function_exists('license_key') && license_key() !== '',
                 'section' => __('blox_template_type_section'),
                 'page' => __('blox_template_type_page'),
                 'reload' => __('blox_template_reload'),
@@ -1771,6 +1832,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'lockedLicense' => __('blox_template_locked_license'),
                 'lockedExpired' => __('blox_template_locked_expired'),
                 'lockedModule' => __('blox_template_locked_module'),
+                'lockedDomain' => __('plugin_locked_domain'),
+                'lockedDisabled' => __('blox_template_locked_disabled'),
                 'manageLicense' => __('blox_template_manage_license'),
                 'loadFailed' => __('blox_template_load_failed'),
                 'insert' => __('blox_template_insert'),
@@ -1780,6 +1843,22 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'inserted' => __('blox_template_inserted'),
                 'appendConfirm' => __('blox_template_append_confirm'),
                 'replaceConfirm' => __('blox_template_replace_confirm'),
+                'reviewTitle' => __('blox_import_review'),
+                'reviewNote' => __('blox_import_canvas_review_note'),
+                'reviewConfirm' => __('blox_import_confirm_canvas'),
+                'reviewCancel' => __('blox_import_cancel'),
+                'reviewContextChanged' => __('blox_import_canvas_context_changed'),
+                'reviewIssueMissing' => __('blox_import_missing'),
+                'reviewIssueArchived' => __('blox_import_archived'),
+                'reviewIssueConflicting' => __('blox_import_conflicting'),
+                'reviewIssueSameName' => __('blox_import_same_name'),
+                'reviewIssueUnverified' => __('blox_import_unverified'),
+                'reviewTokens' => __('blox_import_tokens'),
+                'reviewStyles' => __('blox_import_styles'),
+                'reviewMap' => __('blox_import_map'),
+                'reviewUnchanged' => __('blox_import_unchanged'),
+                'reviewKeep' => __('blox_import_keep'),
+                'reviewDetach' => __('blox_import_detach'),
                 'usePage' => __('blox_template_use_page'),
                 'append' => __('blox_template_append'),
                 'replaced' => __('blox_template_replaced'),
@@ -1810,7 +1889,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'summaryInherit' => __('blox_responsive_summary_inherit'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             padOptions: [
-                { k: "none", label: <?= $jt('blox_spacing_none') ?> }, { k: "sm", label: <?= $jt('blox_spacing_sm') ?> }, { k: "md", label: <?= $jt('blox_spacing_md') ?> },
+                { k: "none", label: <?= $jt('blox_spacing_none') ?> }, { k: "xs", label: <?= $jt('blox_spacing_xs') ?> }, { k: "sm", label: <?= $jt('blox_spacing_sm') ?> }, { k: "md", label: <?= $jt('blox_spacing_md') ?> },
                 { k: "lg", label: <?= $jt('blox_spacing_lg') ?> }, { k: "xl", label: <?= $jt('blox_spacing_xl') ?> },
             ],
             // 取值与 BlockRenderer 的 ALIGN_ITEMS_MAP / JUSTIFY_ITEMS_MAP 对齐；
@@ -1956,7 +2035,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             conditionCategories: <?php echo json_encode(array_values(($conditionContentType ?? '') !== ''
                 ? DetailTemplateProvider::optionsWithReferences((string) $conditionContentType, 'category', $conditionCategories ?? [], $conditionScopeForOptions, $conditionOptionLang)
                 : []), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            conditionItems: <?php echo json_encode(array_values(($conditionContentType ?? '') !== ''
+            conditionItems: <?php echo json_encode(array_values($canReadDetailSamples && ($conditionContentType ?? '') !== ''
                 ? DetailTemplateProvider::optionsWithReferences((string) $conditionContentType, 'item', array_values(array_map(
                     static fn(array $row): array => ['id' => (int) ($row['id'] ?? 0), 'name' => (string) ($row['title'] ?? '')],
                     $templateType === 'product-detail' ? $productPreviewItems : $articlePreviewItems
@@ -2478,6 +2557,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             templateLoaded: false,
             templateReloadPending: false,
             templateInserting: "",
+            templateReview: null,
             templateItems: [],
             templateQuery: "",
             templateFilter: "all",
@@ -2512,1308 +2592,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 { key: "section", label: <?php echo json_encode(__('blox_template_type_section'), JSON_UNESCAPED_UNICODE); ?> },
                 { key: "page", label: <?php echo json_encode(__('blox_template_type_page'), JSON_UNESCAPED_UNICODE); ?> },
             ],
-            focusDialog(root, initialSelector) {
-                var self = this;
-                this.$nextTick(function () {
-                    if (window.BloxDialogFocus) window.BloxDialogFocus.open(root, initialSelector || "");
-                });
-            },
-
-            releaseDialog(root) {
-                this.$nextTick(function () {
-                    if (window.BloxDialogFocus) window.BloxDialogFocus.close(root);
-                });
-            },
-
-            dialogKeydown(event, root, onEscape) {
-                if (window.BloxDialogFocus) window.BloxDialogFocus.keydown(event, root, onEscape);
-            },
-
-            templateDialogKeydown(event) {
-                if (this.templateSectionsDocked()) {
-                    if (event && event.key === "Escape") {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        this.closeTemplates();
-                    }
-                    return;
-                }
-                this.dialogKeydown(event, this.$refs.templateDialog, () => this.closeTemplates());
-            },
-
-            /**
-             * 关闭模板面板 = 取消未消费的定点插入意图（审计 r17-1：Esc/遮罩/关闭按钮
-             * 此前只收面板不清 _insertAt，取消后从常规入口添加会落到旧边界）。
-             * 成功插入也会走此处，因此先保存预制区块库上下文，再统一收起面板和清理落点。
-             */
-            closeTemplates() {
-                if (!this.templateOpen) return;
-                var root = this.$refs.templateDialog;
-                this.finishTemplatePanelResize();
-                if (this.templateDragItem) this.finishPaletteDrag();
-                this.persistTemplateSectionViewState();
-                this.templateOpen = false;
-                this._insertAt = null;
-                this.releaseDialog(root);
-            },
-
-            openTemplateDialog() {
-                var alreadyOpen = this.templateOpen;
-                this.templateOpen = true;
-                if (!alreadyOpen) this.focusDialog(this.$refs.templateDialog, "[data-dialog-initial]");
-                if (!this.templateLoaded) this.loadTemplates();
-            },
-
-            openTemplates() {
-                this.persistTemplateSectionViewState();
-                this.templateEntry = "all";
-                this.templateFilter = "all";
-                this.templateCategory = "all";
-                this.templatePurpose = "all";
-                this.templateQuickFilter = "all";
-                this.templateQuery = "";
-                this.openTemplateDialog();
-            },
-
-            openHeaderPresets() {
-                if (!this.areaTemplateMode || this.headerPresets.length === 0) return;
-                var current = this.headerPresets.find(function (preset) {
-                    return this.isCurrentHeaderPreset(preset);
-                }, this);
-                this.selectedHeaderPresetSlug = (current || this.headerPresets[0]).slug;
-                this.headerPresetOpen = true;
-                this.focusDialog(this.$refs.headerPresetDialog, "[data-dialog-initial]");
-            },
-
-            closeHeaderPresets() {
-                if (!this.headerPresetOpen) return;
-                var root = this.$refs.headerPresetDialog;
-                if (this.headerPresetPreviewOpen) this.closeHeaderPresetPreview();
-                this.headerPresetOpen = false;
-                this.releaseDialog(root);
-            },
-
-            headerPresetDocument(preset) {
-                return {
-                    settings: (preset && preset.settings) || {},
-                    sections: (preset && preset.sections) || [],
-                };
-            },
-
-            isCurrentHeaderPreset(preset) {
-                if (!preset || !window.BloxTemplateLibrary
-                    || typeof window.BloxTemplateLibrary.documentFingerprint !== "function") return false;
-                var fingerprint = window.BloxTemplateLibrary.documentFingerprint;
-                return fingerprint(this.headerPresetDocument(preset)) === fingerprint({
-                    settings: this.docSettings || {},
-                    sections: this.sections || [],
-                });
-            },
-
-            selectHeaderPreset(preset) {
-                if (preset && preset.slug) this.selectedHeaderPresetSlug = preset.slug;
-            },
-
-            previewHeaderPreset(preset) {
-                if (!preset || !preset.slug) return;
-                this.selectHeaderPreset(preset);
-                this.headerPresetPreviewDevice = "desktop";
-                this.headerPresetPreviewState = "normal";
-                this.headerPresetPreviewDrawerOpen = false;
-                this.headerPresetPreviewLoading = true;
-                this.headerPresetPreviewNonce += 1;
-                this.headerPresetPreviewOpen = true;
-                this.focusDialog(this.$refs.headerPresetPreviewDialog, "[data-dialog-initial]");
-            },
-
-            headerPresetPreviewUrl(preset) {
-                if (!preset || !/^[a-z0-9-]{1,80}$/.test(String(preset.slug || ""))) return "about:blank";
-                var area = this.areaPresetType === "footer" ? "footer" : "header";
-                var url = "/admin/blox_preview.php?home=1&template_area=" + area + "&area_preset="
-                    + encodeURIComponent(preset.slug);
-                var previewLanguage = this.areaLanguage;
-                if (previewLanguage) url += "&_lang=" + encodeURIComponent(previewLanguage);
-                url += "&preview_instance=" + this.headerPresetPreviewNonce;
-                if (area === "header") url += "&header_state=" + encodeURIComponent(this.headerPresetPreviewState);
-                if (area === "header" && this.headerPresetPreviewDevice === "mobile" && this.headerPresetPreviewDrawerOpen) {
-                    url += "&drawer_open=1";
-                }
-                if (this.previewContext && this.previewContext !== "home") {
-                    url += "&preview_context=" + encodeURIComponent(this.previewContext);
-                }
-                return url;
-            },
-
-            setHeaderPresetPreviewDevice(device) {
-                if (device !== "desktop" && device !== "mobile") return;
-                this.headerPresetPreviewDevice = device;
-                if (device !== "mobile") this.headerPresetPreviewDrawerOpen = false;
-                this.reloadHeaderPresetPreview();
-            },
-
-            setHeaderPresetPreviewState(state) {
-                if (this.areaPresetType !== "header") return;
-                if (!["normal", "overlay", "stuck"].includes(state)) return;
-                this.headerPresetPreviewState = state;
-                this.reloadHeaderPresetPreview();
-            },
-
-            toggleHeaderPresetPreviewDrawer() {
-                if (this.areaPresetType !== "header" || this.headerPresetPreviewDevice !== "mobile") return;
-                this.headerPresetPreviewDrawerOpen = !this.headerPresetPreviewDrawerOpen;
-                this.reloadHeaderPresetPreview();
-            },
-
-            reloadHeaderPresetPreview() {
-                if (!this.headerPresetPreviewOpen) return;
-                this.headerPresetPreviewLoading = true;
-                this.headerPresetPreviewNonce += 1;
-            },
-
-            closeHeaderPresetPreview() {
-                if (!this.headerPresetPreviewOpen) return;
-                var root = this.$refs.headerPresetPreviewDialog;
-                this.headerPresetPreviewOpen = false;
-                this.releaseDialog(root);
-            },
-
-            selectedHeaderPreset() {
-                var slug = this.selectedHeaderPresetSlug;
-                return this.headerPresets.find(function (preset) { return preset.slug === slug; })
-                    || this.headerPresets[0]
-                    || null;
-            },
-
-            selectAdjacentHeaderPreset(offset) {
-                if (!this.headerPresets.length) return;
-                var current = this.headerPresets.findIndex(function (preset) {
-                    return preset.slug === this.selectedHeaderPresetSlug;
-                }, this);
-                var next = (Math.max(0, current) + offset + this.headerPresets.length) % this.headerPresets.length;
-                this.selectedHeaderPresetSlug = this.headerPresets[next].slug;
-                this.headerPresetPreviewDrawerOpen = false;
-                this.reloadHeaderPresetPreview();
-            },
-
-            headerPresetComparison(preset) {
-                var label = function (type, count) {
-                    return (this.elSchema(type).label || type) + (count > 1 ? " ×" + count : "");
-                }.bind(this);
-                return window.BloxTemplateLibrary.compareSections(this.sections || [], (preset && preset.sections) || [], label);
-            },
-
-            headerPresetWarnings(preset) {
-                var counts = window.BloxTemplateLibrary.elementCounts((preset && preset.sections) || []);
-                var warnings = [];
-                if (counts.logo && !this.headerPresetSiteData.logo) warnings.push(this.headerPresetText.missingLogo);
-                if ((counts.nav || counts["nav-mega"] || counts["nav-drawer"]) && !this.headerPresetSiteData.navigation) {
-                    warnings.push(this.headerPresetText.missingNavigation);
-                }
-                if (counts["language-switcher"] && !this.headerPresetSiteData.languages) {
-                    warnings.push(this.headerPresetText.missingLanguages);
-                }
-                if (counts["site-contact"] && !this.headerPresetSiteData.contact) {
-                    warnings.push(this.headerPresetText.missingContact);
-                }
-                if (counts["social-links"] && !this.headerPresetSiteData.social) {
-                    warnings.push(this.headerPresetText.missingSocial);
-                }
-                return warnings;
-            },
-
-            headerPresetFocusTypes(preset) {
-                var counts = window.BloxTemplateLibrary.elementCounts((preset && preset.sections) || []);
-                var candidates = this.areaPresetType === "footer"
-                    ? ["logo", "nav", "site-contact", "site-search", "social-links", "site-copyright"]
-                    : ["logo", counts["nav-mega"] ? "nav-mega" : "nav", "site-search", "language-switcher"];
-                return candidates
-                    .filter(function (type, index, all) { return counts[type] && all.indexOf(type) === index; });
-            },
-
-            focusFirstHeaderElement(type) {
-                for (var si = 0; si < this.sections.length; si++) {
-                    var columns = this.sections[si].columns || [];
-                    for (var ci = 0; ci < columns.length; ci++) {
-                        var elements = columns[ci].elements || [];
-                        for (var ei = 0; ei < elements.length; ei++) {
-                            if (elements[ei].type === type) {
-                                this.selectElement(si, ci, ei);
-                                return true;
-                            }
-                            var children = elements[ei].data && Array.isArray(elements[ei].data.children)
-                                ? elements[ei].data.children : [];
-                            var childIndex = children.findIndex(function (child) { return child.type === type; });
-                            if (childIndex >= 0) {
-                                this.selectChild(si, ci, ei, childIndex);
-                                return true;
-                            }
-                        }
-                    }
-                }
-                return false;
-            },
-
-            saveHeaderAsLocalStyle() {
-                if (!this.areaTemplateMode) return;
-                var suggested = <?php echo json_encode((string) ($page['name'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
-                    + " - " + this.headerPresetText.localCopySuffix;
-                var name = window.prompt(this.headerPresetText.saveLocalName, suggested);
-                if (!name || !String(name).trim()) return;
-                var self = this;
-                var body = new URLSearchParams({
-                    action: "save_area_copy",
-                    type: this.areaPresetType,
-                    name: String(name).trim(),
-                    blocks_data: this.documentData(),
-                    _token: this.csrf,
-                });
-                fetch("/admin/blox_template_api.php", { method: "POST", body: body })
-                    .then(function (response) { return response.json(); })
-                    .then(function (result) {
-                        self.toast(Number(result.code) === 0 ? self.headerPresetText.saveLocalDone : (result.msg || self.uiText.saveFailed));
-                    })
-                    .catch(function () { self.toast(self.uiText.saveFailed); });
-            },
-
-            applyHeaderPreset(preset, focusType) {
-                if (!this.areaTemplateMode || !preset || !Array.isArray(preset.sections)
-                    || preset.sections.length === 0) return;
-                var self = this;
-                var applied = this.commandRunner().execute("apply-area-preset", function () {
-                    var fresh = window.BloxTemplateLibrary.freshSections(
-                        preset.sections,
-                        function (prefix) { return self.uid(prefix); }
-                    );
-                    self.sections.splice.apply(self.sections, [0, self.sections.length].concat(fresh));
-                    self.docSettings = JSON.parse(JSON.stringify(preset.settings || {}));
-                    if (self.areaPresetType === "header") self.normalizeHeaderSettings();
-                    self.selectedSi = fresh.length > 0 ? 0 : -1;
-                    self.selectedCi = -1;
-                    self.selectedEi = -1;
-                    self.selectedSubEi = -1;
-                    self.selLayer = fresh.length > 0 ? "sec" : "";
-                    self.closeHeaderPresets();
-                });
-                if (!applied.ok) return;
-                this.toast(this.headerPresetText.applied.replace(":name", preset.name || ""));
-                if (focusType) {
-                    var self = this;
-                    this.$nextTick(function () { self.focusFirstHeaderElement(focusType); });
-                }
-            },
-
-            openPrebuiltSections() {
-                this.templateEntry = "sections";
-                this.templateFilter = "section";
-                this.restoreTemplateSectionViewState();
-                this.openTemplateDialog();
-                if (this.templateLoaded) {
-                    this.normalizeTemplateSectionViewState();
-                    this.restoreTemplateSectionScroll();
-                }
-            },
-
-            templateSectionsDocked() {
-                this.canvasViewportTick;
-                return this.templateEntry === "sections" && window.innerWidth >= 1200 && !this.paletteTapMode;
-            },
-
-            templatePanelMaximum() {
-                return Math.min(
-                    this.templatePanelMax,
-                    Math.max(this.templatePanelMin, window.innerWidth - 720)
-                );
-            },
-
-            templatePanelCurrentWidth() {
-                var width = Number(this.templatePanelWidth);
-                if (!Number.isFinite(width)) width = 520;
-                return Math.round(Math.max(this.templatePanelMin, Math.min(this.templatePanelMaximum(), width)));
-            },
-
-            templatePanelStyle() {
-                this.canvasViewportTick;
-                var maxHeight = this.templateSectionsDocked()
-                    ? "max-height:calc(100vh - 3.5rem);"
-                    : "max-height:calc(100vh - 4rem);";
-                return this.templateSectionsDocked()
-                    ? maxHeight + "width:" + this.templatePanelCurrentWidth() + "px;"
-                    : maxHeight;
-            },
-
-            restoreTemplatePanelWidth() {
-                var stored = this.readWorkspacePref("template-panel-width", this.templatePanelStorageKey);
-                if (stored !== null && Number.isFinite(Number(stored))) {
-                    this.templatePanelWidth = Math.round(Math.max(this.templatePanelMin, Math.min(this.templatePanelMax, Number(stored))));
-                }
-            },
-
-            persistTemplatePanelWidth() {
-                this.writeWorkspacePref("template-panel-width", this.templatePanelWidth, this.templatePanelStorageKey);
-            },
-
-            /** 工作区偏好键（站点 + 账号隔离）。 */
-            workspacePrefKey(name) {
-                return (this.workspacePrefPrefix || "yikai:blox:ws:v2::") + name;
-            },
-
-            /**
-             * 读工作区偏好：先读隔离键，缺省时只读回退旧版全局键（升级不丢已调好的宽度）。
-             * 存储不可用（隐私模式/被策略禁用）时返回 null，交由各 restore 用默认值兜底。
-             */
-            readWorkspacePref(name, legacyKey) {
-                try {
-                    var scoped = window.localStorage.getItem(this.workspacePrefKey(name));
-                    if (scoped !== null) return scoped;
-                    return legacyKey ? window.localStorage.getItem(legacyKey) : null;
-                } catch (error) {
-                    return null;
-                }
-            },
-
-            /** 写工作区偏好：只写隔离键；存储不可用时保留本次会话内的值，不抛错。 */
-            writeWorkspacePref(name, value, legacyKey) {
-                try {
-                    window.localStorage.setItem(this.workspacePrefKey(name), String(value));
-                } catch (error) {
-                    // 存储不可用：本次会话内仍然生效，不影响编辑
-                }
-            },
-
-
-            /**
-             * 恢复工作区：只把面板显隐/宽度复位并清掉本作用域偏好键，
-             * 不触碰文档 JSON、设计内容或保存状态（恢复后 dirty 不应变化）。
-             */
-            /**
-             * 恢复工作区：把本作用域的面板偏好写回默认值，**不删共享旧键**。
-             *
-             * TASK-002-R01：旧版全局键是所有账号共用的回退来源；此前这里连它一起删，
-             * 会让"恢复工作区"越过本账号作用域、改掉别的账号下次读到的宽度。
-             * 现在改为把默认值写进本作用域键——本账号从此不再回退旧键，别人的旧键原样保留。
-             */
-            restoreWorkspace() {
-                var self = this;
-                this.leftPanelWidth = 288;
-                this.rightPanelWidth = 256;
-                this.rightPanelCollapsed = false;
-                this.templatePanelWidth = 520;
-                this.writeWorkspacePref("left-panel-width", 288, this.leftPanelStorageKey);
-                this.writeWorkspacePref("right-panel-width", 256, this.rightPanelStorageKey);
-                this.writeWorkspacePref("right-panel-collapsed", "0", this.rightPanelCollapsedStorageKey);
-                this.writeWorkspacePref("template-panel-width", 520, this.templatePanelStorageKey);
-                if (typeof this.toast === "function") this.toast(this.uiText.workspaceRestored);
-            },
-
-            setTemplatePanelWidth(value, persist) {
-                var width = Number(value);
-                if (!Number.isFinite(width)) width = 520;
-                this.templatePanelWidth = Math.round(Math.max(this.templatePanelMin, Math.min(this.templatePanelMaximum(), width)));
-                this.canvasViewportTick++;
-                if (persist !== false) this.persistTemplatePanelWidth();
-            },
-
-            startTemplatePanelResize(event) {
-                if (!this.templateSectionsDocked() || !event || event.button !== 0) return;
-                event.preventDefault();
-                this.templatePanelResizing = true;
-                this._templatePanelPointerId = event.pointerId;
-                this._templatePanelResizeStartX = event.clientX;
-                this._templatePanelResizeStartWidth = this.templatePanelCurrentWidth();
-                document.body.classList.add("blox-panel-resizing");
-                if (event.currentTarget && typeof event.currentTarget.setPointerCapture === "function") {
-                    event.currentTarget.setPointerCapture(event.pointerId);
-                }
-            },
-
-            resizeTemplatePanel(event) {
-                if (!this.templatePanelResizing || !event) return;
-                if (this._templatePanelPointerId !== null && event.pointerId !== this._templatePanelPointerId) return;
-                this.setTemplatePanelWidth(
-                    this._templatePanelResizeStartWidth + event.clientX - this._templatePanelResizeStartX,
-                    false
-                );
-            },
-
-            finishTemplatePanelResize(event) {
-                if (!this.templatePanelResizing) return;
-                if (event && this._templatePanelPointerId !== null && event.pointerId !== this._templatePanelPointerId) return;
-                this.templatePanelResizing = false;
-                this._templatePanelPointerId = null;
-                document.body.classList.remove("blox-panel-resizing");
-                this.persistTemplatePanelWidth();
-            },
-
-            resizeTemplatePanelBy(delta) {
-                this.setTemplatePanelWidth(this.templatePanelCurrentWidth() + Number(delta || 0));
-            },
-
-            resetTemplatePanelWidth() {
-                this.setTemplatePanelWidth(520);
-            },
-
-            templateCompactSections() {
-                return this.templateEntry === "sections" && this.templateDensity === "compact";
-            },
-
-            templateSectionDraggable(item) {
-                return this.templateSectionsDocked() && item && item.type === "section"
-                    && !item.locked && this.templateInserting === "";
-            },
-
-            openPageTemplates() {
-                this.persistTemplateSectionViewState();
-                this.templateEntry = "pages";
-                this.templateScope = "local";
-                this.templateFilter = "page";
-                this.templateCategory = "page";
-                this.templateQuery = "";
-                this.openTemplateDialog();
-            },
-
-            startBlankPage() {
-                if (!this.pageMode || this.templateInserting) return;
-                if (this.sections.length > 0 && !window.confirm(this.templateText.blankPageConfirm)) return;
-                var self = this;
-                var applied = this.commandRunner().execute("blank-page", function () {
-                    var blank = {
-                        id: self.uid("s"),
-                        type: "section",
-                        settings: {},
-                        columns: [{ id: self.uid("c"), span: 12, settings: {}, elements: [] }],
-                    };
-                    self.sections.splice.apply(self.sections, [0, self.sections.length, blank]);
-                    self.docSettings = {};
-                    self.legacyPageContent = false;
-                    self.selectedSi = 0;
-                    self.selectedCi = 0;
-                    self.selectedEi = -1;
-                    self.selectedSubEi = -1;
-                    self.selLayer = "col";
-                    self.closeTemplates();
-                });
-                if (applied.ok) this.toast(this.templateText.blankPageDone);
-            },
-
-            restorePublishedPage() {
-                if (!this.pageMode || !this.pagePublished || this.templateInserting) return;
-                if (!window.confirm(this.templateText.restorePublishedConfirm)) return;
-                var self = this;
-                var applied = this.commandRunner().execute("restore-published-page", function () {
-                    var published = self.publishedDocument && typeof self.publishedDocument === "object"
-                        ? JSON.parse(JSON.stringify(self.publishedDocument))
-                        : { settings: {}, sections: [] };
-                    var sections = Array.isArray(published.sections) ? published.sections : [];
-                    self.sections.splice.apply(self.sections, [0, self.sections.length].concat(sections));
-                    self.docSettings = published.settings && typeof published.settings === "object" ? published.settings : {};
-                    self.legacyPageContent = false;
-                    self.selectedSi = sections.length > 0 ? 0 : -1;
-                    self.selectedCi = -1;
-                    self.selectedEi = -1;
-                    self.selectedSubEi = -1;
-                    self.selLayer = sections.length > 0 ? "sec" : "";
-                    self.closeTemplates();
-                });
-                if (applied.ok) this.toast(this.templateText.restorePublishedDone);
-            },
-
-            loadTemplates(force) {
-                if (this.templateLoading) {
-                    if (force) this.templateReloadPending = true;
-                    return;
-                }
-                if (this.templateLoaded && !force) return;
-                var self = this;
-                this.templateLoading = true;
-                this.templateError = "";
-                this.templateRemoteError = "";
-                var context = this.homeMode ? "home" : "page";
-                window.BloxTemplateLibrary.list(
-                    "/admin/blox_template_api.php",
-                    context,
-                    this.templateText.loadFailed,
-                    !!force
-                )
-                    .then(function (items) {
-                        self.templateItems = items;
-                        self.templateRemoteError = String(items.remoteError || "");
-                        self.templateLoaded = true;
-                        if (self.templateEntry === "sections") {
-                            self.normalizeTemplateSectionViewState();
-                            self.restoreTemplateSectionScroll();
-                        }
-                    })
-                    .catch(function (error) {
-                        // 刷新失败时保留已显示的本地目录，尤其不能抹掉刚另存成功的模板。
-                        if (!self.templateLoaded) {
-                            self.templateItems = [];
-                            self.templateRemoteError = "";
-                        }
-                        self.templateError = error.message || self.templateText.loadFailed;
-                    })
-                    .finally(function () {
-                        self.templateLoading = false;
-                        if (self.templateReloadPending) {
-                            self.templateReloadPending = false;
-                            self.loadTemplates(true);
-                        }
-                    });
-            },
-
-            filteredTemplates() {
-                var items = window.BloxTemplateLibrary.filter(
-                    this.scopedTemplates(),
-                    this.templateQuery,
-                    this.templateFilter,
-                    "all",
-                    this.templateCategory,
-                    this.templatePurpose,
-                    this.templateDataSource
-                );
-                if (this.templateEntry !== "sections") return items;
-                var self = this;
-                if (this.templateQuickFilter === "recommended") {
-                    return window.BloxTemplateLibrary.recommend(items, this.templatePageIntent);
-                }
-                if (this.templateQuickFilter === "favorites") {
-                    return items.filter(function (item) { return self.isTemplateFavorite(item.key); });
-                }
-                if (this.templateQuickFilter === "recent") {
-                    return items.filter(function (item) { return self.isTemplateRecent(item.key); });
-                }
-                return items.map(function (item, index) {
-                    return {
-                        item: item,
-                        index: index,
-                        rank: self.isTemplateFavorite(item.key) ? 0 : (self.isTemplateRecent(item.key) ? 1 : 2),
-                    };
-                }).sort(function (a, b) {
-                    return a.rank === b.rank ? a.index - b.index : a.rank - b.rank;
-                }).map(function (entry) { return entry.item; });
-            },
-
-            scopedTemplates() {
-                return window.BloxTemplateLibrary.scope(this.templateItems, this.templateScope);
-            },
-
-            templateEntryItems(items) {
-                var source = Array.isArray(items) ? items : this.scopedTemplates();
-                return window.BloxTemplateLibrary.filter(source, "", this.templateFilter, "all", "all");
-            },
-
-            templateQuickCount(mode) {
-                var self = this;
-                var items = this.templateEntryItems();
-                if (mode === "recommended") return window.BloxTemplateLibrary.recommend(items, this.templatePageIntent).length;
-                if (mode === "favorites") return items.filter(function (item) { return self.isTemplateFavorite(item.key); }).length;
-                if (mode === "recent") return items.filter(function (item) { return self.isTemplateRecent(item.key); }).length;
-                return items.length;
-            },
-
-            templateEmptyReason() {
-                if (this.templateEntry === "sections") {
-                    if (String(this.templateQuery || "").trim()) return "search";
-                    if (this.templateQuickFilter === "recommended") return "recommended";
-                    if (this.templateQuickFilter === "favorites") return "favorites";
-                    if (this.templateQuickFilter === "recent") return "recent";
-                    if (this.templateCategory !== "all") return "category";
-                    if (this.templatePurpose !== "all") return "category";
-                    if (this.templateDataSource !== "all") return "category";
-                }
-                return this.templateScope === "remote" ? "remote" : "local";
-            },
-
-            templateEmptyMessage() {
-                var reason = this.templateEmptyReason();
-                if (reason === "search") {
-                    return this.templateText.emptySearch.replace(":query", String(this.templateQuery || "").trim());
-                }
-                if (reason === "favorites") return this.templateText.emptyFavorites;
-                if (reason === "recent") return this.templateText.emptyRecent;
-                if (reason === "recommended") return this.templateText.emptyRecommended;
-                if (reason === "category") return this.templateText.emptyCategory;
-                return reason === "remote" ? this.templateText.emptyRemote : this.templateText.emptyLocal;
-            },
-
-            templateEmptyIcon() {
-                var reason = this.templateEmptyReason();
-                if (reason === "search") return "ti-search-off";
-                if (reason === "favorites") return "ti-star";
-                if (reason === "recent") return "ti-history";
-                if (reason === "recommended") return "ti-sparkles";
-                if (reason === "category") return "ti-category";
-                return reason === "remote" ? "ti-cloud-off" : "ti-template-off";
-            },
-
-            templateCanClearFilters() {
-                return this.templateEntry === "sections" && (
-                    String(this.templateQuery || "").trim() !== ""
-                    || this.templateCategory !== "all"
-                    || this.templatePurpose !== "all"
-                    || this.templateDataSource !== "all"
-                    || !["recommended", "all"].includes(this.templateQuickFilter)
-                );
-            },
-
-            clearTemplateSectionFilters() {
-                if (this.templateEntry !== "sections") return;
-                this.templateQuery = "";
-                this.templateCategory = "all";
-                this.templatePurpose = "all";
-                this.templateDataSource = "all";
-                this.templateQuickFilter = this.templateQuickCount("recommended") > 0 ? "recommended" : "all";
-                var scroller = this.$refs.templateScroll;
-                if (scroller) scroller.scrollTop = 0;
-                this.templateSectionScrollTop = 0;
-                this.persistTemplateSectionViewState();
-                this.restoreTemplateSectionScroll();
-            },
-
-            templateScopeCount(scope) {
-                return this.templateEntryItems(window.BloxTemplateLibrary.scope(this.templateItems, scope)).length;
-            },
-
-            templateCategoryOptions() {
-                return window.BloxTemplateLibrary.categories(this.templateEntryItems());
-            },
-
-            templateCategoryLabel(category) {
-                return window.BloxTemplateLibrary.categoryLabel(category, this.templateText);
-            },
-
-            templatePurposeOptions() {
-                return window.BloxTemplateLibrary.purposes(this.templateEntryItems());
-            },
-
-            templateDataSourceOptions() {
-                var available = window.BloxTemplateLibrary.dataSources(this.templateEntryItems());
-                // 静态/动态是区块目录的稳定契约；目录异步加载或旧缓存期间也要保留筛选入口。
-                return ["static", "dynamic"].filter(function (value) {
-                    return available.indexOf(value) !== -1 || value === "static" || value === "dynamic";
-                });
-            },
-
-            templatePurposeLabel(purpose) {
-                return window.BloxTemplateLibrary.purposeLabel(purpose, this.templateText);
-            },
-
-            templateVariantLabel(variant) {
-                var value = String(variant || "standard").trim().toLowerCase();
-                var key = "variant" + value.split("-").map(function (part) {
-                    return part.charAt(0).toUpperCase() + part.slice(1);
-                }).join("");
-                return this.templateText[key] || value;
-            },
-
-            restoreTemplateSectionViewState() {
-                var state = {};
-                try {
-                    state = JSON.parse(window.sessionStorage.getItem(this.templateSectionViewStorageKey) || "{}");
-                } catch (error) {
-                    state = {};
-                }
-                this.templateScope = state.scope === "remote" ? "remote" : "local";
-                this.templateCategory = typeof state.category === "string" && /^[a-z0-9_-]{1,80}$/i.test(state.category)
-                    ? state.category
-                    : "all";
-                this.templatePurpose = typeof state.purpose === "string" && /^[a-z0-9_-]{1,80}$/i.test(state.purpose)
-                    ? state.purpose
-                    : "all";
-                this.templateDataSource = ["all", "static", "dynamic"].indexOf(state.dataSource) !== -1
-                    ? state.dataSource
-                    : "all";
-                this.templateQuickFilter = ["recommended", "all", "favorites", "recent"].indexOf(state.quickFilter) !== -1
-                    ? state.quickFilter
-                    : "recommended";
-                this.templateQuery = typeof state.query === "string" ? state.query.slice(0, 120) : "";
-                var scrollTop = Number(state.scrollTop);
-                this.templateSectionScrollTop = Number.isFinite(scrollTop)
-                    ? Math.max(0, Math.min(scrollTop, 1000000))
-                    : 0;
-            },
-
-            normalizeTemplateSectionViewState() {
-                if (this.templateCategory !== "all"
-                    && this.templateCategoryOptions().indexOf(this.templateCategory) === -1) {
-                    this.templateCategory = "all";
-                    this.templateSectionScrollTop = 0;
-                }
-                if (this.templatePurpose !== "all"
-                    && this.templatePurposeOptions().indexOf(this.templatePurpose) === -1) {
-                    this.templatePurpose = "all";
-                    this.templateSectionScrollTop = 0;
-                }
-                if (this.templateDataSource !== "all"
-                    && this.templateDataSourceOptions().indexOf(this.templateDataSource) === -1) {
-                    this.templateDataSource = "all";
-                    this.templateSectionScrollTop = 0;
-                }
-                if (this.templateQuickFilter === "recommended" && this.templateQuickCount("recommended") === 0) {
-                    this.templateQuickFilter = "all";
-                    this.templateSectionScrollTop = 0;
-                }
-            },
-
-            templateItemRecommended(item) {
-                return window.BloxTemplateLibrary.isRecommended(item, this.templatePageIntent);
-            },
-
-            rememberTemplateSectionScroll(scrollTop) {
-                if (this.templateEntry !== "sections") return;
-                scrollTop = Number(scrollTop);
-                if (Number.isFinite(scrollTop)) {
-                    this.templateSectionScrollTop = Math.max(0, Math.min(scrollTop, 1000000));
-                }
-            },
-
-            persistTemplateSectionViewState() {
-                if (this.templateEntry !== "sections") return;
-                var scroller = this.$refs.templateScroll;
-                if (scroller) this.rememberTemplateSectionScroll(scroller.scrollTop);
-                try {
-                    window.sessionStorage.setItem(this.templateSectionViewStorageKey, JSON.stringify({
-                        scope: this.templateScope === "remote" ? "remote" : "local",
-                        category: this.templateCategory,
-                        purpose: this.templatePurpose,
-                        dataSource: this.templateDataSource,
-                        quickFilter: this.templateQuickFilter,
-                        query: String(this.templateQuery || "").slice(0, 120),
-                        scrollTop: this.templateSectionScrollTop,
-                    }));
-                } catch (error) {
-                    // 禁用会话存储时仍保留本次页面生命周期内的状态。
-                }
-            },
-
-            restoreTemplateSectionScroll() {
-                var self = this;
-                this.$nextTick(function () {
-                    window.requestAnimationFrame(function () {
-                        var scroller = self.$refs.templateScroll;
-                        if (!scroller || !self.templateOpen || self.templateEntry !== "sections") return;
-                        var maximum = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
-                        scroller.scrollTop = Math.min(self.templateSectionScrollTop, maximum);
-                    });
-                });
-            },
-
-            templateTypeLabel(type) {
-                return type === "page" ? this.templateText.page : this.templateText.section;
-            },
-
-            templateProviderLabel(item) {
-                return window.BloxTemplateLibrary.providerLabel(item, this.templateText);
-            },
-
-            canEditLocalTemplate(item) {
-                return window.BloxTemplateLibrary.canEditLocal(item);
-            },
-
-            localTemplateEditUrl(item) {
-                return window.BloxTemplateLibrary.localEditUrl(item);
-            },
-
-            templateLockLabel(item) {
-                return window.BloxTemplateLibrary.lockLabel(item, this.templateText);
-            },
-
-            anchorIdValid(value) {
-                return /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(String(value || "").replace(/^#/, ""));
-            },
-
-            anchorIdDuplicate(value) {
-                var current = String(value || "").replace(/^#/, "").toLowerCase();
-                if (!current || !this.anchorIdValid(current)) return false;
-                var count = this.sections.filter(function (section) {
-                    return String(section && section.settings && section.settings.anchor_id || "")
-                        .replace(/^#/, "").toLowerCase() === current;
-                }).length;
-                return count > 1;
-            },
-
-            hasLockedTemplates() {
-                return window.BloxTemplateLibrary.hasLockedRemote(this.templateItems);
-            },
-
-
-            insertTemplate(item) {
-                this.applyTemplate(item, "append");
-            },
-
-            insertTemplateAt(item, index) {
-                this.applyTemplate(item, "append", index);
-            },
-
-            replaceWithTemplate(item) {
-                this.applyTemplate(item, "replace");
-            },
-
-            applyTemplate(item, mode, insertAt) {
-                if (!item || item.locked || this.templateInserting) return;
-                var replacing = mode === "replace";
-                var requestedIndex = Number.isInteger(insertAt) ? insertAt : null;
-                if (replacing && this.sections.length > 0
-                    && !window.confirm(this.templateText.replaceConfirm)) return;
-                if (!replacing && item.type === "page" && this.sections.length > 0
-                    && !window.confirm(this.templateText.appendConfirm)) return;
-                var self = this;
-                this.templateInserting = item.key;
-                var context = this.homeMode ? "home" : "page";
-                window.BloxTemplateLibrary.resolve(
-                    "/admin/blox_template_api.php",
-                    context,
-                    item.key,
-                    this.templateText.insertFailed,
-                    this.csrf
-                )
-                    .then(function (template) {
-                        // 应用段走命令层：中途异常回滚整组插入，不留半截模板（silent：提示走下方 catch）
-                        var applied = self.commandRunner().execute("insert-template", function () {
-                            var sections = template.sections;
-                            if (!sections.length) throw new Error(self.templateText.insertFailed);
-                            var fresh = window.BloxTemplateLibrary.freshSections(
-                                sections,
-                                function (prefix) { return self.uid(prefix); }
-                            );
-                            self.docSettings = window.BloxTemplateLibrary.applyPageSettings(
-                                self.docSettings, template, mode, self.pageTemplateTarget
-                            );
-                            var at = replacing ? 0 : (requestedIndex === null
-                                ? self.insertIndex()
-                                : Math.max(0, Math.min(requestedIndex, self.sections.length)));
-                            if (replacing) {
-                                self.sections.splice.apply(self.sections, [0, self.sections.length].concat(fresh));
-                                self.legacyPageContent = false;
-                            } else {
-                                self.sections.splice.apply(self.sections, [at, 0].concat(fresh));
-                            }
-                            self.selectedSi = at;
-                            self.selectedCi = -1;
-                            self.selectedEi = -1;
-                            self.selectedSubEi = -1;
-                            self.selLayer = "sec";
-                            self.closeTemplates();
-                            self.toast((template.name || item.name) + (replacing ? self.templateText.replaced : self.templateText.inserted));
-                        }, { silent: true });
-                        if (!applied.ok) throw (applied.error || new Error(self.templateText.insertFailed));
-                        if (item.type === "section") self.rememberRecentTemplate(item.key);
-                    })
-                    .catch(function (error) {
-                        self.templateError = error.message || self.templateText.insertFailed;
-                    })
-                    .finally(function () { self.templateInserting = ""; });
-            },
-
-            // ── 媒体库选择器（复用 media_api.php，与后台其它页的选图弹窗同一数据源） ──
-            mediaOpen: false,
-            mediaItems: [],
-            mediaPage: 1,
-            mediaPages: 1,
-            mediaTotal: 0,
-            mediaKeyword: "",
-            mediaLoading: false,
-            mediaSource: "local",
-            mediaType: "image",
-            mediaSort: "default",
-            mediaCanSwitchType: false,
-            mediaEntitlement: { canImport: false, reason: "" },
-            mediaImporting: "",
-            mediaUsage: "",
-            mediaPreferredMinWidth: 0,
-            mediaRequestGuard: window.BloxMediaClient.latestRequestGuard(),
-            _mediaVideoPreviewQueue: null,
-            _mediaTarget: null,   // 选中回调：拿到 url 写进哪个字段
-            _mediaTargets: null,
-            _mediaImageUsage: "",
-
-            openMedia(setter, options) {
-                options = options || {};
-                this.mediaType = options.type === "video" ? "video" : "image";
-                this._mediaTargets = options.targets
-                    && typeof options.targets.image === "function"
-                    && typeof options.targets.video === "function"
-                    ? options.targets
-                    : null;
-                this.mediaCanSwitchType = this._mediaTargets !== null;
-                this._mediaTarget = this.mediaCanSwitchType ? this._mediaTargets[this.mediaType] : setter;
-                this._mediaImageUsage = String(options.usage || "");
-                this.mediaUsage = this.mediaType === "image" ? this._mediaImageUsage : "";
-                this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
-                this.mediaSource = options.source === "official" && this.mediaType === "image" ? "official" : "local";
-                this.mediaEntitlement = { canImport: false, reason: "" };
-                this.mediaImporting = "";
-                this.mediaOpen = true;
-                this.mediaKeyword = "";
-                this.focusDialog(this.$refs.mediaDialog, "[data-dialog-initial]");
-                this.loadMedia(1);
-            },
-
-            closeMedia() {
-                if (!this.mediaOpen) return;
-                var root = this.$refs.mediaDialog;
-                this.resetMediaVideoPreviews();
-                this.mediaOpen = false;
-                this._mediaTarget = null;
-                this._mediaTargets = null;
-                this.mediaCanSwitchType = false;
-                this.mediaType = "image";
-                this.mediaUsage = "";
-                this._mediaImageUsage = "";
-                this.mediaPreferredMinWidth = 0;
-                this.mediaImporting = "";
-                this.mediaRequestGuard.invalidate();
-                this.mediaLoading = false;
-                this.releaseDialog(root);
-            },
-
-            setMediaType(type) {
-                if (!this.mediaCanSwitchType || !["image", "video"].includes(type) || type === this.mediaType) return;
-                this.mediaRequestGuard.invalidate();
-                this.mediaType = type;
-                this._mediaTarget = this._mediaTargets[type];
-                this.mediaUsage = type === "image" ? this._mediaImageUsage : "";
-                this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
-                this.mediaSource = "local";
-                this.mediaKeyword = "";
-                this.mediaEntitlement = { canImport: false, reason: "" };
-                this.mediaImporting = "";
-                this.loadMedia(1);
-            },
-
-            setMediaSource(source) {
-                if (source === "official" && this.mediaType !== "image") return;
-                this.mediaSource = source === "official" ? "official" : "local";
-                this.mediaEntitlement = { canImport: false, reason: "" };
-                this.mediaImporting = "";
-                this.loadMedia(1);
-            },
-
-            loadMedia(page) {
-                var self = this;
-                this.resetMediaVideoPreviews();
-                this.mediaItems = [];
-                var requestId = this.mediaRequestGuard.begin();
-                this.mediaLoading = true;
-                this.mediaPage = page;
-                var request = this.mediaSource === "official"
-                    ? window.OfficialMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage })
-                    : window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, {
-                        usage: this.mediaUsage,
-                        type: this.mediaType,
-                        sort: this.mediaSort,
-                    });
-                request
-                    .then(function (result) {
-                        if (!self.mediaRequestGuard.isCurrent(requestId)) return;
-                        if (result.ok) {
-                            self.mediaItems = result.items;
-                            self.mediaPages = result.pages;
-                            self.mediaTotal = result.total;
-                            self.mediaEntitlement = result.entitlement || { canImport: false, reason: "" };
-                        } else {
-                            self.mediaItems = [];
-                            self.mediaPages = 0;
-                            self.mediaTotal = 0;
-                            self.mediaEntitlement = { canImport: false, reason: "" };
-                            self.toast(result.message || (self.mediaSource === "official" ? self.uiText.officialMediaFailed : self.uiText.mediaLoadFailed));
-                        }
-                    })
-                    .catch(function () {
-                        if (!self.mediaRequestGuard.isCurrent(requestId)) return;
-                        self.mediaItems = [];
-                        self.mediaPages = 0;
-                        self.mediaTotal = 0;
-                        self.mediaEntitlement = { canImport: false, reason: "" };
-                        self.toast(self.mediaSource === "official" ? self.uiText.officialMediaFailed : self.uiText.mediaFailed);
-                    })
-                    .finally(function () {
-                        if (self.mediaRequestGuard.isCurrent(requestId)) self.mediaLoading = false;
-                    });
-            },
-
-            mediaRecommended(item) {
-                return this.mediaPreferredMinWidth > 0
-                    && Number((item && item.width) || 0) >= this.mediaPreferredMinWidth;
-            },
-
-            mediaDimensions(item) {
-                var preview = this.mediaVideoPreview(item);
-                var width = Math.max(0, Number((preview && preview.width) || (item && item.width) || 0));
-                var height = Math.max(0, Number((preview && preview.height) || (item && item.height) || 0));
-                var bytes = Math.max(0, Number((item && item.size) || 0));
-                var values = [];
-                if (width > 0 && height > 0) values.push(Math.round(width) + "×" + Math.round(height));
-                if (preview && preview.duration > 0) values.push(window.BloxMediaClient.formatDuration(preview.duration));
-                if (bytes > 0) values.push(window.BloxMediaClient.formatBytes(bytes));
-                return values.join(" · ");
-            },
-
-            mediaVideoPreview(item) {
-                return item && item._videoPreview && typeof item._videoPreview === "object"
-                    ? item._videoPreview
-                    : { status: "idle", width: 0, height: 0, duration: 0 };
-            },
-
-            mediaVideoStatusText(item) {
-                return this.mediaVideoPreview(item).status === "error"
-                    ? this.uiText.mediaVideoPreviewUnavailable
-                    : this.uiText.mediaVideoPreviewLoading;
-            },
-
-            registerMediaVideoPreview(video, item) {
-                if (!this.mediaOpen || this.mediaType !== "video" || !video || !item) return;
-                if (!this._mediaVideoPreviewQueue) {
-                    this._mediaVideoPreviewQueue = window.BloxMediaClient.createVideoPreviewQueue({
-                        root: this.$refs.mediaScroll,
-                        maxConcurrent: 2,
-                    });
-                }
-                this._mediaVideoPreviewQueue.observe(video, item.url, function (state) {
-                    item._videoPreview = state;
-                });
-            },
-
-            resetMediaVideoPreviews() {
-                if (this._mediaVideoPreviewQueue) this._mediaVideoPreviewQueue.reset();
-                this._mediaVideoPreviewQueue = null;
-            },
-
-            mediaDate(item) {
-                var timestamp = Math.max(0, Number((item && item.created_at) || 0));
-                if (timestamp <= 0) return "";
-                var date = new Date(timestamp * 1000);
-                if (!Number.isFinite(date.getTime())) return "";
-                var month = String(date.getMonth() + 1).padStart(2, "0");
-                var day = String(date.getDate()).padStart(2, "0");
-                return date.getFullYear() + "-" + month + "-" + day;
-            },
-
-            mediaItemName(item) {
-                var lang = String(document.documentElement.lang || "").toLowerCase();
-                if (lang.indexOf("ja") === 0 && item && item.name_ja) return String(item.name_ja);
-                if (lang.indexOf("en") === 0 && item && item.name_en) return String(item.name_en);
-                return String((item && (item.name || item.name_en || item.name_ja || item.id)) || "");
-            },
-
-            officialPreviewUrl(item) {
-                var url = String((item && (item.preview_large_url || item.preview_url)) || "");
-                if (/^https:\/\/(update|media)\.yikaicms\.com\//i.test(url)) return url;
-                if (/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i.test(url)) return url;
-                return "";
-            },
-
-            previewOfficialMedia(item) {
-                var url = this.officialPreviewUrl(item);
-                if (!url) {
-                    this.toast(this.uiText.officialMediaFailed);
-                    return;
-                }
-                window.open(url, "_blank", "noopener,noreferrer");
-            },
-
-            importOfficialMedia(item) {
-                var assetId = String((item && item.id) || "");
-                if (!assetId || this.mediaImporting) return;
-                var self = this;
-                this.mediaImporting = assetId;
-                window.OfficialMediaClient.importAsset("/admin/media_api.php", assetId, { csrf: this.csrf })
-                    .then(function (result) {
-                        if (!result.ok) {
-                            self.toast(result.message || self.uiText.officialMediaFailed);
-                            return;
-                        }
-                        if (self._mediaTarget) self._mediaTarget(result.url, result.data);
-                        self.closeMedia();
-                    })
-                    .catch(function () { self.toast(self.uiText.officialMediaFailed); })
-                    .finally(function () { self.mediaImporting = ""; });
-            },
-
-            pickMedia(url) {
-                if (this._mediaTarget) this._mediaTarget(url);
-                this.closeMedia();
-            },
-
-            mediaUploading: false,
-
-            // Rich-text dialogs own their TinyMCE instance and detached popups.
-            rteOpen: false,
-            _rteTarget: null,
-            _rteInited: false,
-
-            openRte(getter, setter) {
-                this._rteTarget = setter;
-                this.rteOpen = true;
-                this.focusDialog(this.$refs.rteDialog, "[data-dialog-initial]");
-                var initial = getter() || "";
-                var self = this;
-                this.$nextTick(function () {
-                    if (!self.rteOpen) return;
-                    if (self._rteInited) {
-                        var ed = tinymce.get("bloxRte");
-                        if (ed) ed.setContent(initial);
-                        return;
-                    }
-                    self._rteInited = true;
-                    tinymce.init({
-                        selector: "#bloxRte",
-                        language: (document.documentElement.lang || "zh-CN") === "ja" ? "ja" : "zh_CN",
-                        height: 420,
-                        formats: {
-                            alignleft: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-left" },
-                            aligncenter: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-center" },
-                            alignright: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-right" }
-                        },
-                        content_style: ".text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}",
-                        menubar: false,
-                        plugins: "autolink lists link image charmap searchreplace visualblocks code codesample insertdatetime media table wordcount",
-                        toolbar: "undo redo | styles fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link image media codesample | table | removeformat code",
-                        branding: false, promotion: false, convert_urls: false,
-                        images_upload_handler: function (blobInfo) {
-                            return new Promise(function (resolve, reject) {
-                                window.BloxMediaClient.upload("/admin/media_api.php", blobInfo.blob(), {
-                                    csrf: self.csrf,
-                                    filename: blobInfo.filename(),
-                                    maxDimension: <?php echo max(0, (int) config('upload_max_width', 1920)); ?>,
-                                    quality: <?php echo max(50, min(95, (int) config('upload_jpeg_quality', 85))) / 100; ?>,
-                                })
-                                    .then(function (result) { result.ok ? resolve(result.url) : reject(result.message || self.uiText.uploadFailedShort); })
-                                    .catch(function () { reject(self.uiText.uploadFailedShort); });
-                            });
-                        },
-                        // Reuse the editor media library.
-                        file_picker_types: "image",
-                        file_picker_callback: function (cb, value, meta) {
-                            if (meta.filetype === "image") self.openMedia(function (u) { cb(u, { alt: "" }); });
-                        },
-                        setup: function (ed) {
-                            ed.on("init", function () {
-                                if (!self.rteOpen) { ed.remove(); return; }
-                                ed.setContent(initial);
-                            });
-                        }
-                    });
-                });
-            },
-
-            closeRte() {
-                if (!this.rteOpen) return;
-                var root = this.$refs.rteDialog;
-                var editor = window.tinymce && tinymce.get("bloxRte");
-                if (editor) editor.remove();
-                this._rteInited = false;
-                this.rteOpen = false;
-                this._rteTarget = null;
-                this.releaseDialog(root);
-            },
-
-            saveRte() {
-                var ed = tinymce.get("bloxRte");
-                if (ed && this._rteTarget) this._rteTarget(ed.getContent());
-                this.closeRte();
-            },
-
-            /** 上传成功直接选用（上传的目的就是马上用）；失败提示原因留在弹窗里重试 */
-            mediaUploadMessage(result) {
-                if (!result || !result.optimized || result.uploadBytes >= result.originalBytes) {
-                    return this.uiText.uploadedSelected;
-                }
-                return this.uiText.uploadedOptimized
-                    .replace(":from", window.BloxMediaClient.formatBytes(result.originalBytes))
-                    .replace(":to", window.BloxMediaClient.formatBytes(result.uploadBytes));
-            },
-
-            uploadMedia(file) {
-                if (!file || this.mediaUploading) return;
-                var self = this;
-                this.mediaUploading = true;
-                window.BloxMediaClient.upload("/admin/media_api.php", file, {
-                    csrf: this.csrf,
-                    type: this.mediaType,
-                    maxBytes: <?php echo max(0, (int) UPLOAD_MAX_SIZE); ?>,
-                    maxDimension: <?php echo max(0, (int) config('upload_max_width', 1920)); ?>,
-                    quality: <?php echo max(50, min(95, (int) config('upload_jpeg_quality', 85))) / 100; ?>,
-                })
-                    .then(function (result) {
-                        if (result.ok) {
-                            self.toast(self.mediaUploadMessage(result));
-                            self.pickMedia(result.url);
-                        } else if (result.error === "too_large") {
-                            self.toast(self.uiText.uploadTooLarge
-                                .replace(":size", window.BloxMediaClient.formatBytes(result.originalBytes))
-                                .replace(":limit", window.BloxMediaClient.formatBytes(result.limitBytes)));
-                        } else {
-                            self.toast(result.message || self.uiText.uploadFailedShort);
-                        }
-                    })
-                    .catch(function () { self.toast(self.uiText.uploadFailed); })
-                    .finally(function () { self.mediaUploading = false; });
-            },
-            targetCi: 0,                // 插入到选中区块的第几列
-            elementLib: <?php echo json_encode($elementLib, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            catLabels: <?php echo json_encode($catLabels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            elementSchemas: <?php echo json_encode($elementSchemas, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            homeBannerSeeds: <?php echo json_encode($homeBannerSeeds, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-
-            // 元素选中：-1 表示当前选的是区块本身；selectedSubEi ≥0 = 选的是容器内的子元素
-            selectedCi: -1,
-            selectedEi: -1,
-            selectedSubEi: -1,
-            // 同级多选（R1）：稳定 id 集合，仅同列/同容器/根区块内；批量操作条由 multiSelActive 门控
-            multiSel: null,
-            // 批量剪贴板（R2）：有序列表 {level, parent, items}；单选剪贴板（clipboard）不受影响
-            batchClipboard: null,
-            multiText: <?php echo json_encode([
-                'count' => __('blox_multi_selected_count'),
-                'clipboardCount' => __('blox_batch_clipboard_count'),
-                'hint' => __('blox_multi_hint'),
-                'actions' => [
-                    'delete' => __('blox_batch_delete'),
-                    'duplicate' => __('blox_batch_duplicate'),
-                    'cut' => __('blox_batch_cut'),
-                    'paste' => __('blox_batch_paste'),
-                ],
-                'deleteDone' => __('blox_batch_delete_done'),
-                'duplicateDone' => __('blox_batch_duplicate_done'),
-                'cutDone' => __('blox_batch_cut_done'),
-                'pasteDone' => __('blox_batch_paste_done'),
-                'pasteRejected' => __('blox_batch_paste_rejected'),
-                'failed' => __('blox_batch_failed'),
-            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            selectedSectionField: "",
-            selectedHomeField: "",
-            homeFieldRevision: 0,
-            selectedHomeColumn: "",
-            _emptyCol: {
-                card_bg: "",
-                card_bg_image: "",
-                card_bg_overlay_color: "",
-                card_bg_overlay_opacity: 0,
-            },
-            // 区块的选中层（Bricks 分层树）：sec=全宽背景层，con=内容容器层
-            selLayer: "sec",
-
-            get sel() { return this.selectedSi >= 0 && this.sections[this.selectedSi] ? this.sections[this.selectedSi] : null; },
-
-            /** 列级选中元素（容器场景下=容器本身，不下钻子元素） */
-            get selTopEl() {
-                var s = this.sel;
-                if (!s || this.selectedCi < 0 || this.selectedEi < 0) return null;
-                var col = s.columns[this.selectedCi];
-                return (col && col.elements[this.selectedEi]) ? col.elements[this.selectedEi] : null;
-            },
-
-            /** 当前选中的元素对象；子元素选中时下钻到 children（设置面板据此切换显示） */
-            get selEl() {
-                var el = this.selTopEl;
-                if (el && this.selectedSubEi >= 0) {
-                    var kids = (el.data && el.data.children) || [];
-                    return kids[this.selectedSubEi] || null;
-                }
-                return el;
-            },
-
-            /** 元素 schema。未知类型（插件卸载后残留等）也要给个兜底，不能让设置面板炸掉 */
+            <?php require __DIR__ . '/blox_editor/partials/template-library-methods.php'; ?>
+            <?php require __DIR__ . '/blox_editor/partials/media-editing-methods.php'; ?>
             elSchema(type) {
                 return this.elementSchemas[type] || {
                     label: type, icon: "box", controls: [], container: false,
@@ -4854,6 +3634,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (self.selEl.type === "list-dynamic" && self.hasLoopTemplate()
                         && ["show_image","image_field","show_title","title_field","show_summary","summary_field","show_date","date_field","show_meta","meta_field","link_field","summary_len","item_preset","image_ratio"].indexOf(c.key) !== -1) return false;
                     if (!self.controlRequirementMet(c)) return false;
+                    if (!self.siteLanguageControlApplies(c)) return false;
                     if ((c.key === "animation_speed" || c.key === "animation_delay")
                         && !self.selEl.data.animation) return false;
                     return true;
@@ -5078,7 +3859,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             cssLengthDevice(ctrl) {
-                return ctrl.responsive && ["t", "m"].includes(this.previewDevice) ? this.previewDevice : "d";
+                return ctrl.responsive ? this.responsiveDeviceKey() : "d";
             },
 
             cssLengthValue(ctrl) {
@@ -6207,13 +4988,38 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (this._draftRecovery) return this._draftRecovery;
                 var Recovery = window.BloxDraftRecovery && window.BloxDraftRecovery.DraftRecovery;
                 if (typeof Recovery !== "function") return null;
+                var self = this;
                 this._draftRecovery = new Recovery({
                     storage: window.localStorage,
                     key: this.recoveryKey,
                     delay: 1200,
                     maxBytes: 2000000,
+                    // 只在状态首次变化时回调：失败（存储不可用/空间不足/文档超限）
+                    // 必须可见，不能一边写不进去一边毫无提示。
+                    onStateChange: function (state) { self.onRecoveryStateChange(state); },
                 });
                 return this._draftRecovery;
+            },
+
+            onRecoveryStateChange(state) {
+                this.recoveryState = state;
+                var message = this.recoveryStateMessage();
+                if (message) this.toast(message);
+            },
+
+            /** 恢复稿写入异常的用户可读说明；正常状态返回空串（不打扰）。 */
+            recoveryStateMessage() {
+                switch (this.recoveryState) {
+                    case "unavailable": return this.recoveryText.backupUnavailable;
+                    case "quota": return this.recoveryText.backupQuota;
+                    case "toolarge": return this.recoveryText.backupTooLarge;
+                    default: return "";
+                }
+            },
+
+            recoveryDraftTimeText() {
+                if (!this.recoveryDraft || !Number.isFinite(this.recoveryDraft.savedAt)) return "";
+                try { return new Date(this.recoveryDraft.savedAt).toLocaleString(); } catch (_) { return ""; }
             },
 
             initDraftRecovery() {
@@ -6559,243 +5365,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return { state: state, scope: state === 'valid' ? this.conditionScope() : null };
             },
 
-            // ---- 第三轮：发布冲突检查（与发布请求同一份文档与条件；结论由服务端对真实内容前后对比给出） ----
-
-            /** 检查结论对应的条件：条件一改，旧结论只能算过期参考（发布时服务端会重新校验）。 */
-            publishCheckKeyFor(condition) {
-                var submission = condition || this.conditionSubmission();
-                return JSON.stringify({ state: submission.state, scope: submission.scope });
-            },
-
-            publishCheckIsStale() {
-                return this.publishCheck !== null && !this.publishCheckBusy && this.publishCheckKey !== this.publishCheckKeyFor();
-            },
-
-            publishCheckText(key, params) {
-                var text = (this.publishCheckTexts || {})[key] || '';
-                Object.keys(params || {}).forEach(function (name) { text = text.split(':' + name).join(String(params[name])); });
-                return text;
-            },
-
-            publishCheckSummary() {
-                var check = this.publishCheck;
-                if (!check) return '';
-                if (this.publishCheckBusy) return this.publishCheckText('running', { scanned: check.scanned || 0, total: check.total || 0 });
-                if (check.status === 'clear') return this.publishCheckText('clear', { total: check.total || 0 });
-                if (check.status === 'conflict') return this.publishCheckText('conflict', { count: check.found || 0 });
-                if (check.status === 'cancelled') return this.publishCheckText('cancelled');
-                return this.publishCheckText('incomplete', { scanned: check.scanned || 0, total: check.total || 0 });
-            },
-
-            publishCheckTemplateLabel(id) {
-                var names = (this.publishCheck && this.publishCheck.template_names) || {};
-                var label = '#' + id + (names[String(id)] ? ' ' + names[String(id)] : '');
-                return Number(id) === Number(this.conditionTemplateId) ? label + ' ' + this.publishCheckText('self') : label;
-            },
-
-            /** 检查请求的文档与条件字段（与发布一致；不改动保存回执用的条件快照）。 */
-            publishCheckBody(payload, condition) {
-                var body = new URLSearchParams();
-                body.set('action', 'check_publish_conflicts');
-                body.set('id', String(this.conditionTemplateId));
-                body.set('blocks_data', payload);
-                if (condition.state === 'valid') body.set('conditions_json', JSON.stringify(condition.scope));
-                else if (condition.state === 'unchanged' && this.conditionContentType === 'product') body.set('ui_scope', '1');
-                body.set('_token', this.csrf);
-                return body;
-            },
-
-            /** 手动检查入口：当前画布与条件，从头逐页检查到有结论为止。 */
-            runPublishCheckNow() {
-                var condition = this.conditionSubmission();
-                if (condition.state === 'invalid') {
-                    this.blockForInvalidConditions();
-                    return;
-                }
-                this.runPublishCheck(this.documentData(), condition, true);
-            },
-
-            /**
-             * 分页检查：服务端在会话里记进度、每页有行数与时间上限；直到 clear / conflict，或被停止、出错。
-             * @return Promise<object|null> 最终报告；被停止、出错或仍未完成时为 null
-             */
-            runPublishCheck(payload, condition, restart) {
-                var self = this;
-                if (this.conditionContentType === '' || this.conditionTemplateId <= 0) return Promise.resolve(null);
-                var seq = ++this.publishCheckSeq;
-                this.publishCheckBusy = true;
-                this.publishCheckKey = this.publishCheckKeyFor(condition);
-                var first = restart === true;
-                var pages = 0;
-                var step = function () {
-                    var body = self.publishCheckBody(payload, condition);
-                    if (first) body.set('restart', '1');
-                    first = false;
-                    pages++;
-                    return fetch('/admin/blox_template_api.php', { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                        .then(function (r) { return r.json().catch(function () { return { code: 1 }; }); })
-                        .then(function (res) {
-                            if (seq !== self.publishCheckSeq) return null;   // 已停止，或有更新的检查
-                            if (Number(res.code) !== 0 || !res.data || !res.data.check) {
-                                self.toast((res && res.msg) || self.publishCheckText('failed'));
-                                return null;
-                            }
-                            self.publishCheck = res.data.check;
-                            // 内容在检查期间持续变化会让指纹反复重置：设上限，停在"未完成"而不是无限重试
-                            if (res.data.check.status === 'incomplete') return pages < 500 ? step() : null;
-                            return res.data.check;
-                        });
-                };
-                return step()
-                    .catch(function () {
-                        if (seq === self.publishCheckSeq) self.toast(self.publishCheckText('failed'));
-                        return null;
-                    })
-                    .finally(function () {
-                        if (seq === self.publishCheckSeq) self.publishCheckBusy = false;
-                    });
-            },
-
-            /** 停止检查：未完成的检查不能用于发布（服务端同样不认）。 */
-            cancelPublishCheck() {
-                if (!this.publishCheckBusy) return;
-                this.publishCheckSeq++;
-                this.publishCheckBusy = false;
-                this.publishCheck = Object.assign({}, this.publishCheck || {}, { status: 'cancelled' });
-            },
-
-            // ---- 第四轮：影响范围预览（只读、分页；与发布检查同一份文档与条件） ----
-
-            impactText(key, params) {
-                var text = (this.impactTexts || {})[key] || '';
-                Object.keys(params || {}).forEach(function (name) { text = text.split(':' + name).join(String(params[name])); });
-                return text;
-            },
-
-            impactIsStale() {
-                return this.impactPreview !== null && !this.impactBusy && this.impactKey !== this.publishCheckKeyFor();
-            },
-
-            impactStatus() {
-                if (this.impactBusy) return 'running';
-                if (this.impactError) return 'error';
-                var preview = this.impactPreview;
-                if (!preview) return '';
-                if (preview.cancelled) return 'cancelled';
-                if (preview.complete && preview.total === 0) return 'empty';
-                return preview.complete ? 'complete' : 'partial';
-            },
-
-            impactSummary() {
-                var preview = this.impactPreview;
-                if (!preview) return '';
-                if (preview.complete && preview.total === 0) return this.impactText('empty');
-                return this.impactText(preview.complete ? 'complete' : 'partial', { scanned: preview.scanned || 0, total: preview.total || 0 });
-            },
-
-            /** 检查完全部内容才写"共 N 条"；否则明确是"已检查部分中 N 条"，不给伪精确总数。 */
-            impactCountText(group) {
-                var preview = this.impactPreview;
-                if (!preview) return '';
-                var count = (preview.counts || {})[group] || 0;
-                return this.impactText(preview.complete ? 'count_exact' : 'count_scanned', { count: count });
-            },
-
-            impactCheckedAtText() {
-                var at = this.impactPreview && this.impactPreview.checked_at;
-                return at ? this.impactText('checked_at', { time: new Date(at * 1000).toLocaleString() }) : '';
-            },
-
-            /** 开始（more=false）或从上一页之后继续（more=true）。非法条件不发请求；请求可停止、有超时，晚到响应按序号丢弃。 */
-            runImpactPreview(more) {
-                var self = this;
-                var condition = this.conditionSubmission();
-                if (condition.state === 'invalid') {
-                    this.blockForInvalidConditions();
-                    return Promise.resolve(null);
-                }
-                if (this.conditionContentType === '' || this.conditionTemplateId <= 0) return Promise.resolve(null);
-                var previous = this.impactPreview;
-                var continuing = more === true && previous && !previous.complete && previous.next > 0 && !this.impactIsStale();
-                var seq = ++this.impactSeq;
-                if (this.impactAbort) this.impactAbort.abort();
-                var controller = typeof AbortController === 'function' ? new AbortController() : null;
-                this.impactAbort = controller;
-                var timedOut = false;
-                var timer = controller ? setTimeout(function () { timedOut = true; controller.abort(); }, 20000) : null;
-                this.impactBusy = true;
-                this.impactError = '';
-                this.impactKey = this.publishCheckKeyFor(condition);
-                var body = this.publishCheckBody(this.documentData(), condition);
-                body.set('action', 'preview_impact');
-                if (continuing) {
-                    body.set('cursor', String(previous.next));
-                    body.set('fingerprint', previous.fingerprint || '');
-                }
-                return fetch('/admin/blox_template_api.php', {
-                    method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    signal: controller ? controller.signal : undefined,
-                })
-                    .then(function (r) { return r.json().catch(function () { return { code: 1 }; }); })
-                    .then(function (res) {
-                        if (seq !== self.impactSeq) return null;
-                        if (Number(res.code) !== 0 || !res.data || !res.data.preview) {
-                            self.impactError = (res && res.msg) || self.impactText('failed');
-                            return null;
-                        }
-                        var page = res.data.preview;
-                        self.impactPreview = self.mergeImpactPage(continuing && !page.restarted ? previous : null, page);
-                        return self.impactPreview;
-                    })
-                    .catch(function () {
-                        if (seq !== self.impactSeq) return null;
-                        self.impactError = self.impactText(timedOut ? 'timeout' : 'failed');
-                        return null;
-                    })
-                    .finally(function () {
-                        if (timer) clearTimeout(timer);
-                        if (seq === self.impactSeq) {
-                            self.impactBusy = false;
-                            self.impactAbort = null;
-                        }
-                    });
-            },
-
-            /** 分页累计：计数相加，每组实例最多 5 条；服务端说指纹变了（restarted）就不带入旧计数。 */
-            mergeImpactPage(state, page) {
-                var merged = {
-                    fingerprint: page.fingerprint,
-                    total: page.total || 0,
-                    next: page.next || 0,
-                    complete: page.complete === true,
-                    scanned: (state ? state.scanned : 0) + (page.scanned || 0),
-                    lang: page.lang || '',
-                    checked_at: page.checked_at || 0,
-                    restarted: page.restarted === true,
-                    counts: {},
-                    samples: {},
-                };
-                ['won', 'conflicted', 'lost', 'excluded'].forEach(function (group) {
-                    merged.counts[group] = (state && state.counts ? (state.counts[group] || 0) : 0) + ((page.counts || {})[group] || 0);
-                    merged.samples[group] = ((state && state.samples ? state.samples[group] : null) || [])
-                        .concat((page.samples || {})[group] || []).slice(0, 5);
-                });
-                return merged;
-            },
-
-            /** 停止：已统计的部分保留并标明"只代表已检查部分"，不影响保存。 */
-            cancelImpactPreview() {
-                if (!this.impactBusy) return;
-                this.impactSeq++;
-                if (this.impactAbort) this.impactAbort.abort();
-                this.impactAbort = null;
-                this.impactBusy = false;
-                this.impactPreview = Object.assign(
-                    { total: 0, scanned: 0, next: 0, complete: false, counts: {}, samples: {} },
-                    this.impactPreview || {},
-                    { cancelled: true }
-                );
-            },
+            <?php require __DIR__ . '/blox_editor/partials/publish-check-methods.php'; ?>
 
             /** 非法条件被拦下时，把面板摊开并滚到可见处——原因必须能看见才谈得上修。 */
             revealConditionPanel() {
@@ -7569,349 +6139,7 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             // ---- 同级多选（R1：选择模型；批量操作条为空壳，操作在后续轮次填充） ----
             // 集合按稳定 id 存储；模块缺失时降级为纯单选（不抛错）。
-            multiSelModule() {
-                var M = window.YikaiBloxMultiSelect;
-                return M && typeof M.applyClick === "function" && typeof M.create === "function" ? M : null;
-            },
-
-            multiSelActive() {
-                var M = this.multiSelModule();
-                return !!(M && M.active(this.multiSel));
-            },
-
-            batchClipboardCount() {
-                return this.batchClipboard && Array.isArray(this.batchClipboard.items) ? this.batchClipboard.items.length : 0;
-            },
-
-            multiSelCount() {
-                var M = this.multiSelModule();
-                return M ? M.count(this.multiSel) : 0;
-            },
-
-            isMultiSelected(id) {
-                var M = this.multiSelModule();
-                return !!(M && M.has(this.multiSel, id) && M.active(this.multiSel));
-            },
-
-            /** 只折叠「激活」的多选集合；休眠锚点保留（shift 区间从上次单击项起算）。单选入口调用。 */
-            multiSelClear() {
-                if (this._keepMulti) return;
-                var M = this.multiSelModule();
-                if (!M || !M.active(this.multiSel)) return;
-                this.multiSel = M.create();
-                this.syncMultiSelectionToCanvas();
-            },
-
-            /** 全量重置（Esc / 文档变化）：休眠锚点一并清掉。 */
-            multiSelReset() {
-                if (this._keepMulti) return;
-                var M = this.multiSelModule();
-                if (!M || !this.multiSel || !this.multiSel.ids || !this.multiSel.ids.length) return;
-                this.multiSel = M.create();
-                this.syncMultiSelectionToCanvas();
-            },
-
-            /** 普通点击：留下休眠锚点供后续 shift 区间起算（不改变单选的任何可见行为）。 */
-            multiPlainClick(level, parent, id, siblings) {
-                var M = this.multiSelModule();
-                if (!M) return;
-                this.multiSel = M.applyClick(this.multiSel, {
-                    mode: "plain", level: level, parent: parent, id: id, siblings: siblings,
-                }).state;
-            },
-
-            syncMultiSelectionToCanvas() {
-                var M = this.multiSelModule();
-                var ids = M && M.active(this.multiSel) ? this.multiSel.ids.slice(0, 100) : [];
-                this.canvasBridge().post({ ykMultiIds: ids });
-            },
-
-            /** 修饰键点击入口：shift=区间、ctrl/cmd=增减；普通点击返回 false 走原单选。siblings=同父级文档序稳定 id。 */
-            multiModClick(event, level, parent, id, siblings) {
-                if (!event || (!event.shiftKey && !event.ctrlKey && !event.metaKey)) {
-                    this.multiPlainClick(level, parent, id, siblings);
-                    return false;
-                }
-                var M = this.multiSelModule();
-                if (!M || !id || !Array.isArray(siblings) || siblings.indexOf(id) === -1) {
-                    this.multiSelClear();
-                    return false;
-                }
-                var result = M.applyClick(this.multiSel, {
-                    mode: event.shiftKey ? "shift" : "toggle",
-                    level: level,
-                    parent: parent,
-                    id: id,
-                    siblings: siblings,
-                });
-                this.multiSel = result.state;
-                this.syncMultiSelectionToCanvas();
-                return true;
-            },
-
-            elementScopeAt(si, ci) {
-                var section = this.sections[si];
-                var column = section && section.columns ? section.columns[ci] : null;
-                if (!section || !column || !section.id || !column.id) return null;
-                return {
-                    parent: String(section.id) + "/" + String(column.id),
-                    siblings: (column.elements || []).map(function (el) { return String(el.id || ""); }),
-                };
-            },
-
-            childScopeAt(si, ci, ei) {
-                var section = this.sections[si];
-                var column = section && section.columns ? section.columns[ci] : null;
-                var host = column && column.elements ? column.elements[ei] : null;
-                if (!host || !host.id) return null;
-                var children = (host.data && host.data.children) || [];
-                return {
-                    parent: "children:" + String(host.id),
-                    siblings: children.map(function (child) { return String(child.id || ""); }),
-                };
-            },
-
-            sectionScope() {
-                return {
-                    parent: "root",
-                    siblings: this.sections.map(function (section) { return String(section.id || ""); }),
-                };
-            },
-
-            treeSectionClick(event, si) {
-                var scope = this.sectionScope();
-                if (!this.multiModClick(event, "section", scope.parent, String((this.sections[si] || {}).id || ""), scope.siblings)) {
-                    this.selectSectionFromTree(si);
-                    return;
-                }
-                this._keepMulti = true;
-                this.selectSectionFromTree(si);
-                this._keepMulti = false;
-            },
-
-            treeElementClick(event, si, ci, ei) {
-                var scope = this.elementScopeAt(si, ci);
-                if (!this.multiModClick(event, "element", scope ? scope.parent : "", this.elementIdAt(si, ci, ei), scope ? scope.siblings : [])) {
-                    this.selectElement(si, ci, ei);
-                    return;
-                }
-                this._keepMulti = true;
-                this.selectElement(si, ci, ei);
-                this._keepMulti = false;
-            },
-
-            treeChildClick(event, si, ci, ei, cei) {
-                var scope = this.childScopeAt(si, ci, ei);
-                if (!this.multiModClick(event, "child", scope ? scope.parent : "", this.childIdAt(si, ci, ei, cei), scope ? scope.siblings : [])) {
-                    this.selectChild(si, ci, ei, cei);
-                    return;
-                }
-                this._keepMulti = true;
-                this.selectChild(si, ci, ei, cei);
-                this._keepMulti = false;
-            },
-
-            elementIdAt(si, ci, ei) {
-                var section = this.sections[si];
-                var column = section && section.columns ? section.columns[ci] : null;
-                var el = column && column.elements ? column.elements[ei] : null;
-                return el && el.id ? String(el.id) : "";
-            },
-
-            childIdAt(si, ci, ei, cei) {
-                var section = this.sections[si];
-                var column = section && section.columns ? section.columns[ci] : null;
-                var el = column && column.elements ? column.elements[ei] : null;
-                var children = el && el.data && el.data.children ? el.data.children : [];
-                var child = children[cei];
-                return child && child.id ? String(child.id) : "";
-            },
-
-            /** 画布带修饰键的元素点击（path 深度区分元素/子元素）；无修饰键走原单选。 */
-            canvasPickElement(target) {
-                if (target && target.mods && (target.mods.shift || target.mods.toggle)) {
-                    var parts = String(target.path || "").split(".").map(function (v) { return parseInt(v, 10); });
-                    if (parts.length === 4) {
-                        var childScope = this.childScopeAt(parts[0], parts[1], parts[2]);
-                        var childId = this.childIdAt(parts[0], parts[1], parts[2], parts[3]);
-                        if (this.multiModClick(this.modsFrom(target.mods), "child", childScope ? childScope.parent : "", childId, childScope ? childScope.siblings : [])) {
-                            this._keepMulti = true;
-                            this.selectChild(parts[0], parts[1], parts[2], parts[3], false);
-                            this._keepMulti = false;
-                            return;
-                        }
-                    } else if (parts.length === 3) {
-                        var scope = this.elementScopeAt(parts[0], parts[1]);
-                        if (this.multiModClick(this.modsFrom(target.mods), "element", scope ? scope.parent : "", this.elementIdAt(parts[0], parts[1], parts[2]), scope ? scope.siblings : [])) {
-                            this._keepMulti = true;
-                            this.selectElement(parts[0], parts[1], parts[2], false);
-                            this._keepMulti = false;
-                            return;
-                        }
-                    }
-                }
-                this.multiSelPlainFallback(target, "element");
-                this.selectElementTarget(target, false);
-            },
-
-            canvasPickSection(target) {
-                if (target && target.mods && (target.mods.shift || target.mods.toggle)) {
-                    var scope = this.sectionScope();
-                    if (this.multiModClick(this.modsFrom(target.mods), "section", scope.parent, String(target.id || ""), scope.siblings)) {
-                        this._keepMulti = true;
-                        this.selectSectionTarget(target, false);
-                        this._keepMulti = false;
-                        return;
-                    }
-                }
-                this.multiSelPlainFallback(target, "section");
-                this.selectSectionTarget(target, false);
-            },
-
-            /** 画布普通点击：与树普通点击同语义——留休眠锚点，再走原单选。 */
-            multiSelPlainFallback(target, level) {
-                var parts = String((target && target.path) || "").split(".").map(function (v) { return parseInt(v, 10); });
-                if (level === "section") {
-                    var scope = this.sectionScope();
-                    this.multiPlainClick("section", scope.parent, String((target && target.id) || ""), scope.siblings);
-                    return;
-                }
-                if (parts.length === 4) {
-                    var childScope = this.childScopeAt(parts[0], parts[1], parts[2]);
-                    this.multiPlainClick("child", childScope ? childScope.parent : "", this.childIdAt(parts[0], parts[1], parts[2], parts[3]), childScope ? childScope.siblings : []);
-                    return;
-                }
-                var elScope = this.elementScopeAt(parts[0], parts[1]);
-                this.multiPlainClick("element", elScope ? elScope.parent : "", this.elementIdAt(parts[0], parts[1], parts[2]), elScope ? elScope.siblings : []);
-            },
-
-            modsFrom(mods) {
-                return { shiftKey: !!(mods && mods.shift), ctrlKey: !!(mods && mods.toggle), metaKey: false };
-            },
-
-            // 批量数组运算在独立模块，这里只保留命令桥接。
-            actionsModule() {
-                var A = window.YikaiBloxMultiActions;
-                return A
-                    && typeof A.removeByIds === "function"
-                    && typeof A.appendCloned === "function"
-                    && typeof A.planBatchAction === "function"
-                    && typeof A.planPaste === "function" ? A : null;
-            },
-
-            multiScopeContext() {
-                var A = this.actionsModule();
-                if (!A) return null;
-                return A.scopeContext(this.sections, this.multiSel.level, this.multiSel.parent);
-            },
-
-            replaceList(list, next) {
-                list.length = 0;
-                for (var i = 0; i < next.length; i++) list.push(next[i]);
-            },
-
-            batchDelete() {
-                var A = this.actionsModule();
-                if (!A || !this.multiSelActive()) return;
-                this.runCommand("batch-delete", function () { this._runBatchActionRaw("delete", A); });
-            },
-
-            batchDuplicate() {
-                var A = this.actionsModule();
-                if (!A || !this.multiSelActive()) return;
-                this.runCommand("batch-duplicate", function () { this._runBatchActionRaw("duplicate", A); });
-            },
-
-            batchCut() {
-                var A = this.actionsModule();
-                if (!A || !this.multiSelActive()) return;
-                this.runCommand("batch-cut", function () { this._runBatchActionRaw("cut", A); });
-            },
-
-            batchPaste() {
-                var A = this.actionsModule();
-                if (!A) return;
-                this.runCommand("batch-paste", function () { this._runBatchPasteRaw(A); });
-            },
-
-            batchDone(count, label) {
-                this.toast(this.multiText[label].replace(":count", count));
-            },
-
-            _runBatchActionRaw(kind, A) {
-                var ctx = this.multiScopeContext();
-                var ids = this.multiSel ? this.multiSel.ids.slice() : [];
-                if (!ctx || !ids.length) { this.toast(this.multiText.failed); return; }
-                var isSteps = !!(ctx.host && ctx.host.type === "process-steps");
-                var plan = A.planBatchAction(kind, ctx.list, ids, this.batchIdFactory(), ctx.level === "section" ? "section" : "element", isSteps ? 20 : 0, isSteps ? 1 : 0);
-                if (plan.error === "minimum") { this.toast(this.processText.minimum); return; }
-                if (plan.error === "limit") { this.toast(this.processText.limit); return; }
-                if (plan.error) { this.toast(this.multiText.failed); return; }
-                if (kind === "cut") {
-                    this.batchClipboard = { level: ctx.level, parent: ctx.parent, items: JSON.parse(JSON.stringify(plan.picked)) };
-                }
-                this.replaceList(ctx.list, plan.list);
-                if (kind === "delete" || kind === "cut") this.deselectAll(); // 复制后保留原选择
-                if (isSteps) this.syncProcessNumbersFor(ctx.host);
-                var label = kind === "delete" ? "deleteDone" : (kind === "duplicate" ? "duplicateDone" : "cutDone");
-                var count = kind === "duplicate" ? plan.newIds.length : plan.removed;
-                this.batchDone(count, label);
-            },
-
-            batchIdFactory() {
-                var self = this;
-                return function (kind) {
-                    if (kind === "section") return self.uid("s");
-                    if (kind === "column") return self.uid("c");
-                    return self.uid("e");
-                };
-            },
-
-            pasteTargetContext(clipLevel) {
-                if (clipLevel === "section") {
-                    return { level: "section", list: this.sections };
-                }
-                var path = this.selectedPath();
-                if (!path) return null;
-                var parts = path.split(".");
-                if (clipLevel === "element" && parts.length === 3) {
-                    var scope = this.elementScopeAt(parseInt(parts[0], 10), parseInt(parts[1], 10));
-                    if (!scope) return null;
-                    var column = this.sections[parseInt(parts[0], 10)].columns[parseInt(parts[1], 10)];
-                    return { level: "element", list: column.elements };
-                }
-                if (clipLevel === "child" && parts.length === 4) {
-                    var host = this.sections[parseInt(parts[0], 10)].columns[parseInt(parts[1], 10)].elements[parseInt(parts[2], 10)];
-                    if (!host) return null;
-                    host.data.children = host.data.children || [];
-                    return { level: "child", list: host.data.children, host: host };
-                }
-                return null;
-            },
-
-            _runBatchPasteRaw(A) {
-                var clip = this.batchClipboard;
-                if (!clip || !clip.items || !clip.items.length) { this.toast(this.multiText.pasteRejected); return; }
-                var target = this.pasteTargetContext(clip.level);
-                if (!target) { this.toast(this.multiText.pasteRejected); return; }
-                var self = this;
-                var isChild = target.level === "child";
-                var host = target.host || null;
-                // 与单项粘贴同一容器许可（canNest 逐项校验在模块内）
-                if (isChild && (!host || !this.elSchema(host.type).container)) { this.toast(this.multiText.pasteRejected); return; }
-                var plan = A.planPaste(target.list, clip.items, this.batchIdFactory(), clip.level === "section" ? "section" : "element", {
-                    maxCount: isChild && host.type === "process-steps" ? 20 : 0,
-                    canNest: isChild ? function (item) { return self.canNestElement(host, item); } : null,
-                });
-                if (plan.error === "limit") { this.toast(this.processText.limit); return; }
-                if (plan.error) { this.toast(this.multiText.pasteRejected); return; }
-                this.replaceList(target.list, plan.list);
-                // Banner 宿主切自定义数据，否则前台仍渲染继承项
-                if (isChild && this.isHomeBannerHost(host)) host.data.items_mode = "custom";
-                if (isChild && host.type === "process-steps") this.syncProcessNumbersFor(host);
-                this.batchDone(plan.newIds.length, "pasteDone");
-            },
-
+            <?php require __DIR__ . '/blox_editor/partials/multi-selection-methods.php'; ?>
             handleCanvasDrop(payload) { return this.runCommand("canvas-drop", function () { return this._handleCanvasDropRaw(payload); }); },
             _handleCanvasDropRaw(payload) {
                 var lib = this.elementLib.find(function (item) { return item.type === payload.type; });
@@ -7982,8 +6210,27 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             previewWidth() {
-                if (this.previewDevice === "desktop") return this.previewDesktopWidth() + "px";
-                return ({ tablet: "768px", mobile: "390px" })[this.previewDevice] || "1280px";
+                return this.previewEffectiveWidth() + "px";
+            },
+
+            previewCustomWidthActive() {
+                return this.previewCustomWidth > 0;
+            },
+
+            /** 画布内真实 viewport 宽度：自定义值优先，否则按档位默认。 */
+            previewEffectiveWidth() {
+                if (this.previewCustomWidthActive()) return this.previewCustomWidth;
+                if (this.previewDevice === "desktop") return this.previewDesktopWidth();
+                return ({ tablet: 768, mobile: 390 })[this.previewDevice] || 1280;
+            },
+
+            setPreviewCustomWidth(raw) {
+                var clamp = window.BloxResponsive && window.BloxResponsive.clampPreviewWidth;
+                this.previewCustomWidth = clamp ? clamp(raw) : 0;
+            },
+
+            clearPreviewCustomWidth() {
+                this.previewCustomWidth = 0;
             },
 
             observeCanvasHost() {
@@ -8024,17 +6271,22 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             previewScale() {
+                // 自定义宽度：任何档位都缩放贴合工作区——iframe 实际宽度保持所标数值，
+                // 绝不钳成宿主宽度再谎称原宽（R2B 第 4 条）。
+                if (this.previewCustomWidthActive()) {
+                    return Math.min(1, this.previewCanvasAvailable() / this.previewEffectiveWidth());
+                }
                 if (this.previewDevice !== "desktop") return 1;
                 return Math.min(1, this.previewCanvasAvailable() / this.previewDesktopWidth());
             },
 
             previewShellStyle() {
                 var visualHeight = this.previewCanvasHeight() + "px";
-                if (this.previewDevice !== "desktop") {
+                if (!this.previewCustomWidthActive() && this.previewDevice !== "desktop") {
                     return "width:" + this.previewWidth() + ";height:" + visualHeight + ";max-width:100%;overflow:hidden";
                 }
-                var desktopWidth = this.previewDesktopWidth();
-                return "width:" + Math.round(desktopWidth * this.previewScale()) + "px;height:" + visualHeight
+                var width = this.previewEffectiveWidth();
+                return "width:" + Math.round(width * this.previewScale()) + "px;height:" + visualHeight
                     + ";max-width:100%;overflow:hidden";
             },
 
@@ -8048,13 +6300,13 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             previewFrameStyle() {
-                if (this.previewDevice !== "desktop") {
+                if (!this.previewCustomWidthActive() && this.previewDevice !== "desktop") {
                     return "width:100%;height:100%;transform:none";
                 }
                 var scale = this.previewScale();
-                var desktopWidth = this.previewDesktopWidth();
+                var width = this.previewEffectiveWidth();
                 var visualHeight = this.previewCanvasHeight();
-                return "width:" + desktopWidth + "px;height:" + Math.floor(visualHeight / scale) + "px;zoom:" + scale
+                return "width:" + width + "px;height:" + Math.floor(visualHeight / scale) + "px;zoom:" + scale
                     + ";transform:none";
             },
 
@@ -8254,6 +6506,45 @@ $canManageBloxDesign = hasPermission('blox_global');
                     })
                     .catch(function (error) { self.toast(error.message || self.contactCardsText.failed); })
                     .finally(function () { self.contactCardsSaving = false; });
+            },
+
+            /** 控件声明 site_langs 时：语言固定且不在列表内则隐藏（如非简体中文页脚的备案开关） */
+            siteLanguageControlApplies(ctrl) {
+                if (!Array.isArray(ctrl.site_langs) || !this.siteCopyright.language_fixed) return true;
+                return ctrl.site_langs.indexOf(this.siteCopyright.language) !== -1;
+            },
+
+            /** 备案号是全站单值：只有固定为非简体中文的模板/页面才隐藏，共享模板始终可改 */
+            siteCopyrightFilingEditable() {
+                return !!this.siteCopyright.filing || !this.siteCopyright.language_fixed;
+            },
+
+            saveSiteCopyright() {
+                if (!this.siteCopyright.can_edit || this.siteCopyrightSaving || !this.siteCopyrightChanged) return;
+                var body = new URLSearchParams();
+                body.set("action", "save_copyright");
+                body.set("lang", this.siteCopyright.language);
+                body.set("copyright", String(this.siteCopyright.copyright || ""));
+                if (this.siteCopyrightFilingEditable()) {
+                    body.set("icp", String(this.siteCopyright.icp || ""));
+                    body.set("police", String(this.siteCopyright.police || ""));
+                }
+                body.set("_token", this.csrf);
+                var self = this;
+                this.siteCopyrightSaving = true;
+                fetch(this.siteCopyrightEndpoint, { method: "POST", body: body })
+                    .then(function (response) { return response.json(); })
+                    .then(function (result) {
+                        if (!result || Number(result.code) !== 0 || !result.data || !result.data.state) {
+                            throw new Error((result && result.msg) || self.siteCopyrightText.failed);
+                        }
+                        Object.assign(self.siteCopyright, result.data.state);
+                        self.siteCopyrightChanged = false;
+                        self.refreshPreview();
+                        self.toast(self.siteCopyrightText.saved);
+                    })
+                    .catch(function (error) { self.toast(error.message || self.siteCopyrightText.failed); })
+                    .finally(function () { self.siteCopyrightSaving = false; });
             },
 
             addContactFormField() {
@@ -8670,7 +6961,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     return;
                 }
                 if (el.type === "text") {
-                    this.openRte(function () { return el.data.html || ""; }, function (v) { el.data.html = v; });
+                    this.openRte(function () { return el.data.html || ""; }, function (v) { el.data.html = v; }, true);
                     return;
                 }
                 if (el.type === "heading") {
@@ -9574,70 +7865,6 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.persistElementLibraryPreferences();
             },
 
-            restoreTemplateLibraryPreferences() {
-                var read = function (key, limit) {
-                    try {
-                        var value = JSON.parse(window.localStorage.getItem(key) || "[]");
-                        if (!Array.isArray(value)) return [];
-                        return value.filter(function (item, index) {
-                            return typeof item === "string" && item.length > 0 && item.length <= 160
-                                && value.indexOf(item) === index;
-                        }).slice(0, limit);
-                    } catch (error) {
-                        return [];
-                    }
-                };
-                this.favoriteTemplateKeys = read(this.favoriteTemplatesStorageKey, 50);
-                this.recentTemplateKeys = read(this.recentTemplatesStorageKey, 6);
-                try {
-                    var density = window.localStorage.getItem(this.templateDensityStorageKey);
-                    this.templateDensity = density === "compact" ? "compact" : "standard";
-                } catch (error) {
-                    this.templateDensity = "standard";
-                }
-            },
-
-            persistTemplateLibraryPreferences() {
-                try {
-                    window.localStorage.setItem(this.favoriteTemplatesStorageKey, JSON.stringify(this.favoriteTemplateKeys));
-                    window.localStorage.setItem(this.recentTemplatesStorageKey, JSON.stringify(this.recentTemplateKeys));
-                    window.localStorage.setItem(this.templateDensityStorageKey, this.templateDensity);
-                } catch (error) {
-                    // 禁用存储时仍保留本次编辑会话内的快捷筛选。
-                }
-            },
-
-            isTemplateFavorite(key) {
-                return this.favoriteTemplateKeys.indexOf(String(key || "")) !== -1;
-            },
-
-            isTemplateRecent(key) {
-                return this.recentTemplateKeys.indexOf(String(key || "")) !== -1;
-            },
-
-            setTemplateDensity(density) {
-                this.templateDensity = density === "compact" ? "compact" : "standard";
-                this.persistTemplateLibraryPreferences();
-            },
-
-            toggleTemplateFavorite(key) {
-                key = String(key || "");
-                if (!key) return;
-                var index = this.favoriteTemplateKeys.indexOf(key);
-                if (index === -1) this.favoriteTemplateKeys.push(key);
-                else this.favoriteTemplateKeys.splice(index, 1);
-                this.persistTemplateLibraryPreferences();
-            },
-
-            rememberRecentTemplate(key) {
-                key = String(key || "");
-                if (!key) return;
-                this.recentTemplateKeys = [key].concat(this.recentTemplateKeys.filter(function (item) {
-                    return item !== key;
-                })).slice(0, 6);
-                this.persistTemplateLibraryPreferences();
-            },
-
             // Explicit canvas targets allow click-to-insert; the general palette keeps drag intent.
             syncPaletteInputMode() {
                 this.paletteTapMode = window.innerWidth <= 1023
@@ -10228,6 +8455,49 @@ $canManageBloxDesign = hasPermission('blox_global');
                     .finally(function () { self.revisionRestoring = false; });
             },
 
+            /**
+             * R1A：把历史版本载入当前画布（草稿语义）。只改内存文档：
+             * 不写库、不改发布数据、不清缓存；保留服务器 base_revision——
+             * 另一个窗口先保存过时，本窗口保存仍会得到 409 冲突，不能无提示覆盖。
+             * flushHistory + runCommand 让载入成为一条可一次撤销的历史。
+             */
+            loadRevisionDraft(rev) {
+                if (!rev || this.revisionLoadBusy || this.revisionRestoring) return;
+                var self = this;
+                this.revisionLoadBusy = true;
+                fetch("/admin/revision.php?action=blocks&type=page&id=<?php echo $id; ?>&rev_id=" + encodeURIComponent(rev.id))
+                    .then(function (r) { return r.json(); })
+                    .then(function (res) {
+                        if (!res || res.code !== 0 || !res.data || typeof res.data.blocks !== "string") {
+                            self.toast((res && res.msg) || self.uiText.revisionLoadFailed);
+                            return;
+                        }
+                        var doc;
+                        try {
+                            doc = JSON.parse(res.data.blocks);
+                            if (!doc || !Array.isArray(doc.sections)) throw new Error("invalid revision document");
+                        } catch (_) {
+                            self.toast(self.uiText.revisionLoadFailed);
+                            return;
+                        }
+                        self.flushHistory(true);
+                        var applied = self.runCommand("load-revision", function () {
+                            self.docSettings = doc.settings && typeof doc.settings === "object" ? doc.settings : {};
+                            self.conditionReloadFromDocument();
+                            self.normalizeHeaderSettings();
+                            self.sections = doc.sections;
+                            self.normalizeIds();
+                        });
+                        if (!applied || applied.ok === false) return;
+                        self.dirty = self.documentData() !== self._savedDocumentSnapshot;
+                        self.queueDraftRecovery();
+                        self.closeRevisions();
+                        self.toast(self.uiText.revisionLoaded);
+                    })
+                    .catch(function () { self.toast(self.uiText.revisionLoadFailed); })
+                    .finally(function () { self.revisionLoadBusy = false; });
+            },
+
             homeAction(action) {
                 if (!this.homeMode || this.homeActionBusy) return;
                 if (action === "rollback" && this.dirty) {
@@ -10254,8 +8524,12 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
                 body.set("_token", this.csrf);
                 fetch("/admin/blox_home_api.php", { method: "POST", body: body })
-                    .then(function (r) { return r.json().catch(function () { return { success: false }; }); })
+                    .then(function (r) {
+                        if (self.authExpiredResponse(r)) return { code: "auth" };
+                        return r.json().catch(function () { return { success: false }; });
+                    })
                     .then(function (res) {
+                        if (self.handleAuthExpired(res, "publish")) return;
                         if (res && Number(res.code) === 409) {
                             self.showSaveConflict();
                             return;
@@ -10337,8 +8611,12 @@ $canManageBloxDesign = hasPermission('blox_global');
                 // 必须 return 整条 Promise：调用方 publishTemplate() 会 .catch()/.finally()，
                 // 丢了 return 则链在 undefined 上抛 "Cannot read properties of undefined (reading 'catch')"。
                 return fetch("/admin/blox_template_api.php", { method: "POST", body: body })
-                    .then(function (r) { return r.json().catch(function () { return { code: 1 }; }); })
+                    .then(function (r) {
+                        if (self.authExpiredResponse(r)) return { code: "auth" };
+                        return r.json().catch(function () { return { code: 1 }; });
+                    })
                     .then(function (res) {
+                        if (self.handleAuthExpired(res, "publish")) return Promise.resolve();
                         if (Number(res.code) === 409) {
                             var detailPublish = res.data && res.data.detail_publish;
                             if (detailPublish) {
@@ -10402,8 +8680,12 @@ $canManageBloxDesign = hasPermission('blox_global');
                 body.set("_token", this.csrf);
                 this.pageActionBusy = true;
                 fetch(this.endpoint, { method: "POST", body: body })
-                    .then(function(r) { return r.json().catch(function() { return { success: false }; }); })
+                    .then(function(r) {
+                        if (self.authExpiredResponse(r)) return { code: "auth" };
+                        return r.json().catch(function() { return { success: false }; });
+                    })
                     .then(function(res) {
+                        if (self.handleAuthExpired(res, "publish")) return;
                         if (res && Number(res.code) === 409) {
                             self.showSaveConflict();
                             return;
@@ -10457,7 +8739,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             hasUnsavedChanges() {
-                return this.dirty || this.contactCardsChanged || this.contactFormChanged;
+                return this.dirty || this.contactCardsChanged || this.contactFormChanged || this.siteCopyrightChanged;
             },
 
             requestEditorBack(event) {
@@ -10482,6 +8764,9 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             acceptSavedDocument(payload, savedData, res) {
                 this.saveOutcome = "";
+                // 只有服务器成功响应才推进"最近保存时间"；请求失败/本地状态不动它。
+                this.lastServerSaveAt = Date.now();
+                this.sessionExpired = false;
                 // TASK-006-R02：这里有三份不同的东西，不能混：
                 //   提交快照 _submittedConditionScope —— 服务器刚存下的那一份（新的已保存基线）
                 //   当前文档 docSettings.detail_template —— 必须反映"面板现在的行"
@@ -10537,6 +8822,37 @@ $canManageBloxDesign = hasPermission('blox_global');
              * dirty 未保存 / saved 草稿已保存 / published 已发布 / clean 未修改。
              * 顺序即优先级：正在发生的动作 > 失败 > 未保存 > 刚保存成功 > 已发布 > 未修改。
              */
+            /**
+             * R1C：登录过期的判定（保存/发布响应阶段共用）。
+             * 只认两种真实的会话失效表现：checkLogin 的 error(...,401)（AJAX），
+             * 或非 AJAX 下 302 落到 /admin/login.php（fetch 表现为 redirected）。
+             * 权限不足与 CSRF 拒绝同样返回 4xx（error(...,403)），但重新登录救不了，
+             * 必须走普通失败分支把服务器 msg 报出来，不能报成"登录已过期"。
+             */
+            authExpiredResponse(r) {
+                if (!r) return false;
+                if (r.status === 401) return true;
+                return !!(r.redirected && String(r.url || "").indexOf("/admin/login.php") !== -1);
+            },
+
+            handleAuthExpired(res, action) {
+                if (!res || res.code !== "auth") return false;
+                this.saveOutcome = "failed";
+                this.failedAction = action;
+                this.sessionExpired = true;
+                this.toast(this.uiText.sessionExpired);
+                return true;
+            },
+
+            /** 最近一次「服务器确认成功」的保存时间；只在服务器成功响应后推进。 */
+            saveStatusTimeText() {
+                if (!this.lastServerSaveAt) return "";
+                try {
+                    var at = new Date(this.lastServerSaveAt);
+                    return ("0" + at.getHours()).slice(-2) + ":" + ("0" + at.getMinutes()).slice(-2);
+                } catch (_) { return ""; }
+            },
+
             saveStatusState() {
                 if (this.conflictOpen) return "conflict";
                 // 模板发布与页面发布都要显示"发布中"，不能只覆盖模板分支（TASK-002-R01 第 2 点）
@@ -10559,10 +8875,15 @@ $canManageBloxDesign = hasPermission('blox_global');
                         ? this.uiText.publishStatusFailed
                         : this.uiText.saveStatusFailed;
                     case "dirty": return this.uiText.unsaved;
-                    case "saved": return this.uiText.draftSaved;
-                    case "published": return this.uiText.saveStatusPublished;
-                    default: return this.uiText.saveStatusClean;
+                    case "saved": return this.withSaveTime(this.uiText.draftSaved);
+                    case "published": return this.withSaveTime(this.uiText.saveStatusPublished);
+                    default: return this.withSaveTime(this.uiText.saveStatusClean);
                 }
+            },
+
+            withSaveTime(text) {
+                var time = this.saveStatusTimeText();
+                return time === "" ? text : text + " · " + time;
             },
 
             save() {
@@ -10603,10 +8924,14 @@ $canManageBloxDesign = hasPermission('blox_global');
                 fetch(this.endpoint, { method: "POST", body: body })
                     .then(function(r) {
                         if (r.status === 409) return { code: 409 };
+                        if (self.authExpiredResponse(r)) return { code: "auth" };
+                        // 403 是权限/CSRF 拒绝：读出服务器 msg 走失败分支，不当网络错误吞掉
+                        if (r.status === 403) return r.json().catch(function() { return { code: 403 }; });
                         if (!r.ok) throw new Error("Save request failed");
                         return r.json();
                     })
                     .then(function(res) {
+                        if (self.handleAuthExpired(res, "save")) return;
                         if (res && Number(res.code) === 409) {
                             self.saveOutcome = "failed";
                             self.showSaveConflict();
@@ -10649,7 +8974,14 @@ $canManageBloxDesign = hasPermission('blox_global');
                     .catch(function () { self.toast(<?php echo json_encode(__('admin_failed'), JSON_UNESCAPED_UNICODE); ?>); })
                     .finally(function () { self.cacheClearing = false; });
             },
-        }, window.YikaiBloxBatchProperties ? window.YikaiBloxBatchProperties.mixin() : {},
+        }, window.YikaiBloxStyleClipboard.mixin(<?= json_encode([
+            'copied' => __('blox_style_copied'),
+            'pasted' => __('blox_style_pasted'),
+            'empty' => __('blox_style_paste_empty'),
+            'typeMismatch' => __('blox_style_paste_type_mismatch'),
+            'unsupported' => __('blox_style_unsupported'),
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>),
+        window.YikaiBloxBatchProperties ? window.YikaiBloxBatchProperties.mixin() : {},
             window.YikaiBloxSectionInsert.mixin(<?= json_encode(['after' => __('blox_insert_after_named'), 'start' => __('blox_insert_at_start'), 'changed' => __('blox_insert_target_changed')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>),
             window.YikaiBloxPageSettings.mixin(<?= json_encode([
                 'id' => (int) $id,

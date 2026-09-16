@@ -446,4 +446,5 @@ if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame']
 </script>
 <?php endif; ?>
 
+<?php if ($isBloxPage && isset($pageDocument)) echo BloxDotNav::render($pageDocument); ?>
 <?php require_once theme_path('layouts/footer.php'); ?>

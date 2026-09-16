@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const source = fs.readFileSync(path.resolve(__dirname, '../../admin/blox_editor.php'), 'utf8');
+const source = fs.readFileSync(path.resolve(__dirname, '../../admin/blox_editor/partials/media-editing-methods.php'), 'utf8');
 const start = source.indexOf('            closeRte() {');
 const end = source.indexOf('\n            /**', start);
 assert.ok(start > 0 && end > start, 'Rich-text dialog methods are present');

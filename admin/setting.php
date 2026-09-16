@@ -218,8 +218,9 @@ $items = array_filter($items, function (array $item) use ($hiddenKeys, $_langSuf
     // 未声明的键（system/内部键、运行时 set() 写入的 static_html_* / timeline_layout
     // 等）一律不渲染——彻底免疫泄漏。要新增显示项，必须在 defaults.php 声明它。
     if (!isset($_canonicalGroup[$item['key']]) || $_canonicalGroup[$item['key']] !== $group) return false;
-    // ICP/公安备案为中国大陆特有：非中文后台不展示（英文/日语版没有「备案信息」）
-    if (in_array($item['key'], ['site_icp', 'site_police'], true) && getLang() !== 'zh-CN') return false;
+    // ICP/公安备案为中国大陆特有，只在简体中文页面显示：按站点是否启用简体中文判断，
+    // 而非后台界面语言（英文界面的管理员照样要维护中文站的备案号）
+    if (in_array($item['key'], ['site_icp', 'site_police'], true) && !isset(enabledLanguages()['zh-CN'])) return false;
     // 过滤 per-lang 后缀（footer_columns_en / footer_nav_ja 这种"per-lang 存储位"，
     // 不是独立设置项；它们的值通过 lang 切换器显示在 base 行里）
     foreach ($_langSuffixesForFilter as $suf) {

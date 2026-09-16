@@ -107,7 +107,7 @@ final class BloxTemplateCatalog
         return in_array($type, self::EDITOR_TYPES, true);
     }
 
-    /** @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>} */
+    /** @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,requirements?:array<string,mixed>,design_diagnostics?:array<string,mixed>,package_json?:string,package_version?:string} */
     public static function resolve(string $key, string $context = 'page'): array
     {
         self::assertContext($context);
@@ -129,7 +129,7 @@ final class BloxTemplateCatalog
         throw new RuntimeException(__('blox_tpl_bad_key'));
     }
 
-    /** @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>} */
+    /** @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,requirements?:array<string,mixed>,design_diagnostics?:array<string,mixed>,package_json?:string,package_version?:string} */
     private static function resolveLocal(int $id, string $key): array
     {
         if (!db()->tableExists('blox_templates')) {
@@ -161,7 +161,7 @@ final class BloxTemplateCatalog
         ];
     }
 
-    /** @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>} */
+    /** @return array{key:string,type:string,name:string,source:string,provider:string,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,requirements?:array<string,mixed>,design_diagnostics?:array<string,mixed>,package_json?:string,package_version?:string} */
     private static function resolvePlugin(string $slug, string $templateKey, string $key, string $context): array
     {
         foreach (BloxPluginRegistry::templates($context) as $template) {

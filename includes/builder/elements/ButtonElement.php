@@ -15,8 +15,10 @@ final class ButtonElement extends AbstractElement
     {
         return [
             ['key' => 'text', 'type' => 'text', 'label' => __('blox_ctl_btn_text'), 'default' => __('blox_el_button'),
+                'dynamic_tags' => true,
                 'section' => __('blox_button_section_content'), 'section_icon' => 'text-caption'],
             ['key' => 'url', 'type' => 'url', 'label' => __('blox_ctl_link_url'), 'default' => '', 'placeholder' => __('blox_ctl_link_ph'),
+                'dynamic_tags' => true,
                 'section' => __('blox_button_section_content'), 'section_icon' => 'text-caption'],
             ['key' => 'new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab'), 'default' => false,
                 'section' => __('blox_button_section_content'), 'section_icon' => 'text-caption'],
@@ -120,11 +122,15 @@ final class ButtonElement extends AbstractElement
         $siteTextField = (string) ($data['site_text_field'] ?? 'none');
         if ($siteTextField !== 'none') {
             $rawText = DynamicSiteData::value($siteTextField, 'text', (string) ($data['site_fallback'] ?? ''));
+        } else {
+            $rawText = DynamicSiteData::interpolate($rawText);
         }
         $rawUrl = (string) ($data['url'] ?? '#');
         $siteUrlField = (string) ($data['site_url_field'] ?? 'none');
         if ($siteUrlField !== 'none') {
             $rawUrl = DynamicSiteData::value($siteUrlField, 'url', '#');
+        } else {
+            $rawUrl = DynamicSiteData::interpolate($rawUrl, true);
         }
         $text = htmlspecialchars($rawText);
         $iconValue = BloxIcon::normalize($data['icon'] ?? 'none', 'none');
@@ -140,6 +146,13 @@ final class ButtonElement extends AbstractElement
         $alignClass = ['left' => '', 'center' => ' text-center', 'right' => ' text-right'][$align];
         $variant = in_array($data['variant'] ?? '', ['primary', 'dark', 'outline', 'soft', 'ghost', 'link'], true)
             ? (string) $data['variant'] : 'primary';
+        $color = self::cssColor($data['color'] ?? null);
+        $backgrounds = self::backgroundDeclarations($data);
+        // 全局默认 → 明确局部值：局部颜色/背景优先时完整走局部路径，不消费主题变体预设。
+        $themePreset = $color === null && $backgrounds === '' && class_exists(BloxDesignTheme::class)
+            ? BloxDesignTheme::buttonVariantPreset($variant) : '';
+        $hoverEffect = in_array($data['hover_effect'] ?? '', ['default', 'lift', 'bright', 'none'], true)
+            ? (string) $data['hover_effect'] : 'default';
         $variantClass = [
             'primary' => 'bg-primary text-white',
             'dark' => 'bg-gray-900 text-white',
@@ -148,8 +161,6 @@ final class ButtonElement extends AbstractElement
             'ghost' => 'border border-transparent bg-transparent text-gray-700',
             'link' => 'border border-transparent bg-transparent text-primary underline-offset-4',
         ][$variant];
-        $hoverEffect = in_array($data['hover_effect'] ?? '', ['default', 'lift', 'bright', 'none'], true)
-            ? (string) $data['hover_effect'] : 'default';
         $defaultHoverClass = [
             'primary' => 'hover:bg-secondary',
             'dark' => 'hover:bg-black',
@@ -164,17 +175,27 @@ final class ButtonElement extends AbstractElement
             'bright' => 'hover:brightness-95',
             'none' => '',
         ][$hoverEffect];
+        $themeVariantClass = '';
+        $inlineColor = $color !== null ? 'color:' . $color . ';' : (in_array($variant, ['primary', 'dark'], true) ? 'color:#fff;' : '');
+        if ($themePreset !== '') {
+            $themeVariantClass = ' yk-btn-v-' . $themePreset
+                . ($hoverEffect === 'default' ? ' yk-btn-v-hover' : '')
+                . (BloxDesignTheme::hasButtonVariantFocus($themePreset) ? ' focus-visible:outline-none' : '');
+            if ($variant === 'primary' && BloxDesignTheme::hasButtonVariantBorder($themePreset)) {
+                $variantClass .= ' border border-transparent';
+            }
+            // Keep text-white as the fallback, but allow preset text and hover colors to override it.
+            $inlineColor = '';
+        }
         $shapeClass = ($data['shape'] ?? 'rounded') === 'pill' ? 'rounded-full' : 'rounded-lg';
         // 全站按钮默认（E04）只作用于默认圆角按钮；胶囊形状视为局部明确值。未配置主题时输出不变。
         if (($data['shape'] ?? 'rounded') !== 'pill' && class_exists(BloxDesignTheme::class) && BloxDesignTheme::hasButtons()) {
             $shapeClass .= ' yk-btn-theme';
         }
-        $color = self::cssColor($data['color'] ?? null);
-        $inlineColor = $color !== null ? 'color:' . $color . ';' : (in_array($variant, ['primary', 'dark'], true) ? 'color:#fff;' : '');
-        $inlineStyle = $inlineColor . self::backgroundDeclarations($data) . 'text-decoration:none';
+        $inlineStyle = $inlineColor . $backgrounds . 'text-decoration:none';
         $positionClass = ($data['card_position'] ?? 'normal') === 'bottom' ? 'mt-auto pt-2' : 'mt-2';
         return '<div class="' . $positionClass . $alignClass . '"' . $this->animationAttrs($data)
-            . '><a class="inline-flex items-center justify-center gap-2 ' . $variantClass . ' ' . $hoverClass . ' px-6 py-3 ' . $shapeClass
+            . '><a class="inline-flex items-center justify-center gap-2 ' . $variantClass . ' ' . $hoverClass . ' px-6 py-3 ' . $shapeClass . $themeVariantClass
             . ' transition no-underline" style="' . htmlspecialchars($inlineStyle, ENT_QUOTES) . '" href="'
             . $url . '"' . $target . '>' . $buttonContent . '</a></div>';
     }

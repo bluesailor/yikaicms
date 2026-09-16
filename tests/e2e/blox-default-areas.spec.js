@@ -332,8 +332,8 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       const selectedCopyright = page.locator(`[data-sort-el-item][data-item-id="${copyrightId}"]`).first();
       await expect(selectedCopyright.locator('[data-element-drag-handle]')).toHaveClass(/bg-blue-100/);
       await expect(page.getByTestId('blox-copyright-content-source')).toBeVisible();
-      await expect(page.getByTestId('blox-copyright-content-manage')).toHaveAttribute('href', /tab=footer/);
-      await expect(page.getByTestId('blox-filing-content-manage')).toHaveAttribute('href', /tab=basic/);
+      await expect(page.getByTestId('blox-copyright-text-input')).toBeVisible();
+      await expect(page.getByTestId('blox-copyright-save')).toBeDisabled();
 
       await page.goto(headerEditorHref, { waitUntil: 'domcontentloaded' });
       await addTemporaryHeading(page);

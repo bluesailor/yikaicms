@@ -2,7 +2,7 @@
 /**
  * Yikai CMS - 批量添加常用栏目
  *
- * 从「常用栏目目录」勾选客户想要的栏目，一键批量生成（幂等：已存在的 slug 自动跳过）。
+ * 从「常用栏目目录」勾选生成；已有栏目复用，名称/别名/类型冲突停止。
  * 复用 RecipeService::applyRecipe() 的建栏目逻辑，不重复造轮子。
  */
 declare(strict_types=1);
@@ -72,10 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // ── 渲染 ─────────────────────────────────────────────────
-// 已存在的 slug（当前站点语言）→ 目录里对应项标记为「已存在」
+// Use the same identity check as POST, including legacy aliases and conflicts.
 $existing = [];
-foreach (db()->fetchAll("SELECT slug FROM " . DB_PREFIX . "channels WHERE lang = ?", [siteLang()]) as $r) {
-    $existing[(string) $r['slug']] = true;
+foreach ($catalog['items'] as $key => $item) {
+    $item['name'] = $pickName($item, siteLang());
+    $existing[$key] = channelModel()->matchPreset($item, siteLang());
 }
 
 $uiLang = getLang();
@@ -131,7 +132,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <h3 class="text-sm font-semibold text-gray-500 mb-3"><?php echo e($glk ? __($glk) : $group); ?></h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <?php foreach ($items as $key => $it):
-                        $exists = isset($existing[$it['slug']]);
+                        $match = $existing[$key];
+                        $exists = $match['status'] !== 'new';
                         $label = $pickName($it, $uiLang);
                     ?>
                     <label class="flex items-start gap-3 border rounded-lg p-3 <?php echo $exists ? 'bg-gray-50 opacity-70' : 'hover:border-primary cursor-pointer'; ?>">
@@ -139,9 +141,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="min-w-0">
                             <div class="font-medium text-gray-800 flex items-center gap-2">
                                 <?php echo e($label); ?>
-                                <?php if ($exists): ?><span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded"><?php echo e(__('chbatch_exists')); ?></span><?php endif; ?>
+                                <?php if ($exists): ?><span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded"><?php echo e(__($match['status'] === 'conflict' ? 'chbatch_needs_review' : 'chbatch_exists')); ?></span><?php endif; ?>
                             </div>
                             <div class="text-xs text-gray-400 mt-0.5">/<?php echo e($it['slug']); ?> · <?php echo e($it['type']); ?></div>
+                            <?php if ($exists): ?><div class="text-xs text-gray-500 mt-0.5"><?php echo e(__('chbatch_matched', ['name' => (string) $match['channel']['name'], 'slug' => (string) $match['channel']['slug']])); ?></div><?php endif; ?>
                         </div>
                     </label>
                     <?php endforeach; ?>
@@ -163,6 +166,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     var boxes = Array.prototype.slice.call(document.querySelectorAll('.js-ch'));
     var countEl = document.getElementById('selCount');
     var btn = document.getElementById('btnGenerate');
+    var busy = false;
     var T = {
         gen:  <?php echo json_encode(__('chbatch_generate'), JSON_HEX_TAG); ?>,
         ing:  <?php echo json_encode(__('chbatch_generating'), JSON_HEX_TAG); ?>,
@@ -173,7 +177,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     function refresh() {
         var n = boxes.filter(function (b) { return b.checked && !b.disabled; }).length;
         countEl.textContent = n;
-        btn.disabled = n === 0;
+        btn.disabled = busy || n === 0;
     }
     boxes.forEach(function (b) { b.addEventListener('change', refresh); });
 
@@ -193,12 +197,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     });
 
     btn.addEventListener('click', async function () {
+        if (busy) return;
         var picked = boxes.filter(function (b) { return b.checked && !b.disabled; }).map(function (b) { return b.value; });
         if (!picked.length) return;
         var fd = new FormData();
         fd.set('_token', '<?php echo csrfToken(); ?>');
         fd.set('action', 'generate');
         picked.forEach(function (k) { fd.append('keys[]', k); });
+        busy = true;
         btn.disabled = true;
         btn.textContent = T.ing;
         try {
@@ -209,11 +215,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 setTimeout(function () { location.href = '/admin/channel.php'; }, 1200);
             } else {
                 showMessage(data.msg || T.fail, 'error');
-                btn.disabled = false; btn.textContent = T.gen;
+                busy = false; refresh(); btn.textContent = T.gen;
             }
         } catch (e) {
             showMessage(T.net + ': ' + e.message, 'error');
-            btn.disabled = false; btn.textContent = T.gen;
+            busy = false; refresh(); btn.textContent = T.gen;
         }
     });
 })();

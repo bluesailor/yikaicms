@@ -7,6 +7,6 @@
     "description_en": "Requires CMS v1.20.0+. One-time admin login links with expiry, revocation and redemption history. Respects CMS throttling, IP allowlists and two-factor authentication.",
     "description_ja": "CMS v1.20.0 以降が必要です。有効期限・失効・利用履歴に対応した管理画面用ワンタイムリンク。CMS の試行制限、IP 許可リスト、二段階認証を利用します。",
     "author": "Yikai CMS",
-    "requires_php": "8.2",
+    "requires_php": "8.0",
     "requires_cms": "1.20.0"
 }
