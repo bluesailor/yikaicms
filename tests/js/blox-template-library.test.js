@@ -441,3 +441,33 @@ test("cards do not repeat a lock the notice already explains, and premium badges
     assert.equal(lib.showPremiumBadge(locked, mixed), true, "与免费混排时才用徽标区分");
     assert.equal(lib.showPremiumBadge(mixed[1], mixed), false);
 });
+
+test("content language travels with list, get and insert requests only when set", async function () {
+    const library = global.BloxTemplateLibrary;
+    const originalFetch = global.fetch;
+    const calls = [];
+    global.fetch = function (url, options) {
+        calls.push({ url: String(url), body: options && options.body ? String(options.body) : "" });
+        const data = options && options.method === "POST"
+            ? { template: { key: "builtin:contact-connect", sections: [] }, review_id: "r1" }
+            : { items: [] };
+        return Promise.resolve({ ok: true, status: 200, text: function () { return Promise.resolve(JSON.stringify({ code: 0, data: data })); } });
+    };
+    try {
+        await library.list("/api", "page", "fail");
+        assert.equal(calls[0].url.includes("lang="), false, "no language by default");
+
+        library.setContentLanguage("ja");
+        await library.list("/api", "page", "fail");
+        await library.resolve("/api", "page", "builtin:contact-connect", "fail", "t");
+        await library.prepareInsert("/api", "page", "builtin:contact-connect", "fail", "t");
+        await library.confirmInsert("/api", "page", "builtin:contact-connect", "r1", {}, "fail", "t");
+        assert.match(calls[1].url, /[?&]lang=ja(&|$)/);
+        for (const call of calls.slice(2)) {
+            assert.equal(new URLSearchParams(call.body).get("lang"), "ja");
+        }
+    } finally {
+        library.setContentLanguage("");
+        global.fetch = originalFetch;
+    }
+});

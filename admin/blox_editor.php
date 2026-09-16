@@ -661,41 +661,7 @@ $initBlocks = json_encode(
     JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT
 ) ?: '[]';
 
-/**
- * 插入时的占位内容。
- *
- * 注册表的 defaults 把主内容字段留空（heading.text / text.html / quote.text 都是 ""），
- * 高级构建器照搬即可——它把元素显示成可编辑的卡片，空着也看得见。但 blox 的画布是
- * **渲染后的预览**：插入一个空标题，画布上什么都不会出现，像是没插进去。
- *
- * 所以这里给主内容字段种占位文本，和 Bricks / Elementor 的行为一致——插入即可见，
- * 再去改文字。只覆盖列出的字段，其余仍用注册表的 defaults。
- *
- * ⚠ 这是 blox 与高级构建器**有意**的行为差异（那边插入仍为空）。两者写进同一份
- *   blocks_data，占位文本只是普通内容、不影响渲染一致性。若日后统一，改这里即可。
- */
-$bloxPlaceholders = [
-    'heading' => ['text' => __('blox_seed_heading')],
-    'text'    => ['html' => '<p>' . __('blox_seed_text') . '</p>'],
-    'quote'   => ['text' => __('blox_seed_quote'), 'author' => ''],
-    'alert'   => ['text' => __('blox_seed_alert')],
-    'icon-box' => ['title' => __('blox_field_title_short'), 'text' => __('blox_seed_desc')],
-    'cta' => [
-        'title' => __('blox_seed_cta_title'),
-        'text' => __('blox_seed_cta_text'),
-        'btn_text' => __('nav_contact'),
-        'btn_url' => '/contact.html',
-    ],
-    'card' => [
-        'title' => __('blox_seed_card_title'),
-        'text' => __('blox_seed_card_text'),
-        'image' => '',
-        'link' => '',
-    ],
-    'home-block' => ['block_type' => 'banner', 'label' => __('blox_home_block_label'), 'enabled' => true, 'items_mode' => 'inherit', 'children' => []],
-    'home-banner-item' => ['title' => __('blox_home_banner_item')],
-    'site-copyright' => ['show_icp' => false, 'show_police' => false],
-];
+require __DIR__ . '/blox_editor/content-language.php';
 
 $registryContext = $isHomeBlox
     ? 'home'
@@ -706,6 +672,15 @@ if ($templateId && $templateType === 'product-detail') {
 }
 if ($templateId && $templateType === 'article-detail') {
     $registryMeta = BuilderRegistry::meta('article-detail');
+}
+// 元素默认值按内容语言生成（控件标签、选项名仍是后台语言）
+if ($bloxContentLanguage !== getLang()) {
+    $registryMeta = BloxEditorContentDefaults::apply(
+        $registryMeta,
+        withLanguageStrings($bloxContentLanguage, static fn (): array => BuilderRegistry::meta(
+            $templateId && in_array($templateType, ['product-detail', 'article-detail'], true) ? $templateType : $registryContext
+        ))
+    );
 }
 $registryMeta['page-title']['paletteVisible'] = !$isHomeBlox && !$templateId && ($pageType ?? '') === 'page';
 // code 元素 = 前台任意 HTML/脚本输出，独立 blox_code 权限（默认仅超管）。
@@ -887,6 +862,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/sortable/Sortable.min.js"></script>
     <script src="/assets/js/blox-color-picker.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-color-picker.js') ?>"></script>
     <script src="/assets/js/blox-template-library.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-template-library.js') ?>"></script>
+    <script>window.BloxTemplateLibrary.setContentLanguage(<?= json_encode($bloxContentLanguage, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);</script>
     <script src="/assets/js/blox-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-media-client.js') ?>"></script>
     <script src="/assets/js/official-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/official-media-client.js') ?>"></script>
     <script src="/assets/js/blox-dialog-focus.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-dialog-focus.js') ?>"></script>
@@ -1563,7 +1539,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'editSlide' => __('blox_home_banner_edit'),
                 'restoreConfirm' => __('blox_home_banner_restore_confirm'),
                 'customItems' => __('blox_home_banner_custom'),
-                'newItemTitle' => __('blox_home_banner_new_title'),
+                'newItemTitle' => withLanguageStrings($bloxContentLanguage, static fn (): string => __('blox_home_banner_new_title')),
                 'replaceImage' => __('blox_home_banner_replace_image'),
                 'slide' => __('blox_home_banner_slide'),
                 'noImage' => __('blox_home_banner_no_image'),
@@ -1583,8 +1559,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'faqDelete' => __('blox_home_faq_delete'),
                 'faqRestore' => __('blox_home_faq_restore'),
                 'faqRestoreConfirm' => __('blox_home_faq_restore_confirm'),
-                'faqNewQuestion' => __('blox_home_faq_new_question'),
-                'faqNewAnswer' => __('blox_home_faq_new_answer'),
+                'faqNewQuestion' => withLanguageStrings($bloxContentLanguage, static fn (): string => __('blox_home_faq_new_question')),
+                'faqNewAnswer' => withLanguageStrings($bloxContentLanguage, static fn (): string => __('blox_home_faq_new_answer')),
                 'faqLimit' => __('blox_home_faq_limit'),
                 'planAdd' => __('blox_home_plan_add'),
                 'planDuplicate' => __('blox_home_plan_duplicate'),

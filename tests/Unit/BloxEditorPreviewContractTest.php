@@ -395,7 +395,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('BloxTemplateEditPolicy::allows($type, $advancedBloxEnabled)', $templateApi);
         $this->assertStringNotContainsString("\$item['locked_reason'] = 'license_missing';", $templateApi);
         $this->assertStringContainsString('requireBloxTemplateTypePermission($context);', $templateApi);
-        $this->assertStringContainsString('BloxTemplateCatalog::resolve($key, $context)', $templateApi);
+        $this->assertStringContainsString('BloxTemplateCatalog::resolve($key, $context, bloxTemplateContentLanguage())', $templateApi);
         $provider = $this->source('includes/builder/BloxRemoteTemplateProvider.php');
         $locked = strpos($provider, "if (!empty(\$item['locked']))");
         $download = strpos($provider, '($this->httpGet)($downloadUrl');
@@ -665,7 +665,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
     public function testCopyrightAndFilingAreEditedInsideThePanel(): void
     {
-        $editor = $this->source('admin/blox_editor.php') . "\n" . $this->source('admin/blox_editor/partials/site-data-methods.php');
+        $editor = $this->source('admin/blox_editor.php') . "\n" . $this->source('admin/blox_editor/partials/site-data-methods.php')
+            . "\n" . $this->source('admin/blox_editor/content-language.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
         // 版权文字与备案号在面板内直接改，不再跳到站点设置页

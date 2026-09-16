@@ -1,6 +1,12 @@
 (function (global) {
     "use strict";
 
+    // 编辑中页面的内容语言：内置模板按它返回英/日译文（空 = 站点默认内容）
+    var contentLanguage = "";
+    function setContentLanguage(language) {
+        contentLanguage = String(language || "");
+    }
+
     function responseData(response, fallbackMessage) {
         return response.text().then(function (body) {
             var result;
@@ -25,6 +31,7 @@
             + "&context=" + encodeURIComponent(context);
         if (key) url += "&key=" + encodeURIComponent(key);
         if (refresh) url += "&refresh=1";
+        if (contentLanguage) url += "&lang=" + encodeURIComponent(contentLanguage);
         return fetch(url, { cache: "no-store" }).then(function (response) {
             return responseData(response, fallbackMessage);
         });
@@ -113,6 +120,7 @@
         body.set("action", "get");
         body.set("context", context);
         body.set("key", key);
+        if (contentLanguage) body.set("lang", contentLanguage);
         body.set("_token", csrf || "");
         return fetch(endpoint, { method: "POST", body: body, cache: "no-store" })
             .then(function (response) { return responseData(response, fallbackMessage); })
@@ -130,6 +138,7 @@
         body.set("context", context);
         body.set("key", key);
         if (reviewId) body.set("review_id", reviewId);
+        if (contentLanguage) body.set("lang", contentLanguage);
         var options = extra && typeof extra === "object" ? extra : {};
         if (options.style_mode) body.set("style_mode", options.style_mode);
         ["tokens", "styles"].forEach(function (kind) {
@@ -434,6 +443,7 @@
     }
 
     global.BloxTemplateLibrary = {
+        setContentLanguage: setContentLanguage,
         elementCounts: elementCounts,
         compareSections: compareSections,
         list: list,
