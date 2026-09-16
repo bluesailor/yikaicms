@@ -17,7 +17,7 @@ test('normal settings exclude professional controls, explicit professional view 
     const state = {
         selEl: { type: 'text', data: {} }, panelTab: 'content', ctrlQuery: '', modifiedOnly: false,
         elSchema: () => ({ controls }), isLoopTemplateChild: () => false,
-        controlRequirementMet: () => true, isCtrlModified: () => false,
+        controlRequirementMet: () => true, siteLanguageControlApplies: () => true, isCtrlModified: () => false,
     };
     assert.deepEqual(candidateFn.call(state).map(x => x.key), ['text']);
     state.panelTab = 'professional';

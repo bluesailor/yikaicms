@@ -36,6 +36,13 @@ trait HomeBloxSchemaControlsTrait
         return [
             ...BannerContentLayout::controls(),
             [
+                'key' => 'partners_custom',
+                'type' => 'checkbox',
+                'label' => __('blox_home_partners_custom'),
+                'default' => false,
+                'required' => ['block_type', '=', 'partners'],
+            ],
+            [
                 'key' => 'block_type',
                 'type' => 'select',
                 'label' => __('blox_home_source'),
