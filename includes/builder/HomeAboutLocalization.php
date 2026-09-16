@@ -69,10 +69,10 @@ final class HomeAboutLocalization
         $language = siteLang();
         $default = (string) config('site_lang', 'zh-CN');
         $target = null;
-        $legacy = null;
-        return self::map($section, static function (array $element) use ($section, $language, $default, &$target, &$legacy): array {
+        $legacyByLanguage = [];
+        return self::map($section, static function (array $element) use ($section, $language, $default, &$target, &$legacyByLanguage): array {
             $data = $element['data'];
-            if (!array_key_exists(self::KEY, $data) && $language !== $default) {
+            if (!array_key_exists(self::KEY, $data)) {
                 // Old converters did not retain provenance. Only recognize their exact IDs and field values.
                 if (!preg_match('/^((?:about_[a-f0-9]{12}|home_s_[0-9]+))_(title|body|button|image|caption)$/D', (string) ($element['id'] ?? ''), $match)) {
                     return $element;
@@ -82,18 +82,32 @@ final class HomeAboutLocalization
                 if (!in_array($prefix . '_text', $columnIds, true) || !in_array($prefix . '_visual', $columnIds, true)) {
                     return $element;
                 }
-                $legacy ??= self::legacyValues($default);
                 $role = $match[2];
                 $rule = self::ROLES[$role];
                 if (($element['type'] ?? '') !== $rule[0]) {
                     return $element;
                 }
                 $original = $data[$rule[1]] ?? null;
-                if (!is_string($original) || !self::legacyFieldMatches($role, $original, $legacy)) {
+                if (!is_string($original)) {
                     return $element;
                 }
+                // 旧快照没记录写作语言。不能假定是「当前默认语言」——站点换过默认语言后
+                //（如中文内容、默认改成日语），按默认语言比对永远对不上，译文就再也不生效。
+                // 依次按默认语言与其它语言的原始站点值比对，完全一致的那个才是写作语言。
+                $authored = null;
+                foreach (array_unique([$default, 'zh-CN', 'en', 'ja', 'zh-TW']) as $candidate) {
+                    $legacyByLanguage[$candidate] ??= self::legacyValues($candidate);
+                    if (self::legacyFieldMatches($role, $original, $legacyByLanguage[$candidate])) {
+                        $authored = $candidate;
+                        break;
+                    }
+                }
+                if ($authored === null || $authored === $language) {
+                    return $element;
+                }
+                $legacy = $legacyByLanguage[$authored];
                 $parts = array_intersect_key($legacy, array_flip($rule[2]));
-                $data[self::KEY] = ['lang' => $default, 'fields' => [$rule[1] => ['source' => $original, 'parts' => $parts]]];
+                $data[self::KEY] = ['lang' => $authored, 'fields' => [$rule[1] => ['source' => $original, 'parts' => $parts]]];
                 if ($role === 'button' && ($data['url'] ?? '') === $legacy['override_button_url']
                     && (string) config('home_about_link', '') === '') {
                     $data[self::KEY]['fields']['url'] = ['source' => $data['url'], 'parts' => ['override_button_url' => $data['url']]];
