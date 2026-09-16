@@ -261,6 +261,17 @@ final class TagEngineTest extends TestCase
         $this->assertSame(date('Y', 1750000000), $out);
     }
 
+    public function testFieldDateFallsBackToCreatedAtWhenPublishTimeIsZero(): void
+    {
+        // 未设发布时间的文章在库里是 publish_time = 0，而不是 NULL
+        TagEngine::pushContext(['publish_time' => 0, 'created_at' => 1760000000, '_type' => 'content']);
+        try {
+            $this->assertSame(date('Y-m-d', 1760000000), TagEngine::render('{yk:field name=date /}'));
+        } finally {
+            TagEngine::popContext();
+        }
+    }
+
     public function testFieldOutsideListReturnsEmpty(): void
     {
         $this->assertSame('', TagEngine::render('{yk:field name=title /}'));

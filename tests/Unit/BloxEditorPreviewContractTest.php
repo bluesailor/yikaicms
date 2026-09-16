@@ -39,9 +39,11 @@ final class BloxEditorPreviewContractTest extends TestCase
     }
     public function testControlledLoopTemplateUsesOneLevelWhitelistAndParentSource(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        $editor = $this->source('admin/blox_editor.php') . "
+" . $this->source('admin/blox_editor/partials/loop-template-methods.php');
         $renderer = $this->source('includes/builder/DynamicLoopTemplateRenderer.php');
         $element = $this->source('includes/builder/elements/ListDynamicElement.php');
+        $catalog = $this->source('includes/builder/elements/ContentCatalogElement.php');
 
         $this->assertStringContainsString("private const ALLOWED_TYPES = ['heading', 'text', 'image', 'button', 'div'];", $renderer);
         $this->assertStringContainsString('return DynamicLoopTemplateRenderer::allowedTypes();', $element);
@@ -49,7 +51,11 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringNotContainsString('loopChildTypes', $editor);
         $this->assertStringContainsString('c.loop_only && !self.isLoopTemplateChild()', $editor);
         $this->assertStringContainsString('this.isLoopTemplateHost(this.selTopEl) ? this.selTopEl : this.selEl', $editor);
-        $this->assertStringContainsString('self.selEl.type === "list-dynamic" && self.hasLoopTemplate()', $editor);
+        // 内容目录与动态列表共用循环模板：拆出的卡片子元素同一套白名单，内置卡片开关在拆分后隐藏
+        $this->assertStringContainsString('return DynamicLoopTemplateRenderer::allowedTypes();', $catalog);
+        $this->assertStringContainsString('["list-dynamic", "content-catalog"].indexOf(node.type)', $editor);
+        $this->assertStringContainsString('if (self.loopItemControlHidden(c)) return false;', $editor);
+        $this->assertStringContainsString('splitContentCatalogItems()', $editor);
         $this->assertStringContainsString('blox_loop_child_invalid', $editor);
     }
     public function testReusableStatsGroupSeedsAndRestrictsSelectableItems(): void

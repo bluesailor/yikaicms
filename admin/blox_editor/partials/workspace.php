@@ -1417,6 +1417,24 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <?php // 内容目录：把内置文章卡片拆成独立子元素（封面/标题/日期/摘要），各自单独设置样式 ?>
+                            <template x-if="selEl && selEl.type === 'content-catalog' && selectedSubEi < 0 && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
+                                <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-content-catalog-items">
+                                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
+                                        <i class="ti ti-layout-list text-sm text-blue-500" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_catalog_items_title')) ?></span>
+                                    </div>
+                                    <p class="text-[10px] leading-relaxed text-gray-400"
+                                       x-text="hasLoopTemplate() ? <?= e($jt('blox_catalog_items_split_done')) ?> : <?= e($jt('blox_catalog_items_split_hint')) ?>"></p>
+                                    <button type="button" x-show="!hasLoopTemplate()" @click="splitContentCatalogItems()"
+                                            data-testid="blox-content-catalog-split"
+                                            class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
+                                        <i class="ti ti-arrows-split-2 text-sm" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_catalog_items_split')) ?></span>
+                                    </button>
+                                </div>
+                            </template>
+
                             <template x-if="selEl && selEl.type === 'site-contact' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
                                 <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-contact-content-source">
                                     <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
