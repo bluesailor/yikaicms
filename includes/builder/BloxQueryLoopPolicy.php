@@ -47,6 +47,9 @@ final class BloxQueryLoopPolicy
     {
         $type = (string) ($element['type'] ?? '');
         $data = is_array($element['data'] ?? null) ? $element['data'] : [];
+        if ($type === 'content-catalog' && !empty($data['children'])) {
+            throw new RuntimeException(__('blox_query_loop_license_required'));
+        }
         if ($type === 'list-dynamic') {
             $hasCustomTemplate = !empty($data['children']) || !empty($data['template']);
             $hasPagination = (string) ($data['pagination_mode'] ?? 'none') !== 'none';

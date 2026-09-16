@@ -73,6 +73,10 @@ final class BloxProtectedFields
                 $keys = array_merge($keys, ['template', 'pagination_mode']);
                 $loopHost = true;
             }
+            // 内容目录的卡片模板与动态列表同属循环模板：结构同样受保护
+            if (($element['type'] ?? '') === 'content-catalog') {
+                $loopHost = true;
+            }
         }
         foreach ($keys as $key) {
             $value = $data[$key] ?? null;

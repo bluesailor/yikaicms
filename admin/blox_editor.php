@@ -793,7 +793,7 @@ foreach ($registryMeta as $type => $m) {
             $m['controls'],
             static fn(array $control): bool => empty($control['advanced'])
         ));
-    $allowedChildren = !$advancedQueryLoopEnabled && $type === 'list-dynamic'
+    $allowedChildren = !$advancedQueryLoopEnabled && in_array($type, ['list-dynamic', 'content-catalog'], true)
         ? []
         : $m['allowedChildren'];
     $elementSchemas[$type] = [
@@ -2670,11 +2670,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return !!(this.selEl && ["container", "div"].indexOf(this.selEl.type) !== -1);
             },
 
-            isLoopTemplateHost(el) {
-                var node = el || this.selTopEl;
-                return !!(node && node.type === "list-dynamic");
-            },
-
+            <?php require __DIR__ . '/blox_editor/partials/loop-template-methods.php'; ?>
             isHomeBlockHost(el) {
                 var node = el || this.selTopEl;
                 return !!(node && node.type === "home-block");
@@ -2694,14 +2690,6 @@ $canManageBloxDesign = hasPermission('blox_global');
             ...((window.BloxProEditor || {}).methods || {}),
             ...window.BloxBackgroundPanel.methods,
 
-            isLoopTemplateChild() {
-                return this.selectedSubEi >= 0 && this.isLoopTemplateHost(this.selTopEl);
-            },
-
-            hasLoopTemplate() {
-                var host = this.isLoopTemplateHost(this.selTopEl) ? this.selTopEl : null;
-                return !!(host && host.data && (host.data.children || []).length);
-            },
 
             processHost() {
                 var host = this.selTopEl;
@@ -3706,8 +3694,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (self.panelTab !== 'professional' && tab !== self.panelTab) return false;
                     if (c.loop_only && !self.isLoopTemplateChild()) return false;
                     if (c.outside_loop_only && self.isLoopTemplateChild()) return false;
-                    if (self.selEl.type === "list-dynamic" && self.hasLoopTemplate()
-                        && ["show_image","image_field","show_title","title_field","show_summary","summary_field","show_date","date_field","show_meta","meta_field","link_field","summary_len","item_preset","image_ratio"].indexOf(c.key) !== -1) return false;
+                    if (self.loopItemControlHidden(c)) return false;
                     if (!self.controlRequirementMet(c)) return false;
                     if (!self.siteLanguageControlApplies(c)) return false;
                     if ((c.key === "animation_speed" || c.key === "animation_delay")

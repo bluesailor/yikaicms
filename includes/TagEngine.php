@@ -606,7 +606,11 @@ final class TagEngine
 
         // 虚拟字段：date（publish_time 优先，回退 created_at）
         if ($name === 'date') {
-            $rawTime = $ctx['publish_time'] ?? $ctx['created_at'] ?? '';
+            // publish_time 未设置时库里常是 0 而非 NULL，也要回退到 created_at
+            $rawTime = $ctx['publish_time'] ?? '';
+            if (empty($rawTime)) {
+                $rawTime = $ctx['created_at'] ?? '';
+            }
             $date = self::formatDate($rawTime, (string) ($attrs['dateformat'] ?? 'Y-m-d'));
             return e($date !== '' ? $date : $default);
         }

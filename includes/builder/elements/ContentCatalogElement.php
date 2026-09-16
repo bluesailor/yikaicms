@@ -15,6 +15,10 @@ final class ContentCatalogElement extends AbstractElement
     public function isDynamic(): bool { return true; }
     public function paletteVisible(string $context = 'page'): bool { return $context === 'content-list'; }
     public function supportsBoxStyles(): bool { return false; }
+    // 子元素 = 每篇文章的卡片模板（封面/标题/日期/摘要各自是普通元素，可单独设置样式）；为空时用主题内置卡片
+    public function isContainer(): bool { return true; }
+    public function rendersOwnChildren(): bool { return true; }
+    public function allowedChildren(array $data = []): array { return DynamicLoopTemplateRenderer::allowedTypes(); }
 
     /** @param array<string,mixed>|null $context */
     public static function setRuntimeContext(?array $context): void
@@ -50,10 +54,17 @@ final class ContentCatalogElement extends AbstractElement
 
     public function render(array $data, string $children = ''): string
     {
+        return $this->renderWithContext($data, $children);
+    }
+
+    /** @param array<string,mixed> $context */
+    public function renderWithContext(array $data, string $children = '', array $context = []): string
+    {
+        $template = is_array($data['children'] ?? null) ? array_values(array_filter($data['children'], 'is_array')) : [];
         $layout = (string) ($data['layout'] ?? 'list') === 'grid' ? 'grid' : 'list';
         if (self::$runtimeContext === null) {
             $channelId = class_exists('BlockRenderer') ? BlockRenderer::$editChannelId : 0;
-            return (new ListDynamicElement())->render([
+            return (new ListDynamicElement())->renderWithContext([
                 'query_source' => $channelId > 0 ? 'channel:' . $channelId : 'type:article',
                 'limit' => 10,
                 'columns' => $layout === 'grid' ? (string) self::columns($data) : '1',
@@ -65,7 +76,8 @@ final class ContentCatalogElement extends AbstractElement
                 'image_ratio' => 'wide',
                 'empty_mode' => 'message',
                 'empty' => __('no_content'),
-            ]);
+                'children' => $template,
+            ], '', $context);
         }
 
         extract(self::$runtimeContext, EXTR_SKIP);
@@ -73,6 +85,10 @@ final class ContentCatalogElement extends AbstractElement
         $contentCatalogColumns = self::columns($data);
         $contentCatalogShowSearch = self::enabled($data, 'show_search', true);
         $contentCatalogShowCategories = self::enabled($data, 'show_categories', true);
+        // 卡片模板在前台逐篇套用：{yk:field} 标签由视图在每篇文章的循环上下文里解析
+        $contentCatalogItemTemplate = $template !== []
+            ? DynamicLoopTemplateRenderer::render($template, ['query_source' => 'type:article'], $context)
+            : '';
         $listOpts = [];
         foreach ([
             'cover' => 'show_cover', 'summary' => 'show_summary', 'channel' => 'show_channel',

@@ -69,7 +69,18 @@ $catalogUsesDynamicRoute = str_contains($catalogBaseUrl, 'yk_route=');
     <?php if ($catalogContents): ?>
     <div class="<?php echo $contentCatalogLayout === 'grid' ? $contentCatalogGridClass : 'space-y-6'; ?>">
         <?php foreach ($catalogContents as $item): ?>
-        <?php if ($contentCatalogLayout === 'grid'): ?>
+        <?php if (($contentCatalogItemTemplate ?? '') !== ''): ?>
+        <?php
+        // Blox 卡片模板：每篇文章压入 TagEngine 循环上下文后解析 {yk:field}
+        $item['_type'] = 'content';
+        TagEngine::pushContext($item);
+        try {
+            echo TagEngine::render($contentCatalogItemTemplate);
+        } finally {
+            TagEngine::popContext();
+        }
+        ?>
+        <?php elseif ($contentCatalogLayout === 'grid'): ?>
         <?php require theme_path('partials/article-grid-card.php'); ?>
         <?php else: ?>
         <?php require theme_path('partials/article-card.php'); ?>
