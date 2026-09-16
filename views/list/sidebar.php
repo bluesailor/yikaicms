@@ -11,7 +11,7 @@
 $productCatalogLayout = isset($productCatalogLayout) && in_array($productCatalogLayout, ['sidebar', 'grid'], true)
     ? $productCatalogLayout
     : 'sidebar';
-$sidebarListUrl = channelUrl($channel);
+$sidebarListUrl = $isProductType && $productCategory ? productCategoryUrl($productCategory) : channelUrl($channel);
 $sidebarUsesDynamicRoute = str_contains($sidebarListUrl, 'yk_route=');
 $sidebarRoute = $isProductType ? 'product_list' : 'list';
 $productCatalogShowSearch = $productCatalogShowSearch ?? true;
@@ -256,6 +256,14 @@ $productCatalogGridClass = [
                 $totalPages = (int)ceil($total / $perPage);
                 $currentSort = $currentSort ?? 'default';
                 $pageUrl = function(int $p) use ($channel, $keyword, $isProductType, $productCategory, $currentSort): string {
+                    if ($isProductType && $productCategory) {
+                        $filters = [];
+                        foreach (['keyword', 'sort', 'brand', 'tag', 'pmin', 'pmax'] as $key) {
+                            $value = $_GET[$key] ?? '';
+                            if (is_string($value) && $value !== '') $filters[$key] = $value;
+                        }
+                        return customProductCategoryPageUrl($productCategory, $p, $filters);
+                    }
                     if (isDynamicUrlMode()) {
                         $params = [];
                         if ($keyword !== '') $params['keyword'] = $keyword;

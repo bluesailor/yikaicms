@@ -93,6 +93,10 @@ foreach (['contents', 'total', 'downloads', 'jobs', 'dlCatId',
 }
 unset($_request, $_vars, $_k);
 
+if ($productCategory && productRouteModel()->pathFor('category', (int) $productCategory['id']) !== '') {
+    $canonicalUrl = siteBaseUrl() . customProductCategoryPageUrl($productCategory, $page);
+}
+
 // 获取子栏目（不限制is_nav，侧边栏/子导航显示所有子栏目）
 $subChannels = getChannels($channelId, false);
 
@@ -385,7 +389,7 @@ $horizRootChannel = $channel;
                 ，<?php echo e(__('search')); ?> "<span class="text-primary"><?php echo e($keyword); ?></span>"
                 <?php endif; ?>
             </div>
-            <form method="get" action="<?php echo ($isProductType && isDynamicUrlMode()) ? '/index.php' : channelUrl($channel); ?>" class="flex items-center gap-2">
+            <form method="get" action="<?php echo e(($isProductType && isDynamicUrlMode()) ? '/index.php' : ($productCategory ? productCategoryUrl($productCategory) : channelUrl($channel))); ?>" class="flex items-center gap-2">
                 <?php if ($isProductType && isDynamicUrlMode()): ?>
                 <input type="hidden" name="yk_route" value="product_list">
                 <?php endif; ?>
@@ -538,6 +542,14 @@ $horizRootChannel = $channel;
         <?php
         $totalPages = (int)ceil($total / $perPage);
         $pageUrl = function(int $p) use ($channel, $keyword, $productCategory, $currentSort): string {
+            if ($productCategory) {
+                $filters = [];
+                foreach (['keyword', 'sort', 'brand', 'tag', 'pmin', 'pmax'] as $key) {
+                    $value = get($key, '');
+                    if (is_scalar($value) && (string) $value !== '') $filters[$key] = (string) $value;
+                }
+                return customProductCategoryPageUrl($productCategory, $p, $filters);
+            }
             if (isDynamicUrlMode()) {
                 $params = [];
                 if ($keyword !== '') $params['keyword'] = $keyword;

@@ -75,7 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data['slug'] = resolveSlug($data['slug'], $data['title'], 'products', $id);
 
     if ($id > 0) {
-        productModel()->updateById($id, $data);
+        try {
+            $id = productRouteModel()->saveEntity('product', $id, $data, post('custom_url', productRouteModel()->pathFor('product', $id)));
+        } catch (InvalidArgumentException $e) { error(__($e->getMessage())); }
         adminLog('product', 'update', "更新产品ID: $id");
     } else {
         $data['created_at'] = time();
@@ -83,7 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 显式写入语言：取当前编辑视图语言（?lang= 或站点默认），不依赖数据库列默认
         // （老库列默认可能残留 'ja'，导致新内容语言错乱、后台/前台按 zh-CN 过滤时不显示）
         $data['lang'] = (string) get('lang', (string) config('site_lang', 'zh-CN'));
-        $id = productModel()->create($data);
+        try {
+            $id = productRouteModel()->saveEntity('product', 0, $data, post('custom_url'));
+        } catch (InvalidArgumentException $e) { error(__($e->getMessage())); }
         adminLog('product', 'create', "创建产品ID: $id");
     }
 
@@ -280,6 +284,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <label class="block text-gray-700 mb-1"><?php echo __('admin_slug'); ?> (Slug)</label>
                         <input type="text" name="slug" value="<?php echo e($product['slug'] ?? ''); ?>"
                                class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('prod_slug_ph')); ?>">
+                        <label for="productCustomUrl" class="block text-gray-700 mt-4 mb-1"><?php echo e(__('product_url_label')); ?></label>
+                        <input type="text" id="productCustomUrl" name="custom_url" value="<?php echo e(productRouteModel()->pathFor('product', $id)); ?>"
+                               class="w-full border rounded px-4 py-2" placeholder="/footmaster/gd-60/" maxlength="1500">
+                        <p class="text-xs text-gray-500 mt-1"><?php echo e(__('product_url_hint')); ?></p>
                     </div>
 
                     <?php if (getLang() === 'ja'): /* 日语版专用：商品类型 / 素材 / 使用场景 */ ?>

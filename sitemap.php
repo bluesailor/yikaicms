@@ -129,6 +129,12 @@ foreach ($products as $product) {
 }
 
 // 过滤器：允许插件增删 sitemap URL
+foreach (productRouteModel()->available() ? productCategoryModel()->where(['status' => 1, 'lang' => siteLang()]) : [] as $category) {
+    if (productRouteModel()->pathFor('category', (int) $category['id']) !== '') {
+        $urls[] = ['loc' => $siteUrl . productCategoryUrl($category), 'changefreq' => 'weekly', 'priority' => '0.7'];
+    }
+}
+
 $urls = apply_filters('sitemap_urls', $urls);
 
 // 生成 XML
