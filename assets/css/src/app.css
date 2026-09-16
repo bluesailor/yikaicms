@@ -478,6 +478,12 @@ html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
 .yk-blox-header :is(.yk-mega-panel, .yk-nav-panel, [data-yk-drawer-panel], [data-yk-language-menu]) :is(li, a, button, [class*="text-"]):not([class~="bg-primary"]) {
     color: var(--yk-header-surface-text) !important;
 }
+/* 下拉项悬停：上面的 !important 会吃掉 hover:text-primary，只剩 bg-gray-50 几乎看不出来；
+   这里给主色浅底 + 主色文字（选择器比上一条多一个伪类，才能压过它）。 */
+.yk-blox-header :is(.yk-nav-panel, [data-yk-drawer-panel], [data-yk-language-menu]) :is(a, button):not([class~="bg-primary"]):is(:hover, :focus-visible) {
+    background-color: color-mix(in srgb, var(--color-primary, #3b82f6) 10%, #fff);
+    color: var(--color-primary, #3b82f6) !important;
+}
 
 .yk-blox-header [data-yk-language-trigger]:is(:hover, :focus-visible) {
     background-color: color-mix(in srgb, currentColor 10%, transparent);
