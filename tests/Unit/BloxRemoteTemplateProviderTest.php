@@ -303,6 +303,62 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         }
     }
 
+    /**
+     * 隔离市场（YIKAI_BLOX_TEMPLATE_API_BASE）：包与封面只能来自目录接口的同一目录，
+     * 哈希与签名照常校验；未设置该变量时同样的地址一律拒绝。
+     */
+    public function testIsolatedMarketServesPackagesAndCoversOnlyFromItsOwnDirectory(): void
+    {
+        $base = 'http://market.test:8080/local-market';
+        $package = $this->package($this->templateJson());
+        $item = [
+            'hash' => 'sha256:' . hash('sha256', $package),
+            'thumbnail' => $base . '/assets/templates/section-pricing-3col.png',
+            'download_url' => $base . '/download.php?protocol_version=2&slug=pricing-3col&version=1.0.0',
+        ];
+        $catalog = $this->catalogResponse([$this->catalogItem($item)]);
+        $requested = [];
+        $http = static function (string $url) use ($package, $catalog, &$requested): string {
+            $requested[] = $url;
+            return str_contains($url, '/download.php') ? $package : $catalog;
+        };
+        $valid = static fn (string $canonical, string $signature): bool => $signature === 'valid-signature';
+
+        putenv('YIKAI_BLOX_TEMPLATE_API_BASE=' . $base . '/list.php');
+        try {
+            $provider = new BloxRemoteTemplateProvider($http, $valid, 'zh-CN');
+            $this->assertSame($item['thumbnail'], $provider->installable(true)[0]['thumbnail']);
+            $this->assertSame($this->templateJson(), $provider->fetchPackageJson('pricing-3col'));
+            $this->assertStringStartsWith($base . '/list.php?', $requested[0]);
+            $this->assertContains($item['download_url'], $requested);
+
+            foreach ([
+                'http://market.test:8080/elsewhere/download.php?protocol_version=2&slug=pricing-3col&version=1.0.0',
+                'http://evil.test:8080/local-market/download.php?protocol_version=2&slug=pricing-3col&version=1.0.0',
+            ] as $foreign) {
+                $foreignCatalog = $this->catalogResponse([$this->catalogItem(['download_url' => $foreign] + $item)]);
+                $foreignProvider = new BloxRemoteTemplateProvider(
+                    static fn (string $url): string => str_contains($url, '/download.php') ? $package : $foreignCatalog,
+                    $valid,
+                    'zh-CN'
+                );
+                try {
+                    $foreignProvider->fetchPackageJson('pricing-3col');
+                    $this->fail('其它目录或其它主机的下载地址必须拒绝：' . $foreign);
+                } catch (RuntimeException $e) {
+                    $this->assertSame('blox_template_remote_invalid', $e->getMessage());
+                }
+            }
+        } finally {
+            putenv('YIKAI_BLOX_TEMPLATE_API_BASE');
+        }
+
+        $production = new BloxRemoteTemplateProvider($http, $valid, 'zh-CN');
+        $this->assertSame('', $production->installable(true)[0]['thumbnail'], '生产环境不接受非官方封面');
+        $this->expectException(RuntimeException::class);
+        $production->fetchPackageJson('pricing-3col');
+    }
+
     public function testResolveRejectsBadSignatureBeforeImport(): void
     {
         $package = $this->package($this->templateJson());

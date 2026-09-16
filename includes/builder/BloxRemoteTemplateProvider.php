@@ -39,6 +39,8 @@ final class BloxRemoteTemplateProvider
     private Closure $verifySignature;
     private string $language;
     private string $endpoint;
+    /** 测试/隔离市场的接口目录（仅设置 YIKAI_BLOX_TEMPLATE_API_BASE 时非空；生产恒为空串） */
+    private string $testBase = '';
     private ?Closure $cacheGet;
     private ?Closure $cacheSet;
 
@@ -64,6 +66,10 @@ final class BloxRemoteTemplateProvider
         // 只允许测试/隔离环境替换目录接口；生产默认仍固定到官方服务。
         $testEndpoint = trim((string) getenv('YIKAI_BLOX_TEMPLATE_API_BASE'));
         $this->endpoint = $endpoint === self::API_URL && $testEndpoint !== '' ? $testEndpoint : $endpoint;
+        if ($endpoint === self::API_URL && $testEndpoint !== '') {
+            // 隔离市场的包与封面只允许来自目录接口所在目录（同源同路径前缀），不开放任意地址
+            $this->testBase = self::testBase($testEndpoint);
+        }
         $useDefaultCache = $httpGet === null && $endpoint === self::API_URL;
         $this->cacheGet = $cacheGet ?? ($useDefaultCache && function_exists('cacheGet')
             ? static fn (string $key): mixed => cacheGet($key)
@@ -440,6 +446,10 @@ final class BloxRemoteTemplateProvider
         if ($value === '' || strlen($value) > 500 || str_contains($value, "\\")) {
             return '';
         }
+        if ($this->testBase !== '' && str_starts_with($value, $this->testBase . '/assets/templates/')) {
+            $name = substr($value, strlen($this->testBase . '/assets/templates/'));
+            return preg_match('/^[a-zA-Z0-9_-]+\.(?:avif|gif|jpe?g|png|webp)$/D', $name) === 1 ? $value : '';
+        }
         if (str_starts_with($value, '/')) {
             $value = 'https://' . self::PROVIDER . $value;
         }
@@ -463,11 +473,29 @@ final class BloxRemoteTemplateProvider
     {
         // Legacy identity URL or a short-lived grant at the fixed official market endpoint.
         // Neither path permits static ZIP fallbacks or arbitrary bearer destinations.
-        return MarketDownloadUrl::isTokenUrl($url) || $url === self::DOWNLOAD_URL . '?' . http_build_query([
+        $query = http_build_query([
             'protocol_version' => self::PROTOCOL_VERSION,
             'slug' => $slug,
             'version' => $version,
         ], '', '&', PHP_QUERY_RFC3986);
+        return MarketDownloadUrl::isTokenUrl($url)
+            || $url === self::DOWNLOAD_URL . '?' . $query
+            // 隔离市场：同一目录下的 download.php，参数形状与官方一致；哈希与签名校验照常执行
+            || ($this->testBase !== '' && $url === $this->testBase . '/download.php?' . $query);
+    }
+
+    /** 目录接口 URL 所在目录（去掉文件名与查询串）；非 http(s) 或带凭据的地址不启用。 */
+    private static function testBase(string $endpoint): string
+    {
+        $parts = parse_url($endpoint);
+        if (!is_array($parts) || !in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)
+            || (string) ($parts['host'] ?? '') === '' || isset($parts['user']) || isset($parts['pass'])) {
+            return '';
+        }
+        $path = (string) ($parts['path'] ?? '/');
+        $dir = rtrim(substr($path, 0, (int) strrpos($path, '/')), '/');
+        return strtolower((string) $parts['scheme']) . '://' . $parts['host']
+            . (isset($parts['port']) ? ':' . (int) $parts['port'] : '') . $dir;
     }
 
     private function templateJson(string $package): string
