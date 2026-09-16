@@ -629,11 +629,36 @@ final class BloxEditorPreviewContractTest extends TestCase
             'data-testid="blox-language-content-source"',
             'href="/admin/setting_lang.php"',
             'data-testid="blox-copyright-content-source"',
-            'href="/admin/setting.php?tab=footer#input_footer_copyright_text"',
-            'href="/admin/setting.php?tab=basic#input_site_icp"',
             'target="_blank" rel="noopener"',
         ] as $token) {
             self::assertStringContainsString($token, $workspace, "content source token {$token} missing");
+        }
+    }
+
+    public function testCopyrightAndFilingAreEditedInsideThePanel(): void
+    {
+        $editor = $this->source('admin/blox_editor.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        // 版权文字与备案号在面板内直接改，不再跳到站点设置页
+        self::assertStringNotContainsString('setting.php?tab=footer', $workspace);
+        self::assertStringNotContainsString('setting.php?tab=basic#input_site_icp', $workspace);
+        foreach ([
+            'data-testid="blox-copyright-text-input"',
+            'data-testid="blox-filing-fields"',
+            'x-if="siteCopyrightFilingEditable()"',
+            'data-testid="blox-copyright-save"',
+            '@click="saveSiteCopyright()"',
+        ] as $token) {
+            self::assertStringContainsString($token, $workspace, "copyright panel token {$token} missing");
+        }
+        foreach ([
+            'siteCopyrightEndpoint: "/admin/blox_site_api.php"',
+            'SiteCopyrightSettings::editorState($siteDataLanguage',
+            'if (!self.siteLanguageControlApplies(c)) return false;',
+            'body.set("lang", this.siteCopyright.language);',
+        ] as $token) {
+            self::assertStringContainsString($token, $editor, "copyright editor token {$token} missing");
         }
     }
 

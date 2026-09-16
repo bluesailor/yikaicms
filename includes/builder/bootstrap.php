@@ -19,6 +19,7 @@ require_once __DIR__ . '/BloxPluginRegistry.php';
 require_once __DIR__ . '/BloxAssetCollector.php';
 require_once __DIR__ . '/DynamicListItemSchema.php';
 require_once __DIR__ . '/DynamicSiteData.php';
+require_once __DIR__ . '/SiteCopyrightSettings.php';
 require_once __DIR__ . '/BloxQueryLoopPolicy.php';
 require_once __DIR__ . '/BloxElementPolicy.php';
 require_once __DIR__ . '/BloxDisplayConditions.php';

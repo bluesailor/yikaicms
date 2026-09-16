@@ -678,6 +678,27 @@ foreach ($registryMeta as $type => $m) {
     ];
 }
 
+// 站点资料语境：版权元素的面板内编辑按「画布正在预览的语言」读写。
+// 语言固定（单语言页头/页尾、带语言的页面）时，其它语言不显示的备案设置整体隐藏；
+// 全站共享模板随预览语言切换编辑对象，备案设置保留并提示仅简体中文页面显示。
+$siteDataDefaultLanguage = (string) config('site_lang', 'zh-CN');
+if ($areaEditorLanguage !== '') {
+    $siteDataLanguage = $areaEditorLanguage;
+    $siteDataLanguageFixed = $areaEditorLanguageManaged;
+} elseif (!$isHomeBlox && !$templateId && trim((string) ($page['lang'] ?? '')) !== '') {
+    $siteDataLanguage = trim((string) $page['lang']);
+    $siteDataLanguageFixed = true;
+} else {
+    $siteDataLanguage = $siteDataDefaultLanguage;
+    $siteDataLanguageFixed = false;
+}
+$siteCopyrightRead = static fn (string $key): string => (string) config($key, '');
+$siteCopyright = SiteCopyrightSettings::editorState($siteDataLanguage, $siteCopyrightRead) + [
+    'language_label' => (string) (availableLanguages()[$siteDataLanguage] ?? $siteDataLanguage),
+    'language_fixed' => $siteDataLanguageFixed,
+    'can_edit' => $canManageGlobalSettings,
+];
+
 /**
  * 元素 schema（全量注册元素，不受插入白名单限制）。
  *
@@ -1320,6 +1341,14 @@ $canManageBloxDesign = hasPermission('blox_global');
             pageHasUnpublishedChanges: <?php echo $pageHasUnpublishedChanges ? 'true' : 'false'; ?>,
             pageActionBusy: false,
             contactManage: <?php echo json_encode($contactManageActions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            siteCopyrightEndpoint: "/admin/blox_site_api.php",
+            siteCopyright: <?php echo json_encode($siteCopyright, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            siteCopyrightChanged: false,
+            siteCopyrightSaving: false,
+            siteCopyrightText: <?php echo json_encode([
+                'saved' => __('blox_site_copyright_saved'),
+                'failed' => __('blox_save_failed'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             contactEndpoint: "/admin/blox_contact_api.php?id=<?php echo (int) $id; ?>",
             contactCards: <?php echo json_encode($contactCards, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             contactCardIconOptions: <?php echo json_encode($contactCardIconOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
@@ -4350,6 +4379,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (self.selEl.type === "list-dynamic" && self.hasLoopTemplate()
                         && ["show_image","image_field","show_title","title_field","show_summary","summary_field","show_date","date_field","show_meta","meta_field","link_field","summary_len","item_preset","image_ratio"].indexOf(c.key) !== -1) return false;
                     if (!self.controlRequirementMet(c)) return false;
+                    if (!self.siteLanguageControlApplies(c)) return false;
                     if ((c.key === "animation_speed" || c.key === "animation_delay")
                         && !self.selEl.data.animation) return false;
                     if (q && String(c.label || "").toLowerCase().indexOf(q) === -1
@@ -5968,7 +5998,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 window.addEventListener("drop", function (e) { self.treeSectionDrop(e); }, true);
                 // 未保存离开守卫：dirty 时关闭/刷新标签页要过浏览器确认
                 window.addEventListener("beforeunload", function (e) {
-                    if (self.dirty || self.contactCardsChanged || self.contactFormChanged) { e.preventDefault(); e.returnValue = ""; }
+                    if (self.dirty || self.contactCardsChanged || self.contactFormChanged || self.siteCopyrightChanged) { e.preventDefault(); e.returnValue = ""; }
                 });
                 window.addEventListener("pagehide", function () {
                     self.finishLeftPanelResize();
@@ -6698,6 +6728,45 @@ $canManageBloxDesign = hasPermission('blox_global');
                     })
                     .catch(function (error) { self.toast(error.message || self.contactCardsText.failed); })
                     .finally(function () { self.contactCardsSaving = false; });
+            },
+
+            /** 控件声明 site_langs 时：语言固定且不在列表内则隐藏（如非简体中文页脚的备案开关） */
+            siteLanguageControlApplies(ctrl) {
+                if (!Array.isArray(ctrl.site_langs) || !this.siteCopyright.language_fixed) return true;
+                return ctrl.site_langs.indexOf(this.siteCopyright.language) !== -1;
+            },
+
+            /** 备案号是全站单值：只有固定为非简体中文的模板/页面才隐藏，共享模板始终可改 */
+            siteCopyrightFilingEditable() {
+                return !!this.siteCopyright.filing || !this.siteCopyright.language_fixed;
+            },
+
+            saveSiteCopyright() {
+                if (!this.siteCopyright.can_edit || this.siteCopyrightSaving || !this.siteCopyrightChanged) return;
+                var body = new URLSearchParams();
+                body.set("action", "save_copyright");
+                body.set("lang", this.siteCopyright.language);
+                body.set("copyright", String(this.siteCopyright.copyright || ""));
+                if (this.siteCopyrightFilingEditable()) {
+                    body.set("icp", String(this.siteCopyright.icp || ""));
+                    body.set("police", String(this.siteCopyright.police || ""));
+                }
+                body.set("_token", this.csrf);
+                var self = this;
+                this.siteCopyrightSaving = true;
+                fetch(this.siteCopyrightEndpoint, { method: "POST", body: body })
+                    .then(function (response) { return response.json(); })
+                    .then(function (result) {
+                        if (!result || Number(result.code) !== 0 || !result.data || !result.data.state) {
+                            throw new Error((result && result.msg) || self.siteCopyrightText.failed);
+                        }
+                        Object.assign(self.siteCopyright, result.data.state);
+                        self.siteCopyrightChanged = false;
+                        self.refreshPreview();
+                        self.toast(self.siteCopyrightText.saved);
+                    })
+                    .catch(function (error) { self.toast(error.message || self.siteCopyrightText.failed); })
+                    .finally(function () { self.siteCopyrightSaving = false; });
             },
 
             addContactFormField() {

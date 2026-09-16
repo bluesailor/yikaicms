@@ -29,6 +29,67 @@ final class BloxSiteElementsTest extends TestCase
         self::assertSame('', SiteContactElement::phoneHref('extension only'));
     }
 
+    public function testFilingOnlyAppliesToSimplifiedChinese(): void
+    {
+        self::assertTrue(SiteCopyrightSettings::filingApplies('zh-CN'));
+        foreach (['zh-TW', 'en', 'ja', ''] as $language) {
+            self::assertFalse(SiteCopyrightSettings::filingApplies($language), $language);
+        }
+
+        $filingControls = array_values(array_filter(
+            (new SiteCopyrightElement())->controls(),
+            static fn (array $control): bool => in_array($control['key'], ['show_icp', 'show_police'], true)
+        ));
+        self::assertCount(2, $filingControls);
+        foreach ($filingControls as $control) {
+            self::assertSame(['zh-CN'], $control['site_langs']);
+        }
+    }
+
+    public function testCopyrightKeyMatchesFrontendLanguageLookup(): void
+    {
+        $store = [];
+        $read = static function (string $key) use (&$store): string {
+            return $store[$key] ?? '';
+        };
+
+        self::assertSame('footer_copyright_text', SiteCopyrightSettings::copyrightKey('zh-CN', 'zh-CN', $read));
+        self::assertSame('footer_copyright_text_en', SiteCopyrightSettings::copyrightKey('en', 'zh-CN', $read));
+        // 默认语言若已存在非空语言键，前台 configRawLang() 优先读它，写入也必须落到同一键
+        $store['footer_copyright_text_zh-CN'] = '© legacy';
+        self::assertSame('footer_copyright_text_zh-CN', SiteCopyrightSettings::copyrightKey('zh-CN', 'zh-CN', $read));
+    }
+
+    public function testCopyrightEditorStateFallsBackAndOnlyWritesSubmittedFiling(): void
+    {
+        $store = [
+            'footer_copyright_text' => '© {year} 中文站',
+            'site_icp' => '沪ICP备00000000号',
+            'site_police' => '',
+        ];
+        $read = static fn (string $key): string => $store[$key] ?? '';
+
+        $english = SiteCopyrightSettings::editorState('en', $read);
+        self::assertSame('© {year} 中文站', $english['copyright']);
+        self::assertFalse($english['filing']);
+        self::assertTrue(SiteCopyrightSettings::editorState('zh-CN', $read)['filing']);
+
+        // 未提交备案字段（面板在该语境隐藏了备案）时不写备案键，原值保留
+        self::assertSame(
+            ['footer_copyright_text_en' => '© {year} Example'],
+            SiteCopyrightSettings::normalizeInput(
+                ['copyright' => " © {year} Example\n"],
+                'en',
+                'zh-CN',
+                $read
+            )
+        );
+        self::assertSame(
+            ['footer_copyright_text' => '© {year} 示例', 'site_icp' => '京ICP备1号'],
+            SiteCopyrightSettings::normalizeInput(['copyright' => '© {year} 示例', 'icp' => ' 京ICP备1号 '], 'zh-CN', 'zh-CN', $read)
+        );
+    }
+
     public function testLanguageSwitcherPreservesPathAndQueryWithoutStackingPrefixes(): void
     {
         $languages = ['zh-CN', 'en', 'ja'];

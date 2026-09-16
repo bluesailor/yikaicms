@@ -1323,22 +1323,60 @@ declare(strict_types=1);
                                         <span><?= e(__('blox_copyright_content_source_title')) ?></span>
                                     </div>
                                     <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_copyright_content_source_hint')) ?></p>
-                                    <?php if ($canManageGlobalSettings): ?>
-                                    <div class="flex flex-wrap gap-1.5">
-                                        <a href="/admin/setting.php?tab=footer#input_footer_copyright_text" target="_blank" rel="noopener"
-                                           data-testid="blox-copyright-content-manage"
-                                           class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
-                                            <i class="ti ti-text-caption text-sm" aria-hidden="true"></i>
-                                            <span><?= e(__('blox_copyright_content_manage')) ?></span>
-                                        </a>
-                                        <a href="/admin/setting.php?tab=basic#input_site_icp" target="_blank" rel="noopener"
-                                           data-testid="blox-filing-content-manage"
-                                           class="h-8 inline-flex items-center gap-1.5 rounded border border-blue-200 bg-white px-2.5 text-[11px] font-medium text-blue-600 hover:border-blue-400 hover:text-blue-700 transition">
-                                            <i class="ti ti-shield-check text-sm" aria-hidden="true"></i>
-                                            <span><?= e(__('blox_filing_content_manage')) ?></span>
-                                        </a>
+                                    <?php // 面板内直接改站点资料：按画布预览语言读写，保存即全站生效（不随模板草稿） ?>
+                                    <label class="block space-y-1" data-testid="blox-copyright-text-field">
+                                        <span class="flex items-center justify-between gap-2 text-[11px] text-gray-600">
+                                            <span><?= e(__('blox_site_copyright_text')) ?></span>
+                                            <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500" x-text="siteCopyright.language_label"></span>
+                                        </span>
+                                        <input type="text" maxlength="255" x-model="siteCopyright.copyright"
+                                               @input="siteCopyrightChanged = true"
+                                               @keydown.enter.prevent="saveSiteCopyright()"
+                                               :readonly="!siteCopyright.can_edit"
+                                               placeholder="© {year} {site_name}"
+                                               data-testid="blox-copyright-text-input"
+                                               class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white read-only:bg-gray-50 read-only:text-gray-500">
+                                        <span class="block text-[10px] text-gray-400"><?= e(__('blox_site_copyright_tokens')) ?></span>
+                                    </label>
+                                    <template x-if="siteCopyrightFilingEditable()">
+                                        <div class="space-y-2" data-testid="blox-filing-fields">
+                                            <label class="block space-y-1">
+                                                <span class="block text-[11px] text-gray-600"><?= e(__('blox_site_icp')) ?></span>
+                                                <input type="text" maxlength="100" x-model="siteCopyright.icp"
+                                                       @input="siteCopyrightChanged = true"
+                                                       @keydown.enter.prevent="saveSiteCopyright()"
+                                                       :readonly="!siteCopyright.can_edit"
+                                                       data-testid="blox-filing-icp-input"
+                                                       class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white read-only:bg-gray-50 read-only:text-gray-500">
+                                            </label>
+                                            <label class="block space-y-1">
+                                                <span class="block text-[11px] text-gray-600"><?= e(__('blox_site_police')) ?></span>
+                                                <input type="text" maxlength="100" x-model="siteCopyright.police"
+                                                       @input="siteCopyrightChanged = true"
+                                                       @keydown.enter.prevent="saveSiteCopyright()"
+                                                       :readonly="!siteCopyright.can_edit"
+                                                       data-testid="blox-filing-police-input"
+                                                       class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white read-only:bg-gray-50 read-only:text-gray-500">
+                                            </label>
+                                        </div>
+                                    </template>
+                                    <p x-show="!siteCopyrightFilingEditable()" class="text-[10px] leading-relaxed text-gray-400" data-testid="blox-filing-hidden-note">
+                                        <?= e(__('blox_site_filing_language_hidden')) ?>
+                                    </p>
+                                    <p x-show="!siteCopyright.language_fixed"
+                                       class="text-[10px] leading-relaxed text-gray-400" data-testid="blox-filing-shared-note">
+                                        <?= e(__('blox_site_filing_zh_only')) ?>
+                                    </p>
+                                    <div x-show="siteCopyright.can_edit" class="flex items-center justify-between gap-2">
+                                        <span class="text-[10px] text-amber-600"><?= e(__('blox_site_copyright_live_note')) ?></span>
+                                        <button type="button" @click="saveSiteCopyright()"
+                                                :disabled="!siteCopyrightChanged || siteCopyrightSaving"
+                                                data-testid="blox-copyright-save"
+                                                class="h-8 shrink-0 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 transition">
+                                            <i class="ti text-sm" :class="siteCopyrightSaving ? 'ti-loader-2 animate-spin' : 'ti-device-floppy'" aria-hidden="true"></i>
+                                            <span><?= e(__('blox_site_copyright_save')) ?></span>
+                                        </button>
                                     </div>
-                                    <?php endif; ?>
                                 </div>
                             </template>
 

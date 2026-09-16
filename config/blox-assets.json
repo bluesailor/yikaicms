@@ -8,6 +8,7 @@
     "admin/blox_page_api.php",
     "admin/blox_preview.php",
     "admin/blox_contact_api.php",
+    "admin/blox_site_api.php",
     "admin/blox_template_api.php",
     "admin/blox_templates.php",
     "includes/builder/BloxCanvasPreview.php",
