@@ -4,7 +4,7 @@
  * 变量：$aboutChannel
  */
 $aboutLayout = config('home_about_layout', 'text_left');
-$aboutImage = (string) config('home_about_image', '/assets/images/demo/about-office.jpg');
+$aboutImage = (string) config('home_about_image', '/assets/images/demo/yikaicms-industrial-600.webp');
 $aboutTagTitle = config('home_about_tag_title', '');
 $aboutTagDesc = config('home_about_tag_desc', '');
 $bg = getBlockBg($block ?? [], 'bg-white');

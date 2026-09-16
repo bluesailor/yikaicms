@@ -6,7 +6,7 @@ const { createBackgroundVideo } = require('./fixtures/background-video');
 const { addTemporaryHeading, frame, openPageEditor, performPagePreviewUpdate, expectClean, waitPreviewSettled } = require('./helpers');
 const root = path.resolve(__dirname, '../..');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
-const poster = '/assets/images/demo/about-office.jpg';
+const poster = '/assets/images/demo/yikaicms-industrial-600.webp';
 const fixture = action => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'catalog-baseline-fixture.php'), action], { cwd: root });
 
 test.beforeAll(() => fixture('cache-pretty'));
@@ -91,7 +91,7 @@ for (const scope of ['section', 'container-element']) {
               await expect(surface.locator(':scope > .blox-bg-overlay')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0.6)');
             }
             await surface.scrollIntoViewIfNeeded();
-            await expect(surface).toHaveCSS('background-image', /about-office\.jpg/);
+            await expect(surface).toHaveCSS('background-image', /yikaicms-industrial-600.webp/);
             expect(await surface.evaluate(node => node.getBoundingClientRect().height)).toBeGreaterThan(100);
             const video = surface.locator(':scope > .blox-bg-media > video');
             await expect(video).toHaveAttribute('data-blox-video-src', asset.url);
