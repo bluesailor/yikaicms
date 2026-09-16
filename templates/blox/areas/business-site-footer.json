@@ -4,7 +4,7 @@
   "type": "footer",
   "name": "Business Theme Footer",
   "requires": {
-    "elements": ["nav", "site-copyright"],
+    "elements": ["nav", "site-copyright", "site-filing"],
     "plugins": []
   },
   "document": {
@@ -39,7 +39,8 @@
         "columns": [
           {
             "elements": [
-              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "center", "tone": "light"}}
+              {"type": "site-copyright", "data": {"show_icp": false, "show_police": false, "align": "center", "tone": "light"}},
+              {"type": "site-filing", "data": {"show_icp": true, "show_police": true, "align": "center", "tone": "light"}}
             ]
           }
         ]

@@ -680,6 +680,7 @@ $bloxPlaceholders = [
     ],
     'home-block' => ['block_type' => 'banner', 'label' => __('blox_home_block_label'), 'enabled' => true, 'items_mode' => 'inherit', 'children' => []],
     'home-banner-item' => ['title' => __('blox_home_banner_item')],
+    'site-copyright' => ['show_icp' => false, 'show_police' => false],
 ];
 
 $registryContext = $isHomeBlox
@@ -1351,6 +1352,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'site-contact' => __('blox_el_site_contact'),
                 'social-links' => __('blox_el_social_links'),
                 'site-copyright' => __('blox_el_site_copyright'),
+                'site-filing' => __('blox_el_site_filing'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             headerPresetOpen: false,
             headerPresetPreviewOpen: false,

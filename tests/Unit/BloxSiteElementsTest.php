@@ -119,6 +119,55 @@ final class BloxSiteElementsTest extends TestCase
         }
     }
 
+    public function testFilingElementRendersSeparatelyAndOnlyForSimplifiedChinese(): void
+    {
+        $previous = $GLOBALS['_test_config'] ?? [];
+        $previousCanvas = BlockRenderer::$showHidden;
+        try {
+            $GLOBALS['_test_config']['site_icp'] = 'ICP <test>';
+            $GLOBALS['_test_config']['site_police'] = 'Police <test>';
+            $filing = new SiteFilingElement();
+            self::assertSame('site-filing', $filing->type());
+            self::assertTrue(BuilderRegistry::meta()['site-filing']['dynamic']);
+
+            $GLOBALS['_test_config']['site_lang'] = 'zh-CN';
+            $html = $filing->render(['align' => 'center', 'layout' => 'stacked']);
+            self::assertStringContainsString('ICP &lt;test&gt;', $html);
+            self::assertStringContainsString('Police &lt;test&gt;', $html);
+            self::assertStringContainsString('flex-col', $html);
+            self::assertStringNotContainsString('data-yk-copyright-text', $html);
+            self::assertStringNotContainsString('Police', $filing->render(['show_police' => false]));
+
+            // 拆分后的版权元素只输出版权文字
+            $copyright = (new SiteCopyrightElement())->render(['show_icp' => false, 'show_police' => false]);
+            self::assertStringContainsString('data-yk-copyright-text', $copyright);
+            self::assertStringNotContainsString('beian.', $copyright);
+
+            foreach (['en', 'ja', 'zh-TW'] as $lang) {
+                $GLOBALS['_test_config']['site_lang'] = $lang;
+                BlockRenderer::$showHidden = false;
+                self::assertSame('', $filing->render([]), $lang);
+                BlockRenderer::$showHidden = true;
+                self::assertStringNotContainsString('beian.', $filing->render([]), $lang);
+                self::assertNotSame('', $filing->render([]), 'canvas keeps a selectable placeholder');
+            }
+        } finally {
+            $GLOBALS['_test_config'] = $previous;
+            BlockRenderer::$showHidden = $previousCanvas;
+        }
+    }
+
+    public function testCopyrightFilingSwitchesAreMarkedAsLegacy(): void
+    {
+        foreach ((new SiteCopyrightElement())->controls() as $control) {
+            $isFiling = in_array($control['key'], ['show_icp', 'show_police'], true);
+            self::assertSame($isFiling, !empty($control['legacy_filing']), $control['key']);
+        }
+        foreach ((new SiteFilingElement())->controls() as $control) {
+            self::assertArrayNotHasKey('legacy_filing', $control);
+        }
+    }
+
     public function testLanguageSwitcherPreservesPathAndQueryWithoutStackingPrefixes(): void
     {
         $languages = ['zh-CN', 'en', 'ja'];
