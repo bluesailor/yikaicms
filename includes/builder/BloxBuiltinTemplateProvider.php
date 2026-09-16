@@ -143,7 +143,7 @@ final class BloxBuiltinTemplateProvider
             'name_key' => 'blox_builtin_process_name',
             'description_key' => 'blox_builtin_process_desc',
             'category' => 'page',
-            'thumbnail' => '/assets/images/blox-templates/service-process.png',
+            'thumbnail' => '/assets/images/blox-templates/service-process.webp',
         ],
         'contact-connect' => [
             'type' => 'page',

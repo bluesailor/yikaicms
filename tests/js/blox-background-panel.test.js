@@ -5,12 +5,12 @@ const panel = require('../../assets/js/blox-background-panel');
 test('background layer state exposes the effective stored value for both visual layers', () => {
     const section = { settings: {
         bg_color: '#f8fafc',
-        container_bg_image: '/themes/default/assets/images/cta/cta-smart-manufacturing.png',
+        container_bg_image: '/themes/default/assets/images/cta/cta-smart-manufacturing.webp',
     } };
     assert.deepEqual(panel.layerState(section, 'section'), { kind: 'color', value: '#f8fafc' });
     assert.deepEqual(panel.layerState(section, 'container'), {
         kind: 'image',
-        value: '/themes/default/assets/images/cta/cta-smart-manufacturing.png',
+        value: '/themes/default/assets/images/cta/cta-smart-manufacturing.webp',
     });
     assert.deepEqual(panel.layerState(null, 'section'), { kind: 'none', value: '' });
 });

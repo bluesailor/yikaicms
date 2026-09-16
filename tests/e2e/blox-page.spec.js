@@ -568,7 +568,7 @@ test('section image background controls keep overlay and preview in sync @local'
 
   const bgImage = page.getByTestId('blox-section-bg-image');
   await performPagePreviewUpdate(page, async () => {
-    await bgImage.fill('/images/case-demo.jpg');
+    await bgImage.fill('/images/company-about-v2.webp');
     await bgImage.blur();
   });
   await expect(page.getByTestId('blox-section-overlay-opacity')).toHaveValue('45');
