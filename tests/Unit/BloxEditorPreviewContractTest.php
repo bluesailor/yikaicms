@@ -1081,7 +1081,11 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('HomeBloxRenderContext::fromCurrentSite($bloxCanvas)', $canvas);
         $this->assertStringContainsString('HomeBloxRenderer::render($previewSections, [$homePreviewContext, \'renderLegacyBlock\'])', $canvas);
-        $this->assertStringContainsString('$previewEndpoint = \'/admin/blox_preview.php?home=1\';', $editor);
+        $this->assertStringContainsString('$previewEndpoint = \'/admin/blox_preview.php?home=1\' . ($homeEditorLangQuery !== \'\' ? \'&_lang=\' . $homeEditorLangQuery : \'\');', $editor);
+        // ?lang= 打开首页编辑器：编辑器、画布预览与首页接口按同一语言处理本次请求
+        $this->assertStringContainsString("define('SITE_LANG', \$homeEditorLanguage);", $editor);
+        $this->assertStringContainsString("define('SITE_LANG', bloxHomeEditorLanguage());", $api);
+        $this->assertStringNotContainsString('fetch("/admin/blox_home_api.php"', $editor);
         $this->assertStringContainsString('outputBloxCanvasPreview(true, 0)', $api);
         $this->assertStringContainsString('HomeBloxRenderContext::fromCurrentSite($bloxCanvas)', $preview);
         $this->assertStringContainsString('HomeBloxRenderer::render($previewSections, [$homePreviewContext, \'renderLegacyBlock\'])', $preview);

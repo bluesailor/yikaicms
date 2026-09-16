@@ -3830,6 +3830,21 @@ function isMultiLangEnabled(string $table = 'contents'): bool
 }
 
 /**
+ * 首页 Blox 编辑器的编辑语言（编辑器、画布预览、首页接口三个请求共用）。
+ *
+ * 首页文档各语言共用一份，多语言文案都按 siteLang() 读写（关于我们/FAQ 本地化、自定义版块覆盖、
+ * home_*_<lang> 设置键）。所以用 ?lang= 打开首页编辑器时，这几个请求在定义 SITE_LANG 前调用本函数，
+ * 把「本次请求」的主语言临时切到该语言——画布显示、字段初值与保存位置都随之一致。
+ * 只作用于单次请求，不改站点的默认语言设置；非已启用的前台语言一律回落默认语言。
+ */
+function bloxHomeEditorLanguage(): string
+{
+    $default = (string) config('site_lang', 'zh-CN');
+    $requested = trim((string) ($_GET['lang'] ?? $_POST['lang'] ?? ''));
+    return $requested !== '' && isset(enabledLanguages()[$requested]) ? $requested : $default;
+}
+
+/**
  * 获取当前站点语言
  */
 function siteLang(): string
