@@ -133,11 +133,45 @@ declare(strict_types=1);
                           class="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-amber-400 ring-1 ring-gray-800"></span>
                 </button>
             </template>
+            <div class="hidden lg:flex items-center gap-1 pl-1 border-l border-gray-700 ml-0.5" data-testid="blox-preview-width">
+                <input type="number" min="320" max="2560" step="10" inputmode="numeric"
+                       :value="previewCustomWidth > 0 ? previewCustomWidth : ''"
+                       :placeholder="previewEffectiveWidth()"
+                       @change="setPreviewCustomWidth($event.target.value); $event.target.value = previewCustomWidth > 0 ? previewCustomWidth : ''"
+                       @keydown.enter.prevent="setPreviewCustomWidth($event.target.value); $event.target.blur()"
+                       title="<?= e(__('blox_preview_width_hint')) ?>" aria-label="<?= e(__('blox_preview_width')) ?>"
+                       data-testid="blox-preview-width-input"
+                       class="w-16 h-7 rounded-md bg-gray-900 border border-gray-700 text-xs text-gray-200 text-center outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                <span class="text-[10px] text-gray-500">px</span>
+                <button type="button" x-show="previewCustomWidth > 0" x-cloak @click="clearPreviewCustomWidth()"
+                        title="<?= e(__('blox_preview_width_auto')) ?>" aria-label="<?= e(__('blox_preview_width_auto')) ?>"
+                        data-testid="blox-preview-width-clear"
+                        class="w-6 h-6 rounded inline-flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800">
+                    <i class="ti ti-x text-xs"></i>
+                </button>
+            </div>
+        </div>
+        <!-- 宽度与档位不一致时，同时亮出「编辑档位」与「预览宽度」，避免误以为改了档位 -->
+        <div x-show="previewCustomWidth > 0" x-cloak data-testid="blox-preview-width-chip"
+             class="hidden lg:flex items-center gap-1 ml-2 px-2 h-6 rounded-full bg-gray-800 text-[10px] text-gray-300 shrink-0">
+            <span><?= e(__('blox_preview_edit_tier')) ?><span x-text="responsiveDeviceTitle(previewDevice)"></span></span>
+            <span class="text-gray-600">·</span>
+            <span><?= e(__('blox_preview_width_label')) ?><span x-text="previewCustomWidth + 'px'"></span></span>
         </div>
 
         <div class="blox-header-actions flex items-center gap-2 shrink-0" data-testid="blox-desktop-actions">
             <span class="text-xs max-w-28 truncate" :class="dirty || saveOutcome === 'failed' || conflictOpen ? 'text-amber-300' : 'text-gray-300'"
                   role="status" aria-live="polite" :title="saveStatusText()" x-text="saveStatusText()" :data-state="saveStatusState()" data-testid="blox-dirty"></span>
+            <button type="button" x-show="saveStatusState() === 'failed' && failedAction !== 'publish'" x-cloak
+                    @click="save()" data-testid="blox-save-retry"
+                    class="text-xs text-amber-300 underline decoration-dotted underline-offset-2 hover:text-white shrink-0">
+                <?= __('blox_save_retry') ?>
+            </button>
+            <span x-show="recoveryStateMessage() !== ''" x-cloak class="text-amber-300" role="status"
+                  :title="recoveryStateMessage()" :data-state="recoveryState" data-testid="blox-recovery-state">
+                <i class="ti ti-alert-triangle text-sm" aria-hidden="true"></i>
+                <span class="sr-only" x-text="recoveryStateMessage()"></span>
+            </span>
             <div class="flex items-center gap-0.5 border-r border-gray-700 pr-2 mr-0.5">
                 <button type="button" @click="undo()" :disabled="!canUndo()" data-testid="blox-undo"
                         title="<?php echo e(__('blox_undo_shortcut')); ?>" aria-label="<?php echo e(__('blox_undo')); ?>"
@@ -151,7 +185,7 @@ declare(strict_types=1);
                 </button>
             </div>
 <?php if (!$isHomeBlox && !$templateId): ?>
-            <button type="button" @click="openRevisions()"
+            <button type="button" @click="openRevisions()" data-testid="blox-revisions-open"
                     class="text-gray-300 hover:text-white text-sm inline-flex items-center gap-1 px-2 py-1.5" title="<?= e(__('revision_history')) ?>">
                 <i class="ti ti-history text-base"></i>
             </button>

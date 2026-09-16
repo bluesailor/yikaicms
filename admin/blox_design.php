@@ -590,6 +590,51 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </div>
                     </div>
                     <p class="text-xs text-gray-400"><?php echo e(__('blox_design_theme_buttons_hint')); ?></p>
+
+                    <div class="space-y-3 border-t border-gray-100 pt-3" data-testid="blox-design-theme-variants">
+                        <span class="block text-xs font-semibold text-gray-700"><?php echo e(__('blox_design_theme_variants')); ?></span>
+                        <template x-for="preset in themeButtonVariants" :key="'theme-btn-v-' + preset.key">
+                            <div class="space-y-2 rounded border border-gray-200 p-3" :data-testid="'blox-design-theme-variant-' + preset.key">
+                                <span class="block text-xs font-medium text-gray-700" x-text="preset.label"></span>
+                                <div class="grid grid-cols-3 gap-2 text-[11px] text-gray-400">
+                                    <span><?php echo e(__('blox_design_theme_v_color')); ?></span>
+                                    <span><?php echo e(__('blox_design_theme_v_bg')); ?></span>
+                                    <span><?php echo e(__('blox_design_theme_v_border')); ?></span>
+                                </div>
+                                <template x-for="state in themeVariantStates" :key="'theme-btn-v-' + preset.key + '-' + state.key">
+                                    <div class="space-y-1">
+                                        <span class="block text-[11px] font-medium text-gray-500" x-text="state.label"></span>
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <template x-for="field in ['color','bg','border_color']" :key="'theme-btn-v-' + preset.key + '-' + state.key + '-' + field">
+                                                <?php // token 选项服务端渲染：x-for 生成的 select 内再嵌 x-for 模板不会渲染（四层模板），且编辑主题时 token 清单不变。 ?>
+                                                <select :aria-label="preset.label + ' · ' + state.label + ' · ' + field"
+                                                        :data-testid="'blox-theme-v-' + preset.key + '-' + (state.key === '' ? 'base' : state.key) + '-' + field"
+                                                        x-model="themeVariantState(preset.key, state.key)[field]"
+                                                        class="h-9 min-w-0 border border-gray-300 bg-white px-1.5 text-xs">
+                                                    <option value=""><?php echo e(__('blox_design_theme_inherit')); ?></option>
+                                                    <?php foreach ($designState['tokens'] as $token): ?>
+                                                        <?php if (($token['status'] ?? '') === 'archived') { continue; } ?>
+                                                        <option value="<?php echo e((string) $token['id']); ?>"><?php echo e((string) $token['name']); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                                <label class="block text-[11px] font-medium text-gray-500"><?php echo e(__('blox_design_theme_v_focus')); ?>
+                                    <select x-model="themeForm.buttons.variants[preset.key].focus_color" :data-testid="'blox-theme-v-' + preset.key + '-focus'"
+                                            class="mt-1 h-9 w-full border border-gray-300 bg-white px-2 text-xs">
+                                        <option value=""><?php echo e(__('blox_design_theme_v_focus_default')); ?></option>
+                                        <?php foreach ($designState['tokens'] as $token): ?>
+                                            <?php if (($token['status'] ?? '') === 'archived') { continue; } ?>
+                                            <option value="<?php echo e((string) $token['id']); ?>"><?php echo e((string) $token['name']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </label>
+                            </div>
+                        </template>
+                        <p class="text-xs text-gray-400"><?php echo e(__('blox_design_theme_variants_hint')); ?></p>
+                    </div>
                 </fieldset>
 
                 <fieldset class="space-y-3 border-y border-gray-200 bg-white px-4 py-4" data-testid="blox-design-page-theme-layout">
@@ -617,11 +662,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
         <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4">
             <p class="text-xs leading-5 text-gray-500"><?php echo e(__('blox_design_theme_publish_hint')); ?></p>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
                 <button type="button" @click="mutateTheme('theme_save_draft')" :disabled="themeBusy" data-testid="blox-design-page-theme-save"
                         class="inline-flex h-10 items-center gap-2 border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
                     <i class="ti ti-device-floppy"></i><?php echo e(__('blox_save_draft')); ?>
                 </button>
+                <a href="/admin/blox_preview.php?home=1&amp;theme_draft=1" target="_blank" rel="noopener"
+                   data-testid="blox-design-page-theme-preview"
+                   class="inline-flex h-10 items-center gap-2 border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    <i class="ti ti-eye" aria-hidden="true"></i><?php echo e(__('blox_design_theme_preview_saved')); ?>
+                </a>
                 <button type="button" @click="mutateTheme('theme_publish')" :disabled="themeBusy" data-testid="blox-design-page-theme-publish"
                         class="inline-flex h-10 items-center gap-2 bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50">
                     <i class="ti ti-rocket"></i><?php echo e(__('blox_design_theme_publish')); ?>
@@ -674,6 +724,16 @@ function bloxDesignManager() {
             ['value' => 'md', 'label' => __('blox_spacing_md')],
             ['value' => 'lg', 'label' => __('blox_spacing_lg')],
             ['value' => 'full', 'label' => __('blox_design_radius_full')],
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        themeButtonVariants: <?php echo json_encode([
+            ['key' => 'filled', 'label' => __('blox_design_theme_variant_filled')],
+            ['key' => 'outline', 'label' => __('blox_design_theme_variant_outline')],
+            ['key' => 'text', 'label' => __('blox_design_theme_variant_text')],
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        themeVariantStates: <?php echo json_encode([
+            ['key' => '', 'label' => __('blox_design_theme_v_state_normal')],
+            ['key' => 'hover', 'label' => __('blox_design_theme_v_state_hover')],
+            ['key' => 'disabled', 'label' => __('blox_design_theme_v_state_disabled')],
         ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         themeText: <?php echo json_encode([
             'size' => __('blox_design_theme_size'),
@@ -907,7 +967,8 @@ function bloxDesignManager() {
                     size: responsive(buttons.size),
                     padding_x: buttons.padding_x !== undefined ? String(buttons.padding_x) : '',
                     padding_y: buttons.padding_y !== undefined ? String(buttons.padding_y) : '',
-                    radius: buttons.radius || ''
+                    radius: buttons.radius || '',
+                    variants: this.buildThemeVariants(buttons.variants)
                 },
                 layout: {
                     content_max_width: layout.content_max_width !== undefined ? String(layout.content_max_width) : '',
@@ -915,6 +976,26 @@ function bloxDesignManager() {
                     container_gap: responsive(layout.container_gap)
                 }
             };
+        },
+        // 变体预设三态（基础态平铺在预设对象上，hover/disabled 为嵌套对象；空串由服务端丢弃）。
+        buildThemeVariants(source) {
+            var out = {};
+            this.themeButtonVariants.forEach((preset) => {
+                var item = (source || {})[preset.key] || {};
+                var pick = (obj, key) => (obj && typeof obj === 'object' && obj[key]) || '';
+                out[preset.key] = {
+                    color: pick(item, 'color'), bg: pick(item, 'bg'), border_color: pick(item, 'border_color'),
+                    focus_color: pick(item, 'focus_color'),
+                    hover: { color: pick(item.hover, 'color'), bg: pick(item.hover, 'bg'), border_color: pick(item.hover, 'border_color') },
+                    disabled: { color: pick(item.disabled, 'color'), bg: pick(item.disabled, 'bg'), border_color: pick(item.disabled, 'border_color') }
+                };
+            });
+            return out;
+        },
+        themeVariantState(presetKey, stateKey) {
+            var variant = this.themeForm.buttons.variants[presetKey];
+            if (!variant) return {};
+            return stateKey === '' ? variant : (variant[stateKey] || {});
         },
         // 平板/手机未填时提示实际沿用的更大屏幕值。
         themePlaceholder(value) {

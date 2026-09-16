@@ -35,4 +35,20 @@ final class PluginMarketPageContractTest extends TestCase
         self::assertStringNotContainsString('x-text="installing === p.slug ? <?php', $page);
         self::assertStringNotContainsString("? <?php echo json_encode(__('pl_upgrading')", $page);
     }
+
+    public function testMarketChecksOriginBeforeDownloadAndPassesIdentityIntoInstaller(): void
+    {
+        $page = (string) file_get_contents(ROOT_PATH . '/admin/plugin.php');
+        $market = substr($page, (int) strpos($page, "case 'market_install':"));
+        $check = strpos($market, '->assertOrigin($slug, $origin)');
+        $download = strpos($market, '$body = pluginMarketHttpGet(');
+        self::assertIsInt($check);
+        self::assertIsInt($download);
+        self::assertLessThan($download, $check);
+        self::assertStringContainsString("pluginInstallFromZip(\$tmpZip, \$slug, (string) (\$item['version'] ?? ''), \$origin)", $market);
+        self::assertStringNotContainsString('deletePluginDir($pluginSlug)', $market);
+        self::assertStringNotContainsString('$zip->extractTo($pluginsDir)', $page);
+        self::assertStringContainsString("'status' => 0", $page);
+        self::assertStringContainsString('pluginMarketDecorate', $page);
+    }
 }

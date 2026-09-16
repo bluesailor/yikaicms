@@ -27,6 +27,18 @@ if ($action === 'products') {
         $rows[] = ['id' => $items[0]['id'], 'title' => $items[0]['title'], 'language' => $language, 'submit' => $labels['product_btn_submit_inq']];
     }
     echo json_encode($rows, JSON_THROW_ON_ERROR);
+} elseif ($action === 'preview-articles') {
+    $rows = contentModel()->getList(0, 1, 0, ['lang' => 'zh-CN', 'type' => 'article']);
+    $other = db()->fetchOne('SELECT id, title FROM ' . DB_PREFIX . 'contents WHERE status = ? AND type <> ? AND lang = ? LIMIT 1', [1, 'article', 'zh-CN']);
+    if ($rows === [] || !$other) throw new RuntimeException('Article and non-article fixtures required');
+    echo json_encode(['article' => $rows[0], 'other' => $other], JSON_THROW_ON_ERROR);
+} elseif ($action === 'limited-permissions') {
+    $permissions = json_decode((string) ($argv[2] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+    if (!is_array($permissions) || array_diff($permissions, ['blox_global', 'edit_product', 'edit_article']) !== []) {
+        throw new RuntimeException('Unsupported test permissions');
+    }
+    db()->update('roles', ['permissions' => json_encode($permissions, JSON_THROW_ON_ERROR)], 'name = ?', ['TB-R2 limited']);
+    echo 'ok';
 } elseif ($action === 'pair') {
     $product = productModel()->getList(0, 1, 0, ['lang' => 'zh-CN'])[0];
     $document = BloxDocumentPipeline::decode(ProductTemplateDocument::seed('zh-CN'));

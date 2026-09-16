@@ -326,6 +326,9 @@ for item in "${EXCLUDES[@]}"; do
     rm -rf "$PKG_DIR/$item"
 done
 
+# Installation receipts belong to the destination site, never the distributed source.
+find "$PKG_DIR" -type f -name '.yikai-market-origin.json' -delete
+
 # 清空 uploads 和 storage 内容，但保留目录
 rm -rf "$PKG_DIR/uploads/"*
 rm -rf "$PKG_DIR/storage/"*
@@ -563,7 +566,7 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
                     # 两个遗留安装入口相反：必须让增量包不可逆地删掉它们（无鉴权可执行）。
                     case "$path" in
                         install/upgrade.php|install/run_upgrade.php) ;;
-                        config/config.php|storage/*|uploads/*|install/*|themes/*|favicon.ico) continue;;
+                        config/config.php|storage/*|uploads/*|install/*|themes/*|favicon.ico|*/.yikai-market-origin.json|.yikai-market-origin.json) continue;;
                     esac
                     DELETED+=("$path")
                     ;;
@@ -573,7 +576,7 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
                     fi
                     case "$path" in
                         install/upgrade.php|install/run_upgrade.php) DELETED+=("$path");;
-                        config/config.php|storage/*|uploads/*|install/*|themes/*) ;;
+                        config/config.php|storage/*|uploads/*|install/*|themes/*|*/.yikai-market-origin.json|.yikai-market-origin.json) ;;
                         *) DELETED+=("$path");;
                     esac
                     ;;

@@ -167,9 +167,9 @@ final class BloxAreaDocumentTest extends TestCase
     public function testBundledAreaPackagesPassTheSameImporterAsUploadedTemplates(): void
     {
         $expected = [
-            'clean-site-header.json' => ['header', ['container', 'logo', 'nav-drawer', 'nav-mega'], 1],
-            'full-width-site-header.json' => ['header', ['container', 'logo', 'nav-drawer', 'nav-mega'], 1],
-            'centered-site-header.json' => ['header', ['container', 'logo', 'nav', 'nav-drawer'], 1],
+            'clean-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega'], 1],
+            'full-width-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega'], 1],
+            'centered-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav', 'nav-drawer'], 1],
             'corporate-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact', 'site-search'], 2],
             'topbar-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-contact'], 2],
             'search-site-header.json' => ['header', ['container', 'language-switcher', 'logo', 'nav-drawer', 'nav-mega', 'site-search'], 2],
@@ -180,6 +180,14 @@ final class BloxAreaDocumentTest extends TestCase
             'compact-site-footer.json' => ['footer', ['logo', 'site-copyright', 'social-links'], 1],
             'contact-site-footer.json' => ['footer', ['container', 'logo', 'site-contact', 'site-copyright', 'social-links'], 2],
             'search-site-footer.json' => ['footer', ['logo', 'nav', 'site-contact', 'site-copyright', 'site-search', 'social-links'], 3],
+            // 详情页起步模板与区域模板走同一导入器/管线（详情类型经 BloxDocumentPipeline）
+            'classic-article-detail.json' => ['article-detail', ['article-content', 'article-cover', 'article-meta', 'article-prev-next', 'article-related', 'article-summary', 'article-title'], 3],
+            'classic-product-detail.json' => ['product-detail', ['product-button', 'product-content', 'product-gallery', 'product-inquiry', 'product-prev-next', 'product-related', 'product-specs', 'product-title'], 4],
+            'showcase-case-detail.json' => ['article-detail', ['article-content', 'article-cover', 'article-meta', 'article-prev-next', 'article-related', 'article-title'], 4],
+            // 整页起步模板（page 类型）：栏目落地页的完整版式
+            'product-center-page.json' => ['page', ['cta', 'page-title', 'product-catalog'], 3],
+            'news-center-page.json' => ['page', ['content-catalog', 'page-title'], 2],
+            'case-gallery-page.json' => ['page', ['content-catalog', 'cta', 'page-title'], 3],
         ];
         foreach ($expected as $file => [$type, $elements, $sectionCount]) {
             $json = file_get_contents(ROOT_PATH . '/templates/blox/areas/' . $file);
@@ -211,14 +219,18 @@ final class BloxAreaDocumentTest extends TestCase
         self::assertSame('site_description', $intro[1]['data']['site_field']);
     }
 
-    public function testPresetCatalogContainsOnlyHeaderAndFooterStarters(): void
+    /** 目录契约更新（2026-09-16）：详情页与整页起步加入清单，排序为 header → footer → article-detail → product-detail → page。 */
+    public function testPresetCatalogListsHeaderFooterDetailAndFullPageStarters(): void
     {
         $catalog = BloxAreaTemplatePresets::catalog();
         self::assertSame(
-            ['clean-site-header', 'full-width-site-header', 'centered-site-header', 'corporate-site-header', 'topbar-site-header', 'search-site-header', 'clean-site-footer', 'business-site-footer', 'minimal-site-footer', 'corporate-site-footer', 'compact-site-footer', 'contact-site-footer', 'search-site-footer'],
+            ['clean-site-header', 'full-width-site-header', 'centered-site-header', 'corporate-site-header', 'topbar-site-header', 'search-site-header', 'simple-light-site-footer', 'simple-dark-site-footer', 'clean-site-footer', 'corporate-site-footer', 'contact-site-footer', 'search-site-footer', 'classic-article-detail', 'showcase-case-detail', 'classic-product-detail', 'product-center-page', 'news-center-page', 'case-gallery-page'],
             array_column($catalog, 'slug')
         );
-        self::assertSame(['header', 'header', 'header', 'header', 'header', 'header', 'footer', 'footer', 'footer', 'footer', 'footer', 'footer', 'footer'], array_column($catalog, 'type'));
+        self::assertSame(
+            ['header', 'header', 'header', 'header', 'header', 'header', 'footer', 'footer', 'footer', 'footer', 'footer', 'footer', 'article-detail', 'article-detail', 'product-detail', 'page', 'page', 'page'],
+            array_column($catalog, 'type')
+        );
         self::assertSame(
             [
                 'content-left',
@@ -227,22 +239,32 @@ final class BloxAreaDocumentTest extends TestCase
                 'corporate',
                 'topbar',
                 'search',
+                'footer-simple-light',
+                'footer-simple-dark',
                 'footer-columns',
                 'footer-columns-dark',
-                'footer-columns',
-                'footer-columns-dark',
-                'footer-compact',
                 'footer-contact',
                 'footer-search',
+                'detail-article',
+                'detail-case',
+                'detail-product',
+                'page-product-center',
+                'page-news-center',
+                'page-case-gallery',
             ],
             array_column($catalog, 'preview')
         );
+        // 编辑器内起步选择器仍只面向 header/footer：详情与整页预设从模板库安装
+        self::assertSame([], BloxAreaTemplatePresets::editorCatalog('article-detail'));
+        self::assertSame([], BloxAreaTemplatePresets::editorCatalog('product-detail'));
+        self::assertSame([], BloxAreaTemplatePresets::editorCatalog('page'));
     }
 
     public function testHeaderEditorCatalogProvidesReadyToApplyDocuments(): void
     {
         $catalog = BloxAreaTemplatePresets::editorCatalog('header');
         self::assertCount(6, $catalog);
+        self::assertSame([1, 2, 3, 4, 5, 6], array_column($catalog, 'number'));
         self::assertSame(
             ['clean-site-header', 'full-width-site-header', 'centered-site-header', 'corporate-site-header', 'topbar-site-header', 'search-site-header'],
             array_column($catalog, 'slug')
@@ -253,8 +275,28 @@ final class BloxAreaDocumentTest extends TestCase
             self::assertNotEmpty($preset['sections']);
             self::assertNotEmpty($preset['features']);
             self::assertArrayHasKey('sticky', $preset['settings']);
+            self::assertStringContainsString('"type":"language-switcher"', json_encode($preset['sections'], JSON_THROW_ON_ERROR));
+            self::assertNotContains(__('blox_header_feature_language'), $preset['features']);
         }
         self::assertSame([], BloxAreaTemplatePresets::editorCatalog('popup'));
+    }
+
+    public function testTopbarExtraSmallPaddingDoesNotFallBackToBodySpacing(): void
+    {
+        $preset = BloxAreaTemplatePresets::editorCatalog('header')[4];
+        self::assertSame('topbar-site-header', $preset['slug']);
+        self::assertSame('xs', $preset['sections'][0]['settings']['padding']);
+        // Exercise the shared renderer without depending on site contact/navigation data.
+        foreach (['xs', ['d' => 'xs', 't' => 'sm', 'm' => 'none']] as $padding) {
+            $html = BlockRenderer::render(json_encode([
+                'schema' => 1, 'sections' => [[
+                    'settings' => ['padding' => $padding],
+                    'columns' => [['elements' => []]],
+                ]],
+            ], JSON_THROW_ON_ERROR));
+            self::assertStringContainsString('py-1', $html);
+            self::assertStringNotContainsString('py-8', $html);
+        }
     }
 
     public function testBuiltinAreaTemplateDisplayNameUsesLanguageKeyButCustomNameIsUntouched(): void
@@ -282,9 +324,9 @@ final class BloxAreaDocumentTest extends TestCase
     public function testFooterEditorCatalogProvidesPracticalDynamicDocuments(): void
     {
         $catalog = BloxAreaTemplatePresets::editorCatalog('footer');
-        self::assertCount(7, $catalog);
+        self::assertCount(6, $catalog);
         self::assertSame(
-            ['clean-site-footer', 'business-site-footer', 'minimal-site-footer', 'corporate-site-footer', 'compact-site-footer', 'contact-site-footer', 'search-site-footer'],
+            ['simple-light-site-footer', 'simple-dark-site-footer', 'clean-site-footer', 'corporate-site-footer', 'contact-site-footer', 'search-site-footer'],
             array_column($catalog, 'slug')
         );
         foreach ($catalog as $preset) {
@@ -293,9 +335,16 @@ final class BloxAreaDocumentTest extends TestCase
             self::assertNotEmpty($preset['sections']);
             self::assertNotEmpty($preset['features']);
         }
-        self::assertSame(2, count($catalog[1]['sections']));
+        self::assertSame([1, 2, 3, 4, 5, 6], array_column($catalog, 'number'));
+        foreach (array_slice($catalog, 0, 2) as $minimal) {
+            self::assertCount(1, $minimal['sections']);
+            $elements = $minimal['sections'][0]['columns'][0]['elements'];
+            self::assertSame(['site-copyright'], array_column($elements, 'type'));
+            self::assertSame('1', (string) $elements[0]['data']['show_icp']);
+            self::assertSame('1', (string) $elements[0]['data']['show_police']);
+        }
         self::assertSame(2, count($catalog[2]['sections']));
-        self::assertSame(3, count($catalog[6]['sections']));
+        self::assertSame(3, count($catalog[5]['sections']));
     }
 
     public function testBundledThemeFootersKeepTheirThemeSpecificVisualContracts(): void
@@ -350,7 +399,11 @@ final class BloxAreaDocumentTest extends TestCase
         $centeredContainer = $centered['document']['sections'][0]['columns'][0]['elements'][0]['data'];
         self::assertSame('column', $centeredContainer['direction']);
         self::assertSame('center', $centeredContainer['align']);
-        self::assertSame(['logo', 'nav', 'nav-drawer'], array_column($centeredContainer['children'], 'type'));
+        self::assertSame(['logo'], array_column($centeredContainer['children'], 'type'));
+        $centeredNavigation = $centered['document']['sections'][0]['columns'][0]['elements'][1]['data'];
+        self::assertSame('row', $centeredNavigation['direction']);
+        self::assertSame('center', $centeredNavigation['justify']);
+        self::assertSame(['nav', 'language-switcher', 'nav-drawer'], array_column($centeredNavigation['children'], 'type'));
 
         $topbar = $readPackage('topbar-site-header.json');
         self::assertSame(['m'], $topbar['document']['sections'][0]['settings']['hide_on']);
@@ -401,7 +454,7 @@ final class BloxAreaDocumentTest extends TestCase
         self::assertSame('/ja/', $tree[0]['_url']);
         $nav = (new NavMegaElement())->render([]);
         self::assertStringContainsString('yk-mega relative hidden xl:flex min-w-0 flex-1 justify-end', $nav);
-        self::assertStringContainsString('flex-nowrap items-center gap-1 whitespace-nowrap', $nav);
+        self::assertStringContainsString('flex-wrap items-center justify-end w-full min-w-0 gap-1 whitespace-nowrap', $nav);
         self::assertStringContainsString('href="/ja/products.html"', $nav);
         self::assertSame('/ja/products/laser.html', NavMegaElement::nodeHref([
             'url' => '/wrong.html',

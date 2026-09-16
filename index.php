@@ -248,38 +248,7 @@ if ($ykHomeHeaderOverlay) {
         ? 'document.documentElement.classList.add("yk-home-header-overlay");'
         : '(function(){var q=window.matchMedia("(min-width: 768px)");function s(){document.documentElement.classList.toggle("yk-home-header-overlay",q.matches);}if(q.addEventListener){q.addEventListener("change",s);}else if(q.addListener){q.addListener(s);}s();})();';
     $extraCss .= '
-<script>' . $headerOverlayScript . '</script>
-<style>
-html.yk-home-header-overlay body > [data-yk-topbar] {
-    position: absolute !important;
-    inset: 0 0 auto;
-    z-index: 60;
-    background: rgba(15, 23, 42, .42) !important;
-    color: #fff !important;
-}
-html.yk-home-header-overlay body > [data-yk-topbar] * { color: inherit !important; }
-html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) {
-    position: absolute !important;
-    inset: 0 0 auto;
-    z-index: 55;
-    background: transparent !important;
-    box-shadow: none !important;
-    border-color: rgba(255, 255, 255, .18) !important;
-}
-html.yk-home-header-overlay body > [data-yk-topbar] + #siteHeader { top: 2rem; }
-html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) a,
-html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) button,
-html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) a > span { color: #fff !important; }
-html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .hamburger span { background-color: #fff !important; }
-html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .nav-dropdown-menu a,
-html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .nav-submenu a,
-html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #langDropdown a { color: #374151 !important; }
-html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #mobileMenu {
-    background: rgba(15, 23, 42, .96) !important;
-    border-color: rgba(255, 255, 255, .14) !important;
-}
-html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #mobileMenu a { color: #fff !important; }
-</style>';
+<script>' . $headerOverlayScript . '</script>';
 }
 if ($bannerFullscreen) {
     // 满屏 banner：量出头部（通栏+导航）总高度写入 --hg-banner-offset；svh 适配移动端浏览器地址栏

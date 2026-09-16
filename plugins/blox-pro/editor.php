@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+/** @psalm-suppress ParadoxicalCondition Direct requests do not load the CMS bootstrap. */
 if (!defined('ROOT_PATH')) exit('Access Denied');
 
 /**

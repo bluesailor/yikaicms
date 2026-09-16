@@ -94,7 +94,7 @@ final class DetailConditionInput
      */
     private static function rules(mixed $raw, bool $allowAll): array
     {
-        if (!is_array($raw) || ($raw !== [] && array_is_list($raw) === false)) {
+        if (!is_array($raw) || ($raw !== [] && array_keys($raw) !== range(0, count($raw) - 1))) {
             return ['error' => 'not_list'];
         }
         if (count($raw) > DetailTemplateResolver::MAX_RULES) {

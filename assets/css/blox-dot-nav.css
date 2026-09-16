@@ -1,0 +1,70 @@
+/* R7A 单页圆点导航（默认关闭；少于 2 项不渲染）。
+ * 位置避开系统安全区；手机默认隐藏，仅 .yk-dotnav--mobile 显示。
+ * 平滑滚动只在未要求减少动态时启用；锚点滚动留出吸顶头部与管理条的高度。 */
+.yk-dotnav {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 8px 4px;
+}
+.yk-dotnav--right { right: max(14px, env(safe-area-inset-right, 0px)); }
+.yk-dotnav--left { left: max(14px, env(safe-area-inset-left, 0px)); }
+.yk-dotnav__dot {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 9999px;
+}
+.yk-dotnav__dot::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    background: rgba(100, 116, 139, 0.55);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.65);
+    transition: transform 0.2s, background-color 0.2s;
+}
+.yk-dotnav__dot:hover::before,
+.yk-dotnav__dot:focus-visible::before { background: #2563eb; transform: scale(1.25); }
+.yk-dotnav__dot.is-active::before { background: #2563eb; transform: scale(1.4); }
+.yk-dotnav__dot:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.yk-dotnav__label {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    line-height: 1;
+    color: #fff;
+    background: rgba(15, 23, 42, 0.85);
+    padding: 5px 8px;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+}
+.yk-dotnav--right .yk-dotnav__label { right: calc(100% + 8px); }
+.yk-dotnav--left .yk-dotnav__label { left: calc(100% + 8px); }
+.yk-dotnav__dot:hover .yk-dotnav__label,
+.yk-dotnav__dot:focus-visible .yk-dotnav__label { opacity: 1; }
+@media (max-width: 767px) {
+    .yk-dotnav { display: none; }
+    .yk-dotnav--mobile { display: flex; right: max(8px, env(safe-area-inset-right, 0px)); }
+    .yk-dotnav--mobile.yk-dotnav--left { left: max(8px, env(safe-area-inset-left, 0px)); right: auto; }
+}
+html.yk-dotnav-smooth { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+    html.yk-dotnav-smooth { scroll-behavior: auto; }
+    .yk-dotnav__dot::before, .yk-dotnav__label { transition: none; }
+}
+.yk-blox-anchor { scroll-margin-top: var(--yk-dotnav-offset, 0px); }

@@ -431,7 +431,7 @@
 /* 页眉状态文字只染页眉自身的表面。下拉面板与移动抽屉是独立表面（见下方
    --yk-header-surface-text），必须排除——否则覆盖态那条祖先更长的规则特异性
    更高，会把白底面板里的链接一起染白（v1.19.8 R9 事故）。 */
-.yk-blox-header[data-yk-normal-text="1"] :is(a, button, [class*="text-"]):not(.yk-mega-panel, [data-yk-drawer-panel], .yk-mega-panel *, [data-yk-drawer-panel] *) { color: var(--yk-header-normal-text) !important; }
+.yk-blox-header[data-yk-normal-text="1"] :is(a, button, [class*="text-"]):not(.yk-mega-panel, .yk-nav-panel, [data-yk-drawer-panel], [data-yk-language-menu], .yk-mega-panel *, .yk-nav-panel *, [data-yk-drawer-panel] *, [data-yk-language-menu] *) { color: var(--yk-header-normal-text) !important; }
 
 html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck),
 .yk-blox-header.yk-header-preview-overlay {
@@ -445,8 +445,8 @@ html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk
 }
 html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck) > section,
 .yk-blox-header.yk-header-preview-overlay > section { background: transparent !important; }
-html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck) :is(a, button, [class*="text-"]):not(.yk-mega-panel, [data-yk-drawer-panel], .yk-mega-panel *, [data-yk-drawer-panel] *),
-.yk-blox-header.yk-header-preview-overlay :is(a, button, [class*="text-"]):not(.yk-mega-panel, [data-yk-drawer-panel], .yk-mega-panel *, [data-yk-drawer-panel] *) {
+html.yk-home-header-overlay .yk-blox-header[data-yk-overlay-enabled="1"]:not(.yk-stuck) :is(a, button, [class*="text-"]):not(.yk-mega-panel, .yk-nav-panel, [data-yk-drawer-panel], [data-yk-language-menu], .yk-mega-panel *, .yk-nav-panel *, [data-yk-drawer-panel] *, [data-yk-language-menu] *),
+.yk-blox-header.yk-header-preview-overlay :is(a, button, [class*="text-"]):not(.yk-mega-panel, .yk-nav-panel, [data-yk-drawer-panel], [data-yk-language-menu], .yk-mega-panel *, .yk-nav-panel *, [data-yk-drawer-panel] *, [data-yk-language-menu] *) {
     color: var(--yk-header-overlay-text, #fff) !important;
 }
 
@@ -465,18 +465,22 @@ html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
 }
 .yk-blox-header.yk-stuck > section,
 .yk-blox-header.yk-header-preview-stuck > section { background: transparent !important; }
-.yk-blox-header.yk-stuck :is(a, button, [class*="text-"]):not(.yk-mega-panel, [data-yk-drawer-panel], .yk-mega-panel *, [data-yk-drawer-panel] *),
-.yk-blox-header.yk-header-preview-stuck :is(a, button, [class*="text-"]):not(.yk-mega-panel, [data-yk-drawer-panel], .yk-mega-panel *, [data-yk-drawer-panel] *) {
+.yk-blox-header.yk-stuck :is(a, button, [class*="text-"]):not(.yk-mega-panel, .yk-nav-panel, [data-yk-drawer-panel], [data-yk-language-menu], .yk-mega-panel *, .yk-nav-panel *, [data-yk-drawer-panel] *, [data-yk-language-menu] *),
+.yk-blox-header.yk-header-preview-stuck :is(a, button, [class*="text-"]):not(.yk-mega-panel, .yk-nav-panel, [data-yk-drawer-panel], [data-yk-language-menu], .yk-mega-panel *, .yk-nav-panel *, [data-yk-drawer-panel] *, [data-yk-language-menu] *) {
     color: var(--yk-header-stuck-text, #111827) !important;
 }
 
 /* Dropdowns and mobile drawers are independent surfaces, not header-state text. */
-.yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) {
+.yk-blox-header :is(.yk-mega-panel, .yk-nav-panel, [data-yk-drawer-panel], [data-yk-language-menu]) {
     --yk-header-surface-text: #374151;
     color: var(--yk-header-surface-text) !important;
 }
-.yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) :is(li, a, button, [class*="text-"]):not([class~="bg-primary"]) {
+.yk-blox-header :is(.yk-mega-panel, .yk-nav-panel, [data-yk-drawer-panel], [data-yk-language-menu]) :is(li, a, button, [class*="text-"]):not([class~="bg-primary"]) {
     color: var(--yk-header-surface-text) !important;
+}
+
+.yk-blox-header [data-yk-language-trigger]:is(:hover, :focus-visible) {
+    background-color: color-mix(in srgb, currentColor 10%, transparent);
 }
 
 /* 内置 Header 起步模板的结构预览：只表达布局，不绑定真实 Logo、菜单或站点文案。 */
@@ -864,4 +868,69 @@ fieldset:disabled .blox-breadcrumb-choice, fieldset:disabled .blox-hero-mode-cho
 }
 
 /* Blox 声明式 CSS 固定响应式规则（E05）：与 BloxCssCompiler::responsiveStylesheet() 逐字一致，由单测校验。 */
-.yk-r-font-size{font-size:var(--yk-r-font-size-m)}.yk-r-line-height{line-height:var(--yk-r-line-height-m)}.yk-r-font-weight{font-weight:var(--yk-r-font-weight-m)}.yk-r-letter-spacing{letter-spacing:var(--yk-r-letter-spacing-m)}.yk-r-padding-inline{padding-inline:var(--yk-r-padding-inline-m)}.yk-r-padding-block{padding-block:var(--yk-r-padding-block-m)}.yk-r-border-radius{border-radius:var(--yk-r-border-radius-m)}.yk-r-gap{gap:var(--yk-r-gap-m)}@media (min-width:768px){.yk-r-font-size{font-size:var(--yk-r-font-size-t)}.yk-r-line-height{line-height:var(--yk-r-line-height-t)}.yk-r-font-weight{font-weight:var(--yk-r-font-weight-t)}.yk-r-letter-spacing{letter-spacing:var(--yk-r-letter-spacing-t)}.yk-r-padding-inline{padding-inline:var(--yk-r-padding-inline-t)}.yk-r-padding-block{padding-block:var(--yk-r-padding-block-t)}.yk-r-border-radius{border-radius:var(--yk-r-border-radius-t)}.yk-r-gap{gap:var(--yk-r-gap-t)}}@media (min-width:1024px){.yk-r-font-size{font-size:var(--yk-r-font-size-d)}.yk-r-line-height{line-height:var(--yk-r-line-height-d)}.yk-r-font-weight{font-weight:var(--yk-r-font-weight-d)}.yk-r-letter-spacing{letter-spacing:var(--yk-r-letter-spacing-d)}.yk-r-padding-inline{padding-inline:var(--yk-r-padding-inline-d)}.yk-r-padding-block{padding-block:var(--yk-r-padding-block-d)}.yk-r-border-radius{border-radius:var(--yk-r-border-radius-d)}.yk-r-gap{gap:var(--yk-r-gap-d)}}
+.yk-r-font-size.yk-r-font-size{font-size:var(--yk-r-font-size-m)}.yk-r-line-height.yk-r-line-height{line-height:var(--yk-r-line-height-m)}.yk-r-font-weight.yk-r-font-weight{font-weight:var(--yk-r-font-weight-m)}.yk-r-letter-spacing.yk-r-letter-spacing{letter-spacing:var(--yk-r-letter-spacing-m)}.yk-r-padding-inline.yk-r-padding-inline{padding-inline:var(--yk-r-padding-inline-m)}.yk-r-padding-block.yk-r-padding-block{padding-block:var(--yk-r-padding-block-m)}.yk-r-border-radius.yk-r-border-radius{border-radius:var(--yk-r-border-radius-m)}.yk-r-gap.yk-r-gap{gap:var(--yk-r-gap-m)}@media (min-width:768px){.yk-r-font-size.yk-r-font-size{font-size:var(--yk-r-font-size-t)}.yk-r-line-height.yk-r-line-height{line-height:var(--yk-r-line-height-t)}.yk-r-font-weight.yk-r-font-weight{font-weight:var(--yk-r-font-weight-t)}.yk-r-letter-spacing.yk-r-letter-spacing{letter-spacing:var(--yk-r-letter-spacing-t)}.yk-r-padding-inline.yk-r-padding-inline{padding-inline:var(--yk-r-padding-inline-t)}.yk-r-padding-block.yk-r-padding-block{padding-block:var(--yk-r-padding-block-t)}.yk-r-border-radius.yk-r-border-radius{border-radius:var(--yk-r-border-radius-t)}.yk-r-gap.yk-r-gap{gap:var(--yk-r-gap-t)}}@media (min-width:1024px){.yk-r-font-size.yk-r-font-size{font-size:var(--yk-r-font-size-d)}.yk-r-line-height.yk-r-line-height{line-height:var(--yk-r-line-height-d)}.yk-r-font-weight.yk-r-font-weight{font-weight:var(--yk-r-font-weight-d)}.yk-r-letter-spacing.yk-r-letter-spacing{letter-spacing:var(--yk-r-letter-spacing-d)}.yk-r-padding-inline.yk-r-padding-inline{padding-inline:var(--yk-r-padding-inline-d)}.yk-r-padding-block.yk-r-padding-block{padding-block:var(--yk-r-padding-block-d)}.yk-r-border-radius.yk-r-border-radius{border-radius:var(--yk-r-border-radius-d)}.yk-r-gap.yk-r-gap{gap:var(--yk-r-gap-d)}}@media not all and (min-width:1024px){.yk-r-font-size-t-only.yk-r-font-size-t-only{font-size:var(--yk-r-font-size-t)}.yk-r-line-height-t-only.yk-r-line-height-t-only{line-height:var(--yk-r-line-height-t)}.yk-r-font-weight-t-only.yk-r-font-weight-t-only{font-weight:var(--yk-r-font-weight-t)}.yk-r-letter-spacing-t-only.yk-r-letter-spacing-t-only{letter-spacing:var(--yk-r-letter-spacing-t)}.yk-r-padding-inline-t-only.yk-r-padding-inline-t-only{padding-inline:var(--yk-r-padding-inline-t)}.yk-r-padding-block-t-only.yk-r-padding-block-t-only{padding-block:var(--yk-r-padding-block-t)}.yk-r-border-radius-t-only.yk-r-border-radius-t-only{border-radius:var(--yk-r-border-radius-t)}.yk-r-gap-t-only.yk-r-gap-t-only{gap:var(--yk-r-gap-t)}}@media not all and (min-width:768px){.yk-r-font-size-m-only.yk-r-font-size-m-only{font-size:var(--yk-r-font-size-m)}.yk-r-line-height-m-only.yk-r-line-height-m-only{line-height:var(--yk-r-line-height-m)}.yk-r-font-weight-m-only.yk-r-font-weight-m-only{font-weight:var(--yk-r-font-weight-m)}.yk-r-letter-spacing-m-only.yk-r-letter-spacing-m-only{letter-spacing:var(--yk-r-letter-spacing-m)}.yk-r-padding-inline-m-only.yk-r-padding-inline-m-only{padding-inline:var(--yk-r-padding-inline-m)}.yk-r-padding-block-m-only.yk-r-padding-block-m-only{padding-block:var(--yk-r-padding-block-m)}.yk-r-border-radius-m-only.yk-r-border-radius-m-only{border-radius:var(--yk-r-border-radius-m)}.yk-r-gap-m-only.yk-r-gap-m-only{gap:var(--yk-r-gap-m)}}
+
+/* Top-level navigation follows its section; dropdowns and CTA keep their own surfaces. */
+[data-blox-text-tone="light"] .yk-mega > ul > li:not([data-yk-nav-cta]) > :is(a, button) {
+    color: #f9fafb;
+}
+[data-blox-text-tone="light"] .yk-mega > ul > li:not([data-yk-nav-cta]) > :is(a, button):is(:hover, :focus-visible) {
+    color: #fff;
+    background-color: rgb(255 255 255 / 10%);
+}
+
+/* Website page catalogue and overview share one responsive card layout. */
+.website-pages-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr)); gap:20px; }
+.website-page-card { min-width:0; background:#fff; border:1px solid #e2e8f0; border-radius:12px; display:flex; flex-direction:column; }
+.website-page-home { border-color:#bfdbfe; }
+.website-page-cover { height:136px; border-radius:11px 11px 0 0; background:#f1f5f9; color:#64748b; position:relative; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; overflow:hidden; font-size:12px; }
+.website-page-cover>.ti { font-size:32px; }
+.website-page-home .website-page-cover { background:#eff6ff; color:#2563eb; }
+.website-page-cover img { width:100%; height:100%; object-fit:cover; }
+.website-page-cover-label { position:absolute; bottom:8px; left:8px; padding:3px 7px; border-radius:4px; background:#fff; color:#475569; }
+.website-page-body { padding:16px; display:flex; flex-direction:column; gap:10px; flex:1; }
+.website-page-title { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.website-page-title h3 { font-size:16px; font-weight:600; color:#0f172a; overflow-wrap:anywhere; }
+.website-page-title>span { font-size:11px; color:#64748b; flex-shrink:0; }
+.website-page-url { font-size:12px; color:#475569; overflow-wrap:anywhere; }
+.website-page-badges { display:flex; flex-wrap:wrap; gap:6px; }
+.website-page-badges span,.website-publication-label { font-size:11px; padding:3px 7px; border-radius:4px; background:#f1f5f9; color:#475569; }
+.website-page-badges .is-live { background:#ecfdf5; color:#047857; }
+.website-page-badges .is-pending { background:#fffbeb; color:#92400e; }
+.website-page-badges .is-muted { background:#f1f5f9; color:#64748b; }
+.website-page-badges .is-off { background:#fef3c7; color:#92400e; display:inline-flex; align-items:center; gap:4px; }
+.website-page-card.is-disabled { background:#f8fafc; border-style:dashed; }
+.website-page-card.is-disabled .website-page-title h3,.website-page-card.is-disabled .website-page-url { color:#94a3b8; }
+.website-page-actions .website-page-restore,.website-page-actions .website-page-delete { display:inline-flex; align-items:center; gap:4px; min-height:36px; padding:0 10px; border-radius:6px; font-size:13px; cursor:pointer; }
+.website-page-actions .website-page-restore { border:1px solid #6ee7b7; color:#047857; }
+.website-page-actions .website-page-restore:hover { background:#ecfdf5; }
+.website-page-actions .website-page-delete { border:1px solid #fecaca; color:#dc2626; }
+.website-page-actions .website-page-delete:hover { background:#fef2f2; }
+.website-pages-divider { margin:24px 0 12px; display:flex; align-items:center; gap:8px; color:#92400e; font-size:13px; font-weight:600; }
+.website-pages-divider::after { content:""; flex:1; border-top:1px dashed #e2e8f0; }
+.website-page-note { font-size:12px; color:#64748b; overflow-wrap:anywhere; }
+.website-page-actions { margin-top:auto; padding-top:6px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:13px; color:var(--color-primary); }
+.website-page-actions>a { min-height:36px; display:inline-flex; align-items:center; }
+.website-page-actions .website-page-primary { color:#fff; background:var(--color-primary); padding:0 12px; border-radius:6px; font-weight:500; }
+.website-page-more { margin-left:auto; position:relative; color:#475569; }
+.website-page-more summary { display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:6px; cursor:pointer; list-style:none; }
+.website-page-more summary::-webkit-details-marker { display:none; }
+.website-page-more[open] summary,.website-page-more summary:hover { background:#f1f5f9; }
+.website-page-more>div { position:absolute; right:0; top:100%; z-index:20; min-width:168px; border:1px solid #e2e8f0; background:#fff; box-shadow:0 8px 24px #0f172a1a; padding:6px; border-radius:8px; }
+.website-page-more a,.website-page-more button { display:block; width:100%; text-align:left; padding:10px; border-radius:4px; cursor:pointer; }
+.website-page-more a:hover,.website-page-more button:hover { background:#f1f5f9; }
+.website-pages-toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:20px; }
+.website-pages-search { display:flex; gap:8px; align-items:center; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:0 12px; min-height:40px; flex:1 1 240px; }
+.website-pages-search input { min-width:0; width:100%; border:0; background:transparent; padding:8px 0; font-size:13px; }
+.website-pages-toolbar select,.website-pages-filter-button { min-height:40px; background:white; border:1px solid #cbd5e1; border-radius:6px; padding:0 12px; font-size:13px; }
+.website-pages-view { display:flex; border:1px solid #cbd5e1; border-radius:6px; background:white; padding:3px; margin-left:auto; }
+.website-pages-view a { display:flex; align-items:center; gap:6px; padding:7px 12px; font-size:13px; border-radius:4px; color:#475569; }
+.website-pages-view a[aria-current] { background:#eff6ff; color:#1d4ed8; }
+.website-pages-empty { padding:32px; text-align:center; background:white; border:1px dashed #cbd5e1; border-radius:8px; color:#64748b; margin-top:20px; }
+.website-pages-empty a { color:var(--color-primary); }
+.website-page-card a:focus-visible,.website-page-card summary:focus-visible,.website-page-card button:focus-visible,.website-pages-toolbar a:focus-visible,.website-pages-toolbar button:focus-visible { outline:2px solid #2563eb; outline-offset:3px; }
+
+/* 结构页面（栏目首页 / 详情页模板）：与单页卡片同一视觉语言，但用蓝调分隔条区分职责 */
+.website-pages-divider.is-structural { color:#1d4ed8; }
+.website-page-card.website-page-structural { border-style:solid; background:#fbfdff; }
+.website-page-card.website-page-structural.is-disabled { background:#f8fafc; border-style:dashed; }

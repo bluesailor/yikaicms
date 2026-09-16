@@ -295,3 +295,95 @@ test("metadata normalization gives old templates a bounded general fallback", fu
     assert.equal(dynamic.data_source, "dynamic");
     assert.deepEqual(dynamic.states, ["empty", "error", "loading"]);
 });
+
+test("canvas prepare posts prepare_insert and surfaces the server review id", async function () {
+    const originalFetch = global.fetch;
+    const bodies = [];
+    global.fetch = function (url, options) {
+        bodies.push({ url, body: options && options.body });
+        return Promise.resolve({
+            ok: true,
+            status: 200,
+            text: function () {
+                return Promise.resolve(JSON.stringify({
+                    code: 0,
+                    data: {
+                        template: { key: "remote:pricing", name: "Pricing", requirements: { design_tokens: ["remote"] } },
+                        review_id: "abc123",
+                        design_diagnostics: { missing_tokens: ["remote"] },
+                    },
+                }));
+            },
+        });
+    };
+    try {
+        const data = await global.BloxTemplateLibrary.prepareInsert(
+            "/admin/blox_template_api.php", "page", "remote:pricing", "failed", "csrf-token"
+        );
+        assert.equal(bodies.length, 1);
+        assert.equal(String(bodies[0].body.get("action")), "prepare_insert");
+        assert.equal(String(bodies[0].body.get("key")), "remote:pricing");
+        assert.equal(String(bodies[0].body.get("_token")), "csrf-token");
+        assert.equal(data.review_id, "abc123");
+        assert.deepEqual(data.design_diagnostics.missing_tokens, ["remote"]);
+        assert.deepEqual(data.template.requirements.design_tokens, ["remote"]);
+    } finally {
+        global.fetch = originalFetch;
+    }
+});
+
+test("canvas confirm posts structured mappings and returns regenerated sections", async function () {
+    const originalFetch = global.fetch;
+    const bodies = [];
+    global.fetch = function (url, options) {
+        bodies.push({ url, body: options && options.body });
+        return Promise.resolve({
+            ok: true,
+            status: 200,
+            text: function () {
+                return Promise.resolve(JSON.stringify({
+                    code: 0,
+                    data: { template: { key: "remote:pricing", type: "section", sections: [{ type: "section" }] } },
+                }));
+            },
+        });
+    };
+    try {
+        const template = await global.BloxTemplateLibrary.confirmInsert(
+            "/admin/blox_template_api.php", "page", "remote:pricing", "abc123",
+            { style_mode: "detach", tokens: { remote: "primary", ghost: "" }, styles: {} },
+            "failed", "csrf-token"
+        );
+        assert.equal(bodies.length, 1);
+        const body = bodies[0].body;
+        assert.equal(String(body.get("action")), "confirm_insert");
+        assert.equal(String(body.get("style_mode")), "detach");
+        // 空映射不提交；结构化键按 design_tokens[from]=to 序列化，服务端读回数组。
+        assert.equal(String(body.get("design_tokens[remote]")), "primary");
+        assert.equal(body.get("design_tokens[ghost]"), null);
+        assert.equal(template.sections.length, 1);
+    } finally {
+        global.fetch = originalFetch;
+    }
+});
+
+test("canvas confirm rejects responses without sections", async function () {
+    const originalFetch = global.fetch;
+    global.fetch = function () {
+        return Promise.resolve({
+            ok: true,
+            status: 200,
+            text: function () { return Promise.resolve(JSON.stringify({ code: 0, data: { template: {} } })); },
+        });
+    };
+    try {
+        await assert.rejects(
+            global.BloxTemplateLibrary.confirmInsert(
+                "/admin/blox_template_api.php", "page", "remote:pricing", "abc123", {}, "failed", "csrf-token"
+            ),
+            /failed/
+        );
+    } finally {
+        global.fetch = originalFetch;
+    }
+});

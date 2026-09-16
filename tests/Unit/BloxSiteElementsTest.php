@@ -29,6 +29,35 @@ final class BloxSiteElementsTest extends TestCase
         self::assertSame('', SiteContactElement::phoneHref('extension only'));
     }
 
+    public function testRegistrationLinksOnlyRenderForChineseWithConfiguredValues(): void
+    {
+        $previous = $GLOBALS['_test_config'] ?? [];
+        try {
+            $GLOBALS['_test_config']['site_icp'] = 'ICP <test>';
+            $GLOBALS['_test_config']['site_police'] = 'Police <test>';
+            $element = new SiteCopyrightElement();
+            foreach (['zh-CN', 'en', 'ja'] as $lang) {
+                $GLOBALS['_test_config']['site_lang'] = $lang;
+                $html = $element->render([]);
+                self::assertStringContainsString('data-yk-copyright-text', $html);
+                if ($lang === 'zh-CN') {
+                    self::assertStringContainsString('https://beian.miit.gov.cn/', $html);
+                    self::assertStringContainsString('ICP &lt;test&gt;', $html);
+                    self::assertStringContainsString('Police &lt;test&gt;', $html);
+                } else {
+                    self::assertStringNotContainsString('beian.', $html);
+                }
+            }
+            $GLOBALS['_test_config']['site_lang'] = 'zh-CN';
+            self::assertStringNotContainsString('beian.', $element->render(['show_icp' => false, 'show_police' => false]));
+            $GLOBALS['_test_config']['site_icp'] = '';
+            $GLOBALS['_test_config']['site_police'] = '';
+            self::assertStringNotContainsString('<a ', $element->render([]));
+        } finally {
+            $GLOBALS['_test_config'] = $previous;
+        }
+    }
+
     public function testLanguageSwitcherPreservesPathAndQueryWithoutStackingPrefixes(): void
     {
         $languages = ['zh-CN', 'en', 'ja'];

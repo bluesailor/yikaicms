@@ -24,8 +24,8 @@ final class BloxDocumentWriteLock
      * 校验与渲染留在锁外，锁内只做重读与写库，避免两个保存都基于旧文档通过后互相覆盖。
      *
      * @template T
-     * @param array{document_json:string,published_document_json:string} $expected
-     * @param callable():array{document_json:string,published_document_json:string} $reload
+     * @param array{document_json:string,published_document_json:string,...} $expected
+     * @param callable():array{document_json:string,published_document_json:string,...} $reload
      * @param callable():T $write
      * @return T
      */
@@ -59,6 +59,7 @@ final class BloxDocumentWriteLock
      * @param array<string,?string> $expectedRaw
      * @param callable():T $write
      * @return T
+     * @psalm-suppress PossiblyUnusedReturnValue Generic write callbacks may return a result.
      */
     public static function settings(string $anchorKey, array $expectedRaw, callable $write, string $anchorDefault = '0', string $anchorGroup = 'home'): mixed
     {

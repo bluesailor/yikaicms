@@ -331,6 +331,22 @@ declare(strict_types=1);
                                        :placeholder="selEl ? (elSchema(selEl.type).label || selEl.type) : ''"
                                        title="<?= e(__('blox_el_name_hint')) ?>"
                                        class="flex-1 min-w-0 text-sm font-semibold text-gray-800 border-0 border-b border-transparent focus:border-blue-300 outline-none p-0 bg-transparent">
+                                <template x-if="canCopyElementStyle(selEl)">
+                                    <div class="flex items-center gap-0.5 shrink-0">
+                                        <button type="button" @click="copyElementStyle(selEl)" data-testid="blox-style-copy"
+                                                title="<?= e(__('blox_style_copy')) ?>" aria-label="<?= e(__('blox_style_copy')) ?>"
+                                                class="w-7 h-7 rounded inline-flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition">
+                                            <i class="ti ti-brush text-sm"></i>
+                                        </button>
+                                        <button type="button" @click="pasteElementStyle(selEl)" data-testid="blox-style-paste"
+                                                :disabled="!canPasteElementStyle(selEl)"
+                                                :title="pasteStyleDisabledReason(selEl) || <?= e($jt('blox_style_paste')) ?>"
+                                                :aria-label="pasteStyleDisabledReason(selEl) || <?= e($jt('blox_style_paste')) ?>"
+                                                class="w-7 h-7 rounded inline-flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition">
+                                            <i class="ti ti-clipboard text-sm"></i>
+                                        </button>
+                                    </div>
+                                </template>
                             </div>
 
                             <?php require __DIR__ . '/style-groups.php'; ?>
@@ -1428,6 +1444,9 @@ declare(strict_types=1);
                                     <template x-if="ctrl.type !== 'checkbox' && !ctrl.compact_richtext">
                                         <div class="flex items-center justify-between gap-2 mb-1.5">
                                             <label class="block text-[11px] font-semibold text-gray-700" x-text="ctrl.label"></label>
+                                            <template x-if="ctrl.dynamic_tags && ctrl.type !== 'richtext'">
+                                                <?php $dynamicTagKey = 'ctrl.key'; $dynamicTagLinks = "ctrl.type === 'url'"; require __DIR__ . '/dynamic-tag-picker.php'; ?>
+                                            </template>
                                             <div x-show="ctrl.responsive" class="flex items-center gap-1">
                                                 <div class="inline-flex rounded border border-gray-200 bg-gray-50 p-0.5">
                                                     <template x-for="d in devices" :key="ctrl.key + '-' + d.key">
@@ -1532,6 +1551,7 @@ declare(strict_types=1);
                                     <?php // 视频 URL 统一走可上传/选择的媒体控件；Banner 另有带封面预览的专用控件。 ?>
                                     <template x-if="['text','url'].indexOf(ctrl.type) !== -1">
                                         <input type="text" x-model="selEl.data[ctrl.key]" :placeholder="homeContentPlaceholder(ctrl)"
+                                               :data-dynamic-key="ctrl.dynamic_tags ? ctrl.key : null" @input="ctrl.dynamic_tags && siteTagInput($event, ctrl.key)"
                                                :class="homeContentField(ctrl.key) ? 'placeholder:text-gray-600' : ''"
                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm">
                                     </template>
@@ -1691,7 +1711,7 @@ declare(strict_types=1);
                                     <template x-if="ctrl.type === 'richtext'">
                                         <div x-data="{ showSrc: false }">
                                             <button type="button"
-                                                    @click="openRte(() => selEl.data[ctrl.key], v => selEl.data[ctrl.key] = v)"
+                                                    @click="openRte(() => selEl.data[ctrl.key], v => selEl.data[ctrl.key] = v, !!ctrl.dynamic_tags)"
                                                     data-testid="blox-richtext-edit"
                                                     class="w-full inline-flex items-center justify-center gap-1.5 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded-lg py-2 transition">
                                                 <i class="ti ti-edit text-base"></i><?= __('blox_edit_content') ?>
@@ -2092,6 +2112,19 @@ declare(strict_types=1);
                                     <p class="mt-1 text-[10px] text-gray-400"><?= e(__('blox_section_anchor_hint')) ?></p>
                                     <p x-show="sel.settings.anchor_id && !anchorIdValid(sel.settings.anchor_id)"
                                        class="mt-1 text-[10px] text-red-500"><?= e(__('blox_section_anchor_invalid')) ?></p>
+                                    <div class="mt-3 space-y-2" data-testid="blox-section-dotnav">
+                                        <label class="flex items-center justify-between gap-3 text-xs text-gray-600">
+                                            <span><?= e(__('blox_dotnav_section_on')) ?></span>
+                                            <input type="checkbox" class="h-4 w-4" data-testid="blox-section-dotnav-on"
+                                                   :checked="!!sel.settings.dot_nav_on"
+                                                   @change="sel.settings.dot_nav_on = $event.target.checked">
+                                        </label>
+                                        <template x-if="sel.settings.dot_nav_on">
+                                            <input type="text" x-model.trim="sel.settings.dot_nav_title" maxlength="60"
+                                                   placeholder="<?= e(__('blox_dotnav_title_ph')) ?>" data-testid="blox-section-dotnav-title"
+                                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs">
+                                        </template>
+                                    </div>
                                     <p x-show="anchorIdDuplicate(sel.settings.anchor_id)"
                                        class="mt-1 text-[10px] text-amber-600"><?= e(__('blox_section_anchor_duplicate')) ?></p>
                                 </div>
@@ -2322,7 +2355,7 @@ declare(strict_types=1);
                                             </button>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-5 gap-1">
+                                    <div class="grid grid-cols-3 gap-1">
                                         <template x-for="opt in padOptions" :key="opt.k">
                                             <button type="button" @click="setSectionResponsiveValue('padding', opt.k, 'md')"
                                                     :data-testid="'blox-section-padding-' + opt.k"
@@ -2653,7 +2686,7 @@ declare(strict_types=1);
                                         </div>
                                     </div>
                                     <div class="grid grid-cols-5 gap-1">
-                                        <template x-for="opt in padOptions" :key="'g'+opt.k">
+                                        <template x-for="opt in padOptions.filter(opt => opt.k !== 'xs')" :key="'g'+opt.k">
                                             <button type="button" @click="setSectionResponsiveValue('gap', opt.k, 'lg')"
                                                     :data-testid="'blox-section-gap-' + opt.k"
                                                     class="h-8 rounded text-xs border transition"

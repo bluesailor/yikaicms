@@ -48,7 +48,7 @@ final class BloxTemplateEditPolicyTest extends TestCase
         $preview = (string) file_get_contents(ROOT_PATH . '/admin/blox_preview.php');
         self::assertStringContainsString("BloxTemplateEditPolicy::allows('product-detail', bloxAdvancedFeaturesEnabled())", $preview);
         self::assertStringContainsString("BloxTemplateEditPolicy::allows('article-detail', bloxAdvancedFeaturesEnabled())", $preview);
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $editor = bloxEditorSourceForTest();
         self::assertStringContainsString('BloxTemplateEditPolicy::allows($templateType, $advancedBloxEnabled)', $editor);
     }
 
@@ -75,6 +75,7 @@ final class BloxTemplateEditPolicyTest extends TestCase
         self::assertStringContainsString("BloxTemplateEditPolicy::allows((string) (\$target['type'] ?? ''), \$advancedBloxEnabled)", $page);
         self::assertStringContainsString("['save_metadata', 'publish', 'unpublish', 'delete', 'save_conditions']", $page);
         self::assertStringContainsString('BloxTemplateEditPolicy::allows(\'popup\', $advancedBloxEnabled)', $page);
-        self::assertStringContainsString('(new BloxRemoteTemplateInstaller())->importCopy(', $page);
+        self::assertStringContainsString('$installer->prepareCopy(', $page);
+        self::assertStringContainsString('$installer->confirmCopy($reviewId, $options, $adminId)', $page);
     }
 }

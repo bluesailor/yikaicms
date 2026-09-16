@@ -21,7 +21,7 @@ trait HomeBloxRuntimeTrait
         $autoplay = (int) ($data['banner_autoplay'] ?? 5);
 
         return [
-            'banner_height_mode' => in_array($heightMode, ['inherit', 'fixed', 'screen', 'cover-header'], true)
+            'banner_height_mode' => in_array($heightMode, ['inherit', 'fixed', 'fixed-cover-header', 'screen', 'cover-header'], true)
                 ? $heightMode
                 : 'inherit',
             'banner_height_pc' => max(200, min(1600, (int) ($data['banner_height_pc'] ?? 650))),
@@ -57,7 +57,7 @@ trait HomeBloxRuntimeTrait
     {
         $delay = max(0, min(30000, (int) ($group['autoplay_delay'] ?? 5000)));
         $heightMode = (string) ($group['height_mode'] ?? '');
-        if (!in_array($heightMode, ['fixed', 'screen', 'cover-header'], true)) {
+        if (!in_array($heightMode, ['fixed', 'fixed-cover-header', 'screen', 'cover-header'], true)) {
             $heightMode = !empty($group['fullscreen']) ? 'screen' : 'fixed';
         }
 

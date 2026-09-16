@@ -32,6 +32,7 @@ final class BloxQueryLoopPolicy
         }
     }
 
+    /** @api Compatibility entry for callers with serialized documents. */
     public static function assertJsonAllowed(string $json, ?bool $advanced = null): void
     {
         if ($advanced ?? self::advancedEnabled()) {

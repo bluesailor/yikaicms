@@ -68,9 +68,10 @@ final class AccordionElement extends AbstractElement
                 }
                 $question = trim((string) ($item['question'] ?? ''));
                 if ($question !== '') {
-                    $entry = [$question, trim((string) ($item['answer'] ?? ''))];
-                    if (($item['answer_format'] ?? '') === 'html') $entry[] = 'html';
-                    $out[] = $entry;
+                    $answer = trim((string) ($item['answer'] ?? ''));
+                    $out[] = ($item['answer_format'] ?? '') === 'html'
+                        ? [$question, $answer, 'html']
+                        : [$question, $answer];
                 }
             }
             return $out;

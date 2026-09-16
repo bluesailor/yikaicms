@@ -10,7 +10,10 @@ final class BloxAreaEditorTarget
     private const RETURN_RECEIPT_LIMIT = 8;
     private const RETURN_RECEIPT_TTL = 600;
 
-    /** @return array{context:string,url:string} */
+    /**
+     * @return array{context:string,url:string}
+     * @psalm-suppress PossiblyUnusedMethod Called by the separately analysed editor entry.
+     */
     public static function frontPreviewTarget(mixed $key, string $language): array
     {
         $context = 'home';

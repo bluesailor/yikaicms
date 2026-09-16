@@ -34,6 +34,9 @@ final class SiteCopyrightElement extends AbstractElement
     {
         $siteName = function_exists('configRawLang') ? configRawLang('site_name', 'Yikai CMS') : 'Yikai CMS';
         $template = function_exists('configRawLang') ? configRawLang('footer_copyright_text', '') : '';
+        if (trim($template) === '') {
+            $template = '© {year} {site_name} ' . __('footer_copyright');
+        }
         $copyright = self::formatText($template, $siteName, (int) date('Y'));
         $items = '<span data-yk-copyright-text>' . htmlspecialchars($copyright, ENT_QUOTES) . '</span>';
 

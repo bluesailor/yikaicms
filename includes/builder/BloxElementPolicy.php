@@ -51,6 +51,7 @@ final class BloxElementPolicy
         }
     }
 
+    /** @api Compatibility entry for callers with serialized documents. */
     public static function assertJsonAllowed(string $json): void
     {
         if (self::canUseCode()) {

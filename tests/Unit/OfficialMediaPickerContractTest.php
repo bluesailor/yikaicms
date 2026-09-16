@@ -47,7 +47,7 @@ final class OfficialMediaPickerContractTest extends TestCase
 
     private function source(string $relativePath): string
     {
-        $source = file_get_contents(ROOT_PATH . '/' . $relativePath);
+        $source = $relativePath === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : file_get_contents(ROOT_PATH . '/' . $relativePath);
         self::assertIsString($source);
         return $source;
     }

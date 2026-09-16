@@ -80,24 +80,17 @@ if ($tab === 'errorlog') {
     if (!in_array($errFile, $errFiles, true)) {
         $errFile = $errFiles[0] ?? '';
     }
-    $errEntries = [];
-    $errSize = 0;
-    if ($errFile !== '') {
-        $p = ROOT_PATH . '/storage/logs/' . $errFile;
-        $errSize = (int) @filesize($p);
-        $fp = @fopen($p, 'rb');
-        if ($fp) {
-            // 只读末尾 512KB，超大日志不至于拖垮页面
-            if ($errSize > 524288) {
-                fseek($fp, -524288, SEEK_END);
-            }
-            $raw = (string) stream_get_contents($fp);
-            fclose($fp);
-            // 每条以 [YYYY-mm-dd ...] 开头，续行（堆栈）以缩进开头
-            preg_match_all('/^\[\d{4}-\d{2}-\d{2} [^\]]+\].*(?:\n(?!\[).+)*/m', $raw, $m);
-            $errEntries = array_slice(array_reverse($m[0]), 0, 200);
-        }
-    }
+    require_once ROOT_PATH . '/includes/ErrorLogReader.php';
+    $errPage = max(1, getInt('page', 1));
+    $errSnapshot = isset($_GET['snapshot']) ? getInt('snapshot', -1) : null;
+    $errResult = ErrorLogReader::readPage(ROOT_PATH . '/storage/logs/' . $errFile, $errPage, 30, $errSnapshot);
+    $errEntries = $errResult['entries'];
+    $errSize = $errResult['size'];
+    $errPage = $errResult['page'];
+    $errPageUrl = '?' . http_build_query([
+        'tab' => 'errorlog', 'file' => $errFile, 'snapshot' => $errResult['snapshot'],
+    ]) . '&page=';
+    $errLatestUrl = '?' . http_build_query(['tab' => 'errorlog', 'file' => $errFile]);
 }
 
 // ── 系统信息 Tab ──
@@ -526,7 +519,8 @@ async function clearOldLogs() {
                 <?php endforeach; ?>
             </select>
         </form>
-        <span class="text-sm text-gray-500"><?php echo count($errEntries); ?> <?php echo __('sys_error_log_entries'); ?> · <?php echo $errSize > 1048576 ? round($errSize / 1048576, 1) . ' MB' : round($errSize / 1024, 1) . ' KB'; ?></span>
+        <span class="text-sm text-gray-500"><?php echo e(__('sys_error_log_visible_entries', ['count' => (string) count($errEntries)])); ?> · <?php echo $errSize > 1048576 ? round($errSize / 1048576, 1) . ' MB' : round($errSize / 1024, 1) . ' KB'; ?></span>
+        <a href="<?php echo e($errLatestUrl); ?>" class="text-sm text-brand-600 hover:underline"><?php echo e(__('sys_error_log_latest')); ?></a>
         <button onclick="clearErrorLog()" class="ml-auto text-red-600 hover:text-red-700 text-sm inline-flex items-center gap-1">
             <i class="ti ti-trash text-base"></i><?php echo __('sys_error_log_clear'); ?>
         </button>
@@ -534,11 +528,14 @@ async function clearOldLogs() {
     </div>
     <div class="p-4 text-xs text-gray-400 border-b bg-gray-50"><?php echo __('sys_error_log_tip'); ?></div>
 
-    <?php if (empty($errEntries)): ?>
-    <div class="px-4 py-12 text-center text-gray-500"><?php echo __('sys_error_log_empty'); ?></div>
+    <?php if ($errFile !== '' && !$errResult['readable']): ?>
+    <div class="px-4 py-12 text-center text-gray-500"><?php echo e(__('sys_error_log_unreadable')); ?></div>
+    <?php elseif (empty($errEntries)): ?>
+    <div class="px-4 py-12 text-center text-gray-500"><?php echo e(__($errPage > 1 ? 'sys_error_log_page_empty' : 'sys_error_log_empty')); ?></div>
     <?php else: ?>
     <div class="divide-y">
-        <?php foreach ($errEntries as $entry):
+        <?php foreach ($errEntries as $errEntry):
+            $entry = $errEntry['text'];
             $lvl = preg_match('/^\[[^\]]+\] \[(\w+)\]/', $entry, $lm) ? $lm[1] : 'ERROR';
             $badge = match ($lvl) {
                 'FATAL', 'ERROR' => 'bg-red-100 text-red-600',
@@ -548,9 +545,23 @@ async function clearOldLogs() {
         <div class="px-4 py-3">
             <span class="text-xs px-2 py-0.5 rounded <?php echo $badge; ?>"><?php echo e($lvl); ?></span>
             <pre class="mt-2 text-xs font-mono text-gray-700 whitespace-pre-wrap break-all leading-relaxed"><?php echo e($entry); ?></pre>
+            <?php if ($errEntry['truncated']): ?><p class="mt-2 text-xs text-gray-500"><?php echo e(__('sys_error_log_truncated')); ?></p><?php endif; ?>
         </div>
         <?php endforeach; ?>
     </div>
+    <?php endif; ?>
+    <?php if ($errFile !== '' && $errResult['readable']): ?>
+    <nav class="px-4 py-4 border-t flex flex-wrap items-center justify-between gap-3" aria-label="<?php echo e(__('sys_error_log_pagination')); ?>">
+        <span class="text-sm text-gray-500"><?php echo e(__('sys_error_log_page_summary', ['page' => (string) $errPage, 'count' => (string) count($errEntries)])); ?></span>
+        <div class="flex items-center gap-2">
+            <?php if ($errPage > 1): ?>
+            <a href="<?php echo e($errPageUrl . ($errPage - 1)); ?>" class="px-3 py-1 border rounded hover:bg-gray-100"><?php echo e(__('list_prev_page')); ?></a>
+            <?php endif; ?>
+            <?php if ($errResult['has_more']): ?>
+            <a href="<?php echo e($errPageUrl . ($errPage + 1)); ?>" class="px-3 py-1 border rounded hover:bg-gray-100"><?php echo e(__('list_next_page')); ?></a>
+            <?php endif; ?>
+        </div>
+    </nav>
     <?php endif; ?>
 </div>
 

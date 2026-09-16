@@ -197,7 +197,13 @@ final class BloxSecurityBoundaryTest extends TestCase
         self::assertStringContainsString('data-testid="blox-official-update"', $templateManager);
         self::assertStringContainsString('data-testid="blox-official-rollback"', $templateManager);
         $remoteInstaller = $this->source('includes/builder/BloxRemoteTemplateInstaller.php');
-        self::assertBefore($remoteInstaller, '$stateModel->stageUpdate(', 'bloxTemplateModel()->updateDraft(');
+        // Both the two-step review and legacy direct update must stage before changing the draft.
+        foreach (['confirmUpdate', 'update'] as $method) {
+            $reflection = new \ReflectionMethod(\BloxRemoteTemplateInstaller::class, $method);
+            $body = implode("\n", array_slice(explode("\n", $remoteInstaller), $reflection->getStartLine() - 1,
+                $reflection->getEndLine() - $reflection->getStartLine() + 1));
+            self::assertBefore($body, '->stageUpdate(', 'bloxTemplateModel()->updateDraft(');
+        }
         self::assertStringContainsString('$existingDraft', $remoteInstaller);
         self::assertStringContainsString("if (\$action === 'remote_import' && \$_SERVER['REQUEST_METHOD'] === 'POST')", $media);
         self::assertBefore($media, "if (!canUploadImage()) {\n        ma_deny('没有上传图片的权限');\n    }\n    verifyCsrf();", 'RemoteOfficialMedia::import(');
@@ -221,6 +227,6 @@ final class BloxSecurityBoundaryTest extends TestCase
             // 付费 Blox 源码不随公开仓库分发；无注入的 CI 矩阵跳过，注入 job 与本地全量执行。
             self::markTestSkipped('付费 Blox 源码未注入：' . $path);
         }
-        return (string) file_get_contents($file);
+        return $path === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : (string) file_get_contents($file);
     }
 }

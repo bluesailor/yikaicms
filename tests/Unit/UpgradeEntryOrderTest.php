@@ -152,6 +152,8 @@ PHP;
         file_put_contents($payload . '/index.php', "<?php require_once ROOT_PATH . '/includes/Dispatcher.php';");
         file_put_contents($payload . '/includes/Dispatcher.php', '<?php final class Dispatcher {}');
         file_put_contents($payload . '/config-version.php', '<?php return "1.19.5";');
+        mkdir($payload . '/plugins/example', 0755, true);
+        file_put_contents($payload . '/plugins/example/.yikai-market-origin.json', '{"origin":"official"}');
         $zipPath = $root . '/result.zip';
 
         $command = escapeshellarg(PHP_BINARY)
@@ -172,11 +174,33 @@ PHP;
         }
         $zip->close();
 
+        self::assertNotContains('payload/plugins/example/.yikai-market-origin.json', $names);
         self::assertLessThan(
             array_search('payload/index.php', $names, true),
             array_search('payload/includes/Dispatcher.php', $names, true)
         );
         $this->removeTree($root);
+    }
+
+    public function testFullZipDoesNotContainSiteReceipts(): void
+    {
+        $root = sys_get_temp_dir() . '/yikai-origin-package-' . bin2hex(random_bytes(6));
+        mkdir($root . '/themes/example', 0755, true);
+        file_put_contents($root . '/themes/example/theme.json', '{}');
+        file_put_contents($root . '/themes/example/.yikai-market-origin.json', '{"origin":"official"}');
+        $path = $root . '/output.zip';
+        try {
+            exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(ROOT_PATH . '/tools/create-upgrade-zip.php')
+                . ' ' . escapeshellarg($root) . ' ' . escapeshellarg($path) . ' package/', $output, $status);
+            self::assertSame(0, $status, implode("\n", $output));
+            $zip = new ZipArchive();
+            self::assertTrue($zip->open($path));
+            self::assertNotFalse($zip->locateName('package/themes/example/theme.json'));
+            self::assertFalse($zip->locateName('package/themes/example/.yikai-market-origin.json'));
+            $zip->close();
+        } finally {
+            $this->removeTree($root);
+        }
     }
 
     private function removeTree(string $path): void

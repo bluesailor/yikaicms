@@ -7,6 +7,7 @@ use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 
 require_once ROOT_PATH . '/config/version.php';
 require_once ROOT_PATH . '/includes/ThemeInstaller.php';
+require_once ROOT_PATH . '/includes/ThemeMarket.php';
 
 #[RequiresPhpExtension('zip')]
 final class ThemeInstallerTest extends TestCase
@@ -259,6 +260,102 @@ final class ThemeInstallerTest extends TestCase
         self::assertSame('version_mismatch', $result['code']);
         self::assertDirectoryDoesNotExist($this->themesRoot . '/business');
         self::assertSame([], glob($this->storageRoot . '/theme-staging/*') ?: []);
+    }
+
+    public function testManagedThemeUpdateRetainsOriginWithBackup(): void
+    {
+        $installer = new ThemeInstaller($this->themesRoot, $this->storageRoot);
+        self::assertTrue($installer->install($this->themeZip('business', 'old'), 'business', '1.0.0', 'official')['ok']);
+        $updated = $installer->install($this->themeZip('business', 'new', '1.1.0'), 'business', '1.1.0', 'official');
+        self::assertTrue($updated['ok'], $updated['code']);
+        self::assertSame('old', file_get_contents($updated['backup'] . '/layouts/header.php'));
+        $receipt = json_decode(file_get_contents($this->themesRoot . '/business/' . MarketInstallOrigin::FILE), true);
+        self::assertSame('official', $receipt['origin']);
+        self::assertSame('theme', $receipt['kind']);
+        self::assertSame('1.1.0', $receipt['version']);
+        self::assertSame('1.0.0', json_decode(file_get_contents($updated['backup'] . '/' . MarketInstallOrigin::FILE), true)['version']);
+    }
+
+    public function testThemeSourceSwitchAndUnknownOriginNeverOverwrite(): void
+    {
+        $installer = new ThemeInstaller($this->themesRoot, $this->storageRoot);
+        self::assertTrue($installer->install($this->themeZip('business', 'old'), 'business', '1.0.0', 'community')['ok']);
+        $zip = $this->themeZip('business', 'new', '1.1.0');
+        self::assertSame('origin_changed', $installer->install($zip, 'business', '1.1.0', 'official')['code']);
+        unlink($this->themesRoot . '/business/' . MarketInstallOrigin::FILE);
+        self::assertSame('origin_unknown', $installer->install($zip, 'business', '1.1.0', 'community')['code']);
+        self::assertSame('old', file_get_contents($this->themesRoot . '/business/layouts/header.php'));
+    }
+
+    public function testFailedManagedThemeUpdateRestoresOriginAndFiles(): void
+    {
+        $installer = new ThemeInstaller($this->themesRoot, $this->storageRoot);
+        self::assertTrue($installer->install($this->themeZip('business', 'old'), 'business', '1.0.0', 'community')['ok']);
+        $before = file_get_contents($this->themesRoot . '/business/' . MarketInstallOrigin::FILE);
+        $calls = 0;
+        $failing = new ThemeInstaller($this->themesRoot, $this->storageRoot, null, null,
+            static function () use (&$calls): array {
+                return ['errors' => ++$calls === 2 ? ['final validation failed'] : [], 'warnings' => []];
+            });
+        $result = $failing->install($this->themeZip('business', 'new', '1.1.0'), 'business', '1.1.0', 'community');
+        self::assertSame('final_invalid', $result['code']);
+        self::assertSame('old', file_get_contents($this->themesRoot . '/business/layouts/header.php'));
+        self::assertSame($before, file_get_contents($this->themesRoot . '/business/' . MarketInstallOrigin::FILE));
+    }
+
+    public function testLocalThemeInstallDoesNotRetainManagedIdentity(): void
+    {
+        $installer = new ThemeInstaller($this->themesRoot, $this->storageRoot);
+        self::assertTrue($installer->install($this->themeZip('business', 'old'), 'business', '1.0.0', 'official')['ok']);
+        self::assertTrue($installer->install($this->themeZip('business', 'local', '1.1.0'))['ok']);
+        $this->expectExceptionMessage('origin_unknown');
+        $installer->assertOrigin('business', 'official');
+    }
+
+    public function testThemePackageCannotSupplyReceipt(): void
+    {
+        foreach ([MarketInstallOrigin::FILE, strtoupper(MarketInstallOrigin::FILE) . '.'] as $entry) {
+            $path = $this->themeZip('business', 'new');
+            $zip = new ZipArchive();
+            $zip->open($path);
+            $zip->addFromString('business/' . $entry, '{"origin":"official"}');
+            $zip->close();
+            $result = (new ThemeInstaller($this->themesRoot, $this->storageRoot))->install($path);
+            self::assertSame('unsafe', $result['code']);
+            self::assertDirectoryDoesNotExist($this->themesRoot . '/business');
+        }
+    }
+
+    public function testThemeInstallLockAndOriginRecheckAfterExtraction(): void
+    {
+        $plain = new ThemeInstaller($this->themesRoot, $this->storageRoot);
+        self::assertTrue($plain->install($this->themeZip('business', 'old'), 'business', '1.0.0', 'official')['ok']);
+        $path = $this->themeZip('business', 'new', '1.1.0');
+        $file = $this->themesRoot . '/business/' . MarketInstallOrigin::FILE;
+        $installer = new ThemeInstaller($this->themesRoot, $this->storageRoot, null,
+            static function (ZipArchive $zip, string $destination) use ($plain, $path, $file): bool {
+                self::assertSame('busy', $plain->install($path, 'business', '1.1.0', 'official')['code']);
+                $receipt = json_decode(file_get_contents($file), true);
+                $receipt['origin'] = 'community';
+                file_put_contents($file, json_encode($receipt));
+                return $zip->extractTo($destination);
+            });
+        self::assertSame('origin_changed', $installer->install($path, 'business', '1.1.0', 'official')['code']);
+        self::assertSame('old', file_get_contents($this->themesRoot . '/business/layouts/header.php'));
+    }
+
+    public function testCatalogUsesReceiptKindAndSourceBeforeOfferingUpdate(): void
+    {
+        $this->writeInstalledTheme('business', 'old');
+        MarketInstallOrigin::write($this->themesRoot . '/business', 'plugin', 'business', '1.0.0', 'official');
+        $catalog = ['data' => ['themes' => [['slug' => 'business', 'download_url' => 'signed-url']]]];
+        $blocked = ThemeMarket::withInstalledOrigins($catalog, $this->themesRoot)['data']['themes'][0];
+        self::assertSame('origin_unknown', $blocked['locked_reason']);
+        self::assertSame('', $blocked['download_url']);
+        MarketInstallOrigin::write($this->themesRoot . '/business', 'theme', 'business', '1.0.0', 'official');
+        $allowed = ThemeMarket::withInstalledOrigins($catalog, $this->themesRoot)['data']['themes'][0];
+        self::assertFalse($allowed['download_blocked']);
+        self::assertSame('signed-url', $allowed['download_url']);
     }
 
     private function themeZip(string $slug, string $header, string $version = '1.0.0'): string

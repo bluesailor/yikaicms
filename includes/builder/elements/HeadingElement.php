@@ -106,6 +106,8 @@ final class HeadingElement extends AbstractElement
         $siteField = (string) ($data['site_field'] ?? 'none');
         if ($siteField !== 'none') {
             $text = DynamicSiteData::value($siteField, 'text', (string) ($data['site_fallback'] ?? ''));
+        } else {
+            $text = DynamicSiteData::interpolate($text);
         }
         $color = self::cssColor($data['color'] ?? null);
         $style = $color !== null ? ' style="color:' . htmlspecialchars($color, ENT_QUOTES) . ';"' : '';
@@ -114,6 +116,7 @@ final class HeadingElement extends AbstractElement
         $rawUrl = (string) ($data['url'] ?? '');
         $siteUrlField = (string) ($data['site_url_field'] ?? 'none');
         if ($siteUrlField !== 'none') $rawUrl = DynamicSiteData::value($siteUrlField, 'url');
+        else $rawUrl = DynamicSiteData::interpolate($rawUrl, true);
         $url = self::safeHref($rawUrl);
         $text = str_replace(["\r\n", "\r", "\n"], '<br>', htmlspecialchars($text));
         if ($url !== '') {

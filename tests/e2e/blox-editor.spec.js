@@ -1108,6 +1108,40 @@ test('cover-header banner fills the first viewport @ci', async ({ page }, testIn
   await expectClean(page);
 });
 
+test('fixed-height banner overlays header without filling viewport @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const contentFrame = await frame(page);
+  const item = page.locator('[data-testid="blox-tree-element"][data-element-type="home-block"][data-home-block-type="banner"]').first();
+  const section = item.locator('xpath=ancestor::*[@data-testid="blox-tree-section"]');
+  await section.locator('[data-section-drag-handle]').first().click();
+  await item.locator('[data-element-drag-handle]').click();
+  await page.getByRole('button', { name: '固定高度并覆盖页头', exact: true }).click();
+  await waitPreviewSettled(page);
+  const banner = contentFrame.locator('[data-blox-banner]').first();
+  await expect(banner).toHaveAttribute('data-blox-height-mode', 'fixed-cover-header');
+  const dimensions = await banner.evaluate(element => ({
+    actual: element.getBoundingClientRect().height,
+    configured: Number.parseFloat(getComputedStyle(element).getPropertyValue('--blox-banner-height-pc')),
+    overlay: element.ownerDocument.documentElement.classList.contains('yk-home-header-overlay'),
+    headerTop: element.ownerDocument.querySelector('#siteHeader').getBoundingClientRect().top,
+    bannerTop: element.getBoundingClientRect().top,
+  }));
+  expect(dimensions.overlay).toBe(true);
+  expect(Math.abs(dimensions.headerTop - dimensions.bannerTop)).toBeLessThanOrEqual(1);
+  expect(Math.abs(dimensions.actual - dimensions.configured)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: testInfo.outputPath('fixed-overlay-desktop.png') });
+  await page.getByTestId('blox-device-mobile').click();
+  await waitPreviewSettled(page);
+  await expect.poll(() => contentFrame.evaluate(() => window.innerWidth)).toBeLessThan(768);
+  const mobile = await banner.evaluate(element => ({
+    actual: element.getBoundingClientRect().height,
+    configured: Number.parseFloat(getComputedStyle(element).getPropertyValue('--blox-banner-height-mobile')),
+  }));
+  expect(Math.abs(mobile.actual - mobile.configured)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: testInfo.outputPath('fixed-overlay-mobile.png') });
+  await undo(page);
+});
+
 test('banner content reserves the measured overlay header height @ci', async ({ page }) => {
   const contentFrame = await frame(page);
   const banner = contentFrame.locator('[data-blox-banner]').first();
@@ -1130,6 +1164,7 @@ test('banner content reserves the measured overlay header height @ci', async ({ 
     const contentStyle = content && getComputedStyle(content);
     return {
       headerBottom: headerBox.bottom,
+      expectedInset: Math.max(0, Math.ceil(headerBox.bottom - element.getBoundingClientRect().top)),
       safeTop: Number.parseFloat(bannerStyle.getPropertyValue('--blox-banner-safe-top')),
       contentPaddingTop: contentStyle ? Number.parseFloat(contentStyle.paddingTop) : 0,
       safeFlag: element.getAttribute('data-blox-overlay-safe'),
@@ -1138,8 +1173,8 @@ test('banner content reserves the measured overlay header height @ci', async ({ 
 
   expect(measurements).not.toBeNull();
   expect(measurements.headerBottom).toBeGreaterThan(0);
-  expect(measurements.safeFlag).toBe('1');
-  expect(measurements.safeTop).toBeGreaterThanOrEqual(Math.floor(measurements.headerBottom));
+  expect(measurements.safeFlag).toBe(measurements.expectedInset > 0 ? '1' : '0');
+  expect(measurements.safeTop).toBe(measurements.expectedInset);
   expect(measurements.contentPaddingTop).toBeGreaterThanOrEqual(measurements.safeTop);
 });
 
@@ -1554,37 +1589,30 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   ))).toBe(true);
 
   const search = page.getByTestId('blox-template-search');
-  await search.fill('项目流程');
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:process-steps"]')).toBeVisible();
+  await search.fill('核心优势');
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:feature-grid"]')).toBeVisible();
   await expect(builtins).toHaveCount(1);
   await search.fill('');
 
   const category = page.getByTestId('blox-template-category');
   await expect(category).toBeVisible();
   await category.selectOption('content');
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]')).toBeVisible();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text-reverse"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:text-columns"]')).toBeVisible();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:testimonial-quote"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:faq-accordion"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:download-guide"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:faq-split"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:article-grid-dynamic"]')).toBeVisible();
-  await expect(builtins).toHaveCount(8);
+  await expect(builtins).toHaveCount(3);
 
   await category.selectOption('all');
+  // 随包基础区块全部是静态结构；动态数据款已迁往远程精品库，本地筛选应为空
   const dataSource = page.getByTestId('blox-template-data-source');
   await dataSource.selectOption('dynamic');
-  await expect(builtins).toHaveCount(3);
+  await expect(builtins).toHaveCount(0);
   await dataSource.selectOption('all');
-  const dynamicProducts = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:product-grid-dynamic"]');
-  await expect(dynamicProducts.getByTestId('blox-template-dynamic-badge')).toBeVisible();
-  await expect(dynamicProducts.getByTestId('blox-template-variant-badge')).toContainText('动态数据');
-  const hero = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
+  const hero = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]');
   await hero.getByTestId('blox-template-insert').click();
   await expect(page.locator('[x-ref="templateDialog"]')).toBeHidden();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
-  await expect((await frame(page)).getByText('以专业与稳健，陪伴客户长期成长')).toBeVisible();
+  await expect((await frame(page)).getByText('一句话说清这一段讲什么')).toBeVisible();
 
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
@@ -1601,15 +1629,15 @@ test('prebuilt library persists favorites and tracks only successful recent inse
   const before = await countSections(page);
 
   await page.getByTestId('blox-prebuilt-open').click();
-  const heroFavorite = page.getByTestId('blox-template-favorite-builtin:hero-intro');
+  const heroFavorite = page.getByTestId('blox-template-favorite-builtin:basic-heading');
   await heroFavorite.click();
   await expect(heroFavorite).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(() => page.evaluate(() => JSON.parse(
     localStorage.getItem('yikai:blox:template-favorites:v1') || '[]'
-  ))).toEqual(['builtin:hero-intro']);
+  ))).toEqual(['builtin:basic-heading']);
 
   await page.getByTestId('blox-template-quick-favorites').click();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]')).toBeVisible();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]')).toBeVisible();
   await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
 
   await page.getByTestId('blox-template-quick-all').click();
@@ -1631,7 +1659,7 @@ test('prebuilt library persists favorites and tracks only successful recent inse
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByTestId('blox-prebuilt-open').click();
   await page.getByTestId('blox-template-quick-favorites').click();
-  await expect(page.getByTestId('blox-template-favorite-builtin:hero-intro')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('blox-template-favorite-builtin:basic-heading')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
 });
 
@@ -1769,7 +1797,7 @@ test('prebuilt section drags from the dock into a visible fixed canvas boundary 
 
   const dialog = page.locator('[x-ref="templateDialog"]');
   const panel = dialog.locator(':scope > .relative');
-  const source = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
+  const source = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]');
   await expect(dialog).toHaveAttribute('aria-modal', 'false');
   await expect(source).toHaveAttribute('draggable', 'true');
   const panelBox = await panel.boundingBox();
@@ -1827,7 +1855,7 @@ test('prebuilt section drags from the dock into a visible fixed canvas boundary 
     await waitPreviewSettled(page);
     await expect(dialog).toBeHidden();
     await expect(page.getByTestId('blox-tree-section')).toHaveCount(beforeSections + 1);
-    await expect((await frame(page)).getByText('以专业与稳健，陪伴客户长期成长')).toBeVisible();
+    await expect((await frame(page)).getByText('一句话说清这一段讲什么')).toBeVisible();
   } finally {
     if (mouseDown) await page.mouse.up().catch(() => {});
     if (await editorHasChanges(page)) await undo(page);
@@ -1843,7 +1871,7 @@ test('prebuilt section drags to an exact structure boundary without canvas scrol
   await page.getByTestId('blox-prebuilt-open').click();
 
   const dialog = page.locator('[x-ref="templateDialog"]');
-  const source = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
+  const source = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]');
   const targetIndex = 1;
   const target = page.getByTestId('blox-tree-section').nth(targetIndex).locator('[data-section-drag-handle]');
   const sourceBox = await source.boundingBox();

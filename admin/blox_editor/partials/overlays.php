@@ -36,6 +36,12 @@ declare(strict_types=1);
                 <h2 id="blox-page-frame-title" class="text-sm font-semibold text-gray-900"><?= e(__('blox_page_frame')) ?></h2>
                 <button type="button" @click="closePageFrame()" :disabled="pageUrlSaving" class="h-10 w-10 inline-flex items-center justify-center hover:bg-gray-100" aria-label="<?= e(__('close')) ?>"><i class="ti ti-x text-xl"></i></button>
             </header>
+            <?php if (!$isHomeBlox && !$templateId && ($pageType ?? '') === 'page'): ?>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 border-b px-4 py-3 text-sm" data-testid="blox-page-frame-info">
+                <span class="font-medium text-gray-900"><?= e((string) ($page['name'] ?? '')) ?></span>
+                <span class="text-xs text-gray-500"><?= e(__('blox_page_frame_lang')) ?><span class="font-mono"><?= e((string) ($page['lang'] ?? '')) ?></span></span>
+            </div>
+            <?php endif; ?>
             <div class="space-y-3 border-b p-4">
                 <label for="blox-page-url-slug" class="block text-sm font-medium text-gray-900"><?= e(__('blox_page_url_slug')) ?></label>
                 <div class="flex flex-wrap gap-2">
@@ -67,6 +73,50 @@ declare(strict_types=1);
                            class="h-5 w-5" data-testid="blox-page-frame-<?= $frameArea ?>">
                 </label>
                 <?php endforeach; ?>
+            </div>
+            <div class="space-y-3 border-t p-4" data-testid="blox-page-frame-dotnav">
+                <label class="flex items-center justify-between gap-4 text-sm text-gray-900">
+                    <span class="inline-flex items-center gap-2"><i class="ti ti-circle-dot text-base text-blue-500"></i><?= e(__('blox_dotnav_enable')) ?></span>
+                    <input type="checkbox" class="h-5 w-5" data-testid="blox-dotnav-enabled"
+                           :checked="pageFrameDraft.dot_nav && pageFrameDraft.dot_nav.enabled"
+                           @change="pageFrameDraft.dot_nav.enabled = $event.target.checked">
+                </label>
+                <div x-show="pageFrameDraft.dot_nav && pageFrameDraft.dot_nav.enabled" x-cloak class="space-y-3 pl-1">
+                    <div class="flex items-center justify-between gap-4 text-sm text-gray-900">
+                        <span><?= e(__('blox_dotnav_position')) ?></span>
+                        <div class="flex rounded border border-gray-200 overflow-hidden text-xs">
+                            <button type="button" @click="pageFrameDraft.dot_nav.position = 'right'" data-testid="blox-dotnav-right"
+                                    :class="pageFrameDraft.dot_nav.position !== 'left' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
+                                    class="px-3 py-1.5"><?= e(__('blox_dotnav_right')) ?></button>
+                            <button type="button" @click="pageFrameDraft.dot_nav.position = 'left'" data-testid="blox-dotnav-left"
+                                    :class="pageFrameDraft.dot_nav.position === 'left' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
+                                    class="px-3 py-1.5"><?= e(__('blox_dotnav_left')) ?></button>
+                        </div>
+                    </div>
+                    <label class="flex items-center justify-between gap-4 text-sm text-gray-900">
+                        <span><?= e(__('blox_dotnav_mobile')) ?></span>
+                        <input type="checkbox" class="h-5 w-5" data-testid="blox-dotnav-mobile"
+                               :checked="pageFrameDraft.dot_nav.mobile"
+                               @change="pageFrameDraft.dot_nav.mobile = $event.target.checked">
+                    </label>
+                </div>
+                <p class="text-xs text-gray-500"><?= e(__('blox_dotnav_hint')) ?></p>
+            </div>
+            <div class="space-y-2 border-t p-4">
+                <?php // 标题区入口复用画布里的同一个设置弹窗（同一份数据，不存两份值） ?>
+                <button type="button" x-show="pageHero && pageHero.available" x-cloak
+                        @click="closePageFrame(); openPageHeroSettings()" data-testid="blox-page-frame-hero"
+                        class="w-full flex items-center justify-between gap-3 rounded border border-gray-200 px-3 py-2 text-sm text-gray-900 hover:bg-gray-50">
+                    <span class="inline-flex items-center gap-2"><i class="ti ti-layout-navbar text-base text-blue-500"></i><?= e(__('blox_page_frame_title_area')) ?></span>
+                    <span class="text-xs text-gray-400"><?= e(__('blox_page_frame_title_area_hint')) ?></span>
+                </button>
+                <?php if (!$isHomeBlox && !$templateId && ($pageType ?? '') === 'page'): ?>
+                <a href="/admin/page_edit.php?id=<?= (int) $id ?>" target="_blank" rel="noopener" data-testid="blox-page-frame-seo"
+                   class="w-full flex items-center justify-between gap-3 rounded border border-gray-200 px-3 py-2 text-sm text-gray-900 hover:bg-gray-50">
+                    <span class="inline-flex items-center gap-2"><i class="ti ti-seo text-base text-blue-500"></i><?= e(__('blox_page_frame_seo')) ?></span>
+                    <span class="text-xs text-gray-400"><?= e(__('blox_page_frame_seo_hint')) ?></span>
+                </a>
+                <?php endif; ?>
             </div>
             <footer class="flex justify-end gap-2 border-t p-4">
                 <button type="button" @click="closePageFrame()" :disabled="pageUrlSaving" class="border rounded px-4 py-2 text-sm"><?= e(__('cancel')) ?></button>
@@ -938,7 +988,14 @@ declare(strict_types=1);
                                         <span class="flex items-center gap-1.5"><i class="h-1.5 w-10 rounded bg-gray-300"></i><i class="h-1.5 w-7 rounded bg-gray-300"></i><i class="h-5 w-8 rounded bg-blue-100"></i></span>
                                     </span>
                                 </div>
-                                <div x-show="areaPresetType === 'footer'"
+                                <div x-show="areaPresetType === 'footer' && preset.preview.startsWith('footer-simple-')"
+                                     class="flex h-10 w-5/6 items-center justify-center gap-2 border border-gray-300 px-3 shadow-sm"
+                                     :class="preset.preview === 'footer-simple-dark' ? 'bg-zinc-900' : 'bg-gray-50'" aria-hidden="true">
+                                    <i class="h-1.5 w-24 rounded" :class="preset.preview === 'footer-simple-dark' ? 'bg-gray-300' : 'bg-gray-500'"></i>
+                                    <i class="h-1.5 w-12 rounded bg-gray-400"></i>
+                                    <i class="h-1.5 w-12 rounded bg-gray-400"></i>
+                                </div>
+                                <div x-show="areaPresetType === 'footer' && !preset.preview.startsWith('footer-simple-')"
                                      class="flex w-5/6 flex-col overflow-hidden border border-gray-300 bg-white shadow-sm" aria-hidden="true">
                                     <span x-show="preset.preview === 'footer-search'" class="flex h-5 items-center gap-2 bg-gray-800 px-3">
                                         <i class="h-1.5 w-9 rounded bg-blue-400"></i><i class="h-2.5 flex-1 rounded bg-gray-600"></i>
@@ -961,7 +1018,7 @@ declare(strict_types=1);
                                 </div>
                             </div>
                             <div class="flex flex-1 flex-col border-t border-gray-100 p-4">
-                                <h3 class="text-sm font-semibold text-gray-800" x-text="preset.name"></h3>
+                                <h3 class="text-sm font-semibold text-gray-800" x-text="areaPresetLabel(preset)"></h3>
                                 <div class="mt-2 flex min-h-6 flex-wrap gap-1.5">
                                     <template x-for="feature in preset.features" :key="preset.slug + '-' + feature">
                                         <span class="rounded bg-gray-100 px-2 py-1 text-[10px] font-medium text-gray-600" x-text="feature"></span>
@@ -1005,7 +1062,7 @@ declare(strict_types=1);
                                         :title="headerPresetText.previous" :aria-label="headerPresetText.previous">
                                     <i class="ti ti-chevron-left"></i>
                                 </button>
-                                <span id="blox-header-preset-preview-title" class="block truncate text-sm font-semibold text-gray-800" x-text="preset && preset.name"></span>
+                                <span id="blox-header-preset-preview-title" class="block truncate text-sm font-semibold text-gray-800" x-text="areaPresetLabel(preset)"></span>
                                 <button type="button" @click="selectAdjacentHeaderPreset(1)" data-testid="blox-header-preset-preview-next"
                                         class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                                         :title="headerPresetText.next" :aria-label="headerPresetText.next">
@@ -1148,6 +1205,76 @@ declare(strict_types=1);
             </template>
         </div>
     </div>
+
+    <!-- 画布插入检查：远程/内置模板先确认依赖映射，再一次性插入（可一次撤销整组）。 -->
+    <template x-if="templateReview">
+        <div tabindex="-1" x-ref="templateReviewDialog"
+             data-testid="blox-template-review-dialog"
+             @keydown="dialogKeydown($event, $refs.templateReviewDialog, () => cancelTemplateReview())"
+             role="dialog" aria-modal="true" aria-labelledby="blox-template-review-title"
+             class="fixed inset-0 z-[140] flex items-center justify-center p-6">
+            <div class="absolute inset-0 bg-black/50" @click="cancelTemplateReview()"></div>
+            <div class="relative w-full max-w-[560px] max-h-[86vh] overflow-y-auto rounded-xl bg-white shadow-2xl">
+                <div class="px-5 py-4 border-b border-gray-200 flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                        <h3 id="blox-template-review-title" class="font-semibold text-gray-900 break-words"
+                            x-text="templateText.reviewTitle + ': ' + templateReview.templateName"></h3>
+                        <p class="mt-1 text-xs text-gray-500" x-text="templateText.reviewNote"></p>
+                    </div>
+                    <button type="button" @click="cancelTemplateReview()" class="text-gray-400 hover:text-gray-600 p-1"
+                            :title="templateText.reviewCancel" :aria-label="templateText.reviewCancel">
+                        <i class="ti ti-x text-base"></i>
+                    </button>
+                </div>
+                <div class="p-5 space-y-4">
+                    <template x-for="(line, index) in templateReviewIssues()" :key="index">
+                        <p class="break-words text-sm text-amber-700" x-text="line"></p>
+                    </template>
+                    <fieldset class="min-w-0">
+                        <legend class="mb-2 text-sm font-medium text-gray-900" x-text="templateText.reviewStyles"></legend>
+                        <label class="mr-4 inline-flex items-center gap-2 text-sm">
+                            <input type="radio" value="keep" x-model="templateReview.styleMode">
+                            <span x-text="templateText.reviewKeep"></span>
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-sm">
+                            <input type="radio" value="detach" x-model="templateReview.styleMode">
+                            <span x-text="templateText.reviewDetach"></span>
+                        </label>
+                    </fieldset>
+                    <template x-for="kind in ['tokens', 'styles']" :key="kind">
+                        <fieldset class="min-w-0 space-y-2"
+                                 x-show="kind === 'tokens' || templateReview.styleMode !== 'detach'">
+                            <legend class="mb-2 text-sm font-medium text-gray-900"
+                                    x-text="templateText.reviewMap + ' · ' + (kind === 'tokens' ? templateText.reviewTokens : templateText.reviewStyles)"></legend>
+                            <template x-for="reference in templateReviewReferences(kind)" :key="kind + ':' + reference">
+                                <label class="flex flex-wrap items-center gap-3 text-sm">
+                                    <span class="min-w-0 break-all" x-text="reference"></span>
+                                    <select class="max-w-full border border-gray-300 bg-white px-3 py-2"
+                                            :data-testid="'blox-template-review-map-' + kind"
+                                            x-model="templateReview.mappings[kind][reference]">
+                                        <option value="" x-text="templateText.reviewUnchanged"></option>
+                                        <template x-for="option in templateReviewOptions(kind)" :key="kind + ':' + option.id">
+                                            <option :value="option.id" x-text="option.label"></option>
+                                        </template>
+                                    </select>
+                                </label>
+                            </template>
+                        </fieldset>
+                    </template>
+                    <p x-show="templateReview.error" class="text-sm text-red-600 break-words"
+                       data-testid="blox-template-review-error" x-text="templateReview.error"></p>
+                </div>
+                <div class="flex items-center justify-end gap-3 border-t border-gray-200 px-5 py-4">
+                    <button type="button" @click="cancelTemplateReview()" class="text-sm text-gray-600 hover:text-gray-800"
+                            x-text="templateText.reviewCancel"></button>
+                    <button type="button" @click="confirmTemplateReview()" data-testid="blox-template-review-confirm"
+                            class="inline-flex h-10 items-center justify-center gap-2 rounded bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                            :disabled="templateReview.busy"
+                            x-text="templateText.reviewConfirm"></button>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <!-- Blox 模板库：目录与正文按需加载，避免大模板拖慢编辑器首屏。 -->
     <div x-show="templateOpen" x-cloak x-ref="templateDialog" tabindex="-1"
@@ -1559,11 +1686,20 @@ declare(strict_types=1);
                 <div class="min-h-0 flex flex-col">
                     <div class="h-10 px-3 flex items-center justify-between border-b border-gray-100 shrink-0">
                         <span class="text-xs text-gray-500 truncate" x-text="activeRev ? (activeRev.summary || <?= e($jt('revision_history')) ?>) : <?= e($jt('blox_pick_revision')) ?>"></span>
-                        <button type="button" x-show="activeRev" @click="restoreRevision(activeRev)" :disabled="revisionRestoring"
-                                class="text-xs text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded px-3 py-1.5 inline-flex items-center gap-1">
-                            <i class="ti text-sm" :class="revisionRestoring ? 'ti-loader-2 animate-spin' : 'ti-restore'"></i>
-                            <?= __('blox_restore_this') ?>
-                        </button>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button" x-show="activeRev" @click="loadRevisionDraft(activeRev)" :disabled="revisionLoadBusy || revisionRestoring"
+                                    data-testid="blox-revision-load"
+                                    class="text-xs text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded px-3 py-1.5 inline-flex items-center gap-1">
+                                <i class="ti text-sm" :class="revisionLoadBusy ? 'ti-loader-2 animate-spin' : 'ti-arrow-bar-to-down'"></i>
+                                <?= __('blox_revision_load_canvas') ?>
+                            </button>
+                            <button type="button" x-show="activeRev" @click="restoreRevision(activeRev)" :disabled="revisionRestoring || revisionLoadBusy"
+                                    title="<?= e(__('blox_restore_live_hint')) ?>"
+                                    class="text-xs text-red-600 border border-red-200 hover:bg-red-50 disabled:opacity-50 rounded px-3 py-1.5 inline-flex items-center gap-1">
+                                <i class="ti text-sm" :class="revisionRestoring ? 'ti-loader-2 animate-spin' : 'ti-restore'"></i>
+                                <?= __('blox_restore_this') ?>
+                            </button>
+                        </div>
                     </div>
                     <iframe class="flex-1 w-full border-0 bg-white" :srcdoc="revisionPreview || '<!doctype html><html><body></body></html>'"></iframe>
                 </div>
@@ -1581,6 +1717,11 @@ declare(strict_types=1);
             <div class="border-b border-gray-100 px-5 py-4">
                 <h2 id="blox-recovery-title" class="text-base font-semibold text-gray-900" x-text="recoveryText.title"></h2>
                 <p class="mt-1 text-sm leading-6 text-gray-500" x-text="recoveryText.desc"></p>
+                <p class="mt-1 text-xs text-gray-400" data-testid="blox-recovery-meta">
+                    <span x-text="recoveryText.savedAtLabel"></span>
+                    <span class="font-mono" x-text="recoveryDraftTimeText()"></span>
+                    · <span x-text="recoveryText.localNote"></span>
+                </p>
             </div>
             <div class="flex flex-col-reverse gap-2 px-5 py-4 sm:flex-row sm:justify-end">
                 <button type="button" @click="discardRecovery()" data-testid="blox-recovery-discard"

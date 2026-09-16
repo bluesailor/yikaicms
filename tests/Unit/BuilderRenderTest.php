@@ -332,6 +332,9 @@ final class BuilderRenderTest extends TestCase
         ]], JSON_UNESCAPED_UNICODE));
 
         $this->assertStringContainsString('hidden xl:flex', $out); // 桌面导航；较窄屏幕配 nav-drawer
+        $this->assertStringContainsString('data-yk-nav-overflow=', $out);
+        $this->assertStringContainsString('w-full min-w-0', $out);
+        $this->assertContains('/assets/js/blox-nav-overflow.js', (new \NavMegaElement())->scripts());
         $this->assertStringContainsString('>首页<', $out); // 无子级=普通链接，无面板
         $this->assertStringContainsString('grid-cols-2', $out); // 两个子栏目=两列
         $this->assertStringContainsString('inset-x-0', $out); // 默认通栏面板（相对元素根）
@@ -735,9 +738,16 @@ final class BuilderRenderTest extends TestCase
                 return '<div>' . htmlspecialchars($data['title'] ?? '') . '</div>';
             }
         };
-        BuilderRegistry::register($el);
-        $this->assertSame(['title' => 'x'], BuilderRegistry::get('test-plugin-el')->defaults());
-        $this->assertSame('<div>hi</div>', $this->inner($this->oneEl(['type' => 'test-plugin-el', 'data' => ['title' => 'hi']])));
+        $registry = new \ReflectionProperty(BuilderRegistry::class, 'elements');
+        $registry->setAccessible(true);
+        $before = $registry->getValue();
+        try {
+            BuilderRegistry::register($el);
+            $this->assertSame(['title' => 'x'], BuilderRegistry::get('test-plugin-el')->defaults());
+            $this->assertSame('<div>hi</div>', $this->inner($this->oneEl(['type' => 'test-plugin-el', 'data' => ['title' => 'hi']])));
+        } finally {
+            $registry->setValue(null, $before);
+        }
     }
 
     // ---- 动态元素：测 buildMarkup() 拼出的 {yk:} 标签（纯字符串，不经 TagEngine/DB） ----
@@ -796,6 +806,7 @@ final class BuilderRenderTest extends TestCase
     {
         $n = (new \NavElement())->buildMarkup(['dropdown' => true]);
         $this->assertStringContainsString('{yk:subnav wrap=ul', $n);
+        $this->assertStringContainsString('class="yk-nav-panel ', $n);
         $this->assertStringContainsString('group-hover/nav:block', $n); // CSS hover 展开
         $this->assertStringContainsString('{yk:if field=has_children op=eq value=1}', $n); // 叶子项无箭头
         $this->assertStringContainsString('data-yk-nav-caret', $n);
