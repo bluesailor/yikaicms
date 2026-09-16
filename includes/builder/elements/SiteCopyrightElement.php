@@ -21,8 +21,11 @@ final class SiteCopyrightElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'show_icp', 'type' => 'checkbox', 'label' => __('blox_copyright_show_icp'), 'default' => true],
-            ['key' => 'show_police', 'type' => 'checkbox', 'label' => __('blox_copyright_show_police'), 'default' => true],
+            // site_langs：仅在这些站点语言下有意义；编辑器在固定为其它语言的模板里隐藏
+            ['key' => 'show_icp', 'type' => 'checkbox', 'label' => __('blox_copyright_show_icp'), 'default' => true,
+                'site_langs' => [SiteCopyrightSettings::FILING_LANGUAGE]],
+            ['key' => 'show_police', 'type' => 'checkbox', 'label' => __('blox_copyright_show_police'), 'default' => true,
+                'site_langs' => [SiteCopyrightSettings::FILING_LANGUAGE]],
             ['key' => 'align', 'type' => 'select', 'label' => __('blox_align'), 'default' => 'left',
                 'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')]],
             ['key' => 'tone', 'type' => 'select', 'label' => __('blox_site_tone'), 'default' => 'dark',
@@ -75,7 +78,7 @@ final class SiteCopyrightElement extends AbstractElement
 
     private static function isChineseMainland(): bool
     {
-        return !function_exists('siteLang') || siteLang() === 'zh-CN';
+        return SiteCopyrightSettings::filingApplies(function_exists('siteLang') ? siteLang() : SiteCopyrightSettings::FILING_LANGUAGE);
     }
 
     private static function enabled(array $data, string $key, bool $default): bool
