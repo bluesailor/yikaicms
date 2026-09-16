@@ -77,8 +77,14 @@ test('canvas coordinates account for scaling and stay within the viewport', () =
     const state = fixture();
     state.insertAtBoundary({ index: 1, kind: 'picker', anchor: { x: 500, y: 300 } });
     assert.equal(state.sectionInsertStyle, 'width:304px;left:448px;top:326px');
+    // 贴底时按弹层实际高度上移，并在底部留出约 100px（900 - 330 - 100 = 470）
+    state.$refs.sectionInsertPicker.offsetHeight = 330;
     state.openSectionInsert(1, null, { x: 9000, y: 9000 });
-    assert.equal(state.sectionInsertStyle, 'width:304px;left:1124px;top:600px');
+    assert.equal(state.sectionInsertStyle, 'width:304px;left:1124px;top:470px');
+    // 高度尚未可测时先按保守估计定位，不贴底
+    delete state.$refs.sectionInsertPicker.offsetHeight;
+    state.openSectionInsert(1, null, { x: 9000, y: 9000 });
+    assert.equal(state.sectionInsertStyle, 'width:304px;left:1124px;top:460px');
     assert.deepEqual(state.calls, []);
 });
 
