@@ -141,6 +141,7 @@ final class BuilderRegistry
             new TabsElement(),
             new TableElement(),
             new OrgChartElement(),
+            new PricingTableElement(),
             new StatItemElement(),
             new ProcessStepElement(),
             new LogoElement(),

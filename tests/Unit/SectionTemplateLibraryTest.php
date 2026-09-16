@@ -33,10 +33,11 @@ final class SectionTemplateLibraryTest extends TestCase
             '04 行动引导' => ['cta-banner', 'marketing', '立即咨询'],
             '05 图文咨询引导' => ['cta-split', 'marketing', '准备好开始合作了吗'],
             '06 客户引语' => ['testimonial-quote', 'content', '客户反馈'],
+            '07 价格方案' => ['pricing-plans', 'marketing', '专业版'],
         ];
     }
 
-    /** 基础区块要有稳定编号，界面上按 01–06 呈现；整页模板不参与编号。 */
+    /** 基础区块要有稳定编号，界面上按 01–07 呈现；整页模板不参与编号。 */
     public function testBasicSectionsCarryStableNumbers(): void
     {
         $numbers = [];
@@ -55,6 +56,7 @@ final class SectionTemplateLibraryTest extends TestCase
             'cta-banner' => 4,
             'cta-split' => 5,
             'testimonial-quote' => 6,
+            'pricing-plans' => 7,
         ], $numbers);
     }
 
@@ -148,7 +150,7 @@ final class SectionTemplateLibraryTest extends TestCase
     }
 
     /**
-     * 保留的六款都要带可用于场景推荐的元数据。
+     * 随包基础区块（六款保留 + 价格方案）都要带可用于场景推荐的元数据。
      *
      * 原先此处还断言 team-recruiting / client-logo-wall / product-comparison / download-guide /
      * contact-strip 以及 hero-split / feature-cards-soft / faq-split / *-grid-dynamic 的
