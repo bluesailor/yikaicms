@@ -31,7 +31,12 @@
         ["bg_image", "bg_color", "bg_opacity", "bg_overlay_color", "bg_overlay_opacity"].forEach(function (key) { delete data[key]; });
     }
     var methods = {
-        ctaQuickTarget() { return target(this.sections[this.selectedSi], this.selEl); },
+        ctaQuickTarget() {
+            // 选中了快捷面板没有的字段（如电话按钮）：让出位置给完整字段面板
+            var field = String(this.selectedHomeField || "");
+            if (field && Object.keys(keys).every(function (key) { return keys[key] !== field; })) return null;
+            return target(this.sections[this.selectedSi], this.selEl);
+        },
         ctaQuickValue(key) {
             var node = this.ctaQuickTarget();
             if (!node) return "";

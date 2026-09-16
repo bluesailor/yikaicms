@@ -1,7 +1,7 @@
 (function (global) {
     "use strict";
 
-    var contentKeys = ["override_title", "override_content", "override_description", "override_button_text", "override_button_url"];
+    var contentKeys = ["override_title", "override_content", "override_description", "override_button_text", "override_button_url", "override_call_text", "override_call_phone"];
     var imageKeys = ["override_image", "override_tag_title", "override_tag_description"];
     var inheritedKeys = ["override_title", "override_content", "override_image", "override_tag_title", "override_tag_description", "override_button_text", "override_button_url"];
 

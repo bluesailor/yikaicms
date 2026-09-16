@@ -44,3 +44,12 @@ test('legacy background migration preserves the visible image and inverse opacit
     assert.equal(ctx.sections[0].settings.text_tone,'light');
     assert.equal(node.data.bg_image,undefined);
 });
+test('selecting a field the quick panel does not offer shows the full field panel', () => {
+    const node = {type:'home-block',data:{block_type:'cta'}}, ctx = editor(node);
+    ctx.selEl = node;
+    ctx.selectedHomeField = 'override_button_text';
+    assert.equal(ctx.ctaQuickTarget(), node);
+    ctx.selectedHomeField = 'override_call_text';
+    assert.equal(ctx.ctaQuickTarget(), null);
+    assert.equal(require('../../assets/js/blox-home-content-panel').groupFor('override_call_phone'), 'content');
+});
