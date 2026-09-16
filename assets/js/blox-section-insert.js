@@ -40,12 +40,19 @@
                     this._sectionInsertOpener = opener || this.$refs.canvas;
                     var width = Math.min(304, window.innerWidth - 24);
                     var left = Math.max(12, Math.min(x - width / 2, window.innerWidth - width - 12));
-                    var top = Math.max(12, Math.min(y, window.innerHeight - 300));
-                    this.sectionInsertStyle = "width:" + width + "px;left:" + left + "px;top:" + top + "px";
+                    var place = function (height) {
+                        // 底部留出约 100px：弹层贴着窗口底边时既难看也容易被浏览器状态栏挡住
+                        var top = Math.max(12, Math.min(y, window.innerHeight - height - 100));
+                        return "width:" + width + "px;left:" + left + "px;top:" + top + "px";
+                    };
+                    this.sectionInsertStyle = place(340);
                     this.sectionInsertOpen = true;
                     var self = this;
                     this.$nextTick(function () {
-                        var first = self.$refs.sectionInsertPicker.querySelector('[data-layout-choice]');
+                        var picker = self.$refs.sectionInsertPicker;
+                        // 按实际高度复算：导入按钮是否显示、窄屏换行都会改变弹层高度
+                        if (picker && picker.offsetHeight > 0) self.sectionInsertStyle = place(picker.offsetHeight);
+                        var first = picker && picker.querySelector('[data-layout-choice]');
                         if (first) first.focus();
                     });
                 },
