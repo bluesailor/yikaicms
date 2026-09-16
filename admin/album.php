@@ -71,20 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = postInt('id');
 
         $photos = albumPhotoModel()->getByAlbum($id);
-        $uploadsReal = realpath(UPLOADS_PATH);
-        foreach ($photos as $photo) {
-            if ($photo['image']) {
-                $path = realpath(ROOT_PATH . $photo['image']);
-                if ($path && str_starts_with($path, $uploadsReal) && file_exists($path)) @unlink($path);
-            }
-            if ($photo['thumb']) {
-                $path = realpath(ROOT_PATH . $photo['thumb']);
-                if ($path && str_starts_with($path, $uploadsReal) && file_exists($path)) @unlink($path);
-            }
-        }
-
         albumPhotoModel()->deleteByAlbum($id);
         albumModel()->deleteById($id);
+        // 先删记录再清文件：媒体库或其它相册仍在用的文件保留
+        require_once ROOT_PATH . '/admin/includes/album_upload.php';
+        albumRemoveUnusedPhotoFiles(array_merge(array_column($photos, 'image'), array_column($photos, 'thumb')));
         adminLog('album', 'delete', '删除相册ID：' . $id);
         success();
     }

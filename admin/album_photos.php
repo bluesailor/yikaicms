@@ -71,38 +71,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$photo) {
             error(__('ap_photo_missing'));
         }
-        if (empty($_FILES['file'])) {
-            error(__('ap_pick_images'));
+        // 与 WordPress 一致：从媒体库选图（弹窗内可上传新图），不接受任意地址
+        $media = albumMediaLibraryImage((string) post('image_url'));
+        if ($media === null) {
+            error(__('ap_pick_from_library'));
         }
-        // 走统一上传：扩展名白名单 + MIME 与 getimagesize 校验 + 超宽压缩
-        $replaceExt = strtolower(pathinfo((string) ($_FILES['file']['name'] ?? ''), PATHINFO_EXTENSION));
-        if (!in_array($replaceExt, ALBUM_PHOTO_EXTENSIONS, true)) {
-            error(__('ap_type_not_allowed'));
-        }
-        $result = uploadFile($_FILES['file'], 'albums');
-        if (isset($result['error'])) {
-            error($result['error']);
-        }
+        $newImage = (string) $media['url'];
         $oldImage = (string) ($photo['image'] ?? '');
         $oldThumb = (string) ($photo['thumb'] ?? '');
-        albumPhotoModel()->updateById($photoId, ['image' => $result['url'], 'thumb' => '']);
+        albumPhotoModel()->updateById($photoId, ['image' => $newImage, 'thumb' => '']);
         if ($oldImage !== '' && (string) ($album['cover'] ?? '') === $oldImage) {
-            albumModel()->setCover($albumId, $result['url']);
+            albumModel()->setCover($albumId, $newImage);
         }
-        // 旧文件仅在 uploads 内、且不再被任何相册图片/封面或媒体库引用时才删除
-        $uploadsReal = realpath(UPLOADS_PATH);
-        foreach (array_unique(array_filter([$oldImage, $oldThumb])) as $oldUrl) {
-            $path = realpath(ROOT_PATH . $oldUrl);
-            if (!$path || !$uploadsReal || !str_starts_with($path, $uploadsReal . DIRECTORY_SEPARATOR) || !is_file($path)) {
-                continue;
-            }
-            $stillUsed = albumPhotoModel()->count(['image' => $oldUrl]) + albumPhotoModel()->count(['thumb' => $oldUrl])
-                + albumModel()->count(['cover' => $oldUrl]) + mediaModel()->count(['url' => $oldUrl]);
-            if ($stillUsed === 0) {
-                @unlink($path);
-            }
-        }
-        success(['url' => $result['url']]);
+        albumRemoveUnusedPhotoFiles([$oldImage, $oldThumb]);
+        success(['url' => $newImage]);
     }
 
     // 删除图片
@@ -111,18 +93,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $photo = albumPhotoModel()->findWhere(['id' => $photoId, 'album_id' => $albumId]);
 
         if ($photo) {
-            $uploadsReal = realpath(UPLOADS_PATH);
-            if ($photo['image']) {
-                $path = realpath(ROOT_PATH . $photo['image']);
-                if ($path && str_starts_with($path, $uploadsReal) && file_exists($path)) @unlink($path);
-            }
-            if ($photo['thumb']) {
-                $path = realpath(ROOT_PATH . $photo['thumb']);
-                if ($path && str_starts_with($path, $uploadsReal) && file_exists($path)) @unlink($path);
-            }
-
             albumPhotoModel()->deleteById($photoId);
             albumModel()->updatePhotoCount($albumId);
+            // 先删记录再清文件：媒体库或其它相册仍在用的文件保留
+            albumRemoveUnusedPhotoFiles([(string) $photo['image'], (string) $photo['thumb']]);
         }
 
         success();
@@ -133,21 +107,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ids = $_POST['ids'] ?? [];
         if (!empty($ids)) {
             $photos = albumPhotoModel()->getByIdsAndAlbum($ids, $albumId);
-
-            $uploadsReal = realpath(UPLOADS_PATH);
-            foreach ($photos as $photo) {
-                if ($photo['image']) {
-                    $path = realpath(ROOT_PATH . $photo['image']);
-                    if ($path && str_starts_with($path, $uploadsReal) && file_exists($path)) @unlink($path);
-                }
-                if ($photo['thumb']) {
-                    $path = realpath(ROOT_PATH . $photo['thumb']);
-                    if ($path && str_starts_with($path, $uploadsReal) && file_exists($path)) @unlink($path);
-                }
-            }
-
             albumPhotoModel()->deleteByIds($ids, $albumId);
             albumModel()->updatePhotoCount($albumId);
+            albumRemoveUnusedPhotoFiles(array_merge(array_column($photos, 'image'), array_column($photos, 'thumb')));
         }
         success();
     }
@@ -279,13 +241,18 @@ function ykFallbackCopy(text, cb) {
 <div class="bg-white rounded-lg shadow p-6">
     <div id="photoGrid" class="photo-grid">
         <?php foreach ($photos as $photo): ?>
-        <div class="photo-item" data-id="<?php echo $photo['id']; ?>">
+        <?php $isCover = (string) ($album['cover'] ?? '') !== '' && (string) $album['cover'] === (string) $photo['image']; ?>
+        <div class="photo-item" data-id="<?php echo $photo['id']; ?>"<?php echo $isCover ? ' data-cover="1"' : ''; ?>>
             <input type="checkbox" class="checkbox photo-checkbox" value="<?php echo $photo['id']; ?>">
             <img src="<?php echo e($photo['image']); ?>" alt="<?php echo e($photo['title']); ?>" loading="lazy">
+            <?php // 当前封面常驻角标：星标代表「封面 / 特色图」，不再用容易误解为「换图」的图片图标 ?>
+            <span class="cover-badge absolute bottom-2 left-2 z-10 bg-amber-500 text-white text-xs px-2 py-0.5 rounded inline-flex items-center gap-1<?php echo $isCover ? '' : ' hidden'; ?>">
+                <i class="ti ti-star text-sm" aria-hidden="true"></i><?php echo e(__('ap_cover_badge')); ?>
+            </span>
             <div class="overlay"></div>
             <div class="actions">
-                <button onclick="setCover(<?php echo $photo['id']; ?>)" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="<?php echo e(__('ap_set_cover')); ?>">
-                    <i class="ti ti-photo text-base text-gray-700"></i>
+                <button onclick="setCover(<?php echo $photo['id']; ?>)" data-testid="album-photo-set-cover" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="<?php echo e(__('ap_set_cover')); ?>" aria-label="<?php echo e(__('ap_set_cover')); ?>">
+                    <i class="ti ti-star text-base text-amber-500"></i>
                 </button>
                 <button onclick="editPhoto(<?php echo $photo['id']; ?>, '<?php echo e(addslashes($photo['title'])); ?>', '<?php echo e(addslashes($photo['description'] ?? '')); ?>')" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="<?php echo __('admin_edit'); ?>">
                     <i class="ti ti-pencil text-base text-gray-700"></i>
@@ -327,13 +294,12 @@ function ykFallbackCopy(text, cb) {
                     </div>
                     <div class="mt-2 flex items-center justify-between gap-3">
                         <p id="editReplaceHint" class="text-xs text-gray-500"><?php echo e(__('ap_replace_hint')); ?></p>
-                        <button type="button" onclick="document.getElementById('editFile').click()"
+                        <button type="button" onclick="pickReplacementImage()"
                                 data-testid="album-photo-replace"
                                 class="shrink-0 px-3 py-1.5 text-sm border border-primary text-primary rounded hover:bg-primary hover:text-white inline-flex items-center gap-1">
                             <i class="ti ti-replace text-base"></i><?php echo e(__('ap_replace_image')); ?>
                         </button>
                     </div>
-                    <input type="file" id="editFile" accept="image/jpeg,image/png,image/gif,image/webp" class="hidden">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('ap_photo_title')); ?></label>
@@ -492,28 +458,31 @@ async function setCover(photoId) {
     const response = await fetch('', { method: 'POST', body: formData });
     const result = await safeJson(response);
     if (result.code === 0) {
+        document.querySelectorAll('.photo-item').forEach(item => {
+            const isCover = item.dataset.id === String(photoId);
+            item.toggleAttribute('data-cover', isCover);
+            item.querySelector('.cover-badge').classList.toggle('hidden', !isCover);
+        });
         showMessage(<?php echo json_encode(__('ap_cover_set'), JSON_UNESCAPED_UNICODE); ?>);
     }
 }
 
-// 编辑图片
-let editPreviewObjectUrl = '';
+// 编辑图片：替换图从媒体库选（弹窗内可上传新图），保存时才生效
+let pendingReplacementUrl = '';
 function resetEditFile() {
-    const input = document.getElementById('editFile');
-    input.value = '';
-    if (editPreviewObjectUrl) URL.revokeObjectURL(editPreviewObjectUrl);
-    editPreviewObjectUrl = '';
+    pendingReplacementUrl = '';
     document.getElementById('editReplaceHint').textContent = <?php echo json_encode(__('ap_replace_hint'), JSON_UNESCAPED_UNICODE); ?>;
 }
 
-document.getElementById('editFile').addEventListener('change', function () {
-    const file = this.files && this.files[0];
-    if (!file) return;
-    if (editPreviewObjectUrl) URL.revokeObjectURL(editPreviewObjectUrl);
-    editPreviewObjectUrl = URL.createObjectURL(file);
-    document.getElementById('editPreview').src = editPreviewObjectUrl;
-    document.getElementById('editReplaceHint').textContent = <?php echo json_encode(__('ap_replace_pending'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', file.name);
-});
+function pickReplacementImage() {
+    openMediaPicker(function (url) {
+        if (!url) return;
+        pendingReplacementUrl = url;
+        document.getElementById('editPreview').src = url;
+        document.getElementById('editReplaceHint').textContent = <?php echo json_encode(__('ap_replace_pending'), JSON_UNESCAPED_UNICODE); ?>
+            .replace(':name', decodeURIComponent(url.split('/').pop() || url));
+    }, { type: 'image' });
+}
 
 function editPhoto(id, title, description) {
     resetEditFile();
@@ -535,15 +504,15 @@ function closeEditModal() {
 async function savePhoto(e) {
     e.preventDefault();
     const photoId = document.getElementById('editPhotoId').value;
-    const file = document.getElementById('editFile').files[0];
-    if (file) {
+    const replacement = pendingReplacementUrl;
+    if (replacement) {
         const replaceData = new FormData();
         replaceData.append('action', 'replace');
         replaceData.append('photo_id', photoId);
-        replaceData.append('file', file);
+        replaceData.append('image_url', replacement);
         const replaced = await safeJson(await fetch('', { method: 'POST', body: replaceData }));
         if (replaced.code !== 0) {
-            showMessage(replaced.msg || <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+            showMessage(replaced.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
             return;
         }
         const img = document.querySelector(`.photo-item[data-id="${photoId}"] img`);
@@ -554,7 +523,7 @@ async function savePhoto(e) {
     const response = await fetch('', { method: 'POST', body: formData });
     const result = await safeJson(response);
     if (result.code === 0) {
-        showMessage(file ? <?php echo json_encode(__('ap_replaced'), JSON_UNESCAPED_UNICODE); ?> : '<?php echo __('admin_saved'); ?>');
+        showMessage(replacement ? <?php echo json_encode(__('ap_replaced'), JSON_UNESCAPED_UNICODE); ?> : '<?php echo __('admin_saved'); ?>');
         closeEditModal();
     } else {
         showMessage(result.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
