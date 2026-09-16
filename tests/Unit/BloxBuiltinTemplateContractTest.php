@@ -34,6 +34,7 @@ final class BloxBuiltinTemplateContractTest extends TestCase
      * 2026-09-16 起随包整页模板缩减为三款（在用的公司介绍 / 服务流程 + 功能性 404）。
      * 移出的 restaurant-landing / contact-page / brand-service-landing 见
      * CLAUDE-SECTION-LIBRARY-PROGRESS.md：重设计后进远程精品库，不再随包分发。
+     * 同日按需求重新内置一款全新设计的联系我们页 contact-connect（非旧 contact-page 回迁）。
      *
      * @return array<string,array{0:string,1:list<string>}>
      */
@@ -42,6 +43,7 @@ final class BloxBuiltinTemplateContractTest extends TestCase
         return [
             '公司介绍' => ['company-intro', ['以专业与稳健', '成立年份', '为什么选择我们', '研发设计', '立即咨询']],
             '服务流程' => ['service-process', ['每一步都清晰可控', '需求沟通', '测试验收', '方案与计划', '合作前常见问题']],
+            '联系我们' => ['contact-connect', ['我们来找最合适的人跟进', '1 个工作日内回复', '信息严格保密', '售后支持', '提交留言后多久会收到回复']],
         ];
     }
 
@@ -121,7 +123,7 @@ final class BloxBuiltinTemplateContractTest extends TestCase
             $items[$item['key']] = $item;
         }
 
-        foreach (['builtin:company-intro', 'builtin:service-process', 'builtin:404-route-lost'] as $key) {
+        foreach (['builtin:company-intro', 'builtin:service-process', 'builtin:contact-connect', 'builtin:404-route-lost'] as $key) {
             self::assertArrayHasKey($key, $items);
             self::assertNotSame('', $items[$key]['name']);
             self::assertNotSame('', $items[$key]['description']);
