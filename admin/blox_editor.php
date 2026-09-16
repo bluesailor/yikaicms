@@ -193,7 +193,7 @@ if ($isHomeBlox) {
         $publishedDocumentSource = json_encode([
             'schema' => $publishedHomeDocument['schema'],
             'settings' => $publishedHomeDocument['settings'],
-            'sections' => $publishedHomeDocument['sections'],
+            'sections' => HomeFaqContent::forEditor($publishedHomeDocument['sections'], siteLang()),
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
     $page = [
@@ -202,10 +202,16 @@ if ($isHomeBlox) {
         'slug' => '',
         'description' => __('blox_home_draft_desc'),
     ];
-    $initBlocks = json_encode([
+    $homeRevisionBlocks = json_encode([
         'schema' => $homeDocument['schema'],
         'settings' => $homeDocument['settings'],
         'sections' => $homeDocument['sections'],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
+    // 面板与画布显示同一语言的 FAQ；保存时由 HomeFaqContent::fromEditorJson 写回译文。revision 仍按共享文档计算。
+    $initBlocks = json_encode([
+        'schema' => $homeDocument['schema'],
+        'settings' => $homeDocument['settings'],
+        'sections' => HomeFaqContent::forEditor($homeDocument['sections'], siteLang()),
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);
     $documentIdentity = 'home';
     $saveEndpoint = '/admin/blox_home_api.php' . ($homeEditorLangQuery !== '' ? '?lang=' . $homeEditorLangQuery : '');
@@ -594,7 +600,7 @@ $publishedDocumentJson = json_encode([
     'settings' => $publishedBootDoc['settings'],
     'sections' => $publishedBootDoc['sections'],
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '{"schema":1,"settings":{},"sections":[]}';
-$revisionDocument = $isCurrentThemeHeaderEdit ? $templateStoredDraft : $initBlocks;
+$revisionDocument = $isCurrentThemeHeaderEdit ? $templateStoredDraft : ($homeRevisionBlocks ?? $initBlocks);
 $baseRevision = $templateId && $templateType === 'popup'
     ? BloxPopupDocument::fingerprint($revisionDocument)
     : BloxDocumentPipeline::fingerprint($revisionDocument);

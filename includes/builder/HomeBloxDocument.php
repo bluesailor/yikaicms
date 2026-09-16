@@ -311,7 +311,8 @@ public static function isActive(): bool
     /** @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
     private static function prepareDocument(string $blocksJson, bool $active, ?string $trustedJson = null): array
     {
-        $processed = BloxDocumentPipeline::process($blocksJson, 'home', trustedJson: $trustedJson);
+        // 按语言编辑的 FAQ：译文写回对应语言，共享文档保留原文。
+        $processed = BloxDocumentPipeline::process(HomeFaqContent::fromEditorJson($blocksJson), 'home', trustedJson: $trustedJson);
 
         return [
             'schema' => $processed['schema'],
