@@ -245,14 +245,19 @@ function ykFallbackCopy(text, cb) {
         <div class="photo-item" data-id="<?php echo $photo['id']; ?>"<?php echo $isCover ? ' data-cover="1"' : ''; ?>>
             <input type="checkbox" class="checkbox photo-checkbox" value="<?php echo $photo['id']; ?>">
             <img src="<?php echo e($photo['image']); ?>" alt="<?php echo e($photo['title']); ?>" loading="lazy">
-            <?php // 当前封面常驻角标：星标代表「封面 / 特色图」，不再用容易误解为「换图」的图片图标 ?>
-            <span class="cover-badge absolute bottom-2 left-2 z-10 bg-amber-500 text-white text-xs px-2 py-0.5 rounded inline-flex items-center gap-1<?php echo $isCover ? '' : ' hidden'; ?>">
-                <i class="ti ti-star text-sm" aria-hidden="true"></i><?php echo e(__('ap_cover_badge')); ?>
-            </span>
+            <?php // 右上角状态角标：封面（星标＝封面/特色图）与已隐藏，避开底部操作按钮 ?>
+            <div class="photo-badges">
+                <span class="photo-badge photo-badge-cover"<?php echo $isCover ? '' : ' hidden'; ?>>
+                    <i class="ti ti-star" aria-hidden="true"></i><?php echo e(__('ap_cover_badge')); ?>
+                </span>
+                <?php if (!$photo['status']): ?>
+                <span class="photo-badge"><?php echo e(__('admin_hide')); ?></span>
+                <?php endif; ?>
+            </div>
             <div class="overlay"></div>
             <div class="actions">
-                <button onclick="setCover(<?php echo $photo['id']; ?>)" data-testid="album-photo-set-cover" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="<?php echo e(__('ap_set_cover')); ?>" aria-label="<?php echo e(__('ap_set_cover')); ?>">
-                    <i class="ti ti-star text-base text-amber-500"></i>
+                <button onclick="setCover(<?php echo $photo['id']; ?>)" data-testid="album-photo-set-cover" class="cover-action w-8 h-8 bg-white/90 text-amber-500 rounded-full flex items-center justify-center hover:bg-white" title="<?php echo e(__('ap_set_cover')); ?>" aria-label="<?php echo e(__('ap_set_cover')); ?>">
+                    <i class="ti ti-star text-base"></i>
                 </button>
                 <button onclick="editPhoto(<?php echo $photo['id']; ?>, '<?php echo e(addslashes($photo['title'])); ?>', '<?php echo e(addslashes($photo['description'] ?? '')); ?>')" class="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white" title="<?php echo __('admin_edit'); ?>">
                     <i class="ti ti-pencil text-base text-gray-700"></i>
@@ -261,9 +266,6 @@ function ykFallbackCopy(text, cb) {
                     <i class="ti ti-trash text-base"></i>
                 </button>
             </div>
-            <?php if (!$photo['status']): ?>
-            <div class="absolute top-2 right-2 bg-gray-500 text-white text-xs px-2 py-0.5 rounded"><?php echo e(__('admin_hide')); ?></div>
-            <?php endif; ?>
         </div>
         <?php endforeach; ?>
     </div>
@@ -461,7 +463,7 @@ async function setCover(photoId) {
         document.querySelectorAll('.photo-item').forEach(item => {
             const isCover = item.dataset.id === String(photoId);
             item.toggleAttribute('data-cover', isCover);
-            item.querySelector('.cover-badge').classList.toggle('hidden', !isCover);
+            item.querySelector('.photo-badge-cover').hidden = !isCover;
         });
         showMessage(<?php echo json_encode(__('ap_cover_set'), JSON_UNESCAPED_UNICODE); ?>);
     }

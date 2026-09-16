@@ -260,6 +260,34 @@ input[type="radio"] {
     z-index: 10;
 }
 .photo-item.sortable-ghost { opacity: 0.5; }
+/* 右上角状态角标（封面 / 已隐藏）：与底部操作按钮错开 */
+.photo-item .photo-badges {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    pointer-events: none;
+}
+.photo-item .photo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+    color: #fff;
+    background: rgba(107, 114, 128, 0.9);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.photo-item .photo-badge[hidden] { display: none; }
+.photo-item .photo-badge-cover { background: #f59e0b; }
+.photo-item[data-cover] { box-shadow: 0 0 0 3px #f59e0b; }
+.photo-item[data-cover] .cover-action { background: #f59e0b; color: #fff; }
 .upload-zone {
     border: 2px dashed #d1d5db;
     border-radius: 0.5rem;
