@@ -186,10 +186,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     }
 
     $installer = new ThemeInstaller(ROOT_PATH . '/themes', ROOT_PATH . '/storage');
-    $installResult = $installer->install($tmpZip, $slug, $remoteVersion, (string) ($item['source'] ?? 'official'));
+    $installResult = $installer->install($tmpZip, $slug, $remoteVersion, (string) ($item['source'] ?? 'official'), (string) ($item['sig'] ?? ''));
     themeDiscardStaged($tmpZip);
     $msg = themeInstallMessage($installResult);
     if ($installResult['ok']) {
+        do_action('data_changed');
         adminLog('theme', 'market_install', 'Theme marketplace install: ' . $installResult['slug'] . ' v' . ($item['version'] ?? ''));
     } else {
         adminLog('theme', 'market_install_failed', 'Theme marketplace install failed: ' . $slug
@@ -873,7 +874,9 @@ function themeManager() {
             var st = this.statusOf(t);
             if (st === 'installed') return;
             var verb = st === 'upgrade' ? '<?php echo __('theme_market_upgrade'); ?>' : '<?php echo __('theme_market_install'); ?>';
-            if (!confirm(verb + '「' + t.name + '」 v' + t.version + ' ?')) return;
+            var prompt = verb + '「' + t.name + '」 v' + t.version + ' ?';
+            if (t.slug === 'default') prompt += '\n\n' + <?php echo json_encode(__('theme_default_update_notice'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+            if (!confirm(prompt)) return;
             this.installing = t.slug;
             var body = new URLSearchParams();
             body.set('action', 'market_install');

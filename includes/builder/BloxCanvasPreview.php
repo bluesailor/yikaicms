@@ -2250,6 +2250,8 @@ HTML;
         . '<meta http-equiv="Content-Security-Policy" content="' . htmlspecialchars($csp, ENT_QUOTES) . '">'
         . '<link rel="stylesheet" href="' . assetVer('/assets/css/tailwind.css') . '">'
         . '<link rel="stylesheet" href="' . assetVer('/assets/css/style.css') . '">'
+        . (currentTheme() === 'default' && is_file(ROOT_PATH . '/themes/default/assets/css/theme.css')
+            ? '<link rel="stylesheet" href="' . assetVer('/themes/default/assets/css/theme.css') . '">' : '')
         . '<link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">'
         . '<link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">'
         . '<base target="_blank">'

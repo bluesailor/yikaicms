@@ -18,6 +18,8 @@ final class MarketInstallOrigin
         if (!is_dir($target) || $origin === 'local') return;
         $file = $target . '/' . self::FILE;
         clearstatcache(true, $file);
+        // 随核心分发的 default 主题没有市场回执；其官方更新由 ThemeInstaller 以签名绑定包字节把关
+        if ($kind === 'theme' && $slug === 'default' && $origin === 'official' && !file_exists($file)) return;
         $size = @filesize($file);
         $receipt = !is_link($file) && is_int($size) && $size > 0 && $size <= 4096
             ? json_decode((string) @file_get_contents($file), true) : null;

@@ -7208,4 +7208,5 @@ voltage|电压|220V',
     'product_url_language' => '网址语言前缀须与当前内容语言一致；默认语言可不加前缀。',
     'product_url_upgrade' => '请先执行数据库升级，再配置自定义网址。',
     'product_url_missing' => '内容已不存在，请刷新列表。',
+    'theme_default_update_notice' => '将更新内置 Default 主题文件，并保留更新前的文件备份。直接修改过的主题文件会被替换；Blox 设计、网站设置和上传素材不会修改。',
 ];
