@@ -1,4 +1,6 @@
-# Yikai CMS v1.19.9
+# Yikai CMS v1.20.0
+
+> 发行准备中，尚未正式发布。最低 PHP 版本统一为 8.0，包含 BLOX Pro；开发测试工具的 PHP 要求不属于运行环境要求。
 
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg?logo=php)](https://www.php.net/)

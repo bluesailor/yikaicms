@@ -26,6 +26,8 @@ final class PageBloxLegacyImportTest extends TestCase
             'CREATE TABLE contents (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 channel_id INTEGER NOT NULL,
+                lang TEXT NOT NULL DEFAULT \'zh-CN\',
+                publish_time INTEGER NOT NULL DEFAULT 0,
                 status INTEGER NOT NULL DEFAULT 1,
                 deleted_at INTEGER,
                 is_top INTEGER NOT NULL DEFAULT 0,
@@ -87,7 +89,7 @@ final class PageBloxLegacyImportTest extends TestCase
         foreach (['zh-CN', 'en', 'ja'] as $language) {
             $id = $this->insertRow('channels', ['type' => 'page', 'lang' => $language, 'name' => 'Legacy page', 'content' => '']);
             $raw = '{"schema":1,"settings":{},"sections":[]}';
-            $this->insertRow('contents', ['channel_id' => $id, 'content_type' => 'blocks', 'content' => '', 'blocks_data' => $raw]);
+            $this->insertRow('contents', ['channel_id' => $id, 'lang' => $language, 'content_type' => 'blocks', 'content' => '', 'blocks_data' => $raw]);
             $state = PageBloxDocument::load($id);
             $document = BloxDocumentPipeline::decode($state['document_json']);
             $this->assertTrue(PageBloxDocument::usesThemeTitle($document['settings']));

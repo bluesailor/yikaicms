@@ -42,6 +42,8 @@ namespace Yikai\Tests\Unit {
                 'CREATE TABLE contents (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     channel_id INTEGER NOT NULL,
+                    lang TEXT NOT NULL DEFAULT \'zh-CN\',
+                    publish_time INTEGER NOT NULL DEFAULT 0,
                     status INTEGER NOT NULL DEFAULT 1,
                     deleted_at INTEGER,
                     is_top INTEGER NOT NULL DEFAULT 0,

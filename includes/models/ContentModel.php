@@ -275,11 +275,11 @@ class ContentModel extends Model
     /**
      * 获取栏目下的第一条内容（单页用）
      */
-    public function getFirstByChannel(int $channelId): ?array
+    public function getFirstByChannel(int $channelId, ?string $lang = null): ?array
     {
         // 加 lang 过滤防御：同一 channel_id 上若有多语言行（迁移/种子残留），
         // 用 siteLang() 锁定，不串语言。
-        $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
+        $lang ??= function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
         return db()->fetchOne(
             "SELECT * FROM {$this->tableName()} WHERE channel_id = ? AND status = 1 AND deleted_at IS NULL AND lang = ? ORDER BY {$this->defaultOrder} LIMIT 1",
             [$channelId, $lang]

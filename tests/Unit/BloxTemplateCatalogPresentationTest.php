@@ -16,24 +16,28 @@ final class BloxTemplateCatalogPresentationTest extends TestCase
         $response = json_encode([
             'code' => 0,
             'data' => [
+                'protocol_version' => 2,
                 'updated_at' => '2026-08-11',
                 'templates' => [
                     [
                         'slug' => 'safe-template',
                         'type' => 'section',
                         'name' => 'Safe',
+                        'access' => 'public', 'paid' => false, 'entitled' => true,
                         'thumbnail' => '/assets/templates/safe.webp',
                     ],
                     [
                         'slug' => 'foreign-template',
                         'type' => 'section',
                         'name' => 'Foreign',
+                        'access' => 'public', 'paid' => false, 'entitled' => true,
                         'thumbnail' => 'https://example.com/templates/foreign.webp',
                     ],
                     [
                         'slug' => 'traversal-template',
                         'type' => 'section',
                         'name' => 'Traversal',
+                        'access' => 'public', 'paid' => false, 'entitled' => true,
                         'thumbnail' => '/assets/templates/../secret.webp',
                     ],
                 ],

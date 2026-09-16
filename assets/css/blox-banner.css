@@ -1,3 +1,34 @@
+/* Shared by the live homepage and its theme-header canvas context. */
+html.yk-home-header-overlay :is(body, .yk-home-context-area) > [data-yk-topbar] {
+    position: absolute !important;
+    inset: 0 0 auto;
+    z-index: 60;
+    background: rgba(15, 23, 42, .42) !important;
+    color: #fff !important;
+}
+html.yk-home-header-overlay :is(body, .yk-home-context-area) > [data-yk-topbar] * { color: inherit !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) {
+    position: absolute !important;
+    inset: 0 0 auto;
+    z-index: 55;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-color: rgba(255, 255, 255, .18) !important;
+}
+html.yk-home-header-overlay :is(body, .yk-home-context-area) > [data-yk-topbar] + #siteHeader { top: 2rem; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) a,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) button,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) a > span { color: #fff !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .hamburger span { background-color: #fff !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .nav-dropdown-menu a,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .nav-submenu a,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #langDropdown a { color: #374151 !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #mobileMenu {
+    background: rgba(15, 23, 42, .96) !important;
+    border-color: rgba(255, 255, 255, .14) !important;
+}
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #mobileMenu a { color: #fff !important; }
+
 /* Content positioning uses a separate box, leaving animated layers untouched. */
 /* 覆盖式页头由运行时量出实际高度；没有覆盖态时该值为 0，不改变旧布局。 */
 [data-blox-banner] [data-blox-banner-content] {
@@ -101,7 +132,8 @@
     }
 }
 
-[data-blox-banner][data-blox-height-mode="fixed"] {
+[data-blox-banner][data-blox-height-mode="fixed"],
+[data-blox-banner][data-blox-height-mode="fixed-cover-header"] {
     height: var(--blox-banner-height-mobile);
     min-height: 0;
 }
@@ -119,7 +151,8 @@
 }
 
 @media (min-width: 768px) {
-    [data-blox-banner][data-blox-height-mode="fixed"] {
+    [data-blox-banner][data-blox-height-mode="fixed"],
+    [data-blox-banner][data-blox-height-mode="fixed-cover-header"] {
         height: var(--blox-banner-height-pc);
     }
 }

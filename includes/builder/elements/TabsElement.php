@@ -46,7 +46,7 @@ final class TabsElement extends AbstractElement
                 . ' tabindex="' . ($active === $i ? '0' : '-1') . '">' . e($title) . '</button>';
         }
         $html .= '</div>';
-        foreach ($items as $i => [$title, $content]) {
+        foreach ($items as $i => [, $content]) {
             $rich = ($items[$i][2] ?? '') === 'html';
             $html .= '<div class="yk-tabs-panel yk-description" role="tabpanel" id="' . $id . '-panel-' . $i . '"'
                 . ' aria-labelledby="' . $id . '-tab-' . $i . '" tabindex="0">'

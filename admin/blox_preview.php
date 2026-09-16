@@ -34,6 +34,8 @@ require_once ROOT_PATH . '/includes/member_auth.php';
 checkLogin();
 
 $isHomeLayout = (string) ($_GET['home'] ?? '') === '1';
+// 设计页「预览草稿」：GET 渲染服务端取的首页文档 + 请求级主题草稿覆盖（客户端零输入）。
+$isThemeDraftPreview = $isHomeLayout && (string) ($_GET['theme_draft'] ?? '') === '1';
 $isProductTemplatePreview = (string) ($_GET['product_template'] ?? '') === '1';
 $isArticleTemplatePreview = (string) ($_GET['article_template'] ?? '') === '1';
 $pageId = getInt('id');
@@ -42,7 +44,7 @@ $areaPresetSlug = trim((string) ($_GET['area_preset'] ?? $legacyHeaderPresetSlug
 $areaPresetType = $legacyHeaderPresetSlug !== '' ? 'header' : trim((string) ($_GET['template_area'] ?? ''));
 $isAreaPresetPreview = $isHomeLayout && $areaPresetSlug !== '';
 $isAreaTemplatePreview = $isHomeLayout && in_array($areaPresetType, ['header', 'footer'], true);
-if ($isAreaTemplatePreview || $isProductTemplatePreview || $isArticleTemplatePreview) {
+if ($isAreaTemplatePreview || $isProductTemplatePreview || $isArticleTemplatePreview || $isThemeDraftPreview) {
     requirePermission('blox_global');
 } elseif ($isHomeLayout) {
     requirePermission('blox_home');
@@ -94,6 +96,18 @@ if ($isAreaPresetPreview) {
         'settings' => $preset['settings'],
         'sections' => $preset['sections'],
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+} elseif ($isThemeDraftPreview) {
+    // 主题草稿预览：GET、无客户端输入；文档取与可信基线同源的首页数据，
+    // 主题用请求级草稿覆盖（公开请求永不读取草稿，只影响本请求）。
+    if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'GET') {
+        error(__('blox_bad_request'));
+    }
+    $home = HomeBloxDocument::load();
+    $_POST['blocks_data'] = json_encode([
+        'schema' => $home['schema'],
+        'settings' => $home['settings'],
+        'sections' => $home['sections'],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 } else {
     if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST'
         || (string) ($_POST['action'] ?? '') !== 'preview') {
@@ -106,4 +120,10 @@ if ($isAreaPresetPreview) {
 require_once ROOT_PATH . '/includes/customer_service.php';
 require_once ROOT_PATH . '/includes/builder/BloxCanvasPreview.php';
 header('Cache-Control: no-store, max-age=0');
-outputBloxCanvasPreview($isHomeLayout, $pageId);
+if ($isThemeDraftPreview) {
+    BloxDesignTheme::withPreviewState(BloxDesignTheme::snapshot()['draft'], static function () use ($isHomeLayout, $pageId): void {
+        outputBloxCanvasPreview($isHomeLayout, $pageId, false);
+    });
+} else {
+    outputBloxCanvasPreview($isHomeLayout, $pageId);
+}

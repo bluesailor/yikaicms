@@ -78,7 +78,10 @@ function renderBloxCanvasThemeArea(
     }
     $themeStyles = '';
     if ($area === 'header' && preg_match_all('/<style\b[^>]*>.*?<\/style>/is', $rendered, $styleMatches) > 0) {
-        $themeStyles = implode('', $styleMatches[0]);
+        // These design styles are emitted once by the preview head, not by its captured header.
+        $themeStyles = implode('', array_filter($styleMatches[0], static fn(string $style): bool =>
+            preg_match('/^<style\b[^>]*\bid\s*=\s*["\']yk-blox-design-(?:tokens|theme)["\']/i', $style) !== 1
+        ));
     }
     if ($area === 'header') {
         $bodyStart = stripos($rendered, '<body');
@@ -141,11 +144,13 @@ function bloxPreviewTrustedJson(bool $isHomeLayout, int $id): ?string
  * 不写 `: never`——那是 PHP 8.1 才有的类型，而本项目承诺支持 8.0
  * （8.0 会把它当成一个不存在的类名，Psalm 也会如实报 UndefinedClass）。
  */
-function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
+function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = true): void
 {
     // blox=1：Blox 画布请求。开编辑上下文让渲染器输出 data-yk-sec 定位标记，
     // 并注入点选/高亮/空区块占位脚本；排版编辑器的纯预览不带此参数，输出不变。
     $bloxCanvas = (($_POST['blox'] ?? '') === '1');
+    $homeHeaderOverlay = false;
+    $homeHeaderOverlayMobile = false;
     // 编辑器预览/画布里隐藏的区块照常显示（灰显标注），否则一隐藏就从画布消失、没法再点回来
     require_once ROOT_PATH . '/includes/builder/bootstrap.php';
     $previewJson = (string) ($_POST['blocks_data'] ?? '[]');
@@ -198,8 +203,11 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
     if ((string) ($_GET['article_template'] ?? '') === '1') {
         // 文章样本预览：只读取数，**刻意不走 ContentDetailController::prepare()**——
         // 那条路径会自增浏览量，编辑器换样本不得污染统计。
-        $article = contentModel()->getPublished((int) ($_POST['preview_article'] ?? 0));
-        if ($article !== null && ($article['lang'] ?? '') !== siteLang()) $article = null;
+        $article = hasPermission('edit_article')
+            ? contentModel()->getPublished((int) ($_POST['preview_article'] ?? 0)) : null;
+        if ($article !== null && (($article['lang'] ?? '') !== siteLang() || ($article['type'] ?? '') !== 'article')) {
+            $article = null;
+        }
         BlockRenderer::$editChannelId = $bloxCanvas ? 1 : 0;
         if ($article === null) {
             $body = '<p class="p-6 text-gray-700">' . e(__('blox_article_preview_empty')) . '</p>';
@@ -225,7 +233,8 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         // 前台控制器只被 product.php 显式 require（不在自动加载范围内），预览端点需自己引入
         require_once ROOT_PATH . '/controllers/detail/ProductDetailController.php';
         ProductTemplateDocument::markPreview();
-        $productContext = (new ProductDetailController())->prepare((int) ($_POST['preview_product'] ?? 0), false);
+        $productContext = hasPermission('edit_product')
+            ? (new ProductDetailController())->prepare((int) ($_POST['preview_product'] ?? 0), false) : null;
         if ($productContext !== null && (string) ($productContext['product']['lang'] ?? '') !== siteLang()) {
             // 语言不匹配不是"回退到原文"，而是没有可预览样本
             $productContext = null;
@@ -342,7 +351,11 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
                 $ctxType === 'home' ? __('home') : (string) ($ctxRow['name'] ?? ''),
                 $ctxType === 'home' ? '' : (string) ($ctxRow['slug'] ?? '')
             );
+            // 参照区只是「正文落底」的参照物，不该占满画布把页脚挤成一条：限高 + 底部渐隐，
+            // 并在两者之间给一条明确分界，说清上面不可编辑、下面才是正在编辑的页脚。
             $body = '<div class="yk-ctx-dim" aria-hidden="true">' . $contextHeader . $contextBody . '</div>'
+                . '<div class="yk-ctx-divider" aria-hidden="true"><span>'
+                . e(__('blox_area_context_divider')) . '</span></div>'
                 . $editableArea;
         } else {
             $body = $editableArea;
@@ -351,10 +364,6 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
         // Empty documents keep the same site frame as populated pages.
         $canvasBlocks = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);
         $canvasFrame = BloxDocumentPipeline::normalizeDocSettings(is_array($canvasBlocks) ? ($canvasBlocks['settings'] ?? []) : []);
-        if (is_array($canvasBlocks) && isset($canvasBlocks['sections']) && is_array($canvasBlocks['sections'])) {
-            $canvasBlocks = $canvasBlocks['sections'];
-        }
-        $hasCanvasContent = is_array($canvasBlocks) && $canvasBlocks !== [];
 
         if ($isHomeLayout) {
             $previewSections = json_decode((string) ($_POST['blocks_data'] ?? '[]'), true);
@@ -364,6 +373,13 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
             $previewSections = is_array($previewSections) ? $previewSections : [];
             $homePreviewContext = HomeBloxRenderContext::fromCurrentSite($bloxCanvas);
             $pageBody = HomeBloxRenderer::render($previewSections, [$homePreviewContext, 'renderLegacyBlock']);
+            $previewBannerGroup = getBannerGroup('home');
+            $homeHeaderOverlay = HomeBloxRenderer::startsWithHeaderOverlayBanner(
+                $previewSections,
+                is_array($previewBannerGroup) ? $previewBannerGroup : []
+            );
+            $homeHeaderOverlayMobile = $homeHeaderOverlay
+                && HomeBloxRenderer::startsWithMobileVisibleBanner($previewSections);
             $pageRow = null;
             $pageType = '';
         } else {
@@ -586,8 +602,12 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id): void
 [data-yk-sec]{position:relative;cursor:pointer}
 [data-yk-sec]:hover{outline:2px dashed #93c5fd;outline-offset:-2px}
 [data-yk-sec].yk-selected{outline:2px solid #3b82f6;outline-offset:-2px}
-.yk-ctx-dim{opacity:.42;pointer-events:none;user-select:none;filter:grayscale(.35);position:relative}
+.yk-ctx-dim{opacity:.42;pointer-events:none;user-select:none;filter:grayscale(.35);position:relative;max-height:38vh;overflow:hidden}
 .yk-ctx-dim:before{content:'';position:absolute;inset:0;z-index:20;background:repeating-linear-gradient(135deg,transparent 0 14px,rgba(100,116,139,.05) 14px 28px)}
+.yk-ctx-dim:after{content:'';position:absolute;left:0;right:0;bottom:0;height:72px;z-index:21;background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,.96))}
+.yk-ctx-divider{position:relative;z-index:22;display:flex;align-items:center;gap:10px;margin:0;padding:6px 16px;background:#f8fafc;border-top:1px dashed #cbd5e1;border-bottom:1px solid #e2e8f0;user-select:none}
+.yk-ctx-divider:before,.yk-ctx-divider:after{content:'';flex:1;border-top:1px dashed #e2e8f0}
+.yk-ctx-divider span{flex:0 0 auto;color:#64748b;font:600 11px/1.4 system-ui,sans-serif;white-space:nowrap}
 .yk-canvas-region{position:relative}
 .yk-home-context-area{cursor:pointer;user-select:none;opacity:.86;border-top:1px dashed #cbd5e1;border-bottom:1px dashed #cbd5e1}
 .yk-home-context-area>*:not(.yk-canvas-region-action){pointer-events:none}
@@ -1099,6 +1119,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
     }
     function beginInlineEdit(node, payload, singleLine) {
         if (!node) return false;
+        if (node.closest('[data-yk-dynamic-tags]') || node.querySelector('[data-yk-dynamic-tags]')) return false;
         if (inlineEdit && inlineEdit.node === node) return true;
         if (inlineEdit) finishInlineEdit(true);
         var state = {
@@ -2186,6 +2207,22 @@ HTML;
     // 既让可信画布脚本执行，也保证连续预览的 head 签名一致、仍可做局部 DOM patch。
     $scriptNonce = base64_encode(hash('sha256', csrfToken(), true));
     $nonceAttr = ' nonce="' . htmlspecialchars($scriptNonce, ENT_QUOTES) . '"';
+    $headerOverlayPreview = '';
+    if ($homeHeaderOverlay) {
+        // Keep editor insertion rails, but align the read-only header with the actual banner.
+        $headerOverlayPreview = '<style>html.yk-home-header-overlay .yk-home-context-area[data-yk-region="header"]'
+            . '{position:absolute;inset:var(--yk-preview-header-top,0px) 0 auto;z-index:60;opacity:1;border:0}</style>'
+            . '<script' . $nonceAttr . '>(function(){'
+            . 'var mobile=' . ($homeHeaderOverlayMobile ? 'true' : 'false') . ';'
+            . 'function sync(){var root=document.documentElement;'
+            . 'root.classList.toggle("yk-home-header-overlay",mobile||window.matchMedia("(min-width:768px)").matches);'
+            . 'var banner=document.querySelector("[data-blox-banner]");'
+            . 'if(banner)root.style.setProperty("--yk-preview-header-top",(banner.getBoundingClientRect().top+window.scrollY)+"px");'
+            . 'if(banner&&window.BloxBanner)window.BloxBanner.refreshHeaderSafety(banner);}'
+            . 'sync();document.addEventListener("DOMContentLoaded",sync);window.addEventListener("load",sync);'
+            . 'window.addEventListener("resize",sync);document.addEventListener("blox:content-updated",sync);'
+            . '})();</script>';
+    }
     $previewScripts = (string) preg_replace(
         '/<script\b(?![^>]*\bnonce=)/i',
         '<script' . $nonceAttr,
@@ -2218,6 +2255,7 @@ HTML;
         . '<base target="_blank">'
         . BloxDesignSystem::styleTag()
         . $previewStyles
+        . $headerOverlayPreview
         . '<style>body{margin:0;background:#fff}</style></head><body>'
         . $body
         . '<script' . $nonceAttr . ' src="' . assetVer('/assets/swiper/swiper-bundle.min.js') . '"></script>'
@@ -2225,5 +2263,7 @@ HTML;
         . $presetInteraction
         . $bloxInject
         . '</body></html>';
-    exit;
+    if ($terminate) {
+        exit;
+    }
 }

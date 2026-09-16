@@ -62,6 +62,20 @@ final class DetailConditionInputTest extends TestCase
         $this->assertSame([], $result['scope']['include']);
     }
 
+    public function testRulesMustBeContiguousListsOnPhp80AsWell(): void
+    {
+        foreach (['include', 'exclude'] as $field) {
+            foreach (['invalid', ['kind' => 'all'], [1 => ['kind' => 'item', 'ids' => [7]]],
+                [1 => ['kind' => 'item', 'ids' => [7]], 0 => ['kind' => 'item', 'ids' => [9]]]] as $bad) {
+                $input = self::valid();
+                $input[$field] = $bad;
+                $result = DetailConditionInput::validate($input, 'product', self::languages());
+                $this->assertFalse($result['ok']);
+                $this->assertStringContainsString($field . '_not_list', $result['error']);
+            }
+        }
+    }
+
     public function testRejectsInsteadOfSilentlyDropping(): void
     {
         // 未知 kind：归一化会静默丢弃，完整提交必须报错

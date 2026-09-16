@@ -125,6 +125,7 @@ final class BloxDisplayConditions
         }
     }
 
+    /** @api Compatibility entry for callers with serialized documents. */
     public static function assertJsonAllowed(string $json, ?bool $advanced = null): void
     {
         $document = BloxDocumentPipeline::decode($json);

@@ -27,6 +27,7 @@ if (!defined('DEBUG'))      define('DEBUG', true);
 
 // Composer autoloader (Yikai\Tests\* + dev deps).
 require_once ROOT_PATH . '/vendor/autoload.php';
+require_once ROOT_PATH . '/tests/editor-source.php';
 
 // The CMS uses non-namespaced classes loaded via require_once. Pull the
 // foundational ones in here so test classes can reference them directly.

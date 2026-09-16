@@ -1,0 +1,43 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "footer",
+  "name": "Simple Light Site Footer",
+  "requires": {
+    "elements": [
+      "site-copyright"
+    ],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "sm",
+          "max_width": "wide",
+          "gap": "none",
+          "bg_color": "#f9fafb"
+        },
+        "columns": [
+          {
+            "span": 12,
+            "elements": [
+              {
+                "type": "site-copyright",
+                "data": {
+                  "show_icp": true,
+                  "show_police": true,
+                  "align": "center",
+                  "tone": "dark"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

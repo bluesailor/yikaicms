@@ -143,7 +143,7 @@ final class PageBloxDocument
                 ]);
                 $contentId = (int) $published['id'];
             } else {
-                $contentId = contentModel()->create([
+                $contentId = (int) contentModel()->create([
                     'channel_id' => $pageId,
                     'lang' => (string) ($page['lang'] ?? siteLang()),
                     'title' => (string) ($page['name'] ?? ''),
@@ -208,6 +208,55 @@ final class PageBloxDocument
         });
     }
 
+    /**
+     * 版本快照里可编辑的 HTML 正文（无 blocks_data 的旧富文本版本）。
+     * 与预览端点同口径：取第一个非空 content 字段；content_type=blocks 的行不算 HTML 来源。
+     *
+     * @param array<string,mixed> $revision
+     */
+    public static function revisionHtml(array $revision): string
+    {
+        $snapshot = json_decode((string) ($revision['snapshot'] ?? ''), true);
+        foreach (is_array($snapshot['targets'] ?? null) ? $snapshot['targets'] : [] as $target) {
+            if (!is_array($target)) {
+                continue;
+            }
+            if ((string) (($target['fields'] ?? [])['content_type'] ?? '') === 'blocks') {
+                continue;
+            }
+            $html = trim((string) (($target['fields'] ?? [])['content'] ?? ''));
+            if ($html !== '') {
+                return $html;
+            }
+        }
+        return '';
+    }
+
+    /**
+     * 把历史版本转换成可载入画布的文档（纯读取，不写任何表）。
+     *
+     * - 有 blocks_data：以当前服务端文档为基线走既有归一化与能力校验，
+     *   历史里的旧专业配置不能借"载入"绕过校验；
+     * - 纯 HTML：用与旧页读取一致的包装转换成单个可编辑元素；
+     * - 两者皆空：抛出，调用方提示该版本无法载入画布。
+     *
+     * @param array<string,mixed> $revision 已由调用方校验归属的版本行
+     * @param array{document_json:string, ...} $state 当前 PageBloxDocument::load() 结果
+     */
+    public static function revisionEditableDocument(array $revision, array $state): string
+    {
+        $blocks = self::revisionBlocks($revision);
+        if ($blocks === '') {
+            $html = self::revisionHtml($revision);
+            if ($html === '') {
+                throw new RuntimeException(__('blox_revision_not_loadable'));
+            }
+            $blocks = self::legacyHtmlDocumentJson($html);
+        }
+        $processed = BloxDocumentPipeline::process($blocks, 'page', trustedJson: $state['document_json']);
+        return $processed['json'];
+    }
+
     public static function syncDraftFromPublished(int $pageId, int $adminId = 0): void
     {
         if (!db()->tableExists('blox_page_drafts')) {
@@ -237,12 +286,9 @@ final class PageBloxDocument
     /** @return array<string,mixed>|null */
     private static function publishedRecord(int $pageId): ?array
     {
-        return contentModel()->queryOne(
-            'SELECT * FROM ' . contentModel()->tableName()
-            . ' WHERE channel_id = ? AND status = 1 AND deleted_at IS NULL'
-            . ' ORDER BY is_top DESC, id DESC LIMIT 1',
-            [$pageId]
-        );
+        // Editing language can differ from the site's current front-end language.
+        $page = self::page($pageId);
+        return contentModel()->getFirstByChannel($pageId, (string) $page['lang']);
     }
 
     private static function canonicalJson(string $raw): string
@@ -287,6 +333,12 @@ final class PageBloxDocument
             return self::canonicalJson('[]');
         }
 
+        return self::legacyHtmlDocumentJson($html);
+    }
+
+    /** 旧富文本 HTML 包装成单个可编辑元素的 Blox 文档（读取用包装，不写库）。 */
+    private static function legacyHtmlDocumentJson(string $html): string
+    {
         $elements = [];
         $organization = OrgChartElement::extractLegacyHtml($html);
         if ($organization !== null) {

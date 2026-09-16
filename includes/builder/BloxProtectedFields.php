@@ -27,7 +27,7 @@ final class BloxProtectedFields
     private static function project(array $sections, array $denied, array &$protected): array
     {
         $seen = [];
-        foreach ($sections as $si => &$section) {
+        foreach ($sections as &$section) {
             $sectionId = self::identity($section, $seen);
             if (in_array('display_conditions', $denied, true) && !empty($section['settings']['_conditions'])) {
                 if ($sectionId === '') throw new RuntimeException(__('blox_protected_fields_changed'));

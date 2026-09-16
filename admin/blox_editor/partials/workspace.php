@@ -331,6 +331,22 @@ declare(strict_types=1);
                                        :placeholder="selEl ? (elSchema(selEl.type).label || selEl.type) : ''"
                                        title="<?= e(__('blox_el_name_hint')) ?>"
                                        class="flex-1 min-w-0 text-sm font-semibold text-gray-800 border-0 border-b border-transparent focus:border-blue-300 outline-none p-0 bg-transparent">
+                                <template x-if="canCopyElementStyle(selEl)">
+                                    <div class="flex items-center gap-0.5 shrink-0">
+                                        <button type="button" @click="copyElementStyle(selEl)" data-testid="blox-style-copy"
+                                                title="<?= e(__('blox_style_copy')) ?>" aria-label="<?= e(__('blox_style_copy')) ?>"
+                                                class="w-7 h-7 rounded inline-flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition">
+                                            <i class="ti ti-brush text-sm"></i>
+                                        </button>
+                                        <button type="button" @click="pasteElementStyle(selEl)" data-testid="blox-style-paste"
+                                                :disabled="!canPasteElementStyle(selEl)"
+                                                :title="pasteStyleDisabledReason(selEl) || <?= e($jt('blox_style_paste')) ?>"
+                                                :aria-label="pasteStyleDisabledReason(selEl) || <?= e($jt('blox_style_paste')) ?>"
+                                                class="w-7 h-7 rounded inline-flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition">
+                                            <i class="ti ti-clipboard text-sm"></i>
+                                        </button>
+                                    </div>
+                                </template>
                             </div>
 
                             <?php require __DIR__ . '/style-groups.php'; ?>
@@ -1318,22 +1334,60 @@ declare(strict_types=1);
                                         <span><?= e(__('blox_copyright_content_source_title')) ?></span>
                                     </div>
                                     <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_copyright_content_source_hint')) ?></p>
-                                    <?php if ($canManageGlobalSettings): ?>
-                                    <div class="flex flex-wrap gap-1.5">
-                                        <a href="/admin/setting.php?tab=footer#input_footer_copyright_text" target="_blank" rel="noopener"
-                                           data-testid="blox-copyright-content-manage"
-                                           class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
-                                            <i class="ti ti-text-caption text-sm" aria-hidden="true"></i>
-                                            <span><?= e(__('blox_copyright_content_manage')) ?></span>
-                                        </a>
-                                        <a href="/admin/setting.php?tab=basic#input_site_icp" target="_blank" rel="noopener"
-                                           data-testid="blox-filing-content-manage"
-                                           class="h-8 inline-flex items-center gap-1.5 rounded border border-blue-200 bg-white px-2.5 text-[11px] font-medium text-blue-600 hover:border-blue-400 hover:text-blue-700 transition">
-                                            <i class="ti ti-shield-check text-sm" aria-hidden="true"></i>
-                                            <span><?= e(__('blox_filing_content_manage')) ?></span>
-                                        </a>
+                                    <?php // 面板内直接改站点资料：按画布预览语言读写，保存即全站生效（不随模板草稿） ?>
+                                    <label class="block space-y-1" data-testid="blox-copyright-text-field">
+                                        <span class="flex items-center justify-between gap-2 text-[11px] text-gray-600">
+                                            <span><?= e(__('blox_site_copyright_text')) ?></span>
+                                            <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500" x-text="siteCopyright.language_label"></span>
+                                        </span>
+                                        <input type="text" maxlength="255" x-model="siteCopyright.copyright"
+                                               @input="siteCopyrightChanged = true"
+                                               @keydown.enter.prevent="saveSiteCopyright()"
+                                               :readonly="!siteCopyright.can_edit"
+                                               placeholder="© {year} {site_name}"
+                                               data-testid="blox-copyright-text-input"
+                                               class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white read-only:bg-gray-50 read-only:text-gray-500">
+                                        <span class="block text-[10px] text-gray-400"><?= e(__('blox_site_copyright_tokens')) ?></span>
+                                    </label>
+                                    <template x-if="siteCopyrightFilingEditable()">
+                                        <div class="space-y-2" data-testid="blox-filing-fields">
+                                            <label class="block space-y-1">
+                                                <span class="block text-[11px] text-gray-600"><?= e(__('blox_site_icp')) ?></span>
+                                                <input type="text" maxlength="100" x-model="siteCopyright.icp"
+                                                       @input="siteCopyrightChanged = true"
+                                                       @keydown.enter.prevent="saveSiteCopyright()"
+                                                       :readonly="!siteCopyright.can_edit"
+                                                       data-testid="blox-filing-icp-input"
+                                                       class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white read-only:bg-gray-50 read-only:text-gray-500">
+                                            </label>
+                                            <label class="block space-y-1">
+                                                <span class="block text-[11px] text-gray-600"><?= e(__('blox_site_police')) ?></span>
+                                                <input type="text" maxlength="100" x-model="siteCopyright.police"
+                                                       @input="siteCopyrightChanged = true"
+                                                       @keydown.enter.prevent="saveSiteCopyright()"
+                                                       :readonly="!siteCopyright.can_edit"
+                                                       data-testid="blox-filing-police-input"
+                                                       class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white read-only:bg-gray-50 read-only:text-gray-500">
+                                            </label>
+                                        </div>
+                                    </template>
+                                    <p x-show="!siteCopyrightFilingEditable()" class="text-[10px] leading-relaxed text-gray-400" data-testid="blox-filing-hidden-note">
+                                        <?= e(__('blox_site_filing_language_hidden')) ?>
+                                    </p>
+                                    <p x-show="!siteCopyright.language_fixed"
+                                       class="text-[10px] leading-relaxed text-gray-400" data-testid="blox-filing-shared-note">
+                                        <?= e(__('blox_site_filing_zh_only')) ?>
+                                    </p>
+                                    <div x-show="siteCopyright.can_edit" class="flex items-center justify-between gap-2">
+                                        <span class="text-[10px] text-amber-600"><?= e(__('blox_site_copyright_live_note')) ?></span>
+                                        <button type="button" @click="saveSiteCopyright()"
+                                                :disabled="!siteCopyrightChanged || siteCopyrightSaving"
+                                                data-testid="blox-copyright-save"
+                                                class="h-8 shrink-0 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 transition">
+                                            <i class="ti text-sm" :class="siteCopyrightSaving ? 'ti-loader-2 animate-spin' : 'ti-device-floppy'" aria-hidden="true"></i>
+                                            <span><?= e(__('blox_site_copyright_save')) ?></span>
+                                        </button>
                                     </div>
-                                    <?php endif; ?>
                                 </div>
                             </template>
 
@@ -1428,6 +1482,9 @@ declare(strict_types=1);
                                     <template x-if="ctrl.type !== 'checkbox' && !ctrl.compact_richtext">
                                         <div class="flex items-center justify-between gap-2 mb-1.5">
                                             <label class="block text-[11px] font-semibold text-gray-700" x-text="ctrl.label"></label>
+                                            <template x-if="ctrl.dynamic_tags && ctrl.type !== 'richtext'">
+                                                <?php $dynamicTagKey = 'ctrl.key'; $dynamicTagLinks = "ctrl.type === 'url'"; require __DIR__ . '/dynamic-tag-picker.php'; ?>
+                                            </template>
                                             <div x-show="ctrl.responsive" class="flex items-center gap-1">
                                                 <div class="inline-flex rounded border border-gray-200 bg-gray-50 p-0.5">
                                                     <template x-for="d in devices" :key="ctrl.key + '-' + d.key">
@@ -1532,6 +1589,7 @@ declare(strict_types=1);
                                     <?php // 视频 URL 统一走可上传/选择的媒体控件；Banner 另有带封面预览的专用控件。 ?>
                                     <template x-if="['text','url'].indexOf(ctrl.type) !== -1">
                                         <input type="text" x-model="selEl.data[ctrl.key]" :placeholder="homeContentPlaceholder(ctrl)"
+                                               :data-dynamic-key="ctrl.dynamic_tags ? ctrl.key : null" @input="ctrl.dynamic_tags && siteTagInput($event, ctrl.key)"
                                                :class="homeContentField(ctrl.key) ? 'placeholder:text-gray-600' : ''"
                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm">
                                     </template>
@@ -1691,7 +1749,7 @@ declare(strict_types=1);
                                     <template x-if="ctrl.type === 'richtext'">
                                         <div x-data="{ showSrc: false }">
                                             <button type="button"
-                                                    @click="openRte(() => selEl.data[ctrl.key], v => selEl.data[ctrl.key] = v)"
+                                                    @click="openRte(() => selEl.data[ctrl.key], v => selEl.data[ctrl.key] = v, !!ctrl.dynamic_tags)"
                                                     data-testid="blox-richtext-edit"
                                                     class="w-full inline-flex items-center justify-center gap-1.5 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded-lg py-2 transition">
                                                 <i class="ti ti-edit text-base"></i><?= __('blox_edit_content') ?>
@@ -2092,6 +2150,19 @@ declare(strict_types=1);
                                     <p class="mt-1 text-[10px] text-gray-400"><?= e(__('blox_section_anchor_hint')) ?></p>
                                     <p x-show="sel.settings.anchor_id && !anchorIdValid(sel.settings.anchor_id)"
                                        class="mt-1 text-[10px] text-red-500"><?= e(__('blox_section_anchor_invalid')) ?></p>
+                                    <div class="mt-3 space-y-2" data-testid="blox-section-dotnav">
+                                        <label class="flex items-center justify-between gap-3 text-xs text-gray-600">
+                                            <span><?= e(__('blox_dotnav_section_on')) ?></span>
+                                            <input type="checkbox" class="h-4 w-4" data-testid="blox-section-dotnav-on"
+                                                   :checked="!!sel.settings.dot_nav_on"
+                                                   @change="sel.settings.dot_nav_on = $event.target.checked">
+                                        </label>
+                                        <template x-if="sel.settings.dot_nav_on">
+                                            <input type="text" x-model.trim="sel.settings.dot_nav_title" maxlength="60"
+                                                   placeholder="<?= e(__('blox_dotnav_title_ph')) ?>" data-testid="blox-section-dotnav-title"
+                                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs">
+                                        </template>
+                                    </div>
                                     <p x-show="anchorIdDuplicate(sel.settings.anchor_id)"
                                        class="mt-1 text-[10px] text-amber-600"><?= e(__('blox_section_anchor_duplicate')) ?></p>
                                 </div>
@@ -2322,7 +2393,7 @@ declare(strict_types=1);
                                             </button>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-5 gap-1">
+                                    <div class="grid grid-cols-3 gap-1">
                                         <template x-for="opt in padOptions" :key="opt.k">
                                             <button type="button" @click="setSectionResponsiveValue('padding', opt.k, 'md')"
                                                     :data-testid="'blox-section-padding-' + opt.k"
@@ -2653,7 +2724,7 @@ declare(strict_types=1);
                                         </div>
                                     </div>
                                     <div class="grid grid-cols-5 gap-1">
-                                        <template x-for="opt in padOptions" :key="'g'+opt.k">
+                                        <template x-for="opt in padOptions.filter(opt => opt.k !== 'xs')" :key="'g'+opt.k">
                                             <button type="button" @click="setSectionResponsiveValue('gap', opt.k, 'lg')"
                                                     :data-testid="'blox-section-gap-' + opt.k"
                                                     class="h-8 rounded text-xs border transition"

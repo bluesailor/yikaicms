@@ -5,7 +5,10 @@
         mixin: function (initial) {
             return {
                 pageFrameOpen: false,
-                pageFrameDraft: {},
+                // 对话框标记在打开前就会被 Alpine 求值，初始形状必须完整：
+                // 只给 {} 会让 dot_nav.position / dot_nav.mobile 这类绑定在初始化时读到
+                // undefined 的属性（2026-09-16 回归：控制台刷 Alpine Expression Error）。
+                pageFrameDraft: { page_header_hidden: false, page_footer_hidden: false, dot_nav: { enabled: false, position: "right", mobile: false } },
                 pageUrl: initial.url || "",
                 pageSlug: initial.slug || "",
                 pageSlugDraft: "",
@@ -45,9 +48,17 @@
                 },
                 openPageFrame: function () {
                     this.mobileActionsOpen = false;
+                    var dotNav = this.docSettings.dot_nav && typeof this.docSettings.dot_nav === "object"
+                        ? this.docSettings.dot_nav : {};
                     this.pageFrameDraft = {
                         page_header_hidden: !!this.docSettings.page_header_hidden,
-                        page_footer_hidden: !!this.docSettings.page_footer_hidden
+                        page_footer_hidden: !!this.docSettings.page_footer_hidden,
+                        // R7A：圆点导航是布局设置——应用到草稿，发布后生效
+                        dot_nav: {
+                            enabled: !!dotNav.enabled,
+                            position: dotNav.position === "left" ? "left" : "right",
+                            mobile: !!dotNav.mobile
+                        }
                     };
                     this.pageSlugDraft = this.pageSlug;
                     this.pageUrlError = "";

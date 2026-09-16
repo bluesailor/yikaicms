@@ -268,6 +268,7 @@ return [
 
     // 系统内部项（不挂常规设置页，由 admin/license.php 等专用页维护）
     'system' => [
+        'html_cache_generation' => ['value' => '', 'type' => 'text', 'name' => 'HTML 缓存版本', 'tip' => '系统内部缓存失效标记，请勿手动修改', 'sort_order' => 14],
         'license_key'   => ['value' => '', 'type' => 'text', 'name' => '授权码', 'tip' => '在「授权管理」页填写', 'sort_order' => 1],
         'license_state' => ['value' => '', 'type' => 'text', 'name' => '授权缓存', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 2],
         'blox_design_system' => ['value' => '', 'type' => 'json', 'name' => 'Blox 设计系统', 'tip' => '颜色令牌与命名样式预设，由 Blox 编辑器维护', 'sort_order' => 5],

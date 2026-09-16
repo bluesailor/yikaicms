@@ -6,10 +6,26 @@ use PHPUnit\Framework\TestCase;
 /** E06：副作用（页面缓存失效）只在事务提交后执行，回滚丢弃。 */
 final class DatabaseAfterCommitTest extends TestCase
 {
+    private string $cacheDir = '';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        require_once ROOT_PATH . '/includes/HtmlCache.php';
+        $this->cacheDir = sys_get_temp_dir() . '/yk_after_commit_' . bin2hex(random_bytes(6));
+        mkdir($this->cacheDir, 0700, true);
+        HtmlCache::setDir($this->cacheDir);
+    }
+
     protected function tearDown(): void
     {
         if (db()->getPdo()->inTransaction()) {
             db()->rollback();
+        }
+        HtmlCache::setDir(null);
+        if ($this->cacheDir !== '' && is_dir($this->cacheDir)) {
+            foreach (glob($this->cacheDir . '/*.html') ?: [] as $file) unlink($file);
+            rmdir($this->cacheDir);
         }
         parent::tearDown();
     }

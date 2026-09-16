@@ -63,6 +63,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
             )",
             "CREATE TABLE blox_remote_template_states (
                 template_id INTEGER PRIMARY KEY,
+                catalog_origin TEXT NOT NULL DEFAULT '',
                 installed_version TEXT NOT NULL DEFAULT '',
                 backup_version TEXT NOT NULL DEFAULT '',
                 backup_draft TEXT,
@@ -120,6 +121,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         $this->assertSame(9, (int) $row['admin_id']);
         $state = db()->fetchOne('SELECT * FROM blox_remote_template_states WHERE template_id = ?', [$first['id']]);
         $this->assertSame('1.0.0', $state['installed_version']);
+        $this->assertSame('official', $state['catalog_origin']);
         $this->assertNull($state['backup_draft']);
         $this->assertNotEmpty($canonical);
         $this->assertSame('pricing-3col|1.0.0|' . $hash, $canonical[0]);
@@ -132,6 +134,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
     {
         $v1Package = $this->package($this->templateJson('Original draft'));
         $v1Item = $this->catalogItem([
+            'source' => 'community',
             'version' => '1.0.0',
             'hash' => 'sha256:' . hash('sha256', $v1Package),
             'download_url' => 'https://update.yikaicms.com/api/templates/download.php?protocol_version=2&slug=pricing-3col&version=1.0.0',
@@ -142,6 +145,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
 
         $v2Package = $this->package($this->templateJson('Updated remote draft'));
         $v2Item = $this->catalogItem([
+            'source' => 'community',
             'version' => '1.1.0',
             'hash' => 'sha256:' . hash('sha256', $v2Package),
             'download_url' => 'https://update.yikaicms.com/api/templates/download.php?protocol_version=2&slug=pricing-3col&version=1.1.0',
@@ -171,6 +175,52 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         $this->assertSame('1.0.0', $state['installed_version']);
         $this->assertNull($state['backup_draft']);
         $this->assertSame(0, (int) $state['backup_created_at']);
+        $this->assertSame('community', $state['catalog_origin']);
+    }
+
+    public function testOriginSwitchAndUnknownOriginBlockUpdatesBeforeDownload(): void
+    {
+        $package = $this->package($this->templateJson());
+        foreach (['official', 'community'] as $origin) {
+            $item = $this->catalogItem(['source' => $origin, 'hash' => 'sha256:' . hash('sha256', $package)]);
+            $installer = new BloxRemoteTemplateInstaller($this->provider($package, $item, true));
+            $first = $installer->install('pricing-3col');
+            bloxTemplateModel()->publishDraft($first['id']);
+            $before = bloxTemplateModel()->findForExport($first['id']);
+            $revision = BloxRemoteTemplateInstaller::revision($before);
+            $other = $origin === 'official' ? 'community' : 'official';
+            $catalog = $this->catalogResponse(array_replace($item, ['source' => $other]));
+            $downloads = 0;
+            $changed = new BloxRemoteTemplateInstaller(new BloxRemoteTemplateProvider(
+                static function (string $url) use ($catalog, &$downloads): string {
+                    if (str_contains($url, '/api/templates/download.php')) {
+                        $downloads++;
+                    }
+                    return $catalog;
+                },
+                static fn (): bool => true
+            ));
+            foreach ([$origin, ''] as $storedOrigin) {
+                db()->update('blox_remote_template_states', ['catalog_origin' => $storedOrigin], 'template_id = ?', [$first['id']]);
+                foreach (['update', 'prepareUpdate'] as $method) {
+                    try {
+                        if ($method === 'update') {
+                            $changed->update($first['id'], $revision, '1.0.0');
+                        } else {
+                            $changed->prepareUpdate($first['id'], $revision, 9);
+                        }
+                        $this->fail('Origin changes must not replace an installed template.');
+                    } catch (RuntimeException $e) {
+                        $this->assertSame($storedOrigin === '' ? 'blox_tpl_remote_origin_unknown' : 'blox_tpl_remote_origin_changed', $e->getMessage());
+                    }
+                }
+            }
+            $this->assertSame(0, $downloads);
+            $this->assertSame($before, bloxTemplateModel()->findForExport($first['id']));
+            $this->assertNull(bloxRemoteTemplateStateModel()->forTemplate($first['id'])['backup_draft']);
+            db()->delete('blox_remote_template_states', 'template_id = ?', [$first['id']]);
+            db()->delete('blox_templates', 'id = ?', [$first['id']]);
+        }
     }
 
     public function testExpiredServiceLocksBrowseAndPreventsPackageDownloadOrPersistence(): void
@@ -310,6 +360,33 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
             $this->assertSame('cta', json_decode($row['metadata'], true)['purpose']);
             $this->assertNull(bloxRemoteTemplateStateModel()->forTemplate($first['id'])['backup_draft']);
         }
+    }
+
+    public function testOriginChangeDuringDownloadIsRejectedInsideUpdateTransaction(): void
+    {
+        $package = $this->package($this->templateJson());
+        $item = $this->catalogItem(['hash' => 'sha256:' . hash('sha256', $package)]);
+        $id = (new BloxRemoteTemplateInstaller($this->provider($package, $item, true)))->install('pricing-3col')['id'];
+        $before = bloxTemplateModel()->findForExport($id);
+        $catalog = $this->catalogResponse($item);
+        $provider = new BloxRemoteTemplateProvider(
+            static function (string $url) use ($package, $catalog, $id): string {
+                if (str_contains($url, '/api/templates/download.php')) {
+                    db()->update('blox_remote_template_states', ['catalog_origin' => 'community'], 'template_id = ?', [$id]);
+                    return $package;
+                }
+                return $catalog;
+            },
+            static fn (): bool => true
+        );
+        try {
+            (new BloxRemoteTemplateInstaller($provider))->update($id, BloxRemoteTemplateInstaller::revision($before), '1.0.0');
+            $this->fail('The locked write must recheck origin after network activity.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('blox_tpl_remote_origin_changed', $e->getMessage());
+        }
+        $this->assertSame($before, bloxTemplateModel()->findForExport($id));
+        $this->assertNull(bloxRemoteTemplateStateModel()->forTemplate($id)['backup_draft']);
     }
 
     public function testCopyCannotBeUsedAsManagedUpdateTarget(): void

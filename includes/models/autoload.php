@@ -134,6 +134,10 @@ function bloxRemoteTemplateStateModel(): BloxRemoteTemplateStateModel {
     static $i; return $i ??= new BloxRemoteTemplateStateModel();
 }
 
+function bloxImportReviewModel(): BloxImportReviewModel {
+    static $i; return $i ??= new BloxImportReviewModel();
+}
+
 function bloxPageDraftModel(): BloxPageDraftModel {
     static $i; return $i ??= new BloxPageDraftModel();
 }

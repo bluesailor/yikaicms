@@ -4,7 +4,7 @@
   "type": "header",
   "name": "Centered Brand Site Header",
   "requires": {
-    "elements": ["container", "logo", "nav", "nav-drawer"],
+    "elements": ["container", "language-switcher", "logo", "nav", "nav-drawer"],
     "plugins": []
   },
   "document": {
@@ -33,12 +33,19 @@
                   "padding": "none",
                   "radius": "none",
                   "children": [
-                    {"type": "logo", "data": {"display": "image", "height": "lg", "link_home": true}},
-                    {"type": "nav", "data": {"menu_group": 0, "parent": "", "nav_only": true, "dropdown": true, "wrap_class": "hidden xl:flex flex-wrap items-center justify-center gap-6"}},
-                    {"type": "nav-drawer", "data": {"menu_group": 0, "side": "right", "show_logo": true}}
+                    {"type": "logo", "data": {"display": "image", "height": "lg", "link_home": true}}
                   ]
                 }
-              }
+              },
+              {"type": "container", "data": {
+                      "direction": "row", "wrap": "wrap", "gap": "sm", "align": "center",
+                      "justify": "center", "padding": "none", "radius": "none",
+                      "children": [
+                        {"type": "nav", "data": {"menu_group": 0, "parent": "", "nav_only": true, "dropdown": true, "wrap_class": "hidden xl:flex flex-wrap items-center justify-center gap-6"}},
+                        {"type": "language-switcher", "data": {"layout": "dropdown", "display": "name", "tone": "dark"}},
+                        {"type": "nav-drawer", "data": {"menu_group": 0, "side": "right", "show_logo": true}}
+                      ]
+              }}
             ]
           }
         ]

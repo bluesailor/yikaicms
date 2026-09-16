@@ -107,7 +107,8 @@ final class PageHeroCustomizationTest extends TestCase
         $this->assertStringContainsString("if (!\$isHomeLayout && is_array(\$pageRow)", $canvas);
         $this->assertStringContainsString("(\$pageType !== 'page' || PageBloxDocument::usesThemeTitle(\$canvasFrame))", $canvas);
         $this->assertStringContainsString("if (!\$isBloxPage || PageBloxDocument::usesThemeTitle(\$GLOBALS['ykBloxPageFrame']))", $this->source('page.php'));
-        $this->assertStringNotContainsString('data-testid="blox-page-frame-hero"', $editor);
+        $this->assertStringContainsString('data-testid="blox-page-frame-hero"', $editor);
+        $this->assertStringContainsString('openPageHeroSettings', $editor);
         $this->assertStringContainsString('data-yk-page-hero', $canvas);
         $this->assertStringContainsString('PageHeroStyleResolver::resolve($pageRow)', $canvas);
         $this->assertStringContainsString("require theme_path('partials/page-hero.php');", $canvas);

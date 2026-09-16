@@ -1,0 +1,66 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "article-detail",
+  "name": "Showcase Case Detail",
+  "requires": {
+    "elements": ["article-cover", "article-title", "article-meta", "article-content", "article-related", "article-prev-next"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "案例封面",
+        "settings": {"padding": "none", "max_width": "full", "gap": "none", "bg_color": "#0f172a"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "article-cover", "data": {}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "案例标题",
+        "settings": {"padding": "lg", "max_width": "narrow", "gap": "sm", "bg_color": "#ffffff"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "article-title", "data": {"level": "h1"}},
+              {"type": "article-meta", "data": {}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "案例介绍",
+        "settings": {"padding": "md", "max_width": "narrow", "gap": "md", "bg_color": "#ffffff"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "article-content", "data": {}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "更多案例",
+        "settings": {"padding": "lg", "max_width": "default", "gap": "lg", "bg_color": "#f8fafc"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "article-related", "data": {}},
+              {"type": "article-prev-next", "data": {}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

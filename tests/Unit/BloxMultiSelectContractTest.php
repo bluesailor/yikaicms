@@ -168,6 +168,6 @@ final class BloxMultiSelectContractTest extends TestCase
             // 付费 Blox 源码不随公开仓库分发；无注入的 CI 矩阵跳过，注入 job 与本地全量执行。
             self::markTestSkipped('付费 Blox 源码未注入：' . $path);
         }
-        return (string) file_get_contents($file);
+        return $path === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : (string) file_get_contents($file);
     }
 }

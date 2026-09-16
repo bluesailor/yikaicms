@@ -192,7 +192,16 @@ final class BloxRemoteTemplateProviderTest extends TestCase
         $this->assertSame('heading', $first['sections'][0]['columns'][0]['elements'][0]['type']);
         $this->assertNotSame($first['sections'][0]['id'], $second['sections'][0]['id']);
         $this->assertSame(4, $requests, 'Every download refreshes entitlements and verifies the package');
-        $this->assertSame(604800, $cacheTtl);
+        $this->assertSame(60, $cacheTtl);
+        foreach ($cache as $snapshot) {
+            if (!is_array($snapshot)) continue;
+            foreach ($snapshot['templates'] ?? [] as $item) {
+                $this->assertArrayNotHasKey('download_url', $item);
+                $this->assertArrayNotHasKey('hash', $item);
+                $this->assertArrayNotHasKey('sig', $item);
+                $this->assertArrayNotHasKey('package', $item);
+            }
+        }
         $this->assertSame(0, (int) db()->fetchColumn('SELECT COUNT(*) FROM blox_templates'));
     }
     /** r16：installable() 列全类型（含 header/footer）；items() 编辑器窄类型行为不变 */
@@ -490,6 +499,108 @@ final class BloxRemoteTemplateProviderTest extends TestCase
             }
             $this->assertSame(1, $requests);
         }
+    }
+
+    public function testOfficialLockCannotBeReplacedByHigherCommunityVersion(): void
+    {
+        $catalog = $this->catalogResponse([
+            $this->catalogItem(['source' => 'community', 'version' => '99.0.0']),
+            $this->catalogItem(['access' => 'licensed', 'module' => 'blox', 'paid' => true,
+                'entitled' => false, 'locked_reason' => 'module_missing']),
+        ]);
+        $calls = 0;
+        $provider = new BloxRemoteTemplateProvider(static function () use ($catalog, &$calls): string {
+            $calls++;
+            return $catalog;
+        });
+        $items = $provider->items();
+        self::assertCount(1, $items);
+        self::assertSame('1.0.0', $items[0]['version']);
+        self::assertTrue($items[0]['locked']);
+        try {
+            $provider->fetchPackageJson('pricing-3col');
+            self::fail('Community duplicate bypassed official restriction');
+        } catch (RuntimeException $error) {
+            self::assertSame('blox_template_locked_module', $error->getMessage());
+        }
+        self::assertSame(2, $calls, 'No download is permitted');
+    }
+
+    public function testBrowseCacheExpiresWithinAMinuteAndNeverStoresDownloadToken(): void
+    {
+        $cache = [];
+        $calls = 0;
+        $allowed = $this->catalogResponse([$this->catalogItem([
+            'download_url' => 'https://update.yikaicms.com/api/market/download.php?token=private.signature',
+        ])]);
+        $denied = $this->catalogResponse([$this->catalogItem(['entitled' => false, 'locked_reason' => 'rate_limited'])]);
+        $provider = new BloxRemoteTemplateProvider(
+            static function () use (&$calls, $allowed, $denied): string { return ++$calls === 1 ? $allowed : $denied; },
+            null, 'en', self::endpoint(),
+            static function (string $key) use (&$cache): mixed { return $cache[$key] ?? null; },
+            static function (string $key, mixed $value) use (&$cache): void { $cache[$key] = $value; }
+        );
+        self::assertFalse($provider->items()[0]['locked']);
+        self::assertFalse($provider->items()[0]['locked']);
+        self::assertSame(1, $calls);
+        self::assertStringNotContainsString('private.signature', json_encode($cache, JSON_THROW_ON_ERROR));
+        foreach ($cache as &$snapshot) {
+            if (is_array($snapshot) && isset($snapshot['fetched_at'])) $snapshot['fetched_at'] = time() - 61;
+        }
+        unset($snapshot);
+        self::assertTrue($provider->items()[0]['locked']);
+        self::assertSame(2, $calls);
+    }
+
+    public function testFailedRefreshDoesNotRevivePositiveCacheAndSuccessClearsFailure(): void
+    {
+        $cache = [];
+        $calls = 0;
+        $response = $this->catalogResponse([$this->catalogItem()]);
+        $provider = new BloxRemoteTemplateProvider(
+            static function () use (&$calls, &$response): ?string { $calls++; return $response; },
+            null, 'en', self::endpoint(),
+            static function (string $key) use (&$cache): mixed { return $cache[$key] ?? null; },
+            static function (string $key, mixed $value) use (&$cache): void { $cache[$key] = $value; }
+        );
+        self::assertCount(1, $provider->items());
+        $response = null;
+        foreach ([true, false] as $refresh) {
+            try {
+                $provider->items('page', $refresh);
+                self::fail('Stale positive cache survived failed refresh');
+            } catch (RuntimeException $error) {
+                self::assertSame('blox_template_remote_unavailable', $error->getMessage());
+            }
+        }
+        self::assertSame(2, $calls);
+        $response = $this->catalogResponse([$this->catalogItem()]);
+        self::assertCount(1, $provider->items('page', true));
+        self::assertCount(1, $provider->items());
+        self::assertSame(3, $calls);
+    }
+
+    public function testCatalogCacheIsIsolatedByEndpointAndLanguage(): void
+    {
+        $cache = [];
+        $calls = 0;
+        $catalog = $this->catalogResponse([$this->catalogItem()]);
+        foreach ([[self::endpoint(), 'en'], [self::endpoint() . '?kind=template', 'en'], [self::endpoint(), 'ja']] as [$endpoint, $language]) {
+            $provider = new BloxRemoteTemplateProvider(
+                static function () use (&$calls, $catalog): string { $calls++; return $catalog; },
+                null, $language, $endpoint,
+                static function (string $key) use (&$cache): mixed { return $cache[$key] ?? null; },
+                static function (string $key, mixed $value) use (&$cache): void { $cache[$key] = $value; }
+            );
+            self::assertCount(1, $provider->items());
+            self::assertCount(1, $provider->items());
+        }
+        self::assertSame(3, $calls);
+    }
+
+    private static function endpoint(): string
+    {
+        return BloxRemoteTemplateProvider::API_URL;
     }
 
     /** @param array<string,mixed> $overrides @return array<string,mixed> */

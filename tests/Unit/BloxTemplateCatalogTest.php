@@ -109,9 +109,31 @@ final class BloxTemplateCatalogTest extends TestCase
 
     public function testImportedPageFrameSurvivesLocalPublishExportAndResolve(): void
     {
-        $package = (string) file_get_contents(ROOT_PATH . '/templates/blox/pages/restaurant-landing.json');
+        // 夹具内联：原先借用随包的 restaurant-landing，该模板 2026-09-16 移出随包目录。
+        // 被保护的是发布/导出/解析链路对 page_*_hidden 的处理，与目录里有哪些模板无关。
+        $package = (string) json_encode([
+            'format' => 'yikaicms-blox-template',
+            'version' => 1,
+            'type' => 'page',
+            'name' => 'Frame fixture',
+            'requires' => ['elements' => ['heading'], 'plugins' => []],
+            'document' => [
+                'schema' => 1,
+                'settings' => array_fill_keys([
+                    'page_header_hidden', 'page_footer_hidden', 'page_breadcrumb_hidden',
+                    'page_title_hidden', 'page_sidebar_hidden',
+                ], true),
+                'sections' => [[
+                    'type' => 'section',
+                    'settings' => [],
+                    'columns' => [['elements' => [
+                        ['type' => 'heading', 'data' => ['text' => 'Frame', 'level' => 'h1']],
+                    ]]],
+                ]],
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         $prepared = \BloxTemplateImporter::prepare($package);
-        $id = bloxTemplateModel()->createDraft('page', 'Restaurant page', $prepared['draft_json']);
+        $id = bloxTemplateModel()->createDraft('page', 'Frame page', $prepared['draft_json']);
         bloxTemplateModel()->publishDraft($id);
         // A newer draft must not leak its frame settings into the published catalog.
         $draft = json_decode($prepared['draft_json'], true, 512, JSON_THROW_ON_ERROR);

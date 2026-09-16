@@ -22,6 +22,7 @@ require_once __DIR__ . '/BloxPluginRegistry.php';
 require_once __DIR__ . '/BloxAssetCollector.php';
 require_once __DIR__ . '/DynamicListItemSchema.php';
 require_once __DIR__ . '/DynamicSiteData.php';
+require_once __DIR__ . '/SiteCopyrightSettings.php';
 require_once __DIR__ . '/ProductTemplateDocument.php';
 require_once __DIR__ . '/DetailTemplateResolver.php';   // 详情模板条件判定（v2 纯判定层，自包含无依赖）
 require_once __DIR__ . '/DetailTemplateProvider.php';   // 候选模板 + 内容上下文准备（唯一取数处）
@@ -53,6 +54,7 @@ require_once __DIR__ . '/BloxAreaTemplatePresets.php';
 require_once __DIR__ . '/BloxSectionMetadata.php';
 require_once __DIR__ . '/BloxBuiltinTemplateProvider.php';
 require_once __DIR__ . '/BloxRemoteTemplateProvider.php';
+require_once __DIR__ . '/BloxImportReview.php';
 require_once __DIR__ . '/BloxRemoteTemplateInstaller.php';
 require_once __DIR__ . '/BloxTemplateCatalog.php';
 require_once __DIR__ . '/BloxAreaResolver.php';
@@ -66,6 +68,7 @@ require_once __DIR__ . '/BlocksLibrary.php';
 require_once __DIR__ . '/BloxDocumentWriteLock.php';
 require_once __DIR__ . '/HomeBloxDocument.php';
 require_once __DIR__ . '/PageBloxDocument.php';
+require_once __DIR__ . '/BloxDotNav.php';
 require_once __DIR__ . '/ChannelBloxDocument.php';
 require_once __DIR__ . '/BloxPublicationStatus.php';
 require_once __DIR__ . '/HomeAboutContent.php';

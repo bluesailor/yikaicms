@@ -65,6 +65,9 @@ $hash = 'sha256:' . hash('sha256', $package);
 $catalog = json_encode([
     'code' => 0,
     'data' => [
+        // 客户端要求 v2 协议信封（BloxRemoteTemplateProvider::PROTOCOL_VERSION）；
+        // 夹具不带这个字段时会被判为「官方模板服务尚未支持所需协议」而整份拒绝。
+        'protocol_version' => 2,
         'updated_at' => '2026-08-29',
         'templates' => [[
             'slug' => $slug,
@@ -75,15 +78,25 @@ $catalog = json_encode([
             'version' => '1.0.0',
             'hash' => $hash,
             'sig' => 'fixture-signature',
+            // v2 协议一致性断言（BloxRemoteTemplateProvider::normalizeItem）：
+            // paid 必须等于 access==='licensed'，且 licensed 条目必须带合法 module slug。
+            'access' => 'licensed',
+            'module' => 'blox',
             'paid' => true,
             'entitled' => true,
-            'download_url' => 'https://update.yikaicms.com/packages/templates/e2e-remote-template-v1.0.0.zip',
+            // v2 起只接受短时令牌地址或「合法身份 URL」，静态 /packages/ ZIP 已不被接受
+            // （见 BloxRemoteTemplateProvider::safeDownloadUrl）。
+            'download_url' => BloxRemoteTemplateProvider::DOWNLOAD_URL . '?' . http_build_query([
+                'protocol_version' => BloxRemoteTemplateProvider::PROTOCOL_VERSION,
+                'slug' => $slug,
+                'version' => '1.0.0',
+            ], '', '&', PHP_QUERY_RFC3986),
         ]],
     ],
 ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
 $provider = new BloxRemoteTemplateProvider(
-    static fn (string $url): string => str_contains($url, '/packages/templates/') ? $package : $catalog,
+    static fn (string $url): string => str_contains($url, '/templates/download.php') ? $package : $catalog,
     static fn (string $canonical, string $signature): bool => $canonical === $slug . '|1.0.0|' . $hash
         && $signature === 'fixture-signature'
 );

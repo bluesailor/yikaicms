@@ -76,7 +76,11 @@ final class BloxTemplateModelTest extends TestCase
         bloxTemplateModel()->updateDraft($id, $newDraft, []);
         bloxTemplateModel()->switchProductSource($id, 'native', hash('sha256', $json));
         $row = bloxTemplateModel()->findForExport($id);
-        $this->assertSame($newDraft, $row['draft_data']);
+        $this->assertSame(\ProductTemplateDocument::changeSource($newDraft, 'native'), $row['draft_data']);
+        $this->assertSame(
+            json_decode($newDraft, true)['sections'],
+            json_decode($row['draft_data'], true)['sections']
+        );
         $this->assertSame(1, (int) $row['status']);
         $this->assertTrue(\ProductTemplateDocument::usesNative($row));
         try {

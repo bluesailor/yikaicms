@@ -1,7 +1,7 @@
 const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
-const { waitPreviewSettled } = require('./helpers');
+const { waitPreviewSettled, addTemporaryHeading, frame } = require('./helpers');
 
 // 第五轮：交付闭环。条件 → 保存 → 发布 → 前台结果（含主题默认与不应用），产品、文章、非默认语言各走一遍；
 // 另验缺失 ID 的回退显示、分类按语言过滤与窄屏布局。前台一律用无后台登录态的访客上下文访问。
@@ -53,6 +53,23 @@ async function closure(page, visitor, { kind, language, name }) {
   const contentId = await page.getByTestId(`${kind}-template-preview`).inputValue();
   expect(Number(contentId)).toBeGreaterThan(0);
   const marker = kind === 'product' ? '.yk-blox-product-detail' : '.yk-blox-article-detail';
+  const seedSections = JSON.parse(JSON.parse(run('read', id)).draft_data).sections;
+  const editedText = `TB-R2 edited ${kind} ${language}`;
+  await addTemporaryHeading(page);
+  await page.getByTestId('blox-heading-text').fill(editedText);
+  await expect((await frame(page)).getByText(editedText, { exact: true })).toBeVisible();
+  for (const mode of ['message', 'hidden']) {
+    await page.getByTestId('blox-breadcrumb').getByRole('button', { name: '列 1', exact: true }).click();
+    await page.getByTestId('blox-library-open').click();
+    await page.getByTestId('blox-add-element-list-dynamic').press('Enter');
+    await page.locator('[data-control-key="query_source"] select').selectOption(`type:${kind}`);
+    await page.locator('[data-control-key="keyword"] input').fill('TB-R2-ABSENT-934691');
+    await page.locator('[data-control-key="empty"] input').fill(`TB-R2 ${mode} ${kind} ${language}`);
+    await page.locator('[data-control-key="empty_mode"] select').selectOption(mode);
+    await waitPreviewSettled(page);
+  }
+  await expect((await frame(page)).getByText(`TB-R2 message ${kind} ${language}`, { exact: true })).toBeVisible();
+  await expect((await frame(page)).getByText(`TB-R2 hidden ${kind} ${language}`, { exact: true })).toHaveCount(0);
 
   // 选择范围 → 诊断 → 保存 → 发布
   await page.getByTestId('blox-cond-add-include-item').click();
@@ -66,6 +83,9 @@ async function closure(page, visitor, { kind, language, name }) {
 
   await visitor.goto(link);
   await expect(visitor.locator(`${marker}[data-template-id="${id}"]`), '发布后前台命中本模板').toHaveCount(1);
+  await expect(visitor.getByText(editedText, { exact: true })).toBeVisible();
+  await expect(visitor.getByText(`TB-R2 message ${kind} ${language}`, { exact: true })).toBeVisible();
+  await expect(visitor.getByText(`TB-R2 hidden ${kind} ${language}`, { exact: true })).toHaveCount(0);
 
   // 主题默认：规则保留，前台回到主题自带详情页
   await page.goto(`/admin/${kind}_design.php`);
@@ -73,6 +93,7 @@ async function closure(page, visitor, { kind, language, name }) {
   await page.getByTestId(`${kind}-design-row-${id}`).getByTestId(`${kind}-design-source-apply`).click();
   await visitor.goto(link);
   await expect(visitor.locator(marker), '主题默认：不输出自定义模板').toHaveCount(0);
+  await expect(visitor.getByText(editedText, { exact: true })).toHaveCount(0);
   const stored = JSON.parse(JSON.parse(run('read', id)).published_data).settings.detail_template;
   expect(stored.source).toBe('native');
   expect(stored.include, '切换主题默认不删除规则').toEqual([{ kind: 'item', ids: [Number(contentId)], include_children: false }]);
@@ -83,6 +104,7 @@ async function closure(page, visitor, { kind, language, name }) {
   await page.getByTestId(`${kind}-design-row-${id}`).getByTestId(`${kind}-design-source-apply`).click();
   await visitor.goto(link);
   await expect(visitor.locator(`${marker}[data-template-id="${id}"]`), '切回自定义后恢复命中').toHaveCount(1);
+  await expect(visitor.getByText(editedText, { exact: true })).toBeVisible();
   await reopen(page, id, kind);
   await page.getByTestId('blox-cond-remove-include-0').click();
   expect((await api(page, 'publish', () => page.getByTestId('blox-publish-template').click())).code).toBe(0);
@@ -91,6 +113,14 @@ async function closure(page, visitor, { kind, language, name }) {
   const unapplied = JSON.parse(JSON.parse(run('read', id)).published_data).settings.detail_template;
   expect(unapplied.include).toEqual([]);
   expect(unapplied.source).toBe('custom');
+  const freshId = await createTemplate(page, kind, `TB-R2 untouched ${kind} ${language}`, language);
+  try {
+    const freshSections = JSON.parse(JSON.parse(run('read', freshId)).draft_data).sections;
+    expect(freshSections, 'Editing a copy must not alter the built-in seed').toEqual(seedSections);
+    expect(JSON.stringify(freshSections)).not.toContain(editedText);
+  } finally {
+    run('restore', freshId);
+  }
   return id;
 }
 
