@@ -99,7 +99,10 @@ function renderWebsitePageCard(array $page, bool $overview = false): string
                 <?php if ($page['can_edit']): ?>
                 <a class="website-page-primary" data-testid="page-primary-edit-<?php echo $id; ?>" href="<?php echo e($page['edit_url']); ?>"><?php echo e(__($page['page_kind'] === 'page' ? 'website_pages_edit' : 'admin_content_edit')); ?></a>
                 <?php else: ?><span class="website-page-note"><?php echo e(__('website_pages_no_permission')); ?></span><?php endif; ?>
+                <?php // 已停用页前台是 404，不给浏览入口 ?>
+                <?php if (!$disabled): ?>
                 <a href="<?php echo e($page['public_url']); ?>" target="_blank" rel="noopener"><?php echo e(__('website_pages_visit')); ?><span class="sr-only"> · <?php echo e((string) $page['name']); ?></span></a>
+                <?php endif; ?>
                 <?php // 已停用卡片：恢复/删除提到卡面（不再藏进"…"菜单） ?>
                 <?php if (!$overview && $disabled && ($page['type'] ?? '') !== 'album'): ?>
                 <button type="button" class="website-page-restore" onclick="toggleStatus(<?php echo $id; ?>, this)"
