@@ -6,6 +6,11 @@ final class HomeBannerItemElement extends AbstractElement
 {
     private const CONTENT_MOTIONS = ['inherit', 'none', 'fade-up', 'slide-left', 'slide-right', 'zoom-in', 'clip-reveal', 'blur-up', 'pop-in'];
     private const BACKGROUND_MOTIONS = ['inherit', 'none', 'zoom-in', 'zoom-out'];
+    /** 非默认语言在编辑器里改过的轮播文字：{lang: {field: value}}，优先于该语言的轮播图记录。 */
+    public const I18N_KEY = '_home_banner_i18n';
+    /** 编辑器标记：{lang, shown, source}，保存时还原共享文档并写入 I18N_KEY。 */
+    public const EDIT_KEY = '_home_banner_edit';
+    private const LOCALIZED_FIELDS = ['title', 'subtitle', 'btn1_text', 'btn1_url', 'btn2_text', 'btn2_url', 'link_url', 'link_target'];
 
     public function type(): string { return 'home-banner-item'; }
     public function label(): string { return __('blox_home_banner_item'); }
@@ -305,8 +310,9 @@ final class HomeBannerItemElement extends AbstractElement
      * @param array<int, array<string, mixed>> $localizedBanners
      * @return array<int, array<string, mixed>>
      */
-    public static function applyLocalizedContent(array $customItems, array $localizedBanners): array
+    public static function applyLocalizedContent(array $customItems, array $localizedBanners, ?string $language = null): array
     {
+        $language ??= siteLang();
         $localizedItems = [];
         $localizedByGroup = [];
         foreach ($localizedBanners as $banner) {
@@ -321,29 +327,29 @@ final class HomeBannerItemElement extends AbstractElement
             }
         }
 
-        $localizedFields = [
-            'title',
-            'subtitle',
-            'btn1_text',
-            'btn1_url',
-            'btn2_text',
-            'btn2_url',
-            'link_url',
-            'link_target',
-        ];
         foreach ($customItems as $index => &$customItem) {
             if (!is_array($customItem)) {
                 continue;
             }
+            $overrides = $customItem[self::I18N_KEY][$language] ?? null;
+            $overrides = is_array($overrides) ? $overrides : [];
+            $edit = $customItem[self::EDIT_KEY] ?? null;
+            $shown = is_array($edit) && ($edit['lang'] ?? '') === $language && is_array($edit['shown'] ?? null) ? $edit['shown'] : [];
+            unset($customItem[self::I18N_KEY], $customItem[self::EDIT_KEY]);
             $groupId = (int) ($customItem['translation_group_id'] ?? 0);
             $localizedItem = $groupId > 0
                 ? ($localizedByGroup[$groupId] ?? null)
                 : ($localizedItems[$index] ?? null);
-            if (!is_array($localizedItem)) {
-                continue;
-            }
-            foreach ($localizedFields as $field) {
-                $customItem[$field] = $localizedItem[$field];
+            foreach (self::LOCALIZED_FIELDS as $field) {
+                if (array_key_exists($field, $shown) && is_scalar($shown[$field])
+                    && $customItem[$field] !== self::normalize([$field => (string) $shown[$field]])[$field]) {
+                    continue; // 编辑器里刚改、尚未保存：画布显示正在编辑的值
+                }
+                if (is_string($overrides[$field] ?? null)) {
+                    $customItem[$field] = self::normalize([$field => $overrides[$field]])[$field];
+                } elseif (is_array($localizedItem)) {
+                    $customItem[$field] = $localizedItem[$field];
+                }
             }
         }
         unset($customItem);
@@ -362,13 +368,136 @@ final class HomeBannerItemElement extends AbstractElement
             if (!is_array($child) || ($child['type'] ?? '') !== 'home-banner-item') {
                 continue;
             }
-            $item = self::normalize(is_array($child['data'] ?? null) ? $child['data'] : []);
+            $data = is_array($child['data'] ?? null) ? $child['data'] : [];
+            $item = self::normalize($data);
+            foreach ([self::I18N_KEY, self::EDIT_KEY] as $key) {
+                if (is_array($data[$key] ?? null)) {
+                    $item[$key] = $data[$key];
+                }
+            }
             if ($parentPath !== '') {
                 $item['_blox_path'] = $parentPath . '.' . (int) $index;
             }
             $items[] = $item;
         }
         return $items;
+    }
+
+    /**
+     * 首页编辑器：轮播文字与画布一致（见 HomeBloxRenderContext）。
+     * 继承模式始终显示该语言的轮播图记录；自定义模式只有非默认语言才替换。
+     * 非默认语言加编辑标记，保存时改动写入该语言覆盖；默认语言的改动就是共享内容本身。
+     * @param array<int,mixed> $sections @param array<int,array<string,mixed>> $localizedBanners @return array<int,mixed>
+     */
+    public static function forEditor(array $sections, array $localizedBanners, string $language, bool $isDefaultLanguage = false): array
+    {
+        return self::walkBannerChildren($sections, static function (array $children, array $host) use ($localizedBanners, $language, $isDefaultLanguage): array {
+            $custom = ($host['items_mode'] ?? 'inherit') === 'custom';
+            if ($custom && $isDefaultLanguage) {
+                return $children;
+            }
+            $indexes = [];
+            foreach ($children as $index => $child) {
+                if (is_array($child) && ($child['type'] ?? '') === 'home-banner-item') {
+                    $indexes[] = $index;
+                }
+            }
+            $items = self::normalizeChildren($children);
+            $localized = self::applyLocalizedContent($items, $localizedBanners, $language);
+            foreach ($indexes as $position => $index) {
+                $data = is_array($children[$index]['data'] ?? null) ? $children[$index]['data'] : [];
+                $shown = [];
+                $source = [];
+                foreach (self::LOCALIZED_FIELDS as $field) {
+                    if (($localized[$position][$field] ?? null) === ($items[$position][$field] ?? null)) {
+                        continue;
+                    }
+                    $source[$field] = array_key_exists($field, $data) ? $data[$field] : null;
+                    $shown[$field] = $localized[$position][$field];
+                    $data[$field] = $shown[$field];
+                }
+                if ($shown !== []) {
+                    if (!$isDefaultLanguage) {
+                        $data[self::EDIT_KEY] = ['lang' => $language, 'shown' => $shown, 'source' => $source];
+                    }
+                    $children[$index]['data'] = $data;
+                }
+            }
+            return $children;
+        });
+    }
+
+    /** 保存管线之前：比对原始输入与显示值，记下真正改过的字段。 @param array<int,mixed> $sections @return array<int,mixed> */
+    public static function markEditorChanges(array $sections): array
+    {
+        return self::walkBannerChildren($sections, static function (array $children): array {
+            foreach ($children as $index => $child) {
+                $edit = is_array($child) ? ($child['data'][self::EDIT_KEY] ?? null) : null;
+                if (!is_array($edit) || !is_array($edit['shown'] ?? null)) {
+                    continue;
+                }
+                $edit['changed'] = [];
+                foreach ($edit['shown'] as $field => $value) {
+                    if (($child['data'][$field] ?? null) !== $value) {
+                        $edit['changed'][] = (string) $field;
+                    }
+                }
+                unset($edit['shown']);
+                $children[$index]['data'][self::EDIT_KEY] = $edit;
+            }
+            return $children;
+        });
+    }
+
+    /** 保存管线之后：改过的字段（已净化）写入该语言覆盖，共享文档还原为原文。 @param array<int,mixed> $sections @return array<int,mixed> */
+    public static function fromEditor(array $sections): array
+    {
+        return self::walkBannerChildren($sections, static function (array $children): array {
+            foreach ($children as $index => $child) {
+                if (!is_array($child) || !is_array($child['data'] ?? null) || !array_key_exists(self::EDIT_KEY, $child['data'])) {
+                    continue;
+                }
+                $data = $child['data'];
+                $edit = $data[self::EDIT_KEY];
+                unset($data[self::EDIT_KEY]);
+                $language = is_array($edit) && is_string($edit['lang'] ?? null) ? $edit['lang'] : '';
+                if (preg_match('/^[a-z]{2}(?:-[A-Z]{2})?$/D', $language) && is_array($edit['source'] ?? null)) {
+                    $changed = (array) ($edit['changed'] ?? []);
+                    foreach ($edit['source'] as $field => $original) {
+                        if (!in_array($field, self::LOCALIZED_FIELDS, true)) {
+                            continue;
+                        }
+                        if (in_array($field, $changed, true) && is_string($data[$field] ?? null)) {
+                            $data[self::I18N_KEY][$language][$field] = $data[$field];
+                        }
+                        if ($original === null) {
+                            unset($data[$field]);
+                        } else {
+                            $data[$field] = (string) $original;
+                        }
+                    }
+                }
+                $children[$index]['data'] = $data;
+            }
+            return $children;
+        });
+    }
+
+    /** @param array<int,mixed> $sections @param callable(array<int,mixed>,array<string,mixed>):array<int,mixed> $visit @return array<int,mixed> */
+    private static function walkBannerChildren(array $sections, callable $visit): array
+    {
+        foreach ($sections as $si => $section) {
+            foreach (is_array($section['columns'] ?? null) ? $section['columns'] : [] as $ci => $column) {
+                foreach (is_array($column['elements'] ?? null) ? $column['elements'] : [] as $ei => $element) {
+                    if (!is_array($element) || ($element['type'] ?? '') !== 'home-block'
+                        || ($element['data']['block_type'] ?? '') !== 'banner' || !is_array($element['data']['children'] ?? null)) {
+                        continue;
+                    }
+                    $sections[$si]['columns'][$ci]['elements'][$ei]['data']['children'] = $visit($element['data']['children'], $element['data']);
+                }
+            }
+        }
+        return $sections;
     }
 
     private static function safeUrl(string $value, bool $allowActionSchemes): string

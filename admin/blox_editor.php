@@ -843,8 +843,9 @@ require __DIR__ . '/blox_editor/source-links.php';
 $homeFieldSeeds = $isHomeBlox ? [
     'about' => HomeAboutContent::resolve(getChannelBySlug('about', true)),
     'partners' => ['partner_items' => db()->tableExists('links') ? array_slice(linkModel()->getActive(), 0, 12) : []],
-    'stats' => ['stats_items' => HomeBloxBlockSchema::statsSeedItems()],
-    'advantage' => ['advantage_items' => HomeBloxBlockSchema::advantageSeedItems()],
+    // 默认文字按正在编辑的站点语言取（__() 默认是后台界面语言），与画布一致
+    'stats' => ['stats_items' => withSiteLanguageStrings(static fn (): array => HomeBloxBlockSchema::statsSeedItems())],
+    'advantage' => ['advantage_items' => withSiteLanguageStrings(static fn (): array => HomeBloxBlockSchema::advantageSeedItems())],
 ] : [];
 if ($isHomeBlox) {
     foreach (array_keys(HomeBloxBlockSchema::sourceOptions()) as $homeSourceType) {
