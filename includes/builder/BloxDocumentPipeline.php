@@ -424,6 +424,20 @@ final class BloxDocumentPipeline
                 && !in_array((string) $settings['bg_video_mobile_mode'], ['poster', 'video'], true)) {
                 $settings['bg_video_mobile_mode'] = 'poster';
             }
+            // 区块标题装饰（与首页动态区块同一套：样式/对齐/颜色/宽度/间距）
+            foreach (['title_decor_style' => ['inherit', 'line', 'dot', 'none'], 'title_decor_align' => ['inherit', 'left', 'center', 'right']] as $decorKey => $decorOptions) {
+                if (array_key_exists($decorKey, $settings) && !in_array((string) $settings[$decorKey], $decorOptions, true)) {
+                    $settings[$decorKey] = 'inherit';
+                }
+            }
+            if (array_key_exists('title_decor_color', $settings)) {
+                $settings['title_decor_color'] = AbstractElement::cssColor($settings['title_decor_color']) ?? '';
+            }
+            foreach (['title_decor_width' => 240, 'title_decor_gap' => 80] as $decorKey => $decorMax) {
+                if (array_key_exists($decorKey, $settings)) {
+                    $settings[$decorKey] = max(0, min($decorMax, (int) $settings[$decorKey]));
+                }
+            }
             if (array_key_exists('text_tone', $settings)
                 && !in_array((string) $settings['text_tone'], ['auto', 'light', 'dark'], true)) {
                 $settings['text_tone'] = 'auto';
