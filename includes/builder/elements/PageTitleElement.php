@@ -15,6 +15,12 @@ final class PageTitleElement extends AbstractElement
     public function backgroundRenderStrategy(): string { return 'native'; }
     public function treeLabelField(): ?string { return 'title'; }
 
+    /** 当前渲染的页面（面包屑等元素共用）；没有页面上下文时为空数组。 @return array<string,mixed> */
+    public static function currentPage(): array
+    {
+        return self::$page ?? [];
+    }
+
     /** @param array<string,mixed> $page @param callable():string $render */
     public static function withPage(array $page, callable $render): string
     {
@@ -33,7 +39,8 @@ final class PageTitleElement extends AbstractElement
             ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => '', 'placeholder' => __('blox_page_title_follow')],
             ['key' => 'description', 'type' => 'textarea', 'label' => __('blox_ctl_subtext'), 'default' => '', 'placeholder' => __('blox_page_title_follow')],
             ['key' => 'show_description', 'type' => 'checkbox', 'label' => __('blox_page_title_description'), 'default' => true],
-            ['key' => 'show_breadcrumb', 'type' => 'checkbox', 'label' => __('blox_page_frame_show_breadcrumb'), 'default' => true],
+            // 新插入默认不带面包屑：面包屑已是独立元素；旧文档未存该键时渲染仍按显示处理
+            ['key' => 'show_breadcrumb', 'type' => 'checkbox', 'label' => __('blox_page_frame_show_breadcrumb'), 'default' => false],
             ['key' => 'level', 'type' => 'select', 'label' => __('blox_ctl_level'), 'default' => 'h1', 'options' => ['h1' => 'H1', 'h2' => 'H2', 'h3' => 'H3']],
             ['key' => 'align', 'type' => 'select', 'label' => __('blox_align'), 'default' => 'left', 'tab' => 'style',
                 'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')]],
@@ -66,24 +73,7 @@ final class PageTitleElement extends AbstractElement
         if ($color !== null) $style .= ';color:' . $color;
         $html = '<div class="blox-page-title ' . $alignment . ' ' . $size . '" style="' . self::escape($style) . '"' . $this->animationAttrs($data) . '>';
         if (($data['show_breadcrumb'] ?? true) && $page !== []) {
-            $home = function_exists('langUrl') ? langUrl('/', (string) ($page['lang'] ?? '')) : '/';
-            $html .= '<nav aria-label="' . self::escape(__('breadcrumb_nav')) . '"><ol class="flex flex-wrap items-center gap-2 mb-4 text-sm ' . $justify . '">'
-                . '<li><a class="underline hover:no-underline" href="' . self::escape(self::safeHref($home)) . '">' . self::escape(__('breadcrumb_home')) . '</a></li>';
-            $parents = [];
-            $seen = [(int) ($page['id'] ?? 0) => true];
-            $parentId = (int) ($page['parent_id'] ?? 0);
-            while ($parentId > 0 && !isset($seen[$parentId]) && count($parents) < 20) {
-                $seen[$parentId] = true;
-                $parent = channelModel()->find($parentId);
-                if (!$parent) break;
-                array_unshift($parents, $parent);
-                $parentId = (int) ($parent['parent_id'] ?? 0);
-            }
-            foreach ($parents as $parent) {
-                $url = function_exists('channelUrl') ? channelUrl($parent) : '';
-                $html .= '<li aria-hidden="true">/</li><li><a class="underline hover:no-underline" href="' . self::escape(self::safeHref($url) ?: '#') . '">' . self::escape((string) $parent['name']) . '</a></li>';
-            }
-            $html .= '<li aria-hidden="true">/</li><li aria-current="page">' . self::escape((string) ($page['name'] ?? $title)) . '</li></ol></nav>';
+            $html .= BreadcrumbElement::renderTrail($page, ['class' => 'mb-4 text-sm ' . $justify]);
         }
         $html .= '<' . $level . ' class="font-bold leading-tight break-words">' . self::escape($title) . '</' . $level . '>';
         if (($data['show_description'] ?? true) && $description !== '') {

@@ -104,6 +104,7 @@ final class BuilderRegistry
             // 静态元素
             new HeadingElement(),
             new PageTitleElement(),
+            new BreadcrumbElement(),
             new ProductFieldElement('title'),
             new ProductFieldElement('image'),
             new ProductFieldElement('content'),
