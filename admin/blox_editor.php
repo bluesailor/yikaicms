@@ -683,6 +683,8 @@ if ($bloxContentLanguage !== getLang()) {
     );
 }
 $registryMeta['page-title']['paletteVisible'] = !$isHomeBlox && !$templateId && ($pageType ?? '') === 'page';
+// 面包屑依赖页面上下文：页头/页尾等模板里没有当前页面，前台会输出空
+if (isset($registryMeta['breadcrumb'])) $registryMeta['breadcrumb']['paletteVisible'] = !$templateId && !empty($registryMeta['breadcrumb']['paletteVisible']);
 // code 元素 = 前台任意 HTML/脚本输出，独立 blox_code 权限（默认仅超管）。
 // 这里只是藏 UI；真正的闸在 BloxElementPolicy（保存管线按会话能力拒绝提交）。
 if (!hasPermission('blox_code') && isset($registryMeta['code'])) {
