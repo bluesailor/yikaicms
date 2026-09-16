@@ -6,6 +6,7 @@ declare(strict_types=1);
 final class HomeAboutLocalization
 {
     public const KEY = '_home_about_i18n';
+    public const EDIT_KEY = '_home_about_edit';
     private const ROLES = [
         'title' => ['heading', 'text', ['override_title']],
         'body' => ['text', 'html', ['override_content']],
@@ -64,15 +65,16 @@ final class HomeAboutLocalization
     }
 
     /** Read-time compatibility only: never save, publish or rebuild the layout. @param array<string,mixed> $section @return array<string,mixed> */
-    public static function localize(array $section): array
+    public static function localize(array $section, bool $forEditor = false): array
     {
         $language = siteLang();
         $default = (string) config('site_lang', 'zh-CN');
         $target = null;
         $legacyByLanguage = [];
-        return self::map($section, static function (array $element) use ($section, $language, $default, &$target, &$legacyByLanguage): array {
+        return self::map($section, static function (array $element) use ($section, $language, $default, $forEditor, &$target, &$legacyByLanguage): array {
             $data = $element['data'];
-            if (!array_key_exists(self::KEY, $data)) {
+            $synthesized = !array_key_exists(self::KEY, $data);
+            if ($synthesized) {
                 // Old converters did not retain provenance. Only recognize their exact IDs and field values.
                 if (!preg_match('/^((?:about_[a-f0-9]{12}|home_s_[0-9]+))_(title|body|button|image|caption)$/D', (string) ($element['id'] ?? ''), $match)) {
                     return $element;
@@ -120,12 +122,20 @@ final class HomeAboutLocalization
                 return $element;
             }
             $target ??= HomeAboutContent::resolve(channelModel()->findBySlugLang('about'));
+            $shown = [];
             foreach ($binding['fields'] as $field => $entry) {
                 $allowed = match ($element['type'] ?? '') {
                     'heading' => ['text'], 'text' => ['html'], 'button' => ['text', 'url'], 'image' => ['alt'], default => [],
                 };
                 if (!in_array($field, $allowed, true) || !is_array($entry) || !is_string($entry['source'] ?? null)
                     || ($data[$field] ?? null) !== $entry['source'] || !is_array($entry['parts'] ?? null)) {
+                    continue;
+                }
+                // 在该语言编辑器里改过的值（已过保存管线净化）优先于站点译文设置。
+                $override = $binding['overrides'][$language][$field] ?? null;
+                if (is_string($override)) {
+                    $data[$field] = $override;
+                    $shown[$field] = $override;
                     continue;
                 }
                 // Edited fields detach automatically. A missing translation never erases the saved content.
@@ -163,10 +173,124 @@ final class HomeAboutLocalization
                     }
                     $data[$field] = $replacements === [] ? $entry['source'] : strtr($entry['source'], $replacements);
                 }
+                if ($data[$field] !== $entry['source']) {
+                    $shown[$field] = $data[$field];
+                }
+            }
+            if ($forEditor && $shown !== []) {
+                if ($synthesized) {
+                    // 旧快照的推断绑定只放进编辑标记：未改动保存时共享文档保持原样。
+                    unset($data[self::KEY]);
+                }
+                $data[self::EDIT_KEY] = ['lang' => $language, 'binding' => $binding, 'shown' => $shown];
             }
             $element['data'] = $data;
             return $element;
         });
+    }
+
+    /** Homepage editor view: panel fields show the editing language, like the canvas. @param array<int,mixed> $sections @return array<int,mixed> */
+    public static function forEditor(array $sections): array
+    {
+        foreach ($sections as $index => $section) {
+            if (is_array($section)) {
+                $sections[$index] = self::localize($section, true);
+            }
+        }
+        return $sections;
+    }
+
+    /** Before the save pipeline: record which shown translations were actually edited (raw input vs shown value). */
+    public static function markEditorChanges(string $json): string
+    {
+        if (!str_contains($json, self::EDIT_KEY)) {
+            return $json;
+        }
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) {
+            return $json;
+        }
+        $isList = array_is_list($decoded);
+        $sections = $isList ? $decoded : ($decoded['sections'] ?? null);
+        if (!is_array($sections)) {
+            return $json;
+        }
+        foreach ($sections as $index => $section) {
+            if (!is_array($section)) {
+                continue;
+            }
+            $sections[$index] = self::map($section, static function (array $element): array {
+                $edit = $element['data'][self::EDIT_KEY] ?? null;
+                if (!is_array($edit)) {
+                    return $element;
+                }
+                $shown = is_array($edit['shown'] ?? null) ? $edit['shown'] : [];
+                $edit['fields'] = array_map('strval', array_keys($shown));
+                $edit['changed'] = [];
+                foreach ($shown as $field => $value) {
+                    if (($element['data'][$field] ?? null) !== $value) {
+                        $edit['changed'][] = (string) $field;
+                    }
+                }
+                unset($edit['shown']);
+                $element['data'][self::EDIT_KEY] = $edit;
+                return $element;
+            });
+        }
+        if ($isList) {
+            $decoded = $sections;
+        } else {
+            $decoded['sections'] = $sections;
+        }
+        return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: $json;
+    }
+
+    /**
+     * After the save pipeline: edited fields become per-language overrides (already sanitized),
+     * and the shared document keeps the source text, so editing English never overwrites Chinese.
+     * @param array<int,mixed> $sections @return array<int,mixed>
+     */
+    public static function fromEditor(array $sections): array
+    {
+        foreach ($sections as $index => $section) {
+            if (!is_array($section)) {
+                continue;
+            }
+            $sections[$index] = self::map($section, static function (array $element): array {
+                $data = $element['data'];
+                if (!array_key_exists(self::EDIT_KEY, $data)) {
+                    return $element;
+                }
+                $edit = $data[self::EDIT_KEY];
+                unset($data[self::EDIT_KEY]);
+                $element['data'] = $data;
+                $language = is_array($edit) && is_string($edit['lang'] ?? null) ? $edit['lang'] : '';
+                $binding = is_array($data[self::KEY] ?? null) ? $data[self::KEY] : ($edit['binding'] ?? null);
+                if (!in_array($language, ['zh-CN', 'zh-TW', 'en', 'ja'], true) || !is_array($binding)
+                    || ($binding['lang'] ?? '') === $language || !is_array($binding['fields'] ?? null)) {
+                    return $element;
+                }
+                $changed = (array) ($edit['changed'] ?? []);
+                $edited = false;
+                foreach ((array) ($edit['fields'] ?? []) as $field) {
+                    $source = $binding['fields'][$field]['source'] ?? null;
+                    if (!is_string($field) || !is_string($source) || !array_key_exists($field, $data)) {
+                        continue;
+                    }
+                    if (in_array($field, $changed, true) && is_string($data[$field])) {
+                        $binding['overrides'][$language][$field] = $data[$field];
+                        $edited = true;
+                    }
+                    $data[$field] = $source;
+                }
+                if ($edited) {
+                    $data[self::KEY] = $binding;
+                }
+                $element['data'] = $data;
+                return $element;
+            });
+        }
+        return $sections;
     }
 
     /**

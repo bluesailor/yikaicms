@@ -308,11 +308,22 @@ public static function isActive(): bool
         return [$raw, $trustedJson];
     }
 
+    /**
+     * 首页编辑器按当前语言（siteLang）显示关于与 FAQ 文字，与画布一致；带编辑标记，保存时由 prepareDocument 还原。
+     * @param array<int,mixed> $sections @return array<int,mixed>
+     */
+    public static function editorSections(array $sections): array
+    {
+        return HomeAboutLocalization::forEditor(HomeFaqContent::forEditor($sections, siteLang()));
+    }
+
     /** @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
     private static function prepareDocument(string $blocksJson, bool $active, ?string $trustedJson = null): array
     {
-        // 按语言编辑的 FAQ：译文写回对应语言，共享文档保留原文。
-        $processed = BloxDocumentPipeline::process(HomeFaqContent::fromEditorJson($blocksJson), 'home', trustedJson: $trustedJson);
+        // 按语言编辑（见 editorSections）：改动写回对应语言，共享文档保留原文。
+        $blocksJson = HomeAboutLocalization::markEditorChanges(HomeFaqContent::fromEditorJson($blocksJson));
+        $processed = BloxDocumentPipeline::process($blocksJson, 'home', trustedJson: $trustedJson);
+        $processed['sections'] = HomeAboutLocalization::fromEditor($processed['sections']);
 
         return [
             'schema' => $processed['schema'],

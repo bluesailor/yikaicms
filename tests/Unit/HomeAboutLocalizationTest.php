@@ -58,6 +58,36 @@ final class HomeAboutLocalizationTest extends TestCase
         }
     }
 
+    public function testEditorShowsTheEditingLanguageAndSavesEditsAsThatLanguageOnly(): void
+    {
+        $section = HomeAboutContent::toSection([], 'home_s_1');
+        $section = BloxDocumentPipeline::process(json_encode([$section], JSON_THROW_ON_ERROR))['sections'][0];
+        $this->language('en');
+        $save = static fn(array $view): array => HomeAboutLocalization::fromEditor(BloxDocumentPipeline::process(
+            HomeAboutLocalization::markEditorChanges(json_encode([$view], JSON_THROW_ON_ERROR))
+        )['sections'])[0];
+
+        $view = HomeAboutLocalization::forEditor([$section])[0];
+        self::assertSame('en title', $view['columns'][0]['elements'][0]['data']['text']);
+        self::assertSame('en button', $view['columns'][0]['elements'][3]['data']['text']);
+        self::assertSame($section, $save($view));
+
+        $view['columns'][0]['elements'][0]['data']['text'] = 'About us';
+        $view['columns'][0]['elements'][3]['data']['text'] = 'Read more';
+        $saved = $save($view);
+        self::assertSame('Original title', $saved['columns'][0]['elements'][0]['data']['text']);
+        self::assertSame('Original button', $saved['columns'][0]['elements'][3]['data']['text']);
+        self::assertArrayNotHasKey(HomeAboutLocalization::EDIT_KEY, $saved['columns'][0]['elements'][0]['data']);
+        $rendered = HomeAboutLocalization::localize($saved);
+        self::assertSame('About us', $rendered['columns'][0]['elements'][0]['data']['text']);
+        self::assertSame('Read more', $rendered['columns'][0]['elements'][3]['data']['text']);
+        self::assertStringContainsString('en content', $rendered['columns'][0]['elements'][2]['data']['html']);
+        self::assertSame('About us', HomeAboutLocalization::forEditor([$saved])[0]['columns'][0]['elements'][0]['data']['text']);
+
+        $this->language('ja');
+        self::assertSame('ja title', HomeAboutLocalization::localize($saved)['columns'][0]['elements'][0]['data']['text']);
+    }
+
     public function testEditedAndClearedFieldsStayEditableWhileOtherFieldsRemainLocalized(): void
     {
         $section = HomeAboutContent::toSection([], 'home_s_1');
