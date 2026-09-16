@@ -54,17 +54,23 @@ final class BloxRemoteTemplateProvider
     ) {
         $this->httpGet = $httpGet ?? static fn (string $url, int $timeout, int $maxBytes): ?string
             => self::request($url, $timeout, $maxBytes);
-        $this->verifySignature = $verifySignature ?? static function (string $canonical, string $signature): bool {
-            $decoded = base64_decode($signature, true);
-            return $decoded !== false
-                && $decoded !== ''
-                && function_exists('openssl_verify')
-                && function_exists('license_pubkey')
-                && openssl_verify($canonical, $decoded, license_pubkey(), OPENSSL_ALGO_SHA256) === 1;
-        };
-        $this->language = $language ?? (function_exists('getLang') ? getLang() : 'zh-CN');
         // 只允许测试/隔离环境替换目录接口；生产默认仍固定到官方服务。
         $testEndpoint = trim((string) getenv('YIKAI_BLOX_TEMPLATE_API_BASE'));
+        // 隔离市场用自己的签名公钥（DER base64），不能靠替换全站授权公钥——那会让授权与更新校验全部失效
+        $testPublicKey = $endpoint === self::API_URL && $testEndpoint !== ''
+            ? preg_replace('/\s+/', '', (string) getenv('YIKAI_BLOX_TEMPLATE_PUBKEY'))
+            : '';
+        $this->verifySignature = $verifySignature ?? static function (string $canonical, string $signature) use ($testPublicKey): bool {
+            $decoded = base64_decode($signature, true);
+            if ($decoded === false || $decoded === '' || !function_exists('openssl_verify')) {
+                return false;
+            }
+            $publicKey = $testPublicKey !== ''
+                ? "-----BEGIN PUBLIC KEY-----\n" . chunk_split($testPublicKey, 64, "\n") . "-----END PUBLIC KEY-----\n"
+                : (function_exists('license_pubkey') ? license_pubkey() : '');
+            return $publicKey !== '' && openssl_verify($canonical, $decoded, $publicKey, OPENSSL_ALGO_SHA256) === 1;
+        };
+        $this->language = $language ?? (function_exists('getLang') ? getLang() : 'zh-CN');
         $this->endpoint = $endpoint === self::API_URL && $testEndpoint !== '' ? $testEndpoint : $endpoint;
         if ($endpoint === self::API_URL && $testEndpoint !== '') {
             // 隔离市场的包与封面只允许来自目录接口所在目录（同源同路径前缀），不开放任意地址

@@ -155,7 +155,15 @@ function license_apply_local_expiry(array $state, ?int $now = null): array
 
 function license(): array
 {
-    return license_apply_local_expiry(license_refresh(false));
+    // 同一请求内复用结果：校验失败（服务器不可达、验签不过）时不会写缓存，
+    // 不复用的话页面上每处授权判断都会再发一次最长数秒的远程校验。
+    // 以授权码 / 域名 / 缓存内容为键，保存新授权或刷新缓存后自然失效。
+    static $memo = [];
+    $memoKey = hash('sha256', license_key() . "\0" . license_domain() . "\0" . (string) config('license_state', ''));
+    if (!array_key_exists($memoKey, $memo)) {
+        $memo = [$memoKey => license_refresh(false)];
+    }
+    return license_apply_local_expiry($memo[$memoKey]);
 }
 
 /** 授权整体是否有效。 */
