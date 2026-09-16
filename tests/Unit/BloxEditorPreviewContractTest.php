@@ -1331,6 +1331,11 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('getBlockBg(', $theme);
         $imageControl = $this->source('admin/blox_editor/partials/home-image-control.php');
         $this->assertStringContainsString('replaceHomeContentImage(ctrl.key)', $imageControl);
+        $this->assertStringContainsString('data-testid="blox-cta-background-url"', $imageControl);
+        $this->assertStringContainsString('data-testid="blox-cta-background-clear"', $imageControl);
+        $this->assertStringContainsString("setHomeContentImage(ctrl.key, '')", $imageControl);
+        $this->assertStringContainsString('clearMatchingHomeBackgroundCopies', $this->source('assets/js/blox-image-control.js'));
+        $this->assertStringContainsString("__('blox_home_cta_color_covered_hint')", $workspace);
         $this->assertStringContainsString('{ usage: "cta", source: "official" }', $this->source('assets/js/blox-home-content-panel.js'));
     }
 
@@ -1472,12 +1477,19 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         $editor = $this->source('admin/blox_editor.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+        $backgroundPanel = $this->source('assets/js/blox-background-panel.js');
+        $backgroundSwitcher = $this->source('admin/blox_editor/partials/background-layer-switcher.php');
         $pipeline = $this->source('includes/builder/BloxDocumentPipeline.php');
         $renderer = $this->source('includes/builder/BlockRenderer.php');
 
         $imageMethods = $this->source('assets/js/blox-image-control.js');
         $imageControl = $this->source('admin/blox_editor/partials/image-control.php');
         $this->assertStringContainsString('...window.BloxImageControl.methods', $editor);
+        $this->assertStringContainsString('...window.BloxBackgroundPanel.methods', $editor);
+        $this->assertStringContainsString('openPreferredBackgroundLayer()', $backgroundPanel);
+        $this->assertStringContainsString('container_bg_image', $backgroundPanel);
+        $this->assertStringContainsString('data-testid="blox-background-layer-', $backgroundSwitcher);
+        $this->assertStringContainsString('backgroundLayerState(', $backgroundSwitcher);
         $this->assertStringContainsString('pickContainerBackgroundImage()', $imageMethods);
         $this->assertStringContainsString('container_bg_image: ""', $editor);
         $this->assertStringContainsString('data-testid="blox-container-background-image"', $workspace);

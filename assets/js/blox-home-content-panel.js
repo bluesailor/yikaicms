@@ -157,6 +157,23 @@
             var state = this.homeContentField(key);
             return state ? state.value : String(((this.selEl || {}).data || {})[key] || "");
         },
+        setHomeContentImage(key, url, discrete) {
+            var node = this.selEl;
+            if (!isImage(node, key) || typeof url !== "string") return;
+            var previousUrl = String(node.data[key] || "");
+            if (previousUrl === url) return;
+            var self = this;
+            if (discrete !== false && typeof this.flushHistory === "function") this.flushHistory(true);
+            this.runCommand("set-home-content-image", function () {
+                if (node.data.block_type === "cta" && key === "bg_image"
+                    && typeof self.clearMatchingHomeBackgroundCopies === "function") {
+                    self.clearMatchingHomeBackgroundCopies(previousUrl, node.data, key);
+                    self.clearMatchingHomeBackgroundCopies(url, node.data, key);
+                }
+                node.data[key] = url;
+            });
+            if (discrete !== false && typeof this.flushHistory === "function") this.flushHistory(true);
+        },
         inheritHomeContentField(key) {
             var state = this.homeContentField(key), node = this.selEl;
             if (!state || state.inherited) return;
@@ -184,7 +201,7 @@
             var self = this;
             this.openMedia(function (url) {
                 if (self.selEl !== node) return;
-                self.runCommand("replace-home-content-image", function () { node.data[key] = url; });
+                methods.setHomeContentImage.call(self, key, url);
             }, node.data.block_type === "cta" ? { usage: "cta", source: "official" } : {});
         },
     };
