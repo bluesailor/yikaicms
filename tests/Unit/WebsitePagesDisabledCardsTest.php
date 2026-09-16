@@ -62,6 +62,9 @@ final class WebsitePagesDisabledCardsTest extends TestCase
         // 恢复/删除已提到卡面："…"菜单不再重复这两项（删除入口全卡片只此一处）
         self::assertSame(1, substr_count($html, 'data-page-delete='));
         self::assertSame(1, substr_count($html, 'toggleStatus(42'));
+        // 停用页前台 404：不给浏览入口；启用页照常有
+        self::assertStringNotContainsString('/page.php?id=42" target="_blank"', $html);
+        self::assertStringContainsString('/page.php?id=42" target="_blank"', renderWebsitePageCard(self::page()));
     }
 
     public function testDeleteKeepsTheSameRedLinesAsTheListView(): void
