@@ -66,6 +66,7 @@ final class BuilderRegistry
                 'scripts' => $el->scripts(),
                 'styles' => $el->styles(),
                 'treeLabelField' => $el->treeLabelField(),
+                'regions' => $el->regions(),
                 'deprecated' => $el->deprecated(),
                 'missing' => false,
                 'plugin' => BloxPluginRegistry::ownerOf($type),

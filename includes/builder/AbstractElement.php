@@ -502,6 +502,20 @@ abstract class AbstractElement
         return null;
     }
 
+    /**
+     * 复合元素的命名区域（结构树把每个区域渲染为根节点下可选中、可展开的子节点）。
+     *
+     * 区域是 schema 级声明：不写入文档 data，因此旧文档不产生 dirty、不需要迁移，
+     * 也不能被 BloxDocumentValidator 当作 children 校验。`keys` 决定选中区域时
+     * 设置面板只显示哪些控件；未列入任何区域的控件在根节点下始终可见。
+     *
+     * @return list<array{key:string,label:string,icon:string,keys:list<string>}>
+     */
+    public function regions(): array
+    {
+        return [];
+    }
+
     /** 已废弃元素仍可渲染已有数据，但不应再允许新增。 */
     public function deprecated(): bool
     {
