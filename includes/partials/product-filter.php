@@ -25,9 +25,7 @@ if (empty($facetBrands) && empty($facetTagGroups)) {
 
 // 第 1 页基础路径（切换筛选时始终回到第 1 页）
 $catSlug = $productCategory['slug'] ?? '';
-$fbase = $catSlug !== ''
-    ? '/product/' . $catSlug . '.html'
-    : ((($channel['slug'] ?? '') !== '') ? '/' . $channel['slug'] . '.html' : '/list/' . (int) $channel['id'] . '.html');
+$fbase = !empty($productCategory) ? productCategoryUrl($productCategory) : channelUrl($channel);
 
 // 当前生效的筛选参数（保留 keyword/sort，切换 facet 时不丢）
 $curFilters = [];
@@ -38,7 +36,7 @@ foreach (['keyword', 'sort', 'brand', 'tag', 'pmin', 'pmax'] as $k) {
     }
 }
 $buildUrl = static function (array $params) use ($fbase): string {
-    return $params ? $fbase . '?' . http_build_query($params) : $fbase;
+    return $params ? $fbase . (str_contains($fbase, '?') ? '&' : '?') . http_build_query($params) : $fbase;
 };
 // 在逗号列表参数里切换一个 id（选中↔取消），返回目标 URL
 $toggleUrl = static function (string $param, int $id) use ($curFilters, $buildUrl): string {
