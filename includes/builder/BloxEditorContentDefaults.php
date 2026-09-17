@@ -8,6 +8,9 @@ declare(strict_types=1);
  * 注册表元数据在后台语言下生成：控件标签、选项名是界面文字，应跟后台语言；
  * 但插入元素时写进文档的默认值（按钮文字、新增条目的标题与正文等）是页面内容，
  * 英文/日文页面里应是英文/日文。这里用内容语言下再生成的一份元数据，只替换内容类字段。
+ *
+ * 唯一调用方 admin/blox_editor.php 不在 Psalm 扫描范围内，静态分析视为无人使用。
+ * @psalm-suppress UnusedClass
  */
 final class BloxEditorContentDefaults
 {

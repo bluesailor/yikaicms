@@ -24,7 +24,6 @@ if (empty($facetBrands) && empty($facetTagGroups)) {
 }
 
 // 第 1 页基础路径（切换筛选时始终回到第 1 页）
-$catSlug = $productCategory['slug'] ?? '';
 $fbase = !empty($productCategory) ? productCategoryUrl($productCategory) : channelUrl($channel);
 
 // 当前生效的筛选参数（保留 keyword/sort，切换 facet 时不丢）
