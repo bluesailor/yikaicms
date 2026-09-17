@@ -309,7 +309,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div x-data="pluginMarket()">
     <!-- 页签 + 操作栏 -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div class="flex items-center gap-1">
             <button @click="tab = 'installed'"
                     :class="tab === 'installed' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:text-primary'"
@@ -325,11 +325,30 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <i class="ti ti-building-store text-base"></i><?php echo e(__('pl_market')); ?>
             </button>
         </div>
-        <button x-show="tab === 'installed'" onclick="document.getElementById('uploadModal').classList.remove('hidden')"
-                class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded transition inline-flex items-center gap-2">
-            <i class="ti ti-cloud-upload text-base"></i>
-            <?php echo e(__('pl_upload_install')); ?>
-        </button>
+        <div class="flex items-center gap-2">
+            <!-- 网格 / 列表切换：两个页签各记各的，默认保持原样（已安装=列表，市场=网格） -->
+            <div class="inline-flex rounded-lg bg-white shadow-sm p-0.5" role="group" aria-label="<?php echo e(__('pl_view_label')); ?>">
+                <button type="button" @click="setView('grid')" data-testid="plugin-view-grid"
+                        :aria-pressed="currentView() === 'grid' ? 'true' : 'false'"
+                        :class="currentView() === 'grid' ? 'bg-primary text-white' : 'text-gray-500 hover:text-primary'"
+                        class="px-2.5 py-1.5 rounded-md text-sm transition cursor-pointer inline-flex items-center gap-1"
+                        title="<?php echo e(__('pl_view_grid')); ?>">
+                    <i class="ti ti-layout-grid text-base"></i><span class="hidden sm:inline"><?php echo e(__('pl_view_grid')); ?></span>
+                </button>
+                <button type="button" @click="setView('list')" data-testid="plugin-view-list"
+                        :aria-pressed="currentView() === 'list' ? 'true' : 'false'"
+                        :class="currentView() === 'list' ? 'bg-primary text-white' : 'text-gray-500 hover:text-primary'"
+                        class="px-2.5 py-1.5 rounded-md text-sm transition cursor-pointer inline-flex items-center gap-1"
+                        title="<?php echo e(__('pl_view_list')); ?>">
+                    <i class="ti ti-list text-base"></i><span class="hidden sm:inline"><?php echo e(__('pl_view_list')); ?></span>
+                </button>
+            </div>
+            <button x-show="tab === 'installed'" onclick="document.getElementById('uploadModal').classList.remove('hidden')"
+                    class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded transition inline-flex items-center gap-2">
+                <i class="ti ti-cloud-upload text-base"></i>
+                <?php echo e(__('pl_upload_install')); ?>
+            </button>
+        </div>
     </div>
 
     <!-- Tab: 插件市场 -->
@@ -360,10 +379,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="bg-white rounded-lg shadow p-10 text-center text-gray-400 text-sm"><?php echo e(__('pl_no_match')); ?></div>
         </template>
 
-        <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="!loading && !error" data-testid="plugin-market-list">
+        <div :class="views.market === 'grid' ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-4' : 'grid grid-cols-1 gap-3'"
+             :data-view="views.market" x-show="!loading && !error" data-testid="plugin-market-list">
             <template x-for="p in items" :key="p.slug">
                 <div class="bg-white rounded-lg shadow px-5 py-4 flex flex-col gap-2" :data-plugin-slug="p.slug">
-                    <template x-if="p.thumbnail">
+                    <template x-if="p.thumbnail && views.market === 'grid'">
                         <img :src="p.thumbnail" :alt="p.name" loading="lazy" decoding="async" style="width:100%;aspect-ratio:16/9;object-fit:contain;background:#f3f4f6" @error="$el.style.display = 'none'">
                     </template>
                     <div class="flex items-center gap-3">
@@ -438,17 +458,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
     <?php else: ?>
     <!-- 插件列表 -->
-    <div class="space-y-4" id="pluginList">
+    <div :class="views.installed === 'grid' ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-4'"
+         :data-view="views.installed" data-testid="plugin-installed-list" id="pluginList">
         <?php foreach ($plugins as $slug => $p): ?>
-        <div class="bg-white rounded-lg shadow" id="plugin-<?php echo e($slug); ?>">
-            <div class="px-6 py-5 flex items-start gap-4">
+        <div class="bg-white rounded-lg shadow" :class="views.installed === 'grid' ? 'h-full' : ''" id="plugin-<?php echo e($slug); ?>" data-testid="plugin-installed-item">
+            <div :class="views.installed === 'grid' ? 'h-full px-5 py-4 flex flex-col gap-3' : 'px-6 py-5 flex items-start gap-4'">
                 <!-- 插件图标 -->
                 <div class="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center <?php echo $p['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
                     <i class="ti ti-clipboard text-xl"></i>
                 </div>
                 <!-- 插件信息 -->
                 <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-3 mb-1">
+                    <div class="flex items-center gap-3 mb-1" :class="views.installed === 'grid' ? 'flex-wrap gap-y-1' : ''">
                         <?php
                         $pName = pluginMetaLabel($p, 'name', (string) $slug);
                         ?>
@@ -493,8 +514,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span>ID: <?php echo e($slug); ?></span>
                     </div>
                 </div>
-                <!-- 操作按钮 -->
-                <div class="flex-shrink-0 flex items-center gap-2">
+                <!-- 操作按钮（网格视图下换行并沉到卡片底部，窄卡片不溢出） -->
+                <div class="flex-shrink-0 flex items-center gap-2"
+                     :class="views.installed === 'grid' ? 'flex-wrap mt-auto pt-3 border-t border-gray-100' : ''">
                     <button x-show="upd['<?php echo e($slug); ?>']" x-cloak
                             @click="upgradeInstalled('<?php echo e($slug); ?>')"
                             :disabled="installing === '<?php echo e($slug); ?>'"
@@ -589,8 +611,17 @@ function pluginMarket() {
         local: <?php echo json_encode($localVersions, JSON_UNESCAPED_UNICODE); ?>,
         // 可升级映射：slug -> 市场条目（进页面即后台静默检测）
         upd: {},
+        // 每个页签各自的视图；默认沿用改版前的样子
+        views: { installed: 'list', market: 'grid' },
+        viewStorageKey: 'yikai:admin:plugin-views:v1',
 
         init() {
+            try {
+                var saved = JSON.parse(localStorage.getItem(this.viewStorageKey) || '{}');
+                ['installed', 'market'].forEach(function (key) {
+                    if (saved && (saved[key] === 'grid' || saved[key] === 'list')) this.views[key] = saved[key];
+                }, this);
+            } catch (e) { /* 隐私模式/禁用存储：用默认视图 */ }
             this.checkUpdates();
             // 直接落在市场页签时立刻检索（checkUpdates 只预热不筛关键词）
             if (this.tab === 'market') this.search();
@@ -613,6 +644,12 @@ function pluginMarket() {
             } catch (e) { /* 静默：检测失败不打扰 */ }
         },
         updCount() { return Object.keys(this.upd).length; },
+        currentView() { return this.views[this.tab] || 'list'; },
+        setView(view) {
+            if (view !== 'grid' && view !== 'list') return;
+            this.views[this.tab] = view;
+            try { localStorage.setItem(this.viewStorageKey, JSON.stringify(this.views)); } catch (e) { /* 仅本次会话生效 */ }
+        },
         upgradeInstalled(slug) {
             if (this.upd[slug]) this.install(this.upd[slug]);
         },
