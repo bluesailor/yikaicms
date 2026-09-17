@@ -1,0 +1,80 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Customer testimonials carousel",
+    "requires": {
+        "elements": [
+            "testimonial-carousel"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "お客様の声",
+                "settings": {
+                    "title": "お客様の声",
+                    "subtitle": "さまざまな業界のお客様からいただいた実際の評価です",
+                    "bg_color": "#f8fafc",
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "testimonial-carousel",
+                                "data": {
+                                    "items": [
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-1.svg",
+                                            "name": "佐藤 健一",
+                                            "role": "購買部長 · 東和製作所",
+                                            "content": "選定から納品までわずか 3 週間。技術チームが最後まで伴走してくれ、立ち上げも一度で完了しました。追加の 2 ラインでも引き続き採用しています。",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-2.svg",
+                                            "name": "高橋 美咲",
+                                            "role": "運営マネージャー · ひかりストア",
+                                            "content": "店舗システム導入後、棚卸しの時間が半分になりました。困ったときにすぐ対応してもらえる点を最も評価しています。",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-3.svg",
+                                            "name": "中村 大輔",
+                                            "role": "技術責任者 · 北陸ロジスティクス",
+                                            "content": "機能を詰め込みすぎない、現場に合った提案でした。業務フローに合わせてカスタマイズしてもらい、1 週間の研修で社員が使いこなせています。",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-4.svg",
+                                            "name": "山本 彩",
+                                            "role": "マーケティング部長 · みどりバイオ",
+                                            "content": "取引は 3 年目。見積もりが明確で納期も確実です。新しいサイト公開後、お問い合わせが目に見えて増えました。",
+                                            "rating": "5"
+                                        }
+                                    ],
+                                    "per_view": "3",
+                                    "autoplay": true,
+                                    "interval": "5",
+                                    "show_dots": true,
+                                    "show_arrows": false,
+                                    "card_style": "cards",
+                                    "align": "left"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
