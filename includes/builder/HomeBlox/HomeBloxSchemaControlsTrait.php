@@ -275,7 +275,7 @@ trait HomeBloxSchemaControlsTrait
                 'option_icons' => [
                     'inherit' => 'settings',
                     'line' => 'minus',
-                    'dot' => 'point-filled',
+                    'dot' => 'point',
                     'none' => 'ban',
                 ],
                 'required' => ['block_type', '=', $titleSources],

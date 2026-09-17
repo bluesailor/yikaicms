@@ -1183,7 +1183,8 @@ final class BuilderRenderTest extends TestCase
             'columns' => [['elements' => []]],
         ]]));
 
-        $this->assertStringContainsString('<div class="text-left mb-10">', $out);
+        // 与首页动态区块标题一致：默认滚动进入视窗时向上淡入
+        $this->assertStringContainsString('<div class="text-left mb-10" data-animate="fade-up">', $out);
         $this->assertStringContainsString(
             '<h3 class="blk-title" style="font-size:2.25rem;color:#123456;">Section title</h3>',
             $out
@@ -1199,6 +1200,23 @@ final class BuilderRenderTest extends TestCase
         ]]));
         $this->assertStringContainsString('<h2 class="blk-title">Safe</h2>', $fallback);
         $this->assertStringNotContainsString('display:none', $fallback);
+    }
+
+    public function testSectionTitleAnimationCanBeChangedOrTurnedOff(): void
+    {
+        $render = static fn(array $settings): string => BlockRenderer::render((string) json_encode([[
+            'settings' => ['title' => 'Animated'] + $settings,
+            'columns' => [['elements' => []]],
+        ]]));
+        $this->assertStringContainsString('<div class="text-center mb-10" data-animate="zoom-in">', $render(['title_animation' => 'zoom-in']));
+        $this->assertStringContainsString('<div class="text-center mb-10">', $render(['title_animation' => 'none']));
+        $this->assertStringNotContainsString('data-animate', $render(['title_animation' => 'none']));
+        // 非法值在保存时归零为默认
+        $processed = \BloxDocumentPipeline::process((string) json_encode([[
+            'settings' => ['title' => 'X', 'title_animation' => '"><script>'],
+            'columns' => [['elements' => []]],
+        ]]), 'page');
+        $this->assertSame('', $processed['sections'][0]['settings']['title_animation']);
     }
 
     public function testSectionTitleDecorationMatchesHomeBlockOptions(): void

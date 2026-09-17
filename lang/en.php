@@ -7401,4 +7401,6 @@ voltage|Voltage|220V',
     'fsp_ip_hint' => 'Ban a sender IP from the inquiry details; review and lift bans on the Inquiries page.',
     'fsp_ip_manage' => 'Manage banned IPs',
     'fsp_moved_hint' => 'Rate limits, form signatures, content filtering and captchas have moved to Inquiries › Spam protection.',
+    'blox_anim_default_fade_up' => 'Default (fade up)',
+    'blox_section_title_animation_help' => 'The title and subtitle appear as they scroll into view. Animations do not play on the editor canvas; check them in preview or on the live site.',
 ];
