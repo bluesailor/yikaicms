@@ -2533,6 +2533,7 @@ return [
     'blox_preview_width_auto' => '恢复自动宽度',
     'blox_preview_edit_tier' => '编辑档位：',
     'blox_preview_width_label' => '预览宽度：',
+    'blox_preview_width_tier_hint' => '当前预览宽度所属的断点档位：手机 <768px · 平板 768–1023px · 桌面 ≥1024px',
     'blox_page_frame_lang' => '语言：',
     'blox_page_frame_title_area' => '页面标题区 / 面包屑',
     'blox_page_frame_title_area_hint' => '与画布内设置同一份数据',

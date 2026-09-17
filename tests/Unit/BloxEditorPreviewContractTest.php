@@ -1897,7 +1897,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
     public function testGlobalDeviceSwitchExposesSelectedResponsiveOverrideState(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        $editor = $this->source('admin/blox_editor.php') . "
+" . $this->source('admin/blox_editor/partials/responsive-methods.php');
         $header = $this->source('admin/blox_editor/partials/header.php');
 
         foreach ([

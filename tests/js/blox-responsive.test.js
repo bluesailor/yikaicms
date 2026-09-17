@@ -83,3 +83,14 @@ test('R2B: clampPreviewWidth clamps to 320-2560 and treats empty/invalid as auto
     assert.equal(responsive.PREVIEW_WIDTH_MIN, 320);
     assert.equal(responsive.PREVIEW_WIDTH_MAX, 2560);
 });
+
+test('breakpoint ranges and preview width tiers share one definition', () => {
+    assert.deepStrictEqual(
+        ['mobile', 'tablet', 'desktop'].map((device) => responsive.rangeLabel(device)),
+        ['<768px', '768\u20131023px', '\u22651024px']
+    );
+    assert.deepStrictEqual(
+        [320, 767, 768, 1023, 1024, 2560, 'x'].map((width) => responsive.deviceForWidth(width)),
+        ['mobile', 'mobile', 'tablet', 'tablet', 'desktop', 'desktop', 'desktop']
+    );
+});

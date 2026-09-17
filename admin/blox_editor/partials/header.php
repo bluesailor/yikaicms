@@ -161,6 +161,9 @@ declare(strict_types=1);
                        data-testid="blox-preview-width-input"
                        class="w-16 h-7 rounded-md bg-gray-900 border border-gray-700 text-xs text-gray-200 text-center outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                 <span class="text-[10px] text-gray-500">px</span>
+                <span class="text-[10px] text-gray-400 whitespace-nowrap" data-testid="blox-preview-width-tier"
+                      :title="<?= e($jt('blox_preview_width_tier_hint')) ?>"
+                      x-text="responsiveDeviceRangeLabel(previewWidthDevice())"></span>
                 <button type="button" x-show="previewCustomWidth > 0" x-cloak @click="clearPreviewCustomWidth()"
                         title="<?= e(__('blox_preview_width_auto')) ?>" aria-label="<?= e(__('blox_preview_width_auto')) ?>"
                         data-testid="blox-preview-width-clear"

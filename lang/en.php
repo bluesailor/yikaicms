@@ -2465,6 +2465,7 @@ return [
     'blox_preview_width_auto' => 'Back to automatic width',
     'blox_preview_edit_tier' => 'Editing tier: ',
     'blox_preview_width_label' => 'Preview width: ',
+    'blox_preview_width_tier_hint' => 'Breakpoint of the current preview width: Mobile <768px · Tablet 768–1023px · Desktop ≥1024px',
     'blox_page_frame_lang' => 'Language: ',
     'blox_page_frame_title_area' => 'Page title area / breadcrumb',
     'blox_page_frame_title_area_hint' => 'Same data as the in-canvas settings',
