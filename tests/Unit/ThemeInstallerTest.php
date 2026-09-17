@@ -285,6 +285,14 @@ final class ThemeInstallerTest extends TestCase
         unlink($this->themesRoot . '/business/' . MarketInstallOrigin::FILE);
         self::assertSame('origin_unknown', $installer->install($zip, 'business', '1.1.0', 'community')['code']);
         self::assertSame('old', file_get_contents($this->themesRoot . '/business/layouts/header.php'));
+
+        // 首次信任：无回执的存量主题可由官方目录更新，旧主题进备份并写入 official 回执
+        $updated = $installer->install($zip, 'business', '1.1.0', 'official');
+        self::assertTrue($updated['ok'], $updated['code']);
+        self::assertSame('new', file_get_contents($this->themesRoot . '/business/layouts/header.php'));
+        self::assertSame('old', file_get_contents($updated['backup'] . '/layouts/header.php'));
+        $receipt = json_decode(file_get_contents($this->themesRoot . '/business/' . MarketInstallOrigin::FILE), true);
+        self::assertSame(['theme', 'official'], [$receipt['kind'], $receipt['origin']]);
     }
 
     public function testFailedManagedThemeUpdateRestoresOriginAndFiles(): void
