@@ -190,6 +190,16 @@ $defaultTemplate = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     [submit "' . __('form_submit') . '"]
 </div>';
 
+// 常用表单预设：卡片说明用后台语言，填入的表单文案用当前编辑的内容语言
+require_once ROOT_PATH . '/admin/includes/form_presets.php';
+$formPresets = withLanguageStrings($_viewLang, 'formDesignPresets');
+foreach ($formPresets as &$preset) {
+    $preset['label'] = __('fd_preset_' . $preset['key']);
+    $preset['desc'] = __('fd_preset_' . $preset['key'] . '_desc');
+}
+unset($preset);
+$existingFormSlugs = array_values(array_map('strval', array_column($templates, 'slug')));
+
 $pageTitle = __('fd_page_title');
 $currentMenu = 'form';
 
@@ -310,6 +320,28 @@ if ($_i18nReady) {
             </div>
             <?php endif; ?>
 
+            <?php if ($_viewLang === $_defaultLang): ?>
+            <!-- 常用表单预设：仅新建时显示 -->
+            <div id="presetPicker" class="hidden" data-testid="form-design-presets">
+                <div class="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                    <span class="text-sm font-medium text-gray-700"><?php echo e(__('fd_presets_title')); ?></span>
+                    <span class="text-xs text-gray-400"><?php echo e(__('fd_presets_hint')); ?></span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 md:grid-cols-4">
+                    <?php foreach ($formPresets as $preset): ?>
+                    <button type="button" onclick="applyFormPreset('<?php echo e($preset['key']); ?>')" data-preset="<?php echo e($preset['key']); ?>"
+                            class="form-preset-card flex items-start gap-2 rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-primary hover:bg-primary/5">
+                        <i class="ti ti-<?php echo e($preset['icon']); ?> mt-0.5 text-lg text-primary" aria-hidden="true"></i>
+                        <span class="min-w-0">
+                            <span class="block text-sm font-medium text-gray-800"><?php echo e($preset['label']); ?></span>
+                            <span class="mt-0.5 block text-xs leading-snug text-gray-500"><?php echo e($preset['desc']); ?></span>
+                        </span>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- 基本信息 -->
             <div class="grid grid-cols-3 gap-4">
                 <div>
@@ -414,6 +446,40 @@ if ($_i18nReady) {
 <script>
 var currentTagType = 'text';
 var defaultTemplate = <?php echo json_encode($defaultTemplate, JSON_HEX_TAG | JSON_HEX_AMP); ?>;
+var formPresets = <?php echo json_encode($formPresets, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+var existingFormSlugs = <?php echo json_encode($existingFormSlugs, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+var activeFormPreset = '';
+
+function uniqueFormSlug(base) {
+    var slug = base;
+    for (var i = 2; existingFormSlugs.indexOf(slug) !== -1; i++) slug = base + '-' + i;
+    return slug;
+}
+
+function highlightFormPreset(key) {
+    document.querySelectorAll('.form-preset-card').forEach(function (card) {
+        var active = card.dataset.preset === key;
+        card.classList.toggle('border-primary', active);
+        card.classList.toggle('bg-primary/5', active);
+        card.classList.toggle('border-gray-200', !active);
+    });
+}
+
+function applyFormPreset(key) {
+    var preset = formPresets.find(function (item) { return item.key === key; });
+    if (!preset) return;
+    var editor = document.getElementById('templateEditor');
+    var name = document.getElementById('editName');
+    var touched = name.value.trim() !== '' || (editor.value.trim() !== '' && editor.value !== defaultTemplate);
+    var current = formPresets.find(function (item) { return item.key === activeFormPreset; });
+    if (touched && !(current && current.template_text === editor.value && current.name === name.value) && !confirm(<?php echo json_encode(__('fd_presets_confirm'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)) return;
+    name.value = preset.name;
+    document.getElementById('editSlug').value = uniqueFormSlug(preset.slug);
+    document.getElementById('editSuccessMsg').value = preset.success_message;
+    editor.value = preset.template_text;
+    activeFormPreset = key;
+    highlightFormPreset(key);
+}
 
 var tagTypeNames = {
     'text': '<?php echo __("fd_tag_text"); ?>', 'email': '<?php echo __("fd_tag_email"); ?>', 'tel': '<?php echo __("fd_tag_tel"); ?>',
@@ -430,6 +496,10 @@ function openEditModal(item) {
     document.getElementById('editSuccessMsg').value = item ? (item.success_message || '') : '';
     document.getElementById('editCaptcha').checked = item ? (Number(item.captcha) === 1) : false;
     document.getElementById('templateEditor').value = item ? item.template_text : defaultTemplate;
+    var presetPicker = document.getElementById('presetPicker');
+    if (presetPicker) presetPicker.classList.toggle('hidden', isEdit);
+    activeFormPreset = '';
+    highlightFormPreset('');
     document.getElementById('editModal').classList.remove('hidden');
 }
 
