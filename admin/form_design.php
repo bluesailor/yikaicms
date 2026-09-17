@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // slug 始终基于源记录验证（非默认语言下 slug 不可改，且新建必须先建源行）
         if ($isLangEdit) {
             if ($id <= 0) error(__('fd_add_in_source_first'));
-            $src = formTemplateModel()->findById($id);
+            $src = formTemplateModel()->find($id);
             if (!$src) error(__('admin_source_missing'));
             $slug = (string) $src['slug'];  // 强制保留源 slug
             // 翻译版只校验 name 与 fields；slug 用源行保留
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'delete') {
         $id = postInt('id');
-        $tpl = formTemplateModel()->findById($id);
+        $tpl = formTemplateModel()->find($id);
         if ($tpl && $tpl['slug'] === 'contact') {
             error(__('fd_err_default_undelete'));
         }
