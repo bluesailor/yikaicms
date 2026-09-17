@@ -106,6 +106,7 @@ final class DemoSandbox
             'upgrade.php', 'upgrade_online.php',      // 升级会改文件、跑迁移
             'plugin.php', 'theme.php',                // 安装/卸载/上传 = 写代码文件
             'setting_security.php', 'site_health.php', // 改 .htaccess / 探针修复
+            'form_spam.php',                          // 放宽防垃圾规则会让演示站被刷
             'user.php', 'profile.php',                // 改密码会把其他访客锁在门外
             'database.php',                           // 任意 SQL 恢复 / 清表
             'static_html.php', 'setting_seo.php', 'system.php',

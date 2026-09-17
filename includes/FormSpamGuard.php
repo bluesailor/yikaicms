@@ -28,6 +28,37 @@ final class FormSpamGuard
             && mb_strlen((string) ($input['product_title'] ?? '')) <= 255;
     }
 
+    /** 屏蔽关键词：每行一个，去空行去重，最多 500 条、每条 100 字。 */
+    public static function keywordList(string $raw): array
+    {
+        $keywords = [];
+        foreach (preg_split('/\R/u', $raw) ?: [] as $line) {
+            $line = trim($line);
+            if ($line === '' || mb_strlen($line) > 100) continue;
+            $keywords[mb_strtolower($line)] ??= $line;
+            if (count($keywords) >= 500) break;
+        }
+        return array_values($keywords);
+    }
+
+    /**
+     * 内容过滤：链接数超过上限，或命中屏蔽关键词（不区分大小写的子串匹配）。
+     * 命中时由调用方假装成功、不入库，避免被机器人探测规则。
+     *
+     * @param list<string> $keywords
+     */
+    public static function blockedContent(string $content, array $keywords, int $maxLinks): bool
+    {
+        if ($content === '') return false;
+        if (preg_match_all('~https?://|www\.~i', $content) > max(0, $maxLinks)) return true;
+        $haystack = mb_strtolower($content);
+        foreach ($keywords as $keyword) {
+            $keyword = mb_strtolower(trim($keyword));
+            if ($keyword !== '' && str_contains($haystack, $keyword)) return true;
+        }
+        return false;
+    }
+
     /** Throws for malformed values rather than coercing arrays to strings. */
     public static function fieldValue(array $field, mixed $raw): string
     {

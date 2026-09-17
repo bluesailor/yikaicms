@@ -141,4 +141,27 @@ final class FormSpamGuardTest extends TestCase
         self::assertSame(7, count(array_filter($results, static fn(string $result): bool => $result === 'duplicate')));
         self::assertSame("saved\n", file_get_contents($this->directory . '/persisted.txt'));
     }
+
+    public function testContentFilterBlocksTooManyLinksAndConfiguredKeywords(): void
+    {
+        $keywords = FormSpamGuard::keywordList("  Casino 
+
+代开发票
+casino
+" . str_repeat('x', 101));
+        self::assertSame(['Casino', '代开发票'], $keywords);
+
+        self::assertFalse(FormSpamGuard::blockedContent('', $keywords, 3));
+        self::assertFalse(FormSpamGuard::blockedContent('想咨询产品报价', $keywords, 3));
+        self::assertTrue(FormSpamGuard::blockedContent('Best CASINO bonus', $keywords, 3));
+        self::assertTrue(FormSpamGuard::blockedContent('可以代开发票吗', $keywords, 3));
+
+        $links = 'https://a.test https://b.test www.c.test';
+        self::assertFalse(FormSpamGuard::blockedContent($links, [], 3));
+        self::assertTrue(FormSpamGuard::blockedContent($links . ' https://d.test', [], 3));
+        self::assertTrue(FormSpamGuard::blockedContent('see https://a.test', [], 0));
+        self::assertFalse(FormSpamGuard::blockedContent('no links here', [], 0));
+        self::assertCount(500, FormSpamGuard::keywordList(implode("
+", array_map(static fn(int $i): string => 'k' . $i, range(1, 600)))));
+    }
 }

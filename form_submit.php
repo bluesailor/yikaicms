@@ -141,9 +141,10 @@ foreach ($fields as $field) {
 $extra = json_encode($formData, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 if (strlen($extra) > 60000) rejectFormSpam('form_guard_payload', 422);
 
-// 反垃圾 3：内容含过多链接 = 典型垃圾，丢弃（假装成功）
+// 反垃圾 3：内容过滤 —— 链接过多或命中屏蔽关键词 = 典型垃圾，丢弃（假装成功）。规则在「询盘管理 › 防垃圾设置」
 $_content = implode("\n", $formData);
-if ($_content !== '' && preg_match_all('~https?://|www\.~i', $_content) > 3) {
+$_maxLinks = max(0, min(20, (int) config('form_max_links', '3')));
+if (FormSpamGuard::blockedContent($_content, FormSpamGuard::keywordList((string) config('form_spam_keywords', '')), $_maxLinks)) {
     echo json_encode(['code' => 0, 'msg' => '提交成功，感谢您的反馈！']);
     exit;
 }
