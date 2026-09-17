@@ -32,7 +32,7 @@ declare(strict_types=1);
                 <span class="text-xs whitespace-nowrap"><?php echo e($bloxBackTitle); ?></span>
                 <?php endif; ?>
             </a>
-            <span class="blox-header-brand-copy inline-flex items-center gap-1.5 font-bold tracking-wide shrink-0">
+            <span class="blox-header-brand-copy hidden min-[1920px]:inline-flex items-center gap-1.5 font-bold tracking-wide shrink-0">
                 <i class="ti ti-stack-2 text-blue-400"></i><?php echo e(__('blox_editor_title')); ?>
                 <span class="text-[10px] font-medium bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded"><?= __('label_experimental') ?></span>
             </span>
@@ -161,7 +161,7 @@ declare(strict_types=1);
                        data-testid="blox-preview-width-input"
                        class="w-16 h-7 rounded-md bg-gray-900 border border-gray-700 text-xs text-gray-200 text-center outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                 <span class="text-[10px] text-gray-500">px</span>
-                <span class="text-[10px] text-gray-400 whitespace-nowrap" data-testid="blox-preview-width-tier"
+                <span class="hidden min-[1920px]:inline text-[10px] text-gray-400 whitespace-nowrap" data-testid="blox-preview-width-tier"
                       :title="<?= e($jt('blox_preview_width_tier_hint')) ?>"
                       x-text="responsiveDeviceRangeLabel(previewWidthDevice())"></span>
                 <button type="button" x-show="previewCustomWidth > 0" x-cloak @click="clearPreviewCustomWidth()"
@@ -215,13 +215,13 @@ declare(strict_types=1);
             <span x-show="homePublished" x-cloak class="text-[10px] text-emerald-300 inline-flex items-center gap-1">
                 <i class="ti ti-world-check"></i><?php echo e(__('blox_published')); ?>
             </span>
-            <span x-show="!homePublished" x-cloak class="text-[10px] text-amber-300 inline-flex items-center gap-1">
-                <i class="ti ti-history-toggle"></i><?php echo e(__('blox_legacy_active')); ?>
+            <span x-show="!homePublished" x-cloak class="text-[10px] text-amber-300 inline-flex items-center gap-1" title="<?php echo e(__('blox_legacy_active')); ?>">
+                <i class="ti ti-history-toggle"></i><span class="hidden min-[1920px]:inline"><?php echo e(__('blox_legacy_active')); ?></span>
             </span>
             <button type="button" @click="rollbackHome()" :disabled="homeActionBusy || !homePublished" data-testid="blox-rollback"
                     class="text-amber-300 hover:text-white disabled:opacity-30 text-xs inline-flex items-center gap-1 px-2 py-1.5"
-                    title="<?php echo e(__('blox_rollback')); ?>">
-                <i class="ti ti-restore"></i><?php echo e(__('blox_rollback')); ?>
+                    title="<?php echo e(__('blox_rollback')); ?>" aria-label="<?php echo e(__('blox_rollback')); ?>">
+                <i class="ti ti-restore"></i><span class="hidden min-[1920px]:inline"><?php echo e(__('blox_rollback')); ?></span>
             </button>
 <?php elseif ($templateId): ?>
 <?php if ($templateId && $templateType === 'header'): ?>
@@ -278,8 +278,9 @@ declare(strict_types=1);
                 </div>
             </details>
             <details class="relative" data-testid="blox-header-state-settings">
-                <summary class="list-none text-cyan-300 hover:text-white text-xs inline-flex items-center gap-1 px-2 py-1.5 cursor-pointer">
-                    <i class="ti ti-layers-difference"></i><?php echo e(__('blox_header_states')); ?>
+                <summary class="list-none text-cyan-300 hover:text-white text-xs inline-flex items-center gap-1 px-2 py-1.5 cursor-pointer"
+                         title="<?php echo e(__('blox_header_states')); ?>" aria-label="<?php echo e(__('blox_header_states')); ?>">
+                    <i class="ti ti-layers-difference"></i><span class="hidden min-[1920px]:inline"><?php echo e(__('blox_header_states')); ?></span>
                 </summary>
                 <div class="absolute right-0 top-full z-50 mt-2 w-80 border border-gray-700 bg-gray-900 p-3 shadow-2xl">
                     <div class="grid grid-cols-3 gap-1 rounded border border-gray-700 bg-gray-800 p-1">
@@ -403,9 +404,10 @@ declare(strict_types=1);
 <?php endif; ?>
             <span x-show="ctxHit !== null && ctxHit !== <?php echo (int) $templateId; ?>" x-cloak
                   data-testid="blox-ctx-warn"
-                  class="text-[10px] text-amber-300 inline-flex items-center gap-1 max-w-[14rem]">
+                  class="text-[10px] text-amber-300 inline-flex items-center gap-1 max-w-[14rem]"
+                  :title="ctxHit === 0 ? <?= e($jt('blox_ctx_hit_none')) ?> : <?= e($jt('blox_ctx_hit_other')) ?>.replace(':id', ctxHit)">
                 <i class="ti ti-eye-off"></i>
-                <span x-text="ctxHit === 0 ? <?= e($jt('blox_ctx_hit_none')) ?> : <?= e($jt('blox_ctx_hit_other')) ?>.replace(':id', ctxHit)"></span>
+                <span class="hidden min-[1920px]:inline" x-text="ctxHit === 0 ? <?= e($jt('blox_ctx_hit_none')) ?> : <?= e($jt('blox_ctx_hit_other')) ?>.replace(':id', ctxHit)"></span>
             </span>
 <?php endif; ?>
             <button type="button" x-show="draftSummary().changed" x-cloak @click="openDraftSummary()"
@@ -436,7 +438,7 @@ declare(strict_types=1);
             <button type="button" @click="openDesignSystem()" data-testid="blox-design-open"
                     class="text-gray-300 hover:text-emerald-300 text-sm inline-flex items-center gap-1 px-2 py-1.5 transition-colors"
                     title="<?php echo e(__('blox_design_system')); ?>" aria-label="<?php echo e(__('blox_design_system')); ?>">
-                <i class="ti ti-palette text-base"></i><span class="text-xs"><?php echo e(__('blox_design_system')); ?></span>
+                <i class="ti ti-palette text-base"></i><span class="hidden min-[1920px]:inline text-xs"><?php echo e(__('blox_design_system')); ?></span>
             </button>
 <?php endif; ?>
 <?php if ($canManageBloxDesign): ?>
@@ -469,7 +471,7 @@ declare(strict_types=1);
                     :title="structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand"
                     :aria-label="structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand"
                     :aria-expanded="String(structurePanelExpanded())" aria-controls="blox-structure-panel">
-                <i class="ti ti-list-tree text-base" aria-hidden="true"></i><span class="text-xs"><?= e(__('blox_mobile_structure')) ?></span>
+                <i class="ti ti-list-tree text-base" aria-hidden="true"></i><span class="hidden min-[1920px]:inline text-xs"><?= e(__('blox_mobile_structure')) ?></span>
             </button>
             <button type="button" @click="restoreWorkspace()" data-testid="blox-workspace-restore"
                     class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800 transition"
@@ -478,9 +480,9 @@ declare(strict_types=1);
             </button>
             <?php if ($frontPreviewUrl !== null): ?>
             <a href="<?php echo e($frontPreviewUrl); ?>" <?= !$isHomeBlox && !$templateId ? ':href="pageFrontPreviewUrl()"' : '' ?> target="_blank" rel="noopener"
-               data-testid="blox-front-preview"
+               data-testid="blox-front-preview" title="<?php echo e(__('blox_front_preview')); ?>" aria-label="<?php echo e(__('blox_front_preview')); ?>"
                class="text-gray-300 hover:text-white text-sm inline-flex items-center gap-1 px-2 py-1.5">
-                <i class="ti ti-eye text-base"></i><span class="text-xs" <?php if (!$isHomeBlox && !$templateId): ?>x-text="pageIsPublishedCurrent() ? <?= e($jt('blox_page_view_published')) ?> : <?= e($jt('ab_preview_draft')) ?>"<?php endif; ?>><?php echo e(__('blox_front_preview')); ?></span>
+                <i class="ti ti-eye text-base"></i><span class="hidden min-[1920px]:inline text-xs" <?php if (!$isHomeBlox && !$templateId): ?>x-text="pageIsPublishedCurrent() ? <?= e($jt('blox_page_view_published')) ?> : <?= e($jt('ab_preview_draft')) ?>"<?php endif; ?>><?php echo e(__('blox_front_preview')); ?></span>
             </a>
             <?php endif; ?>
             <div class="inline-flex items-center gap-1" data-testid="blox-save-publish-actions">
