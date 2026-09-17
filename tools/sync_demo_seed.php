@@ -173,8 +173,15 @@ if ($rows) {
         $cells[] = '1776652898';
         $values[] = '(' . implode(',', $cells) . ')';
     }
+    // 每行一条完整 INSERT：tools/mysql_to_sqlite.php 只转换以 INSERT 开头的行，
+    // 多行 VALUES 的续行会原样落进 sqlite 种子，JSON 里的 \" 不会被还原，
+    // 装出来的站点读模板时报「排版数据不是有效 JSON」，页头页脚直接不渲染。
     $columnList = '(`id`,`' . implode('`,`', $templateColumns) . '`,`admin_id`,`created_at`,`updated_at`)';
-    $insert = 'INSERT INTO `yikai_blox_templates` ' . $columnList . " VALUES\n" . implode(",\n", $values) . ';';
+    $statements = [];
+    foreach ($values as $tuple) {
+        $statements[] = 'INSERT INTO `yikai_blox_templates` ' . $columnList . ' VALUES ' . $tuple . ';';
+    }
+    $insert = implode("\n", $statements);
 
     $start = null;
     $end = null;
