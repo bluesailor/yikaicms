@@ -226,11 +226,11 @@ final class BloxAreaDocumentTest extends TestCase
     {
         $catalog = BloxAreaTemplatePresets::catalog();
         self::assertSame(
-            ['clean-site-header', 'full-width-site-header', 'centered-site-header', 'corporate-site-header', 'topbar-site-header', 'search-site-header', 'simple-light-site-footer', 'simple-dark-site-footer', 'clean-site-footer', 'four-column-light-site-footer', 'four-column-dark-site-footer', 'contact-site-footer', 'search-site-footer', 'classic-article-detail', 'showcase-case-detail', 'classic-product-detail', 'product-center-page', 'news-center-page', 'case-gallery-page'],
+            ['clean-site-header', 'full-width-site-header', 'centered-site-header', 'corporate-site-header', 'topbar-site-header', 'search-site-header', 'simple-light-site-footer', 'simple-dark-site-footer', 'clean-site-footer', 'four-column-light-site-footer', 'four-column-dark-site-footer', 'contact-site-footer', 'classic-article-detail', 'showcase-case-detail', 'classic-product-detail', 'product-center-page', 'news-center-page', 'case-gallery-page'],
             array_column($catalog, 'slug')
         );
         self::assertSame(
-            ['header', 'header', 'header', 'header', 'header', 'header', 'footer', 'footer', 'footer', 'footer', 'footer', 'footer', 'footer', 'article-detail', 'article-detail', 'product-detail', 'page', 'page', 'page'],
+            ['header', 'header', 'header', 'header', 'header', 'header', 'footer', 'footer', 'footer', 'footer', 'footer', 'footer', 'article-detail', 'article-detail', 'product-detail', 'page', 'page', 'page'],
             array_column($catalog, 'type')
         );
         self::assertSame(
@@ -247,7 +247,6 @@ final class BloxAreaDocumentTest extends TestCase
                 'footer-four-light',
                 'footer-four-dark',
                 'footer-contact',
-                'footer-search',
                 'detail-article',
                 'detail-case',
                 'detail-product',
@@ -327,9 +326,9 @@ final class BloxAreaDocumentTest extends TestCase
     public function testFooterEditorCatalogProvidesPracticalDynamicDocuments(): void
     {
         $catalog = BloxAreaTemplatePresets::editorCatalog('footer');
-        self::assertCount(7, $catalog);
+        self::assertCount(6, $catalog);
         self::assertSame(
-            ['simple-light-site-footer', 'simple-dark-site-footer', 'clean-site-footer', 'four-column-light-site-footer', 'four-column-dark-site-footer', 'contact-site-footer', 'search-site-footer'],
+            ['simple-light-site-footer', 'simple-dark-site-footer', 'clean-site-footer', 'four-column-light-site-footer', 'four-column-dark-site-footer', 'contact-site-footer'],
             array_column($catalog, 'slug')
         );
         foreach ($catalog as $preset) {
@@ -338,7 +337,7 @@ final class BloxAreaDocumentTest extends TestCase
             self::assertNotEmpty($preset['sections']);
             self::assertNotEmpty($preset['features']);
         }
-        self::assertSame([1, 2, 3, 4, 5, 6, 7], array_column($catalog, 'number'));
+        self::assertSame([1, 2, 3, 4, 5, 6], array_column($catalog, 'number'));
         foreach (array_slice($catalog, 0, 2) as $minimal) {
             self::assertCount(1, $minimal['sections']);
             $elements = $minimal['sections'][0]['columns'][0]['elements'];
@@ -350,7 +349,7 @@ final class BloxAreaDocumentTest extends TestCase
             self::assertSame('1', (string) $elements[1]['data']['show_police']);
         }
         self::assertSame(2, count($catalog[2]['sections']));
-        self::assertSame(3, count($catalog[6]['sections']));
+        self::assertSame(2, count($catalog[5]['sections']));
     }
 
     /** 四列页脚（浅/深）：上方四个等宽列，下方与极简页脚相同的版权 + 备案条，配色随浅深切换。 */

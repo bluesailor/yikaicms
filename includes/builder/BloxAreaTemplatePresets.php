@@ -144,8 +144,9 @@ final class BloxAreaTemplatePresets
             'preview' => 'footer-contact',
             'feature_keys' => ['blox_footer_feature_contact', 'blox_footer_feature_mobile_stack', 'blox_footer_feature_social'],
         ],
+        // 2026-09-17 页脚精简为六款：搜索、导航、联系方式已由四列深色页脚覆盖，此款转 legacy。
         'search-site-footer' => [
-            'number' => 7,
+            'legacy' => true,
             'type' => 'footer',
             'file' => 'search-site-footer.json',
             'name_key' => 'blox_area_preset_search_footer_name',
