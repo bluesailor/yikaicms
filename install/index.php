@@ -338,6 +338,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             // 必须在连接数据库、导入 SQL 和写 installed.lock 之前服务端拒绝。
             // 浏览器的 required/minlength 可被脚本请求完全绕过。
+            if (!installerAdminUsernameValid((string) $adminUser)) {
+                ob_end_clean();
+                echo json_encode([
+                    'success' => false,
+                    'code' => 'admin_username_invalid',
+                    'message' => $L['error_admin_user_invalid'],
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
             if (!installerAdminPasswordValid((string) $adminPass)) {
                 ob_end_clean();
                 echo json_encode([

@@ -36,6 +36,16 @@ final class ReleaseSecurityBoundaryTest extends TestCase
 
         $full = (string) file_get_contents(ROOT_PATH . '/deploy/nginx-server.conf');
         self::assertStringContainsString('location ^~ /storage/', $full);
+
+        // R05（2026-09-18 复审，真实 Nginx 实测）：/en/news.html 缺静态文件时，
+        // 语言规则去掉前缀后会重新匹配通用 .html 规则，进而直出默认语言的静态页。
+        // 带语言前缀的规则必须排在通用规则之前，且未命中直接交给 PHP。
+        $langLocation = strpos($full, 'location ~ ^/(?:ja|en|zh-CN|zh-TW)/.+\.html$');
+        $htmlLocation = strpos($full, "location ~ \.html\$ {");
+        self::assertIsInt($langLocation, '缺少多语言静态回退规则');
+        self::assertIsInt($htmlLocation);
+        self::assertLessThan($htmlLocation, $langLocation, '多语言规则必须排在通用 .html 规则之前');
+        self::assertStringContainsString('try_files /html$uri /index.php?$args;', $full);
         self::assertStringContainsString('location ^~ /install/', $full);
         self::assertStringContainsString('installed.lock', $full);
 

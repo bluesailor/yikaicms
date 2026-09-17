@@ -110,6 +110,59 @@ function permissionSetError(array $permissions): ?string
     return null;
 }
 
+/**
+ * 允许写进 contents.type 的类型键：内置类型 + 后台登记过的自定义模型。
+ *
+ * 共享编辑器过去直接采信 POST 里的 type，任何字符串都能落库；列表页又对未知类型
+ * 原样回显，于是 type 成了后台 HTML 注入的入口（2026-09-18 复审 R02）。
+ *
+ * @return list<string>
+ */
+function registeredContentTypes(): array
+{
+    $types = contentPermTypes();
+    if (function_exists('contentModelModel')) {
+        try {
+            $types = array_merge($types, contentModelModel()->keys());
+        } catch (\Throwable $e) {
+            // content_models 表可能尚未创建（老站升级中）：退回内置类型即可
+        }
+    }
+    $clean = [];
+    foreach ($types as $type) {
+        $type = (string) $type;
+        if ($type !== '' && preg_match('/^[a-z][a-z0-9_-]*$/', $type)) {
+            $clean[$type] = $type;
+        }
+    }
+    return array_values($clean);
+}
+
+/** type 是否为已登记的内容类型键。 */
+function isRegisteredContentType(string $type): bool
+{
+    return in_array($type, registeredContentTypes(), true);
+}
+
+/**
+ * 是否拥有任一内容类型的**编辑**权限（超管恒真）。
+ *
+ * 与 hasAnyContentPerm() 的区别：那个连"只有删除文章权"也算数，自定义模型的编辑
+ * 兜底用它等于让 delete-only 角色能创建和改写内容。
+ */
+function hasAnyContentEditPerm(): bool
+{
+    if (hasPermission('*')) {
+        return true;
+    }
+    foreach (contentPermTypes() as $t) {
+        if (hasPermission('edit_' . $t)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /** 是否拥有任一内容类型的编辑或删除权限（超管恒真） */
 function hasAnyContentPerm(): bool
 {
@@ -147,7 +200,8 @@ function requireAnyBloxPermission(): void
 
 /**
  * 共享内容编辑器守卫：已知内容类型精确要求 edit_{type}（保证类型隔离——
- * 产品编辑者不能借共享编辑器改文章）；未知/自定义类型（faq/模型）放宽到任一内容权限。
+ * 产品编辑者不能借共享编辑器改文章）；后台登记过的自定义模型要求任一**编辑**权限；
+ * 未登记的类型一律拒绝，不再放行任意字符串。
  */
 function requireContentEditPerm(?string $type): void
 {
@@ -156,7 +210,10 @@ function requireContentEditPerm(?string $type): void
         requirePermission('edit_' . $type);
         return;
     }
-    if (!hasAnyContentPerm()) {
+    if ($type !== '' && !isRegisteredContentType($type)) {
+        permissionDenied();
+    }
+    if (!hasAnyContentEditPerm()) {
         requirePermission('edit_article');   // 必失败，走统一「无操作权限」提示
     }
 }
@@ -354,9 +411,12 @@ function requireContentRowsOfType(array $ids, string $type, string $mode = 'edit
     }
     requirePermission(($mode === 'delete' ? 'delete_' : 'edit_') . $type);
 
+    // 回收站里的行不算「可操作」：Model::find() 会过滤掉它们，守卫若放行，
+    // 单条版随后拿到 null，撞出 TypeError 而不是受控错误（复审 R06）。
+    // 两个管理员先后操作同一条记录，或在旧列表里再删一次，都会走到这里。
     $placeholders = implode(',', array_fill(0, count($wanted), '?'));
     $rows = db()->fetchAll(
-        'SELECT id, `type` FROM ' . DB_PREFIX . 'contents WHERE id IN (' . $placeholders . ')',
+        'SELECT id, `type` FROM ' . DB_PREFIX . 'contents WHERE id IN (' . $placeholders . ') AND deleted_at IS NULL',
         $wanted
     );
     $allowed = [];
@@ -369,15 +429,61 @@ function requireContentRowsOfType(array $ids, string $type, string $mode = 'edit
     return $allowed;
 }
 
-/** 单条版：越界或不存在都拒绝，返回该行。 */
+/**
+ * 单条版：跨类型一律拒绝；记录不存在或已在回收站时返回受控的「数据不存在」。
+ * 批量版对同样的 id 是直接跳过（幂等），两者都不以 500 收场。
+ */
 function requireContentRowOfType(int $id, string $type, string $mode = 'edit'): array
 {
     if ($id <= 0 || !requireContentRowsOfType([$id], $type, $mode)) {
-        permissionDenied();
+        error(__('admin_no_data'));
     }
-    /** @var array<string,mixed> $row find() 刚确认过存在 */
     $row = contentModel()->find($id);
+    if ($row === null) {
+        // 守卫与 find() 之间被别人删掉了：同样按「已不存在」处理
+        error(__('admin_no_data'));
+    }
     return $row;
+}
+
+/**
+ * 翻译创建的授权：按"源记录到底是什么"判，而不是按"打开的是哪个页面"判。
+ *
+ * 翻译处理器有自己的 src_id，走在固定类型入口的行级守卫之前，因此只有 edit_article
+ * 的账号曾能借文章编辑页为案例、单页创建译文，并改动源记录的翻译分组
+ *（2026-09-18 发版前复审 R01 实测复现）。
+ *
+ * @param array<string,mixed> $row       源记录
+ * @param string              $boundType 固定类型入口声明的类型（article_edit → article）；空串表示共享入口
+ */
+function requireTranslationPermission(string $table, array $row, string $boundType = ''): void
+{
+    if ($table === 'contents') {
+        $type = (string) ($row['type'] ?? '');
+        if ($boundType !== '' && $type !== $boundType) {
+            permissionDenied();   // 固定类型入口不给别的类型开翻译口子
+        }
+        requireContentEditPerm($type);
+        return;
+    }
+
+    // 各自有独立表的内容：表名 → 能力键
+    $tablePermissions = [
+        'products'           => 'edit_product',
+        'product_categories' => 'edit_product',
+        'jobs'               => 'edit_job',
+        'downloads'          => 'edit_download',
+        'albums'             => 'media',
+        'banners'            => 'banner',
+        'links'              => 'link',
+    ];
+    if (isset($tablePermissions[$table])) {
+        requirePermission($tablePermissions[$table]);
+        return;
+    }
+
+    // 栏目、设置一类的结构数据：未登记的表一律要求超管，新增表默认收紧而不是默认放行
+    requirePermission('*');
 }
 
 /**

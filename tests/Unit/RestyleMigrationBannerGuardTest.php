@@ -125,7 +125,13 @@ final class RestyleMigrationBannerGuardTest extends TestCase
             }
         }
         $this->assertNotSame('', $line);
-        preg_match_all("/'((?:[^'\\\\]|\\\\.)*)'/", $line, $m);
+        // 首页文档单条十几 KB：默认的 PCRE JIT 栈与回溯上限不够用，preg_* 会整条失败
+        $jit = ini_set('pcre.jit', '0');
+        $limit = ini_set('pcre.backtrack_limit', '10000000');
+        $matched = preg_match_all("/'((?:[^'\\\\]|\\\\.)*)'/", $line, $m);
+        ini_set('pcre.jit', $jit === false ? '1' : $jit);
+        ini_set('pcre.backtrack_limit', $limit === false ? '1000000' : $limit);
+        $this->assertNotFalse($matched, '解析种子行失败：' . preg_last_error_msg());
         $idx = array_search('home_blox_data', $m[1], true);
         $this->assertIsInt($idx);
         $json = preg_replace_callback(

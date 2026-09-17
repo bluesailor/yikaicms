@@ -88,6 +88,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error(__('admin_title_required'));
     }
 
+    // 类型必须是登记过的键：任意字符串落库后会被别处当类型用，也会进后台列表回显
+    if (!isRegisteredContentType((string) $data['type'])) {
+        error(__('admin_invalid_content_type'));
+    }
+
     if ($id > 0) {
         contentModel()->updateById($id, $data);
         adminLog('content', 'update', '更新内容：' . $data['title']);

@@ -3408,6 +3408,7 @@ return [
     'admin_specs' => 'Specifications',
     'admin_cover' => 'Cover image',
     'admin_title_required' => 'Enter a title',
+    'admin_invalid_content_type' => 'Invalid content type',
     'admin_publish_type' => 'Publish :type',
     'admin_product_info' => 'Product info',
     'admin_download_info' => 'Download info',

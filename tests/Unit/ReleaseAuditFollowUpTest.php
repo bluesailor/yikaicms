@@ -118,7 +118,7 @@ final class ReleaseAuditFollowUpTest extends TestCase
             $seed = $this->source('install/sql/' . $driver . '.sql');
             $clean = (string) preg_replace('/--\s*@demo:start.*?--\s*@demo:end/s', '', $seed);
 
-            foreach (['downloads', 'jobs', 'links', 'timelines'] as $table) {
+            foreach (['downloads', 'jobs', 'links', 'timelines', 'banners'] as $table) {
                 self::assertStringContainsString("INSERT INTO {$quote}yikai_{$table}{$quote}", $seed, "{$driver}: 勾选演示时应有示例 {$table}");
                 self::assertStringNotContainsString(
                     "INSERT INTO {$quote}yikai_{$table}{$quote}",
@@ -126,8 +126,9 @@ final class ReleaseAuditFollowUpTest extends TestCase
                     "{$driver}: 取消演示后不该残留示例 {$table}"
                 );
             }
-            // banners 自 v1.18.8 起是多语言骨架，不随演示剥离
-            self::assertStringContainsString("INSERT INTO {$quote}yikai_banners{$quote}", $clean);
+            // 栏目骨架、角色、内置模板属于必要结构，不能为了清演示一起删掉
+            self::assertStringContainsString("INSERT INTO {$quote}yikai_channels{$quote}", $clean);
+            self::assertStringContainsString("INSERT INTO {$quote}yikai_blox_templates{$quote}", $clean);
         }
 
         // 安装器记录选择，迁移据此跳过
