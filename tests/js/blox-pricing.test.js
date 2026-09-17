@@ -55,9 +55,8 @@ test('clicks outside a pricing switch are ignored', () => {
     assert.doesNotThrow(() => pricing.handleClick({ target: null }));
 });
 
-// 编辑器套餐方法（partial 在 ?> 之后是纯 JS 方法表）
-const source = fs.readFileSync(path.join(__dirname, '../../admin/blox_editor/partials/pricing-methods.php'), 'utf8');
-const methods = new Function('return ({' + source.slice(source.indexOf('?>') + 2) + '});')();
+// 编辑器套餐方法：yikai-builder 作者端模块
+const { methods } = require('../../plugins/yikai-builder/assets/blox-pro-pricing.js');
 
 function editor(plans) {
     return Object.assign({

@@ -8,7 +8,7 @@ if (!defined('ROOT_PATH')) exit('Access Denied');
  * BLOX Pro 作者端模块注册。只挂编辑器钩子，不参与保存校验或前台渲染：
  * 停用/删除插件后旧文档照常渲染、受保护字段照常保留，只是不再提供对应编辑面板。
  */
-const BLOX_PRO_EDITOR_MODULES = ['query_loop', 'display_conditions', 'style_presets', 'table'];
+const BLOX_PRO_EDITOR_MODULES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing'];
 
 /** @return list<string> 本插件提供的作者端模块 */
 function blox_pro_editor_modules(): array
@@ -30,6 +30,8 @@ add_action('blox_editor_panel', static function (string $slot): void {
         require __DIR__ . '/editor/loop-template-card.php';
     } elseif ($slot === 'table_grid') {
         require __DIR__ . '/editor/table-grid.php';
+    } elseif ($slot === 'pricing_plans') {
+        require __DIR__ . '/editor/pricing-plans.php';
     }
 });
 
@@ -79,6 +81,8 @@ add_action('blox_editor_scripts', static function (): void {
     ];
     $tableScript = __DIR__ . '/assets/blox-pro-table.js';
     echo '<script src="/plugins/yikai-builder/assets/blox-pro-table.js?v=' . (int) filemtime($tableScript) . '"></script>' . "\n";
+    $pricingScript = __DIR__ . '/assets/blox-pro-pricing.js';
+    echo '<script src="/plugins/yikai-builder/assets/blox-pro-pricing.js?v=' . (int) filemtime($pricingScript) . '"></script>' . "\n";
     $script = __DIR__ . '/assets/blox-pro-editor.js';
     echo '<script>window.BloxProEditorData = '
         . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP)

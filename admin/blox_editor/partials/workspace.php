@@ -1717,7 +1717,8 @@ declare(strict_types=1);
                                         </button>
                                     </template>
 
-                                    <?php require __DIR__ . '/pricing-plans-control.php'; ?>
+                                    <?php // 价格方案套餐编辑器由 yikai-builder 作者端模块输出 ?>
+                                    <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'pricing_plans'); ?>
 
                                     <template x-if="ctrl.type === 'org_repeater'">
                                         <div data-testid="blox-org-nodes" class="space-y-2">

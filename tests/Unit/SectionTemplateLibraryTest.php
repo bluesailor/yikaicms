@@ -33,7 +33,6 @@ final class SectionTemplateLibraryTest extends TestCase
             '04 行动引导' => ['cta-banner', 'marketing', '立即咨询'],
             '05 图文咨询引导' => ['cta-split', 'marketing', '准备好开始合作了吗'],
             '06 客户引语' => ['testimonial-quote', 'content', '客户反馈'],
-            '07 价格方案' => ['pricing-plans', 'marketing', '专业版'],
         ];
     }
 
@@ -56,7 +55,6 @@ final class SectionTemplateLibraryTest extends TestCase
             'cta-banner' => 4,
             'cta-split' => 5,
             'testimonial-quote' => 6,
-            'pricing-plans' => 7,
         ], $numbers);
     }
 

@@ -1,7 +1,7 @@
 <?php
 
 declare(strict_types=1);
-/** 价格方案的套餐编辑器（ctrl.type === 'pricing_plans'），由 workspace 控件循环 require。 */
+/** Yikai Builder Pro：价格方案的套餐编辑器（ctrl.type === 'pricing_plans'），经 blox_editor_panel 'pricing_plans' 插槽挂到控件循环。 */
 $pricingText = json_encode([
     'name' => __('blox_pricing_plan_name'),
     'badge' => __('blox_pricing_plan_badge'),
@@ -21,7 +21,7 @@ $pricingText = json_encode([
     'down' => __('blox_ctx_move_down'),
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 ?>
-<template x-if="ctrl.type === 'pricing_plans'">
+<template x-if="ctrl.type === 'pricing_plans' && professionalFeatures.pricing.allowed">
     <div data-testid="blox-pricing-plans" class="space-y-2" x-data="{ pt: <?= $pricingText ?> }">
         <template x-for="(plan, index) in pricingPlans(selEl)" :key="'plan-' + index">
             <div data-testid="blox-pricing-plan" class="rounded border p-2.5 space-y-1.5"

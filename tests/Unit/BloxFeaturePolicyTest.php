@@ -40,7 +40,7 @@ final class BloxFeaturePolicyTest extends TestCase
     public function testReleasePolicyKeepsCurrentFeaturesFreeAndUnknownFeaturesClosed(): void
     {
         $policy = require ROOT_PATH . '/config/blox-feature-policy.php';
-        self::assertSame(['query_loop' => 'free', 'display_conditions' => 'free', 'style_presets' => 'free', 'table' => 'free'], $policy);
+        self::assertSame(['query_loop' => 'free', 'display_conditions' => 'free', 'style_presets' => 'free', 'table' => 'free', 'pricing' => 'free'], $policy);
         self::assertFalse(BloxFeaturePolicy::allows('unknown'));
     }
 
@@ -60,7 +60,7 @@ final class BloxFeaturePolicyTest extends TestCase
         self::assertStringContainsString("displayConditionsEnabled: <?php echo !empty(\$professionalFeatures['display_conditions']['allowed'])", $editor);
         $professionalUi = (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxProfessionalUi.php');
         self::assertStringContainsString('BloxFeaturePolicy::allows($feature) && $moduleLoaded', $professionalUi);
-        self::assertStringContainsString("public const MODULE_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table'];", $professionalUi);
+        self::assertStringContainsString("public const MODULE_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing'];", $professionalUi);
         self::assertStringContainsString("\$advancedQueryLoopEnabled = !empty(\$professionalFeatures['query_loop']['allowed']);", $editor);
         self::assertStringContainsString("stylePresetsEnabled: <?php echo !empty(\$professionalFeatures['style_presets']['allowed'])", $editor);
         $source = (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxFeaturePolicy.php');

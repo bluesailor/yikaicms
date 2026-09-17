@@ -14,7 +14,7 @@ final class BloxFeaturePolicy
         return is_array($policy) && is_string($policy[$feature] ?? null) ? $policy[$feature] : 'disabled';
     }
 
-    public const PROTECTED_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table'];
+    public const PROTECTED_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing'];
 
     /** @return list<string> 当前不可用、需要保留旧配置保护的作者能力 */
     public static function denied(): array
