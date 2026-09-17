@@ -7469,4 +7469,6 @@ voltage|电压|220V',
     'fsp_ip_hint' => '在询盘详情中可封禁提交者 IP，并在询盘管理页查看与解除。',
     'fsp_ip_manage' => '管理已封禁 IP',
     'fsp_moved_hint' => '频率限制、表单签名、内容过滤与验证码已移至「询盘管理 › 防垃圾设置」。',
+    'blox_anim_default_fade_up' => '默认（向上淡入）',
+    'blox_section_title_animation_help' => '标题与副标题滚动到可视区域时出现；编辑器画布中不播放，可在预览或前台查看。',
 ];

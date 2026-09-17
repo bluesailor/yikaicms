@@ -2139,13 +2139,22 @@ declare(strict_types=1);
                                         <i class="ti ti-chevron-down text-sm text-gray-400"></i>
                                     </button>
                                 </div>
+                                <div data-testid="blox-section-title-animation">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_anim')) ?></label>
+                                    <select x-model="sel.settings.title_animation" class="w-full h-9 border border-gray-200 rounded px-2 text-sm bg-white">
+                                        <?php foreach (['' => 'blox_anim_default_fade_up', 'none' => 'blox_anim_none', 'fade' => 'blox_anim_fade', 'fade-up' => 'blox_anim_fade_up', 'fade-down' => 'blox_anim_fade_down', 'fade-left' => 'blox_anim_fade_left', 'fade-right' => 'blox_anim_fade_right', 'zoom-in' => 'blox_anim_zoom'] as $animKey => $animLabel): ?>
+                                        <option value="<?= e($animKey) ?>"><?= e(__($animLabel)) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_section_title_animation_help')) ?></p>
+                                </div>
                                 <?php // 标题装饰：与首页动态区块同一套选项，普通区块标题也能单独定义 ?>
                                 <template x-if="selectedSectionField === 'title'">
                                     <div class="space-y-5 border-t border-gray-100 pt-4" data-testid="blox-section-title-decor">
                                         <div>
                                             <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_home_title_decor')) ?></label>
                                             <div class="grid grid-cols-4 gap-1">
-                                                <?php foreach (['inherit' => 'settings', 'line' => 'minus', 'dot' => 'point-filled', 'none' => 'ban'] as $decorKey => $decorIcon): ?>
+                                                <?php foreach (['inherit' => 'settings', 'line' => 'minus', 'dot' => 'point', 'none' => 'ban'] as $decorKey => $decorIcon): ?>
                                                 <button type="button" @click="sel.settings.title_decor_style = '<?= $decorKey ?>'"
                                                         title="<?= e(__('blox_home_title_decor_' . $decorKey)) ?>" aria-label="<?= e(__('blox_home_title_decor_' . $decorKey)) ?>"
                                                         class="h-8 rounded border inline-flex items-center justify-center transition"

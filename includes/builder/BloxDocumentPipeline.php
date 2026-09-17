@@ -430,6 +430,10 @@ final class BloxDocumentPipeline
                     $settings[$decorKey] = 'inherit';
                 }
             }
+            if (array_key_exists('title_animation', $settings)
+                && !in_array((string) $settings['title_animation'], ['', 'none', ...BlockRenderer::SECTION_TITLE_ANIMATIONS], true)) {
+                $settings['title_animation'] = '';
+            }
             if (array_key_exists('title_decor_color', $settings)) {
                 $settings['title_decor_color'] = AbstractElement::cssColor($settings['title_decor_color']) ?? '';
             }

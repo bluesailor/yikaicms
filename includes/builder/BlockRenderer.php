@@ -427,7 +427,14 @@ final class BlockRenderer
                     $settings['subtitle_color'] ?? '',
                     self::SECTION_SUBTITLE_SIZE_MAP
                 );
-                $html .= '<div class="' . $titleAlign . ' mb-10">';
+                // 进场动画：与首页动态区块标题一致，默认滚动到视窗时向上淡入；选「无动画」可关闭
+                $titleAnimation = (string) ($settings['title_animation'] ?? '');
+                if ($titleAnimation === '') {
+                    $titleAnimation = 'fade-up';
+                }
+                $titleAnimAttr = in_array($titleAnimation, self::SECTION_TITLE_ANIMATIONS, true)
+                    ? ' data-animate="' . $titleAnimation . '"' : '';
+                $html .= '<div class="' . $titleAlign . ' mb-10"' . $titleAnimAttr . '>';
                 $titleEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.title"' : '';
                 $subEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.subtitle"' : '';
                 $html .= '<' . $titleTag . ' class="blk-title"' . $titleEditAttr . $titleStyle . '>' . htmlspecialchars($secTitle) . '</' . $titleTag . '>';
@@ -677,6 +684,9 @@ final class BlockRenderer
      * 对齐默认跟随标题对齐（旧版左对齐标题下装饰线仍居中）。
      * @param array<string,mixed> $settings
      */
+    /** 区块标题可选的进场动画（与元素动画同一套 data-animate 效果，由 scroll-anim.js 驱动） */
+    public const SECTION_TITLE_ANIMATIONS = ['fade', 'fade-up', 'fade-down', 'fade-left', 'fade-right', 'zoom-in'];
+
     private static function sectionTitleDecor(array $settings): string
     {
         $style = (string) ($settings['title_decor_style'] ?? 'inherit');
