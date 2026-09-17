@@ -87,4 +87,20 @@ final class BloxDynamicTagsTest extends TestCase
         self::assertStringNotContainsString('data-yk-dynamic-tags', BlockRenderer::renderElementNode($el));
         BloxQueryLoopPolicy::assertSectionsAllowed([['columns' => [['elements' => [$el]]]]], false);
     }
+
+    public function testBoundSiteFieldsFollowThePageLanguage(): void
+    {
+        $GLOBALS['_test_config']['site_description'] = '专业的企业内容管理系统';
+        $GLOBALS['_test_config']['site_description_ja'] = '企業向けコンテンツ管理システム';
+        self::assertSame('专业的企业内容管理系统', DynamicSiteData::value('site_description', 'text'));
+
+        $GLOBALS['_test_config']['site_lang'] = 'ja';
+        self::assertSame('企業向けコンテンツ管理システム', DynamicSiteData::value('site_description', 'text'));
+        self::assertStringContainsString('企業向けコンテンツ管理システム', (new TextElement())->render(['site_field' => 'site_description']));
+
+        // 该语言没有单独填写时回落默认语言
+        $GLOBALS['_test_config']['site_lang'] = 'en';
+        self::assertSame('专业的企业内容管理系统', DynamicSiteData::value('site_description', 'text'));
+        self::assertSame('Fallback', DynamicSiteData::value('site_keywords', 'text', 'Fallback'), 'non-whitelisted fields stay closed');
+    }
 }

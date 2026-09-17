@@ -127,7 +127,12 @@ final class DynamicSiteData
         if (!in_array($field, self::FIELDS[$slot] ?? [], true)) {
             return $fallback;
         }
-        $value = TagEngine::configValue($field, $fallback);
+        // 与 {site_description} 等内联标签一致：先读当前语言的 {key}_{lang}，空则回落默认语言
+        $lang = function_exists('siteLang') ? siteLang() : '';
+        $localized = $lang !== '' ? config($field . '_' . $lang, null) : null;
+        $value = is_scalar($localized) && trim((string) $localized) !== ''
+            ? (string) $localized
+            : TagEngine::configValue($field, $fallback);
         return trim($value) !== '' ? $value : $fallback;
     }
 
