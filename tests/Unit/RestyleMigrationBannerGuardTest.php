@@ -113,8 +113,36 @@ final class RestyleMigrationBannerGuardTest extends TestCase
         $this->assertFalse(yk_20260825_is_factory_banner_children($children));
     }
 
-    /** 出厂映射与 install SQL 种子不允许漂移：种子里的三条必须恰好通过判定 */
-    public function testSeedDocumentChildrenPassTheGuard(): void
+    /**
+     * 出厂指纹是历史事实：老站装的两代出厂图（外链 picsum 与随包 SVG）都必须认得。
+     *
+     * 这里刻意**不**跟当前 install/sql 种子比对：新装与老站升级是两条链路，
+     * 种子跟随参照站演进（tools/sync_demo_seed.php），而这份指纹描述的是
+     * 2026-08-25 之前已经发出去的内容，改它等于改写历史，会让老站被误判。
+     */
+    public function testFactoryFingerprintStaysFrozenHistory(): void
+    {
+        $picsum = $this->factoryChildren();
+        $this->assertTrue(yk_20260825_is_factory_banner_children($picsum), '认不出 picsum 那一代出厂图');
+
+        $bundled = $picsum;
+        foreach ($bundled as $i => &$child) {
+            $child['data']['image'] = '/assets/images/demo/banner-' . ($i + 1) . '.svg';
+        }
+        unset($child);
+        $this->assertTrue(yk_20260825_is_factory_banner_children($bundled), '认不出 v1.19.3 起随包 SVG 那一代');
+
+        // 改过任一展示字段就不再是出厂内容
+        $edited = $bundled;
+        $edited[0]['data']['title'] = '我自己写的标题';
+        $this->assertFalse(yk_20260825_is_factory_banner_children($edited));
+    }
+
+    /**
+     * 新装链路与本迁移无关：种子里的首页文档本来就是 items_mode=inherit，
+     * 迁移对它无事可做，所以种子的轮播子项可以随参照站演进。
+     */
+    public function testFreshInstallSeedNeedsNoBannerMigration(): void
     {
         $sql = (string) file_get_contents(ROOT_PATH . '/install/sql/mysql.sql');
         $line = '';
@@ -124,33 +152,14 @@ final class RestyleMigrationBannerGuardTest extends TestCase
                 break;
             }
         }
-        $this->assertNotSame('', $line);
-        // 首页文档单条十几 KB：默认的 PCRE JIT 栈与回溯上限不够用，preg_* 会整条失败
-        $jit = ini_set('pcre.jit', '0');
-        $limit = ini_set('pcre.backtrack_limit', '10000000');
-        $matched = preg_match_all("/'((?:[^'\\\\]|\\\\.)*)'/", $line, $m);
-        ini_set('pcre.jit', $jit === false ? '1' : $jit);
-        ini_set('pcre.backtrack_limit', $limit === false ? '1000000' : $limit);
-        $this->assertNotFalse($matched, '解析种子行失败：' . preg_last_error_msg());
-        $idx = array_search('home_blox_data', $m[1], true);
-        $this->assertIsInt($idx);
-        $json = preg_replace_callback(
-            '/\\\\(.)/s',
-            static fn (array $x): string => ["n" => "\n", "r" => "\r", "t" => "\t"][$x[1]] ?? $x[1],
-            $m[1][$idx + 1]
-        );
-        $doc = json_decode((string) $json, true);
-        $this->assertIsArray($doc);
-        $children = null;
-        foreach ($doc['sections'][0]['columns'][0]['elements'] as $element) {
-            if (($element['data']['block_type'] ?? '') === 'banner') {
-                $children = $element['data']['children'];
-            }
-        }
-        $this->assertIsArray($children);
-        $this->assertTrue(
-            yk_20260825_is_factory_banner_children($children),
-            '种子 children 与迁移里的出厂映射漂移了——两边必须同步改'
+        $this->assertNotSame('', $line, '种子里找不到首页文档');
+
+        $modePos = strpos($line, 'items_mode');
+        $this->assertIsInt($modePos, '首页文档缺少 items_mode');
+        $this->assertStringNotContainsString(
+            'custom',
+            substr($line, $modePos, 40),
+            '种子的轮播必须是 inherit：custom 会把中文文案烤死在文档里'
         );
     }
 }

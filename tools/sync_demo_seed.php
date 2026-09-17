@@ -107,21 +107,21 @@ $prefix = DB_PREFIX;
  * 文档里：英文/日文安装站首页照样显示中文（2026-08-25 两个客户站实病）。种子里必须
  * 是 inherit，让轮播按语言从 banners 表取数。防回归见 BloxSeedSanitizerStableTest。
  */
-function normalizeHomeDocument(string $json, ?array $keepBannerChildren = null): string
+function normalizeHomeDocument(string $json): string
 {
     $doc = json_decode($json, true);
     if (!is_array($doc)) {
         return $json;
     }
-    $walk = static function (array &$node) use (&$walk, $keepBannerChildren): void {
+    $walk = static function (array &$node) use (&$walk): void {
         foreach ($node as $key => &$value) {
             if (!is_array($value)) {
                 continue;
             }
             if (($value['type'] ?? '') === 'home-block' && ($value['data']['block_type'] ?? '') === 'banner') {
                 $value['data']['items_mode'] = 'inherit';
-                if ($keepBannerChildren !== null) {
-                    $value['data']['children'] = $keepBannerChildren;
+                if (is_array($value['data']['children'] ?? null)) {
+                    $value['data']['children'] = array_map('sanitizeBannerChild', $value['data']['children']);
                 }
             }
             $walk($value);
@@ -131,44 +131,24 @@ function normalizeHomeDocument(string $json, ?array $keepBannerChildren = null):
     return (string) json_encode($doc, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
-/** 取出文档里 banner 区块的 children（inherit 模式下它们只是编辑器预览用的兜底条目）。 */
-function bannerChildrenOf(string $json): ?array
+/**
+ * 轮播子项去掉「只对参照站有意义」的绑定字段。
+ *
+ * inherit 模式下前台取的是 banners 表，这些子项只是编辑器里的兜底预览；把参照站的
+ * 轮播行 id、翻译组、语言烤进种子没有意义，装到别的站上还会指向不存在的行。
+ *
+ * @param mixed $child
+ * @return mixed
+ */
+function sanitizeBannerChild($child)
 {
-    $doc = json_decode($json, true);
-    if (!is_array($doc)) {
-        return null;
+    if (!is_array($child) || !is_array($child['data'] ?? null)) {
+        return $child;
     }
-    $found = null;
-    $walk = static function (array $node) use (&$walk, &$found): void {
-        foreach ($node as $value) {
-            if (!is_array($value)) {
-                continue;
-            }
-            if (($value['type'] ?? '') === 'home-block'
-                && ($value['data']['block_type'] ?? '') === 'banner'
-                && is_array($value['data']['children'] ?? null)) {
-                $found ??= $value['data']['children'];
-            }
-            $walk($value);
-        }
-    };
-    $walk($doc);
-    return $found;
-}
-
-/** 从种子里那一行 INSERT 还原出设置值（MySQL 字面量转义的反向操作）。 */
-function seedSettingValue(string $line, string $key): ?string
-{
-    $pattern = "/VALUES \(\d+,'(?:[^']|\\\\')*','" . preg_quote(addcslashes($key, "'"), '/') . "','((?:[^']|\\\\')*)'/";
-    if (preg_match($pattern, $line, $m) !== 1) {
-        return null;
+    foreach (['source_banner_id', 'translation_group_id', 'lang'] as $siteBound) {
+        unset($child['data'][$siteBound]);
     }
-    $value = str_replace("\x01", '\\', str_replace(
-        ['\\\\', "\\'", '\\"', '\\n', '\\r', '\\t'],
-        ["\x01", "'", '"', "\n", "\r", "\t"],
-        $m[1]
-    ));
-    return $value;
+    return $child;
 }
 
 /** MySQL 字面量转义：与 tools/mysql_to_sqlite.php 的反向解析一一对应。 */
@@ -381,13 +361,9 @@ foreach (SETTING_KEYS as $key) {
 
     $value = (string) $ref['value'];
     if ($key === 'home_blox_data' || $key === 'home_blox_published') {
-        // 轮播子项保持种子原样：它们与迁移 20260825 的「出厂未修改」判定逐字绑定，
-        // 跟着参照站漂移会让老站升级时误判成「客户改过」而不再切 inherit。
-        // inherit 模式下这些子项只是编辑器里的兜底预览，前台取的是 banners 表。
-        $keepChildren = isset($settingLine[$key])
-            ? bannerChildrenOf((string) seedSettingValue($lines[$settingLine[$key]], $key))
-            : null;
-        $value = normalizeHomeDocument($value, $keepChildren);
+        // 新装站的首页文档（含轮播子项）完全跟随参照站；老站升级是另一条链路，
+        // 由迁移 20260825 的出厂指纹负责，那份指纹是历史事实、不随种子变动。
+        $value = normalizeHomeDocument($value);
     }
 
     if (isset($settingLine[$key])) {
