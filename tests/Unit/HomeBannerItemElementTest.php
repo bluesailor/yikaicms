@@ -202,6 +202,49 @@ final class HomeBannerItemElementTest extends TestCase
         }
     }
 
+    /**
+     * 左右滑入必须走「内容宽度 + 50% 起始透明度」这套参数。
+     *
+     * 原先写死 44px，在 1920 宽的大图上几乎看不出文字在动；起始透明度 0 又让文字
+     * 像是凭空出现。位移改为按元素自身宽度（translate3d 的百分比语义），两个值都
+     * 抽成 CSS 变量，站点可覆盖。
+     */
+    public function testSlideMotionsTravelContentWidthFromHalfOpacity(): void
+    {
+        $css = (string) file_get_contents(ROOT_PATH . '/assets/css/blox-banner.css');
+
+        self::assertMatchesRegularExpression(
+            '/\[data-blox-banner\]\s*\{[^}]*--blox-banner-slide-distance:\s*100%;/s',
+            $css,
+            '滑入距离应默认为内容宽度（100%）'
+        );
+        self::assertMatchesRegularExpression(
+            '/\[data-blox-banner\]\s*\{[^}]*--blox-banner-slide-opacity:\s*\.5;/s',
+            $css,
+            '滑入起始透明度应为 50%'
+        );
+
+        foreach (['left' => '', 'right' => 'calc(-1 * '] as $direction => $prefix) {
+            self::assertMatchesRegularExpression(
+                '/@keyframes blox-banner-slide-' . $direction . ' \{\s*from \{\s*opacity: var\(--blox-banner-slide-opacity, \.5\);/s',
+                $css,
+                "slide-{$direction} 的起始透明度没走变量"
+            );
+            self::assertStringContainsString(
+                'translate3d(' . $prefix . 'var(--blox-banner-slide-distance, 100%)',
+                $css,
+                "slide-{$direction} 的位移没走变量"
+            );
+        }
+
+        // 老的固定像素位移不该再出现
+        self::assertStringNotContainsString('translate3d(44px, 0, 0)', $css);
+        self::assertStringNotContainsString('translate3d(-44px, 0, 0)', $css);
+
+        // 减少动效偏好仍然整体关掉动画
+        self::assertStringContainsString('@media (prefers-reduced-motion: reduce)', $css);
+    }
+
     public function testBundledBannerTemplatesKeepContentAndPrimaryAction(): void
     {
         $banner = [
