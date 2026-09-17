@@ -56,7 +56,7 @@ final class BloxFeaturePolicyTest extends TestCase
             self::assertStringContainsString("BloxFeaturePolicy::allows('" . $feature . "')", (string) file_get_contents(ROOT_PATH . '/' . $file));
         }
         $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
-        // E03-D：条件面板迁入 blox-pro，编辑器开关取专业快照；快照仍以同一 feature key 调用能力策略，并要求作者端模块已加载。
+        // E03-D：条件面板迁入 yikai-builder，编辑器开关取专业快照；快照仍以同一 feature key 调用能力策略，并要求作者端模块已加载。
         self::assertStringContainsString("displayConditionsEnabled: <?php echo !empty(\$professionalFeatures['display_conditions']['allowed'])", $editor);
         $professionalUi = (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxProfessionalUi.php');
         self::assertStringContainsString('BloxFeaturePolicy::allows($feature) && $moduleLoaded', $professionalUi);
@@ -65,10 +65,10 @@ final class BloxFeaturePolicyTest extends TestCase
         self::assertStringContainsString("stylePresetsEnabled: <?php echo !empty(\$professionalFeatures['style_presets']['allowed'])", $editor);
         $source = (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxFeaturePolicy.php');
         self::assertStringContainsString('blox_pro_feature_allowed($feature)', $source);
-        self::assertStringNotContainsString('plugins/blox-pro/', $source);
-        $pro = (string) file_get_contents(ROOT_PATH . '/plugins/blox-pro/access.php');
+        self::assertStringNotContainsString('plugins/yikai-builder/', $source);
+        $pro = (string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/access.php');
         self::assertStringContainsString("license_has_module('blox')", $pro);
-        self::assertStringContainsString("isPluginAvailable('blox-pro')", $pro);
+        self::assertStringContainsString("isPluginAvailable('yikai-builder')", $pro);
         self::assertStringNotContainsString('license_valid(', $source);
         self::assertStringNotContainsString('DEBUG', $source);
     }

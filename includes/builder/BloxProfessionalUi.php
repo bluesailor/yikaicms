@@ -7,7 +7,7 @@ require_once __DIR__ . '/BloxFeaturePolicy.php';
 /** @psalm-suppress UnusedClass Used by the separately analysed editor entry. */
 final class BloxProfessionalUi
 {
-    /** 作者端面板已迁入 blox-pro 的能力；其余仍由核心编辑器提供。 */
+    /** 作者端面板已迁入 yikai-builder 的能力；其余仍由核心编辑器提供。 */
     public const MODULE_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table'];
 
     public static function moduleLoaded(string $feature): bool
@@ -29,8 +29,8 @@ final class BloxProfessionalUi
                 $account = [
                     'owned' => function_exists('license_owns_blox') && license_owns_blox(),
                     'key' => function_exists('license_key') && license_key() !== '',
-                    'installed' => is_file(ROOT_PATH . '/plugins/blox-pro/main.php'),
-                    'active' => function_exists('isPluginAvailable') && isPluginAvailable('blox-pro'),
+                    'installed' => is_file(ROOT_PATH . '/plugins/yikai-builder/main.php'),
+                    'active' => function_exists('isPluginAvailable') && isPluginAvailable('yikai-builder'),
                     'supported' => defined('CMS_VERSION') && version_compare((string) CMS_VERSION, '1.20.0', '>='),
                 ];
             }

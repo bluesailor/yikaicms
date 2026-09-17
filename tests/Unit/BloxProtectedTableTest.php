@@ -6,7 +6,7 @@ use PHPUnit\Framework\TestCase;
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 require_once ROOT_PATH . '/includes/builder/BloxProtectedFields.php';
 
-/** 表格归属 blox-pro：能力未放行时表格整体冻结，其它内容照常可改。 */
+/** 表格归属 yikai-builder：能力未放行时表格整体冻结，其它内容照常可改。 */
 final class BloxProtectedTableTest extends TestCase
 {
     /** @return list<array<string,mixed>> */

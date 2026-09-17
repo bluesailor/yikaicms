@@ -38,7 +38,7 @@ test('Query Loop exposes pagination and child fallback controls @ci', async ({ p
 
   await page.getByTestId('blox-library-open').last().click();
   await page.getByTestId('blox-add-element-list-dynamic').press('Enter');
-  // 高级控件只在专业功能页签显示；专业功能区默认折叠，循环面板由 blox-pro 作者端模块提供。
+  // 高级控件只在专业功能页签显示；专业功能区默认折叠，循环面板由 yikai-builder 作者端模块提供。
   const openQueryLoop = async () => {
     const professional = page.getByTestId('blox-professional-features');
     if (!(await professional.evaluate((node) => node.open))) await professional.locator('summary').click();

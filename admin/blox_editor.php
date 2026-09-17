@@ -692,9 +692,9 @@ if (!hasPermission('blox_code') && isset($registryMeta['code'])) {
 }
 require_once ROOT_PATH . '/includes/builder/BloxProfessionalUi.php';
 $professionalFeatures = BloxProfessionalUi::snapshot();
-// 专业控件与循环子元素只在能力可用且 blox-pro 作者端模块已加载时下发；保存校验仍由 BloxQueryLoopPolicy 负责。
+// 专业控件与循环子元素只在能力可用且 yikai-builder 作者端模块已加载时下发；保存校验仍由 BloxQueryLoopPolicy 负责。
 $advancedQueryLoopEnabled = !empty($professionalFeatures['query_loop']['allowed']);
-// 表格归属 blox-pro：能力未放行或作者端模块未加载时不在元素面板提供（已发布表格照常渲染）
+// 表格归属 yikai-builder：能力未放行或作者端模块未加载时不在元素面板提供（已发布表格照常渲染）
 if (isset($registryMeta['table']) && empty($professionalFeatures['table']['allowed'])) $registryMeta['table']['paletteVisible'] = false;
 $contactManageActions = [
     'contact_cards' => ['url' => '/admin/setting_contact.php', 'label' => __('page_contact_manage_cards'), 'icon' => 'address-book'],
@@ -902,7 +902,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <?php // 系统富文本编辑器（richtext 控件的「可视化编辑」弹窗用；按需 init） ?>
     <script src="/assets/tinymce/tinymce.min.js"></script>
     <script src="/assets/js/blox-compact-richtext.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-compact-richtext.js') ?>"></script>
-    <?php // 作者端扩展模块（如 blox-pro）在 Alpine 组件定义前注入自己的脚本与数据 ?>
+    <?php // 作者端扩展模块（如 yikai-builder）在 Alpine 组件定义前注入自己的脚本与数据 ?>
     <?php if (function_exists('do_action')) do_action('blox_editor_scripts'); ?>
     <style>
         html, body { height: 100%; margin: 0; overflow: hidden; }
@@ -2335,7 +2335,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 });
             },
 
-            // 全局样式选择方法（globalStyleOptions/globalStyleLabel/applyGlobalStyle）由 blox-pro 作者端模块提供。
+            // 全局样式选择方法（globalStyleOptions/globalStyleLabel/applyGlobalStyle）由 yikai-builder 作者端模块提供。
 
             colorTokenRef(id) {
                 return /^[a-z][a-z0-9_-]{0,47}$/.test(String(id || ""))
@@ -2547,7 +2547,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 cleared: <?= $jt('blox_bg_video_obstruction_cleared') ?>,
             },
             ...window.BloxImageControl.methods,
-            // 表格作者端方法由 blox-pro 提供（plugins/blox-pro/assets/blox-pro-table.js）
+            // 表格作者端方法由 yikai-builder 提供（plugins/yikai-builder/assets/blox-pro-table.js）
             ...((window.BloxTableControl || {}).methods || {}),
             tableExpanded: null,
             tableCreate: null,
@@ -2688,7 +2688,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             ...window.BloxCtaQuick.methods,
             ...window.BloxStyleSource.methods,
             ...window.BloxStyleGroups.methods,
-            // 作者端扩展模块（blox-pro）提供的面板方法；未启用时为空，核心编辑照常可用。
+            // 作者端扩展模块（yikai-builder）提供的面板方法；未启用时为空，核心编辑照常可用。
             ...((window.BloxProEditor || {}).methods || {}),
             ...window.BloxBackgroundPanel.methods,
 
@@ -3375,7 +3375,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return null;
             },
 
-            // 显示条件编辑方法由 blox-pro 作者端模块提供（plugins/blox-pro/assets/blox-pro-editor.js）。
+            // 显示条件编辑方法由 yikai-builder 作者端模块提供（plugins/yikai-builder/assets/blox-pro-editor.js）。
 
             setColumnSpanT(t) {
                 var col = this.selectedCol();
