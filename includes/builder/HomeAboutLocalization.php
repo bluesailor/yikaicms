@@ -224,14 +224,16 @@ final class HomeAboutLocalization
                 if (!is_array($edit)) {
                     return $element;
                 }
+                /** @var array<array-key,mixed> $shown */
                 $shown = is_array($edit['shown'] ?? null) ? $edit['shown'] : [];
                 $edit['fields'] = array_map('strval', array_keys($shown));
-                $edit['changed'] = [];
+                $changed = [];
                 foreach ($shown as $field => $value) {
                     if (($element['data'][$field] ?? null) !== $value) {
-                        $edit['changed'][] = (string) $field;
+                        $changed[] = (string) $field;
                     }
                 }
+                $edit['changed'] = $changed;
                 unset($edit['shown']);
                 $element['data'][self::EDIT_KEY] = $edit;
                 return $element;

@@ -192,12 +192,10 @@ $defaultTemplate = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
 // 常用表单预设：卡片说明用后台语言，填入的表单文案用当前编辑的内容语言
 require_once ROOT_PATH . '/admin/includes/form_presets.php';
-$formPresets = withLanguageStrings($_viewLang, 'formDesignPresets');
-foreach ($formPresets as &$preset) {
-    $preset['label'] = __('fd_preset_' . $preset['key']);
-    $preset['desc'] = __('fd_preset_' . $preset['key'] . '_desc');
-}
-unset($preset);
+$formPresets = array_map(static fn(array $preset): array => $preset + [
+    'label' => __('fd_preset_' . $preset['key']),
+    'desc' => __('fd_preset_' . $preset['key'] . '_desc'),
+], withLanguageStrings($_viewLang, 'formDesignPresets'));
 $existingFormSlugs = array_values(array_map('strval', array_column($templates, 'slug')));
 
 $pageTitle = __('fd_page_title');

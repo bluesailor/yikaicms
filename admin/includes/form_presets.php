@@ -87,12 +87,8 @@ function formDesignPresets(): array
     foreach (formDesignPresetBlueprints() as $key => $blueprint) {
         $blocks = [];
         $half = [];
-        $flushHalf = static function () use (&$half, &$blocks): void {
-            if ($half !== []) {
-                $blocks[] = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' . "\n" . implode("\n", $half) . "\n</div>";
-                $half = [];
-            }
-        };
+        $halfRow = static fn(array $cells): string
+            => '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' . "\n" . implode("\n", $cells) . "\n</div>";
         foreach ($blueprint['fields'] as [$type, $name, $required, $labelKey, $argKeys, $isHalf]) {
             $args = array_map(static fn(string $argKey): string => formDesignPresetQuote(__($argKey)), $argKeys);
             $tag = '[' . $type . ($required ? '*' : '') . ' ' . $name . ($args === [] ? '' : ' ' . implode(' ', $args)) . ']';
@@ -102,10 +98,15 @@ function formDesignPresets(): array
                 $half[] = $cell;
                 continue;
             }
-            $flushHalf();
+            if ($half !== []) {
+                $blocks[] = $halfRow($half);
+                $half = [];
+            }
             $blocks[] = '<div class="mt-4">' . "\n    " . $label . "\n    " . $tag . "\n</div>";
         }
-        $flushHalf();
+        if ($half !== []) {
+            $blocks[] = $halfRow($half);
+        }
         $blocks[] = '<div class="mt-4">' . "\n    [submit " . formDesignPresetQuote(__($blueprint['submit'])) . "]\n</div>";
 
         $presets[] = [
