@@ -131,7 +131,39 @@ final class PluginInstallerTest extends TestCase
         $installer->install($this->package(), static function (): void {}, 'sample', '1.0.0', 'official');
         $result = $installer->install($this->package('2.0.0'), static function (): void {}, 'sample', '2.0.0', 'community');
         self::assertSame('origin_changed', $result['code']);
+        // 没有回执的存量插件（1.20.0 之前安装）：社区条目不得接管
         unlink($this->plugins . '/sample/.yikai-market-origin.json');
+        $result = $installer->install($this->package('2.0.0'), static function (): void {}, 'sample', '2.0.0', 'community');
+        self::assertSame('origin_unknown', $result['code']);
+        self::assertSame('1.0.0', file_get_contents($this->plugins . '/sample/main.php'));
+    }
+
+    /** 首次信任：无回执的存量插件可由官方目录更新一次，旧目录进备份，并写入 official 回执。 */
+    public function testLegacyPluginWithoutReceiptTrustsOfficialCatalogOnceAndRecordsIt(): void
+    {
+        $installer = $this->installer();
+        $installer->install($this->package(), static function (): void {}, 'sample', '1.0.0', 'official');
+        unlink($this->plugins . '/sample/.yikai-market-origin.json');
+
+        $result = $installer->install($this->package('2.0.0'), static function (): void {}, 'sample', '2.0.0', 'official');
+        self::assertTrue($result['ok'], $result['code']);
+        self::assertSame('2.0.0', file_get_contents($this->plugins . '/sample/main.php'));
+        self::assertSame('1.0.0', file_get_contents($result['backup'] . '/main.php'));
+        $receipt = json_decode((string) file_get_contents($this->plugins . '/sample/.yikai-market-origin.json'), true);
+        self::assertSame(['plugin', 'official', '2.0.0'], [$receipt['kind'], $receipt['origin'], $receipt['version']]);
+        // 回执写入后按记录比对：社区条目不能再接管
+        $result = $installer->install($this->package('3.0.0'), static function (): void {}, 'sample', '3.0.0', 'community');
+        self::assertSame('origin_changed', $result['code']);
+    }
+
+    /** 首次信任不覆盖手动上传：local 回执或损坏回执仍拒绝官方目录。 */
+    public function testLocalOrCorruptReceiptStillBlocksOfficialCatalog(): void
+    {
+        $installer = $this->installer();
+        self::assertTrue($installer->install($this->package(), static function (): void {})['ok']);
+        $result = $installer->install($this->package('2.0.0'), static function (): void {}, 'sample', '2.0.0', 'official');
+        self::assertSame('origin_unknown', $result['code']);
+        file_put_contents($this->plugins . '/sample/.yikai-market-origin.json', '{"origin":"official"');
         $result = $installer->install($this->package('2.0.0'), static function (): void {}, 'sample', '2.0.0', 'official');
         self::assertSame('origin_unknown', $result['code']);
         self::assertSame('1.0.0', file_get_contents($this->plugins . '/sample/main.php'));

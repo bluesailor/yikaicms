@@ -18,8 +18,10 @@ final class MarketInstallOrigin
         if (!is_dir($target) || $origin === 'local') return;
         $file = $target . '/' . self::FILE;
         clearstatcache(true, $file);
-        // 随核心分发的 default 主题没有市场回执；其官方更新由 ThemeInstaller 以签名绑定包字节把关
-        if ($kind === 'theme' && $slug === 'default' && $origin === 'official' && !file_exists($file)) return;
+        // 首次信任（2026-09-17 产品决定）：1.20.0 之前安装的主题/插件（含随核心分发的 default）都没有回执。
+        // 完全没有回执、且本次条目来自服务端官方目录时放行，安装成功后由安装器写入 official 回执；
+        // 社区条目、损坏/伪造回执、手动上传留下的 local 回执仍一律拒绝。替换前安装器会先备份原目录。
+        if ($origin === 'official' && !file_exists($file) && !is_link($file)) return;
         $size = @filesize($file);
         $receipt = !is_link($file) && is_int($size) && $size > 0 && $size <= 4096
             ? json_decode((string) @file_get_contents($file), true) : null;

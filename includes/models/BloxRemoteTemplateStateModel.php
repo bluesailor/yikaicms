@@ -32,6 +32,12 @@ final class BloxRemoteTemplateStateModel extends Model
             [$templateId]
         );
         $origin = (string) ($row['catalog_origin'] ?? '');
+        if ($origin === '' && $expected !== 'community') {
+            // 首次信任（2026-09-17 产品决定）：20260915 迁移前装的远程模板没有来源记录，当时远程模板
+            // 只来自官方目录。按官方处理——下载时仍校验目录条目确为官方，写入时 stageUpdate 补记来源。
+            // 社区条目仍拒绝，已记录的来源照常比对。
+            $origin = 'official';
+        }
         if (!in_array($origin, ['official', 'community'], true)) {
             throw new RuntimeException(__('blox_tpl_remote_origin_unknown'));
         }
@@ -110,6 +116,8 @@ final class BloxRemoteTemplateStateModel extends Model
         $this->requireOrigin($templateId, $origin, true);
         $current = $this->forTemplate($templateId);
         $data = [
+            // 首次信任通过后在此补记来源，之后的更新按记录比对
+            'catalog_origin' => $origin,
             'installed_version' => self::version($newVersion),
             'backup_version' => self::version((string) ($current['installed_version'] ?? '')),
             'backup_draft' => $draft,

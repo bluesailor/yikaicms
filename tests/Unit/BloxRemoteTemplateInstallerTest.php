@@ -200,7 +200,8 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
                 },
                 static fn (): bool => true
             ));
-            foreach ([$origin, ''] as $storedOrigin) {
+            // 未记录来源（''）按官方首次信任：目录改成社区时仍被拒；目录为官方时允许更新（见下一个测试）
+            foreach ($other === 'community' ? [$origin, ''] : [$origin] as $storedOrigin) {
                 db()->update('blox_remote_template_states', ['catalog_origin' => $storedOrigin], 'template_id = ?', [$first['id']]);
                 foreach (['update', 'prepareUpdate'] as $method) {
                     try {
@@ -211,7 +212,7 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
                         }
                         $this->fail('Origin changes must not replace an installed template.');
                     } catch (RuntimeException $e) {
-                        $this->assertSame($storedOrigin === '' ? 'blox_tpl_remote_origin_unknown' : 'blox_tpl_remote_origin_changed', $e->getMessage());
+                        $this->assertSame('blox_tpl_remote_origin_changed', $e->getMessage());
                     }
                 }
             }
@@ -221,6 +222,34 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
             db()->delete('blox_remote_template_states', 'template_id = ?', [$first['id']]);
             db()->delete('blox_templates', 'id = ?', [$first['id']]);
         }
+    }
+
+    /** 迁移前装的远程模板没有来源记录：从官方目录更新一次，并补记 official。 */
+    public function testLegacyTemplateWithoutOriginUpdatesFromOfficialCatalogAndRecordsIt(): void
+    {
+        $v1Package = $this->package($this->templateJson('Legacy draft'));
+        $v1Item = $this->catalogItem(['source' => 'official', 'hash' => 'sha256:' . hash('sha256', $v1Package)]);
+        $installed = (new BloxRemoteTemplateInstaller($this->provider($v1Package, $v1Item, true)))->install('pricing-3col');
+        db()->update('blox_remote_template_states', ['catalog_origin' => ''], 'template_id = ?', [$installed['id']]);
+
+        $v2Package = $this->package($this->templateJson('Official update'));
+        $v2Item = $this->catalogItem([
+            'source' => 'official',
+            'version' => '1.1.0',
+            'hash' => 'sha256:' . hash('sha256', $v2Package),
+            'download_url' => 'https://update.yikaicms.com/api/templates/download.php?protocol_version=2&slug=pricing-3col&version=1.1.0',
+        ]);
+        $updated = (new BloxRemoteTemplateInstaller($this->provider($v2Package, $v2Item, true)))->update(
+            $installed['id'], BloxRemoteTemplateInstaller::revision(bloxTemplateModel()->findForExport($installed['id'])), '1.1.0'
+        );
+
+        $this->assertTrue($updated['updated']);
+        $state = db()->fetchOne('SELECT * FROM blox_remote_template_states WHERE template_id = ?', [$installed['id']]);
+        $this->assertSame('official', $state['catalog_origin']);
+        $this->assertSame('1.1.0', $state['installed_version']);
+        $this->assertStringContainsString('Official update', (string) bloxTemplateModel()->findForExport($installed['id'])['draft_data']);
+        db()->delete('blox_remote_template_states', 'template_id = ?', [$installed['id']]);
+        db()->delete('blox_templates', 'id = ?', [$installed['id']]);
     }
 
     public function testExpiredServiceLocksBrowseAndPreventsPackageDownloadOrPersistence(): void
