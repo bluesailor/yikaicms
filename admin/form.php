@@ -117,6 +117,23 @@ $total = $result['total'];
 $forms = $result['items'];
 $blockedIps = formModerationModel()->blockedIps();
 
+// 自定义字段（预约日期、时段等）存在 extra 里：按表单模板配上标签，详情弹窗逐项显示
+require_once ROOT_PATH . '/admin/includes/form_fields.php';
+$formFieldLabelCache = [];
+$attachExtraFields = static function (array $item) use (&$formFieldLabelCache): array {
+    $type = (string) ($item['type'] ?? '');
+    if (!array_key_exists($type, $formFieldLabelCache)) {
+        $template = $type !== '' ? formTemplateModel()->findBySlug($type) : null;
+        $formFieldLabelCache[$type] = formTemplateFieldLabels((string) ($template['fields'] ?? ''));
+    }
+    $item['extra_fields'] = formSubmissionExtraFields((string) ($item['extra'] ?? ''), $formFieldLabelCache[$type]);
+    return $item;
+};
+$forms = array_map($attachExtraFields, $forms);
+if ($viewItem) {
+    $viewItem = $attachExtraFields($viewItem);
+}
+
 $pageTitle = __('admin_form');
 $currentMenu = 'form';
 
@@ -351,6 +368,7 @@ function showDetail(item) {
             <p><span class="text-gray-500"><?php echo __('inq_th_email'); ?>：</span>${escapeHtml(item.email)}</p>
             <p><span class="text-gray-500"><?php echo __('inq_th_company'); ?>：</span>${escapeHtml(item.company)}</p>
             <p><span class="text-gray-500"><?php echo __('inq_th_content'); ?>：</span>${escapeHtml(item.content)}</p>
+            ${(item.extra_fields || []).map(field => `<p data-testid="form-extra-field"><span class="text-gray-500">${escapeHtml(field.label)}：</span>${escapeHtml(field.value)}</p>`).join('')}
             <p><span class="text-gray-500"><?php echo __('inq_field_ip'); ?>：</span>${escapeHtml(item.ip)}</p>
             <p><span class="text-gray-500"><?php echo __('inq_field_note'); ?>：</span>${escapeHtml(item.follow_note)}</p>
         </div>
