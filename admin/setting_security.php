@@ -102,10 +102,6 @@ $secConfig = [
     'upload_max_megapixels' => config('upload_max_megapixels', '40'),
     'upload_image_types'    => config('upload_image_types', 'jpg,jpeg,png,gif,webp,svg'),
     'upload_file_types'     => config('upload_file_types', 'pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,7z'),
-    'form_max_submits'      => config('form_max_submits', '5'),
-    'form_throttle_minutes' => config('form_throttle_minutes', '5'),
-    'form_security_version'  => config('form_security_version', '1'),
-    'form_signature_max_age' => config('form_signature_max_age', '0'),
     'password_min_length'   => config('password_min_length', '6'),
 ];
 
@@ -233,31 +229,6 @@ adminModuleTabStart([
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                <label class="text-gray-700 pt-2">
-                    <?php echo e(__('sec_form_signature_policy')); ?>
-                    <span class="text-gray-400 text-sm block"><?php echo e(__('sec_form_signature_policy_tip')); ?></span>
-                </label>
-                <div class="md:col-span-3">
-                    <select name="settings[form_security_version]" class="w-full border rounded px-4 py-2 bg-white">
-                        <option value="1" <?php echo $secConfig['form_security_version'] === '1' ? 'selected' : ''; ?>><?php echo e(__('sec_form_signature_compat')); ?></option>
-                        <option value="2" <?php echo $secConfig['form_security_version'] === '2' ? 'selected' : ''; ?>><?php echo e(__('sec_form_signature_strict')); ?></option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                <label class="text-gray-700 pt-2">
-                    <?php echo e(__('sec_form_signature_max_age')); ?>
-                    <span class="text-gray-400 text-sm block"><?php echo e(__('sec_form_signature_max_age_tip')); ?></span>
-                </label>
-                <div class="md:col-span-3">
-                    <input type="number" name="settings[form_signature_max_age]"
-                           value="<?php echo e($secConfig['form_signature_max_age']); ?>"
-                           min="0" max="2592000"
-                           class="w-full border rounded px-4 py-2">
-                </div>
-            </div>
         </div>
     </div>
 
@@ -284,39 +255,15 @@ adminModuleTabStart([
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b">
-            <h2 class="font-bold text-gray-800"><?php echo __('sec_form_throttle'); ?></h2>
-        </div>
-        <div class="p-6 space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                <label class="text-gray-700 pt-2">
-                    <?php echo __('sec_max_submissions'); ?>
-                    <span class="text-gray-400 text-sm block"><?php echo __('sec_max_submissions_tip'); ?></span>
-                </label>
-                <div class="md:col-span-3">
-                    <input type="number" name="settings[form_max_submits]"
-                           value="<?php echo e($secConfig['form_max_submits']); ?>"
-                           min="1" max="100"
-                           class="w-full border rounded px-4 py-2">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                <label class="text-gray-700 pt-2">
-                    <?php echo __('sec_time_window'); ?>
-                    <span class="text-gray-400 text-sm block"><?php echo __('sec_time_window_tip'); ?></span>
-                </label>
-                <div class="md:col-span-3">
-                    <input type="number" name="settings[form_throttle_minutes]"
-                           value="<?php echo e($secConfig['form_throttle_minutes']); ?>"
-                           min="1" max="60"
-                           class="w-full border rounded px-4 py-2">
-                    <div class="text-xs text-gray-400 mt-1"><?php echo __('sec_form_throttle_hint'); ?></div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php // 表单防刷（频率限制、表单签名、内容过滤、验证码）已迁至「询盘管理 › 防垃圾设置」 ?>
+    <a href="/admin/form_spam.php" data-testid="security-form-spam-link"
+       class="flex items-center justify-between gap-4 bg-white rounded-lg shadow px-6 py-4 hover:bg-gray-50">
+        <span>
+            <span class="block font-bold text-gray-800"><?php echo e(__('sec_form_throttle')); ?></span>
+            <span class="block mt-1 text-sm text-gray-500"><?php echo e(__('fsp_moved_hint')); ?></span>
+        </span>
+        <span class="shrink-0 text-sm text-primary"><?php echo e(__('fsp_title')); ?> &rarr;</span>
+    </a>
 
     <div class="bg-white rounded-lg shadow p-6">
         <button type="submit" data-testid="security-settings-save" class="bg-primary hover:bg-secondary text-white px-8 py-2 rounded transition"><?php echo __('admin_save'); ?></button>

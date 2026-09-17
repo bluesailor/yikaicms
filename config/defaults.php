@@ -244,6 +244,8 @@ return [
         'form_max_submits'      => ['value' => '5', 'type' => 'number', 'name' => '表单提交次数', 'tip' => '限流窗口内允许的次数', 'sort_order' => 20],
         'form_throttle_minutes' => ['value' => '5', 'type' => 'number', 'name' => '表单限流窗口', 'tip' => '分钟', 'sort_order' => 21],
         'form_security_version'  => ['value' => '2', 'type' => 'select', 'name' => '表单签名策略', 'tip' => '兼容模式允许旧静态页无签名；严格模式要求有效签名', 'options' => '{"1":"兼容模式","2":"严格模式"}', 'sort_order' => 22],
+        'form_max_links'         => ['value' => '3', 'type' => 'number', 'name' => '留言链接数量上限', 'tip' => '超过即视为垃圾提交并静默丢弃；0 表示不允许链接', 'sort_order' => 24],
+        'form_spam_keywords'     => ['value' => '', 'type' => 'textarea', 'name' => '屏蔽关键词', 'tip' => '每行一个，命中即静默丢弃，不区分大小写', 'sort_order' => 25],
         'form_signature_max_age' => ['value' => '7200', 'type' => 'number', 'name' => '表单签名最长有效期', 'tip' => '秒；0 表示不过期。启用期限前请先重新生成所有静态页面', 'sort_order' => 23],
     ],
 

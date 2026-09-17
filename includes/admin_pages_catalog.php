@@ -40,6 +40,7 @@ if (!function_exists('adminPagesCatalog')) {
             // 数据
             ['url'=>'/admin/form.php',             'title'=>'表单数据',     'keywords'=>'留言 表单 询盘 反馈 contact form submission',                            'group'=>'数据'],
             ['url'=>'/admin/form_design.php',      'title'=>'表单设计',     'keywords'=>'表单设计 自定义表单 联系表单 form builder',                              'group'=>'数据'],
+            ['url'=>'/admin/form_spam.php',        'title'=>'防垃圾设置',   'keywords'=>'表单 防刷 垃圾 spam 验证码 关键词 屏蔽 链接 限流 签名', 'group'=>'数据'],
             ['url'=>'/admin/member.php',           'title'=>'会员管理',     'keywords'=>'会员 用户 注册用户 member user',                                         'group'=>'数据'],
             ['url'=>'/admin/setting_member.php',   'title'=>'会员设置',     'keywords'=>'会员注册 登录策略 是否开放注册',                                         'group'=>'数据'],
 

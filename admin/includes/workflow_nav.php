@@ -9,9 +9,10 @@ $workflowRoute = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''), '.php');
         'case' => ['case_tab_list', 'briefcase', 'edit_case'],
         'case_category' => ['case_tab_category', 'category', 'edit_case'],
     ]],
-    'form', 'form_design' => ['admin_form', [
+    'form', 'form_design', 'form_spam' => ['admin_form', [
         'form' => ['inq_tab_data', 'inbox', 'form'],
         'form_design' => ['inq_tab_design', 'forms', 'form'],
+        'form_spam' => ['fsp_title', 'shield-check', '*'],
     ]],
     'member', 'setting_member' => ['admin_member', [
         'member' => ['member_list', 'users', 'member'],

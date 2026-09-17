@@ -668,10 +668,10 @@ final class SiteHealth
         $maxAge = (int) config('form_signature_max_age', '0');
         $static = (string) config('static_html_enabled', '0') === '1';
         if ($static && $maxAge > 0) {
-            return self::result('form_policy', self::CRITICAL, 'security', 'health_form_title', 'health_form_static_expiry', '/admin/setting_security.php');
+            return self::result('form_policy', self::CRITICAL, 'security', 'health_form_title', 'health_form_static_expiry', '/admin/form_spam.php');
         }
         return self::result('form_policy', $version === '2' ? self::GOOD : self::RECOMMENDED, 'security',
-            'health_form_title', $version === '2' ? 'health_form_good' : 'health_form_compat', '/admin/setting_security.php');
+            'health_form_title', $version === '2' ? 'health_form_good' : 'health_form_compat', '/admin/form_spam.php');
     }
 
     /** @return array<string,mixed> */

@@ -214,7 +214,8 @@ test('limited workflow role cannot see or enter administrator-only settings @ci'
     await navigate(page, `admin-module-${other}`);
     await checkLayout(page);
   }
-  for (const route of ['setting_member', 'user', 'role', 'setting', 'database', 'upgrade']) {
+  await expect(page.getByTestId('admin-module-form_spam')).toHaveCount(0);
+  for (const route of ['setting_member', 'user', 'role', 'setting', 'database', 'upgrade', 'form_spam']) {
     const response = await page.request.get(`/admin/${route}.php`);
     expect(await response.text()).toContain('没有操作权限');
   }
