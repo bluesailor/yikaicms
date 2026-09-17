@@ -114,7 +114,7 @@ final class TestimonialCarouselElement extends AbstractElement
         $center = ($data['align'] ?? 'left') === 'center';
         $label = __('blox_el_testimonial_carousel');
 
-        $html = '<div class="yk-carousel yk-testimonials yk-testimonials--' . $style . ($center ? ' yk-testimonials--center' : '') . '"'
+        $html = '<div class="yk-carousel yk-testimonials yk-testimonials--' . $style . ($center ? ' yk-testimonials--center' : '') . ($perView === 1 ? ' yk-testimonials--single' : '') . '"'
             . ' data-yk-carousel style="--yk-carousel-per-view:' . $perView . '"'
             . ($autoplay ? ' data-yk-carousel-autoplay="' . ($interval * 1000) . '"' : '')
             . ' data-yk-carousel-dot-label="' . self::h(__('blox_carousel_dot_label')) . '">';

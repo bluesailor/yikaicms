@@ -5,7 +5,7 @@
     "name": "Customer quote",
     "requires": {
         "elements": [
-            "quote"
+            "testimonial-carousel"
         ],
         "plugins": []
     },
@@ -15,8 +15,10 @@
         "sections": [
             {
                 "type": "section",
-                "name": "Customer testimonial",
+                "name": "Customer testimonials",
                 "settings": {
+                    "title": "What our clients say",
+                    "subtitle": "Hear from the teams we work with",
                     "padding": {
                         "d": "xl",
                         "m": "lg"
@@ -28,11 +30,38 @@
                     {
                         "elements": [
                             {
-                                "type": "quote",
+                                "type": "testimonial-carousel",
                                 "data": {
-                                    "quote_style": "center",
-                                    "text": "Put a genuine piece of customer feedback here. A review that names a specific project and result is far more convincing than “great service.”",
-                                    "author": "Client name · Head of Procurement"
+                                    "items": [
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-1.svg",
+                                            "name": "Daniel Brooks",
+                                            "role": "Procurement Director · Northfield Manufacturing",
+                                            "content": "From selection to delivery took just three weeks. Their engineers stayed with us the whole way and commissioning passed first time. We chose them again for two more lines.",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-2.svg",
+                                            "name": "Emily Carter",
+                                            "role": "Operations Manager · Brightway Retail",
+                                            "content": "Since the new store system went live, stocktakes take half the time. Whenever something comes up, someone responds right away, and that matters most to us.",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-3.svg",
+                                            "name": "Marcus Lee",
+                                            "role": "Head of Technology · Horizon Logistics",
+                                            "content": "A practical solution without feature bloat. They tailored it to our workflow, and after a week of training our team was working on their own.",
+                                            "rating": "5"
+                                        }
+                                    ],
+                                    "per_view": "1",
+                                    "autoplay": true,
+                                    "interval": "5",
+                                    "show_dots": true,
+                                    "show_arrows": false,
+                                    "card_style": "plain",
+                                    "align": "center"
                                 }
                             }
                         ]

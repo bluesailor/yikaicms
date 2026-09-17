@@ -32,7 +32,7 @@ final class SectionTemplateLibraryTest extends TestCase
             '03 服务优势' => ['feature-grid', 'business', '资质齐全'],
             '04 行动引导' => ['cta-banner', 'marketing', '立即咨询'],
             '05 图文咨询引导' => ['cta-split', 'marketing', '准备好开始合作了吗'],
-            '06 客户引语' => ['testimonial-quote', 'content', '客户反馈'],
+            '06 客户评价' => ['testimonial-quote', 'social', 'yk-testimonials--single'],
             '07 客户评价轮播' => ['testimonials-carousel', 'social', 'data-yk-carousel'],
             '08 合作伙伴' => ['partners-logos', 'social', 'yk-logo-wall'],
         ];
