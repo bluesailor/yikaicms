@@ -1,3 +1,8 @@
+            /** 全站断点是否启用宽屏档（全站设计 › 断点） */
+            wideTierEnabled() {
+                return this.devices.some(function (device) { return device.key === "wide"; });
+            },
+
             responsiveDeviceKey() {
                 return window.BloxResponsive
                     ? window.BloxResponsive.deviceKey(this.previewDevice)

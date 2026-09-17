@@ -54,4 +54,30 @@ final class BloxWidescreenTierTest extends TestCase
         self::assertMatchesRegularExpression('/class="[^"]*\bwide:hidden\b[^"]*"/', $html);
         self::assertMatchesRegularExpression('/class="[^"]*\blg:hidden\b[^"]*"/', $html);
     }
+
+    public function testSiteWideSwitchTreatsWidescreenAsDesktop(): void
+    {
+        BloxResponsiveValue::overrideWideEnabled(false);
+        try {
+            $allowed = ['sm' => true, 'md' => true, 'lg' => true];
+            self::assertSame(['d' => 'md', 't' => 'md', 'm' => 'md', 'w' => 'md'], BloxResponsiveValue::normalize(['d' => 'md', 'w' => 'lg'], $allowed, 'sm'));
+            // 存储保留宽屏值，重新开启即恢复
+            self::assertSame(['d' => 'md', 'w' => 'lg'], BloxResponsiveValue::normalizeStored(['d' => 'md', 'w' => 'lg'], $allowed, 'sm'));
+            self::assertStringNotContainsString('wide:', (new SpacerElement())->render(['size' => ['d' => 'lg', 'w' => 'xl']]));
+
+            $controls = [['key' => 'size', 'type' => 'css_length', 'responsive' => true, 'css' => [['property' => 'font-size']]]];
+            self::assertSame('font-size:40px;', BloxCssCompiler::compile($controls, ['size' => ['d' => 40, 'w' => 56]])['style']);
+
+            $html = BlockRenderer::render((string) json_encode([
+                ['settings' => ['hide_on' => ['w']], 'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'Wide hidden']]]]]],
+            ]));
+            self::assertStringNotContainsString('wide:hidden', $html);
+
+            self::assertSame(['m', 't', 'd'], array_column(BloxResponsiveValue::tiers(), 'key'));
+            self::assertNull(BloxResponsiveValue::tiers()[2]['max']);
+        } finally {
+            BloxResponsiveValue::overrideWideEnabled(null);
+        }
+        self::assertSame(['m', 't', 'd', 'w'], array_column(BloxResponsiveValue::tiers(), 'key'));
+    }
 }

@@ -368,8 +368,8 @@ declare(strict_types=1);
                             <template x-if="selEl && panelTab === 'style' && commonStyleVisible()">
                                 <div data-testid="blox-element-visible-devices" class="rounded border border-gray-200 bg-gray-50 p-3">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_visible_devices')) ?></label>
-                                    <div class="grid grid-cols-4 gap-1">
-                                        <template x-for="dev in [{k:'w',l:<?= e($jt('blox_device_wide')) ?>},{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}]" :key="'elvis-'+dev.k">
+                                    <div class="grid gap-1" :class="wideTierEnabled() ? 'grid-cols-4' : 'grid-cols-3'">
+                                        <template x-for="dev in [{k:'w',l:<?= e($jt('blox_device_wide')) ?>},{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}].filter(dev => dev.k !== 'w' || wideTierEnabled())" :key="'elvis-'+dev.k">
                                             <button type="button" @click="toggleElementDevice(dev.k)"
                                                     class="h-9 rounded border text-xs inline-flex items-center justify-center transition"
                                                     :class="elementDeviceVisible(dev.k) ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-400 line-through'"
@@ -2529,7 +2529,7 @@ declare(strict_types=1);
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_visible_devices') ?></label>
                                     <div class="flex gap-1">
-                                        <template x-for="dev in [{k:'w',l:<?= e($jt('blox_device_wide')) ?>},{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}]" :key="'secvis'+dev.k">
+                                        <template x-for="dev in [{k:'w',l:<?= e($jt('blox_device_wide')) ?>},{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}].filter(dev => dev.k !== 'w' || wideTierEnabled())" :key="'secvis'+dev.k">
                                             <button type="button" @click="toggleDevice(sel, dev.k, false)"
                                                     class="flex-1 h-8 rounded text-xs border transition"
                                                     :class="deviceVisible(sel, dev.k, false) ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 text-gray-400 line-through'"
@@ -2615,7 +2615,7 @@ declare(strict_types=1);
                                     <div :class="sel.columns.length > 1 && !sel.settings.tablet_stack ? '' : 'blox-property-span-full'">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_visible_devices') ?></label>
                                         <div class="flex gap-1">
-                                            <template x-for="dev in [{k:'w',l:<?= e($jt('blox_device_wide')) ?>},{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}]" :key="'colvis'+dev.k">
+                                            <template x-for="dev in [{k:'w',l:<?= e($jt('blox_device_wide')) ?>},{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}].filter(dev => dev.k !== 'w' || wideTierEnabled())" :key="'colvis'+dev.k">
                                                 <button type="button" @click="toggleDevice(selectedColData(), dev.k, true)"
                                                         class="flex-1 h-8 rounded text-xs border transition"
                                                         :class="deviceVisible(selectedColData(), dev.k, true) ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 text-gray-400 line-through'"

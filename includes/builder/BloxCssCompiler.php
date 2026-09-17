@@ -156,8 +156,8 @@ final class BloxCssCompiler
         $desktop = self::format($property, $values['d'] ?? null);
         $tablet = self::format($property, $values['t'] ?? null) ?? $desktop;
         $mobile = self::format($property, $values['m'] ?? null) ?? $tablet;
-        // 宽屏继承桌面（更宽断点）；只设宽屏时仅在 ≥1440 生效
-        $wide = self::format($property, $values['w'] ?? null) ?? $desktop;
+        // 宽屏继承桌面（更宽断点）；只设宽屏时仅在 ≥1440 生效；全站关闭宽屏档时忽略 w
+        $wide = BloxResponsiveValue::wideEnabled() ? (self::format($property, $values['w'] ?? null) ?? $desktop) : $desktop;
         return $mobile === null && $wide === null ? null : ['d' => $desktop, 't' => $tablet, 'm' => $mobile, 'w' => $wide];
     }
 

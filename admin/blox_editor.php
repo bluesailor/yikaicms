@@ -889,6 +889,9 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
+<?php if (!BloxResponsiveValue::wideEnabled()): ?>
+    <script>window.BloxResponsive.setWideEnabled(false);</script>
+<?php endif; ?>
     <script src="/assets/js/blox-multi-select.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-select.js') ?>"></script>
     <script src="/assets/js/blox-multi-actions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-actions.js') ?>"></script>
     <script src="/assets/js/blox-page-settings.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-page-settings.js') ?>"></script>
@@ -1892,7 +1895,9 @@ $canManageBloxDesign = hasPermission('blox_global');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             ctx: { open: false, x: 0, y: 0, kind: "", target: null },
             devices: [
+<?php if (BloxResponsiveValue::wideEnabled()): ?>
                 { key: "wide", label: <?= $jt('blox_device_wide') ?>, icon: "ti-device-imac" },
+<?php endif; ?>
                 { key: "desktop", label: <?= $jt('blox_device_desktop') ?>, icon: "ti-device-desktop" },
                 { key: "tablet",  label: <?= $jt('blox_device_tablet') ?>, icon: "ti-device-tablet" },
                 { key: "mobile",  label: <?= $jt('blox_device_mobile') ?>, icon: "ti-device-mobile" },
@@ -6273,8 +6278,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             previewDesktopWidth() {
-                // 桌面档封顶 1439：更宽即进入宽屏档，预览不应套用宽屏样式
-                return Math.min(1439, Math.max(1280, Math.round(this.previewCanvasAvailable())));
+                // 桌面档封顶 1439：更宽即进入宽屏档（全站关闭宽屏档时不封顶）
+                return Math.min(this.wideTierEnabled() ? 1439 : 2560, Math.max(1280, Math.round(this.previewCanvasAvailable())));
             },
 
             previewScale() {
