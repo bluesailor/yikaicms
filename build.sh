@@ -566,9 +566,12 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
                     # 不该出现在客户官网上）。但存量站根目录那个很可能是客户用图标工坊生成的——
                     # 从 git 移走后若不豁免，增量包会把它当废弃文件删掉。
                     # 两个遗留安装入口相反：必须让增量包不可逆地删掉它们（无鉴权可执行）。
+                    # 随包图片（images/、assets/images/）：存量站的演示内容、从模板插入的页面、
+                    # 站点 Logo 设置都以 URL 引用它们。改成 webp 等换图后旧文件不再随新包发，
+                    # 但增量升级不得删除，否则客户页面出现破图。
                     case "$path" in
                         install/upgrade.php|install/run_upgrade.php) ;;
-                        config/config.php|storage/*|uploads/*|install/*|themes/*|favicon.ico|*/.yikai-market-origin.json|.yikai-market-origin.json) continue;;
+                        config/config.php|storage/*|uploads/*|install/*|themes/*|favicon.ico|images/*|assets/images/*|*/.yikai-market-origin.json|.yikai-market-origin.json) continue;;
                     esac
                     DELETED+=("$path")
                     ;;
@@ -578,7 +581,7 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
                     fi
                     case "$path" in
                         install/upgrade.php|install/run_upgrade.php) DELETED+=("$path");;
-                        config/config.php|storage/*|uploads/*|install/*|themes/*|*/.yikai-market-origin.json|.yikai-market-origin.json) ;;
+                        config/config.php|storage/*|uploads/*|install/*|themes/*|images/*|assets/images/*|*/.yikai-market-origin.json|.yikai-market-origin.json) ;;
                         *) DELETED+=("$path");;
                     esac
                     ;;
