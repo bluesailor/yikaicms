@@ -331,6 +331,20 @@ for item in "${EXCLUDES[@]}"; do
     rm -rf "$PKG_DIR/$item"
 done
 
+# 被核心包排除的路径从未随核心包分发：市场插件（logo-maker、seo、dologin…）、Pro 资产
+# 只可能是站点自行安装的。它们在仓库里删改时，增量包不得删除客户站点上的同名文件。
+# 2026-09-17 实测：未加此护栏时 1.18.x → 1.20.0 增量包会删掉 plugins/logo-maker 7618 个文件。
+path_never_shipped() {
+    local candidate="$1" item
+    for item in "${EXCLUDES[@]}"; do
+        [ -z "$item" ] && continue
+        if [ "$candidate" = "$item" ] || [[ "$candidate" == "$item"/* ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Installation receipts belong to the destination site, never the distributed source.
 find "$PKG_DIR" -type f -name '.yikai-market-origin.json' -delete
 
@@ -578,6 +592,7 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
                         install/upgrade.php|install/run_upgrade.php) ;;
                         config/config.php|storage/*|uploads/*|install/*|themes/*|favicon.ico|images/*|assets/images/*|*/.yikai-market-origin.json|.yikai-market-origin.json) continue;;
                     esac
+                    path_never_shipped "$path" && continue
                     DELETED+=("$path")
                     ;;
                 R*)
@@ -587,7 +602,7 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
                     case "$path" in
                         install/upgrade.php|install/run_upgrade.php) DELETED+=("$path");;
                         config/config.php|storage/*|uploads/*|install/*|themes/*|images/*|assets/images/*|*/.yikai-market-origin.json|.yikai-market-origin.json) ;;
-                        *) DELETED+=("$path");;
+                        *) path_never_shipped "$path" || DELETED+=("$path");;
                     esac
                     ;;
                 *)  # A / M / C：仅当该文件确实进了包（未被打包排除）才纳入
