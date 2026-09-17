@@ -74,7 +74,8 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   }
 
   const marker = `R30 page publish ${Date.now()}`;
-  const headingInput = page.locator('[data-control-key="text"] input[type="text"]').first();
+  // 标题文字控件为多行文本框（支持换行标题）
+  const headingInput = page.getByTestId('blox-left-panel').getByRole('textbox', { name: '标题', exact: true });
   await expect(headingInput).toBeVisible();
   await performPagePreviewUpdate(page, () => headingInput.fill(marker));
 
@@ -174,8 +175,17 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   const publishTarget = page.locator('[data-yk-sec-id]').first();
   const publishSectionId = await publishTarget.getAttribute('data-yk-sec-id');
   expect(publishSectionId).toBeTruthy();
-  await publishTarget.hover();
-  const draftEditorHref = await page.locator('#yk-edit-btn').getAttribute('href');
+  // 单页内容统一从管理条「当前页面」进入编辑（区块悬停入口已取消，见 page.php data-yk-page-edit-only）。
+  // 区块定位标记仍保留给旧深链：在该入口上补 focus_section / yk_focus_section，覆盖「发布后回到修改位置」。
+  await page.getByTestId('admin-edit-regions').locator('summary').click();
+  const pageEditHref = await page.getByTestId('admin-edit-region-menu').locator('a').first().getAttribute('href');
+  expect(pageEditHref).toMatch(/^\/admin\/blox_editor\.php\?id=\d+/);
+  const deepLink = new URL(pageEditHref, 'http://yikaicms.local');
+  const deepReturn = new URL(deepLink.searchParams.get('return_to'), 'http://yikaicms.local');
+  deepReturn.searchParams.set('yk_focus_section', publishSectionId);
+  deepLink.searchParams.set('return_to', deepReturn.pathname + deepReturn.search);
+  deepLink.searchParams.set('focus_section', publishSectionId);
+  const draftEditorHref = deepLink.pathname + deepLink.search;
   expect(draftEditorHref).toBeTruthy();
   expect(draftEditorHref).not.toContain('yk_edit_receipt');
   await page.goto(draftEditorHref, { waitUntil: 'domcontentloaded' });

@@ -122,8 +122,10 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
   const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(pageOverflow).toBe(0);
 
+  // 宽屏断点默认开启（blox_widescreen_enabled=1）：宽屏 / 桌面 / 平板 / 手机 四个切换按钮
   const deviceButtons = page.locator('[data-testid^="blox-device-"]');
-  await expect(deviceButtons).toHaveCount(3);
+  await expect(deviceButtons).toHaveCount(4);
+  await expect(page.getByTestId('blox-device-wide')).toBeVisible();
   const deviceMetrics = await deviceButtons.evaluateAll((buttons) => buttons.map((button) => {
     const rect = button.getBoundingClientRect();
     return {
@@ -438,6 +440,12 @@ test('desktop keyboard insertion requires a selected target @ci', async ({ page 
   await expectClean(page);
 });
 
+/** 工作区偏好按站点 + 账号隔离存储，键名由编辑器生成（旧版全局键只作回退读取）。 */
+const workspacePref = (page, name) => page.evaluate((prefName) => {
+  const app = window.Alpine.$data(document.body);
+  return localStorage.getItem(app.workspacePrefKey(prefName));
+}, name);
+
 test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop split-panel baseline');
   const panel = page.getByTestId('blox-left-panel');
@@ -458,7 +466,7 @@ test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, 
 
   await expect.poll(async () => (await panel.boundingBox()).width).toBe(initialPanel.width + 80);
   await expect.poll(async () => (await canvasHost.boundingBox()).x).toBe(initialCanvas.x + 80);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:left-panel-width:v1'))).toBe('368');
+  await expect.poll(() => workspacePref(page, 'left-panel-width')).toBe('368');
 
   await resizer.dblclick();
   await expect.poll(async () => (await panel.boundingBox()).width).toBe(288);
@@ -552,7 +560,7 @@ test('desktop structure panel resizes and collapses persistently @ci', async ({ 
 
   await expect.poll(async () => (await panel.boundingBox()).width).toBe(initialPanel.width + 64);
   await expect.poll(async () => (await canvasHost.boundingBox()).width).toBe(initialCanvas.width - 64);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:right-panel-width:v1'))).toBe('320');
+  await expect.poll(() => workspacePref(page, 'right-panel-width')).toBe('320');
 
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
@@ -563,7 +571,7 @@ test('desktop structure panel resizes and collapses persistently @ci', async ({ 
     const box = await page.getByTestId('blox-canvas').boundingBox();
     return Math.abs(box.x + box.width - page.viewportSize().width);
   }).toBeLessThanOrEqual(1);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:right-panel-collapsed:v1'))).toBe('1');
+  await expect.poll(() => workspacePref(page, 'right-panel-collapsed')).toBe('1');
 
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('blox-toolbar-structure-toggle')).toHaveAttribute('aria-expanded', 'false');
@@ -862,7 +870,8 @@ test('current theme header allows publishing unsaved canvas changes @ci', async 
   await sticky.check();
   await expect(page.getByTestId('blox-dirty')).toBeVisible();
   await expect(page.getByTestId('blox-publish-template')).toBeEnabled();
-  await expect(page.getByTestId('blox-publish-template')).toHaveAttribute('title', '保存当前修改并发布');
+  // 编辑当前主题网页头：发布即接管主题网页头，按钮提示为「发布并使用」（普通模板为「保存当前修改并发布」）
+  await expect(page.getByTestId('blox-publish-template')).toHaveAttribute('title', '发布并使用');
 
   // 全局 E2E 安全钩子禁止触发保存/发布；恢复初始值，证明按钮状态不依赖先保存。
   await sticky.uncheck();
@@ -1581,16 +1590,16 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByTestId('blox-template-quick-recommended')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('推荐用于：首页')).toBeVisible();
-  // 2026-09-16 本地内置缩减为六款基础区块后，六款都适用首页——
-  // 「推荐」与「全部」在本地库里数量相同，这是目录变小的结果，不是筛选失效。
-  await expect(page.getByTestId('blox-template-item')).toHaveCount(6);
+  // 本地内置 8 款基础区块（2026-09-17 加入客户评价轮播、合作伙伴），都适用首页——
+  // 「推荐」与「全部」在本地库里数量相同，这是目录小的结果，不是筛选失效。
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(8);
   await expect.poll(() => page.getByTestId('blox-template-panel').evaluate((panel) => (
     panel.scrollWidth <= panel.clientWidth
   ))).toBe(true);
   await page.getByTestId('blox-template-quick-all').click();
 
   const builtins = page.locator('[data-testid="blox-template-item"][data-template-key^="builtin:"]');
-  await expect(builtins).toHaveCount(6);
+  await expect(builtins).toHaveCount(8);
   const firstPreview = builtins.first().locator('img');
   await expect(firstPreview).toBeVisible();
   await expect.poll(() => firstPreview.evaluate((image) => (
@@ -1603,15 +1612,19 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   await expect(builtins).toHaveCount(1);
   await search.fill('');
 
-  const category = page.getByTestId('blox-template-category');
-  await expect(category).toBeVisible();
-  await category.selectOption('content');
+  // 区块入口的分类是标签按钮（下拉框只在整页模板入口出现）
+  const chips = page.getByTestId('blox-template-category-chips');
+  await expect(chips).toBeVisible();
+  await chips.locator('[data-category="content"]').click();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]')).toBeVisible();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:testimonial-quote"]')).toBeVisible();
+  await expect(builtins).toHaveCount(2);
+  await chips.locator('[data-category="social"]').click();
   await expect(builtins).toHaveCount(3);
+  await chips.locator('[data-category="home-common"]').click();
+  await expect(builtins).toHaveCount(5);
 
-  await category.selectOption('all');
+  await chips.locator('[data-category="all"]').click();
   // 随包基础区块全部是静态结构；动态数据款已迁往远程精品库，本地筛选应为空
   const dataSource = page.getByTestId('blox-template-data-source');
   await dataSource.selectOption('dynamic');
@@ -1719,9 +1732,9 @@ test('prebuilt library restores session filters and scroll after closing or inse
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByTestId('blox-prebuilt-open').click();
 
-  const category = page.getByTestId('blox-template-category');
+  const chips = page.getByTestId('blox-template-category-chips');
   const search = page.getByTestId('blox-template-search');
-  await category.selectOption('content');
+  await chips.locator('[data-category="content"]').click();
   await search.fill('图文');
   await page.getByTestId('blox-template-close').click();
   await expect.poll(() => page.evaluate(() => JSON.parse(
@@ -1729,11 +1742,11 @@ test('prebuilt library restores session filters and scroll after closing or inse
   ))).toMatchObject({ scope: 'local', category: 'content', quickFilter: 'recommended', query: '图文' });
 
   await page.getByTestId('blox-prebuilt-open').click();
-  await expect(category).toHaveValue('content');
+  await expect(chips.locator('[data-category="content"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(search).toHaveValue('图文');
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
   await search.fill('');
-  await category.selectOption('all');
+  await chips.locator('[data-category="all"]').click();
   await page.getByTestId('blox-template-density-compact').click();
   const scroller = page.locator('[x-ref="templateScroll"]');
   await scroller.evaluate((element) => { element.scrollTop = Math.min(240, element.scrollHeight); });
@@ -1801,7 +1814,7 @@ test('prebuilt empty states explain active filters and clear them in one action 
   await expect(empty).toHaveAttribute('data-empty-reason', 'search');
   await clear.click();
   await expect(search).toHaveValue('');
-  await expect(page.getByTestId('blox-template-category')).toHaveValue('all');
+  await expect(page.getByTestId('blox-template-category-chips').locator('[data-category="all"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('[x-ref="templateScroll"]')).toHaveJSProperty('scrollTop', 0);
   await expect.poll(() => page.evaluate(() => JSON.parse(
     sessionStorage.getItem('yikai:blox:template-section-view:v2') || '{}'
@@ -2206,7 +2219,8 @@ test('editor chrome localizes to en and ja @ci', async ({ page }, testInfo) => {
     setAdminLang('ja');
     await page.reload();
     await expect(page.getByTestId('blox-tree')).toBeVisible();
-    await expect(page).toHaveTitle(/エディター/);
+    // 2026-09-17 起编辑器品牌名为「Yikai ビルダー」（原「…エディター」）
+    await expect(page).toHaveTitle(/Yikai ビルダー/);
     await expect(page.getByText('要素ライブラリ').first()).toBeVisible();
   } finally {
     setAdminLang('zh-CN');

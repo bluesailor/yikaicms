@@ -76,12 +76,14 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
     await expect(header).toBeVisible();
     await expect(footer).toBeVisible();
     const utilitySearch = header.locator('section form[role="search"] input[name="keyword"]').first();
-    const languageSwitcher = header.locator('[data-yk-language-switcher="dropdown"]');
+    // 企业网页头有两个语言切换器：顶栏那个给平板/桌面，主行那个只在手机显示（_hide_on t/d）
+    const topbarSwitcher = header.locator('[data-yk-language-switcher="dropdown"]').first();
+    const languageSwitcher = header.locator('[data-yk-language-switcher="dropdown"]:visible').first();
     const languageTrigger = languageSwitcher.locator('[data-yk-language-trigger]');
     const languageMenu = languageSwitcher.locator('[data-yk-language-menu]');
     if (testInfo.project.name === 'mobile-390') {
       await expect(utilitySearch).toBeHidden();
-      await expect(languageTrigger).toBeHidden();
+      await expect(topbarSwitcher.locator('[data-yk-language-trigger]')).toBeHidden();
     } else {
       await expect(utilitySearch).toBeVisible();
       await expect(languageTrigger).toBeVisible();
