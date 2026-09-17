@@ -27,7 +27,11 @@ final class BloxProAccess
             return 'inactive';
         }
         // Module ownership survives service expiry; registration alone grants nothing.
-        if (!function_exists('license_has_module') || !license_has_module('blox')) {
+        // 老专业授权（blox 模块推出前签发、已购付费模块）同样拥有 BLOX Pro，见 license_owns_blox()。
+        $owned = function_exists('license_owns_blox')
+            ? license_owns_blox()
+            : (function_exists('license_has_module') && license_has_module('blox'));
+        if (!$owned) {
             return 'unlicensed';
         }
         return 'ready';

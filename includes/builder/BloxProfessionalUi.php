@@ -27,7 +27,7 @@ final class BloxProfessionalUi
             $allowed = BloxFeaturePolicy::allows($feature) && $moduleLoaded;
             if (!$allowed && ($tier === 'licensed' || !$moduleLoaded) && $account === null) {
                 $account = [
-                    'owned' => function_exists('license_has_module') && license_has_module('blox'),
+                    'owned' => function_exists('license_owns_blox') && license_owns_blox(),
                     'key' => function_exists('license_key') && license_key() !== '',
                     'installed' => is_file(ROOT_PATH . '/plugins/blox-pro/main.php'),
                     'active' => function_exists('isPluginAvailable') && isPluginAvailable('blox-pro'),
