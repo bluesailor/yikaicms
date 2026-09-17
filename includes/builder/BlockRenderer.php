@@ -20,21 +20,21 @@ final class BlockRenderer
     private const SECTION_LABEL_ELEMENT_TITLE_KEYS = ['title', 'name', 'label'];
     private const SECTION_LABEL_MAX = 120;
 
-    /** 响应式三档映射（[基类, md:类, lg:类]，字面量写全供 Tailwind 扫描；解析见 AbstractElement::respClasses） */
+    /** 响应式映射（[基类, md:类, lg:类, wide:类]，字面量写全供 Tailwind 扫描；解析见 AbstractElement::respClasses） */
     private const PADDING_MAP = [
-        'none' => ['py-0', 'md:py-0', 'lg:py-0'],
-        'xs'   => ['py-1', 'md:py-1', 'lg:py-1'],
-        'sm'   => ['py-4', 'md:py-4', 'lg:py-4'],
-        'md'   => ['py-8', 'md:py-8', 'lg:py-8'],
-        'lg'   => ['py-12', 'md:py-12', 'lg:py-12'],
-        'xl'   => ['py-16', 'md:py-16', 'lg:py-16'],
+        'none' => ['py-0', 'md:py-0', 'lg:py-0', 'wide:py-0'],
+        'xs'   => ['py-1', 'md:py-1', 'lg:py-1', 'wide:py-1'],
+        'sm'   => ['py-4', 'md:py-4', 'lg:py-4', 'wide:py-4'],
+        'md'   => ['py-8', 'md:py-8', 'lg:py-8', 'wide:py-8'],
+        'lg'   => ['py-12', 'md:py-12', 'lg:py-12', 'wide:py-12'],
+        'xl'   => ['py-16', 'md:py-16', 'lg:py-16', 'wide:py-16'],
     ];
     private const GAP_MAP = [
-        'none' => ['gap-0', 'md:gap-0', 'lg:gap-0'],
-        'sm'   => ['gap-2', 'md:gap-2', 'lg:gap-2'],
-        'md'   => ['gap-4', 'md:gap-4', 'lg:gap-4'],
-        'lg'   => ['gap-8', 'md:gap-8', 'lg:gap-8'],
-        'xl'   => ['gap-12', 'md:gap-12', 'lg:gap-12'],
+        'none' => ['gap-0', 'md:gap-0', 'lg:gap-0', 'wide:gap-0'],
+        'sm'   => ['gap-2', 'md:gap-2', 'lg:gap-2', 'wide:gap-2'],
+        'md'   => ['gap-4', 'md:gap-4', 'lg:gap-4', 'wide:gap-4'],
+        'lg'   => ['gap-8', 'md:gap-8', 'lg:gap-8', 'wide:gap-8'],
+        'xl'   => ['gap-12', 'md:gap-12', 'lg:gap-12', 'wide:gap-12'],
     ];
     private const MAXWIDTH_MAP = ['default' => 'max-w-6xl', 'narrow' => 'max-w-4xl', 'wide' => 'max-w-7xl', 'full' => 'max-w-full'];
     // 容器层（内容层）独立样式：区块=全宽背景层、内层 div=容器（Bricks 的 Section/Container 分层）
@@ -61,7 +61,8 @@ final class BlockRenderer
         9 => 'lg:col-span-9', 10 => 'lg:col-span-10', 11 => 'lg:col-span-11', 12 => 'lg:col-span-12',
     ];
     /** 断点隐藏类（前台输出；编辑态改打 data-yk-hide-on 标记以便画布仍可选中）。类名字面量供 Tailwind 扫描。 */
-    private const HIDE_ON_MAP = ['m' => 'max-md:hidden', 't' => 'md:max-lg:hidden', 'd' => 'lg:hidden'];
+    // 桌面隐藏覆盖 ≥1024（含宽屏，与旧文档一致）；宽屏档另可单独隐藏 ≥1440
+    private const HIDE_ON_MAP = ['m' => 'max-md:hidden', 't' => 'md:max-lg:hidden', 'd' => 'lg:hidden', 'w' => 'wide:hidden'];
     private const SECTION_ALIGN_MAP = ['left' => 'text-left', 'center' => 'text-center', 'right' => 'text-right'];
     private const SECTION_TITLE_SIZE_MAP = ['sm' => '1.5rem', 'md' => '1.875rem', 'lg' => '2.25rem', 'xl' => '3rem'];
     private const SECTION_SUBTITLE_SIZE_MAP = ['sm' => '0.875rem', 'md' => '1rem', 'lg' => '1.25rem'];

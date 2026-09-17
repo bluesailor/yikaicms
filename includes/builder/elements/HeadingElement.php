@@ -6,24 +6,24 @@ declare(strict_types=1);
 final class HeadingElement extends AbstractElement
 {
     private const LEVEL_SIZE_MAP = [
-        'h1' => ['text-3xl', 'md:text-3xl', 'lg:text-3xl'],
-        'h2' => ['text-2xl', 'md:text-2xl', 'lg:text-2xl'],
-        'h3' => ['text-xl', 'md:text-xl', 'lg:text-xl'],
-        'h4' => ['text-lg', 'md:text-lg', 'lg:text-lg'],
-        'h5' => ['text-base', 'md:text-base', 'lg:text-base'],
-        'h6' => ['text-sm', 'md:text-sm', 'lg:text-sm'],
+        'h1' => ['text-3xl', 'md:text-3xl', 'lg:text-3xl', 'wide:text-3xl'],
+        'h2' => ['text-2xl', 'md:text-2xl', 'lg:text-2xl', 'wide:text-2xl'],
+        'h3' => ['text-xl', 'md:text-xl', 'lg:text-xl', 'wide:text-xl'],
+        'h4' => ['text-lg', 'md:text-lg', 'lg:text-lg', 'wide:text-lg'],
+        'h5' => ['text-base', 'md:text-base', 'lg:text-base', 'wide:text-base'],
+        'h6' => ['text-sm', 'md:text-sm', 'lg:text-sm', 'wide:text-sm'],
     ];
     private const VISUAL_SIZE_MAP = [
-        'sm' => ['text-base', 'md:text-base', 'lg:text-base'],
-        'md' => ['text-lg', 'md:text-lg', 'lg:text-lg'],
-        'lg' => ['text-xl', 'md:text-xl', 'lg:text-xl'],
-        'xl' => ['text-2xl', 'md:text-2xl', 'lg:text-2xl'],
-        '2xl' => ['text-3xl', 'md:text-3xl', 'lg:text-3xl'],
-        '3xl' => ['text-4xl', 'md:text-4xl', 'lg:text-4xl'],
-        '4xl' => ['text-5xl', 'md:text-5xl', 'lg:text-5xl'],
-        '5xl' => ['text-6xl', 'md:text-6xl', 'lg:text-6xl'],
-        '6xl' => ['text-7xl', 'md:text-7xl', 'lg:text-7xl'],
-        'display' => ['text-8xl', 'md:text-8xl', 'lg:text-8xl'],
+        'sm' => ['text-base', 'md:text-base', 'lg:text-base', 'wide:text-base'],
+        'md' => ['text-lg', 'md:text-lg', 'lg:text-lg', 'wide:text-lg'],
+        'lg' => ['text-xl', 'md:text-xl', 'lg:text-xl', 'wide:text-xl'],
+        'xl' => ['text-2xl', 'md:text-2xl', 'lg:text-2xl', 'wide:text-2xl'],
+        '2xl' => ['text-3xl', 'md:text-3xl', 'lg:text-3xl', 'wide:text-3xl'],
+        '3xl' => ['text-4xl', 'md:text-4xl', 'lg:text-4xl', 'wide:text-4xl'],
+        '4xl' => ['text-5xl', 'md:text-5xl', 'lg:text-5xl', 'wide:text-5xl'],
+        '5xl' => ['text-6xl', 'md:text-6xl', 'lg:text-6xl', 'wide:text-6xl'],
+        '6xl' => ['text-7xl', 'md:text-7xl', 'lg:text-7xl', 'wide:text-7xl'],
+        'display' => ['text-8xl', 'md:text-8xl', 'lg:text-8xl', 'wide:text-8xl'],
     ];
 
     public function type(): string { return 'heading'; }

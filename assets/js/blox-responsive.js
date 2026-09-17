@@ -5,6 +5,7 @@
         d: "d", desktop: "d",
         t: "t", tablet: "t",
         m: "m", mobile: "m",
+        w: "w", wide: "w",
     };
 
     function has(options, value) {
@@ -16,7 +17,7 @@
         var safeFallback = has(options, fallback) ? fallback : (keys[0] || "");
         if (!value || typeof value !== "object" || Array.isArray(value)) {
             var scalar = has(options, value) ? value : safeFallback;
-            return { d: scalar, t: scalar, m: scalar };
+            return { d: scalar, t: scalar, m: scalar, w: scalar };
         }
 
         var canonical = {};
@@ -27,7 +28,8 @@
         var desktop = Object.prototype.hasOwnProperty.call(canonical, "d") ? canonical.d : safeFallback;
         var tablet = Object.prototype.hasOwnProperty.call(canonical, "t") ? canonical.t : desktop;
         var mobile = Object.prototype.hasOwnProperty.call(canonical, "m") ? canonical.m : tablet;
-        return { d: desktop, t: tablet, m: mobile };
+        var wide = Object.prototype.hasOwnProperty.call(canonical, "w") ? canonical.w : desktop;
+        return { d: desktop, t: tablet, m: mobile, w: wide };
     }
 
     function deviceKey(device) {
@@ -41,7 +43,8 @@
     var BREAKPOINTS = [
         { device: "mobile", key: "m", min: null, max: 767 },
         { device: "tablet", key: "t", min: 768, max: 1023 },
-        { device: "desktop", key: "d", min: 1024, max: null },
+        { device: "desktop", key: "d", min: 1024, max: 1439 },
+        { device: "wide", key: "w", min: 1440, max: null },
     ];
 
     function breakpointFor(device) {
@@ -126,7 +129,7 @@
             ? Object.prototype.hasOwnProperty.call(current, key)
             : key === "d";
         var source = key;
-        if (!explicit && key === "t") source = "d";
+        if (!explicit && (key === "t" || key === "w")) source = "d";
         if (!explicit && key === "m") {
             source = typeof current === "object" && !Array.isArray(current)
                 && Object.prototype.hasOwnProperty.call(current, "t") ? "t" : "d";

@@ -86,11 +86,23 @@ test('R2B: clampPreviewWidth clamps to 320-2560 and treats empty/invalid as auto
 
 test('breakpoint ranges and preview width tiers share one definition', () => {
     assert.deepStrictEqual(
-        ['mobile', 'tablet', 'desktop'].map((device) => responsive.rangeLabel(device)),
-        ['<768px', '768\u20131023px', '\u22651024px']
+        ['mobile', 'tablet', 'desktop', 'wide'].map((device) => responsive.rangeLabel(device)),
+        ['<768px', '768\u20131023px', '1024\u20131439px', '\u22651440px']
     );
     assert.deepStrictEqual(
-        [320, 767, 768, 1023, 1024, 2560, 'x'].map((width) => responsive.deviceForWidth(width)),
-        ['mobile', 'mobile', 'tablet', 'tablet', 'desktop', 'desktop', 'desktop']
+        [320, 767, 768, 1023, 1024, 1439, 1440, 2560, 'x'].map((width) => responsive.deviceForWidth(width)),
+        ['mobile', 'mobile', 'tablet', 'tablet', 'desktop', 'desktop', 'wide', 'wide', 'desktop']
     );
+});
+
+test('widescreen inherits desktop until it is set explicitly', () => {
+    const options = { sm: true, md: true, lg: true };
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(responsive.normalize({ d: 'md', m: 'sm' }, options, 'sm'))), { d: 'md', t: 'md', m: 'sm', w: 'md' });
+    const state = responsive.stateFor({ d: 'md' }, 'wide', options, 'sm');
+    assert.strictEqual(state.device, 'w');
+    assert.strictEqual(state.source, 'd');
+    assert.strictEqual(state.inherited, true);
+    const set = responsive.setFor('md', 'wide', 'lg', options, 'sm');
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(set)), { d: 'md', w: 'lg' });
+    assert.strictEqual(responsive.stateFor(set, 'wide', options, 'sm').overridden, true);
 });

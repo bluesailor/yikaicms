@@ -9,6 +9,7 @@ final class BloxCssCompiler
     private const MAX_DECLARATIONS = 24;
     private const TABLET_MIN = 768;
     private const DESKTOP_MIN = 1024;
+    private const WIDE_MIN = 1440;
 
     /**
      * 可由控件声明的属性白名单与值类型。普通文档只提供值，属性、选择器与解析方式只来自可信 schema。
@@ -60,7 +61,7 @@ final class BloxCssCompiler
         $classes = [];
         foreach ($declarations as $property => $value) {
             if ($value['d'] === null) {
-                foreach (['t', 'm'] as $device) {
+                foreach (['t', 'm', 'w'] as $device) {
                     if ($value[$device] !== null) {
                         $style .= '--yk-r-' . $property . '-' . $device . ':' . $value[$device] . ';';
                         $classes[] = 'yk-r-' . $property . '-' . $device . '-only';
@@ -68,12 +69,16 @@ final class BloxCssCompiler
                 }
                 continue;
             }
-            if ($value['d'] === $value['t'] && $value['t'] === $value['m']) {
+            if ($value['d'] === $value['t'] && $value['t'] === $value['m'] && $value['d'] === $value['w']) {
                 $style .= $property . ':' . $value['d'] . ';';
                 continue;
             }
             foreach (['m', 't', 'd'] as $device) {
                 $style .= '--yk-r-' . $property . '-' . $device . ':' . $value[$device] . ';';
+            }
+            // 宽屏变量只在与桌面不同时输出；样式表回退到桌面变量，旧文档与已缓存页面输出不变
+            if ($value['w'] !== $value['d']) {
+                $style .= '--yk-r-' . $property . '-w:' . $value['w'] . ';';
             }
             $classes[] = 'yk-r-' . $property;
         }
@@ -86,21 +91,24 @@ final class BloxCssCompiler
      */
     public static function responsiveStylesheet(): string
     {
-        $base = $tablet = $desktop = $tabletOnly = $mobileOnly = '';
+        $base = $tablet = $desktop = $wide = $tabletOnly = $mobileOnly = $wideOnly = '';
         foreach (array_keys(self::PROPERTIES) as $property) {
             $selector = '.yk-r-' . $property;
             // Explicit instance controls outrank site defaults such as h2.yk-type-h2 without !important.
             $base .= $selector . $selector . '{' . $property . ':var(--yk-r-' . $property . '-m)}';
             $tablet .= $selector . $selector . '{' . $property . ':var(--yk-r-' . $property . '-t)}';
             $desktop .= $selector . $selector . '{' . $property . ':var(--yk-r-' . $property . '-d)}';
+            $wide .= $selector . $selector . '{' . $property . ':var(--yk-r-' . $property . '-w,var(--yk-r-' . $property . '-d))}';
             $tabletOnly .= $selector . '-t-only' . $selector . '-t-only{' . $property . ':var(--yk-r-' . $property . '-t)}';
             $mobileOnly .= $selector . '-m-only' . $selector . '-m-only{' . $property . ':var(--yk-r-' . $property . '-m)}';
+            $wideOnly .= $selector . '-w-only' . $selector . '-w-only{' . $property . ':var(--yk-r-' . $property . '-w)}';
         }
         return $base
             . '@media (min-width:' . self::TABLET_MIN . 'px){' . $tablet . '}'
             . '@media (min-width:' . self::DESKTOP_MIN . 'px){' . $desktop . '}'
             . '@media not all and (min-width:' . self::DESKTOP_MIN . 'px){' . $tabletOnly . '}'
-            . '@media not all and (min-width:' . self::TABLET_MIN . 'px){' . $mobileOnly . '}';
+            . '@media not all and (min-width:' . self::TABLET_MIN . 'px){' . $mobileOnly . '}'
+            . '@media (min-width:' . self::WIDE_MIN . 'px){' . $wide . $wideOnly . '}';
     }
 
     /** 保存侧清洗：空串/缺失表示未设置，0 保留；越界或非法值清为未设置而不是回落默认数字。 */
@@ -113,10 +121,13 @@ final class BloxCssCompiler
         }
         if (is_array($value)) {
             $out = [];
-            foreach (['d', 't', 'm'] as $device) {
+            foreach (['d', 't', 'm', 'w'] as $device) {
                 $out[$device] = self::scalar($property, $value[$device] ?? null) ?? '';
             }
-            return $out['d'] === '' && $out['t'] === '' && $out['m'] === '' ? '' : $out;
+            if ($out['w'] === '') {
+                unset($out['w']);
+            }
+            return $out['d'] === '' && $out['t'] === '' && $out['m'] === '' && !isset($out['w']) ? '' : $out;
         }
         return self::scalar($property, $value) ?? '';
     }
@@ -138,14 +149,16 @@ final class BloxCssCompiler
         return [$property];
     }
 
-    /** @return array{d:?string,t:?string,m:string}|null */
+    /** @return array{d:?string,t:?string,m:?string,w:?string}|null */
     private static function resolve(string $property, mixed $raw): ?array
     {
         $values = is_array($raw) ? $raw : ['d' => $raw];
         $desktop = self::format($property, $values['d'] ?? null);
         $tablet = self::format($property, $values['t'] ?? null) ?? $desktop;
         $mobile = self::format($property, $values['m'] ?? null) ?? $tablet;
-        return $mobile === null ? null : ['d' => $desktop, 't' => $tablet, 'm' => $mobile];
+        // 宽屏继承桌面（更宽断点）；只设宽屏时仅在 ≥1440 生效
+        $wide = self::format($property, $values['w'] ?? null) ?? $desktop;
+        return $mobile === null && $wide === null ? null : ['d' => $desktop, 't' => $tablet, 'm' => $mobile, 'w' => $wide];
     }
 
     private static function format(string $property, mixed $raw): ?string

@@ -12,21 +12,23 @@ final class BloxResponsiveValue
         'tablet' => 't',
         'm' => 'm',
         'mobile' => 'm',
+        'w' => 'w',
+        'wide' => 'w',
     ];
 
     /**
-     * Expand a scalar or partial responsive value into the canonical {d,t,m} shape.
-     * Tablet inherits desktop; mobile inherits tablet.
+     * Expand a scalar or partial responsive value into the canonical {d,t,m,w} shape.
+     * Tablet inherits desktop; mobile inherits tablet; widescreen (≥1440) inherits desktop.
      *
      * @param array<int|string,mixed> $allowed Map whose keys are valid values.
-     * @return array{d:mixed,t:mixed,m:mixed}
+     * @return array{d:mixed,t:mixed,m:mixed,w:mixed}
      */
     public static function normalize(mixed $value, array $allowed, mixed $fallback): array
     {
         $fallback = self::allowed($fallback, $allowed) ? $fallback : array_key_first($allowed);
         if (!is_array($value)) {
             $scalar = self::allowed($value, $allowed) ? $value : $fallback;
-            return ['d' => $scalar, 't' => $scalar, 'm' => $scalar];
+            return ['d' => $scalar, 't' => $scalar, 'm' => $scalar, 'w' => $scalar];
         }
 
         $canonical = [];
@@ -40,7 +42,7 @@ final class BloxResponsiveValue
         $desktop = $canonical['d'] ?? $fallback;
         $tablet = $canonical['t'] ?? $desktop;
         $mobile = $canonical['m'] ?? $tablet;
-        return ['d' => $desktop, 't' => $tablet, 'm' => $mobile];
+        return ['d' => $desktop, 't' => $tablet, 'm' => $mobile, 'w' => $canonical['w'] ?? $desktop];
     }
 
     /**
