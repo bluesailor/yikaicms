@@ -1,7 +1,7 @@
 const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('node:child_process');
 const path = require('node:path');
-const { openPageEditor, frame, addTemporaryHeading, performPagePreviewUpdate, expectClean } = require('./helpers');
+const { openPageEditor, frame, addTemporaryHeading, headingTextField, performPagePreviewUpdate, expectClean } = require('./helpers');
 const root = path.resolve(__dirname, '../..');
 const fixture = (...args) => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'contact-form-fixture.php'), ...args], { cwd: root, encoding: 'utf8' });
 let contact;
@@ -41,7 +41,7 @@ test('Blox contact fields persist and anonymous submissions reach the inbox with
   await expect((await frame(page)).locator('#shortcode-form-contact [name="name"]')).toHaveAttribute('placeholder', marker + ' placeholder');
   // Form settings are shared and saved immediately; page layout is published separately.
   await addTemporaryHeading(page);
-  await performPagePreviewUpdate(page, () => page.locator('[data-control-key="text"] input').fill(marker + ' layout'));
+  await performPagePreviewUpdate(page, () => headingTextField(page).fill(marker + ' layout'));
   const published = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
     && new URLSearchParams(r.request().postData() || '').get('action') === 'publish');
   page.once('dialog', dialog => dialog.accept());

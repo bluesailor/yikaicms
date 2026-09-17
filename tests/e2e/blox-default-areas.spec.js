@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
-const { addTemporaryHeading, observeConsole, performPreviewUpdate } = require('./helpers');
+const { addTemporaryHeading, headingTextField, observeConsole, performPreviewUpdate } = require('./helpers');
 
 const AREA_TEMPLATES = [
   { slug: 'corporate-site-header', name: 'Corporate Site Header' },
@@ -183,7 +183,8 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
         },
       });
       expect(headerSnapshot).toMatchSnapshot('r35-default-corporate-header.png', visualOptions);
-      const expectedFooterHeight = testInfo.project.name === 'desktop-1440' ? 453 : 648;
+      // 四列深色页脚：桌面四列同排，手机逐列堆叠
+      const expectedFooterHeight = testInfo.project.name === 'desktop-1440' ? 453 : 788;
       const naturalFooterBox = await footer.boundingBox();
       expect(naturalFooterBox).not.toBeNull();
       expect(naturalFooterBox.height).toBeGreaterThanOrEqual(expectedFooterHeight - 2);
@@ -223,25 +224,17 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
     await expect(regionNavigator).toBeVisible();
     await regionSummary.click();
     await expect(regionMenu).toBeVisible();
+    // 单页正文统一从「当前页面」进入编辑（page.php 的 data-yk-page-edit-only），不再列「正文」分组；
+    // 页头、页脚仍按元素深链。
     const regionHeadings = {
-      'zh-CN': ['当前页面', '页头', '正文', '页脚'],
-      en: ['Current page', 'Header', 'Body', 'Footer'],
-      ja: ['現在のページ', 'ヘッダー', '本文', 'フッター'],
+      'zh-CN': ['当前页面', '页头', '页脚'],
+      en: ['Current page', 'Header', 'Footer'],
+      ja: ['現在のページ', 'ヘッダー', 'フッター'],
     }[await page.locator('html').getAttribute('lang')];
     await expect(regionMenu.locator('.ik-ab-region-heading')).toHaveText(regionHeadings);
-    await expect(regionMenu.locator('a[href*="focus_section="]')).not.toHaveCount(0);
+    await expect(regionMenu.locator('#ik-ab-region-heading-page + a')).toHaveAttribute('href', /\/admin\/blox_editor\.php\?id=\d+/);
+    await expect(regionMenu.locator('a[href*="focus_section="]')).toHaveCount(0);
     await expect(regionMenu.locator('a[href*="focus_element="]')).not.toHaveCount(0);
-    const labeledSection = page.locator('[data-yk-sec-id][data-yk-sec-label]').first();
-    await expect(labeledSection).toHaveCount(1);
-    const labeledSectionId = await labeledSection.getAttribute('data-yk-sec-id');
-    const labeledSectionText = await labeledSection.getAttribute('data-yk-sec-label');
-    expect(labeledSectionId).toBeTruthy();
-    expect(labeledSectionText).toBeTruthy();
-    const labeledSectionLink = regionMenu.locator(
-      `a[href*="focus_section=${encodeURIComponent(labeledSectionId)}"]`,
-    );
-    await expect(labeledSectionLink).toHaveText(labeledSectionText);
-    await expect(labeledSectionLink).toHaveAttribute('title', labeledSectionText);
     const regionLayout = await regionMenu.evaluate((element) => ({
       left: element.getBoundingClientRect().left,
       right: element.getBoundingClientRect().right,
@@ -276,7 +269,7 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       await expect(contactTargets.first()).toHaveAttribute('data-yk-element-id', /.+/);
 
       const searchTarget = liveHeader.locator('[data-yk-element-edit="site-search"]');
-      const languageTarget = liveHeader.locator('[data-yk-element-edit="language-switcher"]');
+      const languageTarget = liveHeader.locator('[data-yk-element-edit="language-switcher"]:visible').first();
       const footerNavigationTarget = liveFooter.locator('[data-yk-element-edit="footer-navigation"]');
       const copyrightTarget = liveFooter.locator('[data-yk-element-edit="site-copyright"]');
       await expect(searchTarget).toBeVisible();
@@ -340,7 +333,7 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       await page.goto(headerEditorHref, { waitUntil: 'domcontentloaded' });
       await addTemporaryHeading(page);
       const headerDraftMarker = `Header draft ${Date.now()}`;
-      const headerDraftInput = page.locator('[data-control-key="text"] input[type="text"]').first();
+      const headerDraftInput = headingTextField(page);
       await performPreviewUpdate(page, () => headerDraftInput.fill(headerDraftMarker));
       const saveDraftResponse = page.waitForResponse((response) => {
         const body = new URLSearchParams(response.request().postData() || '');

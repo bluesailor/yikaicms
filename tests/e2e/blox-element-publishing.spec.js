@@ -2,7 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
-const { addTemporaryHeading, frame, openPageEditor, performPagePreviewUpdate, expectClean, waitPreviewSettled } = require('./helpers');
+const { addTemporaryHeading, frame, headingTextField, openPageEditor, performPagePreviewUpdate, expectClean, waitPreviewSettled } = require('./helpers');
 const root = path.resolve(__dirname, '../..');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 const fixture = action => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'catalog-baseline-fixture.php'), action], { cwd: root });
@@ -67,7 +67,7 @@ test('four basic elements survive reopening and replace the anonymous cached pag
   const originalIds = await (await frame(page)).locator('[data-yk-el-type]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-yk-el-id')));
   expect(originalIds.every(Boolean)).toBe(true);
   expect(new Set(originalIds).size).toBe(originalIds.length);
-  const text = page.locator('[data-control-key="text"] input').first();
+  const text = headingTextField(page);
   await performPagePreviewUpdate(page, () => text.fill(marker));
   await performPagePreviewUpdate(page, () => page.getByTestId('blox-undo').click());
   await expect(text).not.toHaveValue(marker);
@@ -83,8 +83,8 @@ test('four basic elements survive reopening and replace the anonymous cached pag
   }
   await add('button');
   await performPagePreviewUpdate(page, async () => {
-    await text.fill(`${marker} action`);
-    await page.locator('[data-control-key="url"] input').fill(publicUrl + '#e3-target');
+    await page.locator('[data-control-key="text"] input[type="text"]').fill(`${marker} action`);
+    await page.locator('[data-control-key="url"] input[type="text"]').fill(publicUrl + '#e3-target');
     await page.locator('[data-control-key="new_tab"] input').check();
   });
   await add('image');

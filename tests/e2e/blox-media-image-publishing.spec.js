@@ -85,7 +85,7 @@ test('real image uploads replace without distortion and button alignment survive
     await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).selEl?.type)).toBe(type);
     await page.getByTestId('blox-content-tab').click();
     if (type === 'image') await expect(page.locator('[data-control-key="alt"] input')).toHaveValue(alt);
-    else await expect(page.locator('[data-control-key="text"] input').first()).toHaveValue(actionText);
+    else await expect(page.locator('[data-control-key="text"] input[type="text"]')).toHaveValue(actionText);
     await waitPreviewSettled(page);
     expect(page.url()).toBe(editorUrl);
     expect(canvas.url()).toBe(canvasUrl);
@@ -202,7 +202,7 @@ test('real image uploads replace without distortion and button alignment survive
       if (theme === 'minimal') await expect(visitor.locator('body')).toHaveClass(/minimal-theme/);
       else if (theme === 'default') await expect(visitor.locator('body')).toHaveClass(/yk-site-body/);
       else {
-        await expect(visitor.locator('body')).not.toHaveClass(/yk-site-body|minimal-theme/);
+        await expect(visitor.locator('body')).toHaveClass(/business-theme/);
         await expect(visitor.locator('#siteHeader')).toBeAttached();
       }
       const image = await checkImage(visitor, kind, label);
@@ -253,8 +253,8 @@ test('real image uploads replace without distortion and button alignment survive
   });
   await add('button');
   await performPagePreviewUpdate(page, async () => {
-    await page.locator('[data-control-key="text"] input').first().fill(actionText);
-    await page.locator('[data-control-key="url"] input').fill(publicUrl + '#button-details');
+    await page.locator('[data-control-key="text"] input[type="text"]').fill(actionText);
+    await page.locator('[data-control-key="url"] input[type="text"]').fill(publicUrl + '#button-details');
   });
   await align('left');
   await selectInCanvas('image');

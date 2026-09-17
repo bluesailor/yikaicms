@@ -32,6 +32,8 @@ for (const [kind, type, id, route] of [
       const row = page.getByTestId('blox-tree-element').and(page.locator(`[data-element-type="${type}"]`));
       await page.getByTestId('blox-tree-section').filter({ has: row }).getByTestId('blox-tree-section-label').click();
       await row.locator('[data-element-drag-handle]').first().click();
+      // 属性面板会记住上次的页签；布局与显示项在「内容」页签
+      await page.getByTestId('blox-content-tab').click();
     }
     await openPageEditor(page, id);
     await selectCatalog();

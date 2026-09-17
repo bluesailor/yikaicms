@@ -37,7 +37,7 @@ for (const theme of ['default', 'business', 'minimal']) {
           await expect(page.locator('main')).toBeVisible();
           if (theme === 'minimal') await expect(page.locator('body')).toHaveClass(/minimal-theme/);
           else if (theme === 'default') await expect(page.locator('body')).toHaveClass(/yk-site-body/);
-          else await expect(page.locator('body')).not.toHaveClass(/minimal-theme|yk-site-body/);
+          else await expect(page.locator('body')).toHaveClass(/business-theme/);
           if (route.title) await expect(page.locator('main').getByRole('heading', { name: route.title, exact: true }).first()).toBeVisible();
           else await expect(page.locator('main h1:visible, main h2:visible').first()).toBeVisible();
           const canonical = new URL(await page.locator('link[rel="canonical"]').getAttribute('href'), baseURL);
