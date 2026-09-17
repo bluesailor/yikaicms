@@ -22,6 +22,11 @@
 
 declare(strict_types=1);
 
+// 首页文档单条就有十几 KB，默认的 PCRE JIT 栈和回溯上限都不够用（会以
+// "JIT stack limit exhausted" 失败，而不是安静地写错）。
+ini_set('pcre.jit', '0');
+ini_set('pcre.backtrack_limit', '10000000');
+
 $repoRoot = dirname(__DIR__);
 
 // ── 白名单 1：随包的内置区域模板（按 type + source_ref 精确匹配）────────────────
@@ -183,15 +188,19 @@ if ($rows) {
     }
     $insert = implode("\n", $statements);
 
+    // 整段替换：从第一条 blox_templates 的 INSERT 开始，一直到最后一条语句收尾。
+    // 旧种子是「一条 INSERT 多行 VALUES」，新种子是「每行一条 INSERT」，两种都要能认出来。
     $start = null;
     $end = null;
     foreach ($lines as $i => $line) {
         if (str_starts_with($line, 'INSERT INTO `yikai_blox_templates`')) {
-            $start = $i;
-        }
-        if ($start !== null && str_ends_with(rtrim($line), ';')) {
+            $start ??= $i;
             $end = $i;
-            break;
+            continue;
+        }
+        if ($start !== null && $end !== null && !str_ends_with(rtrim($lines[$end]), ';')) {
+            // 上一条语句还没收尾：当前行是它的 VALUES 续行
+            $end = $i;
         }
     }
     if ($start === null || $end === null) {
@@ -206,7 +215,103 @@ if ($rows) {
     }
 }
 
-// ── 2. settings ──────────────────────────────────────────────────────────────
+// ── 2. 栏目骨架：参照站有、种子没有的子栏目 ──────────────────────────────────
+// 只按 slug 补，且必须能在种子里找到同 slug 的父栏目——不整表同步，避免把开发过程中
+// 建的沙盒栏目带进包。id 一律重新分配：参照站的 id 早被种子里别的栏目占用了。
+const CHANNEL_SLUGS = [
+    'software-download', 'document-download', 'driver-download',
+    'software-download-en', 'document-download-en', 'driver-download-en',
+    'software-download-ja', 'document-download-ja', 'driver-download-ja',
+];
+
+$channelColumns = null;
+$seedChannels = [];      // slug => [id, lang]
+$maxChannelId = 0;
+$lastChannelLine = null;
+foreach ($lines as $i => $line) {
+    if (!str_starts_with($line, 'INSERT INTO `yikai_channels`')) {
+        continue;
+    }
+    if (preg_match("/VALUES \((\d+),/", $line, $m)) {
+        $maxChannelId = max($maxChannelId, (int) $m[1]);
+        $lastChannelLine = $i;
+    }
+    if (preg_match("/VALUES \((\d+),[^;]*?'((?:[^']|\\\\')*)'/", $line, $m)) {
+        // slug 是第几列取决于列清单，下面用参照站的列名定位，这里先记住行
+    }
+    if ($channelColumns === null && preg_match('/INSERT INTO `yikai_channels` \(([^)]+)\) VALUES/', $line, $m)) {
+        $channelColumns = array_map(
+            static fn (string $c): string => trim($c, " `"),
+            explode(',', $m[1])
+        );
+    }
+}
+if ($channelColumns !== null && $lastChannelLine !== null) {
+    // 种子现有 slug@lang → id
+    foreach ($lines as $line) {
+        if (!str_starts_with($line, 'INSERT INTO `yikai_channels`')) {
+            continue;
+        }
+        if (!preg_match('/VALUES \((.*)\);$/', $line, $m)) {
+            continue;
+        }
+        $cells = str_getcsv($m[1], ',', "'");
+        $row = @array_combine($channelColumns, $cells);
+        if (!is_array($row)) {
+            continue;
+        }
+        $seedChannels[$row['slug'] . '@' . $row['lang']] = $row;
+    }
+
+    $newChannelLines = [];
+    $assignedIds = [];      // 参照站 id → 种子新 id
+    foreach (CHANNEL_SLUGS as $slug) {
+        $ref = $pdo->query('SELECT * FROM `' . $prefix . 'channels` WHERE `slug` = ' . mysqlLiteral($slug) . ' LIMIT 1')
+            ->fetch(PDO::FETCH_ASSOC);
+        if (!$ref) {
+            fwrite(STDERR, "参照站没有栏目 {$slug}，已跳过\n");
+            continue;
+        }
+        if (isset($seedChannels[$slug . '@' . $ref['lang']])) {
+            continue;
+        }
+        $parent = $pdo->query('SELECT `slug`, `lang` FROM `' . $prefix . 'channels` WHERE `id` = ' . (int) $ref['parent_id'])
+            ->fetch(PDO::FETCH_ASSOC);
+        $parentKey = $parent ? $parent['slug'] . '@' . $parent['lang'] : '';
+        if (!isset($seedChannels[$parentKey])) {
+            fwrite(STDERR, "种子里没有 {$slug} 的父栏目（{$parentKey}），已跳过\n");
+            continue;
+        }
+        $maxChannelId++;
+        $assignedIds[(int) $ref['id']] = $maxChannelId;
+
+        $cells = [];
+        foreach ($channelColumns as $col) {
+            $value = $ref[$col] ?? null;
+            if ($col === 'id') {
+                $cells[] = (string) $maxChannelId;
+            } elseif ($col === 'parent_id') {
+                $cells[] = (string) (int) $seedChannels[$parentKey]['id'];
+            } elseif ($col === 'translation_group_id') {
+                // 翻译组以中文源行的新 id 为准；中文行自己指向自己
+                $group = (int) $ref['translation_group_id'];
+                $cells[] = (string) ($assignedIds[$group] ?? $maxChannelId);
+            } elseif (is_numeric($value) && !in_array($col, ['name', 'slug', 'seo_title'], true)) {
+                $cells[] = (string) (int) $value;
+            } else {
+                $cells[] = mysqlLiteral($value === null ? null : (string) $value);
+            }
+        }
+        $newChannelLines[] = 'INSERT INTO `yikai_channels` (`' . implode('`, `', $channelColumns) . '`) VALUES ('
+            . implode(',', $cells) . ');';
+        $changes[] = "channels.{$slug}（新增 #{$maxChannelId}）";
+    }
+    if ($newChannelLines) {
+        array_splice($lines, $lastChannelLine + 1, 0, $newChannelLines);
+    }
+}
+
+// ── 3. settings ──────────────────────────────────────────────────────────────
 $settingLine = [];      // key => 行号
 $maxId = 0;
 $lastSettingLine = null;
