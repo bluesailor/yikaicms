@@ -258,13 +258,17 @@ final class ThemeMarket
         $cmsVersion = defined('CMS_VERSION') ? (string) CMS_VERSION : '';
         $reason = MarketDownloadStatus::reason($theme);
         // Incompatible resources remain visible, without usable delivery metadata.
+        // An omitted requirement means "no constraint" (community submissions may leave it blank);
+        // a present but malformed one is still rejected.
+        $cmsConstraint = $requiresCms === '' ? '>=0.0.0' : $requiresCms;
+        $phpConstraint = $requiresPhp === '' ? '>=0.0.0' : $requiresPhp;
         if ($cmsVersion === ''
-            || preg_match('/^>=\s*\d+\.\d+\.\d+$/D', $requiresCms) !== 1
-            || preg_match('/^>=\s*\d+\.\d+\.\d+$/D', $requiresPhp) !== 1) return null;
-        if ($reason === '' && !self::officialConstraintSatisfied($cmsVersion, $requiresCms)) {
+            || preg_match('/^>=\s*\d+\.\d+\.\d+$/D', $cmsConstraint) !== 1
+            || preg_match('/^>=\s*\d+\.\d+\.\d+$/D', $phpConstraint) !== 1) return null;
+        if ($reason === '' && !self::officialConstraintSatisfied($cmsVersion, $cmsConstraint)) {
             $reason = 'cms_version_required';
         }
-        if ($reason === '' && !self::officialConstraintSatisfied(PHP_VERSION, $requiresPhp)) {
+        if ($reason === '' && !self::officialConstraintSatisfied(PHP_VERSION, $phpConstraint)) {
             $reason = 'php_version_required';
         }
         $blocked = $reason !== '';

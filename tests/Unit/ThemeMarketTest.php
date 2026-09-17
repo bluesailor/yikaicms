@@ -139,6 +139,24 @@ final class ThemeMarketTest extends TestCase
         self::assertTrue(ThemeMarket::isRemoteVersionNewer($local, 'minimal', '1.0.0'));
     }
 
+    /** 评审 P2-10：投稿主题可能不填最低版本要求——视为无约束，而不是整条从目录消失。 */
+    public function testOmittedRequirementsMeanNoConstraintButMalformedOnesStillFail(): void
+    {
+        $catalog = static fn (array $theme): string => json_encode([
+            'code' => 0, 'data' => ['protocol_version' => 2, 'themes' => [$theme]],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = ThemeMarket::request('', fn (): string => $catalog($this->catalogTheme(['requires_cms' => '', 'requires_php' => ''])));
+        self::assertCount(1, $response['data']['themes']);
+        self::assertSame('', $response['data']['themes'][0]['locked_reason']);
+
+        $withoutKeys = $this->catalogTheme();
+        unset($withoutKeys['requires_cms'], $withoutKeys['requires_php']);
+        self::assertCount(1, ThemeMarket::request('', fn (): string => $catalog($withoutKeys))['data']['themes']);
+
+        self::assertSame([], ThemeMarket::request('', fn (): string => $catalog($this->catalogTheme(['requires_php' => '8.0'])))['data']['themes']);
+    }
+
     public function testPhpRestrictionAndCommunityStatusSurviveNormalization(): void
     {
         $response = ThemeMarket::request('', fn (): string => json_encode([
