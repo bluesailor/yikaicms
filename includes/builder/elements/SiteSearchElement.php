@@ -33,8 +33,10 @@ final class SiteSearchElement extends AbstractElement
         $action = function_exists('dynamicFormAction') ? dynamicFormAction($prettyAction) : $prettyAction;
         $routeInputs = function_exists('dynamicFormHiddenInputs') ? dynamicFormHiddenInputs('search') : '';
         $keyword = isset($_GET['keyword']) && is_string($_GET['keyword']) ? trim($_GET['keyword']) : '';
+        // 深色背景用半透明输入框；assets/css/style.css 的表单修正以高优先级把输入框统一刷成白底，
+        // 这里必须 important，否则白底白字、占位符不可见（搜索导航网页脚、四列深色页脚都受影响）。
         $inputClass = $light
-            ? 'border-white/30 bg-white/10 text-white placeholder:text-white/60 focus:border-white'
+            ? 'border-white/30 bg-white/10! text-white placeholder:text-white/60 focus:border-white'
             : 'border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 focus:border-primary';
         $buttonClass = $light
             ? 'bg-white text-gray-900 hover:bg-white/80'
