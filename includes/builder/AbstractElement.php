@@ -565,7 +565,8 @@ abstract class AbstractElement
             $d = $responsive['d'];
             $t = $responsive['t'];
             $m = $responsive['m'];
-            if ($m === $t && $t === $d) {
+            $w = $responsive['w'];
+            if ($m === $t && $t === $d && $d === $w) {
                 return $map[$m][0];
             }
             $cls = $map[$m][0];
@@ -574,6 +575,9 @@ abstract class AbstractElement
             }
             if ($d !== $t) {
                 $cls .= ' ' . $map[$d][2];
+            }
+            if ($w !== $d && isset($map[$w][3])) {
+                $cls .= ' ' . $map[$w][3];
             }
             return $cls;
         }

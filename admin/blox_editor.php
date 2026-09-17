@@ -1892,6 +1892,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             ctx: { open: false, x: 0, y: 0, kind: "", target: null },
             devices: [
+                { key: "wide", label: <?= $jt('blox_device_wide') ?>, icon: "ti-device-imac" },
                 { key: "desktop", label: <?= $jt('blox_device_desktop') ?>, icon: "ti-device-desktop" },
                 { key: "tablet",  label: <?= $jt('blox_device_tablet') ?>, icon: "ti-device-tablet" },
                 { key: "mobile",  label: <?= $jt('blox_device_mobile') ?>, icon: "ti-device-mobile" },
@@ -3845,8 +3846,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             // 声明式 CSS 控件（E05）：空串=未设置（沿用默认），0 有效；响应式时按当前预览设备写 {d,t,m} 槽位。
             cssLengthSlots(ctrl) {
                 var raw = this.selEl && this.selEl.data ? this.selEl.data[ctrl.key] : "";
-                if (raw && typeof raw === "object") return { d: raw.d ?? "", t: raw.t ?? "", m: raw.m ?? "" };
-                return { d: raw === undefined || raw === null ? "" : raw, t: "", m: "" };
+                if (raw && typeof raw === "object") return { d: raw.d ?? "", t: raw.t ?? "", m: raw.m ?? "", w: raw.w ?? "" };
+                return { d: raw === undefined || raw === null ? "" : raw, t: "", m: "", w: "" };
             },
 
             cssLengthDevice(ctrl) {
@@ -3861,7 +3862,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             cssLengthPlaceholder(ctrl) {
                 var slots = this.cssLengthSlots(ctrl);
                 var device = this.cssLengthDevice(ctrl);
-                var inherited = device === "m" ? (slots.t !== "" ? slots.t : slots.d) : (device === "t" ? slots.d : "");
+                var inherited = device === "m" ? (slots.t !== "" ? slots.t : slots.d) : (device === "t" || device === "w" ? slots.d : "");
                 return inherited !== "" ? String(inherited) : this.uiText.cssUnset;
             },
 
@@ -6224,6 +6225,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             previewEffectiveWidth() {
                 if (this.previewCustomWidthActive()) return this.previewCustomWidth;
                 if (this.previewDevice === "desktop") return this.previewDesktopWidth();
+                // 宽屏至少 1440（不足时画布按比例缩放）
+                if (this.previewDevice === "wide") return Math.max(1440, Math.round(this.previewCanvasAvailable()));
                 return ({ tablet: 768, mobile: 390 })[this.previewDevice] || 1280;
             },
 
@@ -6270,7 +6273,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             previewDesktopWidth() {
-                return Math.max(1280, Math.round(this.previewCanvasAvailable()));
+                // 桌面档封顶 1439：更宽即进入宽屏档，预览不应套用宽屏样式
+                return Math.min(1439, Math.max(1280, Math.round(this.previewCanvasAvailable())));
             },
 
             previewScale() {

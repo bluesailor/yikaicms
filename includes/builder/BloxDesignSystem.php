@@ -185,7 +185,7 @@ final class BloxDesignSystem
             $keys = [];
             foreach ($raw as $key) {
                 $key = trim((string) $key);
-                if (in_array($key, ['m', 't', 'd'], true) && !in_array($key, $keys, true)) {
+                if (in_array($key, ['m', 't', 'd', 'w'], true) && !in_array($key, $keys, true)) {
                     $keys[] = $key;
                 }
             }

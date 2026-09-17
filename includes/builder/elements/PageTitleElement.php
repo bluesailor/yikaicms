@@ -64,9 +64,9 @@ final class PageTitleElement extends AbstractElement
         $alignment = ['left' => 'text-left', 'center' => 'text-center', 'right' => 'text-right'][$align];
         $justify = ['left' => 'justify-start', 'center' => 'justify-center', 'right' => 'justify-end'][$align];
         $size = $this->resp($data['size'] ?? 'md', [
-            'sm' => ['text-2xl', 'md:text-2xl', 'lg:text-2xl'],
-            'md' => ['text-[32px]', 'md:text-[32px]', 'lg:text-[32px]'],
-            'lg' => ['text-[40px]', 'md:text-[40px]', 'lg:text-[40px]'],
+            'sm' => ['text-2xl', 'md:text-2xl', 'lg:text-2xl', 'wide:text-2xl'],
+            'md' => ['text-[32px]', 'md:text-[32px]', 'lg:text-[32px]', 'wide:text-[32px]'],
+            'lg' => ['text-[40px]', 'md:text-[40px]', 'lg:text-[40px]', 'wide:text-[40px]'],
         ], 'md');
         $style = self::backgroundDeclarations($data);
         $color = self::cssColor($data['color'] ?? null);
