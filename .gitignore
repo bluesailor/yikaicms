@@ -105,6 +105,8 @@ storage/blox-regression/
 .phpunit.cache/
 
 /uploads/brand/
+# 站点体检写入的临时探针（SiteHealth::createBrowserProbes），一小时后自动清理
+/uploads/site-health-probe-*.php
 
 # SEO 工坊生成物（站点专属，不入 CMS 库）：llms.txt + IndexNow 密钥文件
 # robots.txt 已被 git 跟踪，不受下面通配影响
