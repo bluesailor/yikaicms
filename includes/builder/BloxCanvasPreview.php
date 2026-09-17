@@ -1152,6 +1152,14 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
                 e.preventDefault();
                 e.stopPropagation();
                 finishInlineEdit(true);
+                return;
+            }
+            // Tab 提交修改并留在原位：预览页里的链接不是编辑目标，默认的焦点跳转会把画布滚到别处
+            if (e.key === 'Tab' && payload.kind !== 'tableCell' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                finishInlineEdit(true);
+                node.blur();
             }
         };
         state.onBlur = function () {
