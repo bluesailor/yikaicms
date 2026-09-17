@@ -8,7 +8,7 @@ require_once __DIR__ . '/BloxFeaturePolicy.php';
 final class BloxProfessionalUi
 {
     /** 作者端面板已迁入 blox-pro 的能力；其余仍由核心编辑器提供。 */
-    public const MODULE_FEATURES = ['query_loop', 'display_conditions', 'style_presets'];
+    public const MODULE_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table'];
 
     public static function moduleLoaded(string $feature): bool
     {
@@ -20,7 +20,7 @@ final class BloxProfessionalUi
     {
         $result = [];
         $account = null;
-        foreach (['query_loop', 'display_conditions', 'style_presets'] as $feature) {
+        foreach (self::MODULE_FEATURES as $feature) {
             $tier = BloxFeaturePolicy::tier($feature);
             $moduleLoaded = self::moduleLoaded($feature);
             // 编辑面板需要能力策略放行且作者端模块已加载；保存校验只看能力策略，不受此影响。

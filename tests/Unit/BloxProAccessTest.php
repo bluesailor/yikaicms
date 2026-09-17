@@ -19,7 +19,7 @@ final class BloxProAccessTest extends TestCase
 
     public function testOnlyKnownAuthoringFeaturesAreExposed(): void
     {
-        self::assertSame(['query_loop', 'display_conditions', 'style_presets'], BloxProAccess::FEATURES);
+        self::assertSame(['query_loop', 'display_conditions', 'style_presets', 'table'], BloxProAccess::FEATURES);
         self::assertFalse(BloxProAccess::allows('unknown'));
         self::assertFalse(BloxProAccess::allows('product-detail'));
         self::assertFalse(BloxProAccess::allows('theme_download'));

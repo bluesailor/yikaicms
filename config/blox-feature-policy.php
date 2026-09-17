@@ -7,4 +7,5 @@ return [
     'query_loop' => 'free',
     'display_conditions' => 'free',
     'style_presets' => 'free',
+    'table' => 'free',
 ];

@@ -694,6 +694,8 @@ require_once ROOT_PATH . '/includes/builder/BloxProfessionalUi.php';
 $professionalFeatures = BloxProfessionalUi::snapshot();
 // 专业控件与循环子元素只在能力可用且 blox-pro 作者端模块已加载时下发；保存校验仍由 BloxQueryLoopPolicy 负责。
 $advancedQueryLoopEnabled = !empty($professionalFeatures['query_loop']['allowed']);
+// 表格归属 blox-pro：能力未放行或作者端模块未加载时不在元素面板提供（已发布表格照常渲染）
+if (isset($registryMeta['table']) && empty($professionalFeatures['table']['allowed'])) $registryMeta['table']['paletteVisible'] = false;
 $contactManageActions = [
     'contact_cards' => ['url' => '/admin/setting_contact.php', 'label' => __('page_contact_manage_cards'), 'icon' => 'address-book'],
     'contact_form' => ['url' => '/admin/form_design.php', 'label' => __('page_contact_manage_form'), 'icon' => 'forms'],
@@ -885,7 +887,6 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-conditions.js') ?>"></script>
     <script src="/assets/js/blox-background-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-background-panel.js') ?>"></script>
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
-    <script src="/assets/js/blox-table-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-table-control.js') ?>"></script>
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
     <script src="/assets/js/blox-multi-select.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-select.js') ?>"></script>
@@ -1308,6 +1309,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!this.professionalFeatures[feature] || !this.professionalFeatures[feature].visible) return false;
                 if (feature === 'query_loop') return !!this.selEl && (this.selEl.type === 'list-dynamic' || !!this.elSchema(this.selEl.type).hasProfessionalControls);
                 if (feature === 'style_presets') return !!this.selEl && this.supportsBoxStyles(this.selEl.type);
+                if (feature === 'table') return !!this.selEl && this.selEl.type === 'table';
                 return !!this.conditionTarget();
             },
             openProfessionalFeature(feature) {
@@ -2539,7 +2541,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 cleared: <?= $jt('blox_bg_video_obstruction_cleared') ?>,
             },
             ...window.BloxImageControl.methods,
-            ...window.BloxTableControl.methods,
+            // 表格作者端方法由 blox-pro 提供（plugins/blox-pro/assets/blox-pro-table.js）
+            ...((window.BloxTableControl || {}).methods || {}),
             tableExpanded: null,
             tableCreate: null,
             tableCanvasEditing: false,
@@ -5872,7 +5875,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     onDrop: function (payload) { self.handleCanvasDrop(payload); },
                     onTemplateDrop: function (payload) { self.handleTemplateDrop(payload); },
                     onInlineEdit: function (payload) { self.applyInlineEdit(payload); },
-                    onTableAction: function (payload) { self.handleTableCanvasAction(payload); },
+                    onTableAction: function (payload) { if (typeof self.handleTableCanvasAction === 'function') self.handleTableCanvasAction(payload); },
                     onEditSectionField: function (payload) { self.editSectionField(payload.si, payload.field); },
                     onPickSectionField: function (payload) { self.selectSectionField(payload.si, payload.field, false); },
                     onPickHomeColumn: function (payload) { self.selectHomeColumn(payload.path, payload.column, false); },
@@ -6927,7 +6930,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             applyInlineEdit(data) {
                 if (!data || typeof data.value !== "string") return;
                 if (data.kind === 'tableCell') {
-                    this.applyTableCanvasCell(data);
+                    if (typeof this.applyTableCanvasCell === 'function') this.applyTableCanvasCell(data);
                     return;
                 }
                 if (data.kind === "sectionField") {
@@ -6992,7 +6995,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!el) return;
                 el.data = el.data || {};
                 if (el.type === 'table') {
-                    this.openTableExpanded();
+                    if (this.professionalFeatures.table.allowed && typeof this.openTableExpanded === 'function') this.openTableExpanded();
                     return;
                 }
                 if (el.type === "text") {

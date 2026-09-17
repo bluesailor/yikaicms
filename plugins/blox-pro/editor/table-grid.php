@@ -1,6 +1,6 @@
-<?php
-declare(strict_types=1);
-?>
+<?php declare(strict_types=1); ?>
+<?php if (!defined('ROOT_PATH')) exit('Access Denied'); ?>
+<?php // BLOX Pro 作者端模块：表格网格编辑（由核心 table-expanded 弹窗经 blox_editor_panel('table_grid') 挂载） ?>
 <div data-testid="blox-table-editor" class="min-w-0 space-y-2" x-data="{ tableRow: 0, tableCol: 0 }"
      x-effect="tableRow = Math.min(tableRow, tableGrid().rows.length - 1); tableCol = Math.min(tableCol, tableGrid().widths.length - 1)">
     <?php foreach (['row' => 'tableRow', 'column' => 'tableCol'] as $axis => $selection):

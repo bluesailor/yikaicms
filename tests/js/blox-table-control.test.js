@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { methods, normalize } = require('../../assets/js/blox-table-control.js');
+const { methods, normalize } = require('../../plugins/blox-pro/assets/blox-pro-table.js');
 
 function editor() {
     return Object.assign({

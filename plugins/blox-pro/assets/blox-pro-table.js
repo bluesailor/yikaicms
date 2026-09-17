@@ -1,3 +1,5 @@
+/* BLOX Pro 作者端模块：表格创建、网格编辑与画布单元格编辑，以 `...window.BloxTableControl.methods` 混入编辑器。
+ * 表格渲染与保存校验留在核心；未加载本模块时编辑器不提供表格编辑。 */
 (function (global) {
     'use strict';
     function normalize(value) {
