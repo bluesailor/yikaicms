@@ -62,13 +62,25 @@ function e(?string $value): string
     return (string) $value;
 }
 
-/** permissions.php 只用到 find()，这里给个最小模型桩 */
+/** permissions.php 只用到 find()，这里给个最小模型桩（与 Model::find 一样过滤软删行） */
 function contentModel(): object
 {
     return new class {
         public function find(int $id): ?array
         {
-            return db()->fetchOne('SELECT * FROM contents WHERE id = ?', [$id]);
+            return db()->fetchOne('SELECT * FROM contents WHERE id = ? AND deleted_at IS NULL', [$id]);
+        }
+    };
+}
+
+/** 自定义内容模型登记表的桩：只有 faq 是登记过的 */
+function contentModelModel(): object
+{
+    return new class {
+        /** @return list<string> */
+        public function keys(): array
+        {
+            return ['faq'];
         }
     };
 }
@@ -78,6 +90,8 @@ require_once ROOT_PATH . '/includes/permissions.php';
 $pdo = db()->getPdo();
 $pdo->exec('CREATE TABLE contents (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT, title TEXT, status INTEGER DEFAULT 1, deleted_at INTEGER NULL)');
 $pdo->exec("INSERT INTO contents (id, type, title) VALUES (1, 'article', 'A1'), (2, 'article', 'A2'), (3, 'case', 'C1'), (4, 'page', 'P1')");
+// 回收站里的文章：守卫必须当它不存在，而不是放行后让 find() 返回 null
+$pdo->exec("INSERT INTO contents (id, type, title, deleted_at) VALUES (5, 'article', 'A3 已删', 1789000000)");
 
 /** @param callable():mixed $probe */
 function outcome(callable $probe): array
@@ -103,4 +117,26 @@ echo json_encode([
     'row_other_type'  => outcome(fn () => requireContentRowOfType(3, 'article')['title'] ?? null),
     'row_missing'     => outcome(fn () => requireContentRowOfType(99, 'article')['title'] ?? null),
     'case_entry'      => outcome(fn () => requireContentRowsOfType([3], 'case')),
+
+    // 回收站里的行：批量跳过（幂等），单条给受控错误而不是 TypeError（复审 R06）
+    'trashed_batch'   => outcome(fn () => requireContentRowsOfType([1, 5], 'article')),
+    'trashed_row'     => outcome(fn () => requireContentRowOfType(5, 'article')['title'] ?? null),
+    'trashed_delete'  => outcome(fn () => requireContentRowsOfType([5], 'article', 'delete')),
+
+    // 翻译创建：按源记录的真实类型判权（复审 R01）
+    'tr_article'      => outcome(fn () => requireTranslationPermission('contents', ['type' => 'article'], 'article') ?? 'allowed'),
+    'tr_case_bound'   => outcome(fn () => requireTranslationPermission('contents', ['type' => 'case'], 'article') ?? 'allowed'),
+    'tr_case_shared'  => outcome(fn () => requireTranslationPermission('contents', ['type' => 'case'], '') ?? 'allowed'),
+    'tr_page_shared'  => outcome(fn () => requireTranslationPermission('contents', ['type' => 'page'], '') ?? 'allowed'),
+    'tr_products'     => outcome(fn () => requireTranslationPermission('products', ['id' => 1], '') ?? 'allowed'),
+    'tr_channels'     => outcome(fn () => requireTranslationPermission('channels', ['id' => 1], '') ?? 'allowed'),
+    'tr_unknown_tbl'  => outcome(fn () => requireTranslationPermission('widgets', ['id' => 1], '') ?? 'allowed'),
+
+    // 类型目录：任意字符串不再当成"自定义模型"放行（复审 R02）
+    'type_builtin'    => outcome(fn () => isRegisteredContentType('article')),
+    'type_custom'     => outcome(fn () => isRegisteredContentType('faq')),
+    'type_injection'  => outcome(fn () => isRegisteredContentType('<svg onload=x>')),
+    'type_unknown'    => outcome(fn () => isRegisteredContentType('totally-made-up')),
+    'perm_injection'  => outcome(fn () => requireContentEditPerm('<svg onload=x>') ?? 'allowed'),
+    'perm_custom'     => outcome(fn () => requireContentEditPerm('faq') ?? 'allowed'),
 ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), "\n";

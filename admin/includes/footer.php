@@ -249,11 +249,14 @@
      */
     function initTinyEditor(selector, options = {}) {
         var lang = document.documentElement.lang || 'zh-CN';
-        var tinymceLang = lang === 'ja' ? 'ja' : 'zh_CN';
+        // 随包只有 ja / zh_CN 两个语言包，英文用组件自带的默认界面。
+        // 旧写法是「不是 ja 就按中文」，英文后台的编辑器整条工具栏因此都是中文（复审 R09）。
+        var tinymceLangs = { 'ja': 'ja', 'zh-cn': 'zh_CN', 'zh': 'zh_CN', 'zh-tw': 'zh_CN' };
+        var tinymceLang = tinymceLangs[String(lang).toLowerCase()] || '';
 
         tinymce.init({
             selector: selector,
-            language: tinymceLang,
+            language: tinymceLang || undefined,
             height: options.height || 500,
             menubar: 'file edit view insert format tools table',
             plugins: 'autolink lists link image charmap preview anchor searchreplace visualblocks code codesample fullscreen insertdatetime media table help wordcount',

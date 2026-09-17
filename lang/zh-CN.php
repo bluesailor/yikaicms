@@ -3477,6 +3477,7 @@ return [
     'admin_specs' => '规格参数',
     'admin_cover' => '封面图',
     'admin_title_required' => '请输入标题',
+    'admin_invalid_content_type' => '内容类型无效',
     'admin_publish_type' => '发布:type',
     'admin_product_info' => '产品信息',
     'admin_download_info' => '下载信息',

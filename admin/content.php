@@ -251,7 +251,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </td>
                         <td class="px-4 py-3 text-center">
                             <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                <?php echo $contentTypes[$item['type']] ?? $item['type']; ?>
+                                <?php echo e($contentTypes[$item['type']] ?? $item['type']); ?>
                             </span>
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500">

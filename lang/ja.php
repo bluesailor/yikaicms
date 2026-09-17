@@ -3565,6 +3565,7 @@ return [
     'admin_specs' => '仕様',
     'admin_cover' => 'カバー画像',
     'admin_title_required' => 'タイトルを入力してください',
+    'admin_invalid_content_type' => 'コンテンツタイプが不正です',
     'admin_publish_type' => ':type を公開',
     'admin_product_info' => '製品情報',
     'admin_download_info' => 'ダウンロード情報',

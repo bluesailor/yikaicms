@@ -126,13 +126,20 @@ class InstallSeedDemoTest extends TestCase
             "栏目骨架应保留 ({$driver})"
         );
 
-        // 轮播 banners 自 v1.18.8 起属于骨架而非演示数据：首页 Blox 文档的 banner
-        // 区块改为 items_mode=inherit 从 banners 表按语言取数（修英文/日文安装站
-        // 首页显示中文），不勾演示也必须有各语言的初始轮播行可渲染、可管理。
-        $this->assertStringContainsString(
+        // 轮播 banners 2026-09-18 起重新纳入演示数据：不勾演示时前台回落到
+        // blocks/banner.php 的占位幻灯片（站点名 + 简介，按界面语言翻译），
+        // 新站不再挂着「数字化转型解决方案」这类示例营销文案（复审 R07）。
+        // 勾了演示时才有各语言轮播行：首页 Blox 文档的 banner 区块是 items_mode=inherit，
+        // 按语言从 banners 表取数（修英文/日文安装站首页显示中文那个老毛病）。
+        $this->assertStringNotContainsString(
             $this->insertOf($driver, 'banners'),
             $clean,
-            "多语言轮播骨架应保留 ({$driver})"
+            "取消演示后不该残留演示轮播 ({$driver})"
+        );
+        $this->assertStringContainsString(
+            $this->insertOf($driver, 'banners'),
+            $this->seed($driver),
+            "含演示时应有多语言轮播 ({$driver})"
         );
 
         // 剥离不应破坏 SQL 结构：标记本身被移除

@@ -52,9 +52,9 @@ final class HtmlPolicy
      * 富文本净化：移除危险标签和属性，保留安全的格式化标签。
      * iframe 只放行可信视频平台（Host 精确比对，见 UrlPolicy）。
      */
-    public static function richText(?string $html): string
+    public static function richText(?string $html, bool $allowInlineFormatting = false): string
     {
-        return self::filterHtml($html, false, true);
+        return self::filterHtml($html, false, true, $allowInlineFormatting);
     }
 
     /** Short descriptions allow text formatting, never layout or executable embeds. */
@@ -63,7 +63,7 @@ final class HtmlPolicy
         return self::filterHtml($html, true, $allowLinks);
     }
 
-    private static function filterHtml(?string $html, bool $description, bool $allowLinks): string
+    private static function filterHtml(?string $html, bool $description, bool $allowLinks, bool $allowInlineFormatting = false): string
     {
         if ($html === null || $html === '') return '';
         if (!class_exists('DOMDocument')) {
@@ -95,7 +95,7 @@ final class HtmlPolicy
         if (!$root instanceof DOMElement) {
             return '';
         }
-        self::sanitizeChildren($root, $description, $allowLinks);
+        self::sanitizeChildren($root, $description, $allowLinks, $allowInlineFormatting);
         if ($description) {
             $remaining = 20000;
             foreach (iterator_to_array($root->childNodes) as $child) {
@@ -110,7 +110,7 @@ final class HtmlPolicy
         return $out;
     }
 
-    private static function sanitizeChildren(DOMNode $parent, bool $description = false, bool $allowLinks = true): void
+    private static function sanitizeChildren(DOMNode $parent, bool $description = false, bool $allowLinks = true, bool $allowInlineFormatting = false): void
     {
         foreach (iterator_to_array($parent->childNodes) as $child) {
             if (!$child instanceof DOMElement) {
@@ -124,24 +124,29 @@ final class HtmlPolicy
                     $parent->removeChild($child);
                     continue;
                 }
-                self::sanitizeChildren($child, $description, $allowLinks);
+                self::sanitizeChildren($child, $description, $allowLinks, $allowInlineFormatting);
                 while ($child->firstChild !== null) {
                     $parent->insertBefore($child->firstChild, $child);
                 }
                 $parent->removeChild($child);
                 continue;
             }
-            if (!self::sanitizeElement($child, $tag, $description)) {
+            if (!self::sanitizeElement($child, $tag, $description, $allowInlineFormatting)) {
                 $parent->removeChild($child);
                 continue;
             }
-            self::sanitizeChildren($child, $description, $allowLinks);
+            self::sanitizeChildren($child, $description, $allowLinks, $allowInlineFormatting);
         }
     }
 
-    private static function sanitizeElement(DOMElement $element, string $tag, bool $description = false): bool
+    private static function sanitizeElement(DOMElement $element, string $tag, bool $description = false, bool $allowInlineFormatting = false): bool
     {
-        $style = $description ? self::descriptionStyle($element->getAttribute('style')) : '';
+        $style = '';
+        if ($element->hasAttribute('style')) {
+            $style = $description
+                ? self::descriptionStyle($element->getAttribute('style'))
+                : ($allowInlineFormatting ? self::richTextStyle($element->getAttribute('style')) : '');
+        }
         $allowed = array_merge($description ? ['title'] : self::GLOBAL_ATTRIBUTES, self::TAG_ATTRIBUTES[$tag] ?? []);
         foreach (iterator_to_array($element->attributes) as $attribute) {
             $name = strtolower($attribute->name);
@@ -197,6 +202,65 @@ final class HtmlPolicy
         return UrlPolicy::image($src);
     }
 
+    /**
+     * 正文富文本允许的内联样式。
+     *
+     * 工具栏一直提供字号、前景/背景色和段落对齐，TinyMCE 把它们写成内联 style，
+     * 而这里以前对非 description 分支一律清空 style —— 编辑器里设好的格式保存后
+     * 在前台全部消失（2026-09-18 复审 R08）。放行范围严格限定为这几类排版属性，
+     * 值再按白名单校验，url()/expression() 这类一律进不来。
+     */
+    private static function richTextStyle(string $style): string
+    {
+        $safe = [];
+        foreach (explode(';', $style) as $declaration) {
+            $pair = explode(':', $declaration, 2);
+            if (count($pair) !== 2) {
+                continue;
+            }
+            [$property, $value] = array_map('trim', $pair);
+            $property = strtolower($property);
+            $value = strtolower(trim($value, ' '));
+            if ($value === '' || str_contains($value, '(') && !preg_match('/^rgba?\(/', $value)) {
+                continue;   // 只允许 rgb()/rgba() 这一种函数形式
+            }
+            if (in_array($property, ['color', 'background-color'], true)) {
+                if (self::isSafeColor($value)) {
+                    $safe[$property] = $value;
+                }
+                continue;
+            }
+            if ($property === 'font-size' && preg_match('/^(\d{1,3})(px|pt)$/D', $value, $m) === 1) {
+                $size = (int) $m[1];
+                if ($size >= 8 && $size <= 96) {
+                    $safe[$property] = $value;
+                }
+                continue;
+            }
+            if ($property === 'text-align' && in_array($value, ['left', 'center', 'right', 'justify'], true)) {
+                $safe[$property] = $value;
+                continue;
+            }
+            if ($property === 'text-decoration' && in_array($value, ['underline', 'line-through', 'underline line-through'], true)) {
+                $safe[$property] = $value;
+            }
+        }
+        $out = [];
+        foreach ($safe as $property => $value) {
+            $out[] = $property . ': ' . $value;
+        }
+        return implode('; ', $out);
+    }
+
+    /** 颜色字面量白名单：十六进制、rgb()/rgba() 与少数关键字。 */
+    private static function isSafeColor(string $value): bool
+    {
+        return preg_match(
+            '/^(?:#[0-9a-f]{3,4}|#[0-9a-f]{6}|#[0-9a-f]{8}|rgba?\([0-9.,%\s]+\)|black|white|red|green|blue|yellow|gray|grey|orange|purple|teal|navy|transparent|currentcolor)$/D',
+            $value
+        ) === 1;
+    }
+
     private static function descriptionStyle(string $style): string
     {
         $safe = [];
@@ -206,8 +270,7 @@ final class HtmlPolicy
             [$property, $value] = array_map('trim', $pair);
             $property = strtolower($property);
             $value = strtolower($value);
-            if (in_array($property, ['color', 'background-color'], true)
-                && preg_match('/^(?:#[0-9a-f]{3,4}|#[0-9a-f]{6}|#[0-9a-f]{8}|rgba?\([0-9.,%\s]+\)|black|white|red|green|blue|yellow|gray|grey|orange|purple|teal|navy|transparent|currentcolor)$/D', $value) === 1) {
+            if (in_array($property, ['color', 'background-color'], true) && self::isSafeColor($value)) {
                 $safe[$property] = $value;
             } elseif ($property === 'text-decoration' && in_array($value, ['underline', 'line-through', 'underline line-through'], true)) {
                 $safe[$property] = $value;

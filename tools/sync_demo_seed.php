@@ -107,25 +107,68 @@ $prefix = DB_PREFIX;
  * 文档里：英文/日文安装站首页照样显示中文（2026-08-25 两个客户站实病）。种子里必须
  * 是 inherit，让轮播按语言从 banners 表取数。防回归见 BloxSeedSanitizerStableTest。
  */
-function normalizeHomeDocument(string $json): string
+function normalizeHomeDocument(string $json, ?array $keepBannerChildren = null): string
 {
     $doc = json_decode($json, true);
     if (!is_array($doc)) {
         return $json;
     }
-    $walk = static function (array &$node) use (&$walk): void {
+    $walk = static function (array &$node) use (&$walk, $keepBannerChildren): void {
         foreach ($node as $key => &$value) {
             if (!is_array($value)) {
                 continue;
             }
             if (($value['type'] ?? '') === 'home-block' && ($value['data']['block_type'] ?? '') === 'banner') {
                 $value['data']['items_mode'] = 'inherit';
+                if ($keepBannerChildren !== null) {
+                    $value['data']['children'] = $keepBannerChildren;
+                }
             }
             $walk($value);
         }
     };
     $walk($doc);
     return (string) json_encode($doc, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+/** 取出文档里 banner 区块的 children（inherit 模式下它们只是编辑器预览用的兜底条目）。 */
+function bannerChildrenOf(string $json): ?array
+{
+    $doc = json_decode($json, true);
+    if (!is_array($doc)) {
+        return null;
+    }
+    $found = null;
+    $walk = static function (array $node) use (&$walk, &$found): void {
+        foreach ($node as $value) {
+            if (!is_array($value)) {
+                continue;
+            }
+            if (($value['type'] ?? '') === 'home-block'
+                && ($value['data']['block_type'] ?? '') === 'banner'
+                && is_array($value['data']['children'] ?? null)) {
+                $found ??= $value['data']['children'];
+            }
+            $walk($value);
+        }
+    };
+    $walk($doc);
+    return $found;
+}
+
+/** 从种子里那一行 INSERT 还原出设置值（MySQL 字面量转义的反向操作）。 */
+function seedSettingValue(string $line, string $key): ?string
+{
+    $pattern = "/VALUES \(\d+,'(?:[^']|\\\\')*','" . preg_quote(addcslashes($key, "'"), '/') . "','((?:[^']|\\\\')*)'/";
+    if (preg_match($pattern, $line, $m) !== 1) {
+        return null;
+    }
+    $value = str_replace("\x01", '\\', str_replace(
+        ['\\\\', "\\'", '\\"', '\\n', '\\r', '\\t'],
+        ["\x01", "'", '"', "\n", "\r", "\t"],
+        $m[1]
+    ));
+    return $value;
 }
 
 /** MySQL 字面量转义：与 tools/mysql_to_sqlite.php 的反向解析一一对应。 */
@@ -338,7 +381,13 @@ foreach (SETTING_KEYS as $key) {
 
     $value = (string) $ref['value'];
     if ($key === 'home_blox_data' || $key === 'home_blox_published') {
-        $value = normalizeHomeDocument($value);
+        // 轮播子项保持种子原样：它们与迁移 20260825 的「出厂未修改」判定逐字绑定，
+        // 跟着参照站漂移会让老站升级时误判成「客户改过」而不再切 inherit。
+        // inherit 模式下这些子项只是编辑器里的兜底预览，前台取的是 banners 表。
+        $keepChildren = isset($settingLine[$key])
+            ? bannerChildrenOf((string) seedSettingValue($lines[$settingLine[$key]], $key))
+            : null;
+        $value = normalizeHomeDocument($value, $keepChildren);
     }
 
     if (isset($settingLine[$key])) {

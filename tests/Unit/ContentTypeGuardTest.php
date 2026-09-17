@@ -73,6 +73,78 @@ final class ContentTypeGuardTest extends TestCase
         self::assertFalse($r['other_type']['ok']);
     }
 
+    /** 回收站里的记录：批量跳过，单条给受控错误，都不该以 TypeError/500 收场（复审 R06）。 */
+    public function testTrashedRowsAreSkippedInsteadOfCrashing(): void
+    {
+        $r = $this->probe(['edit_article', 'delete_article']);
+
+        self::assertSame([1], $r['trashed_batch']['value'], '批量应跳过回收站里的行');
+        self::assertSame([], $r['trashed_delete']['value']);
+        self::assertFalse($r['trashed_row']['ok']);
+        self::assertSame('admin_no_data:400', $r['trashed_row']['denied'], '单条应是受控错误而不是 TypeError');
+    }
+
+    /** 翻译创建按源记录的真实类型判权，且固定类型入口不给别的类型开口子（复审 R01）。 */
+    public function testTranslationCreationIsAuthorisedByTheSourceRowType(): void
+    {
+        $r = $this->probe(['edit_article', 'delete_article']);
+
+        self::assertSame('allowed', $r['tr_article']['value']);
+        self::assertSame('perm_denied:403', $r['tr_case_bound']['denied'], '文章入口不得为案例建译文');
+        self::assertSame('missing:edit_case', $r['tr_case_shared']['denied']);
+        self::assertSame('missing:edit_page', $r['tr_page_shared']['denied']);
+        self::assertSame('missing:edit_product', $r['tr_products']['denied']);
+        self::assertSame('missing:*', $r['tr_channels']['denied'], '栏目翻译要超管');
+        self::assertSame('missing:*', $r['tr_unknown_tbl']['denied'], '未登记的表默认收紧');
+
+        // 超管也不能借文章入口给案例建译文
+        $super = $this->probe(['*']);
+        self::assertSame('perm_denied:403', $super['tr_case_bound']['denied']);
+        self::assertSame('allowed', $super['tr_case_shared']['value']);
+
+        $handler = $this->source('admin/includes/translate_action.php');
+        self::assertStringContainsString(
+            "requireTranslationPermission(\$table, \$src, (string) (\$langSwitcher['content_type'] ?? ''));",
+            $handler
+        );
+        // 判权必须排在 AI 调用与写库之前
+        self::assertLessThan(
+            (int) strpos($handler, 'aiTranslateFields('),
+            (int) strpos($handler, 'requireTranslationPermission('),
+            '判权要在调用 AI 之前'
+        );
+        self::assertStringContainsString("\$newData['status'] = 0;", $handler, '译文默认落草稿');
+        self::assertStringContainsString("'content_type' => 'article'", $this->source('admin/article_edit.php'));
+    }
+
+    /** 未登记的类型不能落库，后台列表也不再原样回显类型（复审 R02）。 */
+    public function testUnknownContentTypesAreRejectedAndEscaped(): void
+    {
+        $r = $this->probe(['edit_article']);
+        self::assertTrue($r['type_builtin']['value']);
+        self::assertTrue($r['type_custom']['value'], '后台登记过的自定义模型仍可用');
+        self::assertFalse($r['type_injection']['value']);
+        self::assertFalse($r['type_unknown']['value']);
+        self::assertSame('perm_denied:403', $r['perm_injection']['denied']);
+
+        // delete-only 角色不能借自定义模型创建或改写内容
+        $deleteOnly = $this->probe(['delete_article']);
+        self::assertSame('missing:edit_article', $deleteOnly['perm_custom']['denied']);
+
+        self::assertStringContainsString(
+            "if (!isRegisteredContentType((string) \$data['type'])) {",
+            $this->source('admin/content_edit.php')
+        );
+        self::assertStringContainsString(
+            "echo e(\$contentTypes[\$item['type']] ?? \$item['type']);",
+            $this->source('admin/content.php')
+        );
+        self::assertStringNotContainsString(
+            "echo \$channelTypes[\$ch['type']] ?? \$ch['type'];",
+            $this->source('admin/channel.php')
+        );
+    }
+
     public function testEveryContentEntryPointRunsTheGuard(): void
     {
         $article = $this->source('admin/article.php');

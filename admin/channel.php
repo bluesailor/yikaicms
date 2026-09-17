@@ -638,7 +638,7 @@ function ykPickChannelIcon(name) {
                                     <a href="?edit=<?php echo $ch['id']; ?>&tab=main" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
                                 </span>
                                 <?php echo renderTransPills((int)$ch['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
-                                <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
+                                <span class="text-xs text-gray-400"><?php echo e($channelTypes[$ch['type']] ?? $ch['type']); ?></span>
                                 <?php if (in_array('/' . $_srcSlugOf($ch) . '.html', $footerNavUrls)): ?>
                                 <span class="text-xs px-2 py-0.5 rounded bg-indigo-100 text-indigo-600"><?php echo __('admin_footer_nav_badge'); ?></span>
                                 <?php endif; ?>
@@ -665,7 +665,7 @@ function ykPickChannelIcon(name) {
                                             <a href="?edit=<?php echo $child['id']; ?>&tab=main" class="hover:text-primary"><?php echo e($child['name']); ?></a>
                                         </span>
                                         <?php echo renderTransPills((int)$child['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
-                                        <span class="text-xs text-gray-400"><?php echo $channelTypes[$child['type']] ?? $child['type']; ?></span>
+                                        <span class="text-xs text-gray-400"><?php echo e($channelTypes[$child['type']] ?? $child['type']); ?></span>
                                         <a href="?edit=<?php echo $child['id']; ?>&tab=main" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
                                         <?php if (($child['type'] ?? '') === 'page'): ?>
                                         <?php if (($child['slug'] ?? '') === 'contact'): ?>
@@ -762,7 +762,7 @@ function ykPickChannelIcon(name) {
                                     <a href="?edit=<?php echo $ch['id']; ?>&tab=footer" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
                                 </span>
                                 <?php echo renderTransPills((int)$ch['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
-                                <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
+                                <span class="text-xs text-gray-400"><?php echo e($channelTypes[$ch['type']] ?? $ch['type']); ?></span>
                                 <?php if (!empty($ch['is_nav'])): ?>
                                 <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-600"><?= __('admin_main_nav') ?></span>
                                 <?php endif; ?>
@@ -812,7 +812,7 @@ function ykPickChannelIcon(name) {
                                     <a href="?edit=<?php echo $ch['id']; ?>&tab=none" class="hover:text-primary"><?php echo e($ch['name']); ?></a>
                                 </span>
                                 <?php echo renderTransPills((int)$ch['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
-                                <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
+                                <span class="text-xs text-gray-400"><?php echo e($channelTypes[$ch['type']] ?? $ch['type']); ?></span>
                                 <a href="?edit=<?php echo $ch['id']; ?>&tab=none" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
                                 <?php if (($ch['type'] ?? '') === 'page'): ?>
                                 <?php if (($ch['slug'] ?? '') === 'contact'): ?>
@@ -832,7 +832,7 @@ function ykPickChannelIcon(name) {
                                         <a href="?edit=<?php echo $child['id']; ?>&tab=none" class="hover:text-primary"><?php echo e($child['name']); ?></a>
                                     </span>
                                     <?php echo renderTransPills((int)$child['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
-                                    <span class="text-xs text-gray-400"><?php echo $channelTypes[$child['type']] ?? $child['type']; ?></span>
+                                    <span class="text-xs text-gray-400"><?php echo e($channelTypes[$child['type']] ?? $child['type']); ?></span>
                                     <a href="?edit=<?php echo $child['id']; ?>&tab=none" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
                                     <?php if (($child['type'] ?? '') === 'page'): ?>
                                     <?php if (($child['slug'] ?? '') === 'contact'): ?>
@@ -871,7 +871,7 @@ function ykPickChannelIcon(name) {
                                 <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-400"><?php echo __('admin_parent_category'); ?>：<?php echo e($ch['_parent_name']); ?></span>
                                 <?php endif; ?>
                                 <?php echo renderTransPills((int)$ch['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
-                                <span class="text-xs text-gray-400"><?php echo $channelTypes[$ch['type']] ?? $ch['type']; ?></span>
+                                <span class="text-xs text-gray-400"><?php echo e($channelTypes[$ch['type']] ?? $ch['type']); ?></span>
                                 <a href="?edit=<?php echo $ch['id']; ?>&tab=hidden" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
                                 <button onclick="toggleField(<?php echo $ch['id']; ?>, 'status', 1)"
                                         class="text-sm px-3 py-1 rounded border border-green-500 text-green-600 hover:bg-green-500 hover:text-white transition cursor-pointer inline-flex items-center gap-1 whitespace-nowrap">
@@ -891,7 +891,7 @@ function ykPickChannelIcon(name) {
                                         <a href="?edit=<?php echo $child['id']; ?>&tab=hidden" class="hover:text-primary"><?php echo e($child['name']); ?></a>
                                     </span>
                                     <?php echo renderTransPills((int)$child['id'], $transStatus, '/admin/channel.php', 'edit'); ?>
-                                    <span class="text-xs text-gray-400"><?php echo $channelTypes[$child['type']] ?? $child['type']; ?></span>
+                                    <span class="text-xs text-gray-400"><?php echo e($channelTypes[$child['type']] ?? $child['type']); ?></span>
                                     <a href="?edit=<?php echo $child['id']; ?>&tab=hidden" class="text-primary hover:underline text-sm"><?php echo __('admin_channel_settings'); ?></a>
                                     <?php if (empty($child['status'])): ?>
                                     <button onclick="toggleField(<?php echo $child['id']; ?>, 'status', 1)"

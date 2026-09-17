@@ -19,6 +19,8 @@ requirePermission('edit_article');
 $langSwitcher = [
     'table' => 'contents',
     'model' => contentModel(),
+    // 文章入口只为文章建译文：案例/单页的 src_id 一律拒绝
+    'content_type' => 'article',
 ];
 require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
