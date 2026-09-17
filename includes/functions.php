@@ -970,14 +970,45 @@ function settingOptionLabel(string $key, string $value, string $fallback = ''): 
  * admin_title 仍是出厂默认「后台管理」时按后台语言本地化（en=Admin Panel、
  * ja=管理画面）；管理员自定义过则原样显示；为空回落站点名。
  * 头部与页脚必须共用本函数——曾出现头部已本地化而页脚仍直读 config 的分叉。
+ * 自定义品牌限注册码授权站点；未授权时显示出厂品牌（见 adminBrandingCustomizable）。
  */
 function adminBrandName(): string
 {
+    if (!adminBrandingCustomizable()) {
+        return ADMIN_BRAND_DEFAULT_NAME;
+    }
     $brand = trim((string) config('admin_title', ''));
     if ($brand === '后台管理') {
         return __('admin_title_default');
     }
     return $brand !== '' ? $brand : (string) config('site_name', 'YikaiCMS');
+}
+
+if (!defined('ADMIN_BRAND_DEFAULT_NAME')) {
+    define('ADMIN_BRAND_DEFAULT_NAME', 'Yikai CMS');
+    /** 后台品牌四项设置（独立页 admin/admin_brand.php 维护，基本设置页不再显示）。 */
+    define('ADMIN_BRAND_SETTING_KEYS', ['admin_title', 'admin_copyright', 'admin_logo', 'admin_logo_max_height']);
+}
+
+/**
+ * 当前站点能否使用自定义后台品牌：限注册码授权（有效或持有付费模块）。
+ * 同一请求内 license() 已做缓存，头部 / 页脚多次调用不重复校验。
+ */
+function adminBrandingCustomizable(): bool
+{
+    return function_exists('license_allows_admin_branding') && license_allows_admin_branding();
+}
+
+/** 后台侧栏 Logo 地址；未授权或未设置返回空串（显示文字品牌）。 */
+function adminBrandLogoUrl(): string
+{
+    return adminBrandingCustomizable() ? SiteAsset::availableUrl((string) config('admin_logo', '')) : '';
+}
+
+/** 后台页脚自定义版权；未授权或未设置返回空串（显示默认 © 年份 品牌名）。 */
+function adminBrandCopyright(): string
+{
+    return adminBrandingCustomizable() ? trim((string) config('admin_copyright', '')) : '';
 }
 
 /**

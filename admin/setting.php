@@ -127,6 +127,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach (array_keys($settings) as $key) {
         if (str_starts_with((string) $key, 'catalog_channel_')) error(__('admin_bad_params'), 422);
     }
+    // 后台品牌由独立页 admin_brand.php 维护（含授权校验），此处不接受写入
+    foreach (ADMIN_BRAND_SETTING_KEYS as $key) {
+        unset($settings[$key]);
+    }
 
     // header/footer tab + 非默认语言：lang-able key 重定向到 <key>_<lang>
     // tab 关联的 lang keys 在 $TAB_LANG_KEYS 里定义
@@ -190,6 +194,8 @@ $hiddenKeys = [
     'license_key', 'license_state',
     // 由"语言"tab 的 per-lang 复选框管理，不该在基本设置里以裸 key 输入框出现
     'nav_home_show', 'nav_home_text',
+    // 后台品牌：独立页 admin/admin_brand.php 维护，限注册码授权站点
+    ...ADMIN_BRAND_SETTING_KEYS,
 ];
 // 收集启用的非默认语言后缀 (_en / _ja / ...)，过滤 per-lang 种子行
 $_langSuffixesForFilter = [];

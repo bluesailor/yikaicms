@@ -204,6 +204,28 @@ function license_owns_blox(?array $state = null): bool
     return in_array('blox', $modules, true) || $modules !== [];
 }
 
+/**
+ * 是否可自定义后台品牌（后台名称 / Logo / 版权）。
+ *
+ * 白标属注册码授权权益：授权有效，或持有任一付费模块（永久回退，服务期到期不收回）即可。
+ * 未授权时后台显示出厂品牌，已保存的自定义值保留，授权后自动生效。
+ *
+ * @param array<string,mixed>|null $state
+ */
+function license_allows_admin_branding(?array $state = null): bool
+{
+    $state ??= license();
+    if (!empty($state['valid'])) {
+        return true;
+    }
+    foreach ((array) ($state['modules'] ?? []) as $module) {
+        if (is_string($module) && $module !== '') {
+            return true;
+        }
+    }
+    return false;
+}
+
 /** 是否可下载/升级付费插件（到期即失去该资格，但已装功能不受影响） */
 /** @param array<string,mixed>|null $state */
 function license_service_active(?array $state = null): bool
