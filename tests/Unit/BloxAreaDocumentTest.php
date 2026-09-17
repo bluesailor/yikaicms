@@ -226,7 +226,7 @@ final class BloxAreaDocumentTest extends TestCase
     {
         $catalog = BloxAreaTemplatePresets::catalog();
         self::assertSame(
-            ['clean-site-header', 'full-width-site-header', 'centered-site-header', 'corporate-site-header', 'topbar-site-header', 'search-site-header', 'simple-light-site-footer', 'simple-dark-site-footer', 'clean-site-footer', 'four-column-light-site-footer', 'four-column-dark-site-footer', 'contact-site-footer', 'classic-article-detail', 'showcase-case-detail', 'classic-product-detail', 'product-center-page', 'news-center-page', 'case-gallery-page'],
+            ['clean-site-header', 'full-width-site-header', 'centered-site-header', 'corporate-site-header', 'topbar-site-header', 'search-site-header', 'simple-light-site-footer', 'simple-dark-site-footer', 'four-column-light-site-footer', 'four-column-dark-site-footer', 'contact-site-footer', 'clean-site-footer', 'classic-article-detail', 'showcase-case-detail', 'classic-product-detail', 'product-center-page', 'news-center-page', 'case-gallery-page'],
             array_column($catalog, 'slug')
         );
         self::assertSame(
@@ -243,10 +243,10 @@ final class BloxAreaDocumentTest extends TestCase
                 'search',
                 'footer-simple-light',
                 'footer-simple-dark',
-                'footer-columns',
                 'footer-four-light',
                 'footer-four-dark',
                 'footer-contact',
+                'footer-columns',
                 'detail-article',
                 'detail-case',
                 'detail-product',
@@ -328,7 +328,7 @@ final class BloxAreaDocumentTest extends TestCase
         $catalog = BloxAreaTemplatePresets::editorCatalog('footer');
         self::assertCount(6, $catalog);
         self::assertSame(
-            ['simple-light-site-footer', 'simple-dark-site-footer', 'clean-site-footer', 'four-column-light-site-footer', 'four-column-dark-site-footer', 'contact-site-footer'],
+            ['simple-light-site-footer', 'simple-dark-site-footer', 'four-column-light-site-footer', 'four-column-dark-site-footer', 'contact-site-footer', 'clean-site-footer'],
             array_column($catalog, 'slug')
         );
         foreach ($catalog as $preset) {
