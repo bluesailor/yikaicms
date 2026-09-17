@@ -20,8 +20,9 @@ final class DoLoginLinkModel extends Model
 
     private function identity(array $user): string
     {
+        // PDO 在 PHP 8.0 返回字符串、8.1 起返回整数；统一成整数，站点升级 PHP 后已发出的链接不会因类型变化失效
         return $this->verifier('identity|' . json_encode([
-            $user['id'], $user['password'], $user['role_id'], $user['totp_secret'] ?? '',
+            (int) $user['id'], (string) $user['password'], (int) $user['role_id'], (string) ($user['totp_secret'] ?? ''),
         ], JSON_THROW_ON_ERROR));
     }
 

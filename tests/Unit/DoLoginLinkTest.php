@@ -46,6 +46,22 @@ final class DoLoginLinkTest extends TestCase
         self::assertArrayNotHasKey('token_hash', $model->recent()[0]);
     }
 
+    /** 评审 P2-13：PDO 在 PHP 8.0 返回字符串、8.1 起返回整数，身份哈希不能随之变化。 */
+    public function testIdentityHashIgnoresDriverIntegerTypes(): void
+    {
+        $identity = new \ReflectionMethod(DoLoginLinkModel::class, 'identity');
+        $identity->setAccessible(true);
+        $model = new DoLoginLinkModel();
+        $asStrings = ['id' => '2', 'password' => 'editor-password-hash', 'role_id' => '2', 'totp_secret' => null];
+        $asIntegers = ['id' => 2, 'password' => 'editor-password-hash', 'role_id' => 2, 'totp_secret' => ''];
+        self::assertSame($identity->invoke($model, $asStrings), $identity->invoke($model, $asIntegers));
+        self::assertNotSame(
+            $identity->invoke($model, $asIntegers),
+            $identity->invoke($model, ['role_id' => 1] + $asIntegers),
+            '角色变化仍使链接失效'
+        );
+    }
+
     public function testRevokedAndExpiredLinksCannotBeRedeemed(): void
     {
         $model = new DoLoginLinkModel();
