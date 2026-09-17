@@ -41,8 +41,8 @@ async function mockCatalog(page, build) {
 async function openPremium(page) {
     await page.getByTestId('blox-prebuilt-open').click();
     const tabs = [page.getByTestId('blox-template-tab-local'), page.getByTestId('blox-template-tab-remote')];
-    await expect(tabs[0]).toContainText('基础区块');
-    await expect(tabs[1]).toContainText('精品区块');
+    await expect(tabs[0]).toContainText('系统区块');
+    await expect(tabs[1]).toContainText('区块PRO版');
     await tabs[1].click();
     await expect(tabs[1]).toHaveAttribute('aria-selected', 'true');
 }
@@ -70,7 +70,7 @@ test('no licence: one purchase notice links to the official pro page, cards stay
     const first = cards(page).first();
     await expect(first.locator('.ti-lock')).toHaveCount(0);
     await expect(first.locator('span.text-amber-700:visible')).toHaveCount(0);
-    await expect(first.getByText('精品', { exact: true })).toBeHidden();
+    await expect(first.getByText('PRO', { exact: true })).toBeHidden();
     await expect(first.getByTestId('blox-template-insert')).toBeDisabled();
     // 不重复引导：底部「授权管理」只在逐卡说明时出现
     await expect(page.getByRole('link', { name: '授权管理' })).toHaveCount(0);
@@ -109,7 +109,7 @@ test('entitled users see no notice and can insert; a failed load offers retry wi
     const before = await countSections(page);
     let fail = true;
     const calls = await mockCatalog(page, () => (fail
-        ? { remote: [], remoteError: '精品区块暂时无法加载' }
+        ? { remote: [], remoteError: '区块PRO版暂时无法加载' }
         : { remote: SLUGS.map((s) => premium(s, '')) }));
     await openPremium(page);
 
@@ -127,7 +127,7 @@ test('entitled users see no notice and can insert; a failed load offers retry wi
     await expect(page.getByTestId('blox-premium-notice')).toBeHidden();
     await expect(cards(page)).toHaveCount(12);
     await expect(cards(page).first().getByTestId('blox-template-insert')).toBeEnabled();
-    await expect(cards(page).first().getByText('精品', { exact: true })).toBeHidden();
+    await expect(cards(page).first().getByText('PRO', { exact: true })).toBeHidden();
 });
 
 test('mixed reasons fall back to per-card labels and the licence management link @ci', async ({ page }, info) => {
