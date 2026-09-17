@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'toggle_captcha') {
         $id = postInt('id');
-        if (!formTemplateModel()->findById($id)) {
+        if (!formTemplateModel()->find($id)) {
             error(__('admin_bad_params'), 422);
         }
         $captcha = formTemplateModel()->toggle($id, 'captcha');
