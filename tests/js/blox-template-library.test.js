@@ -471,3 +471,18 @@ test("content language travels with list, get and insert requests only when set"
         global.fetch = originalFetch;
     }
 });
+
+test("home-common category collects flagged built-in sections and home-ready remote sections", function () {
+    const library = window.BloxTemplateLibrary;
+    const items = [
+        { key: "builtin:a", type: "section", source: "builtin", category: "social", home_common: true, metadata: { page_types: ["home"] } },
+        { key: "builtin:b", type: "section", source: "builtin", category: "content", metadata: { page_types: ["home"] } },
+        { key: "remote:c", type: "section", source: "remote", category: "products", metadata: { page_types: ["home", "landing"] } },
+        { key: "remote:d", type: "section", source: "remote", category: "products", metadata: { page_types: ["about"] } },
+        { key: "builtin:page", type: "page", source: "builtin", category: "page", home_common: true, metadata: {} },
+    ];
+    assert.deepEqual(library.categories(items), ["home-common", "content", "page", "products", "social"]);
+    assert.deepEqual(library.filter(items, "", "all", "all", "home-common", "all", "all").map(function (item) { return item.key; }), ["builtin:a", "remote:c"]);
+    assert.equal(library.categoryLabel("home-common", { categoryHomeCommon: "Homepage essentials" }), "Homepage essentials");
+    assert.equal(library.categoryLabel("social", { categorySocial: "Customers" }), "Customers");
+});

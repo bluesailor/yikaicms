@@ -33,6 +33,8 @@ final class SectionTemplateLibraryTest extends TestCase
             '04 行动引导' => ['cta-banner', 'marketing', '立即咨询'],
             '05 图文咨询引导' => ['cta-split', 'marketing', '准备好开始合作了吗'],
             '06 客户引语' => ['testimonial-quote', 'content', '客户反馈'],
+            '07 客户评价轮播' => ['testimonials-carousel', 'social', 'data-yk-carousel'],
+            '08 合作伙伴' => ['partners-logos', 'social', 'yk-logo-wall'],
         ];
     }
 
@@ -55,6 +57,8 @@ final class SectionTemplateLibraryTest extends TestCase
             'cta-banner' => 4,
             'cta-split' => 5,
             'testimonial-quote' => 6,
+            'testimonials-carousel' => 7,
+            'partners-logos' => 8,
         ], $numbers);
     }
 
@@ -132,7 +136,7 @@ final class SectionTemplateLibraryTest extends TestCase
         $raw = (string) file_get_contents(ROOT_PATH . '/templates/blox/sections/' . $slug . '.json');
         self::assertStringNotContainsString('/uploads/', $raw);
 
-        preg_match_all('#"(/images/[A-Za-z0-9._/-]+)"#', $raw, $matches);
+        preg_match_all('#"(/(?:assets/)?images/[A-Za-z0-9._/-]+)"#', $raw, $matches);
         foreach (array_unique($matches[1]) as $asset) {
             self::assertFileExists(ROOT_PATH . $asset, "{$slug} references missing asset {$asset}");
         }
@@ -141,10 +145,17 @@ final class SectionTemplateLibraryTest extends TestCase
     public function testLocalLibraryOffersScenarioFiltering(): void
     {
         $overlay = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor/partials/overlays.php');
-        self::assertStringContainsString(
-            'x-show="templateCategoryOptions().length > 1"',
-            $overlay
-        );
+        self::assertStringContainsString('data-testid="blox-template-category-chips"', $overlay);
+        self::assertStringContainsString("x-show=\"templateEntry !== 'sections' && templateCategoryOptions().length > 1\"", $overlay);
+
+        // 「首页常用」：首页最常搭配的内置区块
+        $homeCommon = [];
+        foreach ((new BloxBuiltinTemplateProvider())->items('home') as $item) {
+            if ($item['home_common']) {
+                $homeCommon[] = substr($item['key'], strlen('builtin:'));
+            }
+        }
+        self::assertSame(['image-text', 'feature-grid', 'cta-banner', 'testimonials-carousel', 'partners-logos'], $homeCommon);
     }
 
     /**

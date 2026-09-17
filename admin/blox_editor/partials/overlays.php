@@ -1355,7 +1355,7 @@ declare(strict_types=1);
                                 x-text="filter.label"></button>
                     </template>
                 </div>
-                <label x-show="templateCategoryOptions().length > 1" class="relative min-w-36">
+                <label x-show="templateEntry !== 'sections' && templateCategoryOptions().length > 1" class="relative min-w-36">
                     <span class="sr-only" x-text="templateText.category"></span>
                     <select x-model="templateCategory" data-testid="blox-template-category"
                             class="w-full h-8 border border-gray-200 rounded bg-white pl-2 pr-7 text-xs text-gray-600">
@@ -1377,6 +1377,18 @@ declare(strict_types=1);
                         </template>
                     </select>
                 </label>
+                <div x-show="templateEntry === 'sections' && templateCategoryOptions().length > 1" role="group" :aria-label="templateText.category"
+                     data-testid="blox-template-category-chips" class="basis-full flex flex-wrap items-center gap-1.5">
+                    <template x-for="category in ['all'].concat(templateCategoryOptions())" :key="'chip-' + category">
+                        <button type="button" @click="templateCategory = category; persistTemplateSectionViewState(); templateSectionScrollTop = 0"
+                                :aria-pressed="templateCategory === category" :data-category="category"
+                                class="h-7 px-2.5 rounded-full border text-[11px] inline-flex items-center gap-1 transition"
+                                :class="templateCategory === category ? 'border-blue-500 bg-blue-600 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:text-blue-700'">
+                            <i x-show="category === 'home-common'" class="ti ti-home text-xs" aria-hidden="true"></i>
+                            <span x-text="category === 'all' ? templateText.categoryAll : templateCategoryLabel(category)"></span>
+                        </button>
+                    </template>
+                </div>
                 <div x-show="templateEntry === 'sections'" role="group" :aria-label="templateText.prebuiltTitle"
                      data-testid="blox-template-quick-filters"
                      class="inline-flex h-8 rounded border border-gray-200 bg-white p-0.5">

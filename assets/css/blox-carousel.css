@@ -1,0 +1,79 @@
+/* Blox 轮播（客户评价轮播）：原生横向滚动 + scroll-snap；圆点与自动播放由 blox-carousel.js 负责。 */
+.yk-carousel { --yk-carousel-gap: 24px; position: relative; min-width: 0; width: 100%; }
+.yk-carousel-track {
+    display: flex;
+    gap: var(--yk-carousel-gap);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    padding: 4px 2px 12px;
+}
+.yk-carousel-track::-webkit-scrollbar { display: none; }
+.yk-carousel-track:focus-visible { outline: 2px solid var(--color-primary, #2563eb); outline-offset: 2px; border-radius: 8px; }
+.yk-carousel-slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; display: flex; }
+@media (min-width: 768px) {
+    .yk-carousel { --yk-carousel-view: min(var(--yk-carousel-per-view, 3), 2); }
+    .yk-carousel-slide { flex-basis: calc((100% - var(--yk-carousel-gap) * (var(--yk-carousel-view) - 1)) / var(--yk-carousel-view)); }
+}
+@media (min-width: 1024px) {
+    .yk-carousel { --yk-carousel-view: var(--yk-carousel-per-view, 3); }
+}
+.yk-carousel-dots { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px; }
+.yk-carousel-dots[hidden] { display: none; }
+.yk-carousel-dot {
+    appearance: none;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: 0;
+    border-radius: 9999px;
+    background: #d1d5db;
+    cursor: pointer;
+    transition: width .3s ease, background-color .3s ease;
+}
+.yk-carousel-dot:hover { background: #9ca3af; }
+.yk-carousel-dot[aria-current="true"] { width: 24px; background: var(--color-primary, #2563eb); }
+.yk-carousel-dot:focus-visible { outline: 2px solid var(--color-primary, #2563eb); outline-offset: 3px; }
+.yk-carousel-arrow {
+    position: absolute;
+    top: calc(50% - 22px);
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #e5e7eb;
+    border-radius: 9999px;
+    background: #fff;
+    color: #374151;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, .08);
+    cursor: pointer;
+}
+.yk-carousel-arrow:hover { color: var(--color-primary, #2563eb); border-color: currentColor; }
+.yk-carousel-arrow--prev { left: -12px; }
+.yk-carousel-arrow--next { right: -12px; }
+@media (max-width: 767px) { .yk-carousel-arrow { display: none; } }
+@media (prefers-reduced-motion: reduce) {
+    .yk-carousel-track { scroll-behavior: auto; }
+    .yk-carousel-dot { transition: none; }
+}
+
+/* 客户评价卡片 */
+.yk-testimonial { display: flex; flex-direction: column; width: 100%; margin: 0; padding: 28px; border-radius: 12px; color: #374151; }
+.yk-testimonials--cards .yk-testimonial { background: #fff; box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 8px 24px rgba(15, 23, 42, .06); }
+.yk-testimonials--outline .yk-testimonial { background: #fff; border: 1px solid #e5e7eb; }
+.yk-testimonials--plain .yk-testimonial { padding: 8px 4px; }
+.yk-testimonial-rating { margin-bottom: 12px; color: #f59e0b; font-size: 16px; letter-spacing: 2px; line-height: 1; }
+.yk-testimonial-text { flex: 1; margin: 0; font-size: 15px; line-height: 1.8; color: #4b5563; overflow-wrap: anywhere; }
+.yk-testimonial-author { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
+.yk-testimonial-avatar { flex: none; width: 48px; height: 48px; border-radius: 9999px; object-fit: cover; background: #f3f4f6; }
+.yk-testimonial-initial { display: inline-flex; align-items: center; justify-content: center; background: var(--color-primary, #2563eb); color: #fff; font-weight: 700; font-size: 18px; }
+.yk-testimonial-meta { display: flex; flex-direction: column; min-width: 0; }
+.yk-testimonial-name { font-weight: 600; color: #111827; }
+.yk-testimonial-role { font-size: 13px; color: #6b7280; }
+.yk-testimonials--center .yk-testimonial { align-items: center; text-align: center; }
+.yk-testimonials--center .yk-testimonial-author { flex-direction: column; gap: 8px; }
+.yk-testimonials--center .yk-testimonial-meta { align-items: center; }

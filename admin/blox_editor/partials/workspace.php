@@ -1522,7 +1522,7 @@ declare(strict_types=1);
                                     </div>
                                 </template>
                                 <div :data-control-key="ctrl.key" x-show="!ctrl.option_preview"
-                                     :class="ctrl.responsive || ctrl.key === 'faq_style' || ctrl.key === 'table_style' || ctrl.key === 'custom_style' || ['textarea','richtext','image','about_layout','faq_repeater','org_repeater','pricing_plans','table_grid'].indexOf(ctrl.type) !== -1 ? 'blox-property-span-full' : ''">
+                                     :class="ctrl.responsive || ctrl.key === 'faq_style' || ctrl.key === 'table_style' || ctrl.key === 'custom_style' || ['textarea','richtext','image','about_layout','faq_repeater','org_repeater','pricing_plans','table_grid','items_repeater'].indexOf(ctrl.type) !== -1 ? 'blox-property-span-full' : ''">
                                     <template x-if="ctrl.type !== 'checkbox' && !ctrl.compact_richtext">
                                         <div class="flex items-center justify-between gap-2 mb-1.5">
                                             <label class="block text-[11px] font-semibold text-gray-700" x-text="ctrl.label"></label>
@@ -1716,6 +1716,8 @@ declare(strict_types=1);
                                             <i class="ti ti-arrows-maximize" aria-hidden="true"></i><?= e(__('blox_table_expand')) ?>
                                         </button>
                                     </template>
+
+                                    <?php require __DIR__ . '/items-repeater-control.php'; ?>
 
                                     <?php // 价格方案套餐编辑器由 yikai-builder 作者端模块输出 ?>
                                     <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'pricing_plans'); ?>
@@ -2059,7 +2061,7 @@ declare(strict_types=1);
                                     </template>
 
                                     <?php // 未覆盖的控件类型：明说，而不是静默留空 ?>
-                                    <template x-if="['text','url','video_url','textarea','richtext','select','button_style','button_icon_position','button_hover_effect','number','range','css_length','checkbox','color','icon','image','about_layout','about_breakpoint','faq_repeater','org_repeater','pricing_plans','table_grid'].indexOf(ctrl.type) === -1">
+                                    <template x-if="['text','url','video_url','textarea','richtext','select','button_style','button_icon_position','button_hover_effect','number','range','css_length','checkbox','color','icon','image','about_layout','about_breakpoint','faq_repeater','org_repeater','pricing_plans','table_grid','items_repeater'].indexOf(ctrl.type) === -1">
                                         <p class="text-[10px] text-amber-600 leading-relaxed">
                                             <?= __('blox_ctrl_unsupported_pre') ?>（<span x-text="ctrl.type"></span>）<?= __('blox_ctrl_unsupported_post') ?>
                                         </p>

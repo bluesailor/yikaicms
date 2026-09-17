@@ -187,6 +187,14 @@
         return String(normalizeMetadata(item && item.metadata).data_source || "static").trim().toLowerCase();
     }
 
+    /** 虚拟分类「首页常用」：内置区块按 home_common 标记；远程区块按适用页面含首页判断 */
+    var HOME_COMMON = "home-common";
+    function isHomeCommon(item) {
+        if (!item || item.type !== "section") return false;
+        if (item.home_common === true) return true;
+        return item.source !== "builtin" && normalizeMetadata(item.metadata).page_types.indexOf("home") !== -1;
+    }
+
     function filter(items, query, type, source, category, purpose, dataSource) {
         var q = String(query || "").trim().toLowerCase();
         var wantedCategory = String(category || "all").trim().toLowerCase();
@@ -195,7 +203,9 @@
         return (Array.isArray(items) ? items : []).filter(function (item) {
             if (type !== "all" && item.type !== type) return false;
             if (source && source !== "all" && item.source !== source) return false;
-            if (wantedCategory !== "all" && categoryValue(item) !== wantedCategory) return false;
+            if (wantedCategory === HOME_COMMON) {
+                if (!isHomeCommon(item)) return false;
+            } else if (wantedCategory !== "all" && categoryValue(item) !== wantedCategory) return false;
             if (wantedPurpose !== "all" && purposeValue(item) !== wantedPurpose) return false;
             if (wantedDataSource !== "all" && dataSourceValue(item) !== wantedDataSource) return false;
             if (!q) return true;
@@ -213,16 +223,21 @@
 
     function categories(items) {
         var seen = {};
+        var homeCommon = false;
         (Array.isArray(items) ? items : []).forEach(function (item) {
             var value = categoryValue(item);
             if (value) seen[value] = true;
+            if (isHomeCommon(item)) homeCommon = true;
         });
-        return Object.keys(seen).sort();
+        var list = Object.keys(seen).sort();
+        return homeCommon ? [HOME_COMMON].concat(list) : list;
     }
 
     function categoryLabel(category, text) {
         var value = String(category || "").trim().toLowerCase();
-        var key = "category" + value.charAt(0).toUpperCase() + value.slice(1);
+        var key = "category" + value.split("-").map(function (part) {
+            return part.charAt(0).toUpperCase() + part.slice(1);
+        }).join("");
         return text && text[key] ? text[key] : value;
     }
 

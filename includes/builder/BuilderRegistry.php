@@ -143,6 +143,8 @@ final class BuilderRegistry
             new TableElement(),
             new OrgChartElement(),
             new PricingTableElement(),
+            new TestimonialCarouselElement(),
+            new LogoWallElement(),
             new StatItemElement(),
             new ProcessStepElement(),
             new LogoElement(),

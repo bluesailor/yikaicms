@@ -1,0 +1,80 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Customer testimonials carousel",
+    "requires": {
+        "elements": [
+            "testimonial-carousel"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "客户评价",
+                "settings": {
+                    "title": "客户怎么说",
+                    "subtitle": "来自不同行业客户的真实反馈",
+                    "bg_color": "#f8fafc",
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "testimonial-carousel",
+                                "data": {
+                                    "items": [
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-1.svg",
+                                            "name": "陈思远",
+                                            "role": "采购总监 · 华东制造集团",
+                                            "content": "从选型到交付只用了三周，技术团队全程跟进，现场调试一次通过。后续两条产线也继续选择了他们。",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-2.svg",
+                                            "name": "林晓雯",
+                                            "role": "运营经理 · 星禾连锁",
+                                            "content": "门店系统上线后，库存盘点时间缩短了一半。遇到问题随时有人响应，这是我们最看重的。",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-3.svg",
+                                            "name": "王建国",
+                                            "role": "技术负责人 · 远拓物流",
+                                            "content": "方案很务实，没有堆砌功能。按我们的业务流程做了定制，培训一周员工就能独立使用。",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-4.svg",
+                                            "name": "赵雅琪",
+                                            "role": "市场总监 · 青禾生物",
+                                            "content": "合作三年，报价透明、交付准时。新官网上线后询盘量明显增加，团队非常专业。",
+                                            "rating": "5"
+                                        }
+                                    ],
+                                    "per_view": "3",
+                                    "autoplay": true,
+                                    "interval": "5",
+                                    "show_dots": true,
+                                    "show_arrows": false,
+                                    "card_style": "cards",
+                                    "align": "left"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -888,6 +888,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-conditions.js') ?>"></script>
     <script src="/assets/js/blox-background-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-background-panel.js') ?>"></script>
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
+    <script src="/assets/js/blox-items-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-items-control.js') ?>"></script>
     <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
     <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
 <?php if (!BloxResponsiveValue::wideEnabled()): ?>
@@ -1788,6 +1789,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'categoryContent' => __('blox_template_category_content'),
                 'categoryPage' => __('blox_template_category_page'),
                 'categoryBusiness' => __('blox_template_category_business'),
+                'categorySocial' => __('blox_template_category_social'),
+                'categoryProducts' => __('blox_template_category_products'),
+                'categoryHomeCommon' => __('blox_template_category_home_common'),
                 'purpose' => __('blox_template_purpose'),
                 'purposeAll' => __('blox_template_purpose_all'),
                 'purposeGeneral' => __('blox_template_purpose_general'),
@@ -2549,6 +2553,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 cleared: <?= $jt('blox_bg_video_obstruction_cleared') ?>,
             },
             ...window.BloxImageControl.methods,
+            ...window.BloxItemsControl.methods,
             // 表格作者端方法由 yikai-builder 提供（plugins/yikai-builder/assets/blox-pro-table.js）
             ...((window.BloxTableControl || {}).methods || {}),
             tableExpanded: null,

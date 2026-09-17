@@ -1,0 +1,42 @@
+/* Blox 合作伙伴 Logo 墙：网格或无缝滚动（纯 CSS，无脚本）。 */
+.yk-logo-wall { --yk-logo-cols: 6; --yk-logo-h: 56px; min-width: 0; width: 100%; }
+.yk-logo-wall ul { list-style: none; margin: 0; padding: 0; }
+.yk-logo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (min-width: 640px) { .yk-logo-grid { grid-template-columns: repeat(min(var(--yk-logo-cols), 3), minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .yk-logo-grid { grid-template-columns: repeat(var(--yk-logo-cols), minmax(0, 1fr)); } }
+.yk-logo-item { display: flex; min-width: 0; }
+.yk-logo-link, .yk-logo-item > .yk-logo-img, .yk-logo-item > .yk-logo-name { margin: auto; }
+.yk-logo-link { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: inherit; text-decoration: none; }
+.yk-logo-wall--tiles .yk-logo-item {
+    align-items: center;
+    justify-content: center;
+    min-height: calc(var(--yk-logo-h) + 40px);
+    padding: 16px 20px;
+    border: 1px solid #eef0f3;
+    border-radius: 10px;
+    background: #fff;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+.yk-logo-wall--tiles .yk-logo-item:hover { border-color: #dbe2ea; box-shadow: 0 6px 18px rgba(15, 23, 42, .06); }
+.yk-logo-img { display: block; max-width: 100%; max-height: var(--yk-logo-h); width: auto; height: auto; object-fit: contain; transition: filter .25s ease, opacity .25s ease; }
+.yk-logo-name { font-weight: 600; color: #6b7280; text-align: center; overflow-wrap: anywhere; }
+.yk-logo-wall--grayscale .yk-logo-img { filter: grayscale(1); opacity: .65; }
+.yk-logo-wall--grayscale .yk-logo-item:hover .yk-logo-img,
+.yk-logo-wall--grayscale .yk-logo-link:focus-visible .yk-logo-img { filter: none; opacity: 1; }
+
+/* 无缝滚动：两份相同列表并排，整体平移 50% 后回到起点；悬停暂停 */
+.yk-logo-marquee {
+    display: flex;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.yk-logo-track { display: flex; flex: none; gap: 16px; padding-right: 16px; animation: yk-logo-marquee 36s linear infinite; }
+.yk-logo-wall--marquee .yk-logo-item { width: 180px; flex: none; }
+.yk-logo-marquee:hover .yk-logo-track { animation-play-state: paused; }
+@keyframes yk-logo-marquee { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@media (prefers-reduced-motion: reduce) {
+    .yk-logo-marquee { flex-wrap: wrap; -webkit-mask-image: none; mask-image: none; }
+    .yk-logo-track { animation: none; flex-wrap: wrap; }
+    .yk-logo-track[aria-hidden="true"] { display: none; }
+}
