@@ -22,7 +22,8 @@ final class SectionElementPresetEnhancementTest extends TestCase
     public function testShippedPresetsImportStandardElementsAndShippedAssets(): void
     {
         $markers = [
-            'testimonial-quote' => 'yk-quote-center',
+            // 06 客户评价：标题 + 3 条逐条切换的评价轮播
+            'testimonial-quote' => 'yk-testimonials--single',
         ];
         foreach ($markers as $slug => $marker) {
             $raw = (string) file_get_contents(ROOT_PATH . '/templates/blox/sections/' . $slug . '.json');

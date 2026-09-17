@@ -77,3 +77,8 @@
 .yk-testimonials--center .yk-testimonial { align-items: center; text-align: center; }
 .yk-testimonials--center .yk-testimonial-author { flex-direction: column; gap: 8px; }
 .yk-testimonials--center .yk-testimonial-meta { align-items: center; }
+/* 每屏 1 条：大字引语 */
+.yk-testimonials--single .yk-testimonial-text { font-size: 19px; line-height: 1.85; color: #1f2937; }
+.yk-testimonials--single.yk-testimonials--center .yk-testimonial { max-width: 760px; margin: 0 auto; }
+.yk-testimonials--single .yk-testimonial-avatar { width: 56px; height: 56px; }
+@media (max-width: 767px) { .yk-testimonials--single .yk-testimonial-text { font-size: 16px; } }
