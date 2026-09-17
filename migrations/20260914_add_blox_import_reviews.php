@@ -15,7 +15,7 @@ return [
     'sqls' => [
         'CREATE TABLE IF NOT EXISTS ' . DB_PREFIX . 'blox_import_reviews (
             id VARCHAR(64) NOT NULL,
-            admin_id INT UNSIGNED NOT NULL DEFAULT 0,
+            admin_id INT(11) UNSIGNED NOT NULL DEFAULT 0,
             operation VARCHAR(32) NOT NULL,
             source_key VARCHAR(128) NOT NULL,
             source_type VARCHAR(32) NOT NULL DEFAULT \'\',
@@ -23,13 +23,13 @@ return [
             package_sha256 CHAR(64) NOT NULL,
             package_json MEDIUMTEXT NOT NULL,
             package_version VARCHAR(50) NOT NULL DEFAULT \'\',
-            target_id INT UNSIGNED NOT NULL DEFAULT 0,
+            target_id INT(11) UNSIGNED NOT NULL DEFAULT 0,
             target_revision VARCHAR(64) NOT NULL DEFAULT \'\',
             result_ref VARCHAR(128) NOT NULL DEFAULT \'\',
-            design_revision INT UNSIGNED NOT NULL DEFAULT 0,
-            created_at INT UNSIGNED NOT NULL DEFAULT 0,
-            expires_at INT UNSIGNED NOT NULL DEFAULT 0,
-            consumed_at INT UNSIGNED NOT NULL DEFAULT 0,
+            design_revision INT(11) UNSIGNED NOT NULL DEFAULT 0,
+            created_at INT(11) UNSIGNED NOT NULL DEFAULT 0,
+            expires_at INT(11) UNSIGNED NOT NULL DEFAULT 0,
+            consumed_at INT(11) UNSIGNED NOT NULL DEFAULT 0,
             PRIMARY KEY (id),
             KEY `idx_admin_pending` (`admin_id`, `consumed_at`, `expires_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci',
