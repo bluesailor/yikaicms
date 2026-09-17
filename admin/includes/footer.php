@@ -2,7 +2,7 @@
 
             <!-- 底部 -->
             <footer class="p-6 text-center text-gray-500 text-sm">
-                <?php $adminCopyright = config('admin_copyright', ''); ?>
+                <?php $adminCopyright = adminBrandCopyright(); ?>
                 <?php if ($adminCopyright): ?>
                     <?php echo e($adminCopyright); ?>
                 <?php else: ?>
