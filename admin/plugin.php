@@ -14,6 +14,8 @@ require_once ROOT_PATH . '/includes/security.php';   // zipUnsafeEntry()：插�
 require_once ROOT_PATH . '/includes/MarketDownloadStatus.php';
 require_once ROOT_PATH . '/includes/MarketCatalogItems.php';
 require_once ROOT_PATH . '/includes/MarketCatalogRequest.php';
+require_once ROOT_PATH . '/includes/MarketDownloadUrl.php';
+require_once ROOT_PATH . '/includes/PluginMarketPackage.php';
 require_once ROOT_PATH . '/includes/PluginInstaller.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
@@ -79,28 +81,59 @@ function pluginMarketDecorate(array $item): array
     return MarketDownloadStatus::decorate($item);
 }
 
-/** GET 一个 URL 返回 body（curl 优先，回退 allow_url_fopen；失败返回 null） */
-function pluginMarketHttpGet(string $url, int $timeout = 15, ?int &$status = null): ?string
+/**
+ * GET 一个 URL 返回 body（curl 优先，回退 allow_url_fopen；失败返回 null）。
+ * $maxBytes > 0 时边下边计数，超过上限立即中止并把 $tooLarge 置 true（不先整包读入内存）。
+ */
+function pluginMarketHttpGet(string $url, int $timeout = 15, ?int &$status = null, int $maxBytes = 0, bool &$tooLarge = false): ?string
 {
     $status = 0;
+    $tooLarge = false;
     if (function_exists('curl_init')) {
+        $body = '';
         $ch = curl_init($url);
         curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_TIMEOUT => $timeout,
             CURLOPT_SSL_VERIFYPEER => true, CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$body, $maxBytes, &$tooLarge): int {
+                if ($maxBytes > 0 && strlen($body) + strlen($chunk) > $maxBytes) {
+                    $tooLarge = true;
+                    return 0; // 返回值与块长不符 → curl 中止传输
+                }
+                $body .= $chunk;
+                return strlen($chunk);
+            },
         ]);
-        $resp = curl_exec($ch);
+        curl_exec($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        return $status >= 200 && $status < 300 && is_string($resp) && $resp !== '' ? $resp : null;
+        return !$tooLarge && $status >= 200 && $status < 300 && $body !== '' ? $body : null;
     }
     if (ini_get('allow_url_fopen')) {
-        $resp = @file_get_contents($url, false, stream_context_create(['http' => [
+        $stream = @fopen($url, 'rb', false, stream_context_create(['http' => [
             'timeout' => $timeout, 'follow_location' => 0, 'max_redirects' => 0, 'ignore_errors' => true,
         ]]));
-        preg_match('/^HTTP\/\S+\s+(\d{3})/', $http_response_header[0] ?? '', $match);
+        if ($stream === false) {
+            return null;
+        }
+        $meta = stream_get_meta_data($stream);
+        $headers = is_array($meta['wrapper_data'] ?? null) ? $meta['wrapper_data'] : [];
+        preg_match('/^HTTP\/\S+\s+(\d{3})/', (string) ($headers[0] ?? ''), $match);
         $status = (int) ($match[1] ?? 0);
-        return $status >= 200 && $status < 300 && is_string($resp) && $resp !== '' ? $resp : null;
+        $body = '';
+        while (!feof($stream)) {
+            $chunk = fread($stream, 65536);
+            if ($chunk === false) {
+                break;
+            }
+            if ($maxBytes > 0 && strlen($body) + strlen($chunk) > $maxBytes) {
+                $tooLarge = true;
+                break;
+            }
+            $body .= $chunk;
+        }
+        fclose($stream);
+        return !$tooLarge && $status >= 200 && $status < 300 && $body !== '' ? $body : null;
     }
     return null;
 }
@@ -243,6 +276,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 exit;
             }
 
+            // 下载前的本地边界：只向官方包路径或市场令牌地址发请求，且不把已装插件换成旧版本
+            $marketVersion = (string) ($item['version'] ?? '');
+            if (!PluginMarketPackage::isOfficialUrl((string) $item['download_url'], $slug, $marketVersion)) {
+                adminLog('plugin', 'market_install_blocked', 'Untrusted plugin download URL: ' . $slug);
+                echo json_encode(['code' => 1, 'msg' => __('pl_download_untrusted')], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            $installedVersion = PluginMarketPackage::installedVersion(ROOT_PATH . '/plugins', $slug);
+            if (PluginMarketPackage::isDowngrade($installedVersion, $marketVersion)) {
+                adminLog('plugin', 'market_install_blocked', 'Plugin marketplace downgrade blocked: ' . $slug
+                    . ' local=' . $installedVersion . ' remote=' . $marketVersion);
+                echo json_encode(['code' => 1, 'msg' => __('pl_downgrade_refused')], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
             // 下载到临时文件
             $tmpZip = tempnam(sys_get_temp_dir(), 'ykplg');
             if (!is_string($tmpZip)) {
@@ -250,10 +298,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 exit;
             }
             $status = 0;
-            $body = pluginMarketHttpGet($item['download_url'], 120, $status);
+            $tooLarge = false;
+            $body = pluginMarketHttpGet($item['download_url'], 120, $status, PluginMarketPackage::MAX_PACKAGE_BYTES, $tooLarge);
             if ($body === null || file_put_contents($tmpZip, $body) === false) {
                 @unlink($tmpZip);
-                echo json_encode(['code' => 1, 'msg' => $body === null ? MarketDownloadStatus::httpMessage($status) : __('pl_download_failed')]);
+                $message = $tooLarge ? __('pl_package_too_large') : ($body === null ? MarketDownloadStatus::httpMessage($status) : __('pl_download_failed'));
+                echo json_encode(['code' => 1, 'msg' => $message], JSON_UNESCAPED_UNICODE);
                 exit;
             }
 
