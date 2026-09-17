@@ -2517,12 +2517,26 @@ test('footer style library previews and applies practical starters @ci', async (
 
   const dialog = page.getByTestId('blox-header-presets');
   await expect(dialog).toBeVisible();
-  // 页尾起步款从 7 调整为 6：business / minimal / compact 三款被标记为 legacy（不再出现在
-  // 编辑器起步清单），同时新增 simple-light / simple-dark 两款极简页尾。
-  await expect(dialog.getByTestId('blox-header-preset-apply')).toHaveCount(6);
-  await expect(dialog).toContainText('紧凑网页脚');
+  // 页尾起步款共 7 款（2026-09-17）：极简浅/深、简洁、四列浅/深、联系方式、搜索导航。
+  // business / minimal / compact / corporate 为 legacy，不在编辑器起步清单里。
+  await expect(dialog.getByTestId('blox-header-preset-apply')).toHaveCount(7);
+  await expect(dialog).not.toContainText('紧凑网页脚');
+  await expect(dialog).not.toContainText('多列企业网页脚');
+  await expect(dialog).toContainText('四列页脚 · 浅色');
+  await expect(dialog).toContainText('四列页脚 · 深色');
   await expect(dialog).toContainText('联系方式网页脚');
   await expect(dialog).toContainText('搜索导航网页脚');
+
+  // 四列深色：预览里页脚区出现四列内容 + 底部版权条
+  const fourDark = dialog.getByTestId('blox-header-preset-four-column-dark-site-footer');
+  await fourDark.getByTestId('blox-header-preset-preview').click();
+  const fourPreview = page.getByTestId('blox-header-preset-preview-dialog');
+  await expect(fourPreview).toBeVisible();
+  const fourFrame = fourPreview.getByTestId('blox-header-preset-preview-frame');
+  await expect(fourFrame).toHaveAttribute('src', /template_area=footer&area_preset=four-column-dark-site-footer/);
+  await expect(fourFrame.contentFrame().locator('[data-yk-area="footer"]')).toBeVisible();
+  await fourPreview.getByTestId('blox-header-preset-preview-close').click();
+  await expect(fourPreview).toBeHidden();
 
   const searchPreset = dialog.getByTestId('blox-header-preset-search-site-footer');
   await searchPreset.getByTestId('blox-header-preset-preview').click();

@@ -821,6 +821,15 @@ $presetPreviewHtml = static function (string $kind): string {
             . '<div class="flex items-start justify-between rounded-t-sm bg-gray-800 px-2 py-1.5">'
             . '<span class="flex flex-col gap-1">' . $logoLight . '</span>' . $lines(3, 'bg-gray-600') . $lines(3, 'bg-gray-600') . '</div>'
             . '<div class="flex justify-center rounded-b-sm bg-gray-900 px-2 py-1"><span class="h-1 w-12 rounded-sm bg-gray-600"></span></div></div>',
+        // 四列页脚：品牌 + 三列链接/联系/搜索，底部居中版权备案条
+        'footer-four-light' => '<div class="flex flex-col">'
+            . '<div class="grid grid-cols-4 gap-2 rounded-t-sm border border-b-0 border-gray-200 bg-gray-50 px-2 py-1.5">'
+            . '<span class="flex flex-col gap-1">' . $logo . '</span>' . str_repeat($lines(3, 'bg-gray-300'), 3) . '</div>'
+            . '<div class="flex justify-center rounded-b-sm bg-gray-200 px-2 py-1"><span class="h-1 w-12 rounded-sm bg-gray-400"></span></div></div>',
+        'footer-four-dark' => '<div class="flex flex-col">'
+            . '<div class="grid grid-cols-4 gap-2 rounded-t-sm bg-zinc-900 px-2 py-1.5">'
+            . '<span class="flex flex-col gap-1">' . $logoLight . '</span>' . str_repeat($lines(3, 'bg-zinc-600'), 3) . '</div>'
+            . '<div class="flex justify-center rounded-b-sm bg-zinc-950 px-2 py-1"><span class="h-1 w-12 rounded-sm bg-zinc-600"></span></div></div>',
         // 文章详情：窄栏阅读——标题行 + 元信息点 + 正文行
         'detail-article' => '<div class="flex justify-center">'
             . '<div class="flex w-3/5 flex-col gap-1 rounded-sm border border-gray-200 bg-white px-2 py-1.5">'

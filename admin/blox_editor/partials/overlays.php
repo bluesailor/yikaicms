@@ -995,7 +995,29 @@ declare(strict_types=1);
                                     <i class="h-1.5 w-12 rounded bg-gray-400"></i>
                                     <i class="h-1.5 w-12 rounded bg-gray-400"></i>
                                 </div>
-                                <div x-show="areaPresetType === 'footer' && !preset.preview.startsWith('footer-simple-')"
+                                <div x-show="areaPresetType === 'footer' && preset.preview.startsWith('footer-four-')"
+                                     class="flex w-5/6 flex-col overflow-hidden border border-gray-300 shadow-sm" aria-hidden="true">
+                                    <span class="grid h-14 grid-cols-4 gap-2 px-3 py-2"
+                                          :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-900' : 'bg-gray-50'">
+                                        <span class="flex flex-col gap-1">
+                                            <i class="h-2 w-8 rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-blue-400' : 'bg-blue-500'"></i>
+                                            <i class="h-1.5 w-full rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-600' : 'bg-gray-300'"></i>
+                                        </span>
+                                        <template x-for="column in 3" :key="'four-col-' + column">
+                                            <span class="flex flex-col gap-1">
+                                                <i class="h-1.5 w-full rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-600' : 'bg-gray-300'"></i>
+                                                <i class="h-1.5 w-4/5 rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-600' : 'bg-gray-300'"></i>
+                                                <i class="h-1.5 w-3/5 rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-600' : 'bg-gray-300'"></i>
+                                            </span>
+                                        </template>
+                                    </span>
+                                    <span class="flex h-4 items-center justify-center gap-2"
+                                          :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-950' : 'bg-gray-100'">
+                                        <i class="h-1 w-16 rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-gray-400' : 'bg-gray-500'"></i>
+                                        <i class="h-1 w-8 rounded bg-gray-400"></i>
+                                    </span>
+                                </div>
+                                <div x-show="areaPresetType === 'footer' && !preset.preview.startsWith('footer-simple-') && !preset.preview.startsWith('footer-four-')"
                                      class="flex w-5/6 flex-col overflow-hidden border border-gray-300 bg-white shadow-sm" aria-hidden="true">
                                     <span x-show="preset.preview === 'footer-search'" class="flex h-5 items-center gap-2 bg-gray-800 px-3">
                                         <i class="h-1.5 w-9 rounded bg-blue-400"></i><i class="h-2.5 flex-1 rounded bg-gray-600"></i>
