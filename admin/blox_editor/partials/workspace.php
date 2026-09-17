@@ -327,7 +327,7 @@ declare(strict_types=1);
                         </div>
                     </template>
 
-                    <?php // 元素/区块显示条件编辑面板由 blox-pro 作者端模块输出 ?>
+                    <?php // 元素/区块显示条件编辑面板由 yikai-builder 作者端模块输出 ?>
                     <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_condition'); ?>
 
                     <!-- ── 元素设置：按 BuilderRegistry 的 controls() 生成 ── -->
@@ -937,7 +937,7 @@ declare(strict_types=1);
 
                             <?php require __DIR__ . '/banner-manager.php'; ?>
 
-                            <?php // 动态循环模板面板由 blox-pro 作者端模块输出 ?>
+                            <?php // 动态循环模板面板由 yikai-builder 作者端模块输出 ?>
                             <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_loop_template'); ?>
 
                             <template x-if="processHost() && panelTab === 'content'">
@@ -1199,7 +1199,7 @@ declare(strict_types=1);
 
                             <template x-if="selEl && panelTab === 'style' && commonStyleVisible() && supportsBoxStyles(selEl.type)">
                                 <div class="rounded border border-gray-200 bg-gray-50 p-3 space-y-3">
-                                    <?php // 全局命名样式选择由 blox-pro 作者端模块输出 ?>
+                                    <?php // 全局命名样式选择由 yikai-builder 作者端模块输出 ?>
                                     <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_style_preset'); ?>
                                     <div class="flex items-center justify-between">
                                         <span class="text-xs font-semibold text-gray-600 inline-flex items-center gap-1.5">

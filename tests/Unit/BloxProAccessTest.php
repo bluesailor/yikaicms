@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
-require_once ROOT_PATH . '/plugins/blox-pro/access.php';
+require_once ROOT_PATH . '/plugins/yikai-builder/access.php';
 
 final class BloxProAccessTest extends TestCase
 {
@@ -27,7 +27,7 @@ final class BloxProAccessTest extends TestCase
 
     public function testPackageIsProOnlyAndMetadataIsLocalized(): void
     {
-        $meta = json_decode((string) file_get_contents(ROOT_PATH . '/plugins/blox-pro/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
+        $meta = json_decode((string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
         self::assertSame('1.20.0', $meta['requires_cms']);
         self::assertSame('8.0', $meta['requires_php']);
         self::assertSame('blox', $meta['module']);
@@ -39,8 +39,8 @@ final class BloxProAccessTest extends TestCase
         $manifest = json_decode((string) file_get_contents(ROOT_PATH . '/config/blox-assets.json'), true, 512, JSON_THROW_ON_ERROR);
         $policy = require ROOT_PATH . '/config/blox-feature-policy.php';
         $licensed = in_array('licensed', array_values($policy), true);
-        self::assertSame($licensed, in_array('plugins/blox-pro', $manifest['pro'], true));
-        self::assertSame(!$licensed, in_array('plugins/blox-pro', $manifest['core'], true));
-        self::assertNotContains('plugins/blox-pro', $manifest['runtime']);
+        self::assertSame($licensed, in_array('plugins/yikai-builder', $manifest['pro'], true));
+        self::assertSame(!$licensed, in_array('plugins/yikai-builder', $manifest['core'], true));
+        self::assertNotContains('plugins/yikai-builder', $manifest['runtime']);
     }
 }

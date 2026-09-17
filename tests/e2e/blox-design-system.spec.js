@@ -78,7 +78,7 @@ test('token catalog and named preset apply through stable references @ci', async
   await page.getByTestId('blox-library-open').click();
   await page.getByTestId('blox-add-element-icon').press('Enter');
   await page.getByTestId('blox-style-tab').click();
-  // 全局样式选择在默认折叠的专业功能区内（由 blox-pro 作者端模块提供）。
+  // 全局样式选择在默认折叠的专业功能区内（由 yikai-builder 作者端模块提供）。
   await page.getByTestId('blox-professional-features').locator('summary').click();
 
   await performPreviewUpdate(page, async () => {

@@ -62,7 +62,7 @@ if ($path === '/canvas') {
 <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="/assets/css/tailwind.css"><link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
 <style>[x-cloak]{display:none!important}body{margin:0;background:#f3f4f6;font:14px sans-serif}</style>
-<script src="/plugins/blox-pro/assets/blox-pro-table.js"></script><script src="/assets/js/blox-canvas-bridge.js"></script><script src="/assets/js/blox-dialog-focus.js"></script>
+<script src="/plugins/yikai-builder/assets/blox-pro-table.js"></script><script src="/assets/js/blox-canvas-bridge.js"></script><script src="/assets/js/blox-dialog-focus.js"></script>
 <script src="/assets/js/blox-page-settings.js"></script>
 <script>
 function probe() {

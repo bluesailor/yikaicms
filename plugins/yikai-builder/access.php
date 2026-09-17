@@ -23,7 +23,7 @@ final class BloxProAccess
             return 'unsupported';
         }
         // Recheck availability: loading this file alone must not grant authoring rights.
-        if (!function_exists('isPluginAvailable') || !isPluginAvailable('blox-pro')) {
+        if (!function_exists('isPluginAvailable') || !isPluginAvailable('yikai-builder')) {
             return 'inactive';
         }
         // Module ownership survives service expiry; registration alone grants nothing.

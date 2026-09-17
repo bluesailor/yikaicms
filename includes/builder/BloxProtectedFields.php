@@ -84,7 +84,7 @@ final class BloxProtectedFields
             unset($data[$key]);
         }
         if (in_array('table', $denied, true) && ($element['type'] ?? '') === 'table') {
-            // 表格归属 blox-pro：能力未放行时整张表冻结（不能新增、修改或删除），已发布内容照常渲染
+            // 表格归属 yikai-builder：能力未放行时整张表冻结（不能新增、修改或删除），已发布内容照常渲染
             $fields['table'] = $data;
             $data = [];
         }

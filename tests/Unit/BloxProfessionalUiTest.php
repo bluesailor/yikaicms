@@ -38,11 +38,11 @@ final class BloxProfessionalUiTest extends TestCase
 
     public function testFreeFeaturesHaveNoCommercialMessageOrAction(): void
     {
-        // 免费期 blox-pro 随包启用：加载其作者端模块后，三项免费能力均无提示与跳转。
+        // 免费期 yikai-builder 随包启用：加载其作者端模块后，三项免费能力均无提示与跳转。
         if (!function_exists('add_action')) {
             require_once ROOT_PATH . '/includes/hooks.php';
         }
-        require_once ROOT_PATH . '/plugins/blox-pro/editor.php';
+        require_once ROOT_PATH . '/plugins/yikai-builder/editor.php';
         self::assertTrue(BloxProfessionalUi::moduleLoaded('display_conditions'));
         foreach (BloxProfessionalUi::snapshot() as $feature) {
             self::assertTrue($feature['allowed']);
