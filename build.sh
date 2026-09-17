@@ -243,6 +243,8 @@ EXCLUDES=(
     "docs"
     "AGENTS.md"
     "CLAUDE.md"
+    # 插件内部验证记录（含开发机路径与内部验收细节）
+    "plugins/dologin/VERIFICATION.md"
 
     # 跨站共享的前端 UI 参考库（dev 参考，非产品运行时代码）
     "ui-library"
