@@ -230,6 +230,27 @@ if ($_i18nReady) {
         <span class="text-xs text-gray-400"><?php echo e(__('fd_source_only_add')); ?></span>
         <?php endif; ?>
     </div>
+    <?php if ($_viewLang === $_defaultLang): ?>
+    <?php // 常用表单直接摆在页面上：点卡片即打开新建弹窗并填好字段 ?>
+    <div class="border-t px-4 py-3" data-testid="form-design-preset-shortcuts">
+        <div class="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span class="text-sm font-medium text-gray-700"><?php echo e(__('fd_presets_title')); ?></span>
+            <span class="text-xs text-gray-400"><?php echo e(__('fd_presets_hint')); ?></span>
+        </div>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <?php foreach ($formPresets as $preset): ?>
+            <button type="button" onclick="openEditModal(); applyFormPreset('<?php echo e($preset['key']); ?>')"
+                    class="flex items-start gap-2 rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-primary hover:bg-primary/5">
+                <i class="ti ti-<?php echo e($preset['icon']); ?> mt-0.5 text-lg text-primary" aria-hidden="true"></i>
+                <span class="min-w-0">
+                    <span class="block text-sm font-medium text-gray-800"><?php echo e($preset['label']); ?></span>
+                    <span class="mt-0.5 block text-xs leading-snug text-gray-500"><?php echo e($preset['desc']); ?></span>
+                </span>
+            </button>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>
 
 <!-- 列表 -->
