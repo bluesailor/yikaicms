@@ -1107,11 +1107,14 @@ declare(strict_types=1);
                     this.csrf
                 )
                     .then(function (template) {
-                        self.templateReview = null;
-                        self.releaseDialog(self.$refs.templateReviewDialog);
+                        // 请求在途时对话框已被关闭或换成别的评审：不再插入
+                        if (self.templateReview !== review) return;
+                        // 先插入再关闭：插入失败（命令回滚等）时错误留在对话框里，而不是随对话框消失
                         self.executeInsertTemplate(
                             review.item, template, review.mode, review.requestedIndex, review.requestContext
                         );
+                        self.templateReview = null;
+                        self.releaseDialog(self.$refs.templateReviewDialog);
                     })
                     .catch(function (error) {
                         // 失败保留选择与已填映射，用户调整后可直接重试。
@@ -1126,7 +1129,8 @@ declare(strict_types=1);
             },
 
             cancelTemplateReview() {
-                if (!this.templateReview) return;
+                // 确认请求在途时不可取消（含 Esc 与点遮罩）：服务端可能已记下导入，界面须等结果
+                if (!this.templateReview || this.templateReview.busy) return;
                 this.releaseDialog(this.$refs.templateReviewDialog);
                 this.templateReview = null;
             },
