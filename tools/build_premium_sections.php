@@ -131,6 +131,16 @@ $catalog = [
                    'ja' => '左に購入前の質問、右に 2 プラン。価格を見ながら不安を解消できます。']],
 ];
 
+/**
+ * 包内素材的来源与再分发许可。未登记的素材一律判失败，不允许"先上架再补"。
+ * 2026-09-16 项目方确认：以下三张由项目方使用 GPT 生成，可随精品包再分发。
+ */
+$assetProvenance = [
+    'landing-brand-about.png' => 'AI-generated (GPT) by the project owner; redistribution confirmed by the owner 2026-09-16',
+    'landing-brand-hero.png' => 'AI-generated (GPT) by the project owner; redistribution confirmed by the owner 2026-09-16',
+    'landing-brand-service-calibration.png' => 'AI-generated (GPT) by the project owner; redistribution confirmed by the owner 2026-09-16',
+];
+
 $version = '1.0.0';
 $results = [];
 $failures = 0;
@@ -189,10 +199,17 @@ foreach ($catalog as $slug => $meta) {
         continue;
     }
 
-    // 素材：包内引用的图必须在暂存资产里存在
+    // 素材：包内引用的图必须在暂存资产里存在，且来源/许可必须有记录（任务书 §5.4）
     if (preg_match_all('#/assets/images/blox-templates/[A-Za-z0-9._-]+#', $raw, $m)) {
         foreach (array_unique($m[0]) as $ref) {
             $row['assets'][] = basename($ref);
+            $provenance = $assetProvenance[basename($ref)] ?? null;
+            $row['asset_provenance'][basename($ref)] = $provenance ?? 'unrecorded';
+            if ($provenance === null) {
+                $row['status'] = 'unrecorded-asset';
+                $row['notes'][] = '素材来源/许可未记录 ' . basename($ref);
+                $failures++;
+            }
             if (!is_file($assetDir . '/' . basename($ref))) {
                 $row['status'] = 'missing-asset';
                 $row['notes'][] = '缺少素材 ' . basename($ref);
