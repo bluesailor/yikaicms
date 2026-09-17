@@ -2517,15 +2517,15 @@ test('footer style library previews and applies practical starters @ci', async (
 
   const dialog = page.getByTestId('blox-header-presets');
   await expect(dialog).toBeVisible();
-  // 页尾起步款共 7 款（2026-09-17）：极简浅/深、简洁、四列浅/深、联系方式、搜索导航。
-  // business / minimal / compact / corporate 为 legacy，不在编辑器起步清单里。
-  await expect(dialog.getByTestId('blox-header-preset-apply')).toHaveCount(7);
+  // 页尾起步款共 6 款（2026-09-17）：极简浅/深、简洁、四列浅/深、联系方式。
+  // business / minimal / compact / corporate / search 为 legacy，不在编辑器起步清单里。
+  await expect(dialog.getByTestId('blox-header-preset-apply')).toHaveCount(6);
   await expect(dialog).not.toContainText('紧凑网页脚');
   await expect(dialog).not.toContainText('多列企业网页脚');
   await expect(dialog).toContainText('四列页脚 · 浅色');
   await expect(dialog).toContainText('四列页脚 · 深色');
   await expect(dialog).toContainText('联系方式网页脚');
-  await expect(dialog).toContainText('搜索导航网页脚');
+  await expect(dialog).not.toContainText('搜索导航网页脚');
 
   // 四列深色：预览里页脚区出现四列内容 + 底部版权条
   const fourDark = dialog.getByTestId('blox-header-preset-four-column-dark-site-footer');
@@ -2538,12 +2538,12 @@ test('footer style library previews and applies practical starters @ci', async (
   await fourPreview.getByTestId('blox-header-preset-preview-close').click();
   await expect(fourPreview).toBeHidden();
 
-  const searchPreset = dialog.getByTestId('blox-header-preset-search-site-footer');
-  await searchPreset.getByTestId('blox-header-preset-preview').click();
+  const simplePreset = dialog.getByTestId('blox-header-preset-simple-light-site-footer');
+  await simplePreset.getByTestId('blox-header-preset-preview').click();
   const preview = page.getByTestId('blox-header-preset-preview-dialog');
   await expect(preview).toBeVisible();
   const previewFrame = preview.getByTestId('blox-header-preset-preview-frame');
-  await expect(previewFrame).toHaveAttribute('src', /template_area=footer&area_preset=search-site-footer/);
+  await expect(previewFrame).toHaveAttribute('src', /template_area=footer&area_preset=simple-light-site-footer/);
   const previewContent = previewFrame.contentFrame();
   await expect(previewContent.locator('[data-yk-area="footer"]')).toBeVisible();
   await expect(previewContent.locator('.yk-ctx-dim')).toHaveCount(0);
@@ -2559,9 +2559,9 @@ test('footer style library previews and applies practical starters @ci', async (
   await expect(preview).toBeHidden();
 
   if (testInfo.project.name === 'desktop-1440') {
-    await searchPreset.getByTestId('blox-header-preset-apply').click();
+    await simplePreset.getByTestId('blox-header-preset-apply').click();
     await expect(dialog).toBeHidden();
-    await expect(page.getByTestId('blox-tree-section')).toHaveCount(3);
+    await expect(page.getByTestId('blox-tree-section')).toHaveCount(1);
     await expect(page.getByTestId('blox-dirty')).toBeVisible();
     await undo(page);
     await expect(page.getByTestId('blox-tree-section')).toHaveCount(2);
