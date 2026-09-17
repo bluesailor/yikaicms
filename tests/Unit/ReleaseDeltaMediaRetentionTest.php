@@ -58,4 +58,42 @@ final class ReleaseDeltaMediaRetentionTest extends TestCase
             self::assertFalse($this->exempt('includes/old-helper.php', $patterns));
         }
     }
+
+    /** 核心包排除的市场插件从未随包分发，增量包不得删除站点自行安装的副本。 */
+    public function testDeltaNeverDeletesPathsTheCorePackageNeverShipped(): void
+    {
+        $bash = $this->bash();
+        $build = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/build.sh'));
+        self::assertSame(1, preg_match('/^path_never_shipped\(\) \{\n.*?\n\}\n/ms', $build, $fn), 'build.sh 缺少 path_never_shipped');
+        self::assertStringContainsString("path_never_shipped \"\$path\" && continue\n                    DELETED+=", $build);
+        self::assertStringContainsString('*) path_never_shipped "$path" || DELETED+=("$path");;', $build);
+
+        $script = "EXCLUDES=(\"plugins/logo-maker\" \"plugins/dologin\" \"marketplace\")\n" . $fn[0]
+            . "for p in plugins/logo-maker/fonts/a.ttf plugins/logo-maker plugins/dologin/plugin.json marketplace/x plugins/logo-maker-extra/a.php plugins/yikai-builder/plugin.json templates/blox/sections/case-grid.json; do\n"
+            . "  if path_never_shipped \"\$p\"; then echo \"keep \$p\"; else echo \"delete \$p\"; fi\ndone\n";
+        $file = tempnam(sys_get_temp_dir(), 'never-shipped');
+        file_put_contents($file, $script);
+        exec(escapeshellarg($bash) . ' ' . escapeshellarg($file), $lines, $exit);
+        unlink($file);
+        self::assertSame(0, $exit);
+        self::assertSame([
+            'keep plugins/logo-maker/fonts/a.ttf',
+            'keep plugins/logo-maker',
+            'keep plugins/dologin/plugin.json',
+            'keep marketplace/x',
+            'delete plugins/logo-maker-extra/a.php',
+            'delete plugins/yikai-builder/plugin.json',
+            'delete templates/blox/sections/case-grid.json',
+        ], $lines);
+    }
+
+    private function bash(): string
+    {
+        foreach (['C:/Program Files/Git/bin/bash.exe', '/bin/bash', '/usr/bin/bash'] as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+        self::markTestSkipped('bash is not available');
+    }
 }
