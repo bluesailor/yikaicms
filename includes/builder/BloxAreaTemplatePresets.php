@@ -71,7 +71,7 @@ final class BloxAreaTemplatePresets
             'feature_keys' => ['blox_header_feature_search', 'blox_header_feature_two_rows'],
         ],
         'clean-site-footer' => [
-            'number' => 3,
+            'number' => 6,
             'type' => 'footer',
             'file' => 'clean-site-footer.json',
             'name_key' => 'blox_area_preset_footer_name',
@@ -100,7 +100,7 @@ final class BloxAreaTemplatePresets
         // 四列页脚（2026-09-17）：品牌简介 / 导航 / 联系方式 / 搜索与社交，下方是与极简页脚相同的版权备案条。
         // 取代原「多列企业网页脚」；旧 slug 保留为 legacy，已安装的站点模板名称与内容不受影响。
         'four-column-light-site-footer' => [
-            'number' => 4,
+            'number' => 3,
             'type' => 'footer',
             'file' => 'four-column-light-site-footer.json',
             'name_key' => 'blox_area_preset_four_column_light_footer_name',
@@ -109,7 +109,7 @@ final class BloxAreaTemplatePresets
             'feature_keys' => ['blox_footer_feature_light', 'blox_footer_feature_four_columns', 'blox_footer_feature_legal'],
         ],
         'four-column-dark-site-footer' => [
-            'number' => 5,
+            'number' => 4,
             'type' => 'footer',
             'file' => 'four-column-dark-site-footer.json',
             'name_key' => 'blox_area_preset_four_column_dark_footer_name',
@@ -136,7 +136,7 @@ final class BloxAreaTemplatePresets
             'feature_keys' => ['blox_footer_feature_compact', 'blox_footer_feature_social', 'blox_footer_feature_legal'],
         ],
         'contact-site-footer' => [
-            'number' => 6,
+            'number' => 5,
             'type' => 'footer',
             'file' => 'contact-site-footer.json',
             'name_key' => 'blox_area_preset_contact_footer_name',
