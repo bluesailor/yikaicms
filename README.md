@@ -152,15 +152,29 @@ YikaiCMS 内置 PHP 路由分发器（`includes/Dispatcher.php`），只要把�
 
 #### 宝塔面板（Nginx）
 
-站点 → **设置** → **伪静态** → 下拉选择 **wordpress** → 保存。就这一步，无需重启。
-
-选 wordpress 预设即可，是因为它就是上面说的那条 catch-all：
+站点 → **设置** → **伪静态**，把下面这一行写进去并保存（无需重启）：
 
 ```nginx
-location / {
-    try_files $uri $uri/ /index.php?$query_string;
-}
+include /www/wwwroot/<你的站点目录>/deploy/nginx-baota.conf;
 ```
+
+随包的 `deploy/nginx-baota.conf` 除了路由规则，还封禁了 `config/`、`storage/`、
+`install/sql/` 等敏感目录，并拒绝执行 `uploads/` 里的 PHP。升级解压新包会一并更新
+这个文件，宝塔「重载配置」即生效。不想用 include 的话，把该文件内容整段粘进伪静态框
+也可以，但每次升级都要重新粘一次。
+
+> ⚠ **不要只选 wordpress 预设。** 它只有一条 catch-all：
+>
+> ```nginx
+> location / {
+>     try_files $uri $uri/ /index.php?$query_string;
+> }
+> ```
+>
+> `try_files` 会先放行**磁盘上真实存在的文件**，而 SQLite 站点的数据库就在站点目录内的
+> `storage/database.sqlite`。没有额外的拒绝规则时，它会走静态文件通道直接被下载，
+> 根本不经过应用鉴权；包内的 `.htaccess` 只对 Apache 有效，nginx 不读。
+> 部署完请当场验证：浏览器访问 `/storage/database.sqlite` 必须是 403 或 404。
 
 #### 阿里云 / 万网 云虚拟主机
 
