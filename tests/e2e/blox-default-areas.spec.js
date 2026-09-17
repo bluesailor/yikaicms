@@ -5,7 +5,7 @@ const { addTemporaryHeading, observeConsole, performPreviewUpdate } = require('.
 
 const AREA_TEMPLATES = [
   { slug: 'corporate-site-header', name: 'Corporate Site Header' },
-  { slug: 'corporate-site-footer', name: 'Corporate Site Footer' },
+  { slug: 'four-column-dark-site-footer', name: 'Four Column Dark Site Footer' },
 ];
 const CLEANUP_AREA_SLUGS = [
   'clean-site-header',
