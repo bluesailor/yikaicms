@@ -25,7 +25,7 @@ add_action('builder_register_element', static function (): void {
                     'columns' => [[
                         'elements' => [[
                             'type' => 'blox-example/notice',
-                            'data' => ['text' => '这是由插件注册的 Blox 元素'],
+                            'data' => ['text' => '这是由插件注册的易开网页构建器元素'],
                         ]],
                     ]],
                 ],
