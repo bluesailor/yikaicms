@@ -109,5 +109,10 @@ return [
         'composer.json',
         'composer.lock',
         'vendor',
+        // 内部文档与验证记录：含商业策略、开发机路径，任何时候都不能进发行包
+        'docs',
+        'AGENTS.md',
+        'CLAUDE.md',
+        'plugins/dologin/VERIFICATION.md',
     ],
 ];
