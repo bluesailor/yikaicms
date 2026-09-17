@@ -799,6 +799,10 @@ final class BlockRenderer
         $keys = [];
         foreach ($raw as $k) {
             $k = trim((string) $k);
+            // 全站关闭宽屏档时，「宽屏隐藏」不再生效（桌面隐藏仍覆盖 ≥1024）
+            if ($k === 'w' && !BloxResponsiveValue::wideEnabled()) {
+                continue;
+            }
             if (isset(self::HIDE_ON_MAP[$k]) && !in_array($k, $keys, true)) {
                 $keys[] = $k;
             }

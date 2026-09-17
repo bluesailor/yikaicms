@@ -69,6 +69,14 @@ try {
         adminLog('blox_design', $action, 'Blox global theme ' . $action);
         success($snapshot);
     }
+    if ($action === 'breakpoints_save') {
+        // 全站断点：目前只开放宽屏档开关，档位像素与 Tailwind 编译产物绑定，不可在线修改
+        $wideEnabled = (string) post('wide_enabled', '1') === '1';
+        settingModel()->set(BloxResponsiveValue::WIDE_SETTING_KEY, $wideEnabled ? '1' : '0', 'system');
+        BloxResponsiveValue::overrideWideEnabled($wideEnabled);
+        adminLog('blox_design', $action, 'Widescreen breakpoint ' . ($wideEnabled ? 'enabled' : 'disabled'));
+        success(['wide_enabled' => $wideEnabled, 'tiers' => BloxResponsiveValue::tiers()]);
+    }
     if ($action === 'usage') {
         success(BloxDesignDependencies::usageSnapshot());
     }

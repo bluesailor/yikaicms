@@ -115,6 +115,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <i class="ti ti-typography"></i><?php echo e(__('blox_design_theme_tab')); ?>
             <span x-show="themeState.has_draft" class="bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700"><?php echo e(__('blox_page_hero_draft')); ?></span>
         </button>
+        <button type="button" role="tab" data-testid="blox-design-page-tab-breakpoints"
+                @click="tab = 'breakpoints'" :aria-selected="tab === 'breakpoints'"
+                class="inline-flex h-11 items-center gap-2 border-b-2 px-4 text-sm font-medium"
+                :class="tab === 'breakpoints' ? 'border-violet-500 text-violet-700' : 'border-transparent text-gray-500 hover:text-gray-900'">
+            <i class="ti ti-devices"></i><?php echo e(__('blox_breakpoints_tab')); ?>
+            <span class="bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500" x-text="breakpointTiers().length"></span>
+        </button>
         <span x-show="busy" class="ml-auto mb-3 inline-flex items-center gap-1 text-xs text-gray-400">
             <i class="ti ti-loader-2 animate-spin"></i><?php echo e(__('loading')); ?>
         </span>
@@ -680,6 +687,83 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </section>
 
+    <section x-show="tab === 'breakpoints'" x-cloak data-testid="blox-design-page-breakpoints" class="space-y-5">
+        <div>
+            <h2 class="text-sm font-semibold text-gray-900"><?php echo e(__('blox_breakpoints_tab')); ?></h2>
+            <p class="mt-1 max-w-3xl text-xs leading-5 text-gray-500"><?php echo e(__('blox_breakpoints_hint')); ?></p>
+        </div>
+
+        <div class="border border-gray-200 bg-white p-4" data-testid="blox-design-breakpoint-ruler">
+            <div class="flex h-9 w-full overflow-hidden text-[11px] font-medium">
+                <template x-for="tier in breakpointTiers()" :key="'bar-' + tier.key">
+                    <div class="flex min-w-0 items-center justify-center border-r border-white px-1 last:border-r-0"
+                         :class="breakpointTone(tier.key) + (breakpointViewportTier() === tier.key ? ' ring-2 ring-inset ring-gray-900/40' : '')"
+                         :style="'width:' + breakpointShare(tier) + '%'">
+                        <i class="ti mr-1 shrink-0" :class="breakpointIcon(tier.key)"></i>
+                        <span class="truncate" x-text="breakpointLabel(tier.key)"></span>
+                    </div>
+                </template>
+            </div>
+            <div class="relative mt-1 h-4 text-[10px] text-gray-400" aria-hidden="true">
+                <template x-for="tick in breakpointTicks()" :key="'tick-' + tick">
+                    <span class="absolute -translate-x-1/2" :style="'left:' + (tick / breakpointScaleMax * 100) + '%'" x-text="tick + 'px'"></span>
+                </template>
+            </div>
+            <p class="mt-2 text-xs text-gray-500">
+                <?php echo e(__('blox_breakpoints_viewport')); ?>
+                <strong class="text-gray-800" x-text="breakpointViewport + 'px · ' + breakpointLabel(breakpointViewportTier())"></strong>
+            </p>
+        </div>
+
+        <div class="overflow-x-auto border border-gray-200 bg-white">
+            <table class="min-w-full text-sm" data-testid="blox-design-breakpoint-table">
+                <thead class="bg-gray-50 text-left text-xs text-gray-500">
+                    <tr>
+                        <th class="px-4 py-2 font-medium"><?php echo e(__('blox_breakpoints_device')); ?></th>
+                        <th class="px-4 py-2 font-medium"><?php echo e(__('blox_breakpoints_range')); ?></th>
+                        <th class="px-4 py-2 font-medium"><?php echo e(__('blox_breakpoints_inherits')); ?></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <template x-for="tier in breakpointTiers().slice().reverse()" :key="'row-' + tier.key">
+                        <tr :data-tier="tier.key">
+                            <td class="px-4 py-3">
+                                <span class="inline-flex items-center gap-2 font-medium text-gray-800">
+                                    <span class="inline-flex h-7 w-7 items-center justify-center" :class="breakpointTone(tier.key)"><i class="ti" :class="breakpointIcon(tier.key)"></i></span>
+                                    <span x-text="breakpointLabel(tier.key)"></span>
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 font-mono text-xs text-gray-700" x-text="breakpointRange(tier)"></td>
+                            <td class="px-4 py-3 text-xs text-gray-500" x-text="breakpointInherit(tier.key)"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex flex-wrap items-start justify-between gap-4 border border-gray-200 bg-white p-4" data-testid="blox-design-breakpoint-wide">
+            <div class="min-w-0 max-w-3xl">
+                <h3 class="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <i class="ti ti-device-imac text-violet-600"></i><?php echo e(__('blox_breakpoints_wide_title')); ?>
+                    <span class="px-1.5 py-0.5 text-[10px] font-medium" :class="breakpoints.wide ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'"
+                          x-text="breakpoints.wide ? breakpointText.on : breakpointText.off"></span>
+                </h3>
+                <p class="mt-1 text-xs leading-5 text-gray-500"><?php echo e(__('blox_breakpoints_wide_desc')); ?></p>
+            </div>
+            <button type="button" role="switch" :aria-checked="breakpoints.wide ? 'true' : 'false'" :disabled="breakpoints.busy"
+                    @click="toggleWideBreakpoint()" data-testid="blox-design-breakpoint-wide-toggle"
+                    class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:opacity-50"
+                    :class="breakpoints.wide ? 'bg-emerald-600' : 'bg-gray-300'">
+                <span class="sr-only"><?php echo e(__('blox_breakpoints_wide_title')); ?></span>
+                <span class="inline-block h-5 w-5 rounded-full bg-white shadow transition" :class="breakpoints.wide ? 'translate-x-5' : 'translate-x-0.5'"></span>
+            </button>
+        </div>
+
+        <p class="flex items-start gap-1.5 text-xs text-gray-400">
+            <i class="ti ti-info-circle mt-0.5"></i><span><?php echo e(__('blox_breakpoints_fixed_note')); ?></span>
+        </p>
+    </section>
+
     <div x-show="!advanced" class="border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" data-testid="blox-design-page-advanced-locked">
         <strong><?php echo e(__('blox_design_styles')); ?></strong>
         <span class="ml-1"><?php echo e(__('blox_design_advanced_hint')); ?></span>
@@ -743,6 +827,22 @@ function bloxDesignManager() {
             'published' => __('blox_design_theme_published'),
         ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         csrf: <?php echo json_encode(csrfToken()); ?>,
+        breakpoints: { wide: <?php echo BloxResponsiveValue::wideEnabled() ? 'true' : 'false'; ?>, busy: false },
+        breakpointAllTiers: <?php echo json_encode(BloxResponsiveValue::TIERS, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+        breakpointScaleMax: 1920,
+        breakpointViewport: window.innerWidth,
+        breakpointText: <?php echo json_encode([
+            'm' => __('blox_device_mobile'),
+            't' => __('blox_device_tablet'),
+            'd' => __('blox_device_desktop'),
+            'w' => __('blox_device_wide'),
+            'base' => __('blox_breakpoints_inherit_base'),
+            'from' => __('blox_breakpoints_inherit_from'),
+            'on' => __('blox_breakpoints_on'),
+            'off' => __('blox_breakpoints_off'),
+            'offConfirm' => __('blox_breakpoints_off_confirm'),
+            'saved' => __('blox_breakpoints_saved'),
+        ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         busy: false,
         notice: '',
         error: '',
@@ -1028,6 +1128,66 @@ function bloxDesignManager() {
                 return false;
             } finally {
                 this.themeBusy = false;
+            }
+        },
+        breakpointTiers() {
+            var wide = this.breakpoints.wide;
+            return this.breakpointAllTiers
+                .filter(function (tier) { return wide || tier.key !== 'w'; })
+                .map(function (tier) { return !wide && tier.key === 'd' ? Object.assign({}, tier, { max: null }) : tier; });
+        },
+        breakpointLabel(key) { return this.breakpointText[key] || key; },
+        breakpointIcon(key) {
+            return ({ m: 'ti-device-mobile', t: 'ti-device-tablet', d: 'ti-device-desktop', w: 'ti-device-imac' })[key] || 'ti-devices';
+        },
+        breakpointTone(key) {
+            return ({ m: 'bg-sky-50 text-sky-700', t: 'bg-emerald-50 text-emerald-700', d: 'bg-amber-50 text-amber-700', w: 'bg-violet-50 text-violet-700' })[key] || 'bg-gray-50 text-gray-600';
+        },
+        breakpointRange(tier) {
+            if (tier.min === null) return '< ' + (tier.max + 1) + 'px';
+            if (tier.max === null) return '\u2265 ' + tier.min + 'px';
+            return tier.min + ' \u2013 ' + tier.max + 'px';
+        },
+        breakpointShare(tier) {
+            var start = tier.min === null ? 0 : tier.min;
+            var end = tier.max === null ? this.breakpointScaleMax : tier.max + 1;
+            return Math.max(0, (end - start) / this.breakpointScaleMax * 100);
+        },
+        breakpointTicks() {
+            return this.breakpointTiers().filter(function (tier) { return tier.min !== null; }).map(function (tier) { return tier.min; });
+        },
+        breakpointInherit(key) {
+            var source = ({ t: 'd', m: 't', w: 'd' })[key];
+            return source ? this.breakpointText.from.replace(':name', this.breakpointLabel(source)) : this.breakpointText.base;
+        },
+        breakpointViewportTier() {
+            var width = this.breakpointViewport;
+            var match = this.breakpointTiers().find(function (tier) {
+                return (tier.min === null || width >= tier.min) && (tier.max === null || width <= tier.max);
+            });
+            return match ? match.key : 'd';
+        },
+        async toggleWideBreakpoint() {
+            var next = !this.breakpoints.wide;
+            if (!next && !window.confirm(this.breakpointText.offConfirm)) return;
+            this.breakpoints.busy = true;
+            this.notice = '';
+            this.error = '';
+            var body = new URLSearchParams();
+            body.set('action', 'breakpoints_save');
+            body.set('wide_enabled', next ? '1' : '0');
+            body.set('_token', this.csrf);
+            try {
+                var response = await fetch('/admin/blox_design_api.php', { method: 'POST', body: body });
+                var result = await response.json();
+                if (!result || Number(result.code) !== 0 || !result.data) throw new Error((result && (result.msg || result.message)) || this.text.failed);
+                this.breakpoints.wide = !!result.data.wide_enabled;
+                this.notice = this.breakpointText.saved;
+                window.setTimeout(() => { this.notice = ''; }, 2200);
+            } catch (error) {
+                this.error = error && error.message ? error.message : this.text.failed;
+            } finally {
+                this.breakpoints.busy = false;
             }
         },
         savePageHeroDraft() { return this.mutatePageHero('page_hero_save_draft'); },

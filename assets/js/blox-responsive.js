@@ -28,7 +28,7 @@
         var desktop = Object.prototype.hasOwnProperty.call(canonical, "d") ? canonical.d : safeFallback;
         var tablet = Object.prototype.hasOwnProperty.call(canonical, "t") ? canonical.t : desktop;
         var mobile = Object.prototype.hasOwnProperty.call(canonical, "m") ? canonical.m : tablet;
-        var wide = Object.prototype.hasOwnProperty.call(canonical, "w") ? canonical.w : desktop;
+        var wide = wideEnabled && Object.prototype.hasOwnProperty.call(canonical, "w") ? canonical.w : desktop;
         return { d: desktop, t: tablet, m: mobile, w: wide };
     }
 
@@ -40,12 +40,23 @@
      * 断点定义（与 BloxCssCompiler / Tailwind md:、lg: 一致）：编辑器按钮提示与宽度档位标签的唯一来源。
      * min/max 为含端点的像素范围；null 表示不设限。
      */
-    var BREAKPOINTS = [
+    var ALL_BREAKPOINTS = [
         { device: "mobile", key: "m", min: null, max: 767 },
         { device: "tablet", key: "t", min: 768, max: 1023 },
         { device: "desktop", key: "d", min: 1024, max: 1439 },
         { device: "wide", key: "w", min: 1440, max: null },
     ];
+    var BREAKPOINTS = ALL_BREAKPOINTS.slice();
+    var wideEnabled = true;
+
+    /** 全站关闭宽屏档（全站设计 › 断点）：去掉 w 档、桌面不设上限，w 值一律按桌面处理 */
+    function setWideEnabled(enabled) {
+        wideEnabled = enabled !== false;
+        var next = ALL_BREAKPOINTS
+            .filter(function (item) { return wideEnabled || item.key !== "w"; })
+            .map(function (item) { return !wideEnabled && item.key === "d" ? Object.assign({}, item, { max: null }) : item; });
+        BREAKPOINTS.splice.apply(BREAKPOINTS, [0, BREAKPOINTS.length].concat(next));
+    }
 
     function breakpointFor(device) {
         var key = deviceKey(device);
@@ -159,6 +170,7 @@
 
     global.BloxResponsive = {
         BREAKPOINTS: BREAKPOINTS,
+        setWideEnabled: setWideEnabled,
         rangeLabel: rangeLabel,
         deviceForWidth: deviceForWidth,
         clampPreviewWidth: clampPreviewWidth,

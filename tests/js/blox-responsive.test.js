@@ -106,3 +106,17 @@ test('widescreen inherits desktop until it is set explicitly', () => {
     assert.deepStrictEqual(JSON.parse(JSON.stringify(set)), { d: 'md', w: 'lg' });
     assert.strictEqual(responsive.stateFor(set, 'wide', options, 'sm').overridden, true);
 });
+
+test('site-wide widescreen switch folds wide into desktop', () => {
+    const options = { sm: true, md: true, lg: true };
+    responsive.setWideEnabled(false);
+    try {
+        assert.strictEqual(responsive.normalize({ d: 'md', w: 'lg' }, options, 'sm').w, 'md');
+        assert.strictEqual(responsive.rangeLabel('desktop'), '≥1024px');
+        assert.strictEqual(responsive.deviceForWidth(1920), 'desktop');
+        assert.strictEqual(responsive.BREAKPOINTS.map((item) => item.key).join(','), 'm,t,d');
+    } finally {
+        responsive.setWideEnabled(true);
+    }
+    assert.strictEqual(responsive.deviceForWidth(1920), 'wide');
+});
