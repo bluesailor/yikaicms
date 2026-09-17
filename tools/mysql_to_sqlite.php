@@ -31,6 +31,10 @@ if (!file_exists($in)) {
     exit(1);
 }
 
+// 种子里的单条 INSERT 可达十几 KB（首页 Blox 文档），默认回溯上限不够用。
+ini_set('pcre.backtrack_limit', '10000000');
+ini_set('pcre.jit', '0');
+
 $src = file_get_contents($in);
 
 // 规范化行尾（mysqldump 在 Windows 下可能输出 CRLF）
@@ -206,6 +210,12 @@ while ($i < $N) {
             },
             $converted
         );
+        if ($converted === null) {
+            // 静默丢行曾让 12KB 的首页 Blox 文档整条消失（sqlite 种子少了 home_blox_data，
+            // 新装站首页回落到空白布局），务必当场炸掉而不是继续。
+            fwrite(STDERR, "字面量转换失败（PCRE: " . preg_last_error_msg() . "），行长 " . strlen($line) . "\n");
+            exit(1);
+        }
         $result[] = $converted;
         $i++; continue;
     }
