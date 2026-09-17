@@ -63,6 +63,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('blox_invalid_action'));
         }
 
+        // 混合列表：按目标行自己的 type 判权，只有 edit_article 的账号不能下架案例
+        if (!canEditContentRow($id)) {
+            permissionDenied();
+        }
         contentModel()->updateById($id, [$field => $value]);
         success();
     }

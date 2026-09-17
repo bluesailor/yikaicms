@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         requirePermission('delete_case');
         $id = postInt('id');
+        requireContentRowOfType($id, 'case', 'delete');
         contentModel()->deleteById($id);
         adminLog('case', 'delete', '删除案例ID：' . $id);
         success();
@@ -32,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'batch_delete') {
         requirePermission('delete_case');
-        $ids = $_POST['ids'] ?? [];
+        $ids = requireContentRowsOfType((array) ($_POST['ids'] ?? []), 'case', 'delete');
         if (!empty($ids)) {
             contentModel()->deleteByIds($ids);
             adminLog('case', 'batch_delete', '批量删除：' . implode(',', $ids));
@@ -41,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'batch_publish' || $action === 'batch_unpublish') {
-        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
+        $ids = requireContentRowsOfType((array) ($_POST['ids'] ?? []), 'case');
         if ($ids) {
             $val = $action === 'batch_publish' ? 1 : 0;
             foreach ($ids as $bid) {
@@ -54,10 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'duplicate') {
         $id  = postInt('id');
-        $src = contentModel()->find($id);
-        if (!$src) {
-            error(__('admin_no_data'));
-        }
+        $src = requireContentRowOfType($id, 'case');
         // 复制为草稿；translation_group_id 必须清零，否则副本会被当成原文的翻译行
         unset($src['id'], $src['deleted_at']);
         $src['title']                = $src['title'] . ' ' . __('admin_copy_suffix');
@@ -79,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $field = post('field');
         $value = postInt('value');
         if (in_array($field, ['status', 'is_top', 'is_recommend', 'is_hot'])) {
+            requireContentRowOfType($id, 'case');
             contentModel()->updateById($id, [$field => $value]);
         }
         success();
