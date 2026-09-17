@@ -2103,7 +2103,9 @@ declare(strict_types=1);
                                 </button>
                             </div>
 
-                            <div x-show="panelTab === 'style'" class="space-y-5">
+                            <?php // 与首页动态区块标题一致：外观选项在「内容」页签直接可见，「样式」页签同样可改 ?>
+                            <div x-show="panelTab === 'content' || panelTab === 'style'" class="space-y-5" data-testid="blox-section-field-style">
+                                <p x-show="panelTab === 'content'" class="border-t border-gray-100 pt-4 text-[11px] font-semibold uppercase tracking-wide text-gray-400"><?= e(__('blox_tab_style')) ?></p>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_align') ?></label>
                                     <div class="grid grid-cols-3 gap-1">
