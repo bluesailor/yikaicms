@@ -829,6 +829,8 @@ CREATE TABLE `yikai_downloads` (
 
 LOCK TABLES `yikai_downloads` WRITE;
 /*!40000 ALTER TABLE `yikai_downloads` DISABLE KEYS */;
+-- 示例业务数据（downloads）：安装时未勾选演示数据即整段剥离
+-- @demo:start
 INSERT INTO `yikai_downloads` (`id`, `category_id`, `lang`, `translation_group_id`, `title`, `description`, `cover`, `file_url`, `file_name`, `file_size`, `file_ext`, `download_count`, `is_external`, `require_login`, `sort_order`, `status`, `created_at`, `updated_at`, `admin_id`) VALUES (1,0,'zh-CN',1,'产品使用手册 V2.0','最新版产品使用说明书','','','',0,'pdf',0,0,0,0,1,1776652898,1776652898,0);
 INSERT INTO `yikai_downloads` (`id`, `category_id`, `lang`, `translation_group_id`, `title`, `description`, `cover`, `file_url`, `file_name`, `file_size`, `file_ext`, `download_count`, `is_external`, `require_login`, `sort_order`, `status`, `created_at`, `updated_at`, `admin_id`) VALUES (2,0,'zh-CN',2,'客户端软件 V3.5.1','适用于Windows系统的客户端软件','','','',0,'exe',0,0,0,0,1,1776652898,1776652898,0);
 INSERT INTO `yikai_downloads` (`id`, `category_id`, `lang`, `translation_group_id`, `title`, `description`, `cover`, `file_url`, `file_name`, `file_size`, `file_ext`, `download_count`, `is_external`, `require_login`, `sort_order`, `status`, `created_at`, `updated_at`, `admin_id`) VALUES (3,0,'zh-CN',3,'API接口文档','完整的API接口说明文档','','','',0,'pdf',0,0,0,0,1,1776652898,1776652898,0);
@@ -838,6 +840,7 @@ INSERT INTO `yikai_downloads` (`id`, `category_id`, `lang`, `translation_group_i
 INSERT INTO `yikai_downloads` (`id`, `category_id`, `lang`, `translation_group_id`, `title`, `description`, `cover`, `file_url`, `file_name`, `file_size`, `file_ext`, `download_count`, `is_external`, `require_login`, `sort_order`, `status`, `created_at`, `updated_at`, `admin_id`) VALUES (7,0,'ja',1,'製品マニュアル V2.0','最新版ユーザーマニュアル','','','',0,'pdf',0,0,0,0,1,1778457949,1778457949,0);
 INSERT INTO `yikai_downloads` (`id`, `category_id`, `lang`, `translation_group_id`, `title`, `description`, `cover`, `file_url`, `file_name`, `file_size`, `file_ext`, `download_count`, `is_external`, `require_login`, `sort_order`, `status`, `created_at`, `updated_at`, `admin_id`) VALUES (8,0,'ja',2,'クライアントソフトウェア V3.5.1','Windows 用クライアント','','','',0,'exe',0,0,0,0,1,1778457949,1778457949,0);
 INSERT INTO `yikai_downloads` (`id`, `category_id`, `lang`, `translation_group_id`, `title`, `description`, `cover`, `file_url`, `file_name`, `file_size`, `file_ext`, `download_count`, `is_external`, `require_login`, `sort_order`, `status`, `created_at`, `updated_at`, `admin_id`) VALUES (9,0,'ja',3,'API ドキュメント','完全な API リファレンス','','','',0,'pdf',0,0,0,0,1,1778457949,1778457949,0);
+-- @demo:end
 /*!40000 ALTER TABLE `yikai_downloads` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `yikai_extfields`;
@@ -985,12 +988,15 @@ CREATE TABLE `yikai_jobs` (
 
 LOCK TABLES `yikai_jobs` WRITE;
 /*!40000 ALTER TABLE `yikai_jobs` DISABLE KEYS */;
+-- 示例业务数据（jobs）：安装时未勾选演示数据即整段剥离
+-- @demo:start
 INSERT INTO `yikai_jobs` (`id`, `title`, `lang`, `translation_group_id`, `cover`, `summary`, `content`, `location`, `salary`, `job_type`, `education`, `experience`, `headcount`, `requirements`, `views`, `is_top`, `sort_order`, `status`, `publish_time`, `created_at`, `updated_at`, `admin_id`) VALUES (1,'PHP高级工程师','zh-CN',1,'','负责公司核心产品的后端开发',NULL,'上海（可远程）','25-40K','全职','本科','3年以上','2','熟悉PHP 8.0+\n熟悉MySQL\n有CMS开发经验优先',1,0,0,1,1776652898,1776652898,1776652898,0);
 INSERT INTO `yikai_jobs` (`id`, `title`, `lang`, `translation_group_id`, `cover`, `summary`, `content`, `location`, `salary`, `job_type`, `education`, `experience`, `headcount`, `requirements`, `views`, `is_top`, `sort_order`, `status`, `publish_time`, `created_at`, `updated_at`, `admin_id`) VALUES (2,'前端开发工程师','zh-CN',2,'','负责公司产品的前端界面开发',NULL,'上海（可远程）','20-35K','全职','本科','2年以上','1','熟悉Vue/React\n熟悉Tailwind CSS\n注重代码质量',6,0,0,1,1776652898,1776652898,1776652898,0);
 INSERT INTO `yikai_jobs` (`id`, `title`, `lang`, `translation_group_id`, `cover`, `summary`, `content`, `location`, `salary`, `job_type`, `education`, `experience`, `headcount`, `requirements`, `views`, `is_top`, `sort_order`, `status`, `publish_time`, `created_at`, `updated_at`, `admin_id`) VALUES (3,'Senior PHP Engineer','en',1,'','Responsible for backend development of our core products.',NULL,'Shanghai (Remote OK)','25-40K','Full-time','Bachelor degree','3+ years','2','Proficient in PHP 8.0+\nProficient in MySQL\nCMS development experience preferred',1,0,0,1,1776652898,1778457949,1778457949,0);
 INSERT INTO `yikai_jobs` (`id`, `title`, `lang`, `translation_group_id`, `cover`, `summary`, `content`, `location`, `salary`, `job_type`, `education`, `experience`, `headcount`, `requirements`, `views`, `is_top`, `sort_order`, `status`, `publish_time`, `created_at`, `updated_at`, `admin_id`) VALUES (4,'Frontend Engineer','en',2,'','Responsible for frontend interface development of our products.',NULL,'Shanghai (Remote OK)','20-35K','Full-time','Bachelor degree','2+ years','1','Proficient in Vue / React\nProficient in Tailwind CSS\nStrong focus on code quality',6,0,0,1,1776652898,1778457949,1778457949,0);
 INSERT INTO `yikai_jobs` (`id`, `title`, `lang`, `translation_group_id`, `cover`, `summary`, `content`, `location`, `salary`, `job_type`, `education`, `experience`, `headcount`, `requirements`, `views`, `is_top`, `sort_order`, `status`, `publish_time`, `created_at`, `updated_at`, `admin_id`) VALUES (5,'PHP シニアエンジニア','ja',1,'','当社の主力製品のバックエンド開発を担当します。',NULL,'上海（リモート可）','25-40K','正社員','大卒','3年以上','2','PHP 8.0+ に精通\nMySQL に精通\nCMS 開発経験者優遇',1,0,0,1,1776652898,1778457949,1778457949,0);
 INSERT INTO `yikai_jobs` (`id`, `title`, `lang`, `translation_group_id`, `cover`, `summary`, `content`, `location`, `salary`, `job_type`, `education`, `experience`, `headcount`, `requirements`, `views`, `is_top`, `sort_order`, `status`, `publish_time`, `created_at`, `updated_at`, `admin_id`) VALUES (6,'フロントエンドエンジニア','ja',2,'','当社製品のフロントエンド開発を担当します。',NULL,'上海（リモート可）','20-35K','正社員','大卒','2年以上','1','Vue / React に精通\nTailwind CSS に精通\nコード品質を重視',6,0,0,1,1776652898,1778457949,1778457949,0);
+-- @demo:end
 /*!40000 ALTER TABLE `yikai_jobs` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `yikai_links`;
@@ -1017,6 +1023,8 @@ CREATE TABLE `yikai_links` (
 
 LOCK TABLES `yikai_links` WRITE;
 /*!40000 ALTER TABLE `yikai_links` DISABLE KEYS */;
+-- 示例业务数据（links）：安装时未勾选演示数据即整段剥离
+-- @demo:start
 INSERT INTO `yikai_links` (`id`, `lang`, `translation_group_id`, `name`, `url`, `logo`, `description`, `status`, `sort_order`, `created_at`) VALUES (1,'zh-CN',1,'易开网','https://www.yikai.cn','','',1,0,1776652898);
 INSERT INTO `yikai_links` (`id`, `lang`, `translation_group_id`, `name`, `url`, `logo`, `description`, `status`, `sort_order`, `created_at`) VALUES (2,'zh-CN',2,'阿里云','https://www.aliyun.com','','',1,1,1776652898);
 INSERT INTO `yikai_links` (`id`, `lang`, `translation_group_id`, `name`, `url`, `logo`, `description`, `status`, `sort_order`, `created_at`) VALUES (3,'zh-CN',3,'腾讯云','https://cloud.tencent.com','','',1,2,1776652898);
@@ -1026,6 +1034,7 @@ INSERT INTO `yikai_links` (`id`, `lang`, `translation_group_id`, `name`, `url`, 
 INSERT INTO `yikai_links` (`id`, `lang`, `translation_group_id`, `name`, `url`, `logo`, `description`, `status`, `sort_order`, `created_at`) VALUES (7,'ja',1,'Yikai','https://www.yikai.cn','','',1,0,1778462748);
 INSERT INTO `yikai_links` (`id`, `lang`, `translation_group_id`, `name`, `url`, `logo`, `description`, `status`, `sort_order`, `created_at`) VALUES (8,'ja',2,'Alibaba Cloud','https://www.aliyun.com','','',1,1,1778462748);
 INSERT INTO `yikai_links` (`id`, `lang`, `translation_group_id`, `name`, `url`, `logo`, `description`, `status`, `sort_order`, `created_at`) VALUES (9,'ja',3,'Tencent Cloud','https://cloud.tencent.com','','',1,2,1778462748);
+-- @demo:end
 /*!40000 ALTER TABLE `yikai_links` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `yikai_media`;
@@ -1634,6 +1643,8 @@ CREATE TABLE `yikai_timelines` (
 
 LOCK TABLES `yikai_timelines` WRITE;
 /*!40000 ALTER TABLE `yikai_timelines` DISABLE KEYS */;
+-- 示例业务数据（timelines）：安装时未勾选演示数据即整段剥离
+-- @demo:start
 INSERT INTO `yikai_timelines` (`id`, `lang`, `translation_group_id`, `year`, `month`, `day`, `title`, `content`, `image`, `icon`, `color`, `sort_order`, `status`, `created_at`, `updated_at`) VALUES (1,'zh-CN',1,2024,1,0,'智能物联网平台发布','发布新一代智能物联网平台，集成AI边缘计算能力，服务客户突破1000家。','','rocket','#3B82F6',1,1,1776654208,1776654208);
 INSERT INTO `yikai_timelines` (`id`, `lang`, `translation_group_id`, `year`, `month`, `day`, `title`, `content`, `image`, `icon`, `color`, `sort_order`, `status`, `created_at`, `updated_at`) VALUES (2,'zh-CN',2,2022,6,0,'国家高新技术企业认定','通过国家高新技术企业认定，完成B轮融资，估值突破5亿。','','star','#10B981',2,1,1776654208,1776654208);
 INSERT INTO `yikai_timelines` (`id`, `lang`, `translation_group_id`, `year`, `month`, `day`, `title`, `content`, `image`, `icon`, `color`, `sort_order`, `status`, `created_at`, `updated_at`) VALUES (3,'zh-CN',3,2020,3,0,'企业管理云平台上线','推出企业管理云平台，实现ERP/CRM/OA一体化SaaS服务。','','cloud','#8B5CF6',3,1,1776654208,1776654208);
@@ -1655,6 +1666,7 @@ INSERT INTO `yikai_timelines` (`id`, `lang`, `translation_group_id`, `year`, `mo
 INSERT INTO `yikai_timelines` (`id`, `lang`, `translation_group_id`, `year`, `month`, `day`, `title`, `content`, `image`, `icon`, `color`, `sort_order`, `status`, `created_at`, `updated_at`) VALUES (19,'ja',5,2015,1,0,'製品ライン拡張','ソフトウェアからセンサー・コントローラなどのハードウェア領域へ拡張、ハード・ソフト一体型ソリューションを形成。','','chip','#EF4444',5,1,1778462655,1778462655);
 INSERT INTO `yikai_timelines` (`id`, `lang`, `translation_group_id`, `year`, `month`, `day`, `title`, `content`, `image`, `icon`, `color`, `sort_order`, `status`, `created_at`, `updated_at`) VALUES (20,'ja',6,2012,6,0,'初の IoT プロジェクト','初の IoT プロジェクトを成功裏に納入、初期エンタープライズ顧客にサービス提供、売上 500 万円超達成。','','flag','#06B6D4',6,1,1778462655,1778462655);
 INSERT INTO `yikai_timelines` (`id`, `lang`, `translation_group_id`, `year`, `month`, `day`, `title`, `content`, `image`, `icon`, `color`, `sort_order`, `status`, `created_at`, `updated_at`) VALUES (21,'ja',7,2010,3,0,'会社設立','上海で正式に設立、企業情報化ソリューションに特化、初期チーム 5 名。','','home','#6366F1',7,1,1778462655,1778462655);
+-- @demo:end
 /*!40000 ALTER TABLE `yikai_timelines` ENABLE KEYS */;
 UNLOCK TABLES;
 DROP TABLE IF EXISTS `yikai_users`;

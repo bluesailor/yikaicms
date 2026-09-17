@@ -29,7 +29,10 @@ final class BloxAuthExpiredContractTest extends TestCase
         self::assertStringContainsString("error(__('auth_login_required'), 401)", $auth);
         self::assertStringContainsString("error(__('auth_account_invalid'), 401)", $auth);
         self::assertStringContainsString("redirect('/admin/login.php')", $auth);
-        self::assertStringContainsString("error(__('perm_denied'), 403)", $auth, '权限拒绝是 403，不是 401');
+        // 权限拒绝统一走 permissions.php 的 permissionDenied()（越界访问未必是缺权限键）
+        self::assertStringContainsString('permissionDenied();', $auth, '权限拒绝应委托给统一出口');
+        $permissions = (string) file_get_contents(ROOT_PATH . '/includes/permissions.php');
+        self::assertStringContainsString("error(__('perm_denied'), 403)", $permissions, '权限拒绝是 403，不是 401');
 
         $functions = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
         self::assertStringContainsString("error(__('admin_illegal_request'), 403)", $functions, 'CSRF 拒绝是 403');

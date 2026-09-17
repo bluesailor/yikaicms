@@ -485,6 +485,8 @@ return [
         'desc'  => '解决方案栏目空空如也，加一条示例案例（zh-CN/EN/JA 三语种 + 同一翻译组），让前台 /solution.html / /en/solution-en.html / /ja/solution-ja.html 都有内容可看。'
                    . '幂等：检测到 slug=smart-factory-solution 已存在则跳过。',
         'check' => function () {
+            // 安装时明确不要演示数据的站点，示例案例不再补回（审计 F08）
+            if (function_exists('demoSeedsAllowed') && !demoSeedsAllowed()) return true;
             $row = db()->fetchOne("SELECT 1 FROM " . DB_PREFIX . "contents WHERE slug = 'smart-factory-solution' LIMIT 1");
             if (!empty($row)) return true;
             // 站点未安装"解决方案"模块（无 solution 栏目）时，此演示种子不适用，视为已满足，避免升级页长期显示待跑
@@ -592,6 +594,8 @@ return [
         'desc'  => '"行业方案"栏目空，添加一条零售连锁数字化的示例案例（zh-CN/EN/JA 三语种 + 同一翻译组），让前台 /industry.html / /en/industry-en.html / /ja/industry-ja.html 都有内容可看。'
                    . '幂等：检测到 slug=retail-chain-digitalization 已存在则跳过。',
         'check' => function () {
+            // 同上：未选演示数据即视为已满足，不写入示例案例
+            if (function_exists('demoSeedsAllowed') && !demoSeedsAllowed()) return true;
             $row = db()->fetchOne("SELECT 1 FROM " . DB_PREFIX . "contents WHERE slug = 'retail-chain-digitalization' LIMIT 1");
             if (!empty($row)) return true;
             // 站点未安装"行业方案"模块（无 industry 栏目）时，此演示种子不适用，视为已满足

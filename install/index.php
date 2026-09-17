@@ -424,7 +424,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // （否则前台 <title> 会残留演示品牌，如英文站显示 "YikaiCMS - Professional Enterprise CMS"）
             $stmt = $pdo->prepare("UPDATE {$prefix}settings SET value = ? WHERE `key` = 'seo_title'");
             $stmt->execute([$siteName]);
-            $pdo->exec("DELETE FROM {$prefix}settings WHERE `key` LIKE 'seo\\_title\\_%'");
+            // 逐键删除而不是 LIKE：SQLite 不把反斜杠当 LIKE 转义符（除非显式 ESCAPE），
+            // 而显式 ESCAPE 的写法在 MySQL/SQLite 之间又不一致。演示的 seo_title_en /
+            // seo_title_ja 曾因此留在库里，日文首页 <title> 仍是演示品牌（审计 F07）。
+            $pdo->exec("DELETE FROM {$prefix}settings WHERE `key` <> 'seo_title' AND SUBSTR(`key`, 1, 10) = 'seo_title_'");
 
             // 前台/后台语言
             $stmt = $pdo->prepare("UPDATE {$prefix}settings SET value = ? WHERE `key` = 'site_lang'");
@@ -440,6 +443,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $pdo->prepare("INSERT INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('site', 'enabled_languages', ?, '', '', 0) ON DUPLICATE KEY UPDATE value = VALUES(value)");
             }
             $stmt->execute([$enabledJson]);
+
+            // 记录本次安装是否要演示数据：示例内容的种子迁移（solution/industry sample）
+            // 会读它。缺键时按 '1' 处理，保证老站升级行为不变（审计 F08）。
+            $demoFlag = $installDemo ? '1' : '0';
+            if ($driver === 'sqlite') {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', 'install_demo_data', ?, '安装时写入演示数据', 'switch', 14)");
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', 'install_demo_data', ?, '安装时写入演示数据', 'switch', 14) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+            }
+            $stmt->execute([$demoFlag]);
 
             // 仅全新安装显示一次伪静态提醒。默认值保持已关闭，避免旧站升级后突然出现。
             if ($driver === 'sqlite') {
@@ -459,10 +472,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $encryptKey = 'ik_' . bin2hex(random_bytes(16));
             // 安全：所有用户输入都落进单引号 define('X','...') 字面量。占位符替换前必须转义，
             // 否则 db_pass 传 `'); system($_GET[c]); //` 之类可闭合引号注入可执行 PHP（RCE）。
-            // 单引号 PHP 字符串只需转义 ' 与 \，addslashes 正好覆盖。driver 限枚举、port 限数字。
+            // 单引号 PHP 字符串只需转义 ' 与 \。这里不能用 addslashes()：它连双引号也加
+            // 反斜杠，而单引号字面量不会把 \" 还原成 "，于是站点名 `Audit "X"` 和含双引号的
+            // 数据库密码被原样写坏（2026-09-17 审计 F06 实测）。driver 限枚举、port 限数字。
             $driver = in_array($driver, ['mysql', 'sqlite'], true) ? $driver : 'mysql';
             $port   = (string)(int)$port;
-            $esc = static fn ($v): string => addslashes((string)$v);
+            $esc = static fn ($v): string => str_replace(['\\', "'"], ['\\\\', "\\'"], (string) $v);
             $configContent = str_replace(
                 ['{{DB_DRIVER}}', '{{DB_HOST}}', '{{DB_PORT}}', '{{DB_NAME}}', '{{DB_USER}}', '{{DB_PASS}}', '{{SITE_NAME}}', '{{SITE_URL}}', '{{SESSION_ID}}', '{{ENCRYPT_KEY}}', "define('DB_PREFIX', 'yikai_')"],
                 [$driver, $esc($host), $port, $esc($dbName), $esc($user), $esc($pass), $esc($siteName), $esc($siteUrl), $sessionId, $encryptKey, "define('DB_PREFIX', '" . $esc($prefix) . "')"],

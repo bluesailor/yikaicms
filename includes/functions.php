@@ -422,6 +422,20 @@ function bloxEditorEnabled(): bool
 /**
  * 站点配置覆盖数组（一次性加载并缓存；无覆盖文件时为空数组，零开销）。
  */
+/**
+ * 本站是否接受「示例业务内容」种子。
+ *
+ * 安装向导取消勾选演示数据后写入 install_demo_data=0；示例内容的种子迁移
+ * （解决方案 / 行业方案样例）必须据此跳过，否则新装迁移会把用户明确不要的
+ * 公开案例补回站点（2026-09-17 发版前审计 F08）。
+ *
+ * 缺键 = 该站装于记录此开关之前，保持原有行为（允许），避免老站升级时行为突变。
+ */
+function demoSeedsAllowed(): bool
+{
+    return (string) config('install_demo_data', '1') !== '0';
+}
+
 function configOverrides(): array
 {
     static $ov = null;
