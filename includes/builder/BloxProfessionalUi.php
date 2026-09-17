@@ -8,7 +8,7 @@ require_once __DIR__ . '/BloxFeaturePolicy.php';
 final class BloxProfessionalUi
 {
     /** 作者端面板已迁入 yikai-builder 的能力；其余仍由核心编辑器提供。 */
-    public const MODULE_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table'];
+    public const MODULE_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing'];
 
     public static function moduleLoaded(string $feature): bool
     {

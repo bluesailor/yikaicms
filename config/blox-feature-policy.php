@@ -8,4 +8,5 @@ return [
     'display_conditions' => 'free',
     'style_presets' => 'free',
     'table' => 'free',
+    'pricing' => 'free',
 ];

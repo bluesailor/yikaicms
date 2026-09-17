@@ -696,6 +696,7 @@ $professionalFeatures = BloxProfessionalUi::snapshot();
 $advancedQueryLoopEnabled = !empty($professionalFeatures['query_loop']['allowed']);
 // 表格归属 yikai-builder：能力未放行或作者端模块未加载时不在元素面板提供（已发布表格照常渲染）
 if (isset($registryMeta['table']) && empty($professionalFeatures['table']['allowed'])) $registryMeta['table']['paletteVisible'] = false;
+if (isset($registryMeta['pricing-table']) && empty($professionalFeatures['pricing']['allowed'])) $registryMeta['pricing-table']['paletteVisible'] = false;
 $contactManageActions = [
     'contact_cards' => ['url' => '/admin/setting_contact.php', 'label' => __('page_contact_manage_cards'), 'icon' => 'address-book'],
     'contact_form' => ['url' => '/admin/form_design.php', 'label' => __('page_contact_manage_form'), 'icon' => 'forms'],
@@ -1313,6 +1314,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (feature === 'query_loop') return !!this.selEl && (this.selEl.type === 'list-dynamic' || !!this.elSchema(this.selEl.type).hasProfessionalControls);
                 if (feature === 'style_presets') return !!this.selEl && this.supportsBoxStyles(this.selEl.type);
                 if (feature === 'table') return !!this.selEl && this.selEl.type === 'table';
+                if (feature === 'pricing') return !!this.selEl && this.selEl.type === 'pricing-table';
                 return !!this.conditionTarget();
             },
             openProfessionalFeature(feature) {
@@ -4032,7 +4034,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.highlightCanvasSelection(false);
             },
 
-            <?php require __DIR__ . '/blox_editor/partials/pricing-methods.php'; ?>
+            // 价格方案套餐编辑方法由 yikai-builder 提供（plugins/yikai-builder/assets/blox-pro-pricing.js）
+            ...((window.BloxPricingControl || {}).methods || {}),
             orgNodes(el) {
                 var node = el || this.selEl;
                 if (!node || node.type !== "org-chart") return [];

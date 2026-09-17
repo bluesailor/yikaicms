@@ -109,24 +109,7 @@ final class BloxBuiltinTemplateProvider
                 'priority' => 68,
             ],
         ],
-        'pricing-plans' => [
-            'number' => 7,
-            'type' => 'section',
-            'file' => 'pricing-plans.json',
-            'contexts' => ['page', 'home'],
-            'name_key' => 'blox_builtin_section_pricing_name',
-            'description_key' => 'blox_builtin_section_pricing_desc',
-            'keywords_key' => 'blox_builtin_section_pricing_keywords',
-            'category' => 'marketing',
-            'thumbnail' => '/assets/images/blox-templates/section-pricing-plans.png',
-            'metadata' => [
-                'purpose' => 'products',
-                'page_types' => ['general', 'home', 'service', 'product-list', 'landing'],
-                'content_slots' => ['heading', 'text', 'pricing'],
-                'cta_type' => 'contact',
-                'priority' => 80,
-            ],
-        ],
+        // 价格方案区块 2026-09-17 移出系统区块，只在「区块PRO版」提供（需有效注册码）
         'company-intro' => [
             'type' => 'page',
             'file' => 'company-intro.json',

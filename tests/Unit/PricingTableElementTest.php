@@ -91,13 +91,11 @@ final class PricingTableElementTest extends TestCase
         self::assertMatchesRegularExpression('/data-yk-pricing-price="yearly" hidden[^>]*>.*1990/s', $html);
     }
 
-    public function testBundledBasicSectionUsesThePricingElement(): void
+    public function testPricingSectionIsOnlyOfferedAsAProSection(): void
     {
-        $section = (new BloxBuiltinTemplateProvider())->resolve('pricing-plans', 'page')['sections'][0];
-        $types = array_column($section['columns'][0]['elements'], 'type');
-        self::assertContains('pricing-table', $types);
-        $html = BlockRenderer::render(json_encode([$section], JSON_UNESCAPED_UNICODE));
-        self::assertStringContainsString('data-yk-pricing', $html);
-        self::assertStringContainsString('优先技术支持', $html);
+        // 价格方案区块只在「区块PRO版」提供；系统区块不再随包附带
+        $keys = array_column((new BloxBuiltinTemplateProvider())->items('page'), 'key');
+        self::assertNotContains('builtin:pricing-plans', $keys);
+        self::assertFileDoesNotExist(ROOT_PATH . '/templates/blox/sections/pricing-plans.json');
     }
 }
