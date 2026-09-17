@@ -1243,7 +1243,8 @@ declare(strict_types=1);
                             x-text="templateText.reviewTitle + ': ' + templateReview.templateName"></h3>
                         <p class="mt-1 text-xs text-gray-500" x-text="templateText.reviewNote"></p>
                     </div>
-                    <button type="button" @click="cancelTemplateReview()" class="text-gray-400 hover:text-gray-600 p-1"
+                    <button type="button" @click="cancelTemplateReview()" class="text-gray-400 hover:text-gray-600 p-1 disabled:opacity-40"
+                            :disabled="templateReview && templateReview.busy"
                             :title="templateText.reviewCancel" :aria-label="templateText.reviewCancel">
                         <i class="ti ti-x text-base"></i>
                     </button>
@@ -1287,7 +1288,8 @@ declare(strict_types=1);
                        data-testid="blox-template-review-error" x-text="templateReview.error"></p>
                 </div>
                 <div class="flex items-center justify-end gap-3 border-t border-gray-200 px-5 py-4">
-                    <button type="button" @click="cancelTemplateReview()" class="text-sm text-gray-600 hover:text-gray-800"
+                    <button type="button" @click="cancelTemplateReview()" class="text-sm text-gray-600 hover:text-gray-800 disabled:opacity-40"
+                            :disabled="templateReview && templateReview.busy" data-testid="blox-template-review-cancel"
                             x-text="templateText.reviewCancel"></button>
                     <button type="button" @click="confirmTemplateReview()" data-testid="blox-template-review-confirm"
                             class="inline-flex h-10 items-center justify-center gap-2 rounded bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
