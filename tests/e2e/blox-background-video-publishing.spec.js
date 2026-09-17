@@ -3,10 +3,12 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createBackgroundVideo } = require('./fixtures/background-video');
-const { addTemporaryHeading, frame, openPageEditor, performPagePreviewUpdate, expectClean, waitPreviewSettled } = require('./helpers');
+const { addTemporaryHeading, frame, headingTextField, openPageEditor, performPagePreviewUpdate, expectClean, waitPreviewSettled } = require('./helpers');
 const root = path.resolve(__dirname, '../..');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 const poster = '/assets/images/demo/yikaicms-industrial-600.webp';
+// 遮挡测试用另一张图：与区块海报同一 URL 会被编辑器当作重复背景清掉（首页背景去重）
+const obstruction = '/assets/images/demo/stats-architecture.webp';
 const fixture = action => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'catalog-baseline-fixture.php'), action], { cwd: root });
 
 test.beforeAll(() => fixture('cache-pretty'));
@@ -133,7 +135,7 @@ for (const scope of ['section', 'container-element']) {
         await page.emulateMedia({ reducedMotion: 'reduce' });
         await openPageEditor(page, fixtures.blox_page);
         await addTemporaryHeading(page);
-        await performPagePreviewUpdate(page, () => page.locator('[data-control-key="text"] input').first().fill(marker));
+        await performPagePreviewUpdate(page, () => headingTextField(page).fill(marker));
         const section = page.getByTestId('blox-tree-section').last().getByTestId('blox-tree-section-label');
         if (scope === 'container-element') {
           await page.getByTestId('blox-library-open').click();
@@ -142,7 +144,7 @@ for (const scope of ['section', 'container-element']) {
           await performPagePreviewUpdate(page, () => page.getByTestId('blox-container-padding-xl').click());
           await page.getByTestId('blox-library-open').click();
           await page.getByTestId('blox-add-element-heading').press('Enter');
-          await performPagePreviewUpdate(page, () => page.locator('[data-control-key="text"] input').first().fill(`${marker} content`));
+          await performPagePreviewUpdate(page, () => headingTextField(page).fill(`${marker} content`));
           await page.getByTestId('blox-style-tab').click();
           await page.locator('[data-control-key="color"]').getByTestId('blox-color-picker-trigger').click();
           await performPagePreviewUpdate(page, async () => {
@@ -175,9 +177,9 @@ for (const scope of ['section', 'container-element']) {
 
         if (scope === 'section') {
           await page.getByTestId('blox-tree-container').last().click();
-          await performPagePreviewUpdate(page, () => page.getByTestId('blox-container-background-image-url').fill(poster));
+          await performPagePreviewUpdate(page, () => page.getByTestId('blox-container-background-image-url').fill(obstruction));
           await page.getByTestId('blox-tree-column').last().locator(':scope > div').first().click();
-          await performPagePreviewUpdate(page, () => page.getByTestId('blox-column-background-image-url').fill(poster));
+          await performPagePreviewUpdate(page, () => page.getByTestId('blox-column-background-image-url').fill(obstruction));
           await section.click();
           const warning = page.getByTestId('blox-bg-video-obstruction');
           await expect(warning).toBeVisible();

@@ -218,7 +218,13 @@ async function dragElement(source, target, page) {
   await page.mouse.up();
 }
 
+/** 属性面板里当前标题元素的文字框（标题专属面板 heading-content.php，多行；与后台语言无关）。 */
+function headingTextField(page) {
+  return page.getByTestId('blox-heading-text');
+}
+
 module.exports = {
+  headingTextField,
   openSectionInsertAtEnd,
   addTemporaryHeading,
   canvasScrollTop,

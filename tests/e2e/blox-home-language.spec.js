@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const {
   addTemporaryHeading,
   frame,
+  headingTextField,
   observeConsole,
   observeUnsafeWrites,
   openEditor,
@@ -105,7 +106,7 @@ test('single-language current header survives reopening and publishes to the ano
     await waitPreviewSettled(page);
     await expect((await frame(page)).locator('html')).toHaveAttribute('lang', language);
     await addTemporaryHeading(page);
-    await performPreviewUpdate(page, () => page.locator('[data-control-key="text"] input[type="text"]').fill(marker));
+    await performPreviewUpdate(page, () => headingTextField(page).fill(marker));
     await command('save_draft', 'blox-save');
     // Saving leaves current-render mode so reopening must read the saved draft.
     const savedUrl = page.url();

@@ -3,7 +3,7 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const installMarketThemes = require('./theme-market-fixture');
-const { addTemporaryHeading, frame, openPageEditor, performPagePreviewUpdate, expectClean, waitPreviewSettled } = require('./helpers');
+const { addTemporaryHeading, frame, headingTextField, openPageEditor, performPagePreviewUpdate, expectClean, waitPreviewSettled } = require('./helpers');
 
 const root = path.resolve(__dirname, '../..');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -57,7 +57,9 @@ for (const [language, copy] of Object.entries(samples)) {
       await containerRow().click();
       await page.getByTestId('blox-style-tab').click();
     }
-    const data = () => page.evaluate(() => JSON.parse(JSON.stringify(window.Alpine.$data(document.body).selEl.data)));
+    // BloxValueSanitizer stores checkbox values as '0'/'1'; reopened documents return that form, fresh edits return booleans.
+    const data = () => page.evaluate(() => JSON.parse(JSON.stringify(window.Alpine.$data(document.body).selEl.data,
+      (key, item) => (key === 'new_tab' && typeof item === 'boolean' ? (item ? '1' : '0') : item))));
     async function addChild(type) {
       await selectContainer();
       await page.getByTestId('blox-library-open').click();
@@ -142,7 +144,7 @@ for (const [language, copy] of Object.entries(samples)) {
             if (theme === 'minimal') await expect(visitor.locator('body')).toHaveClass(/minimal-theme/);
             else if (theme === 'default') await expect(visitor.locator('body')).toHaveClass(/yk-site-body/);
             else {
-              await expect(visitor.locator('body')).not.toHaveClass(/minimal-theme|yk-site-body/);
+              await expect(visitor.locator('body')).toHaveClass(/business-theme/);
               await expect(visitor.locator('#siteHeader')).toBeAttached();
             }
             const label = `${theme}-${width}-${restored ? 'inherited' : 'override'}`;
@@ -156,11 +158,11 @@ for (const [language, copy] of Object.entries(samples)) {
 
     await openPageEditor(page, fixtures.blox_page);
     await addTemporaryHeading(page);
-    await performPagePreviewUpdate(page, () => page.locator('[data-control-key="text"] input').first().fill(marker));
+    await performPagePreviewUpdate(page, () => headingTextField(page).fill(marker));
     await page.getByTestId('blox-library-open').click();
     await page.getByTestId('blox-add-element-container').press('Enter');
     await addChild('heading');
-    await performPagePreviewUpdate(page, () => page.locator('[data-control-key="text"] input').first().fill(title));
+    await performPagePreviewUpdate(page, () => headingTextField(page).fill(title));
     await addChild('text');
     await page.getByTestId('blox-richtext-edit').click();
     const dialog = page.locator('[aria-labelledby="blox-rte-dialog-title"]');
@@ -168,8 +170,8 @@ for (const [language, copy] of Object.entries(samples)) {
     await performPagePreviewUpdate(page, () => dialog.getByRole('button').last().click());
     await addChild('button');
     await performPagePreviewUpdate(page, async () => {
-      await page.locator('[data-control-key="text"] input').first().fill(copy.button);
-      await page.locator('[data-control-key="url"] input').fill(publicUrl + '#e3-responsive');
+      await page.locator('[data-control-key="text"] input[type="text"]').fill(copy.button);
+      await page.locator('[data-control-key="url"] input[type="text"]').fill(publicUrl + '#e3-responsive');
     });
     await selectContainer();
     for (const [device, padding, gap] of [['desktop', 'md', 'lg'], ['tablet', 'sm', 'sm'], ['mobile', 'lg', 'md']]) {
@@ -182,9 +184,7 @@ for (const [language, copy] of Object.entries(samples)) {
     const before = await data();
     expect(before.padding).toEqual({ d: 'md', t: 'sm', m: 'lg' });
     expect(before.gap).toEqual({ d: 'lg', t: 'sm', m: 'md' });
-    // BloxValueSanitizer stores checkbox values as '0'/'1', not booleans.
-    expect(before.children.find(child => child.type === 'button').data.new_tab).toBe(false);
-    before.children.find(child => child.type === 'button').data.new_tab = '0';
+    expect(before.children.find(child => child.type === 'button').data.new_tab).toBe('0');
     await reopen();
     expect(await data()).toEqual(before);
     await command(page, 'publish', 'blox-publish-page');

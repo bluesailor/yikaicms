@@ -75,7 +75,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
 
   const marker = `R30 page publish ${Date.now()}`;
   // 标题文字控件为多行文本框（支持换行标题）
-  const headingInput = page.getByTestId('blox-left-panel').getByRole('textbox', { name: '标题', exact: true });
+  const headingInput = page.getByTestId('blox-heading-text');
   await expect(headingInput).toBeVisible();
   await performPagePreviewUpdate(page, () => headingInput.fill(marker));
 
