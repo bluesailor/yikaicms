@@ -2634,6 +2634,7 @@ return [
     'blox_preview_width_auto' => '自動幅に戻す',
     'blox_preview_edit_tier' => '編集段階：',
     'blox_preview_width_label' => 'プレビュー幅：',
+    'blox_preview_width_tier_hint' => '現在のプレビュー幅が属するブレークポイント：モバイル <768px・タブレット 768–1023px・デスクトップ ≥1024px',
     'blox_page_frame_lang' => '言語：',
     'blox_page_frame_title_area' => 'ページタイトル帯 / パンくず',
     'blox_page_frame_title_area_hint' => 'キャンバス内の設定と同じデータです',
