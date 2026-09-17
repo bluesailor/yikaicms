@@ -1710,7 +1710,7 @@ declare(strict_types=1);
                                         </div>
                                     </template>
 
-                                    <template x-if="ctrl.type === 'table_grid'">
+                                    <template x-if="ctrl.type === 'table_grid' && professionalFeatures.table.allowed">
                                         <button type="button" @click="openTableExpanded()" data-testid="blox-table-expand"
                                                 class="w-full h-9 inline-flex items-center justify-center gap-2 rounded border border-gray-300 bg-white text-sm text-gray-700 hover:border-blue-400 hover:text-blue-700">
                                             <i class="ti ti-arrows-maximize" aria-hidden="true"></i><?= e(__('blox_table_expand')) ?>

@@ -12,7 +12,7 @@ declare(strict_types=1);
                     class="w-9 h-9 inline-flex items-center justify-center rounded text-gray-600 hover:bg-gray-100"><i class="ti ti-x" aria-hidden="true"></i></button>
         </header>
         <div class="min-h-0 overflow-y-auto p-4">
-            <template x-if="tableExpanded"><?php require __DIR__ . '/table-control.php'; ?></template>
+            <template x-if="tableExpanded"><?php if (function_exists('do_action')) do_action('blox_editor_panel', 'table_grid'); ?></template>
         </div>
         <footer class="flex shrink-0 justify-end gap-2 border-t border-gray-200 px-4 py-3">
             <button type="button" @click="closeTableExpanded()" class="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700"><?= e(__('cancel')) ?></button>

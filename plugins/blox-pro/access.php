@@ -6,7 +6,7 @@ if (!defined('ROOT_PATH')) exit('Access Denied');
 
 final class BloxProAccess
 {
-    public const FEATURES = ['query_loop', 'display_conditions', 'style_presets'];
+    public const FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table'];
 
     public static function supports(string $version): bool
     {

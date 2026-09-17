@@ -10,6 +10,7 @@
   - `display_conditions`：元素/区块显示条件编辑面板（`editor/conditions-panel.php`）及条件增删改方法。
   - `style_presets`：元素全局样式选择器（`editor/style-preset-picker.php`）及 `globalStyleOptions/globalStyleLabel/applyGlobalStyle`。
   - `query_loop`：循环模板面板（`editor/loop-template-card.php`）；专业控件与循环子元素仅在本模块加载时下发给编辑器。
+  - `table`：表格元素的创建、网格编辑与画布单元格编辑（`editor/table-grid.php`、`assets/blox-pro-table.js`）；未放行时元素面板不提供表格，已有表格整张冻结，前台照常渲染。
 - 与核心基础输入交织的共用逻辑（标题绑定弹层、循环宿主判断、设计系统对话框）留在核心，模块缺失时按同一开关收起。
 
 核心保留：能力策略、服务端保护字段比较与保存校验、条件匹配与前台渲染、样式快照输出。
@@ -17,7 +18,7 @@
 
 ## 分发（当前：免费期）
 
-- `config/blox-feature-policy.php` 三项均为 `free` 期间，本插件列入 `config/blox-assets.json` 的 `core`，随完整包分发并默认启用：
+- `config/blox-feature-policy.php` 各项均为 `free` 期间，本插件列入 `config/blox-assets.json` 的 `core`，随完整包分发并默认启用：
   新装由 `install/sql/*.sql` 登记为启用；已装站点由迁移 `20260914_enable_blox_pro_editor_modules` 补登记（不覆盖管理员已停用状态）。
 - 任一能力切换为 `licensed` 之前，必须把本插件移回 `pro` 清单并走服务端受控下载；`BloxProAccessTest` 以策略文件为准校验这一对应关系。
 
@@ -37,7 +38,7 @@
 
 基础编辑、默认产品/文章详情页编辑不收费。模板和全站主题下载由市场服务单独判断，不能用本地插件布尔值代替下载授权。
 
-**本候选尚未把现有三个功能改为收费。** 旧文档保护（单页/栏目/首页/模板/预览/单页历史恢复）已接入；切换策略前仍需完成剩余作者端迁移与 v1.20.0 安装/启停验收。
+**本候选尚未把现有功能改为收费。** 旧文档保护（单页/栏目/首页/模板/预览/单页历史恢复）已接入；切换策略前仍需完成剩余作者端迁移与 v1.20.0 安装/启停验收。
 
 ## 包与上架
 

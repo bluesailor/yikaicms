@@ -83,6 +83,11 @@ final class BloxProtectedFields
             if ($value !== null && $value !== '' && $value !== [] && $value !== 'none') $fields[$key] = $value;
             unset($data[$key]);
         }
+        if (in_array('table', $denied, true) && ($element['type'] ?? '') === 'table') {
+            // 表格归属 blox-pro：能力未放行时整张表冻结（不能新增、修改或删除），已发布内容照常渲染
+            $fields['table'] = $data;
+            $data = [];
+        }
         $children = is_array($data['children'] ?? null) ? $data['children'] : [];
         if ($loopHost && $children !== []) {
             // 循环模板只冻结结构（顺序、ID、类型）；子元素的字段绑定逐个比较，普通文案与样式可改。
