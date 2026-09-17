@@ -47,6 +47,8 @@ final class ReleaseDeltaMediaRetentionTest extends TestCase
             'images/gaba.png',
             'assets/images/demo/about-office.jpg',
             'assets/images/blox-templates/service-process.png',
+            // 1.18.6 起不随包；git 把它识别为改名，R 分支同样不得删除客户站点图标
+            'favicon.ico',
         ];
         foreach (['D', 'R'] as $branch) {
             $patterns = $this->exemptPatterns($branch);

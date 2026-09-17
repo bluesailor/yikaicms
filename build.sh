@@ -601,7 +601,8 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
                     fi
                     case "$path" in
                         install/upgrade.php|install/run_upgrade.php) DELETED+=("$path");;
-                        config/config.php|storage/*|uploads/*|install/*|themes/*|images/*|assets/images/*|*/.yikai-market-origin.json|.yikai-market-origin.json) ;;
+                        # favicon.ico 在 git 中被识别为改名到 assets/img/admin-favicon.ico，豁免必须与 D 分支一致
+                        config/config.php|storage/*|uploads/*|install/*|themes/*|favicon.ico|images/*|assets/images/*|*/.yikai-market-origin.json|.yikai-market-origin.json) ;;
                         *) path_never_shipped "$path" || DELETED+=("$path");;
                     esac
                     ;;
