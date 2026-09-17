@@ -114,5 +114,7 @@ return [
         'AGENTS.md',
         'CLAUDE.md',
         'plugins/dologin/VERIFICATION.md',
+        // 易登录插件不随核心预装（2026-09-17 产品决定），经插件市场安装
+        'plugins/dologin',
     ],
 ];
