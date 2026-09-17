@@ -15,7 +15,8 @@ test('converted About returns to its actual heading without changing the documen
   await section.locator('[data-section-drag-handle]').first().click();
   if (await structure.isVisible()) await structure.click();
   await section.locator('[data-testid="blox-tree-element"][data-element-type="heading"] [data-element-drag-handle]').first().click();
-  const field = page.locator('[data-control-key="text"] input').first();
+  // 标题文字控件为多行文本框（支持换行标题）
+  const field = page.getByTestId('blox-left-panel').getByRole('textbox', { name: '标题', exact: true });
   await expect(field).toHaveValue('关于企业');
   const before = await page.evaluate(() => {
     const app = window.Alpine.$data(document.body);
