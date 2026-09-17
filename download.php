@@ -36,7 +36,9 @@ if ($fid > 0) {
 
 // ========== yikai_contents 表（兼容旧链接） ==========
 if ($id > 0) {
-    $content = contentModel()->find($id);
+    // 必须与新入口同一套可下载判定：getPublished() 排除草稿、定时未到、已下架与回收站里的行。
+    // 旧代码只看记录和附件是否存在，未发布内容的附件地址会被 302 直接吐出来。
+    $content = contentModel()->getPublished($id);
     if ($content && !empty($content['attachment'])) {
         // 检查全局下载登录限制
         if (config('download_require_login') === '1' && !isMemberLoggedIn()) {
