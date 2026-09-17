@@ -188,6 +188,22 @@ function license_has_module(string $module): bool
     return in_array($module, (array) (license()['modules'] ?? []), true);
 }
 
+/**
+ * 是否拥有 BLOX Pro 编辑能力（表格、循环模板、显示条件、样式预设等）。
+ *
+ * 专业授权自带 BLOX 高级功能，无需另购：持有 blox 模块，或在 blox 模块推出前签发、
+ * 已购任一付费模块的老授权，都算拥有。与 license_has_module 一致只看模块归属、不看服务期；
+ * 授权停用、域名不符时服务端不下发 modules，自然不放行。
+ *
+ * @param array<string,mixed>|null $state
+ */
+function license_owns_blox(?array $state = null): bool
+{
+    $state ??= license();
+    $modules = array_values(array_filter((array) ($state['modules'] ?? []), static fn(mixed $m): bool => is_string($m) && $m !== ''));
+    return in_array('blox', $modules, true) || $modules !== [];
+}
+
 /** 是否可下载/升级付费插件（到期即失去该资格，但已装功能不受影响） */
 /** @param array<string,mixed>|null $state */
 function license_service_active(?array $state = null): bool
