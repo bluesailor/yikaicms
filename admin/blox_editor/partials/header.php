@@ -66,11 +66,42 @@ declare(strict_types=1);
             </span>
             <?php endif; ?>
             <?php if ($areaEditorLanguage !== ''): ?>
+            <?php
+            // 网页头/网页脚的语言切换：与模板库多语言面板同一判定，跳到各语言实际使用的设计
+            $areaLanguageLinks = isset($templateRow) && is_array($templateRow)
+                ? BloxAreaEditorLanguageLinks::build($templateRow, $areaEditorLanguage)
+                : [];
+            ?>
             <span data-testid="blox-area-language-context"
                   class="blox-header-area-language inline-flex shrink-0 items-center gap-1 rounded bg-cyan-400/10 px-1.5 py-0.5 text-[10px] font-medium text-cyan-200"
                   title="<?php echo e($areaEditorContextTitle); ?>">
-                <i class="ti ti-language"></i><?php echo e($areaEditorContextLabel); ?>
+                <i class="ti ti-language"></i><span class="<?= $areaLanguageLinks !== [] ? 'hidden min-[1920px]:inline' : '' ?>"><?php echo e($areaEditorContextLabel); ?></span>
             </span>
+            <?php if ($areaLanguageLinks !== []): ?>
+            <div data-testid="blox-area-language-switch" role="group" aria-label="<?= e(__('lse_versions')) ?>"
+                 class="blox-header-languages inline-flex items-center rounded border border-gray-700 bg-gray-800 p-0.5 min-w-0 max-w-full overflow-x-auto">
+                <?php foreach ($areaLanguageLinks as $areaLanguageLink):
+                    $areaLanguageHref = $areaLanguageLink['url'];
+                    if (str_starts_with($areaLanguageHref, '/admin/blox_editor.php') && ($editorBackTo ?? '') === 'home') {
+                        $areaLanguageHref .= '&back=home';
+                    }
+                    $areaLanguageHref = BloxAreaEditorTarget::withReturnTo($areaLanguageHref, (string) ($editorReturnTo ?? ''));
+                ?>
+                <a href="<?= e($areaLanguageHref) ?>"
+                   @click="requestEditorNavigation($event)"
+                   data-testid="blox-area-language-<?= e($areaLanguageLink['code']) ?>"
+                   data-area-language-state="<?= e($areaLanguageLink['state']) ?>"
+                   title="<?= e($areaLanguageLink['title']) ?>" aria-label="<?= e($areaLanguageLink['title']) ?>"
+                   <?php if ($areaLanguageLink['current']): ?>aria-current="page"<?php endif; ?>
+                   class="relative min-w-7 h-6 rounded px-1.5 text-[10px] font-semibold inline-flex items-center justify-center transition <?= $areaLanguageLink['current'] ? 'bg-blue-600 text-white' : ($areaLanguageLink['state'] === 'none' ? 'text-gray-500 hover:bg-gray-700 hover:text-amber-300' : 'text-gray-300 hover:bg-gray-700 hover:text-white') ?>">
+                    <?= e($areaLanguageLink['short']) ?>
+                    <?php if (in_array($areaLanguageLink['state'], ['inherit', 'preview', 'none'], true)): ?>
+                    <span class="absolute right-0.5 top-0.5 w-1 h-1 rounded-full <?= $areaLanguageLink['state'] === 'none' ? 'bg-amber-400' : 'bg-gray-400' ?>"></span>
+                    <?php endif; ?>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
             <?php endif; ?>
             <?php if ($redirectedFromPage !== null): ?>
             <span data-testid="blox-redirect-source"

@@ -63,6 +63,7 @@ require_once __DIR__ . '/BloxAreaResolver.php';
 require_once __DIR__ . '/BloxAreaAssignmentManager.php';
 require_once __DIR__ . '/BloxAreaAssignmentMatrix.php';
 require_once __DIR__ . '/BloxAreaLanguageManager.php';
+require_once __DIR__ . '/BloxAreaEditorLanguageLinks.php';
 require_once __DIR__ . '/BloxAreaEditorTarget.php';
 require_once __DIR__ . '/BloxAreaConditions.php';
 require_once __DIR__ . '/DynamicLoopTemplateRenderer.php';
