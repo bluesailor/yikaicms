@@ -1,7 +1,7 @@
 {
-  "name": "Blox Example",
+  "name": "Yikai Builder Example",
   "version": "1.0.0",
-  "description": "Blox 插件元素、模板来源和本地资源声明示例",
+  "description": "易开网页构建器插件元素、模板来源和本地资源声明示例",
   "author": "Yikai CMS",
   "requires_php": "8.0",
   "blox": {

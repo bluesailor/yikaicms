@@ -33,7 +33,7 @@ declare(strict_types=1);
                 <?php endif; ?>
             </a>
             <span class="blox-header-brand-copy inline-flex items-center gap-1.5 font-bold tracking-wide shrink-0">
-                <i class="ti ti-stack-2 text-blue-400"></i>Blox
+                <i class="ti ti-stack-2 text-blue-400"></i><?php echo e(__('blox_editor_title')); ?>
                 <span class="text-[10px] font-medium bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded"><?= __('label_experimental') ?></span>
             </span>
             <span class="blox-header-page min-w-0 text-gray-400 text-sm truncate">/ <?php echo e($isHomeBlox ? __('blox_home_draft') : $page['name']); ?></span>

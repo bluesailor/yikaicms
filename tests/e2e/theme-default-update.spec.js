@@ -21,7 +21,7 @@ test('Default update explains file replacement and cancelling never installs @ci
   page.once('dialog', async dialog => { message = dialog.message(); await dialog.dismiss(); });
   await card.getByRole('button', { name: '升级', exact: true }).click();
   await expect.poll(() => message).toContain('备份');
-  expect(message).toContain('Blox');
+  expect(message).toContain('易开网页构建器');
   expect(message).toContain('直接修改');
   expect(installs).toEqual([]);
 });
