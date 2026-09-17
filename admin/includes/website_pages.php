@@ -97,11 +97,11 @@ function renderWebsitePageCard(array $page, bool $overview = false): string
             <p class="website-page-note"><?php echo e(__('website_pages_updated')); ?> <?php echo e($page['modified_at'] > 0 ? date('Y-m-d H:i', $page['modified_at']) : __('website_pages_unknown_date')); ?></p>
             <div class="website-page-actions">
                 <?php if ($page['can_edit']): ?>
-                <a class="website-page-primary" data-testid="page-primary-edit-<?php echo $id; ?>" href="<?php echo e($page['edit_url']); ?>"><?php echo e(__($page['page_kind'] === 'page' ? 'website_pages_edit' : 'admin_content_edit')); ?></a>
+                <a class="website-page-primary" data-testid="page-primary-edit-<?php echo $id; ?>" href="<?php echo e($page['edit_url']); ?>"><i class="ti <?php echo $page['page_kind'] === 'page' ? 'ti-layout' : 'ti-pencil'; ?>" aria-hidden="true"></i><?php echo e(__($page['page_kind'] === 'page' ? 'website_structural_design' : 'admin_content_edit')); ?></a>
                 <?php else: ?><span class="website-page-note"><?php echo e(__('website_pages_no_permission')); ?></span><?php endif; ?>
                 <?php // 已停用页前台是 404，不给浏览入口 ?>
                 <?php if (!$disabled): ?>
-                <a href="<?php echo e($page['public_url']); ?>" target="_blank" rel="noopener"><?php echo e(__('website_pages_visit')); ?><span class="sr-only"> · <?php echo e((string) $page['name']); ?></span></a>
+                <a href="<?php echo e($page['public_url']); ?>" target="_blank" rel="noopener"><i class="ti ti-external-link" aria-hidden="true"></i><?php echo e(__('website_pages_visit')); ?><span class="sr-only"> · <?php echo e((string) $page['name']); ?></span></a>
                 <?php endif; ?>
                 <?php // 已停用卡片：恢复/删除提到卡面（不再藏进"…"菜单） ?>
                 <?php if (!$overview && $disabled && ($page['type'] ?? '') !== 'album'): ?>
@@ -242,12 +242,12 @@ function renderWebsiteStructuralCard(array $item): string
             <div class="website-page-actions">
                 <?php if ($item['can_edit']): ?>
                 <a class="website-page-primary" data-testid="structural-edit-<?php echo e($testId); ?>"
-                   href="<?php echo e((string) $item['edit_url']); ?>"><?php echo e(__('website_structural_design')); ?></a>
+                   href="<?php echo e((string) $item['edit_url']); ?>"><i class="ti ti-layout" aria-hidden="true"></i><?php echo e(__('website_structural_design')); ?></a>
                 <?php elseif ($item['designable']): ?>
                 <span class="website-page-note"><?php echo e(__('website_pages_no_permission')); ?></span>
                 <?php endif; ?>
                 <?php if (($item['public_url'] ?? '') !== ''): ?>
-                <a href="<?php echo e((string) $item['public_url']); ?>" target="_blank" rel="noopener"><?php echo e(__('website_pages_visit')); ?><span class="sr-only"> · <?php echo e((string) $item['name']); ?></span></a>
+                <a href="<?php echo e((string) $item['public_url']); ?>" target="_blank" rel="noopener"><i class="ti ti-external-link" aria-hidden="true"></i><?php echo e(__('website_pages_visit')); ?><span class="sr-only"> · <?php echo e((string) $item['name']); ?></span></a>
                 <?php endif; ?>
             </div>
         </div>
@@ -269,9 +269,9 @@ function renderWebsiteHomeCard(string $lang): string
             <p class="website-page-note"><?php echo e(__(HomeBloxDocument::isActive() && HomeBloxDocument::hasPublished() ? 'site_design_home_active' : 'site_design_home_structured')); ?></p>
             <div class="website-page-actions">
                 <?php if (bloxPageEditorEnabled() && hasPermission('blox_home')): ?>
-                <a class="website-page-primary" data-testid="page-home-edit" href="/admin/blox_editor.php?home=1&amp;lang=<?php echo e(rawurlencode($lang)); ?>"><?php echo e(__('site_design_open_home')); ?></a>
+                <a class="website-page-primary" data-testid="page-home-edit" href="/admin/blox_editor.php?home=1&amp;lang=<?php echo e(rawurlencode($lang)); ?>"><i class="ti ti-layout" aria-hidden="true"></i><?php echo e(__('website_structural_design')); ?></a>
                 <?php endif; ?>
-                <a href="<?php echo e($url); ?>" target="_blank" rel="noopener"><?php echo e(__('website_pages_visit')); ?></a>
+                <a href="<?php echo e($url); ?>" target="_blank" rel="noopener"><i class="ti ti-external-link" aria-hidden="true"></i><?php echo e(__('website_pages_visit')); ?></a>
             </div>
         </div>
     </article>
