@@ -32,6 +32,10 @@ if ($id > 0) {
         header('Location: /admin/article.php');
         exit;
     }
+    // 保存时固定写 type=article：若放行其它类型的 id，案例/单页会被改写成文章
+    if ((string) $article['type'] !== 'article') {
+        permissionDenied();
+    }
 }
 
 // 处理保存

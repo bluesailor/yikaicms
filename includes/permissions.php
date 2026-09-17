@@ -310,6 +310,77 @@ function canDeleteContentRow(int $id): bool
 }
 
 /**
+ * 统一的权限拒绝响应：AJAX 走 403 JSON，页面走提示页。
+ *
+ * requirePermission() 只能表达「缺少某个权限键」，但越界访问未必是缺权限——
+ * 超管拿文章入口去改案例同样应当拒绝（固定类型入口不做类型转换）。
+ */
+function permissionDenied(): void
+{
+    if (isAjax()) {
+        error(__('perm_denied'), 403);
+    }
+    die('<div style="padding:50px;text-align:center;"><h2>' . e(__('perm_denied')) . '</h2><a href="/admin/">返回首页</a></div>');
+}
+
+/**
+ * 固定类型入口（article.php / case.php …）的行级守卫。
+ *
+ * 文章、案例、单页、下载同住 contents 表。这些入口过去只在文件顶部检查模块级
+ * 权限（edit_article），随后把 POST 里的任意 id 交给共享的 contents 模型：只有
+ * edit_article 的投稿者因此能经文章入口下架、改写、删除案例（2026-09-17 发版前
+ * 审计实测复现 F01）。
+ *
+ * 规则：提交的 id 必须全部属于本入口的类型，任一越界即整批拒绝，不做「跳过越界项」
+ * 式的部分执行——部分执行会让越权者通过成功/失败的差异探测其它类型的 id 是否存在。
+ * 查不到的 id 直接丢弃（没有行可操作）。
+ *
+ * @param array<int|string> $ids
+ * @param string $mode edit|delete
+ * @return list<int> 去重后确实存在且类型正确的 id
+ */
+function requireContentRowsOfType(array $ids, string $type, string $mode = 'edit'): array
+{
+    $wanted = [];
+    foreach ($ids as $id) {
+        $id = (int) $id;
+        if ($id > 0) {
+            $wanted[$id] = $id;
+        }
+    }
+    $wanted = array_values($wanted);
+    if (!$wanted) {
+        return [];
+    }
+    requirePermission(($mode === 'delete' ? 'delete_' : 'edit_') . $type);
+
+    $placeholders = implode(',', array_fill(0, count($wanted), '?'));
+    $rows = db()->fetchAll(
+        'SELECT id, `type` FROM ' . DB_PREFIX . 'contents WHERE id IN (' . $placeholders . ')',
+        $wanted
+    );
+    $allowed = [];
+    foreach ($rows as $row) {
+        if ((string) $row['type'] !== $type) {
+            permissionDenied();
+        }
+        $allowed[] = (int) $row['id'];
+    }
+    return $allowed;
+}
+
+/** 单条版：越界或不存在都拒绝，返回该行。 */
+function requireContentRowOfType(int $id, string $type, string $mode = 'edit'): array
+{
+    if ($id <= 0 || !requireContentRowsOfType([$id], $type, $mode)) {
+        permissionDenied();
+    }
+    /** @var array<string,mixed> $row find() 刚确认过存在 */
+    $row = contentModel()->find($id);
+    return $row;
+}
+
+/**
  * canEditContentRow 的断言版，失败抛异常。
  *
  * 与 requirePermission() 的区别：那个会 die 一段 HTML 或直接吐 JSON 并退出，

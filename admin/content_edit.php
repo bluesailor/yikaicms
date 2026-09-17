@@ -37,6 +37,15 @@ if ($content) {
 // 类型隔离守卫：按被编辑内容的类型精确要求 edit_{type}（防产品编辑者借共享编辑器改文章）
 requireContentEditPerm($content['type'] ?? ($_SERVER['REQUEST_METHOD'] === 'POST' ? post('type', 'article') : get('type', '')));
 
+// 类型转换（POST 里的 type 与原类型不同）要同时持有目标类型的编辑权，
+// 否则只有 edit_article 的账号可以把文章改成案例，绕过案例权限。
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $content) {
+    $newType = (string) post('type', 'article');
+    if ($newType !== (string) $content['type']) {
+        requireContentEditPerm($newType);
+    }
+}
+
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = [
