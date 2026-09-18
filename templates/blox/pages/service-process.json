@@ -3,7 +3,7 @@
   "version": 1,
   "type": "page",
   "name": "服务流程",
-  "thumbnail": "/assets/images/blox-templates/service-process.png",
+  "thumbnail": "/assets/images/blox-templates/service-process.webp",
   "requires": {
     "elements": ["heading", "text", "image", "button", "divider", "process-steps", "process-step", "icon-box", "accordion", "cta"],
     "plugins": []
@@ -27,7 +27,7 @@
           },
           {
             "elements": [
-              {"type": "image", "data": {"src": "/images/case-demo.jpg", "alt": "项目团队协作与交付"}}
+              {"type": "image", "data": {"src": "/images/company-about-v2.webp", "alt": "项目团队协作与交付"}}
             ]
           }
         ]

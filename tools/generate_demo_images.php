@@ -153,7 +153,7 @@ function article(int $w, int $h, int $seed, int $variant = 0): string
 }
 
 /**
- * E. 关于我们备用构图（当前出厂用实拍照片 about-office.jpg，本函数保留备用）。
+ * E. 关于我们备用构图（当前出厂用 yikaicms-industrial-600.webp，本函数保留备用）。
  * @psalm-suppress UnusedFunction
  */
 function about(int $w, int $h, int $seed, int $variant = 0): string

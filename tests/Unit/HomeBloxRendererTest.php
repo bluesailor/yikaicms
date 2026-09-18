@@ -111,6 +111,11 @@ final class HomeBloxRendererTest extends TestCase
         ];
 
         $this->assertTrue(HomeBloxRenderer::startsWithHeaderOverlayBanner([$section([$coverBanner])]));
+        $fixedOverlay = array_replace_recursive($coverBanner, ['data' => ['banner_height_mode' => 'fixed-cover-header']]);
+        $this->assertTrue(HomeBloxRenderer::startsWithHeaderOverlayBanner([$section([$fixedOverlay])]));
+        $this->assertFalse(HomeBloxRenderer::startsWithHeaderOverlayBanner([
+            $section([['type' => 'heading', 'data' => ['text' => 'Before']], $fixedOverlay]),
+        ]));
         $this->assertTrue(HomeBloxRenderer::startsWithHeaderOverlayBanner([
             $section([['type' => 'heading', 'data' => ['text' => 'Hidden']]], ['hidden' => true]),
             $section([
@@ -126,6 +131,16 @@ final class HomeBloxRendererTest extends TestCase
         ]));
 
         $inheritBanner = array_replace_recursive($coverBanner, ['data' => ['banner_height_mode' => 'inherit']]);
+        $this->assertTrue(HomeBloxRenderer::startsWithHeaderOverlayBanner(
+            [$section([$inheritBanner])], ['height_mode' => 'fixed-cover-header']
+        ));
+        $this->assertTrue(HomeBloxRenderer::legacyStartsWithHeaderOverlayBanner(
+            [['type' => 'banner', 'enabled' => true]], ['height_mode' => 'fixed-cover-header']
+        ));
+        $this->assertFalse(HomeBloxRenderer::legacyStartsWithHeaderOverlayBanner(
+            [['type' => 'about', 'enabled' => true], ['type' => 'banner', 'enabled' => true]],
+            ['height_mode' => 'fixed-cover-header']
+        ));
         $this->assertTrue(HomeBloxRenderer::startsWithVisibleBanner([$section([$inheritBanner])]));
         $this->assertTrue(HomeBloxRenderer::startsWithMobileVisibleBanner([$section([$inheritBanner])]));
         $mobileHiddenBanner = array_replace_recursive($coverBanner, ['data' => ['banner_mobile_mode' => 'hidden']]);

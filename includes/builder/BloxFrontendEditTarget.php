@@ -22,6 +22,7 @@ final class BloxFrontendEditTarget
             'site-contact' => ['target' => 'contact', 'label' => 'fe_edit_contact_block'],
             'social-links' => ['target' => 'social-links', 'label' => 'fe_edit_social_links_block'],
             'site-copyright' => ['target' => 'site-copyright', 'label' => 'fe_edit_site_copyright'],
+            'site-filing' => ['target' => 'site-filing', 'label' => 'fe_edit_site_filing'],
         ],
     ];
 

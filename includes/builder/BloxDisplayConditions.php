@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/BloxFeaturePolicy.php';
+
 final class BloxDisplayConditions
 {
     private const MAX_GROUPS = 10;
@@ -118,11 +120,12 @@ final class BloxDisplayConditions
                 }
             }
         }
-        if ($hasConditions && !($advanced ?? BloxQueryLoopPolicy::advancedEnabled())) {
+        if ($hasConditions && !($advanced ?? BloxFeaturePolicy::allows('display_conditions'))) {
             throw new RuntimeException(__('blox_display_conditions_license_required'));
         }
     }
 
+    /** @api Compatibility entry for callers with serialized documents. */
     public static function assertJsonAllowed(string $json, ?bool $advanced = null): void
     {
         $document = BloxDocumentPipeline::decode($json);

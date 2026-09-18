@@ -280,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 // 验证数据库名（允许字母数字下划线连字符；建库语句已反引号转义，DSN 亦支持连字符）
                 if (!preg_match('/^[a-zA-Z0-9_-]+$/', $name)) {
-                    throw new Exception('数据库名只允许字母、数字、下划线和连字符');
+                    throw new Exception($L['error_db_name_invalid']);
                 }
 
                 // 验证 host 和 port
@@ -301,7 +301,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if (!$exists && $createDb) {
                     $pdo->exec("CREATE DATABASE `" . str_replace('`', '``', $name) . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
                 } elseif (!$exists) {
-                    throw new Exception("Database '{$name}' does not exist");
+                    // 库不存在：提示可以勾选「尝试创建」，而不是只甩一句英文
+                    throw new Exception(str_replace(':name', $name, $L['error_db_not_exists']));
                 }
 
                 ob_end_clean();
@@ -338,6 +339,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             // 必须在连接数据库、导入 SQL 和写 installed.lock 之前服务端拒绝。
             // 浏览器的 required/minlength 可被脚本请求完全绕过。
+            if (!installerAdminUsernameValid((string) $adminUser)) {
+                ob_end_clean();
+                echo json_encode([
+                    'success' => false,
+                    'code' => 'admin_username_invalid',
+                    'message' => $L['error_admin_user_invalid'],
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
             if (!installerAdminPasswordValid((string) $adminPass)) {
                 ob_end_clean();
                 echo json_encode([
@@ -362,7 +372,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             // 验证表前缀（仅允许字母数字下划线）
             if (!preg_match('/^[a-zA-Z0-9_]*$/', $prefix)) {
-                throw new Exception('表前缀只允许字母、数字和下划线');
+                throw new Exception($L['error_table_prefix_invalid']);
             }
 
             // 连接数据库
@@ -377,7 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $host = preg_replace('/[^a-zA-Z0-9.\-:]/', '', $host);
                 $port = (string)(int)$port;
                 if (!preg_match('/^[a-zA-Z0-9_-]+$/', $dbName)) {
-                    throw new Exception('数据库名只允许字母、数字、下划线和连字符');
+                    throw new Exception($L['error_db_name_invalid']);
                 }
 
                 $dsn = "mysql:host={$host};port={$port};dbname={$dbName};charset=utf8mb4";
@@ -424,7 +434,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // （否则前台 <title> 会残留演示品牌，如英文站显示 "YikaiCMS - Professional Enterprise CMS"）
             $stmt = $pdo->prepare("UPDATE {$prefix}settings SET value = ? WHERE `key` = 'seo_title'");
             $stmt->execute([$siteName]);
-            $pdo->exec("DELETE FROM {$prefix}settings WHERE `key` LIKE 'seo\\_title\\_%'");
+            // 逐键删除而不是 LIKE：SQLite 不把反斜杠当 LIKE 转义符（除非显式 ESCAPE），
+            // 而显式 ESCAPE 的写法在 MySQL/SQLite 之间又不一致。演示的 seo_title_en /
+            // seo_title_ja 曾因此留在库里，日文首页 <title> 仍是演示品牌（审计 F07）。
+            $pdo->exec("DELETE FROM {$prefix}settings WHERE `key` <> 'seo_title' AND SUBSTR(`key`, 1, 10) = 'seo_title_'");
 
             // 前台/后台语言
             $stmt = $pdo->prepare("UPDATE {$prefix}settings SET value = ? WHERE `key` = 'site_lang'");
@@ -440,6 +453,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $pdo->prepare("INSERT INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('site', 'enabled_languages', ?, '', '', 0) ON DUPLICATE KEY UPDATE value = VALUES(value)");
             }
             $stmt->execute([$enabledJson]);
+
+            // 记录本次安装是否要演示数据：示例内容的种子迁移（solution/industry sample）
+            // 会读它。缺键时按 '1' 处理，保证老站升级行为不变（审计 F08）。
+            $demoFlag = $installDemo ? '1' : '0';
+            if ($driver === 'sqlite') {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', 'install_demo_data', ?, '安装时写入演示数据', 'switch', 14)");
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', 'install_demo_data', ?, '安装时写入演示数据', 'switch', 14) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+            }
+            $stmt->execute([$demoFlag]);
 
             // 仅全新安装显示一次伪静态提醒。默认值保持已关闭，避免旧站升级后突然出现。
             if ($driver === 'sqlite') {
@@ -459,10 +482,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $encryptKey = 'ik_' . bin2hex(random_bytes(16));
             // 安全：所有用户输入都落进单引号 define('X','...') 字面量。占位符替换前必须转义，
             // 否则 db_pass 传 `'); system($_GET[c]); //` 之类可闭合引号注入可执行 PHP（RCE）。
-            // 单引号 PHP 字符串只需转义 ' 与 \，addslashes 正好覆盖。driver 限枚举、port 限数字。
+            // 单引号 PHP 字符串只需转义 ' 与 \。这里不能用 addslashes()：它连双引号也加
+            // 反斜杠，而单引号字面量不会把 \" 还原成 "，于是站点名 `Audit "X"` 和含双引号的
+            // 数据库密码被原样写坏（2026-09-17 审计 F06 实测）。driver 限枚举、port 限数字。
             $driver = in_array($driver, ['mysql', 'sqlite'], true) ? $driver : 'mysql';
             $port   = (string)(int)$port;
-            $esc = static fn ($v): string => addslashes((string)$v);
+            $esc = static fn ($v): string => str_replace(['\\', "'"], ['\\\\', "\\'"], (string) $v);
             $configContent = str_replace(
                 ['{{DB_DRIVER}}', '{{DB_HOST}}', '{{DB_PORT}}', '{{DB_NAME}}', '{{DB_USER}}', '{{DB_PASS}}', '{{SITE_NAME}}', '{{SITE_URL}}', '{{SESSION_ID}}', '{{ENCRYPT_KEY}}', "define('DB_PREFIX', 'yikai_')"],
                 [$driver, $esc($host), $port, $esc($dbName), $esc($user), $esc($pass), $esc($siteName), $esc($siteUrl), $sessionId, $encryptKey, "define('DB_PREFIX', '" . $esc($prefix) . "')"],
@@ -502,6 +527,16 @@ $envAllPass = checkAllPass($envChecks);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $L['title']; ?></title>
     <link rel="stylesheet" href="/assets/css/tailwind.css">
+<?php
+// 按钮图标（Lucide 线条风格，ISC 许可）。安装器不能依赖图标字体：此时站点资源未必齐全，
+// 一律内联 SVG；aria-hidden，按钮的可读名称仍是文字本身。
+$installerIcon = static function (string $paths): string {
+    return '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">' . $paths . '</svg>';
+};
+$iconPrev = $installerIcon('<path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>');
+$iconNext = $installerIcon('<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>');
+$iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>');
+?>
     <style>
         .step-item.active { color: #3b82f6; border-color: #3b82f6; }
         .step-item.completed { color: #10b981; border-color: #10b981; }
@@ -615,8 +650,8 @@ $envAllPass = checkAllPass($envChecks);
 
                 <div class="flex justify-end">
                     <?php if ($envAllPass): ?>
-                        <a href="?step=2&install_lang=<?php echo $lang; ?>" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
-                            <?php echo $L['next']; ?>
+                        <a href="?step=2&install_lang=<?php echo $lang; ?>" class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
+                            <?php echo $L['next']; ?><?php echo $iconNext; ?>
                         </a>
                     <?php else: ?>
                         <a href="?step=1&install_lang=<?php echo $lang; ?>" class="bg-gray-400 text-white px-6 py-2 rounded">
@@ -810,19 +845,19 @@ $envAllPass = checkAllPass($envChecks);
 
                     <!-- 测试按钮 -->
                     <div class="mt-6">
-                        <button type="button" id="testDbBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition cursor-pointer">
-                            <?php echo $L['db_test']; ?>
+                        <button type="button" id="testDbBtn" class="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition cursor-pointer">
+                            <?php echo $iconPlug; ?><?php echo $L['db_test']; ?>
                         </button>
                         <span id="testResult" class="ml-4"></span>
                     </div>
                 </form>
 
                 <div class="flex justify-between mt-8">
-                    <a href="?step=1&install_lang=<?php echo $lang; ?>" class="border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
-                        <?php echo $L['prev']; ?>
+                    <a href="?step=1&install_lang=<?php echo $lang; ?>" class="inline-flex items-center gap-2 border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
+                        <?php echo $iconPrev; ?><?php echo $L['prev']; ?>
                     </a>
-                    <a href="?step=3&install_lang=<?php echo $lang; ?>" id="nextStep2" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
-                        <?php echo $L['next']; ?>
+                    <a href="?step=3&install_lang=<?php echo $lang; ?>" id="nextStep2" class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
+                        <?php echo $L['next']; ?><?php echo $iconNext; ?>
                     </a>
                 </div>
 
@@ -834,8 +869,8 @@ $envAllPass = checkAllPass($envChecks);
                     });
                 });
 
-                // 测试数据库连接
-                document.getElementById('testDbBtn').addEventListener('click', async function() {
+                // 测试数据库连接：「测试连接」按钮与「下一步」共用，结果都显示在 #testResult
+                async function runDbTest() {
                     const form = document.getElementById('dbForm');
                     const formData = new FormData(form);
                     formData.append('action', 'test_db');
@@ -851,17 +886,40 @@ $envAllPass = checkAllPass($envChecks);
                         span.textContent = data.message;
                         result.innerHTML = '';
                         result.appendChild(span);
+                        return !!data.success;
                     } catch (e) {
                         result.innerHTML = '<span class="text-red-600">Error</span>';
+                        return false;
                     }
+                }
+
+                document.getElementById('testDbBtn').addEventListener('click', function() {
+                    runDbTest();
                 });
 
-                // 保存配置到 sessionStorage
-                document.getElementById('nextStep2').addEventListener('click', function(e) {
+                // 下一步：先保存配置，再自动测一次连接，通过才进入第 3 步。
+                // 以前这里不做任何检查，库名/密码填错要到第 3 步点「完成安装」才报错，
+                // 用户还得退回两步重填。不强制用户先手动点「测试连接」，点下一步就会测。
+                document.getElementById('nextStep2').addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    const link = this;
+                    if (link.getAttribute('aria-busy') === 'true') return;
+
                     const form = document.getElementById('dbForm');
                     const formData = new FormData(form);
                     for (const [key, value] of formData.entries()) {
                         sessionStorage.setItem(key, value);
+                    }
+
+                    link.setAttribute('aria-busy', 'true');
+                    link.classList.add('opacity-60', 'pointer-events-none');
+                    const ok = await runDbTest();
+                    link.removeAttribute('aria-busy');
+                    link.classList.remove('opacity-60', 'pointer-events-none');
+                    if (ok) {
+                        window.location.href = link.href;
+                    } else {
+                        document.getElementById('testResult').scrollIntoView({ block: 'center', behavior: 'smooth' });
                     }
                 });
                 </script>
@@ -968,8 +1026,8 @@ $envAllPass = checkAllPass($envChecks);
                 <div id="installResult" class="hidden mt-6"></div>
 
                 <div class="flex justify-between mt-8" id="stepButtons">
-                    <a href="?step=2&install_lang=<?php echo $lang; ?>" class="border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
-                        <?php echo $L['prev']; ?>
+                    <a href="?step=2&install_lang=<?php echo $lang; ?>" class="inline-flex items-center gap-2 border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
+                        <?php echo $iconPrev; ?><?php echo $L['prev']; ?>
                     </a>
                     <button type="button" id="installBtn" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition cursor-pointer">
                         <?php echo $L['finish']; ?>

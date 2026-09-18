@@ -1,0 +1,45 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "行動喚起",
+    "requires": {
+        "elements": [
+            "cta"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "行動喚起",
+                "settings": {
+                    "padding": {
+                        "d": "lg",
+                        "m": "md"
+                    },
+                    "max_width": "wide"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "cta",
+                                "data": {
+                                    "use_home_text": false,
+                                    "title": "私たちにできることをご提案します",
+                                    "text": "ご要望をお寄せいただければ、1営業日以内にご返信いたします。",
+                                    "btn_text": "今すぐ相談する",
+                                    "btn_url": "/contact.html"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

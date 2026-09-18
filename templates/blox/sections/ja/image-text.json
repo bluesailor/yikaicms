@@ -1,0 +1,88 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "会社紹介（画像とテキスト）",
+    "requires": {
+        "elements": [
+            "heading",
+            "divider",
+            "text",
+            "button",
+            "image"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "会社概要（画像とテキスト）",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide",
+                    "gap": "xl",
+                    "content_v_align": "center"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "heading",
+                                "data": {
+                                    "text": "私たちについて",
+                                    "level": "h2",
+                                    "visual_size": {
+                                        "d": "3xl",
+                                        "m": "2xl"
+                                    },
+                                    "align": "left"
+                                }
+                            },
+                            {
+                                "type": "divider",
+                                "data": {
+                                    "style": "solid",
+                                    "width": 3,
+                                    "color": "#2563eb",
+                                    "spacing": "sm"
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "data": {
+                                    "html": "<p class=\"yk-copy\">この段落には、会社の沿革と位置づけを記載します。設立時期、設立の経緯、主な事業内容などです。</p><p class=\"yk-copy\">2段落目には、規模と対応力を記載します。工場面積、設備、認証、チーム構成、年間生産能力やサービス実績など、形容詞ではなく検証可能な事実で伝えましょう。</p><p class=\"yk-copy\">3段落目には、顧客と取引について記載します。主な対応業界、代表的な顧客層、取引の形態などです。</p>"
+                                }
+                            },
+                            {
+                                "type": "button",
+                                "data": {
+                                    "text": "お問い合わせ",
+                                    "url": "/contact.html",
+                                    "variant": "primary",
+                                    "align": "left"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "image",
+                                "data": {
+                                    "src": "/images/company-about-v2.webp",
+                                    "alt": "社内環境の写真"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

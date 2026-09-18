@@ -60,7 +60,8 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test.afterEach(async ({ page }) => {
   if (!consoleEntries || !unsafeWrites) return;
-  expect(await page.getByTestId('blox-dirty').isVisible().catch(() => false), 'test left the editor dirty').toBe(false);
+  // TASK-002 第 1 项：状态位现在始终有文案，"脏"改看 data-state 而非可见性
+  expect(await page.getByTestId('blox-dirty').getAttribute('data-state').catch(() => null), 'test left the editor dirty').not.toBe('dirty');
   expect(unsafeWrites, 'save/publish/rollback request was sent').toEqual([]);
   expect(consoleEntries, 'browser console must stay clean').toEqual([]);
 });
@@ -83,6 +84,6 @@ test('local recovery draft can be restored and undone @ci', async ({ page }) => 
 
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(originalCount);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expect(page.getByTestId('blox-dirty')).not.toHaveAttribute('data-state', 'dirty');
   await expect.poll(() => page.evaluate((storageKey) => localStorage.getItem(storageKey), recoveryKey)).toBeNull();
 });

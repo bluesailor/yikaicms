@@ -57,7 +57,8 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test.afterEach(async ({ page }) => {
   if (!consoleEntries || !unsafeWrites) return;
-  const leakedDirtyState = await page.getByTestId('blox-dirty').isVisible().catch(() => false);
+  // TASK-002 第 1 项：状态位现在始终有文案，"脏"改看 data-state 而非可见性
+  const leakedDirtyState = (await page.getByTestId('blox-dirty').getAttribute('data-state').catch(() => null)) === 'dirty';
   if (leakedDirtyState) await restoreClean(page);
   expect(leakedDirtyState, 'test left the editor dirty').toBe(false);
   expect(unsafeWrites, 'design-system E2E must not save or publish').toEqual([]);
@@ -77,6 +78,8 @@ test('token catalog and named preset apply through stable references @ci', async
   await page.getByTestId('blox-library-open').click();
   await page.getByTestId('blox-add-element-icon').press('Enter');
   await page.getByTestId('blox-style-tab').click();
+  // 全局样式选择在默认折叠的专业功能区内（由 yikai-builder 作者端模块提供）。
+  await page.getByTestId('blox-professional-features').locator('summary').click();
 
   await performPreviewUpdate(page, async () => {
     await page.getByTestId('blox-color-picker-trigger').click();
@@ -113,6 +116,7 @@ test('stored style sources reset only the local value and undo restores it @ci',
   await page.keyboard.press('Escape');
   await addTemporaryHeading(page);
   await page.getByTestId('blox-style-tab').click();
+  await page.getByTestId('blox-professional-features').locator('summary').click();
   const source = page.getByTestId('blox-style-source-color');
   await expect(source).toHaveAttribute('data-local-source', 'css');
   await performPreviewUpdate(page, async () => {

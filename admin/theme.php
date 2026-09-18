@@ -49,6 +49,9 @@ function themeInstallMessage(array $result): string
         'backup_move', 'activate' => 'theme_err_replace',
         'rollback_failed' => 'theme_err_rollback',
         'cleanup' => 'theme_err_cleanup',
+        'origin_unknown' => 'market_origin_unknown',
+        'origin_changed' => 'market_origin_changed',
+        'busy' => 'theme_install_busy',
         default => 'theme_err_invalid',
     };
     $message = $result['code'] === 'resource'
@@ -94,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
             echo json_encode(['code' => 1, 'msg' => __('theme_err_market_conn')]);
             exit;
         }
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        echo json_encode(ThemeMarket::withInstalledOrigins($data, ROOT_PATH . '/themes'), JSON_UNESCAPED_UNICODE);
         exit;
     }
 
@@ -106,9 +109,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
         echo json_encode(['code' => 1, 'msg' => __('theme_err_market_conn')]);
         exit;
     }
+    $data = ThemeMarket::withInstalledOrigins($data, ROOT_PATH . '/themes');
     $item = null;
     foreach (($data['data']['themes'] ?? []) as $t) {
         if (($t['slug'] ?? '') === $slug) { $item = $t; break; }
+    }
+    if ($item && !empty($item['download_blocked'])) {
+        echo json_encode(['code' => 1, 'msg' => $item['download_message']], JSON_UNESCAPED_UNICODE);
+        exit;
     }
     if (!$item || empty($item['download_url']) || empty($item['hash'])) {
         echo json_encode(['code' => 1, 'msg' => __('theme_err_market_notfound')]);
@@ -138,11 +146,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
         // write_error）是唯一能分辨到底哪一步断的信息。丢掉它，运维在服务器日志里就只剩
         // 下面那条 @unlink 警告——2026-09-07 演示站主题装不上三次，查到的就只有那条假线索。
         adminLog('theme', 'market_download_failed', 'Theme marketplace download failed: ' . $slug
-            . ' [' . $download['code'] . '] ' . $item['download_url']);
+            . ' [' . $download['code'] . '] HTTP ' . (int) ($download['http_status'] ?? 0));
         themeDiscardStaged($tmpZip);
         $downloadMessage = $download['code'] === 'too_large'
             ? __('theme_err_download_too_large')
-            : __('theme_err_download');
+            : MarketDownloadStatus::httpMessage((int) ($download['http_status'] ?? 0));
         echo json_encode(['code' => 1, 'msg' => $downloadMessage]);
         exit;
     }
@@ -178,10 +186,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     }
 
     $installer = new ThemeInstaller(ROOT_PATH . '/themes', ROOT_PATH . '/storage');
-    $installResult = $installer->install($tmpZip, $slug, $remoteVersion);
+    $installResult = $installer->install($tmpZip, $slug, $remoteVersion, (string) ($item['source'] ?? 'official'), (string) ($item['sig'] ?? ''));
     themeDiscardStaged($tmpZip);
     $msg = themeInstallMessage($installResult);
     if ($installResult['ok']) {
+        do_action('data_changed');
         adminLog('theme', 'market_install', 'Theme marketplace install: ' . $installResult['slug'] . ' v' . ($item['version'] ?? ''));
     } else {
         adminLog('theme', 'market_install_failed', 'Theme marketplace install failed: ' . $slug
@@ -595,12 +604,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="mt-4">
                             <button type="button" @click="install(t)"
                                 x-show="statusOf(t) !== 'installed'"
-                                :disabled="installing === t.slug"
+                                :disabled="installing === t.slug || !!t.download_blocked"
+                                data-testid="theme-market-install"
                                 class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90 transition cursor-pointer disabled:opacity-50">
                                 <span x-show="installing !== t.slug" x-text="statusOf(t) === 'upgrade' ? '<?php echo __('theme_market_upgrade'); ?>' : '<?php echo __('theme_market_install'); ?>'"></span>
                                 <span x-show="installing === t.slug"><?php echo __('theme_market_installing'); ?></span>
                             </button>
                             <span x-show="statusOf(t) === 'installed'" class="px-4 py-2 bg-gray-100 text-gray-500 text-sm rounded-lg inline-block"><?php echo __('theme_market_installed'); ?></span>
+                            <p x-show="t.download_blocked" x-text="t.download_message" data-testid="theme-market-restriction" class="mt-2 text-sm text-gray-600"></p>
                         </div>
                     </div>
                 </div>
@@ -859,10 +870,13 @@ function themeManager() {
             return this.verCmp(t.version, this.local[t.slug]) > 0 ? 'upgrade' : 'installed';
         },
         async install(t) {
+            if (t.download_blocked) { showMessage(t.download_message, 'error'); return; }
             var st = this.statusOf(t);
             if (st === 'installed') return;
             var verb = st === 'upgrade' ? '<?php echo __('theme_market_upgrade'); ?>' : '<?php echo __('theme_market_install'); ?>';
-            if (!confirm(verb + '「' + t.name + '」 v' + t.version + ' ?')) return;
+            var prompt = verb + '「' + t.name + '」 v' + t.version + ' ?';
+            if (t.slug === 'default') prompt += '\n\n' + <?php echo json_encode(__('theme_default_update_notice'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+            if (!confirm(prompt)) return;
             this.installing = t.slug;
             var body = new URLSearchParams();
             body.set('action', 'market_install');

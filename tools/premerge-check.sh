@@ -63,8 +63,8 @@ if [ ! -d vendor/phpunit ]; then
     fail "vendor 未安装，先跑 composer install"
 else
     OUT=$(php vendor/phpunit/phpunit/phpunit 2>&1 | tail -3)
-    if echo "$OUT" | grep -q "^OK "; then
-        pass "$(echo "$OUT" | grep '^OK ')"
+    if echo "$OUT" | grep -q "^OK"; then
+        pass "$(echo "$OUT" | grep '^OK' | head -1)"
     else
         fail "PHPUnit 未通过"
         echo "$OUT" | sed 's/^/      /'

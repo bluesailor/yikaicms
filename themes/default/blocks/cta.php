@@ -18,8 +18,8 @@ $_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
                 <?php echo e(config('home_cta_button', '') ?: __('detail_consult')); ?>
             </a>
             <?php if ($phone = configRawLang('contact_phone')): ?>
-            <a href="tel:<?php echo e($phone); ?>" class="border-2 border-white text-white hover:bg-white hover:text-primary px-8 py-3 rounded-full font-bold transition">
-                <?php echo __('detail_call'); ?>
+            <a<?php echo $_homeFieldAttr('override_call_text'); ?> href="tel:<?php echo e($phone); ?>" class="border-2 border-white text-white hover:bg-white hover:text-primary px-8 py-3 rounded-full font-bold transition">
+                <?php echo e(config('home_cta_call_button', '') ?: __('detail_call')); ?>
             </a>
             <?php endif; ?>
         </div>

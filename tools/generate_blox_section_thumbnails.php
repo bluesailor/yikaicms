@@ -76,7 +76,8 @@ function paragraph(GdImage $image, string $value, int $x, int $y, int $width, in
 
 function photo(GdImage $image, string $path, int $x, int $y, int $width, int $height): void
 {
-    $source = @imagecreatefromjpeg($path);
+    $raw = @file_get_contents($path);
+    $source = $raw === false ? false : @imagecreatefromstring($raw);
     if (!$source instanceof GdImage) {
         return;
     }
@@ -153,7 +154,7 @@ foreach ($trustTitles as $index => $title) {
 save($image, $output . '/section-trust-grid.png');
 
 $image = canvas('#f8fafc');
-$caseImages = ['/images/case-demo.jpg', '/assets/images/demo/product-101.svg', '/images/cert-1.jpg'];
+$caseImages = ['/images/company-about-v2.webp', '/assets/images/demo/product-101.svg', '/images/certificate-small.webp'];
 $caseTitles = ['生产流程数字化', '产品体系升级', '质量标准建设'];
 foreach ($caseTitles as $index => $title) {
     $x = 42 + $index * 386;

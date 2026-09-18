@@ -141,13 +141,13 @@ final class BuilderRenderTest extends TestCase
         // 设了 bg_image → 首页同款横幅（遮罩+白字+胶囊按钮）；未设 → 维持灰卡（上一用例已覆盖）。
         $cta = $this->inner($this->oneEl(['type' => 'cta', 'data' => [
             'title' => 'T', 'text' => 'S', 'btn_text' => 'Go', 'btn_url' => '/x',
-            'bg_image' => '/images/case-demo.jpg',
+            'bg_image' => '/images/company-about-v2.webp',
         ]]));
         $this->assertStringContainsString('bg-cover bg-center', $cta);
         $this->assertStringContainsString('bg-black/60', $cta);
         $this->assertStringContainsString('text-3xl font-bold text-white', $cta);
         $this->assertStringContainsString('rounded-full', $cta);
-        $this->assertStringContainsString('/images/case-demo.jpg', $cta);
+        $this->assertStringContainsString('/images/company-about-v2.webp', $cta);
         // 非法背景（javascript:）拒绝 → 回落灰卡形态
         $bad = $this->inner($this->oneEl(['type' => 'cta', 'data' => ['title' => 'T', 'bg_image' => 'javascript:alert(1)']]));
         $this->assertStringContainsString('bg-gray-50', $bad);
@@ -332,6 +332,9 @@ final class BuilderRenderTest extends TestCase
         ]], JSON_UNESCAPED_UNICODE));
 
         $this->assertStringContainsString('hidden xl:flex', $out); // 桌面导航；较窄屏幕配 nav-drawer
+        $this->assertStringContainsString('data-yk-nav-overflow=', $out);
+        $this->assertStringContainsString('w-full min-w-0', $out);
+        $this->assertContains('/assets/js/blox-nav-overflow.js', (new \NavMegaElement())->scripts());
         $this->assertStringContainsString('>首页<', $out); // 无子级=普通链接，无面板
         $this->assertStringContainsString('grid-cols-2', $out); // 两个子栏目=两列
         $this->assertStringContainsString('inset-x-0', $out); // 默认通栏面板（相对元素根）
@@ -671,7 +674,8 @@ final class BuilderRenderTest extends TestCase
         $keys = array_column($h->controls(), 'key');
         $this->assertSame([
             'text', 'site_field', 'site_fallback', 'loop_field', 'loop_fallback',
-            'level', 'visual_size', 'color', 'align', 'animation', 'animation_speed', 'animation_delay',
+            'level', 'url', 'new_tab', 'site_url_field', 'loop_url_field', 'html_id',
+            'visual_size', 'type_font_size', 'type_line_height', 'color', 'align', 'animation', 'animation_trigger', 'animation_speed', 'animation_delay',
         ], $keys);
         // defaults 从 controls 推导
         $this->assertSame([
@@ -681,10 +685,18 @@ final class BuilderRenderTest extends TestCase
             'loop_field' => 'title',
             'loop_fallback' => '',
             'level' => 'h2',
+            'url' => '',
+            'new_tab' => false,
+            'site_url_field' => 'none',
+            'loop_url_field' => 'none',
+            'html_id' => '',
             'visual_size' => 'auto',
+            'type_font_size' => '',
+            'type_line_height' => '',
             'color' => '',
             'align' => 'left',
             'animation' => '',
+            'animation_trigger' => 'viewport',
             'animation_speed' => 'normal',
             'animation_delay' => 'none',
         ], $h->defaults());
@@ -726,9 +738,16 @@ final class BuilderRenderTest extends TestCase
                 return '<div>' . htmlspecialchars($data['title'] ?? '') . '</div>';
             }
         };
-        BuilderRegistry::register($el);
-        $this->assertSame(['title' => 'x'], BuilderRegistry::get('test-plugin-el')->defaults());
-        $this->assertSame('<div>hi</div>', $this->inner($this->oneEl(['type' => 'test-plugin-el', 'data' => ['title' => 'hi']])));
+        $registry = new \ReflectionProperty(BuilderRegistry::class, 'elements');
+        $registry->setAccessible(true);
+        $before = $registry->getValue();
+        try {
+            BuilderRegistry::register($el);
+            $this->assertSame(['title' => 'x'], BuilderRegistry::get('test-plugin-el')->defaults());
+            $this->assertSame('<div>hi</div>', $this->inner($this->oneEl(['type' => 'test-plugin-el', 'data' => ['title' => 'hi']])));
+        } finally {
+            $registry->setValue(null, $before);
+        }
     }
 
     // ---- 动态元素：测 buildMarkup() 拼出的 {yk:} 标签（纯字符串，不经 TagEngine/DB） ----
@@ -787,6 +806,7 @@ final class BuilderRenderTest extends TestCase
     {
         $n = (new \NavElement())->buildMarkup(['dropdown' => true]);
         $this->assertStringContainsString('{yk:subnav wrap=ul', $n);
+        $this->assertStringContainsString('class="yk-nav-panel ', $n);
         $this->assertStringContainsString('group-hover/nav:block', $n); // CSS hover 展开
         $this->assertStringContainsString('{yk:if field=has_children op=eq value=1}', $n); // 叶子项无箭头
         $this->assertStringContainsString('data-yk-nav-caret', $n);
@@ -1163,7 +1183,8 @@ final class BuilderRenderTest extends TestCase
             'columns' => [['elements' => []]],
         ]]));
 
-        $this->assertStringContainsString('<div class="text-left mb-10">', $out);
+        // 与首页动态区块标题一致：默认滚动进入视窗时向上淡入
+        $this->assertStringContainsString('<div class="text-left mb-10" data-animate="fade-up">', $out);
         $this->assertStringContainsString(
             '<h3 class="blk-title" style="font-size:2.25rem;color:#123456;">Section title</h3>',
             $out
@@ -1179,6 +1200,47 @@ final class BuilderRenderTest extends TestCase
         ]]));
         $this->assertStringContainsString('<h2 class="blk-title">Safe</h2>', $fallback);
         $this->assertStringNotContainsString('display:none', $fallback);
+    }
+
+    public function testSectionTitleAnimationCanBeChangedOrTurnedOff(): void
+    {
+        $render = static fn(array $settings): string => BlockRenderer::render((string) json_encode([[
+            'settings' => ['title' => 'Animated'] + $settings,
+            'columns' => [['elements' => []]],
+        ]]));
+        $this->assertStringContainsString('<div class="text-center mb-10" data-animate="zoom-in">', $render(['title_animation' => 'zoom-in']));
+        $this->assertStringContainsString('<div class="text-center mb-10">', $render(['title_animation' => 'none']));
+        $this->assertStringNotContainsString('data-animate', $render(['title_animation' => 'none']));
+        // 非法值在保存时归零为默认
+        $processed = \BloxDocumentPipeline::process((string) json_encode([[
+            'settings' => ['title' => 'X', 'title_animation' => '"><script>'],
+            'columns' => [['elements' => []]],
+        ]]), 'page');
+        $this->assertSame('', $processed['sections'][0]['settings']['title_animation']);
+    }
+
+    public function testSectionTitleDecorationMatchesHomeBlockOptions(): void
+    {
+        $render = static fn(array $settings): string => BlockRenderer::render(json_encode(
+            \BloxDocumentPipeline::process(json_encode([[
+                'settings' => ['title' => 'FAQ'] + $settings,
+                'columns' => [['elements' => []]],
+            ]]))
+        ));
+
+        // 未设置装饰项：与旧版逐字节一致
+        $this->assertStringContainsString('</h2><span class="section-title-bar"></span>', $render([]));
+        // 默认对齐跟随标题（旧版左对齐标题下装饰线仍居中）
+        $this->assertStringContainsString('<span class="section-title-bar" style="margin-left:0;margin-right:auto"></span>', $render(['title_align' => 'left']));
+        $this->assertStringContainsString(
+            '<span class="section-title-dot" style="margin-left:auto;margin-right:0;background:#ff0000;width:12px;height:12px;margin-top:20px"></span>',
+            $render(['title_decor_style' => 'dot', 'title_decor_align' => 'right', 'title_decor_color' => '#ff0000', 'title_decor_width' => 12, 'title_decor_gap' => 20])
+        );
+        $this->assertStringNotContainsString('section-title-', $render(['title_decor_style' => 'none']));
+
+        $junk = $render(['title_decor_style' => 'x"><script>', 'title_decor_color' => 'red;}</style>', 'title_decor_width' => 9999, 'title_decor_gap' => -5]);
+        $this->assertStringContainsString('<span class="section-title-bar" style="width:240px"></span>', $junk);
+        $this->assertStringNotContainsString('<script>', $junk);
     }
 
     public function testSectionGradientBackground(): void
@@ -1335,7 +1397,7 @@ final class BuilderRenderTest extends TestCase
             $fixture['data']['animation_delay'] = 'medium';
             $out = $this->inner($this->oneEl($fixture));
             $this->assertStringContainsString(
-                'data-animate="fade-up" data-animate-speed="fast" data-animate-delay="medium"',
+                'data-animate="fade-up" data-animate-trigger="viewport" data-animate-speed="fast" data-animate-delay="medium"',
                 $out,
                 $fixture['type']
             );

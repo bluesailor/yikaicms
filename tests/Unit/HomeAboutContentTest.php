@@ -44,7 +44,7 @@ final class HomeAboutContentTest extends TestCase
 
     public function testMissingImageUsesDefaultButExplicitEmptyImageStaysEmpty(): void
     {
-        self::assertSame('/assets/images/demo/about-office.jpg', HomeAboutContent::resolve()['override_image']);
+        self::assertSame('/assets/images/demo/yikaicms-industrial-600.webp', HomeAboutContent::resolve()['override_image']);
         $GLOBALS['yikai_config_runtime_overrides']['home_about_image'] = '';
         self::assertSame('', HomeAboutContent::resolve()['override_image']);
         $GLOBALS['yikai_config_runtime_overrides']['home_about_image'] = '/uploads/company.jpg';
@@ -115,6 +115,61 @@ final class HomeAboutContentTest extends TestCase
         self::assertSame('#112233', $section['settings']['bg_color']);
         self::assertSame('Company', $section['columns'][0]['elements'][0]['data']['text']);
         self::assertSame('', BlockRenderer::render(json_encode(['schema' => 1, 'sections' => [$section]], JSON_THROW_ON_ERROR)));
+    }
+
+    public function testConvertedBadgeAndButtonHaveEditableSoftStyles(): void
+    {
+        $section = HomeAboutContent::toSection(['override_tag_title' => 'Service', 'override_tag_description' => 'Quality']);
+        $button = $section['columns'][0]['elements'][3];
+        $badge = $section['columns'][1]['elements'][0]['data']['children'][1];
+        self::assertSame('soft', $button['data']['variant']);
+        self::assertSame('rounded', $button['data']['shape']);
+        self::assertSame('rgba(239,246,255,0.94)', $badge['data']['bg_color']);
+        self::assertSame('#1e3a8a', $badge['data']['color']);
+        self::assertStringNotContainsString('bg-primary', $badge['data']['html']);
+        self::assertStringNotContainsString('text-white', $badge['data']['html']);
+
+        $badge['data']['bg_color'] = '#f1f5f9';
+        $badge['data']['color'] = '#334155';
+        $button['data']['bg_color'] = '#f8fafc';
+        $button['data']['color'] = '#334155';
+        $section['columns'][0]['elements'][3] = $button;
+        $section['columns'][1]['elements'][0]['data']['children'][1] = $badge;
+        $saved = BloxDocumentPipeline::process(json_encode(['sections' => [$section]], JSON_THROW_ON_ERROR));
+        $html = BlockRenderer::render($saved['json']);
+        $dom = new DOMDocument();
+        @$dom->loadHTML($html);
+        $xpath = new DOMXPath($dom);
+        $link = $xpath->query('//a')->item(0);
+        self::assertStringContainsString('background-color:#f8fafc;', $link->getAttribute('style'));
+        self::assertStringContainsString('color:#334155;', $link->getAttribute('style'));
+        $caption = $xpath->query('//h3')->item(0)->parentNode;
+        self::assertStringContainsString('background-color:#f1f5f9;', $caption->getAttribute('style'));
+        self::assertStringContainsString('color:#334155;', $caption->getAttribute('style'));
+        self::assertStringContainsString('padding:24px', $caption->getAttribute('style'));
+    }
+
+    public function testConversionRespectsBadgeColorOverridesAndRejectsInvalidColors(): void
+    {
+        $GLOBALS['yikai_config_runtime_overrides']['home_about_tag_background'] = '#e2e8f0';
+        $GLOBALS['yikai_config_runtime_overrides']['home_about_tag_color'] = '#334155';
+        $section = HomeAboutContent::toSection(['override_tag_title' => 'Service']);
+        $badge = $section['columns'][1]['elements'][0]['data']['children'][1]['data'];
+        self::assertSame('#e2e8f0', $badge['bg_color']);
+        self::assertSame('#334155', $badge['color']);
+        $section = HomeAboutContent::toSection(['override_tag_title' => 'Service',
+            'override_tag_background' => 'rgba(239,246,255,.7)', 'override_tag_color' => '#172554']);
+        $badge = $section['columns'][1]['elements'][0]['data']['children'][1]['data'];
+        self::assertSame('rgba(239,246,255,.7)', $badge['bg_color']);
+        self::assertSame('#172554', $badge['color']);
+        foreach (['button', 'text'] as $type) {
+            $html = BlockRenderer::renderElementNode(['type' => $type, 'data' => [
+                'text' => 'Link', 'html' => '<p>Text</p>', 'color' => '#fff;display:none',
+                'bg_color' => '#fff;background-image:url(javascript:1)',
+            ]]);
+            self::assertStringNotContainsString('display:none', $html);
+            self::assertStringNotContainsString('javascript:', $html);
+        }
     }
 
     public function testLegacyImportCreatesStandardAboutSections(): void

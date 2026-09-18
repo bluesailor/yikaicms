@@ -72,8 +72,10 @@ final class BloxValueSanitizer
                 return mb_substr(self::str($value), 0, self::intOpt($control, 'maxlength', self::TEXTAREA_MAX));
 
             case 'richtext':
+                // 严格档：Blox 的排版走 class / 设计令牌，元素值里不留内联 style。
+                // 不能用 sanitizeHtml()——那是 CMS 正文用的宽松档（允许颜色/字号/对齐）。
                 $html = self::str($value);
-                return function_exists('sanitizeHtml') ? sanitizeHtml($html) : $html;
+                return class_exists('HtmlPolicy') ? HtmlPolicy::richText($html) : $html;
 
             case 'url':
                 // safeHref：站内相对/锚点/查询串/http(s)/mailto/tel/循环占位符；

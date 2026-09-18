@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { methods } = require('../../assets/js/blox-image-control');
+const { clearMatchingHomeBackgroundCopies, methods } = require('../../assets/js/blox-image-control');
 
 function editor() {
     const app = Object.assign({
@@ -130,4 +130,31 @@ test('child backgrounds are ignored until the selected section has a video', () 
     assert.equal(app.sectionBackgroundVideoObstructionCount(), 0);
     assert.equal(app.clearSectionBackgroundVideoObstructions(), 0);
     assert.equal(app.sel.columns[0].elements[0].data.bg_image, '/child.jpg');
+});
+
+test('matching homepage CTA and outer background copies are cleared together', () => {
+    const cta = { type: 'home-block', data: { block_type: 'cta', bg_image: '/same.jpg' } };
+    const section = {
+        settings: { bg_image: '/same.jpg', container_bg_image: '/same.jpg' },
+        columns: [{ elements: [cta] }],
+    };
+
+    assert.equal(clearMatchingHomeBackgroundCopies(section, '/same.jpg', cta.data, 'bg_image'), 2);
+    assert.equal(cta.data.bg_image, '/same.jpg');
+    assert.equal(section.settings.bg_image, '');
+    assert.equal(section.settings.container_bg_image, '');
+});
+
+test('clearing an outer homepage image also clears an identical CTA copy', () => {
+    const app = editor();
+    const cta = { type: 'home-block', data: { block_type: 'cta', bg_image: '/same.jpg' } };
+    app.sel = {
+        settings: { container_bg_image: '/same.jpg' },
+        columns: [{ elements: [cta] }],
+    };
+
+    app.setImageControl('container', 'container_bg_image', '');
+
+    assert.equal(app.sel.settings.container_bg_image, '');
+    assert.equal(cta.data.bg_image, '');
 });

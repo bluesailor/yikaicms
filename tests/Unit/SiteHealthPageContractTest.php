@@ -49,8 +49,15 @@ final class SiteHealthPageContractTest extends TestCase
         self::assertStringContainsString("CLI::register('site:health'", $command);
         self::assertStringContainsString('!empty($opts[\'remote\'])', $command);
         self::assertStringContainsString('data-testid="admin-help-link"', $header);
-        self::assertStringContainsString('https://www.yikaicms.com/en/#help', $header);
-        self::assertStringContainsString('https://www.yikaicms.com/ja/#help', $header);
+        // 顶栏图标指向使用教程（仅中文版）；英/日后台与伪静态专项说明共用 adminHelpUrl()，控制台提醒与体检页也调它
+        self::assertStringContainsString("default => 'https://www.yikaicms.com/tutorial.php',", $header);
+        self::assertStringContainsString("'en', 'ja' => adminHelpUrl(),", $header);
+        self::assertStringContainsString('<a href="<?php echo e($adminTutorialUrl); ?>"', $header);
+        $functions = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
+        self::assertStringContainsString('https://www.yikaicms.com/en/#help', $functions);
+        self::assertStringContainsString('https://www.yikaicms.com/ja/#help', $functions);
+        self::assertStringContainsString('<?php echo e(adminHelpUrl()); ?>', $dashboard);
+        self::assertStringContainsString('<?php echo e(adminHelpUrl()); ?>', $healthPage);
         self::assertStringContainsString('rel="noopener noreferrer"', $header);
         self::assertStringContainsString('data-testid="site-health-rewrite-help"', $healthPage);
 

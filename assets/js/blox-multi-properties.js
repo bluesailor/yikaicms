@@ -6,7 +6,7 @@
     "use strict";
 
     var MIXED = "__mixed__";
-    var STYLE_KEYS = ["visual_size", "align", "animation", "animation_speed", "animation_delay"];
+    var STYLE_KEYS = ["visual_size", "align", "animation", "animation_trigger", "animation_speed", "animation_delay"];
 
     function idOf(item) {
         return item && item.id !== undefined && item.id !== null ? String(item.id) : "";
@@ -102,7 +102,7 @@
                     var state = this.batchControlState(animation);
                     if (!state.mixed && state.value === "") {
                         controls = controls.filter(function (control) {
-                            return control.key !== "animation_speed" && control.key !== "animation_delay";
+                            return control.key !== "animation_speed" && control.key !== "animation_delay" && control.key !== "animation_trigger";
                         });
                     }
                 }

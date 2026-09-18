@@ -14,8 +14,20 @@ final class ContactCardsElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'cols', 'type' => 'select', 'label' => __('blox_cols_per_row'), 'default' => 'auto',
-                'options' => ['auto' => __('blox_cols_auto'), '2' => __('blox_n_cols', ['n' => 2]), '3' => __('blox_n_cols', ['n' => 3]), '4' => __('blox_n_cols', ['n' => 4])]],
+            ['key' => 'card_layout', 'type' => 'select', 'label' => __('blox_contact_layout'), 'default' => 'classic', 'tab' => 'style',
+                'option_preview' => 'contact-layout',
+                'options' => ['classic' => __('blox_contact_layout_classic'), 'side' => __('blox_contact_layout_side'), 'list' => __('blox_contact_layout_list')]],
+            ['key' => 'cols', 'type' => 'select', 'label' => __('blox_cols_per_row'), 'default' => 'auto', 'tab' => 'style',
+                'options' => ['auto' => __('blox_contact_cols_auto'), '1' => __('blox_n_cols', ['n' => 1]), '2' => __('blox_n_cols', ['n' => 2]), '3' => __('blox_n_cols', ['n' => 3]), '4' => __('blox_n_cols', ['n' => 4])]],
+            ['key' => 'card_align', 'type' => 'select', 'label' => __('blox_align'), 'default' => 'auto', 'tab' => 'style',
+                'options' => ['auto' => __('blox_button_hover_default'), 'left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')],
+                'option_icons' => ['auto' => 'adjustments', 'left' => 'align-left', 'center' => 'align-center', 'right' => 'align-right']],
+            ['key' => 'show_icons', 'type' => 'checkbox', 'label' => __('blox_contact_show_icons'), 'default' => true, 'tab' => 'style'],
+            ['key' => 'icon_surface', 'type' => 'select', 'label' => __('blox_icon_box_surface'), 'default' => 'circle', 'tab' => 'style',
+                'option_preview' => 'icon-surface', 'required' => ['show_icons', '=', true],
+                'options' => ['circle' => __('blox_icon_box_circle'), 'square' => __('blox_icon_box_square'), 'none' => __('blox_icon_box_none')]],
+            ['key' => 'card_gap', 'type' => 'select', 'label' => __('blox_item_gap'), 'default' => 'md', 'tab' => 'style',
+                'options' => ['sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg')]],
         ];
     }
 
@@ -28,12 +40,13 @@ final class ContactCardsElement extends AbstractElement
         }
         $cols = (string) ($data['cols'] ?? 'auto');
         $grid = match ($cols) {
+            '1' => 'md:grid-cols-1',
             '2' => 'md:grid-cols-2',
             '3' => 'md:grid-cols-3',
             '4' => 'md:grid-cols-2 lg:grid-cols-4',
-            default => contactGridCols(count($cards)),
+            default => ($data['card_layout'] ?? '') === 'list' ? 'md:grid-cols-1' : contactGridCols(count($cards)),
         };
         // 区块间距由 section 管理；固定联系页仍通过默认参数保留历史 mb-12。
-        return renderContactCardsHtml($cards, $grid, null, null, false);
+        return renderContactCardsHtml($cards, $grid, null, null, false, $data);
     }
 }

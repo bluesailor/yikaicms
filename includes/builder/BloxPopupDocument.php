@@ -20,7 +20,7 @@ final class BloxPopupDocument
     }
 
     /** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
-    public static function process(string $json, string $idPrefix = 'popup'): array
+    public static function process(string $json, string $idPrefix = 'popup', ?string $trustedJson = null): array
     {
         $document = self::decode($json);
         $baseJson = json_encode([
@@ -28,7 +28,8 @@ final class BloxPopupDocument
             'settings' => [],
             'sections' => $document['sections'],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-        $processed = BloxDocumentPipeline::process($baseJson, $idPrefix);
+        // 保护字段只比较 sections，弹窗设置包裹层不参与。
+        $processed = BloxDocumentPipeline::process($baseJson, $idPrefix, trustedJson: $trustedJson);
         $processed['settings'] = $document['settings'];
         $processed['json'] = json_encode([
             'schema' => BloxDocumentPipeline::SCHEMA_VERSION,

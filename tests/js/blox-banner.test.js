@@ -217,6 +217,12 @@ test('overlay header height becomes a banner content safety inset', () => {
     assert.strictEqual(slider.style.values['--blox-banner-safe-top'], '92px');
 });
 
+test('overlay safety excludes the canvas insertion rail above the banner', () => {
+    const slider = makeSlider({}, true, 48);
+    run({ sliders: [slider], overlay: true, headerBottom: 118 });
+    assert.strictEqual(slider.style.values['--blox-banner-safe-top'], '70px');
+});
+
 test('non-overlay and stuck headers do not reserve banner space', () => {
     const ordinary = makeSlider();
     const stuck = makeSlider();

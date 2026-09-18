@@ -8,7 +8,7 @@ final class BloxTemplateModel extends Model
     protected string $table = 'blox_templates';
     protected string $defaultOrder = 'updated_at DESC, id DESC';
 
-    public const TYPES = ['section', 'page', 'header', 'footer', 'popup'];
+    public const TYPES = ['section', 'page', 'header', 'footer', 'popup', 'product-detail', 'article-detail'];
     private const SOURCES = ['user', 'import', 'builtin', 'plugin', 'remote'];
 
     public static function validType(string $type): bool
@@ -98,7 +98,7 @@ final class BloxTemplateModel extends Model
     }
 
     /** @return array<string,mixed>|null */
-    public function findForExport(int $id): ?array
+    public function findForExport(int $id, bool $forUpdate = false): ?array
     {
         if ($id <= 0) {
             return null;
@@ -106,7 +106,8 @@ final class BloxTemplateModel extends Model
 
         return db()->fetchOne(
             'SELECT id,type,name,source,source_ref,schema_version,draft_data,published_data,requirements,metadata,conditions,thumbnail,status,updated_at,published_at'
-            . ' FROM ' . DB_PREFIX . 'blox_templates WHERE id = ?',
+            . ' FROM ' . DB_PREFIX . 'blox_templates WHERE id = ?'
+            . ($forUpdate && !db()->isSqlite() ? ' FOR UPDATE' : ''),
             [$id]
         );
     }
@@ -147,6 +148,31 @@ final class BloxTemplateModel extends Model
         } catch (Throwable) {
             return [];
         }
+    }
+
+    /** @return list<array<string,mixed>> */
+    public function publishedProductTemplates(): array
+    {
+        return $this->publishedDetailTemplates('product-detail');
+    }
+
+    /**
+     * 已发布的详情模板（product-detail / article-detail）。
+     * 与产品模板共用同一取数口径：status=1 且已发布，ID 倒序（兜底确定性）。
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function publishedDetailTemplates(string $type): array
+    {
+        if (!in_array($type, ['product-detail', 'article-detail'], true)) {
+            return [];
+        }
+        if (!db()->tableExists('blox_templates')) return [];
+        return db()->fetchAll(
+            'SELECT id,type,status,published_data FROM ' . DB_PREFIX . 'blox_templates'
+            . ' WHERE type = ? AND status = 1 AND published_data IS NOT NULL ORDER BY id DESC',
+            [$type]
+        );
     }
 
     /** @return array<string,mixed>|null */
@@ -213,6 +239,8 @@ final class BloxTemplateModel extends Model
         if ($affected < 1) {
             throw new RuntimeException(__('blox_tpl_not_found'));
         }
+        // 激活条件决定前台用哪套页头/页尾，改动后整页缓存必须失效。
+        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
     }
 
     /** 保存目录推荐元数据；正文和发布状态不受影响。 */
@@ -232,6 +260,7 @@ final class BloxTemplateModel extends Model
         if ($affected < 1 && !$this->find($id)) {
             throw new RuntimeException(__('blox_tpl_not_found'));
         }
+        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
     }
 
     public function publishDraft(int $id): void
@@ -259,6 +288,47 @@ final class BloxTemplateModel extends Model
             'updated_at' => time(),
             'published_at' => 0,
         ]);
+    }
+
+    public function switchProductSource(int $id, string $source, string $expectedHash): void
+    {
+        $this->switchDetailSource($id, 'product-detail', $source, $expectedHash);
+    }
+
+    /**
+     * 切换详情模板的输出源（native/custom），保留布局与作用域。
+     * 用 expectedHash 做乐观并发：内容被人改过就报冲突，不静默覆盖。
+     */
+    public function switchDetailSource(int $id, string $type, string $source, string $expectedHash): void
+    {
+        if (!in_array($type, ['product-detail', 'article-detail'], true)) {
+            throw new RuntimeException(__('blox_tpl_not_found'));
+        }
+        $row = $this->findForExport($id);
+        if (!$row || $row['type'] !== $type || (int) $row['status'] !== 1) {
+            throw new RuntimeException(__('blox_tpl_not_found'));
+        }
+        $previous = (string) ($row['published_data'] ?? '');
+        if (!hash_equals(hash('sha256', $previous), $expectedHash)) {
+            throw new RuntimeException(__('blox_save_conflict'));
+        }
+        $next = $type === 'article-detail'
+            ? ArticleTemplateDocument::changeSource($previous, $source)
+            : ProductTemplateDocument::changeSource($previous, $source);
+        $draftBefore = $row['draft_data'] ?? null;
+        $draft = trim((string) $draftBefore) !== '' ? (string) $draftBefore : $previous;
+        $nextDraft = $type === 'article-detail'
+            ? ArticleTemplateDocument::changeSource($draft, $source)
+            : ProductTemplateDocument::changeSource($draft, $source);
+        if ($previous === $next && $draftBefore === $nextDraft) return;
+        // Preserve each layout, but make stale editor revisions fail after a source switch.
+        $affected = db()->execute(
+            'UPDATE ' . DB_PREFIX . 'blox_templates SET published_data = ?, draft_data = ?, updated_at = ?'
+            . ' WHERE id = ? AND type = ? AND status = 1 AND published_data = ?'
+            . ' AND (draft_data = ? OR (draft_data IS NULL AND ? IS NULL))',
+            [$next, $nextDraft, time(), $id, $type, $previous, $draftBefore, $draftBefore]
+        );
+        if ($affected !== 1) throw new RuntimeException(__('blox_save_conflict'));
     }
 
     /** @param array{elements?:list<string>,plugins?:list<string>,design_tokens?:list<string>,design_styles?:list<string>} $requirements

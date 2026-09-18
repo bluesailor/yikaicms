@@ -1,6 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const {
   addTemporaryHeading,
+  openSectionInsertAtEnd,
   canvasScrollTop,
   countCanvasSections,
   countDynamicHomeBlocks,
@@ -121,8 +122,10 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
   const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(pageOverflow).toBe(0);
 
+  // 宽屏断点默认开启（blox_widescreen_enabled=1）：宽屏 / 桌面 / 平板 / 手机 四个切换按钮
   const deviceButtons = page.locator('[data-testid^="blox-device-"]');
-  await expect(deviceButtons).toHaveCount(3);
+  await expect(deviceButtons).toHaveCount(4);
+  await expect(page.getByTestId('blox-device-wide')).toBeVisible();
   const deviceMetrics = await deviceButtons.evaluateAll((buttons) => buttons.map((button) => {
     const rect = button.getBoundingClientRect();
     return {
@@ -177,7 +180,7 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     const templateDialog = page.locator('[x-ref="templateDialog"]');
     await expect(templateDialog).toBeVisible();
     await expect(page.getByTestId('blox-template-search')).toBeFocused();
-    await expect(page.getByTestId('blox-template-category')).toBeVisible();
+    await expect(page.getByTestId('blox-template-category-chips')).toBeVisible();
     const firstTemplateImage = page.locator(
       '[data-testid="blox-template-item"][data-template-key^="builtin:"] img',
     ).first();
@@ -310,7 +313,11 @@ test('docked prebuilt panel clears the toolbar and leaves Tab untrapped @ci', as
 test('prebuilt panel resizes against its own container without losing scroll @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop prebuilt resize baseline');
   await page.evaluate(() => {
-    localStorage.removeItem('yikai:blox:template-panel-width:v1');
+    // TASK-002 第 5 项：工作区偏好现在带"站点 + 账号"作用域前缀，
+    // 清空整个 yikai:blox: 命名空间，避免上一轮的旧键或新键残留影响默认值断言
+    Object.keys(localStorage)
+      .filter((key) => key.indexOf('yikai:blox:') === 0)
+      .forEach((key) => localStorage.removeItem(key));
     localStorage.setItem('yikai:blox:template-density:v1', 'standard');
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -340,7 +347,7 @@ test('prebuilt panel resizes against its own container without losing scroll @ci
   await expect.poll(columnCount).toBe(2);
   await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeGreaterThanOrEqual(scrollBeforeResize - 2);
   await expect.poll(() => panel.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:template-panel-width:v1'))).toBe('616');
+  // 持久化改由下面的 reload 行为断言覆盖：键名现在带作用域前缀，不再对裸键做文本断言
   await page.screenshot({ path: testInfo.outputPath('blox-template-docked-resized.png'), fullPage: true });
 
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -364,6 +371,41 @@ test('prebuilt panel resizes against its own container without losing scroll @ci
   await expect.poll(columnCount).toBe(3);
   await expect.poll(() => panel.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('blox-template-container-density.png'), fullPage: true });
+});
+
+test('restoring the workspace never touches the shared legacy preference @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop workspace preference baseline');
+  // TASK-002-R01 第 1 点：旧版全局键是"没有隔离键的账号"的回退来源，
+  // 恢复工作区只能在本账号作用域写默认值，绝不能删掉共享旧键（否则会影响别的账号）。
+  await page.evaluate(() => {
+    Object.keys(localStorage)
+      .filter((key) => key.indexOf('yikai:blox:') === 0)
+      .forEach((key) => localStorage.removeItem(key));
+    localStorage.setItem('yikai:blox:left-panel-width:v1', '344');
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+
+  const adopted = await page.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).leftPanelWidth);
+  expect(adopted, '本账号没有隔离键时应回退读到共享旧键').not.toBe(288);
+
+  await page.getByTestId('blox-workspace-restore').click();
+
+  // 共享旧键必须原样保留（别的账号仍要靠它回退）
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:left-panel-width:v1'))).toBe('344');
+  const afterRestore = await page.evaluate(() => {
+    const data = window.Alpine.$data(document.querySelector('[x-data]'));
+    return { left: data.leftPanelWidth, scoped: localStorage.getItem(data.workspacePrefPrefix + 'left-panel-width') };
+  });
+  expect(afterRestore.left).toBe(288);
+  expect(afterRestore.scoped, '本作用域写入默认值以阻止再次回退').toBe('288');
+
+  // 本账号刷新后仍是默认（不再回到旧键的 344），且旧键依旧存在
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-canvas')).toBeVisible();
+  const persisted = await page.evaluate(() => window.Alpine.$data(document.querySelector('[x-data]')).leftPanelWidth);
+  expect(persisted).toBe(288);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:left-panel-width:v1'))).toBe('344');
 });
 
 test('element category filter narrows the library and resets on reload @ci', async ({ page }, testInfo) => {
@@ -398,6 +440,12 @@ test('desktop keyboard insertion requires a selected target @ci', async ({ page 
   await expectClean(page);
 });
 
+/** 工作区偏好按站点 + 账号隔离存储，键名由编辑器生成（旧版全局键只作回退读取）。 */
+const workspacePref = (page, name) => page.evaluate((prefName) => {
+  const app = window.Alpine.$data(document.body);
+  return localStorage.getItem(app.workspacePrefKey(prefName));
+}, name);
+
 test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop split-panel baseline');
   const panel = page.getByTestId('blox-left-panel');
@@ -418,7 +466,7 @@ test('desktop element panel resizes by drag and keyboard @ci', async ({ page }, 
 
   await expect.poll(async () => (await panel.boundingBox()).width).toBe(initialPanel.width + 80);
   await expect.poll(async () => (await canvasHost.boundingBox()).x).toBe(initialCanvas.x + 80);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:left-panel-width:v1'))).toBe('368');
+  await expect.poll(() => workspacePref(page, 'left-panel-width')).toBe('368');
 
   await resizer.dblclick();
   await expect.poll(async () => (await panel.boundingBox()).width).toBe(288);
@@ -493,7 +541,7 @@ test('desktop structure panel resizes and collapses persistently @ci', async ({ 
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop split-panel baseline');
   const panel = page.getByTestId('blox-right-panel');
   const resizer = page.getByTestId('blox-right-panel-resizer');
-  const toggle = page.getByTestId('blox-right-panel-toggle');
+  const toggle = page.getByTestId('blox-toolbar-structure-toggle');
   const canvasHost = page.getByTestId('blox-canvas-host');
 
   if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
@@ -512,17 +560,22 @@ test('desktop structure panel resizes and collapses persistently @ci', async ({ 
 
   await expect.poll(async () => (await panel.boundingBox()).width).toBe(initialPanel.width + 64);
   await expect.poll(async () => (await canvasHost.boundingBox()).width).toBe(initialCanvas.width - 64);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:right-panel-width:v1'))).toBe('320');
+  await expect.poll(() => workspacePref(page, 'right-panel-width')).toBe('320');
 
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(resizer).toBeHidden();
-  await expect.poll(async () => (await panel.boundingBox()).width).toBe(40);
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('yikai:blox:right-panel-collapsed:v1'))).toBe('1');
+  await expect(panel).toBeHidden();
+  await expect(page.getByTestId('blox-section-insert-open')).toHaveCount(0);
+  await expect.poll(async () => {
+    const box = await page.getByTestId('blox-canvas').boundingBox();
+    return Math.abs(box.x + box.width - page.viewportSize().width);
+  }).toBeLessThanOrEqual(1);
+  await expect.poll(() => workspacePref(page, 'right-panel-collapsed')).toBe('1');
 
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByTestId('blox-right-panel-toggle')).toHaveAttribute('aria-expanded', 'false');
-  await page.getByTestId('blox-right-panel-toggle').click();
+  await expect(page.getByTestId('blox-toolbar-structure-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await page.getByTestId('blox-toolbar-structure-toggle').click();
   await expect.poll(async () => (await page.getByTestId('blox-right-panel').boundingBox()).width).toBe(320);
   await page.getByTestId('blox-right-panel-resizer').dblclick();
   await expect.poll(async () => (await page.getByTestId('blox-right-panel').boundingBox()).width).toBe(256);
@@ -699,7 +752,9 @@ test('home canvas keeps header and footer actions without a redundant page struc
   expect(page.url()).toBe(expectedHeaderUrl);
   await expect(page.locator('.blox-header-page')).toContainText('当前网页头');
   await expect(page.getByTestId('blox-sticky-toggle').locator('input')).not.toBeChecked();
-  await expect(page.getByTestId('blox-publish-template')).toContainText('发布并使用');
+  // 02 轮：发布按钮按对象命名——模板页统一叫「发布模板」；「发布并使用」改由 title 承载（同一动作）
+  await expect(page.getByTestId('blox-publish-template')).toContainText('发布模板');
+  await expect(page.getByTestId('blox-publish-template')).toHaveAttribute('title', '发布并使用');
 });
 
 test('dirty area editor confirms and returns to the home editor @ci', async ({ page }, testInfo) => {
@@ -785,12 +840,19 @@ test('footer template opens with the editable footer visible at the bottom of th
   await expect(footerArea).toBeVisible();
   await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(1);
   await expect(contentFrame.locator('.yk-ctx-dim header').first()).toBeVisible();
+  // 参照区限高，且与可编辑页脚之间有明确分界——否则整页正文会把页脚挤成底部一条
+  await expect(contentFrame.locator('.yk-ctx-divider')).toHaveCount(1);
+  expect(await contentFrame.evaluate(() => {
+    const dim = document.querySelector('.yk-ctx-dim');
+    return dim.getBoundingClientRect().height <= window.innerHeight * 0.42;
+  })).toBe(true);
+  // 参照区限高后整份画布可一屏装下：页脚必须「不用滚动」就完整可见。
+  // 旧断言要求 scrollTop > 0（当初靠滚动把页脚拉进视野），限高后那是退步不是进步。
   await expect.poll(async () => contentFrame.evaluate(() => {
     const footer = document.querySelector('[data-yk-area="footer"]');
     if (!footer) return false;
     const rect = footer.getBoundingClientRect();
-    const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
-    return scrollTop > 0 && rect.bottom <= window.innerHeight + 2 && rect.bottom > 0;
+    return rect.top >= 0 && rect.bottom <= window.innerHeight + 2 && rect.height > 0;
   }), { timeout: 10000 }).toBe(true);
 });
 
@@ -808,7 +870,8 @@ test('current theme header allows publishing unsaved canvas changes @ci', async 
   await sticky.check();
   await expect(page.getByTestId('blox-dirty')).toBeVisible();
   await expect(page.getByTestId('blox-publish-template')).toBeEnabled();
-  await expect(page.getByTestId('blox-publish-template')).toHaveAttribute('title', '保存当前修改并发布');
+  // 编辑当前主题网页头：发布即接管主题网页头，按钮提示为「发布并使用」（普通模板为「保存当前修改并发布」）
+  await expect(page.getByTestId('blox-publish-template')).toHaveAttribute('title', '发布并使用');
 
   // 全局 E2E 安全钩子禁止触发保存/发布；恢复初始值，证明按钮状态不依赖先保存。
   await sticky.uncheck();
@@ -973,6 +1036,7 @@ test('container panel edits and restores responsive child gap @ci', async ({ pag
   const before = await countSections(page);
   const clearSelection = page.getByTestId('blox-clear-selection');
   if (await clearSelection.isVisible()) await clearSelection.click();
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   await page.getByTestId('blox-library-open').click();
@@ -1060,6 +1124,40 @@ test('cover-header banner fills the first viewport @ci', async ({ page }, testIn
   await expectClean(page);
 });
 
+test('fixed-height banner overlays header without filling viewport @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
+  const contentFrame = await frame(page);
+  const item = page.locator('[data-testid="blox-tree-element"][data-element-type="home-block"][data-home-block-type="banner"]').first();
+  const section = item.locator('xpath=ancestor::*[@data-testid="blox-tree-section"]');
+  await section.locator('[data-section-drag-handle]').first().click();
+  await item.locator('[data-element-drag-handle]').click();
+  await page.getByRole('button', { name: '固定高度并覆盖页头', exact: true }).click();
+  await waitPreviewSettled(page);
+  const banner = contentFrame.locator('[data-blox-banner]').first();
+  await expect(banner).toHaveAttribute('data-blox-height-mode', 'fixed-cover-header');
+  const dimensions = await banner.evaluate(element => ({
+    actual: element.getBoundingClientRect().height,
+    configured: Number.parseFloat(getComputedStyle(element).getPropertyValue('--blox-banner-height-pc')),
+    overlay: element.ownerDocument.documentElement.classList.contains('yk-home-header-overlay'),
+    headerTop: element.ownerDocument.querySelector('#siteHeader').getBoundingClientRect().top,
+    bannerTop: element.getBoundingClientRect().top,
+  }));
+  expect(dimensions.overlay).toBe(true);
+  expect(Math.abs(dimensions.headerTop - dimensions.bannerTop)).toBeLessThanOrEqual(1);
+  expect(Math.abs(dimensions.actual - dimensions.configured)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: testInfo.outputPath('fixed-overlay-desktop.png') });
+  await page.getByTestId('blox-device-mobile').click();
+  await waitPreviewSettled(page);
+  await expect.poll(() => contentFrame.evaluate(() => window.innerWidth)).toBeLessThan(768);
+  const mobile = await banner.evaluate(element => ({
+    actual: element.getBoundingClientRect().height,
+    configured: Number.parseFloat(getComputedStyle(element).getPropertyValue('--blox-banner-height-mobile')),
+  }));
+  expect(Math.abs(mobile.actual - mobile.configured)).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: testInfo.outputPath('fixed-overlay-mobile.png') });
+  await undo(page);
+});
+
 test('banner content reserves the measured overlay header height @ci', async ({ page }) => {
   const contentFrame = await frame(page);
   const banner = contentFrame.locator('[data-blox-banner]').first();
@@ -1082,6 +1180,7 @@ test('banner content reserves the measured overlay header height @ci', async ({ 
     const contentStyle = content && getComputedStyle(content);
     return {
       headerBottom: headerBox.bottom,
+      expectedInset: Math.max(0, Math.ceil(headerBox.bottom - element.getBoundingClientRect().top)),
       safeTop: Number.parseFloat(bannerStyle.getPropertyValue('--blox-banner-safe-top')),
       contentPaddingTop: contentStyle ? Number.parseFloat(contentStyle.paddingTop) : 0,
       safeFlag: element.getAttribute('data-blox-overlay-safe'),
@@ -1090,8 +1189,8 @@ test('banner content reserves the measured overlay header height @ci', async ({ 
 
   expect(measurements).not.toBeNull();
   expect(measurements.headerBottom).toBeGreaterThan(0);
-  expect(measurements.safeFlag).toBe('1');
-  expect(measurements.safeTop).toBeGreaterThanOrEqual(Math.floor(measurements.headerBottom));
+  expect(measurements.safeFlag).toBe(measurements.expectedInset > 0 ? '1' : '0');
+  expect(measurements.safeTop).toBe(measurements.expectedInset);
   expect(measurements.contentPaddingTop).toBeGreaterThanOrEqual(measurements.safeTop);
 });
 
@@ -1367,6 +1466,7 @@ test('stale save is blocked and keeps a recoverable local copy @ci', async ({ pa
     });
   });
 
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   await page.getByTestId('blox-save').click();
@@ -1411,6 +1511,7 @@ test('publish saves the current document before activating it @ci', async ({ pag
     });
   });
 
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-dirty')).toBeVisible();
   await expect(page.getByTestId('blox-publish')).toBeEnabled();
@@ -1489,14 +1590,16 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByTestId('blox-template-quick-recommended')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('推荐用于：首页')).toBeVisible();
-  await expect(page.getByTestId('blox-template-item')).toHaveCount(14);
+  // 本地内置 8 款基础区块（2026-09-17 加入客户评价轮播、合作伙伴），都适用首页——
+  // 「推荐」与「全部」在本地库里数量相同，这是目录小的结果，不是筛选失效。
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(8);
   await expect.poll(() => page.getByTestId('blox-template-panel').evaluate((panel) => (
     panel.scrollWidth <= panel.clientWidth
   ))).toBe(true);
   await page.getByTestId('blox-template-quick-all').click();
 
   const builtins = page.locator('[data-testid="blox-template-item"][data-template-key^="builtin:"]');
-  await expect(builtins).toHaveCount(18);
+  await expect(builtins).toHaveCount(8);
   const firstPreview = builtins.first().locator('img');
   await expect(firstPreview).toBeVisible();
   await expect.poll(() => firstPreview.evaluate((image) => (
@@ -1504,28 +1607,38 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   ))).toBe(true);
 
   const search = page.getByTestId('blox-template-search');
-  await search.fill('项目流程');
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:process-steps"]')).toBeVisible();
+  await search.fill('核心优势');
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:feature-grid"]')).toBeVisible();
   await expect(builtins).toHaveCount(1);
   await search.fill('');
 
-  const category = page.getByTestId('blox-template-category');
-  await expect(category).toBeVisible();
-  await category.selectOption('content');
+  // 区块入口的分类是标签按钮（下拉框只在整页模板入口出现）
+  const chips = page.getByTestId('blox-template-category-chips');
+  await expect(chips).toBeVisible();
+  await chips.locator('[data-category="content"]').click();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]')).toBeVisible();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text-reverse"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:text-columns"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:testimonial-quote"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:faq-accordion"]')).toBeVisible();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:download-guide"]')).toBeVisible();
-  await expect(builtins).toHaveCount(6);
+  await expect(builtins).toHaveCount(2);
+  await chips.locator('[data-category="social"]').click();
+  await expect(builtins).toHaveCount(3);
+  await chips.locator('[data-category="home-common"]').click();
+  await expect(builtins).toHaveCount(5);
 
-  await category.selectOption('all');
-  const hero = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
+  await chips.locator('[data-category="all"]').click();
+  // 随包基础区块全部是静态结构；动态数据款已迁往远程精品库，本地筛选应为空
+  const dataSource = page.getByTestId('blox-template-data-source');
+  await dataSource.selectOption('dynamic');
+  await expect(builtins).toHaveCount(0);
+  await dataSource.selectOption('all');
+  const hero = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]');
   await hero.getByTestId('blox-template-insert').click();
+  // 随包模板现在也带 package_json，插入前先过服务端的导入评审（prepare_insert → confirm_insert）：
+  // 评审对话框出现 → 确认 → 才真正落到画布。评审本身的细则见 blox-canvas-import-review.spec.js。
+  await expect(page.getByTestId('blox-template-review-dialog')).toBeVisible();
+  await page.getByTestId('blox-template-review-confirm').click();
   await expect(page.locator('[x-ref="templateDialog"]')).toBeHidden();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
-  await expect((await frame(page)).getByText('以专业与稳健，陪伴客户长期成长')).toBeVisible();
+  await expect((await frame(page)).getByText('一句话说清这一段讲什么')).toBeVisible();
 
   await undo(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before);
@@ -1542,20 +1655,23 @@ test('prebuilt library persists favorites and tracks only successful recent inse
   const before = await countSections(page);
 
   await page.getByTestId('blox-prebuilt-open').click();
-  const heroFavorite = page.getByTestId('blox-template-favorite-builtin:hero-intro');
+  const heroFavorite = page.getByTestId('blox-template-favorite-builtin:basic-heading');
   await heroFavorite.click();
   await expect(heroFavorite).toHaveAttribute('aria-pressed', 'true');
   await expect.poll(() => page.evaluate(() => JSON.parse(
     localStorage.getItem('yikai:blox:template-favorites:v1') || '[]'
-  ))).toEqual(['builtin:hero-intro']);
+  ))).toEqual(['builtin:basic-heading']);
 
   await page.getByTestId('blox-template-quick-favorites').click();
-  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]')).toBeVisible();
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]')).toBeVisible();
   await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
 
   await page.getByTestId('blox-template-quick-all').click();
   const imageText = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]');
   await imageText.getByTestId('blox-template-insert').click();
+  // 随包模板插入前要过导入评审（见上一条用例的说明）
+  await expect(page.getByTestId('blox-template-review-dialog')).toBeVisible();
+  await page.getByTestId('blox-template-review-confirm').click();
   await waitPreviewSettled(page);
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   await expect.poll(() => page.evaluate(() => JSON.parse(
@@ -1572,7 +1688,7 @@ test('prebuilt library persists favorites and tracks only successful recent inse
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByTestId('blox-prebuilt-open').click();
   await page.getByTestId('blox-template-quick-favorites').click();
-  await expect(page.getByTestId('blox-template-favorite-builtin:hero-intro')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('blox-template-favorite-builtin:basic-heading')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('blox-template-item')).toHaveCount(1);
 });
 
@@ -1616,9 +1732,9 @@ test('prebuilt library restores session filters and scroll after closing or inse
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByTestId('blox-prebuilt-open').click();
 
-  const category = page.getByTestId('blox-template-category');
+  const chips = page.getByTestId('blox-template-category-chips');
   const search = page.getByTestId('blox-template-search');
-  await category.selectOption('content');
+  await chips.locator('[data-category="content"]').click();
   await search.fill('图文');
   await page.getByTestId('blox-template-close').click();
   await expect.poll(() => page.evaluate(() => JSON.parse(
@@ -1626,11 +1742,11 @@ test('prebuilt library restores session filters and scroll after closing or inse
   ))).toMatchObject({ scope: 'local', category: 'content', quickFilter: 'recommended', query: '图文' });
 
   await page.getByTestId('blox-prebuilt-open').click();
-  await expect(category).toHaveValue('content');
+  await expect(chips.locator('[data-category="content"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(search).toHaveValue('图文');
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
   await search.fill('');
-  await category.selectOption('all');
+  await chips.locator('[data-category="all"]').click();
   await page.getByTestId('blox-template-density-compact').click();
   const scroller = page.locator('[x-ref="templateScroll"]');
   await scroller.evaluate((element) => { element.scrollTop = Math.min(240, element.scrollHeight); });
@@ -1643,6 +1759,8 @@ test('prebuilt library restores session filters and scroll after closing or inse
   await search.fill('图文');
   const imageText = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]');
   await imageText.getByTestId('blox-template-insert').click();
+  await expect(page.getByTestId('blox-template-review-dialog')).toBeVisible();
+  await page.getByTestId('blox-template-review-confirm').click();
   await waitPreviewSettled(page);
   await expect(page.locator('[x-ref="templateDialog"]')).toBeHidden();
   await expect.poll(() => page.evaluate(() => JSON.parse(
@@ -1696,7 +1814,7 @@ test('prebuilt empty states explain active filters and clear them in one action 
   await expect(empty).toHaveAttribute('data-empty-reason', 'search');
   await clear.click();
   await expect(search).toHaveValue('');
-  await expect(page.getByTestId('blox-template-category')).toHaveValue('all');
+  await expect(page.getByTestId('blox-template-category-chips').locator('[data-category="all"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('[x-ref="templateScroll"]')).toHaveJSProperty('scrollTop', 0);
   await expect.poll(() => page.evaluate(() => JSON.parse(
     sessionStorage.getItem('yikai:blox:template-section-view:v2') || '{}'
@@ -1710,7 +1828,7 @@ test('prebuilt section drags from the dock into a visible fixed canvas boundary 
 
   const dialog = page.locator('[x-ref="templateDialog"]');
   const panel = dialog.locator(':scope > .relative');
-  const source = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
+  const source = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]');
   await expect(dialog).toHaveAttribute('aria-modal', 'false');
   await expect(source).toHaveAttribute('draggable', 'true');
   const panelBox = await panel.boundingBox();
@@ -1765,10 +1883,12 @@ test('prebuilt section drags from the dock into a visible fixed canvas boundary 
     expect(await contentFrame.evaluate(() => window.scrollY)).toBe(frameScrollBefore);
     await page.mouse.up();
     mouseDown = false;
+    await expect(page.getByTestId('blox-template-review-dialog')).toBeVisible();
+    await page.getByTestId('blox-template-review-confirm').click();
     await waitPreviewSettled(page);
     await expect(dialog).toBeHidden();
     await expect(page.getByTestId('blox-tree-section')).toHaveCount(beforeSections + 1);
-    await expect((await frame(page)).getByText('以专业与稳健，陪伴客户长期成长')).toBeVisible();
+    await expect((await frame(page)).getByText('一句话说清这一段讲什么')).toBeVisible();
   } finally {
     if (mouseDown) await page.mouse.up().catch(() => {});
     if (await editorHasChanges(page)) await undo(page);
@@ -1784,7 +1904,7 @@ test('prebuilt section drags to an exact structure boundary without canvas scrol
   await page.getByTestId('blox-prebuilt-open').click();
 
   const dialog = page.locator('[x-ref="templateDialog"]');
-  const source = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:hero-intro"]');
+  const source = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]');
   const targetIndex = 1;
   const target = page.getByTestId('blox-tree-section').nth(targetIndex).locator('[data-section-drag-handle]');
   const sourceBox = await source.boundingBox();
@@ -1817,10 +1937,12 @@ test('prebuilt section drags to an exact structure boundary without canvas scrol
 
     await page.mouse.up();
     mouseDown = false;
+    await expect(page.getByTestId('blox-template-review-dialog')).toBeVisible();
+    await page.getByTestId('blox-template-review-confirm').click();
     await waitPreviewSettled(page);
     await expect(dialog).toBeHidden();
     await expect(page.getByTestId('blox-tree-section')).toHaveCount(beforeSections + 1);
-    await expect((await frame(page)).locator(`[data-yk-sec="${targetIndex + 1}"]`).getByText('以专业与稳健，陪伴客户长期成长')).toBeVisible();
+    await expect((await frame(page)).locator(`[data-yk-sec="${targetIndex + 1}"]`).getByText('一句话说清这一段讲什么')).toBeVisible();
   } finally {
     if (mouseDown) await page.mouse.up().catch(() => {});
     if (await editorHasChanges(page)) await undo(page);
@@ -1846,6 +1968,8 @@ test('legacy service page can switch to editable built-in process template @loca
   await expect(template).toContainText('服务流程');
   page.once('dialog', (dialog) => dialog.accept());
   await template.getByTestId('blox-template-replace').click();
+  await expect(page.getByTestId('blox-template-review-dialog')).toBeVisible();
+  await page.getByTestId('blox-template-review-confirm').click();
 
   await expect(page.getByTestId('blox-legacy-page-notice')).toBeHidden();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(5);
@@ -2095,7 +2219,8 @@ test('editor chrome localizes to en and ja @ci', async ({ page }, testInfo) => {
     setAdminLang('ja');
     await page.reload();
     await expect(page.getByTestId('blox-tree')).toBeVisible();
-    await expect(page).toHaveTitle(/エディター/);
+    // 2026-09-17 起编辑器品牌名为「Yikai ビルダー」（原「…エディター」）
+    await expect(page).toHaveTitle(/Yikai ビルダー/);
     await expect(page.getByText('要素ライブラリ').first()).toBeVisible();
   } finally {
     setAdminLang('zh-CN');
@@ -2111,9 +2236,12 @@ test('template manager exposes safe local header and footer starters @ci', async
 
   const presets = page.getByTestId('blox-area-presets');
   await expect(presets).toBeVisible();
-  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(13);
+  // 2026-09-16：起步模板从 12 款区域扩到 18 款（+3 详情页 +3 整页），卡片图标改走 $moduleTypeIcons
+  await expect(presets.getByTestId('blox-area-preset-install')).toHaveCount(18);
   await expect(presets.locator('.ti-layout-navbar')).toHaveCount(6);
-  await expect(presets.locator('.ti-layout-bottombar')).toHaveCount(7);
+  await expect(presets.locator('.ti-article')).toHaveCount(2);
+  await expect(presets.locator('.ti-package')).toHaveCount(1);
+  await expect(presets.locator('.ti-file')).toHaveCount(3);
   await expect(page.getByTestId('blox-default-theme-status')).toBeVisible();
 
   const areaRow = page.locator('tbody tr').filter({ has: page.getByTestId('blox-condition-toggle') }).first();
@@ -2234,6 +2362,7 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   const seedDoc = JSON.stringify(JSON.parse(require('fs').readFileSync(
     require('path').resolve(__dirname, 'fixtures/header-template.json'), 'utf8')).document);
   const before = await countSections(page);
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   const savePair = Promise.all([
@@ -2402,17 +2531,33 @@ test('footer style library previews and applies practical starters @ci', async (
 
   const dialog = page.getByTestId('blox-header-presets');
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByTestId('blox-header-preset-apply')).toHaveCount(7);
-  await expect(dialog).toContainText('紧凑网页脚');
+  // 页尾起步款共 6 款（2026-09-17）：极简浅/深、简洁、四列浅/深、联系方式。
+  // business / minimal / compact / corporate / search 为 legacy，不在编辑器起步清单里。
+  await expect(dialog.getByTestId('blox-header-preset-apply')).toHaveCount(6);
+  await expect(dialog).not.toContainText('紧凑网页脚');
+  await expect(dialog).not.toContainText('多列企业网页脚');
+  await expect(dialog).toContainText('四列页脚 · 浅色');
+  await expect(dialog).toContainText('四列页脚 · 深色');
   await expect(dialog).toContainText('联系方式网页脚');
-  await expect(dialog).toContainText('搜索导航网页脚');
+  await expect(dialog).not.toContainText('搜索导航网页脚');
 
-  const searchPreset = dialog.getByTestId('blox-header-preset-search-site-footer');
-  await searchPreset.getByTestId('blox-header-preset-preview').click();
+  // 四列深色：预览里页脚区出现四列内容 + 底部版权条
+  const fourDark = dialog.getByTestId('blox-header-preset-four-column-dark-site-footer');
+  await fourDark.getByTestId('blox-header-preset-preview').click();
+  const fourPreview = page.getByTestId('blox-header-preset-preview-dialog');
+  await expect(fourPreview).toBeVisible();
+  const fourFrame = fourPreview.getByTestId('blox-header-preset-preview-frame');
+  await expect(fourFrame).toHaveAttribute('src', /template_area=footer&area_preset=four-column-dark-site-footer/);
+  await expect(fourFrame.contentFrame().locator('[data-yk-area="footer"]')).toBeVisible();
+  await fourPreview.getByTestId('blox-header-preset-preview-close').click();
+  await expect(fourPreview).toBeHidden();
+
+  const simplePreset = dialog.getByTestId('blox-header-preset-simple-light-site-footer');
+  await simplePreset.getByTestId('blox-header-preset-preview').click();
   const preview = page.getByTestId('blox-header-preset-preview-dialog');
   await expect(preview).toBeVisible();
   const previewFrame = preview.getByTestId('blox-header-preset-preview-frame');
-  await expect(previewFrame).toHaveAttribute('src', /template_area=footer&area_preset=search-site-footer/);
+  await expect(previewFrame).toHaveAttribute('src', /template_area=footer&area_preset=simple-light-site-footer/);
   const previewContent = previewFrame.contentFrame();
   await expect(previewContent.locator('[data-yk-area="footer"]')).toBeVisible();
   await expect(previewContent.locator('.yk-ctx-dim')).toHaveCount(0);
@@ -2428,9 +2573,9 @@ test('footer style library previews and applies practical starters @ci', async (
   await expect(preview).toBeHidden();
 
   if (testInfo.project.name === 'desktop-1440') {
-    await searchPreset.getByTestId('blox-header-preset-apply').click();
+    await simplePreset.getByTestId('blox-header-preset-apply').click();
     await expect(dialog).toBeHidden();
-    await expect(page.getByTestId('blox-tree-section')).toHaveCount(3);
+    await expect(page.getByTestId('blox-tree-section')).toHaveCount(1);
     await expect(page.getByTestId('blox-dirty')).toBeVisible();
     await undo(page);
     await expect(page.getByTestId('blox-tree-section')).toHaveCount(2);
@@ -2579,19 +2724,24 @@ test('header preview context reports resolver hit without rendering page body @c
   await expect(contentFrame.locator('.yk-ctx-dim')).toHaveCount(0);
 });
 
-// ── 画布插入轨道（r13）：区块边界精确插入 + 末尾常驻入口 ──
+// 画布和结构面板共用布局选择器，新增操作仍由单条命令完成。
 test('canvas insert rails add section at exact boundary @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
   const before = await countSections(page);
   expect(before).toBeGreaterThan(1);
   const contentFrame = await frame(page);
 
-  // 第 2 个区块的上缘轨道：点「+」出快捷面板，选两列 → 新区块插在 index 1
+  await page.getByTestId('blox-tree-section').first().click();
+  // 首区块下缘居中入口，选择两列后插在 index 1。
   const rail = contentFrame.locator('[data-yk-insert="1"]');
-  await rail.evaluate((el) => el.click());
-  const pop = contentFrame.locator('.yk-insert-pop');
+  expect(await rail.evaluate((button) => button.closest('[data-yk-sec]') === null)).toBe(true);
+  const treeCard = page.getByTestId('blox-tree-section').first().getByTestId('blox-tree-section-card');
+  await expect(treeCard.getByTestId('blox-section-insert-after')).toHaveCount(0);
+  await expect(page.getByTestId('blox-tree-section').first().getByTestId('blox-section-insert-after')).toBeVisible();
+  await pointerClick(page, rail);
+  const pop = page.getByTestId('blox-section-insert-picker');
   await expect(pop).toBeVisible();
-  await pop.locator('.yk-insert-pop-btn').nth(1).evaluate((el) => el.click()); // 两列
+  await pop.getByTestId('blox-add-section-2').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   // 插入即选中，且位置正确（selectedSi=1 → 结构树第 2 项高亮由选择态保证；直接断言画布新区块两列）
   await expect(contentFrame.locator('[data-yk-sec="1"] [data-yk-col]')).toHaveCount(2);
@@ -2614,6 +2764,7 @@ test('empty canvas targets open element library at the exact node @ci', async ({
   if (await clear.isVisible()) await clear.click();
 
   const before = await countSections(page);
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-2').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
   const sectionIndex = before;
@@ -2628,8 +2779,6 @@ test('empty canvas targets open element library at the exact node @ci', async ({
   const headingTile = page.getByTestId('blox-add-element-heading');
   const secondColumnBefore = await columns.nth(1).getByTestId('blox-tree-element').count();
   await headingTile.click();
-  await expect(columns.nth(1).getByTestId('blox-tree-element')).toHaveCount(secondColumnBefore);
-  await headingTile.dragTo(columns.nth(1));
   await expect(columns.nth(1).getByTestId('blox-tree-element')).toHaveCount(secondColumnBefore + 1);
 
   await waitPreviewSettled(page);
@@ -2643,7 +2792,7 @@ test('empty canvas targets open element library at the exact node @ci', async ({
   contentFrame = await frame(page);
   const containerAdd = contentFrame.locator(`[data-yk-quick-add="container:${sectionIndex}.0.0"]`);
   await pointerClick(page, containerAdd);
-  await page.getByTestId('blox-add-element-heading').press('Enter');
+  await page.getByTestId('blox-add-element-heading').click();
   await expect(contentFrame.locator(`[data-yk-el="${sectionIndex}.0.0.0"]`)).toHaveCount(1);
   expect(page.url()).toBe(originalURL);
 
@@ -2662,6 +2811,7 @@ test('canvas drag labels and inserts into a container center @ci', async ({ page
 
   const before = await countSections(page);
   try {
+    await openSectionInsertAtEnd(page);
     await page.getByTestId('blox-add-section-1').click();
     const section = page.getByTestId('blox-tree-section').last();
     await page.getByTestId('blox-library-open').click();
@@ -2911,6 +3061,7 @@ test('structure tree drag labels before and inside intentions @ci', async ({ pag
 
   const before = await countSections(page);
   try {
+    await openSectionInsertAtEnd(page);
     await page.getByTestId('blox-add-section-1').click();
     const section = page.getByTestId('blox-tree-section').last();
     await page.getByTestId('blox-library-open').click();

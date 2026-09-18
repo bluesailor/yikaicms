@@ -47,6 +47,10 @@ final class DynamicLoopTemplateRenderer
             if ($field !== 'none') {
                 $data['text'] = self::tag($field, '', (string) ($data['loop_fallback'] ?? ''));
             }
+            $url = self::field($data, 'loop_url_field', 'link', $source);
+            if ($url !== 'none') $data['url'] = self::tag($url);
+            // A repeated item cannot share one static HTML id.
+            unset($data['html_id']);
         } elseif ($type === 'text') {
             $field = self::field($data, 'loop_field', 'summary', $source);
             if ($field !== 'none') {

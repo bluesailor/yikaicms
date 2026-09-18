@@ -1,0 +1,102 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "サービスの流れ",
+  "thumbnail": "/assets/images/blox-templates/service-process.webp",
+  "requires": {
+    "elements": ["heading", "text", "image", "button", "divider", "process-steps", "process-step", "icon-box", "accordion", "cta"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "サービスの流れ導入",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "xl", "content_v_align": "center"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "heading", "data": {"text": "ご要望の確認から長期サポートまで、すべてのステップを明確に管理します", "level": "h2", "visual_size": {"d": "5xl", "t": "4xl", "m": "3xl"}, "align": "left"}},
+              {"type": "divider", "data": {"style": "solid", "width": 3, "color": "#2563eb", "spacing": "sm"}},
+              {"type": "text", "data": {"html": "<p class=\"yk-lead\">標準化されたマイルストーンに沿ってプロジェクトを進め、各段階の目標、成果物、担当者を明確に記録します。以下のステップは個別に編集でき、ドラッグで順序も変更できます。</p>"}},
+              {"type": "button", "data": {"text": "プロジェクトについて相談する", "url": "/contact.html", "variant": "primary", "align": "left"}}
+            ]
+          },
+          {
+            "elements": [
+              {"type": "image", "data": {"src": "/images/company-about-v2.webp", "alt": "プロジェクトチームによる協働と納品"}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "6ステップのサービスの流れ",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg", "bg_color": "#f8fafc"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "heading", "data": {"text": "プロジェクトの進め方", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}},
+              {"type": "text", "data": {"html": "<p class=\"yk-copy\">各ステップには明確な成果物があります。貴社の実際のサービス提供方法に合わせて、名称と説明を編集してください。</p>"}},
+              {
+                "type": "process-steps",
+                "data": {
+                  "auto_number": true,
+                  "tablet_columns": "2",
+                  "desktop_columns": "3",
+                  "gap": "lg",
+                  "children": [
+                    {"type": "process-step", "data": {"number": "01", "icon": "message-circle", "title": "ヒアリング", "text": "業務内容、目標、制約条件を把握し、プロジェクトの範囲と主要な担当者を確認します。"}},
+                    {"type": "process-step", "data": {"number": "02", "icon": "clipboard-check", "title": "提案・設計", "text": "実施計画、成果物リスト、スケジュールを作成し、お客様と一緒に確認します。"}},
+                    {"type": "process-step", "data": {"number": "03", "icon": "tool", "title": "開発・実施", "text": "計画に沿って開発、設定、製造を行い、主要なマイルストーンで進捗とリスクを共有します。"}},
+                    {"type": "process-step", "data": {"number": "04", "icon": "test-pipe", "title": "テスト・検収", "text": "機能、性能、品質の検査を実施し、検収基準に基づいて項目ごとに確認します。"}},
+                    {"type": "process-step", "data": {"number": "05", "icon": "package", "title": "トレーニング・納品", "text": "成果物、操作マニュアル、トレーニングを提供し、お客様のチームがスムーズに利用できるようにします。"}},
+                    {"type": "process-step", "data": {"number": "06", "icon": "headset", "title": "アフターサポート", "text": "継続的な対応、定期点検、改善提案により、長期にわたる安定稼働を支えます。"}}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "各段階の成果物",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg"},
+        "columns": [
+          {"elements": [{"type": "icon-box", "data": {"icon": "file-description", "title": "計画を事前に確定", "text": "範囲、マイルストーン、役割分担、リスク管理をプロジェクト開始前に確定します。"}}]},
+          {"elements": [{"type": "icon-box", "data": {"icon": "checks", "title": "明確な検収基準", "text": "各段階で、確認可能な成果物と双方の合意記録を残します。"}}]},
+          {"elements": [{"type": "icon-box", "data": {"icon": "lifebuoy", "title": "納品後も安心", "text": "トレーニング、ドキュメント、サポート体制により、成果を長期にわたり安定してご利用いただけます。"}}]}
+        ]
+      },
+      {
+        "type": "section",
+        "name": "サービスの流れに関するよくある質問",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "narrow", "gap": "md", "bg_color": "#f8fafc"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "heading", "data": {"text": "ご依頼前によくある質問", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "center"}},
+              {"type": "accordion", "data": {"items": [
+                {"question": "プロジェクト開始前に何を準備すればよいですか？", "answer": "事業目標、現状の資料、希望スケジュール、主な担当者をご用意ください。詳細な要件の整理は私たちがお手伝いします。"},
+                {"question": "プロジェクト中の進捗はどのように確認できますか？", "answer": "週次またはマイルストーンごとに、進捗、確認事項、リスクを共有します。具体的な頻度はプロジェクト開始時に決定します。"},
+                {"question": "納品後もサポートは受けられますか？", "answer": "はい。プロジェクトの契約内容に応じて、保証、トレーニング、定期点検、継続的な改善サービスを提供します。"}
+              ], "open_first": true, "seo_schema": true}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "お問い合わせ導線",
+        "settings": {"padding": {"d": "lg", "m": "md"}, "max_width": "wide"},
+        "columns": [
+          {"elements": [{"type": "cta", "data": {"use_home_text": false, "title": "プロジェクトを始めませんか？", "text": "目標とスケジュールをお知らせいただければ、次のステップを速やかにご提案します。", "btn_text": "プロジェクト担当者に相談する", "btn_url": "/contact.html"}}]}
+        ]
+      }
+    ]
+  }
+}

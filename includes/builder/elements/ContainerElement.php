@@ -14,26 +14,26 @@ final class ContainerElement extends AbstractElement
 {
     /** 类名全部字面量写死：Tailwind 独立编译靠扫描源码提取 */
     private const DIRECTION_MAP = [
-        'column' => ['flex-col', 'md:flex-col', 'lg:flex-col'],
-        'row' => ['flex-row', 'md:flex-row', 'lg:flex-row'],
+        'column' => ['flex-col', 'md:flex-col', 'lg:flex-col', 'wide:flex-col'],
+        'row' => ['flex-row', 'md:flex-row', 'lg:flex-row', 'wide:flex-row'],
     ];
     private const AUTO_WRAP_MAP = [
-        'column' => ['', 'md:flex-nowrap', 'lg:flex-nowrap'],
-        'row' => ['flex-wrap', 'md:flex-wrap', 'lg:flex-wrap'],
+        'column' => ['', 'md:flex-nowrap', 'lg:flex-nowrap', 'wide:flex-nowrap'],
+        'row' => ['flex-wrap', 'md:flex-wrap', 'lg:flex-wrap', 'wide:flex-wrap'],
     ];
     private const GAP_MAP = [
-        'none' => ['gap-0', 'md:gap-0', 'lg:gap-0'],
-        'sm' => ['gap-2', 'md:gap-2', 'lg:gap-2'],
-        'md' => ['gap-4', 'md:gap-4', 'lg:gap-4'],
-        'lg' => ['gap-8', 'md:gap-8', 'lg:gap-8'],
-        'xl' => ['gap-12', 'md:gap-12', 'lg:gap-12'],
+        'none' => ['gap-0', 'md:gap-0', 'lg:gap-0', 'wide:gap-0'],
+        'sm' => ['gap-2', 'md:gap-2', 'lg:gap-2', 'wide:gap-2'],
+        'md' => ['gap-4', 'md:gap-4', 'lg:gap-4', 'wide:gap-4'],
+        'lg' => ['gap-8', 'md:gap-8', 'lg:gap-8', 'wide:gap-8'],
+        'xl' => ['gap-12', 'md:gap-12', 'lg:gap-12', 'wide:gap-12'],
     ];
     private const PAD_MAP = [
-        'none' => ['', 'md:p-0', 'lg:p-0'],
-        'sm' => ['p-3', 'md:p-3', 'lg:p-3'],
-        'md' => ['p-6', 'md:p-6', 'lg:p-6'],
-        'lg' => ['p-10', 'md:p-10', 'lg:p-10'],
-        'xl' => ['p-16', 'md:p-16', 'lg:p-16'],
+        'none' => ['', 'md:p-0', 'lg:p-0', 'wide:p-0'],
+        'sm' => ['p-3', 'md:p-3', 'lg:p-3', 'wide:p-3'],
+        'md' => ['p-6', 'md:p-6', 'lg:p-6', 'wide:p-6'],
+        'lg' => ['p-10', 'md:p-10', 'lg:p-10', 'wide:p-10'],
+        'xl' => ['p-16', 'md:p-16', 'lg:p-16', 'wide:p-16'],
     ];
     private const RADIUS_MAP = ['none' => '', 'md' => 'rounded-lg', 'xl' => 'rounded-2xl'];
     private const ITEMS_MAP = ['stretch' => '', 'start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end', 'baseline' => 'items-baseline'];
@@ -72,6 +72,10 @@ final class ContainerElement extends AbstractElement
                 'options' => ['auto' => __('blox_flex_wrap_auto'), 'wrap' => __('blox_flex_wrap_on'), 'nowrap' => __('blox_flex_wrap_off')]],
             ['key' => 'gap', 'type' => 'select', 'label' => __('blox_child_gap'), 'default' => 'md', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
+            // 声明式间距（E05 试点）：留空沿用上面的档位；填写后以实例样式覆盖。
+            ['key' => 'gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_gap'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'gap']]],
             ['key' => 'align', 'type' => 'select', 'label' => __('blox_cross_align'), 'default' => 'stretch', 'tab' => 'style',
                 'options' => ['stretch' => __('blox_align_stretch'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'baseline' => __('blox_flex_align_baseline')],
                 'option_icons' => ['stretch' => 'arrows-vertical', 'start' => 'layout-align-top', 'center' => 'layout-align-middle', 'end' => 'layout-align-bottom', 'baseline' => 'align-box-bottom-center']],
@@ -107,6 +111,10 @@ final class ContainerElement extends AbstractElement
         $gapClass = $this->resp($data['gap'] ?? 'md', self::GAP_MAP, 'md');
         if ($gapClass !== '') {
             $layout .= ' ' . $gapClass;
+        }
+        // 全站容器间距（E04）只接管保持默认档位的容器；显式档位或响应式设置优先。未配置主题时输出不变。
+        if (($data['gap'] ?? 'md') === 'md' && class_exists(BloxDesignTheme::class) && BloxDesignTheme::hasContainerGap()) {
+            $layout .= ' yk-gap-theme';
         }
         foreach ([
             self::ITEMS_MAP[$data['align'] ?? 'stretch'] ?? '',

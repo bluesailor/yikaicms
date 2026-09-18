@@ -29,6 +29,8 @@ function license_pubkey(): string
 const LICENSE_VERIFY_URL = 'https://update.yikaicms.com/api/license/verify.php';
 const LICENSE_CHECK_TTL  = 604800;   // 距上次成功校验 < 7 天 不再发起请求（一周校验一次；改 2592000=一个月）
 const LICENSE_GRACE      = 2592000;  // 服务器不可达时，缓存最长信任 30 天（须 > CHECK_TTL，避免到点偶发不可达即降级）
+const LICENSE_RETRY_AFTER = 3600;    // 校验失败后 1 小时内不再重试（强制校验除外），避免服务器故障时每个请求都等超时
+const LICENSE_TS_SLACK   = 86400;    // 服务端签名 ts 为其本地时间、不带时区，与站点最多差一天
 
 /** 客户填写的授权码。 */
 function license_key(): string
@@ -44,6 +46,92 @@ function license_domain(): string
         $h = (string) parse_url((string) config('site_url', ''), PHP_URL_HOST);
     }
     return strtolower(preg_replace('#^www\.#', '', $h) ?? $h);
+}
+
+/** 域名归一：小写，去协议、路径、端口与 www.，与服务端 lic_normDomain + 客户端去 www 的结果可比。 */
+function license_normalize_domain(string $domain): string
+{
+    $d = strtolower(trim($domain));
+    if (str_contains($d, '://')) {
+        $d = (string) (parse_url($d, PHP_URL_HOST) ?? $d);
+    }
+    $d = preg_replace('#[/?].*$#', '', $d) ?? $d;
+    $d = preg_replace('#:\d+$#', '', $d) ?? $d;
+    return preg_replace('#^www\.#', '', $d) ?? $d;
+}
+
+/**
+ * 已验签的缓存是否属于本站、本授权码。
+ *
+ * 签名覆盖 data.domain（校验时上报的域名）：把 A 站的 license_state 复制到 B 站会因域名不符被丢弃。
+ * key_hash 不在签名内，只用于换码后不沿用旧结果（能改数据库的人本就能换码）。
+ *
+ * @param array<string,mixed> $cache
+ */
+function license_cache_belongs_here(array $cache, string $currentDomain, string $key): bool
+{
+    $data = is_array($cache['data'] ?? null) ? $cache['data'] : [];
+    $signedDomain = license_normalize_domain((string) ($data['domain'] ?? ''));
+    $current = license_normalize_domain($currentDomain);
+    if ($signedDomain !== '' && $current !== '' && !hash_equals($signedDomain, $current)) {
+        return false;
+    }
+    $keyHash = (string) ($cache['key_hash'] ?? '');
+    return $keyHash === '' || hash_equals($keyHash, hash('sha256', $key));
+}
+
+/**
+ * 可信的上次校验时间。checked_at 不在签名内，可被改到未来以无限续期；
+ * 以签名内的服务端 ts（放宽一天时区差）为上限，未来时间视为无效。
+ *
+ * @param array<string,mixed> $cache
+ */
+function license_cache_checked_at(array $cache, ?int $now = null): int
+{
+    $now ??= time();
+    $checked = (int) ($cache['checked_at'] ?? 0);
+    if ($checked > $now + 300) {
+        $checked = 0;
+    }
+    $signedTs = strtotime((string) ($cache['data']['ts'] ?? ''));
+    if ($signedTs !== false && $signedTs > 0) {
+        $checked = min($checked, $signedTs + LICENSE_TS_SLACK);
+    }
+    return max(0, $checked);
+}
+
+/**
+ * 本次是否向授权服务器发请求。
+ *
+ * - 强制校验（授权管理页「立即校验」）总是发。
+ * - 失败退避期内不发，沿用缓存或免费态。
+ * - 前台访客请求只在缓存超出宽限期（或从未校验）时才发：日常续期由后台请求完成，
+ *   授权服务器慢或不可达时不拖慢网站前台。
+ */
+function license_should_contact_server(bool $force, bool $adminRequest, bool $hasCache, int $cachedAt, int $retryAfter, ?int $now = null): bool
+{
+    $now ??= time();
+    if ($force) {
+        return true;
+    }
+    if ($retryAfter > $now) {
+        return false;
+    }
+    $age = $now - $cachedAt;
+    if ($hasCache && $age < LICENSE_CHECK_TTL) {
+        return false;
+    }
+    return $adminRequest || !$hasCache || $age >= LICENSE_GRACE;
+}
+
+/** 当前是否为后台或命令行请求（允许日常授权续期的上下文）。 */
+function license_is_admin_request(): bool
+{
+    if (PHP_SAPI === 'cli') {
+        return true;
+    }
+    $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+    return str_contains($script, '/admin/');
 }
 
 /** 用 RSA 公钥验证服务端 RSA-SHA256 签名（防伪造 + 防离线缓存被篡改）。 */
@@ -79,7 +167,19 @@ function license_cache(): array
     if (!license_verify($d['data'], (string) $d['sig'])) {
         return [];
     }
+    // 别站复制来的缓存或换码前的旧结果 → 丢弃
+    if (!license_cache_belongs_here($d, license_domain(), license_key())) {
+        return [];
+    }
+    $d['checked_at'] = license_cache_checked_at($d);
     return $d;
+}
+
+/** 失败退避截止时间（本地字段，不在签名内；缓存为空时也可单独存在）。 */
+function license_retry_after(): int
+{
+    $d = json_decode((string) config('license_state', ''), true);
+    return is_array($d) ? (int) ($d['retry_after'] ?? 0) : 0;
 }
 
 /** 免费态（无授权 / 不可用时的兜底）。 */
@@ -89,7 +189,8 @@ function license_free(string $reason = 'no_key'): array
 }
 
 /**
- * 校验授权：自带 24h 节流，服务器不可达则在 7 天宽限内沿用缓存。
+ * 校验授权：成功后 7 天内不再请求；服务器不可达时 30 天宽限内沿用缓存，并退避 1 小时再试。
+ * 前台访客请求只读缓存（超出宽限期才发请求），日常续期由后台请求完成。
  * 返回服务端 data 结构（或免费态）。
  */
 function license_refresh(bool $force = false): array
@@ -103,9 +204,12 @@ function license_refresh(bool $force = false): array
     $cachedAt = (int) ($cache['checked_at'] ?? 0);
     $hasCache = !empty($cache['data']);
 
-    // 未到期且非强制 → 直接用缓存，不打扰服务器
-    if (!$force && $hasCache && (time() - $cachedAt) < LICENSE_CHECK_TTL) {
-        return $cache['data'];
+    // 未到期、退避中或前台请求 → 直接用缓存（或免费态），不打扰服务器
+    if (!license_should_contact_server($force, license_is_admin_request(), $hasCache, $cachedAt, license_retry_after())) {
+        if ($hasCache && (time() - $cachedAt) < LICENSE_GRACE) {
+            return $cache['data'];
+        }
+        return license_free($hasCache ? 'grace_expired' : 'unreachable');
     }
 
     // &t= 缓存破坏：每次请求 URL 唯一，绕开 update 服务器的 SiteGround 边缘缓存，确保拿到实时签名
@@ -120,11 +224,21 @@ function license_refresh(bool $force = false): array
                     'data'       => $j['data'],
                     'sig'        => $j['sig'],
                     'checked_at' => time(),
+                    'key_hash'   => hash('sha256', $key),
                 ], JSON_UNESCAPED_UNICODE)]);
                 return $j['data'];
             }
         }
         // 响应异常：不覆盖好缓存，落到下面的宽限逻辑
+    }
+
+    // 记下失败退避时间：保留原缓存内容，只追加本地字段；写失败不影响本次结果
+    try {
+        $state = json_decode((string) config('license_state', ''), true);
+        $state = is_array($state) ? $state : [];
+        $state['retry_after'] = time() + LICENSE_RETRY_AFTER;
+        settingModel()->saveBatch(['license_state' => json_encode($state, JSON_UNESCAPED_UNICODE)]);
+    } catch (Throwable) {
     }
 
     // 服务器不可达 / 响应异常：宽限期内沿用缓存
@@ -155,7 +269,15 @@ function license_apply_local_expiry(array $state, ?int $now = null): array
 
 function license(): array
 {
-    return license_apply_local_expiry(license_refresh(false));
+    // 同一请求内复用结果：校验失败（服务器不可达、验签不过）时不会写缓存，
+    // 不复用的话页面上每处授权判断都会再发一次最长数秒的远程校验。
+    // 以授权码 / 域名 / 缓存内容为键，保存新授权或刷新缓存后自然失效。
+    static $memo = [];
+    $memoKey = hash('sha256', license_key() . "\0" . license_domain() . "\0" . (string) config('license_state', ''));
+    if (!array_key_exists($memoKey, $memo)) {
+        $memo = [$memoKey => license_refresh(false)];
+    }
+    return license_apply_local_expiry($memo[$memoKey]);
 }
 
 /** 授权整体是否有效。 */
@@ -178,6 +300,44 @@ function license_valid(): bool
 function license_has_module(string $module): bool
 {
     return in_array($module, (array) (license()['modules'] ?? []), true);
+}
+
+/**
+ * 是否拥有 BLOX Pro 编辑能力（表格、循环模板、显示条件、样式预设等）。
+ *
+ * 专业授权自带 BLOX 高级功能，无需另购：持有 blox 模块，或在 blox 模块推出前签发、
+ * 已购任一付费模块的老授权，都算拥有。与 license_has_module 一致只看模块归属、不看服务期；
+ * 授权停用、域名不符时服务端不下发 modules，自然不放行。
+ *
+ * @param array<string,mixed>|null $state
+ */
+function license_owns_blox(?array $state = null): bool
+{
+    $state ??= license();
+    $modules = array_values(array_filter((array) ($state['modules'] ?? []), static fn(mixed $m): bool => is_string($m) && $m !== ''));
+    return in_array('blox', $modules, true) || $modules !== [];
+}
+
+/**
+ * 是否可自定义后台品牌（后台名称 / Logo / 版权）。
+ *
+ * 白标属注册码授权权益：授权有效，或持有任一付费模块（永久回退，服务期到期不收回）即可。
+ * 未授权时后台显示出厂品牌，已保存的自定义值保留，授权后自动生效。
+ *
+ * @param array<string,mixed>|null $state
+ */
+function license_allows_admin_branding(?array $state = null): bool
+{
+    $state ??= license();
+    if (!empty($state['valid'])) {
+        return true;
+    }
+    foreach ((array) ($state['modules'] ?? []) as $module) {
+        if (is_string($module) && $module !== '') {
+            return true;
+        }
+    }
+    return false;
 }
 
 /** 是否可下载/升级付费插件（到期即失去该资格，但已装功能不受影响） */

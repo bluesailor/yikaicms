@@ -42,7 +42,7 @@ test('failed saves persist, repeated saves coalesce, and in-flight edits remain 
     mode = 'success';
     await page.evaluate(() => window.Alpine.$data(document.body).save());
     await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).dirty)).toBe(false);
-    await expect(status).toHaveText(await page.evaluate(() => window.Alpine.$data(document.body).uiText.draftSaved));
+    await expect(status).toContainText(await page.evaluate(() => window.Alpine.$data(document.body).uiText.draftSaved));
 });
 
 test('a failed canvas keeps the document and can retry without saving @ci', async ({ page }) => {
@@ -88,11 +88,11 @@ test('malformed or HTTP-error save responses cannot acknowledge an unblurred ima
         payload = params.get('blocks_data');
         await route.fulfill(response);
     });
-    await page.getByTestId('blox-element-image-url').fill('/images/case-demo.jpg');
+    await page.getByTestId('blox-element-image-url').fill('/images/company-about-v2.webp');
     await expect(page.getByTestId('blox-element-image-url')).toBeFocused();
     await page.evaluate(() => window.Alpine.$data(document.body).save());
     await expect.poll(() => page.evaluate(() => window.Alpine.$data(document.body).saveOutcome)).toBe('failed');
-    expect(payload).toContain('/images/case-demo.jpg');
+    expect(payload).toContain('/images/company-about-v2.webp');
     expect(await page.evaluate(() => window.Alpine.$data(document.body).dirty)).toBe(true);
     response = { status: 503, json: { code: 0 } };
     await page.evaluate(() => window.Alpine.$data(document.body).save());

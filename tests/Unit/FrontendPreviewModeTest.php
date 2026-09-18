@@ -111,9 +111,9 @@ final class FrontendPreviewModeTest extends TestCase
         self::assertIsString($frontEdit);
 
         self::assertStringContainsString("function isSiteChromeEditTarget(target)", $frontEdit);
-        self::assertStringContainsString("target.closest('#siteHeader,.yk-blox-header,.yk-blox-footer')", $frontEdit);
-        self::assertStringContainsString('if (isSiteChromeEditTarget(target)) return;', $frontEdit);
-        self::assertStringContainsString('if (isSiteChromeEditTarget(logo)) return;', $frontEdit);
+        self::assertStringContainsString("target.closest('#siteHeader,.yk-blox-header,.yk-blox-footer,[data-yk-footer]')", $frontEdit);
+        self::assertStringContainsString('if (isSiteChromeEditTarget(target) || isPageContentEditTarget(target)) return;', $frontEdit);
+        self::assertStringContainsString('if (isSiteChromeEditTarget(logo) || isPageContentEditTarget(logo)) return;', $frontEdit);
         self::assertStringContainsString('#siteHeader [data-yk-logo]::after', $frontEdit);
         self::assertStringContainsString('.yk-blox-footer [data-yk-logo]::after', $frontEdit);
         self::assertStringContainsString("addArea(header, 'header', regionLabels.editHeader);", $frontEdit);

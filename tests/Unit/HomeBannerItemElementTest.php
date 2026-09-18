@@ -202,6 +202,113 @@ final class HomeBannerItemElementTest extends TestCase
         }
     }
 
+    /**
+     * 左右滑入必须走「内容宽度 + 50% 起始透明度」这套参数。
+     *
+     * 原先写死 44px，在 1920 宽的大图上几乎看不出文字在动；起始透明度 0 又让文字
+     * 像是凭空出现。位移改为按元素自身宽度（translate3d 的百分比语义），两个值都
+     * 抽成 CSS 变量，站点可覆盖。
+     */
+    /**
+     * inherit 模式：文字图片按语言取自 banners 表，逐条动效取文档里同位置的子项。
+     *
+     * 过去前台只拿表里的行，表里没有动效字段，编辑器里给每张设的入场动效在前台全部丢失。
+     */
+    public function testInheritModeKeepsPerSlideMotionsFromTheDocument(): void
+    {
+        $child = static fn (string $content, string $background = 'inherit'): array => [
+            'type' => 'home-banner-item',
+            'data' => ['title' => '只是预览', 'content_motion' => $content, 'background_motion' => $background],
+        ];
+        $banners = [
+            ['id' => 11, 'title' => 'EN slide 1'],
+            ['id' => 12, 'title' => 'EN slide 2'],
+            ['id' => 13, 'title' => 'EN slide 3', 'content_motion' => 'zoom-in'],
+            ['id' => 14, 'title' => 'EN slide 4'],
+        ];
+        $children = [
+            $child('slide-right', 'zoom-out'),
+            $child('slide-left'),
+            $child('fade-up'),
+            ['type' => 'not-a-slide', 'data' => []],   // 非轮播子项不占位
+        ];
+
+        $out = HomeBannerItemElement::applyChildMotions($banners, $children);
+
+        // 内容始终来自表行，动效按位置补上
+        self::assertSame(['EN slide 1', 'EN slide 2', 'EN slide 3', 'EN slide 4'], array_column($out, 'title'));
+        self::assertSame('slide-right', $out[0]['content_motion']);
+        self::assertSame('zoom-out', $out[0]['background_motion']);
+        self::assertSame('slide-left', $out[1]['content_motion']);
+        self::assertArrayNotHasKey('background_motion', $out[1], '子项写 inherit 的不覆盖');
+        self::assertSame('zoom-in', $out[2]['content_motion'], '表行自带动效时以表行为准');
+        self::assertArrayNotHasKey('content_motion', $out[3], '没有对应子项的行保持原样');
+
+        // 渲染出来的属性就是前台 CSS 认的那个
+        self::assertSame(
+            ' data-blox-slide-content-motion="slide-right" data-blox-slide-background-motion="zoom-out"',
+            HomeBannerItemElement::motionAttributes($out[0])
+        );
+    }
+
+    public function testInheritModeWiringInTheRenderContext(): void
+    {
+        $context = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/includes/builder/HomeBloxRenderContext.php'));
+        self::assertStringContainsString(
+            "} elseif (\$type === 'banner' && is_array(\$data['children'] ?? null)) {",
+            $context
+        );
+        self::assertStringContainsString('HomeBannerItemElement::applyChildMotions($banners, $data[\'children\']);', $context);
+    }
+
+    /** 自下而上：位移取两倍自身高度，起手同样 50% 不透明度。 */
+    public function testFadeUpRisesItsOwnHeightFromHalfOpacity(): void
+    {
+        $css = (string) file_get_contents(ROOT_PATH . '/assets/css/blox-banner.css');
+        self::assertMatchesRegularExpression('/--blox-banner-rise-distance:\s*200%;/', $css);
+        self::assertMatchesRegularExpression(
+            '/@keyframes blox-banner-fade-up \{\s*from \{\s*opacity: var\(--blox-banner-slide-opacity, \.5\);\s*transform: translate3d\(0, var\(--blox-banner-rise-distance, 200%\), 0\);/s',
+            $css
+        );
+        self::assertStringNotContainsString('translate3d(0, 28px, 0)', $css);
+    }
+
+    public function testSlideMotionsTravelContentWidthFromHalfOpacity(): void
+    {
+        $css = (string) file_get_contents(ROOT_PATH . '/assets/css/blox-banner.css');
+
+        self::assertMatchesRegularExpression(
+            '/\[data-blox-banner\]\s*\{[^}]*--blox-banner-slide-distance:\s*100%;/s',
+            $css,
+            '滑入距离应默认为内容宽度（100%）'
+        );
+        self::assertMatchesRegularExpression(
+            '/\[data-blox-banner\]\s*\{[^}]*--blox-banner-slide-opacity:\s*\.5;/s',
+            $css,
+            '滑入起始透明度应为 50%'
+        );
+
+        foreach (['left' => '', 'right' => 'calc(-1 * '] as $direction => $prefix) {
+            self::assertMatchesRegularExpression(
+                '/@keyframes blox-banner-slide-' . $direction . ' \{\s*from \{\s*opacity: var\(--blox-banner-slide-opacity, \.5\);/s',
+                $css,
+                "slide-{$direction} 的起始透明度没走变量"
+            );
+            self::assertStringContainsString(
+                'translate3d(' . $prefix . 'var(--blox-banner-slide-distance, 100%)',
+                $css,
+                "slide-{$direction} 的位移没走变量"
+            );
+        }
+
+        // 老的固定像素位移不该再出现
+        self::assertStringNotContainsString('translate3d(44px, 0, 0)', $css);
+        self::assertStringNotContainsString('translate3d(-44px, 0, 0)', $css);
+
+        // 减少动效偏好仍然整体关掉动画
+        self::assertStringContainsString('@media (prefers-reduced-motion: reduce)', $css);
+    }
+
     public function testBundledBannerTemplatesKeepContentAndPrimaryAction(): void
     {
         $banner = [
@@ -335,6 +442,48 @@ final class HomeBannerItemElementTest extends TestCase
         $this->assertSame('/custom-first.jpg', $items[1]['image']);
         $this->assertSame('zoom-out', $items[1]['background_motion']);
         $this->assertSame('Learn more', $items[0]['btn1_text']);
+    }
+
+    public function testEditorShowsLanguageBannersAndSavesEditsAsThatLanguageOnly(): void
+    {
+        $host = static fn (array $children, string $mode = 'custom'): array => [[
+            'id' => 's', 'columns' => [['id' => 'c', 'elements' => [[
+                'id' => 'e', 'type' => 'home-block',
+                'data' => ['block_type' => 'banner', 'items_mode' => $mode, 'children' => $children],
+            ]]]],
+        ]];
+        $children = static fn (array $sections): array => $sections[0]['columns'][0]['elements'][0]['data']['children'];
+        $shared = $host([
+            ['id' => 'a', 'type' => 'home-banner-item', 'data' => ['title' => '中文一', 'btn1_text' => '了解', 'image' => '/one.jpg', 'translation_group_id' => 10]],
+        ]);
+        $english = [['id' => 101, 'translation_group_id' => 10, 'lang' => 'en', 'title' => 'First', 'btn1_text' => 'More']];
+
+        $view = HomeBannerItemElement::forEditor($shared, $english, 'en');
+        $this->assertSame('First', $children($view)[0]['data']['title']);
+        $this->assertSame('More', $children($view)[0]['data']['btn1_text']);
+        $this->assertSame($shared, HomeBannerItemElement::fromEditor(HomeBannerItemElement::markEditorChanges($view)));
+
+        $view[0]['columns'][0]['elements'][0]['data']['children'][0]['data']['title'] = 'Edited';
+        $saved = HomeBannerItemElement::fromEditor(HomeBannerItemElement::markEditorChanges($view));
+        $data = $children($saved)[0]['data'];
+        $this->assertSame('中文一', $data['title']);
+        $this->assertSame('了解', $data['btn1_text']);
+        $this->assertSame(['en' => ['title' => 'Edited']], $data[HomeBannerItemElement::I18N_KEY]);
+        $this->assertArrayNotHasKey(HomeBannerItemElement::EDIT_KEY, $data);
+
+        $items = HomeBannerItemElement::applyLocalizedContent(HomeBannerItemElement::normalizeChildren($children($saved)), $english, 'en');
+        $this->assertSame(['Edited', 'More', '/one.jpg'], [$items[0]['title'], $items[0]['btn1_text'], $items[0]['image']]);
+        $this->assertArrayNotHasKey(HomeBannerItemElement::I18N_KEY, $items[0]);
+        $this->assertSame('Edited', $children(HomeBannerItemElement::forEditor($saved, $english, 'en'))[0]['data']['title']);
+        // 编辑中尚未保存：画布显示正在编辑的值
+        $live = HomeBannerItemElement::applyLocalizedContent(HomeBannerItemElement::normalizeChildren($children($view)), $english, 'en');
+        $this->assertSame('Edited', $live[0]['title']);
+
+        // 默认语言：自定义轮播就是共享内容本身；继承模式显示该语言记录但不加标记
+        $this->assertSame($shared, HomeBannerItemElement::forEditor($shared, $english, 'en', true));
+        $inherit = HomeBannerItemElement::forEditor($host($children($shared), 'inherit'), $english, 'en', true);
+        $this->assertSame('First', $children($inherit)[0]['data']['title']);
+        $this->assertArrayNotHasKey(HomeBannerItemElement::EDIT_KEY, $children($inherit)[0]['data']);
     }
 
     public function testLocalizedContentFallsBackToDocumentOrderForLegacyChildren(): void

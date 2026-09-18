@@ -137,7 +137,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php // 白标：已授权站点不展示购买链接，只留功能说明 ?>
         <p class="text-sm text-gray-500 mb-4"><?php echo __('lic_tip_licensed'); ?></p>
         <?php else: ?>
-        <p class="text-sm text-gray-500 mb-4"><?php echo __('lic_tip_buy_before'); ?> <a href="https://yikaicms.com" target="_blank" rel="noopener" class="text-primary hover:underline">yikaicms.com</a> <?php echo __('lic_tip_buy_after'); ?></p>
+        <p class="text-sm text-gray-500 mb-4"><?php echo __('lic_tip_buy_before'); ?> <a href="https://www.yikaicms.com/pro.php" target="_blank" rel="noopener" class="text-primary hover:underline">yikaicms.com</a> <?php echo __('lic_tip_buy_after'); ?></p>
         <?php endif; ?>
         <?php
         // 安全：完整授权码不回显页面（防截屏/共享后台泄露），只展示打码版；
@@ -179,7 +179,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="flex gap-2"><span class="text-primary">✓</span> <?php echo __('lic_pro_5'); ?></div>
             <div class="flex gap-2"><span class="text-primary">✓</span> <?php echo __('lic_pro_6'); ?></div>
         </div>
-        <a href="https://www.yikaicms.com/pro.html" target="_blank" rel="noopener" class="inline-flex items-center gap-1 bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition text-sm">
+        <a href="https://www.yikaicms.com/pro.php" target="_blank" rel="noopener" class="inline-flex items-center gap-1 bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition text-sm">
             <?php echo __('lic_pro_cta'); ?> <i class="ti ti-external-link text-base"></i>
         </a>
     </div>

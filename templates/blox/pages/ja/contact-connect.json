@@ -1,0 +1,269 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "お問い合わせ",
+  "thumbnail": "/assets/images/blox-templates/contact-connect.png",
+  "requires": {
+    "elements": ["heading", "text", "button", "div", "icon-box", "contact_cards", "contact_form", "contact_map", "site-contact", "accordion"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "お問い合わせ案内",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "xl",
+          "content_v_align": "center",
+          "bg_color": "#0f172a",
+          "text_tone": "light"
+        },
+        "columns": [
+          {
+            "span": 7,
+            "elements": [
+              {
+                "type": "text",
+                "data": { "html": "<p><strong>CONTACT US</strong></p>" }
+              },
+              {
+                "type": "heading",
+                "data": {
+                  "text": "ご要望をお聞かせください。最適な担当者が対応いたします",
+                  "level": "h1",
+                  "visual_size": { "d": "5xl", "t": "4xl", "m": "3xl" },
+                  "align": "left"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p>製品に関するご相談、プロジェクトのご提携、アフターサービスのお問い合わせなど、下記の方法でお気軽にご連絡ください。ここには、回答までの目安や対応範囲、窓口の体制など、お客様へのサービス方針を一文で記載してください。</p>"
+                }
+              },
+              {
+                "type": "div",
+                "data": {
+                  "display": "flex",
+                  "direction": "row",
+                  "wrap": "wrap",
+                  "gap": "sm",
+                  "align": "center",
+                  "children": [
+                    {
+                      "type": "button",
+                      "data": { "text": "お問い合わせフォーム", "url": "#message", "variant": "primary", "icon": "message-circle", "icon_position": "left" }
+                    },
+                    {
+                      "type": "button",
+                      "data": { "text": "アクセス", "url": "#visit", "variant": "outline", "color": "#ffffff", "icon": "map-pin", "icon_position": "left" }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "span": 5,
+            "elements": [
+              {
+                "type": "div",
+                "data": {
+                  "display": "flex",
+                  "direction": "column",
+                  "gap": "lg",
+                  "padding": "lg",
+                  "radius": "xl",
+                  "bg_color": "#1e293b",
+                  "children": [
+                    {
+                      "type": "icon-box",
+                      "data": { "icon": "clock-hour-4", "title": "1営業日以内にご回答", "text": "営業時間内にいただいたお問い合わせは、当日中に担当者が対応します。", "icon_layout": "side", "icon_surface": "circle" }
+                    },
+                    {
+                      "type": "icon-box",
+                      "data": { "icon": "user-check", "title": "専任担当者が対応", "text": "内容に応じて専門の担当者におつなぎするため、何度もご説明いただく必要はありません。", "icon_layout": "side", "icon_surface": "circle" }
+                    },
+                    {
+                      "type": "icon-box",
+                      "data": { "icon": "shield-lock", "title": "個人情報は厳重に管理", "text": "ご提供いただいた連絡先は本件のご連絡にのみ使用し、外部に開示することはありません。", "icon_layout": "side", "icon_surface": "circle" }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "連絡先",
+        "settings": {
+          "padding": { "d": "lg", "m": "md" },
+          "max_width": "wide",
+          "gap": "md",
+          "bg_color": "#f8fafc"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "contact_cards",
+                "data": { "card_layout": "classic", "cols": "auto", "card_align": "center", "show_icons": true, "icon_surface": "circle", "card_gap": "md" }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "お問い合わせフォーム",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "xl",
+          "anchor_id": "message"
+        },
+        "columns": [
+          {
+            "span": 5,
+            "elements": [
+              {
+                "type": "heading",
+                "data": { "text": "ご要望をお寄せください。担当者よりご連絡します", "level": "h2", "visual_size": { "d": "3xl", "m": "2xl" }, "align": "left" }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p class=\"yk-copy\">具体的にご記入いただくほど、的確にご回答できます。以下の点をご記入ください。</p><ul class=\"yk-copy\"><li>解決したい課題、またはご購入を検討中の製品</li><li>おおよその数量、ご予算、ご希望の時期</li><li>ご連絡可能な時間帯</li></ul>"
+                }
+              },
+              {
+                "type": "site-contact",
+                "data": { "show_phone": true, "show_email": true, "show_address": false, "show_hours": true, "show_icons": true, "layout": "stacked", "tone": "dark" }
+              }
+            ]
+          },
+          {
+            "span": 7,
+            "elements": [
+              { "type": "contact_form", "data": {} }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "アクセス",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "xl",
+          "content_v_align": "center",
+          "bg_color": "#f8fafc",
+          "anchor_id": "visit"
+        },
+        "columns": [
+          {
+            "span": 7,
+            "elements": [
+              { "type": "contact_map", "data": {} }
+            ]
+          },
+          {
+            "span": 5,
+            "elements": [
+              {
+                "type": "heading",
+                "data": { "text": "ご来社も歓迎いたします", "level": "h2", "visual_size": { "d": "3xl", "m": "2xl" }, "align": "left" }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p class=\"yk-copy\">ご来社の際は事前にお電話でご予約ください。担当者がご案内いたします。ここには、最寄り駅、駐車場の場所、建物の入口など、アクセス方法を追記してください。</p>"
+                }
+              },
+              {
+                "type": "site-contact",
+                "data": { "show_phone": false, "show_email": false, "show_address": true, "show_hours": true, "show_icons": true, "layout": "stacked", "tone": "dark" }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "目的別のお問い合わせ",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "lg",
+          "col_card": true
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": { "icon": "briefcase", "title": "ビジネス提携", "text": "製品のご購入、販売代理店、プロジェクト提携については、会社名とご希望の提携内容をご記入ください。", "icon_layout": "top", "icon_surface": "circle" }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": { "icon": "headset", "title": "アフターサポート", "text": "ご使用中の不具合は、製品型番、ご購入時期、症状をあわせてお知らせください。", "icon_layout": "top", "icon_surface": "circle" }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": { "icon": "users", "title": "採用情報", "text": "ご応募の際は履歴書を採用担当メールアドレスへお送りいただき、件名に応募職種をご記入ください。", "icon_layout": "top", "icon_surface": "circle" }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "お問い合わせ前のよくある質問",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "narrow",
+          "gap": "md",
+          "bg_color": "#f8fafc"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": { "text": "お問い合わせ前のよくある質問", "level": "h2", "visual_size": { "d": "3xl", "m": "2xl" }, "align": "center" }
+              },
+              {
+                "type": "accordion",
+                "data": {
+                  "items": [
+                    { "question": "お問い合わせ後、どのくらいで回答がもらえますか？", "answer": "営業日にいただいたお問い合わせには原則当日中に回答します。休業日の場合は翌営業日の対応となります。" },
+                    { "question": "見積もりや資料だけを先に依頼できますか？", "answer": "はい、可能です。製品型番またはご要望の内容をご記入いただければ、資料とお見積もりをメールでお送りします。" },
+                    { "question": "来社には事前予約が必要ですか？", "answer": "担当者の手配やデモのご準備のため、前日までにお電話でのご予約をお願いしております。" }
+                  ],
+                  "open_first": true,
+                  "seo_schema": true
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

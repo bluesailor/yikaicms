@@ -297,6 +297,13 @@ final class MediaUsageAudit
             self::addReference($targets, $result, $data['image'] ?? '', 'banner_image', $source, $path . '.data.image');
             self::addReference($targets, $result, $data['image_mobile'] ?? '', 'banner_mobile_image', $source, $path . '.data.image_mobile');
             self::addReference($targets, $result, $data['video'] ?? '', 'banner_video', $source, $path . '.data.video');
+        } elseif ($type === 'home-block' && ($data['block_type'] ?? '') === 'partners') {
+            // Keep saved custom logos safe even while the block uses shared data.
+            foreach (is_array($data['partner_items'] ?? null) ? $data['partner_items'] : [] as $index => $partner) {
+                if (!is_array($partner)) continue;
+                self::addReference($targets, $result, $partner['logo'] ?? '', 'image_element',
+                    $source, $path . '.data.partner_items.' . $index . '.logo');
+            }
         }
 
         foreach ($value as $key => $child) {

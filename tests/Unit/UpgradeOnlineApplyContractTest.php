@@ -33,6 +33,17 @@ final class UpgradeOnlineApplyContractTest extends TestCase
         self::assertStringContainsString('uo_unlink_if_exists($sf)', $source);
     }
 
+    public function testAppliedPhpFilesInvalidateStaleOpcacheBytecode(): void
+    {
+        $source = file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
+        self::assertNotFalse($source);
+
+        self::assertStringContainsString('function uo_invalidate_runtime_file(string $path): void', $source);
+        self::assertStringContainsString("function_exists('opcache_invalidate')", $source);
+        self::assertStringContainsString('@opcache_invalidate($path, true)', $source);
+        self::assertGreaterThanOrEqual(2, substr_count($source, 'uo_invalidate_runtime_file('));
+    }
+
     public function testOnlineUpgradeRejectsAReleaseAboveTheCurrentPhpVersion(): void
     {
         $source = file_get_contents(ROOT_PATH . '/admin/upgrade_online.php');

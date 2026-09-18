@@ -42,6 +42,10 @@ function productCategoryModel(): ProductCategoryModel {
     static $i; return $i ??= new ProductCategoryModel();
 }
 
+function productRouteModel(): ProductRouteModel {
+    static $i; return $i ??= new ProductRouteModel();
+}
+
 function albumModel(): AlbumModel {
     static $i; return $i ??= new AlbumModel();
 }
@@ -68,6 +72,10 @@ function settingModel(): SettingModel {
 
 function formModel(): FormModel {
     static $i; return $i ??= new FormModel();
+}
+
+function formModerationModel(): FormModerationModel {
+    static $i; return $i ??= new FormModerationModel();
 }
 
 function formTemplateModel(): FormTemplateModel {
@@ -130,6 +138,10 @@ function bloxRemoteTemplateStateModel(): BloxRemoteTemplateStateModel {
     static $i; return $i ??= new BloxRemoteTemplateStateModel();
 }
 
+function bloxImportReviewModel(): BloxImportReviewModel {
+    static $i; return $i ??= new BloxImportReviewModel();
+}
+
 function bloxPageDraftModel(): BloxPageDraftModel {
     static $i; return $i ??= new BloxPageDraftModel();
 }
@@ -144,4 +156,8 @@ function contentRevisionModel(): ContentRevisionModel {
 
 function navMenuModel(): NavMenuModel {
     static $i; return $i ??= new NavMenuModel();
+}
+
+function doLoginLinkModel(): DoLoginLinkModel {
+    static $i; return $i ??= new DoLoginLinkModel();
 }

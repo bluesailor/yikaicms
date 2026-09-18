@@ -4,7 +4,7 @@
   "type": "footer",
   "name": "Clean Site Footer",
   "requires": {
-    "elements": ["heading", "nav", "site-copyright", "text"],
+    "elements": ["heading", "nav", "site-copyright", "site-filing", "text"],
     "plugins": []
   },
   "document": {
@@ -47,7 +47,8 @@
         "columns": [
           {
             "elements": [
-              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "center", "tone": "dark"}}
+              {"type": "site-copyright", "data": {"show_icp": false, "show_police": false, "align": "center", "tone": "dark"}},
+              {"type": "site-filing", "data": {"show_icp": true, "show_police": true, "align": "center", "tone": "dark"}}
             ]
           }
         ]

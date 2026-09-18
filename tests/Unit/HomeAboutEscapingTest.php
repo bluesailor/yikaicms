@@ -68,6 +68,14 @@ final class HomeAboutEscapingTest extends TestCase
             . htmlspecialchars($description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p></div>';
     }
 
+    private static function editableBadgeHtml(string $title, string $description): string
+    {
+        return '<h3 class="text-xl font-bold text-inherit m-0">'
+            . htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</h3>'
+            . '<p class="text-inherit m-0">'
+            . htmlspecialchars($description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>';
+    }
+
     /** @return array<string,mixed> */
     private static function oldSection(string $title, string $description, ?array $parts = null): array
     {
@@ -125,7 +133,7 @@ final class HomeAboutEscapingTest extends TestCase
         $before = $section;
         $this->language($lang, $title, $description);
         $result = HomeAboutLocalization::localize($section);
-        self::assertSame(self::badgeHtml($title, $description), self::captionHtml($result));
+        self::assertSame(self::editableBadgeHtml($title, $description), self::captionHtml($result));
         self::assertSame($before, $section);
         self::assertSame($result, HomeAboutLocalization::localize($result));
     }
@@ -176,7 +184,7 @@ final class HomeAboutEscapingTest extends TestCase
         $section = HomeAboutContent::toSection([], 'home_s_1');
         $this->language($lang, $title . ' <script>"x"</script>', $description);
         $result = HomeAboutLocalization::localize($section);
-        self::assertSame(self::badgeHtml($title . ' <script>"x"</script>', $description), self::captionHtml($result));
+        self::assertSame(self::editableBadgeHtml($title . ' <script>"x"</script>', $description), self::captionHtml($result));
         self::assertStringNotContainsString('<script>', self::captionHtml($result));
     }
 

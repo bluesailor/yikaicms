@@ -160,6 +160,10 @@ $add('Blox 全局设计系统', 'GET', '/admin/blox_design.php',
      ['contributor' => 'deny', 'editor' => 'deny']);
 $add('Blox 模板管理', 'GET', '/admin/blox_templates.php',
      ['contributor' => 'deny', 'editor' => 'deny']);
+$add('Blox product detail templates', 'GET', '/admin/product_design.php',
+     ['contributor' => 'deny', 'editor' => 'deny']);
+$add('Native product detail preview', 'GET', '/admin/product_native_preview.php?id=1',
+     ['contributor' => 'deny', 'editor' => 'deny']);
 
 // —— 超管专属结构项 ——
 $add('栏目管理', 'GET', '/admin/channel.php',  ['contributor' => 'deny', 'editor' => 'deny']);
@@ -340,6 +344,14 @@ $catalogToken = pmCsrf($catalogDashboard);
 foreach ([[], ['edit_product'], ['edit_article'], ['edit_product', 'edit_article']] as $detailPermissions) {
     $pdo3->prepare('UPDATE yikai_roles SET permissions = ? WHERE id = ?')
         ->execute([json_encode(array_merge(['blox_edit', 'edit_page'], $detailPermissions)), $ISOLATED['roleId']]);
+    [$designCode, $designBody] = pmReq($jar2, 'GET', '/admin/site_design.php?context=home%3Aen');
+    $designAllowed = $designCode === 200 && !pmDenied($designCode, $designBody)
+        && str_contains($designBody, 'data-testid="site-design-dashboard"');
+    $globalControlsHidden = !str_contains($designBody, 'data-testid="site-design-context"')
+        && !str_contains($designBody, 'data-testid="site-design-area-edit"');
+    $checked++;
+    if (!$designAllowed || !$globalControlsHidden) $fail++;
+    printf("  %s Site design scoped editor / %s\n", $designAllowed && $globalControlsHidden ? 'PASS' : 'FAIL', implode(',', $detailPermissions));
     foreach ($catalogIds as $catalogType => $catalogId) {
         [$c, $b] = pmReq($jar2, 'POST', '/admin/blox_page_api.php', [
             'action' => 'catalog_items', 'id' => $catalogId, '_token' => $catalogToken,

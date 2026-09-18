@@ -19,6 +19,8 @@ requirePermission('edit_article');
 $langSwitcher = [
     'table' => 'contents',
     'model' => contentModel(),
+    // 文章入口只为文章建译文：案例/单页的 src_id 一律拒绝
+    'content_type' => 'article',
 ];
 require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
@@ -31,6 +33,10 @@ if ($id > 0) {
     if (!$article) {
         header('Location: /admin/article.php');
         exit;
+    }
+    // 保存时固定写 type=article：若放行其它类型的 id，案例/单页会被改写成文章
+    if ((string) $article['type'] !== 'article') {
+        permissionDenied();
     }
 }
 
@@ -509,7 +515,7 @@ initTinyEditor(".tinymce-editor");
         e.preventDefault();
         if (submitting) return;              // 防连点 / 并发重复提交
         submitting = true;
-        tinymce.triggerSave();
+        hugerte.triggerSave();
 
         try {
             const formData = new FormData(this);

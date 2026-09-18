@@ -135,8 +135,11 @@ function sanitizeSvgFallback(string $svg): string
  */
 function sanitizeHtml(?string $html): string
 {
-    // v1.18.6 起委托 HtmlPolicy::richText()——三层 HTML 策略见该类头注释
-    return HtmlPolicy::richText($html);
+    // v1.18.6 起委托 HtmlPolicy::richText()——三层 HTML 策略见该类头注释。
+    // 第二参为真：保留后台编辑器工具栏真正提供的那几类内联排版（颜色/字号/对齐），
+    // 否则用户在 TinyMCE 里设好的格式保存后在前台全部消失（复审 R08）。
+    // Blox 元素不走这里，它的 richtext 仍是「排版只用 class」，见 BloxValueSanitizer。
+    return HtmlPolicy::richText($html, true);
 }
 
 /**

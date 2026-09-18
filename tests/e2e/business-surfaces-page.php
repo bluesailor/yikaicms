@@ -21,7 +21,7 @@ $blocks = array_map(static fn (string $type): array => ['type' => $type, 'enable
 ]);
 if ($mode === 'custom') {
     $blocks[0]['bg_color'] = '#eef5ec';
-    $blocks[2]['bg_image'] = '/themes/default/assets/images/cta/cta-smart-manufacturing.png';
+    $blocks[2]['bg_image'] = '/themes/default/assets/images/cta/cta-smart-manufacturing.webp';
 }
 if ($mode === 'manual') {
     $blocks[0]['home_surface'] = 'dark';

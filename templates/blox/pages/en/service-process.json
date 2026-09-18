@@ -1,0 +1,102 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "Service Process",
+  "thumbnail": "/assets/images/blox-templates/service-process.webp",
+  "requires": {
+    "elements": ["heading", "text", "image", "button", "divider", "process-steps", "process-step", "icon-box", "accordion", "cta"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "Process Intro",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "xl", "content_v_align": "center"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "heading", "data": {"text": "From requirements to long-term support, every step is clear and under control", "level": "h2", "visual_size": {"d": "5xl", "t": "4xl", "m": "3xl"}, "align": "left"}},
+              {"type": "divider", "data": {"style": "solid", "width": 3, "color": "#2563eb", "spacing": "sm"}},
+              {"type": "text", "data": {"html": "<p class=\"yk-lead\">We run projects through standardized milestones, so goals, deliverables and owners are documented at every stage. Edit each step below as needed, or drag to reorder them.</p>"}},
+              {"type": "button", "data": {"text": "Discuss Your Project", "url": "/contact.html", "variant": "primary", "align": "left"}}
+            ]
+          },
+          {
+            "elements": [
+              {"type": "image", "data": {"src": "/images/company-about-v2.webp", "alt": "Project team collaborating on delivery"}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "Six-Step Process",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg", "bg_color": "#f8fafc"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "heading", "data": {"text": "How Projects Move Forward", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}},
+              {"type": "text", "data": {"html": "<p class=\"yk-copy\">Each step produces a clear output. Update the names and descriptions to match how your company actually delivers its services.</p>"}},
+              {
+                "type": "process-steps",
+                "data": {
+                  "auto_number": true,
+                  "tablet_columns": "2",
+                  "desktop_columns": "3",
+                  "gap": "lg",
+                  "children": [
+                    {"type": "process-step", "data": {"number": "01", "icon": "message-circle", "title": "Requirements", "text": "Understand your business context, goals and constraints, and confirm project scope and key contacts."}},
+                    {"type": "process-step", "data": {"number": "02", "icon": "clipboard-check", "title": "Solution Design", "text": "Prepare the implementation plan, deliverables list and schedule, and confirm them with you."}},
+                    {"type": "process-step", "data": {"number": "03", "icon": "tool", "title": "Implementation", "text": "Carry out development, configuration or production as planned, sharing progress and risks at key milestones."}},
+                    {"type": "process-step", "data": {"number": "04", "icon": "test-pipe", "title": "Testing & Acceptance", "text": "Run functional, performance and quality checks, verifying each item against the acceptance criteria."}},
+                    {"type": "process-step", "data": {"number": "05", "icon": "package", "title": "Training & Handover", "text": "Hand over deliverables, user documentation and training so your team can get up and running smoothly."}},
+                    {"type": "process-step", "data": {"number": "06", "icon": "headset", "title": "Ongoing Support", "text": "Provide ongoing support, routine inspections and optimization advice to keep everything running reliably."}}
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "Stage Deliverables",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "lg"},
+        "columns": [
+          {"elements": [{"type": "icon-box", "data": {"icon": "file-description", "title": "Plans Up Front", "text": "Scope, milestones, responsibilities and risk controls are agreed before kickoff."}}]},
+          {"elements": [{"type": "icon-box", "data": {"icon": "checks", "title": "Clear Acceptance Criteria", "text": "Every stage leaves verifiable results and records signed off by both parties."}}]},
+          {"elements": [{"type": "icon-box", "data": {"icon": "lifebuoy", "title": "Built to Last", "text": "Training, documentation and support ensure the results stay reliable for the long term."}}]}
+        ]
+      },
+      {
+        "type": "section",
+        "name": "Process FAQ",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "narrow", "gap": "md", "bg_color": "#f8fafc"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "heading", "data": {"text": "Frequently Asked Questions", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "center"}},
+              {"type": "accordion", "data": {"items": [
+                {"question": "What should we prepare before the project starts?", "answer": "We recommend preparing your business goals, information on your current situation, your preferred timeline and a main contact. We will help you fill in the detailed requirements."},
+                {"question": "How will we stay updated on progress?", "answer": "We share progress, open items and risks weekly or at each milestone. The exact cadence is agreed at kickoff."},
+                {"question": "Do you provide support after delivery?", "answer": "Yes. Depending on the project agreement, we can provide warranty, training, routine inspections and ongoing optimization."}
+              ], "open_first": true, "seo_schema": true}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "Contact CTA",
+        "settings": {"padding": {"d": "lg", "m": "md"}, "max_width": "wide"},
+        "columns": [
+          {"elements": [{"type": "cta", "data": {"use_home_text": false, "title": "Ready to start a project?", "text": "Share your goals and timeline, and we will get back to you quickly with recommended next steps.", "btn_text": "Talk to a Project Consultant", "btn_url": "/contact.html"}}]}
+        ]
+      }
+    ]
+  }
+}

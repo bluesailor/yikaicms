@@ -44,7 +44,7 @@ test('hasModified: per-group dot via injected predicate', () => {
     assert.equal(styleGroups.hasModified('general', [bg, anim, plain], modified), false);
 });
 
-test('methods.styleGroups: disabled for container block, search, modified-only, <2 groups', () => {
+test('methods.styleGroups: includes common settings, bypasses container and filters', () => {
     const schema = { controls: [bg, anim, plain] };
     // 模拟编辑器的 methods 混入（...BloxStyleGroups.methods）
     const base = Object.assign({}, styleGroups.methods, {
@@ -53,20 +53,87 @@ test('methods.styleGroups: disabled for container block, search, modified-only, 
         isSelectedContainerEl: () => false,
         ctrlQuery: '',
         modifiedOnly: false,
+        isCtrlModified: () => false,
+        styleGroupLabels: { general: '常规', background: '背景', animation: '动画' },
     });
     globalThis.BloxHomeContentPanel = { tabFor: (node, c) => c.tab || 'content' };
+    // TASK-003 R01：分组候选集由宿主 styleCandidates() 提供（与最终渲染同源）
+    base.styleCandidates = function () {
+        return styleGroups.visibleCandidates([{ group: 'general' }].concat(schema.controls), {
+            query: this.ctrlQuery, modifiedOnly: this.modifiedOnly,
+            isModified: this.isCtrlModified, groupLabels: this.styleGroupLabels,
+        });
+    };
 
     assert.deepEqual(styleGroups.methods.styleGroups.call(base), ['general', 'background', 'animation']);
     assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, isSelectedContainerEl: () => true }), []);
-    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, ctrlQuery: 'pad' }), []);
-    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, modifiedOnly: true }), []);
-    const single = { ...base, elSchema: () => ({ controls: [anim] }) };
-    assert.deepEqual(styleGroups.methods.styleGroups.call(single), []);
+    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, ctrlQuery: 'pad' }), [], '无命中时不启用分组');
+    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, modifiedOnly: true }), [], '只看已修改且无修改时不启用分组');
+    const single = { ...base, elSchema: () => ({ controls: [anim] }), styleCandidates: () => [{ group: 'general' }, anim] };
+    assert.deepEqual(styleGroups.methods.styleGroups.call(single), ['general', 'animation']);
+});
+
+// TASK-003 D：搜索时不再清空分组——只列出"有命中的组"，命中分组仍可逐组查看
+test('methods.styleGroups: keeps only groups that have search hits', () => {
+    // 带可检索文案的夹具：bg/anim 共享「卡片」，plain 只有「圆角」
+    const bgCard = { key: 'bg_color', tab: 'style', group: 'background', label: '卡片阴影' };
+    const animCard = { key: 'animation', tab: 'style', group: 'animation', label: '卡片动画' };
+    const plainCard = { key: 'radius', tab: 'style', label: '圆角' };
+    const base = Object.assign({}, styleGroups.methods, {
+        selEl: { type: 'card', data: {} },
+        elSchema: () => ({ controls: [bgCard, animCard, plainCard] }),
+        isSelectedContainerEl: () => false,
+        ctrlQuery: '',
+        modifiedOnly: false,
+        isCtrlModified: () => false,
+        styleGroupLabels: { general: '常规', background: '背景', animation: '动画' },
+    });
+    globalThis.BloxHomeContentPanel = { tabFor: (node, c) => c.tab || 'content' };
+    base.styleCandidates = function () {
+        return styleGroups.visibleCandidates([bgCard, animCard, plainCard], {
+            query: this.ctrlQuery, modifiedOnly: this.modifiedOnly,
+            isModified: this.isCtrlModified, groupLabels: this.styleGroupLabels,
+        });
+    };
+
+    // 命中两组 → 只列这两组（此前一律返回 [] 而整体平铺，分组信息全丢）
+    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, ctrlQuery: '卡片' }), ['background', 'animation']);
+    // 只命中一组 → 不启用分组（平铺等价，避免单组 chip 噪音）
+    assert.deepEqual(styleGroups.methods.styleGroups.call({ ...base, ctrlQuery: '圆角' }), []);
+    // 只看已修改且两组各有修改 → 列出这两组
+    assert.deepEqual(
+        styleGroups.methods.styleGroups.call({
+            ...base,
+            modifiedOnly: true,
+            isCtrlModified: (c) => c === bgCard || c === animCard,
+        }),
+        ['background', 'animation']
+    );
+});
+
+test('matchesQuery / searchFilter: section and group names are searchable', () => {
+    const sectioned = { group: 'background', label: 'Background image', section: '卡片外观' };
+    const plain = { group: 'general', label: 'Padding', key: 'style_padding' };
+    const labels = { general: '常规', background: '背景', animation: '动画' };
+
+    assert.equal(styleGroups.matchesQuery(sectioned, '', labels), true, '空关键词一律命中');
+    assert.equal(styleGroups.matchesQuery(sectioned, 'background', labels), true, '控件名命中');
+    assert.equal(styleGroups.matchesQuery(sectioned, '卡片', labels), true, '所在区块名命中');
+    assert.equal(styleGroups.matchesQuery(sectioned, '背景', labels.background), true, '所属分组名命中');
+    assert.equal(styleGroups.matchesQuery(plain, '背景', labels.general), false, '不命中就是不命中');
+
+    assert.deepEqual(styleGroups.searchFilter([sectioned, plain], '卡片', false, null, labels), [sectioned]);
+    assert.deepEqual(styleGroups.searchFilter([sectioned, plain], '', false, null, labels), [sectioned, plain]);
+    assert.deepEqual(
+        styleGroups.searchFilter([sectioned, plain], '', true, (c) => c === plain, labels),
+        [plain],
+        '只看已修改只保留谓词为真的控件'
+    );
 });
 
 test('methods.effectiveStyleGroup: falls to first present group when styleGroup absent', () => {
     globalThis.BloxHomeContentPanel = { tabFor: (node, c) => c.tab || 'content' };
-    // card 形态：只有 背景+动画、无 常规——selectElement 重置的 "general" 不在组列表
+    // Common settings remain available even when the schema only has background and animation.
     const ctx = Object.assign({}, styleGroups.methods, {
         selEl: { type: 'card', data: {} },
         elSchema: () => ({ controls: [bg, anim] }),
@@ -74,12 +141,28 @@ test('methods.effectiveStyleGroup: falls to first present group when styleGroup 
         ctrlQuery: '',
         modifiedOnly: false,
         styleGroup: 'general',
+        // TASK-003 R01：候选集来自宿主（此处模拟"常规设置始终可用"的合成项）
+        styleCandidates: () => [{ group: 'general' }, bg, anim],
     });
-    assert.equal(styleGroups.methods.effectiveStyleGroup.call(ctx), 'background');
+    assert.equal(styleGroups.methods.effectiveStyleGroup.call(ctx), 'general');
+    assert.equal(ctx.commonStyleVisible(), true);
     ctx.styleGroup = 'animation';
     assert.equal(styleGroups.methods.effectiveStyleGroup.call(ctx), 'animation');
-    // 分组未启用（单组）时回落 general
-    const single = Object.assign({}, ctx, { elSchema: () => ({ controls: [anim] }), styleGroup: 'background' });
+    assert.equal(ctx.commonStyleVisible(), false);
+    ctx.styleGroup = 'background';
+    assert.equal(ctx.commonStyleVisible(), false);
+    // 旧契约"搜索即禁用分组、常规块始终可见"已被 TASK-003 D 取代：搜索现在保留分组，
+    // 常规块是否可见只取决于当前分组是否落在常规（此处显式记录契约变更）
+    const searching = { ...ctx, ctrlQuery: 'padding' };
+    assert.deepEqual(styleGroups.methods.styleGroups.call(searching), ['general', 'background', 'animation']);
+    searching.styleGroup = 'general';
+    assert.equal(searching.commonStyleVisible(), true);
+    // An unavailable selected group falls back to general.
+    const single = Object.assign({}, ctx, {
+        elSchema: () => ({ controls: [anim] }),
+        styleCandidates: () => [{ group: 'general' }, anim],
+        styleGroup: 'background',
+    });
     assert.equal(styleGroups.methods.effectiveStyleGroup.call(single), 'general');
 });
 
@@ -94,7 +177,132 @@ test('methods.styleTabDot: box value or any modified style control lights the ta
     assert.equal(styleGroups.methods.styleTabDot.call(ctx), true);
     ctx.selEl.data = {};
     assert.equal(styleGroups.methods.styleTabDot.call(ctx), false);
+    ctx.selEl.data = { _hide_on: ['m'] };
+    assert.equal(ctx.styleGroupDot('general'), true);
+    assert.equal(ctx.styleTabDot(), true);
+    ctx.selEl.data = { _global_style: 'test' };
+    assert.equal(ctx.styleGroupDot('general'), true);
+    ctx.selEl.data = {};
     ctx.isCtrlModified = () => true;
     assert.equal(styleGroups.methods.styleTabDot.call(ctx), true);
     assert.equal(styleGroups.methods.styleTabDot.call({ ...ctx, selEl: null }), false);
+});
+
+// TASK-003 R01 最小复现：隐藏控件不得参与分组计算（否则会出现"有可见命中却默认落进空分组"）
+test('styleGroups never counts hidden controls into groups', () => {
+    const labels = { general: '常规', background: '背景', animation: '动画' };
+    const hiddenGeneral = { key: 'bg_color', tab: 'style', group: 'general', label: '颜色', editor_hidden: true };
+    const visibleBackground = { key: 'other_color', tab: 'style', group: 'background', label: '颜色' };
+    const visibleAnimation = { key: 'animation', tab: 'style', group: 'animation', label: '颜色' };
+    const all = [hiddenGeneral, visibleBackground, visibleAnimation];
+    const isExcluded = (c) => c.editor_hidden === true;
+    const candidates = (query) => styleGroups.visibleCandidates(all, { isExcluded, query, groupLabels: labels });
+
+    const base = Object.assign({}, styleGroups.methods, {
+        selEl: { type: 'card', data: {} },
+        isSelectedContainerEl: () => false,
+        ctrlQuery: '颜色',
+        modifiedOnly: false,
+        styleGroup: 'general',
+        styleCandidates: () => candidates('颜色'),
+    });
+
+    // 隐藏的是 general 的唯一控件 → 它不能把 general 变成一个"幽灵分组"
+    assert.deepEqual(styleGroups.methods.styleGroups.call(base), ['background', 'animation']);
+    // 当前分组停在 general（已无可见控件）→ 自动落到有命中的分组，不会渲染空分组
+    assert.equal(styleGroups.methods.effectiveStyleGroup.call(base), 'background');
+    assert.deepEqual(
+        styleGroups.filter(base.styleCandidates(), styleGroups.methods.effectiveStyleGroup.call(base), false),
+        [visibleBackground]
+    );
+
+    // 只剩一组可见命中时不启用分组——平铺即可看到，不会"有结果却显示空分组"
+    const single = { ...base, styleCandidates: () => candidates('颜色').filter((c) => c !== visibleAnimation) };
+    assert.deepEqual(styleGroups.methods.styleGroups.call(single), []);
+});
+
+// TASK-003 R02：常规（通用设置）入口必须可达——通用设置不在 schema 里，
+// 但无搜索时必须始终可选中；搜索/只看已修改时按通用设置自身的匹配/修改决定。
+// 本用例**不手工注入 general**，候选集用生产helper commonMarker() 构造。
+test('host contract: general group stays reachable via commonMarker', () => {
+    const labels = { general: '常规 间距 设备可见性', background: '背景', animation: '动画' };
+    const bgCtl = { key: 'bg_color', tab: 'style', group: 'background', label: '背景色' };
+    const animCtl = { key: 'animation', tab: 'style', group: 'animation', label: '动画' };
+    const hostCandidates = (opts) => styleGroups.visibleCandidates(
+        [styleGroups.commonMarker(labels.general), bgCtl, animCtl],
+        {
+            isExcluded: () => false,
+            isModified: (c) => (styleGroups.isCommonMarker(c) ? !!opts.commonModified : !!opts.modified),
+            query: opts.query, modifiedOnly: opts.modifiedOnly, groupLabels: labels,
+        }
+    );
+    const host = (opts) => Object.assign({}, styleGroups.methods, {
+        selEl: { type: 'card', data: {} },
+        isSelectedContainerEl: () => false,
+        ctrlQuery: opts.query || '',
+        modifiedOnly: !!opts.modifiedOnly,
+        styleGroup: opts.styleGroup || 'general',
+        styleGroupLabels: labels,
+        styleCandidates: () => hostCandidates(opts),
+    });
+
+    // 无搜索：schema 只有 background/animation，常规仍需在列且可选中
+    const idle = host({});
+    assert.deepEqual(styleGroups.methods.styleGroups.call(idle), ['general', 'background', 'animation']);
+    assert.equal(styleGroups.methods.effectiveStyleGroup.call(idle), 'general');
+    assert.equal(idle.commonStyleVisible(), true);
+
+    // 搜索通用文案（间距/设备）→ 通用设置仍在候选里（可达）；此时只命中一组，故不启用分组
+    const generalSearch = host({ query: '设备' });
+    assert.equal(generalSearch.styleCandidates().some((c) => c.key === 'common_style'), true);
+    assert.deepEqual(styleGroups.methods.styleGroups.call(generalSearch), []);
+    // 搜索只命中背景 → 常规不占位（不留空组），当前分组落到有命中的组
+    const bgOnly = host({ query: '背景色', styleGroup: 'general' });
+    assert.deepEqual(styleGroups.methods.styleGroups.call(bgOnly), []);
+    assert.equal(styleGroups.filter(bgOnly.styleCandidates(), 'general', false).some((c) => c.key === 'common_style'), false);
+
+    // 只看已修改：通用设置被改过 → 常规在列；没改过 → 不占位
+    assert.deepEqual(
+        styleGroups.methods.styleGroups.call(host({ modifiedOnly: true, commonModified: true, modified: true })),
+        ['general', 'background', 'animation']
+    );
+    assert.deepEqual(
+        styleGroups.methods.styleGroups.call(host({ modifiedOnly: true, commonModified: false })),
+        []
+    );
+});
+
+// TASK-003 R03：占位项只参与分组/匹配，最终渲染列表必须剔除它，且不进内容页签
+test('commonMarker drives grouping but never reaches the rendered control list', () => {
+    const labels = { general: '常规 间距 设备可见性', background: '背景', animation: '动画' };
+    const bgCtl = { key: 'bg_color', tab: 'style', group: 'background', label: '背景色', type: 'color' };
+    const animCtl = { key: 'animation', tab: 'style', group: 'animation', label: '动画', type: 'select' };
+    const marker = styleGroups.commonMarker(labels.general);
+
+    assert.equal(styleGroups.isCommonMarker(marker), true);
+    assert.equal(styleGroups.isCommonMarker(bgCtl), false, '合法 schema 控件不得被误判为占位项');
+
+    const candidates = [marker, bgCtl, animCtl];
+    // 分组仍能看到 general（可达性不丢）
+    assert.deepEqual(styleGroups.groups(candidates), ['general', 'background', 'animation']);
+    // 但渲染列表里不能出现它（含"当前分组=general"时的落盘结果）
+    const rendered = styleGroups.withoutCommonMarker(candidates);
+    assert.equal(rendered.some((c) => styleGroups.isCommonMarker(c)), false);
+    assert.deepEqual(rendered.map((c) => c.key), ['bg_color', 'animation']);
+    assert.deepEqual(styleGroups.filter(candidates, 'general', false).map((c) => c.key), ['common_style'], '分组筛选本身仍认可占位项所属的常规组');
+    assert.deepEqual(styleGroups.withoutCommonMarker(styleGroups.filter(candidates, 'general', false)), [], '常规组没有真实控件时渲染结果为空（通用设置由独立块渲染）');
+
+    // 模拟宿主：候选集含占位项 → styleGroups 含 general；渲染列表剔除占位项
+    const host = Object.assign({}, styleGroups.methods, {
+        selEl: { type: 'card', data: {} },
+        isSelectedContainerEl: () => false,
+        ctrlQuery: '', modifiedOnly: false, styleGroup: 'general',
+        styleCandidates: () => candidates,
+    });
+    assert.deepEqual(styleGroups.methods.styleGroups.call(host), ['general', 'background', 'animation']);
+    assert.equal(styleGroups.methods.effectiveStyleGroup.call(host), 'general');
+    const renderedList = styleGroups.withoutCommonMarker(
+        styleGroups.filter(host.styleCandidates(), styleGroups.methods.effectiveStyleGroup.call(host), false)
+    );
+    assert.deepEqual(renderedList, [], '常规分组渲染时不会把占位项当控件输出');
 });

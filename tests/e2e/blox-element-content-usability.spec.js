@@ -5,6 +5,7 @@ const {
   editorHasChanges,
   expectClean,
   frame,
+  headingTextField,
   observeConsole,
   observeUnsafeWrites,
   openPageEditor,
@@ -82,14 +83,14 @@ test('heading can be edited, restyled, reselected, and rendered without refresh 
   const originalUrl = page.url();
   await addElement(page, 'heading');
 
-  const text = page.locator('[data-control-key="text"] input');
+  const text = headingTextField(page);
   await performPagePreviewUpdate(page, async () => {
     await text.fill('R1 heading value');
     await text.blur();
   });
   await expect((await frame(page)).locator('[data-yk-el-type="heading"]').last()).toContainText('R1 heading value');
 
-  await performPagePreviewUpdate(page, () => page.getByTestId('blox-control-level').selectOption('h3'));
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-heading-level').selectOption('h3'));
   await expect((await frame(page)).locator('[data-yk-el-type="heading"] h3').last()).toBeVisible();
 
   const headingTreeItem = page.locator('[data-testid="blox-tree-element"][data-element-type="heading"]').last();
@@ -113,8 +114,8 @@ test('button text, safe URL, and new-tab setting reach the preview @ci', async (
   const originalUrl = page.url();
   await addElement(page, 'button');
 
-  const text = page.locator('[data-control-key="text"] input');
-  const url = page.locator('[data-control-key="url"] input');
+  const text = page.locator('[data-control-key="text"] input[type="text"]');
+  const url = page.locator('[data-control-key="url"] input[type="text"]');
   await performPagePreviewUpdate(page, async () => {
     await text.fill('R1 action');
     await url.fill('/contact.html');

@@ -148,7 +148,12 @@ final class BloxSecurityBoundaryTest extends TestCase
         $this->assertBefore($preview, 'verifyCsrf();', 'outputBloxCanvasPreview(');
 
         self::assertStringContainsString('Content-Security-Policy', $this->source('includes/builder/BloxCanvasPreview.php'));
-        self::assertStringContainsString('BloxElementPolicy::assertJsonAllowed($previewJson);', $this->source('includes/builder/BloxCanvasPreview.php'));
+        // E03：预览与保存共用作者能力检查，代码元素策略仍在渲染前执行。
+        $canvasPreview = $this->source('includes/builder/BloxCanvasPreview.php');
+        $this->assertBefore($canvasPreview, 'BloxDocumentPipeline::assertAuthoringAllowed(', 'BlockRenderer::$showHidden = true;');
+        $pipeline = $this->source('includes/builder/BloxDocumentPipeline.php');
+        $authoring = substr($pipeline, (int) strpos($pipeline, 'public static function assertAuthoringAllowed'));
+        self::assertStringContainsString('BloxElementPolicy::assertSectionsAllowed($sections);', substr($authoring, 0, (int) strpos($authoring, 'public static function process')));
         self::assertStringContainsString("script-src 'self' 'nonce-", $this->source('includes/builder/BloxCanvasPreview.php'));
         self::assertStringContainsString('$body = (string) preg_replace', $this->source('includes/builder/BloxCanvasPreview.php'));
     }
@@ -174,23 +179,31 @@ final class BloxSecurityBoundaryTest extends TestCase
         $media = $this->source('admin/media_api.php');
         $upload = $this->source('admin/upload.php');
 
-        self::assertStringContainsString("['header', 'footer', 'popup']", $auth);
+        self::assertStringContainsString("['header', 'footer', 'popup', 'product-detail', 'article-detail']", $auth);
         self::assertStringContainsString("requirePermission('blox_home');", $editor);
         self::assertStringContainsString("requirePermission('blox_edit');", $editor);
-        self::assertStringContainsString("!in_array(\$templateType, ['section', 'page'], true) && !\$advancedBloxEnabled", $editor);
+        self::assertStringContainsString('!BloxTemplateEditPolicy::allows($templateType, $advancedBloxEnabled)', $editor);
         self::assertStringContainsString('requireBloxTemplateTypePermission($templateType);', $editor);
         self::assertStringContainsString("requirePermission('blox_global');", $templateManager);
         self::assertStringContainsString('if (!bloxPageEditorEnabled())', $templates);
         self::assertStringContainsString('$requireTemplateLicense($type);', $templates);
-        self::assertStringContainsString("\$item['locked_reason'] = 'license_missing';", $templates);
-        self::assertBefore($templates, "str_starts_with(\$key, 'remote:')", 'BloxTemplateCatalog::resolve($key, $context)');
+        self::assertStringNotContainsString("\$item['locked_reason'] = 'license_missing';", $templates);
+        self::assertStringNotContainsString("str_starts_with(\$key, 'remote:')", $templates);
+        $remoteProvider = $this->source('includes/builder/BloxRemoteTemplateProvider.php');
+        self::assertBefore($remoteProvider, "if (!empty(\$item['locked']))", '($this->httpGet)($downloadUrl');
         self::assertGreaterThanOrEqual(4, substr_count($templates, 'requireBloxTemplateTypePermission('));
         self::assertStringContainsString("if (\$_SERVER['REQUEST_METHOD'] === 'POST') {\n    verifyCsrf();", $templateManager);
         self::assertStringContainsString("if (\$action === 'rollback_remote')", $templateManager);
         self::assertStringContainsString('data-testid="blox-official-update"', $templateManager);
         self::assertStringContainsString('data-testid="blox-official-rollback"', $templateManager);
         $remoteInstaller = $this->source('includes/builder/BloxRemoteTemplateInstaller.php');
-        self::assertBefore($remoteInstaller, '$stateModel->stageUpdate(', 'bloxTemplateModel()->updateDraft(');
+        // Both the two-step review and legacy direct update must stage before changing the draft.
+        foreach (['confirmUpdate', 'update'] as $method) {
+            $reflection = new \ReflectionMethod(\BloxRemoteTemplateInstaller::class, $method);
+            $body = implode("\n", array_slice(explode("\n", $remoteInstaller), $reflection->getStartLine() - 1,
+                $reflection->getEndLine() - $reflection->getStartLine() + 1));
+            self::assertBefore($body, '->stageUpdate(', 'bloxTemplateModel()->updateDraft(');
+        }
         self::assertStringContainsString('$existingDraft', $remoteInstaller);
         self::assertStringContainsString("if (\$action === 'remote_import' && \$_SERVER['REQUEST_METHOD'] === 'POST')", $media);
         self::assertBefore($media, "if (!canUploadImage()) {\n        ma_deny('没有上传图片的权限');\n    }\n    verifyCsrf();", 'RemoteOfficialMedia::import(');
@@ -214,6 +227,6 @@ final class BloxSecurityBoundaryTest extends TestCase
             // 付费 Blox 源码不随公开仓库分发；无注入的 CI 矩阵跳过，注入 job 与本地全量执行。
             self::markTestSkipped('付费 Blox 源码未注入：' . $path);
         }
-        return (string) file_get_contents($file);
+        return $path === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : (string) file_get_contents($file);
     }
 }

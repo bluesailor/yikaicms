@@ -9,7 +9,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
-HtmlCache::start(600);
+$isNativeProductPreview = defined('YK_PRODUCT_NATIVE_PREVIEW') && YK_PRODUCT_NATIVE_PREVIEW === true;
+if (!$isNativeProductPreview) HtmlCache::start(600);
 
 $productId = getInt('id');
 $slug = trim((string) get('slug', ''));
@@ -30,11 +31,14 @@ if ($productId <= 0) {
 // 数据装配交给 ProductDetailController：产品载入、浏览量自增、分类/相关/上下篇、
 // 图片组与规格解析。与 detail.php / article.php 同款、逻辑由 ProductDetailControllerTest 守护。
 require_once __DIR__ . '/controllers/detail/ProductDetailController.php';
-$_vars = (new ProductDetailController())->prepare($productId);
+$_vars = (new ProductDetailController())->prepare($productId, !$isNativeProductPreview);
 if ($_vars === null) {
     header('HTTP/1.1 404 Not Found');
     render404(__('error_product_not_found'));
 }
+// 详情模板上下文需要控制器的派生数据（相册 / 参数 / 上下篇 / 相关），
+// 产品行本身没有这些；extract 后 $_vars 会销毁，故先留一份。
+$productTemplateVars = $_vars;
 extract($_vars, EXTR_OVERWRITE);
 unset($_vars);
 
@@ -76,6 +80,9 @@ $currentSlug = 'product';
 $ogType = 'product';
 $siteUrl = siteBaseUrl();
 $canonicalUrl = $siteUrl . productPrettyUrl($product);
+if (isDynamicUrlMode() && productRouteModel()->pathFor('product', (int) $product['id']) !== '') {
+    $canonicalUrl = $siteUrl . productUrl($product);
+}
 if (!empty($product['cover'])) {
     $ogImage = $product['cover'];
 }
@@ -102,8 +109,18 @@ if (!empty($product['price']) && $product['price'] > 0) {
     ];
 }
 
-// 引入头部
+// Native detail markup and its scripts remain an indivisible fallback.
+$productTemplateHtml = $isNativeProductPreview ? '' : ProductTemplateDocument::renderPublished($productTemplateVars);
+unset($productTemplateVars);
+// Collect template assets before the theme emits its head.
 require_once theme_path('layouts/header.php');
+if ($isNativeProductPreview) {
+    echo '<div role="status" class="border-b bg-gray-50 px-4 py-3 text-sm text-gray-700" data-testid="product-native-preview">'
+        . e(__('blox_product_native_preview_status')) . '</div>';
+}
+if (trim($productTemplateHtml) !== '') {
+    echo $productTemplateHtml;
+} else {
 ?>
 
 <!-- 面包屑 -->
@@ -242,7 +259,13 @@ require_once theme_path('layouts/header.php');
                             <?php echo __('product_inquiry'); ?>
                         </h3>
                         <form id="inquiryForm" class="space-y-3">
+                            <?php if ($isNativeProductPreview): ?><fieldset disabled class="space-y-3"><?php endif; ?>
                             <input type="hidden" name="form_slug" value="product-inquiry">
+                            <input type="hidden" name="_lang" value="<?= e(siteLang()) ?>">
+                            <?php $inquiryTimestamp = time(); ?>
+                            <input type="hidden" name="form_ts" value="<?= $inquiryTimestamp ?>">
+                            <input type="hidden" name="form_sig" value="<?= e(FormSubmissionToken::sign('product-inquiry', $inquiryTimestamp, defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '')) ?>">
+                            <input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
                             <input type="hidden" name="product_id" value="<?php echo (int)$product['id']; ?>">
                             <input type="hidden" name="product_title" value="<?php echo e($product['title']); ?>">
                             <div class="grid grid-cols-2 gap-3">
@@ -259,11 +282,13 @@ require_once theme_path('layouts/header.php');
                             </div>
                             <textarea name="content" required rows="3" placeholder="<?php echo __('product_field_msg_ph'); ?>"
                                       class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none resize-y"><?php echo e(sprintf(__('product_default_inq_msg'), $product['title'])); ?></textarea>
+                            <?= renderFormCaptcha(!empty(formTemplateModel()->findBySlug('product-inquiry')['captcha'])) ?>
                             <button type="submit" id="inquiryBtn"
                                     class="w-full bg-primary hover:bg-secondary text-white py-2.5 rounded text-sm font-medium transition">
                                 <?php echo __('product_btn_submit_inq'); ?>
                             </button>
                             <p id="inquiryMsg" class="text-sm text-center hidden"></p>
+                            <?php if ($isNativeProductPreview): ?></fieldset><?php endif; ?>
                         </form>
                     </div>
                 </div>
@@ -478,7 +503,7 @@ document.getElementById('inquiryForm').addEventListener('submit', function(e) {
     msg.classList.add('hidden');
 
     var formData = new FormData(this);
-    fetch('/form_submit.php', { method: 'POST', body: formData })
+    fetch('/form_submit.php?_lang=' + encodeURIComponent(formData.get('_lang') || ''), { method: 'POST', body: formData })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             msg.classList.remove('hidden');
@@ -490,6 +515,15 @@ document.getElementById('inquiryForm').addEventListener('submit', function(e) {
                 msg.className = 'text-sm text-center text-red-600';
                 msg.textContent = data.msg;
             }
+            var form = document.getElementById('inquiryForm');
+            if (data.refresh_token) {
+                ['form_ts', 'form_sig'].forEach(function(key) {
+                    var field = form.elements.namedItem(key);
+                    if (field) { field.value = String(data.refresh_token[key]); field.defaultValue = field.value; }
+                });
+            }
+            var captcha = form.querySelector('img[src*="captcha.php"]');
+            if (captcha) captcha.src = '/captcha.php?' + Date.now();
             btn.disabled = false;
             btn.textContent = '<?php echo __("product_btn_submit_inq"); ?>';
         })
@@ -503,5 +537,6 @@ document.getElementById('inquiryForm').addEventListener('submit', function(e) {
 });
 </script>
 
+<?php } ?>
 <?php require_once theme_path('layouts/footer.php'); ?>
-<?php HtmlCache::end(); ?>
+<?php if (!$isNativeProductPreview) HtmlCache::end(); ?>

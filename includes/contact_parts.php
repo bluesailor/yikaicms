@@ -4,7 +4,7 @@
  *
  * 抽出来的目的：让这三块既能被固定版式的 contact.php 用，也能作为排版元素
  * （contact_cards / contact_form / contact_map）被拖进任意位置。
- * 标记与原模板逐字节一致——搬运时按行切片，未改动任何 HTML。
+ * 未指定展示参数时保留固定联系页的默认排版；Blox 可独立选择展示方式。
  */
 
 declare(strict_types=1);
@@ -159,12 +159,19 @@ function contactNoEditAttr(): callable
 }
 
 /** 联系信息卡片区。 */
-function renderContactCardsHtml(?array $contactCards = null, ?string $gridCols = null, ?array $iconPaths = null, ?callable $__ykEdit = null, bool $withBottomMargin = true): string
+function renderContactCardsHtml(?array $contactCards = null, ?string $gridCols = null, ?array $iconPaths = null, ?callable $__ykEdit = null, bool $withBottomMargin = true, array $display = []): string
 {
     $contactCards = $contactCards ?? contactCardsData();
     $gridCols     = $gridCols ?? contactGridCols(count($contactCards));
     $iconPaths    = $iconPaths ?? contactIconPaths();
     $__ykEdit     = $__ykEdit ?? contactNoEditAttr();
+    $layout = in_array($display['card_layout'] ?? null, ['classic', 'side', 'list'], true) ? $display['card_layout'] : 'classic';
+    $align = in_array($display['card_align'] ?? null, ['left', 'center', 'right'], true) ? $display['card_align'] : 'auto';
+    $surface = in_array($display['icon_surface'] ?? null, ['circle', 'square', 'none'], true) ? $display['icon_surface'] : 'circle';
+    $gap = in_array($display['card_gap'] ?? null, ['sm', 'md', 'lg'], true) ? $display['card_gap'] : 'md';
+    $showIcons = !array_key_exists('show_icons', $display) || !in_array($display['show_icons'], [false, 0, '0', 'false', ''], true);
+    $displayClass = ' yk-contact-cards yk-contact-layout-' . $layout . ' yk-contact-align-' . $align
+        . ' yk-contact-icons-' . $surface . ' yk-contact-gap-' . $gap;
     // 缓冲必须在异常路径上也关掉：模板里任何一处抛错都会把这个 ob 留着，
     // 于是页面后续输出全被吞进去——表现为「页面从这里开始空白」而不是报错。
     $__obLevel = ob_get_level();
@@ -172,7 +179,7 @@ function renderContactCardsHtml(?array $contactCards = null, ?string $gridCols =
     try { ?>
         <!-- 联系信息卡片 -->
         <?php if (!empty($contactCards)): ?>
-        <div class="grid grid-cols-1 <?php echo $gridCols; ?> gap-6<?php echo $withBottomMargin ? ' mb-12' : ''; ?>"<?php echo $__ykEdit('/admin/setting_contact.php', '✎ 编辑联系信息'); ?>>
+        <div class="grid grid-cols-1 <?php echo e($gridCols); ?> gap-6<?php echo $withBottomMargin ? ' mb-12' : ''; ?><?php echo e($displayClass); ?>"<?php echo $__ykEdit('/admin/setting_contact.php', '✎ 编辑联系信息'); ?>>
             <?php foreach ($contactCards as $card): ?>
             <?php
             $cardIconName = (string) ($card['icon'] ?? '');
@@ -185,19 +192,19 @@ function renderContactCardsHtml(?array $contactCards = null, ?string $gridCols =
                 $cardHref = 'mailto:' . $cardValue;
             }
             ?>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-5 md:p-6 flex items-center gap-4 text-left md:block md:text-center">
+            <div class="yk-contact-card bg-white rounded-lg shadow-sm border border-gray-100 p-5 md:p-6 flex items-center gap-4 text-left md:block md:text-center">
                 <?php
                 // 已填图标名但不在内置图标表时，兜底到通用图标，避免图标静默丢失
                 $__cardIcon = $cardIconName !== '' ? ($iconPaths[$cardIconName] ?? $iconPaths['message']) : '';
-                if ($__cardIcon !== ''):
+                if ($showIcons && $__cardIcon !== ''):
                 ?>
-                <div class="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-full flex items-center justify-center shrink-0 md:mx-auto md:mb-4">
-                    <svg class="w-6 h-6 md:w-8 md:h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="yk-contact-symbol w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-full flex items-center justify-center shrink-0 md:mx-auto md:mb-4">
+                    <svg aria-hidden="true" class="w-6 h-6 md:w-8 md:h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <?php echo $__cardIcon; ?>
                     </svg>
                 </div>
                 <?php endif; ?>
-                <div class="min-w-0">
+                <div class="yk-contact-copy min-w-0">
                     <h3 class="font-bold text-dark mb-1 md:mb-2"><?php echo e((string) ($card['label'] ?? '')); ?></h3>
                     <?php if (preg_match('/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i', $cardValue)): ?>
                     <img loading="lazy" src="<?php echo e($cardValue); ?>" alt="<?php echo e((string) ($card['label'] ?? '')); ?>" class="max-h-24 md:mx-auto">

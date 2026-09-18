@@ -51,7 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'delete') {
         requirePermission('delete_article');
+        // 文章入口只处理文章行：案例/单页/下载同表，光有模块权限拦不住跨类型删除
         $id = postInt('id');
+        requireContentRowOfType($id, 'article', 'delete');
         contentModel()->deleteById($id);
         adminLog('article', 'delete', "删除文章ID: $id");
         success();
@@ -59,10 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'duplicate') {
         $id  = postInt('id');
-        $src = contentModel()->find($id);
-        if (!$src) {
-            error(__('admin_no_data'));
-        }
+        $src = requireContentRowOfType($id, 'article');
         // 复制为草稿：清主键/统计/时间，重算 slug；translation_group_id 必须清零，
         // 否则副本会被当成原文的翻译行而在语言切换时相互覆盖。
         unset($src['id'], $src['deleted_at']);
@@ -82,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'batch_delete') {
         requirePermission('delete_article');
-        $ids = $_POST['ids'] ?? [];
+        $ids = requireContentRowsOfType((array) ($_POST['ids'] ?? []), 'article', 'delete');
         if (!empty($ids)) {
             contentModel()->deleteByIds($ids);
             adminLog('article', 'batch_delete', '批量删除：' . implode(',', $ids));
@@ -90,42 +89,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success();
     }
 
-    if ($action === 'batch_publish') {
-        $ids = $_POST['ids'] ?? [];
+    if ($action === 'batch_publish' || $action === 'batch_unpublish') {
+        // 必须走模型：直接 UPDATE 不触发 data_changed，页面缓存与静态文件不会失效，
+        // 匿名访客能继续读到已下架正文（2026-09-17 审计 F02 实测复现）。
+        $ids = requireContentRowsOfType((array) ($_POST['ids'] ?? []), 'article');
         if (!empty($ids)) {
+            $status = $action === 'batch_publish' ? 1 : 0;
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
-            db()->execute("UPDATE " . DB_PREFIX . "contents SET status = 1 WHERE id IN ({$placeholders})", $ids);
-            adminLog('article', 'batch_publish', '批量发布：' . implode(',', $ids));
+            contentModel()->updateWhere(
+                ['status' => $status, 'updated_at' => time()],
+                "id IN ({$placeholders})",
+                $ids
+            );
+            adminLog('article', $action, ($status ? '批量发布：' : '批量下架：') . implode(',', $ids));
         }
         success();
     }
 
-    if ($action === 'batch_unpublish') {
-        $ids = $_POST['ids'] ?? [];
-        if (!empty($ids)) {
-            $placeholders = implode(',', array_fill(0, count($ids), '?'));
-            db()->execute("UPDATE " . DB_PREFIX . "contents SET status = 0 WHERE id IN ({$placeholders})", $ids);
-            adminLog('article', 'batch_unpublish', '批量下架：' . implode(',', $ids));
-        }
-        success();
-    }
-
-    if ($action === 'toggle_status') {
+    if ($action === 'toggle_status' || $action === 'toggle_top' || $action === 'toggle_recommend') {
         $id = postInt('id');
-        $newStatus = contentModel()->toggle($id, 'status');
-        success(['status' => $newStatus]);
-    }
-
-    if ($action === 'toggle_top') {
-        $id = postInt('id');
-        $newValue = contentModel()->toggle($id, 'is_top');
-        success(['is_top' => $newValue]);
-    }
-
-    if ($action === 'toggle_recommend') {
-        $id = postInt('id');
-        $newValue = contentModel()->toggle($id, 'is_recommend');
-        success(['is_recommend' => $newValue]);
+        requireContentRowOfType($id, 'article');
+        $field = ['toggle_status' => 'status', 'toggle_top' => 'is_top', 'toggle_recommend' => 'is_recommend'][$action];
+        $newValue = contentModel()->toggle($id, $field);
+        success([$field => $newValue]);
     }
 
     exit;

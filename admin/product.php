@@ -139,20 +139,12 @@ $productPageChannel = channelModel()->findWhere([
 ]);
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/product_nav.php';
 ?>
 
 <?php echo renderAdminLangSwitcher($_viewLang); ?>
 
 <!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/product.php<?php echo e($_lang['qs']); ?>" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('product_tab_list'); ?></a>
-        <a href="/admin/product_category.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('product_tab_category'); ?></a>
-        <a href="/admin/product_brand.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_brand'); ?></a>
-        <a href="/admin/product_tag.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent"><?php echo __('product_tab_tag'); ?></a>
-        <a href="/admin/product_setting.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('product_tab_setting'); ?></a>
-    </div>
-</div>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
@@ -211,8 +203,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <!-- 列表 -->
 <div class="bg-white rounded-lg shadow">
     <form id="listForm">
-        <div class="overflow-x-auto">
-            <table class="w-full">
+        <div class="overflow-x-auto admin-product-table-scroll" tabindex="0" role="region" aria-label="<?= e(__('admin_product')) ?>">
+            <table class="w-full admin-product-table">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left">
@@ -474,4 +466,4 @@ async function duplicateItem(id) {
 }
 </script>
 
-<?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
+<?php adminModuleEnd(); require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

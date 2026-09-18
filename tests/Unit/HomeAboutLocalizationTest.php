@@ -58,6 +58,36 @@ final class HomeAboutLocalizationTest extends TestCase
         }
     }
 
+    public function testEditorShowsTheEditingLanguageAndSavesEditsAsThatLanguageOnly(): void
+    {
+        $section = HomeAboutContent::toSection([], 'home_s_1');
+        $section = BloxDocumentPipeline::process(json_encode([$section], JSON_THROW_ON_ERROR))['sections'][0];
+        $this->language('en');
+        $save = static fn(array $view): array => HomeAboutLocalization::fromEditor(BloxDocumentPipeline::process(
+            HomeAboutLocalization::markEditorChanges(json_encode([$view], JSON_THROW_ON_ERROR))
+        )['sections'])[0];
+
+        $view = HomeAboutLocalization::forEditor([$section])[0];
+        self::assertSame('en title', $view['columns'][0]['elements'][0]['data']['text']);
+        self::assertSame('en button', $view['columns'][0]['elements'][3]['data']['text']);
+        self::assertSame($section, $save($view));
+
+        $view['columns'][0]['elements'][0]['data']['text'] = 'About us';
+        $view['columns'][0]['elements'][3]['data']['text'] = 'Read more';
+        $saved = $save($view);
+        self::assertSame('Original title', $saved['columns'][0]['elements'][0]['data']['text']);
+        self::assertSame('Original button', $saved['columns'][0]['elements'][3]['data']['text']);
+        self::assertArrayNotHasKey(HomeAboutLocalization::EDIT_KEY, $saved['columns'][0]['elements'][0]['data']);
+        $rendered = HomeAboutLocalization::localize($saved);
+        self::assertSame('About us', $rendered['columns'][0]['elements'][0]['data']['text']);
+        self::assertSame('Read more', $rendered['columns'][0]['elements'][3]['data']['text']);
+        self::assertStringContainsString('en content', $rendered['columns'][0]['elements'][2]['data']['html']);
+        self::assertSame('About us', HomeAboutLocalization::forEditor([$saved])[0]['columns'][0]['elements'][0]['data']['text']);
+
+        $this->language('ja');
+        self::assertSame('ja title', HomeAboutLocalization::localize($saved)['columns'][0]['elements'][0]['data']['text']);
+    }
+
     public function testEditedAndClearedFieldsStayEditableWhileOtherFieldsRemainLocalized(): void
     {
         $section = HomeAboutContent::toSection([], 'home_s_1');
@@ -107,6 +137,40 @@ final class HomeAboutLocalizationTest extends TestCase
         self::assertSame($channel['test_url'], $method->invoke(null, $channel, 'ja'));
     }
 
+    /**
+     * 旧快照（无写作语言记录）是中文写的，之后站点默认语言改成了日语：
+     * 不能按「当前默认语言」判定写作语言，否则日语页永远显示中文原文。
+     */
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    public function testOldSnapshotDetectsItsAuthoringLanguageAfterTheDefaultLanguageChanged(): void
+    {
+        $section = HomeAboutContent::toSection([], 'about_1f590307e82e');
+        foreach ($section['columns'] as &$column) {
+            foreach ($column['elements'] as &$element) {
+                unset($element['data'][HomeAboutLocalization::KEY]);
+            }
+            unset($element);
+        }
+        unset($column);
+        $section['id'] = 'home_s_1';
+        // 快照里是当时中文站点值；之后日语成了默认语言，基础键也变成了日语
+        $overrides = &$GLOBALS['yikai_config_runtime_overrides'];
+        foreach (['title', 'content', 'button'] as $key) {
+            $overrides['home_about_' . $key . '_zh-CN'] = $overrides['home_about_' . $key];
+            $overrides['home_about_' . $key . '_ja'] = 'ja ' . $key;
+            $overrides['home_about_' . $key . '_en'] = 'en ' . $key;
+            $overrides['home_about_' . $key] = 'ja ' . $key;
+        }
+        $overrides['site_lang'] = 'ja';
+        unset($overrides);
+
+        $result = HomeAboutLocalization::localize($section);
+        self::assertSame('ja title', $result['columns'][0]['elements'][0]['data']['text']);
+        self::assertStringContainsString('>ja content<', $result['columns'][0]['elements'][2]['data']['html']);
+        self::assertSame('ja button', $result['columns'][0]['elements'][3]['data']['text']);
+    }
+
     #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
     #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
     public function testOldSnapshotPreservesEditedFieldsAndHandlesTheOriginalBadgeMarkup(): void
@@ -125,7 +189,9 @@ final class HomeAboutLocalizationTest extends TestCase
         $section['columns'][0]['span'] = 7;
         $section['columns'][0]['elements'][0]['data']['text'] = 'Customer title';
         $caption = &$section['columns'][1]['elements'][0]['data']['children'][1]['data']['html'];
-        $caption = str_replace('<p class="text-white m-0">', '<p class="text-white">', $caption);
+        $caption = '<div class="bg-primary text-white rounded-lg p-6">'
+            . '<h3 class="text-xl font-bold text-white m-0">Original badge</h3>'
+            . '<p class="text-white">Original caption</p></div>';
         unset($caption);
         $before = json_encode($section);
         define('SITE_LANG', 'en');

@@ -32,6 +32,12 @@ async function addElement(page, type) {
 
 const control = (page, key, suffix = '') => page.locator(`[data-control-key="${key}"] ${suffix}`.trim());
 
+async function fillCompactText(page, key, value) {
+  const editor = control(page, key).getByTestId('blox-description-editor');
+  await expect(editor).toHaveAttribute('contenteditable', 'true');
+  await editor.fill(value);
+}
+
 async function restoreContentChange(page) {
   for (let attempt = 0; attempt < 24 && await editorHasChanges(page); attempt += 1) {
     const desktopUndo = page.getByTestId('blox-undo');
@@ -82,37 +88,29 @@ test('text opens rich editor and renders formatted content @ci', async ({ page }
 
 test('alert, quote, card, and CTA expose editable content @ci', async ({ page }) => {
   await addElement(page, 'alert');
-  await performPagePreviewUpdate(page, async () => {
-    await control(page, 'text', 'textarea').fill('R2 alert value');
-    await control(page, 'level', 'select').selectOption('warning');
-  });
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-choice-level-warning').click());
+  await performPagePreviewUpdate(page, () => fillCompactText(page, 'text', 'R2 alert value'));
   await expect((await frame(page)).locator('[data-yk-el-type="alert"]')).toContainText('R2 alert value');
 
   await addElement(page, 'quote');
-  await performPagePreviewUpdate(page, async () => {
-    await control(page, 'text', 'textarea').fill('R2 quote value');
-    await control(page, 'author', 'input').fill('R2 author');
-  });
+  await performPagePreviewUpdate(page, () => control(page, 'author', 'input').fill('R2 author'));
+  await performPagePreviewUpdate(page, () => fillCompactText(page, 'text', 'R2 quote value'));
   const quote = (await frame(page)).locator('[data-yk-el-type="quote"]').filter({ hasText: 'R2 quote value' });
   await expect(quote).toContainText('R2 quote value');
   await expect(quote.locator('footer')).toContainText('R2 author');
 
   await addElement(page, 'card');
-  await performPagePreviewUpdate(page, async () => {
-    await control(page, 'title', 'input').fill('R2 card title');
-    await control(page, 'text', 'textarea').fill('R2 card body');
-    await control(page, 'link', 'input').fill('/contact.html');
-  });
+  await performPagePreviewUpdate(page, () => control(page, 'title', 'input').fill('R2 card title'));
+  await performPagePreviewUpdate(page, () => control(page, 'link', 'input').fill('/contact.html'));
+  await performPagePreviewUpdate(page, () => fillCompactText(page, 'text', 'R2 card body'));
   const card = (await frame(page)).locator('[data-yk-el-type="card"]').filter({ hasText: 'R2 card title' });
   await expect(card).toContainText('R2 card title');
   await expect(card.locator('a')).toHaveAttribute('href', '/contact.html');
 
   await addElement(page, 'cta');
-  await performPagePreviewUpdate(page, async () => {
-    await control(page, 'title', 'input').fill('R2 CTA title');
-    await control(page, 'text', 'textarea').fill('R2 CTA body');
-    await control(page, 'btn_text', 'input').fill('R2 CTA action');
-  });
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-cta-title').fill('R2 CTA title'));
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-cta-btn_text').fill('R2 CTA action'));
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-cta-text').fill('R2 CTA body'));
   const cta = (await frame(page)).locator('[data-yk-el-type="cta"]').filter({ hasText: 'R2 CTA title' });
   await expect(cta).toContainText('R2 CTA title');
   await expect(cta).toContainText('R2 CTA action');
@@ -131,10 +129,8 @@ test('icon, icon-box, logo, divider, and spacer expose usable controls @ci', asy
   await expect((await frame(page)).locator('[data-yk-el-type="icon"]').filter({ hasText: 'R2 icon label' })).toContainText('R2 icon label');
 
   await addElement(page, 'icon-box');
-  await performPagePreviewUpdate(page, async () => {
-    await control(page, 'title', 'input').fill('R2 icon box title');
-    await control(page, 'text', 'textarea').fill('R2 icon box body');
-  });
+  await performPagePreviewUpdate(page, () => control(page, 'title', 'input').fill('R2 icon box title'));
+  await performPagePreviewUpdate(page, () => fillCompactText(page, 'text', 'R2 icon box body'));
   await expect((await frame(page)).locator('[data-yk-el-type="icon-box"]').filter({ hasText: 'R2 icon box title' })).toContainText('R2 icon box title');
 
   await addElement(page, 'logo');
@@ -142,10 +138,8 @@ test('icon, icon-box, logo, divider, and spacer expose usable controls @ci', asy
   await expect((await frame(page)).locator('[data-yk-el-type="logo"]')).toBeVisible();
 
   await addElement(page, 'divider');
-  await performPagePreviewUpdate(page, async () => {
-    await control(page, 'style', 'select').selectOption('dashed');
-    await control(page, 'width', 'input').fill('2');
-  });
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-choice-style-dashed').click());
+  await performPagePreviewUpdate(page, () => control(page, 'width', 'input').fill('2'));
   await expect((await frame(page)).locator('[data-yk-el-type="divider"] hr')).toHaveAttribute('style', /dashed/);
 
   await addElement(page, 'spacer');

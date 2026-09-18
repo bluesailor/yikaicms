@@ -3,7 +3,7 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const installMarketThemes = require('./theme-market-fixture');
-const { addTemporaryHeading, frame, openPageEditor, performPagePreviewUpdate, expectClean, waitPreviewSettled } = require('./helpers');
+const { addTemporaryHeading, frame, headingTextField, openPageEditor, performPagePreviewUpdate, expectClean, waitPreviewSettled } = require('./helpers');
 
 const root = path.resolve(__dirname, '../..');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -139,7 +139,9 @@ test('container direction inheritance and shared wrap survive reopening and publ
     if (column) {
       expect(rows).toHaveLength(labels.length);
       for (const entry of metrics.items) expect(entry.item.width).toBeCloseTo(metrics.innerRight - metrics.innerLeft, 0);
-    } else if (width >= 1024 || wrapping === 'nowrap') {
+    } else if (wrapping === 'nowrap'
+      || (width >= 1024 && metrics.items.reduce((sum, entry) => sum + entry.item.width, 0) + gap * (labels.length - 1) <= metrics.innerRight - metrics.innerLeft + 1)) {
+      // 桌面宽度下「一行放得下」按主题正文栏的实际内宽判断：minimal 的单页正文栏较窄，自动换行折两行是正确的
       expect(rows).toHaveLength(1);
     } else if (width === 768) {
       // Exercise genuine wrapping, not just a flex-wrap class on items that fit.
@@ -184,7 +186,7 @@ test('container direction inheritance and shared wrap survive reopening and publ
           if (theme === 'minimal') await expect(visitor.locator('body')).toHaveClass(/minimal-theme/);
           else if (theme === 'default') await expect(visitor.locator('body')).toHaveClass(/yk-site-body/);
           else {
-            await expect(visitor.locator('body')).not.toHaveClass(/minimal-theme|yk-site-body/);
+            await expect(visitor.locator('body')).toHaveClass(/business-theme/);
             await expect(visitor.locator('#siteHeader')).toBeAttached();
           }
           const label = `${theme}-${state}-${width}`;
@@ -199,7 +201,7 @@ test('container direction inheritance and shared wrap survive reopening and publ
 
   await openPageEditor(page, fixtures.blox_page);
   await addTemporaryHeading(page);
-  await performPagePreviewUpdate(page, () => page.locator('[data-control-key="text"] input').first().fill(marker));
+  await performPagePreviewUpdate(page, () => headingTextField(page).fill(marker));
   await page.getByTestId('blox-library-open').click();
   await page.getByTestId('blox-add-element-container').press('Enter');
   for (let index = 0; index < labels.length; index++) {
@@ -208,8 +210,8 @@ test('container direction inheritance and shared wrap survive reopening and publ
     await page.getByTestId('blox-add-element-button').press('Enter');
     await page.getByTestId('blox-content-tab').click();
     await performPagePreviewUpdate(page, async () => {
-      await page.locator('[data-control-key="text"] input').first().fill(labels[index]);
-      await page.locator('[data-control-key="url"] input').fill(`${publicUrl}#layout-${index}`);
+      await page.locator('[data-control-key="text"] input[type="text"]').fill(labels[index]);
+      await page.locator('[data-control-key="url"] input[type="text"]').fill(`${publicUrl}#layout-${index}`);
     });
   }
   await selectContainer();

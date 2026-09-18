@@ -4,6 +4,7 @@ installed.lock
 
 # Runtime data
 storage/database.sqlite
+storage/.recipe-apply.lock
 storage/logs/*.log
 storage/cache/*
 storage/temp/
@@ -104,6 +105,8 @@ storage/blox-regression/
 .phpunit.cache/
 
 /uploads/brand/
+# 站点体检写入的临时探针（SiteHealth::createBrowserProbes），一小时后自动清理
+/uploads/site-health-probe-*.php
 
 # SEO 工坊生成物（站点专属，不入 CMS 库）：llms.txt + IndexNow 密钥文件
 # robots.txt 已被 git 跟踪，不受下面通配影响
@@ -169,3 +172,10 @@ storage/_sl/
 # 源码树只跟踪 default；build.sh 会从市场源码显式复制预装主题，不能采集本地安装副本。
 /themes/*
 !/themes/default/
+
+# Local runtime artifacts, never release sources.
+/yikaicms.env.zip
+/storage/form_throttle/
+/storage/stats-migrated.png
+/storage/theme-backup/
+/storage/upgrade/

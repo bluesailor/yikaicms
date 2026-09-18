@@ -1,5 +1,5 @@
 <?php
-/** 站点版权与备案信息，实时绑定页脚和基本设置。 */
+/** 站点版权文字，实时绑定站点设置。备案号已拆为独立的 site-filing 元素，这里仅兼容旧数据。 */
 
 declare(strict_types=1);
 
@@ -21,8 +21,13 @@ final class SiteCopyrightElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'show_icp', 'type' => 'checkbox', 'label' => __('blox_copyright_show_icp'), 'default' => true],
-            ['key' => 'show_police', 'type' => 'checkbox', 'label' => __('blox_copyright_show_police'), 'default' => true],
+            // 旧版「版权 + 备案」合一的开关：缺省仍为开启以保持已发布页脚不变；
+            // legacy_filing 让编辑器在两项都关闭后隐藏它们，引导改用独立的备案元素。
+            // site_langs：仅在这些站点语言下有意义；编辑器在固定为其它语言的模板里隐藏
+            ['key' => 'show_icp', 'type' => 'checkbox', 'label' => __('blox_copyright_show_icp'), 'default' => true,
+                'site_langs' => [SiteCopyrightSettings::FILING_LANGUAGE], 'legacy_filing' => true],
+            ['key' => 'show_police', 'type' => 'checkbox', 'label' => __('blox_copyright_show_police'), 'default' => true,
+                'site_langs' => [SiteCopyrightSettings::FILING_LANGUAGE], 'legacy_filing' => true],
             ['key' => 'align', 'type' => 'select', 'label' => __('blox_align'), 'default' => 'left',
                 'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')]],
             ['key' => 'tone', 'type' => 'select', 'label' => __('blox_site_tone'), 'default' => 'dark',
@@ -34,29 +39,18 @@ final class SiteCopyrightElement extends AbstractElement
     {
         $siteName = function_exists('configRawLang') ? configRawLang('site_name', 'Yikai CMS') : 'Yikai CMS';
         $template = function_exists('configRawLang') ? configRawLang('footer_copyright_text', '') : '';
+        if (trim($template) === '') {
+            $template = '© {year} {site_name} ' . __('footer_copyright');
+        }
         $copyright = self::formatText($template, $siteName, (int) date('Y'));
         $items = '<span data-yk-copyright-text>' . htmlspecialchars($copyright, ENT_QUOTES) . '</span>';
 
-        if (self::enabled($data, 'show_icp', true)
-            && self::isChineseMainland()
-            && function_exists('config')
-        ) {
-            $icp = trim((string) config('site_icp', ''));
-            if ($icp !== '') {
-                $items .= '<a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow noopener" class="hover:underline">'
-                    . htmlspecialchars($icp, ENT_QUOTES) . '</a>';
-            }
-        }
-        if (self::enabled($data, 'show_police', true)
-            && self::isChineseMainland()
-            && function_exists('config')
-        ) {
-            $police = trim((string) config('site_police', ''));
-            if ($police !== '') {
-                $items .= '<a href="http://www.beian.gov.cn/" target="_blank" rel="nofollow noopener" class="inline-flex items-center gap-1 hover:underline">'
-                    . '<img src="/images/gaba.png" alt="" class="h-4 w-4">'
-                    . htmlspecialchars($police, ENT_QUOTES) . '</a>';
-            }
+        $language = function_exists('siteLang') ? siteLang() : SiteCopyrightSettings::FILING_LANGUAGE;
+        if (SiteCopyrightSettings::filingApplies($language)) {
+            $items .= implode('', SiteFilingElement::links(
+                SiteFilingElement::enabled($data, 'show_icp'),
+                SiteFilingElement::enabled($data, 'show_police')
+            ));
         }
 
         $align = self::ALIGN_MAP[$data['align'] ?? ''] ?? self::ALIGN_MAP['left'];
@@ -71,18 +65,5 @@ final class SiteCopyrightElement extends AbstractElement
             $template = '© {year} {site_name}';
         }
         return str_replace(['{year}', '{site_name}'], [(string) $year, $siteName], $template);
-    }
-
-    private static function isChineseMainland(): bool
-    {
-        return !function_exists('siteLang') || siteLang() === 'zh-CN';
-    }
-
-    private static function enabled(array $data, string $key, bool $default): bool
-    {
-        if (!array_key_exists($key, $data)) {
-            return $default;
-        }
-        return !in_array($data[$key], [false, 0, '0', '', null], true);
     }
 }

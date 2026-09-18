@@ -11,6 +11,10 @@ declare(strict_types=1);
                class="blox-mobile-panel blox-property-panel w-72 shrink-0 bg-white border-r border-gray-200 flex flex-col"
                :class="mobilePanel === 'library' || mobilePanel === 'settings' ? 'is-open' : ''"
                :style="leftPanelStyle()">
+            <div x-show="!leftPanelContentVisible()" x-cloak class="h-10 flex items-center justify-center border-b border-gray-100 shrink-0">
+                <?php require __DIR__ . '/left-panel-toggle.php'; ?>
+            </div>
+            <div id="blox-left-panel-content" x-show="leftPanelContentVisible()" class="flex-1 flex flex-col min-h-0">
 
             <!-- ── 元素库（无选中或 libOpen） ── -->
             <div x-show="!sel || libOpen" class="flex-1 flex flex-col min-h-0">
@@ -22,6 +26,7 @@ declare(strict_types=1);
                             class="text-[10px] text-gray-400 hover:text-blue-500 inline-flex items-center gap-0.5">
                         <i class="ti ti-arrow-back-up text-xs"></i><?= __('blox_back_to_settings') ?>
                     </button>
+                    <?php require __DIR__ . '/left-panel-toggle.php'; ?>
                 </div>
                 <div class="p-2 border-b border-gray-100 shrink-0">
                     <div class="flex items-center gap-1.5">
@@ -100,11 +105,12 @@ declare(strict_types=1);
                                         </button>
                                         <button type="button" @click.stop="toggleElementFavorite(el.type)"
                                                 :data-testid="(grp.quick ? 'blox-quick-favorite-element-' : 'blox-favorite-element-') + el.type"
+                                                :aria-pressed="isElementFavorite(el.type)"
                                                 :title="(isElementFavorite(el.type) ? elementLibraryText.removeFavorite : elementLibraryText.addFavorite).replace(':label', el.label)"
                                                 :aria-label="(isElementFavorite(el.type) ? elementLibraryText.removeFavorite : elementLibraryText.addFavorite).replace(':label', el.label)"
-                                                class="absolute top-0.5 right-0.5 w-7 h-7 inline-flex items-center justify-center rounded text-gray-300 hover:text-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition"
-                                                :class="isElementFavorite(el.type) ? 'text-amber-500' : ''">
-                                            <i class="ti text-sm" :class="isElementFavorite(el.type) ? 'ti-star-filled' : 'ti-star'"></i>
+                                                class="absolute top-0.5 right-0.5 w-7 h-7 inline-flex items-center justify-center rounded hover:text-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 transition"
+                                                :class="isElementFavorite(el.type) ? 'bg-amber-50 text-amber-600' : 'text-gray-400'">
+                                            <i class="ti ti-star text-sm" aria-hidden="true"></i>
                                         </button>
                                     </div>
                                 </template>
@@ -221,13 +227,13 @@ declare(strict_types=1);
                     <?php // 元素背景统一归所在区块；从任意元素可一步进入区块样式。 ?>
                     <button type="button"
                             x-show="selEl && selEl.type === 'home-banner-item'"
-                            @click="selectElement(selectedSi, selectedCi, selectedEi)"
+                            @click="openContentParent('banner')"
                             data-testid="blox-banner-overall-settings"
                             class="text-[10px] text-amber-600 hover:text-amber-700 inline-flex items-center gap-0.5 shrink-0">
                         <i class="ti ti-arrow-left text-xs"></i><?= __('blox_banner_overall_settings') ?>
                     </button>
                     <button type="button" x-show="selEl && selEl.type !== 'home-banner-item'"
-                            @click="selectSection(selectedSi); panelTab = 'style'"
+                            @click="openContentParent('background')"
                             data-testid="blox-edit-section-background"
                             class="text-[10px] text-gray-500 hover:text-blue-600 inline-flex items-center gap-1 shrink-0">
                         <i class="ti ti-photo-video text-xs"></i><?= e(__('blox_edit_section_background')) ?>
@@ -236,9 +242,24 @@ declare(strict_types=1);
                             class="ml-auto shrink-0 text-xs font-medium text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2.5 py-1 inline-flex items-center gap-1">
                         <i class="ti ti-plus text-sm"></i><?= __('blox_element_label') ?>
                     </button>
+                    <button type="button" @click="deselectAll()" data-testid="blox-deselect"
+                            title="<?= e(__('blox_deselect_append')) ?>"
+                            aria-label="<?= e(__('blox_deselect_append')) ?>"
+                            class="shrink-0 text-gray-400 hover:text-blue-600">
+                        <i class="ti ti-x text-sm" aria-hidden="true"></i>
+                    </button>
+                    <?php require __DIR__ . '/left-panel-toggle.php'; ?>
                 </div>
 
                 <!-- 内容 / 样式 页签 -->
+                <template x-if="contentReturnAvailable()">
+                    <button type="button" @click="returnToContent()" data-testid="blox-return-content"
+                            class="px-3 py-2 text-xs text-blue-700 hover:bg-blue-50 inline-flex items-center gap-2 border-b border-gray-100">
+                        <i class="ti ti-arrow-left" aria-hidden="true"></i>
+                        <span><?= e(__('blox_return_content')) ?></span>
+                        <span class="truncate min-w-0" x-text="contentReturnTarget.label"></span>
+                    </button>
+                </template>
                 <div class="flex items-stretch border-b border-gray-100 shrink-0">
                     <button type="button" @click="panelTab = 'content'" data-testid="blox-content-tab"
                             class="flex-1 h-9 text-xs font-semibold border-b-2 transition"
@@ -246,15 +267,10 @@ declare(strict_types=1);
                     <button type="button" @click="panelTab = 'style'" data-testid="blox-style-tab"
                             class="flex-1 h-9 text-xs font-semibold border-b-2 transition"
                             :class="panelTab === 'style' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'"><span class="inline-flex items-center gap-1"><?= __('blox_tab_style') ?><span x-show="styleTabDot()" data-testid="blox-style-tab-dot" class="w-1.5 h-1.5 rounded-full bg-blue-500" aria-hidden="true"></span></span></button>
-                    <button type="button" x-show="advancedMode && (selEl || (sel && !selectedSectionField && selLayer === 'sec'))"
-                            @click="panelTab = 'condition'" data-testid="blox-condition-tab"
-                            class="flex-1 h-9 text-xs font-semibold border-b-2 transition"
-                            :class="panelTab === 'condition' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400 hover:text-gray-600'">
-                        <?= __('blox_tab_conditions') ?>
-                    </button>
                 </div>
 
                 <?php // 设置搜索 + 只看已修改：仅元素设置（数据驱动才筛得动）；区块设置项少不筛 ?>
+                <?php require __DIR__ . '/professional-features.php'; ?>
                 <div x-show="selEl && panelTab !== 'condition'" class="p-2 border-b border-gray-100 shrink-0 flex items-center gap-1">
                     <div class="relative flex-1">
                         <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2"></i>
@@ -269,6 +285,7 @@ declare(strict_types=1);
                 </div>
 
                 <div class="flex-1 overflow-y-auto blox-scroll p-4" data-testid="blox-property-scroll">
+                    <?php require __DIR__ . '/cta-quick.php'; ?>
                     <template x-if="panelTab === 'content' && isNavigationElementSelected()">
                         <div class="mb-4 space-y-3 border-b border-gray-100 pb-4" data-testid="blox-navigation-quick-settings">
                             <div>
@@ -310,120 +327,49 @@ declare(strict_types=1);
                         </div>
                     </template>
 
-                    <template x-if="panelTab === 'condition' && conditionTarget()">
-                        <div class="space-y-3" data-testid="blox-condition-editor">
-                            <div class="rounded border border-violet-200 bg-violet-50/60 p-3">
-                                <div class="flex items-start gap-2">
-                                    <i class="ti ti-adjustments-code text-base text-violet-600 mt-0.5"></i>
-                                    <p class="text-[10px] leading-relaxed text-gray-500" x-text="conditionText.hint"></p>
-                                </div>
-                            </div>
-
-                            <template x-if="conditionGroups().length === 0">
-                                <button type="button" @click="addConditionGroup()" data-testid="blox-condition-empty-add"
-                                        class="w-full min-h-24 rounded border-2 border-dashed border-gray-200 text-gray-400 hover:border-violet-300 hover:text-violet-600 inline-flex flex-col items-center justify-center gap-2 transition">
-                                    <i class="ti ti-adjustments-plus text-xl"></i>
-                                    <span class="text-xs" x-text="conditionText.empty"></span>
-                                </button>
-                            </template>
-
-                            <template x-for="(group, groupIndex) in conditionGroups()" :key="groupIndex">
-                                <div>
-                                    <div x-show="groupIndex > 0" class="flex items-center gap-2 py-1.5">
-                                        <span class="h-px flex-1 bg-gray-200"></span>
-                                        <span class="text-[10px] font-semibold text-violet-500" x-text="conditionText.or"></span>
-                                        <span class="h-px flex-1 bg-gray-200"></span>
-                                    </div>
-                                    <div class="rounded border border-gray-200 bg-white overflow-hidden" :data-testid="'blox-condition-group-' + groupIndex">
-                                        <div class="h-8 px-2.5 flex items-center border-b border-gray-100 bg-gray-50">
-                                            <span class="text-[10px] font-semibold text-gray-500"
-                                                  x-text="conditionText.group.replace(':n', groupIndex + 1)"></span>
-                                            <button type="button" @click="removeConditionGroup(groupIndex)"
-                                                    class="ml-auto w-6 h-6 rounded text-gray-400 hover:bg-red-50 hover:text-red-600 inline-flex items-center justify-center"
-                                                    title="<?= e(__('admin_delete')) ?>"><i class="ti ti-trash text-sm"></i></button>
-                                        </div>
-                                        <div class="p-2.5 space-y-2">
-                                            <template x-for="(rule, ruleIndex) in group.rules" :key="ruleIndex">
-                                                <div>
-                                                    <div x-show="ruleIndex > 0" class="text-center text-[9px] font-semibold text-gray-400 py-0.5"
-                                                         x-text="conditionText.and"></div>
-                                                    <div class="rounded border border-gray-200 p-2 space-y-1.5" :data-testid="'blox-condition-rule-' + groupIndex + '-' + ruleIndex">
-                                                        <div class="flex gap-1.5">
-                                                            <select x-model="rule.type" @change="conditionTypeChanged(rule)" data-testid="blox-condition-type"
-                                                                    class="min-w-0 flex-1 border border-gray-200 rounded px-1.5 py-1.5 text-[11px] bg-white">
-                                                                <option value="login" x-text="conditionText.login"></option>
-                                                                <option value="date" x-text="conditionText.date"></option>
-                                                                <option value="channel" x-text="conditionText.channel"></option>
-                                                                <option value="url" x-text="conditionText.url"></option>
-                                                            </select>
-                                                            <select x-model="rule.operator" data-testid="blox-condition-operator"
-                                                                    class="min-w-0 flex-1 border border-gray-200 rounded px-1.5 py-1.5 text-[11px] bg-white">
-                                                                <template x-for="option in conditionOperators(rule.type)" :key="option.value">
-                                                                    <option :value="option.value" x-text="option.label"></option>
-                                                                </template>
-                                                            </select>
-                                                            <button type="button" @click="removeConditionRule(groupIndex, ruleIndex)"
-                                                                    class="w-7 h-7 rounded text-gray-400 hover:bg-red-50 hover:text-red-600 inline-flex items-center justify-center shrink-0"
-                                                                    title="<?= e(__('admin_delete')) ?>"><i class="ti ti-x text-sm"></i></button>
-                                                        </div>
-                                                        <select x-show="rule.type === 'login'" x-model="rule.value" data-testid="blox-condition-value-login"
-                                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px] bg-white">
-                                                            <option value="logged_in" x-text="conditionText.loggedIn"></option>
-                                                            <option value="logged_out" x-text="conditionText.loggedOut"></option>
-                                                        </select>
-                                                        <input x-show="rule.type === 'date'" type="date" x-model="rule.value" data-testid="blox-condition-value-date"
-                                                               class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px]">
-                                                        <select x-show="rule.type === 'channel'" x-model.number="rule.value" data-testid="blox-condition-value-channel"
-                                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px] bg-white">
-                                                            <option value="" x-text="conditionText.selectChannel"></option>
-                                                            <template x-for="channel in conditionChannels" :key="channel.value">
-                                                                <option :value="channel.value" x-text="channel.label"></option>
-                                                            </template>
-                                                        </select>
-                                                        <input x-show="rule.type === 'url'" type="text" x-model="rule.value" data-testid="blox-condition-value-url"
-                                                               :placeholder="conditionText.urlPlaceholder"
-                                                               class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px]">
-                                                    </div>
-                                                </div>
-                                            </template>
-                                            <button type="button" @click="addConditionRule(groupIndex)" data-testid="blox-condition-add-rule"
-                                                    class="w-full h-8 rounded border border-dashed border-violet-200 text-violet-600 hover:bg-violet-50 text-[10px] font-medium inline-flex items-center justify-center gap-1">
-                                                <i class="ti ti-plus text-sm"></i><span x-text="conditionText.addRule"></span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-
-                            <button x-show="conditionGroups().length > 0" type="button" @click="addConditionGroup()"
-                                    data-testid="blox-condition-add-group"
-                                    class="w-full h-9 rounded border border-violet-200 text-violet-600 hover:bg-violet-50 text-xs font-medium inline-flex items-center justify-center gap-1.5">
-                                <i class="ti ti-folders text-sm"></i><span x-text="conditionText.addGroup"></span>
-                            </button>
-                        </div>
-                    </template>
+                    <?php // 元素/区块显示条件编辑面板由 yikai-builder 作者端模块输出 ?>
+                    <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_condition'); ?>
 
                     <!-- ── 元素设置：按 BuilderRegistry 的 controls() 生成 ── -->
                     <template x-if="selEl && panelTab !== 'condition'">
-                        <div class="space-y-4">
+                        <div class="space-y-3">
                             <?php // 元素重命名：标题即输入框（借鉴思路来自可视化构建器惯例）；
                                   // 存 el.name（blocks_data 顶层扩展键，渲染器只读 type/data 不受影响） ?>
                             <div class="flex items-center gap-2 pb-2 border-b border-gray-100">
-                                <i class="ti text-base text-blue-500 shrink-0" :class="'ti-' + elIcon(selEl ? selEl.type : '')"></i>
+                                <span class="h-8 w-8 shrink-0 rounded-lg border border-blue-100 bg-blue-50 text-blue-600 inline-flex items-center justify-center">
+                                    <i class="ti text-base" :class="'ti-' + elIcon(selEl ? selEl.type : '')"></i>
+                                </span>
                                 <input type="text" :value="selEl ? (selEl.name || '') : ''"
                                        @input="selEl && (selEl.name = $event.target.value)"
                                        :placeholder="selEl ? (elSchema(selEl.type).label || selEl.type) : ''"
                                        title="<?= e(__('blox_el_name_hint')) ?>"
-                                       class="flex-1 min-w-0 text-sm font-medium text-gray-700 border-0 border-b border-transparent focus:border-blue-300 outline-none p-0 bg-transparent">
+                                       class="flex-1 min-w-0 text-sm font-semibold text-gray-800 border-0 border-b border-transparent focus:border-blue-300 outline-none p-0 bg-transparent">
+                                <template x-if="canCopyElementStyle(selEl)">
+                                    <div class="flex items-center gap-0.5 shrink-0">
+                                        <button type="button" @click="copyElementStyle(selEl)" data-testid="blox-style-copy"
+                                                title="<?= e(__('blox_style_copy')) ?>" aria-label="<?= e(__('blox_style_copy')) ?>"
+                                                class="w-7 h-7 rounded inline-flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition">
+                                            <i class="ti ti-brush text-sm"></i>
+                                        </button>
+                                        <button type="button" @click="pasteElementStyle(selEl)" data-testid="blox-style-paste"
+                                                :disabled="!canPasteElementStyle(selEl)"
+                                                :title="pasteStyleDisabledReason(selEl) || <?= e($jt('blox_style_paste')) ?>"
+                                                :aria-label="pasteStyleDisabledReason(selEl) || <?= e($jt('blox_style_paste')) ?>"
+                                                class="w-7 h-7 rounded inline-flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition">
+                                            <i class="ti ti-clipboard text-sm"></i>
+                                        </button>
+                                    </div>
+                                </template>
                             </div>
 
                             <?php require __DIR__ . '/style-groups.php'; ?>
+                            <?php require __DIR__ . '/visual-select.php'; ?>
 
-                            <template x-if="selEl && panelTab === 'style'">
+                            <template x-if="selEl && panelTab === 'style' && commonStyleVisible()">
                                 <div data-testid="blox-element-visible-devices" class="rounded border border-gray-200 bg-gray-50 p-3">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_visible_devices')) ?></label>
-                                    <div class="grid grid-cols-3 gap-1">
-                                        <template x-for="dev in [{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}]" :key="'elvis-'+dev.k">
+                                    <div class="grid gap-1" :class="wideTierEnabled() ? 'grid-cols-4' : 'grid-cols-3'">
+                                        <template x-for="dev in [{k:'w',l:<?= e($jt('blox_device_wide')) ?>},{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}].filter(dev => dev.k !== 'w' || wideTierEnabled())" :key="'elvis-'+dev.k">
                                             <button type="button" @click="toggleElementDevice(dev.k)"
                                                     class="h-9 rounded border text-xs inline-flex items-center justify-center transition"
                                                     :class="elementDeviceVisible(dev.k) ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-400 line-through'"
@@ -695,6 +641,7 @@ declare(strict_types=1);
                             </template>
 
                             <?php require __DIR__ . '/source-link.php'; ?>
+                            <?php require __DIR__ . '/partners-manager.php'; ?>
                             <template x-if="selEl && selEl.type === 'home-block' && panelTab === 'content'">
                                 <div class="rounded border border-blue-200 bg-blue-50/60 p-3">
                                     <div class="flex items-start gap-3">
@@ -706,7 +653,7 @@ declare(strict_types=1);
                                                 <p class="text-xs font-semibold text-gray-700 truncate" x-text="homeBlockSourceLabel()"></p>
                                                 <span class="text-[9px] px-1.5 py-0.5 rounded border"
                                                       :class="selEl.data.enabled !== false ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-gray-200 bg-white text-gray-400'"
-                                                      x-text="selEl.data.enabled === false ? homeDynamicText.disabled : (hasCustomBannerItems() ? homeDynamicText.customItems : homeDynamicText.liveData)"></span>
+                                                      x-text="selEl.data.enabled === false ? homeDynamicText.disabled : ((hasCustomBannerItems() || (isPartnersBlock() && selEl.data.partners_custom)) ? homeDynamicText.customItems : homeDynamicText.liveData)"></span>
                                             </div>
                                             <p class="mt-1 text-[10px] text-gray-500 leading-relaxed" x-text="homeBlockSummary()"></p>
                                         </div>
@@ -952,6 +899,13 @@ declare(strict_types=1);
                                                   @input="setSelectedHomeFieldValue($event.target.value)"
                                                   class="w-full border border-cyan-200 bg-white rounded px-2.5 py-2 text-sm"></textarea>
                                     </template>
+                                    <template x-if="selectedHomeFieldDefinition().control === 'faq_answer'">
+                                        <div data-testid="blox-home-faq-answer">
+                                            <template x-for="fieldKey in [selEl.id + ':' + selectedHomeField]" :key="fieldKey">
+                                                <?php $compactRichtextHomeFaq = true; require __DIR__ . '/compact-richtext.php'; $compactRichtextHomeFaq = false; ?>
+                                            </template>
+                                        </div>
+                                    </template>
                                     <template x-if="selectedHomeFieldDefinition().control === 'richtext'">
                                         <div class="space-y-2">
                                             <button type="button"
@@ -983,25 +937,8 @@ declare(strict_types=1);
 
                             <?php require __DIR__ . '/banner-manager.php'; ?>
 
-                            <template x-if="selEl && selEl.type === 'list-dynamic' && panelTab === 'content'">
-                                <div class="rounded border border-violet-200 bg-violet-50/60 p-3 space-y-2">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="text-xs font-semibold text-violet-700 inline-flex items-center gap-1.5">
-                                            <i class="ti ti-repeat text-sm"></i>
-                                            <?php echo e(__('blox_loop_template_title')); ?>
-                                        </span>
-                                        <span class="text-[10px] rounded border px-1.5 py-0.5"
-                                              :class="hasLoopTemplate() ? 'border-violet-200 bg-white text-violet-600' : 'border-gray-200 bg-white text-gray-500'"
-                                              x-text="hasLoopTemplate() ? <?php echo htmlspecialchars(json_encode(__('blox_loop_template_custom'), JSON_UNESCAPED_UNICODE), ENT_QUOTES); ?> : <?php echo htmlspecialchars(json_encode(__('blox_loop_template_preset'), JSON_UNESCAPED_UNICODE), ENT_QUOTES); ?>"></span>
-                                    </div>
-                                    <p class="text-[10px] leading-relaxed text-gray-500"><?php echo e(__('blox_loop_template_help')); ?></p>
-                                    <button type="button" @click="libOpen = true" data-testid="blox-library-open"
-                                            class="w-full h-8 rounded border border-violet-200 bg-white text-violet-600 hover:border-violet-300 text-xs inline-flex items-center justify-center gap-1.5">
-                                        <i class="ti ti-plus text-sm"></i>
-                                        <?php echo e(__('blox_loop_add_child')); ?>
-                                    </button>
-                                </div>
-                            </template>
+                            <?php // 动态循环模板面板由 yikai-builder 作者端模块输出 ?>
+                            <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_loop_template'); ?>
 
                             <template x-if="processHost() && panelTab === 'content'">
                                 <div class="overflow-hidden rounded-lg border border-gray-200 bg-white" data-testid="blox-process-manager">
@@ -1260,38 +1197,10 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
-                            <template x-if="selEl && panelTab === 'style' && supportsBoxStyles(selEl.type)">
+                            <template x-if="selEl && panelTab === 'style' && commonStyleVisible() && supportsBoxStyles(selEl.type)">
                                 <div class="rounded border border-gray-200 bg-gray-50 p-3 space-y-3">
-                                    <div x-show="advancedMode" class="pb-3 border-b border-gray-200">
-                                        <div class="flex items-center justify-between mb-1.5">
-                                            <label class="text-xs font-semibold text-gray-600 inline-flex items-center gap-1.5">
-                                                <i class="ti ti-components text-sm text-emerald-500"></i><?= e(__('blox_global_style')) ?>
-                                            </label>
-                                            <button x-show="canManageDesign" type="button" @click="openDesignSystem('styles')"
-                                                    class="w-7 h-7 inline-flex items-center justify-center rounded text-gray-400 hover:text-emerald-600 hover:bg-white"
-                                                    title="<?= e(__('blox_design_system')) ?>">
-                                                <i class="ti ti-settings text-sm"></i>
-                                            </button>
-                                        </div>
-                                        <select :value="selEl.data._global_style || ''" @change="applyGlobalStyle($event.target.value)"
-                                                data-testid="blox-global-style-select"
-                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white">
-                                            <option value=""><?= e(__('blox_design_no_style')) ?></option>
-                                            <template x-for="style in globalStyleOptions(selEl.data._global_style)" :key="style.id">
-                                                <option :value="style.id" x-text="globalStyleLabel(style)"></option>
-                                            </template>
-                                        </select>
-                                        <div data-testid="blox-style-binding-status" class="mt-2 text-xs text-gray-600">
-                                            <span x-show="!selEl.data._global_style"><?= e(__('blox_style_binding_none')) ?></span>
-                                            <span x-show="!!selEl.data._global_style"><?= e(__('blox_style_binding_shared')) ?></span>
-                                        </div>
-                                        <button x-show="!!selEl.data._global_style" type="button"
-                                                data-testid="blox-style-binding-remove" @click="applyGlobalStyle('')"
-                                                class="mt-2 text-xs text-gray-600 hover:text-emerald-600"
-                                                title="<?= e(__('blox_style_binding_remove_hint')) ?>">
-                                            <i class="ti ti-unlink" aria-hidden="true"></i> <?= e(__('blox_style_binding_remove')) ?>
-                                        </button>
-                                    </div>
+                                    <?php // 全局命名样式选择由 yikai-builder 作者端模块输出 ?>
+                                    <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_style_preset'); ?>
                                     <div class="flex items-center justify-between">
                                         <span class="text-xs font-semibold text-gray-600 inline-flex items-center gap-1.5">
                                             <i class="ti ti-box-margin text-sm text-blue-500"></i>
@@ -1431,6 +1340,7 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <?php // 站点资料在面板内直接改：按画布预览语言读写，保存即全站生效（不随模板草稿） ?>
                             <template x-if="selEl && selEl.type === 'site-copyright' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
                                 <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-copyright-content-source">
                                     <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
@@ -1438,22 +1348,90 @@ declare(strict_types=1);
                                         <span><?= e(__('blox_copyright_content_source_title')) ?></span>
                                     </div>
                                     <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_copyright_content_source_hint')) ?></p>
-                                    <?php if ($canManageGlobalSettings): ?>
-                                    <div class="flex flex-wrap gap-1.5">
-                                        <a href="/admin/setting.php?tab=footer#input_footer_copyright_text" target="_blank" rel="noopener"
-                                           data-testid="blox-copyright-content-manage"
-                                           class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
-                                            <i class="ti ti-text-caption text-sm" aria-hidden="true"></i>
-                                            <span><?= e(__('blox_copyright_content_manage')) ?></span>
-                                        </a>
-                                        <a href="/admin/setting.php?tab=basic#input_site_icp" target="_blank" rel="noopener"
-                                           data-testid="blox-filing-content-manage"
-                                           class="h-8 inline-flex items-center gap-1.5 rounded border border-blue-200 bg-white px-2.5 text-[11px] font-medium text-blue-600 hover:border-blue-400 hover:text-blue-700 transition">
-                                            <i class="ti ti-shield-check text-sm" aria-hidden="true"></i>
-                                            <span><?= e(__('blox_filing_content_manage')) ?></span>
-                                        </a>
+                                    <label class="block space-y-1" data-testid="blox-copyright-text-field">
+                                        <span class="flex items-center justify-between gap-2 text-[11px] text-gray-600">
+                                            <span><?= e(__('blox_site_copyright_text')) ?></span>
+                                            <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500" x-text="siteCopyright.language_label"></span>
+                                        </span>
+                                        <input type="text" maxlength="255" x-model="siteCopyright.copyright"
+                                               @input="siteCopyrightChanged = true"
+                                               @keydown.enter.prevent="saveSiteCopyright()"
+                                               :readonly="!siteCopyright.can_edit"
+                                               placeholder="© {year} {site_name}"
+                                               data-testid="blox-copyright-text-input"
+                                               class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white read-only:bg-gray-50 read-only:text-gray-500">
+                                        <span class="block text-[10px] text-gray-400"><?= e(__('blox_site_copyright_tokens')) ?></span>
+                                    </label>
+                                    <template x-if="copyrightHasFiling() && siteCopyrightFilingEditable()">
+                                        <div class="rounded border border-amber-200 bg-amber-50 p-2 space-y-1.5" data-testid="blox-copyright-legacy-filing">
+                                            <p class="text-[10px] leading-relaxed text-amber-800"><?= e(__('blox_copyright_legacy_filing_hint')) ?></p>
+                                            <button type="button" @click="splitCopyrightFiling()"
+                                                    data-testid="blox-copyright-split-filing"
+                                                    class="h-7 inline-flex items-center gap-1.5 rounded border border-amber-300 bg-white px-2 text-[11px] font-medium text-amber-800 hover:bg-amber-100 transition">
+                                                <i class="ti ti-arrows-split-2 text-sm" aria-hidden="true"></i>
+                                                <span><?= e(__('blox_copyright_split_filing')) ?></span>
+                                            </button>
+                                        </div>
+                                    </template>
+                                    <?php $siteDataSaveTestId = 'blox-copyright-save'; require __DIR__ . '/site-data-save.php'; ?>
+                                </div>
+                            </template>
+
+                            <template x-if="selEl && selEl.type === 'site-filing' && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
+                                <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-filing-content-source">
+                                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
+                                        <i class="ti ti-shield-check text-sm text-blue-500" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_filing_content_source_title')) ?></span>
                                     </div>
-                                    <?php endif; ?>
+                                    <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_filing_content_source_hint')) ?></p>
+                                    <template x-if="siteCopyrightFilingEditable()">
+                                        <div class="space-y-2" data-testid="blox-filing-fields">
+                                            <label class="block space-y-1">
+                                                <span class="block text-[11px] text-gray-600"><?= e(__('blox_site_icp')) ?></span>
+                                                <input type="text" maxlength="100" x-model="siteCopyright.icp"
+                                                       @input="siteCopyrightChanged = true"
+                                                       @keydown.enter.prevent="saveSiteCopyright()"
+                                                       :readonly="!siteCopyright.can_edit"
+                                                       data-testid="blox-filing-icp-input"
+                                                       class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white read-only:bg-gray-50 read-only:text-gray-500">
+                                            </label>
+                                            <label class="block space-y-1">
+                                                <span class="block text-[11px] text-gray-600"><?= e(__('blox_site_police')) ?></span>
+                                                <input type="text" maxlength="100" x-model="siteCopyright.police"
+                                                       @input="siteCopyrightChanged = true"
+                                                       @keydown.enter.prevent="saveSiteCopyright()"
+                                                       :readonly="!siteCopyright.can_edit"
+                                                       data-testid="blox-filing-police-input"
+                                                       class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white read-only:bg-gray-50 read-only:text-gray-500">
+                                            </label>
+                                        </div>
+                                    </template>
+                                    <p x-show="!siteCopyrightFilingEditable()" class="text-[10px] leading-relaxed text-gray-400" data-testid="blox-filing-hidden-note">
+                                        <?= e(__('blox_site_filing_language_hidden')) ?>
+                                    </p>
+                                    <p x-show="!siteCopyright.language_fixed"
+                                       class="text-[10px] leading-relaxed text-gray-400" data-testid="blox-filing-shared-note">
+                                        <?= e(__('blox_site_filing_zh_only')) ?>
+                                    </p>
+                                    <?php $siteDataSaveTestId = 'blox-filing-save'; require __DIR__ . '/site-data-save.php'; ?>
+                                </div>
+                            </template>
+
+                            <?php // 内容目录：把内置文章卡片拆成独立子元素（封面/标题/日期/摘要），各自单独设置样式 ?>
+                            <template x-if="selEl && selEl.type === 'content-catalog' && selectedSubEi < 0 && panelTab === 'content' && !ctrlQuery.trim() && !modifiedOnly">
+                                <div class="space-y-2 border-b border-gray-100 pb-3" data-testid="blox-content-catalog-items">
+                                    <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-600">
+                                        <i class="ti ti-layout-list text-sm text-blue-500" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_catalog_items_title')) ?></span>
+                                    </div>
+                                    <p class="text-[10px] leading-relaxed text-gray-400"
+                                       x-text="hasLoopTemplate() ? <?= e($jt('blox_catalog_items_split_done')) ?> : <?= e($jt('blox_catalog_items_split_hint')) ?>"></p>
+                                    <button type="button" x-show="!hasLoopTemplate()" @click="splitContentCatalogItems()"
+                                            data-testid="blox-content-catalog-split"
+                                            class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
+                                        <i class="ti ti-arrows-split-2 text-sm" aria-hidden="true"></i>
+                                        <span><?= e(__('blox_catalog_items_split')) ?></span>
+                                    </button>
                                 </div>
                             </template>
 
@@ -1532,13 +1510,25 @@ declare(strict_types=1);
 
                             <?php require __DIR__ . '/banner-control-groups.php'; ?>
                             <?php require __DIR__ . '/home-content-groups.php'; ?>
-                            <div class="blox-property-pair-grid" data-testid="blox-element-property-grid">
-                            <template x-for="ctrl in visibleCtrls()" :key="ctrl.key">
-                                <div :data-control-key="ctrl.key"
-                                     :class="ctrl.responsive || ['textarea','richtext','image','about_layout','faq_repeater','org_repeater'].indexOf(ctrl.type) !== -1 ? 'blox-property-span-full' : ''">
-                                    <template x-if="ctrl.type !== 'checkbox'">
+                            <?php require __DIR__ . '/heading-content.php'; ?>
+                            <div class="blox-property-pair-grid" data-testid="blox-element-property-grid" x-show="!headingPanelVisible()">
+                            <template x-for="(ctrl, ctrlIndex) in visibleCtrls()" :key="ctrl.compact_richtext ? selEl.id + ':' + ctrl.key : ctrl.key">
+                                <div class="contents">
+                                <template x-if="controlSectionStart(ctrl, ctrlIndex)">
+                                    <div class="col-span-full flex items-center gap-2 pt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                                        <i class="ti text-sm text-blue-400" :class="'ti-' + (ctrl.section_icon || 'adjustments')" aria-hidden="true"></i>
+                                        <span x-text="ctrl.section"></span>
+                                        <span class="h-px flex-1 bg-gray-100"></span>
+                                    </div>
+                                </template>
+                                <div :data-control-key="ctrl.key" x-show="!ctrl.option_preview"
+                                     :class="ctrl.responsive || ctrl.key === 'faq_style' || ctrl.key === 'table_style' || ctrl.key === 'custom_style' || ['textarea','richtext','image','about_layout','faq_repeater','org_repeater','pricing_plans','table_grid','items_repeater'].indexOf(ctrl.type) !== -1 ? 'blox-property-span-full' : ''">
+                                    <template x-if="ctrl.type !== 'checkbox' && !ctrl.compact_richtext">
                                         <div class="flex items-center justify-between gap-2 mb-1.5">
-                                            <label class="block text-xs font-medium text-gray-600" x-text="ctrl.label"></label>
+                                            <label class="block text-[11px] font-semibold text-gray-700" x-text="ctrl.label"></label>
+                                            <template x-if="ctrl.dynamic_tags && ctrl.type !== 'richtext'">
+                                                <?php $dynamicTagKey = 'ctrl.key'; $dynamicTagLinks = "ctrl.type === 'url'"; require __DIR__ . '/dynamic-tag-picker.php'; ?>
+                                            </template>
                                             <div x-show="ctrl.responsive" class="flex items-center gap-1">
                                                 <div class="inline-flex rounded border border-gray-200 bg-gray-50 p-0.5">
                                                     <template x-for="d in devices" :key="ctrl.key + '-' + d.key">
@@ -1567,6 +1557,7 @@ declare(strict_types=1);
 
                                     <?php $styleSourceControl = 'ctrl'; require __DIR__ . '/style-source.php'; ?>
                                     <?php require __DIR__ . '/home-content-source.php'; ?>
+                                    <?php require __DIR__ . '/control-style-source.php'; ?>
                                     <p x-show="ctrl.responsive && previewDevice !== 'desktop'"
                                        class="-mt-0.5 mb-1.5 text-[10px] text-gray-400 flex items-center gap-1">
                                         <i class="ti" :class="controlResponsiveState(ctrl).overridden ? 'ti-adjustments' : 'ti-link'"></i>
@@ -1643,6 +1634,7 @@ declare(strict_types=1);
                                     <?php // 视频 URL 统一走可上传/选择的媒体控件；Banner 另有带封面预览的专用控件。 ?>
                                     <template x-if="['text','url'].indexOf(ctrl.type) !== -1">
                                         <input type="text" x-model="selEl.data[ctrl.key]" :placeholder="homeContentPlaceholder(ctrl)"
+                                               :data-dynamic-key="ctrl.dynamic_tags ? ctrl.key : null" @input="ctrl.dynamic_tags && siteTagInput($event, ctrl.key)"
                                                :class="homeContentField(ctrl.key) ? 'placeholder:text-gray-600' : ''"
                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm">
                                     </template>
@@ -1655,10 +1647,13 @@ declare(strict_types=1);
                                         <?php $videoControl = ['scope' => 'element', 'key' => 'ctrl.key', 'id' => 'blox-element-video', 'urlId' => 'blox-element-video-url']; require __DIR__ . '/video-control.php'; ?>
                                     </template>
 
-                                    <template x-if="ctrl.type === 'textarea'">
+                                    <template x-if="ctrl.type === 'textarea' && !ctrl.compact_richtext">
                                         <textarea x-model="selEl.data[ctrl.key]" rows="3" :placeholder="homeContentPlaceholder(ctrl)"
                                                   :class="homeContentField(ctrl.key) ? 'placeholder:text-gray-600' : ''"
                                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm"></textarea>
+                                    </template>
+                                    <template x-if="ctrl.compact_richtext">
+                                        <?php require __DIR__ . '/compact-richtext.php'; ?>
                                     </template>
 
                                     <template x-if="ctrl.type === 'faq_repeater'">
@@ -1670,14 +1665,14 @@ declare(strict_types=1);
                                                         data-testid="blox-accordion-add"
                                                         class="h-7 rounded border border-blue-200 bg-white px-2 text-[10px] font-medium text-blue-600 hover:border-blue-400 hover:bg-blue-50 inline-flex items-center gap-1">
                                                     <i class="ti ti-plus text-sm"></i>
-                                                    <span x-text="homeDynamicText.faqAdd"></span>
+                                                    <span x-text="ctrl.add_label || homeDynamicText.faqAdd"></span>
                                                 </button>
                                             </div>
-                                            <template x-for="(item, index) in accordionItems(selEl)" :key="index">
+                                            <template x-for="(item, index) in accordionItems(selEl)" :key="accordionAnswerKey(index)">
                                                 <div data-testid="blox-accordion-item" class="rounded border border-gray-200 bg-gray-50/70 p-2.5 space-y-2">
                                                     <div class="flex items-center gap-1">
                                                         <span class="min-w-0 flex-1 text-[10px] font-semibold text-gray-500"
-                                                              x-text="(index + 1) + '. ' + (item.question || homeDynamicText.faqNewQuestion)"></span>
+                                                              x-text="(index + 1) + '. ' + (item.question || ctrl.new_title || homeDynamicText.faqNewQuestion)"></span>
                                                         <button type="button" @click.stop="moveAccordionItem(index, -1)"
                                                                 :disabled="!accordionItemCanMove(index, -1)"
                                                                 data-testid="blox-accordion-move-up"
@@ -1694,31 +1689,38 @@ declare(strict_types=1);
                                                         </button>
                                                         <button type="button" @click.stop="deleteAccordionItem(index)"
                                                                 data-testid="blox-accordion-delete"
-                                                                :title="homeDynamicText.faqDelete" :aria-label="homeDynamicText.faqDelete"
+                                                                :title="ctrl.delete_label || homeDynamicText.faqDelete" :aria-label="ctrl.delete_label || homeDynamicText.faqDelete"
                                                                 class="w-7 h-7 rounded text-gray-400 hover:bg-red-50 hover:text-red-600 inline-flex items-center justify-center">
                                                             <i class="ti ti-trash text-sm"></i>
                                                         </button>
                                                     </div>
                                                     <div>
                                                         <label class="mb-1 block text-[10px] font-medium text-gray-500"
-                                                               x-text="homeDynamicText.faqQuestion"></label>
+                                                               x-text="ctrl.title_label || homeDynamicText.faqQuestion"></label>
                                                         <input type="text" :value="item.question"
                                                                @input="setAccordionItem(index, 'question', $event.target.value)"
                                                                data-testid="blox-accordion-question"
                                                                class="w-full rounded border border-gray-200 bg-white px-2 py-1.5 text-sm">
                                                     </div>
-                                                    <div>
-                                                        <label class="mb-1 block text-[10px] font-medium text-gray-500"
-                                                               x-text="homeDynamicText.faqAnswer"></label>
-                                                        <textarea rows="3" :value="item.answer"
-                                                                  @input="setAccordionItem(index, 'answer', $event.target.value)"
-                                                                  data-testid="blox-accordion-answer"
-                                                                  class="w-full resize-y rounded border border-gray-200 bg-white px-2 py-1.5 text-sm"></textarea>
+                                                    <div data-testid="blox-accordion-answer">
+                                                        <?php $compactRichtextFaq = true; require __DIR__ . '/compact-richtext.php'; $compactRichtextFaq = false; ?>
                                                     </div>
                                                 </div>
                                             </template>
                                         </div>
                                     </template>
+
+                                    <template x-if="ctrl.type === 'table_grid' && professionalFeatures.table.allowed">
+                                        <button type="button" @click="openTableExpanded()" data-testid="blox-table-expand"
+                                                class="w-full h-9 inline-flex items-center justify-center gap-2 rounded border border-gray-300 bg-white text-sm text-gray-700 hover:border-blue-400 hover:text-blue-700">
+                                            <i class="ti ti-arrows-maximize" aria-hidden="true"></i><?= e(__('blox_table_expand')) ?>
+                                        </button>
+                                    </template>
+
+                                    <?php require __DIR__ . '/items-repeater-control.php'; ?>
+
+                                    <?php // 价格方案套餐编辑器由 yikai-builder 作者端模块输出 ?>
+                                    <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'pricing_plans'); ?>
 
                                     <template x-if="ctrl.type === 'org_repeater'">
                                         <div data-testid="blox-org-nodes" class="space-y-2">
@@ -1797,7 +1799,7 @@ declare(strict_types=1);
                                     <template x-if="ctrl.type === 'richtext'">
                                         <div x-data="{ showSrc: false }">
                                             <button type="button"
-                                                    @click="openRte(() => selEl.data[ctrl.key], v => selEl.data[ctrl.key] = v)"
+                                                    @click="openRte(() => selEl.data[ctrl.key], v => selEl.data[ctrl.key] = v, !!ctrl.dynamic_tags)"
                                                     data-testid="blox-richtext-edit"
                                                     class="w-full inline-flex items-center justify-center gap-1.5 text-sm text-white bg-blue-600 hover:bg-blue-500 rounded-lg py-2 transition">
                                                 <i class="ti ti-edit text-base"></i><?= __('blox_edit_content') ?>
@@ -1812,7 +1814,7 @@ declare(strict_types=1);
                                         </div>
                                     </template>
 
-                                    <template x-if="ctrl.type === 'select' && !ctrl.option_icons">
+                                    <template x-if="ctrl.type === 'select' && !ctrl.option_icons && !ctrl.option_preview && ctrl.key !== 'faq_style'">
                                         <select :value="controlValue(ctrl)"
                                                 @change="setControlValue(ctrl, $event.target.value)"
                                                 :data-testid="'blox-control-' + ctrl.key"
@@ -1821,6 +1823,97 @@ declare(strict_types=1);
                                                 <option :value="val" :selected="controlValue(ctrl) === val" x-text="lbl"></option>
                                             </template>
                                         </select>
+                                    </template>
+
+                                    <template x-if="ctrl.type === 'select' && ctrl.key === 'faq_style'">
+                                        <div class="grid gap-2" role="group" :aria-label="ctrl.label" data-testid="blox-control-faq_style">
+                                            <template x-for="(lbl, val) in controlOptions(ctrl)" :key="val">
+                                                <button type="button" @click="setControlValue(ctrl, val)"
+                                                        :data-testid="'blox-faq-style-' + val" :aria-label="lbl"
+                                                        :aria-pressed="controlValue(ctrl) === val"
+                                                        class="flex min-h-[68px] min-w-0 items-center gap-3 rounded-lg border bg-white px-3 py-2 text-left transition hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                                        :class="controlValue(ctrl) === val ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-200' : 'border-gray-200'">
+                                                    <span aria-hidden="true" class="flex h-11 w-16 shrink-0 flex-col"
+                                                          :class="val === 'default' ? 'divide-y divide-gray-200 rounded border border-gray-200 bg-white' : (val === 'divided' ? 'divide-y divide-gray-300' : 'gap-1')">
+                                                        <span class="flex min-h-0 flex-1 items-center justify-between px-1.5"
+                                                              :class="val === 'soft' ? 'rounded border border-gray-200 bg-gray-100' : ''">
+                                                            <span class="h-1 w-6 rounded-sm bg-gray-400"></span>
+                                                            <i class="ti text-[10px] text-gray-500" :class="val === 'default' ? 'ti-chevron-down' : 'ti-minus'"></i>
+                                                        </span>
+                                                        <span class="flex min-h-0 flex-1 items-center justify-between px-1.5"
+                                                              :class="val === 'soft' ? 'rounded border border-gray-200 bg-gray-100' : ''">
+                                                            <span class="h-1 w-8 rounded-sm bg-gray-300"></span>
+                                                            <i class="ti text-[10px] text-gray-500" :class="val === 'default' ? 'ti-chevron-down' : 'ti-plus'"></i>
+                                                        </span>
+                                                    </span>
+                                                    <span class="min-w-0 break-words text-xs font-medium leading-5 text-gray-700" x-text="lbl"></span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <?php // 按钮样式使用真实的小按钮预览，让新手按视觉选择，不必先理解变体术语。 ?>
+                                    <template x-if="ctrl.type === 'button_style'">
+                                        <div class="grid grid-cols-2 gap-2" role="group" :aria-label="ctrl.label"
+                                             :data-testid="'blox-control-' + ctrl.key">
+                                            <template x-for="(lbl, val) in controlOptions(ctrl)" :key="val">
+                                                <button type="button" @click="setControlValue(ctrl, val)"
+                                                        :data-testid="'blox-button-style-' + val"
+                                                        :aria-label="lbl" :aria-pressed="controlValue(ctrl) === val"
+                                                        class="flex min-h-[72px] min-w-0 flex-col items-center justify-center rounded-lg border bg-white px-2 py-2 text-center transition hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                                        :class="controlValue(ctrl) === val ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-200' : 'border-gray-200'">
+                                                    <span class="mx-auto inline-flex w-16 min-w-0 max-w-full items-center justify-center rounded-md border px-1.5 py-1 text-[11px] font-medium leading-4 transition"
+                                                          :style="buttonStylePreviewStyle(val)"><?= e(__('blox_el_button')) ?></span>
+                                                    <span class="mt-1.5 block max-w-full break-words text-[11px] font-medium leading-4 text-gray-600" x-text="lbl"></span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <?php // 按钮图标位置使用左右排列示意图，避免用户凭文字猜测图标会出现在哪里。 ?>
+                                    <template x-if="ctrl.type === 'button_icon_position'">
+                                        <div class="grid grid-cols-2 gap-2" role="group" :aria-label="ctrl.label"
+                                             :data-testid="'blox-control-' + ctrl.key">
+                                            <template x-for="(lbl, val) in controlOptions(ctrl)" :key="val">
+                                                <button type="button" @click="setControlValue(ctrl, val)"
+                                                        :data-testid="'blox-button-icon-position-' + val"
+                                                        :aria-label="lbl" :aria-pressed="controlValue(ctrl) === val"
+                                                        class="flex min-h-[72px] min-w-0 flex-col items-center justify-center rounded-lg border bg-white px-2 py-2 text-center transition hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                                        :class="controlValue(ctrl) === val ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-200' : 'border-gray-200'">
+                                                    <span class="mx-auto inline-flex w-16 min-w-0 max-w-full items-center justify-center gap-1 rounded-md border border-gray-300 bg-white px-1.5 py-1 text-[11px] font-medium leading-4 text-gray-700 shadow-sm">
+                                                        <template x-if="val === 'left'"><i aria-hidden="true" class="ti ti-star shrink-0 text-blue-500"></i></template>
+                                                        <span><?= e(__('blox_el_button')) ?></span>
+                                                        <template x-if="val === 'right'"><i aria-hidden="true" class="ti ti-star shrink-0 text-blue-500"></i></template>
+                                                    </span>
+                                                    <span class="mt-1.5 block max-w-full break-words text-[11px] font-medium leading-4 text-gray-600" x-text="lbl"></span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </template>
+
+                                    <?php // 悬停效果用静态小预览表达变化，实际效果由按钮元素保存的值控制。 ?>
+                                    <template x-if="ctrl.type === 'button_hover_effect'">
+                                        <div class="grid grid-cols-2 gap-2" role="group" :aria-label="ctrl.label"
+                                             :data-testid="'blox-control-' + ctrl.key">
+                                            <template x-for="(lbl, val) in controlOptions(ctrl)" :key="val">
+                                                <button type="button" @click="setControlValue(ctrl, val)"
+                                                        :data-testid="'blox-button-hover-effect-' + val"
+                                                        :aria-label="lbl" :aria-pressed="controlValue(ctrl) === val"
+                                                        class="flex min-h-[72px] min-w-0 flex-col items-center justify-center rounded-lg border bg-white px-2 py-2 text-center transition hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                                                        :class="controlValue(ctrl) === val ? 'border-blue-500 bg-blue-50/60 ring-1 ring-blue-200' : 'border-gray-200'">
+                                                    <span class="mx-auto inline-flex w-16 min-w-0 max-w-full items-center justify-center rounded-md border border-gray-300 bg-primary px-1.5 py-1 text-[11px] font-medium leading-4 text-white"
+                                                          :style="val === 'lift' ? 'transform:translateY(-3px);box-shadow:0 4px 10px rgba(15,23,42,.24)' : (val === 'bright' ? 'filter:brightness(.82);box-shadow:inset 0 0 0 999px rgba(0,0,0,.08)' : (val === 'none' ? 'opacity:.55;background:#94a3b8;border-color:#94a3b8' : ''))">
+                                                        <?= e(__('blox_el_button')) ?>
+                                                    </span>
+                                                    <span class="mt-1.5 flex max-w-full items-center justify-center gap-1 text-[11px] font-medium leading-4 text-gray-600">
+                                                        <template x-if="val === 'lift'"><i aria-hidden="true" class="ti ti-arrow-up shrink-0 text-[10px] text-blue-500"></i></template>
+                                                        <template x-if="val === 'bright'"><i aria-hidden="true" class="ti ti-sun shrink-0 text-[10px] text-blue-500"></i></template>
+                                                        <template x-if="val === 'none'"><i aria-hidden="true" class="ti ti-ban shrink-0 text-[10px] text-gray-400"></i></template>
+                                                        <span class="min-w-0 break-words" x-text="lbl"></span>
+                                                    </span>
+                                                </button>
+                                            </template>
+                                        </div>
                                     </template>
 
                                     <?php // schema 带 option_icons 的 select → 图标按钮组（方向/对齐这类
@@ -1846,6 +1939,16 @@ declare(strict_types=1);
                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm">
                                     </template>
 
+                                    <template x-if="ctrl.type === 'css_length'">
+                                        <div class="flex items-center gap-2" :data-testid="'blox-control-' + ctrl.key">
+                                            <input type="number" :value="cssLengthValue(ctrl)" @input="setCssLengthValue(ctrl, $event.target.value)"
+                                                   :min="ctrl.min ?? null" :max="ctrl.max ?? null" :step="ctrl.step ?? 1"
+                                                   :placeholder="cssLengthPlaceholder(ctrl)"
+                                                   class="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1.5 text-sm">
+                                            <span x-show="ctrl.unit" class="shrink-0 text-xs text-gray-400" x-text="ctrl.unit"></span>
+                                        </div>
+                                    </template>
+
                                     <template x-if="ctrl.type === 'range'">
                                         <div class="flex items-center gap-3" :data-testid="'blox-control-' + ctrl.key">
                                             <input type="range" :value="controlValue(ctrl)"
@@ -1867,25 +1970,38 @@ declare(strict_types=1);
                                     </template>
 
                                     <template x-if="ctrl.type === 'color'">
-                                        <button type="button"
-                                                @click="openEditorColorPicker($event, 'control-' + ctrl.key, ctrl.label, controlValue(ctrl), '#000000', true, value => setControlValue(ctrl, value))"
-                                                data-testid="blox-color-picker-trigger"
-                                                class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
-                                            <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(controlValue(ctrl), '#000000')"></span>
-                                            <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(controlValue(ctrl), <?= e($jt('blox_empty_default')) ?>)"></span>
-                                            <i class="ti ti-chevron-down text-sm text-gray-400"></i>
-                                        </button>
+                                        <div>
+                                            <button type="button"
+                                                    @click="openEditorColorPicker($event, 'control-' + ctrl.key, ctrl.label, controlValue(ctrl), '#000000', true, value => setControlValue(ctrl, value))"
+                                                    data-testid="blox-color-picker-trigger"
+                                                    class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                                <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(controlValue(ctrl), '#000000')"></span>
+                                                <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(controlValue(ctrl), <?= e($jt('blox_empty_default')) ?>)"></span>
+                                                <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                            </button>
+                                            <p x-show="selEl && selEl.type === 'home-block' && selEl.data.block_type === 'cta' && ctrl.key === 'bg_color' && homeContentImageValue('bg_image')"
+                                               class="mt-1 text-[10px] leading-relaxed text-amber-700">
+                                                <?= e(__('blox_home_cta_color_covered_hint')) ?>
+                                            </p>
+                                        </div>
                                     </template>
 
                                     <?php // icon：旧值无前缀时使用 Tabler；Bootstrap 图标保存为 bi:<name>。 ?>
                                     <template x-if="ctrl.type === 'icon'">
                                         <div>
-                                            <div class="flex items-center gap-2">
+                                            <div class="flex items-center gap-1.5">
                                                 <span class="w-9 h-9 rounded border border-gray-200 flex items-center justify-center text-gray-600 shrink-0">
                                                     <i class="text-lg" :class="iconClass(selEl.data[ctrl.key])"></i>
                                                 </span>
                                                 <input type="text" x-model="selEl.data[ctrl.key]" data-testid="blox-icon-value" placeholder="<?= e(__('blox_icon_ph')) ?>"
-                                                       class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm">
+                                                       class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-50">
+                                                <button type="button" x-show="String(selEl.data[ctrl.key] || 'none') !== 'none'"
+                                                        @click="selEl.data[ctrl.key] = 'none'"
+                                                        data-testid="blox-icon-clear"
+                                                        title="<?= e(__('blox_clear')) ?>" aria-label="<?= e(__('blox_clear')) ?>"
+                                                        class="h-9 w-8 shrink-0 rounded border border-gray-200 bg-white text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-500 inline-flex items-center justify-center transition">
+                                                    <i class="ti ti-x text-sm"></i>
+                                                </button>
                                                 <button type="button" data-testid="blox-icon-library-toggle"
                                                         @click="toggleIconPicker(ctrl.key, selEl.data[ctrl.key])"
                                                         class="shrink-0 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2 py-1.5 transition"
@@ -1945,7 +2061,7 @@ declare(strict_types=1);
                                     </template>
 
                                     <?php // 未覆盖的控件类型：明说，而不是静默留空 ?>
-                                    <template x-if="['text','url','video_url','textarea','richtext','select','number','range','checkbox','color','icon','image','about_layout','about_breakpoint'].indexOf(ctrl.type) === -1">
+                                    <template x-if="['text','url','video_url','textarea','richtext','select','button_style','button_icon_position','button_hover_effect','number','range','css_length','checkbox','color','icon','image','about_layout','about_breakpoint','faq_repeater','org_repeater','pricing_plans','table_grid','items_repeater'].indexOf(ctrl.type) === -1">
                                         <p class="text-[10px] text-amber-600 leading-relaxed">
                                             <?= __('blox_ctrl_unsupported_pre') ?>（<span x-text="ctrl.type"></span>）<?= __('blox_ctrl_unsupported_post') ?>
                                         </p>
@@ -1955,6 +2071,7 @@ declare(strict_types=1);
                                            :data-testid="ctrl.key === 'bg_image' ? 'blox-element-background-image-help' : null"
                                            x-text="ctrl.help"></p>
                                     </template>
+                                </div>
                                 </div>
                             </template>
                             </div>
@@ -1989,7 +2106,9 @@ declare(strict_types=1);
                                 </button>
                             </div>
 
-                            <div x-show="panelTab === 'style'" class="space-y-5">
+                            <?php // 与首页动态区块标题一致：外观选项在「内容」页签直接可见，「样式」页签同样可改 ?>
+                            <div x-show="panelTab === 'content' || panelTab === 'style'" class="space-y-5" data-testid="blox-section-field-style">
+                                <p x-show="panelTab === 'content'" class="border-t border-gray-100 pt-4 text-[11px] font-semibold uppercase tracking-wide text-gray-400"><?= e(__('blox_tab_style')) ?></p>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_align') ?></label>
                                     <div class="grid grid-cols-3 gap-1">
@@ -2023,6 +2142,71 @@ declare(strict_types=1);
                                         <i class="ti ti-chevron-down text-sm text-gray-400"></i>
                                     </button>
                                 </div>
+                                <div data-testid="blox-section-title-animation">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_anim')) ?></label>
+                                    <select x-model="sel.settings.title_animation" class="w-full h-9 border border-gray-200 rounded px-2 text-sm bg-white">
+                                        <?php foreach (['' => 'blox_anim_default_fade_up', 'none' => 'blox_anim_none', 'fade' => 'blox_anim_fade', 'fade-up' => 'blox_anim_fade_up', 'fade-down' => 'blox_anim_fade_down', 'fade-left' => 'blox_anim_fade_left', 'fade-right' => 'blox_anim_fade_right', 'zoom-in' => 'blox_anim_zoom'] as $animKey => $animLabel): ?>
+                                        <option value="<?= e($animKey) ?>"><?= e(__($animLabel)) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_section_title_animation_help')) ?></p>
+                                </div>
+                                <?php // 标题装饰：与首页动态区块同一套选项，普通区块标题也能单独定义 ?>
+                                <template x-if="selectedSectionField === 'title'">
+                                    <div class="space-y-5 border-t border-gray-100 pt-4" data-testid="blox-section-title-decor">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_home_title_decor')) ?></label>
+                                            <div class="grid grid-cols-4 gap-1">
+                                                <?php foreach (['inherit' => 'settings', 'line' => 'minus', 'dot' => 'point', 'none' => 'ban'] as $decorKey => $decorIcon): ?>
+                                                <button type="button" @click="sel.settings.title_decor_style = '<?= $decorKey ?>'"
+                                                        title="<?= e(__('blox_home_title_decor_' . $decorKey)) ?>" aria-label="<?= e(__('blox_home_title_decor_' . $decorKey)) ?>"
+                                                        class="h-8 rounded border inline-flex items-center justify-center transition"
+                                                        :class="(sel.settings.title_decor_style || 'inherit') === '<?= $decorKey ?>' ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'">
+                                                    <i class="ti ti-<?= $decorIcon ?> text-base"></i>
+                                                </button>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                        <template x-if="sel.settings.title_decor_style !== 'none'">
+                                            <div class="space-y-5">
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_home_title_decor_align')) ?></label>
+                                                    <div class="grid grid-cols-4 gap-1">
+                                                        <?php foreach (['inherit' => 'settings', 'left' => 'align-left', 'center' => 'align-center', 'right' => 'align-right'] as $decorKey => $decorIcon): ?>
+                                                        <button type="button" @click="sel.settings.title_decor_align = '<?= $decorKey ?>'"
+                                                                title="<?= e(__('blox_home_title_decor_' . $decorKey)) ?>" aria-label="<?= e(__('blox_home_title_decor_' . $decorKey)) ?>"
+                                                                class="h-8 rounded border inline-flex items-center justify-center transition"
+                                                                :class="(sel.settings.title_decor_align || 'inherit') === '<?= $decorKey ?>' ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'">
+                                                            <i class="ti ti-<?= $decorIcon ?> text-base"></i>
+                                                        </button>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_home_title_decor_color')) ?></label>
+                                                    <button type="button"
+                                                            @click="openEditorColorPicker($event, 'section-title-decor-color', <?= e($jt('blox_home_title_decor_color')) ?>, sel.settings.title_decor_color, '#3b82f6', true, value => sel.settings.title_decor_color = value)"
+                                                            class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                                        <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.title_decor_color, '#3b82f6')"></span>
+                                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.title_decor_color, <?= e($jt('blox_empty_theme_default')) ?>)"></span>
+                                                        <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="grid grid-cols-2 gap-3">
+                                                    <label class="block text-xs font-medium text-gray-600"><?= e(__('blox_home_title_decor_width')) ?>
+                                                        <input type="number" min="0" max="240" x-model.number="sel.settings.title_decor_width"
+                                                               class="mt-1.5 w-full h-8 border border-gray-200 rounded px-2 text-sm">
+                                                    </label>
+                                                    <label class="block text-xs font-medium text-gray-600"><?= e(__('blox_home_title_decor_gap')) ?>
+                                                        <input type="number" min="0" max="80" x-model.number="sel.settings.title_decor_gap"
+                                                               class="mt-1.5 w-full h-8 border border-gray-200 rounded px-2 text-sm">
+                                                    </label>
+                                                </div>
+                                                <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_home_title_decor_default_help')) ?></p>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                     </template>
@@ -2030,7 +2214,7 @@ declare(strict_types=1);
                     <!-- ── 区块设置：内容 / 样式 两页签 ── -->
                     <template x-if="sel && !selEl && !selectedSectionField && panelTab !== 'condition'">
                         <div>
-                            <div x-show="panelTab === 'content'" class="space-y-5">
+                            <div x-show="panelTab === 'content' && (!ctaQuickTarget() || ctaQuickDetails || ctrlQuery.trim() || modifiedOnly)" class="space-y-5">
                                 <template x-if="selLayer === 'con'">
                                     <p class="text-xs text-gray-400 leading-relaxed">
                                         <?= __('blox_container_help') ?>
@@ -2070,6 +2254,9 @@ declare(strict_types=1);
                                         <?= e(__('blox_section_name_hint')) ?>
                                     </p>
                                 </div>
+                                <div x-show="selLayer === 'sec'">
+                                    <?php $backgroundSwitcherMode = 'content'; require __DIR__ . '/background-layer-switcher.php'; ?>
+                                </div>
                                 <!-- 区块标题 / 副标题：渲染器会输出成居中的段落头 -->
                                 <div x-show="selLayer === 'sec'">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_field_section_title') ?></label>
@@ -2089,6 +2276,19 @@ declare(strict_types=1);
                                     <p class="mt-1 text-[10px] text-gray-400"><?= e(__('blox_section_anchor_hint')) ?></p>
                                     <p x-show="sel.settings.anchor_id && !anchorIdValid(sel.settings.anchor_id)"
                                        class="mt-1 text-[10px] text-red-500"><?= e(__('blox_section_anchor_invalid')) ?></p>
+                                    <div class="mt-3 space-y-2" data-testid="blox-section-dotnav">
+                                        <label class="flex items-center justify-between gap-3 text-xs text-gray-600">
+                                            <span><?= e(__('blox_dotnav_section_on')) ?></span>
+                                            <input type="checkbox" class="h-4 w-4" data-testid="blox-section-dotnav-on"
+                                                   :checked="!!sel.settings.dot_nav_on"
+                                                   @change="sel.settings.dot_nav_on = $event.target.checked">
+                                        </label>
+                                        <template x-if="sel.settings.dot_nav_on">
+                                            <input type="text" x-model.trim="sel.settings.dot_nav_title" maxlength="60"
+                                                   placeholder="<?= e(__('blox_dotnav_title_ph')) ?>" data-testid="blox-section-dotnav-title"
+                                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs">
+                                        </template>
+                                    </div>
                                     <p x-show="anchorIdDuplicate(sel.settings.anchor_id)"
                                        class="mt-1 text-[10px] text-amber-600"><?= e(__('blox_section_anchor_duplicate')) ?></p>
                                 </div>
@@ -2101,17 +2301,23 @@ declare(strict_types=1);
                             <div x-show="panelTab === 'style'" class="space-y-5">
                                 <?php // 分层随结构树选中：树里选「区块」→ 全宽背景层设置，
                                       // 选「容器」节点 → 内容层设置。一次只显示当前层。 ?>
+                                <div x-show="selLayer === 'sec' || selLayer === 'con'">
+                                    <?php $backgroundSwitcherMode = 'style'; require __DIR__ . '/background-layer-switcher.php'; ?>
+                                </div>
                                 <div x-show="selLayer === 'sec'" class="blox-property-pair-grid" data-testid="blox-section-property-grid">
                                 <!-- 背景色 -->
                                 <div class="blox-property-span-full">
+                                    <?php $sourceField = 'bg_color'; $sourceFallback = ''; require __DIR__ . '/section-style-source.php'; ?>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_color') ?></label>
                                     <button type="button"
                                             @click="openEditorColorPicker($event, 'section-bg', <?= e($jt('blox_bg_color')) ?>, sel.settings.bg_color, '#ffffff', true, value => sel.settings.bg_color = value)"
+                                            data-testid="blox-section-color-picker-trigger"
                                             class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
                                         <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.bg_color, '#ffffff')"></span>
                                         <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.bg_color, <?= e($jt('blox_empty_transparent')) ?>)"></span>
                                         <i class="ti ti-chevron-down text-sm text-gray-400"></i>
                                     </button>
+                                    <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_background_color_hint')) ?></p>
                                 </div>
                                 <!-- 渐变背景：无/预置色板/自定义双色。叠在背景色/背景图之上 -->
                                 <div class="blox-property-span-full">
@@ -2287,6 +2493,13 @@ declare(strict_types=1);
                                 </div>
                                 <!-- 上下内边距 -->
                                 <div>
+                                    <label class="mb-2 flex items-center gap-2 text-xs text-gray-600">
+                                        <input type="checkbox" data-testid="blox-section-padding-global"
+                                               :checked="sel.settings.padding == null"
+                                               @change="if ($event.target.checked) { delete sel.settings.padding; } else { sel.settings.padding = 'md'; }">
+                                        <?= e(__('blox_section_spacing_global')) ?>
+                                    </label>
+                                    <div x-show="sel.settings.padding != null">
                                     <div class="flex items-center justify-between gap-2 mb-1.5">
                                         <label class="block text-xs font-medium text-gray-600"><?= __('blox_section_spacing') ?></label>
                                         <div class="flex items-center gap-1">
@@ -2312,7 +2525,7 @@ declare(strict_types=1);
                                             </button>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-5 gap-1">
+                                    <div class="grid grid-cols-3 gap-1">
                                         <template x-for="opt in padOptions" :key="opt.k">
                                             <button type="button" @click="setSectionResponsiveValue('padding', opt.k, 'md')"
                                                     :data-testid="'blox-section-padding-' + opt.k"
@@ -2325,11 +2538,12 @@ declare(strict_types=1);
                                         <i class="ti" :class="sectionResponsiveState('padding', 'md').overridden ? 'ti-adjustments' : 'ti-link'"></i>
                                         <span x-text="responsiveStatusText(sectionResponsiveState('padding', 'md'))"></span>
                                     </p>
+                                    </div>
                                 </div>
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_visible_devices') ?></label>
                                     <div class="flex gap-1">
-                                        <template x-for="dev in [{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}]" :key="'secvis'+dev.k">
+                                        <template x-for="dev in [{k:'w',l:<?= e($jt('blox_device_wide')) ?>},{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}].filter(dev => dev.k !== 'w' || wideTierEnabled())" :key="'secvis'+dev.k">
                                             <button type="button" @click="toggleDevice(sel, dev.k, false)"
                                                     class="flex-1 h-8 rounded text-xs border transition"
                                                     :class="deviceVisible(sel, dev.k, false) ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 text-gray-400 line-through'"
@@ -2415,7 +2629,7 @@ declare(strict_types=1);
                                     <div :class="sel.columns.length > 1 && !sel.settings.tablet_stack ? '' : 'blox-property-span-full'">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_visible_devices') ?></label>
                                         <div class="flex gap-1">
-                                            <template x-for="dev in [{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}]" :key="'colvis'+dev.k">
+                                            <template x-for="dev in [{k:'w',l:<?= e($jt('blox_device_wide')) ?>},{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}].filter(dev => dev.k !== 'w' || wideTierEnabled())" :key="'colvis'+dev.k">
                                                 <button type="button" @click="toggleDevice(selectedColData(), dev.k, true)"
                                                         class="flex-1 h-8 rounded text-xs border transition"
                                                         :class="deviceVisible(selectedColData(), dev.k, true) ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 text-gray-400 line-through'"
@@ -2426,6 +2640,46 @@ declare(strict_types=1);
                                     </div>
                                 </div>
                                 <div x-show="selLayer === 'con'" class="blox-property-pair-grid" data-testid="blox-container-property-grid">
+                                <!-- 容器背景优先展示：从区块摘要进入后无需越过布局设置即可看到实际 URL。 -->
+                                <div class="blox-property-span-full">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_container_bg') ?></label>
+                                    <button type="button"
+                                            @click="openEditorColorPicker($event, 'container-bg', <?= e($jt('blox_container_bg')) ?>, sel.settings.container_bg, '#ffffff', true, value => sel.settings.container_bg = value)"
+                                            data-testid="blox-container-color-picker-trigger"
+                                            class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                        <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.container_bg, '#ffffff')"></span>
+                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.container_bg, <?= e($jt('blox_empty_transparent')) ?>)"></span>
+                                        <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                    </button>
+                                    <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_background_color_hint')) ?></p>
+                                    <div class="mt-3" data-testid="blox-container-background-image">
+                                        <label class="block text-[10px] font-medium text-gray-500 mb-1.5"><?= __('blox_bg_image') ?></label>
+                                        <?php $imageControl = ['scope' => 'container', 'key' => "'container_bg_image'", 'id' => 'blox-container-background-image', 'urlId' => 'blox-container-background-image-url']; require __DIR__ . '/image-control.php'; ?>
+                                        <div x-show="sel.settings.container_bg_image" class="mt-3 space-y-3">
+                                            <div>
+                                                <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
+                                                <button type="button"
+                                                        @click="openEditorColorPicker($event, 'container-overlay', <?= e($jt('blox_bg_overlay_color')) ?>, sel.settings.container_bg_overlay_color, '#000000', true, value => sel.settings.container_bg_overlay_color = value)"
+                                                        data-testid="blox-container-overlay-color"
+                                                        class="flex h-9 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                                                    <span class="h-6 w-8 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.container_bg_overlay_color, '#000000')"></span>
+                                                    <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.container_bg_overlay_color, '#000000')"></span>
+                                                    <i class="ti ti-chevron-down text-sm text-gray-400"></i>
+                                                </button>
+                                            </div>
+                                            <div>
+                                                <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                                                    <span><?= __('blox_overlay_opacity') ?></span>
+                                                    <span x-text="(sel.settings.container_bg_overlay_opacity ?? 0) + '%'"></span>
+                                                </div>
+                                                <input type="range" min="0" max="100" step="5" class="w-full"
+                                                       :value="sel.settings.container_bg_overlay_opacity ?? 0"
+                                                       @input="sel.settings.container_bg_overlay_opacity = parseInt($event.target.value, 10)"
+                                                       data-testid="blox-container-overlay-opacity">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="blox-property-span-full rounded-lg border border-gray-200 bg-gray-50 p-3">
                                     <div class="flex items-center justify-between mb-2">
                                         <span class="text-xs font-medium text-gray-600 inline-flex items-center gap-1">
@@ -2521,6 +2775,7 @@ declare(strict_types=1);
                                 <!-- 容器宽度：预设四档 + 自定义 px -->
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_container_width') ?></label>
+                                    <?php $sourceField = 'max_width'; $sourceFallback = 'default'; require __DIR__ . '/section-style-source.php'; ?>
                                     <select x-model="sel.settings.max_width"
                                             class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm bg-white">
                                         <option value="default"><?= __('blox_width_default') ?></option>
@@ -2549,45 +2804,6 @@ declare(strict_types=1);
                                                 :class="sel.settings.container_gutter === 'none' ? 'border-blue-400 bg-blue-50 text-blue-600' : 'border-gray-200 text-gray-500 hover:border-blue-200'">
                                             <?php echo e(__('blox_container_gutter_none')); ?>
                                         </button>
-                                    </div>
-                                </div>
-                                <!-- 容器背景：与区块背景分层，常用「区块深色 + 容器白底圆角」 -->
-                                <div class="blox-property-span-full">
-                                    <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_container_bg') ?></label>
-                                    <button type="button"
-                                            @click="openEditorColorPicker($event, 'container-bg', <?= e($jt('blox_container_bg')) ?>, sel.settings.container_bg, '#ffffff', true, value => sel.settings.container_bg = value)"
-                                            data-testid="blox-container-color-picker-trigger"
-                                            class="flex h-10 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
-                                        <span class="h-7 w-9 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.container_bg, '#ffffff')"></span>
-                                        <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.container_bg, <?= e($jt('blox_empty_transparent')) ?>)"></span>
-                                        <i class="ti ti-chevron-down text-sm text-gray-400"></i>
-                                    </button>
-                                    <div class="mt-3" data-testid="blox-container-background-image">
-                                        <label class="block text-[10px] font-medium text-gray-500 mb-1.5"><?= __('blox_bg_image') ?></label>
-                                        <?php $imageControl = ['scope' => 'container', 'key' => "'container_bg_image'", 'id' => 'blox-container-background-image', 'urlId' => 'blox-container-background-image-url']; require __DIR__ . '/image-control.php'; ?>
-                                        <div x-show="sel.settings.container_bg_image" class="mt-3 space-y-3">
-                                            <div>
-                                                <label class="block text-[10px] text-gray-400 mb-1"><?= e(__('blox_bg_overlay_color')) ?></label>
-                                                <button type="button"
-                                                        @click="openEditorColorPicker($event, 'container-overlay', <?= e($jt('blox_bg_overlay_color')) ?>, sel.settings.container_bg_overlay_color, '#000000', true, value => sel.settings.container_bg_overlay_color = value)"
-                                                        data-testid="blox-container-overlay-color"
-                                                        class="flex h-9 w-full items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100">
-                                                    <span class="h-6 w-8 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(sel.settings.container_bg_overlay_color, '#000000')"></span>
-                                                    <span class="min-w-0 flex-1 truncate text-sm text-gray-700" x-text="colorFieldLabel(sel.settings.container_bg_overlay_color, '#000000')"></span>
-                                                    <i class="ti ti-chevron-down text-sm text-gray-400"></i>
-                                                </button>
-                                            </div>
-                                            <div>
-                                                <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
-                                                    <span><?= __('blox_overlay_opacity') ?></span>
-                                                    <span x-text="(sel.settings.container_bg_overlay_opacity ?? 0) + '%'"></span>
-                                                </div>
-                                                <input type="range" min="0" max="100" step="5" class="w-full"
-                                                       :value="sel.settings.container_bg_overlay_opacity ?? 0"
-                                                       @input="sel.settings.container_bg_overlay_opacity = parseInt($event.target.value, 10)"
-                                                       data-testid="blox-container-overlay-opacity">
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                                 <div class="blox-property-span-full grid grid-cols-2 gap-3">
@@ -2642,7 +2858,7 @@ declare(strict_types=1);
                                         </div>
                                     </div>
                                     <div class="grid grid-cols-5 gap-1">
-                                        <template x-for="opt in padOptions" :key="'g'+opt.k">
+                                        <template x-for="opt in padOptions.filter(opt => opt.k !== 'xs')" :key="'g'+opt.k">
                                             <button type="button" @click="setSectionResponsiveValue('gap', opt.k, 'lg')"
                                                     :data-testid="'blox-section-gap-' + opt.k"
                                                     class="h-8 rounded text-xs border transition"
@@ -2696,9 +2912,11 @@ declare(strict_types=1);
                     </template>
                 </div>
             </div>
+            </div>
         </aside>
 
         <div data-testid="blox-left-panel-resizer"
+             x-show="!leftPanelCollapsed"
              class="blox-panel-resizer"
              :class="leftPanelResizing ? 'is-active' : ''"
              role="separator" aria-orientation="vertical" tabindex="0"
@@ -2749,7 +2967,9 @@ declare(strict_types=1);
                     </span>
                 </template>
             </div>
-            <div class="flex-1 flex items-start justify-center p-3" @click.self="deselectAll()">
+            <div x-ref="canvasViewport" data-testid="blox-canvas-viewport"
+                 :style="previewViewportStyle()"
+                 class="flex-1 min-h-0 flex items-start justify-center p-3" @click.self="deselectAll()">
             <div class="relative" :style="previewShellStyle()">
                 <iframe x-ref="canvas" data-testid="blox-canvas"
                         class="bg-white shadow-xl border-0 rounded"
@@ -2810,13 +3030,16 @@ declare(strict_types=1);
                     <i class="ti ti-list-tree text-sm"></i><?= __('blox_mobile_structure') ?>
                     <span class="text-[10px] font-normal opacity-70" x-text="sections.length"></span>
                 </span>
+                <button type="button" x-show="rightPanelContentVisible() && selectedSi >= 0" @click="deselectAll()" data-testid="blox-clear-selection"
+                        title="<?= e(__('blox_deselect_append')) ?>" aria-label="<?= e(__('blox_deselect_append')) ?>"
+                        class="h-8 w-8 ml-auto shrink-0 rounded text-gray-500 hover:bg-gray-100 inline-flex items-center justify-center"><i class="ti ti-square-off" aria-hidden="true"></i></button>
                 <button type="button" data-testid="blox-right-panel-toggle"
                         class="blox-structure-collapse h-7 w-7 shrink-0 rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 inline-flex items-center justify-center"
-                        :title="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
-                        :aria-label="rightPanelCollapsed ? rightPanelText.expand : rightPanelText.collapse"
-                        :aria-expanded="String(!rightPanelCollapsed)" aria-controls="blox-structure-panel"
+                        :title="structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand"
+                        :aria-label="structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand"
+                        :aria-expanded="String(structurePanelExpanded())" aria-controls="blox-structure-panel"
                         @click="toggleRightPanel()">
-                    <i class="ti text-sm" :class="rightPanelCollapsed ? 'ti-chevron-left' : 'ti-chevron-right'"></i>
+                    <i class="ti text-sm" :class="structurePanelExpanded() ? 'ti-chevron-right' : 'ti-chevron-left'"></i>
                 </button>
             </div>
             <div x-show="rightPanelContentVisible()" class="border-b border-gray-100 p-2 shrink-0">
@@ -2872,10 +3095,12 @@ declare(strict_types=1);
                     <div @click="treeSectionClick($event, si)"
                          @contextmenu.prevent.stop="openCtx($event, 'section', {si: si})"
                          :data-section-id="section.id" :data-section-index="si"
+                         :data-selected="selectedSi === si ? '1' : '0'"
                          :data-multi-selected="isMultiSelected(section.id) ? '1' : '0'"
                          :data-section-label="sectionLabel(section, si)" data-testid="blox-tree-section"
-                         class="rounded-lg border cursor-pointer transition group"
-                         :class="isMultiSelected(section.id) ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-300' : (selectedSi === si ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-200')">
+                         class="group">
+                        <div data-testid="blox-tree-section-card" class="rounded-lg border cursor-pointer transition"
+                             :class="isMultiSelected(section.id) ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-300' : (selectedSi === si ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-blue-200')">
                         <div data-section-drag-handle class="blox-tree-drop-node flex items-center gap-2 px-2.5 py-2">
                             <span x-cloak x-show="treeDropMatches('template-section:' + si + ':before')"
                                   class="blox-tree-drop-line is-before" data-testid="blox-tree-drop-indicator"
@@ -2900,6 +3125,7 @@ declare(strict_types=1);
                             <div class="px-2 pb-1">
                                 <div @click.stop="selectContainer(si)"
                                      data-testid="blox-tree-container"
+                                     :data-selected="isContainerSelected(si) ? '1' : '0'"
                                      @contextmenu.prevent.stop="openCtx($event, 'container', {si: si})"
                                      @dragover="treeColumnDragOver($event, si, 0, 'section-container:' + si + '.0')"
                                      @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
@@ -2974,6 +3200,7 @@ declare(strict_types=1);
                                          @dragover="treeColumnDragOver($event, si, ci, 'column:' + si + '.' + ci)"
                                          @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
                                          :data-si="si" :data-ci="ci" data-sort-elements data-testid="blox-tree-column"
+                                         :data-selected="isColumnSelected(si, ci) ? '1' : '0'"
                                          class="blox-tree-drop-node rounded transition">
                                         <?php // 单列时不显示列标题——只有一列，说「列1」是噪音 ?>
                                         <div @click.stop="selectColumn(si, ci)"
@@ -2999,7 +3226,8 @@ declare(strict_types=1);
                                                  :data-element-type="el.type"
                                                  :data-multi-selected="isMultiSelected(el.id) ? '1' : '0'"
                                                  :data-home-block-type="el.type === 'home-block' ? (((el.data || {}).block_type) || '') : ''"
-                                                 data-sort-el-item data-testid="blox-tree-element">
+                                                 data-sort-el-item data-testid="blox-tree-element"
+                                                 :data-selected="(isElSelected(si, ci, ei) || isMultiSelected(el.id)) ? '1' : '0'">
                                                 <div data-element-drag-handle @click.stop="treeElementClick($event, si, ci, ei)"
                                                      @contextmenu.prevent.stop="openCtx($event, 'element', {si: si, ci: ci, ei: ei})"
                                                      @dragover="treeElementDragOver($event, si, ci, ei, el)"
@@ -3037,6 +3265,31 @@ declare(strict_types=1);
                                                           data-drop-intent="inside" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'"
                                                           x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
                                                 </div>
+                                                <!-- 复合元素命名区域：稳定、可选中、可展开；不是可删除的 children -->
+                                                <template x-if="elRegions(el.type).length > 0">
+                                                    <div class="ml-3 pl-1.5 border-l border-gray-200 py-0.5"
+                                                         :data-si="si" :data-ci="ci" :data-ei="ei" data-catalog-regions>
+                                                        <button type="button" @click.stop="toggleRegionGroup(el)"
+                                                                :data-testid="'blox-tree-regions-toggle-' + (el.id || '')"
+                                                                :aria-expanded="regionGroupOpen(el) ? 'true' : 'false'"
+                                                                class="w-full flex items-center gap-1 pl-1 pr-1 py-0.5 rounded text-[10px] text-gray-400 hover:text-gray-600">
+                                                            <i class="ti ti-chevron-right text-[10px] transition" :class="regionGroupOpen(el) ? 'rotate-90' : ''"></i>
+                                                            <span><?= e(__('blox_catalog_regions_group')) ?></span>
+                                                        </button>
+                                                        <div x-show="regionGroupOpen(el)" class="space-y-0.5">
+                                                            <template x-for="region in elRegions(el.type)" :key="region.key">
+                                                                <div @click.stop="selectElementRegion(si, ci, ei, region.key)"
+                                                                     :data-testid="'blox-tree-region-' + region.key"
+                                                                     :data-selected="(isElSelected(si, ci, ei) && selectedRegion === region.key) ? '1' : '0'"
+                                                                     class="flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer transition"
+                                                                     :class="(isElSelected(si, ci, ei) && selectedRegion === region.key) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'">
+                                                                    <i class="ti text-xs shrink-0" :class="'ti-' + region.icon"></i>
+                                                                    <span class="text-xs truncate flex-1" x-text="region.label"></span>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </template>
                                                 <!-- 容器：子元素嵌套一层（图层式） -->
                                                 <template x-if="elSchema(el.type).container && (el.type !== 'home-block' || String((el.data || {}).block_type || '') === 'banner')">
                                                     <div class="ml-3 pl-1.5 border-l border-gray-200" :data-si="si" :data-ci="ci" :data-ei="ei" data-sort-children>
@@ -3133,26 +3386,17 @@ declare(strict_types=1);
                                     class="p-1 text-gray-400 hover:text-red-500" title="<?= e(__('delete')) ?>">
                                 <i class="ti ti-trash text-sm"></i></button>
                         </div>
+                        </div>
+                        <div x-show="selectedSi === si || si === sections.length - 1" class="flex items-center gap-2 py-2" data-testid="blox-tree-section-boundary">
+                            <span class="flex-1 border-t border-dashed border-gray-300" aria-hidden="true"></span>
+                            <button type="button" @click.stop="openSectionInsert(si + 1, $event)" @contextmenu.stop data-testid="blox-section-insert-after"
+                                    aria-haspopup="dialog" class="min-h-8 px-2 rounded border border-gray-200 bg-white text-xs text-blue-700 hover:border-blue-300 hover:bg-blue-50 inline-flex items-center justify-center gap-1">
+                                <i class="ti ti-plus" aria-hidden="true"></i><?= e(__('blox_insert_section_here')) ?>
+                            </button>
+                            <span class="flex-1 border-t border-dashed border-gray-300" aria-hidden="true"></span>
+                        </div>
                     </div>
                 </template>
-            </div>
-            <!-- 加区块 -->
-            <div x-show="rightPanelContentVisible()" class="border-t border-gray-100 p-2 shrink-0">
-                <div class="flex items-center justify-between mb-1.5 px-1">
-                    <span class="text-[10px] text-gray-400"><?= __('blox_add_section_cols') ?></span>
-                    <span class="text-[10px] text-blue-500" x-text="insertHint()"></span>
-                </div>
-                <div class="grid grid-cols-6 gap-1">
-                    <template x-for="n in [1,2,3,4,5,6]" :key="n">
-                        <button type="button" @click="addSection(n)" :title="n + <?= e($jt('blox_n_col_section')) ?>" :data-testid="'blox-add-section-' + n"
-                                class="h-9 rounded-md border border-gray-200 text-gray-500 hover:border-blue-400 hover:text-blue-500 text-xs font-medium transition"
-                                x-text="n"></button>
-                    </template>
-                </div>
-                <button type="button" x-show="selectedSi >= 0" @click="selectedSi = -1" data-testid="blox-clear-selection"
-                        class="w-full mt-1.5 text-[10px] text-gray-400 hover:text-gray-600 py-1">
-                    <?= __('blox_deselect_append') ?>
-                </button>
             </div>
         </aside>
     </div>

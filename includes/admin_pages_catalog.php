@@ -40,12 +40,14 @@ if (!function_exists('adminPagesCatalog')) {
             // 数据
             ['url'=>'/admin/form.php',             'title'=>'表单数据',     'keywords'=>'留言 表单 询盘 反馈 contact form submission',                            'group'=>'数据'],
             ['url'=>'/admin/form_design.php',      'title'=>'表单设计',     'keywords'=>'表单设计 自定义表单 联系表单 form builder',                              'group'=>'数据'],
+            ['url'=>'/admin/form_spam.php',        'title'=>'防垃圾设置',   'keywords'=>'表单 防刷 垃圾 spam 验证码 关键词 屏蔽 链接 限流 签名', 'group'=>'数据'],
             ['url'=>'/admin/member.php',           'title'=>'会员管理',     'keywords'=>'会员 用户 注册用户 member user',                                         'group'=>'数据'],
             ['url'=>'/admin/setting_member.php',   'title'=>'会员设置',     'keywords'=>'会员注册 登录策略 是否开放注册',                                         'group'=>'数据'],
 
             // 站点
             ['url'=>'/admin/setting.php?tab=pagination', 'title'=>'列表与分页', 'keywords'=>'分页 每页 列表数量 产品 新闻 案例 下载 招聘 pagination page size', 'group'=>'站点'],
-            ['url'=>'/admin/setting.php?tab=basic', 'title'=>'基本设置',     'keywords'=>'网站标题 网站名称 网站描述 关键词 LOGO favicon 备案 ICP 后台标题 颜色',       'group'=>'站点'],
+            ['url'=>'/admin/setting.php?tab=basic', 'title'=>'基本设置',     'keywords'=>'网站标题 网站名称 网站描述 关键词 LOGO favicon 备案 ICP 颜色',       'group'=>'站点'],
+            ['url'=>'/admin/admin_brand.php',      'title'=>'后台品牌',     'keywords'=>'后台名称 后台标题 后台Logo 后台版权 白标 品牌 admin brand logo', 'group'=>'站点'],
             ['url'=>'/admin/setting.php?tab=url',   'title'=>'URL 与链接',   'keywords'=>'URL 链接 网址 伪静态 Rewrite rewrite 动态URL index.php 无需Rewrite',              'group'=>'站点'],
             ['url'=>'/admin/setting.php?tab=header','title'=>'页头设置',     'keywords'=>'页头 头部 header 导航 logo 吸顶 sticky 透明度',                         'group'=>'站点'],
             ['url'=>'/admin/setting.php?tab=footer','title'=>'页脚设置',     'keywords'=>'页脚 footer 版权 底部',                                           'group'=>'站点'],

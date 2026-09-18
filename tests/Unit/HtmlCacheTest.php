@@ -11,7 +11,7 @@ declare(strict_types=1);
 namespace Yikai\Tests\Unit;
 
 use HtmlCache;
-use PHPUnit\Framework\TestCase;
+use Yikai\Tests\TestCase;
 use ReflectionMethod;
 
 require_once ROOT_PATH . '/includes/hooks.php';
@@ -23,8 +23,16 @@ final class HtmlCacheTest extends TestCase
     private array $savedGet = [];
     private array $savedServer = [];
 
+    protected function schemaSql(): array
+    {
+        return ['CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, `key` TEXT UNIQUE,
+            `value` TEXT, `group` TEXT, name TEXT, tip TEXT)'];
+    }
+
     protected function setUp(): void
     {
+        parent::setUp();
+        settingModel()->clearCache();
         $this->savedGet = $_GET;
         $this->savedServer = $_SERVER;
         $_GET = [];
@@ -37,6 +45,7 @@ final class HtmlCacheTest extends TestCase
         $_GET = $this->savedGet;
         $_SERVER = $this->savedServer;
         HtmlCache::setDir(null);
+        settingModel()->clearCache();
         if ($this->tmpDir !== '' && is_dir($this->tmpDir)) {
             foreach (scandir($this->tmpDir) ?: [] as $f) {
                 if ($f === '.' || $f === '..') continue;
@@ -59,6 +68,38 @@ final class HtmlCacheTest extends TestCase
         mkdir($this->tmpDir, 0755, true);
         HtmlCache::setDir($this->tmpDir);
         return $this->tmpDir;
+    }
+
+    public function testInvalidationRotatesNamespaceEvenWithoutACacheDirectory(): void
+    {
+        $key = new ReflectionMethod(HtmlCache::class, 'buildKey');
+        $key->setAccessible(true);
+        $before = $key->invoke(null);
+        $dir = $this->makeCacheDir();
+        rmdir($dir);
+        self::assertSame(0, HtmlCache::invalidate());
+        self::assertNotSame($before, $key->invoke(null));
+        self::assertMatchesRegularExpression('/^[a-f0-9]{32}$/', settingModel()->htmlCacheGeneration());
+    }
+
+    public function testAnOldRenderCannotRepopulateCacheAfterPublication(): void
+    {
+        $dir = $this->makeCacheDir();
+        $keyMethod = new ReflectionMethod(HtmlCache::class, 'buildKey');
+        $keyMethod->setAccessible(true);
+        $oldKey = $keyMethod->invoke(null);
+        foreach (['currentKey' => $oldKey, 'buffering' => true] as $name => $value) {
+            $property = new \ReflectionProperty(HtmlCache::class, $name);
+            $property->setAccessible(true);
+            $property->setValue(null, $value);
+        }
+        settingModel()->rotateHtmlCacheGeneration();
+        ob_start();
+        ob_start();
+        echo '<html>old in-flight response</html>';
+        HtmlCache::end();
+        self::assertSame('<html>old in-flight response</html>', ob_get_clean());
+        self::assertFileDoesNotExist($dir . '/' . $oldKey . '.html');
     }
 
     /**

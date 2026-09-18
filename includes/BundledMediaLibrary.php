@@ -14,7 +14,7 @@ final class BundledMediaLibrary
     private const ITEMS = [
         [
             'id' => 'builtin-cta-smart-manufacturing',
-            'file' => 'cta-smart-manufacturing.png',
+            'file' => 'cta-smart-manufacturing.webp',
             'label' => 'blox_media_builtin_cta_smart_manufacturing',
             'keywords' => 'cta smart manufacturing factory 智能 制造 工厂 スマート 製造 工場',
         ],
@@ -50,8 +50,8 @@ final class BundledMediaLibrary
                 'name' => $name,
                 'url' => $url,
                 'type' => 'image',
-                'ext' => 'png',
-                'mime' => 'image/png',
+                'ext' => strtolower(pathinfo($path, PATHINFO_EXTENSION)),
+                'mime' => is_array($image) && !empty($image['mime']) ? (string) $image['mime'] : 'image/webp',
                 'size' => (int) (filesize($path) ?: 0),
                 'width' => is_array($image) ? (int) $image[0] : 0,
                 'height' => is_array($image) ? (int) $image[1] : 0,

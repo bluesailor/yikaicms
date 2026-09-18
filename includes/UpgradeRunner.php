@@ -226,6 +226,22 @@ function uo_is_legacy_install_upgrade(string $rel): bool
 function uo_dir(): string { return ROOT_PATH . '/storage/upgrade'; }
 
 /**
+ * 覆盖运行中的 PHP 文件后立即丢弃旧字节码。
+ *
+ * 共享主机常把 OPcache 的时间戳复查间隔设为数秒；在线升级恰好在这个窗口内继续
+ * 请求时，会出现“新调用者 + 旧 functions/autoload”的短暂 500。扩展未启用时保持
+ * 无副作用，已启用时强制让下一次请求编译新文件。
+ */
+function uo_invalidate_runtime_file(string $path): void
+{
+    clearstatcache(true, $path);
+    if (strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'php'
+        && function_exists('opcache_invalidate')) {
+        @opcache_invalidate($path, true);
+    }
+}
+
+/**
  * 幂等删除临时文件。
  *
  * 在线升级会被重试、断点续传和回滚反复调用；文件已经被上一轮清理掉
@@ -237,7 +253,12 @@ function uo_unlink_if_exists(string $path): bool
     if (!is_file($path) && !is_link($path)) {
         return true;
     }
-    return @unlink($path);
+    uo_invalidate_runtime_file($path);
+    $removed = @unlink($path);
+    if ($removed) {
+        clearstatcache(true, $path);
+    }
+    return $removed;
 }
 
 function uo_rrmdir(string $d): void
@@ -307,6 +328,7 @@ function uo_copy_tree(string $src, string $dst, string $baseRel = ''): array
             $copied += $c; $errors = array_merge($errors, $e);
         } elseif (@copy($s, $d)) {
             $copied++;
+            uo_invalidate_runtime_file($d);
         } else {
             $errors[] = "复制失败: $rel";
         }
@@ -669,7 +691,12 @@ function upgrade_batch(mixed $requestedOffset = null): array
                         }
                         $created = $nextCreated;
                     }
-                    if (@file_put_contents($d, $data) !== false) $copied++; else $errors[] = "写入失败: $rel";
+                    if (@file_put_contents($d, $data) !== false) {
+                        $copied++;
+                        uo_invalidate_runtime_file($d);
+                    } else {
+                        $errors[] = "写入失败: $rel";
+                    }
                 }
             } finally {
                 $zip->close();

@@ -126,13 +126,20 @@ class InstallSeedDemoTest extends TestCase
             "栏目骨架应保留 ({$driver})"
         );
 
-        // 轮播 banners 自 v1.18.8 起属于骨架而非演示数据：首页 Blox 文档的 banner
-        // 区块改为 items_mode=inherit 从 banners 表按语言取数（修英文/日文安装站
-        // 首页显示中文），不勾演示也必须有各语言的初始轮播行可渲染、可管理。
-        $this->assertStringContainsString(
+        // 轮播 banners 2026-09-18 起重新纳入演示数据：不勾演示时前台回落到
+        // blocks/banner.php 的占位幻灯片（站点名 + 简介，按界面语言翻译），
+        // 新站不再挂着「数字化转型解决方案」这类示例营销文案（复审 R07）。
+        // 勾了演示时才有各语言轮播行：首页 Blox 文档的 banner 区块是 items_mode=inherit，
+        // 按语言从 banners 表取数（修英文/日文安装站首页显示中文那个老毛病）。
+        $this->assertStringNotContainsString(
             $this->insertOf($driver, 'banners'),
             $clean,
-            "多语言轮播骨架应保留 ({$driver})"
+            "取消演示后不该残留演示轮播 ({$driver})"
+        );
+        $this->assertStringContainsString(
+            $this->insertOf($driver, 'banners'),
+            $this->seed($driver),
+            "含演示时应有多语言轮播 ({$driver})"
         );
 
         // 剥离不应破坏 SQL 结构：标记本身被移除
@@ -390,15 +397,69 @@ class InstallSeedDemoTest extends TestCase
     }
 
     /**
-     * 新增六个演示产品封面必须真实存在，防止安装站首页出现 404 封面。
+     * 旧站可能仍引用 SVG，新增 WebP 不得删除旧文件。
      */
     public function testNewDemoProductCoversExist(): void
     {
         $demoDir = dirname(__DIR__, 2) . '/assets/images/demo/';
-        foreach (range(107, 112) as $n) {
+        foreach (range(101, 112) as $n) {
             $file = "product-{$n}.svg";
             $this->assertFileExists($demoDir . $file, "演示封面应存在: {$file}");
         }
+    }
+
+    /** @dataProvider driverProvider */
+    public function testDemoProductImagesMatchTranslationGroups(string $driver): void
+    {
+        if (!extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('pdo_sqlite is required');
+        }
+        $root = dirname(__DIR__, 2);
+        require_once $root . '/includes/DatabaseMaintenance.php';
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $pdo->exec($this->seed('sqlite'));
+        if ($driver === 'mysql') {
+            // These portable INSERTs use the SQLite schema to verify their data, not MySQL DDL.
+            $pdo->exec('DELETE FROM yikai_products');
+            foreach (\DatabaseMaintenance::splitSql($this->seed('mysql')) as $statement) {
+                if (str_starts_with($statement, 'INSERT INTO `yikai_products` ')) {
+                    $pdo->exec($statement);
+                }
+            }
+        }
+        $rows = $pdo->query('SELECT lang, translation_group_id, cover FROM yikai_products')->fetchAll(\PDO::FETCH_ASSOC);
+        $this->assertCount(36, $rows);
+        $languages = [];
+        foreach ($rows as $row) {
+            $group = (int) $row['translation_group_id'];
+            $this->assertGreaterThanOrEqual(1, $group);
+            $this->assertLessThanOrEqual(12, $group);
+            $this->assertSame('/assets/images/demo/product-' . (100 + $group) . '-v2.webp', $row['cover']);
+            $languages[$group][] = $row['lang'];
+        }
+        $this->assertCount(12, $languages);
+        foreach ($languages as $groupLanguages) {
+            sort($groupLanguages);
+            $this->assertSame(['en', 'ja', 'zh-CN'], $groupLanguages);
+        }
+    }
+
+    public function testDemoProductWebpDimensionsAndPayload(): void
+    {
+        $total = 0;
+        foreach (range(101, 112) as $id) {
+            $file = dirname(__DIR__, 2) . "/assets/images/demo/product-{$id}-v2.webp";
+            $this->assertFileExists($file);
+            $info = getimagesize($file);
+            $this->assertIsArray($info);
+            $this->assertSame([1200, 900, IMAGETYPE_WEBP], array_slice($info, 0, 3));
+            $bytes = filesize($file);
+            $this->assertGreaterThan(1024, $bytes);
+            $this->assertLessThan(100 * 1024, $bytes);
+            $total += $bytes;
+        }
+        $this->assertLessThan(750 * 1024, $total);
     }
 
     /**

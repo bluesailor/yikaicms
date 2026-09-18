@@ -276,6 +276,12 @@
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
+  <file src="admin/admin_brand.php">
+    <UnusedVariable>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+    </UnusedVariable>
+  </file>
   <file src="admin/form.php">
     <InvalidArgument>
       <code><![CDATA[$ids]]></code>
@@ -288,14 +294,16 @@
       <code><![CDATA[$pageTitle]]></code>
     </UnusedVariable>
   </file>
+  <file src="admin/form_spam.php">
+    <UnusedVariable>
+      <code><![CDATA[$currentMenu]]></code>
+      <code><![CDATA[$pageTitle]]></code>
+    </UnusedVariable>
+  </file>
   <file src="admin/form_design.php">
     <MissingFile>
       <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
     </MissingFile>
-    <UndefinedMethod>
-      <code><![CDATA[findById]]></code>
-      <code><![CDATA[findById]]></code>
-    </UndefinedMethod>
     <UnusedVariable>
       <code><![CDATA[$currentMenu]]></code>
       <code><![CDATA[$pageTitle]]></code>

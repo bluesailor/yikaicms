@@ -92,14 +92,16 @@ $bg = getBlockBg($block ?? [], '@auto');
     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?>">
         <div class="<?php echo e($aboutGridClass); ?>"<?php echo $aboutGridEditAttr; ?>>
             <div class="<?php echo e($aboutTextClass); ?>"<?php echo $aboutTextEditAttr; ?> data-animate="<?php echo $aboutIsImageLeft ? 'fade-left' : 'fade-right'; ?>">
-                <h2 class="blk-title mb-2"><?php echo homeTitleInner($aboutTitle); ?></h2>
-                <?php echo homeTitleDeco(false, 'st-left'); ?>
+                <div class="yk-about-heading w-fit max-w-full">
+                    <h2 class="blk-title mb-2"><?php echo e($aboutTitle); ?></h2>
+                    <?php echo homeTitleDeco(false); ?>
+                </div>
                 <p class="text-gray-600 text-lg leading-relaxed mb-6 mt-6">
                     <?php echo e($aboutContent['override_content']); ?>
                 </p>
                 <?php if ($aboutChannel): ?>
-                <a href="<?php echo e($aboutContent['override_button_url']); ?>" class="u-btn-primary inline-block bg-primary hover:bg-secondary text-white px-6 py-3 rounded-full transition">
-                    <?php echo e($aboutContent['override_button_text']); ?> &raquo;
+                <a href="<?php echo e($aboutContent['override_button_url']); ?>" class="yk-about-more inline-flex items-center gap-3 border border-gray-300 bg-gray-50 text-gray-800 hover:bg-gray-100 hover:border-gray-400 px-5 py-3 rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-4">
+                    <?php echo e($aboutContent['override_button_text']); ?> <i class="<?php echo e(BloxIcon::classes('arrow-right', 'arrow-right')); ?>" aria-hidden="true"></i>
                 </a>
                 <?php endif; ?>
             </div>
@@ -107,12 +109,17 @@ $bg = getBlockBg($block ?? [], '@auto');
                 <div class="relative overflow-hidden rounded-lg bg-gray-100 shadow-sm aspect-[4/3]">
                     <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($aboutImage, 'medium', $aboutImageSizes); ?> alt="<?php echo __('home_about_title'); ?>" class="u-img w-full h-full object-cover">
                     <?php if ($aboutTagTitle || $aboutTagDesc): ?>
-                    <div class="absolute bottom-4 left-4 bg-primary text-white px-4 py-3 rounded-lg shadow-lg">
+                    <?php
+                    $aboutTagBackground = AbstractElement::cssColor(config('home_about_tag_background', '')) ?: 'rgba(239,246,255,0.94)';
+                    $aboutTagColor = AbstractElement::cssColor(config('home_about_tag_color', '')) ?: '#1e3a8a';
+                    ?>
+                    <?php // yk-default-about-badge 提供柔和描边/阴影与换行；可配置的底色与文字色走内联样式优先 ?>
+                    <div class="yk-default-about-badge absolute bottom-4 left-4 px-4 py-3 rounded-lg" style="background-color:<?php echo e($aboutTagBackground); ?>;color:<?php echo e($aboutTagColor); ?>">
                         <?php if ($aboutTagTitle): ?>
                         <div class="font-bold text-lg"><?php echo e($aboutTagTitle); ?></div>
                         <?php endif; ?>
                         <?php if ($aboutTagDesc): ?>
-                        <div class="text-sm opacity-90"><?php echo e($aboutTagDesc); ?></div>
+                        <div class="text-sm"><?php echo e($aboutTagDesc); ?></div>
                         <?php endif; ?>
                     </div>
                     <?php endif; ?>

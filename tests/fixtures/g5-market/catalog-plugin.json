@@ -1,0 +1,42 @@
+{
+    "code": 0,
+    "data": {
+        "updated_at": "2026-09-14",
+        "plugins": [
+            {
+                "slug": "acc-189b6-plugin",
+                "name": "验收插件189b6",
+                "name_en": "Demo resource",
+                "name_ja": "デモ資源",
+                "description": "用于本地验收的演示投稿。",
+                "description_en": "A local acceptance sample.",
+                "description_ja": "日本語の説明を追加しました。",
+                "version": "1.0.0",
+                "author": "acc189b6",
+                "category": "tools",
+                "requires_php": ">=8.0.0",
+                "requires_cms": ">=1.20.0",
+                "tier": "free",
+                "module": "",
+                "paid": false,
+                "entitled": true,
+                "source": "community",
+                "download_url": "http://127.0.0.1:18082/api/market/download.php?token=<expires-after-300s>",
+                "hash": "sha256:ff7ab47c6c83bfcc612fb85e8017c7a022c2d7d57ffeb7ebba496770919ae0f7",
+                "sig": "ScBi+nZkilKL44fBOH4knI/bhzMZLkY7COmp20iJ9FJF5dH5AECeSjl6/k8aD1kxLbm5F3hXh5r66examTCUuFCjLNUbTGtuy1En+nVPmEwqCmFXfmUKVhVWnbRFH+02qWs0fqOXcZ66i23ktgxLmVYv+jOdmTh3gCib61Gr5jqyAxfvg171m+1ueNBnq7q4c6hfRXtih8PWu/z4jN0F3g2WIEsVUmDcrUJ2coWp0abZwyjQtKmvrGY8IBbXaajXKTxhKp51MWVywjfJZqrfRamviP01kdg4st/ZKvxhzoivVBCKSa8i/N7wM9VcdbykBMdcf3yPrSPpHFddE2zPcA==",
+                "size_kb": 1
+            }
+        ],
+        "market": {
+            "test_only": true,
+            "quota": {
+                "subject_type": "ip",
+                "limit": 3,
+                "used": 0,
+                "remaining": 3,
+                "day": "2026-09-15",
+                "timezone": "Asia/Shanghai"
+            }
+        }
+    }
+}

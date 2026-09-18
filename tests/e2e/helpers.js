@@ -26,7 +26,12 @@ function observeUnsafeWrites(page) {
     }
     if (url.pathname === '/admin/blox_template_api.php') {
       const action = body.get('action') || '';
-      if (action !== 'save_draft' && action !== 'get') entries.push('template:' + action);
+      // save_draft 是模板用例的预期写入；get 是读。
+      // prepare_insert / confirm_insert 是画布插入的两段式检查（2026-09 新增）：
+      // 前者登记一条 TTL 1800s 的临时评审记录，后者认领它并返回 sections，
+      // 都不改任何已发布输出或前台激活态，不属于本观察器要拦的危险写。
+      const safe = ['save_draft', 'get', 'prepare_insert', 'confirm_insert'];
+      if (!safe.includes(action)) entries.push('template:' + action);
     }
   });
   return entries;
@@ -85,6 +90,7 @@ async function canvasScrollTop(page) {
 // Read the existing client state: absence of a settle event is not an idle signal.
 async function waitPreviewSettled(page, timeoutMs = 5000) {
   await expect.poll(() => page.evaluate(() => {
+    if (!window.Alpine || !document.body._x_dataStack) return false;
     const app = window.Alpine.$data(document.body);
     const client = app._previewClient;
     const canvas = document.querySelector('[data-testid="blox-canvas"]');
@@ -111,16 +117,63 @@ async function clearSelection(page) {
   if (await button.isVisible()) await button.click();
 }
 
+async function openSectionInsertAtEnd(page) {
+  const insert = page.getByTestId('blox-section-insert-after').last();
+  if (await insert.count()) {
+    if (!await insert.isVisible()) {
+      const mobile = page.getByTestId('blox-mobile-structure');
+      if (await mobile.isVisible()) await mobile.click();
+      else await page.getByTestId('blox-toolbar-structure-toggle').click();
+    }
+    await insert.click();
+    return false;
+  }
+  const canvasView = page.getByTestId('blox-mobile-canvas-view');
+  if (await canvasView.isVisible()) await canvasView.click();
+  // 画布 iframe 用 CSS zoom 适配宽度，Playwright 换算点击坐标后会误判「被 .yk-empty-doc 拦截」而重试到超时；
+  // 按钮本身可见可点（elementFromPoint 命中它），直接派发 DOM click。
+  const emptyButton = (await frame(page)).locator('.yk-empty-doc .yk-empty-btn').last();
+  await emptyButton.waitFor({ state: 'visible' });
+  await emptyButton.dispatchEvent('click');
+  return true;
+}
+
 async function addTemporaryHeading(page, columns = 1) {
   await clearSelection(page);
   await waitPreviewSettled(page);
   const before = await countSections(page);
   const headingBefore = await (await frame(page)).locator('[data-yk-el-type="heading"]').count();
-  await page.getByTestId(`blox-add-section-${columns}`).click();
+  const mobile = await page.getByTestId('blox-mobile-structure').isVisible();
+  if (mobile) await page.getByTestId('blox-mobile-structure').click();
+  const sectionCreatedFromEmptyDocument = await openSectionInsertAtEnd(page);
+  // 画布空态的“从空白区块开始”会直接 addSection(1)，不会打开外层分栏选择器；
+  // 普通边界“+”才需要在选择器里再选一次列数。
+  if (!sectionCreatedFromEmptyDocument) {
+    await page.getByTestId(`blox-add-section-${columns}`).click();
+  }
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
+  // 触屏空文档要先切到画布才能点 iframe 内的起始按钮；区块创建后需切回结构面板。
+  if (mobile && sectionCreatedFromEmptyDocument) {
+    await page.getByTestId('blox-mobile-structure').click();
+  }
   const section = page.getByTestId('blox-tree-section').last();
-  await page.getByTestId('blox-library-open').click();
-  await page.getByTestId('blox-add-element-heading').press('Enter');
+  if (mobile) {
+    // 触屏元素插入要求先选中目标列；新建空区块只会建立结构，不会隐式选择其列。
+    const column = section.getByTestId('blox-tree-column').first();
+    // 空白文档入口创建的区块通常已展开；只有列仍隐藏时才点标签展开，避免把已展开区块再次折叠。
+    // 标签是稳定的交互目标，派发 DOM click 与画布空态按钮采用同一策略。
+    if (!(await column.isVisible())) {
+      await section.getByTestId('blox-tree-section-label').dispatchEvent('click');
+    }
+    await expect(column).toBeVisible();
+    await column.locator(':scope > div').first().dispatchEvent('click');
+    await expect(column).toHaveAttribute('data-selected', '1');
+    await page.getByTestId('blox-mobile-library').click();
+    await page.getByTestId('blox-add-element-heading').click();
+  } else {
+    await page.getByTestId('blox-library-open').click();
+    await page.getByTestId('blox-add-element-heading').press('Enter');
+  }
   await expect(section.getByTestId('blox-tree-element')).toHaveCount(1);
   await expect((await frame(page)).locator('[data-yk-el-type="heading"]')).toHaveCount(headingBefore + 1);
   return { before, section, sectionIndex: before };
@@ -132,7 +185,7 @@ async function performPreviewUpdate(page, action) {
     return candidate.request().method() === 'POST'
       && url.pathname === '/admin/blox_preview.php'
       && url.searchParams.get('home') === '1';
-  });
+  }, { timeout: 15000 });
   await action();
   await response;
   await page.waitForTimeout(80);
@@ -192,7 +245,14 @@ async function dragElement(source, target, page) {
   await page.mouse.up();
 }
 
+/** 属性面板里当前标题元素的文字框（标题专属面板 heading-content.php，多行；与后台语言无关）。 */
+function headingTextField(page) {
+  return page.getByTestId('blox-heading-text');
+}
+
 module.exports = {
+  headingTextField,
+  openSectionInsertAtEnd,
   addTemporaryHeading,
   canvasScrollTop,
   waitPreviewSettled,

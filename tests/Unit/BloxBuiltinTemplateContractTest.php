@@ -30,13 +30,20 @@ if (!function_exists('e')) {
  */
 final class BloxBuiltinTemplateContractTest extends TestCase
 {
-    /** @return array<string,array{0:string,1:list<string>}> */
+    /**
+     * 2026-09-16 起随包整页模板缩减为三款（在用的公司介绍 / 服务流程 + 功能性 404）。
+     * 移出的 restaurant-landing / contact-page / brand-service-landing 见
+     * CLAUDE-SECTION-LIBRARY-PROGRESS.md：重设计后进远程精品库，不再随包分发。
+     * 同日按需求重新内置一款全新设计的联系我们页 contact-connect（非旧 contact-page 回迁）。
+     *
+     * @return array<string,array{0:string,1:list<string>}>
+     */
     public static function templates(): array
     {
         return [
             '公司介绍' => ['company-intro', ['以专业与稳健', '成立年份', '为什么选择我们', '研发设计', '立即咨询']],
-            '联系我们' => ['contact-page', ['联系我们', '常见问题', '多久能收到回复', '工作时间']],
             '服务流程' => ['service-process', ['每一步都清晰可控', '需求沟通', '测试验收', '方案与计划', '合作前常见问题']],
+            '联系我们' => ['contact-connect', ['我们来找最合适的人跟进', '1 个工作日内回复', '信息严格保密', '售后支持', '提交留言后多久会收到回复']],
         ];
     }
 
@@ -109,19 +116,6 @@ final class BloxBuiltinTemplateContractTest extends TestCase
         self::assertSame([], array_keys($missing), '模板引用了已不存在的元素类型');
     }
 
-    /**
-     * 联系页的三个联系类元素必须在文档里。
-     * 它们的渲染要数据库与完整应用上下文（表单模板、联系方式设置），单元层测不了，
-     * 所以这里只钉结构——真正的渲染由后台页面冒烟与 e2e 覆盖。
-     */
-    public function testContactPageKeepsItsContactElements(): void
-    {
-        $raw = (string) file_get_contents(ROOT_PATH . '/templates/blox/pages/contact-page.json');
-        foreach (['contact_cards', 'contact_form', 'contact_map'] as $type) {
-            self::assertStringContainsString('"' . $type . '"', $raw, '联系页缺少 ' . $type . ' 元素');
-        }
-    }
-
     public function testProviderListsPageTemplatesWithExistingThumbnails(): void
     {
         $items = [];
@@ -129,13 +123,67 @@ final class BloxBuiltinTemplateContractTest extends TestCase
             $items[$item['key']] = $item;
         }
 
-        foreach (['builtin:company-intro', 'builtin:contact-page', 'builtin:service-process'] as $key) {
+        foreach (['builtin:company-intro', 'builtin:service-process', 'builtin:contact-connect', 'builtin:404-route-lost'] as $key) {
             self::assertArrayHasKey($key, $items);
             self::assertNotSame('', $items[$key]['name']);
             self::assertNotSame('', $items[$key]['description']);
             // 缩略图缺失在界面上是一张碎图，属于「发出去才被发现」的那类问题
             self::assertFileExists(ROOT_PATH . $items[$key]['thumbnail']);
         }
+    }
+
+    /**
+     * 整页模板的「页面外框偏好 + 区块锚点」必须完整穿过导入管线。
+     *
+     * 原先靠 restaurant-landing 这份随包模板当夹具；2026-09-16 该模板移出随包目录后，
+     * 改用内联夹具——被保护的是**管线行为**（settings 不被吞、anchor_id 不被重写、
+     * 锚点链接照常渲染），它与目录里恰好有哪几款模板无关，不该随目录增减而失去覆盖。
+     */
+    public function testPageFramePreferencesAndAnchorsSurviveTheImportPipeline(): void
+    {
+        $frame = array_fill_keys([
+            'page_header_hidden', 'page_footer_hidden', 'page_breadcrumb_hidden', 'page_title_hidden', 'page_sidebar_hidden',
+        ], true);
+        $package = json_encode([
+            'format' => 'yikaicms-blox-template',
+            'version' => 1,
+            'type' => 'page',
+            'name' => 'Frame fixture',
+            'requires' => ['elements' => ['heading', 'button'], 'plugins' => []],
+            'document' => [
+                'schema' => 1,
+                'settings' => $frame,
+                'sections' => [
+                    [
+                        'type' => 'section',
+                        'settings' => ['anchor_id' => 'fixture-header'],
+                        'columns' => [['elements' => [
+                            ['type' => 'heading', 'data' => ['text' => '锚点夹具', 'level' => 'h1']],
+                            ['type' => 'button', 'data' => ['text' => '去预约', 'url' => '#fixture-reservation']],
+                        ]]],
+                    ],
+                    [
+                        'type' => 'section',
+                        'settings' => ['anchor_id' => 'fixture-reservation'],
+                        'columns' => [['elements' => [
+                            ['type' => 'heading', 'data' => ['text' => '预约', 'level' => 'h2']],
+                        ]]],
+                    ],
+                ],
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+
+        $prepared = BloxTemplateImporter::prepare($package);
+        self::assertSame($frame, $prepared['settings'], '页面外框偏好不能在导入时被吞掉');
+        self::assertSame($frame, json_decode($prepared['draft_json'], true)['settings']);
+        self::assertSame('fixture-header', $prepared['sections'][0]['settings']['anchor_id']);
+        self::assertSame(
+            'fixture-reservation',
+            $prepared['sections'][array_key_last($prepared['sections'])]['settings']['anchor_id']
+        );
+
+        $header = BlockRenderer::render(json_encode([$prepared['sections'][0]], JSON_THROW_ON_ERROR));
+        self::assertStringContainsString('href="#fixture-reservation"', $header, '页内锚点链接必须照常渲染');
     }
 
     public function testServiceProcessKeepsSixIndividuallyEditableSteps(): void
@@ -171,10 +219,59 @@ final class BloxBuiltinTemplateContractTest extends TestCase
             $raw = (string) file_get_contents(ROOT_PATH . '/templates/blox/pages/' . $slug . '.json');
             self::assertStringNotContainsString('/uploads/', $raw, $slug . ' 不得引用 /uploads/ 下的素材');
 
-            preg_match_all('#"(/images/[A-Za-z0-9._/-]+)"#', $raw, $matches);
+            preg_match_all('#"(/(?:assets/)?images/[A-Za-z0-9._/-]+)"#', $raw, $matches);
             foreach (array_unique($matches[1]) as $asset) {
                 self::assertFileExists(ROOT_PATH . $asset, $slug . ' 引用了不存在的随包素材');
             }
+        }
+    }
+
+    /**
+     * 英文/日文编辑器插入内置区块、导入整页时取对应语言的译文包。
+     * 译文只换文字：结构、枚举值、链接、图片必须与中文原包逐项一致，且能过导入管线。
+     */
+    public function testEveryBuiltinTemplateShipsEnglishAndJapaneseWithIdenticalStructure(): void
+    {
+        $shape = static function (mixed $value) use (&$shape): mixed {
+            return is_array($value) ? array_map($shape, $value) : (is_string($value) ? 'string' : $value);
+        };
+        $sources = glob(ROOT_PATH . '/templates/blox/{sections,pages}/*.json', GLOB_BRACE) ?: [];
+        self::assertNotEmpty($sources);
+        foreach ($sources as $source) {
+            $original = json_decode((string) file_get_contents($source), true);
+            foreach (['en', 'ja'] as $language) {
+                $file = dirname($source) . '/' . $language . '/' . basename($source);
+                $label = basename(dirname($source)) . '/' . $language . '/' . basename($source);
+                self::assertFileExists($file, $label . ' 缺少译文');
+                $raw = (string) file_get_contents($file);
+                $translated = json_decode($raw, true);
+                // 形状比较同时锁定键、键序、数组长度与所有非文字值
+                self::assertSame($shape($original), $shape($translated), $label . ' 结构或非文字值与原包不一致');
+                self::assertNotEmpty(BloxTemplateImporter::prepare($raw)['sections'], $label);
+                if ($language === 'en') {
+                    self::assertDoesNotMatchRegularExpression('/[\x{4e00}-\x{9fff}]/u', $raw, $label . ' 英文包里仍有中文');
+                } else {
+                    self::assertMatchesRegularExpression('/[\x{3040}-\x{30ff}]/u', $raw, $label . ' 日文包里没有假名');
+                }
+            }
+        }
+    }
+
+    public function testResolveUsesTheEditorContentLanguageAndFallsBackToTheOriginal(): void
+    {
+        $provider = new BloxBuiltinTemplateProvider();
+        $heading = static fn(array $template): string => (string) $template['sections'][0]['columns'][0]['elements'][1]['data']['text'];
+        $original = $heading($provider->resolve('contact-connect', 'page'));
+        $english = $heading($provider->resolve('contact-connect', 'page', 'en'));
+        $japanese = $heading($provider->resolve('contact-connect', 'page', 'ja'));
+
+        self::assertMatchesRegularExpression('/[\x{4e00}-\x{9fff}]/u', $original);
+        self::assertDoesNotMatchRegularExpression('/[\x{4e00}-\x{9fff}]/u', $english);
+        self::assertMatchesRegularExpression('/[\x{3040}-\x{30ff}]/u', $japanese);
+        // 导入评审记录的包原文就是实际插入的译文包
+        self::assertStringContainsString($english, $provider->resolve('contact-connect', 'page', 'en')['package_json']);
+        foreach (['zh-CN', 'zh-TW', '../en', 'EN'] as $fallback) {
+            self::assertSame($original, $heading($provider->resolve('contact-connect', 'page', $fallback)), $fallback);
         }
     }
 }

@@ -47,6 +47,18 @@ final class SettingEventsTest extends TestCase
         self::assertSame([['data', 'settings'], ['settings', ['site_name' => 'after'], ['site_name' => 'after']]], $this->events);
     }
 
+    public function testCacheGenerationIsAtomicInternalStateWithoutRecursiveEvents(): void
+    {
+        self::assertSame('', settingModel()->htmlCacheGeneration());
+        settingModel()->rotateHtmlCacheGeneration();
+        $before = settingModel()->htmlCacheGeneration();
+        settingModel()->rotateHtmlCacheGeneration();
+        self::assertNotSame($before, settingModel()->htmlCacheGeneration());
+        self::assertSame(settingModel()->htmlCacheGeneration(), settingModel()->get('html_cache_generation'));
+        self::assertSame(1, (int) db()->fetchColumn('SELECT COUNT(*) FROM settings WHERE `key` = ?', ['html_cache_generation']));
+        self::assertSame([], $this->events);
+    }
+
     public function testBatchNotifiesOnceForBothInsertsAndUpdates(): void
     {
         settingModel()->set('site_name', 'old');

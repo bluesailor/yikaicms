@@ -22,6 +22,8 @@ return [
         'includes/HomeSettingsLanguageDefaults.php',
         'includes/http_response.php',
         'includes/language_request.php',
+        'includes/lang_url.php',
+        'includes/product_routes.php',
         'includes/FooterNavigation.php',
         'includes/ProductIdentity.php',
         'includes/frontend_preview.php',
@@ -34,6 +36,7 @@ return [
         'includes/security.php',
         'includes/AdminLogSanitizer.php',
         'includes/FormSubmissionToken.php',
+        'includes/FormSpamGuard.php',
         'includes/LegacyInstallCleanup.php',
         'includes/SiteHealth.php',
         'includes/RuntimeRequirements.php',   // SiteHealth 顶部 require：环境要求的唯一来源
@@ -106,5 +109,12 @@ return [
         'composer.json',
         'composer.lock',
         'vendor',
+        // 内部文档与验证记录：含商业策略、开发机路径，任何时候都不能进发行包
+        'docs',
+        'AGENTS.md',
+        'CLAUDE.md',
+        'plugins/dologin/VERIFICATION.md',
+        // 易登录插件不随核心预装（2026-09-17 产品决定），经插件市场安装
+        'plugins/dologin',
     ],
 ];

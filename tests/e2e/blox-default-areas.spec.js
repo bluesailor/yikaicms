@@ -1,11 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
-const { addTemporaryHeading, observeConsole, performPreviewUpdate } = require('./helpers');
+const { addTemporaryHeading, headingTextField, observeConsole, performPreviewUpdate } = require('./helpers');
 
 const AREA_TEMPLATES = [
   { slug: 'corporate-site-header', name: 'Corporate Site Header' },
-  { slug: 'corporate-site-footer', name: 'Corporate Site Footer' },
+  { slug: 'four-column-dark-site-footer', name: 'Four Column Dark Site Footer' },
 ];
 const CLEANUP_AREA_SLUGS = [
   'clean-site-header',
@@ -14,6 +14,12 @@ const CLEANUP_AREA_SLUGS = [
 ];
 
 async function submit(page, form) {
+  // 只给确实带确认提示的表单注册一次性监听器。若每次提交都注册，普通安装/取消发布
+  // 不会触发 dialog，遗留的 once 监听器会在后续发布时一起 accept 同一个 dialog。
+  const needsConfirmation = await form.evaluate((node) => (
+    node.hasAttribute('onsubmit') || node.hasAttribute('data-conflict-message')
+  ));
+  if (needsConfirmation) page.once('dialog', (dialog) => dialog.accept());
   // waitForNavigation 已废弃且有竞态（重定向落在同 URL 时可能挂满 45s，CI 偶发）。
   // 先武装 POST 响应等待再点击，然后等重定向落地——时序上不可能错过。
   await Promise.all([
@@ -43,6 +49,10 @@ async function installAndPublish(page, template) {
   await expect(publishForm).toHaveCount(1);
   await submit(page, publishForm);
 }
+
+test.beforeEach(async ({ page }) => {
+  await unpublishAreas(page);
+});
 
 async function unpublishAreas(page) {
   await page.goto('/admin/blox_templates.php', { waitUntil: 'domcontentloaded' });
@@ -76,12 +86,14 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
     await expect(header).toBeVisible();
     await expect(footer).toBeVisible();
     const utilitySearch = header.locator('section form[role="search"] input[name="keyword"]').first();
-    const languageSwitcher = header.locator('[data-yk-language-switcher="dropdown"]');
+    // 企业网页头有两个语言切换器：顶栏那个给平板/桌面，主行那个只在手机显示（_hide_on t/d）
+    const topbarSwitcher = header.locator('[data-yk-language-switcher="dropdown"]').first();
+    const languageSwitcher = header.locator('[data-yk-language-switcher="dropdown"]:visible').first();
     const languageTrigger = languageSwitcher.locator('[data-yk-language-trigger]');
     const languageMenu = languageSwitcher.locator('[data-yk-language-menu]');
     if (testInfo.project.name === 'mobile-390') {
       await expect(utilitySearch).toBeHidden();
-      await expect(languageTrigger).toBeHidden();
+      await expect(topbarSwitcher.locator('[data-yk-language-trigger]')).toBeHidden();
     } else {
       await expect(utilitySearch).toBeVisible();
       await expect(languageTrigger).toBeVisible();
@@ -181,7 +193,8 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
         },
       });
       expect(headerSnapshot).toMatchSnapshot('r35-default-corporate-header.png', visualOptions);
-      const expectedFooterHeight = testInfo.project.name === 'desktop-1440' ? 453 : 648;
+      // 四列深色页脚：桌面四列同排，手机逐列堆叠
+      const expectedFooterHeight = testInfo.project.name === 'desktop-1440' ? 453 : 788;
       const naturalFooterBox = await footer.boundingBox();
       expect(naturalFooterBox).not.toBeNull();
       expect(naturalFooterBox.height).toBeGreaterThanOrEqual(expectedFooterHeight - 2);
@@ -221,25 +234,17 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
     await expect(regionNavigator).toBeVisible();
     await regionSummary.click();
     await expect(regionMenu).toBeVisible();
+    // 单页正文统一从「当前页面」进入编辑（page.php 的 data-yk-page-edit-only），不再列「正文」分组；
+    // 页头、页脚仍按元素深链。
     const regionHeadings = {
-      'zh-CN': ['当前页面', '页头', '正文', '页脚'],
-      en: ['Current page', 'Header', 'Body', 'Footer'],
-      ja: ['現在のページ', 'ヘッダー', '本文', 'フッター'],
+      'zh-CN': ['当前页面', '页头', '页脚'],
+      en: ['Current page', 'Header', 'Footer'],
+      ja: ['現在のページ', 'ヘッダー', 'フッター'],
     }[await page.locator('html').getAttribute('lang')];
     await expect(regionMenu.locator('.ik-ab-region-heading')).toHaveText(regionHeadings);
-    await expect(regionMenu.locator('a[href*="focus_section="]')).not.toHaveCount(0);
+    await expect(regionMenu.locator('#ik-ab-region-heading-page + a')).toHaveAttribute('href', /\/admin\/blox_editor\.php\?id=\d+/);
+    await expect(regionMenu.locator('a[href*="focus_section="]')).toHaveCount(0);
     await expect(regionMenu.locator('a[href*="focus_element="]')).not.toHaveCount(0);
-    const labeledSection = page.locator('[data-yk-sec-id][data-yk-sec-label]').first();
-    await expect(labeledSection).toHaveCount(1);
-    const labeledSectionId = await labeledSection.getAttribute('data-yk-sec-id');
-    const labeledSectionText = await labeledSection.getAttribute('data-yk-sec-label');
-    expect(labeledSectionId).toBeTruthy();
-    expect(labeledSectionText).toBeTruthy();
-    const labeledSectionLink = regionMenu.locator(
-      `a[href*="focus_section=${encodeURIComponent(labeledSectionId)}"]`,
-    );
-    await expect(labeledSectionLink).toHaveText(labeledSectionText);
-    await expect(labeledSectionLink).toHaveAttribute('title', labeledSectionText);
     const regionLayout = await regionMenu.evaluate((element) => ({
       left: element.getBoundingClientRect().left,
       right: element.getBoundingClientRect().right,
@@ -274,7 +279,7 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       await expect(contactTargets.first()).toHaveAttribute('data-yk-element-id', /.+/);
 
       const searchTarget = liveHeader.locator('[data-yk-element-edit="site-search"]');
-      const languageTarget = liveHeader.locator('[data-yk-element-edit="language-switcher"]');
+      const languageTarget = liveHeader.locator('[data-yk-element-edit="language-switcher"]:visible').first();
       const footerNavigationTarget = liveFooter.locator('[data-yk-element-edit="footer-navigation"]');
       const copyrightTarget = liveFooter.locator('[data-yk-element-edit="site-copyright"]');
       await expect(searchTarget).toBeVisible();
@@ -332,13 +337,13 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       const selectedCopyright = page.locator(`[data-sort-el-item][data-item-id="${copyrightId}"]`).first();
       await expect(selectedCopyright.locator('[data-element-drag-handle]')).toHaveClass(/bg-blue-100/);
       await expect(page.getByTestId('blox-copyright-content-source')).toBeVisible();
-      await expect(page.getByTestId('blox-copyright-content-manage')).toHaveAttribute('href', /tab=footer/);
-      await expect(page.getByTestId('blox-filing-content-manage')).toHaveAttribute('href', /tab=basic/);
+      await expect(page.getByTestId('blox-copyright-text-input')).toBeVisible();
+      await expect(page.getByTestId('blox-copyright-save')).toBeDisabled();
 
       await page.goto(headerEditorHref, { waitUntil: 'domcontentloaded' });
       await addTemporaryHeading(page);
       const headerDraftMarker = `Header draft ${Date.now()}`;
-      const headerDraftInput = page.locator('[data-control-key="text"] input[type="text"]').first();
+      const headerDraftInput = headingTextField(page);
       await performPreviewUpdate(page, () => headerDraftInput.fill(headerDraftMarker));
       const saveDraftResponse = page.waitForResponse((response) => {
         const body = new URLSearchParams(response.request().postData() || '');
@@ -419,11 +424,14 @@ test('drawer navigation stays readable under the overlay header @ci', async ({ p
     await expect(panel).toHaveAttribute('aria-hidden', 'false');
 
     const colorOf = (locator) => locator.evaluate((element) => getComputedStyle(element).color);
-    // 一级与二级菜单链接全部落在抽屉表面色上；空集合会让断言失败，不会静默通过。
+    // 普通项用深灰，当前项可用品牌蓝；两者在白色抽屉表面都可读，且不能被覆盖态染白。
+    const readableDrawerColors = ['rgb(37, 99, 235)', 'rgb(55, 65, 81)'];
     await expect.poll(() => panel.locator('ul a').evaluateAll(
-      (elements) => [...new Set(elements.map((element) => getComputedStyle(element).color))].sort(),
-    )).toEqual(['rgb(55, 65, 81)']);
-    await expect.poll(() => colorOf(panel.locator('[data-yk-drawer-close]'))).toBe('rgb(55, 65, 81)');
+      (elements, allowed) => elements.length > 0
+        && elements.every((element) => allowed.includes(getComputedStyle(element).color)),
+      readableDrawerColors,
+    )).toBe(true);
+    await expect.poll(() => colorOf(panel.locator('[data-yk-drawer-close]'))).toMatch(/^rgb\((37, 99, 235|55, 65, 81)\)$/);
     await expect.poll(() => colorOf(panel.locator('input[type="search"]'))).toBe('rgb(55, 65, 81)');
     // 实心底色按钮保留自带的 text-white：深灰配 bg-primary 只有 2.0:1。
     await expect.poll(() => colorOf(panel.locator('form[role="search"] button[type="submit"]'))).toBe('rgb(255, 255, 255)');
@@ -602,7 +610,8 @@ test('assignment matrix copies a page-specific design and restores inheritance @
     expect(new URL(page.url()).searchParams.get('preview_context')).toBe(contextKey);
     await expect(page.getByTestId('blox-ctx-select')).toHaveCount(0);
 
-    page.on('dialog', async (dialog) => dialog.accept());
+    const acceptDialog = (dialog) => dialog.accept();
+    page.on('dialog', acceptDialog);
     const publishResults = [];
     page.on('response', async (response) => {
       const body = new URLSearchParams(response.request().postData() || '');
@@ -615,6 +624,7 @@ test('assignment matrix copies a page-specific design and restores inheritance @
     await expect.poll(() => publishResults.length).toBe(2);
     expect(publishResults[0].code).toBe(409);
     expect(publishResults[1].code).toBe(0);
+    page.off('dialog', acceptDialog);
     const expectedConflict = consoleEntries.findIndex(
       (entry) => entry.includes('Failed to load resource') && entry.includes('409 (Conflict)'),
     );

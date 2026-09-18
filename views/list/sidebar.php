@@ -11,7 +11,7 @@
 $productCatalogLayout = isset($productCatalogLayout) && in_array($productCatalogLayout, ['sidebar', 'grid'], true)
     ? $productCatalogLayout
     : 'sidebar';
-$sidebarListUrl = channelUrl($channel);
+$sidebarListUrl = $isProductType && $productCategory ? productCategoryUrl($productCategory) : channelUrl($channel);
 $sidebarUsesDynamicRoute = str_contains($sidebarListUrl, 'yk_route=');
 $sidebarRoute = $isProductType ? 'product_list' : 'list';
 $productCatalogShowSearch = $productCatalogShowSearch ?? true;
@@ -74,7 +74,7 @@ $productCatalogGridClass = [
                 <!-- 分类菜单 -->
                 <div class="bg-white rounded-lg shadow overflow-hidden sticky top-20" data-catalog-categories>
                     <!-- 分类标题 -->
-                    <div class="bg-primary text-white px-4 py-3 font-bold" data-catalog-title>
+                    <div class="bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200" data-catalog-title>
                         <?php echo e($rootChannel['name']); ?>
                     </div>
                     <!-- 分类列表 -->
@@ -256,6 +256,14 @@ $productCatalogGridClass = [
                 $totalPages = (int)ceil($total / $perPage);
                 $currentSort = $currentSort ?? 'default';
                 $pageUrl = function(int $p) use ($channel, $keyword, $isProductType, $productCategory, $currentSort): string {
+                    if ($isProductType && $productCategory) {
+                        $filters = [];
+                        foreach (['keyword', 'sort', 'brand', 'tag', 'pmin', 'pmax'] as $key) {
+                            $value = $_GET[$key] ?? '';
+                            if (is_string($value) && $value !== '') $filters[$key] = $value;
+                        }
+                        return customProductCategoryPageUrl($productCategory, $p, $filters);
+                    }
                     if (isDynamicUrlMode()) {
                         $params = [];
                         if ($keyword !== '') $params['keyword'] = $keyword;

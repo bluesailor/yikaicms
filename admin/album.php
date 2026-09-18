@@ -53,67 +53,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('album_pick_images'));
         }
 
-        $uploadDir = '/uploads/albums/' . date('Ym') . '/';
-        $fullDir = ROOT_PATH . $uploadDir;
-        if (!is_dir($fullDir)) {
-            mkdir($fullDir, 0755, true);
+        require_once ROOT_PATH . '/admin/includes/album_upload.php';
+        ['uploaded' => $stored, 'rejected' => $rejected] = albumStoreUploadedPhotos($albumId, $_FILES['files']);
+        if ($stored === [] && $rejected !== []) {
+            error($rejected[0]['name'] . '：' . $rejected[0]['error']);
         }
-
-        $uploaded = 0;
-        $files = $_FILES['files'];
-
-        for ($i = 0; $i < count($files['name']); $i++) {
-            if ($files['error'][$i] !== UPLOAD_ERR_OK) continue;
-
-            $ext = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
-            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])) continue;
-
-            $newName = uniqid() . '.' . $ext;
-            $filePath = $fullDir . $newName;
-
-            if (move_uploaded_file($files['tmp_name'][$i], $filePath)) {
-                $url = $uploadDir . $newName;
-
-                $maxSort = albumPhotoModel()->getMaxSort($albumId);
-
-                albumPhotoModel()->create([
-                    'album_id' => $albumId,
-                    'title' => pathinfo($files['name'][$i], PATHINFO_FILENAME),
-                    'image' => $url,
-                    'sort_order' => $maxSort + 1,
-                    'status' => 1,
-                    'created_at' => time(),
-                ]);
-
-                $uploaded++;
-            }
-        }
+        $uploaded = count($stored);
 
         // 更新相册图片数量
         albumModel()->updatePhotoCount($albumId);
 
         adminLog('album', 'quick_upload', '上传 ' . $uploaded . ' 张图片到相册ID：' . $albumId);
-        success(['count' => $uploaded]);
+        success(['count' => $uploaded, 'rejected' => $rejected]);
     }
 
     if ($action === 'delete') {
         $id = postInt('id');
 
         $photos = albumPhotoModel()->getByAlbum($id);
-        $uploadsReal = realpath(UPLOADS_PATH);
-        foreach ($photos as $photo) {
-            if ($photo['image']) {
-                $path = realpath(ROOT_PATH . $photo['image']);
-                if ($path && str_starts_with($path, $uploadsReal) && file_exists($path)) @unlink($path);
-            }
-            if ($photo['thumb']) {
-                $path = realpath(ROOT_PATH . $photo['thumb']);
-                if ($path && str_starts_with($path, $uploadsReal) && file_exists($path)) @unlink($path);
-            }
-        }
-
         albumPhotoModel()->deleteByAlbum($id);
         albumModel()->deleteById($id);
+        // 先删记录再清文件：媒体库或其它相册仍在用的文件保留
+        require_once ROOT_PATH . '/admin/includes/album_upload.php';
+        albumRemoveUnusedPhotoFiles(array_merge(array_column($photos, 'image'), array_column($photos, 'thumb')));
         adminLog('album', 'delete', '删除相册ID：' . $id);
         success();
     }
@@ -397,6 +359,15 @@ async function quickUploadFiles(files) {
         if (xhr.status === 200) {
             const result = JSON.parse(xhr.responseText);
             if (result.code === 0) {
+                const rejected = result.data.rejected || [];
+                if (rejected.length) {
+                    showMessage(<?php echo json_encode(__('ap_uploaded_partial'), JSON_UNESCAPED_UNICODE); ?>
+                        .replace(':n', result.data.count)
+                        .replace(':m', rejected.length)
+                        .replace(':names', rejected.map(item => item.name + '（' + item.error + '）').join('、')), 'error');
+                    setTimeout(() => location.reload(), 4000);
+                    return;
+                }
                 showMessage(<?php echo json_encode(__('album_upload_done'), JSON_UNESCAPED_UNICODE); ?>.replace(':n', result.data.count));
                 setTimeout(() => location.reload(), 1500);
             } else {

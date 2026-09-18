@@ -76,8 +76,7 @@ trait HomeBloxCustomOverridesTrait
                                 continue;
                             }
                             $question = self::sanitizeAccordionPart((string) ($item['question'] ?? ''), 500, true);
-                            $answer = self::sanitizeAccordionPart((string) ($item['answer'] ?? ''), 5000);
-                            $items[] = ['question' => $question, 'answer' => $answer];
+                            $items[] = ['question' => $question] + self::normalizeAccordionAnswer($item);
                         }
                         $element['data']['items'] = $items;
                     } elseif (($element['type'] ?? '') === 'accordion'
@@ -87,14 +86,12 @@ trait HomeBloxCustomOverridesTrait
                             if (!is_numeric($itemIndex) || !isset($items[(int) $itemIndex]) || !is_array($itemOverride)) {
                                 continue;
                             }
-                            foreach (['question', 'answer'] as $field) {
-                                if (array_key_exists($field, $itemOverride)) {
-                                    $items[(int) $itemIndex][$field] = self::sanitizeAccordionPart(
-                                        (string) $itemOverride[$field],
-                                        $field === 'question' ? 500 : 5000,
-                                        $field === 'question'
-                                    );
-                                }
+                            if (array_key_exists('question', $itemOverride)) {
+                                $items[(int) $itemIndex]['question'] = self::sanitizeAccordionPart((string) $itemOverride['question'], 500, true);
+                            }
+                            if (array_key_exists('answer', $itemOverride)) {
+                                unset($items[(int) $itemIndex]['answer_format']);
+                                $items[(int) $itemIndex] = array_replace($items[(int) $itemIndex], self::normalizeAccordionAnswer($itemOverride));
                             }
                         }
                         $element['data']['items'] = $items;
@@ -126,7 +123,7 @@ trait HomeBloxCustomOverridesTrait
         unset($cursor);
     }
 
-    /** @return list<array{question:string,answer:string}> */
+    /** @return list<array{question:string,answer:string,answer_format?:string}> */
     private static function parseAccordionItems(mixed $value): array
     {
         $items = [];
@@ -137,10 +134,7 @@ trait HomeBloxCustomOverridesTrait
                 }
                 $question = self::sanitizeAccordionPart((string) ($item['question'] ?? ''), 500, true);
                 if ($question !== '') {
-                    $items[] = [
-                        'question' => $question,
-                        'answer' => self::sanitizeAccordionPart((string) ($item['answer'] ?? ''), 5000),
-                    ];
+                    $items[] = ['question' => $question] + self::normalizeAccordionAnswer($item);
                 }
             }
             return $items;
@@ -173,6 +167,16 @@ trait HomeBloxCustomOverridesTrait
             $value = (string) preg_replace('/\n{3,}/u', "\n\n", $value);
         }
         return mb_substr($value, 0, $maxLength);
+    }
+
+    /** @param array<string,mixed> $item @return array{answer:string,answer_format?:string} */
+    private static function normalizeAccordionAnswer(array $item): array
+    {
+        $answer = is_scalar($item['answer'] ?? null) ? (string) $item['answer'] : '';
+        if (($item['answer_format'] ?? '') === 'html') {
+            return ['answer' => HtmlPolicy::description($answer), 'answer_format' => 'html'];
+        }
+        return ['answer' => self::sanitizeAccordionPart($answer, 5000)];
     }
 
 
@@ -253,19 +257,18 @@ trait HomeBloxCustomOverridesTrait
                             if (!is_numeric($itemIndex) || !is_array($item)) {
                                 continue;
                             }
-                            foreach (['question' => 500, 'answer' => 5000] as $key => $maxLength) {
-                                if (!array_key_exists($key, $item)) {
-                                    continue;
-                                }
+                            $itemPrefix = $elementPrefix . 'accordion_items.' . (int) $itemIndex . '.';
+                            if (array_key_exists('question', $item)) {
                                 self::setNestedValue(
                                     $clean,
-                                    $elementPrefix . 'accordion_items.' . (int) $itemIndex . '.' . $key,
-                                    self::sanitizeAccordionPart(
-                                        (string) $item[$key],
-                                        $maxLength,
-                                        $key === 'question'
-                                    )
+                                    $itemPrefix . 'question',
+                                    self::sanitizeAccordionPart((string) $item['question'], 500, true)
                                 );
+                            }
+                            if (array_key_exists('answer', $item)) {
+                                foreach (self::normalizeAccordionAnswer($item) as $key => $answerValue) {
+                                    self::setNestedValue($clean, $itemPrefix . $key, $answerValue);
+                                }
                             }
                         }
                     }

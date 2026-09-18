@@ -4,7 +4,7 @@
   "type": "header",
   "name": "Clean Site Header",
   "requires": {
-    "elements": ["container", "logo", "nav-mega", "nav-drawer"],
+    "elements": ["container", "language-switcher", "logo", "nav-mega", "nav-drawer"],
     "plugins": []
   },
   "document": {
@@ -35,6 +35,7 @@
                   "children": [
                     {"type": "logo", "data": {"display": "image", "height": "md", "link_home": true}},
                     {"type": "nav-mega", "data": {"menu_group": 0, "show_desc": false, "full_width": true}},
+                    {"type": "language-switcher", "data": {"layout": "dropdown", "display": "name", "tone": "dark"}},
                     {"type": "nav-drawer", "data": {"menu_group": 0, "side": "right", "show_logo": true}}
                   ]
                 }

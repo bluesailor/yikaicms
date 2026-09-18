@@ -33,10 +33,10 @@ final class BloxAreaDocument
     /**
      * @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string}
      */
-    public static function process(string $type, string $json, string $idPrefix = 'area'): array
+    public static function process(string $type, string $json, string $idPrefix = 'area', ?string $trustedJson = null): array
     {
         self::assertArea($type);
-        $processed = BloxDocumentPipeline::process($json, $idPrefix);
+        $processed = BloxDocumentPipeline::process($json, $idPrefix, trustedJson: $trustedJson);
         $processed['settings'] = self::normalizeSettings($type, $processed['settings']);
         $processed['json'] = json_encode([
             'schema' => BloxDocumentPipeline::SCHEMA_VERSION,

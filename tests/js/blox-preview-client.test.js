@@ -62,6 +62,13 @@ function fakeFrame() {
 }
 
 async function run() {
+    const signatureClient = new window.BloxPreviewClient({});
+    const shell = { outerHTML: '<header>Theme header</header>', hasAttribute: () => false };
+    const section = { outerHTML: '<section>Content</section>', hasAttribute: (key) => key === 'data-yk-sec' };
+    const rail = { outerHTML: '<div class="yk-insert-rail">Add section</div>', hasAttribute: () => false, classList: { contains: (name) => name === 'yk-insert-rail' } };
+    const sourceDoc = { head: { children: [] }, body: { children: [shell, section] } };
+    const liveDoc = { head: { children: [] }, body: { children: [shell, rail, section, rail] } };
+    assert.equal(signatureClient.documentSignature(liveDoc), signatureClient.documentSignature(sourceDoc), 'outside insertion controls must not invalidate section patching');
     const pending = [];
     const loading = [];
     const errors = [];
@@ -152,6 +159,30 @@ async function run() {
     assert.equal(patchLoaded, 1);
     assert.equal(patchFrame.srcdoc, "existing-preview", "a section patch must not reload the iframe document");
 
+    {
+        const model = { sections: [{ columns: [{ elements: [{ id: 'e1', type: 'heading', data: { text: 'Old' } }] }] }] };
+        const requests = [];
+        let language = 'zh-CN';
+        const scoped = new global.BloxPreviewClient({
+            endpoint: '/preview', csrf: 'token', getFrame: () => patchFrame, getHost: () => host,
+            getDocument: () => model, getParams: () => ({ language }),
+            fetch: (url, request) => { requests.push(request.body); return Promise.resolve(response('full-preview')); },
+        });
+        scoped.patchFrame = () => true;
+        await scoped.refresh();
+        model.sections[0].columns[0].elements[0].data.text = 'New';
+        assert.equal(scoped.lastDocument.sections[0].columns[0].elements[0].data.text, 'Old', 'source snapshot must not share live editor objects');
+        await scoped.refresh();
+        assert.equal(requests[1].get('preview_element'), 'e1');
+        language = 'en';
+        model.sections[0].columns[0].elements[0].data.text = 'English';
+        await scoped.refresh();
+        assert.equal(requests[2].get('preview_scope'), null, 'changed context requires authoritative full rendering');
+        model.sections[0].columns[0].elements[0].data.background_type = 'video';
+        await scoped.refresh();
+        assert.equal(requests[3].get('preview_scope'), null, 'new resource requirements must not use a static fragment');
+    }
+
     const scheduledRequests = [];
     const scheduledClient = new global.BloxPreviewClient({
         endpoint: "/preview",
@@ -171,6 +202,12 @@ async function run() {
     await new Promise(function (resolve) { setTimeout(resolve, 10); });
     assert.equal(scheduledRequests.length, 1, "schedule must debounce rapid changes");
     scheduledRequests[0].resolve(response("scheduled"));
+    scheduledClient.schedule();
+    const immediate = scheduledClient.refresh();
+    await new Promise(function (resolve) { setTimeout(resolve, 10); });
+    assert.equal(scheduledRequests.length, 2, 'immediate refresh consumes the pending scheduled refresh');
+    scheduledRequests[1].resolve(response('immediate'));
+    await immediate;
 
     const errorClient = new global.BloxPreviewClient({
         endpoint: "/preview",

@@ -124,6 +124,36 @@ final class ReleaseArtifactSmokeTest extends TestCase
         );
     }
 
+    /** 内部文档与插件验证记录（含开发机路径）即使漏过 build.sh 排除，也要在审包时拦下。 */
+    public function testInternalNotesAndVerificationRecordsAreForbiddenInTheArtifact(): void
+    {
+        $root = $this->tempDir . '/yikaicms-v9.9.9';
+        foreach (['docs/internal.md', 'AGENTS.md', 'CLAUDE.md', 'plugins/dologin/VERIFICATION.md'] as $path) {
+            if (!is_dir(dirname($root . '/' . $path))) {
+                mkdir(dirname($root . '/' . $path), 0700, true);
+            }
+            file_put_contents($root . '/' . $path, 'internal');
+        }
+
+        $errors = implode("\n", (new ReleaseArtifactSmoke($this->manifest))->inspectDirectory($root));
+        foreach (['docs', 'AGENTS.md', 'CLAUDE.md', 'plugins/dologin/VERIFICATION.md'] as $path) {
+            self::assertStringContainsString('Forbidden release path: ' . $path, $errors);
+        }
+        self::assertStringContainsString('"plugins/dologin/VERIFICATION.md"', (string) file_get_contents(ROOT_PATH . '/build.sh'));
+    }
+
+    /** 易登录插件不随核心预装（2026-09-17 产品决定），只经插件市场安装。 */
+    public function testDoLoginPluginIsNotBundledWithTheCorePackage(): void
+    {
+        $root = $this->tempDir . '/yikaicms-v9.9.9';
+        mkdir($root . '/plugins/dologin', 0700, true);
+        file_put_contents($root . '/plugins/dologin/plugin.json', '{}');
+
+        $errors = implode("\n", (new ReleaseArtifactSmoke($this->manifest))->inspectDirectory($root));
+        self::assertStringContainsString('Forbidden release path: plugins/dologin', $errors);
+        self::assertMatchesRegularExpression('/^\s*"plugins\/dologin"\s*$/m', (string) file_get_contents(ROOT_PATH . '/build.sh'));
+    }
+
     public function testZipInspectionUsesTheExtractedArtifactAndRejectsForbiddenFiles(): void
     {
         $root = $this->tempDir . '/yikaicms-v9.9.9';

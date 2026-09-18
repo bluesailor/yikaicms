@@ -29,6 +29,23 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
         );
     }
 
+    public function testOfficialExtensionsAcceptPhp80(): void
+    {
+        self::assertSame('8.0.0', RuntimeRequirements::PHP_MINIMUM);
+        $manifests = array_merge(
+            glob(ROOT_PATH . '/plugins/*/plugin.json') ?: [],
+            glob(ROOT_PATH . '/marketplace/themes/*/theme.json') ?: [],
+            [ROOT_PATH . '/themes/default/theme.json']
+        );
+        foreach ($manifests as $manifest) {
+            $data = json_decode((string) file_get_contents($manifest), true, 512, JSON_THROW_ON_ERROR);
+            $constraint = (string) ($data['requires_php'] ?? '8.0');
+            self::assertMatchesRegularExpression('/^(?:>=)?8\.0(?:\.0)?$/', $constraint, $manifest);
+            $minimum = str_starts_with($constraint, '>=') ? substr($constraint, 2) : $constraint;
+            self::assertTrue(version_compare('8.0.0', $minimum, '>='), $manifest . ' rejects PHP 8.0');
+        }
+    }
+
     /** 装得上的版本，健康检查就不该判 CRITICAL——这正是当初那条红色误报的成因 */
     public function testInstallableVersionIsNotReportedCritical(): void
     {

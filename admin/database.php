@@ -220,18 +220,16 @@ $pageTitle = __('db_title');
 $currentMenu = 'database';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/module_nav.php';
+adminModuleTabStart([
+    'backup' => [__('db_backup'), 'database'],
+    'export' => [__('db_export_tables'), 'download'],
+    'import' => [__('db_import'), 'upload'],
+    'logs' => [__('db_log_cleanup'), 'file-text'],
+    'tables' => [__('db_tables'), 'table'],
+], $tab, __('db_title'), '/admin/database.php');
 ?>
 
-<!-- Tab 导航 -->
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="?tab=backup" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'backup' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('db_backup'); ?></a>
-        <a href="?tab=export" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'export' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('db_export_tables'); ?></a>
-        <a href="?tab=import" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'import' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('db_import'); ?></a>
-        <a href="?tab=logs" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'logs' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('db_log_cleanup'); ?></a>
-        <a href="?tab=tables" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'tables' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('db_tables'); ?></a>
-    </div>
-</div>
 
 <!-- 顶部：数据库概览（左）+ 一键备份（右） -->
 <div class="bg-white rounded-lg shadow mb-6 p-5 flex flex-wrap items-center justify-between gap-4">
@@ -541,4 +539,5 @@ async function optimizeTables() {
 
 <?php endif; ?>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

@@ -93,6 +93,7 @@ class ContentRevisionModel extends Model
         $snap = json_decode((string) $rev['snapshot'], true);
         $targets = (is_array($snap) && isset($snap['targets']) && is_array($snap['targets'])) ? $snap['targets'] : [];
         $targets = $this->sanitizeTargets($targets);
+        $targets = $this->expandLegacyPageTargets($rev, $targets);
         if ($targets === []) {
             throw new \RuntimeException('empty snapshot');
         }
@@ -128,6 +129,8 @@ class ContentRevisionModel extends Model
             $fields = $t['fields'];
             $fields['updated_at'] = time();
             db()->update($t['table'], $fields, 'id = ?', [$t['id']]);
+            // 原始 update 不经 Model 通知；恢复会改前台内容，逐表触发失效（事务中由缓存层推迟到提交后）。
+            if (function_exists('do_action')) do_action('data_changed', $t['table'], $t['id']);
             $n++;
         }
         return $n;
@@ -147,6 +150,38 @@ class ContentRevisionModel extends Model
         } catch (\Throwable $e) {
             // ignore
         }
+    }
+
+    /**
+     * Old page snapshots predate the contents mirror created by the first Blox publish.
+     * Include that mirror before capturing current state, so restoring is itself reversible.
+     * @param list<array{table:string,id:int,fields:array<string,mixed>}> $targets
+     * @return list<array{table:string,id:int,fields:array<string,mixed>}>
+     */
+    private function expandLegacyPageTargets(array $revision, array $targets): array
+    {
+        if (($revision['target_type'] ?? '') !== 'page') return $targets;
+        foreach ($targets as $target) {
+            if ($target['table'] === 'contents') return $targets;
+        }
+        foreach ($targets as $target) {
+            if ($target['table'] !== 'channels' || $target['id'] !== (int) $revision['target_id']
+                || !array_key_exists('content', $target['fields'])) continue;
+            $page = channelModel()->find($target['id']);
+            if (!$page) continue;
+            $published = contentModel()->getFirstByChannel($target['id'], (string) $page['lang']);
+            if ($published) {
+                $targets[] = [
+                    'table' => 'contents', 'id' => (int) $published['id'],
+                    'fields' => [
+                        'content' => (string) $target['fields']['content'],
+                        'content_type' => 'html', 'blocks_data' => null,
+                    ],
+                ];
+            }
+            break;
+        }
+        return $targets;
     }
 
     /**

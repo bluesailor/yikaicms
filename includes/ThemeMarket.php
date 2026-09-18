@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/MarketDownloadUrl.php';
+require_once __DIR__ . '/MarketDownloadStatus.php';
+require_once __DIR__ . '/MarketCatalogItems.php';
+require_once __DIR__ . '/MarketInstallOrigin.php';
+require_once __DIR__ . '/MarketCatalogRequest.php';
+require_once __DIR__ . '/MarketCoverUrl.php';
+
 /** 官方模板市场的只读目录、受限下载与本地版本比较。 */
 final class ThemeMarket
 {
@@ -14,20 +21,20 @@ final class ThemeMarket
      */
     public static function request(string $query = '', ?callable $transport = null): ?array
     {
-        $url = self::API . ($query !== '' ? '?q=' . rawurlencode($query) : '');
+        // capabilities：告知官方 API 本站支持签名校验的 default 主题更新
+        $url = self::API . '?' . MarketCatalogRequest::query($query) . '&capabilities=default-update-v1';
         $body = $transport !== null ? $transport($url) : self::httpGet($url);
         if (!is_string($body) || $body === '') {
             return null;
         }
-        $decoded = json_decode($body, true);
-        if (!is_array($decoded) || (int) ($decoded['code'] ?? 1) !== 0
-            || !is_array($decoded['data'] ?? null) || !is_array($decoded['data']['themes'] ?? null)) {
+        $decoded = MarketCatalogRequest::decode($body, 'themes');
+        if ($decoded === null) {
             return null;
         }
 
         $themes = [];
         $seen = [];
-        foreach ($decoded['data']['themes'] as $theme) {
+        foreach (MarketCatalogItems::select($decoded['data']['themes']) as $theme) {
             if (!is_array($theme)) {
                 continue;
             }
@@ -42,10 +49,29 @@ final class ThemeMarket
         return [
             'code' => 0,
             'data' => [
+                'protocol_version' => $decoded['data']['protocol_version'],
+                'market' => is_array($decoded['data']['market'] ?? null) ? $decoded['data']['market'] : [],
                 'updated_at' => (string) ($decoded['data']['updated_at'] ?? ''),
                 'themes' => $themes,
             ],
         ];
+    }
+
+    public static function withInstalledOrigins(array $catalog, string $themesRoot): array
+    {
+        foreach ($catalog['data']['themes'] as &$item) {
+            if (MarketDownloadStatus::reason($item) === '') {
+                try {
+                    MarketInstallOrigin::assertAllowed($themesRoot, 'theme', (string) $item['slug'],
+                        (string) ($item['source'] ?? 'official'));
+                } catch (RuntimeException $error) {
+                    $item['locked_reason'] = $error->getMessage();
+                }
+            }
+            $item = MarketDownloadStatus::decorate($item);
+        }
+        unset($item);
+        return $catalog;
     }
 
     /**
@@ -54,7 +80,7 @@ final class ThemeMarket
      * 测试 transport 接收 URL、Content-Length 校验回调、分块写入回调和超时秒数。
      *
      * @param null|callable(string,callable(?int):bool,callable(string):int,int):array{status:int,error?:string} $transport
-     * @return array{ok:bool,code:string,bytes:int}
+     * @return array{ok:bool,code:string,bytes:int,http_status?:int}
      */
     public static function downloadPackageToFile(
         string $url,
@@ -126,7 +152,7 @@ final class ThemeMarket
         $error = is_array($transfer) ? trim((string) ($transfer['error'] ?? '')) : 'invalid transport result';
         if ($status < 200 || $status >= 300 || $error !== '') {
             self::discardDownload($targetPath);
-            return self::downloadResult(false, 'http_error', $bytes);
+            return self::downloadResult(false, 'http_error', $bytes) + ['http_status' => $status];
         }
         $actualBytes = @filesize($targetPath);
         if (!is_int($actualBytes) || $actualBytes !== $bytes || $actualBytes < 1 || $actualBytes > $maxBytes) {
@@ -230,19 +256,33 @@ final class ThemeMarket
         $requiresPhp = trim((string) ($theme['requires_php'] ?? ''));
         $sizeKb = filter_var($theme['size_kb'] ?? null, FILTER_VALIDATE_INT);
         $cmsVersion = defined('CMS_VERSION') ? (string) CMS_VERSION : '';
+        $reason = MarketDownloadStatus::reason($theme);
+        // Incompatible resources remain visible, without usable delivery metadata.
+        // An omitted requirement means "no constraint" (community submissions may leave it blank);
+        // a present but malformed one is still rejected.
+        $cmsConstraint = $requiresCms === '' ? '>=0.0.0' : $requiresCms;
+        $phpConstraint = $requiresPhp === '' ? '>=0.0.0' : $requiresPhp;
+        if ($cmsVersion === ''
+            || preg_match('/^>=\s*\d+\.\d+\.\d+$/D', $cmsConstraint) !== 1
+            || preg_match('/^>=\s*\d+\.\d+\.\d+$/D', $phpConstraint) !== 1) return null;
+        if ($reason === '' && !self::officialConstraintSatisfied($cmsVersion, $cmsConstraint)) {
+            $reason = 'cms_version_required';
+        }
+        if ($reason === '' && !self::officialConstraintSatisfied(PHP_VERSION, $phpConstraint)) {
+            $reason = 'php_version_required';
+        }
+        $blocked = $reason !== '';
 
         if (preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/D', $slug) !== 1
             || preg_match('/^\d+\.\d+\.\d+$/D', $version) !== 1
             || trim((string) ($theme['name'] ?? '')) === ''
             || $package !== $slug . '-v' . $version . '.zip'
-            || !self::isOfficialPackageUrl($url)
-            || (string) parse_url($url, PHP_URL_PATH) !== '/packages/themes/' . $package
-            || preg_match('/^sha256:[a-f0-9]{64}$/D', $hash) !== 1
-            || $signature === false || $signature === ''
-            || !is_int($sizeKb) || $sizeKb < 1 || $sizeKb > intdiv(self::MAX_PACKAGE_BYTES, 1024)
-            || $cmsVersion === ''
-            || !self::officialConstraintSatisfied($cmsVersion, $requiresCms)
-            || !self::officialConstraintSatisfied(PHP_VERSION, $requiresPhp)) {
+            || (!$blocked && !self::isOfficialPackageUrl($url))
+            || (!$blocked && !MarketDownloadUrl::isTokenUrl($url)
+                && (string) parse_url($url, PHP_URL_PATH) !== '/packages/themes/' . $package)
+            || (!$blocked && (preg_match('/^sha256:[a-f0-9]{64}$/D', $hash) !== 1
+                || $signature === false || $signature === ''
+                || !is_int($sizeKb) || $sizeKb < 1 || $sizeKb > intdiv(self::MAX_PACKAGE_BYTES, 1024)))) {
             return null;
         }
 
@@ -251,11 +291,15 @@ final class ThemeMarket
         $theme['package'] = $package;
         $theme['download_url'] = $url;
         $theme['hash'] = $hash;
-        $theme['screenshot'] = self::officialScreenshotUrl($screenshot, $slug);
+        $theme['screenshot'] = ($theme['source'] ?? 'official') === 'community'
+            ? MarketCoverUrl::accept($screenshot, 'theme', $slug, $version)
+            : self::officialScreenshotUrl($screenshot, $slug);
         $theme['requires_cms'] = $requiresCms;
         $theme['requires_php'] = $requiresPhp;
-        $theme['size_kb'] = $sizeKb;
-        return $theme;
+        $theme['size_kb'] = $blocked ? 0 : $sizeKb;
+        $theme['locked_reason'] = $reason;
+        if ($blocked) unset($theme['hash'], $theme['sig']);
+        return MarketDownloadStatus::decorate($theme);
     }
 
     private static function officialScreenshotUrl(string $url, string $slug): string
@@ -283,6 +327,9 @@ final class ThemeMarket
 
     private static function isOfficialPackageUrl(string $url): bool
     {
+        if (MarketDownloadUrl::isTokenUrl($url)) {
+            return true;
+        }
         $parts = parse_url($url);
         return is_array($parts)
             && ($parts['scheme'] ?? '') === 'https'

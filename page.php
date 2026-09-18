@@ -201,8 +201,16 @@ if ($draftPreviewJson !== null) {
 
 // 页面信息
 // 在 header 前确定顶部管理条的页级编辑目标，避免主题布局分支漏设。
-if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id']) && is_array($content)) {
-    $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . (int) $channel['id'];
+if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
+    if (($channel['type'] ?? '') === 'album') {
+        // 相册页（荣誉资质、厂房设备…）的主要内容是相册图片，页面设计器里改不了它们。
+        // 客户在前台点「编辑此页」却进了设计器，找不到怎么换证书图片——直达相册图片管理，
+        // 与后台单页列表的主操作同一个目标（pagePrimaryEditUrl）。
+        $GLOBALS['ik_edit_url'] = pagePrimaryEditUrl($channel);
+        $GLOBALS['ik_edit_label'] = 'ab_edit_album';
+    } elseif (is_array($content)) {
+        $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . (int) $channel['id'];
+    }
 }
 
 $pageTitle = $channel['seo_title'] ?: $channel['name'];
@@ -251,7 +259,18 @@ $jsonLd = [
     'url' => $canonicalUrl,
 ];
 
+// Read only the selected publication (or authenticated draft preview), never a draft on anonymous requests.
+$isBloxPage = ($channel['type'] ?? '') === 'page' && ($content['content_type'] ?? '') === 'blocks';
+$GLOBALS['ykBloxPageFrame'] = [];
+if (($content['content_type'] ?? '') === 'blocks' && !empty($content['blocks_data'])) {
+    $pageDocument = BloxDocumentPipeline::decode((string) $content['blocks_data']);
+    $GLOBALS['ykBloxPageFrame'] = $pageDocument['settings'];
+}
+
 // 引入头部
+if ($isBloxPage && !empty($GLOBALS['ykBloxPageFrame']['page_sidebar_hidden'])) {
+    $sidebarChannels = [];
+}
 require_once theme_path('layouts/header.php');
 ?>
 
@@ -275,11 +294,13 @@ $breadcrumbItems = [];
 foreach ($breadcrumbs as $bc) {
     $breadcrumbItems[] = ['name' => $bc['name'], 'url' => channelUrl($bc)];
 }
-require theme_path('partials/page-hero.php');
+if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame'])) {
+    require theme_path('partials/page-hero.php');
+}
 ?>
 
-<section class="py-12">
-    <div class="container mx-auto px-4">
+<section class="<?php echo $isBloxPage ? '' : 'py-12'; ?>">
+    <div class="<?php echo $isBloxPage && empty($sidebarChannels) ? '' : 'container mx-auto px-4'; ?>">
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
             <!-- 主内容区 -->
             <div class="w-full <?php echo !empty($sidebarChannels) ? 'lg:flex-1' : ''; ?>">
@@ -350,7 +371,7 @@ require theme_path('partials/page-hero.php');
 
                 <?php elseif ($content): ?>
                 <!-- 单页类型展示 -->
-                <article class="bg-white rounded-lg shadow p-6 md:p-8">
+                <article class="<?php echo $isBloxPage ? 'yk-blox-page-content' : 'bg-white rounded-lg shadow p-6 md:p-8'; ?>">
                     <?php if ($content['cover'] && (int)($channel['show_cover'] ?? 1) === 1): ?>
                     <div class="mb-6">
                         <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($content['cover'], 'medium', '(min-width: 1024px) 896px, 100vw'); ?> alt="<?php echo e($content['title']); ?>"
@@ -359,13 +380,10 @@ require theme_path('partials/page-hero.php');
                     <?php endif; ?>
 
                     <?php
-                    // Blox 正文按持久 section id 暴露区块深链；普通正文仍使用整块编辑入口。
-                    // 管理员浏览不走 HtmlCache（见 HtmlCache::isCacheable），定位标记不会进入公开缓存。
-                    $__pageEditAttr = (($content['content_type'] ?? '') !== 'blocks')
-                        ? frontEditAttr($content, $channel, '✎ ' . __('ab_edit_page')) : '';
+                    // 单页统一从管理条编辑；保留 Blox 定位标记以兼容旧链接的返回定位。
                     ?>
-                    <div class="prose prose-lg max-w-none"<?php echo $__pageEditAttr; ?>>
-                        <?php echo renderFrontEditableContentBody($content, (int) $channel['id']); ?>
+                    <div data-yk-page-edit-only class="<?php echo $isBloxPage ? '' : 'prose prose-lg max-w-none'; ?>">
+                        <?php echo PageTitleElement::withPage($channel, static fn(): string => renderFrontEditableContentBody($content, (int) $channel['id'])); ?>
                     </div>
 
                     <!-- 图片相册 -->
@@ -436,4 +454,5 @@ require theme_path('partials/page-hero.php');
 </script>
 <?php endif; ?>
 
+<?php if ($isBloxPage && isset($pageDocument)) echo BloxDotNav::render($pageDocument); ?>
 <?php require_once theme_path('layouts/footer.php'); ?>

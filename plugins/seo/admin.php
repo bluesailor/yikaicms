@@ -240,14 +240,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="flex flex-wrap items-center gap-3 mb-4">
                 <button type="button" @click="generate()" :disabled="loading"
                         class="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg inline-flex items-center gap-1.5">
-                    <i class="ti text-base" :class="loading ? 'ti-loader-2 animate-spin' : 'ti-file-download'"></i>
-                    <span x-text="loading ? '生成中…' : '生成 / 更新 llms.txt'"></span>
+                    <i class="ti text-base" aria-hidden="true" :class="loading ? 'ti-loader-2 animate-spin' : 'ti-file-download'"></i>
+                    <span x-text="loading ? '生成中…' : '生成 / 更新 llms.txt'">生成 / 更新 llms.txt</span>
                 </button>
 
                 <template x-if="exists">
                     <a href="/llms.txt" target="_blank"
                        class="text-sm border border-gray-200 hover:border-blue-400 hover:text-blue-500 text-gray-600 px-3 py-2 rounded-lg inline-flex items-center gap-1.5">
-                        <i class="ti ti-external-link text-base"></i> 查看 /llms.txt
+                        <i class="ti ti-external-link text-base" aria-hidden="true"></i> 查看 /llms.txt
                     </a>
                 </template>
 
@@ -278,7 +278,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
                     <i class="ti ti-send text-blue-500"></i> 搜索引擎主动推送
                 </h2>
-                <p class="text-xs text-gray-400 mt-0.5">把站点 URL 主动提交给搜索引擎，加快收录。当前可推送约 <strong x-text="urlCount"></strong> 条 URL。</p>
+                <p class="text-xs text-gray-400 mt-0.5">把站点 URL 主动提交给搜索引擎，加快收录。当前可推送约 <strong x-text="urlCount"><?php echo (int) $pushUrlCount; ?></strong> 条 URL。</p>
             </div>
             <span class="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded">免费</span>
         </div>
@@ -326,7 +326,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="flex items-center gap-2">
                     <button type="button" @click="genKey()" :disabled="busy"
                             class="text-sm border border-gray-200 hover:border-blue-400 hover:text-blue-500 text-gray-600 px-3 py-1.5 rounded-lg">
-                        <span x-text="keyReady ? '重新生成密钥' : '生成密钥文件'"></span>
+                        <span x-text="keyReady ? '重新生成密钥' : '生成密钥文件'"><?php echo $indexnowKeyExists ? '重新生成密钥' : '生成密钥文件'; ?></span>
                     </button>
                     <button type="button" @click="push('indexnow')" :disabled="busy || !keyReady"
                             class="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white text-sm px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5">
@@ -784,46 +784,46 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <script>
+    // Separate factories: an object literal cannot contain a function declaration.
+    function seoAutopush() {
+        return {
+            on: <?php echo $autopushOn ? 'true' : 'false'; ?>,
+            busy: false,
+            msg: '',
+            msgOk: true,
+            async _post(action, extra) {
+                var b = new URLSearchParams();
+                b.set('action', action);
+                b.set('_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
+                for (var k in (extra || {})) b.set(k, extra[k]);
+                var r = await fetch('', { method: 'POST', body: b, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                return await r.json();
+            },
+            async toggle() {
+                var d = await this._post('autopush_toggle', { val: this.on ? '1' : '0' });
+                this.msgOk = d.code === 0;
+                this.msg = d.msg || '';
+                if (d.code !== 0) this.on = !this.on;
+            },
+            async pushNow() {
+                this.busy = true; this.msg = '';
+                try {
+                    var d = await this._post('autopush_now');
+                    this.msgOk = d.code === 0;
+                    this.msg = d.msg || '';
+                    if (d.code === 0) setTimeout(function () { location.reload(); }, 1200);
+                } finally {
+                    this.busy = false;
+                }
+            },
+        };
+    }
+
     function seoWorkshop() {
         return {
             loading: false,
             exists: <?php echo $llmsExists ? 'true' : 'false'; ?>,
             genAt: <?php echo $llmsGenAt ? ('"' . date('Y-m-d H:i', $llmsGenAt) . '"') : '""'; ?>,
-            // 自动推送（专业版）
-            function seoAutopush() {
-                return {
-                    on: <?php echo $autopushOn ? 'true' : 'false'; ?>,
-                    busy: false,
-                    msg: '',
-                    msgOk: true,
-                    async _post(action, extra) {
-                        var b = new URLSearchParams();
-                        b.set('action', action);
-                        b.set('_token', document.querySelector('meta[name="csrf-token"]')?.content || '');
-                        for (var k in (extra || {})) b.set(k, extra[k]);
-                        var r = await fetch('', { method: 'POST', body: b, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                        return await r.json();
-                    },
-                    async toggle() {
-                        var d = await this._post('autopush_toggle', { val: this.on ? '1' : '0' });
-                        this.msgOk = d.code === 0;
-                        this.msg = d.msg || '';
-                        if (d.code !== 0) this.on = !this.on;   // 保存失败则回弹开关，别让界面撒谎
-                    },
-                    async pushNow() {
-                        this.busy = true; this.msg = '';
-                        try {
-                            var d = await this._post('autopush_now');
-                            this.msgOk = d.code === 0;
-                            this.msg = d.msg || '';
-                            if (d.code === 0) setTimeout(function () { location.reload(); }, 1200);   // 刷出新历史
-                        } finally {
-                            this.busy = false;
-                        }
-                    },
-                };
-            }
-
             // 搜索引擎推送
             busy: false,
             pushMsg: "",

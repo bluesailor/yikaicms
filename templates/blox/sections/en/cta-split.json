@@ -1,0 +1,16 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Split call to action",
+    "requires": {"elements": ["heading", "text", "button", "image"], "plugins": []},
+    "document": {"schema": 1, "settings": {}, "sections": [{
+        "type": "section",
+        "name": "Split inquiry prompt",
+        "settings": {"padding": {"d": "xl", "m": "lg"}, "max_width": "wide", "gap": "xl", "content_v_align": "center", "bg_color": "#eff6ff"},
+        "columns": [
+            {"elements": [{"type": "image", "data": {"src": "/assets/images/blox-templates/landing-brand-team.webp", "alt": "Project team collaborating"}}]},
+            {"elements": [{"type": "heading", "data": {"text": "Ready to work together?", "level": "h2", "visual_size": {"d": "3xl", "m": "2xl"}, "align": "left"}}, {"type": "text", "data": {"html": "<p class=\"yk-copy\">Tell us about your industry, goals and current challenges, and we'll recommend clear next steps.</p>"}}, {"type": "button", "data": {"text": "Talk to a project consultant", "url": "/contact.html", "variant": "primary", "align": "left"}}]}
+        ]
+    }]}
+}

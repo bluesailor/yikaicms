@@ -1,4 +1,6 @@
-# Yikai CMS v1.19.9
+# Yikai CMS v1.20.0
+
+> 发行准备中，尚未正式发布。最低 PHP 版本统一为 8.0，包含 BLOX Pro；开发测试工具的 PHP 要求不属于运行环境要求。
 
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg?logo=php)](https://www.php.net/)
@@ -12,6 +14,14 @@
 
 官网：[https://www.yikaicms.com](https://www.yikaicms.com) · 演示：[https://demo.yikaicms.com](https://demo.yikaicms.com)
 
+## 开发文档
+
+- [AI 开发阅读入口](./deploy/AI-DEVELOPMENT.md)
+- [插件开发指南](./deploy/PLUGIN-DEVELOPMENT.md)
+- [网站模板开发指南](./deploy/THEME-DEVELOPMENT.md)
+
+适用于开发者及不同 AI 编程助手，不包含 BLOX 编辑器插件开发。
+
 ## 功能特性
 
 ### AI 内容助手
@@ -24,7 +34,7 @@
 ### 内容管理
 - **栏目管理** — 无限层级栏目树，支持拖拽排序，8 种栏目类型（列表、单页、产品、案例、下载、招聘、相册、外链）
 - **多级产品分类菜单 v1.7** — 产品分类支持任意层级嵌套，桌面端 hover 弹出 flyout 子菜单，三主题全适配
-- **文章系统** — 多分类管理，置顶/推荐/热门标记，TinyMCE 富文本编辑
+- **文章系统** — 多分类管理，置顶/推荐/热门标记，HugeRTE 富文本编辑
 - **产品中心** — 多级分类，品牌管理，标签系统，图片组，规格参数，价格管理
 - **案例展示** — 行业方案与成功案例
 - **招聘管理** — 职位发布，薪资/学历/经验/工作性质筛选
@@ -142,15 +152,29 @@ YikaiCMS 内置 PHP 路由分发器（`includes/Dispatcher.php`），只要把�
 
 #### 宝塔面板（Nginx）
 
-站点 → **设置** → **伪静态** → 下拉选择 **wordpress** → 保存。就这一步，无需重启。
-
-选 wordpress 预设即可，是因为它就是上面说的那条 catch-all：
+站点 → **设置** → **伪静态**，把下面这一行写进去并保存（无需重启）：
 
 ```nginx
-location / {
-    try_files $uri $uri/ /index.php?$query_string;
-}
+include /www/wwwroot/<你的站点目录>/deploy/nginx-baota.conf;
 ```
+
+随包的 `deploy/nginx-baota.conf` 除了路由规则，还封禁了 `config/`、`storage/`、
+`install/sql/` 等敏感目录，并拒绝执行 `uploads/` 里的 PHP。升级解压新包会一并更新
+这个文件，宝塔「重载配置」即生效。不想用 include 的话，把该文件内容整段粘进伪静态框
+也可以，但每次升级都要重新粘一次。
+
+> ⚠ **不要只选 wordpress 预设。** 它只有一条 catch-all：
+>
+> ```nginx
+> location / {
+>     try_files $uri $uri/ /index.php?$query_string;
+> }
+> ```
+>
+> `try_files` 会先放行**磁盘上真实存在的文件**，而 SQLite 站点的数据库就在站点目录内的
+> `storage/database.sqlite`。没有额外的拒绝规则时，它会走静态文件通道直接被下载，
+> 根本不经过应用鉴权；包内的 `.htaccess` 只对 Apache 有效，nginx 不读。
+> 部署完请当场验证：浏览器访问 `/storage/database.sqlite` 必须是 403 或 404。
 
 #### 阿里云 / 万网 云虚拟主机
 
@@ -225,7 +249,7 @@ location / {
 | 数据库 | MySQL 5.7+ / 8.0+ / SQLite 3，PDO |
 | 前端样式 | Tailwind CSS v4 |
 | 前端交互 | Alpine.js v3 |
-| 富文本 | TinyMCE |
+| 富文本 | HugeRTE（TinyMCE 6 的 MIT 分支） |
 | 轮播图 | Swiper |
 | 拖拽排序 | SortableJS |
 | AI 接口 | OpenAI / Anthropic / DeepSeek / Qwen / Zhipu |

@@ -64,6 +64,7 @@ final class ImageElement extends AbstractElement
                 'visible_when' => ['terms' => [['click_action', '=', 'link']]]],
             ['key' => 'link_new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab_short'), 'default' => false,
                 'visible_when' => ['terms' => [['click_action', '=', 'link']]]],
+            ...BloxImageFraming::controls(),
             ...$this->animationControls(),
         ];
     }
@@ -92,8 +93,9 @@ final class ImageElement extends AbstractElement
             return '';
         }
         $animationAttrs = $this->animationAttrs($data);
+        $frameStyle = BloxImageFraming::standaloneStyle($data);
         $clickAction = $data['click_action'] ?? '';
-        $imgTag = '<img class="w-full rounded-lg" ' . $imageAttrs . ' alt="' . $alt . '" loading="lazy" decoding="async">';
+        $imgTag = '<img class="w-full rounded-lg" ' . $imageAttrs . ' alt="' . $alt . '" loading="lazy" decoding="async"' . $frameStyle . '>';
         if ($clickAction === 'lightbox') {
             // 灯箱的 href 是可点击链接，须过伪协议校验；src 不合法则退化为普通图片
             $lightboxHref = self::safeHref($rawSrc);
@@ -110,6 +112,7 @@ final class ImageElement extends AbstractElement
             }
         }
         return '<img class="w-full rounded-lg" ' . $imageAttrs . ' alt="' . $alt
-            . '" loading="lazy" decoding="async"' . $animationAttrs . '>';
+            . '" loading="lazy" decoding="async"' . $frameStyle . $animationAttrs . '>';
     }
+
 }

@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const {
   addTemporaryHeading,
   frame,
+  headingTextField,
   observeConsole,
   observeUnsafeWrites,
   openEditor,
@@ -14,7 +15,7 @@ const {
 const language = process.env.BLOX_E2E_SITE_LANG || 'zh-CN';
 const locales = {
   en: {
-    title: /^Blox Editor · Home$/,
+    title: /^Yikai Builder · Home$/,
     library: 'Element library',
     editHeader: 'Edit header',
     context: 'Header · Theme default',
@@ -24,7 +25,7 @@ const locales = {
     customBlockBase: '常见问题',
   },
   ja: {
-    title: /^Blox エディター · ホーム$/,
+    title: /^Yikai ビルダー · ホーム$/,
     library: '要素ライブラリ',
     editHeader: 'ヘッダーを編集',
     context: 'ヘッダー · テーマ標準',
@@ -105,7 +106,7 @@ test('single-language current header survives reopening and publishes to the ano
     await waitPreviewSettled(page);
     await expect((await frame(page)).locator('html')).toHaveAttribute('lang', language);
     await addTemporaryHeading(page);
-    await performPreviewUpdate(page, () => page.locator('[data-control-key="text"] input[type="text"]').fill(marker));
+    await performPreviewUpdate(page, () => headingTextField(page).fill(marker));
     await command('save_draft', 'blox-save');
     // Saving leaves current-render mode so reopening must read the saved draft.
     const savedUrl = page.url();

@@ -27,7 +27,9 @@ final class SiteBrandAssetContractTest extends TestCase
 
         self::assertStringContainsString('SiteAsset::availableUrl', $themeHeader);
         self::assertStringContainsString('SiteAsset::availableUrl', $legacyHeader);
-        self::assertStringContainsString('SiteAsset::availableUrl', $adminHeader);
+        // 后台 Logo 经授权闸 adminBrandLogoUrl()，内部同样走 SiteAsset::availableUrl
+        self::assertStringContainsString('adminBrandLogoUrl()', $adminHeader);
+        self::assertStringContainsString("SiteAsset::availableUrl((string) config('admin_logo', ''))", $functions);
         self::assertStringContainsString('SiteAsset::availableUrl($set)', $functions);
         self::assertStringContainsString('SiteAsset::availableUrl', $logoElement);
         self::assertStringNotContainsString('availableLogoUrl', $logoElement);

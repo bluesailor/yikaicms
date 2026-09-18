@@ -20,7 +20,7 @@ final class ThemeMarketTest extends TestCase
         $valid = $this->catalogTheme();
         $response = ThemeMarket::request('', static fn (string $_url): string => json_encode([
             'code' => 0,
-            'data' => ['updated_at' => '2026-09-01', 'themes' => [
+            'data' => ['protocol_version' => 2, 'updated_at' => '2026-09-01', 'themes' => [
                 $valid,
                 array_merge($valid, ['slug' => '../bad']),
                 array_merge($valid, ['name' => 'Duplicate']),
@@ -28,7 +28,16 @@ final class ThemeMarketTest extends TestCase
         ], JSON_THROW_ON_ERROR));
 
         self::assertNotNull($response);
-        self::assertSame('https://update.yikaicms.com/api/themes/list.php', $this->capturedUrl(''));
+        $url = $this->capturedUrl('business & design');
+        self::assertSame('https://update.yikaicms.com/api/themes/list.php', strtok($url, '?'));
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+        self::assertSame('2', $query['protocol_version']);
+        self::assertSame(CMS_VERSION, $query['cms_version']);
+        self::assertSame(PHP_VERSION, $query['php_version']);
+        self::assertSame('business & design', $query['q']);
+        self::assertSame(license_key(), $query['key']);
+        self::assertSame(license_domain(), $query['domain']);
+        self::assertSame('default-update-v1', $query['capabilities']);
         self::assertCount(1, $response['data']['themes']);
         self::assertSame('business', $response['data']['themes'][0]['slug']);
         self::assertSame('sha256:' . str_repeat('a', 64), $response['data']['themes'][0]['hash']);
@@ -40,7 +49,7 @@ final class ThemeMarketTest extends TestCase
     {
         $response = ThemeMarket::request('', fn (string $_url): string => json_encode([
             'code' => 0,
-            'data' => ['themes' => [array_merge($this->catalogTheme(), $override)]],
+            'data' => ['protocol_version' => 2, 'themes' => [array_merge($this->catalogTheme(), $override)]],
         ], JSON_THROW_ON_ERROR));
 
         self::assertNotNull($response);
@@ -53,7 +62,6 @@ final class ThemeMarketTest extends TestCase
         return [
             'unknown CMS constraint' => [['requires_cms' => '^1.19.0']],
             'short PHP constraint' => [['requires_php' => '>=8.0']],
-            'incompatible CMS constraint' => [['requires_cms' => '>=99.0.0']],
             'invalid hash' => [['hash' => 'sha256:nope']],
             'invalid signature' => [['sig' => '***']],
             'package/version mismatch' => [['package' => 'business-v9.0.0.zip']],
@@ -78,6 +86,48 @@ final class ThemeMarketTest extends TestCase
         self::assertSame('1.0.1', $updates[0]['latest_version']);
     }
 
+    public function testCommunityCannotReplaceOfficialBeforeCompatibilityFiltering(): void
+    {
+        foreach (['>=99.0.0', '>=1.0.0'] as $constraint) {
+            $official = $this->catalogTheme(['requires_cms' => $constraint]);
+            $community = $this->catalogTheme(['source' => 'community', 'name' => 'Impostor']);
+            $response = ThemeMarket::request('', static fn (): string => json_encode([
+                'code' => 0, 'data' => ['protocol_version' => 2, 'themes' => [$community, $official]],
+            ], JSON_THROW_ON_ERROR));
+            if ($constraint === '>=99.0.0') {
+                self::assertCount(1, $response['data']['themes']);
+                self::assertSame($official['name'], $response['data']['themes'][0]['name']);
+                self::assertSame('cms_version_required', $response['data']['themes'][0]['locked_reason']);
+                self::assertTrue($response['data']['themes'][0]['download_blocked']);
+                self::assertSame('', $response['data']['themes'][0]['download_url']);
+                self::assertArrayNotHasKey('hash', $response['data']['themes'][0]);
+            } else {
+                self::assertCount(1, $response['data']['themes']);
+                self::assertSame($official['name'], $response['data']['themes'][0]['name']);
+            }
+        }
+    }
+
+    public function testRestrictedThemeWithoutDeliveryMetadataRemainsVisibleButCannotDownload(): void
+    {
+        $item = $this->catalogTheme(['download_url' => '', 'locked_reason' => 'rate_limited']);
+        unset($item['hash'], $item['sig'], $item['size_kb']);
+        $response = ThemeMarket::request('', static fn (): string => json_encode([
+            'code' => 0, 'data' => ['protocol_version' => 2, 'themes' => [$item]],
+        ], JSON_THROW_ON_ERROR));
+        self::assertCount(1, $response['data']['themes']);
+        $theme = $response['data']['themes'][0];
+        self::assertTrue($theme['download_blocked']);
+        self::assertSame('market_download_rate_limited', $theme['download_message']);
+        self::assertSame('', $theme['download_url']);
+        self::assertArrayNotHasKey('hash', $theme);
+        $calls = 0;
+        $result = ThemeMarket::downloadPackageToFile($theme['download_url'], sys_get_temp_dir() . '/unused-g5-file.zip', 100, 5,
+            static function () use (&$calls): array { $calls++; return ['status' => 200]; });
+        self::assertSame('invalid_url', $result['code']);
+        self::assertSame(0, $calls);
+    }
+
     public function testServerSideVersionGateRejectsEqualOlderAndInvalidVersions(): void
     {
         $local = ['business' => '1.2.0'];
@@ -87,6 +137,55 @@ final class ThemeMarketTest extends TestCase
         self::assertFalse(ThemeMarket::isRemoteVersionNewer($local, 'business', '1.1.9'));
         self::assertFalse(ThemeMarket::isRemoteVersionNewer($local, 'business', 'next'));
         self::assertTrue(ThemeMarket::isRemoteVersionNewer($local, 'minimal', '1.0.0'));
+    }
+
+    /** 评审 P2-10：投稿主题可能不填最低版本要求——视为无约束，而不是整条从目录消失。 */
+    public function testOmittedRequirementsMeanNoConstraintButMalformedOnesStillFail(): void
+    {
+        $catalog = static fn (array $theme): string => json_encode([
+            'code' => 0, 'data' => ['protocol_version' => 2, 'themes' => [$theme]],
+        ], JSON_THROW_ON_ERROR);
+
+        $response = ThemeMarket::request('', fn (): string => $catalog($this->catalogTheme(['requires_cms' => '', 'requires_php' => ''])));
+        self::assertCount(1, $response['data']['themes']);
+        self::assertSame('', $response['data']['themes'][0]['locked_reason']);
+
+        $withoutKeys = $this->catalogTheme();
+        unset($withoutKeys['requires_cms'], $withoutKeys['requires_php']);
+        self::assertCount(1, ThemeMarket::request('', fn (): string => $catalog($withoutKeys))['data']['themes']);
+
+        self::assertSame([], ThemeMarket::request('', fn (): string => $catalog($this->catalogTheme(['requires_php' => '8.0'])))['data']['themes']);
+    }
+
+    public function testPhpRestrictionAndCommunityStatusSurviveNormalization(): void
+    {
+        $response = ThemeMarket::request('', fn (): string => json_encode([
+            'code' => 0, 'data' => ['protocol_version' => 2,
+                'market' => ['community_unavailable' => true, 'quota' => ['remaining' => 3]],
+                'themes' => [$this->catalogTheme(['requires_php' => '>=99.0.0'])]],
+        ], JSON_THROW_ON_ERROR));
+        self::assertTrue($response['data']['market']['community_unavailable']);
+        self::assertSame(3, $response['data']['market']['quota']['remaining']);
+        $item = $response['data']['themes'][0];
+        self::assertSame('php_version_required', $item['locked_reason']);
+        self::assertTrue($item['download_blocked']);
+        self::assertSame('', $item['download_url']);
+        self::assertArrayNotHasKey('hash', $item);
+        self::assertArrayNotHasKey('sig', $item);
+    }
+
+    public function testCatalogProtocolCannotSilentlyDowngrade(): void
+    {
+        foreach ([null, 1, '2', 3] as $version) {
+            $body = json_encode(['code' => 0, 'data' => ['protocol_version' => $version, 'themes' => []]], JSON_THROW_ON_ERROR);
+            self::assertNull(ThemeMarket::request('', static fn (): string => $body));
+            self::assertNull(\MarketCatalogRequest::decode(str_replace('themes', 'plugins', $body), 'plugins'));
+        }
+        self::assertNotNull(\MarketCatalogRequest::decode('{"code":0,"data":{"protocol_version":2,"plugins":[]}}', 'plugins'));
+        self::assertNull(\MarketCatalogRequest::decode('{"code":0,"data":{"protocol_version":2,"plugins":null}}', 'plugins'));
+        $source = (string) file_get_contents(ROOT_PATH . '/admin/plugin.php');
+        self::assertSame(2, substr_count($source, 'MarketCatalogRequest::query('));
+        self::assertSame(2, substr_count($source, "MarketCatalogRequest::decode(\$resp, 'plugins')"));
     }
 
     #[RequiresPhpExtension('openssl')]
@@ -111,7 +210,10 @@ final class ThemeMarketTest extends TestCase
         self::assertIsInt($gate);
         self::assertIsInt($download);
         self::assertLessThan($download, $gate);
-        self::assertStringContainsString('->install($tmpZip, $slug, $remoteVersion)', $source);
+        self::assertStringContainsString("->install(\$tmpZip, \$slug, \$remoteVersion, (string) (\$item['source'] ?? 'official'), (string) (\$item['sig'] ?? ''))", $source);
+        $originGate = strpos($source, '$data = ThemeMarket::withInstalledOrigins');
+        self::assertIsInt($originGate);
+        self::assertLessThan($download, $originGate);
         self::assertStringNotContainsString('ThemeMarket::downloadPackage(', $source);
     }
 
@@ -125,7 +227,7 @@ final class ThemeMarketTest extends TestCase
     {
         $response = ThemeMarket::request('', fn (string $_url): string => json_encode([
             'code' => 0,
-            'data' => ['themes' => [
+            'data' => ['protocol_version' => 2, 'themes' => [
                 $this->catalogTheme(['screenshot' => 'https://example.com/theme.jpg']),
                 $this->catalogTheme([
                     'slug' => 'minimal',
@@ -300,7 +402,7 @@ final class ThemeMarketTest extends TestCase
         $url = '';
         ThemeMarket::request($query, static function (string $value) use (&$url): string {
             $url = $value;
-            return '{"code":0,"data":{"themes":[]}}';
+            return '{"code":0,"data":{"protocol_version":2,"themes":[]}}';
         });
         return $url;
     }

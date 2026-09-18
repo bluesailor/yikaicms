@@ -21,7 +21,8 @@ for (const mode of ['pretty', 'query']) {
     test(`${kind} ${mode}: matching results, pagination and empty results @ci`, async ({ page }) => {
       fixture('catalog-baseline-fixture.php', mode);
       await page.goto(start);
-      const form = page.locator('form').filter({ has: page.locator('input[name="keyword"]') }).first();
+      // 页头抽屉导航里也有一个隐藏的站内搜索表单（演示站页头自带），只认列表页 <main> 里的那个。
+      const form = page.locator('main form').filter({ has: page.locator('input[name="keyword"]') }).first();
       await form.locator('input[name="keyword"]').fill('Catalog Zero');
       await Promise.all([page.waitForNavigation(), form.locator('button[type="submit"]').click()]);
       const results = page.getByRole('heading', { name: /^Catalog Zero 0 1 \d+$/ });

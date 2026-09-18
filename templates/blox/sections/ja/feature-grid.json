@@ -1,0 +1,68 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "強み紹介グリッド",
+    "requires": {
+        "elements": [
+            "icon-box"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "強み3カラム",
+                "settings": {
+                    "padding": {
+                        "d": "md",
+                        "m": "sm"
+                    },
+                    "max_width": "wide",
+                    "gap": "lg"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "icon-box",
+                                "data": {
+                                    "icon": "certificate",
+                                    "title": "充実した認証・資格",
+                                    "text": "業界の主要な認証を取得し、品質検査書類やコンプライアンス文書を完備しています。"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "icon-box",
+                                "data": {
+                                    "icon": "adjustments",
+                                    "title": "ニーズに合わせたカスタマイズ",
+                                    "text": "選定から導入まで一貫して携わり、標準品を当てはめるのではなく、お客様の使用条件に合わせてご提案します。"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "icon-box",
+                                "data": {
+                                    "icon": "headset",
+                                    "title": "長期サポート",
+                                    "text": "納品はゴールではありません。保証期間中の迅速な対応と、その後のスペアパーツ供給でサポートを続けます。"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -104,6 +104,10 @@ if (!function_exists('cms_setting_key_guard')) {
         if (isSensitiveSettingKey($key) || $key === 'encrypt_key') {
             throw new \RuntimeException("Setting key '{$key}' is restricted");
         }
+        // 后台品牌限注册码授权站点（与 admin/admin_brand.php 同一判定）
+        if (defined('ADMIN_BRAND_SETTING_KEYS') && in_array($key, ADMIN_BRAND_SETTING_KEYS, true) && !adminBrandingCustomizable()) {
+            throw new \RuntimeException("Setting key '{$key}' requires a YikaiCMS license");
+        }
         $allowedPrefixes = ['site_', 'admin_', 'contact_', 'social_', 'footer_', 'mail_', 'banner_', 'primary_', 'secondary_', 'show_', 'product_', 'download_', 'allow_', 'html_cache_', 'cache_'];
         foreach ($allowedPrefixes as $p) {
             if (str_starts_with($key, $p)) return;

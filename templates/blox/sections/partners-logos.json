@@ -1,0 +1,79 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Partner logos",
+    "requires": {
+        "elements": [
+            "logo-wall"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "合作伙伴",
+                "settings": {
+                    "title": "合作伙伴",
+                    "subtitle": "与众多行业领先企业长期合作",
+                    "padding": {
+                        "d": "lg",
+                        "m": "md"
+                    },
+                    "max_width": "wide"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "logo-wall",
+                                "data": {
+                                    "items": [
+                                        {
+                                            "logo": "/assets/images/blox-templates/partner-1.svg",
+                                            "name": "Lumina",
+                                            "url": ""
+                                        },
+                                        {
+                                            "logo": "/assets/images/blox-templates/partner-2.svg",
+                                            "name": "Terravolt",
+                                            "url": ""
+                                        },
+                                        {
+                                            "logo": "/assets/images/blox-templates/partner-3.svg",
+                                            "name": "Bluepeak",
+                                            "url": ""
+                                        },
+                                        {
+                                            "logo": "/assets/images/blox-templates/partner-4.svg",
+                                            "name": "Orbitex",
+                                            "url": ""
+                                        },
+                                        {
+                                            "logo": "/assets/images/blox-templates/partner-5.svg",
+                                            "name": "Veloxa",
+                                            "url": ""
+                                        },
+                                        {
+                                            "logo": "/assets/images/blox-templates/partner-6.svg",
+                                            "name": "Kinetiq",
+                                            "url": ""
+                                        }
+                                    ],
+                                    "layout": "grid",
+                                    "columns": "6",
+                                    "logo_height": "md",
+                                    "grayscale": true,
+                                    "tiles": true
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -143,10 +143,19 @@ trait HomeBloxNormalizerTrait
             'override_tag_title' => 100,
             'override_tag_description' => 200,
             'override_button_text' => 100,
+            'override_call_text' => 100,
         ] as $key => $length) {
             $value = trim(strip_tags((string) ($data[$key] ?? '')));
             $data[$key] = mb_substr($value, 0, $length);
         }
+        foreach (['override_tag_background', 'override_tag_color'] as $key) {
+            $data[$key] = AbstractElement::cssColor($data[$key] ?? null) ?? '';
+        }
+        foreach (['stats_number_color', 'stats_icon_color', 'stats_label_color', 'stats_divider_color'] as $key) {
+            $data[$key] = AbstractElement::cssColor($data[$key] ?? null) ?? '';
+        }
+        $data['stats_layout'] = in_array($data['stats_layout'] ?? '', ['stacked', 'inline', 'numbers'], true) ? $data['stats_layout'] : 'inherit';
+        $data['stats_divider'] = in_array($data['stats_divider'] ?? '', ['show', 'hide'], true) ? $data['stats_divider'] : 'inherit';
         $aboutLayout = (string) ($data['override_layout'] ?? 'text_left');
         $data['override_layout'] = $aboutLayout === 'image_left' ? 'image_left' : 'text_left';
         $aboutRatio = (string) ($data['override_ratio'] ?? '1_1');
@@ -157,6 +166,8 @@ trait HomeBloxNormalizerTrait
         $data['override_image'] = self::safeUrl((string) ($data['override_image'] ?? ''), false);
         $data['override_background'] = self::safeUrl((string) ($data['override_background'] ?? ''), false);
         $data['override_button_url'] = self::safeUrl((string) ($data['override_button_url'] ?? ''), true);
+        // 只保留电话号码字符，拼进 tel: 链接也不会越界
+        $data['override_call_phone'] = mb_substr(trim(preg_replace('/[^0-9+\-() .\/]/', '', (string) ($data['override_call_phone'] ?? '')) ?? ''), 0, 40);
         $decorStyle = (string) ($data['title_decor_style'] ?? 'inherit');
         $data['title_decor_style'] = in_array($decorStyle, ['inherit', 'line', 'dot', 'none'], true)
             ? $decorStyle
@@ -260,6 +271,18 @@ trait HomeBloxNormalizerTrait
             }
         }
         $data['advantage_items'] = $advantages;
+
+        $data['partners_custom'] = !empty($data['partners_custom']);
+        $partners = [];
+        foreach (array_slice(is_array($data['partner_items'] ?? null) ? $data['partner_items'] : [], 0, 12) as $item) {
+            $item = is_array($item) ? $item : [];
+            $partners[] = [
+                'name' => mb_substr(trim(strip_tags(is_scalar($item['name'] ?? null) ? (string) $item['name'] : '')), 0, 100),
+                'url' => self::safeUrl(is_string($item['url'] ?? null) ? $item['url'] : '', true),
+                'logo' => self::safeUrl(is_string($item['logo'] ?? null) ? $item['logo'] : '', false),
+            ];
+        }
+        $data['partner_items'] = $partners;
 
         $testimonials = [];
         foreach (array_slice(is_array($data['testimonial_items'] ?? null) ? $data['testimonial_items'] : [], 0, 12) as $item) {

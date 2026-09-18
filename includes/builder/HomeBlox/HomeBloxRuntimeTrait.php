@@ -21,7 +21,7 @@ trait HomeBloxRuntimeTrait
         $autoplay = (int) ($data['banner_autoplay'] ?? 5);
 
         return [
-            'banner_height_mode' => in_array($heightMode, ['inherit', 'fixed', 'screen', 'cover-header'], true)
+            'banner_height_mode' => in_array($heightMode, ['inherit', 'fixed', 'fixed-cover-header', 'screen', 'cover-header'], true)
                 ? $heightMode
                 : 'inherit',
             'banner_height_pc' => max(200, min(1600, (int) ($data['banner_height_pc'] ?? 650))),
@@ -57,7 +57,7 @@ trait HomeBloxRuntimeTrait
     {
         $delay = max(0, min(30000, (int) ($group['autoplay_delay'] ?? 5000)));
         $heightMode = (string) ($group['height_mode'] ?? '');
-        if (!in_array($heightMode, ['fixed', 'screen', 'cover-header'], true)) {
+        if (!in_array($heightMode, ['fixed', 'fixed-cover-header', 'screen', 'cover-header'], true)) {
             $heightMode = !empty($group['fullscreen']) ? 'screen' : 'fixed';
         }
 
@@ -140,6 +140,8 @@ trait HomeBloxRuntimeTrait
                 'override_image' => 'home_about_image',
                 'override_tag_title' => 'home_about_tag_title',
                 'override_tag_description' => 'home_about_tag_desc',
+                'override_tag_background' => 'home_about_tag_background',
+                'override_tag_color' => 'home_about_tag_color',
                 'override_button_text' => 'home_about_button',
                 'override_button_url' => 'home_about_link',
             ],
@@ -156,6 +158,8 @@ trait HomeBloxRuntimeTrait
                 'override_description' => 'home_cta_desc',
                 'override_button_text' => 'home_cta_button',
                 'override_button_url' => 'home_cta_link',
+                'override_call_text' => 'home_cta_call_button',
+                'override_call_phone' => 'contact_phone',
             ],
             'partners' => ['override_title' => 'home_links_title'],
             default => [],
@@ -168,7 +172,7 @@ trait HomeBloxRuntimeTrait
                 continue;
             }
             $overrides[$configKey] = $value;
-            if (in_array($sourceKey, ['override_title', 'override_description', 'override_content', 'override_tag_title', 'override_tag_description'], true)) {
+            if (in_array($sourceKey, ['override_title', 'override_description', 'override_content', 'override_tag_title', 'override_tag_description', 'override_call_phone'], true)) {
                 $overrides[$configKey . '_' . siteLang()] = $value;
             }
         }
@@ -199,6 +203,11 @@ trait HomeBloxRuntimeTrait
             }
         }
         if ($type === 'stats') {
+            foreach (['number', 'icon', 'label', 'divider'] as $part) {
+                $overrides['home_stat_' . $part . '_color'] = AbstractElement::cssColor($block['stats_' . $part . '_color'] ?? null) ?? '';
+            }
+            $overrides['home_stat_layout'] = in_array($block['stats_layout'] ?? '', ['stacked', 'inline', 'numbers'], true) ? $block['stats_layout'] : 'inherit';
+            $overrides['home_stat_divider'] = in_array($block['stats_divider'] ?? '', ['show', 'hide'], true) ? $block['stats_divider'] : 'inherit';
             $counterEnabled = !array_key_exists('counter_enabled', $block) || !empty($block['counter_enabled']);
             $overrides['home_stat_counter_enabled'] = $counterEnabled ? '1' : '0';
             $overrides['home_stat_counter_start'] = (string) max(0, min(1000000, (int) ($block['counter_start'] ?? 0)));

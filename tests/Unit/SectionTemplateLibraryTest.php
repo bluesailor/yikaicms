@@ -18,29 +18,48 @@ if (!function_exists('e')) {
 
 final class SectionTemplateLibraryTest extends TestCase
 {
-    /** @return array<string,array{0:string,1:string,2:string}> */
+    /**
+     * 2026-09-16 起本地内置区块缩减为六款（01–06）：站点真实在用的五款 + 补齐的基础「简洁标题」。
+     * 其余 22 款移出随包目录，重设计后进远程精品库，详见 CLAUDE-SECTION-LIBRARY-PROGRESS.md。
+     *
+     * @return array<string,array{0:string,1:string,2:string}>
+     */
     public static function presets(): array
     {
         return [
-            'hero' => ['hero-intro', 'landing', '以专业与稳健'],
-            'image and text' => ['image-text', 'content', '我们是谁'],
-            'reverse image and text' => ['image-text-reverse', 'content', '把复杂问题说清楚'],
-            'text columns' => ['text-columns', 'content', '定位与目标'],
-            'metrics' => ['stats-band', 'business', '成立年份'],
-            'features' => ['feature-grid', 'business', '资质齐全'],
-            'process' => ['process-steps', 'business', '需求确认'],
-            'trust' => ['trust-grid', 'business', '可核验的交付标准'],
-            'cards' => ['card-grid', 'marketing', '研发设计'],
-            'cases' => ['case-grid', 'marketing', '生产流程数字化'],
-            'quote' => ['testimonial-quote', 'content', '客户反馈'],
-            'faq' => ['faq-accordion', 'content', '多久能收到回复'],
-            'cta' => ['cta-banner', 'marketing', '立即咨询'],
-            'contact strip' => ['contact-strip', 'marketing', '让我们讨论您的项目'],
-            'team and recruiting' => ['team-recruiting', 'business', '和专业的人一起'],
-            'client logo wall' => ['client-logo-wall', 'business', '服务过的客户'],
-            'product comparison' => ['product-comparison', 'marketing', '选择适合的方案'],
-            'download guide' => ['download-guide', 'content', '资料与下载'],
+            '01 简洁标题' => ['basic-heading', 'content', '一句话说清这一段讲什么'],
+            '02 图文介绍' => ['image-text', 'content', '我们是谁'],
+            '03 服务优势' => ['feature-grid', 'business', '资质齐全'],
+            '04 行动引导' => ['cta-banner', 'marketing', '立即咨询'],
+            '05 图文咨询引导' => ['cta-split', 'marketing', '准备好开始合作了吗'],
+            '06 客户评价' => ['testimonial-quote', 'social', 'yk-testimonials--single'],
+            '07 客户评价轮播' => ['testimonials-carousel', 'social', 'data-yk-carousel'],
+            '08 合作伙伴' => ['partners-logos', 'social', 'yk-logo-wall'],
         ];
+    }
+
+    /** 基础区块要有稳定编号，界面上按 01–07 呈现；整页模板不参与编号。 */
+    public function testBasicSectionsCarryStableNumbers(): void
+    {
+        $numbers = [];
+        foreach ((new BloxBuiltinTemplateProvider())->items('page') as $item) {
+            if ($item['type'] === 'section') {
+                $numbers[substr($item['key'], strlen('builtin:'))] = $item['number'];
+            } else {
+                self::assertSame(0, $item['number'], '整页模板不编号');
+            }
+        }
+
+        self::assertSame([
+            'basic-heading' => 1,
+            'image-text' => 2,
+            'feature-grid' => 3,
+            'cta-banner' => 4,
+            'cta-split' => 5,
+            'testimonial-quote' => 6,
+            'testimonials-carousel' => 7,
+            'partners-logos' => 8,
+        ], $numbers);
     }
 
     public function testProviderListsSectionPresetsForPageAndHomeEditors(): void
@@ -91,6 +110,19 @@ final class SectionTemplateLibraryTest extends TestCase
         self::assertCount(1, $second['sections']);
         self::assertNotSame($first['sections'][0]['id'], $second['sections'][0]['id']);
 
+        $item = null;
+        foreach ($provider->items('page') as $candidate) {
+            if ($candidate['key'] === 'builtin:' . $slug) {
+                $item = $candidate;
+                break;
+            }
+        }
+        if (is_array($item) && ($item['metadata']['data_source'] ?? 'static') === 'dynamic') {
+            $serialized = (string) json_encode($prepared['sections'], JSON_UNESCAPED_UNICODE);
+            self::assertStringContainsString('list-dynamic', $serialized);
+            return;
+        }
+
         $html = BlockRenderer::render((string) json_encode(
             ['schema' => 1, 'settings' => [], 'sections' => $prepared['sections']],
             JSON_UNESCAPED_UNICODE
@@ -104,7 +136,7 @@ final class SectionTemplateLibraryTest extends TestCase
         $raw = (string) file_get_contents(ROOT_PATH . '/templates/blox/sections/' . $slug . '.json');
         self::assertStringNotContainsString('/uploads/', $raw);
 
-        preg_match_all('#"(/images/[A-Za-z0-9._/-]+)"#', $raw, $matches);
+        preg_match_all('#"(/(?:assets/)?images/[A-Za-z0-9._/-]+)"#', $raw, $matches);
         foreach (array_unique($matches[1]) as $asset) {
             self::assertFileExists(ROOT_PATH . $asset, "{$slug} references missing asset {$asset}");
         }
@@ -113,34 +145,42 @@ final class SectionTemplateLibraryTest extends TestCase
     public function testLocalLibraryOffersScenarioFiltering(): void
     {
         $overlay = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor/partials/overlays.php');
-        self::assertStringContainsString(
-            'x-show="templateCategoryOptions().length > 1"',
-            $overlay
-        );
+        self::assertStringContainsString('data-testid="blox-template-category-chips"', $overlay);
+        self::assertStringContainsString("x-show=\"templateEntry !== 'sections' && templateCategoryOptions().length > 1\"", $overlay);
+
+        // 「首页常用」：首页最常搭配的内置区块
+        $homeCommon = [];
+        foreach ((new BloxBuiltinTemplateProvider())->items('home') as $item) {
+            if ($item['home_common']) {
+                $homeCommon[] = substr($item['key'], strlen('builtin:'));
+            }
+        }
+        self::assertSame(['image-text', 'feature-grid', 'cta-banner', 'testimonials-carousel', 'partners-logos'], $homeCommon);
     }
 
-    public function testHighFrequencySectionsCarryPageIntentMetadata(): void
+    /**
+     * 随包基础区块（六款保留 + 价格方案）都要带可用于场景推荐的元数据。
+     *
+     * 原先此处还断言 team-recruiting / client-logo-wall / product-comparison / download-guide /
+     * contact-strip 以及 hero-split / feature-cards-soft / faq-split / *-grid-dynamic 的
+     * variant、data_source、states——那些模板 2026-09-16 已移出随包目录，断言随之移除；
+     * 元数据**归一化逻辑本身**的覆盖在 BloxSectionMetadataTest，未受影响。
+     */
+    public function testShippedSectionsCarryPageIntentMetadata(): void
     {
-        $provider = new BloxBuiltinTemplateProvider();
         $items = [];
-        foreach ($provider->items('page') as $item) {
+        foreach ((new BloxBuiltinTemplateProvider())->items('page') as $item) {
             $items[$item['key']] = $item;
         }
 
-        $expected = [
-            'builtin:team-recruiting' => ['jobs', 'about'],
-            'builtin:client-logo-wall' => ['home', 'case'],
-            'builtin:product-comparison' => ['product-list', 'product-detail'],
-            'builtin:download-guide' => ['product-detail', 'service'],
-            'builtin:contact-strip' => ['contact', 'service'],
-        ];
-        foreach ($expected as $key => $pageTypes) {
-            self::assertArrayHasKey($key, $items);
-            $metadata = $items[$key]['metadata'];
-            self::assertGreaterThanOrEqual(80, $metadata['priority']);
-            foreach ($pageTypes as $pageType) {
-                self::assertContains($pageType, $metadata['page_types']);
-            }
+        foreach (array_column(self::presets(), 0) as $slug) {
+            $metadata = $items['builtin:' . $slug]['metadata'];
+            // 优先级只要求"已声明且在合理区间"——具体高低是编辑取舍，不该由测试钉死
+            self::assertGreaterThan(0, $metadata['priority'], $slug . ' 未声明推荐优先级');
+            self::assertLessThanOrEqual(100, $metadata['priority']);
+            self::assertNotEmpty($metadata['page_types'], $slug . ' 缺少适用页面类型');
+            self::assertNotEmpty($metadata['content_slots'], $slug . ' 缺少内容槽位声明');
+            self::assertSame('static', $metadata['data_source'] ?? 'static', '随包基础区块不绑定动态数据源');
         }
     }
 }

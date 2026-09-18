@@ -243,6 +243,8 @@ EXCLUDES=(
     "docs"
     "AGENTS.md"
     "CLAUDE.md"
+    # 插件内部验证记录（含开发机路径与内部验收细节）
+    "plugins/dologin/VERIFICATION.md"
 
     # 跨站共享的前端 UI 参考库（dev 参考，非产品运行时代码）
     "ui-library"
@@ -295,6 +297,9 @@ EXCLUDES=(
     # seo（SEO 助手）2026-08-22 同样移出核心包：Pro 闸 + 三张自建表，属"要用才装"
     # 的增强件；免费层 llms.txt / 实时分析 / SERP 预览 / 手动推送 装上即得。
     "plugins/seo"
+    # dologin（易登录）2026-09-17 产品决定不随核心预装：走插件市场按需安装。
+    # 核心只保留 dologin_links 表与模型（安装 SQL / 迁移），存量站已装的插件不受影响（增量包不删 plugins/）。
+    "plugins/dologin"
 
     # 主题市场源码目录本身不进入运行包。Business、Minimal 会在上面的显式步骤中
     # 复制到 themes/ 作为新安装预装模板；Aurora、Trade 仍由主题市场签名分发。
@@ -325,6 +330,23 @@ done < <(php "bin/blox-assets.php" list pro)
 for item in "${EXCLUDES[@]}"; do
     rm -rf "$PKG_DIR/$item"
 done
+
+# 被核心包排除的路径从未随核心包分发：市场插件（logo-maker、seo、dologin…）、Pro 资产
+# 只可能是站点自行安装的。它们在仓库里删改时，增量包不得删除客户站点上的同名文件。
+# 2026-09-17 实测：未加此护栏时 1.18.x → 1.20.0 增量包会删掉 plugins/logo-maker 7618 个文件。
+path_never_shipped() {
+    local candidate="$1" item
+    for item in "${EXCLUDES[@]}"; do
+        [ -z "$item" ] && continue
+        if [ "$candidate" = "$item" ] || [[ "$candidate" == "$item"/* ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Installation receipts belong to the destination site, never the distributed source.
+find "$PKG_DIR" -type f -name '.yikai-market-origin.json' -delete
 
 # 清空 uploads 和 storage 内容，但保留目录
 rm -rf "$PKG_DIR/uploads/"*
@@ -389,6 +411,8 @@ MUST_EXIST=(
     "includes/functions.php"
     "includes/http_response.php"
     "includes/language_request.php"
+    "includes/lang_url.php"
+    "includes/product_routes.php"
     "includes/LegacyInstallCleanup.php"
     "includes/SiteHealth.php"
     "includes/HomeSettingsLanguageDefaults.php"
@@ -561,10 +585,14 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
                     # 不该出现在客户官网上）。但存量站根目录那个很可能是客户用图标工坊生成的——
                     # 从 git 移走后若不豁免，增量包会把它当废弃文件删掉。
                     # 两个遗留安装入口相反：必须让增量包不可逆地删掉它们（无鉴权可执行）。
+                    # 随包图片（images/、assets/images/）：存量站的演示内容、从模板插入的页面、
+                    # 站点 Logo 设置都以 URL 引用它们。改成 webp 等换图后旧文件不再随新包发，
+                    # 但增量升级不得删除，否则客户页面出现破图。
                     case "$path" in
                         install/upgrade.php|install/run_upgrade.php) ;;
-                        config/config.php|storage/*|uploads/*|install/*|themes/*|favicon.ico) continue;;
+                        config/config.php|storage/*|uploads/*|install/*|themes/*|favicon.ico|images/*|assets/images/*|*/.yikai-market-origin.json|.yikai-market-origin.json) continue;;
                     esac
+                    path_never_shipped "$path" && continue
                     DELETED+=("$path")
                     ;;
                 R*)
@@ -573,8 +601,9 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
                     fi
                     case "$path" in
                         install/upgrade.php|install/run_upgrade.php) DELETED+=("$path");;
-                        config/config.php|storage/*|uploads/*|install/*|themes/*) ;;
-                        *) DELETED+=("$path");;
+                        # favicon.ico 在 git 中被识别为改名到 assets/img/admin-favicon.ico，豁免必须与 D 分支一致
+                        config/config.php|storage/*|uploads/*|install/*|themes/*|favicon.ico|images/*|assets/images/*|*/.yikai-market-origin.json|.yikai-market-origin.json) ;;
+                        *) path_never_shipped "$path" || DELETED+=("$path");;
                     esac
                     ;;
                 *)  # A / M / C：仅当该文件确实进了包（未被打包排除）才纳入

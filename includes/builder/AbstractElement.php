@@ -43,6 +43,12 @@ abstract class AbstractElement
         return [];
     }
 
+    /** Trusted render target within this element's HTML; null means the outer root. */
+    public function compiledCssTargetTag(): ?string
+    {
+        return null;
+    }
+
     /**
      * 常用内容元素共享的入场动画设置。
      *
@@ -53,6 +59,7 @@ abstract class AbstractElement
         return [
             [
                 'key' => 'animation', 'type' => 'select', 'label' => __('blox_anim'), 'default' => '', 'tab' => 'style', 'group' => 'animation',
+                'option_preview' => 'entrance',
                 'options' => [
                     '' => __('blox_anim_none'),
                     'fade' => __('blox_anim_fade'),
@@ -64,13 +71,19 @@ abstract class AbstractElement
                 ],
                 'option_icons' => [
                     '' => 'ban',
-                    'fade' => 'opacity',
+                    'fade' => 'contrast',
                     'fade-up' => 'arrow-up',
                     'fade-down' => 'arrow-down',
                     'fade-left' => 'arrow-right',
                     'fade-right' => 'arrow-left',
                     'zoom-in' => 'zoom-in',
                 ],
+            ],
+            [
+                'key' => 'animation_trigger', 'type' => 'select', 'label' => __('blox_anim_trigger'),
+                'default' => 'viewport', 'tab' => 'style', 'group' => 'animation',
+                'options' => ['viewport' => __('blox_anim_trigger_viewport'), 'load' => __('blox_anim_trigger_load')],
+                'required' => ['animation', '!=', ''],
             ],
             [
                 'key' => 'animation_speed', 'type' => 'select', 'label' => __('blox_anim_speed'), 'default' => 'normal', 'tab' => 'style', 'group' => 'animation',
@@ -92,6 +105,8 @@ abstract class AbstractElement
         }
 
         $attrs = ' data-animate="' . $animation . '"';
+        $trigger = ($data['animation_trigger'] ?? 'viewport') === 'load' ? 'load' : 'viewport';
+        $attrs .= ' data-animate-trigger="' . $trigger . '"';
         $speed = is_string($data['animation_speed'] ?? null) ? $data['animation_speed'] : 'normal';
         if (in_array($speed, ['fast', 'slow'], true)) {
             $attrs .= ' data-animate-speed="' . $speed . '"';
@@ -487,6 +502,20 @@ abstract class AbstractElement
         return null;
     }
 
+    /**
+     * 复合元素的命名区域（结构树把每个区域渲染为根节点下可选中、可展开的子节点）。
+     *
+     * 区域是 schema 级声明：不写入文档 data，因此旧文档不产生 dirty、不需要迁移，
+     * 也不能被 BloxDocumentValidator 当作 children 校验。`keys` 决定选中区域时
+     * 设置面板只显示哪些控件；未列入任何区域的控件在根节点下始终可见。
+     *
+     * @return list<array{key:string,label:string,icon:string,keys:list<string>}>
+     */
+    public function regions(): array
+    {
+        return [];
+    }
+
     /** 已废弃元素仍可渲染已有数据，但不应再允许新增。 */
     public function deprecated(): bool
     {
@@ -536,7 +565,8 @@ abstract class AbstractElement
             $d = $responsive['d'];
             $t = $responsive['t'];
             $m = $responsive['m'];
-            if ($m === $t && $t === $d) {
+            $w = $responsive['w'];
+            if ($m === $t && $t === $d && $d === $w) {
                 return $map[$m][0];
             }
             $cls = $map[$m][0];
@@ -545,6 +575,9 @@ abstract class AbstractElement
             }
             if ($d !== $t) {
                 $cls .= ' ' . $map[$d][2];
+            }
+            if ($w !== $d && isset($map[$w][3])) {
+                $cls .= ' ' . $map[$w][3];
             }
             return $cls;
         }

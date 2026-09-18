@@ -21,7 +21,7 @@ final class BloxEditorHistoryContractTest extends TestCase
         ];
 
         return implode("\n", array_map(function (string $path): string {
-            $source = file_get_contents(ROOT_PATH . '/' . $path);
+            $source = $path === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : file_get_contents(ROOT_PATH . '/' . $path);
             $this->assertNotFalse($source);
             return (string) $source;
         }, $paths));
