@@ -242,7 +242,8 @@ function renderAdminBar(): void
       <?php if ($editUrl !== ''): ?>
       <a class="ik-ab-page-edit" href="<?php echo e($editUrl); ?>">
         <svg class="ik-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-        <span class="ik-ab-page-edit-label"><?php echo e(__('ab_edit_page')); ?></span>
+        <?php // 页面可设 $GLOBALS['ik_edit_label']（语言键）说清楚编辑的是什么，如相册页的「编辑相册」 ?>
+        <span class="ik-ab-page-edit-label"><?php echo e(__((string) ($GLOBALS['ik_edit_label'] ?? 'ab_edit_page'))); ?></span>
       </a>
       <?php endif; ?>
       <?php if ($draftItems !== []): ?>
