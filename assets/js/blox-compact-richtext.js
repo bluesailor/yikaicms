@@ -73,7 +73,7 @@
             mount: function () {
                 if (destroyed) return;
                 var self = this;
-                var tiny = global.tinymce;
+                var tiny = global.hugerte;
                 if (!tiny) { self.failed = true; self.sourceMode = true; return; }
                 var language = (global.document.documentElement.lang || "zh-CN").toLowerCase();
                 tiny.init({

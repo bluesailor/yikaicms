@@ -902,7 +902,9 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-icon-utils.js') ?>"></script>
     <script src="/assets/js/blox-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-field-store.js') ?>"></script>
     <?php // 系统富文本编辑器（richtext 控件的「可视化编辑」弹窗用；按需 init） ?>
-    <script src="/assets/tinymce/tinymce.min.js"></script>
+    <script src="/assets/hugerte/hugerte.min.js"></script>
+    <?php // 别名（给第三方插件）与界面语言 → 编辑器语言包的映射，两个页面共用 ?>
+    <script src="/assets/js/rich-editor.js?v=<?php echo (int) @filemtime(ROOT_PATH . '/assets/js/rich-editor.js'); ?>"></script>
     <script src="/assets/js/blox-compact-richtext.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-compact-richtext.js') ?>"></script>
     <?php // 作者端扩展模块（如 yikai-builder）在 Alpine 组件定义前注入自己的脚本与数据 ?>
     <?php if (function_exists('do_action')) do_action('blox_editor_scripts'); ?>
@@ -5754,7 +5756,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                         return;
                     }
                     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-                    var activeEditor = window.tinymce && tinymce.activeEditor;
+                    var activeEditor = window.hugerte && hugerte.activeEditor;
                     if (activeEditor && typeof activeEditor.hasFocus === "function" && activeEditor.hasFocus()) return;
                     var active = document.activeElement;
                     if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT" || active.isContentEditable)) return;

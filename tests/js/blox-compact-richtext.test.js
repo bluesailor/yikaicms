@@ -13,7 +13,7 @@ function fixture(value = { id: 'card-a', text: 'Old <b>literal</b> & text', allo
         on(name, fn) { name.split(' ').forEach(event => events[event] = fn); }, off() {},
     };
     global.document = { documentElement: { lang: 'en' } };
-    global.tinymce = { init(options) {
+    global.hugerte = { init(options) {
         config = options; options.setup(editor);
         events.init();
         return new Promise(resolve => pending = resolve);

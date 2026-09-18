@@ -39,11 +39,11 @@ var dl = document.querySelector('.ai-len-btn[data-val="800"]'); if (dl) dl.click
 
 // 编辑器交互
 function getEditorContent() {
-    if (typeof tinymce !== 'undefined' && tinymce.activeEditor) { tinymce.triggerSave(); return tinymce.activeEditor.getContent(); }
+    if (typeof hugerte !== 'undefined' && hugerte.activeEditor) { hugerte.triggerSave(); return hugerte.activeEditor.getContent(); }
     var ta = document.getElementById('contentEditor'); return ta ? ta.value : '';
 }
 function setEditorContent(html) {
-    if (typeof tinymce !== 'undefined' && tinymce.activeEditor) { tinymce.activeEditor.setContent(html); }
+    if (typeof hugerte !== 'undefined' && hugerte.activeEditor) { hugerte.activeEditor.setContent(html); }
 }
 
 // 提交生成
