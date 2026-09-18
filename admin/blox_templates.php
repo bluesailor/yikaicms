@@ -31,7 +31,6 @@ $tableReady = db()->tableExists('blox_templates');
 $errorMessage = '';
 $notice = '';
 $importReview = null;
-$importJson = '';
 
 /** 读取检查页提交的设计映射：结构化数组不经 post()（其 trim 会破坏数组）。 */
 function blox_import_style_options_from_post(): array
@@ -295,9 +294,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException(__('blox_tpl_pick_or_paste'));
             }
 
-            // 检查页需要原始包在确认时回传；远程检查使用服务端 review_id，不读取此值。
-            $importJson = $json;
             $importReview = BloxTemplateImporter::prepare($json);
+            // 检查页需要原始包在确认时回传；远程检查使用服务端 review_id，不读取此值。
+            $importReview['source_json'] = $json;
             if ($action === 'import_confirm') {
                 $options = blox_import_style_options_from_post();
                 $result = BloxTemplateImporter::importJson($json, (int) ($_SESSION['admin_id'] ?? 0), 'import', '', $options);
