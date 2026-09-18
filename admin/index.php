@@ -117,7 +117,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
     <div class="flex shrink-0 flex-wrap items-center gap-3 self-end sm:flex-nowrap sm:self-auto">
-        <a href="<?php echo e($adminHelpUrl); ?>" target="_blank" rel="noopener noreferrer" data-testid="rewrite-onboarding-help"
+        <a href="<?php echo e(adminHelpUrl()); ?>" target="_blank" rel="noopener noreferrer" data-testid="rewrite-onboarding-help"
            class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded bg-amber-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2">
             <i class="ti ti-book-2 text-base" aria-hidden="true"></i>
             <?php echo e(__('onb_rewrite_help')); ?>

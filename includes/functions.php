@@ -986,6 +986,19 @@ function settingOptionLabel(string $key, string $value, string $fallback = ''): 
  * 头部与页脚必须共用本函数——曾出现头部已本地化而页脚仍直读 config 的分叉。
  * 自定义品牌限注册码授权站点；未授权时显示出厂品牌（见 adminBrandingCustomizable）。
  */
+/**
+ * 官网「栏目页 404 与伪静态配置」帮助页（按后台语言）。
+ * 控制台的新站伪静态提醒与站点体检页都指向它；顶栏帮助图标另指使用教程（见 header.php）。
+ */
+function adminHelpUrl(): string
+{
+    return match ((string) config('admin_lang', getLang())) {
+        'en' => 'https://www.yikaicms.com/en/#help',
+        'ja' => 'https://www.yikaicms.com/ja/#help',
+        default => 'https://www.yikaicms.com/#help',
+    };
+}
+
 function adminBrandName(): string
 {
     if (!adminBrandingCustomizable()) {
