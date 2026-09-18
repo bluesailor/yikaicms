@@ -315,6 +315,7 @@ public static function isActive(): bool
     public static function editorSections(array $sections): array
     {
         $sections = HomeAboutLocalization::forEditor(HomeFaqContent::forEditor($sections, siteLang()));
+        $sections = HomeTestimonialsContent::forEditor($sections, siteLang());
         // 轮播文字来自该语言的轮播图记录（见 HomeBloxRenderContext）
         if (function_exists('getBanners')) {
             $sections = HomeBannerItemElement::forEditor(
@@ -346,6 +347,7 @@ public static function isActive(): bool
     {
         // 按语言编辑（见 editorSections）：改动写回对应语言，共享文档保留原文。
         $blocksJson = HomeAboutLocalization::markEditorChanges(HomeFaqContent::fromEditorJson($blocksJson));
+        $blocksJson = HomeTestimonialsContent::fromEditorJson($blocksJson);
         $blocksJson = self::markBannerEditorChanges($blocksJson);
         $processed = BloxDocumentPipeline::process($blocksJson, 'home', trustedJson: $trustedJson);
         $processed['sections'] = HomeBannerItemElement::fromEditor(HomeAboutLocalization::fromEditor($processed['sections']));

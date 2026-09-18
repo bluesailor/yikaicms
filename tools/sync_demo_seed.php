@@ -130,7 +130,60 @@ function normalizeHomeDocument(string $json): string
         }
     };
     $walk($doc);
+    $doc = attachTestimonialTranslations($doc);
     return (string) json_encode($doc, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+/**
+ * 给首页「客户评价」轮播挂上英文 / 日文译文绑定（HomeTestimonialsContent）。
+ *
+ * 首页只有一份文档，从区块模板插进来的评价轮播只有中文；译文放在
+ * tools/seed-i18n/home-testimonials.json。那里的 source 必须与参照站当前的中文逐字一致，
+ * 对不上说明参照站改了文案——报警并跳过，绝不挂一份过期的译文。
+ *
+ * @param array<string,mixed> $doc
+ * @return array<string,mixed>
+ */
+function attachTestimonialTranslations(array $doc): array
+{
+    $file = dirname(__DIR__) . '/tools/seed-i18n/home-testimonials.json';
+    $i18n = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+    if (!is_array($i18n) || !is_array($i18n['source'] ?? null) || !is_array($i18n['translations'] ?? null)) {
+        fwrite(STDERR, "缺少或无法解析 tools/seed-i18n/home-testimonials.json，客户评价不挂译文\n");
+        return $doc;
+    }
+    $source = $i18n['source'];
+    foreach (is_array($doc['sections'] ?? null) ? $doc['sections'] : [] as $si => $section) {
+        foreach (is_array($section['columns'] ?? null) ? $section['columns'] : [] as $ci => $column) {
+            foreach (is_array($column['elements'] ?? null) ? $column['elements'] : [] as $ei => $element) {
+                if (($element['type'] ?? '') !== 'testimonial-carousel') {
+                    continue;
+                }
+                $current = [
+                    'title' => (string) ($section['settings']['title'] ?? ''),
+                    'subtitle' => (string) ($section['settings']['subtitle'] ?? ''),
+                    'items' => array_map(
+                        static fn ($item): array => [
+                            'name' => (string) ($item['name'] ?? ''),
+                            'role' => (string) ($item['role'] ?? ''),
+                            'content' => (string) ($item['content'] ?? ''),
+                        ],
+                        is_array($element['data']['items'] ?? null) ? $element['data']['items'] : []
+                    ),
+                ];
+                if ($current !== $source) {
+                    fwrite(STDERR, "参照站的客户评价文案与 home-testimonials.json 的 source 不一致，未挂译文——请先更新译文文件\n");
+                    continue;
+                }
+                $doc['sections'][$si]['columns'][$ci]['elements'][$ei]['data']['_home_testimonials_i18n'] = [
+                    'lang' => (string) ($i18n['source_lang'] ?? 'zh-CN'),
+                    'source' => $source,
+                    'translations' => $i18n['translations'],
+                ];
+            }
+        }
+    }
+    return $doc;
 }
 
 /**
