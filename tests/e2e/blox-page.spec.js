@@ -289,6 +289,34 @@ test('free mode opens homepage and local templates while remote resolve stays lo
   expect(consoleEntries).toEqual([]);
 });
 
+test('free mode lists Pro elements with a PRO badge but keeps them locked @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'single free-edition capability baseline');
+  test.skip(process.env.SMOKE_BLOX_ADVANCED !== '0', 'free-mode assertion');
+
+  const consoleEntries = observeConsole(page);
+  await openEditor(page);
+  await page.getByTestId('blox-elements-open').click();
+  await expect(page.getByTestId('blox-element-scroll')).toBeVisible();
+  for (const type of ['table', 'pricing-table']) {
+    const tile = page.getByTestId(`blox-add-element-${type}`);
+    await tile.scrollIntoViewIfNeeded();
+    await expect(tile, `${type} stays listed`).toBeVisible();
+    await expect(tile).toHaveAttribute('data-pro', 'locked');
+    await expect(tile).toHaveAttribute('draggable', 'false');
+    await expect(tile).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByTestId(`blox-pro-badge-${type}`)).toHaveAttribute('href', '/admin/license.php');
+  }
+
+  const sectionsBefore = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections));
+  // aria-disabled makes Playwright wait for "enabled"; a real click still reaches the handler, so force it.
+  await page.getByTestId('blox-add-element-table').click({ force: true });
+  await expect(page.getByTestId('blox-toast')).toBeVisible();
+  await expect(page.getByTestId('blox-toast')).not.toHaveText('');
+  const sectionsAfter = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections));
+  expect(sectionsAfter, 'a locked Pro element must not be inserted').toBe(sectionsBefore);
+  expect(consoleEntries).toEqual([]);
+});
+
 test('legacy page editor and page list converge on Blox @local', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'single navigation baseline');
   expect(fixtures.blox_page).toBeGreaterThan(0);

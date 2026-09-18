@@ -694,9 +694,14 @@ require_once ROOT_PATH . '/includes/builder/BloxProfessionalUi.php';
 $professionalFeatures = BloxProfessionalUi::snapshot();
 // 专业控件与循环子元素只在能力可用且 yikai-builder 作者端模块已加载时下发；保存校验仍由 BloxQueryLoopPolicy 负责。
 $advancedQueryLoopEnabled = !empty($professionalFeatures['query_loop']['allowed']);
-// 表格归属 yikai-builder：能力未放行或作者端模块未加载时不在元素面板提供（已发布表格照常渲染）
-if (isset($registryMeta['table']) && empty($professionalFeatures['table']['allowed'])) $registryMeta['table']['paletteVisible'] = false;
-if (isset($registryMeta['pricing-table']) && empty($professionalFeatures['pricing']['allowed'])) $registryMeta['pricing-table']['paletteVisible'] = false;
+// 表格、价格方案归属易开网页构建器 Pro。能力未放行时 schema 仍不可插入（容器子元素、快捷插入都据此判断），
+// 但元素库照常列出、带 PRO 角标并锁定：点击给出授权引导，不插入（已发布内容照常渲染）。
+$professionalElements = ['table' => 'table', 'pricing-table' => 'pricing'];
+foreach ($professionalElements as $professionalType => $professionalFeature) {
+    if (isset($registryMeta[$professionalType]) && empty($professionalFeatures[$professionalFeature]['allowed'])) {
+        $registryMeta[$professionalType]['paletteVisible'] = false;
+    }
+}
 $contactManageActions = [
     'contact_cards' => ['url' => '/admin/setting_contact.php', 'label' => __('page_contact_manage_cards'), 'icon' => 'address-book'],
     'contact_form' => ['url' => '/admin/form_design.php', 'label' => __('page_contact_manage_form'), 'icon' => 'forms'],
@@ -740,14 +745,19 @@ foreach ($registryMeta as $type => $m) {
     foreach ($bloxPlaceholders[$type] ?? [] as $k => $v) {
         $defaults[$k] = $v;
     }
+    $proFeature = $professionalElements[$type] ?? '';
+    $locked = $proFeature !== '' && empty($professionalFeatures[$proFeature]['allowed'])
+        && !empty($professionalFeatures[$proFeature]['visible']);
     $elementLib[] = [
         'type'     => $type,
         'label'    => $m['label'],
         'category' => $m['category'],
         'icon'     => $m['icon'],
         'defaults' => $defaults,
-        'paletteVisible' => $m['paletteVisible'],
+        'paletteVisible' => $m['paletteVisible'] || $locked,
         'deprecated' => $m['deprecated'],
+        'proFeature' => $proFeature,
+        'locked' => $locked,
     ];
 }
 
@@ -1702,6 +1712,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'insertAfterSection' => __('blox_insert_after_section'),
                 'dragToInsert' => __('blox_palette_drag_to_insert'),
                 'pickSectionFirst' => __('blox_pick_section_first'),
+                'proLocked' => __('blox_pro_locked'),
                 'insertedContainer' => __('blox_inserted_container'),
                 'inserted' => __('blox_inserted'),
                 'insertedCol' => __('blox_inserted_col'),
@@ -7889,6 +7900,11 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             activatePaletteElement(el, event) {
                 if (!el) return;
+                if (el.locked) {
+                    this.paletteSelected = "";
+                    this.toast(this.professionalLockedMessage(el.proFeature));
+                    return;
+                }
                 this.paletteSelected = el.type;
                 var keyboard = !event || event.detail === 0;
                 if (keyboard || this.paletteTapMode || this.hasQuickAddTarget()) {
@@ -7959,7 +7975,16 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
             },
 
+            professionalLockedMessage(feature) {
+                var state = this.professionalFeatures[feature] || {};
+                return state.message || this.uiText.proLocked;
+            },
+
             startPaletteDrag(el, event) {
+                if (el && el.locked) {
+                    if (event) event.preventDefault();
+                    return;
+                }
                 if (!el || !event || !event.dataTransfer) return;
                 this.paletteSelected = el.type;
                 this.dragEl = el;

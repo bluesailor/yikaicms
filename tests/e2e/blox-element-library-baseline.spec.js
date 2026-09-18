@@ -72,6 +72,21 @@ test('element library mirrors the runtime registry with usable metadata @ci', as
   }
 });
 
+test('licensed Pro elements carry a PRO badge and stay insertable @ci', async ({ page }) => {
+  test.skip(process.env.SMOKE_BLOX_ADVANCED === '0', 'licensed-mode assertion; free mode is covered in blox-page.spec.js');
+  await openLibrary(page);
+  for (const type of ['table', 'pricing-table']) {
+    const tile = page.getByTestId(`blox-add-element-${type}`);
+    await tile.scrollIntoViewIfNeeded();
+    await expect(tile).toHaveAttribute('data-pro', 'available');
+    await expect(tile).toHaveAttribute('draggable', 'true');
+    await expect(tile).not.toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByTestId(`blox-pro-badge-${type}`)).toHaveAttribute('href', '/admin/license.php');
+  }
+  // Free elements carry no Pro marker.
+  await expect(page.getByTestId('blox-add-element-heading')).not.toHaveAttribute('data-pro', /.+/);
+});
+
 test('element library performs a non-refresh insertion into the selected section @ci', async ({ page }) => {
   const originalUrl = page.url();
   const target = page.getByTestId('blox-tree-section').first();
