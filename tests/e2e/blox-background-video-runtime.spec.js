@@ -4,7 +4,7 @@ const path = require('node:path');
 
 const VIDEO_URL = '/uploads/e2e-background-runtime.mp4';
 const REAL_VIDEO_URL = '/uploads/videos/blox-test-flower.mp4';
-const POSTER_URL = '/assets/images/demo/about-office.jpg';
+const POSTER_URL = '/assets/images/demo/yikaicms-industrial-600.webp';
 
 test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'runtime policy baseline');
@@ -152,7 +152,7 @@ test('a real background video reveals over its persistent poster fallback @local
 
   const surface = page.getByTestId('runtime-surface');
   const video = page.locator('[data-blox-background-video]');
-  await expect(surface).toHaveCSS('background-image', /about-office\.jpg/);
+  await expect(surface).toHaveCSS('background-image', /yikaicms-industrial-600.webp/);
   await expect(video).toHaveAttribute('poster', POSTER_URL);
   await expect(video).not.toHaveAttribute('src', /.+/);
   await expect(video).toHaveCSS('opacity', '0');

@@ -9,7 +9,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
-HtmlCache::start(600);
+$isNativeArticlePreview = defined('YK_ARTICLE_NATIVE_PREVIEW') && YK_ARTICLE_NATIVE_PREVIEW === true;
+if (!$isNativeArticlePreview) HtmlCache::start(600);
 
 $id   = getInt('id');
 $slug = trim((string) get('slug', ''));
@@ -78,8 +79,28 @@ if (!empty($article['cover'])) {
     $jsonLd['image'] = $siteUrl . $article['cover'];
 }
 
+// 详情模板解析：必须在主题 head 之前（模板资产要先于 head 收集）。
+// 命中判定走统一入口 DetailTemplateProvider → DetailTemplateResolver（条件/具体度/冲突同源）。
+// 文章的可达入口不止本文件（detail.php 亦按 id 取通用内容），因此模板套用按**内容类型**
+// contents.type === 'article' 决定，而不是按入口文件名——本页与 detail.php 共用同一契约。
+$articleTemplateContext = ArticleTemplateDocument::contextFrom([
+    'content' => $article,
+    'channelId' => (int) ($article['channel_id'] ?? 0),
+    'prevContent' => $prevArticle,
+    'nextContent' => $nextArticle,
+    'relatedContents' => $relatedArticles,
+]);
+$articleTemplateHtml = $isNativeArticlePreview ? '' : ArticleTemplateDocument::renderPublished($articleTemplateContext);
+
 // 引入头部
 require_once theme_path('layouts/header.php');
+if ($isNativeArticlePreview) {
+    echo '<div role="status" class="border-b bg-gray-50 px-4 py-3 text-sm text-gray-700" data-testid="article-native-preview">'
+        . e(__('blox_article_native_preview_status')) . '</div>';
+}
+if (trim($articleTemplateHtml) !== '') {
+    echo $articleTemplateHtml;
+} else {
 ?>
 
 <!-- 页面头部 -->
@@ -246,7 +267,7 @@ require theme_path('partials/page-hero.php');
                 <!-- 相关文章 -->
                 <?php if (!empty($relatedArticles)): ?>
                 <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <div class="bg-primary text-white px-4 py-3 font-bold">
+                    <div class="bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200">
                         <?php echo __('related_articles'); ?>
                     </div>
                     <div class="divide-y">
@@ -292,4 +313,5 @@ require theme_path('partials/page-hero.php');
     </div>
 </section>
 
+<?php } ?>
 <?php require_once theme_path('layouts/footer.php'); ?>

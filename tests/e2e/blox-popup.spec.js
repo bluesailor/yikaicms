@@ -31,7 +31,8 @@ test('popup template creates, publishes, opens and restores focus @local', async
     });
     await page.getByTestId('blox-save').click();
     expect((await saved).ok()).toBe(true);
-    await expect(page.getByTestId('blox-dirty')).toBeHidden();
+    // TASK-002 第 1 项：保存成功后状态位显示「草稿已保存」，这里断言的是"不再脏"
+    await expect(page.getByTestId('blox-dirty')).not.toHaveAttribute('data-state', 'dirty');
 
     const published = page.waitForResponse((response) => {
       const body = new URLSearchParams(response.request().postData() || '');

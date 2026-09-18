@@ -69,6 +69,9 @@ if (empty($_SESSION['login_lang'])) {
     // 不匹配则不设, getLang() 走原有 admin_lang / 默认逻辑
 }
 
+// Login extensions run after authentication helpers and language selection are ready.
+do_action('admin_login_request');
+
 $error = '';
 
 // 两步验证待验证态（密码已过，等验证器 6 位码）

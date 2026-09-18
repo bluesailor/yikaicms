@@ -60,14 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_rewrite
     success([], 'ok');
 }
 
-// 推荐插件：不再提示（AJAX）
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_recommended_plugin') {
-    verifyCsrf();
-    requirePermission('*');
-    require_once ROOT_PATH . '/includes/RecommendedPlugins.php';
-    RecommendedPlugins::dismiss((string) post('slug'));
-    success([], 'ok');
-}
 
 // 控制台站点健康摘要：超管可选择永久不再提醒
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_site_health_notice') {
@@ -94,12 +86,6 @@ $showOnboard = $onbChannelCount === 0 && (string) config('onboarding_channel_dis
 $showRewriteOnboarding = hasPermission('*')
     && (string) config('onboarding_rewrite_dismissed', '1') === '0';
 
-// 推荐安装的插件（不随核心包发布，登录后引导去市场装）——仅超管可见
-$recommendedPlugins = [];
-if (hasPermission('*')) {
-    require_once ROOT_PATH . '/includes/RecommendedPlugins.php';
-    $recommendedPlugins = RecommendedPlugins::pending();
-}
 
 // 最新内容（关联栏目类型）—— 只显示源语言行，避免 EN/JA 翻译版本污染列表
 $_dashDefaultLang = (string) config('site_lang', 'zh-CN');
@@ -131,7 +117,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
     <div class="flex shrink-0 flex-wrap items-center gap-3 self-end sm:flex-nowrap sm:self-auto">
-        <a href="<?php echo e($adminHelpUrl); ?>" target="_blank" rel="noopener noreferrer" data-testid="rewrite-onboarding-help"
+        <a href="<?php echo e(adminHelpUrl()); ?>" target="_blank" rel="noopener noreferrer" data-testid="rewrite-onboarding-help"
            class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded bg-amber-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2">
             <i class="ti ti-book-2 text-base" aria-hidden="true"></i>
             <?php echo e(__('onb_rewrite_help')); ?>
@@ -454,37 +440,6 @@ document.getElementById('onbDismiss')?.addEventListener('click', async function 
 </script>
 <?php endif; ?>
 
-<?php // 推荐安装：不预装但值得装的插件，一键跳市场对应条目；「不再提示」按 slug 记录 ?>
-<?php foreach ($recommendedPlugins as $__rec): ?>
-<div id="recCard-<?php echo e($__rec['slug']); ?>" class="relative bg-violet-50 border border-violet-200 rounded-lg p-5 mb-6 flex items-start gap-4" data-testid="recommended-plugin-card">
-    <div class="w-10 h-10 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center flex-shrink-0">
-        <i class="ti <?php echo e($__rec['icon']); ?> text-xl"></i>
-    </div>
-    <div class="flex-1 min-w-0">
-        <h3 class="font-bold text-gray-800 mb-1"><?php echo e(__($__rec['label'])); ?></h3>
-        <p class="text-sm text-gray-600 mb-3"><?php echo e(__($__rec['desc'])); ?></p>
-        <a href="/admin/plugin.php?tab=market&amp;q=<?php echo e($__rec['slug']); ?>"
-           class="inline-flex items-center gap-1 bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm font-medium">
-            <i class="ti ti-download text-base"></i>
-            <?php echo e(__('rec_plugin_install')); ?>
-        </a>
-    </div>
-    <button type="button" class="text-gray-400 hover:text-gray-600 text-sm flex-shrink-0"
-            onclick="ykDismissRecPlugin('<?php echo e($__rec['slug']); ?>')"><?php echo e(__('onb_dismiss')); ?></button>
-</div>
-<?php endforeach; ?>
-<?php if ($recommendedPlugins !== []): ?>
-<script>
-async function ykDismissRecPlugin(slug) {
-    var fd = new FormData();
-    fd.set('_token', '<?php echo csrfToken(); ?>');
-    fd.set('action', 'dismiss_recommended_plugin');
-    fd.set('slug', slug);
-    try { await fetch('', { method: 'POST', body: fd }); } catch (e) {}
-    var c = document.getElementById('recCard-' + slug); if (c) c.remove();
-}
-</script>
-<?php endif; ?>
 
 <?php
 require_once ROOT_PATH . '/admin/includes/menu_usage.php';
@@ -510,20 +465,22 @@ $__qkCatalog = [
     '/admin/member.php'          => ['ti-users',            'bg-violet-50 group-hover:bg-violet-100', 'text-violet-600',  'admin_member',            'member'],
     '/admin/link.php'            => ['ti-link',             'bg-pink-50 group-hover:bg-pink-100',     'text-pink-600',    'admin_link',              'link'],
 ];
+// 默认清单不含「网站设计」：它是整站设计入口，左侧菜单常驻，放在常用里重复（2026-09-18 产品决定）。
+// 管理员用 ☆ 收藏后照常出现，所以目录里仍保留它的图标与文案。
 $__qkByRole = [
     // 1 超级管理员：站点管理全景
-    1 => ['/admin/site_design.php', '/admin/setting_contact.php', '/admin/setting.php', '/admin/database.php',
+    1 => ['/admin/setting_contact.php', '/admin/setting.php', '/admin/database.php',
           '/admin/banner.php', '/admin/channel.php', '/admin/page.php', '/admin/product.php', '/admin/download.php'],
     // 2 投稿者：只写文章相关
     2 => ['/admin/article.php', '/admin/job.php', '/admin/timeline.php'],
     // 3 内容编辑：全类内容 + 媒体
-    3 => ['/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/site_design.php', '/admin/case.php',
+    3 => ['/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/case.php',
           '/admin/download.php', '/admin/media.php'],
     // 4 内容主管：内容编辑 + 招聘/时间轴
-    4 => ['/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/site_design.php', '/admin/case.php',
+    4 => ['/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/case.php',
           '/admin/download.php', '/admin/job.php', '/admin/media.php'],
     // 5 运营：内容 + 表单/会员/轮播/友链
-    5 => ['/admin/article.php', '/admin/product.php', '/admin/site_design.php', '/admin/banner.php', '/admin/form.php',
+    5 => ['/admin/article.php', '/admin/product.php', '/admin/banner.php', '/admin/form.php',
           '/admin/member.php', '/admin/link.php', '/admin/media.php', '/admin/page.php'],
 ];
 $__roleId = (int) (getAdminInfo()['role_id'] ?? 0);

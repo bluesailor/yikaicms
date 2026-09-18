@@ -96,6 +96,27 @@ final class BloxAreaAssignmentManagerTest extends TestCase
         self::assertSame(1, (int) (bloxTemplateModel()->find($sourceId)['status'] ?? -1));
     }
 
+    public function testNativeFallbackCanStartAnUnpublishedDedicatedDesign(): void
+    {
+        $context = ['page_id' => 8, 'lang' => 'en'];
+        foreach (['header', 'footer'] as $area) {
+            $created = BloxAreaAssignmentManager::createDedicatedDraft(0, $area, $context, 'About', 7);
+            $row = bloxTemplateModel()->findForExport($created['id']);
+            self::assertSame(0, (int) $row['status']);
+            self::assertEmpty($row['published_data']);
+            self::assertSame([], json_decode($row['draft_data'], true)['sections']);
+            self::assertTrue(BloxAreaAssignmentManager::isDedicatedTemplate($row, $area, $context));
+            self::assertSame(['id' => $created['id'], 'reused' => true],
+                BloxAreaAssignmentManager::createDedicatedDraft(0, $area, $context, 'About', 7));
+        }
+    }
+
+    public function testMissingCopySourceDoesNotCreateABlankDesign(): void
+    {
+        $this->expectException(RuntimeException::class);
+        BloxAreaAssignmentManager::createDedicatedDraft(999, 'header', ['page_id' => 8, 'lang' => 'en'], 'About', 7);
+    }
+
     public function testContextKeyMustResolveToARealEntity(): void
     {
         $channel = BloxAreaAssignmentManager::contextFromKey('channel:7', [

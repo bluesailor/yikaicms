@@ -4,7 +4,7 @@
   "type": "footer",
   "name": "Compact Site Footer",
   "requires": {
-    "elements": ["logo", "site-copyright", "social-links"],
+    "elements": ["logo", "site-copyright", "site-filing", "social-links"],
     "plugins": []
   },
   "document": {
@@ -31,7 +31,8 @@
           {
             "span": 6,
             "elements": [
-              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "center", "tone": "light"}}
+              {"type": "site-copyright", "data": {"show_icp": false, "show_police": false, "align": "center", "tone": "light"}},
+              {"type": "site-filing", "data": {"show_icp": true, "show_police": true, "align": "center", "tone": "light"}}
             ]
           },
           {

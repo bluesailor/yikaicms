@@ -39,9 +39,11 @@ final class BloxEditorPreviewContractTest extends TestCase
     }
     public function testControlledLoopTemplateUsesOneLevelWhitelistAndParentSource(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        $editor = $this->source('admin/blox_editor.php') . "
+" . $this->source('admin/blox_editor/partials/loop-template-methods.php');
         $renderer = $this->source('includes/builder/DynamicLoopTemplateRenderer.php');
         $element = $this->source('includes/builder/elements/ListDynamicElement.php');
+        $catalog = $this->source('includes/builder/elements/ContentCatalogElement.php');
 
         $this->assertStringContainsString("private const ALLOWED_TYPES = ['heading', 'text', 'image', 'button', 'div'];", $renderer);
         $this->assertStringContainsString('return DynamicLoopTemplateRenderer::allowedTypes();', $element);
@@ -49,7 +51,11 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringNotContainsString('loopChildTypes', $editor);
         $this->assertStringContainsString('c.loop_only && !self.isLoopTemplateChild()', $editor);
         $this->assertStringContainsString('this.isLoopTemplateHost(this.selTopEl) ? this.selTopEl : this.selEl', $editor);
-        $this->assertStringContainsString('self.selEl.type === "list-dynamic" && self.hasLoopTemplate()', $editor);
+        // 内容目录与动态列表共用循环模板：拆出的卡片子元素同一套白名单，内置卡片开关在拆分后隐藏
+        $this->assertStringContainsString('return DynamicLoopTemplateRenderer::allowedTypes();', $catalog);
+        $this->assertStringContainsString('["list-dynamic", "content-catalog"].indexOf(node.type)', $editor);
+        $this->assertStringContainsString('if (self.loopItemControlHidden(c)) return false;', $editor);
+        $this->assertStringContainsString('splitContentCatalogItems()', $editor);
         $this->assertStringContainsString('blox_loop_child_invalid', $editor);
     }
     public function testReusableStatsGroupSeedsAndRestrictsSelectableItems(): void
@@ -113,7 +119,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('&amp;area_lang=', $languageAreas);
         $this->assertStringContainsString('rawurlencode($selectedContextLanguage)', $templates);
         $this->assertStringContainsString('rawurlencode($languageCode)', $templates);
-        $this->assertStringContainsString("get('preview_context', '')", $editor);
+        $this->assertStringContainsString("BloxAreaEditorTarget::frontPreviewTarget(\$_GET['preview_context'] ?? '', \$areaEditorLanguage)", $editor);
         $this->assertStringContainsString('previewContext: <?php echo json_encode($initialPreviewContext', $editor);
         $this->assertStringContainsString('var previewLanguage = this.areaLanguage;', $editor);
         $this->assertStringContainsString('$previewLanguages = availableLanguages();', $preview);
@@ -183,7 +189,11 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('@keydown.left.prevent="resizeRightPanelBy(16)"', $workspace);
         $this->assertStringContainsString('@dblclick="resetRightPanelWidth()"', $workspace);
         $this->assertStringContainsString('data-testid="blox-right-panel-toggle"', $workspace);
-        $this->assertStringContainsString(':aria-expanded="String(!rightPanelCollapsed)"', $workspace);
+        // TASK-003 C：折叠控件要反映"此刻是否展开"的有效状态——窄屏结构面板是抽屉
+        // （显隐看 mobilePanel），只绑 rightPanelCollapsed 会在窄屏显示相反的状态与文案
+        $this->assertStringContainsString(':aria-expanded="String(structurePanelExpanded())"', $workspace);
+        $this->assertStringContainsString('structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand', $workspace);
+        $this->assertStringContainsString('@click="toggleRightPanel()"', $workspace);
         $this->assertStringContainsString('yikai:blox:right-panel-width:v1', $editor);
         $this->assertStringContainsString('yikai:blox:right-panel-collapsed:v1', $editor);
     }
@@ -264,14 +274,16 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString(':placeholder="ctrl.placeholder ?? (ctrl.default ?? \'\')"', $workspace);
     }
 
-    public function testFrontendPreviewLinkUsesCleanPublishedPageMode(): void
+    public function testFrontendPreviewLinkUsesTheResolvedPageDraftUrl(): void
     {
         $header = $this->source('admin/blox_editor/partials/header.php');
 
         // v1.18.6：预览目标服务端按编辑对象决定——页头/页尾模板指首页，
         // 区块/弹窗模板不显示（此前模板模式拼出坏链接 /.html?preview）
         $this->assertStringContainsString("in_array(\$templateType ?? '', ['header', 'footer'], true)", $header);
-        $this->assertStringContainsString("'.html?preview'", $header);
+        $this->assertStringContainsString('$frontPreviewUrl = channelUrl($page);', $header);
+        $this->assertStringContainsString(':href="pageFrontPreviewUrl()"', $header);
+        $this->assertStringContainsString('preview=draft&blox_draft=page:', $header);
         $this->assertStringContainsString('if ($frontPreviewUrl !== null):', $header);
         $this->assertStringContainsString('data-testid="blox-front-preview"', $header);
         $this->assertStringContainsString('ti ti-eye text-base', $header);
@@ -289,11 +301,14 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('return self.historyStore().snapshot(self.historyData());', $editor);
         $this->assertStringContainsString('self.applyHistorySnapshot(snapshot);', $editor);
         // 七个结构命令全部走委托入口
-        foreach (['delete-section', 'delete-element', 'paste', 'canvas-drop', 'apply-layout', 'add-section', 'add-element'] as $cmd) {
+        foreach (['delete-section', 'delete-element', 'paste', 'canvas-drop', 'apply-layout', 'add-section'] as $cmd) {
             $this->assertStringContainsString('this.runCommand("' . $cmd . '"', $editor);
         }
+        $this->assertStringContainsString('<script src="/assets/js/blox-page-settings.js?v=', $editor);
+        $this->assertStringContainsString('window.YikaiBloxPageSettings.mixin(', $editor);
+        $this->assertStringContainsString('this.runCommand("add-element"', $this->source('assets/js/blox-page-settings.js'));
         // 模板插入应用段 silent 执行，错误提示走既有 catch 面板
-        $this->assertStringContainsString('self.commandRunner().execute("insert-template"', $editor);
+        $this->assertStringContainsString('this.commandRunner().execute("insert-template"', $editor);
         $this->assertStringContainsString('}, { silent: true });', $editor);
         // 嵌套吸收：只有最外层捕获快照（addElement→addSection 等仍是一个命令组）
         $this->assertStringContainsString('if (this.depth > 0) {', $runner);
@@ -309,8 +324,13 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         // 注入层：轨道每次画布更新先清后建（不进保存文档），动作全部经 postMessage
         $this->assertStringContainsString("querySelectorAll('.yk-insert-rail, .yk-insert-pop').forEach", $advance);
-        $this->assertStringContainsString("postToEditor({ ykInsertAt: { index: index, kind: 'layout', spans: spans } })", $advance);
-        $this->assertStringContainsString("postToEditor({ ykInsertAt: { index: index, kind: 'templates' } })", $advance);
+        $this->assertStringContainsString("postToEditor({ ykInsertAt: { index: index, kind: 'picker', anchor:", $canvasPreview);
+        $this->assertStringContainsString('sec.after(makeRail(i + 1, true))', $canvasPreview);
+        $this->assertStringNotContainsString('sec.appendChild(makeRail', $canvasPreview);
+        $this->assertStringContainsString('/assets/js/blox-section-insert.js', $editor);
+        $this->assertStringContainsString('window.YikaiBloxSectionInsert.mixin(', $editor);
+        $assets = json_decode($this->source('config/blox-assets.json'), true, 512, JSON_THROW_ON_ERROR);
+        $this->assertContains('assets/js/blox-section-insert.js', $assets['core']);
         $this->assertStringNotContainsString('yk-insert-rail-tail', $advance);
         $this->assertStringContainsString("querySelectorAll('[data-yk-sec]')", $canvasPreview);
         $this->assertStringNotContainsString('yk-insert-rail-tail', $canvasPreview);
@@ -363,19 +383,25 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $editor);
         $this->assertStringNotContainsString('$isBasicPageRequest', $editor);
-        $this->assertStringContainsString("!in_array(\$templateType, ['section', 'page'], true) && !\$advancedBloxEnabled", $editor);
+        $this->assertStringContainsString('!BloxTemplateEditPolicy::allows($templateType, $advancedBloxEnabled)', $editor);
+        $this->assertStringContainsString('requireBloxTemplateTypePermission($templateType);', $editor);
         $this->assertStringContainsString('data-testid="blox-elements-open"', $editor);
         $this->assertStringContainsString('data-testid="blox-prebuilt-open"', $editor);
         $this->assertStringNotContainsString("openTemplates() {\n                if (!this.advancedMode)", $editor);
         $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $homeApi);
 
         $this->assertStringContainsString('if (!bloxPageEditorEnabled())', $templateApi);
-        $this->assertStringContainsString("\$item['locked_reason'] = 'license_missing';", $templateApi);
-        $remoteGate = strpos($templateApi, "str_starts_with(\$key, 'remote:')");
-        $resolve = strpos($templateApi, 'BloxTemplateCatalog::resolve($key, $context)');
-        $this->assertNotFalse($remoteGate);
-        $this->assertNotFalse($resolve);
-        $this->assertLessThan($resolve, $remoteGate);
+        // Free template editing and per-resource download policy are separate boundaries.
+        $this->assertStringContainsString('BloxTemplateEditPolicy::allows($type, $advancedBloxEnabled)', $templateApi);
+        $this->assertStringNotContainsString("\$item['locked_reason'] = 'license_missing';", $templateApi);
+        $this->assertStringContainsString('requireBloxTemplateTypePermission($context);', $templateApi);
+        $this->assertStringContainsString('BloxTemplateCatalog::resolve($key, $context, bloxTemplateContentLanguage())', $templateApi);
+        $provider = $this->source('includes/builder/BloxRemoteTemplateProvider.php');
+        $locked = strpos($provider, "if (!empty(\$item['locked']))");
+        $download = strpos($provider, '($this->httpGet)($downloadUrl');
+        $this->assertNotFalse($locked);
+        $this->assertNotFalse($download);
+        $this->assertLessThan($download, $locked);
     }
 
     /** r15：声明式控件显示规则——编辑器走可单测求值器模块，required 归一为兼容别名 */
@@ -405,7 +431,7 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         if ($path === 'admin/blox_editor.php') {
             return implode("\n", array_map(function (string $editorPath): string {
-                $source = file_get_contents(ROOT_PATH . '/' . $editorPath);
+                $source = $editorPath === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : file_get_contents(ROOT_PATH . '/' . $editorPath);
                 $this->assertNotFalse($source, "无法读取 {$editorPath}");
                 return (string) $source;
             }, [
@@ -447,7 +473,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('self.captureScroll(frame)', $client);
         $this->assertStringContainsString('self.finishUpdate(frame, scrollState)', $client);
         $this->assertStringContainsString('if (sequence !== self.sequence) return;', $client);
-        $this->assertStringContainsString('if (self.patchFrame(frame, html))', $client);
+        $this->assertStringContainsString('if (!self.rebuilding && self.patchFrame(frame, html))', $client);
         $this->assertStringContainsString('new currentDoc.defaultView.CustomEvent("blox:content-updated"', $client);
 
         $listener = strpos($client, 'frame.addEventListener("load"');
@@ -631,11 +657,49 @@ final class BloxEditorPreviewContractTest extends TestCase
             'data-testid="blox-language-content-source"',
             'href="/admin/setting_lang.php"',
             'data-testid="blox-copyright-content-source"',
-            'href="/admin/setting.php?tab=footer#input_footer_copyright_text"',
-            'href="/admin/setting.php?tab=basic#input_site_icp"',
             'target="_blank" rel="noopener"',
         ] as $token) {
             self::assertStringContainsString($token, $workspace, "content source token {$token} missing");
+        }
+    }
+
+    public function testCopyrightAndFilingAreEditedInsideThePanel(): void
+    {
+        $editor = $this->source('admin/blox_editor.php') . "\n" . $this->source('admin/blox_editor/partials/site-data-methods.php')
+            . "\n" . $this->source('admin/blox_editor/content-language.php');
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+
+        // 版权文字与备案号在面板内直接改，不再跳到站点设置页
+        self::assertStringNotContainsString('setting.php?tab=footer', $workspace);
+        self::assertStringNotContainsString('setting.php?tab=basic#input_site_icp', $workspace);
+        $saveRow = $this->source('admin/blox_editor/partials/site-data-save.php');
+        foreach ([
+            'data-testid="blox-copyright-text-input"',
+            "selEl.type === 'site-filing'",
+            'data-testid="blox-filing-fields"',
+            'x-if="siteCopyrightFilingEditable()"',
+            "\$siteDataSaveTestId = 'blox-copyright-save'",
+            "\$siteDataSaveTestId = 'blox-filing-save'",
+            // 旧版「版权 + 备案」合一的元素：面板提示并一键拆成两个同级元素
+            'x-if="copyrightHasFiling() && siteCopyrightFilingEditable()"',
+            '@click="splitCopyrightFiling()"',
+        ] as $token) {
+            self::assertStringContainsString($token, $workspace, "copyright panel token {$token} missing");
+        }
+        self::assertStringContainsString('@click="saveSiteCopyright()"', $saveRow);
+        // 版权面板里不再有备案号输入框：备案号只在备案元素面板编辑
+        $copyrightPanel = substr($workspace, (int) strpos($workspace, "selEl.type === 'site-copyright'"));
+        $copyrightPanel = substr($copyrightPanel, 0, (int) strpos($copyrightPanel, "selEl.type === 'site-filing'"));
+        self::assertStringNotContainsString('blox-filing-icp-input', $copyrightPanel);
+        self::assertStringContainsString('if (ctrl.legacy_filing && !this.copyrightHasFiling()) return false;', $editor);
+        self::assertStringContainsString("'site-copyright' => ['show_icp' => false, 'show_police' => false],", $editor);
+        foreach ([
+            'siteCopyrightEndpoint: "/admin/blox_site_api.php"',
+            'SiteCopyrightSettings::editorState($siteDataLanguage',
+            'if (!self.siteLanguageControlApplies(c)) return false;',
+            'body.set("lang", this.siteCopyright.language);',
+        ] as $token) {
+            self::assertStringContainsString($token, $editor, "copyright editor token {$token} missing");
         }
     }
 
@@ -690,7 +754,6 @@ final class BloxEditorPreviewContractTest extends TestCase
             'message.ykBannerSlide = this.selectedSubEi',
             'message.ykBannerPath = this.selectedSi + "." + this.selectedCi + "." + this.selectedEi',
             'data-testid="blox-banner-overall-settings"',
-            '@click="selectElement(selectedSi, selectedCi, selectedEi)"',
             'aspect-[16/7]',
         ] as $token) {
             $this->assertStringContainsString($token, $editor, "banner editor token {$token} missing");
@@ -1019,7 +1082,11 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('HomeBloxRenderContext::fromCurrentSite($bloxCanvas)', $canvas);
         $this->assertStringContainsString('HomeBloxRenderer::render($previewSections, [$homePreviewContext, \'renderLegacyBlock\'])', $canvas);
-        $this->assertStringContainsString('$previewEndpoint = \'/admin/blox_preview.php?home=1\';', $editor);
+        $this->assertStringContainsString('$previewEndpoint = \'/admin/blox_preview.php?home=1\' . ($homeEditorLangQuery !== \'\' ? \'&_lang=\' . $homeEditorLangQuery : \'\');', $editor);
+        // ?lang= 打开首页编辑器：编辑器、画布预览与首页接口按同一语言处理本次请求
+        $this->assertStringContainsString("define('SITE_LANG', \$homeEditorLanguage);", $editor);
+        $this->assertStringContainsString("define('SITE_LANG', bloxHomeEditorLanguage());", $api);
+        $this->assertStringNotContainsString('fetch("/admin/blox_home_api.php"', $editor);
         $this->assertStringContainsString('outputBloxCanvasPreview(true, 0)', $api);
         $this->assertStringContainsString('HomeBloxRenderContext::fromCurrentSite($bloxCanvas)', $preview);
         $this->assertStringContainsString('HomeBloxRenderer::render($previewSections, [$homePreviewContext, \'renderLegacyBlock\'])', $preview);
@@ -1050,7 +1117,11 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('HomeBloxDocument::saveDraft(', $api);
         $this->assertStringContainsString('HomeBloxDocument::publishDraft()', $api);
         $this->assertStringContainsString('HomeBloxDocument::saveAndPublish(', $api);
-        $this->assertStringContainsString('BloxDocumentPipeline::revisionMatches($currentDocumentJson(), $baseRevision)', $api);
+        // E03：revision 比对移入文档类，与保护字段比较、锁内写入同属一次原子保存。
+        $this->assertStringContainsString("trim((string) (\$_POST['base_revision'] ?? ''))", $api);
+        $this->assertStringContainsString("__('blox_save_conflict') ? 409", $api);
+        $this->assertStringContainsString('BloxDocumentWriteLock::assertRevision($trustedJson, $baseRevision);', $bloxDocument);
+        $this->assertStringContainsString('BloxDocumentWriteLock::settings(self::ACTIVE_KEY, $raw,', $bloxDocument);
         $this->assertStringContainsString('body.set("blocks_data", payload);', $editor);
         $this->assertStringContainsString('body.set("base_revision", this.baseRevision);', $editor);
         $this->assertStringContainsString('self.acceptSavedDocument(payload, savedData, res);', $editor);
@@ -1283,6 +1354,11 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('getBlockBg(', $theme);
         $imageControl = $this->source('admin/blox_editor/partials/home-image-control.php');
         $this->assertStringContainsString('replaceHomeContentImage(ctrl.key)', $imageControl);
+        $this->assertStringContainsString('data-testid="blox-cta-background-url"', $imageControl);
+        $this->assertStringContainsString('data-testid="blox-cta-background-clear"', $imageControl);
+        $this->assertStringContainsString("setHomeContentImage(ctrl.key, '')", $imageControl);
+        $this->assertStringContainsString('clearMatchingHomeBackgroundCopies', $this->source('assets/js/blox-image-control.js'));
+        $this->assertStringContainsString("__('blox_home_cta_color_covered_hint')", $workspace);
         $this->assertStringContainsString('{ usage: "cta", source: "official" }', $this->source('assets/js/blox-home-content-panel.js'));
     }
 
@@ -1393,13 +1469,18 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('self.observeCanvasHost();', $editor);
         $this->assertStringContainsString('new ResizeObserver(update)', $editor);
         $this->assertStringContainsString('requestAnimationFrame(update)', $editor);
-        $this->assertStringContainsString("host.clientWidth : 1280) - 24", $editor);
+        $this->assertStringContainsString('window.getComputedStyle(viewport)', $editor);
+        $this->assertStringContainsString('parseFloat(css.paddingLeft)', $editor);
+        $this->assertStringContainsString('parseFloat(css.paddingRight)', $editor);
+        $this->assertStringContainsString("host.clientWidth : 1280) - padding", $editor);
         $this->assertStringContainsString('justify-center p-3', $editor);
         $this->assertStringContainsString('window.innerHeight - 80', $editor);
         $this->assertStringContainsString('Math.max(1280, Math.round(this.previewCanvasAvailable()))', $editor);
         $this->assertStringNotContainsString('Math.min(1600', $editor);
         $this->assertStringContainsString('this.previewCanvasAvailable() / this.previewDesktopWidth()', $editor);
-        $this->assertStringContainsString('var desktopWidth = this.previewDesktopWidth();', $editor);
+        // R2B：桌面宽度经 previewEffectiveWidth() 取用（自定义预览宽度优先，桌面自动档仍回落到重算宽度）
+        $this->assertStringContainsString('var width = this.previewEffectiveWidth();', $editor);
+        $this->assertStringContainsString('if (this.previewDevice === "desktop") return this.previewDesktopWidth();', $editor);
         $this->assertStringNotContainsString('class="relative transition-all duration-300" :style="previewShellStyle()"', $editor);
     }
 
@@ -1419,12 +1500,19 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         $editor = $this->source('admin/blox_editor.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+        $backgroundPanel = $this->source('assets/js/blox-background-panel.js');
+        $backgroundSwitcher = $this->source('admin/blox_editor/partials/background-layer-switcher.php');
         $pipeline = $this->source('includes/builder/BloxDocumentPipeline.php');
         $renderer = $this->source('includes/builder/BlockRenderer.php');
 
         $imageMethods = $this->source('assets/js/blox-image-control.js');
         $imageControl = $this->source('admin/blox_editor/partials/image-control.php');
         $this->assertStringContainsString('...window.BloxImageControl.methods', $editor);
+        $this->assertStringContainsString('...window.BloxBackgroundPanel.methods', $editor);
+        $this->assertStringContainsString('openPreferredBackgroundLayer()', $backgroundPanel);
+        $this->assertStringContainsString('container_bg_image', $backgroundPanel);
+        $this->assertStringContainsString('data-testid="blox-background-layer-', $backgroundSwitcher);
+        $this->assertStringContainsString('backgroundLayerState(', $backgroundSwitcher);
         $this->assertStringContainsString('pickContainerBackgroundImage()', $imageMethods);
         $this->assertStringContainsString('container_bg_image: ""', $editor);
         $this->assertStringContainsString('data-testid="blox-container-background-image"', $workspace);
@@ -1577,6 +1665,10 @@ final class BloxEditorPreviewContractTest extends TestCase
         }
         $this->assertStringContainsString("'blox-quick-favorite-element-' : 'blox-favorite-element-'", $workspace);
         $this->assertStringContainsString('@click.stop="toggleElementFavorite(el.type)"', $workspace);
+        $this->assertStringContainsString(':aria-pressed="isElementFavorite(el.type)"', $workspace);
+        $this->assertStringContainsString('<i class="ti ti-star text-sm" aria-hidden="true"></i>', $workspace);
+        $this->assertStringNotContainsString('ti-star-filled', $workspace);
+        $this->assertStringContainsString('.ti-star:', $this->source('assets/tabler/tabler-icons.min.css'));
         $this->assertStringContainsString('focus-visible:ring-2', $workspace);
     }
 
@@ -1610,7 +1702,7 @@ final class BloxEditorPreviewContractTest extends TestCase
             'restoreTemplateLibraryPreferences()',
             'toggleTemplateFavorite(key)',
             'rememberRecentTemplate(key)',
-            'if (item.type === "section") self.rememberRecentTemplate(item.key);',
+            'if (item.type === "section") this.rememberRecentTemplate(item.key);',
             'templateQuickCount(mode)',
             'rank: self.isTemplateFavorite(item.key) ? 0',
         ] as $token) {
@@ -1805,7 +1897,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
     public function testGlobalDeviceSwitchExposesSelectedResponsiveOverrideState(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        $editor = $this->source('admin/blox_editor.php') . "
+" . $this->source('admin/blox_editor/partials/responsive-methods.php');
         $header = $this->source('admin/blox_editor/partials/header.php');
 
         foreach ([

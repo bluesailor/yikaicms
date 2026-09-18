@@ -1,3 +1,34 @@
+/* Shared by the live homepage and its theme-header canvas context. */
+html.yk-home-header-overlay :is(body, .yk-home-context-area) > [data-yk-topbar] {
+    position: absolute !important;
+    inset: 0 0 auto;
+    z-index: 60;
+    background: rgba(15, 23, 42, .42) !important;
+    color: #fff !important;
+}
+html.yk-home-header-overlay :is(body, .yk-home-context-area) > [data-yk-topbar] * { color: inherit !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) {
+    position: absolute !important;
+    inset: 0 0 auto;
+    z-index: 55;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-color: rgba(255, 255, 255, .18) !important;
+}
+html.yk-home-header-overlay :is(body, .yk-home-context-area) > [data-yk-topbar] + #siteHeader { top: 2rem; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) a,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) button,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) a > span { color: #fff !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .hamburger span { background-color: #fff !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .nav-dropdown-menu a,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) .nav-submenu a,
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #langDropdown a { color: #374151 !important; }
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #mobileMenu {
+    background: rgba(15, 23, 42, .96) !important;
+    border-color: rgba(255, 255, 255, .14) !important;
+}
+html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #mobileMenu a { color: #fff !important; }
+
 /* Content positioning uses a separate box, leaving animated layers untouched. */
 /* 覆盖式页头由运行时量出实际高度；没有覆盖态时该值为 0，不改变旧布局。 */
 [data-blox-banner] [data-blox-banner-content] {
@@ -101,7 +132,8 @@
     }
 }
 
-[data-blox-banner][data-blox-height-mode="fixed"] {
+[data-blox-banner][data-blox-height-mode="fixed"],
+[data-blox-banner][data-blox-height-mode="fixed-cover-header"] {
     height: var(--blox-banner-height-mobile);
     min-height: 0;
 }
@@ -119,7 +151,8 @@
 }
 
 @media (min-width: 768px) {
-    [data-blox-banner][data-blox-height-mode="fixed"] {
+    [data-blox-banner][data-blox-height-mode="fixed"],
+    [data-blox-banner][data-blox-height-mode="fixed-cover-header"] {
         height: var(--blox-banner-height-pc);
     }
 }
@@ -248,18 +281,40 @@
     animation: none;
 }
 
+/*
+ * 入场位移都按「这一层自身的尺寸」算（translate3d 的百分比按元素自身计）：
+ * 左右滑入走自身宽度，也就是内容宽度；自下而上走两倍自身高度（单行标题只有几十像素，一倍看着不明显）。原先是固定的 44px / 28px，
+ * 在 1920 宽的大图上几乎看不出在动。
+ * 起手 50% 不透明度：文字一开始就能看见，到位时补满，而不是凭空出现。
+ * 想调距离/起始透明度，改下面几个变量即可（可在 banner 容器上按站点覆盖）。
+ */
+[data-blox-banner] {
+    --blox-banner-slide-distance: 100%;
+    --blox-banner-rise-distance: 200%;
+    --blox-banner-slide-opacity: .5;
+}
+
 @keyframes blox-banner-fade-up {
-    from { opacity: 0; transform: translate3d(0, 28px, 0); }
+    from {
+        opacity: var(--blox-banner-slide-opacity, .5);
+        transform: translate3d(0, var(--blox-banner-rise-distance, 200%), 0);
+    }
     to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 @keyframes blox-banner-slide-left {
-    from { opacity: 0; transform: translate3d(44px, 0, 0); }
+    from {
+        opacity: var(--blox-banner-slide-opacity, .5);
+        transform: translate3d(var(--blox-banner-slide-distance, 100%), 0, 0);
+    }
     to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 @keyframes blox-banner-slide-right {
-    from { opacity: 0; transform: translate3d(-44px, 0, 0); }
+    from {
+        opacity: var(--blox-banner-slide-opacity, .5);
+        transform: translate3d(calc(-1 * var(--blox-banner-slide-distance, 100%)), 0, 0);
+    }
     to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 

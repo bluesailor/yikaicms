@@ -66,7 +66,9 @@
             if (header && (!header.classList || !header.classList.contains || !header.classList.contains('yk-stuck'))
                 && typeof header.getBoundingClientRect === 'function') {
                 var rect = header.getBoundingClientRect();
-                if (rect && rect.bottom > 0) safeTop = Math.max(0, Math.ceil(rect.bottom));
+                var bannerTop = typeof slider.getBoundingClientRect === 'function'
+                    ? slider.getBoundingClientRect().top : 0;
+                if (rect && rect.bottom > 0) safeTop = Math.max(0, Math.ceil(rect.bottom - bannerTop));
             }
         }
         slider.style.setProperty('--blox-banner-safe-top', safeTop + 'px');

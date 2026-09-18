@@ -36,7 +36,7 @@ function phasePort(key, phaseIndex, slot = 0) {
 // brittle per-test database resets inside a single scenario file.
 const SPEC_OWNERSHIP = Object.freeze([
   ['media', /(?:background-video|banner|media-|responsive-image|site-health-media)/i],
-  ['design', /(?:default-areas|design-|market-theme|minimal-(?:footer|header)|business-surfaces|theme-)/i],
+  ['design', /(?:default-areas|site-design|admin-module-nav|product-template|design-|market-theme|minimal-(?:footer|header)|business-surfaces|theme-)/i],
   ['locale', /(?:channel-pagination|catalog-results|dynamic-query|frontend-language|home-language|element-responsive)/i],
 ]);
 

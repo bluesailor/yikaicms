@@ -37,6 +37,8 @@ if ($_vars === null) {
     header('HTTP/1.1 404 Not Found');
     render404(__('error_content_not_found'));
 }
+// 详情模板渲染上下文需要控制器原始返回值（下面 extract 后 $_vars 即销毁）
+$contentTemplateVars = $_vars;
 extract($_vars, EXTR_OVERWRITE);
 unset($_vars);
 
@@ -73,8 +75,21 @@ if (!empty($content['cover'])) {
     $jsonLd['image'] = $siteUrl . $content['cover'];
 }
 
+// 详情模板解析：与 article.php 同一契约——按**内容自身的类型**（contents.type）判定，
+// 而不是按入口文件名。案例 / 下载 / 自定义模型等其他类型不参与模板套用，原行为不变。
+$detailTemplateHtml = '';
+if (ArticleTemplateDocument::supportsContentType($contentTemplateVars['content']['type'] ?? '')) {
+    $detailTemplateHtml = ArticleTemplateDocument::renderPublished(
+        ArticleTemplateDocument::contextFrom($contentTemplateVars)
+    );
+}
+unset($contentTemplateVars);
+
 // 引入头部
 require_once theme_path('layouts/header.php');
+if (trim($detailTemplateHtml) !== '') {
+    echo $detailTemplateHtml;
+} else {
 ?>
 
 <!-- 面包屑 -->
@@ -329,7 +344,7 @@ require_once theme_path('layouts/header.php');
                 <?php if (!empty($downloadSidebarCats)): ?>
                 <!-- 下载分类 -->
                 <div class="bg-white rounded-lg shadow">
-                    <div class="px-4 py-3 border-b font-bold text-dark bg-primary text-white rounded-t-lg"><?php echo __('list_download_category'); ?></div>
+                    <div class="bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200 rounded-t-lg"><?php echo __('list_download_category'); ?></div>
                     <div class="divide-y">
                         <?php foreach ($downloadSidebarCats as $cat): ?>
                         <a href="<?php echo channelUrl($cat); ?>"
@@ -494,5 +509,6 @@ document.addEventListener('keydown', function(e) {
 </script>
 <?php endif; ?>
 
+<?php } ?>
 <?php require_once theme_path('layouts/footer.php'); ?>
 <?php HtmlCache::end(); ?>

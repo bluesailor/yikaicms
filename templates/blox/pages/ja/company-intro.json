@@ -1,0 +1,308 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "会社概要",
+  "thumbnail": "/assets/images/blox-templates/company-intro.svg",
+  "requires": {
+    "elements": ["heading", "text", "image", "button", "divider", "icon-box", "card", "quote", "stats-group", "stat-item", "cta"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "ページ見出し",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "narrow",
+          "gap": "sm",
+          "content_v_align": "center"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p class=\"yk-eyebrow\">About us</p>"
+                }
+              },
+              {
+                "type": "heading",
+                "data": {
+                  "text": "確かな専門性と安定した体制で、お客様の長期的な成長に寄り添います",
+                  "level": "h1",
+                  "visual_size": { "d": "5xl", "t": "4xl", "m": "3xl" },
+                  "align": "left"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p class=\"yk-lead\">ここでは2〜3文で、会社の事業内容、主な顧客層、同業他社との違いを説明してください。業界、設立年、主な製品やサービスなど具体的に書くほうが、抽象的な形容詞よりも印象に残ります。</p>"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "会社紹介（画像＋テキスト）",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "xl",
+          "content_v_align": "center"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "私たちについて",
+                  "level": "h2",
+                  "visual_size": { "d": "3xl", "m": "2xl" },
+                  "align": "left"
+                }
+              },
+              {
+                "type": "divider",
+                "data": { "style": "solid", "width": 3, "color": "#2563eb", "spacing": "sm" }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p class=\"yk-copy\">この段落では、会社の沿革と位置づけを記載してください。いつ、なぜ設立したのか、主な事業は何かを説明します。</p><p class=\"yk-copy\">2段落目では、規模と能力を記載してください。工場面積、設備、認証・資格、チーム構成、年間生産能力やサービス実績など、形容詞ではなく検証可能な事実で示します。</p><p class=\"yk-copy\">3段落目では、顧客と取引について記載してください。主な対応業界、代表的な顧客の種類、取引の形態を説明します。</p>"
+                }
+              },
+              {
+                "type": "button",
+                "data": { "text": "お問い合わせ", "url": "/contact.html", "variant": "primary", "align": "left" }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "image",
+                "data": { "src": "/images/company-about-v2.webp", "alt": "社内・施設の写真" }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "数字で見る実績",
+        "settings": {
+          "padding": { "d": "lg", "m": "md" },
+          "max_width": "wide",
+          "bg_color": "#f8fafc"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "stats-group",
+                "data": {
+                  "desktop_columns": "4",
+                  "tablet_columns": "2",
+                  "mobile_columns": "2",
+                  "gap": "lg",
+                  "counter_enabled": true,
+                  "counter_start": 0,
+                  "counter_duration": 1600,
+                  "children": [
+                    { "type": "stat-item", "data": { "icon": "calendar", "number": "2008", "label": "設立年" } },
+                    { "type": "stat-item", "data": { "icon": "users", "number": "120", "label": "従業員数" } },
+                    { "type": "stat-item", "data": { "icon": "building-factory-2", "number": "3000", "label": "工場面積（㎡）" } },
+                    { "type": "stat-item", "data": { "icon": "world", "number": "26", "label": "対応国・地域" } }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "私たちの強み",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "lg"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "選ばれる理由",
+                  "level": "h2",
+                  "visual_size": { "d": "3xl", "m": "2xl" },
+                  "align": "center"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p class=\"yk-hint-center\">最も説得力のある理由を3〜4つ挙げてください。それぞれ1文で、「自社が持っているもの」ではなく「お客様が得られるもの」を伝えます。</p>"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "強み（3カラム）",
+        "settings": {
+          "padding": { "d": "md", "m": "sm" },
+          "max_width": "wide",
+          "gap": "lg"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "certificate",
+                  "title": "充実した認証・資格",
+                  "text": "業界の主要な認証を取得し、品質検査書類やコンプライアンス文書を一式でご提供します。"
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "adjustments",
+                  "title": "ニーズに合わせたカスタマイズ",
+                  "text": "選定から導入まで一貫して関わり、標準品を当てはめるのではなく、お客様の使用条件に合わせて仕様を調整します。"
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "icon-box",
+                "data": {
+                  "icon": "headset",
+                  "title": "長期的なサポート",
+                  "text": "納品はゴールではありません。保証期間中の迅速な対応に加え、その後の交換部品の供給もサポートします。"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "対応能力",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "wide",
+          "gap": "lg",
+          "bg_color": "#f8fafc"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "card",
+                "data": {
+                  "image": "/assets/images/demo/yikaicms-industrial-600.webp",
+                  "title": "研究開発・設計",
+                  "text": "自社の設計チームが、特注品の設計や構造の最適化に対応します。",
+                  "link": ""
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "card",
+                "data": {
+                  "image": "/images/company-about-v2.webp",
+                  "title": "製造",
+                  "text": "重要工程は自社で管理し、工程内検査の記録はすべてトレース可能です。",
+                  "link": ""
+                }
+              }
+            ]
+          },
+          {
+            "elements": [
+              {
+                "type": "card",
+                "data": {
+                  "image": "/images/certificate-small.webp",
+                  "title": "品質管理",
+                  "text": "出荷前に全数検査を行い、検査報告書を添付してお届けします。",
+                  "link": ""
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "お客様の声",
+        "settings": {
+          "padding": { "d": "xl", "m": "lg" },
+          "max_width": "narrow",
+          "content_v_align": "center"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "quote",
+                "data": {
+                  "text": "実際のお客様の声をここに掲載してください。「対応が良かった」よりも、具体的な案件や成果に触れた評価のほうがはるかに説得力があります。",
+                  "author": "〇〇株式会社 · 購買担当者"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "行動喚起",
+        "settings": {
+          "padding": { "d": "lg", "m": "md" },
+          "max_width": "wide"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "cta",
+                "data": {
+                  "use_home_text": false,
+                  "title": "私たちにできることを知りたいですか？",
+                  "text": "ご要望をお送りいただければ、1営業日以内にご返信します。",
+                  "btn_text": "今すぐ相談する",
+                  "btn_url": "/contact.html"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

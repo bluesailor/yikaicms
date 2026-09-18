@@ -422,6 +422,20 @@ function bloxEditorEnabled(): bool
 /**
  * 站点配置覆盖数组（一次性加载并缓存；无覆盖文件时为空数组，零开销）。
  */
+/**
+ * 本站是否接受「示例业务内容」种子。
+ *
+ * 安装向导取消勾选演示数据后写入 install_demo_data=0；示例内容的种子迁移
+ * （解决方案 / 行业方案样例）必须据此跳过，否则新装迁移会把用户明确不要的
+ * 公开案例补回站点（2026-09-17 发版前审计 F08）。
+ *
+ * 缺键 = 该站装于记录此开关之前，保持原有行为（允许），避免老站升级时行为突变。
+ */
+function demoSeedsAllowed(): bool
+{
+    return (string) config('install_demo_data', '1') !== '0';
+}
+
 function configOverrides(): array
 {
     static $ov = null;
@@ -532,6 +546,9 @@ function resolveSlug(string $input, string $title, string $table, int $excludeId
  */
 function getLang(): string
 {
+    if (defined('YK_PRODUCT_NATIVE_PREVIEW') && YK_PRODUCT_NATIVE_PREVIEW === true && defined('SITE_LANG')) {
+        return SITE_LANG;
+    }
     static $lang = null;
     if ($lang !== null) return $lang;
 
@@ -591,7 +608,16 @@ function loadLangData(): array
         return $_LANG_DATA;
     }
 
-    $lang = getLang();
+    $_LANG_DATA = langDataFor(getLang());
+    return $_LANG_DATA;
+}
+
+/** 指定语言的完整文案表：目标语言 + 中文兜底 + 站点覆盖层。 */
+function langDataFor(string $lang): array
+{
+    if (preg_match('/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$/D', $lang) !== 1) {
+        $lang = 'zh-CN';
+    }
     $langFile = ROOT_PATH . '/lang/' . $lang . '.php';
 
     // 先加载目标语言，再用中文兜底
@@ -599,7 +625,7 @@ function loadLangData(): array
     $fallbackData = file_exists($fallback) ? require $fallback : [];
     $langData = ($lang !== 'zh-CN' && file_exists($langFile)) ? require $langFile : [];
 
-    $_LANG_DATA = array_merge($fallbackData, $langData);
+    $data = array_merge($fallbackData, $langData);
 
     // 站点语言覆盖层（最高优先级）：lang/overrides/all.php（全语言）+ lang/overrides/{lang}.php。
     // 各站在不改核心 lang/*.php 的前提下改词/加词，升级不冲突。见 lang/overrides/README.md。
@@ -607,12 +633,50 @@ function loadLangData(): array
         if (is_file($ovFile)) {
             $ov = require $ovFile;
             if (is_array($ov) && $ov) {
-                $_LANG_DATA = array_merge($_LANG_DATA, $ov);
+                $data = array_merge($data, $ov);
             }
         }
     }
 
-    return $_LANG_DATA;
+    return $data;
+}
+
+/**
+ * 在后台请求里按「站点语言」渲染前台内容。
+ *
+ * 后台请求的 __() 使用后台界面语言；编辑器画布却要像前台一样显示页面语言的固定文案
+ *（如首页「查看全部」「核心优势」等兜底文案）。回调期间临时换成 siteLang() 的文案表，
+ * 结束后恢复，画布上的编辑器按钮等后台文案不受影响。两种语言相同时直接执行。
+ *
+ * @template T
+ * @param callable(): T $render
+ * @return T
+ */
+function withSiteLanguageStrings(callable $render): mixed
+{
+    return withLanguageStrings(siteLang(), $render);
+}
+
+/**
+ * 回调期间 __() 按指定内容语言取文案（如英文页面的编辑器插入元素时的占位内容），结束后恢复。
+ *
+ * @template T
+ * @param callable(): T $render
+ * @return T
+ */
+function withLanguageStrings(string $language, callable $render): mixed
+{
+    global $_LANG_DATA;
+    if ($language === '' || $language === getLang()) {
+        return $render();
+    }
+    $saved = loadLangData();
+    $_LANG_DATA = array_merge($saved, langDataFor($language));
+    try {
+        return $render();
+    } finally {
+        $_LANG_DATA = $saved;
+    }
 }
 
 /**
@@ -920,14 +984,58 @@ function settingOptionLabel(string $key, string $value, string $fallback = ''): 
  * admin_title 仍是出厂默认「后台管理」时按后台语言本地化（en=Admin Panel、
  * ja=管理画面）；管理员自定义过则原样显示；为空回落站点名。
  * 头部与页脚必须共用本函数——曾出现头部已本地化而页脚仍直读 config 的分叉。
+ * 自定义品牌限注册码授权站点；未授权时显示出厂品牌（见 adminBrandingCustomizable）。
  */
+/**
+ * 官网「栏目页 404 与伪静态配置」帮助页（按后台语言）。
+ * 控制台的新站伪静态提醒与站点体检页都指向它；顶栏帮助图标另指使用教程（见 header.php）。
+ */
+function adminHelpUrl(): string
+{
+    return match ((string) config('admin_lang', getLang())) {
+        'en' => 'https://www.yikaicms.com/en/#help',
+        'ja' => 'https://www.yikaicms.com/ja/#help',
+        default => 'https://www.yikaicms.com/#help',
+    };
+}
+
 function adminBrandName(): string
 {
+    if (!adminBrandingCustomizable()) {
+        return ADMIN_BRAND_DEFAULT_NAME;
+    }
     $brand = trim((string) config('admin_title', ''));
     if ($brand === '后台管理') {
         return __('admin_title_default');
     }
     return $brand !== '' ? $brand : (string) config('site_name', 'YikaiCMS');
+}
+
+if (!defined('ADMIN_BRAND_DEFAULT_NAME')) {
+    define('ADMIN_BRAND_DEFAULT_NAME', 'Yikai CMS');
+    /** 后台品牌四项设置（独立页 admin/admin_brand.php 维护，基本设置页不再显示）。 */
+    define('ADMIN_BRAND_SETTING_KEYS', ['admin_title', 'admin_copyright', 'admin_logo', 'admin_logo_max_height']);
+}
+
+/**
+ * 当前站点能否使用自定义后台品牌：限注册码授权（有效或持有付费模块）。
+ * 同一请求内 license() 已做缓存，头部 / 页脚多次调用不重复校验。
+ */
+function adminBrandingCustomizable(): bool
+{
+    return function_exists('license_allows_admin_branding') && license_allows_admin_branding();
+}
+
+/** 后台侧栏 Logo 地址；未授权或未设置返回空串（显示文字品牌）。 */
+function adminBrandLogoUrl(): string
+{
+    return adminBrandingCustomizable() ? SiteAsset::availableUrl((string) config('admin_logo', '')) : '';
+}
+
+/** 后台页脚自定义版权；未授权或未设置返回空串（显示默认 © 年份 品牌名）。 */
+function adminBrandCopyright(): string
+{
+    return adminBrandingCustomizable() ? trim((string) config('admin_copyright', '')) : '';
 }
 
 /**
@@ -1121,6 +1229,31 @@ function pendingMigrationsCount(): int
         return 0;   // 探测失败不打扰页面（升级页会给出准确状态）
     }
     return $n;
+}
+
+/**
+ * 侧栏「待执行迁移」角标用的计数：「已全部执行」的结论按迁移文件指纹缓存。
+ *
+ * 全量探测要逐个迁移查库结构（一页后台实测约 90 条 information_schema 查询），
+ * 结构同步后结论几乎不变。指纹 = 版本号 + 迁移文件名与修改时间：升级带来新迁移或改动迁移时
+ * 立即重新探测。「已全部执行」缓存一小时（兼顾数据库被还原这类少见情况）；有待执行迁移时
+ * 只缓存一分钟——迁移有多个执行入口，不逐个清缓存，执行后角标最多一分钟内消失。
+ * 升级页仍直接用 pendingMigrationsCount() 做实时判定。
+ */
+function sidebarPendingMigrationsCount(): int
+{
+    $signature = [];
+    foreach (glob(ROOT_PATH . '/migrations/*.php') ?: [] as $file) {
+        $signature[] = basename($file) . ':' . (int) @filemtime($file);
+    }
+    $fingerprint = hash('sha256', (defined('CMS_VERSION') ? CMS_VERSION : '') . '|' . implode(',', $signature));
+    $cached = cacheGet('sidebar_pending_migrations');
+    if (is_array($cached) && ($cached['fingerprint'] ?? null) === $fingerprint && is_int($cached['count'] ?? null)) {
+        return $cached['count'];
+    }
+    $count = pendingMigrationsCount();
+    cacheSet('sidebar_pending_migrations', ['fingerprint' => $fingerprint, 'count' => $count], $count === 0 ? 3600 : 60);
+    return $count;
 }
 
 /**
@@ -1550,6 +1683,8 @@ function productUrl(array $product): string
 
 function productPrettyUrl(array $product): string
 {
+    $custom = productRouteModel()->pathFor('product', (int) ($product['id'] ?? 0));
+    if ($custom !== '') return $custom;
     $prefix = langPrefix();
     $slug = (string) ($product['slug'] ?? '');
     $categorySlug = (string) ($product['category_slug'] ?? '');
@@ -1641,6 +1776,10 @@ function getProductCategoryBySlug(string $slug): ?array
  */
 function productCategoryUrl(array $category): string
 {
+    if (!isDynamicUrlMode()) {
+        $custom = productRouteModel()->pathFor('category', (int) ($category['id'] ?? 0));
+        if ($custom !== '') return $custom;
+    }
     if (isDynamicUrlMode()) {
         $slug = (string) ($category['slug'] ?? '');
         return dynamicUrl('product_list', $slug !== '' ? ['cat' => $slug] : ['cat' => (int) ($category['id'] ?? 0)]);
@@ -1859,20 +1998,11 @@ function homeAboutDefaultTitle(): string
 }
 
 /**
- * 首页版块标题文字：按 home_title_style 决定配色。
- * split → 前两字（中文）/首词（英文）主题色、其余同色；其它样式 → 整体同色。
+ * 首页版块标题保持整体配色；兼容旧 split 配置但不再自动拆分文字。
  */
 function homeTitleInner(string $title): string
 {
-    if (config('home_title_style', 'underline') !== 'split') {
-        return e($title);
-    }
-    if (preg_match('/^[\x{4e00}-\x{9fff}]/u', $title)) {
-        return '<span class="text-primary">' . e(mb_substr($title, 0, 2)) . '</span>' . e(mb_substr($title, 2));
-    }
-    $words = explode(' ', $title, 2);
-    return '<span class="text-primary">' . e($words[0]) . '</span>'
-        . (isset($words[1]) ? ' ' . e($words[1]) : '');
+    return e($title);
 }
 
 /**
@@ -2589,7 +2719,8 @@ function uploadFile(array $file, string $type = 'images'): array
         ? array_values(array_filter(array_map('strval', (array) constant('UPLOAD_VIDEO_TYPES'))))
         : ['mp4', 'webm', 'ogg', 'ogv', 'mov', 'm4v'];
     $allowedTypes = match ($type) {
-        'images' => UPLOAD_IMAGE_TYPES,
+        // albums：相册图片，与 images 同一白名单，只是落在 uploads/albums/
+        'images', 'albums' => UPLOAD_IMAGE_TYPES,
         'files' => UPLOAD_FILE_TYPES,
         'videos' => $videoTypes,
         default => array_merge(UPLOAD_IMAGE_TYPES, UPLOAD_FILE_TYPES, $videoTypes)
@@ -3324,6 +3455,16 @@ function renderFormTagHtml(array $tag): string
     }
 }
 
+function renderFormCaptcha(bool $enabled): string
+{
+    if (!$enabled) return '';
+    return '<div class="form-captcha" style="display:flex;gap:10px;align-items:center;margin:0 0 1rem">'
+        . '<input type="text" name="captcha_code" required autocomplete="off" maxlength="6" aria-label="' . e(__('form_captcha')) . '" placeholder="' . e(__('form_captcha')) . '" style="flex:1;min-width:0;padding:.6rem .85rem;border:1px solid #d1d5db;border-radius:.5rem;font-size:1rem;outline:none">'
+        . '<button type="button" aria-label="' . e(__('form_captcha_refresh')) . '" onclick="this.querySelector(\'img\').src=\'/captcha.php?\'+Date.now()" style="padding:0;border:0;background:none;cursor:pointer;flex:none">'
+        . '<img src="/captcha.php" alt="' . e(__('form_captcha')) . '" style="height:42px;width:120px;border-radius:.5rem;border:1px solid #e5e7eb">'
+        . '</button></div>';
+}
+
 /**
  * 渲染表单模板为HTML（支持 CF7 风格模板和旧版 JSON）
  */
@@ -3381,13 +3522,7 @@ function renderFormTemplate(string $slug): string
     );
 
     // 验证码（模板「启用验证码」时，插在提交按钮之前；内联样式，主题无关）
-    $captchaHtml = '';
-    if (!empty($template['captcha'])) {
-        $captchaHtml = '<div class="form-captcha" style="display:flex;gap:10px;align-items:center;margin:0 0 1rem">'
-            . '<input type="text" name="captcha_code" required autocomplete="off" maxlength="6" placeholder="' . e(__('form_captcha')) . '" style="flex:1;padding:.6rem .85rem;border:1px solid #d1d5db;border-radius:.5rem;font-size:1rem;outline:none">'
-            . '<img src="/captcha.php" alt="captcha" title="' . e(__('form_captcha_refresh')) . '" onclick="this.src=\'/captcha.php?\'+Date.now()" style="cursor:pointer;height:42px;width:120px;border-radius:.5rem;border:1px solid #e5e7eb;flex:none">'
-            . '</div>';
-    }
+    $captchaHtml = renderFormCaptcha(!empty($template['captcha']));
 
     // 替换 submit 标签（前面插入验证码）
     $renderedBody = preg_replace_callback(
@@ -3403,6 +3538,7 @@ function renderFormTemplate(string $slug): string
     $html = '<div class="shortcode-form" id="' . e($formId) . '-wrap">';
     $html .= '<form id="' . e($formId) . '" onsubmit="return submitShortcodeForm(event, \'' . e($slug) . '\')">';
     $html .= '<input type="hidden" name="form_slug" value="' . e($slug) . '">';
+    $html .= '<input type="hidden" name="_lang" value="' . e(siteLang()) . '">';
     // 反垃圾：蜜罐字段（正常用户不可见，机器人易填）+ 签名时间戳（防提交过快）
     $html .= '<input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">';
     $_fts = time();
@@ -3422,11 +3558,12 @@ function renderFormTemplate(string $slug): string
     $html .= 'e.preventDefault();var form=e.target;var btn=form.querySelector("button[type=submit]");';
     $html .= 'btn.disabled=true;btn.textContent=' . json_encode(__('form_submitting')) . ';';
     $html .= 'var fd=new FormData(form);';
-    $html .= 'fetch("/form_submit.php",{method:"POST",body:fd}).then(r=>r.json()).then(function(data){';
+    $html .= 'fetch("/form_submit.php?_lang="+encodeURIComponent(fd.get("_lang")||""),{method:"POST",body:fd}).then(r=>r.json()).then(function(data){';
     $html .= 'var msgEl=document.getElementById("shortcode-form-"+slug+"-msg");';
     $html .= 'msgEl.classList.remove("hidden","bg-green-50","text-green-600","bg-red-50","text-red-600");';
     $html .= 'if(data.code===0){msgEl.className+=" bg-green-50 text-green-600";msgEl.textContent=data.msg;form.reset();}';
     $html .= 'else{msgEl.className+=" bg-red-50 text-red-600";msgEl.textContent=data.msg;}';
+    $html .= 'if(data.refresh_token){["form_ts","form_sig"].forEach(function(key){var field=form.elements.namedItem(key);if(field){field.value=String(data.refresh_token[key]);field.defaultValue=field.value;}});}';
     $html .= 'var _ci=form.querySelector("img[src*=captcha]");if(_ci)_ci.src="/captcha.php?"+Date.now();';
     $html .= 'msgEl.classList.remove("hidden");btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';';
     $html .= '}).catch(function(){btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';});return false;};';
@@ -3824,6 +3961,21 @@ function isMultiLangEnabled(string $table = 'contents'): bool
 }
 
 /**
+ * 首页 Blox 编辑器的编辑语言（编辑器、画布预览、首页接口三个请求共用）。
+ *
+ * 首页文档各语言共用一份，多语言文案都按 siteLang() 读写（关于我们/FAQ 本地化、自定义版块覆盖、
+ * home_*_<lang> 设置键）。所以用 ?lang= 打开首页编辑器时，这几个请求在定义 SITE_LANG 前调用本函数，
+ * 把「本次请求」的主语言临时切到该语言——画布显示、字段初值与保存位置都随之一致。
+ * 只作用于单次请求，不改站点的默认语言设置；非已启用的前台语言一律回落默认语言。
+ */
+function bloxHomeEditorLanguage(): string
+{
+    $default = (string) config('site_lang', 'zh-CN');
+    $requested = trim((string) ($_GET['lang'] ?? $_POST['lang'] ?? ''));
+    return $requested !== '' && isset(enabledLanguages()[$requested]) ? $requested : $default;
+}
+
+/**
  * 获取当前站点语言
  */
 function siteLang(): string
@@ -3902,32 +4054,10 @@ function dictTranslateTo(string $text, string $targetLang): ?string
     return dictTranslate($text, 'zh', $to);
 }
 
-/**
- * 生成带语言前缀的 URL
- */
-function langUrl(string $url, string $lang = ''): string
-{
-    $lang = $lang ?: siteLang();
-    $defaultLang = (string)config('site_lang', 'zh-CN');
-    if (isDynamicUrlMode()) {
-        $parts = parse_url($url);
-        $path = is_array($parts) ? (string) ($parts['path'] ?? '/') : $url;
-        $query = [];
-        if (is_array($parts) && isset($parts['query'])) parse_str((string) $parts['query'], $query);
-        if (($query['yk_route'] ?? '') !== '') {
-            if ($lang === $defaultLang) unset($query['lang']);
-            else $query['lang'] = $lang;
-            return $path . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
-        }
-        if ($path === '/' || trim($path, '/') === '' || trim($path, '/') === $defaultLang
-            || in_array(trim($path, '/'), ['en', 'ja', 'zh-CN', 'zh-TW'], true)) {
-            return dynamicUrl('home', [], $lang);
-        }
-    }
-    if ($lang === $defaultLang) return $url;
-    return '/' . $lang . ltrim($url, '/');
-}
+// 生成带语言前缀的 URL（langUrl；独立文件便于单测直接加载）
+require_once __DIR__ . '/lang_url.php';
 
 // 权限能力目录（角色勾选 / 页面守卫 / 权限迁移 共用；函数内才调 __()，加载顺序无碍）
 require_once __DIR__ . '/permissions.php';
 require_once __DIR__ . '/catalog_pagination.php';
+require_once __DIR__ . '/product_routes.php';

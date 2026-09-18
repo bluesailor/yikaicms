@@ -1,0 +1,12 @@
+{
+    "name": "易登录",
+    "name_en": "Easy Login",
+    "name_ja": "かんたんログイン",
+    "version": "1.0.0",
+    "description": "需要 CMS v1.20.0+。一次性后台免密登录链接，可设置有效期、撤销并查看使用记录，复用系统登录限流、IP 白名单和双重验证。",
+    "description_en": "Requires CMS v1.20.0+. One-time admin login links with expiry, revocation and redemption history. Respects CMS throttling, IP allowlists and two-factor authentication.",
+    "description_ja": "CMS v1.20.0 以降が必要です。有効期限・失効・利用履歴に対応した管理画面用ワンタイムリンク。CMS の試行制限、IP 許可リスト、二段階認証を利用します。",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.20.0"
+}

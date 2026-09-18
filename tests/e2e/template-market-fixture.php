@@ -8,6 +8,8 @@ header('Content-Type: application/json; charset=utf-8');
 echo json_encode([
     'code' => 0,
     'data' => [
+        // 目录协议 v2（G5-MARKET-API-CONTRACT）：客户端拒绝缺少 protocol_version / access / paid 的旧式目录
+        'protocol_version' => 2,
         'updated_at' => '2026-09-05',
         'templates' => [
             [
@@ -19,6 +21,8 @@ echo json_encode([
                 'description' => 'A deterministic cover fixture.',
                 'version' => '1.0.0',
                 'thumbnail' => '/assets/templates/cta-centered.png',
+                'access' => 'public',
+                'paid' => false,
                 'entitled' => true,
             ],
             [
@@ -30,6 +34,8 @@ echo json_encode([
                 'description' => 'A deterministic no-cover fallback fixture.',
                 'version' => '1.0.0',
                 'thumbnail' => '',
+                'access' => 'public',
+                'paid' => false,
                 'entitled' => true,
             ],
         ],

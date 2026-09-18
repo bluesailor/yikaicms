@@ -34,6 +34,21 @@ function fixture(overrides = {}) {
     return { bridge, frame, frameWindow, calls, sent };
 }
 
+test('table canvas actions require the current frame, stable identity and bounded coordinates', () => {
+    const calls = [];
+    const current = fixture({onTableAction: data => calls.push(data)});
+    const data = {id:'table-1',path:'0.0.0',row:0,column:9,action:'expand'};
+    assert.equal(current.bridge.handleMessage({source:{},data:{ykTableAction:data}}), false);
+    assert.equal(current.bridge.handleMessage({source:current.frameWindow,data:{ykTableAction:data}}), true);
+    for (const invalid of [{...data,action:'publish'}, {...data,column:12}, {...data,id:''}, {...data,row:-1}]) {
+        assert.equal(current.bridge.handleMessage({source:current.frameWindow,data:{ykTableAction:invalid}}), false);
+    }
+    assert.deepEqual(calls, [data]);
+    const cell = {kind:'tableCell',id:'table-1',path:'0.0.0',row:1,column:0,base:'old',value:'new'};
+    assert.equal(current.bridge.handleMessage({source:current.frameWindow,data:{ykInlineEdit:cell}}), true);
+    assert.equal(current.bridge.handleMessage({source:current.frameWindow,data:{ykInlineEdit:{...cell,value:'x'.repeat(4001)}}}), false);
+});
+
 test("只接受当前画布 iframe 的消息", function () {
     const current = fixture();
     assert.equal(current.bridge.handleMessage({ source: {}, data: { ykPick: 2 } }), false);
@@ -211,6 +226,20 @@ test('ykInsertAt 白名单：index/kind/spans 全校验（r13 插入轨道）', 
     assert.equal(ok({ index: 1, kind: 'layout', spans: [13] }), false);
     assert.equal(ok({ index: 1, kind: 'layout', spans: [1, 2, 3, 4, 5, 6, 7] }), false);
     assert.deepEqual(got.map(function (p) { return p.kind; }), ['layout', 'templates', 'blank']);
+});
+
+test('section picker messages require a finite nonnegative canvas anchor', function () {
+    const got = [];
+    const current = fixture({ onInsertAt: (p) => got.push(p) });
+    const send = (anchor) => current.bridge.handleMessage({ source: current.frameWindow, data: { ykInsertAt: { index: 1, kind: 'picker', anchor } } });
+    for (const anchor of [null, {}, { x: -1, y: 1 }, { x: 2, y: NaN }, { x: '2', y: 1 }, { x: 1, y: Infinity }]) {
+        assert.equal(send(anchor), false);
+    }
+    assert.equal(send({ x: 320, y: 450 }), true);
+    assert.equal(got.length, 1);
+    assert.equal(got[0].kind, 'picker');
+    assert.equal(got[0].anchor.x, 320);
+    assert.equal(got[0].anchor.y, 450);
 });
 
 test('ykDropRejected 具名拒因白名单（r14）', function () {

@@ -152,7 +152,7 @@ return [
     'home' => [
         'home_about_title'          => ['value' => '', 'type' => 'text', 'name' => '关于版块标题', 'tip' => '首页"关于我们"区块大标题；留空 = 「关于」+ 站点名称', 'sort_order' => 0],
         'home_about_content'        => ['value' => '我们是一家专注于企业数字化转型的科技公司，致力于为客户提供优质的产品与服务。经过多年发展，已成为行业内具有影响力的企业之一。', 'type' => 'textarea', 'name' => '关于我们简介', 'tip' => '首页关于我们区块的描述文字', 'sort_order' => 1],
-        'home_about_image'          => ['value' => '/assets/images/demo/about-office.jpg', 'type' => 'image', 'name' => '关于我们图片', 'tip' => '', 'sort_order' => 2],
+        'home_about_image'          => ['value' => '/assets/images/demo/yikaicms-industrial-600.webp', 'type' => 'image', 'name' => '关于我们图片', 'tip' => '', 'sort_order' => 2],
         'home_about_tag_title'      => ['value' => '专业服务', 'type' => 'text', 'name' => '角标标题', 'tip' => '图片左下角标标题', 'sort_order' => 3],
         'home_about_tag_desc'       => ['value' => '品质 · 创新 · 共赢', 'type' => 'text', 'name' => '角标描述', 'tip' => '图片左下角标描述', 'sort_order' => 4],
         'home_stat_1_num'           => ['value' => '15+', 'type' => 'text', 'name' => '统计数值1', 'tip' => '', 'sort_order' => 5],
@@ -194,10 +194,10 @@ return [
         'home_show_cta'             => ['value' => '1', 'type' => 'select', 'name' => '显示CTA', 'tip' => '', 'sort_order' => 35],
         'home_blocks_config'        => ['value' => '[{"type":"banner","enabled":true},{"type":"about","enabled":true},{"type":"stats","enabled":true},{"type":"channels","enabled":true},{"type":"testimonials","enabled":true},{"type":"advantage","enabled":true},{"type":"cta","enabled":true}]', 'type' => 'home_blocks', 'name' => '首页区块配置', 'tip' => '区块顺序和显示设置', 'sort_order' => 40],
 
-        'home_blox_data'            => ['value' => '', 'type' => 'home_blox', 'name' => '首页 Blox 草稿', 'tip' => '首页排版草稿数据', 'sort_order' => 41],
-        'home_blox_active'          => ['value' => '0', 'type' => 'switch', 'name' => '启用首页 Blox', 'tip' => '使用已发布的 Blox 首页', 'sort_order' => 42],
-        'home_blox_published'       => ['value' => '', 'type' => 'home_blox', 'name' => '首页 Blox 已发布', 'tip' => '已发布的首页排版快照', 'sort_order' => 43],
-        'home_blox_history'         => ['value' => '[]', 'type' => 'home_blox_history', 'name' => '首页 Blox 历史', 'tip' => '用于回退的首页快照', 'sort_order' => 44],
+        'home_blox_data'            => ['value' => '', 'type' => 'home_blox', 'name' => '首页构建草稿', 'tip' => '首页排版草稿数据', 'sort_order' => 41],
+        'home_blox_active'          => ['value' => '0', 'type' => 'switch', 'name' => '启用易开网页构建器首页', 'tip' => '使用已发布的易开网页构建器首页', 'sort_order' => 42],
+        'home_blox_published'       => ['value' => '', 'type' => 'home_blox', 'name' => '首页构建已发布', 'tip' => '已发布的首页排版快照', 'sort_order' => 43],
+        'home_blox_history'         => ['value' => '[]', 'type' => 'home_blox_history', 'name' => '首页构建历史', 'tip' => '用于回退的首页快照', 'sort_order' => 44],
     ],
 
     // ============================================================
@@ -244,6 +244,8 @@ return [
         'form_max_submits'      => ['value' => '5', 'type' => 'number', 'name' => '表单提交次数', 'tip' => '限流窗口内允许的次数', 'sort_order' => 20],
         'form_throttle_minutes' => ['value' => '5', 'type' => 'number', 'name' => '表单限流窗口', 'tip' => '分钟', 'sort_order' => 21],
         'form_security_version'  => ['value' => '2', 'type' => 'select', 'name' => '表单签名策略', 'tip' => '兼容模式允许旧静态页无签名；严格模式要求有效签名', 'options' => '{"1":"兼容模式","2":"严格模式"}', 'sort_order' => 22],
+        'form_max_links'         => ['value' => '3', 'type' => 'number', 'name' => '留言链接数量上限', 'tip' => '超过即视为垃圾提交并静默丢弃；0 表示不允许链接', 'sort_order' => 24],
+        'form_spam_keywords'     => ['value' => '', 'type' => 'textarea', 'name' => '屏蔽关键词', 'tip' => '每行一个，命中即静默丢弃，不区分大小写', 'sort_order' => 25],
         'form_signature_max_age' => ['value' => '7200', 'type' => 'number', 'name' => '表单签名最长有效期', 'tip' => '秒；0 表示不过期。启用期限前请先重新生成所有静态页面', 'sort_order' => 23],
     ],
 
@@ -268,14 +270,16 @@ return [
 
     // 系统内部项（不挂常规设置页，由 admin/license.php 等专用页维护）
     'system' => [
+        'html_cache_generation' => ['value' => '', 'type' => 'text', 'name' => 'HTML 缓存版本', 'tip' => '系统内部缓存失效标记，请勿手动修改', 'sort_order' => 14],
         'license_key'   => ['value' => '', 'type' => 'text', 'name' => '授权码', 'tip' => '在「授权管理」页填写', 'sort_order' => 1],
         'license_state' => ['value' => '', 'type' => 'text', 'name' => '授权缓存', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 2],
-        'blox_design_system' => ['value' => '', 'type' => 'json', 'name' => 'Blox 设计系统', 'tip' => '颜色令牌与命名样式预设，由 Blox 编辑器维护', 'sort_order' => 5],
-        'page_hero_style_options' => ['value' => '', 'type' => 'json', 'name' => '全局页面标题区版式', 'tip' => '页面标题区的全局版式参数，由 Blox 编辑器读取', 'sort_order' => 5],
+        'blox_design_system' => ['value' => '', 'type' => 'json', 'name' => '易开网页构建器设计系统', 'tip' => '颜色令牌与命名样式预设，由易开网页构建器维护', 'sort_order' => 5],
+        'page_hero_style_options' => ['value' => '', 'type' => 'json', 'name' => '全局页面标题区版式', 'tip' => '页面标题区的全局版式参数，由易开网页构建器读取', 'sort_order' => 5],
         'page_hero_design_draft' => ['value' => '', 'type' => 'json', 'name' => '全局页面标题区草稿', 'tip' => '页面标题区设计草稿，发布前不影响前台', 'sort_order' => 5],
         'page_hero_design_published_revision' => ['value' => '0', 'type' => 'number', 'name' => '全局页面标题区发布修订', 'tip' => '系统内部发布状态', 'sort_order' => 5],
-        'blox_custom_header_enabled' => ['value' => '1', 'type' => 'switch', 'name' => 'Blox 自定义网页头', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页头', 'sort_order' => 6],
-        'blox_custom_footer_enabled' => ['value' => '1', 'type' => 'switch', 'name' => 'Blox 自定义网页尾', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页尾', 'sort_order' => 7],
+        'blox_widescreen_enabled' => ['value' => '1', 'type' => 'switch', 'name' => '宽屏断点', 'tip' => '开启后可为 ≥1440px 屏幕单独设置样式；关闭后宽屏沿用桌面样式，已设置的宽屏值保留', 'sort_order' => 6],
+        'blox_custom_header_enabled' => ['value' => '1', 'type' => 'switch', 'name' => '易开网页构建器自定义网页头', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页头', 'sort_order' => 6],
+        'blox_custom_footer_enabled' => ['value' => '1', 'type' => 'switch', 'name' => '易开网页构建器自定义网页尾', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页尾', 'sort_order' => 7],
         'update_channel' => ['value' => 'stable', 'type' => 'select', 'name' => '系统更新通道', 'tip' => 'stable 为正式版；beta 可提前接收测试版', 'options' => '{"stable":"正式版","beta":"测试版"}', 'sort_order' => 8],
         'site_health_last_summary' => ['value' => '', 'type' => 'json', 'name' => '站点健康摘要', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 9],
         'site_health_last_at' => ['value' => '0', 'type' => 'number', 'name' => '站点健康检查时间', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 10],

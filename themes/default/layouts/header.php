@@ -171,6 +171,7 @@ function getChannelUrl(array $channel): string {
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
     <link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/style.css'); ?>">
+    <link rel="stylesheet" href="<?php echo assetVer('/themes/default/assets/css/theme.css'); ?>">
     <style>:root { --color-primary: <?php echo e(config('primary_color', '#2563EB')); ?>; --color-secondary: <?php echo e(config('secondary_color', '#1D4ED8')); ?>; }<?php echo ThemeSettings::css(); ?></style>
     <?php if (!empty($extraCss)): ?>
     <?php echo $extraCss; ?>
@@ -180,6 +181,7 @@ function getChannelUrl(array $channel): string {
     <?php echo config('custom_head_code', ''); ?>
 </head>
 <body class="yk-site-body bg-gray-50 min-h-screen flex flex-col">
+    <?php if (empty($GLOBALS['ykBloxPageFrame']['page_header_hidden'])): ?>
     <!-- top banner -->
     <?php if ($topbarEnabled): ?>
     <div class="text-sm <?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50" style="background-color: <?php echo e($topbarBgColor); ?>" data-yk-topbar>
@@ -398,6 +400,7 @@ function getChannelUrl(array $channel): string {
             </div>
         </nav>
     </header>
+    <?php endif; ?>
     <?php endif; ?>
 
     <?php do_action('ik_header_after'); ?>

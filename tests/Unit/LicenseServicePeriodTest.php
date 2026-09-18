@@ -29,6 +29,20 @@ final class LicenseServicePeriodTest extends TestCase
         self::assertFalse(\license_service_active($state));
     }
 
+    public function testProfessionalLicencesOwnBloxProIncludingThoseIssuedBeforeTheBloxModule(): void
+    {
+        // 新授权：带 blox 模块
+        self::assertTrue(\license_owns_blox(['valid' => true, 'plan' => 'pro', 'modules' => ['blox']]));
+        // 老授权：blox 模块推出前签发，只含其它付费模块，同样拥有（专业授权自带 BLOX 高级功能）
+        self::assertTrue(\license_owns_blox(['valid' => true, 'plan' => 'pro', 'modules' => ['stats', 'seo', 'ai', 'oss']]));
+        // 服务期到期不收回：到期后服务端把 plan 降为 free，但模块照常下发
+        self::assertTrue(\license_owns_blox(['valid' => false, 'plan' => 'free', 'expired' => true, 'modules' => ['seo-pro']]));
+        // 没有付费模块：免费、停用、域名不符（服务端不下发 modules）都不放行
+        foreach ([[], ['valid' => false, 'reason' => 'no_key', 'plan' => 'free', 'modules' => []], ['modules' => ['', null, 1]]] as $state) {
+            self::assertFalse(\license_owns_blox($state));
+        }
+    }
+
     public function testActiveServiceStateIsUnchanged(): void
     {
         $state = [

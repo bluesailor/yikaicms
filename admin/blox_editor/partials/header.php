@@ -18,6 +18,7 @@ declare(strict_types=1);
                 : (($editorBackTo ?? '') === 'home'
                     ? '/admin/blox_editor.php?home=1'
                     : ($templateId ? $templateManagerBack : ($isHomeBlox ? '/admin/setting_home.php' : '/admin/page.php')));
+            if ($templateId && $templateType === 'product-detail' && !$hasFrontendReturn) $bloxBackUrl = '/admin/product_design.php';
             $bloxBackTitle = $hasFrontendReturn
                 ? __('blox_return_to_page')
                 : (($editorBackTo ?? '') === 'home' ? __('blox_back_to_home_editor') : __('admin_back'));
@@ -31,17 +32,76 @@ declare(strict_types=1);
                 <span class="text-xs whitespace-nowrap"><?php echo e($bloxBackTitle); ?></span>
                 <?php endif; ?>
             </a>
-            <span class="blox-header-brand-copy inline-flex items-center gap-1.5 font-bold tracking-wide shrink-0">
-                <i class="ti ti-stack-2 text-blue-400"></i>Blox
+            <span class="blox-header-brand-copy hidden min-[1920px]:inline-flex items-center gap-1.5 font-bold tracking-wide shrink-0">
+                <i class="ti ti-stack-2 text-blue-400"></i><?php echo e(__('blox_editor_title')); ?>
                 <span class="text-[10px] font-medium bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded"><?= __('label_experimental') ?></span>
             </span>
             <span class="blox-header-page min-w-0 text-gray-400 text-sm truncate">/ <?php echo e($isHomeBlox ? __('blox_home_draft') : $page['name']); ?></span>
+            <?php
+            // 顶栏要说清"我在编辑哪种对象"（TASK-003 A）：名字来自 BloxAreaTemplatePresets::displayName()
+            // （真实模板名，不是样本标题）。
+            // 覆盖范围与"避免重复徽标"的取舍：
+            // - 产品/文章详情模板、弹窗、单页（模板或页面编辑器）→ 本徽标；
+            // - 页头/页脚 → 已有的区域语言+上下文徽标（blox-area-language-context）已说明类型，不再叠加；
+            // - 首页 → 名称位已写「首页草稿」，同样不叠加。
+            // 窄屏隐藏（hidden sm:inline-flex）：小屏优先保住名称与右侧动作按钮，不挤压不覆盖。
+            $editorTypeBadge = '';
+            if ($templateId) {
+                $editorTypeBadge = match ($templateType) {
+                    'product-detail' => __('blox_editor_type_product_detail'),
+                    'article-detail' => __('blox_editor_type_article_detail'),
+                    'popup' => __('blox_tpl_type_popup'),
+                    'page' => __('blox_editor_type_page'),
+                    default => '',
+                };
+            } elseif (!$isHomeBlox && $id > 0) {
+                $editorTypeBadge = __('blox_editor_type_page');
+            }
+            ?>
+            <?php if ($editorTypeBadge !== ''): ?>
+            <span data-testid="blox-editor-type-badge"
+                  class="hidden sm:inline-flex shrink-0 items-center gap-1 rounded bg-gray-700/60 px-1.5 py-0.5 text-[10px] font-medium text-gray-300"
+                  title="<?php echo e($editorTypeBadge); ?>">
+                <i class="ti ti-template" aria-hidden="true"></i><?php echo e($editorTypeBadge); ?>
+            </span>
+            <?php endif; ?>
             <?php if ($areaEditorLanguage !== ''): ?>
+            <?php
+            // 网页头/网页脚的语言切换：与模板库多语言面板同一判定，跳到各语言实际使用的设计
+            $areaLanguageLinks = isset($templateRow) && is_array($templateRow)
+                ? BloxAreaEditorLanguageLinks::build($templateRow, $areaEditorLanguage)
+                : [];
+            ?>
             <span data-testid="blox-area-language-context"
                   class="blox-header-area-language inline-flex shrink-0 items-center gap-1 rounded bg-cyan-400/10 px-1.5 py-0.5 text-[10px] font-medium text-cyan-200"
                   title="<?php echo e($areaEditorContextTitle); ?>">
-                <i class="ti ti-language"></i><?php echo e($areaEditorContextLabel); ?>
+                <i class="ti ti-language"></i><span class="<?= $areaLanguageLinks !== [] ? 'hidden min-[1920px]:inline' : '' ?>"><?php echo e($areaEditorContextLabel); ?></span>
             </span>
+            <?php if ($areaLanguageLinks !== []): ?>
+            <div data-testid="blox-area-language-switch" role="group" aria-label="<?= e(__('lse_versions')) ?>"
+                 class="blox-header-languages inline-flex items-center rounded border border-gray-700 bg-gray-800 p-0.5 min-w-0 max-w-full overflow-x-auto">
+                <?php foreach ($areaLanguageLinks as $areaLanguageLink):
+                    $areaLanguageHref = $areaLanguageLink['url'];
+                    if (str_starts_with($areaLanguageHref, '/admin/blox_editor.php') && ($editorBackTo ?? '') === 'home') {
+                        $areaLanguageHref .= '&back=home';
+                    }
+                    $areaLanguageHref = BloxAreaEditorTarget::withReturnTo($areaLanguageHref, (string) ($editorReturnTo ?? ''));
+                ?>
+                <a href="<?= e($areaLanguageHref) ?>"
+                   @click="requestEditorNavigation($event)"
+                   data-testid="blox-area-language-<?= e($areaLanguageLink['code']) ?>"
+                   data-area-language-state="<?= e($areaLanguageLink['state']) ?>"
+                   title="<?= e($areaLanguageLink['title']) ?>" aria-label="<?= e($areaLanguageLink['title']) ?>"
+                   <?php if ($areaLanguageLink['current']): ?>aria-current="page"<?php endif; ?>
+                   class="relative min-w-7 h-6 rounded px-1.5 text-[10px] font-semibold inline-flex items-center justify-center transition <?= $areaLanguageLink['current'] ? 'bg-blue-600 text-white' : ($areaLanguageLink['state'] === 'none' ? 'text-gray-500 hover:bg-gray-700 hover:text-amber-300' : 'text-gray-300 hover:bg-gray-700 hover:text-white') ?>">
+                    <?= e($areaLanguageLink['short']) ?>
+                    <?php if (in_array($areaLanguageLink['state'], ['inherit', 'preview', 'none'], true)): ?>
+                    <span class="absolute right-0.5 top-0.5 w-1 h-1 rounded-full <?= $areaLanguageLink['state'] === 'none' ? 'bg-amber-400' : 'bg-gray-400' ?>"></span>
+                    <?php endif; ?>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
             <?php endif; ?>
             <?php if ($redirectedFromPage !== null): ?>
             <span data-testid="blox-redirect-source"
@@ -49,6 +109,24 @@ declare(strict_types=1);
                   title="<?php echo e(__('blox_redirected_from_parent_tip', ['parent' => $redirectedFromPage['name'], 'target' => $page['name']])); ?>">
                 <i class="ti ti-corner-down-right"></i><?php echo e(__('blox_redirected_from_parent', ['parent' => $redirectedFromPage['name']])); ?>
             </span>
+            <?php endif; ?>
+            <?php
+            // 首页各语言共用一份文档：切换语言 = 以该语言重新打开编辑器（画布、字段与保存都跟随）
+            $homeLanguages = $isHomeBlox && function_exists('enabledLanguages') ? enabledLanguages() : [];
+            ?>
+            <?php if (count($homeLanguages) > 1): ?>
+            <div data-testid="blox-home-language-switch" role="group" aria-label="<?= e(__('lse_versions')) ?>"
+                 class="blox-header-languages inline-flex items-center rounded border border-gray-700 bg-gray-800 p-0.5 min-w-0 max-w-full overflow-x-auto">
+                <?php foreach ($homeLanguages as $homeLangCode => $homeLangLabel): ?>
+                <?php $homeLangCurrent = $homeLangCode === $homeEditorLanguage; ?>
+                <a href="<?= e('/admin/blox_editor.php?home=1' . ($homeLangCode !== (string) config('site_lang', 'zh-CN') ? '&lang=' . rawurlencode((string) $homeLangCode) : '')) ?>"
+                   data-testid="blox-home-language-<?= e((string) $homeLangCode) ?>" title="<?= e((string) $homeLangLabel) ?>"
+                   <?php if ($homeLangCurrent): ?>aria-current="page"<?php endif; ?>
+                   class="min-w-7 h-6 rounded px-1.5 text-[10px] font-semibold inline-flex items-center justify-center transition <?= $homeLangCurrent ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' ?>">
+                    <?= e(match ((string) $homeLangCode) { 'zh-CN' => 'ZH', 'en' => 'EN', 'ja' => 'JA', default => strtoupper(substr((string) $homeLangCode, 0, 3)) }) ?>
+                </a>
+                <?php endforeach; ?>
+            </div>
             <?php endif; ?>
             <?php if ($pageLanguageVersions !== []): ?>
             <div data-testid="blox-language-switch" role="group" aria-label="<?= e(__('lse_versions')) ?>"
@@ -104,11 +182,48 @@ declare(strict_types=1);
                           class="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-amber-400 ring-1 ring-gray-800"></span>
                 </button>
             </template>
+            <div class="hidden lg:flex items-center gap-1 pl-1 border-l border-gray-700 ml-0.5" data-testid="blox-preview-width">
+                <input type="number" min="320" max="2560" step="10" inputmode="numeric"
+                       :value="previewCustomWidth > 0 ? previewCustomWidth : ''"
+                       :placeholder="previewEffectiveWidth()"
+                       @change="setPreviewCustomWidth($event.target.value); $event.target.value = previewCustomWidth > 0 ? previewCustomWidth : ''"
+                       @keydown.enter.prevent="setPreviewCustomWidth($event.target.value); $event.target.blur()"
+                       title="<?= e(__('blox_preview_width_hint')) ?>" aria-label="<?= e(__('blox_preview_width')) ?>"
+                       data-testid="blox-preview-width-input"
+                       class="w-16 h-7 rounded-md bg-gray-900 border border-gray-700 text-xs text-gray-200 text-center outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                <span class="text-[10px] text-gray-500">px</span>
+                <span class="hidden min-[1920px]:inline text-[10px] text-gray-400 whitespace-nowrap" data-testid="blox-preview-width-tier"
+                      :title="<?= e($jt('blox_preview_width_tier_hint')) ?>"
+                      x-text="responsiveDeviceRangeLabel(previewWidthDevice())"></span>
+                <button type="button" x-show="previewCustomWidth > 0" x-cloak @click="clearPreviewCustomWidth()"
+                        title="<?= e(__('blox_preview_width_auto')) ?>" aria-label="<?= e(__('blox_preview_width_auto')) ?>"
+                        data-testid="blox-preview-width-clear"
+                        class="w-6 h-6 rounded inline-flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800">
+                    <i class="ti ti-x text-xs"></i>
+                </button>
+            </div>
+        </div>
+        <!-- 宽度与档位不一致时，同时亮出「编辑档位」与「预览宽度」，避免误以为改了档位 -->
+        <div x-show="previewCustomWidth > 0" x-cloak data-testid="blox-preview-width-chip"
+             class="hidden lg:flex items-center gap-1 ml-2 px-2 h-6 rounded-full bg-gray-800 text-[10px] text-gray-300 shrink-0">
+            <span><?= e(__('blox_preview_edit_tier')) ?><span x-text="responsiveDeviceTitle(previewDevice)"></span></span>
+            <span class="text-gray-600">·</span>
+            <span><?= e(__('blox_preview_width_label')) ?><span x-text="previewCustomWidth + 'px'"></span></span>
         </div>
 
         <div class="blox-header-actions flex items-center gap-2 shrink-0" data-testid="blox-desktop-actions">
-            <span class="text-xs max-w-28 truncate" :class="dirty || saveOutcome === 'failed' ? 'text-amber-300' : 'text-gray-300'"
-                  role="status" aria-live="polite" :title="saveStatusText()" x-text="saveStatusText()" data-testid="blox-dirty"></span>
+            <span class="text-xs max-w-28 truncate" :class="dirty || saveOutcome === 'failed' || conflictOpen ? 'text-amber-300' : 'text-gray-300'"
+                  role="status" aria-live="polite" :title="saveStatusText()" x-text="saveStatusText()" :data-state="saveStatusState()" data-testid="blox-dirty"></span>
+            <button type="button" x-show="saveStatusState() === 'failed' && failedAction !== 'publish'" x-cloak
+                    @click="save()" data-testid="blox-save-retry"
+                    class="text-xs text-amber-300 underline decoration-dotted underline-offset-2 hover:text-white shrink-0">
+                <?= __('blox_save_retry') ?>
+            </button>
+            <span x-show="recoveryStateMessage() !== ''" x-cloak class="text-amber-300" role="status"
+                  :title="recoveryStateMessage()" :data-state="recoveryState" data-testid="blox-recovery-state">
+                <i class="ti ti-alert-triangle text-sm" aria-hidden="true"></i>
+                <span class="sr-only" x-text="recoveryStateMessage()"></span>
+            </span>
             <div class="flex items-center gap-0.5 border-r border-gray-700 pr-2 mr-0.5">
                 <button type="button" @click="undo()" :disabled="!canUndo()" data-testid="blox-undo"
                         title="<?php echo e(__('blox_undo_shortcut')); ?>" aria-label="<?php echo e(__('blox_undo')); ?>"
@@ -122,7 +237,7 @@ declare(strict_types=1);
                 </button>
             </div>
 <?php if (!$isHomeBlox && !$templateId): ?>
-            <button type="button" @click="openRevisions()"
+            <button type="button" @click="openRevisions()" data-testid="blox-revisions-open"
                     class="text-gray-300 hover:text-white text-sm inline-flex items-center gap-1 px-2 py-1.5" title="<?= e(__('revision_history')) ?>">
                 <i class="ti ti-history text-base"></i>
             </button>
@@ -131,13 +246,13 @@ declare(strict_types=1);
             <span x-show="homePublished" x-cloak class="text-[10px] text-emerald-300 inline-flex items-center gap-1">
                 <i class="ti ti-world-check"></i><?php echo e(__('blox_published')); ?>
             </span>
-            <span x-show="!homePublished" x-cloak class="text-[10px] text-amber-300 inline-flex items-center gap-1">
-                <i class="ti ti-history-toggle"></i><?php echo e(__('blox_legacy_active')); ?>
+            <span x-show="!homePublished" x-cloak class="text-[10px] text-amber-300 inline-flex items-center gap-1" title="<?php echo e(__('blox_legacy_active')); ?>">
+                <i class="ti ti-history-toggle"></i><span class="hidden min-[1920px]:inline"><?php echo e(__('blox_legacy_active')); ?></span>
             </span>
             <button type="button" @click="rollbackHome()" :disabled="homeActionBusy || !homePublished" data-testid="blox-rollback"
                     class="text-amber-300 hover:text-white disabled:opacity-30 text-xs inline-flex items-center gap-1 px-2 py-1.5"
-                    title="<?php echo e(__('blox_rollback')); ?>">
-                <i class="ti ti-restore"></i><?php echo e(__('blox_rollback')); ?>
+                    title="<?php echo e(__('blox_rollback')); ?>" aria-label="<?php echo e(__('blox_rollback')); ?>">
+                <i class="ti ti-restore"></i><span class="hidden min-[1920px]:inline"><?php echo e(__('blox_rollback')); ?></span>
             </button>
 <?php elseif ($templateId): ?>
 <?php if ($templateId && $templateType === 'header'): ?>
@@ -194,8 +309,9 @@ declare(strict_types=1);
                 </div>
             </details>
             <details class="relative" data-testid="blox-header-state-settings">
-                <summary class="list-none text-cyan-300 hover:text-white text-xs inline-flex items-center gap-1 px-2 py-1.5 cursor-pointer">
-                    <i class="ti ti-layers-difference"></i><?php echo e(__('blox_header_states')); ?>
+                <summary class="list-none text-cyan-300 hover:text-white text-xs inline-flex items-center gap-1 px-2 py-1.5 cursor-pointer"
+                         title="<?php echo e(__('blox_header_states')); ?>" aria-label="<?php echo e(__('blox_header_states')); ?>">
+                    <i class="ti ti-layers-difference"></i><span class="hidden min-[1920px]:inline"><?php echo e(__('blox_header_states')); ?></span>
                 </summary>
                 <div class="absolute right-0 top-full z-50 mt-2 w-80 border border-gray-700 bg-gray-900 p-3 shadow-2xl">
                     <div class="grid grid-cols-3 gap-1 rounded border border-gray-700 bg-gray-800 p-1">
@@ -319,9 +435,10 @@ declare(strict_types=1);
 <?php endif; ?>
             <span x-show="ctxHit !== null && ctxHit !== <?php echo (int) $templateId; ?>" x-cloak
                   data-testid="blox-ctx-warn"
-                  class="text-[10px] text-amber-300 inline-flex items-center gap-1 max-w-[14rem]">
+                  class="text-[10px] text-amber-300 inline-flex items-center gap-1 max-w-[14rem]"
+                  :title="ctxHit === 0 ? <?= e($jt('blox_ctx_hit_none')) ?> : <?= e($jt('blox_ctx_hit_other')) ?>.replace(':id', ctxHit)">
                 <i class="ti ti-eye-off"></i>
-                <span x-text="ctxHit === 0 ? <?= e($jt('blox_ctx_hit_none')) ?> : <?= e($jt('blox_ctx_hit_other')) ?>.replace(':id', ctxHit)"></span>
+                <span class="hidden min-[1920px]:inline" x-text="ctxHit === 0 ? <?= e($jt('blox_ctx_hit_none')) ?> : <?= e($jt('blox_ctx_hit_other')) ?>.replace(':id', ctxHit)"></span>
             </span>
 <?php endif; ?>
             <button type="button" x-show="draftSummary().changed" x-cloak @click="openDraftSummary()"
@@ -341,11 +458,18 @@ declare(strict_types=1);
                     <i class="ti ti-circle-plus text-lg"></i>
                 </button>
             </div>
+<?php if (!$isHomeBlox && !$templateId && ($pageType ?? '') === 'page'): ?>
+            <button type="button" @click="openPageFrame()" data-testid="blox-page-frame-open"
+                    class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800"
+                    title="<?= e(__('blox_page_frame')) ?>" aria-label="<?= e(__('blox_page_frame')) ?>">
+                <i class="ti ti-layout text-lg"></i>
+            </button>
+<?php endif; ?>
 <?php if ($canManageBloxDesign): ?>
             <button type="button" @click="openDesignSystem()" data-testid="blox-design-open"
                     class="text-gray-300 hover:text-emerald-300 text-sm inline-flex items-center gap-1 px-2 py-1.5 transition-colors"
                     title="<?php echo e(__('blox_design_system')); ?>" aria-label="<?php echo e(__('blox_design_system')); ?>">
-                <i class="ti ti-palette text-base"></i><span class="text-xs"><?php echo e(__('blox_design_system')); ?></span>
+                <i class="ti ti-palette text-base"></i><span class="hidden min-[1920px]:inline text-xs"><?php echo e(__('blox_design_system')); ?></span>
             </button>
 <?php endif; ?>
 <?php if ($canManageBloxDesign): ?>
@@ -363,20 +487,33 @@ declare(strict_types=1);
             $frontPreviewUrl = null;
             if ($templateId) {
                 if (in_array($templateType ?? '', ['header', 'footer'], true)) {
-                    $frontPreviewUrl = langUrl('/', $areaEditorLanguage);
-                    $frontPreviewUrl .= str_contains($frontPreviewUrl, '?') ? '&preview' : '?preview';
+                    $frontPreviewUrl = $areaFrontPreviewUrl;
                 }
             } elseif ($isHomeBlox) {
-                $frontPreviewUrl = '/?preview';
+                $frontPreviewUrl = ($homeEditorLangQuery !== '' ? langUrl('/', $homeEditorLanguage) : '/') . '?preview';
             } else {
-                $frontPreviewUrl = '/' . $page['slug'] . '.html?preview';
+                $frontPreviewUrl = channelUrl($page);
+                $frontPreviewUrl .= str_contains($frontPreviewUrl, '?') ? '&preview=draft&blox_draft=page:' . (int) $id : '?preview=draft&blox_draft=page:' . (int) $id;
             }
             ?>
+            <button type="button" @click="toggleRightPanel()" data-testid="blox-toolbar-structure-toggle"
+                    class="h-8 rounded text-gray-300 hover:text-white hover:bg-gray-800 inline-flex items-center gap-1 px-2"
+                    :class="structurePanelExpanded() ? 'bg-gray-800 text-white' : ''"
+                    :title="structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand"
+                    :aria-label="structurePanelExpanded() ? rightPanelText.collapse : rightPanelText.expand"
+                    :aria-expanded="String(structurePanelExpanded())" aria-controls="blox-structure-panel">
+                <i class="ti ti-list-tree text-base" aria-hidden="true"></i><span class="hidden min-[1920px]:inline text-xs"><?= e(__('blox_mobile_structure')) ?></span>
+            </button>
+            <button type="button" @click="restoreWorkspace()" data-testid="blox-workspace-restore"
+                    class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800 transition"
+                    title="<?php echo e(__('blox_workspace_restore')); ?>" aria-label="<?php echo e(__('blox_workspace_restore')); ?>">
+                <i class="ti ti-layout-sidebar-right-expand text-base" aria-hidden="true"></i>
+            </button>
             <?php if ($frontPreviewUrl !== null): ?>
-            <a href="<?php echo e($frontPreviewUrl); ?>" target="_blank" rel="noopener"
-               data-testid="blox-front-preview"
-               class="text-gray-300 hover:text-white text-sm inline-flex items-center gap-1 px-2 py-1.5" title="<?= e(__('blox_front_preview')) ?>">
-                <i class="ti ti-eye text-base"></i><span class="text-xs"><?php echo e(__('blox_front_preview')); ?></span>
+            <a href="<?php echo e($frontPreviewUrl); ?>" <?= !$isHomeBlox && !$templateId ? ':href="pageFrontPreviewUrl()"' : '' ?> target="_blank" rel="noopener"
+               data-testid="blox-front-preview" title="<?php echo e(__('blox_front_preview')); ?>" aria-label="<?php echo e(__('blox_front_preview')); ?>"
+               class="text-gray-300 hover:text-white text-sm inline-flex items-center gap-1 px-2 py-1.5">
+                <i class="ti ti-eye text-base"></i><span class="hidden min-[1920px]:inline text-xs" <?php if (!$isHomeBlox && !$templateId): ?>x-text="pageIsPublishedCurrent() ? <?= e($jt('blox_page_view_published')) ?> : <?= e($jt('ab_preview_draft')) ?>"<?php endif; ?>><?php echo e(__('blox_front_preview')); ?></span>
             </a>
             <?php endif; ?>
             <div class="inline-flex items-center gap-1" data-testid="blox-save-publish-actions">
@@ -392,16 +529,18 @@ declare(strict_types=1);
                     <i class="ti ti-rocket text-base"></i><?php echo e(__('blox_publish')); ?>
                 </button>
 <?php elseif ($templateId): ?>
-                <button type="button" @click="publishTemplate()" :disabled="saving" data-testid="blox-publish-template"
+                <button type="button" @click="publishTemplate()" :disabled="templateActionBusy || saving" :aria-busy="templateActionBusy ? 'true' : 'false'" data-testid="blox-publish-template"
                         class="h-8 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium px-3 rounded inline-flex items-center justify-center gap-1.5 transition"
-                        title="<?php echo e(__('blox_tpl_publish_saves_current')); ?>">
-                    <i class="ti ti-rocket text-base"></i><?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_draft')); ?>
+                        title="<?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_saves_current')); ?>">
+                    <i class="ti text-base" :class="templateActionBusy ? 'ti-loader-2 animate-spin' : 'ti-rocket'"></i>
+                    <span aria-live="polite" x-text="templateActionBusy ? <?= e($jt('blox_template_publishing')) ?> : <?= e($jt('blox_template_publish')) ?>"><?php echo e(__('blox_template_publish')); ?></span>
                 </button>
 <?php else: ?>
-                <button type="button" @click="publishPage()" :disabled="pageActionBusy || saving" data-testid="blox-publish-page"
+                <button type="button" @click="publishPage()" :disabled="pageActionBusy || saving || pageIsPublishedCurrent()" :aria-busy="pageActionBusy ? 'true' : 'false'" data-testid="blox-publish-page"
                         class="h-8 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-medium px-3 rounded inline-flex items-center justify-center gap-1.5 transition"
                         title="<?php echo e(__('blox_page_publish_saves_current')); ?>">
-                    <i class="ti ti-rocket text-base"></i><?php echo e(__('blox_page_publish')); ?>
+                    <i class="ti text-base" :class="pageActionBusy ? 'ti-loader-2 animate-spin' : (pageIsPublishedCurrent() ? 'ti-check' : 'ti-rocket')"></i>
+                    <span aria-live="polite" x-text="pageActionBusy ? <?= e($jt('blox_page_publishing')) ?> : (pageIsPublishedCurrent() ? <?= e($jt('dl_published')) ?> : (pagePublished ? <?= e($jt('blox_page_publish_update')) ?> : <?= e($jt('blox_page_publish')) ?>))"><?php echo e(__('blox_page_publish')); ?></span>
                 </button>
 <?php endif; ?>
             </div>
@@ -415,6 +554,9 @@ declare(strict_types=1);
             </button>
             <div x-show="mobileActionsOpen" x-cloak @click.outside="mobileActionsOpen = false"
                  @keydown.escape.window="mobileActionsOpen = false" class="blox-mobile-actions-menu">
+<?php if (!$isHomeBlox && !$templateId && ($pageType ?? '') === 'page'): ?>
+                <button type="button" @click="openPageFrame()"><i class="ti ti-layout"></i><?= e(__('blox_page_frame')) ?></button>
+<?php endif; ?>
                 <p class="px-3 py-2 text-xs text-gray-600 break-words" role="status" aria-live="polite" x-text="saveStatusText()" data-testid="blox-mobile-save-status"></p>
                 <?php $previewRetryId = 'blox-mobile-preview-retry'; require __DIR__ . '/preview-retry.php'; ?>
                 <button type="button" @click="undo(); mobileActionsOpen = false" :disabled="!canUndo()"
@@ -433,19 +575,20 @@ declare(strict_types=1);
                     <i class="ti ti-history"></i><?php echo e(__('revision_history')); ?>
                 </button>
 <?php endif; ?>
-                <button type="button" @click="save(); mobileActionsOpen = false" :disabled="saving || homeActionBusy || pageActionBusy">
+                <button type="button" @click="save(); mobileActionsOpen = false" :disabled="saving || homeActionBusy || pageActionBusy" data-testid="blox-mobile-save">
                     <i class="ti ti-device-floppy"></i><?php echo e(($isHomeBlox || !$templateId) ? __('blox_save_draft') : __('save')); ?>
                 </button>
 <?php if ($isHomeBlox): ?>
-                <button type="button" @click="publishHome(); mobileActionsOpen = false" :disabled="homeActionBusy || saving">
+                <button type="button" @click="publishHome(); mobileActionsOpen = false" :disabled="homeActionBusy || saving" data-testid="blox-mobile-publish">
                     <i class="ti ti-rocket"></i><?php echo e(__('blox_publish')); ?>
                 </button>
                 <button type="button" @click="rollbackHome(); mobileActionsOpen = false" :disabled="homeActionBusy || !homePublished">
                     <i class="ti ti-restore"></i><?php echo e(__('blox_rollback')); ?>
                 </button>
 <?php elseif (!$templateId): ?>
-                <button type="button" @click="publishPage(); mobileActionsOpen = false" :disabled="pageActionBusy || saving">
-                    <i class="ti ti-rocket"></i><?php echo e(__('blox_page_publish')); ?>
+                <button type="button" @click="publishPage(); mobileActionsOpen = false" :disabled="pageActionBusy || saving || pageIsPublishedCurrent()" :aria-busy="pageActionBusy ? 'true' : 'false'" data-testid="blox-mobile-publish-page">
+                    <i class="ti" :class="pageActionBusy ? 'ti-loader-2 animate-spin' : (pageIsPublishedCurrent() ? 'ti-check' : 'ti-rocket')"></i>
+                    <span x-text="pageActionBusy ? <?= e($jt('blox_page_publishing')) ?> : (pageIsPublishedCurrent() ? <?= e($jt('dl_published')) ?> : (pagePublished ? <?= e($jt('blox_page_publish_update')) ?> : <?= e($jt('blox_page_publish')) ?>))"><?php echo e(__('blox_page_publish')); ?></span>
                 </button>
                 <?php foreach ($pageLanguageVersions as $languageVersion): ?>
                 <?php $mobileLanguageUrl = $languageVersion['id'] > 0
@@ -458,8 +601,8 @@ declare(strict_types=1);
                 </a>
                 <?php endforeach; ?>
 <?php else: ?>
-                <button type="button" @click="publishTemplate(); mobileActionsOpen = false" :disabled="saving">
-                    <i class="ti ti-rocket"></i><?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_draft')); ?>
+                <button type="button" @click="publishTemplate(); mobileActionsOpen = false" :disabled="templateActionBusy || saving" :aria-busy="templateActionBusy ? 'true' : 'false'" data-testid="blox-mobile-publish-template" title="<?php echo e($replaceThemeAreaOnPublish !== '' ? __('blox_tpl_publish_and_use') : __('blox_tpl_publish_saves_current')); ?>">
+                    <i class="ti" :class="templateActionBusy ? 'ti-loader-2 animate-spin' : 'ti-rocket'"></i><span x-text="templateActionBusy ? <?= e($jt('blox_template_publishing')) ?> : <?= e($jt('blox_template_publish')) ?>"><?php echo e(__('blox_template_publish')); ?></span>
                 </button>
 <?php endif; ?>
                 <button type="button" @click="openElementLibrary(); mobileActionsOpen = false"
@@ -489,10 +632,69 @@ declare(strict_types=1);
                     <i class="ti" :class="cacheClearing ? 'ti-loader-2 animate-spin' : 'ti-database-off'"></i><?php echo e(__('scache_clear_now')); ?>
                 </button>
 <?php endif; ?>
-                <a :href="homeMode ? '/?preview' : ('/' + '<?php echo e($page['slug']); ?>' + '.html?preview')" target="_blank" rel="noopener"
-                   @click="mobileActionsOpen = false">
-                    <i class="ti ti-eye"></i><?php echo e(__('blox_front_preview')); ?>
+                <?php if ($frontPreviewUrl !== null): ?>
+                <a href="<?= e($frontPreviewUrl) ?>" <?= !$isHomeBlox && !$templateId ? ':href="pageFrontPreviewUrl()"' : '' ?> target="_blank" rel="noopener"
+                   @click="mobileActionsOpen = false" data-testid="blox-mobile-front-preview">
+                    <i class="ti ti-eye"></i><span <?php if (!$isHomeBlox && !$templateId): ?>x-text="pageIsPublishedCurrent() ? <?= e($jt('blox_page_view_published')) ?> : <?= e($jt('ab_preview_draft')) ?>"<?php endif; ?>><?php echo e(__('blox_front_preview')); ?></span>
                 </a>
+                <?php endif; ?>
             </div>
         </div>
     </header>
+    <?php if ($templateId && $templateType === 'product-detail'): ?>
+    <?php // 预览内容是"当前编辑对象"的一部分，必须常驻可见；此前藏在折叠面板里，作者看不到在预览哪条样本 ?>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-gray-200 bg-white px-4 py-2 text-sm" data-testid="blox-preview-content-bar">
+        <?php // 窄屏顶栏放不下类型徽标（会挤压按钮）：类型改在这里出现，保证小屏也知道在编辑哪种模板 ?>
+        <span class="sm:hidden shrink-0 inline-flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600" data-testid="blox-editor-type-badge-compact"><?= e($editorTypeBadge ?? __('blox_editor_type_product_detail')) ?></span>
+        <span class="shrink-0 font-medium text-gray-900"><?= e(__('blox_preview_content')) ?></span>
+        <label class="min-w-0 flex-1 sm:max-w-md">
+            <span class="sr-only"><?= e(__('blox_product_preview')) ?></span>
+            <select x-model="productPreviewId" @change="schedulePreview()" data-testid="product-template-preview" class="w-full border border-gray-300 rounded px-2 py-1.5">
+                <option value="0"><?= e(__('blox_product_choose')) ?></option>
+                <?php foreach ($productPreviewItems as $previewItem): ?>
+                <option value="<?= (int) $previewItem['id'] ?>"><?= e((string) $previewItem['title']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <span class="min-w-0 truncate text-gray-500"><?= e((string) ($page['name'] ?? '')) ?></span>
+    </div>
+    <details class="border-b border-gray-200 bg-white px-4 py-2 text-sm" data-testid="product-template-settings">
+        <summary class="cursor-pointer font-medium text-gray-900"><?= e(__('blox_product_settings')) ?></summary>
+        <div class="flex flex-wrap items-end gap-4 py-3">
+            <label>
+                <span class="block mb-1"><?= e(__('blox_product_language')) ?></span>
+                <input readonly :value="(docSettings.detail_template && docSettings.detail_template.lang) || (docSettings.product_template && docSettings.product_template.lang) || conditionLang" data-testid="product-template-language" class="w-28 border border-gray-300 rounded px-2 py-2">
+            </label>
+        </div>
+        <?php require __DIR__ . '/detail-conditions.php'; ?>
+    </details>
+    <?php endif; ?>
+    <?php if ($templateId && $templateType === 'article-detail'): ?>
+    <?php // 同上：预览文章常驻单列，不藏在折叠面板里 ?>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-gray-200 bg-white px-4 py-2 text-sm" data-testid="blox-preview-content-bar">
+        <?php // 同上：窄屏类型徽标落在这一行 ?>
+        <span class="sm:hidden shrink-0 inline-flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600" data-testid="blox-editor-type-badge-compact"><?= e($editorTypeBadge ?? __('blox_editor_type_article_detail')) ?></span>
+        <span class="shrink-0 font-medium text-gray-900"><?= e(__('blox_preview_content')) ?></span>
+        <label class="min-w-0 flex-1 sm:max-w-md">
+            <span class="sr-only"><?= e(__('blox_article_preview')) ?></span>
+            <select x-model="articlePreviewId" @change="schedulePreview()" data-testid="article-template-preview" class="w-full border border-gray-300 rounded px-2 py-1.5">
+                <option value="0"><?= e(__('blox_article_choose')) ?></option>
+                <?php foreach ($articlePreviewItems as $previewItem): ?>
+                <option value="<?= (int) $previewItem['id'] ?>"><?= e((string) $previewItem['title']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <span class="min-w-0 truncate text-gray-500"><?= e((string) ($page['name'] ?? '')) ?></span>
+    </div>
+    <details class="border-b border-gray-200 bg-white px-4 py-2 text-sm" data-testid="article-template-settings">
+        <summary class="cursor-pointer font-medium text-gray-900"><?= e(__('blox_article_settings')) ?></summary>
+        <div class="flex flex-wrap items-end gap-4 py-3">
+            <label>
+                <span class="block mb-1"><?= e(__('blox_article_language')) ?></span>
+                <input readonly :value="(docSettings.detail_template && docSettings.detail_template.lang) || conditionLang" data-testid="article-template-language" class="w-28 border border-gray-300 rounded px-2 py-2">
+            </label>
+        </div>
+        <p class="pb-2 text-[11px] leading-relaxed text-gray-500"><?= e(__('blox_article_rule_priority')) ?></p>
+        <?php require __DIR__ . '/detail-conditions.php'; ?>
+    </details>
+    <?php endif; ?>

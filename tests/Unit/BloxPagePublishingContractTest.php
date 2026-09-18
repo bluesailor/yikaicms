@@ -134,7 +134,10 @@ final class BloxPagePublishingContractTest extends TestCase
         // v1.18.6：首页画布的页头编辑入口带 back=home——编辑完页头一键返回首页编辑器
         $this->assertStringContainsString("BloxAreaEditorTarget::url('header', \$areaContext, \$isHomeLayout ? 'home' : '')", $canvas);
         // 主题原生 Header 没有渲染 bloxAreaHtml('header') 时，不能跳去编辑数据库里仍处于发布状态的旧 Blox Header。
-        $this->assertStringContainsString('self::customAreaEnabled($area) && self::themeRendersArea($area, $themesRoot)', $areaTarget);
+        $this->assertStringContainsString('!self::themeRendersArea($area, $themesRoot)', $areaTarget);
+        $this->assertStringContainsString("return ['status' => 'native', 'template' => null];", $areaTarget);
+        $this->assertStringContainsString('if (!self::customAreaEnabled($area))', $areaTarget);
+        $this->assertStringContainsString("return ['status' => 'disabled', 'template' => null];", $areaTarget);
         $this->assertStringContainsString('private static function themeRendersArea(string $area, string $themesRoot = \'\'): bool', $areaTarget);
         // v1.19.8：三套预装主题（default/business/minimal）都参与"编辑当前页头"契约
         $this->assertStringContainsString("in_array(\$theme, ['default', 'business', 'minimal'], true)", $areaTarget);
@@ -144,12 +147,13 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("\$background = '#1e293b';", $themeHeaderDocument);
         $this->assertStringContainsString("'channel_id' => \$isHomeLayout ? 0 : \$id", $canvas);
         $this->assertStringContainsString("'page_id' => !\$isHomeLayout && \$pageType === 'page' ? \$id : 0", $canvas);
-        // 空文档不挂站点页头页脚：新建单页只显示空态引导卡。空态卡是 appendChild 到
-        // body 的，挂着 chrome 会让它落在页脚下方（看着像页脚的一部分）。
+        // Empty pages retain site chrome; onboarding belongs inside the content region.
         $this->assertStringContainsString('$mainBody = $pageHeroBody . $pageContentBody;', $canvas);
         $this->assertStringContainsString('$headerBody . \'<main class="flex-1">\' . $mainBody . \'</main>\' . $footerBody', $canvas);
-        $this->assertStringContainsString(': ($pageHeroBody . $pageBody);', $canvas);
-        $this->assertStringContainsString('$hasCanvasContent = is_array($canvasBlocks) && $canvasBlocks !== [];', $canvas);
+        $this->assertStringNotContainsString(': ($pageHeroBody . $pageBody);', $canvas);
+        $this->assertStringContainsString("document.querySelector('[data-yk-region=\"content\"]')", $canvas);
+        $this->assertStringContainsString("host.querySelectorAll('[data-yk-sec]').length > 0", $canvas);
+        $this->assertStringContainsString('$canvasFrame = BloxDocumentPipeline::normalizeDocSettings', $canvas);
 
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
         $this->assertStringContainsString('function areaEditPayload(value)', $bridge);
@@ -168,7 +172,9 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("post('replace_theme_area', '')", $templateApi);
         $this->assertStringContainsString('BloxAreaEditorTarget::isThemeFallbackTemplate($row, $type)', $templateApi);
         $this->assertStringContainsString("array_key_exists('blocks_data', \$_POST)", $templateApi);
-        $this->assertStringContainsString('$templateRevisionMatches($type, $currentDraft, $baseRevision)', $templateApi);
+        // E03：模板版本前提统一走 $assertTemplateRevision（专业能力不可用时缺失版本也拒绝）。
+        $this->assertStringContainsString("\$assertTemplateRevision(\$type, \$currentDraft, trim((string) post('base_revision', '')));", $templateApi);
+        $this->assertStringContainsString('!$templateRevisionMatches($type, $json, $revision)', $templateApi);
         $this->assertStringContainsString('bloxTemplateModel()->updateDraft(', $templateApi);
         $this->assertStringContainsString('BloxTemplateImporter::deriveRequirements($processed[\'sections\'])', $templateApi);
         $this->assertStringContainsString('db()->beginTransaction();', $templateApi);
@@ -181,7 +187,8 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('self.acceptSavedDocument(payload, savedData, res);', $editor);
         $this->assertStringContainsString('if (res.msg === self.uiText.saveConflict)', $editor);
         $this->assertStringNotContainsString('if (this.dirty) { this.toast(this.uiText.tplPublishRequiresSaved); return; }', $editor);
-        $this->assertStringContainsString('@click="publishTemplate()" :disabled="saving"', $header);
+        $this->assertStringContainsString('@click="publishTemplate()" :disabled="templateActionBusy || saving"', $header);
+        $this->assertStringContainsString('@click="publishTemplate(); mobileActionsOpen = false" :disabled="templateActionBusy || saving"', $header);
         $this->assertStringContainsString("__('blox_tpl_publish_saves_current')", $header);
 
         foreach (['business', 'minimal'] as $theme) {
@@ -254,14 +261,14 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringNotContainsString("renderTransPills((int)\$item['id'], \$transStatus, '/admin/page_edit.php')", $page);
         $this->assertStringNotContainsString("\$__isBlox ? '/admin/blox_editor.php?id=' : '/admin/page_edit.php?id='", $page);
         $this->assertStringContainsString('/admin/blox_editor.php?home=1', $page);
-        $this->assertStringContainsString("__('site_design_open_home')", $page);
+        $this->assertStringContainsString("__('website_structural_design')", $this->source('admin/includes/website_pages.php'));
         $this->assertStringContainsString("renderTransPills((int)\$item['id'], \$transStatus, '/admin/blox_editor.php')", $page);
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'pagePrimaryEditUrl($item)'));
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'pagePrimaryEditTarget($item)'));
         $this->assertGreaterThanOrEqual(2, substr_count($page, 'channelUrl($item)'));
         $this->assertStringContainsString('isTimelinePageChannel($itemEditTarget)', $page);
         $this->assertStringContainsString('page_redirect_target_badge', $page);
-        $this->assertStringContainsString("e(__('admin_timeline'))", $page);
+        $this->assertStringContainsString("'page_kind'", $this->source('admin/includes/website_pages.php'));
     }
 
     public function testTimelinePageUsesItsRealDataEditorAndCanonicalPreviewPath(): void
@@ -360,11 +367,21 @@ final class BloxPagePublishingContractTest extends TestCase
         $saveBody = substr($document, (int) $saveStart, (int) $publishStart - (int) $saveStart);
         $this->assertStringContainsString('bloxPageDraftModel()->saveForPage', $saveBody);
         $this->assertStringNotContainsString('contentModel()->updateById', $saveBody);
-        $this->assertStringContainsString('$database->beginTransaction();', $document);
-        $this->assertStringContainsString('contentModel()->updateById', $document);
-        $this->assertStringContainsString("'status' => 1", $document);
-        $this->assertStringContainsString('$database->commit();', $document);
-        $this->assertStringContainsString('$database->rollback();', $document);
+        // E03：发布写入移入锁内闭包，事务开合由 BloxDocumentWriteLock 统一承担。
+        $syncStart = strpos($document, 'public static function syncDraftFromPublished');
+        $this->assertNotFalse($syncStart);
+        $publishBody = substr($document, (int) $publishStart, (int) $syncStart - (int) $publishStart);
+        $lockStart = strpos($publishBody, 'BloxDocumentWriteLock::channel(');
+        $this->assertNotFalse($lockStart);
+        $lockedBody = substr($publishBody, (int) $lockStart);
+        $this->assertStringContainsString('contentModel()->updateById', $lockedBody);
+        $this->assertStringContainsString("'status' => 1", $lockedBody);
+        $this->assertStringContainsString('recordContentRevision(', $lockedBody);
+        $this->assertStringNotContainsString('contentModel()->updateById', substr($publishBody, 0, (int) $lockStart));
+        $lock = $this->source('includes/builder/BloxDocumentWriteLock.php');
+        $this->assertStringContainsString('$database->beginTransaction();', $lock);
+        $this->assertStringContainsString('$database->commit();', $lock);
+        $this->assertStringContainsString('$database->rollback();', $lock);
     }
 
     private function source(string $path): string
@@ -374,6 +391,6 @@ final class BloxPagePublishingContractTest extends TestCase
             // 付费 Blox 源码不随公开仓库分发；无注入的 CI 矩阵跳过，注入 job 与本地全量执行。
             self::markTestSkipped('付费 Blox 源码未注入：' . $path);
         }
-        return (string) file_get_contents($file);
+        return $path === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : (string) file_get_contents($file);
     }
 }

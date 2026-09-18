@@ -66,6 +66,35 @@ final class BloxTemplateModelTest extends TestCase
         $this->assertGreaterThan(0, (int) $published['published_at']);
     }
 
+    public function testProductSourceSwitchPreservesDraftAndRejectsStaleRevision(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        $json = \ProductTemplateDocument::seed('en');
+        $id = bloxTemplateModel()->createDraft('product-detail', 'Product layout', $json);
+        bloxTemplateModel()->publishDraft($id);
+        $newDraft = \ProductTemplateDocument::seed('ja');
+        bloxTemplateModel()->updateDraft($id, $newDraft, []);
+        bloxTemplateModel()->switchProductSource($id, 'native', hash('sha256', $json));
+        $row = bloxTemplateModel()->findForExport($id);
+        $this->assertSame(\ProductTemplateDocument::changeSource($newDraft, 'native'), $row['draft_data']);
+        $this->assertSame(
+            json_decode($newDraft, true)['sections'],
+            json_decode($row['draft_data'], true)['sections']
+        );
+        $this->assertSame(1, (int) $row['status']);
+        $this->assertTrue(\ProductTemplateDocument::usesNative($row));
+        try {
+            bloxTemplateModel()->switchProductSource($id, 'custom', hash('sha256', $json));
+            $this->fail('A stale browser must not overwrite the source');
+        } catch (RuntimeException) {
+            $this->assertSame($row['published_data'], bloxTemplateModel()->findForExport($id)['published_data']);
+        }
+        bloxTemplateModel()->switchProductSource($id, 'custom', hash('sha256', $row['published_data']));
+        $restored = bloxTemplateModel()->findForExport($id);
+        $this->assertSame($newDraft, $restored['draft_data']);
+        $this->assertSame(json_decode($json, true), json_decode($restored['published_data'], true));
+    }
+
     public function testCatalogCanFilterByTypeWithoutReturningLargeJson(): void
     {
         $sectionId = bloxTemplateModel()->createDraft('section', '区块', '[]');
@@ -192,6 +221,49 @@ final class BloxTemplateModelTest extends TestCase
         $this->assertSame('[]', $preserved['draft_data']);
     }
 
+    public function testUnreadableWinningPublicationDoesNotSelectALowerRankedTemplate(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        $previous = $GLOBALS['yikai_config_runtime_overrides'] ?? null;
+        try {
+            $GLOBALS['yikai_config_runtime_overrides'] = ['current_theme' => 'default', 'blox_custom_header_enabled' => '1'];
+            $theme = \BloxAreaTemplatePresets::install('clean-site-header', 1);
+            $lower = \BloxAreaTemplatePresets::install('corporate-site-header', 1);
+            bloxTemplateModel()->publishDraft((int) $lower['id']);
+            $id = bloxTemplateModel()->createDraft('header', 'Winning fixture', '[]');
+            bloxTemplateModel()->saveConditions($id, [['main' => 'home', 'ids' => [], 'langs' => [], 'exclude' => false]]);
+            bloxTemplateModel()->publishDraft($id);
+            foreach ([
+                ['[]', 'empty'],
+                ['{"schema":1,"sections":[]}', 'empty'],
+                ['{"sections":[{"settings":{"hidden":true},"columns":[]}]}', 'hidden'],
+                ['broken JSON', 'invalid'],
+                ['{"schema":999,"sections":[]}', 'invalid'],
+            ] as [$json, $expected]) {
+                db()->update('blox_templates', ['published_data' => $json], 'id = ?', [$id]);
+                $state = \BloxAreaEditorTarget::publicationState('header', ['home' => true]);
+                self::assertSame($expected, $state['status']);
+                self::assertSame($id, (int) $state['template']['id']);
+                self::assertNull(\BloxAreaEditorTarget::publishedTemplate('header', ['home' => true]));
+                self::assertStringContainsString('template=' . $theme['id'] . '&', \BloxAreaEditorTarget::url('header', ['home' => true]));
+                if ($expected !== 'invalid') {
+                    self::assertSame('', \BlockRenderer::render($json));
+                }
+                self::assertSame($json, bloxTemplateModel()->find($id)['published_data']);
+            }
+            $legacy = '[{"columns":[{"elements":[{"type":"heading","data":{"text":"Legacy heading"}}]}]}]';
+            db()->update('blox_templates', ['published_data' => $legacy], 'id = ?', [$id]);
+            self::assertSame('ready', \BloxAreaEditorTarget::publicationState('header', ['home' => true])['status']);
+            self::assertSame($id, (int) \BloxAreaEditorTarget::publishedTemplate('header', ['home' => true])['id']);
+            db()->update('blox_templates', ['published_data' => '{"sections":[{"library_id":999999}]}'], 'id = ?', [$id]);
+            self::assertSame('conditional', \BloxAreaEditorTarget::publicationState('header', ['home' => true])['status']);
+            self::assertSame($id, (int) \BloxAreaEditorTarget::publishedTemplate('header', ['home' => true])['id']);
+        } finally {
+            if ($previous === null) unset($GLOBALS['yikai_config_runtime_overrides']);
+            else $GLOBALS['yikai_config_runtime_overrides'] = $previous;
+        }
+    }
+
     public function testAreaEditorTargetFollowsTheActuallyRenderedHeader(): void
     {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
@@ -216,6 +288,7 @@ final class BloxTemplateModelTest extends TestCase
             ));
 
             $context = ['home' => true, 'channel_id' => 0, 'page_id' => 0];
+            $this->assertNull(\BloxAreaEditorTarget::publishedTemplate('header', $context));
             $this->assertSame(
                 '/admin/blox_editor.php?template=' . (int) $themeHeader['id'] . '&current_header=1&open=header-settings',
                 \BloxAreaEditorTarget::url('header', $context),
@@ -223,6 +296,8 @@ final class BloxTemplateModelTest extends TestCase
             );
 
             $GLOBALS['yikai_config_runtime_overrides']['blox_custom_header_enabled'] = '1';
+            $this->assertSame((int) $dormantHeader['id'], (int) \BloxAreaEditorTarget::publishedTemplate('header', $context)['id']);
+            $this->assertNull(\BloxAreaEditorTarget::publishedTemplate('page', $context));
             $this->assertSame(
                 '/admin/blox_editor.php?template=' . (int) $dormantHeader['id'] . '&open=header-settings',
                 \BloxAreaEditorTarget::url('header', $context)

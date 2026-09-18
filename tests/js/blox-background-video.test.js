@@ -88,6 +88,20 @@ for (const options of [
     });
 }
 
+test('scoped updates leave unrelated video playback alone and removal releases it', () => {
+    const state = run({ item: video('video'), observer: true });
+    state.intersect(state.item, true);
+    const calls = state.item.playCalls;
+    const textRoot = { matches() { return false; }, querySelectorAll() { return []; } };
+    state.listeners['blox:content-updated']({ detail: { root: textRoot } });
+    assert.equal(state.item.playCalls, calls);
+    state.listeners['blox:content-removing']({ detail: { root: state.item } });
+    assert.equal(state.item.getAttribute('src'), null);
+    assert.ok(state.unobserved.includes(state.item));
+    state.intersect(state.item, true);
+    assert.equal(state.item.playCalls, calls);
+});
+
 test('page visibility pauses and resumes without discarding the loaded source', () => {
     const state = run({ item: video('video') });
     state.document.hidden = true;

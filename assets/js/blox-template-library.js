@@ -1,6 +1,12 @@
 (function (global) {
     "use strict";
 
+    // 编辑中页面的内容语言：内置模板按它返回英/日译文（空 = 站点默认内容）
+    var contentLanguage = "";
+    function setContentLanguage(language) {
+        contentLanguage = String(language || "");
+    }
+
     function responseData(response, fallbackMessage) {
         return response.text().then(function (body) {
             var result;
@@ -25,6 +31,7 @@
             + "&context=" + encodeURIComponent(context);
         if (key) url += "&key=" + encodeURIComponent(key);
         if (refresh) url += "&refresh=1";
+        if (contentLanguage) url += "&lang=" + encodeURIComponent(contentLanguage);
         return fetch(url, { cache: "no-store" }).then(function (response) {
             return responseData(response, fallbackMessage);
         });
@@ -59,9 +66,19 @@
                 && list.indexOf(value) === index;
         }).slice(0, 12) : [];
         var priority = Number(metadata.priority);
+        var variants = ["standard", "split", "centered", "cards", "side-by-side", "minimal", "dynamic"];
+        var variant = String(metadata.variant || "standard").trim().toLowerCase();
+        var dataSources = ["static", "dynamic"];
+        var dataSource = String(metadata.data_source || "static").trim().toLowerCase();
+        var states = Array.isArray(metadata.states) ? metadata.states.filter(function (value, index, list) {
+            return ["loading", "empty", "error"].indexOf(value) !== -1 && list.indexOf(value) === index;
+        }).slice(0, 3) : [];
         return Object.assign({}, metadata, {
             schema: 1,
             page_types: pageTypes.length > 0 ? pageTypes : ["general"],
+            variant: variants.indexOf(variant) !== -1 ? variant : "standard",
+            data_source: dataSources.indexOf(dataSource) !== -1 ? dataSource : "static",
+            states: states,
             priority: Number.isFinite(priority) ? Math.max(0, Math.min(100, Math.round(priority))) : 0,
         });
     }
@@ -103,9 +120,53 @@
         body.set("action", "get");
         body.set("context", context);
         body.set("key", key);
+        if (contentLanguage) body.set("lang", contentLanguage);
         body.set("_token", csrf || "");
         return fetch(endpoint, { method: "POST", body: body, cache: "no-store" })
             .then(function (response) { return responseData(response, fallbackMessage); })
+            .then(function (data) {
+                if (!data.template || !Array.isArray(data.template.sections)) {
+                    throw new Error(fallbackMessage);
+                }
+                return data.template;
+            });
+    }
+
+    function postInsertAction(endpoint, action, context, key, reviewId, extra, fallbackMessage, csrf) {
+        var body = new URLSearchParams();
+        body.set("action", action);
+        body.set("context", context);
+        body.set("key", key);
+        if (reviewId) body.set("review_id", reviewId);
+        if (contentLanguage) body.set("lang", contentLanguage);
+        var options = extra && typeof extra === "object" ? extra : {};
+        if (options.style_mode) body.set("style_mode", options.style_mode);
+        ["tokens", "styles"].forEach(function (kind) {
+            var map = options[kind] && typeof options[kind] === "object" ? options[kind] : {};
+            Object.keys(map).forEach(function (from) {
+                var to = map[from];
+                if (to !== "" && to !== null && to !== undefined) {
+                    body.set("design_" + kind + "[" + from + "]", to);
+                }
+            });
+        });
+        body.set("_token", csrf || "");
+        return fetch(endpoint, { method: "POST", body: body, cache: "no-store" })
+            .then(function (response) { return responseData(response, fallbackMessage); });
+    }
+
+    // 画布插入检查：远程/内置来源返回 review_id 与设计诊断；本地/插件 review_id 为空（走直接插入）。
+    function prepareInsert(endpoint, context, key, fallbackMessage, csrf) {
+        return postInsertAction(endpoint, "prepare_insert", context, key, "", null, fallbackMessage, csrf)
+            .then(function (data) {
+                if (!data.template) throw new Error(fallbackMessage);
+                return data;
+            });
+    }
+
+    // 画布插入确认：只提交 review_id 与映射选择，sections 由服务端按映射重新生成。
+    function confirmInsert(endpoint, context, key, reviewId, options, fallbackMessage, csrf) {
+        return postInsertAction(endpoint, "confirm_insert", context, key, reviewId, options, fallbackMessage, csrf)
             .then(function (data) {
                 if (!data.template || !Array.isArray(data.template.sections)) {
                     throw new Error(fallbackMessage);
@@ -122,15 +183,31 @@
         return String(normalizeMetadata(item && item.metadata).purpose || "general").trim().toLowerCase();
     }
 
-    function filter(items, query, type, source, category, purpose) {
+    function dataSourceValue(item) {
+        return String(normalizeMetadata(item && item.metadata).data_source || "static").trim().toLowerCase();
+    }
+
+    /** 虚拟分类「首页常用」：内置区块按 home_common 标记；远程区块按适用页面含首页判断 */
+    var HOME_COMMON = "home-common";
+    function isHomeCommon(item) {
+        if (!item || item.type !== "section") return false;
+        if (item.home_common === true) return true;
+        return item.source !== "builtin" && normalizeMetadata(item.metadata).page_types.indexOf("home") !== -1;
+    }
+
+    function filter(items, query, type, source, category, purpose, dataSource) {
         var q = String(query || "").trim().toLowerCase();
         var wantedCategory = String(category || "all").trim().toLowerCase();
         var wantedPurpose = String(purpose || "all").trim().toLowerCase();
+        var wantedDataSource = String(dataSource || "all").trim().toLowerCase();
         return (Array.isArray(items) ? items : []).filter(function (item) {
             if (type !== "all" && item.type !== type) return false;
             if (source && source !== "all" && item.source !== source) return false;
-            if (wantedCategory !== "all" && categoryValue(item) !== wantedCategory) return false;
+            if (wantedCategory === HOME_COMMON) {
+                if (!isHomeCommon(item)) return false;
+            } else if (wantedCategory !== "all" && categoryValue(item) !== wantedCategory) return false;
             if (wantedPurpose !== "all" && purposeValue(item) !== wantedPurpose) return false;
+            if (wantedDataSource !== "all" && dataSourceValue(item) !== wantedDataSource) return false;
             if (!q) return true;
             var metadata = normalizeMetadata(item.metadata);
             return String(item.name || "").toLowerCase().indexOf(q) !== -1
@@ -146,16 +223,21 @@
 
     function categories(items) {
         var seen = {};
+        var homeCommon = false;
         (Array.isArray(items) ? items : []).forEach(function (item) {
             var value = categoryValue(item);
             if (value) seen[value] = true;
+            if (isHomeCommon(item)) homeCommon = true;
         });
-        return Object.keys(seen).sort();
+        var list = Object.keys(seen).sort();
+        return homeCommon ? [HOME_COMMON].concat(list) : list;
     }
 
     function categoryLabel(category, text) {
         var value = String(category || "").trim().toLowerCase();
-        var key = "category" + value.charAt(0).toUpperCase() + value.slice(1);
+        var key = "category" + value.split("-").map(function (part) {
+            return part.charAt(0).toUpperCase() + part.slice(1);
+        }).join("");
         return text && text[key] ? text[key] : value;
     }
 
@@ -163,6 +245,14 @@
         var seen = {};
         (Array.isArray(items) ? items : []).forEach(function (item) {
             if (item && item.type === "section") seen[purposeValue(item)] = true;
+        });
+        return Object.keys(seen).sort();
+    }
+
+    function dataSources(items) {
+        var seen = {};
+        (Array.isArray(items) ? items : []).forEach(function (item) {
+            if (item && item.type === "section") seen[dataSourceValue(item)] = true;
         });
         return Object.keys(seen).sort();
     }
@@ -222,13 +312,76 @@
         if (!item || !item.locked) return "";
         if (item.locked_reason === "license_expired") return text.lockedExpired;
         if (item.locked_reason === "module_missing") return text.lockedModule;
+        if (item.locked_reason === "domain_mismatch") return text.lockedDomain;
+        if (item.locked_reason === "disabled") return text.lockedDisabled;
         return text.lockedLicense;
+    }
+
+    /**
+     * 精品区块入口的「一条统一说明」。
+     *
+     * 克制原则（ROUND-06 + 区块库任务书 §7）：不给每张卡叠锁、不反复弹购买；有权益的用户看不到任何提示。
+     * 当所有付费条目因**同一个原因**被锁时，只在入口顶部说一次该怎么办，卡片不再重复锁定文案；
+     * 原因不一致（例如个别款限额）时退回逐卡说明。
+     * 已填授权码却仍是 license_required，视为「已购未激活」，引导去后台授权而不是再去购买。
+     *
+     * @return {{state:string}|null} purchase | activate | renew | domain | disabled | module | error | mixed | null
+     */
+    function premiumNotice(items, remoteError, hasLicenseKey) {
+        if (remoteError) return { state: "error" };
+        var paid = (Array.isArray(items) ? items : []).filter(function (item) {
+            return item && item.source === "remote" && !!item.paid;
+        });
+        var locked = paid.filter(function (item) { return !!item.locked; });
+        if (!locked.length) return null;
+        var reasons = [];
+        locked.forEach(function (item) {
+            var reason = String(item.locked_reason || "license_required");
+            if (reasons.indexOf(reason) === -1) reasons.push(reason);
+        });
+        if (reasons.length !== 1 || locked.length !== paid.length) return { state: "mixed" };
+        switch (reasons[0]) {
+            case "license_required": return { state: hasLicenseKey ? "activate" : "purchase" };
+            case "license_expired": return { state: "renew" };
+            case "domain_mismatch": return { state: "domain" };
+            case "disabled": return { state: "disabled" };
+            case "module_missing": return { state: "module" };
+            default: return { state: "mixed" };
+        }
+    }
+
+    /** 统一说明已经讲清楚时，卡片不再重复锁定文案。 */
+    function showCardLock(item, notice) {
+        return !!(item && item.locked) && (!notice || notice.state === "mixed");
+    }
+
+    /** 列表里全是精品时「精品」徽标是噪音；只有精品与免费混排时才用它区分。 */
+    function showPremiumBadge(item, items) {
+        if (!item || !item.paid) return false;
+        return (Array.isArray(items) ? items : []).some(function (other) {
+            return other && other.source === item.source && !other.paid;
+        });
     }
 
     function hasLockedRemote(items) {
         return (Array.isArray(items) ? items : []).some(function (item) {
             return item.source === "remote" && !!item.locked;
         });
+    }
+
+    function applyPageSettings(current, template, mode, pageTarget) {
+        if (!pageTarget || !template || template.type !== "page") return current;
+        var result = Object.assign({}, current || {});
+        var settings = template.settings && typeof template.settings === "object"
+            && !Array.isArray(template.settings) ? template.settings : {};
+        // Only page frame preferences may cross a full-page import; area and product settings stay local.
+        ["page_header_hidden", "page_footer_hidden", "page_breadcrumb_hidden", "page_title_hidden", "page_sidebar_hidden"].forEach(function (key) {
+            if (mode === "replace") delete result[key];
+            if (Object.prototype.hasOwnProperty.call(settings, key)) {
+                result[key] = settings[key] === true || settings[key] === 1 || settings[key] === "1";
+            }
+        });
+        return result;
     }
 
     function freshSections(sections, uid) {
@@ -305,10 +458,13 @@
     }
 
     global.BloxTemplateLibrary = {
+        setContentLanguage: setContentLanguage,
         elementCounts: elementCounts,
         compareSections: compareSections,
         list: list,
         resolve: resolve,
+        prepareInsert: prepareInsert,
+        confirmInsert: confirmInsert,
         normalizeMetadata: normalizeMetadata,
         recommend: recommend,
         isRecommended: isRecommended,
@@ -316,6 +472,7 @@
         categories: categories,
         categoryLabel: categoryLabel,
         purposes: purposes,
+        dataSources: dataSources,
         purposeLabel: purposeLabel,
         scope: scope,
         scopeCount: scopeCount,
@@ -325,7 +482,11 @@
         localEditUrl: localEditUrl,
         lockLabel: lockLabel,
         hasLockedRemote: hasLockedRemote,
+        premiumNotice: premiumNotice,
+        showCardLock: showCardLock,
+        showPremiumBadge: showPremiumBadge,
         freshSections: freshSections,
+        applyPageSettings: applyPageSettings,
         documentFingerprint: documentFingerprint,
     };
 })(window);

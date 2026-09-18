@@ -46,6 +46,17 @@ final class BloxValueSanitizerTest extends TestCase
         $this->assertStringNotContainsString('<script', $out);
     }
 
+    public function testRichtextAlignmentClassesSurviveWithoutAllowingInlineStyles(): void
+    {
+        foreach (['left', 'center', 'right'] as $align) {
+            $out = $this->s('richtext', '<p class="text-' . $align . '" style="color:red" onclick="alert(1)">Aligned</p>');
+            $this->assertStringContainsString('class="text-' . $align . '"', $out);
+            $this->assertStringNotContainsString('style=', $out);
+            $this->assertStringNotContainsString('onclick=', $out);
+            $this->assertSame($out, $this->s('richtext', $out));
+        }
+    }
+
     public function testUrlRejectsPseudoProtocolsKeepsLegit(): void
     {
         $this->assertSame('/about.html', $this->s('url', '/about.html'));

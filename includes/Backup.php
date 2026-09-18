@@ -48,7 +48,20 @@ class Backup
             if ($structure) {
                 if ($isSqlite) {
                     $row = db()->fetchOne("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", [$table]);
-                    $sql .= "DROP TABLE IF EXISTS {$table};\n" . ($row['sql'] ?? '') . ";\n\n";
+                    $sql .= "DROP TABLE IF EXISTS {$table};\n" . ($row['sql'] ?? '') . ";\n";
+                    // 索引必须一起导出：SQLite 的 UNIQUE 多半是独立的 CREATE UNIQUE INDEX
+                    //（settings.key 就是），只导建表语句的话，恢复/回滚之后所有 upsert
+                    //（INSERT … ON CONFLICT(key)）都会以「clause does not match any UNIQUE
+                    // constraint」失败，后台登录都进不去（2026-09-18 发版门禁实测）。
+                    // sql IS NULL 的是 SQLite 自动索引（跟着 PRIMARY KEY/UNIQUE 列定义走），跳过。
+                    $indexes = db()->fetchAll(
+                        "SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL ORDER BY name",
+                        [$table]
+                    );
+                    foreach ($indexes as $index) {
+                        $sql .= preg_replace('/^CREATE (UNIQUE )?INDEX /i', 'CREATE $1INDEX IF NOT EXISTS ', (string) $index['sql']) . ";\n";
+                    }
+                    $sql .= "\n";
                 } else {
                     $create = db()->fetchOne("SHOW CREATE TABLE `{$table}`");
                     $createSql = (string) ($create['Create Table'] ?? '');

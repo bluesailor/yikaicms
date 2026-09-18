@@ -3,8 +3,98 @@ declare(strict_types=1);
 
 class ChannelModel extends Model
 {
+    /** Page navigation entries for one language, shared by both design surfaces. */
+    public function websitePages(string $lang): array
+    {
+        return db()->fetchAll(
+            'SELECT c.*, p.name AS parent_name,'
+            . ' (SELECT MAX(ct.updated_at) FROM ' . DB_PREFIX . 'contents ct'
+            . ' WHERE ct.channel_id = c.id AND ct.lang = c.lang AND ct.deleted_at IS NULL) AS content_updated_at'
+            . ' FROM ' . $this->tableName() . ' c'
+            . ' LEFT JOIN ' . $this->tableName() . ' p ON p.id = c.parent_id'
+            . ' WHERE c.type IN (?, ?) AND c.lang = ?'
+            . ' ORDER BY c.parent_id ASC, c.sort_order ASC, c.id ASC',
+            ['page', 'album', $lang]
+        );
+    }
+
     protected string $table = 'channels';
     protected string $defaultOrder = 'sort_order ASC, id ASC';
+
+    /**
+     * Resolve preset identity without changing existing URLs, hierarchy or content.
+     * Disabled channels still occupy their identity. Ambiguous matches fail closed.
+     * @return array{status:string,channel:?array}
+     */
+    public function matchPreset(array $definition, string $lang, int $parentId = 0): array
+    {
+        $slug = strtolower(trim((string) ($definition['slug'] ?? '')));
+        $type = (string) ($definition['type'] ?? 'list');
+        $name = mb_strtolower(trim((string) ($definition['name'] ?? $slug)));
+        $aliases = [$slug];
+        $baseSlug = $slug;
+        $suffix = '-' . strtolower($lang);
+        if (str_ends_with($baseSlug, $suffix)) $baseSlug = substr($baseSlug, 0, -strlen($suffix));
+        $catalog = require ROOT_PATH . '/includes/channel_catalog.php';
+        foreach ($catalog['items'] as $item) {
+            $known = array_merge([$item['slug']], $item['aliases'] ?? []);
+            if (in_array($baseSlug, $known, true)) {
+                foreach ($known as $alias) {
+                    $aliases[] = $alias;
+                    $aliases[] = $alias . $suffix;
+                }
+                break;
+            }
+        }
+        $rows = db()->fetchAll('SELECT id, slug, name, type, lang, parent_id, status FROM '
+            . $this->tableName() . ' ORDER BY id ASC');
+        $matches = [];
+        $occupied = null;
+        foreach ($rows as $row) {
+            $rowSlug = strtolower((string) $row['slug']);
+            if ($rowSlug === $slug) $occupied = $row;
+            if ((string) $row['lang'] !== $lang || (int) $row['parent_id'] !== $parentId) continue;
+            if (in_array($rowSlug, $aliases, true)
+                || ($name !== '' && mb_strtolower(trim((string) $row['name'])) === $name)) {
+                $matches[] = $row;
+            }
+        }
+        if (count($matches) === 1 && (string) $matches[0]['type'] === $type) {
+            return ['status' => 'existing', 'channel' => $matches[0]];
+        }
+        if ($matches !== [] || $occupied !== null) {
+            return ['status' => 'conflict', 'channel' => $matches[0] ?? $occupied];
+        }
+        return ['status' => 'new', 'channel' => null];
+    }
+
+    /** Change only a single page's slug; never rewrite its Blox or legacy content. */
+    public function updatePageSlug(int $id, string $slug, string $expectedSlug): array
+    {
+        $page = $this->findWhere(['id' => $id, 'type' => 'page']);
+        if (!$page || (string) $page['slug'] !== $expectedSlug) {
+            throw new RuntimeException(__('blox_save_conflict'));
+        }
+        $slug = strtolower(trim($slug));
+        if (!preg_match('/^[a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?$/D', $slug)) {
+            throw new RuntimeException(__('blox_page_url_invalid'));
+        }
+        if ($slug === $expectedSlug) {
+            return $page;
+        }
+        // Fixed controller routes cannot be assigned to ordinary content pages.
+        $reserved = ['index', 'admin', 'install', 'api', 'search', 'product', 'download', 'album', 'job', 'contact', 'history', 'login', 'register', 'member'];
+        if (in_array($slug, $reserved, true) || in_array($expectedSlug, $reserved, true)
+            || $this->count(['slug' => $slug]) > 0) {
+            throw new RuntimeException(__('blox_page_url_unavailable'));
+        }
+        $changed = db()->update('channels', ['slug' => $slug, 'updated_at' => time()], 'id = ? AND slug = ?', [$id, $expectedSlug]);
+        if (!$changed) {
+            throw new RuntimeException(__('blox_save_conflict'));
+        }
+        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
+        return array_merge($page, ['slug' => $slug]);
+    }
 
     /**
      * 按 slug 查找

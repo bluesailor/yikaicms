@@ -21,7 +21,8 @@ test.beforeEach(async ({ page }, testInfo) => {
 
 test.afterEach(async ({ page }) => {
   if (!consoleEntries || !unsafeWrites) return;
-  const leakedDirtyState = await page.getByTestId('blox-dirty').isVisible().catch(() => false);
+  // TASK-002 第 1 项：状态位现在始终有文案（未修改/已发布…），"脏"改看 data-state 而非可见性
+  const leakedDirtyState = (await page.getByTestId('blox-dirty').getAttribute('data-state').catch(() => null)) === 'dirty';
   if (leakedDirtyState) await restoreClean(page);
   expect(leakedDirtyState, 'test left the editor dirty').toBe(false);
   expect(unsafeWrites, 'display-condition E2E must not save or publish').toEqual([]);
@@ -30,6 +31,8 @@ test.afterEach(async ({ page }) => {
 
 test('element conditions create OR groups, AND rules and a canvas marker @ci', async ({ page }) => {
   await addTemporaryHeading(page);
+  // 专业功能区默认折叠（ROUND-06 克制界面）；条件面板由 yikai-builder 作者端模块提供。
+  await page.getByTestId('blox-professional-features').locator('summary').click();
   await page.getByTestId('blox-condition-tab').click();
   await expect(page.getByTestId('blox-condition-editor')).toBeVisible();
 
@@ -68,5 +71,5 @@ test('element conditions create OR groups, AND rules and a canvas marker @ci', a
   ]);
 
   await restoreClean(page);
-  await expect(page.getByTestId('blox-dirty')).toBeHidden();
+  await expect(page.getByTestId('blox-dirty')).toHaveAttribute('data-state', 'clean');
 });

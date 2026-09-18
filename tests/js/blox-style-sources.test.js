@@ -42,3 +42,43 @@ test('sources stay scoped to supported root properties', () => {
   assert.equal(sources.supports('card', { key: 'bg_color' }), true);
   assert.equal(sources.supports('heading', { key: 'text' }), false);
 });
+
+// TASK-004：新增两组**已核对渲染契约**的组合（text 的 color / radius 与共享声明同槽），
+// 同时锁定"未核对到同槽契约的类型保持不支持"——不因控件名叫 color/radius 就放开。
+test('text color and radius join the supported root properties', () => {
+  assert.equal(sources.supports('text', { key: 'color' }), true, 'text 根标签与共享声明同槽');
+  assert.equal(sources.supports('text', { key: 'radius' }), true, 'text 根标签的圆角类与共享 border-radius 同槽');
+  // 扩展开关只影响这两组：其它组合维持原判
+  assert.equal(sources.supports('icon', { key: 'color' }), false);
+  assert.equal(sources.supports('button', { key: 'color' }), false);
+  assert.equal(sources.supports('divider', { key: 'color' }), false);
+  assert.equal(sources.supports('heading', { key: 'radius' }), false);
+  assert.equal(sources.supports('text', { key: 'text' }), false);
+  assert.equal(sources.supports('card', { key: 'radius' }), false, '卡片圆角不在元素根槽位，未核对前不放行');
+});
+
+// 新增组合的 describe() 走既有映射（无需新增文案键）：本地值、共享值、失效引用分别表达
+test('text color/radius keep local, shared and invalid references distinguishable', () => {
+  const radiusControl = { key: 'radius', default: 'none' };
+  const catalog = { styles: [{ id: 's_card', name: 'Card', color: '#123456', radius: 'xl', status: 'active' }] };
+
+  const localOnly = sources.describe({ color: '#abcdef' }, { key: 'color', default: '' }, catalog);
+  assert.equal(localOnly.local, 'element');
+  assert.equal(localOnly.shared, 'unbound', '未绑定共享样式时不编造共享来源');
+
+  const sharedOnly = sources.describe({ _global_style: 's_card' }, { key: 'color', default: '' }, catalog);
+  assert.equal(sharedOnly.shared, 'live');
+  assert.equal(sharedOnly.sharedValue, '#123456');
+
+  // 共享与本地可同时存在，不切成互斥来源
+  const both = sources.describe({ _global_style: 's_card', radius: 'md' }, radiusControl, catalog);
+  assert.equal(both.local, 'element');
+  assert.equal(both.shared, 'live');
+  assert.equal(both.sharedValue, 'xl');
+
+  // 失效引用：目录里没有该 id 时按快照/缺失区分
+  const snapshot = sources.describe({ _global_style: 's_gone', _global_style_snapshot: { color: '#fff' } }, { key: 'color', default: '' }, { styles: [] });
+  assert.equal(snapshot.shared, 'snapshot');
+  const missing = sources.describe({ _global_style: 's_gone' }, { key: 'color', default: '' }, { styles: [] });
+  assert.equal(missing.shared, 'missing');
+});

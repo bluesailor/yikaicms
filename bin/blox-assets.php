@@ -40,7 +40,18 @@ function loadBloxAssetPolicy(string $root): array
     $distributionScopes = ['core', 'pro', 'runtime'];
     foreach ($distributionScopes as $index => $scope) {
         foreach (array_slice($distributionScopes, $index + 1) as $otherScope) {
-            $overlap = array_intersect($policy[$scope], $policy[$otherScope]);
+            // A directory exclusion also removes descendants in another scope.
+            $overlap = [];
+            foreach ($policy[$scope] as $path) {
+                foreach ($policy[$otherScope] as $otherPath) {
+                    $left = strtolower(rtrim($path, '/'));
+                    $right = strtolower(rtrim($otherPath, '/'));
+                    if ($left === $right || str_starts_with($left, $right . '/')
+                        || str_starts_with($right, $left . '/')) {
+                        $overlap[] = $path . ' <-> ' . $otherPath;
+                    }
+                }
+            }
             if ($overlap !== []) {
                 throw new RuntimeException(
                     "Assets cannot be both {$scope} and {$otherScope}: " . implode(', ', $overlap)

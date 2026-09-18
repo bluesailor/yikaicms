@@ -29,7 +29,11 @@ final class ProductController extends ListController
 
         // ?cat=<slug> overrides the channel-derived category.
         $productCategory = null;
-        if ($catSlug !== '') {
+        if (!empty($GLOBALS['yk_custom_product_category_id'])) {
+            $productCategory = getProductCategory((int) $GLOBALS['yk_custom_product_category_id']);
+            if ($productCategory) $productCategoryId = (int) $productCategory['id'];
+        }
+        if ($catSlug !== '' && $productCategory === null) {
             $productCategory = getProductCategoryBySlug($catSlug);
             if ($productCategory) {
                 $productCategoryId = (int) $productCategory['id'];

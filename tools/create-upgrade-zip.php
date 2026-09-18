@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/includes/UpgradeEntryOrder.php';
+require_once dirname(__DIR__) . '/includes/MarketInstallOrigin.php';
 
 if ($argc < 3 || $argc > 4) {
     fwrite(STDERR, "Usage: php tools/create-upgrade-zip.php <source-dir> <output.zip> [entry-prefix]\n");
@@ -33,6 +34,7 @@ foreach ($iterator as $file) {
     }
     $path = $file->getPathname();
     $archiveRel = str_replace('\\', '/', substr($path, strlen($source) + 1));
+    if (MarketInstallOrigin::isReceiptPath($archiveRel)) continue;
     $targetRel = str_starts_with($archiveRel, 'payload/') ? substr($archiveRel, 8) : $archiveRel;
     $entries[] = ['rel' => $targetRel, 'archive_rel' => $archiveRel, 'path' => $path];
 }

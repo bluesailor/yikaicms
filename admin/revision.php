@@ -55,6 +55,28 @@ $loadOwned = static function (int $revId) use ($model, $type, $targetId): array 
     return $rev;
 };
 
+if ($action === 'blocks') {
+    // 「载入到画布」的数据源：只读，不写库。载入本身是结构编辑的入口，
+    // 与页面编辑接口一致要求 blox_edit（列表/预览保持只需 edit_*）。
+    if ($type !== 'page') {
+        error(__('admin_bad_params'));
+    }
+    requirePermission('blox_edit');
+    $rev = $loadOwned((int) input('rev_id', 0));
+    require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+    try {
+        $state = PageBloxDocument::load($targetId);
+        $json = PageBloxDocument::revisionEditableDocument($rev, $state);
+    } catch (\Throwable $e) {
+        error(__('blox_revision_load_failed') . '：' . $e->getMessage());
+    }
+    success([
+        'blocks'    => $json,
+        'summary'   => (string) $rev['summary'],
+        'time_text' => date('Y-m-d H:i', (int) $rev['created_at']),
+    ]);
+}
+
 if ($action === 'preview') {
     $rev = $loadOwned((int) input('rev_id', 0));
     $snap = json_decode((string) $rev['snapshot'], true);
@@ -78,14 +100,18 @@ if ($action === 'restore') {
     }
     $rev = $loadOwned((int) input('rev_id', 0));
     try {
-        $n = $model->restoreRevision(
-            (int) $rev['id'],
-            (int) ($_SESSION['admin_id'] ?? 0),
-            (string) ($_SESSION['admin_username'] ?? '')
-        );
+        $adminId = (int) ($_SESSION['admin_id'] ?? 0);
+        $adminName = (string) ($_SESSION['admin_username'] ?? '');
         if ($type === 'page' && db()->tableExists('blox_page_drafts')) {
             require_once ROOT_PATH . '/includes/builder/bootstrap.php';
-            PageBloxDocument::syncDraftFromPublished($targetId, (int) ($_SESSION['admin_id'] ?? 0));
+            // 恢复 Blox 结构属于结构编辑：与页面编辑接口同样要求 blox_edit。
+            $pageState = PageBloxDocument::load($targetId);
+            if ($pageState['has_draft'] || $pageState['has_published'] || PageBloxDocument::revisionBlocks($rev) !== '') {
+                requirePermission('blox_edit');
+            }
+            $n = PageBloxDocument::restoreRevision($targetId, $rev, $adminId, $adminName);
+        } else {
+            $n = $model->restoreRevision((int) $rev['id'], $adminId, $adminName);
         }
         adminLog($type, 'restore', "恢复版本 #{$rev['id']} → {$type} #{$targetId}");
         cacheClear();

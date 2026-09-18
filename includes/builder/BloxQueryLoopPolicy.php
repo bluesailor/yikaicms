@@ -3,20 +3,13 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/BloxFeaturePolicy.php';
+
 final class BloxQueryLoopPolicy
 {
     public static function advancedEnabled(): bool
     {
-        if (function_exists('bloxAdvancedFeaturesEnabled')) {
-            return bloxAdvancedFeaturesEnabled();
-        }
-        if (defined('DEBUG') && DEBUG) {
-            return true;
-        }
-        if (!function_exists('license_valid') || !function_exists('license_has_module')) {
-            return false;
-        }
-        return license_has_module('blox') || license_valid();
+        return BloxFeaturePolicy::allows('query_loop');
     }
 
     /** @param array<int,mixed> $sections */
@@ -39,6 +32,7 @@ final class BloxQueryLoopPolicy
         }
     }
 
+    /** @api Compatibility entry for callers with serialized documents. */
     public static function assertJsonAllowed(string $json, ?bool $advanced = null): void
     {
         if ($advanced ?? self::advancedEnabled()) {
@@ -53,6 +47,9 @@ final class BloxQueryLoopPolicy
     {
         $type = (string) ($element['type'] ?? '');
         $data = is_array($element['data'] ?? null) ? $element['data'] : [];
+        if ($type === 'content-catalog' && !empty($data['children'])) {
+            throw new RuntimeException(__('blox_query_loop_license_required'));
+        }
         if ($type === 'list-dynamic') {
             $hasCustomTemplate = !empty($data['children']) || !empty($data['template']);
             $hasPagination = (string) ($data['pagination_mode'] ?? 'none') !== 'none';

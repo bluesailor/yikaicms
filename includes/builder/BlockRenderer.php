@@ -20,20 +20,21 @@ final class BlockRenderer
     private const SECTION_LABEL_ELEMENT_TITLE_KEYS = ['title', 'name', 'label'];
     private const SECTION_LABEL_MAX = 120;
 
-    /** 响应式三档映射（[基类, md:类, lg:类]，字面量写全供 Tailwind 扫描；解析见 AbstractElement::respClasses） */
+    /** 响应式映射（[基类, md:类, lg:类, wide:类]，字面量写全供 Tailwind 扫描；解析见 AbstractElement::respClasses） */
     private const PADDING_MAP = [
-        'none' => ['py-0', 'md:py-0', 'lg:py-0'],
-        'sm'   => ['py-4', 'md:py-4', 'lg:py-4'],
-        'md'   => ['py-8', 'md:py-8', 'lg:py-8'],
-        'lg'   => ['py-12', 'md:py-12', 'lg:py-12'],
-        'xl'   => ['py-16', 'md:py-16', 'lg:py-16'],
+        'none' => ['py-0', 'md:py-0', 'lg:py-0', 'wide:py-0'],
+        'xs'   => ['py-1', 'md:py-1', 'lg:py-1', 'wide:py-1'],
+        'sm'   => ['py-4', 'md:py-4', 'lg:py-4', 'wide:py-4'],
+        'md'   => ['py-8', 'md:py-8', 'lg:py-8', 'wide:py-8'],
+        'lg'   => ['py-12', 'md:py-12', 'lg:py-12', 'wide:py-12'],
+        'xl'   => ['py-16', 'md:py-16', 'lg:py-16', 'wide:py-16'],
     ];
     private const GAP_MAP = [
-        'none' => ['gap-0', 'md:gap-0', 'lg:gap-0'],
-        'sm'   => ['gap-2', 'md:gap-2', 'lg:gap-2'],
-        'md'   => ['gap-4', 'md:gap-4', 'lg:gap-4'],
-        'lg'   => ['gap-8', 'md:gap-8', 'lg:gap-8'],
-        'xl'   => ['gap-12', 'md:gap-12', 'lg:gap-12'],
+        'none' => ['gap-0', 'md:gap-0', 'lg:gap-0', 'wide:gap-0'],
+        'sm'   => ['gap-2', 'md:gap-2', 'lg:gap-2', 'wide:gap-2'],
+        'md'   => ['gap-4', 'md:gap-4', 'lg:gap-4', 'wide:gap-4'],
+        'lg'   => ['gap-8', 'md:gap-8', 'lg:gap-8', 'wide:gap-8'],
+        'xl'   => ['gap-12', 'md:gap-12', 'lg:gap-12', 'wide:gap-12'],
     ];
     private const MAXWIDTH_MAP = ['default' => 'max-w-6xl', 'narrow' => 'max-w-4xl', 'wide' => 'max-w-7xl', 'full' => 'max-w-full'];
     // 容器层（内容层）独立样式：区块=全宽背景层、内层 div=容器（Bricks 的 Section/Container 分层）
@@ -60,7 +61,8 @@ final class BlockRenderer
         9 => 'lg:col-span-9', 10 => 'lg:col-span-10', 11 => 'lg:col-span-11', 12 => 'lg:col-span-12',
     ];
     /** 断点隐藏类（前台输出；编辑态改打 data-yk-hide-on 标记以便画布仍可选中）。类名字面量供 Tailwind 扫描。 */
-    private const HIDE_ON_MAP = ['m' => 'max-md:hidden', 't' => 'md:max-lg:hidden', 'd' => 'lg:hidden'];
+    // 桌面隐藏覆盖 ≥1024（含宽屏，与旧文档一致）；宽屏档另可单独隐藏 ≥1440
+    private const HIDE_ON_MAP = ['m' => 'max-md:hidden', 't' => 'md:max-lg:hidden', 'd' => 'lg:hidden', 'w' => 'wide:hidden'];
     private const SECTION_ALIGN_MAP = ['left' => 'text-left', 'center' => 'text-center', 'right' => 'text-right'];
     private const SECTION_TITLE_SIZE_MAP = ['sm' => '1.5rem', 'md' => '1.875rem', 'lg' => '2.25rem', 'xl' => '3rem'];
     private const SECTION_SUBTITLE_SIZE_MAP = ['sm' => '0.875rem', 'md' => '1rem', 'lg' => '1.25rem'];
@@ -205,6 +207,12 @@ final class BlockRenderer
 
             $padding = AbstractElement::respClasses($settings['padding'] ?? 'md', self::PADDING_MAP, 'md');
             $maxWidth = self::MAXWIDTH_MAP[$settings['max_width'] ?? 'default'] ?? 'max-w-6xl';
+            if (!isset($settings['padding']) && BloxDesignTheme::hasSectionSpacing()) {
+                $padding .= ' yk-section-space-theme';
+            }
+            if (($settings['max_width'] ?? 'default') === 'default' && BloxDesignTheme::hasContentWidth()) {
+                $maxWidth .= ' yk-width-theme';
+            }
 
             $style = '';
             $bgColor = AbstractElement::cssColor($settings['bg_color'] ?? null);
@@ -419,11 +427,18 @@ final class BlockRenderer
                     $settings['subtitle_color'] ?? '',
                     self::SECTION_SUBTITLE_SIZE_MAP
                 );
-                $html .= '<div class="' . $titleAlign . ' mb-10">';
+                // 进场动画：与首页动态区块标题一致，默认滚动到视窗时向上淡入；选「无动画」可关闭
+                $titleAnimation = (string) ($settings['title_animation'] ?? '');
+                if ($titleAnimation === '') {
+                    $titleAnimation = 'fade-up';
+                }
+                $titleAnimAttr = in_array($titleAnimation, self::SECTION_TITLE_ANIMATIONS, true)
+                    ? ' data-animate="' . $titleAnimation . '"' : '';
+                $html .= '<div class="' . $titleAlign . ' mb-10"' . $titleAnimAttr . '>';
                 $titleEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.title"' : '';
                 $subEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.subtitle"' : '';
                 $html .= '<' . $titleTag . ' class="blk-title"' . $titleEditAttr . $titleStyle . '>' . htmlspecialchars($secTitle) . '</' . $titleTag . '>';
-                $html .= '<span class="section-title-bar"></span>';
+                $html .= self::sectionTitleDecor($settings);
                 if ($secSub !== '') {
                     $html .= '<p class="blk-sub"' . $subEditAttr . $subtitleStyle . '>' . htmlspecialchars($secSub) . '</p>';
                 }
@@ -664,6 +679,48 @@ final class BlockRenderer
     }
 
     /** 标题字段只接受预设字号和 cssColor() 白名单颜色。 */
+    /**
+     * 区块标题下的装饰线/圆点。未设置任何装饰项时输出与旧版逐字节一致。
+     * 对齐默认跟随标题对齐（旧版左对齐标题下装饰线仍居中）。
+     * @param array<string,mixed> $settings
+     */
+    /** 区块标题可选的进场动画（与元素动画同一套 data-animate 效果，由 scroll-anim.js 驱动） */
+    public const SECTION_TITLE_ANIMATIONS = ['fade', 'fade-up', 'fade-down', 'fade-left', 'fade-right', 'zoom-in'];
+
+    private static function sectionTitleDecor(array $settings): string
+    {
+        $style = (string) ($settings['title_decor_style'] ?? 'inherit');
+        if ($style === 'none') {
+            return '';
+        }
+        $class = $style === 'dot' ? 'section-title-dot' : 'section-title-bar';
+        $inline = [];
+        $align = (string) ($settings['title_decor_align'] ?? 'inherit');
+        if (!in_array($align, ['left', 'center', 'right'], true)) {
+            $align = in_array(($settings['title_align'] ?? ''), ['left', 'right'], true) ? (string) $settings['title_align'] : '';
+        }
+        if ($align === 'left') {
+            $inline[] = 'margin-left:0;margin-right:auto';
+        } elseif ($align === 'right') {
+            $inline[] = 'margin-left:auto;margin-right:0';
+        }
+        $color = AbstractElement::cssColor($settings['title_decor_color'] ?? null);
+        if ($color !== null) {
+            $inline[] = 'background:' . $color;
+        }
+        $width = max(0, min(240, (int) ($settings['title_decor_width'] ?? 0)));
+        if ($width > 0) {
+            $inline[] = 'width:' . $width . 'px' . ($style === 'dot' ? ';height:' . $width . 'px' : '');
+        }
+        $gap = max(0, min(80, (int) ($settings['title_decor_gap'] ?? 0)));
+        if ($gap > 0) {
+            $inline[] = 'margin-top:' . $gap . 'px';
+        }
+        return '<span class="' . $class . '"'
+            . ($inline === [] ? '' : ' style="' . htmlspecialchars(implode(';', $inline), ENT_QUOTES) . '"')
+            . '></span>';
+    }
+
     private static function sectionFieldStyle(mixed $size, mixed $color, array $sizeMap): string
     {
         $style = '';
@@ -752,6 +809,10 @@ final class BlockRenderer
         $keys = [];
         foreach ($raw as $k) {
             $k = trim((string) $k);
+            // 全站关闭宽屏档时，「宽屏隐藏」不再生效（桌面隐藏仍覆盖 ≥1024）
+            if ($k === 'w' && !BloxResponsiveValue::wideEnabled()) {
+                continue;
+            }
             if (isset(self::HIDE_ON_MAP[$k]) && !in_array($k, $keys, true)) {
                 $keys[] = $k;
             }
@@ -810,11 +871,53 @@ final class BlockRenderer
         return $processor->getUpdatedHtml();
     }
 
+    /**
+     * 声明式 CSS（E05）：属性与作用域来自可信 controls()，文档只提供值。
+     * 输出写入元素根标签（内联声明或固定变量类），不产生额外节点，局部 SSR 单根协议不变。
+     */
+    private static function applyCompiledCss(string $html, array $data, AbstractElement $element): string
+    {
+        if ($html === '') {
+            return $html;
+        }
+        try {
+            $compiled = BloxCssCompiler::compile($element->controls(), $data);
+        } catch (InvalidArgumentException $e) {
+            // 插件 schema 声明错误只记录、不输出样式，不能让整页渲染失败。
+            error_log('Blox declarative CSS skipped [' . $element->type() . ']: ' . $e->getMessage());
+            return $html;
+        }
+        if ($compiled['style'] === '' && $compiled['classes'] === []) {
+            return $html;
+        }
+        $processor = new HtmlTagRewriter($html);
+        if (!$processor->nextTag($element->compiledCssTargetTag())) {
+            return $html;
+        }
+        if ($compiled['style'] !== '') {
+            $existing = $processor->getAttribute('style');
+            $style = is_string($existing) ? trim($existing) : '';
+            if ($style !== '' && !str_ends_with($style, ';')) {
+                $style .= ';';
+            }
+            $processor->setAttribute('style', $style . $compiled['style']);
+        }
+        if ($compiled['classes'] !== []) {
+            $existingClass = $processor->getAttribute('class');
+            $processor->setAttribute('class', trim((is_string($existingClass) ? $existingClass : '') . ' ' . implode(' ', $compiled['classes'])));
+        }
+        return $processor->getUpdatedHtml();
+    }
+
     private static function applyGlobalStyle(string $html, array $data, string $type): string
     {
         $id = trim((string) ($data['_global_style'] ?? ''));
+        // 未绑定命名样式的元素占绝大多数：先短路，避免逐元素解析设计快照与回退快照。
+        if ($html === '' || $id === '' || $type === 'code') {
+            return $html;
+        }
         $declarations = BloxDesignSystem::styleDeclarations($id, $data['_global_style_snapshot'] ?? null);
-        if ($html === '' || $id === '' || $declarations === '' || $type === 'code') {
+        if ($declarations === '') {
             return $html;
         }
         $processor = new HtmlTagRewriter($html);
@@ -886,7 +989,14 @@ final class BlockRenderer
             'node_id' => (string) ($el['id'] ?? ''),
         ]);
         $html = BloxFrontendEditTarget::mark($html, $type, (string) ($el['id'] ?? ''));
+        if ($editMode && in_array($type, ['heading', 'text', 'button'], true)
+            && preg_match('/\{[a-z_]+\}/', (string) ($data[$type === 'text' ? 'html' : 'text'] ?? ''))) {
+            $dynamicRoot = new HtmlTagRewriter($html);
+            if ($dynamicRoot->nextTag()) $dynamicRoot->setAttribute('data-yk-dynamic-tags', '1');
+            $html = $dynamicRoot->getUpdatedHtml();
+        }
         $html = self::applyElementSharedStyles($html, $data, $element);
+        $html = self::applyCompiledCss($html, $data, $element);
         $html = self::applyGlobalStyle($html, $data, $element->type());
         $html = self::applyElementVisibility($html, $data['_hide_on'] ?? null, $editMode);
         $html = self::markCustomHomeElement($html, $element->type(), $path);

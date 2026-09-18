@@ -1,0 +1,19 @@
+.yk-tabs { min-width: 0; width: 100%; color: #374151; }
+.yk-tabs-nav { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #d1d5db; }
+.yk-tabs .yk-tabs-tab { appearance: none; min-height: 44px; max-width: 100%; padding: 10px 18px; margin: 0 0 -1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: #4b5563; font: inherit; font-weight: 600; line-height: 1.5; letter-spacing: 0; white-space: normal; overflow-wrap: anywhere; cursor: pointer; }
+.yk-tabs .yk-tabs-tab:hover { background: #f3f4f6; color: #111827; }
+.yk-tabs .yk-tabs-tab[aria-selected="true"] { border-bottom-color: #1d4ed8; color: #1d4ed8; }
+.yk-tabs .yk-tabs-tab:focus-visible, .yk-tabs .yk-tabs-panel:focus-visible { outline: 2px solid #1d4ed8; outline-offset: -2px; }
+.yk-tabs-panel { padding: 24px 0; line-height: 1.75; overflow-wrap: anywhere; }
+.yk-tabs-panel[hidden] { display: none !important; }
+.yk-tabs[data-tabs-style="segmented"] .yk-tabs-nav { width: fit-content; max-width: 100%; padding: 4px; border: 0; border-radius: 6px; background: #f3f4f6; }
+.yk-tabs[data-tabs-style="segmented"] .yk-tabs-tab { margin: 0; border: 0; border-radius: 4px; }
+.yk-tabs[data-tabs-style="segmented"] .yk-tabs-tab[aria-selected="true"] { background: #1d4ed8; color: #fff; }
+.yk-tabs[data-tabs-style="bordered"] .yk-tabs-nav { gap: 4px; }
+.yk-tabs[data-tabs-style="bordered"] .yk-tabs-tab { border: 1px solid transparent; border-radius: 6px 6px 0 0; }
+.yk-tabs[data-tabs-style="bordered"] .yk-tabs-tab[aria-selected="true"] { border-color: #d1d5db; border-bottom-color: #fff; background: #fff; }
+.yk-tabs[data-tabs-style="bordered"] .yk-tabs-panel { padding: 24px; border: 1px solid #d1d5db; border-top: 0; background: #fff; }
+@media (max-width: 640px) {
+    .yk-tabs .yk-tabs-tab { padding: 10px 12px; }
+    .yk-tabs[data-tabs-style="bordered"] .yk-tabs-panel { padding: 16px; }
+}

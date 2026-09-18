@@ -1,0 +1,57 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "section",
+  "name": "Basic heading",
+  "requires": {
+    "elements": ["heading", "text", "button"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "lg",
+          "max_width": "narrow",
+          "gap": "sm",
+          "align_items": "center",
+          "justify_items": "center",
+          "bg_color": "#ffffff"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "Sum up this section in one sentence",
+                  "level": "h2",
+                  "align": "center"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p>Add a sentence or two explaining why the content below matters to your readers. If you don't need it, simply delete this paragraph.</p>",
+                  "align": "center"
+                }
+              },
+              {
+                "type": "button",
+                "data": {
+                  "text": "Learn more",
+                  "url": "",
+                  "variant": "outline",
+                  "align": "center"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

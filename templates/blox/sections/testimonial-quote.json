@@ -5,7 +5,7 @@
     "name": "Customer quote",
     "requires": {
         "elements": [
-            "quote"
+            "testimonial-carousel"
         ],
         "plugins": []
     },
@@ -17,6 +17,8 @@
                 "type": "section",
                 "name": "客户评价",
                 "settings": {
+                    "title": "客户评价",
+                    "subtitle": "听听合作客户怎么说",
                     "padding": {
                         "d": "xl",
                         "m": "lg"
@@ -28,10 +30,38 @@
                     {
                         "elements": [
                             {
-                                "type": "quote",
+                                "type": "testimonial-carousel",
                                 "data": {
-                                    "text": "把一句真实的客户反馈放在这里。具体到项目与结果的评价，比「服务很好」有力得多。",
-                                    "author": "某某客户 · 采购负责人"
+                                    "items": [
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-1.svg",
+                                            "name": "陈思远",
+                                            "role": "采购总监 · 华东制造集团",
+                                            "content": "从选型到交付只用了三周，技术团队全程跟进，现场调试一次通过。后续两条产线也继续选择了他们。",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-2.svg",
+                                            "name": "林晓雯",
+                                            "role": "运营经理 · 星禾连锁",
+                                            "content": "门店系统上线后，库存盘点时间缩短了一半。遇到问题随时有人响应，这是我们最看重的。",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-3.svg",
+                                            "name": "王建国",
+                                            "role": "技术负责人 · 远拓物流",
+                                            "content": "方案很务实，没有堆砌功能。按我们的业务流程做了定制，培训一周员工就能独立使用。",
+                                            "rating": "5"
+                                        }
+                                    ],
+                                    "per_view": "1",
+                                    "autoplay": true,
+                                    "interval": "5",
+                                    "show_dots": true,
+                                    "show_arrows": false,
+                                    "card_style": "plain",
+                                    "align": "center"
                                 }
                             }
                         ]

@@ -40,7 +40,7 @@ final class RuntimeRequirements
     /** 缺了核心功能就坏 */
     private const REQUIRED = [
         'pdo'      => '数据库访问，缺了整站跑不起来',
-        'json'     => '配置、Blox 文档、API 全部走 JSON',
+        'json'     => '配置、网页构建文档、API 全部走 JSON',
         'mbstring' => '中日文截断与大小写，缺了正文会截出乱码',
         'fileinfo' => '上传 MIME 检测，是上传安全基线（v1.18.6 起必需）',
         'dom'      => '富文本净化 HtmlPolicy 用 DOMDocument 做白名单，缺了正文降级成转义纯文本',

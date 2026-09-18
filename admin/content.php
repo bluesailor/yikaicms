@@ -63,6 +63,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('blox_invalid_action'));
         }
 
+        // 混合列表：按目标行自己的 type 判权，只有 edit_article 的账号不能下架案例
+        if (!canEditContentRow($id)) {
+            permissionDenied();
+        }
         contentModel()->updateById($id, [$field => $value]);
         success();
     }
@@ -247,7 +251,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </td>
                         <td class="px-4 py-3 text-center">
                             <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                <?php echo $contentTypes[$item['type']] ?? $item['type']; ?>
+                                <?php echo e($contentTypes[$item['type']] ?? $item['type']); ?>
                             </span>
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-500">

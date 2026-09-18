@@ -66,3 +66,57 @@ test('editing a parent tier updates inherited descendants and preserves explicit
         { d: 'sm', t: 'md' }
     );
 });
+
+// ---- R2B：数值预览宽度钳制（0=自动；320–2560 取整钳制） ----
+test('R2B: clampPreviewWidth clamps to 320-2560 and treats empty/invalid as auto', () => {
+    const clamp = responsive.clampPreviewWidth;
+    assert.equal(clamp(''), 0);
+    assert.equal(clamp(null), 0);
+    assert.equal(clamp('abc'), 0);
+    assert.equal(clamp(0), 0);
+    assert.equal(clamp(-50), 0);
+    assert.equal(clamp('100'), 320);
+    assert.equal(clamp(320), 320);
+    assert.equal(clamp('1024.9'), 1024);
+    assert.equal(clamp(2560), 2560);
+    assert.equal(clamp(99999), 2560);
+    assert.equal(responsive.PREVIEW_WIDTH_MIN, 320);
+    assert.equal(responsive.PREVIEW_WIDTH_MAX, 2560);
+});
+
+test('breakpoint ranges and preview width tiers share one definition', () => {
+    assert.deepStrictEqual(
+        ['mobile', 'tablet', 'desktop', 'wide'].map((device) => responsive.rangeLabel(device)),
+        ['<768px', '768\u20131023px', '1024\u20131439px', '\u22651440px']
+    );
+    assert.deepStrictEqual(
+        [320, 767, 768, 1023, 1024, 1439, 1440, 2560, 'x'].map((width) => responsive.deviceForWidth(width)),
+        ['mobile', 'mobile', 'tablet', 'tablet', 'desktop', 'desktop', 'wide', 'wide', 'desktop']
+    );
+});
+
+test('widescreen inherits desktop until it is set explicitly', () => {
+    const options = { sm: true, md: true, lg: true };
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(responsive.normalize({ d: 'md', m: 'sm' }, options, 'sm'))), { d: 'md', t: 'md', m: 'sm', w: 'md' });
+    const state = responsive.stateFor({ d: 'md' }, 'wide', options, 'sm');
+    assert.strictEqual(state.device, 'w');
+    assert.strictEqual(state.source, 'd');
+    assert.strictEqual(state.inherited, true);
+    const set = responsive.setFor('md', 'wide', 'lg', options, 'sm');
+    assert.deepStrictEqual(JSON.parse(JSON.stringify(set)), { d: 'md', w: 'lg' });
+    assert.strictEqual(responsive.stateFor(set, 'wide', options, 'sm').overridden, true);
+});
+
+test('site-wide widescreen switch folds wide into desktop', () => {
+    const options = { sm: true, md: true, lg: true };
+    responsive.setWideEnabled(false);
+    try {
+        assert.strictEqual(responsive.normalize({ d: 'md', w: 'lg' }, options, 'sm').w, 'md');
+        assert.strictEqual(responsive.rangeLabel('desktop'), '≥1024px');
+        assert.strictEqual(responsive.deviceForWidth(1920), 'desktop');
+        assert.strictEqual(responsive.BREAKPOINTS.map((item) => item.key).join(','), 'm,t,d');
+    } finally {
+        responsive.setWideEnabled(true);
+    }
+    assert.strictEqual(responsive.deviceForWidth(1920), 'wide');
+});

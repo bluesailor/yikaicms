@@ -103,13 +103,13 @@ function builderPresets(): array
                     'settings' => ['bg_color' => '#f8fafc', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'center', 'gap' => 'lg'],
                     'columns' => [
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/images/case-demo.jpg', 'title' => __('blox_ps_m1_t'), 'text' => __('blox_ps_m1_x'), 'link' => '']],
+                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/images/company-about-v2.webp', 'title' => __('blox_ps_m1_t'), 'text' => __('blox_ps_m1_x'), 'link' => '']],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/images/case-demo.jpg', 'title' => __('blox_ps_m2_t'), 'text' => __('blox_ps_m2_x'), 'link' => '']],
+                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/images/company-about-v2.webp', 'title' => __('blox_ps_m2_t'), 'text' => __('blox_ps_m2_x'), 'link' => '']],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/images/case-demo.jpg', 'title' => __('blox_ps_m3_t'), 'text' => __('blox_ps_m3_x'), 'link' => '']],
+                            ['id' => 'e', 'type' => 'card', 'data' => ['image' => '/images/company-about-v2.webp', 'title' => __('blox_ps_m3_t'), 'text' => __('blox_ps_m3_x'), 'link' => '']],
                         ]],
                     ],
                 ]],
@@ -122,13 +122,13 @@ function builderPresets(): array
                     'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'md'],
                     'columns' => [
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/images/case-demo.jpg', 'alt' => '', 'click_action' => 'lightbox', 'link_url' => '', 'link_new_tab' => false]],
+                            ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/images/company-about-v2.webp', 'alt' => '', 'click_action' => 'lightbox', 'link_url' => '', 'link_new_tab' => false]],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/images/case-demo.jpg', 'alt' => '', 'click_action' => 'lightbox', 'link_url' => '', 'link_new_tab' => false]],
+                            ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/images/company-about-v2.webp', 'alt' => '', 'click_action' => 'lightbox', 'link_url' => '', 'link_new_tab' => false]],
                         ]],
                         ['id' => 'c', 'elements' => [
-                            ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/images/case-demo.jpg', 'alt' => '', 'click_action' => 'lightbox', 'link_url' => '', 'link_new_tab' => false]],
+                            ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/images/company-about-v2.webp', 'alt' => '', 'click_action' => 'lightbox', 'link_url' => '', 'link_new_tab' => false]],
                         ]],
                     ],
                 ]],
@@ -212,7 +212,7 @@ function builderPresets(): array
                         'id' => 's', 'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'center', 'justify_items' => 'stretch', 'gap' => 'lg'],
                         'columns' => [
                             ['id' => 'c', 'elements' => [
-                                ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/images/case-demo.jpg', 'alt' => __('blox_ps_co_alt'), 'click_action' => '', 'link_url' => '', 'link_new_tab' => false]],
+                                ['id' => 'e', 'type' => 'image', 'data' => ['src' => '/images/company-about-v2.webp', 'alt' => __('blox_ps_co_alt'), 'click_action' => '', 'link_url' => '', 'link_new_tab' => false]],
                             ]],
                             ['id' => 'c', 'elements' => [
                                 ['id' => 'e', 'type' => 'heading', 'data' => ['text' => __('blox_ps_story_t'), 'level' => 'h3']],

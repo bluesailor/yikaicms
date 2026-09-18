@@ -24,10 +24,7 @@ if (empty($facetBrands) && empty($facetTagGroups)) {
 }
 
 // 第 1 页基础路径（切换筛选时始终回到第 1 页）
-$catSlug = $productCategory['slug'] ?? '';
-$fbase = $catSlug !== ''
-    ? '/product/' . $catSlug . '.html'
-    : ((($channel['slug'] ?? '') !== '') ? '/' . $channel['slug'] . '.html' : '/list/' . (int) $channel['id'] . '.html');
+$fbase = !empty($productCategory) ? productCategoryUrl($productCategory) : channelUrl($channel);
 
 // 当前生效的筛选参数（保留 keyword/sort，切换 facet 时不丢）
 $curFilters = [];
@@ -38,7 +35,7 @@ foreach (['keyword', 'sort', 'brand', 'tag', 'pmin', 'pmax'] as $k) {
     }
 }
 $buildUrl = static function (array $params) use ($fbase): string {
-    return $params ? $fbase . '?' . http_build_query($params) : $fbase;
+    return $params ? $fbase . (str_contains($fbase, '?') ? '&' : '?') . http_build_query($params) : $fbase;
 };
 // 在逗号列表参数里切换一个 id（选中↔取消），返回目标 URL
 $toggleUrl = static function (string $param, int $id) use ($curFilters, $buildUrl): string {
@@ -56,10 +53,10 @@ $toggleUrl = static function (string $param, int $id) use ($curFilters, $buildUr
 $clearParams = array_intersect_key($curFilters, ['keyword' => 1, 'sort' => 1]);
 ?>
 <div class="bg-white rounded-lg shadow overflow-hidden">
-    <div class="flex items-center justify-between bg-primary text-white px-4 py-3 font-bold">
+    <div class="flex items-center justify-between bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200">
         <span><?php echo __('filter_title'); ?></span>
         <?php if (!empty($filterActive)): ?>
-        <a href="<?php echo e($buildUrl($clearParams)); ?>" class="text-xs font-normal text-white/80 hover:text-white">
+        <a href="<?php echo e($buildUrl($clearParams)); ?>" class="text-sm font-normal text-primary hover:underline">
             <?php echo __('filter_clear'); ?>
         </a>
         <?php endif; ?>

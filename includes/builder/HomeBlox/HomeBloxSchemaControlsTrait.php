@@ -36,6 +36,13 @@ trait HomeBloxSchemaControlsTrait
         return [
             ...BannerContentLayout::controls(),
             [
+                'key' => 'partners_custom',
+                'type' => 'checkbox',
+                'label' => __('blox_home_partners_custom'),
+                'default' => false,
+                'required' => ['block_type', '=', 'partners'],
+            ],
+            [
                 'key' => 'block_type',
                 'type' => 'select',
                 'label' => __('blox_home_source'),
@@ -73,12 +80,14 @@ trait HomeBloxSchemaControlsTrait
                 'options' => [
                     'inherit' => __('blox_banner_height_inherit'),
                     'fixed' => __('blox_banner_height_fixed'),
+                    'fixed-cover-header' => __('blox_banner_height_fixed_cover_header'),
                     'screen' => __('blox_banner_height_screen'),
                     'cover-header' => __('blox_banner_height_cover_header'),
                 ],
                 'option_icons' => [
                     'inherit' => 'settings',
                     'fixed' => 'arrows-vertical',
+                    'fixed-cover-header' => 'layout-navbar',
                     'screen' => 'maximize',
                     'cover-header' => 'layout-navbar-expand',
                 ],
@@ -94,7 +103,7 @@ trait HomeBloxSchemaControlsTrait
                 'max' => 1600,
                 'step' => 10,
                 'required' => ['block_type', '=', 'banner'],
-                'visible_when' => ['terms' => [['banner_height_mode', '=', 'fixed']]],
+                'visible_when' => ['terms' => [['banner_height_mode', '=', ['fixed', 'fixed-cover-header']]]],
             ],
             [
                 'key' => 'banner_mobile_mode',
@@ -266,7 +275,7 @@ trait HomeBloxSchemaControlsTrait
                 'option_icons' => [
                     'inherit' => 'settings',
                     'line' => 'minus',
-                    'dot' => 'point-filled',
+                    'dot' => 'point',
                     'none' => 'ban',
                 ],
                 'required' => ['block_type', '=', $titleSources],
@@ -377,6 +386,32 @@ trait HomeBloxSchemaControlsTrait
                 'help' => __('blox_counter_auto_help'),
             ],
             [
+                'key' => 'stats_number_color', 'type' => 'color', 'label' => __('blox_stats_number_color'),
+                'default' => '', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+            ],
+            [
+                'key' => 'stats_icon_color', 'type' => 'color', 'label' => __('blox_stats_icon_color'),
+                'default' => '', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+            ],
+            [
+                'key' => 'stats_label_color', 'type' => 'color', 'label' => __('blox_stats_label_color'),
+                'default' => '', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+            ],
+            [
+                'key' => 'stats_divider_color', 'type' => 'color', 'label' => __('blox_stats_divider_color'),
+                'default' => '', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+            ],
+            [
+                'key' => 'stats_layout', 'type' => 'select', 'label' => __('blox_stats_layout'),
+                'default' => 'inherit', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+                'options' => ['inherit' => __('blox_stats_divider_inherit'), 'stacked' => __('blox_stats_layout_stacked'), 'inline' => __('blox_stats_layout_inline'), 'numbers' => __('blox_stats_layout_numbers')],
+            ],
+            [
+                'key' => 'stats_divider', 'type' => 'select', 'label' => __('blox_stats_divider'),
+                'default' => 'inherit', 'tab' => 'style', 'required' => ['block_type', '=', 'stats'],
+                'options' => ['inherit' => __('blox_stats_divider_inherit'), 'show' => __('blox_stats_divider_show'), 'hide' => __('blox_stats_divider_hide')],
+            ],
+            [
                 'key' => 'stats_mobile_columns',
                 'type' => 'select',
                 'label' => __('blox_cols_mobile'),
@@ -409,6 +444,16 @@ trait HomeBloxSchemaControlsTrait
                 'required' => ['block_type', '=', 'about'],
             ],
             [
+                'key' => 'override_tag_background', 'type' => 'color',
+                'label' => __('blox_home_about_tag_background'), 'default' => '',
+                'tab' => 'style', 'required' => ['block_type', '=', 'about'],
+            ],
+            [
+                'key' => 'override_tag_color', 'type' => 'color',
+                'label' => __('blox_home_about_tag_color'), 'default' => '',
+                'tab' => 'style', 'required' => ['block_type', '=', 'about'],
+            ],
+            [
                 'key' => 'override_button_text',
                 'type' => 'text',
                 'label' => __('blox_home_override_button_text'),
@@ -424,6 +469,23 @@ trait HomeBloxSchemaControlsTrait
                 'required' => ['block_type', '=', $buttonSources],
                 'placeholder' => '/contact.html',
                 'help' => __('blox_home_override_inherit_help'),
+            ],
+            [
+                'key' => 'override_call_text',
+                'type' => 'text',
+                'label' => __('blox_home_cta_call_text'),
+                'default' => '',
+                'required' => ['block_type', '=', 'cta'],
+                'placeholder' => __('detail_call'),
+                'help' => __('blox_home_override_inherit_help'),
+            ],
+            [
+                'key' => 'override_call_phone',
+                'type' => 'text',
+                'label' => __('blox_home_cta_call_phone'),
+                'default' => '',
+                'required' => ['block_type', '=', 'cta'],
+                'help' => __('blox_home_cta_call_phone_help'),
             ],
             [
                 'key' => 'bg_image',
@@ -631,6 +693,9 @@ trait HomeBloxSchemaControlsTrait
                             ['key' => 'override_description', 'icon' => 'align-left', 'label' => __('blox_home_override_description'), 'control' => 'textarea'],
                             ['key' => 'override_button_text', 'icon' => 'click', 'label' => __('blox_home_override_button_text'), 'control' => 'text'],
                             ['key' => 'override_button_url', 'icon' => 'link', 'label' => __('blox_home_override_button_url'), 'control' => 'url'],
+                            // 第二个按钮：致电咨询（有联系电话时显示）
+                            ['key' => 'override_call_text', 'icon' => 'phone', 'label' => __('blox_home_cta_call_text'), 'control' => 'text'],
+                            ['key' => 'override_call_phone', 'icon' => 'phone-call', 'label' => __('blox_home_cta_call_phone'), 'control' => 'text'],
                         ],
                     ],
                     [
@@ -667,6 +732,17 @@ trait HomeBloxSchemaControlsTrait
         foreach (['testimonials', 'partners', 'product_categories'] as $type) {
             $blueprints[$type] = $headingBlueprint;
         }
+        $blueprints['partners']['groups'][] = [
+            'key' => 'partners',
+            'label' => __('blox_hb_partners'),
+            'icon' => 'link',
+            'repeat' => 12,
+            'fields' => [
+                ['key' => 'partner_items.{index}.name', 'icon' => 'forms', 'label' => __('link_name'), 'control' => 'text'],
+                ['key' => 'partner_items.{index}.url', 'icon' => 'link', 'label' => __('link_url'), 'control' => 'url'],
+                ['key' => 'partner_items.{index}.logo', 'icon' => 'photo', 'label' => __('link_logo'), 'control' => 'image'],
+            ],
+        ];
         foreach (array_keys(self::sourceOptions()) as $type) {
             if (str_starts_with($type, 'channel:')) {
                 $blueprints[$type] = $headingBlueprint;
@@ -860,6 +936,9 @@ trait HomeBloxSchemaControlsTrait
                             $itemPrefix = $elementPrefix . 'accordion_items.' . $itemIndex . '.';
                             self::setNestedValue($seeds, $itemPrefix . 'question', $item['question']);
                             self::setNestedValue($seeds, $itemPrefix . 'answer', $item['answer']);
+                            if (($item['answer_format'] ?? '') === 'html') {
+                                self::setNestedValue($seeds, $itemPrefix . 'answer_format', 'html');
+                            }
                         }
                         $repeaters[] = [
                             'key' => 'custom-faq-' . $sectionIndex . '-' . $columnIndex . '-' . $elementIndex,
@@ -879,7 +958,8 @@ trait HomeBloxSchemaControlsTrait
                                     'suffix' => 'answer',
                                     'icon' => 'message-circle',
                                     'label' => __('blox_home_faq_answer'),
-                                    'control' => 'textarea',
+                                    'control' => 'faq_answer',
+                                    'format_suffix' => 'answer_format',
                                 ],
                             ],
                         ];

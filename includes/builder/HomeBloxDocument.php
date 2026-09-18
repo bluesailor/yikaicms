@@ -197,24 +197,23 @@ public static function isActive(): bool
      *
      * @return array{active:bool,has_published:bool,sections:int,base_revision:string}
      */
-    public static function saveAndPublish(string $blocksJson): array
+    public static function saveAndPublish(string $blocksJson, string $baseRevision = ''): array
     {
-        $document = self::prepareDocument($blocksJson, true);
-        $previous = self::readStoredDocument(self::PUBLISHED_KEY);
-        $history = self::readHistory();
-
-        if ($previous !== null) {
-            array_unshift($history, $previous);
-            $history = array_slice($history, 0, 10);
-        }
-
+        [$raw, $trustedJson] = self::trustedBaseline($baseRevision);
+        $document = self::prepareDocument($blocksJson, true, $trustedJson);
         $documentJson = json_encode(
             $document,
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
         );
-        $db = db();
-        $db->beginTransaction();
-        try {
+
+        BloxDocumentWriteLock::settings(self::ACTIVE_KEY, $raw, static function () use ($documentJson): void {
+            // 锁内读取上一份发布，回滚历史不会漏掉并发发布的版本。
+            $previous = self::readStoredDocument(self::PUBLISHED_KEY);
+            $history = self::readHistory();
+            if ($previous !== null) {
+                array_unshift($history, $previous);
+                $history = array_slice($history, 0, 10);
+            }
             settingModel()->set(self::DATA_KEY, $documentJson, 'home');
             settingModel()->set(self::PUBLISHED_KEY, $documentJson, 'home');
             settingModel()->set(
@@ -226,12 +225,8 @@ public static function isActive(): bool
             if (class_exists(HomeLayoutDocument::class)) {
                 settingModel()->set(HomeLayoutDocument::ACTIVE_KEY, '0', 'home');
             }
-            $db->commit();
-            do_action('data_changed', DB_PREFIX . 'settings', 0);
-        } catch (Throwable $e) {
-            $db->rollback();
-            throw $e;
-        }
+        });
+        do_action('data_changed', DB_PREFIX . 'settings', 0);
 
         $revisionJson = json_encode([
             'schema' => $document['schema'],
@@ -278,23 +273,84 @@ public static function isActive(): bool
      *
      * @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>}
      */
-    public static function saveDraft(string $blocksJson): array
+    public static function saveDraft(string $blocksJson, string $baseRevision = ''): array
     {
-        $document = self::prepareDocument($blocksJson, self::isActive());
+        [$raw, $trustedJson] = self::trustedBaseline($baseRevision);
+        $document = self::prepareDocument($blocksJson, self::isActive(), $trustedJson);
+        $documentJson = json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
-        settingModel()->set(
-            self::DATA_KEY,
-            json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
-            'home'
-        );
+        BloxDocumentWriteLock::settings(self::ACTIVE_KEY, $raw, static function () use ($documentJson): void {
+            settingModel()->set(self::DATA_KEY, $documentJson, 'home');
+        });
 
         return $document;
     }
 
-    /** @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
-    private static function prepareDocument(string $blocksJson, bool $active): array
+    /**
+     * 先取库内原始值再读可信文档：两次读取之间若有并发写入，锁内比较必然失败而不会漏检。
+     *
+     * @return array{0:array<string,?string>,1:string}
+     */
+    private static function trustedBaseline(string $baseRevision): array
     {
-        $processed = BloxDocumentPipeline::process($blocksJson, 'home');
+        $raw = BloxDocumentWriteLock::rawSettings([self::DATA_KEY, self::PUBLISHED_KEY]);
+        if (function_exists('settingModel')) {
+            settingModel()->clearCache();
+        }
+        // 未保存过草稿时经典首页回退不含专业字段；只有要比对 revision 才需要展开整份经典布局。
+        $current = self::readStoredDocument(self::DATA_KEY) ?? ($baseRevision !== '' ? self::load() : null);
+        $trustedJson = json_encode([
+            'schema' => $current['schema'] ?? BloxDocumentPipeline::SCHEMA_VERSION,
+            'settings' => $current['settings'] ?? [],
+            'sections' => $current['sections'] ?? [],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        BloxDocumentWriteLock::assertRevision($trustedJson, $baseRevision);
+        return [$raw, $trustedJson];
+    }
+
+    /**
+     * 首页编辑器按当前语言（siteLang）显示关于与 FAQ 文字，与画布一致；带编辑标记，保存时由 prepareDocument 还原。
+     * @param array<int,mixed> $sections @return array<int,mixed>
+     */
+    public static function editorSections(array $sections): array
+    {
+        $sections = HomeAboutLocalization::forEditor(HomeFaqContent::forEditor($sections, siteLang()));
+        $sections = HomeTestimonialsContent::forEditor($sections, siteLang());
+        // 轮播文字来自该语言的轮播图记录（见 HomeBloxRenderContext）
+        if (function_exists('getBanners')) {
+            $sections = HomeBannerItemElement::forEditor(
+                $sections, getBanners('home', 5), siteLang(), siteLang() === (string) config('site_lang', 'zh-CN')
+            );
+        }
+        return $sections;
+    }
+
+    private static function markBannerEditorChanges(string $json): string
+    {
+        if (!str_contains($json, HomeBannerItemElement::EDIT_KEY)) {
+            return $json;
+        }
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) {
+            return $json;
+        }
+        if (BloxDocumentPipeline::isList($decoded)) {
+            $decoded = HomeBannerItemElement::markEditorChanges($decoded);
+        } elseif (is_array($decoded['sections'] ?? null)) {
+            $decoded['sections'] = HomeBannerItemElement::markEditorChanges($decoded['sections']);
+        }
+        return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: $json;
+    }
+
+    /** @return array{schema:int,settings:array<string,mixed>,version:int,source:string,active:bool,updated_at:int,sections:array<int,array<string,mixed>>} */
+    private static function prepareDocument(string $blocksJson, bool $active, ?string $trustedJson = null): array
+    {
+        // 按语言编辑（见 editorSections）：改动写回对应语言，共享文档保留原文。
+        $blocksJson = HomeAboutLocalization::markEditorChanges(HomeFaqContent::fromEditorJson($blocksJson));
+        $blocksJson = HomeTestimonialsContent::fromEditorJson($blocksJson);
+        $blocksJson = self::markBannerEditorChanges($blocksJson);
+        $processed = BloxDocumentPipeline::process($blocksJson, 'home', trustedJson: $trustedJson);
+        $processed['sections'] = HomeBannerItemElement::fromEditor(HomeAboutLocalization::fromEditor($processed['sections']));
 
         return [
             'schema' => $processed['schema'],

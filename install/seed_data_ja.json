@@ -583,7 +583,7 @@
             "title": "大手製造企業のDXプロジェクト",
             "subtitle": "",
             "slug": "manufacturing-dx",
-            "cover": "\/images\/case-demo.jpg",
+            "cover": "\/images\/company-about-v2.webp",
             "images": null,
             "summary": "お客様の生産効率を30%向上させました",
             "content": "<h3>プロジェクト背景<\/h3>\n<p>クライアントは国内大手製造企業で、5つの生産拠点と2,000台以上の設備を保有。設備データの分断、生産計画の属人化、品質トレーサビリティの困難さなどの課題を抱えていました。<\/p>\n<h3>ソリューション<\/h3>\n<ul>\n<li><strong>設備連携<\/strong>：200台以上のIoTゲートウェイを導入し、全生産設備のリアルタイムデータ収集を実現<\/li>\n<li><strong>データ基盤<\/strong>：統合データプラットフォームを構築し、ERP・MES・WMSシステムを連携<\/li>\n<li><strong>AI排程<\/strong>：AIアルゴリズムによるスマートスケジューリングシステムで生産計画を最適化<\/li>\n<li><strong>品質追跡<\/strong>：全工程QRコードトレーサビリティ体制を構築<\/li>\n<\/ul>\n<h3>導入成果<\/h3>\n<ul>\n<li>生産効率 <strong>30%<\/strong> 向上<\/li>\n<li>設備停止時間 <strong>45%<\/strong> 削減<\/li>\n<li>製品不良率 <strong>60%<\/strong> 低減<\/li>\n<li>在庫回転率 <strong>25%<\/strong> 改善<\/li>\n<\/ul>\n<p>導入期間6ヶ月、稼働開始から初年度で投資回収を達成しました。<\/p>",

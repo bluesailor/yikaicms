@@ -481,6 +481,10 @@ public static function isActive(): bool
         }
 
         $title = trim((string) ($custom['title'] ?? ''));
+        $faq = HomeFaqContent::toSection(['block_type' => $type], 'home_custom_' . $number . '_faq');
+        if ($faq !== null) {
+            return [$faq];
+        }
         $sections = self::normalizeSections($blocks);
         foreach ($sections as $sectionIndex => &$section) {
             $prefix = 'home_custom_' . $number . '_' . $sectionIndex . '_';
@@ -552,6 +556,8 @@ public static function isActive(): bool
 
         if ($type === 'partners') {
             $data['override_title'] = configLang('home_links_title', 'footer_partners');
+            $data['partner_items'] = db()->tableExists('links')
+                ? array_slice(linkModel()->getActive(), 0, 12) : [];
             return $data;
         }
 

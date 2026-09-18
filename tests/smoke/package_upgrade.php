@@ -169,7 +169,14 @@ try {
         2 => ['file', $serverLog, 'a'],
     ];
     $pipes = [];
-    $server = proc_open([PHP_BINARY, '-S', '127.0.0.1:' . $port, '-t', $siteRoot], $descriptors, $pipes, $siteRoot);
+    $server = proc_open([
+        PHP_BINARY,
+        '-d', 'display_errors=0',
+        '-d', 'log_errors=1',
+        '-d', 'error_log=' . $serverLog,
+        '-S', '127.0.0.1:' . $port,
+        '-t', $siteRoot,
+    ], $descriptors, $pipes, $siteRoot);
     if (!is_resource($server)) {
         throw new RuntimeException('Unable to start PHP test server.');
     }
@@ -305,13 +312,39 @@ PHP
     upgradeAssert($verify['code'] === 0 && is_array($verifyData), 'upgraded package boots from CLI');
     upgradeAssert(($verifyData['version'] ?? '') === $toVersion && ($verifyData['pending'] ?? -1) === 0, 'target version has zero pending migrations');
 
-    $front = upgradeRequest($base . '/', $cookieJar);
-    $admin = upgradeRequest($base . '/admin/index.php', $cookieJar);
-    upgradeAssert($front['code'] === 200 && $admin['code'] === 200, 'front end and authenticated admin render after upgrade');
+    // v1.19.x 的升级器尚不会主动失效 OPcache；生产配置默认每隔数秒复查文件时间戳。
+    // 给跨越旧升级器的这一跳一个有界恢复窗口，同时 v1.20+ 会在覆盖时立即失效字节码。
+    $renderDeadline = microtime(true) + 6.0;
+    do {
+        $front = upgradeRequest($base . '/', $cookieJar);
+        $admin = upgradeRequest($base . '/admin/index.php', $cookieJar);
+        if ($front['code'] === 200 && $admin['code'] === 200) {
+            break;
+        }
+        usleep(500000);
+    } while (microtime(true) < $renderDeadline);
+    if ($front['code'] !== 200 || $admin['code'] !== 200) {
+        throw new RuntimeException(sprintf(
+            'front end and authenticated admin render after upgrade (front HTTP %d: %s; admin HTTP %d: %s)',
+            $front['code'],
+            substr(trim(strip_tags($front['body'])), 0, 240),
+            $admin['code'],
+            substr(trim(strip_tags($admin['body'])), 0, 240)
+        ));
+    }
+    upgradeAssert(true, 'front end and authenticated admin render after upgrade');
     echo "\nPASS: real v{$fromVersion} package upgraded to v{$toVersion} under PHP " . PHP_VERSION . "\n";
 } catch (Throwable $exception) {
     $failure = $exception;
     fwrite(STDERR, "\nFAIL: " . $exception->getMessage() . "\n");
+    if (isset($siteRoot) && is_string($siteRoot)) {
+        $applicationLogs = glob($siteRoot . '/storage/logs/error-*.log') ?: [];
+        rsort($applicationLogs);
+        if ($applicationLogs !== []) {
+            $tail = array_slice(file($applicationLogs[0], FILE_IGNORE_NEW_LINES) ?: [], -40);
+            fwrite(STDERR, "--- application error log ---\n" . implode("\n", $tail) . "\n");
+        }
+    }
     if (is_file($serverLog)) {
         $tail = array_slice(file($serverLog, FILE_IGNORE_NEW_LINES) ?: [], -30);
         fwrite(STDERR, "--- server log ---\n" . implode("\n", $tail) . "\n");

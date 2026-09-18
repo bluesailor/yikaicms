@@ -23,13 +23,18 @@ if (!function_exists('yk_20260825_is_factory_banner_children')) {
      * 独立复查 R1（2026-08-25）：首版只比 title+subtitle，站长删条、换图、改链接、
      * 复制条目都会被误判成出厂内容而切 inherit，等于替换客户首页展示。收紧为：
      * 恰好三条、互不重复，且全部展示/交互字段（含图片、按钮、链接、动效）逐一
-     * 与安装种子一致。宁可漏修（保持现状）也绝不误伤。
+     * 与当年的出厂内容一致。宁可漏修（保持现状）也绝不误伤。
+     *
+     * ⚠ 下面这份指纹是**历史事实，不随当前安装种子变动**：它描述 2026-08-25 之前各版本
+     * 实际发出去的那三条轮播，用来判断老站首页有没有被站长改过。新装是另一条链路——
+     * 种子里的首页文档本来就是 items_mode=inherit，这个迁移对它无事可做。2026-09-18 起
+     * 种子的轮播子项跟随参照站演进，与这里解耦（见 tools/sync_demo_seed.php）。
      *
      * 具名函数而非闭包：tests/Unit/RestyleMigrationBannerGuardTest.php 直接测它。
      */
     function yk_20260825_is_factory_banner_children(array $children): bool
     {
-        // 与 install/sql 种子逐字一致的出厂三条（提取自 home_blox_data）
+        // 2026-08-25 之前发出去的出厂三条（当年 home_blox_data 的原文；只增不改）
         $factory = [
             ['title' => '数字化转型解决方案', 'subtitle' => '助力企业实现智能化升级', 'btn1_text' => '了解更多', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=1', 'image_mobile' => '', 'btn1_url' => '/about.html', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'clip-reveal', 'background_motion' => 'inherit'],
             ['title' => '专业的技术服务团队', 'subtitle' => '7x24小时为您保驾护航', 'btn1_text' => '服务支持', 'btn2_text' => '', 'image' => 'https://picsum.photos/1920/600?random=2', 'image_mobile' => '', 'btn1_url' => '/service.html', 'btn2_url' => '', 'link_url' => '', 'link_target' => '_self', 'content_motion' => 'slide-left', 'background_motion' => 'inherit'],

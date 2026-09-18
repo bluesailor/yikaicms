@@ -1,0 +1,52 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "Product Center Page",
+  "requires": {
+    "elements": ["page-title", "product-catalog", "cta"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "页面标题",
+        "settings": {"padding": "lg", "max_width": "default", "gap": "sm", "bg_color": "#f8fafc"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "page-title", "data": {"align": "center", "show_breadcrumb": true}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "产品目录",
+        "settings": {"padding": "lg", "max_width": "wide", "gap": "lg", "bg_color": "#ffffff"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "product-catalog", "data": {"layout": "grid", "columns": "4", "show_search": true, "show_categories": true, "show_sort": true}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "咨询引导",
+        "settings": {"padding": "lg", "max_width": "default", "gap": "md", "bg_color": "#0f172a"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "cta", "data": {"use_home_text": true}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

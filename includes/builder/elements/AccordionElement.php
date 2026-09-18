@@ -18,6 +18,15 @@ final class AccordionElement extends AbstractElement
     {
         return [
             [
+                'key' => 'faq_style', 'type' => 'select', 'label' => __('blox_faq_style'),
+                'default' => 'default', 'tab' => 'style',
+                'options' => [
+                    'default' => __('blox_faq_style_default'),
+                    'divided' => __('blox_faq_style_divided'),
+                    'soft' => __('blox_faq_style_soft'),
+                ],
+            ],
+            [
                 'key' => 'items', 'type' => 'faq_repeater', 'label' => __('blox_faq_items'), 'max' => 30,
                 'default' => [
                     ['question' => __('blox_faq_seed_q1'), 'answer' => __('blox_faq_seed_a1')],
@@ -29,19 +38,40 @@ final class AccordionElement extends AbstractElement
         ];
     }
 
-    /** @return list<array{0:string,1:string}> */
-    private function items(array $data): array
+    /** @return list<array<string,mixed>> */
+    public static function normalizeItems(array $items): array
+    {
+        $out = [];
+        foreach (array_slice($items, 0, 30) as $item) {
+            if (!is_array($item)) continue;
+            $item['question'] = is_scalar($item['question'] ?? null) ? (string) $item['question'] : '';
+            $item['answer'] = is_scalar($item['answer'] ?? null) ? (string) $item['answer'] : '';
+            if (($item['answer_format'] ?? '') === 'html') {
+                $item['answer'] = HtmlPolicy::description($item['answer']);
+            } else {
+                unset($item['answer_format']);
+            }
+            $out[] = $item;
+        }
+        return $out;
+    }
+
+    /** @return list<array{0:string,1:string,2?:string}> */
+    public function items(array $data): array
     {
         $value = $data['items'] ?? [];
         $out = [];
         if (is_array($value)) {
-            foreach (array_slice($value, 0, 30) as $item) {
+            foreach (self::normalizeItems($value) as $item) {
                 if (!is_array($item)) {
                     continue;
                 }
                 $question = trim((string) ($item['question'] ?? ''));
                 if ($question !== '') {
-                    $out[] = [$question, trim((string) ($item['answer'] ?? ''))];
+                    $answer = trim((string) ($item['answer'] ?? ''));
+                    $out[] = ($item['answer_format'] ?? '') === 'html'
+                        ? [$question, $answer, 'html']
+                        : [$question, $answer];
                 }
             }
             return $out;
@@ -67,15 +97,35 @@ final class AccordionElement extends AbstractElement
             return '';
         }
         $openFirst = !empty($data['open_first']);
-        $html = '<div class="divide-y divide-gray-200 border border-gray-200 rounded-xl bg-white overflow-hidden">';
+        $style = in_array($data['faq_style'] ?? '', ['divided', 'soft'], true) ? $data['faq_style'] : 'default';
+        $wrapperClass = match ($style) {
+            'divided' => 'divide-y divide-gray-200',
+            'soft' => 'space-y-3',
+            default => 'divide-y divide-gray-200 border border-gray-200 rounded-xl bg-white overflow-hidden',
+        };
+        $itemClass = match ($style) {
+            'divided' => 'group px-1',
+            'soft' => 'group rounded-lg border border-gray-200 bg-gray-50 px-5 open:bg-white open:border-gray-300 transition-colors motion-reduce:transition-none',
+            default => 'group px-5',
+        };
+        $summaryClass = 'flex items-center justify-between gap-3 py-4 cursor-pointer list-none font-medium text-gray-800 hover:text-primary transition';
+        if ($style !== 'default') {
+            $summaryClass .= ' [&::-webkit-details-marker]:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-reduce:transition-none';
+        }
+        $icon = $style === 'default'
+            ? '<i class="ti ti-chevron-down text-gray-400 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"></i>'
+            : '<i aria-hidden="true" class="ti ti-plus shrink-0 text-gray-500 group-open:hidden"></i>'
+                . '<i aria-hidden="true" class="ti ti-minus hidden shrink-0 text-gray-500 group-open:block"></i>';
+        $html = '<div class="' . $wrapperClass . '"' . ($style !== 'default' ? ' data-blox-faq-style="' . $style . '"' : '') . '>';
         foreach ($items as $i => [$q, $a]) {
+            $richAnswer = ($items[$i][2] ?? '') === 'html';
             // summary 设为 flex 后浏览器不再画默认三角 marker；list-none 兜底
-            $html .= '<details class="group px-5"' . ($openFirst && $i === 0 ? ' open' : '') . '>'
-                . '<summary class="flex items-center justify-between gap-3 py-4 cursor-pointer list-none font-medium text-gray-800 hover:text-primary transition">'
-                . '<span>' . htmlspecialchars($q) . '</span>'
-                . '<i class="ti ti-chevron-down text-gray-400 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"></i>'
+            $html .= '<details class="' . $itemClass . '"' . ($openFirst && $i === 0 ? ' open' : '') . '>'
+                . '<summary class="' . $summaryClass . '">'
+                . '<span' . ($style !== 'default' ? ' class="min-w-0 [overflow-wrap:anywhere]"' : '') . '>' . htmlspecialchars($q) . '</span>'
+                . $icon
                 . '</summary>'
-                . '<div class="pb-4 text-sm text-gray-600 leading-relaxed">' . nl2br(htmlspecialchars($a)) . '</div>'
+                . '<div class="pb-4 text-sm text-gray-600 leading-relaxed' . ($richAnswer ? ' yk-description' : '') . ($style !== 'default' ? ' [overflow-wrap:anywhere]' : '') . '">' . ($richAnswer ? $a : nl2br(htmlspecialchars($a))) . '</div>'
                 . '</details>';
         }
         $html .= '</div>';

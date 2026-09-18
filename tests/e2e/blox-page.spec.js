@@ -3,6 +3,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 const {
   addTemporaryHeading,
+  openSectionInsertAtEnd,
   expectClean,
   frame,
   observeConsole,
@@ -23,6 +24,7 @@ test('page canvas includes the effective readonly header and footer @ci', async 
 
   await openPageEditor(page, fixtures.blox_page);
   const contentFrame = await frame(page);
+  await expect(contentFrame.locator('[data-yk-region="page-hero"]')).toBeVisible();
   const headerArea = contentFrame.locator('[data-yk-context-area="header"]');
   const footerArea = contentFrame.locator('[data-yk-context-area="footer"]');
   const header = contentFrame.getByTestId('blox-context-edit-header');
@@ -47,6 +49,8 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await page.goto(sourceUrl, { waitUntil: 'domcontentloaded' });
   const source = new URL(page.url());
   const sourceReturnTo = source.pathname + source.search;
+  const legacyTitle = await page.getByRole('heading', { level: 1 }).first().innerText();
+  expect(legacyTitle.trim()).not.toBe('');
   const editorHref = await page.locator('.ik-ab-page-edit').getAttribute('href');
   expect(editorHref).toBeTruthy();
   await page.goto(editorHref, { waitUntil: 'domcontentloaded' });
@@ -65,12 +69,13 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   }
   await addTemporaryHeading(page);
   if (process.env.SMOKE_BLOX_ADVANCED === '0') {
-    // 显示条件（Query Loop 高级数据能力的一部分）随本次边界调整开放
-    await expect(page.getByTestId('blox-condition-tab')).toBeVisible();
+    // 免费能力仍依赖 yikai-builder 作者端模块；免费模式未加载该模块时入口不可操作。
+    await expect(page.getByTestId('blox-condition-tab')).toBeHidden();
   }
 
   const marker = `R30 page publish ${Date.now()}`;
-  const headingInput = page.locator('[data-control-key="text"] input[type="text"]').first();
+  // 标题文字控件为多行文本框（支持换行标题）
+  const headingInput = page.getByTestId('blox-heading-text');
   await expect(headingInput).toBeVisible();
   await performPagePreviewUpdate(page, () => headingInput.fill(marker));
 
@@ -155,6 +160,11 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await expect(page.getByTestId('blox-draft-preview-bar')).toContainText('正在预览草稿');
   await expect(page.locator('#ik-adminbar')).toHaveCount(0);
   expect(await page.content()).toContain(marker);
+  // Layout documents must not inherit the classic article's typography wrapper.
+  const draftHeading = page.getByRole('heading', { name: marker, exact: true });
+  await expect(draftHeading).toBeVisible();
+  expect(await draftHeading.evaluate((element) => !!element.closest('.prose'))).toBe(false);
+  await expect(page.locator('article.yk-blox-page-content')).not.toHaveClass(/shadow|rounded|p-6/);
   await page.getByText('退出预览').click();
   await page.waitForLoadState('domcontentloaded');
   expect(page.url()).not.toContain('preview=draft');
@@ -165,8 +175,17 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   const publishTarget = page.locator('[data-yk-sec-id]').first();
   const publishSectionId = await publishTarget.getAttribute('data-yk-sec-id');
   expect(publishSectionId).toBeTruthy();
-  await publishTarget.hover();
-  const draftEditorHref = await page.locator('#yk-edit-btn').getAttribute('href');
+  // 单页内容统一从管理条「当前页面」进入编辑（区块悬停入口已取消，见 page.php data-yk-page-edit-only）。
+  // 区块定位标记仍保留给旧深链：在该入口上补 focus_section / yk_focus_section，覆盖「发布后回到修改位置」。
+  await page.getByTestId('admin-edit-regions').locator('summary').click();
+  const pageEditHref = await page.getByTestId('admin-edit-region-menu').locator('a').first().getAttribute('href');
+  expect(pageEditHref).toMatch(/^\/admin\/blox_editor\.php\?id=\d+/);
+  const deepLink = new URL(pageEditHref, 'http://yikaicms.local');
+  const deepReturn = new URL(deepLink.searchParams.get('return_to'), 'http://yikaicms.local');
+  deepReturn.searchParams.set('yk_focus_section', publishSectionId);
+  deepLink.searchParams.set('return_to', deepReturn.pathname + deepReturn.search);
+  deepLink.searchParams.set('focus_section', publishSectionId);
+  const draftEditorHref = deepLink.pathname + deepLink.search;
   expect(draftEditorHref).toBeTruthy();
   expect(draftEditorHref).not.toContain('yk_edit_receipt');
   await page.goto(draftEditorHref, { waitUntil: 'domcontentloaded' });
@@ -186,6 +205,10 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await page.getByTestId('blox-publish-page').click();
   expect((await (await failedPublishResponse).json()).code).toBe(1);
   expect(await page.getByTestId('blox-back').getAttribute('href')).not.toContain('yk_edit_receipt');
+  await expect(page.getByTestId('blox-publish-page')).toBeEnabled();
+  await expect(page.getByTestId('blox-publish-page')).not.toContainText('已发布');
+  await expect(page.getByTestId('blox-front-preview')).toContainText('预览草稿');
+  await expect(page.getByTestId('blox-front-preview')).toHaveAttribute('href', /preview=draft/);
 
   page.once('dialog', (dialog) => dialog.accept());
   const publishResponse = page.waitForResponse((candidate) => {
@@ -199,6 +222,12 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   expect(publishResult.data.return_receipt).toMatch(/^[a-f0-9]{48}$/);
   await expectClean(page);
   await expect(draftSummaryOpen).toBeHidden();
+  await expect(page.getByTestId('blox-publish-page')).toBeDisabled();
+  await expect(page.getByTestId('blox-publish-page')).toContainText('已发布');
+  await expect(page.getByTestId('blox-front-preview')).toContainText('查看已发布页面');
+  expect(await page.getByTestId('blox-front-preview').getAttribute('href')).not.toMatch(/preview=|blox_draft=/);
+  await expect(page.getByTestId('blox-mobile-publish-page')).toBeDisabled();
+  await expect(page.getByTestId('blox-mobile-front-preview')).toContainText('查看已发布页面');
 
   const publishedBack = new URL(await page.getByTestId('blox-back').getAttribute('href'), 'http://yikaicms.local');
   expect(publishedBack.searchParams.get('yk_edit_receipt')).toBe(publishResult.data.return_receipt);
@@ -212,6 +241,10 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await expect(page.locator('[data-draft-kind="page"]')).toHaveCount(0);
   expect(page.url()).not.toContain('yk_edit_receipt');
   expect(await page.content()).toContain(marker);
+
+  await expect(page.getByRole('heading', { level: 1, name: legacyTitle, exact: true })).toBeVisible();
+  const liveHeading = page.getByRole('heading', { name: marker, exact: true });
+  expect(await liveHeading.evaluate((element) => !!element.closest('.prose'))).toBe(false);
 
   const publishedFrontend = await page.request.get(`${fixtures.blox_page_url}&preview=1&v=${Date.now()}`);
   expect(publishedFrontend.ok()).toBe(true);
@@ -265,11 +298,11 @@ test('legacy page editor and page list converge on Blox @local', async ({ page }
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
 
   await page.goto('/admin/page.php', { waitUntil: 'domcontentloaded' });
-  const homeRow = page.getByTestId('page-home-row');
+  const homeRow = page.getByTestId('page-home-card');
   await expect(homeRow.locator('a[href="/admin/setting_home.php"]')).toHaveCount(0);
   await expect(homeRow.getByTestId('page-home-edit'))
-    .toHaveAttribute('href', '/admin/blox_editor.php?home=1');
-  await expect(homeRow.getByTestId('page-home-edit')).toHaveText('编辑首页');
+    .toHaveAttribute('href', '/admin/blox_editor.php?home=1&lang=zh-CN');
+  await expect(homeRow.getByTestId('page-home-edit')).toHaveText('设计排版');
   await expect(page.getByTestId(`page-primary-edit-${fixtures.blox_page}`))
     .toHaveAttribute('href', `/admin/blox_editor.php?id=${fixtures.blox_page}`);
 });
@@ -290,14 +323,14 @@ test('stable section deep link selects the same persisted block @local', async (
   );
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
   await expect(page.locator(`[data-testid="blox-tree-section"][data-section-id="${sectionId}"]`))
-    .toHaveClass(/border-blue-400/);
+    .toHaveAttribute('data-selected', '1');
   await expect((await frame(page)).locator(`[data-yk-sec-id="${sectionId}"]`)).toHaveClass(/yk-selected/);
 
   const frontendUrl = `${fixtures.blox_page_url}${fixtures.blox_page_url.includes('?') ? '&' : '?'}v=${Date.now()}`;
   const frontendTarget = new URL(frontendUrl, 'http://yikaicms.local');
   const frontendReturnTo = frontendTarget.pathname + frontendTarget.search;
   await page.goto(frontendUrl, { waitUntil: 'domcontentloaded' });
-  const frontendSection = page.locator('[data-yk-sec-id]').first();
+  const frontendSection = page.locator('main [data-yk-sec-id]').first();
   const frontendSectionId = await frontendSection.getAttribute('data-yk-sec-id');
   const frontendSectionLabel = await frontendSection.getAttribute('data-yk-sec-label');
   expect(frontendSectionId).toBeTruthy();
@@ -305,11 +338,6 @@ test('stable section deep link selects the same persisted block @local', async (
   const focusedFrontendReturn = new URL(frontendReturnTo, 'http://yikaicms.local');
   focusedFrontendReturn.searchParams.set('yk_focus_section', frontendSectionId);
   const focusedFrontendReturnTo = focusedFrontendReturn.pathname + focusedFrontendReturn.search;
-  await frontendSection.hover();
-  await expect(page.locator('#yk-edit-btn')).toHaveAttribute(
-    'href',
-    `/admin/blox_editor.php?id=${fixtures.blox_page}&return_to=${encodeURIComponent(focusedFrontendReturnTo)}&focus_section=${encodeURIComponent(frontendSectionId)}`
-  );
   await page.goto(
     `/admin/blox_editor.php?id=${fixtures.blox_page}&focus_section=${encodeURIComponent(frontendSectionId)}`,
     { waitUntil: 'domcontentloaded' }
@@ -317,7 +345,7 @@ test('stable section deep link selects the same persisted block @local', async (
   const focusedTreeSection = page.locator(
     `[data-testid="blox-tree-section"][data-section-id="${frontendSectionId}"]`,
   );
-  await expect(focusedTreeSection).toHaveClass(/border-blue-400/);
+  await expect(focusedTreeSection).toHaveAttribute('data-selected', '1');
   await expect(focusedTreeSection).toHaveAttribute('data-section-label', frontendSectionLabel);
   await expect(focusedTreeSection.getByTestId('blox-tree-section-label')).toHaveText(frontendSectionLabel);
   await expect(focusedTreeSection.getByTestId('blox-tree-section-label')).toHaveAttribute('title', frontendSectionLabel);
@@ -336,24 +364,22 @@ test('frontend return target preserves source and guards unsaved edits @local', 
 
   await page.goto(sourceUrl, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.ik-ab-page-edit')).toHaveAttribute('href', editorBase);
-  const section = page.locator('[data-yk-sec-id]').first();
+  const section = page.locator('main [data-yk-sec-id]').first();
   const sectionId = await section.getAttribute('data-yk-sec-id');
   const sectionLabel = await section.getAttribute('data-yk-sec-label');
   expect(sectionId).toBeTruthy();
   expect(sectionLabel).toBeTruthy();
-  await section.hover();
   const focusedReturn = new URL(returnTo, 'http://yikaicms.local');
   focusedReturn.searchParams.set('yk_focus_section', sectionId);
   const focusedReturnTo = focusedReturn.pathname + focusedReturn.search;
   const preciseEditorUrl = `/admin/blox_editor.php?id=${fixtures.blox_page}&return_to=${encodeURIComponent(focusedReturnTo)}&focus_section=${encodeURIComponent(sectionId)}`;
-  await expect(page.locator('#yk-edit-btn')).toHaveAttribute('href', preciseEditorUrl);
 
   await page.goto(preciseEditorUrl, { waitUntil: 'domcontentloaded' });
   const back = page.getByTestId('blox-back');
   await expect(back).toHaveAttribute('href', focusedReturnTo);
   await expect(back).toContainText('返回页面');
   await expect(page.locator(`[data-testid="blox-tree-section"][data-section-id="${sectionId}"]`))
-    .toHaveClass(/border-blue-400/);
+    .toHaveAttribute('data-selected', '1');
 
   const sectionName = page.getByTestId('blox-section-name');
   const originalName = await sectionName.inputValue();
@@ -510,6 +536,7 @@ test('standard page accordion has structured FAQ editing @local', async ({ page 
   if (await clearSelection.isVisible()) await clearSelection.click();
 
   const sectionsBefore = await page.getByTestId('blox-tree-section').count();
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(sectionsBefore + 1);
   await page.getByTestId('blox-library-open').click();
@@ -544,7 +571,7 @@ test('section image background controls keep overlay and preview in sync @local'
 
   const bgImage = page.getByTestId('blox-section-bg-image');
   await performPagePreviewUpdate(page, async () => {
-    await bgImage.fill('/images/case-demo.jpg');
+    await bgImage.fill('/images/company-about-v2.webp');
     await bgImage.blur();
   });
   await expect(page.getByTestId('blox-section-overlay-opacity')).toHaveValue('45');

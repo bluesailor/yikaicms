@@ -9,7 +9,7 @@
 declare(strict_types=1);
 
 // 定义根目录
-define('ROOT_PATH', dirname(__DIR__));
+if (!defined('ROOT_PATH')) define('ROOT_PATH', dirname(__DIR__));
 
 // 检查是否已安装
 if (!file_exists(ROOT_PATH . '/installed.lock')) {
@@ -26,6 +26,13 @@ require_once ROOT_PATH . '/includes/language_request.php';
 
 // 加载 Model 层
 require_once ROOT_PATH . '/includes/models/autoload.php';
+
+// Custom paths pin the entity language before SITE_LANG, independently of browser cookies.
+$customProductHit = null;
+if (PHP_SAPI !== 'cli') {
+    $customProductHit = productRouteModel()->resolve((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH));
+    if ($customProductHit !== null) $_GET['_lang'] = $_REQUEST['_lang'] = $customProductHit['lang'];
+}
 
 // 初始化语言
 initLang();
@@ -152,3 +159,5 @@ if (!headers_sent()) {
 
 // 前台启动完成，供插件挂载初始化逻辑
 do_action('init');
+
+dispatchCustomProductRoute($customProductHit);

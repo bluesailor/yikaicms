@@ -1,0 +1,80 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "Customer testimonials carousel",
+    "requires": {
+        "elements": [
+            "testimonial-carousel"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "Testimonials",
+                "settings": {
+                    "title": "What our customers say",
+                    "subtitle": "Real feedback from customers across industries",
+                    "bg_color": "#f8fafc",
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "testimonial-carousel",
+                                "data": {
+                                    "items": [
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-1.svg",
+                                            "name": "Daniel Brooks",
+                                            "role": "Procurement Director · Northfield Manufacturing",
+                                            "content": "From selection to delivery took just three weeks. Their engineers stayed with us the whole way and commissioning passed first time. We chose them again for two more lines.",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-2.svg",
+                                            "name": "Emily Carter",
+                                            "role": "Operations Manager · Brightway Retail",
+                                            "content": "Since the new store system went live, stocktakes take half the time. Whenever something comes up, someone responds right away, and that matters most to us.",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-3.svg",
+                                            "name": "Marcus Lee",
+                                            "role": "Head of Technology · Horizon Logistics",
+                                            "content": "A practical solution without feature bloat. They tailored it to our workflow, and after a week of training our team was working on their own.",
+                                            "rating": "5"
+                                        },
+                                        {
+                                            "avatar": "/assets/images/blox-templates/avatar-4.svg",
+                                            "name": "Sophie Turner",
+                                            "role": "Marketing Director · Greenfield Bio",
+                                            "content": "Three years in: clear quotes and on-time delivery. Inquiries rose noticeably after our new website launched. A genuinely professional team.",
+                                            "rating": "5"
+                                        }
+                                    ],
+                                    "per_view": "3",
+                                    "autoplay": true,
+                                    "interval": "5",
+                                    "show_dots": true,
+                                    "show_arrows": false,
+                                    "card_style": "cards",
+                                    "align": "left"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

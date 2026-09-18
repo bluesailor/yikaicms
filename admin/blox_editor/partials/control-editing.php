@@ -46,7 +46,7 @@ declare(strict_types=1);
                     body.append("action", "convert_about");
                     body.append("_token", this.csrf);
                     body.append("block_data", JSON.stringify(data));
-                    var response = await fetch("/admin/blox_home_api.php", { method: "POST", body: body });
+                    var response = await fetch(this.endpoint, { method: "POST", body: body });
                     var result = await response.json();
                     if (!response.ok || !result || Number(result.code) !== 0 || !result.data || !result.data.section) {
                         throw new Error((result && result.msg) || this.homeText.actionFailed);

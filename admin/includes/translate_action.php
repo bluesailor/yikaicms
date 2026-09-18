@@ -38,6 +38,7 @@ if ($srcId <= 0 || !in_array($toLang, $supported, true)) {
     error('参数错误');
 }
 
+/** @var array<string, mixed> $langSwitcher 各编辑页自行声明，键集因页而异（title_field / content_type 等可选） */
 $model    = $langSwitcher['model'];
 $table    = (string) $langSwitcher['table'];
 $tName    = DB_PREFIX . $table;
@@ -46,6 +47,9 @@ $summKey  = $langSwitcher['summary_field'] ?? 'summary';
 
 $src = $model->find($srcId);
 if (!$src) error('源记录不存在');
+
+// 任何写库、AI 调用之前先判权：按源记录的真实类型，而不是按当前页面的模块权限。
+requireTranslationPermission($table, $src, (string) ($langSwitcher['content_type'] ?? ''));
 
 // translation group
 $groupId = (int) ($src['translation_group_id'] ?: $src['id']);
@@ -76,6 +80,12 @@ $newData[$titleKey]              = $translated['title'];
 $newData[$summKey]               = $translated['summary'];
 $newData['created_at']           = time();
 $newData['updated_at']           = time();
+
+// 机器翻译先落草稿：整行拷贝会连 status 一起继承，源是已发布时译文就直接上线了，
+// 没有任何人看过那段 AI 译文。发布必须是明确的下一步动作（复审 R01）。
+if (array_key_exists('status', $newData)) {
+    $newData['status'] = 0;
+}
 
 // slug 加语言后缀避免 uk_slug 冲突（仅当源有 slug 字段且非空）
 if (!empty($newData['slug'])) {

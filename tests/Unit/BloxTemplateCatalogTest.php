@@ -24,6 +24,7 @@ final class BloxTemplateCatalogTest extends TestCase
                 published_data TEXT,
                 requirements TEXT,
                 metadata TEXT,
+                conditions TEXT,
                 thumbnail TEXT NOT NULL DEFAULT '',
                 status INTEGER NOT NULL DEFAULT 0,
                 admin_id INTEGER NOT NULL DEFAULT 0,
@@ -104,6 +105,47 @@ final class BloxTemplateCatalogTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('blox_tpl_not_published');
         \BloxTemplateCatalog::resolve('local:' . $id, 'home');
+    }
+
+    public function testImportedPageFrameSurvivesLocalPublishExportAndResolve(): void
+    {
+        // 夹具内联：原先借用随包的 restaurant-landing，该模板 2026-09-16 移出随包目录。
+        // 被保护的是发布/导出/解析链路对 page_*_hidden 的处理，与目录里有哪些模板无关。
+        $package = (string) json_encode([
+            'format' => 'yikaicms-blox-template',
+            'version' => 1,
+            'type' => 'page',
+            'name' => 'Frame fixture',
+            'requires' => ['elements' => ['heading'], 'plugins' => []],
+            'document' => [
+                'schema' => 1,
+                'settings' => array_fill_keys([
+                    'page_header_hidden', 'page_footer_hidden', 'page_breadcrumb_hidden',
+                    'page_title_hidden', 'page_sidebar_hidden',
+                ], true),
+                'sections' => [[
+                    'type' => 'section',
+                    'settings' => [],
+                    'columns' => [['elements' => [
+                        ['type' => 'heading', 'data' => ['text' => 'Frame', 'level' => 'h1']],
+                    ]]],
+                ]],
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $prepared = \BloxTemplateImporter::prepare($package);
+        $id = bloxTemplateModel()->createDraft('page', 'Frame page', $prepared['draft_json']);
+        bloxTemplateModel()->publishDraft($id);
+        // A newer draft must not leak its frame settings into the published catalog.
+        $draft = json_decode($prepared['draft_json'], true, 512, JSON_THROW_ON_ERROR);
+        $draft['settings']['page_header_hidden'] = false;
+        bloxTemplateModel()->updateDraft($id, json_encode($draft, JSON_THROW_ON_ERROR), $prepared['requirements']);
+        $resolved = \BloxTemplateCatalog::resolve('local:' . $id);
+        $this->assertSame($prepared['settings'], $resolved['settings']);
+        $row = bloxTemplateModel()->findForExport($id);
+        $exported = \BloxTemplateImporter::exportJson($row);
+        $roundTrip = \BloxTemplateImporter::prepare($exported);
+        $this->assertSame($prepared['settings'], $roundTrip['settings']);
+        $this->assertNotSame($resolved['sections'][0]['id'], $roundTrip['sections'][0]['id']);
     }
 
     private function sectionJson(string $sectionId, string $elementId): string

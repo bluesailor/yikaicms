@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // slug 始终基于源记录验证（非默认语言下 slug 不可改，且新建必须先建源行）
         if ($isLangEdit) {
             if ($id <= 0) error(__('fd_add_in_source_first'));
-            $src = formTemplateModel()->findById($id);
+            $src = formTemplateModel()->find($id);
             if (!$src) error(__('admin_source_missing'));
             $slug = (string) $src['slug'];  // 强制保留源 slug
             // 翻译版只校验 name 与 fields；slug 用源行保留
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'delete') {
         $id = postInt('id');
-        $tpl = formTemplateModel()->findById($id);
+        $tpl = formTemplateModel()->find($id);
         if ($tpl && $tpl['slug'] === 'contact') {
             error(__('fd_err_default_undelete'));
         }
@@ -190,11 +190,20 @@ $defaultTemplate = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     [submit "' . __('form_submit') . '"]
 </div>';
 
+// 常用表单预设：卡片说明用后台语言，填入的表单文案用当前编辑的内容语言
+require_once ROOT_PATH . '/admin/includes/form_presets.php';
+$formPresets = array_map(static fn(array $preset): array => $preset + [
+    'label' => __('fd_preset_' . $preset['key']),
+    'desc' => __('fd_preset_' . $preset['key'] . '_desc'),
+], withLanguageStrings($_viewLang, 'formDesignPresets'));
+$existingFormSlugs = array_values(array_map('strval', array_column($templates, 'slug')));
+
 $pageTitle = __('fd_page_title');
 $currentMenu = 'form';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+require ROOT_PATH . '/admin/includes/workflow_nav.php';
 
 if ($_i18nReady) {
     echo renderAdminLangSwitcher($_viewLang, __('fd_lang_hint'));
@@ -205,20 +214,10 @@ if ($_i18nReady) {
 }
 ?>
 
-<!-- Tab 导航 -->
-<?php
-$_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) : '';
-?>
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/form.php" class="px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300"><?php echo __('fd_tab_data'); ?></a>
-        <a href="/admin/form_design.php<?php echo $_langQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('fd_tab_design'); ?></a>
-    </div>
-</div>
 
 <!-- 工具栏 -->
 <div class="bg-white rounded-lg shadow mb-6">
-    <div class="p-4 flex items-center justify-between">
+    <div class="p-4 flex flex-wrap gap-3 items-center justify-between">
         <p class="text-sm text-gray-500"><?php echo __('fd_intro'); ?></p>
         <?php if ($_viewLang === $_defaultLang): ?>
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
@@ -229,12 +228,33 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
         <span class="text-xs text-gray-400"><?php echo e(__('fd_source_only_add')); ?></span>
         <?php endif; ?>
     </div>
+    <?php if ($_viewLang === $_defaultLang): ?>
+    <?php // 常用表单直接摆在页面上：点卡片即打开新建弹窗并填好字段 ?>
+    <div class="border-t px-4 py-3" data-testid="form-design-preset-shortcuts">
+        <div class="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span class="text-sm font-medium text-gray-700"><?php echo e(__('fd_presets_title')); ?></span>
+            <span class="text-xs text-gray-400"><?php echo e(__('fd_presets_hint')); ?></span>
+        </div>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <?php foreach ($formPresets as $preset): ?>
+            <button type="button" onclick="openEditModal(); applyFormPreset('<?php echo e($preset['key']); ?>')"
+                    class="flex items-start gap-2 rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-primary hover:bg-primary/5">
+                <i class="ti ti-<?php echo e($preset['icon']); ?> mt-0.5 text-lg text-primary" aria-hidden="true"></i>
+                <span class="min-w-0">
+                    <span class="block text-sm font-medium text-gray-800"><?php echo e($preset['label']); ?></span>
+                    <span class="mt-0.5 block text-xs leading-snug text-gray-500"><?php echo e($preset['desc']); ?></span>
+                </span>
+            </button>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>
 
 <!-- 列表 -->
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
-        <table class="w-full">
+        <table class="w-full admin-workflow-table">
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
@@ -316,6 +336,28 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
             <?php if ($_viewLang !== $_defaultLang): ?>
             <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded px-3 py-2 text-xs">
                 <?php echo str_replace(':lang', '<strong>' . e($_viewLang) . '</strong>', e(__('fd_editing_translation'))); ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if ($_viewLang === $_defaultLang): ?>
+            <!-- 常用表单预设：仅新建时显示 -->
+            <div id="presetPicker" class="hidden" data-testid="form-design-presets">
+                <div class="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                    <span class="text-sm font-medium text-gray-700"><?php echo e(__('fd_presets_title')); ?></span>
+                    <span class="text-xs text-gray-400"><?php echo e(__('fd_presets_hint')); ?></span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 md:grid-cols-4">
+                    <?php foreach ($formPresets as $preset): ?>
+                    <button type="button" onclick="applyFormPreset('<?php echo e($preset['key']); ?>')" data-preset="<?php echo e($preset['key']); ?>"
+                            class="form-preset-card flex items-start gap-2 rounded-lg border border-gray-200 bg-white p-3 text-left transition hover:border-primary hover:bg-primary/5">
+                        <i class="ti ti-<?php echo e($preset['icon']); ?> mt-0.5 text-lg text-primary" aria-hidden="true"></i>
+                        <span class="min-w-0">
+                            <span class="block text-sm font-medium text-gray-800"><?php echo e($preset['label']); ?></span>
+                            <span class="mt-0.5 block text-xs leading-snug text-gray-500"><?php echo e($preset['desc']); ?></span>
+                        </span>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
             </div>
             <?php endif; ?>
 
@@ -423,6 +465,40 @@ $_langQS = ($_viewLang !== $_defaultLang) ? ('?lang=' . urlencode($_viewLang)) :
 <script>
 var currentTagType = 'text';
 var defaultTemplate = <?php echo json_encode($defaultTemplate, JSON_HEX_TAG | JSON_HEX_AMP); ?>;
+var formPresets = <?php echo json_encode($formPresets, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+var existingFormSlugs = <?php echo json_encode($existingFormSlugs, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+var activeFormPreset = '';
+
+function uniqueFormSlug(base) {
+    var slug = base;
+    for (var i = 2; existingFormSlugs.indexOf(slug) !== -1; i++) slug = base + '-' + i;
+    return slug;
+}
+
+function highlightFormPreset(key) {
+    document.querySelectorAll('.form-preset-card').forEach(function (card) {
+        var active = card.dataset.preset === key;
+        card.classList.toggle('border-primary', active);
+        card.classList.toggle('bg-primary/5', active);
+        card.classList.toggle('border-gray-200', !active);
+    });
+}
+
+function applyFormPreset(key) {
+    var preset = formPresets.find(function (item) { return item.key === key; });
+    if (!preset) return;
+    var editor = document.getElementById('templateEditor');
+    var name = document.getElementById('editName');
+    var touched = name.value.trim() !== '' || (editor.value.trim() !== '' && editor.value !== defaultTemplate);
+    var current = formPresets.find(function (item) { return item.key === activeFormPreset; });
+    if (touched && !(current && current.template_text === editor.value && current.name === name.value) && !confirm(<?php echo json_encode(__('fd_presets_confirm'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>)) return;
+    name.value = preset.name;
+    document.getElementById('editSlug').value = uniqueFormSlug(preset.slug);
+    document.getElementById('editSuccessMsg').value = preset.success_message;
+    editor.value = preset.template_text;
+    activeFormPreset = key;
+    highlightFormPreset(key);
+}
 
 var tagTypeNames = {
     'text': '<?php echo __("fd_tag_text"); ?>', 'email': '<?php echo __("fd_tag_email"); ?>', 'tel': '<?php echo __("fd_tag_tel"); ?>',
@@ -439,6 +515,10 @@ function openEditModal(item) {
     document.getElementById('editSuccessMsg').value = item ? (item.success_message || '') : '';
     document.getElementById('editCaptcha').checked = item ? (Number(item.captcha) === 1) : false;
     document.getElementById('templateEditor').value = item ? item.template_text : defaultTemplate;
+    var presetPicker = document.getElementById('presetPicker');
+    if (presetPicker) presetPicker.classList.toggle('hidden', isEdit);
+    activeFormPreset = '';
+    highlightFormPreset('');
     document.getElementById('editModal').classList.remove('hidden');
 }
 
@@ -596,4 +676,5 @@ function copyShortcode(el) {
 }
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

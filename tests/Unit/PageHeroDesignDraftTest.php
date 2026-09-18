@@ -86,7 +86,8 @@ final class PageHeroDesignDraftTest extends TestCase
         self::assertStringContainsString("savePageHeroDraft() { return this.mutatePageHero('page_hero_save_draft'); }", $page);
         self::assertStringContainsString("publishPageHero() { return this.mutatePageHero('page_hero_publish'); }", $page);
         self::assertStringContainsString("['page_hero_save_draft', 'page_hero_publish']", $api);
-        self::assertStringContainsString("if (\$e->getMessage() === __('blox_save_conflict'))", $api);
+        // E04：设计 API 把页面标题区草稿冲突与设计系统冲突统一映射为 409。
+        self::assertStringContainsString("if (in_array(\$e->getMessage(), [__('blox_save_conflict'), __('blox_design_conflict')], true))", $api);
         self::assertStringContainsString('error($e->getMessage(), 409);', $api);
         $draft = (string) file_get_contents(ROOT_PATH . '/includes/PageHeroDesignDraft.php');
         self::assertStringContainsString('cacheClear();', $draft);

@@ -18,6 +18,18 @@ use PHPUnit\Framework\TestCase;
 
 final class PageHeroCustomizationTest extends TestCase
 {
+    public function testThemeTitleHonorsPersistedVisibilityValues(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        $this->assertTrue(\PageBloxDocument::usesThemeTitle([]));
+        foreach ([true, 1, '1'] as $hidden) {
+            $this->assertFalse(\PageBloxDocument::usesThemeTitle(['page_title_hidden' => $hidden]));
+        }
+        foreach ([false, 0, '0'] as $visible) {
+            $this->assertTrue(\PageBloxDocument::usesThemeTitle(['page_title_hidden' => $visible]));
+        }
+    }
+
     public function testSchemaShipsHeroColumnsEverywhere(): void
     {
         $migration = $this->source('migrations/20260819_channel_hero_options.php');
@@ -84,7 +96,7 @@ final class PageHeroCustomizationTest extends TestCase
         }
     }
 
-    public function testBloxCanvasShowsAndEditsTheSystemPageHeroWithoutTouchingDocumentData(): void
+    public function testCatalogCanvasKeepsSystemHeroButBloxPagesOwnTheirTitleContent(): void
     {
         $canvas = $this->source('includes/builder/BloxCanvasPreview.php');
         $editor = $this->source('admin/blox_editor.php')
@@ -92,6 +104,11 @@ final class PageHeroCustomizationTest extends TestCase
         $api = $this->source('admin/blox_page_api.php');
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
 
+        $this->assertStringContainsString("if (!\$isHomeLayout && is_array(\$pageRow)", $canvas);
+        $this->assertStringContainsString("(\$pageType !== 'page' || PageBloxDocument::usesThemeTitle(\$canvasFrame))", $canvas);
+        $this->assertStringContainsString("if (!\$isBloxPage || PageBloxDocument::usesThemeTitle(\$GLOBALS['ykBloxPageFrame']))", $this->source('page.php'));
+        $this->assertStringContainsString('data-testid="blox-page-frame-hero"', $editor);
+        $this->assertStringContainsString('openPageHeroSettings', $editor);
         $this->assertStringContainsString('data-yk-page-hero', $canvas);
         $this->assertStringContainsString('PageHeroStyleResolver::resolve($pageRow)', $canvas);
         $this->assertStringContainsString("require theme_path('partials/page-hero.php');", $canvas);

@@ -1,0 +1,57 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "section",
+  "name": "Basic heading",
+  "requires": {
+    "elements": ["heading", "text", "button"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "lg",
+          "max_width": "narrow",
+          "gap": "sm",
+          "align_items": "center",
+          "justify_items": "center",
+          "bg_color": "#ffffff"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "一句话说清这一段讲什么",
+                  "level": "h2",
+                  "align": "center"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p>用一到两句补充说明，让读者知道下面的内容和自己有什么关系。不需要的话可以直接删掉这段。</p>",
+                  "align": "center"
+                }
+              },
+              {
+                "type": "button",
+                "data": {
+                  "text": "了解更多",
+                  "url": "",
+                  "variant": "outline",
+                  "align": "center"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

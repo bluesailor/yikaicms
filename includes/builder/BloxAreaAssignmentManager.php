@@ -109,13 +109,20 @@ final class BloxAreaAssignmentManager
             }
         }
 
-        $source = bloxTemplateModel()->findForExport($sourceId);
+        $source = $sourceId === 0 ? [
+            'type' => $area,
+            'status' => 1,
+            'name' => __('blox_tpl_type_' . $area),
+            'published_data' => '{"schema":1,"settings":{},"sections":[]}',
+        ] : bloxTemplateModel()->findForExport($sourceId);
         if (!$source || (string) ($source['type'] ?? '') !== $area
             || (int) ($source['status'] ?? 0) !== 1
             || trim((string) ($source['published_data'] ?? '')) === '') {
             throw new RuntimeException(__('blox_assignment_source_missing'));
         }
         $document = BloxAreaDocument::decode($area, (string) $source['published_data']);
+        // 分配副本是新模板行：不继承来源文档的旧专业配置保留，按新建能力检查。
+        BloxDocumentPipeline::assertAuthoringAllowed($document['sections'], null);
         $draftJson = json_encode([
             'schema' => BloxDocumentPipeline::SCHEMA_VERSION,
             'settings' => $document['settings'],

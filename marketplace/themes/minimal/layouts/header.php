@@ -150,6 +150,7 @@ function getChannelUrl(array $channel): string {
     <link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/style.css'); ?>">
     <link rel="stylesheet" href="<?php echo theme_asset('css/style.css'); ?>">
+    <style><?php echo ThemeSettings::css(); ?></style>
     <style>:root { --color-primary: <?php echo config('primary_color', '#3B82F6'); ?>; --color-secondary: <?php echo config('secondary_color', '#1D4ED8'); ?>; }</style>
     <?php if (!empty($extraCss)): ?>
     <?php echo $extraCss; ?>
@@ -157,8 +158,9 @@ function getChannelUrl(array $channel): string {
     <?php do_action('ik_head'); ?>
     <?php echo config('custom_head_code', ''); ?>
 </head>
-<body class="minimal-theme bg-white min-h-screen flex flex-col text-gray-800">
+<body class="yk-site-body minimal-theme bg-white min-h-screen flex flex-col text-gray-800">
 
+    <?php if (empty($GLOBALS['ykBloxPageFrame']['page_header_hidden'])): ?>
     <!-- Header -->
     <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
     <?php if ($ykBloxHeader !== ''): ?>
@@ -262,6 +264,7 @@ function getChannelUrl(array $channel): string {
             </div>
         </nav>
     </header>
+    <?php endif; ?>
     <?php endif; ?>
 
     <?php do_action('ik_header_after'); ?>

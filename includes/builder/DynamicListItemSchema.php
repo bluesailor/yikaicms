@@ -12,7 +12,8 @@ final class DynamicListItemSchema
         'content' => [
             'image' => ['cover', 'none'],
             'title' => ['title', 'subtitle'],
-            'summary' => ['summary', 'subtitle'],
+            // 卡片模板里的文本元素也可绑定发布日期（虚拟字段 date 已按站点格式输出）
+            'summary' => ['summary', 'subtitle', 'date'],
             'date' => ['date', 'publish_time', 'created_at', 'updated_at'],
             'link' => ['url', 'none'],
         ],

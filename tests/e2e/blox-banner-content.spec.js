@@ -7,7 +7,7 @@ test('slide editing starts with image and copy, preserving links across groups @
   const writes = observeUnsafeWrites(page);
   await openBanner(page);
   await page.locator('[data-banner-thumb]').first().locator('button').first().click();
-  const keys = () => page.locator('[data-testid="blox-element-property-grid"] > [data-control-key]').evaluateAll(nodes => nodes.map(node => node.dataset.controlKey));
+  const keys = () => page.locator('[data-testid="blox-element-property-grid"] [data-control-key]').evaluateAll(nodes => nodes.map(node => node.dataset.controlKey));
   expect(await keys()).toEqual(['media_type', 'image', 'title', 'subtitle']);
   const field = key => page.locator('[data-control-key="' + key + '"]');
   await field('title').locator('input').fill('A long enterprise carousel title');
@@ -23,6 +23,9 @@ test('slide editing starts with image and copy, preserving links across groups @
   await page.screenshot({ path: testInfo.outputPath('banner-content.png') });
   await page.getByTestId('blox-banner-overall-settings').click();
   await expect(field('banner_height_mode')).toBeVisible();
+  await page.getByTestId('blox-return-content').click();
+  await expect(field('title').locator('input')).toHaveValue('A long enterprise carousel title');
+  await expect(page.getByTestId('blox-return-content')).toHaveCount(0);
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
 });

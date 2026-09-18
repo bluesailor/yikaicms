@@ -6,21 +6,38 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
+require_once __DIR__ . '/includes/FormSpamGuard.php';
 
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['code' => 1, 'msg' => '无效请求']);
     exit;
 }
 
-// 表单提交频率限制
-$clientIp = getClientIp();
-$throttleRemain = checkFormThrottle($clientIp);
-if ($throttleRemain > 0) {
-    echo json_encode(['code' => 1, 'msg' => '提交过于频繁，请' . ceil($throttleRemain / 60) . '分钟后再试']);
+function rejectFormSpam(string $key, int $status, int $retry = 0, array $params = []): void
+{
+    http_response_code($status);
+    if ($retry > 0) header('Retry-After: ' . $retry);
+    echo json_encode(['code' => 1, 'msg' => __($key, $params)], JSON_UNESCAPED_UNICODE);
     exit;
 }
+
+// Count attempts before token/field validation, using the existing IP policy and limits.
+$clientIp = getClientIp();
+if (formModerationModel()->isBlocked($clientIp)) rejectFormSpam('form_ip_denied', 403);
+$spamGuard = new FormSpamGuard(STORAGE_PATH . '/form_throttle', defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '');
+$maxSubmits = max(1, min(100, (int) config('form_max_submits', 5)));
+$windowSeconds = max(1, min(1440, (int) config('form_throttle_minutes', 5))) * 60;
+try {
+    $throttleRemain = $spamGuard->attempt($clientIp, max(20, $maxSubmits * 4), $windowSeconds);
+} catch (Throwable $error) {
+    error_log('Form spam guard unavailable: ' . get_class($error));
+    rejectFormSpam('form_guard_unavailable', 503);
+}
+if ($throttleRemain > 0) rejectFormSpam('form_guard_throttle', 429, $throttleRemain);
+if (!FormSpamGuard::validPayload($_POST)) rejectFormSpam('form_guard_payload', 422);
 
 // 反垃圾 1：蜜罐 —— 正常用户看不到 hp_url，机器人填了就丢弃（假装成功，不报错以免被探测）
 if (trim((string) post('hp_url', '')) !== '') {
@@ -52,6 +69,17 @@ if ($signaturePresent) {
         max(0, (int) config('form_signature_max_age', '0'))
     );
     if (!$validSignature) {
+        // Only an authentic expired token may be renewed; never save or replay this request.
+        $maxAge = max(0, (int) config('form_signature_max_age', '0'));
+        if ($maxAge > 0 && time() - $_fts > $maxAge
+            && FormSubmissionToken::verify($slug, $_fts, $_fsig, $secret, $securityVersion < 2)
+            && formTemplateModel()->findBySlug($slug) !== null) {
+            $timestamp = time();
+            echo json_encode(['code' => 1, 'msg' => __('form_token_refreshed'), 'refresh_token' => [
+                'form_ts' => $timestamp, 'form_sig' => FormSubmissionToken::sign($slug, $timestamp, $secret),
+            ]], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
         echo json_encode(['code' => 1, 'msg' => '表单安全令牌无效，请刷新页面后重试']);
         exit;
     }
@@ -103,36 +131,20 @@ foreach ($fields as $field) {
     if ($key === '') continue;
     $type = $field['type'] ?? 'text';
 
-    // checkbox 提交为数组
-    if ($type === 'checkbox') {
-        $arr = $_POST[$key] ?? [];
-        if (!is_array($arr)) $arr = [$arr];
-        $arr = array_map('trim', $arr);
-        $arr = array_filter($arr, fn($v) => $v !== '');
-        if (!empty($field['required']) && empty($arr)) {
-            echo json_encode(['code' => 1, 'msg' => ($field['label'] ?? $key) . '不能为空']);
-            exit;
-        }
-        $formData[$key] = implode(', ', $arr);
-        continue;
-    }
-
-    $value = trim(post($key, ''));
-    if (!empty($field['required']) && $value === '') {
-        echo json_encode(['code' => 1, 'msg' => ($field['label'] ?? $key) . '不能为空']);
-        exit;
-    }
-    // 邮箱格式验证
-    if ($type === 'email' && $value !== '' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
-        echo json_encode(['code' => 1, 'msg' => '邮箱格式不正确']);
-        exit;
+    try {
+        $value = FormSpamGuard::fieldValue($field, $_POST[$key] ?? ($type === 'checkbox' ? [] : ''));
+    } catch (InvalidArgumentException) {
+        rejectFormSpam('form_guard_field', 422, 0, ['field' => (string) ($field['label'] ?? $key)]);
     }
     $formData[$key] = $value;
 }
+$extra = json_encode($formData, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+if (strlen($extra) > 60000) rejectFormSpam('form_guard_payload', 422);
 
-// 反垃圾 3：内容含过多链接 = 典型垃圾，丢弃（假装成功）
-$_content = (string) ($formData['content'] ?? '');
-if ($_content !== '' && preg_match_all('~https?://|www\.~i', $_content) > 3) {
+// 反垃圾 3：内容过滤 —— 链接过多或命中屏蔽关键词 = 典型垃圾，丢弃（假装成功）。规则在「询盘管理 › 防垃圾设置」
+$_content = implode("\n", $formData);
+$_maxLinks = max(0, min(20, (int) config('form_max_links', '3')));
+if (FormSpamGuard::blockedContent($_content, FormSpamGuard::keywordList((string) config('form_spam_keywords', '')), $_maxLinks)) {
     echo json_encode(['code' => 0, 'msg' => '提交成功，感谢您的反馈！']);
     exit;
 }
@@ -153,15 +165,29 @@ $data = [
     'email'         => $formData['email'] ?? '',
     'company'       => $formData['company'] ?? '',
     'content'       => $formData['content'] ?? '',
-    'extra'         => json_encode($formData, JSON_UNESCAPED_UNICODE),
+    'extra'         => $extra,
     'ip'            => getClientIp(),
     'user_agent'    => mb_substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500),
     'status'        => 0,
     'created_at'    => time(),
 ];
 
-$data = apply_filters('before_save_form', $data);
-$formId = (int)formModel()->create($data);
+try {
+    // Equal content from the same IP is shared across contact/inquiry forms and languages.
+    $accepted = $spamGuard->submit($clientIp, $formData, $maxSubmits, $windowSeconds,
+        static function () use (&$data): int {
+            $data = apply_filters('before_save_form', $data);
+            return (int) formModel()->create($data);
+        });
+} catch (Throwable $error) {
+    error_log('Form submission failed: ' . get_class($error));
+    rejectFormSpam('form_guard_unavailable', 503);
+}
+if ($accepted['reason'] !== '') {
+    rejectFormSpam($accepted['reason'] === 'duplicate' ? 'form_guard_duplicate' : 'form_guard_throttle',
+        $accepted['reason'] === 'duplicate' ? 409 : 429, $accepted['retry']);
+}
+$formId = $accepted['id'];
 
 // 动作：表单提交后（邮件通知、CRM 同步等）
 do_action('form_submitted', $formId, $data);
@@ -169,9 +195,6 @@ do_action('form_submitted', $formId, $data);
 // 邮件通知
 require_once __DIR__ . '/includes/mail_notify.php';
 notifyNewInquiry($data);
-
-// 记录提交频率
-recordFormSubmit($clientIp);
 
 // lang-aware：始终先查 success_message_<siteLang>，base 当语言无关 fallback。
 // 不再用 `lang !== defaultLang` 门槛 — 那样在用户把默认语言改为 en/ja 后

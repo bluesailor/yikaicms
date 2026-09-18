@@ -12,7 +12,7 @@ $sidebarItems = $rightSidebarItems ?? null;
 ?>
 <div class="w-full lg:w-64">
     <div class="bg-white rounded-lg shadow">
-        <div class="px-4 py-3 border-b font-bold text-dark bg-primary text-white rounded-t-lg">
+        <div class="bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200 rounded-t-lg">
             <?php echo e($rightSidebarTitle); ?>
         </div>
         <div class="divide-y">

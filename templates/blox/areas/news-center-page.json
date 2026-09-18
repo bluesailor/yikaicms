@@ -1,0 +1,40 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "page",
+  "name": "News Center Page",
+  "requires": {
+    "elements": ["page-title", "content-catalog"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "name": "页面标题",
+        "settings": {"padding": "lg", "max_width": "default", "gap": "sm", "bg_color": "#f8fafc"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "page-title", "data": {"align": "left", "show_breadcrumb": true}}
+            ]
+          }
+        ]
+      },
+      {
+        "type": "section",
+        "name": "文章列表",
+        "settings": {"padding": "lg", "max_width": "default", "gap": "lg", "bg_color": "#ffffff"},
+        "columns": [
+          {
+            "elements": [
+              {"type": "content-catalog", "data": {"layout": "list", "show_search": true, "show_categories": true, "show_cover": true, "show_summary": true, "show_channel": true, "show_author": false, "show_date": true, "show_views": true}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

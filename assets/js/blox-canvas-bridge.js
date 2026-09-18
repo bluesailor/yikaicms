@@ -42,6 +42,7 @@
     function elementTargetPayload(value) {
         if (!isObject(value) || !isSectionId(value.id) || !isElementPath(value.path)) return null;
         var target = { id: value.id, path: value.path };
+        if (["banner-content", "banner-links"].includes(value.panel)) target.panel = value.panel;
         var mods = pickModsPayload(value.mods);
         if (mods) target.mods = mods;
         return target;
@@ -117,6 +118,11 @@
 
     function inlineEditPayload(value) {
         if (!isObject(value) || typeof value.value !== "string" || value.value.length > 2097152) return null;
+        if (value.kind === 'tableCell' && isElementPath(value.path) && isSectionId(value.id)
+            && isIndex(value.row) && value.row < 50 && isIndex(value.column) && value.column < 12
+            && typeof value.base === 'string' && value.base.length <= 4000 && value.value.length <= 4000) {
+            return {kind: 'tableCell', id: value.id, path: value.path, row: value.row, column: value.column, base: value.base, value: value.value};
+        }
         if (value.kind === "sectionField") {
             var sectionField = sectionFieldPayload(value);
             return sectionField ? { kind: "sectionField", si: sectionField.si, field: sectionField.field, format: "text", value: value.value } : null;
@@ -198,6 +204,7 @@
         this.onDrop = options.onDrop || noop;
         this.onTemplateDrop = options.onTemplateDrop || noop;
         this.onInlineEdit = options.onInlineEdit || noop;
+        this.onTableAction = options.onTableAction || noop;
         this.onEditSectionField = options.onEditSectionField || noop;
         this.onPickSectionField = options.onPickSectionField || noop;
         this.onPickHomeColumn = options.onPickHomeColumn || noop;
@@ -297,6 +304,14 @@
             this.onInlineEdit(payload);
             return true;
         }
+        if (data.ykTableAction !== undefined) {
+            var table = data.ykTableAction;
+            if (!isObject(table) || !isElementPath(table.path) || !isSectionId(table.id)
+                || !isIndex(table.row) || table.row >= 50 || !isIndex(table.column) || table.column >= 12
+                || !['focus', 'blur', 'expand', 'row-add', 'row-delete', 'row-previous', 'row-next', 'column-add', 'column-delete', 'column-previous', 'column-next'].includes(table.action)) return false;
+            this.onTableAction({id: table.id, path: table.path, row: table.row, column: table.column, action: table.action});
+            return true;
+        }
         payload = sectionFieldPayload(data.ykEditSectionField);
         if (payload) {
             this.onEditSectionField(payload);
@@ -328,7 +343,9 @@
             return true;
         }
         if (isElementPath(data.ykPickEl)) {
-            this.onPickElement({ id: "", path: data.ykPickEl });
+            var pick = { id: "", path: data.ykPickEl };
+            if (["banner-content", "banner-links"].includes(data.ykPickPanel)) pick.panel = data.ykPickPanel;
+            this.onPickElement(pick);
             return true;
         }
         if (isElementPath(data.ykEditEl)) {
@@ -394,10 +411,15 @@
         payload = data.ykInsertAt;
         if (payload && typeof payload === "object"
             && Number.isInteger(payload.index) && payload.index >= 0 && payload.index <= 500
-            && (payload.kind === "layout" || payload.kind === "templates" || payload.kind === "blank")
+            && (payload.kind === "layout" || payload.kind === "templates" || payload.kind === "blank" || payload.kind === "picker")
+            && (payload.kind !== "picker" || (payload.anchor && [payload.anchor.x, payload.anchor.y].every(function (n) {
+                return typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 100000;
+            })))
             && (payload.spans === undefined || (Array.isArray(payload.spans) && payload.spans.length >= 1 && payload.spans.length <= 6
                 && payload.spans.every(function (n) { return Number.isInteger(n) && n >= 1 && n <= 12; })))) {
-            this.onInsertAt({ index: payload.index, kind: payload.kind, spans: payload.spans });
+            var insert = { index: payload.index, kind: payload.kind, spans: payload.spans };
+            if (payload.kind === "picker") insert.anchor = { x: payload.anchor.x, y: payload.anchor.y };
+            this.onInsertAt(insert);
             return true;
         }
         return false;

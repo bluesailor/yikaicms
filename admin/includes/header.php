@@ -30,7 +30,7 @@ $sidebarMenu = resolveAdminSidebar();
 // 升级页仍会再次做完整检查并负责执行，侧栏这里只复用同一套 Migrator 判定。
 $__sidebarPendingMigrations = 0;
 if (hasPermission('*')) {
-    $__sidebarPendingMigrations = pendingMigrationsCount();
+    $__sidebarPendingMigrations = sidebarPendingMigrationsCount();
     foreach ($sidebarMenu as &$__sidebarGroup) {
         foreach (($__sidebarGroup['items'] ?? []) as &$__sidebarItem) {
             if (($__sidebarItem['key'] ?? '') === 'upgrade') {
@@ -58,11 +58,12 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
 
 // 后台品牌文字（左上角 Logo / 页面标题）——页脚共用同一函数，见 adminBrandName()。
 $adminBrand = adminBrandName();
-$adminHelpLang = (string) config('admin_lang', getLang());
-$adminHelpUrl = match ($adminHelpLang) {
-    'en' => 'https://www.yikaicms.com/en/#help',
-    'ja' => 'https://www.yikaicms.com/ja/#help',
-    default => 'https://www.yikaicms.com/#help',
+// 顶栏帮助图标 → 官网使用教程。教程目前只有中文版（/en/、/ja/ 下是 404），
+// 英文、日文后台暂时仍落到各自语言首页的帮助区（adminHelpUrl()）；教程出了多语言版改这里即可。
+// 伪静态 / 栏目页 404 的专项帮助是另一条链接，见 adminHelpUrl()。
+$adminTutorialUrl = match ((string) config('admin_lang', getLang())) {
+    default => 'https://www.yikaicms.com/tutorial.php',
+    'en', 'ja' => adminHelpUrl(),
 };
 ?>
 <!DOCTYPE html>
@@ -137,11 +138,18 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
         _flyTimer: null,
         flyOpen(e, key) {
             clearTimeout(this._flyTimer);
+            if (window.innerWidth < 1024) return;
             var d = (window.__ykMenuFly || {})[key];
             if (!d) { return; }
             var r = e.currentTarget.getBoundingClientRect();
-            var top = Math.min(r.top, Math.max(8, window.innerHeight - (d.items.length * 32 + 60)));
+            var top = Math.max(12, r.top);
             this.fly = { key: key, label: d.label, items: d.items, top: top };
+            this.$nextTick(() => {
+                var panel = this.$refs.sidebarFlyout;
+                if (!panel || this.fly.key !== key) return;
+                this.fly.top = Math.max(12, Math.min(r.top, window.innerHeight - panel.getBoundingClientRect().height - 12));
+                panel.querySelector('.sidebar-flyout-items').scrollTop = 0;
+            });
         },
         flyKeep() { clearTimeout(this._flyTimer); },
         flyLater() {
@@ -164,7 +172,8 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
              x-cloak></div>
 
         <!-- 侧边栏 -->
-        <aside class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64 <?= $_sbCollapsed ? 'lg:w-16' : 'lg:w-64' ?>"
+        <aside data-admin-sidebar data-compact="<?= $_sbCollapsed ? 'true' : 'false' ?>" :data-compact="collapsed ? 'true' : 'false'"
+               class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64 <?= $_sbCollapsed ? 'lg:w-16' : 'lg:w-64' ?>"
                <?php // 必须用对象语法：三元写法下 Alpine 只移除自己加过的类，
                      // 首次切换时服务端预渲染的 lg:w-64 会残留并与 lg:w-16 打架 ?>
                <?php // 折叠态点空白处即展开（.self 只吃直接命中 aside 的点击，不劫持菜单项）；
@@ -180,7 +189,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                   // 无法为运行时数值预编类）。宽度受侧栏约束自动收缩（含折叠态窄栏）。 ?>
             <div class="min-h-12 py-1 flex items-center justify-center">
                 <?php
-                $adminLogo = SiteAsset::availableUrl((string) config('admin_logo', ''));
+                $adminLogo = adminBrandLogoUrl();
                 $adminLogoMaxH = (int) config('admin_logo_max_height', 80);
                 $adminLogoMaxH = max(16, min(200, $adminLogoMaxH ?: 80));
                 ?>
@@ -217,11 +226,12 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
             <nav class="mt-3 px-3" x-data="sidebarNav()"
                  @click.self="expandFromBlank()">
                 <!-- 控制台 -->
-                <a href="/admin/" class="sidebar-link flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'dashboard' ? 'active' : ''; ?>"
+                <a href="/admin/" class="sidebar-link sidebar-dashboard flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'dashboard' ? 'active' : ''; ?>"
                    :class="collapsed ? 'lg:justify-center' : ''"
                    :title="collapsed ? '<?php echo e(__('admin_dashboard')); ?>' : ''">
                     <i class="ti ti-layout-dashboard text-lg flex-shrink-0 mr-3" :class="{ 'lg:mr-0': collapsed }"></i>
-                    <span x-show="!collapsed"><?php echo __('admin_dashboard'); ?></span>
+                    <span x-show="!collapsed || mobileMenu"><?php echo e(__('admin_dashboard')); ?></span>
+                    <span class="sidebar-short-label"><?= e(__('admin_nav_short_dashboard')) ?></span>
                 </a>
 
                 <?php
@@ -242,23 +252,40 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 $_gKey     = htmlspecialchars($groupKey, ENT_QUOTES, 'UTF-8');
                 $_gIcon    = (string) ($navGroup['icon'] ?? '');
                 $_gOpen    = ($groupKey === $activeGroup);
+                $_shortKey = match ($groupKey) {
+                    'content', 'product', 'article', 'media', 'data', 'site', 'design', 'appearance', 'system' => 'admin_nav_short_' . $groupKey,
+                    default => '',
+                };
+                $_shortLabel = (string) ($navGroup['short_label'] ?? ($_shortKey !== '' ? __($_shortKey) : $navGroup['label']));
                 ?>
-                <div @click="collapsed ? null : toggle('<?= $_gKey ?>')" data-group="<?= $_gKey ?>"
+                <div @click="collapsed && !mobileMenu ? null : toggle('<?= $_gKey ?>')" data-group="<?= $_gKey ?>"
                      @mouseenter="collapsed && flyOpen($event, '<?= $_gKey ?>')" @mouseleave="collapsed && flyLater()"
-                     :title="collapsed ? '<?= htmlspecialchars(strip_tags((string)$navGroup['label']), ENT_QUOTES, 'UTF-8') ?>' : ''"
-                     class="sidebar-group mt-2 px-3 py-2 rounded-lg text-base flex items-center gap-2.5"
+                     class="sidebar-group mt-2 px-3 py-2 rounded-lg text-base flex items-center gap-2.5<?= $_gOpen ? ' sidebar-group-current' : '' ?>"
                      :class="collapsed ? 'lg:justify-center' : ''">
                     <?php if ($_gIcon !== ''): ?>
-                    <svg class="w-5 h-5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><?= $_gIcon ?></svg>
+                    <svg class="sidebar-group-icon w-5 h-5 flex-shrink-0 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><?= $_gIcon ?></svg>
                     <?php endif; ?>
+                    <button type="button" class="sidebar-compact-trigger"
+                            aria-label="<?= e((string) $navGroup['label']) ?>"
+                            :aria-expanded="fly.key === '<?= $_gKey ?>'"
+                            aria-controls="admin-sidebar-flyout"
+                            @click.stop="flyOpen($event, '<?= $_gKey ?>')"
+                            @focus="flyOpen($event, '<?= $_gKey ?>')"
+                            @keydown.arrow-down.prevent="$refs.sidebarFlyout.querySelector('a')?.focus()"
+                            @keydown.escape.stop="fly.key = ''">
+                        <?php if ($_gIcon !== ''): ?>
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><?= $_gIcon ?></svg>
+                        <?php endif; ?>
+                        <span class="sidebar-short-label"><?= e($_shortLabel) ?></span>
+                    </button>
                     <?php if ($_firstUrl !== ''): ?>
-                    <a href="<?= htmlspecialchars($_firstUrl, ENT_QUOTES, 'UTF-8') ?>" class="flex-1 min-w-0 truncate" x-show="!collapsed"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></a>
+                    <a href="<?= htmlspecialchars($_firstUrl, ENT_QUOTES, 'UTF-8') ?>" class="flex-1 min-w-0 truncate" x-show="!collapsed || mobileMenu"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></a>
                     <?php else: ?>
-                    <span class="flex-1 min-w-0 truncate" x-show="!collapsed"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
+                    <span class="flex-1 min-w-0 truncate" x-show="!collapsed || mobileMenu"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
                     <?php endif; ?>
-                    <i class="ti ti-chevron-down text-sm opacity-60 transition-transform duration-200" x-show="!collapsed" :class="isOpen('<?= $_gKey ?>') ? 'rotate-180' : ''"></i>
+                    <i class="ti ti-chevron-down text-sm opacity-60 transition-transform duration-200" x-show="!collapsed || mobileMenu" :class="isOpen('<?= $_gKey ?>') ? 'rotate-180' : ''"></i>
                 </div>
-                <div class="pl-2" x-show="!collapsed && isOpen('<?= $_gKey ?>')" x-collapse.duration.200ms<?= $_gOpen ? '' : ' style="display:none"' ?>>
+                <div class="pl-2" x-show="(!collapsed || mobileMenu) && isOpen('<?= $_gKey ?>')" x-collapse.duration.200ms<?= $_gOpen ? '' : ' style="display:none"' ?>>
                     <?php foreach ($navGroup['items'] as $_item): ?>
                         <?= renderAdminMenuItem($_item, (string)$currentMenu) ?>
                     <?php endforeach; ?>
@@ -272,6 +299,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
         </aside>
 
         <button type="button"
+                x-show="!collapsed || !fly.key"
                 @click.stop="toggleCollapsed()"
                 class="hidden lg:flex fixed top-1/2 -translate-y-1/2 -translate-x-1/2 z-[70] w-8 h-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-md transition-all duration-300 hover:border-blue-300 hover:text-blue-600 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 :class="collapsed ? 'left-16' : 'left-64'"
@@ -283,14 +311,25 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
 
         <?php // 折叠态的二级飞出面板：侧栏是滚动容器会裁剪子元素，故用 fixed 定位单例，
               // 悬停分组图标时按其位置弹出。数据从同一份菜单生成，不重复维护。 ?>
-        <div x-show="collapsed && fly.key" x-cloak
+        <div id="admin-sidebar-flyout" x-ref="sidebarFlyout" x-show="collapsed && fly.key" x-cloak
+             role="navigation" :aria-label="fly.label"
              @mouseenter="flyKeep()" @mouseleave="flyLater()"
+             @focusin="flyKeep()"
+             @keydown.escape.stop="fly.key = ''"
+             @click.outside="if (!$event.target.closest('.sidebar-group')) fly.key = ''"
+             @resize.window="fly.key = ''"
              :style="{ top: fly.top + 'px' }"
-             class="hidden lg:block fixed left-16 z-[60] w-52 bg-sidebar text-gray-300 rounded-r-lg shadow-2xl border border-white/10 border-l-0 py-2">
-            <div class="px-4 py-1.5 text-sm text-gray-400 border-b border-white/5 mb-1" x-text="fly.label"></div>
-            <template x-for="it in fly.items" :key="it.url">
-                <a :href="it.url" class="sidebar-link block px-4 py-1.5 text-sm" x-text="it.label"></a>
-            </template>
+             class="sidebar-flyout">
+            <div class="sidebar-flyout-heading" x-text="fly.label"></div>
+            <div class="sidebar-flyout-items">
+                <template x-for="it in fly.items" :key="it.url">
+                    <a :href="it.url" class="sidebar-flyout-link" :class="{ 'is-current': it.active }"
+                       :aria-current="it.active ? 'page' : null">
+                        <span x-text="it.label"></span>
+                        <i x-show="it.active" class="ti ti-check" aria-hidden="true"></i>
+                    </a>
+                </template>
+            </div>
         </div>
         <script>
         window.__ykMenuFly = <?php
@@ -301,7 +340,11 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 foreach ((array) ($_gv['items'] ?? []) as $_it) {
                     if (isset($_it['visible']) && !$_it['visible']) continue;
                     if (!empty($_it['perm']) && !hasPermission((string) $_it['perm'])) continue;
-                    $_its[] = ['label' => trim(strip_tags((string) ($_it['label'] ?? ''))), 'url' => (string) ($_it['url'] ?? '')];
+                    $_its[] = [
+                        'label' => trim(strip_tags((string) ($_it['label'] ?? ''))),
+                        'url' => (string) ($_it['url'] ?? ''),
+                        'active' => in_array($currentMenu, (array) ($_it['active_keys'] ?? [$_it['key'] ?? '']), true),
+                    ];
                 }
                 if ($_its) {
                     $_flyData[$_gk] = ['label' => trim(strip_tags((string) ($_gv['label'] ?? $_gk))), 'items' => $_its];
@@ -569,12 +612,12 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     </div>
                     <?php endif; ?>
 
-                    <!-- 官方帮助：新装站栏目页 404 多数是 URL 重写未配置，入口保持全后台可见。 -->
-                    <a href="<?php echo e($adminHelpUrl); ?>" target="_blank" rel="noopener noreferrer"
+                    <!-- 官方使用教程：入口保持全后台可见。伪静态专项说明另见控制台提醒与站点体检页。 -->
+                    <a href="<?php echo e($adminTutorialUrl); ?>" target="_blank" rel="noopener noreferrer"
                        data-testid="admin-help-link"
                        class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                       title="<?php echo e(__('admin_help_rewrite')); ?>"
-                       aria-label="<?php echo e(__('admin_help_rewrite')); ?>">
+                       title="<?php echo e(__('admin_help_tutorial')); ?>"
+                       aria-label="<?php echo e(__('admin_help_tutorial')); ?>">
                         <i class="ti ti-help-circle text-xl" aria-hidden="true"></i>
                     </a>
 

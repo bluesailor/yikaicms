@@ -2,7 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
-const { frame, openPageEditor, performPagePreviewUpdate, waitPreviewSettled, expectClean } = require('./helpers');
+const { frame, openPageEditor, performPagePreviewUpdate, waitPreviewSettled, expectClean, openSectionInsertAtEnd } = require('./helpers');
 const root = path.resolve(__dirname, '../..');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 const fixture = action => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'catalog-baseline-fixture.php'), action], { cwd: root });
@@ -25,14 +25,19 @@ test('FAQ edits, reorders, deletes, undoes and publishes a working accordion @ci
   const clear = page.getByTestId('blox-clear-selection');
   if (await clear.isVisible()) await clear.click();
   await waitPreviewSettled(page);
+  await openSectionInsertAtEnd(page);
   await page.getByTestId('blox-add-section-1').click();
   await page.getByTestId('blox-library-open').click();
   await page.getByTestId('blox-add-element-accordion').press('Enter');
   const items = page.getByTestId('blox-accordion-item');
   await expect(items).toHaveCount(2);
+  await expect(page.getByTestId('blox-element-property-grid')).not.toContainText('faq_repeater');
+  // 答案自 v1.20 起是紧凑富文本（compact-richtext）；切到源码视图用纯 textarea 输入，不依赖编辑器初始化时序。
+  const answer = page.getByTestId('blox-accordion-answer').first();
+  await answer.getByTestId('blox-description-source-toggle').click();
   await performPagePreviewUpdate(page, async () => {
     await page.getByTestId('blox-accordion-question').first().fill(marker);
-    await page.getByTestId('blox-accordion-answer').first().fill(marker + ' answer');
+    await answer.getByTestId('blox-description-source').fill(marker + ' answer');
     await page.getByTestId('blox-accordion-question').nth(1).fill(marker + ' second');
   });
   await performPagePreviewUpdate(page, () => page.getByTestId('blox-accordion-move-down').first().click());

@@ -114,11 +114,8 @@ final class HomeBloxRenderContext
 
             if (($channel['type'] ?? '') === 'product') {
                 $contents = $sort === 'recommend'
-                    ? getProducts(0, $limit, 0, ['is_recommend' => true])
+                    ? getProducts(0, $limit, 0, ['sort' => 'recommend_first'])
                     : getProducts(0, $limit, 0);
-                if ($sort === 'recommend' && empty($contents)) {
-                    $contents = getProducts(0, $limit, 0);
-                }
                 $channel['contents'] = $contents;
                 $channel['is_product'] = true;
                 $channel['categories'] = $productCategories;
@@ -205,6 +202,9 @@ final class HomeBloxRenderContext
             if (siteLang() !== $defaultLang) {
                 $banners = HomeBannerItemElement::applyLocalizedContent($banners, $this->banners);
             }
+        } elseif ($type === 'banner' && is_array($data['children'] ?? null)) {
+            // inherit：内容取 banners 表，逐条动效取同位置的子项（见 applyChildMotions）
+            $banners = HomeBannerItemElement::applyChildMotions($banners, $data['children']);
         }
         if ($type === 'banner' && (int) $block['limit'] > 0) {
             $banners = array_slice($banners, 0, (int) $block['limit']);
@@ -278,6 +278,8 @@ final class HomeBloxRenderContext
             'testimonials' => $testimonials,
             'stats' => $stats,
             'advantages' => $advantages,
+            'links' => $type === 'partners' && !empty($block['partners_custom'])
+                ? $block['partner_items'] : null,
             'ykHomeEdit' => $ykHomeEdit,
             'ykHomePath' => $path,
             'ykHomeFieldAttr' => $ykHomeFieldAttr,
@@ -410,11 +412,8 @@ final class HomeBloxRenderContext
 
         if (($channel['type'] ?? '') === 'product') {
             $contents = $sort === 'recommend'
-                ? getProducts(0, $limit, 0, ['is_recommend' => true])
+                ? getProducts(0, $limit, 0, ['sort' => 'recommend_first'])
                 : getProducts(0, $limit, 0);
-            if ($sort === 'recommend' && $contents === []) {
-                $contents = getProducts(0, $limit, 0);
-            }
             $channel['contents'] = $contents;
             $channel['is_product'] = true;
             $channel['categories'] = productCategoryModel()->getTopLevel(6);

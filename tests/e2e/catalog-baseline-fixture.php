@@ -9,6 +9,8 @@ if (!str_starts_with(basename(ROOT_PATH), 'yikai-e2e-')
 require ROOT_PATH . '/config/config.php';
 require ROOT_PATH . '/includes/functions.php';
 require ROOT_PATH . '/includes/models/autoload.php';
+// CLI 下没有钩子系统，settingModel 改设置不会自动轮换页面缓存，得手动失效。
+require ROOT_PATH . '/includes/HtmlCache.php';
 if (DB_DRIVER !== 'sqlite' || parse_url(SITE_URL, PHP_URL_HOST) !== '127.0.0.1') {
     throw new RuntimeException('Local SQLite required');
 }
@@ -18,6 +20,7 @@ if ($action === 'restore') {
     if (is_file($file)) {
         settingModel()->saveBatch(json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR));
         unlink($file);
+        HtmlCache::invalidate();
     }
     exit;
 }

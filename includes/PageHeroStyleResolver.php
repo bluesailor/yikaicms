@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+/** @psalm-type HeroOptions = array{background_color:string,overlay_opacity:int,height:string,mobile_height:string,focal_x:int,focal_y:int,alignment:string,text_tone:string,layout:string,breadcrumb_style:string,breadcrumb_spacing:string,breadcrumb_tone:string} */
 final class PageHeroStyleResolver
 {
     public const MODE_SELF = 'self';
@@ -11,7 +12,7 @@ final class PageHeroStyleResolver
 
     private const MAX_ANCESTORS = 32;
 
-    /** @return array{background_color:string,overlay_opacity:int,height:string,mobile_height:string,focal_x:int,focal_y:int,alignment:string,text_tone:string} */
+    /** @return HeroOptions */
     public static function defaultOptions(bool $compactContact = false): array
     {
         return [
@@ -23,12 +24,16 @@ final class PageHeroStyleResolver
             'focal_y' => 50,
             'alignment' => $compactContact ? 'left' : 'center',
             'text_tone' => 'auto',
+            'layout' => 'banner',
+            'breadcrumb_style' => 'minimal',
+            'breadcrumb_spacing' => 'standard',
+            'breadcrumb_tone' => 'default',
         ];
     }
 
     /**
      * @param array<string,mixed>|string|null $raw
-     * @return array{background_color:string,overlay_opacity:int,height:string,mobile_height:string,focal_x:int,focal_y:int,alignment:string,text_tone:string}
+     * @return HeroOptions
      */
     public static function normalizeOptions(array|string|null $raw, bool $compactContact = false): array
     {
@@ -47,6 +52,12 @@ final class PageHeroStyleResolver
             || preg_match('/^var\(--yk-color-[a-z0-9-]{1,48}\)$/', $color) === 1
         ) {
             $options['background_color'] = strtolower($color);
+        }
+        $options['layout'] = ($raw['layout'] ?? 'banner') === 'compact' ? 'compact' : 'banner';
+        foreach (['breadcrumb_style' => ['minimal', 'soft', 'contained'], 'breadcrumb_spacing' => ['compact', 'standard', 'relaxed'], 'breadcrumb_tone' => ['default', 'gray', 'blue']] as $key => $allowed) {
+            if (in_array($raw[$key] ?? null, $allowed, true)) {
+                $options[$key] = $raw[$key];
+            }
         }
         $options['overlay_opacity'] = max(0, min(90, (int) ($raw['overlay_opacity'] ?? $options['overlay_opacity'])));
         $options['height'] = in_array(($raw['height'] ?? null), ['compact', 'standard', 'large'], true)
@@ -141,7 +152,7 @@ final class PageHeroStyleResolver
      * @param array<string,mixed> $channel
      * @param null|callable(int):(?array<string,mixed>) $channelLoader
      * @param array<string,mixed>|string|null $globalOptions
-     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,inheritance_path:list<string>,can_inherit:bool,options:array{background_color:string,overlay_opacity:int,height:string,mobile_height:string,focal_x:int,focal_y:int,alignment:string,text_tone:string}}
+     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,inheritance_path:list<string>,can_inherit:bool,options:HeroOptions}
      */
     public static function resolve(
         array $channel,
@@ -239,8 +250,8 @@ final class PageHeroStyleResolver
     }
 
     /**
-     * @param array{background_color:string,overlay_opacity:int,height:string,mobile_height:string,focal_x:int,focal_y:int,alignment:string,text_tone:string} $options
-     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,inheritance_path:list<string>,can_inherit:bool,options:array{background_color:string,overlay_opacity:int,height:string,mobile_height:string,focal_x:int,focal_y:int,alignment:string,text_tone:string}}
+     * @param HeroOptions $options
+     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,inheritance_path:list<string>,can_inherit:bool,options:HeroOptions}
      */
     private static function localResult(string $mode, string $background, string $source, bool $canInherit, array $options): array
     {
@@ -257,9 +268,9 @@ final class PageHeroStyleResolver
     }
 
     /**
-     * @param array{background_color:string,overlay_opacity:int,height:string,mobile_height:string,focal_x:int,focal_y:int,alignment:string,text_tone:string} $options
+     * @param HeroOptions $options
      * @param list<string> $inheritancePath
-     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,inheritance_path:list<string>,can_inherit:bool,options:array{background_color:string,overlay_opacity:int,height:string,mobile_height:string,focal_x:int,focal_y:int,alignment:string,text_tone:string}}
+     * @return array{mode:string,background:string,source:string,source_channel_id:int,source_channel_name:string,inheritance_path:list<string>,can_inherit:bool,options:HeroOptions}
      */
     private static function globalResult(
         string $mode,

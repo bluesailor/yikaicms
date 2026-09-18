@@ -2,6 +2,128 @@
 
 declare(strict_types=1);
 ?>
+    <?php require __DIR__ . '/table-expanded.php'; ?>
+    <?php require __DIR__ . '/table-create.php'; ?>
+    <section x-show="sectionInsertOpen" x-cloak x-ref="sectionInsertPicker" :style="sectionInsertStyle"
+             @click.outside="sectionInsertOpen = false" @keydown.escape.prevent.stop="closeSectionInsert()"
+             role="dialog" aria-modal="false" aria-labelledby="blox-section-insert-title" data-testid="blox-section-insert-picker"
+             class="fixed z-[150] bg-white rounded-lg shadow-xl border border-gray-200 p-3 max-h-[calc(100vh-24px)] overflow-y-auto">
+        <header class="flex items-center justify-between gap-2">
+            <h2 id="blox-section-insert-title" class="text-sm font-semibold text-gray-900"><?= e(__('blox_insert_section')) ?></h2>
+            <button type="button" @click="closeSectionInsert()" aria-label="<?= e(__('close')) ?>" class="h-8 w-8 inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded"><i class="ti ti-x text-lg"></i></button>
+        </header>
+        <p class="text-xs text-gray-600 mb-3 break-words" x-text="sectionInsertLabel"></p>
+        <div class="grid grid-cols-3 gap-2">
+            <?php for ($insertCols = 1; $insertCols <= 6; $insertCols++): ?>
+            <button type="button" @click="chooseSectionLayout(<?= $insertCols ?>)" data-layout-choice data-testid="blox-add-section-<?= $insertCols ?>"
+                    class="h-16 min-w-0 rounded border border-gray-300 hover:border-blue-500 hover:bg-blue-50 text-gray-700 inline-flex flex-col items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500">
+                <span class="flex gap-1 w-12 h-4" aria-hidden="true"><?php for ($colBar = 0; $colBar < $insertCols; $colBar++): ?><span class="flex-1 border border-gray-400 bg-gray-100 rounded-sm"></span><?php endfor; ?></span>
+                <span class="text-xs"><?= e(__('pea_n_columns', ['n' => $insertCols])) ?></span>
+            </button>
+            <?php endfor; ?>
+        </div>
+        <?php if (bloxPageEditorEnabled()): ?>
+        <button type="button" @click="chooseSectionTemplate()" class="mt-3 w-full h-9 rounded border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center justify-center gap-2"><i class="ti ti-layout-grid" aria-hidden="true"></i><?= e(__('pea_import_template')) ?></button>
+        <?php endif; ?>
+    </section>
+    <div x-show="pageFrameOpen" x-cloak x-ref="pageFrameDialog" tabindex="-1"
+         @keydown="dialogKeydown($event, $refs.pageFrameDialog, () => closePageFrame())"
+         role="dialog" aria-modal="true" aria-labelledby="blox-page-frame-title"
+         class="fixed inset-0 z-[145] flex items-center justify-center p-4" data-testid="blox-page-frame-dialog">
+        <div class="absolute inset-0 bg-black/50" @click="closePageFrame()"></div>
+        <section class="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-xl">
+            <header class="flex items-center justify-between border-b px-4 py-3">
+                <h2 id="blox-page-frame-title" class="text-sm font-semibold text-gray-900"><?= e(__('blox_page_frame')) ?></h2>
+                <button type="button" @click="closePageFrame()" :disabled="pageUrlSaving" class="h-10 w-10 inline-flex items-center justify-center hover:bg-gray-100" aria-label="<?= e(__('close')) ?>"><i class="ti ti-x text-xl"></i></button>
+            </header>
+            <?php if (!$isHomeBlox && !$templateId && ($pageType ?? '') === 'page'): ?>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 border-b px-4 py-3 text-sm" data-testid="blox-page-frame-info">
+                <span class="font-medium text-gray-900"><?= e((string) ($page['name'] ?? '')) ?></span>
+                <span class="text-xs text-gray-500"><?= e(__('blox_page_frame_lang')) ?><span class="font-mono"><?= e((string) ($page['lang'] ?? '')) ?></span></span>
+            </div>
+            <?php endif; ?>
+            <div class="space-y-3 border-b p-4">
+                <label for="blox-page-url-slug" class="block text-sm font-medium text-gray-900"><?= e(__('blox_page_url_slug')) ?></label>
+                <div class="flex flex-wrap gap-2">
+                    <input id="blox-page-url-slug" type="text" x-model="pageSlugDraft" @input="pageUrlConfirm = false; pageUrlError = ''" :disabled="pageUrlSaving" maxlength="100" spellcheck="false" autocomplete="off"
+                           aria-describedby="blox-page-url-hint blox-page-url-error" :aria-invalid="pageUrlError ? 'true' : 'false'"
+                           class="min-w-0 flex-1 border border-gray-300 rounded px-3 py-2 text-sm" data-dialog-initial data-testid="blox-page-url-slug">
+                    <button type="button" @click="savePageUrl()" :disabled="pageUrlSaving || pageUrlConfirm || pageSlugDraft === pageSlug" data-testid="blox-page-url-save"
+                            class="inline-flex items-center gap-2 border border-gray-300 rounded px-3 py-2 text-sm disabled:opacity-50"><i class="ti" :class="pageUrlSaving ? 'ti-loader-2 animate-spin' : 'ti-device-floppy'"></i><?= e(__('blox_page_url_save')) ?></button>
+                </div>
+                <p id="blox-page-url-hint" class="text-xs leading-5 text-gray-600"><?= e(__('blox_page_url_hint')) ?></p>
+                <a :href="pageUrl" x-text="pageUrl" target="_blank" rel="noopener" class="block break-all text-sm text-blue-700 underline" data-testid="blox-page-url-current"></a>
+                <p x-show="pageUrlError" x-text="pageUrlError" id="blox-page-url-error" role="alert" class="text-sm text-red-700"></p>
+                <div x-show="pageUrlConfirm" class="space-y-3 border-t pt-3" role="group" aria-label="<?= e(__('blox_page_url_save')) ?>">
+                    <p class="text-sm text-gray-900"><?= e(__('blox_page_url_confirm')) ?></p>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" @click="pageUrlConfirm = false" :disabled="pageUrlSaving" class="border rounded px-3 py-2 text-sm"><?= e(__('cancel')) ?></button>
+                        <button type="button" @click="savePageUrl(true)" :disabled="pageUrlSaving" class="border rounded px-3 py-2 text-sm font-medium" data-testid="blox-page-url-confirm"><?= e(__('confirm')) ?></button>
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-4 p-4">
+                <p class="text-sm text-gray-600"><?= e(__('blox_page_frame_scope')) ?></p>
+                <?php foreach (['header' => __('blox_page_frame_show_header'), 'footer' => __('blox_page_frame_show_footer')] as $frameArea => $frameLabel): ?>
+                <label class="flex items-center justify-between gap-4 text-sm text-gray-900">
+                    <span><?= e($frameLabel) ?></span>
+                    <input type="checkbox"
+                           :checked="!pageFrameDraft.page_<?= $frameArea ?>_hidden"
+                           @change="pageFrameDraft.page_<?= $frameArea ?>_hidden = !$event.target.checked"
+                           class="h-5 w-5" data-testid="blox-page-frame-<?= $frameArea ?>">
+                </label>
+                <?php endforeach; ?>
+            </div>
+            <div class="space-y-3 border-t p-4" data-testid="blox-page-frame-dotnav">
+                <label class="flex items-center justify-between gap-4 text-sm text-gray-900">
+                    <span class="inline-flex items-center gap-2"><i class="ti ti-circle-dot text-base text-blue-500"></i><?= e(__('blox_dotnav_enable')) ?></span>
+                    <input type="checkbox" class="h-5 w-5" data-testid="blox-dotnav-enabled"
+                           :checked="pageFrameDraft.dot_nav && pageFrameDraft.dot_nav.enabled"
+                           @change="pageFrameDraft.dot_nav.enabled = $event.target.checked">
+                </label>
+                <div x-show="pageFrameDraft.dot_nav && pageFrameDraft.dot_nav.enabled" x-cloak class="space-y-3 pl-1">
+                    <div class="flex items-center justify-between gap-4 text-sm text-gray-900">
+                        <span><?= e(__('blox_dotnav_position')) ?></span>
+                        <div class="flex rounded border border-gray-200 overflow-hidden text-xs">
+                            <button type="button" @click="pageFrameDraft.dot_nav.position = 'right'" data-testid="blox-dotnav-right"
+                                    :class="pageFrameDraft.dot_nav.position !== 'left' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
+                                    class="px-3 py-1.5"><?= e(__('blox_dotnav_right')) ?></button>
+                            <button type="button" @click="pageFrameDraft.dot_nav.position = 'left'" data-testid="blox-dotnav-left"
+                                    :class="pageFrameDraft.dot_nav.position === 'left' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-50'"
+                                    class="px-3 py-1.5"><?= e(__('blox_dotnav_left')) ?></button>
+                        </div>
+                    </div>
+                    <label class="flex items-center justify-between gap-4 text-sm text-gray-900">
+                        <span><?= e(__('blox_dotnav_mobile')) ?></span>
+                        <input type="checkbox" class="h-5 w-5" data-testid="blox-dotnav-mobile"
+                               :checked="pageFrameDraft.dot_nav.mobile"
+                               @change="pageFrameDraft.dot_nav.mobile = $event.target.checked">
+                    </label>
+                </div>
+                <p class="text-xs text-gray-500"><?= e(__('blox_dotnav_hint')) ?></p>
+            </div>
+            <div class="space-y-2 border-t p-4">
+                <?php // 标题区入口复用画布里的同一个设置弹窗（同一份数据，不存两份值） ?>
+                <button type="button" x-show="pageHero && pageHero.available" x-cloak
+                        @click="closePageFrame(); openPageHeroSettings()" data-testid="blox-page-frame-hero"
+                        class="w-full flex items-center justify-between gap-3 rounded border border-gray-200 px-3 py-2 text-sm text-gray-900 hover:bg-gray-50">
+                    <span class="inline-flex items-center gap-2"><i class="ti ti-layout-navbar text-base text-blue-500"></i><?= e(__('blox_page_frame_title_area')) ?></span>
+                    <span class="text-xs text-gray-400"><?= e(__('blox_page_frame_title_area_hint')) ?></span>
+                </button>
+                <?php if (!$isHomeBlox && !$templateId && ($pageType ?? '') === 'page'): ?>
+                <a href="/admin/page_edit.php?id=<?= (int) $id ?>" target="_blank" rel="noopener" data-testid="blox-page-frame-seo"
+                   class="w-full flex items-center justify-between gap-3 rounded border border-gray-200 px-3 py-2 text-sm text-gray-900 hover:bg-gray-50">
+                    <span class="inline-flex items-center gap-2"><i class="ti ti-seo text-base text-blue-500"></i><?= e(__('blox_page_frame_seo')) ?></span>
+                    <span class="text-xs text-gray-400"><?= e(__('blox_page_frame_seo_hint')) ?></span>
+                </a>
+                <?php endif; ?>
+            </div>
+            <footer class="flex justify-end gap-2 border-t p-4">
+                <button type="button" @click="closePageFrame()" :disabled="pageUrlSaving" class="border rounded px-4 py-2 text-sm"><?= e(__('cancel')) ?></button>
+                <button type="button" @click="applyPageFrame()" :disabled="pageUrlSaving" class="rounded bg-blue-600 text-white px-4 py-2 text-sm" data-testid="blox-page-frame-apply"><?= e(__('blox_page_frame_apply')) ?></button>
+            </footer>
+        </section>
+    </div>
     <!-- 元素、区块、列和容器共用的颜色选择器。值仍保存为 HEX 或稳定站点令牌引用。 -->
     <div x-show="colorPicker.open" x-cloak @keydown.escape.window="closeEditorColorPicker()"
          class="fixed inset-0 z-[170]" data-testid="blox-editor-color-picker-layer">
@@ -181,23 +303,23 @@ declare(strict_types=1);
                 </span>
                 <span class="min-w-0 flex-1">
                     <strong id="blox-page-hero-dialog-title" class="block text-sm font-semibold text-gray-900" x-text="pageHeroText.title"></strong>
-                    <span class="mt-0.5 block text-xs leading-5 text-gray-500" x-text="pageHeroText.description"></span>
+                    <span class="mt-0.5 block text-xs leading-5 text-gray-500" x-text="pageHero.name"></span>
                 </span>
                 <button type="button" @click="closePageHeroSettings()" :disabled="pageHeroSaving"
                         class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40"
-                        :aria-label="templateText.close" :title="templateText.close">
+                        aria-label="<?= e(__('close')) ?>" title="<?= e(__('close')) ?>">
                     <i class="ti ti-x"></i>
                 </button>
             </header>
             <div class="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:p-5">
                 <label class="flex items-center justify-between gap-4 border-b border-gray-100 pb-4">
                     <span>
-                        <strong class="block text-sm font-medium text-gray-800" x-text="pageHeroText.visible"></strong>
-                        <span class="mt-1 block text-xs text-gray-500" x-text="pageHero.name"></span>
+                        <strong class="block text-sm font-medium text-gray-800"><?= e(__('blox_hero_area_visible')) ?></strong>
                     </span>
                     <input type="checkbox" x-model="pageHero.show_hero" data-dialog-initial
                            class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 </label>
+                <div x-show="pageHero.show_hero" class="space-y-4">
                 <fieldset>
                     <legend class="mb-2 text-sm font-medium text-gray-800" x-text="pageHeroText.styleSource"></legend>
                     <div class="grid grid-cols-3 gap-2">
@@ -220,12 +342,12 @@ declare(strict_types=1);
                             <span x-text="pageHeroText.modeGlobal"></span>
                         </label>
                     </div>
-                    <p class="mt-2 text-xs leading-5 text-gray-500" x-text="pageHeroModeHint()"></p>
+                    <p x-show="pageHero.style_source !== 'self'" class="mt-2 text-xs leading-5 text-gray-500" x-text="pageHeroModeHint()"></p>
                 </fieldset>
-                <div class="flex flex-wrap items-center gap-3 border-y border-gray-100 bg-gray-50 px-3 py-3" data-testid="blox-page-hero-effective-source">
+                <div class="flex flex-wrap items-center gap-3" data-testid="blox-page-hero-effective-source">
                     <span class="min-w-0 flex-1">
-                        <span class="block text-xs text-gray-500" x-text="pageHeroText.effectiveSource"></span>
-                        <strong class="mt-0.5 block text-sm font-medium text-gray-800" x-text="pageHeroEffectiveSourceLabel()"></strong>
+                        <span class="text-xs text-gray-500" x-text="pageHeroText.effectiveSource"></span>
+                        <strong class="text-xs font-medium text-gray-700" x-text="pageHeroEffectiveSourceLabel()"></strong>
                         <span x-show="pageHeroInheritancePathLabel()" class="mt-1 block break-words text-xs leading-5 text-gray-500" x-text="pageHeroInheritancePathLabel()"></span>
                     </span>
                     <button x-show="pageHero.style_source !== 'self'" type="button" @click="copyPageHeroToSelf()"
@@ -239,6 +361,7 @@ declare(strict_types=1);
                         <i class="ti ti-arrow-back-up"></i><span x-text="pageHeroText.restoreInheritance"></span>
                     </button>
                 </div>
+                <?php require __DIR__ . '/breadcrumb-settings.php'; ?>
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-xs font-medium text-gray-600" x-text="pageHeroText.previewDevice"></span>
                     <span class="inline-flex border border-gray-200 bg-gray-50 p-1" role="group" :aria-label="pageHeroText.previewDevice">
@@ -251,33 +374,40 @@ declare(strict_types=1);
                     </span>
                 </div>
                 <div class="flex justify-center overflow-hidden border border-gray-200 bg-gray-100 p-2" data-testid="blox-page-hero-style-preview">
-                    <div class="w-full overflow-hidden bg-gray-900 transition-[max-width] duration-200"
+                    <div class="w-full overflow-hidden bg-white transition-[max-width] duration-200"
                          data-testid="blox-page-hero-preview-frame"
                          :style="'max-width:' + (pageHeroPreviewDevice === 'mobile' ? '390px' : '100%')">
+                    <template x-if="pageHeroPreviewOptions().layout === 'compact'">
+                        <?php require __DIR__ . '/breadcrumb-preview.php'; ?>
+                    </template>
+                    <template x-if="pageHeroPreviewOptions().layout !== 'compact'">
                     <div class="relative bg-cover px-5 transition-[height] duration-200"
                          :class="[
-                            pageHeroPreviewHeight() === 'large' ? 'h-36' : (pageHeroPreviewHeight() === 'compact' ? 'h-20' : 'h-28'),
-                            !pageHeroPreviewBackground() && !pageHeroPreviewOptions().background_color ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900' : ''
+                            pageHeroPreviewOptions().layout === 'compact' ? 'h-12' : (pageHeroPreviewHeight() === 'large' ? 'h-36' : (pageHeroPreviewHeight() === 'compact' ? 'h-20' : 'h-28')),
+                            pageHeroPreviewOptions().layout !== 'compact' && !pageHeroPreviewBackground() && !pageHeroPreviewOptions().background_color ? 'bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900' : ''
                          ]"
                          :style="pageHeroPreviewStyle()">
-                        <div x-show="pageHeroPreviewBackground() && Number(pageHeroPreviewOptions().overlay_opacity || 0) > 0"
+                        <template x-if="pageHeroPreviewOptions().layout !== 'compact' && pageHeroPreviewBackground() && Number(pageHeroPreviewOptions().overlay_opacity || 0) > 0">
+                        <div
                              class="absolute inset-0 bg-black"
-                             :style="'opacity:' + (Number(pageHeroPreviewOptions().overlay_opacity || 0) / 100)"></div>
+                             :style="{ opacity: Number(pageHeroPreviewOptions().overlay_opacity || 0) / 100 }"></div>
+                        </template>
                         <div class="relative flex h-full min-w-0 flex-col justify-center"
-                             :class="pageHeroPreviewOptions().alignment === 'center' ? 'items-center text-center' : 'items-start text-left'">
+                             :class="pageHeroPreviewOptions().layout !== 'compact' && pageHeroPreviewOptions().alignment === 'center' ? 'items-center text-center' : 'items-start text-left'">
                             <span class="max-w-full truncate text-[10px]"
                                   :class="pageHeroPreviewTone() === 'light' ? 'text-white/65' : 'text-gray-500'"><?= e(__('breadcrumb_home')) ?> / <span x-text="pageHero.name"></span></span>
-                            <strong class="mt-1 max-w-full truncate text-base"
+                            <strong x-show="pageHeroPreviewOptions().layout !== 'compact'" class="mt-1 max-w-full truncate text-base"
                                     :class="pageHeroPreviewTone() === 'light' ? 'text-white' : 'text-gray-900'"
                                     x-text="pageHero.name"></strong>
-                            <span x-show="pageHero.description" class="mt-1 max-w-[80%] truncate text-[11px]"
+                            <span x-show="pageHeroPreviewOptions().layout !== 'compact' && pageHero.description" class="mt-1 max-w-[80%] truncate text-[11px]"
                                   :class="pageHeroPreviewTone() === 'light' ? 'text-white/75' : 'text-gray-600'"
                                   x-text="pageHero.description"></span>
                         </div>
                     </div>
+                    </template>
                     </div>
                 </div>
-                <div>
+                <div x-show="pageHeroPreviewOptions().layout !== 'compact'" data-testid="blox-page-hero-background-controls">
                     <div class="mb-2 flex items-center justify-between gap-3">
                         <label class="text-sm font-medium text-gray-800" for="blox-page-hero-bg" x-text="pageHeroText.background"></label>
                         <span class="text-xs text-gray-500">
@@ -304,7 +434,7 @@ declare(strict_types=1);
                     </div>
                     <p class="mt-2 text-xs leading-5 text-gray-500" x-show="pageHero.style_source === 'self'" x-text="pageHeroText.backgroundHint"></p>
                 </div>
-                <section class="space-y-4 border-t border-gray-100 pt-4" :class="pageHero.style_source === 'self' ? '' : 'opacity-60'">
+                <section x-show="pageHeroPreviewOptions().layout !== 'compact'" data-testid="blox-page-hero-banner-controls" class="space-y-4 border-t border-gray-100 pt-4" :class="pageHero.style_source === 'self' ? '' : 'opacity-60'">
                     <div>
                         <div class="mb-2 flex items-center justify-between gap-3">
                             <span class="text-sm font-medium text-gray-800" x-text="pageHeroText.presets"></span>
@@ -400,6 +530,7 @@ declare(strict_types=1);
                         </div>
                     </div>
                 </section>
+                </div>
             </div>
             <footer class="flex min-h-14 items-center justify-end gap-2 border-t border-gray-100 px-4 py-3">
                 <button type="button" @click="closePageHeroSettings()" :disabled="pageHeroSaving"
@@ -653,7 +784,7 @@ declare(strict_types=1);
                         :class="designTab === 'colors' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-400 hover:text-gray-700'">
                     <i class="ti ti-color-swatch text-base"></i><span x-text="designText.colors"></span>
                 </button>
-                <button x-show="advancedMode" type="button" role="tab" data-testid="blox-design-tab-styles"
+                <button x-show="stylePresetsEnabled" type="button" role="tab" data-testid="blox-design-tab-styles"
                         @click="designTab = 'styles'" :aria-selected="designTab === 'styles'"
                         class="h-10 px-4 border-b-2 text-xs font-semibold inline-flex items-center gap-2 transition"
                         :class="designTab === 'styles' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-400 hover:text-gray-700'">
@@ -732,7 +863,7 @@ declare(strict_types=1);
                 </details>
             </div>
 
-            <div x-show="designTab === 'styles' && advancedMode" class="min-h-0 flex-1 overflow-y-auto blox-scroll">
+            <div x-show="designTab === 'styles' && stylePresetsEnabled" class="min-h-0 flex-1 overflow-y-auto blox-scroll">
                 <div class="grid grid-cols-[1.1fr_.7fr_repeat(3,1fr)_.7fr_auto] gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
                     <input type="text" x-model="newStyle.name" placeholder="<?= e(__('blox_design_new_style')) ?>" class="min-w-0 border border-gray-200 rounded px-2 py-1.5 text-xs">
                     <input type="text" x-model="newStyle.category" placeholder="<?= e(__('blox_design_category')) ?>" class="min-w-0 border border-gray-200 rounded px-2 py-1.5 text-xs">
@@ -857,7 +988,36 @@ declare(strict_types=1);
                                         <span class="flex items-center gap-1.5"><i class="h-1.5 w-10 rounded bg-gray-300"></i><i class="h-1.5 w-7 rounded bg-gray-300"></i><i class="h-5 w-8 rounded bg-blue-100"></i></span>
                                     </span>
                                 </div>
-                                <div x-show="areaPresetType === 'footer'"
+                                <div x-show="areaPresetType === 'footer' && preset.preview.startsWith('footer-simple-')"
+                                     class="flex h-10 w-5/6 items-center justify-center gap-2 border border-gray-300 px-3 shadow-sm"
+                                     :class="preset.preview === 'footer-simple-dark' ? 'bg-zinc-900' : 'bg-gray-50'" aria-hidden="true">
+                                    <i class="h-1.5 w-24 rounded" :class="preset.preview === 'footer-simple-dark' ? 'bg-gray-300' : 'bg-gray-500'"></i>
+                                    <i class="h-1.5 w-12 rounded bg-gray-400"></i>
+                                    <i class="h-1.5 w-12 rounded bg-gray-400"></i>
+                                </div>
+                                <div x-show="areaPresetType === 'footer' && preset.preview.startsWith('footer-four-')"
+                                     class="flex w-5/6 flex-col overflow-hidden border border-gray-300 shadow-sm" aria-hidden="true">
+                                    <span class="grid h-14 grid-cols-4 gap-2 px-3 py-2"
+                                          :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-900' : 'bg-gray-50'">
+                                        <span class="flex flex-col gap-1">
+                                            <i class="h-2 w-8 rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-blue-400' : 'bg-blue-500'"></i>
+                                            <i class="h-1.5 w-full rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-600' : 'bg-gray-300'"></i>
+                                        </span>
+                                        <template x-for="column in 3" :key="'four-col-' + column">
+                                            <span class="flex flex-col gap-1">
+                                                <i class="h-1.5 w-full rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-600' : 'bg-gray-300'"></i>
+                                                <i class="h-1.5 w-4/5 rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-600' : 'bg-gray-300'"></i>
+                                                <i class="h-1.5 w-3/5 rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-600' : 'bg-gray-300'"></i>
+                                            </span>
+                                        </template>
+                                    </span>
+                                    <span class="flex h-4 items-center justify-center gap-2"
+                                          :class="preset.preview === 'footer-four-dark' ? 'bg-zinc-950' : 'bg-gray-100'">
+                                        <i class="h-1 w-16 rounded" :class="preset.preview === 'footer-four-dark' ? 'bg-gray-400' : 'bg-gray-500'"></i>
+                                        <i class="h-1 w-8 rounded bg-gray-400"></i>
+                                    </span>
+                                </div>
+                                <div x-show="areaPresetType === 'footer' && !preset.preview.startsWith('footer-simple-') && !preset.preview.startsWith('footer-four-')"
                                      class="flex w-5/6 flex-col overflow-hidden border border-gray-300 bg-white shadow-sm" aria-hidden="true">
                                     <span x-show="preset.preview === 'footer-search'" class="flex h-5 items-center gap-2 bg-gray-800 px-3">
                                         <i class="h-1.5 w-9 rounded bg-blue-400"></i><i class="h-2.5 flex-1 rounded bg-gray-600"></i>
@@ -880,7 +1040,7 @@ declare(strict_types=1);
                                 </div>
                             </div>
                             <div class="flex flex-1 flex-col border-t border-gray-100 p-4">
-                                <h3 class="text-sm font-semibold text-gray-800" x-text="preset.name"></h3>
+                                <h3 class="text-sm font-semibold text-gray-800" x-text="areaPresetLabel(preset)"></h3>
                                 <div class="mt-2 flex min-h-6 flex-wrap gap-1.5">
                                     <template x-for="feature in preset.features" :key="preset.slug + '-' + feature">
                                         <span class="rounded bg-gray-100 px-2 py-1 text-[10px] font-medium text-gray-600" x-text="feature"></span>
@@ -924,7 +1084,7 @@ declare(strict_types=1);
                                         :title="headerPresetText.previous" :aria-label="headerPresetText.previous">
                                     <i class="ti ti-chevron-left"></i>
                                 </button>
-                                <span id="blox-header-preset-preview-title" class="block truncate text-sm font-semibold text-gray-800" x-text="preset && preset.name"></span>
+                                <span id="blox-header-preset-preview-title" class="block truncate text-sm font-semibold text-gray-800" x-text="areaPresetLabel(preset)"></span>
                                 <button type="button" @click="selectAdjacentHeaderPreset(1)" data-testid="blox-header-preset-preview-next"
                                         class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                                         :title="headerPresetText.next" :aria-label="headerPresetText.next">
@@ -1068,6 +1228,78 @@ declare(strict_types=1);
         </div>
     </div>
 
+    <!-- 画布插入检查：远程/内置模板先确认依赖映射，再一次性插入（可一次撤销整组）。 -->
+    <template x-if="templateReview">
+        <div tabindex="-1" x-ref="templateReviewDialog"
+             data-testid="blox-template-review-dialog"
+             @keydown="dialogKeydown($event, $refs.templateReviewDialog, () => cancelTemplateReview())"
+             role="dialog" aria-modal="true" aria-labelledby="blox-template-review-title"
+             class="fixed inset-0 z-[140] flex items-center justify-center p-6">
+            <div class="absolute inset-0 bg-black/50" @click="cancelTemplateReview()"></div>
+            <div class="relative w-full max-w-[560px] max-h-[86vh] overflow-y-auto rounded-xl bg-white shadow-2xl">
+                <div class="px-5 py-4 border-b border-gray-200 flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                        <h3 id="blox-template-review-title" class="font-semibold text-gray-900 break-words"
+                            x-text="templateText.reviewTitle + ': ' + templateReview.templateName"></h3>
+                        <p class="mt-1 text-xs text-gray-500" x-text="templateText.reviewNote"></p>
+                    </div>
+                    <button type="button" @click="cancelTemplateReview()" class="text-gray-400 hover:text-gray-600 p-1 disabled:opacity-40"
+                            :disabled="templateReview && templateReview.busy"
+                            :title="templateText.reviewCancel" :aria-label="templateText.reviewCancel">
+                        <i class="ti ti-x text-base"></i>
+                    </button>
+                </div>
+                <div class="p-5 space-y-4">
+                    <template x-for="(line, index) in templateReviewIssues()" :key="index">
+                        <p class="break-words text-sm text-amber-700" x-text="line"></p>
+                    </template>
+                    <fieldset class="min-w-0">
+                        <legend class="mb-2 text-sm font-medium text-gray-900" x-text="templateText.reviewStyles"></legend>
+                        <label class="mr-4 inline-flex items-center gap-2 text-sm">
+                            <input type="radio" value="keep" x-model="templateReview.styleMode">
+                            <span x-text="templateText.reviewKeep"></span>
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-sm">
+                            <input type="radio" value="detach" x-model="templateReview.styleMode">
+                            <span x-text="templateText.reviewDetach"></span>
+                        </label>
+                    </fieldset>
+                    <template x-for="kind in ['tokens', 'styles']" :key="kind">
+                        <fieldset class="min-w-0 space-y-2"
+                                 x-show="kind === 'tokens' || templateReview.styleMode !== 'detach'">
+                            <legend class="mb-2 text-sm font-medium text-gray-900"
+                                    x-text="templateText.reviewMap + ' · ' + (kind === 'tokens' ? templateText.reviewTokens : templateText.reviewStyles)"></legend>
+                            <template x-for="reference in templateReviewReferences(kind)" :key="kind + ':' + reference">
+                                <label class="flex flex-wrap items-center gap-3 text-sm">
+                                    <span class="min-w-0 break-all" x-text="reference"></span>
+                                    <select class="max-w-full border border-gray-300 bg-white px-3 py-2"
+                                            :data-testid="'blox-template-review-map-' + kind"
+                                            x-model="templateReview.mappings[kind][reference]">
+                                        <option value="" x-text="templateText.reviewUnchanged"></option>
+                                        <template x-for="option in templateReviewOptions(kind)" :key="kind + ':' + option.id">
+                                            <option :value="option.id" x-text="option.label"></option>
+                                        </template>
+                                    </select>
+                                </label>
+                            </template>
+                        </fieldset>
+                    </template>
+                    <p x-show="templateReview.error" class="text-sm text-red-600 break-words"
+                       data-testid="blox-template-review-error" x-text="templateReview.error"></p>
+                </div>
+                <div class="flex items-center justify-end gap-3 border-t border-gray-200 px-5 py-4">
+                    <button type="button" @click="cancelTemplateReview()" class="text-sm text-gray-600 hover:text-gray-800 disabled:opacity-40"
+                            :disabled="templateReview && templateReview.busy" data-testid="blox-template-review-cancel"
+                            x-text="templateText.reviewCancel"></button>
+                    <button type="button" @click="confirmTemplateReview()" data-testid="blox-template-review-confirm"
+                            class="inline-flex h-10 items-center justify-center gap-2 rounded bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                            :disabled="templateReview.busy"
+                            x-text="templateText.reviewConfirm"></button>
+                </div>
+            </div>
+        </div>
+    </template>
+
     <!-- Blox 模板库：目录与正文按需加载，避免大模板拖慢编辑器首屏。 -->
     <div x-show="templateOpen" x-cloak x-ref="templateDialog" tabindex="-1"
          data-testid="blox-template-dialog"
@@ -1117,7 +1349,7 @@ declare(strict_types=1);
                         class="h-10 px-4 border-b-2 text-xs font-semibold inline-flex items-center gap-2 transition"
                         :class="templateScope === 'local' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-700'">
                     <i class="ti ti-folders text-base"></i>
-                    <span x-text="templateText.localLibrary"></span>
+                    <span x-text="templateScopeLabel('local')"></span>
                     <span class="min-w-5 h-5 px-1 rounded bg-gray-100 text-[10px] text-gray-500 inline-flex items-center justify-center"
                           x-text="templateScopeCount('local')"></span>
                 </button>
@@ -1126,7 +1358,7 @@ declare(strict_types=1);
                         class="h-10 px-4 border-b-2 text-xs font-semibold inline-flex items-center gap-2 transition"
                         :class="templateScope === 'remote' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-700'">
                     <i class="ti ti-cloud-download text-base"></i>
-                    <span x-text="templateText.remoteLibrary"></span>
+                    <span x-text="templateScopeLabel('remote')"></span>
                     <span class="min-w-5 h-5 px-1 rounded bg-gray-100 text-[10px] text-gray-500 inline-flex items-center justify-center"
                           x-text="templateScopeCount('remote')"></span>
                 </button>
@@ -1147,7 +1379,7 @@ declare(strict_types=1);
                                 x-text="filter.label"></button>
                     </template>
                 </div>
-                <label x-show="templateCategoryOptions().length > 1" class="relative min-w-36">
+                <label x-show="templateEntry !== 'sections' && templateCategoryOptions().length > 1" class="relative min-w-36">
                     <span class="sr-only" x-text="templateText.category"></span>
                     <select x-model="templateCategory" data-testid="blox-template-category"
                             class="w-full h-8 border border-gray-200 rounded bg-white pl-2 pr-7 text-xs text-gray-600">
@@ -1158,6 +1390,29 @@ declare(strict_types=1);
                         </template>
                     </select>
                 </label>
+                <label x-show="templateEntry === 'sections' && templateDataSourceOptions().length > 1" class="relative min-w-36">
+                    <span class="sr-only" x-text="templateText.dataSource"></span>
+                    <select x-model="templateDataSource" @change="persistTemplateSectionViewState(); templateSectionScrollTop = 0"
+                            data-testid="blox-template-data-source"
+                            class="w-full h-8 border border-gray-200 rounded bg-white pl-2 pr-7 text-xs text-gray-600">
+                        <option value="all" x-text="templateText.dataSourceAll"></option>
+                        <template x-for="source in templateDataSourceOptions()" :key="source">
+                            <option :value="source" x-text="source === 'dynamic' ? templateText.dataSourceDynamic : templateText.dataSourceStatic"></option>
+                        </template>
+                    </select>
+                </label>
+                <div x-show="templateEntry === 'sections' && templateCategoryOptions().length > 1" role="group" :aria-label="templateText.category"
+                     data-testid="blox-template-category-chips" class="basis-full flex flex-wrap items-center gap-1.5">
+                    <template x-for="category in ['all'].concat(templateCategoryOptions())" :key="'chip-' + category">
+                        <button type="button" @click="templateCategory = category; persistTemplateSectionViewState(); templateSectionScrollTop = 0"
+                                :aria-pressed="templateCategory === category" :data-category="category"
+                                class="h-7 px-2.5 rounded-full border text-[11px] inline-flex items-center gap-1 transition"
+                                :class="templateCategory === category ? 'border-blue-500 bg-blue-600 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:text-blue-700'">
+                            <i x-show="category === 'home-common'" class="ti ti-home text-xs" aria-hidden="true"></i>
+                            <span x-text="category === 'all' ? templateText.categoryAll : templateCategoryLabel(category)"></span>
+                        </button>
+                    </template>
+                </div>
                 <div x-show="templateEntry === 'sections'" role="group" :aria-label="templateText.prebuiltTitle"
                      data-testid="blox-template-quick-filters"
                      class="inline-flex h-8 rounded border border-gray-200 bg-white p-0.5">
@@ -1253,9 +1508,25 @@ declare(strict_types=1);
                 <div x-show="!templateLoading && templateError" class="py-16 text-center text-sm text-red-500">
                     <i class="ti ti-alert-circle text-xl block mb-2"></i><span x-text="templateError"></span>
                 </div>
-                <div x-show="!templateLoading && !templateError && templateScope === 'remote' && templateRemoteError"
-                     class="mb-3 px-3 py-2 border border-amber-200 bg-amber-50 text-amber-700 text-xs rounded flex items-center gap-2">
-                    <i class="ti ti-cloud-off shrink-0"></i><span x-text="templateRemoteError"></span>
+                <?php // 精品区块：一条统一说明 + 唯一动作；有权益时不出现，不给每张卡叠锁（ROUND-06） ?>
+                <div x-show="!templateLoading && !templateError && premiumNotice() && premiumNotice().state !== 'mixed'" x-cloak
+                     data-testid="blox-premium-notice" :data-state="premiumNotice() ? premiumNotice().state : ''"
+                     class="mb-3 px-3 py-2 border border-amber-200 bg-amber-50 text-amber-800 text-xs rounded flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <i class="ti shrink-0" :class="premiumNotice() && premiumNotice().state === 'error' ? 'ti-cloud-off' : 'ti-info-circle'"></i>
+                    <span class="flex-1 min-w-0" x-text="premiumNoticeMessage()"></span>
+                    <template x-if="premiumNoticeAction() && premiumNoticeAction().kind === 'link'">
+                        <a :href="premiumNoticeAction().href" data-testid="blox-premium-notice-action"
+                           :target="premiumNoticeAction().external ? '_blank' : null"
+                           :rel="premiumNoticeAction().external ? 'noopener noreferrer' : null"
+                           class="shrink-0 inline-flex items-center gap-1 font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-950"
+                           x-text="premiumNoticeAction().label"></a>
+                    </template>
+                    <template x-if="premiumNoticeAction() && premiumNoticeAction().kind === 'retry'">
+                        <button type="button" data-testid="blox-premium-notice-retry" @click="loadTemplates(true)"
+                                class="shrink-0 inline-flex items-center gap-1 font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-950">
+                            <i class="ti ti-refresh"></i><span x-text="premiumNoticeAction().label"></span>
+                        </button>
+                    </template>
                 </div>
                 <div x-show="!templateLoading && !templateError && filteredTemplates().length === 0"
                      data-testid="blox-template-empty" :data-empty-reason="templateEmptyReason()"
@@ -1306,16 +1577,26 @@ declare(strict_types=1);
                                             <span x-show="templateItemRecommended(item)"
                                                   class="shrink-0 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700"
                                                   x-text="templateText.recommended"></span>
-                                             <span x-show="item.paid" class="shrink-0 text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
+                                             <span x-show="showTemplatePremiumBadge(item)" class="shrink-0 text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
                                                    x-text="templateText.premium"></span>
                                             <span x-show="item.metadata && item.metadata.purpose && item.metadata.purpose !== 'general'"
                                                   class="blox-template-purpose-badge shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-500"
                                                   x-text="templatePurposeLabel(item.metadata.purpose)"></span>
+                                            <span x-show="item.metadata && item.metadata.variant && item.metadata.variant !== 'standard'"
+                                                  data-testid="blox-template-variant-badge"
+                                                  class="shrink-0 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700"
+                                                  :title="templateText.variant"
+                                                  x-text="templateVariantLabel(item.metadata.variant)"></span>
+                                            <span x-show="item.metadata && item.metadata.data_source === 'dynamic'"
+                                                  data-testid="blox-template-dynamic-badge"
+                                                  class="shrink-0 rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-700"
+                                                  :title="templateText.dynamicData"
+                                                  x-text="templateText.dynamicData"></span>
                                         </span>
                                         <span class="mt-0.5 flex min-w-0 items-center gap-1 text-[11px]"
-                                              :class="item.locked ? 'text-amber-700' : 'text-gray-400'">
-                                            <i class="ti shrink-0" :class="item.locked ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user'))"></i>
-                                            <span class="blox-template-provider truncate" x-text="item.locked ? templateLockLabel(item) : templateProviderLabel(item)"></span>
+                                              :class="showTemplateCardLock(item) ? 'text-amber-700' : 'text-gray-400'">
+                                            <i class="ti shrink-0" :class="showTemplateCardLock(item) ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user'))"></i>
+                                            <span class="blox-template-provider truncate" x-text="showTemplateCardLock(item) ? templateLockLabel(item) : templateProviderLabel(item)"></span>
                                         </span>
                                     </span>
                                     <template x-if="canEditLocalTemplate(item)">
@@ -1330,7 +1611,7 @@ declare(strict_types=1);
                                             data-testid="blox-template-insert"
                                             :title="item.locked ? templateLockLabel(item) : (item.source === 'remote' ? templateText.downloadImport : templateText.insertSection)"
                                             class="h-8 shrink-0 rounded border border-blue-200 bg-white px-3 text-xs font-semibold text-blue-700 inline-flex items-center justify-center gap-1.5 hover:border-blue-600 hover:bg-blue-600 hover:text-white disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">
-                                        <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (item.locked ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : 'ti-plus'))"></i>
+                                        <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (showTemplateCardLock(item) ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : 'ti-plus'))"></i>
                                         <span x-text="item.source === 'remote' ? templateText.downloadImport : templateText.insertSection"></span>
                                     </button>
                                 </span>
@@ -1342,7 +1623,7 @@ declare(strict_types=1);
                                         <i class="ti text-lg" :class="item.type === 'page' ? 'ti-files' : 'ti-layout'"></i>
                                     </span>
                                     <span class="inline-flex items-center gap-1">
-                                        <span x-show="item.paid" class="text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
+                                        <span x-show="showTemplatePremiumBadge(item)" class="text-[10px] text-amber-700 border border-amber-200 bg-amber-50 rounded px-1.5 py-0.5"
                                               x-text="templateText.premium"></span>
                                         <span class="text-[10px] uppercase text-gray-400 border border-gray-200 rounded px-1.5 py-0.5"
                                               x-text="templateTypeLabel(item.type)"></span>
@@ -1356,7 +1637,7 @@ declare(strict_types=1);
                                     <i class="ti" :class="item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user')"></i>
                                     <span x-text="templateProviderLabel(item)"></span>
                                 </span>
-                                <span x-show="item.locked" class="block mt-1 text-[11px] text-amber-700">
+                                <span x-show="showTemplateCardLock(item)" class="block mt-1 text-[11px] text-amber-700">
                                     <i class="ti ti-lock mr-0.5"></i><span x-text="templateLockLabel(item)"></span>
                                 </span>
                                 <span class="mt-auto pt-3 flex items-center gap-2">
@@ -1365,7 +1646,7 @@ declare(strict_types=1);
                                         data-testid="blox-template-replace"
                                         :title="item.locked ? templateLockLabel(item) : templateText.usePage"
                                         class="h-8 flex-1 rounded border border-blue-600 bg-blue-600 px-3 text-xs font-medium text-white inline-flex items-center justify-center gap-1.5 hover:border-blue-500 hover:bg-blue-500 disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">
-                                    <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (item.locked ? 'ti-lock' : 'ti-wand')"></i>
+                                    <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (showTemplateCardLock(item) ? 'ti-lock' : 'ti-wand')"></i>
                                     <span x-text="templateText.usePage"></span>
                                 </button>
                                 <button type="button" x-show="item.type !== 'page' || !pageMode" @click="insertTemplate(item)"
@@ -1376,7 +1657,7 @@ declare(strict_types=1);
                                         :class="item.source === 'remote'
                                             ? 'w-auto border border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600'
                                             : 'flex-1 border border-blue-600 bg-blue-600 text-white hover:border-blue-500 hover:bg-blue-500'">
-                                    <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (item.locked ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : 'ti-plus'))"></i>
+                                    <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (showTemplateCardLock(item) ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : 'ti-plus'))"></i>
                                     <span x-text="item.source === 'remote' ? templateText.downloadImport : (templateEntry === 'sections' ? templateText.insertSection : templateText.insert)"></span>
                                 </button>
                                 <button type="button" x-show="item.type === 'page' && pageMode && sections.length > 0"
@@ -1407,7 +1688,7 @@ declare(strict_types=1);
                             class="text-xs text-gray-500 hover:text-blue-700 inline-flex items-center gap-1">
                         <i class="ti ti-template"></i><span x-text="templateText.allTemplates"></span>
                     </button>
-                    <a x-show="templateScope === 'remote' && hasLockedTemplates()" href="/admin/license.php"
+                    <a x-show="templateScope === 'remote' && premiumNotice() && premiumNotice().state === 'mixed'" href="/admin/license.php"
                        class="text-xs text-amber-700 hover:text-amber-800 inline-flex items-center gap-1">
                         <i class="ti ti-key"></i><span x-text="templateText.manageLicense"></span>
                     </a>
@@ -1457,11 +1738,20 @@ declare(strict_types=1);
                 <div class="min-h-0 flex flex-col">
                     <div class="h-10 px-3 flex items-center justify-between border-b border-gray-100 shrink-0">
                         <span class="text-xs text-gray-500 truncate" x-text="activeRev ? (activeRev.summary || <?= e($jt('revision_history')) ?>) : <?= e($jt('blox_pick_revision')) ?>"></span>
-                        <button type="button" x-show="activeRev" @click="restoreRevision(activeRev)" :disabled="revisionRestoring"
-                                class="text-xs text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded px-3 py-1.5 inline-flex items-center gap-1">
-                            <i class="ti text-sm" :class="revisionRestoring ? 'ti-loader-2 animate-spin' : 'ti-restore'"></i>
-                            <?= __('blox_restore_this') ?>
-                        </button>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button" x-show="activeRev" @click="loadRevisionDraft(activeRev)" :disabled="revisionLoadBusy || revisionRestoring"
+                                    data-testid="blox-revision-load"
+                                    class="text-xs text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded px-3 py-1.5 inline-flex items-center gap-1">
+                                <i class="ti text-sm" :class="revisionLoadBusy ? 'ti-loader-2 animate-spin' : 'ti-arrow-bar-to-down'"></i>
+                                <?= __('blox_revision_load_canvas') ?>
+                            </button>
+                            <button type="button" x-show="activeRev" @click="restoreRevision(activeRev)" :disabled="revisionRestoring || revisionLoadBusy"
+                                    title="<?= e(__('blox_restore_live_hint')) ?>"
+                                    class="text-xs text-red-600 border border-red-200 hover:bg-red-50 disabled:opacity-50 rounded px-3 py-1.5 inline-flex items-center gap-1">
+                                <i class="ti text-sm" :class="revisionRestoring ? 'ti-loader-2 animate-spin' : 'ti-restore'"></i>
+                                <?= __('blox_restore_this') ?>
+                            </button>
+                        </div>
                     </div>
                     <iframe class="flex-1 w-full border-0 bg-white" :srcdoc="revisionPreview || '<!doctype html><html><body></body></html>'"></iframe>
                 </div>
@@ -1479,6 +1769,11 @@ declare(strict_types=1);
             <div class="border-b border-gray-100 px-5 py-4">
                 <h2 id="blox-recovery-title" class="text-base font-semibold text-gray-900" x-text="recoveryText.title"></h2>
                 <p class="mt-1 text-sm leading-6 text-gray-500" x-text="recoveryText.desc"></p>
+                <p class="mt-1 text-xs text-gray-400" data-testid="blox-recovery-meta">
+                    <span x-text="recoveryText.savedAtLabel"></span>
+                    <span class="font-mono" x-text="recoveryDraftTimeText()"></span>
+                    · <span x-text="recoveryText.localNote"></span>
+                </p>
             </div>
             <div class="flex flex-col-reverse gap-2 px-5 py-4 sm:flex-row sm:justify-end">
                 <button type="button" @click="discardRecovery()" data-testid="blox-recovery-discard"

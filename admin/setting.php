@@ -127,6 +127,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach (array_keys($settings) as $key) {
         if (str_starts_with((string) $key, 'catalog_channel_')) error(__('admin_bad_params'), 422);
     }
+    // 后台品牌由独立页 admin_brand.php 维护（含授权校验），此处不接受写入
+    foreach (ADMIN_BRAND_SETTING_KEYS as $key) {
+        unset($settings[$key]);
+    }
 
     // header/footer tab + 非默认语言：lang-able key 重定向到 <key>_<lang>
     // tab 关联的 lang keys 在 $TAB_LANG_KEYS 里定义
@@ -190,6 +194,8 @@ $hiddenKeys = [
     'license_key', 'license_state',
     // 由"语言"tab 的 per-lang 复选框管理，不该在基本设置里以裸 key 输入框出现
     'nav_home_show', 'nav_home_text',
+    // 后台品牌：独立页 admin/admin_brand.php 维护，限注册码授权站点
+    ...ADMIN_BRAND_SETTING_KEYS,
 ];
 // 收集启用的非默认语言后缀 (_en / _ja / ...)，过滤 per-lang 种子行
 $_langSuffixesForFilter = [];
@@ -218,8 +224,9 @@ $items = array_filter($items, function (array $item) use ($hiddenKeys, $_langSuf
     // 未声明的键（system/内部键、运行时 set() 写入的 static_html_* / timeline_layout
     // 等）一律不渲染——彻底免疫泄漏。要新增显示项，必须在 defaults.php 声明它。
     if (!isset($_canonicalGroup[$item['key']]) || $_canonicalGroup[$item['key']] !== $group) return false;
-    // ICP/公安备案为中国大陆特有：非中文后台不展示（英文/日语版没有「备案信息」）
-    if (in_array($item['key'], ['site_icp', 'site_police'], true) && getLang() !== 'zh-CN') return false;
+    // ICP/公安备案为中国大陆特有，只在简体中文页面显示：按站点是否启用简体中文判断，
+    // 而非后台界面语言（英文界面的管理员照样要维护中文站的备案号）
+    if (in_array($item['key'], ['site_icp', 'site_police'], true) && !isset(enabledLanguages()['zh-CN'])) return false;
     // 过滤 per-lang 后缀（footer_columns_en / footer_nav_ja 这种"per-lang 存储位"，
     // 不是独立设置项；它们的值通过 lang 切换器显示在 base 行里）
     foreach ($_langSuffixesForFilter as $suf) {
@@ -289,6 +296,16 @@ $currentMenu = 'setting';
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 require_once ROOT_PATH . '/admin/includes/header.php';
+require_once ROOT_PATH . '/admin/includes/module_nav.php';
+adminModuleTabStart([
+    'basic' => [__('setting_tab_basic'), 'settings'],
+    'url' => [__('setting_tab_url'), 'link'],
+    'pagination' => [__('setting_tab_pagination'), 'list'],
+    'header' => [__('setting_tab_header'), 'layout-navbar'],
+    'footer' => [__('setting_tab_footer'), 'layout-bottombar'],
+    'code' => [__('setting_tab_code'), 'code'],
+    'lang' => [__('setting_tab_lang'), 'language'],
+], $tab, __('setting_page_title'), '/admin/setting.php', ['lang' => (string) $_viewLang]);
 
 if ($_langAware) {
     $_hint = match ($_tabForLang) {
@@ -309,26 +326,8 @@ if ($_langAware) {
     border-color: var(--color-primary, #3B82F6);
     box-shadow: 0 0 0 1px var(--color-primary, #3B82F6);
 }
-#setting-tabs { flex-wrap: wrap; }
-#setting-tabs > a { white-space: nowrap; }
 </style>
 
-<!-- Tab 导航 -->
-<?php
-// 进入/切换 lang-aware tab 时保留 ?lang=；其它 tab 不带 lang 参数（非翻译）
-$_aLangQS = ($_viewLang !== $_defaultLang) ? ('&lang=' . urlencode($_viewLang)) : '';
-?>
-<div class="bg-white rounded-lg shadow mb-6">
-    <div id="setting-tabs" class="flex border-b">
-        <a href="/admin/setting.php?tab=basic<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'basic' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_basic'); ?></a>
-        <a href="/admin/setting.php?tab=url<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'url' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_url'); ?></a>
-        <a href="/admin/setting.php?tab=pagination<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'pagination' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_pagination'); ?></a>
-        <a href="/admin/setting.php?tab=header<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'header' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_header'); ?></a>
-        <a href="/admin/setting.php?tab=footer<?php echo $_aLangQS; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'footer' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_footer'); ?></a>
-        <a href="/admin/setting.php?tab=code<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'code' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_code'); ?></a>
-        <a href="/admin/setting.php?tab=lang<?php echo $_lang['qsAmp'] ?? ''; ?>" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $tab === 'lang' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'; ?>"><?php echo __('setting_tab_lang'); ?></a>
-    </div>
-</div>
 
 <?php if ($tab === 'lang'): ?>
 <!-- 前台语言配置（独立卡片）-->
@@ -680,7 +679,7 @@ async function saveAdminLanguages() {
                     <?php
                     // 站点图标 / LOGO：想做图的当口就在这里，所以入口也放这里——
                     // 插件已启用 → 直达制作页；未安装 → 引导去插件市场（logo-maker 自
-                    // v1.18.6 起不随核心包发布，见 includes/RecommendedPlugins.php）。
+                    // v1.18.6 起不随核心包发布，改由插件市场按需安装）。
                     $__isBrandField = in_array($item['key'], ['site_favicon', 'site_logo'], true);
                     $__logoMakerHere = is_dir(ROOT_PATH . '/plugins/logo-maker');
                     $__logoMakerOn = function_exists('isPluginAvailable') && isPluginAvailable('logo-maker');
@@ -1166,4 +1165,5 @@ if (typeof _footerNavData !== 'undefined' && document.getElementById('footerNavE
 })();
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

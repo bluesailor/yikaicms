@@ -1,0 +1,57 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "section",
+  "name": "基本見出し",
+  "requires": {
+    "elements": ["heading", "text", "button"],
+    "plugins": []
+  },
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "lg",
+          "max_width": "narrow",
+          "gap": "sm",
+          "align_items": "center",
+          "justify_items": "center",
+          "bg_color": "#ffffff"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "このセクションの要点をひと言で",
+                  "level": "h2",
+                  "align": "center"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p>1～2文で補足し、以下の内容が読者にどう関係するのかを伝えましょう。不要な場合は、この段落を削除してください。</p>",
+                  "align": "center"
+                }
+              },
+              {
+                "type": "button",
+                "data": {
+                  "text": "詳しく見る",
+                  "url": "",
+                  "variant": "outline",
+                  "align": "center"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

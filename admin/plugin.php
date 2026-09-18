@@ -11,6 +11,12 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/security.php';   // zipUnsafeEntry()：插件安装/解压前的 zip-slip 校验依赖它（init.php 只在前台加载）
+require_once ROOT_PATH . '/includes/MarketDownloadStatus.php';
+require_once ROOT_PATH . '/includes/MarketCatalogItems.php';
+require_once ROOT_PATH . '/includes/MarketCatalogRequest.php';
+require_once ROOT_PATH . '/includes/MarketDownloadUrl.php';
+require_once ROOT_PATH . '/includes/PluginMarketPackage.php';
+require_once ROOT_PATH . '/includes/PluginInstaller.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -21,89 +27,113 @@ const PLUGIN_MARKET_API = 'https://update.yikaicms.com/api/plugins/list.php';
 
 /**
  * 从本地 ZIP 安装插件（上传安装与市场安装共用）。
- * 校验 plugin.json、zip-slip 防护、解压到 plugins/、登记数据库。
+ * 校验及暂存完成后替换目录；登记失败恢复旧目录，不自动启用。
  * @return array{0: bool, 1: string, 2: string} [成功?, 消息, slug]
  */
-function pluginInstallFromZip(string $zipPath): array
+function pluginInstallFromZip(string $zipPath, string $expectedSlug = '', string $expectedVersion = '', string $origin = 'local'): array
 {
-    if (!class_exists('ZipArchive')) {
-        return [false, __('pl_no_zip_ext'), ''];
-    }
-    $zip = new ZipArchive();
-    if ($zip->open($zipPath) !== true) {
-        return [false, __('pl_zip_open_failed'), ''];
-    }
-
-    // 查找 slug/plugin.json 确定插件标识
-    $pluginSlug = null;
-    for ($i = 0; $i < $zip->numFiles; $i++) {
-        $name = $zip->getNameIndex($i);
-        if (preg_match('#^([a-z0-9][a-z0-9\-]*[a-z0-9]|[a-z0-9])/plugin\.json$#', $name, $m)) {
-            $pluginSlug = $m[1];
-            break;
+    $installer = new PluginInstaller(ROOT_PATH . '/plugins', ROOT_PATH . '/storage');
+    $result = $installer->install($zipPath, static function (string $pluginSlug): void {
+        if (!pluginModel()->findBySlug($pluginSlug)) {
+            pluginModel()->create([
+                'slug' => $pluginSlug, 'status' => 0,
+                'installed_at' => time(), 'activated_at' => 0,
+            ]);
         }
+    }, $expectedSlug, $expectedVersion, $origin);
+    if ($result['ok']) {
+        return [true, __('pl_installed') . ': ' . $result['name'], $result['slug']];
     }
-    if (!$pluginSlug) {
-        $zip->close();
-        return [false, __('pl_no_manifest'), ''];
-    }
-
-    $meta = json_decode((string) $zip->getFromName($pluginSlug . '/plugin.json'), true);
-    if (!is_array($meta) || empty($meta['name'])) {
-        $zip->close();
-        return [false, __('pl_manifest_invalid'), ''];
-    }
-
-    // zip-slip 防护：任一条目会逃出目录则拒绝，绝不 extractTo
-    $unsafe = zipUnsafeEntry($zip);
-    if ($unsafe !== null) {
-        $zip->close();
-        return [false, __('pl_unsafe_entry') . ': ' . $unsafe, ''];
-    }
-    // zip bomb 防护：文件数/解压总量/单文件/压缩比
-    $violation = zipResourceViolation($zip);
-    if ($violation !== null) {
-        $zip->close();
-        return [false, __('zip_resource_blocked', ['reason' => $violation]), ''];
-    }
-
-    $pluginsDir = ROOT_PATH . '/plugins';
-    if (!is_dir($pluginsDir)) {
-        @mkdir($pluginsDir, 0755, true);
-    }
-    if (is_dir($pluginsDir . '/' . $pluginSlug)) {
-        deletePluginDir($pluginSlug);
-    }
-    $zip->extractTo($pluginsDir);
-    $zip->close();
-
-    if (!pluginModel()->findBySlug($pluginSlug)) {
-        pluginModel()->create([
-            'slug' => $pluginSlug,
-            'status' => 0,
-            'installed_at' => time(),
-            'activated_at' => 0,
-        ]);
-    }
-    return [true, __('pl_installed') . ': ' . ($meta['name'] ?? $pluginSlug), $pluginSlug];
+    return [false, pluginInstallError($result['code']), $result['slug']];
 }
 
-/** GET 一个 URL 返回 body（curl 优先，回退 allow_url_fopen；失败返回 null） */
-function pluginMarketHttpGet(string $url, int $timeout = 15): ?string
+function pluginInstallError(string $code): string
 {
+    return __(match ($code) {
+        'no_zip' => 'pl_no_zip_ext',
+        'open_zip' => 'pl_zip_open_failed',
+        'invalid' => 'pl_manifest_invalid',
+        'mismatch' => 'pl_mismatch',
+        'unsafe', 'resource' => 'pl_package_unsafe',
+        'origin_unknown' => 'market_origin_unknown',
+        'origin_changed' => 'market_origin_changed',
+        'busy' => 'pl_install_busy',
+        'rollback_failed' => 'pl_install_recovery_required',
+        default => 'pl_install_failed_preserved',
+    });
+}
+
+function pluginMarketDecorate(array $item): array
+{
+    require_once ROOT_PATH . '/includes/MarketCoverUrl.php';
+    $item['thumbnail'] = ($item['source'] ?? 'official') === 'community'
+        ? MarketCoverUrl::accept($item['thumbnail'] ?? '', 'plugin', (string) ($item['slug'] ?? ''), (string) ($item['version'] ?? ''))
+        : '';
+    if (MarketDownloadStatus::reason($item) === '') {
+        try {
+            (new PluginInstaller(ROOT_PATH . '/plugins', ROOT_PATH . '/storage'))->assertOrigin(
+                (string) ($item['slug'] ?? ''), (string) ($item['source'] ?? 'official')
+            );
+        } catch (RuntimeException $error) {
+            $item['locked_reason'] = $error->getMessage();
+        }
+    }
+    return MarketDownloadStatus::decorate($item);
+}
+
+/**
+ * GET 一个 URL 返回 body（curl 优先，回退 allow_url_fopen；失败返回 null）。
+ * $maxBytes > 0 时边下边计数，超过上限立即中止并把 $tooLarge 置 true（不先整包读入内存）。
+ */
+function pluginMarketHttpGet(string $url, int $timeout = 15, ?int &$status = null, int $maxBytes = 0, bool &$tooLarge = false): ?string
+{
+    $status = 0;
+    $tooLarge = false;
     if (function_exists('curl_init')) {
+        $body = '';
         $ch = curl_init($url);
         curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => $timeout,
-            CURLOPT_SSL_VERIFYPEER => true, CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_SSL_VERIFYPEER => true, CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$body, $maxBytes, &$tooLarge): int {
+                if ($maxBytes > 0 && strlen($body) + strlen($chunk) > $maxBytes) {
+                    $tooLarge = true;
+                    return 0; // 返回值与块长不符 → curl 中止传输
+                }
+                $body .= $chunk;
+                return strlen($chunk);
+            },
         ]);
-        $resp = curl_exec($ch);
+        curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
-        return is_string($resp) && $resp !== '' ? $resp : null;
+        return !$tooLarge && $status >= 200 && $status < 300 && $body !== '' ? $body : null;
     }
     if (ini_get('allow_url_fopen')) {
-        $resp = @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => $timeout]]));
-        return is_string($resp) && $resp !== '' ? $resp : null;
+        $stream = @fopen($url, 'rb', false, stream_context_create(['http' => [
+            'timeout' => $timeout, 'follow_location' => 0, 'max_redirects' => 0, 'ignore_errors' => true,
+        ]]));
+        if ($stream === false) {
+            return null;
+        }
+        $meta = stream_get_meta_data($stream);
+        $headers = is_array($meta['wrapper_data'] ?? null) ? $meta['wrapper_data'] : [];
+        preg_match('/^HTTP\/\S+\s+(\d{3})/', (string) ($headers[0] ?? ''), $match);
+        $status = (int) ($match[1] ?? 0);
+        $body = '';
+        while (!feof($stream)) {
+            $chunk = fread($stream, 65536);
+            if ($chunk === false) {
+                break;
+            }
+            if ($maxBytes > 0 && strlen($body) + strlen($chunk) > $maxBytes) {
+                $tooLarge = true;
+                break;
+            }
+            $body .= $chunk;
+        }
+        fclose($stream);
+        return !$tooLarge && $status >= 200 && $status < 300 && $body !== '' ? $body : null;
     }
     return null;
 }
@@ -193,20 +223,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             // 服务端代理市场列表（避免浏览器跨域 + 便于将来附加授权参数）
             $q = trim((string) ($_POST['q'] ?? ''));
             // 带上本站授权码与域名：付费插件的下载地址由服务端按授权下发
-            $url = PLUGIN_MARKET_API . '?' . http_build_query(array_filter([
-                'q'      => $q,
-                'key'    => function_exists('license_key') ? license_key() : '',
-                'domain' => function_exists('license_domain') ? license_domain() : '',
-            ]));
+            $url = PLUGIN_MARKET_API . '?' . MarketCatalogRequest::query($q);
             $resp = pluginMarketHttpGet($url);
             if ($resp === null) {
                 echo json_encode(['code' => 1, 'msg' => __('pl_market_unreachable')]);
                 exit;
             }
-            $data = json_decode($resp, true);
-            if (!is_array($data) || ($data['code'] ?? 1) !== 0) {
+            $data = MarketCatalogRequest::decode($resp, 'plugins');
+            if ($data === null) {
                 echo json_encode(['code' => 1, 'msg' => __('pl_market_bad_response')]);
                 exit;
+            }
+            if (is_array($data['data']['plugins'] ?? null)) {
+                $data['data']['plugins'] = array_values(array_map(
+                    'pluginMarketDecorate', MarketCatalogItems::select($data['data']['plugins'])
+                ));
             }
             echo json_encode($data, JSON_UNESCAPED_UNICODE);
             break;
@@ -214,30 +245,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
         case 'market_install':
             // 以服务端拿到的市场元数据为准（不信任前端传来的 URL/哈希）；
             // 同样带授权参数，否则付费插件拿不到下载地址
-            $resp = pluginMarketHttpGet(PLUGIN_MARKET_API . '?' . http_build_query(array_filter([
-                'key'    => function_exists('license_key') ? license_key() : '',
-                'domain' => function_exists('license_domain') ? license_domain() : '',
-            ])));
-            $data = $resp !== null ? json_decode($resp, true) : null;
-            if (!is_array($data) || ($data['code'] ?? 1) !== 0) {
+            $resp = pluginMarketHttpGet(PLUGIN_MARKET_API . '?' . MarketCatalogRequest::query());
+            $data = MarketCatalogRequest::decode($resp, 'plugins');
+            if ($data === null) {
                 echo json_encode(['code' => 1, 'msg' => __('pl_market_offline')]);
                 exit;
             }
             $item = null;
-            foreach (($data['data']['plugins'] ?? []) as $p) {
+            foreach (MarketCatalogItems::select(is_array($data['data']['plugins'] ?? null) ? $data['data']['plugins'] : []) as $p) {
                 if (($p['slug'] ?? '') === $slug) {
                     $item = $p;
                     break;
                 }
             }
-            if ($item && empty($item['download_url']) && !empty($item['paid'])) {
-                // 服务端因授权不足未下发下载地址
-                $why = (string) ($item['locked_reason'] ?? '');
-                $tip = match ($why) {
-                    'expired'         => __('plugin_locked_expired'),
-                    'domain_mismatch' => __('plugin_locked_domain'),
-                    default           => __('plugin_locked_need_license'),
-                };
+            if ($item && MarketDownloadStatus::reason($item) !== '') {
+                $tip = MarketDownloadStatus::message(MarketDownloadStatus::reason($item), (string) ($item['requires_cms'] ?? ''));
                 echo json_encode(['code' => 1, 'msg' => $tip], JSON_UNESCAPED_UNICODE);
                 exit;
             }
@@ -246,12 +268,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 exit;
             }
 
+            $origin = (string) ($item['source'] ?? 'official');
+            try {
+                (new PluginInstaller(ROOT_PATH . '/plugins', ROOT_PATH . '/storage'))->assertOrigin($slug, $origin);
+            } catch (RuntimeException $error) {
+                echo json_encode(['code' => 1, 'msg' => pluginInstallError($error->getMessage())], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
+            // 下载前的本地边界：只向官方包路径或市场令牌地址发请求，且不把已装插件换成旧版本
+            $marketVersion = (string) ($item['version'] ?? '');
+            if (!PluginMarketPackage::isOfficialUrl((string) $item['download_url'], $slug, $marketVersion)) {
+                adminLog('plugin', 'market_install_blocked', 'Untrusted plugin download URL: ' . $slug);
+                echo json_encode(['code' => 1, 'msg' => __('pl_download_untrusted')], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            $installedVersion = PluginMarketPackage::installedVersion(ROOT_PATH . '/plugins', $slug);
+            if (PluginMarketPackage::isDowngrade($installedVersion, $marketVersion)) {
+                adminLog('plugin', 'market_install_blocked', 'Plugin marketplace downgrade blocked: ' . $slug
+                    . ' local=' . $installedVersion . ' remote=' . $marketVersion);
+                echo json_encode(['code' => 1, 'msg' => __('pl_downgrade_refused')], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
             // 下载到临时文件
             $tmpZip = tempnam(sys_get_temp_dir(), 'ykplg');
-            $body = pluginMarketHttpGet($item['download_url'], 120);
+            if (!is_string($tmpZip)) {
+                echo json_encode(['code' => 1, 'msg' => __('pl_download_failed')]);
+                exit;
+            }
+            $status = 0;
+            $tooLarge = false;
+            $body = pluginMarketHttpGet($item['download_url'], 120, $status, PluginMarketPackage::MAX_PACKAGE_BYTES, $tooLarge);
             if ($body === null || file_put_contents($tmpZip, $body) === false) {
                 @unlink($tmpZip);
-                echo json_encode(['code' => 1, 'msg' => __('pl_download_failed')]);
+                $message = $tooLarge ? __('pl_package_too_large') : ($body === null ? MarketDownloadStatus::httpMessage($status) : __('pl_download_failed'));
+                echo json_encode(['code' => 1, 'msg' => $message], JSON_UNESCAPED_UNICODE);
                 exit;
             }
 
@@ -276,15 +328,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 exit;
             }
 
-            [$ok, $msg, $pluginSlug] = pluginInstallFromZip($tmpZip);
+            [$ok, $msg, $pluginSlug] = pluginInstallFromZip($tmpZip, $slug, (string) ($item['version'] ?? ''), $origin);
             @unlink($tmpZip);
-            if ($ok && $pluginSlug !== $slug) {
-                // 包内 slug 与市场条目不符：清掉刚解压的目录，拒绝
-                deletePluginDir($pluginSlug);
-                pluginModel()->query('DELETE FROM ' . pluginModel()->tableName() . ' WHERE slug = ?', [$pluginSlug]);
-                echo json_encode(['code' => 1, 'msg' => __('pl_mismatch')]);
-                exit;
-            }
             if ($ok) {
                 adminLog('plugin', 'market_install', '市场安装插件: ' . $pluginSlug . ' v' . ($item['version'] ?? ''));
             }
@@ -314,7 +359,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div x-data="pluginMarket()">
     <!-- 页签 + 操作栏 -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div class="flex items-center gap-1">
             <button @click="tab = 'installed'"
                     :class="tab === 'installed' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:text-primary'"
@@ -330,11 +375,30 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <i class="ti ti-building-store text-base"></i><?php echo e(__('pl_market')); ?>
             </button>
         </div>
-        <button x-show="tab === 'installed'" onclick="document.getElementById('uploadModal').classList.remove('hidden')"
-                class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded transition inline-flex items-center gap-2">
-            <i class="ti ti-cloud-upload text-base"></i>
-            <?php echo e(__('pl_upload_install')); ?>
-        </button>
+        <div class="flex items-center gap-2">
+            <!-- 网格 / 列表切换：两个页签各记各的，默认保持原样（已安装=列表，市场=网格） -->
+            <div class="inline-flex rounded-lg bg-white shadow-sm p-0.5" role="group" aria-label="<?php echo e(__('pl_view_label')); ?>">
+                <button type="button" @click="setView('grid')" data-testid="plugin-view-grid"
+                        :aria-pressed="currentView() === 'grid' ? 'true' : 'false'"
+                        :class="currentView() === 'grid' ? 'bg-primary text-white' : 'text-gray-500 hover:text-primary'"
+                        class="px-2.5 py-1.5 rounded-md text-sm transition cursor-pointer inline-flex items-center gap-1"
+                        title="<?php echo e(__('pl_view_grid')); ?>">
+                    <i class="ti ti-layout-grid text-base"></i><span class="hidden sm:inline"><?php echo e(__('pl_view_grid')); ?></span>
+                </button>
+                <button type="button" @click="setView('list')" data-testid="plugin-view-list"
+                        :aria-pressed="currentView() === 'list' ? 'true' : 'false'"
+                        :class="currentView() === 'list' ? 'bg-primary text-white' : 'text-gray-500 hover:text-primary'"
+                        class="px-2.5 py-1.5 rounded-md text-sm transition cursor-pointer inline-flex items-center gap-1"
+                        title="<?php echo e(__('pl_view_list')); ?>">
+                    <i class="ti ti-list text-base"></i><span class="hidden sm:inline"><?php echo e(__('pl_view_list')); ?></span>
+                </button>
+            </div>
+            <button x-show="tab === 'installed'" onclick="document.getElementById('uploadModal').classList.remove('hidden')"
+                    class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded transition inline-flex items-center gap-2">
+                <i class="ti ti-cloud-upload text-base"></i>
+                <?php echo e(__('pl_upload_install')); ?>
+            </button>
+        </div>
     </div>
 
     <!-- Tab: 插件市场 -->
@@ -365,9 +429,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="bg-white rounded-lg shadow p-10 text-center text-gray-400 text-sm"><?php echo e(__('pl_no_match')); ?></div>
         </template>
 
-        <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="!loading && !error" data-testid="plugin-market-list">
+        <div :class="views.market === 'grid' ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-4' : 'grid grid-cols-1 gap-3'"
+             :data-view="views.market" x-show="!loading && !error" data-testid="plugin-market-list">
             <template x-for="p in items" :key="p.slug">
                 <div class="bg-white rounded-lg shadow px-5 py-4 flex flex-col gap-2" :data-plugin-slug="p.slug">
+                    <template x-if="p.thumbnail && views.market === 'grid'">
+                        <img :src="p.thumbnail" :alt="p.name" loading="lazy" decoding="async" style="width:100%;aspect-ratio:16/9;object-fit:contain;background:#f3f4f6" @error="$el.style.display = 'none'">
+                    </template>
                     <div class="flex items-center gap-3">
                         <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
                             <i class="ti ti-puzzle text-xl"></i>
@@ -393,32 +461,33 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <span class="text-xs px-2.5 py-1 rounded bg-gray-100 text-gray-400 whitespace-nowrap"><?php echo e(__('pl_installed_tab')); ?></span>
                         </template>
                         <template x-if="statusOf(p) === 'upgrade'">
-                            <button @click="install(p)" :disabled="installing === p.slug"
+                            <button @click="install(p)" :disabled="installing === p.slug || !!p.download_blocked"
                                     data-testid="plugin-market-upgrade"
                                     class="text-sm px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-600 text-white transition cursor-pointer whitespace-nowrap disabled:opacity-50"
                                     x-text="installing === p.slug ? marketText.upgrading : marketText.upgrade"></button>
                         </template>
                         <template x-if="statusOf(p) === 'none' && p.tier === 'pro' && !p.entitled">
-                            <a href="https://www.yikaicms.com/#pricing" target="_blank"
+                            <a href="https://www.yikaicms.com/pro.php" target="_blank" rel="noopener"
                                class="text-sm px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-600 text-white transition cursor-pointer whitespace-nowrap inline-flex items-center gap-1">
                                 <i class="ti ti-key text-sm"></i><?php echo e(__('plugin_get_license')); ?>
                             </a>
                         </template>
                         <template x-if="statusOf(p) === 'none' && !(p.tier === 'pro' && !p.entitled)">
-                            <button @click="install(p)" :disabled="installing === p.slug"
+                            <button @click="install(p)" :disabled="installing === p.slug || !!p.download_blocked"
                                     data-testid="plugin-market-install"
                                     class="text-sm px-3 py-1.5 rounded bg-primary hover:bg-secondary text-white transition cursor-pointer whitespace-nowrap disabled:opacity-50"
                                     x-text="installing === p.slug ? marketText.installing : marketText.install"></button>
                         </template>
                     </div>
                     <p class="text-sm text-gray-500" x-text="p.description"></p>
+                    <p x-show="p.download_blocked" x-text="p.download_message" data-testid="plugin-market-restriction" class="mt-2 text-sm text-gray-600"></p>
                     <template x-if="p.paid && !p.entitled">
                         <p class="text-xs text-amber-700 flex items-center gap-1">
                             <i class="ti ti-lock text-sm"></i>
                             <span x-text="p.tier === 'freemium'
                                 ? '<?php echo e(__('plugin_tier_freemium_note')); ?>'
                                 : '<?php echo e(__('plugin_tier_pro_note')); ?>'"></span>
-                            <a href="https://www.yikaicms.com/#pricing" target="_blank"
+                            <a href="https://www.yikaicms.com/pro.php" target="_blank" rel="noopener"
                                class="underline hover:no-underline"><?php echo e(__('plugin_view_license')); ?></a>
                         </p>
                     </template>
@@ -439,17 +508,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
     <?php else: ?>
     <!-- 插件列表 -->
-    <div class="space-y-4" id="pluginList">
+    <div :class="views.installed === 'grid' ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-4'"
+         :data-view="views.installed" data-testid="plugin-installed-list" id="pluginList">
         <?php foreach ($plugins as $slug => $p): ?>
-        <div class="bg-white rounded-lg shadow" id="plugin-<?php echo e($slug); ?>">
-            <div class="px-6 py-5 flex items-start gap-4">
+        <div class="bg-white rounded-lg shadow" :class="views.installed === 'grid' ? 'h-full' : ''" id="plugin-<?php echo e($slug); ?>" data-testid="plugin-installed-item">
+            <div :class="views.installed === 'grid' ? 'h-full px-5 py-4 flex flex-col gap-3' : 'px-6 py-5 flex items-start gap-4'">
                 <!-- 插件图标 -->
                 <div class="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center <?php echo $p['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
                     <i class="ti ti-clipboard text-xl"></i>
                 </div>
                 <!-- 插件信息 -->
                 <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-3 mb-1">
+                    <div class="flex items-center gap-3 mb-1" :class="views.installed === 'grid' ? 'flex-wrap gap-y-1' : ''">
                         <?php
                         $pName = pluginMetaLabel($p, 'name', (string) $slug);
                         ?>
@@ -494,8 +564,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span>ID: <?php echo e($slug); ?></span>
                     </div>
                 </div>
-                <!-- 操作按钮 -->
-                <div class="flex-shrink-0 flex items-center gap-2">
+                <!-- 操作按钮（网格视图下换行并沉到卡片底部，窄卡片不溢出） -->
+                <div class="flex-shrink-0 flex items-center gap-2"
+                     :class="views.installed === 'grid' ? 'flex-wrap mt-auto pt-3 border-t border-gray-100' : ''">
                     <button x-show="upd['<?php echo e($slug); ?>']" x-cloak
                             @click="upgradeInstalled('<?php echo e($slug); ?>')"
                             :disabled="installing === '<?php echo e($slug); ?>'"
@@ -590,8 +661,17 @@ function pluginMarket() {
         local: <?php echo json_encode($localVersions, JSON_UNESCAPED_UNICODE); ?>,
         // 可升级映射：slug -> 市场条目（进页面即后台静默检测）
         upd: {},
+        // 每个页签各自的视图；默认沿用改版前的样子
+        views: { installed: 'list', market: 'grid' },
+        viewStorageKey: 'yikai:admin:plugin-views:v1',
 
         init() {
+            try {
+                var saved = JSON.parse(localStorage.getItem(this.viewStorageKey) || '{}');
+                ['installed', 'market'].forEach(function (key) {
+                    if (saved && (saved[key] === 'grid' || saved[key] === 'list')) this.views[key] = saved[key];
+                }, this);
+            } catch (e) { /* 隐私模式/禁用存储：用默认视图 */ }
             this.checkUpdates();
             // 直接落在市场页签时立刻检索（checkUpdates 只预热不筛关键词）
             if (this.tab === 'market') this.search();
@@ -614,6 +694,12 @@ function pluginMarket() {
             } catch (e) { /* 静默：检测失败不打扰 */ }
         },
         updCount() { return Object.keys(this.upd).length; },
+        currentView() { return this.views[this.tab] || 'list'; },
+        setView(view) {
+            if (view !== 'grid' && view !== 'list') return;
+            this.views[this.tab] = view;
+            try { localStorage.setItem(this.viewStorageKey, JSON.stringify(this.views)); } catch (e) { /* 仅本次会话生效 */ }
+        },
         upgradeInstalled(slug) {
             if (this.upd[slug]) this.install(this.upd[slug]);
         },
@@ -666,6 +752,7 @@ function pluginMarket() {
             return this.verCmp(p.version, this.local[p.slug]) > 0 ? 'upgrade' : 'installed';
         },
         async install(p) {
+            if (p.download_blocked) { showMessage(p.download_message, 'error'); return; }
             var st = this.statusOf(p);
             if (st === 'installed') return;
             if (!confirm((st === 'upgrade' ? <?php echo json_encode(__('pl_upgrade'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('pl_install'), JSON_UNESCAPED_UNICODE); ?>) + ' ' + p.name + ' v' + p.version + '?')) return;

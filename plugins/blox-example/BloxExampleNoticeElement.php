@@ -13,7 +13,7 @@ final class BloxExampleNoticeElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'text', 'type' => 'text', 'label' => '提示文字', 'default' => '这是由插件注册的 Blox 元素'],
+            ['key' => 'text', 'type' => 'text', 'label' => '提示文字', 'default' => '这是由插件注册的易开网页构建器元素'],
             ['key' => 'tone', 'type' => 'select', 'label' => '色调', 'default' => 'info',
                 'options' => ['info' => '信息', 'success' => '成功']],
         ];

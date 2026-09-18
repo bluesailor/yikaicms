@@ -21,7 +21,8 @@ final class BundledMediaLibraryTest extends TestCase
             self::assertStringStartsWith('/themes/default/assets/images/cta/', (string) $item['url']);
             self::assertFileExists(ROOT_PATH . str_replace('/', DIRECTORY_SEPARATOR, (string) $item['url']));
             self::assertSame('image', $item['type']);
-            self::assertSame('png', $item['ext']);
+            self::assertSame('webp', $item['ext']);
+            self::assertSame('image/webp', $item['mime']);
             self::assertTrue($item['builtin']);
             self::assertGreaterThan(0, $item['width']);
             self::assertGreaterThan(0, $item['height']);

@@ -59,6 +59,84 @@ final class BloxResponsiveElementTest extends TestCase
         self::assertStringContainsString('href="/"', $html);
     }
 
+    public function testButtonExposesCommonVisualVariants(): void
+    {
+        $controls = (new ButtonElement())->controls();
+        $variant = null;
+        foreach ($controls as $control) {
+            if (($control['key'] ?? '') === 'variant') {
+                $variant = $control;
+                break;
+            }
+        }
+
+        self::assertNotNull($variant);
+        self::assertSame('button_style', $variant['type']);
+        self::assertSame(
+            ['primary', 'dark', 'outline', 'soft', 'ghost', 'link'],
+            array_keys($variant['options'])
+        );
+
+        self::assertStringContainsString('bg-transparent', (new ButtonElement())->render([
+            'text' => 'Learn more', 'variant' => 'ghost',
+        ]));
+        self::assertStringContainsString('hover:underline', (new ButtonElement())->render([
+            'text' => 'Learn more', 'variant' => 'link',
+        ]));
+    }
+
+    public function testButtonSupportsOptionalIconOnEitherSide(): void
+    {
+        $element = new ButtonElement();
+        $controls = $element->controls();
+        $icon = null;
+        $position = null;
+        foreach ($controls as $control) {
+            if (($control['key'] ?? '') === 'icon') {
+                $icon = $control;
+            }
+            if (($control['key'] ?? '') === 'icon_position') {
+                $position = $control;
+            }
+        }
+
+        self::assertNotNull($icon);
+        self::assertSame('icon', $icon['type']);
+        self::assertSame('none', $icon['default']);
+        self::assertNotNull($position);
+        self::assertSame('button_icon_position', $position['type']);
+        self::assertSame(['left', 'right'], array_keys($position['options']));
+
+        $hover = null;
+        foreach ($controls as $control) {
+            if (($control['key'] ?? '') === 'hover_effect') {
+                $hover = $control;
+                break;
+            }
+        }
+        self::assertNotNull($hover);
+        self::assertSame('button_hover_effect', $hover['type']);
+        self::assertSame(['default', 'lift', 'bright', 'none'], array_keys($hover['options']));
+
+        $left = $element->render(['text' => 'Contact', 'icon' => 'mail']);
+        self::assertStringContainsString('inline-flex items-center justify-center gap-2', $left);
+        self::assertStringContainsString('ti ti-mail', $left);
+        self::assertLessThan(strpos($left, 'Contact'), strpos($left, 'ti ti-mail'));
+
+        $right = $element->render(['text' => 'Learn more', 'icon' => 'bi:arrow-right', 'icon_position' => 'right']);
+        self::assertStringContainsString('bi bi-arrow-right', $right);
+        self::assertGreaterThan(strpos($right, 'Learn more'), strpos($right, 'bi bi-arrow-right'));
+        self::assertSame(['/assets/bootstrap-icons/bootstrap-icons.min.css'], $element->stylesFor(['icon' => 'bi:arrow-right']));
+        self::assertSame([], $element->stylesFor(['icon' => 'mail']));
+        self::assertStringNotContainsString('ti ti-none', $element->render(['text' => 'No icon', 'icon' => 'none']));
+        self::assertStringContainsString('hover:-translate-y-0.5', $element->render([
+            'text' => 'Lift', 'hover_effect' => 'lift',
+        ]));
+        self::assertStringNotContainsString('hover:', $element->render([
+            'text' => 'Static', 'hover_effect' => 'none',
+        ]));
+    }
+
     public function testContainerResponsiveLayoutUsesMobileFirstClasses(): void
     {
         $html = (new ContainerElement())->render([
@@ -95,8 +173,9 @@ final class BloxResponsiveElementTest extends TestCase
     public function testResponsiveControlsAreDeclaredInElementSchemas(): void
     {
         foreach ([
-            [new HeadingElement(), ['visual_size']],
-            [new ContainerElement(), ['direction', 'gap', 'padding']],
+            // E05：声明式 CSS 试点控件同样按断点存储（type_font_size / gap_px）。
+            [new HeadingElement(), ['visual_size', 'type_font_size']],
+            [new ContainerElement(), ['direction', 'gap', 'gap_px', 'padding']],
             [new DivElement(), ['direction', 'gap', 'padding']],
         ] as [$element, $keys]) {
             $responsive = [];

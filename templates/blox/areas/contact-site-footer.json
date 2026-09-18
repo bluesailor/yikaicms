@@ -4,7 +4,7 @@
   "type": "footer",
   "name": "Contact Site Footer",
   "requires": {
-    "elements": ["container", "logo", "site-contact", "site-copyright", "social-links"],
+    "elements": ["container", "logo", "site-contact", "site-copyright", "site-filing", "social-links"],
     "plugins": []
   },
   "document": {
@@ -62,7 +62,8 @@
         "columns": [
           {
             "elements": [
-              {"type": "site-copyright", "data": {"show_icp": true, "show_police": true, "align": "left", "tone": "dark"}}
+              {"type": "site-copyright", "data": {"show_icp": false, "show_police": false, "align": "left", "tone": "dark"}},
+              {"type": "site-filing", "data": {"show_icp": true, "show_police": true, "align": "left", "tone": "dark"}}
             ]
           }
         ]

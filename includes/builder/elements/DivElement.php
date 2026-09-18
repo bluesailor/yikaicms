@@ -11,26 +11,26 @@ declare(strict_types=1);
 final class DivElement extends AbstractElement
 {
     private const DIRECTION_MAP = [
-        'column' => ['flex-col', 'md:flex-col', 'lg:flex-col'],
-        'row' => ['flex-row', 'md:flex-row', 'lg:flex-row'],
+        'column' => ['flex-col', 'md:flex-col', 'lg:flex-col', 'wide:flex-col'],
+        'row' => ['flex-row', 'md:flex-row', 'lg:flex-row', 'wide:flex-row'],
     ];
     private const AUTO_WRAP_MAP = [
-        'column' => ['', 'md:flex-nowrap', 'lg:flex-nowrap'],
-        'row' => ['flex-wrap', 'md:flex-wrap', 'lg:flex-wrap'],
+        'column' => ['', 'md:flex-nowrap', 'lg:flex-nowrap', 'wide:flex-nowrap'],
+        'row' => ['flex-wrap', 'md:flex-wrap', 'lg:flex-wrap', 'wide:flex-wrap'],
     ];
     private const GAP_MAP = [
-        'none' => ['gap-0', 'md:gap-0', 'lg:gap-0'],
-        'sm' => ['gap-2', 'md:gap-2', 'lg:gap-2'],
-        'md' => ['gap-4', 'md:gap-4', 'lg:gap-4'],
-        'lg' => ['gap-8', 'md:gap-8', 'lg:gap-8'],
-        'xl' => ['gap-12', 'md:gap-12', 'lg:gap-12'],
+        'none' => ['gap-0', 'md:gap-0', 'lg:gap-0', 'wide:gap-0'],
+        'sm' => ['gap-2', 'md:gap-2', 'lg:gap-2', 'wide:gap-2'],
+        'md' => ['gap-4', 'md:gap-4', 'lg:gap-4', 'wide:gap-4'],
+        'lg' => ['gap-8', 'md:gap-8', 'lg:gap-8', 'wide:gap-8'],
+        'xl' => ['gap-12', 'md:gap-12', 'lg:gap-12', 'wide:gap-12'],
     ];
     private const PAD_MAP = [
-        'none' => ['', 'md:p-0', 'lg:p-0'],
-        'sm' => ['p-3', 'md:p-3', 'lg:p-3'],
-        'md' => ['p-6', 'md:p-6', 'lg:p-6'],
-        'lg' => ['p-10', 'md:p-10', 'lg:p-10'],
-        'xl' => ['p-16', 'md:p-16', 'lg:p-16'],
+        'none' => ['', 'md:p-0', 'lg:p-0', 'wide:p-0'],
+        'sm' => ['p-3', 'md:p-3', 'lg:p-3', 'wide:p-3'],
+        'md' => ['p-6', 'md:p-6', 'lg:p-6', 'wide:p-6'],
+        'lg' => ['p-10', 'md:p-10', 'lg:p-10', 'wide:p-10'],
+        'xl' => ['p-16', 'md:p-16', 'lg:p-16', 'wide:p-16'],
     ];
     private const RADIUS_MAP = ['none' => '', 'md' => 'rounded-lg', 'xl' => 'rounded-2xl'];
     private const ITEMS_MAP = ['stretch' => '', 'start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end', 'baseline' => 'items-baseline'];

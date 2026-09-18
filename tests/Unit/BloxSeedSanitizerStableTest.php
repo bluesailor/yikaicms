@@ -107,7 +107,8 @@ final class BloxSeedSanitizerStableTest extends TestCase
                     );
                 }
             }
-            // banner 数据行必须无条件随装（不再包进 @demo）：inherit 模式靠它出内容
+            // 勾演示数据时必须有各语言的轮播行：inherit 模式靠它出内容。
+            // 不勾演示则整段剥离，前台回落到占位幻灯片（2026-09-18 复审 R07）。
             $this->assertMatchesRegularExpression(
                 '/INSERT INTO [`"]yikai_banners[`"].*\'home\'.*\'en\'/s',
                 $sql,
