@@ -202,6 +202,9 @@ final class HomeBloxRenderContext
             if (siteLang() !== $defaultLang) {
                 $banners = HomeBannerItemElement::applyLocalizedContent($banners, $this->banners);
             }
+        } elseif ($type === 'banner' && is_array($data['children'] ?? null)) {
+            // inherit：内容取 banners 表，逐条动效取同位置的子项（见 applyChildMotions）
+            $banners = HomeBannerItemElement::applyChildMotions($banners, $data['children']);
         }
         if ($type === 'banner' && (int) $block['limit'] > 0) {
             $banners = array_slice($banners, 0, (int) $block['limit']);

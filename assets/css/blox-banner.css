@@ -281,20 +281,25 @@ html.yk-home-header-overlay #siteHeader:not(.yk-blox-header) #mobileMenu a { col
     animation: none;
 }
 
-@keyframes blox-banner-fade-up {
-    from { opacity: 0; transform: translate3d(0, 28px, 0); }
-    to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
 /*
- * 左右滑入：位移取「这一层自身的宽度」（translate3d 的百分比按元素自身算），
- * 也就是内容宽度，而不是原先那 44px —— 44px 在 1920 宽的大图上几乎看不出在动。
- * 起手 50% 不透明度：文字一开始就能看见，滑到位时补满，而不是凭空出现。
- * 想调距离/起始透明度，改下面两个变量即可（可在 banner 容器上按站点覆盖）。
+ * 入场位移都按「这一层自身的尺寸」算（translate3d 的百分比按元素自身计）：
+ * 左右滑入走自身宽度，也就是内容宽度；自下而上走自身高度。原先是固定的 44px / 28px，
+ * 在 1920 宽的大图上几乎看不出在动。
+ * 起手 50% 不透明度：文字一开始就能看见，到位时补满，而不是凭空出现。
+ * 想调距离/起始透明度，改下面几个变量即可（可在 banner 容器上按站点覆盖）。
  */
 [data-blox-banner] {
     --blox-banner-slide-distance: 100%;
+    --blox-banner-rise-distance: 100%;
     --blox-banner-slide-opacity: .5;
+}
+
+@keyframes blox-banner-fade-up {
+    from {
+        opacity: var(--blox-banner-slide-opacity, .5);
+        transform: translate3d(0, var(--blox-banner-rise-distance, 100%), 0);
+    }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
 @keyframes blox-banner-slide-left {
