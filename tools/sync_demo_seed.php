@@ -121,16 +121,8 @@ function normalizeHomeDocument(string $json): string
             if (($value['type'] ?? '') === 'home-block' && ($value['data']['block_type'] ?? '') === 'banner') {
                 $value['data']['items_mode'] = 'inherit';
                 if (is_array($value['data']['children'] ?? null)) {
-                    // inherit 模式下前台用的是 banners 表的行，行里没有动效字段，
-                    // 逐条动效（子项上的 content_motion）因此渲染不出来。把参照站首条的
-                    // 动效提到区块级，新装站的入场动画才和开发站看着一样。
-                    // 参照站区块级多半是默认的 none（因为它用逐条动效表达），这里视为"未设定"。
-                    $firstMotion = (string) ($value['data']['children'][0]['data']['content_motion'] ?? '');
-                    $blockMotion = (string) ($value['data']['banner_content_motion'] ?? '');
-                    if ($firstMotion !== '' && $firstMotion !== 'inherit'
-                        && ($blockMotion === '' || $blockMotion === 'none')) {
-                        $value['data']['banner_content_motion'] = $firstMotion;
-                    }
+                    // 子项上的逐条动效在 inherit 模式下由前台按位置套到轮播图记录上
+                    //（HomeBannerItemElement::applyChildMotions），原样带进种子即可。
                     $value['data']['children'] = array_map('sanitizeBannerChild', $value['data']['children']);
                 }
             }

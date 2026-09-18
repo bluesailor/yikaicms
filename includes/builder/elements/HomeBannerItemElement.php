@@ -361,6 +361,38 @@ final class HomeBannerItemElement extends AbstractElement
      * @param array<int, mixed> $children
      * @return array<int, array<string, mixed>>
      */
+    /**
+     * inherit 模式下给轮播图记录补上逐条动效。
+     *
+     * inherit 的分工是：文字、图片、按钮按语言取自 banners 表；每一张的入场/背景动效
+     * 则由首页文档里同位置的子项决定——编辑器在 inherit 模式下也一直按位置展示并允许
+     * 修改这些子项的动效。前台过去只拿表里的行，而表里根本没有动效字段，于是编辑器
+     * 里设好的逐条动效在前台全部丢失，只剩分组级的统一设置（新装站默认 none）。
+     *
+     * 只补表行没有的动效；子项写 inherit 的不覆盖，照旧跟随分组设置。
+     *
+     * @param list<array<string, mixed>> $banners
+     * @param array<int, mixed> $children
+     * @return list<array<string, mixed>>
+     */
+    public static function applyChildMotions(array $banners, array $children): array
+    {
+        $items = self::normalizeChildren($children);
+        foreach ($banners as $position => $banner) {
+            if (!isset($items[$position])) {
+                break;
+            }
+            foreach (['content_motion', 'background_motion'] as $key) {
+                $motion = (string) ($items[$position][$key] ?? 'inherit');
+                $current = (string) ($banner[$key] ?? 'inherit');
+                if ($motion !== 'inherit' && $current === 'inherit') {
+                    $banners[$position][$key] = $motion;
+                }
+            }
+        }
+        return $banners;
+    }
+
     public static function normalizeChildren(array $children, string $parentPath = ''): array
     {
         $items = [];
