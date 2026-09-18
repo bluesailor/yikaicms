@@ -309,7 +309,7 @@ final class BloxAreaTemplatePresets
                 continue;
             }
             try {
-                $prepared = BloxTemplateImporter::prepare($json);
+                $prepared = BloxFeaturePolicy::asTrustedWrite(static fn(): array => BloxTemplateImporter::prepare($json));
                 $document = BloxAreaDocument::decode($type, $prepared['draft_json']);
             } catch (Throwable $e) {
                 error_log('[BloxAreaTemplatePresets] ' . $slug . ': ' . $e->getMessage());
@@ -336,6 +336,13 @@ final class BloxAreaTemplatePresets
 
     /** @return array{id:int,type:string,name:string,sections:int,updated:bool} */
     public static function install(string $slug, int $adminId = 0): array
+    {
+        // 随包官方预置由代码提供，未授权站点也能安装（升级迁移同样经过这里）；作者之后的修改照常受授权保护。
+        return BloxFeaturePolicy::asTrustedWrite(static fn(): array => self::installTrusted($slug, $adminId));
+    }
+
+    /** @return array{id:int,type:string,name:string,sections:int,updated:bool} */
+    private static function installTrusted(string $slug, int $adminId): array
     {
         $preset = self::PRESETS[$slug] ?? null;
         if ($preset === null) {

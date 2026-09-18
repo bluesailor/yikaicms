@@ -37,10 +37,11 @@ final class BloxFeaturePolicyTest extends TestCase
         }
     }
 
-    public function testReleasePolicyKeepsCurrentFeaturesFreeAndUnknownFeaturesClosed(): void
+    public function testReleasePolicyLicensesTheProFeaturesAndKeepsUnknownFeaturesClosed(): void
     {
+        // v1.20.1 起五项作者端能力为 licensed（易开网页构建器 Pro，插件经插件市场受控分发）。
         $policy = require ROOT_PATH . '/config/blox-feature-policy.php';
-        self::assertSame(['query_loop' => 'free', 'display_conditions' => 'free', 'style_presets' => 'free', 'table' => 'free', 'pricing' => 'free'], $policy);
+        self::assertSame(['query_loop' => 'licensed', 'display_conditions' => 'licensed', 'style_presets' => 'licensed', 'table' => 'licensed', 'pricing' => 'licensed'], $policy);
         self::assertFalse(BloxFeaturePolicy::allows('unknown'));
     }
 
