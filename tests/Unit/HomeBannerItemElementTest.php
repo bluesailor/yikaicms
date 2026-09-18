@@ -261,13 +261,13 @@ final class HomeBannerItemElementTest extends TestCase
         self::assertStringContainsString('HomeBannerItemElement::applyChildMotions($banners, $data[\'children\']);', $context);
     }
 
-    /** 自下而上：位移取自身高度，起手同样 50% 不透明度。 */
+    /** 自下而上：位移取两倍自身高度，起手同样 50% 不透明度。 */
     public function testFadeUpRisesItsOwnHeightFromHalfOpacity(): void
     {
         $css = (string) file_get_contents(ROOT_PATH . '/assets/css/blox-banner.css');
-        self::assertMatchesRegularExpression('/--blox-banner-rise-distance:\s*100%;/', $css);
+        self::assertMatchesRegularExpression('/--blox-banner-rise-distance:\s*200%;/', $css);
         self::assertMatchesRegularExpression(
-            '/@keyframes blox-banner-fade-up \{\s*from \{\s*opacity: var\(--blox-banner-slide-opacity, \.5\);\s*transform: translate3d\(0, var\(--blox-banner-rise-distance, 100%\), 0\);/s',
+            '/@keyframes blox-banner-fade-up \{\s*from \{\s*opacity: var\(--blox-banner-slide-opacity, \.5\);\s*transform: translate3d\(0, var\(--blox-banner-rise-distance, 200%\), 0\);/s',
             $css
         );
         self::assertStringNotContainsString('translate3d(0, 28px, 0)', $css);
