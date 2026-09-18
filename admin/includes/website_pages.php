@@ -97,7 +97,16 @@ function renderWebsitePageCard(array $page, bool $overview = false): string
             <p class="website-page-note"><?php echo e(__('website_pages_updated')); ?> <?php echo e($page['modified_at'] > 0 ? date('Y-m-d H:i', $page['modified_at']) : __('website_pages_unknown_date')); ?></p>
             <div class="website-page-actions">
                 <?php if ($page['can_edit']): ?>
-                <a class="website-page-primary" data-testid="page-primary-edit-<?php echo $id; ?>" href="<?php echo e($page['edit_url']); ?>"><i class="ti <?php echo $page['page_kind'] === 'page' ? 'ti-layout' : 'ti-pencil'; ?>" aria-hidden="true"></i><?php echo e(__($page['page_kind'] === 'page' ? 'website_structural_design' : 'admin_content_edit')); ?></a>
+                <?php
+                // 相册页的主要内容是相册图片：按钮直接说「编辑相册图片」，泛泛的「内容编辑」
+                // 让客户以为是改页面文字，不知道证书图片在哪换。
+                [$primaryIcon, $primaryLabel, $primaryTip] = match ($page['page_kind']) {
+                    'page' => ['ti-layout', 'website_structural_design', ''],
+                    'album' => ['ti-photo', 'website_pages_edit_album', 'website_pages_edit_album_tip'],
+                    default => ['ti-pencil', 'admin_content_edit', ''],
+                };
+                ?>
+                <a class="website-page-primary" data-testid="page-primary-edit-<?php echo $id; ?>" href="<?php echo e($page['edit_url']); ?>"<?php if ($primaryTip !== ''): ?> title="<?php echo e(__($primaryTip)); ?>"<?php endif; ?>><i class="ti <?php echo $primaryIcon; ?>" aria-hidden="true"></i><?php echo e(__($primaryLabel)); ?></a>
                 <?php else: ?><span class="website-page-note"><?php echo e(__('website_pages_no_permission')); ?></span><?php endif; ?>
                 <?php // 已停用页前台是 404，不给浏览入口 ?>
                 <?php if (!$disabled): ?>

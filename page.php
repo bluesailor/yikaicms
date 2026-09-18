@@ -201,8 +201,16 @@ if ($draftPreviewJson !== null) {
 
 // 页面信息
 // 在 header 前确定顶部管理条的页级编辑目标，避免主题布局分支漏设。
-if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id']) && is_array($content)) {
-    $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . (int) $channel['id'];
+if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
+    if (($channel['type'] ?? '') === 'album') {
+        // 相册页（荣誉资质、厂房设备…）的主要内容是相册图片，页面设计器里改不了它们。
+        // 客户在前台点「编辑此页」却进了设计器，找不到怎么换证书图片——直达相册图片管理，
+        // 与后台单页列表的主操作同一个目标（pagePrimaryEditUrl）。
+        $GLOBALS['ik_edit_url'] = pagePrimaryEditUrl($channel);
+        $GLOBALS['ik_edit_label'] = 'ab_edit_album';
+    } elseif (is_array($content)) {
+        $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . (int) $channel['id'];
+    }
 }
 
 $pageTitle = $channel['seo_title'] ?: $channel['name'];
