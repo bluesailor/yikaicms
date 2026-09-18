@@ -392,7 +392,7 @@ function permissionDenied(): void
  * 式的部分执行——部分执行会让越权者通过成功/失败的差异探测其它类型的 id 是否存在。
  * 查不到的 id 直接丢弃（没有行可操作）。
  *
- * @param array<int|string> $ids
+ * @param array<array-key, mixed> $ids POST 原样传入即可：非正整数的项会被丢弃
  * @param string $mode edit|delete
  * @return list<int> 去重后确实存在且类型正确的 id
  */

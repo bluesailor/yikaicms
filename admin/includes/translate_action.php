@@ -38,6 +38,7 @@ if ($srcId <= 0 || !in_array($toLang, $supported, true)) {
     error('参数错误');
 }
 
+/** @var array<string, mixed> $langSwitcher 各编辑页自行声明，键集因页而异（title_field / content_type 等可选） */
 $model    = $langSwitcher['model'];
 $table    = (string) $langSwitcher['table'];
 $tName    = DB_PREFIX . $table;
