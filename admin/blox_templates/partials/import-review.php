@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-if (!defined('ROOT_PATH') || !isset($importReview, $importJson)) {
+if (!defined('ROOT_PATH') || !isset($importReview)) {
     exit('Access Denied');
 }
 $diagnostic = $importReview['design_diagnostics'];
@@ -48,7 +48,7 @@ $confirmLabel = $isRemoteReview ? ($confirmLabels[$operation] ?? __('blox_import
             <input type="hidden" name="review_id" value="<?= e((string) ($importReviewMeta['review_id'] ?? '')) ?>">
             <input type="hidden" name="review_operation" value="<?= e($operation) ?>">
         <?php else: ?>
-            <textarea name="template_json" hidden><?= e($importJson) ?></textarea>
+            <textarea name="template_json" hidden><?= e((string) ($importReview['source_json'] ?? '')) ?></textarea>
         <?php endif; ?>
         <?php foreach (['missing', 'archived', 'conflicting', 'same_name', 'unverified'] as $issue): ?>
             <?php foreach (['tokens', 'styles'] as $kind): ?>

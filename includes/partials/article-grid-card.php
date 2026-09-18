@@ -8,6 +8,7 @@
 
 declare(strict_types=1);
 
+/** @var array<string, mixed> $item */
 $__gridOpts = $listOpts ?? null;
 ?>
 <a href="<?php echo e($item['url'] ?? contentUrl($item)); ?>"
