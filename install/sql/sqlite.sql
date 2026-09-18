@@ -175,7 +175,7 @@ CREATE INDEX "idx_bn_trans_yikai_banners" ON "yikai_banners" ("translation_group
 
 -- 演示轮播（三语各 3 条）：不勾演示数据时整段剥离。
 -- 剥离后首页轮播区块没有数据行，前台回落到 blocks/banner.php 的占位幻灯片
---（站点名 + 站点简介 + 联系我们，按界面语言翻译），新站因此不会挂着示例营销文案。
+-- （站点名 + 站点简介 + 联系我们，按界面语言翻译），新站因此不会挂着示例营销文案。
 -- @demo:start
 INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (1,'home','zh-CN',1,'数字化转型解决方案','助力企业实现智能化升级','了解更多','/about.html','','','/assets/images/demo/banner-1.svg','','','_self',0,0,1,1,1776652898);
 INSERT INTO "yikai_banners" ("id", "position", "lang", "translation_group_id", "title", "subtitle", "btn1_text", "btn1_url", "btn2_text", "btn2_url", "image", "image_mobile", "link_url", "link_target", "start_time", "end_time", "status", "sort_order", "created_at") VALUES (2,'home','zh-CN',2,'专业的技术服务团队','7x24小时为您保驾护航','服务支持','/service.html','','','/assets/images/demo/banner-2.svg','','','_self',0,0,1,2,1776652898);

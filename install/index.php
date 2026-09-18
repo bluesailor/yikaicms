@@ -280,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 // 验证数据库名（允许字母数字下划线连字符；建库语句已反引号转义，DSN 亦支持连字符）
                 if (!preg_match('/^[a-zA-Z0-9_-]+$/', $name)) {
-                    throw new Exception('数据库名只允许字母、数字、下划线和连字符');
+                    throw new Exception($L['error_db_name_invalid']);
                 }
 
                 // 验证 host 和 port
@@ -301,7 +301,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 if (!$exists && $createDb) {
                     $pdo->exec("CREATE DATABASE `" . str_replace('`', '``', $name) . "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
                 } elseif (!$exists) {
-                    throw new Exception("Database '{$name}' does not exist");
+                    // 库不存在：提示可以勾选「尝试创建」，而不是只甩一句英文
+                    throw new Exception(str_replace(':name', $name, $L['error_db_not_exists']));
                 }
 
                 ob_end_clean();
@@ -371,7 +372,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             // 验证表前缀（仅允许字母数字下划线）
             if (!preg_match('/^[a-zA-Z0-9_]*$/', $prefix)) {
-                throw new Exception('表前缀只允许字母、数字和下划线');
+                throw new Exception($L['error_table_prefix_invalid']);
             }
 
             // 连接数据库
@@ -386,7 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $host = preg_replace('/[^a-zA-Z0-9.\-:]/', '', $host);
                 $port = (string)(int)$port;
                 if (!preg_match('/^[a-zA-Z0-9_-]+$/', $dbName)) {
-                    throw new Exception('数据库名只允许字母、数字、下划线和连字符');
+                    throw new Exception($L['error_db_name_invalid']);
                 }
 
                 $dsn = "mysql:host={$host};port={$port};dbname={$dbName};charset=utf8mb4";
@@ -526,6 +527,16 @@ $envAllPass = checkAllPass($envChecks);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $L['title']; ?></title>
     <link rel="stylesheet" href="/assets/css/tailwind.css">
+<?php
+// 按钮图标（Lucide 线条风格，ISC 许可）。安装器不能依赖图标字体：此时站点资源未必齐全，
+// 一律内联 SVG；aria-hidden，按钮的可读名称仍是文字本身。
+$installerIcon = static function (string $paths): string {
+    return '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">' . $paths . '</svg>';
+};
+$iconPrev = $installerIcon('<path d="M19 12H5"/><path d="m12 19-7-7 7-7"/>');
+$iconNext = $installerIcon('<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>');
+$iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>');
+?>
     <style>
         .step-item.active { color: #3b82f6; border-color: #3b82f6; }
         .step-item.completed { color: #10b981; border-color: #10b981; }
@@ -639,8 +650,8 @@ $envAllPass = checkAllPass($envChecks);
 
                 <div class="flex justify-end">
                     <?php if ($envAllPass): ?>
-                        <a href="?step=2&install_lang=<?php echo $lang; ?>" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
-                            <?php echo $L['next']; ?>
+                        <a href="?step=2&install_lang=<?php echo $lang; ?>" class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
+                            <?php echo $L['next']; ?><?php echo $iconNext; ?>
                         </a>
                     <?php else: ?>
                         <a href="?step=1&install_lang=<?php echo $lang; ?>" class="bg-gray-400 text-white px-6 py-2 rounded">
@@ -834,19 +845,19 @@ $envAllPass = checkAllPass($envChecks);
 
                     <!-- 测试按钮 -->
                     <div class="mt-6">
-                        <button type="button" id="testDbBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition cursor-pointer">
-                            <?php echo $L['db_test']; ?>
+                        <button type="button" id="testDbBtn" class="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition cursor-pointer">
+                            <?php echo $iconPlug; ?><?php echo $L['db_test']; ?>
                         </button>
                         <span id="testResult" class="ml-4"></span>
                     </div>
                 </form>
 
                 <div class="flex justify-between mt-8">
-                    <a href="?step=1&install_lang=<?php echo $lang; ?>" class="border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
-                        <?php echo $L['prev']; ?>
+                    <a href="?step=1&install_lang=<?php echo $lang; ?>" class="inline-flex items-center gap-2 border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
+                        <?php echo $iconPrev; ?><?php echo $L['prev']; ?>
                     </a>
-                    <a href="?step=3&install_lang=<?php echo $lang; ?>" id="nextStep2" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
-                        <?php echo $L['next']; ?>
+                    <a href="?step=3&install_lang=<?php echo $lang; ?>" id="nextStep2" class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition">
+                        <?php echo $L['next']; ?><?php echo $iconNext; ?>
                     </a>
                 </div>
 
@@ -858,8 +869,8 @@ $envAllPass = checkAllPass($envChecks);
                     });
                 });
 
-                // 测试数据库连接
-                document.getElementById('testDbBtn').addEventListener('click', async function() {
+                // 测试数据库连接：「测试连接」按钮与「下一步」共用，结果都显示在 #testResult
+                async function runDbTest() {
                     const form = document.getElementById('dbForm');
                     const formData = new FormData(form);
                     formData.append('action', 'test_db');
@@ -875,17 +886,40 @@ $envAllPass = checkAllPass($envChecks);
                         span.textContent = data.message;
                         result.innerHTML = '';
                         result.appendChild(span);
+                        return !!data.success;
                     } catch (e) {
                         result.innerHTML = '<span class="text-red-600">Error</span>';
+                        return false;
                     }
+                }
+
+                document.getElementById('testDbBtn').addEventListener('click', function() {
+                    runDbTest();
                 });
 
-                // 保存配置到 sessionStorage
-                document.getElementById('nextStep2').addEventListener('click', function(e) {
+                // 下一步：先保存配置，再自动测一次连接，通过才进入第 3 步。
+                // 以前这里不做任何检查，库名/密码填错要到第 3 步点「完成安装」才报错，
+                // 用户还得退回两步重填。不强制用户先手动点「测试连接」，点下一步就会测。
+                document.getElementById('nextStep2').addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    const link = this;
+                    if (link.getAttribute('aria-busy') === 'true') return;
+
                     const form = document.getElementById('dbForm');
                     const formData = new FormData(form);
                     for (const [key, value] of formData.entries()) {
                         sessionStorage.setItem(key, value);
+                    }
+
+                    link.setAttribute('aria-busy', 'true');
+                    link.classList.add('opacity-60', 'pointer-events-none');
+                    const ok = await runDbTest();
+                    link.removeAttribute('aria-busy');
+                    link.classList.remove('opacity-60', 'pointer-events-none');
+                    if (ok) {
+                        window.location.href = link.href;
+                    } else {
+                        document.getElementById('testResult').scrollIntoView({ block: 'center', behavior: 'smooth' });
                     }
                 });
                 </script>
@@ -992,8 +1026,8 @@ $envAllPass = checkAllPass($envChecks);
                 <div id="installResult" class="hidden mt-6"></div>
 
                 <div class="flex justify-between mt-8" id="stepButtons">
-                    <a href="?step=2&install_lang=<?php echo $lang; ?>" class="border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
-                        <?php echo $L['prev']; ?>
+                    <a href="?step=2&install_lang=<?php echo $lang; ?>" class="inline-flex items-center gap-2 border border-gray-300 hover:bg-gray-100 px-6 py-2 rounded transition">
+                        <?php echo $iconPrev; ?><?php echo $L['prev']; ?>
                     </a>
                     <button type="button" id="installBtn" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition cursor-pointer">
                         <?php echo $L['finish']; ?>
