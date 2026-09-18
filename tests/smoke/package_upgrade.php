@@ -312,8 +312,17 @@ PHP
     upgradeAssert($verify['code'] === 0 && is_array($verifyData), 'upgraded package boots from CLI');
     upgradeAssert(($verifyData['version'] ?? '') === $toVersion && ($verifyData['pending'] ?? -1) === 0, 'target version has zero pending migrations');
 
-    $front = upgradeRequest($base . '/', $cookieJar);
-    $admin = upgradeRequest($base . '/admin/index.php', $cookieJar);
+    // v1.19.x 的升级器尚不会主动失效 OPcache；生产配置默认每隔数秒复查文件时间戳。
+    // 给跨越旧升级器的这一跳一个有界恢复窗口，同时 v1.20+ 会在覆盖时立即失效字节码。
+    $renderDeadline = microtime(true) + 6.0;
+    do {
+        $front = upgradeRequest($base . '/', $cookieJar);
+        $admin = upgradeRequest($base . '/admin/index.php', $cookieJar);
+        if ($front['code'] === 200 && $admin['code'] === 200) {
+            break;
+        }
+        usleep(500000);
+    } while (microtime(true) < $renderDeadline);
     if ($front['code'] !== 200 || $admin['code'] !== 200) {
         throw new RuntimeException(sprintf(
             'front end and authenticated admin render after upgrade (front HTTP %d: %s; admin HTTP %d: %s)',
