@@ -86,6 +86,13 @@
                 <file name="admin/site_health.php" />
                 <!-- v1.18.4 新增独立入口 -->
                 <file name="admin/blox_cache_api.php" />
+                <!-- v1.20.0 新增独立入口 -->
+                <file name="admin/admin_brand.php" />
+                <file name="admin/article_design.php" />
+                <file name="admin/article_native_preview.php" />
+                <file name="admin/form_spam.php" />
+                <file name="admin/product_design.php" />
+                <file name="admin/product_native_preview.php" />
                 <!-- 不要在此登记 admin/blox_editor.php 等不随仓库分发的文件：
                      Psalm 在解析配置时就要求 <file> 路径真实存在，文件不在仓库里
                      会直接「Could not resolve config path」导致整个 CI 红。 -->

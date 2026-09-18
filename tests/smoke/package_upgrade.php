@@ -169,7 +169,14 @@ try {
         2 => ['file', $serverLog, 'a'],
     ];
     $pipes = [];
-    $server = proc_open([PHP_BINARY, '-S', '127.0.0.1:' . $port, '-t', $siteRoot], $descriptors, $pipes, $siteRoot);
+    $server = proc_open([
+        PHP_BINARY,
+        '-d', 'display_errors=0',
+        '-d', 'log_errors=1',
+        '-d', 'error_log=' . $serverLog,
+        '-S', '127.0.0.1:' . $port,
+        '-t', $siteRoot,
+    ], $descriptors, $pipes, $siteRoot);
     if (!is_resource($server)) {
         throw new RuntimeException('Unable to start PHP test server.');
     }
@@ -307,7 +314,16 @@ PHP
 
     $front = upgradeRequest($base . '/', $cookieJar);
     $admin = upgradeRequest($base . '/admin/index.php', $cookieJar);
-    upgradeAssert($front['code'] === 200 && $admin['code'] === 200, 'front end and authenticated admin render after upgrade');
+    if ($front['code'] !== 200 || $admin['code'] !== 200) {
+        throw new RuntimeException(sprintf(
+            'front end and authenticated admin render after upgrade (front HTTP %d: %s; admin HTTP %d: %s)',
+            $front['code'],
+            substr(trim(strip_tags($front['body'])), 0, 240),
+            $admin['code'],
+            substr(trim(strip_tags($admin['body'])), 0, 240)
+        ));
+    }
+    upgradeAssert(true, 'front end and authenticated admin render after upgrade');
     echo "\nPASS: real v{$fromVersion} package upgraded to v{$toVersion} under PHP " . PHP_VERSION . "\n";
 } catch (Throwable $exception) {
     $failure = $exception;

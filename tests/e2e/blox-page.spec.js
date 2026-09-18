@@ -69,8 +69,8 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   }
   await addTemporaryHeading(page);
   if (process.env.SMOKE_BLOX_ADVANCED === '0') {
-    // 显示条件（Query Loop 高级数据能力的一部分）随本次边界调整开放
-    await expect(page.getByTestId('blox-condition-tab')).toBeVisible();
+    // 免费能力仍依赖 yikai-builder 作者端模块；免费模式未加载该模块时入口不可操作。
+    await expect(page.getByTestId('blox-condition-tab')).toBeHidden();
   }
 
   const marker = `R30 page publish ${Date.now()}`;
