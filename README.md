@@ -1,6 +1,6 @@
 # Yikai CMS v1.20.0
 
-> 发行准备中，尚未正式发布。最低 PHP 版本统一为 8.0，包含 BLOX Pro；开发测试工具的 PHP 要求不属于运行环境要求。
+> v1.20.0 已正式发布，可从 [GitHub Releases](https://github.com/bluesailor/yikaicms/releases/tag/v1.20.0) 下载完整安装包及增量升级包。最低 PHP 版本统一为 8.0，包含 BLOX Pro；开发测试工具的 PHP 要求不属于运行环境要求。
 
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg?logo=php)](https://www.php.net/)
@@ -127,7 +127,8 @@
 # 从 GitHub 下载
 git clone https://github.com/bluesailor/yikaicms.git
 
-# 或下载 Release ZIP 上传至服务器
+# 或从最新 Release 下载 ZIP 上传至服务器：
+# https://github.com/bluesailor/yikaicms/releases/tag/v1.20.0
 ```
 
 确保以下目录可写：`/config/`、`/uploads/`、`/storage/`
