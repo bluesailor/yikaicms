@@ -1998,9 +1998,6 @@ CREATE TABLE "yikai_plugins" (
 CREATE UNIQUE INDEX "uk_slug_yikai_plugins" ON "yikai_plugins" ("slug");
 
 
-INSERT INTO "yikai_plugins" ("slug", "status", "installed_at", "activated_at") VALUES ('logo-maker', 1, 0, 0);
-INSERT INTO "yikai_plugins" ("slug", "status", "installed_at", "activated_at") VALUES ('product-carousel', 1, 0, 0);
-INSERT INTO "yikai_plugins" ("slug", "status", "installed_at", "activated_at") VALUES ('yikai-builder', 1, 0, 0);
 DROP TABLE IF EXISTS "yikai_product_categories";
 CREATE TABLE "yikai_product_categories" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
