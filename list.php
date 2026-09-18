@@ -94,6 +94,7 @@ foreach (['contents', 'total', 'downloads', 'jobs', 'dlCatId',
 unset($_request, $_vars, $_k);
 
 if ($productCategory && productRouteModel()->pathFor('category', (int) $productCategory['id']) !== '') {
+    /** @psalm-suppress NoValue $productCategory 由上面的 $$_k 动态赋值，Psalm 追不到 */
     $canonicalUrl = siteBaseUrl() . customProductCategoryPageUrl($productCategory, $page);
 }
 
@@ -389,7 +390,7 @@ $horizRootChannel = $channel;
                 ，<?php echo e(__('search')); ?> "<span class="text-primary"><?php echo e($keyword); ?></span>"
                 <?php endif; ?>
             </div>
-            <form method="get" action="<?php echo e(($isProductType && isDynamicUrlMode()) ? '/index.php' : ($productCategory ? productCategoryUrl($productCategory) : channelUrl($channel))); ?>" class="flex items-center gap-2">
+            <form method="get" action="<?php /** @psalm-suppress NoValue $productCategory 由 $$_k 动态赋值，Psalm 追不到 */ echo e(($isProductType && isDynamicUrlMode()) ? '/index.php' : ($productCategory ? productCategoryUrl($productCategory) : channelUrl($channel))); ?>" class="flex items-center gap-2">
                 <?php if ($isProductType && isDynamicUrlMode()): ?>
                 <input type="hidden" name="yk_route" value="product_list">
                 <?php endif; ?>

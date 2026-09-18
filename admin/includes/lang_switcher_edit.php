@@ -30,6 +30,7 @@ $_ls_item = $langSwitcher['item'];
 $_ls_model = $langSwitcher['model'];
 $_ls_editUrl = $langSwitcher['edit_url'];
 $_ls_table = $langSwitcher['table'];
+/** @var array<string, mixed> $langSwitcher 各编辑页自行声明，键集因页而异 */
 $_ls_type = $langSwitcher['type'] ?? '';
 $_ls_tableName = DB_PREFIX . $_ls_table;
 $_ls_editParam = $langSwitcher['edit_param'] ?? 'id';   // channel.php 用 'edit'，其他用 'id'

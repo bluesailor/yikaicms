@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+/** @psalm-suppress UnusedClass 由 admin/blox_editor/partials/header.php 调用（模板层，Psalm 不扫） */
 final class BloxAreaEditorLanguageLinks
 {
     /**
