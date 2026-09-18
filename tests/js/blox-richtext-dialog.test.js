@@ -15,9 +15,9 @@ function fixture() {
         getContent: () => '<p class="text-center">Saved</p>',
         remove: () => calls.push('remove'),
     };
-    const tinymce = { get: () => editor };
+    const hugerte = { get: () => editor };
     const state = vm.runInNewContext('({' + source.slice(start, end) + '})', {
-        window: { tinymce }, tinymce,
+        window: { hugerte }, hugerte,
     });
     Object.assign(state, {
         rteOpen: true, _rteInited: true,

@@ -9,7 +9,7 @@ YikaiCMS 随包分发以下第三方组件，各组件按其自身协议授权�
 
 | 组件 | 版本 | 协议 | 项目地址 |
 |---|---|---|---|
-| TinyMCE | 6.8.5 | MIT | https://www.tiny.cloud |
+| HugeRTE（TinyMCE 6 的 MIT 分支） | 1.0.14 | MIT | https://github.com/hugerte/hugerte |
 | Alpine.js | — | MIT | https://alpinejs.dev |
 | Tailwind CSS（编译产物） | — | MIT | https://tailwindcss.com |
 | SortableJS | 1.15.6 | MIT | https://sortablejs.github.io/Sortable/ |
@@ -71,7 +71,8 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
 ## 维护约定
 
 1. **升级任何组件的大版本前，先核对其协议是否变更。**
-   例：TinyMCE 自 7.0 起改为 GPLv2+，本项目因此钉在 6.x，不得自动升级。
+   例：TinyMCE 自 7.0 起改为 GPLv2+；v1.20.0 起改用其 MIT 分支 HugeRTE（见下方历史记录），
+   **不得**换回 TinyMCE 7/8，也不得把 TinyMCE 7/8 的补丁代码手工移植进来（那些补丁是 GPL 代码）。
 2. **不得引入与本软件许可协议冲突的组件。**
    具体而言：GPL / AGPL 及其他 copyleft 协议的代码**不得并入本软件本体**——
    本软件的许可协议包含「不得再分发」等限制条款，与 copyleft 的传染性要求直接冲突。
@@ -79,6 +80,17 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
 3. **引入任何第三方代码时，必须同步更新本清单**，并保留其版权与协议声明。
 
 ### 历史记录
+
+- **2026-09-18（v1.20.0，富文本编辑器更换）**：TinyMCE 6.8.5 → **HugeRTE 1.0.14**（MIT）。
+  起因：随包的 6.8.5 命中 TinyMCE 官方安全公告 GHSA-q742-qvgc-gc2f（CVE-2026-47759）与
+  GHSA-vg35-5wq7-3x7w（CVE-2026-47761），影响范围 6.0.0–6.8.6；6.x 的开源维护已于
+  2024-10-31 结束，不会再有补丁，官方修复只在 GPLv2+ 的 7.9.3 / 8.5.1。
+  HugeRTE 分叉自 TinyMCE 在改许可提交（1cfe7f6817）之前的全部 MIT 代码，许可原文保留
+  Tiny Technologies 与 HugeRTE contributors 双方版权；其公告 GHSA-v9j8-qc36-jqgq 明确
+  1.0.11 起修复上述两个 CVE。来源：npm `hugerte@1.0.14`，tarball sha1
+  `584c0b4524eb6e6bf55214d27a9dae3b88ec7beb`，与 npm 登记的 integrity 核对一致。
+  随包只保留运行时文件（*.min.js、皮肤、插件数据），语言包沿用原 zh_CN / ja 两份并改挂
+  `hugerte.addI18n`。`assets/tinymce/` 整目录删除；`window.tinymce` 作为别名保留给第三方插件。
 
 - **2026-08-27（v1.19.1 候选核对）**：本周期未引入或升级第三方组件，Composer 与 npm
   依赖清单均无变化。Blox 编辑器交互、站点资源可用性与发布上传门禁的变更均为项目源码，

@@ -243,20 +243,18 @@
     }
 
     /**
-     * 初始化 TinyMCE 编辑器
+     * 初始化富文本编辑器（HugeRTE）
      * @param {string} selector - textarea 选择器
      * @param {object} options - 配置项 { height, placeholder, uploadUrl }
      */
     function initTinyEditor(selector, options = {}) {
         var lang = document.documentElement.lang || 'zh-CN';
-        // 随包只有 ja / zh_CN 两个语言包，英文用组件自带的默认界面。
-        // 旧写法是「不是 ja 就按中文」，英文后台的编辑器整条工具栏因此都是中文（复审 R09）。
-        var tinymceLangs = { 'ja': 'ja', 'zh-cn': 'zh_CN', 'zh': 'zh_CN', 'zh-tw': 'zh_CN' };
-        var tinymceLang = tinymceLangs[String(lang).toLowerCase()] || '';
+        // 语言表在 /assets/js/rich-editor.js（与 Blox 编辑器共用）
+        var editorLang = window.editorLanguage ? window.editorLanguage(lang) : '';
 
-        tinymce.init({
+        hugerte.init({
             selector: selector,
-            language: tinymceLang || undefined,
+            language: editorLang || undefined,
             height: options.height || 500,
             menubar: 'file edit view insert format tools table',
             plugins: 'autolink lists link image charmap preview anchor searchreplace visualblocks code codesample fullscreen insertdatetime media table help wordcount',
@@ -289,7 +287,7 @@
             branding: false, promotion: false, convert_urls: false,
             setup: function(editor) {
                 editor.on('change', function() {
-                    tinymce.triggerSave();
+                    hugerte.triggerSave();
                 });
             }
         });
@@ -322,8 +320,8 @@
         }
 
         function _ed() {
-            if (!window.tinymce) return null;
-            return (textarea && textarea.id ? tinymce.get(textarea.id) : null) || tinymce.activeEditor;
+            if (!window.hugerte) return null;
+            return (textarea && textarea.id ? hugerte.get(textarea.id) : null) || hugerte.activeEditor;
         }
 
         // wangEditor 兼容门面
@@ -347,7 +345,9 @@
 
     <!-- 体积大的外部库放在 helper 后，让 showMessage 等先就绪可被任何按钮调用 -->
     <script src="/assets/swiper/swiper-bundle.min.js"></script>
-    <script src="/assets/tinymce/tinymce.min.js"></script>
+    <script src="/assets/hugerte/hugerte.min.js"></script>
+    <?php // 别名（给第三方插件）与界面语言 → 编辑器语言包的映射，两个页面共用 ?>
+    <script src="/assets/js/rich-editor.js?v=<?php echo (int) @filemtime(ROOT_PATH . '/assets/js/rich-editor.js'); ?>"></script>
     <script src="/assets/js/official-media-client.js?v=<?php echo (int) filemtime(ROOT_PATH . '/assets/js/official-media-client.js'); ?>"></script>
 
     <!-- 媒体库选择弹窗 -->

@@ -84,18 +84,27 @@ final class EditorFormattingContractTest extends TestCase
         self::assertSame($once, HtmlPolicy::richText($once, true));
     }
 
-    /** 英文后台的 TinyMCE 不该再被强行映射成中文（复审 R09）。 */
+    /**
+     * 英文后台的编辑器不该再被强行映射成中文（复审 R09）。
+     * 两个编辑器入口（后台通用页、Blox 富文本弹窗）必须共用同一张语言表。
+     */
     public function testEditorLanguageMappingFallsBackToEnglish(): void
     {
-        $footer = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/admin/includes/footer.php'));
+        $shared = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/assets/js/rich-editor.js'));
+        self::assertStringContainsString("var packs = { 'ja': 'ja', 'zh-cn': 'zh_CN', 'zh': 'zh_CN', 'zh-tw': 'zh_CN' };", $shared);
+        self::assertStringContainsString("return packs[String(lang || '').toLowerCase()] || '';", $shared);
 
-        self::assertStringNotContainsString("lang === 'ja' ? 'ja' : 'zh_CN'", $footer);
-        self::assertStringContainsString("var tinymceLangs = { 'ja': 'ja', 'zh-cn': 'zh_CN'", $footer);
-        self::assertStringContainsString('language: tinymceLang || undefined', $footer);
+        $footer = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/admin/includes/footer.php'));
+        $dialog = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/admin/blox_editor/partials/media-editing-methods.php'));
+        foreach (['footer.php' => $footer, 'Blox 富文本弹窗' => $dialog] as $label => $source) {
+            self::assertStringNotContainsString("=== 'ja' ? 'ja' : 'zh_CN'", $source, "{$label} 还在「不是 ja 就当中文」");
+            self::assertStringNotContainsString('=== "ja" ? "ja" : "zh_CN"', $source, "{$label} 还在「不是 ja 就当中文」");
+            self::assertStringContainsString('window.editorLanguage', $source, "{$label} 没走共用语言表");
+        }
 
         // 随包只有这两个语言包，映射表不能指向不存在的文件
         foreach (['ja', 'zh_CN'] as $pack) {
-            self::assertFileExists(ROOT_PATH . '/assets/tinymce/langs/' . $pack . '.js');
+            self::assertFileExists(ROOT_PATH . '/assets/hugerte/langs/' . $pack . '.js');
         }
     }
 }

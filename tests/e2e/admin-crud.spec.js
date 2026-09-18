@@ -144,7 +144,9 @@ for (const query of ['yk_route=product_list&cat=smart-device', 'yk_route=list&sl
     fixture('seed');
     try {
       await page.goto('/index.php?' + query);
-      const form = page.locator('form').filter({ has: page.locator('input[name="keyword"]') }).first();
+      // 列表自己的筛选表单。页头/页脚的站内搜索（role="search"，提交到 /search.php）也带
+      // keyword 输入框，且可能收起在折叠菜单里；只取「第一个带 keyword 的表单」会抓错。
+      const form = page.locator('form:not([role="search"])').filter({ has: page.locator('input[name="keyword"]') }).first();
       const input = form.locator('input[name="keyword"]');
       for (const keyword of ['智能', 'E2E-no-matches-987654321', '']) {
         await input.fill(keyword);

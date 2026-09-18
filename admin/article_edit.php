@@ -515,7 +515,7 @@ initTinyEditor(".tinymce-editor");
         e.preventDefault();
         if (submitting) return;              // 防连点 / 并发重复提交
         submitting = true;
-        tinymce.triggerSave();
+        hugerte.triggerSave();
 
         try {
             const formData = new FormData(this);

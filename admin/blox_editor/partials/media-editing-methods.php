@@ -255,14 +255,15 @@ declare(strict_types=1);
                 this.$nextTick(function () {
                     if (!self.rteOpen) return;
                     if (self._rteInited) {
-                        var ed = tinymce.get("bloxRte");
+                        var ed = hugerte.get("bloxRte");
                         if (ed) ed.setContent(initial);
                         return;
                     }
                     self._rteInited = true;
-                    tinymce.init({
+                    hugerte.init({
                         selector: "#bloxRte",
-                        language: (document.documentElement.lang || "zh-CN") === "ja" ? "ja" : "zh_CN",
+                        // 与后台通用编辑器同一张语言表：英文后台不再被强行换成中文（复审 R09）
+                        language: (window.editorLanguage ? window.editorLanguage(document.documentElement.lang) : "") || undefined,
                         height: 420,
                         formats: {
                             alignleft: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-left" },
@@ -324,7 +325,7 @@ declare(strict_types=1);
             closeRte() {
                 if (!this.rteOpen) return;
                 var root = this.$refs.rteDialog;
-                var editor = window.tinymce && tinymce.get("bloxRte");
+                var editor = window.hugerte && hugerte.get("bloxRte");
                 if (editor) editor.remove();
                 this._rteInited = false;
                 this.rteOpen = false;
@@ -333,7 +334,7 @@ declare(strict_types=1);
             },
 
             saveRte() {
-                var ed = tinymce.get("bloxRte");
+                var ed = hugerte.get("bloxRte");
                 if (ed && this._rteTarget) this._rteTarget(ed.getContent());
                 this.closeRte();
             },
