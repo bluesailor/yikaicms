@@ -50,6 +50,9 @@ final class SiteHealthPageContractTest extends TestCase
         self::assertStringContainsString('!empty($opts[\'remote\'])', $command);
         self::assertStringContainsString('data-testid="admin-help-link"', $header);
         self::assertStringContainsString('https://www.yikaicms.com/en/#help', $header);
+        // 顶栏图标指向使用教程；伪静态专项说明（$adminHelpUrl）仍供控制台提醒与体检页使用
+        self::assertStringContainsString("default => 'https://www.yikaicms.com/tutorial.php',", $header);
+        self::assertStringContainsString('<a href="<?php echo e($adminTutorialUrl); ?>"', $header);
         self::assertStringContainsString('https://www.yikaicms.com/ja/#help', $header);
         self::assertStringContainsString('rel="noopener noreferrer"', $header);
         self::assertStringContainsString('data-testid="site-health-rewrite-help"', $healthPage);
