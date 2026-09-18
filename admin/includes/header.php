@@ -59,10 +59,18 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
 // 后台品牌文字（左上角 Logo / 页面标题）——页脚共用同一函数，见 adminBrandName()。
 $adminBrand = adminBrandName();
 $adminHelpLang = (string) config('admin_lang', getLang());
+// 伪静态 / 栏目页 404 的专项说明：控制台的新站提醒、站点体检页引用它。
 $adminHelpUrl = match ($adminHelpLang) {
     'en' => 'https://www.yikaicms.com/en/#help',
     'ja' => 'https://www.yikaicms.com/ja/#help',
     default => 'https://www.yikaicms.com/#help',
+};
+// 顶栏帮助图标 → 官网使用教程。教程目前只有中文版（/en/、/ja/ 下是 404），
+// 英文、日文后台暂时仍落到各自语言首页的帮助区；教程出了多语言版改这里即可。
+$adminTutorialUrl = match ($adminHelpLang) {
+    'en' => 'https://www.yikaicms.com/en/#help',
+    'ja' => 'https://www.yikaicms.com/ja/#help',
+    default => 'https://www.yikaicms.com/tutorial.php',
 };
 ?>
 <!DOCTYPE html>
@@ -611,12 +619,12 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     </div>
                     <?php endif; ?>
 
-                    <!-- 官方帮助：新装站栏目页 404 多数是 URL 重写未配置，入口保持全后台可见。 -->
-                    <a href="<?php echo e($adminHelpUrl); ?>" target="_blank" rel="noopener noreferrer"
+                    <!-- 官方使用教程：入口保持全后台可见。伪静态专项说明另见控制台提醒与站点体检页。 -->
+                    <a href="<?php echo e($adminTutorialUrl); ?>" target="_blank" rel="noopener noreferrer"
                        data-testid="admin-help-link"
                        class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                       title="<?php echo e(__('admin_help_rewrite')); ?>"
-                       aria-label="<?php echo e(__('admin_help_rewrite')); ?>">
+                       title="<?php echo e(__('admin_help_tutorial')); ?>"
+                       aria-label="<?php echo e(__('admin_help_tutorial')); ?>">
                         <i class="ti ti-help-circle text-xl" aria-hidden="true"></i>
                     </a>
 
