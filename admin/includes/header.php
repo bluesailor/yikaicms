@@ -58,19 +58,12 @@ foreach ($sidebarMenu as $groupKey => $navGroup) {
 
 // 后台品牌文字（左上角 Logo / 页面标题）——页脚共用同一函数，见 adminBrandName()。
 $adminBrand = adminBrandName();
-$adminHelpLang = (string) config('admin_lang', getLang());
-// 伪静态 / 栏目页 404 的专项说明：控制台的新站提醒、站点体检页引用它。
-$adminHelpUrl = match ($adminHelpLang) {
-    'en' => 'https://www.yikaicms.com/en/#help',
-    'ja' => 'https://www.yikaicms.com/ja/#help',
-    default => 'https://www.yikaicms.com/#help',
-};
 // 顶栏帮助图标 → 官网使用教程。教程目前只有中文版（/en/、/ja/ 下是 404），
-// 英文、日文后台暂时仍落到各自语言首页的帮助区；教程出了多语言版改这里即可。
-$adminTutorialUrl = match ($adminHelpLang) {
-    'en' => 'https://www.yikaicms.com/en/#help',
-    'ja' => 'https://www.yikaicms.com/ja/#help',
+// 英文、日文后台暂时仍落到各自语言首页的帮助区（adminHelpUrl()）；教程出了多语言版改这里即可。
+// 伪静态 / 栏目页 404 的专项帮助是另一条链接，见 adminHelpUrl()。
+$adminTutorialUrl = match ((string) config('admin_lang', getLang())) {
     default => 'https://www.yikaicms.com/tutorial.php',
+    'en', 'ja' => adminHelpUrl(),
 };
 ?>
 <!DOCTYPE html>

@@ -230,7 +230,7 @@ unset($pageTitle);
         </p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-        <a href="<?php echo e($adminHelpUrl); ?>" target="_blank" rel="noopener noreferrer"
+        <a href="<?php echo e(adminHelpUrl()); ?>" target="_blank" rel="noopener noreferrer"
            data-testid="site-health-rewrite-help"
            class="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
             <i class="ti ti-help-circle text-lg" aria-hidden="true"></i>
