@@ -63,13 +63,13 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
     await page.getByTestId('blox-design-open').click();
     await expect(page.getByTestId('blox-design-tab-colors')).toBeVisible();
     await expect(page.getByTestId('blox-design-token-row')).not.toHaveCount(0);
-    // 全局命名样式随本次边界调整开放，免费模式下该页签同样可见
-    await expect(page.getByTestId('blox-design-tab-styles')).toBeVisible();
+    // v1.20.1 起全局命名样式属易开网页构建器 Pro（licensed），未授权站点不提供该页签
+    await expect(page.getByTestId('blox-design-tab-styles')).toBeHidden();
     await page.keyboard.press('Escape');
   }
   await addTemporaryHeading(page);
   if (process.env.SMOKE_BLOX_ADVANCED === '0') {
-    // 免费能力仍依赖 yikai-builder 作者端模块；免费模式未加载该模块时入口不可操作。
+    // 显示条件属易开网页构建器 Pro（licensed）：未授权且未装作者端模块时入口不可操作。
     await expect(page.getByTestId('blox-condition-tab')).toBeHidden();
   }
 
