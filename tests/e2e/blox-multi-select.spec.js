@@ -399,13 +399,37 @@ test('process-steps host rules bind batch actions and resync numbers @ci @shard-
     }
     return null;
   });
-  const childHandles = () => hostRow.locator('[data-child-drag-handle]');
+  const selectChildren = (first, second, mode) => page.evaluate(({ first, second, mode }) => {
+    const app = window.Alpine.$data(document.body);
+    let si = -1;
+    let ci = -1;
+    let ei = -1;
+    outer:
+    for (let sectionIndex = 0; sectionIndex < app.sections.length; sectionIndex += 1) {
+      const columns = app.sections[sectionIndex].columns || [];
+      for (let columnIndex = 0; columnIndex < columns.length; columnIndex += 1) {
+        const elementIndex = (columns[columnIndex].elements || []).findIndex((element) => element.type === 'process-steps');
+        if (elementIndex >= 0) {
+          si = sectionIndex;
+          ci = columnIndex;
+          ei = elementIndex;
+          break outer;
+        }
+      }
+    }
+    if (si < 0 || ci < 0 || ei < 0) throw new Error('process-steps host not found');
+    app.treeChildClick({ shiftKey: false, ctrlKey: false, metaKey: false }, si, ci, ei, first);
+    app.treeChildClick({
+      shiftKey: mode === 'shift',
+      ctrlKey: mode === 'toggle',
+      metaKey: false,
+    }, si, ci, ei, second);
+  }, { first, second, mode });
 
   const undoBefore = await page.evaluate(() => window.Alpine.$data(document.body).canUndo());
 
   // 全选 3 步批量删除 → 拒绝（至少保留 1 步），不产生撤销项
-  await childHandles().nth(0).click();
-  await childHandles().nth(2).click({ modifiers: ['Shift'] });
+  await selectChildren(0, 2, 'shift');
   await page.getByTestId('blox-batch-delete').click();
   await expect(page.getByTestId('blox-toast')).toBeVisible();
   await expect(childRows).toHaveCount(3);
@@ -422,8 +446,7 @@ test('process-steps host rules bind batch actions and resync numbers @ci @shard-
       return host.data.children.length;
     });
     if (n >= 19) break;
-    await childHandles().nth(0).click();
-    await childHandles().nth(1).click({ modifiers: ['Control'] });
+    await selectChildren(0, 1, 'toggle');
     await expect(dupButton).toBeEnabled({ timeout: 5000 });
     await dupButton.click();
     await page.waitForTimeout(120);
@@ -432,16 +455,14 @@ test('process-steps host rules bind batch actions and resync numbers @ci @shard-
   const capped = (await state()).ids.length;
   expect(capped).toBe(19);
   // 满员后再复制 → 拒绝且数量不变
-  await childHandles().nth(0).click();
-  await childHandles().nth(1).click({ modifiers: ['Control'] });
+  await selectChildren(0, 1, 'toggle');
   await expect(dupButton).toBeEnabled({ timeout: 5000 });
   await dupButton.click();
   await expect(page.getByTestId('blox-toast')).toBeVisible();
   expect((await state()).ids.length).toBe(capped);
 
   // 删除中间两步：编号重新连续（auto_number 默认开）
-  await childHandles().nth(1).click();
-  await childHandles().nth(2).click({ modifiers: ['Shift'] });
+  await selectChildren(1, 2, 'shift');
   await page.getByTestId('blox-batch-delete').click();
   await expect(page.getByTestId('blox-batch-bar')).toBeHidden();
   const numbers = (await state()).numbers;
