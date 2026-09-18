@@ -72,6 +72,9 @@ test('section background summary reveals the layer that already contains the vis
         app.sel.settings.container_bg = '#172554';
         app.sel.settings.container_bg_image = '/themes/default/assets/images/cta/cta-smart-manufacturing.webp';
         app.panelTab = 'content';
+        // The fixture's last section is a CTA, whose content tab intentionally opens in
+        // quick-edit mode. Reveal its full settings before asserting the background summary.
+        app.ctaQuickDetails = true;
         app.mobilePanel = 'settings';
         app.refreshPreview();
     }));
