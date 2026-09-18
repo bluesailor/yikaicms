@@ -109,7 +109,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('se
 <?php
 // 本页管全站 TDK/OG/验证等基础项；进阶功能在「SEO 助手」插件里。
 // 装了就互链，没装就引导去市场装——想做 SEO 的当口正是推荐时机
-// （插件自 v1.18.6 起不随核心包发布，见 includes/RecommendedPlugins.php）。
+// （插件自 v1.18.6 起不随核心包发布，改由插件市场按需安装）。
 $__seoPluginOn = function_exists('isPluginAvailable') && isPluginAvailable('seo');
 $__seoPluginHere = is_dir(ROOT_PATH . '/plugins/seo');
 ?>
