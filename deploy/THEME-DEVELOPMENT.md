@@ -1,10 +1,10 @@
 # YikaiCMS 主题与模板开发指南
 
-文档版本：0.2。更新：2026-09-13。对象：主题作者、建站开发者、BLOX 模板制作人员。
+文档版本：0.3。更新：2026-09-18。对象：主题作者、建站开发者、易开网页构建器（Yikai Builder）模板制作人员。
 
-源码核对基线：项目主仓，HEAD `c97ca4294773bcf3921f9613a7968b83ca84a0d6`，CMS 1.19.9。开发分支的新能力在文中单独标识，不作为所有客户版本都支持的承诺。本文仅编写指南，未安装示例主题、未运行发版验收。
+源码核对基线：v1.20.0 发布提交 `abbac237c9ef9dc6dc3671bfd88f33f0b20b56b2`（0.2 版基线为 1.19.9 `c97ca429`）。v1.20.0 起可视化编辑器对外名称为「易开网页构建器」，源码类名、模板包格式仍为 BLOX/Blox（下文「BLOX 模板」即构建器模板）。代码须兼容 PHP 8.0（产品运行下限），推荐 8.2+。本文仅编写指南，未安装示例主题、未运行发版验收。
 
-本文由原完整指南整理入项目，排除 BLOX 编辑器插件开发。原文 HEAD 与版本是历史核对基线，不表示当前已重新验收；实际接口以目标版本为准。先读 [AI 阅读入口](./AI-DEVELOPMENT.md)，源码链接相对于 deploy 目录。
+本文由原完整指南整理入项目，排除构建器编辑器插件开发。原文 HEAD 与版本是历史核对基线，不表示当前已重新验收；实际接口以目标版本为准。先读 [AI 阅读入口](./AI-DEVELOPMENT.md)，源码链接相对于 deploy 目录。
 
 ## 1. 先分清三类产物
 
@@ -69,15 +69,15 @@ header.php、footer.php 是校验要求的基础文件。其他文件根据实�
   "version": "1.0.0",
   "author": "Your Team",
   "category": "general",
-  "requires_cms": ">=1.19.9",
-  "requires_php": ">=8.2.0",
+  "requires_cms": ">=1.20.0",
+  "requires_php": ">=8.0.0",
   "required_plugins": [],
   "screenshot": "assets/images/screenshot.jpg",
   "design_tokens": "design-tokens.json"
 }
 ```
 
-以上最低版本只是本指南示例基线，不代表已经验证该主题。
+以上最低版本只是本指南示例基线，不代表已经验证该主题。`requires_php` 默认写产品下限 `>=8.0.0`；主题 PHP 确实用到 8.1+ 语法时才提高。
 
 当前 ThemeValidator 的关键规则：
 
@@ -232,7 +232,7 @@ bash tools/build_css.sh
 
 ### 11.1 版本与类型
 
-核对的主仓 1.19.9 类型为 `section`、`page`、`header`、`footer`、`popup`。本地开发树已经出现 `product-detail` 基础接入；文章详情与更完整条件仍在后续任务中。发布包以目标版本的 BloxTemplateModel::TYPES 为准，不能提前承诺 `article-detail`。
+v1.20.0 的 `BloxTemplateModel::TYPES` 为 `section`、`page`、`header`、`footer`、`popup`、`product-detail`、`article-detail`。后两种是 1.20.0 新增的详情模板类型；面向 1.19.x 站点的模板包只能使用前五种，并应把 `requires_cms` 写到实际支持的版本。仍以目标版本的 TYPES 为准。
 
 ### 11.2 最小 JSON 包
 
@@ -285,13 +285,19 @@ bash tools/build_css.sh
 
 草稿保存、预览、发布、应用条件不是同一个动作。模板作者必须真实测试重新打开与前台结果，不能只确认编辑器即时预览。
 
-产品和文章详情模板以目标版本实际实现为准，不把内部未来规划当作稳定接口。
+v1.20.0 起，产品详情与文章详情模板可按分类、栏目或指定内容套用，带优先级、命中诊断、影响范围预览和发布冲突保护（见 `BloxTemplateModel::publishedDetailTemplates()`）。制作详情模板时要分别验证命中与未命中（回退主题详情页）两种情况；跨站的分类、栏目、内容 ID 不能直接作为新站的有效绑定。更细的条件语义以目标版本实现为准，不把内部规划当作稳定接口。
 
 ## 12. 打包、升级和市场交付
 
 PHP 主题 ZIP 使用单一 slug 目录，例如 `acme-corporate/theme.json`；包含基础头尾、使用到的资源及封面。不要包含站点 config、数据库导出、用户 uploads、.git、测试材料和密钥。
 
 ThemeValidator 做清单/兼容检查，ThemeInstaller 处理包安装；市场下载的真实性、哈希/签名与目录一致性属于市场发行链。不能把本地 ZIP 安装当作完成官方市场签名发布。
+
+v1.20.0 起安装器在主题目录写入来源回执 `.yikai-market-origin.json`（local / official / community，见 `MarketInstallOrigin`）：
+
+- 包内不得自带该文件，含此路径的 ZIP 会被拒绝。
+- 本地上传的主题记为 local，之后模板市场不会以官方或社区更新覆盖它。因此**不要使用官方主题已占用的 slug**（如 default、business、minimal），也不要用本地包冒充官方版本。
+- 市场主题包上限 50 MB（`ThemeMarket::MAX_PACKAGE_BYTES`），远程构建器模板包上限 5 MB；替换已有目录前安装器会先备份。
 
 发布检查：
 
@@ -323,6 +329,7 @@ ThemeValidator 做清单/兼容检查，ThemeInstaller 处理包安装；市场�
 - [主题有效性回退](../includes/ThemeRuntime.php)
 - [主题清单校验](../includes/ThemeValidator.php)
 - [主题安装器](../includes/ThemeInstaller.php)
+- [安装来源回执](../includes/MarketInstallOrigin.php)
 - [颜色预设](../includes/ThemePalette.php)
 - [主题样式设置](../includes/ThemeSettings.php)
 - [默认主题清单](../themes/default/theme.json)
