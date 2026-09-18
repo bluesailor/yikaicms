@@ -8,8 +8,13 @@ if (!str_starts_with(basename(ROOT_PATH), 'yikai-e2e-')
 require ROOT_PATH . '/config/config.php';
 require ROOT_PATH . '/includes/functions.php';
 require ROOT_PATH . '/includes/models/autoload.php';
+require ROOT_PATH . '/includes/HtmlCache.php';
 if (DB_DRIVER !== 'sqlite' || parse_url(SITE_URL, PHP_URL_HOST) !== '127.0.0.1') throw new RuntimeException('Local SQLite required');
 $statePath = STORAGE_PATH . '/e2e-spam-settings.json';
+// 限流状态按 IP 落盘、跨 spec 存活（整轮都是 127.0.0.1）：每个表单 spec 都从干净的配额开始。
+$resetThrottle = static function (): void {
+    foreach (glob(STORAGE_PATH . '/form_throttle/spam-*.json') ?: [] as $file) @unlink($file);
+};
 $action = $argv[1] ?? '';
 if ($action === 'setup') {
     if (is_file($statePath)) throw new RuntimeException('Fixture already active');
@@ -25,6 +30,8 @@ if ($action === 'setup') {
     file_put_contents($statePath, json_encode(compact('templates', 'settings'), JSON_THROW_ON_ERROR));
     foreach ($templates as $row) formTemplateModel()->updateById((int) $row['id'], ['captcha' => 0]);
     settingModel()->saveBatch(['form_max_submits' => '5', 'form_throttle_minutes' => '5']);
+    $resetThrottle();
+    HtmlCache::invalidate();
 } elseif ($action === 'captcha' || $action === 'short-expiry') {
     if (!is_file($statePath)) throw new RuntimeException('Prepare fixture first');
     if ($action === 'captcha') {
@@ -34,6 +41,7 @@ if ($action === 'setup') {
         }
     } else {
         settingModel()->saveBatch(['html_cache_enabled' => '1', 'html_cache_ttl' => '300', 'form_signature_max_age' => '5']);
+        HtmlCache::invalidate();
     }
 } elseif ($action === 'restore') {
     if (is_file($statePath)) {
@@ -44,6 +52,8 @@ if ($action === 'setup') {
         }
         settingModel()->saveBatch($state['settings']);
         unlink($statePath);
+        $resetThrottle();
+        HtmlCache::invalidate();
     }
 } elseif ($action === 'result') {
     $name = $argv[2] ?? '';

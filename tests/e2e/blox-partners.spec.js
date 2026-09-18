@@ -93,11 +93,18 @@ test('partners edit reorder undo save reopen and publish; shared data stays live
     await expect(publicPage.getByRole('link', { name: 'Shared updated', exact: true })).toBeVisible();
     await openEditor(page);
     await selectPartners(page);
-    await performPreviewUpdate(page, () => page.getByTestId('blox-partners-custom').check());
+    const custom = page.getByTestId('blox-partners-custom');
+    const switchedToCustom = !await custom.isChecked();
+    if (switchedToCustom) {
+      await performPreviewUpdate(page, () => custom.check());
+    }
     await expectNames(page, ['Local Beta', 'Local Alpha']);
-    // Return to the saved dynamic state; no dirty draft is left in the worker.
-    await performPreviewUpdate(page, () => clickAction(page, 'undo'));
-    await waitPreviewSettled(page);
+    // 某些保存路径会保留已发布的动态状态、同时恢复干净的自定义草稿；此时 radio
+    // 已经选中，重复 check() 不会触发预览请求，也不需要撤销。只有本次确实切换时才 undo。
+    if (switchedToCustom) {
+      await performPreviewUpdate(page, () => clickAction(page, 'undo'));
+      await waitPreviewSettled(page);
+    }
     await expectClean(page);
   } finally { await visitor.close(); }
 });

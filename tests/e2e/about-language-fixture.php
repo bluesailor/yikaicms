@@ -73,7 +73,11 @@ if ($action === 'converted') {
             $element['data']['children'][$i] = $strip($child);
         }
         if (str_ends_with($element['id'], '_caption')) {
-            $element['data']['html'] = str_replace('<p class="text-white m-0">', '<p class="text-white">', $element['data']['html']);
+            // 当前 toSection() 已改成 h3+p 无外层 div；修复前站点存的是下面这种老结构，
+            // HomeAboutLocalization 只认它（见 synthesized binding 的两种历史形态）。
+            $element['data']['html'] = '<div class="bg-primary text-white rounded-lg p-6">'
+                . '<h3 class="text-xl font-bold text-white m-0">' . HomeAboutContent::escape('专业服务') . '</h3>'
+                . '<p class="text-white">' . HomeAboutContent::escape('品质与创新') . '</p></div>';
         }
         return $element;
     };

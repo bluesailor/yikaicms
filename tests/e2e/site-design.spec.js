@@ -41,20 +41,18 @@ test('website design dashboard routes to existing design capabilities @ci', asyn
 
   await page.goto('/admin/site_design.php', { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('site-design-dashboard')).toBeVisible();
-  await expect(page.getByTestId('site-design-home')).toBeVisible();
-  await expect(page.getByTestId('site-design-pages')).toBeVisible();
+  await expect(page.getByTestId('site-design-context')).toBeVisible();
+  await expect(page.locator('main a[href="/admin/page.php"]').first()).toBeVisible();
   await expect(page.getByTestId('site-design-area-header')).toBeVisible();
   await expect(page.getByTestId('site-design-area-footer')).toBeVisible();
   await expect(page.getByTestId('site-design-area-popup')).toBeVisible();
+  await expect(page.getByTestId('site-design-products')).toBeVisible();
+  await expect(page.getByTestId('site-design-articles')).toBeVisible();
 
-  const designLink = page.getByTestId('site-design-system').locator('a');
-  if (await designLink.count()) {
-    await designLink.click();
-    await expect(page).toHaveURL(/\/admin\/blox_design\.php/);
-    await expect(page.getByTestId('blox-design-page')).toBeVisible();
-    await expect(page.getByTestId('blox-design-page-colors')).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'design page must not create body-level horizontal overflow').toBeLessThanOrEqual(1);
-  }
+  await page.goto('/admin/blox_design.php', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByTestId('blox-design-page')).toBeVisible();
+  await expect(page.getByTestId('blox-design-page-colors')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 'design page must not create body-level horizontal overflow').toBeLessThanOrEqual(1);
 
   expect(unsafeWrites, 'dashboard navigation must not save or publish').toEqual([]);
   expect(consoleEntries, 'dashboard and design deep link must keep the console clean').toEqual([]);

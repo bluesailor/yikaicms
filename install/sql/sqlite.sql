@@ -2769,9 +2769,9 @@ INSERT OR IGNORE INTO "yikai_settings" ("group", "key", "value", "type", "name",
 
 -- 产品与产品分类自定义 URL（对应迁移 20260910_product_custom_urls）
 CREATE TABLE "yikai_product_routes" (
-  "id" int NOT NULL,
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
   "entity_type" TEXT NOT NULL,
-  "entity_id" int NOT NULL,
+  "entity_id" INTEGER NOT NULL,
   "path" TEXT NOT NULL,
   "path_key" TEXT NOT NULL
 );

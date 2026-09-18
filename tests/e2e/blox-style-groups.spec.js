@@ -27,7 +27,7 @@ test('style tab partitions controls into groups with has-value dots @ci', async 
   // 切到动画组：控件互换；切组本身不改文档
   const original = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections));
   await page.getByTestId('blox-style-group-animation').click();
-  await expect(page.locator('[data-control-key="animation"]')).toBeVisible();
+  await expect(page.getByTestId('blox-control-animation')).toBeVisible();
   await expect(page.locator('[data-control-key="color"]')).toHaveCount(0);
   expect(await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections))).toBe(original);
 
@@ -35,25 +35,29 @@ test('style tab partitions controls into groups with has-value dots @ci', async 
   await expect(page.getByTestId('blox-style-tab-dot')).toBeHidden();
   await expect(page.getByTestId('blox-style-group-dot-animation')).toBeHidden();
   // 只有 option_icons 的选项按钮带 aria-pressed（设备切换按钮 x-show 隐藏但在 DOM）
-  await page.locator('[data-control-key="animation"] button[aria-pressed]').nth(1).click();
+  await page.getByTestId('blox-choice-animation-fade').click();
   await expect(page.getByTestId('blox-style-group-dot-animation')).toBeVisible();
   await expect(page.getByTestId('blox-style-tab-dot')).toBeVisible();
 
-  // 搜索时回落平铺：chip 条消失、分组过滤停用（'o' 同时命中 color 与 animation 的 key）
+  // 搜索仍保留命中的分组（'o' 同时命中 color 与 animation 的 key），并记住搜索前分组。
   const search = page.locator('[x-model="ctrlQuery"]');
   await search.fill('o');
-  await expect(page.getByTestId('blox-style-groups')).toBeHidden();
+  await expect(page.getByTestId('blox-style-groups')).toBeVisible();
+  await expect(page.getByTestId('blox-style-group-animation')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('blox-control-animation')).toBeVisible();
+  await expect(page.locator('[data-control-key="color"]')).toHaveCount(0);
+  await page.getByTestId('blox-style-group-general').click();
   await expect(page.locator('[data-control-key="color"]')).toBeVisible();
-  await expect(page.locator('[data-control-key="animation"]')).toBeVisible();
+  await expect(page.getByTestId('blox-control-animation')).toHaveCount(0);
   await search.fill('');
   await expect(page.getByTestId('blox-style-groups')).toBeVisible();
+  await expect(page.getByTestId('blox-style-group-animation')).toHaveAttribute('aria-pressed', 'true');
 
   await restoreClean(page);
   expect(errors).toEqual([]);
 });
 
-// 第 3 轮：card 只有 背景+动画、无 常规组——effectiveStyleGroup 须落到第一组，
-// 背景 chip 默认生效且 bg_color 控件可见（root 批次的编辑器回归锚点）。
+// 第 3 轮：card 的通用间距/设备设置由 general 合成组承载；背景和动画仍可达。
 test('elements without a general group default to their first group @ci', async ({ page }) => {
   const errors = observeConsole(page);
   await openEditor(page);
@@ -63,13 +67,14 @@ test('elements without a general group default to their first group @ci', async 
   await page.getByTestId('blox-style-tab').click();
 
   await expect(page.getByTestId('blox-style-groups')).toBeVisible();
-  await expect(page.getByTestId('blox-style-group-general')).toBeHidden();
+  await expect(page.getByTestId('blox-style-group-general')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('blox-style-group-background').click();
   await expect(page.getByTestId('blox-style-group-background')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('[data-control-key="bg_color"]')).toBeVisible();
   await expect(page.locator('[data-control-key="animation"]')).toHaveCount(0);
 
   await page.getByTestId('blox-style-group-animation').click();
-  await expect(page.locator('[data-control-key="animation"]')).toBeVisible();
+  await expect(page.getByTestId('blox-control-animation')).toBeVisible();
   await expect(page.locator('[data-control-key="bg_color"]')).toHaveCount(0);
 
   await restoreClean(page);

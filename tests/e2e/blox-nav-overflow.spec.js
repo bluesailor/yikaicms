@@ -35,7 +35,7 @@ for (const type of ['mega', 'standard']) {
     test(`${type} overflow keeps order, child links, CTA and keyboard access @ci`, async ({ page }) => {
         await setup(page, type);
         const more = page.locator('[data-yk-nav-more]');
-        const trigger = more.locator(':scope > button');
+        const trigger = more.locator(':scope > a');
         await expect.poll(() => barFits(page, type)).toBe(true);
         await expect(page.locator('ul[data-yk-nav-overflow] > li > a[href^="/section-"]')).not.toHaveCount(1);
         await expect(page.locator('[data-yk-nav-cta]')).toBeVisible();
@@ -49,7 +49,7 @@ for (const type of ['mega', 'standard']) {
         const moved = await more.locator('a[href^="/section-"]').evaluateAll(links => links.map(a => Number(a.getAttribute('href').split('-').pop())));
         expect(moved).toEqual([...moved].sort((a, b) => a - b));
         await trigger.press('ArrowDown');
-        await expect(more.locator('a').first()).toBeFocused();
+        await expect(more.locator(':scope > ul a').first()).toBeFocused();
         await page.keyboard.press('Escape');
         await expect(trigger).toBeFocused();
         await expect(trigger).toHaveAttribute('aria-expanded', 'false');

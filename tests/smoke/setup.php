@@ -313,6 +313,13 @@ if (!$i18nOnly) {
     bloxTemplateModel()->publishDraft($template['id']);
     $templateId = (int) $template['id'];
 
+    // 演示种子（v1.20 起）自带已发布的站点级页头/页脚（Clean Site Header / Corporate Site Footer）。
+    // e2e 基线早于它：模拟「主题在渲染、Blox 尚未接管」的站点，且 clean-site-header 只能有
+    // 下面 fixture 导入的这一份草稿（BloxAreaEditorTarget 按 source_ref 取最小 id）。
+    // 全新安装的已发布页头/页脚由 tools/package-install-test 的安装验证覆盖，这里不重复。
+    $pdo->exec("DELETE FROM yikai_blox_templates WHERE source = 'builtin' AND source_ref = 'clean-site-header'");
+    $pdo->exec("UPDATE yikai_blox_templates SET status = 0, published_data = NULL, published_at = 0 WHERE type IN ('header', 'footer') AND status = 1");
+
     $headerTemplateJson = (string) file_get_contents(ROOT_PATH . '/tests/e2e/fixtures/header-template.json');
     // 模拟 default 主题当前正在显示、但尚未由 Blox 接管的可编辑 Header 草稿。
     // 首页入口必须打开它，不能误开另一个已发布但已停用的 Header。

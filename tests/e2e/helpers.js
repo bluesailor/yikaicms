@@ -126,11 +126,16 @@ async function openSectionInsertAtEnd(page) {
       else await page.getByTestId('blox-toolbar-structure-toggle').click();
     }
     await insert.click();
-    return;
+    return false;
   }
   const canvasView = page.getByTestId('blox-mobile-canvas-view');
   if (await canvasView.isVisible()) await canvasView.click();
-  await (await frame(page)).locator('.yk-empty-doc .yk-empty-btn').last().click();
+  // 画布 iframe 用 CSS zoom 适配宽度，Playwright 换算点击坐标后会误判「被 .yk-empty-doc 拦截」而重试到超时；
+  // 按钮本身可见可点（elementFromPoint 命中它），直接派发 DOM click。
+  const emptyButton = (await frame(page)).locator('.yk-empty-doc .yk-empty-btn').last();
+  await emptyButton.waitFor({ state: 'visible' });
+  await emptyButton.dispatchEvent('click');
+  return true;
 }
 
 async function addTemporaryHeading(page, columns = 1) {
@@ -140,13 +145,35 @@ async function addTemporaryHeading(page, columns = 1) {
   const headingBefore = await (await frame(page)).locator('[data-yk-el-type="heading"]').count();
   const mobile = await page.getByTestId('blox-mobile-structure').isVisible();
   if (mobile) await page.getByTestId('blox-mobile-structure').click();
-  await openSectionInsertAtEnd(page);
-  await page.getByTestId(`blox-add-section-${columns}`).click();
+  const sectionCreatedFromEmptyDocument = await openSectionInsertAtEnd(page);
+  // 画布空态的“从空白区块开始”会直接 addSection(1)，不会打开外层分栏选择器；
+  // 普通边界“+”才需要在选择器里再选一次列数。
+  if (!sectionCreatedFromEmptyDocument) {
+    await page.getByTestId(`blox-add-section-${columns}`).click();
+  }
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
+  // 触屏空文档要先切到画布才能点 iframe 内的起始按钮；区块创建后需切回结构面板。
+  if (mobile && sectionCreatedFromEmptyDocument) {
+    await page.getByTestId('blox-mobile-structure').click();
+  }
   const section = page.getByTestId('blox-tree-section').last();
-  if (mobile) await page.getByTestId('blox-mobile-library').click();
-  else await page.getByTestId('blox-library-open').click();
-  await page.getByTestId('blox-add-element-heading').press('Enter');
+  if (mobile) {
+    // 触屏元素插入要求先选中目标列；新建空区块只会建立结构，不会隐式选择其列。
+    const column = section.getByTestId('blox-tree-column').first();
+    // 空白文档入口创建的区块通常已展开；只有列仍隐藏时才点标签展开，避免把已展开区块再次折叠。
+    // 标签是稳定的交互目标，派发 DOM click 与画布空态按钮采用同一策略。
+    if (!(await column.isVisible())) {
+      await section.getByTestId('blox-tree-section-label').dispatchEvent('click');
+    }
+    await expect(column).toBeVisible();
+    await column.locator(':scope > div').first().dispatchEvent('click');
+    await expect(column).toHaveAttribute('data-selected', '1');
+    await page.getByTestId('blox-mobile-library').click();
+    await page.getByTestId('blox-add-element-heading').click();
+  } else {
+    await page.getByTestId('blox-library-open').click();
+    await page.getByTestId('blox-add-element-heading').press('Enter');
+  }
   await expect(section.getByTestId('blox-tree-element')).toHaveCount(1);
   await expect((await frame(page)).locator('[data-yk-el-type="heading"]')).toHaveCount(headingBefore + 1);
   return { before, section, sectionIndex: before };
@@ -158,7 +185,7 @@ async function performPreviewUpdate(page, action) {
     return candidate.request().method() === 'POST'
       && url.pathname === '/admin/blox_preview.php'
       && url.searchParams.get('home') === '1';
-  });
+  }, { timeout: 15000 });
   await action();
   await response;
   await page.waitForTimeout(80);

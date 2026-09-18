@@ -1,7 +1,7 @@
 const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
-const { addTemporaryHeading, frame, waitPreviewSettled } = require('./helpers');
+const { addTemporaryHeading, frame, headingTextField, waitPreviewSettled } = require('./helpers');
 const root = path.resolve(__dirname, '../..');
 const fixture = (action, id = '') => execFileSync(process.env.PHP_BINARY || 'php',
   [path.join(__dirname, 'site-design-state-fixture.php'), action, String(id)], { cwd: root, encoding: 'utf8' });
@@ -56,7 +56,7 @@ for (const area of ['header', 'footer']) {
       expect(new URL(editor).searchParams.get('preview_context')).toBe(context);
       await addTemporaryHeading(page);
       const marker = `Lifecycle ${area} ${info.project.name}`;
-      const input = page.locator('[data-control-key="text"] input[type="text"]').first();
+      const input = headingTextField(page);
       await input.fill(marker);
       await waitPreviewSettled(page);
       await expect((await frame(page)).getByText(marker, { exact: true })).toBeVisible();
