@@ -328,6 +328,14 @@ PHP
 } catch (Throwable $exception) {
     $failure = $exception;
     fwrite(STDERR, "\nFAIL: " . $exception->getMessage() . "\n");
+    if (isset($siteRoot) && is_string($siteRoot)) {
+        $applicationLogs = glob($siteRoot . '/storage/logs/error-*.log') ?: [];
+        rsort($applicationLogs);
+        if ($applicationLogs !== []) {
+            $tail = array_slice(file($applicationLogs[0], FILE_IGNORE_NEW_LINES) ?: [], -40);
+            fwrite(STDERR, "--- application error log ---\n" . implode("\n", $tail) . "\n");
+        }
+    }
     if (is_file($serverLog)) {
         $tail = array_slice(file($serverLog, FILE_IGNORE_NEW_LINES) ?: [], -30);
         fwrite(STDERR, "--- server log ---\n" . implode("\n", $tail) . "\n");
