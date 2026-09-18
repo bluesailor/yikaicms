@@ -679,7 +679,7 @@ async function saveAdminLanguages() {
                     <?php
                     // 站点图标 / LOGO：想做图的当口就在这里，所以入口也放这里——
                     // 插件已启用 → 直达制作页；未安装 → 引导去插件市场（logo-maker 自
-                    // v1.18.6 起不随核心包发布，见 includes/RecommendedPlugins.php）。
+                    // v1.18.6 起不随核心包发布，改由插件市场按需安装）。
                     $__isBrandField = in_array($item['key'], ['site_favicon', 'site_logo'], true);
                     $__logoMakerHere = is_dir(ROOT_PATH . '/plugins/logo-maker');
                     $__logoMakerOn = function_exists('isPluginAvailable') && isPluginAvailable('logo-maker');
