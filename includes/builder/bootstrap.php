@@ -77,6 +77,8 @@ require_once __DIR__ . '/BloxPublicationStatus.php';
 require_once __DIR__ . '/HomeAboutContent.php';
 require_once __DIR__ . '/HomeAboutLocalization.php';
 require_once __DIR__ . '/HomeFaqContent.php';
+require_once __DIR__ . '/HomeItemListLocalization.php';
+require_once __DIR__ . '/HomeTestimonialsContent.php';
 require_once __DIR__ . '/HomeLayoutDocument.php';
 require_once __DIR__ . '/HomeBloxRenderContext.php';
 require_once __DIR__ . '/BloxFrontendEditTarget.php';

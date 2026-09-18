@@ -1,0 +1,69 @@
+{
+    "_comment": "首页「客户评价」轮播的三语文案，由 tools/sync_demo_seed.php 写进种子首页文档的 _home_testimonials_i18n 绑定。source 必须与参照站当前的中文逐字一致，否则同步时报警、不挂过期译文。",
+    "source_lang": "zh-CN",
+    "source": {
+        "title": "客户评价",
+        "subtitle": "听听合作客户怎么说",
+        "items": [
+            {
+                "name": "陈思远",
+                "role": "采购总监 · 华东制造集团",
+                "content": "从选型到交付只用了三周，技术团队全程跟进，现场调试一次通过。后续两条产线也继续选择了他们。"
+            },
+            {
+                "name": "林晓雯",
+                "role": "运营经理 · 星禾连锁",
+                "content": "门店系统上线后，库存盘点时间缩短了一半。遇到问题随时有人响应，这是我们最看重的。"
+            },
+            {
+                "name": "王建国",
+                "role": "技术负责人 · 远拓物流",
+                "content": "方案很务实，没有堆砌功能。按我们的业务流程做了定制，培训一周员工就能独立使用。"
+            }
+        ]
+    },
+    "translations": {
+        "en": {
+            "title": "What Our Clients Say",
+            "subtitle": "Hear from the partners we work with",
+            "items": [
+                {
+                    "name": "Siyuan Chen",
+                    "role": "Procurement Director · East China Manufacturing Group",
+                    "content": "From selection to delivery took just three weeks. Their engineers stayed with us the whole way, and on-site commissioning passed on the first try. We chose them again for our next two production lines."
+                },
+                {
+                    "name": "Xiaowen Lin",
+                    "role": "Operations Manager · Xinghe Retail",
+                    "content": "Since the store system went live, stock-taking takes half the time. Whenever something comes up, someone responds right away — that is what we value most."
+                },
+                {
+                    "name": "Jianguo Wang",
+                    "role": "Head of Technology · Yuantuo Logistics",
+                    "content": "A practical solution without feature bloat. It was tailored to our workflow, and after one week of training our staff could use it on their own."
+                }
+            ]
+        },
+        "ja": {
+            "title": "お客様の声",
+            "subtitle": "お取引先の皆さまからいただいたご感想です",
+            "items": [
+                {
+                    "name": "陳 思遠",
+                    "role": "購買部長 · 華東製造グループ",
+                    "content": "選定から納品までわずか3週間。技術チームが最後まで伴走してくれ、現地での調整も一度で完了しました。その後の2本の生産ラインでも引き続き採用しています。"
+                },
+                {
+                    "name": "林 暁雯",
+                    "role": "運営マネージャー · 星禾チェーン",
+                    "content": "店舗システムの導入後、棚卸しにかかる時間が半分になりました。困ったときにすぐ対応してもらえるのが、何よりありがたいです。"
+                },
+                {
+                    "name": "王 建国",
+                    "role": "技術責任者 · 遠拓物流",
+                    "content": "機能を詰め込みすぎない、実用的な提案でした。業務フローに合わせてカスタマイズしてもらい、1週間の研修でスタッフが自分で使いこなせるようになりました。"
+                }
+            ]
+        }
+    }
+}
