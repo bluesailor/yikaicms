@@ -40,7 +40,7 @@ test('Business preserves custom backgrounds and excludes them from alternation @
     await expect(surfaces(page)).toHaveCount(4);
     await expect(surfaces(page).nth(0)).toHaveCSS('background-color', 'rgb(238, 245, 236)');
     await expect(surfaces(page).nth(0)).toHaveAttribute('data-business-surface', 'custom');
-    await expect(surfaces(page).nth(2)).toHaveCSS('background-image', /cta-smart-manufacturing\.png/);
+    await expect(surfaces(page).nth(2)).toHaveCSS('background-image', /cta-smart-manufacturing\.webp/);
     await expect.poll(() => tones(page)).toEqual(['light', 'light', 'dark', 'dark']);
     const cta = page.locator('main section').filter({ has: page.locator('a[href*="contact"]') }).last();
     await expect(cta).not.toHaveAttribute('data-business-surface');

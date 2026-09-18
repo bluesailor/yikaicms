@@ -25,6 +25,8 @@ try {
     foreach (['products' => ['category_id', 'product_cat'], 'contents' => ['channel_id', 'channel_list']] as $table => [$parent, $fixture]) {
         db()->delete($table, 'slug LIKE ?', ['e2e-catalog-zero-%']);
         if ($action === 'cleanup') {
+            // 同一批 spec 发布过的栏目 Blox 草稿也要清：本地全量跑是同一个站，grid 布局会漏给后面的 spec。
+            db()->delete('blox_page_drafts', 'page_id = ?', [(int) $fixtures[$fixture === 'product_cat' ? 'product_page' : 'channel_list']]);
             continue;
         }
         foreach ([0, 1] as $status) {

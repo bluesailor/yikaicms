@@ -14,6 +14,12 @@ const CLEANUP_AREA_SLUGS = [
 ];
 
 async function submit(page, form) {
+  // 只给确实带确认提示的表单注册一次性监听器。若每次提交都注册，普通安装/取消发布
+  // 不会触发 dialog，遗留的 once 监听器会在后续发布时一起 accept 同一个 dialog。
+  const needsConfirmation = await form.evaluate((node) => (
+    node.hasAttribute('onsubmit') || node.hasAttribute('data-conflict-message')
+  ));
+  if (needsConfirmation) page.once('dialog', (dialog) => dialog.accept());
   // waitForNavigation 已废弃且有竞态（重定向落在同 URL 时可能挂满 45s，CI 偶发）。
   // 先武装 POST 响应等待再点击，然后等重定向落地——时序上不可能错过。
   await Promise.all([
@@ -43,6 +49,10 @@ async function installAndPublish(page, template) {
   await expect(publishForm).toHaveCount(1);
   await submit(page, publishForm);
 }
+
+test.beforeEach(async ({ page }) => {
+  await unpublishAreas(page);
+});
 
 async function unpublishAreas(page) {
   await page.goto('/admin/blox_templates.php', { waitUntil: 'domcontentloaded' });
@@ -414,11 +424,14 @@ test('drawer navigation stays readable under the overlay header @ci', async ({ p
     await expect(panel).toHaveAttribute('aria-hidden', 'false');
 
     const colorOf = (locator) => locator.evaluate((element) => getComputedStyle(element).color);
-    // 一级与二级菜单链接全部落在抽屉表面色上；空集合会让断言失败，不会静默通过。
+    // 普通项用深灰，当前项可用品牌蓝；两者在白色抽屉表面都可读，且不能被覆盖态染白。
+    const readableDrawerColors = ['rgb(37, 99, 235)', 'rgb(55, 65, 81)'];
     await expect.poll(() => panel.locator('ul a').evaluateAll(
-      (elements) => [...new Set(elements.map((element) => getComputedStyle(element).color))].sort(),
-    )).toEqual(['rgb(55, 65, 81)']);
-    await expect.poll(() => colorOf(panel.locator('[data-yk-drawer-close]'))).toBe('rgb(55, 65, 81)');
+      (elements, allowed) => elements.length > 0
+        && elements.every((element) => allowed.includes(getComputedStyle(element).color)),
+      readableDrawerColors,
+    )).toBe(true);
+    await expect.poll(() => colorOf(panel.locator('[data-yk-drawer-close]'))).toMatch(/^rgb\((37, 99, 235|55, 65, 81)\)$/);
     await expect.poll(() => colorOf(panel.locator('input[type="search"]'))).toBe('rgb(55, 65, 81)');
     // 实心底色按钮保留自带的 text-white：深灰配 bg-primary 只有 2.0:1。
     await expect.poll(() => colorOf(panel.locator('form[role="search"] button[type="submit"]'))).toBe('rgb(255, 255, 255)');
@@ -597,7 +610,8 @@ test('assignment matrix copies a page-specific design and restores inheritance @
     expect(new URL(page.url()).searchParams.get('preview_context')).toBe(contextKey);
     await expect(page.getByTestId('blox-ctx-select')).toHaveCount(0);
 
-    page.on('dialog', async (dialog) => dialog.accept());
+    const acceptDialog = (dialog) => dialog.accept();
+    page.on('dialog', acceptDialog);
     const publishResults = [];
     page.on('response', async (response) => {
       const body = new URLSearchParams(response.request().postData() || '');
@@ -610,6 +624,7 @@ test('assignment matrix copies a page-specific design and restores inheritance @
     await expect.poll(() => publishResults.length).toBe(2);
     expect(publishResults[0].code).toBe(409);
     expect(publishResults[1].code).toBe(0);
+    page.off('dialog', acceptDialog);
     const expectedConflict = consoleEntries.findIndex(
       (entry) => entry.includes('Failed to load resource') && entry.includes('409 (Conflict)'),
     );

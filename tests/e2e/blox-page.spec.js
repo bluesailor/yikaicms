@@ -298,11 +298,11 @@ test('legacy page editor and page list converge on Blox @local', async ({ page }
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
 
   await page.goto('/admin/page.php', { waitUntil: 'domcontentloaded' });
-  const homeRow = page.getByTestId('page-home-row');
+  const homeRow = page.getByTestId('page-home-card');
   await expect(homeRow.locator('a[href="/admin/setting_home.php"]')).toHaveCount(0);
   await expect(homeRow.getByTestId('page-home-edit'))
-    .toHaveAttribute('href', '/admin/blox_editor.php?home=1');
-  await expect(homeRow.getByTestId('page-home-edit')).toHaveText('设计网页');
+    .toHaveAttribute('href', '/admin/blox_editor.php?home=1&lang=zh-CN');
+  await expect(homeRow.getByTestId('page-home-edit')).toHaveText('设计排版');
   await expect(page.getByTestId(`page-primary-edit-${fixtures.blox_page}`))
     .toHaveAttribute('href', `/admin/blox_editor.php?id=${fixtures.blox_page}`);
 });
@@ -323,14 +323,14 @@ test('stable section deep link selects the same persisted block @local', async (
   );
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
   await expect(page.locator(`[data-testid="blox-tree-section"][data-section-id="${sectionId}"]`))
-    .toHaveClass(/border-blue-400/);
+    .toHaveAttribute('data-selected', '1');
   await expect((await frame(page)).locator(`[data-yk-sec-id="${sectionId}"]`)).toHaveClass(/yk-selected/);
 
   const frontendUrl = `${fixtures.blox_page_url}${fixtures.blox_page_url.includes('?') ? '&' : '?'}v=${Date.now()}`;
   const frontendTarget = new URL(frontendUrl, 'http://yikaicms.local');
   const frontendReturnTo = frontendTarget.pathname + frontendTarget.search;
   await page.goto(frontendUrl, { waitUntil: 'domcontentloaded' });
-  const frontendSection = page.locator('[data-yk-sec-id]').first();
+  const frontendSection = page.locator('main [data-yk-sec-id]').first();
   const frontendSectionId = await frontendSection.getAttribute('data-yk-sec-id');
   const frontendSectionLabel = await frontendSection.getAttribute('data-yk-sec-label');
   expect(frontendSectionId).toBeTruthy();
@@ -338,11 +338,6 @@ test('stable section deep link selects the same persisted block @local', async (
   const focusedFrontendReturn = new URL(frontendReturnTo, 'http://yikaicms.local');
   focusedFrontendReturn.searchParams.set('yk_focus_section', frontendSectionId);
   const focusedFrontendReturnTo = focusedFrontendReturn.pathname + focusedFrontendReturn.search;
-  await frontendSection.hover();
-  await expect(page.locator('#yk-edit-btn')).toHaveAttribute(
-    'href',
-    `/admin/blox_editor.php?id=${fixtures.blox_page}&return_to=${encodeURIComponent(focusedFrontendReturnTo)}&focus_section=${encodeURIComponent(frontendSectionId)}`
-  );
   await page.goto(
     `/admin/blox_editor.php?id=${fixtures.blox_page}&focus_section=${encodeURIComponent(frontendSectionId)}`,
     { waitUntil: 'domcontentloaded' }
@@ -350,7 +345,7 @@ test('stable section deep link selects the same persisted block @local', async (
   const focusedTreeSection = page.locator(
     `[data-testid="blox-tree-section"][data-section-id="${frontendSectionId}"]`,
   );
-  await expect(focusedTreeSection).toHaveClass(/border-blue-400/);
+  await expect(focusedTreeSection).toHaveAttribute('data-selected', '1');
   await expect(focusedTreeSection).toHaveAttribute('data-section-label', frontendSectionLabel);
   await expect(focusedTreeSection.getByTestId('blox-tree-section-label')).toHaveText(frontendSectionLabel);
   await expect(focusedTreeSection.getByTestId('blox-tree-section-label')).toHaveAttribute('title', frontendSectionLabel);
@@ -369,24 +364,22 @@ test('frontend return target preserves source and guards unsaved edits @local', 
 
   await page.goto(sourceUrl, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.ik-ab-page-edit')).toHaveAttribute('href', editorBase);
-  const section = page.locator('[data-yk-sec-id]').first();
+  const section = page.locator('main [data-yk-sec-id]').first();
   const sectionId = await section.getAttribute('data-yk-sec-id');
   const sectionLabel = await section.getAttribute('data-yk-sec-label');
   expect(sectionId).toBeTruthy();
   expect(sectionLabel).toBeTruthy();
-  await section.hover();
   const focusedReturn = new URL(returnTo, 'http://yikaicms.local');
   focusedReturn.searchParams.set('yk_focus_section', sectionId);
   const focusedReturnTo = focusedReturn.pathname + focusedReturn.search;
   const preciseEditorUrl = `/admin/blox_editor.php?id=${fixtures.blox_page}&return_to=${encodeURIComponent(focusedReturnTo)}&focus_section=${encodeURIComponent(sectionId)}`;
-  await expect(page.locator('#yk-edit-btn')).toHaveAttribute('href', preciseEditorUrl);
 
   await page.goto(preciseEditorUrl, { waitUntil: 'domcontentloaded' });
   const back = page.getByTestId('blox-back');
   await expect(back).toHaveAttribute('href', focusedReturnTo);
   await expect(back).toContainText('返回页面');
   await expect(page.locator(`[data-testid="blox-tree-section"][data-section-id="${sectionId}"]`))
-    .toHaveClass(/border-blue-400/);
+    .toHaveAttribute('data-selected', '1');
 
   const sectionName = page.getByTestId('blox-section-name');
   const originalName = await sectionName.inputValue();

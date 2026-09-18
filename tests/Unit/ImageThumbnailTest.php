@@ -226,6 +226,7 @@ final class ImageThumbnailTest extends TestCase
             'themes/default/partials/case-card.php',
             'includes/partials/product-card.php',
             'includes/partials/article-card.php',
+            'includes/partials/article-grid-card.php',
             'includes/partials/case-card.php',
         ];
 

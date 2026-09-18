@@ -139,8 +139,9 @@ while ($i < $N) {
 
                 // 去 COMMENT
                 $rest = preg_replace("/\s+COMMENT\s+'(?:[^'\\\\]|\\\\.)*'/i", '', $rest);
-                // int(N)/bigint(N)/tinyint(N)/smallint(N) → INTEGER
-                $rest = preg_replace('/\b(?:big|small|tiny|medium)?int\(\d+\)/i', 'INTEGER', $rest);
+                // int(N)/bigint(N)/tinyint(N)/smallint(N) → INTEGER；MySQL 8 导出不带长度（`int unsigned`），
+                // 漏掉会让 AUTO_INCREMENT 分支接不上 INTEGER PRIMARY KEY（product_routes 曾因此在 SQLite 上丢主键）。
+                $rest = preg_replace('/\b(?:big|small|tiny|medium)?int\b(?:\(\d+\))?/i', 'INTEGER', $rest);
                 // UNSIGNED 去掉
                 $rest = preg_replace('/\s+unsigned\b/i', '', $rest);
                 // varchar(N) / char(N) → TEXT；text / longtext / mediumtext → TEXT

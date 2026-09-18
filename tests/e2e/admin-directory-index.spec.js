@@ -8,6 +8,6 @@ test('admin directory resolves its index.php entrypoint @ci', async ({ request }
 
   expect(directory.status()).toBe(200);
   expect(explicit.status()).toBe(200);
-  expect(await directory.text()).toContain('<title>控制台 - 后台管理</title>');
-  expect(await explicit.text()).toContain('<title>控制台 - 后台管理</title>');
+  expect(await directory.text()).toContain('<title>控制台 - Yikai CMS</title>');
+  expect(await explicit.text()).toContain('<title>控制台 - Yikai CMS</title>');
 });

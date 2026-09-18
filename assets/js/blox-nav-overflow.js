@@ -14,6 +14,8 @@
 (function () {
     'use strict';
 
+    var panelSequence = 0;
+
     function initNav(ul) {
         if (ul.dataset.ykNavOverflowReady) return;
         ul.dataset.ykNavOverflowReady = '1';
@@ -27,17 +29,83 @@
         var link = document.createElement('a');
         link.href = '#';
         link.setAttribute('aria-haspopup', 'true');
+        link.setAttribute('aria-expanded', 'false');
         link.className = 'inline-flex items-center gap-1 hover:text-primary';
         if (isMega) link.className += ' px-3 py-2 font-medium';
         link.appendChild(document.createTextNode(label));
         link.insertAdjacentHTML('beforeend',
             '<svg class="h-3 w-3 shrink-0 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>');
-        link.addEventListener('click', function (e) { e.preventDefault(); });
         var panel = document.createElement('ul');
+        panel.id = 'yk-nav-overflow-' + (++panelSequence);
+        link.setAttribute('aria-controls', panel.id);
         // 右对齐弹出：「更多」贴菜单尾部，面板左伸避免出屏
         panel.className = 'yk-nav-panel absolute right-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block group-focus-within/nav:block';
+        // 显式 display 状态覆盖 hover/focus 工具类，保证 Escape 后焦点回到触发器也不会立刻重开。
+        panel.style.display = 'none';
         more.appendChild(link);
         more.appendChild(panel);
+
+        var expanded = false;
+        var pinned = false;
+
+        function setExpanded(next, focusTrigger) {
+            expanded = !!next && panel.children.length > 0 && !more.classList.contains('hidden');
+            link.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            panel.style.display = expanded ? 'block' : 'none';
+            if (focusTrigger) link.focus();
+        }
+
+        function focusPanelEdge(last) {
+            var links = panel.querySelectorAll('a[href]');
+            if (links.length === 0) return;
+            links[last ? links.length - 1 : 0].focus();
+        }
+
+        function togglePinned() {
+            pinned = !pinned;
+            setExpanded(pinned, false);
+        }
+
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            togglePinned();
+        });
+        link.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                pinned = true;
+                setExpanded(true, false);
+                focusPanelEdge(e.key === 'ArrowUp');
+            } else if (e.key === ' ') {
+                e.preventDefault();
+                togglePinned();
+            }
+        });
+        more.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape' || !expanded) return;
+            e.preventDefault();
+            e.stopPropagation();
+            pinned = false;
+            setExpanded(false, true);
+        });
+        more.addEventListener('mouseenter', function () { setExpanded(true, false); });
+        more.addEventListener('mouseleave', function () {
+            if (!pinned && !more.contains(document.activeElement)) setExpanded(false, false);
+        });
+        more.addEventListener('focusout', function () {
+            window.setTimeout(function () {
+                if (!more.contains(document.activeElement)) {
+                    pinned = false;
+                    setExpanded(false, false);
+                }
+            }, 0);
+        });
+        document.addEventListener('click', function (e) {
+            if (!more.contains(e.target)) {
+                pinned = false;
+                setExpanded(false, false);
+            }
+        });
 
         var cta = ul.querySelector(':scope > li[data-yk-nav-cta]');
         ul.insertBefore(more, cta);
@@ -59,6 +127,8 @@
             var items = movableItems();
             if (items.length === 0) return false;
             var top = items[0].offsetTop;
+            // 图标、CTA 的行内盒可能产生 1-2px 正常垂直偏移；真正折行会接近整行高度。
+            var lineTolerance = Math.max(4, Math.min(12, Math.round(items[0].offsetHeight / 4)));
             var bounds = ul.getBoundingClientRect();
             var visibleItems = items.concat(more.classList.contains('hidden') ? [] : [more], cta ? [cta] : []);
             for (var j = 0; j < visibleItems.length; j++) {
@@ -66,10 +136,10 @@
                 if (rect.left < bounds.left - 1 || rect.right > bounds.right + 1) return true;
             }
             for (var i = 1; i < items.length; i++) {
-                if (items[i].offsetTop > top + 1) return true;
+                if (items[i].offsetTop > top + lineTolerance) return true;
             }
-            if (!more.classList.contains('hidden') && more.offsetTop > top + 1) return true;
-            if (cta && cta.offsetTop > top + 1) return true;
+            if (!more.classList.contains('hidden') && more.offsetTop > top + lineTolerance) return true;
+            if (cta && cta.offsetTop > top + lineTolerance) return true;
             return false;
         }
 
@@ -98,6 +168,8 @@
         }
 
         function reflow() {
+            pinned = false;
+            setExpanded(false, false);
             for (var i = 0; i < moved.length; i++) ul.insertBefore(moved[i], more);
             moved = [];
             panel.textContent = '';
@@ -108,7 +180,7 @@
             var guard = 0;
             while (isWrapped() && guard++ < 60) {
                 var items = movableItems();
-                if (items.length <= 1) break;       // 至少留一项在栏上
+                if (items.length <= 2) break;       // 至少留两项在栏上，避免主导航只剩孤立入口
                 var last = items[items.length - 1];
                 more.classList.remove('hidden');
                 panel.insertBefore(entryFor(last), panel.firstChild);

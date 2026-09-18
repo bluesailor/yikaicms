@@ -60,8 +60,8 @@ test('CTA copy stays local while its background uses the generic section editor 
   }));
   const errors = observeConsole(page), writes = observeUnsafeWrites(page);
   await openBlock(page, 'cta');
-  await performPreviewUpdate(page, () => field(page, 'override_button_text').locator('input').fill('Contact draft'));
-  await performPreviewUpdate(page, () => field(page, 'override_button_url').locator('input').fill('/contact.html?from=draft'));
+  await performPreviewUpdate(page, () => page.getByTestId('blox-cta-btn_text').fill('Contact draft'));
+  await performPreviewUpdate(page, () => page.getByTestId('blox-cta-btn_url').fill('/contact.html?from=draft'));
   const cta = (await frame(page)).locator('[data-yk-home="cta"]').first();
   await expect(cta.locator('a').first()).toHaveAttribute('href', '/contact.html?from=draft');
   await expect(cta.locator('a').first()).toContainText('Contact draft');
@@ -69,8 +69,8 @@ test('CTA copy stays local while its background uses the generic section editor 
   await waitPreviewSettled(page);
   const scroll = await canvasScrollTop(page);
   for (const key of ['bg_image', 'bg_color', 'bg_overlay_color', 'bg_overlay_opacity', 'text_light']) await expect(field(page, key)).toHaveCount(0);
-  await expect(page.getByTestId('blox-home-group-media')).toContainText('编辑区块背景');
-  await page.getByTestId('blox-home-group-media').click();
+  await expect(page.getByTestId('blox-edit-section-background')).toContainText('编辑区块背景');
+  await page.getByTestId('blox-edit-section-background').click();
   await expect(page.getByTestId('blox-style-tab')).toHaveAttribute('class', /border-blue-500/);
   await expect(page.getByTestId('blox-section-background-video-media')).toBeVisible();
   await performPreviewUpdate(page, () => page.getByTestId('blox-section-bg-video').fill('/uploads/videos/blox-test-flower.mp4'));
@@ -89,8 +89,8 @@ test('CTA copy stays local while its background uses the generic section editor 
   expect(Math.abs((await canvasScrollTop(page)) - scroll)).toBeLessThan(8);
   await page.screenshot({ path: testInfo.outputPath('cta-generic-video-background.png') });
   await page.getByTestId('blox-return-content').click();
-  await expect(field(page, 'override_button_text').locator('input')).toHaveValue('Contact draft');
-  await expect(field(page, 'override_button_url').locator('input')).toHaveValue('/contact.html?from=draft');
+  await expect(page.getByTestId('blox-cta-btn_text')).toHaveValue('Contact draft');
+  await expect(page.getByTestId('blox-cta-btn_url')).toHaveValue('/contact.html?from=draft');
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
 });

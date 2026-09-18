@@ -32,9 +32,12 @@ test('FAQ edits, reorders, deletes, undoes and publishes a working accordion @ci
   const items = page.getByTestId('blox-accordion-item');
   await expect(items).toHaveCount(2);
   await expect(page.getByTestId('blox-element-property-grid')).not.toContainText('faq_repeater');
+  // 答案自 v1.20 起是紧凑富文本（compact-richtext）；切到源码视图用纯 textarea 输入，不依赖编辑器初始化时序。
+  const answer = page.getByTestId('blox-accordion-answer').first();
+  await answer.getByTestId('blox-description-source-toggle').click();
   await performPagePreviewUpdate(page, async () => {
     await page.getByTestId('blox-accordion-question').first().fill(marker);
-    await page.getByTestId('blox-accordion-answer').first().fill(marker + ' answer');
+    await answer.getByTestId('blox-description-source').fill(marker + ' answer');
     await page.getByTestId('blox-accordion-question').nth(1).fill(marker + ' second');
   });
   await performPagePreviewUpdate(page, () => page.getByTestId('blox-accordion-move-down').first().click());

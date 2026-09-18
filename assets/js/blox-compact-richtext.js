@@ -61,13 +61,15 @@
             },
             toggleSource: function () {
                 this.sourceMode = !this.sourceMode;
+                // init 之前 editor 已由 setup() 赋值但还没有 body，hide()/show() 会在 null 上设
+                // contentEditable 而抛错；未就绪时只记状态，init 回调会按 sourceMode 补一次 hide()。
                 if (this.sourceMode) {
-                    if (editor) editor.hide();
-                    this.$nextTick(function () { this.$refs.source.focus(); }.bind(this));
+                    if (editor && this.ready) editor.hide();
+                    this.$nextTick(function () { if (this.$refs.source) this.$refs.source.focus(); }.bind(this));
                 } else {
-                    if (editor) editor.show();
+                    if (editor && this.ready) editor.show();
                     this.loadContent();
-                    this.$nextTick(function () { if (editor) editor.focus(); });
+                    this.$nextTick(function () { if (editor && this.ready) editor.focus(); }.bind(this));
                 }
             },
             mount: function () {

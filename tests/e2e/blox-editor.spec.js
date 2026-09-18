@@ -180,7 +180,7 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     const templateDialog = page.locator('[x-ref="templateDialog"]');
     await expect(templateDialog).toBeVisible();
     await expect(page.getByTestId('blox-template-search')).toBeFocused();
-    await expect(page.getByTestId('blox-template-category')).toBeVisible();
+    await expect(page.getByTestId('blox-template-category-chips')).toBeVisible();
     const firstTemplateImage = page.locator(
       '[data-testid="blox-template-item"][data-template-key^="builtin:"] img',
     ).first();

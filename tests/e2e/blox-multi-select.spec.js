@@ -75,6 +75,12 @@ async function makeSameColumn(page, total) {
   }
   await page.keyboard.press('Escape');
   await waitPreviewSettled(page);
+  const rows = section.getByTestId('blox-tree-element');
+  if (!await rows.first().isVisible()) {
+    await section.getByTestId('blox-tree-section-label').click();
+  }
+  await expect(rows).toHaveCount(total);
+  await expect(rows.first()).toBeVisible();
   return section;
 }
 const makeSameColumnTrio = (page) => makeSameColumn(page, 3);

@@ -136,7 +136,10 @@ test('theme default preview and restore preserve the published design and scope 
     await front.goto(products[1].url);
     await expect(front.locator('.yk-blox-product-detail')).toHaveAttribute('data-template-id', String(ids.global));
     const restored = JSON.parse(fixture('read', ids.selected));
-    expect(restored.draft_data).toBe(before.draft_data);
+    // 切到 native 后草稿也会带上 settings.product_template.source（让过期的编辑器版本保存失败），其余必须原样。
+    const withoutSource = (json) => { const doc = JSON.parse(json); delete doc.settings.product_template.source; return doc; };
+    expect(JSON.parse(restored.draft_data).settings.product_template.source).toBe('native');
+    expect(withoutSource(restored.draft_data)).toEqual(withoutSource(before.draft_data));
     expect(JSON.parse(restored.published_data).sections).toEqual(JSON.parse(before.published_data).sections);
     await page.screenshot({ path: info.outputPath('product-native-manager.png'), fullPage: true });
 
