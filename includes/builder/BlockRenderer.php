@@ -674,7 +674,7 @@ final class BlockRenderer
     private static function collectSectionElement(array $element, array &$result, int $depth): void
     {
         $result[] = $element;
-        if ($depth >= 3) {
+        if ($depth + 1 >= BloxDocumentValidator::MAX_ELEMENT_DEPTH) {
             return;
         }
         $data = is_array($element['data'] ?? null) ? $element['data'] : [];
@@ -759,7 +759,7 @@ final class BlockRenderer
     /**
      * 渲染单个元素。容器元素（isContainer）先递归渲染 data.children 传入 $children；
      * 普通元素不看 children 键，输出与抽取前逐字节一致（黄金对拍不破）。
-     * 深度上限 3 防坏数据画圈（编辑器只允许一层，这里是兜底不是约束）。
+     * 深度约束见 BloxDocumentValidator::MAX_ELEMENT_DEPTH（保存时显式拒绝，渲染只兜底）。
      * 未注册 type 静默跳过（与旧 switch default 行为一致）。
      */
     private static function colSpanClass(mixed $span, bool $desktopOnly = false, bool $mobileGrid = false): string
@@ -1022,7 +1022,10 @@ final class BlockRenderer
         BloxAssetCollector::collectElement($element, $data);
 
         $children = '';
-        if ($element->isContainer() && !$element->rendersOwnChildren() && $depth < 3) {
+        // 0b：深度约束改由 BloxDocumentValidator::MAX_ELEMENT_DEPTH 显式校验（顶层=第 1 层，
+        // 此处 $depth 从 0 计），这里只作坏数据兜底，不再是静默截断点。
+        if ($element->isContainer() && !$element->rendersOwnChildren()
+            && $depth + 1 < BloxDocumentValidator::MAX_ELEMENT_DEPTH) {
             foreach ((array) ($el['data']['children'] ?? []) as $childIndex => $child) {
                 if (is_array($child)) {
                     $childPath = $path;

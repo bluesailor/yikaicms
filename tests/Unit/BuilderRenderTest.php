@@ -1012,15 +1012,16 @@ final class BuilderRenderTest extends TestCase
 
     public function testContainerDepthCapStopsRunawayNesting(): void
     {
-        // 编辑器只允许一层；渲染器深度上限 3 兜底坏数据。构造 5 层自嵌套，
-        // 第 4 层（depth=3）的 children 不再展开——只数 yk-container 出现次数。
+        // 0b：深度约束统一为 BloxDocumentValidator::MAX_ELEMENT_DEPTH（保存时显式拒绝），
+        // 渲染器只兜底坏数据。构造上限+2 层自嵌套，超限层的 children 不再展开。
+        $max = \BloxDocumentValidator::MAX_ELEMENT_DEPTH;
         $node = ['type' => 'heading', 'data' => ['level' => 'h2', 'text' => 'deep']];
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < $max + 1; $i++) {
             $node = ['type' => 'container', 'data' => ['children' => [$node]]];
         }
         $out = $this->inner($this->oneEl($node));
-        $this->assertSame(4, substr_count($out, 'yk-container')); // depth 0..3 共 4 层
-        $this->assertStringNotContainsString('deep', $out);       // 第 5 层内容被截断
+        $this->assertSame($max, substr_count($out, 'yk-container')); // 第 1..MAX 层容器渲染
+        $this->assertStringNotContainsString('deep', $out);          // 超限层内容被兜底截断
     }
 
     public function testEditModeAddsInlineEditingMetadata(): void
