@@ -438,6 +438,7 @@ MUST_EXIST=(
     "includes/pinyin/AUTHORS.txt"
     "uploads/.gitkeep"
     "storage/.gitkeep"
+    "storage/.htaccess"
     ".htaccess"
 )
 for f in "${MUST_EXIST[@]}"; do
