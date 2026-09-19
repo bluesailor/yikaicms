@@ -35,7 +35,7 @@ final class BloxProAccessTest extends TestCase
         foreach (['name', 'description', 'name_en', 'description_en', 'name_ja', 'description_ja'] as $key) {
             self::assertNotSame('', $meta[$key]);
         }
-        // 免费期（三项能力均为 free）随完整包分发并默认启用；切换 licensed 前须改回 pro 受控下载。
+        // 任一能力为 licensed 时插件必须在 pro 清单（受控下载、不随完整包）；全部 free 时才随完整包（core）分发。
         $manifest = json_decode((string) file_get_contents(ROOT_PATH . '/config/blox-assets.json'), true, 512, JSON_THROW_ON_ERROR);
         $policy = require ROOT_PATH . '/config/blox-feature-policy.php';
         $licensed = in_array('licensed', array_values($policy), true);

@@ -94,15 +94,22 @@ declare(strict_types=1);
                                     <div class="relative min-w-0">
                                         <button type="button" @click="activatePaletteElement(el, $event)"
                                                 :data-testid="(grp.quick ? 'blox-quick-element-' : 'blox-add-element-') + el.type"
-                                                draggable="true"
+                                                :draggable="el.locked ? 'false' : 'true'"
+                                                :aria-disabled="el.locked ? 'true' : null"
+                                                :data-pro="el.proFeature ? (el.locked ? 'locked' : 'available') : null"
                                                 @dragstart="startPaletteDrag(el, $event)"
                                                 @dragend="finishPaletteDrag()"
-                                                class="w-full h-16 rounded-md border border-gray-200 text-gray-700 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition flex flex-col items-center justify-center gap-1 cursor-grab active:cursor-grabbing"
-                                                :class="paletteSelected === el.type ? 'border-blue-500 bg-blue-50 text-blue-600 ring-1 ring-blue-200' : ''"
-                                                :title="el.label + <?= e($jt('blox_el_drag_hint')) ?>">
+                                                class="w-full h-16 rounded-md border text-gray-700 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition flex flex-col items-center justify-center gap-1"
+                                                :class="[paletteSelected === el.type ? 'border-blue-500 bg-blue-50 text-blue-600 ring-1 ring-blue-200' : (el.proFeature ? 'border-amber-200 bg-amber-50/60' : 'border-gray-200'), el.locked ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing']"
+                                                :title="el.locked ? professionalLockedMessage(el.proFeature) : el.label + <?= e($jt('blox_el_drag_hint')) ?>">
                                             <i class="ti text-lg" :class="'ti-' + el.icon"></i>
                                             <span class="max-w-full px-2 text-[11px] leading-tight text-center truncate" x-text="el.label"></span>
                                         </button>
+                                        <?php // 易开网页构建器 Pro 元素：角标链到授权页（授权与否都显示，与免费元素区分） ?>
+                                        <a x-show="el.proFeature" href="/admin/license.php" target="_blank" rel="noopener" @click.stop
+                                           :data-testid="'blox-pro-badge-' + el.type"
+                                           title="<?= e(__('blox_pro_badge_title')) ?>" aria-label="<?= e(__('blox_pro_badge_title')) ?>"
+                                           class="absolute top-1 left-1 px-1 rounded text-[9px] font-bold leading-4 tracking-wide bg-amber-500 text-white hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">PRO</a>
                                         <button type="button" @click.stop="toggleElementFavorite(el.type)"
                                                 :data-testid="(grp.quick ? 'blox-quick-favorite-element-' : 'blox-favorite-element-') + el.type"
                                                 :aria-pressed="isElementFavorite(el.type)"

@@ -4,11 +4,16 @@ declare(strict_types=1);
 /** Compare protected authoring fields against server-owned document data only. */
 final class BloxProtectedFields
 {
-    /** 站点字段与循环字段绑定；fallback、截断长度属于普通展示设置，不在保护范围内。 */
-    private const BINDING_KEYS = [
-        'site_field', 'site_image_field', 'site_text_field', 'site_url_field',
-        'loop_field', 'loop_url_field', 'loop_alt_field', 'loop_link_field', 'loop_text_field',
-    ];
+    /** 站点字段绑定；fallback、截断长度属于普通展示设置，不在保护范围内。 */
+    private const SITE_BINDING_KEYS = ['site_field', 'site_image_field', 'site_text_field', 'site_url_field'];
+
+    /**
+     * 循环字段绑定：只在循环模板（list-dynamic / content-catalog）内部才生效，也只在那里受保护。
+     * 标题、文本、按钮、图片的这些控件带默认值（如 loop_field = title），插入到循环外时数据里照样有，
+     * 但渲染器只在循环里读取它们（DynamicLoopTemplateRenderer）；若在循环外也当绑定保护，
+     * 未授权站点连普通标题都插不进去。
+     */
+    private const LOOP_BINDING_KEYS = ['loop_field', 'loop_url_field', 'loop_alt_field', 'loop_link_field', 'loop_text_field'];
 
     public static function forValidation(array $sections, array $trusted, array $denied): array
     {
@@ -38,7 +43,7 @@ final class BloxProtectedFields
                 $columnId = (string) ($column['id'] ?? $ci);
                 foreach ($column['elements'] ?? [] as $ei => $element) {
                     $section['columns'][$ci]['elements'][$ei] = self::element(
-                        $element, $sectionId . '/' . $columnId, $denied, $protected, $seen
+                        $element, $sectionId . '/' . $columnId, $denied, $protected, $seen, false
                     );
                 }
             }
@@ -58,7 +63,7 @@ final class BloxProtectedFields
         return $id;
     }
 
-    private static function element(array $element, string $parent, array $denied, array &$protected, array &$seen): array
+    private static function element(array $element, string $parent, array $denied, array &$protected, array &$seen, bool $inLoop): array
     {
         $id = self::identity($element, $seen);
         $data = $element['data'] ?? [];
@@ -68,7 +73,7 @@ final class BloxProtectedFields
         if (in_array('display_conditions', $denied, true)) $keys[] = '_conditions';
         if (in_array('style_presets', $denied, true)) $keys = array_merge($keys, ['_global_style', '_global_style_snapshot']);
         if (in_array('query_loop', $denied, true)) {
-            $keys = array_merge($keys, self::BINDING_KEYS);
+            $keys = array_merge($keys, self::SITE_BINDING_KEYS, $inLoop ? self::LOOP_BINDING_KEYS : []);
             if (($element['type'] ?? '') === 'list-dynamic') {
                 $keys = array_merge($keys, ['template', 'pagination_mode']);
                 $loopHost = true;
@@ -108,7 +113,7 @@ final class BloxProtectedFields
         }
         foreach ($children as $index => $child) {
             if (is_array($child)) {
-                $data['children'][$index] = self::element($child, $id, $denied, $protected, $seen);
+                $data['children'][$index] = self::element($child, $id, $denied, $protected, $seen, $inLoop || $loopHost);
             }
         }
         if ($loopHost) {

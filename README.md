@@ -1,6 +1,6 @@
-# Yikai CMS v1.20.0
+# Yikai CMS v1.20.1
 
-> v1.20.0 已正式发布，可从 [GitHub Releases](https://github.com/bluesailor/yikaicms/releases/tag/v1.20.0) 下载完整安装包及增量升级包。最低 PHP 版本统一为 8.0，包含 BLOX Pro；开发测试工具的 PHP 要求不属于运行环境要求。
+> v1.20.1：易开网页构建器 Pro（循环模板、显示条件、全局样式、表格、价格方案）改为授权插件，从后台插件市场安装，编辑器中以 PRO 标识；新装站点不再登记未随包提供的插件。最低 PHP 8.0。
 
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg?logo=php)](https://www.php.net/)

@@ -37,7 +37,6 @@
     "includes/MediaUsageAudit.php",
     "admin/blox_design.php",
     "admin/blox_design_api.php",
-    "plugins/yikai-builder",
     "includes/builder/BloxAreaTemplatePresets.php",
     "includes/builder/BloxAreaEditorTarget.php",
     "includes/builder/BloxFrontendEditTarget.php",
@@ -85,7 +84,8 @@
     "includes/builder/BannerContentLayout.php"
   ],
   "pro": [
-    "plugins/blox-example"
+    "plugins/blox-example",
+    "plugins/yikai-builder"
   ],
   "runtime": [
     "includes/builder/bootstrap.php",

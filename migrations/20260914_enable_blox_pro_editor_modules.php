@@ -1,30 +1,35 @@
 <?php
-/** 免费期内随核心包提供易开网页构建器 Pro 作者端模块（插件 ID yikai-builder）：为已有站点补登记并启用。 */
+/**
+ * 易开网页构建器 Pro 旧插件 ID（开发期 blox-pro → yikai-builder）改名。
+ *
+ * v1.20.0 免费期曾在这里为已有站点补登记并启用 yikai-builder；v1.20.1 起它改为授权插件、
+ * 不随核心包分发，升级时再登记只会留下没有目录的孤儿记录，所以只保留改名。迁移 ID 不变，
+ * 已跑过的站点不会重跑（v1.20.0 无站点安装记录，2026-09-19 确认）。
+ */
 
 declare(strict_types=1);
 
 return [
     'id' => '20260914_enable_blox_pro_editor_modules',
-    'title' => '默认启用易开网页构建器 Pro 作者端模块',
-    'desc' => '显示条件等作者端面板迁入 yikai-builder 插件；仅为尚未登记的已有站点补安装并启用，不覆盖管理员已停用的状态。开发期曾以 blox-pro 登记的站点改为新 ID 并保留启用状态。',
-    'title_en' => 'Enable Yikai Builder Pro authoring modules by default',
-    'title_ja' => 'Yikai ビルダー Pro 編集モジュールを既定で有効化',
-    'desc_en' => 'Authoring panels such as display conditions now live in the yikai-builder plugin; it is registered and enabled only when missing, and an administrator-disabled state is preserved. Sites registered under the earlier blox-pro ID are moved to the new ID with their state kept.',
-    'desc_ja' => '表示条件などの編集パネルは yikai-builder プラグインに移りました。未登録の場合のみ登録・有効化し、管理者が無効化した状態は保持します。以前の blox-pro ID で登録済みのサイトは状態を保ったまま新しい ID に移行します。',
+    'title' => '迁移易开网页构建器 Pro 旧插件 ID',
+    'desc' => '开发期曾以 blox-pro 登记的站点改为新 ID yikai-builder，并保留原启用状态；未登记的站点不做任何改动。',
+    'title_en' => 'Move the legacy Yikai Builder Pro plugin ID',
+    'title_ja' => 'Yikai ビルダー Pro の旧プラグイン ID を移行',
+    'desc_en' => 'Sites registered under the earlier blox-pro ID are moved to yikai-builder with their state kept; other sites are left unchanged.',
+    'desc_ja' => '以前の blox-pro ID で登録済みのサイトは状態を保ったまま yikai-builder に移行します。それ以外のサイトは変更しません。',
     'check' => static function (): bool {
         try {
             if (!db()->tableExists('plugins')) {
                 return true;
             }
-            return pluginModel()->findBySlug('yikai-builder') !== null
-                && pluginModel()->findBySlug('blox-pro') === null;
+            return pluginModel()->findBySlug('blox-pro') === null;
         } catch (Throwable) {
             return false;
         }
     },
     'php' => static function (): string {
         if (!db()->tableExists('plugins')) {
-            return '插件表尚未创建，已跳过易开网页构建器 Pro 作者端模块登记。';
+            return '插件表尚未创建，已跳过易开网页构建器 Pro 旧插件 ID 迁移。';
         }
 
         $legacy = pluginModel()->findBySlug('blox-pro');
@@ -38,11 +43,6 @@ return [
             return '已移除旧插件 ID blox-pro，保留 yikai-builder 现有状态。';
         }
 
-        if ($current !== null) {
-            return '易开网页构建器 Pro 作者端模块已登记，保留现有启用状态。';
-        }
-
-        pluginModel()->activate('yikai-builder');
-        return '易开网页构建器 Pro 作者端模块已安装并启用。';
+        return '没有旧插件 ID blox-pro，无需迁移。';
     },
 ];

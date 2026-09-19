@@ -35,6 +35,13 @@ final class BloxDocumentPipeline
     public static function assertAuthoringAllowed(array $sections, ?string $trustedJson): void
     {
         BloxElementPolicy::assertSectionsAllowed($sections);
+        if (BloxFeaturePolicy::inTrustedWrite()) {
+            // 代码内置内容：只做结构校验，不按作者能力拦截（见 BloxFeaturePolicy::asTrustedWrite）。
+            BloxQueryLoopPolicy::assertSectionsAllowed($sections, true);
+            BloxDisplayConditions::assertSectionsAllowed($sections, true);
+            BloxDesignSystem::assertSectionsAllowed($sections, true);
+            return;
+        }
         $validationSections = $sections;
         $denied = BloxFeaturePolicy::denied();
         if ($trustedJson !== null && $denied !== []) {

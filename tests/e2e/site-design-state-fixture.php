@@ -124,11 +124,14 @@ if ($action === 'seed') {
         'sections' => [['columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'TB page content']]]]]]]],
         JSON_THROW_ON_ERROR
     );
-    if ($action === 'draft-hide') {
-        PageBloxDocument::saveDraft($state['page'], $json);
-    } else {
-        PageBloxDocument::saveAndPublish($state['page'], $json);
-    }
+    // 夹具直接落库（无编辑器 base_revision）：v1.20.1 起 Pro 能力为 licensed，按服务端可信写入处理。
+    BloxFeaturePolicy::asTrustedWrite(static function () use ($action, $state, $json): void {
+        if ($action === 'draft-hide') {
+            PageBloxDocument::saveDraft($state['page'], $json);
+        } else {
+            PageBloxDocument::saveAndPublish($state['page'], $json);
+        }
+    });
 }
 cacheClear();
 // Direct fixture writes must invalidate the anonymous page cache as web hooks do.
