@@ -85,8 +85,11 @@ if ($action === 'converted') {
     unset($column);
 }
 $json = json_encode(['schema' => 1, 'sections' => [$section]], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-HomeBloxDocument::saveDraft($json);
-if ($action === 'converted') { HomeBloxDocument::publishDraft(); }
+// 夹具模拟站点已有的首页文档（v1.20.1 起 Pro 能力为 licensed）：按服务端可信写入落库，不走作者能力检查。
+BloxFeaturePolicy::asTrustedWrite(static function () use ($json, $action): void {
+    HomeBloxDocument::saveDraft($json);
+    if ($action === 'converted') { HomeBloxDocument::publishDraft(); }
+});
 $channel = getChannelBySlug('about');
 $urls = [];
 foreach (['zh-CN', 'en', 'ja'] as $language) {

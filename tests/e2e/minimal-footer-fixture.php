@@ -38,6 +38,9 @@ if (!is_file($snapshot)) {
 settingModel()->saveBatch(['current_theme' => 'minimal', 'blox_custom_footer_enabled' => $action === 'preset' ? '1' : '0']);
 if ($action === 'preset') {
     db()->delete('blox_templates', 'source_ref = ?', ['e2e-minimal-footer']);
-    $template = BloxTemplateImporter::importJson((string) file_get_contents(ROOT_PATH . '/templates/blox/areas/minimal-site-footer.json'), 1, 'import', 'e2e-minimal-footer');
-    bloxTemplateModel()->publishDraft($template['id']);
+    // 随包官方页脚（含站点数据绑定）：与官方预置安装一样按可信写入导入，不依赖授权。
+    BloxFeaturePolicy::asTrustedWrite(static function (): void {
+        $template = BloxTemplateImporter::importJson((string) file_get_contents(ROOT_PATH . '/templates/blox/areas/minimal-site-footer.json'), 1, 'import', 'e2e-minimal-footer');
+        bloxTemplateModel()->publishDraft($template['id']);
+    });
 }
