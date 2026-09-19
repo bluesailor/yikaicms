@@ -8,9 +8,10 @@ test.describe('SEO workshop @ci', () => {
     const activate = page.locator('#plugin-seo button[onclick*="pluginAction(\'activate\'"]');
     if (await activate.isVisible()) {
       // 插件页加载时还会 POST 拉市场列表（action=market_list，CI 无外网时返回 code 1），只认本次启用请求。
+      // 启用走 FormData（multipart），也兼容 urlencoded。
       const activated = page.waitForResponse((response) => response.request().method() === 'POST'
         && new URL(response.url()).pathname === '/admin/plugin.php'
-        && new URLSearchParams(response.request().postData() || '').get('action') === 'activate');
+        && /(?:^|&)action=activate(?:&|$)|name="action"\r?\n\r?\nactivate\r?\n/.test(response.request().postData() || ''));
       await activate.click();
       expect((await (await activated).json()).code).toBe(0);
     }
