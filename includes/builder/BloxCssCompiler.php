@@ -13,7 +13,7 @@ final class BloxCssCompiler
 
     /**
      * 可由控件声明的属性白名单与值类型。普通文档只提供值，属性、选择器与解析方式只来自可信 schema。
-     * length: px 整数或一位小数；number: 无单位一位小数；enum: 固定枚举。
+     * length: px 整数或一位小数；number: 无单位一位小数；int: 无单位整数；enum: 固定枚举。
      */
     private const PROPERTIES = [
         'font-size' => ['length', 8, 160],
@@ -24,6 +24,13 @@ final class BloxCssCompiler
         'padding-block' => ['length', 0, 96],
         'border-radius' => ['length', 0, 999],
         'gap' => ['length', 0, 160],
+        // 0a 布局引擎：flex 容器与子项的受控任意值（枚举类布局值仍走既有类映射，输出不变）。
+        'row-gap' => ['length', 0, 160],
+        'column-gap' => ['length', 0, 160],
+        'flex-basis' => ['length', 0, 1200],
+        'flex-grow' => ['number', 0, 10],
+        'flex-shrink' => ['number', 0, 10],
+        'order' => ['int', -10, 10],
     ];
 
     /**
@@ -193,6 +200,10 @@ final class BloxCssCompiler
         $number = round((float) $raw, 1);
         if ($number < $a || $number > $b) {
             return null;
+        }
+        if ($type === 'int') {
+            // order 等只接受整数的属性：小数不是合法 CSS 值，拒收而不是四舍五入。
+            return floor($number) === $number ? (int) $number : null;
         }
         return floor($number) === $number && $type === 'length' ? (int) $number : $number;
     }

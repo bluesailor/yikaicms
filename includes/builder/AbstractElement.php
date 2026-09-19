@@ -50,6 +50,43 @@ abstract class AbstractElement
     }
 
     /**
+     * 子项在父级 flex 容器中的布局控件（0a 布局引擎）。
+     *
+     * order/flex-grow/flex-shrink/flex-basis 走声明式 CSS 引擎（留空即不输出，存量渲染不变）；
+     * align_self 是枚举，由元素 render 用字面类映射输出。0a 先开放给布局节点
+     * （container/div），递归容器落地后再推广到其余元素。
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function flexItemControls(): array
+    {
+        return [
+            ['key' => 'align_self', 'type' => 'select', 'label' => __('blox_align_self'), 'default' => 'auto', 'tab' => 'style',
+                'options' => ['auto' => __('blox_align_self_auto'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'stretch' => __('blox_align_stretch'), 'baseline' => __('blox_flex_align_baseline')],
+                'option_icons' => ['auto' => 'ban', 'start' => 'layout-align-top', 'center' => 'layout-align-middle', 'end' => 'layout-align-bottom', 'stretch' => 'arrows-vertical', 'baseline' => 'align-box-bottom-center']],
+            ['key' => 'order_n', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_flex_order'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => -10, 'max' => 10, 'step' => 1,
+                'css' => [['property' => 'order']]],
+            ['key' => 'flex_grow', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_flex_grow'),
+                'default' => '', 'tab' => 'style', 'min' => 0, 'max' => 10, 'step' => 1,
+                'css' => [['property' => 'flex-grow']]],
+            ['key' => 'flex_shrink', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_flex_shrink'),
+                'default' => '', 'tab' => 'style', 'min' => 0, 'max' => 10, 'step' => 1,
+                'css' => [['property' => 'flex-shrink']]],
+            ['key' => 'flex_basis_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_flex_basis'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 1200, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'flex-basis']]],
+        ];
+    }
+
+    /** align_self 枚举 → 字面类（Tailwind 扫描要求字面量；auto 无类，存量输出不变）。 */
+    protected static function alignSelfClass(array $data): string
+    {
+        return ['start' => 'self-start', 'center' => 'self-center', 'end' => 'self-end',
+            'stretch' => 'self-stretch', 'baseline' => 'self-baseline'][$data['align_self'] ?? 'auto'] ?? '';
+    }
+
+    /**
      * 常用内容元素共享的入场动画设置。
      *
      * @return list<array<string, mixed>>
