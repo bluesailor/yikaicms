@@ -2,7 +2,7 @@
 
 ## 插件与模板开发文档
 
-供开发者及不同 AI 编程助手阅读，源码路径相对于项目目录。不包含 BLOX 编辑器插件开发。
+供开发者及不同 AI 编程助手阅读，源码路径相对于项目目录。不包含易开网页构建器（BLOX）编辑器插件开发。
 
 - [AI 开发阅读入口](./AI-DEVELOPMENT.md)：范围、通用约定和任务模板。
 - [插件开发指南](./PLUGIN-DEVELOPMENT.md)：业务插件接口、示例、安全与打包。
@@ -12,14 +12,15 @@
 
 不同 Web 环境的伪静态（URL 重写）配置。选你的环境照做即可。
 
-> **v1.12.9 起支持 WordPress 兼容模式**：主机面板选「WordPress 伪静态」预设即可运行
-> （程序内置 Dispatcher 完成分发），或用 `deploy/htaccess-minimal.txt`。
-> 有条件仍推荐完整规则（静态直出性能最好 + 服务器层安全拦截）。
+> **路由只需一条 catch-all**：程序内置 Dispatcher 完成分发（v1.12.9+），所以「WordPress 伪静态」这类
+> 两行规则就能让页面跑起来。**但它不封禁敏感目录**：SQLite 站点的数据库 `storage/database.sqlite`
+> 会被当作静态文件直接下载。请使用本目录对应环境的完整规则；只能用受限规则时，必须同时加上敏感目录拦截
+> （`deploy/htaccess-minimal.txt` 已包含），部署后访问 `/storage/database.sqlite` 必须返回 403 或 404。
 
 | 环境 | 用哪个文件 | 一句话 |
 |---|---|---|
-| 任何支持 WordPress 的主机 | 面板选「WordPress 伪静态」或 `deploy/htaccess-minimal.txt` | 两行 catch-all，程序内分发 |
-| 宝塔面板（nginx） | 伪静态选「wordpress」预设，或 `deploy/nginx-baota.conf` | 选预设最省事；conf 版含静态直出 |
+| 宝塔面板（nginx） | 伪静态框写一行 `include …/deploy/nginx-baota.conf;` | 路由 + 敏感目录封禁，升级自动更新；**不要只选 wordpress 预设** |
+| 受限主机（Apache，只能放最小规则） | `deploy/htaccess-minimal.txt` 重命名为 `.htaccess` | catch-all + 敏感目录拦截 |
 | 阿里云虚拟主机 / 万网（Apache 共享主机） | `deploy/aliyun-vhost.htaccess` 或根目录 `.htaccess` | 重命名放根目录 |
 | 阿里云虚拟主机（nginx 型） | `deploy/aliyun-nginx.htaccess` | 面板伪静态处使用（仅支持有限指令） |
 | 自己的 nginx 服务器（完整 server 块） | `deploy/nginx-server.conf` | 加进 server 块，带静态直出 |
@@ -29,9 +30,9 @@
 
 ## 上线后的安全复测
 
-部署或调整 Web 服务器规则后，到后台 **系统 → 站点健康** 重新扫描。重点确认：
+部署或调整 Web 服务器规则后，到后台 **系统设置 → 站点健康** 重新扫描。重点确认：
 
-- 配置目录、运行数据目录和程序目录的探测请求返回 403 或 404；
+- 配置目录、运行数据目录和程序目录的探测请求返回 403 或 404（SQLite 站点另测 `/storage/database.sqlite`）；
 - `uploads/` 下的 PHP 探针返回 403 或 404；
 - 如果探针正文被原样返回，虽然没有执行 PHP，仍存在源码泄露，应继续封禁；
 - 如果探针返回执行标记，说明上传目录仍会执行 PHP，必须先修服务器配置再上线。
@@ -77,6 +78,9 @@ include /www/wwwroot/你的站点目录/deploy/nginx-baota.conf;
 
 保存。以后 CMS 升级包会更新 `deploy/nginx-baota.conf`，你只需在宝塔点一下「重载配置」，新路由即生效——**再也不用进伪静态框粘贴**。
 
+> ⚠ 不要只选宝塔自带的「wordpress」预设：它只有 `try_files` catch-all，会放行磁盘上真实存在的文件，
+> SQLite 站点的 `storage/database.sqlite` 可被直接下载。
+
 **或者**：直接把 `deploy/nginx-baota.conf` 的**全部内容**粘进伪静态框（升级后路由有变时需再粘一次）。
 
 > 为什么能 include：宝塔的「伪静态」本质就是一个被 nginx `include` 进 server 块的文件，所以里面再 include 一个我们自己的文件完全合法。
@@ -113,7 +117,7 @@ include /www/wwwroot/你的站点目录/deploy/nginx-baota.conf;
 
 ## 定时任务（所有环境通用）
 
-后台的「定时内容上线、回收站清理、自动备份」需要一个定时触发器。到服务器 crontab 或宝塔「计划任务」加一条（token 在后台「系统 → 定时任务」页看）：
+后台的「定时内容上线、回收站清理、自动备份」需要一个定时触发器。到服务器 crontab 或宝塔「计划任务」加一条（token 在后台「系统设置 → 定时任务」页看）：
 
 ```
 */5 * * * * curl -s "https://你的域名/cron.php?token=后台给的token" >/dev/null
