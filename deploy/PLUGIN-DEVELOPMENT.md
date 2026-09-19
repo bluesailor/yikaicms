@@ -1,12 +1,12 @@
 # YikaiCMS 插件开发指南
 
-文档版本：0.2。更新：2026-09-13。对象：为 YikaiCMS 编写业务扩展和后台工具的开发者。
+文档版本：0.3。更新：2026-09-18。对象：为 YikaiCMS 编写业务扩展和后台工具的开发者。
 
-本文根据当前主仓源码整理，不是 WordPress 插件教程。源码核对基线：项目主仓，HEAD `c97ca4294773bcf3921f9613a7968b83ca84a0d6`，版本文件为 1.19.9。新开发统一按 PHP 8.2+、MySQL 5.7 / MariaDB 10.x 与 SQLite 的项目约定执行。
+本文根据当前主仓源码整理，不是 WordPress 插件教程。源码核对基线：v1.20.1 发布提交 `682480197a14ea409df91523f368eb690a59de08`（0.2 版基线为 1.19.9 `c97ca429`）。插件加载器、钩子 API 与后台插件路由在两版之间未变；1.20.0 新增的是安装器、来源回执与市场安装规则（见第 9 节）。代码须兼容 PHP 8.0（产品运行下限），推荐 8.2+；数据库兼容 MySQL 5.7 / MariaDB 10.x 与 SQLite。
 
 示例是开发起点，尚未安装到站点或进行浏览器验收。发布前应针对目标 CMS 版本验证。本指南不把开发分支的未发布能力视为稳定公共接口。
 
-本文由原完整指南整理入项目，排除 BLOX 编辑器插件开发。原文 HEAD 与版本是历史核对基线，不表示当前已重新验收；实际接口以目标版本为准。先读 [AI 阅读入口](./AI-DEVELOPMENT.md)，源码链接相对于 deploy 目录。
+本文由原完整指南整理入项目，排除易开网页构建器（Yikai Builder，源码中仍称 BLOX）的编辑器插件开发。原文 HEAD 与版本是历史核对基线，不表示当前已重新验收；实际接口以目标版本为准。先读 [AI 阅读入口](./AI-DEVELOPMENT.md)，源码链接相对于 deploy 目录。
 
 ## 1. 什么时候使用插件
 
@@ -58,12 +58,14 @@ acme-note/
   "description_en": "Displays a configurable plain-text footer note.",
   "description_ja": "フッターに設定可能なテキストを表示します。",
   "author": "Your Team",
-  "requires_php": "8.2",
-  "requires_cms": "1.19.9"
+  "requires_php": "8.0",
+  "requires_cms": "1.20.0"
 }
 ```
 
-使用清晰的三段版本号。兼容版本应填写实际验证过的最低版本，不能因为某个旧示例写了 1.0.0 就沿用。
+使用清晰的三段版本号。兼容版本应填写实际验证过的最低版本，不能因为某个旧示例写了 1.0.0 就沿用。`requires_php` 默认写产品下限 8.0；只有代码确实用到 8.1+ 语法或函数时才提高，并在运行时受控检查。
+
+付费插件在 plugin.json 中另加 `tier` 与 `module`（授权模块名）：`freemium` 表示基础功能免费、可直接安装，Pro 能力在运行时用 `license_has_module()` 判断；`pro` 表示整包付费，插件市场只向持有该模块且未过期的授权下发下载地址。两者都需在运行时自行检查授权，市场下载闸不能代替运行时判断。
 
 当前插件安装/启用流程的校验能力与主题校验器不同，不能把 `requires_php` / `requires_cms` 当成所有路径都会严格拦截的保证。依赖特定类或能力时，运行时也要受控检查并在后台提示，不允许直接致命错误。
 
@@ -256,6 +258,15 @@ php bin/yikai.php plugin:disable acme-note
 
 ZIP 应包含唯一插件目录，例如 `acme-note/plugin.json`，不能把 plugin.json 裸放 ZIP 根部。包中不应有其他插件或站点路径，不包含 config.php、.git、依赖缓存、日志、测试登录态和密钥。
 
+v1.20.0 起安装由 `PluginInstaller` 统一处理，并在插件目录写入来源回执 `.yikai-market-origin.json`（local / official / community）：
+
+- 回执由站点生成。包内不得自带该文件，含此路径的 ZIP 会被拒绝。
+- 本地上传的插件记为 local。之后市场不会以官方或社区更新覆盖它（来源不符会拒绝），因此**不要使用官方插件已占用的 slug**，也不要把本地改版冒充官方版本。
+- 从插件市场安装时：只接受官方包地址或市场下载令牌，单包不超过 20 MB（`PluginMarketPackage::MAX_PACKAGE_BYTES`），并拒绝安装低于已装版本的包。
+- 替换已有目录前安装器会备份原目录，但这不改变「不要把业务数据写进插件目录」的要求。
+
+v1.20.1 起，安装种子（`install/sql/*.sql`）只登记随完整包提供的插件；不随包的插件（含官方市场插件）不得写进种子或迁移里预先启用，否则新装站点会留下没有目录的启用记录。需要预装的插件应随包分发，其余由站点从插件市场按需安装。
+
 
 如果只是新增文本设置，不反复运行全站测试；涉及权限、数据库或渲染共用路径时增加针对性测试。正式合并/发布前仍按项目完整门禁执行。
 
@@ -277,6 +288,9 @@ ZIP 应包含唯一插件目录，例如 `acme-note/plugin.json`，不能把 plu
 - [插件加载器](../includes/plugin.php)
 - [钩子 API](../includes/hooks.php)
 - [插件管理与 ZIP 安装](../admin/plugin.php)
+- [插件安装器](../includes/PluginInstaller.php)
+- [安装来源回执](../includes/MarketInstallOrigin.php)
+- [市场插件包限制](../includes/PluginMarketPackage.php)
 - [后台插件路由](../admin/plugin_page.php)
 - [后台鉴权](../admin/includes/auth.php)
 - [设置模型](../includes/models/SettingModel.php)
