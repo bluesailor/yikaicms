@@ -1,8 +1,9 @@
 # ============================================================
 # Yikai CMS 最小伪静态规则（WordPress 兼容模式）
 #
-# 与 WordPress 的规则完全同构——如果你的主机面板有「WordPress 伪静态」
-# 预设，直接选它即可，无需粘贴本文件。
+# 路由部分与 WordPress 的规则同构，但多了一条敏感目录拦截：WordPress 预设
+# 不封禁 storage/ 等目录，SQLite 站点的 storage/database.sqlite 会被直接下载，
+# 所以不要只选面板的「WordPress 伪静态」预设，请使用本文件。
 #
 # 原理：所有不存在的路径统一交给 index.php，由程序内置的 Dispatcher
 # 完成伪静态分发（v1.12.9+）。
@@ -15,11 +16,16 @@
 <IfModule mod_rewrite.c>
 RewriteEngine On
 RewriteBase /
+# 敏感目录与文件：配置、运行数据（含 SQLite 数据库）、程序与初始 SQL 一律 403
+RewriteRule ^(config|storage|vendor|includes|install/sql|bin|migrations|recipes)(/|$) - [F,L]
+RewriteRule (^|/)\.(git|env|htpasswd) - [F,L]
+RewriteRule ^(composer\.(json|lock)|package(-lock)?\.json)$ - [F,L]
 RewriteRule ^index\.php$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . /index.php [L]
 </IfModule>
 
-# nginx 等价写法（放 server 块 / 面板伪静态框）：
-#   location / { try_files $uri $uri/ /index.php?$args; }
+# nginx 等价写法：宝塔用 deploy/nginx-baota.conf（include 一行即可），
+# 阿里云 / 万网 NGINX 型主机用 deploy/aliyun-nginx-minimal.txt，自管服务器用 deploy/nginx-server.conf。
+# 不要只写 location / { try_files ... } ——它不封禁敏感目录。
