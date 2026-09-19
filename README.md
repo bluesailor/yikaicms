@@ -1,108 +1,104 @@
-# Yikai CMS v1.20.1
+# YikaiCMS v1.20.1
 
+> **面向企业官网与外贸网站的轻量 PHP CMS** · 源码公开，免费商用
+
+[![Release](https://img.shields.io/github/v/release/bluesailor/yikaicms?label=release)](https://github.com/bluesailor/yikaicms/releases/latest)
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg?logo=php)](https://www.php.net/)
-[![License](https://img.shields.io/badge/license-免费商用-green.svg)](./LICENSE)
+[![License](https://img.shields.io/badge/license-源码公开·免费商用-green.svg)](./LICENSE)
 
-**简体中文** · YikaiCMS - 轻量、安全、开箱即用的企业建站系统。PHP 8.0+（建议 8.2+）、MySQL/SQLite、Tailwind CSS v4、插件 Hooks、AI 内容助手，支持简体中文、English、日本語多语言网站建设。
+**[在线演示](https://demo.yikaicms.com)** · **[下载最新版](https://github.com/bluesailor/yikaicms/releases/latest)** · **[使用教程](https://www.yikaicms.com/tutorial.php)** · [官网](https://www.yikaicms.com) · [更新日志](https://www.yikaicms.com/changelog.html)
 
-**English** · YikaiCMS is a lightweight, secure, and ready-to-use CMS for business websites. Built with PHP 8.0+ (8.2+ recommended), MySQL/SQLite, Tailwind CSS v4, Plugin Hooks, and AI Content Assistant. Supports multilingual websites in Chinese, English, and Japanese.
+**简体中文** · 轻量、多语言、可视化的企业建站系统：PHP 原生部署，MySQL / SQLite 均可；企业官网常用的栏目、产品、新闻、案例、表单询盘、SEO 都已内置，不用装一堆插件；支持简体中文、English、日本語多语言站点。
 
-**日本語** · YikaiCMS は、軽量・安全・すぐに使える企業向け CMS です。PHP 8.0+（8.2+ 推奨）、MySQL/SQLite、Tailwind CSS v4、プラグイン Hooks、AI コンテンツアシスタントを搭載し、中国語・英語・日本語の多言語サイト構築に対応しています。
+**English** · A lightweight PHP CMS for business and export websites: deploys on plain PHP with MySQL or SQLite, ships the columns, products, news, cases, inquiry forms and SEO a company site needs, and builds multilingual sites in Chinese, English and Japanese. Source available and free for commercial use.
 
-官网：[https://www.yikaicms.com](https://www.yikaicms.com) · 演示：[https://demo.yikaicms.com](https://demo.yikaicms.com)
-
-## 开发文档
-
-- [AI 开发阅读入口](./deploy/AI-DEVELOPMENT.md)
-- [插件开发指南](./deploy/PLUGIN-DEVELOPMENT.md)
-- [网站模板开发指南](./deploy/THEME-DEVELOPMENT.md)
-
-适用于开发者及不同 AI 编程助手，不包含 BLOX 编辑器插件开发。
-
-## 功能特性
-
-### AI 内容助手
-- **5 大 AI 供应商** — OpenAI、Claude (Anthropic)、DeepSeek、通义千问 (Qwen)、智谱AI (GLM)
-- **一键生成** — 标题 + 摘要 + 标签 + URL别名 + 正文内容，一次生成
-- **多种模式** — 生成文章、改写润色、续写扩展、SEO 优化、摘要生成
-- **API Key 加密** — AES-128-CBC 加密存储，后台掩码显示
-- **用量统计** — 调用日志、Token 统计、每日趋势
-
-### 内容管理
-- **栏目管理** — 无限层级栏目树，支持拖拽排序，8 种栏目类型（列表、单页、产品、案例、下载、招聘、相册、外链）
-- **多级产品分类菜单 v1.7** — 产品分类支持任意层级嵌套，桌面端 hover 弹出 flyout 子菜单，三主题全适配
-- **文章系统** — 多分类管理，置顶/推荐/热门标记，HugeRTE 富文本编辑
-- **产品中心** — 多级分类，品牌管理，标签系统，图片组，规格参数，价格管理
-- **案例展示** — 行业方案与成功案例
-- **招聘管理** — 职位发布，薪资/学历/经验/工作性质筛选
-- **下载中心** — 文件分类管理，本地上传与外链，下载计数
-- **单页管理** — 企业简介、服务流程等静态页面，富文本与 Blox 可视化编辑；停用页收纳不占列表
-- **发展历程时间线 v1.7** — 3 种布局可切换：竖向双边 / 横向 Swiper 滑块 / 紧凑列表，`[timeline]` 短码可在任意页面嵌入
-
-### 页面构建器 v1.11
-- **可视化区块编辑** — 区块(1-4列) → 列 → 元素三层结构，拖拽排序，17 种内置元素（标题/富文本/图片/按钮/图标/视频/CTA/卡片/提示条/引用/图标框/动态列表/轮播/导航…）
-- **实时预览** — 编辑防抖刷新 iframe 预览，桌面/平板/手机三档视口
-- **响应式三档** — 内边距/列间距/间距高度可按 桌面/平板/手机 分档设置，渲染 Tailwind 断点前缀
-- **可复用块** — 区块存入块库，页面引用插入，改一处全站生效；也可副本插入独立编辑
-- **预设库** — Hero/特性/CTA/团队/画廊/数据/评价 7 种区块预设 + 整页模板一键插入
-- **动态元素** — 按栏目/自定义模型拉实时内容（view-time 渲染），插件可注册自定义元素
-
-### 自定义内容模型 v1.11
-- **模型即建即用** — 后台定义内容类型（团队/解决方案/FAQ…），自动获得增删改查、栏目绑定、前台列表/详情
-- **字段复用** — 复用扩展字段体系定义模型字段，预置方案一键套用
-- **标签打通** — `{yk:list type=模型key}` 标签与构建器动态列表直接消费模型内容
-
-### 主题系统
-- **3 套随包主题** — Default（标准）、Business（深色商务风）、Minimal（极简）
-- **模板市场** — Aurora（渐变现代风）、Trade 等主题在后台「主题 → 模板市场」按需安装
-- **文件覆盖机制** — layouts / blocks / partials 三层模板
-- **主题规范** — theme.json Schema v1，安装时校验版本要求与必需模板；预览截图、后台一键切换
-
-### 媒体管理
-- **媒体库** — 图片与文件统一管理，自动缩略图
-- **相册管理** — 多相册，图片拖拽排序
-- **轮播图** — PC/移动端双图，定时展示，分组管理，短码嵌入
-
-### 询盘与互动
-- **询盘系统** — 产品详情页内联询盘表单，5 阶段状态管理
-- **邮件通知** — 4 套邮件模板，变量替换引擎
-- **表单系统** — 可视化表单设计器，`[form-slug]` 短码嵌入，AJAX 提交
-- **会员系统** — 前台注册/登录，下载登录限制
-- **友情链接** — Logo 展示，排序管理
-
-### 首页定制
-- 7 大可配置区块：轮播图、关于我们、数据统计、核心优势、栏目内容、客户评价、CTA
-- 区块拖拽排序，独立开关，背景自定义
-- 滚动入场动画（fade / stagger / 数字计数）
-
-### 社交媒体
-- **SNS 设置** — 后台可视化配置，支持微信、微博、X、Instagram、Facebook、YouTube 等 20+ 平台
-- **页脚图标** — 自动显示彩色图标链接
-
-### 系统管理
-- **角色权限** — 超级管理员 / 编辑 / 运营，8 类权限细粒度控制
-- **数据库管理** — 一键备份、按表导出、SQL导入、日志清理
-- **升级检测** — 内置升级检测与一键执行
-- **插件系统** — WordPress 风格钩子机制，热插拔
-- **SEO 管理** — Sitemap / OG 标签 / 站长验证 / Canonical URL
-- **安全设置** — 登录保护、IP 白名单、表单防刷
-- **扩展字段** — 自定义内容/产品字段
-
-### 插件生态
-
-**预装插件**（随安装包附带）：
-
-| 插件 | 说明 |
-|------|------|
-| 返回顶部 | 滚动后自动显示回到顶部按钮 |
-| Cookie 同意横幅 | GDPR / PIPL 合规：三档授权、随时撤回、Google Consent Mode v2 |
-
-**插件市场**（后台「插件管理 → 插件市场」浏览/搜索/一键安装，SHA256 + RSA 签名校验）：网站公告、后台菜单排序、数据库搜索替换、网站统计接入等，持续上架中。
+**日本語** · 企業サイト・海外向けサイトのための軽量 PHP CMS。PHP だけで動作し、MySQL / SQLite に対応。カテゴリ、製品、ニュース、事例、問い合わせフォーム、SEO を標準搭載し、中国語・英語・日本語の多言語サイトを構築できます。ソース公開・商用無料。
 
 ---
 
-## 环境要求
+## 适合谁
+
+- 企业官网、制造业官网、外贸多语言站
+- 为客户建站的网络公司、自由职业者
+- 熟悉宝塔面板 / 虚拟主机、想要 PHP 直接部署的站长和 PHP 开发者
+
+一个网站十几个栏目、几百个产品、一两千条内容——这类企业站用 YikaiCMS 开箱即可完成。
+大型电商、社区论坛这类场景不是它的目标。
+
+## 3 分钟安装
+
+1. 下载最新版完整包 [yikaicms-v1.20.1.zip](https://github.com/bluesailor/yikaicms/releases/latest)（每个 Release 附 `.sha256` 校验文件），解压上传到网站根目录；
+2. 确保 `/config/`、`/uploads/`、`/storage/` 可写，浏览器访问 `http://你的域名/install/`，按向导选择 MySQL 或 SQLite 完成安装；
+3. 配置伪静态（宝塔面板：站点 → 设置 → 伪静态，写入一行 `include /www/wwwroot/<你的站点目录>/deploy/nginx-baota.conf;`）。
+
+各类主机的伪静态写法、安全规则与常见 404 排查见下文 [安装与部署](#安装与部署)。
+
+## 核心能力
+
+- **企业建站内容** — 无限层级栏目，文章、产品（多级分类 / 规格参数 / 图片组）、案例、下载、招聘、相册、单页、发展历程
+- **易开网页构建器（Yikai Builder）** — 可视化拖拽编辑页面、首页、网页头 / 网页尾与详情页模板，桌面 / 平板 / 手机分档预览与设置
+- **多语言与外贸** — 中英日多语言站点，按语言编辑内容与首页区块，多语言 URL 与 SEO
+- **表单与询盘** — 可视化表单设计、产品询盘、邮件通知、垃圾信息防护
+- **SEO** — Sitemap、OG 标签、Canonical、站长验证、自定义网址
+- **AI 内容助手** — 标题、摘要、正文、SEO 与翻译辅助，支持 OpenAI、Claude、DeepSeek、通义千问、智谱
+- **主题与插件** — 随包 3 套主题，插件 Hooks，后台插件市场与模板市场（签名校验）
+- **运维** — 角色权限、备份恢复、在线升级（完整包 / 增量包）、站点健康检查
+
+<details>
+<summary><b>功能详情</b></summary>
+
+### 内容管理
+- **栏目管理** — 无限层级栏目树，拖拽排序，多种栏目类型（列表、单页、产品、案例、下载、招聘、相册、外链）
+- **产品中心** — 多级分类，品牌、标签、图片组、规格参数、价格；产品与产品分类支持自定义网址
+- **文章系统** — 多分类管理，置顶 / 推荐 / 热门标记，HugeRTE 富文本编辑
+- **案例、招聘、下载** — 行业方案与成功案例；职位发布与筛选；文件分类、本地上传与外链、下载计数
+- **单页与发展历程** — 企业简介、服务流程等静态页面；时间线多种布局，`[timeline]` 短码可嵌入任意页面
+- **自定义内容模型** — 后台定义内容类型（团队 / 解决方案 / FAQ…），自动获得增删改查与前台列表 / 详情
+
+### 易开网页构建器
+- **可视化编辑** — 区块 → 列 → 元素三层结构，拖拽排序，常用元素开箱即用（标题、富文本、图片、按钮、视频、卡片、轮播、导航、表单、价格方案、客户评价等）
+- **实时预览** — 桌面 / 平板 / 手机与宽屏断点，响应式间距与显示控制
+- **模板与区块库** — 内置整页模板、页头 / 页脚预设与常用区块，一键插入
+- **详情页模板** — 产品详情、文章详情独立模板，按分类 / 栏目指定适用范围
+- **专业功能** — 循环模板、显示条件、全局样式、表格、价格方案编辑由「易开网页构建器 Pro」插件提供（需专业授权，从插件市场安装）
+
+### 首页与主题
+- **首页区块** — 轮播图、关于我们、数据统计、核心优势、栏目内容、客户评价、合作伙伴、CTA，可按语言编辑，拖拽排序、独立开关
+- **随包主题** — Default（标准）、Business（商务）、Minimal（极简）；更多主题在后台「主题 → 模板市场」按需安装
+- **模板覆盖** — layouts / blocks / partials 三层模板，theme.json 规范校验
+
+### 媒体与互动
+- **媒体库与相册** — 图片与文件统一管理，自动缩略图；多相册拖拽排序
+- **轮播图** — PC / 移动端双图、定时展示、分组管理
+- **表单与询盘** — 可视化表单设计器，`[form-slug]` 短码嵌入；产品详情页内联询盘，多阶段状态管理，邮件模板
+- **会员与社交** — 前台注册登录、下载登录限制；20+ 社交平台图标配置；友情链接
+
+### AI 内容助手
+- 支持 OpenAI、Claude (Anthropic)、DeepSeek、通义千问 (Qwen)、智谱 (GLM)
+- 一次生成标题、摘要、标签、URL 别名与正文；改写润色、续写、SEO 优化、摘要生成
+- API Key 加密存储，调用日志与 Token 用量统计
+
+### 系统管理
+- **角色权限** — 多角色，按内容类型细分的编辑 / 删除权限
+- **数据库** — 一键备份、按表导出、SQL 导入、日志清理
+- **升级** — 内置升级检测，完整包与增量包在线升级，升级前自动备份
+- **SEO 与安全** — Sitemap / OG / Canonical / 站长验证；登录保护、IP 白名单、表单防刷
+- **扩展字段** — 自定义内容 / 产品字段
+
+### 插件
+
+**随包预装**：返回顶部、Cookie 同意横幅（GDPR / PIPL，Google Consent Mode v2）、产品导入。
+
+**插件市场**（后台「插件管理 → 插件市场」，SHA256 + RSA 签名校验）：网站公告、后台菜单排序、数据库搜索替换、网站统计接入、SEO 助手、LOGO 制作、产品轮播、易登录，以及需专业授权的易开网页构建器 Pro。
+
+</details>
+
+---
+
+## 安装与部署
+
+### 环境要求
 
 | 项目 | 要求 |
 |------|------|
@@ -115,19 +111,11 @@
 > 以上要求由 `includes/RuntimeRequirements.php` 统一定义，安装器、站点健康检查与兼容层都从那里读取；
 > 改要求请只改那一处。`simplexml` 核心不依赖，仅 product-import 插件读 XLSX 时用到。
 
----
-
-## 安装
-
 ### 1. 下载部署
 
-```bash
-# 从 GitHub 下载
-git clone https://github.com/bluesailor/yikaicms.git
-
-# 或从最新 Release 下载 ZIP 上传至服务器：
-# https://github.com/bluesailor/yikaicms/releases/tag/v1.20.0
-```
+- 完整安装包：[GitHub Releases（最新版）](https://github.com/bluesailor/yikaicms/releases/latest)，当前为 v1.20.1；每个版本附 `.sha256` 校验文件。
+- 已安装的站点可在后台「系统设置 → 系统升级」在线升级，无需手动下载。
+- 开发者也可以直接克隆仓库：`git clone https://github.com/bluesailor/yikaicms.git`
 
 确保以下目录可写：`/config/`、`/uploads/`、`/storage/`
 
@@ -142,7 +130,7 @@ git clone https://github.com/bluesailor/yikaicms.git
 **「首页正常，点栏目就 404」几乎都是这一步没做。**
 
 YikaiCMS 内置 PHP 路由分发器（`includes/Dispatcher.php`），只要把「不存在的文件」
-统一交给 `index.php`，剩下的路由由 PHP 完成——等价于 WordPress 那条通用规则。
+统一交给 `index.php`，剩下的路由由 PHP 完成。
 所以多数主机不需要逐条 rewrite，配一条 catch-all 即可。
 
 #### Apache
@@ -222,7 +210,15 @@ location / {
 
 ---
 
-## 目录结构
+## 开发文档
+
+- [AI 开发阅读入口](./deploy/AI-DEVELOPMENT.md)
+- [插件开发指南](./deploy/PLUGIN-DEVELOPMENT.md)
+- [网站模板开发指南](./deploy/THEME-DEVELOPMENT.md)
+
+适用于开发者及不同 AI 编程助手，不包含易开网页构建器插件开发。
+
+### 目录结构
 
 ```
 ├── admin/          # 后台管理
@@ -232,15 +228,13 @@ location / {
 ├── install/        # 安装向导 + SQL 脚本（MySQL / SQLite）
 ├── lang/           # 语言包
 ├── plugins/        # 插件目录
-├── themes/         # 运行时主题目录（核心包仅内置 default）
-├── marketplace/    # 可选主题市场源码（不进入 CMS 发布包）
+├── themes/         # 运行时主题目录（随包 Default / Business / Minimal）
+├── marketplace/    # 主题市场源码（不进入 CMS 发布包）
 ├── uploads/        # 用户上传文件
 └── storage/        # 缓存与日志
 ```
 
----
-
-## 技术栈
+### 技术栈
 
 | 层面 | 技术 |
 |------|------|
@@ -257,7 +251,8 @@ location / {
 
 ## 许可证
 
-本项目采用 [《YikaiCMS 软件许可协议》](LICENSE)，Copyright (c) 2026 Yikai：
+YikaiCMS **源码公开（Source Available），免费商用**，采用 [《YikaiCMS 软件许可协议》](LICENSE)，Copyright (c) 2026 Yikai。
+它不是 MIT、GPL、Apache 等 OSI 开源许可证，主要条款：
 
 - **免费商用**——个人与企业建站、为客户提供建站服务、修改源码、开发并出售自己的主题与插件，均无需付费；
 - **前台无署名要求**——是否显示版权信息由你决定；
@@ -270,3 +265,5 @@ location / {
 
 - 官网：[https://www.yikaicms.com](https://www.yikaicms.com)
 - 演示：[https://demo.yikaicms.com](https://demo.yikaicms.com)
+- 使用教程：[https://www.yikaicms.com/tutorial.php](https://www.yikaicms.com/tutorial.php)
+- 更新日志：[https://www.yikaicms.com/changelog.html](https://www.yikaicms.com/changelog.html)
