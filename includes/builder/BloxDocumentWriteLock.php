@@ -8,10 +8,11 @@ final class BloxDocumentWriteLock
     /**
      * 写入前提：保护字段比较与 revision 校验必须基于同一份服务端文档。
      * 任一专业能力不可用时必须带 base_revision，缺失即拒绝，不依赖前端隐藏。
+     * 代码内置内容的可信写入（BloxFeaturePolicy::asTrustedWrite）不做受保护字段比对，不需要 revision。
      */
     public static function assertRevision(string $currentJson, string $baseRevision): void
     {
-        if ($baseRevision === '' && BloxFeaturePolicy::denied() !== []) {
+        if ($baseRevision === '' && BloxFeaturePolicy::denied() !== [] && !BloxFeaturePolicy::inTrustedWrite()) {
             throw new RuntimeException(__('blox_save_conflict'));
         }
         if ($baseRevision !== '' && !BloxDocumentPipeline::revisionMatches($currentJson, $baseRevision)) {

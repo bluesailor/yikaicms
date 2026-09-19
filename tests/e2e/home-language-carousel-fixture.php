@@ -22,15 +22,22 @@ if ($mode === 'restore') {
             db()->delete('settings', '"key" = ?', [$key]);
             if ($row !== null) db()->insert('settings', $row);
         }
+        if (array_key_exists('plugin', $state)) {
+            db()->delete('plugins', 'slug = ?', ['product-carousel']);
+            if ($state['plugin'] !== null) db()->insert('plugins', $state['plugin']);
+        }
         unlink($backup);
     }
     exit;
 }
 if ($mode === 'prepare' && $state === null) {
-    if ((int) db()->fetchColumn('SELECT status FROM ' . DB_PREFIX . 'plugins WHERE slug = ?', ['product-carousel']) !== 1) {
-        throw new RuntimeException('Seed carousel plugin must be active');
+    // 安装种子自 v1.20.1 起不再登记不随包的插件；测试站由源码复制，插件目录在，夹具自行启用。
+    if (!is_file(ROOT_PATH . '/plugins/product-carousel/plugin.json')) {
+        throw new RuntimeException('Carousel plugin source missing');
     }
-    $state = ['ids' => [], 'groups' => [], 'settings' => []];
+    $pluginRow = db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'plugins WHERE slug = ?', ['product-carousel']);
+    if ((int) ($pluginRow['status'] ?? 0) !== 1) pluginModel()->activate('product-carousel');
+    $state = ['ids' => [], 'groups' => [], 'settings' => [], 'plugin' => $pluginRow ?: null];
     foreach (['home_blocks_config', 'blox_custom_header_enabled', 'blox_custom_footer_enabled'] as $key) {
         $state['settings'][$key] = db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'settings WHERE "key" = ?', [$key]);
     }
