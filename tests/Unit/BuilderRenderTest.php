@@ -423,6 +423,75 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringNotContainsString('md:col-span-6', $out);
     }
 
+    // ---- 0b 列跨度补 m/w 档：手机默认整行堆叠不变，显式 m 值启用 max-md: 栅格 ----
+    public function testMobileSpanEnablesMobileGridWithFullRowFallback(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [],
+            'columns'  => [
+                ['span' => ['d' => 4, 'm' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                ['span' => ['d' => 8], 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+            ],
+        ]]));
+
+        // 区块启用手机栅格；声明 m 的列取 m 值，未声明的列 col-span-12 兜底整行
+        $this->assertStringContainsString('max-md:grid-cols-12', $out);
+        $this->assertStringContainsString('class="max-md:col-span-6 md:col-span-4"', $out);
+        $this->assertStringContainsString('class="max-md:col-span-12 md:col-span-8"', $out);
+    }
+
+    public function testWithoutMobileSpanNoMobileGridClassesEmitted(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [],
+            'columns'  => [
+                ['span' => ['d' => 4, 't' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                ['span' => ['d' => 8, 't' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+            ],
+        ]]));
+
+        $this->assertStringNotContainsString('max-md:', $out);
+    }
+
+    public function testWideSpanEmitsOnlyWhenDifferentFromDesktop(): void
+    {
+        \BloxResponsiveValue::overrideWideEnabled(true);
+        try {
+            $out = BlockRenderer::render(json_encode([[
+                'settings' => [],
+                'columns'  => [
+                    ['span' => ['d' => 8, 'w' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                    ['span' => ['d' => 4, 'w' => 4], 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+                ],
+            ]]));
+        } finally {
+            \BloxResponsiveValue::overrideWideEnabled(null);
+        }
+
+        // w 差异才输出；w === d 时继承桌面（lg: 级联到宽屏），不落多余类
+        $this->assertStringContainsString('class="md:col-span-8 wide:col-span-6"', $out);
+        $this->assertStringContainsString('class="md:col-span-4"', $out);
+    }
+
+    public function testWideSpanSuppressedWhenWideTierDisabled(): void
+    {
+        \BloxResponsiveValue::overrideWideEnabled(false);
+        try {
+            $out = BlockRenderer::render(json_encode([[
+                'settings' => [],
+                'columns'  => [
+                    ['span' => ['d' => 8, 'w' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                    ['span' => ['d' => 4], 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+                ],
+            ]]));
+        } finally {
+            \BloxResponsiveValue::overrideWideEnabled(null);
+        }
+
+        $this->assertStringNotContainsString('wide:col-span', $out);
+        $this->assertStringContainsString('class="md:col-span-8"', $out);
+    }
+
     // ---- r5 断点可见性：hide_on 前台输出隐藏类，编辑态输出标记 ----
     public function testHideOnEmitsBreakpointClassesOnFrontend(): void
     {

@@ -2633,6 +2633,26 @@ declare(strict_types=1);
                                             <template x-for="n in 12" :key="'tspan'+n"><option :value="n" x-text="n + '/12'"></option></template>
                                         </select>
                                     </div>
+                                    <div x-show="sel.columns.length > 1">
+                                        <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_span_mobile') ?></label>
+                                        <select class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm"
+                                                data-testid="blox-column-span-mobile"
+                                                :value="columnSpanM(selectedCol()) === null ? '' : columnSpanM(selectedCol())"
+                                                @change="setColumnSpanM($event.target.value)">
+                                            <option value=""><?= e(__('blox_span_mobile_stack')) ?></option>
+                                            <template x-for="n in 12" :key="'mspan'+n"><option :value="n" x-text="n + '/12'"></option></template>
+                                        </select>
+                                    </div>
+                                    <div x-show="sel.columns.length > 1 && wideTierEnabled()">
+                                        <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_span_wide') ?></label>
+                                        <select class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm"
+                                                data-testid="blox-column-span-wide"
+                                                :value="columnSpanW(selectedCol()) === null ? '' : columnSpanW(selectedCol())"
+                                                @change="setColumnSpanW($event.target.value)">
+                                            <option value=""><?= e(__('blox_inherit_desktop')) ?></option>
+                                            <template x-for="n in 12" :key="'wspan'+n"><option :value="n" x-text="n + '/12'"></option></template>
+                                        </select>
+                                    </div>
                                     <div :class="sel.columns.length > 1 && !sel.settings.tablet_stack ? '' : 'blox-property-span-full'">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_visible_devices') ?></label>
                                         <div class="flex gap-1">
