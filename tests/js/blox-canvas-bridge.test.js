@@ -160,10 +160,14 @@ test("拖放只接受 v1 且按 dropId 去重", function () {
         target: { kind: "container", path: "1.0.2" },
     });
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykDrop: containerPayload } }), true);
+    // 0b：嵌套容器（4..9 段）是合法落点；第 8 层容器（10 段）不能再收子级
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
         ykDrop: Object.assign({}, containerPayload, { dropId: "drop-3", target: { kind: "container", path: "1.0.2.0" } }),
+    } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykDrop: Object.assign({}, containerPayload, { dropId: "drop-4", target: { kind: "container", path: "1.0.2.0.1.0.2.1.0.3" } }),
     } }), false);
-    assert.deepEqual(current.calls, [["drop", "drop-1"], ["drop", "drop-2"]]);
+    assert.deepEqual(current.calls, [["drop", "drop-1"], ["drop", "drop-2"], ["drop", "drop-3"]]);
 });
 
 test("预制区块拖放只接受白名单模板键和插入索引", function () {

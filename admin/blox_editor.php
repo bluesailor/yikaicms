@@ -8196,8 +8196,18 @@ $canManageBloxDesign = hasPermission('blox_global');
             appendElementNode(node, label) {
                 var s = this.sel;
                 if (!s) return;
-                // 选中容器（或其子元素）时插进该容器；一层嵌套约束：容器里不能再放容器
-                var host = this.selTopEl;
+                // 0b：插进最近的容器语境——选中容器（任意深度）=进该容器；
+                // 选中容器内叶子=进其直接父容器；其余落回列尾。
+                var host = null;
+                var hostSubPath = [];
+                var deepSel = this.selEl;
+                if (deepSel && this.elSchema(deepSel.type).container) {
+                    host = deepSel;
+                    hostSubPath = this.selectedSubPath.slice();
+                } else if (this.selectedSubPath.length && this.selTopEl) {
+                    host = this.subPathParent(this.selectedSi, this.selectedCi, this.selectedEi, this.selectedSubPath);
+                    hostSubPath = this.selectedSubPath.slice(0, -1);
+                }
                 if (host && this.elSchema(host.type).container) {
                     if (!this.canNestElement(host, node)) {
                         this.toast(this.isLoopTemplateHost(host) ? <?php echo json_encode(__('blox_loop_child_invalid'), JSON_UNESCAPED_UNICODE); ?> : this.uiText.noNestedContainer);
@@ -8206,7 +8216,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                     host.data.children = host.data.children || [];
                     if (this.isHomeBannerHost(host)) host.data.items_mode = "custom";
                     host.data.children.push(node);
-                    this.selectChild(this.selectedSi, this.selectedCi, this.selectedEi, host.data.children.length - 1, false);
+                    this.selectDescendant(this.selectedSi, this.selectedCi, this.selectedEi,
+                        hostSubPath.concat(host.data.children.length - 1), false);
                     this.toast(this.uiText.insertedContainer.replace(":label", label || this.uiText.elementWord));
                     return;
                 }
@@ -8238,11 +8249,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                     return true;
                 }
                 if (target.kind === "container") {
+                    // 0b：容器落点接受任意深度路径（最深 9 段——第 8 层容器不能再收子级）
                     var hostParts = String(target.path || "").split(".").map(function (value) { return parseInt(value, 10); });
-                    if (hostParts.length !== 3 || hostParts.some(function (value) { return isNaN(value); })) return false;
-                    var hostSection = this.sections[hostParts[0]];
-                    var hostColumn = hostSection && hostSection.columns ? hostSection.columns[hostParts[1]] : null;
-                    var host = hostColumn && hostColumn.elements ? hostColumn.elements[hostParts[2]] : null;
+                    if (hostParts.length < 3 || hostParts.length > 9 || hostParts.some(function (value) { return isNaN(value); })) return false;
+                    var host = this.elementAtPath(hostParts.join("."));
                     if (!host || !this.elSchema(host.type).container) return false;
                     if (!this.canNestElement(host, node)) {
                         this.toast(this.isLoopTemplateHost(host) ? <?php echo json_encode(__('blox_loop_child_invalid'), JSON_UNESCAPED_UNICODE); ?> : this.uiText.noNestedContainer);
@@ -8251,30 +8261,35 @@ $canManageBloxDesign = hasPermission('blox_global');
                     host.data.children = host.data.children || [];
                     if (this.isHomeBannerHost(host)) host.data.items_mode = "custom";
                     host.data.children.push(node);
-                    this.selectChild(hostParts[0], hostParts[1], hostParts[2], host.data.children.length - 1, false);
+                    this.selectDescendant(hostParts[0], hostParts[1], hostParts[2],
+                        hostParts.slice(3).concat(host.data.children.length - 1), false);
                     this.toast(this.uiText.insertedContainer.replace(":label", label || this.uiText.elementWord));
                     return true;
                 }
                 if (target.kind !== "element") return false;
                 var parts = String(target.path || "").split(".").map(function (value) { return parseInt(value, 10); });
-                if (parts.length < 3 || parts.length > 4 || parts.some(function (value) { return isNaN(value); })) return false;
+                if (parts.length < 3 || parts.length > 10 || parts.some(function (value) { return isNaN(value); })) return false;
                 si = parts[0];
                 ci = parts[1];
                 var targetSection = this.sections[si];
                 var targetColumn = targetSection && targetSection.columns ? targetSection.columns[ci] : null;
                 if (!targetColumn) return false;
                 var position = target.position === "before" ? "before" : "after";
-                if (parts.length === 4) {
-                    var parent = targetColumn.elements && targetColumn.elements[parts[2]];
+                if (parts.length >= 4) {
+                    // 0b：目标是容器内（任意深度）的子级——插到它的同层前/后
+                    var subPath = parts.slice(3);
+                    var parent = this.subPathParent(si, ci, parts[2], subPath);
                     var children = parent && parent.data ? (parent.data.children || []) : [];
-                    if (!parent || !this.elSchema(parent.type).container || !children[parts[3]]) return false;
+                    var slot = subPath[subPath.length - 1];
+                    if (!parent || !this.elSchema(parent.type).container || !children[slot]) return false;
                     if (!this.canNestElement(parent, node)) {
                         this.toast(this.isLoopTemplateHost(parent) ? <?php echo json_encode(__('blox_loop_child_invalid'), JSON_UNESCAPED_UNICODE); ?> : this.uiText.noNestedContainer);
                         return true;
                     }
-                    var childIndex = parts[3] + (position === "before" ? 0 : 1);
+                    var childIndex = slot + (position === "before" ? 0 : 1);
                     children.splice(Math.min(children.length, childIndex), 0, node);
-                    this.selectChild(si, ci, parts[2], Math.min(children.length - 1, childIndex), false);
+                    this.selectDescendant(si, ci, parts[2],
+                        subPath.slice(0, -1).concat(Math.min(children.length - 1, childIndex)), false);
                     this.toast((position === "before" ? this.uiText.insertedBefore : this.uiText.insertedAfter).replace(":label", label || this.uiText.elementWord));
                     return true;
                 }

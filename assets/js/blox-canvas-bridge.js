@@ -30,8 +30,9 @@
         return typeof value === "string" && /^\d+(?:\.\d+){2,9}$/.test(value);
     }
 
-    function isTopLevelElementPath(value) {
-        return typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value);
+    // 容器落点：最深 9 段（第 8 层容器不能再收子级，与服务端深度上限对齐）
+    function isContainerHostPath(value) {
+        return isElementPath(value) && value.split(".").length <= 9;
     }
 
     // 同级多选修饰键：可选字段，出现时必须为布尔对；非法整体丢弃（fail-closed）。
@@ -182,7 +183,7 @@
         if (value.target.kind === "column" && isIndex(value.target.sec) && isIndex(value.target.col)
             && value.target.position === "end") {
             target = { kind: "column", sec: value.target.sec, col: value.target.col, position: "end" };
-        } else if (value.target.kind === "container" && isTopLevelElementPath(value.target.path)) {
+        } else if (value.target.kind === "container" && isContainerHostPath(value.target.path)) {
             target = { kind: "container", path: value.target.path };
         } else if (value.target.kind === "element" && isElementPath(value.target.path)
             && (value.target.position === "before" || value.target.position === "after")) {

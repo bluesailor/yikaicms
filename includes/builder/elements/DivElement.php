@@ -64,7 +64,9 @@ final class DivElement extends AbstractElement
     public function icon(): string { return 'square'; }
     public function category(): string { return 'layout'; }
     public function isContainer(): bool { return true; }
-    public function allowedChildren(array $data = []): array { return ['*']; }
+    // 0b：布局节点开放互嵌（显式列出容器类型；'*' 通配仍只放行非容器叶子）。
+    // 深度上限由 BloxDocumentValidator::MAX_ELEMENT_DEPTH 统一约束。
+    public function allowedChildren(array $data = []): array { return ['container', 'div', '*']; }
     /** 通用背景：native——背景写在自己的根 div 上，存量输出逐字节不变 */
     public function backgroundRenderStrategy(): string { return 'native'; }
 
