@@ -1,0 +1,12 @@
+# YikaiCMS runtime data: SQLite database, logs, cache, backups and upgrade files.
+# Nothing in storage/ is ever served over HTTP. Deny all direct web access.
+# (Apache only. Nginx ignores this file; use deploy/nginx-baota.conf or
+# deploy/nginx-server.conf, which block /storage/ at the server level.)
+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
