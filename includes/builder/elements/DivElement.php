@@ -56,6 +56,16 @@ final class DivElement extends AbstractElement
                 'options' => ['auto' => __('blox_flex_wrap_auto'), 'wrap' => __('blox_flex_wrap_on'), 'nowrap' => __('blox_flex_wrap_off')]],
             ['key' => 'gap', 'type' => 'select', 'label' => __('blox_child_gap'), 'default' => 'none', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
+            // 0a 布局引擎：受控任意值间距，留空沿用上面的档位（与容器元素同款）。
+            ['key' => 'gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_gap'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'gap']]],
+            ['key' => 'row_gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_row_gap'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'row-gap']]],
+            ['key' => 'column_gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_column_gap'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'column-gap']]],
             ['key' => 'align', 'type' => 'select', 'label' => __('blox_cross_align'), 'default' => 'stretch', 'tab' => 'style',
                 'options' => ['stretch' => __('blox_align_stretch'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'baseline' => __('blox_flex_align_baseline')]],
             ['key' => 'justify', 'type' => 'select', 'label' => __('blox_main_distribute'), 'default' => 'start', 'tab' => 'style',
@@ -65,6 +75,8 @@ final class DivElement extends AbstractElement
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
             ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
                 'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
+            // 0a：Div 自身作为父级 flex 子项的布局。
+            ...$this->flexItemControls(),
         ];
     }
 
@@ -108,6 +120,7 @@ final class DivElement extends AbstractElement
         foreach ([
             $this->resp($data['padding'] ?? 'none', self::PAD_MAP, 'none'),
             self::RADIUS_MAP[$data['radius'] ?? 'none'] ?? '',
+            self::alignSelfClass($data),
         ] as $boxClass) {
             if ($boxClass !== '') {
                 $cls .= ' ' . $boxClass;

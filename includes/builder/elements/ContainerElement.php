@@ -72,10 +72,16 @@ final class ContainerElement extends AbstractElement
                 'options' => ['auto' => __('blox_flex_wrap_auto'), 'wrap' => __('blox_flex_wrap_on'), 'nowrap' => __('blox_flex_wrap_off')]],
             ['key' => 'gap', 'type' => 'select', 'label' => __('blox_child_gap'), 'default' => 'md', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
-            // 声明式间距（E05 试点）：留空沿用上面的档位；填写后以实例样式覆盖。
+            // 声明式间距（E05 试点，0a 扩展行/列向）：留空沿用上面的档位；填写后以实例样式覆盖。
             ['key' => 'gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_gap'),
                 'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
                 'css' => [['property' => 'gap']]],
+            ['key' => 'row_gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_row_gap'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'row-gap']]],
+            ['key' => 'column_gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_column_gap'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'column-gap']]],
             ['key' => 'align', 'type' => 'select', 'label' => __('blox_cross_align'), 'default' => 'stretch', 'tab' => 'style',
                 'options' => ['stretch' => __('blox_align_stretch'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'baseline' => __('blox_flex_align_baseline')],
                 'option_icons' => ['stretch' => 'arrows-vertical', 'start' => 'layout-align-top', 'center' => 'layout-align-middle', 'end' => 'layout-align-bottom', 'baseline' => 'align-box-bottom-center']],
@@ -87,6 +93,8 @@ final class ContainerElement extends AbstractElement
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
             ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
                 'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
+            // 0a：容器自身作为父级 flex 子项的布局（容器嵌进行向容器的场景）。
+            ...$this->flexItemControls(),
         ];
     }
 
@@ -148,7 +156,8 @@ final class ContainerElement extends AbstractElement
             $overlay = $alpha !== null
                 ? '<div class="blox-bg-overlay" style="background:rgba(0,0,0,' . $alpha . ')"></div>'
                 : '';
-            return '<div class="yk-container blox-has-bg' . ($radiusCls !== '' ? ' ' . $radiusCls : '') . '"' . $style . '>'
+            $selfCls = self::alignSelfClass($data);
+            return '<div class="yk-container blox-has-bg' . ($radiusCls !== '' ? ' ' . $radiusCls : '') . ($selfCls !== '' ? ' ' . $selfCls : '') . '"' . $style . '>'
                 . '<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="'
                 . $mobileVideoMode . '" data-blox-video-src="'
                 . htmlspecialchars($video, ENT_QUOTES) . '"' . $posterAttr . '></video></div>'
@@ -157,7 +166,8 @@ final class ContainerElement extends AbstractElement
                 . '</div>';
         }
 
-        $cls = 'yk-container ' . $layout . ($radiusCls !== '' ? ' ' . $radiusCls : '');
+        $selfCls = self::alignSelfClass($data);
+        $cls = 'yk-container ' . $layout . ($radiusCls !== '' ? ' ' . $radiusCls : '') . ($selfCls !== '' ? ' ' . $selfCls : '');
         $style = '';
         $background = self::backgroundDeclarations($data);
         if ($background !== '') {
