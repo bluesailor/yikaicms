@@ -34,7 +34,7 @@
 
 ## 3 分钟安装
 
-1. 下载最新版完整包 [yikaicms-v1.20.1.zip](https://github.com/bluesailor/yikaicms/releases/latest)（每个 Release 附 `.sha256` 校验文件），解压上传到网站根目录；
+1. 下载完整包 [yikaicms-v1.20.1.zip](https://github.com/bluesailor/yikaicms/releases/download/v1.20.1/yikaicms-v1.20.1.zip)（校验文件 [yikaicms-v1.20.1.sha256](https://github.com/bluesailor/yikaicms/releases/download/v1.20.1/yikaicms-v1.20.1.sha256)），解压上传到网站根目录；
 2. 确保 `/config/`、`/uploads/`、`/storage/` 可写，浏览器访问 `http://你的域名/install/`，按向导选择 MySQL 或 SQLite 完成安装；
 3. 配置伪静态（宝塔面板：站点 → 设置 → 伪静态，写入一行 `include /www/wwwroot/<你的站点目录>/deploy/nginx-baota.conf;`）。
 
@@ -119,7 +119,7 @@
 
 ### 1. 下载部署
 
-- 完整安装包：[GitHub Releases（最新版）](https://github.com/bluesailor/yikaicms/releases/latest)，当前为 v1.20.1；每个版本附 `.sha256` 校验文件。
+- 完整安装包：[yikaicms-v1.20.1.zip](https://github.com/bluesailor/yikaicms/releases/download/v1.20.1/yikaicms-v1.20.1.zip)，发布说明见 [v1.20.1 Release](https://github.com/bluesailor/yikaicms/releases/tag/v1.20.1)；每个版本附 `.sha256` 校验文件。
 - 已安装的站点可在后台「系统设置 → 系统升级」在线升级，无需手动下载。
 - 开发者也可以直接克隆仓库：`git clone https://github.com/bluesailor/yikaicms.git`
 
