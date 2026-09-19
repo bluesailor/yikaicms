@@ -60,8 +60,9 @@ final class ReleaseCandidateHardeningTest extends TestCase
         $readme = (string) file_get_contents(ROOT_PATH . '/README.md');
 
         self::assertStringContainsString('Default（标准）、Business（深色商务风）、Minimal（极简）', $readme);
-        self::assertStringContainsString('Aurora', $readme);
-        self::assertStringContainsString('主题市场', $readme);
+        // Aurora、Trade 已从模板市场下架（2026-09），README 不得再把它们当作可安装主题介绍。
+        self::assertStringNotContainsString('Aurora', $readme);
+        self::assertStringContainsString('模板市场', $readme);
         self::assertStringNotContainsString('tests-349%20passing', $readme);
         self::assertStringContainsString('actions/workflows/ci.yml/badge.svg', $readme);
     }
