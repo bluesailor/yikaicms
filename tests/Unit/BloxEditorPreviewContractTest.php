@@ -898,7 +898,8 @@ final class BloxEditorPreviewContractTest extends TestCase
             $this->assertStringNotContainsString($token, $preview, "canvas drag must not auto-scroll: {$token}");
         }
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
-        foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'onTemplateDrop', 'templateDropPayload', 'isTopLevelElementPath(value.target.path)'] as $token) {
+        // 0b：容器落点从「仅顶层」放宽为「任意深度、最深 9 段」（isContainerHostPath）
+        foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'onTemplateDrop', 'templateDropPayload', 'isContainerHostPath(value.target.path)'] as $token) {
             $this->assertStringContainsString($token, $bridge, "canvas bridge drop contract {$token} missing");
         }
     }

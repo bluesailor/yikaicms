@@ -85,7 +85,9 @@ final class BuilderSchemaContractTest extends TestCase
     {
         $meta = BuilderRegistry::meta('home');
 
-        $this->assertSame(['*'], $meta['container']['allowedChildren']);
+        // 0b：布局节点显式互收（'*' 通配仍只放行非容器叶子）
+        $this->assertSame(['container', 'div', '*'], $meta['container']['allowedChildren']);
+        $this->assertSame(['container', 'div', '*'], $meta['div']['allowedChildren']);
         $this->assertSame(['heading', 'text', 'image', 'button', 'div'], $meta['list-dynamic']['allowedChildren']);
         $this->assertSame(['stat-item'], $meta['stats-group']['allowedChildren']);
         $this->assertCount(4, $meta['stats-group']['defaults']['children']);
@@ -94,6 +96,19 @@ final class BuilderSchemaContractTest extends TestCase
         $this->assertSame([], $meta['home-block']['allowedChildren']);
         $this->assertSame('banner', $meta['home-block']['childRules'][0]['value']);
         $this->assertSame(['home-banner-item'], $meta['home-block']['childRules'][0]['allowedChildren']);
+    }
+
+    /** 0b：container/div 互嵌是合法文档结构（深度上限另由 MAX_ELEMENT_DEPTH 约束） */
+    public function testLayoutContainersNestEachOther(): void
+    {
+        \BloxDocumentValidator::assertValidSections([['id' => 'nest_s', 'columns' => [['id' => 'nest_c', 'elements' => [[
+            'id' => 'nest_e1', 'type' => 'container', 'data' => ['children' => [[
+                'id' => 'nest_e2', 'type' => 'div', 'data' => ['children' => [[
+                    'id' => 'nest_e3', 'type' => 'heading', 'data' => ['text' => 'deep'],
+                ]]],
+            ]]],
+        ]]]]]]);
+        $this->addToAssertionCount(1);
     }
 
     public function testUnknownElementIsRejected(): void
