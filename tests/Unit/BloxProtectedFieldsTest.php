@@ -10,7 +10,7 @@ final class BloxProtectedFieldsTest extends TestCase
     private function document(): array
     {
         return [['id' => 's1', 'columns' => [['id' => 'c1', 'elements' => [
-            ['id' => 'e1', 'type' => 'heading', 'data' => ['text' => 'Old', 'site_field' => 'site_name']],
+            ['id' => 'e1', 'type' => 'heading', 'data' => ['text' => 'Old', '_global_style' => 'brand']],
         ]]]]];
     }
 
@@ -19,10 +19,10 @@ final class BloxProtectedFieldsTest extends TestCase
         $trusted = $this->document();
         $next = $trusted;
         $next[0]['columns'][0]['elements'][0]['data']['text'] = 'New';
-        $validation = BloxProtectedFields::forValidation($next, $trusted, ['query_loop']);
+        $validation = BloxProtectedFields::forValidation($next, $trusted, ['style_presets']);
         self::assertSame('New', $validation[0]['columns'][0]['elements'][0]['data']['text']);
-        self::assertArrayNotHasKey('site_field', $validation[0]['columns'][0]['elements'][0]['data']);
-        self::assertSame('site_name', $next[0]['columns'][0]['elements'][0]['data']['site_field']);
+        self::assertArrayNotHasKey('_global_style', $validation[0]['columns'][0]['elements'][0]['data']);
+        self::assertSame('brand', $next[0]['columns'][0]['elements'][0]['data']['_global_style']);
     }
 
     public function testNewOrdinaryElementsCanReceiveIdsLater(): void
@@ -30,10 +30,10 @@ final class BloxProtectedFieldsTest extends TestCase
         $trusted = $this->document();
         $next = $trusted;
         $next[0]['columns'][0]['elements'][] = ['type' => 'text', 'data' => ['content' => 'New']];
-        self::assertCount(2, BloxProtectedFields::forValidation($next, $trusted, ['query_loop'])[0]['columns'][0]['elements']);
-        $next[0]['columns'][0]['elements'][1]['data']['site_field'] = 'site_name';
+        self::assertCount(2, BloxProtectedFields::forValidation($next, $trusted, ['style_presets'])[0]['columns'][0]['elements']);
+        $next[0]['columns'][0]['elements'][1]['data']['_global_style'] = 'brand';
         $this->expectException(RuntimeException::class);
-        BloxProtectedFields::forValidation($next, $trusted, ['query_loop']);
+        BloxProtectedFields::forValidation($next, $trusted, ['style_presets']);
     }
 
     private function loopDocument(): array
@@ -84,15 +84,15 @@ final class BloxProtectedFieldsTest extends TestCase
             $trusted = $this->document();
             $next = $trusted;
             switch ($mode) {
-                case 'change': $next[0]['columns'][0]['elements'][0]['data']['site_field'] = 'contact_email'; break;
-                case 'drop': unset($next[0]['columns'][0]['elements'][0]['data']['site_field']); break;
+                case 'change': $next[0]['columns'][0]['elements'][0]['data']['_global_style'] = 'accent'; break;
+                case 'drop': unset($next[0]['columns'][0]['elements'][0]['data']['_global_style']); break;
                 case 'copy': $copy = $next[0]['columns'][0]['elements'][0]; $copy['id'] = 'e2'; $next[0]['columns'][0]['elements'][] = $copy; break;
                 case 'move': $next[0]['columns'][0]['id'] = 'c2'; break;
                 case 'type': $next[0]['columns'][0]['elements'][0]['type'] = 'text'; break;
                 case 'duplicate_id': $next[0]['columns'][0]['elements'][] = $next[0]['columns'][0]['elements'][0]; break;
             }
             try {
-                BloxProtectedFields::forValidation($next, $trusted, ['query_loop']);
+                BloxProtectedFields::forValidation($next, $trusted, ['style_presets']);
                 self::fail('Accepted ' . $mode);
             } catch (RuntimeException $error) {
                 self::assertNotSame('', $error->getMessage());

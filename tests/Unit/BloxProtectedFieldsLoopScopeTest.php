@@ -43,11 +43,17 @@ final class BloxProtectedFieldsLoopScopeTest extends TestCase
         BloxProtectedFields::forValidation($changed, $trusted, self::DENIED);
     }
 
-    public function testSiteBindingsOutsideLoopsStayProtected(): void
+    /** v1.20.2 起站点数据绑定为免费能力：全部专业能力未授权时，仍可新增、修改和删除站点绑定。 */
+    public function testSiteBindingsAreFreeEvenWhenAllProFeaturesAreDenied(): void
     {
-        $trusted = self::doc([['id' => 'h0', 'type' => 'heading', 'data' => ['text' => 'Old']]]);
-        $added = self::doc([['id' => 'h0', 'type' => 'heading', 'data' => ['text' => 'Old', 'site_field' => 'site_name']]]);
-        $this->expectException(RuntimeException::class);
-        BloxProtectedFields::forValidation($added, $trusted, self::DENIED);
+        $trusted = self::doc([['id' => 'h0', 'type' => 'heading', 'data' => ['text' => 'Old', 'site_field' => 'site_name']]]);
+        foreach ([
+            ['text' => 'Old', 'site_field' => 'contact_email'],
+            ['text' => 'Old'],
+            ['text' => 'Old', 'site_field' => 'site_name', 'site_url_field' => 'site_url'],
+        ] as $data) {
+            $next = self::doc([['id' => 'h0', 'type' => 'heading', 'data' => $data]]);
+            self::assertSame($next, BloxProtectedFields::forValidation($next, $trusted, self::DENIED));
+        }
     }
 }
