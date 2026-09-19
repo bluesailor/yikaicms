@@ -56,7 +56,8 @@ final class BloxMultiSelectContractTest extends TestCase
         self::assertStringContainsString('data-testid="blox-batch-count"', $workspace);
         self::assertStringContainsString('!multiSelActive()', $workspace);
         // 行内多选高亮用稳定 id 驱动。
-        self::assertSame(3, substr_count($workspace, 'data-multi-selected'), '区块/元素/子元素三行都要有 data-multi-selected');
+        // 0b：子元素行拆为层级 1（手写模板）+ 深层（PHP 生成模板）两处，共 4 个标记
+        self::assertSame(4, substr_count($workspace, 'data-multi-selected'), '区块/元素/子元素（单层+深层）都要有 data-multi-selected');
         // Esc 清空与文档变化失效都接在中央位置。
         self::assertStringContainsString('self.multiSelClear()', $editor);
     }

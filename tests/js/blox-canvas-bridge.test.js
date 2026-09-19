@@ -97,6 +97,29 @@ test("路径和索引在进入编辑器前完成校验", function () {
     assert.deepEqual(current.calls, [["element", { id: "", path: "0.1.2.3" }], ["column", 4, 5]]);
 });
 
+test("0b 深路径：嵌套容器内元素可选中，段数超过服务端深度上限即拒", function () {
+    const current = fixture();
+    // 3+7 段 = 服务端 MAX_ELEMENT_DEPTH(8) 对应的最深路径
+    const deepest = "0.1.2.0.1.0.2.1.0.3";
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykPickEl: deepest } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykPickEl: deepest + ".0" } }), false);
+    assert.deepEqual(current.calls, [["element", { id: "", path: deepest }]]);
+});
+
+test("0b 子级右键上下文可携带深路径，非法路径被剥除", function () {
+    const current = fixture();
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykContext: { kind: "child", target: { si: 0, ci: 1, ei: 2, cei: 0, path: "0.1.2.0.3" }, x: 10, y: 20 },
+    } }), true);
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykContext: { kind: "child", target: { si: 0, ci: 1, ei: 2, cei: 0, path: "bad.path" }, x: 10, y: 20 },
+    } }), true);
+    assert.deepEqual(current.calls, [
+        ["context", { kind: "child", target: { si: 0, ci: 1, ei: 2, cei: 0, path: "0.1.2.0.3" }, x: 10, y: 20 }],
+        ["context", { kind: "child", target: { si: 0, ci: 1, ei: 2, cei: 0 }, x: 10, y: 20 }],
+    ]);
+});
+
 test("列宽和右键载荷先标准化再回调", function () {
     const current = fixture();
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {

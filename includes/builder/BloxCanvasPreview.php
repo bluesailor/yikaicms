@@ -1197,7 +1197,8 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         if (el) {
             var path = el.getAttribute('data-yk-el') || '';
             var parts = pathParts(path);
-            if (parts.length >= 4) return { kind: 'child', target: { si: parts[0], ci: parts[1], ei: parts[2], cei: parts[3] }, path: path };
+            // 0b：五段及以上 = 嵌套容器内的深层子级，target 带完整路径供编辑器精确定位
+            if (parts.length >= 4) return { kind: 'child', target: { si: parts[0], ci: parts[1], ei: parts[2], cei: parts[3], path: path }, path: path };
             if (parts.length >= 3) return { kind: 'element', target: { si: parts[0], ci: parts[1], ei: parts[2] }, path: path };
         }
         var col = e.target.closest('[data-yk-col]');

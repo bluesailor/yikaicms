@@ -385,6 +385,9 @@ declare(strict_types=1);
             selectedCi: -1,
             selectedEi: -1,
             selectedSubEi: -1,
+            // 0b：子级选区路径（顶层元素以下逐层子索引）。selectedSubEi 是首段镜像，
+            // 供只认识单层 children 的旧消费方；写入必须走 setSubSelection 保持同步。
+            selectedSubPath: [],
             // 同级多选（R1）：稳定 id 集合，仅同列/同容器/根区块内；批量操作条由 multiSelActive 门控
             multiSel: null,
             // 批量剪贴板（R2）：有序列表 {level, parent, items}；单选剪贴板（clipboard）不受影响
@@ -429,12 +432,13 @@ declare(strict_types=1);
                 return (col && col.elements[this.selectedEi]) ? col.elements[this.selectedEi] : null;
             },
 
-            /** 当前选中的元素对象；子元素选中时下钻到 children（设置面板据此切换显示） */
+            /** 当前选中的元素对象；子级选中时沿 selectedSubPath 逐层下钻（0b 起支持嵌套容器） */
             get selEl() {
                 var el = this.selTopEl;
-                if (el && this.selectedSubEi >= 0) {
+                var subPath = this.selectedSubPath || [];
+                for (var i = 0; el && i < subPath.length; i++) {
                     var kids = (el.data && el.data.children) || [];
-                    return kids[this.selectedSubEi] || null;
+                    el = kids[subPath[i]] || null;
                 }
                 return el;
             },
