@@ -25,19 +25,25 @@ $result['denied'] = BloxFeaturePolicy::denied();
 $catalog = BloxAreaTemplatePresets::editorCatalog('footer');
 $result['footer_catalog'] = array_column($catalog, 'slug');
 
-// 自带四栏页脚含站点数据绑定（query_loop 档）：作者直接保存同样的内容应被拦截
+// 作者写入样例：自带四栏页脚 + 首个元素加一条显示条件（display_conditions，Pro）。
+// 站点数据绑定自 v1.20.2 起免费，所以用显示条件确保内容里确有专业能力：作者直接保存应被拦截，可信写入放行。
 $fourColumn = null;
 foreach ($catalog as $item) {
     if ($item['slug'] === 'four-column-dark-site-footer') {
         $fourColumn = $item;
     }
 }
-$json = json_encode(['schema' => 1, 'settings' => [], 'sections' => $fourColumn['sections'] ?? []], JSON_THROW_ON_ERROR);
+$sections = $fourColumn['sections'] ?? [];
+if (isset($sections[0]['columns'][0]['elements'][0])) {
+    $sections[0]['columns'][0]['elements'][0]['data']['_conditions'] = [['rules' => [['type' => 'login', 'operator' => 'is', 'value' => 'logged_in']]]];
+}
+$json = json_encode(['schema' => 1, 'settings' => [], 'sections' => $sections], JSON_THROW_ON_ERROR);
 try {
     BloxAreaDocument::process('footer', $json, 'probe');
     $result['author_save'] = 'saved';
 } catch (Throwable $error) {
-    $result['author_save'] = $error->getMessage() === __('blox_query_loop_license_required') ? 'license' : 'error:' . $error->getMessage();
+    $result['author_save'] = in_array($error->getMessage(), [__('blox_query_loop_license_required'), __('blox_display_conditions_license_required')], true)
+        ? 'license' : 'error:' . $error->getMessage();
 }
 
 $result['trusted_save'] = BloxFeaturePolicy::asTrustedWrite(static function () use ($json): string {
