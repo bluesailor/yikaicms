@@ -845,7 +845,9 @@ final class BloxEditorPreviewContractTest extends TestCase
     }
     public function testCanvasDropUsesVersionedBeforeAfterTargetProtocol(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        // 元素库拖拽方法已拆入 partial（0a 编辑器拆模块），与主文件视作同一逻辑源
+        $editor = $this->source('admin/blox_editor.php') . "\n"
+            . $this->source('admin/blox_editor/partials/element-library-methods.php');
         $canvas = $this->source('admin/page_edit_advance.php');
         $preview = $this->source('includes/builder/BloxCanvasPreview.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
@@ -1041,7 +1043,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
     public function testStructureTreeDropUsesCanvasInsertionIntentProtocol(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        $editor = $this->source('admin/blox_editor.php') . "\n"
+            . $this->source('admin/blox_editor/partials/element-library-methods.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
         foreach ([
@@ -1649,7 +1652,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
     public function testElementLibraryFavoritesAndRecentsStayLocalAndSearchable(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        $editor = $this->source('admin/blox_editor.php') . "\n"
+            . $this->source('admin/blox_editor/partials/element-library-methods.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
         foreach ([
@@ -1853,7 +1857,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
     public function testPaletteTapInsertionRequiresAnExplicitTarget(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        $editor = $this->source('admin/blox_editor.php') . "\n"
+            . $this->source('admin/blox_editor/partials/element-library-methods.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
         $overlays = $this->source('admin/blox_editor/partials/overlays.php');
 

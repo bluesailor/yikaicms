@@ -3305,8 +3305,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return this.selectedCol() || this._emptyCol;
             },
 
-            // 响应式跨度 {d:桌面, t:平板}：存储标量优先——仅当平板≠桌面才升级为对象，
-            // 存量文档保持标量形态不被改写（黄金对拍同款纪律）。手机始终单列，无 m 轴。
+            // 响应式跨度 {d:桌面, t:平板, m:手机, w:宽屏}：存储标量优先——只有差异档才升级为对象，
+            // 存量文档保持标量形态不被改写（黄金对拍同款纪律）。
+            // m 缺省=整行堆叠（不是继承桌面）；w 缺省继承桌面，等值不落盘。
             rawSpanD(col) {
                 if (!col || col.span == null) return 0;
                 if (typeof col.span === "object") return parseInt(col.span.d || 0, 10) || 0;
@@ -3319,10 +3320,36 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return t >= 1 && t <= 12 ? t : null;
             },
 
-            writeSpan(col, d, t) {
+            rawSpanM(col) {
+                if (!col || col.span == null || typeof col.span !== "object") return null;
+                var m = parseInt(col.span.m || 0, 10);
+                return m >= 1 && m <= 12 ? m : null;
+            },
+
+            rawSpanW(col) {
+                if (!col || col.span == null || typeof col.span !== "object") return null;
+                var w = parseInt(col.span.w || 0, 10);
+                return w >= 1 && w <= 12 ? w : null;
+            },
+
+            // 第 4、5 参可省略（undefined = 保留列上已有的 m/w 档），传 null 表示清除该档。
+            writeSpan(col, d, t, m, w) {
                 d = Math.min(12, Math.max(1, parseInt(d, 10) || 12));
                 t = t == null ? null : Math.min(12, Math.max(1, parseInt(t, 10) || d));
-                col.span = (t === null || t === d) ? d : { d: d, t: t };
+                if (m === undefined) m = this.rawSpanM(col);
+                if (w === undefined) w = this.rawSpanW(col);
+                m = m == null ? null : Math.min(12, Math.max(1, parseInt(m, 10) || 12));
+                w = w == null ? null : Math.min(12, Math.max(1, parseInt(w, 10) || d));
+                if (w === d) w = null;
+                if ((t === null || t === d) && m === null && w === null) {
+                    col.span = d;
+                    return;
+                }
+                var span = { d: d };
+                if (t !== null && t !== d) span.t = t;
+                if (m !== null) span.m = m;
+                if (w !== null) span.w = w;
+                col.span = span;
             },
 
             columnSpan(col) {
@@ -3336,6 +3363,14 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             columnSpanT(col) {
                 return this.rawSpanT(col);
+            },
+
+            columnSpanM(col) {
+                return this.rawSpanM(col);
+            },
+
+            columnSpanW(col) {
+                return this.rawSpanW(col);
             },
 
             setColumnSpan(span) {
@@ -3401,6 +3436,18 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var col = this.selectedCol();
                 if (!col) return;
                 this.writeSpan(col, this.columnSpan(col), t === "" ? null : t);
+            },
+
+            setColumnSpanM(m) {
+                var col = this.selectedCol();
+                if (!col) return;
+                this.writeSpan(col, this.columnSpan(col), this.rawSpanT(col), m === "" ? null : m);
+            },
+
+            setColumnSpanW(w) {
+                var col = this.selectedCol();
+                if (!col) return;
+                this.writeSpan(col, this.columnSpan(col), this.rawSpanT(col), undefined, w === "" ? null : w);
             },
 
             twoColumnLeftSpan() {

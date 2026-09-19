@@ -60,6 +60,18 @@ final class BlockRenderer
         5 => 'lg:col-span-5', 6 => 'lg:col-span-6', 7 => 'lg:col-span-7', 8 => 'lg:col-span-8',
         9 => 'lg:col-span-9', 10 => 'lg:col-span-10', 11 => 'lg:col-span-11', 12 => 'lg:col-span-12',
     ];
+    // 0b：列跨度补 m/w 档。手机默认整行堆叠不变；显式 m 值用 max-md: 变体覆盖 grid-cols-1，
+    // 未声明 m 的列在手机栅格区块里输出 col-span-12 兜底整行。
+    private const COLSPAN_MOBILE_MAP = [
+        1 => 'max-md:col-span-1', 2 => 'max-md:col-span-2', 3 => 'max-md:col-span-3', 4 => 'max-md:col-span-4',
+        5 => 'max-md:col-span-5', 6 => 'max-md:col-span-6', 7 => 'max-md:col-span-7', 8 => 'max-md:col-span-8',
+        9 => 'max-md:col-span-9', 10 => 'max-md:col-span-10', 11 => 'max-md:col-span-11', 12 => 'max-md:col-span-12',
+    ];
+    private const COLSPAN_WIDE_MAP = [
+        1 => 'wide:col-span-1', 2 => 'wide:col-span-2', 3 => 'wide:col-span-3', 4 => 'wide:col-span-4',
+        5 => 'wide:col-span-5', 6 => 'wide:col-span-6', 7 => 'wide:col-span-7', 8 => 'wide:col-span-8',
+        9 => 'wide:col-span-9', 10 => 'wide:col-span-10', 11 => 'wide:col-span-11', 12 => 'wide:col-span-12',
+    ];
     /** 断点隐藏类（前台输出；编辑态改打 data-yk-hide-on 标记以便画布仍可选中）。类名字面量供 Tailwind 扫描。 */
     // 桌面隐藏覆盖 ≥1024（含宽屏，与旧文档一致）；宽屏档另可单独隐藏 ≥1440
     private const HIDE_ON_MAP = ['m' => 'max-md:hidden', 't' => 'md:max-lg:hidden', 'd' => 'lg:hidden', 'w' => 'wide:hidden'];
@@ -289,19 +301,28 @@ final class BlockRenderer
             }
             $hasCustomSpans = false;
             $spanTotal = 0;
+            $hasMobileSpans = false;
             foreach ($columns as $col) {
                 if (is_array($col) && isset($col['span'])) {
                     $hasCustomSpans = true;
                     $spanTotal += max(0, self::spanValue($col['span'], 'd'));
+                    if (self::spanValue($col['span'], 'm') >= 1) {
+                        $hasMobileSpans = true;
+                    }
                 }
             }
             $useCustomSpans = $hasCustomSpans && $spanTotal > 0 && $spanTotal <= 12;
+            // 0b：任一列显式声明手机跨度才启用手机栅格；否则维持整行堆叠（存量输出不变）。
+            $useMobileSpans = $useCustomSpans && $hasMobileSpans;
 
             $gap = AbstractElement::respClasses($settings['gap'] ?? 'lg', self::GAP_MAP, 'lg');
             $gridClass = '';
             if ($colCount > 1) {
                 $gridMap = !empty($settings['tablet_stack']) ? self::GRIDCOL_DESKTOP_MAP : self::GRIDCOL_MAP;
                 $gridClass = 'grid grid-cols-1 ' . ($useCustomSpans ? $gridMap[12] : ($gridMap[$colCount] ?? $gridMap[12])) . ' ' . $gap;
+                if ($useMobileSpans) {
+                    $gridClass .= ' max-md:grid-cols-12';
+                }
                 if (!empty(self::ALIGN_ITEMS_MAP[$settings['align_items'] ?? ''])) {
                     $gridClass .= ' ' . self::ALIGN_ITEMS_MAP[$settings['align_items']];
                 }
@@ -452,7 +473,7 @@ final class BlockRenderer
             foreach ($columns as $ci => $col) {
                 $column = is_array($col) ? $col : [];
                 $spanClass = $colCount > 1 && $useCustomSpans
-                    ? self::colSpanClass($column['span'] ?? 0, !empty($settings['tablet_stack']))
+                    ? self::colSpanClass($column['span'] ?? 0, !empty($settings['tablet_stack']), $useMobileSpans)
                     : '';
                 $editSpan = $colCount > 1
                     ? ($useCustomSpans
@@ -741,10 +762,33 @@ final class BlockRenderer
      * 深度上限 3 防坏数据画圈（编辑器只允许一层，这里是兜底不是约束）。
      * 未注册 type 静默跳过（与旧 switch default 行为一致）。
      */
-    private static function colSpanClass(mixed $span, bool $desktopOnly = false): string
+    private static function colSpanClass(mixed $span, bool $desktopOnly = false, bool $mobileGrid = false): string
     {
-        // 响应式跨度：{d:桌面, t:平板}。手机始终单列是既有产品决策，故无 m 轴。
+        // 响应式跨度 {d,t,m,w}：t 缺省继承 d；m 缺省=整行堆叠（无 m 轴输出，既有产品决策的延续），
+        // 仅当区块启用手机栅格（$mobileGrid）时补 max-md: 档；w 缺省继承桌面，仅差异且宽屏档开启时输出。
         // tablet_stack（平板堆叠）时平板档无意义，只输出桌面档。
+        $mobile = '';
+        if ($mobileGrid) {
+            $m = self::spanValue($span, 'm');
+            $mobile = self::COLSPAN_MOBILE_MAP[$m >= 1 ? $m : 12];
+        }
+        $wide = '';
+        if (is_array($span) && BloxResponsiveValue::wideEnabled()) {
+            $w = self::spanValue($span, 'w');
+            if ($w >= 1 && $w !== self::spanValue($span, 'd')) {
+                $wide = self::COLSPAN_WIDE_MAP[$w];
+            }
+        }
+        $base = self::colSpanBaseClass($span, $desktopOnly);
+        if ($mobile === '' && $wide === '') {
+            return $base;
+        }
+        return trim($mobile . ' ' . trim($base . ' ' . $wide));
+    }
+
+    /** d/t 两档的既有输出，逐字节保持（0a 之前的黄金对拍基线）。 */
+    private static function colSpanBaseClass(mixed $span, bool $desktopOnly): string
+    {
         if (is_array($span)) {
             $d = self::spanValue($span, 'd');
             $t = self::spanValue($span, 't');
@@ -767,14 +811,19 @@ final class BlockRenderer
         return $map[$span] ?? '';
     }
 
-    /** {d,t} 或标量 → 指定断点的跨度值；t 缺省继承 d。超界返回 0。 */
+    /** {d,t,m,w} 或标量 → 指定断点的跨度值；t 缺省继承 d，m/w 缺省返回 0（继承标记）。超界返回 0。 */
     private static function spanValue(mixed $span, string $breakpoint): int
     {
         if (is_array($span)) {
             $d = (int) ($span['d'] ?? 0);
-            $v = $breakpoint === 't' ? (int) ($span['t'] ?? $d) : $d;
+            $v = match ($breakpoint) {
+                't' => (int) ($span['t'] ?? $d),
+                'm' => (int) ($span['m'] ?? 0),
+                'w' => (int) ($span['w'] ?? 0),
+                default => $d,
+            };
         } else {
-            $v = (int) $span;
+            $v = $breakpoint === 'm' || $breakpoint === 'w' ? 0 : (int) $span;
         }
         return $v >= 1 && $v <= 12 ? $v : 0;
     }
