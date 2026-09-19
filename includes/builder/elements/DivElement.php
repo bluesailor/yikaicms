@@ -33,8 +33,31 @@ final class DivElement extends AbstractElement
         'xl' => ['p-16', 'md:p-16', 'lg:p-16', 'wide:p-16'],
     ];
     private const RADIUS_MAP = ['none' => '', 'md' => 'rounded-lg', 'xl' => 'rounded-2xl'];
-    private const ITEMS_MAP = ['stretch' => '', 'start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end', 'baseline' => 'items-baseline'];
-    private const JUSTIFY_MAP = ['start' => '', 'center' => 'justify-center', 'end' => 'justify-end', 'between' => 'justify-between', 'around' => 'justify-around', 'evenly' => 'justify-evenly'];
+    // 0a：与容器元素同款的响应式对齐四元组（标量旧值只输出基类，存量渲染不变）。
+    private const ITEMS_MAP = [
+        'stretch' => ['', 'md:items-stretch', 'lg:items-stretch', 'wide:items-stretch'],
+        'start' => ['items-start', 'md:items-start', 'lg:items-start', 'wide:items-start'],
+        'center' => ['items-center', 'md:items-center', 'lg:items-center', 'wide:items-center'],
+        'end' => ['items-end', 'md:items-end', 'lg:items-end', 'wide:items-end'],
+        'baseline' => ['items-baseline', 'md:items-baseline', 'lg:items-baseline', 'wide:items-baseline'],
+    ];
+    private const JUSTIFY_MAP = [
+        'start' => ['', 'md:justify-start', 'lg:justify-start', 'wide:justify-start'],
+        'center' => ['justify-center', 'md:justify-center', 'lg:justify-center', 'wide:justify-center'],
+        'end' => ['justify-end', 'md:justify-end', 'lg:justify-end', 'wide:justify-end'],
+        'between' => ['justify-between', 'md:justify-between', 'lg:justify-between', 'wide:justify-between'],
+        'around' => ['justify-around', 'md:justify-around', 'lg:justify-around', 'wide:justify-around'],
+        'evenly' => ['justify-evenly', 'md:justify-evenly', 'lg:justify-evenly', 'wide:justify-evenly'],
+    ];
+    private const CONTENT_MAP = [
+        '' => ['', 'md:content-normal', 'lg:content-normal', 'wide:content-normal'],
+        'start' => ['content-start', 'md:content-start', 'lg:content-start', 'wide:content-start'],
+        'center' => ['content-center', 'md:content-center', 'lg:content-center', 'wide:content-center'],
+        'end' => ['content-end', 'md:content-end', 'lg:content-end', 'wide:content-end'],
+        'between' => ['content-between', 'md:content-between', 'lg:content-between', 'wide:content-between'],
+        'around' => ['content-around', 'md:content-around', 'lg:content-around', 'wide:content-around'],
+        'evenly' => ['content-evenly', 'md:content-evenly', 'lg:content-evenly', 'wide:content-evenly'],
+    ];
 
     public function type(): string { return 'div'; }
     public function label(): string { return 'Div'; }
@@ -66,10 +89,13 @@ final class DivElement extends AbstractElement
             ['key' => 'column_gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_column_gap'),
                 'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
                 'css' => [['property' => 'column-gap']]],
-            ['key' => 'align', 'type' => 'select', 'label' => __('blox_cross_align'), 'default' => 'stretch', 'tab' => 'style',
+            ['key' => 'align', 'type' => 'select', 'label' => __('blox_cross_align'), 'default' => 'stretch', 'tab' => 'style', 'responsive' => true,
                 'options' => ['stretch' => __('blox_align_stretch'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'baseline' => __('blox_flex_align_baseline')]],
-            ['key' => 'justify', 'type' => 'select', 'label' => __('blox_main_distribute'), 'default' => 'start', 'tab' => 'style',
+            ['key' => 'justify', 'type' => 'select', 'label' => __('blox_main_distribute'), 'default' => 'start', 'tab' => 'style', 'responsive' => true,
                 'options' => ['start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'between' => __('blox_align_between'), 'around' => __('blox_flex_around'), 'evenly' => __('blox_flex_evenly')]],
+            ['key' => 'align_content', 'type' => 'select', 'label' => __('blox_align_content'), 'default' => '', 'tab' => 'style', 'responsive' => true,
+                'required' => ['wrap', '!=', 'nowrap'],
+                'options' => ['' => __('blox_align_content_normal'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'between' => __('blox_align_between'), 'around' => __('blox_flex_around'), 'evenly' => __('blox_flex_evenly')]],
             ...$this->backgroundControls(),
             ['key' => 'padding', 'type' => 'select', 'label' => __('blox_padding'), 'default' => 'none', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
@@ -109,8 +135,9 @@ final class DivElement extends AbstractElement
                 $cls .= ' ' . $gapClass;
             }
             foreach ([
-                self::ITEMS_MAP[$data['align'] ?? 'stretch'] ?? '',
-                self::JUSTIFY_MAP[$data['justify'] ?? 'start'] ?? '',
+                $this->resp($data['align'] ?? 'stretch', self::ITEMS_MAP, 'stretch'),
+                $this->resp($data['justify'] ?? 'start', self::JUSTIFY_MAP, 'start'),
+                $this->resp($data['align_content'] ?? '', self::CONTENT_MAP, ''),
             ] as $layoutClass) {
                 if ($layoutClass !== '') {
                     $cls .= ' ' . $layoutClass;
