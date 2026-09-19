@@ -141,6 +141,68 @@ final class BuilderPluginPipelineTest extends TestCase
         );
     }
 
+    // ── 0b：元素树深度显式校验（渲染端不再静默截断） ──────────────
+
+    public function testElementTreeDepthIsExplicitlyBounded(): void
+    {
+        $this->registerNestingElement();
+
+        // 恰好 MAX_ELEMENT_DEPTH 层合法
+        BloxDocumentValidator::assertValidSections($this->nestSections(BloxDocumentValidator::MAX_ELEMENT_DEPTH));
+        $this->addToAssertionCount(1);
+
+        // 超一层显式拒绝，错误落在超限节点路径上
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('blox_doc_depth_exceeded');
+        BloxDocumentValidator::assertValidSections($this->nestSections(BloxDocumentValidator::MAX_ELEMENT_DEPTH + 1));
+    }
+
+    public function testRendererRendersToDepthLimitAndStopsBeyondIt(): void
+    {
+        $this->registerNestingElement();
+        $max = BloxDocumentValidator::MAX_ELEMENT_DEPTH;
+
+        $legal = BlockRenderer::renderElementNode($this->nestChain($max), 0, false, [0, 0, 0]);
+        $this->assertSame($max, substr_count($legal, 'data-nest-level'));
+
+        // 坏数据兜底：超限层不渲染（保存路径已被校验器拒绝，这里防历史坏数据画圈）
+        $tooDeep = BlockRenderer::renderElementNode($this->nestChain($max + 3), 0, false, [0, 0, 0]);
+        $this->assertSame($max, substr_count($tooDeep, 'data-nest-level'));
+    }
+
+    private function registerNestingElement(): void
+    {
+        BloxPluginRegistry::registerElement('depth-demo', new class extends AbstractElement {
+            public function type(): string { return 'depth-demo/nest'; }
+            public function label(): string { return '自嵌套容器'; }
+            public function icon(): string { return 'box'; }
+            public function category(): string { return 'layout'; }
+            public function isContainer(): bool { return true; }
+            public function allowedChildren(array $data = []): array { return ['depth-demo/nest']; }
+            public function controls(): array { return []; }
+            public function render(array $data, string $children = ''): string
+            {
+                return '<div data-nest-level>' . $children . '</div>';
+            }
+        });
+    }
+
+    /** @return array<string,mixed> levels 层的自嵌套链（顶层=第 1 层） */
+    private function nestChain(int $levels): array
+    {
+        $node = ['id' => 'nest_' . $levels, 'type' => 'depth-demo/nest', 'data' => []];
+        for ($i = $levels - 1; $i >= 1; $i--) {
+            $node = ['id' => 'nest_' . $i, 'type' => 'depth-demo/nest', 'data' => ['children' => [$node]]];
+        }
+        return $node;
+    }
+
+    /** @return array<int,mixed> */
+    private function nestSections(int $levels): array
+    {
+        return [['id' => 'depth_s', 'columns' => [['id' => 'depth_c', 'elements' => [$this->nestChain($levels)]]]]];
+    }
+
     // ── r10：文档 schema 信封与迁移管道 ──────────────────────────
 
     /** v0 历史两形态（裸数组 / 无 schema 的 {sections}）→ 同一 v1 信封（惰性迁移） */
