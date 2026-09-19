@@ -24,6 +24,8 @@ if (!defined('DB_PATH'))    define('DB_PATH', ':memory:');
 if (!defined('DB_PREFIX'))  define('DB_PREFIX', '');
 if (!defined('DB_CHARSET')) define('DB_CHARSET', 'utf8mb4');
 if (!defined('DEBUG'))      define('DEBUG', true);
+// 作者能力策略：功能测试按「可用」跑（见 fixtures/blox-feature-policy-entitled.php）；探针先定义自己的策略文件。
+if (!defined('YIKAI_BLOX_FEATURE_POLICY_FILE')) define('YIKAI_BLOX_FEATURE_POLICY_FILE', ROOT_PATH . '/tests/fixtures/blox-feature-policy-entitled.php');
 
 // Composer autoloader (Yikai\Tests\* + dev deps).
 require_once ROOT_PATH . '/vendor/autoload.php';

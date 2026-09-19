@@ -63,13 +63,13 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
     await page.getByTestId('blox-design-open').click();
     await expect(page.getByTestId('blox-design-tab-colors')).toBeVisible();
     await expect(page.getByTestId('blox-design-token-row')).not.toHaveCount(0);
-    // 全局命名样式随本次边界调整开放，免费模式下该页签同样可见
-    await expect(page.getByTestId('blox-design-tab-styles')).toBeVisible();
+    // v1.20.1 起全局命名样式属易开网页构建器 Pro（licensed），未授权站点不提供该页签
+    await expect(page.getByTestId('blox-design-tab-styles')).toBeHidden();
     await page.keyboard.press('Escape');
   }
   await addTemporaryHeading(page);
   if (process.env.SMOKE_BLOX_ADVANCED === '0') {
-    // 免费能力仍依赖 yikai-builder 作者端模块；免费模式未加载该模块时入口不可操作。
+    // 显示条件属易开网页构建器 Pro（licensed）：未授权且未装作者端模块时入口不可操作。
     await expect(page.getByTestId('blox-condition-tab')).toBeHidden();
   }
 
@@ -286,6 +286,34 @@ test('free mode opens homepage and local templates while remote resolve stays lo
   expect(fixtures.product_cat).toBeGreaterThan(0);
   await openPageEditor(page, fixtures.product_cat);
   await expect(page.locator('body')).toHaveAttribute('data-blox-advanced', '1');
+  expect(consoleEntries).toEqual([]);
+});
+
+test('free mode lists Pro elements with a PRO badge but keeps them locked @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'single free-edition capability baseline');
+  test.skip(process.env.SMOKE_BLOX_ADVANCED !== '0', 'free-mode assertion');
+
+  const consoleEntries = observeConsole(page);
+  await openEditor(page);
+  await page.getByTestId('blox-elements-open').click();
+  await expect(page.getByTestId('blox-element-scroll')).toBeVisible();
+  for (const type of ['table', 'pricing-table']) {
+    const tile = page.getByTestId(`blox-add-element-${type}`);
+    await tile.scrollIntoViewIfNeeded();
+    await expect(tile, `${type} stays listed`).toBeVisible();
+    await expect(tile).toHaveAttribute('data-pro', 'locked');
+    await expect(tile).toHaveAttribute('draggable', 'false');
+    await expect(tile).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByTestId(`blox-pro-badge-${type}`)).toHaveAttribute('href', '/admin/license.php');
+  }
+
+  const sectionsBefore = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections));
+  // aria-disabled makes Playwright wait for "enabled"; a real click still reaches the handler, so force it.
+  await page.getByTestId('blox-add-element-table').click({ force: true });
+  await expect(page.getByTestId('blox-toast')).toBeVisible();
+  await expect(page.getByTestId('blox-toast')).not.toHaveText('');
+  const sectionsAfter = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections));
+  expect(sectionsAfter, 'a locked Pro element must not be inserted').toBe(sectionsBefore);
   expect(consoleEntries).toEqual([]);
 });
 

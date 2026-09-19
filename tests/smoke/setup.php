@@ -126,6 +126,22 @@ $smokeDebug = getenv('SMOKE_BLOX_ADVANCED') === '0' ? 'false' : 'true';
 $cfg = preg_replace("/define\('DEBUG',\s*(?:true|false)\)/", "define('DEBUG', " . $smokeDebug . ")", $cfg);
 // Match installed sites: strict public form tokens need a per-site secret.
 $cfg .= "\nif (!defined('ENCRYPT_KEY')) define('ENCRYPT_KEY', " . var_export(bin2hex(random_bytes(32)), true) . ");\n";
+// 专业模式：五项作者端能力（循环模板/显示条件/全局样式/表格/价格方案）自 v1.20.1 起为 licensed。
+// 测试站换一把一次性测试公钥（License.php 允许预先定义），下面用对应私钥签一份授权缓存——
+// 走的是真实验签路径，产品代码里没有任何测试旁路。免费模式不签，按未授权站点测。
+$smokeLicenseKey = null;
+if ($smokeDebug === 'true') {
+    $sslConfig = dirname(PHP_BINARY) . '/extras/ssl/openssl.cnf';
+    $smokeLicenseKey = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]
+        + (is_file($sslConfig) ? ['config' => $sslConfig] : []));
+    if ($smokeLicenseKey === false) {
+        fwrite(STDERR, "✗ 生成测试授权密钥失败（Windows 需要 OPENSSL_CONF 或 php 目录下的 extras/ssl/openssl.cnf）\n");
+        exit(1);
+    }
+    $smokePublicKey = (string) openssl_pkey_get_details($smokeLicenseKey)['key'];
+    $cfg .= "if (!defined('LICENSE_PUBKEY_B64')) define('LICENSE_PUBKEY_B64', "
+        . var_export(preg_replace('/-----[^-]+-----|\s/', '', $smokePublicKey), true) . ");\n";
+}
 file_put_contents($root . '/config/config.php', $cfg);
 
 // 2) 重建 sqlite 数据库文件 + 导入 schema
@@ -297,6 +313,26 @@ $hash = password_hash('smoke@Test123', PASSWORD_BCRYPT);
 $pdo->exec("DELETE FROM yikai_users");
 $pdo->prepare("INSERT INTO yikai_users (username,password,nickname,email,role_id,status,created_at,updated_at) VALUES ('admin',?,'管理员','a@a.com',1,1,?,?)")
     ->execute([$hash, $t, $t]);
+
+// 3b) 专业模式：签发测试授权（只含 blox 模块、valid=false，不改变授权页/AI/升级等「授权有效」分支），
+//     并登记启用 yikai-builder（v1.20.1 起不在安装种子里）。
+if ($smokeLicenseKey !== null) {
+    $licenseData = ['valid' => false, 'reason' => 'e2e', 'plan' => 'free', 'modules' => ['blox'],
+        'expires_at' => null, 'expired' => false, 'ts' => date('Y-m-d H:i:s')];
+    ksort($licenseData);
+    openssl_sign((string) json_encode($licenseData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $licenseSig, $smokeLicenseKey, OPENSSL_ALGO_SHA256);
+    $licenseKey = 'E2E-LOCAL-' . bin2hex(random_bytes(6));
+    $licenseState = (string) json_encode(['data' => $licenseData, 'sig' => base64_encode((string) $licenseSig),
+        'checked_at' => time(), 'key_hash' => hash('sha256', $licenseKey)], JSON_UNESCAPED_UNICODE);
+    foreach (['license_key' => $licenseKey, 'license_state' => $licenseState] as $key => $value) {
+        $pdo->prepare('DELETE FROM yikai_settings WHERE "key" = ?')->execute([$key]);
+        $pdo->prepare('INSERT INTO yikai_settings ("group", "key", value, type, name, tip, options, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+            ->execute(['system', $key, $value, 'text', $key, '', null, 0]);
+    }
+    $pdo->prepare('DELETE FROM yikai_plugins WHERE slug = ?')->execute(['yikai-builder']);
+    $pdo->prepare('INSERT INTO yikai_plugins (slug, status, installed_at, activated_at) VALUES (?, 1, ?, ?)')
+        ->execute(['yikai-builder', time(), time()]);
+}
 
 // 4) installed.lock 必须先于 init.php；全新 CI 不存在可沿用的锁文件。
 file_put_contents($root . '/installed.lock', date('Y-m-d H:i:s'));

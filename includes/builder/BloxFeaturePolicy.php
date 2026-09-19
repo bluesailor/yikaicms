@@ -16,6 +16,32 @@ final class BloxFeaturePolicy
 
     public const PROTECTED_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing'];
 
+    private static int $trustedWrites = 0;
+
+    /**
+     * 代码内置内容的写入（随包官方区域预置、升级迁移）：内容来自代码本身而不是作者，
+     * 不按作者能力拦截——否则未授权站点升级时迁移会中断、官方预置装不上。
+     * 作者保存、后台上传的模板包、远程市场模板都不走这里，照常检查。
+     *
+     * @template T
+     * @param callable():T $write
+     * @return T
+     */
+    public static function asTrustedWrite(callable $write): mixed
+    {
+        self::$trustedWrites++;
+        try {
+            return $write();
+        } finally {
+            self::$trustedWrites--;
+        }
+    }
+
+    public static function inTrustedWrite(): bool
+    {
+        return self::$trustedWrites > 0;
+    }
+
     /** @return list<string> 当前不可用、需要保留旧配置保护的作者能力 */
     public static function denied(): array
     {
