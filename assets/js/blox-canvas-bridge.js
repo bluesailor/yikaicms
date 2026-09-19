@@ -24,8 +24,10 @@
         return target;
     }
 
+    // 0b：元素路径 = 区块.列.元素[.子索引…]，随嵌套容器加深；
+    // 段数上限 3+7=10 与服务端 BloxDocumentValidator::MAX_ELEMENT_DEPTH(8) 对齐。
     function isElementPath(value) {
-        return typeof value === "string" && /^\d+\.\d+\.\d+(?:\.\d+)?$/.test(value);
+        return typeof value === "string" && /^\d+(?:\.\d+){2,9}$/.test(value);
     }
 
     function isTopLevelElementPath(value) {
@@ -91,6 +93,8 @@
         } else if (value.kind === "child") {
             if (!isIndex(target.si) || !isIndex(target.ci) || !isIndex(target.ei) || !isIndex(target.cei)) return null;
             cleanTarget = { si: target.si, ci: target.ci, ei: target.ei, cei: target.cei };
+            // 0b：嵌套容器的深层子级带完整路径；缺省仍是四段（存量单层行为不变）
+            if (isElementPath(target.path)) cleanTarget.path = target.path;
         } else {
             return null;
         }

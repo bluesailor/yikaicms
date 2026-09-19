@@ -293,7 +293,9 @@ final class BloxEditorPreviewContractTest extends TestCase
     /** r11：薄命令层——结构命令入口委托 runCommand，失败回滚复用历史快照协议 */
     public function testCommandRunnerWiring(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        // 0b：paste 命令随剪贴板方法拆入 partial，与主文件视作同一逻辑源
+        $editor = $this->source('admin/blox_editor.php') . "\n"
+            . $this->source('admin/blox_editor/partials/clipboard-methods.php');
         $runner = $this->source('assets/js/blox-command-runner.js');
 
         $this->assertStringContainsString('<script src="/assets/js/blox-command-runner.js?v=', $editor);
@@ -750,7 +752,7 @@ final class BloxEditorPreviewContractTest extends TestCase
             'selectBannerItem(bi)',
             'replaceBannerImage(bi)',
             'bannerPreviewItems()',
-            'showBannerSlide(k)',
+            'showBannerSlide(this.selectedSubPath[0])',
             'message.ykBannerSlide = this.selectedSubEi',
             'message.ykBannerPath = this.selectedSi + "." + this.selectedCi + "." + this.selectedEi',
             'data-testid="blox-banner-overall-settings"',
@@ -821,7 +823,8 @@ final class BloxEditorPreviewContractTest extends TestCase
             $this->assertStringContainsString($binding, $editor, "context menu binding {$binding} missing");
         }
         $this->assertStringContainsString('selectCtxTarget(d.kind, target, false);', $editor);
-        $this->assertStringContainsString('selectChild(t.si, t.ci, t.ei, t.cei, notifyCanvas);', $editor);
+        // 0b：child 目标统一走 selectDescendant（单层 [cei]、深层 subPath/path 同一入口）
+        $this->assertStringContainsString('this.selectDescendant(t.si, t.ci, t.ei, subPath, notifyCanvas);', $editor);
         $this->assertStringContainsString('selectElement(t.si, t.ci, t.ei, notifyCanvas);', $editor);
         $this->assertStringContainsString('postToEditor({ ykContext:', $canvas);
         $this->assertStringContainsString('var editorOrigin = window.parent.location.origin;', $canvas);

@@ -18,6 +18,8 @@ final class BloxEditorHistoryContractTest extends TestCase
             'admin/blox_editor/partials/header.php',
             'admin/blox_editor/partials/workspace.php',
             'admin/blox_editor/partials/overlays.php',
+            // 0b：剪贴板方法拆入 partial，与主文件视作同一逻辑源
+            'admin/blox_editor/partials/clipboard-methods.php',
         ];
 
         return implode("\n", array_map(function (string $path): string {
