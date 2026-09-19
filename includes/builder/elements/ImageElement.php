@@ -19,7 +19,7 @@ final class ImageElement extends AbstractElement
             [
                 'key' => 'site_image_field', 'type' => 'select', 'label' => __('blox_dynamic_site_image_binding'),
                 'default' => 'none', 'options' => DynamicSiteData::fieldOptions('image'),
-                'outside_loop_only' => true, 'advanced' => true,
+                'outside_loop_only' => true,
             ],
             [
                 'key' => 'loop_field', 'type' => 'select', 'label' => __('blox_loop_image_binding'),
