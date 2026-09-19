@@ -1,7 +1,5 @@
 # Yikai CMS v1.20.1
 
-> v1.20.1：易开网页构建器 Pro（循环模板、显示条件、全局样式、表格、价格方案）改为授权插件，从后台插件市场安装，编辑器中以 PRO 标识；新装站点不再登记未随包提供的插件。最低 PHP 8.0。
-
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg?logo=php)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-免费商用-green.svg)](./LICENSE)
