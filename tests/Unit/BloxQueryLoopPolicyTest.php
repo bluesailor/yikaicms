@@ -26,12 +26,11 @@ final class BloxQueryLoopPolicyTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
-    public function testFreeModeRejectsCustomTemplatesPaginationAndSiteBindings(): void
+    public function testFreeModeRejectsCustomTemplatesAndPagination(): void
     {
         foreach ([
             ['type' => 'list-dynamic', 'data' => ['children' => [['type' => 'heading', 'data' => []]]]],
             ['type' => 'list-dynamic', 'data' => ['pagination_mode' => 'numbers']],
-            ['type' => 'heading', 'data' => ['site_field' => 'site_name']],
         ] as $element) {
             try {
                 BloxQueryLoopPolicy::assertSectionsAllowed($this->sections($element), false);
@@ -40,6 +39,16 @@ final class BloxQueryLoopPolicyTest extends TestCase
                 self::assertSame(__('blox_query_loop_license_required'), $e->getMessage());
             }
         }
+    }
+
+    /** v1.20.2 起站点数据绑定为免费能力：免费模式下标题、文本、按钮、图片都可以绑定站点资料。 */
+    public function testFreeModeAllowsSiteBindings(): void
+    {
+        BloxQueryLoopPolicy::assertSectionsAllowed($this->sections(['type' => 'heading', 'data' => ['site_field' => 'site_name', 'site_url_field' => 'site_url']]), false);
+        BloxQueryLoopPolicy::assertSectionsAllowed($this->sections(['type' => 'text', 'data' => ['site_field' => 'site_description']]), false);
+        BloxQueryLoopPolicy::assertSectionsAllowed($this->sections(['type' => 'button', 'data' => ['site_text_field' => 'site_name', 'site_url_field' => 'site_url']]), false);
+        BloxQueryLoopPolicy::assertSectionsAllowed($this->sections(['type' => 'image', 'data' => ['site_image_field' => 'site_logo']]), false);
+        $this->addToAssertionCount(4);
     }
 
     public function testAdvancedModePreservesAdvancedDocuments(): void

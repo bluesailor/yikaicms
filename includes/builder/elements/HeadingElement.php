@@ -37,11 +37,11 @@ final class HeadingElement extends AbstractElement
             [
                 'key' => 'site_field', 'type' => 'select', 'label' => __('blox_dynamic_site_binding'),
                 'default' => 'none', 'options' => DynamicSiteData::fieldOptions('text'),
-                'outside_loop_only' => true, 'advanced' => true,
+                'outside_loop_only' => true,
             ],
             [
                 'key' => 'site_fallback', 'type' => 'text', 'label' => __('blox_dynamic_fallback'),
-                'default' => '', 'outside_loop_only' => true, 'advanced' => true,
+                'default' => '', 'outside_loop_only' => true,
                 'required' => ['site_field', '!=', 'none'],
             ],
             [

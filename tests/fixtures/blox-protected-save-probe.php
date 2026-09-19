@@ -17,6 +17,10 @@ file_put_contents($policyFile, '<?php return ' . var_export([
 ], true) . ';');
 define('YIKAI_BLOX_FEATURE_POLICY_FILE', $policyFile);
 
+// 受保护字段样例：元素显示条件（display_conditions，Pro）。v1.20.2 起站点数据绑定归免费，不再用作样例。
+const PROBE_LOGGED_IN = [['rules' => [['type' => 'login', 'operator' => 'is', 'value' => 'logged_in']]]];
+const PROBE_LOGGED_OUT = [['rules' => [['type' => 'login', 'operator' => 'is', 'value' => 'logged_out']]]];
+
 require dirname(__DIR__) . '/bootstrap.php';
 if (!function_exists('cacheClear')) {
     function cacheClear(): void {}
@@ -36,11 +40,12 @@ $attempt = static function (string $name, callable $save) use (&$results): void 
             __('blox_save_conflict') => 'conflict',
             __('blox_protected_fields_changed') => 'protected',
             __('blox_query_loop_license_required') => 'license',
+            __('blox_display_conditions_license_required') => 'license',
             default => 'error:' . $error->getMessage(),
         };
     }
 };
-$document = static fn(string $text, array $heading = ['site_field' => 'site_name']): string => json_encode([
+$document = static fn(string $text, array $heading = ['_conditions' => PROBE_LOGGED_IN]): string => json_encode([
     'schema' => 1, 'settings' => [], 'sections' => [[
         'id' => 's1', 'settings' => [], 'columns' => [['id' => 'c1', 'span' => 12, 'elements' => [
             ['id' => 'e1', 'type' => 'heading', 'data' => ['text' => 'Bound', 'level' => 'h2'] + $heading],
@@ -69,12 +74,12 @@ try {
 
     $attempt('page_basic_edit', static fn() => PageBloxDocument::saveDraft($pageId, $document('New'), $state['base_revision']));
     $saved = PageBloxDocument::load($pageId);
-    $results['page_binding_preserved'] = ($storedHeading($saved['document_json'])['site_field'] ?? '') === 'site_name';
+    $results['page_binding_preserved'] = ($storedHeading($saved['document_json'])['_conditions'] ?? null) === PROBE_LOGGED_IN;
     $results['page_text_saved'] = str_contains($saved['document_json'], '<p>New</p>');
 
     $attempt('page_missing_revision', static fn() => PageBloxDocument::saveDraft($pageId, $document('Newer'), ''));
     $attempt('page_stale_revision', static fn() => PageBloxDocument::saveDraft($pageId, $document('Newer'), $state['base_revision']));
-    $attempt('page_change_binding', static fn() => PageBloxDocument::saveDraft($pageId, $document('New', ['site_field' => 'contact_email']), $saved['base_revision']));
+    $attempt('page_change_binding', static fn() => PageBloxDocument::saveDraft($pageId, $document('New', ['_conditions' => PROBE_LOGGED_OUT]), $saved['base_revision']));
     $attempt('page_drop_binding', static fn() => PageBloxDocument::saveDraft($pageId, $document('New', []), $saved['base_revision']));
     $results['page_draft_unchanged_after_rejections'] = PageBloxDocument::load($pageId)['base_revision'] === $saved['base_revision'];
 
@@ -90,10 +95,10 @@ try {
     $homeJson = json_encode(['schema' => $homeState['schema'], 'settings' => $homeState['settings'], 'sections' => $homeState['sections']], JSON_THROW_ON_ERROR);
     $homeRevision = BloxDocumentPipeline::fingerprint($homeJson);
     $attempt('home_missing_revision', static fn() => HomeBloxDocument::saveDraft($document('Home new'), ''));
-    $attempt('home_change_binding', static fn() => HomeBloxDocument::saveDraft($document('Home new', ['site_field' => 'contact_email']), $homeRevision));
+    $attempt('home_change_binding', static fn() => HomeBloxDocument::saveDraft($document('Home new', ['_conditions' => PROBE_LOGGED_OUT]), $homeRevision));
     $attempt('home_basic_edit', static fn() => HomeBloxDocument::saveDraft($document('Home new'), $homeRevision));
     $storedHome = (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [HomeBloxDocument::DATA_KEY]);
-    $results['home_binding_preserved'] = ($storedHeading($storedHome)['site_field'] ?? '') === 'site_name'
+    $results['home_binding_preserved'] = ($storedHeading($storedHome)['_conditions'] ?? null) === PROBE_LOGGED_IN
         && str_contains($storedHome, 'Home new');
 
     // 自定义循环模板：子元素普通文案可改，字段绑定不可改。
@@ -125,24 +130,24 @@ try {
         ]], JSON_THROW_ON_ERROR), 'summary' => 'probe']);
         return (array) contentRevisionModel()->getOne($id);
     };
-    $attempt('restore_changed_binding', static fn() => PageBloxDocument::restoreRevision($pageId, $revision($document('Restored', ['site_field' => 'contact_email']))));
+    $attempt('restore_changed_binding', static fn() => PageBloxDocument::restoreRevision($pageId, $revision($document('Restored', ['_conditions' => PROBE_LOGGED_OUT]))));
     $attempt('restore_html_only_drops_binding', static fn() => PageBloxDocument::restoreRevision($pageId, $revision('')));
     $attempt('restore_basic_version', static fn() => PageBloxDocument::restoreRevision($pageId, $revision($document('Restored'))));
     $restored = PageBloxDocument::load($pageId);
-    $results['restore_binding_preserved'] = ($storedHeading($restored['document_json'])['site_field'] ?? '') === 'site_name'
+    $results['restore_binding_preserved'] = ($storedHeading($restored['document_json'])['_conditions'] ?? null) === PROBE_LOGGED_IN
         && str_contains($restored['document_json'], '<p>Restored</p>');
 
     // 模板：可信基线只能是同一模板行的库内草稿；导入/复制/另存不传基线，按新建检查。
     $areaDraft = $document('Area old');
     $attempt('template_basic_edit', static fn() => BloxAreaDocument::process('header', $document('Area new'), 'tpl1', $areaDraft));
-    $attempt('template_change_binding', static fn() => BloxAreaDocument::process('header', $document('Area new', ['site_field' => 'contact_email']), 'tpl1', $areaDraft));
+    $attempt('template_change_binding', static fn() => BloxAreaDocument::process('header', $document('Area new', ['_conditions' => PROBE_LOGGED_OUT]), 'tpl1', $areaDraft));
     $attempt('template_import_without_baseline', static fn() => BloxAreaDocument::process('header', $areaDraft, 'tpl2'));
     $attempt('popup_basic_edit', static fn() => BloxPopupDocument::process($document('Popup new'), 'tpl3', $document('Popup old')));
 
     // 预览：与保存同一检查；旧绑定按服务端基线可参与预览，伪造的新绑定和无基线的来源仍拒绝。
-    $previewSections = static fn(array $heading = ['site_field' => 'site_name']): array => BloxDocumentPipeline::decode($document('Preview', $heading))['sections'];
+    $previewSections = static fn(array $heading = ['_conditions' => PROBE_LOGGED_IN]): array => BloxDocumentPipeline::decode($document('Preview', $heading))['sections'];
     $attempt('preview_basic_edit', static fn() => BloxDocumentPipeline::assertAuthoringAllowed($previewSections(), $saved['document_json']));
-    $attempt('preview_change_binding', static fn() => BloxDocumentPipeline::assertAuthoringAllowed($previewSections(['site_field' => 'contact_email']), $saved['document_json']));
+    $attempt('preview_change_binding', static fn() => BloxDocumentPipeline::assertAuthoringAllowed($previewSections(['_conditions' => PROBE_LOGGED_OUT]), $saved['document_json']));
     $attempt('preview_without_baseline', static fn() => BloxDocumentPipeline::assertAuthoringAllowed($previewSections(), null));
 
     echo json_encode($results, JSON_THROW_ON_ERROR) . "\n";

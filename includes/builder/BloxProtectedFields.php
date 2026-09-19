@@ -4,8 +4,8 @@ declare(strict_types=1);
 /** Compare protected authoring fields against server-owned document data only. */
 final class BloxProtectedFields
 {
-    /** 站点字段绑定；fallback、截断长度属于普通展示设置，不在保护范围内。 */
-    private const SITE_BINDING_KEYS = ['site_field', 'site_image_field', 'site_text_field', 'site_url_field'];
+    // 站点数据绑定（site_field / site_image_field / site_text_field / site_url_field）自 v1.20.2 起为免费能力，
+    // 不属于受保护字段；未授权站点同样可以新增、修改和删除。
 
     /**
      * 循环字段绑定：只在循环模板（list-dynamic / content-catalog）内部才生效，也只在那里受保护。
@@ -73,7 +73,7 @@ final class BloxProtectedFields
         if (in_array('display_conditions', $denied, true)) $keys[] = '_conditions';
         if (in_array('style_presets', $denied, true)) $keys = array_merge($keys, ['_global_style', '_global_style_snapshot']);
         if (in_array('query_loop', $denied, true)) {
-            $keys = array_merge($keys, self::SITE_BINDING_KEYS, $inLoop ? self::LOOP_BINDING_KEYS : []);
+            $keys = array_merge($keys, $inLoop ? self::LOOP_BINDING_KEYS : []);
             if (($element['type'] ?? '') === 'list-dynamic') {
                 $keys = array_merge($keys, ['template', 'pagination_mode']);
                 $loopHost = true;
