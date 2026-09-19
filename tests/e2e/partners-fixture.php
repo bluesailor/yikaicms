@@ -46,6 +46,8 @@ foreach (['zh-CN', 'en', 'ja'] as $lang) {
 db()->insert('links', ['name' => 'Disabled partner', 'url' => '/contact.html', 'lang' => 'zh-CN', 'status' => 0]);
 settingModel()->saveBatch(['site_lang' => 'zh-CN', 'enabled_languages' => '["zh-CN","en","ja"]',
     'home_layout_active' => '0', 'html_cache_enabled' => '0']);
+// 夹具直接落库（无编辑器 base_revision）：v1.20.1 起 Pro 能力为 licensed，按服务端可信写入处理。
+BloxFeaturePolicy::asTrustedWrite(static function (): void {
 HomeBloxDocument::saveDraft(json_encode(['schema' => 1, 'sections' => [[
     'id' => 'partners_s', 'type' => 'section', 'settings' => ['padding' => 'none'],
     'columns' => [['id' => 'partners_c', 'span' => 12, 'elements' => [[
@@ -54,3 +56,4 @@ HomeBloxDocument::saveDraft(json_encode(['schema' => 1, 'sections' => [[
     ]]]],
 ]]], JSON_THROW_ON_ERROR));
 HomeBloxDocument::publishDraft();
+});
