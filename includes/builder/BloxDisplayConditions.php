@@ -68,17 +68,30 @@ final class BloxDisplayConditions
     /** @return array<string,mixed> */
     public static function currentContext(): array
     {
-        $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
-        $url = parse_url($requestUri, PHP_URL_PATH);
-        $url = is_string($url) && $url !== '' ? $url : '/';
-        $query = parse_url($requestUri, PHP_URL_QUERY);
-        if (is_string($query) && $query !== '') {
-            $url .= '?' . $query;
-        }
-        $params = [];
-        foreach ($_GET as $key => $value) {
-            if (is_string($key) && is_scalar($value)) {
-                $params[$key] = (string) $value;
+        // url/param 与缓存键同源规范化（外审 P1-1）：白名单内参数用 HtmlCache 的
+        // 规范化视图（ksort 排序 + page 归一），保证同一缓存键下条件结果恒定；
+        // 白名单外参数（query=null）的请求 isCacheable() 恒 false 永不落缓存，
+        // 用原始值无一致性风险。
+        $canonical = class_exists('HtmlCache') ? HtmlCache::canonicalRequest() : ['path' => null, 'query' => null];
+        if (is_string($canonical['path']) && is_array($canonical['query'])) {
+            $url = $canonical['path'];
+            if ($canonical['query'] !== []) {
+                $url .= '?' . http_build_query($canonical['query'], '', '&', PHP_QUERY_RFC3986);
+            }
+            $params = $canonical['query'];
+        } else {
+            $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+            $url = parse_url($requestUri, PHP_URL_PATH);
+            $url = is_string($url) && $url !== '' ? $url : '/';
+            $query = parse_url($requestUri, PHP_URL_QUERY);
+            if (is_string($query) && $query !== '') {
+                $url .= '?' . $query;
+            }
+            $params = [];
+            foreach ($_GET as $key => $value) {
+                if (is_string($key) && is_scalar($value)) {
+                    $params[$key] = (string) $value;
+                }
             }
         }
 

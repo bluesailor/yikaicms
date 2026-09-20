@@ -98,6 +98,51 @@ final class BloxDisplayConditionsTest extends TestCase
         self::assertFalse(BloxDisplayConditions::pageCacheMustSkip());
     }
 
+    /**
+     * 外审 P1-1 回归：命中同一缓存键的两种请求写法（参数顺序互换、page=002 vs page=2），
+     * currentContext 的 url/params 必须完全一致 ⇒ url/param 条件结果恒定。
+     * 白名单外参数的请求永不落缓存，保留原始值。
+     */
+    public function testUrlAndParamContextShareCacheKeyCanonicalization(): void
+    {
+        require_once ROOT_PATH . '/includes/hooks.php';
+        require_once ROOT_PATH . '/includes/HtmlCache.php';
+        $savedServer = $_SERVER;
+        $savedGet = $_GET;
+        try {
+            $_SERVER['REQUEST_URI'] = '/list.html?sort=newest&page=002';
+            $_GET = ['sort' => 'newest', 'page' => '002'];
+            $first = BloxDisplayConditions::currentContext();
+
+            $_SERVER['REQUEST_URI'] = '/list.html?page=2&sort=newest';
+            $_GET = ['page' => '2', 'sort' => 'newest'];
+            $second = BloxDisplayConditions::currentContext();
+
+            self::assertSame('/list.html?page=2&sort=newest', $first['url']);
+            self::assertSame($first['url'], $second['url']);
+            self::assertSame(['page' => '2', 'sort' => 'newest'], $first['params']);
+            self::assertSame($first['params'], $second['params']);
+
+            $urlRule = [['rules' => [['type' => 'url', 'operator' => 'contains', 'value' => 'page=2']]]];
+            self::assertSame(
+                BloxDisplayConditions::matches($urlRule, $first),
+                BloxDisplayConditions::matches($urlRule, $second)
+            );
+            $paramRule = [['rules' => [['type' => 'param', 'operator' => 'equals', 'value' => '2', 'name' => 'page']]]];
+            self::assertTrue(BloxDisplayConditions::matches($paramRule, $first), 'page=002 必须归一为 2');
+            self::assertTrue(BloxDisplayConditions::matches($paramRule, $second));
+
+            $_SERVER['REQUEST_URI'] = '/x.html?foo=bar';
+            $_GET = ['foo' => 'bar'];
+            $raw = BloxDisplayConditions::currentContext();
+            self::assertSame('/x.html?foo=bar', $raw['url']);
+            self::assertSame(['foo' => 'bar'], $raw['params']);
+        } finally {
+            $_SERVER = $savedServer;
+            $_GET = $savedGet;
+        }
+    }
+
     public function testGroupsUseOrAndRulesInsideAGroupUseAnd(): void
     {
         $conditions = [

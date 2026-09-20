@@ -27,10 +27,20 @@ final class HtmlCache
     private static bool $buffering = false;
     private static int $ttl = 300;
     private static ?string $dirOverride = null;
+    private static ?string $dateBucketForTests = null;
 
     public static function dir(): string
     {
         return self::$dirOverride ?? ROOT_PATH . '/storage/cache/html';
+    }
+
+    /**
+     * 固定缓存键的日期桶（测试跨午夜场景用），传 null 恢复真实时钟。
+     * @psalm-suppress PossiblyUnusedMethod 调用方在 tests/（不在 Psalm projectFiles 内）
+     */
+    public static function setDateBucketForTests(?string $bucket): void
+    {
+        self::$dateBucketForTests = $bucket;
     }
 
     /**
@@ -278,12 +288,26 @@ final class HtmlCache
         return true;
     }
 
-    private static function buildKey(): string
+    /**
+     * 缓存键使用的规范化请求视图（路径 + 白名单参数排序/归一后的 query）。
+     * query 为 null 表示参数不在白名单内——这类请求 isCacheable() 恒 false、永不落缓存。
+     * 显示条件的 url/param 求值必须与本视图同源（外审 P1-1）：否则参数顺序互换、
+     * page=001 与 page=1 会命中同一缓存文件却得出不同条件结果。
+     *
+     * @return array{path: string, query: array<string,string>|null}
+     */
+    public static function canonicalRequest(): array
     {
         $path = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
         $path = is_string($path) && $path !== '' ? $path : '/';
-        $query = self::normalizedQuery() ?? [];
-        $uri = $path;
+        return ['path' => $path, 'query' => self::normalizedQuery()];
+    }
+
+    private static function buildKey(): string
+    {
+        $canonical = self::canonicalRequest();
+        $query = $canonical['query'] ?? [];
+        $uri = $canonical['path'];
         if ($query !== []) {
             $uri .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
         }
@@ -291,7 +315,10 @@ final class HtmlCache
         $isMobile = self::isMobile() ? 'm' : 'd';
         // Match the settings snapshot used by this request, not a newer concurrent publication.
         self::$currentGeneration = (string) settingModel()->get('html_cache_generation', '');
-        return md5(self::releaseNamespace() . '|' . self::$currentGeneration . '|' . $uri . '|' . $lang . '|' . $isMobile);
+        // 日期桶（外审 P1-2）：date 条件按天求值且属缓存安全级，键里不含日期时
+        // 大 TTL 会让午夜前的渲染跨天继续命中；按天分桶保证天粒度条件永不陈旧。
+        $dateBucket = self::$dateBucketForTests ?? date('Y-m-d');
+        return md5(self::releaseNamespace() . '|' . self::$currentGeneration . '|' . $uri . '|' . $lang . '|' . $isMobile . '|' . $dateBucket);
     }
 
     /** @return array<string,string>|null null 表示参数值不应进入缓存 */
