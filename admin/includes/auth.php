@@ -496,7 +496,7 @@ function requirePermission(string $permission): void
 /** Header/Footer/Popup 会改变全站输出，归入 Blox 全站设计权限。 */
 function bloxTemplateTypeRequiresAdmin(string $type): bool
 {
-    return in_array(strtolower(trim($type)), ['header', 'footer', 'popup', 'archive', 'error404', 'product-detail', 'article-detail'], true);
+    return in_array(strtolower(trim($type)), ['header', 'footer', 'popup', 'archive', 'search', 'error404', 'product-detail', 'article-detail'], true);
 }
 
 /** 区块/页面模板要求 Blox 编辑 + 单页编辑；全站区域模板要求全站设计。 */

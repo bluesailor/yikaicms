@@ -61,11 +61,14 @@
         <UndefinedVariable>
             <errorLevel type="suppress">
                 <file name="plugins/logo-maker/random_ui.php" />
+                <!-- $sr* 变量由 search.php / SearchResultsElement 在 require 前定义（include 作用域） -->
+                <file name="includes/partials/search-results.php" />
             </errorLevel>
         </UndefinedVariable>
         <UndefinedGlobalVariable>
             <errorLevel type="suppress">
                 <file name="plugins/logo-maker/random_ui.php" />
+                <file name="includes/partials/search-results.php" />
             </errorLevel>
         </UndefinedGlobalVariable>
         <!-- CI 无 config.php：入口文件的 require 均在 baseline 豁免；baseline 只能在

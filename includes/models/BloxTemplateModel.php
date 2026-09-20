@@ -12,7 +12,7 @@ final class BloxTemplateModel extends Model
     // 渲染在 list.php 复用 current_query 上下文）与 error404（整页 404，any+语言即够；
     // channel/page 条件在 404 上下文永不命中，属矩阵 UI 的通用性，无害）。
     // 两者文档均走通用管线（无类型专属 settings）。
-    public const TYPES = ['section', 'page', 'header', 'footer', 'popup', 'archive', 'error404', 'product-detail', 'article-detail'];
+    public const TYPES = ['section', 'page', 'header', 'footer', 'popup', 'archive', 'search', 'error404', 'product-detail', 'article-detail'];
     private const SOURCES = ['user', 'import', 'builtin', 'plugin', 'remote'];
 
     public static function validType(string $type): bool
@@ -22,7 +22,7 @@ final class BloxTemplateModel extends Model
 
     public static function conditionalType(string $type): bool
     {
-        return in_array($type, ['header', 'footer', 'popup', 'archive', 'error404'], true);
+        return in_array($type, ['header', 'footer', 'popup', 'archive', 'search', 'error404'], true);
     }
 
     /**

@@ -153,6 +153,7 @@ final class BuilderRegistry
             new SiteContactElement(),
             new SocialLinksElement(),
             new SiteSearchElement(),
+            new SearchResultsElement(),
             new LanguageSwitcherElement(),
             new NavDrawerElement(),
             new NavMegaElement(),
