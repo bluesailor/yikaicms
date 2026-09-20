@@ -191,6 +191,35 @@ final class BloxGlobalClassesTest extends TestCase
         self::assertSame('promo-old-2', $restored['name']);
     }
 
+    // ── 共享样式表文件：惰性重建 + 变更即失效 ────────────────────────
+
+    public function testSharedStylesheetFileLifecycle(): void
+    {
+        $path = BloxGlobalClasses::stylesheetFilePath();
+        @unlink($path);
+        try {
+            $row = BloxGlobalClasses::mutate('class_add', [
+                'name' => 'file-test',
+                'settings' => ['bg_color' => '#123456'],
+            ], true);
+            BloxGlobalClasses::resetForTests();
+
+            $head = BloxGlobalClasses::headOutput();
+            self::assertStringContainsString('/uploads/blox/css/classes.css?v=', $head);
+            self::assertFileExists($path);
+            self::assertStringContainsString('.yk-c-file-test{background-color:#123456}', (string) file_get_contents($path));
+
+            // 变更即失效：文件删除，下一次头部输出惰性重建出新内容
+            BloxGlobalClasses::mutate('class_rename', ['id' => $row['class_id'], 'name' => 'file-test-2'], true);
+            self::assertFileDoesNotExist($path);
+            BloxGlobalClasses::resetForTests();
+            BloxGlobalClasses::headOutput();
+            self::assertStringContainsString('.yk-c-file-test-2{', (string) file_get_contents($path));
+        } finally {
+            @unlink($path);
+        }
+    }
+
     // ── 用量反向索引 ────────────────────────────────────────────────
 
     public function testReferenceCollectionAndReverseIndex(): void
