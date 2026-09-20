@@ -51,8 +51,8 @@ final class ChannelBloxDocument
             static fn(): array => self::load($channelId),
             static fn(): int => bloxPageDraftModel()->saveForPage($channelId, $processed['json'], $adminId)
         );
-        // v1.23 全局类用量反向索引：保存即整体替换本文档的引用行
-        BloxGlobalClasses::replaceDocumentRefs('channel:' . $channelId, BloxGlobalClasses::collectReferences($processed['sections']));
+        // 用量反向索引（全局类/全局查询）：保存即整体替换本文档的引用行
+        BloxDocumentIndexes::update('channel:' . $channelId, $processed['sections']);
         $published = self::publishedJson($channelId);
 
         return [
@@ -84,7 +84,7 @@ final class ChannelBloxDocument
             static fn(): int => bloxPageDraftModel()->publishForPage($channelId, $processed['json'], $adminId)
         );
 
-        BloxGlobalClasses::replaceDocumentRefs('channel:' . $channelId, BloxGlobalClasses::collectReferences($processed['sections']));
+        BloxDocumentIndexes::update('channel:' . $channelId, $processed['sections']);
         cacheClear();
         do_action('data_changed', DB_PREFIX . 'blox_page_drafts', $rowId);
 

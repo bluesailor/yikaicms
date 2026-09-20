@@ -226,8 +226,8 @@ public static function isActive(): bool
                 settingModel()->set(HomeLayoutDocument::ACTIVE_KEY, '0', 'home');
             }
         });
-        // v1.23 全局类用量反向索引：保存即整体替换本文档的引用行
-        BloxGlobalClasses::replaceDocumentRefs('home', BloxGlobalClasses::collectReferences($document['sections']));
+        // 用量反向索引（全局类/全局查询）：保存即整体替换本文档的引用行
+        BloxDocumentIndexes::update('home', $document['sections']);
         do_action('data_changed', DB_PREFIX . 'settings', 0);
 
         $revisionJson = json_encode([
@@ -284,7 +284,7 @@ public static function isActive(): bool
         BloxDocumentWriteLock::settings(self::ACTIVE_KEY, $raw, static function () use ($documentJson): void {
             settingModel()->set(self::DATA_KEY, $documentJson, 'home');
         });
-        BloxGlobalClasses::replaceDocumentRefs('home', BloxGlobalClasses::collectReferences($document['sections']));
+        BloxDocumentIndexes::update('home', $document['sections']);
 
         return $document;
     }
