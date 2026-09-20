@@ -106,6 +106,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'create_popup' && !BloxTemplateEditPolicy::allows('popup', $advancedBloxEnabled)) {
             throw new RuntimeException(__('blox_feature_disabled'));
         }
+        if ($action === 'create_archive' && !BloxTemplateEditPolicy::allows('archive', $advancedBloxEnabled)) {
+            throw new RuntimeException(__('blox_feature_disabled'));
+        }
         if ($action === 'set_custom_area_enabled' || $action === 'set_custom_header_enabled') {
             $area = $action === 'set_custom_header_enabled' ? 'header' : strtolower(trim((string) post('area', '')));
             $settingKeys = [
@@ -266,6 +269,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 (int) ($_SESSION['admin_id'] ?? 0)
             );
             adminLog('blox_template', 'create_popup', '创建 Popup 模板 #' . $id);
+            redirect('/admin/blox_editor.php?template=' . $id);
+        }
+
+        if ($action === 'create_archive') {
+            // archive 模板（v1.26）：栏目列表模板，种子=标题绑定 + current 源查询卡片网格
+            $name = mb_substr(trim((string) post('name', '')), 0, 150);
+            if ($name === '') {
+                throw new RuntimeException(__('blox_tpl_name_required'));
+            }
+            $seed = [
+                'schema' => 1,
+                'settings' => [],
+                'sections' => [[
+                    'type' => 'section',
+                    'settings' => ['padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'lg'],
+                    'columns' => [[
+                        'elements' => [
+                            ['type' => 'page-title', 'data' => []],
+                            ['type' => 'container', 'data' => [
+                                'layout' => 'grid',
+                                'grid_cols' => '3',
+                                '_query' => ['source' => 'current', 'limit' => 12, 'pagination' => 'numbers', 'empty_mode' => 'message'],
+                                'children' => [[
+                                    'type' => 'div',
+                                    'data' => ['children' => [
+                                        ['type' => 'image', 'data' => ['src' => '{{loop.cover}}', 'alt' => '{{loop.title}}', 'click_action' => 'link', 'link_url' => '{{loop.url}}', 'link_new_tab' => false]],
+                                        ['type' => 'heading', 'data' => ['text' => '{{loop.title}}', 'level' => 'h3', 'url' => '{{loop.url}}']],
+                                        ['type' => 'text', 'data' => ['html' => '<p>{{loop.summary}}</p>']],
+                                    ]],
+                                ]],
+                            ]],
+                        ],
+                    ]],
+                ]],
+            ];
+            $processed = BloxDocumentPipeline::process(json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), 'arch');
+            $id = bloxTemplateModel()->createDraft(
+                'archive',
+                $name,
+                $processed['json'],
+                'user',
+                1,
+                BloxTemplateImporter::deriveRequirements($processed['sections']),
+                '',
+                (int) ($_SESSION['admin_id'] ?? 0)
+            );
+            adminLog('blox_template', 'create_archive', '创建栏目列表模板 #' . $id);
             redirect('/admin/blox_editor.php?template=' . $id);
         }
 
@@ -787,6 +837,7 @@ $typeLabels = [
     'popup' => __('blox_tpl_type_popup'),
     'product-detail' => __('blox_tpl_type_product-detail'),
     'article-detail' => __('blox_tpl_type_article-detail'),
+    'archive' => __('blox_tpl_type_archive'),
     'error404' => __('blox_tpl_type_error404'),
 ];
 $assignmentSourceLabels = [
@@ -935,7 +986,7 @@ $GLOBALS['pageTitle'] = __('admin_blox_templates');
 $GLOBALS['currentMenu'] = 'blox_templates';
 require_once ROOT_PATH . '/admin/includes/header.php';
 require_once ROOT_PATH . '/admin/includes/module_nav.php';
-$moduleTypeIcons = ['all' => 'layout-grid', 'section' => 'layout-rows', 'page' => 'file', 'header' => 'layout-navbar', 'footer' => 'layout-bottombar', 'popup' => 'app-window', 'product-detail' => 'package', 'article-detail' => 'article', 'error404' => 'error-404'];
+$moduleTypeIcons = ['all' => 'layout-grid', 'section' => 'layout-rows', 'page' => 'file', 'header' => 'layout-navbar', 'footer' => 'layout-bottombar', 'popup' => 'app-window', 'product-detail' => 'package', 'article-detail' => 'article', 'archive' => 'list-details', 'error404' => 'error-404'];
 $moduleTypeItems = [];
 foreach (array_merge(['all'], BloxTemplateModel::TYPES) as $moduleType) {
     $moduleTypeItems[] = [
@@ -1361,6 +1412,26 @@ function confirmAreaPublish(form) {
                        class="h-9 w-56 border border-gray-300 px-3 text-sm">
                 <button type="submit" class="inline-flex h-9 items-center gap-1 bg-fuchsia-600 px-3 text-sm text-white hover:bg-fuchsia-500">
                     <i class="ti ti-plus"></i><?php echo e(__('blox_popup_create')); ?>
+                </button>
+            </form>
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <?php if (in_array($filterType, ['all', 'archive'], true) && BloxTemplateEditPolicy::allows('archive', $advancedBloxEnabled)): ?>
+    <section class="border-y border-gray-200 bg-white" data-testid="blox-archive-create">
+        <div class="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+            <div>
+                <h2 class="font-semibold text-gray-900"><i class="ti ti-list-details mr-1 text-sky-700"></i><?php echo e(__('blox_archive_templates')); ?></h2>
+                <p class="mt-1 text-xs text-gray-500"><?php echo e(__('blox_archive_templates_hint')); ?></p>
+            </div>
+            <form method="post" class="flex items-center gap-2">
+                <?php echo csrfField(); ?>
+                <input type="hidden" name="action" value="create_archive">
+                <input type="text" name="name" required maxlength="150" placeholder="<?php echo e(__('blox_archive_name_placeholder')); ?>"
+                       class="h-9 w-56 border border-gray-300 px-3 text-sm">
+                <button type="submit" class="inline-flex h-9 items-center gap-1 bg-sky-700 px-3 text-sm text-white hover:bg-sky-600">
+                    <i class="ti ti-plus"></i><?php echo e(__('blox_archive_create')); ?>
                 </button>
             </form>
         </div>
