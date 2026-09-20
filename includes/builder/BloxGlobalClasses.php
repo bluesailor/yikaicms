@@ -168,7 +168,7 @@ final class BloxGlobalClasses
 
     // ── CSS 输出 ────────────────────────────────────────────────────
 
-    /** 活跃类的完整样式表（头部内联用；每页文件输出在 Phase 1 的 CSS 分层批次落地）。 */
+    /** 活跃类的完整样式表（共享文件内容；「只输出被引用类的每页文件」在 CSS 分层批次落地）。 */
     public static function stylesheet(): string
     {
         $rules = [];
@@ -187,6 +187,50 @@ final class BloxGlobalClasses
         return $css === '' ? '' : '<style id="yk-blox-classes">' . $css . '</style>';
     }
 
+    /**
+     * 共享样式表文件（uploads 是「可 HTTP 访问 + 禁 PHP 执行」的生成目录先例；
+     * storage 在 .htaccess/nginx/站点健康三层被封禁，不可服务）。
+     * 变更后文件被删除，下次访问惰性重建；URL 带 mtime 版本戳。
+     */
+    public static function stylesheetFilePath(): string
+    {
+        return ROOT_PATH . '/uploads/blox/css/classes.css';
+    }
+
+    /** 头部输出：优先 <link> 共享文件；目录不可写等异常回退内联 <style>（fail-open）。 */
+    public static function headOutput(): string
+    {
+        $css = self::stylesheet();
+        if ($css === '') {
+            return '';
+        }
+        $path = self::stylesheetFilePath();
+        if (!is_file($path)) {
+            $directory = dirname($path);
+            if (!is_dir($directory)) {
+                @mkdir($directory, 0755, true);
+            }
+            $header = "/* YikaiCMS Blox global classes - generated, do not edit. */\n";
+            if (@file_put_contents($path, $header . $css . "\n", LOCK_EX) === false) {
+                return '<style id="yk-blox-classes">' . $css . '</style>';
+            }
+        }
+        $version = (int) @filemtime($path);
+        return '<link rel="stylesheet" id="yk-blox-classes" href="/uploads/blox/css/classes.css?v=' . $version . '">';
+    }
+
+    /** 变更后的失效：删文件（惰性重建）+ 走站点统一的 data_changed 失效链（页面 HTML 缓存联动）。 */
+    public static function invalidateStylesheet(): void
+    {
+        $path = self::stylesheetFilePath();
+        if (is_file($path)) {
+            @unlink($path);
+        }
+        if (function_exists('do_action')) {
+            do_action('data_changed', DB_PREFIX . 'blox_global_classes', 0);
+        }
+    }
+
     public static function bootstrap(): void
     {
         if (!function_exists('add_action')) {
@@ -194,7 +238,7 @@ final class BloxGlobalClasses
         }
         // 排在设计 token（优先级 4）之后，先于主题自定义输出
         add_action('ik_head', static function (): void {
-            echo self::styleTag();
+            echo self::headOutput();
         }, 5);
     }
 
@@ -279,6 +323,7 @@ final class BloxGlobalClasses
             default => throw new RuntimeException(__('blox_design_invalid')),
         };
         self::$catalog = null;
+        self::invalidateStylesheet();
         return $result;
     }
 
