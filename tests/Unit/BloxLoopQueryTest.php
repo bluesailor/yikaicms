@@ -77,8 +77,9 @@ final class BloxLoopQueryTest extends TestCase
 
     private function seedNews(): void
     {
-        // channel:N 源按栏目 type 过滤内容行（与 list-dynamic 同语义），种子保持 type 对齐
-        $this->insertRow('channels', ['name' => '新闻', 'slug' => 'news', 'type' => 'article']);
+        // 生产语义：'list' 栏目存放 type='article' 的内容行；channel:/current 源经
+        // channelContentType 映射后按 article 过滤（2026-09-20 修复前直接拿栏目 type 恒空）
+        $this->insertRow('channels', ['name' => '新闻', 'slug' => 'news', 'type' => 'list']);
         $this->insertRow('contents', ['channel_id' => 1, 'title' => 'First & Co', 'publish_time' => 200]);
         $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Second', 'publish_time' => 100]);
     }
@@ -213,6 +214,49 @@ final class BloxLoopQueryTest extends TestCase
         // 命中 2 行 / limit 1 = 2 页；第 3 页链接不存在（未过滤时 3 行会出现第 3 页）
         self::assertStringContainsString('ykq_ftest=2', $run['pagination']);
         self::assertStringNotContainsString('ykq_ftest=3', $run['pagination']);
+    }
+
+    /** current 源：继承 list.php 设置的请求级上下文；无上下文=空态（绝不全量）。 */
+    public function testCurrentSourceInheritsListPageContext(): void
+    {
+        $this->seedNews();
+        $this->insertRow('channels', ['name' => '案例', 'slug' => 'cases', 'type' => 'case']);
+        $this->insertRow('contents', ['channel_id' => 2, 'title' => 'Case A', 'type' => 'case']);
+
+        // 无上下文（首页/详情/预览/编辑器）：空态
+        self::assertSame([], BloxLoopQuery::run(['source' => 'current', 'limit' => 10], '')['rows']);
+
+        // 'list' 栏目上下文：经 channelContentType 映射按 article 取当前栏目行
+        BloxLoopQuery::setCurrentContext([
+            'channel' => ['id' => 1, 'type' => 'list', 'status' => 1],
+            'keyword' => '',
+            'page_param' => 'page',
+        ]);
+        BloxLoopQuery::resetForTests(); // resetForTests 连上下文一起清
+        self::assertSame([], BloxLoopQuery::run(['source' => 'current', 'limit' => 10], '')['rows']);
+
+        BloxLoopQuery::setCurrentContext([
+            'channel' => ['id' => 1, 'type' => 'list', 'status' => 1],
+            'keyword' => '',
+            'page_param' => 'page',
+        ]);
+        $run = BloxLoopQuery::run(['source' => 'current', 'limit' => 10], '');
+        self::assertSame(['First & Co', 'Second'], array_column($run['rows'], 'title'));
+
+        // 上下文关键词收敛结果；分页锁定主列表参数（不用节点派生的 ykq_*）
+        BloxLoopQuery::setCurrentContext([
+            'channel' => ['id' => 1, 'type' => 'list', 'status' => 1],
+            'keyword' => 'Second',
+            'page_param' => 'page',
+        ]);
+        $narrowed = BloxLoopQuery::run(
+            ['source' => 'current', 'limit' => 1, 'pagination' => 'numbers'],
+            'ykq_nodeparam'
+        );
+        self::assertSame(['Second'], array_column($narrowed['rows'], 'title'));
+        self::assertStringNotContainsString('ykq_nodeparam', $narrowed['pagination']);
+
+        BloxLoopQuery::setCurrentContext(null);
     }
 
     public function testChannelSourceResolvesTypeAndUnknownChannelYieldsEmpty(): void
