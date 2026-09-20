@@ -631,12 +631,18 @@ if ($templateId && $templateType === 'product-detail') {
 if ($templateId && $templateType === 'article-detail') {
     // 模板自身的类型/语言是这里补的：缺失时按本编辑器上下文补齐，而不是让条件变成不可用。
     // v1.26：类型经统一 IO 点归一（'' 或未注册模型 key → article），与样本/条件面板同源
-    $articleScope = DetailTemplateResolver::normalizeScope($docSettings['detail_template'] ?? null);
+    $storedDetailScope = $docSettings['detail_template'] ?? null;
+    $articleScope = DetailTemplateResolver::normalizeScope($storedDetailScope);
     $articleScope['content_type'] = DetailTemplateProvider::contentTypeForTemplate(
         'article-detail',
         $articleScope['content_type']
     );
-    if ($articleScope['lang'] === '' || !isset(availableLanguages()[$articleScope['lang']])) {
+    // v1.26 语言维度：显式存储的 ''=全部语言必须原样保留；只有「从未存过 lang」或
+    // 存了非法语言时才按编辑器预览语言补（否则老模板会被静默钉在某一语言上）
+    $storedLangExplicit = is_array($storedDetailScope)
+        && array_key_exists('lang', $storedDetailScope) && is_string($storedDetailScope['lang']);
+    if (($articleScope['lang'] === '' && !$storedLangExplicit)
+        || ($articleScope['lang'] !== '' && !isset(availableLanguages()[$articleScope['lang']]))) {
         $articleScope['lang'] = $articlePreviewLanguage;
     }
     $docSettings['detail_template'] = $articleScope;
