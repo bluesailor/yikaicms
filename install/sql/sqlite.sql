@@ -230,6 +230,36 @@ INSERT INTO "yikai_blox_templates" ("id","type","name","source","source_ref","sc
 INSERT INTO "yikai_blox_templates" ("id","type","name","source","source_ref","schema_version","draft_data","published_data","requirements","metadata","thumbnail","status","published_at","admin_id","created_at","updated_at") VALUES (7,'article-detail','Classic Article Detail','builtin','classic-article-detail',1,'{"schema":1,"settings":[],"sections":[{"id":"tpl_3edf52eaf0f1_s_0","type":"section","settings":{"padding":"lg","max_width":"narrow","gap":"sm","bg_color":"#ffffff"},"columns":[{"id":"tpl_3edf52eaf0f1_c_0_0","elements":[{"id":"tpl_3edf52eaf0f1_e_0_0_0","type":"article-title","data":{"level":"h1"}},{"id":"tpl_3edf52eaf0f1_e_0_0_1","type":"article-meta","data":[]},{"id":"tpl_3edf52eaf0f1_e_0_0_2","type":"article-summary","data":[]}]}],"name":"文章头区"},{"id":"tpl_3edf52eaf0f1_s_1","type":"section","settings":{"padding":"md","max_width":"narrow","gap":"md","bg_color":"#ffffff"},"columns":[{"id":"tpl_3edf52eaf0f1_c_1_0","elements":[{"id":"tpl_3edf52eaf0f1_e_1_0_0","type":"article-cover","data":[]},{"id":"tpl_3edf52eaf0f1_e_1_0_1","type":"article-content","data":[]}]}],"name":"正文"},{"id":"tpl_3edf52eaf0f1_s_2","type":"section","settings":{"padding":"lg","max_width":"narrow","gap":"lg","bg_color":"#f8fafc"},"columns":[{"id":"tpl_3edf52eaf0f1_c_2_0","elements":[{"id":"tpl_3edf52eaf0f1_e_2_0_0","type":"article-prev-next","data":[]},{"id":"tpl_3edf52eaf0f1_e_2_0_1","type":"article-related","data":[]}]}],"name":"翻页与推荐"}]}',NULL,'{"elements":["article-content","article-cover","article-meta","article-prev-next","article-related","article-summary","article-title"],"plugins":[],"design_tokens":[],"design_styles":[]}','{"schema":1,"purpose":"general","page_types":["general"],"industries":[],"content_slots":[],"cta_type":"none","required_plugins":[],"language_coverage":[],"image_ratio":"","min_cms_version":"","variant":"standard","data_source":"static","states":[],"priority":0}','',0,0,0,1776652898,1776652898);
 INSERT INTO "yikai_blox_templates" ("id","type","name","source","source_ref","schema_version","draft_data","published_data","requirements","metadata","thumbnail","status","published_at","admin_id","created_at","updated_at") VALUES (8,'product-detail','Classic Product Detail','builtin','classic-product-detail',1,'{"schema":1,"settings":[],"sections":[{"id":"tpl_2db1150027d2_s_0","type":"section","settings":{"padding":"lg","max_width":"default","gap":"lg","bg_color":"#ffffff"},"columns":[{"id":"tpl_2db1150027d2_c_0_0","elements":[{"id":"tpl_2db1150027d2_e_0_0_0","type":"product-gallery","data":[]}],"span":6},{"id":"tpl_2db1150027d2_c_0_1","elements":[{"id":"tpl_2db1150027d2_e_0_1_0","type":"product-title","data":{"level":"h1"}},{"id":"tpl_2db1150027d2_e_0_1_1","type":"product-specs","data":[]},{"id":"tpl_2db1150027d2_e_0_1_2","type":"product-button","data":[]}],"span":6}],"name":"产品主区"},{"id":"tpl_2db1150027d2_s_1","type":"section","settings":{"padding":"lg","max_width":"default","gap":"md","bg_color":"#ffffff"},"columns":[{"id":"tpl_2db1150027d2_c_1_0","elements":[{"id":"tpl_2db1150027d2_e_1_0_0","type":"product-content","data":[]}]}],"name":"产品详情"},{"id":"tpl_2db1150027d2_s_2","type":"section","settings":{"padding":"lg","max_width":"narrow","gap":"md","bg_color":"#f8fafc"},"columns":[{"id":"tpl_2db1150027d2_c_2_0","elements":[{"id":"tpl_2db1150027d2_e_2_0_0","type":"product-inquiry","data":[]}]}],"name":"询价咨询"},{"id":"tpl_2db1150027d2_s_3","type":"section","settings":{"padding":"lg","max_width":"default","gap":"lg","bg_color":"#ffffff"},"columns":[{"id":"tpl_2db1150027d2_c_3_0","elements":[{"id":"tpl_2db1150027d2_e_3_0_0","type":"product-prev-next","data":[]},{"id":"tpl_2db1150027d2_e_3_0_1","type":"product-related","data":[]}]}],"name":"上下篇与相关产品"}]}',NULL,'{"elements":["product-button","product-content","product-gallery","product-inquiry","product-prev-next","product-related","product-specs","product-title"],"plugins":[],"design_tokens":[],"design_styles":[]}','{"schema":1,"purpose":"general","page_types":["general"],"industries":[],"content_slots":[],"cta_type":"none","required_plugins":[],"language_coverage":[],"image_ratio":"","min_cms_version":"","variant":"standard","data_source":"static","states":[],"priority":0}','',0,0,0,1776652898,1776652898);
 
+DROP TABLE IF EXISTS "yikai_blox_global_classes";
+CREATE TABLE "yikai_blox_global_classes" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "class_id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "category" TEXT NOT NULL DEFAULT '',
+  "settings" TEXT NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'active',
+  "trashed_at" INTEGER NOT NULL DEFAULT 0,
+  "modified" INTEGER NOT NULL DEFAULT 0,
+  "user_id" INTEGER NOT NULL DEFAULT 0,
+  "created_at" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX "uk_blox_global_class_id_yikai_blox_global_classes" ON "yikai_blox_global_classes" ("class_id");
+CREATE INDEX "idx_blox_global_class_status_yikai_blox_global_classes" ON "yikai_blox_global_classes" ("status");
+
+
+DROP TABLE IF EXISTS "yikai_blox_class_refs";
+CREATE TABLE "yikai_blox_class_refs" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "class_id" TEXT NOT NULL,
+  "doc_key" TEXT NOT NULL,
+  "ref_count" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX "uk_blox_class_ref_yikai_blox_class_refs" ON "yikai_blox_class_refs" ("class_id", "doc_key");
+CREATE INDEX "idx_blox_class_ref_doc_yikai_blox_class_refs" ON "yikai_blox_class_refs" ("doc_key");
+
+
 DROP TABLE IF EXISTS "yikai_blox_remote_template_states";
 CREATE TABLE "yikai_blox_remote_template_states" (
   "template_id" INTEGER NOT NULL,

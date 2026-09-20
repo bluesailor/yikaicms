@@ -138,6 +138,10 @@ function bloxRemoteTemplateStateModel(): BloxRemoteTemplateStateModel {
     static $i; return $i ??= new BloxRemoteTemplateStateModel();
 }
 
+function bloxGlobalClassModel(): BloxGlobalClassModel {
+    static $i; return $i ??= new BloxGlobalClassModel();
+}
+
 function bloxImportReviewModel(): BloxImportReviewModel {
     static $i; return $i ??= new BloxImportReviewModel();
 }

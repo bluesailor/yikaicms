@@ -73,6 +73,8 @@ final class PageBloxDocument
             static fn(): array => self::load($pageId),
             static fn(): int => bloxPageDraftModel()->saveForPage($pageId, $processed['json'], $adminId)
         );
+        // v1.23 全局类用量反向索引：保存即整体替换本文档的引用行
+        BloxGlobalClasses::replaceDocumentRefs('page:' . $pageId, BloxGlobalClasses::collectReferences($processed['sections']));
 
         $published = self::publishedRecord($pageId);
         $publishedJson = self::publishedDocumentJson($published, $state['page']);
@@ -160,6 +162,7 @@ final class PageBloxDocument
             return $contentId;
         });
 
+        BloxGlobalClasses::replaceDocumentRefs('page:' . $pageId, BloxGlobalClasses::collectReferences($processed['sections']));
         cacheClear();
         do_action('data_changed', DB_PREFIX . 'contents', $contentId);
 
