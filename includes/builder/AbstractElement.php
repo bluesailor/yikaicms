@@ -91,37 +91,38 @@ abstract class AbstractElement
 
     // ── 0b Grid：容器列模板与子项跨列（类名字面量供 Tailwind 扫描） ──────────
 
+    // 键用显式 int（数字字符串键会被 PHP 静默转 int，Psalm 按 int 键报字符串偏移非法）
     private const GRID_COLS_MOBILE_MAP = [
-        '1' => 'grid-cols-1', '2' => 'grid-cols-2', '3' => 'grid-cols-3',
-        '4' => 'grid-cols-4', '6' => 'grid-cols-6', '12' => 'grid-cols-12',
+        1 => 'grid-cols-1', 2 => 'grid-cols-2', 3 => 'grid-cols-3',
+        4 => 'grid-cols-4', 6 => 'grid-cols-6', 12 => 'grid-cols-12',
     ];
     private const GRID_COLS_TABLET_MAP = [
-        '1' => 'md:grid-cols-1', '2' => 'md:grid-cols-2', '3' => 'md:grid-cols-3',
-        '4' => 'md:grid-cols-4', '6' => 'md:grid-cols-6', '12' => 'md:grid-cols-12',
+        1 => 'md:grid-cols-1', 2 => 'md:grid-cols-2', 3 => 'md:grid-cols-3',
+        4 => 'md:grid-cols-4', 6 => 'md:grid-cols-6', 12 => 'md:grid-cols-12',
     ];
     private const GRID_COLS_DESKTOP_MAP = [
-        '1' => 'lg:grid-cols-1', '2' => 'lg:grid-cols-2', '3' => 'lg:grid-cols-3',
-        '4' => 'lg:grid-cols-4', '6' => 'lg:grid-cols-6', '12' => 'lg:grid-cols-12',
+        1 => 'lg:grid-cols-1', 2 => 'lg:grid-cols-2', 3 => 'lg:grid-cols-3',
+        4 => 'lg:grid-cols-4', 6 => 'lg:grid-cols-6', 12 => 'lg:grid-cols-12',
     ];
     private const GRID_COLS_WIDE_MAP = [
-        '1' => 'wide:grid-cols-1', '2' => 'wide:grid-cols-2', '3' => 'wide:grid-cols-3',
-        '4' => 'wide:grid-cols-4', '6' => 'wide:grid-cols-6', '12' => 'wide:grid-cols-12',
+        1 => 'wide:grid-cols-1', 2 => 'wide:grid-cols-2', 3 => 'wide:grid-cols-3',
+        4 => 'wide:grid-cols-4', 6 => 'wide:grid-cols-6', 12 => 'wide:grid-cols-12',
     ];
     private const GRID_SPAN_MOBILE_MAP = [
-        '2' => 'col-span-2', '3' => 'col-span-3', '4' => 'col-span-4',
-        '6' => 'col-span-6', 'full' => 'col-span-full',
+        2 => 'col-span-2', 3 => 'col-span-3', 4 => 'col-span-4',
+        6 => 'col-span-6', 'full' => 'col-span-full',
     ];
     private const GRID_SPAN_TABLET_MAP = [
-        '2' => 'md:col-span-2', '3' => 'md:col-span-3', '4' => 'md:col-span-4',
-        '6' => 'md:col-span-6', 'full' => 'md:col-span-full',
+        2 => 'md:col-span-2', 3 => 'md:col-span-3', 4 => 'md:col-span-4',
+        6 => 'md:col-span-6', 'full' => 'md:col-span-full',
     ];
     private const GRID_SPAN_DESKTOP_MAP = [
-        '2' => 'lg:col-span-2', '3' => 'lg:col-span-3', '4' => 'lg:col-span-4',
-        '6' => 'lg:col-span-6', 'full' => 'lg:col-span-full',
+        2 => 'lg:col-span-2', 3 => 'lg:col-span-3', 4 => 'lg:col-span-4',
+        6 => 'lg:col-span-6', 'full' => 'lg:col-span-full',
     ];
     private const GRID_SPAN_WIDE_MAP = [
-        '2' => 'wide:col-span-2', '3' => 'wide:col-span-3', '4' => 'wide:col-span-4',
-        '6' => 'wide:col-span-6', 'full' => 'wide:col-span-full',
+        2 => 'wide:col-span-2', 3 => 'wide:col-span-3', 4 => 'wide:col-span-4',
+        6 => 'wide:col-span-6', 'full' => 'wide:col-span-full',
     ];
 
     /**
@@ -147,13 +148,13 @@ abstract class AbstractElement
     protected static function gridColumnClasses(mixed $value): string
     {
         $raw = is_array($value) ? $value : ['d' => $value];
-        $pick = static function (mixed $candidate, string $fallback): string {
-            $candidate = (string) ($candidate ?? '');
+        $pick = static function (mixed $candidate, int $fallback): int {
+            $candidate = is_numeric($candidate) ? (int) $candidate : 0;
             return isset(self::GRID_COLS_MOBILE_MAP[$candidate]) ? $candidate : $fallback;
         };
-        $d = $pick($raw['d'] ?? null, '3');
+        $d = $pick($raw['d'] ?? null, 3);
         $t = $pick($raw['t'] ?? null, $d);
-        $m = $pick($raw['m'] ?? null, '1');
+        $m = $pick($raw['m'] ?? null, 1);
         $w = $pick($raw['w'] ?? null, $d);
         $classes = self::GRID_COLS_MOBILE_MAP[$m] . ' ' . self::GRID_COLS_TABLET_MAP[$t];
         if ($t !== $d) {
@@ -173,9 +174,14 @@ abstract class AbstractElement
     {
         $value = $data['grid_span'] ?? '';
         $raw = is_array($value) ? $value : ['d' => $value];
-        $pick = static function (mixed $candidate, string $fallback): string {
-            $candidate = (string) ($candidate ?? '');
-            return $candidate !== '' && isset(self::GRID_SPAN_MOBILE_MAP[$candidate]) ? $candidate : $fallback;
+        // '' = 自动（无类）；数字键为 int，'full' 保持字符串键
+        $pick = static function (mixed $candidate, int|string $fallback): int|string {
+            if (is_numeric($candidate)) {
+                $candidate = (int) $candidate;
+            }
+            return ($candidate === 'full' || is_int($candidate)) && isset(self::GRID_SPAN_MOBILE_MAP[$candidate])
+                ? $candidate
+                : $fallback;
         };
         $d = $pick($raw['d'] ?? null, '');
         $t = $pick($raw['t'] ?? null, $d);
