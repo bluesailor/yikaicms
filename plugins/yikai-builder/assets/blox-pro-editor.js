@@ -7,6 +7,7 @@
 
     var conditions = {
         conditionChannels: Array.isArray(data.conditionChannels) ? data.conditionChannels : [],
+        conditionLanguages: Array.isArray(data.conditionLanguages) ? data.conditionLanguages : [],
         conditionText: data.conditionText && typeof data.conditionText === "object" ? data.conditionText : {},
 
         conditionGroups() {
@@ -61,6 +62,28 @@
             } else if (rule.type === "channel") {
                 rule.operator = "is";
                 rule.value = this.conditionChannels.length ? this.conditionChannels[0].value : "";
+            } else if (rule.type === "language") {
+                rule.operator = "is";
+                rule.value = this.conditionLanguages.length ? this.conditionLanguages[0].value : "";
+            } else if (rule.type === "device") {
+                rule.operator = "is";
+                rule.value = "mobile";
+            } else if (rule.type === "datetime") {
+                rule.operator = "after";
+                var now = new Date();
+                rule.value = now.getFullYear() + "-"
+                    + String(now.getMonth() + 1).padStart(2, "0") + "-"
+                    + String(now.getDate()).padStart(2, "0") + " "
+                    + String(now.getHours()).padStart(2, "0") + ":"
+                    + String(now.getMinutes()).padStart(2, "0");
+            } else if (rule.type === "param") {
+                rule.operator = "equals";
+                rule.name = "";
+                rule.value = "";
+            } else if (rule.type === "field") {
+                rule.operator = "equals";
+                rule.name = "";
+                rule.value = "";
             } else {
                 rule.type = "url";
                 rule.operator = "contains";
@@ -75,9 +98,28 @@
                 { value: "on", label: this.conditionText.on },
                 { value: "after", label: this.conditionText.after },
             ];
-            if (type === "channel") return [
+            if (type === "channel" || type === "language") return [
                 { value: "is", label: this.conditionText.is },
                 { value: "is_not", label: this.conditionText.isNot },
+            ];
+            if (type === "device") return [{ value: "is", label: this.conditionText.is }];
+            if (type === "datetime") return [
+                { value: "before", label: this.conditionText.before },
+                { value: "after", label: this.conditionText.after },
+            ];
+            if (type === "param") return [
+                { value: "equals", label: this.conditionText.equals },
+                { value: "not_equals", label: this.conditionText.notEquals },
+                { value: "contains", label: this.conditionText.contains },
+                { value: "exists", label: this.conditionText.exists },
+                { value: "not_exists", label: this.conditionText.notExists },
+            ];
+            if (type === "field") return [
+                { value: "equals", label: this.conditionText.equals },
+                { value: "not_equals", label: this.conditionText.notEquals },
+                { value: "contains", label: this.conditionText.contains },
+                { value: "empty", label: this.conditionText.opEmpty },
+                { value: "not_empty", label: this.conditionText.opNotEmpty },
             ];
             return [
                 { value: "equals", label: this.conditionText.equals },

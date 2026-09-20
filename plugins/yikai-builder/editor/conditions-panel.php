@@ -43,8 +43,13 @@
                                                                     class="min-w-0 flex-1 border border-gray-200 rounded px-1.5 py-1.5 text-[11px] bg-white">
                                                                 <option value="login" x-text="conditionText.login"></option>
                                                                 <option value="date" x-text="conditionText.date"></option>
+                                                                <option value="datetime" x-text="conditionText.datetime"></option>
                                                                 <option value="channel" x-text="conditionText.channel"></option>
                                                                 <option value="url" x-text="conditionText.url"></option>
+                                                                <option value="language" x-text="conditionText.language"></option>
+                                                                <option value="device" x-text="conditionText.device"></option>
+                                                                <option value="param" x-text="conditionText.param"></option>
+                                                                <option value="field" x-text="conditionText.field"></option>
                                                             </select>
                                                             <select x-model="rule.operator" data-testid="blox-condition-operator"
                                                                     class="min-w-0 flex-1 border border-gray-200 rounded px-1.5 py-1.5 text-[11px] bg-white">
@@ -73,6 +78,36 @@
                                                         <input x-show="rule.type === 'url'" type="text" x-model="rule.value" data-testid="blox-condition-value-url"
                                                                :placeholder="conditionText.urlPlaceholder"
                                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px]">
+                                                        <?php /* v1.27 新键的值控件（datetime-local 与存储格式 'Y-m-d H:i' 互转） */ ?>
+                                                        <input x-show="rule.type === 'datetime'" type="datetime-local" data-testid="blox-condition-value-datetime"
+                                                               :value="String(rule.value || '').replace(' ', 'T')"
+                                                               @change="rule.value = $event.target.value.replace('T', ' ')"
+                                                               class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px]">
+                                                        <select x-show="rule.type === 'language'" x-model="rule.value" data-testid="blox-condition-value-language"
+                                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px] bg-white">
+                                                            <template x-for="language in conditionLanguages" :key="language.value">
+                                                                <option :value="language.value" x-text="language.label"></option>
+                                                            </template>
+                                                        </select>
+                                                        <select x-show="rule.type === 'device'" x-model="rule.value" data-testid="blox-condition-value-device"
+                                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px] bg-white">
+                                                            <option value="mobile" x-text="conditionText.deviceMobile"></option>
+                                                            <option value="desktop" x-text="conditionText.deviceDesktop"></option>
+                                                        </select>
+                                                        <div x-show="rule.type === 'param' || rule.type === 'field'" class="flex gap-1.5">
+                                                            <input type="text" x-model="rule.name" data-testid="blox-condition-name"
+                                                                   :placeholder="rule.type === 'param' ? conditionText.paramName : conditionText.fieldName"
+                                                                   class="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1.5 text-[11px] font-mono">
+                                                            <input type="text" x-model="rule.value" data-testid="blox-condition-value-named"
+                                                                   x-show="['exists', 'not_exists', 'empty', 'not_empty'].indexOf(rule.operator) === -1"
+                                                                   class="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1.5 text-[11px]">
+                                                        </div>
+                                                        <?php /* 缓存安全分级（v1.27）：不安全键当场告知，让用户知情选择 */ ?>
+                                                        <p x-show="rule.type === 'datetime'" data-testid="blox-condition-cache-warning"
+                                                           class="flex items-start gap-1 text-[10px] leading-relaxed text-amber-600">
+                                                            <i class="ti ti-alert-triangle mt-0.5" aria-hidden="true"></i>
+                                                            <span x-text="conditionText.cacheWarning"></span>
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </template>
