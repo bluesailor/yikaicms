@@ -53,8 +53,10 @@ final class BloxDynamicTags
 
     /**
      * 编辑器插入面板候选（与 DynamicSiteData::tagOptions 合并展示）。
-     * 只列上下文类标签——site.* 的等价物已有单花括号候选，不重复；
-     * 链接槽位暂无双花括号候选（site.url 由 {site_url} 覆盖）。
+     * 只列上下文类标签——site.* 的等价物已有单花括号候选，不重复。
+     * 外审 P2-3：候选按槽位与运行时能力对齐——文本槽列全 loop 文本/虚拟字段，
+     * 链接槽列 loop.url；loop.cover（图片路径）暂不进面板：图片控件没有标签
+     * 插入入口，查询卡片预设已自动绑好 {{loop.cover}}，等控件长出入口再暴露。
      *
      * @return array<string,string> tag => label
      * @psalm-suppress PossiblyUnusedMethod 编辑器插入面板消费（admin partial 不在 Psalm 扫描集）
@@ -62,7 +64,9 @@ final class BloxDynamicTags
     public static function tagOptions(bool $links = false): array
     {
         if ($links) {
-            return [];
+            return [
+                '{{loop.url}}' => __('blox_dyn_loop_url'),
+            ];
         }
         return [
             '{{article.title}}' => __('blox_dyn_article_title'),
@@ -72,6 +76,12 @@ final class BloxDynamicTags
             '{{product.model}}' => __('blox_dyn_product_model'),
             '{{product.price}}' => __('blox_dyn_product_price'),
             '{{page.title}}' => __('blox_dyn_page_title'),
+            '{{loop.title}}' => __('blox_dyn_loop_title'),
+            '{{loop.subtitle}}' => __('blox_dyn_loop_subtitle'),
+            '{{loop.summary}}' => __('blox_dyn_loop_summary'),
+            '{{loop.model}}' => __('blox_dyn_loop_model'),
+            '{{loop.price}}' => __('blox_dyn_loop_price'),
+            '{{loop.date}}' => __('blox_dyn_loop_date'),
             '{{loop.index}}' => __('blox_dyn_loop_index'),
             '{{lang.code}}' => __('blox_dyn_lang_code'),
         ];
