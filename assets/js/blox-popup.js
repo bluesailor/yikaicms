@@ -28,7 +28,6 @@
         return Array.prototype.slice.call(root.querySelectorAll("a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex='-1'])"));
     }
     function setup(root) {
-        if (!enabledForDevice(root) || !canOpen(root)) return;
         var opener = null;
         var opened = false;
         function close() {
@@ -39,11 +38,12 @@
             document.body.classList.remove("yk-popup-open");
             if (opener && typeof opener.focus === "function") opener.focus();
         }
-        function open(source) {
-            if (opened || !canOpen(root)) return;
+        function open(source, force) {
+            // force=显式触发（交互动作/用户点击语义）：绕过频率限制且不消耗自动弹出配额
+            if (opened || (!force && !canOpen(root))) return;
             opener = source || document.activeElement;
             opened = true;
-            remember(root);
+            if (!force) remember(root);
             root.classList.add("is-open");
             root.setAttribute("aria-hidden", "false");
             document.body.classList.add("yk-popup-open");
@@ -62,6 +62,11 @@
             if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         });
+        // v1.28 交互 runtime 的外部触发口：open_popup/close_popup 动作经 document 事件到达。
+        // 事件监听常驻；下面的早退只作用于自动触发（设备不匹配/频率已耗尽时不自动弹）
+        document.addEventListener("yk:popup-open", function () { open(null, true); });
+        document.addEventListener("yk:popup-close", function () { close(); });
+        if (!enabledForDevice(root) || !canOpen(root)) return;
         var trigger = root.dataset.trigger || "delay";
         if (trigger === "click") {
             var selector = root.dataset.selector || "";

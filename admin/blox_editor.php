@@ -1389,6 +1389,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'global_classes' => __('blox_global_classes'),
                 'table' => __('blox_el_table'),
                 'pricing' => __('blox_el_pricing_table'),
+                'interactions' => __('blox_professional_interactions'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             lockedProfessionalGroups() {
                 var groups = {};
@@ -1419,6 +1420,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
             // 能力可用且作者端模块已加载才开放条件面板；保存校验仍只看能力策略。
             displayConditionsEnabled: <?php echo !empty($professionalFeatures['display_conditions']['allowed']) ? 'true' : 'false'; ?>,
+            interactionsEnabled: <?php echo !empty($professionalFeatures['interactions']['allowed']) ? 'true' : 'false'; ?>,
             stylePresetsEnabled: <?php echo !empty($professionalFeatures['style_presets']['allowed']) ? 'true' : 'false'; ?>,
             // v1.23 全局样式类：目录数据免费可读（渲染语义），创建/管理由服务端授权门再拦一道
             globalClassesEnabled: <?php echo !empty($professionalFeatures['global_classes']['allowed']) ? 'true' : 'false'; ?>,

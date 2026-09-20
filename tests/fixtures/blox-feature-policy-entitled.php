@@ -11,4 +11,5 @@ return [
     'table' => 'free',
     'pricing' => 'free',
     'global_classes' => 'free',
+    'interactions' => 'free', // v1.28
 ];

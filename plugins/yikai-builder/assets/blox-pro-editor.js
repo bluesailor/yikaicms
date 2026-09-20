@@ -362,9 +362,42 @@
         },
     };
 
+    // 元素交互（v1.28）：repeater 编辑 data._interactions。客户端只做结构与联动，
+    // 归一化权威（白名单/上限）在服务端 BloxInteractions。
+    var interactions = {
+        interactionText: data.interactionText && typeof data.interactionText === "object" ? data.interactionText : { triggers: {}, actions: {}, targets: {} },
+
+        interactionItems() {
+            return this.selEl && Array.isArray(this.selEl.data._interactions) ? this.selEl.data._interactions : [];
+        },
+
+        addInteraction() {
+            if (!this.selEl) return;
+            if (!Array.isArray(this.selEl.data._interactions)) this.selEl.data._interactions = [];
+            if (this.selEl.data._interactions.length >= 10) return;
+            this.selEl.data._interactions.push({ trigger: "click", action: "toggle", target: "self", selector: "", value: "", run_once: false });
+        },
+
+        removeInteraction(index) {
+            if (!this.selEl || !Array.isArray(this.selEl.data._interactions)) return;
+            this.selEl.data._interactions.splice(index, 1);
+            if (!this.selEl.data._interactions.length) delete this.selEl.data._interactions;
+        },
+
+        interactionChanged(item) {
+            if (!item) return;
+            if (item.trigger === "scroll" && !item.scroll_depth) item.scroll_depth = 50;
+            if (item.action === "animate" && ["fade", "fade-up", "fade-down", "fade-left", "fade-right", "zoom-in"].indexOf(item.value) === -1) {
+                item.value = "fade";
+            }
+            if (["add_class", "remove_class", "toggle_class", "animate"].indexOf(item.action) === -1) item.value = "";
+            if (["open_popup", "close_popup"].indexOf(item.action) !== -1) { item.target = "self"; item.selector = ""; }
+        },
+    };
+
     var editor = window.BloxProEditor || { modules: [], methods: {} };
     // query_loop 的作者端由服务端面板与控件开放状态提供，无额外交互方法。
-    editor.modules = (editor.modules || []).concat(["query_loop", "display_conditions", "style_presets", "global_classes"]);
-    editor.methods = Object.assign({}, editor.methods || {}, conditions, stylePresets, globalClasses, loopQuery);
+    editor.modules = (editor.modules || []).concat(["query_loop", "display_conditions", "style_presets", "global_classes", "interactions"]);
+    editor.methods = Object.assign({}, editor.methods || {}, conditions, stylePresets, globalClasses, loopQuery, interactions);
     window.BloxProEditor = editor;
 })();
