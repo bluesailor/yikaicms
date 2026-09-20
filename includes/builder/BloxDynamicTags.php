@@ -50,6 +50,32 @@ final class BloxDynamicTags
     private const ARTICLE_FIELDS = ['title', 'summary', 'author'];
     private const PRODUCT_FIELDS = ['title', 'model', 'price', 'summary'];
 
+    /**
+     * 编辑器插入面板候选（与 DynamicSiteData::tagOptions 合并展示）。
+     * 只列上下文类标签——site.* 的等价物已有单花括号候选，不重复；
+     * 链接槽位暂无双花括号候选（site.url 由 {site_url} 覆盖）。
+     *
+     * @return array<string,string> tag => label
+     * @psalm-suppress PossiblyUnusedMethod 编辑器插入面板消费（admin partial 不在 Psalm 扫描集）
+     */
+    public static function tagOptions(bool $links = false): array
+    {
+        if ($links) {
+            return [];
+        }
+        return [
+            '{{article.title}}' => __('blox_dyn_article_title'),
+            '{{article.summary}}' => __('blox_dyn_article_summary'),
+            '{{article.author}}' => __('blox_dyn_article_author'),
+            '{{product.title}}' => __('blox_dyn_product_title'),
+            '{{product.model}}' => __('blox_dyn_product_model'),
+            '{{product.price}}' => __('blox_dyn_product_price'),
+            '{{page.title}}' => __('blox_dyn_page_title'),
+            '{{loop.index}}' => __('blox_dyn_loop_index'),
+            '{{lang.code}}' => __('blox_dyn_lang_code'),
+        ];
+    }
+
     public static function hasTags(string $value): bool
     {
         return strpos($value, '{{') !== false;
