@@ -211,8 +211,31 @@
         return out;
     }
 
+    /**
+     * 提交作用域的 lang（外审 P1-3）：''=全部语言是显式值，必须原样保留；
+     * 只有基线里根本没有 lang（新建模板等）才回退到编辑器当前语言。
+     * truthy 回退（base.lang || fallback）会在下一次保存把全语言作用域静默收窄。
+     */
+    function scopeBaseLang(base, fallback) {
+        return (base && typeof base.lang === 'string') ? base.lang : String(fallback == null ? '' : fallback);
+    }
+
+    /** 只读语言框显示值：取第一个带显式 lang 的作用域；''=全部语言显示 allLabel。 */
+    function languageLabel(scopes, allLabel, fallback) {
+        var list = Array.isArray(scopes) ? scopes : [];
+        for (var i = 0; i < list.length; i++) {
+            var scope = list[i];
+            if (scope && typeof scope === 'object' && typeof scope.lang === 'string') {
+                return scope.lang === '' ? allLabel : scope.lang;
+            }
+        }
+        return fallback;
+    }
+
     var api = {
         rowsFromScope: rowsFromScope,
+        scopeBaseLang: scopeBaseLang,
+        languageLabel: languageLabel,
         legacyProductScope: legacyProductScope,
         scopeFromRows: scopeFromRows,
         editingScope: editingScope,
