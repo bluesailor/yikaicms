@@ -41,13 +41,19 @@ fail() { echo "  ${R}✗${X} $1"; FAILED+=("$1"); }
 note() { echo "  ${D}· $1${X}"; }
 
 # ───── 端口清场：残留的 php -S 会用旧库应答，让整轮结果失真 ─────
+# Git Bash（MSYS）会把 cmd.exe 的 /c 开关路径转换成 C:/，cmd 收不到 /c 就进
+# 交互模式：stdin 是 /dev/null 时立即 EOF 退出（清场静默失效、服务器越积越多），
+# stdin 是管道时永久挂死（2026-09-20 一轮预检因此挂 84 分钟）。两个 MSYS 环境
+# 变量关掉参数转换（WSL 下不存在该机制，纯属无害），stdin 强制 /dev/null 兜底。
 kill_stale_server() {
     command -v cmd.exe >/dev/null 2>&1 || return 0
     local pids
-    pids=$(cmd.exe /c "netstat -ano | findstr :8080 | findstr LISTENING" 2>/dev/null \
+    pids=$(MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
+           cmd.exe /c "netstat -ano | findstr :8080 | findstr LISTENING" </dev/null 2>/dev/null \
            | awk '{print $NF}' | tr -d '\r' | sort -u)
     for p in $pids; do
-        cmd.exe /c "taskkill /F /PID $p" >/dev/null 2>&1
+        MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
+            cmd.exe /c "taskkill /F /PID $p" </dev/null >/dev/null 2>&1
     done
     [ -n "$pids" ] && note "清掉 8080 端口上的残留进程：$pids"
     return 0
