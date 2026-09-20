@@ -183,9 +183,58 @@
         },
     };
 
+    // 容器 Loop（v1.25）：container/div 的 _query 配置。结构归一以服务端 BloxLoopQuery 为准，
+    // 这里只做输入钳位与键的增删（空值/默认值不落盘，保持文档干净）。
+    var loopQuery = {
+        loopQueryEnabled() {
+            return !!(this.selEl && this.selEl.data && this.selEl.data._query
+                && typeof this.selEl.data._query === "object");
+        },
+
+        loopQueryField(key) {
+            var query = this.loopQueryEnabled() ? this.selEl.data._query : {};
+            if (key === "limit") return query.limit ?? 6;
+            if (key === "offset") return query.offset ?? 0;
+            if (key === "source") return query.source ?? "type:article";
+            if (key === "pagination") return query.pagination ?? "none";
+            if (key === "empty_mode") return query.empty_mode ?? "message";
+            return query[key] ?? "";
+        },
+
+        toggleLoopQuery(enabled) {
+            if (!this.selEl) return;
+            if (enabled) {
+                if (!this.loopQueryEnabled()) this.selEl.data._query = { source: "type:article", limit: 6 };
+            } else {
+                delete this.selEl.data._query;
+            }
+        },
+
+        setLoopQueryField(key, value) {
+            if (!this.loopQueryEnabled()) return;
+            var query = Object.assign({}, this.selEl.data._query);
+            if (key === "limit") {
+                query.limit = Math.max(1, Math.min(50, parseInt(value, 10) || 6));
+            } else if (key === "offset") {
+                var offset = Math.max(0, Math.min(5000, parseInt(value, 10) || 0));
+                if (offset > 0) query.offset = offset; else delete query.offset;
+            } else if (key === "recommend" || key === "hot" || key === "top") {
+                if (value) query[key] = true; else delete query[key];
+            } else {
+                var text = String(value == null ? "" : value).trim();
+                var isDefault = text === ""
+                    || (key === "pagination" && text === "none")
+                    || (key === "empty_mode" && text === "message")
+                    || (key === "order" && text === "default");
+                if (isDefault) delete query[key]; else query[key] = text;
+            }
+            this.selEl.data._query = query;
+        },
+    };
+
     var editor = window.BloxProEditor || { modules: [], methods: {} };
     // query_loop 的作者端由服务端面板与控件开放状态提供，无额外交互方法。
     editor.modules = (editor.modules || []).concat(["query_loop", "display_conditions", "style_presets", "global_classes"]);
-    editor.methods = Object.assign({}, editor.methods || {}, conditions, stylePresets, globalClasses);
+    editor.methods = Object.assign({}, editor.methods || {}, conditions, stylePresets, globalClasses, loopQuery);
     window.BloxProEditor = editor;
 })();

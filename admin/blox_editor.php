@@ -1325,7 +1325,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
             professionalRelevant(feature) {
                 if (!this.professionalFeatures[feature] || !this.professionalFeatures[feature].visible) return false;
-                if (feature === 'query_loop') return !!this.selEl && (this.selEl.type === 'list-dynamic' || !!this.elSchema(this.selEl.type).hasProfessionalControls);
+                if (feature === 'query_loop') return !!this.selEl && (this.selEl.type === 'list-dynamic' || this.selEl.type === 'container' || this.selEl.type === 'div' || !!this.elSchema(this.selEl.type).hasProfessionalControls);
                 if (feature === 'style_presets') return !!this.selEl && this.supportsBoxStyles(this.selEl.type);
                 // 全局样式类与命名样式同区（common style）：任何支持盒样式的元素都可挂类
                 if (feature === 'global_classes') return !!this.selEl && this.supportsBoxStyles(this.selEl.type);
