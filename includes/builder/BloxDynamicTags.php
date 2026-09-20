@@ -45,8 +45,8 @@ final class BloxDynamicTags
         'url' => ['site_url', 'url'],
         'logo' => ['site_logo', 'image'],
     ];
-    /** loop.* 循环项字段白名单（值来自数据库行，键必须白名单）。 */
-    private const LOOP_FIELDS = ['title', 'subtitle', 'summary', 'date', 'model', 'price'];
+    /** loop.* 循环项字段白名单（值来自数据库行，键必须白名单；url/date/index 是虚拟字段另行处理）。 */
+    private const LOOP_FIELDS = ['title', 'subtitle', 'summary', 'model', 'price'];
     private const ARTICLE_FIELDS = ['title', 'summary', 'author'];
     private const PRODUCT_FIELDS = ['title', 'model', 'price', 'summary'];
 
@@ -171,6 +171,17 @@ final class BloxDynamicTags
                 if ($field === 'index') {
                     $index = $context['_index'] ?? null;
                     return is_numeric($index) ? (string) (int) $index : null;
+                }
+                // url/date 是虚拟字段（与 {yk:field} 同语义）：url 按条目类型取路由，date 回退创建时间
+                if ($field === 'url') {
+                    if (($context['_type'] ?? '') === 'product') {
+                        return function_exists('productUrl') ? (string) productUrl($context) : null;
+                    }
+                    return function_exists('contentUrl') ? (string) contentUrl($context) : null;
+                }
+                if ($field === 'date') {
+                    $timestamp = (int) ($context['publish_time'] ?? 0) ?: (int) ($context['created_at'] ?? 0);
+                    return $timestamp > 0 ? date('Y-m-d', $timestamp) : null;
                 }
                 return in_array($field, self::LOOP_FIELDS, true) ? self::rowValue($context, $field) : null;
 
