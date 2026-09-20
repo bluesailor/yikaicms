@@ -90,11 +90,18 @@ final class ContainerElement extends AbstractElement
         // option_icons：编辑器把该 select 显示为图标按钮组（键与 options 对应，
         // 值为 Tabler 图标名）；不认识此键的编辑器仍按普通下拉渲染，向后兼容
         return [
+            // 0b Grid：布局模式。flex 为默认且输出与历史逐字节一致；grid 走列模板。
+            ['key' => 'layout', 'type' => 'select', 'label' => __('blox_layout_mode'), 'default' => 'flex', 'tab' => 'style',
+                'options' => ['flex' => 'Flex', 'grid' => 'Grid'],
+                'option_icons' => ['flex' => 'layout-distribute-vertical', 'grid' => 'layout-grid']],
             ['key' => 'direction', 'type' => 'select', 'label' => __('blox_direction'), 'default' => 'column', 'tab' => 'style', 'responsive' => true,
+                'required' => ['layout', '!=', 'grid'],
                 'options' => ['column' => __('blox_dir_column_stack'), 'row' => __('blox_dir_row_wrap')],
                 'option_icons' => ['column' => 'layout-list', 'row' => 'layout-columns']],
             ['key' => 'wrap', 'type' => 'select', 'label' => __('blox_flex_wrap'), 'default' => 'auto', 'tab' => 'style',
+                'required' => ['layout', '!=', 'grid'],
                 'options' => ['auto' => __('blox_flex_wrap_auto'), 'wrap' => __('blox_flex_wrap_on'), 'nowrap' => __('blox_flex_wrap_off')]],
+            ...$this->gridLayoutControls('layout'),
             ['key' => 'gap', 'type' => 'select', 'label' => __('blox_child_gap'), 'default' => 'md', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
             // 声明式间距（E05 试点，0a 扩展行/列向）：留空沿用上面的档位；填写后以实例样式覆盖。
@@ -131,18 +138,26 @@ final class ContainerElement extends AbstractElement
         // yk-container 是编辑态定位钩子（画布空容器占位用），前台无样式含义——与 yk-col-card 同例
         // $layout 单独成串：视频分支要把 flex 布局整体移交内容层（radius 留根），
         // 无视频路径的拼接顺序与历史逐字节一致（radius 仍最后追加）。
-        $direction = $data['direction'] ?? 'column';
-        $layout = 'flex ' . $this->resp($direction, self::DIRECTION_MAP, 'column');
-        $wrap = $data['wrap'] ?? 'auto';
-        if ($wrap === 'auto') {
-            $wrapClass = $this->resp($direction, self::AUTO_WRAP_MAP, 'column');
-            if ($wrapClass !== '') {
-                $layout .= ' ' . $wrapClass;
+        if (($data['layout'] ?? 'flex') === 'grid') {
+            // 0b Grid：列模板 + 排列填充；间距/对齐/内边距与 flex 路径共用同一段拼装。
+            $layout = 'grid ' . self::gridColumnClasses($data['grid_cols'] ?? null);
+            if (($data['grid_flow'] ?? 'row') === 'dense') {
+                $layout .= ' grid-flow-dense';
             }
-        } elseif ($wrap === 'wrap') {
-            $layout .= ' flex-wrap';
-        } elseif ($wrap === 'nowrap') {
-            $layout .= ' flex-nowrap';
+        } else {
+            $direction = $data['direction'] ?? 'column';
+            $layout = 'flex ' . $this->resp($direction, self::DIRECTION_MAP, 'column');
+            $wrap = $data['wrap'] ?? 'auto';
+            if ($wrap === 'auto') {
+                $wrapClass = $this->resp($direction, self::AUTO_WRAP_MAP, 'column');
+                if ($wrapClass !== '') {
+                    $layout .= ' ' . $wrapClass;
+                }
+            } elseif ($wrap === 'wrap') {
+                $layout .= ' flex-wrap';
+            } elseif ($wrap === 'nowrap') {
+                $layout .= ' flex-nowrap';
+            }
         }
         $gapClass = $this->resp($data['gap'] ?? 'md', self::GAP_MAP, 'md');
         if ($gapClass !== '') {
@@ -185,7 +200,7 @@ final class ContainerElement extends AbstractElement
             $overlay = $alpha !== null
                 ? '<div class="blox-bg-overlay" style="background:rgba(0,0,0,' . $alpha . ')"></div>'
                 : '';
-            $selfCls = self::alignSelfClass($data);
+            $selfCls = trim(self::alignSelfClass($data) . ' ' . self::gridItemSpanClasses($data));
             return '<div class="yk-container blox-has-bg' . ($radiusCls !== '' ? ' ' . $radiusCls : '') . ($selfCls !== '' ? ' ' . $selfCls : '') . '"' . $style . '>'
                 . '<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="'
                 . $mobileVideoMode . '" data-blox-video-src="'
@@ -195,7 +210,7 @@ final class ContainerElement extends AbstractElement
                 . '</div>';
         }
 
-        $selfCls = self::alignSelfClass($data);
+        $selfCls = trim(self::alignSelfClass($data) . ' ' . self::gridItemSpanClasses($data));
         $cls = 'yk-container ' . $layout . ($radiusCls !== '' ? ' ' . $radiusCls : '') . ($selfCls !== '' ? ' ' . $selfCls : '');
         $style = '';
         $background = self::backgroundDeclarations($data);

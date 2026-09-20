@@ -74,11 +74,15 @@ final class DivElement extends AbstractElement
     {
         return [
             ['key' => 'display', 'type' => 'select', 'label' => __('blox_display_mode'), 'default' => 'block', 'tab' => 'style',
-                'options' => ['block' => __('blox_block_level'), 'flex' => 'Flex', 'overlay' => __('blox_layout_overlay')]],
+                'options' => ['block' => __('blox_block_level'), 'flex' => 'Flex', 'grid' => 'Grid', 'overlay' => __('blox_layout_overlay')]],
             ['key' => 'direction', 'type' => 'select', 'label' => __('blox_direction'), 'default' => 'column', 'tab' => 'style', 'responsive' => true,
+                'required' => ['display', '=', 'flex'],
                 'options' => ['column' => __('blox_dir_column_stack'), 'row' => __('blox_dir_row_wrap')]],
             ['key' => 'wrap', 'type' => 'select', 'label' => __('blox_flex_wrap'), 'default' => 'auto', 'tab' => 'style',
+                'required' => ['display', '=', 'flex'],
                 'options' => ['auto' => __('blox_flex_wrap_auto'), 'wrap' => __('blox_flex_wrap_on'), 'nowrap' => __('blox_flex_wrap_off')]],
+            // 0b Grid：display=grid 时的列模板与排列填充。
+            ...$this->gridLayoutControls('display'),
             ['key' => 'gap', 'type' => 'select', 'label' => __('blox_child_gap'), 'default' => 'none', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
             // 0a 布局引擎：受控任意值间距，留空沿用上面的档位（与容器元素同款）。
@@ -118,6 +122,26 @@ final class DivElement extends AbstractElement
         $display = ($data['display'] ?? 'block') === 'flex' ? 'flex' : 'block';
         $cls = 'yk-div';
         if (($data['display'] ?? '') === 'overlay') $cls .= ' yk-div-overlay';
+        if (($data['display'] ?? '') === 'grid') {
+            // 0b Grid：列模板 + 排列填充；间距与三轴对齐类与 flex 分支同一套语义。
+            $cls .= ' grid ' . self::gridColumnClasses($data['grid_cols'] ?? null);
+            if (($data['grid_flow'] ?? 'row') === 'dense') {
+                $cls .= ' grid-flow-dense';
+            }
+            $gridGap = $this->resp($data['gap'] ?? 'none', self::GAP_MAP, 'none');
+            if ($gridGap !== '') {
+                $cls .= ' ' . $gridGap;
+            }
+            foreach ([
+                $this->resp($data['align'] ?? 'stretch', self::ITEMS_MAP, 'stretch'),
+                $this->resp($data['justify'] ?? 'start', self::JUSTIFY_MAP, 'start'),
+                $this->resp($data['align_content'] ?? '', self::CONTENT_MAP, ''),
+            ] as $gridLayoutClass) {
+                if ($gridLayoutClass !== '') {
+                    $cls .= ' ' . $gridLayoutClass;
+                }
+            }
+        }
         if ($display === 'flex') {
             $direction = $data['direction'] ?? 'column';
             $cls .= ' flex ' . $this->resp($direction, self::DIRECTION_MAP, 'column');
@@ -150,6 +174,7 @@ final class DivElement extends AbstractElement
             $this->resp($data['padding'] ?? 'none', self::PAD_MAP, 'none'),
             self::RADIUS_MAP[$data['radius'] ?? 'none'] ?? '',
             self::alignSelfClass($data),
+            self::gridItemSpanClasses($data),
         ] as $boxClass) {
             if ($boxClass !== '') {
                 $cls .= ' ' . $boxClass;
