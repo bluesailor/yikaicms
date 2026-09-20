@@ -320,7 +320,7 @@ final class ProductTemplateDocument
         if ($template === null || $resolution['source'] !== DetailTemplateResolver::SOURCE_CUSTOM) return '';
         try {
             $html = self::withProduct($context, static fn(): string => BlockRenderer::render((string) ($template['published_data'] ?? '')));
-            if (trim(strip_tags($html)) === '' && !preg_match('/<(?:img|video|iframe)\b/i', $html)) return '';
+            if (!BlockRenderer::hasMeaningfulOutput($html)) return '';
             return '<div class="yk-blox-product-detail" data-template-id="' . (int) $template['id'] . '">' . $html . '</div>';
         } catch (Throwable $e) {
             error_log('[product-template] Render failed: ' . $e->getMessage());

@@ -30,7 +30,7 @@ final class BloxErrorPageRuntime
             }
             $html = BlockRenderer::render((string) ($row['published_data'] ?? ''));
             // 空输出守门：与详情模板同款——"看起来成功其实空白"必须回落原生
-            if (trim(strip_tags($html)) === '' && !preg_match('/<(?:img|video|iframe)\b/i', $html)) {
+            if (!BlockRenderer::hasMeaningfulOutput($html)) {
                 return '';
             }
             return '<div class="yk-blox-error404" data-template-id="' . (int) ($row['id'] ?? 0) . '">' . $html . '</div>';

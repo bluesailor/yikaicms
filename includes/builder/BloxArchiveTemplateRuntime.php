@@ -48,7 +48,7 @@ final class BloxArchiveTemplateRuntime
     {
         try {
             $html = BlockRenderer::render((string) ($row['published_data'] ?? ''));
-            if (trim(strip_tags($html)) === '' && !preg_match('/<(?:img|video|iframe)\b/i', $html)) {
+            if (!BlockRenderer::hasMeaningfulOutput($html)) {
                 return '';
             }
             return '<div class="yk-blox-archive" data-template-id="' . (int) ($row['id'] ?? 0) . '">' . $html . '</div>';

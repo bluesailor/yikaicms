@@ -32,6 +32,16 @@ final class BlockRenderer
             ? ProductTemplateDocument::currentProduct() : ArticleTemplateDocument::currentContent();
         return '<h1>' . htmlspecialchars((string) ($context['title'] ?? ''), ENT_QUOTES, 'UTF-8') . '</h1>';
     }
+
+    /** 与生产版同语义的空输出守门（外审 P2-4 后模板文档改经此判定）。 */
+    public static function hasMeaningfulOutput(string $html, array $extraTags = []): bool
+    {
+        if (trim(strip_tags($html)) !== '') {
+            return true;
+        }
+        $tags = array_merge(['img', 'video', 'iframe'], $extraTags);
+        return (bool) preg_match('/<(?:' . implode('|', $tags) . ')\b/i', $html);
+    }
 }
 
 require dirname(__DIR__, 2) . '/includes/builder/ProductTemplateDocument.php';

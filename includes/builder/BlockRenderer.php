@@ -159,6 +159,22 @@ final class BlockRenderer
      */
     public static ?array $homeFieldEditContext = null;
 
+    /**
+     * 空输出守门（Site Builder 各运行时同源判定，外审 P2-4）：
+     * "看起来成功其实空白"必须回落原生——纯包装 div（无文本、无媒体标签）不算有效输出。
+     * $extraTags 供个别类型追加算数的标签（如搜索模板的 form）。
+     *
+     * @param list<string> $extraTags
+     */
+    public static function hasMeaningfulOutput(string $html, array $extraTags = []): bool
+    {
+        if (trim(strip_tags($html)) !== '') {
+            return true;
+        }
+        $tags = array_merge(['img', 'video', 'iframe'], $extraTags);
+        return (bool) preg_match('/<(?:' . implode('|', $tags) . ')\b/i', $html);
+    }
+
     public static function render(string $blocksJson): string
     {
         try {
