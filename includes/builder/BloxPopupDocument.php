@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 final class BloxPopupDocument
 {
-    private const TRIGGERS = ['delay', 'exit', 'click'];
+    private const TRIGGERS = ['delay', 'exit', 'click', 'scroll'];
     private const FREQUENCIES = ['every', 'session', 'hours'];
     private const DEVICES = ['all', 'desktop', 'mobile'];
     private const WIDTHS = ['sm', 'md', 'lg', 'xl'];
@@ -50,6 +50,8 @@ final class BloxPopupDocument
         return [
             'trigger' => in_array($trigger, self::TRIGGERS, true) ? $trigger : 'delay',
             'delay' => max(0, min(60, (int) ($settings['delay'] ?? 3))),
+            // v1.26 scroll 触发：滚动深度百分比（10–100，默认 50）
+            'scroll_depth' => max(10, min(100, (int) ($settings['scroll_depth'] ?? 50))),
             'selector' => self::selector((string) ($settings['selector'] ?? '')),
             'frequency' => in_array($frequency, self::FREQUENCIES, true) ? $frequency : 'session',
             'hours' => max(1, min(720, (int) ($settings['hours'] ?? 24))),

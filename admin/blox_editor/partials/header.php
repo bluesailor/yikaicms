@@ -397,10 +397,14 @@ declare(strict_types=1);
                                 <option value="delay"><?php echo e(__('blox_popup_trigger_delay')); ?></option>
                                 <option value="exit"><?php echo e(__('blox_popup_trigger_exit')); ?></option>
                                 <option value="click"><?php echo e(__('blox_popup_trigger_click')); ?></option>
+                                <option value="scroll"><?php echo e(__('blox_popup_trigger_scroll')); ?></option>
                             </select>
                         </label>
                         <label x-show="docSettings.trigger === 'delay'" class="space-y-1"><span class="text-gray-400"><?php echo e(__('blox_popup_delay_seconds')); ?></span>
                             <input type="number" min="0" max="60" x-model.number="docSettings.delay" @change="markDocumentSettingsChanged()" class="w-full border border-gray-600 bg-gray-800 px-2 py-1.5 text-white">
+                        </label>
+                        <label x-show="docSettings.trigger === 'scroll'" class="space-y-1"><span class="text-gray-400"><?php echo e(__('blox_popup_scroll_depth')); ?></span>
+                            <input type="number" min="10" max="100" step="5" x-model.number="docSettings.scroll_depth" @change="markDocumentSettingsChanged()" class="w-full border border-gray-600 bg-gray-800 px-2 py-1.5 text-white">
                         </label>
                         <label x-show="docSettings.trigger === 'click'" class="col-span-2 space-y-1"><span class="text-gray-400"><?php echo e(__('blox_popup_selector')); ?></span>
                             <input type="text" x-model="docSettings.selector" @change="markDocumentSettingsChanged()" placeholder="#offer-button" class="w-full border border-gray-600 bg-gray-800 px-2 py-1.5 font-mono text-white">

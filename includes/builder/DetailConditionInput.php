@@ -15,7 +15,8 @@ final class DetailConditionInput
 {
     /**
      * @param mixed $raw 已解码的提交内容（数组）
-     * @param string $expectedContentType 'product' | 'article'（由真实模板类型推导）
+     * @param string $expectedContentType 'product' | 'article' | 已注册模型 key（由调用方按
+     *               真实模板类型推导；自定义模型的注册核对属调用方职责，见 blox_template_api）
      * @param array<string,mixed> $allowedLanguages availableLanguages()
      * @return array{ok:bool,error:string,scope:array<string,mixed>}
      */
@@ -24,7 +25,7 @@ final class DetailConditionInput
         if (!is_array($raw)) {
             return self::fail('not_object');
         }
-        if (!in_array($expectedContentType, DetailTemplateResolver::CONTENT_TYPES, true)) {
+        if (!DetailTemplateResolver::isContentType($expectedContentType)) {
             return self::fail('bad_template_type');
         }
 
@@ -34,7 +35,7 @@ final class DetailConditionInput
         }
 
         $contentType = is_string($raw['content_type'] ?? null) ? trim((string) $raw['content_type']) : '';
-        if (!in_array($contentType, DetailTemplateResolver::CONTENT_TYPES, true)) {
+        if (!DetailTemplateResolver::isContentType($contentType)) {
             return self::fail('bad_content_type');
         }
         if ($contentType !== $expectedContentType) {

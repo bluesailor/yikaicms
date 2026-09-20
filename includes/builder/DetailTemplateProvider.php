@@ -18,6 +18,35 @@ final class DetailTemplateProvider
     public const MAX_CATEGORY_NODES = 50;
 
     /**
+     * 模板行类型（+ 作用域声明的 content_type）→ 判定用内容类型。
+     *
+     * v1.26 Single 扩自定义模型：article-detail 的作用域可声明**已注册**模型 key，
+     * 模板之间靠该维度区分。这里是 IO 层唯一的注册核对点（resolver 纯层只验形态）；
+     * 未注册/缺失/损坏一律回落 'article'，非详情模板类型返回 ''（调用方 fail-closed）。
+     */
+    public static function contentTypeForTemplate(string $templateType, mixed $scopeContentType = null): string
+    {
+        if ($templateType === 'product-detail') {
+            return 'product';
+        }
+        if ($templateType !== 'article-detail') {
+            return '';
+        }
+        $declared = is_string($scopeContentType) ? trim($scopeContentType) : '';
+        if ($declared !== '' && $declared !== 'article') {
+            try {
+                if (db()->tableExists('content_models')
+                    && in_array($declared, contentModelModel()->keys(), true)) {
+                    return $declared;
+                }
+            } catch (Throwable) {
+                // 表未建：按 article 处理
+            }
+        }
+        return 'article';
+    }
+
+    /**
      * 候选模板列表（含已归一化 scope 与 published_data，供渲染直接使用）。
      *
      * @return list<array<string,mixed>>

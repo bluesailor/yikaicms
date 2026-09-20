@@ -45,6 +45,7 @@ final class BloxPopupRuntime
                 'data-blox-popup' => (string) $id,
                 'data-trigger' => (string) $settings['trigger'],
                 'data-delay' => (string) $settings['delay'],
+                'data-scroll-depth' => (string) $settings['scroll_depth'],
                 'data-selector' => (string) $settings['selector'],
                 'data-frequency' => (string) $settings['frequency'],
                 'data-hours' => (string) $settings['hours'],

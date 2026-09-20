@@ -110,9 +110,21 @@ final class DetailConditionInputTest extends TestCase
         // 真实模板类型与提交类型不一致 → 拒绝（产品模板不接受 article 条件）
         $this->assertSame('content_type_mismatch', DetailConditionInput::validate(self::valid(), 'article', self::languages())['error']);
 
+        // v1.26 起 'video' 是合法的模型 key **形态**（注册核对在 IO 层——blox_template_api），
+        // 但与期望类型不一致仍拒绝：错误码从 bad_content_type 变为 mismatch
         $input = self::valid();
         $input['content_type'] = 'video';
+        $this->assertSame('content_type_mismatch', DetailConditionInput::validate($input, 'product', self::languages())['error']);
+
+        // 形态非法（大写/空格）仍是 bad_content_type
+        $input = self::valid();
+        $input['content_type'] = 'Not A Type';
         $this->assertSame('bad_content_type', DetailConditionInput::validate($input, 'product', self::languages())['error']);
+
+        // v1.26 Single 扩自定义模型：期望与提交同为模型 key 时通过
+        $input = self::valid();
+        $input['content_type'] = 'team';
+        $this->assertTrue(DetailConditionInput::validate($input, 'team', self::languages())['ok']);
 
         $input = self::valid();
         $input['lang'] = 'fr';
@@ -127,7 +139,10 @@ final class DetailConditionInputTest extends TestCase
         $this->assertSame('bad_version', DetailConditionInput::validate($input, 'product', self::languages())['error']);
 
         $this->assertSame('not_object', DetailConditionInput::validate('nope', 'product', self::languages())['error']);
-        $this->assertSame('bad_template_type', DetailConditionInput::validate(self::valid(), 'popup', self::languages())['error']);
+        // v1.26：'popup' 形态上与模型 key 无异，纯层只能报 mismatch；「模板类型是否属详情管线」
+        // 由调用方先经 contentTypeForTemplate 把关（非详情类型得 '' 直接 400，到不了 validate）
+        $this->assertSame('content_type_mismatch', DetailConditionInput::validate(self::valid(), 'popup', self::languages())['error']);
+        $this->assertSame('bad_template_type', DetailConditionInput::validate(self::valid(), 'Not A Type', self::languages())['error']);
     }
 
     public function testLimitsMatchResolver(): void

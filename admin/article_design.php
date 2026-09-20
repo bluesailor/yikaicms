@@ -20,7 +20,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (post('action') === 'create') {
             $language = (string) post('language', '');
             if (!isset(availableLanguages()[$language])) throw new RuntimeException(__('blox_bad_request'));
-            $document = ArticleTemplateDocument::seed($language);
+            // v1.26 Single 扩自定义模型：创建时定类型（article / 已注册模型 key）。
+            // 注册核对走统一 IO 点；未注册/缺失回落 article，不报错（表单只列合法项）。
+            $contentType = DetailTemplateProvider::contentTypeForTemplate(
+                'article-detail',
+                (string) post('content_type', 'article')
+            );
+            $document = ArticleTemplateDocument::seed($language, $contentType);
             $id = bloxTemplateModel()->createDraft('article-detail', (string) post('name', ''), $document,
                 'user', 1, BloxTemplateImporter::deriveRequirements(BloxDocumentPipeline::decode($document)['sections']),
                 '', (int) ($_SESSION['admin_id'] ?? 0));
@@ -91,6 +97,26 @@ require ROOT_PATH . '/admin/includes/header.php';
         <label><span class="block mb-1 text-sm"><?= e(__('blox_article_language')) ?></span><select name="language" class="rounded border border-gray-300 px-3 py-2">
             <?php foreach (availableLanguages() as $code => $label): ?><option value="<?= e((string) $code) ?>" <?= $code === config('site_lang', 'zh-CN') ? 'selected' : '' ?>><?= e((string) $label) ?></option><?php endforeach; ?>
         </select></label>
+        <?php
+        // v1.26：有注册模型时提供类型选择（模板条件的 content_type 维度，见 DetailTemplateResolver）
+        $articleTemplateModels = [];
+        try {
+            foreach (contentModelModel()->allActive() as $modelRow) {
+                $modelKey = (string) ($modelRow['model_key'] ?? '');
+                if ($modelKey !== '') {
+                    $articleTemplateModels[$modelKey] = (string) ($modelRow['name'] ?? $modelKey);
+                }
+            }
+        } catch (Throwable) {
+            // 表未建：只有文章一种
+        }
+        ?>
+        <?php if ($articleTemplateModels !== []): ?>
+        <label><span class="block mb-1 text-sm"><?= e(__('blox_article_content_type')) ?></span><select name="content_type" class="rounded border border-gray-300 px-3 py-2" data-testid="article-design-content-type">
+            <option value="article"><?= e(__('blox_article_type_article')) ?></option>
+            <?php foreach ($articleTemplateModels as $modelKey => $modelName): ?><option value="<?= e($modelKey) ?>"><?= e($modelName) ?></option><?php endforeach; ?>
+        </select></label>
+        <?php endif; ?>
         <button class="rounded bg-gray-900 text-white px-4 py-2" data-testid="article-design-create"><i class="ti ti-plus" aria-hidden="true"></i> <?= e(__('blox_article_create')) ?></button>
     </form>
     <div class="divide-y divide-gray-200">
