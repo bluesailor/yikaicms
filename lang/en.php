@@ -2494,6 +2494,8 @@ return [
     'blox_style_copy' => 'Copy style',
     'blox_style_paste' => 'Paste style',
     'blox_style_copied' => 'Style copied (text, links and bindings are not included)',
+    'blox_style_reset' => 'Reset style',
+    'blox_style_reset_done' => 'Local style overrides cleared (undoable)',
     'blox_style_pasted' => 'Style pasted — undo is available',
     'blox_style_paste_empty' => 'No style copied yet',
     'blox_style_paste_type_mismatch' => 'The copied style is from a :type element and can only be pasted onto the same type',

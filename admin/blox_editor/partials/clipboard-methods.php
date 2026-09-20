@@ -25,6 +25,44 @@
                 return !!this.selectionClipboardSource();
             },
 
+            // ── 跨页剪贴板（v1.29）：copy/cut 同时落 localStorage，另一页编辑器
+            //    init 时恢复。同浏览器同站点即可跨页——计划的"服务端暂存"以此收敛
+            //    （跨设备不是目标，localStorage 免服务端状态）。安全边界不变：
+            //    粘贴产物仍走服务端保存管线的能力/保护字段校验，storage 数据只当候选。 ──
+            clipboardStorageKey() {
+                return this.workspacePrefPrefix + "clipboard:v1";
+            },
+
+            persistClipboard() {
+                try {
+                    if (this.clipboard && this.clipboard.node) {
+                        window.localStorage.setItem(this.clipboardStorageKey(), JSON.stringify({
+                            kind: this.clipboard.kind,
+                            node: this.clipboard.node,
+                        }));
+                    } else {
+                        window.localStorage.removeItem(this.clipboardStorageKey());
+                    }
+                } catch (error) {
+                    // 禁用存储时剪贴板退化为本页内存态
+                }
+            },
+
+            restoreClipboard() {
+                if (this.clipboard) return;
+                try {
+                    var stored = JSON.parse(window.localStorage.getItem(this.clipboardStorageKey()) || "null");
+                    if (stored && typeof stored === "object" && stored.node && typeof stored.node === "object"
+                        && typeof stored.node.type === "string"
+                        && (stored.kind === "element" || stored.kind === "child")) {
+                        // 跨页恢复一律按 copy 语义（cut 的源删除发生在原页，不能重放）
+                        this.clipboard = { mode: "copy", kind: stored.kind, id: String(stored.node.id || ""), node: stored.node };
+                    }
+                } catch (error) {
+                    // 损坏数据静默丢弃
+                }
+            },
+
             copySelection() {
                 var source = this.selectionClipboardSource();
                 if (!source) { this.toast(this.clipboardText.empty); return; }
@@ -34,6 +72,7 @@
                     id: source.id,
                     node: JSON.parse(JSON.stringify(source.node)),
                 };
+                this.persistClipboard();
                 this.toast(this.clipboardText.copyDone);
             },
 
@@ -48,9 +87,11 @@
                 };
                 if (!this.removeClipboardSource(source)) {
                     this.clipboard = null;
+                    this.persistClipboard();
                     this.toast(this.clipboardText.sourceMissing);
                     return;
                 }
+                this.persistClipboard();
                 this.selectedSi = -1;
                 this.selectedCi = -1;
                 this.selectedEi = -1;
@@ -192,4 +233,45 @@
                     target = { kind: "canvas" };
                 }
                 this.pasteClipboard(target.kind, target);
+            },
+            /** v1.29 快捷键：对当前选中（区块/顶层元素/子元素）删除，语义与右键 ctxDelete 同构。 */
+            shortcutDeleteSelection() {
+                if (this.selectedSi < 0) return false;
+                if (this.selectedSubPath && this.selectedSubPath.length) {
+                    this.deleteNodeAt(this.selectedSi, this.selectedCi, this.selectedEi, this.selectedSubPath.slice());
+                } else if (this.selectedEi >= 0) {
+                    this.deleteElement(this.selectedSi, this.selectedCi, this.selectedEi);
+                } else {
+                    this.deleteSection(this.selectedSi); // 自带 confirm
+                }
+                this.highlightCanvasSelection();
+                return true;
+            },
+
+            /** v1.29 快捷键：复制当前选中一份到其后（Ctrl+D），语义与右键 ctxDuplicate 同构。 */
+            shortcutDuplicateSelection() {
+                if (this.selectedSi < 0) return false;
+                var si = this.selectedSi, ci = this.selectedCi, ei = this.selectedEi;
+                var self = this;
+                if (this.selectedSubPath && this.selectedSubPath.length) {
+                    var subPath = this.selectedSubPath.slice();
+                    return (this.runCommand("duplicate-child", function () {
+                        var parent = self.subPathParent(si, ci, ei, subPath);
+                        var kids = parent && parent.data ? (parent.data.children || []) : [];
+                        var index = subPath[subPath.length - 1];
+                        if (!kids[index]) return;
+                        kids.splice(index + 1, 0, self.deepCloneNode(kids[index], "e"));
+                        self.selectDescendant(si, ci, ei, subPath.slice(0, -1).concat(index + 1));
+                    }) || {}).ok !== false;
+                }
+                if (ei >= 0) {
+                    return (this.runCommand("duplicate-element", function () {
+                        var els = self.sections[si]?.columns[ci]?.elements;
+                        if (!els || !els[ei]) return;
+                        els.splice(ei + 1, 0, self.deepCloneNode(els[ei], "e"));
+                        self.selectElement(si, ci, ei + 1);
+                    }) || {}).ok !== false;
+                }
+                this.duplicateSection(si);
+                return true;
             },

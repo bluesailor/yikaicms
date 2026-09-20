@@ -80,6 +80,26 @@
                 return true;
             },
 
+            /** v1.29 Reset Style：清除白名单内全部本地样式覆盖（回默认/继承），一条可撤销历史。 */
+            canResetElementStyle(el) {
+                return this.canCopyElementStyle(el);
+            },
+
+            resetElementStyle(el) {
+                if (!this.canResetElementStyle(el)) return false;
+                var keys = this.styleClipboardKeys(el.type);
+                var run = typeof this.runCommand === "function"
+                    ? this.runCommand.bind(this)
+                    : function (name, fn) { fn(); return { ok: true }; };
+                var applied = run("reset-element-style", function () {
+                    if (!el.data || typeof el.data !== "object") return;
+                    keys.forEach(function (key) { delete el.data[key]; });
+                });
+                if (!applied || applied.ok === false) return false;
+                if (this.toast) this.toast(text.reset || "");
+                return true;
+            },
+
             pasteElementStyle(el) {
                 if (!el) return false;
                 if (!this.canPasteElementStyle(el)) {
