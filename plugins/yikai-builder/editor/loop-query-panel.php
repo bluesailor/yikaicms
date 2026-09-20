@@ -32,11 +32,14 @@
                                                     <select :value="loopQueryField('source')" @change="setLoopQueryField('source', $event.target.value)"
                                                             data-testid="blox-loop-source"
                                                             class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white">
+                                                        <?php /* current 源只对容器 Loop 开放（list-dynamic 不识别），不进 sourceOptions() */ ?>
+                                                        <option value="current"><?= e(__('blox_loop_source_current')) ?></option>
                                                         <?php foreach (ListDynamicElement::sourceOptions() as $sourceValue => $sourceLabel): ?>
                                                             <option value="<?= e((string) $sourceValue) ?>"><?= e((string) $sourceLabel) ?></option>
                                                         <?php endforeach; ?>
                                                     </select>
                                                 </label>
+                                                <p x-show="loopQueryField('source') === 'current'" class="text-[10px] text-gray-400"><?= e(__('blox_loop_source_current_hint')) ?></p>
                                                 <label class="block text-[11px] text-gray-600" x-show="String(loopQueryField('source')).indexOf('type:') === 0">
                                                     <span class="mb-1 block"><?= e(__('blox_dynamic_filter')) ?></span>
                                                     <input type="text" :value="loopQueryField('cat')" @change="setLoopQueryField('cat', $event.target.value)"

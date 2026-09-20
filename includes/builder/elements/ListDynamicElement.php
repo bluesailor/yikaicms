@@ -292,7 +292,8 @@ final class ListDynamicElement extends AbstractElement
                 $channel = null;
             }
             if ($channel && !empty($channel['status'])) {
-                $sourceType = self::safeSourceType((string) ($channel['type'] ?? 'article'));
+                // 栏目 type ≠ 内容 type（'list' 栏目存 article 行），映射见 channelContentType
+                $sourceType = self::safeSourceType(BloxLoopQuery::channelContentType((string) ($channel['type'] ?? 'article')));
                 return [$sourceType, (string) $channelId];
             }
         }
