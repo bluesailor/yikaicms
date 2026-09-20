@@ -5890,6 +5890,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.restoreRightPanelState();
                 this.restoreTemplatePanelWidth();
                 this.restoreElementLibraryPreferences();
+                this.restoreClipboard(); // v1.29 跨页剪贴板：另一页复制的元素在本页可粘贴
                 this.restoreTemplateLibraryPreferences();
                 this.normalizeHeaderSettings();
                 // 先归一化 id 再渲染：老数据（排版编辑器早期格式）可能缺 id 或 id 重复，
