@@ -770,13 +770,13 @@ final class BlockRenderer
         $mobile = '';
         if ($mobileGrid) {
             $m = self::spanValue($span, 'm');
-            $mobile = self::COLSPAN_MOBILE_MAP[$m >= 1 ? $m : 12];
+            $mobile = self::COLSPAN_MOBILE_MAP[$m >= 1 ? $m : 12] ?? '';
         }
         $wide = '';
         if (is_array($span) && BloxResponsiveValue::wideEnabled()) {
             $w = self::spanValue($span, 'w');
             if ($w >= 1 && $w !== self::spanValue($span, 'd')) {
-                $wide = self::COLSPAN_WIDE_MAP[$w];
+                $wide = self::COLSPAN_WIDE_MAP[$w] ?? '';
             }
         }
         $base = self::colSpanBaseClass($span, $desktopOnly);
@@ -811,7 +811,10 @@ final class BlockRenderer
         return $map[$span] ?? '';
     }
 
-    /** {d,t,m,w} 或标量 → 指定断点的跨度值；t 缺省继承 d，m/w 缺省返回 0（继承标记）。超界返回 0。 */
+    /**
+     * {d,t,m,w} 或标量 → 指定断点的跨度值；t 缺省继承 d，m/w 缺省返回 0（继承标记）。超界返回 0。
+     * @return int<0,12>
+     */
     private static function spanValue(mixed $span, string $breakpoint): int
     {
         if (is_array($span)) {
