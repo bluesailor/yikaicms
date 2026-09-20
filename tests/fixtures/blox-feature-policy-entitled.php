@@ -10,4 +10,5 @@ return [
     'style_presets' => 'free',
     'table' => 'free',
     'pricing' => 'free',
+    'global_classes' => 'free',
 ];
