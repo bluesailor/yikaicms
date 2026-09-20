@@ -165,7 +165,8 @@ class SidebarMenuApiTest extends TestCase
         $this->assertArrayHasKey('design', $menu);
         $this->assertSame(65, $menu['design']['priority']);
         $this->assertSame(
-            ['page', 'site_design', 'blox_design', 'blox_templates'],
+            // v1.23：全局样式类管理器进「网站设计」组
+            ['page', 'site_design', 'blox_design', 'blox_templates', 'blox_classes'],
             array_column($menu['design']['items'], 'key')
         );
         $this->assertNotContains('setting_home', array_column($menu['site']['items'], 'key'));

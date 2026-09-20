@@ -293,6 +293,16 @@ return [
                 'url'     => '/admin/blox_templates.php',
                 'icon'    => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6l2 2h8v14H4V4zm4 6h8m-8 4h6"></path>',
             ],
+            [
+                // v1.23 全局样式类管理器：列表/用量/改名/回收站。页面可读（用量与目录），
+                // 变更由 blox_class_api 的服务端授权门拦截。
+                'key'     => 'blox_classes',
+                'perm'    => 'blox_global',
+                'visible' => !function_exists('bloxPageEditorEnabled') || bloxPageEditorEnabled(),
+                'label'   => __('blox_global_classes'),
+                'url'     => '/admin/blox_classes.php',
+                'icon'    => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5a2 2 0 011.414.586l7 7a2 2 0 010 2.828l-5.586 5.586a2 2 0 01-2.828 0l-7-7A2 2 0 014 10V5a2 2 0 012-2h1z"></path>',
+            ],
         ],
     ],
     'appearance' => [
