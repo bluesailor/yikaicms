@@ -43,10 +43,21 @@ foreach ($activeClasses as $i => $class) {
 }
 
 $GLOBALS['pageTitle'] = __('blox_global_classes');
+// UX：类管理器归属「全站样式」入口（与样式预设同住，避免两个"全局样式"概念并排出现在侧栏）
 $GLOBALS['currentMenu'] = 'blox_classes';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 <div x-data="bloxClassManager()" data-testid="blox-classes-page" class="space-y-4">
+    <div class="flex flex-wrap items-end gap-1 border-b border-gray-200" role="tablist" aria-label="<?= e(__('blox_design_system')) ?>">
+        <a role="tab" href="/admin/blox_design.php"
+           class="inline-flex h-11 items-center gap-2 border-b-2 border-transparent px-4 text-sm font-medium text-gray-500 hover:text-gray-900">
+            <i class="ti ti-color-swatch"></i><?= e(__('website_styles_title')) ?>
+        </a>
+        <span role="tab" aria-selected="true" data-testid="blox-classes-tab-active"
+              class="inline-flex h-11 items-center gap-2 border-b-2 border-sky-500 px-4 text-sm font-medium text-sky-700">
+            <i class="ti ti-tags"></i><?= e(__('blox_global_classes')) ?>
+        </span>
+    </div>
     <?php if (!$classesAvailable): ?>
         <div class="rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             <?= e(__('blox_class_storage_missing')) ?>
