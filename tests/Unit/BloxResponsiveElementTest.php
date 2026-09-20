@@ -177,10 +177,10 @@ final class BloxResponsiveElementTest extends TestCase
             // 0a：布局引擎放开 flex 全量属性后，两个布局节点共享同一份响应式契约
             //（行列间距、三轴对齐、子项 order/flex-basis；grow/shrink 是比例值，不分档）。
             [new HeadingElement(), ['visual_size', 'type_font_size']],
-            [new ContainerElement(), ['direction', 'gap', 'gap_px', 'row_gap_px', 'column_gap_px',
-                'align', 'justify', 'align_content', 'padding', 'order_n', 'flex_basis_px']],
-            [new DivElement(), ['direction', 'gap', 'gap_px', 'row_gap_px', 'column_gap_px',
-                'align', 'justify', 'align_content', 'padding', 'order_n', 'flex_basis_px']],
+            [new ContainerElement(), ['direction', 'grid_cols', 'gap', 'gap_px', 'row_gap_px', 'column_gap_px',
+                'align', 'justify', 'align_content', 'padding', 'order_n', 'flex_basis_px', 'grid_span']],
+            [new DivElement(), ['direction', 'grid_cols', 'gap', 'gap_px', 'row_gap_px', 'column_gap_px',
+                'align', 'justify', 'align_content', 'padding', 'order_n', 'flex_basis_px', 'grid_span']],
         ] as [$element, $keys]) {
             $responsive = [];
             foreach ($element->controls() as $control) {

@@ -1010,6 +1010,50 @@ final class BuilderRenderTest extends TestCase
         );
     }
 
+    // ---- 0b Grid：容器/Div 网格布局与子项跨列 ----
+    public function testDivGridLayoutEmitsMobileFirstColumnTemplate(): void
+    {
+        // 标量列数：手机默认单列，md: 起生效并级联（t 继承 d 不重复出 lg:）
+        $scalar = $this->inner($this->oneEl(['type' => 'div', 'data' => ['display' => 'grid', 'grid_cols' => '3']]));
+        $this->assertStringContainsString('grid grid-cols-1 md:grid-cols-3', $scalar);
+        $this->assertStringNotContainsString('lg:grid-cols', $scalar);
+
+        // 显式 m 覆盖手机单列；t≠d 时三档全出；dense 回填
+        $resp = $this->inner($this->oneEl(['type' => 'div', 'data' => [
+            'display' => 'grid', 'grid_flow' => 'dense', 'gap' => 'md',
+            'grid_cols' => ['d' => '4', 't' => '2', 'm' => '2'],
+        ]]));
+        $this->assertStringContainsString('grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 grid-flow-dense', $resp);
+        $this->assertStringContainsString('gap-4', $resp);
+    }
+
+    public function testContainerGridLayoutKeepsFlexPathUntouched(): void
+    {
+        $grid = $this->inner($this->oneEl(['type' => 'container', 'data' => [
+            'layout' => 'grid', 'grid_cols' => ['d' => '4'],
+        ]]));
+        $this->assertStringContainsString('grid grid-cols-1 md:grid-cols-4', $grid);
+        $this->assertStringNotContainsString('flex-col', $grid);
+
+        // 默认（无 layout 键）仍是 flex，输出与历史一致
+        $flex = $this->inner($this->oneEl(['type' => 'container', 'data' => []]));
+        $this->assertStringContainsString('flex flex-col', $flex);
+        $this->assertStringNotContainsString('grid-cols', $flex);
+    }
+
+    public function testGridItemSpanClassesFollowTierRules(): void
+    {
+        // 标量跨列：md: 起生效；显式 m 值才输出基类
+        $scalar = $this->inner($this->oneEl(['type' => 'div', 'data' => ['grid_span' => '2']]));
+        $this->assertStringContainsString('md:col-span-2', $scalar);
+        $this->assertStringNotContainsString('lg:col-span', $scalar);
+
+        $resp = $this->inner($this->oneEl(['type' => 'div', 'data' => [
+            'grid_span' => ['d' => '2', 'm' => 'full'],
+        ]]));
+        $this->assertStringContainsString('col-span-full md:col-span-2', $resp);
+    }
+
     public function testContainerDepthCapStopsRunawayNesting(): void
     {
         // 0b：深度约束统一为 BloxDocumentValidator::MAX_ELEMENT_DEPTH（保存时显式拒绝），
