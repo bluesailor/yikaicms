@@ -240,6 +240,7 @@ CREATE TABLE "yikai_blox_global_classes" (
   "status" TEXT NOT NULL DEFAULT 'active',
   "trashed_at" INTEGER NOT NULL DEFAULT 0,
   "modified" INTEGER NOT NULL DEFAULT 0,
+  "revision" INTEGER NOT NULL DEFAULT 0,
   "user_id" INTEGER NOT NULL DEFAULT 0,
   "created_at" INTEGER NOT NULL DEFAULT 0,
   "updated_at" INTEGER NOT NULL DEFAULT 0
