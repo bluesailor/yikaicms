@@ -13,6 +13,14 @@ final class BloxAssetCollector
     private static array $renderedStyles = [];
     private static bool $booted = false;
 
+    /** @psalm-suppress PossiblyUnusedMethod 测试专用（单测进程共享请求级收集状态时复位） */
+    public static function resetForTests(): void
+    {
+        self::$scripts = [];
+        self::$styles = [];
+        self::$renderedStyles = [];
+    }
+
     public static function bootstrap(): void
     {
         if (self::$booted) {

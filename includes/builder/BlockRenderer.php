@@ -1139,6 +1139,19 @@ final class BlockRenderer
         $html = self::applyGlobalClasses($html, $data, $element->type());
         $html = self::applyElementVisibility($html, $data['_hide_on'] ?? null, $editMode);
         $html = self::markCustomHomeElement($html, $element->type(), $path);
+        // v1.28 元素交互：前台把已归一的 _interactions 序列化到首标签，runtime 按需加载
+        //（编辑态不输出——画布里不执行交互；渲染已发布数据永远免费，不查能力位）
+        if (!$editMode && BloxInteractions::hasInput($data['_interactions'] ?? null)) {
+            $interactionItems = BloxInteractions::normalize($data['_interactions']);
+            if ($interactionItems !== []) {
+                $interactionRoot = new HtmlTagRewriter($html);
+                if ($interactionRoot->nextTag()) {
+                    $interactionRoot->setAttribute('data-yk-interactions', BloxInteractions::attributeValue($interactionItems));
+                    $html = $interactionRoot->getUpdatedHtml();
+                    BloxAssetCollector::addScript('/assets/js/blox-interactions.js');
+                }
+            }
+        }
         if ($editMode && $hasConditions) {
             $html = self::markElementConditions($html, BloxDisplayConditions::badge($conditions));
         }
