@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = postInt('id');
         db()->delete('brands', 'id = ?', [$id]);
         db()->execute("UPDATE " . DB_PREFIX . "products SET brand_id = 0 WHERE brand_id = ?", [$id]);
-        do_action('data_changed', DB_PREFIX . 'products');
+        do_action('data_changed', 'products');
         success();
     }
 
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
             db()->execute("DELETE FROM " . DB_PREFIX . "brands WHERE id IN ({$placeholders})", $ids);
             db()->execute("UPDATE " . DB_PREFIX . "products SET brand_id = 0 WHERE brand_id IN ({$placeholders})", $ids);
-            do_action('data_changed', DB_PREFIX . 'products');
+            do_action('data_changed', 'products');
         }
         success();
     }

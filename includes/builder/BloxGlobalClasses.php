@@ -227,7 +227,7 @@ final class BloxGlobalClasses
             @unlink($path);
         }
         if (function_exists('do_action')) {
-            do_action('data_changed', DB_PREFIX . 'blox_global_classes', 0);
+            do_action('data_changed', 'blox_global_classes', 0);
         }
     }
 
@@ -350,7 +350,7 @@ final class BloxGlobalClasses
             'created_at' => $now,
             'updated_at' => $now,
         ];
-        db()->insert(DB_PREFIX . 'blox_global_classes', $row);
+        db()->insert('blox_global_classes', $row);
         return $row;
     }
 
@@ -360,7 +360,7 @@ final class BloxGlobalClasses
         $row = self::assertRow($input);
         $settings = self::normalizeSettings(is_array($input['settings'] ?? null) ? $input['settings'] : []);
         $now = time();
-        db()->update(DB_PREFIX . 'blox_global_classes', [
+        db()->update('blox_global_classes', [
             'settings' => json_encode($settings, JSON_UNESCAPED_UNICODE),
             'modified' => $now,
             'user_id' => max(0, (int) ($input['user_id'] ?? 0)),
@@ -379,7 +379,7 @@ final class BloxGlobalClasses
             throw new RuntimeException(__('blox_class_duplicate_name'));
         }
         $now = time();
-        db()->update(DB_PREFIX . 'blox_global_classes', [
+        db()->update('blox_global_classes', [
             'name' => $name,
             'modified' => $now,
             'updated_at' => $now,
@@ -392,7 +392,7 @@ final class BloxGlobalClasses
     {
         $row = self::assertRow($input, false);
         $now = time();
-        db()->update(DB_PREFIX . 'blox_global_classes', [
+        db()->update('blox_global_classes', [
             'status' => $status,
             'trashed_at' => $status === BloxGlobalClassModel::STATUS_TRASHED ? $now : 0,
             'modified' => $now,
@@ -417,7 +417,7 @@ final class BloxGlobalClasses
             }
         }
         $now = time();
-        db()->update(DB_PREFIX . 'blox_global_classes', [
+        db()->update('blox_global_classes', [
             'name' => $candidate,
             'status' => BloxGlobalClassModel::STATUS_ACTIVE,
             'trashed_at' => 0,
@@ -534,7 +534,7 @@ final class BloxGlobalClasses
             if (!is_string($classId) || !preg_match(self::ID_PATTERN, $classId) || (int) $count < 1) {
                 continue;
             }
-            db()->insert(DB_PREFIX . 'blox_class_refs', [
+            db()->insert('blox_class_refs', [
                 'class_id' => $classId,
                 'doc_key' => $docKey,
                 'ref_count' => (int) $count,
