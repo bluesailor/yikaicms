@@ -49,6 +49,7 @@ final class BloxGlobalClasses
     /** @var array<string,array<string,mixed>>|null 请求内目录缓存：class_id => row（settings 已解码） */
     private static ?array $catalog = null;
 
+    /** @psalm-suppress PossiblyUnusedMethod 测试专用（单测进程共享请求级缓存时复位） */
     public static function resetForTests(): void
     {
         self::$catalog = null;
@@ -59,15 +60,6 @@ final class BloxGlobalClasses
         // 不做进程级缓存：单测进程共享 PDO 且逐用例重建表，缓存会跨用例撒谎；
         // 生产侧 catalog() 有请求级缓存，这里最多一次表存在性查询。
         return db()->tableExists('blox_global_classes');
-    }
-
-    /** 变更动作的授权（渲染不走这里）。 */
-    public static function advancedEnabled(): bool
-    {
-        if (function_exists('bloxAdvancedFeaturesEnabled')) {
-            return bloxAdvancedFeaturesEnabled();
-        }
-        return class_exists('BloxQueryLoopPolicy') && BloxQueryLoopPolicy::advancedEnabled();
     }
 
     /** @return array<string,array<string,mixed>> 活跃类目录：class_id => {class_id,name,category,settings,modified} */
@@ -428,7 +420,7 @@ final class BloxGlobalClasses
     public static function normalizeSettings(array $settings): array
     {
         $normalized = [];
-        foreach (self::COLOR_SETTINGS as $key => $property) {
+        foreach (array_keys(self::COLOR_SETTINGS) as $key) {
             $value = $settings[$key] ?? '';
             if (!is_string($value) || trim($value) === '') {
                 continue;
@@ -447,7 +439,7 @@ final class BloxGlobalClasses
         if (is_string($radius) && isset(self::RADIUS_MAP[$radius]) && $radius !== 'none') {
             $normalized['radius'] = $radius;
         }
-        foreach (self::PX_SETTINGS as $key => [, $min, $max]) {
+        foreach (array_keys(self::PX_SETTINGS) as $key) {
             $value = $settings[$key] ?? null;
             if (is_numeric($value)) {
                 $px = self::pxOrNull($value, $key);
