@@ -46,7 +46,8 @@ final class BloxDynamicTags
         'logo' => ['site_logo', 'image'],
     ];
     /** loop.* 循环项字段白名单（值来自数据库行，键必须白名单；url/date/index 是虚拟字段另行处理）。 */
-    private const LOOP_FIELDS = ['title', 'subtitle', 'summary', 'model', 'price'];
+    // cover 为图片路径列（v1.24-③ 结构化属性绑定：Image src 吃 {{loop.cover}}）
+    private const LOOP_FIELDS = ['title', 'subtitle', 'summary', 'model', 'price', 'cover'];
     private const ARTICLE_FIELDS = ['title', 'summary', 'author'];
     private const PRODUCT_FIELDS = ['title', 'model', 'price', 'summary'];
 

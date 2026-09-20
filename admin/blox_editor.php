@@ -761,6 +761,37 @@ foreach ($registryMeta as $type => $m) {
     ];
 }
 
+// 查询卡片网格（v1.25）：容器 Loop 的预设瓦片，list-dynamic 退役路径上的替身入口。
+// 真实插入类型是 container（defaults 带 _query + 预绑定 {{loop.*}} 卡片子树，
+// newElementNode 深拷贝并逐级发新 id）；用合成 type 保持瓦片自己的收藏/测试标识，
+// 不与素的 container 瓦片相撞。锁定语义与 professionalElements 同款（query_loop）。
+$queryCardsLocked = empty($professionalFeatures['query_loop']['allowed'])
+    && !empty($professionalFeatures['query_loop']['visible']);
+$elementLib[] = [
+    'type' => '__query_cards',
+    'insertType' => 'container',
+    'label' => __('blox_ps_query_cards'),
+    'category' => 'dynamic',
+    'icon' => 'repeat',
+    'defaults' => [
+        'layout' => 'grid',
+        'grid_cols' => '3',
+        '_query' => ['source' => 'type:article', 'limit' => 6, 'empty_mode' => 'hidden'],
+        'children' => [[
+            'type' => 'div',
+            'data' => ['children' => [
+                ['type' => 'image', 'data' => ['src' => '{{loop.cover}}', 'alt' => '{{loop.title}}', 'click_action' => 'link', 'link_url' => '{{loop.url}}', 'link_new_tab' => false]],
+                ['type' => 'heading', 'data' => ['text' => '{{loop.title}}', 'level' => 'h3', 'url' => '{{loop.url}}']],
+                ['type' => 'text', 'data' => ['html' => '<p>{{loop.summary}}</p>']],
+            ]],
+        ]],
+    ],
+    'paletteVisible' => !empty($professionalFeatures['query_loop']['allowed']) || $queryCardsLocked,
+    'deprecated' => false,
+    'proFeature' => 'query_loop',
+    'locked' => $queryCardsLocked,
+];
+
 // 站点资料语境：版权元素的面板内编辑按「画布正在预览的语言」读写。
 // 语言固定（单语言页头/页尾、带语言的页面）时，其它语言不显示的备案设置整体隐藏；
 // 全站共享模板随预览语言切换编辑对象，备案设置保留并提示仅简体中文页面显示。
@@ -8217,7 +8248,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             newElementNode(el) {
                 var node = {
                     id: this.uid("e"),
-                    type: el.type,
+                    // 预设瓦片（如 __query_cards）用合成 type 保持库内身份，真实节点类型走 insertType
+                    type: el.insertType || el.type,
                     data: JSON.parse(JSON.stringify(el.defaults || {})),
                 };
                 var self = this;
