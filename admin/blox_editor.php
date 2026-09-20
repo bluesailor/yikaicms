@@ -3505,6 +3505,23 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.highlightCanvasSelection();
             },
 
+            /** v1.29 画布间距拖拽：桥载荷已校验（路径形态 + 0–160 整数），这里再核类型与容器身份。 */
+            applyCanvasGapDrag(payload) {
+                payload = payload || {};
+                var el = this.elementAtPath(String(payload.path || ""));
+                if (!el || !this.elSchema(el.type).container) return;
+                var value = parseInt(payload.value, 10);
+                if (!Number.isInteger(value) || value < 0 || value > 160) return;
+                this.selectPath(String(payload.path), false);
+                this.runCommand("canvas-gap-drag", function () {
+                    if (!el.data || typeof el.data !== "object") el.data = {};
+                    el.data.gap_px = value; // 标量=四档同值；面板可再按档位细调
+                    delete el.data.row_gap_px;
+                    delete el.data.column_gap_px;
+                });
+                this.highlightCanvasSelection();
+            },
+
             applyCanvasColumnRatio(payload) {
                 payload = payload || {};
                 if (payload.kind === "home" && typeof payload.path === "string") {
@@ -6018,6 +6035,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this._canvasBridge = new window.BloxCanvasBridge({
                     getFrame: function () { return self.$refs.canvas; },
                     onColumnRatio: function (payload) { self.applyCanvasColumnRatio(payload); },
+                    onGapDrag: function (payload) { self.applyCanvasGapDrag(payload); },
                     onContext: function (payload) { self.openCtxFromCanvas(payload); },
                     onDrop: function (payload) { self.handleCanvasDrop(payload); },
                     onTemplateDrop: function (payload) { self.handleTemplateDrop(payload); },

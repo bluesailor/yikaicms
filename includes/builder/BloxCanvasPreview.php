@@ -663,6 +663,14 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
 .yk-column-resizer:hover span,.yk-column-resizer:focus span,.yk-column-resizer.yk-resizing span{background:#2563eb;color:#fff;outline:none}
 body.yk-column-resizing{cursor:col-resize!important;user-select:none!important}
 @media(max-width:1023px){.yk-column-resizer{display:none!important}}
+.yk-gap-resizer{position:absolute;z-index:44;height:18px;left:12%;right:12%;transform:translateY(-50%);cursor:row-resize;touch-action:none;display:flex;align-items:center;justify-content:center;user-select:none;opacity:0;transition:opacity .12s}
+.yk-gap-resizer:hover,.yk-gap-resizer:focus,.yk-gap-resizer.yk-resizing{opacity:1}
+[data-yk-el-container] > *:hover > .yk-gap-resizer{opacity:.85}
+.yk-gap-resizer:before{content:'';position:absolute;left:0;right:0;top:8px;height:2px;border-radius:999px;background:#7c3aed;box-shadow:0 0 0 1px rgba(255,255,255,.9)}
+.yk-gap-resizer span{position:relative;min-width:34px;height:16px;padding:0 5px;border:1px solid #c4b5fd;border-radius:4px;background:#fff;color:#7c3aed;font:700 10px/14px system-ui,sans-serif;text-align:center;box-shadow:0 2px 8px rgba(15,23,42,.18)}
+.yk-gap-resizer.yk-resizing span{background:#7c3aed;color:#fff}
+body.yk-gap-resizing{cursor:row-resize!important;user-select:none!important}
+@media(max-width:1023px){.yk-gap-resizer{display:none!important}}
 .yk-inline-editing{outline:2px solid #2563eb!important;outline-offset:4px;border-radius:4px;cursor:text!important;caret-color:#2563eb}
 .yk-inline-editing:focus{box-shadow:0 0 0 4px rgba(37,99,235,.12)}
 .yk-table-tools{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px;background:#fff;border:1px solid #d1d5db;color:#374151;position:sticky;top:0;z-index:25}
@@ -979,6 +987,95 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
                 columns: ordered, spans: spans
             });
         });
+    }
+    // ── v1.29 画布间距拖拽：grid / 纵向 flex 容器的 gap 手柄（上下拖 = 改 gap_px 0–160）。
+    //    列宽 resizer 同款交互（pointer capture / 键盘微调 / 提交走桥）；横向 flex 不做
+    //    （水平间隙拖拽与列宽手柄在画布上互相打架，键盘或面板输入已覆盖）。 ──
+    var gapDragState = null;
+    function containerGapHost(wrapper) {
+        var host = wrapper.firstElementChild;
+        if (!host || host.classList.contains('yk-missing-element')) return null;
+        var display = getComputedStyle(host).display;
+        if (display !== 'grid' && display !== 'flex') return null;
+        if (display === 'flex' && getComputedStyle(host).flexDirection.indexOf('column') !== 0) return null;
+        var kids = Array.from(host.children).filter(function (child) {
+            return !child.classList.contains('yk-gap-resizer') && !child.classList.contains('yk-column-resizer');
+        });
+        return kids.length >= 2 ? { host: host, first: kids[0], second: kids[1] } : null;
+    }
+    function currentGapPx(host) {
+        var gap = parseFloat(getComputedStyle(host).rowGap);
+        return isNaN(gap) ? 0 : Math.round(gap);
+    }
+    function syncGapResizer(handle) {
+        var info = handle._ykGapInfo;
+        if (!info) return;
+        var hostRect = info.host.getBoundingClientRect();
+        var firstRect = info.first.getBoundingClientRect();
+        var secondRect = info.second.getBoundingClientRect();
+        if (secondRect.top <= firstRect.bottom - 1) { handle.style.display = 'none'; return; }
+        handle.style.display = '';
+        handle.style.top = ((firstRect.bottom + secondRect.top) / 2 - hostRect.top) + 'px';
+        handle.querySelector('span').textContent = currentGapPx(info.host) + 'px';
+    }
+    function installGapResizer(wrapper) {
+        var info = containerGapHost(wrapper);
+        if (!info || info.host.querySelector(':scope > .yk-gap-resizer')) return;
+        var path = wrapper.getAttribute('data-yk-el') || '';
+        if (!path) return;
+        if (getComputedStyle(info.host).position === 'static') info.host.style.position = 'relative';
+        var handle = document.createElement('div');
+        handle.className = 'yk-gap-resizer';
+        handle.setAttribute('tabindex', '0');
+        handle.setAttribute('role', 'slider');
+        handle.setAttribute('aria-label', 'gap');
+        handle.innerHTML = '<span></span>';
+        handle._ykGapInfo = info;
+        function commitGap(value) {
+            postToEditor({ ykGapDrag: { path: path, value: Math.max(0, Math.min(160, Math.round(value))) } });
+        }
+        handle.addEventListener('pointerdown', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            gapDragState = { handle: handle, startY: e.clientY, startGap: currentGapPx(info.host) };
+            handle.setPointerCapture(e.pointerId);
+            handle.classList.add('yk-resizing');
+            document.body.classList.add('yk-gap-resizing');
+        });
+        handle.addEventListener('pointermove', function (e) {
+            if (!gapDragState || gapDragState.handle !== handle) return;
+            var next = Math.max(0, Math.min(160, gapDragState.startGap + Math.round(e.clientY - gapDragState.startY)));
+            info.host.style.rowGap = next + 'px';
+            info.host.style.columnGap = next + 'px';
+            syncGapResizer(handle);
+        });
+        function finishGapDrag(e, commit) {
+            if (!gapDragState || gapDragState.handle !== handle) return;
+            var startGap = gapDragState.startGap;
+            gapDragState = null;
+            if (handle.hasPointerCapture(e.pointerId)) handle.releasePointerCapture(e.pointerId);
+            handle.classList.remove('yk-resizing');
+            document.body.classList.remove('yk-gap-resizing');
+            var next = currentGapPx(info.host);
+            info.host.style.rowGap = '';
+            info.host.style.columnGap = '';
+            if (commit && next !== startGap) commitGap(next);
+            else syncGapResizer(handle);
+        }
+        handle.addEventListener('pointerup', function (e) { finishGapDrag(e, true); });
+        handle.addEventListener('pointercancel', function (e) { finishGapDrag(e, false); });
+        handle.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); });
+        handle.addEventListener('keydown', function (e) {
+            if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+            e.preventDefault();
+            commitGap(currentGapPx(info.host) + (e.key === 'ArrowDown' ? 4 : -4));
+        });
+        info.host.appendChild(handle);
+        syncGapResizer(handle);
+    }
+    function setupGapResizers() {
+        document.querySelectorAll('.yk-edit-el[data-yk-el-container="1"]').forEach(installGapResizer);
+        document.querySelectorAll('.yk-gap-resizer').forEach(syncGapResizer);
     }
     function setupColumnResizers() {
         document.querySelectorAll('[data-yk-con]').forEach(function (container) {
@@ -2184,6 +2281,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
     }
     function setupCanvasContent(root) {
         setupColumnResizers();
+        setupGapResizers();
         setupPreviewSwipers(root);
         setupAnimations(root);
         setupEmptyHints(root);
@@ -2194,6 +2292,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
     });
     document.addEventListener('blox:structure-updated', function () {
         setupColumnResizers();
+        setupGapResizers();
         setupEmptyHints(document);
     });
     window.addEventListener('resize', function () {

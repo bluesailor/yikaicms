@@ -73,6 +73,14 @@
         return { kind: "section", si: value.si, spans: spans };
     }
 
+    // v1.29 画布间距拖拽：容器 gap 提交载荷（path=元素路径，value=0–160 整数 px）
+    function gapDragPayload(value) {
+        if (!isObject(value) || !isElementPath(value.path)) return null;
+        var px = Number(value.value);
+        if (!Number.isInteger(px) || px < 0 || px > 160) return null;
+        return { path: value.path, value: px };
+    }
+
     function contextPayload(value) {
         if (!isObject(value) || typeof value.kind !== "string") return null;
         var target = isObject(value.target) ? value.target : {};
@@ -205,6 +213,7 @@
         options = options || {};
         this.getFrame = options.getFrame;
         this.onColumnRatio = options.onColumnRatio || noop;
+        this.onGapDrag = typeof options.onGapDrag === "function" ? options.onGapDrag : noop;
         this.onContext = options.onContext || noop;
         this.onDrop = options.onDrop || noop;
         this.onTemplateDrop = options.onTemplateDrop || noop;
@@ -271,6 +280,12 @@
             payload = columnRatioPayload(data.ykColumnRatio);
             if (!payload) return false;
             this.onColumnRatio(payload);
+            return true;
+        }
+        if (data.ykGapDrag !== undefined) {
+            payload = gapDragPayload(data.ykGapDrag);
+            if (!payload) return false;
+            this.onGapDrag(payload);
             return true;
         }
         if (data.ykContext !== undefined) {
