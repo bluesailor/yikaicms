@@ -174,14 +174,18 @@ final class ArticleTemplateDocument
     /**
      * 「复制为自定义模板」的起始布局：标题 + 封面 + 正文，全部走动态字段绑定。
      * 默认不应用（include 为空 = 未应用），需要用户显式配置范围后才生效。
+     * $contentType：'article' 或已注册模型 key（v1.26；注册核对属调用方，非法形态回落 article）。
      */
-    public static function seed(string $language): string
+    public static function seed(string $language, string $contentType = 'article'): string
     {
+        if (preg_match(DetailTemplateResolver::MODEL_KEY_PATTERN, $contentType) !== 1) {
+            $contentType = 'article';
+        }
         return BloxDocumentPipeline::process(json_encode([
             'schema' => 1,
             'settings' => ['detail_template' => [
                 'version' => DetailTemplateResolver::VERSION,
-                'content_type' => 'article',
+                'content_type' => $contentType,
                 'lang' => $language,
                 'include' => [],
             ]],
