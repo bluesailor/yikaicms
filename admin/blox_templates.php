@@ -269,6 +269,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('/admin/blox_editor.php?template=' . $id);
         }
 
+        if ($action === 'create_error404') {
+            // 404 模板（v1.26）：通用文档管线（无类型专属 settings），激活条件走矩阵（any+语言）
+            $name = mb_substr(trim((string) post('name', '')), 0, 150);
+            if ($name === '') {
+                throw new RuntimeException(__('blox_tpl_name_required'));
+            }
+            $seed = [
+                'schema' => 1,
+                'settings' => [],
+                'sections' => [[
+                    'type' => 'section',
+                    'settings' => ['padding' => 'xl', 'max_width' => 'default', 'align_items' => 'center', 'justify_items' => 'center', 'gap' => 'md'],
+                    'columns' => [[
+                        'elements' => [
+                            ['type' => 'heading', 'data' => ['text' => '404', 'level' => 'h1', 'align' => 'center']],
+                            ['type' => 'text', 'data' => ['html' => '<p class="yk-center">' . e(__('error_page_not_found')) . '</p>']],
+                            ['type' => 'button', 'data' => ['text' => __('error_404_home'), 'url' => '/', 'new_tab' => false]],
+                        ],
+                    ]],
+                ]],
+            ];
+            $processed = BloxDocumentPipeline::process(json_encode($seed, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), 'e404');
+            $id = bloxTemplateModel()->createDraft(
+                'error404',
+                $name,
+                $processed['json'],
+                'user',
+                1,
+                BloxTemplateImporter::deriveRequirements($processed['sections']),
+                '',
+                (int) ($_SESSION['admin_id'] ?? 0)
+            );
+            adminLog('blox_template', 'create_error404', '创建 404 模板 #' . $id);
+            redirect('/admin/blox_editor.php?template=' . $id);
+        }
+
         if ($action === 'import' || $action === 'import_confirm') {
             $json = trim((string) post('template_json', ''));
             $file = $_FILES['template_file'] ?? null;
@@ -751,6 +787,7 @@ $typeLabels = [
     'popup' => __('blox_tpl_type_popup'),
     'product-detail' => __('blox_tpl_type_product-detail'),
     'article-detail' => __('blox_tpl_type_article-detail'),
+    'error404' => __('blox_tpl_type_error404'),
 ];
 $assignmentSourceLabels = [
     'default' => __('blox_assignment_source_default'),
@@ -898,7 +935,7 @@ $GLOBALS['pageTitle'] = __('admin_blox_templates');
 $GLOBALS['currentMenu'] = 'blox_templates';
 require_once ROOT_PATH . '/admin/includes/header.php';
 require_once ROOT_PATH . '/admin/includes/module_nav.php';
-$moduleTypeIcons = ['all' => 'layout-grid', 'section' => 'layout-rows', 'page' => 'file', 'header' => 'layout-navbar', 'footer' => 'layout-bottombar', 'popup' => 'app-window', 'product-detail' => 'package', 'article-detail' => 'article'];
+$moduleTypeIcons = ['all' => 'layout-grid', 'section' => 'layout-rows', 'page' => 'file', 'header' => 'layout-navbar', 'footer' => 'layout-bottombar', 'popup' => 'app-window', 'product-detail' => 'package', 'article-detail' => 'article', 'error404' => 'error-404'];
 $moduleTypeItems = [];
 foreach (array_merge(['all'], BloxTemplateModel::TYPES) as $moduleType) {
     $moduleTypeItems[] = [
@@ -1324,6 +1361,26 @@ function confirmAreaPublish(form) {
                        class="h-9 w-56 border border-gray-300 px-3 text-sm">
                 <button type="submit" class="inline-flex h-9 items-center gap-1 bg-fuchsia-600 px-3 text-sm text-white hover:bg-fuchsia-500">
                     <i class="ti ti-plus"></i><?php echo e(__('blox_popup_create')); ?>
+                </button>
+            </form>
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <?php if (in_array($filterType, ['all', 'error404'], true)): ?>
+    <section class="border-y border-gray-200 bg-white" data-testid="blox-error404-create">
+        <div class="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+            <div>
+                <h2 class="font-semibold text-gray-900"><i class="ti ti-error-404 mr-1 text-gray-700"></i><?php echo e(__('blox_error404_templates')); ?></h2>
+                <p class="mt-1 text-xs text-gray-500"><?php echo e(__('blox_error404_templates_hint')); ?></p>
+            </div>
+            <form method="post" class="flex items-center gap-2">
+                <?php echo csrfField(); ?>
+                <input type="hidden" name="action" value="create_error404">
+                <input type="text" name="name" required maxlength="150" placeholder="<?php echo e(__('blox_error404_name_placeholder')); ?>"
+                       class="h-9 w-56 border border-gray-300 px-3 text-sm">
+                <button type="submit" class="inline-flex h-9 items-center gap-1 bg-gray-900 px-3 text-sm text-white hover:bg-gray-700">
+                    <i class="ti ti-plus"></i><?php echo e(__('blox_error404_create')); ?>
                 </button>
             </form>
         </div>
