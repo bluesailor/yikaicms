@@ -260,6 +260,41 @@ function builderPresets(): array
         ],
     ];
 
+    // 查询卡片网格（v1.25）：容器 Loop 的卡片起点，list-dynamic 退役路径上的预设替身
+    // ——Grid 容器挂 _query，单个 div 子节点即卡片（图/题/摘要全部 {{loop.*}} 预绑定）。
+    // 只在站点具备 query_loop 作者端能力时列出：无授权插入后保存会被
+    // BloxQueryLoopPolicy 拒绝，与其半路挫败不如不出现。
+    if (class_exists('BloxFeaturePolicy') && BloxFeaturePolicy::allows('query_loop')) {
+        $presets['sections'][] = [
+            'key' => 'query-cards', 'label' => __('blox_ps_query_cards'), 'icon' => 'repeat',
+            'desc' => __('blox_ps_query_cards_d'),
+            'sections' => [[
+                'id' => 's',
+                'settings' => ['bg_color' => '', 'bg_image' => '', 'padding' => 'lg', 'max_width' => 'default', 'align_items' => 'stretch', 'justify_items' => 'stretch', 'gap' => 'lg'],
+                'columns' => [[
+                    'id' => 'c', 'elements' => [[
+                        'id' => 'e', 'type' => 'container',
+                        'data' => [
+                            'layout' => 'grid',
+                            'grid_cols' => '3',
+                            '_query' => ['source' => 'type:article', 'limit' => 6, 'empty_mode' => 'hidden'],
+                            'children' => [[
+                                'id' => 'e', 'type' => 'div',
+                                'data' => [
+                                    'children' => [
+                                        ['id' => 'e', 'type' => 'image', 'data' => ['src' => '{{loop.cover}}', 'alt' => '{{loop.title}}', 'click_action' => 'link', 'link_url' => '{{loop.url}}', 'link_new_tab' => false]],
+                                        ['id' => 'e', 'type' => 'heading', 'data' => ['text' => '{{loop.title}}', 'level' => 'h3', 'url' => '{{loop.url}}']],
+                                        ['id' => 'e', 'type' => 'text', 'data' => ['html' => '<p>{{loop.summary}}</p>']],
+                                    ],
+                                ],
+                            ]],
+                        ],
+                    ]],
+                ]],
+            ]],
+        ];
+    }
+
     if (function_exists('apply_filters')) {
         $presets = apply_filters('builder_presets', $presets);
     }
