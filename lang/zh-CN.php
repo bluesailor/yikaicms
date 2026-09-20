@@ -2562,6 +2562,8 @@ return [
     'blox_style_copy' => '复制样式',
     'blox_style_paste' => '粘贴样式',
     'blox_style_copied' => '已复制样式（不含文字、链接与绑定）',
+    'blox_style_reset' => '重置样式',
+    'blox_style_reset_done' => '已清除本地样式覆盖（可撤销）',
     'blox_style_pasted' => '已粘贴样式；可撤销',
     'blox_style_paste_empty' => '还没有复制过样式',
     'blox_style_paste_type_mismatch' => '样式来自 :type，只能粘贴到同类元素',

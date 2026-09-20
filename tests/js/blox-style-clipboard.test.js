@@ -118,3 +118,32 @@ test('button hover style travels with the paste; failed command leaves no toast 
     assert.equal(JSON.stringify(target.data), before);
     assert.equal(failing.toasts.includes('pasted'), false);
 });
+
+// v1.29 Reset Style：白名单键全部清除（回默认/继承），非样式键不动，一条历史命令
+test('resetElementStyle clears whitelist keys only and runs one command', () => {
+    const host = editor();
+    const el = { type: 'heading', data: {
+        text: 'Hi', level: 'h3', color: '#f00', align: 'center',
+        visual_size: { d: 'xl' }, animation: 'fade',
+    } };
+    assert.equal(host.canResetElementStyle(el), true);
+    const commands = [];
+    host.runCommand = (name, fn) => { commands.push(name); fn(); return { ok: true }; };
+    assert.equal(host.resetElementStyle(el), true);
+    assert.deepEqual(commands, ['reset-element-style']);
+    // 样式键清除
+    assert.equal('color' in el.data, false);
+    assert.equal('align' in el.data, false);
+    assert.equal('visual_size' in el.data, false);
+    // 内容/动画（不在白名单）保留
+    assert.equal(el.data.text, 'Hi');
+    assert.equal(el.data.level, 'h3');
+    assert.equal(el.data.animation, 'fade');
+});
+
+test('resetElementStyle refuses unsupported element types', () => {
+    const host = editor();
+    assert.equal(host.canResetElementStyle({ type: 'image', data: {} }), false);
+    assert.equal(host.resetElementStyle({ type: 'image', data: {} }), false);
+});
+

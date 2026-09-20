@@ -2663,6 +2663,8 @@ return [
     'blox_style_copy' => 'スタイルをコピー',
     'blox_style_paste' => 'スタイルを貼り付け',
     'blox_style_copied' => 'スタイルをコピーしました（テキスト・リンク・バインドは含みません）',
+    'blox_style_reset' => 'スタイルをリセット',
+    'blox_style_reset_done' => 'ローカルのスタイル上書きを解除しました（取り消し可）',
     'blox_style_pasted' => 'スタイルを貼り付けました。元に戻すこともできます',
     'blox_style_paste_empty' => 'コピーされたスタイルはまだありません',
     'blox_style_paste_type_mismatch' => 'コピーしたスタイルは :type のものです。同じ種類の要素にのみ貼り付けられます',
