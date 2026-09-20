@@ -168,3 +168,19 @@ test('legacy product scope adapts v1 without writing v2', () => {
         assert.equal(conditions.changed(view, conditions.rowsFromScope(view)), false, mode);
     });
 });
+
+test('scopeBaseLang keeps explicit all-languages scope and falls back only when lang is absent', () => {
+    // 外审 P1-3：lang='' 是显式的"全部语言"，truthy 回退会在保存时静默收窄成预览语言
+    assert.equal(conditions.scopeBaseLang({ lang: '' }, 'zh-CN'), '');
+    assert.equal(conditions.scopeBaseLang({ lang: 'ja' }, 'zh-CN'), 'ja');
+    assert.equal(conditions.scopeBaseLang({}, 'zh-CN'), 'zh-CN', '基线没存过 lang 才按编辑器语言补');
+    assert.equal(conditions.scopeBaseLang(null, 'zh-CN'), 'zh-CN');
+    assert.equal(conditions.scopeBaseLang({ lang: 42 }, 'zh-CN'), 'zh-CN', '非字符串视为未存');
+});
+
+test('languageLabel shows the all-languages label for explicit empty lang', () => {
+    assert.equal(conditions.languageLabel([{ lang: '' }], '全部语言', 'zh-CN'), '全部语言');
+    assert.equal(conditions.languageLabel([{ lang: 'en' }], '全部语言', 'zh-CN'), 'en');
+    assert.equal(conditions.languageLabel([null, { lang: '' }], '全部语言', 'zh-CN'), '全部语言', '跳过缺失作用域取第一个显式 lang');
+    assert.equal(conditions.languageLabel([null, {}], '全部语言', 'zh-CN'), 'zh-CN', '无显式 lang 回退编辑器语言');
+});

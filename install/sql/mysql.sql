@@ -296,6 +296,7 @@ CREATE TABLE `yikai_blox_global_classes` (
   `status` varchar(16) NOT NULL DEFAULT 'active',
   `trashed_at` int(11) unsigned NOT NULL DEFAULT 0,
   `modified` int(11) unsigned NOT NULL DEFAULT 0,
+  `revision` int(11) unsigned NOT NULL DEFAULT 0 COMMENT '写入版本号：每次写 +1，乐观并发校验',
   `user_id` int(11) unsigned NOT NULL DEFAULT 0,
   `created_at` int(11) unsigned NOT NULL DEFAULT 0,
   `updated_at` int(11) unsigned NOT NULL DEFAULT 0,

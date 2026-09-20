@@ -116,7 +116,7 @@ final class BloxGlobalQueries
             'created_at' => $now,
             'updated_at' => $now,
         ];
-        db()->insert(DB_PREFIX . 'blox_global_queries', $row);
+        db()->insert('blox_global_queries', $row);
         return $row;
     }
 
@@ -126,7 +126,7 @@ final class BloxGlobalQueries
         $row = self::assertRow($input);
         $body = self::assertBody($input);
         $now = time();
-        db()->update(DB_PREFIX . 'blox_global_queries', [
+        db()->update('blox_global_queries', [
             'query' => json_encode($body, JSON_UNESCAPED_UNICODE),
             'modified' => $now,
             'user_id' => max(0, (int) ($input['user_id'] ?? 0)),
@@ -145,7 +145,7 @@ final class BloxGlobalQueries
             throw new RuntimeException(__('blox_gquery_duplicate_name'));
         }
         $now = time();
-        db()->update(DB_PREFIX . 'blox_global_queries', [
+        db()->update('blox_global_queries', [
             'name' => $name,
             'modified' => $now,
             'updated_at' => $now,
@@ -249,7 +249,7 @@ final class BloxGlobalQueries
             if (!is_string($queryId) || !preg_match(self::ID_PATTERN, $queryId) || (int) $count < 1) {
                 continue;
             }
-            db()->insert(DB_PREFIX . 'blox_query_refs', [
+            db()->insert('blox_query_refs', [
                 'query_id' => $queryId,
                 'doc_key' => $docKey,
                 'ref_count' => (int) $count,

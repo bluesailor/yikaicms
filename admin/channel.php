@@ -285,7 +285,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             [$value, $catId]
         );
         // 裸 SQL 绕过模型事件；导航会出现在每个页面上，必须显式失效缓存
-        do_action('data_changed', DB_PREFIX . 'product_categories', $catId);
+        do_action('data_changed', 'product_categories', $catId);
         success();
     }
 

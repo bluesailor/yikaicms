@@ -44,7 +44,7 @@ final class BloxSearchTemplateRuntime
     {
         try {
             $html = BlockRenderer::render((string) ($row['published_data'] ?? ''));
-            if (trim(strip_tags($html)) === '' && !preg_match('/<(?:img|video|iframe|form)\b/i', $html)) {
+            if (!BlockRenderer::hasMeaningfulOutput($html, ['form'])) {
                 return '';
             }
             return '<div class="yk-blox-search" data-template-id="' . (int) ($row['id'] ?? 0) . '">' . $html . '</div>';

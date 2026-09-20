@@ -164,7 +164,7 @@ final class PageBloxDocument
 
         BloxDocumentIndexes::update('page:' . $pageId, $processed['sections']);
         cacheClear();
-        do_action('data_changed', DB_PREFIX . 'contents', $contentId);
+        do_action('data_changed', 'contents', $contentId);
 
         return [
             'base_revision' => BloxDocumentPipeline::fingerprint($processed['json']),
