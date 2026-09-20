@@ -2102,6 +2102,7 @@ function pageBuilder() {
             var groups = {};
             for (var t of Object.keys(BUILDER_ELEMENTS)) {
                 if (t === "home-banner-item") continue;
+                if (BUILDER_ELEMENTS[t].deprecated) continue; // 退役元素（如 list-dynamic）不再提供新增入口
                 if (t === "home-block" && !HOME_LAYOUT_MODE) continue;
                 // 首页排版允许插入动态区块；其余容器仍由 Blox 管理子元素。
                 if (BUILDER_ELEMENTS[t].container && !(HOME_LAYOUT_MODE && t === "home-block")) continue;

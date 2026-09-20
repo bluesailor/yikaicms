@@ -12,6 +12,13 @@
  *
  * 渲染：拼 {yk:list ...}<子元素模板>{/yk:list} 交 TagEngine 解析（复用其循环上下文栈）。
  * 是动态元素 → view-time 渲染时拉实时数据（见 P1-E）。
+ *
+ * **退役通道（2026-09-20 用户裁决，阶梯见 v3 计划 §7.2.1）**：
+ *   现在：deprecated=true——palette 与容器内插入全部隐藏，替代品是容器 Loop
+ *   （container/div + _query，「查询卡片网格」预设瓦片一键起步）；
+ *   保留：渲染与已有实例的控件编辑（老 JSON / 备份恢复必须永远不炸）；
+ *   1–2 个版本后：无用户反馈且无历史数据命中，再议移除编辑器支持；
+ *   最后：才删本类与兼容代码。**不要在中间阶段顺手删渲染逻辑。**
  */
 
 declare(strict_types=1);
@@ -20,6 +27,7 @@ final class ListDynamicElement extends AbstractElement
 {
     public const EDITOR_PREVIEW_LIMIT = 12;
     public function type(): string { return 'list-dynamic'; }
+    public function deprecated(): bool { return true; }
     public function label(): string { return __('blox_dynamic_list_label'); }
     public function icon(): string { return 'list-details'; }
     public function category(): string { return 'dynamic'; }
