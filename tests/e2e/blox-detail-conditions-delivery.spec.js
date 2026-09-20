@@ -54,20 +54,15 @@ async function closure(page, visitor, { kind, language, name }) {
   expect(Number(contentId)).toBeGreaterThan(0);
   const marker = kind === 'product' ? '.yk-blox-product-detail' : '.yk-blox-article-detail';
   const seedSections = JSON.parse(JSON.parse(run('read', id)).draft_data).sections;
+  // list-dynamic 已冻结（2026-09-20）：palette 无新增入口，两个空态动态列表
+  // （message/hidden）由 fixture 以存量形态写进草稿，再重开编辑器加载
+  run('inject-empty-lists', id, kind, `${kind} ${language}`);
+  await reopen(page, id, kind);
   const editedText = `TB-R2 edited ${kind} ${language}`;
   await addTemporaryHeading(page);
   await page.getByTestId('blox-heading-text').fill(editedText);
   await expect((await frame(page)).getByText(editedText, { exact: true })).toBeVisible();
-  for (const mode of ['message', 'hidden']) {
-    await page.getByTestId('blox-breadcrumb').getByRole('button', { name: '列 1', exact: true }).click();
-    await page.getByTestId('blox-library-open').click();
-    await page.getByTestId('blox-add-element-list-dynamic').press('Enter');
-    await page.locator('[data-control-key="query_source"] select').selectOption(`type:${kind}`);
-    await page.locator('[data-control-key="keyword"] input').fill('TB-R2-ABSENT-934691');
-    await page.locator('[data-control-key="empty"] input').fill(`TB-R2 ${mode} ${kind} ${language}`);
-    await page.locator('[data-control-key="empty_mode"] select').selectOption(mode);
-    await waitPreviewSettled(page);
-  }
+  await waitPreviewSettled(page);
   await expect((await frame(page)).getByText(`TB-R2 message ${kind} ${language}`, { exact: true })).toBeVisible();
   await expect((await frame(page)).getByText(`TB-R2 hidden ${kind} ${language}`, { exact: true })).toHaveCount(0);
 
