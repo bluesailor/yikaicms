@@ -193,3 +193,44 @@
                 }
                 this.pasteClipboard(target.kind, target);
             },
+            /** v1.29 快捷键：对当前选中（区块/顶层元素/子元素）删除，语义与右键 ctxDelete 同构。 */
+            shortcutDeleteSelection() {
+                if (this.selectedSi < 0) return false;
+                if (this.selectedSubPath && this.selectedSubPath.length) {
+                    this.deleteNodeAt(this.selectedSi, this.selectedCi, this.selectedEi, this.selectedSubPath.slice());
+                } else if (this.selectedEi >= 0) {
+                    this.deleteElement(this.selectedSi, this.selectedCi, this.selectedEi);
+                } else {
+                    this.deleteSection(this.selectedSi); // 自带 confirm
+                }
+                this.highlightCanvasSelection();
+                return true;
+            },
+
+            /** v1.29 快捷键：复制当前选中一份到其后（Ctrl+D），语义与右键 ctxDuplicate 同构。 */
+            shortcutDuplicateSelection() {
+                if (this.selectedSi < 0) return false;
+                var si = this.selectedSi, ci = this.selectedCi, ei = this.selectedEi;
+                var self = this;
+                if (this.selectedSubPath && this.selectedSubPath.length) {
+                    var subPath = this.selectedSubPath.slice();
+                    return (this.runCommand("duplicate-child", function () {
+                        var parent = self.subPathParent(si, ci, ei, subPath);
+                        var kids = parent && parent.data ? (parent.data.children || []) : [];
+                        var index = subPath[subPath.length - 1];
+                        if (!kids[index]) return;
+                        kids.splice(index + 1, 0, self.deepCloneNode(kids[index], "e"));
+                        self.selectDescendant(si, ci, ei, subPath.slice(0, -1).concat(index + 1));
+                    }) || {}).ok !== false;
+                }
+                if (ei >= 0) {
+                    return (this.runCommand("duplicate-element", function () {
+                        var els = self.sections[si]?.columns[ci]?.elements;
+                        if (!els || !els[ei]) return;
+                        els.splice(ei + 1, 0, self.deepCloneNode(els[ei], "e"));
+                        self.selectElement(si, ci, ei + 1);
+                    }) || {}).ok !== false;
+                }
+                this.duplicateSection(si);
+                return true;
+            },
