@@ -19,6 +19,7 @@
                                                 <option :value="style.id" x-text="globalStyleLabel(style)"></option>
                                             </template>
                                         </select>
+                                        <p class="mt-1 text-[10px] text-gray-400"><?= e(__('blox_style_preset_vs_class_hint')) ?></p>
                                         <div data-testid="blox-style-binding-status" class="mt-2 text-xs text-gray-600">
                                             <span x-show="!selEl.data._global_style"><?= e(__('blox_style_binding_none')) ?></span>
                                             <span x-show="!!selEl.data._global_style"><?= e(__('blox_style_binding_shared')) ?></span>
