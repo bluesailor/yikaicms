@@ -260,6 +260,32 @@ CREATE UNIQUE INDEX "uk_blox_class_ref_yikai_blox_class_refs" ON "yikai_blox_cla
 CREATE INDEX "idx_blox_class_ref_doc_yikai_blox_class_refs" ON "yikai_blox_class_refs" ("doc_key");
 
 
+DROP TABLE IF EXISTS "yikai_blox_global_queries";
+CREATE TABLE "yikai_blox_global_queries" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "query_id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "query" TEXT NOT NULL,
+  "modified" INTEGER NOT NULL DEFAULT 0,
+  "user_id" INTEGER NOT NULL DEFAULT 0,
+  "created_at" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX "uk_blox_global_query_id_yikai_blox_global_queries" ON "yikai_blox_global_queries" ("query_id");
+
+
+DROP TABLE IF EXISTS "yikai_blox_query_refs";
+CREATE TABLE "yikai_blox_query_refs" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "query_id" TEXT NOT NULL,
+  "doc_key" TEXT NOT NULL,
+  "ref_count" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX "uk_blox_query_ref_yikai_blox_query_refs" ON "yikai_blox_query_refs" ("query_id", "doc_key");
+CREATE INDEX "idx_blox_query_ref_doc_yikai_blox_query_refs" ON "yikai_blox_query_refs" ("doc_key");
+
+
 DROP TABLE IF EXISTS "yikai_blox_remote_template_states";
 CREATE TABLE "yikai_blox_remote_template_states" (
   "template_id" INTEGER NOT NULL,

@@ -13,6 +13,20 @@
                                         </label>
                                         <template x-if="loopQueryEnabled()">
                                             <div class="mt-2 space-y-2" data-testid="blox-loop-settings">
+                                                <?php /* 全局查询引用（v1.25）：选中即 {ref}，一处修改全站生效；切回空值物化为内联可编辑 */ ?>
+                                                <label class="block text-[11px] text-gray-600" x-show="(globalQueries || []).length || loopQueryRefId()">
+                                                    <span class="mb-1 block"><?= e(__('blox_gquery_select')) ?></span>
+                                                    <select :value="loopQueryRefId()" @change="setLoopQueryRef($event.target.value)"
+                                                            data-testid="blox-loop-global-query"
+                                                            class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs bg-white">
+                                                        <option value=""><?= e(__('blox_gquery_inline')) ?></option>
+                                                        <template x-for="gq in (globalQueries || [])" :key="gq.query_id">
+                                                            <option :value="gq.query_id" x-text="gq.name"></option>
+                                                        </template>
+                                                    </select>
+                                                </label>
+                                                <p x-show="loopQueryRefId()" class="text-[10px] text-gray-400"><?= e(__('blox_gquery_ref_hint')) ?></p>
+                                                <div x-show="!loopQueryRefId()" class="space-y-2">
                                                 <label class="block text-[11px] text-gray-600">
                                                     <span class="mb-1 block"><?= e(__('blox_dynamic_source')) ?></span>
                                                     <select :value="loopQueryField('source')" @change="setLoopQueryField('source', $event.target.value)"
@@ -91,6 +105,12 @@
                                                            placeholder="<?= e(__('blox_dynamic_empty_default')) ?>"
                                                            class="w-full border border-gray-200 rounded px-2 py-1.5 text-xs">
                                                 </label>
+                                                <button type="button" @click="saveLoopQueryAsGlobal()" data-testid="blox-loop-save-global"
+                                                        x-show="canManageDesign"
+                                                        class="text-[11px] text-violet-600 hover:underline">
+                                                    <i class="ti ti-device-floppy" aria-hidden="true"></i> <?= e(__('blox_gquery_save_as')) ?>
+                                                </button>
+                                                </div>
                                                 <p class="text-[10px] text-gray-400"><?= e(__('blox_loop_hint')) ?></p>
                                             </div>
                                         </template>

@@ -186,6 +186,8 @@
     // 容器 Loop（v1.25）：container/div 的 _query 配置。结构归一以服务端 BloxLoopQuery 为准，
     // 这里只做输入钳位与键的增删（空值/默认值不落盘，保持文档干净）。
     var loopQuery = {
+        loopText: data.loopText && typeof data.loopText === "object" ? data.loopText : {},
+
         loopQueryEnabled() {
             return !!(this.selEl && this.selEl.data && this.selEl.data._query
                 && typeof this.selEl.data._query === "object");
@@ -208,6 +210,50 @@
             } else {
                 delete this.selEl.data._query;
             }
+        },
+
+        // 全局查询引用（v1.25）：_query = {ref: gq_xxx}。切回内联时把查询体物化拷回，保证可继续编辑。
+        loopQueryRefId() {
+            return this.loopQueryEnabled() && typeof this.selEl.data._query.ref === "string"
+                ? this.selEl.data._query.ref : "";
+        },
+
+        setLoopQueryRef(queryId) {
+            if (!this.selEl || !this.loopQueryEnabled()) return;
+            queryId = String(queryId || "");
+            if (!queryId) {
+                var current = (this.globalQueries || []).find(function (item) { return item.query_id === (this.selEl.data._query.ref || ""); }.bind(this));
+                this.selEl.data._query = current && current.query
+                    ? Object.assign({}, current.query)
+                    : { source: "type:article", limit: 6 };
+                return;
+            }
+            this.selEl.data._query = { ref: queryId };
+        },
+
+        saveLoopQueryAsGlobal() {
+            if (!this.loopQueryEnabled() || this.loopQueryRefId() || this._savingLoopQuery) return;
+            var name = window.prompt(this.loopText && this.loopText.saveAsName || "Name");
+            if (!name || !name.trim()) return;
+            this._savingLoopQuery = true;
+            var body = new URLSearchParams({
+                action: "query_add",
+                name: name.trim(),
+                query: JSON.stringify(this.selEl.data._query),
+                _token: this.csrf,
+            });
+            var self = this;
+            fetch("/admin/blox_query_api.php", { method: "POST", body: body })
+                .then(function (response) { return response.json(); })
+                .then(function (result) {
+                    if (!result || Number(result.code) !== 0 || !result.data || !result.data.query) {
+                        throw new Error((result && result.msg) || "error");
+                    }
+                    self.globalQueries = (self.globalQueries || []).concat([result.data.query]);
+                    self.selEl.data._query = { ref: result.data.query.query_id };
+                })
+                .catch(function (error) { self.toast(String(error && error.message || error)); })
+                .finally(function () { self._savingLoopQuery = false; });
         },
 
         setLoopQueryField(key, value) {

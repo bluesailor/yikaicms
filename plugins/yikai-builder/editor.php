@@ -55,6 +55,9 @@ add_action('blox_editor_scripts', static function (): void {
     }
     $data = [
         'conditionChannels' => $channels,
+        'loopText' => [
+            'saveAsName' => __('blox_gquery_save_prompt'),
+        ],
         'conditionText' => [
             'empty' => __('blox_display_conditions_empty'),
             'hint' => __('blox_display_conditions_hint'),

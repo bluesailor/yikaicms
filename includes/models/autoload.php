@@ -142,6 +142,10 @@ function bloxGlobalClassModel(): BloxGlobalClassModel {
     static $i; return $i ??= new BloxGlobalClassModel();
 }
 
+function bloxGlobalQueryModel(): BloxGlobalQueryModel {
+    static $i; return $i ??= new BloxGlobalQueryModel();
+}
+
 function bloxImportReviewModel(): BloxImportReviewModel {
     static $i; return $i ??= new BloxImportReviewModel();
 }
