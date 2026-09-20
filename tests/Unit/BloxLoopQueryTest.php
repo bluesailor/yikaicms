@@ -77,8 +77,9 @@ final class BloxLoopQueryTest extends TestCase
 
     private function seedNews(): void
     {
-        // channel:N 源按栏目 type 过滤内容行（与 list-dynamic 同语义），种子保持 type 对齐
-        $this->insertRow('channels', ['name' => '新闻', 'slug' => 'news', 'type' => 'article']);
+        // 生产语义：'list' 栏目存放 type='article' 的内容行；channel:/current 源经
+        // channelContentType 映射后按 article 过滤（2026-09-20 修复前直接拿栏目 type 恒空）
+        $this->insertRow('channels', ['name' => '新闻', 'slug' => 'news', 'type' => 'list']);
         $this->insertRow('contents', ['channel_id' => 1, 'title' => 'First & Co', 'publish_time' => 200]);
         $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Second', 'publish_time' => 100]);
     }

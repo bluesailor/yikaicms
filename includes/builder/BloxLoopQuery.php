@@ -213,7 +213,7 @@ final class BloxLoopQuery
             if (!is_array($channel) || empty($channel['status'])) {
                 return null;
             }
-            $type = strtolower(trim((string) ($channel['type'] ?? '')));
+            $type = self::channelContentType((string) ($channel['type'] ?? ''));
             $attrs['type'] = preg_match('/^[a-z][a-z0-9_-]{0,31}$/', $type) ? $type : 'article';
             $attrs['cat'] = (string) $channelId;
         } elseif (str_starts_with($source, 'type:')) {
@@ -245,6 +245,18 @@ final class BloxLoopQuery
             $attrs['page_param'] = $paginationParam;
         }
         return $attrs;
+    }
+
+    /**
+     * 栏目 type → contents.type 映射：'list' 栏目存放的内容行 type 是 'article'
+     * （2026-09-20 开发库实测：所有 list 栏目下 60 行全部 type=article），直接拿栏目
+     * type 过滤会恒空——这是 channel:/current 源共用的唯一映射点。其余栏目类型
+     * （case/自定义模型）与内容 type 同名；product 不走 contents 表。
+     */
+    public static function channelContentType(string $channelType): string
+    {
+        $channelType = strtolower(trim($channelType));
+        return $channelType === 'list' || $channelType === '' ? 'article' : $channelType;
     }
 
     /** 每个循环容器独立、稳定的分页 GET 参数（与 list-dynamic 同派生规则，避免同页串页）。 */
