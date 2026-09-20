@@ -355,6 +355,38 @@ if ($hasPublishedContentListBlox && $contentListPageChannel) {
     HtmlCache::end();
     exit;
 }
+// v1.26 archive 模板：本栏目没有专属 Blox 文档时，按条件套用共享的栏目列表模板
+// （专属文档更具体、永远优先）。上下文与专属文档分支同一套——容器 Loop 的
+// current 源继承当前栏目/搜索词/主分页，目录元素照常取数。空输出回落原生列表。
+if (!$hasPublishedContentListBlox && $contentListPageChannel) {
+    $archiveTemplateRow = BloxArchiveTemplateRuntime::resolve($channel);
+    if ($archiveTemplateRow !== null) {
+        ContentCatalogElement::setRuntimeContext([
+            'channel' => $channel,
+            'rootChannel' => $contentListPageChannel,
+            'categories' => getChannels((int) $contentListPageChannel['id'], false),
+            'contents' => $contents ?? [],
+            'keyword' => $keyword,
+            'page' => $page,
+            'perPage' => $perPage,
+            'total' => (int) ($total ?? 0),
+        ]);
+        BloxLoopQuery::setCurrentContext([
+            'channel' => $channel,
+            'keyword' => $keyword,
+            'page_param' => 'page',
+        ]);
+        $archiveTemplateBody = BloxArchiveTemplateRuntime::renderBody($archiveTemplateRow);
+        BloxLoopQuery::setCurrentContext(null);
+        ContentCatalogElement::setRuntimeContext(null);
+        if ($archiveTemplateBody !== '') {
+            echo $archiveTemplateBody;
+            require_once theme_path('layouts/footer.php');
+            HtmlCache::end();
+            exit;
+        }
+    }
+}
 ?>
 
 <?php
