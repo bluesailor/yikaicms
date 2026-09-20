@@ -252,7 +252,8 @@ final class ListDynamicElement extends AbstractElement
     }
 
     /** @return array<string,string> */
-    private static function sourceOptions(): array
+    /** 公开：容器 Loop 面板（v1.25，yikai-builder）复用同一来源清单，保证两处循环同一语义。 */
+    public static function sourceOptions(): array
     {
         $options = [
             'type:article' => __('blox_dynamic_source_article'),

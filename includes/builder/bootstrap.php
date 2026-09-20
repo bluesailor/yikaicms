@@ -30,6 +30,7 @@ require_once __DIR__ . '/DetailTemplateProvider.php';   // 候选模板 + 内容
 require_once __DIR__ . '/DetailScopeSummary.php';       // 作用域只读摘要（后台展示用，不参与判定）
 require_once __DIR__ . '/ArticleTemplateDocument.php';  // 文章详情模板渲染/起始布局
 require_once __DIR__ . '/BloxQueryLoopPolicy.php';
+require_once __DIR__ . '/BloxLoopQuery.php';   // 容器 Loop 查询（v1.25）：_query 归一/取数复用/分页参数
 require_once __DIR__ . '/BloxElementPolicy.php';
 require_once __DIR__ . '/BloxDisplayConditions.php';
 require_once __DIR__ . '/BloxDesignSystem.php';

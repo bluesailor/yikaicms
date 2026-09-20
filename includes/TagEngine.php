@@ -226,19 +226,8 @@ final class TagEngine
                     $limit
                 );
             }
-        } elseif ($isProduct) {
-            [, , $page] = self::listPageState($query);
-            $effectiveOffset = $query['offset'] + (($page - 1) * $limit);
-            $items = $query['valid']
-                ? getProducts($query['source_id'], $limit, $effectiveOffset, $where)
-                : [];
         } else {
-            // article / case / 自定义模型 等内容类型统一走 contents（按 type 聚合，如 {yk:list type=team}）
-            [, , $page] = self::listPageState($query);
-            $effectiveOffset = $query['offset'] + (($page - 1) * $limit);
-            $items = $query['valid']
-                ? getContents($query['source_id'], $limit, $effectiveOffset, $where)
-                : [];
+            $items = self::fetchListRows($query);
         }
 
         if ($items === []) {
@@ -305,6 +294,35 @@ final class TagEngine
 
         return '<nav class="yk-query-pagination mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="'
             . e(__('blox_dynamic_pagination_label')) . '">' . implode('', $items) . '</nav>';
+    }
+
+    /**
+     * 供容器 Loop（v1.25）复用的取数入口：与 {yk:list} 完全同一查询契约与分页语义，
+     * 返回原始行（不含 _type/_index 虚拟键，由调用方按需注入）。
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public static function listItems(array $attrs): array
+    {
+        return self::fetchListRows(self::listQueryContext($attrs));
+    }
+
+    /**
+     * {yk:list} 的常规取数分支（id=/related= 之外）：分页态 → 有效偏移 → 参数化查询。
+     * @param array{type:string,is_product:bool,source_id:int,valid:bool,limit:int,offset:int,page_param:string,filters:array<string,mixed>} $query
+     * @return array<int,array<string,mixed>>
+     */
+    private static function fetchListRows(array $query): array
+    {
+        [, , $page] = self::listPageState($query);
+        $effectiveOffset = $query['offset'] + (($page - 1) * $query['limit']);
+        if (!$query['valid']) {
+            return [];
+        }
+        return $query['is_product']
+            ? getProducts($query['source_id'], $query['limit'], $effectiveOffset, $query['filters'])
+            // article / case / 自定义模型 等内容类型统一走 contents（按 type 聚合，如 {yk:list type=team}）
+            : getContents($query['source_id'], $query['limit'], $effectiveOffset, $query['filters']);
     }
 
     /**
