@@ -175,11 +175,15 @@ final class BloxDynamicTagsTest extends TestCase
         $el = ['id' => 'test-dd', 'type' => 'heading', 'data' => ['text' => '{{article.title}}']];
         self::assertStringContainsString('data-yk-dynamic-tags="1"', BlockRenderer::renderElementNode($el, 0, true, [0, 0, 0]));
 
-        // 插入面板候选：上下文标签进文本槽位；链接槽位无双花括号候选；与单花括号候选不撞键
+        // 插入面板候选（外审 P2-3：按槽位与运行时能力对齐）：文本槽列全 loop 文本/虚拟字段，
+        // 链接槽列 loop.url；与单花括号候选不撞键
         $options = BloxDynamicTags::tagOptions();
         self::assertArrayHasKey('{{article.title}}', $options);
-        self::assertArrayHasKey('{{loop.index}}', $options);
-        self::assertSame([], BloxDynamicTags::tagOptions(true));
+        foreach (['title', 'subtitle', 'summary', 'model', 'price', 'date', 'index'] as $loopField) {
+            self::assertArrayHasKey('{{loop.' . $loopField . '}}', $options, "文本槽缺 loop.$loopField");
+        }
+        self::assertArrayNotHasKey('{{loop.cover}}', $options, '图片路径不进文本槽（图片控件尚无插入入口）');
+        self::assertSame(['{{loop.url}}'], array_keys(BloxDynamicTags::tagOptions(true)));
         self::assertSame([], array_intersect_key($options, DynamicSiteData::tagOptions()));
     }
 

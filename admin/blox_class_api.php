@@ -56,7 +56,11 @@ try {
         'settings' => $settings,
         'user_id' => (int) ($_SESSION['admin_id'] ?? 0),
     ];
-    // 乐观并发：调用方带 modified 才校验（class_add 无此语义）
+    // 乐观并发：调用方带 revision（外审 P1-4，每写 +1）才校验（class_add 无此语义）；
+    // modified 时间戳校验仅为升级窗口内的旧页面保留（秒级粒度同秒分不出先后）
+    if (post('revision', null) !== null && post('revision', '') !== '') {
+        $input['revision'] = (int) post('revision', '0');
+    }
     if (post('modified', null) !== null && post('modified', '') !== '') {
         $input['modified'] = (int) post('modified', '0');
     }
@@ -71,6 +75,7 @@ try {
             : (json_decode((string) ($row['settings'] ?? ''), true) ?: []),
         'status' => (string) ($row['status'] ?? ''),
         'modified' => (int) ($row['modified'] ?? 0),
+        'revision' => (int) ($row['revision'] ?? 0),
     ]]);
 } catch (RuntimeException $e) {
     if ($e->getMessage() === __('blox_design_conflict')) {

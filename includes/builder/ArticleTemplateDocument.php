@@ -160,7 +160,7 @@ final class ArticleTemplateDocument
                 return BlockRenderer::render((string) ($template['published_data'] ?? ''));
             });
             // 空输出守门：只有确实没有可渲染内容时才回退，避免"看起来成功其实空白"
-            if (trim(strip_tags($html)) === '' && !preg_match('/<(?:img|video|iframe)\b/i', $html)) {
+            if (!BlockRenderer::hasMeaningfulOutput($html)) {
                 return '';
             }
 

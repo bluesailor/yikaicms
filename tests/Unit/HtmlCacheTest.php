@@ -171,6 +171,37 @@ final class HtmlCacheTest extends TestCase
         self::assertSame($first, $method->invoke(null));
     }
 
+    /** 外审 P1-2：键含日期桶，天粒度 date 条件跨午夜后必然拿到新渲染。 */
+    public function testCacheKeyRotatesAcrossMidnight(): void
+    {
+        $method = new ReflectionMethod(HtmlCache::class, 'buildKey');
+        $method->setAccessible(true);
+        $_SERVER['REQUEST_URI'] = '/products.html?page=2';
+        $_GET = ['page' => '2'];
+        try {
+            HtmlCache::setDateBucketForTests('2026-09-20');
+            $before = $method->invoke(null);
+            self::assertSame($before, $method->invoke(null), '同一天内键必须稳定');
+            HtmlCache::setDateBucketForTests('2026-09-21');
+            self::assertNotSame($before, $method->invoke(null), '跨天后键必须翻转');
+        } finally {
+            HtmlCache::setDateBucketForTests(null);
+        }
+    }
+
+    /** 外审 P1-1：canonicalRequest 与缓存键同源——白名单内规范化、白名单外 query=null。 */
+    public function testCanonicalRequestMatchesCacheKeyNormalization(): void
+    {
+        $_SERVER['REQUEST_URI'] = '/products.html?sort=newest&page=002';
+        $_GET = ['sort' => 'newest', 'page' => '002'];
+        $canonical = HtmlCache::canonicalRequest();
+        self::assertSame('/products.html', $canonical['path']);
+        self::assertSame(['page' => '2', 'sort' => 'newest'], $canonical['query']);
+
+        $_GET = ['slug' => 'abc', 'utm_source' => 'x'];
+        self::assertNull(HtmlCache::canonicalRequest()['query'], '白名单外参数必须返回 null（该请求不缓存）');
+    }
+
     public function testUnknownQueryKeyIsNotCacheable(): void
     {
         $_GET = ['utm_source' => 'x'];

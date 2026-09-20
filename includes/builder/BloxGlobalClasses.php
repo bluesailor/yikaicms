@@ -86,6 +86,7 @@ final class BloxGlobalClasses
                 'category' => (string) ($row['category'] ?? ''),
                 'settings' => self::normalizeSettings(is_array($settings) ? $settings : []),
                 'modified' => (int) ($row['modified'] ?? 0),
+                'revision' => (int) ($row['revision'] ?? 0),
             ];
         }
         return self::$catalog = $catalog;
@@ -227,7 +228,7 @@ final class BloxGlobalClasses
             @unlink($path);
         }
         if (function_exists('do_action')) {
-            do_action('data_changed', DB_PREFIX . 'blox_global_classes', 0);
+            do_action('data_changed', 'blox_global_classes', 0);
         }
     }
 
@@ -346,12 +347,33 @@ final class BloxGlobalClasses
             'settings' => json_encode(self::normalizeSettings(is_array($input['settings'] ?? null) ? $input['settings'] : []), JSON_UNESCAPED_UNICODE),
             'status' => BloxGlobalClassModel::STATUS_ACTIVE,
             'modified' => $now,
+            'revision' => 0,
             'user_id' => max(0, (int) ($input['user_id'] ?? 0)),
             'created_at' => $now,
             'updated_at' => $now,
         ];
-        db()->insert(DB_PREFIX . 'blox_global_classes', $row);
+        db()->insert('blox_global_classes', $row);
         return $row;
+    }
+
+    /**
+     * 乐观并发写（外审 P1-4）：UPDATE 条件带读取时的 revision，命中 0 行即有并发写
+     * 抢先（读-改-写窗口被撕掉）。秒级 modified 时间戳在同一秒内分不出先后，
+     * revision 每写 +1 才能让"同秒二次写旧版本"必然冲突。
+     *
+     * @param array<string,mixed> $row assertRow 刚读出的行
+     * @param array<string,mixed> $data 要写的列（不含 revision，这里统一 +1）
+     * @return array<string,mixed>
+     */
+    private static function guardedUpdate(array $row, array $data): array
+    {
+        $expected = (int) ($row['revision'] ?? 0);
+        $data['revision'] = $expected + 1;
+        $affected = db()->update('blox_global_classes', $data, 'class_id = ? AND revision = ?', [(string) $row['class_id'], $expected]);
+        if ($affected === 0) {
+            throw new RuntimeException(__('blox_design_conflict'));
+        }
+        return bloxGlobalClassModel()->findByClassId((string) $row['class_id']) ?? $row;
     }
 
     /** @param array<string,mixed> $input */
@@ -360,13 +382,12 @@ final class BloxGlobalClasses
         $row = self::assertRow($input);
         $settings = self::normalizeSettings(is_array($input['settings'] ?? null) ? $input['settings'] : []);
         $now = time();
-        db()->update(DB_PREFIX . 'blox_global_classes', [
+        return self::guardedUpdate($row, [
             'settings' => json_encode($settings, JSON_UNESCAPED_UNICODE),
             'modified' => $now,
             'user_id' => max(0, (int) ($input['user_id'] ?? 0)),
             'updated_at' => $now,
-        ], 'class_id = ?', [$row['class_id']]);
-        return bloxGlobalClassModel()->findByClassId((string) $row['class_id']) ?? $row;
+        ]);
     }
 
     /** @param array<string,mixed> $input */
@@ -379,12 +400,11 @@ final class BloxGlobalClasses
             throw new RuntimeException(__('blox_class_duplicate_name'));
         }
         $now = time();
-        db()->update(DB_PREFIX . 'blox_global_classes', [
+        return self::guardedUpdate($row, [
             'name' => $name,
             'modified' => $now,
             'updated_at' => $now,
-        ], 'class_id = ?', [$row['class_id']]);
-        return bloxGlobalClassModel()->findByClassId((string) $row['class_id']) ?? $row;
+        ]);
     }
 
     /** @param array<string,mixed> $input */
@@ -392,13 +412,12 @@ final class BloxGlobalClasses
     {
         $row = self::assertRow($input, false);
         $now = time();
-        db()->update(DB_PREFIX . 'blox_global_classes', [
+        return self::guardedUpdate($row, [
             'status' => $status,
             'trashed_at' => $status === BloxGlobalClassModel::STATUS_TRASHED ? $now : 0,
             'modified' => $now,
             'updated_at' => $now,
-        ], 'class_id = ?', [$row['class_id']]);
-        return bloxGlobalClassModel()->findByClassId((string) $row['class_id']) ?? $row;
+        ]);
     }
 
     /** 恢复：同名活跃类已存在时自动加 -2/-3… 后缀（回收站语义）。 */
@@ -417,14 +436,13 @@ final class BloxGlobalClasses
             }
         }
         $now = time();
-        db()->update(DB_PREFIX . 'blox_global_classes', [
+        return self::guardedUpdate($row, [
             'name' => $candidate,
             'status' => BloxGlobalClassModel::STATUS_ACTIVE,
             'trashed_at' => 0,
             'modified' => $now,
             'updated_at' => $now,
-        ], 'class_id = ?', [$row['class_id']]);
-        return bloxGlobalClassModel()->findByClassId((string) $row['class_id']) ?? $row;
+        ]);
     }
 
     /** @param array<string,mixed> $input */
@@ -438,7 +456,13 @@ final class BloxGlobalClasses
         if ($row === null) {
             throw new RuntimeException(__('blox_class_not_found'));
         }
-        // 乐观并发：调用方带上读取时的 modified，落库时间戳不一致即冲突（Bricks 同款语义）
+        // 乐观并发：调用方带上读取时的 revision（每写 +1），不一致即冲突（外审 P1-4）。
+        // 秒级 modified 时间戳同秒分不出先后，仅作旧客户端的兼容校验保留；
+        // 真正的写门在 guardedUpdate 的 CAS（UPDATE ... WHERE revision = 读取值）。
+        if ($checkRevision && array_key_exists('revision', $input)
+            && (int) $input['revision'] !== (int) ($row['revision'] ?? 0)) {
+            throw new RuntimeException(__('blox_design_conflict'));
+        }
         if ($checkRevision && array_key_exists('modified', $input)
             && (int) $input['modified'] !== (int) ($row['modified'] ?? 0)) {
             throw new RuntimeException(__('blox_design_conflict'));
@@ -534,7 +558,7 @@ final class BloxGlobalClasses
             if (!is_string($classId) || !preg_match(self::ID_PATTERN, $classId) || (int) $count < 1) {
                 continue;
             }
-            db()->insert(DB_PREFIX . 'blox_class_refs', [
+            db()->insert('blox_class_refs', [
                 'class_id' => $classId,
                 'doc_key' => $docKey,
                 'ref_count' => (int) $count,
