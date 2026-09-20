@@ -423,6 +423,75 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringNotContainsString('md:col-span-6', $out);
     }
 
+    // ---- 0b 列跨度补 m/w 档：手机默认整行堆叠不变，显式 m 值启用 max-md: 栅格 ----
+    public function testMobileSpanEnablesMobileGridWithFullRowFallback(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [],
+            'columns'  => [
+                ['span' => ['d' => 4, 'm' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                ['span' => ['d' => 8], 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+            ],
+        ]]));
+
+        // 区块启用手机栅格；声明 m 的列取 m 值，未声明的列 col-span-12 兜底整行
+        $this->assertStringContainsString('max-md:grid-cols-12', $out);
+        $this->assertStringContainsString('class="max-md:col-span-6 md:col-span-4"', $out);
+        $this->assertStringContainsString('class="max-md:col-span-12 md:col-span-8"', $out);
+    }
+
+    public function testWithoutMobileSpanNoMobileGridClassesEmitted(): void
+    {
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [],
+            'columns'  => [
+                ['span' => ['d' => 4, 't' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                ['span' => ['d' => 8, 't' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+            ],
+        ]]));
+
+        $this->assertStringNotContainsString('max-md:', $out);
+    }
+
+    public function testWideSpanEmitsOnlyWhenDifferentFromDesktop(): void
+    {
+        \BloxResponsiveValue::overrideWideEnabled(true);
+        try {
+            $out = BlockRenderer::render(json_encode([[
+                'settings' => [],
+                'columns'  => [
+                    ['span' => ['d' => 8, 'w' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                    ['span' => ['d' => 4, 'w' => 4], 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+                ],
+            ]]));
+        } finally {
+            \BloxResponsiveValue::overrideWideEnabled(null);
+        }
+
+        // w 差异才输出；w === d 时继承桌面（lg: 级联到宽屏），不落多余类
+        $this->assertStringContainsString('class="md:col-span-8 wide:col-span-6"', $out);
+        $this->assertStringContainsString('class="md:col-span-4"', $out);
+    }
+
+    public function testWideSpanSuppressedWhenWideTierDisabled(): void
+    {
+        \BloxResponsiveValue::overrideWideEnabled(false);
+        try {
+            $out = BlockRenderer::render(json_encode([[
+                'settings' => [],
+                'columns'  => [
+                    ['span' => ['d' => 8, 'w' => 6], 'elements' => [['type' => 'heading', 'data' => ['text' => 'A']]]],
+                    ['span' => ['d' => 4], 'elements' => [['type' => 'heading', 'data' => ['text' => 'B']]]],
+                ],
+            ]]));
+        } finally {
+            \BloxResponsiveValue::overrideWideEnabled(null);
+        }
+
+        $this->assertStringNotContainsString('wide:col-span', $out);
+        $this->assertStringContainsString('class="md:col-span-8"', $out);
+    }
+
     // ---- r5 断点可见性：hide_on 前台输出隐藏类，编辑态输出标记 ----
     public function testHideOnEmitsBreakpointClassesOnFrontend(): void
     {
@@ -941,17 +1010,62 @@ final class BuilderRenderTest extends TestCase
         );
     }
 
+    // ---- 0b Grid：容器/Div 网格布局与子项跨列 ----
+    public function testDivGridLayoutEmitsMobileFirstColumnTemplate(): void
+    {
+        // 标量列数：手机默认单列，md: 起生效并级联（t 继承 d 不重复出 lg:）
+        $scalar = $this->inner($this->oneEl(['type' => 'div', 'data' => ['display' => 'grid', 'grid_cols' => '3']]));
+        $this->assertStringContainsString('grid grid-cols-1 md:grid-cols-3', $scalar);
+        $this->assertStringNotContainsString('lg:grid-cols', $scalar);
+
+        // 显式 m 覆盖手机单列；t≠d 时三档全出；dense 回填
+        $resp = $this->inner($this->oneEl(['type' => 'div', 'data' => [
+            'display' => 'grid', 'grid_flow' => 'dense', 'gap' => 'md',
+            'grid_cols' => ['d' => '4', 't' => '2', 'm' => '2'],
+        ]]));
+        $this->assertStringContainsString('grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 grid-flow-dense', $resp);
+        $this->assertStringContainsString('gap-4', $resp);
+    }
+
+    public function testContainerGridLayoutKeepsFlexPathUntouched(): void
+    {
+        $grid = $this->inner($this->oneEl(['type' => 'container', 'data' => [
+            'layout' => 'grid', 'grid_cols' => ['d' => '4'],
+        ]]));
+        $this->assertStringContainsString('grid grid-cols-1 md:grid-cols-4', $grid);
+        $this->assertStringNotContainsString('flex-col', $grid);
+
+        // 默认（无 layout 键）仍是 flex，输出与历史一致
+        $flex = $this->inner($this->oneEl(['type' => 'container', 'data' => []]));
+        $this->assertStringContainsString('flex flex-col', $flex);
+        $this->assertStringNotContainsString('grid-cols', $flex);
+    }
+
+    public function testGridItemSpanClassesFollowTierRules(): void
+    {
+        // 标量跨列：md: 起生效；显式 m 值才输出基类
+        $scalar = $this->inner($this->oneEl(['type' => 'div', 'data' => ['grid_span' => '2']]));
+        $this->assertStringContainsString('md:col-span-2', $scalar);
+        $this->assertStringNotContainsString('lg:col-span', $scalar);
+
+        $resp = $this->inner($this->oneEl(['type' => 'div', 'data' => [
+            'grid_span' => ['d' => '2', 'm' => 'full'],
+        ]]));
+        $this->assertStringContainsString('col-span-full md:col-span-2', $resp);
+    }
+
     public function testContainerDepthCapStopsRunawayNesting(): void
     {
-        // 编辑器只允许一层；渲染器深度上限 3 兜底坏数据。构造 5 层自嵌套，
-        // 第 4 层（depth=3）的 children 不再展开——只数 yk-container 出现次数。
+        // 0b：深度约束统一为 BloxDocumentValidator::MAX_ELEMENT_DEPTH（保存时显式拒绝），
+        // 渲染器只兜底坏数据。构造上限+2 层自嵌套，超限层的 children 不再展开。
+        $max = \BloxDocumentValidator::MAX_ELEMENT_DEPTH;
         $node = ['type' => 'heading', 'data' => ['level' => 'h2', 'text' => 'deep']];
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < $max + 1; $i++) {
             $node = ['type' => 'container', 'data' => ['children' => [$node]]];
         }
         $out = $this->inner($this->oneEl($node));
-        $this->assertSame(4, substr_count($out, 'yk-container')); // depth 0..3 共 4 层
-        $this->assertStringNotContainsString('deep', $out);       // 第 5 层内容被截断
+        $this->assertSame($max, substr_count($out, 'yk-container')); // 第 1..MAX 层容器渲染
+        $this->assertStringNotContainsString('deep', $out);          // 超限层内容被兜底截断
     }
 
     public function testEditModeAddsInlineEditingMetadata(): void

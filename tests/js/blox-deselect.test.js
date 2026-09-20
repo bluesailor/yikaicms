@@ -13,11 +13,16 @@ const keyboardPrefix = editor.split('window.addEventListener("keydown", function
 
 function selectedState() {
     return {
-        selectedSi: 1, selectedCi: 0, selectedEi: 0, selectedSubEi: 1,
+        selectedSi: 1, selectedCi: 0, selectedEi: 0, selectedSubEi: 1, selectedSubPath: [1],
         selectedSectionField: 'title', selectedHomeField: 'text', selectedHomeColumn: 'main',
         selLayer: 'el', _insertAt: { index: 2 }, libOpen: true, mobilePanel: 'settings',
         sections: [{ id: 'one' }, { id: 'two' }], dirty: false,
         get sel() { return this.sections[this.selectedSi] || null; },
+        // 0b：子级选区路径写入口（真实实现见 blox_editor.php setSubSelection）
+        setSubSelection(subPath) {
+            this.selectedSubPath = Array.isArray(subPath) ? subPath.slice() : [];
+            this.selectedSubEi = this.selectedSubPath.length ? this.selectedSubPath[0] : -1;
+        },
         multiSelClear() { this.multiReset = true; },
         multiSelReset() { this.multiReset = true; },
         multiSelActive() { return false; },

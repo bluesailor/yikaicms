@@ -293,7 +293,9 @@ final class BloxEditorPreviewContractTest extends TestCase
     /** r11：薄命令层——结构命令入口委托 runCommand，失败回滚复用历史快照协议 */
     public function testCommandRunnerWiring(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        // 0b：paste 命令随剪贴板方法拆入 partial，与主文件视作同一逻辑源
+        $editor = $this->source('admin/blox_editor.php') . "\n"
+            . $this->source('admin/blox_editor/partials/clipboard-methods.php');
         $runner = $this->source('assets/js/blox-command-runner.js');
 
         $this->assertStringContainsString('<script src="/assets/js/blox-command-runner.js?v=', $editor);
@@ -750,7 +752,7 @@ final class BloxEditorPreviewContractTest extends TestCase
             'selectBannerItem(bi)',
             'replaceBannerImage(bi)',
             'bannerPreviewItems()',
-            'showBannerSlide(k)',
+            'showBannerSlide(this.selectedSubPath[0])',
             'message.ykBannerSlide = this.selectedSubEi',
             'message.ykBannerPath = this.selectedSi + "." + this.selectedCi + "." + this.selectedEi',
             'data-testid="blox-banner-overall-settings"',
@@ -821,7 +823,8 @@ final class BloxEditorPreviewContractTest extends TestCase
             $this->assertStringContainsString($binding, $editor, "context menu binding {$binding} missing");
         }
         $this->assertStringContainsString('selectCtxTarget(d.kind, target, false);', $editor);
-        $this->assertStringContainsString('selectChild(t.si, t.ci, t.ei, t.cei, notifyCanvas);', $editor);
+        // 0b：child 目标统一走 selectDescendant（单层 [cei]、深层 subPath/path 同一入口）
+        $this->assertStringContainsString('this.selectDescendant(t.si, t.ci, t.ei, subPath, notifyCanvas);', $editor);
         $this->assertStringContainsString('selectElement(t.si, t.ci, t.ei, notifyCanvas);', $editor);
         $this->assertStringContainsString('postToEditor({ ykContext:', $canvas);
         $this->assertStringContainsString('var editorOrigin = window.parent.location.origin;', $canvas);
@@ -845,7 +848,9 @@ final class BloxEditorPreviewContractTest extends TestCase
     }
     public function testCanvasDropUsesVersionedBeforeAfterTargetProtocol(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        // 元素库拖拽方法已拆入 partial（0a 编辑器拆模块），与主文件视作同一逻辑源
+        $editor = $this->source('admin/blox_editor.php') . "\n"
+            . $this->source('admin/blox_editor/partials/element-library-methods.php');
         $canvas = $this->source('admin/page_edit_advance.php');
         $preview = $this->source('includes/builder/BloxCanvasPreview.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
@@ -893,7 +898,8 @@ final class BloxEditorPreviewContractTest extends TestCase
             $this->assertStringNotContainsString($token, $preview, "canvas drag must not auto-scroll: {$token}");
         }
         $bridge = $this->source('assets/js/blox-canvas-bridge.js');
-        foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'onTemplateDrop', 'templateDropPayload', 'isTopLevelElementPath(value.target.path)'] as $token) {
+        // 0b：容器落点从「仅顶层」放宽为「任意深度、最深 9 段」（isContainerHostPath）
+        foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'onTemplateDrop', 'templateDropPayload', 'isContainerHostPath(value.target.path)'] as $token) {
             $this->assertStringContainsString($token, $bridge, "canvas bridge drop contract {$token} missing");
         }
     }
@@ -1041,7 +1047,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
     public function testStructureTreeDropUsesCanvasInsertionIntentProtocol(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        $editor = $this->source('admin/blox_editor.php') . "\n"
+            . $this->source('admin/blox_editor/partials/element-library-methods.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
         foreach ([
@@ -1649,7 +1656,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
     public function testElementLibraryFavoritesAndRecentsStayLocalAndSearchable(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        $editor = $this->source('admin/blox_editor.php') . "\n"
+            . $this->source('admin/blox_editor/partials/element-library-methods.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
         foreach ([
@@ -1853,7 +1861,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
     public function testPaletteTapInsertionRequiresAnExplicitTarget(): void
     {
-        $editor = $this->source('admin/blox_editor.php');
+        $editor = $this->source('admin/blox_editor.php') . "\n"
+            . $this->source('admin/blox_editor/partials/element-library-methods.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
         $overlays = $this->source('admin/blox_editor/partials/overlays.php');
 

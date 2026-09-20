@@ -3248,8 +3248,19 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             isChildSelected(si, ci, ei, k) {
+                // 精确命中直接子级；更深的后代选中时由 isDescendantSelected 负责高亮
                 return this.selectedSi === si && this.selectedCi === ci && this.selectedEi === ei
-                    && this.selectedSubEi === k;
+                    && this.selectedSubPath.length === 1 && this.selectedSubPath[0] === k;
+            },
+
+            /** 0b：结构树深层行的精确选中判定。 */
+            isDescendantSelected(si, ci, ei, subPath) {
+                if (this.selectedSi !== si || this.selectedCi !== ci || this.selectedEi !== ei) return false;
+                if (this.selectedSubPath.length !== subPath.length) return false;
+                for (var i = 0; i < subPath.length; i++) {
+                    if (this.selectedSubPath[i] !== subPath[i]) return false;
+                }
+                return true;
             },
 
             isColumnSelected(si, ci) {
@@ -3305,8 +3316,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return this.selectedCol() || this._emptyCol;
             },
 
-            // 响应式跨度 {d:桌面, t:平板}：存储标量优先——仅当平板≠桌面才升级为对象，
-            // 存量文档保持标量形态不被改写（黄金对拍同款纪律）。手机始终单列，无 m 轴。
+            // 响应式跨度 {d:桌面, t:平板, m:手机, w:宽屏}：存储标量优先——只有差异档才升级为对象，
+            // 存量文档保持标量形态不被改写（黄金对拍同款纪律）。
+            // m 缺省=整行堆叠（不是继承桌面）；w 缺省继承桌面，等值不落盘。
             rawSpanD(col) {
                 if (!col || col.span == null) return 0;
                 if (typeof col.span === "object") return parseInt(col.span.d || 0, 10) || 0;
@@ -3319,10 +3331,36 @@ $canManageBloxDesign = hasPermission('blox_global');
                 return t >= 1 && t <= 12 ? t : null;
             },
 
-            writeSpan(col, d, t) {
+            rawSpanM(col) {
+                if (!col || col.span == null || typeof col.span !== "object") return null;
+                var m = parseInt(col.span.m || 0, 10);
+                return m >= 1 && m <= 12 ? m : null;
+            },
+
+            rawSpanW(col) {
+                if (!col || col.span == null || typeof col.span !== "object") return null;
+                var w = parseInt(col.span.w || 0, 10);
+                return w >= 1 && w <= 12 ? w : null;
+            },
+
+            // 第 4、5 参可省略（undefined = 保留列上已有的 m/w 档），传 null 表示清除该档。
+            writeSpan(col, d, t, m, w) {
                 d = Math.min(12, Math.max(1, parseInt(d, 10) || 12));
                 t = t == null ? null : Math.min(12, Math.max(1, parseInt(t, 10) || d));
-                col.span = (t === null || t === d) ? d : { d: d, t: t };
+                if (m === undefined) m = this.rawSpanM(col);
+                if (w === undefined) w = this.rawSpanW(col);
+                m = m == null ? null : Math.min(12, Math.max(1, parseInt(m, 10) || 12));
+                w = w == null ? null : Math.min(12, Math.max(1, parseInt(w, 10) || d));
+                if (w === d) w = null;
+                if ((t === null || t === d) && m === null && w === null) {
+                    col.span = d;
+                    return;
+                }
+                var span = { d: d };
+                if (t !== null && t !== d) span.t = t;
+                if (m !== null) span.m = m;
+                if (w !== null) span.w = w;
+                col.span = span;
             },
 
             columnSpan(col) {
@@ -3336,6 +3374,14 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             columnSpanT(col) {
                 return this.rawSpanT(col);
+            },
+
+            columnSpanM(col) {
+                return this.rawSpanM(col);
+            },
+
+            columnSpanW(col) {
+                return this.rawSpanW(col);
             },
 
             setColumnSpan(span) {
@@ -3401,6 +3447,18 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var col = this.selectedCol();
                 if (!col) return;
                 this.writeSpan(col, this.columnSpan(col), t === "" ? null : t);
+            },
+
+            setColumnSpanM(m) {
+                var col = this.selectedCol();
+                if (!col) return;
+                this.writeSpan(col, this.columnSpan(col), this.rawSpanT(col), m === "" ? null : m);
+            },
+
+            setColumnSpanW(w) {
+                var col = this.selectedCol();
+                if (!col) return;
+                this.writeSpan(col, this.columnSpan(col), this.rawSpanT(col), undefined, w === "" ? null : w);
             },
 
             twoColumnLeftSpan() {
@@ -3475,7 +3533,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.selectedSi = si;
                 this.selectedCi = ci;
                 this.selectedEi = ei;
-                this.selectedSubEi = -1;
+                this.setSubSelection([]);
                 this.selectedRegion = "";
                 this.selectedSectionField = "";
                 this.selectedHomeField = "";
@@ -3521,13 +3579,26 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (notifyCanvas !== false) this.highlightCanvasSelection(true);
             },
 
+            // 0b：子级选区统一写入口——selectedSubPath 为准，selectedSubEi 保持首段镜像。
+            setSubSelection(subPath) {
+                this.selectedSubPath = Array.isArray(subPath) ? subPath.slice() : [];
+                this.selectedSubEi = this.selectedSubPath.length ? this.selectedSubPath[0] : -1;
+            },
+
             selectChild(si, ci, ei, k, notifyCanvas) {
+                this.selectDescendant(si, ci, ei, [k], notifyCanvas);
+            },
+
+            /** 0b：按子级路径选中嵌套容器内任意深度的节点。 */
+            selectDescendant(si, ci, ei, subPath, notifyCanvas) {
                 this.multiSelClear();
                 this.selectElement(si, ci, ei, false);
-                this.selectedSubEi = k;
+                this.setSubSelection(subPath);
                 this.panelTab = this.isSelectedContainerEl() ? "style" : "content";
                 if (notifyCanvas !== false) this.highlightCanvasSelection(true);
-                else if (this.isHomeBannerHost(this.selTopEl)) this.showBannerSlide(k);
+                else if (this.selectedSubPath.length === 1 && this.isHomeBannerHost(this.selTopEl)) {
+                    this.showBannerSlide(this.selectedSubPath[0]);
+                }
             },
 
             showBannerSlide(index) {
@@ -3538,11 +3609,43 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             moveChild(si, ci, ei, k, dir) {
-                var kids = this.sections[si].columns[ci].elements[ei].data.children || [];
+                this.moveNodeAt(si, ci, ei, [k], dir);
+            },
+
+            /** 0b：subPath 定位节点的直接父节点（subPath 为空返回 null——顶层元素的父级是列） */
+            subPathParent(si, ci, ei, subPath) {
+                var section = this.sections[si];
+                var column = section && section.columns ? section.columns[ci] : null;
+                var node = column && column.elements ? column.elements[ei] : null;
+                for (var i = 0; node && i < subPath.length - 1; i++) {
+                    node = ((node.data || {}).children || [])[subPath[i]] || null;
+                }
+                return subPath.length && node ? node : null;
+            },
+
+            /** 选区是否命中 subPath 所指节点的前缀（含节点本身与其后代） */
+            selectionUnderSubPath(si, ci, ei, subPath) {
+                if (this.selectedSi !== si || this.selectedCi !== ci || this.selectedEi !== ei) return false;
+                if (this.selectedSubPath.length < subPath.length) return false;
+                for (var i = 0; i < subPath.length; i++) {
+                    if (this.selectedSubPath[i] !== subPath[i]) return false;
+                }
+                return true;
+            },
+
+            /** 0b：同父级内移动 subPath 所指节点，选区路径跟随。 */
+            moveNodeAt(si, ci, ei, subPath, dir) {
+                var parent = this.subPathParent(si, ci, ei, subPath);
+                var kids = parent && parent.data ? (parent.data.children || []) : [];
+                var k = subPath[subPath.length - 1];
                 var nk = k + dir;
-                if (nk < 0 || nk >= kids.length) return;
+                if (!kids.length || nk < 0 || nk >= kids.length) return;
                 var tmp = kids[k]; kids[k] = kids[nk]; kids[nk] = tmp;
-                if (this.isChildSelected(si, ci, ei, k)) this.selectedSubEi = nk;
+                if (this.selectionUnderSubPath(si, ci, ei, subPath)) {
+                    var followed = this.selectedSubPath.slice();
+                    followed[subPath.length - 1] = nk;
+                    this.setSubSelection(followed);
+                }
             },
 
             isNavigationElementSelected() {
@@ -3551,9 +3654,15 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             selectedElementPosition() {
                 if (!this.selTopEl) return null;
-                if (this.selectedSubEi >= 0) {
-                    var children = (this.selTopEl.data && this.selTopEl.data.children) || [];
-                    return { kind: "child", index: this.selectedSubEi, length: children.length };
+                if (this.selectedSubPath.length) {
+                    var parent = this.subPathParent(this.selectedSi, this.selectedCi, this.selectedEi, this.selectedSubPath);
+                    if (!parent) return null;
+                    var children = (parent.data && parent.data.children) || [];
+                    return {
+                        kind: "child",
+                        index: this.selectedSubPath[this.selectedSubPath.length - 1],
+                        length: children.length,
+                    };
                 }
                 var section = this.sections[this.selectedSi];
                 var column = section && section.columns ? section.columns[this.selectedCi] : null;
@@ -3573,8 +3682,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!this.canMoveSelectedElement(dir)) return;
                 var self = this;
                 this.runCommand("move-selected-element", function () {
-                    if (self.selectedSubEi >= 0) {
-                        self.moveChild(self.selectedSi, self.selectedCi, self.selectedEi, self.selectedSubEi, dir);
+                    if (self.selectedSubPath.length) {
+                        self.moveNodeAt(self.selectedSi, self.selectedCi, self.selectedEi, self.selectedSubPath, dir);
                     } else {
                         self.moveElement(self.selectedSi, self.selectedCi, self.selectedEi, dir);
                     }
@@ -3614,10 +3723,30 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             deleteChild(si, ci, ei, k) {
-                (this.sections[si].columns[ci].elements[ei].data.children || []).splice(k, 1);
-                if (this.selectedSi === si && this.selectedCi === ci && this.selectedEi === ei) {
-                    if (this.selectedSubEi === k) this.selectedSubEi = -1;      // 回到容器本身
-                    else if (this.selectedSubEi > k) this.selectedSubEi--;
+                this.deleteNodeAt(si, ci, ei, [k]);
+            },
+
+            /** 0b：删除 subPath 所指节点；选区在其下则回到父级，同层靠后的兄弟索引左移。 */
+            deleteNodeAt(si, ci, ei, subPath) {
+                var parent = this.subPathParent(si, ci, ei, subPath);
+                var kids = parent && parent.data ? (parent.data.children || []) : [];
+                var k = subPath[subPath.length - 1];
+                if (!kids[k]) return;
+                kids.splice(k, 1);
+                if (this.selectedSi !== si || this.selectedCi !== ci || this.selectedEi !== ei) return;
+                var depth = subPath.length - 1;
+                if (this.selectionUnderSubPath(si, ci, ei, subPath)) {
+                    this.setSubSelection(subPath.slice(0, depth));              // 回到父容器
+                    return;
+                }
+                var prefixMatches = this.selectedSubPath.length > depth;
+                for (var i = 0; prefixMatches && i < depth; i++) {
+                    if (this.selectedSubPath[i] !== subPath[i]) prefixMatches = false;
+                }
+                if (prefixMatches && this.selectedSubPath[depth] > k) {
+                    var shifted = this.selectedSubPath.slice();
+                    shifted[depth]--;
+                    this.setSubSelection(shifted);
                 }
             },
 
@@ -5510,6 +5639,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     selectedCi: this.selectedCi,
                     selectedEi: this.selectedEi,
                     selectedSubEi: this.selectedSubEi,
+                    selectedSubPath: this.selectedSubPath.slice(),
                     selectedSectionField: this.selectedSectionField,
                     selectedHomeField: this.selectedHomeField,
                     selectedHomeColumn: this.selectedHomeColumn,
@@ -5562,7 +5692,12 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.selectedSi = parseInt(selection.selectedSi, 10);
                 this.selectedCi = parseInt(selection.selectedCi, 10);
                 this.selectedEi = parseInt(selection.selectedEi, 10);
-                this.selectedSubEi = parseInt(selection.selectedSubEi, 10);
+                // 0b：优先恢复子级路径；旧快照只有 selectedSubEi 时按单层路径处理
+                var restoredSubPath = Array.isArray(selection.selectedSubPath)
+                    ? selection.selectedSubPath.map(function (v) { return parseInt(v, 10); })
+                        .filter(function (v) { return Number.isInteger(v) && v >= 0; })
+                    : (parseInt(selection.selectedSubEi, 10) >= 0 ? [parseInt(selection.selectedSubEi, 10)] : []);
+                this.setSubSelection(restoredSubPath);
                 this.selectedSectionField = selection.selectedSectionField === "title" || selection.selectedSectionField === "subtitle"
                     ? selection.selectedSectionField : "";
                 this.selectedHomeField = typeof selection.selectedHomeField === "string"
@@ -5580,7 +5715,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     this.selectedSi = -1;
                     this.selectedCi = -1;
                     this.selectedEi = -1;
-                    this.selectedSubEi = -1;
+                    this.setSubSelection([]);
                     this.selectedSectionField = "";
                     this.selectedHomeField = "";
                     this.selectedHomeColumn = "";
@@ -5590,15 +5725,27 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (this.selectedCi >= 0 && !column) {
                     this.selectedCi = -1;
                     this.selectedEi = -1;
-                    this.selectedSubEi = -1;
+                    this.setSubSelection([]);
                 }
                 var element = column && this.selectedEi >= 0 ? (column.elements || [])[this.selectedEi] : null;
                 if (this.selectedEi >= 0 && !element) {
                     this.selectedEi = -1;
-                    this.selectedSubEi = -1;
+                    this.setSubSelection([]);
                 }
-                var children = element ? ((((element || {}).data || {}).children) || []) : [];
-                if (this.selectedSubEi >= 0 && !children[this.selectedSubEi]) this.selectedSubEi = -1;
+                // 子级路径逐层验证：任何一层失效就截断到最后一个有效层
+                if (element && this.selectedSubPath.length) {
+                    var node = element;
+                    var valid = [];
+                    for (var vi = 0; vi < this.selectedSubPath.length; vi++) {
+                        var kid = (((node || {}).data || {}).children || [])[this.selectedSubPath[vi]];
+                        if (!kid) break;
+                        valid.push(this.selectedSubPath[vi]);
+                        node = kid;
+                    }
+                    if (valid.length !== this.selectedSubPath.length) this.setSubSelection(valid);
+                } else if (!element && this.selectedSubPath.length) {
+                    this.setSubSelection([]);
+                }
                 if (this.selectedHomeField && !this.homeFieldAllowed(element, this.selectedHomeField)) {
                     this.selectedHomeField = "";
                 }
@@ -5702,7 +5849,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                     if (this.selectedEi === ei) {
                         this.selectedCi = -1;
                         this.selectedEi = -1;
-                        this.selectedSubEi = -1;
+                        this.setSubSelection([]);
                         this.selectedHomeField = "";
                         this.selectedHomeColumn = "";
                     } else if (this.selectedEi > ei) {
@@ -6135,8 +6282,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var el = col && this.selectedEi >= 0 ? (col.elements || [])[this.selectedEi] : null;
                 if (!el) return items;
                 items.push({ act: "el", label: this.elLabel(el) });
-                var child = this.selectedSubEi >= 0 ? (((el.data || {}).children || [])[this.selectedSubEi]) : null;
-                if (child) items.push({ act: "child", label: this.elLabel(child) });
+                // 0b：子级路径逐层进面包屑，中间层可点回
+                var node = el;
+                for (var d = 0; d < this.selectedSubPath.length; d++) {
+                    node = ((node.data || {}).children || [])[this.selectedSubPath[d]];
+                    if (!node) break;
+                    items.push({ act: "child", depth: d, label: this.elLabel(node) });
+                }
                 return items;
             },
 
@@ -6146,7 +6298,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                 else if (c.act === "con") this.selectContainer(si, false);
                 else if (c.act === "col") this.selectColumn(si, ci, false);
                 else if (c.act === "el") this.selectElement(si, ci, ei, false);
-                // child 是叶节点（当前项），无动作
+                else if (c.act === "child" && c.depth < this.selectedSubPath.length - 1) {
+                    // 中间层子级：截断路径回到该层；最深层是当前项，无动作
+                    this.selectDescendant(si, ci, ei, this.selectedSubPath.slice(0, c.depth + 1), false);
+                }
             },
 
             /** 取消全部选择（点画布空白/宿主空白触发）——回到「插入到末尾」的初始语义。 */
@@ -6155,7 +6310,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.selectedSi = -1;
                 this.selectedCi = -1;
                 this.selectedEi = -1;
-                this.selectedSubEi = -1;
+                this.setSubSelection([]);
                 this.selectedSectionField = "";
                 this.selectedHomeField = "";
                 this.selectedHomeColumn = "";
@@ -6640,8 +6795,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             selectedPath() {
                 if (this.selectedSi < 0 || this.selectedCi < 0 || this.selectedEi < 0) return "";
                 var path = [this.selectedSi, this.selectedCi, this.selectedEi];
-                if (this.selectedSubEi >= 0) path.push(this.selectedSubEi);
-                return path.join(".");
+                return path.concat(this.selectedSubPath).join(".");
             },
 
             selectedSectionId() {
@@ -6673,19 +6827,23 @@ $canManageBloxDesign = hasPermission('blox_global');
             elementPathById(id) {
                 var elementId = typeof id === "string" ? id : "";
                 if (!elementId) return "";
+                // 0b：递归下钻 children，任意深度的稳定 id 都能回到完整路径
+                var findIn = function (node, prefix) {
+                    if (String((node || {}).id || "") === elementId) return prefix.join(".");
+                    var children = (((node || {}).data || {}).children) || [];
+                    for (var k = 0; k < children.length; k++) {
+                        var found = findIn(children[k], prefix.concat(k));
+                        if (found) return found;
+                    }
+                    return "";
+                };
                 for (var si = 0; si < this.sections.length; si++) {
                     var columns = (this.sections[si] || {}).columns || [];
                     for (var ci = 0; ci < columns.length; ci++) {
                         var elements = (columns[ci] || {}).elements || [];
                         for (var ei = 0; ei < elements.length; ei++) {
-                            var element = elements[ei] || {};
-                            if (String(element.id || "") === elementId) return [si, ci, ei].join(".");
-                            var children = ((element.data || {}).children) || [];
-                            for (var cei = 0; cei < children.length; cei++) {
-                                if (String((children[cei] || {}).id || "") === elementId) {
-                                    return [si, ci, ei, cei].join(".");
-                                }
-                            }
+                            var found = findIn(elements[ei], [si, ci, ei]);
+                            if (found) return found;
                         }
                     }
                 }
@@ -6717,13 +6875,10 @@ $canManageBloxDesign = hasPermission('blox_global');
             selectPath(path, notifyCanvas) {
                 var parts = String(path).split(".").map(function (v) { return parseInt(v, 10); });
                 if (parts.length < 3 || parts.some(function (v) { return isNaN(v); })) return;
-                if (!this.sections[parts[0]] || !this.sections[parts[0]].columns[parts[1]]) return;
-                var el = this.sections[parts[0]].columns[parts[1]].elements[parts[2]];
-                if (!el) return;
+                if (!this.elementAtPath(String(path))) return;
                 if (parts.length >= 4) {
-                    var kids = (el.data && el.data.children) || [];
-                    if (!kids[parts[3]]) return;
-                    this.selectChild(parts[0], parts[1], parts[2], parts[3], notifyCanvas);
+                    // 0b：第 4 段起是子级路径，任意深度统一走 selectDescendant
+                    this.selectDescendant(parts[0], parts[1], parts[2], parts.slice(3), notifyCanvas);
                 } else {
                     this.selectElement(parts[0], parts[1], parts[2], notifyCanvas);
                 }
@@ -6775,7 +6930,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.targetCi = 0;
                 this.selectedCi = -1;
                 this.selectedEi = -1;
-                this.selectedSubEi = -1;
+                this.setSubSelection([]);
                 this.selectedSectionField = "";
                 this.selectedHomeField = "";
                 this.selectedHomeColumn = "";
@@ -6795,7 +6950,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.targetCi = 0;
                 this.selectedCi = -1;
                 this.selectedEi = -1;
-                this.selectedSubEi = -1;
+                this.setSubSelection([]);
                 this.selectedSectionField = "";
                 this.selectedHomeField = "";
                 this.selectedHomeColumn = "";
@@ -6815,7 +6970,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.targetCi = ci;
                 this.selectedCi = ci;
                 this.selectedEi = -1;
-                this.selectedSubEi = -1;
+                this.setSubSelection([]);
                 this.selectedSectionField = "";
                 this.selectedHomeField = "";
                 this.selectedHomeColumn = "";
@@ -6866,15 +7021,15 @@ $canManageBloxDesign = hasPermission('blox_global');
 
             elementAtPath(path) {
                 var parts = String(path || "").split(".").map(function (v) { return parseInt(v, 10); });
-                if (parts.length < 3 || parts.length > 4 || parts.some(function (v) { return isNaN(v); })) return null;
+                // 0b：3..10 段（与画布桥、服务端 MAX_ELEMENT_DEPTH 对齐），第 4 段起沿 children 下钻
+                if (parts.length < 3 || parts.length > 10 || parts.some(function (v) { return isNaN(v); })) return null;
                 var section = this.sections[parts[0]];
                 var column = section && section.columns ? section.columns[parts[1]] : null;
                 var element = column && column.elements ? column.elements[parts[2]] : null;
-                if (!element) return null;
-                if (parts.length === 4) {
-                    return (element.data && element.data.children ? element.data.children[parts[3]] : null) || null;
+                for (var i = 3; element && i < parts.length; i++) {
+                    element = ((element.data || {}).children || [])[parts[i]] || null;
                 }
-                return element;
+                return element || null;
             },
 
             plainTextHtml(value) {
@@ -6984,175 +7139,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 el.data[key] = next;
             },
 
-            selectionClipboardSource() {
-                var s = this.sel;
-                var top = this.selTopEl;
-                if (!s || !top || this.selectedCi < 0 || this.selectedEi < 0) return null;
-                if (this.selectedSubEi >= 0) {
-                    var kids = (top.data && top.data.children) || [];
-                    var child = kids[this.selectedSubEi];
-                    return child ? { kind: "child", si: this.selectedSi, ci: this.selectedCi, ei: this.selectedEi, cei: this.selectedSubEi, id: child.id, node: child } : null;
-                }
-                return { kind: "element", si: this.selectedSi, ci: this.selectedCi, ei: this.selectedEi, id: top.id, node: top };
-            },
-
-            hasClipboardSelection() {
-                return !!this.selectionClipboardSource();
-            },
-
-            copySelection() {
-                var source = this.selectionClipboardSource();
-                if (!source) { this.toast(this.clipboardText.empty); return; }
-                this.clipboard = {
-                    mode: "copy",
-                    kind: source.kind,
-                    id: source.id,
-                    node: JSON.parse(JSON.stringify(source.node)),
-                };
-                this.toast(this.clipboardText.copyDone);
-            },
-
-            cutSelection() {
-                var source = this.selectionClipboardSource();
-                if (!source) { this.toast(this.clipboardText.empty); return; }
-                this.clipboard = {
-                    mode: "cut",
-                    kind: source.kind,
-                    id: source.id,
-                    node: JSON.parse(JSON.stringify(source.node)),
-                };
-                if (!this.removeClipboardSource(source)) {
-                    this.clipboard = null;
-                    this.toast(this.clipboardText.sourceMissing);
-                    return;
-                }
-                this.selectedSi = -1;
-                this.selectedCi = -1;
-                this.selectedEi = -1;
-                this.selectedSubEi = -1;
-                this.selectedSectionField = "";
-                this.selectedHomeField = "";
-                this.selectedHomeColumn = "";
-                this.selLayer = "sec";
-                this.libOpen = false;
-                this.closeCtx();
-                this.highlightCanvasSelection(false);
-                this.toast(this.clipboardText.cutDone);
-            },
-
-            removeClipboardSource(source) {
-                if (!source) return false;
-                var section = this.sections[source.si];
-                var column = section && section.columns ? section.columns[source.ci] : null;
-                if (!column) return false;
-                if (source.kind === "child") {
-                    var parent = column.elements[source.ei];
-                    var kids = parent && parent.data ? (parent.data.children || []) : [];
-                    var childIndex = kids.findIndex(function (item) { return item && item.id === source.id; });
-                    if (childIndex < 0) return false;
-                    kids.splice(childIndex, 1);
-                    return true;
-                }
-                var elementIndex = (column.elements || []).findIndex(function (item) { return item && item.id === source.id; });
-                if (elementIndex < 0) return false;
-                column.elements.splice(elementIndex, 1);
-                return true;
-            },
-
-            pasteTarget(kind, target) {
-                target = target || {};
-                if (!this.clipboard) return null;
-                if (kind === "child") {
-                    var childSection = this.sections[target.si];
-                    var childColumn = childSection && childSection.columns ? childSection.columns[target.ci] : null;
-                    var childParent = childColumn && childColumn.elements ? childColumn.elements[target.ei] : null;
-                    if (!childParent || !this.elSchema(childParent.type).container) return null;
-                    if (!this.canNestElement(childParent, this.clipboard.node)) return null;
-                    var childCount = (childParent.data && childParent.data.children || []).length;
-                    return { mode: "child", si: target.si, ci: target.ci, ei: target.ei, index: Math.min(childCount, Math.max(0, parseInt(target.cei, 10) + 1)) };
-                }
-                if (kind === "element") {
-                    var elementSection = this.sections[target.si];
-                    var elementColumn = elementSection && elementSection.columns ? elementSection.columns[target.ci] : null;
-                    var element = elementColumn && elementColumn.elements ? elementColumn.elements[target.ei] : null;
-                    if (!element) return null;
-                    if (this.elSchema(element.type).container) {
-                        if (!this.canNestElement(element, this.clipboard.node)) return null;
-                        var elementCount = (element.data && element.data.children || []).length;
-                        return { mode: "child", si: target.si, ci: target.ci, ei: target.ei, index: elementCount };
-                    }
-                    return { mode: "element", si: target.si, ci: target.ci, index: Math.max(0, parseInt(target.ei, 10) + 1) };
-                }
-                if (kind === "column") {
-                    var columnSection = this.sections[target.si];
-                    var targetColumn = columnSection && columnSection.columns ? columnSection.columns[target.ci] : null;
-                    return targetColumn ? { mode: "element", si: target.si, ci: target.ci, index: targetColumn.elements.length } : null;
-                }
-                if (kind === "container" || kind === "section") {
-                    var section = this.sections[target.si];
-                    if (!section || !section.columns || !section.columns.length) return null;
-                    var ci = parseInt(target.ci, 10);
-                    if (isNaN(ci)) ci = this.selectedSi === target.si ? this.targetCi : 0;
-                    ci = Math.min(Math.max(ci, 0), section.columns.length - 1);
-                    return { mode: "element", si: target.si, ci: ci, index: section.columns[ci].elements.length };
-                }
-                if (kind === "canvas") {
-                    if (this.sections.length === 0) return { mode: "new-section" };
-                    var si = this.selectedSi >= 0 ? this.selectedSi : this.sections.length - 1;
-                    var current = this.sections[si];
-                    var targetCi = current && current.columns ? Math.min(Math.max(this.targetCi, 0), current.columns.length - 1) : 0;
-                    return current && current.columns[targetCi] ? { mode: "element", si: si, ci: targetCi, index: current.columns[targetCi].elements.length } : null;
-                }
-                return null;
-            },
-
-            canPasteTo(kind, target) {
-                return !!this.pasteTarget(kind, target);
-            },
-
-            pasteClipboard(kind, target) {
-                if (!this.clipboard) { this.toast(this.clipboardText.empty); return; }
-                var destination = this.pasteTarget(kind, target);
-                if (!destination) { this.toast(this.clipboardText.invalid); return; }
-                if (destination.mode === "new-section") {
-                    this.addSection(1, true);
-                    destination = this.pasteTarget("section", { si: this.selectedSi, ci: 0 });
-                }
-                if (!destination) { this.toast(this.clipboardText.invalid); return; }
-                var node = this.deepCloneNode(this.clipboard.node, "e");
-                if (destination.mode === "child") {
-                    var parent = this.sections[destination.si].columns[destination.ci].elements[destination.ei];
-                    parent.data.children = parent.data.children || [];
-                    if (this.isHomeBannerHost(parent)) parent.data.items_mode = "custom";
-                    parent.data.children.splice(destination.index, 0, node);
-                    this.selectChild(destination.si, destination.ci, destination.ei, destination.index, false);
-                } else {
-                    var elements = this.sections[destination.si].columns[destination.ci].elements;
-                    var index = Math.min(elements.length, Math.max(0, destination.index));
-                    elements.splice(index, 0, node);
-                    this.selectElement(destination.si, destination.ci, index, false);
-                }
-                if (this.clipboard.mode === "cut") this.clipboard = null;
-                this.closeCtx();
-                this.toast(this.clipboardText.pasteDone);
-            },
-
-            pasteSelection() { return this.runCommand("paste", function () { return this._pasteSelectionRaw(); }); },
-            _pasteSelectionRaw() {
-                var target = null;
-                if (this.selectedSubEi >= 0 && this.selTopEl) {
-                    target = { kind: "child", si: this.selectedSi, ci: this.selectedCi, ei: this.selectedEi, cei: this.selectedSubEi };
-                } else if (this.selTopEl) {
-                    target = { kind: "element", si: this.selectedSi, ci: this.selectedCi, ei: this.selectedEi };
-                } else if (this.selLayer === "col" && this.selectedCi >= 0) {
-                    target = { kind: "column", si: this.selectedSi, ci: this.selectedCi };
-                } else if (this.selectedSi >= 0) {
-                    target = { kind: "section", si: this.selectedSi, ci: this.targetCi };
-                } else {
-                    target = { kind: "canvas" };
-                }
-                this.pasteClipboard(target.kind, target);
-            },
+            <?php require __DIR__ . '/blox_editor/partials/clipboard-methods.php'; ?>
             closeCtx() {
                 this.ctx.open = false;
             },
@@ -7161,7 +7148,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                 t = t || {};
                 if (kind === "canvas") return;
                 if (kind === "sectionField") { this.selectSectionField(t.si, t.field, notifyCanvas); return; }
-                if (kind === "child") this.selectChild(t.si, t.ci, t.ei, t.cei, notifyCanvas);
+                if (kind === "child") {
+                    // 0b：优先用完整路径（嵌套容器的深层子级）；无 path 时按单层 cei
+                    var deep = typeof t.path === "string" ? t.path.split(".").map(function (v) { return parseInt(v, 10); }) : null;
+                    var subPath = Array.isArray(t.subPath) ? t.subPath
+                        : (deep && deep.length > 4 ? deep.slice(3) : [t.cei]);
+                    this.selectDescendant(t.si, t.ci, t.ei, subPath, notifyCanvas);
+                }
                 else if (kind === "element") this.selectElement(t.si, t.ci, t.ei, notifyCanvas);
                 else if (kind === "column") this.selectColumn(t.si, t.ci, notifyCanvas);
                 else if (kind === "container") this.selectContainer(t.si, notifyCanvas);
@@ -7233,7 +7226,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                     return items;
                 }
                 if (k === "element" || k === "child") {
-                    var el = k === "element" ? this.sections[t.si]?.columns[t.ci]?.elements[t.ei] : ((this.sections[t.si]?.columns[t.ci]?.elements[t.ei]?.data?.children || [])[t.cei]);
+                    var el = k === "element"
+                        ? this.sections[t.si]?.columns[t.ci]?.elements[t.ei]
+                        : this.elementAtPath([t.si, t.ci, t.ei].concat(this.ctxChildSubPath(t)).join("."));
                     var isContainer = !!(el && this.elSchema(el.type).container && k === "element"
                         && (!this.isHomeBlockHost(el) || this.isHomeBannerHost(el)));
                     items.push({ key: "addChild", label: this.ctxText.addChild, icon: "corner-down-right", disabled: !isContainer });
@@ -7293,6 +7288,16 @@ $canManageBloxDesign = hasPermission('blox_global');
                     && String(settings.subtitle || "").trim() === "";
             },
 
+            /** 0b：child 类 ctx 目标的子级路径（深层行带 subPath/path，单层退回 [cei]）。 */
+            ctxChildSubPath(t) {
+                if (Array.isArray(t.subPath) && t.subPath.length) return t.subPath.slice();
+                if (typeof t.path === "string") {
+                    var parts = t.path.split(".").map(function (v) { return parseInt(v, 10); });
+                    if (parts.length > 4 && !parts.some(function (v) { return isNaN(v); })) return parts.slice(3);
+                }
+                return [parseInt(t.cei, 10)];
+            },
+
             ctxCanMove(dir) {
                 var k = this.ctx.kind, t = this.ctx.target || {};
                 if (k === "section") return t.si + dir >= 0 && t.si + dir < this.sections.length;
@@ -7301,8 +7306,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                     return t.ei + dir >= 0 && t.ei + dir < els.length;
                 }
                 if (k === "child") {
-                    var kids = this.sections[t.si]?.columns[t.ci]?.elements[t.ei]?.data?.children || [];
-                    return t.cei + dir >= 0 && t.cei + dir < kids.length;
+                    var subPath = this.ctxChildSubPath(t);
+                    var parent = this.subPathParent(t.si, t.ci, t.ei, subPath);
+                    var kids = parent && parent.data ? (parent.data.children || []) : [];
+                    var index = subPath[subPath.length - 1];
+                    return index + dir >= 0 && index + dir < kids.length;
                 }
                 return false;
             },
@@ -7311,7 +7319,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var k = this.ctx.kind, t = this.ctx.target || {};
                 if (k === "section") this.moveSection(t.si, dir);
                 else if (k === "element") this.moveElement(t.si, t.ci, t.ei, dir);
-                else if (k === "child") this.moveChild(t.si, t.ci, t.ei, t.cei, dir);
+                else if (k === "child") this.moveNodeAt(t.si, t.ci, t.ei, this.ctxChildSubPath(t), dir);
                 this.highlightCanvasSelection();
             },
 
@@ -7337,10 +7345,13 @@ $canManageBloxDesign = hasPermission('blox_global');
                     return;
                 }
                 if (k === "child") {
-                    var kids = this.sections[t.si]?.columns[t.ci]?.elements[t.ei]?.data?.children || [];
-                    if (!kids[t.cei]) return;
-                    kids.splice(t.cei + 1, 0, this.deepCloneNode(kids[t.cei], "e"));
-                    this.selectChild(t.si, t.ci, t.ei, t.cei + 1);
+                    var subPath = this.ctxChildSubPath(t);
+                    var parent = this.subPathParent(t.si, t.ci, t.ei, subPath);
+                    var kids = parent && parent.data ? (parent.data.children || []) : [];
+                    var index = subPath[subPath.length - 1];
+                    if (!kids[index]) return;
+                    kids.splice(index + 1, 0, this.deepCloneNode(kids[index], "e"));
+                    this.selectDescendant(t.si, t.ci, t.ei, subPath.slice(0, -1).concat(index + 1));
                 }
             },
 
@@ -7348,7 +7359,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var k = this.ctx.kind, t = this.ctx.target || {};
                 if (k === "section") this.deleteSection(t.si);
                 else if (k === "element") this.deleteElement(t.si, t.ci, t.ei);
-                else if (k === "child") this.deleteChild(t.si, t.ci, t.ei, t.cei);
+                else if (k === "child") this.deleteNodeAt(t.si, t.ci, t.ei, this.ctxChildSubPath(t));
                 this.highlightCanvasSelection();
             },
 
@@ -7397,7 +7408,15 @@ $canManageBloxDesign = hasPermission('blox_global');
                         draggable: "[data-sort-child-item]",
                         handle: "[data-child-drag-handle]",
                         onEnd: function (evt) {
-                            self.sortChildren(parseInt(el.dataset.si, 10), parseInt(el.dataset.ci, 10), parseInt(el.dataset.ei, 10), (evt.oldDraggableIndex ?? evt.oldIndex), (evt.newDraggableIndex ?? evt.newIndex));
+                            // 0b：嵌套容器的子列表带 data-sub-path（拥有者路径）；顶层列表为空数组
+                            var ownerSubPath = [];
+                            try { ownerSubPath = JSON.parse(el.dataset.subPath || "[]"); } catch (e) { ownerSubPath = []; }
+                            if (!Array.isArray(ownerSubPath)) ownerSubPath = [];
+                            self.sortChildrenAt(
+                                parseInt(el.dataset.si, 10), parseInt(el.dataset.ci, 10), parseInt(el.dataset.ei, 10),
+                                ownerSubPath,
+                                (evt.oldDraggableIndex ?? evt.oldIndex), (evt.newDraggableIndex ?? evt.newIndex)
+                            );
                         }
                     }));
                 });
@@ -7464,13 +7483,37 @@ $canManageBloxDesign = hasPermission('blox_global');
                 }
             },
             sortChildren(si, ci, ei, oldIndex, newIndex) {
-                var el = this.sections[si] && this.sections[si].columns[ci] && this.sections[si].columns[ci].elements[ei];
-                var kids = el && el.data ? (el.data.children || []) : [];
+                this.sortChildrenAt(si, ci, ei, [], oldIndex, newIndex);
+            },
+
+            /** 0b：ownerSubPath 指向持有 children 列表的节点（[] = 顶层元素本身）。 */
+            sortChildrenAt(si, ci, ei, ownerSubPath, oldIndex, newIndex) {
+                var owner = this.sections[si] && this.sections[si].columns[ci] && this.sections[si].columns[ci].elements[ei];
+                for (var i = 0; owner && i < ownerSubPath.length; i++) {
+                    owner = ((owner.data || {}).children || [])[ownerSubPath[i]] || null;
+                }
+                var kids = owner && owner.data ? (owner.data.children || []) : [];
                 if (!kids.length || oldIndex === newIndex || oldIndex < 0 || newIndex < 0) return;
-                var selectedId = this.selEl ? this.selEl.id : "";
+                var depth = ownerSubPath.length;
+                var movedSubPath = ownerSubPath.concat(oldIndex);
+                var followSelection = this.selectionUnderSubPath(si, ci, ei, movedSubPath);
+                var siblingAffected = !followSelection
+                    && this.selectedSi === si && this.selectedCi === ci && this.selectedEi === ei
+                    && this.selectedSubPath.length > depth
+                    && this.selectionUnderSubPath(si, ci, ei, ownerSubPath.concat(this.selectedSubPath[depth]));
                 var item = kids.splice(oldIndex, 1)[0];
                 kids.splice(newIndex, 0, item);
-                if (selectedId) this.selectedSubEi = kids.findIndex(function (x) { return x.id === selectedId; });
+                if (followSelection) {
+                    var followed = this.selectedSubPath.slice();
+                    followed[depth] = newIndex;
+                    this.setSubSelection(followed);
+                } else if (siblingAffected) {
+                    var sibling = this.selectedSubPath[depth];
+                    var shifted = this.selectedSubPath.slice();
+                    if (oldIndex < sibling && newIndex >= sibling) shifted[depth] = sibling - 1;
+                    else if (oldIndex > sibling && newIndex <= sibling) shifted[depth] = sibling + 1;
+                    if (shifted[depth] !== sibling) this.setSubSelection(shifted);
+                }
             },
 
             moveSection(si, dir) {
@@ -7844,187 +7887,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 });
             },
 
-            restoreElementLibraryPreferences() {
-                var known = {};
-                this.elementLib.forEach(function (el) {
-                    if (!el.deprecated) known[el.type] = true;
-                });
-                var read = function (key) {
-                    try {
-                        var value = JSON.parse(window.localStorage.getItem(key) || "[]");
-                        if (!Array.isArray(value)) return [];
-                        return value.filter(function (type, index) {
-                            return typeof type === "string" && known[type] && value.indexOf(type) === index;
-                        });
-                    } catch (error) {
-                        return [];
-                    }
-                };
-                this.favoriteElementTypes = read(this.favoriteElementsStorageKey);
-                this.recentElementTypes = read(this.recentElementsStorageKey).slice(0, 6);
-            },
-
-            persistElementLibraryPreferences() {
-                try {
-                    window.localStorage.setItem(this.favoriteElementsStorageKey, JSON.stringify(this.favoriteElementTypes));
-                    window.localStorage.setItem(this.recentElementsStorageKey, JSON.stringify(this.recentElementTypes));
-                } catch (error) {
-                    // 禁用存储时仍保留本次编辑会话内的快捷分组。
-                }
-            },
-
-            isElementFavorite(type) {
-                return this.favoriteElementTypes.indexOf(type) !== -1;
-            },
-
-            toggleElementFavorite(type) {
-                var index = this.favoriteElementTypes.indexOf(type);
-                if (index === -1) this.favoriteElementTypes.push(type);
-                else this.favoriteElementTypes.splice(index, 1);
-                this.persistElementLibraryPreferences();
-            },
-
-            rememberRecentElement(type) {
-                if (!type) return;
-                this.recentElementTypes = [type].concat(this.recentElementTypes.filter(function (item) {
-                    return item !== type;
-                })).slice(0, 6);
-                this.persistElementLibraryPreferences();
-            },
-
-            // Explicit canvas targets allow click-to-insert; the general palette keeps drag intent.
-            syncPaletteInputMode() {
-                this.paletteTapMode = window.innerWidth <= 1023
-                    || !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
-            },
-
-            activatePaletteElement(el, event) {
-                if (!el) return;
-                if (el.locked) {
-                    this.paletteSelected = "";
-                    this.toast(this.professionalLockedMessage(el.proFeature));
-                    return;
-                }
-                this.paletteSelected = el.type;
-                var keyboard = !event || event.detail === 0;
-                if (keyboard || this.paletteTapMode || this.hasQuickAddTarget()) {
-                    if (this.sections.length > 0 && this.selectedSi < 0) {
-                        this.paletteSelected = "";
-                        this.toast(this.uiText.pickSectionFirst);
-                        return;
-                    }
-                    this.quickAddTargetId = "";
-                    this.addElement(el);
-                    this.paletteSelected = "";
-                    return;
-                }
-                this.toast(this.uiText.dragToInsert.replace(":label", el.label));
-            },
-
-            /**
-             * 目标列下标。夹在有效范围内——换了区块后 targetCi 可能越界
-             * （比如从 3 列区块切到 1 列），越界会把元素塞进不存在的列里丢掉。
-             */
-            colIndex() {
-                var s = this.sel;
-                if (!s || !s.columns.length) return 0;
-                return Math.min(Math.max(this.targetCi, 0), s.columns.length - 1);
-            },
-
-            // ── 元素库分类折叠态（Bricks 式；默认全开，搜索时强制全开） ──
-            catOpen: {},
-            isCatOpen(cat) { return this.catOpen[cat] !== false; },
-
-            // ── 拖拽插入（路线图③）：库瓦片拖到结构树/画布 ──
-            dragEl: null,          // 正在拖的库条目
-            templateDragItem: null,
-            canvasDragActive: false,
-            treeDropIntent: null,  // {key, intent, target, valid, label}，与画布使用同一目标协议
-
-            clearPaletteDragGhost() {
-                if (this._paletteDragGhost && this._paletteDragGhost.parentNode) {
-                    this._paletteDragGhost.parentNode.removeChild(this._paletteDragGhost);
-                }
-                this._paletteDragGhost = null;
-            },
-
-            createPaletteDragGhost(el, event) {
-                this.clearPaletteDragGhost();
-                if (!event || !event.dataTransfer || typeof event.dataTransfer.setDragImage !== "function") return;
-                var iconName = String(el.icon || "box").replace(/[^a-z0-9-]/gi, "") || "box";
-                var ghost = document.createElement("div");
-                ghost.setAttribute("data-testid", "blox-palette-drag-ghost");
-                ghost.setAttribute("aria-hidden", "true");
-                ghost.className = "blox-palette-drag-ghost";
-                var icon = document.createElement("span");
-                icon.className = "blox-palette-drag-ghost-icon";
-                var iconGlyph = document.createElement("i");
-                iconGlyph.className = "ti ti-" + iconName;
-                icon.appendChild(iconGlyph);
-                var label = document.createElement("span");
-                label.className = "blox-palette-drag-ghost-label";
-                label.textContent = String(el.label || el.type || "");
-                ghost.appendChild(icon);
-                ghost.appendChild(label);
-                document.body.appendChild(ghost);
-                this._paletteDragGhost = ghost;
-                try {
-                    event.dataTransfer.setDragImage(ghost, 18, 18);
-                } catch (error) {
-                    this.clearPaletteDragGhost();
-                }
-            },
-
-            professionalLockedMessage(feature) {
-                var state = this.professionalFeatures[feature] || {};
-                return state.message || this.uiText.proLocked;
-            },
-
-            startPaletteDrag(el, event) {
-                if (el && el.locked) {
-                    if (event) event.preventDefault();
-                    return;
-                }
-                if (!el || !event || !event.dataTransfer) return;
-                this.paletteSelected = el.type;
-                this.dragEl = el;
-                this.canvasDragActive = true;
-                event.dataTransfer.effectAllowed = "copy";
-                event.dataTransfer.setData("application/x-yikai-blox", JSON.stringify({
-                    version: 1,
-                    source: "palette",
-                    type: el.type,
-                }));
-                event.dataTransfer.setData("text/plain", el.type);
-                this.createPaletteDragGhost(el, event);
-                this.canvasBridge().post({ ykDragType: el.type });
-            },
-
-            startTemplateDrag(item, event) {
-                if (!this.templateSectionDraggable(item) || !event || !event.dataTransfer) return;
-                this.templateDragItem = item;
-                this.canvasDragActive = true;
-                event.dataTransfer.effectAllowed = "copy";
-                event.dataTransfer.setData("application/x-yikai-blox-template", JSON.stringify({
-                    version: 1,
-                    source: "template",
-                    key: item.key,
-                }));
-                event.dataTransfer.setData("text/plain", item.name || item.key);
-                this.createPaletteDragGhost({ type: "section", label: item.name, icon: "layout-grid-add" }, event);
-                this.canvasBridge().post({ ykDragType: "__section_template" });
-            },
-
-            finishPaletteDrag() {
-                this.clearPaletteDragGhost();
-                this.paletteSelected = "";
-                this.dragEl = null;
-                this.templateDragItem = null;
-                this.canvasDragActive = false;
-                this.treeDropIntent = null;
-                this.canvasBridge().post({ ykPaletteDrag: { version: 1, phase: "cancel" } });
-                this.canvasBridge().post({ ykDragType: "" });
-            },
+            <?php require __DIR__ . '/blox_editor/partials/element-library-methods.php'; ?>
 
             canvasPaletteDragMessage(event, phase) {
                 var frame = this.$refs.canvas;
@@ -8333,8 +8196,18 @@ $canManageBloxDesign = hasPermission('blox_global');
             appendElementNode(node, label) {
                 var s = this.sel;
                 if (!s) return;
-                // 选中容器（或其子元素）时插进该容器；一层嵌套约束：容器里不能再放容器
-                var host = this.selTopEl;
+                // 0b：插进最近的容器语境——选中容器（任意深度）=进该容器；
+                // 选中容器内叶子=进其直接父容器；其余落回列尾。
+                var host = null;
+                var hostSubPath = [];
+                var deepSel = this.selEl;
+                if (deepSel && this.elSchema(deepSel.type).container) {
+                    host = deepSel;
+                    hostSubPath = this.selectedSubPath.slice();
+                } else if (this.selectedSubPath.length && this.selTopEl) {
+                    host = this.subPathParent(this.selectedSi, this.selectedCi, this.selectedEi, this.selectedSubPath);
+                    hostSubPath = this.selectedSubPath.slice(0, -1);
+                }
                 if (host && this.elSchema(host.type).container) {
                     if (!this.canNestElement(host, node)) {
                         this.toast(this.isLoopTemplateHost(host) ? <?php echo json_encode(__('blox_loop_child_invalid'), JSON_UNESCAPED_UNICODE); ?> : this.uiText.noNestedContainer);
@@ -8343,7 +8216,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                     host.data.children = host.data.children || [];
                     if (this.isHomeBannerHost(host)) host.data.items_mode = "custom";
                     host.data.children.push(node);
-                    this.selectChild(this.selectedSi, this.selectedCi, this.selectedEi, host.data.children.length - 1, false);
+                    this.selectDescendant(this.selectedSi, this.selectedCi, this.selectedEi,
+                        hostSubPath.concat(host.data.children.length - 1), false);
                     this.toast(this.uiText.insertedContainer.replace(":label", label || this.uiText.elementWord));
                     return;
                 }
@@ -8375,11 +8249,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                     return true;
                 }
                 if (target.kind === "container") {
+                    // 0b：容器落点接受任意深度路径（最深 9 段——第 8 层容器不能再收子级）
                     var hostParts = String(target.path || "").split(".").map(function (value) { return parseInt(value, 10); });
-                    if (hostParts.length !== 3 || hostParts.some(function (value) { return isNaN(value); })) return false;
-                    var hostSection = this.sections[hostParts[0]];
-                    var hostColumn = hostSection && hostSection.columns ? hostSection.columns[hostParts[1]] : null;
-                    var host = hostColumn && hostColumn.elements ? hostColumn.elements[hostParts[2]] : null;
+                    if (hostParts.length < 3 || hostParts.length > 9 || hostParts.some(function (value) { return isNaN(value); })) return false;
+                    var host = this.elementAtPath(hostParts.join("."));
                     if (!host || !this.elSchema(host.type).container) return false;
                     if (!this.canNestElement(host, node)) {
                         this.toast(this.isLoopTemplateHost(host) ? <?php echo json_encode(__('blox_loop_child_invalid'), JSON_UNESCAPED_UNICODE); ?> : this.uiText.noNestedContainer);
@@ -8388,30 +8261,35 @@ $canManageBloxDesign = hasPermission('blox_global');
                     host.data.children = host.data.children || [];
                     if (this.isHomeBannerHost(host)) host.data.items_mode = "custom";
                     host.data.children.push(node);
-                    this.selectChild(hostParts[0], hostParts[1], hostParts[2], host.data.children.length - 1, false);
+                    this.selectDescendant(hostParts[0], hostParts[1], hostParts[2],
+                        hostParts.slice(3).concat(host.data.children.length - 1), false);
                     this.toast(this.uiText.insertedContainer.replace(":label", label || this.uiText.elementWord));
                     return true;
                 }
                 if (target.kind !== "element") return false;
                 var parts = String(target.path || "").split(".").map(function (value) { return parseInt(value, 10); });
-                if (parts.length < 3 || parts.length > 4 || parts.some(function (value) { return isNaN(value); })) return false;
+                if (parts.length < 3 || parts.length > 10 || parts.some(function (value) { return isNaN(value); })) return false;
                 si = parts[0];
                 ci = parts[1];
                 var targetSection = this.sections[si];
                 var targetColumn = targetSection && targetSection.columns ? targetSection.columns[ci] : null;
                 if (!targetColumn) return false;
                 var position = target.position === "before" ? "before" : "after";
-                if (parts.length === 4) {
-                    var parent = targetColumn.elements && targetColumn.elements[parts[2]];
+                if (parts.length >= 4) {
+                    // 0b：目标是容器内（任意深度）的子级——插到它的同层前/后
+                    var subPath = parts.slice(3);
+                    var parent = this.subPathParent(si, ci, parts[2], subPath);
                     var children = parent && parent.data ? (parent.data.children || []) : [];
-                    if (!parent || !this.elSchema(parent.type).container || !children[parts[3]]) return false;
+                    var slot = subPath[subPath.length - 1];
+                    if (!parent || !this.elSchema(parent.type).container || !children[slot]) return false;
                     if (!this.canNestElement(parent, node)) {
                         this.toast(this.isLoopTemplateHost(parent) ? <?php echo json_encode(__('blox_loop_child_invalid'), JSON_UNESCAPED_UNICODE); ?> : this.uiText.noNestedContainer);
                         return true;
                     }
-                    var childIndex = parts[3] + (position === "before" ? 0 : 1);
+                    var childIndex = slot + (position === "before" ? 0 : 1);
                     children.splice(Math.min(children.length, childIndex), 0, node);
-                    this.selectChild(si, ci, parts[2], Math.min(children.length - 1, childIndex), false);
+                    this.selectDescendant(si, ci, parts[2],
+                        subPath.slice(0, -1).concat(Math.min(children.length - 1, childIndex)), false);
                     this.toast((position === "before" ? this.uiText.insertedBefore : this.uiText.insertedAfter).replace(":label", label || this.uiText.elementWord));
                     return true;
                 }

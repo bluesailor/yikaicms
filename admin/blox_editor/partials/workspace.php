@@ -2633,6 +2633,26 @@ declare(strict_types=1);
                                             <template x-for="n in 12" :key="'tspan'+n"><option :value="n" x-text="n + '/12'"></option></template>
                                         </select>
                                     </div>
+                                    <div x-show="sel.columns.length > 1">
+                                        <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_span_mobile') ?></label>
+                                        <select class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm"
+                                                data-testid="blox-column-span-mobile"
+                                                :value="columnSpanM(selectedCol()) === null ? '' : columnSpanM(selectedCol())"
+                                                @change="setColumnSpanM($event.target.value)">
+                                            <option value=""><?= e(__('blox_span_mobile_stack')) ?></option>
+                                            <template x-for="n in 12" :key="'mspan'+n"><option :value="n" x-text="n + '/12'"></option></template>
+                                        </select>
+                                    </div>
+                                    <div x-show="sel.columns.length > 1 && wideTierEnabled()">
+                                        <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_span_wide') ?></label>
+                                        <select class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm"
+                                                data-testid="blox-column-span-wide"
+                                                :value="columnSpanW(selectedCol()) === null ? '' : columnSpanW(selectedCol())"
+                                                @change="setColumnSpanW($event.target.value)">
+                                            <option value=""><?= e(__('blox_inherit_desktop')) ?></option>
+                                            <template x-for="n in 12" :key="'wspan'+n"><option :value="n" x-text="n + '/12'"></option></template>
+                                        </select>
+                                    </div>
                                     <div :class="sel.columns.length > 1 && !sel.settings.tablet_stack ? '' : 'blox-property-span-full'">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_visible_devices') ?></label>
                                         <div class="flex gap-1">
@@ -3297,47 +3317,105 @@ declare(strict_types=1);
                                                         </div>
                                                     </div>
                                                 </template>
-                                                <!-- 容器：子元素嵌套一层（图层式） -->
+                                                <!-- 容器：子元素树（0b 起随嵌套容器递归到 7 层子级；层级 1 保留全部既有交互锚点） -->
+                                                <?php
+                                                // 深层（2..7）子树由此闭包生成：点选/右键/上下移/删除/同层拖拽排序可用；
+                                                // 跨层拖放与画布 palette 落点在容器互嵌开闸批次补。
+                                                $bloxChildTreeLevel = function (int $level) use (&$bloxChildTreeLevel, $jt): string {
+                                                    if ($level > 7) {
+                                                        return '';
+                                                    }
+                                                    $parentVar = $level === 2 ? 'cel' : 'cel' . ($level - 1);
+                                                    $var = 'cel' . $level;
+                                                    $idx = 'cei' . $level;
+                                                    $indices = ['cei'];
+                                                    for ($i = 2; $i <= $level; $i++) {
+                                                        $indices[] = 'cei' . $i;
+                                                    }
+                                                    $subPath = '[' . implode(', ', $indices) . ']';
+                                                    $ownerPath = '[' . implode(', ', array_slice($indices, 0, -1)) . ']';
+                                                    $kids = '((' . $parentVar . '.data || {}).children || [])';
+                                                    $emptyText = e($jt('blox_empty_container'));
+                                                    $moveUp = e(__('blox_ctx_move_up'));
+                                                    $moveDown = e(__('blox_ctx_move_down'));
+                                                    $deleteLabel = e(__('delete'));
+                                                    return <<<HTML
+                                                <template x-if="elSchema({$parentVar}.type).container">
+                                                    <div class="ml-3 pl-1.5 border-l border-gray-200" :data-si="si" :data-ci="ci" :data-ei="ei"
+                                                         data-sort-children :data-sub-path="JSON.stringify({$ownerPath})">
+                                                        <template x-if="{$kids}.length === 0">
+                                                            <p class="text-[10px] text-gray-300 pl-2 py-0.5" x-text="{$emptyText}"></p>
+                                                        </template>
+                                                        <template x-for="({$var}, {$idx}) in {$kids}" :key="{$var}.id">
+                                                            <div data-sort-child-item :data-item-id="{$var}.id" :data-element-type="{$var}.type"
+                                                                 :data-multi-selected="isMultiSelected({$var}.id) ? '1' : '0'">
+                                                                <div data-child-drag-handle @click.stop="treeChildClickAt(\$event, si, ci, ei, {$subPath})"
+                                                                     @contextmenu.prevent.stop="openCtx(\$event, 'child', {si: si, ci: ci, ei: ei, cei: cei, subPath: {$subPath}})"
+                                                                     class="blox-tree-drop-node flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/cel transition"
+                                                                     :class="isMultiSelected({$var}.id) ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-300' : (isDescendantSelected(si, ci, ei, {$subPath}) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
+                                                                    <i class="ti text-xs shrink-0" :class="'ti-' + elIcon({$var}.type)"></i>
+                                                                    <span class="text-xs truncate flex-1" x-text="elLabel({$var})"></span>
+                                                                    <span class="hidden group-hover/cel:flex items-center gap-0.5 shrink-0">
+                                                                        <button type="button" @click.stop="moveNodeAt(si, ci, ei, {$subPath}, -1)" :disabled="{$idx}===0"
+                                                                                class="p-0.5 hover:text-blue-600 disabled:opacity-25" title="{$moveUp}">
+                                                                            <i class="ti ti-arrow-up text-xs"></i></button>
+                                                                        <button type="button" @click.stop="moveNodeAt(si, ci, ei, {$subPath}, 1)" :disabled="{$idx}==={$kids}.length-1"
+                                                                                class="p-0.5 hover:text-blue-600 disabled:opacity-25" title="{$moveDown}">
+                                                                            <i class="ti ti-arrow-down text-xs"></i></button>
+                                                                        <button type="button" @click.stop="deleteNodeAt(si, ci, ei, {$subPath})"
+                                                                                class="p-0.5 hover:text-red-500" title="{$deleteLabel}">
+                                                                            <i class="ti ti-trash text-xs"></i></button>
+                                                                    </span>
+                                                                </div>
+                                                                {$bloxChildTreeLevel($level + 1)}
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+HTML;
+                                                };
+                                                ?>
                                                 <template x-if="elSchema(el.type).container && (el.type !== 'home-block' || String((el.data || {}).block_type || '') === 'banner')">
-                                                    <div class="ml-3 pl-1.5 border-l border-gray-200" :data-si="si" :data-ci="ci" :data-ei="ei" data-sort-children>
+                                                    <div class="ml-3 pl-1.5 border-l border-gray-200" :data-si="si" :data-ci="ci" :data-ei="ei" data-sort-children data-sub-path="[]">
                                                         <template x-if="(el.data.children || []).length === 0">
                                                             <p class="text-[10px] text-gray-300 pl-2 py-0.5" x-text="el.type === 'list-dynamic' ? <?php echo htmlspecialchars(json_encode(__('blox_loop_template_empty'), JSON_UNESCAPED_UNICODE), ENT_QUOTES); ?> : (el.type === 'home-block' ? homeDynamicText.inherit : <?= e($jt('blox_empty_container')) ?>)"></p>
                                                         </template>
                                                         <template x-for="(cel, cei) in (el.data.children || [])" :key="cel.id">
-                                                            <div data-child-drag-handle @click.stop="treeChildClick($event, si, ci, ei, cei)"
-                                                                 @contextmenu.prevent.stop="openCtx($event, 'child', {si: si, ci: ci, ei: ei, cei: cei})"
-                                                                 @dragover="treeChildDragOver($event, si, ci, ei, cei)"
-                                                                 @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
-                                                                 :data-item-id="cel.id" :data-element-type="cel.type"
-                                                                 :data-multi-selected="isMultiSelected(cel.id) ? '1' : '0'"
-                                                                 data-sort-child-item
-                                                                 class="blox-tree-drop-node flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/cel transition"
-                                                                 :class="isMultiSelected(cel.id) ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-300' : (isChildSelected(si,ci,ei,cei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
-                                                                <i class="ti text-xs shrink-0" :class="'ti-' + elIcon(cel.type)"></i>
-                                                                <span class="text-xs truncate flex-1" x-text="elLabel(cel)"></span>
-                                                                <span class="hidden group-hover/cel:flex items-center gap-0.5 shrink-0">
-                                                                    <button type="button" @click.stop="moveChild(si,ci,ei,cei,-1)" :disabled="cei===0"
-                                                                            class="p-0.5 hover:text-blue-600 disabled:opacity-25" title="<?= e(__('blox_ctx_move_up')) ?>">
-                                                                        <i class="ti ti-arrow-up text-xs"></i></button>
-                                                                    <button type="button" @click.stop="moveChild(si,ci,ei,cei,1)" :disabled="cei===(el.data.children||[]).length-1"
-                                                                            class="p-0.5 hover:text-blue-600 disabled:opacity-25" title="<?= e(__('blox_ctx_move_down')) ?>">
-                                                                        <i class="ti ti-arrow-down text-xs"></i></button>
-                                                                    <button type="button" @click.stop="deleteChild(si,ci,ei,cei)"
-                                                                            class="p-0.5 hover:text-red-500" title="<?= e(__('delete')) ?>">
-                                                                        <i class="ti ti-trash text-xs"></i></button>
-                                                                </span>
-                                                                <span x-cloak x-show="treeDropMatches('child:' + si + '.' + ci + '.' + ei + '.' + cei + ':before')"
-                                                                      class="blox-tree-drop-line is-before" data-testid="blox-tree-drop-indicator"
-                                                                      :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
-                                                                      data-drop-intent="before" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
-                                                                    <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
-                                                                </span>
-                                                                <span x-cloak x-show="treeDropMatches('child:' + si + '.' + ci + '.' + ei + '.' + cei + ':after')"
-                                                                      class="blox-tree-drop-line is-after" data-testid="blox-tree-drop-indicator"
-                                                                      :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
-                                                                      data-drop-intent="after" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
-                                                                    <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
-                                                                </span>
+                                                            <div data-sort-child-item :data-item-id="cel.id" :data-element-type="cel.type"
+                                                                 :data-multi-selected="isMultiSelected(cel.id) ? '1' : '0'">
+                                                                <div data-child-drag-handle @click.stop="treeChildClick($event, si, ci, ei, cei)"
+                                                                     @contextmenu.prevent.stop="openCtx($event, 'child', {si: si, ci: ci, ei: ei, cei: cei})"
+                                                                     @dragover="treeChildDragOver($event, si, ci, ei, cei)"
+                                                                     @dragleave="treeDragLeave($event)" @drop="treeDrop($event)"
+                                                                     class="blox-tree-drop-node flex items-center gap-1.5 pl-2 pr-1 py-1 rounded cursor-pointer group/cel transition"
+                                                                     :class="isMultiSelected(cel.id) ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-300' : (isChildSelected(si,ci,ei,cei) ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600')">
+                                                                    <i class="ti text-xs shrink-0" :class="'ti-' + elIcon(cel.type)"></i>
+                                                                    <span class="text-xs truncate flex-1" x-text="elLabel(cel)"></span>
+                                                                    <span class="hidden group-hover/cel:flex items-center gap-0.5 shrink-0">
+                                                                        <button type="button" @click.stop="moveChild(si,ci,ei,cei,-1)" :disabled="cei===0"
+                                                                                class="p-0.5 hover:text-blue-600 disabled:opacity-25" title="<?= e(__('blox_ctx_move_up')) ?>">
+                                                                            <i class="ti ti-arrow-up text-xs"></i></button>
+                                                                        <button type="button" @click.stop="moveChild(si,ci,ei,cei,1)" :disabled="cei===(el.data.children||[]).length-1"
+                                                                                class="p-0.5 hover:text-blue-600 disabled:opacity-25" title="<?= e(__('blox_ctx_move_down')) ?>">
+                                                                            <i class="ti ti-arrow-down text-xs"></i></button>
+                                                                        <button type="button" @click.stop="deleteChild(si,ci,ei,cei)"
+                                                                                class="p-0.5 hover:text-red-500" title="<?= e(__('delete')) ?>">
+                                                                            <i class="ti ti-trash text-xs"></i></button>
+                                                                    </span>
+                                                                    <span x-cloak x-show="treeDropMatches('child:' + si + '.' + ci + '.' + ei + '.' + cei + ':before')"
+                                                                          class="blox-tree-drop-line is-before" data-testid="blox-tree-drop-indicator"
+                                                                          :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                                          data-drop-intent="before" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                                                        <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                                                                    </span>
+                                                                    <span x-cloak x-show="treeDropMatches('child:' + si + '.' + ci + '.' + ei + '.' + cei + ':after')"
+                                                                          class="blox-tree-drop-line is-after" data-testid="blox-tree-drop-indicator"
+                                                                          :class="treeDropIntent && !treeDropIntent.valid ? 'is-invalid' : ''"
+                                                                          data-drop-intent="after" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'">
+                                                                        <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
+                                                                    </span>
+                                                                </div>
+                                                                <?= $bloxChildTreeLevel(2) ?>
                                                             </div>
                                                         </template>
                                                     </div>

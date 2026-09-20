@@ -7,6 +7,12 @@ final class BloxDocumentValidator
 {
     private const MAX_ELEMENTS = 2000;
 
+    /**
+     * 元素树最大层级（顶层元素=第 1 层）。0b：渲染端不再静默截断，
+     * 深度约束统一由这里显式拒绝，BlockRenderer 引用同一常量做坏数据兜底。
+     */
+    public const MAX_ELEMENT_DEPTH = 8;
+
     /** @param array<int,mixed> $sections */
     public static function assertValidSections(array $sections): void
     {
@@ -54,10 +60,14 @@ final class BloxDocumentValidator
         string $path,
         ?array $parentRule,
         array &$ids,
-        int &$elementCount
+        int &$elementCount,
+        int $depth = 1
     ): void {
         if (!is_array($node)) {
             throw new RuntimeException(__('blox_doc_node_invalid', ['path' => $path]));
+        }
+        if ($depth > self::MAX_ELEMENT_DEPTH) {
+            throw new RuntimeException(__('blox_doc_depth_exceeded', ['path' => $path, 'max' => self::MAX_ELEMENT_DEPTH]));
         }
         $elementCount++;
         if ($elementCount > self::MAX_ELEMENTS) {
@@ -108,7 +118,8 @@ final class BloxDocumentValidator
                 $path . ' / ' . __('blox_child_word', ['n' => $childIndex + 1]),
                 $childParentRule,
                 $ids,
-                $elementCount
+                $elementCount,
+                $depth + 1
             );
         }
     }
