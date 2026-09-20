@@ -71,6 +71,8 @@ final class TextElement extends AbstractElement
             $html = '<p>' . e($value) . '</p>';
         } else {
             $html = DynamicSiteData::interpolateHtml($html);
+            // v1.24 动态标签：HTML 落点，解析值先 e() 再代入（值不可信）
+            $html = BloxDynamicTags::resolveHtml($html);
         }
         $radiusKey = is_string($data['radius'] ?? null) ? $data['radius'] : 'none';
         $radius = ['none' => '', 'md' => ' rounded-lg', 'xl' => ' rounded-2xl'][$radiusKey] ?? '';

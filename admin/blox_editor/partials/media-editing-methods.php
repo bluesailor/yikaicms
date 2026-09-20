@@ -4,7 +4,10 @@ declare(strict_types=1);
             siteTagTarget: "",
             siteTagSearch: "",
             siteDynamicOptions(links) {
-                return links ? <?= json_encode(DynamicSiteData::tagOptions(true), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?> : <?= json_encode(DynamicSiteData::tagOptions(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
+                // 单花括号站点标签 + 双花括号上下文标签（v1.24）合并为一个候选面板
+                return links
+                    ? <?= json_encode(DynamicSiteData::tagOptions(true) + BloxDynamicTags::tagOptions(true), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>
+                    : <?= json_encode(DynamicSiteData::tagOptions() + BloxDynamicTags::tagOptions(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
             },
             openSiteTags(key) {
                 var target = this.selEl.id + ':' + key;
@@ -24,7 +27,9 @@ declare(strict_types=1);
                 var value = String(this.selEl.data[key] || '');
                 var start = input && input.selectionStart !== null ? input.selectionStart : value.length;
                 var end = input && input.selectionEnd !== null ? input.selectionEnd : start;
-                if (start > 0 && value[start - 1] === '{') start--;
+                // 触发字符回收：最多吃掉两个前导 { （用户可能连敲出 {{ 再选双花括号标签）
+                var trimmedBraces = 0;
+                while (start > 0 && value[start - 1] === '{' && trimmedBraces < 2) { start--; trimmedBraces++; }
                 this.selEl.data[key] = value.slice(0, start) + tag + value.slice(end);
                 this.siteTagTarget = '';
                 this.$nextTick(function () {
