@@ -28,6 +28,7 @@ function fixture(overrides = {}) {
         onDrop: function (payload) { calls.push(["drop", payload.dropId]); },
         onTemplateDrop: function (payload) { calls.push(["template-drop", payload.key, payload.index, payload.dropId]); },
         onColumnRatio: function (payload) { calls.push(["ratio", payload]); },
+        onGapDrag: function (payload) { calls.push(["gap", payload]); },
         onContext: function (payload) { calls.push(["context", payload]); },
         onInlineEdit: function (payload) { calls.push(["inline", payload.value]); },
     }, overrides));
@@ -389,3 +390,23 @@ test("画布 Escape 上报清空多选", function () {
     assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEscape: "yes" } }), false);
     assert.equal(escapes.length, 1);
 });
+
+// v1.29 间距拖拽载荷：路径形态 + 0–160 整数；越界/浮点/坏路径整体拒绝
+test('gap drag payload enforces element path and clamped integer value', function () {
+    const current = fixture();
+    for (const bad of [
+        { path: '0.0', value: 12 },          // 路径不足 3 段
+        { path: '0.0.1', value: 999 },       // 超上限
+        { path: '0.0.1', value: -1 },        // 负值
+        { path: '0.0.1', value: 12.5 },      // 非整数
+        { path: 'x.y.z', value: 12 },        // 坏路径
+        'junk',
+    ]) {
+        assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykGapDrag: bad } }), false);
+    }
+    assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: {
+        ykGapDrag: { path: '0.0.1.2', value: 24, ignored: true },
+    } }), true);
+    assert.deepEqual(current.calls, [["gap", { path: '0.0.1.2', value: 24 }]]);
+});
+
