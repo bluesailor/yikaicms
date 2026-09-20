@@ -39,9 +39,9 @@ final class BloxFeaturePolicyTest extends TestCase
 
     public function testReleasePolicyLicensesTheProFeaturesAndKeepsUnknownFeaturesClosed(): void
     {
-        // v1.20.1 起五项作者端能力为 licensed（易开网页构建器 Pro，插件经插件市场受控分发）。
+        // v1.20.1 起五项作者端能力为 licensed；v1.23 增补 global_classes（渲染免费、创建与管理付费）。
         $policy = require ROOT_PATH . '/config/blox-feature-policy.php';
-        self::assertSame(['query_loop' => 'licensed', 'display_conditions' => 'licensed', 'style_presets' => 'licensed', 'table' => 'licensed', 'pricing' => 'licensed'], $policy);
+        self::assertSame(['query_loop' => 'licensed', 'display_conditions' => 'licensed', 'style_presets' => 'licensed', 'table' => 'licensed', 'pricing' => 'licensed', 'global_classes' => 'licensed'], $policy);
         self::assertFalse(BloxFeaturePolicy::allows('unknown'));
     }
 
@@ -61,7 +61,8 @@ final class BloxFeaturePolicyTest extends TestCase
         self::assertStringContainsString("displayConditionsEnabled: <?php echo !empty(\$professionalFeatures['display_conditions']['allowed'])", $editor);
         $professionalUi = (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxProfessionalUi.php');
         self::assertStringContainsString('BloxFeaturePolicy::allows($feature) && $moduleLoaded', $professionalUi);
-        self::assertStringContainsString("public const MODULE_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing'];", $professionalUi);
+        // v1.23 起第六个作者端模块能力：global_classes（不进 PROTECTED_FEATURES，挂类无冻结需求）
+        self::assertStringContainsString("public const MODULE_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing', 'global_classes'];", $professionalUi);
         self::assertStringContainsString("\$advancedQueryLoopEnabled = !empty(\$professionalFeatures['query_loop']['allowed']);", $editor);
         self::assertStringContainsString("stylePresetsEnabled: <?php echo !empty(\$professionalFeatures['style_presets']['allowed'])", $editor);
         $source = (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxFeaturePolicy.php');

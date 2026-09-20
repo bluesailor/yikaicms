@@ -1208,6 +1208,8 @@ declare(strict_types=1);
                                 <div class="rounded border border-gray-200 bg-gray-50 p-3 space-y-3">
                                     <?php // 全局命名样式选择由 yikai-builder 作者端模块输出 ?>
                                     <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_style_preset'); ?>
+                                    <?php // 全局样式类（v1.23）挂类面板同样来自作者端模块 ?>
+                                    <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_global_classes'); ?>
                                     <div class="flex items-center justify-between">
                                         <span class="text-xs font-semibold text-gray-600 inline-flex items-center gap-1.5">
                                             <i class="ti ti-box-margin text-sm text-blue-500"></i>
