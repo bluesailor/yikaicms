@@ -22,6 +22,9 @@ final class BloxLoopQuery
     /** @var array<string,array{rows:array<int,array<string,mixed>>,pagination:string}> 同请求查询复用（杜绝同页同查询 N+1） */
     private static array $memo = [];
 
+    /** @var int 本请求已写的失败日志条数（限流：循环页不刷爆错误日志） */
+    private static int $loggedFailures = 0;
+
     /**
      * current 源（v1.25）的请求级上下文：列表页入口（list.php）在渲染栏目 Blox 文档
      * 前设置、渲染后清空。键：channel（当前请求的栏目行，可能是子栏目）、
@@ -41,6 +44,21 @@ final class BloxLoopQuery
     {
         self::$memo = [];
         self::$currentContext = null;
+        self::$loggedFailures = 0;
+    }
+
+    /**
+     * 查询异常的限流日志（外审 P2-5）：前台保持 fail-open 空态，但数据库回归
+     * 不能伪装成普通空列表——排查要有踪迹。每请求最多 3 条，避免循环页刷爆日志。
+     */
+    private static function logFailure(Throwable $e, array $attrs): void
+    {
+        if (self::$loggedFailures >= 3) {
+            return;
+        }
+        self::$loggedFailures++;
+        error_log('[BloxLoopQuery] query failed, rendering empty state (source='
+            . (string) ($attrs['source'] ?? ($attrs['type'] ?? '?')) . '): ' . $e->getMessage());
     }
 
     /** 归一元素 data 上的 `_query`：非法整体删除（安全边界——值决定查询与分页参数）。 */
@@ -206,7 +224,9 @@ final class BloxLoopQuery
                         ? TagEngine::tagListPagination($attrs, null)
                         : '',
                 ];
-            } catch (Throwable) {
+            } catch (Throwable $e) {
+                // 外审 P2-5：数据库回归不能伪装成普通空态——留限流日志再 fail-open
+                self::logFailure($e, $attrs);
                 self::$memo[$memoKey] = ['rows' => [], 'pagination' => ''];
             }
         }

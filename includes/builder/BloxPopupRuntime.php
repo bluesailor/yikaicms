@@ -33,7 +33,9 @@ final class BloxPopupRuntime
             $json = (string) ($row['published_data'] ?? '');
             $document = BloxPopupDocument::decode($json);
             $body = BlockRenderer::render($json);
-            if ($body === '') {
+            // 空输出守门（外审 P2-4，与 error404/search/archive 同源判定）：
+            // 纯包装文档不产出遮罩，也不登记弹窗资产
+            if (!BlockRenderer::hasMeaningfulOutput($body)) {
                 return;
             }
             BloxAssetCollector::addStyle('/assets/css/blox-popup.css');
