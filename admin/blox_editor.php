@@ -343,20 +343,28 @@ if ($isHomeBlox) {
     } elseif ($templateType === 'article-detail') {
         $languages = availableLanguages();
         $storedScope = BloxDocumentPipeline::decode($initBlocks)['settings']['detail_template'] ?? [];
+        // v1.26 Single 扩自定义模型：判定用内容类型来自存储作用域（注册核对在
+        // contentTypeForTemplate，未注册回落 article）；样本/目标清单/条件面板全按它取
+        $articleContentType = DetailTemplateProvider::contentTypeForTemplate(
+            'article-detail',
+            is_array($storedScope) ? ($storedScope['content_type'] ?? null) : null
+        );
         $requestedLanguage = get('article_lang', (string) ($storedScope['lang'] ?? config('site_lang', 'zh-CN')));
         $articlePreviewLanguage = is_string($requestedLanguage) && isset($languages[$requestedLanguage])
             ? $requestedLanguage : (string) config('site_lang', 'zh-CN');
-        // 样本只列已发布且同语言的文章；与产品分支同口径
-        $canReadDetailSamples = hasPermission('edit_article');
+        // 样本只列已发布且同语言同类型的内容；与产品分支同口径（自定义模型权限同 content.php 映射）
+        $canReadDetailSamples = hasPermission(
+            in_array($articleContentType, contentPermTypes(), true) ? 'edit_' . $articleContentType : 'edit_article'
+        );
         $articlePreviewItems = $canReadDetailSamples ? array_values(array_filter(
-            contentModel()->getList(0, 100, 0, ['lang' => $articlePreviewLanguage, 'type' => 'article']),
+            contentModel()->getList(0, 100, 0, ['lang' => $articlePreviewLanguage, 'type' => $articleContentType]),
             static fn(array $row): bool => ($row['lang'] ?? '') === $articlePreviewLanguage
-                && ($row['type'] ?? '') === 'article'
+                && ($row['type'] ?? '') === $articleContentType
         )) : [];
         $articlePreviewId = (int) ($articlePreviewItems[0]['id'] ?? 0);
         $previewEndpoint = '/admin/blox_preview.php?article_template=1&_lang=' . rawurlencode($articlePreviewLanguage) . '&template_id=' . (int) $templateId;
         // TASK-006：文章的分类即栏目；按预览语言取一次
-        $conditionContentType = 'article';
+        $conditionContentType = $articleContentType;
         $conditionLang = $articlePreviewLanguage;
         $conditionCategories = [];
         foreach (channelModel()->all() as $channelRow) {
@@ -621,11 +629,13 @@ if ($templateId && $templateType === 'product-detail') {
     }
 }
 if ($templateId && $templateType === 'article-detail') {
-    // 模板自身的类型/语言是这里补的：缺失时按本编辑器上下文补齐，而不是让条件变成不可用
+    // 模板自身的类型/语言是这里补的：缺失时按本编辑器上下文补齐，而不是让条件变成不可用。
+    // v1.26：类型经统一 IO 点归一（'' 或未注册模型 key → article），与样本/条件面板同源
     $articleScope = DetailTemplateResolver::normalizeScope($docSettings['detail_template'] ?? null);
-    if ($articleScope['content_type'] === '') {
-        $articleScope['content_type'] = 'article';
-    }
+    $articleScope['content_type'] = DetailTemplateProvider::contentTypeForTemplate(
+        'article-detail',
+        $articleScope['content_type']
+    );
     if ($articleScope['lang'] === '' || !isset(availableLanguages()[$articleScope['lang']])) {
         $articleScope['lang'] = $articlePreviewLanguage;
     }

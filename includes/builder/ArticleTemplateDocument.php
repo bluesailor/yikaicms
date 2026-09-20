@@ -67,10 +67,26 @@ final class ArticleTemplateDocument
      *
      * 注意 contents.type 与 channels.type 是两套词表：新闻子栏目的 channel_type 是 'list'，
      * 而内容自身的 type 才是 'article'（见 includes/functions.php 的 contentUrl() 注释）。
+     *
+     * v1.26 Single 扩自定义模型：**已注册**的自定义内容模型也走 article-detail 管线
+     * （模板条件的 content_type 维度区分，见 DetailTemplateResolver::TEMPLATE_TYPES 注释）。
+     * 注册核对在此（IO 层）完成——模型删除后其内容页立即回归原生输出，模板成休眠数据。
      */
     public static function supportsContentType(mixed $type): bool
     {
-        return is_string($type) && $type === 'article';
+        if (!is_string($type) || $type === '') {
+            return false;
+        }
+        if ($type === 'article') {
+            return true;
+        }
+        try {
+            return function_exists('contentModelModel')
+                && db()->tableExists('content_models')
+                && in_array($type, contentModelModel()->keys(), true);
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -88,6 +104,8 @@ final class ArticleTemplateDocument
 
         return [
             'id' => (int) ($content['id'] ?? 0),
+            // 内容真实类型（article / 自定义模型 key）：renderPublished 据此解析对应作用域的模板
+            'type' => (string) ($content['type'] ?? 'article'),
             'title' => (string) ($content['title'] ?? ''),
             'subtitle' => (string) ($content['subtitle'] ?? ''),
             'slug' => (string) ($content['slug'] ?? ''),
@@ -121,8 +139,11 @@ final class ArticleTemplateDocument
     public static function renderPublished(array $content): string
     {
         // Published output is independent of editor and download entitlements.
+        $contentType = is_string($content['type'] ?? null) && trim((string) $content['type']) !== ''
+            ? trim((string) $content['type'])
+            : 'article';
         try {
-            $resolution = DetailTemplateProvider::resolveFor('article', $content);
+            $resolution = DetailTemplateProvider::resolveFor($contentType, $content);
         } catch (Throwable $e) {
             error_log('[article-template] Resolve failed: ' . $e->getMessage());
             return '';
@@ -153,14 +174,18 @@ final class ArticleTemplateDocument
     /**
      * 「复制为自定义模板」的起始布局：标题 + 封面 + 正文，全部走动态字段绑定。
      * 默认不应用（include 为空 = 未应用），需要用户显式配置范围后才生效。
+     * $contentType：'article' 或已注册模型 key（v1.26；注册核对属调用方，非法形态回落 article）。
      */
-    public static function seed(string $language): string
+    public static function seed(string $language, string $contentType = 'article'): string
     {
+        if (preg_match(DetailTemplateResolver::MODEL_KEY_PATTERN, $contentType) !== 1) {
+            $contentType = 'article';
+        }
         return BloxDocumentPipeline::process(json_encode([
             'schema' => 1,
             'settings' => ['detail_template' => [
                 'version' => DetailTemplateResolver::VERSION,
-                'content_type' => 'article',
+                'content_type' => $contentType,
                 'lang' => $language,
                 'include' => [],
             ]],

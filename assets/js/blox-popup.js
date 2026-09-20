@@ -75,6 +75,20 @@
                 document.removeEventListener("mouseout", onExit);
                 open();
             });
+        } else if (trigger === "scroll") {
+            var depth = Math.min(100, Math.max(10, Number(root.dataset.scrollDepth || 50)));
+            var checkScroll = function () {
+                var doc = document.documentElement;
+                var scrollable = doc.scrollHeight - window.innerHeight;
+                // 页面比视口短：任何深度都视为已达（否则弹窗永远不出现）
+                var reached = scrollable <= 0
+                    || ((window.scrollY || doc.scrollTop || 0) / scrollable) * 100 >= depth;
+                if (!reached) return;
+                window.removeEventListener("scroll", checkScroll);
+                open();
+            };
+            window.addEventListener("scroll", checkScroll, { passive: true });
+            checkScroll();
         } else {
             window.setTimeout(function () { open(); }, Math.max(0, Number(root.dataset.delay || 0)) * 1000);
         }
