@@ -1333,6 +1333,34 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (feature === 'pricing') return !!this.selEl && this.selEl.type === 'pricing-table';
                 return !!this.conditionTarget();
             },
+            // UX：未解锁的专业功能按「状态+跳转」聚合成一条提示（三条相同文案重复三遍是噪音）
+            professionalFeatureLabels: <?php echo json_encode([
+                'query_loop' => __('blox_professional_dynamic'),
+                'display_conditions' => __('blox_professional_conditions'),
+                'style_presets' => __('blox_global_style'),
+                'global_classes' => __('blox_global_classes'),
+                'table' => __('blox_el_table'),
+                'pricing' => __('blox_el_pricing_table'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            lockedProfessionalGroups() {
+                var groups = {};
+                var self = this;
+                Object.keys(this.professionalFeatureLabels).forEach(function (feature) {
+                    var state = self.professionalFeatures[feature];
+                    if (!state || state.allowed || !self.professionalRelevant(feature)) return;
+                    var key = String(state.state || '') + '|' + String(state.url || '');
+                    if (!groups[key]) {
+                        groups[key] = { key: key, labels: [], message: state.message, url: state.url, action: state.action };
+                    }
+                    groups[key].labels.push(self.professionalFeatureLabels[feature]);
+                });
+                return Object.keys(groups).map(function (key) {
+                    var group = groups[key];
+                    group.names = group.labels.join(' · ');
+                    return group;
+                });
+            },
+
             openProfessionalFeature(feature) {
                 if (!this.professionalRelevant(feature) || !this.professionalFeatures[feature].allowed) return;
                 this.ctrlQuery = '';
