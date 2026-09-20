@@ -15,17 +15,32 @@ declare(strict_types=1);
 
 final class BloxLoopQuery
 {
-    public const SOURCE_PATTERN = '/^(?:type:[a-z][a-z0-9_-]{0,31}|channel:[1-9][0-9]{0,9})$/D';
+    public const SOURCE_PATTERN = '/^(?:type:[a-z][a-z0-9_-]{0,31}|channel:[1-9][0-9]{0,9}|current)$/D';
     private const ORDERS = ['default', 'recommend_first', 'newest', 'updated', 'views', 'price_asc', 'price_desc'];
     private const HOST_TYPES = ['container', 'div'];
 
     /** @var array<string,array{rows:array<int,array<string,mixed>>,pagination:string}> 同请求查询复用（杜绝同页同查询 N+1） */
     private static array $memo = [];
 
+    /**
+     * current 源（v1.25）的请求级上下文：列表页入口（list.php）在渲染栏目 Blox 文档
+     * 前设置、渲染后清空。键：channel（当前请求的栏目行，可能是子栏目）、
+     * keyword（当前搜索词）、category_id（产品分类页）、page_param（主列表分页参数，默认 page）。
+     * 无上下文（首页/详情/预览端点/编辑器）时 current 源渲染为空态，绝不退化为全量。
+     * @var array<string,mixed>|null
+     */
+    private static ?array $currentContext = null;
+
+    public static function setCurrentContext(?array $context): void
+    {
+        self::$currentContext = $context;
+    }
+
     /** @psalm-suppress PossiblyUnusedMethod 测试专用（单测进程共享请求级缓存时复位） */
     public static function resetForTests(): void
     {
         self::$memo = [];
+        self::$currentContext = null;
     }
 
     /** 归一元素 data 上的 `_query`：非法整体删除（安全边界——值决定查询与分页参数）。 */
@@ -222,6 +237,34 @@ final class BloxLoopQuery
             if (($query['cat'] ?? '') !== '') {
                 $attrs['cat'] = (string) $query['cat'];
             }
+        } elseif ($source === 'current') {
+            // 继承当前列表页的查询上下文（栏目/搜索词/主分页参数）。上下文由
+            // list.php 在渲染栏目 Blox 文档前设置；其余入口（首页/详情/预览/编辑器）
+            // 无上下文 → 空态，与未知栏目同款守卫。
+            $context = self::$currentContext;
+            $channel = is_array($context['channel'] ?? null) ? $context['channel'] : null;
+            if ($context === null || $channel === null || empty($channel['status'])) {
+                return null;
+            }
+            if ((string) ($channel['type'] ?? '') === 'product') {
+                $attrs['type'] = 'product';
+                $categoryId = (int) ($context['category_id'] ?? 0);
+                if ($categoryId > 0) {
+                    $attrs['cat'] = (string) $categoryId;
+                }
+            } else {
+                $type = self::channelContentType((string) ($channel['type'] ?? ''));
+                $attrs['type'] = preg_match('/^[a-z][a-z0-9_-]{0,31}$/', $type) ? $type : 'article';
+                $attrs['cat'] = (string) (int) ($channel['id'] ?? 0);
+            }
+            $contextKeyword = trim((string) ($context['keyword'] ?? ''));
+            if ($contextKeyword !== '') {
+                $attrs['keyword'] = mb_substr($contextKeyword, 0, 200);
+            }
+            if (($query['pagination'] ?? 'none') === 'numbers') {
+                // 与主列表共用同一分页参数：current 循环就是本页的列表本体
+                $attrs['page_param'] = (string) ($context['page_param'] ?? 'page');
+            }
         } else {
             return null;
         }
@@ -241,7 +284,8 @@ final class BloxLoopQuery
         if (!empty($query['filters']) && is_array($query['filters'])) {
             $attrs['_meta_filters'] = array_values($query['filters']);
         }
-        if (($query['pagination'] ?? 'none') === 'numbers' && $paginationParam !== '') {
+        if (($query['pagination'] ?? 'none') === 'numbers' && $paginationParam !== ''
+            && !isset($attrs['page_param'])) { // current 源已锁定主列表参数，不被节点派生参数覆盖
             $attrs['page_param'] = $paginationParam;
         }
         return $attrs;

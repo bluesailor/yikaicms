@@ -313,7 +313,15 @@ if ($hasPublishedProductBlox && is_array($productBloxContent)) {
         'filterPriceMin' => $filterPriceMin ?? '',
         'filterPriceMax' => $filterPriceMax ?? '',
     ]);
+    // 容器 Loop 的 current 源（v1.25）：继承本页查询上下文，渲染后清空
+    BloxLoopQuery::setCurrentContext([
+        'channel' => $channel,
+        'category_id' => (int) $productCategoryId,
+        'keyword' => $keyword,
+        'page_param' => 'page',
+    ]);
     echo renderFrontEditableContentBody($productBloxContent, (int) $productPageChannel['id']);
+    BloxLoopQuery::setCurrentContext(null);
     ProductCatalogElement::setRuntimeContext(null);
     require_once theme_path('layouts/footer.php');
     HtmlCache::end();
@@ -330,11 +338,18 @@ if ($hasPublishedContentListBlox && $contentListPageChannel) {
         'perPage' => $perPage,
         'total' => (int) ($total ?? 0),
     ]);
+    // 容器 Loop 的 current 源（v1.25）：继承本页查询上下文，渲染后清空
+    BloxLoopQuery::setCurrentContext([
+        'channel' => $channel,
+        'keyword' => $keyword,
+        'page_param' => 'page',
+    ]);
     echo renderFrontEditableContentBody([
         'content_type' => 'blocks',
         'blocks_data' => $contentListBloxJson,
         'content' => '',
     ], (int) $contentListPageChannel['id']);
+    BloxLoopQuery::setCurrentContext(null);
     ContentCatalogElement::setRuntimeContext(null);
     require_once theme_path('layouts/footer.php');
     HtmlCache::end();

@@ -216,6 +216,49 @@ final class BloxLoopQueryTest extends TestCase
         self::assertStringNotContainsString('ykq_ftest=3', $run['pagination']);
     }
 
+    /** current 源：继承 list.php 设置的请求级上下文；无上下文=空态（绝不全量）。 */
+    public function testCurrentSourceInheritsListPageContext(): void
+    {
+        $this->seedNews();
+        $this->insertRow('channels', ['name' => '案例', 'slug' => 'cases', 'type' => 'case']);
+        $this->insertRow('contents', ['channel_id' => 2, 'title' => 'Case A', 'type' => 'case']);
+
+        // 无上下文（首页/详情/预览/编辑器）：空态
+        self::assertSame([], BloxLoopQuery::run(['source' => 'current', 'limit' => 10], '')['rows']);
+
+        // 'list' 栏目上下文：经 channelContentType 映射按 article 取当前栏目行
+        BloxLoopQuery::setCurrentContext([
+            'channel' => ['id' => 1, 'type' => 'list', 'status' => 1],
+            'keyword' => '',
+            'page_param' => 'page',
+        ]);
+        BloxLoopQuery::resetForTests(); // resetForTests 连上下文一起清
+        self::assertSame([], BloxLoopQuery::run(['source' => 'current', 'limit' => 10], '')['rows']);
+
+        BloxLoopQuery::setCurrentContext([
+            'channel' => ['id' => 1, 'type' => 'list', 'status' => 1],
+            'keyword' => '',
+            'page_param' => 'page',
+        ]);
+        $run = BloxLoopQuery::run(['source' => 'current', 'limit' => 10], '');
+        self::assertSame(['First & Co', 'Second'], array_column($run['rows'], 'title'));
+
+        // 上下文关键词收敛结果；分页锁定主列表参数（不用节点派生的 ykq_*）
+        BloxLoopQuery::setCurrentContext([
+            'channel' => ['id' => 1, 'type' => 'list', 'status' => 1],
+            'keyword' => 'Second',
+            'page_param' => 'page',
+        ]);
+        $narrowed = BloxLoopQuery::run(
+            ['source' => 'current', 'limit' => 1, 'pagination' => 'numbers'],
+            'ykq_nodeparam'
+        );
+        self::assertSame(['Second'], array_column($narrowed['rows'], 'title'));
+        self::assertStringNotContainsString('ykq_nodeparam', $narrowed['pagination']);
+
+        BloxLoopQuery::setCurrentContext(null);
+    }
+
     public function testChannelSourceResolvesTypeAndUnknownChannelYieldsEmpty(): void
     {
         $this->seedNews();
