@@ -2304,6 +2304,7 @@ HTML;
         . '<link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">'
         . '<base target="_blank">'
         . BloxDesignSystem::styleTag()
+        . BloxGlobalClasses::styleTag()
         . $previewStyles
         . $headerOverlayPreview
         . '<style>body{margin:0;background:#fff}</style></head><body>'

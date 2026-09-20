@@ -125,9 +125,67 @@
         },
     };
 
+    // 全局样式类（v1.23）：目录数据（globalClasses）由核心提供；这里只做作者端交互。
+    // 挂类/摘类改的是 selEl.data._classes（随文档保存）；创建走 blox_class_api（服务端授权门）。
+    var globalClasses = {
+        newGlobalClassName: "",
+
+        elementClassIds() {
+            return this.selEl && Array.isArray(this.selEl.data._classes) ? this.selEl.data._classes : [];
+        },
+
+        globalClassLabel(classId) {
+            var found = (this.globalClasses || []).find(function (item) { return item.class_id === classId; });
+            return found ? found.name : classId;
+        },
+
+        availableClassOptions() {
+            var assigned = this.elementClassIds();
+            return (this.globalClasses || []).filter(function (item) {
+                return assigned.indexOf(item.class_id) === -1;
+            });
+        },
+
+        addElementClass(classId) {
+            classId = String(classId || "");
+            if (!this.selEl || !classId) return;
+            var list = this.elementClassIds().slice();
+            if (list.indexOf(classId) !== -1 || list.length >= 8) return;
+            list.push(classId);
+            this.selEl.data._classes = list;
+        },
+
+        removeElementClass(classId) {
+            if (!this.selEl) return;
+            var list = this.elementClassIds().filter(function (item) { return item !== classId; });
+            if (list.length) this.selEl.data._classes = list;
+            else delete this.selEl.data._classes;
+        },
+
+        createGlobalClass() {
+            var name = String(this.newGlobalClassName || "").trim();
+            if (!name || this._creatingClass) return;
+            this._creatingClass = true;
+            var body = new URLSearchParams({ action: "class_add", name: name, _token: this.csrf });
+            var self = this;
+            fetch("/admin/blox_class_api.php", { method: "POST", body: body })
+                .then(function (response) { return response.json(); })
+                .then(function (result) {
+                    if (!result || Number(result.code) !== 0 || !result.data || !result.data.class) {
+                        throw new Error((result && result.msg) || "error");
+                    }
+                    self.globalClasses = (self.globalClasses || []).concat([result.data.class]);
+                    self.newGlobalClassName = "";
+                    self.addElementClass(result.data.class.class_id);
+                })
+                .catch(function (error) { self.toast(String(error && error.message || error)); })
+                .finally(function () { self._creatingClass = false; });
+        },
+    };
+
     var editor = window.BloxProEditor || { modules: [], methods: {} };
     // query_loop 的作者端由服务端面板与控件开放状态提供，无额外交互方法。
-    editor.modules = (editor.modules || []).concat(["query_loop", "display_conditions", "style_presets"]);
-    editor.methods = Object.assign({}, editor.methods || {}, conditions, stylePresets);
+    editor.modules = (editor.modules || []).concat(["query_loop", "display_conditions", "style_presets", "global_classes"]);
+    editor.methods = Object.assign({}, editor.methods || {}, conditions, stylePresets, globalClasses);
     window.BloxProEditor = editor;
 })();

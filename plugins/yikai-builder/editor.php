@@ -8,7 +8,7 @@ if (!defined('ROOT_PATH')) exit('Access Denied');
  * BLOX Pro 作者端模块注册。只挂编辑器钩子，不参与保存校验或前台渲染：
  * 停用/删除插件后旧文档照常渲染、受保护字段照常保留，只是不再提供对应编辑面板。
  */
-const BLOX_PRO_EDITOR_MODULES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing'];
+const BLOX_PRO_EDITOR_MODULES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing', 'global_classes'];
 
 /** @return list<string> 本插件提供的作者端模块 */
 function blox_pro_editor_modules(): array
@@ -26,6 +26,8 @@ add_action('blox_editor_panel', static function (string $slot): void {
         require __DIR__ . '/editor/conditions-panel.php';
     } elseif ($slot === 'element_style_preset') {
         require __DIR__ . '/editor/style-preset-picker.php';
+    } elseif ($slot === 'element_global_classes') {
+        require __DIR__ . '/editor/global-class-picker.php';
     } elseif ($slot === 'element_loop_template') {
         require __DIR__ . '/editor/loop-template-card.php';
     } elseif ($slot === 'table_grid') {

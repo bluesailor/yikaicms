@@ -858,6 +858,7 @@ if ($isHomeBlox) {
 
 $businessIconPresets = BloxIcon::businessPresets();
 $bloxDesignSystem = BloxDesignSystem::snapshot();
+$bloxGlobalClasses = array_values(BloxGlobalClasses::catalog());
 $canManageBloxDesign = hasPermission('blox_global');
 ?>
 <!doctype html>
@@ -1326,6 +1327,8 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!this.professionalFeatures[feature] || !this.professionalFeatures[feature].visible) return false;
                 if (feature === 'query_loop') return !!this.selEl && (this.selEl.type === 'list-dynamic' || !!this.elSchema(this.selEl.type).hasProfessionalControls);
                 if (feature === 'style_presets') return !!this.selEl && this.supportsBoxStyles(this.selEl.type);
+                // 全局样式类与命名样式同区（common style）：任何支持盒样式的元素都可挂类
+                if (feature === 'global_classes') return !!this.selEl && this.supportsBoxStyles(this.selEl.type);
                 if (feature === 'table') return !!this.selEl && this.selEl.type === 'table';
                 if (feature === 'pricing') return !!this.selEl && this.selEl.type === 'pricing-table';
                 return !!this.conditionTarget();
@@ -1335,12 +1338,15 @@ $canManageBloxDesign = hasPermission('blox_global');
                 this.ctrlQuery = '';
                 this.modifiedOnly = false;
                 if (feature === 'display_conditions') this.panelTab = 'condition';
-                else if (feature === 'style_presets') { this.panelTab = 'style'; this.styleGroup = 'general'; }
+                else if (feature === 'style_presets' || feature === 'global_classes') { this.panelTab = 'style'; this.styleGroup = 'general'; }
                 else this.panelTab = 'professional';
             },
             // 能力可用且作者端模块已加载才开放条件面板；保存校验仍只看能力策略。
             displayConditionsEnabled: <?php echo !empty($professionalFeatures['display_conditions']['allowed']) ? 'true' : 'false'; ?>,
             stylePresetsEnabled: <?php echo !empty($professionalFeatures['style_presets']['allowed']) ? 'true' : 'false'; ?>,
+            // v1.23 全局样式类：目录数据免费可读（渲染语义），创建/管理由服务端授权门再拦一道
+            globalClassesEnabled: <?php echo !empty($professionalFeatures['global_classes']['allowed']) ? 'true' : 'false'; ?>,
+            globalClasses: <?php echo json_encode($bloxGlobalClasses, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             bannerPanelGroup: "common",
             styleGroup: "general",
             // TASK-003 D：搜索前的分组选择（清除搜索后恢复）；连同当时的选中元素一起记，避免切元素后串状态
