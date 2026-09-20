@@ -28,6 +28,8 @@ add_action('blox_editor_panel', static function (string $slot): void {
         require __DIR__ . '/editor/style-preset-picker.php';
     } elseif ($slot === 'element_global_classes') {
         require __DIR__ . '/editor/global-class-picker.php';
+    } elseif ($slot === 'element_loop_query') {
+        require __DIR__ . '/editor/loop-query-panel.php';
     } elseif ($slot === 'element_loop_template') {
         require __DIR__ . '/editor/loop-template-card.php';
     } elseif ($slot === 'table_grid') {
