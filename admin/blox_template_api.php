@@ -155,7 +155,7 @@ try {
             throw $e;
         }
         // v1.23 全局类用量反向索引：保存即整体替换本模板的引用行
-        BloxGlobalClasses::replaceDocumentRefs('template:' . $id, BloxGlobalClasses::collectReferences($processed['sections']));
+        BloxDocumentIndexes::update('template:' . $id, $processed['sections']);
         adminLog('blox_template', 'save_draft', '保存 Blox 模板草稿 #' . $id);
         success([
             'id' => $id,
