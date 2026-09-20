@@ -22,6 +22,7 @@ require_once __DIR__ . '/BloxPluginRegistry.php';
 require_once __DIR__ . '/BloxAssetCollector.php';
 require_once __DIR__ . '/DynamicListItemSchema.php';
 require_once __DIR__ . '/DynamicSiteData.php';
+require_once __DIR__ . '/BloxDynamicTags.php';   // 动态标签 {{provider.field}}（v1.24）
 require_once __DIR__ . '/SiteCopyrightSettings.php';
 require_once __DIR__ . '/ProductTemplateDocument.php';
 require_once __DIR__ . '/DetailTemplateResolver.php';   // 详情模板条件判定（v2 纯判定层，自包含无依赖）
