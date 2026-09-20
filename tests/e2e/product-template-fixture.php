@@ -62,6 +62,32 @@ if ($action === 'products') {
     }
     if ($action === 'read') echo json_encode($row, JSON_THROW_ON_ERROR);
     else { db()->delete('blox_templates', 'id = ?', [$id]); HtmlCache::invalidate(); }
+} elseif ($action === 'inject-empty-lists') {
+    // list-dynamic 冻结（2026-09-20）后 palette 无新增入口：空态交付用例的两个
+    // 动态列表（message/hidden）由 fixture 直接写进 TB-R2 模板草稿（存量形态）。
+    // 参数：$argv[3]=kind（article|product）、$argv[4]=label 前缀（进 empty 文案）
+    $row = bloxTemplateModel()->findForExport($id);
+    if (!in_array($row['type'] ?? '', ['product-detail', 'article-detail'], true) || !str_starts_with((string) ($row['name'] ?? ''), 'TB-R2 ')) {
+        throw new RuntimeException('Test template required');
+    }
+    $kind = ($argv[3] ?? '') === 'product' ? 'product' : 'article';
+    // 空态文案形状与 spec 断言一致：TB-R2 <mode> <suffix>（suffix = "kind language"）
+    $suffix = (string) ($argv[4] ?? '');
+    $document = BloxDocumentPipeline::decode((string) $row['draft_data']);
+    foreach (['message', 'hidden'] as $mode) {
+        $document['sections'][] = ['columns' => [['elements' => [[
+            'type' => 'list-dynamic',
+            'data' => [
+                'query_source' => 'type:' . $kind,
+                'keyword' => 'TB-R2-ABSENT-934691',
+                'empty' => trim('TB-R2 ' . $mode . ' ' . $suffix),
+                'empty_mode' => $mode,
+            ],
+        ]]]]];
+    }
+    $json = BloxDocumentPipeline::process(json_encode($document, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'tpl' . $id)['json'];
+    bloxTemplateModel()->updateDraft($id, $json, []);
+    echo $json;
 } elseif ($action === 'scope') {
     // 直接写入 TB-R2 测试模板的草稿条件（如 native、缺失引用），并经真实文档管道归一化
     $row = bloxTemplateModel()->findForExport($id);
