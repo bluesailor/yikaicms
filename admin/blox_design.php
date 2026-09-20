@@ -101,6 +101,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <i x-show="!advanced" class="ti ti-lock text-xs"></i>
             <span x-show="advanced" class="bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500" x-text="activeStyles().length"></span>
         </button>
+        <?php // v1.23：全局样式类管理器并入本页页签带（独立页面，链接式页签） ?>
+        <a role="tab" data-testid="blox-design-page-tab-classes" href="/admin/blox_classes.php"
+           class="inline-flex h-11 items-center gap-2 border-b-2 border-transparent px-4 text-sm font-medium text-gray-500 hover:text-gray-900">
+            <i class="ti ti-tags"></i><?php echo e(__('blox_global_classes')); ?>
+        </a>
         <button type="button" role="tab" data-testid="blox-design-page-tab-page-hero"
                 @click="tab = 'pageHero'" :aria-selected="tab === 'pageHero'"
                 class="inline-flex h-11 items-center gap-2 border-b-2 px-4 text-sm font-medium"

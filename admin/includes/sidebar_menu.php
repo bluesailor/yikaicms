@@ -284,6 +284,8 @@ return [
                 'label' => __('website_styles_title'),
                 'url'   => '/admin/blox_design.php',
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3a9 9 0 100 18h1.5a1.5 1.5 0 000-3H12a2 2 0 010-4h3a6 6 0 000-12h-3zM7.5 10h.01M9 6.5h.01M14.5 6.5h.01M17 10h.01"></path>',
+                // 类管理器并入「全站样式」入口（v1.23 UX 修正：与样式预设同住一处，避免概念混淆）
+                'active_keys' => ['blox_design', 'blox_classes'],
             ],
             [
                 'key'     => 'blox_templates',
@@ -292,16 +294,6 @@ return [
                 'label'   => __('website_templates_title'),
                 'url'     => '/admin/blox_templates.php',
                 'icon'    => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6l2 2h8v14H4V4zm4 6h8m-8 4h6"></path>',
-            ],
-            [
-                // v1.23 全局样式类管理器：列表/用量/改名/回收站。页面可读（用量与目录），
-                // 变更由 blox_class_api 的服务端授权门拦截。
-                'key'     => 'blox_classes',
-                'perm'    => 'blox_global',
-                'visible' => !function_exists('bloxPageEditorEnabled') || bloxPageEditorEnabled(),
-                'label'   => __('blox_global_classes'),
-                'url'     => '/admin/blox_classes.php',
-                'icon'    => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5a2 2 0 011.414.586l7 7a2 2 0 010 2.828l-5.586 5.586a2 2 0 01-2.828 0l-7-7A2 2 0 014 10V5a2 2 0 012-2h1z"></path>',
             ],
         ],
     ],
