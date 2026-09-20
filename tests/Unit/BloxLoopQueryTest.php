@@ -39,6 +39,15 @@ final class BloxLoopQueryTest extends TestCase
                 lang TEXT DEFAULT 'zh-CN',
                 deleted_at INTEGER DEFAULT NULL
             )",
+            "CREATE TABLE metas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_type TEXT NOT NULL,
+                owner_id INTEGER NOT NULL DEFAULT 0,
+                meta_key TEXT NOT NULL,
+                meta_value TEXT,
+                created_at INTEGER DEFAULT 0,
+                updated_at INTEGER DEFAULT 0
+            )",
             "CREATE TABLE product_categories (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 parent_id INTEGER DEFAULT 0,
@@ -101,6 +110,38 @@ final class BloxLoopQueryTest extends TestCase
         self::assertArrayNotHasKey('junk', $query);
     }
 
+    public function testFilterNormalizationEnforcesWhitelistAndClamps(): void
+    {
+        $data = BloxLoopQuery::normalizeElementData(['_query' => [
+            'source' => 'type:article',
+            'filters' => [
+                ['field' => 'Color', 'op' => '=', 'value' => ' red '],        // 字段小写化、值修剪
+                ['field' => 'price', 'op' => '>', 'value' => 'abc'],          // 数值算子非数值：丢
+                ['field' => 'price', 'op' => 'between', 'value' => '10,'],    // between 缺右端：丢
+                ['field' => 'price', 'op' => 'between', 'value' => ' 10 , 90 '],
+                ['field' => 'flag', 'op' => 'empty', 'value' => 'ignored'],   // empty 剥值
+                ['field' => 'bad field', 'op' => '=', 'value' => 'x'],        // 非法字段名：丢
+                ['field' => 'kind', 'op' => 'drop', 'value' => 'x'],          // 非法算子：丢
+                ['field' => 'a', 'op' => '=', 'value' => '1'],
+                ['field' => 'b', 'op' => '=', 'value' => '2'],
+                ['field' => 'c', 'op' => '=', 'value' => '3'],                // 第 6 条有效：截断
+                'junk',
+            ],
+        ]]);
+        $filters = $data['_query']['filters'];
+        self::assertCount(5, $filters);
+        self::assertSame(['field' => 'color', 'op' => '=', 'value' => 'red'], $filters[0]);
+        self::assertSame(['field' => 'price', 'op' => 'between', 'value' => '10,90'], $filters[1]);
+        self::assertSame(['field' => 'flag', 'op' => 'empty', 'value' => ''], $filters[2]);
+        self::assertSame('b', $filters[4]['field']);
+
+        // 全部非法：filters 键整体不落盘
+        $none = BloxLoopQuery::normalizeElementData(['_query' => [
+            'source' => 'type:article', 'filters' => [['field' => '1bad', 'op' => '=', 'value' => 'x']],
+        ]]);
+        self::assertArrayNotHasKey('filters', $none['_query']);
+    }
+
     // ── 取数：与 {yk:list} 同一契约 ─────────────────────────────────
 
     public function testRunFetchesRowsAndMemoizesPerRequest(): void
@@ -117,6 +158,61 @@ final class BloxLoopQueryTest extends TestCase
         self::assertCount(2, BloxLoopQuery::run($query, '')['rows']);
         BloxLoopQuery::resetForTests();
         self::assertCount(3, BloxLoopQuery::run($query, '')['rows']);
+    }
+
+    /** 自定义字段过滤：metas EXISTS 端到端（owner 走 resolveExtFieldOwner、+0 数值归一、缺行语义）。 */
+    public function testRunAppliesMetaFilters(): void
+    {
+        // owner_type 与取数端同源：都过 resolveExtFieldOwner（TagEngineTest 的进程级
+        // shim 直接返回 type，即 'article'；生产版本把内置类型归到 'content'——
+        // 存/取共用同一函数，两端永远一致，此处按 shim 语义播种）
+        $this->seedNews(); // id=1 First & Co, id=2 Second
+        $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Third']); // id=3 无 meta
+        foreach ([1 => ['color' => 'red', 'price' => '100'], 2 => ['color' => 'sky blue', 'price' => '250']] as $id => $metas) {
+            foreach ($metas as $k => $v) {
+                $this->insertRow('metas', ['owner_type' => 'article', 'owner_id' => $id, 'meta_key' => $k, 'meta_value' => $v]);
+            }
+        }
+        $titles = function (array $filters): array {
+            BloxLoopQuery::resetForTests();
+            $run = BloxLoopQuery::run(['source' => 'type:article', 'limit' => 10, 'filters' => $filters], '');
+            return array_column($run['rows'], 'title');
+        };
+
+        self::assertSame(['First & Co'], $titles([['field' => 'color', 'op' => '=', 'value' => 'red']]));
+        // 数值比较：meta_value 是 TEXT，靠 +0 归一（'250'+0 > 150）
+        self::assertSame(['Second'], $titles([['field' => 'price', 'op' => '>', 'value' => '150']]));
+        self::assertSame(['First & Co'], $titles([['field' => 'price', 'op' => 'between', 'value' => '50,150']]));
+        self::assertSame(['First & Co', 'Second'], $titles([['field' => 'color', 'op' => 'in', 'value' => 'red, sky blue']]));
+        // like 的 % 通配来自代码侧包裹，值内元字符已转义（'!' ESCAPE）
+        self::assertSame(['Second'], $titles([['field' => 'color', 'op' => 'like', 'value' => 'blu']]));
+        // != 与 empty：meta 行缺失视为「值不同 / 为空」——无 meta 的 Third 命中
+        self::assertSame(['Second', 'Third'], $titles([['field' => 'color', 'op' => '!=', 'value' => 'red']]));
+        self::assertSame(['Third'], $titles([['field' => 'color', 'op' => 'empty', 'value' => '']]));
+        // AND 平铺
+        self::assertSame([], $titles([
+            ['field' => 'color', 'op' => '=', 'value' => 'red'],
+            ['field' => 'price', 'op' => '>=', 'value' => '200'],
+        ]));
+    }
+
+    /** 分页计数走同一 filters：总数随过滤收敛，页码用容器自己的分页参数。 */
+    public function testMetaFiltersNarrowPaginationCount(): void
+    {
+        $this->seedNews();
+        $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Third']);
+        foreach ([1, 2, 3] as $id) {
+            $this->insertRow('metas', ['owner_type' => 'article', 'owner_id' => $id, 'meta_key' => 'featured', 'meta_value' => $id === 3 ? '' : '1']);
+        }
+        $query = [
+            'source' => 'type:article', 'limit' => 1, 'pagination' => 'numbers',
+            'filters' => [['field' => 'featured', 'op' => '=', 'value' => '1']],
+        ];
+        $run = BloxLoopQuery::run($query, 'ykq_ftest');
+        self::assertCount(1, $run['rows']);
+        // 命中 2 行 / limit 1 = 2 页；第 3 页链接不存在（未过滤时 3 行会出现第 3 页）
+        self::assertStringContainsString('ykq_ftest=2', $run['pagination']);
+        self::assertStringNotContainsString('ykq_ftest=3', $run['pagination']);
     }
 
     public function testChannelSourceResolvesTypeAndUnknownChannelYieldsEmpty(): void

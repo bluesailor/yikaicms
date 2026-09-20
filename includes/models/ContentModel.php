@@ -49,6 +49,8 @@ class ContentModel extends Model
             $where[] = 'c.is_top = 1';
         }
 
+        MetaModel::applyMetaFilters($filters['_meta_filters'] ?? null, 'c.', $where, $params);
+
         $orderBy = $this->getEffectiveOrder();
         $whereSQL = implode(' AND ', $where) . $this->softDeleteGuard('c.');
         $sql = "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, ch.type as channel_type
@@ -104,6 +106,8 @@ class ContentModel extends Model
         if (!empty($filters['is_top'])) {
             $where[] = 'is_top = 1';
         }
+
+        MetaModel::applyMetaFilters($filters['_meta_filters'] ?? null, $this->tableName() . '.', $where, $params);
 
         $whereSQL = implode(' AND ', $where) . $this->softDeleteGuard();
         return (int) db()->fetchColumn(

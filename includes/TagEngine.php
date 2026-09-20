@@ -354,6 +354,18 @@ final class TagEngine
         if (!$isProduct) {
             $filters['type'] = $type;
         }
+        // v1.25 容器 Loop 自定义字段过滤：结构化规格只可能来自代码侧（BloxLoopQuery::attrsFor），
+        // {yk:list} 模板属性是纯字符串、表达不出数组——模板属性契约不变。
+        // owner 在此一次归一（product→product，内置内容类型→content，自定义模型→模型 key），
+        // 取数与分页计数（listPageState→getCount）共用同一 filters，页数随过滤收敛。
+        if (is_array($attrs['_meta_filters'] ?? null) && $attrs['_meta_filters'] !== []) {
+            $filters['_meta_filters'] = [
+                'owner' => function_exists('resolveExtFieldOwner')
+                    ? resolveExtFieldOwner($type)
+                    : ($isProduct ? 'product' : 'content'),
+                'items' => array_values($attrs['_meta_filters']),
+            ];
+        }
 
         $sourceId = 0;
         $valid = true;
