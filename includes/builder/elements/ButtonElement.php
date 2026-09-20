@@ -123,14 +123,15 @@ final class ButtonElement extends AbstractElement
         if ($siteTextField !== 'none') {
             $rawText = DynamicSiteData::value($siteTextField, 'text', (string) ($data['site_fallback'] ?? ''));
         } else {
-            $rawText = DynamicSiteData::interpolate($rawText);
+            // v1.24 动态标签：原样代入，下方 htmlspecialchars 统一转义
+            $rawText = BloxDynamicTags::resolveText(DynamicSiteData::interpolate($rawText));
         }
         $rawUrl = (string) ($data['url'] ?? '#');
         $siteUrlField = (string) ($data['site_url_field'] ?? 'none');
         if ($siteUrlField !== 'none') {
             $rawUrl = DynamicSiteData::value($siteUrlField, 'url', '#');
         } else {
-            $rawUrl = DynamicSiteData::interpolate($rawUrl, true);
+            $rawUrl = BloxDynamicTags::resolveText(DynamicSiteData::interpolate($rawUrl, true));
         }
         $text = htmlspecialchars($rawText);
         $iconValue = BloxIcon::normalize($data['icon'] ?? 'none', 'none');

@@ -1065,7 +1065,7 @@ final class BlockRenderer
         ]);
         $html = BloxFrontendEditTarget::mark($html, $type, (string) ($el['id'] ?? ''));
         if ($editMode && in_array($type, ['heading', 'text', 'button'], true)
-            && preg_match('/\{[a-z_]+\}/', (string) ($data[$type === 'text' ? 'html' : 'text'] ?? ''))) {
+            && preg_match('/\{[a-z_]+\}|\{\{[^{}]+\}\}/', (string) ($data[$type === 'text' ? 'html' : 'text'] ?? ''))) {
             $dynamicRoot = new HtmlTagRewriter($html);
             if ($dynamicRoot->nextTag()) $dynamicRoot->setAttribute('data-yk-dynamic-tags', '1');
             $html = $dynamicRoot->getUpdatedHtml();
