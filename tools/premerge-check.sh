@@ -59,8 +59,19 @@ kill_stale_server() {
     return 0
 }
 
+# ───── OPENSSL_CONF 自动探测（外审 P2-7）─────
+# Windows 便携 PHP 不带默认 openssl.cnf，未设置时 RSA 相关测试
+# （DefaultThemeUpdate / LicenseCache）必挂。优先探测 PHP 自带的 extras/ssl。
+if [ -z "${OPENSSL_CONF:-}" ]; then
+    OPENSSL_CANDIDATE="$(php -r '$d = dirname(PHP_BINARY); foreach (["/extras/ssl/openssl.cnf", "/ssl/openssl.cnf"] as $p) { if (is_file($d . $p)) { echo $d . $p; break; } }' 2>/dev/null || true)"
+    if [ -n "$OPENSSL_CANDIDATE" ]; then
+        export OPENSSL_CONF="$OPENSSL_CANDIDATE"
+    fi
+fi
+
 echo "YikaiCMS 并 main 前预检（模式：$MODE）"
 echo "============================================================"
+[ -n "${OPENSSL_CONF:-}" ] && note "OPENSSL_CONF=$OPENSSL_CONF"
 
 # ───── 1. 单元测试全量 ─────
 echo ""
