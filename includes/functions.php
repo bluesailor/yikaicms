@@ -116,8 +116,15 @@ function render404(string $message = ''): void
     $currentChannelId = 0;
     $currentId        = 0;
     $currentSlug      = '';
+    // v1.26 Site Builder：已发布的 Blox 404 模板替换主题原生 404 局部（主题壳保留）；
+    // 无模板/渲染失败返回 '' 走原生分支，永不空白
+    $bloxNotFoundBody = class_exists('BloxErrorPageRuntime') ? BloxErrorPageRuntime::render() : '';
     require theme_path('layouts/header.php');
-    require theme_path('partials/404.php');
+    if ($bloxNotFoundBody !== '') {
+        echo $bloxNotFoundBody;
+    } else {
+        require theme_path('partials/404.php');
+    }
     require theme_path('layouts/footer.php');
     exit;
 }

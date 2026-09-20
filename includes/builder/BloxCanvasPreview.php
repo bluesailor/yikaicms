@@ -112,7 +112,7 @@ function bloxPreviewTrustedJson(bool $isHomeLayout, int $id): ?string
             (string) ($_GET['product_template'] ?? '') === '1' => ['product-detail'],
             (string) ($_GET['article_template'] ?? '') === '1' => ['article-detail'],
             (string) ($_GET['template_area'] ?? '') !== '' => [(string) $_GET['template_area']],
-            default => ['section', 'page', 'popup'],
+            default => ['section', 'page', 'popup', 'error404'],
         };
         if (!$row || !in_array($type, $expected, true)) {
             return null;
