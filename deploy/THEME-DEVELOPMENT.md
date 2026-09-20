@@ -212,6 +212,16 @@ ThemeSettings 管理站点/主题样式配置，包含布局、排版、间距�
 
 主题升级只调整出厂视觉和代码，用户已保存设置优先保留。新 token 或设置字段先定义规范化、默认值和读取位置，再接控件。
 
+全局样式类（v1.23 起）是**站点级**数据（`blox_global_classes` 表，前缀 `yk-c-` 输出到
+`uploads/blox/css/classes.css`），不随主题分发：
+
+- 主题模板与预置内容**不要携带 `_classes` 引用**——类 ID 是站点本地的，跨站导入后成为
+  无样式的悬挂引用（渲染无害，但观感残缺）。
+- 主题 CSS 不要占用 `yk-c-` 前缀，也不要引用 `uploads/blox/css/` 下的站点生成文件。
+- 「样式预设」（原名"全局样式"，编辑器与设计页现统一称样式预设）与全局样式类是两种机制：
+  预设=外观快照内联输出，类=真 CSS 类样式表输出；模板包的 `requires.design_styles`
+  依赖指的是预设。
+
 ## 10. Tailwind 与独立 CSS
 
 项目当前构建入口：
@@ -234,7 +244,14 @@ bash tools/build_css.sh
 
 v1.20.0 的 `BloxTemplateModel::TYPES` 为 `section`、`page`、`header`、`footer`、`popup`、`product-detail`、`article-detail`。后两种是 1.20.0 新增的详情模板类型；面向 1.19.x 站点的模板包只能使用前五种，并应把 `requires_cms` 写到实际支持的版本。仍以目标版本的 TYPES 为准。
 
-v1.20.1 起，循环模板、显示条件、全局样式、表格、价格方案属于专业授权能力；站点数据绑定（`site_field` 等）自 v1.20.2 起为免费能力，模板包可以放心使用。模板包用到它们时，未授权站点导入或保存会被拒绝（已发布内容照常渲染）。面向所有站点的主题模板包应只使用基础元素与基础设置；确需专业能力时在说明中写明「需专业授权」。循环模板子元素里的 `loop_*` 字段只在循环内部生效，普通元素上的同名默认值不受限。
+v1.20.1 起，循环模板、显示条件、样式预设（原名"全局样式"）、表格、价格方案属于专业授权能力；v1.23 增补第六项：全局样式类的**创建与管理**（挂类引用与渲染始终免费）。站点数据绑定（`site_field` 等）自 v1.20.2 起为免费能力，模板包可以放心使用。模板包用到专业能力时，未授权站点导入或保存会被拒绝（已发布内容照常渲染）。面向所有站点的主题模板包应只使用基础元素与基础设置；确需专业能力时在说明中写明「需专业授权」。循环模板子元素里的 `loop_*` 字段只在循环内部生效，普通元素上的同名默认值不受限。
+
+**结构与语法能力的版本线**（模板包按 `requires_cms` 声明；旧核心遇到新语法会校验拒绝或按字面输出）：
+
+- 嵌套容器（container/div 互嵌，最深 8 层）、容器/Div 的 **Grid 布局模式**（`layout`/`display` = grid、
+  `grid_cols` 四档、子项 `grid_span`）、列 `span` 的 `{m,w}` 手机/宽屏档：需 v1.21+ 语义的核心。
+- 双花括号动态标签 `{{article.title|后备}}` 等：需 v1.24+ 语义的核心；旧核心不解析、按字面显示。
+- 面向存量客户站的通用模板包，仍以「区块→列→单层容器」+ 单花括号站点标签为安全底线。
 
 ### 11.2 最小 JSON 包
 
@@ -340,6 +357,8 @@ v1.20.0 起安装器在主题目录写入来源回执 `.yikai-market-origin.json
 - [BLOX 模板导入导出](../includes/builder/BloxTemplateImporter.php)
 - [BLOX 模板类型](../includes/models/BloxTemplateModel.php)
 - [BLOX 文档规范化](../includes/builder/BloxDocumentPipeline.php)
+- [BLOX 全局样式类](../includes/builder/BloxGlobalClasses.php)
+- [BLOX 动态标签](../includes/builder/BloxDynamicTags.php)
 - [Tailwind 构建脚本](../tools/build_css.sh)
 
 维护规则：核心加载、清单 schema、导入格式或稳定类型变化时同步修订本指南；保持“实际接口”和“未来规划”分开，不用旧注释替代当前调用链。
