@@ -107,7 +107,7 @@ public static function isActive(): bool
                 settingModel()->set(HomeBloxDocument::ACTIVE_KEY, '0', 'home');
             }
             $db->commit();
-            do_action('data_changed', DB_PREFIX . 'settings', 0);
+            do_action('data_changed', 'settings', 0);
         } catch (Throwable $e) {
             $db->rollback();
             throw $e;
@@ -133,7 +133,7 @@ public static function isActive(): bool
         try {
             settingModel()->set(self::ACTIVE_KEY, '0', 'home');
             $db->commit();
-            do_action('data_changed', DB_PREFIX . 'settings', 0);
+            do_action('data_changed', 'settings', 0);
         } catch (Throwable $e) {
             $db->rollback();
             throw $e;

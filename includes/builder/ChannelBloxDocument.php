@@ -86,7 +86,7 @@ final class ChannelBloxDocument
 
         BloxDocumentIndexes::update('channel:' . $channelId, $processed['sections']);
         cacheClear();
-        do_action('data_changed', DB_PREFIX . 'blox_page_drafts', $rowId);
+        do_action('data_changed', 'blox_page_drafts', $rowId);
 
         return [
             'base_revision' => BloxDocumentPipeline::fingerprint($processed['json']),
