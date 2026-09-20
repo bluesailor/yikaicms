@@ -49,6 +49,7 @@ class ProductModel extends Model
         }
 
         $this->applyFacetFilters($filters, 'p.', $where, $params);
+        MetaModel::applyMetaFilters($filters['_meta_filters'] ?? null, 'p.', $where, $params);
 
         $orderBy = $this->resolveSortOrder($filters['sort'] ?? '');
         $whereSQL = implode(' AND ', $where) . $this->softDeleteGuard('p.');
@@ -107,6 +108,7 @@ class ProductModel extends Model
         }
 
         $this->applyFacetFilters($filters, '', $where, $params);
+        MetaModel::applyMetaFilters($filters['_meta_filters'] ?? null, $this->tableName() . '.', $where, $params);
 
         $whereSQL = implode(' AND ', $where) . $this->softDeleteGuard();
         return (int) db()->fetchColumn(
