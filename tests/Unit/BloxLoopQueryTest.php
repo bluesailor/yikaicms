@@ -295,6 +295,34 @@ final class BloxLoopQueryTest extends TestCase
         self::assertNull(TagEngine::currentContext());
     }
 
+    /** v1.24-③ 结构化属性绑定：Image 的 src/alt/link_url 吃 {{loop.*}}（卡片图的前置能力）。 */
+    public function testLoopImageBindsCoverAndUrlAttributes(): void
+    {
+        $this->insertRow('channels', ['name' => '新闻', 'slug' => 'news', 'type' => 'list']);
+        $this->insertRow('contents', ['channel_id' => 1, 'title' => 'Pic "A"', 'cover' => '/uploads/2026/a.jpg']);
+        $out = BlockRenderer::render(json_encode([[
+            'settings' => [],
+            'columns' => [['elements' => [[
+                'id' => 'img-host', 'type' => 'div',
+                'data' => [
+                    '_query' => ['source' => 'type:article', 'limit' => 5],
+                    'children' => [[
+                        'id' => 'img-card', 'type' => 'image',
+                        'data' => [
+                            'src' => '{{loop.cover}}', 'alt' => '{{loop.title}}',
+                            'click_action' => 'link', 'link_url' => '{{loop.url}}',
+                        ],
+                    ]],
+                ],
+            ]]]],
+        ]]));
+
+        self::assertStringContainsString('/uploads/2026/a.jpg', $out);
+        self::assertStringContainsString('alt="Pic &quot;A&quot;"', $out);
+        self::assertStringContainsString('href="/news/article/1.html"', $out);
+        self::assertStringNotContainsString('{{loop.', $out);
+    }
+
     public function testLoopEmptyStateMessageAndHidden(): void
     {
         $host = static fn (array $query): string => (string) json_encode([[

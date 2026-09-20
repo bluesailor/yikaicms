@@ -75,6 +75,10 @@ final class ImageElement extends AbstractElement
         $siteImageField = (string) ($data['site_image_field'] ?? 'none');
         if ($siteImageField !== 'none') {
             $rawSrc = DynamicSiteData::value($siteImageField, 'image');
+        } else {
+            // v1.24-③ 结构化属性绑定：src 吃 {{loop.cover}} 等动态标签（容器 Loop 卡片图）。
+            // 解析产物随后过 UrlPolicy::storedImage / safeHref，与静态路径同一安全管线。
+            $rawSrc = BloxDynamicTags::resolveText(DynamicSiteData::interpolate($rawSrc, true));
         }
         $dynamicField = (string) ($data['_responsive_image_field'] ?? '');
         $dynamicFallback = (string) ($data['_responsive_image_fallback'] ?? '');
@@ -88,7 +92,7 @@ final class ImageElement extends AbstractElement
             $rawSrc = UrlPolicy::storedImage($rawSrc);
             $imageAttrs = responsiveImageAttributes($rawSrc, 'medium', '100vw');
         }
-        $alt = htmlspecialchars((string) ($data['alt'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $alt = htmlspecialchars(BloxDynamicTags::resolveText((string) ($data['alt'] ?? '')), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         if ($rawSrc === '' && $dynamicField === '') {
             return '';
         }
@@ -104,8 +108,10 @@ final class ImageElement extends AbstractElement
             }
         }
         if ($clickAction === 'link' && !empty($data['link_url'])) {
-            // javascript: 等伪协议在这里拦；非法地址退化为普通图片
-            $linkUrl = self::safeHref($data['link_url']);
+            // javascript: 等伪协议在这里拦；非法地址退化为普通图片（动态标签先解析再校验）
+            $linkUrl = self::safeHref(BloxDynamicTags::resolveText(
+                DynamicSiteData::interpolate((string) $data['link_url'], true)
+            ));
             if ($linkUrl !== '') {
                 $target = !empty($data['link_new_tab']) ? ' target="_blank" rel="noopener"' : '';
                 return '<a href="' . htmlspecialchars($linkUrl) . '"' . $target . ' class="block"' . $animationAttrs . '>' . $imgTag . '</a>';
