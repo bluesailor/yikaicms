@@ -12,7 +12,7 @@ final class BloxSiteDesignContractTest extends TestCase
 {
     public function testTemplateTaxonomySeparatesReusableAndSiteAreaTypes(): void
     {
-        self::assertSame(['section', 'page', 'header', 'footer', 'popup', 'archive', 'error404', 'product-detail', 'article-detail'], BloxTemplateModel::TYPES); // v1.26 增 archive/error404
+        self::assertSame(['section', 'page', 'header', 'footer', 'popup', 'archive', 'search', 'error404', 'product-detail', 'article-detail'], BloxTemplateModel::TYPES); // v1.26 增 archive/search/error404
         foreach (['product-detail', 'article-detail'] as $type) {
             self::assertTrue(BloxTemplateModel::validType($type));
             self::assertFalse(BloxTemplateModel::conditionalType($type));
