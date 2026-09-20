@@ -90,6 +90,7 @@ require_once __DIR__ . '/BloxFrontendEditTarget.php';
 require_once __DIR__ . '/BlockRenderer.php';
 require_once __DIR__ . '/HomeBloxRenderer.php';
 require_once __DIR__ . '/BloxPopupRuntime.php';
+require_once __DIR__ . '/BloxErrorPageRuntime.php';   // 404 模板（v1.26）：render404 挂接
 
 BloxAssetCollector::bootstrap();
 BloxDesignSystem::bootstrap();

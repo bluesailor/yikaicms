@@ -55,6 +55,7 @@ $areaRows = [
     'header' => ['label' => __('site_design_area_header'), 'icon' => 'ti-layout-navbar'],
     'footer' => ['label' => __('site_design_area_footer'), 'icon' => 'ti-layout-bottombar'],
     'popup' => ['label' => __('site_design_area_popup'), 'icon' => 'ti-window'],
+    'error404' => ['label' => __('site_design_area_error404'), 'icon' => 'ti-error-404'],
 ];
 
 $designContexts = [];

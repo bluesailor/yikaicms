@@ -179,7 +179,7 @@ final class BloxSecurityBoundaryTest extends TestCase
         $media = $this->source('admin/media_api.php');
         $upload = $this->source('admin/upload.php');
 
-        self::assertStringContainsString("['header', 'footer', 'popup', 'product-detail', 'article-detail']", $auth);
+        self::assertStringContainsString("['header', 'footer', 'popup', 'error404', 'product-detail', 'article-detail']", $auth); // v1.26：404 模板改全站输出，同样归 blox_global
         self::assertStringContainsString("requirePermission('blox_home');", $editor);
         self::assertStringContainsString("requirePermission('blox_edit');", $editor);
         self::assertStringContainsString('!BloxTemplateEditPolicy::allows($templateType, $advancedBloxEnabled)', $editor);

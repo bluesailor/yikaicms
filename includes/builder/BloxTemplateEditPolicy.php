@@ -20,6 +20,7 @@ final class BloxTemplateEditPolicy
         'product-detail' => 'free',
         'article-detail' => 'free',
         'popup' => 'advanced',
+        'error404' => 'free',
     ];
 
     public static function allows(string $type, bool $advanced): bool
