@@ -21,6 +21,7 @@ final class BloxTemplateEditPolicy
         'article-detail' => 'free',
         'popup' => 'advanced',
         'archive' => 'advanced', // 依赖查询循环（current 源），随专业能力档
+        'search' => 'free',
         'error404' => 'free',
     ];
 
