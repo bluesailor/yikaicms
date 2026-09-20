@@ -88,6 +88,101 @@ final class BloxDynamicTagsTest extends TestCase
         BloxQueryLoopPolicy::assertSectionsAllowed([['columns' => [['elements' => [$el]]]]], false);
     }
 
+    // ── v1.24：{{provider.field}} 双花括号动态标签 ──────────────────
+
+    public function testDoubleBraceTagsResolveWithFallbackPipeline(): void
+    {
+        self::assertSame('+86 (400) 123-4567', BloxDynamicTags::resolveText('{{site.phone}}'));
+        self::assertSame('Tel: +86 (400) 123-4567 !', BloxDynamicTags::resolveText('Tel: {{ site.phone }} !'));
+        // 管道：article 无上下文 → 落到 site.name
+        self::assertSame('Example & Co', BloxDynamicTags::resolveText('{{article.title|site.name|后备文案}}'));
+        // 全空 → 字面量兜底（非首段）
+        $GLOBALS['_test_config']['site_name'] = '';
+        self::assertSame('后备文案', BloxDynamicTags::resolveText('{{article.title|site.name|后备文案}}'));
+        // 全空且无字面量 → 空串
+        self::assertSame('', BloxDynamicTags::resolveText('{{article.title|site.name}}'));
+        // 元素端到端：heading 的既有转义兜底
+        $GLOBALS['_test_config']['site_name'] = 'Example & Co';
+        self::assertStringContainsString('Example &amp; Co', (new HeadingElement())->render(['text' => '{{site.name}}']));
+    }
+
+    public function testLegacyDoubleBraceContentStaysUntouched(): void
+    {
+        // 首段不是合法 source（无点）→ 整个标签原样保留——旧内容里的 {{任意文字}} 不被吃
+        self::assertSame('{{phone}}', BloxDynamicTags::resolveText('{{phone}}'));
+        self::assertSame('{{not a tag}}', BloxDynamicTags::resolveText('{{not a tag}}'));
+        // 禁嵌套：完整合法的内层标签照常解析，未闭合/嵌套的外层残片保持字面
+        self::assertSame('a{{aExample & Co', BloxDynamicTags::resolveText('a{{a{{site.name}}'));
+        self::assertSame('{{a{{b}}}}', BloxDynamicTags::resolveText('{{a{{b}}}}'));
+        // 无标签字符串逐字节不变（零开销路径）
+        self::assertSame('plain {phone} text', BloxDynamicTags::resolveText('plain {phone} text'));
+    }
+
+    public function testContextProvidersResolveArticleProductPageLoopAndLang(): void
+    {
+        self::assertSame('zh-CN', BloxDynamicTags::resolveText('{{lang.code}}'));
+
+        ArticleTemplateDocument::withContent(['title' => 'A&B', 'summary' => 'S1', 'author' => 'W'], static function (): string {
+            self::assertSame('A&B', BloxDynamicTags::resolveText('{{article.title}}'));
+            self::assertSame('S1 / W', BloxDynamicTags::resolveText('{{article.summary}} / {{article.author}}'));
+            return '';
+        });
+        self::assertSame('', BloxDynamicTags::resolveText('{{article.title}}'), '上下文出栈后不残留');
+
+        ProductTemplateDocument::withProduct(['title' => 'P1', 'model' => 'M-1'], static function (): string {
+            self::assertSame('M-1', BloxDynamicTags::resolveText('{{product.model}}'));
+            return '';
+        });
+
+        PageTitleElement::withPage(['name' => '关于我们'], static function (): string {
+            self::assertSame('关于我们', BloxDynamicTags::resolveText('{{page.title}}'));
+            return '';
+        });
+
+        TagEngine::pushContext(['_index' => 2, 'title' => 'Row A', 'secret' => 'nope']);
+        try {
+            self::assertSame('2', BloxDynamicTags::resolveText('{{loop.index}}'));
+            self::assertSame('Row A', BloxDynamicTags::resolveText('{{loop.title}}'));
+            self::assertSame('', BloxDynamicTags::resolveText('{{loop.secret}}'), '循环项字段必须白名单');
+        } finally {
+            TagEngine::popContext();
+        }
+        self::assertSame('', BloxDynamicTags::resolveText('{{loop.index}}'));
+    }
+
+    public function testHtmlDestinationEscapesResolvedValues(): void
+    {
+        ArticleTemplateDocument::withContent(['title' => '<b>X</b> & "Y"'], static function (): string {
+            $html = (new TextElement())->render(['html' => '<p>{{article.title}}</p>']);
+            self::assertStringContainsString('&lt;b&gt;X&lt;/b&gt; &amp; &quot;Y&quot;', $html);
+            self::assertStringNotContainsString('<b>X</b>', $html);
+            // 属性上下文逃逸尝试也被引号转义封死
+            self::assertSame(
+                '<a title="&lt;b&gt;X&lt;/b&gt; &amp; &quot;Y&quot;">t</a>',
+                BloxDynamicTags::resolveHtml('<a title="{{article.title}}">t</a>')
+            );
+            return '';
+        });
+    }
+
+    public function testUnknownProvidersFallThroughAndEditorMarksDoubleBraces(): void
+    {
+        self::assertSame('', BloxDynamicTags::resolveText('{{nope.field}}'));
+        self::assertSame('okay', BloxDynamicTags::resolveText('{{nope.field|okay}}'));
+        self::assertSame('', BloxDynamicTags::resolveText('{{site.smtp_pass}}'), 'site 字段白名单外一律关闭');
+
+        // 编辑器标记：{{tag}} 与 {tag} 一样禁用画布内联直编
+        $el = ['id' => 'test-dd', 'type' => 'heading', 'data' => ['text' => '{{article.title}}']];
+        self::assertStringContainsString('data-yk-dynamic-tags="1"', BlockRenderer::renderElementNode($el, 0, true, [0, 0, 0]));
+
+        // 插入面板候选：上下文标签进文本槽位；链接槽位无双花括号候选；与单花括号候选不撞键
+        $options = BloxDynamicTags::tagOptions();
+        self::assertArrayHasKey('{{article.title}}', $options);
+        self::assertArrayHasKey('{{loop.index}}', $options);
+        self::assertSame([], BloxDynamicTags::tagOptions(true));
+        self::assertSame([], array_intersect_key($options, DynamicSiteData::tagOptions()));
+    }
+
     public function testBoundSiteFieldsFollowThePageLanguage(): void
     {
         $GLOBALS['_test_config']['site_description'] = '专业的企业内容管理系统';

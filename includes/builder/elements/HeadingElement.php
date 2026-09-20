@@ -108,6 +108,8 @@ final class HeadingElement extends AbstractElement
             $text = DynamicSiteData::value($siteField, 'text', (string) ($data['site_fallback'] ?? ''));
         } else {
             $text = DynamicSiteData::interpolate($text);
+            // v1.24 动态标签：{{provider.field}} 原样代入，下方 htmlspecialchars 统一转义
+            $text = BloxDynamicTags::resolveText($text);
         }
         $color = self::cssColor($data['color'] ?? null);
         $style = $color !== null ? ' style="color:' . htmlspecialchars($color, ENT_QUOTES) . ';"' : '';
@@ -116,7 +118,7 @@ final class HeadingElement extends AbstractElement
         $rawUrl = (string) ($data['url'] ?? '');
         $siteUrlField = (string) ($data['site_url_field'] ?? 'none');
         if ($siteUrlField !== 'none') $rawUrl = DynamicSiteData::value($siteUrlField, 'url');
-        else $rawUrl = DynamicSiteData::interpolate($rawUrl, true);
+        else $rawUrl = BloxDynamicTags::resolveText(DynamicSiteData::interpolate($rawUrl, true));
         $url = self::safeHref($rawUrl);
         $text = str_replace(["\r\n", "\r", "\n"], '<br>', htmlspecialchars($text));
         if ($url !== '') {
