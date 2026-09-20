@@ -197,12 +197,18 @@ final class BloxLoopQuery
         $isProduct = ($attrs['type'] ?? '') === 'product';
         $memoKey = json_encode($attrs, JSON_UNESCAPED_UNICODE) ?: serialize($attrs);
         if (!isset(self::$memo[$memoKey])) {
-            self::$memo[$memoKey] = [
-                'rows' => TagEngine::listItems($attrs),
-                'pagination' => ($query['pagination'] ?? 'none') === 'numbers'
-                    ? TagEngine::tagListPagination($attrs, null)
-                    : '',
-            ];
+            // DB 异常（表未建/升级中途）按空结果处理：循环容器不得把整页渲染打死，
+            // 空态语义现成且安全（与 sourceOptions/BlocksLibrary 的容错口径一致）
+            try {
+                self::$memo[$memoKey] = [
+                    'rows' => TagEngine::listItems($attrs),
+                    'pagination' => ($query['pagination'] ?? 'none') === 'numbers'
+                        ? TagEngine::tagListPagination($attrs, null)
+                        : '',
+                ];
+            } catch (Throwable) {
+                self::$memo[$memoKey] = ['rows' => [], 'pagination' => ''];
+            }
         }
         $cached = self::$memo[$memoKey];
         return ['rows' => $cached['rows'], 'pagination' => $cached['pagination'], 'is_product' => $isProduct];
