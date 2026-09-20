@@ -53,8 +53,13 @@ add_action('blox_editor_scripts', static function (): void {
                 . ((string) ($channel['name'] ?? '') ?: ('#' . $id)),
         ];
     }
+    $languages = [];
+    foreach (function_exists('enabledLanguages') ? enabledLanguages() : [] as $code => $label) {
+        $languages[] = ['value' => (string) $code, 'label' => (string) $label];
+    }
     $data = [
         'conditionChannels' => $channels,
+        'conditionLanguages' => $languages,
         'loopText' => [
             'saveAsName' => __('blox_gquery_save_prompt'),
         ],
@@ -84,6 +89,21 @@ add_action('blox_editor_scripts', static function (): void {
             'loggedOut' => __('blox_display_value_logged_out'),
             'selectChannel' => __('blox_display_select_channel'),
             'urlPlaceholder' => __('blox_display_url_placeholder'),
+            // v1.27 新条件键
+            'language' => __('blox_display_condition_language'),
+            'device' => __('blox_display_condition_device'),
+            'datetime' => __('blox_display_condition_datetime'),
+            'param' => __('blox_display_condition_param'),
+            'field' => __('blox_display_condition_field'),
+            'exists' => __('blox_display_operator_exists'),
+            'notExists' => __('blox_display_operator_not_exists'),
+            'opEmpty' => __('blox_display_operator_empty'),
+            'opNotEmpty' => __('blox_display_operator_not_empty'),
+            'deviceMobile' => __('blox_display_value_mobile'),
+            'deviceDesktop' => __('blox_display_value_desktop'),
+            'paramName' => __('blox_display_param_name_placeholder'),
+            'fieldName' => __('blox_display_field_name_placeholder'),
+            'cacheWarning' => __('blox_display_condition_cache_warning'),
         ],
     ];
     $tableScript = __DIR__ . '/assets/blox-pro-table.js';
