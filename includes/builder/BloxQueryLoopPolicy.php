@@ -57,6 +57,10 @@ final class BloxQueryLoopPolicy
                 throw new RuntimeException(__('blox_query_loop_license_required'));
             }
         }
+        // v1.25 容器 Loop：container/div 挂 _query 属于同一作者端能力（渲染已发布内容仍免费）
+        if (!empty($data['_query']) && in_array($type, ['container', 'div'], true)) {
+            throw new RuntimeException(__('blox_query_loop_license_required'));
+        }
         // 站点数据绑定（site_field 等）自 v1.20.2 起为免费能力，不在循环模板授权范围内。
         foreach (is_array($data['children'] ?? null) ? $data['children'] : [] as $child) {
             if (is_array($child)) {

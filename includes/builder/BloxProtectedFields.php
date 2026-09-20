@@ -82,6 +82,12 @@ final class BloxProtectedFields
             if (($element['type'] ?? '') === 'content-catalog') {
                 $loopHost = true;
             }
+            // v1.25 容器 Loop：挂 _query 的 container/div 是第三种循环宿主形态——
+            // 查询配置与子树结构一并冻结（能力失效时不可增删改，已发布照常渲染）
+            if (!empty($data['_query']) && in_array(($element['type'] ?? ''), ['container', 'div'], true)) {
+                $keys[] = '_query';
+                $loopHost = true;
+            }
         }
         foreach ($keys as $key) {
             $value = $data[$key] ?? null;
