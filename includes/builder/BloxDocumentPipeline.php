@@ -564,6 +564,7 @@ final class BloxDocumentPipeline
         $type = trim((string) ($element['type'] ?? ''));
         $data = is_array($element['data'] ?? null) ? $element['data'] : [];
         $data = BloxDesignSystem::normalizeElementData($data);
+        $data = BloxGlobalClasses::normalizeElementData($data);
         $registered = BuilderRegistry::get($type);
         $declaredKeys = [];
         foreach ($registered?->controls() ?? [] as $control) {

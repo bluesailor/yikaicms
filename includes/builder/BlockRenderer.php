@@ -986,6 +986,26 @@ final class BlockRenderer
         return $processor->getUpdatedHtml();
     }
 
+    /** 全局类（v1.23）：_classes 的 ID 数组 → 当前类名（yk-c- 前缀），追加到元素根标签。 */
+    private static function applyGlobalClasses(string $html, array $data, string $type): string
+    {
+        // 绝大多数元素不挂类：先短路，目录查询本身有请求级缓存
+        if ($html === '' || $type === 'code' || !is_array($data['_classes'] ?? null) || $data['_classes'] === []) {
+            return $html;
+        }
+        $classes = BloxGlobalClasses::classAttributeFor($data);
+        if ($classes === '') {
+            return $html;
+        }
+        $processor = new HtmlTagRewriter($html);
+        if (!$processor->nextTag()) {
+            return $html;
+        }
+        $existing = $processor->getAttribute('class');
+        $processor->setAttribute('class', trim((is_string($existing) ? $existing : '') . $classes));
+        return $processor->getUpdatedHtml();
+    }
+
     public static function renderElementNode(array $el, int $depth = 0, bool $editMode = false, array $path = []): string
     {
         return self::renderElement($el, $depth, $editMode, $path);
@@ -1053,6 +1073,7 @@ final class BlockRenderer
         $html = self::applyElementSharedStyles($html, $data, $element);
         $html = self::applyCompiledCss($html, $data, $element);
         $html = self::applyGlobalStyle($html, $data, $element->type());
+        $html = self::applyGlobalClasses($html, $data, $element->type());
         $html = self::applyElementVisibility($html, $data['_hide_on'] ?? null, $editMode);
         $html = self::markCustomHomeElement($html, $element->type(), $path);
         if ($editMode && $hasConditions) {
