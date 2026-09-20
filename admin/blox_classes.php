@@ -283,7 +283,7 @@ function bloxClassManager() {
         renameClass(cls) {
             var name = window.prompt("<?= e(__('blox_class_rename')) ?>", cls.name);
             if (name && name.trim() && name.trim() !== cls.name) {
-                this.mutate("class_rename", { id: cls.class_id, name: name.trim(), modified: String(cls.modified) });
+                this.mutate("class_rename", { id: cls.class_id, name: name.trim(), revision: String(cls.revision || 0) });
             }
         },
 
@@ -304,7 +304,7 @@ function bloxClassManager() {
             if (!cls) return;
             this.mutate("class_update", {
                 id: cls.class_id,
-                modified: String(cls.modified),
+                revision: String(cls.revision || 0),
                 settings: JSON.stringify(this.draftSettings()),
             });
         },

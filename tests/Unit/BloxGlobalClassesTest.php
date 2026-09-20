@@ -33,6 +33,7 @@ final class BloxGlobalClassesTest extends TestCase
                 status TEXT NOT NULL DEFAULT 'active',
                 trashed_at INTEGER NOT NULL DEFAULT 0,
                 modified INTEGER NOT NULL DEFAULT 0,
+                revision INTEGER NOT NULL DEFAULT 0,
                 user_id INTEGER NOT NULL DEFAULT 0,
                 created_at INTEGER NOT NULL DEFAULT 0,
                 updated_at INTEGER NOT NULL DEFAULT 0
@@ -189,6 +190,41 @@ final class BloxGlobalClassesTest extends TestCase
         BloxGlobalClasses::mutate('class_add', ['name' => 'promo-old'], true);
         $restored = BloxGlobalClasses::mutate('class_restore', ['id' => $a['class_id']], true);
         self::assertSame('promo-old-2', $restored['name']);
+    }
+
+    /**
+     * 外审 P1-4：同一秒内的并发保存必须冲突。modified 秒级时间戳分不出先后
+     * （旧实现里两次写落在同一秒 = 都通过校验、后写覆盖先写），
+     * revision 每写 +1，携带旧 revision 的二次写必然 409。
+     */
+    public function testStaleRevisionConflictsEvenWithinTheSameSecond(): void
+    {
+        $a = BloxGlobalClasses::mutate('class_add', ['name' => 'race'], true);
+        self::assertSame(0, (int) $a['revision']);
+
+        // 第一位编辑者基于 revision 0 保存成功，revision 推进到 1
+        $first = BloxGlobalClasses::mutate('class_update', [
+            'id' => $a['class_id'], 'revision' => 0, 'settings' => ['text_color' => '#111111'],
+        ], true);
+        self::assertSame(1, (int) $first['revision']);
+
+        // 第二位编辑者同秒打开、仍持 revision 0（modified 时间戳与库内完全一致）→ 必须冲突
+        try {
+            BloxGlobalClasses::mutate('class_update', [
+                'id' => $a['class_id'], 'revision' => 0, 'settings' => ['text_color' => '#222222'],
+            ], true);
+            self::fail('携带旧 revision 的写入应触发冲突');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('blox_design_conflict', $e->getMessage());
+        }
+        $row = bloxGlobalClassModel()->findByClassId((string) $a['class_id']);
+        self::assertStringContainsString('#111111', (string) $row['settings'], '先写内容不得被覆盖');
+
+        // 旧客户端兼容：携带一致 modified（不带 revision）仍可保存，CAS 照常推进
+        $legacy = BloxGlobalClasses::mutate('class_update', [
+            'id' => $a['class_id'], 'modified' => (int) $row['modified'], 'settings' => ['text_color' => '#333333'],
+        ], true);
+        self::assertSame(2, (int) $legacy['revision']);
     }
 
     // ── 共享样式表文件：惰性重建 + 变更即失效 ────────────────────────
