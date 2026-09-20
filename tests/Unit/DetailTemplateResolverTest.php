@@ -41,6 +41,37 @@ final class DetailTemplateResolverTest extends TestCase
         ], $overrides);
     }
 
+    // ---------- v1.26 Single 扩自定义模型 ----------
+
+    public function testCustomModelTypesShareArticleDetailPipelineButNeverCrossMatch(): void
+    {
+        // 模型 key → article-detail 管线；非法形态 → ''
+        $this->assertSame('article-detail', DetailTemplateResolver::templateTypeFor('team'));
+        $this->assertSame('product-detail', DetailTemplateResolver::templateTypeFor('product'));
+        $this->assertSame('', DetailTemplateResolver::templateTypeFor('Not A Type'));
+
+        $teamTemplate = ['id' => 1, 'type' => 'article-detail', 'status' => 1, 'scope' => [
+            'version' => 2, 'content_type' => 'team', 'lang' => 'zh-CN',
+            'include' => [['kind' => 'all', 'ids' => [], 'include_children' => false]],
+            'exclude' => [], 'source' => 'custom', 'priority' => 0,
+        ]];
+        $articleTemplate = ['id' => 2, 'type' => 'article-detail', 'status' => 1, 'scope' => [
+            'version' => 2, 'content_type' => 'article', 'lang' => 'zh-CN',
+            'include' => [['kind' => 'all', 'ids' => [], 'include_children' => false]],
+            'exclude' => [], 'source' => 'custom', 'priority' => 0,
+        ]];
+        $teamCtx = self::ctx(['content_type' => 'team', 'channel_type' => 'list']);
+
+        // team 上下文只命中 team 作用域的模板；article 模板绝不越界套用（相等判定）
+        $won = DetailTemplateResolver::resolve([$teamTemplate, $articleTemplate], $teamCtx);
+        $this->assertSame(1, (int) $won['template_id']);
+        $only = DetailTemplateResolver::resolve([$articleTemplate], $teamCtx);
+        $this->assertSame(DetailTemplateResolver::REASON_NO_CANDIDATE, $only['reason']);
+        // 反向同样成立：team 模板不套 article 内容
+        $article = DetailTemplateResolver::resolve([$teamTemplate], self::ctx(['content_type' => 'article', 'channel_type' => 'list']));
+        $this->assertSame(DetailTemplateResolver::REASON_NO_CANDIDATE, $article['reason']);
+    }
+
     // ---------- 归一化 ----------
 
     public function testScopeNormalizationIsFailClosed(): void
@@ -50,9 +81,14 @@ final class DetailTemplateResolverTest extends TestCase
         $this->assertSame([], $empty['include']);
         $this->assertFalse(DetailTemplateResolver::scopeIsUsable($empty));
 
-        // 未知内容类型 / 缺语言 / 未知版本 / 非数组 一律不可用
-        $this->assertFalse(DetailTemplateResolver::scopeIsUsable(
+        // 形态非法类型 / 缺语言 / 未知版本 / 非数组 一律不可用。
+        // v1.26 起合法**形态**的类型（如 'whatever'）在纯层可用——它可能是自定义模型 key，
+        // 注册与否由 IO 层把关（未注册=前台永不发起该类型判定，作用域休眠），见 MODEL_KEY_PATTERN 注释。
+        $this->assertTrue(DetailTemplateResolver::scopeIsUsable(
             DetailTemplateResolver::normalizeScope(['content_type' => 'whatever', 'lang' => 'zh-CN', 'include' => [['kind' => 'all']]])
+        ));
+        $this->assertFalse(DetailTemplateResolver::scopeIsUsable(
+            DetailTemplateResolver::normalizeScope(['content_type' => 'Not A Type', 'lang' => 'zh-CN', 'include' => [['kind' => 'all']]])
         ));
         $this->assertFalse(DetailTemplateResolver::scopeIsUsable(
             DetailTemplateResolver::normalizeScope(['content_type' => 'product', 'include' => [['kind' => 'all']]])
@@ -360,9 +396,11 @@ final class DetailTemplateResolverTest extends TestCase
         $this->assertSame([99], $decoded['settings']['detail_template']['exclude'][0]['ids']);
         $this->assertArrayNotHasKey('legacy', $decoded['settings']['detail_template'], '内部标记不落盘');
 
-        // 畸形条件经管线后是「不可用作用域」，不是全站
+        // 畸形条件经管线后是「不可用作用域」，不是全站。
+        // v1.26：'nope' 是合法模型 key 形态所以保留（休眠数据），但缺 lang → include 被清空、
+        // 不可用；对 product 上下文照样 no_candidate（evaluateCandidate 的类型相等判定）
         $bad = BloxDocumentPipeline::normalizeDocSettings(['detail_template' => ['content_type' => 'nope', 'include' => [['kind' => 'all']]]]);
-        $this->assertSame('', $bad['detail_template']['content_type']);
+        $this->assertSame('nope', $bad['detail_template']['content_type']);
         $this->assertSame([], $bad['detail_template']['include']);
         $this->assertSame('no_candidate', DetailTemplateResolver::resolve(
             [['id' => 1, 'type' => 'product-detail', 'status' => 1, 'scope' => $bad['detail_template']]],

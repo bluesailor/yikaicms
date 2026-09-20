@@ -42,6 +42,18 @@ $requireTemplateLicense = static function (string $type) use ($advancedBloxEnabl
     }
 };
 
+/** 内容侧权限键：与 admin/content.php 同一映射——product→edit_product，
+ *  contentPermTypes 内的类型→edit_<type>，自定义模型回落 edit_article。 */
+function bloxDetailContentPermissionKey(string $contentType): string
+{
+    if ($contentType === 'product') {
+        return 'edit_product';
+    }
+    return function_exists('contentPermTypes') && in_array($contentType, contentPermTypes(), true)
+        ? 'edit_' . $contentType
+        : 'edit_article';
+}
+
 /** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
 $processTemplateDocument = static function (string $type, int $id, string $json, ?string $trustedJson = null): array {
     // TASK-002-R02/R03：产品模板的权威条件是 v2；后台表单只认 v1 字段，保存/发布时写回 v2。
@@ -55,13 +67,20 @@ $processTemplateDocument = static function (string $type, int $id, string $json,
         if ($syncUiScope) {
             error(__('blox_detail_conditions_flag_conflict'), 400);
         }
-        $expectedContentType = $type === 'product-detail' ? 'product' : ($type === 'article-detail' ? 'article' : '');
+        // v1.26 Single 扩自定义模型：article-detail 还接受**已注册**模型 key 作为条件的
+        // content_type（注册核对在 contentTypeForTemplate）；未注册的提交回落 'article'
+        // 期望，由 validate 以 content_type_mismatch 拒绝，不静默改写。
+        $submitted = json_decode($conditionsRaw, true);
+        $expectedContentType = DetailTemplateProvider::contentTypeForTemplate(
+            $type,
+            is_array($submitted) ? ($submitted['content_type'] ?? null) : null
+        );
         if ($expectedContentType === '' || trim($json) === '' || trim($json) === '[]') {
             error(__('blox_detail_conditions_bad_template'), 400);
         }
         // 先校验、后落库：非法请求不得报成功，也不得改动库内文档（用户草稿保留在客户端）
         $validated = DetailConditionInput::validate(
-            json_decode($conditionsRaw, true),
+            $submitted,
             $expectedContentType,
             availableLanguages()
         );
@@ -416,12 +435,16 @@ try {
         $type = (string) ($row['type'] ?? '');
         $requireTemplateLicense($type);
         requireBloxTemplateTypePermission($type);
-        $checkContentType = $type === 'product-detail' ? 'product' : ($type === 'article-detail' ? 'article' : '');
-        if ($checkContentType === '') {
+        if (DetailTemplateProvider::contentTypeForTemplate($type) === '') {
             error(__('blox_diag_not_detail_template'), 400);
         }
         // 只读扫描同样以本模板库内草稿为可信基线，旧专业配置不应让基础编辑者无法检查冲突。
         $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'), $templateDraft($row));
+        // 判定用内容类型以处理后的权威作用域声明为准（v1.26：可能是已注册模型 key）
+        $checkContentType = DetailTemplateProvider::contentTypeForTemplate(
+            $type,
+            $processed['settings']['detail_template']['content_type'] ?? null
+        );
         $prep = DetailTemplatePublishGuard::prepare(
             $checkContentType,
             $id,
@@ -451,14 +474,17 @@ try {
         $type = (string) ($row['type'] ?? '');
         $requireTemplateLicense($type);
         requireBloxTemplateTypePermission($type);
-        $previewContentType = $type === 'product-detail' ? 'product' : ($type === 'article-detail' ? 'article' : '');
-        if ($previewContentType === '') {
+        if (DetailTemplateProvider::contentTypeForTemplate($type) === '') {
             error(__('blox_diag_not_detail_template'), 400);
         }
-        if (!hasPermission($previewContentType === 'product' ? 'edit_product' : 'edit_article')) {
+        $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'), $templateDraft($row));
+        $previewContentType = DetailTemplateProvider::contentTypeForTemplate(
+            $type,
+            $processed['settings']['detail_template']['content_type'] ?? null
+        );
+        if (!hasPermission(bloxDetailContentPermissionKey($previewContentType))) {
             error(__('blox_impact_forbidden'), 403);
         }
-        $processed = $processTemplateDocument($type, $id, (string) post('blocks_data', '[]'), $templateDraft($row));
         $previewScope = DetailTemplateProvider::scopeFromSettings($previewContentType, $processed['settings']);
         $cursor = max(0, (int) post('cursor', '0'));
         $page = DetailTemplateImpactPreview::scan($previewContentType, $id, $previewScope, $cursor, DetailTemplatePublishGuard::pageRowLimit(), 1.5);
@@ -483,21 +509,26 @@ try {
         $type = (string) ($row['type'] ?? '');
         $requireTemplateLicense($type);
         requireBloxTemplateTypePermission($type);
-        $diagnoseContentType = $type === 'product-detail' ? 'product' : ($type === 'article-detail' ? 'article' : '');
-        if ($diagnoseContentType === '') {
+        if (DetailTemplateProvider::contentTypeForTemplate($type) === '') {
             error(__('blox_diag_not_detail_template'), 400);
         }
-        // 内容侧沿用既有内容权限键（产品 edit_product / 文章 edit_article）。无权与不存在返回同一条 JSON
-        // 反馈且不回显标题正文；不用 requirePermission()——请求不带 AJAX 头时它输出 HTML，前端只能报"诊断失败"。
-        $canReadDiagnoseContent = hasPermission($diagnoseContentType === 'product' ? 'edit_product' : 'edit_article');
 
         // 草稿必填：只有模板 ID 时不能冒称"诊断当前未保存的规则"
         $diagnoseDraft = trim((string) post('conditions_json', ''));
         if ($diagnoseDraft === '') {
             error(__('blox_diag_draft_required'), 400);
         }
+        $diagnoseSubmitted = json_decode($diagnoseDraft, true);
+        $diagnoseContentType = DetailTemplateProvider::contentTypeForTemplate(
+            $type,
+            is_array($diagnoseSubmitted) ? ($diagnoseSubmitted['content_type'] ?? null) : null
+        );
+        // 内容侧沿用既有内容权限键（产品 edit_product / 文章与自定义模型按 contentPermTypes 映射）。
+        // 无权与不存在返回同一条 JSON 反馈且不回显标题正文；不用 requirePermission()——
+        // 请求不带 AJAX 头时它输出 HTML，前端只能报"诊断失败"。
+        $canReadDiagnoseContent = hasPermission(bloxDetailContentPermissionKey($diagnoseContentType));
         $diagnoseScope = DetailConditionInput::validate(
-            json_decode($diagnoseDraft, true),
+            $diagnoseSubmitted,
             $diagnoseContentType,
             availableLanguages()
         );

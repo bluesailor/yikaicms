@@ -22,15 +22,32 @@ final class DetailTemplateResolver
 {
     public const VERSION = 2;
 
-    /** 内容类型词汇（对齐 contents.type，见 install/sql/mysql.sql）。 */
+    /** 内置内容类型词汇（对齐 contents.type，见 install/sql/mysql.sql）。 */
     public const CONTENT_TYPES = ['product', 'article'];
+
+    /**
+     * 自定义内容模型 key 形态（v1.26 Single 扩自定义模型）。本类保持纯函数（无 IO），
+     * 这里只做**形态**校验；「模型是否真实注册」由 IO 层把关——前台入口走
+     * ArticleTemplateDocument::supportsContentType，保存走 blox_template_api 的注册表核对。
+     * 未注册类型的作用域在纯层是休眠数据：前台永远不会用该 content_type 发起判定。
+     */
+    public const MODEL_KEY_PATTERN = '/^[a-z][a-z0-9_-]{0,31}$/D';
 
     /**
      * 内容类型 → 模板行类型 的显式映射。
      * 两套词表**不同**：contents.type 是 product/article，blox_templates.type 是
      * product-detail/article-detail。这里必须显式映射，不可直接比较，否则判定永不命中。
+     * 自定义模型不入表：一律复用 article-detail 管线（templateTypeFor 兜底），
+     * 模板之间靠 scope.content_type 相等判定区分（evaluateCandidate），不建平行类型。
      */
     public const TEMPLATE_TYPES = ['product' => 'product-detail', 'article' => 'article-detail'];
+
+    /** 内容类型是否属于本契约词汇（内置 + 合法形态的自定义模型 key）。 */
+    public static function isContentType(string $type): bool
+    {
+        return in_array($type, self::CONTENT_TYPES, true)
+            || preg_match(self::MODEL_KEY_PATTERN, $type) === 1;
+    }
 
     /** 条件规则种类：all=该类型全部；item=指定内容；category=指定分类/栏目。 */
     public const KINDS = ['all', 'item', 'category'];
@@ -92,7 +109,7 @@ final class DetailTemplateResolver
         }
 
         $contentType = is_string($value['content_type'] ?? null) ? trim((string) $value['content_type']) : '';
-        if (!in_array($contentType, self::CONTENT_TYPES, true)) {
+        if (!self::isContentType($contentType)) {
             return $scope;   // 类型不认识 → 整个作用域不可用，绝不降级成 all
         }
         $scope['content_type'] = $contentType;
@@ -179,7 +196,12 @@ final class DetailTemplateResolver
     /** 内容类型对应的模板行类型；未知内容类型返回 ''（不可用）。 */
     public static function templateTypeFor(string $contentType): string
     {
-        return self::TEMPLATE_TYPES[$contentType] ?? '';
+        if (isset(self::TEMPLATE_TYPES[$contentType])) {
+            return self::TEMPLATE_TYPES[$contentType];
+        }
+        // 自定义模型复用 article-detail 管线（v1.26），evaluateCandidate 的
+        // scope.content_type 相等判定保证 article 模板与模型模板互不套用
+        return preg_match(self::MODEL_KEY_PATTERN, $contentType) === 1 ? 'article-detail' : '';
     }
 
     /** 作用域是否可用于判定（类型与语言齐备且有 include）。 */
@@ -187,7 +209,7 @@ final class DetailTemplateResolver
     {
         return $scope['content_type'] !== ''
             && $scope['lang'] !== ''
-            && in_array($scope['content_type'], self::CONTENT_TYPES, true)
+            && self::isContentType($scope['content_type'])
             && $scope['include'] !== [];
     }
 
