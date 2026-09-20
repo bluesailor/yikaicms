@@ -745,68 +745,7 @@ $contactFormFieldTypes = [
     ['value' => 'url', 'label' => __('blox_contact_form_type_url')],
 ];
 
-// 元素库（对齐 Bricks：布局组里 区块/容器 并排为瓦片）。__section 是合成项，
-// 点击走 addSection(1)——它不是注册表元素，只是「插区块」在库里的入口。
-$elementLib = [[
-    'type'     => '__section',
-    'label'    => __('blox_section_label'),
-    'category' => 'layout',
-    'icon'     => 'crop-landscape',
-    'defaults' => [],
-    'paletteVisible' => true,
-    'deprecated' => false,
-]];
-foreach ($registryMeta as $type => $m) {
-    $defaults = $m['defaults'];
-    foreach ($bloxPlaceholders[$type] ?? [] as $k => $v) {
-        $defaults[$k] = $v;
-    }
-    $proFeature = $professionalElements[$type] ?? '';
-    $locked = $proFeature !== '' && empty($professionalFeatures[$proFeature]['allowed'])
-        && !empty($professionalFeatures[$proFeature]['visible']);
-    $elementLib[] = [
-        'type'     => $type,
-        'label'    => $m['label'],
-        'category' => $m['category'],
-        'icon'     => $m['icon'],
-        'defaults' => $defaults,
-        'paletteVisible' => $m['paletteVisible'] || $locked,
-        'deprecated' => $m['deprecated'],
-        'proFeature' => $proFeature,
-        'locked' => $locked,
-    ];
-}
-
-// 查询卡片网格（v1.25）：容器 Loop 的预设瓦片，list-dynamic 退役路径上的替身入口。
-// 真实插入类型是 container（defaults 带 _query + 预绑定 {{loop.*}} 卡片子树，
-// newElementNode 深拷贝并逐级发新 id）；用合成 type 保持瓦片自己的收藏/测试标识，
-// 不与素的 container 瓦片相撞。锁定语义与 professionalElements 同款（query_loop）。
-$queryCardsLocked = empty($professionalFeatures['query_loop']['allowed'])
-    && !empty($professionalFeatures['query_loop']['visible']);
-$elementLib[] = [
-    'type' => '__query_cards',
-    'insertType' => 'container',
-    'label' => __('blox_ps_query_cards'),
-    'category' => 'dynamic',
-    'icon' => 'repeat',
-    'defaults' => [
-        'layout' => 'grid',
-        'grid_cols' => '3',
-        '_query' => ['source' => 'type:article', 'limit' => 6, 'empty_mode' => 'hidden'],
-        'children' => [[
-            'type' => 'div',
-            'data' => ['children' => [
-                ['type' => 'image', 'data' => ['src' => '{{loop.cover}}', 'alt' => '{{loop.title}}', 'click_action' => 'link', 'link_url' => '{{loop.url}}', 'link_new_tab' => false]],
-                ['type' => 'heading', 'data' => ['text' => '{{loop.title}}', 'level' => 'h3', 'url' => '{{loop.url}}']],
-                ['type' => 'text', 'data' => ['html' => '<p>{{loop.summary}}</p>']],
-            ]],
-        ]],
-    ],
-    'paletteVisible' => !empty($professionalFeatures['query_loop']['allowed']) || $queryCardsLocked,
-    'deprecated' => false,
-    'proFeature' => 'query_loop',
-    'locked' => $queryCardsLocked,
-];
+require ROOT_PATH . '/admin/blox_editor/partials/element-lib.php'; // 元素库构建（0a 拆分惯例：500KB 预算，v1.29 抽出）
 
 // 站点资料语境：版权元素的面板内编辑按「画布正在预览的语言」读写。
 // 语言固定（单语言页头/页尾、带语言的页面）时，其它语言不显示的备案设置整体隐藏；
@@ -5999,6 +5938,17 @@ $canManageBloxDesign = hasPermission('blox_global');
                         if (!editing && !dialogOpen && self.sel) { e.preventDefault(); self.deselectAll(); }
                         return;
                     }
+                    // v1.29：Delete 删除当前选中（编辑焦点/弹层内不劫持）
+                    if (e.key === "Delete" && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+                        var deleteTarget = document.activeElement;
+                        var deleteEditing = deleteTarget && (deleteTarget.matches("input, textarea, select") || deleteTarget.isContentEditable);
+                        var deleteDialog = Array.from(document.querySelectorAll('[role="dialog"]')).some(function (dialog) { return dialog.getClientRects().length > 0; });
+                        if (!deleteEditing && !deleteDialog && self.selectedSi >= 0) {
+                            e.preventDefault();
+                            self.shortcutDeleteSelection();
+                        }
+                        return;
+                    }
                     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
                     var activeEditor = window.hugerte && hugerte.activeEditor;
                     if (activeEditor && typeof activeEditor.hasFocus === "function" && activeEditor.hasFocus()) return;
@@ -6020,6 +5970,10 @@ $canManageBloxDesign = hasPermission('blox_global');
                     } else if (!e.shiftKey && key === "v" && self.clipboard) {
                         e.preventDefault();
                         self.pasteSelection();
+                    } else if (!e.shiftKey && key === "d" && self.selectedSi >= 0) {
+                        // v1.29：Ctrl+D 复制当前选中一份（抢在浏览器"添加书签"之前）
+                        e.preventDefault();
+                        self.shortcutDuplicateSelection();
                     }
                 });
                 this.$watch("libOpen", function (open) { if (!open) self.quickAddTargetId = ""; });
@@ -8986,6 +8940,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             'empty' => __('blox_style_paste_empty'),
             'typeMismatch' => __('blox_style_paste_type_mismatch'),
             'unsupported' => __('blox_style_unsupported'),
+            'reset' => __('blox_style_reset_done'),
         ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>),
         window.YikaiBloxBatchProperties ? window.YikaiBloxBatchProperties.mixin() : {},
             window.YikaiBloxSectionInsert.mixin(<?= json_encode(['after' => __('blox_insert_after_named'), 'start' => __('blox_insert_at_start'), 'changed' => __('blox_insert_target_changed')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>),

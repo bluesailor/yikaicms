@@ -360,6 +360,11 @@ declare(strict_types=1);
                                                 class="w-7 h-7 rounded inline-flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition">
                                             <i class="ti ti-brush text-sm"></i>
                                         </button>
+                                        <button type="button" @click="resetElementStyle(selEl)" data-testid="blox-style-reset"
+                                                title="<?= e(__('blox_style_reset')) ?>" aria-label="<?= e(__('blox_style_reset')) ?>"
+                                                class="w-7 h-7 rounded inline-flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 transition">
+                                            <i class="ti ti-eraser text-sm"></i>
+                                        </button>
                                         <button type="button" @click="pasteElementStyle(selEl)" data-testid="blox-style-paste"
                                                 :disabled="!canPasteElementStyle(selEl)"
                                                 :title="pasteStyleDisabledReason(selEl) || <?= e($jt('blox_style_paste')) ?>"
