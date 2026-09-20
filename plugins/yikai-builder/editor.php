@@ -8,7 +8,7 @@ if (!defined('ROOT_PATH')) exit('Access Denied');
  * BLOX Pro 作者端模块注册。只挂编辑器钩子，不参与保存校验或前台渲染：
  * 停用/删除插件后旧文档照常渲染、受保护字段照常保留，只是不再提供对应编辑面板。
  */
-const BLOX_PRO_EDITOR_MODULES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing', 'global_classes'];
+const BLOX_PRO_EDITOR_MODULES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing', 'global_classes', 'interactions'];
 
 /** @return list<string> 本插件提供的作者端模块 */
 function blox_pro_editor_modules(): array
@@ -22,7 +22,9 @@ if (!function_exists('add_action')) {
 }
 
 add_action('blox_editor_panel', static function (string $slot): void {
-    if ($slot === 'element_condition') {
+    if ($slot === 'element_interactions') {
+        require __DIR__ . '/editor/interactions-panel.php';
+    } elseif ($slot === 'element_condition') {
         require __DIR__ . '/editor/conditions-panel.php';
     } elseif ($slot === 'element_style_preset') {
         require __DIR__ . '/editor/style-preset-picker.php';
@@ -104,6 +106,41 @@ add_action('blox_editor_scripts', static function (): void {
             'paramName' => __('blox_display_param_name_placeholder'),
             'fieldName' => __('blox_display_field_name_placeholder'),
             'cacheWarning' => __('blox_display_condition_cache_warning'),
+        ],
+        'interactionText' => [
+            'empty' => __('blox_interactions_empty'),
+            'hint' => __('blox_interactions_hint'),
+            'add' => __('blox_interactions_add'),
+            'trigger' => __('blox_interactions_trigger'),
+            'action' => __('blox_interactions_action'),
+            'target' => __('blox_interactions_target'),
+            'runOnce' => __('blox_interactions_run_once'),
+            'scrollDepth' => __('blox_popup_scroll_depth'),
+            'className' => __('blox_interactions_class_placeholder'),
+            'selector' => __('blox_interactions_selector_placeholder'),
+            'triggers' => [
+                'click' => __('blox_interactions_trigger_click'),
+                'hover' => __('blox_interactions_trigger_hover'),
+                'page_load' => __('blox_interactions_trigger_page_load'),
+                'enter_viewport' => __('blox_interactions_trigger_viewport'),
+                'scroll' => __('blox_popup_trigger_scroll'),
+            ],
+            'actions' => [
+                'show' => __('blox_interactions_action_show'),
+                'hide' => __('blox_interactions_action_hide'),
+                'toggle' => __('blox_interactions_action_toggle'),
+                'add_class' => __('blox_interactions_action_add_class'),
+                'remove_class' => __('blox_interactions_action_remove_class'),
+                'toggle_class' => __('blox_interactions_action_toggle_class'),
+                'animate' => __('blox_interactions_action_animate'),
+                'open_popup' => __('blox_interactions_action_open_popup'),
+                'close_popup' => __('blox_interactions_action_close_popup'),
+            ],
+            'targets' => [
+                'self' => __('blox_interactions_target_self'),
+                'parent' => __('blox_interactions_target_parent'),
+                'selector' => __('blox_interactions_target_selector'),
+            ],
         ],
     ];
     $tableScript = __DIR__ . '/assets/blox-pro-table.js';

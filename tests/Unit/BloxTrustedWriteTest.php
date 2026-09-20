@@ -13,7 +13,7 @@ final class BloxTrustedWriteTest extends TestCase
         self::assertSame(0, $exit, implode("\n", $lines));
         $result = json_decode(implode("\n", $lines), true, 512, JSON_THROW_ON_ERROR);
 
-        self::assertSame(['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing'], $result['denied']);
+        self::assertSame(['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing', 'interactions'], $result['denied']); // v1.28 增 interactions
         self::assertCount(6, $result['footer_catalog']);
         self::assertContains('four-column-dark-site-footer', $result['footer_catalog']);
         self::assertSame('license', $result['author_save']);

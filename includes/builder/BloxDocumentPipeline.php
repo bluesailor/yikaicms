@@ -40,6 +40,7 @@ final class BloxDocumentPipeline
             BloxQueryLoopPolicy::assertSectionsAllowed($sections, true);
             BloxDisplayConditions::assertSectionsAllowed($sections, true);
             BloxDesignSystem::assertSectionsAllowed($sections, true);
+            BloxInteractions::assertSectionsAllowed($sections, true);
             return;
         }
         $validationSections = $sections;
@@ -54,6 +55,7 @@ final class BloxDocumentPipeline
         BloxQueryLoopPolicy::assertSectionsAllowed($validationSections);
         BloxDisplayConditions::assertSectionsAllowed($validationSections);
         BloxDesignSystem::assertSectionsAllowed($validationSections);
+        BloxInteractions::assertSectionsAllowed($validationSections);
     }
 
     /** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
@@ -566,6 +568,7 @@ final class BloxDocumentPipeline
         $data = BloxDesignSystem::normalizeElementData($data);
         $data = BloxGlobalClasses::normalizeElementData($data);
         $data = BloxLoopQuery::normalizeElementData($data);
+        $data = BloxInteractions::normalizeElementData($data);
         $registered = BuilderRegistry::get($type);
         $declaredKeys = [];
         foreach ($registered?->controls() ?? [] as $control) {

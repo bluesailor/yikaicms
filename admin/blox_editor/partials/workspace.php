@@ -336,6 +336,8 @@ declare(strict_types=1);
 
                     <?php // 元素/区块显示条件编辑面板由 yikai-builder 作者端模块输出 ?>
                     <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_condition'); ?>
+                    <?php // 元素交互（v1.28）面板同属"条件"页签（行为类配置聚拢） ?>
+                    <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_interactions'); ?>
 
                     <!-- ── 元素设置：按 BuilderRegistry 的 controls() 生成 ── -->
                     <template x-if="selEl && panelTab !== 'condition'">

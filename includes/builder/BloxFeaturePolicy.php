@@ -14,7 +14,7 @@ final class BloxFeaturePolicy
         return is_array($policy) && is_string($policy[$feature] ?? null) ? $policy[$feature] : 'disabled';
     }
 
-    public const PROTECTED_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing'];
+    public const PROTECTED_FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing', 'interactions'];
 
     private static int $trustedWrites = 0;
 
