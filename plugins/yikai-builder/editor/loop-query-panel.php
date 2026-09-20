@@ -80,6 +80,42 @@
                                                         <?php endforeach; ?>
                                                     </select>
                                                 </label>
+                                                <?php /* 自定义字段过滤（v1.25）：AND 平铺 ≤5 条，匹配扩展字段（metas）。
+                                                         行内容以服务端 BloxLoopQuery::normalizeFilters 归一为准。 */ ?>
+                                                <div class="space-y-1.5" data-testid="blox-loop-filters">
+                                                    <div class="flex items-center justify-between">
+                                                        <span class="text-[11px] text-gray-600"><?= e(__('blox_loop_filters')) ?></span>
+                                                        <button type="button" @click="addLoopQueryFilter()" x-show="loopQueryFilters().length < 5"
+                                                                data-testid="blox-loop-filter-add"
+                                                                class="text-[11px] text-violet-600 hover:underline">
+                                                            <i class="ti ti-plus" aria-hidden="true"></i> <?= e(__('blox_loop_filter_add')) ?>
+                                                        </button>
+                                                    </div>
+                                                    <template x-for="(loopFilter, loopFilterIndex) in loopQueryFilters()" :key="loopFilterIndex">
+                                                        <div class="flex items-center gap-1" data-testid="blox-loop-filter-row">
+                                                            <input type="text" :value="loopFilter.field" placeholder="<?= e(__('blox_loop_filter_field')) ?>"
+                                                                   @change="setLoopQueryFilter(loopFilterIndex, 'field', $event.target.value)"
+                                                                   class="w-24 border border-gray-200 rounded px-1.5 py-1 text-[11px]">
+                                                            <select :value="loopFilter.op" @change="setLoopQueryFilter(loopFilterIndex, 'op', $event.target.value)"
+                                                                    class="border border-gray-200 rounded px-1 py-1 text-[11px] bg-white">
+                                                                <?php foreach (['=' => '=', '!=' => '≠', '>' => '>', '>=' => '≥', '<' => '<', '<=' => '≤',
+                                                                    'like' => __('blox_loop_op_like'), 'in' => __('blox_loop_op_in'),
+                                                                    'between' => __('blox_loop_op_between'), 'empty' => __('blox_loop_op_empty')] as $opValue => $opLabel): ?>
+                                                                    <option value="<?= e((string) $opValue) ?>"><?= e((string) $opLabel) ?></option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                            <input type="text" x-show="loopFilter.op !== 'empty'" :value="loopFilter.value"
+                                                                   placeholder="<?= e(__('blox_loop_filter_value')) ?>"
+                                                                   @change="setLoopQueryFilter(loopFilterIndex, 'value', $event.target.value)"
+                                                                   class="flex-1 min-w-0 border border-gray-200 rounded px-1.5 py-1 text-[11px]">
+                                                            <button type="button" @click="removeLoopQueryFilter(loopFilterIndex)"
+                                                                    class="text-gray-400 hover:text-red-500" aria-label="remove">
+                                                                <i class="ti ti-x text-xs" aria-hidden="true"></i>
+                                                            </button>
+                                                        </div>
+                                                    </template>
+                                                    <p x-show="loopQueryFilters().length" class="text-[10px] text-gray-400"><?= e(__('blox_loop_filters_hint')) ?></p>
+                                                </div>
                                                 <div class="grid grid-cols-2 gap-2">
                                                     <label class="block text-[11px] text-gray-600">
                                                         <span class="mb-1 block"><?= e(__('blox_dynamic_pagination_mode')) ?></span>

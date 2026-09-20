@@ -89,7 +89,59 @@ final class BloxLoopQuery
         if ($empty !== '') {
             $query['empty'] = mb_substr($empty, 0, 200);
         }
+        $filters = self::normalizeFilters($raw['filters'] ?? null);
+        if ($filters !== []) {
+            $query['filters'] = $filters;
+        }
         return $query;
+    }
+
+    /**
+     * 自定义字段过滤归一（v1.25 §7.2.1）：AND 平铺 ≤5 条 {field,op,value}，
+     * 算子白名单与 SQL 编译端同源（MetaModel::FILTER_OPS）；数值算子强校验、
+     * between 要求「a,b」双数值；不合法条目静默丢弃（与 _query 其余键同规——
+     * 值决定 SQL 形态，宁缺毋滥）。
+     *
+     * @return list<array{field:string,op:string,value:string}>
+     */
+    private static function normalizeFilters(mixed $raw): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+        $out = [];
+        foreach ($raw as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $field = strtolower(trim((string) ($item['field'] ?? '')));
+            $op = strtolower(trim((string) ($item['op'] ?? '=')));
+            $value = mb_substr(trim((string) ($item['value'] ?? '')), 0, 200);
+            if (preg_match('/^[a-z][a-z0-9_]{0,63}$/D', $field) !== 1
+                || !in_array($op, MetaModel::FILTER_OPS, true)) {
+                continue;
+            }
+            if ($op === 'empty') {
+                $value = '';
+            } elseif ($op === 'between') {
+                $parts = array_map('trim', explode(',', $value));
+                if (count($parts) !== 2 || !is_numeric($parts[0]) || !is_numeric($parts[1])) {
+                    continue;
+                }
+                $value = $parts[0] . ',' . $parts[1];
+            } elseif (in_array($op, ['>', '>=', '<', '<='], true)) {
+                if (!is_numeric($value)) {
+                    continue;
+                }
+            } elseif ($value === '') {
+                continue;
+            }
+            $out[] = ['field' => $field, 'op' => $op, 'value' => $value];
+            if (count($out) >= MetaModel::FILTER_MAX_ITEMS) {
+                break;
+            }
+        }
+        return $out;
     }
 
     /**
@@ -183,6 +235,11 @@ final class BloxLoopQuery
         }
         if (($query['order'] ?? '') !== '' && ($query['order'] ?? 'default') !== 'default') {
             $attrs['order'] = (string) $query['order'];
+        }
+        // 自定义字段过滤：owner 归一在 TagEngine::listQueryContext（type 在那里定型），
+        // 规格进 attrs 也让 memo 键自然覆盖过滤维度
+        if (!empty($query['filters']) && is_array($query['filters'])) {
+            $attrs['_meta_filters'] = array_values($query['filters']);
         }
         if (($query['pagination'] ?? 'none') === 'numbers' && $paginationParam !== '') {
             $attrs['page_param'] = $paginationParam;
