@@ -143,6 +143,23 @@ declare(strict_types=1);
                 this._keepMulti = false;
             },
 
+            /** 0b：结构树深层行点选。多选作用域=同一父容器的直接子级（与单层行为同构）。 */
+            treeChildClickAt(event, si, ci, ei, subPath) {
+                if (subPath.length === 1) { this.treeChildClick(event, si, ci, ei, subPath[0]); return; }
+                var parent = this.subPathParent(si, ci, ei, subPath);
+                var kids = parent && parent.data ? (parent.data.children || []) : [];
+                var node = kids[subPath[subPath.length - 1]];
+                var siblings = kids.map(function (kid) { return kid && kid.id ? String(kid.id) : ""; });
+                if (!this.multiModClick(event, "child", parent && parent.id ? String(parent.id) : "",
+                    node && node.id ? String(node.id) : "", siblings)) {
+                    this.selectDescendant(si, ci, ei, subPath);
+                    return;
+                }
+                this._keepMulti = true;
+                this.selectDescendant(si, ci, ei, subPath);
+                this._keepMulti = false;
+            },
+
             elementIdAt(si, ci, ei) {
                 var section = this.sections[si];
                 var column = section && section.columns ? section.columns[ci] : null;

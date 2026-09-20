@@ -36,15 +36,40 @@ final class ContainerElement extends AbstractElement
         'xl' => ['p-16', 'md:p-16', 'lg:p-16', 'wide:p-16'],
     ];
     private const RADIUS_MAP = ['none' => '', 'md' => 'rounded-lg', 'xl' => 'rounded-2xl'];
-    private const ITEMS_MAP = ['stretch' => '', 'start' => 'items-start', 'center' => 'items-center', 'end' => 'items-end', 'baseline' => 'items-baseline'];
-    private const JUSTIFY_MAP = ['start' => '', 'center' => 'justify-center', 'end' => 'justify-end', 'between' => 'justify-between', 'around' => 'justify-around', 'evenly' => 'justify-evenly'];
+    // 0a：交叉轴/主轴对齐升级为响应式四元组。标量旧值经 respClasses 仍只输出基类，存量渲染不变。
+    private const ITEMS_MAP = [
+        'stretch' => ['', 'md:items-stretch', 'lg:items-stretch', 'wide:items-stretch'],
+        'start' => ['items-start', 'md:items-start', 'lg:items-start', 'wide:items-start'],
+        'center' => ['items-center', 'md:items-center', 'lg:items-center', 'wide:items-center'],
+        'end' => ['items-end', 'md:items-end', 'lg:items-end', 'wide:items-end'],
+        'baseline' => ['items-baseline', 'md:items-baseline', 'lg:items-baseline', 'wide:items-baseline'],
+    ];
+    private const JUSTIFY_MAP = [
+        'start' => ['', 'md:justify-start', 'lg:justify-start', 'wide:justify-start'],
+        'center' => ['justify-center', 'md:justify-center', 'lg:justify-center', 'wide:justify-center'],
+        'end' => ['justify-end', 'md:justify-end', 'lg:justify-end', 'wide:justify-end'],
+        'between' => ['justify-between', 'md:justify-between', 'lg:justify-between', 'wide:justify-between'],
+        'around' => ['justify-around', 'md:justify-around', 'lg:justify-around', 'wide:justify-around'],
+        'evenly' => ['justify-evenly', 'md:justify-evenly', 'lg:justify-evenly', 'wide:justify-evenly'],
+    ];
+    private const CONTENT_MAP = [
+        '' => ['', 'md:content-normal', 'lg:content-normal', 'wide:content-normal'],
+        'start' => ['content-start', 'md:content-start', 'lg:content-start', 'wide:content-start'],
+        'center' => ['content-center', 'md:content-center', 'lg:content-center', 'wide:content-center'],
+        'end' => ['content-end', 'md:content-end', 'lg:content-end', 'wide:content-end'],
+        'between' => ['content-between', 'md:content-between', 'lg:content-between', 'wide:content-between'],
+        'around' => ['content-around', 'md:content-around', 'lg:content-around', 'wide:content-around'],
+        'evenly' => ['content-evenly', 'md:content-evenly', 'lg:content-evenly', 'wide:content-evenly'],
+    ];
 
     public function type(): string { return 'container'; }
     public function label(): string { return __('blox_tree_container'); }
     public function icon(): string { return 'box-margin'; }
     public function category(): string { return 'layout'; }
     public function isContainer(): bool { return true; }
-    public function allowedChildren(array $data = []): array { return ['*']; }
+    // 0b：布局节点开放互嵌（显式列出容器类型；'*' 通配仍只放行非容器叶子）。
+    // 深度上限由 BloxDocumentValidator::MAX_ELEMENT_DEPTH 统一约束。
+    public function allowedChildren(array $data = []): array { return ['container', 'div', '*']; }
     /** 通用背景：native——背景写在自己的根 div 上，存量输出逐字节不变 */
     public function backgroundRenderStrategy(): string { return 'native'; }
     /** 背景视频首批仅容器（区块级视频背景是真实场景；正文元素无此需求） */
@@ -65,28 +90,46 @@ final class ContainerElement extends AbstractElement
         // option_icons：编辑器把该 select 显示为图标按钮组（键与 options 对应，
         // 值为 Tabler 图标名）；不认识此键的编辑器仍按普通下拉渲染，向后兼容
         return [
+            // 0b Grid：布局模式。flex 为默认且输出与历史逐字节一致；grid 走列模板。
+            ['key' => 'layout', 'type' => 'select', 'label' => __('blox_layout_mode'), 'default' => 'flex', 'tab' => 'style',
+                'options' => ['flex' => 'Flex', 'grid' => 'Grid'],
+                'option_icons' => ['flex' => 'layout-distribute-vertical', 'grid' => 'layout-grid']],
             ['key' => 'direction', 'type' => 'select', 'label' => __('blox_direction'), 'default' => 'column', 'tab' => 'style', 'responsive' => true,
+                'required' => ['layout', '!=', 'grid'],
                 'options' => ['column' => __('blox_dir_column_stack'), 'row' => __('blox_dir_row_wrap')],
                 'option_icons' => ['column' => 'layout-list', 'row' => 'layout-columns']],
             ['key' => 'wrap', 'type' => 'select', 'label' => __('blox_flex_wrap'), 'default' => 'auto', 'tab' => 'style',
+                'required' => ['layout', '!=', 'grid'],
                 'options' => ['auto' => __('blox_flex_wrap_auto'), 'wrap' => __('blox_flex_wrap_on'), 'nowrap' => __('blox_flex_wrap_off')]],
+            ...$this->gridLayoutControls('layout'),
             ['key' => 'gap', 'type' => 'select', 'label' => __('blox_child_gap'), 'default' => 'md', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
-            // 声明式间距（E05 试点）：留空沿用上面的档位；填写后以实例样式覆盖。
+            // 声明式间距（E05 试点，0a 扩展行/列向）：留空沿用上面的档位；填写后以实例样式覆盖。
             ['key' => 'gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_gap'),
                 'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
                 'css' => [['property' => 'gap']]],
-            ['key' => 'align', 'type' => 'select', 'label' => __('blox_cross_align'), 'default' => 'stretch', 'tab' => 'style',
+            ['key' => 'row_gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_row_gap'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'row-gap']]],
+            ['key' => 'column_gap_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_column_gap'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 160, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'column-gap']]],
+            ['key' => 'align', 'type' => 'select', 'label' => __('blox_cross_align'), 'default' => 'stretch', 'tab' => 'style', 'responsive' => true,
                 'options' => ['stretch' => __('blox_align_stretch'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'baseline' => __('blox_flex_align_baseline')],
                 'option_icons' => ['stretch' => 'arrows-vertical', 'start' => 'layout-align-top', 'center' => 'layout-align-middle', 'end' => 'layout-align-bottom', 'baseline' => 'align-box-bottom-center']],
-            ['key' => 'justify', 'type' => 'select', 'label' => __('blox_main_distribute'), 'default' => 'start', 'tab' => 'style',
+            ['key' => 'justify', 'type' => 'select', 'label' => __('blox_main_distribute'), 'default' => 'start', 'tab' => 'style', 'responsive' => true,
                 'options' => ['start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'between' => __('blox_align_between'), 'around' => __('blox_flex_around'), 'evenly' => __('blox_flex_evenly')],
                 'option_icons' => ['start' => 'align-left', 'center' => 'align-center', 'end' => 'align-right', 'between' => 'align-justified', 'around' => 'spacing-horizontal', 'evenly' => 'space']],
+            ['key' => 'align_content', 'type' => 'select', 'label' => __('blox_align_content'), 'default' => '', 'tab' => 'style', 'responsive' => true,
+                'required' => ['wrap', '!=', 'nowrap'],
+                'options' => ['' => __('blox_align_content_normal'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'between' => __('blox_align_between'), 'around' => __('blox_flex_around'), 'evenly' => __('blox_flex_evenly')]],
             ...$this->backgroundControls(),
             ['key' => 'padding', 'type' => 'select', 'label' => __('blox_padding'), 'default' => 'none', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
             ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
                 'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
+            // 0a：容器自身作为父级 flex 子项的布局（容器嵌进行向容器的场景）。
+            ...$this->flexItemControls(),
         ];
     }
 
@@ -95,18 +138,26 @@ final class ContainerElement extends AbstractElement
         // yk-container 是编辑态定位钩子（画布空容器占位用），前台无样式含义——与 yk-col-card 同例
         // $layout 单独成串：视频分支要把 flex 布局整体移交内容层（radius 留根），
         // 无视频路径的拼接顺序与历史逐字节一致（radius 仍最后追加）。
-        $direction = $data['direction'] ?? 'column';
-        $layout = 'flex ' . $this->resp($direction, self::DIRECTION_MAP, 'column');
-        $wrap = $data['wrap'] ?? 'auto';
-        if ($wrap === 'auto') {
-            $wrapClass = $this->resp($direction, self::AUTO_WRAP_MAP, 'column');
-            if ($wrapClass !== '') {
-                $layout .= ' ' . $wrapClass;
+        if (($data['layout'] ?? 'flex') === 'grid') {
+            // 0b Grid：列模板 + 排列填充；间距/对齐/内边距与 flex 路径共用同一段拼装。
+            $layout = 'grid ' . self::gridColumnClasses($data['grid_cols'] ?? null);
+            if (($data['grid_flow'] ?? 'row') === 'dense') {
+                $layout .= ' grid-flow-dense';
             }
-        } elseif ($wrap === 'wrap') {
-            $layout .= ' flex-wrap';
-        } elseif ($wrap === 'nowrap') {
-            $layout .= ' flex-nowrap';
+        } else {
+            $direction = $data['direction'] ?? 'column';
+            $layout = 'flex ' . $this->resp($direction, self::DIRECTION_MAP, 'column');
+            $wrap = $data['wrap'] ?? 'auto';
+            if ($wrap === 'auto') {
+                $wrapClass = $this->resp($direction, self::AUTO_WRAP_MAP, 'column');
+                if ($wrapClass !== '') {
+                    $layout .= ' ' . $wrapClass;
+                }
+            } elseif ($wrap === 'wrap') {
+                $layout .= ' flex-wrap';
+            } elseif ($wrap === 'nowrap') {
+                $layout .= ' flex-nowrap';
+            }
         }
         $gapClass = $this->resp($data['gap'] ?? 'md', self::GAP_MAP, 'md');
         if ($gapClass !== '') {
@@ -117,8 +168,9 @@ final class ContainerElement extends AbstractElement
             $layout .= ' yk-gap-theme';
         }
         foreach ([
-            self::ITEMS_MAP[$data['align'] ?? 'stretch'] ?? '',
-            self::JUSTIFY_MAP[$data['justify'] ?? 'start'] ?? '',
+            $this->resp($data['align'] ?? 'stretch', self::ITEMS_MAP, 'stretch'),
+            $this->resp($data['justify'] ?? 'start', self::JUSTIFY_MAP, 'start'),
+            $this->resp($data['align_content'] ?? '', self::CONTENT_MAP, ''),
             $this->resp($data['padding'] ?? 'none', self::PAD_MAP, 'none'),
         ] as $c) {
             if ($c !== '') {
@@ -148,7 +200,8 @@ final class ContainerElement extends AbstractElement
             $overlay = $alpha !== null
                 ? '<div class="blox-bg-overlay" style="background:rgba(0,0,0,' . $alpha . ')"></div>'
                 : '';
-            return '<div class="yk-container blox-has-bg' . ($radiusCls !== '' ? ' ' . $radiusCls : '') . '"' . $style . '>'
+            $selfCls = trim(self::alignSelfClass($data) . ' ' . self::gridItemSpanClasses($data));
+            return '<div class="yk-container blox-has-bg' . ($radiusCls !== '' ? ' ' . $radiusCls : '') . ($selfCls !== '' ? ' ' . $selfCls : '') . '"' . $style . '>'
                 . '<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="'
                 . $mobileVideoMode . '" data-blox-video-src="'
                 . htmlspecialchars($video, ENT_QUOTES) . '"' . $posterAttr . '></video></div>'
@@ -157,7 +210,8 @@ final class ContainerElement extends AbstractElement
                 . '</div>';
         }
 
-        $cls = 'yk-container ' . $layout . ($radiusCls !== '' ? ' ' . $radiusCls : '');
+        $selfCls = trim(self::alignSelfClass($data) . ' ' . self::gridItemSpanClasses($data));
+        $cls = 'yk-container ' . $layout . ($radiusCls !== '' ? ' ' . $radiusCls : '') . ($selfCls !== '' ? ' ' . $selfCls : '');
         $style = '';
         $background = self::backgroundDeclarations($data);
         if ($background !== '') {

@@ -1197,7 +1197,8 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         if (el) {
             var path = el.getAttribute('data-yk-el') || '';
             var parts = pathParts(path);
-            if (parts.length >= 4) return { kind: 'child', target: { si: parts[0], ci: parts[1], ei: parts[2], cei: parts[3] }, path: path };
+            // 0b：五段及以上 = 嵌套容器内的深层子级，target 带完整路径供编辑器精确定位
+            if (parts.length >= 4) return { kind: 'child', target: { si: parts[0], ci: parts[1], ei: parts[2], cei: parts[3], path: path }, path: path };
             if (parts.length >= 3) return { kind: 'element', target: { si: parts[0], ci: parts[1], ei: parts[2] }, path: path };
         }
         var col = e.target.closest('[data-yk-col]');
@@ -1756,10 +1757,9 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
                 var computed = window.getComputedStyle(el);
                 var horizontal = computed && computed.display === 'flex' && String(computed.flexDirection || '').indexOf('row') === 0;
                 var elementType = el.getAttribute('data-yk-el-type') || '';
-                var isContainer = parts.length === 3 && (
-                    el.getAttribute('data-yk-el-container') === '1'
-                    || !!(ykDragRules && (ykDragRules.isContainer || {})[elementType])
-                );
+                // 0b：任意深度的容器都可作为放入式落点（能否收该类型由 dropTargetVerdict 判）
+                var isContainer = el.getAttribute('data-yk-el-container') === '1'
+                    || !!(ykDragRules && (ykDragRules.isContainer || {})[elementType]);
                 var verticalRatio = rect.height > 0 ? (e.clientY - rect.top) / rect.height : 0;
                 if (isContainer && verticalRatio >= .25 && verticalRatio <= .75) {
                     return { kind: 'container', path: path, sec: parts[0], col: parts[1] };
@@ -1832,7 +1832,8 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         dropState = target;
     }
 
-    // 拖放目标合法性：容器一层嵌套 + 容器 allowedChildren（如 stats-group 只收 stat-item）。
+    // 拖放目标合法性：容器 allowedChildren（如 stats-group 只收 stat-item；0b 起 container/div
+    // 显式互收，嵌套深度由服务端校验器统一约束）。
     // Chrome 在 dragover 期禁读 dataTransfer.getData，类型由编辑器 dragstart 经 postMessage 广播。
     // r14 具名拒因：{valid, reason}——reason 随 drop 上报编辑器 toast（craft.js 的
     // onError 思想：拒绝要告诉用户为什么，不再是红线一闪的静默失败）
@@ -1850,8 +1851,8 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         }
         if (target.kind === 'element') {
             var parts = pathParts(target.path);
-            if (parts.length >= 4) { // 目标在容器内：插入的是该容器的子元素
-                var parentNode = document.querySelector('[data-yk-el="' + parts.slice(0, 3).join('.') + '"]');
+            if (parts.length >= 4) { // 目标在容器内（任意深度）：插入的是其直接父容器的子元素
+                var parentNode = document.querySelector('[data-yk-el="' + parts.slice(0, -1).join('.') + '"]');
                 var parentType = parentNode ? (parentNode.getAttribute('data-yk-el-type') || '') : '';
                 var allowed = (ykDragRules.containers || {})[parentType];
                 if (Array.isArray(allowed)) {

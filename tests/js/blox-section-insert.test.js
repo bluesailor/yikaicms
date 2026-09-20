@@ -130,7 +130,9 @@ test('quick add is limited to the explicitly chosen live column or container', (
 });
 
 test('desktop palette click inserts once only after explicit quick add', () => {
-    const source = fs.readFileSync(path.resolve(__dirname, '../../admin/blox_editor.php'), 'utf8');
+    // 元素库方法已拆入 partial（0a 编辑器拆模块），与主文件视作同一逻辑源
+    const source = fs.readFileSync(path.resolve(__dirname, '../../admin/blox_editor.php'), 'utf8')
+        + fs.readFileSync(path.resolve(__dirname, '../../admin/blox_editor/partials/element-library-methods.php'), 'utf8');
     const body = source.match(/activatePaletteElement\(el, event\) \{([\s\S]*?)\n            \},/)[1];
     const activate = new Function('el', 'event', body);
     const state = fixture();

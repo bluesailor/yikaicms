@@ -50,6 +50,160 @@ abstract class AbstractElement
     }
 
     /**
+     * 子项在父级 flex 容器中的布局控件（0a 布局引擎）。
+     *
+     * order/flex-grow/flex-shrink/flex-basis 走声明式 CSS 引擎（留空即不输出，存量渲染不变）；
+     * align_self 是枚举，由元素 render 用字面类映射输出。0a 先开放给布局节点
+     * （container/div），递归容器落地后再推广到其余元素。
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function flexItemControls(): array
+    {
+        return [
+            ['key' => 'align_self', 'type' => 'select', 'label' => __('blox_align_self'), 'default' => 'auto', 'tab' => 'style',
+                'options' => ['auto' => __('blox_align_self_auto'), 'start' => __('blox_align_start'), 'center' => __('blox_align_center'), 'end' => __('blox_align_end'), 'stretch' => __('blox_align_stretch'), 'baseline' => __('blox_flex_align_baseline')],
+                'option_icons' => ['auto' => 'ban', 'start' => 'layout-align-top', 'center' => 'layout-align-middle', 'end' => 'layout-align-bottom', 'stretch' => 'arrows-vertical', 'baseline' => 'align-box-bottom-center']],
+            ['key' => 'order_n', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_flex_order'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => -10, 'max' => 10, 'step' => 1,
+                'css' => [['property' => 'order']]],
+            ['key' => 'flex_grow', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_flex_grow'),
+                'default' => '', 'tab' => 'style', 'min' => 0, 'max' => 10, 'step' => 1,
+                'css' => [['property' => 'flex-grow']]],
+            ['key' => 'flex_shrink', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_flex_shrink'),
+                'default' => '', 'tab' => 'style', 'min' => 0, 'max' => 10, 'step' => 1,
+                'css' => [['property' => 'flex-shrink']]],
+            ['key' => 'flex_basis_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_flex_basis'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 1200, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'flex-basis']]],
+            // 0b Grid：作为网格子项时的跨列（父级非 grid 时这些类不生效，无害）。
+            ['key' => 'grid_span', 'type' => 'select', 'label' => __('blox_grid_span'), 'default' => '', 'tab' => 'style', 'responsive' => true,
+                'options' => ['' => __('blox_grid_span_auto'), '2' => '2', '3' => '3', '4' => '4', '6' => '6', 'full' => __('blox_grid_span_full')]],
+        ];
+    }
+
+    /** align_self 枚举 → 字面类（Tailwind 扫描要求字面量；auto 无类，存量输出不变）。 */
+    protected static function alignSelfClass(array $data): string
+    {
+        return ['start' => 'self-start', 'center' => 'self-center', 'end' => 'self-end',
+            'stretch' => 'self-stretch', 'baseline' => 'self-baseline'][$data['align_self'] ?? 'auto'] ?? '';
+    }
+
+    // ── 0b Grid：容器列模板与子项跨列（类名字面量供 Tailwind 扫描） ──────────
+
+    // 键用显式 int（数字字符串键会被 PHP 静默转 int，Psalm 按 int 键报字符串偏移非法）
+    private const GRID_COLS_MOBILE_MAP = [
+        1 => 'grid-cols-1', 2 => 'grid-cols-2', 3 => 'grid-cols-3',
+        4 => 'grid-cols-4', 6 => 'grid-cols-6', 12 => 'grid-cols-12',
+    ];
+    private const GRID_COLS_TABLET_MAP = [
+        1 => 'md:grid-cols-1', 2 => 'md:grid-cols-2', 3 => 'md:grid-cols-3',
+        4 => 'md:grid-cols-4', 6 => 'md:grid-cols-6', 12 => 'md:grid-cols-12',
+    ];
+    private const GRID_COLS_DESKTOP_MAP = [
+        1 => 'lg:grid-cols-1', 2 => 'lg:grid-cols-2', 3 => 'lg:grid-cols-3',
+        4 => 'lg:grid-cols-4', 6 => 'lg:grid-cols-6', 12 => 'lg:grid-cols-12',
+    ];
+    private const GRID_COLS_WIDE_MAP = [
+        1 => 'wide:grid-cols-1', 2 => 'wide:grid-cols-2', 3 => 'wide:grid-cols-3',
+        4 => 'wide:grid-cols-4', 6 => 'wide:grid-cols-6', 12 => 'wide:grid-cols-12',
+    ];
+    private const GRID_SPAN_MOBILE_MAP = [
+        2 => 'col-span-2', 3 => 'col-span-3', 4 => 'col-span-4',
+        6 => 'col-span-6', 'full' => 'col-span-full',
+    ];
+    private const GRID_SPAN_TABLET_MAP = [
+        2 => 'md:col-span-2', 3 => 'md:col-span-3', 4 => 'md:col-span-4',
+        6 => 'md:col-span-6', 'full' => 'md:col-span-full',
+    ];
+    private const GRID_SPAN_DESKTOP_MAP = [
+        2 => 'lg:col-span-2', 3 => 'lg:col-span-3', 4 => 'lg:col-span-4',
+        6 => 'lg:col-span-6', 'full' => 'lg:col-span-full',
+    ];
+    private const GRID_SPAN_WIDE_MAP = [
+        2 => 'wide:col-span-2', 3 => 'wide:col-span-3', 4 => 'wide:col-span-4',
+        6 => 'wide:col-span-6', 'full' => 'wide:col-span-full',
+    ];
+
+    /**
+     * Grid 容器控件组。$modeKey = 触发 grid 的控件键（container 用 layout、div 用 display）。
+     * @return list<array<string, mixed>>
+     */
+    protected function gridLayoutControls(string $modeKey): array
+    {
+        return [
+            ['key' => 'grid_cols', 'type' => 'select', 'label' => __('blox_grid_cols'), 'default' => '3', 'tab' => 'style', 'responsive' => true,
+                'required' => [$modeKey, '=', 'grid'],
+                'options' => ['1' => '1', '2' => '2', '3' => '3', '4' => '4', '6' => '6', '12' => '12']],
+            ['key' => 'grid_flow', 'type' => 'select', 'label' => __('blox_grid_flow'), 'default' => 'row', 'tab' => 'style',
+                'required' => [$modeKey, '=', 'grid'],
+                'options' => ['row' => __('blox_grid_flow_row'), 'dense' => __('blox_grid_flow_dense')]],
+        ];
+    }
+
+    /**
+     * grid_cols {d,t,m,w} → 列模板类。手机缺省单列（既定约束的延续），显式 m 值可覆盖；
+     * t 缺省继承 d（t=d 时只出 md: 级联向上）；w 仅差异且宽屏档开启时输出。
+     */
+    protected static function gridColumnClasses(mixed $value): string
+    {
+        $raw = is_array($value) ? $value : ['d' => $value];
+        $pick = static function (mixed $candidate, int $fallback): int {
+            $candidate = is_numeric($candidate) ? (int) $candidate : 0;
+            return isset(self::GRID_COLS_MOBILE_MAP[$candidate]) ? $candidate : $fallback;
+        };
+        $d = $pick($raw['d'] ?? null, 3);
+        $t = $pick($raw['t'] ?? null, $d);
+        $m = $pick($raw['m'] ?? null, 1);
+        $w = $pick($raw['w'] ?? null, $d);
+        $classes = self::GRID_COLS_MOBILE_MAP[$m] . ' ' . self::GRID_COLS_TABLET_MAP[$t];
+        if ($t !== $d) {
+            $classes .= ' ' . self::GRID_COLS_DESKTOP_MAP[$d];
+        }
+        if ($w !== $d && BloxResponsiveValue::wideEnabled()) {
+            $classes .= ' ' . self::GRID_COLS_WIDE_MAP[$w];
+        }
+        return $classes;
+    }
+
+    /**
+     * grid_span {d,t,m,w} → 子项跨列类。空值=自动（无类）；标量按 md: 起生效
+     * （手机默认单列，跨列无意义），显式 m 值才输出基类。
+     */
+    protected static function gridItemSpanClasses(array $data): string
+    {
+        $value = $data['grid_span'] ?? '';
+        $raw = is_array($value) ? $value : ['d' => $value];
+        // '' = 自动（无类）；数字键为 int，'full' 保持字符串键
+        $pick = static function (mixed $candidate, int|string $fallback): int|string {
+            if (is_numeric($candidate)) {
+                $candidate = (int) $candidate;
+            }
+            return ($candidate === 'full' || is_int($candidate)) && isset(self::GRID_SPAN_MOBILE_MAP[$candidate])
+                ? $candidate
+                : $fallback;
+        };
+        $d = $pick($raw['d'] ?? null, '');
+        $t = $pick($raw['t'] ?? null, $d);
+        $m = $pick($raw['m'] ?? null, '');
+        $w = $pick($raw['w'] ?? null, $d);
+        $classes = [];
+        if ($m !== '') {
+            $classes[] = self::GRID_SPAN_MOBILE_MAP[$m];
+        }
+        if ($t !== '') {
+            $classes[] = self::GRID_SPAN_TABLET_MAP[$t];
+        }
+        if ($d !== '' && $d !== $t) {
+            $classes[] = self::GRID_SPAN_DESKTOP_MAP[$d];
+        }
+        if ($w !== '' && $w !== $d && BloxResponsiveValue::wideEnabled()) {
+            $classes[] = self::GRID_SPAN_WIDE_MAP[$w];
+        }
+        return implode(' ', $classes);
+    }
+
+    /**
      * 常用内容元素共享的入场动画设置。
      *
      * @return list<array<string, mixed>>
