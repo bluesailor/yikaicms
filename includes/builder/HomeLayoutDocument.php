@@ -169,6 +169,8 @@ public static function isActive(): bool
             json_encode($document, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
             'home'
         );
+        // v1.23 全局类用量反向索引
+        BloxGlobalClasses::replaceDocumentRefs('home-layout', BloxGlobalClasses::collectReferences($processed['sections']));
 
         return $document;
     }
