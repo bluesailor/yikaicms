@@ -31,6 +31,17 @@ final class BloxPopupDocumentTest extends TestCase
         self::assertSame('md', $settings['width']);
         self::assertFalse($settings['overlay_close']);
         self::assertFalse($settings['show_close']);
+        // 未配置时 scroll_depth 有默认值（触发切到 scroll 也有确定行为）
+        self::assertSame(50, $settings['scroll_depth']);
+    }
+
+    /** v1.26：scroll 触发进白名单，深度 10–100 钳位。 */
+    public function testScrollTriggerIsAcceptedAndDepthClamped(): void
+    {
+        $settings = BloxPopupDocument::normalizeSettings(['trigger' => 'scroll', 'scroll_depth' => 900]);
+        self::assertSame('scroll', $settings['trigger']);
+        self::assertSame(100, $settings['scroll_depth']);
+        self::assertSame(10, BloxPopupDocument::normalizeSettings(['scroll_depth' => -5])['scroll_depth']);
     }
 
     public function testPopupRoundTripKeepsSettingsAndUsesThemInRevision(): void
