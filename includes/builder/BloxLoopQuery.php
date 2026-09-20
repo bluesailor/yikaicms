@@ -35,9 +35,26 @@ final class BloxLoopQuery
             return $data;
         }
         $raw = $data['_query'];
-        if (!is_array($raw) || !is_string($raw['source'] ?? null) || !preg_match(self::SOURCE_PATTERN, $raw['source'])) {
-            unset($data['_query']);
+        // v1.25 全局查询引用形态：{ref: gq_xxx}——只存引用，查询体在 blox_global_queries
+        if (is_array($raw) && is_string($raw['ref'] ?? null)
+            && preg_match(BloxGlobalQueries::ID_PATTERN, $raw['ref'])) {
+            $data['_query'] = ['ref' => $raw['ref']];
             return $data;
+        }
+        $query = is_array($raw) ? self::normalizeQuery($raw) : null;
+        if ($query === null) {
+            unset($data['_query']);
+        } else {
+            $data['_query'] = $query;
+        }
+        return $data;
+    }
+
+    /** 内联查询体归一：非法返回 null。全局查询保存端复用同一份规则。 */
+    public static function normalizeQuery(array $raw): ?array
+    {
+        if (!is_string($raw['source'] ?? null) || !preg_match(self::SOURCE_PATTERN, $raw['source'])) {
+            return null;
         }
         $query = ['source' => $raw['source']];
         $cat = trim((string) ($raw['cat'] ?? ''));
@@ -72,18 +89,30 @@ final class BloxLoopQuery
         if ($empty !== '') {
             $query['empty'] = mb_substr($empty, 0, 200);
         }
-        $data['_query'] = $query;
-        return $data;
+        return $query;
     }
 
-    /** 该元素是否是循环宿主（类型 + 合法 `_query`）。 */
+    /**
+     * 该元素是否是循环宿主。引用形态解析全局查询体；悬挂引用返回
+     * `['__dangling' => true]`（渲染端按空结果提示处理，绝不退化为静态渲染）。
+     */
     public static function queryFrom(string $type, array $data): ?array
     {
         if (!in_array($type, self::HOST_TYPES, true)) {
             return null;
         }
         $query = $data['_query'] ?? null;
-        return is_array($query) && is_string($query['source'] ?? null)
+        if (!is_array($query)) {
+            return null;
+        }
+        if (is_string($query['ref'] ?? null)) {
+            if (!preg_match(BloxGlobalQueries::ID_PATTERN, $query['ref'])) {
+                return null;
+            }
+            $resolved = BloxGlobalQueries::queryBody($query['ref']);
+            return $resolved ?? ['__dangling' => true];
+        }
+        return is_string($query['source'] ?? null)
             && preg_match(self::SOURCE_PATTERN, $query['source']) ? $query : null;
     }
 

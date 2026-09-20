@@ -31,6 +31,8 @@ require_once __DIR__ . '/DetailScopeSummary.php';       // 作用域只读摘要
 require_once __DIR__ . '/ArticleTemplateDocument.php';  // 文章详情模板渲染/起始布局
 require_once __DIR__ . '/BloxQueryLoopPolicy.php';
 require_once __DIR__ . '/BloxLoopQuery.php';   // 容器 Loop 查询（v1.25）：_query 归一/取数复用/分页参数
+require_once __DIR__ . '/BloxGlobalQueries.php';   // 全局查询（v1.25）：可复用查询定义 + 用量索引
+require_once __DIR__ . '/BloxDocumentIndexes.php'; // 文档保存后的反向索引统一维护点
 require_once __DIR__ . '/BloxElementPolicy.php';
 require_once __DIR__ . '/BloxDisplayConditions.php';
 require_once __DIR__ . '/BloxDesignSystem.php';

@@ -859,6 +859,7 @@ if ($isHomeBlox) {
 $businessIconPresets = BloxIcon::businessPresets();
 $bloxDesignSystem = BloxDesignSystem::snapshot();
 $bloxGlobalClasses = array_values(BloxGlobalClasses::catalog());
+$bloxGlobalQueries = array_values(BloxGlobalQueries::catalog());
 $canManageBloxDesign = hasPermission('blox_global');
 ?>
 <!doctype html>
@@ -1375,6 +1376,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             // v1.23 全局样式类：目录数据免费可读（渲染语义），创建/管理由服务端授权门再拦一道
             globalClassesEnabled: <?php echo !empty($professionalFeatures['global_classes']['allowed']) ? 'true' : 'false'; ?>,
             globalClasses: <?php echo json_encode($bloxGlobalClasses, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            // v1.25 全局查询目录：循环容器可按 ID 引用（一处修改全站生效）
+            globalQueries: <?php echo json_encode($bloxGlobalQueries, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             bannerPanelGroup: "common",
             styleGroup: "general",
             // TASK-003 D：搜索前的分组选择（清除搜索后恢复）；连同当时的选中元素一起记，避免切元素后串状态
