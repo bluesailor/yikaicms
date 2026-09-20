@@ -256,6 +256,48 @@
                 .finally(function () { self._savingLoopQuery = false; });
         },
 
+        // 自定义字段过滤（v1.25）：AND 平铺 ≤5 条 {field,op,value}。编辑期允许留空行
+        // （输入顺序不定），落盘归一交给服务端 normalizeFilters——非法行静默丢弃。
+        loopQueryFilters() {
+            var query = this.loopQueryEnabled() ? this.selEl.data._query : {};
+            return Array.isArray(query.filters) ? query.filters : [];
+        },
+
+        addLoopQueryFilter() {
+            if (!this.loopQueryEnabled()) return;
+            var filters = this.loopQueryFilters().slice();
+            if (filters.length >= 5) return;
+            filters.push({ field: "", op: "=", value: "" });
+            this.selEl.data._query = Object.assign({}, this.selEl.data._query, { filters: filters });
+        },
+
+        removeLoopQueryFilter(index) {
+            if (!this.loopQueryEnabled()) return;
+            var filters = this.loopQueryFilters().slice();
+            filters.splice(index, 1);
+            var query = Object.assign({}, this.selEl.data._query);
+            if (filters.length) query.filters = filters; else delete query.filters;
+            this.selEl.data._query = query;
+        },
+
+        setLoopQueryFilter(index, key, value) {
+            if (!this.loopQueryEnabled()) return;
+            var filters = this.loopQueryFilters().slice();
+            if (!filters[index]) return;
+            var row = Object.assign({}, filters[index]);
+            if (key === "field") {
+                row.field = String(value || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 64);
+            } else if (key === "op") {
+                var ops = ["=", "!=", ">", ">=", "<", "<=", "like", "in", "between", "empty"];
+                row.op = ops.indexOf(String(value)) >= 0 ? String(value) : "=";
+                if (row.op === "empty") row.value = "";
+            } else {
+                row.value = String(value == null ? "" : value).trim().slice(0, 200);
+            }
+            filters[index] = row;
+            this.selEl.data._query = Object.assign({}, this.selEl.data._query, { filters: filters });
+        },
+
         setLoopQueryField(key, value) {
             if (!this.loopQueryEnabled()) return;
             var query = Object.assign({}, this.selEl.data._query);
