@@ -117,6 +117,14 @@ final class HtmlCache
             return;
         }
 
+        // v1.27 缓存安全分级：页面文档含缓存不安全的显示条件（如精确时间）时不落盘——
+        // 同一 URL 的求值结果会随请求侧状态漂移，落盘即把错误分支冻结给所有访客。
+        // class_exists 不触发自动加载：本文件被独立端点（blox_cache_api 等）单独 require 时
+        // 构建器未加载，也就不可能出现过条件求值。
+        if (class_exists('BloxDisplayConditions', false) && BloxDisplayConditions::pageCacheMustSkip()) {
+            return;
+        }
+
         try {
             if (self::$currentGeneration !== settingModel()->htmlCacheGeneration()) return;
         } catch (Throwable $e) {
@@ -342,6 +350,15 @@ final class HtmlCache
     }
 
     private static function isMobile(): bool
+    {
+        return self::isMobileClient();
+    }
+
+    /**
+     * 缓存键的移动端判定，公开给显示条件的 device 键（v1.27）共用——
+     * 两处判定必须同源，否则 device 条件的分支会被冻结进错误的缓存桶。
+     */
+    public static function isMobileClient(): bool
     {
         $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
         return (bool)preg_match('/Mobile|Android|iPhone|iPad|iPod/i', $ua);
