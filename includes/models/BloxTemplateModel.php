@@ -8,10 +8,11 @@ final class BloxTemplateModel extends Model
     protected string $table = 'blox_templates';
     protected string $defaultOrder = 'updated_at DESC, id DESC';
 
-    // error404（v1.26 Site Builder 补全）：整页 404 模板，文档走通用管线（无类型专属 settings），
-    // 激活走 BloxAreaResolver 条件（实际只有 any+语言有意义；channel/page 条件在 404 上下文
-    // 永不命中，属矩阵 UI 的通用性，无害）
-    public const TYPES = ['section', 'page', 'header', 'footer', 'popup', 'error404', 'product-detail', 'article-detail'];
+    // v1.26 Site Builder 补全：archive（栏目列表模板，条件按 any/channel/语言裁决，
+    // 渲染在 list.php 复用 current_query 上下文）与 error404（整页 404，any+语言即够；
+    // channel/page 条件在 404 上下文永不命中，属矩阵 UI 的通用性，无害）。
+    // 两者文档均走通用管线（无类型专属 settings）。
+    public const TYPES = ['section', 'page', 'header', 'footer', 'popup', 'archive', 'error404', 'product-detail', 'article-detail'];
     private const SOURCES = ['user', 'import', 'builtin', 'plugin', 'remote'];
 
     public static function validType(string $type): bool
@@ -21,7 +22,7 @@ final class BloxTemplateModel extends Model
 
     public static function conditionalType(string $type): bool
     {
-        return in_array($type, ['header', 'footer', 'popup', 'error404'], true);
+        return in_array($type, ['header', 'footer', 'popup', 'archive', 'error404'], true);
     }
 
     /**
