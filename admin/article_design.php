@@ -19,7 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if (post('action') === 'create') {
             $language = (string) post('language', '');
-            if (!isset(availableLanguages()[$language])) throw new RuntimeException(__('blox_bad_request'));
+            // v1.26 语言维度：''=全部语言（跨语言共享布局），指定语言并列时优先
+            if ($language !== '' && !isset(availableLanguages()[$language])) throw new RuntimeException(__('blox_bad_request'));
             // v1.26 Single 扩自定义模型：创建时定类型（article / 已注册模型 key）。
             // 注册核对走统一 IO 点；未注册/缺失回落 article，不报错（表单只列合法项）。
             $contentType = DetailTemplateProvider::contentTypeForTemplate(
@@ -94,8 +95,9 @@ require ROOT_PATH . '/admin/includes/header.php';
     <form method="post" class="flex flex-wrap items-end gap-3 border-y border-gray-200 py-4">
         <?= csrfField() ?><input type="hidden" name="action" value="create">
         <label class="min-w-0 w-full sm:w-auto sm:flex-1"><span class="block mb-1 text-sm"><?= e(__('blox_article_name')) ?></span><input name="name" required maxlength="150" class="w-full rounded border border-gray-300 px-3 py-2" data-testid="article-design-name"></label>
-        <label><span class="block mb-1 text-sm"><?= e(__('blox_article_language')) ?></span><select name="language" class="rounded border border-gray-300 px-3 py-2">
+        <label><span class="block mb-1 text-sm"><?= e(__('blox_article_language')) ?></span><select name="language" class="rounded border border-gray-300 px-3 py-2" data-testid="article-design-language">
             <?php foreach (availableLanguages() as $code => $label): ?><option value="<?= e((string) $code) ?>" <?= $code === config('site_lang', 'zh-CN') ? 'selected' : '' ?>><?= e((string) $label) ?></option><?php endforeach; ?>
+            <?php if (count(availableLanguages()) > 1): ?><option value=""><?= e(__('blox_cond_all_languages')) ?></option><?php endif; ?>
         </select></label>
         <?php
         // v1.26：有注册模型时提供类型选择（模板条件的 content_type 维度，见 DetailTemplateResolver）
@@ -194,7 +196,7 @@ require ROOT_PATH . '/admin/includes/header.php';
         <div class="flex flex-wrap items-center justify-between gap-3 py-4" data-testid="article-design-row-<?= (int) $template['id'] ?>">
             <div class="min-w-0"><strong class="break-words"><?= e((string) $template['name']) ?></strong><span class="ml-3 text-sm text-gray-600"><?= e(__((int) $template['status'] === 1 ? 'blox_article_status_published' : 'blox_article_status_draft')) ?></span>
                 <?php if ($scope !== null): ?>
-                <p class="mt-1 text-sm text-gray-600"><?= e(__('blox_article_scope')) ?>: <?= e((string) ($languages[$scope['lang']] ?? $scope['lang'])) ?> · <?= e($scopeText) ?></p>
+                <p class="mt-1 text-sm text-gray-600"><?= e(__('blox_article_scope')) ?>: <?= e($scope['lang'] === '' ? __('blox_cond_all_languages') : (string) ($languages[$scope['lang']] ?? $scope['lang'])) ?> · <?= e($scopeText) ?></p>
                 <?php if (($scopeCategoryText ?? '') !== ''): ?>
                 <p class="mt-1 text-sm text-gray-600" data-testid="article-design-category-rules"><?= e($scopeCategoryText) ?></p>
                 <?php endif; ?>

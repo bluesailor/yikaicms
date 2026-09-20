@@ -72,6 +72,34 @@ final class DetailTemplateResolverTest extends TestCase
         $this->assertSame(DetailTemplateResolver::REASON_NO_CANDIDATE, $article['reason']);
     }
 
+    /** v1.26 语言维度：''=全语言可跨语言命中；同具体度同优先级时指定语言胜出且不算冲突。 */
+    public function testAllLanguageScopeMatchesAndLosesToLanguageSpecificOnTies(): void
+    {
+        $allLang = ['id' => 1, 'type' => 'product-detail', 'status' => 1, 'scope' => [
+            'version' => 2, 'content_type' => 'product', 'lang' => '',
+            'include' => [['kind' => 'all', 'ids' => [], 'include_children' => false]],
+            'exclude' => [], 'source' => 'custom', 'priority' => 0,
+        ]];
+        $zhOnly = ['id' => 2, 'type' => 'product-detail', 'status' => 1, 'scope' => [
+            'version' => 2, 'content_type' => 'product', 'lang' => 'zh-CN',
+            'include' => [['kind' => 'all', 'ids' => [], 'include_children' => false]],
+            'exclude' => [], 'source' => 'custom', 'priority' => 0,
+        ]];
+
+        // 全语言模板独自命中任何语言
+        $ja = DetailTemplateResolver::resolve([$allLang], self::ctx(['lang' => 'ja']));
+        $this->assertSame(1, (int) $ja['template_id']);
+
+        // 与指定语言并列：指定语言胜出，且这不是冲突（明确的先后语义）
+        $zh = DetailTemplateResolver::resolve([$allLang, $zhOnly], self::ctx());
+        $this->assertSame(2, (int) $zh['template_id']);
+        $this->assertSame([], $zh['conflicts']);
+
+        // 指定语言不覆盖的语言仍由全语言模板兜住
+        $en = DetailTemplateResolver::resolve([$allLang, $zhOnly], self::ctx(['lang' => 'en']));
+        $this->assertSame(1, (int) $en['template_id']);
+    }
+
     // ---------- 归一化 ----------
 
     public function testScopeNormalizationIsFailClosed(): void
@@ -90,7 +118,9 @@ final class DetailTemplateResolverTest extends TestCase
         $this->assertFalse(DetailTemplateResolver::scopeIsUsable(
             DetailTemplateResolver::normalizeScope(['content_type' => 'Not A Type', 'lang' => 'zh-CN', 'include' => [['kind' => 'all']]])
         ));
-        $this->assertFalse(DetailTemplateResolver::scopeIsUsable(
+        // v1.26 语言维度：缺失/空 lang = 显式全语言，作用域可用（跨语言共享布局；
+        // 指定语言的模板在同具体度同优先级并列时优先，见 lang_specific 排序维度）
+        $this->assertTrue(DetailTemplateResolver::scopeIsUsable(
             DetailTemplateResolver::normalizeScope(['content_type' => 'product', 'include' => [['kind' => 'all']]])
         ));
         $this->assertFalse(DetailTemplateResolver::scopeIsUsable(
@@ -396,12 +426,11 @@ final class DetailTemplateResolverTest extends TestCase
         $this->assertSame([99], $decoded['settings']['detail_template']['exclude'][0]['ids']);
         $this->assertArrayNotHasKey('legacy', $decoded['settings']['detail_template'], '内部标记不落盘');
 
-        // 畸形条件经管线后是「不可用作用域」，不是全站。
-        // v1.26：'nope' 是合法模型 key 形态所以保留（休眠数据），但缺 lang → include 被清空、
-        // 不可用；对 product 上下文照样 no_candidate（evaluateCandidate 的类型相等判定）
+        // v1.26：'nope' 是合法模型 key 形态所以保留（休眠数据，缺 lang=全语言、include 保留），
+        // 但对 product 上下文照样 no_candidate（evaluateCandidate 的 content_type 相等判定）
         $bad = BloxDocumentPipeline::normalizeDocSettings(['detail_template' => ['content_type' => 'nope', 'include' => [['kind' => 'all']]]]);
         $this->assertSame('nope', $bad['detail_template']['content_type']);
-        $this->assertSame([], $bad['detail_template']['include']);
+        $this->assertSame([['kind' => 'all', 'ids' => [], 'include_children' => false]], $bad['detail_template']['include']);
         $this->assertSame('no_candidate', DetailTemplateResolver::resolve(
             [['id' => 1, 'type' => 'product-detail', 'status' => 1, 'scope' => $bad['detail_template']]],
             self::ctx()

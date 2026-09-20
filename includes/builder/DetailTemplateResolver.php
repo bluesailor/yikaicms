@@ -115,9 +115,12 @@ final class DetailTemplateResolver
         $scope['content_type'] = $contentType;
 
         $lang = is_string($value['lang'] ?? null) ? trim((string) $value['lang']) : '';
-        if ($lang === '' || strlen($lang) > 16 || preg_match('/[\x00-\x1f\x7f]/', $lang) === 1) {
-            return $scope;   // 语言缺失/异常 → 不可用（与 v1 的「lang 必填」一致）
+        if (strlen($lang) > 16 || preg_match('/[\x00-\x1f\x7f]/', $lang) === 1) {
+            return $scope;   // 语言值异常 → 不可用
         }
+        // v1.26 语言维度推广：lang='' 显式表示**全部语言**（此前必填；历史 v2 落库数据
+        // 经 DetailConditionInput 强校验必有 lang，'' 只可能来自新语义的显式选择）。
+        // 同具体度同优先级并列时指定语言胜过全语言，见 resolve() 的 lang_specific 维度。
         $scope['lang'] = $lang;
 
         if (($value['source'] ?? null) === self::SOURCE_NATIVE) {
@@ -204,11 +207,10 @@ final class DetailTemplateResolver
         return preg_match(self::MODEL_KEY_PATTERN, $contentType) === 1 ? 'article-detail' : '';
     }
 
-    /** 作用域是否可用于判定（类型与语言齐备且有 include）。 */
+    /** 作用域是否可用于判定（类型齐备且有 include；lang='' 表示全语言，同样可用）。 */
     public static function scopeIsUsable(array $scope): bool
     {
         return $scope['content_type'] !== ''
-            && $scope['lang'] !== ''
             && self::isContentType($scope['content_type'])
             && $scope['include'] !== [];
     }
@@ -300,6 +302,11 @@ final class DetailTemplateResolver
             if ($left['priority'] !== $right['priority']) {
                 return $right['priority'] <=> $left['priority'];
             }
+            // v1.26 语言维度：同具体度同优先级时，指定语言的模板胜过全语言模板
+            //（与区域解析的 SCORE_LANGUAGE_BONUS 同语义），这不是冲突而是明确的先后
+            if ($left['lang_specific'] !== $right['lang_specific']) {
+                return ($right['lang_specific'] ? 1 : 0) <=> ($left['lang_specific'] ? 1 : 0);
+            }
             return $right['id'] <=> $left['id'];   // 确定性兜底，不代表最终语义
         });
 
@@ -307,7 +314,8 @@ final class DetailTemplateResolver
         $tied = array_values(array_filter($matched, static function (array $row) use ($top): bool {
             return $row['level'] === $top['level']
                 && $row['detail'] === $top['detail']
-                && $row['priority'] === $top['priority'];
+                && $row['priority'] === $top['priority']
+                && $row['lang_specific'] === $top['lang_specific'];
         }));
 
         $winner = $tied[0];
@@ -383,8 +391,8 @@ final class DetailTemplateResolver
         if (!self::scopeIsUsable($scope) || $scope['content_type'] !== $ctx['content_type']) {
             return null;
         }
-        if ($scope['lang'] !== $ctx['lang']) {
-            return null;   // 第一版不跨语言共享布局
+        if ($scope['lang'] !== '' && $scope['lang'] !== $ctx['lang']) {
+            return null;   // 指定语言只服务该语言；''=全语言（v1.26）跨语言共享布局
         }
 
         $excluded = [];
@@ -420,6 +428,7 @@ final class DetailTemplateResolver
             'type' => $type,
             'level' => $level,
             'detail' => $detail,
+            'lang_specific' => $scope['lang'] !== '', // v1.26：并列时指定语言胜过全语言
             'priority' => (int) $scope['priority'],
             'source' => (string) $scope['source'],
             'legacy' => ($scope['legacy'] ?? false) === true,

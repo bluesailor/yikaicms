@@ -44,7 +44,8 @@ final class DetailConditionInput
         }
 
         $lang = is_string($raw['lang'] ?? null) ? trim((string) $raw['lang']) : '';
-        if ($lang === '' || !array_key_exists($lang, $allowedLanguages)) {
+        // v1.26：lang='' 显式表示全部语言（跨语言共享布局，指定语言并列时优先）
+        if ($lang !== '' && !array_key_exists($lang, $allowedLanguages)) {
             return self::fail('bad_lang');
         }
 

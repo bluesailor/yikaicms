@@ -117,7 +117,8 @@ final class DetailTemplateProvider
      */
     public static function optionsWithReferences(string $contentType, string $kind, array $options, ?array $scope, string $lang): array
     {
-        if (!is_array($scope) || $lang === '' || !in_array($kind, ['item', 'category'], true)) {
+        if (!DetailTemplateResolver::isContentType($contentType)
+            || !is_array($scope) || $lang === '' || !in_array($kind, ['item', 'category'], true)) {
             return $options;
         }
         $listed = [];
@@ -143,9 +144,10 @@ final class DetailTemplateProvider
         $ids = array_slice(array_keys($wanted), 0, 1000);
         $in = implode(',', array_fill(0, count($ids), '?'));
         if ($kind === 'item') {
+            // 类型过 MODEL_KEY_PATTERN 形态校验（无引号字符），可安全内插（v1.26 模型支持）
             $sql = $contentType === 'product'
                 ? 'SELECT id, title AS name FROM ' . DB_PREFIX . 'products WHERE lang = ? AND deleted_at IS NULL AND id IN (' . $in . ')'
-                : 'SELECT id, title AS name FROM ' . DB_PREFIX . "contents WHERE lang = ? AND type = 'article' AND deleted_at IS NULL AND id IN (" . $in . ')';
+                : 'SELECT id, title AS name FROM ' . DB_PREFIX . "contents WHERE lang = ? AND type = '" . $contentType . "' AND deleted_at IS NULL AND id IN (" . $in . ')';
         } else {
             $sql = $contentType === 'product'
                 ? 'SELECT id, name FROM ' . DB_PREFIX . 'product_categories WHERE lang = ? AND id IN (' . $in . ')'
@@ -230,7 +232,9 @@ final class DetailTemplateProvider
         if (!$usable) {
             return 'scope_unusable';
         }
-        return (string) $scope['lang'] === (string) ($context['lang'] ?? '') ? 'ok' : 'lang_mismatch';
+        // lang=''（v1.26 全语言）对任何内容语言都是前置满足
+        return (string) $scope['lang'] === '' || (string) $scope['lang'] === (string) ($context['lang'] ?? '')
+            ? 'ok' : 'lang_mismatch';
     }
 
     /**
@@ -307,12 +311,15 @@ final class DetailTemplateProvider
                 }
             }
         }
+        // lang=''（全语言）：目标存在性无法按单一语言核对，直接不报缺失（宁少报不误报）
         if ($scope['content_type'] !== $contentType || $scope['lang'] === '') {
             return ['items' => [], 'categories' => []];
         }
+        // 非产品按内容真实类型过滤（v1.26：article 或已注册模型 key——都过了
+        // MODEL_KEY_PATTERN 形态校验（无引号字符），可安全内插）
         $itemSql = $contentType === 'product'
             ? 'SELECT id FROM ' . DB_PREFIX . 'products WHERE lang = ? AND deleted_at IS NULL AND id IN (%s)'
-            : 'SELECT id FROM ' . DB_PREFIX . "contents WHERE lang = ? AND type = 'article' AND deleted_at IS NULL AND id IN (%s)";
+            : 'SELECT id FROM ' . DB_PREFIX . "contents WHERE lang = ? AND type = '" . $contentType . "' AND deleted_at IS NULL AND id IN (%s)";
         $categorySql = $contentType === 'product'
             ? 'SELECT id FROM ' . DB_PREFIX . 'product_categories WHERE lang = ? AND id IN (%s)'
             : 'SELECT id FROM ' . DB_PREFIX . 'channels WHERE lang = ? AND id IN (%s)';

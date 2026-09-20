@@ -111,7 +111,18 @@ final class DetailTemplatePublishGuard
             if ($scope['content_type'] !== $contentType || !DetailTemplateResolver::scopeIsUsable($scope)) {
                 continue;
             }
-            $langs[$scope['lang']] = true;
+            if ($scope['lang'] === '') {
+                // v1.26 全语言作用域：扫描域展开为全部已配置语言（否则 lang IN ('') 空扫）
+                try {
+                    foreach (array_keys(function_exists('availableLanguages') ? availableLanguages() : []) as $code) {
+                        $langs[(string) $code] = true;
+                    }
+                } catch (Throwable) {
+                    // 语言配置不可用：保持保守（不扩域）
+                }
+            } else {
+                $langs[$scope['lang']] = true;
+            }
             foreach ($scope['include'] as $rule) {
                 if ($rule['kind'] === 'all') {
                     $all = true;
@@ -412,7 +423,11 @@ final class DetailTemplatePublishGuard
             $categoryColumn = 'category_id';
         } else {
             $table = DB_PREFIX . 'contents';
-            $where = "type = 'article' AND deleted_at IS NULL AND lang IN (" . $langs . ')';
+            // v1.26：按真实内容类型过滤（article / 已注册模型 key，过了 MODEL_KEY_PATTERN
+            // 形态校验、无引号字符，可安全内插）；此前硬编码 article 会让模型模板空扫
+            $safeType = preg_match(DetailTemplateResolver::MODEL_KEY_PATTERN, $contentType) === 1
+                ? $contentType : 'article';
+            $where = "type = '" . $safeType . "' AND deleted_at IS NULL AND lang IN (" . $langs . ')';
             $categoryColumn = 'channel_id';
         }
         $params = $domain['langs'];
@@ -455,9 +470,12 @@ final class DetailTemplatePublishGuard
                 $langs
             );
         } else {
+            // v1.26：指纹统计与扫描域同一类型口径（形态校验后内插，同 domainQuery）
+            $safeType = preg_match(DetailTemplateResolver::MODEL_KEY_PATTERN, $contentType) === 1
+                ? $contentType : 'article';
             $content = db()->fetchOne(
                 'SELECT COUNT(*) AS c, COALESCE(MAX(id), 0) AS m, COALESCE(SUM(channel_id), 0) AS s, COALESCE(MAX(updated_at), 0) AS u'
-                . ' FROM ' . DB_PREFIX . "contents WHERE type = 'article' AND deleted_at IS NULL AND lang IN (" . $in . ')',
+                . ' FROM ' . DB_PREFIX . "contents WHERE type = '" . $safeType . "' AND deleted_at IS NULL AND lang IN (" . $in . ')',
                 $langs
             );
             $categories = db()->fetchOne(
