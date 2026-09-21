@@ -52,6 +52,7 @@ final class TextElement extends AbstractElement
             ['key' => 'color', 'type' => 'color', 'label' => __('blox_text_color'), 'default' => '', 'tab' => 'style'],
             ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
                 'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
+            BloxEmptyBinding::control(),
             ...$this->animationControls(),
         ];
     }

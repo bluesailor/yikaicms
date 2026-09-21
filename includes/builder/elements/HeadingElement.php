@@ -91,6 +91,7 @@ final class HeadingElement extends AbstractElement
             ['key' => 'align', 'type' => 'select', 'label' => __('blox_align'), 'default' => 'left', 'tab' => 'style',
                 'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')],
                 'option_icons' => ['left' => 'align-left', 'center' => 'align-center', 'right' => 'align-right']],
+            BloxEmptyBinding::control(),
             ...$this->animationControls(),
         ];
     }

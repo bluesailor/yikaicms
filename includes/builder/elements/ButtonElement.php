@@ -112,6 +112,7 @@ final class ButtonElement extends AbstractElement
             ['key' => 'btn_radius', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_radius'),
                 'default' => '', 'tab' => 'style', 'min' => 0, 'max' => 999, 'step' => 1, 'unit' => 'px',
                 'css' => [['property' => 'border-radius']]],
+            BloxEmptyBinding::control(),
             ...$this->animationControls(),
         ];
     }
