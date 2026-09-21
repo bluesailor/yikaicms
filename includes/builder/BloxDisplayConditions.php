@@ -158,6 +158,46 @@ final class BloxDisplayConditions
         return $raw !== null && $raw !== [];
     }
 
+    /**
+     * 条件诊断（E10）：在当前上下文里逐条说明"为什么显示/为什么不显示"。
+     *
+     * 详情模板早有诊断面板与影响预览，元素显示条件却只有一个"几组几条"的角标——
+     * 作者看不出这条规则此刻是否命中，只能靠反复改内容试。
+     *
+     * 两条边界：
+     *   · 不泄露规则值本身的求值细节之外的任何数据（字段条件只回报"命中/未命中"，不回显字段内容）；
+     *   · 这是**编辑期辅助**，不参与前台渲染判定——渲染仍只认 matches()，避免两套判定漂移。
+     *
+     * @param array<string,mixed>|null $context 省略即取当前请求上下文
+     * @return array{matched:bool,groups:list<array{matched:bool,rules:list<array{type:string,operator:string,matched:bool}>}>}|null
+     *         null 表示条件本身非法（与 matches() 的 fail-closed 同源）
+     */
+    public static function diagnose(mixed $raw, ?array $context = null): ?array
+    {
+        if (!self::hasInput($raw)) {
+            return ['matched' => true, 'groups' => []];
+        }
+        $groups = self::parse($raw);
+        if ($groups === null || $groups === []) {
+            return null;
+        }
+        $context = self::normalizeContext($context ?? self::currentContext());
+        $report = [];
+        $any = false;
+        foreach ($groups as $group) {
+            $rules = [];
+            $all = true;
+            foreach ($group['rules'] as $rule) {
+                $ok = self::ruleMatches($rule, $context);
+                $all = $all && $ok;
+                $rules[] = ['type' => $rule['type'], 'operator' => $rule['operator'], 'matched' => $ok];
+            }
+            $any = $any || $all;
+            $report[] = ['matched' => $all, 'rules' => $rules];
+        }
+        return ['matched' => $any, 'groups' => $report];
+    }
+
     /** 画布角标显示“组数/规则数”，不泄露具体条件值。 */
     public static function badge(mixed $raw): string
     {
