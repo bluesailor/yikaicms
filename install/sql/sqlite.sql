@@ -1974,6 +1974,22 @@ INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", 
 INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (8,'ja',2,'Alibaba Cloud','https://www.aliyun.com','','',1,1,1778462748);
 INSERT INTO "yikai_links" ("id", "lang", "translation_group_id", "name", "url", "logo", "description", "status", "sort_order", "created_at") VALUES (9,'ja',3,'Tencent Cloud','https://cloud.tencent.com','','',1,2,1778462748);
 -- @demo:end
+DROP TABLE IF EXISTS "yikai_mail_log";
+CREATE TABLE "yikai_mail_log" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "to_email" TEXT NOT NULL,
+  "subject" TEXT NOT NULL DEFAULT '',
+  "body" TEXT NOT NULL,
+  "preview" TEXT NOT NULL DEFAULT '',
+  "status" TEXT NOT NULL DEFAULT 'failed',
+  "error" TEXT NOT NULL DEFAULT '',
+  "attempts" INTEGER NOT NULL DEFAULT 1,
+  "created_at" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX "idx_mail_log_status_yikai_mail_log" ON "yikai_mail_log" ("status", "updated_at");
+
+
 DROP TABLE IF EXISTS "yikai_media";
 CREATE TABLE "yikai_media" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

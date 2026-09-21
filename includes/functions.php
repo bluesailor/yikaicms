@@ -2572,9 +2572,28 @@ function recordContentRevision(string $type, int $targetId, string $lang, array 
 }
 
 /**
- * 发送邮件
+ * 发送邮件（带投递日志：成功/失败与原因自动落 mail_log，供后台排查与失败重试）。
+ * 返回 true 或失败原因字符串；日志层任何异常不影响发信。
  */
 function sendMail(string $to, string $subject, string $body, array $attachments = []): bool|string
+{
+    $result = sendMailRaw($to, $subject, $body, $attachments);
+    if (class_exists('MailDelivery')) {
+        MailDelivery::record($to, $subject, $body, $result);
+    } else {
+        // MailDelivery 尚未加载（tests/独立端点）：按需加载，失败静默
+        if (is_file(ROOT_PATH . '/includes/MailDelivery.php')) {
+            require_once ROOT_PATH . '/includes/MailDelivery.php';
+            MailDelivery::record($to, $subject, $body, $result);
+        }
+    }
+    return $result;
+}
+
+/**
+ * 发送邮件（原始 SMTP 会话，不记日志——重试队列复用此入口避免重复记账）
+ */
+function sendMailRaw(string $to, string $subject, string $body, array $attachments = []): bool|string
 {
     $smtpHost = config('smtp_host');
     $smtpPort = (int)config('smtp_port', 465);

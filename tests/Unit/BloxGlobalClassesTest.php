@@ -227,6 +227,35 @@ final class BloxGlobalClassesTest extends TestCase
         self::assertSame(2, (int) $legacy['revision']);
     }
 
+    /** 借鉴 GLM 整改分支的两个边界用例：no-op 保存不误报冲突；无令牌写照常推进 revision。 */
+    public function testRevisionEdgeCasesFromGlmBranch(): void
+    {
+        $a = BloxGlobalClasses::mutate('class_add', ['name' => 'edge'], true);
+        BloxGlobalClasses::mutate('class_update', [
+            'id' => $a['class_id'], 'revision' => 0, 'settings' => ['text_color' => '#abcdef'],
+        ], true);
+
+        // 内容与库内完全一致的"无变化保存"：revision+1 保证 UPDATE 恒有 changed 行，
+        // 不会因 MySQL rowCount 对 unchanged 行返回 0 而被误判成冲突
+        $noop = BloxGlobalClasses::mutate('class_update', [
+            'id' => $a['class_id'], 'revision' => 1, 'settings' => ['text_color' => '#abcdef'],
+        ], true);
+        self::assertSame(2, (int) $noop['revision']);
+
+        // 不带任何令牌的写（trash/restore 语义）：照常应用且 revision 推进（行读 CAS 仍在）
+        $trashed = BloxGlobalClasses::mutate('class_trash', ['id' => $a['class_id']], true);
+        self::assertSame(3, (int) $trashed['revision']);
+
+        // 类被物理删除后携带旧令牌再写：报"类不存在"而不是误导性的"冲突"
+        db()->execute('DELETE FROM blox_global_classes WHERE class_id = ?', [$a['class_id']]);
+        try {
+            BloxGlobalClasses::mutate('class_update', ['id' => $a['class_id'], 'revision' => 3, 'settings' => []], true);
+            self::fail('已删除类的写入应报 not_found');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('blox_class_not_found', $e->getMessage());
+        }
+    }
+
     // ── 共享样式表文件：惰性重建 + 变更即失效 ────────────────────────
 
     public function testSharedStylesheetFileLifecycle(): void

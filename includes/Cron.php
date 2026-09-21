@@ -68,6 +68,21 @@ final class Cron
         require_once ROOT_PATH . '/includes/DemoSandbox.php';
         DemoSandbox::registerCron();
 
+        // 邮件可靠性的重试队列（roadmap #3）：任务体内自判（表未建/无失败时是一次早退），
+        // 放在内置任务里，站点未装任何插件也能自愈
+        self::register('mail_retry', __('cron_mail_retry'), 600, function (): string {
+            require_once ROOT_PATH . '/includes/MailDelivery.php';
+            $summary = MailDelivery::retryFailed(5);
+            if ($summary['retried'] === 0) {
+                return __('cron_nothing_due');
+            }
+            return str_replace(
+                [':retried', ':sent', ':failed'],
+                [(string) $summary['retried'], (string) $summary['sent'], (string) $summary['still_failed']],
+                __('cron_mail_retry_done')
+            );
+        });
+
         if (function_exists('do_action')) {
             do_action('cron_register');
         }

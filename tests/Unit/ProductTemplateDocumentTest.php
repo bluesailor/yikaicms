@@ -10,6 +10,40 @@ final class ProductTemplateDocumentTest extends TestCase
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
     }
 
+    /**
+     * 外审 P1-3（结构借鉴 GLM 整改分支）：编辑器 boot 的语言回填单点。
+     * 显式 lang=''=全部语言必须原样保留（v2 看 detail_template、v1 看 product_template）；
+     * 只有从未存过 lang 或存了非法语言才回退预览语言。
+     */
+    public function testScopeForEditorBootKeepsExplicitAllLanguages(): void
+    {
+        $langs = ['zh-CN' => '简体中文', 'en' => 'English'];
+
+        // v2 显式 ''：保留全部语言，不被预览语言收窄
+        $v2AllLang = ['settings' => ['detail_template' => [
+            'version' => 2, 'content_type' => 'product', 'lang' => '', 'source' => 'custom',
+            'priority' => 0, 'include' => [['kind' => 'all', 'ids' => [], 'include_children' => false]], 'exclude' => [],
+        ]]];
+        self::assertSame('', ProductTemplateDocument::scopeForEditorBoot($v2AllLang, 'zh-CN', $langs)['lang']);
+
+        // v2 合法语言：原样保留
+        $v2Ja = $v2AllLang;
+        $v2Ja['settings']['detail_template']['lang'] = 'en';
+        self::assertSame('en', ProductTemplateDocument::scopeForEditorBoot($v2Ja, 'zh-CN', $langs)['lang']);
+
+        // v2 非法语言：回退预览语言
+        $v2Bad = $v2AllLang;
+        $v2Bad['settings']['detail_template']['lang'] = 'xx-XX';
+        self::assertSame('zh-CN', ProductTemplateDocument::scopeForEditorBoot($v2Bad, 'zh-CN', $langs)['lang']);
+
+        // 从未存过 lang（v1 也没有）：回退预览语言
+        $fresh = ['settings' => ['product_template' => ['mode' => 'all', 'ids' => []]]];
+        self::assertSame('zh-CN', ProductTemplateDocument::scopeForEditorBoot($fresh, 'zh-CN', $langs)['lang']);
+
+        // 语言表不可得（null）：非空 lang 一律保留，不误伤
+        self::assertSame('en', ProductTemplateDocument::scopeForEditorBoot($v2Ja, 'zh-CN', null)['lang']);
+    }
+
     public function testScopeIsFailClosedAndSpecificTemplateWins(): void
     {
         $product = ['id' => 12, 'lang' => 'ja'];

@@ -121,6 +121,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]));
     }
 
+    // 安全替换：新文件落原路径，URL 与全站引用不变（备份旧文件 + 重建衍生）
+    if ($action === 'replace') {
+        $id = postInt('id');
+        $media = mediaModel()->find($id);
+        if ($media === null) {
+            error(__('media_replace_source_missing'));
+        }
+        $upload = $_FILES['file'] ?? null;
+        if (!is_array($upload) || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK
+            || !is_uploaded_file((string) ($upload['tmp_name'] ?? ''))) {
+            error(__('media_replace_upload_missing'));
+        }
+        require_once ROOT_PATH . '/includes/MediaReplacement.php';
+        $sourceExt = strtolower(pathinfo((string) $upload['name'], PATHINFO_EXTENSION));
+        $result = MediaReplacement::replace($media, (string) $upload['tmp_name'], $sourceExt);
+        if (!$result['ok']) {
+            error(__((string) $result['msg']));
+        }
+        mediaModel()->updateById($id, $result['meta']);
+        adminLog('media', 'edit', 'Replaced media #' . $id . ' in place (backup: ' . (string) $result['backup'] . ')');
+        success([
+            'id' => $id,
+            'backup' => (string) $result['backup'],
+            'meta' => $result['meta'],
+        ], __('media_replace_done'));
+    }
+
+    // 孤立媒体报告：批量核对引用，count=0 即孤立（删前仍有二次校验兜底）
+    if ($action === 'orphans') {
+        $reportType = (string) ($_REQUEST['type'] ?? '');
+        if (!in_array($reportType, ['', 'image', 'video', 'file'], true)) {
+            $reportType = '';
+        }
+        $limit = 500;
+        $result = mediaModel()->getList(array_filter(['type' => $reportType]), $limit, 0);
+        $usage = $auditMediaUsage($result['items']);
+        $orphans = [];
+        foreach ($result['items'] as $row) {
+            $mediaId = (int) ($row['id'] ?? 0);
+            if ($mediaId > 0 && (int) ($usage[$mediaId]['count'] ?? 0) === 0) {
+                $orphans[] = [
+                    'id' => $mediaId,
+                    'name' => (string) ($row['name'] ?? ''),
+                    'url' => (string) ($row['url'] ?? ''),
+                    'type' => (string) ($row['type'] ?? ''),
+                    'size' => (int) ($row['size'] ?? 0),
+                ];
+            }
+        }
+        adminLog('media', 'usage', 'Orphan report: ' . count($orphans) . '/' . count($result['items']));
+        success([
+            'scanned' => count($result['items']),
+            'truncated' => count($result['items']) >= $limit,
+            'orphans' => $orphans,
+        ], '');
+    }
+
     exit;
 }
 
@@ -268,6 +325,12 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
                 <i class="ti ti-photo-cog text-base"></i>
                 <?php echo e(__('media_opt_selected')); ?>
             </button>
+            <button type="button" onclick="orphansReport(this)" data-testid="media-orphans-report"
+                    class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center justify-center gap-1"
+                    title="<?php echo e(__('media_orphans_tip')); ?>">
+                <i class="ti ti-file-off text-base"></i>
+                <?php echo e(__('media_orphans')); ?>
+            </button>
             <?php endif; ?>
             <?php if (!$selectMode): ?>
             <button onclick="batchDelete()" class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center justify-center gap-1">
@@ -281,6 +344,16 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
             </button>
         </div>
         </div>
+
+        <?php if (!$selectMode): ?>
+        <?php // 服务器图像编码能力（决定衍生文件能生成什么）：只做检测展示，不改变行为 ?>
+        <div class="text-xs text-gray-400 flex flex-wrap items-center gap-x-3" data-testid="media-gd-capabilities">
+            <span><i class="ti ti-cpu mr-1"></i><?php echo e(__('media_gd_capabilities', [
+                'webp' => function_exists('imagewebp') ? __('media_gd_yes') : __('media_gd_no'),
+                'avif' => function_exists('imageavif') ? __('media_gd_yes') : __('media_gd_no'),
+            ])); ?></span>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -432,6 +505,16 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
                         <?php if ($item['width'] && $item['height']): ?>
                         · <?php echo $item['width']; ?>x<?php echo $item['height']; ?>
                         <?php endif; ?>
+                        <?php if ($item['type'] === 'image' && $item['width']): ?>
+                        <?php
+                        // 尺寸与使用场景提示：按宽度粗分档（横幅 ≥1600 / 封面 ≥800 / 更小只够缩略图）
+                        $sceneHint = (int) $item['width'] >= 1600
+                            ? __('media_scene_banner')
+                            : ((int) $item['width'] >= 800 ? __('media_scene_cover') : __('media_scene_small'));
+                        ?>
+                        <span class="ml-1 inline-block text-[10px] leading-4 text-gray-500 bg-gray-100 rounded px-1"
+                              title="<?php echo e(__('media_scene_tip')); ?>"><?php echo e($sceneHint); ?></span>
+                        <?php endif; ?>
                     </div>
                     <?php if ($item['type'] === 'video'): ?>
                     <div data-media-video-meta hidden class="mt-1 text-xs tabular-nums text-gray-400"></div>
@@ -457,6 +540,12 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
                             class="pointer-events-auto bg-white text-gray-700 w-9 h-9 rounded inline-flex items-center justify-center hover:bg-gray-100"
                             title="<?php echo e(__('admin_copy')); ?>" aria-label="<?php echo e(__('admin_copy')); ?>">
                         <i class="ti ti-copy text-base"></i>
+                    </button>
+                    <?php // 安全替换：新文件落原路径，URL 与全站引用不变（同扩展名才保得住地址） ?>
+                    <button onclick="replaceMedia(<?php echo $itemId; ?>, '<?php echo e((string) $item['ext']); ?>')"
+                            class="pointer-events-auto bg-white text-gray-700 w-9 h-9 rounded inline-flex items-center justify-center hover:bg-gray-100"
+                            title="<?php echo e(__('media_replace')); ?>" aria-label="<?php echo e(__('media_replace')); ?>">
+                        <i class="ti ti-refresh text-base"></i>
                     </button>
                     <button onclick="deleteMedia(<?php echo $itemId; ?>)"
                             class="pointer-events-auto bg-red-500 text-white w-9 h-9 rounded inline-flex items-center justify-center hover:bg-red-600"
@@ -809,6 +898,122 @@ async function batchDelete() {
     } else {
         showMessage(data.msg, 'error');
     }
+}
+
+// 安全替换：新文件落原路径，URL 与全站引用不变（服务端校验同扩展名并备份旧文件）
+function replaceMedia(id, ext) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.' + ext;
+    input.onchange = async () => {
+        if (!input.files || !input.files[0]) return;
+        if (!confirm(<?php echo json_encode(__('media_replace_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':ext', ext))) return;
+        const formData = new FormData();
+        formData.append('action', 'replace');
+        formData.append('id', String(id));
+        formData.append('file', input.files[0]);
+        try {
+            const response = await fetch('', { method: 'POST', body: formData });
+            const data = await safeJson(response);
+            if (data.code === 0) {
+                showMessage(data.msg);
+                setTimeout(() => location.reload(), 800);
+            } else {
+                showMessage(data.msg || <?php echo json_encode(__('media_replace_write_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+            }
+        } catch (e) {
+            showMessage(<?php echo json_encode(__('media_replace_write_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+        }
+    };
+    input.click();
+}
+
+// 孤立媒体报告：核对最近一批媒体的引用，count=0 即孤立（删除仍走 usage 二次校验）
+async function orphansReport(button) {
+    const icon = button.querySelector('i');
+    if (icon) icon.classList.add('animate-spin');
+    try {
+        const formData = new FormData();
+        formData.append('action', 'orphans');
+        formData.append('type', <?php echo json_encode($type); ?>);
+        const response = await fetch('', { method: 'POST', body: formData });
+        const data = await safeJson(response);
+        if (data.code !== 0) {
+            showMessage(data.msg || <?php echo json_encode(__('media_usage_audit_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+            return;
+        }
+        renderOrphansReport(data.data || {});
+    } catch (e) {
+        showMessage(<?php echo json_encode(__('media_usage_audit_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+    } finally {
+        if (icon) icon.classList.remove('animate-spin');
+    }
+}
+
+function renderOrphansReport(data) {
+    document.getElementById('mediaOrphansOverlay')?.remove();
+    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[ch]);
+    const humanSize = (bytes) => {
+        if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let value = bytes;
+        let unit = 0;
+        while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+        return (unit === 0 ? value : value.toFixed(1)) + ' ' + units[unit];
+    };
+    const orphans = Array.isArray(data.orphans) ? data.orphans : [];
+    const rows = orphans.map((item) => `
+        <tr class="border-b border-gray-100">
+            <td class="py-2 pr-3 text-xs text-gray-700 break-all">${esc(item.name || ('#' + item.id))}</td>
+            <td class="py-2 pr-3 text-xs text-gray-400 break-all">${esc(item.url || '')}</td>
+            <td class="py-2 pr-3 text-xs text-gray-500 whitespace-nowrap">${esc(humanSize(Number(item.size || 0)))}</td>
+            <td class="py-2 text-right">
+                <button type="button" data-orphan-delete="${item.id}"
+                        class="text-xs text-red-600 hover:text-red-500 px-2 py-1">${esc(<?php echo json_encode(__('admin_delete'), JSON_UNESCAPED_UNICODE); ?>)}</button>
+            </td>
+        </tr>`).join('');
+    const overlay = document.createElement('div');
+    overlay.id = 'mediaOrphansOverlay';
+    overlay.className = 'fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4';
+    overlay.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col" data-testid="media-orphans-modal">
+            <div class="px-5 py-4 border-b flex items-center justify-between">
+                <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
+                    <i class="ti ti-file-off text-amber-500"></i> ${esc(<?php echo json_encode(__('media_orphans_report_title'), JSON_UNESCAPED_UNICODE); ?>)}
+                </h2>
+                <button type="button" id="mediaOrphansClose" class="text-gray-400 hover:text-gray-600 p-1" aria-label="close"><i class="ti ti-x"></i></button>
+            </div>
+            <div class="px-5 py-3 text-xs text-gray-500 border-b">
+                ${esc(<?php echo json_encode(__('media_orphans_scanned'), JSON_UNESCAPED_UNICODE); ?>.replace(':scanned', String(data.scanned || 0)).replace(':count', String(orphans.length)))}
+                ${data.truncated ? esc(<?php echo json_encode(__('media_orphans_truncated'), JSON_UNESCAPED_UNICODE); ?>) : ''}
+            </div>
+            <div class="overflow-auto px-5 py-3 flex-1">
+                ${orphans.length === 0
+                    ? `<p class="text-sm text-green-600 text-center py-8">${esc(<?php echo json_encode(__('media_orphans_none'), JSON_UNESCAPED_UNICODE); ?>)}</p>`
+                    : `<table class="w-full text-sm"><thead><tr class="text-left text-xs text-gray-400 border-b">
+                           <th class="py-2 pr-3">${esc(<?php echo json_encode(__('media_orphans_col_name'), JSON_UNESCAPED_UNICODE); ?>)}</th>
+                           <th class="py-2 pr-3">URL</th><th class="py-2 pr-3">${esc(<?php echo json_encode(__('media_orphans_col_size'), JSON_UNESCAPED_UNICODE); ?>)}</th><th class="py-2 w-16"></th>
+                       </tr></thead><tbody>${rows}</tbody></table>`}
+            </div>
+            <div class="px-5 py-3 border-t text-xs text-gray-400">
+                ${esc(<?php echo json_encode(__('media_orphans_delete_hint'), JSON_UNESCAPED_UNICODE); ?>)}
+            </div>
+        </div>`;
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay || event.target.closest('#mediaOrphansClose')) {
+            overlay.remove();
+        }
+    });
+    overlay.addEventListener('click', async (event) => {
+        const del = event.target.closest('[data-orphan-delete]');
+        if (!del) return;
+        const id = Number(del.getAttribute('data-orphan-delete'));
+        del.closest('tr')?.remove();
+        await deleteMedia(id);
+    });
+    document.body.appendChild(overlay);
 }
 
 async function checkMediaUsage(ids) {

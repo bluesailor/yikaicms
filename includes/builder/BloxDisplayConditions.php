@@ -21,10 +21,11 @@ final class BloxDisplayConditions
     /**
      * 缓存安全分级（v1.27 硬规则）：含下列条件键的页面**禁止整页缓存**——同一 URL 的
      * 求值结果会随请求侧状态漂移，落盘即冻结错误分支。
-     * 只有 datetime（分钟粒度，TTL 内必然漂移）真的不安全；计划里理论上不安全的
-     * login / param 在本 CMS 的 HtmlCache 体系下**天然安全**：登录会话整体不缓存
-     * （isCacheable 排除 member/admin），缓存键含完整 REQUEST_URI（白名单外参数
-     * 整页不缓存）。device 与 language 同理安全（键含 isMobile 与语言）。
+     * 只有 datetime（分钟粒度，TTL 内必然漂移）不安全。其余键的安全性有明确支撑：
+     * login（登录会话整体不缓存，isCacheable 排除 member/admin）、device/language
+     * （键含 isMobile 与语言）、param/url（外审 P1-1 起条件与缓存键共用
+     * HtmlCache::canonicalRequest() 同一规范化视图，同键必同求值）、
+     * date（外审 P1-2 起缓存键含 Y-m-d 日期桶，跨午夜自动换桶）。
      * 新增条件键时先按此口径归级，不安全的加进本数组。
      */
     private const CACHE_UNSAFE_TYPES = ['datetime'];
