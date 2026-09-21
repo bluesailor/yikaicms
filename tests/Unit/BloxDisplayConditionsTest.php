@@ -238,6 +238,45 @@ final class BloxDisplayConditionsTest extends TestCase
         self::assertStringContainsString('data-yk-conditions="1/1"', $canvas);
     }
 
+    public function testRequestedCanvasDiagnosisIsReadOnlyAndAbsentFromNormalOutput(): void
+    {
+        $conditions = [['rules' => [
+            ['type' => 'login', 'operator' => 'is', 'value' => 'logged_in'],
+        ]]];
+        $sections = $this->sections($conditions);
+        $sections[0]['columns'][0]['elements'][0]['data']['_conditions'] = $conditions;
+        $json = json_encode($sections, JSON_THROW_ON_ERROR);
+        $savedAdmin = $_SESSION['admin_id'] ?? null;
+        $savedMember = $_SESSION['member_id'] ?? null;
+        $savedEdit = BlockRenderer::$editChannelId;
+        $savedHidden = BlockRenderer::$showHidden;
+        unset($_SESSION['member_id']);
+        $_SESSION['admin_id'] = 1;
+        BlockRenderer::$editChannelId = 1;
+        BlockRenderer::$showHidden = true;
+        try {
+            self::assertStringNotContainsString('data-yk-condition-report', BlockRenderer::render($json));
+            BlockRenderer::$conditionDiagnostics = true;
+            $html = BlockRenderer::render($json);
+            self::assertSame(2, preg_match_all('/data-yk-condition-report="([^"]+)"/', $html, $reports));
+            foreach ($reports[1] as $encoded) {
+                $report = json_decode(html_entity_decode($encoded, ENT_QUOTES, 'UTF-8'), true, 512, JSON_THROW_ON_ERROR);
+                self::assertFalse($report['matched']);
+                self::assertFalse($report['groups'][0]['rules'][0]['matched']);
+                self::assertStringNotContainsString('logged_in', $encoded);
+            }
+            self::assertFalse(BloxDisplayConditions::pageCacheMustSkip());
+            BlockRenderer::$editChannelId = 0;
+            self::assertStringNotContainsString('data-yk-condition-report', BlockRenderer::render($json));
+        } finally {
+            BlockRenderer::$conditionDiagnostics = false;
+            BlockRenderer::$editChannelId = $savedEdit;
+            BlockRenderer::$showHidden = $savedHidden;
+            if ($savedAdmin === null) unset($_SESSION['admin_id']); else $_SESSION['admin_id'] = $savedAdmin;
+            if ($savedMember === null) unset($_SESSION['member_id']); else $_SESSION['member_id'] = $savedMember;
+        }
+    }
+
     /** @return array<int,array<string,mixed>> */
     private function sections(array $conditions): array
     {

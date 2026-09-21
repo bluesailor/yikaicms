@@ -61,6 +61,28 @@ test('element conditions create OR groups, AND rules and a canvas marker @ci', a
   await page.getByTestId('blox-condition-add-group').click();
   await expect(page.getByTestId('blox-condition-group-1')).toBeVisible();
 
+  // E10：后台会话不是前台会员，默认登录条件不满足；画布仍保留对象。
+  await page.getByTestId('blox-element-condition-run').click();
+  const diagnosis = page.getByTestId('blox-element-condition-result');
+  await expect(diagnosis).toBeVisible();
+  await expect(diagnosis).toContainText('本次检查：显示条件不满足');
+  await expect(diagnosis).toContainText('规则 1');
+  await page.getByTestId('blox-condition-value-login').last().selectOption('logged_out');
+  await expect(diagnosis).toHaveCount(0);
+  await expect(page.getByTestId('blox-element-condition-diagnosis')).toContainText('请重新检查');
+  await page.getByTestId('blox-element-condition-run').click();
+  await expect(diagnosis).toContainText('本次检查：显示条件满足');
+  await page.getByTestId('blox-element-condition-diagnosis').screenshot({ path: test.info().outputPath('condition-diagnosis.png') });
+
+  // 同一预览通道的诊断请求不得绕过 CSRF；错误响应不得携带诊断属性。
+  const deniedBody = new URLSearchParams(previewRequest.postData() || '');
+  deniedBody.set('condition_diagnostics', '1');
+  deniedBody.delete('_token');
+  const denied = await page.request.post(previewRequest.url(), {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, data: deniedBody.toString(),
+  });
+  expect(await denied.text()).not.toContain('data-yk-condition-report');
+
   const payload = new URLSearchParams(previewRequest.postData() || '');
   const document = JSON.parse(payload.get('blocks_data'));
   const sections = Array.isArray(document) ? document : document.sections;
