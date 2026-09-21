@@ -448,7 +448,6 @@ final class BloxEditorPreviewContractTest extends TestCase
                 'admin/blox_editor/partials/header.php',
                 'admin/blox_editor/partials/workspace.php',
                 'admin/blox_editor/partials/overlays.php',
-                'admin/blox_editor/partials/control-editing.php',
             ]));
         }
         if ($path === 'admin/page_edit_advance.php') {
