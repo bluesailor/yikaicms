@@ -1,12 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
 const conditions = require('../../assets/js/blox-detail-conditions');
+const { bloxEditorSource } = require('./helpers/editor-source');
 
 // 这些方法是 Alpine 组件对象上的普通方法；按源码原样取出，挂到最小宿主上执行，
 // 避免在测试里另写一份"看起来一样"的实现。
-const source = fs.readFileSync(path.join(__dirname, '../../admin/blox_editor.php'), 'utf8');
+// 必须读展开 partial 后的全文：方法被抽进 partial 后，只读入口文件会报"方法不存在"。
+const source = bloxEditorSource();
 
 function method(name) {
     const match = source.match(new RegExp('\\n            ' + name + '\\(([^)]*)\\) \\{([\\s\\S]*?)\\n            \\},'));
