@@ -7,18 +7,88 @@ final class ThemeSettings
 {
     public const KEY = 'theme_style_settings';
 
+    /**
+     * E11 只开放 Default 的 general 区试点。声明由核心代码维护，不加载模板里的回调/CSS。
+     * 默认值、控件约束和 CSS 变量名共用此处，存储仍是既有 themes.<slug>.general。
+     * @return array<string,array<string,mixed>>
+     */
+    public static function generalFields(): array
+    {
+        $common = ['scope' => 'theme', 'permission' => '*', 'depends_on' => []];
+        return [
+            'site_layout' => [
+                'type' => 'select', 'default' => 'full', 'label' => 'theme_settings_layout',
+                'options' => ['full' => 'theme_settings_layout_full', 'boxed' => 'theme_settings_layout_boxed'],
+                'output' => 'layout',
+            ] + $common,
+            'content_max_width' => [
+                'type' => 'number', 'default' => 1200, 'label' => 'theme_settings_max_width',
+                'min' => 760, 'max' => 1920, 'step' => 1, 'unit' => 'px', 'css' => '--yk-content-max-width',
+            ] + $common,
+            'site_background' => [
+                'type' => 'color', 'default' => '#F8FAFC', 'label' => 'theme_settings_site_background',
+                'depends_on' => ['color_mode' => ['light', 'auto']], 'css' => '--yk-site-bg',
+            ] + $common,
+            'content_background' => [
+                'type' => 'color', 'default' => '#FFFFFF', 'label' => 'theme_settings_content_background',
+                'depends_on' => ['color_mode' => ['light', 'auto']], 'css' => '--yk-content-bg',
+            ] + $common,
+            'color_mode' => [
+                'type' => 'select', 'default' => 'light', 'label' => 'theme_settings_color_mode',
+                'options' => ['light' => 'theme_settings_light', 'dark' => 'theme_settings_dark', 'auto' => 'theme_settings_auto'],
+                'output' => 'color_mode',
+            ] + $common,
+        ];
+    }
+
+    /** 写入严格拒绝非法值；读取旧档仍走 normalize() 的容错，不破坏旧站。 */
+    public static function validateGeneral(mixed $input, array $current): array
+    {
+        $fields = self::generalFields();
+        $values = self::normalize(['general' => $current])['general'];
+        $baseline = $values;
+        $errors = [];
+        if (!is_array($input)) {
+            return ['values' => $values, 'errors' => ['general' => 'theme_schema_invalid']];
+        }
+        foreach ($input as $key => $value) {
+            if (!isset($fields[$key])) {
+                $errors['general'] = 'theme_schema_unknown';
+                continue;
+            }
+            $field = $fields[$key];
+            $valid = match ($field['type']) {
+                'number' => (is_int($value) || (is_string($value) && preg_match('/^(0|[1-9][0-9]*)$/D', $value) === 1))
+                    && (float) $value >= $field['min'] && (float) $value <= $field['max'],
+                'select' => is_string($value) && array_key_exists($value, $field['options']),
+                'color' => is_string($value) && preg_match('/^#[0-9a-fA-F]{6}$/D', trim($value)) === 1,
+                default => false,
+            };
+            if (!$valid) {
+                $errors[$key] = 'theme_schema_invalid';
+                continue;
+            }
+            $values[$key] = match ($field['type']) {
+                'number' => (int) $value,
+                'color' => strtoupper(trim($value)),
+                default => $value,
+            };
+        }
+        // 隐藏控件不提交时沿用旧值；伪造提交也不能改写未启用字段。仍先校验，不能靠隐藏绕过。
+        foreach ($fields as $key => $field) {
+            foreach ($field['depends_on'] as $dependency => $allowed) {
+                if (!in_array($values[$dependency], $allowed, true)) $values[$key] = $baseline[$key];
+            }
+        }
+        return ['values' => $values, 'errors' => $errors];
+    }
+
     /** @return array<string,mixed> */
     public static function defaults(): array
     {
         return [
             'version' => 1,
-            'general' => [
-                'site_layout' => 'full',
-                'content_max_width' => 1200,
-                'site_background' => '#F8FAFC',
-                'content_background' => '#FFFFFF',
-                'color_mode' => 'light',
-            ],
+            'general' => array_map(static fn(array $field): mixed => $field['default'], self::generalFields()),
             'typography' => [
                 'html_font_size' => 16,
                 'body_font' => 'system',
@@ -91,15 +161,20 @@ final class ThemeSettings
         $b = is_array($input['button'] ?? null) ? $input['button'] : [];
         $r = is_array($input['responsive'] ?? null) ? $input['responsive'] : [];
         $hex = static fn(mixed $v, string $fallback): string => self::color($v, $fallback);
+        $general = [];
+        foreach (self::generalFields() as $key => $field) {
+            $value = $g[$key] ?? $field['default'];
+            // 旧数据的钳位/回退语义保留；数组等损坏值不强转字符串，避免输出 PHP 警告。
+            if (!is_scalar($value)) $value = $field['default'];
+            $general[$key] = match ($field['type']) {
+                'number' => max($field['min'], min($field['max'], (int) $value)),
+                'color' => self::color($value, $field['default']),
+                default => array_key_exists((string) $value, $field['options']) ? (string) $value : $field['default'],
+            };
+        }
         return [
             'version' => 1,
-            'general' => [
-                'site_layout' => in_array((string) ($g['site_layout'] ?? ''), ['full', 'boxed'], true) ? (string) $g['site_layout'] : $d['general']['site_layout'],
-                'content_max_width' => max(760, min(1920, (int) ($g['content_max_width'] ?? 1200))),
-                'site_background' => $hex($g['site_background'] ?? '', $d['general']['site_background']),
-                'content_background' => $hex($g['content_background'] ?? '', $d['general']['content_background']),
-                'color_mode' => in_array((string) ($g['color_mode'] ?? ''), ['light', 'dark', 'auto'], true) ? (string) $g['color_mode'] : 'light',
-            ],
+            'general' => $general,
             'typography' => [
                 'html_font_size' => max(14, min(20, (int) ($t['html_font_size'] ?? 16))),
                 'body_font' => self::font($t['body_font'] ?? 'system'),
@@ -128,7 +203,11 @@ final class ThemeSettings
         if (!self::hasProfile()) return '';
         $s = self::read();
         $g = $s['general']; $t = $s['typography']; $sp = $s['spacing']; $b = $s['button']; $r = $s['responsive'];
-        $css = ':root{--yk-content-max-width:' . $g['content_max_width'] . 'px;--yk-content-gutter:' . $sp['content_gutter'] . 'px;--yk-html-font-size:' . $t['html_font_size'] . 'px;--yk-section-padding-y:' . $sp['section_padding_y'] . 'px;--yk-button-radius:' . $b['radius'] . 'px;--yk-button-bg:' . $b['background'] . ';--yk-button-text:' . $b['text'] . ';--yk-button-hover-bg:' . $b['hover_background'] . ';--yk-site-bg:' . $g['site_background'] . ';--yk-content-bg:' . $g['content_background'] . ';}';
+        $generalCss = '';
+        foreach (self::generalFields() as $key => $field) {
+            if (isset($field['css'])) $generalCss .= $field['css'] . ':' . $g[$key] . ($field['unit'] ?? '') . ';';
+        }
+        $css = ':root{' . $generalCss . '--yk-content-gutter:' . $sp['content_gutter'] . 'px;--yk-html-font-size:' . $t['html_font_size'] . 'px;--yk-section-padding-y:' . $sp['section_padding_y'] . 'px;--yk-button-radius:' . $b['radius'] . 'px;--yk-button-bg:' . $b['background'] . ';--yk-button-text:' . $b['text'] . ';--yk-button-hover-bg:' . $b['hover_background'] . ';}';
         $css .= 'html{font-size:var(--yk-html-font-size);}.yk-site-body{background-color:var(--yk-site-bg);}';
         $css .= '.yk-site-body .container{max-width:var(--yk-content-max-width);}.yk-site-body main{background-color:var(--yk-content-bg);}' . ($g['site_layout'] === 'boxed' ? '.yk-site-body main{max-width:var(--yk-content-max-width);margin-left:auto;margin-right:auto;}' : '');
         $css .= '.yk-site-body button:not([class*="rounded"]),.yk-site-body a.button,.yk-site-body .btn,.yk-site-body .yk-button{border-radius:var(--yk-button-radius);}' . ($t['body_font'] !== 'system' ? '.yk-site-body{font-family:' . $t['body_font'] . ';}' : '') . ($t['heading_font'] !== 'system' ? '.yk-site-body h1,.yk-site-body h2,.yk-site-body h3,.yk-site-body h4,.yk-site-body h5,.yk-site-body h6{font-family:' . $t['heading_font'] . ';}' : '');

@@ -170,6 +170,11 @@ $add('栏目管理', 'GET', '/admin/channel.php',  ['contributor' => 'deny', 'ed
 $add('角色管理', 'GET', '/admin/role.php',     ['contributor' => 'deny', 'editor' => 'deny']);
 $add('用户管理', 'GET', '/admin/user.php',     ['contributor' => 'deny', 'editor' => 'deny']);
 $add('系统设置', 'GET', '/admin/setting.php',  ['contributor' => 'deny', 'editor' => 'deny']);
+$add('主题外观设置', 'GET', '/admin/theme.php?tab=settings', ['contributor' => 'deny', 'editor' => 'deny']);
+$add('主题外观写入', 'POST', '/admin/theme.php', ['contributor' => 'deny', 'editor' => 'deny'], [
+    'action' => 'save_theme_settings', 'primary_color' => '#2563EB', 'secondary_color' => '#1D4ED8',
+    'theme_style' => ['general' => ['site_layout' => 'boxed', 'content_max_width' => '1080']],
+]);
 $add('插件管理', 'GET', '/admin/plugin.php',   ['contributor' => 'deny', 'editor' => 'deny']);
 $add('在线升级', 'GET', '/admin/upgrade_online.php', ['contributor' => 'deny', 'editor' => 'deny']);
 $add('授权管理', 'GET', '/admin/license.php',  ['contributor' => 'deny', 'editor' => 'deny']);
