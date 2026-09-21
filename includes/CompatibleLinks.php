@@ -36,6 +36,9 @@ final class CompatibleLinks
             || ($root !== '' && is_file($root . $path))) return $url;
         $hit = Dispatcher::match($path);
         if ($hit === null) return $url;
+        // sitemap 没有 ?yk_route= 形式（不在 Dispatcher::dynamicQuery 白名单内），
+        // 但它本身就是真实入口：兼容模式下指向 /sitemap.php，否则该链接 404。
+        if (($hit['file'] ?? '') === 'sitemap.php') return '/sitemap.php';
         $route = [
             '' => 'home', 'search.php' => 'search', 'news.php' => 'news', 'article.php' => 'article',
             'list.php' => 'list', 'page.php' => 'page', 'product.php' => 'product',

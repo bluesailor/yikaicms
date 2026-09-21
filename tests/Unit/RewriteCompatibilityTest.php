@@ -43,10 +43,22 @@ final class RewriteCompatibilityTest extends TestCase
         foreach (['https://other.test/contact.html', '//other.test/contact.html', 'http://site.test:81/contact.html',
             'https://site.test/contact.html', 'mailto:a@site.test', '#form', '/index.php?yk_route=contact',
             '/admin/contact.html', '/plugins/custom/page.html', '/uploads/demo.html', '/assets/style.css',
-            '/a/b/c.html', '/sitemap.xml', 'javascript:alert(1)', '/contact.html?bad[]=x&page[]=1'] as $url) {
+            '/a/b/c.html', 'javascript:alert(1)', '/contact.html?bad[]=x&page[]=1'] as $url) {
             self::assertSame($url, CompatibleLinks::url($url, 'http://site.test'), $url);
         }
         self::assertSame('/robots.txt', CompatibleLinks::url('/robots.txt', 'http://site.test', '/', ROOT_PATH));
+    }
+
+    /**
+     * sitemap 改为接管（2026-09-21 决定）。此前它被归入"不接管"清单，但伪静态不可用时
+     * /sitemap.xml 匹配不到任何路由 = 404，等于把死地址交给搜索引擎。
+     * 它没有 ?yk_route= 形式，所以指向真实入口 /sitemap.php；后台 SEO 页展示的地址同步跟随。
+     */
+    public function testSitemapPointsAtTheRealEntryInCompatibilityMode(): void
+    {
+        self::assertSame('/sitemap.php', CompatibleLinks::url('/sitemap.xml', 'http://site.test'));
+        self::assertSame('https://other.test/sitemap.xml',
+            CompatibleLinks::url('https://other.test/sitemap.xml', 'http://site.test'), '外站地址不归我们管');
     }
 
     public function testOnlyNavigationAttributesAreChanged(): void
