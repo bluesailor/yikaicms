@@ -265,6 +265,7 @@ $GLOBALS['ykBloxPageFrame'] = [];
 if (($content['content_type'] ?? '') === 'blocks' && !empty($content['blocks_data'])) {
     $pageDocument = BloxDocumentPipeline::decode((string) $content['blocks_data']);
     $GLOBALS['ykBloxPageFrame'] = $pageDocument['settings'];
+    if ($isBloxPage) $GLOBALS['ykBloxPageFrame'] = BloxPageLayout::activate($pageDocument['settings'], $channel);
 }
 
 // 引入头部

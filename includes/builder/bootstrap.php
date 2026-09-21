@@ -80,6 +80,7 @@ require_once __DIR__ . '/BlocksLibrary.php';
 require_once __DIR__ . '/BloxDocumentWriteLock.php';
 require_once __DIR__ . '/HomeBloxDocument.php';
 require_once __DIR__ . '/PageBloxDocument.php';
+require_once __DIR__ . '/BloxPageLayout.php';
 require_once __DIR__ . '/BloxDotNav.php';
 require_once __DIR__ . '/ChannelBloxDocument.php';
 require_once __DIR__ . '/BloxPublicationStatus.php';
@@ -99,6 +100,7 @@ require_once __DIR__ . '/BloxArchiveTemplateRuntime.php'; // archive 模板（v1
 require_once __DIR__ . '/BloxSearchTemplateRuntime.php';  // search 模板（v1.26）：search.php 挂接
 
 BloxAssetCollector::bootstrap();
+if (function_exists('add_action')) add_action('render_head', [BloxPageLayout::class, 'renderHead'], 30);
 BloxDesignSystem::bootstrap();
 BloxGlobalClasses::bootstrap();
 BloxPopupRuntime::bootstrap();

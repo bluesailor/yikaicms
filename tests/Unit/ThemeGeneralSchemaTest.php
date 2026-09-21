@@ -15,7 +15,7 @@ final class ThemeGeneralSchemaTest extends TestCase
     public function testDefinitionsOwnDefaultsRangesAndOutputNames(): void
     {
         $fields = ThemeSettings::generalFields();
-        self::assertCount(5, $fields);
+        self::assertCount(8, $fields);
         foreach ($fields as $key => $field) {
             self::assertSame($field['default'], ThemeSettings::defaults()['general'][$key]);
             self::assertSame('*', $field['permission']);

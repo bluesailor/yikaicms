@@ -43,7 +43,7 @@ $generalState = json_encode(['values' => $generalValues], JSON_HEX_TAG | JSON_HE
                         x-model="values.<?php echo e($fieldKey); ?>" :disabled="!(<?php echo e($enabledExpression); ?>)"
                         class="w-full border border-gray-200 rounded-lg px-3 py-2" aria-describedby="<?php echo e($fieldId); ?>_hint" aria-invalid="<?php echo $fieldError !== '' ? 'true' : 'false'; ?>">
                     <?php foreach ($field['options'] as $option => $label): ?>
-                        <option value="<?php echo e($option); ?>" <?php echo $generalValues[$fieldKey] === $option ? 'selected' : ''; ?>><?php echo e(__($label)); ?></option>
+                        <option value="<?php echo e((string) $option); ?>" <?php echo (string) $generalValues[$fieldKey] === (string) $option ? 'selected' : ''; ?>><?php echo e(__($label)); ?></option>
                     <?php endforeach; ?>
                 </select>
             <?php else: ?>
