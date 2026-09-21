@@ -25,6 +25,7 @@ require_once __DIR__ . '/lib/money.php';
 require_once __DIR__ . '/lib/tables.php';
 require_once __DIR__ . '/lib/sales.php';
 require_once __DIR__ . '/lib/orders.php';
+require_once __DIR__ . '/lib/refunds.php';
 
 try {
     shopEnsureSchema();
@@ -45,6 +46,36 @@ if ($shopView === 'sales' && !$shopCanManage) {
 }
 if ($shopView === 'orders' && !$shopCanOrders && !$shopCanManage) {
     permissionDenied();
+}
+
+// ============================================================
+// POST：退款操作（登记/确认/拒绝）——shop_orders 或 shop_manage
+// ============================================================
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && str_starts_with((string) ($_POST['action'] ?? ''), 'refund_')) {
+    verifyCsrf();
+    $adminId = (int) ($_SESSION['admin_id'] ?? 0);
+    $action = (string) $_POST['action'];
+    $result = match ($action) {
+        'refund_create' => shopRefundCreate(
+            (int) ($_POST['order_id'] ?? 0),
+            trim((string) ($_POST['amount'] ?? '')),
+            (string) ($_POST['reason'] ?? ''),
+            $adminId
+        ),
+        'refund_confirm', 'refund_reject' => shopRefundUpdate(
+            (int) ($_POST['refund_id'] ?? 0),
+            $action === 'refund_confirm' ? 'confirmed' : 'rejected',
+            (string) ($_POST['admin_note'] ?? ''),
+            $adminId
+        ),
+        default => ['ok' => false, 'error' => 'shop_err_op'],
+    };
+    if ($result['ok']) {
+        adminLog('shop', $action, 'order #' . (int) ($_POST['order_id'] ?? 0));
+    }
+    header('Location: /admin/plugin_page.php?plugin=shop&view=orders&detail=' . (int) ($_POST['order_id'] ?? 0)
+        . ($result['ok'] ? '&done=1' : '&err=' . urlencode(__($result['error']))), true, 303);
+    exit;
 }
 
 // ============================================================
@@ -367,6 +398,42 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <button type="submit" class="border border-gray-300 text-gray-600 text-sm px-3 py-1.5 rounded hover:bg-gray-50"><?php echo e(__('shop_btn_save')); ?></button>
             </form>
             <a href="/admin/plugin_page.php?plugin=shop&view=orders" class="border border-gray-300 text-gray-600 text-sm px-3 py-1.5 rounded hover:bg-gray-50 inline-flex items-center">← <?php echo e(__('shop_back_to_list')); ?></a>
+        </div>
+
+        <?php // 退款（独立状态机，M2-c）：已收款未关闭的订单可登记退款；确认/拒绝不自动改订单状态 ?>
+        <?php $refundableCents = shopRefundableCents((int) $od['id']); $refunds = shopRefundsByOrder((int) $od['id']); ?>
+        <div class="px-5 pb-5 border-t border-gray-100" data-testid="shop-refund-block">
+            <div class="text-sm font-medium text-gray-700 pt-4 pb-2"><?php echo e(__('shop_refund_title')); ?></div>
+            <?php foreach ($refunds as $rf): ?>
+            <div class="flex flex-wrap items-center justify-between gap-2 text-sm py-1.5 border-b border-gray-50" data-testid="shop-refund-row-<?php echo (int) $rf['id']; ?>">
+                <span><?php echo e(formatPrice((string) $rf['amount'])); ?> · <?php echo e(__('shop_refund_status_' . $rf['status'])); ?></span>
+                <span class="text-xs text-gray-500"><?php echo e((string) $rf['reason']); ?><?php echo ($rf['admin_note'] ?? '') !== '' ? ' / ' . e((string) $rf['admin_note']) : ''; ?></span>
+                <?php if ((string) $rf['status'] === 'requested'): ?>
+                <span class="flex gap-2">
+                    <form method="post" action="/admin/plugin_page.php?plugin=shop&view=orders"><?php echo csrfField(); ?>
+                        <input type="hidden" name="action" value="refund_confirm"><input type="hidden" name="refund_id" value="<?php echo (int) $rf['id']; ?>"><input type="hidden" name="order_id" value="<?php echo (int) $od['id']; ?>">
+                        <input type="hidden" name="admin_note" value="">
+                        <button type="submit" class="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700" data-testid="shop-refund-confirm-<?php echo (int) $rf['id']; ?>"><?php echo e(__('shop_refund_confirm')); ?></button>
+                    </form>
+                    <form method="post" action="/admin/plugin_page.php?plugin=shop&view=orders"><?php echo csrfField(); ?>
+                        <input type="hidden" name="action" value="refund_reject"><input type="hidden" name="refund_id" value="<?php echo (int) $rf['id']; ?>"><input type="hidden" name="order_id" value="<?php echo (int) $od['id']; ?>">
+                        <input type="hidden" name="admin_note" value="">
+                        <button type="submit" class="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50" data-testid="shop-refund-reject-<?php echo (int) $rf['id']; ?>"><?php echo e(__('shop_refund_reject')); ?></button>
+                    </form>
+                </span>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+            <?php if ($refundableCents > 0): ?>
+            <form method="post" action="/admin/plugin_page.php?plugin=shop&view=orders" class="flex flex-wrap items-center gap-2 pt-2"><?php echo csrfField(); ?>
+                <input type="hidden" name="action" value="refund_create"><input type="hidden" name="order_id" value="<?php echo (int) $od['id']; ?>">
+                <input type="text" name="amount" placeholder="<?php echo e(__('shop_refund_amount_ph', ['max' => formatPrice(shopCentsToDecimal($refundableCents))])); ?>"
+                       class="border border-gray-300 rounded px-2 py-1.5 text-sm w-28" data-testid="shop-refund-amount">
+                <input type="text" name="reason" maxlength="500" placeholder="<?php echo e(__('shop_refund_reason')); ?>"
+                       class="border border-gray-300 rounded px-2 py-1.5 text-sm flex-1 min-w-[10rem]">
+                <button type="submit" class="bg-amber-600 text-white text-sm px-4 py-1.5 rounded hover:bg-amber-700" data-testid="shop-refund-create"><?php echo e(__('shop_refund_create')); ?></button>
+            </form>
+            <?php endif; ?>
         </div>
     </div>
     <?php else: ?>
