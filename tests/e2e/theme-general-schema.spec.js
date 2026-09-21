@@ -9,7 +9,7 @@ test('Default layout schema validates writes, preserves dependencies and changes
   const panel = page.getByTestId('theme-settings-panel');
   const schema = page.getByTestId('theme-general-schema');
   await expect(schema).toBeVisible();
-  await expect(schema.locator('select,input')).toHaveCount(5);
+  await expect(schema.locator('select,input')).toHaveCount(8);
   const width = page.locator('#theme_general_content_max_width');
   await expect(width).toHaveAttribute('min', '760');
   await expect(width).toHaveAttribute('max', '1920');

@@ -34,6 +34,7 @@ return [
         'includes/frontend_preview.php',
         'includes/ThemeRuntime.php',
         'includes/ThemeSettings.php',
+        'includes/builder/BloxPageLayout.php',
         'includes/ThemeContent.php',
         'includes/SiteSetup.php',
         'includes/SiteTemplateData.php',

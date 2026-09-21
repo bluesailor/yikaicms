@@ -413,6 +413,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
         }
 
         $pageHeroBody = '';
+        if (!$isHomeLayout && $pageType === 'page' && is_array($pageRow)) $canvasFrame = BloxPageLayout::activate($canvasFrame, $pageRow);
         $GLOBALS['ykBloxPageFrame'] = !$isHomeLayout && $pageType === 'page' ? $canvasFrame : [];
         if (!$isHomeLayout && is_array($pageRow)
             && ($pageType !== 'page' || PageBloxDocument::usesThemeTitle($canvasFrame))) {
