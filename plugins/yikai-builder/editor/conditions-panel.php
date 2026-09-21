@@ -9,6 +9,37 @@
                                 </div>
                             </div>
 
+                            <div class="rounded border border-gray-200 p-3 space-y-2" data-testid="blox-element-condition-diagnosis">
+                                <button type="button" @click="diagnoseElementConditions()" :disabled="elementConditionBusy"
+                                        data-testid="blox-element-condition-run"
+                                        class="w-full h-9 rounded border border-violet-200 text-violet-600 text-xs font-medium"
+                                        x-text="elementConditionBusy ? conditionText.diagnosing : conditionText.diagnose"></button>
+                                <p class="text-[10px] leading-relaxed text-gray-500" x-text="conditionText.previewOnly"></p>
+                                <details class="text-[10px] leading-relaxed text-gray-500">
+                                    <summary class="cursor-pointer" x-text="conditionText.contextTitle"></summary>
+                                    <p x-text="conditionText.contextHint"></p>
+                                </details>
+                                <div role="status" aria-live="polite">
+                                    <p x-show="elementConditionError" class="text-xs text-amber-600" x-text="elementConditionError"></p>
+                                    <template x-if="elementConditionReport && elementConditionStale()">
+                                        <p class="text-xs text-amber-600" x-text="conditionText.stale"></p>
+                                    </template>
+                                    <template x-if="elementConditionReport && !elementConditionStale()">
+                                        <div class="space-y-2" data-testid="blox-element-condition-result">
+                                            <p class="text-xs font-medium" x-text="elementConditionReport.matched ? conditionText.passed : conditionText.blocked"></p>
+                                            <template x-for="(group, gi) in elementConditionReport.groups" :key="gi">
+                                                <div class="text-[11px]">
+                                                    <p x-text="conditionText.group.replace(':n', gi + 1) + ' · ' + elementConditionResultText(group.matched)"></p>
+                                                    <template x-for="(rule, ri) in group.rules" :key="ri">
+                                                        <p class="text-gray-500" x-text="conditionText.rule.replace(':n', ri + 1) + ' · ' + (conditionText[rule.type] || rule.type) + ' · ' + elementConditionResultText(rule.matched)"></p>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
                             <template x-if="conditionGroups().length === 0">
                                 <button type="button" @click="addConditionGroup()" data-testid="blox-condition-empty-add"
                                         class="w-full min-h-24 rounded border-2 border-dashed border-gray-200 text-gray-400 hover:border-violet-300 hover:text-violet-600 inline-flex flex-col items-center justify-center gap-2 transition">
@@ -66,8 +97,10 @@
                                                             <option value="logged_in" x-text="conditionText.loggedIn"></option>
                                                             <option value="logged_out" x-text="conditionText.loggedOut"></option>
                                                         </select>
-                                                        <input x-show="rule.type === 'date'" type="date" x-model="rule.value" data-testid="blox-condition-value-date"
-                                                               class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px]">
+                                                        <template x-if="rule.type === 'date'">
+                                                            <input type="date" x-model="rule.value" data-testid="blox-condition-value-date"
+                                                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px]">
+                                                        </template>
                                                         <select x-show="rule.type === 'channel'" x-model.number="rule.value" data-testid="blox-condition-value-channel"
                                                                 class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px] bg-white">
                                                             <option value="" x-text="conditionText.selectChannel"></option>
@@ -79,10 +112,12 @@
                                                                :placeholder="conditionText.urlPlaceholder"
                                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px]">
                                                         <?php /* v1.27 新键的值控件（datetime-local 与存储格式 'Y-m-d H:i' 互转） */ ?>
-                                                        <input x-show="rule.type === 'datetime'" type="datetime-local" data-testid="blox-condition-value-datetime"
-                                                               :value="String(rule.value || '').replace(' ', 'T')"
-                                                               @change="rule.value = $event.target.value.replace('T', ' ')"
-                                                               class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px]">
+                                                        <template x-if="rule.type === 'datetime'">
+                                                            <input type="datetime-local" data-testid="blox-condition-value-datetime"
+                                                                   :value="String(rule.value || '').replace(' ', 'T')"
+                                                                   @change="rule.value = $event.target.value.replace('T', ' ')"
+                                                                   class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px]">
+                                                        </template>
                                                         <select x-show="rule.type === 'language'" x-model="rule.value" data-testid="blox-condition-value-language"
                                                                 class="w-full border border-gray-200 rounded px-2 py-1.5 text-[11px] bg-white">
                                                             <template x-for="language in conditionLanguages" :key="language.value">
