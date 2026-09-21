@@ -46,6 +46,7 @@ final class SiteHealth
             self::checkHtmlCache(),
             self::checkStaticHtml(),
             self::checkDbLatency(),
+            self::checkNonAsciiSlugs(),
             self::checkLargeUploads($root),
             self::checkMailDelivery(),
             self::checkBrandAssets($root),
@@ -811,6 +812,66 @@ final class SiteHealth
             $stale ? 'health_static_stale' : 'health_static_on',
             '/admin/static_html.php',
             ['age' => $age > 86400 ? (string) intdiv($age, 86400) . 'd' : (string) intdiv(max($age, 0), 3600) . 'h']);
+    }
+
+    /**
+     * URL 别名体检：别名含非 ASCII（多为中文）或其它非法字符时的两档后果——
+     *
+     * - 伪静态（pretty）模式：**页面直接打不开**。Dispatcher 的路由正则只接受
+     *   `[a-z0-9_-]`，`/商业保险.html` 匹配不上任何规则，必然 404（本地实测）。
+     * - 动态（query）模式：能访问，但链接显示成
+     *   /%E5%95%86%E4%B8%9A%E4%BF%9D%E9%99%A9.html，不可读、分享易截断、SEO 吃亏。
+     *
+     * 因此按 URL 模式分级：pretty=CRITICAL（死链），query=RECOMMENDED（可读性）。
+     * 只报告不自动改：别名一改旧地址即 404，已收录的页面会丢排名，
+     * 站长应当在改名的同时配置 301（SEO 助手 → 重定向）。
+     */
+    private static function checkNonAsciiSlugs(): array
+    {
+        $tables = [
+            'channels' => 'name',
+            'contents' => 'title',
+            'products' => 'title',
+            'product_categories' => 'name',
+        ];
+        try {
+            $affected = 0;
+            $samples = [];
+            foreach ($tables as $table => $labelColumn) {
+                if (!db()->tableExists($table)) {
+                    continue;
+                }
+                $rows = db()->fetchAll('SELECT slug, ' . $labelColumn . ' AS label FROM '
+                    . DB_PREFIX . $table . ' WHERE slug <> \'\' LIMIT 2000');
+                foreach ($rows as $row) {
+                    $slug = (string) ($row['slug'] ?? '');
+                    // 合法别名只含 a-z0-9-；其余（中文/空格/大写/保留字）都要进 URL 转义
+                    if ($slug === '' || preg_match('/^[a-z0-9\-]+$/', $slug) === 1) {
+                        continue;
+                    }
+                    $affected++;
+                    if (count($samples) < 3) {
+                        $samples[] = $slug;
+                    }
+                }
+            }
+        } catch (Throwable) {
+            return self::result('non_ascii_slugs', self::UNKNOWN, 'performance',
+                'health_slug_encoding_title', 'health_slug_encoding_unknown');
+        }
+
+        if ($affected === 0) {
+            return self::result('non_ascii_slugs', self::GOOD, 'performance',
+                'health_slug_encoding_title', 'health_slug_encoding_good');
+        }
+        // 伪静态下这些地址匹配不上任何路由规则 = 死链，严重性高于"仅不好看"
+        $prettyMode = !function_exists('isDynamicUrlMode') || !isDynamicUrlMode();
+        return self::result('non_ascii_slugs',
+            $prettyMode ? self::CRITICAL : self::RECOMMENDED, 'performance',
+            'health_slug_encoding_title',
+            $prettyMode ? 'health_slug_encoding_broken' : 'health_slug_encoding_bad',
+            '/admin/channel.php',
+            ['count' => (string) $affected, 'samples' => implode('、', $samples)]);
     }
 
     /** 数据库响应：3 次 SELECT 1 的平均耗时（共享主机 MySQL 抖动最常见）。 */

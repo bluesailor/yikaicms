@@ -123,8 +123,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $data['slug'] = 'product';
             }
         }
-        if (empty($data['slug'])) {
-            $data['slug'] = $data['name'];
+        // URL 别名净化：留空时按栏目名生成拼音别名，手输一律过净化口径。
+        // 旧实现把栏目名**原样**赋给别名，中文栏目会生成 /商业保险.html 这种
+        // 百分号编码链接（客户站实际踩中）；其余编辑页早已走 resolveSlug，
+        // 唯独栏目管理漏掉——防回归见 SlugSanitizationContractTest。
+        // 别名唯一性仍走下方 isSlugUnique 明确报错（不自动改名，URL 由站长掌控）。
+        if ($data['slug'] !== 'product') {
+            $data['slug'] = normalizeSlugInput((string) $data['slug']);
+            if ($data['slug'] === '') {
+                $data['slug'] = generateSlug((string) $data['name']);
+            }
+            if ($data['slug'] === '') {
+                $data['slug'] = 'item-' . time();
+            }
         }
 
         // 新建行显式带 lang：列表按 view-lang 过滤，而列默认值历史上是 'ja'，
