@@ -30,8 +30,6 @@ return [
     'shop_status_off' => 'Disabled',
     'shop_saved' => 'Saved',
     'shop_err_product' => 'Product not found',
-    'shop_err_price' => 'Invalid sale price (at most 2 decimals)',
-    'shop_err_stock' => 'Stock must be an integer >= 0',
     'shop_err_sku_len' => 'SKU must be at most 64 characters',
     'shop_err_status' => 'Invalid listing status',
     'shop_lang_tag' => 'Language',
@@ -42,4 +40,8 @@ return [
     'shop_order_status_shipped' => 'Shipped',
     'shop_order_status_completed' => 'Completed',
     'shop_order_status_closed' => 'Closed',
+    'shop_err_schema' => 'Shop data initialization failed; check database permissions and retry (details in system log)',
+    'shop_shared_group' => 'shared across languages',
+    'shop_err_price' => 'Invalid sale price (must be positive, at most 2 decimals, max 99999999.99; empty = product price)',
+    'shop_err_stock' => 'Stock must be an integer 0 - 9999999999',
 ];

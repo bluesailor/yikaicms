@@ -20,7 +20,11 @@ declare(strict_types=1);
  * 十进制金额字符串 → 整数分。非法输入抛异常（商城宁可拒单也不能算错钱）。
  *
  * 接受：'10.50' / '10.5' / '10.500'（尾随零允许）/ '0' / '-3.20' / '+3.20'。
- * 拒绝：'' / 'abc' / '1.234'（第三位非零，静默截断等于吞钱）/ '.5' / '1.' / '--1'。
+ * 拒绝：'' / 'abc' / '1.234'（第三位非零，静默截断等于吞钱）/ '.5' / '1.' / '--1'
+ *       / 整数部分超过 12 位（先于 (int) 转换拦截——超长数字串强转会 TypeError）。
+ *
+ * 负数与零在这里是**合法值**（退款、冲减要用）；「售价必须为正」这类业务边界
+ * 由 shopValidSalePriceCents() 等领域函数收口，不在本函数里做。
  */
 function shopMoneyToCents(string $decimal): int
 {
@@ -39,6 +43,11 @@ function shopMoneyToCents(string $decimal): int
     if (preg_match('/^(\d+)(?:\.(\d+))?$/', $value, $m) !== 1) {
         throw new InvalidArgumentException('shop money: malformed amount "' . $decimal . '"');
     }
+    // (int) 对超长数字串会抛 TypeError（评审实测），必须在转换前按长度拦截。
+    // 12 位整数 = 千亿级，远超任何业务值；真实上限由领域函数再收窄。
+    if (strlen($m[1]) > 12 || strlen($m[2] ?? '') > 12) {
+        throw new InvalidArgumentException('shop money: amount too large "' . $decimal . '"');
+    }
     $frac = $m[2] ?? '';
     if (strlen($frac) > 2 && (int) substr($frac, 2) !== 0) {
         // 第三位及以后还有非零数字：换算必然丢钱，拒绝而不是四舍五入
@@ -46,10 +55,48 @@ function shopMoneyToCents(string $decimal): int
     }
     $frac = substr(str_pad($frac, 2, '0', STR_PAD_RIGHT), 0, 2);
 
-    // decimal(10,2) 上限 99999999.99 → 分值远在 64 位 int 范围内，无溢出风险
+    // 整数部分 ≤12 位时乘 100 不会溢出 64 位 int
     $cents = (int) $m[1] * 100 + (int) $frac;
 
     return $negative ? -$cents : $cents;
+}
+
+/** decimal(10,2) 可表达的金额上限（99999999.99 → 分）。 */
+function shopMoneyMaxCents(): int
+{
+    return 9999999999;
+}
+
+/**
+ * 售价入口校验（评审 P1-2）：必须为**正数**且不超过 decimal(10,2) 上限。
+ * 返回分值；非法返回 null（调用方给统一文案，不区分内部原因）。
+ */
+function shopValidSalePriceCents(string $input): ?int
+{
+    try {
+        $cents = shopMoneyToCents($input);
+    } catch (InvalidArgumentException|TypeError $e) {
+        return null;
+    }
+    if ($cents <= 0 || $cents > shopMoneyMaxCents()) {
+        return null;
+    }
+
+    return $cents;
+}
+
+/**
+ * 库存入口校验：非负整数，上限取 int(11) 的安全界（21 亿 - 1）。
+ * 同样先按字符串长度拦截，杜绝 (int) 强转 TypeError。
+ */
+function shopValidStock(string $input): ?int
+{
+    $value = trim($input);
+    if ($value === '' || preg_match('/^\d+$/', $value) !== 1 || strlen($value) > 10) {
+        return null;
+    }
+
+    return (int) $value;
 }
 
 /** 整数分 → 两位小数字符串（落库/展示用；负数保留符号）。 */
