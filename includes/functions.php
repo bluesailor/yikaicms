@@ -973,7 +973,7 @@ function adminHelpUrl(): string
     return match ((string) config('admin_lang', getLang())) {
         'en' => 'https://www.yikaicms.com/en/#help',
         'ja' => 'https://www.yikaicms.com/ja/#help',
-        default => 'https://www.yikaicms.com/#help',
+        default => 'https://www.yikaicms.com/docs.php#deploy-nginx',
     };
 }
 
