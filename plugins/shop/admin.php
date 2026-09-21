@@ -34,6 +34,62 @@ try {
 }
 
 // ============================================================
+// POST：运费设置（固定运费 / 满额包邮阈值 / 订单超时分钟数）
+// ============================================================
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '') === 'save_shipping') {
+    verifyCsrf();
+
+    $feeInput = trim((string) ($_POST['shipping_fee'] ?? ''));
+    $thresholdInput = trim((string) ($_POST['free_threshold'] ?? ''));
+    $expireInput = trim((string) ($_POST['expire_minutes'] ?? ''));
+
+    // 运费两项允许 0/空（空=0 元），但必须是非负金额格式；超时分钟数 1..10080
+    $error = '';
+    $feeCents = 0;
+    $thresholdCents = 0;
+    if ($feeInput !== '') {
+        try {
+            $feeCents = shopMoneyToCents($feeInput);
+        } catch (Throwable $e) {
+            $error = __('shop_err_price');
+        }
+        if ($error === '' && ($feeCents < 0 || $feeCents > shopMoneyMaxCents())) {
+            $error = __('shop_err_price');
+        }
+    }
+    if ($error === '' && $thresholdInput !== '') {
+        try {
+            $thresholdCents = shopMoneyToCents($thresholdInput);
+        } catch (Throwable $e) {
+            $error = __('shop_err_price');
+        }
+        if ($error === '' && ($thresholdCents < 0 || $thresholdCents > shopMoneyMaxCents())) {
+            $error = __('shop_err_price');
+        }
+    }
+    $expireMinutes = $expireInput === '' ? 30 : (int) $expireInput;
+    if ($error === '' && ($expireMinutes < 1 || $expireMinutes > 10080)) {
+        $error = __('shop_err_expire');
+    }
+
+    if ($error !== '') {
+        header('Location: /admin/plugin_page.php?plugin=shop&err=' . urlencode($error));
+        exit;
+    }
+
+    settingModel()->saveBatch([
+        'shop_shipping_fee_cents' => (string) $feeCents,
+        'shop_free_shipping_threshold_cents' => (string) $thresholdCents,
+        'shop_order_expire_minutes' => (string) $expireMinutes,
+    ]);
+    adminLog('shop', 'save_shipping', "shipping fee={$feeCents} free_threshold={$thresholdCents} expire={$expireMinutes}min");
+    do_action('data_changed');
+
+    header('Location: /admin/plugin_page.php?plugin=shop&saved=1');
+    exit;
+}
+
+// ============================================================
 // POST：保存单个产品的销售配置（普通表单 + PRG，无需 JS）
 // ============================================================
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '') === 'save_sales') {
@@ -140,6 +196,32 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php if (isset($_GET['err']) && $_GET['err'] !== ''): ?>
     <div class="mb-4 rounded border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm" data-testid="shop-error-tip"><?php echo e((string) $_GET['err']); ?></div>
     <?php endif; ?>
+
+    <?php // 运费与超时（M1-c）：先于产品列表，商家一次配好 ?>
+    <div class="mb-4 bg-white rounded border border-gray-200 p-4" data-testid="shop-shipping-settings">
+        <div class="text-sm font-medium text-gray-900 mb-3"><?php echo e(__('shop_shipping_title')); ?></div>
+        <form method="post" action="/admin/plugin_page.php?plugin=shop" class="flex flex-wrap items-end gap-3 text-sm">
+            <?php echo csrfField(); ?>
+            <input type="hidden" name="action" value="save_shipping">
+            <div>
+                <label class="block text-gray-600 mb-1"><?php echo e(__('shop_shipping_fee')); ?></label>
+                <input type="text" name="shipping_fee" value="<?php echo e(shopCentsToDecimal((int) config('shop_shipping_fee_cents', 1500))); ?>"
+                       class="border border-gray-300 rounded px-2 py-1.5 w-28" data-testid="shop-shipping-fee">
+            </div>
+            <div>
+                <label class="block text-gray-600 mb-1"><?php echo e(__('shop_shipping_free_threshold')); ?></label>
+                <input type="text" name="free_threshold" value="<?php echo (int) config('shop_free_shipping_threshold_cents', 0) > 0 ? e(shopCentsToDecimal((int) config('shop_free_shipping_threshold_cents', 0))) : ''; ?>"
+                       placeholder="<?php echo e(__('shop_shipping_free_off')); ?>"
+                       class="border border-gray-300 rounded px-2 py-1.5 w-28" data-testid="shop-shipping-threshold">
+            </div>
+            <div>
+                <label class="block text-gray-600 mb-1"><?php echo e(__('shop_expire_minutes')); ?></label>
+                <input type="number" name="expire_minutes" min="1" max="10080" step="1" value="<?php echo (int) config('shop_order_expire_minutes', 30); ?>"
+                       class="border border-gray-300 rounded px-2 py-1.5 w-24" data-testid="shop-expire-minutes">
+            </div>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700"><?php echo e(__('shop_btn_save')); ?></button>
+        </form>
+    </div>
 
     <form method="get" action="/admin/plugin_page.php" class="mb-4 flex flex-wrap items-center gap-2">
         <input type="hidden" name="plugin" value="shop">
