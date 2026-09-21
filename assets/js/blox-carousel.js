@@ -11,7 +11,8 @@
     if (window.BloxCarousel) { window.BloxCarousel.init(document); return; }
 
     var bound = typeof WeakSet === 'function' ? new WeakSet() : null;
-    var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    var reduceMotion = window.YikaiMotion ? window.YikaiMotion.level() !== 'standard'
+        : !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
     function inEditorCanvas() {
         return !!document.querySelector('.yk-canvas-region');
@@ -61,7 +62,8 @@
         function goTo(page) {
             var pages = pageCount();
             var target = ((page % pages) + pages) % pages;
-            track.scrollTo({ left: pageOffset(target), behavior: reduceMotion ? 'auto' : 'smooth' });
+            var quiet = window.YikaiMotion ? window.YikaiMotion.level() !== 'standard' : reduceMotion;
+            track.scrollTo({ left: pageOffset(target), behavior: quiet ? 'auto' : 'smooth' });
         }
 
         function renderDots() {
@@ -109,6 +111,7 @@
         var interval = parseInt(root.getAttribute('data-yk-carousel-autoplay') || '0', 10);
         if (interval >= 2000 && !reduceMotion && !inEditorCanvas()) {
             window.setInterval(function () {
+                if (window.YikaiMotion && window.YikaiMotion.level() !== 'standard') return;
                 if (paused || document.hidden || !root.isConnected || pageCount() <= 1) return;
                 goTo(currentPage() + 1);
             }, interval);

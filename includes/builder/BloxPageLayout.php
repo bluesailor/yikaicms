@@ -13,7 +13,7 @@ final class BloxPageLayout
             'page_header_hidden' => ['type' => 'bool', 'label' => 'layout_hide_header', 'global' => ['general', 'page_header_hidden']],
             'page_footer_hidden' => ['type' => 'bool', 'label' => 'layout_hide_footer', 'global' => ['general', 'page_footer_hidden']],
             'page_content_max_width' => $general['content_max_width'] + ['global' => ['general', 'content_max_width']],
-            'page_content_gutter' => $general['page_content_gutter'] + ['global' => ['general', 'page_content_gutter']],
+            'page_content_gutter' => array_replace($general['page_content_gutter'], ['label' => 'layout_page_gutter', 'global' => ['general', 'page_content_gutter']]),
             'page_content_background' => ['type' => 'color', 'clear' => true, 'label' => 'theme_settings_content_background', 'global' => ['general', 'content_background']],
         ];
     }

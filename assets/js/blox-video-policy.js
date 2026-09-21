@@ -2,6 +2,7 @@
     'use strict';
 
     function prefersReducedMotion() {
+        if (window.YikaiMotion && window.YikaiMotion.level() !== 'standard') return true;
         return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     }
 

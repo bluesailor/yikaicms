@@ -6521,7 +6521,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             replayElementAnimation() {
-                if (!this.selEl || !this.selEl.data.animation || this.previewLoading) return;
+                if (!this.selEl || (!this.selEl.data.animation && !BloxControlRules.checkboxValue(this.selEl.data.animation_stagger)) || this.previewLoading) return;
                 this.canvasBridge().post({ ykReplayAnimation: {
                     id: this.selectedElementId(), path: this.selectedPath()
                 } });

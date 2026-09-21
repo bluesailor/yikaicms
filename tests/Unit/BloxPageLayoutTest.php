@@ -7,6 +7,20 @@ require_once ROOT_PATH . '/includes/builder/BloxPageLayout.php';
 
 final class BloxPageLayoutTest extends TestCase
 {
+    public function testMaintenanceModeCannotChangeOrClearPageOverrides(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        $GLOBALS['_test_config']['blox_maintenance_mode'] = '1';
+        $base = json_encode(['settings' => ['page_content_background' => null], 'sections' => []], JSON_THROW_ON_ERROR);
+        try {
+            self::assertSame(['page_content_background' => null], BloxDocumentPipeline::process($base, trustedJson: $base)['settings']);
+            $this->expectException(RuntimeException::class);
+            BloxDocumentPipeline::process('{"settings":{},"sections":[]}', trustedJson: $base);
+        } finally {
+            unset($GLOBALS['_test_config']['blox_maintenance_mode']);
+        }
+    }
+
     public function testAbsenceFalseZeroAndClearHaveDifferentMeanings(): void
     {
         $theme = ThemeSettings::defaults();

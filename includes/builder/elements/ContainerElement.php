@@ -130,11 +130,14 @@ final class ContainerElement extends AbstractElement
                 'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
             // 0a：容器自身作为父级 flex 子项的布局（容器嵌进行向容器的场景）。
             ...$this->flexItemControls(),
+            ['key' => 'animation_stagger', 'type' => 'checkbox', 'label' => __('motion_stagger'), 'default' => false, 'tab' => 'style', 'group' => 'animation'],
         ];
     }
 
     public function render(array $data, string $children = ''): string
     {
+        $stagger = in_array($data['animation_stagger'] ?? false, [true, 1, '1'], true) ? ' data-stagger' : '';
+        if ($stagger !== '') BloxAssetCollector::addScript('/assets/js/scroll-anim.js');
         // yk-container 是编辑态定位钩子（画布空容器占位用），前台无样式含义——与 yk-col-card 同例
         // $layout 单独成串：视频分支要把 flex 布局整体移交内容层（radius 留根），
         // 无视频路径的拼接顺序与历史逐字节一致（radius 仍最后追加）。
@@ -206,7 +209,7 @@ final class ContainerElement extends AbstractElement
                 . $mobileVideoMode . '" data-blox-video-src="'
                 . htmlspecialchars($video, ENT_QUOTES) . '"' . $posterAttr . '></video></div>'
                 . $overlay
-                . '<div class="blox-content ' . $layout . '">' . $children . '</div>'
+                . '<div class="blox-content ' . $layout . '"' . $stagger . '>' . $children . '</div>'
                 . '</div>';
         }
 
@@ -217,6 +220,6 @@ final class ContainerElement extends AbstractElement
         if ($background !== '') {
             $style = ' style="' . htmlspecialchars($background, ENT_QUOTES) . '"';
         }
-        return '<div class="' . $cls . '"' . $style . '>' . $children . '</div>';
+        return '<div class="' . $cls . '"' . $style . $stagger . '>' . $children . '</div>';
     }
 }
