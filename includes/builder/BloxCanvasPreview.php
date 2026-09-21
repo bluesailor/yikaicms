@@ -159,6 +159,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
         BloxDocumentPipeline::decode($previewJson)['sections'],
         bloxPreviewTrustedJson($isHomeLayout, $id)
     );
+    BlockRenderer::$conditionDiagnostics = $bloxCanvas && (($_POST['condition_diagnostics'] ?? '') === '1');
     BlockRenderer::$showHidden = true;
     if ($bloxCanvas) {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';

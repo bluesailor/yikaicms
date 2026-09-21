@@ -204,6 +204,7 @@ $currentMenu = 'theme';
 $pageTitle = __('admin_theme');
 $message = '';
 $messageType = '';
+$themeGeneralErrors = [];
 $themeFlash = $_SESSION['theme_flash'] ?? null;
 unset($_SESSION['theme_flash']);
 if (is_array($themeFlash) && is_string($themeFlash['message'] ?? null)) {
@@ -217,7 +218,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
 
     $primaryColor = strtoupper(trim((string) ($_POST['primary_color'] ?? '')));
     $secondaryColor = strtoupper(trim((string) ($_POST['secondary_color'] ?? '')));
-    if (preg_match('/^#[0-9A-F]{6}$/D', $primaryColor) !== 1
+    $activeTheme = currentTheme();
+    $generalValidation = null;
+    if ($activeTheme === 'default') {
+        $rawStyle = $_POST['theme_style'] ?? [];
+        $generalValidation = ThemeSettings::validateGeneral(
+            is_array($rawStyle) ? ($rawStyle['general'] ?? []) : $rawStyle,
+            ThemeSettings::read($activeTheme)['general']
+        );
+        $themeGeneralErrors = $generalValidation['errors'];
+    }
+    if (isset($_POST['theme_settings_target']) && $_POST['theme_settings_target'] !== $activeTheme) {
+        $message = __('theme_schema_target_changed');
+        $messageType = 'error';
+    } elseif ($themeGeneralErrors !== []) {
+        $message = __('theme_schema_save_blocked');
+        $messageType = 'error';
+    } elseif (preg_match('/^#[0-9A-F]{6}$/D', $primaryColor) !== 1
         || preg_match('/^#[0-9A-F]{6}$/D', $secondaryColor) !== 1) {
         $message = __('theme_settings_invalid_color');
         $messageType = 'error';
@@ -235,6 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
             }
         }
         $styleSettings = ThemeSettings::normalize($themeStyleInput);
+        if ($generalValidation !== null) $styleSettings['general'] = $generalValidation['values'];
 
         $activeTheme = currentTheme();
         $colorProfiles = ThemePalette::profiles((string) config('theme_color_profiles', '{}'));
@@ -631,6 +649,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <form method="POST" action="/admin/theme.php?tab=settings" class="bg-white rounded-lg shadow max-w-5xl">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="save_theme_settings">
+            <input type="hidden" name="theme_settings_target" value="<?php echo e($currentTheme); ?>">
 
             <div class="px-6 py-5 border-b border-gray-100">
                 <div class="flex flex-wrap items-center gap-2">
@@ -703,6 +722,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <h3 class="font-medium text-gray-800"><?php echo e(__('theme_settings_global')); ?></h3>
                 <p class="mt-1 text-sm text-gray-500"><?php echo e(__('theme_settings_global_hint')); ?></p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                    <?php if ($currentTheme === 'default'): ?>
+                        <?php require __DIR__ . '/includes/theme_general_fields.php'; ?>
+                    <?php else: ?>
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_layout')); ?></span>
                         <select name="theme_style[general][site_layout]" class="w-full border border-gray-200 rounded-lg px-3 py-2"><option value="full" <?php echo $themeStyle['general']['site_layout'] === 'full' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_layout_full')); ?></option><option value="boxed" <?php echo $themeStyle['general']['site_layout'] === 'boxed' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_layout_boxed')); ?></option></select>
                     </label>
@@ -712,6 +734,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_site_background')); ?></span><input type="color" name="theme_style[general][site_background]" value="<?php echo e($themeStyle['general']['site_background']); ?>" class="w-11 h-10 p-1 border border-gray-200 rounded-lg"></label>
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_content_background')); ?></span><input type="color" name="theme_style[general][content_background]" value="<?php echo e($themeStyle['general']['content_background']); ?>" class="w-11 h-10 p-1 border border-gray-200 rounded-lg"></label>
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_color_mode')); ?></span><select name="theme_style[general][color_mode]" class="w-full border border-gray-200 rounded-lg px-3 py-2"><option value="light" <?php echo $themeStyle['general']['color_mode'] === 'light' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_light')); ?></option><option value="dark" <?php echo $themeStyle['general']['color_mode'] === 'dark' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_dark')); ?></option><option value="auto" <?php echo $themeStyle['general']['color_mode'] === 'auto' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_auto')); ?></option></select></label>
+                    <?php endif; ?>
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_base_font')); ?></span><input type="number" name="theme_style[typography][html_font_size]" value="<?php echo (int) $themeStyle['typography']['html_font_size']; ?>" min="14" max="20" class="w-full border border-gray-200 rounded-lg px-3 py-2"></label>
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_body_font')); ?></span><input type="text" name="theme_style[typography][body_font]" value="<?php echo e((string) $themeStyle['typography']['body_font']); ?>" maxlength="160" class="w-full border border-gray-200 rounded-lg px-3 py-2 font-mono text-xs" placeholder="system / Arial, sans-serif"></label>
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_heading_font')); ?></span><input type="text" name="theme_style[typography][heading_font]" value="<?php echo e((string) $themeStyle['typography']['heading_font']); ?>" maxlength="160" class="w-full border border-gray-200 rounded-lg px-3 py-2 font-mono text-xs" placeholder="system / Arial, sans-serif"></label>
