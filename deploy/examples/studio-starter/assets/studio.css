@@ -1,0 +1,10 @@
+.studio-hero{background:#f6f3ed;color:#1c2824;padding:80px 24px 96px;border-bottom:1px solid #d9ded4}
+.studio-wrap{max-width:1200px;margin:auto;display:grid;grid-template-columns:1.1fr 1fr;align-items:center;gap:64px}
+.studio-copy{max-width:610px;min-width:0}.studio-eyebrow{font-size:14px;letter-spacing:.16em;color:#526948;margin-bottom:24px}
+.studio-copy h1{font-size:clamp(36px,4.6vw,66px);font-weight:650;letter-spacing:-.05em;line-height:1.2;text-wrap:balance}
+.studio-description{font-size:18px;line-height:1.8;color:#52605b;margin:26px 0 32px;white-space:pre-line}
+.studio-button{display:inline-flex;align-items:center;gap:30px;padding:16px 22px;border-radius:40px;background:#253e30;color:#fff;font-size:16px}
+.studio-button:hover{background:#35553e}.studio-button:focus-visible{outline:3px solid #53764b;outline-offset:4px}
+.studio-art{margin:0;background:#e2e9dc;border-radius:160px 160px 24px 24px;overflow:hidden;border:1px solid #c8d6bf}
+.studio-art img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover}
+@media(max-width:760px){.studio-hero{padding:44px 20px 48px}.studio-wrap{grid-template-columns:1fr;gap:32px}.studio-copy h1{font-size:40px}.studio-description{font-size:16px}.studio-art{border-radius:100px 100px 20px 20px}}

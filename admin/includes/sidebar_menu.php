@@ -303,6 +303,13 @@ return [
         'priority' => 70,
         'items'    => [
             [
+                'key'   => 'site_setup',
+                'perm'  => '*',
+                'label' => __('setup_title'),
+                'url'   => '/admin/site_setup.php',
+                'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M4 4h16v16H4z"></path>',
+            ],
+            [
                 'key'   => 'appearance',
                 'perm'  => '*',
                 'label' => __('appr_title'),

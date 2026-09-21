@@ -139,4 +139,5 @@ return [
     'error_sql_execute' => 'Failed to execute SQL: ',
     'error_admin_create' => 'Failed to create administrator: ',
     'error_config_write' => 'Failed to write configuration file',
+    'url_auto_notice' => 'Installation checks server routing automatically. Pretty URLs are used when supported; otherwise query URLs work without rewrite rules. Check and switch later under URL & links in the dashboard. No reinstall is needed.',
 ];
