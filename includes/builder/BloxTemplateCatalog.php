@@ -34,10 +34,13 @@ final class BloxTemplateCatalog
             foreach (bloxTemplateModel()->publishedEditorCatalog() as $row) {
                 $type = (string) ($row['type'] ?? '');
                 $id = (int) ($row['id'] ?? 0);
-                if ($id <= 0 || !self::supportsEditorType($type)
-                    || !self::requirementsAvailable($row['requirements'] ?? null)) {
+                if ($id <= 0 || !self::supportsEditorType($type)) {
                     continue;
                 }
+                // 依赖不满足的模板**仍然列出**，只是标成不可插入并说明缺什么。
+                // 此前是直接跳过：作者存过、发布过的模板凭空消失，面板也不会说一句为什么。
+                // 插入的真正拦截在 resolve()，那条线没动。
+                $missing = self::missingRequirements($row['requirements'] ?? null);
                 $items[] = [
                     'key' => 'local:' . $id,
                     'type' => $type,
@@ -49,6 +52,7 @@ final class BloxTemplateCatalog
                     'thumbnail' => self::safeLocalThumbnail($row['thumbnail'] ?? ''),
                     'metadata' => BloxSectionMetadata::normalize(self::decodeMetadata($row['metadata'] ?? null)),
                     'updated_at' => (int) ($row['updated_at'] ?? 0),
+                    'unavailable' => $missing,
                 ];
             }
         }
@@ -262,39 +266,60 @@ final class BloxTemplateCatalog
 
     private static function requirementsAvailable(mixed $raw): bool
     {
+        return self::missingRequirements($raw) === [];
+    }
+
+    /**
+     * 依赖缺口的唯一口径：列表用它作说明，resolve() 用它作拦截。
+     *
+     * 返回空数组表示可用。`invalid` 表示依赖清单本身读不了（损坏或类型不对）——
+     * 这种情况仍按不可用处理（与此前一致），但要说出来，不能装作模板不存在。
+     *
+     * @return array{elements?:list<string>,plugins?:list<string>,invalid?:true}
+     */
+    private static function missingRequirements(mixed $raw): array
+    {
         if (!is_string($raw) || trim($raw) === '') {
-            return true;
+            return [];
         }
         try {
             $requirements = json_decode($raw, true, 64, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
-            return false;
+            return ['invalid' => true];
         }
         if (!is_array($requirements)) {
-            return false;
+            return ['invalid' => true];
         }
 
+        $missing = [];
         foreach (is_array($requirements['elements'] ?? null) ? $requirements['elements'] : [] as $type) {
-            if (!is_string($type) || BuilderRegistry::get($type) === null) {
-                return false;
+            if (!is_string($type)) {
+                return ['invalid' => true];
+            }
+            if (BuilderRegistry::get($type) === null) {
+                $missing['elements'][] = mb_substr($type, 0, 60);
             }
         }
 
         $requiredPlugins = is_array($requirements['plugins'] ?? null) ? $requirements['plugins'] : [];
         if ($requiredPlugins === []) {
-            return true;
+            return $missing;
         }
         try {
             $activePlugins = array_fill_keys(pluginModel()->getActiveSlugs(), true);
         } catch (Throwable) {
-            return false;
+            // 查不到已启用插件就无从判断"缺哪个"，退回保守：整份依赖判为读不了。
+            return ['invalid' => true];
         }
         foreach ($requiredPlugins as $slug) {
-            if (!is_string($slug) || !isset($activePlugins[$slug])) {
-                return false;
+            if (!is_string($slug)) {
+                return ['invalid' => true];
+            }
+            if (!isset($activePlugins[$slug])) {
+                $missing['plugins'][] = mb_substr($slug, 0, 60);
             }
         }
-        return true;
+        return $missing;
     }
 
     /** @return array<string,mixed> */

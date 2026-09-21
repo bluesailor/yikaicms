@@ -32,6 +32,15 @@ final class BloxTemplateCatalogTest extends TestCase
                 updated_at INTEGER NOT NULL DEFAULT 0,
                 published_at INTEGER NOT NULL DEFAULT 0
             )",
+            // 依赖判定要查已启用插件。没有这张表时 getActiveSlugs() 抛异常，
+            // 判定只能退回「核对不了」——那测的就不是真实路径了。
+            "CREATE TABLE plugins (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug TEXT NOT NULL,
+                status INTEGER NOT NULL DEFAULT 0,
+                installed_at INTEGER NOT NULL DEFAULT 0,
+                activated_at INTEGER NOT NULL DEFAULT 0
+            )",
         ];
     }
 
@@ -67,13 +76,72 @@ final class BloxTemplateCatalogTest extends TestCase
             $items,
             static fn (array $item): bool => (string) ($item['source'] ?? '') === 'local'
         ));
-        $this->assertCount(1, $local);
-        $this->assertSame('local:' . $published, $local[0]['key']);
-        $this->assertSame('section', $local[0]['type']);
-        $this->assertSame('hero', $local[0]['metadata']['purpose']);
-        $this->assertSame(['home'], $local[0]['metadata']['page_types']);
-        $this->assertSame(90, $local[0]['metadata']['priority']);
+        // 依赖不满足的模板**留在列表里**（E08）：此前是直接跳过，作者发布过的模板凭空消失，
+        // 面板也不说为什么。插入的拦截仍在 resolve()，见下一条断言。
+        $this->assertCount(2, $local);
+        $byKey = array_column($local, null, 'key');
+
+        $ok = $byKey['local:' . $published];
+        $this->assertSame('section', $ok['type']);
+        $this->assertSame('hero', $ok['metadata']['purpose']);
+        $this->assertSame(['home'], $ok['metadata']['page_types']);
+        $this->assertSame(90, $ok['metadata']['priority']);
+        $this->assertSame([], $ok['unavailable'], '依赖齐全的模板不该带缺口');
+
+        $blocked = $byKey['local:' . $missing];
+        $this->assertSame(['plugins' => ['not-active']], $blocked['unavailable'], '要说清缺的是哪个插件');
+
         $this->assertContains('builtin:404-route-lost', array_column($items, 'key'));
+    }
+
+    /** 元素缺口同样要说出来——这版不支持的元素，作者装什么插件都补不回来。 */
+    public function testMissingElementsAreNamedOnTheCard(): void
+    {
+        $id = bloxTemplateModel()->createDraft(
+            'section',
+            'Countdown hero',
+            $this->sectionJson('cd', 'cd-el'),
+            'import',
+            1,
+            ['elements' => ['heading', 'countdown-timer'], 'plugins' => []]
+        );
+        bloxTemplateModel()->publishDraft($id);
+
+        $items = array_column(\BloxTemplateCatalog::items('page'), null, 'key');
+        $this->assertArrayHasKey('local:' . $id, $items);
+        $this->assertSame(['elements' => ['countdown-timer']], $items['local:' . $id]['unavailable']);
+    }
+
+    /** 依赖清单本身坏了：仍然不可插入，但说的是"读不了"，不是假装模板不存在。 */
+    public function testUnreadableRequirementsAreReportedAsUnreadable(): void
+    {
+        $id = bloxTemplateModel()->createDraft('section', 'Broken deps', $this->sectionJson('bd', 'bd-el'));
+        bloxTemplateModel()->publishDraft($id);
+        // update() 自己补 DB_PREFIX，这里传裸表名（DB_PREFIX 契约）
+        db()->update('blox_templates', ['requirements' => '{not json'], 'id = ?', [$id]);
+
+        $items = array_column(\BloxTemplateCatalog::items('page'), null, 'key');
+        $this->assertSame(['invalid' => true], $items['local:' . $id]['unavailable']);
+    }
+
+    /** 列出不等于可插入：真正的闸仍在 resolve()，与依赖缺口用同一套判定。 */
+    public function testListedButUnavailableTemplateStillRefusesToResolve(): void
+    {
+        $missing = bloxTemplateModel()->createDraft(
+            'page',
+            'Missing plugin',
+            $this->sectionJson('missing', 'missing-el'),
+            'import',
+            1,
+            ['elements' => ['heading'], 'plugins' => ['not-active']]
+        );
+        bloxTemplateModel()->publishDraft($missing);
+
+        $listed = array_column(\BloxTemplateCatalog::items('page'), 'key');
+        $this->assertContains('local:' . $missing, $listed, '先确认它确实在列表里');
+
+        $this->expectException(RuntimeException::class);
+        \BloxTemplateCatalog::resolve('local:' . $missing, 'page');
     }
 
     public function testResolveReturnsValidatedSectionsWithFreshIds(): void
