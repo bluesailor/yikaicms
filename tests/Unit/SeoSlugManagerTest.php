@@ -53,6 +53,20 @@ final class SeoSlugManagerTest extends TestCase
             '未知表按"已占用"处理——fail-closed，绝不放行写入');
     }
 
+    /**
+     * 插件声明的 requires_cms 必须覆盖它真正依赖的核心能力。
+     * slugs.php 用核心 normalizeSlugInput()（CMS 1.20.1 起才有 includes/Slug.php），
+     * requires_cms 落后就会让旧站从市场装上这个插件然后白屏。
+     */
+    public function testPluginDeclaresTheCoreVersionItActuallyNeeds(): void
+    {
+        $meta = json_decode((string) file_get_contents(ROOT_PATH . '/plugins/seo/plugin.json'), true);
+        self::assertIsArray($meta);
+        self::assertTrue(version_compare((string) $meta['requires_cms'], '1.20.1', '>='),
+            'slugs.php 依赖 includes/Slug.php（1.20.1 引入），requires_cms 不得低于它');
+        self::assertTrue(\seo_slug_available(), '测试进程已加载核心 Slug.php，可用性判定应为真');
+    }
+
     /** 非法别名提交时走核心净化，而不是被插件放行或删空。 */
     public function testRenameSanitizesThroughTheCoreHelper(): void
     {
