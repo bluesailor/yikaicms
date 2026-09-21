@@ -48,6 +48,8 @@
                 <file name="admin/page_edit.php" />
                 <file name="admin/page_edit_advance.php" />
                 <file name="admin/site_health.php" />
+                <!-- Navigation context consumed by the shared admin header. -->
+                <file name="admin/site_setup.php" />
                 <!-- Variables consumed by ignored editor partials through require scope. -->
                 <file name="admin/blox_design.php" />
                 <file name="plugins/seo/admin.php" />
