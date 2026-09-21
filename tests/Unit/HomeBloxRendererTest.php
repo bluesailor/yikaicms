@@ -199,7 +199,7 @@ final class HomeBloxRendererTest extends TestCase
 
         $this->assertSame(['/assets/css/blox-banner.css'], BloxAssetCollector::styles());
         $this->assertSame(
-            ['/assets/js/blox-video-policy.js', '/assets/js/blox-banner.js'],
+            ['/assets/js/scroll-anim.js', '/assets/js/blox-video-policy.js', '/assets/js/blox-banner.js'],
             BloxAssetCollector::scripts()
         );
     }

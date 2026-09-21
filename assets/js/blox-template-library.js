@@ -446,6 +446,18 @@
                 result[key] = settings[key] === true || settings[key] === 1 || settings[key] === "1";
             }
         });
+        ["page_content_max_width", "page_content_gutter", "page_content_background"].forEach(function (key) {
+            if (mode === "replace") delete result[key];
+            if (!Object.prototype.hasOwnProperty.call(settings, key)) return;
+            var value = settings[key];
+            if (key === "page_content_background") {
+                if (value === null || (typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value))) result[key] = value;
+            } else {
+                var min = key === "page_content_gutter" ? 0 : 760;
+                var max = key === "page_content_gutter" ? 80 : 1920;
+                if (Number.isInteger(value) && value >= min && value <= max) result[key] = value;
+            }
+        });
         return result;
     }
 

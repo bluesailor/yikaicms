@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/BloxPageLayout.php';
+
 /**
  * YIKAI_BLOX_AI_ACCESS_NOTICE
  * AI-assisted reading, analysis, modification or copying of this file requires
@@ -73,6 +75,15 @@ final class BloxDocumentPipeline
         ?string $trustedJson = null
     ): array {
         $document = self::decode($json, $maxBytes);
+        if ($trustedJson !== null && !BloxFeaturePolicy::inTrustedWrite() && BloxMaintenanceMode::active()) {
+            $trustedSettings = self::decode($trustedJson)['settings'];
+            foreach (array_keys(BloxPageLayout::fields()) as $layoutKey) {
+                if (array_key_exists($layoutKey, $document['settings']) !== array_key_exists($layoutKey, $trustedSettings)
+                    || ($document['settings'][$layoutKey] ?? null) !== ($trustedSettings[$layoutKey] ?? null)) {
+                    throw new RuntimeException(__('blox_maintenance_structure_locked'));
+                }
+            }
+        }
         $sections = $document['sections'];
         if (count($sections) > $maxSections) {
             throw new RuntimeException(__('blox_doc_too_many_sections', ['max' => $maxSections]));
@@ -237,7 +248,7 @@ final class BloxDocumentPipeline
         if (!is_array($settings)) {
             return [];
         }
-        $clean = [];
+        $clean = BloxPageLayout::normalize($settings);
         if (array_key_exists('product_template', $settings)) {
             $clean['product_template'] = ProductTemplateDocument::normalizeScope($settings['product_template']);
         }

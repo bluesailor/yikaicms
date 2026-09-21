@@ -6521,7 +6521,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             replayElementAnimation() {
-                if (!this.selEl || !this.selEl.data.animation || this.previewLoading) return;
+                if (!this.selEl || (!this.selEl.data.animation && !BloxControlRules.checkboxValue(this.selEl.data.animation_stagger)) || this.previewLoading) return;
                 this.canvasBridge().post({ ykReplayAnimation: {
                     id: this.selectedElementId(), path: this.selectedPath()
                 } });
@@ -8642,10 +8642,15 @@ $canManageBloxDesign = hasPermission('blox_global');
             window.YikaiBloxPageSettings.mixin(<?= json_encode([
                 'id' => (int) $id,
                 'slug' => (string) ($page['slug'] ?? ''),
+                'layout' => [
+                    'fields' => BloxPageLayout::fields(),
+                    'values' => BloxPageLayout::resolve([], ['type' => 'page', 'id' => max(1, (int) $id), 'lang' => siteLang()])['values'],
+                ],
                 'url' => (!$isHomeBlox && !$templateId) ? channelUrl($page) : '',
                 'text' => [
                     'invalid' => __('blox_page_url_invalid'), 'failed' => __('blox_page_url_failed'),
                     'saved' => __('blox_page_url_saved'),
+                    'layoutInvalid' => __('layout_invalid'),
                 ],
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>));
     }

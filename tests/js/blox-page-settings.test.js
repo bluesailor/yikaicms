@@ -147,3 +147,29 @@ test("页面外框草稿的初始形状完整，不会在对话框打开前读�
     assert.equal(app.pageFrameDraft.dot_nav.position, "right");
     assert.equal(app.pageFrameDraft.dot_nav.mobile, false);
 });
+
+test('layout apply preserves false/zero/clear and restoring inheritance removes only local keys', () => {
+    const state = settings('/company.html');
+    Object.assign(state, {
+        pageLayout: { fields: { page_header_hidden: { type: 'bool' }, page_content_gutter: { type: 'number', min: 0, max: 80 }, page_content_background: { type: 'color', clear: true } }, values: { page_header_hidden: true, page_content_gutter: 24, page_content_background: '#ffffff' } },
+        $refs: { pageFrameDialog: {} }, focusDialog() {}, releaseDialog() {},
+        runCommand(name, run) { run.call(this); }, markDocumentSettingsChanged() {}, schedulePreview() {}
+    });
+    state.docSettings = { sticky: true, page_header_hidden: false, page_content_gutter: 0, page_content_background: null };
+    state.openPageFrame();
+    assert.equal(state.pageFrameModes.page_header_hidden, 'set');
+    assert.equal(state.pageFrameDraft.page_header_hidden, false);
+    assert.equal(state.pageFrameDraft.page_content_gutter, 0);
+    assert.equal(state.pageFrameModes.page_content_background, 'clear');
+    state.applyPageFrame();
+    assert.equal(state.docSettings.page_content_background, null);
+    assert.equal(state.docSettings.page_header_hidden, false);
+    state.openPageFrame();
+    Object.keys(state.pageLayout.fields).forEach(key => state.pageFrameModes[key] = 'inherit');
+    state.applyPageFrame();
+    for (const key of Object.keys(state.pageLayout.fields)) assert.equal(Object.hasOwn(state.docSettings, key), false);
+    assert.equal(state.docSettings.sticky, true);
+    assert.equal(state.pageLayout.values.page_header_hidden, true);
+    state.openPageFrame();
+    assert.equal(state.pageFrameDraft.page_header_hidden, true);
+});

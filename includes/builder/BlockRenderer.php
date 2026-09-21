@@ -477,6 +477,7 @@ final class BlockRenderer
                 }
                 $titleAnimAttr = in_array($titleAnimation, self::SECTION_TITLE_ANIMATIONS, true)
                     ? ' data-animate="' . $titleAnimation . '"' : '';
+                if ($titleAnimAttr !== '') BloxAssetCollector::addScript('/assets/js/scroll-anim.js');
                 $html .= '<div class="' . $titleAlign . ' mb-10"' . $titleAnimAttr . '>';
                 $titleEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.title"' : '';
                 $subEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.subtitle"' : '';

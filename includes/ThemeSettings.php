@@ -38,6 +38,18 @@ final class ThemeSettings
                 'options' => ['light' => 'theme_settings_light', 'dark' => 'theme_settings_dark', 'auto' => 'theme_settings_auto'],
                 'output' => 'color_mode',
             ] + $common,
+            'page_header_hidden' => [
+                'type' => 'select', 'default' => '0', 'label' => 'theme_settings_page_header',
+                'options' => ['0' => 'layout_show', '1' => 'layout_hide'], 'output' => 'page_frame',
+            ] + $common,
+            'page_footer_hidden' => [
+                'type' => 'select', 'default' => '0', 'label' => 'theme_settings_page_footer',
+                'options' => ['0' => 'layout_show', '1' => 'layout_hide'], 'output' => 'page_frame',
+            ] + $common,
+            'page_content_gutter' => [
+                'type' => 'number', 'default' => 0, 'label' => 'theme_settings_page_gutter',
+                'min' => 0, 'max' => 80, 'step' => 1, 'unit' => 'px', 'output' => 'page_frame',
+            ] + $common,
         ];
     }
 
