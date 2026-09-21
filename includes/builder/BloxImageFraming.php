@@ -5,6 +5,56 @@ final class BloxImageFraming
 {
     private const RATIOS = ['square' => '1 / 1', 'landscape' => '4 / 3', 'wide' => '16 / 9', 'portrait' => '3 / 4'];
 
+    /**
+     * 构图预设（E05 切片 B）：常见场景的一组构图基线。
+     *
+     * 预设只提供**基线**，作者显式选过的值优先——否则"套个预设"就会把已经调好的比例
+     * 或填充方式冲掉。判定"没设置过"用的是控件默认值（ratio 的 auto/default、fit 的空），
+     * 与切片 A 的焦点同一口径：默认值即未设置。
+     *
+     * @return array<string,string>
+     */
+    public static function presetDefaults(mixed $preset): array
+    {
+        return match ($preset) {
+            // 头像：正方裁切 + 圆形，脸部构图再靠焦点微调
+            'avatar' => ['image_ratio' => 'square', 'image_fit' => 'cover'],
+            // 白底产品：整件装得下比填满重要，所以是 contain
+            'product' => ['image_ratio' => 'square', 'image_fit' => 'contain'],
+            'case' => ['image_ratio' => 'wide', 'image_fit' => 'cover'],
+            'portrait' => ['image_ratio' => 'portrait', 'image_fit' => 'cover'],
+            'overlay' => ['image_ratio' => 'wide', 'image_fit' => 'cover'],
+            default => [],
+        };
+    }
+
+    /** 预设的附加外观：圆形与白底不是比例/填充能表达的，单独给出。 */
+    public static function presetFrameStyle(mixed $preset): string
+    {
+        return match ($preset) {
+            'avatar' => 'border-radius:9999px;overflow:hidden;',
+            'product' => 'background-color:#fff;',
+            default => '',
+        };
+    }
+
+    /**
+     * 把预设基线并进数据：作者已选的值一律保留。
+     *
+     * @param array<string,mixed> $data
+     * @return array<string,mixed>
+     */
+    public static function withPreset(array $data): array
+    {
+        $unset = ['', 'auto', 'default', null];
+        foreach (self::presetDefaults($data['image_preset'] ?? '') as $key => $value) {
+            if (in_array($data[$key] ?? null, $unset, true)) {
+                $data[$key] = $value;
+            }
+        }
+        return $data;
+    }
+
     /** @return list<array<string,mixed>> */
     public static function controls(bool $forCard = false): array
     {
@@ -12,6 +62,13 @@ final class BloxImageFraming
         $framedTerms = array_merge($terms, [['image_ratio', '!=', 'auto']]);
         $options = $forCard ? ['default' => __('blox_image_ratio_follow_layout')] : [];
         return [
+            ['key' => 'image_preset', 'type' => 'select', 'label' => __('blox_image_preset'), 'default' => '', 'tab' => 'style',
+                'visible_when' => ['terms' => $terms],
+                'options' => ['' => __('blox_image_preset_none'), 'avatar' => __('blox_image_preset_avatar'),
+                    'product' => __('blox_image_preset_product'), 'case' => __('blox_image_preset_case'),
+                    'portrait' => __('blox_image_preset_portrait'), 'overlay' => __('blox_image_preset_overlay')],
+                'option_icons' => ['avatar' => 'user-circle', 'product' => 'package', 'case' => 'photo',
+                    'portrait' => 'user', 'overlay' => 'text-caption']],
             ['key' => 'image_ratio', 'type' => 'select', 'label' => __('blox_image_ratio'), 'default' => $forCard ? 'default' : 'auto', 'tab' => 'style',
                 'option_preview' => 'image-ratio', 'visible_when' => ['terms' => $terms],
                 'options' => $options + ['auto' => __('blox_image_ratio_auto'), 'square' => '1:1', 'landscape' => '4:3', 'wide' => '16:9', 'portrait' => '3:4']],
@@ -47,6 +104,8 @@ final class BloxImageFraming
 
     public static function ratio(array $data, bool $forCard = false): string
     {
+        // 预设基线在这里并入：作者显式选过的比例不受影响（见 withPreset）
+        $data = self::withPreset($data);
         $ratio = $data['image_ratio'] ?? null;
         $default = $forCard ? 'default' : 'auto';
         return is_string($ratio) && (isset(self::RATIOS[$ratio]) || $ratio === 'auto' || $ratio === $default) ? $ratio : $default;
@@ -100,6 +159,7 @@ final class BloxImageFraming
 
     public static function objectStyle(array $data, ?bool $mobile = null): string
     {
+        $data = self::withPreset($data);
         $fit = ($data['image_fit'] ?? '') === 'contain' ? 'contain' : 'cover';
         // 设备判定与缓存键、显示条件的 device 同源（HtmlCache::isMobileClient），
         // 三处各写一个正则迟早会把手机焦点冻进桌面缓存桶。
@@ -128,7 +188,12 @@ final class BloxImageFraming
 
     public static function standaloneStyle(array $data): string
     {
+        $preset = self::presetFrameStyle($data['image_preset'] ?? '');
         $ratio = self::ratioCss(self::ratio($data));
-        return $ratio === '' ? '' : ' style="width:100%;height:auto;aspect-ratio:' . $ratio . ';' . self::objectStyle($data) . '"';
+        if ($ratio === '') {
+            // 没有裁切比例时，预设的外观（圆形／白底）仍要生效
+            return $preset === '' ? '' : ' style="' . $preset . '"';
+        }
+        return ' style="width:100%;height:auto;aspect-ratio:' . $ratio . ';' . self::objectStyle($data) . $preset . '"';
     }
 }
