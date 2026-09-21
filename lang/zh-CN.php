@@ -318,6 +318,7 @@ return [
     'perm_group_module' => '功能模块',
     'perm_group_advanced' => '高级能力',
     'perm_group_blox' => '易开网页构建器可视化编辑',
+    'perm_group_plugin' => '插件能力',
     'perm_blox_edit' => '使用易开网页构建器',
     'perm_blox_home' => '编辑与发布易开网页构建器首页',
     'perm_blox_global' => '管理全站易开网页构建器设计',

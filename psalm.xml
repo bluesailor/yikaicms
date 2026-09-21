@@ -66,6 +66,8 @@
                 <file name="views/list/sidebar.php" />
                 <!-- $imRandom* 系列变量供 require 的 random_ui.php 面板模板使用 -->
                 <file name="plugins/logo-maker/admin.php" />
+                <!-- $currentMenu/$pageTitle 供 require 的 admin/includes/header.php 使用 -->
+                <file name="plugins/shop/admin.php" />
             </errorLevel>
         </UnusedVariable>
         <UnusedForeachValue>

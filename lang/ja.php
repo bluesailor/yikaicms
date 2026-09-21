@@ -337,6 +337,7 @@ return [
     'perm_group_module' => '機能モジュール',
     'perm_group_advanced' => '高度な機能',
     'perm_group_blox' => 'Yikai ビルダーのビジュアル編集',
+    'perm_group_plugin' => 'プラグイン機能',
     'perm_blox_edit' => 'Yikai ビルダーを使用',
     'perm_blox_home' => 'Yikai ビルダーのホームを編集・公開',
     'perm_blox_global' => 'サイト全体の Yikai ビルダーのデザインを管理',
