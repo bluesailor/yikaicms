@@ -115,7 +115,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && str_starts_with((string)
     $action = (string) $_POST['action'];
     $result = match ($action) {
         'order_paid' => shopOrderMarkPaid($orderId),
-        'order_ship' => shopOrderTransition($orderId, 'shipped'),
+        'order_ship' => shopOrderTransition(
+            $orderId,
+            'shipped',
+            trim((string) ($_POST['tracking_company'] ?? '')),
+            trim((string) ($_POST['tracking_no'] ?? ''))
+        ),
         'order_complete' => shopOrderTransition($orderId, 'completed'),
         'order_close' => shopOrderClose($orderId),
         'order_remark' => shopOrderUpdateRemark($orderId, (string) ($_POST['remark'] ?? '')),
@@ -320,6 +325,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="text-gray-800"><?php echo e((string) ($address['region'] ?? '')); ?> <?php echo e((string) ($address['address'] ?? '')); ?></div>
                 <div class="font-medium text-gray-700 pt-2"><?php echo e(__('shop_checkout_remark')); ?></div>
                 <div class="text-gray-800"><?php echo e((string) $od['remark']); ?></div>
+                <?php if ((string) ($od['tracking_no'] ?? '') !== ''): ?>
+                <div class="font-medium text-gray-700 pt-2"><?php echo e(__('shop_tracking_no')); ?></div>
+                <div class="text-gray-800"><?php echo e((string) ($od['tracking_company'] ?? '')); ?> <?php echo e((string) $od['tracking_no']); ?></div>
+                <?php endif; ?>
                 <div class="text-xs text-gray-400 pt-2"><?php echo e(__('shop_created_at')); ?>：<?php echo e(date('Y-m-d H:i', (int) $od['created_at'])); ?>
                     <?php echo (int) $od['paid_at'] > 0 ? ' · ' . e(__('shop_paid_at')) . '：' . e(date('Y-m-d H:i', (int) $od['paid_at'])) : ''; ?></div>
             </div>
@@ -336,8 +345,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </form>
             <?php endif; ?>
             <?php if ((string) $od['status'] === 'awaiting_ship'): ?>
-            <form method="post" action="/admin/plugin_page.php?plugin=shop&view=orders"><?php echo csrfField(); ?>
+            <form method="post" action="/admin/plugin_page.php?plugin=shop&view=orders" class="flex flex-wrap items-center gap-2"><?php echo csrfField(); ?>
                 <input type="hidden" name="action" value="order_ship"><input type="hidden" name="order_id" value="<?php echo (int) $od['id']; ?>">
+                <input type="text" name="tracking_company" maxlength="50" placeholder="<?php echo e(__('shop_tracking_company')); ?>"
+                       class="border border-gray-300 rounded px-2 py-1.5 text-sm w-28" data-testid="shop-order-tracking-company">
+                <input type="text" name="tracking_no" maxlength="64" placeholder="<?php echo e(__('shop_tracking_no')); ?>"
+                       class="border border-gray-300 rounded px-2 py-1.5 text-sm w-44" data-testid="shop-order-tracking-no">
                 <button type="submit" class="bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700" data-testid="shop-order-ship"><?php echo e(__('shop_btn_ship')); ?></button>
             </form>
             <?php endif; ?>

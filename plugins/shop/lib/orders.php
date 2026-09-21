@@ -314,8 +314,9 @@ function shopOrderClose(int $orderId, string $reason = ''): array
 /**
  * 商家侧统一状态推进（发货 shipped / 完成 completed）。
  * 走 shopOrderCanTransition 守卫；标记发货时间/完成时间。
+ * 发货时可带物流信息（快递公司 + 单号，长度服务端再限一次）。
  */
-function shopOrderTransition(int $orderId, string $to): array
+function shopOrderTransition(int $orderId, string $to, string $trackingCompany = '', string $trackingNo = ''): array
 {
     shopEnsureSchema();
     $order = db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'shop_orders WHERE id = ?', [$orderId]);
@@ -325,10 +326,18 @@ function shopOrderTransition(int $orderId, string $to): array
     if (!shopOrderCanTransition((string) $order['status'], $to)) {
         return ['ok' => false, 'error' => 'shop_err_order_transition'];
     }
+    if ($trackingCompany !== '' && mb_strlen($trackingCompany) > 50) {
+        return ['ok' => false, 'error' => 'shop_err_tracking'];
+    }
+    if ($trackingNo !== '' && (mb_strlen($trackingNo) > 64 || preg_match('/^[A-Za-z0-9\-]+$/', $trackingNo) !== 1)) {
+        return ['ok' => false, 'error' => 'shop_err_tracking'];
+    }
 
     $fields = ['status' => $to, 'updated_at' => time()];
     if ($to === 'shipped') {
         $fields['shipped_at'] = time();
+        $fields['tracking_company'] = $trackingCompany;
+        $fields['tracking_no'] = $trackingNo;
     } elseif ($to === 'completed') {
         $fields['completed_at'] = time();
     }
