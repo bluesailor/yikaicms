@@ -41,6 +41,7 @@ return [
         'includes/SiteTemplateService.php',
         'includes/SensitiveSettings.php',
         'includes/SiteContentChecks.php',
+        'includes/SiteImportReport.php',
         'admin/site_setup.php',
         'admin/site_templates.php',
         'admin/theme_content.php',
