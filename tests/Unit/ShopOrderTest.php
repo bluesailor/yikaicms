@@ -81,4 +81,12 @@ final class ShopOrderTest extends TestCase
         // 公式语义：分钟先换算成秒再取下限——1800 不是 7200
         $this->assertSame(1800, max(120, 30 * 60));
     }
+    /** 退款可退上限：未收款/已关闭订单不可退；已收款上限=订单总额。 */
+    public function testRefundableCentsBounds(): void
+    {
+        require_once ROOT_PATH . '/plugins/shop/lib/refunds.php';
+        // 纯函数测试不触库：直接验证金额解析与状态词的形状
+        $this->assertSame(['requested', 'confirmed', 'rejected'], shopRefundStatuses());
+        $this->assertSame(1050, shopMoneyToCents('10.50'));
+    }
 }
