@@ -52,6 +52,7 @@ require_once __DIR__ . '/BloxDocumentValidator.php';
 require_once __DIR__ . '/BloxValueSanitizer.php';
 require_once __DIR__ . '/BloxUnknownKeys.php';
 require_once __DIR__ . '/BloxMaintenanceMode.php';
+require_once __DIR__ . '/BloxEmptyBinding.php';
 require_once __DIR__ . '/BloxDocumentPipeline.php';
 require_once __DIR__ . '/BloxAreaDocument.php';
 require_once __DIR__ . '/BloxThemeHeaderDocument.php';

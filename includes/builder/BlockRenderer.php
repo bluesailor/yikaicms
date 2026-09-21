@@ -1088,6 +1088,11 @@ final class BlockRenderer
         if ($hasConditions && !$editMode && !self::$showHidden && !BloxDisplayConditions::matches($conditions)) {
             return '';
         }
+        // 动态绑定为空时的处置（E10）。编辑器里始终保留占位，否则作者会以为元素丢了；
+        // row 规则由容器渲染侧消费（见 renderChildren），这里只负责元素自身消失。
+        if (!$editMode && !self::$showHidden && BloxEmptyBinding::decide($type, $data) !== BloxEmptyBinding::KEEP) {
+            return '';
+        }
         $element = BuilderRegistry::get($type);
         if ($element === null) {
             $missing = BloxPluginRegistry::declaration($type);
@@ -1128,11 +1133,20 @@ final class BlockRenderer
                 $children = $loopChildren;
             } else {
                 foreach ($childNodes as $childIndex => $child) {
-                    if (is_array($child)) {
-                        $childPath = $path;
-                        $childPath[] = (int) $childIndex;
-                        $children .= self::renderElement($child, $depth + 1, $editMode, $childPath);
+                    if (!is_array($child)) {
+                        continue;
                     }
+                    // row 规则（E10）：子元素的动态绑定为空且要求"整行消失"时，
+                    // 连这个容器一起不输出——否则留下的是一个带内边距与间距的空壳，
+                    // 版面上照样是一道缝。编辑器里不生效，作者要看得见自己的结构。
+                    if (!$editMode && !self::$showHidden
+                        && BloxEmptyBinding::decide((string) ($child['type'] ?? ''),
+                            is_array($child['data'] ?? null) ? $child['data'] : []) === BloxEmptyBinding::ROW) {
+                        return '';
+                    }
+                    $childPath = $path;
+                    $childPath[] = (int) $childIndex;
+                    $children .= self::renderElement($child, $depth + 1, $editMode, $childPath);
                 }
             }
         }
