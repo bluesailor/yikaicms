@@ -119,13 +119,21 @@ function seo_linkcheck_normalize(string $href, string $siteHost, array $langPref
 /**
  * 站内静态文件是否存在（/uploads/... 直链等）。
  *
- * href 取自文章正文，可能含 `../` 或其百分号编码形态。直接 is_file(ROOT_PATH . $path)
- * 会穿出站点目录（实测 /uploads/../config/config.php 判定为存在），让扫描报告
- * 变成一个文件存在性探测器。用 realpath 把路径收回站点根内再判。
+ * href 取自文章正文，可能含 `../` 或其百分号编码形态。直接
+ * is_file(ROOT_PATH . $path) 会让报告变成文件存在性探测器：
+ * /uploads/../config/config.php 会被判为"存在"，绕过 HTTP 层对该文件的访问控制。
+ * 两道关：含 `..` 段的路径不是正常资源直链，直接否决；再用 realpath 把结果
+ * 收回站点根内（兜住符号链接一类的绕法）。
  */
 function seo_linkcheck_file_exists(string $path): bool
 {
-    $resolved = realpath(ROOT_PATH . urldecode($path));
+    $decoded = urldecode($path);
+    foreach (explode('/', strtr($decoded, chr(92), '/')) as $segment) {
+        if ($segment === '..') {
+            return false;
+        }
+    }
+    $resolved = realpath(ROOT_PATH . $decoded);
     if ($resolved === false || !is_file($resolved)) {
         return false;
     }
