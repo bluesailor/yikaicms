@@ -21,7 +21,17 @@ if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
 
-require_once ROOT_PATH . '/includes/Slug.php';
+// 核心净化口径（CMS 1.20.1 起提供）。插件也可能被手动上传到旧站，
+// 缺文件时不硬 require——白屏比"功能不可用"糟得多，由 seo_slug_available() 上报。
+if (is_file(ROOT_PATH . '/includes/Slug.php')) {
+    require_once ROOT_PATH . '/includes/Slug.php';
+}
+
+/** 本功能是否可用：依赖核心 normalizeSlugInput()（CMS 1.20.1+）。 */
+function seo_slug_available(): bool
+{
+    return function_exists('normalizeSlugInput') && function_exists('generateSlug');
+}
 
 /**
  * 可管理的别名表白名单。键是**裸表名**（db() 的 insert/update 会自动加 DB_PREFIX），
