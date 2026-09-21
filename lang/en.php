@@ -361,6 +361,8 @@ return [
     'blox_template_filter_all' => 'All',
     'blox_template_category' => 'Template scenario',
     'blox_template_category_all' => 'All scenarios',
+    'blox_tpl_category' => 'Library category',
+    'blox_tpl_category_none' => 'Uncategorised (filed under its template type)',
     'blox_template_category_landing' => 'Landing pages',
     'blox_template_category_marketing' => 'Marketing',
     'blox_template_category_content' => 'Content',

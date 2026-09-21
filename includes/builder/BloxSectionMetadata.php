@@ -13,6 +13,15 @@ final class BloxSectionMetadata
         'general', 'hero', 'company-intro', 'features', 'stats', 'products', 'cases',
         'process', 'faq', 'cta', 'contact', 'testimonials', 'content',
     ];
+    /**
+     * 目录分类：内置与插件模板一直在用这套词表，本地模板此前没得填，
+     * `category` 恒等于 `type`，于是用户自存的区块全挤在"section"一格里，分类过滤等于没有。
+     *
+     * `page` 留给整页模板；区块模板的表单不提供它（见 admin/blox_templates.php）。
+     * 空字符串是合法值，意思是"没分类"——回落到 type，与旧行为完全一致。
+     */
+    private const CATEGORIES = ['content', 'business', 'marketing', 'social', 'products', 'landing', 'page'];
+
     private const CTA_TYPES = ['none', 'learn-more', 'contact', 'quote', 'download', 'purchase', 'subscribe'];
     private const VARIANTS = ['standard', 'split', 'centered', 'cards', 'side-by-side', 'minimal', 'dynamic'];
     private const DATA_SOURCES = ['static', 'dynamic'];
@@ -22,6 +31,12 @@ final class BloxSectionMetadata
     public static function pageTypes(): array
     {
         return self::PAGE_TYPES;
+    }
+
+    /** @return list<string> */
+    public static function categories(): array
+    {
+        return self::CATEGORIES;
     }
 
     /** @return list<string> */
@@ -49,6 +64,8 @@ final class BloxSectionMetadata
         return [
             'schema' => 1,
             'purpose' => $purpose,
+            // 未分类回落到空串：调用方据此沿用 type，旧数据行为一字不变
+            'category' => self::enumValue($metadata['category'] ?? '', self::CATEGORIES, ''),
             'page_types' => $pageTypes !== [] ? $pageTypes : ['general'],
             'industries' => self::slugList($metadata['industries'] ?? [], null, 12),
             'content_slots' => self::slugList($metadata['content_slots'] ?? [], null, 20),
