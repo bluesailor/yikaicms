@@ -397,6 +397,8 @@ return [
     'blox_template_deps_plugins' => 'Missing plugins: :list (insertable once enabled)',
     'blox_template_deps_elements' => 'Missing elements: :list (not supported in this version)',
     'blox_template_deps_invalid' => 'The dependency list cannot be read, so this template cannot be inserted; saving the template again fixes it.',
+    'blox_template_lang_gap' => 'Written in :list, while you are editing :current; you will need to translate it after inserting.',
+    'blox_template_lang_gap_badge' => 'Needs translation',
     'blox_template_manage_license' => 'License management',
     'blox_template_remote_unavailable' => 'The online template market is unavailable; local templates remain available',
     'blox_template_remote_invalid' => 'The online template package metadata is invalid',

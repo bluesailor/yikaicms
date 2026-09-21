@@ -2,7 +2,9 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const source = fs.readFileSync(path.join(__dirname, '../../admin/blox_editor.php'), 'utf8');
+const { bloxEditorSource } = require('./helpers/editor-source');
+// 展开 partial 后的入口全文：方法被抽走后只读入口会误报「方法不存在」
+const source = bloxEditorSource();
 const start = source.indexOf('            styleCandidates() {');
 const end = source.indexOf('            visibleCtrls() {', start);
 const method = source.slice(start, end).trim().replace(/,\s*$/, '');
