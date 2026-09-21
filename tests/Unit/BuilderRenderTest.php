@@ -744,7 +744,10 @@ final class BuilderRenderTest extends TestCase
         $this->assertSame([
             'text', 'site_field', 'site_fallback', 'loop_field', 'loop_fallback',
             'level', 'url', 'new_tab', 'site_url_field', 'loop_url_field', 'html_id',
-            'visual_size', 'type_font_size', 'type_line_height', 'color', 'align', 'animation', 'animation_trigger', 'animation_speed', 'animation_delay',
+            'visual_size', 'type_font_size', 'type_line_height', 'color', 'align',
+            // E10：动态绑定为空时的处置，排在动效之前
+            '_empty_binding',
+            'animation', 'animation_trigger', 'animation_speed', 'animation_delay',
         ], $keys);
         // defaults 从 controls 推导
         $this->assertSame([
@@ -764,6 +767,7 @@ final class BuilderRenderTest extends TestCase
             'type_line_height' => '',
             'color' => '',
             'align' => 'left',
+            '_empty_binding' => 'keep',
             'animation' => '',
             'animation_trigger' => 'viewport',
             'animation_speed' => 'normal',

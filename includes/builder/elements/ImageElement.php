@@ -77,6 +77,7 @@ final class ImageElement extends AbstractElement
             ['key' => 'lightbox_caption', 'type' => 'text', 'label' => __('blox_lightbox_caption'), 'default' => '',
                 'visible_when' => ['terms' => [['click_action', '=', 'lightbox']]]],
             ...BloxImageFraming::controls(),
+            BloxEmptyBinding::control(),
             ...$this->animationControls(),
         ];
     }
