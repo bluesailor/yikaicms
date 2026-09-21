@@ -16,6 +16,7 @@ if (!defined('ROOT_PATH')) {
 require_once __DIR__ . '/lib.php';
 require_once __DIR__ . '/redirects.php';
 require_once __DIR__ . '/audit.php';
+require_once __DIR__ . '/linkcheck.php';
 
 $seoHasPro = function_exists('license_has_module') && license_has_module('seo-pro');
 
@@ -68,6 +69,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), 
         seo_404_clear();
         success([], '已清空');
     }
+}
+
+// 失效链接检查（专业版）：全站扫描并把报告存档，页面直接读档渲染
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'linkcheck_run') {
+    if (!$seoHasPro) {
+        error('该功能需要 SEO 助手专业版');
+    }
+    $report = seo_linkcheck_scan(1000);
+    settingModel()->set('seo_linkcheck_last', (string) json_encode($report, JSON_UNESCAPED_UNICODE), 'system');
+    adminLog('plugin', 'seo', 'linkcheck: ' . count($report['dead']) . ' dead / ' . $report['scanned'] . ' docs');
+    success(['dead' => count($report['dead']), 'scanned' => $report['scanned']],
+        '扫描完成：' . $report['scanned'] . ' 篇内容，发现 ' . count($report['dead']) . ' 个死链');
 }
 
 // SEO 体检：保存单条 SEO 字段（专业版）
@@ -148,6 +161,13 @@ if ($seoHasPro) {
     $redirectRules = seo_redirect_list(500);
     $log404 = seo_404_list(200);
 }
+
+// 失效链接检查（专业版）最近一次报告 + 索引健康摘要（免费）
+$linkcheck = $seoHasPro ? json_decode((string) config('seo_linkcheck_last', ''), true) : null;
+if (!is_array($linkcheck)) {
+    $linkcheck = null;
+}
+$indexHealth = seo_index_health();
 
 // 自动推送（专业版）
 $autopushOn = false;
@@ -268,6 +288,53 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 提示：内容变化后需重新点击「生成 / 更新」刷新 llms.txt（自动刷新将在后续版本加入）。全站完整清单请用
                 <a href="/sitemap.php" target="_blank" class="text-blue-500 hover:underline">sitemap.xml</a>，二者互补。
             </p>
+        </div>
+    </div>
+
+    <!-- ===== 免费：索引健康 ===== -->
+    <div id="seo-index-health" class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b flex items-center justify-between">
+            <div>
+                <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
+                    <i class="ti ti-heartbeat text-blue-500"></i> 索引健康
+                </h2>
+                <p class="text-xs text-gray-400 mt-0.5">搜索引擎能抓到什么、站点哪里有坑，一屏速览。</p>
+            </div>
+            <span class="text-xs text-gray-400">只读摘要</span>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                <?php
+                $healthItems = [
+                    [$indexHealth['sitemap_enabled'], 'Sitemap', $indexHealth['sitemap_enabled'] ? '已开启（/sitemap.php）' : '未开启（基础 SEO 设置）', '/admin/setting_seo.php?tab=sitemap'],
+                    [$indexHealth['robots_exists'], 'robots.txt', $indexHealth['robots_exists'] ? ($indexHealth['robots_has_sitemap'] ? '存在且声明了 Sitemap' : '存在（未声明 Sitemap）') : '站点根目录缺少 robots.txt', '/robots.txt'],
+                    [$indexHealth['llms_exists'], 'llms.txt', $indexHealth['llms_exists'] ? '已生成' : '尚未生成（上方卡片）', '#'],
+                    [$indexHealth['indexnow_ready'], 'IndexNow 密钥', $indexHealth['indexnow_ready'] ? '已就绪' : '未生成（下方推送卡片）', '#'],
+                ];
+                foreach ($healthItems as [$ok, $label, $hint, $href]):
+                    $anchor = $href !== '#' ? ' href="' . e($href) . '" target="_blank"' : '';
+                    $tag = $anchor !== '' ? 'a' : 'span';
+                ?>
+                <<?php echo $tag; ?> class="border rounded-lg p-3 flex items-start gap-2 <?php echo $ok ? 'border-green-200 bg-green-50/50' : 'border-amber-200 bg-amber-50/50'; ?>"<?php echo $anchor; ?>>
+                    <i class="ti <?php echo $ok ? 'ti-circle-check text-green-500' : 'ti-alert-triangle text-amber-500'; ?> text-base mt-0.5"></i>
+                    <span class="min-w-0">
+                        <span class="block text-sm font-medium text-gray-800"><?php echo e($label); ?></span>
+                        <span class="block text-xs text-gray-500 mt-0.5 leading-relaxed"><?php echo e($hint); ?></span>
+                    </span>
+                </<?php echo $tag; ?>>
+                <?php endforeach; ?>
+            </div>
+            <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-600 border-t border-gray-100 pt-4">
+                <span>重定向规则 <strong><?php echo (int) $indexHealth['redirect_count']; ?></strong> 条</span>
+                <span>404 记录 <strong><?php echo (int) $indexHealth['log404_count']; ?></strong> 条<?php if ($indexHealth['log404_count'] > 0): ?><a href="#seo-redirects" class="text-blue-500 hover:underline text-xs ml-1">去处理</a><?php endif; ?></span>
+                <?php if ($seoHasPro): ?>
+                <span>死链 <strong class="<?php echo $indexHealth['dead_count'] > 0 ? 'text-red-600' : ''; ?>"><?php echo (int) $indexHealth['dead_count']; ?></strong> 个
+                    <?php if ($indexHealth['last_scan_at'] > 0): ?><span class="text-xs text-gray-400">（上次扫描 <?php echo date('Y-m-d H:i', (int) $indexHealth['last_scan_at']); ?>）</span><?php endif; ?>
+                    <a href="#seo-linkcheck" class="text-blue-500 hover:underline text-xs ml-1">去查看</a></span>
+                <?php else: ?>
+                <span>死链检查 <span class="text-xs text-amber-600">专业版</span></span>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 
@@ -483,7 +550,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <!-- ===== 专业版：重定向管理器 ===== -->
-    <div id="seo-redirects" class="bg-white rounded-lg shadow mb-6" x-data="seoRedirects()">
+    <div id="seo-redirects" class="bg-white rounded-lg shadow mb-6" x-data="seoRedirects()" @seo-fix-redirect.window="fixFrom($event.detail.path)">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
                 <i class="ti ti-arrows-right-left text-amber-500"></i> 重定向管理器
@@ -617,6 +684,98 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php endif; ?>
 
     <?php if ($seoHasPro): ?>
+    <!-- ===== 专业版：失效链接检查 ===== -->
+    <div id="seo-linkcheck" class="bg-white rounded-lg shadow mb-6" x-data="seoLinkcheck()">
+        <div class="px-6 py-4 border-b flex items-center justify-between">
+            <div>
+                <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
+                    <i class="ti ti-link-off text-amber-500"></i> 失效链接检查
+                </h2>
+                <p class="text-xs text-gray-400 mt-0.5">扫描已发布文章与产品正文里的链接：站内死链、已被重定向接管的旧链、外链数量。全部离线判定，不访问外部服务。</p>
+            </div>
+            <span class="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-1 rounded inline-flex items-center gap-1"><i class="ti ti-crown text-sm"></i> Pro</span>
+        </div>
+        <div class="p-6">
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+                <button type="button" @click="run()" :disabled="busy"
+                        class="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-lg inline-flex items-center gap-1.5">
+                    <i class="ti text-base" :class="busy ? 'ti-loader-2 animate-spin' : 'ti-scan'"></i>
+                    <span x-text="busy ? '扫描中…' : '扫描全站链接'">扫描全站链接</span>
+                </button>
+                <?php if ($linkcheck): ?>
+                <span class="text-xs text-gray-400">
+                    上次扫描 <?php echo date('Y-m-d H:i', (int) ($linkcheck['at'] ?? 0)); ?>：
+                    <?php echo (int) ($linkcheck['scanned'] ?? 0); ?> 篇内容，
+                    站内链 <?php echo (int) ($linkcheck['internal'] ?? 0); ?>，
+                    外链 <?php echo (int) ($linkcheck['external'] ?? 0); ?>，
+                    重定向接管 <?php echo (int) ($linkcheck['redirected'] ?? 0); ?>，
+                    死链 <strong class="<?php echo count($linkcheck['dead'] ?? []) > 0 ? 'text-red-600' : 'text-green-600'; ?>"><?php echo count($linkcheck['dead'] ?? []); ?></strong>
+                </span>
+                <?php endif; ?>
+            </div>
+            <p class="text-xs text-red-500 mb-3" x-show="msg" x-text="msg"></p>
+
+            <?php if (!$linkcheck): ?>
+                <p class="text-sm text-gray-400 text-center py-6">还没有扫描记录。改版、删稿、换固定链接后跑一次，正文里的旧链接一目了然。</p>
+            <?php elseif (empty($linkcheck['dead'])): ?>
+                <p class="text-sm text-green-600 text-center py-6">未发现站内死链。</p>
+            <?php else: ?>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead><tr class="text-left text-xs text-gray-400 border-b">
+                        <th class="py-2 pr-3">死链地址</th><th class="py-2 pr-3 whitespace-nowrap">出现次数</th>
+                        <th class="py-2 pr-3">出现在</th><th class="py-2 w-28"></th>
+                    </tr></thead>
+                    <tbody>
+                    <?php foreach ($linkcheck['dead'] as $d): ?>
+                        <tr class="border-b border-gray-50">
+                            <td class="py-2 pr-3 font-mono text-xs text-gray-700 break-all"><?php echo e((string) $d['url']); ?></td>
+                            <td class="py-2 pr-3 text-gray-500"><?php echo (int) ($d['uses'] ?? 0); ?></td>
+                            <td class="py-2 pr-3 text-xs text-gray-500">
+                                <?php foreach (($d['where'] ?? []) as $w): ?>
+                                <span class="inline-block bg-gray-100 rounded px-1.5 py-0.5 mr-1 mb-1">
+                                    <?php echo e((string) $w['type']); ?> #<?php echo (int) $w['id']; ?> <?php echo e((string) $w['title']); ?>
+                                </span>
+                                <?php endforeach; ?>
+                            </td>
+                            <td class="py-2 text-right whitespace-nowrap">
+                                <a href="#seo-redirects" @click.prevent="fixFrom(<?php echo htmlspecialchars(json_encode((string) $d['url']), ENT_QUOTES); ?>)"
+                                   class="text-xs text-amber-600 hover:text-amber-500 px-2 py-1">建重定向</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <script>
+        function seoLinkcheck() {
+            return {
+                busy: false, msg: "",
+                run() {
+                    var self = this; this.busy = true; this.msg = "";
+                    var b = new URLSearchParams(); b.set("action", "linkcheck_run");
+                    fetch(window.location.href, { method: "POST", body: b })
+                        .then(function (r) { return r.json(); })
+                        .then(function (res) {
+                            if (res && res.code === 0) location.reload();
+                            else { self.msg = (res && res.msg) || "扫描失败"; self.busy = false; }
+                        })
+                        .catch(function () { self.msg = "扫描失败"; self.busy = false; });
+                },
+                fixFrom(url) {
+                    // 跨组件事件：重定向卡片监听 seo-fix-redirect 并回填来源输入框
+                    window.dispatchEvent(new CustomEvent('seo-fix-redirect', { detail: { path: url } }));
+                },
+            };
+        }
+        </script>
+    </div>
+    <?php endif; ?>
+
+    <?php if ($seoHasPro): ?>
     <!-- ===== 专业版：SEO 体检 + 批量修复 ===== -->
     <?php
     $colorCls = ['red' => 'bg-red-100 text-red-700', 'amber' => 'bg-amber-100 text-amber-700', 'gray' => 'bg-gray-100 text-gray-600'];
@@ -741,6 +900,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             $proCards = [
                 ['ti-sparkles',   'AI 一键优化 meta', '基于站内 AI，一键生成 / 改写 SEO 标题与描述、推荐关键词。', '#seo-ai-note'],
                 ['ti-arrows-right-left', '重定向管理器', '301/404 监控与重定向规则，改版换链接不丢权重、不丢流量。', '#seo-redirects'],
+                ['ti-link-off',   '失效链接检查', '扫描文章与产品正文，揪出站内死链；一键转入重定向修复。', '#seo-linkcheck'],
                 ['ti-send',       '搜索引擎自动推送', '内容有增改就自动 ping 百度、IndexNow（Bing/Yandex），带历史与配额。', '#seo-autopush'],
                 ['ti-link',       '内链建议 + 基石内容', '正文里提到、站内又有对应内容的地方给出内链建议；标记基石内容汇聚权重。', '#seo-cornerstone'],
             ];
