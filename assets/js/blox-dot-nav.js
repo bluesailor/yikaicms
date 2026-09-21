@@ -19,8 +19,8 @@
         });
         if (!dots.length) return;
 
-        var reduced = typeof window.matchMedia === "function"
-            && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var reduced = window.YikaiMotion ? window.YikaiMotion.level() !== 'standard'
+            : typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (!reduced) document.documentElement.classList.add("yk-dotnav-smooth");
 
         function fixedTopBottom(element, offset) {

@@ -417,6 +417,8 @@ MUST_EXIST=(
     "includes/LegacyInstallCleanup.php"
     "includes/SiteHealth.php"
     "includes/HomeSettingsLanguageDefaults.php"
+    "includes/builder/BloxPageLayout.php"
+    "includes/builder/BloxMotion.php"
     "admin/index.php"
     "admin/site_health.php"
     "config/site-health-probe.php"

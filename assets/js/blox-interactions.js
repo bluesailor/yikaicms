@@ -52,11 +52,7 @@
                 case 'toggle_class': target.classList.toggle(item.value); break;
                 case 'animate':
                     if (ANIMATIONS.indexOf(item.value) === -1) return;
-                    // 复用入场动画的 CSS（data-animate + .animated）；重放先复位再入列
-                    target.setAttribute('data-animate', item.value);
-                    target.classList.remove('animated');
-                    void target.offsetWidth;
-                    target.classList.add('animated');
+                    if (window.YikaiMotion) window.YikaiMotion.replay(target, item.value);
                     break;
             }
         });

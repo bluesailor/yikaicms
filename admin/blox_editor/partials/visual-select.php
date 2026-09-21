@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 // Select remains the storage contract; thumbnails only change its presentation.
 ?>
+<div x-show="effectiveStyleGroup() === 'animation'" class="mb-3 space-y-2">
+    <p class="text-xs text-gray-500"><?= e(__('motion_title')) ?>：<?= e(__('motion_' . BloxMotion::level())) ?>。<?= e(__('motion_editor_hint')) ?></p>
+    <button type="button" x-show="selEl && BloxControlRules.checkboxValue(selEl.data.animation_stagger)" @click="replayElementAnimation()" :disabled="previewLoading" class="blox-motion-replay" data-testid="blox-stagger-replay"><?= e(__('blox_anim_replay')) ?></button>
+</div>
 <template x-for="ctrl in visibleCtrls().filter(c => c.type === 'select' && c.option_preview)" :key="'preview-' + ctrl.key">
     <div class="blox-visual-select" :data-testid="'blox-control-' + ctrl.key" role="group" :aria-label="ctrl.label">
         <div class="blox-visual-select-heading">

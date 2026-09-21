@@ -221,42 +221,9 @@
    滚动入场动画（Intersection Observer 触发）
    ============================================================ */
 
-/* 初始隐藏状态 */
-[data-animate] {
-    opacity: 0;
-    transition: opacity 0.7s ease, transform 0.7s ease;
-}
-[data-animate][data-animate-speed="fast"] { transition-duration: 0.45s; }
-[data-animate][data-animate-speed="slow"] { transition-duration: 1s; }
-[data-animate][data-animate-delay="short"] { transition-delay: 0.15s; }
-[data-animate][data-animate-delay="medium"] { transition-delay: 0.3s; }
-[data-animate][data-animate-delay="long"] { transition-delay: 0.6s; }
-[data-animate="fade-up"] { transform: translateY(40px); }
-[data-animate="fade-down"] { transform: translateY(-40px); }
-[data-animate="fade-left"] { transform: translateX(-40px); }
-[data-animate="fade-right"] { transform: translateX(40px); }
-[data-animate="zoom-in"] { transform: scale(0.9); }
-[data-animate="fade"] { transform: none; }
-
-/* 触发后的可见状态 */
-[data-animate].animated {
-    opacity: 1;
-    transform: none;
-}
-
-/* 子元素交错动画 */
-[data-stagger] > * {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-}
-[data-stagger].animated > * { opacity: 1; transform: none; }
-[data-stagger].animated > *:nth-child(1) { transition-delay: 0.05s; }
-[data-stagger].animated > *:nth-child(2) { transition-delay: 0.12s; }
-[data-stagger].animated > *:nth-child(3) { transition-delay: 0.19s; }
-[data-stagger].animated > *:nth-child(4) { transition-delay: 0.26s; }
-[data-stagger].animated > *:nth-child(5) { transition-delay: 0.33s; }
-[data-stagger].animated > *:nth-child(6) { transition-delay: 0.40s; }
+/* E13：默认可见，只有成功启动的有界动画改变透明度；入场位移由 runtime 叠加，
+   不抢占元素自己的 hover transform，也不让脚本失败留下永久隐藏的内容。 */
+[data-animate], [data-stagger] > * { opacity: 1; }
 
 /* 数字计数动画 */
 .stat-number {
@@ -381,19 +348,7 @@
 }
 
 /* ========== Scroll-anim（替代 AOS） ========== */
-[data-aos] {
-    opacity: 0;
-    transition: opacity .6s ease, transform .6s ease;
-    will-change: opacity, transform;
-}
-[data-aos="fade-up"]    { transform: translateY(24px); }
-[data-aos="fade-right"] { transform: translateX(-24px); }
-[data-aos="fade-left"]  { transform: translateX(24px); }
-[data-aos="zoom-in"]    { transform: scale(0.92); }
-[data-aos].aos-animate {
-    opacity: 1;
-    transform: translate(0, 0) scale(1);
-}
+[data-aos] { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
     [data-aos] {
         opacity: 1 !important;
@@ -703,7 +658,7 @@ html.yk-home-header-overlay body > [data-yk-topbar] + .yk-blox-header.yk-stuck {
 .yk-heading-link:hover { text-decoration: underline; text-underline-offset: .15em; }
 
 /* Blox entrances stay visible when the runtime is unavailable. */
-[data-animate][data-animate-trigger]:not(.yk-animate-pending):not(.animated) { opacity: 1; transform: none; }
+[data-animate][data-animate-trigger]:not(.yk-animate-pending):not(.animated) { opacity: 1; }
 .blox-visual-select-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; margin-bottom: 8px; }
 .blox-motion-replay { display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: none; min-height: 28px; padding: 3px 7px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; color: #1d4ed8; font-size: 11px; }
 .blox-motion-replay:hover { background: #eff6ff; }

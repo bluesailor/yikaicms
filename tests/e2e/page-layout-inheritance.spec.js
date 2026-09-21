@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
-const { openPageEditor, observeConsole } = require('./helpers');
+const { openPageEditor, observeConsole, frame } = require('./helpers');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 const app = (page, fn) => page.evaluate(body => new Function('a', `return (${body})(a)`)(window.Alpine.$data(document.body)), fn.toString());
 
@@ -42,6 +42,7 @@ test('page layout overrides publish independently and restore live inheritance @
     await page.setViewportSize({ width: 1440, height: 900 });
     expect(await app(page, a => a.docSettings.page_header_hidden)).toBe(false);
     expect(await app(page, a => a.docSettings.page_content_gutter)).toBe(0);
+    await expect.poll(async () => (await frame(page)).locator('main').evaluate(el => getComputedStyle(el).maxWidth)).toBe('960px');
     await publish();
     await front.goto(fixtures.blox_page_url);
     const css = await front.locator('main').evaluate(el => ({ padding: getComputedStyle(el).paddingLeft, width: getComputedStyle(el).maxWidth, bg: getComputedStyle(el).backgroundColor }));

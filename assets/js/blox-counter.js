@@ -39,6 +39,7 @@
 
         function tick(now) {
             if (element.isConnected === false) return;
+            if (window.YikaiMotion && window.YikaiMotion.level() !== 'standard') { element.textContent = text; return; }
             var progress = Math.min((now - startedAt) / duration, 1);
             var eased = 1 - Math.pow(1 - progress, 3);
             var value = config.start + ((target - config.start) * eased);
@@ -53,6 +54,7 @@
     }
 
     function activate(group) {
+        if (window.YikaiMotion && window.YikaiMotion.level() !== 'standard') return;
         var config = configFor(group);
         if (!config.enabled) return;
         group.querySelectorAll('.stat-number[data-count]').forEach(function (element) {
@@ -80,8 +82,8 @@
             groups.push(group);
         });
 
-        var reduceMotion = window.matchMedia
-            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var reduceMotion = window.YikaiMotion ? window.YikaiMotion.level() !== 'standard'
+            : window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         groups.forEach(function (group) {
             if (bound.has(group)) return;
             bound.add(group);

@@ -7,6 +7,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/includes/builder/BloxMotion.php';
+
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
@@ -220,6 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     $secondaryColor = strtoupper(trim((string) ($_POST['secondary_color'] ?? '')));
     $activeTheme = currentTheme();
     $generalValidation = null;
+    $motionLevel = $_POST['motion_intensity'] ?? BloxMotion::level();
     if ($activeTheme === 'default') {
         $rawStyle = $_POST['theme_style'] ?? [];
         $generalValidation = ThemeSettings::validateGeneral(
@@ -230,6 +233,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     }
     if (isset($_POST['theme_settings_target']) && $_POST['theme_settings_target'] !== $activeTheme) {
         $message = __('theme_schema_target_changed');
+        $messageType = 'error';
+    } elseif (!in_array($motionLevel, BloxMotion::LEVELS, true)) {
+        $message = __('motion_invalid');
         $messageType = 'error';
     } elseif ($themeGeneralErrors !== []) {
         $message = __('theme_schema_save_blocked');
@@ -262,6 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
         ];
 
         settingModel()->saveBatch([
+            'motion_intensity' => $motionLevel,
             'primary_color' => $primaryColor,
             'secondary_color' => $secondaryColor,
             'theme_color_profiles' => ThemePalette::encodeProfiles($colorProfiles),
@@ -722,6 +729,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <h3 class="font-medium text-gray-800"><?php echo e(__('theme_settings_global')); ?></h3>
                 <p class="mt-1 text-sm text-gray-500"><?php echo e(__('theme_settings_global_hint')); ?></p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                    <label class="block md:col-span-2">
+                        <span class="block text-sm font-medium text-gray-700 mb-2"><?= e(__('motion_title')) ?></span>
+                        <select name="motion_intensity" class="w-full border border-gray-200 rounded-lg px-3 py-2" data-testid="motion-intensity">
+                            <?php foreach (BloxMotion::LEVELS as $motionOption): ?>
+                            <option value="<?= e($motionOption) ?>" <?= BloxMotion::level() === $motionOption ? 'selected' : '' ?>><?= e(__('motion_' . $motionOption)) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="block mt-2 text-xs text-gray-500"><?= e(__('motion_hint')) ?></span>
+                    </label>
                     <?php if ($currentTheme === 'default'): ?>
                         <?php require __DIR__ . '/includes/theme_general_fields.php'; ?>
                     <?php else: ?>

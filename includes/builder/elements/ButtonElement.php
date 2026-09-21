@@ -199,7 +199,7 @@ final class ButtonElement extends AbstractElement
         return '<div class="' . $positionClass . $alignClass . '"' . $this->animationAttrs($data)
             . '><a class="inline-flex items-center justify-center gap-2 ' . $variantClass . ' ' . $hoverClass . ' px-6 py-3 ' . $shapeClass . $themeVariantClass
             . ' transition no-underline" style="' . htmlspecialchars($inlineStyle, ENT_QUOTES) . '" href="'
-            . $url . '"' . $target . '>' . $buttonContent . '</a></div>';
+            . $url . '"' . $target . ($hoverEffect === 'lift' ? ' data-yk-motion-hover' : '') . '>' . $buttonContent . '</a></div>';
     }
 
     public function stylesFor(array $data): array
