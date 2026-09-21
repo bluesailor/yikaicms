@@ -65,7 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'content' => $_POST['content'] ?? '',
             'link_url' => post('link_url'),
             'link_target' => post('link_target', '_self'),
-            'redirect_type' => post('redirect_type', 'auto'),
+            'redirect_type' => in_array(post('redirect_type', 'none'), ['auto', 'none', 'url'], true)
+                ? post('redirect_type', 'none') : 'none',
             'redirect_url' => post('redirect_url'),
             'seo_title' => post('seo_title'),
             'seo_keywords' => post('seo_keywords'),
@@ -1054,13 +1055,13 @@ function ykPickChannelIcon(name) {
                 }
                 ?>
                 <div>
-                    <label class="block text-gray-700 text-sm mb-1"><?php echo __('admin_page_redirect'); ?></label>
+                    <label for="redirectType" class="block text-gray-700 text-sm mb-1"><?php echo __('admin_page_redirect'); ?></label>
                     <select name="redirect_type" id="redirectType" class="w-full border rounded px-3 py-2">
-                        <option value="auto" <?php echo ($editChannel['redirect_type'] ?? 'auto') === 'auto' ? 'selected' : ''; ?>><?= __('admin_redirect_auto') ?></option>
-                        <option value="none" <?php echo ($editChannel['redirect_type'] ?? 'auto') === 'none' ? 'selected' : ''; ?>><?php echo __('admin_redirect_none_detail'); ?></option>
-                        <option value="url" <?php echo ($editChannel['redirect_type'] ?? 'auto') === 'url' ? 'selected' : ''; ?>><?php echo __('admin_redirect_url_option'); ?></option>
+                        <option value="none" <?php echo ($editChannel['redirect_type'] ?? 'none') === 'none' ? 'selected' : ''; ?>><?php echo e(__('setup_channel_show')); ?></option>
+                        <option value="auto" <?php echo ($editChannel['redirect_type'] ?? 'none') === 'auto' ? 'selected' : ''; ?>><?= e(__('admin_redirect_auto')) ?></option>
+                        <option value="url" <?php echo ($editChannel['redirect_type'] ?? 'none') === 'url' ? 'selected' : ''; ?>><?php echo e(__('admin_redirect_url_option')); ?></option>
                     </select>
-                    <p class="text-xs text-gray-400 mt-1"><?= __('admin_redirect_type') ?></p>
+                    <p class="text-sm text-gray-600 mt-1"><?= e(__('setup_channel_hint')) ?></p>
                     <p id="autoRedirectHint" class="text-xs mt-1 hidden <?php echo $autoChild ? 'text-blue-600' : 'text-amber-600'; ?>">
                         <?php echo $autoChild
                             ? sprintf(__('admin_redirect_auto_target'), '<strong>' . e($autoChild['name']) . '</strong>')

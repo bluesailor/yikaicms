@@ -22,7 +22,7 @@
         {
             "slug": "about",
             "name": "关于",
-            "type": "single",
+            "type": "page",
             "is_nav": 1,
             "sort_order": 20,
             "content": "<h2>关于本站</h2><p>这是一个由 Yikai CMS 驱动的博客站点。</p>",
@@ -31,7 +31,7 @@
         {
             "slug": "contact",
             "name": "联系",
-            "type": "single",
+            "type": "page",
             "is_nav": 1,
             "sort_order": 30,
             "content": "<p>欢迎通过邮件联系：hello@example.com</p>",

@@ -14,10 +14,12 @@ final class ChannelPresetDedupTest extends TestCase
         return [
             "CREATE TABLE channels (id INTEGER PRIMARY KEY AUTOINCREMENT, slug TEXT UNIQUE, lang TEXT,
                 parent_id INTEGER DEFAULT 0, name TEXT, type TEXT, status INTEGER DEFAULT 1,
-                content TEXT, icon TEXT, description TEXT, seo_title TEXT, seo_keywords TEXT,
+                content TEXT, redirect_type TEXT, redirect_url TEXT, icon TEXT, description TEXT, seo_title TEXT, seo_keywords TEXT,
                 seo_description TEXT, is_nav INTEGER, is_home INTEGER, sort_order INTEGER,
                 created_at INTEGER, updated_at INTEGER)",
             'CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, `key` TEXT UNIQUE, `value` TEXT, `group` TEXT, name TEXT, tip TEXT)',
+            'CREATE TABLE extfields (id INTEGER PRIMARY KEY AUTOINCREMENT, owner_type TEXT, field_key TEXT, field_name TEXT)',
+            'CREATE TABLE contents (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT)',
         ];
     }
 
@@ -147,5 +149,51 @@ final class ChannelPresetDedupTest extends TestCase
             self::assertSame($slug, $catalog['items'][$key]['slug']);
             self::assertSame($type, $catalog['items'][$key]['type']);
         }
+    }
+
+    public function testPreviewDoesNotWriteAndCanBeAppliedOnce(): void
+    {
+        $service = new \RecipeService(ROOT_PATH . '/tests/fixtures/site-setup');
+        $plan = $service->preview('basic', false);
+        self::assertFalse($plan['blocked']);
+        self::assertSame('new', $plan['channels'][0]['action']);
+        self::assertSame(0, (int) db()->fetchColumn('SELECT COUNT(*) FROM channels'));
+        $report = $service->apply('basic', ['expected_fingerprint' => $plan['fingerprint']]);
+        self::assertSame(1, $report['channels_created']);
+        self::assertSame('none', db()->fetchColumn('SELECT redirect_type FROM channels'));
+        $this->expectExceptionMessage('setup_plan_stale');
+        $service->apply('basic', ['expected_fingerprint' => $plan['fingerprint']]);
+    }
+
+    public function testChangesAfterPreviewRequireAnotherPreview(): void
+    {
+        $service = new \RecipeService(ROOT_PATH . '/tests/fixtures/site-setup');
+        $plan = $service->preview('basic', false);
+        $this->channel('unrelated');
+        $this->expectExceptionMessage('setup_plan_stale');
+        try {
+            $service->apply('basic', ['expected_fingerprint' => $plan['fingerprint']]);
+        } finally {
+            self::assertSame(1, (int) db()->fetchColumn('SELECT COUNT(*) FROM channels'));
+        }
+    }
+
+    public function testManifestCannotAuthorizeOverwrite(): void
+    {
+        $id = $this->channel('setup-page', 'Customer page', 'page');
+        $service = new \RecipeService(ROOT_PATH . '/tests/fixtures/site-setup');
+        $plan = $service->preview('basic', false);
+        self::assertSame('keep', $plan['channels'][0]['action']);
+        $service->apply('basic', ['expected_fingerprint' => $plan['fingerprint']]);
+        self::assertSame('Customer page', channelModel()->find($id)['name']);
+    }
+
+    public function testExistingCustomFieldsArePreservedByDefault(): void
+    {
+        $this->insertRow('extfields', ['owner_type' => 'article', 'field_key' => 'extra', 'field_name' => 'Customer field']);
+        $report = (new \RecipeService())->applyRecipe(['slug' => 'safe-fields',
+            'extfields' => [['owner_type' => 'article', 'field_key' => 'extra', 'field_name' => 'Replace']]]);
+        self::assertSame(1, $report['extfields_skipped']);
+        self::assertSame('Customer field', db()->fetchColumn('SELECT field_name FROM extfields'));
     }
 }

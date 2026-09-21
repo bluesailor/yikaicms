@@ -11,18 +11,18 @@
     "lang": "zh-CN",
     "channels": [
         {
-            "slug": "products",
+            "slug": "product",
             "name": "产品中心",
-            "type": "list",
+            "type": "product",
             "is_nav": 1,
             "sort_order": 10,
             "seo_title": "产品中心 - 全系列产品",
             "seo_description": "查看我们的全系列产品与应用方案。"
         },
         {
-            "slug": "solutions",
+            "slug": "solution",
             "name": "解决方案",
-            "type": "list",
+            "type": "case",
             "is_nav": 1,
             "sort_order": 20,
             "seo_title": "行业解决方案"
@@ -38,7 +38,7 @@
         {
             "slug": "about",
             "name": "关于我们",
-            "type": "single",
+            "type": "page",
             "is_nav": 1,
             "sort_order": 40,
             "content": "<h2>公司简介</h2><p>这里填写公司简介。</p>",
@@ -47,7 +47,7 @@
         {
             "slug": "contact",
             "name": "联系我们",
-            "type": "single",
+            "type": "page",
             "is_nav": 1,
             "sort_order": 50,
             "content": "<p>地址、电话、邮箱填这里。</p>",

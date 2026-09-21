@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "fields": [
+    {"key":"eyebrow","type":"text","label":{"zh-CN":"首页短标签","en":"Homepage eyebrow","ja":"ホームの短い見出し"},"default":{"zh-CN":"品牌 · 内容 · 体验","en":"Brand · Content · Experience","ja":"ブランド・コンテンツ・体験"}},
+    {"key":"hero_title","type":"text","label":{"zh-CN":"首页主标题","en":"Homepage title","ja":"ホームのタイトル"},"default":{"zh-CN":"让好想法，被更多人看见。","en":"Give good ideas a place to grow.","ja":"良いアイデアが、もっと届く。"}},
+    {"key":"hero_description","type":"textarea","label":{"zh-CN":"首页简介","en":"Homepage description","ja":"ホームの紹介文"},"default":{"zh-CN":"从品牌梳理到网站落地，我们把复杂的信息整理成清晰、有温度的表达。","en":"From brand strategy to a finished website, we turn complex information into clear, thoughtful experiences.","ja":"ブランドづくりからサイト制作まで、複雑な情報をわかりやすく、温かく伝えます。"}},
+    {"key":"hero_image","type":"image","label":{"zh-CN":"首页配图","en":"Homepage image","ja":"ホームの画像"},"hint":{"zh-CN":"建议使用 4:3 比例的本地图片。","en":"Use a local image with a 4:3 aspect ratio.","ja":"4:3 のローカル画像をおすすめします。"},"default":"/themes/studio-starter/assets/cover.svg"},
+    {"key":"button_text","type":"text","label":{"zh-CN":"首页按钮文字","en":"Button text","ja":"ボタンの文字"},"default":{"zh-CN":"了解我们的服务","en":"Explore our services","ja":"サービスを見る"}},
+    {"key":"button_url","type":"url","label":{"zh-CN":"首页按钮链接","en":"Button URL","ja":"ボタンのリンク"},"default":"/services.html"},
+    {"key":"show_image","type":"toggle","label":{"zh-CN":"显示首页配图","en":"Show homepage image","ja":"ホームの画像を表示"},"default":"1"}
+  ]
+}

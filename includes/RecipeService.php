@@ -66,6 +66,7 @@ class RecipeService
         $data = json_decode($raw, true);
         if (!is_array($data)) return null;
         $data['slug'] = $slug;
+        $data['name'] = (string) ($data['name'] ?? $slug);
         // 默认值
         $data['channels']   = $data['channels']   ?? [];
         $data['extfields']  = $data['extfields']  ?? [];
@@ -87,6 +88,53 @@ class RecipeService
         return $this->applyRecipe($recipe, $options);
     }
 
+    /** Preview performs no writes; the fingerprint is rechecked inside the apply lock. */
+    public function preview(string $slug, bool $updateExisting): array
+    {
+        $recipe = $this->load($slug);
+        if ($recipe === null) throw new RuntimeException(__('setup_plan_missing'));
+        $lang = (string) $recipe['lang'];
+        $rows = [];
+        $parents = [];
+        $pending = array_values($recipe['channels']);
+        $blocked = false;
+        while ($pending !== []) {
+            $progress = false;
+            foreach ($pending as $index => $channel) {
+                if (!is_array($channel) || empty($channel['slug'])) throw new RuntimeException(__('setup_plan_missing'));
+                $parent = (string) ($channel['parent_slug'] ?? '');
+                if ($parent !== '' && !array_key_exists($parent, $parents)) continue;
+                $match = channelModel()->matchPreset($channel, $lang, $parent === '' ? 0 : $parents[$parent]);
+                $status = $match['status'];
+                $blocked = $blocked || $status === 'conflict';
+                $parents[(string) ($channel['slug'] ?? '')] = (int) ($match['channel']['id'] ?? (-1 - $index));
+                $rows[] = ['name' => (string) ($channel['name'] ?? $channel['slug'] ?? ''),
+                    'action' => $status === 'existing' ? ($updateExisting ? 'update' : 'keep') : $status];
+                unset($pending[$index]);
+                $progress = true;
+            }
+            if (!$progress) throw new RuntimeException(__('chbatch_parent_conflict'));
+        }
+        $filtered = SensitiveSettings::filterImportable($recipe['settings']);
+        $settingKeys = [];
+        foreach (array_keys($filtered['settings']) as $key) {
+            if ($updateExisting || (string) config((string) $key, '') === '') $settingKeys[] = (string) $key;
+        }
+        return ['channels' => $rows, 'settings' => $settingKeys,
+            'contents' => count($recipe['contents']), 'extfields' => count($recipe['extfields']),
+            'blocked' => $blocked, 'fingerprint' => $this->fingerprint($recipe, $updateExisting)];
+    }
+
+    private function fingerprint(array $recipe, bool $updateExisting): string
+    {
+        $state = [$recipe, $updateExisting];
+        // Fixed table allowlist: never interpolate manifest-provided identifiers.
+        foreach (['channels', 'extfields', 'contents', 'settings'] as $table) {
+            $state[] = db()->fetchAll('SELECT * FROM ' . DB_PREFIX . $table . ' ORDER BY id');
+        }
+        return hash('sha256', serialize($state));
+    }
+
     /**
      * 应用一个「即时 recipe 数组」（不从磁盘加载）。
      * 供后台「批量添加常用栏目」等复用同一套幂等建栏目/内容/设置逻辑。
@@ -103,7 +151,8 @@ class RecipeService
         $recipe['settings']  = $recipe['settings']  ?? [];
         $slug = $recipe['slug'];
 
-        $updateExisting = !empty($options['update_existing']) || !empty($recipe['update_existing']);
+        // A template cannot grant itself permission to overwrite the site.
+        $updateExisting = !empty($options['update_existing']);
         $lang = (string)$recipe['lang'];
         $now  = time();
 
@@ -132,6 +181,10 @@ class RecipeService
         try {
             db()->beginTransaction();
             $transactionStarted = true;
+            if (isset($options['expected_fingerprint'])
+                && !hash_equals((string) $options['expected_fingerprint'], $this->fingerprint($recipe, $updateExisting))) {
+                throw new RuntimeException(__('setup_plan_stale'));
+            }
             // ── channels ──────────────────────────────────────
             // Resolve parents first so matching never moves an existing channel.
             $slugToId = [];
@@ -205,6 +258,10 @@ class RecipeService
                     'status'      => (int)($f['status'] ?? 1),
                 ];
                 if ($existing) {
+                    if (!$updateExisting) {
+                        $report['extfields_skipped'] = ($report['extfields_skipped'] ?? 0) + 1;
+                        continue;
+                    }
                     db()->execute(
                         "UPDATE " . DB_PREFIX . "extfields SET field_name = ?, field_type = ?, options = ?, placeholder = ?, help_text = ?, is_required = ?, sort_order = ?, status = ? WHERE id = ?",
                         [$data['field_name'], $data['field_type'], $data['options'], $data['placeholder'], $data['help_text'], $data['is_required'], $data['sort_order'], $data['status'], (int)$existing['id']]
@@ -332,6 +389,9 @@ class RecipeService
             'icon'            => (string)($c['icon'] ?? ''),
             'description'     => (string)($c['description'] ?? ''),
             'content'         => (string)($c['content'] ?? ''),
+            'redirect_type'   => in_array(($c['redirect_type'] ?? 'none'), ['none', 'auto', 'url'], true)
+                ? (string)($c['redirect_type'] ?? 'none') : 'none',
+            'redirect_url'    => (string)($c['redirect_url'] ?? ''),
             'seo_title'       => (string)($c['seo_title'] ?? ''),
             'seo_keywords'    => (string)($c['seo_keywords'] ?? ''),
             'seo_description' => (string)($c['seo_description'] ?? ''),
@@ -401,6 +461,8 @@ class RecipeService
                 'icon'            => $r['icon'],
                 'description'     => $r['description'],
                 'content'         => $r['content'],
+                'redirect_type'   => (string)($r['redirect_type'] ?? 'none'),
+                'redirect_url'    => (string)($r['redirect_url'] ?? ''),
                 'seo_title'       => $r['seo_title'],
                 'seo_keywords'    => $r['seo_keywords'],
                 'seo_description' => $r['seo_description'],

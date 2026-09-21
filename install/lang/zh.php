@@ -137,4 +137,5 @@ return [
     'error_sql_execute' => '执行 SQL 失败：',
     'error_admin_create' => '创建管理员失败：',
     'error_config_write' => '写入配置文件失败',
+    'url_auto_notice' => '安装时会自动检查服务器：支持伪静态时使用漂亮 URL，否则使用无需配置的动态 URL。安装后可在后台「URL 与链接」重新检测并切换，无需重新安装。',
 ];
