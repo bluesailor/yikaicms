@@ -175,6 +175,35 @@ final class ProductTemplateDocument
     }
 
     /**
+     * 编辑器 boot 用的 v1 形态作用域（外审 P1-3，结构借鉴 GLM 整改分支）：
+     * authoritativeScope + 语言回填收进可单测的一处。显式存储的 lang=''=全部语言
+     * 必须原样保留（与文章 boot 同口径，v2 看 detail_template、v1 看 product_template）；
+     * 只有「从未存过 lang」或存了非法语言才回退预览语言——否则跨语言共享的产品模板
+     * 打开编辑器保存一次就被静默钉死在当前预览语言上。
+     *
+     * @param array<string,mixed> $document
+     * @param array<string,string>|null $knownLanguages 站点可用语言表（测试注入；null=按 availableLanguages 取）
+     * @return array{mode:string,ids:list<int>,lang:string,source?:string}
+     * @psalm-suppress PossiblyUnusedMethod 调用方在 admin/ 与 tests/（均不在 Psalm projectFiles 内）
+     */
+    public static function scopeForEditorBoot(array $document, string $previewLanguage, ?array $knownLanguages = null): array
+    {
+        $scope = self::authoritativeScope($document);
+        $stored = self::hasDetailTemplate($document)
+            ? (is_array($document['settings']['detail_template'] ?? null) ? $document['settings']['detail_template'] : [])
+            : (is_array($document['settings']['product_template'] ?? null) ? $document['settings']['product_template'] : []);
+        $langExplicit = array_key_exists('lang', $stored) && is_string($stored['lang']);
+        $lang = (string) ($scope['lang'] ?? '');
+        // 拿不到可用语言表（测试环境不加载 functions.php）时保留非空值，不误伤合法语言
+        $languages = $knownLanguages ?? (function_exists('availableLanguages') ? availableLanguages() : null);
+        $langKnown = $lang === '' || $languages === null || isset($languages[$lang]);
+        if (($lang === '' && !$langExplicit) || !$langKnown) {
+            $scope['lang'] = $previewLanguage;
+        }
+        return $scope;
+    }
+
+    /**
      * 把后台 UI 的 v1 形态作用域写回文档：v2 存在时写进 v2（保留其中的 category 规则），
      * 否则维持既有 v1 行为（历史模板不被改写）。
      *
