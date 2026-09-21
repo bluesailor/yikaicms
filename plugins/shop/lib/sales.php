@@ -69,3 +69,46 @@ function shopSalesPage(array $filters, int $limit, int $offset): array
 
     return ['items' => $items, 'total' => $total];
 }
+
+/**
+ * canonical 键 → 当前语言的展示产品行（前台购物车/结算用）。
+ * 优先当前语言；组里没有当前语言行时退回源行（canonical 自身）。找不到返回 null。
+ *
+ * @return array<string,mixed>|null
+ */
+function shopResolveProductRow(int $canonicalId): ?array
+{
+    $lang = function_exists('siteLang') ? siteLang() : 'zh-CN';
+    $table = DB_PREFIX . 'products';
+    $row = db()->fetchOne(
+        "SELECT * FROM {$table}
+         WHERE deleted_at IS NULL AND (translation_group_id = ? OR id = ?) AND lang = ?
+         ORDER BY (id = ?) DESC LIMIT 1",
+        [$canonicalId, $canonicalId, $lang, $canonicalId]
+    );
+    if ($row === null) {
+        $row = db()->fetchOne(
+            "SELECT * FROM {$table} WHERE deleted_at IS NULL AND id = ? LIMIT 1",
+            [$canonicalId]
+        );
+    }
+
+    return is_array($row) ? $row : null;
+}
+
+/**
+ * 某行的有效单价（分）：覆盖价优先，否则产品行价格。
+ * @param array<string,mixed> $productRow
+ * @param array<string,mixed>|null $salesRow
+ */
+function shopEffectivePriceCents(array $productRow, ?array $salesRow): int
+{
+    if ($salesRow !== null) {
+        $salePrice = $salesRow['sale_price'] ?? ($salesRow['price'] ?? null);
+        if ($salePrice !== null && (string) $salePrice !== '') {
+            return shopMoneyToCents((string) $salePrice);
+        }
+    }
+
+    return shopMoneyToCents((string) ($productRow['price'] ?? '0'));
+}

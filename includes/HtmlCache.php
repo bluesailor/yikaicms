@@ -271,6 +271,12 @@ final class HtmlCache
             if (!empty($_SESSION['admin_id']) || !empty($_SESSION['member_id'])) return false;
         }
 
+        // 商城购物车是会话私有数据（shop 插件 M1-b）：车非空则整页不缓存。
+        // 必须在这道「读缓存之前」的闸口判定——车主持有人访问的任何页面一旦
+        // 被缓存，就可能把含私有状态的内容串给下一位访客。shop 自有路由
+        // （/shop/cart 等）不调用 start()，这里是防未来新增页面漏标的第二道保险。
+        if (!empty($_SESSION['shop_cart'])) return false;
+
         // 含动态 token 的页面不缓存（表单页）
         if (isset($_GET['token']) || isset($_GET['csrf'])) return false;
 
