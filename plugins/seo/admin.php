@@ -17,8 +17,47 @@ require_once __DIR__ . '/lib.php';
 require_once __DIR__ . '/redirects.php';
 require_once __DIR__ . '/audit.php';
 require_once __DIR__ . '/linkcheck.php';
+require_once __DIR__ . '/slugs.php';
 
 $seoHasPro = function_exists('license_has_module') && license_has_module('seo-pro');
+
+// ============================================================
+// URL 别名：单条改名（免费）／批量规范化（专业版）
+// CSRF 由 checkLogin() 全局校验（后台 fetch 自动带 _token），此处只判授权与入参
+// ============================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'slug_rename') {
+    // 改名同时写 301 属专业版；免费站改名成功但旧地址不接管（界面已说明）
+    [$ok, $msg, $applied] = seo_slug_rename(
+        (string) ($_POST['table'] ?? ''),
+        (int) ($_POST['id'] ?? 0),
+        (string) ($_POST['slug'] ?? ''),
+        $seoHasPro && !empty($_POST['redirect'])
+    );
+    if (!$ok) {
+        error($msg);
+    }
+    adminLog('plugin', 'seo', 'slug rename ' . (string) ($_POST['table'] ?? '') . '#'
+        . (int) ($_POST['id'] ?? 0) . ' => ' . $applied);
+    success(['slug' => $applied], $msg);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'slug_list') {
+    $filter = ($_POST['filter'] ?? '') === 'all' ? 'all' : 'invalid';
+    $scan = seo_slug_scan($filter, 500);
+    success(['rows' => $scan['rows'], 'total' => $scan['total'], 'invalid' => $scan['invalid']]);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'slug_bulk_fix') {
+    if (!$seoHasPro) {
+        error(__('seo_slug_bulk_pro_only'));
+    }
+    $result = seo_slug_normalize_all(!empty($_POST['redirect']));
+    adminLog('plugin', 'seo', 'slug bulk fix: ' . $result['fixed'] . ' fixed / ' . $result['failed'] . ' failed');
+    success($result, __('seo_slug_bulk_done', [
+        'fixed' => (string) $result['fixed'],
+        'failed' => (string) $result['failed'],
+    ]));
+}
 
 // ============================================================
 // POST：生成 /llms.txt（在输出 HTML 前处理，返回 JSON）
@@ -168,6 +207,9 @@ if (!is_array($linkcheck)) {
     $linkcheck = null;
 }
 $indexHealth = seo_index_health();
+
+// URL 别名清单（免费）：默认只列异常项，全部清单由前端按需切换
+$slugScan = seo_slug_scan('invalid', 500);
 
 // 自动推送（专业版）
 $autopushOn = false;
@@ -335,6 +377,97 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <span>死链检查 <span class="text-xs text-amber-600">专业版</span></span>
                 <?php endif; ?>
             </div>
+        </div>
+    </div>
+
+    <!-- ===== 免费：URL 别名管理（单条改名）／专业版：批量规范化 + 自动 301 ===== -->
+    <div class="bg-white rounded-lg shadow mb-6" id="seo-slugs">
+        <div class="px-6 py-4 border-b flex items-center justify-between">
+            <div>
+                <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
+                    <i class="ti ti-link text-blue-500"></i> <?php echo e(__('seo_slug_card_title')); ?>
+                </h2>
+                <p class="text-xs text-gray-400 mt-0.5"><?php echo e(__('seo_slug_card_desc')); ?></p>
+            </div>
+            <span class="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded"><?php echo e(__('seo_free_badge')); ?></span>
+        </div>
+        <div class="p-6">
+            <?php if ($slugScan['invalid'] > 0): ?>
+            <div class="mb-4 rounded border px-4 py-3 text-sm <?php echo $slugScan['pretty'] ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-700'; ?>">
+                <i class="ti <?php echo $slugScan['pretty'] ? 'ti-alert-triangle' : 'ti-info-circle'; ?>"></i>
+                <?php echo e($slugScan['pretty']
+                    ? __('seo_slug_warn_pretty', ['count' => (string) $slugScan['invalid']])
+                    : __('seo_slug_warn_query', ['count' => (string) $slugScan['invalid']])); ?>
+            </div>
+            <?php endif; ?>
+
+            <div class="flex flex-wrap items-center gap-3 mb-3">
+                <label class="text-sm text-gray-600 inline-flex items-center gap-1.5">
+                    <input type="checkbox" x-model="slugOnlyInvalid" @change="slugReload()" class="rounded">
+                    <?php echo e(__('seo_slug_only_invalid')); ?>
+                </label>
+                <span class="text-xs text-gray-400"
+                      x-text="<?php echo e(json_encode(__('seo_slug_counts'), JSON_UNESCAPED_UNICODE)); ?>.replace(':total', slugTotal).replace(':invalid', slugInvalid)"></span>
+                <div class="flex-1"></div>
+                <?php if ($seoHasPro): ?>
+                <label class="text-xs text-gray-600 inline-flex items-center gap-1.5">
+                    <input type="checkbox" x-model="slugRedirect" class="rounded">
+                    <?php echo e(__('seo_slug_with_redirect')); ?>
+                </label>
+                <button type="button" @click="slugBulkFix()" :disabled="slugBusy || !slugInvalid"
+                        class="text-xs bg-gray-900 text-white px-3 py-1.5 rounded hover:bg-black disabled:opacity-40">
+                    <i class="ti ti-wand"></i> <?php echo e(__('seo_slug_bulk_btn')); ?>
+                </button>
+                <?php else: ?>
+                <span class="text-xs text-gray-400 inline-flex items-center gap-1">
+                    <i class="ti ti-lock"></i> <?php echo e(__('seo_slug_bulk_locked')); ?>
+                </span>
+                <a href="/admin/license.php" class="text-xs bg-gray-900 text-white px-3 py-1.5 rounded hover:bg-black">
+                    <i class="ti ti-crown text-amber-400"></i> <?php echo e(__('seo_upgrade_btn')); ?>
+                </a>
+                <?php endif; ?>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-xs text-gray-500 border-b">
+                            <th class="py-2 pr-3"><?php echo e(__('seo_slug_col_item')); ?></th>
+                            <th class="py-2 pr-3"><?php echo e(__('seo_slug_col_slug')); ?></th>
+                            <th class="py-2 w-56"><?php echo e(__('seo_slug_col_action')); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="row in slugRows" :key="row.table + row.id">
+                            <tr class="border-b last:border-0">
+                                <td class="py-2 pr-3">
+                                    <div class="text-gray-800" x-text="row.label"></div>
+                                    <div class="text-xs text-gray-400" x-text="row.kind + ' #' + row.id"></div>
+                                </td>
+                                <td class="py-2 pr-3">
+                                    <code class="text-xs" :class="row.valid ? 'text-gray-600' : 'text-red-600 font-medium'" x-text="row.slug"></code>
+                                    <span x-show="!row.valid && slugPretty" class="ml-1 text-[10px] bg-red-100 text-red-700 px-1 py-0.5 rounded"><?php echo e(__('seo_slug_dead')); ?></span>
+                                </td>
+                                <td class="py-2">
+                                    <div class="flex items-center gap-1.5">
+                                        <input type="text" x-model="row.draft" :placeholder="row.suggested || row.slug"
+                                               class="w-36 border rounded px-2 py-1 text-xs font-mono">
+                                        <button type="button" @click="slugSave(row)" :disabled="slugBusy"
+                                                class="text-xs border px-2 py-1 rounded hover:bg-gray-50 disabled:opacity-40"><?php echo e(__('seo_slug_save_btn')); ?></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                        <tr x-show="!slugRows.length">
+                            <td colspan="3" class="py-6 text-center text-xs text-gray-400"><?php echo e(__('seo_slug_empty')); ?></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-xs mt-3" :class="slugMsgError ? 'text-red-600' : 'text-green-600'" x-show="slugMsg" x-text="slugMsg"></p>
+            <?php if (!$seoHasPro): ?>
+            <p class="text-xs text-gray-400 mt-3"><i class="ti ti-info-circle"></i> <?php echo e(__('seo_slug_free_note')); ?></p>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -992,6 +1125,56 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             baiduToken: <?php echo json_encode($baiduToken, JSON_UNESCAPED_UNICODE); ?>,
             keyName: <?php echo json_encode($indexnowKey, JSON_UNESCAPED_UNICODE); ?>,
             keyReady: <?php echo $indexnowKeyExists ? 'true' : 'false'; ?>,
+            // URL 别名管理：draft 是输入框草稿（留空则提交建议值）
+            slugRows: <?php echo json_encode(array_map(static function (array $r): array {
+                $r['draft'] = '';
+                return $r;
+            }, $slugScan['rows']), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            slugTotal: <?php echo (int) $slugScan['total']; ?>,
+            slugInvalid: <?php echo (int) $slugScan['invalid']; ?>,
+            slugPretty: <?php echo $slugScan['pretty'] ? 'true' : 'false'; ?>,
+            slugOnlyInvalid: true,
+            slugRedirect: <?php echo $seoHasPro ? 'true' : 'false'; ?>,
+            slugBusy: false,
+            slugMsg: "",
+            slugMsgError: false,
+            slugReload() {
+                var self = this; this.slugBusy = true;
+                this._post("slug_list", { filter: this.slugOnlyInvalid ? "invalid" : "all" })
+                    .then(function (res) {
+                        if (!res || res.code !== 0) throw new Error((res && res.msg) || "error");
+                        self.slugRows = (res.data.rows || []).map(function (r) { r.draft = ""; return r; });
+                        self.slugTotal = res.data.total; self.slugInvalid = res.data.invalid;
+                    })
+                    .catch(function (e) { self.slugMsgError = true; self.slugMsg = String(e.message || e); })
+                    .finally(function () { self.slugBusy = false; });
+            },
+            slugSave(row) {
+                var self = this;
+                // 留空即采用建议值：异常行最常见的操作就是"就按建议改"
+                var value = (row.draft || "").trim() || row.suggested || "";
+                if (!value) { this.slugMsgError = true; this.slugMsg = <?php echo json_encode(__('seo_slug_bad_value'), JSON_UNESCAPED_UNICODE); ?>; return; }
+                this.slugBusy = true; this.slugMsg = "";
+                this._post("slug_rename", { table: row.table, id: row.id, slug: value, redirect: this.slugRedirect ? "1" : "" })
+                    .then(function (res) {
+                        if (!res || res.code !== 0) throw new Error((res && res.msg) || "error");
+                        self.slugMsgError = false; self.slugMsg = res.msg;
+                        self.slugReload();
+                    })
+                    .catch(function (e) { self.slugMsgError = true; self.slugMsg = String(e.message || e); })
+                    .finally(function () { self.slugBusy = false; });
+            },
+            slugBulkFix() {
+                var self = this; this.slugBusy = true; this.slugMsg = "";
+                this._post("slug_bulk_fix", { redirect: this.slugRedirect ? "1" : "" })
+                    .then(function (res) {
+                        if (!res || res.code !== 0) throw new Error((res && res.msg) || "error");
+                        self.slugMsgError = false; self.slugMsg = res.msg;
+                        self.slugReload();
+                    })
+                    .catch(function (e) { self.slugMsgError = true; self.slugMsg = String(e.message || e); })
+                    .finally(function () { self.slugBusy = false; });
+            },
             _post(action, extra) {
                 var body = new URLSearchParams();
                 body.set("action", action);
