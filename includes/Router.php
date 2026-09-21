@@ -144,6 +144,9 @@ final class Router
             $page = (int)    ($p['page'] ?? 1);
 
             if ($slug !== '') {
+                // 与 article/product 路由同口径转义：新别名已被净化成 a-z0-9-，
+                // 但存量库里可能留着中文/空格别名，不转义会直接产出坏链接。
+                $slug = rawurlencode($slug);
                 $base = $page > 1 ? "/{$slug}/page/{$page}.html" : "/{$slug}.html";
             } elseif ($id > 0) {
                 $base = $page > 1 ? "/list/{$id}/page/{$page}.html" : "/list/{$id}.html";

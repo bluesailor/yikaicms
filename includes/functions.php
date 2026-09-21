@@ -17,6 +17,7 @@ require_once __DIR__ . '/http_response.php';
 require_once __DIR__ . '/ThemeRuntime.php';
 require_once __DIR__ . '/ThemeSettings.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
+require_once __DIR__ . '/Slug.php';       // generateSlug/normalizeSlugInput：URL 别名净化单一来源
 require_once __DIR__ . '/AdminLogSanitizer.php';
 require_once __DIR__ . '/FormSubmissionToken.php';
 require_once __DIR__ . '/LegacyInstallCleanup.php';
@@ -483,31 +484,6 @@ function getDefaults(string $group = ''): array
     return $group ? ($allDefaults[$group] ?? []) : $allDefaults;
 }
 
-// ============================================================
-// Slug 生成
-// ============================================================
-
-/**
- * 根据中文标题生成 slug（取前6个字的拼音）
- */
-function generateSlug(string $title, int $maxChars = 6): string
-{
-    $title = trim($title);
-    if ($title === '') {
-        return '';
-    }
-    // 纯 ASCII 标题（英文/数字）按词切分，保留到 60 字符——比拼音路径的 N 字上限宽，
-    // 英文标题本来就该多留信息量。
-    if (preg_match('/^[\x20-\x7E]+$/', $title) === 1) {
-        $slug = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '-', mb_substr($title, 0, 60)));
-        return trim($slug, '-');
-    }
-    // 词库缺失时返回空串，由 resolveSlug 兜底成 item-<time>；这里不会抛异常，
-    // 也不再依赖 vendor——v1.13.0 曾因 overtrue/pinyin v6 需 PHP8.1 而在 8.0 主机上
-    // 炸掉文章/产品保存（见 v1.13.1 修复），换成自建词库后该风险不复存在。
-    return Pinyin::slug(mb_substr($title, 0, $maxChars));
-}
-
 /**
  * 验证并生成 slug，处理空值和去重
  *
@@ -518,17 +494,12 @@ function generateSlug(string $title, int $maxChars = 6): string
  */
 function resolveSlug(string $input, string $title, string $table, int $excludeId = 0): string
 {
-    if (empty($input)) {
+    $slug = normalizeSlugInput($input);
+    if ($slug === '') {
         $slug = generateSlug($title);
-        if (empty($slug)) {
-            $slug = 'item-' . time();
-        }
-    } else {
-        $slug = preg_replace('/[^a-zA-Z0-9\-]/', '', $input);
-        $slug = strtolower(trim($slug, '-'));
-        if (empty($slug)) {
-            $slug = 'item-' . time();
-        }
+    }
+    if ($slug === '') {
+        $slug = 'item-' . time();
     }
 
     // 检查重复

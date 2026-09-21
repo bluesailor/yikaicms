@@ -27,7 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data = [
             'group_name' => post('group_name'),
             'name' => post('name'),
-            'slug' => post('slug') ?: 'tag-' . time(),
+            // 别名净化（见 normalizeSlugInput）：手输中文转拼音，留空按标签名生成
+            'slug' => normalizeSlugInput((string) post('slug'))
+                ?: (generateSlug((string) post('name')) ?: 'tag-' . time()),
             'sort_order' => postInt('sort_order'),
             'status' => postInt('status', 1),
         ];
