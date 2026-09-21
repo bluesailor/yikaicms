@@ -32,5 +32,6 @@ add_filter('dispatch_routes', static function (array $routes): array {
         ['#^shop/api$#', 'plugins/shop/front/api.php', [], []],
         ['#^shop/checkout$#', 'plugins/shop/front/checkout.php', [], []],
         ['#^shop/order$#', 'plugins/shop/front/order.php', [], []],
+        ['#^member/shop-orders$#', 'plugins/shop/front/member-orders.php', [], []],
     ], $routes);
 });

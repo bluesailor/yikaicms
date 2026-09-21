@@ -29,6 +29,19 @@ add_action('init', function (): void {
     shopRunFallbackTasks();
 });
 
+// 会员中心导航：追加「我的订单」入口（member/profile.php 的 member_profile_nav 钩子）
+add_action('member_profile_nav', function (array $member): void {
+    ?>
+    <a href="/member/shop-orders"
+       class="flex items-center gap-3 px-5 py-3 text-sm transition text-gray-600 hover:bg-gray-50">
+        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+        </svg>
+        <?php echo e(__('shop_my_orders')); ?>
+    </a>
+    <?php
+});
+
 /**
  * 访问触发的商城兜底任务。只在「到点且拿得到锁」时执行一次；
  * 任何异常都吞掉——前台请求绝不能因为定时任务炸掉。
