@@ -430,6 +430,7 @@ MUST_EXIST=(
     "migrations/20260817_repair_non_zh_home_factory_defaults.php"
     "assets/css/tailwind.css"
     "assets/icons/blox-icon-catalog.json"
+    "includes/Slug.php"
     "includes/Pinyin.php"
     "includes/pinyin/chars.php"
     "includes/pinyin/phrases.php"
