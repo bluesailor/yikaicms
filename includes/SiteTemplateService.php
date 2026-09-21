@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/SiteTemplateArchive.php';
+require_once __DIR__ . '/SiteTemplateLanguages.php';
 require_once __DIR__ . '/ThemeInstaller.php';
 
 /** Local, explicit, new-install-only site transfer. Never restores accounts or server configuration. */
@@ -369,7 +370,13 @@ final class SiteTemplateService
 
     private function summary(array $manifest, array $files): array
     {
+        // 语言分布要在「应用」之前就摆出来：整站导入连 enabled_languages 一起覆盖，
+        // 装完才发现某个语言是空的，就只能回滚重来。
+        $languages = SiteTemplateLanguages::inspect(is_array($manifest['data'] ?? null) ? $manifest['data'] : []);
+
         return ['theme' => $manifest['theme'], 'cms' => $manifest['cms'],
+            'languages' => SiteTemplateLanguages::labels($languages['content']),
+            'languages_empty' => $languages['empty'],
             'channels' => count($manifest['data']['tables']['channels']), 'contents' => count($manifest['data']['tables']['contents']),
             'products' => count($manifest['data']['tables']['products']), 'forms' => count($manifest['data']['tables']['form_templates']),
             'media' => count(array_filter(array_keys($files), static fn(string $key): bool => str_starts_with($key, 'media/')))];

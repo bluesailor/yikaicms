@@ -39,6 +39,7 @@ return [
         'includes/SiteTemplateData.php',
         'includes/SiteTemplateArchive.php',
         'includes/SiteTemplateService.php',
+        'includes/SiteTemplateLanguages.php',
         'includes/SensitiveSettings.php',
         'includes/SiteContentChecks.php',
         'includes/SiteImportReport.php',

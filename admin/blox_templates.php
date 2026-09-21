@@ -1101,6 +1101,14 @@ function confirmAreaPublish(form) {
         <div>
             <h1 class="text-xl font-semibold text-gray-900"><?php echo e(__('admin_blox_templates')); ?></h1>
             <p class="mt-1 text-sm text-gray-500"><?php echo __('blox_tpl_page_intro'); ?></p>
+            <?php // 两个模板入口各管一层：这里是页面/区块，整站包在 site_templates.php。
+                  // 不写清楚的话，找"整站模板"的人会在这一页翻半天。 ?>
+            <?php if (hasPermission('*')): ?>
+            <p class="mt-1 text-sm text-gray-500">
+                <?php echo e(__('blox_tpl_scope_note')); ?>
+                <a href="/admin/site_templates.php" class="text-primary hover:underline"><?php echo e(__('st_title')); ?></a>
+            </p>
+            <?php endif; ?>
         </div>
         <?php if (hasPermission('blox_home')): ?>
         <a href="/admin/blox_editor.php?home=1"

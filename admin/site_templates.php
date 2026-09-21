@@ -76,7 +76,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="max-w-4xl space-y-6">
     <header><a href="/admin/site_setup.php" class="text-primary underline"><?= e(__('setup_title')) ?></a>
         <h1 class="text-2xl font-bold text-gray-800 mt-2"><?= e($pageTitle) ?></h1>
-        <p class="text-gray-600 mt-2"><?= e(__('st_intro')) ?></p></header>
+        <p class="text-gray-600 mt-2"><?= e(__('st_intro')) ?></p>
+        <?php // 整站包是覆盖整个站点的；只想复用一个页面或区块的人该去 Blox 模板库 ?>
+        <p class="text-gray-600 mt-1 text-sm"><?= e(__('st_scope_note')) ?>
+            <a href="/admin/blox_templates.php" class="text-primary hover:underline"><?= e(__('admin_blox_templates')) ?></a>
+        </p></header>
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
     <?php if (in_array($notice, ['st_applied', 'st_restored'], true)): ?><p role="status" class="bg-green-50 text-green-700 p-4 rounded"><?= e(__($notice)) ?></p><?php endif; ?>
 
@@ -134,11 +138,22 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php if (is_array($preview)): ?>
         <div class="border rounded p-4 space-y-4">
             <h3 class="font-bold"><?= e(__('st_preview_title')) ?></h3>
+            <?php
+            // 语言缺口单独摆出来：它是一条判断，不是一个计数，混进计数表里会被略过
+            $emptyLanguages = is_array($preview['summary']['languages_empty'] ?? null) ? $preview['summary']['languages_empty'] : [];
+            $counts = $preview['summary'];
+            unset($counts['languages_empty']);
+            ?>
             <dl class="grid grid-cols-2 gap-3">
-                <?php foreach ($preview['summary'] as $key => $value): ?>
+                <?php foreach ($counts as $key => $value): ?>
                 <div class="min-w-0"><dt class="text-sm text-gray-600"><?= e(__('st_count_' . $key)) ?></dt><dd class="font-medium break-words"><?= e((string) $value) ?></dd></div>
                 <?php endforeach; ?>
             </dl>
+            <?php if ($emptyLanguages !== []): ?>
+            <p role="status" class="bg-amber-50 text-amber-900 p-3 rounded text-sm">
+                <?= e(__('st_lang_empty', ['list' => SiteTemplateLanguages::labels($emptyLanguages)])) ?>
+            </p>
+            <?php endif; ?>
             <form method="post" class="space-y-4">
                 <?= csrfField() ?><input type="hidden" name="action" value="apply"><input type="hidden" name="token" value="<?= e($preview['token']) ?>">
                 <p id="st-stage-status" role="status" aria-live="polite" class="text-sm text-gray-600 hidden"></p>
