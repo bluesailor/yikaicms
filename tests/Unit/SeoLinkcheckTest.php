@@ -70,18 +70,32 @@ final class SeoLinkcheckTest extends TestCase
     // ── 分类：有效集 / 磁盘文件 / 重定向接管 / 死链 ───────────────
 
     /**
-     * 正文里的 href 可能含 ../：文件存在性判定必须收在站点根内，
-     * 否则扫描报告会变成"某路径是否存在"的探测器（/uploads/../config/config.php 曾判为存在）。
+     * 正文里的 href 可能含 ../：文件存在性判定不能顺着它走，
+     * 否则报告变成"某路径是否存在"的探测器，还绕过 HTTP 层对该文件的访问控制。
+     *
+     * 断言用**测试自建的文件**，不依赖仓库里某个文件是否存在——
+     * 首版测试就是因为 worktree 里没有 config/config.php 而假绿。
      */
-    public function testFileProbeCannotEscapeTheSiteRoot(): void
+    public function testFileProbeRejectsTraversalRegardlessOfTarget(): void
     {
-        self::assertTrue(\seo_linkcheck_file_exists('/index.php'), '站内真实文件应判存在');
-        foreach ([
-            '/uploads/../config/config.php',
-            '/uploads/%2e%2e/config/config.php',
-            '/../../../../etc/passwd',
-        ] as $escape) {
-            self::assertFalse(\seo_linkcheck_file_exists($escape), $escape . ' 不得穿出站点根');
+        $probeDir = ROOT_PATH . '/storage';
+        $probe = $probeDir . '/linkcheck-probe.txt';
+        if (!is_dir($probeDir)) {
+            self::markTestSkipped('storage/ 不存在');
+        }
+        file_put_contents($probe, 'probe');
+        try {
+            // 正常直链：能判为存在
+            self::assertTrue(\seo_linkcheck_file_exists('/storage/linkcheck-probe.txt'));
+            // 同一个文件，改用 ../ 绕路：必须否决（目标存在与否都不该顺着走）
+            self::assertFalse(\seo_linkcheck_file_exists('/uploads/../storage/linkcheck-probe.txt'),
+                '含 .. 段的路径不是正常资源直链');
+            self::assertFalse(\seo_linkcheck_file_exists('/uploads/%2e%2e/storage/linkcheck-probe.txt'),
+                '百分号编码的 .. 同样要否决');
+            self::assertFalse(\seo_linkcheck_file_exists('/../../../../etc/passwd'),
+                '穿出站点根必须否决');
+        } finally {
+            @unlink($probe);
         }
     }
 
