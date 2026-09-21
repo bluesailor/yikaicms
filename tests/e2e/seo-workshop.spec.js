@@ -65,4 +65,25 @@ test.describe('SEO workshop @ci', () => {
     expect((await feedback).message()).toBe('Fixture: generation refused');
     await expect(page.getByRole('button', { name: '生成 / 更新 llms.txt', exact: true })).toBeEnabled();
   });
+
+  // URL 别名管理（免费档）：卡片渲染 + 列表往返。改名的净化/唯一性规则由
+  // SeoSlugManagerTest 锁，这里只保证 Alpine 绑定与端点接线没断（afterEach 断言无 JS 错误）。
+  test('slug manager renders and reloads the list from the server', async ({ page }) => {
+    const card = page.locator('#seo-slugs');
+    await expect(card).toBeVisible();
+    await expect(card.getByRole('heading', { name: 'URL 别名管理' })).toBeVisible();
+    // 计数文案由 x-text 组装，占位符必须已被替换
+    const counts = card.locator('[x-text*="slugTotal"]');
+    await expect(counts).toHaveText(/共 \d+ 条别名，其中 \d+ 条异常/);
+
+    // 切换「只看异常」触发 slug_list 往返
+    const reloaded = page.waitForResponse((response) => response.request().method() === 'POST'
+      && new URL(response.url()).pathname === '/admin/plugin_page.php'
+      && new URLSearchParams(response.request().postData() || '').get('action') === 'slug_list');
+    await card.getByText('只看异常', { exact: true }).click();
+    const payload = await (await reloaded).json();
+    expect(payload.code).toBe(0);
+    expect(Array.isArray(payload.data.rows)).toBe(true);
+    expect(payload.data.total).toBeGreaterThan(0);
+  });
 });
