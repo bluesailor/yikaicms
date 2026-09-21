@@ -1,0 +1,17 @@
+{
+    "name": "轻量商城",
+    "name_en": "Lightweight Shop",
+    "name_ja": "軽量ショップ",
+    "version": "0.1.0",
+    "description": "给企业官网增加卖货能力：商品销售设置、购物车、订单与线下收款闭环。不做平台化（入驻/分销/多仓）。",
+    "description_en": "Add selling power to a corporate site: sales settings, cart, orders and offline-payment loop.",
+    "description_ja": "企業サイトに販売機能を追加：販売設定・カート・受注・オフライン決済のクローズドループ。",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "1.19.7",
+    "permissions": {
+        "shop_manage": {"label": "商城管理", "label_en": "Shop management", "label_ja": "ショップ管理"},
+        "shop_orders": {"label": "订单处理", "label_en": "Order fulfillment", "label_ja": "受注処理"}
+    },
+    "admin_permission": "shop_manage"
+}

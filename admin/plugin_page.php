@@ -14,9 +14,19 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('*');
 
+// G1（商城立项报告 §六）：插件可在 plugin.json 声明 admin_permission（如 "shop_manage"），
+// 把后台页从超管专属放宽到对应角色。声明的键必须已在权限目录（allPermissionKeys，
+// 含插件声明）里登记，否则退回 '*'——未知键只收紧、不放宽。
 $pluginSlug = trim($_GET['plugin'] ?? '');
+$pluginAdminPermission = '*';
+$pluginMetaEarly = getPluginMeta($pluginSlug);
+if (is_array($pluginMetaEarly)
+    && is_string($pluginMetaEarly['admin_permission'] ?? null)
+    && in_array($pluginMetaEarly['admin_permission'], allPermissionKeys(), true)) {
+    $pluginAdminPermission = $pluginMetaEarly['admin_permission'];
+}
+requirePermission($pluginAdminPermission);
 
 // 验证 slug
 if (!preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $pluginSlug)) {

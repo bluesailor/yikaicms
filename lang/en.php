@@ -286,6 +286,7 @@ return [
     'perm_group_module' => 'Modules',
     'perm_group_advanced' => 'Advanced capabilities',
     'perm_group_blox' => 'Yikai Builder visual editing',
+    'perm_group_plugin' => 'Plugin capabilities',
     'perm_blox_edit' => 'Use Yikai Builder',
     'perm_blox_home' => 'Edit and publish the Yikai Builder homepage',
     'perm_blox_global' => 'Manage site-wide Yikai Builder design',
