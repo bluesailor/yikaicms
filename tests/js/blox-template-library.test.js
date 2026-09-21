@@ -514,3 +514,41 @@ test("dependency gaps are explained on the card instead of hiding the template",
     assert.equal(library.isUnavailable(broken), true);
     assert.equal(library.unavailableLabel(broken, text), "The dependency list cannot be read");
 });
+
+test("templates written in another language are flagged, and only when the language is known", function () {
+    const library = window.BloxTemplateLibrary;
+    const text = {
+        langGap: "Written in :list, editing :current",
+        languageNames: { "zh-CN": "中文", "ja": "日本語", "en": "English" },
+    };
+    const zhSection = function (source) {
+        return { key: source + ":1", source: source, metadata: { language_coverage: ["zh-CN"] } };
+    };
+
+    library.setContentLanguage("ja");
+    try {
+        assert.deepEqual(library.contentLanguageGap(zhSection("local")), ["zh-CN"]);
+        assert.equal(
+            library.contentLanguageGapLabel(zhSection("local"), text),
+            "Written in 中文, editing 日本語"
+        );
+
+        // 内置模板随包带译文，按语言解析，不该提示
+        assert.deepEqual(library.contentLanguageGap(zhSection("builtin")), []);
+
+        // 没记语言的旧模板不猜：猜错比不说更糟
+        assert.deepEqual(library.contentLanguageGap({ key: "local:2", source: "local", metadata: {} }), []);
+        assert.deepEqual(library.contentLanguageGap({ key: "local:3", source: "local" }), []);
+        assert.equal(library.contentLanguageGapLabel({ key: "local:3", source: "local" }, text), "");
+
+        // 覆盖里含当前语言就没有缺口
+        assert.deepEqual(library.contentLanguageGap({
+            key: "local:4", source: "local", metadata: { language_coverage: ["zh-CN", "ja"] },
+        }), []);
+    } finally {
+        library.setContentLanguage("");
+    }
+
+    // 不知道当前在编辑什么语言时同样不提示
+    assert.deepEqual(library.contentLanguageGap(zhSection("local")), []);
+});

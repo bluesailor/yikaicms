@@ -450,6 +450,8 @@ return [
     'blox_template_deps_plugins' => '不足しているプラグイン：:list（有効化すると挿入できます）',
     'blox_template_deps_elements' => '不足している要素：:list（このバージョンでは未対応）',
     'blox_template_deps_invalid' => '依存関係リストを読み取れないため挿入できません。テンプレートを保存し直すと修復されます。',
+    'blox_template_lang_gap' => '内容の言語は :list で、編集中の言語は :current です。挿入後にご自身で翻訳してください。',
+    'blox_template_lang_gap_badge' => '翻訳が必要',
     'blox_template_manage_license' => 'ライセンス管理',
     'blox_template_remote_unavailable' => 'オンラインテンプレート市場を利用できません。ローカルテンプレートは引き続き利用できます',
     'blox_template_remote_invalid' => 'オンラインテンプレートパッケージの情報が無効です',

@@ -429,6 +429,8 @@ return [
     'blox_template_deps_plugins' => '缺插件：:list（启用后可插入）',
     'blox_template_deps_elements' => '缺元素：:list（本版不支持）',
     'blox_template_deps_invalid' => '依赖清单读不了，暂时不能插入；重新保存一次该模板即可修复。',
+    'blox_template_lang_gap' => '内容语言为 :list，当前编辑 :current；插入后需自行翻译。',
+    'blox_template_lang_gap_badge' => '需翻译',
     'blox_template_manage_license' => '授权管理',
     'blox_template_remote_unavailable' => '在线模板市场暂时不可用，本地模板仍可使用',
     'blox_template_remote_invalid' => '在线模板包信息无效',

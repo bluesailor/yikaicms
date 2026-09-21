@@ -73,8 +73,14 @@
         var states = Array.isArray(metadata.states) ? metadata.states.filter(function (value, index, list) {
             return ["loading", "empty", "error"].indexOf(value) !== -1 && list.indexOf(value) === index;
         }).slice(0, 3) : [];
+        var languages = Array.isArray(metadata.language_coverage)
+            ? metadata.language_coverage.filter(function (value, index, list) {
+                return typeof value === "string" && value !== "" && list.indexOf(value) === index;
+            }).slice(0, 12)
+            : [];
         return Object.assign({}, metadata, {
             schema: 1,
+            language_coverage: languages,
             page_types: pageTypes.length > 0 ? pageTypes : ["general"],
             variant: variants.indexOf(variant) !== -1 ? variant : "standard",
             data_source: dataSources.indexOf(dataSource) !== -1 ? dataSource : "static",
@@ -309,6 +315,33 @@
     }
 
     /**
+     * 内容语言缺口：本地、插件、远程模板按**原文**插入，不带译文（内置模板例外，随包带英/日）。
+     * 所以在日语页面插一段中文模板是完全可能的，插完才发现就只能手工重译。
+     *
+     * 只在**确知**模板语言且不含当前语言时提示：没记语言的旧模板不猜，猜错比不说更糟。
+     * 这是提示不是拦截——插进来再翻译是正当做法。
+     *
+     * @return {string[]} 模板已覆盖的语言；空数组表示无需提示
+     */
+    function contentLanguageGap(item) {
+        if (!item || item.source === "builtin") return [];
+        if (!contentLanguage) return [];
+        var coverage = normalizeMetadata(item.metadata).language_coverage;
+        if (!Array.isArray(coverage) || coverage.length === 0) return [];
+        return coverage.indexOf(contentLanguage) === -1 ? coverage.slice() : [];
+    }
+
+    function contentLanguageGapLabel(item, text) {
+        var coverage = contentLanguageGap(item);
+        if (coverage.length === 0) return "";
+        var names = (text && text.languageNames) || {};
+        var listed = coverage.map(function (code) { return names[code] || code; }).join("、");
+        return String((text && text.langGap) || "")
+            .replace(":list", listed)
+            .replace(":current", names[contentLanguage] || contentLanguage);
+    }
+
+    /**
      * 依赖缺口：服务端 items() 给出 unavailable，插入的真正拦截在 resolve()。
      * 这里只负责说清楚缺什么——凭空消失比说"缺个插件"难查得多。
      */
@@ -513,6 +546,8 @@
         canEditLocal: canEditLocal,
         localEditUrl: localEditUrl,
         lockLabel: lockLabel,
+        contentLanguageGap: contentLanguageGap,
+        contentLanguageGapLabel: contentLanguageGapLabel,
         isUnavailable: isUnavailable,
         unavailableLabel: unavailableLabel,
         hasLockedRemote: hasLockedRemote,
