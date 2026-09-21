@@ -658,7 +658,12 @@ declare(strict_types=1);
                 <?php foreach ($productPreviewItems as $previewItem): ?>
                 <option value="<?= (int) $previewItem['id'] ?>"><?= e((string) $previewItem['title']) ?></option>
                 <?php endforeach; ?>
-            </select>
+                            <optgroup label="<?= e(__('blox_edge_sample_group')) ?>">
+                    <?php foreach (BloxEdgeSamples::options() as $edgeKey => $edgeLabel): ?>
+                    <option value="<?= e($edgeKey) ?>"><?= e($edgeLabel) ?></option>
+                    <?php endforeach; ?>
+                </optgroup>
+                </select>
         </label>
         <span class="min-w-0 truncate text-gray-500"><?= e((string) ($page['name'] ?? '')) ?></span>
     </div>
@@ -686,7 +691,12 @@ declare(strict_types=1);
                 <?php foreach ($articlePreviewItems as $previewItem): ?>
                 <option value="<?= (int) $previewItem['id'] ?>"><?= e((string) $previewItem['title']) ?></option>
                 <?php endforeach; ?>
-            </select>
+                            <optgroup label="<?= e(__('blox_edge_sample_group')) ?>">
+                    <?php foreach (BloxEdgeSamples::options() as $edgeKey => $edgeLabel): ?>
+                    <option value="<?= e($edgeKey) ?>"><?= e($edgeLabel) ?></option>
+                    <?php endforeach; ?>
+                </optgroup>
+                </select>
         </label>
         <span class="min-w-0 truncate text-gray-500"><?= e((string) ($page['name'] ?? '')) ?></span>
     </div>
