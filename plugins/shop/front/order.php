@@ -29,11 +29,20 @@ try {
     error_log('[shop] ensure schema failed on order page: ' . $e->getMessage());
 }
 
-$orderNo = trim((string) ($_GET['no'] ?? ''));
+$orderNo = trim((string) ($_GET['no'] ?? ($_POST['no'] ?? '')));
 $memberId = (int) ($_SESSION['member_id'] ?? 0);
 $phoneTail = trim((string) ($_POST['phone_tail'] ?? ($_GET['pt'] ?? '')));
 
-$lookup = $orderNo !== '' ? shopOrderLookup($orderNo, $phoneTail, $memberId) : ['ok' => false, 'error' => 'shop_err_order_not_found'];
+$lookup = ['ok' => false, 'error' => 'shop_err_order_not_found'];
+if ($orderNo !== '') {
+    $lookup = shopOrderLookup($orderNo, $phoneTail, $memberId);
+    // 下单者本会话直看（成功页跳转）：session 里记了最近订单号，免手机尾号
+    if (!$lookup['ok'] && $phoneTail === ''
+        && isset($_SESSION['shop_recent_order'])
+        && hash_equals((string) $_SESSION['shop_recent_order'], $orderNo)) {
+        $lookup = shopOrderLookup($orderNo, '__session__', $memberId, true);
+    }
+}
 $placed = isset($_GET['placed']);
 
 /** 联系电话脱敏：保留前 3 后 4，中间打码 */

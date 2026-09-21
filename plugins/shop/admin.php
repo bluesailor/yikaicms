@@ -36,7 +36,8 @@ try {
 
 // 视图切换：sales 需要 shop_manage；orders 需要 shop_manage 或 shop_orders
 //（宿主页已按 admin_permission_any 放行任一，这里再做页内细分——同一认证路径内的授权）
-$shopView = in_array(($_GET['view'] ?? 'sales'), ['sales', 'orders'], true) ? (string) $_GET['view'] : 'sales';
+$shopViewRaw = (string) ($_GET['view'] ?? 'sales');
+$shopView = in_array($shopViewRaw, ['sales', 'orders'], true) ? $shopViewRaw : 'sales';
 $shopCanManage = hasPermission('shop_manage');
 $shopCanOrders = hasPermission('shop_orders');
 if ($shopView === 'sales' && !$shopCanManage) {
@@ -126,7 +127,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && str_starts_with((string)
             do_action('shop_order_status_changed', $orderId, $action);
         }
     }
-    header('Location: /admin/plugin_page.php?plugin=shop&view=orders'
+    header('Location: /admin/plugin_page.php?plugin=shop&view=orders&detail=' . $orderId
         . ($result['ok'] ? '&done=1' : '&err=' . urlencode(__($result['error']))), true, 303);
     exit;
 }
@@ -208,7 +209,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
 // 列表：筛选与分页全部在数据层（lib/sales.php）
 // ============================================================
 $keyword = trim((string) ($_GET['keyword'] ?? ''));
-$salesFilter = in_array(($_GET['sales'] ?? 'all'), ['all', 'on', 'off'], true) ? (string) $_GET['sales'] : 'all';
+$salesFilterRaw = (string) ($_GET['sales'] ?? 'all');
+$salesFilter = in_array($salesFilterRaw, ['all', 'on', 'off'], true) ? $salesFilterRaw : 'all';
 $page = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = 50;
 
@@ -231,8 +233,9 @@ $orderStatusFilter = 'all';
 $orderKeyword = '';
 $orderDetail = null;
 if ($shopView === 'orders') {
-    $orderStatusFilter = in_array(($_GET['status'] ?? 'all'), array_merge(['all'], shopOrderStatuses()), true)
-        ? (string) $_GET['status'] : 'all';
+    $orderStatusFilterRaw = (string) ($_GET['status'] ?? 'all');
+    $orderStatusFilter = in_array($orderStatusFilterRaw, array_merge(['all'], shopOrderStatuses()), true)
+        ? $orderStatusFilterRaw : 'all';
     $orderKeyword = trim((string) ($_GET['keyword'] ?? ''));
     $orderPageNo = max(1, (int) ($_GET['page'] ?? 1));
     $orderPage = shopOrderPage(

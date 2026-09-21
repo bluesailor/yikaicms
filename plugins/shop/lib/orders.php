@@ -210,6 +210,8 @@ function shopOrderCreate(array $lines, array $contact, array $address, string $r
         require_once __DIR__ . '/cart.php';
     }
     shopCartClear();
+    // 下单者本会话可直接查看订单（订单页据此免手机尾号——尾号是给「换设备查单」用的）
+    $_SESSION['shop_recent_order'] = $orderNo;
     do_action('data_changed');
     do_action('shop_order_placed', $orderId);
 
@@ -403,6 +405,7 @@ function shopOrderPage(array $filters, int $limit, int $offset): array
 
 /**
  * 订单详情（商家后台展示用）：订单 + 明细 + 支付流水。快照渲染，不查实时商品。
+ * 订单行并入最新支付流水状态（payment_status 键，与列表页同口径）。
  * @return array<string,mixed>|null
  */
 function shopOrderDetail(int $orderId): ?array
@@ -412,20 +415,29 @@ function shopOrderDetail(int $orderId): ?array
     if ($order === null) {
         return null;
     }
+    $payments = db()->fetchAll('SELECT * FROM ' . DB_PREFIX . 'shop_payments WHERE order_id = ? ORDER BY id', [$orderId]);
+    $latestPayment = db()->fetchOne(
+        'SELECT * FROM ' . DB_PREFIX . 'shop_payments WHERE order_id = ? ORDER BY id DESC LIMIT 1',
+        [$orderId]
+    );
+    $order['payment_status'] = $latestPayment !== null ? (string) $latestPayment['status'] : 'created';
+
     return [
         'order' => $order,
         'items' => db()->fetchAll('SELECT * FROM ' . DB_PREFIX . 'shop_order_items WHERE order_id = ? ORDER BY id', [$orderId]),
-        'payments' => db()->fetchAll('SELECT * FROM ' . DB_PREFIX . 'shop_payments WHERE order_id = ? ORDER BY id', [$orderId]),
+        'payments' => $payments,
     ];
 }
 
 /**
  * 订单查询（游客凭单号 + 手机尾号校验；会员凭 id 直查）。
+ * $sessionBypass=true 时跳过尾号校验——仅由下单会话持有 shop_recent_order 的
+ * 页面调用，外部请求拿不到该值。
  * 展示时隐藏联系电话全号（页面上只显示脱敏版），库内快照保留原始值。
  *
  * @return array{ok:bool, error:string, order?:array<string,mixed>, items?:list<array<string,mixed>>, payment?:array<string,mixed>}
  */
-function shopOrderLookup(string $orderNo, string $phoneTail = '', ?int $memberId = null): array
+function shopOrderLookup(string $orderNo, string $phoneTail = '', ?int $memberId = null, bool $sessionBypass = false): array
 {
     shopEnsureSchema();
     $order = db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'shop_orders WHERE order_no = ?', [$orderNo]);
@@ -435,7 +447,8 @@ function shopOrderLookup(string $orderNo, string $phoneTail = '', ?int $memberId
     // 会员本人可查；游客必须手机尾号（后 4 位）匹配
     $contact = json_decode((string) ($order['contact_json'] ?? '{}'), true) ?: [];
     $phone = (string) ($contact['phone'] ?? '');
-    if ($memberId === null || $memberId <= 0 || (int) $order['member_id'] !== $memberId) {
+    if (!$sessionBypass
+        && ($memberId === null || $memberId <= 0 || (int) $order['member_id'] !== $memberId)) {
         $digits = preg_replace('/\D/', '', $phone);
         if (strlen($digits) < 4 || $phoneTail === '' || !hash_equals(substr($digits, -4), preg_replace('/\D/', '', $phoneTail))) {
             return ['ok' => false, 'error' => 'shop_err_order_verify'];
