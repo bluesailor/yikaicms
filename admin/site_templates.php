@@ -5,6 +5,7 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 require_once ROOT_PATH . '/includes/SiteTemplateService.php';
+require_once ROOT_PATH . '/includes/SiteImportReport.php';
 checkLogin();
 requirePermission('*');
 $service = new SiteTemplateService(ROOT_PATH);
@@ -12,6 +13,11 @@ $errorMessage = '';
 $notice = (string) ($_SESSION['site_template_notice'] ?? '');
 unset($_SESSION['site_template_notice']);
 $brand = ['site_name' => (string) config('site_name'), 'contact_phone' => '', 'contact_email' => '', 'contact_address' => ''];
+// 导入完成后实时生成报告（不落库）：随时可重跑，也不会出现过期结论
+$report = null;
+if (($notice === 'st_applied' || get('report') === '1') && $service->recovery() !== null) {
+    $report = SiteImportReport::build(ROOT_PATH);
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
     try {
@@ -73,6 +79,39 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <p class="text-gray-600 mt-2"><?= e(__('st_intro')) ?></p></header>
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
     <?php if (in_array($notice, ['st_applied', 'st_restored'], true)): ?><p role="status" class="bg-green-50 text-green-700 p-4 rounded"><?= e(__($notice)) ?></p><?php endif; ?>
+
+    <?php if ($report !== null): ?>
+    <?php
+    $reportTone = [
+        SiteImportReport::FAILED => 'border-red-200 bg-red-50 text-red-700',
+        SiteImportReport::WARNING => 'border-amber-200 bg-amber-50 text-amber-700',
+        SiteImportReport::OK => 'border-green-200 bg-green-50 text-green-700',
+    ][$report['status']] ?? 'border-gray-200 bg-gray-50 text-gray-700';
+    ?>
+    <section class="rounded border p-4 space-y-3 <?= e($reportTone) ?>" aria-labelledby="ir-title">
+        <h2 id="ir-title" class="font-bold"><?= e(__('ir_title')) ?></h2>
+        <p class="text-sm"><?= e(__('ir_status_' . $report['status'])) ?></p>
+        <p class="text-xs"><?= e(__('ir_scanned', [
+            'scanned' => (string) $report['scanned'],
+            'failed' => (string) ($report['counts'][SiteImportReport::FAILED] ?? 0),
+            'warning' => (string) ($report['counts'][SiteImportReport::WARNING] ?? 0),
+        ])) ?><?= $report['limited'] ? ' ' . e(__('ir_limited')) : '' ?></p>
+        <?php if ($report['items'] !== []): ?>
+        <ul class="space-y-1 bg-white rounded p-3 text-sm text-gray-700">
+            <?php foreach ($report['items'] as $item): ?>
+            <li class="flex flex-wrap items-baseline gap-2 border-b last:border-0 py-1">
+                <span class="text-xs px-1.5 py-0.5 rounded <?= $item['level'] === SiteImportReport::FAILED ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700' ?>"><?= e(__('ir_level_' . $item['level'])) ?></span>
+                <span><?= e(__($item['code'])) ?></span>
+                <?php if ($item['label'] !== ''): ?><span class="text-gray-500"><?= e($item['label']) ?></span><?php endif; ?>
+                <?php if ($item['detail'] !== ''): ?><code class="text-xs text-gray-500 break-all"><?= e($item['detail']) ?></code><?php endif; ?>
+                <?php if ($item['url'] !== ''): ?><a class="text-primary hover:underline text-xs ml-auto" href="<?= e($item['url']) ?>"><?= e(__('ir_fix')) ?></a><?php endif; ?>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+        <?php endif; ?>
+        <a href="/admin/site_templates.php?report=1" class="inline-block text-xs text-primary hover:underline"><?= e(__('ir_recheck')) ?></a>
+    </section>
+    <?php endif; ?>
     <section class="bg-white rounded-lg shadow p-6" aria-labelledby="st-export">
         <h2 id="st-export" class="text-lg font-bold"><?= e(__('st_export_title')) ?></h2>
         <p class="text-gray-600 mt-2"><?= e(__('st_export_hint')) ?></p>
