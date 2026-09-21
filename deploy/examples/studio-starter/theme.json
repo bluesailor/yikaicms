@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "name": "Studio Starter",
+  "name_en": "Studio Starter",
+  "name_ja": "Studio Starter",
+  "description": "整站模板工作流示例：可编辑首页文案与图片，其他栏目使用 CMS 标准页面。",
+  "version": "1.0.0",
+  "author": "Yikai",
+  "category": "services",
+  "requires_cms": ">=1.20.1",
+  "requires_php": ">=8.0.0",
+  "required_plugins": [],
+  "screenshot": "assets/cover.svg"
+}

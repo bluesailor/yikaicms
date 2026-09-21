@@ -396,6 +396,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div class="p-6" x-data="themeManager()" x-init="init()">
+    <?php require_once ROOT_PATH . '/includes/SiteSetup.php'; ?>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-gray-700">
+        <p><?= e(__('setup_mode_' . SiteSetup::currentHomeMode())) ?></p>
+        <p class="mt-2"><?= e(__('setup_home_hint')) ?></p>
+        <a href="/admin/site_setup.php" class="inline-block underline py-2"><?= e(__('setup_title')) ?></a>
+        <a href="/admin/theme_content.php" class="inline-block underline py-2 ml-4"><?= e(__('tc_title')) ?></a>
+    </div>
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-800"><?php echo __('admin_theme'); ?></h1>
         <span class="text-sm text-gray-500"><?php echo __('theme_current'); ?>：<span class="font-medium text-primary"><?php echo e($currentTheme); ?></span></span>

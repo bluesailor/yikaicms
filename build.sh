@@ -317,6 +317,7 @@ EXCLUDES=(
 
     # 运行时数据（保留目录结构）
     "storage/database.sqlite"
+    "storage/site-templates"
     "storage/login_throttle"
     "storage/logs"
     "storage/cache"

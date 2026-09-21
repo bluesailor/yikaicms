@@ -16,6 +16,7 @@ require_once __DIR__ . '/frontend_preview.php';
 require_once __DIR__ . '/http_response.php';
 require_once __DIR__ . '/ThemeRuntime.php';
 require_once __DIR__ . '/ThemeSettings.php';
+require_once __DIR__ . '/ThemeContent.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
 require_once __DIR__ . '/Slug.php';       // generateSlug/normalizeSlugInput：URL 别名净化单一来源
 require_once __DIR__ . '/AdminLogSanitizer.php';
@@ -39,8 +40,19 @@ ErrorHandler::install();
 // ============================================================
 
 /**
- * 获取当前主题名称
+ * Read a declared theme content field. Theme templates still escape the returned value with e().
  */
+function themeContent(string $key, string $fallback = ''): string
+{
+    try {
+        $theme = currentTheme();
+        $values = ThemeContent::values($theme, siteLang(), ThemeContent::schema($theme));
+        return $values[$key] ?? $fallback;
+    } catch (Throwable $error) {
+        return $fallback;
+    }
+}
+
 function currentTheme(): string
 {
     static $theme = null;
