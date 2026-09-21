@@ -61,6 +61,8 @@ return [
     'shop_err_refund_not_allowed' => 'This order cannot be refunded (unpaid or closed)',
     'shop_err_refund_amount' => 'Refund amount must be between 0 and the order total',
     'shop_err_refund_not_found' => 'Refund record not found',
+    'shop_my_orders' => 'My orders',
+    'shop_my_orders_empty' => 'No orders yet',
     'cron_shop_order_expire' => 'Shop expired-order close',
     'cron_shop_expired_n' => 'Closed :n unpaid expired order(s) and released stock',
     'shop_mail_new_subject' => '[{{site_name}}] New order {{order_no}}',

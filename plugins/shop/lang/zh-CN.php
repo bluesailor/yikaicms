@@ -62,6 +62,8 @@ return [
     'shop_err_refund_not_allowed' => '该订单当前不可退款（未收款或已关闭）',
     'shop_err_refund_amount' => '退款金额必须在 0 与订单实付总额之间',
     'shop_err_refund_not_found' => '退款记录不存在',
+    'shop_my_orders' => '我的订单',
+    'shop_my_orders_empty' => '还没有订单',
     'cron_shop_order_expire' => '商城超时订单关闭',
     'cron_shop_expired_n' => '已关闭 :n 个超时未付款订单并释放库存',
     'shop_mail_new_subject' => '【{{site_name}}】新订单 {{order_no}}',

@@ -61,6 +61,8 @@ return [
     'shop_err_refund_not_allowed' => 'この注文は返金できません（未入金またはクローズ）',
     'shop_err_refund_amount' => '返金額は 0 と注文合計の間で入力してください',
     'shop_err_refund_not_found' => '返金記録が見つかりません',
+    'shop_my_orders' => 'マイ注文',
+    'shop_my_orders_empty' => '注文はまだありません',
     'cron_shop_order_expire' => 'ショップ期限切れ注文のクローズ',
     'cron_shop_expired_n' => '未払いの期限切れ注文 :n 件をクローズし在庫を解放しました',
     'shop_mail_new_subject' => '【{{site_name}}】新規注文 {{order_no}}',

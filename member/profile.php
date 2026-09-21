@@ -111,6 +111,10 @@ require_once ROOT_PATH . '/includes/header.php';
                         </svg>
                         修改密码
                     </a>
+                    <?php
+                    // 插件可在此追加会员中心导航项（商城「我的订单」等）；无订阅者零输出
+                    do_action('member_profile_nav', $member);
+                    ?>
                     <div class="border-t my-1"></div>
                     <a href="/member/logout.php"
                        class="flex items-center gap-3 px-5 py-3 text-sm text-red-500 hover:bg-red-50 transition">
