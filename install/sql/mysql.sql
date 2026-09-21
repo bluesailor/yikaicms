@@ -1112,6 +1112,24 @@ INSERT INTO `yikai_links` (`id`, `lang`, `translation_group_id`, `name`, `url`, 
 -- @demo:end
 /*!40000 ALTER TABLE `yikai_links` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `yikai_mail_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+ SET character_set_client = utf8mb4 ;
+CREATE TABLE `yikai_mail_log` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `to_email` varchar(191) NOT NULL,
+  `subject` varchar(500) NOT NULL DEFAULT '',
+  `body` mediumtext NOT NULL,
+  `preview` varchar(600) NOT NULL DEFAULT '',
+  `status` varchar(16) NOT NULL DEFAULT 'failed',
+  `error` varchar(500) NOT NULL DEFAULT '',
+  `attempts` int(11) UNSIGNED NOT NULL DEFAULT 1,
+  `created_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `updated_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_mail_log_status` (`status`, `updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='邮件投递日志';
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `yikai_media`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
  SET character_set_client = utf8mb4 ;

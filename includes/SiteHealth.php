@@ -47,6 +47,7 @@ final class SiteHealth
             self::checkStaticHtml(),
             self::checkDbLatency(),
             self::checkLargeUploads($root),
+            self::checkMailDelivery(),
             self::checkBrandAssets($root),
             self::checkProductIntegrity($root),
         ];
@@ -870,6 +871,42 @@ final class SiteHealth
             $oversized > 0 ? 'health_largefiles_big' : 'health_largefiles_good',
             '/admin/media.php',
             ['count' => (string) $oversized, 'size' => self::formatBytes($biggest)]);
+    }
+
+    /**
+     * 邮件投递：连续失败告警（SMTP 密码过期、被限流、发件域被封的典型症状）。
+     * 未配置 SMTP 时不算问题（站点可能本就不用邮件）。
+     */
+    private static function checkMailDelivery(): array
+    {
+        $configured = trim((string) config('smtp_host', '')) !== ''
+            && trim((string) config('smtp_user', '')) !== '';
+        if (!is_file(ROOT_PATH . '/includes/MailDelivery.php')) {
+            return self::result('mail_delivery', self::UNKNOWN, 'operations',
+                'health_mail_title', 'health_mail_unknown', '/admin/setting_email.php');
+        }
+        require_once ROOT_PATH . '/includes/MailDelivery.php';
+        if (!db()->tableExists('mail_log')) {
+            // 升级窗口：表还没建（迁移未跑），不误报
+            return self::result('mail_delivery', self::UNKNOWN, 'operations',
+                'health_mail_title', 'health_mail_unknown', '/admin/setting_email.php');
+        }
+        $info = MailDelivery::failureStreak();
+        if (!$configured) {
+            return self::result('mail_delivery', self::GOOD, 'operations',
+                'health_mail_title', 'health_mail_not_configured', '/admin/setting_email.php');
+        }
+        if ($info['streak'] === 0) {
+            return self::result('mail_delivery', self::GOOD, 'operations',
+                'health_mail_title', 'health_mail_good', '/admin/setting_email.php',
+                ['sent' => (string) $info['total_sent']]);
+        }
+        $status = $info['streak'] >= 3 ? self::CRITICAL : self::RECOMMENDED;
+        return self::result('mail_delivery', $status, 'operations',
+            'health_mail_title',
+            $status === self::CRITICAL ? 'health_mail_streak_bad' : 'health_mail_streak_warn',
+            '/admin/setting_email.php?tab=log',
+            ['streak' => (string) $info['streak'], 'error' => mb_substr((string) $info['last_error'], 0, 120)]);
     }
 
     /** @return array<string,mixed> */
