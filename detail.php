@@ -63,11 +63,26 @@ $canonicalUrl = $siteUrl . contentPrettyUrl($content);
 if (!empty($content['cover'])) {
     $ogImage = $content['cover'];
 }
+// Google Article 富结果要求 author/publisher；企业站无个人作者体系，站点即作者，
+// 与 header 的 Organization JSON-LD 同名同源（configRawLang('site_name')）
+$ldSiteName = configRawLang('site_name', 'Yikai CMS');
+$ldLogo = trim((string) configRawLang('site_logo', ''));
+if ($ldLogo !== '' && !preg_match('#^https?://#', $ldLogo)) {
+    $ldLogo = $siteUrl . '/' . ltrim($ldLogo, '/');
+}
+$ldPublisher = ['@type' => 'Organization', 'name' => $ldSiteName];
+if ($ldLogo !== '') {
+    $ldPublisher['logo'] = ['@type' => 'ImageObject', 'url' => $ldLogo];
+}
 $jsonLd = [
     '@context' => 'https://schema.org',
     '@type' => 'Article',
+    'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => $canonicalUrl],
+    'url' => $canonicalUrl,
     'headline' => $content['title'],
     'description' => $pageDescription,
+    'author' => ['@type' => 'Organization', 'name' => $ldSiteName],
+    'publisher' => $ldPublisher,
     'datePublished' => date('c', (int)(($content['publish_time'] ?? 0) ?: ($content['created_at'] ?? 0))),
     'dateModified' => date('c', (int)($content['updated_at'] ?: (($content['publish_time'] ?? 0) ?: ($content['created_at'] ?? 0)))),
 ];
