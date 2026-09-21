@@ -44,6 +44,12 @@ final class BloxDocumentPipeline
             return;
         }
         $validationSections = $sections;
+        // 内容维护模式（E07）：拒绝改结构的提交。放在服务端而不是靠界面隐藏按钮——
+        // 隐藏只挡得住照界面操作的人。需要可信基线才能比对，没有基线时不拦
+        // （新建文档本来就没有"原结构"可保护）。
+        if ($trustedJson !== null && BloxMaintenanceMode::active()) {
+            BloxMaintenanceMode::assertContentOnly($sections, self::decode($trustedJson)['sections']);
+        }
         $denied = BloxFeaturePolicy::denied();
         if ($trustedJson !== null && $denied !== []) {
             require_once __DIR__ . '/BloxProtectedFields.php';
