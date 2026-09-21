@@ -171,6 +171,8 @@ final class BloxDisplayConditions
      * @param array<string,mixed>|null $context 省略即取当前请求上下文
      * @return array{matched:bool,groups:list<array{matched:bool,rules:list<array{type:string,operator:string,matched:bool}>}>}|null
      *         null 表示条件本身非法（与 matches() 的 fail-closed 同源）
+     * @psalm-suppress PossiblyUnusedMethod 消费方是付费编辑器的条件面板（不随本仓库分发），
+     *                 与本文件的 cacheUnsafe() 同一情况
      */
     public static function diagnose(mixed $raw, ?array $context = null): ?array
     {
