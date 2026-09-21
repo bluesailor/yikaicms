@@ -117,6 +117,23 @@ function seo_linkcheck_normalize(string $href, string $siteHost, array $langPref
 }
 
 /**
+ * 站内静态文件是否存在（/uploads/... 直链等）。
+ *
+ * href 取自文章正文，可能含 `../` 或其百分号编码形态。直接 is_file(ROOT_PATH . $path)
+ * 会穿出站点目录（实测 /uploads/../config/config.php 判定为存在），让扫描报告
+ * 变成一个文件存在性探测器。用 realpath 把路径收回站点根内再判。
+ */
+function seo_linkcheck_file_exists(string $path): bool
+{
+    $resolved = realpath(ROOT_PATH . urldecode($path));
+    if ($resolved === false || !is_file($resolved)) {
+        return false;
+    }
+    $root = realpath(ROOT_PATH);
+    return $root !== false && strncmp($resolved, $root . DIRECTORY_SEPARATOR, strlen($root) + 1) === 0;
+}
+
+/**
  * 链接分类。判定次序（都是离线判定）：
  *   有效集（CMS 生成器产出的 URL + 旧式 ?id=/slug 查询别名）
  *   → 磁盘上真实存在的文件（/uploads/... 直链等）
@@ -142,7 +159,7 @@ function seo_linkcheck_classify(array $hrefs, array $validSet, array $redirectSo
         if (isset($validSet[$normalized]) || isset($validSet[strtolower($normalized)])) {
             continue;
         }
-        if (is_file(ROOT_PATH . urldecode($pathOnly))) {
+        if (seo_linkcheck_file_exists($pathOnly)) {
             continue;
         }
         if (isset($redirectSources[$normalized])) {
