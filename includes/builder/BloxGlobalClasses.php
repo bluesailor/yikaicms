@@ -371,6 +371,10 @@ final class BloxGlobalClasses
         $data['revision'] = $expected + 1;
         $affected = db()->update('blox_global_classes', $data, 'class_id = ? AND revision = ?', [(string) $row['class_id'], $expected]);
         if ($affected === 0) {
+            // 区分「类已不存在」与「并发冲突」（借鉴 GLM 整改分支），报错文案才不会误导
+            if (bloxGlobalClassModel()->findByClassId((string) $row['class_id']) === null) {
+                throw new RuntimeException(__('blox_class_not_found'));
+            }
             throw new RuntimeException(__('blox_design_conflict'));
         }
         return bloxGlobalClassModel()->findByClassId((string) $row['class_id']) ?? $row;

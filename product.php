@@ -96,6 +96,9 @@ $jsonLd = [
     'name' => $product['title'],
     'description' => $pageDescription,
     'url' => $canonicalUrl,
+    // Google 商品富结果的常用字段：sku 用站内唯一 id；品牌无独立维护项，取站点名
+    'sku' => 'p-' . (int) $product['id'],
+    'brand' => ['@type' => 'Brand', 'name' => configRawLang('site_name', 'Yikai CMS')],
 ];
 if (!empty($product['cover'])) {
     $jsonLd['image'] = $siteUrl . $product['cover'];
@@ -103,6 +106,7 @@ if (!empty($product['cover'])) {
 if (!empty($product['price']) && $product['price'] > 0) {
     $jsonLd['offers'] = [
         '@type' => 'Offer',
+        'url' => $canonicalUrl,
         'price' => $product['price'],
         'priceCurrency' => 'CNY',
         'availability' => 'https://schema.org/InStock',

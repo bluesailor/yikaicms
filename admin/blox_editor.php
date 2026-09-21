@@ -623,17 +623,8 @@ $docSettings = $bootDoc['settings'];
 if ($templateId && $templateType === 'product-detail') {
     // TASK-002-R02：v2 文档（settings.detail_template）才是权威；这里把 v1 形态的 UI 字段
     // 用它回填一次，后台才不会显示/编辑到过期的 v1 值；保存时由服务端写回 v2。
-    $docSettings['product_template'] = ProductTemplateDocument::authoritativeScope($bootDoc);
-    // v1.26 语言维度（外审 P1-3，与下方文章 boot 同语义）：v2 里显式存储的 ''=全部语言
-    // 必须原样保留；只有「从未存过 lang」或存了非法语言才按编辑器预览语言补。
-    $storedProductScope = $bootDoc['settings']['detail_template'] ?? null;
-    $productLangExplicit = is_array($storedProductScope)
-        && array_key_exists('lang', $storedProductScope) && is_string($storedProductScope['lang']);
-    $productBootLang = (string) $docSettings['product_template']['lang'];
-    if (($productBootLang === '' && !$productLangExplicit)
-        || ($productBootLang !== '' && !isset(availableLanguages()[$productBootLang]))) {
-        $docSettings['product_template']['lang'] = $productPreviewLanguage;
-    }
+    // 语言回填的「显式 ''=全部语言不收窄」语义收进 scopeForEditorBoot 单点（外审 P1-3）
+    $docSettings['product_template'] = ProductTemplateDocument::scopeForEditorBoot($bootDoc, $productPreviewLanguage);
 }
 if ($templateId && $templateType === 'article-detail') {
     // 模板自身的类型/语言是这里补的：缺失时按本编辑器上下文补齐，而不是让条件变成不可用。

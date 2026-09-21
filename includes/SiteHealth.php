@@ -42,6 +42,12 @@ final class SiteHealth
             self::checkPasswordHashes(),
             self::checkPendingMigrations($root),
             self::checkRecentBackup($root),
+            // 性能中心：缓存 / 静态化 / 响应 / 大资源（只读诊断，操作项跳转对应管理页）
+            self::checkHtmlCache(),
+            self::checkStaticHtml(),
+            self::checkDbLatency(),
+            self::checkLargeUploads($root),
+            self::checkMailDelivery(),
             self::checkBrandAssets($root),
             self::checkProductIntegrity($root),
         ];
@@ -744,6 +750,163 @@ final class SiteHealth
         $recent = $latest > time() - 14 * 86400;
         return self::result('recent_backup', $recent ? self::GOOD : self::RECOMMENDED, 'operations',
             'health_backup_title', $recent ? 'health_backup_good' : 'health_backup_bad', '/admin/database.php?tab=backup');
+    }
+
+    // ── 性能中心：缓存 / 静态化 / 响应 / 大资源 ─────────────────────
+
+    /** 整页 HTML 缓存：开关、TTL 与缓存目录的文件数 / 体积（目录膨胀有过 30GB 事故）。 */
+    private static function checkHtmlCache(): array
+    {
+        if (!class_exists('HtmlCache')) {
+            require_once ROOT_PATH . '/includes/HtmlCache.php';
+        }
+        $enabled = (string) config('html_cache_enabled', '0') === '1';
+        $dir = HtmlCache::dir();
+        $count = 0;
+        $bytes = 0;
+        if (is_dir($dir)) {
+            try {
+                foreach (new DirectoryIterator($dir) as $file) {
+                    if (!$file->isFile() || strtolower($file->getExtension()) !== 'html') {
+                        continue;
+                    }
+                    $count++;
+                    $bytes += (int) $file->getSize();
+                    if ($count >= 50000) {
+                        break;   // 只做诊断展示，目录异常巨大时不必数完
+                    }
+                }
+            } catch (Throwable) {
+                return self::result('html_cache', self::UNKNOWN, 'performance',
+                    'health_htmlcache_title', 'health_htmlcache_unknown', '/admin/setting_cache.php');
+            }
+        }
+        $ttl = (int) config('html_cache_ttl', '300');
+        return self::result('html_cache', $enabled ? self::GOOD : self::RECOMMENDED, 'performance',
+            'health_htmlcache_title',
+            $enabled ? 'health_htmlcache_on' : 'health_htmlcache_off',
+            '/admin/setting_cache.php',
+            ['count' => (string) $count, 'size' => self::formatBytes($bytes), 'ttl' => (string) $ttl]);
+    }
+
+    /** 静态化：开关与最近一次生成时间（过期太久的静态站可能意味着定时任务没跑）。 */
+    private static function checkStaticHtml(): array
+    {
+        // 不加载 StaticHtml 类本体（其文件尾部注册钩子，无 add_action 的上下文会致命错），
+        // 直接读同一配置口径：enabled() 与 last_gen 记账各只看一个 key
+        if (!function_exists('config')) {
+            return self::result('static_html', self::UNKNOWN, 'performance',
+                'health_static_title', 'health_static_unknown', '/admin/static_html.php');
+        }
+        $enabled = (string) config('static_html_enabled', '0') === '1';
+        if (!$enabled) {
+            return self::result('static_html', self::GOOD, 'performance',
+                'health_static_title', 'health_static_off', '/admin/static_html.php');
+        }
+        $lastGen = (int) config('static_html_last_gen', 0);
+        $age = $lastGen > 0 ? time() - $lastGen : 0;
+        $stale = $age > 7 * 86400;
+        return self::result('static_html', $stale ? self::RECOMMENDED : self::GOOD, 'performance',
+            'health_static_title',
+            $stale ? 'health_static_stale' : 'health_static_on',
+            '/admin/static_html.php',
+            ['age' => $age > 86400 ? (string) intdiv($age, 86400) . 'd' : (string) intdiv(max($age, 0), 3600) . 'h']);
+    }
+
+    /** 数据库响应：3 次 SELECT 1 的平均耗时（共享主机 MySQL 抖动最常见）。 */
+    private static function checkDbLatency(): array
+    {
+        try {
+            $started = microtime(true);
+            for ($i = 0; $i < 3; $i++) {
+                db()->fetchColumn('SELECT 1');
+            }
+            $ms = (int) round((microtime(true) - $started) * 1000 / 3);
+        } catch (Throwable) {
+            return self::result('db_latency', self::UNKNOWN, 'performance',
+                'health_dblatency_title', 'health_dblatency_unknown');
+        }
+        $status = $ms < 50 ? self::GOOD : ($ms < 200 ? self::RECOMMENDED : self::CRITICAL);
+        return self::result('db_latency', $status, 'performance',
+            'health_dblatency_title', 'health_dblatency_good', '', ['ms' => (string) $ms]);
+    }
+
+    /** 大资源：uploads 下最大的单个文件与超阈值文件数（未压缩原图直传是首因）。 */
+    private static function checkLargeUploads(string $root): array
+    {
+        $dir = $root . '/uploads';
+        if (!is_dir($dir)) {
+            return self::result('large_uploads', self::UNKNOWN, 'performance',
+                'health_largefiles_title', 'health_largefiles_unknown', '/admin/media.php');
+        }
+        $threshold = 10 * 1024 * 1024;
+        $scanned = 0;
+        $oversized = 0;
+        $biggest = 0;
+        try {
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($iterator as $file) {
+                if (!$file->isFile()) {
+                    continue;
+                }
+                $scanned++;
+                $size = (int) $file->getSize();
+                $biggest = max($biggest, $size);
+                if ($size > $threshold) {
+                    $oversized++;
+                }
+                if ($scanned >= 20000) {
+                    break;   // 诊断抽样上限，超大站点的精确清点交给媒体库筛选
+                }
+            }
+        } catch (Throwable) {
+            return self::result('large_uploads', self::UNKNOWN, 'performance',
+                'health_largefiles_title', 'health_largefiles_unknown', '/admin/media.php');
+        }
+        $status = $oversized > 0 ? self::RECOMMENDED : self::GOOD;
+        return self::result('large_uploads', $status, 'performance',
+            'health_largefiles_title',
+            $oversized > 0 ? 'health_largefiles_big' : 'health_largefiles_good',
+            '/admin/media.php',
+            ['count' => (string) $oversized, 'size' => self::formatBytes($biggest)]);
+    }
+
+    /**
+     * 邮件投递：连续失败告警（SMTP 密码过期、被限流、发件域被封的典型症状）。
+     * 未配置 SMTP 时不算问题（站点可能本就不用邮件）。
+     */
+    private static function checkMailDelivery(): array
+    {
+        $configured = trim((string) config('smtp_host', '')) !== ''
+            && trim((string) config('smtp_user', '')) !== '';
+        if (!is_file(ROOT_PATH . '/includes/MailDelivery.php')) {
+            return self::result('mail_delivery', self::UNKNOWN, 'operations',
+                'health_mail_title', 'health_mail_unknown', '/admin/setting_email.php');
+        }
+        require_once ROOT_PATH . '/includes/MailDelivery.php';
+        if (!db()->tableExists('mail_log')) {
+            // 升级窗口：表还没建（迁移未跑），不误报
+            return self::result('mail_delivery', self::UNKNOWN, 'operations',
+                'health_mail_title', 'health_mail_unknown', '/admin/setting_email.php');
+        }
+        $info = MailDelivery::failureStreak();
+        if (!$configured) {
+            return self::result('mail_delivery', self::GOOD, 'operations',
+                'health_mail_title', 'health_mail_not_configured', '/admin/setting_email.php');
+        }
+        if ($info['streak'] === 0) {
+            return self::result('mail_delivery', self::GOOD, 'operations',
+                'health_mail_title', 'health_mail_good', '/admin/setting_email.php',
+                ['sent' => (string) $info['total_sent']]);
+        }
+        $status = $info['streak'] >= 3 ? self::CRITICAL : self::RECOMMENDED;
+        return self::result('mail_delivery', $status, 'operations',
+            'health_mail_title',
+            $status === self::CRITICAL ? 'health_mail_streak_bad' : 'health_mail_streak_warn',
+            '/admin/setting_email.php?tab=log',
+            ['streak' => (string) $info['streak'], 'error' => mb_substr((string) $info['last_error'], 0, 120)]);
     }
 
     /** @return array<string,mixed> */
