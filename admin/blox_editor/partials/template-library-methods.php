@@ -466,6 +466,15 @@ declare(strict_types=1);
                 return window.BloxTemplateLibrary.unavailableLabel(item, this.templateText);
             },
 
+            /** 语言缺口只提示不拦截：插进来再翻译是正当做法，凭空消失才是坏的。 */
+            templateLanguageGap(item) {
+                return window.BloxTemplateLibrary.contentLanguageGap(item).length > 0;
+            },
+
+            templateLanguageGapLabel(item) {
+                return window.BloxTemplateLibrary.contentLanguageGapLabel(item, this.templateText);
+            },
+
             openPageTemplates() {
                 this.persistTemplateSectionViewState();
                 this.templateEntry = "pages";
