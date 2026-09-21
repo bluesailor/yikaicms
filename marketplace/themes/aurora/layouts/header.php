@@ -112,11 +112,11 @@ function getChannelUrl(array $channel): string {
         'name' => $siteName,
         'url' => $siteUrl,
         'logo' => $ogImage ?: null,
-    ]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+    ]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG); ?>
     </script>
     <?php if (!empty($jsonLd)): ?>
     <script type="application/ld+json">
-    <?php echo json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+    <?php echo json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG); ?>
     </script>
     <?php endif; ?>
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/tailwind.css'); ?>">
