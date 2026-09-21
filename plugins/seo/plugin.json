@@ -10,5 +10,5 @@
     "module": "seo-pro",
     "author": "Yikai CMS",
     "requires_php": "8.0",
-    "requires_cms": "1.13.0"
+    "requires_cms": "1.20.1"
 }

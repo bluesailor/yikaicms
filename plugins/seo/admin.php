@@ -25,6 +25,12 @@ $seoHasPro = function_exists('license_has_module') && license_has_module('seo-pr
 // URL 别名：单条改名（免费）／批量规范化（专业版）
 // CSRF 由 checkLogin() 全局校验（后台 fetch 自动带 _token），此处只判授权与入参
 // ============================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && in_array(($_POST['action'] ?? ''), ['slug_rename', 'slug_list', 'slug_bulk_fix'], true)
+    && !seo_slug_available()) {
+    error(__('seo_slug_needs_cms'));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'slug_rename') {
     // 改名同时写 301 属专业版；免费站改名成功但旧地址不接管（界面已说明）
     [$ok, $msg, $applied] = seo_slug_rename(
@@ -209,7 +215,10 @@ if (!is_array($linkcheck)) {
 $indexHealth = seo_index_health();
 
 // URL 别名清单（免费）：默认只列异常项，全部清单由前端按需切换
-$slugScan = seo_slug_scan('invalid', 500);
+$slugAvailable = seo_slug_available();
+$slugScan = $slugAvailable
+    ? seo_slug_scan('invalid', 500)
+    : ['rows' => [], 'total' => 0, 'invalid' => 0, 'pretty' => true];
 
 // 自动推送（专业版）
 $autopushOn = false;
@@ -392,6 +401,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <span class="text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded"><?php echo e(__('seo_free_badge')); ?></span>
         </div>
         <div class="p-6">
+            <?php if (!$slugAvailable): ?>
+            <div class="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                <i class="ti ti-info-circle"></i> <?php echo e(__('seo_slug_needs_cms')); ?>
+            </div>
+            <?php else: ?>
             <?php if ($slugScan['invalid'] > 0): ?>
             <div class="mb-4 rounded border px-4 py-3 text-sm <?php echo $slugScan['pretty'] ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-700'; ?>">
                 <i class="ti <?php echo $slugScan['pretty'] ? 'ti-alert-triangle' : 'ti-info-circle'; ?>"></i>
@@ -467,6 +481,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <p class="text-xs mt-3" :class="slugMsgError ? 'text-red-600' : 'text-green-600'" x-show="slugMsg" x-text="slugMsg"></p>
             <?php if (!$seoHasPro): ?>
             <p class="text-xs text-gray-400 mt-3"><i class="ti ti-info-circle"></i> <?php echo e(__('seo_slug_free_note')); ?></p>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
