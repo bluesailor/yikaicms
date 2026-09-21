@@ -186,6 +186,10 @@ final class SiteTemplateService
             } catch (Throwable $e) {
                 if (!$committed && db()->getPdo()->inTransaction()) db()->rollback();
                 settingModel()->clearCache();
+                // 事务已回滚 ⇒ 没有任何记录引用本次别名（别名是本次新生成的随机值，
+                // installFiles 又拒绝写入已存在的目录），因此清理是安全的。
+                // restore() 里"绝不删除"的理由是那些文件可能已被编辑器引用——失败路径不适用。
+                if (!$committed) $this->discardImportedFiles($alias);
                 throw $e;
             }
         });
@@ -214,6 +218,32 @@ final class SiteTemplateService
             $this->writeRecord('current', $journal);
             // Imported files remain inactive. Never delete a file another editor may have started using.
         });
+    }
+
+    /**
+     * 清理一次失败导入留下的文件。只接受本类生成的随机别名形态，避免任何误删可能；
+     * 删除失败只记日志，不能掩盖触发回滚的原始异常。
+     */
+    private function discardImportedFiles(string $alias): void
+    {
+        if (preg_match('/^sitepack-[0-9a-f]{16}$/D', $alias) !== 1) return;
+        foreach ([$this->root . '/themes/' . $alias, $this->root . '/uploads/' . $alias] as $directory) {
+            try {
+                if (!is_dir($directory)) continue;
+                $this->assertContained($directory);
+                $entries = new RecursiveIteratorIterator(
+                    new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
+                    RecursiveIteratorIterator::CHILD_FIRST
+                );
+                foreach ($entries as $entry) {
+                    if ($entry->isLink() || $entry->isFile()) @unlink($entry->getPathname());
+                    elseif ($entry->isDir()) @rmdir($entry->getPathname());
+                }
+                @rmdir($directory);
+            } catch (Throwable $cleanup) {
+                error_log('[SiteTemplateService] orphan cleanup skipped for ' . $alias . ': ' . $cleanup->getMessage());
+            }
+        }
     }
 
     private function beginLockedTransaction(): void

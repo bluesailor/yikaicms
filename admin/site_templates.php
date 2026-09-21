@@ -38,10 +38,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($brand as $key => $_value) $brand[$key] = post($key);
             $service->apply(post('token'), getAdminId(), $brand, post('trusted') === '1' && post('confirm') === '1');
             unset($_SESSION['site_template_preview']);
+            // 整站替换会清空并重写 28 张内容表：不留痕就无从追查谁在何时做的
+            adminLog('theme', 'import', 'Site template applied');
             $_SESSION['site_template_notice'] = 'st_applied';
         } elseif ($action === 'restore' && post('confirm') === '1') {
             $service->restore();
             unset($_SESSION['site_template_preview']);
+            adminLog('theme', 'import', 'Site template restored to pre-import snapshot');
             $_SESSION['site_template_notice'] = 'st_restored';
         } else { throw new RuntimeException('st_invalid'); }
         redirect('/admin/site_templates.php');

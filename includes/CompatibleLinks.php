@@ -75,12 +75,20 @@ final class CompatibleLinks
     /** @psalm-suppress PossiblyUnusedMethod Invoked by the web-only output buffer in init.php. */
     public static function output(string $html): string
     {
-        // API、文件下载、XML 等不属于页面链接转换范围。
-        foreach (headers_list() as $header) {
-            if (stripos($header, 'Content-Disposition:') === 0) return $html;
-            if (stripos($header, 'Content-Type:') === 0 && stripos($header, 'text/html') === false) return $html;
+        // 本方法是 ob_start 回调，对 query 模式下的**每个**请求生效（includes/init.php）。
+        // 输出缓冲回调里抛出的异常无法被正常处理——ErrorHandler 试图在回调内产出输出时
+        // PHP 会升级为 fatal，结果是全站白屏。因此整体 fail-open：出任何差错都原样返回。
+        try {
+            // API、文件下载、XML 等不属于页面链接转换范围。
+            foreach (headers_list() as $header) {
+                if (stripos($header, 'Content-Disposition:') === 0) return $html;
+                if (stripos($header, 'Content-Type:') === 0 && stripos($header, 'text/html') === false) return $html;
+            }
+            if (stripos($html, '<html') === false) return $html;
+            return self::html($html, siteBaseUrl(), (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), ROOT_PATH);
+        } catch (Throwable $e) {
+            error_log('[CompatibleLinks] output filter skipped: ' . $e->getMessage());
+            return $html;
         }
-        if (stripos($html, '<html') === false) return $html;
-        return self::html($html, siteBaseUrl(), (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), ROOT_PATH);
     }
 }
