@@ -454,7 +454,16 @@ declare(strict_types=1);
 
             templateSectionDraggable(item) {
                 return this.templateSectionsDocked() && item && item.type === "section"
-                    && !item.locked && this.templateInserting === "";
+                    && !item.locked && !this.templateUnavailable(item) && this.templateInserting === "";
+            },
+
+            /** 依赖缺口：卡片留在列表里，但不能拖、不能插；服务端 resolve() 才是真正的闸。 */
+            templateUnavailable(item) {
+                return window.BloxTemplateLibrary.isUnavailable(item);
+            },
+
+            templateUnavailableLabel(item) {
+                return window.BloxTemplateLibrary.unavailableLabel(item, this.templateText);
             },
 
             openPageTemplates() {
@@ -956,6 +965,7 @@ declare(strict_types=1);
 
 
             insertTemplate(item) {
+                if (this.templateUnavailable(item)) return;
                 this.applyTemplate(item, "append");
             },
 

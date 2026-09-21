@@ -419,14 +419,21 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('if (OPS.indexOf(op) === -1) return false;', $rules);
     }
 
+    /**
+     * 未带 locked 字段的条目按「未锁」处理。
+     *
+     * 守的是写法而不是整条表达式：E08 之后禁用条件还要并上依赖缺口，往后也会再加。
+     * 只要每处引用 locked 的禁用条件都走 `!!item.locked`，缺字段就不会被当成锁定。
+     */
     public function testTemplateInsertTreatsMissingLockStateAsUnlocked(): void
     {
         $editor = $this->source('admin/blox_editor.php');
 
-        $this->assertStringContainsString(
-            ':disabled="templateInserting !== \'\' || !!item.locked"',
-            $editor
-        );
+        preg_match_all('/:disabled="([^"]*item\.locked[^"]*)"/', $editor, $matches);
+        $this->assertNotSame([], $matches[1], '插入按钮的禁用条件必须存在');
+        foreach ($matches[1] as $condition) {
+            $this->assertStringContainsString('!!item.locked', $condition, $condition);
+        }
     }
 
     private function source(string $path): string

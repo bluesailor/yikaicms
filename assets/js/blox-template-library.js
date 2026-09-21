@@ -308,6 +308,38 @@
         return canEditLocal(item) ? "/admin/blox_editor.php?template=" + String(item.key).slice(6) : "";
     }
 
+    /**
+     * 依赖缺口：服务端 items() 给出 unavailable，插入的真正拦截在 resolve()。
+     * 这里只负责说清楚缺什么——凭空消失比说"缺个插件"难查得多。
+     */
+    function unavailableReasons(item) {
+        var raw = item && item.unavailable;
+        if (!raw || typeof raw !== "object") return { elements: [], plugins: [], invalid: false };
+        return {
+            elements: Array.isArray(raw.elements) ? raw.elements.map(String) : [],
+            plugins: Array.isArray(raw.plugins) ? raw.plugins.map(String) : [],
+            invalid: raw.invalid === true,
+        };
+    }
+
+    function isUnavailable(item) {
+        var reasons = unavailableReasons(item);
+        return reasons.invalid || reasons.elements.length > 0 || reasons.plugins.length > 0;
+    }
+
+    function unavailableLabel(item, text) {
+        var reasons = unavailableReasons(item);
+        if (reasons.invalid) return (text && text.depsInvalid) || "";
+        var parts = [];
+        if (reasons.plugins.length) {
+            parts.push(String((text && text.depsPlugins) || "").replace(":list", reasons.plugins.join("、")));
+        }
+        if (reasons.elements.length) {
+            parts.push(String((text && text.depsElements) || "").replace(":list", reasons.elements.join("、")));
+        }
+        return parts.join(" ");
+    }
+
     function lockLabel(item, text) {
         if (!item || !item.locked) return "";
         if (item.locked_reason === "license_expired") return text.lockedExpired;
@@ -481,6 +513,8 @@
         canEditLocal: canEditLocal,
         localEditUrl: localEditUrl,
         lockLabel: lockLabel,
+        isUnavailable: isUnavailable,
+        unavailableLabel: unavailableLabel,
         hasLockedRemote: hasLockedRemote,
         premiumNotice: premiumNotice,
         showCardLock: showCardLock,
