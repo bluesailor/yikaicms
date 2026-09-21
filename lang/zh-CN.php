@@ -393,6 +393,8 @@ return [
     'blox_template_filter_all' => '全部',
     'blox_template_category' => '模板场景',
     'blox_template_category_all' => '全部场景',
+    'blox_tpl_category' => '目录分类',
+    'blox_tpl_category_none' => '未分类（按模板类型归档）',
     'blox_template_category_landing' => '落地页',
     'blox_template_category_marketing' => '营销推广',
     'blox_template_category_content' => '内容展示',

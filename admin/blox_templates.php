@@ -230,6 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $pageTypes = $_POST['page_types'] ?? [];
             bloxTemplateModel()->saveMetadata($id, [
+                'category' => (string) post('category', ''),
                 'purpose' => (string) post('purpose', 'general'),
                 'page_types' => is_array($pageTypes) ? $pageTypes : [],
                 'priority' => (int) post('priority', 0),
@@ -885,6 +886,14 @@ $assignmentSourceLabels = [
     'page' => __('blox_assignment_source_page'),
     'unknown' => __('blox_assignment_source_unknown'),
 ];
+// 区块模板的分类词表：'page' 是整页模板的格子，区块填了只会被归错，所以不提供
+$metadataCategoryLabels = [];
+foreach (BloxSectionMetadata::categories() as $category) {
+    if ($category === 'page') {
+        continue;
+    }
+    $metadataCategoryLabels[$category] = __('blox_template_category_' . $category);
+}
 $metadataPurposeLabels = [];
 foreach (BloxSectionMetadata::purposes() as $purpose) {
     $metadataPurposeLabels[$purpose] = __(str_replace('-', '_', 'blox_template_purpose_' . $purpose));
@@ -1832,6 +1841,15 @@ function confirmAreaPublish(form) {
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="save_metadata">
                                     <input type="hidden" name="id" value="<?php echo $templateId; ?>">
+                                    <label class="block min-w-44">
+                                        <span class="mb-1 block text-xs text-gray-500"><?php echo e(__('blox_tpl_category')); ?></span>
+                                        <select name="category" class="h-9 w-full border border-gray-300 bg-white px-2 text-sm">
+                                            <option value="" <?php echo $templateMetadata['category'] === '' ? 'selected' : ''; ?>><?php echo e(__('blox_tpl_category_none')); ?></option>
+                                            <?php foreach ($metadataCategoryLabels as $value => $label): ?>
+                                            <option value="<?php echo e($value); ?>" <?php echo $templateMetadata['category'] === $value ? 'selected' : ''; ?>><?php echo e($label); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
                                     <label class="block min-w-44">
                                         <span class="mb-1 block text-xs text-gray-500"><?php echo e(__('blox_template_purpose')); ?></span>
                                         <select name="purpose" class="h-9 w-full border border-gray-300 bg-white px-2 text-sm">

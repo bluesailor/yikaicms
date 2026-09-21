@@ -94,6 +94,35 @@ final class BloxTemplateCatalogTest extends TestCase
         $this->assertContains('builtin:404-route-lost', array_column($items, 'key'));
     }
 
+    /**
+     * 目录分类跟着作者填的走，没填才回落到类型（E08）。
+     *
+     * 回落这一支必须守住：此前本地模板的 category 恒等于 type，改成"作者填了就用"
+     * 之后，**没填过的旧模板不能换格子**——否则升级一次，所有人的模板库都重排一遍。
+     */
+    public function testLocalCategoryFollowsTheAuthorAndFallsBackToTheType(): void
+    {
+        $filed = bloxTemplateModel()->createDraft(
+            'section', 'Pricing table', $this->sectionJson('pr', 'pr-el'), 'user', 1,
+            ['elements' => ['heading'], 'plugins' => []], '', 0, '',
+            ['category' => 'products', 'purpose' => 'products']
+        );
+        bloxTemplateModel()->publishDraft($filed);
+
+        $unfiled = bloxTemplateModel()->createDraft(
+            'section', 'Old section', $this->sectionJson('os', 'os-el'), 'user', 1,
+            ['elements' => ['heading'], 'plugins' => []], '', 0, '',
+            ['purpose' => 'hero']
+        );
+        bloxTemplateModel()->publishDraft($unfiled);
+
+        $items = array_column(\BloxTemplateCatalog::items('page'), null, 'key');
+        $this->assertSame('products', $items['local:' . $filed]['category']);
+        $this->assertSame('products', $items['local:' . $filed]['metadata']['category']);
+        $this->assertSame('section', $items['local:' . $unfiled]['category'], '没填分类的模板保持旧归档');
+        $this->assertSame('', $items['local:' . $unfiled]['metadata']['category']);
+    }
+
     /** 元素缺口同样要说出来——这版不支持的元素，作者装什么插件都补不回来。 */
     public function testMissingElementsAreNamedOnTheCard(): void
     {

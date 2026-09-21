@@ -11,6 +11,24 @@ final class BloxSectionMetadataTest extends TestCase
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
     }
 
+    /**
+     * 目录分类（E08）。本地模板此前没有分类可填，`category` 恒等于 `type`，
+     * 用户自存的区块全挤在"section"一格，分类过滤对它们等于不存在。
+     */
+    public function testCategoryIsKeptOnlyWhenItIsOneOfTheKnownBuckets(): void
+    {
+        foreach (BloxSectionMetadata::categories() as $category) {
+            self::assertSame($category, BloxSectionMetadata::normalize(['category' => $category])['category']);
+        }
+        self::assertSame('marketing', BloxSectionMetadata::normalize(['category' => ' Marketing '])['category']);
+
+        // 空/未知/非字符串一律退回未分类：宁可沿用 type，也不要把模板归错格子
+        foreach (['', 'section', 'made-up', ' ', 42, null, ['marketing']] as $bad) {
+            self::assertSame('', BloxSectionMetadata::normalize(['category' => $bad])['category'], var_export($bad, true));
+        }
+        self::assertSame('', BloxSectionMetadata::normalize([])['category'], '没填过分类的旧数据保持未分类');
+    }
+
     public function testNormalizeRejectsUnknownValuesAndBoundsListsAndPriority(): void
     {
         $metadata = BloxSectionMetadata::normalize([
@@ -24,10 +42,12 @@ final class BloxSectionMetadataTest extends TestCase
             'image_ratio' => '16:9',
             'min_cms_version' => '1.19.2',
             'priority' => 999,
+            'category' => 'not-a-category',
         ], 'content');
 
         self::assertSame(1, $metadata['schema']);
         self::assertSame('content', $metadata['purpose']);
+        self::assertSame('', $metadata['category'], '未知分类退回未分类，调用方据此沿用 type');
         self::assertSame(['about'], $metadata['page_types']);
         self::assertSame(['manufacturing'], $metadata['industries']);
         self::assertSame(['heading'], $metadata['content_slots']);
