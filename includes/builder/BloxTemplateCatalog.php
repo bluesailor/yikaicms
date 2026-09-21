@@ -41,6 +41,7 @@ final class BloxTemplateCatalog
                 // 此前是直接跳过：作者存过、发布过的模板凭空消失，面板也不会说一句为什么。
                 // 插入的真正拦截在 resolve()，那条线没动。
                 $missing = self::missingRequirements($row['requirements'] ?? null);
+                $metadata = BloxSectionMetadata::normalize(self::decodeMetadata($row['metadata'] ?? null));
                 $items[] = [
                     'key' => 'local:' . $id,
                     'type' => $type,
@@ -48,9 +49,10 @@ final class BloxTemplateCatalog
                     'description' => '',
                     'source' => 'local',
                     'provider' => (string) ($row['source'] ?? 'user'),
-                    'category' => $type,
+                    // 作者填过分类就用它；没填仍回落到 type，与登记分类之前的行为一致
+                    'category' => $metadata['category'] !== '' ? $metadata['category'] : $type,
                     'thumbnail' => self::safeLocalThumbnail($row['thumbnail'] ?? ''),
-                    'metadata' => BloxSectionMetadata::normalize(self::decodeMetadata($row['metadata'] ?? null)),
+                    'metadata' => $metadata,
                     'updated_at' => (int) ($row['updated_at'] ?? 0),
                     'unavailable' => $missing,
                 ];
