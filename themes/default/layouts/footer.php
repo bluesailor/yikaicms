@@ -285,32 +285,24 @@ if ($footerBgLiteral !== '') {
     </script>
 
     <!-- General Lightbox -->
-    <div id="ik-lightbox" class="fixed inset-0 z-[200] bg-black/80 hidden items-center justify-center cursor-zoom-out" onclick="if(event.target===this){this.classList.add('hidden');this.classList.remove('flex');document.body.style.overflow=''}">
-        <button onclick="this.parentElement.classList.add('hidden');this.parentElement.classList.remove('flex');document.body.style.overflow=''" class="absolute top-4 right-4 text-white/80 hover:text-white text-4xl leading-none cursor-pointer">&times;</button>
-        <img id="ik-lightbox-img" src="" class="max-w-[90vw] max-h-[90vh] rounded-lg shadow-2xl" onclick="event.stopPropagation()">
-    </div>
+    <?php
+    // 灯箱改由共享实现提供（assets/js/blox-lightbox.js）：支持分组前后切换、焦点返回与滑动。
+    // 这里只留一段极小的引导——页面上真的有 a[data-lightbox] 才去取脚本与样式，
+    // 没有灯箱图片的页面一个字节都不多下载。Blox 图片元素另有 BloxAssetCollector 精确登记，
+    // 这段是给相册等非 Blox 内容兜底的。
+    ?>
     <script>
-    document.addEventListener('click', function(e) {
-        var link = e.target.closest('a[data-lightbox]');
-        if (!link) return;
-        if (link.dataset.lightbox === 'album') return;
-        e.preventDefault();
-        var box = document.getElementById('ik-lightbox');
-        document.getElementById('ik-lightbox-img').src = link.href;
-        box.classList.remove('hidden');
-        box.classList.add('flex');
-        document.body.style.overflow = 'hidden';
-    });
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            var box = document.getElementById('ik-lightbox');
-            if (!box.classList.contains('hidden')) {
-                box.classList.add('hidden');
-                box.classList.remove('flex');
-                document.body.style.overflow = '';
-            }
-        }
-    });
+    (function () {
+        if (!document.querySelector('a[data-lightbox]:not([data-lightbox="album"])')) return;
+        var css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '<?php echo assetVer('/assets/css/blox-lightbox.css'); ?>';
+        document.head.appendChild(css);
+        var script = document.createElement('script');
+        script.src = '<?php echo assetVer('/assets/js/blox-lightbox.js'); ?>';
+        script.defer = true;
+        document.head.appendChild(script);
+    })();
     </script>
 
     <!-- scroll-in animation -->

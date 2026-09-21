@@ -64,6 +64,11 @@ final class ImageElement extends AbstractElement
                 'visible_when' => ['terms' => [['click_action', '=', 'link']]]],
             ['key' => 'link_new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab_short'), 'default' => false,
                 'visible_when' => ['terms' => [['click_action', '=', 'link']]]],
+            // 同名分组的图片在灯箱里可前后切换（E05 切片 C）。留空＝只看这一张。
+            ['key' => 'lightbox_group', 'type' => 'text', 'label' => __('blox_lightbox_group'), 'default' => '',
+                'visible_when' => ['terms' => [['click_action', '=', 'lightbox']]]],
+            ['key' => 'lightbox_caption', 'type' => 'text', 'label' => __('blox_lightbox_caption'), 'default' => '',
+                'visible_when' => ['terms' => [['click_action', '=', 'lightbox']]]],
             ...BloxImageFraming::controls(),
             ...$this->animationControls(),
         ];
@@ -104,7 +109,20 @@ final class ImageElement extends AbstractElement
             // 灯箱的 href 是可点击链接，须过伪协议校验；src 不合法则退化为普通图片
             $lightboxHref = self::safeHref($rawSrc);
             if ($lightboxHref !== '') {
-                return '<a href="' . htmlspecialchars($lightboxHref) . '" data-lightbox class="block cursor-zoom-in"' . $animationAttrs . '>' . $imgTag . '</a>';
+                // 按需加载：没有灯箱图片的页面不会引入这两个文件
+                BloxAssetCollector::addStyle('/assets/css/blox-lightbox.css');
+                BloxAssetCollector::addScript('/assets/js/blox-lightbox.js');
+                // 分组名让同组图片可以前后切换；留空则只看这一张。
+                // 值取自作者填写的分组，经白名单收敛——它会进选择器，不能带引号或空白。
+                $groupRaw = trim((string) ($data['lightbox_group'] ?? ''));
+                $group = preg_match('/^[a-zA-Z0-9_-]{1,32}$/D', $groupRaw) === 1 ? $groupRaw : '';
+                $groupAttr = $group === '' ? ' data-lightbox' : ' data-lightbox="' . htmlspecialchars($group) . '"';
+                $captionRaw = trim(BloxDynamicTags::resolveText((string) ($data['lightbox_caption'] ?? '')));
+                $captionAttr = $captionRaw === ''
+                    ? ''
+                    : ' data-caption="' . htmlspecialchars(mb_substr($captionRaw, 0, 300), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
+                return '<a href="' . htmlspecialchars($lightboxHref) . '"' . $groupAttr . $captionAttr
+                    . ' class="block cursor-zoom-in"' . $animationAttrs . '>' . $imgTag . '</a>';
             }
         }
         if ($clickAction === 'link' && !empty($data['link_url'])) {
