@@ -5,6 +5,8 @@ installed.lock
 # Runtime data
 storage/database.sqlite
 storage/.recipe-apply.lock
+storage/site-templates/
+storage/theme-locks/
 storage/logs/*.log
 storage/cache/*
 storage/temp/
@@ -20,6 +22,8 @@ uploads/images/*
 uploads/files/*
 uploads/videos/*
 uploads/albums/*
+uploads/sitepack-*/
+uploads/site-template-workflow/
 !uploads/images/.gitkeep
 !uploads/files/.gitkeep
 !uploads/videos/.gitkeep

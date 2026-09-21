@@ -53,6 +53,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <p class="mt-2 text-gray-600"><?= e(__('setup_home_hint')) ?></p>
         <div class="flex flex-wrap gap-3 mt-4">
             <a class="bg-primary text-white rounded px-4 py-3" href="/admin/setting_home.php"><?= e(__('setup_edit_home')) ?></a>
+            <a class="border rounded px-4 py-3 text-gray-700" href="/admin/theme_content.php"><?= e(__('tc_title')) ?></a>
             <a class="border rounded px-4 py-3 text-gray-700" href="/admin/theme.php"><?= e(__('admin_theme')) ?>: <?= e(currentTheme()) ?></a>
             <a class="border rounded px-4 py-3 text-gray-700" href="/" target="_blank" rel="noopener"><?= e(__('setup_preview')) ?></a>
         </div>
@@ -81,6 +82,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <section class="bg-white rounded-lg shadow p-6" aria-labelledby="setup-content">
         <h2 id="setup-content" class="text-lg font-bold text-gray-800"><?= e(__('setup_content')) ?></h2>
         <p class="text-gray-600 mt-2"><?= e(__('setup_check_hint')) ?></p>
+        <a class="inline-block border rounded px-4 py-3 mt-3" href="/admin/site_content_check.php"><?= e(__('sc_title')) ?></a>
         <ul class="divide-y mt-4">
             <?php foreach ($checks as $check): ?>
             <li class="flex flex-wrap items-center justify-between gap-3 py-4">
@@ -93,6 +95,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </section>
     <section class="bg-white rounded-lg shadow p-6" aria-labelledby="setup-start">
         <h2 id="setup-start" class="text-lg font-bold text-gray-800"><?= e(__('setup_start')) ?></h2>
+        <p class="text-gray-600 mt-2"><?= e(__('st_intro')) ?></p>
+        <a class="inline-block bg-primary text-white rounded px-4 py-3 mt-4" href="/admin/site_templates.php"><?= e(__('st_title')) ?></a>
         <p class="text-gray-600 mt-2"><?= e(__('setup_recipe_limit')) ?></p>
         <a class="inline-block border rounded px-4 py-3 text-gray-700 mt-4" href="/admin/recipe.php"><?= e(__('admin_recipe')) ?></a>
     </section>

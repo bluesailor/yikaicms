@@ -81,6 +81,9 @@ final class ReleaseArtifactSmokeTest extends TestCase
         foreach ([
             'includes/http_response.php',
             'includes/language_request.php',
+            'includes/ThemeContent.php',
+            'includes/SiteTemplateService.php',
+            'admin/site_templates.php',
             'assets/icons/blox-icon-catalog.json',
         ] as $path) {
             self::assertContains($path, $this->manifest['required_files']);
