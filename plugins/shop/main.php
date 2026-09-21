@@ -23,6 +23,126 @@ add_action('init', function (): void {
         // 建表失败（权限/磁盘）不炸前台：商城功能不可用，但站点其余部分照常
         error_log('[shop] ensure schema failed: ' . $e->getMessage());
     }
+    // 访问触发降级（立项 v2 修正 #3 的交付项）：无 crontab 的共享主机靠访问
+    // 兜底跑「超时关单」。flock + 60s 最小间隔防堆叠；正常配置了 cron.php?token=
+    // 或 CLI cron:run 的站点，两边共用 cron_shop_order_expire_last 不会双跑。
+    shopRunFallbackTasks();
+});
+
+/**
+ * 访问触发的商城兜底任务。只在「到点且拿得到锁」时执行一次；
+ * 任何异常都吞掉——前台请求绝不能因为定时任务炸掉。
+ */
+function shopRunFallbackTasks(): void
+{
+    try {
+        $lockDir = STORAGE_PATH . '/shop';
+        if (!is_dir($lockDir)) {
+            @mkdir($lockDir, 0777, true);
+        }
+        $handle = @fopen($lockDir . '/cron-fallback.lock', 'c');
+        if ($handle === false) {
+            return;
+        }
+        if (!flock($handle, LOCK_EX | LOCK_NB)) {
+            fclose($handle);
+            return;   // 别的请求正在跑
+        }
+        try {
+            $last = (int) settingModel()->get('shop_fallback_last', '0');
+            if (time() - $last < 60) {
+                return;
+            }
+            require_once ROOT_PATH . '/includes/Cron.php';
+            Cron::runOne('shop_order_expire');   // 注册在 cron_register（下方）
+            settingModel()->set('shop_fallback_last', (string) time());
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    } catch (\Throwable $e) {
+        error_log('[shop] fallback task failed: ' . $e->getMessage());
+    }
+}
+
+// 超时关单：待付款超时的订单自动关闭并回补库存（释放被锁的库存）
+add_action('cron_register', function (): void {
+    if (!function_exists('shopOrderClose')) {
+        require_once __DIR__ . '/lib/orders.php';
+    }
+    Cron::register('shop_order_expire', __('cron_shop_order_expire'), 300, function (): string {
+        if (!db()->tableExists('shop_orders')) {
+            return __('cron_nothing_due');
+        }
+        $expired = db()->fetchAll(
+            'SELECT id FROM ' . DB_PREFIX . 'shop_orders WHERE status = ? AND expire_at > 0 AND expire_at < ? LIMIT 200',
+            ['pending_payment', time()]
+        );
+        $closed = 0;
+        foreach ($expired as $row) {
+            $r = shopOrderClose((int) $row['id'], 'expired');
+            if ($r['ok']) {
+                $closed++;
+            }
+        }
+        return $closed > 0 ? str_replace(':n', (string) $closed, __('cron_shop_expired_n')) : __('cron_nothing_due');
+    });
+});
+
+// 订单邮件：新订单通知商家；确认收款通知买家。sendMail 自带 mail_log 记录，
+// 失败由既有 mail_retry cron 自动重试（复用核心邮件可靠性，不另造队列）。
+// renderMailTemplate 在 includes/mail_notify.php，init 链不加载，这里补上。
+$shopMailBootstrap = static function (): void {
+    if (!function_exists('renderMailTemplate') && is_file(ROOT_PATH . '/includes/mail_notify.php')) {
+        require_once ROOT_PATH . '/includes/mail_notify.php';
+    }
+};
+
+add_action('shop_order_placed', function (int $orderId) use ($shopMailBootstrap): void {
+    $shopMailBootstrap();
+    require_once __DIR__ . '/lib/orders.php';
+    $detail = shopOrderDetail($orderId);
+    if ($detail === null) {
+        return;
+    }
+    $order = $detail['order'];
+    $admin = (string) config('mail_admin', '');
+    if ($admin === '') {
+        return;
+    }
+    $vars = [
+        'order_no' => (string) $order['order_no'],
+        'total' => formatPrice((string) $order['amount_total']),
+    ];
+    sendMail(
+        $admin,
+        renderMailTemplate(__('shop_mail_new_subject'), $vars),
+        // 语言包是单引号 PHP 串，\\n 是字面量——发送前统一转成真实换行
+        str_replace('\\n', "\n", renderMailTemplate(__('shop_mail_new_body'), $vars))
+    );
+});
+
+add_action('shop_order_paid', function (int $orderId) use ($shopMailBootstrap): void {
+    $shopMailBootstrap();
+    require_once __DIR__ . '/lib/orders.php';
+    $detail = shopOrderDetail($orderId);
+    if ($detail === null) {
+        return;
+    }
+    $contact = json_decode((string) $detail['order']['contact_json'], true) ?: [];
+    $to = (string) ($contact['email'] ?? '');
+    if ($to === '' || filter_var($to, FILTER_VALIDATE_EMAIL) === false) {
+        return;   // 买家没留邮箱：无通知对象，不视为失败
+    }
+    $vars = [
+        'order_no' => (string) $detail['order']['order_no'],
+        'total' => formatPrice((string) $detail['order']['amount_total']),
+    ];
+    sendMail(
+        $to,
+        renderMailTemplate(__('shop_mail_paid_subject'), $vars),
+        str_replace('\\n', "\n", renderMailTemplate(__('shop_mail_paid_body'), $vars))
+    );
 });
 
 // 产品详情页（原生回退版式）的购买入口：产品在售且有余量时渲染加购表单。

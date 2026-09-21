@@ -36,6 +36,28 @@ return [
     'shop_stock_infinite_hint' => 'With stock 0 and listing off, no buy entry is shown',
     'shop_order_status_pending_payment' => 'Pending payment',
     'shop_order_status_paid' => 'Paid',
+    'shop_err_order_transition' => 'This order status does not allow that action',
+    'shop_order_search_placeholder' => 'Order no / contact / remark',
+    'shop_order_detail' => 'Detail',
+    'shop_back_to_list' => 'Back to list',
+    'shop_btn_confirm_paid' => 'Confirm payment',
+    'shop_btn_ship' => 'Ship',
+    'shop_btn_complete' => 'Complete',
+    'shop_btn_close_order' => 'Close order',
+    'shop_created_at' => 'Placed at',
+    'shop_paid_at' => 'Paid at',
+    'cron_shop_order_expire' => 'Shop expired-order close',
+    'cron_shop_expired_n' => 'Closed :n unpaid expired order(s) and released stock',
+    'shop_mail_new_subject' => '[{{site_name}}] New order {{order_no}}',
+    'shop_mail_new_body' => 'A new order was placed:
+Order no: {{order_no}}
+Amount: {{total}}
+Please confirm payment and arrange shipment in the admin.',
+    'shop_mail_paid_subject' => '[{{site_name}}] Order {{order_no}} payment confirmed',
+    'shop_mail_paid_body' => 'Your payment has been confirmed; the merchant will ship soon.
+Order no: {{order_no}}
+Amount: {{total}}
+You can check the order status on the site with the order number and phone suffix.',
     'shop_order_status_awaiting_ship' => 'Awaiting shipment',
     'shop_order_status_shipped' => 'Shipped',
     'shop_order_status_completed' => 'Completed',

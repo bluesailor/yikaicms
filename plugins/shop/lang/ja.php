@@ -36,6 +36,28 @@ return [
     'shop_stock_infinite_hint' => '在庫0かつ非掲載の場合、購入入口は表示されません',
     'shop_order_status_pending_payment' => '入金待ち',
     'shop_order_status_paid' => '入金済み',
+    'shop_err_order_transition' => 'この注文状態ではその操作はできません',
+    'shop_order_search_placeholder' => '注文番号 / 連絡先 / 備考',
+    'shop_order_detail' => '詳細',
+    'shop_back_to_list' => '一覧へ戻る',
+    'shop_btn_confirm_paid' => '入金確認',
+    'shop_btn_ship' => '発送',
+    'shop_btn_complete' => '完了',
+    'shop_btn_close_order' => '注文をクローズ',
+    'shop_created_at' => '注文日時',
+    'shop_paid_at' => '入金日時',
+    'cron_shop_order_expire' => 'ショップ期限切れ注文のクローズ',
+    'cron_shop_expired_n' => '未払いの期限切れ注文 :n 件をクローズし在庫を解放しました',
+    'shop_mail_new_subject' => '【{{site_name}}】新規注文 {{order_no}}',
+    'shop_mail_new_body' => '新しい注文がありました：
+注文番号：{{order_no}}
+金額：{{total}}
+管理画面で入金を確認し発送してください。',
+    'shop_mail_paid_subject' => '【{{site_name}}】注文 {{order_no}} の入金確認',
+    'shop_mail_paid_body' => 'ご入金を確認しました。まもなく発送します。
+注文番号：{{order_no}}
+金額：{{total}}
+注文番号と電話番号の下4桁でサイトから注文状況を確認できます。',
     'shop_order_status_awaiting_ship' => '発送待ち',
     'shop_order_status_shipped' => '発送済み',
     'shop_order_status_completed' => '完了',

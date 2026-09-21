@@ -89,7 +89,14 @@ final class ShopPluginFoundationTest extends TestCase
         $this->assertArrayHasKey('shop_manage', $manifest, 'shop 插件应声明 shop_manage');
         $this->assertArrayHasKey('shop_orders', $manifest);
         $meta = json_decode((string) file_get_contents(ROOT_PATH . '/plugins/shop/plugin.json'), true);
-        $this->assertSame('shop_manage', $meta['admin_permission'] ?? null, '宿主页权限键必须是已声明的键');
+        // G1 扩展（M1-d）：admin_permission_any 列出宿主页可进入的权限键，
+        // 且每个键都必须已声明（否则宿主页退回超管，只收紧不放宽）
+        $any = $meta['admin_permission_any'] ?? [];
+        $this->assertIsArray($any);
+        $this->assertNotEmpty($any);
+        foreach ($any as $key) {
+            $this->assertArrayHasKey($key, $manifest, "宿主页键 {$key} 必须在 permissions 里声明");
+        }
     }
 
     /** 七张表双方言齐备、MySQL 侧带 5.7 底线的字符集、占位符可替换。 */

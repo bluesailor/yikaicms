@@ -13,5 +13,5 @@
         "shop_manage": {"label": "商城管理", "label_en": "Shop management", "label_ja": "ショップ管理"},
         "shop_orders": {"label": "订单处理", "label_en": "Order fulfillment", "label_ja": "受注処理"}
     },
-    "admin_permission": "shop_manage"
+    "admin_permission_any": ["shop_manage", "shop_orders"]
 }
