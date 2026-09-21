@@ -842,6 +842,12 @@ if ($isHomeBlox) {
 
 $businessIconPresets = BloxIcon::businessPresets();
 $bloxDesignSystem = BloxDesignSystem::snapshot();
+// 样式来源提示要能说出"这个颜色来自哪个全局类"，所以把类目录一并给编辑器。
+// 只带来源判定用得到的字段，不下发整张表。
+$bloxDesignSystem['classes'] = array_map(
+    static fn(array $row): array => ['name' => (string) ($row['name'] ?? ''), 'settings' => $row['settings'] ?? []],
+    BloxGlobalClasses::catalog()
+);
 $bloxGlobalClasses = array_values(BloxGlobalClasses::catalog());
 $bloxGlobalQueries = array_values(BloxGlobalQueries::catalog());
 $canManageBloxDesign = hasPermission('blox_global');
