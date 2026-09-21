@@ -37,6 +37,28 @@ return [
     'shop_stock_infinite_hint' => '库存为 0 且未上架时前台不显示购买入口',
     'shop_order_status_pending_payment' => '待付款',
     'shop_order_status_paid' => '已付款',
+    'shop_err_order_transition' => '该订单状态不允许此操作',
+    'shop_order_search_placeholder' => '订单号 / 联系人 / 备注',
+    'shop_order_detail' => '详情',
+    'shop_back_to_list' => '返回列表',
+    'shop_btn_confirm_paid' => '确认收款',
+    'shop_btn_ship' => '发货',
+    'shop_btn_complete' => '完成订单',
+    'shop_btn_close_order' => '关闭订单',
+    'shop_created_at' => '下单时间',
+    'shop_paid_at' => '收款时间',
+    'cron_shop_order_expire' => '商城超时订单关闭',
+    'cron_shop_expired_n' => '已关闭 :n 个超时未付款订单并释放库存',
+    'shop_mail_new_subject' => '【{{site_name}}】新订单 {{order_no}}',
+    'shop_mail_new_body' => '站点收到一笔新订单：
+订单号：{{order_no}}
+金额：{{total}}
+请登录后台确认收款并安排发货。',
+    'shop_mail_paid_subject' => '【{{site_name}}】订单 {{order_no}} 已确认收款',
+    'shop_mail_paid_body' => '您的订单已确认收款，商家将尽快安排发货。
+订单号：{{order_no}}
+金额：{{total}}
+可凭订单号与手机尾号在官网查询订单状态。',
     'shop_order_status_awaiting_ship' => '待发货',
     'shop_order_status_shipped' => '已发货',
     'shop_order_status_completed' => '已完成',

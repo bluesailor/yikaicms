@@ -211,6 +211,7 @@ function shopOrderCreate(array $lines, array $contact, array $address, string $r
     }
     shopCartClear();
     do_action('data_changed');
+    do_action('shop_order_placed', $orderId);
 
     return ['ok' => true, 'error' => '', 'order_no' => $orderNo, 'order_id' => $orderId];
 }
@@ -260,6 +261,7 @@ function shopOrderMarkPaid(int $orderId, string $gatewayTradeNo = ''): array
         return ['ok' => false, 'error' => 'shop_err_order_failed'];
     }
     do_action('data_changed');
+    do_action('shop_order_paid', $orderId);
 
     return ['ok' => true, 'error' => ''];
 }
@@ -305,6 +307,116 @@ function shopOrderClose(int $orderId, string $reason = ''): array
     do_action('data_changed');
 
     return ['ok' => true, 'error' => ''];
+}
+
+/**
+ * 商家侧统一状态推进（发货 shipped / 完成 completed）。
+ * 走 shopOrderCanTransition 守卫；标记发货时间/完成时间。
+ */
+function shopOrderTransition(int $orderId, string $to): array
+{
+    shopEnsureSchema();
+    $order = db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'shop_orders WHERE id = ?', [$orderId]);
+    if ($order === null) {
+        return ['ok' => false, 'error' => 'shop_err_order_not_found'];
+    }
+    if (!shopOrderCanTransition((string) $order['status'], $to)) {
+        return ['ok' => false, 'error' => 'shop_err_order_transition'];
+    }
+
+    $fields = ['status' => $to, 'updated_at' => time()];
+    if ($to === 'shipped') {
+        $fields['shipped_at'] = time();
+    } elseif ($to === 'completed') {
+        $fields['completed_at'] = time();
+    }
+    db()->update('shop_orders', $fields, 'id = ? AND status = ?', [$orderId, $order['status']]);
+    do_action('data_changed');
+
+    return ['ok' => true, 'error' => ''];
+}
+
+/** 商家备注（追加覆盖 remark 列；仅文案，不推进状态）。 */
+function shopOrderUpdateRemark(int $orderId, string $remark): array
+{
+    shopEnsureSchema();
+    $order = db()->fetchOne('SELECT id FROM ' . DB_PREFIX . 'shop_orders WHERE id = ?', [$orderId]);
+    if ($order === null) {
+        return ['ok' => false, 'error' => 'shop_err_order_not_found'];
+    }
+    db()->update('shop_orders', [
+        'remark' => mb_substr($remark, 0, 500),
+        'updated_at' => time(),
+    ], 'id = ?', [$orderId]);
+
+    return ['ok' => true, 'error' => ''];
+}
+
+/**
+ * 商家后台订单分页列表（状态过滤 + 单号/联系方式模糊搜索）。
+ * 附带最新支付流水状态与明细件数，避免逐单 N+1。
+ *
+ * @return array{items: list<array<string,mixed>>, total: int}
+ */
+function shopOrderPage(array $filters, int $limit, int $offset): array
+{
+    shopEnsureSchema();
+    $where = [];
+    $params = [];
+
+    $status = (string) ($filters['status'] ?? 'all');
+    if ($status !== 'all' && in_array($status, shopOrderStatuses(), true)) {
+        $where[] = 'o.status = ?';
+        $params[] = $status;
+    }
+    $keyword = trim((string) ($filters['keyword'] ?? ''));
+    if ($keyword !== '') {
+        $where[] = '(o.order_no LIKE ? OR o.contact_json LIKE ? OR o.remark LIKE ?)';
+        $like = '%' . $keyword . '%';
+        $params[] = $like;
+        $params[] = $like;
+        $params[] = $like;
+    }
+    $whereSQL = $where !== [] ? 'WHERE ' . implode(' AND ', $where) : '';
+
+    $orders = DB_PREFIX . 'shop_orders';
+    $payments = DB_PREFIX . 'shop_payments';
+    $items = DB_PREFIX . 'shop_order_items';
+
+    $total = (int) db()->fetchColumn("SELECT COUNT(*) FROM {$orders} o {$whereSQL}", $params);
+
+    // MySQL 5.7 兼容：无窗口函数——最新支付流水用「自连接取最大 id」子查询
+    $rows = db()->fetchAll(
+        "SELECT o.*, p.status AS payment_status,
+                (SELECT COUNT(*) FROM {$items} i WHERE i.order_id = o.id) AS item_count
+         FROM {$orders} o
+         LEFT JOIN {$payments} p ON p.id = (
+             SELECT MAX(p2.id) FROM {$payments} p2 WHERE p2.order_id = o.id
+         )
+         {$whereSQL}
+         ORDER BY o.id DESC LIMIT ? OFFSET ?",
+        array_merge($params, [$limit, $offset])
+    );
+
+    return ['items' => $rows, 'total' => $total];
+}
+
+/**
+ * 订单详情（商家后台展示用）：订单 + 明细 + 支付流水。快照渲染，不查实时商品。
+ * @return array<string,mixed>|null
+ */
+function shopOrderDetail(int $orderId): ?array
+{
+    shopEnsureSchema();
+    $order = db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'shop_orders WHERE id = ?', [$orderId]);
+    if ($order === null) {
+        return null;
+    }
+    return [
+        'order' => $order,
+        'items' => db()->fetchAll('SELECT * FROM ' . DB_PREFIX . 'shop_order_items WHERE order_id = ? ORDER BY id', [$orderId]),
+        'payments' => db()->fetchAll('SELECT * FROM ' . DB_PREFIX . 'shop_payments WHERE order_id = ? ORDER BY id', [$orderId]),
+    ];
 }
 
 /**
