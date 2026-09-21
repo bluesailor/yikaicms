@@ -24,3 +24,11 @@ if (function_exists('register_admin_menu')) {
         'icon'     => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>',
     ]);
 }
+
+// 前台路由（Dispatcher 约定：自定义规则必须并到核心表**前面**，正则锚定写窄）
+add_filter('dispatch_routes', static function (array $routes): array {
+    return array_merge([
+        ['#^shop/cart$#', 'plugins/shop/front/cart.php', [], []],
+        ['#^shop/api$#', 'plugins/shop/front/api.php', [], []],
+    ], $routes);
+});
