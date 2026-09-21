@@ -203,10 +203,17 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
     if ((string) ($_GET['article_template'] ?? '') === '1') {
         // 文章样本预览：只读取数，**刻意不走 ContentDetailController::prepare()**——
         // 那条路径会自增浏览量，编辑器换样本不得污染统计。
-        $article = hasPermission('edit_article')
-            ? contentModel()->getPublished((int) ($_POST['preview_article'] ?? 0)) : null;
-        if ($article !== null && (($article['lang'] ?? '') !== siteLang() || ($article['type'] ?? '') !== 'article')) {
-            $article = null;
+        // 边界样本（E10）：合成记录，永不落库，只在这条预览路径上出现。
+        // 真实内容通常"正常"，模板崩的是长标题/空字段这些极端情形，设计时就该看得到。
+        $sampleKey = (string) ($_POST['preview_article'] ?? '');
+        if (BloxEdgeSamples::isEdgeKey($sampleKey)) {
+            $article = hasPermission('edit_article') ? BloxEdgeSamples::article($sampleKey, siteLang()) : null;
+        } else {
+            $article = hasPermission('edit_article')
+                ? contentModel()->getPublished((int) $sampleKey) : null;
+            if ($article !== null && (($article['lang'] ?? '') !== siteLang() || ($article['type'] ?? '') !== 'article')) {
+                $article = null;
+            }
         }
         BlockRenderer::$editChannelId = $bloxCanvas ? 1 : 0;
         if ($article === null) {
@@ -233,11 +240,21 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
         // 前台控制器只被 product.php 显式 require（不在自动加载范围内），预览端点需自己引入
         require_once ROOT_PATH . '/controllers/detail/ProductDetailController.php';
         ProductTemplateDocument::markPreview();
-        $productContext = hasPermission('edit_product')
-            ? (new ProductDetailController())->prepare((int) ($_POST['preview_product'] ?? 0), false) : null;
-        if ($productContext !== null && (string) ($productContext['product']['lang'] ?? '') !== siteLang()) {
-            // 语言不匹配不是"回退到原文"，而是没有可预览样本
-            $productContext = null;
+        $sampleKey = (string) ($_POST['preview_product'] ?? '');
+        if (BloxEdgeSamples::isEdgeKey($sampleKey)) {
+            // 合成样本不经控制器：它没有真实的相册/上下篇/相关，给出同形状的空上下文即可，
+            // 模板照样走一遍空值分支——这正是要看的东西。
+            $productContext = hasPermission('edit_product')
+                ? ['product' => BloxEdgeSamples::product($sampleKey, siteLang()),
+                   'album' => [], 'prev' => null, 'next' => null, 'related' => []]
+                : null;
+        } else {
+            $productContext = hasPermission('edit_product')
+                ? (new ProductDetailController())->prepare((int) $sampleKey, false) : null;
+            if ($productContext !== null && (string) ($productContext['product']['lang'] ?? '') !== siteLang()) {
+                // 语言不匹配不是"回退到原文"，而是没有可预览样本
+                $productContext = null;
+            }
         }
         BlockRenderer::$editChannelId = $bloxCanvas ? 1 : 0;
         $body = $productContext === null
