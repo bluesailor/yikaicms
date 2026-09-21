@@ -70,6 +70,8 @@
                 <file name="plugins/shop/admin.php" />
                 <!-- 同理：cart 页的 $pageTitle/$currentSlug/$navChannels 供 require 的主题 header 使用 -->
                 <file name="plugins/shop/front/cart.php" />
+                <file name="plugins/shop/front/checkout.php" />
+                <file name="plugins/shop/front/order.php" />
             </errorLevel>
         </UnusedVariable>
         <UnusedForeachValue>

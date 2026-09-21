@@ -30,5 +30,7 @@ add_filter('dispatch_routes', static function (array $routes): array {
     return array_merge([
         ['#^shop/cart$#', 'plugins/shop/front/cart.php', [], []],
         ['#^shop/api$#', 'plugins/shop/front/api.php', [], []],
+        ['#^shop/checkout$#', 'plugins/shop/front/checkout.php', [], []],
+        ['#^shop/order$#', 'plugins/shop/front/order.php', [], []],
     ], $routes);
 });
