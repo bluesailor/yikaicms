@@ -1594,9 +1594,10 @@ declare(strict_types=1);
                                                   x-text="templateText.dynamicData"></span>
                                         </span>
                                         <span class="mt-0.5 flex min-w-0 items-center gap-1 text-[11px]"
-                                              :class="showTemplateCardLock(item) ? 'text-amber-700' : 'text-gray-400'">
-                                            <i class="ti shrink-0" :class="showTemplateCardLock(item) ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user'))"></i>
-                                            <span class="blox-template-provider truncate" x-text="showTemplateCardLock(item) ? templateLockLabel(item) : templateProviderLabel(item)"></span>
+                                              :class="templateUnavailable(item) ? 'text-red-700' : (showTemplateCardLock(item) ? 'text-amber-700' : 'text-gray-400')">
+                                            <i class="ti shrink-0" :class="templateUnavailable(item) ? 'ti-plug-off' : (showTemplateCardLock(item) ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : (item.source === 'plugin' ? 'ti-plug' : 'ti-user')))"></i>
+                                            <span class="blox-template-provider truncate" data-testid="blox-template-unavailable"
+                                                  x-text="templateUnavailable(item) ? templateUnavailableLabel(item) : (showTemplateCardLock(item) ? templateLockLabel(item) : templateProviderLabel(item))"></span>
                                         </span>
                                     </span>
                                     <template x-if="canEditLocalTemplate(item)">
@@ -1607,9 +1608,9 @@ declare(strict_types=1);
                                         </a>
                                     </template>
                                     <button type="button" @click="insertTemplate(item)"
-                                            :disabled="templateInserting !== '' || !!item.locked"
+                                            :disabled="templateInserting !== '' || !!item.locked || templateUnavailable(item)"
                                             data-testid="blox-template-insert"
-                                            :title="item.locked ? templateLockLabel(item) : (item.source === 'remote' ? templateText.downloadImport : templateText.insertSection)"
+                                            :title="templateUnavailable(item) ? templateUnavailableLabel(item) : (item.locked ? templateLockLabel(item) : (item.source === 'remote' ? templateText.downloadImport : templateText.insertSection))"
                                             class="h-8 shrink-0 rounded border border-blue-200 bg-white px-3 text-xs font-semibold text-blue-700 inline-flex items-center justify-center gap-1.5 hover:border-blue-600 hover:bg-blue-600 hover:text-white disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">
                                         <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (showTemplateCardLock(item) ? 'ti-lock' : (item.source === 'remote' ? 'ti-cloud-download' : 'ti-plus'))"></i>
                                         <span x-text="item.source === 'remote' ? templateText.downloadImport : templateText.insertSection"></span>
@@ -1640,19 +1641,23 @@ declare(strict_types=1);
                                 <span x-show="showTemplateCardLock(item)" class="block mt-1 text-[11px] text-amber-700">
                                     <i class="ti ti-lock mr-0.5"></i><span x-text="templateLockLabel(item)"></span>
                                 </span>
+                                <span x-show="templateUnavailable(item)" data-testid="blox-template-unavailable"
+                                      class="block mt-1 text-[11px] text-red-700">
+                                    <i class="ti ti-plug-off mr-0.5"></i><span x-text="templateUnavailableLabel(item)"></span>
+                                </span>
                                 <span class="mt-auto pt-3 flex items-center gap-2">
                                 <button type="button" x-show="item.type === 'page' && pageMode" @click="replaceWithTemplate(item)"
-                                        :disabled="templateInserting !== '' || !!item.locked"
+                                        :disabled="templateInserting !== '' || !!item.locked || templateUnavailable(item)"
                                         data-testid="blox-template-replace"
-                                        :title="item.locked ? templateLockLabel(item) : templateText.usePage"
+                                        :title="templateUnavailable(item) ? templateUnavailableLabel(item) : (item.locked ? templateLockLabel(item) : templateText.usePage)"
                                         class="h-8 flex-1 rounded border border-blue-600 bg-blue-600 px-3 text-xs font-medium text-white inline-flex items-center justify-center gap-1.5 hover:border-blue-500 hover:bg-blue-500 disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed">
                                     <i class="ti text-sm" :class="templateInserting === item.key ? 'ti-loader-2 animate-spin' : (showTemplateCardLock(item) ? 'ti-lock' : 'ti-wand')"></i>
                                     <span x-text="templateText.usePage"></span>
                                 </button>
                                 <button type="button" x-show="item.type !== 'page' || !pageMode" @click="insertTemplate(item)"
-                                        :disabled="templateInserting !== '' || !!item.locked"
+                                        :disabled="templateInserting !== '' || !!item.locked || templateUnavailable(item)"
                                         data-testid="blox-template-insert"
-                                        :title="item.locked ? templateLockLabel(item) : (item.source === 'remote' ? templateText.downloadImport : templateText.insert)"
+                                        :title="templateUnavailable(item) ? templateUnavailableLabel(item) : (item.locked ? templateLockLabel(item) : (item.source === 'remote' ? templateText.downloadImport : templateText.insert))"
                                         class="h-8 rounded px-3 text-xs font-medium inline-flex items-center justify-center gap-1.5 disabled:bg-gray-100 disabled:border-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
                                         :class="item.source === 'remote'
                                             ? 'w-auto border border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600'
@@ -1661,7 +1666,7 @@ declare(strict_types=1);
                                     <span x-text="item.source === 'remote' ? templateText.downloadImport : (templateEntry === 'sections' ? templateText.insertSection : templateText.insert)"></span>
                                 </button>
                                 <button type="button" x-show="item.type === 'page' && pageMode && sections.length > 0"
-                                        @click="insertTemplate(item)" :disabled="templateInserting !== '' || !!item.locked"
+                                        @click="insertTemplate(item)" :disabled="templateInserting !== '' || !!item.locked || templateUnavailable(item)"
                                         data-testid="blox-template-append" :title="templateText.append" :aria-label="templateText.append + ': ' + item.name"
                                         class="h-8 w-8 shrink-0 rounded border border-gray-200 text-gray-500 inline-flex items-center justify-center hover:border-blue-300 hover:text-blue-600 disabled:opacity-40 disabled:cursor-not-allowed">
                                     <i class="ti ti-plus text-sm"></i>
