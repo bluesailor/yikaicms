@@ -31,8 +31,6 @@ return [
     'shop_status_off' => '未启用',
     'shop_saved' => '已保存',
     'shop_err_product' => '产品不存在',
-    'shop_err_price' => '售价格式不正确（最多两位小数）',
-    'shop_err_stock' => '库存必须是不小于 0 的整数',
     'shop_err_sku_len' => 'SKU 不能超过 64 个字符',
     'shop_err_status' => '上架状态不合法',
     'shop_lang_tag' => '语言',
@@ -43,4 +41,8 @@ return [
     'shop_order_status_shipped' => '已发货',
     'shop_order_status_completed' => '已完成',
     'shop_order_status_closed' => '已关闭',
+    'shop_err_schema' => '商城数据初始化失败，请检查数据库权限后重试（详情见系统日志）',
+    'shop_shared_group' => '多语言共享',
+    'shop_err_price' => '售价格式不正确（须为正数，最多两位小数，不超过 99999999.99；留空=用产品价）',
+    'shop_err_stock' => '库存必须是不小于 0 的整数（上限 9999999999）',
 ];

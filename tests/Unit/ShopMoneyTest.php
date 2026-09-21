@@ -91,4 +91,62 @@ final class ShopMoneyTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         shopMoneySum([1050, 1.5]);
     }
+
+    /**
+     * 评审 P1-2 的回归：超长数字串必须在 (int) 强转**之前**被拒，
+     * 否则 TypeError 逃出正常的售价错误提示（评审实测 PHP_INT_MAX×2 即触发）。
+     */
+    public function testToCentsRejectsOversizedDigitStringsBeforeCast(): void
+    {
+        foreach ([
+            '99999999999999999999',            // 20 位整数
+            (string) PHP_INT_MAX . '0',         // PHP_INT_MAX × 10
+            '1.' . str_repeat('0', 30) . '1',  // 超长小数（且第三位后非零）
+        ] as $bad) {
+            $e = null;
+            try {
+                shopMoneyToCents($bad);
+            } catch (InvalidArgumentException $e) {
+                // 期望路径
+            } catch (\Throwable $other) {
+                $this->fail("oversized input '{$bad}' must throw InvalidArgumentException, got " . get_class($other));
+            }
+            $this->assertNotNull($e, "oversized input '{$bad}' must be rejected");
+        }
+        // 12 位以内是可解析的（业务上限由领域函数另收）
+        $this->assertSame(10000000000000, shopMoneyToCents('100000000000'));
+    }
+
+    /** 售价入口：只有正数且 ≤ decimal(10,2) 上限才通过；负数/零/超限全部拒绝。 */
+    public function testSalePriceValidatorBounds(): void
+    {
+        $this->assertSame(1050, shopValidSalePriceCents('10.50'));
+        $this->assertSame(1, shopValidSalePriceCents('0.01'));
+        $this->assertSame(shopMoneyMaxCents(), shopValidSalePriceCents('99999999.99'));
+
+        foreach (['0', '0.00', '-1.00', '-0.01', '100000000.00', '99999999999999999999', 'abc', '1.234'] as $bad) {
+            $this->assertNull(shopValidSalePriceCents($bad), "sale price '{$bad}' must be rejected");
+        }
+    }
+
+    /** 库存入口：非负整数，超长串在转换前拒绝（防 TypeError）。 */
+    public function testStockValidatorBounds(): void
+    {
+        $this->assertSame(0, shopValidStock('0'));
+        $this->assertSame(5, shopValidStock('5'));
+        $this->assertSame(9999999999, shopValidStock('9999999999'));
+
+        foreach (['', '-1', '1.5', 'abc', '99999999999', (string) PHP_INT_MAX . '0'] as $bad) {
+            $this->assertNull(shopValidStock($bad), "stock '{$bad}' must be rejected");
+        }
+    }
+
+    /** 多语言共享键：翻译组优先、未翻译退回自身（评审 §4-3 定案的行为锁）。 */
+    public function testCanonicalProductIdResolvesTranslationGroup(): void
+    {
+        require_once ROOT_PATH . '/plugins/shop/lib/sales.php';
+        $this->assertSame(7, shopCanonicalProductId(['id' => 9, 'translation_group_id' => 7]));
+        $this->assertSame(9, shopCanonicalProductId(['id' => 9, 'translation_group_id' => 0]));
+        $this->assertSame(9, shopCanonicalProductId(['id' => 9]));   // 无组字段：退回自身
+    }
 }
