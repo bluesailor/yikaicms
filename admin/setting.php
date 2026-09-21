@@ -15,6 +15,16 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('*');
 
+function checkUrlModeChange(mixed $next): void
+{
+    if (!in_array($next, ['pretty', 'query'], true)) error(__('admin_bad_params'), 422);
+    if ($next === urlMode()) return;
+    if (($_POST['url_mode_confirm'] ?? '') !== '1'
+        || ($_POST['url_mode_expected'] ?? '') !== urlMode()) {
+        error(__('url_check_confirm_required'), 409);
+    }
+}
+
 // ============== 多语言视图（仅 footer tab 启用；per-lang 用 <key>_<lang> 后缀约定） ==============
 $_lang        = adminLangView();
 $_defaultLang = $_lang['default'];
@@ -55,6 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // 恢复单个设置
             $defaultValue = getDefault($restoreKey, null);
             if ($defaultValue !== null) {
+                if ($restoreKey === 'url_mode') checkUrlModeChange($defaultValue);
                 settingModel()->set($restoreKey, $defaultValue);
                 adminLog('setting', 'restore', '恢复默认值: ' . $restoreKey);
                 success(['value' => $defaultValue]);
@@ -67,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($groupDefaults as $k => $item) {
                 $batch[$k] = $item['value'];
             }
+            if (isset($batch['url_mode'])) checkUrlModeChange($batch['url_mode']);
             settingModel()->saveBatch($batch);
             adminLog('setting', 'restore', '恢复分组默认值: ' . $restoreGroup);
             success();
@@ -119,6 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $settings = $_POST['settings'] ?? [];
     if (!is_array($settings)) error(__('admin_bad_params'), 422);
     verifyCsrf();
+    if (array_key_exists('url_mode', $settings)) checkUrlModeChange($settings['url_mode']);
     foreach (array_keys(getDefaults('pagination')) as $key) {
         if (array_key_exists($key, $settings) && !validCatalogPageSize($settings[$key])) {
             error(__('catalog_page_size_invalid'), 422);
@@ -488,6 +501,42 @@ async function saveAdminLanguages() {
 <?php endif; ?>
 
 <?php if ($tab !== 'lang'): ?>
+<?php if ($tab === 'url'): ?>
+<section class="bg-white rounded-lg shadow p-6 mb-6 space-y-3" aria-labelledby="url-check-title">
+    <h2 id="url-check-title" class="font-bold text-gray-800"><?= e(__('url_check_title')) ?></h2>
+    <p class="text-sm text-gray-600"><?= e(__('url_check_description')) ?></p>
+    <button type="button" id="url-check-button" class="bg-primary text-white px-4 py-2 rounded"><?= e(__('url_check_button')) ?></button>
+    <p id="url-check-result" role="status" aria-live="polite" class="text-sm text-gray-700"></p>
+    <button type="button" id="url-check-use" hidden class="border rounded px-4 py-2"><?= e(__('url_check_use')) ?></button>
+    <p class="text-sm text-gray-500"><?= e(__('url_check_limits')) ?></p>
+</section>
+<script src="<?= e(assetVer('/assets/js/rewrite-probe.js')) ?>"></script>
+<script>
+(function () {
+    let recommended = null;
+    const button = document.getElementById('url-check-button');
+    const use = document.getElementById('url-check-use');
+    const status = document.getElementById('url-check-result');
+    button.addEventListener('click', async function () {
+        button.disabled = true;
+        use.hidden = true;
+        status.textContent = <?= json_encode(__('url_check_running'), JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>;
+        const supported = typeof window.yikaiCheckRewrite === 'function' && await window.yikaiCheckRewrite();
+        recommended = supported ? 'pretty' : 'query';
+        status.textContent = supported
+            ? <?= json_encode(__('url_check_supported'), JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>
+            : <?= json_encode(__('url_check_unconfirmed'), JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>;
+        button.disabled = false;
+        use.hidden = false;
+    });
+    use.addEventListener('click', function () {
+        const radio = document.querySelector('input[name="settings[url_mode]"][value="' + recommended + '"]');
+        if (radio) { radio.checked = true; radio.focus(); }
+        status.textContent = <?= json_encode(__('url_check_selected'), JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>;
+    });
+})();
+</script>
+<?php endif; ?>
 <?php if ($paginationChannel): ?>
 <form id="channelPaginationForm" class="space-y-3 mb-6">
     <input type="hidden" name="action" value="save_channel_pagination">
@@ -500,6 +549,10 @@ async function saveAdminLanguages() {
 </form>
 <?php endif; ?>
 <form id="settingForm" class="space-y-6">
+    <?php if ($tab === 'url'): ?>
+    <input type="hidden" name="url_mode_expected" value="<?= e(urlMode()) ?>">
+    <input type="hidden" name="url_mode_confirm" value="0">
+    <?php endif; ?>
     <?php echo adminLangField(); ?>
     <input type="hidden" name="tab_hint" value="<?php echo e($tab); ?>">
     <div class="bg-white rounded-lg shadow">
@@ -989,7 +1042,11 @@ document.querySelectorAll('.restore-btn').forEach(function(btn) {
         var defaultVal = this.dataset.default;
         var input = document.querySelector('[name="settings[' + key + ']"]');
         if (input) {
-            if (input.tagName === 'SELECT') {
+            if (input.type === 'radio') {
+                document.querySelectorAll('input[name="settings[' + key + ']"]').forEach(function (radio) {
+                    radio.checked = radio.value === defaultVal;
+                });
+            } else if (input.tagName === 'SELECT') {
                 input.value = defaultVal;
             } else if (input.tagName === 'TEXTAREA') {
                 input.value = defaultVal;
@@ -1011,6 +1068,11 @@ document.querySelectorAll('.restore-btn').forEach(function(btn) {
 async function restoreAllDefaults() {
     if (!confirm('<?php echo __('setting_restore_all_confirm'); ?>')) return;
     const formData = new FormData();
+    <?php if ($tab === 'url'): ?>
+    if (!confirm(<?= json_encode(__('url_check_confirm'), JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>)) return;
+    formData.append('url_mode_confirm', '1');
+    formData.append('url_mode_expected', <?= json_encode(urlMode()) ?>);
+    <?php endif; ?>
     formData.append('action', 'restore_defaults');
     formData.append('group', '<?php echo e($group); ?>');
     const response = await fetch(location.href, { method: 'POST', body: formData });
@@ -1025,10 +1087,17 @@ async function restoreAllDefaults() {
 
 document.getElementById('settingForm')?.addEventListener('submit', function (e) {
     e.preventDefault();
+    const mode = this.querySelector('input[name="settings[url_mode]"]:checked');
+    const expected = this.querySelector('[name="url_mode_expected"]');
+    if (mode && expected && mode.value !== expected.value) {
+        if (!confirm(<?= json_encode(__('url_check_confirm'), JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>)) return;
+        this.querySelector('[name="url_mode_confirm"]').value = '1';
+    }
     collectFooterColumns();
     collectFooterNav();
     adminSave(this, {
         url: location.href,
+        reload: Boolean(mode),
         successMsg: '<?php echo __('admin_saved'); ?>',
         errorMsg:   '<?php echo __('admin_request_failed'); ?>',
     });

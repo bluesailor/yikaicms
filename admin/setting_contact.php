@@ -32,6 +32,12 @@ $LANG_KEYS = [
 
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verifyCsrf();
+    foreach (array_keys((array) ($_POST['settings'] ?? [])) as $submittedKey) {
+        if (preg_match('/^contact_form_(fields|success)(_|$)/', (string) $submittedKey)) {
+            error(__('setup_form_source'));
+        }
+    }
     $settings = adminRemapLangKeys($_POST['settings'] ?? [], $LANG_KEYS);
     settingModel()->saveBatch($settings);
     adminLog('setting', 'update', '更新联系设置 (' . $_viewLang . ')');
@@ -71,6 +77,9 @@ $iconSvgs = [
 $infoSettings = [];
 $formSettings = [];
 foreach ($allSettings as $item) {
+    if (in_array($item['key'], ['contact_form_fields', 'contact_form_success'], true)) {
+        continue;
+    }
     if (str_starts_with((string)$item['key'], 'map_')) {
         continue; // 地图相关设置在独立「地图 API」tab 里显式渲染（带申请链接 + 教程）
     }
@@ -237,6 +246,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
     <?php endif; ?>
 
     <?php if ($tab === 'form'): ?>
+    <p class="text-sm text-gray-700 mb-4"><?= e(__('setup_form_source')) ?></p>
     <!-- 表单短码提示 -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -246,7 +256,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
                 <span class="text-blue-500 ml-1">— <?php echo e(__('scontact_form_design_tip')); ?></span>
             </div>
         </div>
-        <a href="/admin/form_design.php" class="text-sm text-blue-600 hover:text-blue-800 hover:underline flex-shrink-0"><?php echo e(__('scontact_goto_form_design')); ?> &rarr;</a>
+        <a href="/admin/form_design.php?edit=contact&amp;lang=<?= e(rawurlencode($_viewLang)) ?>" class="text-sm text-blue-600 hover:text-blue-800 hover:underline flex-shrink-0"><?php echo e(__('scontact_goto_form_design')); ?> &rarr;</a>
     </div>
 
     <!-- 表单设置 -->

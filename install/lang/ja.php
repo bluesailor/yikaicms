@@ -139,4 +139,5 @@ return [
     'error_sql_execute' => 'SQLの実行に失敗しました：',
     'error_admin_create' => '管理者の作成に失敗しました：',
     'error_config_write' => '設定ファイルの書き出しに失敗しました',
+    'url_auto_notice' => 'インストール時にサーバーを確認します。対応していれば整形 URL、それ以外は Rewrite 不要の動的 URL を使用します。後から管理画面の「URL とリンク」で確認・切り替えができます。再インストールは不要です。',
 ];
