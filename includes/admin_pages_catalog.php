@@ -60,6 +60,10 @@ if (!function_exists('adminPagesCatalog')) {
 
             // 外观
             ['url'=>'/admin/theme.php',            'title'=>'主题切换',     'keywords'=>'主题 模板 皮肤 外观 theme template',                                     'group'=>'外观'],
+            ['url'=>'/admin/site_setup.php',       'title'=>'建站向导',     'keywords'=>'建站 向导 快速开始 新站 搭建 setup wizard 整站',                          'group'=>'外观'],
+            ['url'=>'/admin/site_templates.php',   'title'=>'整站模板',     'keywords'=>'整站 模板 导入 导出 站点包 迁移 site template import export',            'group'=>'外观'],
+            ['url'=>'/admin/theme_content.php',    'title'=>'主题文案',     'keywords'=>'主题文案 模板文字 主题字段 theme content',                                'group'=>'外观'],
+            ['url'=>'/admin/site_content_check.php','title'=>'内容自检',    'keywords'=>'内容检查 空栏目 缺图 演示内容 自检 content check',                        'group'=>'外观'],
             ['url'=>'/admin/plugin.php',           'title'=>'插件管理',     'keywords'=>'插件 扩展 plugin extension',                                            'group'=>'外观'],
             ['url'=>'/admin/extfield.php',         'title'=>'扩展字段',     'keywords'=>'自定义字段 扩展字段 custom field',                                       'group'=>'外观'],
             ['url'=>'/admin/setting_ai.php',       'title'=>'AI 设置',      'keywords'=>'AI API Key 大模型 OpenAI Claude DeepSeek 模型选择',                       'group'=>'外观'],
