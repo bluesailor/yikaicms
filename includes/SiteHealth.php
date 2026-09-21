@@ -815,9 +815,14 @@ final class SiteHealth
     }
 
     /**
-     * URL 别名体检：别名含非 ASCII（多为中文）时，链接会变成百分号编码的
-     * /%E5%95%86%E4%B8%9A%E4%BF%9D%E9%99%A9.html——不可读、分享易截断、SEO 吃亏。
+     * URL 别名体检：别名含非 ASCII（多为中文）或其它非法字符时的两档后果——
      *
+     * - 伪静态（pretty）模式：**页面直接打不开**。Dispatcher 的路由正则只接受
+     *   `[a-z0-9_-]`，`/商业保险.html` 匹配不上任何规则，必然 404（本地实测）。
+     * - 动态（query）模式：能访问，但链接显示成
+     *   /%E5%95%86%E4%B8%9A%E4%BF%9D%E9%99%A9.html，不可读、分享易截断、SEO 吃亏。
+     *
+     * 因此按 URL 模式分级：pretty=CRITICAL（死链），query=RECOMMENDED（可读性）。
      * 只报告不自动改：别名一改旧地址即 404，已收录的页面会丢排名，
      * 站长应当在改名的同时配置 301（SEO 助手 → 重定向）。
      */
@@ -859,8 +864,13 @@ final class SiteHealth
             return self::result('non_ascii_slugs', self::GOOD, 'performance',
                 'health_slug_encoding_title', 'health_slug_encoding_good');
         }
-        return self::result('non_ascii_slugs', self::RECOMMENDED, 'performance',
-            'health_slug_encoding_title', 'health_slug_encoding_bad', '/admin/channel.php',
+        // 伪静态下这些地址匹配不上任何路由规则 = 死链，严重性高于"仅不好看"
+        $prettyMode = !function_exists('isDynamicUrlMode') || !isDynamicUrlMode();
+        return self::result('non_ascii_slugs',
+            $prettyMode ? self::CRITICAL : self::RECOMMENDED, 'performance',
+            'health_slug_encoding_title',
+            $prettyMode ? 'health_slug_encoding_broken' : 'health_slug_encoding_bad',
+            '/admin/channel.php',
             ['count' => (string) $affected, 'samples' => implode('、', $samples)]);
     }
 

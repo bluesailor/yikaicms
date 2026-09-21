@@ -1373,12 +1373,15 @@ function channelPrettyUrl(array $channel): string
             return $prefix . '/list/' . $channel['id'] . '.html';
         }
     }
+    // 新别名经 normalizeSlugInput 已是 a-z0-9-，转义对它们是恒等变换；
+    // 但存量库里留着中文/空格别名，不转义会直接产出坏链接（sitemap 与页面同源）。
+    $slug = rawurlencode($slug);
 
     if ($channel['type'] === 'page') {
         if (!empty($channel['parent_id'])) {
             $parent = getChannel((int)$channel['parent_id']);
             if ($parent && !empty($parent['slug'])) {
-                return $prefix . '/' . $parent['slug'] . '/' . $slug . '.html';
+                return $prefix . '/' . rawurlencode((string) $parent['slug']) . '/' . $slug . '.html';
             }
         }
         return $prefix . '/' . $slug . '.html';
@@ -1567,8 +1570,10 @@ function contentUrl(array $content): string
 function contentPrettyUrl(array $content): string
 {
     $prefix = langPrefix();
-    $slug = (string) ($content['slug'] ?? '');
-    $channelSlug = (string) ($content['channel_slug'] ?? '');
+    // 存量别名可能含中文/空格（新别名经 normalizeSlugInput 后转义是恒等变换）——
+    // 不转义会产出坏链接，且 sitemap 与页面链接同源于此
+    $slug = rawurlencode((string) ($content['slug'] ?? ''));
+    $channelSlug = rawurlencode((string) ($content['channel_slug'] ?? ''));
     $channelType = (string) ($content['channel_type'] ?? '');
     $id = (int) ($content['id'] ?? 0);
 
@@ -1664,8 +1669,9 @@ function productPrettyUrl(array $product): string
     $custom = productRouteModel()->pathFor('product', (int) ($product['id'] ?? 0));
     if ($custom !== '') return $custom;
     $prefix = langPrefix();
-    $slug = (string) ($product['slug'] ?? '');
-    $categorySlug = (string) ($product['category_slug'] ?? '');
+    // 同 channelPrettyUrl/contentPrettyUrl：存量别名可能需要转义
+    $slug = rawurlencode((string) ($product['slug'] ?? ''));
+    $categorySlug = rawurlencode((string) ($product['category_slug'] ?? ''));
     if ($slug !== '' && $categorySlug !== '') {
         return $prefix . '/product/' . $categorySlug . '/' . $slug . '.html';
     }
