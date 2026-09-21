@@ -279,6 +279,7 @@ return [
         'page_hero_design_published_revision' => ['value' => '0', 'type' => 'number', 'name' => '全局页面标题区发布修订', 'tip' => '系统内部发布状态', 'sort_order' => 5],
         'blox_widescreen_enabled' => ['value' => '1', 'type' => 'switch', 'name' => '宽屏断点', 'tip' => '开启后可为 ≥1440px 屏幕单独设置样式；关闭后宽屏沿用桌面样式，已设置的宽屏值保留', 'sort_order' => 6],
         'blox_custom_header_enabled' => ['value' => '1', 'type' => 'switch', 'name' => '易开网页构建器自定义网页头', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页头', 'sort_order' => 6],
+        'blox_maintenance_mode' => ['value' => '0', 'type' => 'switch', 'name' => '内容维护模式', 'tip' => '开启后编辑器只能改文字、图片和链接，改动结构与版式的保存会被服务端拒绝。既有设置不会被删除，关掉即可继续设计。', 'section' => '可视化编辑器', 'sort_order' => 90],
         'blox_custom_footer_enabled' => ['value' => '1', 'type' => 'switch', 'name' => '易开网页构建器自定义网页尾', 'tip' => '关闭后保留已发布模板，但前台改用当前主题的默认网页尾', 'sort_order' => 7],
         'update_channel' => ['value' => 'stable', 'type' => 'select', 'name' => '系统更新通道', 'tip' => 'stable 为正式版；beta 可提前接收测试版', 'options' => '{"stable":"正式版","beta":"测试版"}', 'sort_order' => 8],
         'site_health_last_summary' => ['value' => '', 'type' => 'json', 'name' => '站点健康摘要', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 9],

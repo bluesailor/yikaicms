@@ -75,6 +75,7 @@ return [
         'includes/builder/BuilderRegistry.php',
         'includes/builder/BloxDocumentPipeline.php',
         'includes/builder/BloxValueSanitizer.php',
+        'includes/builder/BloxMaintenanceMode.php',
         'install/index.php',
         'install/validation.php',
         'install/sql/mysql.sql',
