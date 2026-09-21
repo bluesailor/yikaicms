@@ -30,6 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } finally { @unlink($temporary); }
             exit;
         }
+        if ($action === 'stage') {
+            // 分阶段提取（E03）：每次只处理一批，前端按返回的进度继续调用。
+            // 服务端决定推进节奏，客户端不能指定处理哪些条目或跳到哪个阶段。
+            success($service->stage(post('token'), getAdminId()));
+        }
         if ($action === 'prepare') {
             $upload = $_FILES['package'] ?? [];
             if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string) ($upload['tmp_name'] ?? ''))) throw new RuntimeException('st_upload');
@@ -97,6 +102,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </dl>
             <form method="post" class="space-y-4">
                 <?= csrfField() ?><input type="hidden" name="action" value="apply"><input type="hidden" name="token" value="<?= e($preview['token']) ?>">
+                <p id="st-stage-status" role="status" aria-live="polite" class="text-sm text-gray-600 hidden"></p>
                 <p class="text-gray-600"><?= e(__('st_brand_hint')) ?></p>
                 <?php foreach ($brand as $key => $value): ?>
                 <div><label class="block font-medium mb-1" for="st-<?= e($key) ?>"><?= e(__('st_' . $key)) ?></label>
@@ -106,6 +112,48 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <label class="flex gap-2 items-start"><input type="checkbox" name="confirm" value="1" required class="mt-1"><span><?= e(__('st_confirm')) ?></span></label>
                 <button type="submit" class="bg-primary text-white rounded px-4 py-3"><?= e(__('st_apply')) ?></button>
             </form>
+            <script>
+            // 提交前先分批把媒体落盘：大包的文件 IO 在这里按服务端预算推进，
+            // 真正的提交请求只剩数据库替换与生效，不会撞上执行时限。
+            (function () {
+                var form = document.currentScript.previousElementSibling;
+                var status = document.getElementById('st-stage-status');
+                var token = form.querySelector('input[name="token"]').value;
+                var texts = <?= json_encode([
+                    'progress' => __('st_stage_progress'),
+                    'failed' => __('st_stage_failed'),
+                ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+                var staged = false;
+                form.addEventListener('submit', function (event) {
+                    if (staged) return;
+                    event.preventDefault();
+                    var button = form.querySelector('button[type="submit"]');
+                    button.disabled = true;
+                    status.classList.remove('hidden');
+                    var step = function () {
+                        var body = new URLSearchParams();
+                        body.set('action', 'stage');
+                        body.set('token', token);
+                        return fetch(window.location.href, { method: 'POST', body: body })
+                            .then(function (response) { return response.json(); })
+                            .then(function (result) {
+                                if (!result || Number(result.code) !== 0) throw new Error((result && result.msg) || texts.failed);
+                                var data = result.data || {};
+                                status.textContent = texts.progress
+                                    .replace(':done', String(data.done || 0))
+                                    .replace(':total', String(data.total || 0));
+                                if (!data.complete) return step();
+                                staged = true;
+                                form.submit();
+                            });
+                    };
+                    step().catch(function (error) {
+                        status.textContent = String((error && error.message) || texts.failed);
+                        button.disabled = false;
+                    });
+                });
+            })();
+            </script>
         </div>
         <?php endif; endif; ?>
     </section>

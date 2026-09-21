@@ -118,12 +118,80 @@ final class SiteTemplateService
     {
         $this->supported();
         if (!$this->canApply()) throw new RuntimeException('st_not_fresh');
-        $package = SiteTemplateArchive::read($archive);
+        // inspect 只做条目校验与 manifest 解析，不把内容读进内存——32MB 包在这里的
+        // 峰值是单个小文件，而不是「整包解压 + base64 副本 + JSON 副本」（旧实现在
+        // memory_limit=128M 的主机上会在 apply 中途 fatal）。
+        $package = SiteTemplateArchive::inspect($archive);
         $token = bin2hex(random_bytes(16));
+        $this->ensureDirectory($this->store);
+        $stored = $this->store . '/package.zip';
+        $this->assertContained($stored);
+        // 原样保存上传包：后续分阶段提取直接按名字从它取条目，不再反复整包解压
+        if (!@copy($archive, $stored)) throw new RuntimeException('st_storage');
+        $media = array_values(array_filter($package['names'], static fn(string $n): bool => str_starts_with($n, 'media/')));
         // A single pending preview bounds disk use; another preview explicitly invalidates the old token.
         $this->writeRecord('plan', ['token' => $token, 'owner' => $adminId, 'expires' => time() + 600,
-            'fingerprint' => SiteTemplateData::fingerprint(), 'zip' => base64_encode((string) file_get_contents($archive))]);
-        return ['token' => $token, 'summary' => $this->summary($package['manifest'], $package['files'])];
+            'fingerprint' => SiteTemplateData::fingerprint(), 'hash' => $package['hash'],
+            'alias' => 'sitepack-' . bin2hex(random_bytes(8)), 'media' => $media, 'staged' => 0]);
+        return ['token' => $token, 'summary' => $this->summary($package['manifest'], array_fill_keys($package['names'], ''))];
+    }
+
+    /** 单次 stage 请求的预算：够小才能在共享主机的执行时限内完成，够大才不至于来回太多趟。 */
+    public const STAGE_MAX_FILES = 40;
+    public const STAGE_MAX_SECONDS = 8;
+
+    /**
+     * 分阶段提取（E03）：把媒体按预算逐批写进 uploads/<别名>/，可反复调用直到完成。
+     *
+     * 为什么只分批媒体：文件 IO 是大包的真实瓶颈，而数据库替换必须在单个事务内完成
+     * （计划明确「不跨请求保持事务」），且新装站的数据量很小。主题文件同样留给 commit，
+     * 因为它要整体交给 ThemeInstaller 走既有校验链，拆开反而绕过安全链。
+     *
+     * 幂等：已落盘且摘要正确的条目直接跳过，所以超时重试不会重复写入，也不会跳过没写完的。
+     *
+     * @return array{done:int,total:int,complete:bool}
+     */
+    public function stage(string $token, int $adminId): array
+    {
+        $this->supported();
+        $plan = $this->readRecord('plan');
+        if ($plan === null || !hash_equals((string) $plan['token'], $token) || $plan['owner'] !== $adminId || $plan['expires'] < time()) throw new RuntimeException('st_stale');
+        if (!$this->canApply() || !hash_equals((string) $plan['fingerprint'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_not_fresh');
+
+        $archive = $this->store . '/package.zip';
+        $this->assertContained($archive);
+        if (!is_file($archive) || !hash_equals((string) $plan['hash'], (string) hash_file('sha256', $archive))) throw new RuntimeException('st_stale');
+
+        /** @var list<string> $media */
+        $media = is_array($plan['media'] ?? null) ? $plan['media'] : [];
+        $alias = (string) $plan['alias'];
+        $total = count($media);
+        $done = max(0, min($total, (int) ($plan['staged'] ?? 0)));
+        if ($done >= $total) return ['done' => $total, 'total' => $total, 'complete' => true];
+
+        $manifest = SiteTemplateArchive::inspect($archive)['manifest'];
+        $deadline = microtime(true) + self::STAGE_MAX_SECONDS;
+        $processed = 0;
+        while ($done < $total && $processed < self::STAGE_MAX_FILES && microtime(true) < $deadline) {
+            $name = $media[$done];
+            $target = $this->root . '/uploads/' . $alias . '/' . substr($name, 6);
+            $this->ensureDirectory(dirname($target));
+            $this->assertContained($target);
+            // 内容校验在 entry() 里逐条完成（sha256 + SVG 消毒），与一次性读取同口径
+            $bytes = SiteTemplateArchive::entry($archive, $manifest, $name);
+            $temporary = $target . '.part';
+            $this->assertContained($temporary);
+            if (file_put_contents($temporary, $bytes) !== strlen($bytes) || !rename($temporary, $target)) {
+                @unlink($temporary);
+                throw new RuntimeException('st_storage');
+            }
+            $done++;
+            $processed++;
+            // 游标每条推进后落盘：中断后从断点继续，而不是从头再来
+            $plan['staged'] = $done;
+            $this->writeRecord('plan', $plan);
+        }
+        return ['done' => $done, 'total' => $total, 'complete' => $done >= $total];
     }
 
     public function apply(string $token, int $adminId, array $brand, bool $trusted): void
@@ -134,12 +202,12 @@ final class SiteTemplateService
             $plan = $this->readRecord('plan');
             if ($plan === null || !hash_equals((string) $plan['token'], $token) || $plan['owner'] !== $adminId || $plan['expires'] < time()) throw new RuntimeException('st_stale');
             if (!$this->canApply() || !hash_equals((string) $plan['fingerprint'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_not_fresh');
-            $archive = $this->temporaryFile();
-            try {
-                if (file_put_contents($archive, base64_decode($plan['zip'], true)) === false) throw new RuntimeException('st_storage');
-                $package = SiteTemplateArchive::read($archive);
-            } finally { @unlink($archive); }
-            $alias = 'sitepack-' . bin2hex(random_bytes(8));
+            $archive = $this->store . '/package.zip';
+            $this->assertContained($archive);
+            if (!is_file($archive) || !hash_equals((string) $plan['hash'], (string) hash_file('sha256', $archive))) throw new RuntimeException('st_stale');
+            $package = SiteTemplateArchive::read($archive);
+            // 别名在 prepare 阶段就定下：分阶段提取要往固定目录落盘，重复请求也不会换目录
+            $alias = (string) $plan['alias'];
             $map = ['/themes/' . $package['manifest']['theme'] . '/' => '/themes/' . $alias . '/', '/uploads/' => '/uploads/' . $alias . '/'];
             $data = SiteTemplateArchive::rewrite($package['manifest']['data'], $map);
             foreach ($data['tables']['media'] as &$row) {
@@ -266,7 +334,9 @@ final class SiteTemplateService
 
     private function installFiles(array $files, string $alias, array $map): void
     {
-        if (file_exists($this->root . '/themes/' . $alias) || file_exists($this->root . '/uploads/' . $alias)) throw new RuntimeException('st_storage');
+        // uploads/<别名> 可能是本次 stage() 建的（别名在 prepare 阶段生成、随计划固定），
+        // 所以只拒绝主题目录冲突；媒体的重复写入由上面的摘要比对兜住。
+        if (file_exists($this->root . '/themes/' . $alias)) throw new RuntimeException('st_storage');
         $temp = $this->temporaryFile();
         try {
             $zip = new ZipArchive();
@@ -287,6 +357,9 @@ final class SiteTemplateService
             $target = $this->root . '/uploads/' . $alias . '/' . substr($path, 6);
             $this->ensureDirectory(dirname($target));
             $this->assertContained($target);
+            // stage() 可能已按预算把这条写好了：内容一致就跳过，既保证幂等，
+            // 也让「先分批准备、再一次生效」不至于把同一份媒体写两遍。
+            if (is_file($target) && hash_equals(hash('sha256', $bytes), (string) hash_file('sha256', $target))) continue;
             $handle = fopen($target, 'xb');
             if ($handle === false) throw new RuntimeException('st_storage');
             try { if (fwrite($handle, $bytes) !== strlen($bytes)) throw new RuntimeException('st_storage'); }

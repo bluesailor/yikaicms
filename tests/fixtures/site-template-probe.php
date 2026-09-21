@@ -93,6 +93,24 @@ try {
     settingModel()->set('home_blox_data', 'Unsaved new page');
     rejects(static fn() => $service->apply($preview['token'], 1, ['site_name' => 'Target'], true), 'st_not_fresh');
     settingModel()->set('home_blox_data', '{"text":"PRIVATE DRAFT"}');
+
+    // ── E03 分阶段提取：断点续传与幂等 ─────────────────────────────
+    // 一次 stage 只处理一批。反复调用必须单调推进到完成，且不重复写入。
+    $first = $service->stage($preview['token'], 1);
+    check($first['total'] >= 1, 'Stage reports a media total');
+    $guard = 0;
+    while (!$first['complete'] && $guard++ < 50) {
+        $next = $service->stage($preview['token'], 1);
+        check($next['done'] >= $first['done'], 'Stage cursor never goes backwards');
+        $first = $next;
+    }
+    check($first['complete'] && $first['done'] === $first['total'], 'Stage completes');
+    // 已完成后再调用是安全的空操作（浏览器重试/双击不该出错）
+    $again = $service->stage($preview['token'], 1);
+    check($again['complete'] && $again['done'] === $first['total'], 'Stage is idempotent once complete');
+    // 归属与新鲜度在每次 stage 请求上都要重查，不能只在 prepare 时查一次
+    rejects(static fn() => $service->stage($preview['token'], 2), 'st_stale');
+
     $service->apply($preview['token'], 1, ['site_name' => 'Target'], true);
     check(str_starts_with(config('current_theme'), 'sitepack-'), 'New theme alias');
     check(config('site_url') === 'https://target.test' && config('smtp_pass') === 'PRIVATE PASSWORD', 'Target identity unchanged');

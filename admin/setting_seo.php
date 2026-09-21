@@ -339,8 +339,13 @@ $__seoPluginHere = is_dir(ROOT_PATH . '/plugins/seo');
                 <label class="text-gray-700 pt-2"><?php echo e(__('seo_sitemap_url')); ?></label>
                 <div class="md:col-span-3">
                     <div class="flex items-center gap-4">
-                        <code class="bg-gray-100 px-3 py-2 rounded text-sm flex-1"><?php echo e(rtrim(config('site_url', SITE_URL), '/')); ?>/sitemap.xml</code>
-                        <a href="/sitemap.xml" target="_blank" class="text-sm text-primary hover:underline"><?php echo e(__('admin_view')); ?></a>
+                        <?php
+                        // 伪静态不可用时 /sitemap.xml 匹配不到任何规则会 404，
+                        // 展示与「查看」都必须跟随当前 URL 模式，否则给出去的是死地址。
+                        $sitemapPath = (function_exists('isDynamicUrlMode') && isDynamicUrlMode()) ? '/sitemap.php' : '/sitemap.xml';
+                        ?>
+                        <code class="bg-gray-100 px-3 py-2 rounded text-sm flex-1"><?php echo e(rtrim(config('site_url', SITE_URL), '/') . $sitemapPath); ?></code>
+                        <a href="<?php echo e($sitemapPath); ?>" target="_blank" class="text-sm text-primary hover:underline"><?php echo e(__('admin_view')); ?></a>
                         <button type="button" onclick="clearSitemapCache()"
                                 class="text-sm bg-orange-50 hover:bg-orange-100 text-orange-600 px-3 py-1.5 rounded transition border border-orange-200">
                             <?php echo e(__('seo_refresh_cache')); ?>
