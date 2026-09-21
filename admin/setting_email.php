@@ -10,10 +10,18 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/MailDelivery.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('*');
+
+// 投递日志（roadmap #3）：表缺失（升级窗口）时惰性建，页面可用
+try {
+    MailDelivery::ensureTable();
+} catch (Throwable) {
+    // 无 DB / 无权限：日志面板显示为空，不影响 SMTP 配置本身
+}
 
 // Tab 定义（title 用 __() 后台跟随当前语言）
 $tabs = [
@@ -45,18 +53,23 @@ $tabs = [
         'hint'  => '{{product_title}} {{name}} {{phone}} {{email}} {{company}} {{content}} {{ip}} {{site_name}} {{site_url}} {{date}}',
         'keys'  => ['mail_tpl_inquiry_subject', 'mail_tpl_inquiry_body'],
     ],
+    'log' => [
+        'icon'  => 'ti-history',
+        'title' => __('email_tab_log'),
+        'hint'  => '',
+        'keys'  => [],
+    ],
 ];
 
 $activeTab = get('tab', 'smtp');
 if (!isset($tabs[$activeTab])) $activeTab = 'smtp';
-
 // ============== 多语言视图（仅模板 tab 启用） ==============
 $_lang        = adminLangView();
 $_defaultLang = $_lang['default'];
 $_viewLang    = $_lang['view'];
 $_enabledList = $_lang['enabled'];
-// smtp tab 不分语言；其余模板 tab 全部 lang-aware
-$_emailLangAware = ($activeTab !== 'smtp');
+// smtp / log tab 不分语言；其余模板 tab 全部 lang-aware
+$_emailLangAware = !in_array($activeTab, ['smtp', 'log'], true);
 $EMAIL_LANG_KEYS = [
     'mail_tpl_register_subject', 'mail_tpl_register_body',
     'mail_tpl_forgot_subject',   'mail_tpl_forgot_body',
@@ -87,11 +100,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'test') {
 }
 
 // ============================================================
+// AJAX: 手动重试失败邮件（单封 / 全部到期）
+// ============================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'retry_failed') {
+    try {
+        $id = postInt('id');
+        if ($id > 0) {
+            $row = db()->fetchOne(
+                'SELECT * FROM ' . DB_PREFIX . 'mail_log WHERE id = ? AND status = ? LIMIT 1',
+                [$id, 'failed']
+            );
+            if ($row === null) {
+                error(__('email_log_retry_gone'));
+            }
+            $result = sendMailRaw((string) $row['to_email'], (string) $row['subject'], (string) $row['body']);
+            db()->update('mail_log', [
+                'status' => $result === true ? 'sent' : 'failed',
+                'error' => mb_substr($result === true ? '' : (string) $result, 0, 190),
+                'attempts' => (int) $row['attempts'] + 1,
+                'updated_at' => time(),
+            ], 'id = ?', [$id]);
+            adminLog('setting', 'update', 'Retried mail #' . $id);
+            $result === true
+                ? success([], __('email_log_retry_sent'))
+                : error(str_replace(':error', (string) $result, __('email_log_retry_failed')));
+        }
+        $summary = MailDelivery::retryFailed(20);
+        adminLog('setting', 'update', 'Retried failed mail batch: ' . $summary['retried']);
+        success(
+            $summary,
+            str_replace(
+                [':retried', ':sent', ':failed'],
+                [(string) $summary['retried'], (string) $summary['sent'], (string) $summary['still_failed']],
+                __('email_log_retry_done')
+            )
+        );
+    } catch (Throwable $e) {
+        error($e->getMessage());
+    }
+}
+
+// ============================================================
 // POST 保存
 // ============================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action', 'save') === 'save') {
     $settings = $_POST['settings'] ?? [];
     $saveTab  = post('_save_tab', 'smtp');
+    if ($saveTab === 'log') {
+        success();   // 日志 tab 无可保存项（表头保存按钮不出现在此 tab）
+    }
     $isLangTab = ($saveTab !== 'smtp');
 
     foreach ($settings as $key => $value) {
@@ -374,6 +431,136 @@ async function sendTestEmail() {
         if (data.code === 0) { showMessage(data.msg); closeTestModal(); }
         else showMessage(data.msg, 'error');
     } catch (err) { showMessage('<?php echo e(__('admin_request_failed')); ?>', 'error'); }
+}
+</script>
+
+<?php elseif ($activeTab === 'log'): ?>
+<!-- ============ 投递日志与失败重试 ============ -->
+<?php
+    $mailLog = MailDelivery::recent(100);
+    $mailStreak = MailDelivery::failureStreak();
+?>
+<div class="bg-white rounded-lg shadow mb-6" data-testid="email-log-panel">
+    <div class="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
+                <i class="ti ti-history text-blue-500"></i> <?php echo e(__('email_log_title')); ?>
+            </h2>
+            <p class="text-xs text-gray-400 mt-0.5"><?php echo e(__('email_log_intro')); ?></p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-400">
+                <?php echo str_replace(
+                    [':sent', ':failed'],
+                    [(string) $mailStreak['total_sent'], (string) $mailStreak['total_failed']],
+                    e(__('email_log_recent_stats'))
+                ); ?>
+            </span>
+            <button type="button" onclick="retryAllFailed(this)" data-testid="email-log-retry-all"
+                    class="border border-gray-200 hover:border-blue-400 hover:text-blue-500 text-gray-600 text-sm px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5">
+                <i class="ti ti-refresh text-base"></i> <?php echo e(__('email_log_retry_all')); ?>
+            </button>
+        </div>
+    </div>
+
+    <?php if ($mailStreak['streak'] >= 3): ?>
+    <div class="mx-6 mt-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-start gap-2" data-testid="email-log-streak-warning">
+        <i class="ti ti-alert-triangle text-base mt-0.5"></i>
+        <span><?php echo str_replace(
+            [':streak', ':error'],
+            [(string) $mailStreak['streak'], e((string) $mailStreak['last_error'])],
+            e(__('email_log_streak_warning'))
+        ); ?></span>
+    </div>
+    <?php endif; ?>
+
+    <div class="p-6">
+        <?php if ($mailLog === []): ?>
+        <p class="text-sm text-gray-400 text-center py-6"><?php echo e(__('email_log_empty')); ?></p>
+        <?php else: ?>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead><tr class="text-left text-xs text-gray-400 border-b">
+                    <th class="py-2 pr-3 whitespace-nowrap"><?php echo e(__('email_log_col_time')); ?></th>
+                    <th class="py-2 pr-3"><?php echo e(__('email_log_col_to')); ?></th>
+                    <th class="py-2 pr-3"><?php echo e(__('email_log_col_subject')); ?></th>
+                    <th class="py-2 pr-3"><?php echo e(__('email_log_col_status')); ?></th>
+                    <th class="py-2 w-24"></th>
+                </tr></thead>
+                <tbody>
+                <?php foreach ($mailLog as $logRow): ?>
+                    <?php
+                    $logStatus = (string) $logRow['status'];
+                    $statusMeta = match ($logStatus) {
+                        'sent' => ['bg-green-100 text-green-700', __('email_log_status_sent')],
+                        'failed' => ['bg-red-100 text-red-700', __('email_log_status_failed')],
+                        default => ['bg-gray-100 text-gray-600', $logStatus],
+                    };
+                    $attempts = (int) ($logRow['attempts'] ?? 1);
+                    ?>
+                    <tr class="border-b border-gray-50 align-top" data-testid="email-log-row">
+                        <td class="py-2 pr-3 text-xs text-gray-500 whitespace-nowrap tabular-nums">
+                            <?php echo e(date('m-d H:i', (int) $logRow['created_at'])); ?>
+                        </td>
+                        <td class="py-2 pr-3 text-xs text-gray-700 break-all"><?php echo e((string) $logRow['to_email']); ?></td>
+                        <td class="py-2 pr-3 text-xs text-gray-600">
+                            <div class="text-gray-700"><?php echo e((string) $logRow['subject']); ?></div>
+                            <?php // 脱敏预览：正文全文不入界面，只给去标签截断摘要 ?>
+                            <div class="text-gray-400 mt-0.5"><?php echo e((string) $logRow['preview']); ?></div>
+                            <?php if ($logStatus === 'failed' && (string) $logRow['error'] !== ''): ?>
+                            <div class="text-red-500 mt-0.5"><?php echo e((string) $logRow['error']); ?></div>
+                            <?php endif; ?>
+                        </td>
+                        <td class="py-2 pr-3 whitespace-nowrap">
+                            <span class="text-xs px-1.5 py-0.5 rounded <?php echo e($statusMeta[0]); ?>"><?php echo e($statusMeta[1]); ?></span>
+                            <?php if ($attempts > 1): ?>
+                            <span class="text-xs text-gray-400 ml-1">×<?php echo $attempts; ?></span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="py-2 text-right whitespace-nowrap">
+                            <?php if ($logStatus === 'failed'): ?>
+                            <button type="button" onclick="retryMail(<?php echo (int) $logRow['id']; ?>, this)"
+                                    class="text-xs text-blue-600 hover:text-blue-500 px-2 py-1"><?php echo e(__('email_log_retry')); ?></button>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<script>
+function postMailAction(fields) {
+    const body = new URLSearchParams();
+    body.set('action', 'retry_failed');
+    Object.keys(fields || {}).forEach(function (k) { body.set(k, String(fields[k])); });
+    return fetch(window.location.href, { method: 'POST', body: body }).then(function (r) { return r.json(); });
+}
+
+function retryMail(id, button) {
+    button.disabled = true;
+    button.textContent = '<?php echo e(__('email_log_retrying')); ?>';
+    postMailAction({ id: id }).then(function (res) {
+        if (res && res.code === 0) { location.reload(); return; }
+        alert((res && res.msg) || '<?php echo e(__('email_log_retry_failed')); ?>');
+        button.disabled = false;
+        button.textContent = '<?php echo e(__('email_log_retry')); ?>';
+    }).catch(function () {
+        button.disabled = false;
+        button.textContent = '<?php echo e(__('email_log_retry')); ?>';
+    });
+}
+
+function retryAllFailed(button) {
+    button.disabled = true;
+    postMailAction({}).then(function (res) {
+        if (res && res.code === 0) { location.reload(); return; }
+        alert((res && res.msg) || '<?php echo e(__('email_log_retry_failed')); ?>');
+        button.disabled = false;
+    }).catch(function () { button.disabled = false; });
 }
 </script>
 
