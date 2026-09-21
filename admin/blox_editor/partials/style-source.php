@@ -7,6 +7,7 @@ $sourceLabels = json_encode([
     'unbound' => __('blox_style_binding_none'), 'live' => __('blox_source_live'),
     'archived' => __('blox_source_archived'), 'snapshot' => __('blox_source_snapshot'),
     'missing' => __('blox_source_missing'),
+    'from_class' => __('blox_source_from_class'),
 ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 ?>
 <template x-if="window.BloxStyleSources && selEl && BloxStyleSources.supports(selEl.type, <?= e($styleSourceControl) ?>)">
@@ -30,6 +31,16 @@ $sourceLabels = json_encode([
             <div x-text="labels[source.shared]"></div>
             <div class="break-all" x-show="source.sharedName" x-text="source.sharedName"></div>
             <div class="break-all" x-show="source.sharedValue" x-text="source.sharedValue"></div>
+        </div>
+        <!-- 全局类来源：挂了类且该类确实设了这个属性时才列出 -->
+        <div x-show="source.classes && source.classes.length" class="space-y-1" data-testid="blox-style-source-classes">
+            <div x-text="labels.from_class"></div>
+            <template x-for="item in (source.classes || [])" :key="item.id">
+                <div class="flex items-center justify-between gap-2 break-all">
+                    <span x-text="item.name"></span>
+                    <span class="text-gray-400" x-show="item.value" x-text="item.value"></span>
+                </div>
+            </template>
         </div>
     </div>
 </template>

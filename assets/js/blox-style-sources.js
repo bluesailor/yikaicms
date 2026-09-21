@@ -2,6 +2,9 @@
     'use strict';
 
     var properties = { color: 'color', bg_color: 'background', radius: 'radius' };
+    // 全局类（data._classes）用自己的设置键，与共享样式的键名不同，所以单独映射。
+    // 只列能精确对上的：对不上的属性宁可不报，也不能猜一个来源出来。
+    var classProperties = { color: 'text_color', bg_color: 'bg_color', radius: 'radius' };
     function object(value) { return value && typeof value === 'object' && !Array.isArray(value); }
     function scalar(value) { return typeof value === 'string' || typeof value === 'number'; }
     function supports(type, control) {
@@ -43,6 +46,30 @@
             }
         }
         var value = style && style[properties[control.key]];
+
+        // 第三条轴：全局类。此前完全不出现在来源提示里，于是"这个颜色是哪来的"
+        // 在挂了类的元素上根本答不上来。只报**确实设了该属性**的类——
+        // 类挂着但没设这个属性时不提，免得把无关的类说成来源。
+        var classKey = classProperties[control.key];
+        var classes = [];
+        if (classKey && Array.isArray(data._classes) && data._classes.length) {
+            var known = catalog && object(catalog.classes) ? catalog.classes : null;
+            data._classes.forEach(function (classId) {
+                if (typeof classId !== 'string' || !classId) return;
+                if (!known) { classes.push({ id: classId, name: classId, value: '', status: 'unknown' }); return; }
+                var entry = known[classId];
+                if (!object(entry)) { classes.push({ id: classId, name: classId, value: '', status: 'missing' }); return; }
+                var settings = object(entry.settings) ? entry.settings : {};
+                if (!(classKey in settings)) return;
+                classes.push({
+                    id: classId,
+                    name: typeof entry.name === 'string' ? entry.name : classId,
+                    value: scalar(settings[classKey]) ? String(settings[classKey]) : '',
+                    status: 'live'
+                });
+            });
+        }
+
         return {
             local: localKind,
             localValue: scalar(local) ? String(local) : '',
@@ -50,6 +77,7 @@
             shared: shared,
             sharedName: style && typeof style.name === 'string' ? style.name : id,
             sharedValue: scalar(value) ? String(value) : '',
+            classes: classes,
         };
     }
 

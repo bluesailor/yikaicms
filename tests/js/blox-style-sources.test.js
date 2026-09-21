@@ -82,3 +82,46 @@ test('text color/radius keep local, shared and invalid references distinguishabl
   const missing = sources.describe({ _global_style: 's_gone' }, { key: 'color', default: '' }, { styles: [] });
   assert.equal(missing.shared, 'missing');
 });
+
+test('全局类作为第三条来源轴（E06）', () => {
+  const catalog = {
+    styles: [],
+    classes: {
+      gc_aaaaaaaaaaaa: { name: 'card-hero', settings: { text_color: '#111827', radius: 'lg' } },
+      gc_bbbbbbbbbbbb: { name: 'spacing-only', settings: { padding_px: 24 } },
+    },
+  };
+  const colorControl = { key: 'color', default: '' };
+
+  // 挂了类且该类设了这个属性 → 报出来，带类名与取值
+  const hit = sources.describe({ _classes: ['gc_aaaaaaaaaaaa'] }, colorControl, catalog);
+  assert.equal(hit.classes.length, 1);
+  assert.equal(hit.classes[0].name, 'card-hero');
+  assert.equal(hit.classes[0].value, '#111827');
+
+  // 挂了类但该类没设这个属性 → 不提，免得把无关的类说成来源
+  const unrelated = sources.describe({ _classes: ['gc_bbbbbbbbbbbb'] }, colorControl, catalog);
+  assert.deepEqual(unrelated.classes, []);
+
+  // 没挂类
+  assert.deepEqual(sources.describe({}, colorControl, catalog).classes, []);
+
+  // 类已被删：报缺失而不是假装没有来源
+  const gone = sources.describe({ _classes: ['gc_cccccccccccc'] }, colorControl, catalog);
+  assert.equal(gone.classes.length, 1);
+  assert.equal(gone.classes[0].status, 'missing');
+
+  // 目录没下发时标为未知——不能冒充"没有类来源"
+  const noCatalog = sources.describe({ _classes: ['gc_aaaaaaaaaaaa'] }, colorControl, { styles: [] });
+  assert.equal(noCatalog.classes[0].status, 'unknown');
+
+  // 三条轴互不干扰
+  const all = sources.describe(
+    { _classes: ['gc_aaaaaaaaaaaa'], _global_style: 's_card', color: '#ff0000' },
+    colorControl,
+    { styles: [{ id: 's_card', name: 'Card', status: 'live', color: '#0000ff' }], classes: catalog.classes }
+  );
+  assert.equal(all.local, 'element');
+  assert.equal(all.shared, 'live');
+  assert.equal(all.classes.length, 1);
+});
