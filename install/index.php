@@ -11,6 +11,7 @@ declare(strict_types=1);
 define('INSTALL_PATH', __DIR__);
 define('ROOT_PATH', dirname(__DIR__));
 require_once INSTALL_PATH . '/validation.php';
+require_once ROOT_PATH . '/includes/RewriteProbe.php';
 
 // 读取 CMS 版本号（单一可信来源：config/version.php）
 $cmsVersion = '1.0.0';
@@ -464,6 +465,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             $stmt->execute([$demoFlag]);
 
+            $initialUrlMode = RewriteProbe::installMode($_POST['rewrite_supported'] ?? null);
+            $stmt = $pdo->prepare("UPDATE {$prefix}settings SET `value` = ? WHERE `key` = 'url_mode'");
+            $stmt->execute([$initialUrlMode]);
+
             // 仅全新安装显示一次伪静态提醒。默认值保持已关闭，避免旧站升级后突然出现。
             if ($driver === 'sqlite') {
                 $stmt = $pdo->prepare("INSERT OR REPLACE INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', 'onboarding_rewrite_dismissed', '0', '新站伪静态提醒', 'switch', 13)");
@@ -499,6 +504,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
 
             finalizeFreshInstallMigrations();
+
+            // An optional template baseline must never leave an otherwise installed site unlocked.
+            try {
+                require_once ROOT_PATH . '/includes/SiteTemplateService.php';
+                (new SiteTemplateService(ROOT_PATH))->markFreshInstall();
+            } catch (Throwable $templateError) {
+                error_log('Site template baseline unavailable: ' . $templateError->getMessage());
+            }
 
             // 创建安装锁
             file_put_contents(ROOT_PATH . '/installed.lock', date('Y-m-d H:i:s'));
@@ -542,6 +555,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
         .step-item.completed { color: #10b981; border-color: #10b981; }
         .step-line.completed { background-color: #10b981; }
     </style>
+<script src="/assets/js/rewrite-probe.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-3xl">
@@ -570,6 +584,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
         </div>
 
         <!-- 步骤指示器 -->
+        <p class="bg-white rounded p-4 mb-6 text-sm text-gray-600"><?= htmlspecialchars($L['url_auto_notice'], ENT_QUOTES, 'UTF-8') ?></p>
         <div class="flex items-center justify-center mb-8">
             <?php for ($i = 1; $i <= 4; $i++): ?>
                 <?php
@@ -707,6 +722,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                     fd.append('site_lang', '<?php echo $lang; ?>');
                     fd.append('admin_lang', '<?php echo $lang; ?>');
                     try {
+                        fd.append('rewrite_supported', typeof window.yikaiCheckRewrite === 'function' && await window.yikaiCheckRewrite() ? '1' : '0');
                         var resp = await fetch('', { method: 'POST', body: fd });
                         var data = await resp.json();
                         if (data.success) {
@@ -1088,6 +1104,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                     progressBar.style.width = '30%';
 
                     try {
+                        formData.append('rewrite_supported', typeof window.yikaiCheckRewrite === 'function' && await window.yikaiCheckRewrite() ? '1' : '0');
                         const response = await fetch('', { method: 'POST', body: formData });
                         progressBar.style.width = '80%';
                         const text = await response.text();

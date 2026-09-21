@@ -50,6 +50,9 @@
                 <file name="admin/site_health.php" />
                 <!-- Navigation context consumed by the shared admin header. -->
                 <file name="admin/site_setup.php" />
+                <file name="admin/site_templates.php" />
+                <file name="admin/theme_content.php" />
+                <file name="admin/site_content_check.php" />
                 <!-- Variables consumed by ignored editor partials through require scope. -->
                 <file name="admin/blox_design.php" />
                 <file name="plugins/seo/admin.php" />

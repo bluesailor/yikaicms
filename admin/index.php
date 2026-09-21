@@ -84,6 +84,7 @@ $onbChannelCount = (int) (db()->fetchOne(
 )['c'] ?? 0);
 $showOnboard = $onbChannelCount === 0 && (string) config('onboarding_channel_dismissed', '') !== '1';
 $showRewriteOnboarding = hasPermission('*')
+    && !isDynamicUrlMode()
     && (string) config('onboarding_rewrite_dismissed', '1') === '0';
 
 

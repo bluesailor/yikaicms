@@ -11,6 +11,9 @@ declare(strict_types=1);
 // 定义根目录
 if (!defined('ROOT_PATH')) define('ROOT_PATH', dirname(__DIR__));
 
+require_once __DIR__ . '/RewriteProbe.php';
+RewriteProbe::respond();
+
 // 检查是否已安装
 if (!file_exists(ROOT_PATH . '/installed.lock')) {
     header('Location: /install/');
@@ -26,6 +29,10 @@ require_once ROOT_PATH . '/includes/language_request.php';
 
 // 加载 Model 层
 require_once ROOT_PATH . '/includes/models/autoload.php';
+if (PHP_SAPI !== 'cli' && isDynamicUrlMode()) {
+    require_once __DIR__ . '/CompatibleLinks.php';
+    ob_start(static fn(string $html): string => CompatibleLinks::output($html));
+}
 
 // Custom paths pin the entity language before SITE_LANG, independently of browser cookies.
 $customProductHit = null;
