@@ -414,6 +414,8 @@ return [
     'blox_template_filter_all' => 'すべて',
     'blox_template_category' => 'テンプレート用途',
     'blox_template_category_all' => 'すべての用途',
+    'blox_tpl_category' => 'ライブラリの分類',
+    'blox_tpl_category_none' => '未分類（テンプレート種別で整理）',
     'blox_template_category_landing' => 'ランディングページ',
     'blox_template_category_marketing' => 'マーケティング',
     'blox_template_category_content' => 'コンテンツ',
