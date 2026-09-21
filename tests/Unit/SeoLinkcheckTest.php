@@ -69,6 +69,22 @@ final class SeoLinkcheckTest extends TestCase
 
     // ── 分类：有效集 / 磁盘文件 / 重定向接管 / 死链 ───────────────
 
+    /**
+     * 正文里的 href 可能含 ../：文件存在性判定必须收在站点根内，
+     * 否则扫描报告会变成"某路径是否存在"的探测器（/uploads/../config/config.php 曾判为存在）。
+     */
+    public function testFileProbeCannotEscapeTheSiteRoot(): void
+    {
+        self::assertTrue(\seo_linkcheck_file_exists('/index.php'), '站内真实文件应判存在');
+        foreach ([
+            '/uploads/../config/config.php',
+            '/uploads/%2e%2e/config/config.php',
+            '/../../../../etc/passwd',
+        ] as $escape) {
+            self::assertFalse(\seo_linkcheck_file_exists($escape), $escape . ' 不得穿出站点根');
+        }
+    }
+
     public function testClassifyOrdersAliveChecksBeforeDeadVerdict(): void
     {
         $validSet = [
