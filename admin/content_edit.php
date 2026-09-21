@@ -93,6 +93,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error(__('admin_invalid_content_type'));
     }
 
+    // URL 别名净化 + 去重（与 article_edit/product_edit 同口径）：此页此前把
+    // post('slug') 直接落库，中文别名会生成百分号编码链接。见 SlugSanitizationContractTest。
+    $data['slug'] = resolveSlug((string) $data['slug'], (string) $data['title'], 'contents', $id);
+
     if ($id > 0) {
         contentModel()->updateById($id, $data);
         adminLog('content', 'update', '更新内容：' . $data['title']);

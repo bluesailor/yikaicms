@@ -26,7 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $data = [
             'name' => post('name'),
-            'slug' => post('slug') ?: 'brand-' . time(),
+            // 别名净化（见 normalizeSlugInput）：手输中文转拼音，留空按品牌名生成
+            'slug' => normalizeSlugInput((string) post('slug'))
+                ?: (generateSlug((string) post('name')) ?: 'brand-' . time()),
             'logo' => post('logo'),
             'country' => post('country'),
             'url' => post('url'),

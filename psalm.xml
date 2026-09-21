@@ -121,5 +121,11 @@
                 <file name="includes/builder/BloxThemeHeaderDocument.php" />
             </errorLevel>
         </UnusedClass>
+        <!-- SEO 助手插件的函数（插件可不安装）：调用点均有 function_exists 守卫。 -->
+        <UndefinedFunction>
+            <errorLevel type="suppress">
+                <file name="includes/commands/slug.php" />
+            </errorLevel>
+        </UndefinedFunction>
     </issueHandlers>
 </psalm>
