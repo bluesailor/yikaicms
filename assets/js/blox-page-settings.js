@@ -9,6 +9,9 @@
                 // 只给 {} 会让 dot_nav.position / dot_nav.mobile 这类绑定在初始化时读到
                 // undefined 的属性（2026-09-16 回归：控制台刷 Alpine Expression Error）。
                 pageFrameDraft: { page_header_hidden: false, page_footer_hidden: false, dot_nav: { enabled: false, position: "right", mobile: false } },
+                pageLayout: initial.layout || { values: {}, fields: {} },
+                pageFrameModes: {},
+                pageFrameError: "",
                 pageUrl: initial.url || "",
                 pageSlug: initial.slug || "",
                 pageSlugDraft: "",
@@ -61,6 +64,14 @@
                         }
                     };
                     this.pageSlugDraft = this.pageSlug;
+                    this.pageFrameError = "";
+                    this.pageFrameModes = {};
+                    Object.keys(this.pageLayout.fields).forEach((key) => {
+                        var has = Object.prototype.hasOwnProperty.call(this.docSettings, key);
+                        var value = has ? this.docSettings[key] : this.pageLayout.values[key];
+                        this.pageFrameModes[key] = !has ? "inherit" : (value === null ? "clear" : "set");
+                        this.pageFrameDraft[key] = value === null ? "#ffffff" : value;
+                    });
                     this.pageUrlError = "";
                     this.pageUrlConfirm = false;
                     this.pageFrameOpen = true;
@@ -72,8 +83,25 @@
                     this.releaseDialog(this.$refs.pageFrameDialog);
                 },
                 applyPageFrame: function () {
+                    this.pageFrameError = "";
+                    for (var key of Object.keys(this.pageLayout.fields)) {
+                        var field = this.pageLayout.fields[key];
+                        var value = this.pageFrameDraft[key];
+                        if (this.pageFrameModes[key] !== "set") continue;
+                        if ((field.type === "number" && (!Number.isInteger(Number(value)) || value === "" || Number(value) < field.min || Number(value) > field.max))
+                            || (field.type === "color" && !/^#[0-9a-fA-F]{6}$/.test(value))) {
+                            this.pageFrameError = this.pageUrlText.layoutInvalid;
+                            return;
+                        }
+                    }
                     this.runCommand("page-frame", function () {
                         Object.assign(this.docSettings, this.pageFrameDraft);
+                        Object.keys(this.pageLayout.fields).forEach((key) => {
+                            var mode = this.pageFrameModes[key];
+                            if (mode === "inherit") delete this.docSettings[key];
+                            else if (mode === "clear") this.docSettings[key] = null;
+                            else if (this.pageLayout.fields[key].type === "number") this.docSettings[key] = Number(this.pageFrameDraft[key]);
+                        });
                         this.markDocumentSettingsChanged();
                         this.schedulePreview();
                     });

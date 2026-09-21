@@ -51,6 +51,13 @@ test("section imports and non-page targets never alter page frame preferences", 
     assert.equal(global.BloxTemplateLibrary.applyPageSettings(current, { type: "page", settings }, "replace", false), current);
 });
 
+test("page layout imports keep clear and zero; replace restores inherited missing keys", function () {
+    const settings = { page_content_background: null, page_content_gutter: 0, page_content_max_width: 960 };
+    assert.deepEqual(global.BloxTemplateLibrary.applyPageSettings({}, { type: "page", settings }, "replace", true), settings);
+    assert.deepEqual(global.BloxTemplateLibrary.applyPageSettings(settings, { type: "page" }, "replace", true), {});
+    assert.deepEqual(global.BloxTemplateLibrary.applyPageSettings({}, { type: "page", settings: { page_content_max_width: null, page_content_gutter: false, page_content_background: "red" } }, "replace", true), {});
+});
+
 test("replacing a standalone page with a legacy page restores default frame settings", function () {
     const current = { page_header_hidden: true, page_footer_hidden: true, page_title_hidden: true, page_sidebar_hidden: true, sticky: true };
     assert.deepEqual(global.BloxTemplateLibrary.applyPageSettings(current, { type: "page" }, "replace", true), { sticky: true });

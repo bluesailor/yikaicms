@@ -69,10 +69,30 @@ declare(strict_types=1);
                     <span><?= e($frameLabel) ?></span>
                     <input type="checkbox"
                            :checked="!pageFrameDraft.page_<?= $frameArea ?>_hidden"
-                           @change="pageFrameDraft.page_<?= $frameArea ?>_hidden = !$event.target.checked"
+                           @change="pageFrameDraft.page_<?= $frameArea ?>_hidden = !$event.target.checked; pageFrameModes.page_<?= $frameArea ?>_hidden = 'set'"
                            class="h-5 w-5" data-testid="blox-page-frame-<?= $frameArea ?>">
                 </label>
+                <div class="flex items-center justify-between gap-2 text-xs text-gray-500">
+                    <span x-text="pageFrameModes.page_<?= $frameArea ?>_hidden === 'inherit' ? <?= e(json_encode(__('layout_source_global'))) ?> : <?= e(json_encode(__('layout_source_local'))) ?>"></span>
+                    <button type="button" @click="pageFrameModes.page_<?= $frameArea ?>_hidden = 'inherit'; pageFrameDraft.page_<?= $frameArea ?>_hidden = pageLayout.values.page_<?= $frameArea ?>_hidden" class="text-blue-600 underline" data-testid="layout-inherit-<?= $frameArea ?>"><?= e(__('layout_restore')) ?></button>
+                </div>
                 <?php endforeach; ?>
+                <p class="text-xs text-gray-500"><?= e(__('layout_scope')) ?></p>
+                <?php foreach (BloxPageLayout::fields() as $layoutKey => $layoutField): if ($layoutField['type'] === 'bool') continue; ?>
+                <div class="space-y-2">
+                    <label for="layout-mode-<?= e($layoutKey) ?>" class="block text-sm text-gray-900"><?= e(__($layoutField['label'])) ?></label>
+                    <select id="layout-mode-<?= e($layoutKey) ?>" x-model="pageFrameModes.<?= e($layoutKey) ?>" class="w-full border rounded px-3 py-2 text-sm" data-testid="layout-mode-<?= e($layoutKey) ?>">
+                        <option value="inherit"><?= e(__('layout_source_global')) ?></option>
+                        <option value="set"><?= e(__('layout_source_local')) ?></option>
+                        <?php if ($layoutField['clear'] ?? false): ?><option value="clear"><?= e(__('layout_clear_background')) ?></option><?php endif; ?>
+                    </select>
+                    <input x-show="pageFrameModes.<?= e($layoutKey) ?> === 'set'" :disabled="pageFrameModes.<?= e($layoutKey) ?> !== 'set'" x-model="pageFrameDraft.<?= e($layoutKey) ?>"
+                           type="<?= e($layoutField['type']) ?>" aria-label="<?= e(__($layoutField['label'])) ?>" data-testid="layout-value-<?= e($layoutKey) ?>"
+                           <?php if ($layoutField['type'] === 'number'): ?>min="<?= (int) $layoutField['min'] ?>" max="<?= (int) $layoutField['max'] ?>" step="1"<?php endif; ?> class="w-full border rounded px-3 py-2 text-sm">
+                    <p x-show="pageFrameModes.<?= e($layoutKey) ?> === 'inherit'" class="text-xs text-gray-500"><?= e(__('layout_global_value')) ?> <span x-text="pageLayout.values.<?= e($layoutKey) ?>"></span></p>
+                </div>
+                <?php endforeach; ?>
+                <p x-show="pageFrameError" x-text="pageFrameError" role="alert" class="text-sm text-red-600"></p>
             </div>
             <div class="space-y-3 border-t p-4" data-testid="blox-page-frame-dotnav">
                 <label class="flex items-center justify-between gap-4 text-sm text-gray-900">

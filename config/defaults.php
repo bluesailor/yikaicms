@@ -28,6 +28,7 @@ return [
         'secondary_color'       => ['value' => '#1D4ED8', 'type' => 'color', 'name' => '辅助色', 'tip' => '十六进制颜色值', 'section' => '主题外观', 'sort_order' => 8],
         'theme_color_profiles'  => ['value' => '{}', 'type' => 'text', 'name' => '模板配色档案', 'tip' => '系统按模板保存的配色，请勿手工修改', 'section' => '主题外观', 'sort_order' => 8],
         'theme_style_settings'  => ['value' => '{}', 'type' => 'textarea', 'name' => '模板全局样式', 'tip' => '由模板设置页维护的版本化全局样式数据', 'section' => '主题外观', 'sort_order' => 8],
+        'motion_intensity' => ['value' => 'standard', 'type' => 'select', 'name' => 'motion_title', 'tip' => 'motion_hint', 'options' => '{"none":"motion_none","light":"motion_light","standard":"motion_standard"}', 'section' => '主题外观', 'sort_order' => 9],
         'banner_height_pc'      => ['value' => '650', 'type' => 'number', 'name' => 'Banner高度(PC)', 'tip' => '像素', 'section' => '主题外观', 'sort_order' => 9],
         'banner_height_mobile'  => ['value' => '300', 'type' => 'number', 'name' => 'Banner高度(移动端)', 'tip' => '像素', 'section' => '主题外观', 'sort_order' => 10],
         'banner_fullscreen'     => ['value' => '0', 'type' => 'select', 'name' => '全屏大Banner', 'tip' => '开启后 PC 端首页轮播图满屏高(100vh-头部)，忽略 PC 高度；移动端仍用移动端高度', 'options' => '{"0":"关闭","1":"开启"}', 'section' => '主题外观', 'sort_order' => 11],

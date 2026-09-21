@@ -306,7 +306,7 @@ if ($footerBgLiteral !== '') {
     </script>
 
     <!-- scroll-in animation -->
-    <script src="/assets/js/scroll-anim.js"></script>
+    <?php BloxAssetCollector::addScript('/assets/js/scroll-anim.js'); ?>
 
     <?php if (!empty($extraJs)): ?>
     <?php echo $extraJs; ?>

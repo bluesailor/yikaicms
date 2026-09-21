@@ -46,6 +46,8 @@ if ($currentChannelId > 0) {
             [$currentChannelId]
         );
     if ($__cRow && ($__cRow['content_type'] ?? '') === 'blocks' && !empty($__cRow['blocks_data'])) {
+        $contactDocument = BloxDocumentPipeline::decode((string) $__cRow['blocks_data']);
+        $GLOBALS['ykBloxPageFrame'] = BloxPageLayout::activate($contactDocument['settings'], ['id' => $currentChannelId, 'lang' => siteLang()]);
         if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
             $GLOBALS['ik_edit_url'] = '/admin/blox_editor.php?id=' . $currentChannelId;
         }

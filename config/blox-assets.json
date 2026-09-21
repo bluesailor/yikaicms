@@ -1,6 +1,9 @@
 {
   "version": 2,
   "core": [
+    "includes/builder/BloxPageLayout.php",
+    "includes/builder/BloxMotion.php",
+    "assets/js/scroll-anim.js",
     "config/blox-feature-policy.php",
     "includes/builder/BloxFeaturePolicy.php",
     "includes/builder/BloxProfessionalUi.php",

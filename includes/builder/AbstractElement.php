@@ -247,6 +247,8 @@ abstract class AbstractElement
                 'key' => 'animation_delay', 'type' => 'select', 'label' => __('blox_anim_delay'), 'default' => 'none', 'tab' => 'style', 'group' => 'animation',
                 'options' => ['none' => __('blox_anim_delay_none'), 'short' => __('blox_anim_delay_short'), 'medium' => __('blox_anim_delay_medium'), 'long' => __('blox_anim_delay_long')],
             ],
+            ['key' => 'animation_device', 'type' => 'select', 'label' => __('motion_device'), 'default' => 'all', 'tab' => 'style', 'group' => 'animation',
+                'options' => ['all' => __('motion_device_all'), 'desktop' => __('motion_device_desktop'), 'tablet' => __('motion_device_tablet'), 'mobile' => __('motion_device_mobile')]],
         ];
     }
 
@@ -258,7 +260,9 @@ abstract class AbstractElement
             return '';
         }
 
+        BloxAssetCollector::addScript('/assets/js/scroll-anim.js');
         $attrs = ' data-animate="' . $animation . '"';
+        if (in_array($data['animation_device'] ?? '', ['desktop', 'tablet', 'mobile'], true)) $attrs .= ' data-animate-device="' . $data['animation_device'] . '"';
         $trigger = ($data['animation_trigger'] ?? 'viewport') === 'load' ? 'load' : 'viewport';
         $attrs .= ' data-animate-trigger="' . $trigger . '"';
         $speed = is_string($data['animation_speed'] ?? null) ? $data['animation_speed'] : 'normal';

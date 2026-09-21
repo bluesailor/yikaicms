@@ -413,6 +413,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
         }
 
         $pageHeroBody = '';
+        if (!$isHomeLayout && $pageType === 'page' && is_array($pageRow)) $canvasFrame = BloxPageLayout::activate($canvasFrame, $pageRow);
         $GLOBALS['ykBloxPageFrame'] = !$isHomeLayout && $pageType === 'page' ? $canvasFrame : [];
         if (!$isHomeLayout && is_array($pageRow)
             && ($pageType !== 'page' || PageBloxDocument::usesThemeTitle($canvasFrame))) {
@@ -2150,25 +2151,15 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             host = document.querySelector('[data-yk-el="' + cssEscape(target.path) + '"]');
         }
         if (!host) return;
+        var group = host.matches('[data-stagger]') ? host : host.querySelector('[data-stagger]');
+        if (group && window.YikaiMotion) { window.YikaiMotion.replayGroup(group); return; }
         var node = host.matches('[data-animate]') ? host : host.querySelector('[data-animate]');
         if (!node || typeof node.animate !== 'function') return;
-        if (node.ykEntrancePreview) node.ykEntrancePreview.cancel();
-        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-        var transforms = {
-            'fade': 'none', 'fade-up': 'translateY(40px)', 'fade-down': 'translateY(-40px)',
-            'fade-left': 'translateX(-40px)', 'fade-right': 'translateX(40px)', 'zoom-in': 'scale(0.9)'
-        };
-        var effect = node.getAttribute('data-animate');
-        if (!Object.prototype.hasOwnProperty.call(transforms, effect)) return;
-        var speed = node.getAttribute('data-animate-speed');
-        var delay = node.getAttribute('data-animate-delay');
-        var duration = speed === 'fast' ? 450 : (speed === 'slow' ? 1000 : 700);
-        var wait = delay === 'short' ? 150 : (delay === 'medium' ? 300 : (delay === 'long' ? 600 : 0));
-        node.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
-        node.ykEntrancePreview = node.animate([
-            { opacity: 0, transform: transforms[effect] },
-            { opacity: 1, transform: 'none' }
-        ], { duration: duration, delay: wait, easing: 'ease', fill: 'backwards' });
+        if (window.YikaiMotion) {
+            node.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+            window.YikaiMotion.replay(node, node.getAttribute('data-animate'));
+            return;
+        }
     }
     function emptyActionButton(action, label, primary) {
         var b = document.createElement('button');
@@ -2422,9 +2413,11 @@ HTML;
         . '<base target="_blank">'
         . BloxDesignSystem::styleTag()
         . BloxGlobalClasses::styleTag()
+        . BloxMotion::headHtml()
+        . (isset($GLOBALS['ykPageLayout']) ? '<style>' . ThemeSettings::css() . BloxPageLayout::css($GLOBALS['ykPageLayout']) . '</style>' : '')
         . $previewStyles
         . $headerOverlayPreview
-        . '<style>body{margin:0;background:#fff}</style></head><body>'
+        . '<style>body{margin:0;background:#fff}</style></head><body' . (isset($GLOBALS['ykPageLayout']) ? ' class="yk-site-body"' : '') . '>'
         . $body
         . '<script' . $nonceAttr . ' src="' . assetVer('/assets/swiper/swiper-bundle.min.js') . '"></script>'
         . $previewScripts

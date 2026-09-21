@@ -747,7 +747,7 @@ final class BuilderRenderTest extends TestCase
             'visual_size', 'type_font_size', 'type_line_height', 'color', 'align',
             // E10：动态绑定为空时的处置，排在动效之前
             '_empty_binding',
-            'animation', 'animation_trigger', 'animation_speed', 'animation_delay',
+            'animation', 'animation_trigger', 'animation_speed', 'animation_delay', 'animation_device',
         ], $keys);
         // defaults 从 controls 推导
         $this->assertSame([
@@ -772,6 +772,7 @@ final class BuilderRenderTest extends TestCase
             'animation_trigger' => 'viewport',
             'animation_speed' => 'normal',
             'animation_delay' => 'none',
+            'animation_device' => 'all',
         ], $h->defaults());
     }
 
