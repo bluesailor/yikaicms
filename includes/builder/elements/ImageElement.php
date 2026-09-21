@@ -64,6 +64,13 @@ final class ImageElement extends AbstractElement
                 'visible_when' => ['terms' => [['click_action', '=', 'link']]]],
             ['key' => 'link_new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab_short'), 'default' => false,
                 'visible_when' => ['terms' => [['click_action', '=', 'link']]]],
+            // 图上标题（E05 切片 B）：仅 overlay 预设可见，留空的部分不渲染。
+            ['key' => 'overlay_title', 'type' => 'text', 'label' => __('blox_overlay_title'), 'default' => '',
+                'visible_when' => ['terms' => [['image_preset', '=', 'overlay']]]],
+            ['key' => 'overlay_text', 'type' => 'text', 'label' => __('blox_overlay_text'), 'default' => '',
+                'visible_when' => ['terms' => [['image_preset', '=', 'overlay']]]],
+            ['key' => 'overlay_button_label', 'type' => 'text', 'label' => __('blox_overlay_button'), 'default' => '',
+                'visible_when' => ['terms' => [['image_preset', '=', 'overlay']]]],
             // 同名分组的图片在灯箱里可前后切换（E05 切片 C）。留空＝只看这一张。
             ['key' => 'lightbox_group', 'type' => 'text', 'label' => __('blox_lightbox_group'), 'default' => '',
                 'visible_when' => ['terms' => [['click_action', '=', 'lightbox']]]],
@@ -104,6 +111,7 @@ final class ImageElement extends AbstractElement
         $animationAttrs = $this->animationAttrs($data);
         $frameStyle = BloxImageFraming::standaloneStyle($data);
         $clickAction = $data['click_action'] ?? '';
+        $overlay = $this->overlayMarkup($data);
         $imgTag = '<img class="w-full rounded-lg" ' . $imageAttrs . ' alt="' . $alt . '" loading="lazy" decoding="async"' . $frameStyle . '>';
         if ($clickAction === 'lightbox') {
             // 灯箱的 href 是可点击链接，须过伪协议校验；src 不合法则退化为普通图片
@@ -121,8 +129,8 @@ final class ImageElement extends AbstractElement
                 $captionAttr = $captionRaw === ''
                     ? ''
                     : ' data-caption="' . htmlspecialchars(mb_substr($captionRaw, 0, 300), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
-                return '<a href="' . htmlspecialchars($lightboxHref) . '"' . $groupAttr . $captionAttr
-                    . ' class="block cursor-zoom-in"' . $animationAttrs . '>' . $imgTag . '</a>';
+                return $this->wrapOverlay('<a href="' . htmlspecialchars($lightboxHref) . '"' . $groupAttr . $captionAttr
+                    . ' class="block cursor-zoom-in"' . $animationAttrs . '>' . $imgTag . '</a>', $overlay);
             }
         }
         if ($clickAction === 'link' && !empty($data['link_url'])) {
@@ -132,11 +140,52 @@ final class ImageElement extends AbstractElement
             ));
             if ($linkUrl !== '') {
                 $target = !empty($data['link_new_tab']) ? ' target="_blank" rel="noopener"' : '';
-                return '<a href="' . htmlspecialchars($linkUrl) . '"' . $target . ' class="block"' . $animationAttrs . '>' . $imgTag . '</a>';
+                return $this->wrapOverlay('<a href="' . htmlspecialchars($linkUrl) . '"' . $target . ' class="block"' . $animationAttrs . '>' . $imgTag . '</a>', $overlay);
             }
         }
-        return '<img class="w-full rounded-lg" ' . $imageAttrs . ' alt="' . $alt
-            . '" loading="lazy" decoding="async"' . $frameStyle . $animationAttrs . '>';
+        return $this->wrapOverlay('<img class="w-full rounded-lg" ' . $imageAttrs . ' alt="' . $alt
+            . '" loading="lazy" decoding="async"' . $frameStyle . $animationAttrs . '>', $overlay);
+    }
+
+    /**
+     * 图上标题（overlay 预设）：渐变遮罩 + 标题／说明／按钮。
+     *
+     * 三段文字各自留空即不渲染——空的遮罩会白白压暗图片。按钮复用图片自己的链接，
+     * 不另开一个地址输入：同一张图两个去处只会让人困惑，也省掉一处要校验的 URL。
+     *
+     * @param array<string,mixed> $data
+     */
+    private function overlayMarkup(array $data): string
+    {
+        if (($data['image_preset'] ?? '') !== 'overlay') {
+            return '';
+        }
+        $title = trim(BloxDynamicTags::resolveText((string) ($data['overlay_title'] ?? '')));
+        $text = trim(BloxDynamicTags::resolveText((string) ($data['overlay_text'] ?? '')));
+        $button = trim(BloxDynamicTags::resolveText((string) ($data['overlay_button_label'] ?? '')));
+        if ($title === '' && $text === '' && $button === '') {
+            return '';
+        }
+        $html = '<div class="pointer-events-none absolute inset-0 flex flex-col justify-end gap-1 rounded-lg p-4"'
+            . ' style="background:linear-gradient(to top,rgba(0,0,0,.65),rgba(0,0,0,.15) 45%,transparent 70%)">';
+        if ($title !== '') {
+            $html .= '<p class="text-white text-lg font-semibold leading-snug">' . e(mb_substr($title, 0, 200)) . '</p>';
+        }
+        if ($text !== '') {
+            $html .= '<p class="text-white/85 text-sm leading-snug">' . e(mb_substr($text, 0, 300)) . '</p>';
+        }
+        if ($button !== '') {
+            // 纯展示：真正的跳转由外层链接承担，所以这里不是 <a>，也不抢焦点
+            $html .= '<span class="mt-1 inline-flex w-fit items-center rounded bg-white/90 px-3 py-1.5 text-sm font-medium text-gray-900">'
+                . e(mb_substr($button, 0, 60)) . '</span>';
+        }
+        return $html . '</div>';
+    }
+
+    /** 有遮罩时才包一层定位容器：没有 overlay 的图片输出与以前完全一致。 */
+    private function wrapOverlay(string $html, string $overlay): string
+    {
+        return $overlay === '' ? $html : '<div class="relative">' . $html . $overlay . '</div>';
     }
 
 }
