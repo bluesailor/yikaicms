@@ -120,4 +120,18 @@ final class ShopPluginFoundationTest extends TestCase
         $this->assertStringContainsString('UNIQUE KEY `uk_notify_hash`', $schemas['shop_payment_notifications']['mysql']);
         $this->assertStringContainsString('uk_gateway_trade', $schemas['shop_payments']['mysql']);
     }
+
+    /** G2 插件 schema 升级通道：步骤表版本递增、覆盖当前版本、首步为初始建表。 */
+    public function testShopSchemaUpgradePathIsIncrementalAndIdempotent(): void
+    {
+        $steps = shopSchemaSteps();
+        $versions = array_column($steps, 0);
+        $this->assertSame($versions, array_values(array_unique($versions)), '步骤版本单调递增不重复');
+        $this->assertSame(shopSchemaVersion(), max($versions), '最高步骤版本等于当前结构版本');
+        $this->assertSame(1, $steps[0][0], '第一步必须是初始建表');
+        // v2 步骤：订单表加物流列（发货信息是商家/买家的共同契约）
+        $tracking = array_values(array_filter($steps, static fn(array $s): bool => $s[0] === 2));
+        $this->assertCount(1, $tracking);
+        $this->assertStringContainsString('订单表增加物流单号', $tracking[0][1]);
+    }
 }

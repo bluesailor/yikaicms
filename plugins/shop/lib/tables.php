@@ -12,10 +12,56 @@
 
 declare(strict_types=1);
 
-/** 当前商城表结构版本（加列/加表时 +1 并在 shopApplySchemaSteps() 补步骤）。 */
+/** 当前商城表结构版本（加列/加表时 +1 并在 shopSchemaSteps() 补步骤）。 */
 function shopSchemaVersion(): int
 {
-    return 1;
+    return 2;
+}
+
+/**
+ * 增量结构步骤（G2：插件自带迁移，不动核心 Migrator）。
+ * 每步 = [目标版本, 描述, 执行函数]；执行前由 shopEnsureSchema 判断当前版本，
+ * 只跑 > current 的步骤；步骤本身必须幂等（列/表存在即跳过）。
+ * 已经跑过的历史步骤不得改写——增量追加。
+ *
+ * @return list<array{0:int,1:string,2:callable():void}>
+ */
+function shopSchemaSteps(): array
+{
+    return [
+        [1, '初始七表', static function (): void {
+            shopEnsureTables();
+        }],
+        // v2（M2-b）：物流单号与快递公司——发货时商家填写，买家订单页展示
+        [2, '订单表增加物流单号', static function (): void {
+            shopEnsureTables();   // 幂等，先保证基础表在
+            $orders = DB_PREFIX . 'shop_orders';
+            if (db()->isSqlite()) {
+                $columns = array_map(
+                    static fn(array $row): string => (string) $row['name'],
+                    db()->fetchAll("PRAGMA table_info(\"{$orders}\")") ?: []
+                );
+                if (!in_array('tracking_company', $columns, true)) {
+                    db()->execute("ALTER TABLE \"{$orders}\" ADD COLUMN \"tracking_company\" TEXT NOT NULL DEFAULT ''");
+                }
+                if (!in_array('tracking_no', $columns, true)) {
+                    db()->execute("ALTER TABLE \"{$orders}\" ADD COLUMN \"tracking_no\" TEXT NOT NULL DEFAULT ''");
+                }
+                return;
+            }
+            // MySQL 无 IF NOT EXISTS 加列：SHOW COLUMNS 逐列判断，避免重复执行报错
+            $columns = array_map(
+                static fn(array $row): string => (string) ($row['Field'] ?? ''),
+                db()->fetchAll("SHOW COLUMNS FROM `{$orders}`") ?: []
+            );
+            if (!in_array('tracking_company', $columns, true)) {
+                db()->execute("ALTER TABLE `{$orders}` ADD COLUMN `tracking_company` varchar(50) NOT NULL DEFAULT '' COMMENT '快递公司'");
+            }
+            if (!in_array('tracking_no', $columns, true)) {
+                db()->execute("ALTER TABLE `{$orders}` ADD COLUMN `tracking_no` varchar(64) NOT NULL DEFAULT '' COMMENT '物流单号'");
+            }
+        }],
+    ];
 }
 
 /**
@@ -297,7 +343,9 @@ function shopEnsureTables(): void
 
 /**
  * 结构版本推进（G2：插件自带迁移，不动核心 Migrator）。
- * 版本号存 settings.shop_schema_version；新步骤以增量追加，禁止改写历史步骤。
+ * 版本号存 settings.shop_schema_version；按 shopSchemaSteps() 增量执行
+ * 「高于当前版本」的步骤，全部完成后一次性写新版本号。步骤失败抛异常，
+ * 版本号不推进——下次请求重试；步骤自身幂等，重试安全。
  */
 function shopEnsureSchema(): void
 {
@@ -309,7 +357,12 @@ function shopEnsureSchema(): void
     if ($current >= shopSchemaVersion()) {
         return;
     }
-    shopEnsureTables();
-    // 步骤 1：初始七表。后续结构变更在此按版本号追加（ALTER 前先查列存在）。
+    foreach (shopSchemaSteps() as [$version, $description, $apply]) {
+        if ($version <= $current) {
+            continue;
+        }
+        $apply();
+        error_log("[shop] schema v{$version} applied: {$description}");
+    }
     settingModel()->set('shop_schema_version', (string) shopSchemaVersion());
 }
