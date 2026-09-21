@@ -28,7 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['setup_home_notice'] = true;
         redirect('/admin/site_setup.php');
     } catch (Throwable $e) {
-        $errorMessage = $e->getMessage();
+        // 与同批其它页面对齐：只回显已登记的错误码，PDOException 等一律归为通用失败，
+        // 避免把 SQL 语句/表名/连接信息渲染给管理员
+        $code = $e->getMessage();
+        $errorMessage = __(preg_match('/^(?:setup|st)_[a-z_]+$/D', $code) ? $code : 'setup_plan_missing');
     }
 }
 $savedNotice = !empty($_SESSION['setup_home_notice']);
