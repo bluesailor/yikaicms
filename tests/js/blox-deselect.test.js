@@ -5,7 +5,9 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '../..');
-const editor = fs.readFileSync(path.join(root, 'admin/blox_editor.php'), 'utf8');
+const { bloxEditorSource } = require('./helpers/editor-source');
+// 展开 partial 后的入口全文：方法被抽走后只读入口会误报「方法不存在」
+const editor = bloxEditorSource();
 const preview = fs.readFileSync(path.join(root, 'includes/builder/BloxCanvasPreview.php'), 'utf8');
 const clearBody = editor.match(/deselectAll\(\) \{([\s\S]*?)\n            \},/)[1];
 const keyboardPrefix = editor.split('window.addEventListener("keydown", function (e) {')[1]

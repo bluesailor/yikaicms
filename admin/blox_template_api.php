@@ -196,6 +196,7 @@ try {
         if (!is_array($decoded)) {
             error(__('blox_doc_invalid_json'));
         }
+        $authoringLanguage = bloxTemplateContentLanguage();
         $package = json_encode([
             'format' => BloxTemplateImporter::FORMAT,
             'version' => BloxTemplateImporter::VERSION,
@@ -204,6 +205,9 @@ try {
             'metadata' => [
                 'page_types' => [trim((string) post('page_intent', 'general'))],
                 'priority' => 60,
+                // 记下画布另存时的内容语言：这类模板按原文插入、不带译文，
+                // 不记就没人说得清插进日语页面为什么出来一段中文。
+                'language_coverage' => $authoringLanguage !== '' ? [$authoringLanguage] : [],
             ],
             'document' => [$decoded],
         ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
@@ -226,8 +230,10 @@ try {
                 'metadata' => BloxSectionMetadata::normalize([
                     'page_types' => [trim((string) post('page_intent', 'general'))],
                     'priority' => 60,
+                    'language_coverage' => $authoringLanguage !== '' ? [$authoringLanguage] : [],
                 ]),
                 'updated_at' => time(),
+                'unavailable' => [],
             ],
         ]);
     }

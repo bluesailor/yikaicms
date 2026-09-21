@@ -363,6 +363,13 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString("BloxTemplateImporter::importJson(\$package", $api);
         $this->assertStringContainsString('bloxTemplateModel()->publishDraft($templateId);', $api);
         $this->assertStringContainsString("'key' => 'local:' . \$templateId", $api);
+        // 画布另存要记下当时的内容语言：这类模板按原文插入，不记就没人说得清
+        // 插进日语页面为什么出来一段中文（目录项与入库包都要带，否则新存的卡片当场就漏）
+        $this->assertSame(
+            2,
+            substr_count($api, "'language_coverage' => \$authoringLanguage !== '' ? [\$authoringLanguage] : []"),
+            '入库包与即时返回的目录项都要带上内容语言'
+        );
         $this->assertStringContainsString('body.set("action", "save_section");', $editor);
         $this->assertStringContainsString('window.BloxTemplateLibrary.upsertLocal(self.templateItems, item)', $editor);
         $this->assertStringContainsString('self.templateScope = "local";', $editor);
@@ -448,7 +455,6 @@ final class BloxEditorPreviewContractTest extends TestCase
                 'admin/blox_editor/partials/header.php',
                 'admin/blox_editor/partials/workspace.php',
                 'admin/blox_editor/partials/overlays.php',
-                'admin/blox_editor/partials/control-editing.php',
             ]));
         }
         if ($path === 'admin/page_edit_advance.php') {

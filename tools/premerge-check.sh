@@ -88,6 +88,24 @@ else
     fi
 fi
 
+# ───── 1b. 前端单测（与 CI 同一调用方式） ─────
+# CI 里跑的是 `cd tests/js && node --test`，但本仓库的发布流程只推私有备份库、
+# 不开 PR，CI 实际从不触发——预检就是 CI 的唯一替身，漏掉这一项等于没人跑前端测试。
+# 2026-09-22 因此漏掉过 6 个失败用例：方法被抽进 partial 后测试取不到，一直红着没人知道。
+echo ""
+echo "[1b] 前端单测（node --test）"
+if ! command -v node >/dev/null 2>&1; then
+    note "未找到 node，跳过前端单测（CI 仍会跑）"
+else
+    OUT=$( (cd tests/js && node --test) 2>&1 | grep -E '^# (tests|pass|fail)|^ℹ (tests|pass|fail)' )
+    if echo "$OUT" | grep -qE '(^# fail 0$|^ℹ fail 0$)'; then
+        pass "$(echo "$OUT" | grep -E '(^# pass|^ℹ pass)' | head -1)"
+    else
+        fail "前端单测未通过"
+        (cd tests/js && node --test) 2>&1 | grep -E '^(✖|not ok)' | head -20 | sed 's/^/      /'
+    fi
+fi
+
 # ───── 2. Psalm 全量（过滤 config.php 幻影 + gitignored 的本机开发文件） ─────
 echo ""
 echo "[2/5] Psalm 静态分析"

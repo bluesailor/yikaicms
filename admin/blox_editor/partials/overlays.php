@@ -1587,6 +1587,11 @@ declare(strict_types=1);
                                                   class="shrink-0 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700"
                                                   :title="templateText.variant"
                                                   x-text="templateVariantLabel(item.metadata.variant)"></span>
+                                            <span x-show="templateLanguageGap(item)"
+                                                  data-testid="blox-template-lang-gap"
+                                                  class="shrink-0 rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700"
+                                                  :title="templateLanguageGapLabel(item)"
+                                                  x-text="templateText.langGapBadge"></span>
                                             <span x-show="item.metadata && item.metadata.data_source === 'dynamic'"
                                                   data-testid="blox-template-dynamic-badge"
                                                   class="shrink-0 rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-700"
@@ -1644,6 +1649,10 @@ declare(strict_types=1);
                                 <span x-show="templateUnavailable(item)" data-testid="blox-template-unavailable"
                                       class="block mt-1 text-[11px] text-red-700">
                                     <i class="ti ti-plug-off mr-0.5"></i><span x-text="templateUnavailableLabel(item)"></span>
+                                </span>
+                                <span x-show="templateLanguageGap(item)" data-testid="blox-template-lang-gap"
+                                      class="block mt-1 text-[11px] text-amber-700">
+                                    <i class="ti ti-language mr-0.5"></i><span x-text="templateLanguageGapLabel(item)"></span>
                                 </span>
                                 <span class="mt-auto pt-3 flex items-center gap-2">
                                 <button type="button" x-show="item.type === 'page' && pageMode" @click="replaceWithTemplate(item)"
