@@ -674,6 +674,16 @@ async function deleteTemplate(id) {
 function copyShortcode(el) {
     navigator.clipboard.writeText(el.textContent).then(function() { showMessage('<?php echo __("fd_copied"); ?>'); });
 }
+<?php foreach ($templates as $editTarget): ?>
+<?php if ((string) get('edit', '') !== '' && (string) $editTarget['slug'] === (string) get('edit', '')): ?>
+openEditModal(<?= json_encode([
+    'id' => $editTarget['id'], 'name' => $editTarget['_view_name'], 'slug' => $editTarget['slug'],
+    'success_message' => $editTarget['_view_msg'], 'template_text' => $editTarget['_view_template_text'],
+    'captcha' => (int) ($editTarget['captcha'] ?? 0),
+], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>);
+document.getElementById('templateEditor').focus();
+<?php break; endif; ?>
+<?php endforeach; ?>
 </script>
 
 <?php adminModuleEnd(); ?>

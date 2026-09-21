@@ -1,0 +1,9 @@
+{
+    "name": "Setup test",
+    "lang": "zh-CN",
+    "update_existing": true,
+    "channels": [{"slug": "setup-page", "name": "Setup page", "type": "page", "content": "Sample"}],
+    "settings": {},
+    "contents": [],
+    "extfields": []
+}
