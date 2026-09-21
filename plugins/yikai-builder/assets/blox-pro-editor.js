@@ -9,6 +9,74 @@
         conditionChannels: Array.isArray(data.conditionChannels) ? data.conditionChannels : [],
         conditionLanguages: Array.isArray(data.conditionLanguages) ? data.conditionLanguages : [],
         conditionText: data.conditionText && typeof data.conditionText === "object" ? data.conditionText : {},
+        elementConditionReport: null,
+        elementConditionReportKey: "",
+        elementConditionBusy: false,
+        elementConditionError: "",
+        elementConditionSeq: 0,
+
+        elementConditionRequest() {
+            var path = this.selEl ? this.selectedPath() : String(this.selectedSi);
+            if (!this.conditionTarget() || !/^\d+(?:\.\d+)*$/.test(path)) return null;
+            var selector = '[' + (this.selEl ? 'data-yk-el' : 'data-yk-sec') + '="' + path + '"]';
+            var params = this.productTemplateMode ? { preview_product: String(this.productPreviewId) }
+                : this.articleTemplateMode ? { preview_article: String(this.articlePreviewId) }
+                : this.headerTemplateMode ? { header_state: this.headerPreviewState } : {};
+            var document = this.documentData();
+            return { selector: selector, params: params, document: document, endpoint: this.previewEndpoint,
+                key: JSON.stringify([selector, document, this.previewEndpoint, params]) };
+        },
+
+        elementConditionStale() {
+            var request = this.elementConditionRequest();
+            return !request || request.key !== this.elementConditionReportKey;
+        },
+
+        elementConditionResultText(matched) {
+            return matched ? this.conditionText.satisfied : this.conditionText.unsatisfied;
+        },
+
+        async diagnoseElementConditions() {
+            var request = this.elementConditionRequest();
+            if (!request || !this.displayConditionsEnabled) return;
+            var sequence = ++this.elementConditionSeq;
+            this.elementConditionBusy = true;
+            this.elementConditionError = "";
+            this.elementConditionReport = null;
+            var body = new URLSearchParams(Object.assign({}, request.params, {
+                action: "preview", blox: "1", condition_diagnostics: "1",
+                blocks_data: request.document, _token: this.csrf
+            }));
+            try {
+                // 复用有登录、权限、CSRF 和作者能力门禁的预览，不另建判定器或执行返回脚本。
+                var response = await fetch(request.endpoint, { method: "POST", body: body });
+                if (!response.ok) throw new Error("preview-failed");
+                var html = await response.text();
+                if (sequence !== this.elementConditionSeq) return;
+                var current = this.elementConditionRequest();
+                if (!current || current.key !== request.key) {
+                    this.elementConditionError = this.conditionText.stale;
+                    return;
+                }
+                var parsed = new DOMParser().parseFromString(html, "text/html");
+                var nodes = parsed.querySelectorAll(request.selector);
+                if (nodes.length !== 1 || !nodes[0].hasAttribute("data-yk-condition-report")) {
+                    throw new Error("preview-target-unavailable");
+                }
+                var report = JSON.parse(nodes[0].getAttribute("data-yk-condition-report"));
+                if (report === null) {
+                    this.elementConditionError = this.conditionText.invalid;
+                    return;
+                }
+                if (typeof report.matched !== "boolean" || !Array.isArray(report.groups)) throw new Error("invalid-report");
+                this.elementConditionReport = report;
+                this.elementConditionReportKey = request.key;
+            } catch (error) {
+                if (sequence === this.elementConditionSeq) this.elementConditionError = this.conditionText.diagnoseFailed;
+            } finally {
+                if (sequence === this.elementConditionSeq) this.elementConditionBusy = false;
+            }
+        },
 
         conditionGroups() {
             var target = this.conditionTarget();

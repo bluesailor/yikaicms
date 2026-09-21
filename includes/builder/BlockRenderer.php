@@ -14,6 +14,9 @@ require_once __DIR__ . '/../HtmlTagRewriter.php';
 
 final class BlockRenderer
 {
+    /** 仅后台主动检查时开启；普通画布与前台不额外求值或输出诊断。 */
+    public static bool $conditionDiagnostics = false;
+
     private const SECTION_LABEL_DECORATIVE_TYPES = [
         'heading', 'text', 'button', 'image', 'icon', 'code', 'divider', 'spacer', 'container', 'div',
     ];
@@ -348,6 +351,9 @@ final class BlockRenderer
             }
 
             $editAttr = $editMode ? ' data-yk-sec="' . (int) $secIndex . '"' : '';
+            if ($editMode) {
+                $editAttr .= self::conditionDiagnosticAttribute($sectionConditions);
+            }
             if ($editMode && $sectionLocatorId !== '') {
                 $editAttr .= ' data-yk-sec-id="' . htmlspecialchars($sectionLocatorId, ENT_QUOTES) . '"';
             }
@@ -1110,7 +1116,7 @@ final class BlockRenderer
                 ? ' data-yk-conditions="' . htmlspecialchars(BloxDisplayConditions::badge($conditions), ENT_QUOTES) . '"'
                 : '';
             return '<div class="yk-edit-el yk-missing-element" data-yk-el="' . $pathAttr
-                . '"' . $idAttr . $conditionAttr
+                . '"' . $idAttr . $conditionAttr . self::conditionDiagnosticAttribute($conditions)
                 . ' data-yk-el-type="' . $typeAttr . '"><div class="border-2 border-dashed border-amber-300'
                 . ' bg-amber-50 px-4 py-5 text-center text-sm text-amber-800">'
                 . '<strong>' . $label . '</strong><br>' . __('blox_plugin_missing_front') . '</div></div>';
@@ -1200,6 +1206,7 @@ final class BlockRenderer
         $typeAttr = htmlspecialchars($element->type(), ENT_QUOTES);
         $containerAttr = $element->isContainer() ? ' data-yk-el-container="1"' : '';
         return '<div class="yk-edit-el" data-yk-el="' . $pathAttr . '"' . $idAttr
+            . self::conditionDiagnosticAttribute($conditions)
             . ' data-yk-el-type="' . $typeAttr . '"' . $containerAttr
             . ' style="display:contents">' . $html . '</div>';
     }
@@ -1215,6 +1222,19 @@ final class BlockRenderer
         }
         $processor->setAttribute('data-yk-conditions', $badge);
         return $processor->getUpdatedHtml();
+    }
+
+    private static function conditionDiagnosticAttribute(mixed $conditions): string
+    {
+        if (!self::$conditionDiagnostics) {
+            return '';
+        }
+        // 只带布尔判定与类型/操作符，不输出规则值、字段名或实际字段/参数内容。
+        return ' data-yk-condition-report="' . htmlspecialchars(
+            json_encode(BloxDisplayConditions::diagnose($conditions), JSON_THROW_ON_ERROR),
+            ENT_QUOTES,
+            'UTF-8'
+        ) . '"';
     }
 
     /** @param list<int> $path */
