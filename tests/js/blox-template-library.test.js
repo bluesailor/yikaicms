@@ -486,3 +486,31 @@ test("home-common category collects flagged built-in sections and home-ready rem
     assert.equal(library.categoryLabel("home-common", { categoryHomeCommon: "Homepage essentials" }), "Homepage essentials");
     assert.equal(library.categoryLabel("social", { categorySocial: "Customers" }), "Customers");
 });
+
+test("dependency gaps are explained on the card instead of hiding the template", function () {
+    const library = window.BloxTemplateLibrary;
+    const text = {
+        depsPlugins: "Missing plugins: :list",
+        depsElements: "Missing elements: :list",
+        depsInvalid: "The dependency list cannot be read",
+    };
+
+    assert.equal(library.isUnavailable({ key: "local:1" }), false, "没有缺口字段就是可用");
+    assert.equal(library.isUnavailable({ key: "local:2", unavailable: {} }), false, "空缺口就是可用");
+    assert.equal(library.unavailableLabel({ key: "local:1" }, text), "");
+
+    const noPlugin = { key: "local:3", unavailable: { plugins: ["shop"] } };
+    assert.equal(library.isUnavailable(noPlugin), true);
+    assert.equal(library.unavailableLabel(noPlugin, text), "Missing plugins: shop");
+
+    // 两类缺口同时存在时都要说，只说一半等于让作者装完插件再撞一次
+    const both = { key: "local:4", unavailable: { plugins: ["shop", "forms"], elements: ["countdown"] } };
+    assert.equal(
+        library.unavailableLabel(both, text),
+        "Missing plugins: shop、forms Missing elements: countdown"
+    );
+
+    const broken = { key: "local:5", unavailable: { invalid: true } };
+    assert.equal(library.isUnavailable(broken), true);
+    assert.equal(library.unavailableLabel(broken, text), "The dependency list cannot be read");
+});
