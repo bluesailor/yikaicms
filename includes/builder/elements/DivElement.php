@@ -109,6 +109,7 @@ final class DivElement extends AbstractElement
                 'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
             // 0a：Div 自身作为父级 flex 子项的布局。
             ...$this->flexItemControls(),
+            ...$this->staggerControls(),
         ];
     }
 
@@ -187,6 +188,6 @@ final class DivElement extends AbstractElement
             $style = ' style="' . htmlspecialchars($background, ENT_QUOTES) . '"';
         }
 
-        return '<div class="' . $cls . '"' . $style . '>' . $children . '</div>';
+        return '<div class="' . $cls . '"' . $style . $this->staggerAttrs($data) . '>' . $children . '</div>';
     }
 }

@@ -78,6 +78,11 @@ final class BloxValueSanitizer
                 return class_exists('HtmlPolicy') ? HtmlPolicy::richText($html) : $html;
 
             case 'url':
+                // 仅显式声明这个占位符的控件保留整串循环引用。
+                // 解析后的地址仍由元素 safeHref 校验，不能放宽全局 URL 策略。
+                if (($control['dynamic_placeholder'] ?? '') === '{{loop.url}}' && $value === '{{loop.url}}') {
+                    return $value;
+                }
                 // safeHref：站内相对/锚点/查询串/http(s)/mailto/tel/循环占位符；
                 // javascript: 等伪协议清为空串（渲染层各元素再兜一道）
                 return AbstractElement::safeHref($value);
@@ -88,6 +93,9 @@ final class BloxValueSanitizer
                 return AbstractElement::safeHref($value);
 
             case 'image':
+                if (($control['dynamic_placeholder'] ?? '') === '{{loop.cover}}' && $value === '{{loop.cover}}') {
+                    return $value;
+                }
                 return AbstractElement::cssImageUrl(self::str($value)) ?? '';
 
             case 'number':
