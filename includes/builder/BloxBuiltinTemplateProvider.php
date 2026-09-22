@@ -150,6 +150,44 @@ final class BloxBuiltinTemplateProvider
                 'priority' => 78,
             ],
         ],
+        'heading-card-pair' => [
+            'number' => 9, 'type' => 'section', 'file' => 'heading-card-pair.json',
+            'contexts' => ['page', 'home'],
+            'name_key' => 'blox_builtin_card_pair_name', 'description_key' => 'blox_builtin_card_pair_desc',
+            'category' => 'business',
+            'thumbnail' => '/assets/images/blox-templates/section-card-pair.svg',
+            'metadata' => [
+                'purpose' => 'features', 'variant' => 'cards',
+                'page_types' => ['home', 'service', 'case'],
+                'content_slots' => ['heading', 'image', 'text', 'link'], 'image_ratio' => '16:9', 'priority' => 85,
+            ],
+        ],
+        'product-showcase' => [
+            'number' => 10, 'type' => 'section', 'file' => 'product-showcase.json',
+            'contexts' => ['page', 'home'], 'feature' => 'query_loop',
+            'name_key' => 'blox_builtin_product_showcase_name', 'description_key' => 'blox_builtin_product_showcase_desc',
+            'category' => 'products',
+            'thumbnail' => '/assets/images/blox-templates/section-product-showcase.svg',
+            'metadata' => [
+                'purpose' => 'products', 'variant' => 'dynamic', 'data_source' => 'dynamic',
+                'page_types' => ['home', 'product-list', 'landing'],
+                'content_slots' => ['heading', 'image', 'text', 'link'], 'states' => ['empty'],
+                'image_ratio' => '4:3', 'priority' => 86,
+            ],
+        ],
+        'story-split' => [
+            'number' => 11, 'type' => 'section', 'file' => 'story-split.json',
+            'contexts' => ['page', 'home'],
+            'name_key' => 'blox_builtin_story_split_name', 'description_key' => 'blox_builtin_story_split_desc',
+            'category' => 'content',
+            'thumbnail' => '/assets/images/blox-templates/section-story-split.svg',
+            'metadata' => [
+                'purpose' => 'company-intro', 'variant' => 'split',
+                'page_types' => ['home', 'about', 'service'],
+                'content_slots' => ['heading', 'text', 'image', 'button'], 'cta_type' => 'contact',
+                'image_ratio' => '4:3', 'priority' => 84,
+            ],
+        ],
         // 价格方案区块 2026-09-17 移出系统区块，只在「区块PRO版」提供（需有效注册码）
         'company-intro' => [
             'type' => 'page',
@@ -194,13 +232,16 @@ final class BloxBuiltinTemplateProvider
     {
         $items = [];
         foreach (self::PRESETS as $slug => $preset) {
+            if (isset($preset['feature']) && !BloxFeaturePolicy::allows((string) $preset['feature'])) {
+                continue;
+            }
             $path = self::packagePath((string) $preset['type'], (string) $preset['file']);
             if (!in_array($context, $preset['contexts'], true) || !is_file($path)) {
                 continue;
             }
             $items[] = [
                 'key' => 'builtin:' . $slug,
-                // 基础区块按固定编号展示（01–06）；整页模板不编号，number 为 0
+                // 编号稳定，受能力限制的条目隐藏时不重新编号；整页模板不编号。
                 'number' => (int) ($preset['number'] ?? 0),
                 'type' => (string) $preset['type'],
                 'name' => __((string) $preset['name_key']),
@@ -227,6 +268,9 @@ final class BloxBuiltinTemplateProvider
         $preset = self::PRESETS[$slug] ?? null;
         if ($preset === null || !in_array($context, $preset['contexts'], true)) {
             throw new RuntimeException(__('blox_builtin_template_not_found'));
+        }
+        if (isset($preset['feature']) && !BloxFeaturePolicy::allows((string) $preset['feature'])) {
+            throw new RuntimeException(__('blox_query_loop_license_required'));
         }
         $json = file_get_contents(self::localizedPackagePath((string) $preset['type'], (string) $preset['file'], $language));
         if (!is_string($json)) {

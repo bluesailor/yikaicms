@@ -68,3 +68,31 @@ test('group replay ignores editor resize handles and staggers only actual childr
   assert.equal(first.calls[0].options.delay, 0);
   assert.equal(second.calls[0].options.delay, 70);
 });
+
+test('group speed and device apply to loop cards, and light motion removes stagger delay', () => {
+  for (const mode of ['standard', 'light']) {
+    const group = node({ 'data-stagger': '', 'data-animate-speed': 'fast' });
+    const cards = [node(), node()];
+    group.children = cards;
+    runtime(mode).api.replayGroup(group);
+    assert.equal(cards[1].calls[0].options.duration, mode === 'light' ? 180 : 450);
+    assert.equal(cards[1].calls[0].options.delay, mode === 'light' ? 0 : 70);
+  }
+  const disabled = node({ 'data-stagger': '', 'data-animate-device': 'mobile' });
+  disabled.children = [node()];
+  runtime().api.replayGroup(disabled);
+  assert.equal(disabled.children[0].calls.length, 0);
+});
+
+test('group skips independent effects, nested groups, empty notices and pagination', () => {
+  const group = node({ 'data-stagger': '' });
+  const card = node(), explicit = node(), nested = node(), pager = node(), empty = node();
+  explicit.matches = selector => selector.includes('[data-animate]');
+  nested.querySelector = () => ({});
+  pager.matches = selector => selector.includes('.yk-query-pagination-wrap');
+  empty.matches = selector => selector.includes('.yk-query-empty');
+  group.children = [explicit, nested, pager, empty, card];
+  runtime().api.replayGroup(group);
+  for (const skipped of [explicit, nested, pager, empty]) assert.equal(skipped.calls.length, 0);
+  assert.equal(card.calls[0].options.delay, 0);
+});

@@ -1,0 +1,92 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "story-split",
+    "requires": {
+        "elements": [
+            "heading",
+            "text",
+            "container",
+            "button",
+            "image"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "左文右图 · 轻动效",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide",
+                    "gap": "lg",
+                    "content_v_align": "center"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "container",
+                                "data": {
+                                    "gap": "md",
+                                    "animation_stagger": true,
+                                    "animation_speed": "fast",
+                                    "children": [
+                                        {
+                                            "type": "heading",
+                                            "data": {
+                                                "text": "从了解需求，到可靠交付",
+                                                "level": "h2",
+                                                "visual_size": {
+                                                    "d": "3xl",
+                                                    "m": "2xl"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "text",
+                                            "data": {
+                                                "html": "<p>在这里介绍公司的专长、服务范围与工作方式。用客户能够理解的语言，说明你如何解决问题。</p><p>补充真实的工艺、团队或交付能力；发布前请替换示例图片和文案。</p>"
+                                            }
+                                        },
+                                        {
+                                            "type": "button",
+                                            "data": {
+                                                "text": "联系项目顾问",
+                                                "url": "/contact.html",
+                                                "variant": "primary"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "image",
+                                "data": {
+                                    "src": "/assets/images/blox-templates/landing-brand-team.webp",
+                                    "alt": "团队协作与项目讨论",
+                                    "image_ratio": "landscape",
+                                "image_fit": "cover",
+                                "image_position": "top",
+                                    "animation": "fade",
+                                    "animation_speed": "fast"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

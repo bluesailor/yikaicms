@@ -1,0 +1,98 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "heading-card-pair",
+    "requires": {
+        "elements": [
+            "heading",
+            "text",
+            "container",
+            "card"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "总标题＋双卡片",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide",
+                    "gap": "lg"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "heading",
+                                "data": {
+                                    "text": "从应用需求，找到合适方案",
+                                    "level": "h2",
+                                    "visual_size": {
+                                        "d": "3xl",
+                                        "m": "2xl"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "data": {
+                                    "html": "<p>用两组图文介绍你的核心服务或典型应用。</p>"
+                                }
+                            },
+                            {
+                                "type": "container",
+                                "data": {
+                                    "layout": "grid",
+                                    "grid_cols": {
+                                        "d": "2",
+                                        "t": "2",
+                                        "m": "1"
+                                    },
+                                    "gap": "lg",
+                                    "animation_stagger": true,
+                                    "animation_speed": "fast",
+                                    "children": [
+                                        {
+                                            "type": "card",
+                                            "data": {
+                                                "image": "/images/company-about-v2.webp",
+                                                "title": "精密加工",
+                                                "text": "围绕关键尺寸、表面质量与交付周期组织加工。",
+                                                "link": "/contact.html",
+                                                "card_surface": "border",
+                                                "card_hover": "zoom",
+                                        "image_ratio": "wide",
+                                        "image_position": "top"
+                                            }
+                                        },
+                                        {
+                                            "type": "card",
+                                            "data": {
+                                                "image": "/assets/images/blox-templates/landing-brand-team.webp",
+                                                "title": "自动化协作",
+                                                "text": "从设备选型到工艺衔接，让每一道工序与后续生产顺畅配合。",
+                                                "link": "/contact.html",
+                                                "card_surface": "border",
+                                                "card_hover": "zoom",
+                                        "image_ratio": "wide",
+                                        "image_position": "top"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

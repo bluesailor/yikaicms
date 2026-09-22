@@ -1,0 +1,92 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "story-split",
+    "requires": {
+        "elements": [
+            "heading",
+            "text",
+            "container",
+            "button",
+            "image"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "Text and image with light entrance",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide",
+                    "gap": "lg",
+                    "content_v_align": "center"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "container",
+                                "data": {
+                                    "gap": "md",
+                                    "animation_stagger": true,
+                                    "animation_speed": "fast",
+                                    "children": [
+                                        {
+                                            "type": "heading",
+                                            "data": {
+                                                "text": "From understanding needs to dependable delivery",
+                                                "level": "h2",
+                                                "visual_size": {
+                                                    "d": "3xl",
+                                                    "m": "2xl"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "text",
+                                            "data": {
+                                                "html": "<p>Describe your expertise, services and working methods here. Explain how you solve problems in language your customers understand.</p><p>Add real details about your processes, team or delivery capabilities. Replace example images and copy before publishing.</p>"
+                                            }
+                                        },
+                                        {
+                                            "type": "button",
+                                            "data": {
+                                                "text": "Contact a project adviser",
+                                                "url": "/contact.html",
+                                                "variant": "primary"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "image",
+                                "data": {
+                                    "src": "/assets/images/blox-templates/landing-brand-team.webp",
+                                    "alt": "Team collaboration and project discussion",
+                                    "image_ratio": "landscape",
+                                "image_fit": "cover",
+                                "image_position": "top",
+                                    "animation": "fade",
+                                    "animation_speed": "fast"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
