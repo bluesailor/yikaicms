@@ -50,7 +50,7 @@ final class SectionTemplateLibraryTest extends TestCase
             }
         }
 
-        self::assertSame([
+        $expected = [
             'basic-heading' => 1,
             'image-text' => 2,
             'feature-grid' => 3,
@@ -59,7 +59,13 @@ final class SectionTemplateLibraryTest extends TestCase
             'testimonial-quote' => 6,
             'testimonials-carousel' => 7,
             'partners-logos' => 8,
-        ], $numbers);
+            'heading-card-pair' => 9,
+        ];
+        if (BloxFeaturePolicy::allows('query_loop')) {
+            $expected['product-showcase'] = 10;
+        }
+        $expected['story-split'] = 11;
+        self::assertSame($expected, $numbers);
     }
 
     public function testProviderListsSectionPresetsForPageAndHomeEditors(): void

@@ -48,4 +48,19 @@ final class BloxMotionTest extends TestCase
         $document = BloxDocumentPipeline::process(json_encode(['sections' => [['columns' => [['elements' => [['type' => 'container', 'data' => ['animation_stagger' => true, 'children' => []]]]]]]]], JSON_THROW_ON_ERROR));
         self::assertSame('1', $document['sections'][0]['columns'][0]['elements'][0]['data']['animation_stagger']);
     }
+
+    public function testBothLayoutContainersExposeSafeGroupOptions(): void
+    {
+        foreach (['container', 'div'] as $type) {
+            $element = BuilderRegistry::get($type);
+            self::assertContains('animation_stagger', array_column($element->controls(), 'key'));
+            self::assertStringNotContainsString('data-stagger', $element->render([]));
+            $html = $element->render(['animation_stagger' => '1', 'animation_speed' => 'fast', 'animation_device' => 'desktop']);
+            self::assertStringContainsString('data-stagger data-animate-speed="fast" data-animate-device="desktop"', $html);
+            $invalid = $element->render(['animation_stagger' => true, 'animation_speed' => '"bad', 'animation_device' => '<script>']);
+            self::assertStringNotContainsString('data-animate-speed', $invalid);
+            self::assertStringNotContainsString('data-animate-device', $invalid);
+            self::assertStringNotContainsString('data-stagger', $element->render(['animation_stagger' => 'false']));
+        }
+    }
 }

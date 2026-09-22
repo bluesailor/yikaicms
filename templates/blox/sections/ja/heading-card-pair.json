@@ -1,0 +1,98 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "heading-card-pair",
+    "requires": {
+        "elements": [
+            "heading",
+            "text",
+            "container",
+            "card"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "見出し＋2枚のカード",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide",
+                    "gap": "lg"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "heading",
+                                "data": {
+                                    "text": "用途に合ったソリューションを見つける",
+                                    "level": "h2",
+                                    "visual_size": {
+                                        "d": "3xl",
+                                        "m": "2xl"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "data": {
+                                    "html": "<p>主なサービスや代表的な用途を2つ紹介します。</p>"
+                                }
+                            },
+                            {
+                                "type": "container",
+                                "data": {
+                                    "layout": "grid",
+                                    "grid_cols": {
+                                        "d": "2",
+                                        "t": "2",
+                                        "m": "1"
+                                    },
+                                    "gap": "lg",
+                                    "animation_stagger": true,
+                                    "animation_speed": "fast",
+                                    "children": [
+                                        {
+                                            "type": "card",
+                                            "data": {
+                                                "image": "/images/company-about-v2.webp",
+                                                "title": "精密加工",
+                                                "text": "重要寸法・表面品質・納期に合わせて加工を計画します。",
+                                                "link": "/contact.html",
+                                                "card_surface": "border",
+                                                "card_hover": "zoom",
+                                        "image_ratio": "wide",
+                                        "image_position": "top"
+                                            }
+                                        },
+                                        {
+                                            "type": "card",
+                                            "data": {
+                                                "image": "/assets/images/blox-templates/landing-brand-team.webp",
+                                                "title": "自動化の連携",
+                                                "text": "設備選定と工程設計をつなぎ、各工程が次の生産工程を支える仕組みを整えます。",
+                                                "link": "/contact.html",
+                                                "card_surface": "border",
+                                                "card_hover": "zoom",
+                                        "image_ratio": "wide",
+                                        "image_position": "top"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,98 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "heading-card-pair",
+    "requires": {
+        "elements": [
+            "heading",
+            "text",
+            "container",
+            "card"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "Heading with two cards",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide",
+                    "gap": "lg"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "heading",
+                                "data": {
+                                    "text": "Find the right solution for your application",
+                                    "level": "h2",
+                                    "visual_size": {
+                                        "d": "3xl",
+                                        "m": "2xl"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "data": {
+                                    "html": "<p>Introduce two core services or typical applications.</p>"
+                                }
+                            },
+                            {
+                                "type": "container",
+                                "data": {
+                                    "layout": "grid",
+                                    "grid_cols": {
+                                        "d": "2",
+                                        "t": "2",
+                                        "m": "1"
+                                    },
+                                    "gap": "lg",
+                                    "animation_stagger": true,
+                                    "animation_speed": "fast",
+                                    "children": [
+                                        {
+                                            "type": "card",
+                                            "data": {
+                                                "image": "/images/company-about-v2.webp",
+                                                "title": "Precision machining",
+                                                "text": "Plan production around critical dimensions, surface quality and delivery schedules.",
+                                                "link": "/contact.html",
+                                                "card_surface": "border",
+                                                "card_hover": "zoom",
+                                        "image_ratio": "wide",
+                                        "image_position": "top"
+                                            }
+                                        },
+                                        {
+                                            "type": "card",
+                                            "data": {
+                                                "image": "/assets/images/blox-templates/landing-brand-team.webp",
+                                                "title": "Automation collaboration",
+                                                "text": "Connect equipment selection with process planning so that each stage supports the next.",
+                                                "link": "/contact.html",
+                                                "card_surface": "border",
+                                                "card_hover": "zoom",
+                                        "image_ratio": "wide",
+                                        "image_position": "top"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

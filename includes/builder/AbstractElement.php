@@ -214,6 +214,7 @@ abstract class AbstractElement
             [
                 'key' => 'animation', 'type' => 'select', 'label' => __('blox_anim'), 'default' => '', 'tab' => 'style', 'group' => 'animation',
                 'option_preview' => 'entrance',
+                'help' => __('motion_policy_help'),
                 'options' => [
                     '' => __('blox_anim_none'),
                     'fade' => __('blox_anim_fade'),
@@ -250,6 +251,41 @@ abstract class AbstractElement
             ['key' => 'animation_device', 'type' => 'select', 'label' => __('motion_device'), 'default' => 'all', 'tab' => 'style', 'group' => 'animation',
                 'options' => ['all' => __('motion_device_all'), 'desktop' => __('motion_device_desktop'), 'tablet' => __('motion_device_tablet'), 'mobile' => __('motion_device_mobile')]],
         ];
+    }
+
+    /**
+     * 容器和 Div 共用分组入口，循环生成的卡片也直接复用。
+     * @return list<array<string,mixed>>
+     */
+    protected function staggerControls(): array
+    {
+        return [
+            ['key' => 'animation_stagger', 'type' => 'checkbox', 'label' => __('motion_stagger'), 'default' => false, 'tab' => 'style', 'group' => 'animation',
+                'help' => __('motion_stagger_help')],
+            ['key' => 'animation_speed', 'type' => 'select', 'label' => __('blox_anim_speed'), 'default' => 'normal', 'tab' => 'style', 'group' => 'animation',
+                'required' => ['animation_stagger', '=', true],
+                'options' => ['normal' => __('blox_anim_normal'), 'fast' => __('blox_anim_fast'), 'slow' => __('blox_anim_slow')]],
+            ['key' => 'animation_device', 'type' => 'select', 'label' => __('motion_device'), 'default' => 'all', 'tab' => 'style', 'group' => 'animation',
+                'required' => ['animation_stagger', '=', true],
+                'options' => ['all' => __('motion_device_all'), 'desktop' => __('motion_device_desktop'), 'tablet' => __('motion_device_tablet'), 'mobile' => __('motion_device_mobile')]],
+        ];
+    }
+
+    /** 关闭时逐字节保留旧输出；仅输出白名单属性。 */
+    protected function staggerAttrs(array $data): string
+    {
+        if (!in_array($data['animation_stagger'] ?? false, [true, 1, '1'], true)) {
+            return '';
+        }
+        BloxAssetCollector::addScript('/assets/js/scroll-anim.js');
+        $attrs = ' data-stagger';
+        if (in_array($data['animation_speed'] ?? '', ['fast', 'slow'], true)) {
+            $attrs .= ' data-animate-speed="' . $data['animation_speed'] . '"';
+        }
+        if (in_array($data['animation_device'] ?? '', ['desktop', 'tablet', 'mobile'], true)) {
+            $attrs .= ' data-animate-device="' . $data['animation_device'] . '"';
+        }
+        return $attrs;
     }
 
     /** 将动画设置转成安全的 data 属性；无动画时不改变历史 HTML。 */

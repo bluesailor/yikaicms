@@ -1,0 +1,91 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "product-showcase",
+    "requires": {
+        "elements": [
+            "heading",
+            "text",
+            "container",
+            "card"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "Three-column product showcase",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide",
+                    "gap": "lg"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "heading",
+                                "data": {
+                                    "text": "Featured products",
+                                    "level": "h2",
+                                    "visual_size": {
+                                        "d": "3xl",
+                                        "m": "2xl"
+                                    }
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "data": {
+                                    "html": "<p>Explore product capabilities and find the right fit for your project.</p>"
+                                }
+                            },
+                            {
+                                "type": "container",
+                                "data": {
+                                    "layout": "grid",
+                                    "grid_cols": {
+                                        "d": "3",
+                                        "t": "2",
+                                        "m": "1"
+                                    },
+                                    "gap": "lg",
+                                    "animation_stagger": true,
+                                    "animation_speed": "fast",
+                                    "_query": {
+                                        "source": "type:product",
+                                        "limit": 3,
+                                        "empty_mode": "message",
+                                        "empty": "Product details are being prepared. Contact us to discuss your requirements."
+                                    },
+                                    "children": [
+                                        {
+                                            "type": "card",
+                                            "data": {
+                                                "image": "{{loop.cover}}",
+                                                "title": "{{loop.title}}",
+                                                "text": "{{loop.summary}}",
+                                                "link": "{{loop.url}}",
+                                                "card_surface": "border",
+                                                "card_hover": "lift",
+                                                "image_ratio": "landscape",
+                                                "image_fit": "contain"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

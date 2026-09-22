@@ -268,6 +268,34 @@ final class BloxLoopQueryTest extends TestCase
         self::assertSame([], BloxLoopQuery::run(['source' => 'channel:99', 'limit' => 10], '')['rows']);
     }
 
+    public function testProductShowcaseRendersLiveCardsAndKeepsEmptyMessage(): void
+    {
+        $raw = (string) file_get_contents(ROOT_PATH . '/templates/blox/sections/product-showcase.json');
+        $prepared = \BloxTemplateImporter::prepare($raw);
+        $json = json_encode(['sections' => $prepared['sections']], JSON_THROW_ON_ERROR);
+        $empty = BlockRenderer::render($json);
+        self::assertStringContainsString('yk-query-empty', $empty);
+        $this->insertRow('product_categories', ['name' => 'Equipment', 'slug' => 'equipment']);
+        foreach (['Machine & tools', 'Second product', 'Third product', 'Not in showcase'] as $index => $title) {
+            $this->insertRow('products', [
+                'category_id' => 1, 'title' => $title, 'cover' => '/images/company-about-v2.webp',
+                'summary' => str_repeat('Details ', $index + 1), 'sort_order' => $index,
+            ]);
+        }
+        BloxLoopQuery::resetForTests();
+        $html = BlockRenderer::render($json);
+        self::assertStringContainsString('Machine &amp; tools', $html);
+        self::assertStringContainsString('Third product', $html);
+        self::assertStringNotContainsString('Not in showcase', $html);
+        self::assertStringNotContainsString('{{loop.', $html);
+        self::assertStringNotContainsString('yk-query-empty', $html);
+        self::assertSame(3, substr_count($html, 'yk-card-hover-lift'));
+        self::assertSame(1, substr_count($html, 'data-stagger'));
+        self::assertStringContainsString('aspect-ratio:4 / 3', $html);
+        self::assertStringContainsString('href="', $html);
+        self::assertNull(TagEngine::currentContext());
+    }
+
     // ── 渲染循环：{{loop.*}} 指向当前行、空态、分页包裹 ───────────────
 
     public function testContainerLoopRendersChildrenPerRowWithLoopTags(): void
