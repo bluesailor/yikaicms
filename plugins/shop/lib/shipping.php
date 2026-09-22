@@ -9,17 +9,12 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/money.php';
+require_once __DIR__ . '/regions.php';
 
 /** @return list<string> 中国大陆 31 个省级行政区（不含港澳台）。 */
 function shopMainlandProvinces(): array
 {
-    return [
-        '北京市', '天津市', '河北省', '山西省', '内蒙古自治区', '辽宁省', '吉林省', '黑龙江省',
-        '上海市', '江苏省', '浙江省', '安徽省', '福建省', '江西省', '山东省', '河南省',
-        '湖北省', '湖南省', '广东省', '广西壮族自治区', '海南省', '重庆市', '四川省',
-        '贵州省', '云南省', '西藏自治区', '陕西省', '甘肃省', '青海省', '宁夏回族自治区',
-        '新疆维吾尔自治区',
-    ];
+    return array_column(shopMainlandRegionTree(), 'n');
 }
 
 /** @return list<string> 出厂快递公司；后台可删改顺序。 */
@@ -48,14 +43,30 @@ function shopShippingCollapsePath(array $parts): array
     return $result;
 }
 
+/** Keep pre-cascade Chongqing county rules equivalent to the dataset's county group. @return list<string> */
+function shopShippingNormalizeRulePath(array $parts): array
+{
+    $path = shopShippingCollapsePath($parts);
+    if (count($path) === 2 && $path[0] === '重庆市'
+        && shopMainlandRegionPath('重庆市', '县', $path[1]) !== null) {
+        return ['重庆市', '县', $path[1]];
+    }
+    return $path;
+}
+
 /**
  * 结构化并验证大陆地址。
  *
  * @param array<string,mixed> $input
- * @return array{ok:bool,error:string,address?:array{country:string,province:string,city:string,district:string,region:string,address:string}}
+ * @return array{ok:bool,error:string,address?:array<string,string>}
  */
 function shopNormalizeMainlandAddress(array $input): array
 {
+    foreach (['province', 'city', 'district', 'address'] as $field) {
+        if (isset($input[$field]) && !is_string($input[$field])) {
+            return ['ok' => false, 'error' => 'shop_err_contact_address'];
+        }
+    }
     $province = trim((string) ($input['province'] ?? ''));
     $city = trim((string) ($input['city'] ?? ''));
     $district = trim((string) ($input['district'] ?? ''));
@@ -72,6 +83,10 @@ function shopNormalizeMainlandAddress(array $input): array
     if ($detail === '' || mb_strlen($detail) > 300 || shopShippingHasControlChars($detail)) {
         return ['ok' => false, 'error' => 'shop_err_contact_address'];
     }
+    $codes = shopMainlandRegionPath($province, $city, $district);
+    if ($codes === null) {
+        return ['ok' => false, 'error' => 'shop_err_address_region'];
+    }
 
     $region = implode(' ', shopShippingCollapsePath([$province, $city, $district]));
     return [
@@ -82,6 +97,11 @@ function shopNormalizeMainlandAddress(array $input): array
             'province' => $province,
             'city' => $city,
             'district' => $district,
+            // Codes come from the bundled tree, never from client-supplied hidden fields.
+            'province_code' => $codes['province_code'],
+            'city_code' => $codes['city_code'],
+            'district_code' => $codes['district_code'],
+            'region_version' => shopMainlandRegionVersion(),
             // 保留 region 兼容已上线的后台/订单展示模板。
             'region' => $region,
             'address' => $detail,
@@ -107,7 +127,7 @@ function shopNormalizeExcludedRegionConfig(string $raw): array
         if ($line === '') {
             continue;
         }
-        $parts = shopShippingCollapsePath(preg_split('/[\/>＞]+/u', $line) ?: []);
+        $parts = shopShippingNormalizeRulePath(preg_split('/[\/>＞]+/u', $line) ?: []);
         if ($parts === [] || count($parts) > 3 || !in_array($parts[0], shopMainlandProvinces(), true)) {
             return ['ok' => false, 'error' => 'shop_err_shipping_regions', 'value' => '', 'rules' => []];
         }
@@ -150,7 +170,7 @@ function shopNormalizeRegionSurchargeConfig(string $raw): array
         if (!is_array($pair) || count($pair) !== 2) {
             return $fail();
         }
-        $parts = shopShippingCollapsePath(preg_split('/[\/>＞]+/u', trim($pair[0])) ?: []);
+        $parts = shopShippingNormalizeRulePath(preg_split('/[\/>＞]+/u', trim($pair[0])) ?: []);
         if ($parts === [] || count($parts) > 3 || !in_array($parts[0], shopMainlandProvinces(), true)) {
             return $fail();
         }
@@ -188,7 +208,7 @@ function shopShippingSurchargeRules(?string $raw = null): array
 /** 最长匹配路径的附加运费（分）；无匹配为 0。 */
 function shopShippingSurchargeCents(array $address, ?string $raw = null): int
 {
-    $path = shopShippingCollapsePath([
+    $path = shopShippingNormalizeRulePath([
         (string) ($address['province'] ?? ''),
         (string) ($address['city'] ?? ''),
         (string) ($address['district'] ?? ''),
@@ -242,7 +262,7 @@ function shopShippingPathMatchesRule(array $path, array $rule): bool
  * 地址格式 + 服务区统一门禁；订单核心与结算入口都必须调用。
  *
  * @param array<string,mixed> $input
- * @return array{ok:bool,error:string,address?:array{country:string,province:string,city:string,district:string,region:string,address:string}}
+ * @return array{ok:bool,error:string,address?:array<string,string>}
  */
 function shopValidateShippingAddress(array $input): array
 {
@@ -251,7 +271,7 @@ function shopValidateShippingAddress(array $input): array
         return $normalized;
     }
     $address = $normalized['address'];
-    $path = shopShippingCollapsePath([$address['province'], $address['city'], $address['district']]);
+    $path = shopShippingNormalizeRulePath([$address['province'], $address['city'], $address['district']]);
     foreach (shopShippingExcludedRules() as $rule) {
         if (shopShippingPathMatchesRule($path, $rule)) {
             return ['ok' => false, 'error' => 'shop_err_shipping_unavailable'];

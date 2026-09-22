@@ -234,4 +234,9 @@ return [
     'shop_shipping_surcharges_hint' => '1行につき「省/市/区県 = 金額」。最長一致を優先し、送料無料でも追加送料は免除しません。最大100件。',
     'shop_err_shipping_surcharges' => '地域別追加送料の形式が正しくありません。「省/市/区県 = 正の金額」で入力してください。',
     'shop_order_export' => '絞り込み中の注文を CSV 出力',
+    'shop_checkout_city_select' => '市・地区を選択してください',
+    'shop_checkout_district_select' => '区・県・町を選択してください',
+    'shop_checkout_region_unavailable' => '住所データを読み込めません。ページを再読み込みするか、販売者にお問い合わせください。',
+    'shop_checkout_region_js_required' => '注文するには省・市・区を選択してください。住所の選択肢を読み込むため、JavaScript を有効にしてください。',
+    'shop_err_address_region' => '省・市・区の組み合わせが正しくありません。配送地域を選び直してください。',
 ];

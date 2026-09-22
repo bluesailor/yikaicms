@@ -235,4 +235,9 @@ return [
     'shop_shipping_surcharges_hint' => '每行“省/市/区县 = 金额”，最长路径优先；满额包邮只免基础运费，不免附加费。最多 100 条。',
     'shop_err_shipping_surcharges' => '地区附加运费格式不正确，请使用“省/市/区县 = 正数金额”',
     'shop_order_export' => '导出当前筛选订单 CSV',
+    'shop_checkout_city_select' => '请选择城市/地区',
+    'shop_checkout_district_select' => '请选择区县/镇街',
+    'shop_checkout_region_unavailable' => '地址数据暂不可用，请刷新页面重试或联系商家。',
+    'shop_checkout_region_js_required' => '请选择省、市、区后下单；请启用浏览器 JavaScript 以加载地址选项。',
+    'shop_err_address_region' => '省、市、区组合不正确，请重新选择收货地区',
 ];

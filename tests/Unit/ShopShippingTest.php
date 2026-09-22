@@ -136,4 +136,66 @@ final class ShopShippingTest extends TestCase
         self::assertFalse(shopNormalizeRegionSurchargeConfig('海外 = 10')['ok']);
         self::assertFalse(shopNormalizeRegionSurchargeConfig('新疆维吾尔自治区 = 0')['ok']);
     }
+
+    public function testLegacyChongqingCountyExclusionMatchesCanonicalAddress(): void
+    {
+        $GLOBALS['yikai_config_runtime_overrides'] = [
+            'shop_shipping_excluded_regions' => '重庆市/城口县',
+        ];
+        $blocked = shopValidateShippingAddress([
+            'province' => '重庆市', 'city' => '县', 'district' => '城口县', 'address' => 'Test Road 1',
+        ]);
+        self::assertFalse($blocked['ok']);
+        self::assertSame('shop_err_shipping_unavailable', $blocked['error']);
+        $normalized = shopNormalizeExcludedRegionConfig("重庆市/城口县\n重庆市/县/城口县");
+        self::assertTrue($normalized['ok']);
+        self::assertSame('重庆市/县/城口县', $normalized['value']);
+        self::assertCount(1, $normalized['rules']);
+    }
+
+    public function testLegacyAndCanonicalChongqingCountySurchargesAreEquivalent(): void
+    {
+        $current = ['province' => '重庆市', 'city' => '县', 'district' => '城口县'];
+        $legacy = ['province' => '重庆市', 'city' => '重庆市', 'district' => '城口县'];
+        foreach (['重庆市/城口县 = 20', '重庆市/县/城口县 = 20'] as $raw) {
+            self::assertSame(2000, shopShippingSurchargeCents($current, $raw));
+            self::assertSame(2000, shopShippingSurchargeCents($legacy, $raw));
+            $normalized = shopNormalizeRegionSurchargeConfig($raw);
+            self::assertTrue($normalized['ok']);
+            self::assertSame('重庆市/县/城口县 = 20.00', $normalized['value']);
+        }
+    }
+
+    public function testChongqingCountyGroupDoesNotBlockUrbanDistricts(): void
+    {
+        $GLOBALS['yikai_config_runtime_overrides'] = [
+            'shop_shipping_excluded_regions' => '重庆市/县',
+        ];
+        $county = shopValidateShippingAddress([
+            'province' => '重庆市', 'city' => '县', 'district' => '城口县', 'address' => 'Test Road 1',
+        ]);
+        $urban = shopValidateShippingAddress([
+            'province' => '重庆市', 'city' => '重庆市', 'district' => '渝中区', 'address' => 'Test Road 1',
+        ]);
+        self::assertFalse($county['ok']);
+        self::assertSame('shop_err_shipping_unavailable', $county['error']);
+        self::assertTrue($urban['ok']);
+        self::assertSame(['重庆市', '县'], shopShippingNormalizeRulePath(['重庆市', '县']));
+        self::assertSame(['重庆市', '渝中区'], shopShippingNormalizeRulePath(['重庆市', '渝中区']));
+        self::assertSame(['重庆市', 'Unknown county'], shopShippingNormalizeRulePath(['重庆市', 'Unknown county']));
+        self::assertSame(0, shopShippingSurchargeCents($urban['address'], '重庆市/县 = 10'));
+    }
+
+    public function testSpecificChongqingCountySurchargeOverridesCountyGroup(): void
+    {
+        $current = ['province' => '重庆市', 'city' => '县', 'district' => '城口县'];
+        $other = ['province' => '重庆市', 'city' => '县', 'district' => '丰都县'];
+        foreach ([
+            "重庆市/县 = 10\n重庆市/城口县 = 20",
+            "重庆市/县/城口县 = 20\n重庆市/县 = 10",
+        ] as $raw) {
+            self::assertSame(2000, shopShippingSurchargeCents($current, $raw));
+            self::assertSame(1000, shopShippingSurchargeCents($other, $raw));
+        }
+    }
 }

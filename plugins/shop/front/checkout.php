@@ -123,6 +123,7 @@ $shippingCents = shopShippingFeeCents($goodsCents);
 $totalCents = shopMoneySum([$goodsCents, $shippingCents]);
 $freeThreshold = (int) config('shop_free_shipping_threshold_cents', 0);
 $manualPaymentConfigured = shopManualPaymentMethods() !== [];
+$regionTree = shopMainlandRegionTree();
 $surchargeRules = shopShippingSurchargeRules();
 $shippingFormats = [];
 $totalFormats = [];
@@ -192,59 +193,65 @@ require_once theme_path('layouts/header.php');
                 <input type="hidden" name="ts" value="<?php echo (int) $tokenTs; ?>">
                 <input type="hidden" name="sig" value="<?php echo e($tokenSig); ?>">
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_name')); ?> <span class="text-red-500">*</span></label>
-                    <input type="text" name="name" maxlength="50" required value="<?php echo e(isset($_GET['name']) ? (string) $_GET['name'] : ''); ?>"
+                    <label for="shop-checkout-name" class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_name')); ?> <span class="text-red-500">*</span></label>
+                    <input id="shop-checkout-name" type="text" name="name" maxlength="50" required value="<?php echo e(isset($_GET['name']) ? (string) $_GET['name'] : ''); ?>"
                            class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-name">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_phone')); ?> <span class="text-red-500">*</span></label>
-                        <input type="text" name="phone" maxlength="20" required
+                        <label for="shop-checkout-phone" class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_phone')); ?> <span class="text-red-500">*</span></label>
+                        <input id="shop-checkout-phone" type="text" name="phone" maxlength="20" required
                                class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-phone">
                     </div>
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_email')); ?></label>
-                        <input type="text" name="email" maxlength="100"
+                        <label for="shop-checkout-email" class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_email')); ?></label>
+                        <input id="shop-checkout-email" type="text" name="email" maxlength="100"
                                class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-email">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_province')); ?> <span class="text-red-500">*</span></label>
-                    <select name="province" required autocomplete="address-level1"
+                    <label for="shop-checkout-province" class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_province')); ?> <span class="text-red-500">*</span></label>
+                    <select id="shop-checkout-province" name="province" required autocomplete="address-level1"
                             class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-province">
                         <option value=""><?php echo e(__('shop_checkout_province_select')); ?></option>
-                        <?php foreach (shopMainlandProvinces() as $provinceOption): ?>
-                        <option value="<?php echo e($provinceOption); ?>"><?php echo e($provinceOption); ?></option>
+                        <?php foreach ($regionTree as $provinceOption): ?>
+                        <option value="<?php echo e($provinceOption['n']); ?>"><?php echo e($provinceOption['n']); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_city')); ?> <span class="text-red-500">*</span></label>
-                        <input type="text" name="city" maxlength="50" required autocomplete="address-level2"
-                               class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-city">
+                        <label for="shop-checkout-city" class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_city')); ?> <span class="text-red-500">*</span></label>
+                        <select id="shop-checkout-city" name="city" required disabled autocomplete="address-level2"
+                                class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-city">
+                            <option value=""><?php echo e(__('shop_checkout_city_select')); ?></option>
+                        </select>
                     </div>
                     <div>
-                        <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_district')); ?> <span class="text-red-500">*</span></label>
-                        <input type="text" name="district" maxlength="50" required autocomplete="address-level3"
-                               class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-district">
+                        <label for="shop-checkout-district" class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_district')); ?> <span class="text-red-500">*</span></label>
+                        <select id="shop-checkout-district" name="district" required disabled autocomplete="address-level3"
+                                class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-district">
+                            <option value=""><?php echo e(__('shop_checkout_district_select')); ?></option>
+                        </select>
                     </div>
                 </div>
+                <p class="text-sm text-red-700" hidden role="alert" data-testid="shop-checkout-region-error"><?php echo e(__('shop_checkout_region_unavailable')); ?></p>
+                <noscript><p class="text-sm text-red-700" role="alert"><?php echo e(__('shop_checkout_region_js_required')); ?></p></noscript>
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_address')); ?> <span class="text-red-500">*</span></label>
-                    <textarea name="address" rows="2" maxlength="300" required autocomplete="street-address"
+                    <label for="shop-checkout-address" class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_address')); ?> <span class="text-red-500">*</span></label>
+                    <textarea id="shop-checkout-address" name="address" rows="2" maxlength="300" required autocomplete="street-address"
                               class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-address"></textarea>
                 </div>
                 <p class="text-xs text-gray-400" data-testid="shop-shipping-scope-hint"><?php echo e(__('shop_checkout_scope_hint')); ?></p>
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_remark')); ?></label>
-                    <textarea name="remark" rows="2" maxlength="500"
+                    <label for="shop-checkout-remark" class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_remark')); ?></label>
+                    <textarea id="shop-checkout-remark" name="remark" rows="2" maxlength="500"
                               class="w-full border border-gray-300 rounded px-3 py-2 text-sm"></textarea>
                 </div>
                 <p class="text-xs text-gray-400" data-testid="shop-checkout-offline-hint"><?php echo e(__($manualPaymentConfigured
                     ? 'shop_checkout_manual_configured_hint'
                     : 'shop_checkout_offline_hint')); ?></p>
-                <button type="submit" class="w-full bg-primary hover:bg-secondary text-white px-5 py-2.5 rounded font-medium"
+                <button type="submit" disabled class="w-full bg-primary hover:bg-secondary text-white px-5 py-2.5 rounded font-medium"
                         data-testid="shop-checkout-submit"><?php echo e(__('shop_checkout_place')); ?></button>
             </form>
         </div>
@@ -252,6 +259,10 @@ require_once theme_path('layouts/header.php');
     </div>
 </div>
 
+<?php if ($preview !== []): ?>
+<script type="application/json" id="shop-mainland-regions"><?php echo json_encode($regionTree, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR); ?></script>
+<script src="<?php echo e(assetVer('/plugins/shop/assets/address-cascade.js')); ?>" defer></script>
+<?php endif; ?>
 <?php if ($preview !== [] && $surchargeRules !== []): ?>
 <script>
 (function () {
