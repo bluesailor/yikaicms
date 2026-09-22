@@ -7,6 +7,8 @@
 declare(strict_types=1);
 
 return [
+    'shop_member_registration_on' => '会员注册已开启；登录会员的订单会归入“我的订单”。',
+    'shop_member_registration_off' => '会员注册未开启；商城仍支持游客下单和订单查询。',
     'shop_menu' => '商城',
     'shop_menu_sales' => '商品销售',
     'shop_nav_sales' => '销售设置',

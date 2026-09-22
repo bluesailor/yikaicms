@@ -6,6 +6,8 @@
 declare(strict_types=1);
 
 return [
+    'shop_member_registration_on' => '会員登録は有効です。ログイン中の注文は「注文履歴」に表示されます。',
+    'shop_member_registration_off' => '会員登録は無効です。ゲスト購入と注文照会は引き続き利用できます。',
     'shop_menu' => 'ショップ',
     'shop_menu_sales' => '商品販売',
     'shop_nav_sales' => '販売設定',

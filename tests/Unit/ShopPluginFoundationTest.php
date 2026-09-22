@@ -99,6 +99,32 @@ final class ShopPluginFoundationTest extends TestCase
         }
     }
 
+    /** 旧核心先加载插件、后加载菜单 API 时，商城仍须在后台自行完成菜单注册。 */
+    public function testShopRegistersAdminMenuWithLegacyBootstrapOrder(): void
+    {
+        $process = proc_open(
+            [PHP_BINARY, ROOT_PATH . '/tests/fixtures/shop-admin-menu-probe.php'],
+            [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+            $pipes
+        );
+        $this->assertIsResource($process);
+        fclose($pipes[0]);
+        $output = stream_get_contents($pipes[1]);
+        $errors = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $this->assertSame(0, proc_close($process), $errors);
+        $this->assertSame('', $errors);
+
+        $result = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertTrue($result['api_loaded'] ?? false);
+        $this->assertSame('product', $result['registration']['group'] ?? null);
+        $this->assertSame('shop_sales', $result['registration']['item']['key'] ?? null);
+        $this->assertSame('/admin/plugin_page.php?plugin=shop', $result['registration']['item']['url'] ?? null);
+        $this->assertSame('shop_orders', $result['order_registration']['item']['key'] ?? null);
+        $this->assertSame('shop_orders', $result['order_registration']['item']['perm'] ?? null);
+    }
+
     /** 七张表双方言齐备、MySQL 侧带 5.7 底线的字符集、占位符可替换。 */
     public function testShopTableSchemasCoverSevenTablesInBothDialects(): void
     {

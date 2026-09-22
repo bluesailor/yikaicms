@@ -6,6 +6,8 @@
 declare(strict_types=1);
 
 return [
+    'shop_member_registration_on' => 'Member registration is enabled; signed-in orders appear under My Orders.',
+    'shop_member_registration_off' => 'Member registration is disabled; guest checkout and order lookup remain available.',
     'shop_menu' => 'Shop',
     'shop_menu_sales' => 'Product sales',
     'shop_nav_sales' => 'Sales settings',
