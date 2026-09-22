@@ -10,6 +10,7 @@ checkLogin();
 requirePermission('*');
 $service = new SiteTemplateService(ROOT_PATH);
 $errorMessage = '';
+$exportCheck = null;
 $notice = (string) ($_SESSION['site_template_notice'] ?? '');
 unset($_SESSION['site_template_notice']);
 $brand = ['site_name' => (string) config('site_name'), 'contact_phone' => '', 'contact_email' => '', 'contact_address' => ''];
@@ -23,6 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $action = post('action');
         if ($action === 'export') {
+            $exportCheck = $service->exportCheck();
+            if ($exportCheck['blocked'] !== '') throw new RuntimeException($exportCheck['blocked']);
+            if (($exportCheck['issues'] !== [] || $exportCheck['limited']) && post('confirm_export') !== '1') throw new RuntimeException('st_export_review');
             $temporary = tempnam(sys_get_temp_dir(), 'yk-export-');
             if ($temporary === false) throw new RuntimeException('st_storage');
             try {
@@ -41,7 +45,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // 服务端决定推进节奏，客户端不能指定处理哪些条目或跳到哪个阶段。
             success($service->stage(post('token'), getAdminId()));
         }
-        if ($action === 'prepare') {
+        if ($action === 'check_export') {
+            $exportCheck = $service->exportCheck();
+        } elseif ($action === 'prepare') {
             $upload = $_FILES['package'] ?? [];
             if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string) ($upload['tmp_name'] ?? ''))) throw new RuntimeException('st_upload');
             $_SESSION['site_template_preview'] = $service->prepare((string) $upload['tmp_name'], getAdminId());
@@ -58,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('theme', 'import', 'Site template restored to pre-import snapshot');
             $_SESSION['site_template_notice'] = 'st_restored';
         } else { throw new RuntimeException('st_invalid'); }
-        redirect('/admin/site_templates.php');
+        if ($action !== 'check_export') redirect('/admin/site_templates.php');
     } catch (Throwable $error) {
         $code = $error->getMessage();
         $errorMessage = __(preg_match('/^st_[a-z_]+$/D', $code) ? $code : 'st_invalid');
@@ -74,6 +80,7 @@ $currentMenu = 'site_setup';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 <div class="max-w-4xl space-y-6">
+    <?php require ROOT_PATH . '/admin/includes/setting_sources_notice.php'; ?>
     <header><a href="/admin/site_setup.php" class="text-primary underline"><?= e(__('setup_title')) ?></a>
         <h1 class="text-2xl font-bold text-gray-800 mt-2"><?= e($pageTitle) ?></h1>
         <p class="text-gray-600 mt-2"><?= e(__('st_intro')) ?></p>
@@ -120,8 +127,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <h2 id="st-export" class="text-lg font-bold"><?= e(__('st_export_title')) ?></h2>
         <p class="text-gray-600 mt-2"><?= e(__('st_export_hint')) ?></p>
         <p class="text-sm text-gray-600 mt-2"><?= e(__('st_scope')) ?></p>
-        <form method="post" class="mt-4"><?= csrfField() ?><input type="hidden" name="action" value="export">
-            <button type="submit" class="border rounded px-4 py-3"><?= e(__('st_export')) ?></button></form>
+        <p class="text-sm text-gray-600 mt-2"><?= e(__('usability_export_scope')) ?></p>
+        <form method="post" class="mt-4"><?= csrfField() ?><input type="hidden" name="action" value="check_export">
+            <button type="submit" class="border rounded px-4 py-3"><?= e(__('usability_export_check')) ?></button></form>
+        <?php if ($exportCheck !== null): ?>
+        <div role="status" class="mt-4 space-y-3" data-testid="export-check-report">
+            <?php if ($exportCheck['blocked'] !== ''): ?>
+            <p class="bg-red-50 text-red-700 p-4 rounded"><?= e(__('usability_export_blocked')) ?> <?= e(__($exportCheck['blocked'])) ?></p>
+            <?php else: ?>
+            <p><?= e(__('usability_export_checked', ['count' => (string) $exportCheck['scanned']])) ?></p>
+            <?php foreach ($exportCheck['issues'] as $exportIssue): ?>
+            <p class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__($exportIssue['code'])) ?> — <?= e($exportIssue['label']) ?> <code class="break-all"><?= e($exportIssue['detail']) ?></code>
+                <a href="<?= e($exportIssue['url']) ?>" class="text-primary underline"><?= e(__('ir_fix')) ?></a></p>
+            <?php endforeach; ?>
+            <?php if ($exportCheck['limited']): ?><p><?= e(__('ir_limited')) ?></p><?php endif; ?>
+            <form method="post" class="space-y-3"><?= csrfField() ?><input type="hidden" name="action" value="export">
+                <?php if ($exportCheck['issues'] !== [] || $exportCheck['limited']): ?><label class="block"><input type="checkbox" name="confirm_export" value="1" required> <?= e(__('usability_export_confirm')) ?></label><?php endif; ?>
+                <button type="submit" class="border rounded px-4 py-3"><?= e(__('st_export')) ?></button>
+            </form>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
     </section>
     <section class="bg-white rounded-lg shadow p-6 space-y-4" aria-labelledby="st-import">
         <h2 id="st-import" class="text-lg font-bold"><?= e(__('st_import_title')) ?></h2>

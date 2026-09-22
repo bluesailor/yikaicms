@@ -421,6 +421,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div class="p-6" x-data="themeManager()" x-init="init()">
+    <?php require ROOT_PATH . '/admin/includes/setting_sources_notice.php'; ?>
     <?php require_once ROOT_PATH . '/includes/SiteSetup.php'; ?>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-gray-700">
         <p><?= e(__('setup_mode_' . SiteSetup::currentHomeMode())) ?></p>
