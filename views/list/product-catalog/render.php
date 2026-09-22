@@ -29,7 +29,7 @@ $pcUsesSidebar = $pcNav === 'sidebar' && ($pcShowNav || !empty($catalog['show_se
 $pcNavVariant = in_array($pcNav, ['sidebar', 'top', 'toolbar'], true) ? $pcNav : 'top';
 $pcToolbarVariant = $pcNav === 'sidebar' ? 'main' : 'full';
 ?>
-<div data-product-catalog data-catalog-layout="<?php echo e((string) $catalog['mode']); ?>">
+<div <?php echo ProductCatalogRequest::rootAttributes($catalogQuery ?? ProductCatalogRequest::normalize($_GET)); ?> data-catalog-layout="<?php echo e((string) $catalog['mode']); ?>">
     <div class="flex flex-wrap lg:flex-nowrap <?php echo e($pcGap); ?>" data-product-catalog-layout>
         <?php if ($pcUsesSidebar): ?>
         <!-- 侧栏：搜索 + 分类导航 + 多条件筛选 -->

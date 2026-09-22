@@ -36,7 +36,7 @@ $productCatalogGridClass = [
                 <?php if ($productCatalogShowSearch): ?>
                 <!-- 搜索框 -->
                 <div class="bg-white rounded-lg shadow p-4" data-catalog-search>
-                    <form method="get" action="<?php echo $sidebarUsesDynamicRoute ? '/index.php' : $sidebarListUrl; ?>">
+                    <form method="get" action="<?php echo e($sidebarUsesDynamicRoute ? '/index.php' : $sidebarListUrl); ?>" role="search">
                         <?php if ($sidebarUsesDynamicRoute): ?>
                         <input type="hidden" name="yk_route" value="<?php echo e($sidebarRoute); ?>">
                         <?php if (!$isProductType): ?>
@@ -46,11 +46,15 @@ $productCatalogGridClass = [
                         <?php if ($isProductType && $productCategory && !empty($productCategory['slug'])): ?>
                         <input type="hidden" name="cat" value="<?php echo e((string) $productCategory['slug']); ?>">
                         <?php endif; ?>
+                        <?php foreach (array_diff_key(ProductCatalogRequest::filterQuery($catalogQuery ?? ProductCatalogRequest::normalize($_GET)), ['keyword' => true]) as $sidebarHidden => $sidebarValue): ?>
+                        <input type="hidden" name="<?php echo e($sidebarHidden); ?>" value="<?php echo e($sidebarValue); ?>">
+                        <?php endforeach; ?>
                         <div class="relative">
                             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
+                                   aria-label="<?php echo e(__('search')); ?>"
                                    placeholder="<?php echo __('search_placeholder'); ?>"
                                    class="w-full border rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-                            <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary">
+                            <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" aria-label="<?php echo e(__('search')); ?>">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
@@ -95,10 +99,12 @@ $productCatalogGridClass = [
                         // 递归渲染产品分类树
                         if (!function_exists('renderProductCategoryTree')) {
                         function renderProductCategoryTree(array $items, int $level, int $currentCatId): void {
+                            static $childrenSequence = 0;
                             foreach ($items as $item):
                                 $hasChildren = !empty($item['children']);
                                 $isExpanded = true;
                                 $paddingLeft = 16 + ($level * 16);
+                                $childrenId = $hasChildren ? 'yk-product-category-children-' . (++$childrenSequence) : '';
                         ?>
                         <div class="category-item">
                             <div class="flex items-center justify-between hover:bg-gray-50 transition <?php echo $item['is_active'] ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
@@ -109,7 +115,10 @@ $productCatalogGridClass = [
                                 </a>
                                 <?php if ($hasChildren): ?>
                                 <button type="button" class="category-toggle px-4 py-3 text-gray-400 hover:text-primary"
-                                        data-expanded="<?php echo $isExpanded ? 'true' : 'false'; ?>">
+                                        data-expanded="<?php echo $isExpanded ? 'true' : 'false'; ?>"
+                                        aria-expanded="<?php echo $isExpanded ? 'true' : 'false'; ?>"
+                                        aria-controls="<?php echo e($childrenId); ?>"
+                                        aria-label="<?php echo e(__('catalog_category_toggle', ['name' => (string) $item['name']])); ?>">
                                     <svg class="w-4 h-4 transition-transform <?php echo $isExpanded ? 'rotate-180' : ''; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
@@ -117,7 +126,7 @@ $productCatalogGridClass = [
                                 <?php endif; ?>
                             </div>
                             <?php if ($hasChildren): ?>
-                            <div class="category-children <?php echo $isExpanded ? '' : 'hidden'; ?>">
+                            <div id="<?php echo e($childrenId); ?>" class="category-children <?php echo $isExpanded ? '' : 'hidden'; ?>">
                                 <?php renderProductCategoryTree($item['children'], $level + 1, $currentCatId); ?>
                             </div>
                             <?php endif; ?>
@@ -138,10 +147,12 @@ $productCatalogGridClass = [
                         // 递归渲染栏目分类树
                         if (!function_exists('renderChannelTree')) {
                         function renderChannelTree(array $items, int $level = 0): void {
+                            static $childrenSequence = 0;
                             foreach ($items as $item):
                                 $hasChildren = !empty($item['children']);
                                 $isExpanded = true;
                                 $paddingLeft = 16 + ($level * 16);
+                                $childrenId = $hasChildren ? 'yk-channel-category-children-' . (++$childrenSequence) : '';
                         ?>
                         <div class="category-item">
                             <div class="flex items-center justify-between hover:bg-gray-50 transition <?php echo $item['is_active'] ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
@@ -152,7 +163,10 @@ $productCatalogGridClass = [
                                 </a>
                                 <?php if ($hasChildren): ?>
                                 <button type="button" class="category-toggle px-4 py-3 text-gray-400 hover:text-primary"
-                                        data-expanded="<?php echo $isExpanded ? 'true' : 'false'; ?>">
+                                        data-expanded="<?php echo $isExpanded ? 'true' : 'false'; ?>"
+                                        aria-expanded="<?php echo $isExpanded ? 'true' : 'false'; ?>"
+                                        aria-controls="<?php echo e($childrenId); ?>"
+                                        aria-label="<?php echo e(__('catalog_category_toggle', ['name' => (string) $item['name']])); ?>">
                                     <svg class="w-4 h-4 transition-transform <?php echo $isExpanded ? 'rotate-180' : ''; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
@@ -160,7 +174,7 @@ $productCatalogGridClass = [
                                 <?php endif; ?>
                             </div>
                             <?php if ($hasChildren): ?>
-                            <div class="category-children <?php echo $isExpanded ? '' : 'hidden'; ?>">
+                            <div id="<?php echo e($childrenId); ?>" class="category-children <?php echo $isExpanded ? '' : 'hidden'; ?>">
                                 <?php renderChannelTree($item['children'], $level + 1); ?>
                             </div>
                             <?php endif; ?>
@@ -185,7 +199,7 @@ $productCatalogGridClass = [
             <!-- 右侧产品列表 -->
             <div class="flex-1 min-w-0">
                 <?php if (!$productCatalogHasSidebar && $productCatalogShowSearch): ?>
-                <form method="get" action="<?php echo $sidebarUsesDynamicRoute ? '/index.php' : $sidebarListUrl; ?>" class="mb-6 flex items-center gap-2 max-w-md">
+                <form method="get" action="<?php echo e($sidebarUsesDynamicRoute ? '/index.php' : $sidebarListUrl); ?>" role="search" class="mb-6 flex items-center gap-2 max-w-md">
                     <?php if ($sidebarUsesDynamicRoute): ?>
                     <input type="hidden" name="yk_route" value="<?php echo e($sidebarRoute); ?>">
                     <?php if (!$isProductType): ?>
@@ -195,8 +209,12 @@ $productCatalogGridClass = [
                     <?php if ($isProductType && $productCategory && !empty($productCategory['slug'])): ?>
                     <input type="hidden" name="cat" value="<?php echo e((string) $productCategory['slug']); ?>">
                     <?php endif; ?>
+                    <?php foreach (array_diff_key(ProductCatalogRequest::filterQuery($catalogQuery ?? ProductCatalogRequest::normalize($_GET)), ['keyword' => true]) as $sidebarHidden => $sidebarValue): ?>
+                    <input type="hidden" name="<?php echo e($sidebarHidden); ?>" value="<?php echo e($sidebarValue); ?>">
+                    <?php endforeach; ?>
                     <div class="relative flex-1">
                         <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
+                               aria-label="<?php echo e(__('search')); ?>"
                                placeholder="<?php echo __('list_search_product'); ?>"
                                class="w-full border rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                         <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" aria-label="<?php echo e(__('search')); ?>">
@@ -220,12 +238,12 @@ $productCatalogGridClass = [
                         <?php echo __('list_total'); ?> <span class="text-primary font-medium"><?php echo $total; ?></span> <?php echo __('list_items'); ?>
                     </div>
                     <?php if ($productCatalogShowSort && $isProductType && !empty($enabledSorts) && count($enabledSorts) > 1): ?>
-                    <div class="flex items-center gap-1.5 text-sm">
+                    <div class="flex items-center gap-1.5 text-sm" data-catalog-sort>
                         <?php foreach ($enabledSorts as $sortKey):
                             if (!isset(ProductModel::SORT_LABELS[$sortKey])) continue;
                             $isActive = ($sortKey === $currentSort);
                             $sortUrl = strtok($_SERVER['REQUEST_URI'], '?');
-                            $sortParams = $_GET;
+                            $sortParams = ProductCatalogRequest::urlQuery($_GET, $catalogQuery ?? ProductCatalogRequest::normalize($_GET));
                             $sortParams['sort'] = $sortKey;
                             unset($sortParams['page']);
                             $sortUrl .= '?' . http_build_query($sortParams);
@@ -255,24 +273,16 @@ $productCatalogGridClass = [
                 <?php
                 $totalPages = (int)ceil($total / $perPage);
                 $currentSort = $currentSort ?? 'default';
-                $pageUrl = function(int $p) use ($channel, $keyword, $isProductType, $productCategory, $currentSort): string {
-                    if ($isProductType && $productCategory) {
-                        $filters = [];
-                        foreach (['keyword', 'sort', 'brand', 'tag', 'pmin', 'pmax'] as $key) {
-                            $value = $_GET[$key] ?? '';
-                            if (is_string($value) && $value !== '') $filters[$key] = $value;
-                        }
-                        return customProductCategoryPageUrl($productCategory, $p, $filters);
-                    }
+                $catalogQuery = $catalogQuery ?? ProductCatalogRequest::normalize($_GET);
+                $pageUrl = function(int $p) use ($channel, $keyword, $isProductType, $productCategory, $currentSort, $catalogQuery): string {
+                    if ($isProductType) return ProductCatalogRequest::pageUrl($channel, $productCategory, $p, $catalogQuery);
                     if (isDynamicUrlMode()) {
                         $params = [];
                         if ($keyword !== '') $params['keyword'] = $keyword;
                         if ($isProductType && $currentSort !== 'default') $params['sort'] = $currentSort;
                         if ($isProductType && !empty($productCategory['slug'])) $params['cat'] = (string) $productCategory['slug'];
-                        foreach (['brand', 'tag', 'pmin', 'pmax'] as $filter) {
-                            $value = $_GET[$filter] ?? '';
-                            if (is_string($value) && trim($value) !== '') $params[$filter] = trim($value);
-                        }
+                        $params = array_merge($params, array_intersect_key(ProductCatalogRequest::filterQuery($catalogQuery),
+                            ['brand' => true, 'tag' => true, 'pmin' => true, 'pmax' => true]));
                         return dynamicChannelPageUrl($channel, $p, $params)
                             ?? dynamicUrl('list', ['id' => (int) ($channel['id'] ?? 0), 'page' => $p]);
                     }
@@ -281,7 +291,7 @@ $productCatalogGridClass = [
                     if ($isProductType && isset($currentSort) && $currentSort !== 'default') $extraParams .= '&sort=' . urlencode($currentSort);
                     // 多条件筛选参数随分页带上，翻页不丢筛选
                     foreach (['brand', 'tag', 'pmin', 'pmax'] as $fk) {
-                        $fv = trim((string) ($_GET[$fk] ?? ''));
+                        $fv = (string) ($catalogQuery[$fk] ?? '');
                         if ($fv !== '') $extraParams .= '&' . $fk . '=' . urlencode($fv);
                     }
                     $queryStr = $extraParams !== '' ? '?' . ltrim($extraParams, '&') : '';

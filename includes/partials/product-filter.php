@@ -26,14 +26,14 @@ if (empty($facetBrands) && empty($facetTagGroups)) {
 // 第 1 页基础路径（切换筛选时始终回到第 1 页）
 $fbase = !empty($productCategory) ? productCategoryUrl($productCategory) : channelUrl($channel);
 
-// 当前生效的筛选参数（保留 keyword/sort，切换 facet 时不丢）
-$curFilters = [];
-foreach (['keyword', 'sort', 'brand', 'tag', 'pmin', 'pmax'] as $k) {
-    $v = trim((string) ($_GET[$k] ?? ''));
-    if ($v !== '' && $v !== 'default') {
-        $curFilters[$k] = $v;
-    }
-}
+// 控制器、分页、缓存键与 AJAX 共用同一份规范化参数；不回抄未知 GET 键。
+$catalogQuery = $catalogQuery ?? ProductCatalogRequest::normalize($_GET);
+$curFilters = ProductCatalogRequest::filterQuery($catalogQuery);
+$fbaseParts = parse_url($fbase);
+$fbaseQuery = [];
+parse_str((string) ($fbaseParts['query'] ?? ''), $fbaseQuery);
+$fbaseAction = (string) ($fbaseParts['path'] ?? $fbase);
+$fbaseRoute = ProductCatalogRequest::routeQuery($fbaseQuery);
 $buildUrl = static function (array $params) use ($fbase): string {
     return $params ? $fbase . (str_contains($fbase, '?') ? '&' : '?') . http_build_query($params) : $fbase;
 };
@@ -52,7 +52,7 @@ $toggleUrl = static function (string $param, int $id) use ($curFilters, $buildUr
 // 清空全部筛选（保留搜索词/排序）
 $clearParams = array_intersect_key($curFilters, ['keyword' => 1, 'sort' => 1]);
 ?>
-<div class="bg-white rounded-lg shadow overflow-hidden">
+<div class="bg-white rounded-lg shadow overflow-hidden" data-catalog-facets>
     <div class="flex items-center justify-between bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200">
         <span><?php echo __('filter_title'); ?></span>
         <?php if (!empty($filterActive)): ?>
@@ -97,15 +97,17 @@ $clearParams = array_intersect_key($curFilters, ['keyword' => 1, 'sort' => 1]);
         <?php if (($facetPrice['max'] ?? 0) > 0): ?>
         <div class="px-4 py-3">
             <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2"><?php echo __('filter_price'); ?></div>
-            <form method="get" action="<?php echo e($fbase); ?>" class="flex items-center gap-1.5">
-                <?php foreach (array_diff_key($curFilters, ['pmin' => 1, 'pmax' => 1]) as $hk => $hv): ?>
+            <form method="get" action="<?php echo e($fbaseAction); ?>" class="flex items-center gap-1.5">
+                <?php foreach (array_diff_key(array_merge($fbaseRoute, $curFilters), ['pmin' => 1, 'pmax' => 1]) as $hk => $hv): ?>
                 <input type="hidden" name="<?php echo e($hk); ?>" value="<?php echo e($hv); ?>">
                 <?php endforeach; ?>
                 <input type="number" name="pmin" value="<?php echo e($filterPriceMin ?? ''); ?>" min="0" step="any"
+                       aria-label="<?php echo e(__('catalog_price_min')); ?>"
                        placeholder="<?php echo (int) floor($facetPrice['min']); ?>"
                        class="w-full min-w-0 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
                 <span class="text-gray-400">-</span>
                 <input type="number" name="pmax" value="<?php echo e($filterPriceMax ?? ''); ?>" min="0" step="any"
+                       aria-label="<?php echo e(__('catalog_price_max')); ?>"
                        placeholder="<?php echo (int) ceil($facetPrice['max']); ?>"
                        class="w-full min-w-0 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
                 <button type="submit" class="shrink-0 bg-primary text-white text-sm px-3 py-1 rounded hover:bg-secondary transition">

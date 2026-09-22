@@ -205,7 +205,7 @@ final class ProductCatalogElement extends AbstractElement
 
         ob_start();
         ?>
-        <div data-product-catalog>
+        <div <?php echo ProductCatalogRequest::rootAttributes($catalogQuery ?? ProductCatalogRequest::normalize($_GET)); ?>>
             <?php require ROOT_PATH . '/views/list/sidebar.php'; ?>
         </div>
         <?php echo $this->categoryToggleScript(); ?>
@@ -247,6 +247,7 @@ final class ProductCatalogElement extends AbstractElement
                 if (btn.dataset.catalogReady === '1') return;
                 btn.dataset.catalogReady = '1';
                 btn.addEventListener('click', function (event) {
+                    event.yikaiCatalogToggleHandled = true;
                     event.preventDefault();
                     var item = this.closest('.category-item');
                     var childList = item ? item.querySelector('.category-children') : null;
@@ -256,6 +257,7 @@ final class ProductCatalogElement extends AbstractElement
                     childList.classList.toggle('hidden', expanded);
                     if (icon) icon.classList.toggle('rotate-180', !expanded);
                     this.dataset.expanded = expanded ? 'false' : 'true';
+                    this.setAttribute('aria-expanded', expanded ? 'false' : 'true');
                 });
             });
         })();
