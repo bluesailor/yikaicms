@@ -15,12 +15,21 @@ final class SiteTemplateWorkflowTest extends TestCase
 
     public function testRuntimeIdentityCannotBeImported(): void
     {
-        foreach (['site_url', 'smtp_pass', 'license_key', 'admin_lang', 'cron_token', 'upload_file_types', 'demo_mode', 'static_html_enabled'] as $key) {
+        foreach (['site_url', 'smtp_pass', 'license_key', 'admin_lang', 'cron_token', 'upload_file_types', 'demo_mode', 'static_html_enabled',
+            'shop_payment_secret', 'shop_api_key', 'seo_api_key', 'cookie_consent_secret'] as $key) {
             self::assertFalse(SiteTemplateData::settingAllowed($key), $key);
         }
         foreach (['site_name', 'site_logo', 'current_theme', 'theme_content_sample', 'home_blox_published', 'site_lang'] as $key) {
             self::assertTrue(SiteTemplateData::settingAllowed($key), $key);
         }
+    }
+
+    public function testPluginDependencyReviewIsVisibleInTheAdmin(): void
+    {
+        $page = (string) file_get_contents(ROOT_PATH . '/admin/site_templates.php');
+        self::assertStringContainsString("\$preview['missing_plugins']", $page);
+        self::assertStringContainsString('/admin/plugin.php?tab=market&amp;q=', $page);
+        self::assertStringContainsString("post('trusted') === '1' && post('confirm') === '1'", $page);
     }
 
     public function testRewritingPreservesExternalReferencesAndJson(): void

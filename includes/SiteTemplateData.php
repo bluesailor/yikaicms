@@ -16,6 +16,8 @@ final class SiteTemplateData
 
     public static function settingAllowed(string $key): bool
     {
+        // 安全边界：白名单只能覆盖可移植的核心内容与主题展示配置，绝不能为插件前缀
+        // （shop_*、seo_* 等）放宽。支付密钥、API key、插件设置和插件业务数据必须永远留在包外。
         if (in_array($key, ['site_lang', 'enabled_languages'], true)) return true;
         if (!SensitiveSettings::isImportable($key)) return false;
         return (bool) preg_match('/^(?:site_(?:name|keywords|description|logo|favicon)|primary_color$|secondary_color$|current_theme$|theme_(?:style|color|content)|home_|header_|footer_|contact_|banner_|nav_|page_hero_|blox_(?:design_system$|design_theme(?:_draft)?$|widescreen_enabled$|custom_header_enabled$|custom_footer_enabled$))/', $key);

@@ -4,7 +4,8 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 define('ROOT_PATH', dirname(__DIR__, 2));
 $mysql = getenv('SITE_TEMPLATE_MYSQL') === '1';
 define('DB_DRIVER', $mysql ? 'mysql' : 'sqlite');
-define('DB_PATH', ':memory:');
+$databasePath = $mysql ? '' : sys_get_temp_dir() . '/yk-siteprobe-' . bin2hex(random_bytes(6)) . '.sqlite';
+define('DB_PATH', $databasePath);
 if ($mysql) {
     define('DB_HOST', getenv('SITE_TEMPLATE_DB_HOST') ?: '127.0.0.1');
     define('DB_PORT', getenv('SITE_TEMPLATE_DB_PORT') ?: '3306');
@@ -32,6 +33,8 @@ if ($mysql) {
 $root = sys_get_temp_dir() . '/yikai-site-test-' . bin2hex(random_bytes(8));
 mkdir($root . '/themes/sample/layouts', 0700, true);
 mkdir($root . '/uploads', 0700, true);
+mkdir($root . '/plugins/back-to-top', 0700, true);
+mkdir($root . '/plugins/cookie-consent', 0700, true);
 function check(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }
 function rejects(callable $action, string $code): void {
     try { $action(); } catch (RuntimeException $e) { check($e->getMessage() === $code, $code . ': ' . $e->getMessage()); return; }
@@ -44,13 +47,27 @@ try {
     settingModel()->clearCache();
     settingModel()->saveBatch(['current_theme' => 'sample', 'site_name' => 'Source', 'site_url' => 'https://source.test', 'site_logo' => '/uploads/logo.svg',
         'site_lang' => 'zh-CN', 'enabled_languages' => '["zh-CN"]', 'home_blox_published' => '{"text":"public"}', 'home_blox_data' => '{"text":"PRIVATE DRAFT"}',
-        'theme_style_settings' => '{"themes":{"sample":{"button":{"radius":22}}}}', 'smtp_pass' => 'PRIVATE PASSWORD', 'license_key' => 'PRIVATE LICENSE']);
+        'theme_style_settings' => '{"themes":{"sample":{"button":{"radius":22}}}}', 'smtp_pass' => 'PRIVATE PASSWORD', 'license_key' => 'PRIVATE LICENSE',
+        'shop_payment_secret' => 'PRIVATE SHOP SECRET', 'seo_api_key' => 'PRIVATE SEO KEY']);
     db()->insert('channels', ['id' => 71, 'name' => 'About', 'slug' => 'about', 'type' => 'page']);
-    db()->insert('contents', ['id' => 91, 'channel_id' => 71, 'title' => 'About source', 'content' => '<img src="https://source.test/uploads/logo.svg">']);
+    $publicImages = ['logo.svg', 'gallery-1.svg', 'gallery-2.svg', 'gallery-3.svg', 'gallery-4.svg'];
+    $imageHtml = implode('', array_map(static fn(string $name): string => '<img src="https://source.test/uploads/' . $name . '">', $publicImages));
+    db()->insert('contents', ['id' => 91, 'channel_id' => 71, 'title' => 'About source', 'content' => $imageHtml]);
     db()->insert('media', ['name' => 'logo', 'path' => 'uploads/logo.svg', 'url' => '/uploads/logo.svg']);
+    foreach (array_slice($publicImages, 1) as $index => $name) {
+        db()->insert('media', ['name' => 'gallery-' . ($index + 1), 'path' => 'uploads/' . $name, 'url' => '/uploads/' . $name]);
+    }
     db()->insert('media', ['name' => 'private', 'path' => 'uploads/private.pdf', 'url' => '/uploads/private.pdf']);
-    file_put_contents($root . '/uploads/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><path d="M0 0h10v10H0z"/></svg>');
+    foreach ($publicImages as $index => $name) file_put_contents($root . '/uploads/' . $name, '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><path d="M' . $index . ' 0h1v1H0z"/></svg>');
     file_put_contents($root . '/uploads/private.pdf', 'PRIVATE MEDIA');
+    file_put_contents($root . '/plugins/back-to-top/plugin.json', '{"name":"Back to Top","version":"1.0.0"}');
+    file_put_contents($root . '/plugins/back-to-top/main.php', '<?php throw new RuntimeException("PLUGIN FILE MUST NOT RUN");');
+    file_put_contents($root . '/plugins/cookie-consent/plugin.json', '{"name":"Cookie Consent","version":"1.1.0"}');
+    file_put_contents($root . '/plugins/cookie-consent/main.php', '<?php throw new RuntimeException("PLUGIN FILE MUST NOT RUN");');
+    db()->insert('plugins', ['slug' => 'back-to-top', 'status' => 1, 'installed_at' => time(), 'activated_at' => time()]);
+    db()->insert('plugins', ['slug' => 'cookie-consent', 'status' => 1, 'installed_at' => time(), 'activated_at' => time()]);
+    db()->execute('CREATE TABLE ' . DB_PREFIX . 'shop_orders (id INTEGER PRIMARY KEY, secret TEXT)');
+    db()->execute('INSERT INTO ' . DB_PREFIX . 'shop_orders (id, secret) VALUES (?, ?)', [1, 'PRIVATE ORDER']);
     file_put_contents($root . '/themes/sample/theme.json', '{"name":"Sample","version":"1.0.0"}');
     file_put_contents($root . '/themes/sample/layouts/header.php', '<?php declare(strict_types=1); ?><img src="/uploads/logo.svg">');
     file_put_contents($root . '/themes/sample/layouts/footer.php', '<?php declare(strict_types=1); ?>Footer');
@@ -60,17 +77,25 @@ try {
     settingModel()->saveBatch(['footer_nav' => '[{"links":[{"url":"/retired.html"}]}]']);
     $preflightBefore = SiteTemplateData::fingerprint();
     $preflight = $service->exportCheck();
-    check(count($preflight['issues']) === 1, 'Export preflight must find an omitted channel link');
+    check(count($preflight['issues']) === 2, 'Export preflight must report the omitted link and excluded plugin data');
+    check(count(array_filter($preflight['issues'], static fn(array $issue): bool => $issue['code'] === 'usability_export_plugins_excluded')) === 1, 'Active plugin data exclusion is reported');
     check(hash_equals($preflightBefore, SiteTemplateData::fingerprint()), 'Export preflight must not change content');
     db()->delete('channels', 'id = ?', [72]);
     db()->delete('settings', '`key` = ?', ['footer_nav']);
     settingModel()->clearCache();
     $zip = $root . '/export.zip';
     $summary = $service->export($zip);
-    check($summary['media'] === 1, 'Referenced media only');
+    check($summary['media'] === 5, 'Referenced media only');
     $package = SiteTemplateArchive::read($zip);
     $payload = json_encode($package);
     check(!str_contains($payload, 'PRIVATE'), 'No secrets, drafts or private media');
+    check($package['manifest']['plugins'] === [
+        ['slug' => 'back-to-top', 'version' => '1.0.0'],
+        ['slug' => 'cookie-consent', 'version' => '1.1.0'],
+    ], 'Active plugin dependencies are declared with versions');
+    check(!isset($package['manifest']['data']['tables']['shop_orders']), 'Plugin tables are not exported');
+    check(!isset($package['manifest']['data']['settings']['shop_payment_secret'], $package['manifest']['data']['settings']['seo_api_key']), 'Plugin settings and secrets are not exported');
+    check(array_filter(array_keys($package['files']), static fn(string $name): bool => str_starts_with($name, 'plugins/')) === [], 'Plugin files are not exported');
     $bad = $package['manifest'];
     $bad['data']['settings']['smtp_pass'] = 'blocked';
     SiteTemplateArchive::write($root . '/bad.zip', $bad, $package['files']);
@@ -79,6 +104,10 @@ try {
     $bad['cms'] = '0.0.0';
     SiteTemplateArchive::write($root . '/bad.zip', $bad, $package['files']);
     rejects(static fn() => SiteTemplateArchive::read($root . '/bad.zip'), 'st_schema');
+    $bad = $package['manifest'];
+    $bad['plugins'] = [['slug' => '../escape', 'version' => '1.0.0']];
+    SiteTemplateArchive::write($root . '/bad.zip', $bad, $package['files']);
+    rejects(static fn() => SiteTemplateArchive::read($root . '/bad.zip'), 'st_invalid');
     $bad = $package['manifest'];
     $bad['data']['tables']['contents'][0]['channel_id'] = 999;
     SiteTemplateArchive::write($root . '/bad.zip', $bad, $package['files']);
@@ -99,24 +128,57 @@ try {
     $before = SiteTemplateData::fingerprint();
     $preview = $service->prepare($zip, 1);
     rejects(static fn() => $service->apply($preview['token'], 1, [], false), 'st_trust');
+    check($preview['missing_plugins'] === [], 'Installed and active plugin dependencies are accepted');
+    file_put_contents($root . '/plugins/cookie-consent/plugin.json', '{"name":"Cookie Consent","version":"1.0.0"}');
+    $preview = $service->prepare($zip, 1);
+    check($preview['missing_plugins'] === [['slug' => 'cookie-consent', 'version' => '1.1.0']], 'An older active plugin does not satisfy the declared version');
+    file_put_contents($root . '/plugins/cookie-consent/plugin.json', '{"name":"Cookie Consent","version":"1.2.0"}');
+    $preview = $service->prepare($zip, 1);
+    check($preview['missing_plugins'] === [], 'A newer active plugin satisfies the declared minimum version');
+    pluginModel()->deactivate('cookie-consent');
+    $preview = $service->prepare($zip, 1);
+    check($preview['missing_plugins'] === [['slug' => 'cookie-consent', 'version' => '1.1.0']], 'Inactive dependency is listed with its required version');
+    rejects(static fn() => $service->apply($preview['token'], 1, [], false), 'st_plugin_missing');
     rejects(static fn() => $service->apply($preview['token'], 2, [], true), 'st_stale');
     settingModel()->set('home_blox_data', 'Unsaved new page');
     rejects(static fn() => $service->apply($preview['token'], 1, ['site_name' => 'Target'], true), 'st_not_fresh');
     settingModel()->set('home_blox_data', '{"text":"PRIVATE DRAFT"}');
 
-    // ── E03 分阶段提取：断点续传与幂等 ─────────────────────────────
-    // 一次 stage 只处理一批。反复调用必须单调推进到完成，且不重复写入。
-    $first = $service->stage($preview['token'], 1);
-    check($first['total'] >= 1, 'Stage reports a media total');
-    $guard = 0;
-    while (!$first['complete'] && $guard++ < 50) {
-        $next = $service->stage($preview['token'], 1);
-        check($next['done'] >= $first['done'], 'Stage cursor never goes backwards');
-        $first = $next;
-    }
-    check($first['complete'] && $first['done'] === $first['total'], 'Stage completes');
+    // ── E03 分阶段提取：测试环境把每轮压到 2 个文件，真实跨进程验证游标 ──────────
+    putenv('APP_ENV=testing');
+    putenv('YIKAI_SITE_TEMPLATE_STAGE_MAX_FILES=2');
+    if ($mysql) putenv('SITE_TEMPLATE_DB_NAME=' . DB_NAME);
+    $stageInChild = static function () use ($root, $databasePath, $mysql, $preview): array {
+        $command = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(ROOT_PATH . '/tests/fixtures/site-template-stage-worker.php')
+            . ' ' . escapeshellarg($root) . ' ' . escapeshellarg($mysql ? 'mysql' : 'sqlite')
+            . ' ' . escapeshellarg($mysql ? DB_NAME : $databasePath) . ' ' . escapeshellarg($preview['token']) . ' 1';
+        $lines = [];
+        $exit = 0;
+        exec($command . ' 2>&1', $lines, $exit);
+        check($exit === 0, 'Cross-process stage failed: ' . implode("\n", $lines));
+        $result = json_decode((string) end($lines), true);
+        check(is_array($result), 'Cross-process stage returned invalid JSON');
+        return $result;
+    };
+    $first = $stageInChild();
+    check($first === ['done' => 2, 'total' => 5, 'complete' => false], 'First process is bounded to two media files');
+    $planPath = $root . '/storage/site-templates/plan.php';
+    $guardBytes = "<?php http_response_code(404); exit; ?>\n";
+    $planBytes = (string) file_get_contents($planPath);
+    $plan = json_decode(substr($planBytes, strlen($guardBytes)), true, 64, JSON_THROW_ON_ERROR);
+    $retryName = $plan['media'][1];
+    $retryTarget = $root . '/uploads/' . $plan['alias'] . '/' . substr($retryName, 6);
+    touch($retryTarget, 1000000000);
+    $plan['staged'] = 1; // Simulate a process dying after rename but before cursor persistence.
+    file_put_contents($planPath, $guardBytes . json_encode($plan, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+    $retry = $stageInChild();
+    check($retry === ['done' => 3, 'total' => 5, 'complete' => false], 'Retry advances from the persisted cursor without skipping unfinished media');
+    clearstatcache(true, $retryTarget);
+    check(filemtime($retryTarget) === 1000000000, 'Retry does not rewrite an already completed media file');
+    $first = $stageInChild();
+    check($first === ['done' => 5, 'total' => 5, 'complete' => true], 'A later process resumes and completes the remaining media');
     // 已完成后再调用是安全的空操作（浏览器重试/双击不该出错）
-    $again = $service->stage($preview['token'], 1);
+    $again = $stageInChild();
     check($again['complete'] && $again['done'] === $first['total'], 'Stage is idempotent once complete');
     // 归属与新鲜度在每次 stage 请求上都要重查，不能只在 prepare 时查一次
     rejects(static fn() => $service->stage($preview['token'], 2), 'st_stale');
@@ -125,7 +187,10 @@ try {
     check(str_starts_with(config('current_theme'), 'sitepack-'), 'New theme alias');
     check(config('site_url') === 'https://target.test' && config('smtp_pass') === 'PRIVATE PASSWORD', 'Target identity unchanged');
     check(db()->fetchColumn('SELECT channel_id FROM yikai_contents WHERE id = 91') == 71, 'Stable relations');
-    check(count(db()->fetchAll('SELECT * FROM yikai_media')) === 1, 'Public media imported');
+    check(count(db()->fetchAll('SELECT * FROM yikai_media')) === 5, 'Public media imported');
+    check((int) db()->fetchColumn('SELECT status FROM yikai_plugins WHERE slug = ?', ['cookie-consent']) === 0, 'Plugin activation state is not imported');
+    check((string) db()->fetchColumn('SELECT secret FROM yikai_shop_orders WHERE id = 1') === 'PRIVATE ORDER', 'Plugin table data is not imported or replaced');
+    check(config('shop_payment_secret') === 'PRIVATE SHOP SECRET' && config('seo_api_key') === 'PRIVATE SEO KEY', 'Plugin settings and secrets stay local');
     $media = db()->fetchOne('SELECT * FROM yikai_media');
     check(is_file($media['path']), 'Media local path rewritten');
     check(str_contains(config('theme_style_settings'), config('current_theme')), 'Theme profile remapped');
@@ -156,4 +221,11 @@ try {
     foreach ($it as $file) { $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname()); }
     rmdir($root);
     if ($server !== null && preg_match('/^yk_siteprobe_[a-f0-9]{12}$/D', DB_NAME)) $server->exec('DROP DATABASE `' . DB_NAME . '`');
+    if (!$mysql && is_file($databasePath)) {
+        $instance = new ReflectionProperty(Database::class, 'instance');
+        $instance->setAccessible(true);
+        $instance->setValue(null, null);
+        gc_collect_cycles();
+        @unlink($databasePath);
+    }
 }

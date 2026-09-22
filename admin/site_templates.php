@@ -167,6 +167,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php
             // 语言缺口单独摆出来：它是一条判断，不是一个计数，混进计数表里会被略过
             $emptyLanguages = is_array($preview['summary']['languages_empty'] ?? null) ? $preview['summary']['languages_empty'] : [];
+            $missingPlugins = is_array($preview['missing_plugins'] ?? null) ? $preview['missing_plugins'] : [];
             $counts = $preview['summary'];
             unset($counts['languages_empty']);
             ?>
@@ -179,6 +180,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <p role="status" class="bg-amber-50 text-amber-900 p-3 rounded text-sm">
                 <?= e(__('st_lang_empty', ['list' => SiteTemplateLanguages::labels($emptyLanguages)])) ?>
             </p>
+            <?php endif; ?>
+            <?php if ($missingPlugins !== []): ?>
+            <div role="alert" class="bg-amber-50 text-amber-900 p-3 rounded text-sm space-y-2" data-testid="st-missing-plugins">
+                <p><?= e(__('st_plugin_missing_intro')) ?></p>
+                <ul class="list-disc pl-5 space-y-1">
+                    <?php foreach ($missingPlugins as $plugin): ?>
+                    <li><code><?= e($plugin['slug'] . ' ' . $plugin['version']) ?></code>
+                        <a class="text-primary underline ml-2" href="/admin/plugin.php?tab=market&amp;q=<?= e(rawurlencode($plugin['slug'])) ?>"><?= e(__('st_plugin_market')) ?></a>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+                <p><?= e(__('st_plugin_force_hint')) ?></p>
+            </div>
             <?php endif; ?>
             <form method="post" class="space-y-4">
                 <?= csrfField() ?><input type="hidden" name="action" value="apply"><input type="hidden" name="token" value="<?= e($preview['token']) ?>">
