@@ -17,6 +17,7 @@ define('DB_PREFIX', 'yikai_');
 define('DB_CHARSET', 'utf8mb4');
 define('DEBUG', true);
 function config(string $key, mixed $default = ''): mixed { return settingModel()->get($key, $default); }
+function configOverrides(): array { return is_array($GLOBALS['_test_config_overrides'] ?? null) ? $GLOBALS['_test_config_overrides'] : []; }
 function __(string $key, array $params = []): string { return $key; }
 require ROOT_PATH . '/config/version.php';
 require ROOT_PATH . '/config/database.php';
@@ -72,7 +73,11 @@ try {
     file_put_contents($root . '/themes/sample/layouts/header.php', '<?php declare(strict_types=1); ?><img src="/uploads/logo.svg">');
     file_put_contents($root . '/themes/sample/layouts/footer.php', '<?php declare(strict_types=1); ?>Footer');
     $service = new SiteTemplateService($root);
+    $GLOBALS['_test_config_overrides'] = ['current_theme' => 'sample', 'site_name' => 'Source'];
     check($service->exportCheck()['blocked'] === '', 'Export preflight should accept the source');
+    $GLOBALS['_test_config_overrides']['site_name'] = 'Pinned source';
+    check($service->exportCheck()['blocked'] === 'st_overrides', 'Divergent pinned settings must still block export');
+    $GLOBALS['_test_config_overrides']['site_name'] = 'Source';
     db()->insert('channels', ['id' => 72, 'name' => 'Retired', 'slug' => 'retired', 'type' => 'page', 'status' => 0]);
     settingModel()->saveBatch(['footer_nav' => '[{"links":[{"url":"/retired.html"}]}]']);
     $preflightBefore = SiteTemplateData::fingerprint();
@@ -119,6 +124,7 @@ try {
     $tampered->close();
     rejects(static fn() => SiteTemplateArchive::read($root . '/bad.zip'), 'st_limit');
     rejects(static fn() => $service->prepare($zip, 1), 'st_not_fresh');
+    $GLOBALS['_test_config_overrides'] = [];
     foreach (SiteTemplateData::TABLES as $table) db()->execute('DELETE FROM ' . DB_PREFIX . $table);
     settingModel()->saveBatch(['current_theme' => 'default', 'site_name' => 'Fresh', 'site_logo' => '', 'site_url' => 'https://target.test']);
     // No-demo installers can retain a legacy channel reference after omitting demo albums.
