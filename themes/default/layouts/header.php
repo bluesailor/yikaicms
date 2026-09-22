@@ -180,6 +180,7 @@ function getChannelUrl(array $channel): string {
     <?php echo config('custom_head_code', ''); ?>
 </head>
 <body class="yk-site-body bg-gray-50 min-h-screen flex flex-col">
+    <a class="yk-skip-link" href="#main-content"><?php echo e(__('skip_to_content')); ?></a>
     <?php if (empty($GLOBALS['ykBloxPageFrame']['page_header_hidden'])): ?>
     <!-- top banner -->
     <?php if ($topbarEnabled): ?>
@@ -253,7 +254,7 @@ function getChannelUrl(array $channel): string {
                 </button>
             </div>
         </div>
-        <nav class="hidden xl:block border-t" style="border-color: rgba(0,0,0,0.06)"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
+        <nav class="hidden xl:block border-t" aria-label="<?php echo e(__('menu_label')); ?>" style="border-color: rgba(0,0,0,0.06)"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
             <div class="container mx-auto px-4">
                 <div class="flex flex-nowrap items-center gap-1 whitespace-nowrap">
                     <?php foreach ($navChannels as $navItem): ?>
@@ -299,7 +300,7 @@ function getChannelUrl(array $channel): string {
                     <span class="text-xl font-bold text-primary"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
                 </a>
-                <nav class="hidden xl:flex flex-nowrap items-center gap-1 min-w-0 whitespace-nowrap"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
+                <nav class="hidden xl:flex flex-nowrap items-center gap-1 min-w-0 whitespace-nowrap" aria-label="<?php echo e(__('menu_label')); ?>"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-nav'; ?>>
                     <?php foreach ($navChannels as $navItem): ?>
                     <?php
                     $hasChildren = !empty($navItem['children']);
@@ -405,4 +406,4 @@ function getChannelUrl(array $channel): string {
     <?php do_action('ik_header_after'); ?>
 
     <!-- Main content -->
-    <main class="flex-1">
+    <main id="main-content" tabindex="-1" class="flex-1">
