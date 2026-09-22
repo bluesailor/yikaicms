@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/SiteTemplateArchive.php';
 require_once __DIR__ . '/SiteTemplateLanguages.php';
 require_once __DIR__ . '/ThemeInstaller.php';
+require_once __DIR__ . '/UploadReferences.php';
 
 /** Local, explicit, new-install-only site transfer. Never restores accounts or server configuration. */
 final class SiteTemplateService
@@ -106,9 +107,12 @@ final class SiteTemplateService
         }
         $media = $data['tables']['media'];
         $data['tables']['media'] = [];
-        $refs = [];
-        $this->collectUploads($data, $refs);
-        foreach ($files as $path => $bytes) if ($this->textFile($path)) $this->collectUploads($bytes, $refs);
+        $refs = UploadReferences::collect($data);
+        foreach ($files as $path => $bytes) if ($this->textFile($path)) {
+            foreach (UploadReferences::collect($bytes) as $relative => $count) {
+                $refs[$relative] = ($refs[$relative] ?? 0) + $count;
+            }
+        }
         foreach (array_keys($refs) as $relative) {
             if (!SiteTemplateArchive::safePath($relative)) throw new RuntimeException('st_unsafe');
             $source = $this->root . '/uploads/' . $relative;
@@ -117,8 +121,7 @@ final class SiteTemplateService
             $files['media/' . $relative] = $this->boundedRead($source, $size);
         }
         foreach ($media as $row) {
-            $rowRefs = [];
-            $this->collectUploads([$row['url'] ?? '', $row['path'] ?? ''], $rowRefs);
+            $rowRefs = UploadReferences::collect([$row['url'] ?? '', $row['path'] ?? '']);
             $publicRefs = array_intersect_key($refs, $rowRefs);
             if ($publicRefs) {
                 $relative = (string) array_key_first($publicRefs);
@@ -475,16 +478,6 @@ final class SiteTemplateService
             if (is_string($value) && preg_match('/^[1-9][0-9]*$/D', $value) === 1) return min(self::STAGE_MAX_FILES, (int) $value);
         }
         return self::STAGE_MAX_FILES;
-    }
-
-    private function collectUploads(mixed $value, array &$refs): void
-    {
-        if (is_array($value)) { foreach ($value as $item) $this->collectUploads($item, $refs); return; }
-        if (!is_string($value)) return;
-        $decoded = json_decode($value, true);
-        if (is_array($decoded)) { $this->collectUploads($decoded, $refs); return; }
-        preg_match_all('~(?<![a-zA-Z0-9/:.])/?uploads/([^\s"\'<>?#)]+)~u', html_entity_decode($value, ENT_QUOTES, 'UTF-8'), $matches);
-        foreach ($matches[1] as $path) $refs[rawurldecode($path)] = true;
     }
 
     private function textFile(string $path): bool
