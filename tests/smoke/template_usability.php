@@ -70,6 +70,20 @@ try {
     usabilityAssert($status === 200 && (json_decode($saved, true)['code'] ?? -1) === 0, 'Valid motion level save failed');
     settingModel()->clearCache();
     usabilityAssert(settingModel()->get('motion_intensity') === 'light', 'Motion level not saved');
+    $footerFixture = json_encode([['title' => 'Footer probe', 'content' => '<p><strong>FooterFormatProbe</strong></p><ul><li>List item</li></ul><a href="/contact.html">Contact</a>{{site_description}}', 'col_span' => 1, 'menu_id' => 0]]);
+    [$status, $saved] = usabilityRequest('/admin/setting.php?tab=footer&lang=zh-CN', ['_token' => $token[1], 'settings' => ['footer_columns' => $footerFixture]]);
+    usabilityAssert($status === 200 && (json_decode($saved, true)['code'] ?? -1) === 0, 'Footer rich content save failed');
+    foreach (['en', 'ja'] as $footerLang) {
+        [$status, $saved] = usabilityRequest('/admin/setting.php?tab=footer&lang=' . $footerLang, ['_token' => $token[1], 'settings' => ['footer_columns' => str_replace('FooterFormatProbe', 'FooterFormatProbe-' . $footerLang, $footerFixture)]]);
+        usabilityAssert($status === 200 && (json_decode($saved, true)['code'] ?? -1) === 0, 'Translated footer save failed');
+    }
+    settingModel()->clearCache();
+    usabilityAssert(settingModel()->get('footer_columns') === $footerFixture, 'Translated footer overwrote source');
+    foreach (['en', 'ja'] as $footerLang) usabilityAssert(str_contains((string) settingModel()->get('footer_columns_' . $footerLang), 'FooterFormatProbe-' . $footerLang), 'Footer translation missing');
+    settingModel()->saveBatch(['current_theme' => 'default', 'blox_custom_footer_enabled' => '0']);
+    [$status, $front] = usabilityRequest('/?footer_editor_probe=1');
+    usabilityAssert($status === 200 && str_contains($front, 'yk-footer-column-content'), 'Native footer not rendered');
+    usabilityAssert(str_contains($front, '<strong>FooterFormatProbe</strong>') && str_contains($front, '<ul><li>List item</li></ul>'), 'Footer formatting lost');
     echo "Template usability HTTP checks passed\n";
 } catch (Throwable $error) {
     $failure = $error->getMessage();
@@ -80,6 +94,10 @@ try {
     else db()->delete('settings', '`key` = ?', ['footer_nav']);
     if (array_key_exists('motion_intensity', $settings)) settingModel()->saveBatch(['motion_intensity' => $settings['motion_intensity']]);
     else db()->delete('settings', '`key` = ?', ['motion_intensity']);
+    foreach (['footer_columns', 'footer_columns_en', 'footer_columns_ja', 'current_theme', 'blox_custom_footer_enabled'] as $footerKey) {
+        if (array_key_exists($footerKey, $settings)) settingModel()->saveBatch([$footerKey => $settings[$footerKey]]);
+        else db()->delete('settings', '`key` = ?', [$footerKey]);
+    }
     @unlink($jar);
 }
 if ($failure !== null) { fwrite(STDERR, $failure . "\n"); exit(1); }
