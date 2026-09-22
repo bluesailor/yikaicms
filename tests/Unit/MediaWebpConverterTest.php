@@ -150,9 +150,65 @@ final class MediaWebpConverterTest extends TestCase
         }
     }
 
+    public function testNestedEscapedDraftAndRevisionReferencesFollowPublishedContent(): void
+    {
+        db()->execute('CREATE TABLE blox_page_drafts (id INTEGER PRIMARY KEY, draft_data TEXT, published_data TEXT)');
+        db()->execute('CREATE TABLE content_revisions (id INTEGER PRIMARY KEY, snapshot TEXT, note TEXT)');
+        $document = json_encode(['sections' => [['image' => '/uploads/hero.png']]], JSON_THROW_ON_ERROR);
+        $snapshot = json_encode(['targets' => [['table' => 'contents', 'fields' => ['blocks_data' => $document]]]], JSON_THROW_ON_ERROR);
+        db()->insert('blox_page_drafts', ['id' => 1, 'draft_data' => $document, 'published_data' => $document]);
+        db()->insert('content_revisions', ['id' => 1, 'snapshot' => $snapshot, 'note' => '/uploads/hero.png']);
+        db()->insert('settings', ['key' => 'home_blox_history', 'value' => $snapshot]);
+        db()->insert('settings', ['key' => 'home_blox_data', 'value' => $document]);
+
+        (new MediaWebpConverter($this->root))->run(true);
+
+        $draft = db()->fetchOne('SELECT * FROM blox_page_drafts WHERE id = ?', [1]);
+        self::assertStringContainsString('/uploads/hero.webp', $draft['draft_data']);
+        self::assertStringContainsString('/uploads/hero.webp', $draft['published_data']);
+        self::assertStringNotContainsString('hero.png', (string) db()->fetchColumn('SELECT snapshot FROM content_revisions WHERE id = ?', [1]));
+        self::assertSame('/uploads/hero.png', db()->fetchColumn('SELECT note FROM content_revisions WHERE id = ?', [1]));
+        self::assertStringNotContainsString('hero.png', (string) db()->fetchColumn('SELECT value FROM settings WHERE `key` = ?', ['home_blox_history']));
+        self::assertStringContainsString('/uploads/hero.webp', (string) db()->fetchColumn('SELECT value FROM settings WHERE `key` = ?', ['home_blox_data']));
+    }
+
+    public function testActualImageMimeDeterminesDecoder(): void
+    {
+        $this->writeImage($this->uploads . '/mislabeled.png', 'jpg', 240, 160);
+        db()->insert('banners', ['id' => 2, 'image' => '/uploads/mislabeled.png']);
+
+        $report = (new MediaWebpConverter($this->root))->run(true);
+
+        self::assertSame(3, $report['converted']);
+        self::assertSame('/uploads/mislabeled.webp', db()->fetchColumn('SELECT image FROM banners WHERE id = ?', [2]));
+        $info = getimagesize($this->uploads . '/mislabeled.webp');
+        self::assertSame('image/webp', $info['mime']);
+        self::assertSame([240, 160], [$info[0], $info[1]]);
+    }
+
+    public function testDifferentSameSizedExistingWebpIsRejectedWithoutChangingReferences(): void
+    {
+        $image = imagecreatetruecolor(320, 180);
+        self::assertNotFalse($image);
+        imagefill($image, 0, 0, imagecolorallocate($image, 200, 10, 20));
+        imagewebp($image, $this->uploads . '/hero.webp', 85);
+        imagedestroy($image);
+        $before = hash_file('sha256', $this->uploads . '/hero.webp');
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('同名 WebP 与当前源图或转换品质不一致');
+
+        try {
+            (new MediaWebpConverter($this->root))->run(true);
+        } finally {
+            self::assertSame($before, hash_file('sha256', $this->uploads . '/hero.webp'));
+            self::assertSame('/uploads/hero.png', db()->fetchColumn('SELECT url FROM media WHERE id = ?', [1]));
+            self::assertFileDoesNotExist($this->uploads . '/product.webp');
+        }
+    }
+
     private function resetTables(bool $create = true): void
     {
-        foreach (['media', 'contents', 'products', 'banners', 'blox_templates', 'settings'] as $table) {
+        foreach (['media', 'contents', 'products', 'banners', 'blox_templates', 'settings', 'blox_page_drafts', 'content_revisions'] as $table) {
             db()->execute('DROP TABLE IF EXISTS ' . $table);
         }
         settingModel()->clearCache();

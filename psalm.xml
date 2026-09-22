@@ -51,6 +51,7 @@
                 <!-- Navigation context consumed by the shared admin header. -->
                 <file name="admin/site_setup.php" />
                 <file name="admin/site_templates.php" />
+                <file name="admin/site_template_market.php" />
                 <file name="admin/theme_content.php" />
                 <file name="admin/site_content_check.php" />
                 <!-- Variables consumed by ignored editor partials through require scope. -->
@@ -109,6 +110,7 @@
                 <!-- 整站模板工作流新增独立入口 -->
                 <file name="admin/site_setup.php" />
                 <file name="admin/site_templates.php" />
+                <file name="admin/site_template_market.php" />
                 <file name="admin/site_content_check.php" />
                 <file name="admin/theme_content.php" />
                 <!-- 不要在此登记 admin/blox_editor.php 等不随仓库分发的文件：
