@@ -234,4 +234,9 @@ You can check the order status on the site with the order number and phone suffi
     'shop_shipping_surcharges_hint' => 'One per line as Province/City/District = amount. The longest path wins. Free shipping waives only the base fee. Maximum 100.',
     'shop_err_shipping_surcharges' => 'Invalid regional surcharge. Use Province/City/District = positive amount.',
     'shop_order_export' => 'Export filtered orders as CSV',
+    'shop_checkout_city_select' => 'Select a city / prefecture',
+    'shop_checkout_district_select' => 'Select a district / county / town',
+    'shop_checkout_region_unavailable' => 'Address data is unavailable. Refresh the page or contact the seller.',
+    'shop_checkout_region_js_required' => 'Select a province, city and district before ordering. Enable JavaScript to load address options.',
+    'shop_err_address_region' => 'The province, city and district do not match. Select the shipping region again.',
 ];
