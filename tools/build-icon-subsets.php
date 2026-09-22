@@ -253,7 +253,7 @@ foreach (['tabler', 'bootstrap'] as $provider) {
     $exitCode = 0;
     exec($command . ' 2>&1', $output, $exitCode);
     if ($exitCode !== 0 || !is_file($fontPaths[$provider])) {
-        fwrite(STDERR, "Font subset failed ({$provider}). Install Python fonttools[brotli] and set PYTHON_BIN.\n");
+        fwrite(STDERR, "Font subset failed ({$provider}). Install Python packages with `python -m pip install \"fonttools==4.60.1\" \"brotli==1.1.0\"` (see tools/ICON_SUBSETS.md); set PYTHON_BIN if Python is not on PATH.\n");
         fwrite(STDERR, implode("\n", $output) . "\n");
         exit(1);
     }
