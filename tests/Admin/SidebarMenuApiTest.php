@@ -30,15 +30,38 @@ if (!function_exists('isSuperAdmin')) {
 
 class SidebarMenuApiTest extends TestCase
 {
+    /** @var array<string,mixed> */
+    private array $savedRegistry = [];
+    /** @var array<string,mixed> */
+    private array $savedActions = [];
+    /** @var array<string,mixed> */
+    private array $savedFilters = [];
+
     protected function setUp(): void
     {
         parent::setUp();
         // Reset the registry + hook system between tests so filters
         // registered in one test don't leak into the next (PHPUnit's
         // defects-first execution order can interleave them).
+        //
+        // 清空必须配还原：钩子注册表是**全进程共享**的，而有些测试在文件作用域
+        // 就注册了钩子（require 插件 register.php，整个进程只执行一次）。
+        // 只清不还，等于把「清空」泄漏给后面每一个测试类——它们再也拿不回自己的钩子。
+        // 2026-09-22 实测：ShopSiteTemplateTest 独跑绿、全量跑红，就是被这里清掉的。
+        $this->savedRegistry = $GLOBALS['_yikai_admin_menu_registry'] ?? [];
+        $this->savedActions = $GLOBALS['ik_actions'] ?? [];
+        $this->savedFilters = $GLOBALS['ik_filters'] ?? [];
         $GLOBALS['_yikai_admin_menu_registry'] = [];
         $GLOBALS['ik_actions'] = [];
         $GLOBALS['ik_filters'] = [];
+    }
+
+    protected function tearDown(): void
+    {
+        $GLOBALS['_yikai_admin_menu_registry'] = $this->savedRegistry;
+        $GLOBALS['ik_actions'] = $this->savedActions;
+        $GLOBALS['ik_filters'] = $this->savedFilters;
+        parent::tearDown();
     }
 
     public function testRegisterRequiresKeyLabelUrl(): void

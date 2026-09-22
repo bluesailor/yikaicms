@@ -25,6 +25,12 @@ initLang();
 
 // 加载钩子系统与插件
 require_once ROOT_PATH . '/includes/hooks.php';
+// 插件在后台也必须加载（商城立项 G1 配套）：register.php/main.php 注册的后台
+// 菜单与插件语言包都要在 header 渲染前就位。sidebar_menu_api 必须先于插件加载，
+// 否则插件加载期调用 register_admin_menu() 会因函数未定义被 function_exists
+// 守卫静默跳过（product-import 的菜单注册一直没生效就是这个顺序问题）。
+require_once ROOT_PATH . '/admin/includes/sidebar_menu_api.php';
+require_once ROOT_PATH . '/includes/plugin.php';
 // Blox 等独立后台 API 不走 includes/init.php；必须在这里注册按需 HTML 缓存
 // 的 data_changed/setting_saved 失效钩子，否则发布成功后匿名访客仍命中旧页面。
 require_once ROOT_PATH . '/includes/HtmlCache.php';

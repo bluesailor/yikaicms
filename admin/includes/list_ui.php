@@ -3,7 +3,7 @@
  * 后台列表页共享 UI 组件（借鉴 WordPress 列表范式）
  *
  * 三件套，供 文章/产品/案例/单页/下载/招聘 等列表复用，避免各页复制标记：
- *   renderRowActions()  标题下的行内操作（编辑 | 复制 | 移至回收站 | 查看），悬停显现
+ *   renderRowActions()  标题下的行内操作（编辑 | 复制 | 查看 | 状态 | 回收 | 分类），悬停显现
  *   renderBulkBar()     底部「批量操作 ▾ + 应用」下拉，替代并排按钮
  *   renderCoverCell()   封面缩略图，无图时同尺寸占位保证列对齐
  *
@@ -37,7 +37,8 @@ function listSafeUrl(string $url): string
  *
  * @param array{
  *   id:int, edit:string, view?:string, duplicate?:bool,
- *   delete_fn?:string, dup_fn?:string
+ *   delete_fn?:string, dup_fn?:string, status_label?:string,
+ *   status_fn?:string, category_url?:string
  * } $o
  */
 function renderRowActions(array $o): string
@@ -48,6 +49,9 @@ function renderRowActions(array $o): string
     $delFn   = (string) ($o['delete_fn'] ?? 'deleteItem');
     $dupFn   = (string) ($o['dup_fn'] ?? 'duplicateItem');
     $canDup  = !empty($o['duplicate']);
+    $statusLabel = (string) ($o['status_label'] ?? '');
+    $statusFn = (string) ($o['status_fn'] ?? 'toggleStatus');
+    $categoryUrl = listSafeUrl((string) ($o['category_url'] ?? ''));
 
     $sep   = '<span class="text-gray-300">|</span>';
     $parts = ['<a href="' . e($edit) . '" class="hover:text-primary hover:underline">' . __('admin_edit') . '</a>'];
@@ -55,9 +59,15 @@ function renderRowActions(array $o): string
     if ($canDup) {
         $parts[] = '<button type="button" onclick="' . e($dupFn) . '(' . $id . ')" class="hover:text-primary hover:underline">' . __('admin_duplicate') . '</button>';
     }
-    $parts[] = '<button type="button" onclick="' . e($delFn) . '(' . $id . ')" class="hover:text-primary hover:underline">' . __('admin_move_to_trash') . '</button>';
     if ($view !== '') {
         $parts[] = '<a href="' . e($view) . '" target="_blank" rel="noopener" class="hover:text-primary hover:underline">' . __('admin_view') . '</a>';
+    }
+    if ($statusLabel !== '') {
+        $parts[] = '<button type="button" data-row-status-action="' . $id . '" onclick="' . e($statusFn) . '(' . $id . ')" class="hover:text-primary hover:underline">' . e($statusLabel) . '</button>';
+    }
+    $parts[] = '<button type="button" onclick="' . e($delFn) . '(' . $id . ')" class="hover:text-primary hover:underline">' . __('admin_move_to_trash') . '</button>';
+    if ($categoryUrl !== '') {
+        $parts[] = '<a href="' . e($categoryUrl) . '" class="hover:text-primary hover:underline">' . __('product_tab_category') . '</a>';
     }
 
     // 桌面端悬停显现、移动端常驻；始终占位避免悬停时行高跳动

@@ -218,6 +218,11 @@ if (trim($productTemplateHtml) !== '') {
                     </div>
                     <?php endif; ?>
 
+                    <?php
+                    // 商城等插件的购买入口（价格区之后、简介之前）；无订阅者零输出
+                    do_action('product_detail_purchase', $product);
+                    ?>
+
                     <?php if ($product['summary']): ?>
                     <div class="text-gray-600 mb-6 leading-relaxed">
                         <?php echo nl2br(e($product['summary'])); ?>
