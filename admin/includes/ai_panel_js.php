@@ -1,4 +1,9 @@
-<?php if (!defined('ROOT_PATH') || !config('ai_api_key')) return; ?>
+<?php
+declare(strict_types=1);
+// footer 已校验过同一条件；片段仍保留独立包含时的防护，避免依赖调用上下文。
+/** @psalm-suppress ParadoxicalCondition */
+if (!defined('ROOT_PATH') || !config('ai_api_key')) return;
+?>
 <script>
 // ========== AI 助手 ==========
 function toggleAiBox() {

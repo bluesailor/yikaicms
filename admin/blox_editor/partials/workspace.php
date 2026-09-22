@@ -2979,6 +2979,9 @@ declare(strict_types=1);
               class="flex-1 min-w-0 bg-gray-200 flex flex-col"
               :class="canvasDragActive ? 'overflow-hidden' : 'overflow-auto'"
               @contextmenu.prevent="openCtx($event, 'canvas', {})">
+            <?php if (!$isHomeBlox && !$templateId): ?>
+            <?php $visibilityChannel = $redirectedFromPage ?? $page; require ROOT_PATH . '/admin/includes/page_visibility_notice.php'; ?>
+            <?php endif; ?>
             <div x-show="legacyPageContent" x-cloak data-testid="blox-legacy-page-notice"
                  class="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-2.5 text-amber-900 sm:px-4">
                 <div class="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2">

@@ -51,17 +51,9 @@ if (($page['slug'] ?? '') === 'history') {
     exit;
 }
 
-// 检查跳转设置
-$redirectType = $page['redirect_type'] ?? 'auto';
-$redirectTarget = null;
-
 // 父页有子级：不再静默跳转到第一个子页（那样父页无法编辑、也违背「不跳转」设置），
 // 改为在页面顶部显示醒目横幅（见 parent_page_notice.php），父页本身可直接编辑。
 $children = channelModel()->getByParent($id, true);
-
-if ($redirectType === 'url' && !empty($page['redirect_url'])) {
-    $redirectTarget = ['name' => $page['redirect_url'], '_is_url' => true];
-}
 
 // 从 contents 表获取该栏目的内容（与前端一致）
 $contentRecord = contentModel()->queryOne(
@@ -204,19 +196,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 <?php endif; ?>
 
-<?php if ($redirectTarget): ?>
-<div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-    <i class="ti ti-info-circle text-lg text-amber-500 mt-0.5 shrink-0"></i>
-    <div class="text-sm text-amber-800">
-        <?php if (!empty($redirectTarget['_is_url'])): ?>
-        <p><?php echo __('pe_redirect_to'); ?><strong><?php echo e($redirectTarget['name']); ?></strong></p>
-        <?php else: ?>
-        <p><?php echo sprintf(__('pe_redirect_child_intro'), e($page['name']), e($redirectTarget['name'])); ?></p>
-        <?php endif; ?>
-        <p class="mt-1 text-amber-600"><?php echo sprintf(__('pe_redirect_change_hint'), '<a href="/admin/channel.php?edit=' . $id . '" class="underline hover:text-amber-800">' . __('pe_channel_management') . '</a>'); ?></p>
-    </div>
-</div>
-<?php endif; ?>
+<?php require ROOT_PATH . '/admin/includes/page_visibility_notice.php'; ?>
 
 <form id="editForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">
