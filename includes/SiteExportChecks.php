@@ -27,8 +27,11 @@ final class SiteExportChecks
             }
         }
         $sources = [];
-        foreach ($data['settings'] ?? [] as $key => $value) {
+        $settings = is_array($data['settings'] ?? null) ? $data['settings'] : [];
+        $enabledLanguages = self::enabledLanguageSet($settings);
+        foreach ($settings as $key => $value) {
             if (preg_match('/(?:_draft|_history|_data)(?:_|$)/', (string) $key)) continue;
+            if (self::isDisabledLanguageSetting((string) $key, $enabledLanguages)) continue;
             $edit = str_starts_with((string) $key, 'footer_') ? '/admin/setting.php?tab=footer' : '/admin/setting_home.php';
             $sources[] = ['value' => $value, 'label' => (string) $key, 'url' => $edit];
         }
@@ -59,6 +62,33 @@ final class SiteExportChecks
             }
         }
         return ['issues' => array_values($issues), 'scanned' => $scanned, 'limited' => count($sources) > 3000 || count($issues) >= 100];
+    }
+
+    /** @return array<string,true>|null null 表示配置为空或无效，按前台兼容规则不过滤任何语言。 */
+    private static function enabledLanguageSet(array $settings): ?array
+    {
+        $raw = $settings['enabled_languages'] ?? null;
+        if (!is_string($raw) || trim($raw) === '') return null;
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded) || $decoded === []) return null;
+        $enabled = [];
+        foreach ($decoded as $language) {
+            if (is_string($language) && trim($language) !== '') $enabled[trim($language)] = true;
+        }
+        return $enabled === [] ? null : $enabled;
+    }
+
+    /** 只识别实际存在的语言代码后缀；mobile、desktop 等普通后缀不能被误当成语言。 */
+    private static function isDisabledLanguageSetting(string $key, ?array $enabledLanguages): bool
+    {
+        if ($enabledLanguages === null) return false;
+        $languages = function_exists('availableLanguages')
+            ? array_keys(availableLanguages())
+            : ['zh-CN', 'en', 'ja'];
+        foreach ($languages as $language) {
+            if (str_ends_with($key, '_' . $language)) return !isset($enabledLanguages[$language]);
+        }
+        return false;
     }
 
     private static function links(mixed $value, string $key = '', int $depth = 0): array
