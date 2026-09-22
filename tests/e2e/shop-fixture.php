@@ -4,8 +4,9 @@
  * 动作：
  *   products         返回第一个产品 {id, slug}
  *   ensure-sales     写销售配置（price 19.90 / stock 5 / 上架）+ 运费设置
+ *   ensure-blox-template 发布含 shop/purchase 的指定产品详情模板
  *   read             订单数与 1 号产品库存
- *   reset            删测试产生的订单/明细/支付/销售配置，恢复库存
+ *   reset            删测试产生的订单/明细/支付/销售配置/模板，恢复库存
  */
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
@@ -44,6 +45,24 @@ if ($action === 'products') {
         'shop_order_expire_minutes' => '30',
     ]);
     echo "ok\n";
+} elseif ($action === 'ensure-blox-template') {
+    require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+    require_once ROOT_PATH . '/includes/HtmlCache.php';
+    db()->delete('blox_templates', 'name = ?', ['E2E shop purchase']);
+    $document = BloxDocumentPipeline::decode(ProductTemplateDocument::seed('zh-CN'));
+    $document['settings']['product_template']['ids'] = [$productId];
+    $document['sections'][0]['columns'][1]['elements'][] = [
+        'type' => 'shop/purchase',
+        'data' => ['show_price' => true, 'show_stock' => true, 'layout' => 'stacked', 'radius' => 'md'],
+    ];
+    $json = BloxDocumentPipeline::process(
+        json_encode($document, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+        'template'
+    )['json'];
+    $templateId = bloxTemplateModel()->createDraft('product-detail', 'E2E shop purchase', $json);
+    bloxTemplateModel()->publishDraft($templateId);
+    HtmlCache::invalidate();
+    echo json_encode(['id' => $templateId], JSON_THROW_ON_ERROR);
 } elseif ($action === 'read') {
     $orders = (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . 'shop_orders');
     $stock = (int) db()->fetchColumn('SELECT stock FROM ' . DB_PREFIX . 'shop_products WHERE product_id = ?', [$productId]);
@@ -72,6 +91,7 @@ if ($action === 'products') {
     db()->execute("DELETE FROM {$orders}");
     db()->delete('shop_payment_notifications', '1 = 1', []);
     db()->delete('shop_products', 'product_id = ?', [$productId]);
+    db()->delete('blox_templates', 'name = ?', ['E2E shop purchase']);
     HtmlCache::invalidate();
     echo "ok\n";
 } else {

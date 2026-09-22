@@ -13,6 +13,12 @@ if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
 
+// Blox 在插件之后启动：通过注册钩子接入，停用时由 plugin.json 保留缺失节点元数据。
+add_action('builder_register_element', static function (): void {
+    require_once __DIR__ . '/ShopPurchaseElement.php';
+    BloxPluginRegistry::registerElement('shop', new ShopPurchaseElement());
+});
+
 // 后台菜单：挂「产品」分组（与产品导入同一位置），perm 用插件声明的权限键
 if (function_exists('register_admin_menu')) {
     register_admin_menu('product', [

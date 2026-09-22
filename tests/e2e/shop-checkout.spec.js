@@ -6,9 +6,9 @@ const fixture = (action) => execFileSync(process.env.PHP_BINARY || 'php',
   [path.join(__dirname, 'shop-fixture.php'), action],
   { cwd: path.resolve(__dirname, '../..'), encoding: 'utf8' });
 
-// 商城 M1 交易闭环任务剧本（立项 §五 的统一剧本）：
-// 配置 → 上架 → 游客加购 → 结算下单 → 商家收款/发货/完成 → 游客查单 → 停用插件产品页仍正常
-test('shop checkout loop: guest order, merchant fulfillment, guest lookup, plugin off keeps product page', async ({ page }, info) => {
+// 商城交易闭环任务剧本：原生购买入口 → Blox 购买组件 → 游客加购/下单 →
+// 商家收款/发货/完成 → 游客查单 → 停用插件后产品页仍正常。
+test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-off fallback', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'desktop shop baseline');
   test.setTimeout(120000);
   page.setDefaultTimeout(15000);
@@ -47,6 +47,14 @@ test('shop checkout loop: guest order, merchant fulfillment, guest lookup, plugi
   visitor.setDefaultTimeout(15000);
   await visitor.goto(`/product/${product.id}.html`);
   await expect(visitor.getByTestId('shop-buy-form')).toBeVisible();
+
+  // 发布一个只命中当前产品、包含插件节点的 Blox 商品详情模板。重新打开后应由
+  // shop/purchase 接管购买入口，同时价格/库存仍来自刚才的真实销售配置。
+  const bloxTemplate = JSON.parse(fixture('ensure-blox-template'));
+  expect(bloxTemplate.id).toBeTruthy();
+  await visitor.reload();
+  await expect(visitor.locator('.yk-blox-product-detail .yk-shop-purchase')).toBeVisible();
+  await expect(visitor.getByTestId('shop-buy-price')).toContainText('19.90');
   await visitor.getByTestId('shop-buy-qty').fill('2');
   await visitor.getByTestId('shop-buy-submit').click();
   await expect(visitor).toHaveURL(/\/shop\/cart/);

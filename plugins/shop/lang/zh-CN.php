@@ -140,4 +140,11 @@ return [
     'shop_shared_group' => '多语言共享',
     'shop_err_price' => '售价格式不正确（须为正数，最多两位小数，不超过 99999999.99；留空=用产品价）',
     'shop_err_stock' => '库存必须是不小于 0 的整数（上限 9999999999）',
+    'shop_blox_purchase' => '商城购买',
+    'shop_blox_show_price' => '显示售价',
+    'shop_blox_show_stock' => '显示库存',
+    'shop_blox_layout' => '表单布局',
+    'shop_blox_layout_stacked' => '纵向',
+    'shop_blox_layout_inline' => '横向',
+    'shop_blox_unavailable_preview' => '当前预览商品未上架或库存不足；正式页面不会显示此购买组件。',
 ];

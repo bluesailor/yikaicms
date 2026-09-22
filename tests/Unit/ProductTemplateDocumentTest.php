@@ -77,6 +77,20 @@ final class ProductTemplateDocumentTest extends TestCase
         $this->assertSame('', (new ProductFieldElement('title'))->render([]));
     }
 
+    public function testNormalizedContextKeepsCanonicalProductIdentity(): void
+    {
+        $context = ProductTemplateDocument::normalizeContext([
+            'product' => [
+                'id' => 81,
+                'translation_group_id' => 77,
+                'title' => 'Translated product',
+            ],
+        ]);
+
+        $this->assertSame(81, $context['id']);
+        $this->assertSame(77, $context['translation_group_id']);
+    }
+
     public function testNativeSourceRetainsLayoutAndStopsAtWinningRule(): void
     {
         $original = ProductTemplateDocument::seed('en');

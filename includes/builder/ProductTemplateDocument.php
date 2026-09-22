@@ -83,6 +83,9 @@ final class ProductTemplateDocument
 
         return [
             'id' => (int) ($product['id'] ?? 0),
+            // 商城库存挂在翻译组 canonical id 上；Blox 购买组件必须拿到此字段，
+            // 否则多语言产品会错误地按各语言行查询成“未上架”。
+            'translation_group_id' => (int) ($product['translation_group_id'] ?? 0),
             'title' => (string) ($product['title'] ?? ''),
             // slug/分类 slug 透传：productPrettyUrl 靠它们出静态化地址，缺了就退回 /product/{id}.html
             'slug' => (string) ($product['slug'] ?? ''),

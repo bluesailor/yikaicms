@@ -139,4 +139,11 @@ You can check the order status on the site with the order number and phone suffi
     'shop_shared_group' => 'shared across languages',
     'shop_err_price' => 'Invalid sale price (must be positive, at most 2 decimals, max 99999999.99; empty = product price)',
     'shop_err_stock' => 'Stock must be an integer 0 - 9999999999',
+    'shop_blox_purchase' => 'Shop purchase',
+    'shop_blox_show_price' => 'Show sale price',
+    'shop_blox_show_stock' => 'Show stock',
+    'shop_blox_layout' => 'Form layout',
+    'shop_blox_layout_stacked' => 'Stacked',
+    'shop_blox_layout_inline' => 'Inline',
+    'shop_blox_unavailable_preview' => 'The preview product is unavailable or out of stock. This purchase block stays hidden on the live page.',
 ];
