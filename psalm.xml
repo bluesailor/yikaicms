@@ -72,6 +72,7 @@
                 <file name="plugins/shop/front/cart.php" />
                 <file name="plugins/shop/front/checkout.php" />
                 <file name="plugins/shop/front/order.php" />
+                <file name="plugins/shop/front/member-orders.php" />
             </errorLevel>
         </UnusedVariable>
         <UnusedForeachValue>

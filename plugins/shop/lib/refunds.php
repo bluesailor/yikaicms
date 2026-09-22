@@ -44,7 +44,6 @@ function shopRefundCreate(int $orderId, string $amountDecimal, string $reason, i
     if ($maxCents <= 0) {
         return ['ok' => false, 'error' => 'shop_err_refund_not_allowed'];
     }
-    $amountCents = null;
     try {
         $amountCents = shopMoneyToCents($amountDecimal);
     } catch (Throwable $e) {
@@ -74,7 +73,7 @@ function shopRefundCreate(int $orderId, string $amountDecimal, string $reason, i
 
 /**
  * 确认 / 拒绝退款。仅 requested 可推进；重复处理幂等返回成功。
- * @return array{ok:bool,error:string}
+ * @return array{ok:bool,error:string,idempotent?:bool}
  */
 function shopRefundUpdate(int $refundId, string $to, string $adminNote, int $adminId): array
 {

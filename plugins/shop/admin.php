@@ -55,6 +55,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && str_starts_with((string)
     verifyCsrf();
     $adminId = (int) ($_SESSION['admin_id'] ?? 0);
     $action = (string) $_POST['action'];
+    $refundTarget = $action === 'refund_confirm' ? 'confirmed' : 'rejected';
     $result = match ($action) {
         'refund_create' => shopRefundCreate(
             (int) ($_POST['order_id'] ?? 0),
@@ -64,7 +65,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && str_starts_with((string)
         ),
         'refund_confirm', 'refund_reject' => shopRefundUpdate(
             (int) ($_POST['refund_id'] ?? 0),
-            $action === 'refund_confirm' ? 'confirmed' : 'rejected',
+            $refundTarget,
             (string) ($_POST['admin_note'] ?? ''),
             $adminId
         ),
