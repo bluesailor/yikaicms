@@ -46,7 +46,8 @@ final class SiteTemplateService
 
     private function supported(): void
     {
-        if ((function_exists('configOverrides') && configOverrides() !== []) || !empty($GLOBALS['yikai_config_runtime_overrides'])) throw new RuntimeException('st_overrides');
+        if ((function_exists('configOverrides') && !$this->overridesMatchPortableSettings(configOverrides()))
+            || !empty($GLOBALS['yikai_config_runtime_overrides'])) throw new RuntimeException('st_overrides');
         $overrides = $this->root . '/overrides';
         if (is_dir($overrides)) {
             $this->assertContained($overrides);
@@ -478,6 +479,20 @@ final class SiteTemplateService
             if (is_string($value) && preg_match('/^[1-9][0-9]*$/D', $value) === 1) return min(self::STAGE_MAX_FILES, (int) $value);
         }
         return self::STAGE_MAX_FILES;
+    }
+
+    /**
+     * A pinned value is export-safe only when the package already contains the same portable setting.
+     * This keeps the override guard for runtime-only or divergent values while allowing authored sample
+     * sites that pin current_theme/site_name to their identical stored values.
+     */
+    private function overridesMatchPortableSettings(array $overrides): bool
+    {
+        foreach ($overrides as $key => $value) {
+            if (!is_string($key) || !SiteTemplateData::settingAllowed($key) || !is_scalar($value)
+                || (string) settingModel()->get($key, '') !== (string) $value) return false;
+        }
+        return true;
     }
 
     private function textFile(string $path): bool
