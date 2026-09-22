@@ -32,13 +32,32 @@
     html { text-rendering: optimizeLegibility; }
     body { accent-color: var(--color-primary); }
     ::selection { color: #111827; background: color-mix(in srgb, var(--color-primary) 24%, white); }
-    :where(a, button, input, select, textarea, summary):focus-visible {
+    :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
         outline: 2px solid color-mix(in srgb, var(--color-primary) 72%, white);
         outline-offset: 2px;
     }
     *, ::before, ::after, ::backdrop {
         border-color: var(--color-gray-200, #e5e7eb);
     }
+}
+
+/* 键盘用户先于导航进入正文；默认隐藏但获得焦点时必须清晰可见。 */
+.yk-skip-link {
+    position: fixed;
+    left: 1rem;
+    top: 1rem;
+    z-index: 10000;
+    transform: translateY(-200%);
+    border-radius: .375rem;
+    background: #111827;
+    color: #fff;
+    padding: .625rem 1rem;
+    font-weight: 600;
+}
+.yk-skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 3px solid #fbbf24;
+    outline-offset: 3px;
 }
 
 /* Blox 的元素库、属性面板、结构树和弹层统一使用 4.3 原生滚动条能力。 */

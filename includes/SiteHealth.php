@@ -7,6 +7,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/SiteAsset.php';
 require_once __DIR__ . '/ProductIdentity.php';
 require_once __DIR__ . '/RuntimeRequirements.php';
+require_once __DIR__ . '/AccessibilityAudit.php';
+require_once __DIR__ . '/ThemeRuntime.php';
 
 final class SiteHealth
 {
@@ -50,6 +52,9 @@ final class SiteHealth
             self::checkLargeUploads($root),
             self::checkMailDelivery(),
             self::checkBrandAssets($root),
+            self::checkAccessibilityContrast(),
+            self::checkAccessibilityTheme($root),
+            self::checkAccessibilityContent(),
             self::checkProductIntegrity($root),
         ];
 
@@ -998,6 +1003,126 @@ final class SiteHealth
         }
 
         return self::brandAssetsResult($assets, $root);
+    }
+
+    /** @return array<string,mixed> */
+    private static function checkAccessibilityContrast(): array
+    {
+        $audit = AccessibilityAudit::auditColorPairs([
+            ['label' => 'primary_color/#fff', 'foreground' => (string) config('primary_color', '#2563EB'), 'background' => '#ffffff'],
+            ['label' => '#fff/primary_color', 'foreground' => '#ffffff', 'background' => (string) config('primary_color', '#2563EB')],
+            ['label' => 'secondary_color/#fff', 'foreground' => (string) config('secondary_color', '#1D4ED8'), 'background' => '#ffffff'],
+            ['label' => 'header_text/header_bg', 'foreground' => (string) config('header_text_color', '#4b5563'), 'background' => (string) config('header_bg_color', '#ffffff')],
+            ['label' => 'footer_text/footer_bg', 'foreground' => (string) config('footer_text_color', '#9ca3af'), 'background' => (string) config('footer_bg_color', '#0F172A')],
+            ['label' => 'topbar_text/topbar_bg', 'foreground' => '#4b5563', 'background' => (string) config('topbar_bg_color', '#f3f4f6')],
+        ]);
+        $thresholds = '4.5:1 / 3:1 / 3:1';
+        if ($audit['failed'] !== []) {
+            return self::result('accessibility_contrast', self::RECOMMENDED, 'accessibility',
+                'health_a11y_contrast_title', 'health_a11y_contrast_bad', '/admin/theme.php', [
+                    'items' => implode(', ', $audit['failed']),
+                    'thresholds' => $thresholds,
+                ]);
+        }
+        if ($audit['unknown'] !== []) {
+            return self::result('accessibility_contrast', self::UNKNOWN, 'accessibility',
+                'health_a11y_contrast_title', 'health_a11y_contrast_unknown', '/admin/theme.php', [
+                    'items' => implode(', ', $audit['unknown']),
+                    'thresholds' => $thresholds,
+                ]);
+        }
+        return self::result('accessibility_contrast', self::GOOD, 'accessibility',
+            'health_a11y_contrast_title', 'health_a11y_contrast_good', '/admin/theme.php', [
+                'items' => implode(', ', $audit['details']),
+                'thresholds' => $thresholds,
+            ]);
+    }
+
+    /** @return array<string,mixed> */
+    private static function checkAccessibilityTheme(string $root): array
+    {
+        // 与前台使用同一解析器；市场主题被移除时应审计实际回退的 default，而不是不存在的目录。
+        $slug = ThemeRuntime::resolve((string) config('current_theme', 'default'), $root . '/themes');
+        $audit = AccessibilityAudit::auditTheme($root . '/themes/' . $slug, $root);
+        if ($audit['unavailable']) {
+            return self::result('accessibility_theme', self::UNKNOWN, 'accessibility',
+                'health_a11y_theme_title', 'health_a11y_theme_unknown', '/admin/theme.php');
+        }
+        if ($audit['issues'] !== []) {
+            return self::result('accessibility_theme', self::RECOMMENDED, 'accessibility',
+                'health_a11y_theme_title', 'health_a11y_theme_bad', '/admin/theme.php', [
+                    'count' => (string) count($audit['issues']),
+                    'files' => (string) $audit['files'],
+                    'issues' => self::accessibilityIssueList($audit['issues']),
+                    'limit' => $audit['truncated'] ? self::t('health_a11y_limited') : self::t('health_a11y_complete'),
+                ]);
+        }
+        return self::result('accessibility_theme', self::GOOD, 'accessibility',
+            'health_a11y_theme_title', 'health_a11y_theme_good', '/admin/theme.php', [
+                'files' => (string) $audit['files'],
+                'limit' => $audit['truncated'] ? self::t('health_a11y_limited') : self::t('health_a11y_complete'),
+            ]);
+    }
+
+    /** @return array<string,mixed> */
+    private static function checkAccessibilityContent(): array
+    {
+        try {
+            if (!db()->tableExists('contents')) {
+                throw new RuntimeException('contents table unavailable');
+            }
+            // 固定上限且只读原始字段；不渲染、不 include，也不触发 Blox 或插件钩子。
+            $rows = db()->fetchAll(
+                'SELECT id, SUBSTR(content, 1, ' . (AccessibilityAudit::MAX_DATABASE_FIELD_BYTES + 1) . ') AS content,'
+                . ' content_type, SUBSTR(blocks_data, 1, ' . (AccessibilityAudit::MAX_DATABASE_FIELD_BYTES + 1) . ') AS blocks_data'
+                . ' FROM ' . DB_PREFIX . 'contents'
+                . ' WHERE status = 1 AND deleted_at IS NULL ORDER BY id ASC LIMIT ' . (AccessibilityAudit::MAX_CONTENT_ROWS + 1)
+            );
+            $audit = AccessibilityAudit::auditContentRows($rows);
+        } catch (Throwable $error) {
+            return self::result('accessibility_content', self::UNKNOWN, 'accessibility',
+                'health_a11y_content_title', 'health_a11y_content_unknown', '/admin/content.php');
+        }
+        if ($audit['unavailable']) {
+            return self::result('accessibility_content', self::UNKNOWN, 'accessibility',
+                'health_a11y_content_title', 'health_a11y_content_unknown', '/admin/content.php');
+        }
+        if ($audit['issues'] !== []) {
+            $firstId = 0;
+            if (preg_match('/content#(\d+)/', (string) $audit['issues'][0]['location'], $match) === 1) {
+                $firstId = (int) $match[1];
+            }
+            return self::result('accessibility_content', self::RECOMMENDED, 'accessibility',
+                'health_a11y_content_title', 'health_a11y_content_bad',
+                $firstId > 0 ? '/admin/content_edit.php?id=' . $firstId : '/admin/content.php', [
+                    'count' => (string) count($audit['issues']),
+                    'rows' => (string) $audit['rows'],
+                    'issues' => self::accessibilityIssueList($audit['issues']),
+                    'limit' => $audit['truncated'] ? self::t('health_a11y_limited') : self::t('health_a11y_complete'),
+                ]);
+        }
+        return self::result('accessibility_content', self::GOOD, 'accessibility',
+            'health_a11y_content_title', 'health_a11y_content_good', '/admin/content.php', [
+                'rows' => (string) $audit['rows'],
+                'limit' => $audit['truncated'] ? self::t('health_a11y_limited') : self::t('health_a11y_complete'),
+            ]);
+    }
+
+    /** @param list<array{code:string,location:string,line:int}> $issues */
+    private static function accessibilityIssueList(array $issues): string
+    {
+        $labels = [
+            'image_alt' => self::t('health_a11y_issue_image_alt'),
+            'form_label' => self::t('health_a11y_issue_form_label'),
+            'accessible_name' => self::t('health_a11y_issue_accessible_name'),
+            'keyboard_click' => self::t('health_a11y_issue_keyboard_click'),
+            'focus_hidden' => self::t('health_a11y_issue_focus_hidden'),
+        ];
+        $items = [];
+        foreach (array_slice($issues, 0, 6) as $issue) {
+            $items[] = $issue['location'] . ':' . $issue['line'] . ' [' . ($labels[$issue['code']] ?? $issue['code']) . ']';
+        }
+        return implode('; ', $items);
     }
 
     /**
