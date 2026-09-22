@@ -83,6 +83,7 @@ final class ReleaseArtifactSmokeTest extends TestCase
             'includes/language_request.php',
             'includes/ThemeContent.php',
             'includes/SiteTemplateService.php',
+            'includes/AccessibilityAudit.php',
             'admin/site_templates.php',
             'assets/icons/blox-icon-catalog.json',
         ] as $path) {

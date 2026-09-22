@@ -13,6 +13,7 @@ final class AccessibilityAudit
     public const LARGE_TEXT_MIN = 3.0;
     public const UI_COMPONENT_MIN = 3.0;
     public const MAX_THEME_FILES = 80;
+    public const MAX_THEME_ENTRIES = 640;
     public const MAX_THEME_BYTES = 524288;
     public const MAX_CONTENT_ROWS = 40;
     public const MAX_CONTENT_BYTES = 524288;
@@ -163,18 +164,87 @@ final class AccessibilityAudit
     {
         $themeReal = realpath($themeDirectory);
         $rootReal = realpath($root);
-        if ($themeReal === false || $rootReal === false || !str_starts_with(strtolower($themeReal . DIRECTORY_SEPARATOR), strtolower($rootReal . DIRECTORY_SEPARATOR))) {
+        if ($themeReal === false || $rootReal === false || !self::pathWithin($themeReal, $rootReal)) {
             return ['issues' => [], 'files' => 0, 'bytes' => 0, 'truncated' => false, 'unavailable' => true];
         }
 
         $paths = [];
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($themeReal, FilesystemIterator::SKIP_DOTS));
-        foreach ($iterator as $file) {
-            if (!$file instanceof SplFileInfo || !$file->isFile() || $file->isLink()) {
+        $directories = [$themeReal];
+        $visited = [];
+        $entries = 0;
+        $truncated = false;
+        $unavailable = false;
+        $stop = false;
+        while ($directories !== [] && !$stop) {
+            $directory = (string) array_pop($directories);
+            clearstatcache(true, $directory);
+            $resolvedDirectory = realpath($directory);
+            if ($resolvedDirectory === false || !self::pathWithin($resolvedDirectory, $themeReal)
+                || !self::pathWithin($resolvedDirectory, $rootReal)) {
+                $truncated = true;
+                $unavailable = true;
                 continue;
             }
-            if (in_array(strtolower($file->getExtension()), ['php', 'html', 'htm', 'css'], true)) {
-                $paths[] = $file->getPathname();
+            $directoryKey = self::pathKey($resolvedDirectory);
+            if (isset($visited[$directoryKey])) continue;
+            $visited[$directoryKey] = true;
+
+            try {
+                $iterator = new FilesystemIterator($resolvedDirectory, FilesystemIterator::SKIP_DOTS);
+                foreach ($iterator as $file) {
+                    if ($entries >= self::MAX_THEME_ENTRIES) {
+                        $truncated = true;
+                        $stop = true;
+                        break;
+                    }
+                    $entries++;
+                    if (!$file instanceof SplFileInfo) continue;
+                    $path = $file->getPathname();
+                    if ($file->isLink()) {
+                        $truncated = true;
+                        $unavailable = true;
+                        continue;
+                    }
+                    if ($file->isDir()) {
+                        clearstatcache(true, $path);
+                        $child = realpath($path);
+                        if ($child === false || !self::pathWithin($child, $themeReal)
+                            || !self::pathWithin($child, $rootReal)) {
+                            $truncated = true;
+                            $unavailable = true;
+                            continue;
+                        }
+                        if (!isset($visited[self::pathKey($child)])) $directories[] = $child;
+                        continue;
+                    }
+                    // Windows junctions can report neither link, directory nor ordinary file.
+                    // Treat every unclassifiable entry as an incomplete scan instead of silently trusting it.
+                    if (!$file->isFile()) {
+                        $truncated = true;
+                        $unavailable = true;
+                        continue;
+                    }
+                    if (!in_array(strtolower($file->getExtension()), ['php', 'html', 'htm', 'css'], true)) {
+                        continue;
+                    }
+                    clearstatcache(true, $path);
+                    $candidate = realpath($path);
+                    if ($candidate === false || !self::pathWithin($candidate, $themeReal)
+                        || !self::pathWithin($candidate, $rootReal)) {
+                        $truncated = true;
+                        $unavailable = true;
+                        continue;
+                    }
+                    $paths[] = $candidate;
+                    if (count($paths) >= self::MAX_THEME_FILES) {
+                        $truncated = true;
+                        $stop = true;
+                        break;
+                    }
+                }
+            } catch (Throwable) {
+                $truncated = true;
+                $unavailable = true;
             }
         }
         sort($paths, SORT_STRING);
@@ -182,7 +252,6 @@ final class AccessibilityAudit
         $issues = [];
         $files = 0;
         $bytes = 0;
-        $truncated = count($paths) > self::MAX_THEME_FILES;
         foreach ($paths as $path) {
             if ($files >= self::MAX_THEME_FILES || $bytes >= self::MAX_THEME_BYTES) {
                 $truncated = true;
@@ -213,7 +282,22 @@ final class AccessibilityAudit
                 break;
             }
         }
-        return ['issues' => $issues, 'files' => $files, 'bytes' => $bytes, 'truncated' => $truncated, 'unavailable' => false];
+        return ['issues' => $issues, 'files' => $files, 'bytes' => $bytes, 'truncated' => $truncated, 'unavailable' => $unavailable];
+    }
+
+    private static function pathWithin(string $path, string $root): bool
+    {
+        $path = rtrim(str_replace('\\', '/', $path), '/') . '/';
+        $root = rtrim(str_replace('\\', '/', $root), '/') . '/';
+        return DIRECTORY_SEPARATOR === '\\'
+            ? strncasecmp($path, $root, strlen($root)) === 0
+            : strncmp($path, $root, strlen($root)) === 0;
+    }
+
+    private static function pathKey(string $path): string
+    {
+        $path = rtrim(str_replace('\\', '/', $path), '/');
+        return DIRECTORY_SEPARATOR === '\\' ? strtolower($path) : $path;
     }
 
     /**
