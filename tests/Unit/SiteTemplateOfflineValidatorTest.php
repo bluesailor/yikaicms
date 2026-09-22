@@ -65,6 +65,19 @@ final class SiteTemplateOfflineValidatorTest extends TestCase
         SiteTemplateOfflineValidator::inspect($path);
     }
 
+    public function testInspectUsesSharedThemeFileAllowlist(): void
+    {
+        $valid = $this->root . '/theme-readme.zip';
+        $this->writePackage($valid, ['extra_name' => 'theme/README.md']);
+        self::assertSame('offline-demo', SiteTemplateOfflineValidator::inspect($valid)['manifest']['theme']);
+
+        $unsafe = $this->root . '/theme-script.zip';
+        $this->writePackage($unsafe, ['extra_name' => 'theme/deploy.sh']);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Unsafe ZIP file type');
+        SiteTemplateOfflineValidator::inspect($unsafe);
+    }
+
     public function testInspectIncludesPluginPayloadsInMediaReferenceValidation(): void
     {
         $path = $this->root . '/plugin-missing-media.zip';
