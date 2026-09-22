@@ -9,6 +9,36 @@ declare(strict_types=1);
 
 use Yikai\Tests\TestCase;
 
+// This suite boots the lightweight model test harness rather than includes/init.php.
+// Keep these adapters shaped like the production shared renderer so the element test
+// verifies composition; the real parser/renderer is exercised in FormFieldTypesTest.
+if (!function_exists('renderProductInquiryFields')) {
+    function renderProductInquiryFields(string $productTitle): string
+    {
+        return '<input type="file" name="proof" required accept=".pdf">'
+            . '<input type="date" name="visit" required min="2026-09-20">'
+            . '<input type="number" name="quantity" required min="1" step="1">'
+            . '<input type="hidden" name="campaign" value="configured">'
+            . '<textarea name="content" required>' . e('product_default_inq_msg ' . $productTitle) . '</textarea>'
+            . '<button type="submit">form_submit</button>';
+    }
+}
+if (!function_exists('renderFormSecurityFields')) {
+    function renderFormSecurityFields(string $slug): string
+    {
+        return '<input type="hidden" name="form_slug" value="' . e($slug) . '">'
+            . '<input type="hidden" name="form_ts" value="1"><input type="hidden" name="form_sig" value="sig">'
+            . '<input type="hidden" name="form_nonce" value=""><input type="hidden" name="_lang" value="zh-CN">'
+            . '<input type="text" name="hp_url">';
+    }
+}
+if (!function_exists('renderFormNonceClientScript')) {
+    function renderFormNonceClientScript(): string
+    {
+        return '<script>window.ykFormNonce=window.ykFormNonce||function(){return Promise.resolve();};</script>';
+    }
+}
+
 final class ProductInquiryElementTest extends TestCase
 {
     public static function setUpBeforeClass(): void
@@ -34,13 +64,34 @@ final class ProductInquiryElementTest extends TestCase
         $this->assertStringContainsString('name="form_slug" value="product-inquiry"', $html);
         $this->assertStringContainsString('name="form_ts"', $html);
         $this->assertStringContainsString('name="form_sig"', $html);
+        $this->assertStringContainsString('name="form_nonce" value=""', $html);
         $this->assertStringContainsString('name="product_id" value="12"', $html);
         $this->assertStringContainsString('name="product_title" value="示例产品"', $html);
+        $this->assertStringContainsString('name="product_sig"', $html);
         $this->assertStringContainsString('name="hp_url"', $html, '必须有蜜罐字段');
+        $this->assertStringContainsString('enctype="multipart/form-data"', $html);
+        foreach (['proof', 'visit', 'quantity', 'campaign'] as $name) {
+            $this->assertStringContainsString('name="' . $name . '"', $html);
+        }
+        $this->assertMatchesRegularExpression('/name="(?:proof|visit|quantity)"[^>]*required/', $html);
+        $this->assertStringContainsString('var submitLabel=btn.textContent||', $html);
+        $this->assertStringContainsString('btn.disabled=true;btn.textContent="product_submitting"', $html);
+        $this->assertStringContainsString('btn.disabled=false;btn.textContent=submitLabel', $html);
 
         // 关键反例：不得只是"链回产品自身"的假询价
         $this->assertStringNotContainsString('<a ', $html, '询价元素不应输出链接，而应是可提交的表单');
         $this->assertStringNotContainsString('href=', $html);
+    }
+
+    public function testNativeProductFormSignsTheSameProductContext(): void
+    {
+        $native = (string) file_get_contents(ROOT_PATH . '/product.php');
+        $this->assertStringContainsString('name="product_sig"', $native);
+        $this->assertStringContainsString("FormSubmissionToken::contextSign('product-inquiry'", $native);
+        $this->assertStringContainsString('renderProductInquiryFields((string) $product[\'title\'])', $native);
+        $this->assertStringContainsString("renderFormSecurityFields('product-inquiry')", $native);
+        $element = (string) file_get_contents(ROOT_PATH . '/includes/builder/elements/ProductInquiryElement.php');
+        $this->assertStringContainsString('renderProductInquiryFields($productTitle)', $element);
     }
 
     public function testHidesWhenNoProductContext(): void
@@ -127,7 +178,7 @@ final class ProductInquiryElementTest extends TestCase
 
         $this->assertStringContainsString('data-yk-preview="1"', $html);
         $this->assertStringContainsString('<fieldset disabled', $html);
-        $this->assertStringContainsString(' disabled class=', $html, '提交按钮也要禁用');
+        $this->assertStringContainsString('<fieldset disabled', $html, '字段及提交按钮必须由禁用 fieldset 包裹');
         $this->assertStringNotContainsString('action="', $html, '预览态不得带真实提交地址');
         $this->assertStringNotContainsString('method="post"', $html);
         $this->assertStringContainsString('blox_product_inquiry_preview', $html, '需明确告知不会提交');

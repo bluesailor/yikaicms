@@ -12,10 +12,8 @@ final class FormDesignPresetsTest extends TestCase
 {
     public function testEveryPresetProducesParsableUniqueFieldsAndASubmitButton(): void
     {
-        // 与 includes/functions.php parseFormTags() 同一正则，避免预设写出解析不了的标签
-        $functions = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
-        self::assertSame(1, preg_match("/preg_match_all\\('(\\/\\\\\\[\\(text\\|[^']+)'/", $functions, $m));
-        $pattern = $m[1];
+        // 与 includes/functions.php formTagPattern() 同一语法，避免预设写出解析不了的标签。
+        $pattern = '/\[(text|email|tel|textarea|number|date|url|select|radio|checkbox|file|hidden)(\*?)\s+([a-zA-Z][a-zA-Z0-9_-]{0,39})((?:\s+(?:"[^"]*"|[^\]\s]+))*)\]/i';
 
         $presets = formDesignPresets();
         self::assertSame(['contact', 'appointment', 'event', 'partner'], array_column($presets, 'key'));

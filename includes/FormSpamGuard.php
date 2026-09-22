@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/FormDecimal.php';
+require_once __DIR__ . '/FormFieldContract.php';
+
 /** Local, bounded submission budgets. No names, addresses or message bodies are stored. */
 final class FormSpamGuard
 {
@@ -21,11 +24,53 @@ final class FormSpamGuard
                 if ($bytes > 48000 || preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $item)) return false;
             }
         }
-        foreach (['hp_url', 'form_slug', 'form_ts', 'form_sig', 'captcha_code', 'product_id', 'product_title'] as $key) {
+        foreach (['hp_url', 'form_slug', 'form_ts', 'form_sig', 'form_nonce', 'captcha_code', 'product_id', 'product_title', 'product_sig'] as $key) {
             if (isset($input[$key]) && !is_string($input[$key])) return false;
         }
         return strlen((string) ($input['form_slug'] ?? '')) <= 100
             && mb_strlen((string) ($input['product_title'] ?? '')) <= 255;
+    }
+
+    /**
+     * Reject only requests that browsers explicitly identify as foreign-site traffic.
+     * Missing Fetch Metadata/Origin stays compatible with older browsers and HTTP clients.
+     */
+    public static function isExplicitCrossSite(array $server, string $siteBaseUrl): bool
+    {
+        $fetchSite = strtolower(trim((string) ($server['HTTP_SEC_FETCH_SITE'] ?? '')));
+        if ($fetchSite === 'cross-site') return true;
+
+        $origin = trim((string) ($server['HTTP_ORIGIN'] ?? ''));
+        if ($origin === '') return false;
+        $originKey = self::httpOrigin($origin);
+        if ($originKey === null) return true;
+
+        $allowed = [];
+        $configured = self::httpOrigin($siteBaseUrl);
+        if ($configured !== null) $allowed[$configured] = true;
+
+        $host = trim((string) ($server['HTTP_HOST'] ?? $server['SERVER_NAME'] ?? ''));
+        if ($host !== '' && preg_match('/^[^\x00-\x20\x7F]+$/D', $host) === 1) {
+            $https = (!empty($server['HTTPS']) && strtolower((string) $server['HTTPS']) !== 'off')
+                || (int) ($server['SERVER_PORT'] ?? 0) === 443;
+            $forwarded = strtolower(trim(explode(',', (string) ($server['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));
+            if (in_array($forwarded, ['http', 'https'], true)) $https = $forwarded === 'https';
+            $request = self::httpOrigin(($https ? 'https' : 'http') . '://' . $host);
+            if ($request !== null) $allowed[$request] = true;
+        }
+        return !isset($allowed[$originKey]);
+    }
+
+    private static function httpOrigin(string $url): ?string
+    {
+        $parts = parse_url(trim($url));
+        if (!is_array($parts)) return null;
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '') return null;
+        $port = isset($parts['port']) ? (int) $parts['port'] : ($scheme === 'https' ? 443 : 80);
+        if ($port < 1 || $port > 65535) return null;
+        return $scheme . '://' . $host . ':' . $port;
     }
 
     /** 屏蔽关键词：每行一个，去空行去重，最多 500 条、每条 100 字。 */
@@ -64,13 +109,11 @@ final class FormSpamGuard
     {
         $key = (string) ($field['key'] ?? $field['name'] ?? '');
         $type = (string) ($field['type'] ?? 'text');
-        if ($type === 'checkbox') {
-            $raw = is_array($raw) ? $raw : [$raw];
-            if (count($raw) > 50) throw new InvalidArgumentException('Invalid choices');
-            foreach ($raw as $item) {
-                if (!is_string($item)) throw new InvalidArgumentException('Invalid choice');
-            }
-            $value = implode(', ', array_filter(array_map('trim', $raw), static fn(string $v): bool => $v !== ''));
+        if ($type === 'hidden') {
+            // 隐藏字段是站点配置，不是可信客户端输入；即使请求体同名值被篡改也忽略。
+            $value = (string) ($field['value'] ?? '');
+        } elseif (in_array($type, ['select', 'radio', 'checkbox'], true)) {
+            $value = FormFieldContract::choiceValue($type, $raw, $field['options'] ?? []);
         } else {
             if (!is_string($raw)) throw new InvalidArgumentException('Invalid scalar');
             $value = trim($raw);
@@ -91,7 +134,44 @@ final class FormSpamGuard
                 throw new InvalidArgumentException('Invalid phone');
             }
         }
+        if ($value !== '' && $type === 'number') self::assertNumber($field, $value);
+        if ($value !== '' && $type === 'date') self::assertDate($field, $value);
         return $value;
+    }
+
+    private static function assertNumber(array $field, string $value): void
+    {
+        if (!FormDecimal::valid($value)) throw new InvalidArgumentException('Invalid number');
+        $min = (string) ($field['min'] ?? '');
+        $max = (string) ($field['max'] ?? '');
+        $step = (string) ($field['step'] ?? '');
+        if ($min !== '' && (!FormDecimal::valid($min) || FormDecimal::compare($value, $min) < 0)) throw new InvalidArgumentException('Number below minimum');
+        if ($max !== '' && (!FormDecimal::valid($max) || FormDecimal::compare($value, $max) > 0)) throw new InvalidArgumentException('Number above maximum');
+        if ($step !== '') {
+            if (!FormDecimal::valid($step) || FormDecimal::compare($step, '0') <= 0) throw new InvalidArgumentException('Invalid number step');
+            if (!FormDecimal::stepAligned($value, $min !== '' ? $min : '0', $step)) throw new InvalidArgumentException('Number step mismatch');
+        }
+    }
+
+    private static function assertDate(array $field, string $value): void
+    {
+        $utc = new DateTimeZone('UTC');
+        $date = preg_match('/^(?!0000)\d{4}-\d{2}-\d{2}$/D', $value) === 1
+            ? DateTimeImmutable::createFromFormat('!Y-m-d', $value, $utc) : false;
+        if (!$date || $date->format('Y-m-d') !== $value) throw new InvalidArgumentException('Invalid date');
+        $min = (string) ($field['min'] ?? '');
+        $max = (string) ($field['max'] ?? '');
+        if ($min !== '' && $value < $min) throw new InvalidArgumentException('Date below minimum');
+        if ($max !== '' && $value > $max) throw new InvalidArgumentException('Date above maximum');
+        $step = (string) ($field['step'] ?? '');
+        if ($step !== '') {
+            if (preg_match('/^[1-9]\d*$/D', $step) !== 1) throw new InvalidArgumentException('Invalid date step');
+            $baseValue = $min !== '' ? $min : '1970-01-01';
+            $base = DateTimeImmutable::createFromFormat('!Y-m-d', $baseValue, $utc);
+            if (!$base) throw new InvalidArgumentException('Invalid date base');
+            $days = (int) $base->diff($date)->format('%r%a');
+            if ($days % (int) $step !== 0) throw new InvalidArgumentException('Date step mismatch');
+        }
     }
 
     /** Count failed probes too; never extend the window when an attempt is refused. */
