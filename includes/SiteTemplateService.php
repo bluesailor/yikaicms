@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/SiteTemplateArchive.php';
 require_once __DIR__ . '/SiteTemplateLanguages.php';
 require_once __DIR__ . '/ThemeInstaller.php';
+require_once __DIR__ . '/UploadReferences.php';
 
 /** Local, explicit, new-install-only site transfer. Never restores accounts or server configuration. */
 final class SiteTemplateService
@@ -45,8 +46,8 @@ final class SiteTemplateService
 
     private function supported(): void
     {
-        if ((function_exists('configOverrides') && configOverrides() !== []) || !empty($GLOBALS['yikai_config_runtime_overrides'])) throw new RuntimeException('st_overrides');
-        if (db()->tableExists('plugins') && (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . 'plugins WHERE status = ?', [1]) > 0) throw new RuntimeException('st_plugins');
+        if ((function_exists('configOverrides') && !$this->overridesMatchPortableSettings(configOverrides()))
+            || !empty($GLOBALS['yikai_config_runtime_overrides'])) throw new RuntimeException('st_overrides');
         $overrides = $this->root . '/overrides';
         if (is_dir($overrides)) {
             $this->assertContained($overrides);
@@ -64,6 +65,13 @@ final class SiteTemplateService
             $data = SiteTemplateData::snapshot(true);
             SiteTemplateData::validate($data);
             $report = SiteExportChecks::inspect($data, channelModel()->all(), (string) config('site_url', ''));
+            $plugins = $this->activePlugins();
+            SiteTemplatePluginData::snapshot($plugins, $data);
+            if ($plugins !== []) {
+                $list = implode(', ', array_map(static fn(array $plugin): string => $plugin['slug'] . ' ' . $plugin['version'], $plugins));
+                $report['issues'][] = ['code' => 'usability_export_plugins_excluded', 'label' => $list,
+                    'detail' => $list, 'url' => '/admin/plugin.php'];
+            }
             return ['blocked' => '', 'issues' => $report['issues'], 'scanned' => $report['scanned'], 'limited' => $report['limited']];
         } catch (RuntimeException $error) {
             $code = $error->getMessage();
@@ -93,6 +101,8 @@ final class SiteTemplateService
             $files['theme/' . $relative] = $this->boundedRead($path, $size);
         }
         $data = SiteTemplateData::snapshot(true);
+        $plugins = $this->activePlugins();
+        $pluginData = SiteTemplatePluginData::snapshot($plugins, $data);
         // Normalize the author's own origin, not third-party links.
         $origin = rtrim((string) config('site_url', ''), '/');
         if ($origin !== '' && preg_match('~^https?://[^/]+$~iD', $origin)) {
@@ -101,9 +111,12 @@ final class SiteTemplateService
         }
         $media = $data['tables']['media'];
         $data['tables']['media'] = [];
-        $refs = [];
-        $this->collectUploads($data, $refs);
-        foreach ($files as $path => $bytes) if ($this->textFile($path)) $this->collectUploads($bytes, $refs);
+        $refs = UploadReferences::collect($data);
+        foreach ($files as $path => $bytes) if ($this->textFile($path)) {
+            foreach (UploadReferences::collect($bytes) as $relative => $count) {
+                $refs[$relative] = ($refs[$relative] ?? 0) + $count;
+            }
+        }
         foreach (array_keys($refs) as $relative) {
             if (!SiteTemplateArchive::safePath($relative)) throw new RuntimeException('st_unsafe');
             $source = $this->root . '/uploads/' . $relative;
@@ -112,8 +125,7 @@ final class SiteTemplateService
             $files['media/' . $relative] = $this->boundedRead($source, $size);
         }
         foreach ($media as $row) {
-            $rowRefs = [];
-            $this->collectUploads([$row['url'] ?? '', $row['path'] ?? ''], $rowRefs);
+            $rowRefs = UploadReferences::collect([$row['url'] ?? '', $row['path'] ?? '']);
             $publicRefs = array_intersect_key($refs, $rowRefs);
             if ($publicRefs) {
                 $relative = (string) array_key_first($publicRefs);
@@ -124,7 +136,8 @@ final class SiteTemplateService
         }
         SiteTemplateData::validate($data);
         if (!hash_equals($before, SiteTemplateData::fingerprint())) throw new RuntimeException('st_stale');
-        $manifest = ['format' => 'yikaicms-site-template', 'version' => 1, 'cms' => CMS_VERSION,
+        $manifest = ['format' => 'yikaicms-site-template', 'version' => $pluginData === [] ? 1 : 2, 'cms' => CMS_VERSION,
+            'plugins' => $plugins, 'plugin_data' => $pluginData,
             'schema' => SiteTemplateData::schema(), 'theme' => $theme, 'created_at' => gmdate('c'), 'data' => $data];
         SiteTemplateArchive::write($destination, $manifest, $files);
         SiteTemplateArchive::read($destination);
@@ -139,6 +152,7 @@ final class SiteTemplateService
         // 峰值是单个小文件，而不是「整包解压 + base64 副本 + JSON 副本」（旧实现在
         // memory_limit=128M 的主机上会在 apply 中途 fatal）。
         $package = SiteTemplateArchive::inspect($archive);
+        $missingPlugins = $this->missingPlugins($package['manifest']['plugins']);
         $token = bin2hex(random_bytes(16));
         $this->ensureDirectory($this->store);
         $stored = $this->store . '/package.zip';
@@ -149,8 +163,10 @@ final class SiteTemplateService
         // A single pending preview bounds disk use; another preview explicitly invalidates the old token.
         $this->writeRecord('plan', ['token' => $token, 'owner' => $adminId, 'expires' => time() + 600,
             'fingerprint' => SiteTemplateData::fingerprint(), 'hash' => $package['hash'],
-            'alias' => 'sitepack-' . bin2hex(random_bytes(8)), 'media' => $media, 'staged' => 0]);
-        return ['token' => $token, 'summary' => $this->summary($package['manifest'], array_fill_keys($package['names'], ''))];
+            'alias' => 'sitepack-' . bin2hex(random_bytes(8)), 'media' => $media, 'staged' => 0,
+            'missing_plugins' => $missingPlugins]);
+        return ['token' => $token, 'summary' => $this->summary($package['manifest'], array_fill_keys($package['names'], '')),
+            'missing_plugins' => $missingPlugins];
     }
 
     /** 单次 stage 请求的预算：够小才能在共享主机的执行时限内完成，够大才不至于来回太多趟。 */
@@ -189,11 +205,22 @@ final class SiteTemplateService
         $manifest = SiteTemplateArchive::inspect($archive)['manifest'];
         $deadline = microtime(true) + self::STAGE_MAX_SECONDS;
         $processed = 0;
-        while ($done < $total && $processed < self::STAGE_MAX_FILES && microtime(true) < $deadline) {
+        while ($done < $total && $processed < $this->stageMaxFiles() && microtime(true) < $deadline) {
             $name = $media[$done];
             $target = $this->root . '/uploads/' . $alias . '/' . substr($name, 6);
             $this->ensureDirectory(dirname($target));
             $this->assertContained($target);
+            $expected = (string) ($manifest['files'][$name] ?? '');
+            if (is_file($target)) {
+                // 上个进程可能完成了原子改名，却在游标落盘前中断；摘要一致就只推进游标，
+                // 重试不得再次改写已经完成的文件。
+                if ($expected === '' || !hash_equals($expected, (string) hash_file('sha256', $target))) throw new RuntimeException('st_storage');
+                $done++;
+                $processed++;
+                $plan['staged'] = $done;
+                $this->writeRecord('plan', $plan);
+                continue;
+            }
             // 内容校验在 entry() 里逐条完成（sha256 + SVG 消毒），与一次性读取同口径
             $bytes = SiteTemplateArchive::entry($archive, $manifest, $name);
             $temporary = $target . '.part';
@@ -213,8 +240,7 @@ final class SiteTemplateService
 
     public function apply(string $token, int $adminId, array $brand, bool $trusted): void
     {
-        if (!$trusted) throw new RuntimeException('st_trust');
-        $this->withLock(function () use ($token, $adminId, $brand): void {
+        $this->withLock(function () use ($token, $adminId, $brand, $trusted): void {
             $this->supported();
             $plan = $this->readRecord('plan');
             if ($plan === null || !hash_equals((string) $plan['token'], $token) || $plan['owner'] !== $adminId || $plan['expires'] < time()) throw new RuntimeException('st_stale');
@@ -223,6 +249,17 @@ final class SiteTemplateService
             $this->assertContained($archive);
             if (!is_file($archive) || !hash_equals((string) $plan['hash'], (string) hash_file('sha256', $archive))) throw new RuntimeException('st_stale');
             $package = SiteTemplateArchive::read($archive);
+            $missingPlugins = $this->missingPlugins($package['manifest']['plugins']);
+            $previewedMissing = is_array($plan['missing_plugins'] ?? null) ? $plan['missing_plugins'] : [];
+            $previewedSlugs = array_fill_keys(array_column($previewedMissing, 'slug'), true);
+            foreach ($missingPlugins as $plugin) {
+                // 预览后新出现的缺失依赖没有展示给管理员，必须重新预览，不能静默强制导入。
+                if (!isset($previewedSlugs[$plugin['slug']])) throw new RuntimeException('st_stale');
+            }
+            if (!empty($package['manifest']['plugin_data']) && $missingPlugins !== []) throw new RuntimeException('st_plugin_missing');
+            if (!$trusted) throw new RuntimeException($missingPlugins === [] ? 'st_trust' : 'st_plugin_missing');
+            $pluginData = $package['manifest']['plugin_data'] ?? [];
+            SiteTemplatePluginData::assertTarget($pluginData);
             // 别名在 prepare 阶段就定下：分阶段提取要往固定目录落盘，重复请求也不会换目录
             $alias = (string) $plan['alias'];
             $map = ['/themes/' . $package['manifest']['theme'] . '/' => '/themes/' . $alias . '/', '/uploads/' => '/uploads/' . $alias . '/'];
@@ -256,10 +293,11 @@ final class SiteTemplateService
             try {
                 if (!$this->canApply() || !hash_equals((string) $plan['fingerprint'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_stale');
                 $journal = ['status' => 'preparing', 'created_at' => time(), 'before' => SiteTemplateData::fingerprint(),
-                    'snapshot' => SiteTemplateData::snapshot(), 'alias' => $alias];
+                    'snapshot' => SiteTemplateData::snapshot(), 'plugin_snapshot' => SiteTemplatePluginData::backup($pluginData), 'alias' => $alias];
                 $this->writeRecord('current', $journal);
                 $this->installFiles($package['files'], $alias, $map);
                 SiteTemplateData::replace($data);
+                SiteTemplatePluginData::apply($pluginData);
                 $journal['after'] = SiteTemplateData::fingerprint();
                 $journal['status'] = 'prepared_commit';
                 $this->writeRecord('current', $journal);
@@ -292,6 +330,7 @@ final class SiteTemplateService
                 // A local backup must reproduce the original state, including pre-existing dangling seed references.
                 // Uploaded packages still undergo full reference validation in Archive::read and replace().
                 SiteTemplateData::replace($journal['snapshot'], false);
+                SiteTemplatePluginData::restore($journal['plugin_snapshot'] ?? []);
                 if (!hash_equals((string) $journal['before'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_restore_changed');
                 db()->commit();
             } catch (Throwable $e) {
@@ -333,7 +372,7 @@ final class SiteTemplateService
 
     private function beginLockedTransaction(): void
     {
-        $tables = array_merge(SiteTemplateData::TABLES, ['settings'], self::PRIVATE_TABLES);
+        $tables = array_merge(SiteTemplateData::TABLES, ['settings'], self::PRIVATE_TABLES, SiteTemplatePluginData::TABLES);
         if (!db()->isSqlite()) foreach ($tables as $table) {
             if (!db()->tableExists($table)) continue;
             $engine = db()->fetchColumn('SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [DB_PREFIX . $table]);
@@ -390,7 +429,9 @@ final class SiteTemplateService
         // 装完才发现某个语言是空的，就只能回滚重来。
         $languages = SiteTemplateLanguages::inspect(is_array($manifest['data'] ?? null) ? $manifest['data'] : []);
 
+        $plugins = is_array($manifest['plugins'] ?? null) ? $manifest['plugins'] : [];
         return ['theme' => $manifest['theme'], 'cms' => $manifest['cms'],
+            'plugins' => $plugins === [] ? '-' : implode(', ', array_map(static fn(array $plugin): string => $plugin['slug'] . ' ' . $plugin['version'], $plugins)),
             'languages' => SiteTemplateLanguages::labels($languages['content']),
             'languages_empty' => $languages['empty'],
             'channels' => count($manifest['data']['tables']['channels']), 'contents' => count($manifest['data']['tables']['contents']),
@@ -398,14 +439,68 @@ final class SiteTemplateService
             'media' => count(array_filter(array_keys($files), static fn(string $key): bool => str_starts_with($key, 'media/')))];
     }
 
-    private function collectUploads(mixed $value, array &$refs): void
+    /** @return list<array{slug:string,version:string}> */
+    private function activePlugins(bool $strict = true): array
     {
-        if (is_array($value)) { foreach ($value as $item) $this->collectUploads($item, $refs); return; }
-        if (!is_string($value)) return;
-        $decoded = json_decode($value, true);
-        if (is_array($decoded)) { $this->collectUploads($decoded, $refs); return; }
-        preg_match_all('~(?<![a-zA-Z0-9/:.])/?uploads/([^\s"\'<>?#)]+)~u', html_entity_decode($value, ENT_QUOTES, 'UTF-8'), $matches);
-        foreach ($matches[1] as $path) $refs[rawurldecode($path)] = true;
+        if (!db()->tableExists('plugins')) return [];
+        $plugins = [];
+        foreach (pluginModel()->getActiveSlugs() as $slug) {
+            $slug = (string) $slug;
+            if (preg_match('/^[a-z0-9][a-z0-9-]{0,79}$/D', $slug) !== 1) {
+                if ($strict) throw new RuntimeException('st_plugin_manifest');
+                continue;
+            }
+            $path = $this->root . '/plugins/' . $slug . '/plugin.json';
+            $this->assertContained($path);
+            $meta = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
+            $version = is_array($meta) ? trim((string) ($meta['version'] ?? '')) : '';
+            if (preg_match('/^[0-9A-Za-z][0-9A-Za-z._+-]{0,39}$/D', $version) !== 1) {
+                if ($strict) throw new RuntimeException('st_plugin_manifest');
+                continue;
+            }
+            $plugins[$slug] = ['slug' => $slug, 'version' => $version];
+        }
+        ksort($plugins);
+        return array_values($plugins);
+    }
+
+    /** @param list<array{slug:string,version:string}> $required @return list<array{slug:string,version:string}> */
+    private function missingPlugins(array $required): array
+    {
+        if ($required === []) return [];
+        $active = [];
+        foreach ($this->activePlugins(false) as $plugin) $active[$plugin['slug']] = $plugin['version'];
+        $missing = [];
+        foreach ($required as $plugin) {
+            $slug = $plugin['slug'];
+            $version = $plugin['version'];
+            if (!isset($active[$slug]) || version_compare($active[$slug], $version, '<')) $missing[] = $plugin;
+        }
+        return $missing;
+    }
+
+    /** 仅测试环境生效：让小夹具也能稳定压出多轮暂存。 */
+    private function stageMaxFiles(): int
+    {
+        if (PHP_SAPI === 'cli' && getenv('APP_ENV') === 'testing') {
+            $value = getenv('YIKAI_SITE_TEMPLATE_STAGE_MAX_FILES');
+            if (is_string($value) && preg_match('/^[1-9][0-9]*$/D', $value) === 1) return min(self::STAGE_MAX_FILES, (int) $value);
+        }
+        return self::STAGE_MAX_FILES;
+    }
+
+    /**
+     * A pinned value is export-safe only when the package already contains the same portable setting.
+     * This keeps the override guard for runtime-only or divergent values while allowing authored sample
+     * sites that pin current_theme/site_name to their identical stored values.
+     */
+    private function overridesMatchPortableSettings(array $overrides): bool
+    {
+        foreach ($overrides as $key => $value) {
+            if (!is_string($key) || !SiteTemplateData::settingAllowed($key) || !is_scalar($value)
+                || (string) settingModel()->get($key, '') !== (string) $value) return false;
+        }
+        return true;
     }
 
     private function textFile(string $path): bool

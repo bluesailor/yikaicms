@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/SensitiveSettings.php';
+require_once __DIR__ . '/SiteTemplatePluginData.php';
 
 /** Content-only snapshots. Fixed table/setting allowlists, never package-provided SQL. */
 final class SiteTemplateData
@@ -16,6 +17,8 @@ final class SiteTemplateData
 
     public static function settingAllowed(string $key): bool
     {
+        // 安全边界：白名单只能覆盖可移植的核心内容与主题展示配置，绝不能为插件前缀
+        // （shop_*、seo_* 等）放宽。插件公开数据另走版本化适配器；密钥和交易数据永不入包。
         if (in_array($key, ['site_lang', 'enabled_languages'], true)) return true;
         if (!SensitiveSettings::isImportable($key)) return false;
         return (bool) preg_match('/^(?:site_(?:name|keywords|description|logo|favicon)|primary_color$|secondary_color$|current_theme$|theme_(?:style|color|content)|home_|header_|footer_|contact_|banner_|nav_|page_hero_|blox_(?:design_system$|design_theme(?:_draft)?$|widescreen_enabled$|custom_header_enabled$|custom_footer_enabled$))/', $key);
@@ -90,6 +93,7 @@ final class SiteTemplateData
     {
         settingModel()->clearCache();
         $state = self::snapshot();
+        $state['plugin_activity'] = SiteTemplatePluginData::fingerprint();
         foreach (['forms', 'members', 'mail_log', 'content_revisions', 'blox_page_drafts'] as $table) {
             if (db()->tableExists($table)) {
                 $state[$table] = db()->fetchAll('SELECT * FROM ' . DB_PREFIX . $table . ' ORDER BY id');
