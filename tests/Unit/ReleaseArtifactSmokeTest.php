@@ -90,6 +90,27 @@ final class ReleaseArtifactSmokeTest extends TestCase
         }
     }
 
+    public function testFormUploadRuntimeChainIsExplicitlyCovered(): void
+    {
+        $chain = [
+            'form_submit.php',
+            'form_nonce.php',
+            'admin/form_file.php',
+            'includes/FormSubmissionToken.php',
+            'includes/FormSubmissionNonce.php',
+            'includes/FormSubmissionLifecycle.php',
+            'includes/FormFieldContract.php',
+            'includes/FormDecimal.php',
+            'includes/FormSpamGuard.php',
+            'includes/FormUploadService.php',
+        ];
+
+        foreach ($chain as $path) {
+            self::assertContains($path, $this->manifest['required_files'], 'Form runtime is missing from release contract: ' . $path);
+        }
+        self::assertMatchesRegularExpression('/ROOT_ALLOWED=\([\s\S]*"form_nonce\.php"/', (string) file_get_contents(ROOT_PATH . '/build.sh'));
+    }
+
     /** 清单不是摆设：升级排序器缺失必须让产物冒烟红。 */
     public function testMissingUpgradeEntryOrderFailsArtifactSmoke(): void
     {

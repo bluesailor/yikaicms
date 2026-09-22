@@ -180,6 +180,7 @@ storage/_sl/
 # Local runtime artifacts, never release sources.
 /yikaicms.env.zip
 /storage/form_throttle/
+/storage/form_uploads/
 /storage/stats-migrated.png
 /storage/theme-backup/
 /storage/upgrade/

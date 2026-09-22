@@ -16,6 +16,17 @@ final class FormSubmissionToken
         return substr(hash_hmac('sha256', (string) $timestamp, $secret), 0, 16);
     }
 
+    public static function contextSign(string $slug, int $entityId, string $secret): string
+    {
+        if ($slug === '' || $entityId <= 0 || $secret === '') return '';
+        return hash_hmac('sha256', 'form-context|' . $slug . '|' . $entityId, $secret);
+    }
+
+    public static function contextVerify(string $slug, int $entityId, string $signature, string $secret): bool
+    {
+        return $signature !== '' && hash_equals(self::contextSign($slug, $entityId, $secret), $signature);
+    }
+
     /** @psalm-suppress PossiblyUnusedMethod Public form endpoint loads this method through includes/functions.php. */
     public static function verify(
         string $slug,
