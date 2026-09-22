@@ -102,7 +102,8 @@ final class SiteTemplateService
             $relative = substr($path, strlen($themeRoot) + 1);
             if (preg_match('~(?:^|/)\.~', $relative)) continue;
             $this->assertContained($path);
-            if (!$file->isFile() || !SiteTemplateArchive::safePath($relative)) throw new RuntimeException('st_unsafe');
+            if (!$file->isFile()) throw new RuntimeException('st_unsafe');
+            if (!SiteTemplateArchive::themeFileAllowed($relative)) continue;
             $files['theme/' . $relative] = $this->boundedRead($path, $size);
         }
         $data = SiteTemplateData::snapshot(true);
