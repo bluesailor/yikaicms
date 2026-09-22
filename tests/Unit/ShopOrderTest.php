@@ -55,6 +55,25 @@ final class ShopOrderTest extends TestCase
         shopShippingFeeCents(-1, 1500, 0);
     }
 
+    public function testFreeShippingStillAddsMatchedRegionSurcharge(): void
+    {
+        $address = ['province' => '西藏自治区', 'city' => '拉萨市', 'district' => '城关区'];
+        $this->assertSame(4000, shopShippingFeeForAddressCents(
+            30000,
+            $address,
+            1500,
+            30000,
+            '西藏自治区 = 40.00'
+        ));
+        $this->assertSame(5500, shopShippingFeeForAddressCents(
+            29999,
+            $address,
+            1500,
+            30000,
+            '西藏自治区 = 40.00'
+        ));
+    }
+
     public function testOrderNoFormatIsTimestampedAndUnique(): void
     {
         $no = shopOrderNo();

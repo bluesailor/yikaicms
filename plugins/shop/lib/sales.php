@@ -61,7 +61,7 @@ function shopSalesPage(array $filters, int $limit, int $offset): array
     $items = db()->fetchAll(
         'SELECT p.id, p.lang, p.title, p.model, p.price,
                 sp.product_id AS sales_key, sp.sku, sp.price AS sale_price,
-                sp.stock, sp.status, sp.sales
+                sp.stock, sp.status, sp.sales, sp.specs_json
             ' . $sqlBase . ' ' . $whereSQL . '
             ORDER BY p.id DESC LIMIT ? OFFSET ?',
         array_merge($params, [$limit, $offset])

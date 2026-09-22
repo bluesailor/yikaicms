@@ -150,10 +150,12 @@ final class ShopPluginFoundationTest extends TestCase
         $this->assertFalse(shopAdminActionAllowed('refund_create', true, false));
         $this->assertTrue(shopAdminActionAllowed('order_ship', false, true));
         $this->assertTrue(shopAdminActionAllowed('refund_create', false, true));
+        $this->assertTrue(shopAdminActionAllowed('export_orders', false, true));
         $this->assertFalse(shopAdminActionAllowed('save_sales', false, true));
         $this->assertFalse(shopAdminActionAllowed('save_payment_methods', false, true));
         $this->assertFalse(shopAdminActionAllowed('save_wechat_gateway', false, true));
         $this->assertFalse(shopAdminActionAllowed('save_alipay_gateway', false, true));
+        $this->assertFalse(shopAdminActionAllowed('export_orders', true, false));
         $this->assertFalse(shopAdminActionAllowed('unknown', true, true));
     }
 

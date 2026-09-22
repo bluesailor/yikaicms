@@ -117,4 +117,23 @@ final class ShopShippingTest extends TestCase
         $this->assertSame('shop_err_tracking_company', shopValidateTracking('', '123'));
         $this->assertSame('shop_err_tracking', shopValidateTracking('顺丰速运', 'bad number'));
     }
+
+    public function testRegionSurchargeUsesLongestMatchingPath(): void
+    {
+        $raw = "新疆维吾尔自治区 = 20\n新疆维吾尔自治区/阿勒泰地区 = 35.50\n西藏自治区 = 40";
+        $parsed = shopNormalizeRegionSurchargeConfig($raw);
+        self::assertTrue($parsed['ok']);
+        self::assertSame(3, count($parsed['rules']));
+        self::assertSame(3550, shopShippingSurchargeCents([
+            'province' => '新疆维吾尔自治区', 'city' => '阿勒泰地区', 'district' => '布尔津县',
+        ], $parsed['value']));
+        self::assertSame(2000, shopShippingSurchargeCents([
+            'province' => '新疆维吾尔自治区', 'city' => '乌鲁木齐市', 'district' => '天山区',
+        ], $parsed['value']));
+        self::assertSame(0, shopShippingSurchargeCents([
+            'province' => '上海市', 'city' => '上海市', 'district' => '浦东新区',
+        ], $parsed['value']));
+        self::assertFalse(shopNormalizeRegionSurchargeConfig('海外 = 10')['ok']);
+        self::assertFalse(shopNormalizeRegionSurchargeConfig('新疆维吾尔自治区 = 0')['ok']);
+    }
 }

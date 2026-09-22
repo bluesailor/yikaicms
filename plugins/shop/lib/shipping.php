@@ -8,6 +8,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/money.php';
+
 /** @return list<string> 中国大陆 31 个省级行政区（不含港澳台）。 */
 function shopMainlandProvinces(): array
 {
@@ -125,6 +127,82 @@ function shopNormalizeExcludedRegionConfig(string $raw): array
     }
 
     return ['ok' => true, 'error' => '', 'value' => implode("\n", array_values($normalized)), 'rules' => $rules];
+}
+
+/**
+ * 指定地区附加运费。逐行格式：省/市/区县 = 金额；最长路径优先。
+ * @return array{ok:bool,error:string,value:string,rules:list<array{path:list<string>,cents:int}>}
+ */
+function shopNormalizeRegionSurchargeConfig(string $raw): array
+{
+    $fail = static fn(): array => ['ok' => false, 'error' => 'shop_err_shipping_surcharges', 'value' => '', 'rules' => []];
+    if (mb_strlen($raw) > 10000) {
+        return $fail();
+    }
+    $normalized = [];
+    $rules = [];
+    foreach (preg_split('/\R/u', $raw) ?: [] as $line) {
+        $line = trim($line);
+        if ($line === '') {
+            continue;
+        }
+        $pair = preg_split('/\s*=\s*/u', $line, 2);
+        if (!is_array($pair) || count($pair) !== 2) {
+            return $fail();
+        }
+        $parts = shopShippingCollapsePath(preg_split('/[\/>＞]+/u', trim($pair[0])) ?: []);
+        if ($parts === [] || count($parts) > 3 || !in_array($parts[0], shopMainlandProvinces(), true)) {
+            return $fail();
+        }
+        foreach ($parts as $part) {
+            if (mb_strlen($part) > 50 || shopShippingHasControlChars($part)) {
+                return $fail();
+            }
+        }
+        $cents = shopValidSalePriceCents(trim($pair[1]));
+        if ($cents === null) {
+            return $fail();
+        }
+        $key = implode('/', $parts);
+        if (isset($normalized[$key])) {
+            return $fail();
+        }
+        $normalized[$key] = $key . ' = ' . shopCentsToDecimal($cents);
+        $rules[] = ['path' => $parts, 'cents' => $cents];
+        if (count($rules) > 100) {
+            return $fail();
+        }
+    }
+    return ['ok' => true, 'error' => '', 'value' => implode("\n", array_values($normalized)), 'rules' => $rules];
+}
+
+/** @return list<array{path:list<string>,cents:int}> */
+function shopShippingSurchargeRules(?string $raw = null): array
+{
+    $parsed = shopNormalizeRegionSurchargeConfig(
+        $raw ?? (string) config('shop_shipping_region_surcharges', '')
+    );
+    return $parsed['ok'] ? $parsed['rules'] : [];
+}
+
+/** 最长匹配路径的附加运费（分）；无匹配为 0。 */
+function shopShippingSurchargeCents(array $address, ?string $raw = null): int
+{
+    $path = shopShippingCollapsePath([
+        (string) ($address['province'] ?? ''),
+        (string) ($address['city'] ?? ''),
+        (string) ($address['district'] ?? ''),
+    ]);
+    $bestDepth = 0;
+    $bestCents = 0;
+    foreach (shopShippingSurchargeRules($raw) as $rule) {
+        $depth = count($rule['path']);
+        if ($depth > $bestDepth && shopShippingPathMatchesRule($path, $rule['path'])) {
+            $bestDepth = $depth;
+            $bestCents = $rule['cents'];
+        }
+    }
+    return $bestCents;
 }
 
 /** @return list<list<string>> 当前所有排除规则（整省勾选 + 细分路径）。 */

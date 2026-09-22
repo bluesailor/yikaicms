@@ -29,5 +29,8 @@ function shopAdminActionAllowed(string $action, bool $canManage, bool $canOrders
     if (str_starts_with($action, 'order_') || str_starts_with($action, 'refund_')) {
         return $canOrders;
     }
+    if ($action === 'export_orders') {
+        return $canOrders;
+    }
     return false;
 }

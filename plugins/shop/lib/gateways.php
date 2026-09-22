@@ -572,6 +572,8 @@ function shopAlipayPagePayParameters(array $order): array
 /** @return array<string,mixed> */
 function shopAlipayVerifyNotification(string $rawBody, array $context = []): array
 {
+    // 与统一网关过滤器保持四参数签名；支付宝表单通知不使用 HTTP 请求头。
+    unset($context);
     $status = shopAlipayGatewayStatus();
     if (!$status['ready'] || strlen($rawBody) > 262144) {
         return ['verified' => false];
@@ -736,4 +738,3 @@ function shopWechatCreateNativeOrder(array $order): array
     }
     return ['ok' => true, 'error' => '', 'code_url' => $codeUrl];
 }
-

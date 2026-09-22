@@ -37,7 +37,7 @@ final class ShopCartTest extends TestCase
         $r = shopCartAdd(7, 2, self::lookup(...));
         $this->assertTrue($r['ok'], $r['error']);
         // 红线：session 里只有 [id, qty]——价格绝不落车
-        $this->assertSame([['id' => 7, 'qty' => 2]], $_SESSION['shop_cart']);
+        $this->assertSame([['id' => 7, 'variant' => '', 'qty' => 2]], $_SESSION['shop_cart']);
         $this->assertSame(2, shopCartCount());
     }
 
@@ -46,7 +46,7 @@ final class ShopCartTest extends TestCase
         shopCartAdd(7, 3, self::lookup(...));
         $r = shopCartAdd(7, 2, self::lookup(...));   // 3+2=5 恰好到库存上限
         $this->assertTrue($r['ok']);
-        $this->assertSame([['id' => 7, 'qty' => 5]], $_SESSION['shop_cart']);
+        $this->assertSame([['id' => 7, 'variant' => '', 'qty' => 5]], $_SESSION['shop_cart']);
 
         $r = shopCartAdd(7, 1, self::lookup(...));   // 6 > 5：拒绝
         $this->assertFalse($r['ok']);
@@ -76,7 +76,7 @@ final class ShopCartTest extends TestCase
     {
         shopCartAdd(7, 2, self::lookup(...));
         $this->assertTrue(shopCartSetQty(7, 4)['ok']);
-        $this->assertSame([['id' => 7, 'qty' => 4]], $_SESSION['shop_cart']);
+        $this->assertSame([['id' => 7, 'variant' => '', 'qty' => 4]], $_SESSION['shop_cart']);
 
         shopCartSetQty(7, 0);
         $this->assertSame([], shopCartLines(), 'qty=0 即移除');
@@ -93,7 +93,7 @@ final class ShopCartTest extends TestCase
         shopCartAdd(3, 3, $any);
         shopCartRemove(2);
         $this->assertSame(
-            [['id' => 1, 'qty' => 1], ['id' => 3, 'qty' => 3]],
+            [['id' => 1, 'variant' => '', 'qty' => 1], ['id' => 3, 'variant' => '', 'qty' => 3]],
             shopCartLines(),
             '移除中间行后其余行序稳定'
         );
@@ -108,7 +108,7 @@ final class ShopCartTest extends TestCase
             ['id' => 8, 'qty' => -3],     // 非法 qty 丢弃
             ['id' => 9],                  // 缺 qty 丢弃
         ];
-        $this->assertSame([['id' => 7, 'qty' => 2]], shopCartLines());
+        $this->assertSame([['id' => 7, 'variant' => '', 'qty' => 2]], shopCartLines());
         $this->assertSame(2, shopCartCount());
     }
 
@@ -118,7 +118,7 @@ final class ShopCartTest extends TestCase
         $this->assertSame([], shopCartLines());
         $this->assertSame(0, shopCartCount());
         shopCartSetQty(7, 1);
-        $this->assertSame([['id' => 7, 'qty' => 1]], $_SESSION['shop_cart']);
+        $this->assertSame([['id' => 7, 'variant' => '', 'qty' => 1]], $_SESSION['shop_cart']);
     }
 
     public function testClear(): void

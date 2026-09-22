@@ -30,6 +30,8 @@ require_once __DIR__ . '/lib/shipping.php';
 require_once __DIR__ . '/lib/payment-methods.php';
 require_once __DIR__ . '/lib/gateways.php';
 require_once __DIR__ . '/lib/access.php';
+require_once __DIR__ . '/lib/variants.php';
+require_once __DIR__ . '/lib/export.php';
 
 try {
     shopEnsureSchema();
@@ -52,6 +54,27 @@ $shopPostedAction = (string) ($_POST['action'] ?? '');
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
     && !shopAdminActionAllowed($shopPostedAction, $shopCanManage, $shopCanOrders)) {
     permissionDenied();
+}
+
+// CSV 必须在后台 header 输出前发送；筛选口径与订单列表一致。
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $shopPostedAction === 'export_orders') {
+    verifyCsrf();
+    $status = (string) ($_POST['status'] ?? 'all');
+    if (!in_array($status, array_merge(['all'], shopOrderStatuses()), true)) {
+        $status = 'all';
+    }
+    $exportKeyword = trim((string) ($_POST['keyword'] ?? ''));
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="shop-orders-' . date('Ymd-His') . '.csv"');
+    header('Cache-Control: no-store');
+    $handle = fopen('php://output', 'wb');
+    if ($handle === false) {
+        http_response_code(500);
+        exit;
+    }
+    shopWriteOrdersCsv($handle, ['status' => $status, 'keyword' => $exportKeyword]);
+    fclose($handle);
+    exit;
 }
 
 // ============================================================
@@ -98,6 +121,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
         ? $_POST['excluded_provinces']
         : [];
     $excludedRegionsInput = (string) ($_POST['excluded_regions'] ?? '');
+    $regionSurchargesInput = (string) ($_POST['region_surcharges'] ?? '');
     $carriersInput = (string) ($_POST['shipping_carriers'] ?? '');
 
     // 运费两项允许 0/空（空=0 元），但必须是非负金额格式；超时分钟数 1..10080
@@ -143,6 +167,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
     if ($error === '' && !$regionConfig['ok']) {
         $error = __($regionConfig['error']);
     }
+    $surchargeConfig = shopNormalizeRegionSurchargeConfig($regionSurchargesInput);
+    if ($error === '' && !$surchargeConfig['ok']) {
+        $error = __($surchargeConfig['error']);
+    }
     $carrierConfig = shopNormalizeCarrierConfig($carriersInput);
     if ($error === '' && !$carrierConfig['ok']) {
         $error = __($carrierConfig['error']);
@@ -159,6 +187,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
         'shop_order_expire_minutes' => (string) $expireMinutes,
         'shop_shipping_excluded_provinces' => json_encode(array_values($excludedProvinces), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         'shop_shipping_excluded_regions' => $regionConfig['value'],
+        'shop_shipping_region_surcharges' => $surchargeConfig['value'],
         'shop_shipping_carriers' => $carrierConfig['value'],
     ]);
     adminLog(
@@ -167,6 +196,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
         "shipping fee={$feeCents} free_threshold={$thresholdCents} expire={$expireMinutes}min"
         . ' excluded_provinces=' . count($excludedProvinces)
         . ' excluded_regions=' . count($regionConfig['rules'])
+        . ' surcharge_regions=' . count($surchargeConfig['rules'])
         . ' carriers=' . count($carrierConfig['carriers'])
     );
     do_action('data_changed');
@@ -282,6 +312,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
     $sku = trim((string) ($_POST['sku'] ?? ''));
     $priceRaw = trim((string) ($_POST['price'] ?? ''));
     $stockRaw = (string) ($_POST['stock'] ?? '');
+    $variantsRaw = (string) ($_POST['variants'] ?? '');
     $status = (int) ($_POST['status'] ?? 0) === 1 ? 1 : 0;
 
     $error = '';
@@ -302,6 +333,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
             $error = __('shop_err_stock');
         }
     }
+    $variantConfig = shopNormalizeVariantConfig($variantsRaw);
+    if ($error === '' && !$variantConfig['ok']) {
+        $error = __($variantConfig['error']);
+    }
+    if ($error === '' && $variantConfig['variants'] !== []) {
+        $stock = $variantConfig['stock'];
+    }
     if ($error !== '') {
         header('Location: /admin/plugin_page.php?plugin=shop&err=' . urlencode($error));
         exit;
@@ -312,6 +350,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
         'sku' => $sku,
         'price' => $priceCents !== null ? shopCentsToDecimal($priceCents) : null,
         'stock' => $stock,
+        'specs_json' => $variantConfig['value'],
         'status' => $status,
         'updated_at' => $now,
     ];
@@ -327,7 +366,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
         db()->insert('shop_products', $data);
     }
 
-    adminLog('shop', 'save_sales', 'Save sales config for product #' . $productId . ' (key ' . $salesKey . ') status=' . $status . ' stock=' . $stock);
+    adminLog('shop', 'save_sales', 'Save sales config for product #' . $productId . ' (key ' . $salesKey . ') status=' . $status . ' stock=' . $stock . ' variants=' . count($variantConfig['variants']));
     do_action('data_changed');
 
     header('Location: /admin/plugin_page.php?plugin=shop&saved=1');
@@ -446,7 +485,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php foreach ($orderDetail['items'] as $item): ?>
                     <?php $snap = json_decode((string) $item['snapshot_json'], true) ?: []; ?>
                 <div class="flex justify-between text-sm py-1 border-b border-gray-50">
-                    <span><?php echo e((string) ($snap['title'] ?? '')); ?> × <?php echo (int) $item['qty']; ?></span>
+                    <span><?php echo e((string) ($snap['title'] ?? '')); ?><?php echo ($snap['variant_label'] ?? '') !== '' ? ' · ' . e((string) $snap['variant_label']) : ''; ?> × <?php echo (int) $item['qty']; ?></span>
                     <span class="text-gray-700"><?php echo e(formatPrice((string) $item['subtotal'])); ?></span>
                 </div>
                 <?php endforeach; ?>
@@ -564,6 +603,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </select>
         <button type="submit" class="bg-blue-600 text-white text-sm px-4 py-1.5 rounded hover:bg-blue-700"><?php echo e(__('shop_btn_search')); ?></button>
     </form>
+    <form method="post" action="/admin/plugin_page.php?plugin=shop&view=orders" class="mb-4"><?php echo csrfField(); ?>
+        <input type="hidden" name="action" value="export_orders">
+        <input type="hidden" name="status" value="<?php echo e($orderStatusFilter); ?>">
+        <input type="hidden" name="keyword" value="<?php echo e($orderKeyword); ?>">
+        <button type="submit" class="inline-flex items-center gap-2 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50" data-testid="shop-order-export">
+            <i class="fa-solid fa-file-csv" aria-hidden="true"></i><span><?php echo e(__('shop_order_export')); ?></span>
+        </button>
+    </form>
     <div class="bg-white rounded border border-gray-200 overflow-x-auto">
         <table class="w-full text-sm">
             <thead>
@@ -626,6 +673,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     $shopExcludedProvinces = json_decode((string) config('shop_shipping_excluded_provinces', '[]'), true);
     $shopExcludedProvinces = is_array($shopExcludedProvinces) ? $shopExcludedProvinces : [];
     $shopExcludedRegions = (string) config('shop_shipping_excluded_regions', '');
+    $shopRegionSurcharges = (string) config('shop_shipping_region_surcharges', '');
     $shopCarriers = (string) config('shop_shipping_carriers', implode("\n", shopDefaultShippingCarriers()));
     ?>
     <div class="mb-4 bg-white rounded border border-gray-200 p-4" data-testid="shop-shipping-settings">
@@ -663,13 +711,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php endforeach; ?>
                 </div>
             </div>
-            <div class="grid md:grid-cols-2 gap-4">
+            <div class="grid md:grid-cols-3 gap-4">
                 <div>
                     <label class="block font-medium text-gray-700 mb-1"><?php echo e(__('shop_shipping_excluded_regions')); ?></label>
                     <textarea name="excluded_regions" rows="6" maxlength="10000"
                               placeholder="<?php echo e(__('shop_shipping_excluded_regions_placeholder')); ?>"
                               class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono" data-testid="shop-shipping-excluded-regions"><?php echo e($shopExcludedRegions); ?></textarea>
                     <p class="text-xs text-gray-400 mt-1"><?php echo e(__('shop_shipping_excluded_regions_hint')); ?></p>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1"><?php echo e(__('shop_shipping_surcharges')); ?></label>
+                    <textarea name="region_surcharges" rows="6" maxlength="10000"
+                              placeholder="<?php echo e(__('shop_shipping_surcharges_placeholder')); ?>"
+                              class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono" data-testid="shop-shipping-surcharges"><?php echo e($shopRegionSurcharges); ?></textarea>
+                    <p class="text-xs text-gray-400 mt-1"><?php echo e(__('shop_shipping_surcharges_hint')); ?></p>
                 </div>
                 <div>
                     <label class="block font-medium text-gray-700 mb-1"><?php echo e(__('shop_shipping_carriers')); ?></label>
@@ -884,6 +939,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-3 py-2">
                         <div class="font-medium text-gray-900"><?php echo e((string) $row['title']); ?></div>
                         <div class="text-xs text-gray-400"><?php echo e((string) $row['model']); ?> · <?php echo e((string) $row['lang']); ?><?php echo (int) ($row['sales_key'] ?? 0) > 0 && (int) $row['sales_key'] !== (int) $row['id'] ? ' · ' . e(__('shop_shared_group')) : ''; ?></div>
+                        <details class="mt-2 text-xs"<?php echo shopProductVariantsFromJson(isset($row['specs_json']) ? (string) $row['specs_json'] : null) !== [] ? ' open' : ''; ?>>
+                            <summary class="cursor-pointer text-primary"><?php echo e(__('shop_variants_title')); ?></summary>
+                            <textarea name="variants" rows="4" maxlength="20000"
+                                      class="mt-1 w-80 max-w-full border border-gray-300 rounded px-2 py-1 font-mono text-xs"
+                                      placeholder="<?php echo e(__('shop_variants_placeholder')); ?>"
+                                      data-testid="shop-variants-<?php echo (int) $row['id']; ?>"><?php echo e(shopVariantConfigToLines(isset($row['specs_json']) ? (string) $row['specs_json'] : null)); ?></textarea>
+                            <p class="mt-1 text-gray-400 max-w-80"><?php echo e(__('shop_variants_hint')); ?></p>
+                        </details>
                     </td>
                     <td class="px-3 py-2 text-gray-500"><?php echo e($rowPrice($row)); ?></td>
                     <td class="px-3 py-2">

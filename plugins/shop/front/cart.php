@@ -6,7 +6,7 @@
  * 访问（行为一致）。安全三件套：
  * 1. 本页**不调用 HtmlCache::start()**——私有页不进整页缓存（读/写两侧都不会）；
  * 2. 显式 Cache-Control: no-store——中间代理与浏览器也不得存；
- * 3. 价格一律现场从库重算（立项红线：购物车价格不可信），session 里只有 [id, qty]。
+ * 3. 价格一律现场从库重算（立项红线：购物车价格不可信），session 里只有 [id, variant, qty]。
  *
  * PHP 8.0+
  */
@@ -45,7 +45,7 @@ foreach ($lines as $line) {
     if ($product === null) {
         continue;   // 产品已删：行静默跳过（车里的孤儿行在下次写入时自然清理）
     }
-    $sales = shopCartSalesLookupDefault($line['id']);
+    $sales = shopCartSalesLookupDefault($line['id'], $line['variant']);
     if ($sales === null) {
         continue;   // 已下架：不再展示购买入口，也不计入小计
     }
@@ -54,6 +54,8 @@ foreach ($lines as $line) {
     $totalCents = shopMoneySum([$totalCents, $subtotalCents]);
     $rows[] = [
         'id' => $line['id'],
+        'variant' => $line['variant'],
+        'variant_label' => (string) ($sales['variant_label'] ?? ''),
         'qty' => $line['qty'],
         'title' => (string) $product['title'],
         'model' => (string) ($product['model'] ?? ''),
@@ -111,6 +113,7 @@ require_once theme_path('layouts/header.php');
                                 <?php endif; ?>
                                 <div class="text-xs text-gray-400">
                                     <?php echo e($row['model']); ?><?php echo $row['sku'] !== '' ? ' · ' . e($row['sku']) : ''; ?>
+                                    <?php echo $row['variant_label'] !== '' ? ' · ' . e($row['variant_label']) : ''; ?>
                                     · <?php echo e(__('shop_stock_left', ['n' => (string) $row['stock']])); ?>
                                 </div>
                             </div>
@@ -121,6 +124,7 @@ require_once theme_path('layouts/header.php');
                         <form method="post" action="/shop/api" class="flex items-center gap-1">
                             <input type="hidden" name="op" value="set">
                             <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
+                            <input type="hidden" name="variant" value="<?php echo e($row['variant']); ?>">
                             <input type="hidden" name="ts" value="<?php echo (int) $cartTokenTs; ?>">
                             <input type="hidden" name="sig" value="<?php echo e($cartTokenSig); ?>">
                             <input type="number" name="qty" min="0" max="999" step="1" value="<?php echo (int) $row['qty']; ?>"
@@ -136,6 +140,7 @@ require_once theme_path('layouts/header.php');
                         <form method="post" action="/shop/api">
                             <input type="hidden" name="op" value="set">
                             <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
+                            <input type="hidden" name="variant" value="<?php echo e($row['variant']); ?>">
                             <input type="hidden" name="qty" value="0">
                             <input type="hidden" name="ts" value="<?php echo (int) $cartTokenTs; ?>">
                             <input type="hidden" name="sig" value="<?php echo e($cartTokenSig); ?>">

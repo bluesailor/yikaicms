@@ -15,6 +15,7 @@ if (!is_dir(ROOT_PATH . '/plugins/shop')) return;
 require_once ROOT_PATH . '/plugins/shop/lib/money.php';
 require_once ROOT_PATH . '/plugins/shop/lib/tables.php';
 require_once ROOT_PATH . '/plugins/shop/lib/orders.php';
+require_once ROOT_PATH . '/plugins/shop/lib/export.php';
 
 CLI::register('shop:orders', '导出商城订单 CSV（插件停用期间也可用）', function (array $args, array $opts): int {
     try {
@@ -43,35 +44,11 @@ CLI::register('shop:orders', '导出商城订单 CSV（插件停用期间也可�
         CLI::err('无法写入：' . $out);
         return 1;
     }
-    // CSV 表头（UTF-8 BOM 便于 Excel 直开）
-    fwrite($handle, "\xEF\xBB\xBF");
-    fputcsv($handle, ['order_no', 'status', 'payment_status', 'amount_total', 'contact_name', 'contact_phone', 'address', 'remark', 'created_at', 'paid_at']);
-
-    $limit = 200;
-    $offset = 0;
-    while ($offset < $total) {
-        foreach (shopOrderPage($filters, $limit, $offset)['items'] as $o) {
-            $c = json_decode((string) ($o['contact_json'] ?? '{}'), true) ?: [];
-            $a = json_decode((string) ($o['address_json'] ?? '{}'), true) ?: [];
-            fputcsv($handle, [
-                (string) $o['order_no'],
-                (string) $o['status'],
-                (string) ($o['payment_status'] ?? ''),
-                (string) $o['amount_total'],
-                (string) ($c['name'] ?? ''),
-                (string) ($c['phone'] ?? ''),
-                trim((string) ($a['region'] ?? '') . ' ' . (string) ($a['address'] ?? '')),
-                (string) $o['remark'],
-                (int) $o['created_at'] > 0 ? date('Y-m-d H:i:s', (int) $o['created_at']) : '',
-                (int) $o['paid_at'] > 0 ? date('Y-m-d H:i:s', (int) $o['paid_at']) : '',
-            ]);
-        }
-        $offset += $limit;
-    }
+    $written = shopWriteOrdersCsv($handle, $filters);
     if ($handle !== STDOUT) {
         fclose($handle);
     }
-    CLI::ok("导出 {$total} 条订单" . ($out !== '' ? ' → ' . $out : ''));
+    CLI::ok("导出 {$written} 条订单" . ($out !== '' ? ' → ' . $out : ''));
 
     return 0;
 }, ['usage' => 'shop:orders [--status=pending_payment|awaiting_ship|shipped|completed|closed] [--out=shop-orders.csv]']);
