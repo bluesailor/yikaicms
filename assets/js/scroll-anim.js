@@ -32,7 +32,7 @@
         if (node.hasAttribute('data-aos')) node.classList.add('aos-animate');
         var mode = level();
         if (mode === 'none' || !deviceAllowed(node) || typeof node.animate !== 'function' || !Object.prototype.hasOwnProperty.call(transforms, effect)) return;
-        var speed = node.getAttribute('data-animate-speed');
+        var speed = node.getAttribute('data-animate-speed') || options.speed;
         var delay = node.getAttribute('data-animate-delay');
         var duration = mode === 'light' ? 180 : (speed === 'fast' ? 450 : (speed === 'slow' ? 1000 : 700));
         var wait = mode === 'light' ? 0 : (options.delay || ({ short: 150, medium: 300, long: 600 }[delay]) || Number(node.getAttribute('data-aos-delay')) || 0);
@@ -56,9 +56,13 @@
         if (!animate || level() === 'none' || !deviceAllowed(node)) return;
         if (node.hasAttribute('data-stagger')) {
             var children = Array.prototype.filter.call(node.children, function (child) {
-                return !child.matches || !child.matches('.yk-gap-resizer, .yk-column-resizer, .yk-empty-hint');
+                // 单独配置过动画的卡片/后代由自身负责，避免父子叠加和重放。
+                return (!child.matches || !child.matches('.yk-gap-resizer, .yk-column-resizer, .yk-empty-hint, .yk-query-empty, .yk-query-pagination-wrap, [data-animate], [data-aos], [data-stagger]'))
+                    && (!child.querySelector || !child.querySelector('[data-animate], [data-aos], [data-stagger]'));
             });
-            children.forEach(function (child, index) { replay(child, 'fade-up', { delay: Math.min(index, 8) * 70 }); });
+            children.forEach(function (child, index) {
+                replay(child, 'fade-up', { delay: Math.min(index, 8) * 70, speed: node.getAttribute('data-animate-speed') });
+            });
         } else {
             var effect = node.getAttribute('data-animate') || node.getAttribute('data-aos');
             if (!node.hasAttribute('data-animate')) effect = ({ 'fade-left': 'fade-right', 'fade-right': 'fade-left' })[effect] || effect;

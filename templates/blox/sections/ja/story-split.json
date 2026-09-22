@@ -1,0 +1,92 @@
+{
+    "format": "yikaicms-blox-template",
+    "version": 1,
+    "type": "section",
+    "name": "story-split",
+    "requires": {
+        "elements": [
+            "heading",
+            "text",
+            "container",
+            "button",
+            "image"
+        ],
+        "plugins": []
+    },
+    "document": {
+        "schema": 1,
+        "settings": {},
+        "sections": [
+            {
+                "type": "section",
+                "name": "左テキスト・右画像と入場効果",
+                "settings": {
+                    "padding": {
+                        "d": "xl",
+                        "m": "lg"
+                    },
+                    "max_width": "wide",
+                    "gap": "lg",
+                    "content_v_align": "center"
+                },
+                "columns": [
+                    {
+                        "elements": [
+                            {
+                                "type": "container",
+                                "data": {
+                                    "gap": "md",
+                                    "animation_stagger": true,
+                                    "animation_speed": "fast",
+                                    "children": [
+                                        {
+                                            "type": "heading",
+                                            "data": {
+                                                "text": "ご要望の理解から、確かな納品まで",
+                                                "level": "h2",
+                                                "visual_size": {
+                                                    "d": "3xl",
+                                                    "m": "2xl"
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "text",
+                                            "data": {
+                                                "html": "<p>会社の専門分野、サービス、仕事の進め方を紹介します。お客様に伝わる言葉で課題の解決方法を説明してください。</p><p>実際の工程、チーム、納品体制を追記し、公開前にサンプル画像と文章を差し替えてください。</p>"
+                                            }
+                                        },
+                                        {
+                                            "type": "button",
+                                            "data": {
+                                                "text": "プロジェクト担当に相談",
+                                                "url": "/contact.html",
+                                                "variant": "primary"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "elements": [
+                            {
+                                "type": "image",
+                                "data": {
+                                    "src": "/assets/images/blox-templates/landing-brand-team.webp",
+                                    "alt": "チームの共同作業と打ち合わせ",
+                                    "image_ratio": "landscape",
+                                "image_fit": "cover",
+                                "image_position": "top",
+                                    "animation": "fade",
+                                    "animation_speed": "fast"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -15,13 +15,13 @@ final class CardElement extends AbstractElement
     public function controls(): array
     {
         return [
-            ['key' => 'image', 'type' => 'image', 'label' => __('blox_image_url'), 'default' => ''],
-            ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => ''],
+            ['key' => 'image', 'type' => 'image', 'label' => __('blox_image_url'), 'default' => '', 'dynamic_placeholder' => '{{loop.cover}}'],
+            ['key' => 'title', 'type' => 'text', 'label' => __('blox_field_title_short'), 'default' => '', 'dynamic_tags' => true],
             ['key' => 'text', 'type' => 'textarea', 'label' => __('blox_ctl_desc'), 'default' => '', 'rows' => 2,
-                'compact_richtext' => true, 'format_key' => 'text_format'],
+                'compact_richtext' => true, 'format_key' => 'text_format', 'dynamic_tags' => true],
             ['key' => 'text_format', 'type' => 'select', 'label' => __('blox_desc_format'), 'default' => 'plain',
                 'editor_hidden' => true, 'options' => ['plain' => __('blox_desc_plain'), 'html' => 'HTML']],
-            ['key' => 'link', 'type' => 'url', 'label' => __('blox_ctl_link'), 'default' => '', 'placeholder' => __('blox_empty_unclickable')],
+            ['key' => 'link', 'type' => 'url', 'label' => __('blox_ctl_link'), 'default' => '', 'placeholder' => __('blox_empty_unclickable'), 'dynamic_placeholder' => '{{loop.url}}'],
             ['key' => 'card_layout', 'type' => 'select', 'label' => __('blox_card_layout'), 'default' => 'top', 'tab' => 'style',
                 'option_preview' => 'card-layout',
                 'options' => ['top' => __('blox_card_layout_top'), 'side' => __('blox_card_layout_side'), 'text' => __('blox_card_layout_text')]],
@@ -41,13 +41,16 @@ final class CardElement extends AbstractElement
 
     public function render(array $data, string $children = ''): string
     {
-        $image = UrlPolicy::storedImage($data['image'] ?? '');
-        $title = htmlspecialchars($data['title'] ?? '');
+        // 与图片/标题元素同一绑定路径：先取当前循环值，再走原有 URL 和 HTML 安全边界。
+        $image = UrlPolicy::storedImage(BloxDynamicTags::resolveText(DynamicSiteData::interpolate((string) ($data['image'] ?? ''), true)));
+        $title = htmlspecialchars(BloxDynamicTags::resolveText(DynamicSiteData::interpolate((string) ($data['title'] ?? ''))));
         $richDescription = ($data['text_format'] ?? null) === 'html';
         $rawText = is_scalar($data['text'] ?? null) ? (string) $data['text'] : '';
         // javascript: 等伪协议在这里拦；非法地址视同未填——退化为不可点击的 div
-        $link = htmlspecialchars(self::safeHref($data['link'] ?? ''));
-        $text = $richDescription ? HtmlPolicy::description($rawText, $link === '') : htmlspecialchars($rawText);
+        $link = htmlspecialchars(self::safeHref(BloxDynamicTags::resolveText(DynamicSiteData::interpolate((string) ($data['link'] ?? ''), true))));
+        $text = $richDescription
+            ? HtmlPolicy::description(BloxDynamicTags::resolveHtml(DynamicSiteData::interpolateHtml($rawText)), $link === '')
+            : htmlspecialchars(BloxDynamicTags::resolveText(DynamicSiteData::interpolate($rawText)));
         $layout = in_array($data['card_layout'] ?? null, ['top', 'side', 'text'], true) ? $data['card_layout'] : 'top';
         $surface = in_array($data['card_surface'] ?? null, ['plain', 'border', 'shadow'], true) ? $data['card_surface'] : 'shadow';
         $hover = in_array($data['card_hover'] ?? null, ['default', 'lift', 'zoom', 'none'], true) ? $data['card_hover'] : 'default';
