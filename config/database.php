@@ -86,6 +86,10 @@ class Database
 
         // 启用外键约束
         $this->pdo->exec('PRAGMA foreign_keys = ON');
+        // 写锁等待（商城并发下单等场景）：SQLite 文件级写锁，事务碰撞抛
+        // SQLITE_BUSY 而不是排队。busy_timeout 让获取锁等待最多 5 秒——
+        // 短事务（订单落库毫秒级）几乎总能等到；仍超时才报错，由业务层回滚。
+        $this->pdo->exec('PRAGMA busy_timeout = 5000');
     }
 
     /**

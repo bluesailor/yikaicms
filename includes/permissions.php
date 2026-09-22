@@ -49,7 +49,174 @@ function allPermissionKeys(): array
         $keys[] = 'edit_' . $t;
         $keys[] = 'delete_' . $t;
     }
-    return array_merge($keys, modulePermKeys(), bloxPermKeys());
+    return array_merge($keys, modulePermKeys(), bloxPermKeys(), pluginPermissionKeys());
+}
+
+/**
+ * 插件声明的权限键（G1，商城立项报告 §六；首个消费者：shop 商城插件）。
+ *
+ * 为什么走 plugin.json 声明而不是插件运行时注册：后台页面（role.php /
+ * plugin_page.php）的引导链只到 functions.php + auth.php，不加载
+ * includes/plugin.php——插件代码在这些页面上没机会执行，运行时注册必然取不到。
+ * plugin.json 是文件级事实，任何上下文可读，也没有加载顺序问题。
+ *
+ * 声明形状（plugin.json）：
+ *   "permissions": {
+ *     "shop_manage": {"label": "商城管理", "label_en": "Shop", "label_ja": "ショップ"}
+ *   },
+ *   "admin_permission": "shop_manage"    // 插件后台页所需权限；缺省仍为超管专属
+ *
+ * 只收集**已启用**插件的键：停用插件的权限不应继续出现在角色勾选界面
+ * （role.php 保存时按 allPermissionKeys() 过滤，停用后角色残留键自然清除）。
+ *
+ * @param list<string> $activeSlugs
+ * @return array<string, array<string, mixed>> key => 声明信息（label/label_en/…）
+ */
+function pluginPermissionManifest(string $pluginsDir, array $activeSlugs): array
+{
+    $manifest = [];
+    foreach ($activeSlugs as $slug) {
+        if (!is_string($slug) || preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug) !== 1) {
+            continue;
+        }
+        $file = rtrim($pluginsDir, '/\\') . '/' . $slug . '/plugin.json';
+        if (!is_file($file)) {
+            continue;
+        }
+        $meta = json_decode((string) file_get_contents($file), true);
+        $declared = is_array($meta) ? ($meta['permissions'] ?? null) : null;
+        if (!is_array($declared)) {
+            continue;
+        }
+        foreach ($declared as $key => $info) {
+            // 键名从严：小写字母开头、仅小写字母/数字/下划线，杜绝对勾选界面的注入面
+            if (!is_string($key) || preg_match('/^[a-z][a-z0-9_]*$/', $key) !== 1) {
+                continue;
+            }
+            $manifest[$key] = is_array($info) ? $info : [];
+        }
+    }
+
+    return $manifest;
+}
+
+/** 已启用插件声明的权限清单（进程内缓存；DB 不可用时退化为空——只收紧不放宽）。 */
+function pluginPermissions(): array
+{
+    /** @var array<string, array<string, mixed>>|null $cache */
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    try {
+        $active = db()->tableExists('plugins') ? pluginModel()->getActiveSlugs() : [];
+    } catch (\Throwable $e) {
+        $active = [];
+    }
+
+    return $cache = pluginPermissionManifest(ROOT_PATH . '/plugins', $active);
+}
+
+/** @return list<string> */
+function pluginPermissionKeys(): array
+{
+    return array_keys(pluginPermissions());
+}
+
+/** 插件权限键 → 按当前语言取 label；未声明/未启用时原样返回键名。 */
+function pluginPermissionLabel(string $key): string
+{
+    $info = pluginPermissions()[$key] ?? null;
+    if (!is_array($info)) {
+        return $key;
+    }
+    return pluginManifestText($info, 'label', $key);
+}
+
+/** 插件 manifest 字段按后台语言读取；缺少翻译时回落基础字段。 */
+function pluginManifestText(array $info, string $field, string $fallback = ''): string
+{
+    $lang = function_exists('getLang') ? getLang() : 'zh-CN';
+    if ($lang !== 'zh-CN') {
+        $suffixed = $info[$field . '_' . str_replace('-', '_', $lang)] ?? null;
+        if (is_string($suffixed) && $suffixed !== '') {
+            return $suffixed;
+        }
+    }
+    $value = $info[$field] ?? null;
+
+    return is_string($value) && $value !== '' ? $value : $fallback;
+}
+
+/** 插件权限用途说明；未声明时返回空串。 */
+function pluginPermissionDescription(string $key): string
+{
+    $info = pluginPermissions()[$key] ?? null;
+    return is_array($info) ? pluginManifestText($info, 'description') : '';
+}
+
+/**
+ * 收集启用插件声明的角色预设。插件只能组合已有合法权限，且不能授予通配超管。
+ *
+ * @param list<string> $activeSlugs
+ * @param list<string> $validPermissions
+ * @return array<string,array<string,mixed>>
+ */
+function pluginRolePresetManifest(string $pluginsDir, array $activeSlugs, array $validPermissions): array
+{
+    $valid = array_fill_keys($validPermissions, true);
+    unset($valid['*']);
+    $result = [];
+    foreach ($activeSlugs as $slug) {
+        if (!is_string($slug) || preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug) !== 1) {
+            continue;
+        }
+        $file = rtrim($pluginsDir, '/\\') . '/' . $slug . '/plugin.json';
+        $meta = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        $presets = is_array($meta) ? ($meta['role_presets'] ?? null) : null;
+        if (!is_array($presets)) {
+            continue;
+        }
+        foreach ($presets as $preset) {
+            if (!is_array($preset)) {
+                continue;
+            }
+            $key = (string) ($preset['key'] ?? '');
+            $permissions = is_array($preset['permissions'] ?? null) ? $preset['permissions'] : [];
+            if (preg_match('/^[a-z][a-z0-9_]*$/', $key) !== 1) {
+                continue;
+            }
+            $permissions = array_values(array_unique(array_filter(
+                $permissions,
+                static fn(mixed $permission): bool => is_string($permission) && isset($valid[$permission])
+            )));
+            if ($permissions === []) {
+                continue;
+            }
+            $preset['permissions'] = $permissions;
+            $preset['plugin'] = $slug;
+            $result[$slug . ':' . $key] = $preset;
+        }
+    }
+
+    return $result;
+}
+
+/** @return array<string,array<string,mixed>> */
+function pluginRolePresets(): array
+{
+    /** @var array<string,array<string,mixed>>|null $cache */
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    try {
+        $active = db()->tableExists('plugins') ? pluginModel()->getActiveSlugs() : [];
+    } catch (\Throwable $e) {
+        $active = [];
+    }
+
+    return $cache = pluginRolePresetManifest(ROOT_PATH . '/plugins', $active, allPermissionKeys());
 }
 
 /** 类型 → 短名 lang 键（勾选界面与徽章显示用） */
@@ -75,7 +242,11 @@ function permLabel(string $key): string
         'blox_edit' => 'perm_blox_edit', 'blox_home' => 'perm_blox_home',
         'blox_global' => 'perm_blox_global', 'blox_code' => 'perm_blox_code',
     ];
-    return isset($mod[$key]) ? __($mod[$key]) : $key;
+    if (isset($mod[$key])) {
+        return __($mod[$key]);
+    }
+    // 插件声明的键：label 来自 plugin.json（后台引导链不加载插件语言包，故不走 __()）
+    return pluginPermissionLabel($key);
 }
 
 /** Blox 权限用途说明；角色授权界面只为这组高影响能力显示详细描述。 */
@@ -87,7 +258,7 @@ function permDescription(string $key): string
         'blox_global' => 'perm_blox_global_desc',
         'blox_code' => 'perm_blox_code_desc',
     ];
-    return isset($descriptions[$key]) ? __($descriptions[$key]) : '';
+    return isset($descriptions[$key]) ? __($descriptions[$key]) : pluginPermissionDescription($key);
 }
 
 /**
@@ -541,9 +712,19 @@ function permissionCatalog(): array
     foreach (bloxPermKeys() as $permission) {
         $blox[$permission] = permLabel($permission);
     }
-    return [
+    $catalog = [
         'content'  => ['label' => __('perm_group_content'),  'caps' => $content],
         'module'   => ['label' => __('perm_group_module'),   'caps' => $module],
         'blox'     => ['label' => __('perm_group_blox'),     'caps' => $blox],
     ];
+    // 插件声明的权限键（G1）：有才出现该分组——没装插件的站点角色界面保持原样
+    $plugin = [];
+    foreach (pluginPermissionKeys() as $permission) {
+        $plugin[$permission] = pluginPermissionLabel($permission);
+    }
+    if ($plugin !== []) {
+        $catalog['plugin'] = ['label' => __('perm_group_plugin'), 'caps' => $plugin];
+    }
+
+    return $catalog;
 }
