@@ -16,7 +16,22 @@ if (!defined('ROOT_PATH')) {
 require_once __DIR__ . '/lib/money.php';
 require_once __DIR__ . '/lib/tables.php';
 require_once __DIR__ . '/lib/payments.php';
+require_once __DIR__ . '/lib/gateways.php';
 require_once __DIR__ . '/lib/purchase.php';
+
+// 内置真实网关只处理各自的规范标识；未配置、配置不完整或验签失败均保持 fail-closed。
+add_filter('shop_payment_verify', static function (
+    mixed $result,
+    string $gateway,
+    string $rawBody,
+    array $context
+): mixed {
+    return match ($gateway) {
+        'wechat_pay' => shopWechatVerifyNotification($rawBody, $context),
+        'alipay' => shopAlipayVerifyNotification($rawBody, $context),
+        default => $result,
+    };
+});
 
 add_action('init', function (): void {
     try {

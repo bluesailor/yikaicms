@@ -3,8 +3,9 @@
 
 declare(strict_types=1);
 
+// query URL 模式没有 rewrite：允许支付平台直接 POST 此物理入口。
 if (!defined('ROOT_PATH')) {
-    exit('Access Denied');
+    define('ROOT_PATH', dirname(__DIR__, 3));
 }
 
 require_once ROOT_PATH . '/includes/init.php';
@@ -39,12 +40,24 @@ if (function_exists('getallheaders')) {
         }
     }
 }
+foreach ($_SERVER as $serverName => $serverValue) {
+    if (str_starts_with((string) $serverName, 'HTTP_') && is_string($serverValue)) {
+        $headerName = strtolower(str_replace('_', '-', substr((string) $serverName, 5)));
+        if (!isset($headers[$headerName])) {
+            $headers[$headerName] = $serverValue;
+        }
+    }
+}
 
 $result = shopPaymentHandleNotification($gateway, $rawBody, [
     'headers' => $headers,
     'content_type' => (string) ($_SERVER['CONTENT_TYPE'] ?? ''),
 ]);
 if ($result['ok']) {
+    if ($gateway === 'wechat_pay') {
+        http_response_code(204);
+        exit;
+    }
     exit('success');
 }
 
@@ -54,4 +67,8 @@ $status = match ($result['error']) {
     default => 400,
 };
 http_response_code($status);
+if ($gateway === 'wechat_pay') {
+    header('Content-Type: application/json; charset=utf-8');
+    exit('{"code":"FAIL","message":"verification failed"}');
+}
 exit('fail');

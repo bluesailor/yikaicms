@@ -26,9 +26,18 @@ function shopPaymentGatewayValid(string $gateway): bool
 }
 
 /** 同一正文由同一网关重试时得到同一摘要；网关不同则不会互相碰撞。 */
-function shopPaymentNotifyHash(string $gateway, string $rawBody): string
+function shopPaymentNotifyHash(string $gateway, string $rawBody, array $context = []): string
 {
-    return hash('sha256', $gateway . "\0" . $rawBody);
+    // 微信签名在请求头而非正文中：把验签四头并入幂等键，避免一次缺头/错头请求
+    // 永久占住同正文，导致平台随后携正确签名重试仍无法处理。支付宝签名在正文内。
+    $signatureContext = '';
+    if ($gateway === 'wechat_pay' && is_array($context['headers'] ?? null)) {
+        $headers = $context['headers'];
+        foreach (['wechatpay-serial', 'wechatpay-timestamp', 'wechatpay-nonce', 'wechatpay-signature'] as $name) {
+            $signatureContext .= "\0" . (is_string($headers[$name] ?? null) ? $headers[$name] : '');
+        }
+    }
+    return hash('sha256', $gateway . "\0" . $rawBody . $signatureContext);
 }
 
 /**
@@ -128,7 +137,7 @@ function shopPaymentHandleNotification(string $gateway, string $rawBody, array $
         return ['ok' => false, 'error' => 'shop_err_schema'];
     }
 
-    $hash = shopPaymentNotifyHash($gateway, $rawBody);
+    $hash = shopPaymentNotifyHash($gateway, $rawBody, $context);
     $notification = db()->fetchOne(
         'SELECT * FROM ' . DB_PREFIX . 'shop_payment_notifications WHERE notify_hash = ?',
         [$hash]
