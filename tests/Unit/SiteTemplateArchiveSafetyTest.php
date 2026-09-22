@@ -84,7 +84,7 @@ final class SiteTemplateArchiveSafetyTest extends TestCase
         }
     }
 
-    /** 扩展名白名单：media/ 只收静态资源，theme/ 另外允许 php/css/js/json。 */
+    /** 扩展名白名单：media/ 只收静态资源，theme/ 另外允许代码、配置与说明文档。 */
     public function testExtensionAllowlistIsEnforcedPerPrefix(): void
     {
         foreach (['media/script.php', 'media/style.css', 'media/app.js', 'theme/run.sh', 'theme/data.sql'] as $name) {
@@ -116,6 +116,7 @@ final class SiteTemplateArchiveSafetyTest extends TestCase
             $zip->addFromString('media/photo.jpg', 'binary');
             $zip->addFromString('theme/layouts/header.php', '<?php declare(strict_types=1);');
             $zip->addFromString('theme/assets/app.css', 'body{}');
+            $zip->addFromString('theme/README.md', '# Theme notes');
         });
         try {
             SiteTemplateArchive::read($zip);
@@ -124,5 +125,14 @@ final class SiteTemplateArchiveSafetyTest extends TestCase
             self::assertNotSame('st_unsafe', $e->getMessage(),
                 '合法条目不该被条目层拦下——它应当走到 manifest/schema 阶段才失败');
         }
+    }
+
+    public function testThemeAllowlistIsSharedAndNarrow(): void
+    {
+        self::assertTrue(SiteTemplateArchive::themeFileAllowed('README.md'));
+        self::assertTrue(SiteTemplateArchive::themeFileAllowed('assets/app.css'));
+        self::assertFalse(SiteTemplateArchive::themeFileAllowed('deploy.sh'));
+        self::assertFalse(SiteTemplateArchive::themeFileAllowed('.env'));
+        self::assertFalse(SiteTemplateArchive::themeFileAllowed('../README.md'));
     }
 }
