@@ -6,6 +6,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/includes/FormUploadService.php';
+
 const FORM_SUBMISSION_CORE_KEYS = ['name', 'phone', 'email', 'company', 'content'];
 
 /**
@@ -27,7 +29,7 @@ function formTemplateFieldLabels(string $fieldsRaw): array
         return $labels;
     }
     preg_match_all(
-        '/<label\b[^>]*>(.*?)<\/label>\s*\[(?:text|email|tel|textarea|number|date|url|select|radio|checkbox)\*?\s+([a-zA-Z0-9_-]+)/is',
+        '/<label\b[^>]*>(.*?)<\/label>\s*\[(?:text|email|tel|textarea|number|date|url|select|radio|checkbox|file|hidden)\*?\s+([a-zA-Z0-9_-]+)/is',
         $fieldsRaw,
         $matches,
         PREG_SET_ORDER
@@ -49,9 +51,9 @@ function formFieldsIsList(array $value): bool
 
 /**
  * @param array<string,string> $labels
- * @return list<array{key:string,label:string,value:string}>
+ * @return list<array{key:string,label:string,value:string,file_url?:string}>
  */
-function formSubmissionExtraFields(string $extraJson, array $labels): array
+function formSubmissionExtraFields(string $extraJson, array $labels, int $submissionId = 0): array
 {
     $extra = json_decode($extraJson, true);
     if (!is_array($extra)) {
@@ -68,7 +70,15 @@ function formSubmissionExtraFields(string $extraJson, array $labels): array
             continue;
         }
         $label = $labels[$key] ?? '';
-        $fields[] = ['key' => $key, 'label' => $label !== '' ? $label : $key, 'value' => $value];
+        $item = ['key' => $key, 'label' => $label !== '' ? $label : $key, 'value' => $value];
+        $file = FormUploadService::decodeReference($value);
+        if ($file !== null) {
+            $item['value'] = $file['name'];
+            if ($submissionId > 0 && preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{0,39}$/D', $key)) {
+                $item['file_url'] = '/admin/form_file.php?id=' . $submissionId . '&field=' . rawurlencode($key);
+            }
+        }
+        $fields[] = $item;
     }
     return $fields;
 }

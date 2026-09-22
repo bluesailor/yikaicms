@@ -459,7 +459,7 @@ ROOT_ALLOWED=(
     ".htaccess" "LICENSE" "LICENSE-MIT-HISTORICAL" "README.md" "THIRD-PARTY-NOTICES.md"
     "favicon.ico" "robots.txt"
     "index.php" "article.php" "captcha.php" "contact.php" "cron.php" "detail.php"
-    "download.php" "form_submit.php" "history.php" "job_detail.php" "list.php"
+    "download.php" "form_submit.php" "form_nonce.php" "history.php" "job_detail.php" "list.php"
     "news.php" "page.php" "product.php" "search.php" "sitemap.php"
 )
 while IFS= read -r entry; do

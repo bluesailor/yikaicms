@@ -143,6 +143,17 @@ final class HtmlCacheTest extends TestCase
         $this->assertTrue($this->isCacheable());
     }
 
+    public function testFacetQueriesShareCanonicalIdentityButDoNotCreateUnboundedCacheFiles(): void
+    {
+        $_GET = [
+            'brand' => '9,2,9', 'tag' => '3,8', 'pmin' => '0010.5000', 'pmax' => '200',
+        ];
+        self::assertFalse($this->isCacheable());
+        self::assertSame([
+            'brand' => '2,9', 'pmax' => '200', 'pmin' => '10.5', 'tag' => '3,8',
+        ], HtmlCache::canonicalRequest()['query']);
+    }
+
     public function testInvalidOrStructuredAllowedValuesAreNotCacheable(): void
     {
         foreach ([
@@ -152,6 +163,10 @@ final class HtmlCacheTest extends TestCase
             ['sort' => 'hot'],
             ['slug' => str_repeat('a', 101)],
             ['cat' => '../private'],
+            ['brand' => '1,not-an-id'],
+            ['tag' => implode(',', range(1, 51))],
+            ['pmin' => '-1'],
+            ['pmax' => '1e9'],
         ] as $query) {
             $_GET = $query;
             $this->assertFalse($this->isCacheable());
