@@ -122,7 +122,7 @@ final class SiteTemplateArchive
     {
         $manifest = json_decode($manifestBytes, true, 64, JSON_THROW_ON_ERROR);
         if (!is_array($manifest) || ($manifest['format'] ?? '') !== 'yikaicms-site-template' || !in_array($manifest['version'] ?? 0, self::SUPPORTED_VERSIONS, true)
-            || ($manifest['cms'] ?? '') !== (defined('CMS_VERSION') ? CMS_VERSION : '1.20.1')
+            || ($manifest['cms'] ?? '') !== (defined('CMS_VERSION') ? CMS_VERSION : '2.0.0')
             || ($manifest['schema'] ?? null) !== SiteTemplateData::contractSchema()
             || ($manifest['schema'] ?? null) !== SiteTemplateData::schema()) throw new RuntimeException('st_schema');
         if (!is_string($manifest['theme'] ?? null) || !preg_match('/^[a-z0-9][a-z0-9-]{0,79}$/D', $manifest['theme'])) throw new RuntimeException('st_invalid');

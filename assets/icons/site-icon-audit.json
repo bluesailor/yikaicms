@@ -340,8 +340,8 @@
     },
     "outputs": {
         "assets/icons/site-icons.min.css": {
-            "bytes": 5777,
-            "sha256": "8261e7348f88e57ab240029fb1f944330564194af77611bcc179cd3ad0fe3628"
+            "bytes": 5776,
+            "sha256": "5bcae3a859e4438e6c924012fcd2455e8027664616759308248ead9effa481c1"
         },
         "assets/icons/fonts/tabler-icons-site.woff2": {
             "bytes": 17648,

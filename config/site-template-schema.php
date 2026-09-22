@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-/** Canonical portable site-template schema for CMS 1.20.1. */
+/** Canonical portable site-template schema for CMS 2.0.0. */
 return array (
   'channels' =>
   array (
