@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { buildFormUrl, createLoader, controlledLink } = require('../../assets/js/product-catalog-filter');
+const { buildFormUrl, createLoader, controlledLink, syncHeadMetadata } = require('../../assets/js/product-catalog-filter');
 
 test('GET forms keep canonical controls, omit empty values and reset pagination', () => {
     const savedLocation = global.location;
@@ -67,6 +67,50 @@ test('only links inside catalog controls are intercepted', () => {
     assert.equal(controlledLink(pagination, root), true);
     assert.equal(controlledLink(category, root), false);
     assert.equal(controlledLink(product, root), false);
+});
+
+test('AJAX navigation synchronizes canonical URL and document title from the fetched page', () => {
+    const canonical = {
+        href: 'https://example.test/products.html',
+        getAttribute(name) { return name === 'href' ? this.href : null; },
+        setAttribute(name, value) { if (name === 'href') this.href = value; },
+    };
+    const nextCanonical = {
+        getAttribute: name => name === 'href'
+            ? 'https://example.test/en/products/page/2.html?keyword=bolt%20nut'
+            : null,
+    };
+    const doc = {
+        title: 'Products - Example',
+        querySelector: selector => selector === 'link[rel="canonical"]' ? canonical : null,
+    };
+    const parsed = {
+        title: 'Filtered products - Example',
+        querySelector: selector => selector === 'link[rel="canonical"]' ? nextCanonical : null,
+    };
+
+    syncHeadMetadata(doc, parsed);
+
+    assert.equal(canonical.href, 'https://example.test/en/products/page/2.html?keyword=bolt%20nut');
+    assert.equal(doc.title, 'Filtered products - Example');
+});
+
+test('AJAX metadata sync does not erase the current canonical URL or title when response metadata is absent', () => {
+    const canonical = {
+        href: 'https://example.test/products.html?keyword=bolt',
+        getAttribute(name) { return name === 'href' ? this.href : null; },
+        setAttribute(name, value) { if (name === 'href') this.href = value; },
+    };
+    const doc = {
+        title: 'Products - Example',
+        querySelector: selector => selector === 'link[rel="canonical"]' ? canonical : null,
+    };
+    const parsed = { title: '', querySelector: () => null };
+
+    syncHeadMetadata(doc, parsed);
+
+    assert.equal(canonical.href, 'https://example.test/products.html?keyword=bolt');
+    assert.equal(doc.title, 'Products - Example');
 });
 
 test('boot quietly leaves native GET navigation in place when fetch is unavailable', () => {

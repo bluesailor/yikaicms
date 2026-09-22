@@ -72,10 +72,16 @@ final class ProductCatalogRequest
                 ?? dynamicUrl('list', ['id' => (int) ($channel['id'] ?? 0), 'page' => $page]);
         }
         $query = $filters !== [] ? '?' . http_build_query($filters, '', '&', PHP_QUERY_RFC3986) : '';
+        $prefix = langPrefix();
         $slug = (string) ($channel['slug'] ?? '');
+        $encodedSlug = $slug !== '' ? rawurlencode($slug) : '';
         $path = $page === 1
-            ? ($slug !== '' ? "/{$slug}.html" : "/list/{$channel['id']}.html")
-            : ($slug !== '' ? "/{$slug}/page/{$page}.html" : "/list/{$channel['id']}/page/{$page}.html");
+            ? ($encodedSlug !== ''
+                ? $prefix . '/' . $encodedSlug . '.html'
+                : $prefix . '/list/' . (int) ($channel['id'] ?? 0) . '.html')
+            : ($encodedSlug !== ''
+                ? $prefix . '/' . $encodedSlug . '/page/' . $page . '.html'
+                : $prefix . '/list/' . (int) ($channel['id'] ?? 0) . '/page/' . $page . '.html');
         return $path . $query;
     }
 
