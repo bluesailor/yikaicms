@@ -59,10 +59,10 @@ final class SiteTemplateOfflineValidator
                 }
                 if ($name !== 'site.json') {
                     $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-                    $allowedExtensions = str_starts_with($name, 'theme/')
-                        ? array_merge(self::STATIC_EXTENSIONS, ['php', 'css', 'js', 'json'])
-                        : ($pluginDataPath ? ['json'] : self::STATIC_EXTENSIONS);
-                    if (!in_array($extension, $allowedExtensions, true)
+                    $allowedFileType = str_starts_with($name, 'theme/')
+                        ? SiteTemplateArchive::themeFileAllowed(substr($name, strlen('theme/')))
+                        : in_array($extension, $pluginDataPath ? ['json'] : self::STATIC_EXTENSIONS, true);
+                    if (!$allowedFileType
                         || (str_starts_with($name, 'media/') && preg_match('/\.(?:php[0-9]?|phtml|phar)(?:\.|$)/i', $name) === 1)) {
                         throw new RuntimeException('Unsafe ZIP file type: ' . $name);
                     }

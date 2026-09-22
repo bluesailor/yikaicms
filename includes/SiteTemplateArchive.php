@@ -15,6 +15,7 @@ final class SiteTemplateArchive
     public const MAX_TOTAL = 50331648;
     public const MAX_FILE = 12582912;
     private const STATIC_EXT = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg', 'ico', 'pdf', 'woff', 'woff2', 'ttf', 'mp4', 'webm'];
+    private const THEME_EXT = ['php', 'css', 'js', 'json', 'md'];
 
     public static function safePath(string $path): bool
     {
@@ -24,6 +25,14 @@ final class SiteTemplateArchive
                 || str_ends_with($part, '.') || preg_match('/^(?:con|prn|aux|nul|com[0-9]|lpt[0-9])(?:\.|$)/i', $part)) return false;
         }
         return true;
+    }
+
+    /** Export and import must share one theme-file allowlist. */
+    public static function themeFileAllowed(string $relative): bool
+    {
+        if (!self::safePath($relative)) return false;
+        $extension = strtolower(pathinfo($relative, PATHINFO_EXTENSION));
+        return in_array($extension, array_merge(self::STATIC_EXT, self::THEME_EXT), true);
     }
 
     /**
@@ -54,10 +63,13 @@ final class SiteTemplateArchive
             if ($name !== 'site.json') {
                 $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
                 $pluginData = preg_match('#^plugin-data/[a-z0-9][a-z0-9-]{0,79}\.json$#D', $name) === 1;
-                $allowed = str_starts_with($name, 'theme/') ? array_merge(self::STATIC_EXT, ['php', 'css', 'js', 'json'])
-                    : ($pluginData ? ['json'] : self::STATIC_EXT);
+                $themeFile = str_starts_with($name, 'theme/')
+                    && self::themeFileAllowed(substr($name, strlen('theme/')));
+                $allowed = $pluginData ? ['json'] : self::STATIC_EXT;
                 if ((!str_starts_with($name, 'theme/') && !str_starts_with($name, 'media/') && !$pluginData)
-                    || !in_array($ext, $allowed, true)) throw new RuntimeException('st_unsafe');
+                    || (str_starts_with($name, 'theme/') ? !$themeFile : !in_array($ext, $allowed, true))) {
+                    throw new RuntimeException('st_unsafe');
+                }
                 if (str_starts_with($name, 'media/') && preg_match('/\.(?:php[0-9]?|phtml|phar)(?:\.|$)/i', $name)) throw new RuntimeException('st_unsafe');
             }
             $names[] = $name;
