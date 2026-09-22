@@ -21,6 +21,7 @@ require_once ROOT_PATH . '/plugins/shop/lib/money.php';
 require_once ROOT_PATH . '/plugins/shop/lib/tables.php';
 require_once ROOT_PATH . '/plugins/shop/lib/orders.php';
 require_once ROOT_PATH . '/plugins/shop/lib/payment-methods.php';
+require_once ROOT_PATH . '/plugins/shop/lib/gateways.php';
 
 header('Cache-Control: no-store');
 
@@ -45,6 +46,7 @@ if ($orderNo !== '') {
     }
 }
 $placed = isset($_GET['placed']);
+$paymentError = isset($_GET['err']) ? (string) $_GET['err'] : '';
 
 /** 联系电话脱敏：保留前 3 后 4，中间打码 */
 $maskPhone = static function (string $phone): string {
@@ -100,6 +102,18 @@ require_once theme_path('layouts/header.php');
         $manualPaymentMethods = (string) $order['status'] === 'pending_payment' && $paymentStatus !== 'succeeded'
             ? shopManualPaymentMethods()
             : [];
+        $onlinePaymentGateways = (string) $order['status'] === 'pending_payment' && $paymentStatus !== 'succeeded'
+            ? shopEnabledOnlinePaymentGateways()
+            : [];
+        $paymentTokenTs = time();
+        $paymentSecret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
+        $wechatNative = is_array($_SESSION['shop_wechat_native'] ?? null)
+            ? $_SESSION['shop_wechat_native']
+            : [];
+        $wechatCodeUrl = (string) ($wechatNative['order_no'] ?? '') === (string) $order['order_no']
+            && time() - (int) ($wechatNative['created_at'] ?? 0) <= 7200
+            ? (string) ($wechatNative['code_url'] ?? '')
+            : '';
         ?>
         <div class="bg-white rounded border border-gray-200 overflow-hidden" data-testid="shop-order-detail">
             <div class="px-5 py-4 border-b bg-gray-50 flex flex-wrap items-center justify-between gap-2">
@@ -113,6 +127,9 @@ require_once theme_path('layouts/header.php');
                 </div>
             </div>
             <div class="p-5">
+                <?php if ($paymentError !== ''): ?>
+                <div class="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" data-testid="shop-payment-error"><?php echo e(__($paymentError)); ?></div>
+                <?php endif; ?>
                 <table class="w-full text-sm">
                     <thead>
                     <tr class="text-left text-gray-400 text-xs">
@@ -146,6 +163,46 @@ require_once theme_path('layouts/header.php');
                     </tr>
                     </tbody>
                 </table>
+
+                <?php if ($onlinePaymentGateways !== [] && $paymentSecret !== ''): ?>
+                <section class="mt-5 rounded border border-blue-200 bg-blue-50 p-4" data-testid="shop-online-payments">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h2 class="font-medium text-blue-900"><?php echo e(__('shop_online_payment_title')); ?></h2>
+                        <span class="text-sm font-bold text-blue-900"><?php echo e(__('shop_payment_amount_due')); ?>：<?php echo e(formatPrice((string) $order['amount_total'])); ?></span>
+                    </div>
+                    <p class="mt-1 text-xs text-blue-700"><?php echo e(__('shop_online_payment_hint')); ?></p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <?php foreach ($onlinePaymentGateways as $onlineGateway): ?>
+                        <form method="post" action="/shop/pay">
+                            <input type="hidden" name="gateway" value="<?php echo e($onlineGateway); ?>">
+                            <input type="hidden" name="order_no" value="<?php echo e((string) $order['order_no']); ?>">
+                            <input type="hidden" name="ts" value="<?php echo $paymentTokenTs; ?>">
+                            <input type="hidden" name="sig" value="<?php echo e(shopPaymentStartToken($onlineGateway, (string) $order['order_no'], $paymentTokenTs, $paymentSecret)); ?>">
+                            <button type="submit" class="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700" data-testid="shop-pay-<?php echo e($onlineGateway); ?>">
+                                <?php echo e(__('shop_pay_with_' . $onlineGateway)); ?>
+                            </button>
+                        </form>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php if ($wechatCodeUrl !== '' && in_array('wechat_pay', $onlinePaymentGateways, true)): ?>
+                    <div class="mt-4 rounded border border-blue-200 bg-white p-4 text-center" data-testid="shop-wechat-native-code">
+                        <div class="font-medium text-gray-900"><?php echo e(__('shop_wechat_scan_title')); ?></div>
+                        <div id="shopWechatQr" class="mx-auto mt-3 flex justify-center"></div>
+                        <p class="mt-2 text-xs text-gray-500"><?php echo e(__('shop_wechat_scan_hint')); ?></p>
+                        <button type="button" class="mt-3 rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50" onclick="location.reload()"><?php echo e(__('shop_payment_refresh')); ?></button>
+                    </div>
+                    <script src="/assets/qrcode/qrcode.js"></script>
+                    <script>
+                    (() => {
+                        const qr = qrcode(0, 'M');
+                        qr.addData(<?php echo json_encode($wechatCodeUrl, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>);
+                        qr.make();
+                        document.getElementById('shopWechatQr').innerHTML = qr.createSvgTag({cellSize: 5, margin: 2});
+                    })();
+                    </script>
+                    <?php endif; ?>
+                </section>
+                <?php endif; ?>
 
                 <?php if ($manualPaymentMethods !== []): ?>
                 <section class="mt-5 rounded border border-amber-200 bg-amber-50 p-4" data-testid="shop-payment-details">

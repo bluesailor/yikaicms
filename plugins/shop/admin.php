@@ -28,6 +28,7 @@ require_once __DIR__ . '/lib/orders.php';
 require_once __DIR__ . '/lib/refunds.php';
 require_once __DIR__ . '/lib/shipping.php';
 require_once __DIR__ . '/lib/payment-methods.php';
+require_once __DIR__ . '/lib/gateways.php';
 require_once __DIR__ . '/lib/access.php';
 
 try {
@@ -193,6 +194,41 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
     adminLog('shop', 'save_payment_methods', 'payment methods=' . count($normalized['methods'])
         . ' enabled=' . $enabledCount);
 
+    header('Location: /admin/plugin_page.php?plugin=shop&saved=1');
+    exit;
+}
+
+// ============================================================
+// POST：真实支付网关（密钥/证书落 storage 私有目录，日志绝不记录内容）
+// ============================================================
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
+    && in_array((string) ($_POST['action'] ?? ''), ['save_wechat_gateway', 'save_alipay_gateway'], true)) {
+    verifyCsrf();
+    $action = (string) $_POST['action'];
+    $result = $action === 'save_wechat_gateway'
+        ? shopSaveWechatGateway([
+            'enabled' => $_POST['enabled'] ?? 0,
+            'app_id' => $_POST['app_id'] ?? '',
+            'merchant_id' => $_POST['merchant_id'] ?? '',
+            'wechat_private_key' => $_POST['private_key'] ?? '',
+            'wechat_merchant_cert' => $_POST['merchant_cert'] ?? '',
+            'wechat_platform_cert' => $_POST['platform_cert'] ?? '',
+            'wechat_api_v3_key' => $_POST['api_v3_key'] ?? '',
+        ])
+        : shopSaveAlipayGateway([
+            'enabled' => $_POST['enabled'] ?? 0,
+            'app_id' => $_POST['app_id'] ?? '',
+            'seller_id' => $_POST['seller_id'] ?? '',
+            'alipay_private_key' => $_POST['private_key'] ?? '',
+            'alipay_app_cert' => $_POST['app_cert'] ?? '',
+            'alipay_public_cert' => $_POST['alipay_public_cert'] ?? '',
+            'alipay_root_cert' => $_POST['alipay_root_cert'] ?? '',
+        ]);
+    if (!$result['ok']) {
+        header('Location: /admin/plugin_page.php?plugin=shop&err=' . urlencode(__($result['error'])));
+        exit;
+    }
+    adminLog('shop', $action, $action . ' configuration updated');
     header('Location: /admin/plugin_page.php?plugin=shop&saved=1');
     exit;
 }
@@ -728,6 +764,88 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endforeach; ?>
             <button type="submit" class="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700"><?php echo e(__('shop_btn_save')); ?></button>
         </form>
+    </div>
+
+    <?php
+    $shopWechatStatus = shopWechatGatewayStatus();
+    $shopAlipayStatus = shopAlipayGatewayStatus();
+    $shopPaymentHttps = str_starts_with(strtolower(siteBaseUrl()), 'https://');
+    ?>
+    <div class="mb-4 bg-white rounded border border-gray-200 p-4" data-testid="shop-online-payment-settings">
+        <div class="text-sm font-medium text-gray-900"><?php echo e(__('shop_gateway_settings_title')); ?></div>
+        <p class="mt-1 text-xs text-gray-500"><?php echo e(__('shop_gateway_settings_hint')); ?></p>
+        <?php if (!$shopPaymentHttps): ?>
+        <div class="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"><?php echo e(__('shop_gateway_https_warning')); ?></div>
+        <?php endif; ?>
+        <div class="mt-4 grid gap-4 xl:grid-cols-2">
+            <form method="post" action="/admin/plugin_page.php?plugin=shop" class="rounded border border-gray-200 p-4 space-y-3" autocomplete="off" data-testid="shop-wechat-gateway">
+                <?php echo csrfField(); ?>
+                <input type="hidden" name="action" value="save_wechat_gateway">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <div class="font-medium text-gray-900"><?php echo e(__('shop_gateway_wechat_native')); ?></div>
+                        <div class="mt-1 text-xs <?php echo $shopWechatStatus['ready'] ? 'text-green-600' : 'text-gray-400'; ?>">
+                            <?php echo e(__($shopWechatStatus['ready'] ? 'shop_gateway_ready' : 'shop_gateway_not_ready')); ?>
+                        </div>
+                    </div>
+                    <label class="inline-flex items-center gap-2 text-gray-700">
+                        <input type="hidden" name="enabled" value="0">
+                        <input type="checkbox" name="enabled" value="1"<?php echo (string) config('shop_wechat_enabled', '0') === '1' ? ' checked' : ''; ?>>
+                        <span><?php echo e(__('shop_payment_enabled')); ?></span>
+                    </label>
+                </div>
+                <div class="grid sm:grid-cols-2 gap-3">
+                    <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_app_id')); ?></span>
+                        <input type="text" name="app_id" maxlength="32" value="<?php echo e((string) config('shop_wechat_app_id', '')); ?>" class="w-full border border-gray-300 rounded px-2 py-1.5"></label>
+                    <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_merchant_id')); ?></span>
+                        <input type="text" name="merchant_id" maxlength="32" value="<?php echo e((string) config('shop_wechat_merchant_id', '')); ?>" class="w-full border border-gray-300 rounded px-2 py-1.5"></label>
+                </div>
+                <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_private_key')); ?></span>
+                    <textarea name="private_key" rows="3" maxlength="524288" class="w-full border border-gray-300 rounded px-2 py-1.5 font-mono text-xs" placeholder="<?php echo e(__('shop_gateway_secret_preserve')); ?>"></textarea></label>
+                <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_wechat_merchant_cert')); ?></span>
+                    <textarea name="merchant_cert" rows="3" maxlength="524288" class="w-full border border-gray-300 rounded px-2 py-1.5 font-mono text-xs" placeholder="<?php echo e(__('shop_gateway_secret_preserve')); ?>"></textarea></label>
+                <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_wechat_platform_cert')); ?></span>
+                    <textarea name="platform_cert" rows="3" maxlength="524288" class="w-full border border-gray-300 rounded px-2 py-1.5 font-mono text-xs" placeholder="<?php echo e(__('shop_gateway_secret_preserve')); ?>"></textarea></label>
+                <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_wechat_api_v3_key')); ?></span>
+                    <input type="password" name="api_v3_key" maxlength="32" value="" class="w-full border border-gray-300 rounded px-2 py-1.5 font-mono" placeholder="<?php echo e(__('shop_gateway_secret_preserve')); ?>"></label>
+                <div class="text-xs text-gray-500 break-all"><span class="font-medium"><?php echo e(__('shop_gateway_notify_url')); ?>：</span><code><?php echo e(shopPaymentNotifyUrl('wechat_pay')); ?></code></div>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700"><?php echo e(__('shop_btn_save')); ?></button>
+            </form>
+
+            <form method="post" action="/admin/plugin_page.php?plugin=shop" class="rounded border border-gray-200 p-4 space-y-3" autocomplete="off" data-testid="shop-alipay-gateway">
+                <?php echo csrfField(); ?>
+                <input type="hidden" name="action" value="save_alipay_gateway">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <div class="font-medium text-gray-900"><?php echo e(__('shop_gateway_alipay_page')); ?></div>
+                        <div class="mt-1 text-xs <?php echo $shopAlipayStatus['ready'] ? 'text-green-600' : 'text-gray-400'; ?>">
+                            <?php echo e(__($shopAlipayStatus['ready'] ? 'shop_gateway_ready' : 'shop_gateway_not_ready')); ?>
+                        </div>
+                    </div>
+                    <label class="inline-flex items-center gap-2 text-gray-700">
+                        <input type="hidden" name="enabled" value="0">
+                        <input type="checkbox" name="enabled" value="1"<?php echo (string) config('shop_alipay_enabled', '0') === '1' ? ' checked' : ''; ?>>
+                        <span><?php echo e(__('shop_payment_enabled')); ?></span>
+                    </label>
+                </div>
+                <div class="grid sm:grid-cols-2 gap-3">
+                    <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_app_id')); ?></span>
+                        <input type="text" name="app_id" maxlength="32" value="<?php echo e((string) config('shop_alipay_app_id', '')); ?>" class="w-full border border-gray-300 rounded px-2 py-1.5"></label>
+                    <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_seller_id')); ?></span>
+                        <input type="text" name="seller_id" maxlength="16" value="<?php echo e((string) config('shop_alipay_seller_id', '')); ?>" class="w-full border border-gray-300 rounded px-2 py-1.5"></label>
+                </div>
+                <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_private_key')); ?></span>
+                    <textarea name="private_key" rows="3" maxlength="524288" class="w-full border border-gray-300 rounded px-2 py-1.5 font-mono text-xs" placeholder="<?php echo e(__('shop_gateway_secret_preserve')); ?>"></textarea></label>
+                <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_alipay_app_cert')); ?></span>
+                    <textarea name="app_cert" rows="3" maxlength="524288" class="w-full border border-gray-300 rounded px-2 py-1.5 font-mono text-xs" placeholder="<?php echo e(__('shop_gateway_secret_preserve')); ?>"></textarea></label>
+                <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_alipay_public_cert')); ?></span>
+                    <textarea name="alipay_public_cert" rows="3" maxlength="524288" class="w-full border border-gray-300 rounded px-2 py-1.5 font-mono text-xs" placeholder="<?php echo e(__('shop_gateway_secret_preserve')); ?>"></textarea></label>
+                <label class="block"><span class="block text-gray-600 mb-1"><?php echo e(__('shop_gateway_alipay_root_cert')); ?></span>
+                    <textarea name="alipay_root_cert" rows="3" maxlength="524288" class="w-full border border-gray-300 rounded px-2 py-1.5 font-mono text-xs" placeholder="<?php echo e(__('shop_gateway_secret_preserve')); ?>"></textarea></label>
+                <div class="text-xs text-gray-500 break-all"><span class="font-medium"><?php echo e(__('shop_gateway_notify_url')); ?>：</span><code><?php echo e(shopPaymentNotifyUrl('alipay')); ?></code></div>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700"><?php echo e(__('shop_btn_save')); ?></button>
+            </form>
+        </div>
     </div>
 
     <form method="get" action="/admin/plugin_page.php" class="mb-4 flex flex-wrap items-center gap-2">

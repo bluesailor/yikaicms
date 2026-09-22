@@ -20,7 +20,10 @@ function shopAdminResolveView(string $requested, bool $canManage, bool $canOrder
 /** 未知动作一律拒绝；商城管理与订单处理互不代替。 */
 function shopAdminActionAllowed(string $action, bool $canManage, bool $canOrders): bool
 {
-    if (in_array($action, ['save_shipping', 'save_payment_methods', 'save_sales'], true)) {
+    if (in_array($action, [
+        'save_shipping', 'save_payment_methods', 'save_wechat_gateway',
+        'save_alipay_gateway', 'save_sales',
+    ], true)) {
         return $canManage;
     }
     if (str_starts_with($action, 'order_') || str_starts_with($action, 'refund_')) {
