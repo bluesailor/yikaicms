@@ -27,7 +27,7 @@ $pcKeyword = (string) $keyword;
     <?php endif; ?>
 
     <?php if ($pcShowSearch): ?>
-    <form method="get" action="<?php echo $pcDynamicRoute ? '/index.php' : $pcListUrl; ?>" class="flex items-center gap-2 <?php echo $pcToolbarVariant === 'full' || $pcToolbarVariant === 'toolbar' ? 'max-w-md' : ''; ?>">
+    <form method="get" action="<?php echo e($pcDynamicRoute ? '/index.php' : $pcListUrl); ?>" role="search" class="flex items-center gap-2 <?php echo $pcToolbarVariant === 'full' || $pcToolbarVariant === 'toolbar' ? 'max-w-md' : ''; ?>">
         <?php if ($pcDynamicRoute): ?>
         <input type="hidden" name="yk_route" value="<?php echo e($pcRoute); ?>">
         <?php if (!$isProductType): ?>
@@ -37,8 +37,12 @@ $pcKeyword = (string) $keyword;
         <?php if ($isProductType && $productCategory && !empty($productCategory['slug'])): ?>
         <input type="hidden" name="cat" value="<?php echo e((string) $productCategory['slug']); ?>">
         <?php endif; ?>
+        <?php foreach (array_diff_key(ProductCatalogRequest::filterQuery($catalogQuery ?? ProductCatalogRequest::normalize($_GET)), ['keyword' => true]) as $pcHidden => $pcValue): ?>
+        <input type="hidden" name="<?php echo e($pcHidden); ?>" value="<?php echo e($pcValue); ?>">
+        <?php endforeach; ?>
         <div class="relative flex-1">
             <input type="text" name="keyword" value="<?php echo e($pcKeyword); ?>"
+                   aria-label="<?php echo e(__('search')); ?>"
                    placeholder="<?php echo e($pcToolbarVariant === 'sidebar' ? __('search_placeholder') : __('list_search_product')); ?>"
                    class="w-full border rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
             <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" aria-label="<?php echo e(__('search')); ?>">
@@ -64,12 +68,12 @@ $pcKeyword = (string) $keyword;
             <?php endif; ?>
         </div>
         <?php if ($pcShowSort): ?>
-        <div class="flex items-center gap-1.5 text-sm">
+        <div class="flex items-center gap-1.5 text-sm" data-catalog-sort>
             <?php foreach ($enabledSorts as $sortKey):
                 if (!isset(ProductModel::SORT_LABELS[$sortKey])) { continue; }
                 $isActive = ($sortKey === $currentSort);
                 $sortUrl = strtok($_SERVER['REQUEST_URI'], '?');
-                $sortParams = $_GET;
+                $sortParams = ProductCatalogRequest::urlQuery($_GET, $catalogQuery ?? ProductCatalogRequest::normalize($_GET));
                 $sortParams['sort'] = $sortKey;
                 unset($sortParams['page']);
                 $sortUrl .= '?' . http_build_query($sortParams);

@@ -59,10 +59,21 @@
                 <file name="plugins/seo/admin.php" />
                 <!-- 首页控制器：变量供 require 的主题布局/版块模板使用 -->
                 <file name="index.php" />
+                <!-- 列表控制器/分页 partial：变量由动态主题模板与 require 作用域消费 -->
+                <file name="list.php" />
+                <file name="views/list/download.php" />
+                <file name="views/list/sidebar.php" />
                 <!-- $imRandom* 系列变量供 require 的 random_ui.php 面板模板使用 -->
                 <file name="plugins/logo-maker/admin.php" />
             </errorLevel>
         </UnusedVariable>
+        <UnusedForeachValue>
+            <errorLevel type="suppress">
+                <!-- $item 由动态 theme_path() 解析的卡片 partial 使用，Psalm 无法跟踪 -->
+                <file name="list.php" />
+                <file name="views/list/sidebar.php" />
+            </errorLevel>
+        </UnusedForeachValue>
         <!-- random_ui.php 由 logo-maker/admin.php require，$imRandom* 变量在引入前定义 -->
         <UndefinedVariable>
             <errorLevel type="suppress">
