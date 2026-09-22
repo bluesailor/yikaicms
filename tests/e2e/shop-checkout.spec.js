@@ -18,6 +18,25 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   expect(product.id).toBeTruthy();
   fixture('enable');   // 一次性站插件表为空：先启用，UI 配置销售前页面才可进
 
+  // 启用后必须注册后台侧栏入口；商品管理继续复用核心列表，并提供商城常用快捷操作。
+  await page.goto('/admin/plugin_page.php?plugin=shop');
+  await expect(page.locator('a[href="/admin/plugin_page.php?plugin=shop"]').first()).toBeVisible();
+  await expect(page.locator('a[href="/admin/plugin_page.php?plugin=shop&view=orders"]').first()).toBeVisible();
+  await expect(page.getByTestId('shop-integration-links')).toBeVisible();
+  await expect(page.getByTestId('shop-member-mode')).toBeVisible();
+
+  await page.goto('/admin/product.php');
+  const productRow = page.locator(`tr:has(input[name="ids[]"][value="${product.id}"])`);
+  await expect(productRow).toBeVisible();
+  await productRow.hover();
+  const rowActions = productRow.locator('.row-actions');
+  await expect(rowActions.locator(`a[href="/admin/product_edit.php?id=${product.id}"]`)).toBeVisible();
+  await expect(rowActions.locator(`button[onclick="duplicateItem(${product.id})"]`)).toBeVisible();
+  await expect(rowActions.locator('a[target="_blank"]')).toBeVisible();
+  await expect(rowActions.locator(`[data-row-status-action="${product.id}"]`)).toBeVisible();
+  await expect(rowActions.locator(`button[onclick="deleteProduct(${product.id})"]`)).toBeVisible();
+  await expect(rowActions.locator('a[href^="/admin/product_category.php"]')).toBeVisible();
+
   // M2-a 安全默认值：没有网关验签适配器时，即使正文自称成功也必须拒绝。
   const unverifiedNotify = await page.request.post('/shop/payment-notify/unconfigured', {
     data: '{"status":"succeeded"}',

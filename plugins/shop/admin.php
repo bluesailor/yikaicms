@@ -296,7 +296,7 @@ $rowPrice = static fn(array $row): string
         ? (string) $row['sale_price']
         : number_format((float) $row['price'], 2, '.', '');
 
-$currentMenu = 'shop_sales';
+$currentMenu = $shopView === 'orders' ? 'shop_orders' : 'shop_sales';
 $pageTitle = $shopView === 'orders' ? __('shop_nav_orders') : __('shop_sales_title');
 
 // 订单视图数据（懒取：sales 视图不查订单表）
@@ -337,6 +337,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
            class="px-3 py-1.5 rounded <?php echo $shopView === 'orders' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'; ?>"
            data-testid="shop-tab-orders"><?php echo e(__('shop_nav_orders')); ?></a>
         <?php endif; ?>
+    </div>
+
+    <div class="mb-4 rounded border border-gray-200 bg-white px-4 py-3" data-testid="shop-integration-links">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            <?php if (hasPermission('edit_product')): ?>
+            <a href="/admin/product.php" class="text-primary hover:underline"><?php echo e(__('admin_product')); ?></a>
+            <a href="/admin/product_category.php" class="text-primary hover:underline"><?php echo e(__('product_tab_category')); ?></a>
+            <?php endif; ?>
+            <?php if (hasPermission('*')): ?>
+            <a href="/admin/nav_menu.php" class="text-primary hover:underline"><?php echo e(__('admin_nav_menu')); ?></a>
+            <a href="/admin/setting_member.php" class="text-primary hover:underline"><?php echo e(__('member_settings')); ?></a>
+            <?php endif; ?>
+        </div>
+        <div class="mt-2 text-xs text-gray-500" data-testid="shop-member-mode">
+            <?php echo e(config('allow_member_register') === '1'
+                ? __('shop_member_registration_on')
+                : __('shop_member_registration_off')); ?>
+        </div>
     </div>
 
     <?php if (isset($_GET['saved']) || isset($_GET['done'])): ?>

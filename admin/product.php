@@ -257,6 +257,9 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                                         'view'      => productUrl($item),
                                         'duplicate' => true,
                                         'delete_fn' => 'deleteProduct',
+                                        'status_label' => (int) $item['status'] === 1 ? __('status_off') : __('status_on'),
+                                        'status_fn' => 'toggleRowStatus',
+                                        'category_url' => '/admin/product_category.php?lang=' . rawurlencode($_viewLang),
                                     ]); ?>
                                 </div>
                             </div>
@@ -373,6 +376,19 @@ async function toggleStatus(id, btn) {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
             btn.textContent = '<?php echo __('admin_unpublished'); ?>';
         }
+        const rowAction = document.querySelector('[data-row-status-action="' + id + '"]');
+        if (rowAction) {
+            rowAction.textContent = data.data.status
+                ? '<?php echo __('status_off'); ?>'
+                : '<?php echo __('status_on'); ?>';
+        }
+    }
+}
+
+async function toggleRowStatus(id) {
+    const statusButton = document.querySelector('.status-btn-' + id);
+    if (statusButton) {
+        await toggleStatus(id, statusButton);
     }
 }
 
