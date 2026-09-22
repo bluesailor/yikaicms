@@ -902,3 +902,10 @@ fieldset:disabled .blox-breadcrumb-choice, fieldset:disabled .blox-hero-mode-cho
 .yk-blox-header :is(.yk-mega-panel, [data-yk-drawer-panel]) [role="search"] button.bg-primary {
   color: #fff !important;
 }
+/* Native footer rich text inherits theme colors and retains visible list markers. */
+.yk-footer-column-content p + p { margin-top: .5em; }
+.yk-footer-column-content ul:not(.space-y-2) { list-style: disc; padding-inline-start: 1.25em; }
+.yk-footer-column-content ol { list-style: decimal; padding-inline-start: 1.25em; }
+.yk-footer-column-content a { text-decoration: underline; text-underline-offset: .15em; }
+.yk-footer-column-content strong, .yk-footer-column-content b { font-weight: 700; }
+.yk-footer-column-content em, .yk-footer-column-content i { font-style: italic; }

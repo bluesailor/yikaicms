@@ -613,6 +613,8 @@ async function saveAdminLanguages() {
                     <?php echo __('setting_footer_placeholder_hint'); ?>
                 </div>
                 <div id="footerColumnsEditor" class="space-y-3">
+                    <p class="text-sm text-gray-500"><?= e(__('footer_editor_hint')) ?></p>
+                    <p class="text-sm text-amber-700"><?= e(__('footer_editor_priority')) ?></p>
                     <?php for ($ci = 0; $ci < 4; $ci++): ?>
                     <?php $col = $columnsData[$ci] ?? null; ?>
                     <div class="fcol-row p-3 border rounded-lg <?php echo $col ? 'bg-white' : 'bg-gray-50'; ?>" data-index="<?php echo $ci; ?>">
@@ -648,8 +650,10 @@ async function saveAdminLanguages() {
                             <?php endif; ?>
                         </div>
                         <div class="mt-2 ml-8">
-                            <label class="text-xs text-gray-400 block mb-1"><?php echo __('setting_col_content'); ?></label>
-                            <textarea class="fcol-content w-full border rounded px-3 py-1.5 text-sm" rows="3" placeholder="<?php echo __('setting_footer_content_placeholder'); ?>"><?php echo e($col['content'] ?? ''); ?></textarea>
+                            <label for="footer-content-<?= $ci ?>" class="text-xs text-gray-400 block mb-1"><?php echo __('setting_col_content'); ?></label>
+                            <textarea id="footer-content-<?= $ci ?>" class="fcol-content w-full border rounded px-3 py-1.5 text-sm" rows="4" placeholder="<?php echo __('setting_footer_content_placeholder'); ?>"><?php echo e($col['content'] ?? ''); ?></textarea>
+                            <button type="button" class="fcol-source-toggle text-sm text-primary underline mt-2" hidden aria-pressed="false" data-source="<?= e(__('footer_editor_source')) ?>" data-visual="<?= e(__('footer_editor_visual')) ?>"><?= e(__('footer_editor_source')) ?></button>
+                            <p class="fcol-menu-notice text-sm text-amber-700 mt-2" role="status" hidden><?= e(__('footer_editor_menu')) ?></p>
                         </div>
                     </div>
                     <?php endfor; ?>
@@ -1027,7 +1031,8 @@ function collectFooterColumns() {
     var cols = [];
     rows.forEach(function(row) {
         var title = row.querySelector('.fcol-title').value.trim();
-        var content = row.querySelector('.fcol-content').value.trim();
+        var contentInput = row.querySelector('.fcol-content');
+        var content = (window.YikaiFooterEditor ? window.YikaiFooterEditor.read(contentInput) : contentInput.value).trim();
         var colSpan = parseInt(row.querySelector('.fcol-span').value) || 1;
         var menuSel = row.querySelector('.fcol-menu');
         var menuId = menuSel ? (parseInt(menuSel.value) || 0) : 0;
@@ -1044,6 +1049,7 @@ document.querySelectorAll('.fcol-clear').forEach(function(btn) {
         var row = this.closest('.fcol-row');
         row.querySelector('.fcol-title').value = '';
         row.querySelector('.fcol-content').value = '';
+        if (window.YikaiFooterEditor) window.YikaiFooterEditor.clear(row.querySelector('.fcol-content'));
         row.querySelector('.fcol-span').value = '1';
         var menuSel = row.querySelector('.fcol-menu');
         if (menuSel) { menuSel.value = '0'; menuSel.dispatchEvent(new Event('change')); }
@@ -1058,6 +1064,8 @@ document.querySelectorAll('.fcol-menu').forEach(function(sel) {
         var on = (parseInt(sel.value) || 0) > 0;
         ta.classList.toggle('opacity-40', on);
         ta.classList.toggle('pointer-events-none', on);
+        ta.readOnly = on;
+        if (window.YikaiFooterEditor) window.YikaiFooterEditor.menu(ta, on);
     };
     sel.addEventListener('change', sync);
     sync();
@@ -1264,4 +1272,5 @@ if (typeof _footerNavData !== 'undefined' && document.getElementById('footerNavE
 </script>
 
 <?php adminModuleEnd(); ?>
+<?php if ($tab === 'footer'): ?><script defer src="/assets/js/footer-content-editor.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/footer-content-editor.js') ?>"></script><?php endif; ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
