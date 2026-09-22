@@ -219,13 +219,25 @@ function shopOrderCreate(array $lines, array $contact, array $address, string $r
 }
 
 /**
- * 收款确认（线下网关=商家人工确认；线上网关=M2 的回调入口复用本函数）。
+ * 收款确认（线下网关=商家人工确认；线上网关=M2-a 回调入口复用本函数）。
  * 状态守卫：仅 pending_payment → awaiting_ship；支付流水 created → succeeded。
- * 幂等：重复确认同单直接返回成功（已 succeeded/已推进不再重复动作）。
+ * 幂等：重复确认同一渠道流水直接返回成功；不同渠道/流水不得冒充重复通知。
+ *
+ * @return array{ok:bool,error:string,idempotent?:bool}
  */
-function shopOrderMarkPaid(int $orderId, string $gatewayTradeNo = ''): array
+function shopOrderMarkPaid(
+    int $orderId,
+    string $gatewayTradeNo = '',
+    string $gateway = 'offline',
+    string $rawNotify = ''
+): array
 {
     shopEnsureSchema();
+    if (preg_match('/^[a-z][a-z0-9_-]{0,19}$/D', $gateway) !== 1
+        || ($gatewayTradeNo !== '' && preg_match('/^[A-Za-z0-9._:-]{1,64}$/D', $gatewayTradeNo) !== 1)
+        || strlen($rawNotify) > 262144) {
+        return ['ok' => false, 'error' => 'shop_err_payment_notify'];
+    }
     $order = db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'shop_orders WHERE id = ?', [$orderId]);
     if ($order === null) {
         return ['ok' => false, 'error' => 'shop_err_order_not_found'];
@@ -234,7 +246,17 @@ function shopOrderMarkPaid(int $orderId, string $gatewayTradeNo = ''): array
         return ['ok' => false, 'error' => 'shop_err_order_closed'];
     }
     if ((string) $order['status'] !== 'pending_payment') {
-        return ['ok' => true, 'error' => '', 'idempotent' => true];   // 已推进过
+        $succeeded = db()->fetchOne(
+            'SELECT gateway, gateway_trade_no FROM ' . DB_PREFIX . 'shop_payments'
+            . ' WHERE order_id = ? AND status = ? ORDER BY id DESC LIMIT 1',
+            [$orderId, 'succeeded']
+        );
+        if ($gatewayTradeNo !== '' && ($succeeded === null
+            || (string) $succeeded['gateway'] !== $gateway
+            || !hash_equals((string) ($succeeded['gateway_trade_no'] ?? ''), $gatewayTradeNo))) {
+            return ['ok' => false, 'error' => 'shop_err_payment_conflict'];
+        }
+        return ['ok' => true, 'error' => '', 'idempotent' => true];
     }
 
     $payment = db()->fetchOne(
@@ -244,17 +266,23 @@ function shopOrderMarkPaid(int $orderId, string $gatewayTradeNo = ''): array
 
     db()->beginTransaction();
     try {
-        db()->update('shop_orders', [
+        $orderUpdated = db()->update('shop_orders', [
             'status' => 'awaiting_ship',
             'paid_at' => time(),
             'updated_at' => time(),
         ], 'id = ? AND status = ?', [$orderId, 'pending_payment']);
-        if ($payment !== null) {
-            db()->update('shop_payments', [
-                'status' => 'succeeded',
-                'gateway_trade_no' => $gatewayTradeNo !== '' ? mb_substr($gatewayTradeNo, 0, 64) : null,
-                'paid_at' => time(),
-            ], 'id = ?', [(int) $payment['id']]);
+        if ($orderUpdated !== 1 || $payment === null) {
+            throw new RuntimeException('shop payment state changed concurrently');
+        }
+        $paymentUpdated = db()->update('shop_payments', [
+            'gateway' => $gateway,
+            'status' => 'succeeded',
+            'gateway_trade_no' => $gatewayTradeNo !== '' ? $gatewayTradeNo : null,
+            'raw_notify' => $rawNotify !== '' ? $rawNotify : null,
+            'paid_at' => time(),
+        ], 'id = ? AND status = ?', [(int) $payment['id'], 'created']);
+        if ($paymentUpdated !== 1) {
+            throw new RuntimeException('shop payment row changed concurrently');
         }
         db()->commit();
     } catch (Throwable $e) {

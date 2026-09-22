@@ -15,6 +15,7 @@ if (!defined('ROOT_PATH')) {
 
 require_once __DIR__ . '/lib/money.php';
 require_once __DIR__ . '/lib/tables.php';
+require_once __DIR__ . '/lib/payments.php';
 
 add_action('init', function (): void {
     try {
@@ -30,7 +31,7 @@ add_action('init', function (): void {
 });
 
 // 会员中心导航：追加「我的订单」入口（member/profile.php 的 member_profile_nav 钩子）
-add_action('member_profile_nav', function (array $member): void {
+add_action('member_profile_nav', function (): void {
     ?>
     <a href="/member/shop-orders"
        class="flex items-center gap-3 px-5 py-3 text-sm transition text-gray-600 hover:bg-gray-50">

@@ -18,6 +18,14 @@ test('shop checkout loop: guest order, merchant fulfillment, guest lookup, plugi
   expect(product.id).toBeTruthy();
   fixture('enable');   // 一次性站插件表为空：先启用，UI 配置销售前页面才可进
 
+  // M2-a 安全默认值：没有网关验签适配器时，即使正文自称成功也必须拒绝。
+  const unverifiedNotify = await page.request.post('/shop/payment-notify/unconfigured', {
+    data: '{"status":"succeeded"}',
+    headers: { 'content-type': 'application/json' },
+  });
+  expect(unverifiedNotify.status()).toBe(401);
+  expect(await unverifiedNotify.text()).toBe('fail');
+
   // 商家配置销售（后台 UI 真实点击）。storageState 已带 admin 登录态（global-setup），
   // 无需在此登录——goto(login.php) 会被重定向到 /admin/。
   await page.goto('/admin/plugin_page.php?plugin=shop');
