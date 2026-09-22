@@ -46,13 +46,20 @@ try {
     foreach (SiteTemplateData::TABLES as $table) db()->execute('DELETE FROM ' . DB_PREFIX . $table);
     db()->execute('DELETE FROM ' . DB_PREFIX . 'settings');
     settingModel()->clearCache();
-    settingModel()->saveBatch(['current_theme' => 'sample', 'site_name' => 'Source', 'site_url' => 'https://source.test', 'site_logo' => '/uploads/logo.svg',
+    settingModel()->saveBatch(['current_theme' => 'sample', 'site_name' => 'Source', 'site_url' => 'https://source.test/cms', 'site_logo' => '/uploads/logo.svg',
         'site_lang' => 'zh-CN', 'enabled_languages' => '["zh-CN"]', 'home_blox_published' => '{"text":"public"}', 'home_blox_data' => '{"text":"PRIVATE DRAFT"}',
         'theme_style_settings' => '{"themes":{"sample":{"button":{"radius":22}}}}', 'smtp_pass' => 'PRIVATE PASSWORD', 'license_key' => 'PRIVATE LICENSE',
         'shop_payment_secret' => 'PRIVATE SHOP SECRET', 'seo_api_key' => 'PRIVATE SEO KEY']);
     db()->insert('channels', ['id' => 71, 'name' => 'About', 'slug' => 'about', 'type' => 'page']);
     $publicImages = ['logo.svg', 'gallery-1.svg', 'gallery-2.svg', 'gallery-3.svg', 'gallery-4.svg'];
-    $imageHtml = implode('', array_map(static fn(string $name): string => '<img src="https://source.test/uploads/' . $name . '">', $publicImages));
+    $publicUrls = [
+        'https://source.test/cms/uploads/logo.svg',
+        '//SOURCE.test/cms/uploads/gallery-1.svg?size=large',
+        'https:&#47;&#47;source.test/cms/uploads/gallery-2.svg#entity',
+        'https://SOURCE.test:443/cms/uploads/gallery-3.svg',
+        '/uploads/gallery-4.svg',
+    ];
+    $imageHtml = implode('', array_map(static fn(string $url): string => '<img src="' . $url . '">', $publicUrls));
     db()->insert('contents', ['id' => 91, 'channel_id' => 71, 'title' => 'About source', 'content' => $imageHtml]);
     db()->insert('media', ['name' => 'logo', 'path' => 'uploads/logo.svg', 'url' => '/uploads/logo.svg']);
     foreach (array_slice($publicImages, 1) as $index => $name) {
@@ -70,7 +77,7 @@ try {
     db()->execute('CREATE TABLE ' . DB_PREFIX . 'shop_orders (id INTEGER PRIMARY KEY, secret TEXT)');
     db()->execute('INSERT INTO ' . DB_PREFIX . 'shop_orders (id, secret) VALUES (?, ?)', [1, 'PRIVATE ORDER']);
     file_put_contents($root . '/themes/sample/theme.json', '{"name":"Sample","version":"1.0.0"}');
-    file_put_contents($root . '/themes/sample/layouts/header.php', '<?php declare(strict_types=1); ?><img src="/uploads/logo.svg">');
+    file_put_contents($root . '/themes/sample/layouts/header.php', '<?php declare(strict_types=1); ?><img src="https://SOURCE.test:443/cms/uploads/logo.svg"><a href="//source.test/cms/about.html?next=&sol;contact">About</a><a href="https:&#47;&#47;source.test/cms/contact.html">Contact</a><a href="https://source.test/outside.html">Outside</a><a href="https://third.test/cms/about.html">Third</a><p>A &sol; B, C &#47; D, E &bsol; F</p>');
     file_put_contents($root . '/themes/sample/layouts/footer.php', '<?php declare(strict_types=1); ?>Footer');
     $service = new SiteTemplateService($root);
     $GLOBALS['_test_config_overrides'] = ['current_theme' => 'sample', 'site_name' => 'Source'];
@@ -88,12 +95,37 @@ try {
     db()->delete('channels', 'id = ?', [72]);
     db()->delete('settings', '`key` = ?', ['footer_nav']);
     settingModel()->clearCache();
+    $portableContent = $imageHtml
+        . '<a href="https://SOURCE.test:443/cms/about.html?next=&sol;contact">About</a>'
+        . '<a href="//source.test/cms/contact.html">Contact</a>'
+        . '<a href="https://source.test/outside.html">Outside</a>'
+        . '<a href="https:&#47;&#47;third.test/cms/about.html">Third</a>'
+        . '<img src="https:&#47;&#47;third.test&sol;uploads&sol;missing.png">'
+        . '<p>A &sol; B, C &#47; D, E &bsol; F</p>';
+    db()->execute('UPDATE ' . DB_PREFIX . 'contents SET content = ? WHERE id = ?', [$portableContent, 91]);
     $zip = $root . '/export.zip';
     $summary = $service->export($zip);
     check($summary['media'] === 5, 'Referenced media only');
     $package = SiteTemplateArchive::read($zip);
     $payload = json_encode($package);
     check(!str_contains($payload, 'PRIVATE'), 'No secrets, drafts or private media');
+    $exportedContent = (string) $package['manifest']['data']['tables']['contents'][0]['content'];
+    check(!str_contains(strtolower($exportedContent), 'source.test/cms/uploads')
+        && str_contains($exportedContent, '/uploads/gallery-1.svg?size=large')
+        && str_contains($exportedContent, '/uploads/gallery-2.svg#entity'), 'Same-origin absolute, protocol-relative and entity URLs are portable');
+    check(str_contains($exportedContent, 'href="/about.html?next=&sol;contact"')
+        && str_contains($exportedContent, 'href="/contact.html"'), 'Same-origin ordinary data links are portable');
+    check(str_contains($exportedContent, 'href="https://source.test/outside.html"')
+        && str_contains($exportedContent, 'href="https:&#47;&#47;third.test/cms/about.html"')
+        && str_contains($exportedContent, 'src="https:&#47;&#47;third.test&sol;uploads&sol;missing.png"')
+        && str_contains($exportedContent, 'A &sol; B, C &#47; D, E &bsol; F'), 'Data links outside the deployment path and unrelated entities are byte-stable');
+    $exportedHeader = $package['files']['theme/layouts/header.php'];
+    check(str_contains($exportedHeader, 'src="/uploads/logo.svg"')
+        && str_contains($exportedHeader, 'href="/about.html?next=&sol;contact"')
+        && str_contains($exportedHeader, 'href="/contact.html"'), 'Theme same-origin media and ordinary links are portable');
+    check(str_contains($exportedHeader, 'href="https://source.test/outside.html"')
+        && str_contains($exportedHeader, 'href="https://third.test/cms/about.html"')
+        && str_contains($exportedHeader, 'A &sol; B, C &#47; D, E &bsol; F'), 'Out-of-base, third-party and unrelated entity text are byte-stable');
     check($package['manifest']['plugins'] === [
         ['slug' => 'back-to-top', 'version' => '1.0.0'],
         ['slug' => 'cookie-consent', 'version' => '1.1.0'],

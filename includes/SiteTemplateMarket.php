@@ -9,6 +9,7 @@ final class SiteTemplateMarket
     public const API = 'https://update.yikaicms.com/api/site-templates/list.php';
     public const MAX_CATALOG_BYTES = 524288;
     public const CACHE_SECONDS = 60;
+    public const SIGNATURE_PROTOCOL = 2;
 
     /** @return null|array{updated_at:string,templates:list<array<string,mixed>>} */
     public static function request(?callable $transport = null): ?array
@@ -68,8 +69,11 @@ final class SiteTemplateMarket
         $image = $entry['screenshot'] ?? '';
         $prefix = 'https://update.yikaicms.com/assets/site-templates/' . $slug . '/' . $version . '/preview.';
         $item['screenshot'] = is_string($image) && in_array($image, [$prefix . 'webp', $prefix . 'jpg', $prefix . 'png'], true) ? $image : '';
+        $tier = $entry['tier'] ?? null;
+        if (!is_string($tier) || !in_array($tier, ['free', 'pro'], true)) return null;
+        $item['tier'] = $tier;
         $item['blocked_reason'] = $entry['status'] !== 'published' ? 'st_market_pending' : '';
-        if (($entry['tier'] ?? 'free') !== 'free') $item['blocked_reason'] = 'st_market_license';
+        if ($tier !== 'free') $item['blocked_reason'] = 'st_market_license';
         if ($entry['cms'] !== (defined('CMS_VERSION') ? CMS_VERSION : '')) $item['blocked_reason'] = 'st_market_cms';
         if (!version_compare(PHP_VERSION, substr($entry['requires_php'], 2), '>=')) $item['blocked_reason'] = 'st_market_php';
         if (!in_array($entry['format_version'], SiteTemplateArchive::SUPPORTED_VERSIONS, true)) $item['blocked_reason'] = 'st_market_format';
@@ -89,11 +93,18 @@ final class SiteTemplateMarket
         return $item;
     }
 
-    /** The resource prefix prevents signatures for theme/plugin packages being reused here. */
+    /**
+     * Protocol v2 binds every field that can change authorization or downloaded bytes.
+     * There is deliberately no v1 fallback: catalogs must be re-signed before publication.
+     */
     public static function canonical(array $item): string
     {
-        return 'site-template|' . (string) ($item['slug'] ?? '') . '|' . (string) ($item['version'] ?? '')
-            . '|' . (string) ($item['cms'] ?? '') . '|' . (string) ($item['format_version'] ?? 0) . '|' . (string) ($item['hash'] ?? '');
+        return 'site-template-v' . self::SIGNATURE_PROTOCOL . '|' . (string) ($item['slug'] ?? '')
+            . '|' . (string) ($item['version'] ?? '') . '|' . (string) ($item['cms'] ?? '')
+            . '|' . (string) ($item['format_version'] ?? 0) . '|' . (string) ($item['requires_php'] ?? '')
+            . '|' . (string) ($item['tier'] ?? '')
+            . '|' . (string) ($item['status'] ?? '') . '|' . (string) ($item['package'] ?? '')
+            . '|' . (string) ($item['size_bytes'] ?? 0) . '|' . (string) ($item['hash'] ?? '');
     }
 
     public static function verifySignature(array $item, string $publicKey): bool

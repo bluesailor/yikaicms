@@ -66,7 +66,7 @@ final class SiteTemplateMarketTest extends TestCase
     }
 
     /** Test keys exist only in memory and cannot authorize the official market. */
-    private function signed(string $bytes, string $prefix = 'site-template|'): array
+    private function signed(string $bytes, bool $legacy = false): array
     {
         $options = ['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA];
         $config = dirname(PHP_BINARY) . '/extras/ssl/openssl.cnf';
@@ -74,20 +74,28 @@ final class SiteTemplateMarketTest extends TestCase
         $key = openssl_pkey_new($options);
         self::assertNotFalse($key);
         $item = $this->item(['hash' => 'sha256:' . hash('sha256', $bytes), 'size_bytes' => strlen($bytes)]);
-        $canonical = $prefix . $item['slug'] . '|' . $item['version'] . '|' . $item['cms'] . '|' . $item['format_version'] . '|' . $item['hash'];
+        $canonical = $legacy
+            ? 'site-template|' . $item['slug'] . '|' . $item['version'] . '|' . $item['cms'] . '|' . $item['format_version'] . '|' . $item['hash']
+            : SiteTemplateMarket::canonical($item);
         self::assertTrue(openssl_sign($canonical, $signature, $key, OPENSSL_ALGO_SHA256));
         $item['sig'] = base64_encode($signature);
         return [$item, openssl_pkey_get_details($key)['key']];
     }
 
-    public function testSignatureBindsResourceVersionCmsAndArchiveHash(): void
+    public function testV2SignatureBindsAuthorizationDeliveryAndArchiveFieldsAndRejectsV1(): void
     {
         [$item, $public] = $this->signed('package');
         self::assertTrue(SiteTemplateMarket::verifySignature($item, $public));
         self::assertFalse(SiteTemplateMarket::verifySignature(array_replace($item, ['hash' => 'sha256:' . str_repeat('a', 64)]), $public));
         self::assertFalse(SiteTemplateMarket::verifySignature(array_replace($item, ['cms' => '1.20.0']), $public));
-        [$other, $public] = $this->signed('package', 'theme|');
-        self::assertFalse(SiteTemplateMarket::verifySignature($other, $public));
+        foreach ([
+            ['requires_php' => '>=8.1.0'], ['tier' => 'pro'], ['status' => 'draft'],
+            ['package' => 'other.zip'], ['size_bytes' => 8],
+        ] as $change) {
+            self::assertFalse(SiteTemplateMarket::verifySignature(array_replace($item, $change), $public));
+        }
+        [$legacy, $legacyPublic] = $this->signed('package', true);
+        self::assertFalse(SiteTemplateMarket::verifySignature($legacy, $legacyPublic));
     }
 
     public function testDownloadStreamsVerifiedBytesAndRejectsCorruptionRedirectsAndOverflow(): void
