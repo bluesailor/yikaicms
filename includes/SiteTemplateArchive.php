@@ -99,6 +99,7 @@ final class SiteTemplateArchive
             || ($manifest['cms'] ?? '') !== (defined('CMS_VERSION') ? CMS_VERSION : '1.20.1')
             || ($manifest['schema'] ?? null) !== SiteTemplateData::schema()) throw new RuntimeException('st_schema');
         if (!is_string($manifest['theme'] ?? null) || !preg_match('/^[a-z0-9][a-z0-9-]{0,79}$/D', $manifest['theme'])) throw new RuntimeException('st_invalid');
+        $manifest['plugins'] = self::validatePlugins($manifest['plugins'] ?? []);
         $declared = array_keys(is_array($manifest['files'] ?? null) ? $manifest['files'] : []);
         if (!is_array($manifest['files'] ?? null) || array_diff($names, $declared) || array_diff($declared, $names)) throw new RuntimeException('st_invalid');
         foreach ($manifest['files'] as $digest) if (!is_string($digest)) throw new RuntimeException('st_invalid');
@@ -113,6 +114,24 @@ final class SiteTemplateArchive
                 || !isset($present['media/' . substr($url, 9)])) throw new RuntimeException('st_missing_media');
         }
         return $manifest;
+    }
+
+    /** @return list<array{slug:string,version:string}> */
+    private static function validatePlugins(mixed $plugins): array
+    {
+        if (!is_array($plugins) || count($plugins) > 100) throw new RuntimeException('st_invalid');
+        $validated = [];
+        foreach ($plugins as $plugin) {
+            if (!is_array($plugin) || array_keys($plugin) !== ['slug', 'version']) throw new RuntimeException('st_invalid');
+            $slug = $plugin['slug'] ?? null;
+            $version = $plugin['version'] ?? null;
+            if (!is_string($slug) || preg_match('/^[a-z0-9][a-z0-9-]{0,79}$/D', $slug) !== 1
+                || !is_string($version) || preg_match('/^[0-9A-Za-z][0-9A-Za-z._+-]{0,39}$/D', $version) !== 1
+                || isset($validated[$slug])) throw new RuntimeException('st_invalid');
+            $validated[$slug] = ['slug' => $slug, 'version' => $version];
+        }
+        ksort($validated);
+        return array_values($validated);
     }
 
     /**
