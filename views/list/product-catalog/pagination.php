@@ -15,16 +15,15 @@ $pcTotalPages = (int) ceil($total / max(1, (int) $perPage));
 $totalPages = $pcTotalPages;
 $currentSort = $currentSort ?? 'default';
 
-$pageUrl = function (int $p) use ($channel, $keyword, $isProductType, $productCategory, $currentSort): string {
+$catalogQuery = $catalogQuery ?? ProductCatalogRequest::normalize($_GET);
+$pageUrl = function (int $p) use ($channel, $keyword, $isProductType, $productCategory, $currentSort, $catalogQuery): string {
     if (isDynamicUrlMode()) {
         $params = [];
         if ($keyword !== '') { $params['keyword'] = $keyword; }
         if ($isProductType && $currentSort !== 'default') { $params['sort'] = $currentSort; }
         if ($isProductType && !empty($productCategory['slug'])) { $params['cat'] = (string) $productCategory['slug']; }
-        foreach (['brand', 'tag', 'pmin', 'pmax'] as $filter) {
-            $value = $_GET[$filter] ?? '';
-            if (is_string($value) && trim($value) !== '') { $params[$filter] = trim($value); }
-        }
+        $params = array_merge($params, array_intersect_key(ProductCatalogRequest::filterQuery($catalogQuery),
+            ['brand' => true, 'tag' => true, 'pmin' => true, 'pmax' => true]));
         return dynamicChannelPageUrl($channel, $p, $params)
             ?? dynamicUrl('list', ['id' => (int) ($channel['id'] ?? 0), 'page' => $p]);
     }
@@ -32,7 +31,7 @@ $pageUrl = function (int $p) use ($channel, $keyword, $isProductType, $productCa
     if ($keyword !== '') { $extraParams .= '&keyword=' . urlencode($keyword); }
     if ($isProductType && $currentSort !== 'default') { $extraParams .= '&sort=' . urlencode($currentSort); }
     foreach (['brand', 'tag', 'pmin', 'pmax'] as $fk) {
-        $fv = trim((string) ($_GET[$fk] ?? ''));
+        $fv = (string) ($catalogQuery[$fk] ?? '');
         if ($fv !== '') { $extraParams .= '&' . $fk . '=' . urlencode($fv); }
     }
     $queryStr = $extraParams !== '' ? '?' . ltrim($extraParams, '&') : '';

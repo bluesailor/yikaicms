@@ -20,6 +20,7 @@ if (!function_exists('pcCatalogCategoryTree')) {
      */
     function pcCatalogCategoryTree(array $items, int $level, bool $isProductType, bool $horizontal): void
     {
+        static $childrenSequence = 0;
         foreach ($items as $item) {
             $hasChildren = !empty($item['children']);
             $active = !empty($item['is_active']);
@@ -36,6 +37,7 @@ if (!function_exists('pcCatalogCategoryTree')) {
                 continue;
             }
             $paddingLeft = 16 + ($level * 16);
+            $childrenId = $hasChildren ? 'yk-catalog-category-children-' . (++$childrenSequence) : '';
             ?>
             <div class="category-item">
                 <div class="flex items-center justify-between hover:bg-gray-50 transition <?php echo $active ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
@@ -43,7 +45,9 @@ if (!function_exists('pcCatalogCategoryTree')) {
                         <?php echo e((string) $item['name']); ?>
                     </a>
                     <?php if ($hasChildren): ?>
-                    <button type="button" class="category-toggle px-4 py-3 text-gray-400 hover:text-primary" data-expanded="true">
+                    <button type="button" class="category-toggle px-4 py-3 text-gray-400 hover:text-primary" data-expanded="true"
+                            aria-expanded="true" aria-controls="<?php echo e($childrenId); ?>"
+                            aria-label="<?php echo e(__('catalog_category_toggle', ['name' => (string) $item['name']])); ?>">
                         <svg class="w-4 h-4 transition-transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
@@ -51,7 +55,7 @@ if (!function_exists('pcCatalogCategoryTree')) {
                     <?php endif; ?>
                 </div>
                 <?php if ($hasChildren): ?>
-                <div class="category-children">
+                <div id="<?php echo e($childrenId); ?>" class="category-children">
                     <?php pcCatalogCategoryTree($item['children'], $level + 1, $isProductType, false); ?>
                 </div>
                 <?php endif; ?>
