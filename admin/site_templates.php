@@ -83,6 +83,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php require ROOT_PATH . '/admin/includes/setting_sources_notice.php'; ?>
     <header><a href="/admin/site_setup.php" class="text-primary underline"><?= e(__('setup_title')) ?></a>
         <h1 class="text-2xl font-bold text-gray-800 mt-2"><?= e($pageTitle) ?></h1>
+        <p class="mt-2"><a href="/admin/site_template_market.php" class="text-primary underline"><?= e(__('st_market_title')) ?></a></p>
         <p class="text-gray-600 mt-2"><?= e(__('st_intro')) ?></p>
         <?php // 整站包是覆盖整个站点的；只想复用一个页面或区块的人该去 Blox 模板库 ?>
         <p class="text-gray-600 mt-1 text-sm"><?= e(__('st_scope_note')) ?>

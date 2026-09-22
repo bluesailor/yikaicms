@@ -10,6 +10,12 @@ final class MediaWebpConverter
 {
     private string $uploads;
 
+    // 恢复草稿或历史版本后也不能重新引入已转换的图片；仅修改文档字段。
+    private const LOCAL_DOCUMENT_FIELDS = [
+        'blox_page_drafts' => ['draft_data', 'published_data'],
+        'content_revisions' => ['snapshot'],
+    ];
+
     public function __construct(string $root)
     {
         $resolved = realpath($root);
@@ -37,6 +43,7 @@ final class MediaWebpConverter
         $map = [];
         $pending = [];
         $reused = 0;
+        $reuseChecks = [];
         $savedBytes = 0;
         $targets = [];
 
@@ -48,11 +55,25 @@ final class MediaWebpConverter
                 throw new RuntimeException('多个源文件会写入同一 WebP：' . $relative);
             }
             $targets[$targetKey] = $relative;
+            $info = @getimagesize($source);
+            $extension = match (is_array($info) ? ($info['mime'] ?? '') : '') {
+                'image/png' => 'png',
+                'image/jpeg' => 'jpg',
+                default => throw new RuntimeException('源文件不是有效 PNG/JPEG 图片：' . $relative),
+            };
+            $sourceHash = (string) hash_file('sha256', $source);
             $map[$relative] = $targetRelative;
             if (is_file($target)) {
                 if (!$this->validWebp($target)) {
                     throw new RuntimeException('同名 WebP 已存在但不是有效图片：' . $targetRelative);
                 }
+                $targetHash = (string) hash_file('sha256', $target);
+                // 同名且同尺寸也可能是另一张图；只复用当前源图以同品质编码得到的文件。
+                if (!hash_equals($this->encodedWebpHash($source, $extension, $quality), $targetHash)) {
+                    throw new RuntimeException('同名 WebP 与当前源图或转换品质不一致：' . $targetRelative);
+                }
+                $reuseChecks[] = ['source' => $source, 'target' => $target,
+                    'source_hash' => $sourceHash, 'target_hash' => $targetHash];
                 $reused++;
                 continue;
             }
@@ -60,7 +81,10 @@ final class MediaWebpConverter
                 'source' => $source,
                 'target' => $target,
                 'temporary' => $target . '.convert-' . bin2hex(random_bytes(6)),
-                'sha256' => (string) hash_file('sha256', $source),
+                'sha256' => $sourceHash,
+                'extension' => $extension,
+                'width' => (int) $info[0],
+                'height' => (int) $info[1],
             ];
         }
 
@@ -83,15 +107,25 @@ final class MediaWebpConverter
         $created = [];
         try {
             foreach ($pending as $relative => $item) {
-                $extension = strtolower(pathinfo($item['source'], PATHINFO_EXTENSION));
-                if (!convertToWebp($item['source'], $item['temporary'], $extension, $quality)) {
+                if (!convertToWebp($item['source'], $item['temporary'], $item['extension'], $quality)) {
                     throw new RuntimeException('转换失败：' . $relative);
+                }
+                $convertedInfo = @getimagesize($item['temporary']);
+                if (!$this->validWebp($item['temporary']) || !is_array($convertedInfo)
+                    || (int) $convertedInfo[0] !== $item['width'] || (int) $convertedInfo[1] !== $item['height']) {
+                    throw new RuntimeException('WebP 校验失败：' . $relative);
                 }
                 $savedBytes += (int) filesize($item['source']) - (int) filesize($item['temporary']);
             }
 
             db()->beginTransaction();
             try {
+                foreach ($reuseChecks as $item) {
+                    if (!hash_equals($item['source_hash'], (string) hash_file('sha256', $item['source']))
+                        || !hash_equals($item['target_hash'], (string) hash_file('sha256', $item['target']))) {
+                        throw new RuntimeException('复用期间源文件或 WebP 发生变化');
+                    }
+                }
                 foreach ($pending as $relative => $item) {
                     if (!hash_equals($item['sha256'], (string) hash_file('sha256', $item['source']))) {
                         throw new RuntimeException('转换期间源文件发生变化：' . $relative);
@@ -166,7 +200,8 @@ final class MediaWebpConverter
         $updates = [];
         $changes = 0;
         $missing = [];
-        foreach (SiteTemplateData::TABLES as $table) {
+        $tables = array_merge(SiteTemplateData::TABLES, array_keys(self::LOCAL_DOCUMENT_FIELDS));
+        foreach ($tables as $table) {
             if (!db()->tableExists($table)) {
                 continue;
             }
@@ -176,6 +211,10 @@ final class MediaWebpConverter
                     continue;
                 }
                 foreach ($row as $field => $value) {
+                    if (isset(self::LOCAL_DOCUMENT_FIELDS[$table])
+                        && !in_array($field, self::LOCAL_DOCUMENT_FIELDS[$table], true)) {
+                        continue;
+                    }
                     if (!is_string($value) || $value === '') {
                         continue;
                     }
@@ -297,9 +336,44 @@ final class MediaWebpConverter
             && !str_starts_with(str_replace('\\', '/', $relative), '/');
     }
 
+    private function encodedWebpHash(string $source, string $extension, int $quality): string
+    {
+        $image = $extension === 'png' ? @imagecreatefrompng($source) : @imagecreatefromjpeg($source);
+        if ($image === false) {
+            throw new RuntimeException('无法解码源图片');
+        }
+        if ($extension === 'png') {
+            imagepalettetotruecolor($image);
+            imagealphablending($image, true);
+            imagesavealpha($image, true);
+        }
+        ob_start();
+        try {
+            if (!imagewebp($image, null, $quality)) {
+                throw new RuntimeException('无法核对已有 WebP');
+            }
+            $bytes = ob_get_contents();
+            if (!is_string($bytes) || $bytes === '') {
+                throw new RuntimeException('已有 WebP 核对结果为空');
+            }
+            return hash('sha256', $bytes);
+        } finally {
+            ob_end_clean();
+            imagedestroy($image);
+        }
+    }
+
     private function validWebp(string $path): bool
     {
         $info = @getimagesize($path);
-        return is_array($info) && strtolower((string) ($info['mime'] ?? '')) === 'image/webp';
+        if (!is_array($info) || strtolower((string) ($info['mime'] ?? '')) !== 'image/webp') {
+            return false;
+        }
+        $image = @imagecreatefromwebp($path);
+        if ($image === false) {
+            return false;
+        }
+        imagedestroy($image);
+        return true;
     }
 }

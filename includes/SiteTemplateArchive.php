@@ -8,6 +8,7 @@ require_once __DIR__ . '/SiteTemplateData.php';
 /** Bounded, data-first ZIP format. Never extracts arbitrary paths or executes theme files. */
 final class SiteTemplateArchive
 {
+    public const SUPPORTED_VERSIONS = [1, 2];
     public const MAX_ZIP = 33554432;
     public const MAX_TOTAL = 50331648;
     public const MAX_FILE = 12582912;
@@ -95,7 +96,7 @@ final class SiteTemplateArchive
     private static function validateManifest(string $manifestBytes, array $names, array $small): array
     {
         $manifest = json_decode($manifestBytes, true, 64, JSON_THROW_ON_ERROR);
-        if (!is_array($manifest) || ($manifest['format'] ?? '') !== 'yikaicms-site-template' || ($manifest['version'] ?? 0) !== 1
+        if (!is_array($manifest) || ($manifest['format'] ?? '') !== 'yikaicms-site-template' || !in_array($manifest['version'] ?? 0, self::SUPPORTED_VERSIONS, true)
             || ($manifest['cms'] ?? '') !== (defined('CMS_VERSION') ? CMS_VERSION : '1.20.1')
             || ($manifest['schema'] ?? null) !== SiteTemplateData::schema()) throw new RuntimeException('st_schema');
         if (!is_string($manifest['theme'] ?? null) || !preg_match('/^[a-z0-9][a-z0-9-]{0,79}$/D', $manifest['theme'])) throw new RuntimeException('st_invalid');
@@ -108,6 +109,12 @@ final class SiteTemplateArchive
         $present = array_fill_keys($names, true);
         foreach (ThemeValidator::REQUIRED_FILES as $required) if (!isset($present['theme/' . $required])) throw new RuntimeException('st_theme');
         SiteTemplateData::validate($manifest['data'] ?? []);
+        // v2 prevents older importers from silently dropping the public plugin contract.
+        if (($manifest['version'] === 2) !== !empty($manifest['plugin_data'])) throw new RuntimeException('st_invalid');
+        if (array_key_exists('plugin_data', $manifest)) {
+            if (!is_array($manifest['plugin_data'])) throw new RuntimeException('st_invalid');
+            SiteTemplatePluginData::validate($manifest['plugin_data'], $manifest['plugins'], $manifest['data']);
+        }
         foreach ($manifest['data']['tables']['media'] as $row) {
             $url = (string) ($row['url'] ?? '');
             if (!str_starts_with($url, '/uploads/') || ($row['path'] ?? '') !== ltrim($url, '/')

@@ -66,6 +66,7 @@ final class SiteTemplateService
             SiteTemplateData::validate($data);
             $report = SiteExportChecks::inspect($data, channelModel()->all(), (string) config('site_url', ''));
             $plugins = $this->activePlugins();
+            SiteTemplatePluginData::snapshot($plugins, $data);
             if ($plugins !== []) {
                 $list = implode(', ', array_map(static fn(array $plugin): string => $plugin['slug'] . ' ' . $plugin['version'], $plugins));
                 $report['issues'][] = ['code' => 'usability_export_plugins_excluded', 'label' => $list,
@@ -100,6 +101,8 @@ final class SiteTemplateService
             $files['theme/' . $relative] = $this->boundedRead($path, $size);
         }
         $data = SiteTemplateData::snapshot(true);
+        $plugins = $this->activePlugins();
+        $pluginData = SiteTemplatePluginData::snapshot($plugins, $data);
         // Normalize the author's own origin, not third-party links.
         $origin = rtrim((string) config('site_url', ''), '/');
         if ($origin !== '' && preg_match('~^https?://[^/]+$~iD', $origin)) {
@@ -133,8 +136,8 @@ final class SiteTemplateService
         }
         SiteTemplateData::validate($data);
         if (!hash_equals($before, SiteTemplateData::fingerprint())) throw new RuntimeException('st_stale');
-        $manifest = ['format' => 'yikaicms-site-template', 'version' => 1, 'cms' => CMS_VERSION,
-            'plugins' => $this->activePlugins(),
+        $manifest = ['format' => 'yikaicms-site-template', 'version' => $pluginData === [] ? 1 : 2, 'cms' => CMS_VERSION,
+            'plugins' => $plugins, 'plugin_data' => $pluginData,
             'schema' => SiteTemplateData::schema(), 'theme' => $theme, 'created_at' => gmdate('c'), 'data' => $data];
         SiteTemplateArchive::write($destination, $manifest, $files);
         SiteTemplateArchive::read($destination);
@@ -253,7 +256,10 @@ final class SiteTemplateService
                 // 预览后新出现的缺失依赖没有展示给管理员，必须重新预览，不能静默强制导入。
                 if (!isset($previewedSlugs[$plugin['slug']])) throw new RuntimeException('st_stale');
             }
+            if (!empty($package['manifest']['plugin_data']) && $missingPlugins !== []) throw new RuntimeException('st_plugin_missing');
             if (!$trusted) throw new RuntimeException($missingPlugins === [] ? 'st_trust' : 'st_plugin_missing');
+            $pluginData = $package['manifest']['plugin_data'] ?? [];
+            SiteTemplatePluginData::assertTarget($pluginData);
             // 别名在 prepare 阶段就定下：分阶段提取要往固定目录落盘，重复请求也不会换目录
             $alias = (string) $plan['alias'];
             $map = ['/themes/' . $package['manifest']['theme'] . '/' => '/themes/' . $alias . '/', '/uploads/' => '/uploads/' . $alias . '/'];
@@ -287,10 +293,11 @@ final class SiteTemplateService
             try {
                 if (!$this->canApply() || !hash_equals((string) $plan['fingerprint'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_stale');
                 $journal = ['status' => 'preparing', 'created_at' => time(), 'before' => SiteTemplateData::fingerprint(),
-                    'snapshot' => SiteTemplateData::snapshot(), 'alias' => $alias];
+                    'snapshot' => SiteTemplateData::snapshot(), 'plugin_snapshot' => SiteTemplatePluginData::backup($pluginData), 'alias' => $alias];
                 $this->writeRecord('current', $journal);
                 $this->installFiles($package['files'], $alias, $map);
                 SiteTemplateData::replace($data);
+                SiteTemplatePluginData::apply($pluginData);
                 $journal['after'] = SiteTemplateData::fingerprint();
                 $journal['status'] = 'prepared_commit';
                 $this->writeRecord('current', $journal);
@@ -323,6 +330,7 @@ final class SiteTemplateService
                 // A local backup must reproduce the original state, including pre-existing dangling seed references.
                 // Uploaded packages still undergo full reference validation in Archive::read and replace().
                 SiteTemplateData::replace($journal['snapshot'], false);
+                SiteTemplatePluginData::restore($journal['plugin_snapshot'] ?? []);
                 if (!hash_equals((string) $journal['before'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_restore_changed');
                 db()->commit();
             } catch (Throwable $e) {
@@ -364,7 +372,7 @@ final class SiteTemplateService
 
     private function beginLockedTransaction(): void
     {
-        $tables = array_merge(SiteTemplateData::TABLES, ['settings'], self::PRIVATE_TABLES);
+        $tables = array_merge(SiteTemplateData::TABLES, ['settings'], self::PRIVATE_TABLES, SiteTemplatePluginData::TABLES);
         if (!db()->isSqlite()) foreach ($tables as $table) {
             if (!db()->tableExists($table)) continue;
             $engine = db()->fetchColumn('SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [DB_PREFIX . $table]);
