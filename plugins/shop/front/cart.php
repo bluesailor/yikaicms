@@ -125,7 +125,10 @@ require_once theme_path('layouts/header.php');
                             <input type="hidden" name="sig" value="<?php echo e($cartTokenSig); ?>">
                             <input type="number" name="qty" min="0" max="999" step="1" value="<?php echo (int) $row['qty']; ?>"
                                    class="border border-gray-300 rounded px-2 py-1 text-sm w-20" data-testid="shop-cart-qty-<?php echo (int) $row['id']; ?>">
-                            <button type="submit" class="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"><?php echo e(__('shop_btn_update')); ?></button>
+                            <button type="submit" class="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">
+                                <i class="ti ti-refresh" aria-hidden="true"></i>
+                                <span><?php echo e(__('shop_btn_update')); ?></span>
+                            </button>
                         </form>
                     </td>
                     <td class="px-4 py-3 text-right font-medium text-gray-900"><?php echo e(formatPrice($row['subtotal_decimal'])); ?></td>
