@@ -1,35 +1,50 @@
-# Public plugin data in site-template packages
+# Plugin-owned data in whole-site packages
 
-This is a local delivery candidate. It does not publish or enable plugins on customer sites.
+This is a local delivery candidate. It neither publishes packages nor installs or enables plugins on customer sites.
 
-## Contract
+## Ownership and default-deny boundary
 
-Ordinary packages remain format v1. Packages containing supported plugin data use v2: older importers reject them instead of silently ignoring the data. Plugin code is neither bundled nor executed. The target must independently install and enable every required plugin before applying v2, and cannot skip this check using legacy force confirmation.
+The core never chooses plugin tables, fields, settings or SQL. For each active plugin it calls:
 
-`SiteTemplatePluginData` uses fixed table and field allowlists. Unsupported plugins retain the explicit excluded-data warning. The core settings allowlist is not widened to any plugin prefix. Public sales data is applied and restored in the same transaction as core content. Private activity is hashed only for the local freshness/recovery guard, never exported. A target with shop customer activity is rejected, and activity after import blocks restoration. Plugin migrations are not run by template import.
-
-| Plugin | Portable data | Excluded |
-| --- | --- | --- |
-| stay-inquiry | Explicit stateless marker; room products, images and room-booking form already use core public tables | Submitted inquiries and visitors |
-| pet-cart-demo | Explicit stateless marker, with shop dependency required | Sessions, carts, users, operational state |
-| shop | Canonical product_id, sku, nullable price, stock, status, validated specs_json; show_price | Sales counts, orders/items, addresses, payments/notifications/refunds, gateway keys, mail settings and accounts |
-
-Variant fields are limited to id, label, SKU, price and stock. Stable IDs, product references, bounds and stock totals are checked. Shipping/payment configuration remains target-owned: public catalog and cart examples do not imply checkout or payment parity.
-
-## Demo migration boundary
-
-- Minsu uses stay-inquiry 1.0.0 with no private tables/settings. Its plugin must be installed separately and its room-booking form retained. Room-type/consent values are currently hardcoded in validation.php, so form and plugin choices must remain compatible. This is an inquiry form, not availability, booking confirmation or payment.
-- The pet development site currently uses shop 0.8.0 and pet-cart-demo 1.1.0. Its guard now permits test orders/order lookup while blocking real payment; the older README describes an earlier guard. Do not copy this actively developed shop into a marketplace release.
-- Pet also customizes product.php, the theme header, a shop cart view and config/overrides.php. Core/plugin file overrides do not travel in site templates. Delivery needs the official purchase hook or Builder element, an independently reviewed/versioned plugin release, reconciliation of theme settings with pinned overrides, and isolated cart/test-order/payment-blocking checks.
-- No source demo/plugin files were changed by this patch. Pet marketplace publication is not included. A stable plugin release and portable theme integration remain separate gates.
-
-## Tests
-
-Run under PHP 8.0:
-
+```php
+apply_filters('site_template_plugin_export', [], $slug)
 ```
-php tests/fixtures/site-template-probe.php
+
+The unchanged `[]` means that no plugin data is exported. An adapter must explicitly return contract version 1, its own schema fingerprint, a JSON-safe public payload and a target-only state digest. The state digest and `replaceable` flag may cover private activity, but are never written to an exported package.
+
+Portable data is stored as `plugin-data/<slug>.json`. Its path is declared by `manifest.plugin_data`, and its bytes are covered by the existing `manifest.files` SHA-256 map. Packages without plugin data remain format v1; packages with it use format v2 so older importers reject rather than silently drop the contract.
+
+Each plugin JSON entry is capped at 4 MiB, all plugin entries together at 8 MiB, and the decoded node budget is shared across the package. These bounds apply during both online inspection and offline market verification so preview cannot exhaust a 128 MiB shared-host process.
+
+The core settings allowlist remains unchanged. A plugin must never work around it by broadening `SiteTemplateData::settingAllowed()` for a prefix such as `shop_*` or `seo_*`.
+
+## Import and recovery
+
+Before copying or staging files, `prepare()` checks each available target adapter through the same export filter. Schema id, version and SHA-256 must match exactly, and target state must be replaceable. A missing dependency remains blocked by default; after the existing trusted-source and replace-content confirmations, only that missing slug's payload is skipped. A present but incompatible adapter cannot be bypassed.
+
+Inside the same database transaction as core replacement, the importer calls:
+
+```php
+do_action('site_template_plugin_import', $payload, $slug)
+```
+
+It then exports the plugin again and requires the public payload to equal the requested state. A missing/no-op handler, validation error or partial write rolls the entire import back. The local journal retains the target's previous public payload and opaque state digest. Persistent recovery reuses the same import action; a disabled plugin, schema drift or new private activity changes the state digest and closes recovery.
+
+Plugin import callbacks must use the shared `db()` connection and parameterized SQL, validate and lock their own tables, and avoid file, network, mail or queue side effects inside the transaction.
+
+## Shop contract
+
+The shop adapter belongs under `plugins/shop/`, not in core. Its explicit public allowlist contains canonical product sales configuration (`product_id`, SKU, nullable sale price, stock, status and validated SKU variants) plus normalized non-secret storefront/shipping settings. It resets sales counters and timestamps on import.
+
+It must never export orders, order items, payments, payment notifications, refunds, member addresses, manual-payment account details, gateway identifiers, certificates, private keys or API secrets. Any private commerce activity makes the target non-replaceable and prevents later recovery.
+
+## Verification
+
+Run the generic isolated round trip and focused tests under PHP 8.0:
+
+```text
 php tests/fixtures/site-template-plugin-probe.php
+php vendor/bin/phpunit --filter SiteTemplatePluginData
 ```
 
-The plugin probe uses an isolated in-memory database and temporary site. It verifies privacy exclusion, shared translation stock, strict variant data, format downgrade rejection, missing dependencies despite force confirmation, atomic rollback on sales insertion failure, no copied customer records, refusal to restore over a new order, and exact persistent recovery. It does not connect to any demo database or execute plugin code.
+The probe registers real export/import hooks, checks the independent hashed JSON entry, schema rejection before staging, explicit skipping of one missing slug, transaction rollback, post-import verification, target-secret preservation, private-activity recovery blocking and exact recovery through the same action.
