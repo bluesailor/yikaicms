@@ -151,6 +151,7 @@ function getChannelUrl(array $channel): string {
     <?php echo config('custom_head_code', ''); ?>
 </head>
 <body class="yk-site-body bg-gray-50 min-h-screen flex flex-col">
+    <a class="yk-skip-link" href="#main-content"><?php echo e(__('skip_to_content')); ?></a>
     <!-- 顶部通栏 -->
     <?php if ($topbarEnabled): ?>
     <div class="text-sm <?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50" style="background-color: <?php echo e($topbarBgColor); ?>">
@@ -206,7 +207,7 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
-                <button id="mobileMenuBtn" class="md:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="菜单">
+                <button id="mobileMenuBtn" type="button" class="md:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-controls="mobileMenu" aria-expanded="false" aria-label="<?php echo e(__('menu_label')); ?>">
                     <div class="hamburger" id="hamburgerIcon">
                         <span></span>
                         <span></span>
@@ -215,7 +216,7 @@ function getChannelUrl(array $channel): string {
                 </button>
             </div>
         </div>
-        <nav class="hidden md:block border-t" style="border-color: rgba(0,0,0,0.06)">
+        <nav class="hidden md:block border-t" aria-label="<?php echo e(__('menu_label')); ?>" style="border-color: rgba(0,0,0,0.06)">
             <div class="container mx-auto px-4">
                 <div class="flex items-center gap-1">
                     <?php foreach ($navChannels as $navItem): ?>
@@ -261,7 +262,7 @@ function getChannelUrl(array $channel): string {
                     <span class="text-xl font-bold text-primary"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
                 </a>
-                <nav class="hidden md:flex items-center gap-1">
+                <nav class="hidden md:flex items-center gap-1" aria-label="<?php echo e(__('menu_label')); ?>">
                     <?php foreach ($navChannels as $navItem): ?>
                     <?php
                     $hasChildren = !empty($navItem['children']);
@@ -306,7 +307,7 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                     <?php endif; ?>
                 </nav>
-                <button id="mobileMenuBtn" class="md:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-label="菜单">
+                <button id="mobileMenuBtn" type="button" class="md:hidden p-2" style="color: <?php echo e($headerTextColor); ?>" aria-controls="mobileMenu" aria-expanded="false" aria-label="<?php echo e(__('menu_label')); ?>">
                     <div class="hamburger" id="hamburgerIcon">
                         <span></span>
                         <span></span>
@@ -318,7 +319,7 @@ function getChannelUrl(array $channel): string {
         <?php endif; ?>
 
         <!-- 移动端菜单 -->
-        <nav id="mobileMenu" class="md:hidden hidden border-t" style="background-color: <?php echo e($headerBgColor); ?>">
+        <nav id="mobileMenu" class="md:hidden hidden border-t" aria-label="<?php echo e(__('menu_label')); ?>" style="background-color: <?php echo e($headerBgColor); ?>">
             <div class="container mx-auto px-4 py-4">
                 <?php foreach ($navChannels as $navItem): ?>
                 <?php $hasChildren = !empty($navItem['children']); ?>
@@ -357,4 +358,4 @@ function getChannelUrl(array $channel): string {
     <?php do_action('ik_header_after'); ?>
 
     <!-- 主内容 -->
-    <main class="flex-1">
+    <main id="main-content" tabindex="-1" class="flex-1">

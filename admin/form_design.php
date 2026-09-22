@@ -56,8 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $slug = (string) $src['slug'];  // 强制保留源 slug
             // 翻译版只校验 name 与 fields；slug 用源行保留
             if (empty($name)) error(__('fd_err_name_required'));
-            $tags = parseFormTags($templateText);
+            $tags = formFieldsFromStored($templateText);
             if (empty($tags)) error(__('fd_err_template_empty'));
+            if (!formFieldSetValid($tags)) {
+                error(__('fd_err_field_config'));
+            }
 
             $langCol = function (string $base) use ($postLang): string {
                 return $base . '_' . $postLang;
@@ -78,8 +81,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!formTemplateModel()->isSlugUnique($slug, $id)) error(__('fd_err_slug_taken'));
 
         // 验证模板中至少包含一个字段标签
-        $tags = parseFormTags($templateText);
+        $tags = formFieldsFromStored($templateText);
         if (empty($tags)) error(__('fd_err_template_empty'));
+        if (!formFieldSetValid($tags)) {
+            error(__('fd_err_field_config'));
+        }
 
         $data = [
             'name'            => $name,
@@ -400,6 +406,8 @@ if ($_i18nReady) {
                     <button type="button" onclick="openTagGen('textarea')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition"><?php echo __('fd_tag_textarea'); ?></button>
                     <button type="button" onclick="openTagGen('number')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition"><?php echo __('fd_tag_number'); ?></button>
                     <button type="button" onclick="openTagGen('date')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition"><?php echo __('fd_tag_date'); ?></button>
+                    <button type="button" onclick="openTagGen('file')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition"><?php echo __('fd_tag_file'); ?></button>
+                    <button type="button" onclick="openTagGen('hidden')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-blue-50 hover:border-blue-300 transition"><?php echo __('fd_tag_hidden'); ?></button>
                     <button type="button" onclick="openTagGen('select')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-green-50 hover:border-green-300 transition"><?php echo __('fd_tag_select'); ?></button>
                     <button type="button" onclick="openTagGen('radio')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-green-50 hover:border-green-300 transition"><?php echo __('fd_tag_radio'); ?></button>
                     <button type="button" onclick="openTagGen('checkbox')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-green-50 hover:border-green-300 transition"><?php echo __('fd_tag_checkbox'); ?></button>
@@ -436,7 +444,7 @@ if ($_i18nReady) {
                 <label class="block text-gray-600 mb-1 text-xs"><?php echo __('fd_taggen_field_name'); ?> <span class="text-red-500">*</span></label>
                 <input type="text" id="tagName" class="w-full border rounded px-3 py-1.5 text-sm" placeholder="your-name" pattern="[a-zA-Z0-9_-]+">
             </div>
-            <div>
+            <div id="tagRequiredRow">
                 <label class="flex items-center gap-2 text-sm cursor-pointer">
                     <input type="checkbox" id="tagRequired"> <?php echo __('fd_taggen_required'); ?>
                 </label>
@@ -448,6 +456,21 @@ if ($_i18nReady) {
             <div id="tagOptionsRow" class="hidden">
                 <label class="block text-gray-600 mb-1 text-xs" id="tagOptionsLabel"><?php echo __('fd_taggen_options'); ?></label>
                 <textarea id="tagOptions" class="w-full border rounded px-3 py-1.5 text-sm" rows="4" placeholder="<?php echo str_replace('\n', '&#10;', __('fd_taggen_options_ph_select')); ?>"></textarea>
+            </div>
+            <div id="tagBoundsRow" class="hidden grid grid-cols-3 gap-2">
+                <label class="text-xs text-gray-600"><?php echo e(__('fd_taggen_min')); ?><input type="text" id="tagMin" class="mt-1 w-full border rounded px-2 py-1.5 text-sm"></label>
+                <label class="text-xs text-gray-600"><?php echo e(__('fd_taggen_max')); ?><input type="text" id="tagMax" class="mt-1 w-full border rounded px-2 py-1.5 text-sm"></label>
+                <label class="text-xs text-gray-600"><?php echo e(__('fd_taggen_step')); ?><input type="text" id="tagStep" class="mt-1 w-full border rounded px-2 py-1.5 text-sm"></label>
+            </div>
+            <div id="tagHiddenRow" class="hidden">
+                <label class="block text-gray-600 mb-1 text-xs"><?php echo e(__('fd_taggen_hidden_value')); ?></label>
+                <input type="text" id="tagHiddenValue" class="w-full border rounded px-3 py-1.5 text-sm">
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(__('fd_taggen_hidden_tip')); ?></p>
+            </div>
+            <div id="tagFileRow" class="hidden space-y-2">
+                <label class="block text-gray-600 text-xs"><?php echo e(__('fd_taggen_file_types')); ?><input type="text" id="tagFileTypes" value="pdf,jpg,jpeg,png,webp" class="mt-1 w-full border rounded px-3 py-1.5 text-sm"></label>
+                <label class="block text-gray-600 text-xs"><?php echo e(__('fd_taggen_file_max')); ?><input type="number" id="tagFileMax" value="5" min="1" max="10" step="1" class="mt-1 w-full border rounded px-3 py-1.5 text-sm"></label>
+                <p class="text-xs text-gray-400"><?php echo e(__('fd_taggen_file_tip')); ?></p>
             </div>
             <!-- 预览 -->
             <div class="bg-gray-50 rounded p-2">
@@ -503,6 +526,7 @@ function applyFormPreset(key) {
 var tagTypeNames = {
     'text': '<?php echo __("fd_tag_text"); ?>', 'email': '<?php echo __("fd_tag_email"); ?>', 'tel': '<?php echo __("fd_tag_tel"); ?>',
     'textarea': '<?php echo __("fd_tag_textarea"); ?>', 'number': '<?php echo __("fd_tag_number"); ?>', 'date': '<?php echo __("fd_tag_date"); ?>',
+    'file': '<?php echo __("fd_tag_file"); ?>', 'hidden': '<?php echo __("fd_tag_hidden"); ?>',
     'select': '<?php echo __("fd_tag_select"); ?>', 'radio': '<?php echo __("fd_tag_radio"); ?>', 'checkbox': '<?php echo __("fd_tag_checkbox"); ?>'
 };
 
@@ -534,10 +558,20 @@ function openTagGen(type) {
     document.getElementById('tagRequired').checked = false;
     document.getElementById('tagPlaceholder').value = '';
     document.getElementById('tagOptions').value = '';
+    document.getElementById('tagMin').value = '';
+    document.getElementById('tagMax').value = '';
+    document.getElementById('tagStep').value = '';
+    document.getElementById('tagHiddenValue').value = '';
+    document.getElementById('tagFileTypes').value = 'pdf,jpg,jpeg,png,webp';
+    document.getElementById('tagFileMax').value = '5';
 
     var hasOptions = (type === 'select' || type === 'radio' || type === 'checkbox');
-    document.getElementById('tagPhRow').classList.toggle('hidden', hasOptions);
+    document.getElementById('tagPhRow').classList.toggle('hidden', hasOptions || type === 'file' || type === 'hidden');
     document.getElementById('tagOptionsRow').classList.toggle('hidden', !hasOptions);
+    document.getElementById('tagBoundsRow').classList.toggle('hidden', type !== 'number' && type !== 'date');
+    document.getElementById('tagHiddenRow').classList.toggle('hidden', type !== 'hidden');
+    document.getElementById('tagFileRow').classList.toggle('hidden', type !== 'file');
+    document.getElementById('tagRequiredRow').classList.toggle('hidden', type === 'hidden');
     if (hasOptions) {
         var optLabel = document.getElementById('tagOptionsLabel');
         var optArea = document.getElementById('tagOptions');
@@ -565,17 +599,29 @@ function buildTagString() {
     var required = document.getElementById('tagRequired').checked;
     if (!name) return '';
 
-    var tag = '[' + type + (required ? '*' : '') + ' ' + name;
+    var tag = '[' + type + (required && type !== 'hidden' ? '*' : '') + ' ' + name;
+    var quote = function(value) { return '"' + String(value).replace(/"/g, '”') + '"'; };
 
     if (type === 'select' || type === 'radio' || type === 'checkbox') {
         var lines = document.getElementById('tagOptions').value.split('\n');
         for (var i = 0; i < lines.length; i++) {
             var line = lines[i].trim();
-            if (line) tag += ' "' + line + '"';
+            if (line) tag += ' ' + quote(line);
         }
+    } else if (type === 'hidden') {
+        tag += ' ' + quote(document.getElementById('tagHiddenValue').value);
+    } else if (type === 'file') {
+        tag += ' ' + quote(document.getElementById('tagFileTypes').value.trim());
+        tag += ' max:' + document.getElementById('tagFileMax').value.trim();
     } else {
         var ph = document.getElementById('tagPlaceholder').value.trim();
-        if (ph) tag += ' "' + ph + '"';
+        if (ph) tag += ' ' + quote(ph);
+        if (type === 'number' || type === 'date') {
+            [['min', 'tagMin'], ['max', 'tagMax'], ['step', 'tagStep']].forEach(function(pair) {
+                var value = document.getElementById(pair[1]).value.trim();
+                if (value) tag += ' ' + pair[0] + ':' + value.replace(/\s+/g, '');
+            });
+        }
     }
 
     tag += ']';
@@ -591,6 +637,9 @@ document.getElementById('tagName').addEventListener('input', updateTagPreview);
 document.getElementById('tagRequired').addEventListener('change', updateTagPreview);
 document.getElementById('tagPlaceholder').addEventListener('input', updateTagPreview);
 document.getElementById('tagOptions').addEventListener('input', updateTagPreview);
+['tagMin', 'tagMax', 'tagStep', 'tagHiddenValue', 'tagFileTypes', 'tagFileMax'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', updateTagPreview);
+});
 
 function insertTag() {
     var tagStr = buildTagString();

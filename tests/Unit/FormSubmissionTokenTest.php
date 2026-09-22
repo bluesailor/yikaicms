@@ -8,6 +8,14 @@ require_once ROOT_PATH . '/includes/FormSubmissionToken.php';
 
 final class FormSubmissionTokenTest extends TestCase
 {
+    public function testProductContextSignatureCannotBeReusedForAnotherId(): void
+    {
+        $signature = FormSubmissionToken::contextSign('product-inquiry', 12, 'secret');
+        self::assertTrue(FormSubmissionToken::contextVerify('product-inquiry', 12, $signature, 'secret'));
+        self::assertFalse(FormSubmissionToken::contextVerify('product-inquiry', 13, $signature, 'secret'));
+        self::assertFalse(FormSubmissionToken::contextVerify('contact', 12, $signature, 'secret'));
+    }
+
     public function testNewSignatureBindsSlugAndTimestamp(): void
     {
         $signature = FormSubmissionToken::sign('contact', 1000, 'secret');
@@ -36,5 +44,15 @@ final class FormSubmissionTokenTest extends TestCase
         $source = (string) file_get_contents(ROOT_PATH . '/form_submit.php');
         self::assertStringContainsString('if (!$validSignature)', $source);
         self::assertStringContainsString("config('form_security_version', '1')", $source);
+        self::assertStringContainsString('if ($securityVersion >= 2)', $source);
+        self::assertStringContainsString('FormSubmissionNonce::consume($slug, $nonce, $secret)', $source);
+        self::assertStringContainsString('session_write_close()', $source);
+
+        $nonceEndpoint = (string) file_get_contents(ROOT_PATH . '/form_nonce.php');
+        self::assertStringContainsString('Cache-Control: no-store', $nonceEndpoint);
+        self::assertStringContainsString('FormSubmissionNonce::issue($slug, $secret)', $nonceEndpoint);
+        $renderer = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
+        self::assertStringContainsString('name="form_nonce" value=""', $renderer, 'Cacheable HTML must contain no reusable nonce');
+        self::assertStringContainsString('cache:"no-store"', $renderer);
     }
 }

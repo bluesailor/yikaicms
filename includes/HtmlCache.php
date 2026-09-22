@@ -18,6 +18,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/ProductCatalogRequest.php';
+
 if (!defined('ROOT_PATH')) exit('Access Denied');
 
 final class HtmlCache
@@ -324,31 +326,7 @@ final class HtmlCache
     /** @return array<string,string>|null null 表示参数值不应进入缓存 */
     private static function normalizedQuery(): ?array
     {
-        $query = [];
-        foreach ($_GET as $key => $rawValue) {
-            if (is_array($rawValue) || is_object($rawValue)) return null;
-            $value = trim((string) $rawValue);
-            if ($key === 'page') {
-                if (preg_match('/^[0-9]{1,5}$/', $value) !== 1) return null;
-                $page = (int) $value;
-                if ($page < 1 || $page > 10000) return null;
-                $query[$key] = (string) $page;
-                continue;
-            }
-            if ($key === 'sort') {
-                if (!in_array($value, ['default', 'newest', 'updated', 'views', 'price_asc', 'price_desc'], true)) return null;
-                $query[$key] = $value;
-                continue;
-            }
-            if (in_array($key, ['slug', 'parent', 'cat'], true)) {
-                if (preg_match('/^[a-zA-Z0-9_-]{1,100}$/', $value) !== 1) return null;
-                $query[$key] = $value;
-                continue;
-            }
-            return null;
-        }
-        ksort($query);
-        return $query;
+        return ProductCatalogRequest::normalizeCacheQuery($_GET);
     }
 
     private static function releaseNamespace(): string

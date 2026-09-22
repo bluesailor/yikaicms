@@ -136,6 +136,18 @@ class ProductControllerTest extends TestCase
         unset($GLOBALS['_test_config']['product_sort_options']);
     }
 
+    public function testMalformedSortConfigurationFallsBackSafely(): void
+    {
+        $this->seedFixture();
+        $GLOBALS['_test_config']['product_sort_options'] = '"newest"';
+        $vars = (new \ProductController())->prepare(
+            ['id' => 1, 'type' => 'product', 'parent_id' => 0],
+            $this->req()
+        );
+        $this->assertSame(['default', 'newest', 'views'], $vars['enabledSorts']);
+        unset($GLOBALS['_test_config']['product_sort_options']);
+    }
+
     public function testReturnsRequiredViewKeys(): void
     {
         $this->seedFixture();
@@ -224,6 +236,52 @@ class ProductControllerTest extends TestCase
         $this->assertArrayHasKey('Color', $vars['facetTagGroups']);
         $this->assertFalse($vars['filterActive']);           // 无筛选参数
         $this->assertCount(2, $vars['facetBrands']);          // Acme + Globex（均有在售品）
+    }
+
+    public function testCatalogQueryMatchesTheFiltersUsedByTheModel(): void
+    {
+        $this->seedFacets();
+        $_GET = ['brand' => '2,1,2', 'tag' => '3', 'pmin' => '0100.00', 'pmax' => '300'];
+        $vars = $this->prepareTop();
+
+        $this->assertSame([1, 2], $vars['selBrandIds']);
+        $this->assertSame([3], $vars['selTagIds']);
+        $this->assertSame('1,2', $vars['catalogQuery']['brand']);
+        $this->assertSame('3', $vars['catalogQuery']['tag']);
+        $this->assertSame('100', $vars['catalogQuery']['pmin']);
+        $this->assertSame('300', $vars['catalogQuery']['pmax']);
+    }
+
+    public function testMalformedOrOversizedFacetParametersAreIgnored(): void
+    {
+        $this->seedFacets();
+        $_GET = [
+            'brand' => implode(',', range(1, 51)),
+            'tag' => '1,not-an-id',
+            'pmin' => '-1',
+            'pmax' => '1e9',
+        ];
+        $vars = $this->prepareTop();
+
+        $this->assertSame(3, $vars['total']);
+        $this->assertSame([], $vars['selBrandIds']);
+        $this->assertSame([], $vars['selTagIds']);
+        $this->assertSame('', $vars['filterPriceMin']);
+        $this->assertSame('', $vars['filterPriceMax']);
+        $this->assertFalse($vars['filterActive']);
+    }
+
+    public function testOutOfRangePageAndLongKeywordAreNormalizedBeforeRendering(): void
+    {
+        $this->seedFixture();
+        $_GET = ['page' => '10001', 'keyword' => str_repeat('x', 101)];
+        $vars = $this->prepareTop();
+
+        $this->assertSame(1, $vars['page']);
+        $this->assertSame('', $vars['keyword']);
+        $this->assertSame(1, $vars['catalogQuery']['page']);
+        $this->assertSame('', $vars['catalogQuery']['keyword']);
+        $this->assertSame(3, $vars['total']);
     }
 
     protected function tearDown(): void

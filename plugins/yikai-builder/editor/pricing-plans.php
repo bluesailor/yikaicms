@@ -27,7 +27,7 @@ $pricingText = json_encode([
             <div data-testid="blox-pricing-plan" class="rounded border p-2.5 space-y-1.5"
                  :class="plan.featured ? 'border-blue-300 bg-blue-50/60' : 'border-gray-200 bg-gray-50/70'">
                 <div class="flex items-center gap-1">
-                    <i class="ti text-sm" :class="plan.featured ? 'ti-star-filled text-amber-500' : 'ti-tag text-gray-400'" aria-hidden="true"></i>
+                    <i class="ti text-sm" :class="plan.featured ? 'ti-star text-amber-500' : 'ti-tag text-gray-400'" aria-hidden="true"></i>
                     <span class="min-w-0 flex-1 truncate text-[10px] font-semibold text-gray-500" x-text="(index + 1) + ' · ' + (plan.name || pt.newPlan)"></span>
                     <button type="button" @click.stop="movePricingPlan(index, -1)" :disabled="index === 0" :title="pt.up" :aria-label="pt.up"
                             class="w-6 h-6 rounded text-gray-400 hover:bg-white hover:text-blue-600 disabled:text-gray-200 inline-flex items-center justify-center">

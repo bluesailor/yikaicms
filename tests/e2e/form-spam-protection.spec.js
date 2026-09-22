@@ -16,6 +16,13 @@ test('contact and inquiry reject probes and replay while real multilingual forms
     page.on('pageerror', error => pageErrors.push(error.message));
     const marker = `E7 Form ${Date.now()}`;
     const state = () => JSON.parse(fixture('form-spam-fixture.php', 'result', marker));
+    const issueNonce = async (slug, lang) => {
+      const response = await context.request.post(`/form_nonce.php?_lang=${encodeURIComponent(lang)}`, { form: { form_slug: slug } });
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+      expect(data.code).toBe(0);
+      return data.nonce;
+    };
     let savedPayload;
     for (const [index, lang] of ['zh-CN', 'en', 'ja'].entries()) {
       await page.goto(`/tests/e2e/form-spam-page.php?lang=${lang}`);
@@ -49,7 +56,9 @@ test('contact and inquiry reject probes and replay while real multilingual forms
       await expect(form.locator('[name="name"]')).toHaveValue('');
       expect(state().rows).toHaveLength(index + 1);
       expect(state().mail).toHaveLength(index + 1);
-      const duplicate = await context.request.post(`/form_submit.php?_lang=${lang}`, { form: savedPayload });
+      const duplicate = await context.request.post(`/form_submit.php?_lang=${lang}`, {
+        form: { ...savedPayload, form_nonce: await issueNonce('contact', lang) },
+      });
       expect(duplicate.status()).toBe(409);
       expect((await duplicate.json()).msg).toContain(['相同内容', 'already submitted', 'すでに送信'][index]);
       expect(duplicate.headers()['retry-after']).toBeTruthy();
@@ -58,9 +67,16 @@ test('contact and inquiry reject probes and replay while real multilingual forms
     }
     const inquiry = page.locator('#shortcode-form-product-inquiry');
     const token = await inquiry.evaluate(node => Object.fromEntries(new FormData(node)));
-    const crossForm = await context.request.post('/form_submit.php', { form: { ...savedPayload, form_slug: 'product-inquiry', form_sig: token.form_sig, form_ts: token.form_ts } });
+    const crossNonce = await issueNonce('contact', savedPayload._lang);
+    const crossForm = await context.request.post('/form_submit.php', { form: {
+      ...savedPayload, form_slug: 'product-inquiry', form_sig: token.form_sig, form_ts: token.form_ts, form_nonce: crossNonce,
+    } });
     expect(crossForm.status()).toBe(409);
-    const changed = { ...savedPayload, content: 'A distinct follow-up inquiry', form_slug: 'product-inquiry', form_sig: token.form_sig, form_ts: token.form_ts };
+    const replayedCrossForm = await context.request.post('/form_submit.php', { form: {
+      ...savedPayload, content: 'Different content and IP', form_nonce: crossNonce,
+    }, headers: { 'X-Forwarded-For': '198.51.100.10' } });
+    expect(replayedCrossForm.status()).toBe(409);
+    const changed = { ...savedPayload, content: 'A distinct follow-up inquiry', form_nonce: await issueNonce('contact', savedPayload._lang) };
     expect((await (await context.request.post('/form_submit.php', { form: changed })).json()).code).toBe(0);
     expect(state().rows).toHaveLength(4);
     expect(state().mail).toHaveLength(4);

@@ -39,9 +39,13 @@ final class SiteTemplateService
     {
         $record = $this->readRecord('current');
         if ($record === null) return null;
+        $pluginsMatch = $this->pluginSnapshotMatches(
+            is_array($record['plugin_after'] ?? null) ? $record['plugin_after'] : [],
+            is_array($record['plugin_requirements'] ?? null) ? $record['plugin_requirements'] : []
+        );
         return ['status' => (string) $record['status'], 'created_at' => (int) $record['created_at'],
             'can_restore' => isset($record['after']) && hash_equals((string) $record['after'], SiteTemplateData::fingerprint())
-                && !in_array($record['status'], ['restored', 'aborted'], true)];
+                && $pluginsMatch && !in_array($record['status'], ['restored', 'aborted'], true)];
     }
 
     private function supported(): void
@@ -66,9 +70,10 @@ final class SiteTemplateService
             SiteTemplateData::validate($data);
             $report = SiteExportChecks::inspect($data, channelModel()->all(), (string) config('site_url', ''));
             $plugins = $this->activePlugins();
-            SiteTemplatePluginData::snapshot($plugins, $data);
-            if ($plugins !== []) {
-                $list = implode(', ', array_map(static fn(array $plugin): string => $plugin['slug'] . ' ' . $plugin['version'], $plugins));
+            $portable = SiteTemplatePluginData::snapshot($plugins);
+            $excluded = array_values(array_filter($plugins, static fn(array $plugin): bool => !isset($portable[$plugin['slug']])));
+            if ($excluded !== []) {
+                $list = implode(', ', array_map(static fn(array $plugin): string => $plugin['slug'] . ' ' . $plugin['version'], $excluded));
                 $report['issues'][] = ['code' => 'usability_export_plugins_excluded', 'label' => $list,
                     'detail' => $list, 'url' => '/admin/plugin.php'];
             }
@@ -102,16 +107,18 @@ final class SiteTemplateService
         }
         $data = SiteTemplateData::snapshot(true);
         $plugins = $this->activePlugins();
-        $pluginData = SiteTemplatePluginData::snapshot($plugins, $data);
+        $pluginDataBefore = SiteTemplatePluginData::snapshot($plugins);
+        $pluginData = $pluginDataBefore;
         // Normalize the author's own origin, not third-party links.
         $origin = rtrim((string) config('site_url', ''), '/');
-        if ($origin !== '' && preg_match('~^https?://[^/]+$~iD', $origin)) {
-            $data = SiteTemplateArchive::rewrite($data, [$origin . '/' => '/']);
-            foreach ($files as $path => $bytes) if ($this->textFile($path)) $files[$path] = SiteTemplateArchive::rewrite($bytes, [$origin . '/' => '/']);
+        if ($origin !== '') {
+            $data = UploadReferences::localize($data, $origin);
+            $pluginData = UploadReferences::localize($pluginData, $origin);
+            foreach ($files as $path => $bytes) if ($this->textFile($path)) $files[$path] = UploadReferences::localize($bytes, $origin);
         }
         $media = $data['tables']['media'];
         $data['tables']['media'] = [];
-        $refs = UploadReferences::collect($data);
+        $refs = UploadReferences::collect([$data, $pluginData]);
         foreach ($files as $path => $bytes) if ($this->textFile($path)) {
             foreach (UploadReferences::collect($bytes) as $relative => $count) {
                 $refs[$relative] = ($refs[$relative] ?? 0) + $count;
@@ -135,9 +142,15 @@ final class SiteTemplateService
             }
         }
         SiteTemplateData::validate($data);
-        if (!hash_equals($before, SiteTemplateData::fingerprint())) throw new RuntimeException('st_stale');
+        $pluginDataAfter = SiteTemplatePluginData::snapshot($plugins);
+        if (!hash_equals($before, SiteTemplateData::fingerprint())
+            || !hash_equals(SiteTemplatePluginData::portableFingerprint($pluginDataBefore), SiteTemplatePluginData::portableFingerprint($pluginDataAfter))) {
+            throw new RuntimeException('st_stale');
+        }
+        $pluginPackage = SiteTemplatePluginData::package($pluginData);
+        $files += $pluginPackage['files'];
         $manifest = ['format' => 'yikaicms-site-template', 'version' => $pluginData === [] ? 1 : 2, 'cms' => CMS_VERSION,
-            'plugins' => $plugins, 'plugin_data' => $pluginData,
+            'plugins' => $plugins, 'plugin_data' => $pluginPackage['manifest'],
             'schema' => SiteTemplateData::schema(), 'theme' => $theme, 'created_at' => gmdate('c'), 'data' => $data];
         SiteTemplateArchive::write($destination, $manifest, $files);
         SiteTemplateArchive::read($destination);
@@ -153,6 +166,9 @@ final class SiteTemplateService
         // memory_limit=128M 的主机上会在 apply 中途 fatal）。
         $package = SiteTemplateArchive::inspect($archive);
         $missingPlugins = $this->missingPlugins($package['manifest']['plugins']);
+        $pluginRequirements = $this->pluginRequirements($package['manifest']['plugins'], $package['plugin_data']);
+        $matchedRequirements = $this->withoutMissingRequirements($pluginRequirements, $missingPlugins);
+        $pluginBefore = SiteTemplatePluginData::targetSnapshot($package['plugin_data'], $matchedRequirements);
         $token = bin2hex(random_bytes(16));
         $this->ensureDirectory($this->store);
         $stored = $this->store . '/package.zip';
@@ -164,7 +180,8 @@ final class SiteTemplateService
         $this->writeRecord('plan', ['token' => $token, 'owner' => $adminId, 'expires' => time() + 600,
             'fingerprint' => SiteTemplateData::fingerprint(), 'hash' => $package['hash'],
             'alias' => 'sitepack-' . bin2hex(random_bytes(8)), 'media' => $media, 'staged' => 0,
-            'missing_plugins' => $missingPlugins]);
+            'missing_plugins' => $missingPlugins, 'plugin_requirements' => $matchedRequirements,
+            'plugin_before_hash' => SiteTemplatePluginData::fingerprint($pluginBefore)]);
         return ['token' => $token, 'summary' => $this->summary($package['manifest'], array_fill_keys($package['names'], '')),
             'missing_plugins' => $missingPlugins];
     }
@@ -241,63 +258,74 @@ final class SiteTemplateService
     public function apply(string $token, int $adminId, array $brand, bool $trusted): void
     {
         $this->withLock(function () use ($token, $adminId, $brand, $trusted): void {
-            $this->supported();
-            $plan = $this->readRecord('plan');
-            if ($plan === null || !hash_equals((string) $plan['token'], $token) || $plan['owner'] !== $adminId || $plan['expires'] < time()) throw new RuntimeException('st_stale');
-            if (!$this->canApply() || !hash_equals((string) $plan['fingerprint'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_not_fresh');
-            $archive = $this->store . '/package.zip';
-            $this->assertContained($archive);
-            if (!is_file($archive) || !hash_equals((string) $plan['hash'], (string) hash_file('sha256', $archive))) throw new RuntimeException('st_stale');
-            $package = SiteTemplateArchive::read($archive);
-            $missingPlugins = $this->missingPlugins($package['manifest']['plugins']);
-            $previewedMissing = is_array($plan['missing_plugins'] ?? null) ? $plan['missing_plugins'] : [];
-            $previewedSlugs = array_fill_keys(array_column($previewedMissing, 'slug'), true);
-            foreach ($missingPlugins as $plugin) {
-                // 预览后新出现的缺失依赖没有展示给管理员，必须重新预览，不能静默强制导入。
-                if (!isset($previewedSlugs[$plugin['slug']])) throw new RuntimeException('st_stale');
-            }
-            if (!empty($package['manifest']['plugin_data']) && $missingPlugins !== []) throw new RuntimeException('st_plugin_missing');
-            if (!$trusted) throw new RuntimeException($missingPlugins === [] ? 'st_trust' : 'st_plugin_missing');
-            $pluginData = $package['manifest']['plugin_data'] ?? [];
-            SiteTemplatePluginData::assertTarget($pluginData);
-            // 别名在 prepare 阶段就定下：分阶段提取要往固定目录落盘，重复请求也不会换目录
-            $alias = (string) $plan['alias'];
-            $map = ['/themes/' . $package['manifest']['theme'] . '/' => '/themes/' . $alias . '/', '/uploads/' => '/uploads/' . $alias . '/'];
-            $data = SiteTemplateArchive::rewrite($package['manifest']['data'], $map);
-            foreach ($data['tables']['media'] as &$row) {
-                if (isset($row['path']) && str_starts_with($row['path'], 'uploads/')) $row['path'] = $this->root . '/uploads/' . $alias . '/' . substr($row['path'], 8);
-            }
-            unset($row);
-            $oldTheme = $package['manifest']['theme'];
-            $styles = json_decode($data['settings']['theme_style_settings'] ?? '', true);
-            if (is_array($styles['themes'][$oldTheme] ?? null)) {
-                $styles['themes'] = [$alias => $styles['themes'][$oldTheme]];
-                $data['settings']['theme_style_settings'] = json_encode($styles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-            }
-            if (isset($data['settings']['theme_content_' . $oldTheme])) {
-                $data['settings']['theme_content_' . $alias] = $data['settings']['theme_content_' . $oldTheme];
-                unset($data['settings']['theme_content_' . $oldTheme]);
-            }
-            $data['settings']['current_theme'] = $alias;
-            foreach (['site_name', 'contact_phone', 'contact_email', 'contact_address'] as $key) {
-                $value = trim((string) ($brand[$key] ?? ''));
-                if (strlen($value) > 500 || ($key === 'site_name' && $value === '')) throw new RuntimeException('st_brand');
-                $data['settings'][$key] = $value;
-                foreach (['zh-CN', 'en', 'ja'] as $language) {
-                    if (array_key_exists($key . '_' . $language, $data['settings'])) $data['settings'][$key . '_' . $language] = $value;
-                }
-            }
-            if ($data['settings']['contact_email'] !== '' && filter_var($data['settings']['contact_email'], FILTER_VALIDATE_EMAIL) === false) throw new RuntimeException('st_brand');
-            $this->beginLockedTransaction();
+            $alias = '';
             $committed = false;
             try {
+                $plan = $this->readRecord('plan');
+                if ($plan === null || !hash_equals((string) $plan['token'], $token) || $plan['owner'] !== $adminId || $plan['expires'] < time()) throw new RuntimeException('st_stale');
+                // 别名在 prepare 阶段就定下：分阶段提取要往固定目录落盘，重复请求也不会换目录
+                $alias = (string) $plan['alias'];
+                $this->supported();
+                if (!$this->canApply() || !hash_equals((string) $plan['fingerprint'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_not_fresh');
+                $archive = $this->store . '/package.zip';
+                $this->assertContained($archive);
+                if (!is_file($archive) || !hash_equals((string) $plan['hash'], (string) hash_file('sha256', $archive))) throw new RuntimeException('st_stale');
+                $package = SiteTemplateArchive::read($archive);
+                $missingPlugins = $this->missingPlugins($package['manifest']['plugins']);
+                $previewedMissing = is_array($plan['missing_plugins'] ?? null) ? $plan['missing_plugins'] : [];
+                if ($this->pluginListFingerprint($missingPlugins) !== $this->pluginListFingerprint($previewedMissing)) {
+                    // Any dependency change after preview changes what will be skipped/imported.
+                    throw new RuntimeException('st_stale');
+                }
+                if (!$trusted) throw new RuntimeException($missingPlugins === [] ? 'st_trust' : 'st_plugin_missing');
+                $pluginRequirements = $this->pluginRequirements($package['manifest']['plugins'], $package['plugin_data']);
+                $matchedRequirements = $this->withoutMissingRequirements($pluginRequirements, $missingPlugins);
+                $missingSlugs = array_values(array_map(static fn(array $plugin): string => $plugin['slug'], $missingPlugins));
+                $pluginData = SiteTemplatePluginData::withoutMissing($package['plugin_data'], $missingSlugs);
+                $pluginBefore = SiteTemplatePluginData::targetSnapshot($pluginData, $matchedRequirements);
+                if (!hash_equals((string) ($plan['plugin_before_hash'] ?? ''), SiteTemplatePluginData::fingerprint($pluginBefore))) {
+                    throw new RuntimeException('st_stale');
+                }
+
+                $map = ['/themes/' . $package['manifest']['theme'] . '/' => '/themes/' . $alias . '/', '/uploads/' => '/uploads/' . $alias . '/'];
+                $data = SiteTemplateArchive::rewrite($package['manifest']['data'], $map);
+                $pluginData = SiteTemplatePluginData::rewrite($pluginData, $map);
+                foreach ($data['tables']['media'] as &$row) {
+                    if (isset($row['path']) && str_starts_with($row['path'], 'uploads/')) $row['path'] = $this->root . '/uploads/' . $alias . '/' . substr($row['path'], 8);
+                }
+                unset($row);
+                $oldTheme = $package['manifest']['theme'];
+                $styles = json_decode($data['settings']['theme_style_settings'] ?? '', true);
+                if (is_array($styles['themes'][$oldTheme] ?? null)) {
+                    $styles['themes'] = [$alias => $styles['themes'][$oldTheme]];
+                    $data['settings']['theme_style_settings'] = json_encode($styles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+                }
+                if (isset($data['settings']['theme_content_' . $oldTheme])) {
+                    $data['settings']['theme_content_' . $alias] = $data['settings']['theme_content_' . $oldTheme];
+                    unset($data['settings']['theme_content_' . $oldTheme]);
+                }
+                $data['settings']['current_theme'] = $alias;
+                foreach (['site_name', 'contact_phone', 'contact_email', 'contact_address'] as $key) {
+                    $value = trim((string) ($brand[$key] ?? ''));
+                    if (strlen($value) > 500 || ($key === 'site_name' && $value === '')) throw new RuntimeException('st_brand');
+                    $data['settings'][$key] = $value;
+                    foreach (['zh-CN', 'en', 'ja'] as $language) {
+                        if (array_key_exists($key . '_' . $language, $data['settings'])) $data['settings'][$key . '_' . $language] = $value;
+                    }
+                }
+                if ($data['settings']['contact_email'] !== '' && filter_var($data['settings']['contact_email'], FILTER_VALIDATE_EMAIL) === false) throw new RuntimeException('st_brand');
+
+                $this->beginLockedTransaction();
                 if (!$this->canApply() || !hash_equals((string) $plan['fingerprint'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_stale');
+                $pluginBefore = SiteTemplatePluginData::targetSnapshot($pluginData, $matchedRequirements);
+                if (!hash_equals((string) ($plan['plugin_before_hash'] ?? ''), SiteTemplatePluginData::fingerprint($pluginBefore))) throw new RuntimeException('st_stale');
                 $journal = ['status' => 'preparing', 'created_at' => time(), 'before' => SiteTemplateData::fingerprint(),
-                    'snapshot' => SiteTemplateData::snapshot(), 'plugin_snapshot' => SiteTemplatePluginData::backup($pluginData), 'alias' => $alias];
+                    'snapshot' => SiteTemplateData::snapshot(), 'plugin_snapshot' => $pluginBefore,
+                    'plugin_requirements' => $matchedRequirements, 'alias' => $alias];
                 $this->writeRecord('current', $journal);
                 $this->installFiles($package['files'], $alias, $map);
                 SiteTemplateData::replace($data);
-                SiteTemplatePluginData::apply($pluginData);
+                $journal['plugin_after'] = SiteTemplatePluginData::apply($pluginData, $matchedRequirements);
                 $journal['after'] = SiteTemplateData::fingerprint();
                 $journal['status'] = 'prepared_commit';
                 $this->writeRecord('current', $journal);
@@ -312,7 +340,7 @@ final class SiteTemplateService
                 // 事务已回滚 ⇒ 没有任何记录引用本次别名（别名是本次新生成的随机值，
                 // installFiles 又拒绝写入已存在的目录），因此清理是安全的。
                 // restore() 里"绝不删除"的理由是那些文件可能已被编辑器引用——失败路径不适用。
-                if (!$committed) $this->discardImportedFiles($alias);
+                if (!$committed && $alias !== '') $this->discardImportedFiles($alias);
                 throw $e;
             }
         });
@@ -327,11 +355,20 @@ final class SiteTemplateService
             $this->beginLockedTransaction();
             try {
                 if (!hash_equals((string) $journal['after'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_restore_changed');
+                $pluginRequirements = is_array($journal['plugin_requirements'] ?? null) ? $journal['plugin_requirements'] : [];
+                $pluginAfter = is_array($journal['plugin_after'] ?? null) ? $journal['plugin_after'] : [];
+                if (!$this->pluginSnapshotMatches($pluginAfter, $pluginRequirements)) throw new RuntimeException('st_restore_changed');
                 // A local backup must reproduce the original state, including pre-existing dangling seed references.
                 // Uploaded packages still undergo full reference validation in Archive::read and replace().
                 SiteTemplateData::replace($journal['snapshot'], false);
-                SiteTemplatePluginData::restore($journal['plugin_snapshot'] ?? []);
+                $pluginSnapshot = is_array($journal['plugin_snapshot'] ?? null) ? $journal['plugin_snapshot'] : [];
+                $portableBackup = [];
+                foreach ($pluginSnapshot as $slug => $entry) $portableBackup[$slug] = [
+                    'contract' => $entry['contract'], 'schema' => $entry['schema'], 'payload' => $entry['payload'],
+                ];
+                SiteTemplatePluginData::apply($portableBackup, $pluginRequirements);
                 if (!hash_equals((string) $journal['before'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_restore_changed');
+                if (!$this->pluginSnapshotMatches($pluginSnapshot, $pluginRequirements)) throw new RuntimeException('st_restore_changed');
                 db()->commit();
             } catch (Throwable $e) {
                 if (db()->getPdo()->inTransaction()) db()->rollback();
@@ -372,7 +409,10 @@ final class SiteTemplateService
 
     private function beginLockedTransaction(): void
     {
-        $tables = array_merge(SiteTemplateData::TABLES, ['settings'], self::PRIVATE_TABLES, SiteTemplatePluginData::TABLES);
+        // Plugin-owned hooks must validate/lock their own explicitly whitelisted
+        // tables with this same db() connection. The core deliberately does not
+        // know plugin table names.
+        $tables = array_merge(SiteTemplateData::TABLES, ['settings'], self::PRIVATE_TABLES);
         if (!db()->isSqlite()) foreach ($tables as $table) {
             if (!db()->tableExists($table)) continue;
             $engine = db()->fetchColumn('SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?', [DB_PREFIX . $table]);
@@ -477,6 +517,55 @@ final class SiteTemplateService
             if (!isset($active[$slug]) || version_compare($active[$slug], $version, '<')) $missing[] = $plugin;
         }
         return $missing;
+    }
+
+    /**
+     * Only plugins with packaged data participate in plugin state guards.
+     * Dependency-only plugins retain the W1-a trusted/confirm behavior.
+     *
+     * @param list<array{slug:string,version:string}> $plugins
+     * @param array<string,array<string,mixed>> $pluginData
+     * @return list<array{slug:string,version:string}>
+     */
+    private function pluginRequirements(array $plugins, array $pluginData): array
+    {
+        $wanted = array_fill_keys(array_keys($pluginData), true);
+        return array_values(array_filter($plugins, static fn(array $plugin): bool => isset($wanted[$plugin['slug']])));
+    }
+
+    /**
+     * @param list<array{slug:string,version:string}> $requirements
+     * @param list<array{slug:string,version:string}> $missing
+     * @return list<array{slug:string,version:string}>
+     */
+    private function withoutMissingRequirements(array $requirements, array $missing): array
+    {
+        $slugs = array_fill_keys(array_column($missing, 'slug'), true);
+        return array_values(array_filter($requirements, static fn(array $plugin): bool => !isset($slugs[$plugin['slug']])));
+    }
+
+    /** @param list<array{slug:string,version:string}> $plugins */
+    private function pluginListFingerprint(array $plugins): string
+    {
+        usort($plugins, static fn(array $a, array $b): int => strcmp((string) ($a['slug'] ?? ''), (string) ($b['slug'] ?? '')));
+        return hash('sha256', json_encode($plugins, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param array<string,array<string,mixed>> $expected
+     * @param list<array{slug:string,version:string}> $requirements
+     */
+    private function pluginSnapshotMatches(array $expected, array $requirements): bool
+    {
+        if ($expected === [] && $requirements === []) return true;
+        try {
+            if ($this->missingPlugins($requirements) !== []) return false;
+            $current = SiteTemplatePluginData::snapshot($requirements);
+            if (array_keys($current) !== array_keys($expected)) return false;
+            return hash_equals(SiteTemplatePluginData::fingerprint($expected), SiteTemplatePluginData::fingerprint($current));
+        } catch (Throwable $error) {
+            return false;
+        }
     }
 
     /** 仅测试环境生效：让小夹具也能稳定压出多轮暂存。 */

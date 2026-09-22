@@ -81,13 +81,37 @@ final class ReleaseArtifactSmokeTest extends TestCase
         foreach ([
             'includes/http_response.php',
             'includes/language_request.php',
+            'includes/ProductCatalogRequest.php',
             'includes/ThemeContent.php',
             'includes/SiteTemplateService.php',
+            'includes/AccessibilityAudit.php',
             'admin/site_templates.php',
+            'assets/js/product-catalog-filter.js',
             'assets/icons/blox-icon-catalog.json',
         ] as $path) {
             self::assertContains($path, $this->manifest['required_files']);
         }
+    }
+
+    public function testFormUploadRuntimeChainIsExplicitlyCovered(): void
+    {
+        $chain = [
+            'form_submit.php',
+            'form_nonce.php',
+            'admin/form_file.php',
+            'includes/FormSubmissionToken.php',
+            'includes/FormSubmissionNonce.php',
+            'includes/FormSubmissionLifecycle.php',
+            'includes/FormFieldContract.php',
+            'includes/FormDecimal.php',
+            'includes/FormSpamGuard.php',
+            'includes/FormUploadService.php',
+        ];
+
+        foreach ($chain as $path) {
+            self::assertContains($path, $this->manifest['required_files'], 'Form runtime is missing from release contract: ' . $path);
+        }
+        self::assertMatchesRegularExpression('/ROOT_ALLOWED=\([\s\S]*"form_nonce\.php"/', (string) file_get_contents(ROOT_PATH . '/build.sh'));
     }
 
     /** 清单不是摆设：升级排序器缺失必须让产物冒烟红。 */

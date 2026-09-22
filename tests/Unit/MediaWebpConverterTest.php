@@ -17,8 +17,9 @@ final class MediaWebpConverterTest extends TestCase
     {
         parent::setUp();
         if (!function_exists('imagewebp')) {
-            $this->markTestSkipped('GD WebP support is not available');
+            throw new \PHPUnit\Framework\SkippedWithMessageException('GD WebP support is not available');
         }
+        unset($GLOBALS['yikai_config_runtime_overrides']['upload_max_megapixels']);
         $this->root = sys_get_temp_dir() . '/yk-webp-' . getmypid() . '-' . bin2hex(random_bytes(4));
         $this->uploads = $this->root . '/uploads';
         self::assertTrue(mkdir($this->uploads, 0775, true));
@@ -30,6 +31,7 @@ final class MediaWebpConverterTest extends TestCase
 
     protected function tearDown(): void
     {
+        unset($GLOBALS['yikai_config_runtime_overrides']['upload_max_megapixels']);
         foreach (glob($this->uploads . '/*') ?: [] as $file) {
             @unlink($file);
         }
@@ -63,6 +65,8 @@ final class MediaWebpConverterTest extends TestCase
         self::assertGreaterThan(0, $report['saved_bytes']);
         self::assertFileExists($this->uploads . '/hero.webp');
         self::assertFileExists($this->uploads . '/product.webp');
+        self::assertFileExists($this->uploads . '/hero.webp.yikai-source.json');
+        self::assertFileExists($this->uploads . '/product.webp.yikai-source.json');
         self::assertFileExists($this->uploads . '/hero.png');
         self::assertFileExists($this->uploads . '/product.jpg');
 
@@ -116,19 +120,63 @@ final class MediaWebpConverterTest extends TestCase
         );
     }
 
+    public function testSameOriginAbsoluteAndProtocolRelativeUrlsAreRewrittenWithoutTouchingThirdPartyUrls(): void
+    {
+        $html = implode('', [
+            '<img src="https://SOURCE.example:443/cms/uploads/hero.png?size=&sol;large">',
+            '<img src="//source.example/cms/uploads/hero.png#mobile">',
+            '<img src="https:&#47;&#47;source.example&sol;cms&sol;uploads&sol;hero.png?entity=1">',
+            '<img src="https://cdn.example/uploads/hero.png">',
+            '<img src="https://source.example/uploads/hero.png">',
+            '<img src="http://source.example/cms/uploads/hero.png">',
+            '<a href="https://source.example/cms/about?next=&sol;contact">About</a>',
+            '<p>A &sol; B and C &#47; D and E &bsol; F</p>',
+        ]);
+        db()->execute('UPDATE contents SET content = ? WHERE id = ?', [$html, 1]);
+
+        (new MediaWebpConverter($this->root, 'https://source.example/cms'))->run(true);
+
+        $rewritten = (string) db()->fetchColumn('SELECT content FROM contents WHERE id = ?', [1]);
+        self::assertStringContainsString('https://SOURCE.example:443/cms/uploads/hero.webp?size=&sol;large', $rewritten);
+        self::assertStringContainsString('//source.example/cms/uploads/hero.webp#mobile', $rewritten);
+        self::assertStringContainsString('https://source.example/cms/uploads/hero.webp?entity=1', $rewritten);
+        self::assertStringContainsString('https://cdn.example/uploads/hero.png', $rewritten);
+        self::assertStringContainsString('https://source.example/uploads/hero.png', $rewritten);
+        self::assertStringContainsString('http://source.example/cms/uploads/hero.png', $rewritten);
+        self::assertStringContainsString('https://source.example/cms/about?next=&sol;contact', $rewritten);
+        self::assertStringContainsString('A &sol; B and C &#47; D and E &bsol; F', $rewritten);
+    }
+
+    public function testNoMatchingReferenceLeavesEntityTextByteIdentical(): void
+    {
+        $html = '<p>A &sol; B, C &#47; D, E &bsol; F</p>'
+            . '<img src="https:&#47;&#47;cdn.example/uploads/hero.png?next=&sol;keep">'
+            . '<img src="https:&#47;&#47;cdn.example&sol;uploads&sol;hero.png?next=&sol;keep">'
+            . '<a href="https://source.example/outside/about?next=&sol;keep">Outside</a>';
+        db()->execute('UPDATE contents SET content = ? WHERE id = ?', [$html, 1]);
+
+        (new MediaWebpConverter($this->root, 'https://source.example/cms'))->run(true);
+
+        self::assertSame($html, db()->fetchColumn('SELECT content FROM contents WHERE id = ?', [1]));
+    }
+
     public function testDatabaseFailureRollsBackReferencesAndRemovesNewWebpFiles(): void
     {
         db()->execute("CREATE TRIGGER fail_webp_reference BEFORE UPDATE OF content ON contents BEGIN SELECT RAISE(ABORT, 'forced'); END");
 
+        $caught = null;
         try {
             (new MediaWebpConverter($this->root))->run(true);
-            self::fail('Expected the forced database failure');
         } catch (\Throwable $error) {
-            self::assertStringContainsString('forced', $error->getMessage());
+            $caught = $error;
         }
+        self::assertNotNull($caught, 'Expected the forced database failure');
+        self::assertStringContainsString('forced', $caught->getMessage());
 
         self::assertFileDoesNotExist($this->uploads . '/hero.webp');
         self::assertFileDoesNotExist($this->uploads . '/product.webp');
+        self::assertFileDoesNotExist($this->uploads . '/hero.webp.yikai-source.json');
+        self::assertFileDoesNotExist($this->uploads . '/product.webp.yikai-source.json');
         self::assertFileExists($this->uploads . '/hero.png');
         self::assertSame('<img src="/uploads/hero.png">', db()->fetchColumn('SELECT content FROM contents WHERE id = ?', [1]));
         self::assertSame('/uploads/hero.png', db()->fetchColumn('SELECT url FROM media WHERE id = ?', [1]));
@@ -195,7 +243,7 @@ final class MediaWebpConverterTest extends TestCase
         imagedestroy($image);
         $before = hash_file('sha256', $this->uploads . '/hero.webp');
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('同名 WebP 与当前源图或转换品质不一致');
+        $this->expectExceptionMessage('同名 WebP 缺少有效来源契约');
 
         try {
             (new MediaWebpConverter($this->root))->run(true);
@@ -204,6 +252,41 @@ final class MediaWebpConverterTest extends TestCase
             self::assertSame('/uploads/hero.png', db()->fetchColumn('SELECT url FROM media WHERE id = ?', [1]));
             self::assertFileDoesNotExist($this->uploads . '/product.webp');
         }
+    }
+
+    public function testSourceContractDetectsChangedSourceWithoutReencodingComparison(): void
+    {
+        $converter = new MediaWebpConverter($this->root);
+        $converter->run(true);
+        $this->writeImage($this->uploads . '/hero.png', 'png', 320, 180);
+        $image = imagecreatefrompng($this->uploads . '/hero.png');
+        self::assertNotFalse($image);
+        imagesetpixel($image, 0, 0, imagecolorallocate($image, 250, 2, 3));
+        imagepng($image, $this->uploads . '/hero.png');
+        imagedestroy($image);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('同名 WebP 来源契约与当前源图或转换品质不一致');
+        $converter->run(true);
+    }
+
+    public function testPixelLimitRejectsBeforeCreatingWebpOrChangingReferences(): void
+    {
+        $GLOBALS['yikai_config_runtime_overrides']['upload_max_megapixels'] = 1;
+        $this->writeImage($this->uploads . '/oversized.png', 'png', 1200, 900);
+        db()->insert('banners', ['id' => 3, 'image' => '/uploads/oversized.png']);
+
+        $caught = null;
+        try {
+            (new MediaWebpConverter($this->root))->run(true);
+        } catch (\RuntimeException $error) {
+            $caught = $error;
+        }
+        self::assertNotNull($caught, 'Expected the pixel limit failure');
+        self::assertStringContainsString('源图片超过像素上限：oversized.png', $caught->getMessage());
+        self::assertFileDoesNotExist($this->uploads . '/oversized.webp');
+        self::assertFileDoesNotExist($this->uploads . '/hero.webp');
+        self::assertSame('/uploads/oversized.png', db()->fetchColumn('SELECT image FROM banners WHERE id = ?', [3]));
     }
 
     private function resetTables(bool $create = true): void

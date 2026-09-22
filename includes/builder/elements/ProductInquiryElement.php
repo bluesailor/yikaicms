@@ -46,29 +46,15 @@ final class ProductInquiryElement extends AbstractElement
         self::$seq++;
         $suffix = 'blox-inquiry-' . self::$seq;
         $formId = $suffix . '-form';
-        $buttonId = $suffix . '-btn';
         $msgId = $suffix . '-msg';
 
-        $timestamp = time();
         $secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
-        $signature = class_exists('FormSubmissionToken')
-            ? FormSubmissionToken::sign('product-inquiry', $timestamp, $secret)
+        $productSignature = class_exists('FormSubmissionToken')
+            ? FormSubmissionToken::contextSign('product-inquiry', $productId, $secret)
             : '';
         $lang = siteLang();
-
-        // 与原生同款：留言框预填"关于某产品的咨询"
-        $defaultMessage = sprintf((string) __('product_default_inq_msg'), $productTitle);
-
-        // 验证码按表单设计器配置渲染；查询失败不能让产品页整块崩掉（服务端仍会照常校验）
-        $captchaHtml = '';
-        if (function_exists('renderFormCaptcha') && function_exists('formTemplateModel')) {
-            try {
-                $template = formTemplateModel()->findBySlug('product-inquiry');
-                $captchaHtml = renderFormCaptcha(!empty($template['captcha']));
-            } catch (Throwable $e) {
-                $captchaHtml = '';
-            }
-        }
+        $fields = renderProductInquiryFields($productTitle);
+        if ($fields === '') return '';
 
         $radiusKey = is_string($data['radius'] ?? null) ? $data['radius'] : 'md';
         $radius = ['none' => '', 'md' => ' rounded-lg', 'xl' => ' rounded-2xl'][$radiusKey] ?? '';
@@ -78,20 +64,6 @@ final class ProductInquiryElement extends AbstractElement
         // 就提交不出内容，脚本再拦一层，避免有人在开发者工具里放开后误提交。
         $isPreview = ProductTemplateDocument::isPreview();
         $endpoint = '/form_submit.php?_lang=' . rawurlencode($lang);
-
-        $fields = '<div class="grid grid-cols-2 gap-3">'
-            . '<input type="text" name="name" required placeholder="' . e(__('product_field_name_ph')) . '" class="w-full rounded border border-gray-300 px-3 py-2 text-sm">'
-            . '<input type="tel" name="phone" required placeholder="' . e(__('product_field_phone_ph')) . '" class="w-full rounded border border-gray-300 px-3 py-2 text-sm">'
-            . '</div>'
-            . '<div class="grid grid-cols-2 gap-3">'
-            . '<input type="email" name="email" placeholder="' . e(__('product_field_email_ph')) . '" class="w-full rounded border border-gray-300 px-3 py-2 text-sm">'
-            . '<input type="text" name="company" placeholder="' . e(__('product_field_company_ph')) . '" class="w-full rounded border border-gray-300 px-3 py-2 text-sm">'
-            . '</div>'
-            . '<textarea name="content" required rows="3" class="w-full rounded border border-gray-300 px-3 py-2 text-sm">' . e($defaultMessage) . '</textarea>'
-            . $captchaHtml
-            . '<button type="submit" id="' . e($buttonId) . '"' . ($isPreview ? ' disabled' : '')
-            . ' class="w-full rounded bg-primary py-2.5 text-sm font-medium text-white hover:bg-secondary transition">'
-            . e(__('product_btn_submit_inq')) . '</button>';
 
         // 显式 POST + 受控提交地址：脚本没跑起来时（被拦/加载失败）浏览器按 POST 提交到
         // form_submit.php，姓名电话落在请求体里，不会像默认 GET 那样拼进当前页查询串。
@@ -103,31 +75,26 @@ final class ProductInquiryElement extends AbstractElement
             . '<h3 class="mb-3 flex items-center gap-2 text-sm font-bold text-dark">'
             . '<i class="ti ti-message-chatbot text-primary" aria-hidden="true"></i>' . e(__('product_inquiry')) . '</h3>'
             . ($isPreview ? '<p class="mb-2 text-xs text-amber-600">' . e(__('blox_product_inquiry_preview')) . '</p>' : '')
-            . '<form id="' . e($formId) . '" class="space-y-3"' . $formAttrs . '>'
-            . '<input type="hidden" name="form_slug" value="product-inquiry">'
-            . '<input type="hidden" name="_lang" value="' . e($lang) . '">'
-            . '<input type="hidden" name="form_ts" value="' . (int) $timestamp . '">'
-            . '<input type="hidden" name="form_sig" value="' . e($signature) . '">'
+            . '<form id="' . e($formId) . '" class="space-y-3" enctype="multipart/form-data"' . $formAttrs . '>'
+            . renderFormSecurityFields('product-inquiry')
             . '<input type="hidden" name="product_id" value="' . $productId . '">'
+            // Retained for old integrations/display only; form_submit.php never trusts this value.
             . '<input type="hidden" name="product_title" value="' . e($productTitle) . '">'
-            // 蜜罐：正常用户看不到；机器人填了会被 form_submit.php 静默丢弃
-            . '<input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" '
-            . 'style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">'
+            . '<input type="hidden" name="product_sig" value="' . e($productSignature) . '">'
             . ($isPreview ? '<fieldset disabled class="space-y-3">' . $fields . '</fieldset>' : $fields)
             . '<p id="' . e($msgId) . '" class="hidden text-center text-sm" role="status" aria-live="polite"></p>'
             . '</form></div>';
 
-        return $html . $this->script($formId, $buttonId, $msgId, $isPreview);
+        return $html . renderFormNonceClientScript() . $this->script($formId, $msgId, $isPreview);
     }
 
     /** 提交脚本：只绑定本实例的表单，重复插入不会重复绑定。 */
-    private function script(string $formId, string $buttonId, string $msgId, bool $isPreview): string
+    private function script(string $formId, string $msgId, bool $isPreview): string
     {
         $form = json_encode($formId);
-        $button = json_encode($buttonId);
         $message = json_encode($msgId);
         $submitting = json_encode(__('product_submitting'));
-        $submitLabel = json_encode(__('product_btn_submit_inq'));
+        $submitFallback = json_encode(__('product_btn_submit_inq'));
         $networkError = json_encode(__('product_network_error'));
         $previewNotice = json_encode(__('blox_product_inquiry_preview'));
 
@@ -135,7 +102,8 @@ final class ProductInquiryElement extends AbstractElement
             . 'var form=document.getElementById(' . $form . ');'
             . 'if(!form||form.dataset.ykBound==="1")return;'
             . 'form.dataset.ykBound="1";'
-            . 'var btn=document.getElementById(' . $button . ');'
+            . 'var btn=form.querySelector("button[type=submit]");if(!btn)return;'
+            . 'var submitLabel=btn.textContent||' . $submitFallback . ';'
             . 'var msg=document.getElementById(' . $message . ');'
             // 提交目标读表单自己的 action（服务端已写成 POST + form_submit.php）；
             // 预览态没有 action，脚本也不该找备用地址出去
@@ -147,9 +115,10 @@ final class ProductInquiryElement extends AbstractElement
             . 'if(preview||endpoint===""){'
             . 'if(msg){msg.classList.remove("hidden");msg.className="text-center text-sm text-amber-600";msg.textContent=' . $previewNotice . ';}'
             . 'return;}'
-            . 'btn.disabled=true;'
+            . 'btn.disabled=true;btn.textContent=' . $submitting . ';'
             . 'if(msg){msg.classList.add("hidden");}'
-            . 'fetch(endpoint,{method:"POST",body:new FormData(form)})'
+            . 'window.ykFormNonce(form).then(function(){var body=new FormData(form);var nonce=form.elements.namedItem("form_nonce");if(nonce)nonce.value="";'
+            . 'return fetch(endpoint,{method:"POST",body:body});})'
             . '.then(function(r){return r.json();})'
             . '.then(function(data){'
             . 'if(msg){msg.classList.remove("hidden");'
@@ -161,13 +130,12 @@ final class ProductInquiryElement extends AbstractElement
             . 'var f=form.elements.namedItem(k);if(f){f.value=String(data.refresh_token[k]);f.defaultValue=f.value;}});}'
             . 'var captcha=form.querySelector(\'img[src*="captcha.php"]\');'
             . 'if(captcha){captcha.src="/captcha.php?"+Date.now();}'
-            . 'btn.disabled=false;btn.textContent=' . $submitLabel . ';'
+            . 'btn.disabled=false;btn.textContent=submitLabel;'
             . '}).catch(function(){'
             . 'if(msg){msg.classList.remove("hidden");msg.className="text-center text-sm text-red-600";msg.textContent=' . $networkError . ';}'
-            . 'btn.disabled=false;btn.textContent=' . $submitLabel . ';});'
+            . 'btn.disabled=false;btn.textContent=submitLabel;});'
             . '});'
-            . 'if(btn){btn.textContent=btn.textContent||' . $submitLabel . ';}'
-            . 'void ' . $submitting . ';'
+            . 'btn.textContent=submitLabel;'
             . '})();</script>';
     }
 }

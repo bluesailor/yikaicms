@@ -51,7 +51,8 @@ $pageDescription = $channel['seo_description'] ?: configJsonLang('site_descripti
 $currentChannelId = $channelId;
 
 // 搜索关键词
-$keyword = trim(get('keyword', ''));
+$keywordRaw = $_GET['keyword'] ?? '';
+$keyword = is_scalar($keywordRaw) ? trim((string) $keywordRaw) : '';
 
 // 分页
 $page = max(1, getInt('page', 1));
@@ -66,36 +67,49 @@ if ($keyword !== '') {
 
 // 全部类型走 ListRouter 调度，已无 inline 分支。
 // 见 docs/refactor-list-detail-plan.md。
-$isProductType     = ($channel['type'] === 'product');
-$productCategory   = null;
-$productCategoryId = 0;
+$isProductType = ($channel['type'] === 'product');
 $_request = [
     'channelId' => $channelId,
     'slug'      => $slug,
     'page'      => $page,
     'perPage'   => $perPage,
     'keyword'   => $keyword,
-    'cat'       => get('cat', ''),
-    'sort'      => get('sort', ''),
+    'cat'       => is_scalar($_GET['cat'] ?? '') ? trim((string) ($_GET['cat'] ?? '')) : '',
+    'sort'      => is_scalar($_GET['sort'] ?? '') ? trim((string) ($_GET['sort'] ?? '')) : '',
 ];
 $_vars = ListRouter::dispatch($channel['type'])->prepare($channel, $_request);
 // 把 controller 的视图变量解构进当前作用域。
 // 'subChannels' / 'parentChannel' / 'rightSidebar*' 由下方原有逻辑覆写，
 // 但 'contents' / 'total' / 'downloads' / 'jobs' / 产品相关变量由 controller 决定。
-foreach (['contents', 'total', 'downloads', 'jobs', 'dlCatId',
-          'productCategory', 'productCategoryId', 'currentSort',
-          'enabledSorts', 'whereConditions',
+$contents = isset($_vars['contents']) && is_array($_vars['contents']) ? $_vars['contents'] : [];
+$total = (int) ($_vars['total'] ?? 0);
+$downloads = isset($_vars['downloads']) && is_array($_vars['downloads']) ? $_vars['downloads'] : [];
+$jobs = isset($_vars['jobs']) && is_array($_vars['jobs']) ? $_vars['jobs'] : [];
+$dlCatId = (int) ($_vars['dlCatId'] ?? 0);
+$productCategory = isset($_vars['productCategory']) && is_array($_vars['productCategory'])
+    ? $_vars['productCategory']
+    : null;
+$productCategoryId = (int) ($_vars['productCategoryId'] ?? 0);
+$currentSort = is_scalar($_vars['currentSort'] ?? null) ? (string) $_vars['currentSort'] : 'default';
+foreach (['enabledSorts', 'whereConditions',
           'facetBrands', 'facetTagGroups', 'facetPrice', 'filterActive',
           'selBrandIds', 'selTagIds', 'filterPriceMin', 'filterPriceMax'] as $_k) {
     if (array_key_exists($_k, $_vars)) {
         $$_k = $_vars[$_k];
     }
 }
-unset($_request, $_vars, $_k);
+$catalogQuery = ProductCatalogRequest::normalize($_GET);
+if ($isProductType) {
+    $page = (int) ($_vars['page'] ?? $catalogQuery['page']);
+    $keyword = (string) ($_vars['keyword'] ?? $catalogQuery['keyword']);
+    if (isset($_vars['catalogQuery']) && is_array($_vars['catalogQuery'])) {
+        $catalogQuery = $_vars['catalogQuery'];
+    }
+}
+unset($_request, $_vars, $_k, $keywordRaw);
 
-if ($productCategory && productRouteModel()->pathFor('category', (int) $productCategory['id']) !== '') {
-    /** @psalm-suppress NoValue $productCategory 由上面的 $$_k 动态赋值，Psalm 追不到 */
-    $canonicalUrl = siteBaseUrl() . customProductCategoryPageUrl($productCategory, $page);
+if ($isProductType) {
+    $canonicalUrl = siteBaseUrl() . ProductCatalogRequest::pageUrl($channel, $productCategory, $page, $catalogQuery);
 }
 
 // 获取子栏目（不限制is_nav，侧边栏/子导航显示所有子栏目）
@@ -312,6 +326,7 @@ if ($hasPublishedProductBlox && is_array($productBloxContent)) {
         'selTagIds' => $selTagIds ?? [],
         'filterPriceMin' => $filterPriceMin ?? '',
         'filterPriceMax' => $filterPriceMax ?? '',
+        'catalogQuery' => $catalogQuery ?? ProductCatalogRequest::normalize($_GET),
     ]);
     // 容器 Loop 的 current 源（v1.25）：继承本页查询上下文，渲染后清空
     BloxLoopQuery::setCurrentContext([
@@ -323,6 +338,7 @@ if ($hasPublishedProductBlox && is_array($productBloxContent)) {
     echo renderFrontEditableContentBody($productBloxContent, (int) $productPageChannel['id']);
     BloxLoopQuery::setCurrentContext(null);
     ProductCatalogElement::setRuntimeContext(null);
+    echo '<script src="' . e(assetVer('/assets/js/product-catalog-filter.js')) . '" defer></script>';
     require_once theme_path('layouts/footer.php');
     HtmlCache::end();
     exit;
@@ -427,6 +443,7 @@ $horizRootChannel = $channel;
 ?>
 <?php if ($showProductTopNav): ?>
 <!-- 产品顶栏模式：分类筛选面板 -->
+<div <?php echo ProductCatalogRequest::rootAttributes($catalogQuery ?? ProductCatalogRequest::normalize($_GET)); ?>>
 <div class="bg-white border-b">
     <div class="container mx-auto px-4 py-4">
         <!-- 搜索框 -->
@@ -437,18 +454,22 @@ $horizRootChannel = $channel;
                 ，<?php echo e(__('search')); ?> "<span class="text-primary"><?php echo e($keyword); ?></span>"
                 <?php endif; ?>
             </div>
-            <form method="get" action="<?php /** @psalm-suppress NoValue $productCategory 由 $$_k 动态赋值，Psalm 追不到 */ echo e(($isProductType && isDynamicUrlMode()) ? '/index.php' : ($productCategory ? productCategoryUrl($productCategory) : channelUrl($channel))); ?>" class="flex items-center gap-2">
+            <form method="get" action="<?php /** @psalm-suppress NoValue $productCategory 由 $$_k 动态赋值，Psalm 追不到 */ echo e(($isProductType && isDynamicUrlMode()) ? '/index.php' : ($productCategory ? productCategoryUrl($productCategory) : channelUrl($channel))); ?>" role="search" class="flex items-center gap-2">
                 <?php if ($isProductType && isDynamicUrlMode()): ?>
                 <input type="hidden" name="yk_route" value="product_list">
                 <?php endif; ?>
                 <?php if ($isProductType && $productCategory && !empty($productCategory['slug'])): ?>
                 <input type="hidden" name="cat" value="<?php echo e((string) $productCategory['slug']); ?>">
                 <?php endif; ?>
+                <?php foreach (array_diff_key(ProductCatalogRequest::filterQuery($catalogQuery ?? ProductCatalogRequest::normalize($_GET)), ['keyword' => true]) as $topHidden => $topValue): ?>
+                <input type="hidden" name="<?php echo e($topHidden); ?>" value="<?php echo e($topValue); ?>">
+                <?php endforeach; ?>
                 <div class="relative">
                     <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
+                           aria-label="<?php echo e(__('search')); ?>"
                            placeholder="<?php echo __('list_search_product'); ?>"
                            class="w-48 border rounded-full pl-4 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-                    <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary">
+                    <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" aria-label="<?php echo e(__('search')); ?>">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
@@ -553,13 +574,13 @@ $horizRootChannel = $channel;
         <?php if ($showProductTopNav): ?>
         <!-- 产品排序栏 -->
         <?php if ($isProductType && !empty($enabledSorts) && count($enabledSorts) > 1): ?>
-        <div class="flex items-center gap-2 mb-6 text-sm">
+        <div class="flex items-center gap-2 mb-6 text-sm" data-catalog-sort>
             <span class="text-gray-500 mr-1"><?php echo __('list_sort'); ?>：</span>
             <?php foreach ($enabledSorts as $sortKey):
                 if (!isset(ProductModel::SORT_LABELS[$sortKey])) continue;
                 $isActive = ($sortKey === $currentSort);
                 $sortUrl = strtok($_SERVER['REQUEST_URI'], '?');
-                $sortParams = $_GET;
+                $sortParams = ProductCatalogRequest::urlQuery($_GET, $catalogQuery ?? ProductCatalogRequest::normalize($_GET));
                 $sortParams['sort'] = $sortKey;
                 unset($sortParams['page']);
                 $sortUrl .= '?' . http_build_query($sortParams);
@@ -589,41 +610,15 @@ $horizRootChannel = $channel;
         <!-- 分页 -->
         <?php
         $totalPages = (int)ceil($total / $perPage);
-        $pageUrl = function(int $p) use ($channel, $keyword, $productCategory, $currentSort): string {
-            if ($productCategory) {
-                $filters = [];
-                foreach (['keyword', 'sort', 'brand', 'tag', 'pmin', 'pmax'] as $key) {
-                    $value = get($key, '');
-                    if (is_scalar($value) && (string) $value !== '') $filters[$key] = (string) $value;
-                }
-                return customProductCategoryPageUrl($productCategory, $p, $filters);
-            }
-            if (isDynamicUrlMode()) {
-                $params = [];
-                if ($keyword !== '') $params['keyword'] = $keyword;
-                if ($currentSort !== 'default') $params['sort'] = $currentSort;
-                if ($productCategory && !empty($productCategory['slug'])) $params['cat'] = (string) $productCategory['slug'];
-                return dynamicChannelPageUrl($channel, $p, $params)
-                    ?? dynamicUrl('list', ['id' => (int) ($channel['id'] ?? 0), 'page' => $p]);
-            }
-            $extraParams = '';
-            if ($keyword !== '') $extraParams .= '&keyword=' . urlencode($keyword);
-            if (isset($currentSort) && $currentSort !== 'default') $extraParams .= '&sort=' . urlencode($currentSort);
-            $queryStr = $extraParams !== '' ? '?' . ltrim($extraParams, '&') : '';
-
-            if ($productCategory) {
-                $catSlug = $productCategory['slug'] ?? '';
-                return ($p === 1 ? '/product/' . $catSlug . '.html' : '/product/' . $catSlug . '/page/' . $p . '.html') . $queryStr;
-            }
-            $slug = $channel['slug'] ?? '';
-            $url = $p === 1 ? ($slug ? "/{$slug}.html" : "/list/{$channel['id']}.html") : ($slug ? "/{$slug}/page/{$p}.html" : "/list/{$channel['id']}/page/{$p}.html");
-            return $url . $queryStr;
+        $pageUrl = static function(int $targetPage) use ($channel, $productCategory, $catalogQuery): string {
+            return ProductCatalogRequest::pageUrl($channel, $productCategory, $targetPage, $catalogQuery);
         };
         require theme_path('partials/pagination.php');
         ?>
-
         <?php elseif ($showSidebar): ?>
+        <?php if ($isProductType): ?><div <?php echo ProductCatalogRequest::rootAttributes($catalogQuery ?? ProductCatalogRequest::normalize($_GET)); ?>><?php endif; ?>
         <?php require __DIR__ . '/views/list/sidebar.php'; ?>
+        <?php if ($isProductType): ?></div><?php endif; ?>
         <?php elseif ($channel['type'] === 'download'): ?>
         <?php require __DIR__ . '/views/list/download.php'; ?>
         <?php else: ?>
@@ -702,8 +697,9 @@ $horizRootChannel = $channel;
         <?php endif; ?>
     </div>
 </section>
+<?php if ($showProductTopNav): ?></div><?php endif; ?>
 
-<?php if ($showSidebar): ?>
+<?php if ($showSidebar && !$isProductType): ?>
 <script>
 // 分类菜单展开/收起
 document.querySelectorAll('.category-toggle').forEach(function(btn) {
@@ -728,5 +724,6 @@ document.querySelectorAll('.category-toggle').forEach(function(btn) {
 </script>
 <?php endif; ?>
 
+<?php if ($isProductType): ?><script src="<?php echo e(assetVer('/assets/js/product-catalog-filter.js')); ?>" defer></script><?php endif; ?>
 <?php require_once theme_path('layouts/footer.php'); ?>
 <?php HtmlCache::end(); ?>

@@ -93,14 +93,14 @@ function renderCustomerService(): void
 <style>
 .cs-wrap{position:fixed;<?php echo $sideStyle; ?>;top:30vh;z-index:9990;display:flex;align-items:flex-start;font-family:inherit}
 .cs-wrap.cs-pos-left{flex-direction:row-reverse}
-.cs-tab{background:<?php echo e($primary); ?>;color:#fff;writing-mode:vertical-rl;padding:14px 8px;border-radius:<?php echo $position==='left'?'0 8px 8px 0':'8px 0 0 8px'; ?>;cursor:pointer;font-size:13px;letter-spacing:2px;box-shadow:0 4px 16px rgba(0,0,0,.15);user-select:none;transition:opacity .2s}
+.cs-tab{background:<?php echo e($primary); ?>;color:#fff;writing-mode:vertical-rl;padding:14px 8px;border:0;border-radius:<?php echo $position==='left'?'0 8px 8px 0':'8px 0 0 8px'; ?>;cursor:pointer;font:inherit;font-size:13px;letter-spacing:2px;box-shadow:0 4px 16px rgba(0,0,0,.15);user-select:none;transition:opacity .2s}
 .cs-tab:hover{opacity:.92}
 .cs-panel{background:#fff;width:260px;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.18);display:none}
 .cs-wrap.cs-open .cs-panel{display:block}
 .cs-wrap.cs-open .cs-tab{<?php echo $position==='left'?'border-radius:0 0 8px 0':'border-radius:0 0 0 8px'; ?>}
 .cs-head{background:<?php echo e($primary); ?>;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-size:13px;border-radius:8px 8px 0 0}
 .cs-close{cursor:pointer;background:none;border:0;color:#fff;font-size:18px;line-height:1;padding:0 4px}
-.cs-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid #f3f4f6;color:#1f2937;text-decoration:none;transition:background .15s;position:relative}
+.cs-row{display:flex;width:100%;align-items:center;gap:12px;padding:11px 14px;border:0;border-bottom:1px solid #f3f4f6;background:#fff;color:#1f2937;text-align:left;font:inherit;text-decoration:none;transition:background .15s;position:relative}
 .cs-row:last-child{border-bottom:0}
 .cs-row:hover{background:#f9fafb;color:<?php echo e($primary); ?>}
 .cs-row .cs-icon{flex-shrink:0;color:<?php echo e($primary); ?>;width:20px;height:20px;display:flex;align-items:center;justify-content:center}
@@ -124,13 +124,13 @@ function renderCustomerService(): void
 }
 </style>
 <div class="cs-wrap cs-pos-<?php echo e($position); ?> <?php echo e($hideMobile); ?>" id="csWrap">
-  <div class="cs-tab" onclick="document.getElementById('csWrap').classList.toggle('cs-open')">
+  <button type="button" class="cs-tab" aria-controls="csPanel" aria-expanded="false" onclick="csTogglePanel(this)">
     <?php echo e($btnText); ?>
-  </div>
-  <div class="cs-panel">
+  </button>
+  <div class="cs-panel" id="csPanel">
     <div class="cs-head">
       <span><?php echo e($panelTitle); ?></span>
-      <button type="button" class="cs-close" onclick="document.getElementById('csWrap').classList.remove('cs-open')" aria-label="close">&times;</button>
+      <button type="button" class="cs-close" onclick="csClosePanel()" aria-label="<?php echo e(__('close')); ?>">&times;</button>
     </div>
     <?php foreach ($items as $it):
         $type  = (string)$it['type'];
@@ -140,20 +140,20 @@ function renderCustomerService(): void
         $iconHtml = csRenderIcon($icon);
     ?>
       <?php if ($type === 'wechat-qr' || $type === 'work-wechat'): $isWork = $type === 'work-wechat'; ?>
-      <div class="cs-row cs-row-qr" onclick="this.classList.toggle('cs-qr-active')">
+      <button type="button" class="cs-row cs-row-qr" aria-expanded="false" onclick="csToggleQr(this)">
         <div class="cs-icon"><?php echo $iconHtml; ?></div>
         <div class="cs-body"><span class="cs-label"><?php echo e($label ?: ($isWork ? '企业微信' : '微信')); ?></span><span class="cs-val"><?php echo $isWork ? '扫码联系客服' : '扫码加微信'; ?></span></div>
         <div class="cs-qr-pop">
           <img src="<?php echo e($value); ?>" alt="<?php echo e($label); ?>">
           <?php if ($label !== ''): ?><div class="cs-qr-tip"><?php echo e($label); ?></div><?php endif; ?>
         </div>
-      </div>
+      </button>
       <?php elseif ($type === 'wechat-id'): ?>
-      <div class="cs-row cs-row-id" onclick="csCopyValue(this, '<?php echo e($value); ?>')">
+      <button type="button" class="cs-row cs-row-id" onclick="csCopyValue(this, '<?php echo e($value); ?>')">
         <div class="cs-icon"><?php echo $iconHtml; ?></div>
         <div class="cs-body"><span class="cs-label"><?php echo e($label ?: '微信号'); ?></span><span class="cs-val"><?php echo e($value); ?></span></div>
         <span class="cs-copied">已复制</span>
-      </div>
+      </button>
       <?php elseif ($type === 'qq'): ?>
       <a href="http://wpa.qq.com/msgrd?v=3&uin=<?php echo e($value); ?>&site=qq&menu=yes" target="_blank" rel="noopener" class="cs-row">
         <div class="cs-icon"><?php echo $iconHtml; ?></div>
@@ -184,6 +184,23 @@ function renderCustomerService(): void
   </div>
 </div>
 <script>
+function csTogglePanel(button){
+    var wrap=document.getElementById('csWrap');
+    var open=!wrap.classList.contains('cs-open');
+    wrap.classList.toggle('cs-open',open);
+    button.setAttribute('aria-expanded',open?'true':'false');
+}
+function csClosePanel(){
+    var wrap=document.getElementById('csWrap');
+    wrap.classList.remove('cs-open');
+    var button=wrap.querySelector('.cs-tab');
+    if(button){button.setAttribute('aria-expanded','false');button.focus();}
+}
+function csToggleQr(button){
+    var open=!button.classList.contains('cs-qr-active');
+    button.classList.toggle('cs-qr-active',open);
+    button.setAttribute('aria-expanded',open?'true':'false');
+}
 function csCopyValue(el, val){
     try{
         navigator.clipboard.writeText(val).then(()=>{

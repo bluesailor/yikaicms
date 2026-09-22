@@ -15,6 +15,7 @@
         <file name="article.php" />
         <file name="contact.php" />
         <file name="form_submit.php" />
+        <file name="form_nonce.php" />
         <file name="detail.php" />
         <file name="history.php" />
         <file name="index.php" />
@@ -59,10 +60,21 @@
                 <file name="plugins/seo/admin.php" />
                 <!-- 首页控制器：变量供 require 的主题布局/版块模板使用 -->
                 <file name="index.php" />
+                <!-- 列表控制器/分页 partial：变量由动态主题模板与 require 作用域消费 -->
+                <file name="list.php" />
+                <file name="views/list/download.php" />
+                <file name="views/list/sidebar.php" />
                 <!-- $imRandom* 系列变量供 require 的 random_ui.php 面板模板使用 -->
                 <file name="plugins/logo-maker/admin.php" />
             </errorLevel>
         </UnusedVariable>
+        <UnusedForeachValue>
+            <errorLevel type="suppress">
+                <!-- $item 由动态 theme_path() 解析的卡片 partial 使用，Psalm 无法跟踪 -->
+                <file name="list.php" />
+                <file name="views/list/sidebar.php" />
+            </errorLevel>
+        </UnusedForeachValue>
         <!-- random_ui.php 由 logo-maker/admin.php require，$imRandom* 变量在引入前定义 -->
         <UndefinedVariable>
             <errorLevel type="suppress">
@@ -100,6 +112,7 @@
                 <file name="admin/article_design.php" />
                 <file name="admin/article_native_preview.php" />
                 <file name="admin/form_spam.php" />
+                <file name="admin/form_file.php" />
                 <file name="admin/product_design.php" />
                 <file name="admin/product_native_preview.php" />
                 <!-- v1.23 新增独立入口（全局样式类） -->

@@ -168,11 +168,27 @@ if ($footerBgLiteral !== '') {
 
     <script>
         // 移动端菜单切换
-        document.getElementById('mobileMenuBtn')?.addEventListener('click', function() {
-            const menu = document.getElementById('mobileMenu');
-            const hamburger = document.getElementById('hamburgerIcon');
-            menu?.classList.toggle('hidden');
-            hamburger?.classList.toggle('active');
+        const mobileMenuButton = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const mobileMenuIcon = document.getElementById('hamburgerIcon');
+        function setMobileMenuOpen(open) {
+            mobileMenu?.classList.toggle('hidden', !open);
+            mobileMenuIcon?.classList.toggle('active', open);
+            mobileMenuButton?.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+        mobileMenuButton?.addEventListener('click', function() {
+            setMobileMenuOpen(this.getAttribute('aria-expanded') !== 'true');
+        });
+        mobileMenu?.addEventListener('click', function(event) {
+            if (event.target.closest('a')) setMobileMenuOpen(false);
+        });
+        document.addEventListener('keydown', function(event) {
+            if (event.key !== 'Escape' || mobileMenuButton?.getAttribute('aria-expanded') !== 'true') return;
+            setMobileMenuOpen(false);
+            mobileMenuButton.focus();
+        });
+        window.addEventListener('resize', function() {
+            if (window.matchMedia('(min-width: 768px)').matches) setMobileMenuOpen(false);
         });
     </script>
 

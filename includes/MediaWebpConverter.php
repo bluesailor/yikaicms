@@ -9,6 +9,8 @@ require_once __DIR__ . '/image.php';
 final class MediaWebpConverter
 {
     private string $uploads;
+    private string $siteOrigin;
+    private const SOURCE_CONTRACT_SUFFIX = '.yikai-source.json';
 
     // 恢复草稿或历史版本后也不能重新引入已转换的图片；仅修改文档字段。
     private const LOCAL_DOCUMENT_FIELDS = [
@@ -16,7 +18,7 @@ final class MediaWebpConverter
         'content_revisions' => ['snapshot'],
     ];
 
-    public function __construct(string $root)
+    public function __construct(string $root, string $siteOrigin = '')
     {
         $resolved = realpath($root);
         if ($resolved === false) {
@@ -28,6 +30,8 @@ final class MediaWebpConverter
             throw new RuntimeException('uploads 目录不存在');
         }
         $this->uploads = str_replace('\\', '/', $uploads);
+        $this->siteOrigin = $siteOrigin !== '' ? rtrim($siteOrigin, '/')
+            : (function_exists('siteBaseUrl') ? siteBaseUrl() : '');
     }
 
     /**
@@ -46,6 +50,8 @@ final class MediaWebpConverter
         $reuseChecks = [];
         $savedBytes = 0;
         $targets = [];
+        $megapixels = uploadMaxImageMegapixels();
+        $maxPixels = $megapixels === 0 ? 0 : $megapixels * 1000000;
 
         foreach ($files as $relative => $source) {
             $targetRelative = (string) preg_replace('/\.(?:jpe?g|png)$/i', '.webp', $relative);
@@ -61,30 +67,38 @@ final class MediaWebpConverter
                 'image/jpeg' => 'jpg',
                 default => throw new RuntimeException('源文件不是有效 PNG/JPEG 图片：' . $relative),
             };
+            $width = (int) $info[0];
+            $height = (int) $info[1];
+            if (!imageDimensionsWithinPixelLimit($width, $height, $maxPixels)) {
+                throw new RuntimeException('源图片超过像素上限：' . $relative);
+            }
             $sourceHash = (string) hash_file('sha256', $source);
+            $contract = $target . self::SOURCE_CONTRACT_SUFFIX;
             $map[$relative] = $targetRelative;
             if (is_file($target)) {
                 if (!$this->validWebp($target)) {
                     throw new RuntimeException('同名 WebP 已存在但不是有效图片：' . $targetRelative);
                 }
                 $targetHash = (string) hash_file('sha256', $target);
-                // 同名且同尺寸也可能是另一张图；只复用当前源图以同品质编码得到的文件。
-                if (!hash_equals($this->encodedWebpHash($source, $extension, $quality), $targetHash)) {
-                    throw new RuntimeException('同名 WebP 与当前源图或转换品质不一致：' . $targetRelative);
-                }
-                $reuseChecks[] = ['source' => $source, 'target' => $target,
-                    'source_hash' => $sourceHash, 'target_hash' => $targetHash];
+                $contractHash = $this->verifySourceContract($contract, $sourceHash, $targetHash, $quality, $width, $height, $targetRelative);
+                $reuseChecks[] = ['source' => $source, 'target' => $target, 'contract' => $contract,
+                    'source_hash' => $sourceHash, 'target_hash' => $targetHash, 'contract_hash' => $contractHash];
                 $reused++;
                 continue;
+            }
+            if (is_file($contract)) {
+                throw new RuntimeException('WebP 来源契约存在但图片缺失：' . $targetRelative);
             }
             $pending[$relative] = [
                 'source' => $source,
                 'target' => $target,
                 'temporary' => $target . '.convert-' . bin2hex(random_bytes(6)),
+                'contract' => $contract,
+                'contract_temporary' => $contract . '.convert-' . bin2hex(random_bytes(6)),
                 'sha256' => $sourceHash,
                 'extension' => $extension,
-                'width' => (int) $info[0],
-                'height' => (int) $info[1],
+                'width' => $width,
+                'height' => $height,
             ];
         }
 
@@ -115,6 +129,12 @@ final class MediaWebpConverter
                     || (int) $convertedInfo[0] !== $item['width'] || (int) $convertedInfo[1] !== $item['height']) {
                     throw new RuntimeException('WebP 校验失败：' . $relative);
                 }
+                $targetHash = (string) hash_file('sha256', $item['temporary']);
+                $contractBytes = json_encode($this->sourceContract($item['sha256'], $targetHash, $quality,
+                    $item['width'], $item['height']), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
+                if (@file_put_contents($item['contract_temporary'], $contractBytes, LOCK_EX) !== strlen($contractBytes)) {
+                    throw new RuntimeException('无法写入 WebP 来源契约：' . $relative);
+                }
                 $savedBytes += (int) filesize($item['source']) - (int) filesize($item['temporary']);
             }
 
@@ -122,7 +142,8 @@ final class MediaWebpConverter
             try {
                 foreach ($reuseChecks as $item) {
                     if (!hash_equals($item['source_hash'], (string) hash_file('sha256', $item['source']))
-                        || !hash_equals($item['target_hash'], (string) hash_file('sha256', $item['target']))) {
+                        || !hash_equals($item['target_hash'], (string) hash_file('sha256', $item['target']))
+                        || !hash_equals($item['contract_hash'], (string) hash_file('sha256', $item['contract']))) {
                         throw new RuntimeException('复用期间源文件或 WebP 发生变化');
                     }
                 }
@@ -130,10 +151,14 @@ final class MediaWebpConverter
                     if (!hash_equals($item['sha256'], (string) hash_file('sha256', $item['source']))) {
                         throw new RuntimeException('转换期间源文件发生变化：' . $relative);
                     }
-                    if (is_file($item['target']) || !@rename($item['temporary'], $item['target'])) {
+                    if (is_file($item['target']) || is_file($item['contract']) || !@rename($item['temporary'], $item['target'])) {
                         throw new RuntimeException('无法写入 WebP：' . $relative);
                     }
                     $created[] = $item['target'];
+                    if (!@rename($item['contract_temporary'], $item['contract'])) {
+                        throw new RuntimeException('无法写入 WebP 来源契约：' . $relative);
+                    }
+                    $created[] = $item['contract'];
                 }
                 $this->applyUpdates($updates);
                 if (!db()->commit()) {
@@ -148,6 +173,7 @@ final class MediaWebpConverter
         } catch (Throwable $error) {
             foreach ($pending as $item) {
                 @unlink($item['temporary']);
+                @unlink($item['contract_temporary']);
             }
             foreach ($created as $target) {
                 @unlink($target);
@@ -220,7 +246,7 @@ final class MediaWebpConverter
                     }
                     $this->mergeMissing($value, $missing);
                     $fieldChanges = 0;
-                    $newValue = UploadReferences::rewrite($value, $map, $fieldChanges, $this->uploads);
+                    $newValue = UploadReferences::rewrite($value, $map, $fieldChanges, $this->uploads, $this->siteOrigin);
                     if (!is_string($newValue) || $newValue === $value) {
                         continue;
                     }
@@ -240,7 +266,7 @@ final class MediaWebpConverter
                 }
                 $this->mergeMissing($value, $missing);
                 $fieldChanges = 0;
-                $newValue = UploadReferences::rewrite($value, $map, $fieldChanges, $this->uploads);
+                $newValue = UploadReferences::rewrite($value, $map, $fieldChanges, $this->uploads, $this->siteOrigin);
                 if (!is_string($newValue) || $newValue === $value) {
                     continue;
                 }
@@ -281,7 +307,7 @@ final class MediaWebpConverter
             if ($row === null) {
                 throw new RuntimeException('媒体记录在转换期间被删除');
             }
-            $refs = UploadReferences::collect([$row['url'] ?? '', $row['path'] ?? ''], $this->uploads);
+            $refs = UploadReferences::collect([$row['url'] ?? '', $row['path'] ?? ''], $this->uploads, $this->siteOrigin);
             $relative = (string) array_key_first($refs);
             if ($relative === '' || !str_ends_with(strtolower($relative), '.webp')) {
                 continue;
@@ -319,7 +345,7 @@ final class MediaWebpConverter
     /** @param array<string,int> $missing */
     private function mergeMissing(string $value, array &$missing): void
     {
-        foreach (UploadReferences::collect($value, $this->uploads) as $relative => $count) {
+        foreach (UploadReferences::collect($value, $this->uploads, $this->siteOrigin) as $relative => $count) {
             if (!preg_match('/\.(?:jpe?g|png)$/i', $relative)) {
                 continue;
             }
@@ -336,31 +362,26 @@ final class MediaWebpConverter
             && !str_starts_with(str_replace('\\', '/', $relative), '/');
     }
 
-    private function encodedWebpHash(string $source, string $extension, int $quality): string
+    /** @return array{format:string,version:int,source_sha256:string,target_sha256:string,quality:int,width:int,height:int} */
+    private function sourceContract(string $sourceHash, string $targetHash, int $quality, int $width, int $height): array
     {
-        $image = $extension === 'png' ? @imagecreatefrompng($source) : @imagecreatefromjpeg($source);
-        if ($image === false) {
-            throw new RuntimeException('无法解码源图片');
+        return ['format' => 'yikaicms-webp-source', 'version' => 1, 'source_sha256' => $sourceHash,
+            'target_sha256' => $targetHash, 'quality' => $quality, 'width' => $width, 'height' => $height];
+    }
+
+    private function verifySourceContract(string $path, string $sourceHash, string $targetHash, int $quality,
+        int $width, int $height, string $relative): string
+    {
+        $size = is_file($path) ? filesize($path) : false;
+        if (!is_int($size) || $size < 2 || $size > 4096) {
+            throw new RuntimeException('同名 WebP 缺少有效来源契约：' . $relative);
         }
-        if ($extension === 'png') {
-            imagepalettetotruecolor($image);
-            imagealphablending($image, true);
-            imagesavealpha($image, true);
+        $bytes = @file_get_contents($path);
+        $decoded = is_string($bytes) ? json_decode($bytes, true) : null;
+        if (!is_array($decoded) || $decoded !== $this->sourceContract($sourceHash, $targetHash, $quality, $width, $height)) {
+            throw new RuntimeException('同名 WebP 来源契约与当前源图或转换品质不一致：' . $relative);
         }
-        ob_start();
-        try {
-            if (!imagewebp($image, null, $quality)) {
-                throw new RuntimeException('无法核对已有 WebP');
-            }
-            $bytes = ob_get_contents();
-            if (!is_string($bytes) || $bytes === '') {
-                throw new RuntimeException('已有 WebP 核对结果为空');
-            }
-            return hash('sha256', $bytes);
-        } finally {
-            ob_end_clean();
-            imagedestroy($image);
-        }
+        return (string) hash_file('sha256', $path);
     }
 
     private function validWebp(string $path): bool

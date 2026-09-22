@@ -4,6 +4,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/ThemeValidator.php';
 require_once __DIR__ . '/SiteTemplateData.php';
+require_once __DIR__ . '/SiteTemplatePluginData.php';
+require_once __DIR__ . '/UploadReferences.php';
 
 /** Bounded, data-first ZIP format. Never extracts arbitrary paths or executes theme files. */
 final class SiteTemplateArchive
@@ -30,8 +32,8 @@ final class SiteTemplateArchive
      * 从 read() 抽出，供分阶段导入复用：inspect 一次、提取分多次，
      * 但两条路径共用同一套条目判定，避免"校验两份口径"。
      *
-     * @return array{names:list<string>, manifest_bytes:string, small:array<string,string>}
-     *         small 只含解析所必需的小文件（site.json 与 theme/theme.json）
+     * @return array{names:list<string>, manifest_bytes:string, small:array<string,string>, theme_references:array<string,int>}
+     *         small 只含解析所必需且受总量约束的小文件（manifest、theme meta、plugin data）
      */
     private static function inspectEntries(ZipArchive $zip): array
     {
@@ -39,6 +41,8 @@ final class SiteTemplateArchive
         $names = [];
         $small = [];
         $folded = [];
+        $pluginDataBytes = 0;
+        $themeReferences = [];
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $name = (string) $zip->getNameIndex($i);
             $os = $attr = 0;
@@ -46,20 +50,39 @@ final class SiteTemplateArchive
             if (!self::safePath($name) || isset($folded[strtolower($name)])
                 || ($os === ZipArchive::OPSYS_UNIX && (($attr >> 16) & 0170000) === 0120000)) throw new RuntimeException('st_unsafe');
             $folded[strtolower($name)] = true;
+            $pluginData = false;
             if ($name !== 'site.json') {
                 $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-                $allowed = str_starts_with($name, 'theme/') ? array_merge(self::STATIC_EXT, ['php', 'css', 'js', 'json']) : self::STATIC_EXT;
-                if ((!str_starts_with($name, 'theme/') && !str_starts_with($name, 'media/')) || !in_array($ext, $allowed, true)) throw new RuntimeException('st_unsafe');
+                $pluginData = preg_match('#^plugin-data/[a-z0-9][a-z0-9-]{0,79}\.json$#D', $name) === 1;
+                $allowed = str_starts_with($name, 'theme/') ? array_merge(self::STATIC_EXT, ['php', 'css', 'js', 'json'])
+                    : ($pluginData ? ['json'] : self::STATIC_EXT);
+                if ((!str_starts_with($name, 'theme/') && !str_starts_with($name, 'media/') && !$pluginData)
+                    || !in_array($ext, $allowed, true)) throw new RuntimeException('st_unsafe');
                 if (str_starts_with($name, 'media/') && preg_match('/\.(?:php[0-9]?|phtml|phar)(?:\.|$)/i', $name)) throw new RuntimeException('st_unsafe');
             }
             $names[] = $name;
-            if ($name === 'site.json' || $name === 'theme/theme.json') {
+            if ($name === 'site.json' || $name === 'theme/theme.json' || str_starts_with($name, 'plugin-data/')) {
+                if ($pluginData) {
+                    $stat = $zip->statIndex($i);
+                    $entrySize = is_array($stat) ? (int) ($stat['size'] ?? -1) : -1;
+                    $pluginDataBytes += max(0, $entrySize);
+                    if ($entrySize < 0 || $entrySize > SiteTemplatePluginData::MAX_FILE_BYTES
+                        || $pluginDataBytes > SiteTemplatePluginData::MAX_TOTAL_BYTES) throw new RuntimeException('st_limit');
+                }
                 $bytes = $zip->getFromIndex($i);
                 if (!is_string($bytes)) throw new RuntimeException('st_invalid');
                 $small[$name] = $bytes;
             }
+            if (str_starts_with($name, 'theme/') && preg_match('/\.(?:php|css|js|json|svg)$/iD', $name) === 1) {
+                $bytes = $small[$name] ?? $zip->getFromIndex($i);
+                if (!is_string($bytes)) throw new RuntimeException('st_invalid');
+                foreach (UploadReferences::collect($bytes) as $relative => $count) {
+                    $themeReferences[$relative] = ($themeReferences[$relative] ?? 0) + $count;
+                }
+            }
         }
-        return ['names' => $names, 'manifest_bytes' => $small['site.json'] ?? '', 'small' => $small];
+        return ['names' => $names, 'manifest_bytes' => $small['site.json'] ?? '', 'small' => $small,
+            'theme_references' => $themeReferences];
     }
 
     public static function read(string $path): array
@@ -78,12 +101,14 @@ final class SiteTemplateArchive
         } finally { $zip->close(); }
         $manifestBytes = $files['site.json'] ?? '';
         unset($files['site.json']);
-        $manifest = self::validateManifest($manifestBytes, array_keys($files), $files);
+        $manifest = self::validateManifest($manifestBytes, array_keys($files), $files, $inspected['theme_references']);
         foreach ($files as $name => $bytes) {
             if (!hash_equals($manifest['files'][$name], hash('sha256', $bytes))) throw new RuntimeException('st_invalid');
             if (str_starts_with($name, 'media/') && str_ends_with(strtolower($name), '.svg')) $files[$name] = sanitizeSvg($bytes);
         }
-        return ['manifest' => $manifest, 'files' => $files, 'hash' => (string) hash_file('sha256', $path)];
+        $pluginData = SiteTemplatePluginData::decode($manifest['plugin_data'] ?? [], $manifest['plugins'], $files, $manifest['files']);
+        return ['manifest' => $manifest, 'files' => $files, 'plugin_data' => $pluginData,
+            'hash' => (string) hash_file('sha256', $path)];
     }
 
     /**
@@ -93,11 +118,12 @@ final class SiteTemplateArchive
      * @param array<string,string> $small 已读入的小文件（至少含 theme/theme.json）
      * @return array<string,mixed>
      */
-    private static function validateManifest(string $manifestBytes, array $names, array $small): array
+    private static function validateManifest(string $manifestBytes, array $names, array $small, array $themeReferences = []): array
     {
         $manifest = json_decode($manifestBytes, true, 64, JSON_THROW_ON_ERROR);
         if (!is_array($manifest) || ($manifest['format'] ?? '') !== 'yikaicms-site-template' || !in_array($manifest['version'] ?? 0, self::SUPPORTED_VERSIONS, true)
             || ($manifest['cms'] ?? '') !== (defined('CMS_VERSION') ? CMS_VERSION : '1.20.1')
+            || ($manifest['schema'] ?? null) !== SiteTemplateData::contractSchema()
             || ($manifest['schema'] ?? null) !== SiteTemplateData::schema()) throw new RuntimeException('st_schema');
         if (!is_string($manifest['theme'] ?? null) || !preg_match('/^[a-z0-9][a-z0-9-]{0,79}$/D', $manifest['theme'])) throw new RuntimeException('st_invalid');
         $manifest['plugins'] = self::validatePlugins($manifest['plugins'] ?? []);
@@ -111,16 +137,45 @@ final class SiteTemplateArchive
         SiteTemplateData::validate($manifest['data'] ?? []);
         // v2 prevents older importers from silently dropping the public plugin contract.
         if (($manifest['version'] === 2) !== !empty($manifest['plugin_data'])) throw new RuntimeException('st_invalid');
-        if (array_key_exists('plugin_data', $manifest)) {
-            if (!is_array($manifest['plugin_data'])) throw new RuntimeException('st_invalid');
-            SiteTemplatePluginData::validate($manifest['plugin_data'], $manifest['plugins'], $manifest['data']);
-        }
-        foreach ($manifest['data']['tables']['media'] as $row) {
-            $url = (string) ($row['url'] ?? '');
-            if (!str_starts_with($url, '/uploads/') || ($row['path'] ?? '') !== ltrim($url, '/')
-                || !isset($present['media/' . substr($url, 9)])) throw new RuntimeException('st_missing_media');
-        }
+        SiteTemplatePluginData::validateArchive($manifest, $names, $small);
+        $pluginData = SiteTemplatePluginData::decode($manifest['plugin_data'] ?? [], $manifest['plugins'], $small, $manifest['files']);
+        self::validateMediaReferences($manifest, $pluginData, $themeReferences);
         return $manifest;
+    }
+
+    /**
+     * Every portable upload reference must resolve to a declared media file. Runtime imports and
+     * release-side inspection call this same contract so a package cannot pass one path only.
+     *
+     * @param array<string,mixed> $manifest
+     * @param array<string,array{contract:int,schema:array{id:string,version:int,sha256:string},payload:array}> $pluginData
+     * @param array<string,int> $additionalReferences References collected from streamed theme text.
+     */
+    public static function validateMediaReferences(array $manifest, array $pluginData, array $additionalReferences = []): void
+    {
+        $declared = array_fill_keys(array_keys(is_array($manifest['files'] ?? null) ? $manifest['files'] : []), true);
+        $references = UploadReferences::collect($manifest['data'] ?? []);
+        foreach ($pluginData as $entry) {
+            foreach (UploadReferences::collect($entry['payload']) as $relative => $count) {
+                $references[$relative] = ($references[$relative] ?? 0) + $count;
+            }
+        }
+        foreach ($additionalReferences as $relative => $count) {
+            if (!is_string($relative) || !is_int($count)) throw new RuntimeException('st_invalid');
+            $references[$relative] = ($references[$relative] ?? 0) + $count;
+        }
+        foreach ($references as $relative => $count) {
+            if ($count > 0 && (!self::safePath($relative) || !isset($declared['media/' . $relative]))) {
+                throw new RuntimeException('st_missing_media');
+            }
+        }
+        $mediaRows = $manifest['data']['tables']['media'] ?? null;
+        if (!is_array($mediaRows)) throw new RuntimeException('st_invalid');
+        foreach ($mediaRows as $row) {
+            $url = is_array($row) ? (string) ($row['url'] ?? '') : '';
+            if (!is_array($row) || !str_starts_with($url, '/uploads/') || ($row['path'] ?? '') !== ltrim($url, '/')
+                || !isset($declared['media/' . substr($url, 9)])) throw new RuntimeException('st_missing_media');
+        }
     }
 
     /** @return list<array{slug:string,version:string}> */
@@ -147,7 +202,7 @@ final class SiteTemplateArchive
      * 返回的 manifest 与 read() 完全一致（同一套校验），但 files 只给名字清单。
      * 大包在这里的内存峰值是单个小文件，而不是整包解压后的 50MB。
      *
-     * @return array{manifest:array<string,mixed>, names:list<string>, hash:string}
+     * @return array{manifest:array<string,mixed>, names:list<string>, plugin_data:array<string,array{contract:int,schema:array{id:string,version:int,sha256:string},payload:array}>, hash:string}
      */
     public static function inspect(string $path): array
     {
@@ -158,8 +213,10 @@ final class SiteTemplateArchive
             $inspected = self::inspectEntries($zip);
         } finally { $zip->close(); }
         $names = array_values(array_filter($inspected['names'], static fn(string $n): bool => $n !== 'site.json'));
-        $manifest = self::validateManifest($inspected['manifest_bytes'], $names, $inspected['small']);
-        return ['manifest' => $manifest, 'names' => $names, 'hash' => (string) hash_file('sha256', $path)];
+        $manifest = self::validateManifest($inspected['manifest_bytes'], $names, $inspected['small'], $inspected['theme_references']);
+        $pluginData = SiteTemplatePluginData::decode($manifest['plugin_data'] ?? [], $manifest['plugins'], $inspected['small'], $manifest['files']);
+        return ['manifest' => $manifest, 'names' => $names, 'plugin_data' => $pluginData,
+            'hash' => (string) hash_file('sha256', $path)];
     }
 
     /**

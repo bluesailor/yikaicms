@@ -2,7 +2,6 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/SensitiveSettings.php';
-require_once __DIR__ . '/SiteTemplatePluginData.php';
 
 /** Content-only snapshots. Fixed table/setting allowlists, never package-provided SQL. */
 final class SiteTemplateData
@@ -14,6 +13,23 @@ final class SiteTemplateData
         'metas', 'media', 'blocks_library', 'blox_templates', 'blox_global_classes', 'blox_global_queries',
         'blox_class_refs', 'blox_query_refs',
     ];
+
+    /**
+     * DB-independent schema contract shared by runtime import and release-side package validation.
+     * A fresh-install regression test keeps this generated contract aligned with the actual schema.
+     *
+     * @return array<string,list<string>>
+     */
+    public static function contractSchema(): array
+    {
+        static $schema = null;
+        if ($schema === null) {
+            $loaded = require dirname(__DIR__) . '/config/site-template-schema.php';
+            if (!is_array($loaded) || array_keys($loaded) !== self::TABLES) throw new RuntimeException('st_schema');
+            $schema = $loaded;
+        }
+        return $schema;
+    }
 
     public static function settingAllowed(string $key): bool
     {
@@ -88,12 +104,11 @@ final class SiteTemplateData
         return ['tables' => $tables, 'settings' => $settings];
     }
 
-    /** Includes private activity in the guard, not in the exported payload. */
+    /** Core data guard. Plugin-owned state is tracked separately by the import journal. */
     public static function fingerprint(): string
     {
         settingModel()->clearCache();
         $state = self::snapshot();
-        $state['plugin_activity'] = SiteTemplatePluginData::fingerprint();
         foreach (['forms', 'members', 'mail_log', 'content_revisions', 'blox_page_drafts'] as $table) {
             if (db()->tableExists($table)) {
                 $state[$table] = db()->fetchAll('SELECT * FROM ' . DB_PREFIX . $table . ' ORDER BY id');
