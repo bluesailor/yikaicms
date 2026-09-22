@@ -84,7 +84,7 @@ function shopTableSchemas(): array
                 `price` decimal(10,2) DEFAULT NULL COMMENT '为空=沿用 products.price',
                 `stock` int(11) NOT NULL DEFAULT 0,
                 `status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0=下架 1=上架',
-                `specs_json` mediumtext NULL COMMENT '有限规格（Phase 2 启用，先建列）',
+                `specs_json` mediumtext NULL COMMENT '有限 SKU 规格与独立售价库存',
                 `sales` int(11) UNSIGNED NOT NULL DEFAULT 0,
                 `created_at` int(11) NOT NULL DEFAULT 0,
                 `updated_at` int(11) NOT NULL DEFAULT 0,

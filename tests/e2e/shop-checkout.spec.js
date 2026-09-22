@@ -1,6 +1,7 @@
 const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 const fixture = (action) => execFileSync(process.env.PHP_BINARY || 'php',
   [path.join(__dirname, 'shop-fixture.php'), action],
@@ -55,6 +56,12 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   });
   expect(unverifiedNotify.status()).toBe(401);
   expect(await unverifiedNotify.text()).toBe('fail');
+  const unverifiedQueryNotify = await page.request.post('/plugins/shop/front/payment-notify.php?gateway=wechat_pay', {
+    data: '{"event_type":"TRANSACTION.SUCCESS"}',
+    headers: { 'content-type': 'application/json' },
+  });
+  expect(unverifiedQueryNotify.status()).toBe(401);
+  expect(await unverifiedQueryNotify.json()).toEqual({ code: 'FAIL', message: 'verification failed' });
 
   // 商家配置销售（后台 UI 真实点击）。storageState 已带 admin 登录态（global-setup），
   // 无需在此登录——goto(login.php) 会被重定向到 /admin/。
@@ -63,6 +70,7 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await page.getByTestId('shop-shipping-fee').fill('10');
   await page.getByTestId('shop-shipping-threshold').fill('100');
   await page.getByTestId('shop-shipping-excluded-regions').fill('海南省/三沙市');
+  await page.getByTestId('shop-shipping-surcharges').fill('上海市 = 5.00\n新疆维吾尔自治区 = 20.00');
   await page.getByTestId('shop-shipping-settings').locator('button[type="submit"]').click();
   await expect(page.getByTestId('shop-saved-tip')).toBeVisible();
   // 配置一个公司人工收款方式；真实网关未配置时仍可用账户/收款码完成线下收款。
@@ -79,7 +87,9 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await expect(page.getByTestId('shop-payment-row-0').locator('input[name="payment_methods[0][account]"]')).toHaveValue('6222 0000 0000 1234');
   // 再提交行销售设置
   await page.getByTestId(`shop-price-${product.id}`).fill('19.9');
-  await page.getByTestId(`shop-stock-${product.id}`).fill('5');
+  await page.getByTestId(`shop-stock-${product.id}`).fill('999');
+  await page.getByTestId(`shop-variants-${product.id}`).locator('xpath=..').locator('summary').click();
+  await page.getByTestId(`shop-variants-${product.id}`).fill('重量:1kg | E2E-1KG | 19.90 | 5\n重量:5kg | E2E-5KG | 79.90 | 2');
   await page.getByTestId(`shop-status-${product.id}`).check();
   await page.getByTestId(`shop-row-${product.id}`).locator('button[type="submit"]').click();
   await expect(page.getByTestId('shop-saved-tip')).toBeVisible();
@@ -98,6 +108,7 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await visitor.reload();
   await expect(visitor.locator('.yk-blox-product-detail .yk-shop-purchase')).toBeVisible();
   await expect(visitor.getByTestId('shop-buy-price')).toContainText('19.90');
+  await expect(visitor.getByTestId('shop-buy-variant')).toContainText('重量:1kg');
   await visitor.getByTestId('shop-buy-qty').fill('2');
   await visitor.getByTestId('shop-buy-submit').click();
   await expect(visitor).toHaveURL(/\/shop\/cart/);
@@ -124,6 +135,7 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await visitor.getByTestId('shop-checkout-city').fill('上海市');
   await visitor.getByTestId('shop-checkout-district').fill('浦东新区');
   await visitor.getByTestId('shop-checkout-address').fill('测试路 1 号');
+  await expect(visitor.getByTestId('shop-checkout-total')).toContainText('54.80');
   await visitor.getByTestId('shop-checkout-submit').click();
   await expect(visitor).toHaveURL(/\/shop\/order\?no=/);
   await expect(visitor.getByTestId('shop-order-status')).toContainText('待付款');
@@ -134,10 +146,11 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await expect(visitor.getByTestId('shop-payment-details').locator('img')).toHaveAttribute('src', '/assets/images/blox-templates/section-partners-logos.png');
   const orderNo = new URL(visitor.url()).searchParams.get('no');
 
-  // 落库独立核对：1 单、库存 5-2=3
+  // 落库独立核对：总库存 7-2=5，1kg 变体库存 5-2=3
   let state = JSON.parse(fixture('read'));
   expect(state.orders).toBe(1);
-  expect(state.stock).toBe(3);
+  expect(state.stock).toBe(5);
+  expect(state.variantStock).toBe(3);
 
   // 商家：收款 → 发货 → 完成
   await page.goto('/admin/plugin_page.php?plugin=shop&view=orders');
@@ -153,6 +166,18 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await expect(page.getByTestId('shop-order-status')).toContainText('已发货');
   await page.getByTestId('shop-order-complete').click();
   await expect(page.getByTestId('shop-order-status')).toContainText('已完成');
+
+  // 后台按当前筛选直接导出快递导单；CSV 包含规格、结构化地址和物流字段。
+  await page.goto('/admin/plugin_page.php?plugin=shop&view=orders');
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByTestId('shop-order-export').click(),
+  ]);
+  const csv = fs.readFileSync(await download.path(), 'utf8');
+  expect(csv).toContain(orderNo);
+  expect(csv).toContain('重量:1kg');
+  expect(csv).toContain('浦东新区');
+  expect(csv).toContain('SF1234567890');
 
   // 游客凭单号 + 手机尾号查询（新会话，验证不依赖下单会话）
   const lookup = await guest.newPage();

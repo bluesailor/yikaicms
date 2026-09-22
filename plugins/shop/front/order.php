@@ -144,6 +144,7 @@ require_once theme_path('layouts/header.php');
                     <tr class="border-t border-gray-100">
                         <td class="py-2">
                             <?php echo e((string) ($snap['title'] ?? '')); ?>
+                            <?php echo ($snap['variant_label'] ?? '') !== '' ? '<span class="text-gray-400"> · ' . e((string) $snap['variant_label']) . '</span>' : ''; ?>
                             <?php echo ($snap['sku'] ?? '') !== '' ? '<span class="text-gray-400"> · ' . e((string) $snap['sku']) . '</span>' : ''; ?>
                             <div class="text-xs text-gray-400"><?php echo e(formatPrice((string) $item['unit_price'])); ?> × <?php echo (int) $item['qty']; ?></div>
                         </td>

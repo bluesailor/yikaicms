@@ -20,6 +20,7 @@ require_once __DIR__ . '/money.php';
 require_once __DIR__ . '/tables.php';
 require_once __DIR__ . '/sales.php';
 require_once __DIR__ . '/shipping.php';
+require_once __DIR__ . '/variants.php';
 
 /** @return list<string> 订单合法状态（推进顺序即此列表顺序；closed 只从 pending_payment 进入） */
 function shopOrderStatuses(): array
@@ -62,6 +63,20 @@ function shopShippingFeeCents(int $goodsCents, ?int $fixedFee = null, ?int $free
     return max(0, $fixedFee);
 }
 
+/** 固定/包邮规则之后再叠加地区附加运费；包邮不免除偏远地区附加费。 */
+function shopShippingFeeForAddressCents(
+    int $goodsCents,
+    array $address,
+    ?int $fixedFee = null,
+    ?int $freeThreshold = null,
+    ?string $surchargeConfig = null
+): int {
+    return shopMoneySum([
+        shopShippingFeeCents($goodsCents, $fixedFee, $freeThreshold),
+        shopShippingSurchargeCents($address, $surchargeConfig),
+    ]);
+}
+
 /** 订单超时（秒）。下限 2 分钟：括号把分钟先换算成秒再取 max，防止误配成 2 秒关单。 */
 function shopOrderExpireSeconds(): int
 {
@@ -78,7 +93,7 @@ function shopOrderNo(): string
  * 下单（事务）。$lines 必须是 [canonicalId => qty] 这类已清洗行；
  * 价格/库存**全部现场重查重算**——购物车价格不可信（立项红线）。
  *
- * @param list<array{id:int,qty:int}> $lines
+ * @param list<array{id:int,variant?:string,qty:int}> $lines
  * @param array<string,string> $contact name/phone/email
  * @param array<string,string> $address province/city/district/address（region 由本层生成）
  * @return array{ok:bool, error:string, order_no?:string, order_id?:int}
@@ -107,9 +122,13 @@ function shopOrderCreate(array $lines, array $contact, array $address, string $r
         if ($product === null) {
             return ['ok' => false, 'error' => 'shop_err_product'];
         }
-        $sales = shopCartSalesLookupDefault($line['id']);
+        $variantId = (string) ($line['variant'] ?? '');
+        $sales = shopCartSalesLookupDefault($line['id'], $variantId);
         if ($sales === null) {
-            return ['ok' => false, 'error' => 'shop_err_not_on_sale'];
+            return ['ok' => false, 'error' => $variantId !== '' ? 'shop_err_variant' : 'shop_err_not_on_sale'];
+        }
+        if (!empty($sales['has_variants']) && $variantId === '') {
+            return ['ok' => false, 'error' => 'shop_err_variant_required'];
         }
         if ($line['qty'] > (int) $sales['stock']) {
             return ['ok' => false, 'error' => 'shop_err_out_of_stock'];
@@ -122,6 +141,7 @@ function shopOrderCreate(array $lines, array $contact, array $address, string $r
         $goodsCents = shopMoneySum([$goodsCents, $subtotal]);
         $priced[] = [
             'key' => $line['id'],
+            'variant' => $variantId,
             'qty' => $line['qty'],
             'unit_cents' => $unitCents,
             'subtotal_cents' => $subtotal,
@@ -130,12 +150,14 @@ function shopOrderCreate(array $lines, array $contact, array $address, string $r
                 'model' => (string) ($product['model'] ?? ''),
                 'cover' => (string) ($product['cover'] ?? ''),
                 'sku' => (string) ($sales['sku'] ?? ''),
+                'variant_id' => $variantId,
+                'variant_label' => (string) ($sales['variant_label'] ?? ''),
                 'lang' => (string) ($product['lang'] ?? $lang),
                 'unit_price' => shopCentsToDecimal($unitCents),
             ],
         ];
     }
-    $shippingCents = shopShippingFeeCents($goodsCents);
+    $shippingCents = shopShippingFeeForAddressCents($goodsCents, $address);
     $totalCents = shopMoneySum([$goodsCents, $shippingCents]);
 
     // 第二步：事务内扣库存 + 落单（唯一索引冲突重试换单号）
@@ -148,6 +170,9 @@ function shopOrderCreate(array $lines, array $contact, array $address, string $r
                 [$row['qty'], $row['key'], $row['qty']]
             );
             if ($affected !== 1) {
+                throw new RuntimeException('shop_err_out_of_stock');
+            }
+            if ($row['variant'] !== '' && !shopVariantAdjustLocked($row['key'], $row['variant'], -$row['qty'])) {
                 throw new RuntimeException('shop_err_out_of_stock');
             }
         }
@@ -328,11 +353,26 @@ function shopOrderClose(int $orderId, string $reason = ''): array
             'closed_at' => time(),
             'updated_at' => time(),
         ], 'id = ? AND status = ?', [$orderId, 'pending_payment']);
-        foreach (db()->fetchAll('SELECT product_id, qty FROM ' . DB_PREFIX . 'shop_order_items WHERE order_id = ?', [$orderId]) as $item) {
+        foreach (db()->fetchAll('SELECT product_id, qty, snapshot_json FROM ' . DB_PREFIX . 'shop_order_items WHERE order_id = ?', [$orderId]) as $item) {
             db()->execute(
                 'UPDATE ' . DB_PREFIX . 'shop_products SET stock = stock + ? WHERE product_id = ?',
                 [(int) $item['qty'], (int) $item['product_id']]
             );
+            $snapshot = json_decode((string) ($item['snapshot_json'] ?? ''), true);
+            $variantId = is_array($snapshot) ? (string) ($snapshot['variant_id'] ?? '') : '';
+            if ($variantId !== '' && !shopVariantAdjustLocked((int) $item['product_id'], $variantId, (int) $item['qty'])) {
+                // 变体已被商家删除时不重新上架旧规格；总库存回到当前变体库存之和。
+                $current = db()->fetchOne(
+                    'SELECT specs_json FROM ' . DB_PREFIX . 'shop_products WHERE product_id = ?',
+                    [(int) $item['product_id']]
+                );
+                $total = 0;
+                foreach (shopProductVariantsFromJson(isset($current['specs_json']) ? (string) $current['specs_json'] : null) as $variant) {
+                    $total += $variant['stock'];
+                }
+                db()->update('shop_products', ['stock' => $total, 'updated_at' => time()], 'product_id = ?', [(int) $item['product_id']]);
+                error_log('[shop] closed order variant no longer exists; stock kept aligned');
+            }
         }
         db()->commit();
     } catch (Throwable $e) {

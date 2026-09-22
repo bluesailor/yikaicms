@@ -56,17 +56,22 @@ if ($op === 'add') {
     // 前端提交的是产品行 id；落车统一转翻译组 canonical 键
     $productId = (int) ($_POST['pid'] ?? 0);
     $qty = (int) ($_POST['qty'] ?? 1);
+    $variantId = trim((string) ($_POST['variant'] ?? ''));
     $product = $productId > 0 ? productModel()->find($productId) : null;
     if ($product === null || ($product['deleted_at'] ?? null) !== null) {
         $redirect('shop_err_product');
     }
-    $result = shopCartAdd(shopCanonicalProductId($product), $qty);
+    $result = shopCartAdd(shopCanonicalProductId($product), $qty, null, $variantId);
     $redirect($result['ok'] ? '' : $result['error']);
 }
 
 if ($op === 'set') {
     // id 必须是 canonical 键（cart 页面生成，天然正确）
-    $result = shopCartSetQty((int) ($_POST['id'] ?? 0), (int) ($_POST['qty'] ?? -1));
+    $result = shopCartSetQty(
+        (int) ($_POST['id'] ?? 0),
+        (int) ($_POST['qty'] ?? -1),
+        trim((string) ($_POST['variant'] ?? ''))
+    );
     $redirect($result['ok'] ? '' : $result['error']);
 }
 

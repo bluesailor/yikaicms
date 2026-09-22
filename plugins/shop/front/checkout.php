@@ -103,7 +103,7 @@ foreach ($lines as $line) {
     if ($product === null) {
         continue;
     }
-    $sales = shopCartSalesLookupDefault($line['id']);
+    $sales = shopCartSalesLookupDefault($line['id'], $line['variant']);
     if ($sales === null) {
         continue;   // 已下架：与购物车页一致静默跳过
     }
@@ -114,6 +114,7 @@ foreach ($lines as $line) {
         'title' => (string) $product['title'],
         'qty' => $line['qty'],
         'sku' => (string) ($sales['sku'] ?? ''),
+        'variant_label' => (string) ($sales['variant_label'] ?? ''),
         'unit_decimal' => shopCentsToDecimal($unitCents),
         'subtotal_decimal' => shopCentsToDecimal($subtotalCents),
     ];
@@ -122,6 +123,14 @@ $shippingCents = shopShippingFeeCents($goodsCents);
 $totalCents = shopMoneySum([$goodsCents, $shippingCents]);
 $freeThreshold = (int) config('shop_free_shipping_threshold_cents', 0);
 $manualPaymentConfigured = shopManualPaymentMethods() !== [];
+$surchargeRules = shopShippingSurchargeRules();
+$shippingFormats = [];
+$totalFormats = [];
+foreach (array_merge([0], array_column($surchargeRules, 'cents')) as $surchargeCents) {
+    $fee = shopMoneySum([$shippingCents, (int) $surchargeCents]);
+    $shippingFormats[(string) $fee] = $fee === 0 ? __('shop_checkout_free') : formatPrice(shopCentsToDecimal($fee));
+    $totalFormats[(string) $fee] = formatPrice(shopCentsToDecimal(shopMoneySum([$goodsCents, $fee])));
+}
 
 $secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
 $tokenTs = time();
@@ -159,6 +168,7 @@ require_once theme_path('layouts/header.php');
                         <td class="px-4 py-2">
                             <?php echo e($row['title']); ?>
                             <?php echo $row['sku'] !== '' ? '<span class="text-gray-400"> · ' . e($row['sku']) . '</span>' : ''; ?>
+                            <?php echo $row['variant_label'] !== '' ? '<span class="text-gray-400"> · ' . e($row['variant_label']) . '</span>' : ''; ?>
                             <span class="text-gray-400"> × <?php echo (int) $row['qty']; ?></span>
                         </td>
                         <td class="px-4 py-2 text-right text-gray-700 whitespace-nowrap"><?php echo e(formatPrice($row['subtotal_decimal'])); ?></td>
@@ -166,7 +176,7 @@ require_once theme_path('layouts/header.php');
                     <?php endforeach; ?>
                     <tr class="border-b border-gray-100">
                         <td class="px-4 py-2 text-gray-500"><?php echo e(__('shop_checkout_shipping')); ?><?php echo $freeThreshold > 0 ? ' <span class="text-gray-400">(' . e(__('shop_checkout_free_hint', ['amount' => formatPrice(shopCentsToDecimal($freeThreshold))])) . ')</span>' : ''; ?></td>
-                        <td class="px-4 py-2 text-right whitespace-nowrap" data-testid="shop-checkout-shipping"><?php echo e($shippingCents === 0 ? __('shop_checkout_free') : formatPrice(shopCentsToDecimal($shippingCents))); ?></td>
+                        <td class="px-4 py-2 text-right whitespace-nowrap" data-shop-base-fee="<?php echo (int) $shippingCents; ?>" data-testid="shop-checkout-shipping"><?php echo e($shippingCents === 0 ? __('shop_checkout_free') : formatPrice(shopCentsToDecimal($shippingCents))); ?></td>
                     </tr>
                     <tr>
                         <td class="px-4 py-3 font-medium text-gray-900"><?php echo e(__('shop_checkout_total')); ?></td>
@@ -242,4 +252,38 @@ require_once theme_path('layouts/header.php');
     </div>
 </div>
 
+<?php if ($preview !== [] && $surchargeRules !== []): ?>
+<script>
+(function () {
+    var rules = <?php echo json_encode($surchargeRules, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR); ?>;
+    var shippingFormats = <?php echo json_encode($shippingFormats, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR); ?>;
+    var totalFormats = <?php echo json_encode($totalFormats, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR); ?>;
+    var form = document.querySelector('[data-testid="shop-checkout-form"]');
+    var shipping = document.querySelector('[data-testid="shop-checkout-shipping"]');
+    var total = document.querySelector('[data-testid="shop-checkout-total"]');
+    if (!form || !shipping || !total) return;
+    var base = parseInt(shipping.dataset.shopBaseFee || '0', 10) || 0;
+    function path() {
+        var values = ['province', 'city', 'district'].map(function (name) {
+            return (form.elements[name] && form.elements[name].value || '').trim();
+        });
+        return values.filter(function (value, index) { return value && (index === 0 || value !== values[index - 1]); });
+    }
+    function update() {
+        var current = path(), depth = 0, extra = 0;
+        rules.forEach(function (rule) {
+            var matches = rule.path.length <= current.length && rule.path.every(function (part, index) { return current[index] === part; });
+            if (matches && rule.path.length > depth) { depth = rule.path.length; extra = rule.cents; }
+        });
+        var fee = base + extra;
+        if (shippingFormats[String(fee)]) shipping.textContent = shippingFormats[String(fee)];
+        if (totalFormats[String(fee)]) total.textContent = totalFormats[String(fee)];
+    }
+    ['province', 'city', 'district'].forEach(function (name) {
+        if (form.elements[name]) { form.elements[name].addEventListener('change', update); form.elements[name].addEventListener('input', update); }
+    });
+    update();
+})();
+</script>
+<?php endif; ?>
 <?php require_once theme_path('layouts/footer.php'); ?>

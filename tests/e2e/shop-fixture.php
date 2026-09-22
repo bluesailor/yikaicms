@@ -65,8 +65,13 @@ if ($action === 'products') {
     echo json_encode(['id' => $templateId], JSON_THROW_ON_ERROR);
 } elseif ($action === 'read') {
     $orders = (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . 'shop_orders');
-    $stock = (int) db()->fetchColumn('SELECT stock FROM ' . DB_PREFIX . 'shop_products WHERE product_id = ?', [$productId]);
-    echo json_encode(['orders' => $orders, 'stock' => $stock], JSON_THROW_ON_ERROR);
+    $sales = db()->fetchOne('SELECT stock, specs_json FROM ' . DB_PREFIX . 'shop_products WHERE product_id = ?', [$productId]);
+    $variants = shopProductVariantsFromJson(isset($sales['specs_json']) ? (string) $sales['specs_json'] : null);
+    echo json_encode([
+        'orders' => $orders,
+        'stock' => (int) ($sales['stock'] ?? 0),
+        'variantStock' => (int) ($variants[0]['stock'] ?? 0),
+    ], JSON_THROW_ON_ERROR);
 } elseif ($action === 'enable' || $action === 'disable') {
     // spec 里切换插件启用态：直接走 PluginModel（与后台 POST activate/deactivate 同源）
     $model = pluginModel();
@@ -92,7 +97,10 @@ if ($action === 'products') {
     db()->delete('shop_payment_notifications', '1 = 1', []);
     db()->delete('shop_products', 'product_id = ?', [$productId]);
     db()->delete('blox_templates', 'name = ?', ['E2E shop purchase']);
-    settingModel()->saveBatch(['shop_manual_payment_methods' => '[]']);
+    settingModel()->saveBatch([
+        'shop_manual_payment_methods' => '[]',
+        'shop_shipping_region_surcharges' => '',
+    ]);
     HtmlCache::invalidate();
     echo "ok\n";
 } else {
