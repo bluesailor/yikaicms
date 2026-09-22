@@ -11,7 +11,10 @@ declare(strict_types=1);
 return [
     'required_files' => [
         'index.php',
+        'form_submit.php',
+        'form_nonce.php',
         'admin/index.php',
+        'admin/form_file.php',
         'config/config.sample.php',
         'config/database.php',
         'config/product.php',
@@ -61,7 +64,12 @@ return [
         'includes/security.php',
         'includes/AdminLogSanitizer.php',
         'includes/FormSubmissionToken.php',
+        'includes/FormSubmissionNonce.php',
+        'includes/FormSubmissionLifecycle.php',
+        'includes/FormFieldContract.php',
+        'includes/FormDecimal.php',
         'includes/FormSpamGuard.php',
+        'includes/FormUploadService.php',
         'includes/LegacyInstallCleanup.php',
         'includes/SiteHealth.php',
         'includes/AccessibilityAudit.php',

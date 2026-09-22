@@ -6,6 +6,78 @@ class FormModel extends Model
     protected string $table = 'forms';
     protected string $defaultOrder = 'id DESC';
 
+    /** @psalm-suppress PossiblyUnusedReturnValue Public model API returns the affected row count. */
+    public function deleteById(int|string $id): int
+    {
+        if (!is_int($id) && !ctype_digit((string) $id)) return 0;
+        return $this->deleteWithUploads([(int) $id], true);
+    }
+
+    /** @psalm-suppress PossiblyUnusedReturnValue Public model API returns the affected row count. */
+    public function deleteByIds(array $ids): int
+    {
+        $validIds = [];
+        foreach ($ids as $id) {
+            if (!is_int($id) && !ctype_digit((string) $id)) continue;
+            if ((int) $id > 0) $validIds[] = (int) $id;
+        }
+        return $this->deleteWithUploads(array_values(array_unique($validIds)), false);
+    }
+
+    /** @param list<int> $ids @return list<string> */
+    public function uploadReferencesForIds(array $ids): array
+    {
+        if ($ids === []) return [];
+        require_once dirname(__DIR__) . '/FormUploadService.php';
+        $references = [];
+        foreach (array_chunk($ids, 200) as $chunk) {
+            $sql = 'SELECT extra FROM ' . $this->tableName() . ' WHERE id IN (' . implode(',', array_fill(0, count($chunk), '?')) . ')';
+            foreach (db()->fetchAll($sql, $chunk) as $row) {
+                $references = array_merge($references, FormUploadService::referencesFromExtra((string) ($row['extra'] ?? '')));
+            }
+        }
+        return array_values(array_unique($references));
+    }
+
+    /** @param list<int> $ids */
+    private function deleteWithUploads(array $ids, bool $single): int
+    {
+        if ($ids === []) return 0;
+        if (db()->getPdo()->inTransaction()) throw new RuntimeException('form_delete_transaction_active');
+        require_once dirname(__DIR__) . '/FormUploadService.php';
+        $uploads = new FormUploadService();
+        $staged = $uploads->stageRemoval($this->uploadReferencesForIds($ids));
+        $committed = false;
+        try {
+            if (!db()->beginTransaction()) throw new RuntimeException('form_delete_transaction_failed');
+            $deleted = $single ? parent::deleteById($ids[0]) : parent::deleteByIds($ids);
+            try {
+                if (!db()->commit()) throw new RuntimeException('form_delete_transaction_failed');
+                $committed = true;
+            } catch (Throwable $error) {
+                if (db()->getPdo()->inTransaction()) throw $error;
+                error_log('Form delete observer failed: ' . get_class($error));
+                $committed = true;
+            }
+        } catch (Throwable $error) {
+            if (!$committed) {
+                if (db()->getPdo()->inTransaction()) {
+                    try {
+                        db()->rollback();
+                    } catch (Throwable $rollbackError) {
+                        error_log('Form delete rollback failed: ' . get_class($rollbackError));
+                    }
+                }
+                $uploads->restoreStaged($staged);
+            } else {
+                $uploads->finalizeStaged($staged);
+            }
+            throw $error;
+        }
+        $uploads->finalizeStaged($staged);
+        return $deleted;
+    }
+
     /**
      * 获取表单列表（分页+筛选）
      */

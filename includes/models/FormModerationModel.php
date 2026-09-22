@@ -64,11 +64,25 @@ final class FormModerationModel extends Model
 
     public function blockFromForm(int $id, bool $deleteMessages, int $expectedCount, int $adminId): array
     {
+        // 外层事务无法接管附件暂存的回滚责任，必须在移动文件前拒绝。
+        if (db()->getPdo()->inTransaction()) throw new RuntimeException('form_delete_transaction_active');
         $ip = $this->targetIp($id);
-        db()->beginTransaction();
+        $uploads = null;
+        $staged = [];
+        $ids = $deleteMessages ? $this->matchingIds($ip) : [];
+        if ($deleteMessages && count($ids) !== $expectedCount) throw new RuntimeException('form_ip_changed');
+        if ($deleteMessages && $ids !== []) {
+            require_once __DIR__ . '/FormModel.php';
+            require_once dirname(__DIR__) . '/FormUploadService.php';
+            $references = (new FormModel())->uploadReferencesForIds($ids);
+            if ($references !== []) {
+                $uploads = new FormUploadService();
+                $staged = $uploads->stageRemoval($references);
+            }
+        }
+        $committed = false;
         try {
-            $ids = $this->matchingIds($ip);
-            if ($deleteMessages && count($ids) !== $expectedCount) throw new RuntimeException('form_ip_changed');
+            if (!db()->beginTransaction()) throw new RuntimeException('form_delete_transaction_failed');
             $key = self::PREFIX . hash('sha256', $ip);
             $value = json_encode(['ip' => $ip, 'admin_id' => $adminId, 'created_at' => time()], JSON_THROW_ON_ERROR);
             // One row per IP avoids lost updates between concurrent administrators.
@@ -80,10 +94,30 @@ final class FormModerationModel extends Model
                 // Delete only the checked snapshot; later arrivals are never swept into it.
                 foreach (array_chunk($ids, 200) as $chunk) $deleted += $this->deleteByIds($chunk);
             }
-            db()->commit();
+            try {
+                if (!db()->commit()) throw new RuntimeException('form_delete_transaction_failed');
+                $committed = true;
+            } catch (Throwable $error) {
+                if (db()->getPdo()->inTransaction()) throw $error;
+                error_log('Form moderation observer failed: ' . get_class($error));
+                $committed = true;
+            }
+            if ($uploads !== null) $uploads->finalizeStaged($staged);
             return ['ip' => $ip, 'deleted' => $deleted];
         } catch (Throwable $error) {
-            db()->rollback();
+            if (!$committed) {
+                if (db()->getPdo()->inTransaction()) {
+                    try {
+                        db()->rollback();
+                    } catch (Throwable $rollbackError) {
+                        error_log('Form moderation rollback failed: ' . get_class($rollbackError));
+                    }
+                }
+                if ($uploads !== null) $uploads->restoreStaged($staged);
+            } elseif ($uploads !== null) {
+                // PDO has committed; a failing after-commit observer cannot restore live files.
+                $uploads->finalizeStaged($staged);
+            }
             throw $error;
         }
     }

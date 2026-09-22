@@ -17,11 +17,11 @@ final class FormModerationModelTest extends TestCase
 
     protected function schemaSql(): array
     {
-        return ['CREATE TABLE forms (id INTEGER PRIMARY KEY AUTOINCREMENT, ip TEXT)',
-            'CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, `key` TEXT UNIQUE, value TEXT, `group` TEXT, name TEXT, type TEXT)'];
+        return ['CREATE TABLE forms (id INTEGER PRIMARY KEY AUTOINCREMENT, ip TEXT, extra TEXT DEFAULT \'\')',
+            'CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, `key` TEXT UNIQUE, value TEXT, `group` TEXT, name TEXT, type TEXT, tip TEXT DEFAULT \'\', options TEXT, sort_order INT DEFAULT 0)'];
     }
 
-    private function add(string $ip): int { return (int) db()->insert('forms', ['ip' => $ip]); }
+    private function add(string $ip, string $extra = ''): int { return (int) db()->insert('forms', ['ip' => $ip, 'extra' => $extra]); }
 
     public function testCanonicalAddressesShareTheSameBlock(): void
     {
@@ -87,5 +87,76 @@ final class FormModerationModelTest extends TestCase
         $bad = $this->add('unknown');
         $this->expectExceptionMessage('form_ip_invalid');
         $m->blockFromForm($bad, true, 1, 1);
+    }
+
+    public function testIpBulkDeleteUsesTheSameAttachmentLifecycle(): void
+    {
+        require_once ROOT_PATH . '/includes/FormUploadService.php';
+        $tmp = tempnam(sys_get_temp_dir(), 'yk-form');
+        file_put_contents($tmp, "%PDF-1.4\n%%EOF");
+        $service = new \FormUploadService(null,
+            static fn(string $path): bool => is_file($path),
+            static fn(string $from, string $to): bool => rename($from, $to));
+        $total = 0;
+        $stored = $service->store(['name' => 'proof.pdf', 'tmp_name' => $tmp, 'error' => UPLOAD_ERR_OK],
+            ['accept' => ['pdf'], 'max_size' => 1], $total);
+        $path = $service->pathForReference($stored['reference']);
+        self::assertNotNull($path);
+        $id = $this->add('192.0.2.9', json_encode(['proof' => $stored['reference']], JSON_THROW_ON_ERROR));
+
+        self::assertSame(1, (new FormModerationModel())->blockFromForm($id, true, 1, 1)['deleted']);
+        self::assertFileDoesNotExist((string) $path);
+    }
+
+    public function testFailedBulkDeleteRestoresStagedAttachment(): void
+    {
+        require_once ROOT_PATH . '/includes/FormUploadService.php';
+        $tmp = tempnam(sys_get_temp_dir(), 'yk-form');
+        file_put_contents($tmp, "%PDF-1.4\n%%EOF");
+        $service = new \FormUploadService(null,
+            static fn(string $path): bool => is_file($path),
+            static fn(string $from, string $to): bool => rename($from, $to));
+        $total = 0;
+        $stored = $service->store(['name' => 'proof.pdf', 'tmp_name' => $tmp, 'error' => UPLOAD_ERR_OK],
+            ['accept' => ['pdf'], 'max_size' => 1], $total);
+        $path = $service->pathForReference($stored['reference']);
+        $id = $this->add('192.0.2.10', json_encode(['proof' => $stored['reference']], JSON_THROW_ON_ERROR));
+        db()->execute("CREATE TRIGGER deny_delete_restore BEFORE DELETE ON forms BEGIN SELECT RAISE(ABORT, 'simulated restore'); END");
+        try {
+            (new FormModerationModel())->blockFromForm($id, true, 1, 1);
+            self::fail('Expected delete failure');
+        } catch (\PDOException $error) {
+            self::assertStringContainsString('simulated restore', $error->getMessage());
+        }
+        self::assertFileExists((string) $path);
+        $service->remove($stored['reference']);
+    }
+
+    public function testOuterTransactionIsRejectedBeforeAttachmentStaging(): void
+    {
+        require_once ROOT_PATH . '/includes/FormUploadService.php';
+        $tmp = tempnam(sys_get_temp_dir(), 'yk-form');
+        file_put_contents($tmp, "%PDF-1.4\n%%EOF");
+        $service = new \FormUploadService(null,
+            static fn(string $path): bool => is_file($path),
+            static fn(string $from, string $to): bool => rename($from, $to));
+        $total = 0;
+        $stored = $service->store(['name' => 'proof.pdf', 'tmp_name' => $tmp, 'error' => UPLOAD_ERR_OK],
+            ['accept' => ['pdf'], 'max_size' => 1], $total);
+        $path = $service->pathForReference($stored['reference']);
+        $id = $this->add('192.0.2.11', json_encode(['proof' => $stored['reference']], JSON_THROW_ON_ERROR));
+
+        db()->beginTransaction();
+        try {
+            (new FormModerationModel())->blockFromForm($id, true, 1, 1);
+            self::fail('Nested transaction accepted');
+        } catch (RuntimeException $error) {
+            self::assertSame('form_delete_transaction_active', $error->getMessage());
+        } finally {
+            if (db()->getPdo()->inTransaction()) db()->rollback();
+        }
+        self::assertSame(1, (int) db()->fetchColumn('SELECT COUNT(*) FROM forms WHERE id = ?', [$id]));
+        self::assertFileExists((string) $path);
+        $service->remove($stored['reference']);
     }
 }
