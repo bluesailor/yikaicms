@@ -14,7 +14,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    echo json_encode(['code' => 1, 'msg' => '无效请求']);
+    echo json_encode(['code' => 1, 'msg' => __('form_invalid_request')]);
     exit;
 }
 
@@ -49,12 +49,12 @@ if (!FormSpamGuard::validPayload($_POST)) rejectFormSpam('form_guard_payload', 4
 
 // 反垃圾 1：蜜罐 —— 正常用户看不到 hp_url，机器人填了就丢弃（假装成功，不报错以免被探测）
 if (trim((string) post('hp_url', '')) !== '') {
-    echo json_encode(['code' => 0, 'msg' => '提交成功，感谢您的反馈！']);
+    echo json_encode(['code' => 0, 'msg' => __('fd_default_success_msg')]);
     exit;
 }
 $slug = trim(post('form_slug', ''));
 if (empty($slug)) {
-    echo json_encode(['code' => 1, 'msg' => '无效表单']);
+    echo json_encode(['code' => 1, 'msg' => __('form_invalid_template')]);
     exit;
 }
 // 反垃圾 2：签名时间戳 —— 校验时间戳未被伪造，且非「秒提交」（机器人特征）
@@ -63,7 +63,7 @@ $_fsig = (string) post('form_sig', '');
 $secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
 $signaturePresent = $_fts > 0 || $_fsig !== '';
 if ($securityVersion >= 2 && !$signaturePresent) {
-    echo json_encode(['code' => 1, 'msg' => '表单安全令牌缺失，请刷新页面后重试']);
+    echo json_encode(['code' => 1, 'msg' => __('form_token_missing')]);
     exit;
 }
 if ($signaturePresent) {
@@ -87,11 +87,11 @@ if ($signaturePresent) {
             ]], JSON_UNESCAPED_UNICODE);
             exit;
         }
-        echo json_encode(['code' => 1, 'msg' => '表单安全令牌无效，请刷新页面后重试']);
+        echo json_encode(['code' => 1, 'msg' => __('form_token_invalid')]);
         exit;
     }
     if (time() - $_fts < 2) {
-        echo json_encode(['code' => 1, 'msg' => '提交过快，请稍后再试']);
+        echo json_encode(['code' => 1, 'msg' => __('form_too_fast')]);
         exit;
     }
 }
@@ -99,7 +99,7 @@ if ($signaturePresent) {
 // 获取模板
 $template = formTemplateModel()->findBySlug($slug);
 if (!$template) {
-    echo json_encode(['code' => 1, 'msg' => '表单不存在']);
+    echo json_encode(['code' => 1, 'msg' => __('form_template_missing')]);
     exit;
 }
 
@@ -165,7 +165,7 @@ if ($securityVersion >= 2) {
 $_content = FormFieldContract::contentForSpamScan($fields, $formData);
 $_maxLinks = max(0, min(20, (int) config('form_max_links', '3')));
 if (FormSpamGuard::blockedContent($_content, FormSpamGuard::keywordList((string) config('form_spam_keywords', '')), $_maxLinks)) {
-    echo json_encode(['code' => 0, 'msg' => '提交成功，感谢您的反馈！']);
+    echo json_encode(['code' => 0, 'msg' => __('fd_default_success_msg')]);
     exit;
 }
 
@@ -315,5 +315,5 @@ $_smLang = function_exists('siteLang') ? siteLang() : (string) config('site_lang
 $msg = $template['success_message'] ?? '';
 $langMsg = (string) ($template['success_message_' . $_smLang] ?? '');
 if ($langMsg !== '') $msg = $langMsg;
-if (!$msg) $msg = '提交成功，感谢您的反馈！';
+if (!$msg) $msg = __('fd_default_success_msg');
 echo json_encode(['code' => 0, 'msg' => $msg]);
