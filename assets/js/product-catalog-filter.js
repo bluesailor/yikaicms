@@ -81,6 +81,15 @@
         return !!link.closest("[data-catalog-facets],[data-catalog-sort],[data-catalog-pagination]");
     }
 
+    function syncHeadMetadata(doc, parsed) {
+        if (!doc || !parsed) return;
+        var nextCanonical = parsed.querySelector("link[rel=\"canonical\"]");
+        var canonicalHref = nextCanonical ? nextCanonical.getAttribute("href") : "";
+        var canonical = doc.querySelector("link[rel=\"canonical\"]");
+        if (canonical && canonicalHref) canonical.setAttribute("href", canonicalHref);
+        if (typeof parsed.title === "string" && parsed.title !== "") doc.title = parsed.title;
+    }
+
     function boot(doc) {
         if (!doc || !doc.querySelector("[data-product-catalog][data-catalog-ajax]")) return null;
         if (typeof global.fetch !== "function") return null;
@@ -132,6 +141,7 @@
                 if (!next) throw new Error("catalog-fragment");
                 var imported = doc.importNode ? doc.importNode(next, true) : next.cloneNode(true);
                 root.replaceWith(imported);
+                syncHeadMetadata(doc, parsed);
                 var status = ensureStatus(imported);
                 announce(status.live, imported.dataset.catalogUpdated || "");
                 if (options.history === "replace") global.history.replaceState({ yikaiCatalog: true }, "", finalUrl.href);
@@ -223,7 +233,10 @@
         return { navigate: navigate, loader: loader };
     }
 
-    var api = { buildFormUrl: buildFormUrl, createLoader: createLoader, controlledLink: controlledLink, boot: boot };
+    var api = {
+        buildFormUrl: buildFormUrl, createLoader: createLoader, controlledLink: controlledLink,
+        syncHeadMetadata: syncHeadMetadata, boot: boot,
+    };
     global.YikaiProductCatalog = api;
     if (typeof module !== "undefined" && module.exports) module.exports = api;
     if (global.document) {

@@ -102,6 +102,8 @@ test('product catalog filters progressively enhance, announce updates and surviv
   const response = await ajaxResponse;
   expect(response.status()).toBe(200);
   await expect(page).toHaveURL(/keyword=Catalog(?:\+|%20)Zero/);
+  const filteredCanonical = await page.locator('link[rel="canonical"]').getAttribute('href');
+  expect(new URL(filteredCanonical).searchParams.get('keyword')).toBe('Catalog Zero');
   await expect(page.getByRole('heading', { name: /^Catalog Zero 0 1 \d+$/ }).first()).toBeVisible();
   await expect(live).toHaveText(await root.getAttribute('data-catalog-updated'));
   expect(await live.evaluate(node => node === window.__catalogLiveNode && node.isConnected)).toBeTruthy();
@@ -112,9 +114,13 @@ test('product catalog filters progressively enhance, announce updates and surviv
   const next = root.getByRole('link', { name: '2', exact: true });
   await next.click();
   await page.waitForURL(url => url.href !== searchUrl);
+  const pageTwoCanonical = await page.locator('link[rel="canonical"]').getAttribute('href');
+  expect(new URL(pageTwoCanonical).pathname).toMatch(/\/product\/page\/2\.html$/);
+  expect(new URL(pageTwoCanonical).searchParams.get('keyword')).toBe('Catalog Zero');
   expect(await page.evaluate(() => history.length)).toBe(initialHistoryLength + 1);
   await page.evaluate(() => history.back());
   await expect(page).toHaveURL(searchUrl);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', filteredCanonical);
   await expect(page.getByRole('heading', { name: /^Catalog Zero 0 1 \d+$/ }).first()).toBeVisible();
 
   const beforeFailure = await page.getByRole('heading', { name: /^Catalog Zero 0 1 \d+$/ }).allTextContents();
@@ -170,7 +176,21 @@ test('product catalog remains usable with JavaScript disabled @ci', async ({ bro
     await form.locator('input[name="keyword"]').fill('Catalog Zero');
     await Promise.all([page.waitForNavigation(), form.locator('button[type="submit"]').click()]);
     await expect(page).toHaveURL(/keyword=Catalog(?:\+|%20)Zero/);
-    await expect(page.getByRole('heading', { name: /^Catalog Zero 0 1 \d+$/ }).first()).toBeVisible();
+    const results = page.getByRole('heading', { name: /^Catalog Zero 0 1 \d+$/ });
+    await expect(results.first()).toBeVisible();
+    const firstPage = await results.allTextContents();
+    const next = page.locator('[data-catalog-pagination]').getByRole('link', { name: '2', exact: true });
+    const nextHref = await next.getAttribute('href');
+    expect(new URL(nextHref, page.url()).pathname).toMatch(/\/product\/page\/2\.html$/);
+    await Promise.all([page.waitForNavigation(), next.click()]);
+    await expect(page).toHaveURL(/\/product\/page\/2\.html\?keyword=Catalog(?:\+|%20)Zero/);
+    await expect(form.locator('input[name="keyword"]')).toHaveValue('Catalog Zero');
+    const secondPage = await results.allTextContents();
+    expect(secondPage.length).toBeGreaterThan(0);
+    expect(secondPage.every(title => !firstPage.includes(title))).toBeTruthy();
+    const canonical = await page.locator('link[rel="canonical"]').getAttribute('href');
+    expect(new URL(canonical).pathname).toBe('/product/page/2.html');
+    expect(new URL(canonical).searchParams.get('keyword')).toBe('Catalog Zero');
   } finally {
     await context.close();
   }
