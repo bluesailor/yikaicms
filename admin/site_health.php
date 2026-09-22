@@ -282,6 +282,7 @@ unset($pageTitle);
             'environment' => __('health_category_environment'),
             'performance' => __('health_category_performance'),
             'operations' => __('health_category_operations'),
+            'accessibility' => __('health_category_accessibility'),
         ],
         'statuses' => [
             'critical' => __('health_status_critical'),
@@ -374,7 +375,7 @@ unset($pageTitle);
             if (!grouped[category]) grouped[category] = [];
             grouped[category].push(check);
         });
-        ['security', 'updates', 'environment', 'performance', 'operations'].forEach(function (category) {
+        ['security', 'updates', 'environment', 'performance', 'operations', 'accessibility'].forEach(function (category) {
             if (!grouped[category] || grouped[category].length === 0) return;
             var section = document.createElement('section');
             section.className = 'mb-6 overflow-hidden rounded-lg border border-gray-200 bg-white';

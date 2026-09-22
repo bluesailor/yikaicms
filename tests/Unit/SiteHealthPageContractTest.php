@@ -127,4 +127,30 @@ final class SiteHealthPageContractTest extends TestCase
         self::assertStringContainsString('WHERE type = ? AND id > ? ORDER BY id ASC LIMIT ?', $model);
         self::assertStringContainsString('site_health_media_summary', $page);
     }
+
+    public function testAccessibilityCategoryAndFrontendBaselineAreWired(): void
+    {
+        $page = (string) file_get_contents(ROOT_PATH . '/admin/site_health.php');
+        $health = (string) file_get_contents(ROOT_PATH . '/includes/SiteHealth.php');
+        $themeHeader = (string) file_get_contents(ROOT_PATH . '/themes/default/layouts/header.php');
+        $fallbackHeader = (string) file_get_contents(ROOT_PATH . '/includes/header.php');
+        $css = (string) file_get_contents(ROOT_PATH . '/assets/css/src/app.css');
+
+        self::assertStringContainsString("'accessibility' => __('health_category_accessibility')", $page);
+        self::assertStringContainsString('checkAccessibilityContrast()', $health);
+        self::assertStringContainsString('checkAccessibilityTheme($root)', $health);
+        self::assertStringContainsString('checkAccessibilityContent()', $health);
+        self::assertStringContainsString('MAX_CONTENT_ROWS + 1', $health);
+        self::assertStringContainsString('href="#main-content"', $themeHeader);
+        self::assertStringContainsString('id="main-content" tabindex="-1"', $themeHeader);
+        self::assertStringContainsString('href="#main-content"', $fallbackHeader);
+        self::assertStringContainsString('[tabindex]:not([tabindex="-1"])', $css);
+
+        foreach (['zh-CN', 'en', 'ja'] as $lang) {
+            $strings = require ROOT_PATH . '/lang/' . $lang . '.php';
+            self::assertArrayHasKey('skip_to_content', $strings);
+            self::assertArrayHasKey('health_category_accessibility', $strings);
+            self::assertArrayHasKey('health_a11y_content_bad', $strings);
+        }
+    }
 }
