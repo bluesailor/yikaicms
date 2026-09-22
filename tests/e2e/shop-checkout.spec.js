@@ -32,6 +32,7 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   // 先提交运费设置（独立表单 PRG，单独提交不丢行编辑）
   await page.getByTestId('shop-shipping-fee').fill('10');
   await page.getByTestId('shop-shipping-threshold').fill('100');
+  await page.getByTestId('shop-shipping-excluded-regions').fill('海南省/三沙市');
   await page.getByTestId('shop-shipping-settings').locator('button[type="submit"]').click();
   await expect(page.getByTestId('shop-saved-tip')).toBeVisible();
   // 再提交行销售设置
@@ -62,9 +63,24 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
 
   await visitor.goto('/shop/checkout');
   await expect(visitor.getByTestId('shop-checkout-total')).toContainText('49.80');
+
+  // 服务区门禁：三沙市被后台配置为不配送，伪造/直接提交同样不能创建订单。
   await visitor.getByTestId('shop-checkout-name').fill('E2E 买家');
   await visitor.getByTestId('shop-checkout-phone').fill('13812345678');
-  await visitor.getByTestId('shop-checkout-region').fill('上海市');
+  await visitor.getByTestId('shop-checkout-province').selectOption('海南省');
+  await visitor.getByTestId('shop-checkout-city').fill('三沙市');
+  await visitor.getByTestId('shop-checkout-district').fill('西沙区');
+  await visitor.getByTestId('shop-checkout-address').fill('测试路 1 号');
+  await visitor.getByTestId('shop-checkout-submit').click();
+  await expect(visitor).toHaveURL(/\/shop\/checkout\?err=/);
+  await expect(visitor.getByTestId('shop-checkout-error')).toContainText('不在配送服务范围');
+
+  // 换成服务区内的结构化大陆地址再下单。
+  await visitor.getByTestId('shop-checkout-name').fill('E2E 买家');
+  await visitor.getByTestId('shop-checkout-phone').fill('13812345678');
+  await visitor.getByTestId('shop-checkout-province').selectOption('上海市');
+  await visitor.getByTestId('shop-checkout-city').fill('上海市');
+  await visitor.getByTestId('shop-checkout-district').fill('浦东新区');
   await visitor.getByTestId('shop-checkout-address').fill('测试路 1 号');
   await visitor.getByTestId('shop-checkout-submit').click();
   await expect(visitor).toHaveURL(/\/shop\/order\?no=/);
@@ -83,6 +99,8 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await page.goto('/admin/plugin_page.php?plugin=shop&view=orders&detail=1');
   await page.getByTestId('shop-order-paid').click();
   await expect(page.getByTestId('shop-order-status')).toContainText('待发货');
+  await page.getByTestId('shop-order-tracking-company').selectOption('顺丰速运');
+  await page.getByTestId('shop-order-tracking-no').fill('SF1234567890');
   await page.getByTestId('shop-order-ship').click();
   await expect(page.getByTestId('shop-order-status')).toContainText('已发货');
   await page.getByTestId('shop-order-complete').click();
@@ -96,6 +114,8 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await lookup.getByTestId('shop-order-phone-input').fill('5678');
   await lookup.locator('button[type="submit"]').click();
   await expect(lookup.getByTestId('shop-order-status')).toContainText('已完成');
+  await expect(lookup.getByTestId('shop-order-tracking')).toContainText('顺丰速运 SF1234567890');
+  await expect(lookup.getByTestId('shop-order-address')).toContainText('上海市 浦东新区 测试路 1 号');
 
   // 停用插件：产品页仍正常展示（无购买表单），CLI 仍可导出订单
   fixture('disable');

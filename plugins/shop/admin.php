@@ -26,6 +26,7 @@ require_once __DIR__ . '/lib/tables.php';
 require_once __DIR__ . '/lib/sales.php';
 require_once __DIR__ . '/lib/orders.php';
 require_once __DIR__ . '/lib/refunds.php';
+require_once __DIR__ . '/lib/shipping.php';
 
 try {
     shopEnsureSchema();
@@ -91,6 +92,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
     $feeInput = trim((string) ($_POST['shipping_fee'] ?? ''));
     $thresholdInput = trim((string) ($_POST['free_threshold'] ?? ''));
     $expireInput = trim((string) ($_POST['expire_minutes'] ?? ''));
+    $excludedProvincesInput = is_array($_POST['excluded_provinces'] ?? null)
+        ? $_POST['excluded_provinces']
+        : [];
+    $excludedRegionsInput = (string) ($_POST['excluded_regions'] ?? '');
+    $carriersInput = (string) ($_POST['shipping_carriers'] ?? '');
 
     // 运费两项允许 0/空（空=0 元），但必须是非负金额格式；超时分钟数 1..10080
     $error = '';
@@ -121,6 +127,25 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
         $error = __('shop_err_expire');
     }
 
+    $excludedProvinces = [];
+    if ($error === '') {
+        foreach ($excludedProvincesInput as $province) {
+            if (!is_string($province) || !in_array($province, shopMainlandProvinces(), true)) {
+                $error = __('shop_err_shipping_regions');
+                break;
+            }
+            $excludedProvinces[$province] = $province;
+        }
+    }
+    $regionConfig = shopNormalizeExcludedRegionConfig($excludedRegionsInput);
+    if ($error === '' && !$regionConfig['ok']) {
+        $error = __($regionConfig['error']);
+    }
+    $carrierConfig = shopNormalizeCarrierConfig($carriersInput);
+    if ($error === '' && !$carrierConfig['ok']) {
+        $error = __($carrierConfig['error']);
+    }
+
     if ($error !== '') {
         header('Location: /admin/plugin_page.php?plugin=shop&err=' . urlencode($error));
         exit;
@@ -130,8 +155,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
         'shop_shipping_fee_cents' => (string) $feeCents,
         'shop_free_shipping_threshold_cents' => (string) $thresholdCents,
         'shop_order_expire_minutes' => (string) $expireMinutes,
+        'shop_shipping_excluded_provinces' => json_encode(array_values($excludedProvinces), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+        'shop_shipping_excluded_regions' => $regionConfig['value'],
+        'shop_shipping_carriers' => $carrierConfig['value'],
     ]);
-    adminLog('shop', 'save_shipping', "shipping fee={$feeCents} free_threshold={$thresholdCents} expire={$expireMinutes}min");
+    adminLog(
+        'shop',
+        'save_shipping',
+        "shipping fee={$feeCents} free_threshold={$thresholdCents} expire={$expireMinutes}min"
+        . ' excluded_provinces=' . count($excludedProvinces)
+        . ' excluded_regions=' . count($regionConfig['rules'])
+        . ' carriers=' . count($carrierConfig['carriers'])
+    );
     do_action('data_changed');
 
     header('Location: /admin/plugin_page.php?plugin=shop&saved=1');
@@ -357,8 +392,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div class="text-gray-800"><?php echo e((string) ($address['region'] ?? '')); ?> <?php echo e((string) ($address['address'] ?? '')); ?></div>
                 <div class="font-medium text-gray-700 pt-2"><?php echo e(__('shop_checkout_remark')); ?></div>
                 <div class="text-gray-800"><?php echo e((string) $od['remark']); ?></div>
-                <?php if ((string) ($od['tracking_no'] ?? '') !== ''): ?>
-                <div class="font-medium text-gray-700 pt-2"><?php echo e(__('shop_tracking_no')); ?></div>
+                <?php if ((string) ($od['tracking_company'] ?? '') !== '' || (string) ($od['tracking_no'] ?? '') !== ''): ?>
+                <div class="font-medium text-gray-700 pt-2"><?php echo e(__('shop_tracking_info')); ?></div>
                 <div class="text-gray-800"><?php echo e((string) ($od['tracking_company'] ?? '')); ?> <?php echo e((string) $od['tracking_no']); ?></div>
                 <?php endif; ?>
                 <div class="text-xs text-gray-400 pt-2"><?php echo e(__('shop_created_at')); ?>：<?php echo e(date('Y-m-d H:i', (int) $od['created_at'])); ?>
@@ -379,8 +414,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php if ((string) $od['status'] === 'awaiting_ship'): ?>
             <form method="post" action="/admin/plugin_page.php?plugin=shop&view=orders" class="flex flex-wrap items-center gap-2"><?php echo csrfField(); ?>
                 <input type="hidden" name="action" value="order_ship"><input type="hidden" name="order_id" value="<?php echo (int) $od['id']; ?>">
-                <input type="text" name="tracking_company" maxlength="50" placeholder="<?php echo e(__('shop_tracking_company')); ?>"
-                       class="border border-gray-300 rounded px-2 py-1.5 text-sm w-28" data-testid="shop-order-tracking-company">
+                <select name="tracking_company" class="border border-gray-300 rounded px-2 py-1.5 text-sm w-36" data-testid="shop-order-tracking-company">
+                    <option value=""><?php echo e(__('shop_tracking_none')); ?></option>
+                    <?php foreach (shopShippingCarriers() as $carrier): ?>
+                    <option value="<?php echo e($carrier); ?>"><?php echo e($carrier); ?></option>
+                    <?php endforeach; ?>
+                </select>
                 <input type="text" name="tracking_no" maxlength="64" placeholder="<?php echo e(__('shop_tracking_no')); ?>"
                        class="border border-gray-300 rounded px-2 py-1.5 text-sm w-44" data-testid="shop-order-tracking-no">
                 <button type="submit" class="bg-blue-600 text-white text-sm px-4 py-2 rounded hover:bg-blue-700" data-testid="shop-order-ship"><?php echo e(__('shop_btn_ship')); ?></button>
@@ -507,27 +546,62 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <?php // 运费与超时（M1-c）：先于产品列表，商家一次配好 ?>
+    <?php // 运费、服务区、快递公司与超时：先于产品列表，商家一次配好 ?>
+    <?php
+    $shopExcludedProvinces = json_decode((string) config('shop_shipping_excluded_provinces', '[]'), true);
+    $shopExcludedProvinces = is_array($shopExcludedProvinces) ? $shopExcludedProvinces : [];
+    $shopExcludedRegions = (string) config('shop_shipping_excluded_regions', '');
+    $shopCarriers = (string) config('shop_shipping_carriers', implode("\n", shopDefaultShippingCarriers()));
+    ?>
     <div class="mb-4 bg-white rounded border border-gray-200 p-4" data-testid="shop-shipping-settings">
         <div class="text-sm font-medium text-gray-900 mb-3"><?php echo e(__('shop_shipping_title')); ?></div>
-        <form method="post" action="/admin/plugin_page.php?plugin=shop" class="flex flex-wrap items-end gap-3 text-sm">
+        <form method="post" action="/admin/plugin_page.php?plugin=shop" class="space-y-4 text-sm">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" value="save_shipping">
-            <div>
-                <label class="block text-gray-600 mb-1"><?php echo e(__('shop_shipping_fee')); ?></label>
-                <input type="text" name="shipping_fee" value="<?php echo e(shopCentsToDecimal((int) config('shop_shipping_fee_cents', 1500))); ?>"
-                       class="border border-gray-300 rounded px-2 py-1.5 w-28" data-testid="shop-shipping-fee">
+            <div class="flex flex-wrap items-end gap-3">
+                <div>
+                    <label class="block text-gray-600 mb-1"><?php echo e(__('shop_shipping_fee')); ?></label>
+                    <input type="text" name="shipping_fee" value="<?php echo e(shopCentsToDecimal((int) config('shop_shipping_fee_cents', 1500))); ?>"
+                           class="border border-gray-300 rounded px-2 py-1.5 w-28" data-testid="shop-shipping-fee">
+                </div>
+                <div>
+                    <label class="block text-gray-600 mb-1"><?php echo e(__('shop_shipping_free_threshold')); ?></label>
+                    <input type="text" name="free_threshold" value="<?php echo (int) config('shop_free_shipping_threshold_cents', 0) > 0 ? e(shopCentsToDecimal((int) config('shop_free_shipping_threshold_cents', 0))) : ''; ?>"
+                           placeholder="<?php echo e(__('shop_shipping_free_off')); ?>"
+                           class="border border-gray-300 rounded px-2 py-1.5 w-28" data-testid="shop-shipping-threshold">
+                </div>
+                <div>
+                    <label class="block text-gray-600 mb-1"><?php echo e(__('shop_expire_minutes')); ?></label>
+                    <input type="number" name="expire_minutes" min="1" max="10080" step="1" value="<?php echo (int) config('shop_order_expire_minutes', 30); ?>"
+                           class="border border-gray-300 rounded px-2 py-1.5 w-24" data-testid="shop-expire-minutes">
+                </div>
             </div>
             <div>
-                <label class="block text-gray-600 mb-1"><?php echo e(__('shop_shipping_free_threshold')); ?></label>
-                <input type="text" name="free_threshold" value="<?php echo (int) config('shop_free_shipping_threshold_cents', 0) > 0 ? e(shopCentsToDecimal((int) config('shop_free_shipping_threshold_cents', 0))) : ''; ?>"
-                       placeholder="<?php echo e(__('shop_shipping_free_off')); ?>"
-                       class="border border-gray-300 rounded px-2 py-1.5 w-28" data-testid="shop-shipping-threshold">
+                <div class="font-medium text-gray-700 mb-1"><?php echo e(__('shop_shipping_excluded_provinces')); ?></div>
+                <p class="text-xs text-gray-400 mb-2"><?php echo e(__('shop_shipping_excluded_provinces_hint')); ?></p>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 rounded border border-gray-200 p-3 max-h-48 overflow-y-auto" data-testid="shop-shipping-excluded-provinces">
+                    <?php foreach (shopMainlandProvinces() as $province): ?>
+                    <label class="flex items-center gap-1.5 text-gray-600">
+                        <input type="checkbox" name="excluded_provinces[]" value="<?php echo e($province); ?>"<?php echo in_array($province, $shopExcludedProvinces, true) ? ' checked' : ''; ?>>
+                        <span><?php echo e($province); ?></span>
+                    </label>
+                    <?php endforeach; ?>
+                </div>
             </div>
-            <div>
-                <label class="block text-gray-600 mb-1"><?php echo e(__('shop_expire_minutes')); ?></label>
-                <input type="number" name="expire_minutes" min="1" max="10080" step="1" value="<?php echo (int) config('shop_order_expire_minutes', 30); ?>"
-                       class="border border-gray-300 rounded px-2 py-1.5 w-24" data-testid="shop-expire-minutes">
+            <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1"><?php echo e(__('shop_shipping_excluded_regions')); ?></label>
+                    <textarea name="excluded_regions" rows="6" maxlength="10000"
+                              placeholder="<?php echo e(__('shop_shipping_excluded_regions_placeholder')); ?>"
+                              class="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono" data-testid="shop-shipping-excluded-regions"><?php echo e($shopExcludedRegions); ?></textarea>
+                    <p class="text-xs text-gray-400 mt-1"><?php echo e(__('shop_shipping_excluded_regions_hint')); ?></p>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-700 mb-1"><?php echo e(__('shop_shipping_carriers')); ?></label>
+                    <textarea name="shipping_carriers" rows="6" maxlength="3000"
+                              class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-shipping-carriers"><?php echo e($shopCarriers); ?></textarea>
+                    <p class="text-xs text-gray-400 mt-1"><?php echo e(__('shop_shipping_carriers_hint')); ?></p>
+                </div>
             </div>
             <button type="submit" class="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700"><?php echo e(__('shop_btn_save')); ?></button>
         </form>

@@ -145,8 +145,8 @@ require_once theme_path('layouts/header.php');
                         <div class="text-gray-800" data-testid="shop-order-contact">
                             <?php echo e((string) ($contact['name'] ?? '')); ?> · <?php echo e($maskPhone((string) ($contact['phone'] ?? ''))); ?>
                         </div>
-                        <?php if ((string) ($order['tracking_no'] ?? '') !== ''): ?>
-                        <div class="text-xs text-gray-400 mt-3 mb-1"><?php echo e(__('shop_tracking_no')); ?></div>
+                        <?php if ((string) ($order['tracking_company'] ?? '') !== '' || (string) ($order['tracking_no'] ?? '') !== ''): ?>
+                        <div class="text-xs text-gray-400 mt-3 mb-1"><?php echo e(__('shop_tracking_info')); ?></div>
                         <div class="text-gray-800" data-testid="shop-order-tracking">
                             <?php echo e((string) ($order['tracking_company'] ?? '')); ?> <?php echo e((string) $order['tracking_no']); ?>
                         </div>
