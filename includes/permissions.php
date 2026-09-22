@@ -130,16 +130,93 @@ function pluginPermissionLabel(string $key): string
     if (!is_array($info)) {
         return $key;
     }
+    return pluginManifestText($info, 'label', $key);
+}
+
+/** 插件 manifest 字段按后台语言读取；缺少翻译时回落基础字段。 */
+function pluginManifestText(array $info, string $field, string $fallback = ''): string
+{
     $lang = function_exists('getLang') ? getLang() : 'zh-CN';
     if ($lang !== 'zh-CN') {
-        $suffixed = $info['label_' . str_replace('-', '_', $lang)] ?? null;
+        $suffixed = $info[$field . '_' . str_replace('-', '_', $lang)] ?? null;
         if (is_string($suffixed) && $suffixed !== '') {
             return $suffixed;
         }
     }
-    $label = $info['label'] ?? null;
+    $value = $info[$field] ?? null;
 
-    return is_string($label) && $label !== '' ? $label : $key;
+    return is_string($value) && $value !== '' ? $value : $fallback;
+}
+
+/** 插件权限用途说明；未声明时返回空串。 */
+function pluginPermissionDescription(string $key): string
+{
+    $info = pluginPermissions()[$key] ?? null;
+    return is_array($info) ? pluginManifestText($info, 'description') : '';
+}
+
+/**
+ * 收集启用插件声明的角色预设。插件只能组合已有合法权限，且不能授予通配超管。
+ *
+ * @param list<string> $activeSlugs
+ * @param list<string> $validPermissions
+ * @return array<string,array<string,mixed>>
+ */
+function pluginRolePresetManifest(string $pluginsDir, array $activeSlugs, array $validPermissions): array
+{
+    $valid = array_fill_keys($validPermissions, true);
+    unset($valid['*']);
+    $result = [];
+    foreach ($activeSlugs as $slug) {
+        if (!is_string($slug) || preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug) !== 1) {
+            continue;
+        }
+        $file = rtrim($pluginsDir, '/\\') . '/' . $slug . '/plugin.json';
+        $meta = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        $presets = is_array($meta) ? ($meta['role_presets'] ?? null) : null;
+        if (!is_array($presets)) {
+            continue;
+        }
+        foreach ($presets as $preset) {
+            if (!is_array($preset)) {
+                continue;
+            }
+            $key = (string) ($preset['key'] ?? '');
+            $permissions = is_array($preset['permissions'] ?? null) ? $preset['permissions'] : [];
+            if (preg_match('/^[a-z][a-z0-9_]*$/', $key) !== 1) {
+                continue;
+            }
+            $permissions = array_values(array_unique(array_filter(
+                $permissions,
+                static fn(mixed $permission): bool => is_string($permission) && isset($valid[$permission])
+            )));
+            if ($permissions === []) {
+                continue;
+            }
+            $preset['permissions'] = $permissions;
+            $preset['plugin'] = $slug;
+            $result[$slug . ':' . $key] = $preset;
+        }
+    }
+
+    return $result;
+}
+
+/** @return array<string,array<string,mixed>> */
+function pluginRolePresets(): array
+{
+    /** @var array<string,array<string,mixed>>|null $cache */
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    try {
+        $active = db()->tableExists('plugins') ? pluginModel()->getActiveSlugs() : [];
+    } catch (\Throwable $e) {
+        $active = [];
+    }
+
+    return $cache = pluginRolePresetManifest(ROOT_PATH . '/plugins', $active, allPermissionKeys());
 }
 
 /** 类型 → 短名 lang 键（勾选界面与徽章显示用） */
@@ -181,7 +258,7 @@ function permDescription(string $key): string
         'blox_global' => 'perm_blox_global_desc',
         'blox_code' => 'perm_blox_code_desc',
     ];
-    return isset($descriptions[$key]) ? __($descriptions[$key]) : '';
+    return isset($descriptions[$key]) ? __($descriptions[$key]) : pluginPermissionDescription($key);
 }
 
 /**

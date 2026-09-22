@@ -17,6 +17,7 @@ requirePermission('*');
 
 // 权限目录来自 includes/permissions.php（单一数据源）
 $permCatalog = permissionCatalog();
+$rolePresets = pluginRolePresets();
 
 // 处理 AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -208,6 +209,33 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
                 <input type="text" name="description" id="editDescription" class="w-full border rounded px-4 py-2" placeholder="<?php echo __('optional'); ?>">
             </div>
 
+            <?php if ($rolePresets !== []): ?>
+            <div data-testid="role-plugin-presets">
+                <label class="block text-gray-700 mb-2"><?php echo e(__('role_plugin_presets')); ?></label>
+                <p class="mb-2 text-xs leading-5 text-gray-500"><?php echo e(__('role_plugin_presets_hint')); ?></p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <?php foreach ($rolePresets as $preset): ?>
+                    <?php
+                    $presetLabel = pluginManifestText($preset, 'label', (string) ($preset['key'] ?? ''));
+                    $presetDescription = pluginManifestText($preset, 'description');
+                    $presetPermissions = json_encode($preset['permissions'] ?? [], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                    ?>
+                    <button type="button"
+                            class="border border-gray-200 bg-white px-3 py-2.5 text-left hover:border-primary hover:bg-blue-50"
+                            data-role-name="<?php echo e($presetLabel); ?>"
+                            data-role-description="<?php echo e($presetDescription); ?>"
+                            data-role-permissions="<?php echo e($presetPermissions); ?>"
+                            onclick="applyRolePreset(this)">
+                        <span class="block text-sm font-medium text-gray-800"><?php echo e($presetLabel); ?></span>
+                        <?php if ($presetDescription !== ''): ?>
+                        <span class="mt-0.5 block text-xs leading-5 text-gray-500"><?php echo e($presetDescription); ?></span>
+                        <?php endif; ?>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div>
                 <label class="block text-gray-700 mb-2"><?php echo e(__('role_perms')); ?></label>
                 <div class="border rounded p-4 space-y-4 bg-gray-50">
@@ -219,21 +247,26 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
                         <span class="text-sm font-bold text-red-600"><?php echo e(__('perm_all')); ?></span>
                     </label>
                     <?php foreach ($permCatalog as $groupKey => $group): ?>
-                    <div data-permission-group="<?php echo e($groupKey); ?>"<?php echo $groupKey === 'blox' ? ' data-testid="role-blox-permissions"' : ''; ?>>
+                    <div data-permission-group="<?php echo e($groupKey); ?>"<?php echo in_array($groupKey, ['blox', 'plugin'], true) ? ' data-testid="role-' . e($groupKey) . '-permissions"' : ''; ?>>
                         <div class="text-xs font-medium text-gray-400 uppercase mb-1.5"><?php echo e($group['label']); ?></div>
                         <?php if ($groupKey === 'blox'): ?>
                         <p class="mb-2 text-xs leading-5 text-gray-500"><?php echo e(__('role_blox_permissions_hint')); ?></p>
+                        <?php elseif ($groupKey === 'plugin'): ?>
+                        <p class="mb-2 text-xs leading-5 text-gray-500"><?php echo e(__('role_plugin_permissions_hint')); ?></p>
                         <?php endif; ?>
-                        <div class="<?php echo $groupKey === 'blox' ? 'space-y-2' : 'grid grid-cols-2 gap-x-4 gap-y-1.5'; ?>">
+                        <div class="<?php echo in_array($groupKey, ['blox', 'plugin'], true) ? 'space-y-2' : 'grid grid-cols-2 gap-x-4 gap-y-1.5'; ?>">
                             <?php foreach ($group['caps'] as $key => $label): ?>
-                            <label class="flex cursor-pointer <?php echo $groupKey === 'blox' ? 'items-start gap-3 border border-gray-200 bg-white px-3 py-2.5 hover:border-gray-300' : 'items-center gap-2'; ?>">
+                            <?php $permissionDescription = permDescription($key); ?>
+                            <label class="flex cursor-pointer <?php echo in_array($groupKey, ['blox', 'plugin'], true) ? 'items-start gap-3 border border-gray-200 bg-white px-3 py-2.5 hover:border-gray-300' : 'items-center gap-2'; ?>">
                                 <input type="checkbox" name="permissions[]" value="<?php echo e($key); ?>"
-                                       class="rounded border-gray-300 text-primary focus:ring-primary perm-checkbox <?php echo $groupKey === 'blox' ? 'mt-0.5' : ''; ?>"
+                                       class="rounded border-gray-300 text-primary focus:ring-primary perm-checkbox <?php echo in_array($groupKey, ['blox', 'plugin'], true) ? 'mt-0.5' : ''; ?>"
                                        data-perm="<?php echo e($key); ?>" onchange="handlePermChange(this)">
-                                <?php if ($groupKey === 'blox'): ?>
+                                <?php if (in_array($groupKey, ['blox', 'plugin'], true)): ?>
                                 <span class="min-w-0">
                                     <span class="block text-sm font-medium text-gray-800"><?php echo e($label); ?></span>
-                                    <span class="mt-0.5 block text-xs leading-5 text-gray-500"><?php echo e(permDescription($key)); ?></span>
+                                    <?php if ($permissionDescription !== ''): ?>
+                                    <span class="mt-0.5 block text-xs leading-5 text-gray-500"><?php echo e($permissionDescription); ?></span>
+                                    <?php endif; ?>
                                 </span>
                                 <?php else: ?>
                                 <span class="text-sm text-gray-700"><?php echo e($label); ?></span>
@@ -296,6 +329,22 @@ function openEditModal(item = null) {
 
 function closeModal() {
     document.getElementById('editModal').classList.add('hidden');
+}
+
+function applyRolePreset(button) {
+    let permissions = [];
+    try {
+        permissions = JSON.parse(button.dataset.rolePermissions || '[]');
+    } catch (error) {
+        return;
+    }
+    document.getElementById('editName').value = button.dataset.roleName || '';
+    document.getElementById('editDescription').value = button.dataset.roleDescription || '';
+    document.querySelectorAll('.perm-checkbox').forEach(cb => {
+        cb.disabled = false;
+        cb.checked = permissions.includes(cb.dataset.perm);
+    });
+    updateBloxPermissionState();
 }
 
 function handlePermChange(checkbox) {
