@@ -139,4 +139,11 @@ return [
     'shop_shared_group' => '多言語で共有',
     'shop_err_price' => '販売価格の形式が不正です（正の数・小数点以下2桁まで・上限 99999999.99。空欄=製品価格）',
     'shop_err_stock' => '在庫は 0〜9999999999 の整数で入力してください',
+    'shop_blox_purchase' => 'ショップ購入',
+    'shop_blox_show_price' => '販売価格を表示',
+    'shop_blox_show_stock' => '在庫を表示',
+    'shop_blox_layout' => 'フォームレイアウト',
+    'shop_blox_layout_stacked' => '縦並び',
+    'shop_blox_layout_inline' => '横並び',
+    'shop_blox_unavailable_preview' => 'プレビュー商品は未販売または在庫切れです。公開ページではこの購入ブロックを表示しません。',
 ];
