@@ -77,6 +77,8 @@ try {
     db()->execute('CREATE TABLE ' . DB_PREFIX . 'shop_orders (id INTEGER PRIMARY KEY, secret TEXT)');
     db()->execute('INSERT INTO ' . DB_PREFIX . 'shop_orders (id, secret) VALUES (?, ?)', [1, 'PRIVATE ORDER']);
     file_put_contents($root . '/themes/sample/theme.json', '{"name":"Sample","version":"1.0.0"}');
+    file_put_contents($root . '/themes/sample/README.md', '# Portable theme notes');
+    file_put_contents($root . '/themes/sample/deploy.sh', 'must not enter a site-template package');
     file_put_contents($root . '/themes/sample/layouts/header.php', '<?php declare(strict_types=1); ?><img src="https://SOURCE.test:443/cms/uploads/logo.svg"><a href="//source.test/cms/about.html?next=&sol;contact">About</a><a href="https:&#47;&#47;source.test/cms/contact.html">Contact</a><a href="https://source.test/outside.html">Outside</a><a href="https://third.test/cms/about.html">Third</a><p>A &sol; B, C &#47; D, E &bsol; F</p>');
     file_put_contents($root . '/themes/sample/layouts/footer.php', '<?php declare(strict_types=1); ?>Footer');
     $service = new SiteTemplateService($root);
@@ -107,6 +109,8 @@ try {
     $summary = $service->export($zip);
     check($summary['media'] === 5, 'Referenced media only');
     $package = SiteTemplateArchive::read($zip);
+    check(($package['files']['theme/README.md'] ?? '') === '# Portable theme notes', 'Theme README is portable');
+    check(!isset($package['files']['theme/deploy.sh']), 'Unsupported theme files stay outside the package');
     $payload = json_encode($package);
     check(!str_contains($payload, 'PRIVATE'), 'No secrets, drafts or private media');
     $exportedContent = (string) $package['manifest']['data']['tables']['contents'][0]['content'];
