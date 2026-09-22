@@ -75,7 +75,10 @@ final class MediaWebpConverterTest extends TestCase
 
         $media = db()->fetchOne('SELECT * FROM media WHERE id = ?', [1]);
         self::assertSame('/uploads/hero.webp', $media['url']);
-        self::assertSame(str_replace('/', '\\', $this->uploads) . '\\hero.webp', $media['path']);
+        self::assertSame(
+            str_replace('\\', '/', $this->uploads) . '/hero.webp',
+            str_replace('\\', '/', (string) $media['path'])
+        );
         self::assertSame('hero.webp', $media['name']);
         self::assertSame('webp', $media['ext']);
         self::assertSame('image/webp', $media['mime']);
@@ -98,6 +101,19 @@ final class MediaWebpConverterTest extends TestCase
         self::assertSame(0, $second['reference_changes']);
         self::assertSame($heroHash, hash_file('sha256', $this->uploads . '/hero.webp'));
         self::assertFileExists($this->uploads . '/hero.png');
+    }
+
+    public function testWindowsAbsoluteMediaPathKeepsItsSeparatorStyle(): void
+    {
+        $windowsPath = str_replace('/', '\\', $this->uploads) . '\\hero.png';
+        db()->execute('UPDATE media SET path = ? WHERE id = ?', [$windowsPath, 1]);
+
+        (new MediaWebpConverter($this->root))->run(true);
+
+        self::assertSame(
+            str_replace('/', '\\', $this->uploads) . '\\hero.webp',
+            db()->fetchColumn('SELECT path FROM media WHERE id = ?', [1])
+        );
     }
 
     public function testDatabaseFailureRollsBackReferencesAndRemovesNewWebpFiles(): void
@@ -168,7 +184,7 @@ final class MediaWebpConverterTest extends TestCase
             json_encode(['image' => '/uploads/hero.png'], JSON_THROW_ON_ERROR),
         ]);
         db()->execute('INSERT INTO media (id, name, path, url, type, ext, mime, size, width, height, md5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
-            1, 'hero.png', str_replace('/', '\\', $this->uploads) . '\\hero.png', '/uploads/hero.png', 'image', 'png', 'image/png',
+            1, 'hero.png', $this->uploads . '/hero.png', '/uploads/hero.png', 'image', 'png', 'image/png',
             filesize($this->uploads . '/hero.png'), 320, 180, md5_file($this->uploads . '/hero.png'),
         ]);
         db()->execute('INSERT INTO settings (id, `key`, `value`) VALUES (?, ?, ?)', [

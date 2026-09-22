@@ -7,10 +7,10 @@ final class UploadReferences
     private const PATTERN = '~(?<![a-zA-Z0-9/:.])[/\\\\]?uploads[/\\\\]([^\s"\'<>?#)]+)~u';
 
     /** @return array<string,int> relative path => occurrence count */
-    public static function collect(mixed $value): array
+    public static function collect(mixed $value, string $uploadsRoot = ''): array
     {
         $refs = [];
-        self::collectInto($value, $refs);
+        self::collectInto($value, $refs, self::normalizedRoot($uploadsRoot));
         return $refs;
     }
 
@@ -20,11 +20,12 @@ final class UploadReferences
      *
      * @param array<string,string> $map relative source path => relative target path
      */
-    public static function rewrite(mixed $value, array $map, int &$changes = 0): mixed
+    public static function rewrite(mixed $value, array $map, int &$changes = 0, string $uploadsRoot = ''): mixed
     {
+        $uploadsRoot = self::normalizedRoot($uploadsRoot);
         if (is_array($value)) {
             foreach ($value as $key => $item) {
-                $value[$key] = self::rewrite($item, $map, $changes);
+                $value[$key] = self::rewrite($item, $map, $changes, $uploadsRoot);
             }
             return $value;
         }
@@ -34,11 +35,19 @@ final class UploadReferences
 
         $decoded = json_decode($value, true);
         if (is_array($decoded)) {
-            $rewritten = self::rewrite($decoded, $map, $changes);
+            $rewritten = self::rewrite($decoded, $map, $changes, $uploadsRoot);
             if ($rewritten === $decoded) {
                 return $value;
             }
             return json_encode($rewritten, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        }
+
+        $absolute = self::absoluteRelative($value, $uploadsRoot);
+        if ($absolute !== null && isset($map[$absolute])) {
+            $separator = str_contains($value, '\\') ? '\\' : '/';
+            $target = $uploadsRoot . '/' . $map[$absolute];
+            $changes++;
+            return $separator === '\\' ? str_replace('/', '\\', $target) : $target;
         }
 
         return preg_replace_callback(self::PATTERN, static function (array $match) use ($map, &$changes): string {
@@ -54,11 +63,11 @@ final class UploadReferences
     }
 
     /** @param array<string,int> $refs */
-    private static function collectInto(mixed $value, array &$refs): void
+    private static function collectInto(mixed $value, array &$refs, string $uploadsRoot): void
     {
         if (is_array($value)) {
             foreach ($value as $item) {
-                self::collectInto($item, $refs);
+                self::collectInto($item, $refs, $uploadsRoot);
             }
             return;
         }
@@ -67,7 +76,12 @@ final class UploadReferences
         }
         $decoded = json_decode($value, true);
         if (is_array($decoded)) {
-            self::collectInto($decoded, $refs);
+            self::collectInto($decoded, $refs, $uploadsRoot);
+            return;
+        }
+        $absolute = self::absoluteRelative($value, $uploadsRoot);
+        if ($absolute !== null) {
+            $refs[$absolute] = ($refs[$absolute] ?? 0) + 1;
             return;
         }
         preg_match_all(self::PATTERN, html_entity_decode($value, ENT_QUOTES, 'UTF-8'), $matches);
@@ -87,5 +101,20 @@ final class UploadReferences
     private static function normalize(string $path): string
     {
         return str_replace('\\', '/', rawurldecode($path));
+    }
+
+    private static function normalizedRoot(string $root): string
+    {
+        return rtrim(str_replace('\\', '/', $root), '/');
+    }
+
+    private static function absoluteRelative(string $value, string $uploadsRoot): ?string
+    {
+        if ($uploadsRoot === '') return null;
+        $normalized = self::normalize($value);
+        $prefix = $uploadsRoot . '/';
+        if (!str_starts_with($normalized, $prefix)) return null;
+        $relative = substr($normalized, strlen($prefix));
+        return $relative !== '' && !str_contains($relative, '../') ? $relative : null;
     }
 }

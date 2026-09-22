@@ -181,7 +181,7 @@ final class MediaWebpConverter
                     }
                     $this->mergeMissing($value, $missing);
                     $fieldChanges = 0;
-                    $newValue = UploadReferences::rewrite($value, $map, $fieldChanges);
+                    $newValue = UploadReferences::rewrite($value, $map, $fieldChanges, $this->uploads);
                     if (!is_string($newValue) || $newValue === $value) {
                         continue;
                     }
@@ -201,7 +201,7 @@ final class MediaWebpConverter
                 }
                 $this->mergeMissing($value, $missing);
                 $fieldChanges = 0;
-                $newValue = UploadReferences::rewrite($value, $map, $fieldChanges);
+                $newValue = UploadReferences::rewrite($value, $map, $fieldChanges, $this->uploads);
                 if (!is_string($newValue) || $newValue === $value) {
                     continue;
                 }
@@ -242,7 +242,7 @@ final class MediaWebpConverter
             if ($row === null) {
                 throw new RuntimeException('媒体记录在转换期间被删除');
             }
-            $refs = UploadReferences::collect([$row['url'] ?? '', $row['path'] ?? '']);
+            $refs = UploadReferences::collect([$row['url'] ?? '', $row['path'] ?? ''], $this->uploads);
             $relative = (string) array_key_first($refs);
             if ($relative === '' || !str_ends_with(strtolower($relative), '.webp')) {
                 continue;
@@ -280,7 +280,7 @@ final class MediaWebpConverter
     /** @param array<string,int> $missing */
     private function mergeMissing(string $value, array &$missing): void
     {
-        foreach (UploadReferences::collect($value) as $relative => $count) {
+        foreach (UploadReferences::collect($value, $this->uploads) as $relative => $count) {
             if (!preg_match('/\.(?:jpe?g|png)$/i', $relative)) {
                 continue;
             }
