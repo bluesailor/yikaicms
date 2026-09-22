@@ -80,6 +80,76 @@ final class AccessibilityAuditTest extends TestCase
         }
     }
 
+    public function testThemeAuditStopsDuringEnumerationAtFileAndEntryBudgets(): void
+    {
+        $root = sys_get_temp_dir() . '/yk-a11y-budget-' . bin2hex(random_bytes(6));
+        $fileTheme = $root . '/themes/files';
+        $entryTheme = $root . '/themes/entries';
+        self::assertTrue(mkdir($fileTheme, 0777, true));
+        self::assertTrue(mkdir($entryTheme, 0777, true));
+        try {
+            for ($index = 0; $index < AccessibilityAudit::MAX_THEME_FILES + 5; $index++) {
+                file_put_contents($fileTheme . '/' . $index . '.html', '<p>ok</p>');
+            }
+            $fileAudit = AccessibilityAudit::auditTheme($fileTheme, $root);
+            self::assertTrue($fileAudit['truncated']);
+            self::assertFalse($fileAudit['unavailable']);
+            self::assertSame(AccessibilityAudit::MAX_THEME_FILES, $fileAudit['files']);
+
+            for ($index = 0; $index < AccessibilityAudit::MAX_THEME_ENTRIES + 5; $index++) {
+                file_put_contents($entryTheme . '/' . $index . '.txt', 'ignored');
+            }
+            $entryAudit = AccessibilityAudit::auditTheme($entryTheme, $root);
+            self::assertTrue($entryAudit['truncated']);
+            self::assertFalse($entryAudit['unavailable']);
+            self::assertSame(0, $entryAudit['files']);
+        } finally {
+            foreach (glob($fileTheme . '/*') ?: [] as $path) @unlink($path);
+            foreach (glob($entryTheme . '/*') ?: [] as $path) @unlink($path);
+            @rmdir($fileTheme);
+            @rmdir($entryTheme);
+            @rmdir($root . '/themes');
+            @rmdir($root);
+        }
+    }
+
+    public function testThemeAuditDoesNotFollowDirectoryLinksOutsideTheme(): void
+    {
+        $root = sys_get_temp_dir() . '/yk-a11y-link-' . bin2hex(random_bytes(6));
+        $theme = $root . '/themes/test';
+        $outside = $root . '/outside';
+        $link = $theme . '/escape';
+        self::assertTrue(mkdir($theme, 0777, true));
+        self::assertTrue(mkdir($outside, 0777, true));
+        file_put_contents($outside . '/outside.html', '<img src="outside">');
+        try {
+            $created = DIRECTORY_SEPARATOR === '\\'
+                ? $this->createWindowsJunction($link, $outside)
+                : @symlink($outside, $link);
+            if (!$created) self::markTestSkipped('Directory link creation is unavailable');
+
+            $audit = AccessibilityAudit::auditTheme($theme, $root);
+            self::assertTrue($audit['truncated']);
+            self::assertTrue($audit['unavailable']);
+            self::assertSame([], $audit['issues']);
+        } finally {
+            if (DIRECTORY_SEPARATOR === '\\') @rmdir($link); else @unlink($link);
+            @unlink($outside . '/outside.html');
+            @rmdir($outside);
+            @rmdir($theme);
+            @rmdir($root . '/themes');
+            @rmdir($root);
+        }
+    }
+
+    private function createWindowsJunction(string $link, string $target): bool
+    {
+        $output = [];
+        $exitCode = 1;
+        exec('cmd /c mklink /J ' . escapeshellarg($link) . ' ' . escapeshellarg($target) . ' 2>NUL', $output, $exitCode);
+        return $exitCode === 0 && is_dir($link);
+    }
+
     public function testPublishedContentScanCapsRowsAndKeepsStableLocations(): void
     {
         $rows = [];

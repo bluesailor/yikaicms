@@ -64,6 +64,7 @@ return [
         'includes/FormSpamGuard.php',
         'includes/LegacyInstallCleanup.php',
         'includes/SiteHealth.php',
+        'includes/AccessibilityAudit.php',
         'includes/RuntimeRequirements.php',   // SiteHealth 顶部 require：环境要求的唯一来源
         'includes/SiteAsset.php',
         'includes/ErrorHandler.php',
