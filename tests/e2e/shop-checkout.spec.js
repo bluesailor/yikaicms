@@ -65,6 +65,18 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await page.getByTestId('shop-shipping-excluded-regions').fill('海南省/三沙市');
   await page.getByTestId('shop-shipping-settings').locator('button[type="submit"]').click();
   await expect(page.getByTestId('shop-saved-tip')).toBeVisible();
+  // 配置一个公司人工收款方式；真实网关未配置时仍可用账户/收款码完成线下收款。
+  const paymentRow = page.getByTestId('shop-payment-row-0');
+  await paymentRow.locator('select[name="payment_methods[0][subject_type]"]').selectOption('company');
+  await paymentRow.locator('input[name="payment_methods[0][label]"]').fill('E2E 公司收款');
+  await paymentRow.locator('input[name="payment_methods[0][payee]"]').fill('易开测试有限公司');
+  await paymentRow.locator('input[name="payment_methods[0][institution]"]').fill('测试银行');
+  await paymentRow.locator('input[name="payment_methods[0][account]"]').fill('6222 0000 0000 1234');
+  await paymentRow.locator('input[name="payment_methods[0][qr_image]"]').fill('/assets/images/blox-templates/section-partners-logos.png');
+  await paymentRow.locator('textarea[name="payment_methods[0][instructions]"]').fill('转账备注请填写订单号');
+  await page.getByTestId('shop-payment-settings').locator('button[type="submit"]').click();
+  await expect(page.getByTestId('shop-saved-tip')).toBeVisible();
+  await expect(page.getByTestId('shop-payment-row-0').locator('input[name="payment_methods[0][account]"]')).toHaveValue('6222 0000 0000 1234');
   // 再提交行销售设置
   await page.getByTestId(`shop-price-${product.id}`).fill('19.9');
   await page.getByTestId(`shop-stock-${product.id}`).fill('5');
@@ -116,6 +128,10 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await expect(visitor).toHaveURL(/\/shop\/order\?no=/);
   await expect(visitor.getByTestId('shop-order-status')).toContainText('待付款');
   await expect(visitor.getByTestId('shop-order-contact')).toContainText('138****5678');
+  await expect(visitor.getByTestId('shop-payment-details')).toContainText('E2E 公司收款');
+  await expect(visitor.getByTestId('shop-payment-details')).toContainText('易开测试有限公司');
+  await expect(visitor.getByTestId('shop-payment-details')).toContainText('6222 0000 0000 1234');
+  await expect(visitor.getByTestId('shop-payment-details').locator('img')).toHaveAttribute('src', '/assets/images/blox-templates/section-partners-logos.png');
   const orderNo = new URL(visitor.url()).searchParams.get('no');
 
   // 落库独立核对：1 单、库存 5-2=3
@@ -129,6 +145,8 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await page.goto('/admin/plugin_page.php?plugin=shop&view=orders&detail=1');
   await page.getByTestId('shop-order-paid').click();
   await expect(page.getByTestId('shop-order-status')).toContainText('待发货');
+  await visitor.reload();
+  await expect(visitor.getByTestId('shop-payment-details')).toHaveCount(0);
   await page.getByTestId('shop-order-tracking-company').selectOption('顺丰速运');
   await page.getByTestId('shop-order-tracking-no').fill('SF1234567890');
   await page.getByTestId('shop-order-ship').click();

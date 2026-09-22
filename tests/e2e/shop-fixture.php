@@ -92,6 +92,7 @@ if ($action === 'products') {
     db()->delete('shop_payment_notifications', '1 = 1', []);
     db()->delete('shop_products', 'product_id = ?', [$productId]);
     db()->delete('blox_templates', 'name = ?', ['E2E shop purchase']);
+    settingModel()->saveBatch(['shop_manual_payment_methods' => '[]']);
     HtmlCache::invalidate();
     echo "ok\n";
 } else {

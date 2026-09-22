@@ -21,6 +21,7 @@ require_once ROOT_PATH . '/plugins/shop/lib/sales.php';
 require_once ROOT_PATH . '/plugins/shop/lib/cart.php';
 require_once ROOT_PATH . '/plugins/shop/lib/orders.php';
 require_once ROOT_PATH . '/plugins/shop/lib/shipping.php';
+require_once ROOT_PATH . '/plugins/shop/lib/payment-methods.php';
 
 header('Cache-Control: no-store');
 
@@ -120,6 +121,7 @@ foreach ($lines as $line) {
 $shippingCents = shopShippingFeeCents($goodsCents);
 $totalCents = shopMoneySum([$goodsCents, $shippingCents]);
 $freeThreshold = (int) config('shop_free_shipping_threshold_cents', 0);
+$manualPaymentConfigured = shopManualPaymentMethods() !== [];
 
 $secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
 $tokenTs = time();
@@ -229,7 +231,9 @@ require_once theme_path('layouts/header.php');
                     <textarea name="remark" rows="2" maxlength="500"
                               class="w-full border border-gray-300 rounded px-3 py-2 text-sm"></textarea>
                 </div>
-                <p class="text-xs text-gray-400" data-testid="shop-checkout-offline-hint"><?php echo e(__('shop_checkout_offline_hint')); ?></p>
+                <p class="text-xs text-gray-400" data-testid="shop-checkout-offline-hint"><?php echo e(__($manualPaymentConfigured
+                    ? 'shop_checkout_manual_configured_hint'
+                    : 'shop_checkout_offline_hint')); ?></p>
                 <button type="submit" class="w-full bg-primary hover:bg-secondary text-white px-5 py-2.5 rounded font-medium"
                         data-testid="shop-checkout-submit"><?php echo e(__('shop_checkout_place')); ?></button>
             </form>

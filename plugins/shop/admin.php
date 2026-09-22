@@ -27,6 +27,7 @@ require_once __DIR__ . '/lib/sales.php';
 require_once __DIR__ . '/lib/orders.php';
 require_once __DIR__ . '/lib/refunds.php';
 require_once __DIR__ . '/lib/shipping.php';
+require_once __DIR__ . '/lib/payment-methods.php';
 require_once __DIR__ . '/lib/access.php';
 
 try {
@@ -168,6 +169,29 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
         . ' carriers=' . count($carrierConfig['carriers'])
     );
     do_action('data_changed');
+
+    header('Location: /admin/plugin_page.php?plugin=shop&saved=1');
+    exit;
+}
+
+// ============================================================
+// POST：人工收款资料（个人/企业账户、平台账号、收款二维码）
+// ============================================================
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '') === 'save_payment_methods') {
+    verifyCsrf();
+    $normalized = shopNormalizeManualPaymentMethods($_POST['payment_methods'] ?? []);
+    if (!$normalized['ok']) {
+        header('Location: /admin/plugin_page.php?plugin=shop&err=' . urlencode(__($normalized['error'])));
+        exit;
+    }
+
+    settingModel()->set('shop_manual_payment_methods', $normalized['value'], 'shop');
+    $enabledCount = count(array_filter(
+        $normalized['methods'],
+        static fn(array $method): bool => (int) ($method['enabled'] ?? 0) === 1
+    ));
+    adminLog('shop', 'save_payment_methods', 'payment methods=' . count($normalized['methods'])
+        . ' enabled=' . $enabledCount);
 
     header('Location: /admin/plugin_page.php?plugin=shop&saved=1');
     exit;
@@ -618,6 +642,90 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <p class="text-xs text-gray-400 mt-1"><?php echo e(__('shop_shipping_carriers_hint')); ?></p>
                 </div>
             </div>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700"><?php echo e(__('shop_btn_save')); ?></button>
+        </form>
+    </div>
+
+    <?php // 人工收款方式：已保存项 + 一个空白新增项；清空空白项不会落库 ?>
+    <?php
+    $shopPaymentRows = shopManualPaymentMethods(true);
+    $shopPaymentRows[] = [
+        'enabled' => 1,
+        'subject_type' => 'personal',
+        'label' => '',
+        'payee' => '',
+        'institution' => '',
+        'account' => '',
+        'qr_image' => '',
+        'instructions' => '',
+    ];
+    ?>
+    <div class="mb-4 bg-white rounded border border-gray-200 p-4" data-testid="shop-payment-settings">
+        <div class="text-sm font-medium text-gray-900"><?php echo e(__('shop_payment_settings_title')); ?></div>
+        <p class="mt-1 mb-4 text-xs text-gray-500"><?php echo e(__('shop_payment_settings_hint')); ?></p>
+        <form method="post" action="/admin/plugin_page.php?plugin=shop" class="space-y-4 text-sm">
+            <?php echo csrfField(); ?>
+            <input type="hidden" name="action" value="save_payment_methods">
+            <?php foreach ($shopPaymentRows as $paymentIndex => $paymentMethod): ?>
+            <div class="rounded border border-gray-200 p-3 space-y-3" data-testid="shop-payment-row-<?php echo (int) $paymentIndex; ?>">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <label class="inline-flex items-center gap-2 text-gray-700">
+                        <input type="hidden" name="payment_methods[<?php echo (int) $paymentIndex; ?>][enabled]" value="0">
+                        <input type="checkbox" name="payment_methods[<?php echo (int) $paymentIndex; ?>][enabled]" value="1"<?php echo (int) ($paymentMethod['enabled'] ?? 0) === 1 ? ' checked' : ''; ?>>
+                        <span><?php echo e(__('shop_payment_enabled')); ?></span>
+                    </label>
+                    <?php if ($paymentIndex < count($shopPaymentRows) - 1): ?>
+                    <label class="inline-flex items-center gap-2 text-red-600">
+                        <input type="checkbox" name="payment_methods[<?php echo (int) $paymentIndex; ?>][remove]" value="1">
+                        <span><?php echo e(__('shop_payment_remove')); ?></span>
+                    </label>
+                    <?php else: ?>
+                    <span class="text-xs text-gray-400"><?php echo e(__('shop_payment_empty_row')); ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="grid md:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-gray-600 mb-1"><?php echo e(__('shop_payment_subject_type')); ?></label>
+                        <select name="payment_methods[<?php echo (int) $paymentIndex; ?>][subject_type]" class="w-full border border-gray-300 rounded px-2 py-1.5">
+                            <option value="personal"<?php echo ($paymentMethod['subject_type'] ?? '') === 'personal' ? ' selected' : ''; ?>><?php echo e(__('shop_payment_subject_personal')); ?></option>
+                            <option value="company"<?php echo ($paymentMethod['subject_type'] ?? '') === 'company' ? ' selected' : ''; ?>><?php echo e(__('shop_payment_subject_company')); ?></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-600 mb-1"><?php echo e(__('shop_payment_method_label')); ?></label>
+                        <input type="text" maxlength="50" name="payment_methods[<?php echo (int) $paymentIndex; ?>][label]"
+                               value="<?php echo e((string) ($paymentMethod['label'] ?? '')); ?>" class="w-full border border-gray-300 rounded px-2 py-1.5"
+                               placeholder="<?php echo e(__('shop_payment_method_label_ph')); ?>">
+                    </div>
+                    <div>
+                        <label class="block text-gray-600 mb-1"><?php echo e(__('shop_payment_payee')); ?></label>
+                        <input type="text" maxlength="100" name="payment_methods[<?php echo (int) $paymentIndex; ?>][payee]"
+                               value="<?php echo e((string) ($paymentMethod['payee'] ?? '')); ?>" class="w-full border border-gray-300 rounded px-2 py-1.5">
+                    </div>
+                    <div>
+                        <label class="block text-gray-600 mb-1"><?php echo e(__('shop_payment_institution')); ?></label>
+                        <input type="text" maxlength="100" name="payment_methods[<?php echo (int) $paymentIndex; ?>][institution]"
+                               value="<?php echo e((string) ($paymentMethod['institution'] ?? '')); ?>" class="w-full border border-gray-300 rounded px-2 py-1.5">
+                    </div>
+                    <div>
+                        <label class="block text-gray-600 mb-1"><?php echo e(__('shop_payment_account')); ?></label>
+                        <input type="text" maxlength="200" name="payment_methods[<?php echo (int) $paymentIndex; ?>][account]"
+                               value="<?php echo e((string) ($paymentMethod['account'] ?? '')); ?>" class="w-full border border-gray-300 rounded px-2 py-1.5">
+                    </div>
+                    <div>
+                        <label class="block text-gray-600 mb-1"><?php echo e(__('shop_payment_qr_image')); ?></label>
+                        <input type="text" maxlength="1000" name="payment_methods[<?php echo (int) $paymentIndex; ?>][qr_image]"
+                               value="<?php echo e((string) ($paymentMethod['qr_image'] ?? '')); ?>" class="w-full border border-gray-300 rounded px-2 py-1.5"
+                               placeholder="/uploads/..."><p class="mt-1 text-xs text-gray-400"><?php echo e(__('shop_payment_qr_hint')); ?></p>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-600 mb-1"><?php echo e(__('shop_payment_instructions')); ?></label>
+                    <textarea rows="2" maxlength="500" name="payment_methods[<?php echo (int) $paymentIndex; ?>][instructions]"
+                              class="w-full border border-gray-300 rounded px-3 py-2"><?php echo e((string) ($paymentMethod['instructions'] ?? '')); ?></textarea>
+                </div>
+            </div>
+            <?php endforeach; ?>
             <button type="submit" class="bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700"><?php echo e(__('shop_btn_save')); ?></button>
         </form>
     </div>
