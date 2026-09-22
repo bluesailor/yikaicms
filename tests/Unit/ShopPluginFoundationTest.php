@@ -18,6 +18,7 @@ final class ShopPluginFoundationTest extends TestCase
     {
         require_once ROOT_PATH . '/includes/permissions.php';
         require_once ROOT_PATH . '/plugins/shop/lib/tables.php';
+        require_once ROOT_PATH . '/plugins/shop/lib/access.php';
     }
 
     /** 用临时目录构造声明场景，不依赖站点当前启用了哪些插件。 */
@@ -29,11 +30,15 @@ final class ShopPluginFoundationTest extends TestCase
         mkdir($dir . '/bad-slug..x', 0777, true);
         file_put_contents($dir . '/alpha/plugin.json', (string) json_encode([
             'permissions' => [
-                'alpha_manage' => ['label' => '甲', 'label_en' => 'Alpha'],
+                'alpha_manage' => ['label' => '甲', 'label_en' => 'Alpha', 'description' => '管理甲'],
                 'INVALID KEY' => ['label' => '应被忽略'],   // 键名不合法
                 '9starts-digit' => ['label' => '应被忽略'],
             ],
             'admin_permission' => 'alpha_manage',
+            'role_presets' => [
+                ['key' => 'alpha_manager', 'label' => '甲管理员', 'permissions' => ['edit_product', 'alpha_manage', '*', 'unknown']],
+                ['key' => 'broken', 'label' => '坏预设', 'permissions' => ['unknown']],
+            ],
         ]));
         file_put_contents($dir . '/beta/plugin.json', (string) json_encode([
             'name' => 'no permissions declared',
@@ -97,6 +102,53 @@ final class ShopPluginFoundationTest extends TestCase
         foreach ($any as $key) {
             $this->assertArrayHasKey($key, $manifest, "宿主页键 {$key} 必须在 permissions 里声明");
         }
+        $this->assertNotSame('', (string) ($manifest['shop_manage']['description'] ?? ''));
+        $this->assertNotSame('', (string) ($manifest['shop_orders']['description'] ?? ''));
+
+        $presets = pluginRolePresetManifest(
+            ROOT_PATH . '/plugins',
+            ['shop'],
+            array_merge(['*'], contentPermTypes(), ['edit_product', 'delete_product', 'shop_manage', 'shop_orders'])
+        );
+        $this->assertArrayHasKey('shop:shop_manager', $presets);
+        $this->assertArrayHasKey('shop:shop_order_operator', $presets);
+        $this->assertSame(['shop_orders'], $presets['shop:shop_order_operator']['permissions']);
+    }
+
+    public function testPluginRolePresetsKeepOnlyKnownNonSuperPermissions(): void
+    {
+        $dir = self::buildFixtureDir();
+        try {
+            $presets = pluginRolePresetManifest($dir, ['alpha'], ['*', 'edit_product', 'alpha_manage']);
+            $this->assertSame(['alpha:alpha_manager'], array_keys($presets));
+            $this->assertSame(['edit_product', 'alpha_manage'], $presets['alpha:alpha_manager']['permissions']);
+        } finally {
+            foreach (glob($dir . '/*/plugin.json') ?: [] as $file) {
+                @unlink($file);
+            }
+            @rmdir($dir . '/alpha');
+            @rmdir($dir . '/beta');
+            @rmdir($dir . '/bad-slug..x');
+            @rmdir($dir);
+        }
+    }
+
+    public function testShopAdminCapabilitiesStaySeparated(): void
+    {
+        $this->assertSame('sales', shopAdminResolveView('sales', true, false));
+        $this->assertSame('sales', shopAdminResolveView('orders', true, false));
+        $this->assertSame('orders', shopAdminResolveView('sales', false, true));
+        $this->assertSame('orders', shopAdminResolveView('orders', false, true));
+        $this->assertNull(shopAdminResolveView('sales', false, false));
+
+        $this->assertTrue(shopAdminActionAllowed('save_sales', true, false));
+        $this->assertTrue(shopAdminActionAllowed('save_shipping', true, false));
+        $this->assertFalse(shopAdminActionAllowed('order_ship', true, false));
+        $this->assertFalse(shopAdminActionAllowed('refund_create', true, false));
+        $this->assertTrue(shopAdminActionAllowed('order_ship', false, true));
+        $this->assertTrue(shopAdminActionAllowed('refund_create', false, true));
+        $this->assertFalse(shopAdminActionAllowed('save_sales', false, true));
+        $this->assertFalse(shopAdminActionAllowed('unknown', true, true));
     }
 
     /** 旧核心先加载插件、后加载菜单 API 时，商城仍须在后台自行完成菜单注册。 */

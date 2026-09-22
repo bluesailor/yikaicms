@@ -27,6 +27,7 @@ require_once __DIR__ . '/lib/sales.php';
 require_once __DIR__ . '/lib/orders.php';
 require_once __DIR__ . '/lib/refunds.php';
 require_once __DIR__ . '/lib/shipping.php';
+require_once __DIR__ . '/lib/access.php';
 
 try {
     shopEnsureSchema();
@@ -36,21 +37,23 @@ try {
     die('<div style="padding:40px">' . e(__('shop_sales_title')) . ' — ' . e(__('shop_err_schema')) . '</div>');
 }
 
-// 视图切换：sales 需要 shop_manage；orders 需要 shop_manage 或 shop_orders
+// 视图切换：sales 只认 shop_manage；orders 只认 shop_orders。
 //（宿主页已按 admin_permission_any 放行任一，这里再做页内细分——同一认证路径内的授权）
 $shopViewRaw = (string) ($_GET['view'] ?? 'sales');
-$shopView = in_array($shopViewRaw, ['sales', 'orders'], true) ? $shopViewRaw : 'sales';
 $shopCanManage = hasPermission('shop_manage');
 $shopCanOrders = hasPermission('shop_orders');
-if ($shopView === 'sales' && !$shopCanManage) {
-    $shopView = 'orders';   // 仅有订单权限的运营人员直接落在订单页
+$shopView = shopAdminResolveView($shopViewRaw, $shopCanManage, $shopCanOrders);
+if ($shopView === null) {
+    permissionDenied();
 }
-if ($shopView === 'orders' && !$shopCanOrders && !$shopCanManage) {
+$shopPostedAction = (string) ($_POST['action'] ?? '');
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST'
+    && !shopAdminActionAllowed($shopPostedAction, $shopCanManage, $shopCanOrders)) {
     permissionDenied();
 }
 
 // ============================================================
-// POST：退款操作（登记/确认/拒绝）——shop_orders 或 shop_manage
+// POST：退款操作（登记/确认/拒绝）——只认 shop_orders
 // ============================================================
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && str_starts_with((string) ($_POST['action'] ?? ''), 'refund_')) {
     verifyCsrf();
@@ -84,9 +87,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && str_starts_with((string)
 // POST：运费设置（固定运费 / 满额包邮阈值 / 订单超时分钟数）
 // ============================================================
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '') === 'save_shipping') {
-    if (!$shopCanManage) {
-        permissionDenied();
-    }
     verifyCsrf();
 
     $feeInput = trim((string) ($_POST['shipping_fee'] ?? ''));
@@ -174,7 +174,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
 }
 
 // ============================================================
-// POST：订单操作（收款确认/发货/完成/关闭/备注）——shop_orders 或 shop_manage
+// POST：订单操作（收款确认/发货/完成/关闭/备注）——只认 shop_orders
 // ============================================================
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && str_starts_with((string) ($_POST['action'] ?? ''), 'order_')) {
     verifyCsrf();
@@ -208,9 +208,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && str_starts_with((string)
 // POST：保存单个产品的销售配置（普通表单 + PRG，无需 JS）
 // ============================================================
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '') === 'save_sales') {
-    if (!$shopCanManage) {
-        permissionDenied();
-    }
     verifyCsrf();
 
     $productId = (int) ($_POST['product_id'] ?? 0);
@@ -332,7 +329,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
            class="px-3 py-1.5 rounded <?php echo $shopView === 'sales' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'; ?>"
            data-testid="shop-tab-sales"><?php echo e(__('shop_nav_sales')); ?></a>
         <?php endif; ?>
-        <?php if ($shopCanOrders || $shopCanManage): ?>
+        <?php if ($shopCanOrders): ?>
         <a href="/admin/plugin_page.php?plugin=shop&view=orders"
            class="px-3 py-1.5 rounded <?php echo $shopView === 'orders' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'; ?>"
            data-testid="shop-tab-orders"><?php echo e(__('shop_nav_orders')); ?></a>

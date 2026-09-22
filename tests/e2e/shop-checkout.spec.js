@@ -25,6 +25,17 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await expect(page.getByTestId('shop-integration-links')).toBeVisible();
   await expect(page.getByTestId('shop-member-mode')).toBeVisible();
 
+  await page.goto('/admin/role.php');
+  await page.getByRole('button', { name: /添加角色/ }).click();
+  await expect(page.getByTestId('role-plugin-presets')).toBeVisible();
+  await expect(page.getByTestId('role-plugin-permissions')).toContainText('商城管理');
+  await expect(page.getByTestId('role-plugin-permissions')).toContainText('订单处理');
+  await page.getByTestId('role-plugin-presets').getByRole('button', { name: /订单处理员/ }).click();
+  await expect(page.locator('#editName')).toHaveValue('订单处理员');
+  await expect(page.locator('.perm-checkbox[data-perm="shop_orders"]')).toBeChecked();
+  await expect(page.locator('.perm-checkbox[data-perm="shop_manage"]')).not.toBeChecked();
+  await page.getByTestId('role-edit-modal').getByRole('button', { name: '取消' }).click();
+
   await page.goto('/admin/product.php');
   const productRow = page.locator(`tr:has(input[name="ids[]"][value="${product.id}"])`);
   await expect(productRow).toBeVisible();
