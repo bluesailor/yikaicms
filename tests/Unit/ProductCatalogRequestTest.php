@@ -101,4 +101,54 @@ final class ProductCatalogRequestTest extends TestCase
         ]));
         self::assertNull(ProductCatalogRequest::normalizeCacheQuery(['yk_route' => '../admin']));
     }
+
+    public function testPrettyPageUrlsKeepLanguageEncodedSlugAndCanonicalFilters(): void
+    {
+        foreach (['en', 'ja'] as $lang) {
+            $urls = $this->prettyPageUrlProbe($lang);
+            $base = '/' . $lang . '/' . rawurlencode('製品 カタログ');
+            $query = '?keyword=bolt%20%26%20nut&brand=2%2C4&sort=newest';
+
+            self::assertSame($base . '.html' . $query, $urls['page1']);
+            self::assertSame($base . '/page/2.html' . $query, $urls['page2']);
+            self::assertSame('/' . $lang . '/list/7.html' . $query, $urls['id_page1']);
+            self::assertSame('/' . $lang . '/list/7/page/2.html' . $query, $urls['id_page2']);
+        }
+    }
+
+    /** @return array{page1:string,page2:string,id_page1:string,id_page2:string} */
+    private function prettyPageUrlProbe(string $lang): array
+    {
+        $root = (string) realpath(ROOT_PATH);
+        $class = $root . '/includes/ProductCatalogRequest.php';
+        $code = 'define("SITE_LANG", ' . var_export($lang, true) . ');'
+            . 'function isDynamicUrlMode(): bool { return false; }'
+            . 'function langPrefix(?string $lang = null): string {'
+            . ' $lang = $lang ?? SITE_LANG; return $lang === "zh-CN" ? "" : "/" . $lang; }'
+            . 'require ' . var_export($class, true) . ';'
+            . '$query = ProductCatalogRequest::normalize(['
+            . '"keyword" => "bolt & nut", "brand" => "4,2", "sort" => "newest"]);'
+            . '$channel = ["id" => 7, "type" => "product", "slug" => "製品 カタログ"];'
+            . '$fallback = ["id" => 7, "type" => "product", "slug" => ""];'
+            . 'echo json_encode(['
+            . '"page1" => ProductCatalogRequest::pageUrl($channel, null, 1, $query),'
+            . '"page2" => ProductCatalogRequest::pageUrl($channel, null, 2, $query),'
+            . '"id_page1" => ProductCatalogRequest::pageUrl($fallback, null, 1, $query),'
+            . '"id_page2" => ProductCatalogRequest::pageUrl($fallback, null, 2, $query),'
+            . '], JSON_THROW_ON_ERROR);';
+        $process = proc_open([PHP_BINARY, '-r', $code], [
+            0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w'],
+        ], $pipes);
+        self::assertIsResource($process);
+        fclose($pipes[0]);
+        $output = stream_get_contents($pipes[1]);
+        $error = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        self::assertSame(0, proc_close($process), $error);
+
+        /** @var array{page1:string,page2:string,id_page1:string,id_page2:string} $urls */
+        $urls = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+        return $urls;
+    }
 }

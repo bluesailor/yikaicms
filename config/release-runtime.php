@@ -29,6 +29,7 @@ return [
         'includes/language_request.php',
         'includes/lang_url.php',
         'includes/product_routes.php',
+        'includes/ProductCatalogRequest.php',
         'includes/FooterNavigation.php',
         'includes/ProductIdentity.php',
         'includes/frontend_preview.php',
@@ -113,6 +114,7 @@ return [
         'deploy/nginx-baota.conf',
         'deploy/aliyun-nginx-minimal.txt',
         'assets/css/tailwind.css',
+        'assets/js/product-catalog-filter.js',
         'assets/icons/blox-icon-catalog.json',
     ],
     'generated_files' => [
