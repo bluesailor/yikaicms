@@ -69,8 +69,7 @@ function getChannelUrl(array $channel): string {
     <meta property="og:description" content="<?php echo e($pageDescription ?? $siteDescription); ?>">
     <meta property="og:url" content="<?php echo e($canonicalUrl); ?>">
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/tailwind.css'); ?>">
-    <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
-    <link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="<?php echo assetVer('/assets/icons/site-icons.min.css'); ?>">
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/style.css'); ?>">
     <style>
     :root { --color-primary: <?php echo e($primaryColor); ?>; --color-secondary: <?php echo e(config('secondary_color', '#2554d4')); ?>; --yk-content-max-width:1280px; }
