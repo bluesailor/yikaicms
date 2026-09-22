@@ -20,6 +20,7 @@ require_once ROOT_PATH . '/includes/init.php';
 require_once ROOT_PATH . '/plugins/shop/lib/money.php';
 require_once ROOT_PATH . '/plugins/shop/lib/tables.php';
 require_once ROOT_PATH . '/plugins/shop/lib/orders.php';
+require_once ROOT_PATH . '/plugins/shop/lib/payment-methods.php';
 
 header('Cache-Control: no-store');
 
@@ -92,7 +93,14 @@ require_once theme_path('layouts/header.php');
             <?php endif; ?>
         </div>
         <?php else: ?>
-        <?php $order = $lookup['order']; $contact = json_decode((string) $order['contact_json'], true) ?: []; $address = json_decode((string) $order['address_json'], true) ?: []; ?>
+        <?php
+        $order = $lookup['order'];
+        $contact = json_decode((string) $order['contact_json'], true) ?: [];
+        $address = json_decode((string) $order['address_json'], true) ?: [];
+        $manualPaymentMethods = (string) $order['status'] === 'pending_payment' && $paymentStatus !== 'succeeded'
+            ? shopManualPaymentMethods()
+            : [];
+        ?>
         <div class="bg-white rounded border border-gray-200 overflow-hidden" data-testid="shop-order-detail">
             <div class="px-5 py-4 border-b bg-gray-50 flex flex-wrap items-center justify-between gap-2">
                 <div>
@@ -138,6 +146,32 @@ require_once theme_path('layouts/header.php');
                     </tr>
                     </tbody>
                 </table>
+
+                <?php if ($manualPaymentMethods !== []): ?>
+                <section class="mt-5 rounded border border-amber-200 bg-amber-50 p-4" data-testid="shop-payment-details">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h2 class="font-medium text-amber-900"><?php echo e(__('shop_payment_details_title')); ?></h2>
+                        <span class="text-sm font-bold text-amber-900"><?php echo e(__('shop_payment_amount_due')); ?>：<?php echo e(formatPrice((string) $order['amount_total'])); ?></span>
+                    </div>
+                    <p class="mt-1 text-xs text-amber-800"><?php echo e(__('shop_payment_order_note', ['order_no' => (string) $order['order_no']])); ?></p>
+                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                        <?php foreach ($manualPaymentMethods as $paymentMethod): ?>
+                        <div class="rounded border border-amber-200 bg-white p-3" data-testid="shop-payment-method">
+                            <div class="font-medium text-gray-900"><?php echo e((string) $paymentMethod['label']); ?></div>
+                            <div class="mt-1 text-xs text-gray-500"><?php echo e(__('shop_payment_subject_' . (string) $paymentMethod['subject_type'])); ?></div>
+                            <?php if ((string) $paymentMethod['payee'] !== ''): ?><div class="mt-2 text-sm"><span class="text-gray-500"><?php echo e(__('shop_payment_payee')); ?>：</span><?php echo e((string) $paymentMethod['payee']); ?></div><?php endif; ?>
+                            <?php if ((string) $paymentMethod['institution'] !== ''): ?><div class="mt-1 text-sm"><span class="text-gray-500"><?php echo e(__('shop_payment_institution')); ?>：</span><?php echo e((string) $paymentMethod['institution']); ?></div><?php endif; ?>
+                            <?php if ((string) $paymentMethod['account'] !== ''): ?><div class="mt-1 break-all text-sm"><span class="text-gray-500"><?php echo e(__('shop_payment_account')); ?>：</span><?php echo e((string) $paymentMethod['account']); ?></div><?php endif; ?>
+                            <?php if ((string) $paymentMethod['qr_image'] !== ''): ?>
+                            <img src="<?php echo e((string) $paymentMethod['qr_image']); ?>" alt="<?php echo e((string) $paymentMethod['label']); ?>"
+                                 class="mt-3 h-auto w-44 max-w-full rounded border border-gray-200 bg-white p-1" loading="lazy" decoding="async">
+                            <?php endif; ?>
+                            <?php if ((string) $paymentMethod['instructions'] !== ''): ?><p class="mt-2 text-xs leading-relaxed text-gray-600"><?php echo nl2br(e((string) $paymentMethod['instructions'])); ?></p><?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+                <?php endif; ?>
 
                 <div class="mt-5 grid grid-cols-2 gap-4 text-sm">
                     <div>

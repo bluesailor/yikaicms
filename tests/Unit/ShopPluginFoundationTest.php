@@ -143,11 +143,13 @@ final class ShopPluginFoundationTest extends TestCase
 
         $this->assertTrue(shopAdminActionAllowed('save_sales', true, false));
         $this->assertTrue(shopAdminActionAllowed('save_shipping', true, false));
+        $this->assertTrue(shopAdminActionAllowed('save_payment_methods', true, false));
         $this->assertFalse(shopAdminActionAllowed('order_ship', true, false));
         $this->assertFalse(shopAdminActionAllowed('refund_create', true, false));
         $this->assertTrue(shopAdminActionAllowed('order_ship', false, true));
         $this->assertTrue(shopAdminActionAllowed('refund_create', false, true));
         $this->assertFalse(shopAdminActionAllowed('save_sales', false, true));
+        $this->assertFalse(shopAdminActionAllowed('save_payment_methods', false, true));
         $this->assertFalse(shopAdminActionAllowed('unknown', true, true));
     }
 
