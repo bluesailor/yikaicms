@@ -146,8 +146,7 @@ function getChannelUrl(array $channel): string {
     </script>
     <?php endif; ?>
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/tailwind.css'); ?>">
-    <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
-    <link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="<?php echo assetVer('/assets/icons/site-icons.min.css'); ?>">
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/style.css'); ?>">
     <link rel="stylesheet" href="<?php echo theme_asset('css/style.css'); ?>">
     <style><?php echo ThemeSettings::css(); ?></style>

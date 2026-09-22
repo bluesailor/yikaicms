@@ -15,6 +15,15 @@ final class BloxIconTest extends TestCase
         $this->assertNull(BloxIcon::stylesheet('home'));
     }
 
+    public function testTablerIconOutsideSiteSubsetLoadsFullFallback(): void
+    {
+        BloxAssetCollector::reset();
+
+        $this->assertSame('ti ti-abacus', BloxIcon::classes('abacus'));
+        $this->assertSame(BloxIcon::TABLER_STYLESHEET, BloxIcon::stylesheet('abacus'));
+        $this->assertContains(BloxIcon::TABLER_STYLESHEET, BloxAssetCollector::styles());
+    }
+
     public function testBootstrapValueKeepsNamespace(): void
     {
         $this->assertSame('bi:house-door', BloxIcon::normalize('BI:House-Door'));
@@ -35,6 +44,7 @@ final class BloxIconTest extends TestCase
     public function testNoneIsOnlyTheLegacySentinel(): void
     {
         $this->assertTrue(BloxIcon::isNone('none'));
+        $this->assertNull(BloxIcon::stylesheet('none'));
         $this->assertFalse(BloxIcon::isNone('bi:none'));
     }
 
@@ -75,6 +85,21 @@ final class BloxIconTest extends TestCase
 
         $this->assertStringContainsString('class="bi bi-house-door inline-block"', $html);
         $this->assertContains('/assets/bootstrap-icons/bootstrap-icons.min.css', BloxAssetCollector::styles());
+    }
+
+    public function testSubsetBusinessIconDoesNotQueueFullFont(): void
+    {
+        BloxAssetCollector::reset();
+        $icon = BuilderRegistry::get('icon');
+        $this->assertNotNull($icon);
+
+        $html = BlockRenderer::renderElementNode([
+            'type' => 'icon',
+            'data' => ['icon' => 'headset', 'size' => 'md'],
+        ]);
+
+        $this->assertStringContainsString('class="ti ti-headset inline-block"', $html);
+        $this->assertNotContains(BloxIcon::TABLER_STYLESHEET, BloxAssetCollector::styles());
     }
 
     public function testIconBoxRendersWhitelistedHoverMotionOnly(): void

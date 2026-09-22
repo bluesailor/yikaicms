@@ -116,6 +116,9 @@ return [
         'deploy/aliyun-nginx-minimal.txt',
         'assets/css/tailwind.css',
         'assets/icons/blox-icon-catalog.json',
+        'assets/icons/site-icons.min.css',
+        'assets/icons/site-icon-audit.json',
+        'assets/icons/fonts/tabler-icons-site.woff2',
     ],
     'generated_files' => [
         'config/build.php',

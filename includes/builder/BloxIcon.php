@@ -5,6 +5,8 @@ declare(strict_types=1);
 
 final class BloxIcon
 {
+    public const SITE_STYLESHEET = '/assets/icons/site-icons.min.css';
+    public const TABLER_STYLESHEET = '/assets/tabler/tabler-icons.min.css';
     public const BOOTSTRAP_STYLESHEET = '/assets/bootstrap-icons/bootstrap-icons.min.css';
 
     private const MOTIONS = ['pulse', 'ring', 'slide', 'spin', 'sparkle', 'lift'];
@@ -60,6 +62,12 @@ final class BloxIcon
     public static function classes(mixed $value, string $fallback = 'star'): string
     {
         $icon = self::parse($value, $fallback);
+        $stylesheet = self::stylesheetFor($icon);
+        // 前台固定加载常用子集；站点数据/插件选择了子集外图标时，完整字体按需进
+        // BloxAssetCollector。这样旧内容不缺图，普通页面又不再承担两套完整字体。
+        if ($stylesheet !== null && class_exists(BloxAssetCollector::class)) {
+            BloxAssetCollector::addStyle($stylesheet);
+        }
         return $icon['library'] === 'bootstrap'
             ? 'bi bi-' . $icon['name']
             : 'ti ti-' . $icon['name'];
@@ -113,14 +121,51 @@ final class BloxIcon
 
     public static function stylesheet(mixed $value): ?string
     {
-        return self::parse($value)['library'] === 'bootstrap'
-            ? self::BOOTSTRAP_STYLESHEET
-            : null;
+        return self::stylesheetFor(self::parse($value));
     }
 
     public static function isNone(mixed $value): bool
     {
         $icon = self::parse($value);
         return $icon['library'] === 'tabler' && $icon['name'] === 'none';
+    }
+
+    /** @param array{library:'tabler'|'bootstrap',name:string,value:string} $icon */
+    private static function stylesheetFor(array $icon): ?string
+    {
+        if ($icon['library'] === 'tabler' && $icon['name'] === 'none') {
+            return null;
+        }
+        if (self::siteSubsetHas($icon['library'], $icon['name'])) {
+            return null;
+        }
+        return $icon['library'] === 'bootstrap'
+            ? self::BOOTSTRAP_STYLESHEET
+            : self::TABLER_STYLESHEET;
+    }
+
+    private static function siteSubsetHas(string $library, string $name): bool
+    {
+        /** @var array<string,array<string,true>>|null $catalog */
+        static $catalog = null;
+        if ($catalog === null) {
+            $catalog = ['tabler' => [], 'bootstrap' => []];
+            $root = defined('ROOT_PATH') ? ROOT_PATH : dirname(__DIR__, 2);
+            $path = $root . '/assets/icons/site-icon-audit.json';
+            $decoded = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
+            if (is_array($decoded) && ($decoded['schema'] ?? null) === 1) {
+                foreach (['tabler', 'bootstrap'] as $provider) {
+                    $names = $decoded['icons'][$provider] ?? null;
+                    if (is_array($names)) {
+                        foreach ($names as $iconName) {
+                            if (is_string($iconName)) {
+                                $catalog[$provider][$iconName] = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return isset($catalog[$library][$name]);
     }
 }
