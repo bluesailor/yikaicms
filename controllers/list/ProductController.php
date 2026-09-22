@@ -11,17 +11,20 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/ListController.php';
+require_once dirname(__DIR__, 2) . '/includes/ProductCatalogRequest.php';
 
 final class ProductController extends ListController
 {
     public function prepare(array $channel, array $request): array
     {
         $channelId = (int) ($channel['id'] ?? $request['channelId']);
-        $page      = (int) $request['page'];
+        // 原始 GET 最后合并，结构化/越界值会由规范化器拒绝，不能被上游 string cast 成 "Array"。
+        $catalogQuery = ProductCatalogRequest::normalize(array_merge($request, $_GET));
+        $page      = $catalogQuery['page'];
         $perPage   = (int) $request['perPage'];
         $offset    = ($page - 1) * $perPage;
-        $keyword   = (string) $request['keyword'];
-        $catSlug   = (string) $request['cat'];
+        $keyword   = $catalogQuery['keyword'];
+        $catSlug   = $catalogQuery['cat'];
 
         // Top-level product channel → list all products.
         // Sub-channel → use that channel's id as the product category id.
@@ -42,8 +45,8 @@ final class ProductController extends ListController
 
         // Sort param — validated against the ProductModel whitelist so a
         // crafted query string can't sneak unsupported SQL through.
-        $currentSort = $request['sort'] !== ''
-            ? (string) $request['sort']
+        $currentSort = $catalogQuery['sort'] !== 'default'
+            ? $catalogQuery['sort']
             : (string) config('product_default_sort', 'default');
         if (!isset(ProductModel::SORT_MAP[$currentSort])) {
             $currentSort = 'default';
@@ -55,12 +58,11 @@ final class ProductController extends ListController
         }
         $where['sort'] = $currentSort;
 
-        // 多条件筛选参数（?brand=1,3  ?tag=5,8  ?pmin=  ?pmax=）——对标 PbootCMS 多条件筛选。
-        // 直接读 $_GET（与筛选面板 partial 一致，且不依赖 functions.php 的 get() 便于单测）。
-        $brandIds  = array_values(array_filter(array_map('intval', explode(',', (string) ($_GET['brand'] ?? '')))));
-        $selTagIds = array_values(array_filter(array_map('intval', explode(',', (string) ($_GET['tag'] ?? '')))));
-        $priceMin  = trim((string) ($_GET['pmin'] ?? ''));
-        $priceMax  = trim((string) ($_GET['pmax'] ?? ''));
+        // 多条件筛选参数与视图、缓存键共用同一份规范化结果。
+        $brandIds  = $catalogQuery['brand_ids'];
+        $selTagIds = $catalogQuery['tag_ids'];
+        $priceMin  = $catalogQuery['pmin'];
+        $priceMax  = $catalogQuery['pmax'];
 
         if ($brandIds) {
             $where['brand_ids'] = $brandIds;
@@ -94,7 +96,15 @@ final class ProductController extends ListController
 
         // Sort options enabled in the admin settings, used by the view.
         $sortOptionsJson = (string) config('product_sort_options', '["default","newest","views"]');
-        $enabledSorts    = json_decode($sortOptionsJson, true) ?: ['default', 'newest', 'views'];
+        $sortCandidates = json_decode($sortOptionsJson, true);
+        $sortCandidates = is_array($sortCandidates) ? $sortCandidates : ['default', 'newest', 'views'];
+        $enabledSorts = array_values(array_filter($sortCandidates,
+            static fn(mixed $sort): bool => is_string($sort) && isset(ProductModel::SORT_MAP[$sort])));
+        if ($enabledSorts === []) {
+            $enabledSorts = ['default'];
+        }
+
+        $catalogQuery['sort'] = $currentSort;
 
         return [
             'facetBrands'     => $facetBrands,
@@ -105,6 +115,7 @@ final class ProductController extends ListController
             'selTagIds'       => $selTagIds,
             'filterPriceMin'  => $priceMin,
             'filterPriceMax'  => $priceMax,
+            'catalogQuery'    => $catalogQuery,
             'channel'           => $channel,
             'channelId'         => $channelId,
             'page'              => $page,

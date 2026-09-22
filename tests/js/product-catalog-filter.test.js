@@ -1,0 +1,82 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { buildFormUrl, createLoader, controlledLink } = require('../../assets/js/product-catalog-filter');
+
+test('GET forms keep canonical controls, omit empty values and reset pagination', () => {
+    const savedLocation = global.location;
+    global.location = new URL('https://example.test/products.html');
+    try {
+        const url = new URL(buildFormUrl('/products.html?page=9&utm_source=old', [
+            ['keyword', 'bolt'], ['brand', '2,4'], ['pmin', ''], ['sort', 'newest'], ['page', '9'],
+        ]));
+        assert.equal(url.pathname, '/products.html');
+        assert.deepEqual(Object.fromEntries(url.searchParams), {
+            keyword: 'bolt', brand: '2,4', sort: 'newest',
+        });
+    } finally {
+        if (savedLocation === undefined) delete global.location;
+        else global.location = savedLocation;
+    }
+});
+
+test('loader sends a same-origin GET contract and only returns the newest response', async () => {
+    const pending = [];
+    const calls = [];
+    const loader = createLoader((url, options) => {
+        calls.push([url, options]);
+        return new Promise(resolve => pending.push(resolve));
+    });
+    const first = loader.load('/products.html?keyword=old');
+    const second = loader.load('/products.html?keyword=new');
+
+    assert.equal(calls[0][1].method, 'GET');
+    assert.equal(calls[0][1].credentials, 'same-origin');
+    assert.equal(calls[0][1].headers['X-Requested-With'], 'XMLHttpRequest');
+    assert.equal(calls[0][1].signal.aborted, true);
+    assert.equal(calls[1][1].signal.aborted, false);
+
+    pending[1]({ ok: true, url: 'https://example.test/products.html?keyword=new', text: async () => '<main>new</main>' });
+    assert.deepEqual(await second, {
+        html: '<main>new</main>', url: 'https://example.test/products.html?keyword=new',
+    });
+    pending[0]({ ok: true, url: 'https://example.test/products.html?keyword=old', text: async () => '<main>old</main>' });
+    assert.equal(await first, null);
+});
+
+test('loader rejects non-success HTTP responses', async () => {
+    const loader = createLoader(async () => ({ ok: false, text: async () => '' }));
+    await assert.rejects(loader.load('/products.html'), /catalog-http/);
+});
+
+test('only links inside catalog controls are intercepted', () => {
+    const root = { contains: () => true };
+    const filter = {
+        target: '', hasAttribute: () => false,
+        closest: selector => selector.includes('data-catalog-facets') ? {} : null,
+    };
+    const pagination = {
+        target: '', hasAttribute: () => false,
+        closest: selector => selector.includes('data-catalog-pagination') ? {} : null,
+    };
+    const category = {
+        target: '', hasAttribute: () => false,
+        closest: selector => selector.includes('data-catalog-categories') ? {} : null,
+    };
+    const product = { target: '', hasAttribute: () => false, closest: () => null };
+    assert.equal(controlledLink(filter, root), true);
+    assert.equal(controlledLink(pagination, root), true);
+    assert.equal(controlledLink(category, root), false);
+    assert.equal(controlledLink(product, root), false);
+});
+
+test('boot quietly leaves native GET navigation in place when fetch is unavailable', () => {
+    const savedFetch = global.fetch;
+    delete global.fetch;
+    try {
+        const doc = { querySelector: () => ({}) };
+        const { boot } = require('../../assets/js/product-catalog-filter');
+        assert.equal(boot(doc), null);
+    } finally {
+        global.fetch = savedFetch;
+    }
+});

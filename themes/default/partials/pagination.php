@@ -11,7 +11,7 @@
  */
 ?>
 <?php if ($total > $perPage): ?>
-<div class="mt-8 flex items-center justify-center gap-2">
+<div class="mt-8 flex items-center justify-center gap-2" data-catalog-pagination>
     <?php if ($page > 1): ?>
     <a href="<?php echo $pageUrl($page - 1); ?>" class="px-4 py-2 border rounded hover:bg-gray-100"><?php echo __('list_prev_page'); ?></a>
     <?php endif; ?>
