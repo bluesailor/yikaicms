@@ -11,7 +11,7 @@
 #
 # 为什么值得有这个脚本 —— 今天踩到的都是执行层面的坑，不是判断层面的：
 #   · 工作目录漂移导致 "Could not open input file"（跑了两次才发现）
-#   · 8080 端口残留三个 php -S，旧进程拿旧库应答，整轮结果都是假的
+#   · 多人同时预检时固定 8080 端口互相抢占，结果都是假的
 #   · setup.php 装机后忘了 --restore，工作树被留在冒烟配置上
 # ============================================================
 
@@ -40,24 +40,17 @@ pass() { echo "  ${G}✓${X} $1"; }
 fail() { echo "  ${R}✗${X} $1"; FAILED+=("$1"); }
 note() { echo "  ${D}· $1${X}"; }
 
-# ───── 端口清场：残留的 php -S 会用旧库应答，让整轮结果失真 ─────
-# Git Bash（MSYS）会把 cmd.exe 的 /c 开关路径转换成 C:/，cmd 收不到 /c 就进
-# 交互模式：stdin 是 /dev/null 时立即 EOF 退出（清场静默失效、服务器越积越多），
-# stdin 是管道时永久挂死（2026-09-20 一轮预检因此挂 84 分钟）。两个 MSYS 环境
-# 变量关掉参数转换（WSL 下不存在该机制，纯属无害），stdin 强制 /dev/null 兜底。
-kill_stale_server() {
-    command -v cmd.exe >/dev/null 2>&1 || return 0
-    local pids
-    pids=$(MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
-           cmd.exe /c "netstat -ano | findstr :8080 | findstr LISTENING" </dev/null 2>/dev/null \
-           | awk '{print $NF}' | tr -d '\r' | sort -u)
-    for p in $pids; do
-        MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
-            cmd.exe /c "taskkill /F /PID $p" </dev/null >/dev/null 2>&1
-    done
-    [ -n "$pids" ] && note "清掉 8080 端口上的残留进程：$pids"
-    return 0
+# ───── HTTP 冒烟只管理本次启动的服务器 ─────
+# 绝不按端口杀进程：并行预检可能正在使用同一个固定端口。
+SRV=''
+stop_smoke_server() {
+    if [ -n "$SRV" ]; then
+        kill "$SRV" >/dev/null 2>&1 || true
+        wait "$SRV" 2>/dev/null || true
+        SRV=''
+    fi
 }
+trap 'stop_smoke_server' EXIT
 
 # ───── OPENSSL_CONF 自动探测（外审 P2-7）─────
 # Windows 便携 PHP 不带默认 openssl.cnf，未设置时 RSA 相关测试
@@ -79,12 +72,23 @@ echo "[1/5] PHPUnit 全量"
 if [ ! -d vendor/phpunit ]; then
     fail "vendor 未安装，先跑 composer install"
 else
-    OUT=$(php vendor/phpunit/phpunit/phpunit 2>&1 | tail -3)
-    if echo "$OUT" | grep -q "^OK"; then
-        pass "$(echo "$OUT" | grep '^OK' | head -1)"
+    PHPUNIT_LOG="${TMPDIR:-/tmp}/yikaicms-premerge-phpunit-$$.log"
+    if php vendor/phpunit/phpunit/phpunit --colors=never >"$PHPUNIT_LOG" 2>&1; then
+        OUT=$(tail -3 "$PHPUNIT_LOG")
+        if echo "$OUT" | grep -q "^OK"; then
+            pass "$(echo "$OUT" | grep '^OK' | head -1)"
+            if echo "$OUT" | grep -qi 'tests were skipped'; then
+                note "PHPUnit 报告跳过项；完整输出：$PHPUNIT_LOG"
+            else
+                rm -f "$PHPUNIT_LOG"
+            fi
+        else
+            fail "PHPUnit 退出成功但未找到通过摘要；完整输出：$PHPUNIT_LOG"
+            tail -20 "$PHPUNIT_LOG" | sed 's/^/      /'
+        fi
     else
-        fail "PHPUnit 未通过"
-        echo "$OUT" | sed 's/^/      /'
+        fail "PHPUnit 未通过；完整输出：$PHPUNIT_LOG"
+        tail -20 "$PHPUNIT_LOG" | sed 's/^/      /'
     fi
 fi
 
@@ -180,18 +184,35 @@ if [ "$MODE" = "quick" ] || [ "$NEED_HTTP" = "0" ]; then
 else
     echo ""
     echo "[4/5] 后台页面冒烟 + [5/5] 升级链路 e2e"
-    kill_stale_server
+    HTTP_PORT="${PREMERGE_HTTP_PORT:-$(php -r '$s = @stream_socket_server("tcp://127.0.0.1:0", $errno, $error); if (!$s) { exit(1); } $name = stream_socket_get_name($s, false); fclose($s); echo substr(strrchr($name, ":"), 1);')}"
+    if ! [[ "$HTTP_PORT" =~ ^[0-9]+$ ]] || [ "$HTTP_PORT" -lt 1024 ] || [ "$HTTP_PORT" -gt 65535 ]; then
+        fail "无法选取有效冒烟端口（PREMERGE_HTTP_PORT 可显式指定）"
+        HTTP_PORT=''
+    fi
+    if [ -n "$HTTP_PORT" ]; then
+        export SMOKE_BASE="http://127.0.0.1:$HTTP_PORT"
+        export SMOKE_SITE_URL="$SMOKE_BASE"
+    fi
     php tests/smoke/setup.php >/dev/null 2>&1 || { fail "冒烟装机失败"; }
-    php -S 127.0.0.1:8080 -t . >/dev/null 2>&1 &
-    SRV=$!
-    # 等就绪：用 PHP 探测而不是 curl（WSL 的 curl 连不上 Windows php.exe 的回环）
-    for _ in $(seq 1 20); do
-        php -r 'exit(@file_get_contents("http://127.0.0.1:8080/admin/login.php") !== false ? 0 : 1);' 2>/dev/null && break
-        sleep 1
-    done
+    HTTP_READY=0
+    if [ -n "$HTTP_PORT" ]; then
+        php -S "127.0.0.1:$HTTP_PORT" -t . >/dev/null 2>&1 &
+        SRV=$!
+        # 等就绪：用 PHP 探测而不是 curl（WSL 的 curl 连不上 Windows php.exe 的回环）
+        for _ in $(seq 1 20); do
+            kill -0 "$SRV" 2>/dev/null || break
+            if php -r 'exit(@file_get_contents("http://127.0.0.1:" . (int) $argv[1] . "/admin/login.php") !== false ? 0 : 1);' "$HTTP_PORT" 2>/dev/null; then
+                kill -0 "$SRV" 2>/dev/null && HTTP_READY=1
+                break
+            fi
+            sleep 1
+        done
+        [ "$HTTP_READY" = "1" ] || fail "本次启动的冒烟服务器未就绪（端口 $HTTP_PORT）"
+    fi
 
     run_smoke() {
         local script="$1" label="$2"
+        [ "$HTTP_READY" = "1" ] || { note "$label 因冒烟服务器未就绪而跳过"; return; }
         [ -f "$script" ] || { note "$script 不存在，跳过"; return; }
         if php "$script" >/tmp/premerge_smoke.log 2>&1; then
             pass "$label"
@@ -206,8 +227,7 @@ else
     run_smoke tests/smoke/permission_matrix.php "权限矩阵"
 
     # 还原**必须**执行，哪怕上面失败了：否则工作树被留在冒烟配置/库上
-    kill_stale_server
-    sleep 1
+    stop_smoke_server
     php tests/smoke/setup.php --restore >/dev/null 2>&1 \
         && note "已还原冒烟前的配置、数据库与安装锁" \
         || fail "冒烟状态还原失败（工作树可能仍是冒烟配置，务必人工检查）"
