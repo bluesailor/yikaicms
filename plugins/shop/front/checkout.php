@@ -20,6 +20,7 @@ require_once ROOT_PATH . '/plugins/shop/lib/tables.php';
 require_once ROOT_PATH . '/plugins/shop/lib/sales.php';
 require_once ROOT_PATH . '/plugins/shop/lib/cart.php';
 require_once ROOT_PATH . '/plugins/shop/lib/orders.php';
+require_once ROOT_PATH . '/plugins/shop/lib/shipping.php';
 
 header('Cache-Control: no-store');
 
@@ -46,9 +47,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['op'] ?? '') ===
     $name = trim((string) ($_POST['name'] ?? ''));
     $phone = trim((string) ($_POST['phone'] ?? ''));
     $email = trim((string) ($_POST['email'] ?? ''));
-    $region = trim((string) ($_POST['region'] ?? ''));
+    $province = trim((string) ($_POST['province'] ?? ''));
+    $city = trim((string) ($_POST['city'] ?? ''));
+    $district = trim((string) ($_POST['district'] ?? ''));
     $address = trim((string) ($_POST['address'] ?? ''));
     $remark = trim((string) ($_POST['remark'] ?? ''));
+    $addressResult = shopValidateShippingAddress([
+        'province' => $province,
+        'city' => $city,
+        'district' => $district,
+        'address' => $address,
+    ]);
 
     $errorKey = '';
     if ($name === '' || mb_strlen($name) > 50) {
@@ -57,8 +66,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['op'] ?? '') ===
         $errorKey = 'shop_err_contact_phone';
     } elseif ($email !== '' && (filter_var($email, FILTER_VALIDATE_EMAIL) === false || mb_strlen($email) > 100)) {
         $errorKey = 'shop_err_contact_email';
-    } elseif ($region === '' || mb_strlen($region) > 100 || $address === '' || mb_strlen($address) > 300) {
-        $errorKey = 'shop_err_contact_address';
+    } elseif (!$addressResult['ok']) {
+        $errorKey = $addressResult['error'];
     }
     if ($errorKey !== '') {
         header('Location: /shop/checkout?err=' . urlencode(__($errorKey)), true, 303);
@@ -68,7 +77,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['op'] ?? '') ===
     $result = shopOrderCreate(
         shopCartLines(),
         ['name' => $name, 'phone' => $phone, 'email' => $email],
-        ['region' => $region, 'address' => $address],
+        $addressResult['address'],
         $remark
     );
     if (!$result['ok']) {
@@ -188,15 +197,33 @@ require_once theme_path('layouts/header.php');
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_region')); ?> <span class="text-red-500">*</span></label>
-                    <input type="text" name="region" maxlength="100" required
-                           class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-region">
+                    <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_province')); ?> <span class="text-red-500">*</span></label>
+                    <select name="province" required autocomplete="address-level1"
+                            class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-province">
+                        <option value=""><?php echo e(__('shop_checkout_province_select')); ?></option>
+                        <?php foreach (shopMainlandProvinces() as $provinceOption): ?>
+                        <option value="<?php echo e($provinceOption); ?>"><?php echo e($provinceOption); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_city')); ?> <span class="text-red-500">*</span></label>
+                        <input type="text" name="city" maxlength="50" required autocomplete="address-level2"
+                               class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-city">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_district')); ?> <span class="text-red-500">*</span></label>
+                        <input type="text" name="district" maxlength="50" required autocomplete="address-level3"
+                               class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-district">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_address')); ?> <span class="text-red-500">*</span></label>
-                    <textarea name="address" rows="2" maxlength="300" required
+                    <textarea name="address" rows="2" maxlength="300" required autocomplete="street-address"
                               class="w-full border border-gray-300 rounded px-3 py-2 text-sm" data-testid="shop-checkout-address"></textarea>
                 </div>
+                <p class="text-xs text-gray-400" data-testid="shop-shipping-scope-hint"><?php echo e(__('shop_checkout_scope_hint')); ?></p>
                 <div>
                     <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_checkout_remark')); ?></label>
                     <textarea name="remark" rows="2" maxlength="500"

@@ -19,6 +19,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/money.php';
 require_once __DIR__ . '/tables.php';
 require_once __DIR__ . '/sales.php';
+require_once __DIR__ . '/shipping.php';
 
 /** @return list<string> 订单合法状态（推进顺序即此列表顺序；closed 只从 pending_payment 进入） */
 function shopOrderStatuses(): array
@@ -79,7 +80,7 @@ function shopOrderNo(): string
  *
  * @param list<array{id:int,qty:int}> $lines
  * @param array<string,string> $contact name/phone/email
- * @param array<string,string> $address region/address
+ * @param array<string,string> $address province/city/district/address（region 由本层生成）
  * @return array{ok:bool, error:string, order_no?:string, order_id?:int}
  */
 function shopOrderCreate(array $lines, array $contact, array $address, string $remark = ''): array
@@ -87,6 +88,11 @@ function shopOrderCreate(array $lines, array $contact, array $address, string $r
     if ($lines === []) {
         return ['ok' => false, 'error' => 'shop_err_empty_order'];
     }
+    $addressResult = shopValidateShippingAddress($address);
+    if (!$addressResult['ok']) {
+        return ['ok' => false, 'error' => $addressResult['error']];
+    }
+    $address = $addressResult['address'];
     shopEnsureSchema();
 
     $memberId = (int) ($_SESSION['member_id'] ?? 0);
@@ -354,11 +360,13 @@ function shopOrderTransition(int $orderId, string $to, string $trackingCompany =
     if (!shopOrderCanTransition((string) $order['status'], $to)) {
         return ['ok' => false, 'error' => 'shop_err_order_transition'];
     }
-    if ($trackingCompany !== '' && mb_strlen($trackingCompany) > 50) {
-        return ['ok' => false, 'error' => 'shop_err_tracking'];
-    }
-    if ($trackingNo !== '' && (mb_strlen($trackingNo) > 64 || preg_match('/^[A-Za-z0-9\-]+$/', $trackingNo) !== 1)) {
-        return ['ok' => false, 'error' => 'shop_err_tracking'];
+    $trackingCompany = trim($trackingCompany);
+    $trackingNo = trim($trackingNo);
+    if ($to === 'shipped') {
+        $trackingError = shopValidateTracking($trackingCompany, $trackingNo);
+        if ($trackingError !== '') {
+            return ['ok' => false, 'error' => $trackingError];
+        }
     }
 
     $fields = ['status' => $to, 'updated_at' => time()];
