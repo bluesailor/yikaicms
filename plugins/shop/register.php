@@ -53,6 +53,23 @@ if (function_exists('register_admin_menu')) {
     ]);
 }
 
+// 站点模板只接入商城自己的公开合同；核心保持对插件表和字段零认知。
+add_filter('site_template_plugin_export', static function (mixed $entry, string $slug): mixed {
+    if ($slug !== 'shop') {
+        return $entry;
+    }
+    require_once __DIR__ . '/lib/site-template.php';
+    return shopSiteTemplateExport();
+});
+
+add_action('site_template_plugin_import', static function (array $payload, string $slug): void {
+    if ($slug !== 'shop') {
+        return;
+    }
+    require_once __DIR__ . '/lib/site-template.php';
+    shopSiteTemplateImport($payload);
+});
+
 // 前台路由（Dispatcher 约定：自定义规则必须并到核心表**前面**，正则锚定写窄）
 add_filter('dispatch_routes', static function (array $routes): array {
     return array_merge([
