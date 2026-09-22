@@ -63,6 +63,67 @@ final class TemplateUsabilityTest extends TestCase
         self::assertSame([], $this->report(json_encode(['image' => '/retired.html']))['issues']);
     }
 
+    public function testSettingsForDisabledLanguagesAreNotScanned(): void
+    {
+        $channels = [
+            ['id' => 1, 'slug' => 'privacy', 'type' => 'page', 'lang' => 'zh-CN'],
+        ];
+        $data = [
+            'tables' => ['channels' => []],
+            'settings' => [
+                'enabled_languages' => '["zh-CN"]',
+                'footer_nav_en' => json_encode([['url' => '/privacy.html']]),
+                'footer_nav_ja' => json_encode([['url' => '/privacy.html']]),
+            ],
+        ];
+
+        $report = SiteExportChecks::inspect($data, $channels, '');
+
+        self::assertSame([], $report['issues']);
+        self::assertSame(1, $report['scanned']);
+    }
+
+    public function testSettingsForEnabledLanguagesAreStillScannedAndDeduplicated(): void
+    {
+        $channels = [
+            ['id' => 1, 'slug' => 'privacy', 'type' => 'page', 'lang' => 'zh-CN'],
+        ];
+        $link = json_encode([['url' => '/privacy.html'], ['url' => '/privacy.html']]);
+        $data = [
+            'tables' => ['channels' => []],
+            'settings' => [
+                'enabled_languages' => '["zh-CN","en","ja"]',
+                'footer_nav_en' => $link,
+                'footer_nav_ja' => $link,
+            ],
+        ];
+
+        $report = SiteExportChecks::inspect($data, $channels, '');
+
+        self::assertCount(1, $report['issues']);
+        self::assertSame('footer_nav_ja', $report['issues'][0]['label']);
+        self::assertSame(3, $report['scanned']);
+    }
+
+    public function testOrdinarySettingSuffixesAreNotTreatedAsLanguages(): void
+    {
+        $channels = [
+            ['id' => 1, 'slug' => 'privacy', 'type' => 'page', 'lang' => 'zh-CN'],
+        ];
+        $data = [
+            'tables' => ['channels' => []],
+            'settings' => [
+                'enabled_languages' => '["zh-CN"]',
+                'footer_nav_mobile' => json_encode([['url' => '/privacy.html']]),
+            ],
+        ];
+
+        $report = SiteExportChecks::inspect($data, $channels, '');
+
+        self::assertCount(1, $report['issues']);
+        self::assertSame('footer_nav_mobile', $report['issues'][0]['label']);
+    }
+
     public function testExportCheckIsBoundedAndDoesNotChangeInput(): void
     {
         $channels = [];
