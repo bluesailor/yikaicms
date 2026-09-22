@@ -1062,6 +1062,10 @@ function ykPickChannelIcon(name) {
                         <option value="url" <?php echo ($editChannel['redirect_type'] ?? 'none') === 'url' ? 'selected' : ''; ?>><?php echo e(__('admin_redirect_url_option')); ?></option>
                     </select>
                     <p class="text-sm text-gray-600 mt-1"><?= e(__('setup_channel_hint')) ?></p>
+                    <div id="pageVisibilityHint" class="bg-amber-50 text-amber-900 p-4 rounded mt-2 hidden" role="status">
+                        <p><?= e(__('usability_page_redirect_hint')) ?></p>
+                        <button type="button" id="showOwnPage" class="text-primary underline mt-1"><?= e(__('usability_page_show_pending')) ?></button>
+                    </div>
                     <p id="autoRedirectHint" class="text-xs mt-1 hidden <?php echo $autoChild ? 'text-blue-600' : 'text-amber-600'; ?>">
                         <?php echo $autoChild
                             ? sprintf(__('admin_redirect_auto_target'), '<strong>' . e($autoChild['name']) . '</strong>')
@@ -1285,11 +1289,18 @@ document.getElementById('channelType').dispatchEvent(new Event('change'));
 
 // 跳转类型联动
 document.getElementById('redirectType').addEventListener('change', function() {
+    document.getElementById('pageVisibilityHint').classList.toggle('hidden', this.value === 'none');
     document.getElementById('redirectUrlField').classList.toggle('hidden', this.value !== 'url');
     var hint = document.getElementById('autoRedirectHint');
     if (hint) hint.classList.toggle('hidden', this.value !== 'auto');
 });
 document.getElementById('redirectType').dispatchEvent(new Event('change'));
+document.getElementById('showOwnPage').addEventListener('click', function () {
+    var select = document.getElementById('redirectType');
+    select.value = 'none';
+    select.dispatchEvent(new Event('change'));
+    select.focus();
+});
 
 // 当前 tab
 var currentTab = new URLSearchParams(location.search).get('tab') || 'main';

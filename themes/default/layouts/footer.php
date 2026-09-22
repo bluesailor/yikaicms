@@ -142,7 +142,7 @@ if ($footerBgLiteral !== '') {
                         <?php endforeach; ?>
                     </ul>
                     <?php else: ?>
-                    <div class="text-sm leading-relaxed">
+                    <div class="yk-footer-column-content text-sm leading-relaxed">
                         <?php echo renderFooterContent($col['content'] ?? ''); ?>
                     </div>
                     <?php endif; ?>

@@ -10,6 +10,7 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/builder/BloxMotion.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -132,6 +133,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_array($settings)) error(__('admin_bad_params'), 422);
     verifyCsrf();
     if (array_key_exists('url_mode', $settings)) checkUrlModeChange($settings['url_mode']);
+    if (array_key_exists('motion_intensity', $settings)
+        && !in_array($settings['motion_intensity'], BloxMotion::LEVELS, true)) {
+        error(__('admin_bad_params'), 422);
+    }
     foreach (array_keys(getDefaults('pagination')) as $key) {
         if (array_key_exists($key, $settings) && !validCatalogPageSize($settings[$key])) {
             error(__('catalog_page_size_invalid'), 422);
@@ -261,6 +266,13 @@ if ($_langAware && $_viewLang !== $_defaultLang) {
 }
 
 $groupDefaults = getDefaults($group);
+// 老库可能缺少选项元数据；动效非法旧值与前台一样显示为标准，不在 GET 时写库。
+foreach ($items as &$item) {
+    if ($item['key'] === 'motion_intensity' && !in_array($item['value'], BloxMotion::LEVELS, true)) {
+        $item['value'] = 'standard';
+    }
+}
+unset($item);
 
 // ============================================================
 // 分区（quick-nav）：按 defaults.php 里各字段的 'section' 把可见项分组，
@@ -549,6 +561,7 @@ async function saveAdminLanguages() {
 </form>
 <?php endif; ?>
 <form id="settingForm" class="space-y-6">
+    <?php require ROOT_PATH . '/admin/includes/setting_sources_notice.php'; ?>
     <?php if ($tab === 'url'): ?>
     <input type="hidden" name="url_mode_expected" value="<?= e(urlMode()) ?>">
     <input type="hidden" name="url_mode_confirm" value="0">
@@ -600,6 +613,8 @@ async function saveAdminLanguages() {
                     <?php echo __('setting_footer_placeholder_hint'); ?>
                 </div>
                 <div id="footerColumnsEditor" class="space-y-3">
+                    <p class="text-sm text-gray-500"><?= e(__('footer_editor_hint')) ?></p>
+                    <p class="text-sm text-amber-700"><?= e(__('footer_editor_priority')) ?></p>
                     <?php for ($ci = 0; $ci < 4; $ci++): ?>
                     <?php $col = $columnsData[$ci] ?? null; ?>
                     <div class="fcol-row p-3 border rounded-lg <?php echo $col ? 'bg-white' : 'bg-gray-50'; ?>" data-index="<?php echo $ci; ?>">
@@ -635,8 +650,10 @@ async function saveAdminLanguages() {
                             <?php endif; ?>
                         </div>
                         <div class="mt-2 ml-8">
-                            <label class="text-xs text-gray-400 block mb-1"><?php echo __('setting_col_content'); ?></label>
-                            <textarea class="fcol-content w-full border rounded px-3 py-1.5 text-sm" rows="3" placeholder="<?php echo __('setting_footer_content_placeholder'); ?>"><?php echo e($col['content'] ?? ''); ?></textarea>
+                            <label for="footer-content-<?= $ci ?>" class="text-xs text-gray-400 block mb-1"><?php echo __('setting_col_content'); ?></label>
+                            <textarea id="footer-content-<?= $ci ?>" class="fcol-content w-full border rounded px-3 py-1.5 text-sm" rows="4" placeholder="<?php echo __('setting_footer_content_placeholder'); ?>"><?php echo e($col['content'] ?? ''); ?></textarea>
+                            <button type="button" class="fcol-source-toggle text-sm text-primary underline mt-2" hidden aria-pressed="false" data-source="<?= e(__('footer_editor_source')) ?>" data-visual="<?= e(__('footer_editor_visual')) ?>"><?= e(__('footer_editor_source')) ?></button>
+                            <p class="fcol-menu-notice text-sm text-amber-700 mt-2" role="status" hidden><?= e(__('footer_editor_menu')) ?></p>
                         </div>
                     </div>
                     <?php endfor; ?>
@@ -726,7 +743,9 @@ async function saveAdminLanguages() {
                             : 'setting_image_resource_missing')); ?></span>
                     </p>
                     <?php endif; ?>
-                    <?php if ($item['value'] && $__imageCanPreview): ?>
+                    <?php if ($item['key'] === 'site_favicon'): ?>
+                    <?php require ROOT_PATH . '/admin/includes/favicon_preview.php'; ?>
+                    <?php elseif ($item['value'] && $__imageCanPreview): ?>
                     <img src="<?php echo e($item['value']); ?>" class="h-16 mt-2 rounded" id="preview_<?php echo e($item['key']); ?>">
                     <?php endif; ?>
                     <?php
@@ -780,6 +799,9 @@ async function saveAdminLanguages() {
                     <select name="settings[<?php echo e($item['key']); ?>]" class="w-full border rounded px-4 py-2">
                         <?php
                         $options = json_decode($item['options'] ?? '{}', true) ?: [];
+                        if (empty($options)) {
+                            $options = json_decode($groupDefaults[$item['key']]['options'] ?? '{}', true) ?: [];
+                        }
                         if (empty($options)) {
                             $defaultOptions = [
                                 'show_price' => ['0' => __('setting_hide'), '1' => __('setting_show')],
@@ -898,6 +920,7 @@ async function saveAdminLanguages() {
 <?php endif; ?>
 
 <input type="file" id="imageFileInput" class="hidden" accept="image/*">
+<script src="/assets/js/admin-favicon-preview.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/admin-favicon-preview.js') ?>"></script>
 
 <script>
 let currentImageKey = '';
@@ -934,14 +957,18 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
 
         if (data.code === 0) {
             document.getElementById('input_' + currentImageKey).value = data.data.url;
-            let preview = document.getElementById('preview_' + currentImageKey);
-            if (!preview) {
-                preview = document.createElement('img');
-                preview.id = 'preview_' + currentImageKey;
-                preview.className = 'h-16 mt-2 rounded';
-                document.getElementById('input_' + currentImageKey).parentNode.parentNode.appendChild(preview);
+            if (currentImageKey === 'site_favicon') {
+                window.YikaiFaviconPreview.refresh();
+            } else {
+                let preview = document.getElementById('preview_' + currentImageKey);
+                if (!preview) {
+                    preview = document.createElement('img');
+                    preview.id = 'preview_' + currentImageKey;
+                    preview.className = 'h-16 mt-2 rounded';
+                    document.getElementById('input_' + currentImageKey).parentNode.parentNode.appendChild(preview);
+                }
+                preview.src = data.data.url;
             }
-            preview.src = data.data.url;
             clearImageResourceWarning(currentImageKey);
             showMessage('<?php echo __('admin_success'); ?>');
         } else {
@@ -958,6 +985,11 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
 function pickFromMedia(key) {
     openMediaPicker(function(url) {
         document.getElementById('input_' + key).value = url;
+        if (key === 'site_favicon') {
+            window.YikaiFaviconPreview.refresh();
+            clearImageResourceWarning(key);
+            return;
+        }
         var preview = document.getElementById('preview_' + key);
         if (!preview) {
             preview = document.createElement('img');
@@ -999,7 +1031,8 @@ function collectFooterColumns() {
     var cols = [];
     rows.forEach(function(row) {
         var title = row.querySelector('.fcol-title').value.trim();
-        var content = row.querySelector('.fcol-content').value.trim();
+        var contentInput = row.querySelector('.fcol-content');
+        var content = (window.YikaiFooterEditor ? window.YikaiFooterEditor.read(contentInput) : contentInput.value).trim();
         var colSpan = parseInt(row.querySelector('.fcol-span').value) || 1;
         var menuSel = row.querySelector('.fcol-menu');
         var menuId = menuSel ? (parseInt(menuSel.value) || 0) : 0;
@@ -1016,6 +1049,7 @@ document.querySelectorAll('.fcol-clear').forEach(function(btn) {
         var row = this.closest('.fcol-row');
         row.querySelector('.fcol-title').value = '';
         row.querySelector('.fcol-content').value = '';
+        if (window.YikaiFooterEditor) window.YikaiFooterEditor.clear(row.querySelector('.fcol-content'));
         row.querySelector('.fcol-span').value = '1';
         var menuSel = row.querySelector('.fcol-menu');
         if (menuSel) { menuSel.value = '0'; menuSel.dispatchEvent(new Event('change')); }
@@ -1030,6 +1064,8 @@ document.querySelectorAll('.fcol-menu').forEach(function(sel) {
         var on = (parseInt(sel.value) || 0) > 0;
         ta.classList.toggle('opacity-40', on);
         ta.classList.toggle('pointer-events-none', on);
+        ta.readOnly = on;
+        if (window.YikaiFooterEditor) window.YikaiFooterEditor.menu(ta, on);
     };
     sel.addEventListener('change', sync);
     sync();
@@ -1054,6 +1090,7 @@ document.querySelectorAll('.restore-btn').forEach(function(btn) {
                 input.value = defaultVal;
             }
             // 同步颜色选择器
+            if (key === 'site_favicon') window.YikaiFaviconPreview.refresh();
             var colorPicker = input.previousElementSibling;
             if (colorPicker && colorPicker.type === 'color') {
                 colorPicker.value = defaultVal || '#000000';
@@ -1235,4 +1272,5 @@ if (typeof _footerNavData !== 'undefined' && document.getElementById('footerNavE
 </script>
 
 <?php adminModuleEnd(); ?>
+<?php if ($tab === 'footer'): ?><script defer src="/assets/js/footer-content-editor.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/footer-content-editor.js') ?>"></script><?php endif; ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

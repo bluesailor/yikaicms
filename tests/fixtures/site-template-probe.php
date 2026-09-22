@@ -55,6 +55,16 @@ try {
     file_put_contents($root . '/themes/sample/layouts/header.php', '<?php declare(strict_types=1); ?><img src="/uploads/logo.svg">');
     file_put_contents($root . '/themes/sample/layouts/footer.php', '<?php declare(strict_types=1); ?>Footer');
     $service = new SiteTemplateService($root);
+    check($service->exportCheck()['blocked'] === '', 'Export preflight should accept the source');
+    db()->insert('channels', ['id' => 72, 'name' => 'Retired', 'slug' => 'retired', 'type' => 'page', 'status' => 0]);
+    settingModel()->saveBatch(['footer_nav' => '[{"links":[{"url":"/retired.html"}]}]']);
+    $preflightBefore = SiteTemplateData::fingerprint();
+    $preflight = $service->exportCheck();
+    check(count($preflight['issues']) === 1, 'Export preflight must find an omitted channel link');
+    check(hash_equals($preflightBefore, SiteTemplateData::fingerprint()), 'Export preflight must not change content');
+    db()->delete('channels', 'id = ?', [72]);
+    db()->delete('settings', '`key` = ?', ['footer_nav']);
+    settingModel()->clearCache();
     $zip = $root . '/export.zip';
     $summary = $service->export($zip);
     check($summary['media'] === 1, 'Referenced media only');
