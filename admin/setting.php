@@ -10,6 +10,7 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/builder/BloxMotion.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
@@ -132,6 +133,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_array($settings)) error(__('admin_bad_params'), 422);
     verifyCsrf();
     if (array_key_exists('url_mode', $settings)) checkUrlModeChange($settings['url_mode']);
+    if (array_key_exists('motion_intensity', $settings)
+        && !in_array($settings['motion_intensity'], BloxMotion::LEVELS, true)) {
+        error(__('admin_bad_params'), 422);
+    }
     foreach (array_keys(getDefaults('pagination')) as $key) {
         if (array_key_exists($key, $settings) && !validCatalogPageSize($settings[$key])) {
             error(__('catalog_page_size_invalid'), 422);
@@ -261,6 +266,13 @@ if ($_langAware && $_viewLang !== $_defaultLang) {
 }
 
 $groupDefaults = getDefaults($group);
+// 老库可能缺少选项元数据；动效非法旧值与前台一样显示为标准，不在 GET 时写库。
+foreach ($items as &$item) {
+    if ($item['key'] === 'motion_intensity' && !in_array($item['value'], BloxMotion::LEVELS, true)) {
+        $item['value'] = 'standard';
+    }
+}
+unset($item);
 
 // ============================================================
 // 分区（quick-nav）：按 defaults.php 里各字段的 'section' 把可见项分组，
@@ -549,6 +561,7 @@ async function saveAdminLanguages() {
 </form>
 <?php endif; ?>
 <form id="settingForm" class="space-y-6">
+    <?php require ROOT_PATH . '/admin/includes/setting_sources_notice.php'; ?>
     <?php if ($tab === 'url'): ?>
     <input type="hidden" name="url_mode_expected" value="<?= e(urlMode()) ?>">
     <input type="hidden" name="url_mode_confirm" value="0">
@@ -726,7 +739,9 @@ async function saveAdminLanguages() {
                             : 'setting_image_resource_missing')); ?></span>
                     </p>
                     <?php endif; ?>
-                    <?php if ($item['value'] && $__imageCanPreview): ?>
+                    <?php if ($item['key'] === 'site_favicon'): ?>
+                    <?php require ROOT_PATH . '/admin/includes/favicon_preview.php'; ?>
+                    <?php elseif ($item['value'] && $__imageCanPreview): ?>
                     <img src="<?php echo e($item['value']); ?>" class="h-16 mt-2 rounded" id="preview_<?php echo e($item['key']); ?>">
                     <?php endif; ?>
                     <?php
@@ -780,6 +795,9 @@ async function saveAdminLanguages() {
                     <select name="settings[<?php echo e($item['key']); ?>]" class="w-full border rounded px-4 py-2">
                         <?php
                         $options = json_decode($item['options'] ?? '{}', true) ?: [];
+                        if (empty($options)) {
+                            $options = json_decode($groupDefaults[$item['key']]['options'] ?? '{}', true) ?: [];
+                        }
                         if (empty($options)) {
                             $defaultOptions = [
                                 'show_price' => ['0' => __('setting_hide'), '1' => __('setting_show')],
@@ -898,6 +916,7 @@ async function saveAdminLanguages() {
 <?php endif; ?>
 
 <input type="file" id="imageFileInput" class="hidden" accept="image/*">
+<script src="/assets/js/admin-favicon-preview.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/admin-favicon-preview.js') ?>"></script>
 
 <script>
 let currentImageKey = '';
@@ -934,14 +953,18 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
 
         if (data.code === 0) {
             document.getElementById('input_' + currentImageKey).value = data.data.url;
-            let preview = document.getElementById('preview_' + currentImageKey);
-            if (!preview) {
-                preview = document.createElement('img');
-                preview.id = 'preview_' + currentImageKey;
-                preview.className = 'h-16 mt-2 rounded';
-                document.getElementById('input_' + currentImageKey).parentNode.parentNode.appendChild(preview);
+            if (currentImageKey === 'site_favicon') {
+                window.YikaiFaviconPreview.refresh();
+            } else {
+                let preview = document.getElementById('preview_' + currentImageKey);
+                if (!preview) {
+                    preview = document.createElement('img');
+                    preview.id = 'preview_' + currentImageKey;
+                    preview.className = 'h-16 mt-2 rounded';
+                    document.getElementById('input_' + currentImageKey).parentNode.parentNode.appendChild(preview);
+                }
+                preview.src = data.data.url;
             }
-            preview.src = data.data.url;
             clearImageResourceWarning(currentImageKey);
             showMessage('<?php echo __('admin_success'); ?>');
         } else {
@@ -958,6 +981,11 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
 function pickFromMedia(key) {
     openMediaPicker(function(url) {
         document.getElementById('input_' + key).value = url;
+        if (key === 'site_favicon') {
+            window.YikaiFaviconPreview.refresh();
+            clearImageResourceWarning(key);
+            return;
+        }
         var preview = document.getElementById('preview_' + key);
         if (!preview) {
             preview = document.createElement('img');
@@ -1054,6 +1082,7 @@ document.querySelectorAll('.restore-btn').forEach(function(btn) {
                 input.value = defaultVal;
             }
             // 同步颜色选择器
+            if (key === 'site_favicon') window.YikaiFaviconPreview.refresh();
             var colorPicker = input.previousElementSibling;
             if (colorPicker && colorPicker.type === 'color') {
                 colorPicker.value = defaultVal || '#000000';

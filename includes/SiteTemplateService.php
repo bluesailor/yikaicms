@@ -55,6 +55,22 @@ final class SiteTemplateService
         }
     }
 
+    /** Read-only export readiness and known-channel link checks. */
+    public function exportCheck(): array
+    {
+        require_once __DIR__ . '/SiteExportChecks.php';
+        try {
+            $this->supported();
+            $data = SiteTemplateData::snapshot(true);
+            SiteTemplateData::validate($data);
+            $report = SiteExportChecks::inspect($data, channelModel()->all(), (string) config('site_url', ''));
+            return ['blocked' => '', 'issues' => $report['issues'], 'scanned' => $report['scanned'], 'limited' => $report['limited']];
+        } catch (RuntimeException $error) {
+            $code = $error->getMessage();
+            return ['blocked' => preg_match('/^st_[a-z_]+$/D', $code) ? $code : 'st_invalid', 'issues' => [], 'scanned' => 0, 'limited' => false];
+        }
+    }
+
     /** Writes to a caller-owned temporary file. Only referenced public uploads are bundled. */
     public function export(string $destination): array
     {
