@@ -256,45 +256,31 @@ if (trim($productTemplateHtml) !== '') {
                         </a>
                     </div>
 
-                    <!-- 产品询盘表单 -->
+                    <?php $productInquiryFields = renderProductInquiryFields((string) $product['title']); ?>
+                    <?php if ($productInquiryFields !== ''): ?>
+                    <!-- 产品询盘表单：原生页与 Blox 共用后台 product-inquiry 字段模板。 -->
                     <div class="border-t pt-5 mt-4">
                         <h3 class="text-sm font-bold text-dark mb-3 flex items-center gap-2">
                             <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
                             <?php echo __('product_inquiry'); ?>
                         </h3>
-                        <form id="inquiryForm" class="space-y-3">
-                            <?php if ($isNativeProductPreview): ?><fieldset disabled class="space-y-3"><?php endif; ?>
-                            <input type="hidden" name="form_slug" value="product-inquiry">
-                            <input type="hidden" name="_lang" value="<?= e(siteLang()) ?>">
-                            <?php $inquiryTimestamp = time(); ?>
-                            <input type="hidden" name="form_ts" value="<?= $inquiryTimestamp ?>">
-                            <input type="hidden" name="form_sig" value="<?= e(FormSubmissionToken::sign('product-inquiry', $inquiryTimestamp, defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '')) ?>">
-                            <input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
+                        <form id="inquiryForm" class="space-y-3" enctype="multipart/form-data"
+                              <?php if (!$isNativeProductPreview): ?>method="post" action="/form_submit.php?_lang=<?= e(rawurlencode(siteLang())) ?>"<?php else: ?>data-yk-preview="1"<?php endif; ?>>
+                            <?= renderFormSecurityFields('product-inquiry') ?>
+                            <?php
+                            $inquirySecret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
+                            ?>
                             <input type="hidden" name="product_id" value="<?php echo (int)$product['id']; ?>">
+                            <input type="hidden" name="product_sig" value="<?= e(FormSubmissionToken::contextSign('product-inquiry', (int) $product['id'], $inquirySecret)) ?>">
                             <input type="hidden" name="product_title" value="<?php echo e($product['title']); ?>">
-                            <div class="grid grid-cols-2 gap-3">
-                                <input type="text" name="name" required placeholder="<?php echo __('product_field_name_ph'); ?>"
-                                       class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
-                                <input type="tel" name="phone" required placeholder="<?php echo __('product_field_phone_ph'); ?>"
-                                       class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <input type="email" name="email" placeholder="<?php echo __('product_field_email_ph'); ?>"
-                                       class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
-                                <input type="text" name="company" placeholder="<?php echo __('product_field_company_ph'); ?>"
-                                       class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
-                            </div>
-                            <textarea name="content" required rows="3" placeholder="<?php echo __('product_field_msg_ph'); ?>"
-                                      class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none resize-y"><?php echo e(sprintf(__('product_default_inq_msg'), $product['title'])); ?></textarea>
-                            <?= renderFormCaptcha(!empty(formTemplateModel()->findBySlug('product-inquiry')['captcha'])) ?>
-                            <button type="submit" id="inquiryBtn"
-                                    class="w-full bg-primary hover:bg-secondary text-white py-2.5 rounded text-sm font-medium transition">
-                                <?php echo __('product_btn_submit_inq'); ?>
-                            </button>
-                            <p id="inquiryMsg" class="text-sm text-center hidden"></p>
+                            <?php if ($isNativeProductPreview): ?><fieldset disabled class="space-y-3"><?php endif; ?>
+                            <?= $productInquiryFields ?>
                             <?php if ($isNativeProductPreview): ?></fieldset><?php endif; ?>
+                            <p id="inquiryMsg" class="text-sm text-center hidden" role="status" aria-live="polite"></p>
                         </form>
+                        <?= renderFormNonceClientScript() ?>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -498,28 +484,37 @@ document.querySelectorAll('.product-tab').forEach(function(tab) {
 });
 
 // 产品询盘表单提交
-document.getElementById('inquiryForm').addEventListener('submit', function(e) {
+var inquiryForm = document.getElementById('inquiryForm');
+if (inquiryForm) inquiryForm.addEventListener('submit', function(e) {
     e.preventDefault();
-    var btn = document.getElementById('inquiryBtn');
+    var form = this;
+    var endpoint = form.getAttribute('action') || '';
+    if (form.getAttribute('data-yk-preview') === '1' || endpoint === '') return;
+    var btn = form.querySelector('button[type="submit"]');
     var msg = document.getElementById('inquiryMsg');
+    if (!btn) return;
+    var submitLabel = btn.textContent;
     btn.disabled = true;
     btn.textContent = '<?php echo __("product_submitting"); ?>';
     msg.classList.add('hidden');
 
-    var formData = new FormData(this);
-    fetch('/form_submit.php?_lang=' + encodeURIComponent(formData.get('_lang') || ''), { method: 'POST', body: formData })
+    window.ykFormNonce(form).then(function() {
+        var formData = new FormData(form);
+        var nonce = form.elements.namedItem('form_nonce');
+        if (nonce) nonce.value = '';
+        return fetch(endpoint, { method: 'POST', body: formData });
+    })
         .then(function(r) { return r.json(); })
         .then(function(data) {
             msg.classList.remove('hidden');
             if (data.code === 0) {
                 msg.className = 'text-sm text-center text-green-600';
                 msg.textContent = data.msg;
-                document.getElementById('inquiryForm').reset();
+                form.reset();
             } else {
                 msg.className = 'text-sm text-center text-red-600';
                 msg.textContent = data.msg;
             }
-            var form = document.getElementById('inquiryForm');
             if (data.refresh_token) {
                 ['form_ts', 'form_sig'].forEach(function(key) {
                     var field = form.elements.namedItem(key);
@@ -529,14 +524,14 @@ document.getElementById('inquiryForm').addEventListener('submit', function(e) {
             var captcha = form.querySelector('img[src*="captcha.php"]');
             if (captcha) captcha.src = '/captcha.php?' + Date.now();
             btn.disabled = false;
-            btn.textContent = '<?php echo __("product_btn_submit_inq"); ?>';
+            btn.textContent = submitLabel;
         })
         .catch(function(err) {
             msg.classList.remove('hidden');
             msg.className = 'text-sm text-center text-red-600';
-            msg.textContent = '<?php echo __("product_network_error"); ?>';
+            msg.textContent = err && err.message ? err.message : '<?php echo __("product_network_error"); ?>';
             btn.disabled = false;
-            btn.textContent = '<?php echo __("product_btn_submit_inq"); ?>';
+            btn.textContent = submitLabel;
         });
 });
 </script>

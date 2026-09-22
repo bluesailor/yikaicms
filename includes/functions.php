@@ -21,6 +21,8 @@ require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeE
 require_once __DIR__ . '/Slug.php';       // generateSlug/normalizeSlugInput：URL 别名净化单一来源
 require_once __DIR__ . '/AdminLogSanitizer.php';
 require_once __DIR__ . '/FormSubmissionToken.php';
+require_once __DIR__ . '/FormSubmissionNonce.php';
+require_once __DIR__ . '/FormFieldContract.php';
 require_once __DIR__ . '/LegacyInstallCleanup.php';
 require_once __DIR__ . '/ProductIdentity.php';
 require_once __DIR__ . '/SiteHealth.php';
@@ -3294,6 +3296,45 @@ function isJsonFields(string $fieldsRaw): bool
 }
 
 /**
+ * Read either the legacy JSON schema or the text schema into one canonical field shape.
+ * Malformed JSON fails closed instead of silently falling through to an empty text form.
+ */
+function formFieldsFromStored(string $fieldsRaw): array
+{
+    if (!isJsonFields($fieldsRaw)) return parseFormTags($fieldsRaw);
+    $decoded = json_decode($fieldsRaw, true);
+    if (!is_array($decoded)) return [];
+    $fields = [];
+    foreach ($decoded as $field) {
+        if (!is_array($field) || (array_key_exists('enabled', $field) && empty($field['enabled']))) continue;
+        $type = strtolower((string) ($field['type'] ?? 'text'));
+        $name = (string) ($field['key'] ?? $field['name'] ?? '');
+        $options = FormFieldContract::options($field['options'] ?? []);
+        $accept = $field['accept'] ?? [];
+        if (is_string($accept)) $accept = explode(',', $accept);
+        if (!is_array($accept)) $accept = [];
+        $fields[] = [
+            'type' => $type,
+            'name' => $name,
+            'key' => $name,
+            'label' => (string) ($field['label'] ?? $name),
+            'required' => !empty($field['required']),
+            'placeholder' => (string) ($field['placeholder'] ?? ''),
+            'options' => $options,
+            'min' => trim((string) ($field['min'] ?? '')),
+            'max' => trim((string) ($field['max'] ?? '')),
+            'step' => trim((string) ($field['step'] ?? '')),
+            'value' => (string) ($field['value'] ?? $field['placeholder'] ?? ''),
+            'accept' => array_values(array_unique(array_filter(array_map(
+                static fn(mixed $v): string => strtolower(trim(ltrim((string) $v, '.'))), $accept
+            ), static fn(string $v): bool => $v !== ''))),
+            'max_size' => (int) ($field['max_size'] ?? 0),
+        ];
+    }
+    return $fields;
+}
+
+/**
  * 将旧版 JSON 字段数组转换为 CF7 风格模板文本
  */
 function jsonFieldsToTemplate(array $fields): string
@@ -3312,7 +3353,30 @@ function jsonFieldsToTemplate(array $fields): string
         $placeholder = $field['placeholder'] ?? '';
         $reqMark = $required ? ' <span class="text-red-500">*</span>' : '';
         $reqStar = $required ? '*' : '';
-        $phPart = $placeholder !== '' ? ' "' . $placeholder . '"' : '';
+        $quoted = static fn(string $value): string => '"' . str_replace('"', '”', $value) . '"';
+        $phPart = $placeholder !== '' ? ' ' . $quoted((string) $placeholder) : '';
+        $attrs = '';
+        if (in_array($type, ['number', 'date'], true)) {
+            foreach (['min', 'max', 'step'] as $attr) {
+                $value = trim((string) ($field[$attr] ?? ''));
+                if ($value !== '') $attrs .= ' ' . $attr . ':' . preg_replace('/\s+/', '', $value);
+            }
+        } elseif ($type === 'hidden') {
+            $phPart = ' ' . $quoted((string) ($field['value'] ?? $placeholder));
+        } elseif ($type === 'file') {
+            $accept = is_array($field['accept'] ?? null)
+                ? implode(',', $field['accept'])
+                : (string) ($field['accept'] ?? '');
+            $phPart = $accept !== '' ? ' ' . $quoted($accept) : '';
+            $maxSize = (int) ($field['max_size'] ?? 0);
+            if ($maxSize > 0) $attrs .= ' max:' . $maxSize;
+        }
+
+        // hidden 参与提交与指纹，但不能占一个可见 grid 单元或泄露后台字段标签。
+        if ($type === 'hidden') {
+            $lines[] = '[hidden' . $reqStar . ' ' . $key . $phPart . ']';
+            continue;
+        }
 
         // textarea 独占一行，先关闭 grid
         if ($type === 'textarea') {
@@ -3334,24 +3398,23 @@ function jsonFieldsToTemplate(array $fields): string
             $inGrid = true;
         }
 
-        if ($type === 'select') {
-            $options = array_map('trim', explode(',', $field['options'] ?? ''));
+        if (in_array($type, ['select', 'radio', 'checkbox'], true)) {
+            $options = FormFieldContract::options($field['options'] ?? []);
             $optParts = '';
             foreach ($options as $opt) {
-                if ($opt !== '') {
-                    $optParts .= ' "' . $opt . '"';
-                }
+                $optParts .= ' ' . $quoted($opt);
             }
             $lines[] = '<div>';
             $lines[] = '    <label>' . $label . $reqMark . '</label>';
-            $lines[] = '    [select' . $reqStar . ' ' . $key . ' "' . $placeholder . '"' . $optParts . ']';
+            $placeholderPart = $type === 'select' ? ' ' . $quoted((string) $placeholder) : '';
+            $lines[] = '    [' . $type . $reqStar . ' ' . $key . $placeholderPart . $optParts . ']';
             $lines[] = '</div>';
             continue;
         }
 
         $lines[] = '<div>';
         $lines[] = '    <label>' . $label . $reqMark . '</label>';
-        $lines[] = '    [' . $type . $reqStar . ' ' . $key . $phPart . ']';
+        $lines[] = '    [' . $type . $reqStar . ' ' . $key . $phPart . $attrs . ']';
         $lines[] = '</div>';
     }
 
@@ -3367,6 +3430,119 @@ function jsonFieldsToTemplate(array $fields): string
     return implode("\n", $lines);
 }
 
+/** 表单标签的唯一解析正则；后台校验、前台渲染和提交处理必须共用。 */
+function formTagPattern(): string
+{
+    return '/\[(text|email|tel|textarea|number|date|url|select|radio|checkbox|file|hidden)(\*?)\s+([a-zA-Z][a-zA-Z0-9_-]{0,39})((?:\s+(?:"[^"]*"|[^\]\s]+))*)\]/i';
+}
+
+/** @return array{type:string,name:string,required:bool,placeholder:string,options:array,min:string,max:string,step:string,value:string,accept:array,max_size:int} */
+function formTagFromMatch(array $match): array
+{
+    $type = strtolower((string) ($match[1] ?? 'text'));
+    $arguments = trim((string) ($match[4] ?? ''));
+    $quoted = [];
+    $tokens = [];
+    if ($arguments !== '') {
+        preg_match_all('/"([^"]*)"|([^\s]+)/', $arguments, $parts, PREG_SET_ORDER);
+        foreach ($parts as $part) {
+            if (str_starts_with((string) ($part[0] ?? ''), '"')) $quoted[] = (string) ($part[1] ?? '');
+            elseif (($part[2] ?? '') !== '') $tokens[] = $part[2];
+        }
+    }
+    $attrs = ['min' => '', 'max' => '', 'step' => ''];
+    $maxSize = 0;
+    foreach ($tokens as $token) {
+        if (preg_match('/^(min|max|step):(.+)$/i', $token, $m)) $attrs[strtolower($m[1])] = $m[2];
+        elseif (preg_match('/^max:(\d+)$/i', $token, $m)) $maxSize = (int) $m[1];
+    }
+    if ($type === 'file' && preg_match('/(?:^|\s)max:(\d+)(?:\s|$)/i', $arguments, $m)) {
+        $maxSize = (int) $m[1];
+    }
+    $placeholder = '';
+    $options = [];
+    if ($type === 'select') {
+        $placeholder = (string) array_shift($quoted);
+        $options = FormFieldContract::options($quoted);
+    } elseif (in_array($type, ['radio', 'checkbox'], true)) {
+        $options = FormFieldContract::options($quoted);
+    }
+    $accept = [];
+    if ($type === 'file' && isset($quoted[0])) {
+        $accept = array_values(array_unique(array_filter(array_map(
+            static fn(string $ext): string => strtolower(trim(ltrim($ext, '.'))),
+            explode(',', $quoted[0])
+        ), static fn(string $ext): bool => $ext !== '')));
+    }
+    return [
+        'type' => $type,
+        'name' => (string) ($match[3] ?? ''),
+        'required' => ($match[2] ?? '') === '*',
+        'placeholder' => $type === 'select' ? $placeholder
+            : (!in_array($type, ['radio', 'checkbox', 'file', 'hidden'], true) ? ($quoted[0] ?? '') : ''),
+        'options' => $options,
+        'min' => $attrs['min'],
+        'max' => $attrs['max'],
+        'step' => $attrs['step'],
+        'value' => $type === 'hidden' ? ($quoted[0] ?? '') : '',
+        'accept' => $accept,
+        'max_size' => $maxSize,
+    ];
+}
+
+/** 后台保存时拒绝无效边界，避免浏览器与服务端对同一字段作不同解释。 */
+function formTagConfigurationValid(array $field): bool
+{
+    $type = (string) ($field['type'] ?? '');
+    if (in_array($type, ['select', 'radio', 'checkbox'], true)) {
+        return FormFieldContract::options($field['options'] ?? []) !== [];
+    }
+    if ($type === 'file') {
+        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+        $accept = $field['accept'] ?? [];
+        return is_array($accept) && $accept !== [] && count(array_diff($accept, $allowed)) === 0
+            && (int) ($field['max_size'] ?? 0) >= 1 && (int) ($field['max_size'] ?? 0) <= 10;
+    }
+    if ($type === 'number') {
+        require_once __DIR__ . '/FormDecimal.php';
+        foreach (['min', 'max', 'step'] as $attr) {
+            $value = (string) ($field[$attr] ?? '');
+            if ($value !== '' && !FormDecimal::valid($value)) return false;
+        }
+        if (($field['min'] ?? '') !== '' && ($field['max'] ?? '') !== ''
+            && FormDecimal::compare((string) $field['min'], (string) $field['max']) > 0) return false;
+        return ($field['step'] ?? '') === '' || FormDecimal::compare((string) $field['step'], '0') > 0;
+    }
+    if ($type === 'date') {
+        $utc = new DateTimeZone('UTC');
+        foreach (['min', 'max'] as $attr) {
+            $value = (string) ($field[$attr] ?? '');
+            $date = $value === '' || preg_match('/^(?!0000)\d{4}-\d{2}-\d{2}$/D', $value) !== 1
+                ? null : DateTimeImmutable::createFromFormat('!Y-m-d', $value, $utc);
+            if ($value !== '' && (!$date || $date->format('Y-m-d') !== $value)) return false;
+        }
+        if (($field['min'] ?? '') !== '' && ($field['max'] ?? '') !== '' && $field['min'] > $field['max']) return false;
+        return ($field['step'] ?? '') === '' || preg_match('/^[1-9]\d*$/D', (string) $field['step']) === 1;
+    }
+    return true;
+}
+
+/** Duplicate or infrastructure-owned names make request interpretation ambiguous. */
+function formFieldSetValid(array $fields): bool
+{
+    $reserved = array_fill_keys([
+        'hp_url', 'form_slug', 'form_ts', 'form_sig', 'form_nonce', 'captcha_code', 'product_id',
+        'product_title', 'product_sig', '_lang', '_token', 'action',
+    ], true);
+    $seen = [];
+    foreach ($fields as $field) {
+        $name = (string) ($field['name'] ?? $field['key'] ?? '');
+        if ($name === '' || isset($reserved[$name]) || isset($seen[$name]) || !formTagConfigurationValid($field)) return false;
+        $seen[$name] = true;
+    }
+    return $seen !== [];
+}
+
 /**
  * 解析 CF7 风格模板中的所有字段标签
  * 返回 [{type, name, required, placeholder, options}, ...]
@@ -3375,37 +3551,10 @@ function jsonFieldsToTemplate(array $fields): string
 function parseFormTags(string $template): array
 {
     $tags = [];
-    // 匹配 [type(*) name "..." "..." ...]
-    preg_match_all('/\[(text|email|tel|textarea|number|date|url|select|radio|checkbox)(\*?)\s+([a-zA-Z0-9_-]+)((?:\s+"[^"]*")*)\]/i', $template, $matches, PREG_SET_ORDER);
+    preg_match_all(formTagPattern(), $template, $matches, PREG_SET_ORDER);
 
     foreach ($matches as $m) {
-        $type = strtolower($m[1]);
-        $required = $m[2] === '*';
-        $name = $m[3];
-        $quotedStr = trim($m[4] ?? '');
-
-        // 提取所有引号字符串
-        $quoted = [];
-        if ($quotedStr !== '') {
-            preg_match_all('/"([^"]*)"/', $quotedStr, $qm);
-            $quoted = $qm[1];
-        }
-
-        $tag = [
-            'type'        => $type,
-            'name'        => $name,
-            'required'    => $required,
-            'placeholder' => '',
-            'options'     => [],
-        ];
-
-        if (in_array($type, ['select', 'radio', 'checkbox'])) {
-            $tag['options'] = $quoted;
-        } else {
-            $tag['placeholder'] = $quoted[0] ?? '';
-        }
-
-        $tags[] = $tag;
+        $tags[] = formTagFromMatch($m);
     }
 
     return $tags;
@@ -3423,24 +3572,23 @@ function renderFormTagHtml(array $tag): string
 
     switch ($tag['type']) {
         case 'textarea':
-            return '<textarea name="' . $name . '" rows="4" class="' . $cls . '" placeholder="' . $ph . '"' . $req . '></textarea>';
+            return '<textarea name="' . $name . '" rows="4" class="' . $cls . '" placeholder="' . $ph . '"' . $req . '>'
+                . e((string) ($tag['value'] ?? '')) . '</textarea>';
 
         case 'select':
             $html = '<select name="' . $name . '" class="' . $cls . '"' . $req . '>';
-            foreach ($tag['options'] as $i => $opt) {
+            $placeholder = e((string) ($tag['placeholder'] ?? ''));
+            $html .= '<option value="">' . $placeholder . '</option>';
+            foreach (FormFieldContract::options($tag['options'] ?? []) as $opt) {
                 $eopt = e($opt);
-                if ($i === 0) {
-                    $html .= '<option value="">' . $eopt . '</option>';
-                } else {
-                    $html .= '<option value="' . $eopt . '">' . $eopt . '</option>';
-                }
+                $html .= '<option value="' . $eopt . '">' . $eopt . '</option>';
             }
             $html .= '</select>';
             return $html;
 
         case 'radio':
             $html = '<div class="flex flex-wrap gap-4">';
-            foreach ($tag['options'] as $opt) {
+            foreach (FormFieldContract::options($tag['options'] ?? []) as $opt) {
                 $eopt = e($opt);
                 $html .= '<label class="inline-flex items-center gap-2 cursor-pointer">';
                 $html .= '<input type="radio" name="' . $name . '" value="' . $eopt . '" class="accent-primary"' . $req . '>';
@@ -3451,7 +3599,7 @@ function renderFormTagHtml(array $tag): string
 
         case 'checkbox':
             $html = '<div class="flex flex-wrap gap-4">';
-            foreach ($tag['options'] as $opt) {
+            foreach (FormFieldContract::options($tag['options'] ?? []) as $opt) {
                 $eopt = e($opt);
                 $html .= '<label class="inline-flex items-center gap-2 cursor-pointer">';
                 $html .= '<input type="checkbox" name="' . $name . '[]" value="' . $eopt . '" class="accent-primary">';
@@ -3460,13 +3608,28 @@ function renderFormTagHtml(array $tag): string
             $html .= '</div>';
             return $html;
 
+        case 'hidden':
+            return '<input type="hidden" name="' . $name . '" value="' . e((string) ($tag['value'] ?? '')) . '">';
+
+        case 'file':
+            $accept = implode(',', array_map(static fn(string $ext): string => '.' . $ext, $tag['accept'] ?? []));
+            return '<input type="file" name="' . $name . '" class="' . $cls . '" accept="' . e($accept) . '"' . $req . '>';
+
         case 'submit':
             $text = e($tag['text'] ?? __('form_submit'));
             return '<button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg transition">' . $text . '</button>';
 
         default:
             $inputType = in_array($tag['type'], ['email', 'tel', 'number', 'url', 'date']) ? $tag['type'] : 'text';
-            return '<input type="' . e($inputType) . '" name="' . $name . '" class="' . $cls . '" placeholder="' . $ph . '"' . $req . '>';
+            $bounds = '';
+            if (in_array($inputType, ['number', 'date'], true)) {
+                foreach (['min', 'max', 'step'] as $attr) {
+                    if (($tag[$attr] ?? '') !== '') $bounds .= ' ' . $attr . '="' . e((string) $tag[$attr]) . '"';
+                }
+                if ($inputType === 'number' && ($tag['step'] ?? '') === '') $bounds .= ' step="any"';
+            }
+            $value = array_key_exists('value', $tag) ? ' value="' . e((string) $tag['value']) . '"' : '';
+            return '<input type="' . e($inputType) . '" name="' . $name . '" class="' . $cls . '" placeholder="' . $ph . '"' . $value . $bounds . $req . '>';
     }
 }
 
@@ -3480,6 +3643,89 @@ function renderFormCaptcha(bool $enabled): string
         . '</button></div>';
 }
 
+/** 读取模板当前语言字段，所有表单入口必须复用这一回退规则。 */
+function formTemplateFieldsRaw(array $template): string
+{
+    $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
+    $fieldsRaw = (string) ($template['fields'] ?? '');
+    $localized = (string) ($template['fields_' . $lang] ?? '');
+    return trim($localized) !== '' ? $localized : $fieldsRaw;
+}
+
+/**
+ * 渲染已保存模板的字段区。旧 JSON 与文本模板先进入同一字段合同再输出。
+ *
+ * @param array<string,string> $defaults 仅用于服务端提供的默认展示值；hidden 永远使用模板配置值。
+ */
+function renderStoredFormFields(array $template, array $defaults = []): string
+{
+    $fieldsRaw = formTemplateFieldsRaw($template);
+    if (trim($fieldsRaw) === '') return '';
+    $fields = formFieldsFromStored($fieldsRaw);
+    if (!formFieldSetValid($fields)) return '';
+    if (isJsonFields($fieldsRaw)) $fieldsRaw = jsonFieldsToTemplate($fields);
+
+    $rendered = preg_replace_callback(formTagPattern(), static function (array $match) use ($defaults): string {
+        $tag = formTagFromMatch($match);
+        $name = (string) ($tag['name'] ?? '');
+        if (($tag['type'] ?? '') !== 'hidden' && array_key_exists($name, $defaults)) {
+            $tag['value'] = $defaults[$name];
+        }
+        return renderFormTagHtml($tag);
+    }, $fieldsRaw);
+    if (!is_string($rendered)) return '';
+
+    $captcha = renderFormCaptcha(!empty($template['captcha']));
+    $rendered = preg_replace_callback('/\[submit(?:\s+"([^"]*)")?\]/', static function (array $match) use ($captcha): string {
+        return $captcha . renderFormTagHtml(['type' => 'submit', 'text' => $match[1] ?? __('form_submit')]);
+    }, $rendered);
+    return is_string($rendered) ? $rendered : '';
+}
+
+function renderProductInquiryFields(string $productTitle): string
+{
+    try {
+        $template = formTemplateModel()->findBySlug('product-inquiry');
+        if (!$template) return '';
+        return renderStoredFormFields($template, [
+            'content' => sprintf((string) __('product_default_inq_msg'), $productTitle),
+        ]);
+    } catch (Throwable $error) {
+        error_log('Product inquiry template unavailable: ' . get_class($error));
+        return '';
+    }
+}
+
+/** 安全字段可缓存；一次性 nonce 始终留空，由 no-store 端点按 session 动态签发。 */
+function renderFormSecurityFields(string $slug): string
+{
+    $timestamp = time();
+    $secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
+    return '<input type="hidden" name="form_slug" value="' . e($slug) . '">'
+        . '<input type="hidden" name="_lang" value="' . e(siteLang()) . '">'
+        . '<input type="hidden" name="form_ts" value="' . $timestamp . '">'
+        . '<input type="hidden" name="form_sig" value="' . e(FormSubmissionToken::sign($slug, $timestamp, $secret)) . '">'
+        . '<input type="hidden" name="form_nonce" value="">'
+        . '<input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" '
+        . 'style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">';
+}
+
+/** Shared dynamic nonce client. It is safe to append repeatedly; initialization runs once. */
+function renderFormNonceClientScript(): string
+{
+    $error = json_encode(__('form_nonce_fetch_error'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+    return '<script>if(!window.ykFormNonce){window.ykFormNonce=function(form){'
+        . 'var slug=form.elements.namedItem("form_slug");var field=form.elements.namedItem("form_nonce");'
+        . 'if(!slug||!field)return Promise.reject(new Error(' . $error . '));'
+        . 'var body=new URLSearchParams();body.set("form_slug",String(slug.value||""));'
+        . 'var lang=form.elements.namedItem("_lang");var langValue=lang?String(lang.value||""):"";'
+        . 'return fetch("/form_nonce.php?_lang="+encodeURIComponent(langValue),{method:"POST",credentials:"same-origin",cache:"no-store",'
+        . 'headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:body.toString()})'
+        . '.then(function(response){return response.json();}).then(function(data){'
+        . 'if(!data||data.code!==0||!data.nonce)throw new Error((data&&data.msg)||' . $error . ');'
+        . 'field.value=String(data.nonce);return field.value;});};}</script>';
+}
+
 /**
  * 渲染表单模板为HTML（支持 CF7 风格模板和旧版 JSON）
  */
@@ -3490,90 +3736,27 @@ function renderFormTemplate(string $slug): string
         return '<!-- 表单不存在: ' . e($slug) . ' -->';
     }
 
-    // lang-aware：先按当前 siteLang 找 fields_<lang>，没有再回退到 base。
-    // 不再用 "lang !== defaultLang" 作为门槛 —— 那种写法在用户把默认语言改为
-    // en/ja 后，会让两边相等条件直接跳过翻译查找，导致 base (legacy zh-CN)
-    // 被原样返回，跟 configLang/configRawLang/configJsonLang 同一类 bug。
-    $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
-    $fieldsRaw = (string) ($template['fields'] ?? '');
-    $langFields = (string) ($template['fields_' . $lang] ?? '');
-    if (trim($langFields) !== '') {
-        $fieldsRaw = $langFields;
-    }
-    if (empty(trim($fieldsRaw))) {
-        return '';
-    }
-
-    // 向后兼容：旧 JSON 格式自动转换
-    if (isJsonFields($fieldsRaw)) {
-        $jsonFields = json_decode($fieldsRaw, true);
-        $fieldsRaw = jsonFieldsToTemplate($jsonFields);
-    }
-
     $formId = 'shortcode-form-' . $slug;
-
-    // 替换模板中的标签为 HTML
-    $renderedBody = preg_replace_callback(
-        '/\[(text|email|tel|textarea|number|date|url|select|radio|checkbox)(\*?)\s+([a-zA-Z0-9_-]+)((?:\s+"[^"]*")*)\]/i',
-        function ($m) {
-            $type = strtolower($m[1]);
-            $required = $m[2] === '*';
-            $name = $m[3];
-            $quotedStr = trim($m[4] ?? '');
-            $quoted = [];
-            if ($quotedStr !== '') {
-                preg_match_all('/"([^"]*)"/', $quotedStr, $qm);
-                $quoted = $qm[1];
-            }
-            $tag = ['type' => $type, 'name' => $name, 'required' => $required, 'placeholder' => '', 'options' => []];
-            if (in_array($type, ['select', 'radio', 'checkbox'])) {
-                $tag['options'] = $quoted;
-            } else {
-                $tag['placeholder'] = $quoted[0] ?? '';
-            }
-            return renderFormTagHtml($tag);
-        },
-        $fieldsRaw
-    );
-
-    // 验证码（模板「启用验证码」时，插在提交按钮之前；内联样式，主题无关）
-    $captchaHtml = renderFormCaptcha(!empty($template['captcha']));
-
-    // 替换 submit 标签（前面插入验证码）
-    $renderedBody = preg_replace_callback(
-        '/\[submit(?:\s+"([^"]*)")?\]/',
-        function ($m) use ($captchaHtml) {
-            $text = $m[1] ?? __('form_submit');
-            return $captchaHtml . renderFormTagHtml(['type' => 'submit', 'text' => $text]);
-        },
-        $renderedBody
-    );
+    $renderedBody = renderStoredFormFields($template);
+    if ($renderedBody === '') return '';
 
     // 组装完整表单
     $html = '<div class="shortcode-form" id="' . e($formId) . '-wrap">';
-    $html .= '<form id="' . e($formId) . '" onsubmit="return submitShortcodeForm(event, \'' . e($slug) . '\')">';
-    $html .= '<input type="hidden" name="form_slug" value="' . e($slug) . '">';
-    $html .= '<input type="hidden" name="_lang" value="' . e(siteLang()) . '">';
-    // 反垃圾：蜜罐字段（正常用户不可见，机器人易填）+ 签名时间戳（防提交过快）
-    $html .= '<input type="text" name="hp_url" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">';
-    $_fts = time();
-    $_secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
-    $_fsig = FormSubmissionToken::sign($slug, $_fts, $_secret);
-    $html .= '<input type="hidden" name="form_ts" value="' . $_fts . '">';
-    $html .= '<input type="hidden" name="form_sig" value="' . $_fsig . '">';
+    $html .= '<form id="' . e($formId) . '" enctype="multipart/form-data" onsubmit="return submitShortcodeForm(event, \'' . e($slug) . '\')">';
+    $html .= renderFormSecurityFields($slug);
     $html .= $renderedBody;
     $html .= '</form>';
     $html .= '<div id="' . e($formId) . '-msg" class="hidden mt-4 p-4 rounded-lg text-sm"></div>';
     $html .= '</div>';
 
     // 内联 JS（只注入一次）
-    $html .= '<script>';
+    $html .= renderFormNonceClientScript() . '<script>';
     $html .= 'if(!window._shortcodeFormInit){window._shortcodeFormInit=true;';
     $html .= 'window.submitShortcodeForm=function(e,slug){';
     $html .= 'e.preventDefault();var form=e.target;var btn=form.querySelector("button[type=submit]");';
     $html .= 'btn.disabled=true;btn.textContent=' . json_encode(__('form_submitting')) . ';';
-    $html .= 'var fd=new FormData(form);';
-    $html .= 'fetch("/form_submit.php?_lang="+encodeURIComponent(fd.get("_lang")||""),{method:"POST",body:fd}).then(r=>r.json()).then(function(data){';
+    $html .= 'window.ykFormNonce(form).then(function(){var fd=new FormData(form);var nonce=form.elements.namedItem("form_nonce");if(nonce)nonce.value="";';
+    $html .= 'return fetch("/form_submit.php?_lang="+encodeURIComponent(fd.get("_lang")||""),{method:"POST",body:fd}).then(r=>r.json()).then(function(data){';
     $html .= 'var msgEl=document.getElementById("shortcode-form-"+slug+"-msg");';
     $html .= 'msgEl.classList.remove("hidden","bg-green-50","text-green-600","bg-red-50","text-red-600");';
     $html .= 'if(data.code===0){msgEl.className+=" bg-green-50 text-green-600";msgEl.textContent=data.msg;form.reset();}';
@@ -3581,7 +3764,7 @@ function renderFormTemplate(string $slug): string
     $html .= 'if(data.refresh_token){["form_ts","form_sig"].forEach(function(key){var field=form.elements.namedItem(key);if(field){field.value=String(data.refresh_token[key]);field.defaultValue=field.value;}});}';
     $html .= 'var _ci=form.querySelector("img[src*=captcha]");if(_ci)_ci.src="/captcha.php?"+Date.now();';
     $html .= 'msgEl.classList.remove("hidden");btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';';
-    $html .= '}).catch(function(){btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';});return false;};';
+    $html .= '});}).catch(function(error){var msgEl=document.getElementById("shortcode-form-"+slug+"-msg");if(msgEl){msgEl.className="mt-4 p-4 rounded-lg text-sm bg-red-50 text-red-600";msgEl.textContent=error&&error.message?error.message:' . json_encode(__('form_nonce_fetch_error')) . ';}btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';});return false;};';
     $html .= '}</script>';
 
     return $html;

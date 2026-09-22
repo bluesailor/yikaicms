@@ -126,7 +126,7 @@ $attachExtraFields = static function (array $item) use (&$formFieldLabelCache): 
         $template = $type !== '' ? formTemplateModel()->findBySlug($type) : null;
         $formFieldLabelCache[$type] = formTemplateFieldLabels((string) ($template['fields'] ?? ''));
     }
-    $item['extra_fields'] = formSubmissionExtraFields((string) ($item['extra'] ?? ''), $formFieldLabelCache[$type]);
+    $item['extra_fields'] = formSubmissionExtraFields((string) ($item['extra'] ?? ''), $formFieldLabelCache[$type], (int) ($item['id'] ?? 0));
     return $item;
 };
 $forms = array_map($attachExtraFields, $forms);
@@ -368,7 +368,7 @@ function showDetail(item) {
             <p><span class="text-gray-500"><?php echo __('inq_th_email'); ?>：</span>${escapeHtml(item.email)}</p>
             <p><span class="text-gray-500"><?php echo __('inq_th_company'); ?>：</span>${escapeHtml(item.company)}</p>
             <p><span class="text-gray-500"><?php echo __('inq_th_content'); ?>：</span>${escapeHtml(item.content)}</p>
-            ${(item.extra_fields || []).map(field => `<p data-testid="form-extra-field"><span class="text-gray-500">${escapeHtml(field.label)}：</span>${escapeHtml(field.value)}</p>`).join('')}
+            ${(item.extra_fields || []).map(field => `<p data-testid="form-extra-field"><span class="text-gray-500">${escapeHtml(field.label)}：</span>${field.file_url ? `<a class="text-primary hover:underline" href="${field.file_url}" download>${escapeHtml(field.value)}</a>` : escapeHtml(field.value)}</p>`).join('')}
             <p><span class="text-gray-500"><?php echo __('inq_field_ip'); ?>：</span>${escapeHtml(item.ip)}</p>
             <p><span class="text-gray-500"><?php echo __('inq_field_note'); ?>：</span>${escapeHtml(item.follow_note)}</p>
         </div>

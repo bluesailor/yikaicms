@@ -5,6 +5,7 @@ use PHPUnit\Framework\TestCase;
 
 require_once ROOT_PATH . '/includes/FormSpamGuard.php';
 
+/** @psalm-suppress UndefinedClass PHPUnit 10's never return is unavailable in the PHP 8.0 analysis target. */
 final class FormSpamGuardTest extends TestCase
 {
     private string $directory;
@@ -33,12 +34,70 @@ final class FormSpamGuardTest extends TestCase
     public function testScalarArrayAndCheckboxNestingCannotBeCoerced(): void
     {
         foreach ([['text', ['x']], ['checkbox', [['x']]]] as [$type, $raw]) {
+            $rejected = false;
             try {
                 FormSpamGuard::fieldValue(['key' => 'example', 'type' => $type], $raw);
-                self::fail('Malformed field accepted');
+            } catch (InvalidArgumentException) { $rejected = true; }
+            self::assertTrue($rejected, 'Malformed field accepted');
+        }
+        self::assertSame('a, b', FormSpamGuard::fieldValue(['type' => 'checkbox', 'options' => ['a', 'b']], [' a ', 'b']));
+    }
+
+    public function testExplicitCrossSiteRequestsAreRejectedBeforeTheAttemptBudget(): void
+    {
+        $site = 'https://www.example.test/site';
+        self::assertTrue(FormSpamGuard::isExplicitCrossSite([
+            'HTTP_SEC_FETCH_SITE' => 'cross-site',
+        ], $site));
+        self::assertTrue(FormSpamGuard::isExplicitCrossSite([
+            'HTTP_SEC_FETCH_SITE' => 'same-site',
+            'HTTP_ORIGIN' => 'https://other.example.test',
+            'HTTP_HOST' => 'www.example.test',
+            'HTTPS' => 'on',
+        ], $site));
+        self::assertTrue(FormSpamGuard::isExplicitCrossSite(['HTTP_ORIGIN' => 'null'], $site));
+
+        self::assertFalse(FormSpamGuard::isExplicitCrossSite([
+            'HTTP_SEC_FETCH_SITE' => 'same-origin',
+            'HTTP_ORIGIN' => 'https://www.example.test:443',
+            'HTTP_HOST' => 'www.example.test',
+            'HTTPS' => 'on',
+        ], $site));
+        self::assertFalse(FormSpamGuard::isExplicitCrossSite([
+            'HTTP_ORIGIN' => 'https://preview.example.test',
+            'HTTP_HOST' => 'preview.example.test',
+            'HTTP_X_FORWARDED_PROTO' => 'https',
+        ], $site), 'The actual same-origin host remains usable when the configured canonical host differs');
+        self::assertFalse(FormSpamGuard::isExplicitCrossSite([], $site), 'Missing browser metadata remains compatible');
+
+        $endpoint = (string) file_get_contents(ROOT_PATH . '/form_submit.php');
+        $boundary = strpos($endpoint, 'FormSpamGuard::isExplicitCrossSite');
+        $attempt = strpos($endpoint, '$spamGuard->attempt');
+        self::assertIsInt($boundary);
+        self::assertIsInt($attempt);
+        self::assertLessThan($attempt, $boundary, 'Cross-site rejection must happen before the IP attempt budget is consumed');
+    }
+
+    public function testChoiceFieldsUseTheConfiguredWhitelistAndCanonicalOrder(): void
+    {
+        self::assertSame('Second', FormSpamGuard::fieldValue(
+            ['type' => 'select', 'options' => ['First', 'Second', 'Second']], 'Second'
+        ));
+        self::assertSame('A', FormSpamGuard::fieldValue(['type' => 'radio', 'options' => 'A,B,A'], 'A'));
+        self::assertSame('One, Two', FormSpamGuard::fieldValue(
+            ['type' => 'checkbox', 'options' => ['One', 'Two']], ['Two', 'One']
+        ));
+        foreach ([
+            [['type' => 'select', 'options' => ['First']], 'Injected'],
+            [['type' => 'radio', 'options' => ['A']], 'Injected'],
+            [['type' => 'checkbox', 'options' => ['One']], ['One', 'Injected']],
+            [['type' => 'checkbox', 'options' => ['One']], ['One', 'One']],
+        ] as [$field, $value]) {
+            try {
+                FormSpamGuard::fieldValue($field, $value);
+                self::fail('Unconfigured or duplicate choice accepted');
             } catch (InvalidArgumentException) { self::assertTrue(true); }
         }
-        self::assertSame('a, b', FormSpamGuard::fieldValue(['type' => 'checkbox'], [' a ', '', 'b']));
     }
 
     public function testSqlProbeTelephoneAndColumnOverflowsAreRejected(): void
@@ -61,6 +120,76 @@ final class FormSpamGuardTest extends TestCase
         }
         $text = 'Please explain SELECT * FROM products; SQL "OR" is a question, not spam.';
         self::assertSame($text, FormSpamGuard::fieldValue(['type' => 'textarea'], $text));
+    }
+
+    public function testNumberDateAndHiddenFieldsAreRevalidatedServerSide(): void
+    {
+        $number = ['type' => 'number', 'min' => '1.5', 'max' => '5.5', 'step' => '0.5'];
+        self::assertSame('2.5', FormSpamGuard::fieldValue($number, '2.5'));
+        foreach (['1', '5.6', '2.6', 'INF', '1e2'] as $value) {
+            try {
+                FormSpamGuard::fieldValue($number, $value);
+                self::fail('Invalid number accepted: ' . $value);
+            } catch (InvalidArgumentException) { self::assertTrue(true); }
+        }
+
+        $date = ['type' => 'date', 'min' => '2026-09-20', 'max' => '2026-09-30', 'step' => '2'];
+        self::assertSame('2026-09-22', FormSpamGuard::fieldValue($date, '2026-09-22'));
+        foreach (['2026-09-21', '2026-09-31', '2026-10-01', '22-09-2026'] as $value) {
+            try {
+                FormSpamGuard::fieldValue($date, $value);
+                self::fail('Invalid date accepted: ' . $value);
+            } catch (InvalidArgumentException) { self::assertTrue(true); }
+        }
+
+        self::assertSame('configured-campaign', FormSpamGuard::fieldValue(
+            ['type' => 'hidden', 'value' => 'configured-campaign'],
+            'attacker-overwrite'
+        ));
+        self::assertSame('Visible visitor text', FormFieldContract::contentForSpamScan(
+            [['name' => 'campaign', 'type' => 'hidden'], ['name' => 'content', 'type' => 'textarea']],
+            ['campaign' => 'blocked-keyword', 'content' => 'Visible visitor text']
+        ));
+        $endpoint = (string) file_get_contents(ROOT_PATH . '/form_submit.php');
+        self::assertStringContainsString('$fingerprintData[$key] = $value;', $endpoint,
+            'Configured hidden values must still participate in replay fingerprints');
+        self::assertStringContainsString('FormFieldContract::contentForSpamScan($fields, $formData)', $endpoint,
+            'Spam scanning must use the hidden-excluding contract');
+    }
+
+    public function testDecimalBoundsAndStepsNeverRoundThroughFloat(): void
+    {
+        self::assertSame('9007199254740992', FormSpamGuard::fieldValue(
+            ['type' => 'number', 'max' => '9007199254740992'], '9007199254740992'
+        ));
+        foreach ([
+            [['type' => 'number', 'max' => '9007199254740992'], '9007199254740993'],
+            [['type' => 'number', 'step' => '0.0000000001'], '0.00000000011'],
+            [['type' => 'number', 'min' => '-9007199254740993'], '-9007199254740994'],
+        ] as [$field, $value]) {
+            try {
+                FormSpamGuard::fieldValue($field, $value);
+                self::fail('Inexact decimal accepted: ' . $value);
+            } catch (InvalidArgumentException) { self::assertTrue(true); }
+        }
+        self::assertSame('1.25', FormSpamGuard::fieldValue(['type' => 'number'], '1.25'));
+    }
+
+    public function testDatesUseUtcRejectYearZeroAndApplyExactDayStep(): void
+    {
+        $original = date_default_timezone_get();
+        date_default_timezone_set('Pacific/Kiritimati');
+        try {
+            self::assertSame('1970-01-03', FormSpamGuard::fieldValue(['type' => 'date', 'step' => '2'], '1970-01-03'));
+            foreach (['0000-01-01', '1970-01-02'] as $value) {
+                try {
+                    FormSpamGuard::fieldValue(['type' => 'date', 'step' => '2'], $value);
+                    self::fail('Invalid date accepted: ' . $value);
+                } catch (InvalidArgumentException) { self::assertTrue(true); }
+            }
+        } finally {
+            date_default_timezone_set($original);
+        }
     }
 
     public function testAttemptsShareAnIpBudgetAndExpireWithoutExtendingOnRejection(): void
@@ -114,7 +243,7 @@ final class FormSpamGuardTest extends TestCase
         $file = (glob($this->directory . '/*.json') ?: [])[0];
         file_put_contents($file, '{broken');
         $this->expectException(JsonException::class);
-        $this->guard->submit('ip', ['content' => 'one'], 1, 60, static function (): int { self::fail('Persistence must not run'); }, 1001);
+        $this->guard->submit('ip', ['content' => 'one'], 1, 60, static function (): int { self::fail('Persistence must not run'); return 0; }, 1001);
     }
 
     public function testConcurrentProcessesPersistAnIdenticalSubmissionOnlyOnce(): void
@@ -131,7 +260,7 @@ final class FormSpamGuardTest extends TestCase
         }
         $results = [];
         foreach ($workers as [$process, $pipes]) {
-            $results[] = stream_get_contents($pipes[1]);
+            $results[] = (string) stream_get_contents($pipes[1]);
             $errors = stream_get_contents($pipes[2]);
             fclose($pipes[1]); fclose($pipes[2]);
             self::assertSame(0, proc_close($process), $errors);
