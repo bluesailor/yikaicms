@@ -1284,8 +1284,8 @@ $canManageBloxDesign = hasPermission('blox_global');
             _sortables: [],
             _treeSortableTimer: null,
             csrf: "<?php echo csrfToken(); ?>",
-            endpoint: "<?php echo $saveEndpoint; ?>",
-            previewEndpoint: "<?php echo $previewEndpoint; ?>",
+            endpoint: "<?php echo BasePath::url($saveEndpoint); ?>",
+            previewEndpoint: "<?php echo BasePath::url($previewEndpoint); ?>",
             productTemplateMode: <?= $templateId && $templateType === 'product-detail' ? 'true' : 'false' ?>,
             productPreviewId: <?= $productPreviewId ?>,
             articleTemplateMode: <?= $templateId && $templateType === 'article-detail' ? 'true' : 'false' ?>,
@@ -1492,7 +1492,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             // 模板发布独立于"保存中"：按钮要能显示"发布中…"，而保存/发布是两个不同动作
             templateActionBusy: false,
             contactManage: <?php echo json_encode($contactManageActions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            siteCopyrightEndpoint: "/admin/blox_site_api.php",
+            siteCopyrightEndpoint: (window.YK_BASE || "") + "/admin/blox_site_api.php",
             siteCopyright: <?php echo json_encode($siteCopyright, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             siteCopyrightChanged: false,
             siteCopyrightSaving: false,
@@ -1500,7 +1500,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'saved' => __('blox_site_copyright_saved'),
                 'failed' => __('blox_save_failed'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
-            contactEndpoint: "/admin/blox_contact_api.php?id=<?php echo (int) $id; ?>",
+            contactEndpoint: (window.YK_BASE || "") + "/admin/blox_contact_api.php?id=<?php echo (int) $id; ?>",
             contactCards: <?php echo json_encode($contactCards, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             contactCardIconOptions: <?php echo json_encode($contactCardIconOptions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             contactCardsChanged: false,
@@ -2533,7 +2533,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!this.canManageDesign) return;
                 var body = new URLSearchParams({ action: "usage", _token: this.csrf });
                 var self = this;
-                fetch("/admin/blox_design_api.php", { method: "POST", body: body })
+                fetch((window.YK_BASE || "") + "/admin/blox_design_api.php", { method: "POST", body: body })
                     .then(function (response) { return response.json(); })
                     .then(function (result) {
                         if (result && Number(result.code) === 0 && result.data) self.designUsage = result.data;
@@ -2573,7 +2573,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 });
                 var self = this;
                 this.designBusy = true;
-                fetch("/admin/blox_design_api.php", { method: "POST", body: body })
+                fetch((window.YK_BASE || "") + "/admin/blox_design_api.php", { method: "POST", body: body })
                     .then(function (response) { return response.json(); })
                     .then(function (result) {
                         if (!result || Number(result.code) !== 0 || !result.data) {
@@ -5978,7 +5978,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 body.set("section", JSON.stringify(sec));
                 body.set("page_intent", this.templatePageIntent);
                 body.set("_token", this.csrf);
-                fetch("/admin/blox_template_api.php", { method: "POST", body: body })
+                fetch((window.YK_BASE || "") + "/admin/blox_template_api.php", { method: "POST", body: body })
                     .then(function (r) { return r.json(); })
                     .then(function (res) {
                         if (res && Number(res.code) === 0) {
@@ -8054,7 +8054,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             loadRevisions() {
                 var self = this;
                 this.revisionLoading = true;
-                fetch("/admin/revision.php?action=list&type=page&id=<?php echo $id; ?>")
+                fetch((window.YK_BASE || "") + "/admin/revision.php?action=list&type=page&id=<?php echo $id; ?>")
                     .then(function (r) { return r.json(); })
                     .then(function (res) {
                         if (res.code === 0) {
@@ -8072,11 +8072,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var self = this;
                 this.activeRev = rev;
                 this.revisionPreview = "<!doctype html><html><body style='font-family:system-ui;padding:24px;color:#94a3b8'>" + this.uiText.revisionLoading + "</body></html>";
-                fetch("/admin/revision.php?action=preview&type=page&id=<?php echo $id; ?>&rev_id=" + encodeURIComponent(rev.id))
+                fetch((window.YK_BASE || "") + "/admin/revision.php?action=preview&type=page&id=<?php echo $id; ?>&rev_id=" + encodeURIComponent(rev.id))
                     .then(function (r) { return r.json(); })
                     .then(function (res) {
                         if (res.code === 0) {
-                            self.revisionPreview = "<!doctype html><html><head><meta charset='utf-8'><link rel='stylesheet' href='/assets/css/tailwind.css'><link rel='stylesheet' href='/assets/css/style.css'><link rel='stylesheet' href='/assets/tabler/tabler-icons.min.css'><link rel='stylesheet' href='/assets/bootstrap-icons/bootstrap-icons.min.css'><style>body{margin:0;background:#fff}</style></head><body>" + (res.data.html || "") + "</body></html>";
+                            self.revisionPreview = "<!doctype html><html><head><meta charset='utf-8'><link rel='stylesheet' href='" + (window.YK_BASE || "") + "/assets/css/tailwind.css'><link rel='stylesheet' href='" + (window.YK_BASE || "") + "/assets/css/style.css'><link rel='stylesheet' href='" + (window.YK_BASE || "") + "/assets/tabler/tabler-icons.min.css'><link rel='stylesheet' href='" + (window.YK_BASE || "") + "/assets/bootstrap-icons/bootstrap-icons.min.css'><style>body{margin:0;background:#fff}</style></head><body>" + (res.data.html || "") + "</body></html>";
                         } else {
                             self.revisionPreview = "<!doctype html><html><body style='font-family:system-ui;padding:24px;color:#ef4444'>" + self.uiText.revisionPreviewFailed + "</body></html>";
                         }
@@ -8096,7 +8096,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 fd.append("id", "<?php echo $id; ?>");
                 fd.append("rev_id", rev.id);
                 fd.append("_token", this.csrf);
-                fetch("/admin/revision.php", { method: "POST", body: fd })
+                fetch((window.YK_BASE || "") + "/admin/revision.php", { method: "POST", body: fd })
                     .then(function (r) { return r.json(); })
                     .then(function (res) {
                         if (res.code === 0) {
@@ -8120,7 +8120,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!rev || this.revisionLoadBusy || this.revisionRestoring) return;
                 var self = this;
                 this.revisionLoadBusy = true;
-                fetch("/admin/revision.php?action=blocks&type=page&id=<?php echo $id; ?>&rev_id=" + encodeURIComponent(rev.id))
+                fetch((window.YK_BASE || "") + "/admin/revision.php?action=blocks&type=page&id=<?php echo $id; ?>&rev_id=" + encodeURIComponent(rev.id))
                     .then(function (r) { return r.json(); })
                     .then(function (res) {
                         if (!res || res.code !== 0 || !res.data || typeof res.data.blocks !== "string") {
@@ -8265,7 +8265,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (confirmConflict) body.set("confirm_conflict", "1");
                 // 必须 return 整条 Promise：调用方 publishTemplate() 会 .catch()/.finally()，
                 // 丢了 return 则链在 undefined 上抛 "Cannot read properties of undefined (reading 'catch')"。
-                return fetch("/admin/blox_template_api.php", { method: "POST", body: body })
+                return fetch((window.YK_BASE || "") + "/admin/blox_template_api.php", { method: "POST", body: body })
                     .then(function (r) {
                         if (self.authExpiredResponse(r)) return { code: "auth" };
                         return r.json().catch(function () { return { code: 1 }; });
@@ -8384,8 +8384,9 @@ $canManageBloxDesign = hasPermission('blox_global');
                 if (!back) return;
                 try {
                     var target = new URL(back.getAttribute("href") || "", window.location.origin);
+                    var adminPath = (window.YK_BASE || "") + "/admin";
                     if (target.origin !== window.location.origin
-                        || target.pathname === "/admin" || target.pathname.startsWith("/admin/")) return;
+                        || target.pathname === adminPath || target.pathname.startsWith(adminPath + "/")) return;
                     target.searchParams.set("yk_edit_receipt", token);
                     back.setAttribute("href", target.pathname + target.search + target.hash);
                 } catch (error) {
@@ -8621,7 +8622,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 var self = this;
                 var body = new URLSearchParams({ _token: this.csrf });
                 this.cacheClearing = true;
-                fetch("/admin/blox_cache_api.php", { method: "POST", body: body })
+                fetch((window.YK_BASE || "") + "/admin/blox_cache_api.php", { method: "POST", body: body })
                     .then(function (response) { return response.json(); })
                     .then(function (result) {
                         self.toast(result.msg || (Number(result.code) === 0 ? <?php echo json_encode(__('scache_clear_now'), JSON_UNESCAPED_UNICODE); ?> : <?php echo json_encode(__('admin_failed'), JSON_UNESCAPED_UNICODE); ?>));

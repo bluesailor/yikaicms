@@ -142,7 +142,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         body.set('_token', '<?php echo csrfToken(); ?>');
         body.set('action', 'dismiss_rewrite_onboarding');
         try {
-            var response = await fetch('/admin/index.php', {
+            var response = await fetch((window.YK_BASE || '') + '/admin/index.php', {
                 method: 'POST',
                 body: body,
                 credentials: 'same-origin',
@@ -222,7 +222,7 @@ $__healthDismissed = (string) config('dashboard_site_health_dismissed', '0') ===
         body.set('_token', '<?php echo csrfToken(); ?>');
         body.set('action', 'dismiss_site_health_notice');
         try {
-            var response = await fetch('/admin/index.php', {
+            var response = await fetch((window.YK_BASE || '') + '/admin/index.php', {
                 method: 'POST',
                 body: body,
                 credentials: 'same-origin',
@@ -338,7 +338,7 @@ $__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions))
         }
         statusEl.className = 'text-gray-400';
         statusEl.textContent = T.checking;
-        fetch('/admin/upgrade_online.php?action=check', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        fetch((window.YK_BASE || '') + '/admin/upgrade_online.php?action=check', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (!res || res.code !== 0) { statusEl.textContent = ''; return; }
@@ -387,7 +387,7 @@ $__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions))
                 name: themeName(first), current: first.current_version, latest: first.latest_version
             })
             : formatThemeText(themeText.many, { count: updates.length });
-        themeGo.href = '/admin/theme.php?tab=market&update=' + encodeURIComponent(first.slug);
+        themeGo.href = (window.YK_BASE || '') + '/admin/theme.php?tab=market&update=' + encodeURIComponent(first.slug);
         themeRow.classList.remove('hidden');
         themeRow.classList.add('flex');
     }
@@ -398,7 +398,7 @@ $__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions))
                 renderThemeUpdates(saved.d); return;
             }
         } catch (e) {}
-        fetch('/admin/index.php?action=theme_updates', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        fetch((window.YK_BASE || '') + '/admin/index.php?action=theme_updates', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (response) { return response.json(); })
             .then(function (result) {
                 if (!result || Number(result.code) !== 0) return;

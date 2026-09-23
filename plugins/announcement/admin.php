@@ -92,7 +92,7 @@ $extraJs = '<script>
 var annEditor = initWangEditor("#toolbar-container", "#editor-container", {
     placeholder: ' . json_encode(__('ann_editor_ph'), JSON_UNESCAPED_UNICODE) . ',
     html: ' . $annContentJson . ',
-    uploadUrl: "/admin/upload.php",
+    uploadUrl: (window.YK_BASE || "") + "/admin/upload.php",
     onChange: function (ed) { document.getElementById("ann_content_input").value = ed.getHtml(); }
 });
 document.getElementById("ann_content_input").value = ' . $annContentJson . ';

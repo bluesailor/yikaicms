@@ -358,7 +358,7 @@ function showDetail(item) {
     document.getElementById('detailId').value = item.id;
     let productLine = '';
     if (item.product_id && parseInt(item.product_id) > 0) {
-        productLine = `<p><span class="text-gray-500"><?php echo __('inq_field_product'); ?>：</span><a href="/product/${item.product_id}.html" target="_blank" class="text-primary hover:underline">${escapeHtml(item.product_title)}</a></p>`;
+        productLine = `<p><span class="text-gray-500"><?php echo __('inq_field_product'); ?>：</span><a href="${window.YK_BASE || ''}/product/${item.product_id}.html" target="_blank" class="text-primary hover:underline">${escapeHtml(item.product_title)}</a></p>`;
     }
     document.getElementById('detailContent').innerHTML = `
         <div class="space-y-3">
@@ -390,7 +390,7 @@ function cancelIpBlock() {
 async function formIpRequest(values) {
     const body = new FormData();
     Object.entries(values).forEach(([key, value]) => body.append(key, value));
-    const result = await safeJson(await fetch('/admin/form.php', { method: 'POST', body }));
+    const result = await safeJson(await fetch((window.YK_BASE || '') + '/admin/form.php', { method: 'POST', body }));
     if (result.code !== 0) throw new Error(result.msg);
     return result;
 }

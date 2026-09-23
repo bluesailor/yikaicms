@@ -117,7 +117,7 @@ async function createTranslation(toLang, langName) {
             showMessage(data.msg || <?php echo json_encode(__('lse_done'), JSON_UNESCAPED_UNICODE); ?>);
             setTimeout(function() {
                 var sep = '<?php echo $_ls_editSep; ?>', p = '<?php echo e($_ls_editParam); ?>';
-                location.href = '<?php echo e($_ls_editUrl); ?>' + sep + p + '=' + data.data.id;
+                location.href = '<?php echo e(BasePath::url($_ls_editUrl)); ?>' + sep + p + '=' + data.data.id;
             }, 800);
         } else {
             btn.disabled = false;

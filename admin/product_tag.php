@@ -203,7 +203,7 @@ async function saveTag() {
     }
     const r = await fetch('', { method: 'POST', body: fd });
     const d = await safeJson(r);
-    if (d.code === 0) { showMessage('<?php echo __('admin_saved'); ?>'); setTimeout(() => location.href = '/admin/product_tag.php', 1000); }
+    if (d.code === 0) { showMessage('<?php echo __('admin_saved'); ?>'); setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/product_tag.php', 1000); }
     else showMessage(d.msg, 'error');
 }
 

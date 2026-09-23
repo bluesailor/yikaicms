@@ -501,7 +501,7 @@ document.getElementById('fileInput').addEventListener('change', async function()
     formData.append('type', 'images');
 
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const data = await safeJson(response);
 
         if (data.code === 0) {
@@ -540,7 +540,7 @@ document.getElementById('attachmentFileInput').addEventListener('change', async 
     formData.append('type', 'files');
 
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const data = await safeJson(response);
 
         if (data.code === 0) {
@@ -602,7 +602,7 @@ document.getElementById('galleryFileInput').addEventListener('change', async fun
         fd.append('file', this.files[i]);
         fd.append('type', 'images');
         try {
-            var resp = await fetch('/admin/upload.php', { method: 'POST', body: fd });
+            var resp = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: fd });
             var data = await safeJson(resp);
             if (data.code === 0) galleryImages.push(data.data.url);
             else showMessage(data.msg, 'error');
@@ -620,7 +620,7 @@ $extraJs = '<script>
 var editor = initWangEditor("#toolbar-container", "#editor-container", {
     placeholder: "' . __("editor_placeholder") . '",
     html: ' . $contentHtml . ',
-    uploadUrl: "/admin/upload.php",
+    uploadUrl: (window.YK_BASE || "") + "/admin/upload.php",
     onChange: function(editor) {
         document.getElementById("contentInput").value = editor.getHtml();
     }
@@ -638,7 +638,7 @@ document.getElementById("contentForm").addEventListener("submit", async function
 
         if (data.code === 0) {
             showMessage("' . __("msg_save_success") . '");
-            setTimeout(function() { location.href = "/admin/content.php"; }, 1000);
+            setTimeout(function() { location.href = (window.YK_BASE || "") + "/admin/content.php"; }, 1000);
         } else {
             showMessage(data.msg, "error");
         }

@@ -565,7 +565,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                 const q = this.query.trim();
                                 if (!q) { this.results = []; this.selected = 0; return; }
                                 try {
-                                    const r = await fetch('/admin/api_search.php?q=' + encodeURIComponent(q));
+                                    const r = await fetch((window.YK_BASE || '') + '/admin/api_search.php?q=' + encodeURIComponent(q));
                                     const d = await r.json();
                                     this.results = d.code === 0 ? (d.data || []) : [];
                                     this.selected = 0;
@@ -777,7 +777,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                 try {
                                     const fd = new FormData();
                                     fd.append('prompt', text);
-                                    const r = await fetch('/admin/api_ai_agent.php', { method: 'POST', body: fd });
+                                    const r = await fetch((window.YK_BASE || '') + '/admin/api_ai_agent.php', { method: 'POST', body: fd });
                                     const data = await r.json();
                                     if (data.tool_calls && data.tool_calls.length) {
                                         data.tool_calls.forEach(tc => this.messages.push({
@@ -804,7 +804,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                 m.applying = true;
                                 try {
                                     const fd = new FormData(); fd.append('set_id', m.setId);
-                                    const r = await fetch('/admin/api_ai_apply.php', { method: 'POST', body: fd });
+                                    const r = await fetch((window.YK_BASE || '') + '/admin/api_ai_apply.php', { method: 'POST', body: fd });
                                     const data = await r.json();
                                     if ((data.applied && data.applied.length) || data.success) {
                                         m.appliedItems = (data.applied || []).map(a => ({ summary: a.summary, log_id: a.log_id, undone: false }));
@@ -820,7 +820,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                             async undoChange(logId, mi, ai) {
                                 try {
                                     const fd = new FormData(); fd.append('id', logId);
-                                    const r = await fetch('/admin/api_ai_undo.php', { method: 'POST', body: fd });
+                                    const r = await fetch((window.YK_BASE || '') + '/admin/api_ai_undo.php', { method: 'POST', body: fd });
                                     const data = await r.json();
                                     if (data.success) { this.messages[mi].appliedItems[ai].undone = true; }
                                     else { this.messages.push({ role: 'error', text: data.error || <?php echo json_encode(__('ai_undo_failed'), JSON_UNESCAPED_UNICODE); ?> }); }
