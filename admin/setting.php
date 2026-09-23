@@ -887,6 +887,7 @@ async function saveAdminLanguages() {
                     <input type="text" name="settings[<?php echo e($item['key']); ?>]"
                            value="<?php echo e($item['value']); ?>"
                            class="w-full border rounded px-4 py-2">
+                    <?php if ($item['key'] === 'site_url') require ROOT_PATH . '/admin/includes/site_url_hint.php'; ?>
                     <?php endif; ?>
                     <?php if ($isModified): ?>
                     <button type="button" class="restore-btn text-xs text-gray-400 hover:text-primary mt-1 inline-flex items-center gap-1 transition"
@@ -944,7 +945,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     formData.append('type', 'images');
 
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const text = await response.text();
         let data;
         try {

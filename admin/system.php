@@ -578,7 +578,7 @@ async function clearErrorLog() {
 
     if (data.code === 0) {
         showMessage('<?php echo __('sys_error_log_cleared'); ?>');
-        setTimeout(() => location.href = '/admin/system.php?tab=errorlog', 800);
+        setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/system.php?tab=errorlog', 800);
     } else {
         showMessage(data.msg, 'error');
     }

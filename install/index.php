@@ -10,6 +10,11 @@ declare(strict_types=1);
 // 定义安装目录
 define('INSTALL_PATH', __DIR__);
 define('ROOT_PATH', dirname(__DIR__));
+// 子目录部署：安装器不经 init.php，挂载点要在这里自己挂——页面里的 /assets/…、/admin/
+// 与跳转地址才会带上目录前缀（根目录安装时为空操作）
+require_once ROOT_PATH . '/includes/BasePath.php';
+BasePath::bootstrap();
+require_once ROOT_PATH . '/includes/SiteAddress.php';
 require_once INSTALL_PATH . '/validation.php';
 require_once ROOT_PATH . '/includes/RewriteProbe.php';
 
@@ -657,6 +662,24 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                     </tbody>
                 </table>
 
+                <!-- 首页入口：探一下服务器的默认首页是否交给了 index.php。只提醒不阻断——
+                     探针可能被 WAF 或超时误伤，而其它检测项全过时站点多半仍能用查询式地址访问。 -->
+                <div id="home-entry-warning" hidden class="bg-amber-50 text-amber-800 p-4 rounded mb-6 text-sm" data-testid="home-entry-warning">
+                    <p class="font-bold mb-1"><?php echo $L['home_entry_title']; ?></p>
+                    <p><?php echo $L['home_entry_desc']; ?></p>
+                    <ul class="list-disc pl-5 mt-2 space-y-1">
+                        <li><?php echo $L['home_entry_nginx']; ?></li>
+                        <li><?php echo $L['home_entry_panel']; ?></li>
+                        <li><?php echo $L['home_entry_apache']; ?></li>
+                    </ul>
+                </div>
+                <script>
+                (async function () {
+                    if (typeof window.yikaiCheckHome !== 'function' || await window.yikaiCheckHome()) return;
+                    document.getElementById('home-entry-warning').hidden = false;
+                })();
+                </script>
+
                 <?php if (!$envAllPass): ?>
                     <div class="bg-red-50 text-red-600 p-4 rounded mb-6">
                         <?php echo $L['env_check_fail']; ?>
@@ -730,7 +753,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                             box.className = 'mt-4 bg-white border border-green-300 rounded-lg p-4';
                             box.innerHTML =
                                 '<div class="text-green-700 font-bold mb-2">✓ ' + QL.done + '</div>' +
-                                '<div class="text-sm text-gray-700 mb-1">' + QL.login_url + '：<b class="select-all" style="font-family:ui-monospace,Menlo,Consolas,monospace">' + window.location.origin + '/admin/login.php</b></div>' +
+                                '<div class="text-sm text-gray-700 mb-1">' + QL.login_url + '：<b class="select-all" style="font-family:ui-monospace,Menlo,Consolas,monospace">' + window.location.origin + (window.YK_BASE || '') + '/admin/login.php</b></div>' +
                                 '<div class="text-sm text-gray-700 mb-1">' + QL.account + '：<b>admin</b></div>' +
                                 '<div class="text-sm text-gray-700 mb-1">' + QL.password + '：</div>' +
                                 // 密码只显示这一次：等宽字体避免 0/O、l/1 混淆；可整段选中；提供一键复制
@@ -742,7 +765,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                                   ' class="shrink-0 bg-gray-800 hover:bg-black text-white px-4 rounded text-sm font-medium">' + QL.copy + '</button>' +
                                 '</div>' +
                                 '<div class="text-xs text-amber-600 mb-3">' + QL.warn + '</div>' +
-                                '<a href="/admin/" class="inline-block bg-primary hover:bg-secondary text-white px-5 py-2 rounded text-sm font-medium">' + QL.goto + '</a>';
+                                '<a href="' + (window.YK_BASE || '') + '/admin/" class="inline-block bg-primary hover:bg-secondary text-white px-5 py-2 rounded text-sm font-medium">' + QL.goto + '</a>';
                             // 直接选中，Ctrl+C 就能复制
                             var pf = document.getElementById('quickPass');
                             if (pf) { pf.focus(); pf.select(); }
@@ -951,7 +974,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                     </div>
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo $L['site_url']; ?></label>
-                        <input type="text" name="site_url" value="<?php echo htmlspecialchars('http' . (isset($_SERVER['HTTPS']) ? 's' : '') . '://' . ($_SERVER['HTTP_HOST'] ?? ''), ENT_QUOTES); ?>" class="w-full border rounded px-3 py-2" required>
+                        <input type="text" name="site_url" value="<?php echo htmlspecialchars(SiteAddress::current(), ENT_QUOTES); ?>" class="w-full border rounded px-3 py-2" required>
                     </div>
                     <hr class="my-6">
                     <div>
@@ -1132,7 +1155,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                         }
                     function showInstallDone(f) {
                         var user = (f.querySelector('[name=admin_user]') || {}).value || 'admin';
-                        var url = window.location.origin + '/admin/login.php';
+                        var url = window.location.origin + (window.YK_BASE || '') + '/admin/login.php';
                         var L = <?php echo json_encode([
                             'title'   => $L['install_complete'],
                             'desc'    => $L['install_complete_desc'],
@@ -1192,7 +1215,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                         tip.textContent = L.tip;
                         card.appendChild(head); card.appendChild(dl); card.appendChild(tip);
                         var go = document.createElement('a');
-                        go.href = '/admin/';
+                        go.href = (window.YK_BASE || '') + '/admin/';
                         go.className = 'inline-block bg-primary hover:bg-secondary text-white text-lg font-bold px-8 py-3 rounded-lg shadow transition';
                         go.textContent = L.goto;
                         var sec = document.createElement('div');
@@ -1247,7 +1270,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                     // 登录信息卡：完成页只给一个「进入后台」按钮是不够的——装完要把网址发给客户、
                     // 或换台机器登录时，没有可复制的网址和用户名。密码不显示（常规安装是用户自设的）。
                     $__scheme   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-                    $__loginUrl = $__scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . '/admin/login.php';
+                    $__loginUrl = $__scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . BasePath::url('/admin/login.php');
                     $__adminName = '';
                     try {
                         if (is_file(dirname(__DIR__) . '/config/config.php')) {

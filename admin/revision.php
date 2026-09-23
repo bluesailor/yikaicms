@@ -88,7 +88,8 @@ if ($action === 'preview') {
         }
     }
     success([
-        'html'      => $html,
+        // 只用于显示：JSON 不经出口改写，子目录部署时在这里补前缀，否则预览里的图片全裂
+        'html'      => BasePath::rewriteHtml($html, BasePath::get()),
         'summary'   => (string) $rev['summary'],
         'time_text' => date('Y-m-d H:i', (int) $rev['created_at']),
     ]);

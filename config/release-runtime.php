@@ -21,6 +21,7 @@ return [
         'config/release-runtime.php',
         'config/version.php',
         'includes/init.php',
+        'includes/BasePath.php',            // index.php / init.php / functions.php 无条件 require：子目录部署的挂载点
         'includes/RewriteProbe.php',
         'includes/CompatibleLinks.php',
         'includes/Dispatcher.php',
@@ -73,6 +74,8 @@ return [
         'includes/FormUploadService.php',
         'includes/LegacyInstallCleanup.php',
         'includes/SiteHealth.php',
+        'includes/SiteAddress.php',         // SiteHealth 顶部无条件 require；站点URL 与实际访问地址的比对
+        'admin/includes/site_url_hint.php', // setting.php 渲染「站点URL」时 require
         'includes/AccessibilityAudit.php',
         'includes/RuntimeRequirements.php',   // SiteHealth 顶部 require：环境要求的唯一来源
         'includes/SiteAsset.php',

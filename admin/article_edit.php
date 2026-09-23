@@ -454,7 +454,7 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
     formData.append('type', 'images');
 
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const data = await safeJson(response);
 
         if (data.code === 0) {
@@ -528,7 +528,7 @@ initTinyEditor(".tinymce-editor");
                     document.getElementById("articleId").value = data.data.id;
                 }
                 showMessage({$msgSaveSuccess});
-                setTimeout(function () { location.href = "/admin/article.php"; }, 1000);
+                setTimeout(function () { location.href = (window.YK_BASE || "") + "/admin/article.php"; }, 1000);
             } else {
                 submitting = false;          // 失败允许重试
                 showMessage(data.msg, "error");

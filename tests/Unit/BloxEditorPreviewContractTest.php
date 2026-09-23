@@ -709,7 +709,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         self::assertStringContainsString('if (ctrl.legacy_filing && !this.copyrightHasFiling()) return false;', $editor);
         self::assertStringContainsString("'site-copyright' => ['show_icp' => false, 'show_police' => false],", $editor);
         foreach ([
-            'siteCopyrightEndpoint: "/admin/blox_site_api.php"',
+            'siteCopyrightEndpoint: (window.YK_BASE || "") + "/admin/blox_site_api.php"',
             'SiteCopyrightSettings::editorState($siteDataLanguage',
             'if (!self.siteLanguageControlApplies(c)) return false;',
             'body.set("lang", this.siteCopyright.language);',
@@ -724,7 +724,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $editor = $this->source('admin/blox_editor.php');
 
         $this->assertStringContainsString("assetVer('/assets/css/style.css')", $canvas);
-        $this->assertStringContainsString("<link rel='stylesheet' href='/assets/css/style.css'>", $editor);
+        $this->assertStringContainsString("<link rel='stylesheet' href='\" + (window.YK_BASE || \"\") + \"/assets/css/style.css'>", $editor);
     }
 
     public function testHomeBannerPreviewAndCompactManagerStayConnected(): void

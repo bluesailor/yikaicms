@@ -105,7 +105,7 @@
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', type || 'images');
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         return safeJson(response);
     }
 
@@ -265,7 +265,7 @@
                     var fd = new FormData();
                     fd.append('file', blobInfo.blob(), blobInfo.filename());
                     fd.append('type', 'images');
-                    fetch(options.uploadUrl || '/admin/upload.php', { method: 'POST', body: fd })
+                    fetch(options.uploadUrl || (window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: fd })
                         .then(function(r) { return r.json(); })
                         .then(function(d) {
                             if (d.code === 0) resolve(d.data.url);
@@ -477,7 +477,7 @@
             }
             _mpPage = page;
             var keyword = document.getElementById('mpKeyword').value.trim();
-            var url = '/admin/media_api.php?action=list&type=' + encodeURIComponent(_mpType)
+            var url = (window.YK_BASE || '') + '/admin/media_api.php?action=list&type=' + encodeURIComponent(_mpType)
                     + '&page=' + page
                     + (keyword ? '&keyword=' + encodeURIComponent(keyword) : '');
 
@@ -537,7 +537,7 @@
             document.getElementById('mpContent').innerHTML = '<div class="text-center text-gray-400 py-12">' + <?php echo json_encode(__('admin_loading'), JSON_UNESCAPED_UNICODE); ?> + '</div>';
 
             try {
-                var result = await window.OfficialMediaClient.list('/admin/media_api.php', page, keyword, { usage: _mpUsage });
+                var result = await window.OfficialMediaClient.list((window.YK_BASE || '') + '/admin/media_api.php', page, keyword, { usage: _mpUsage });
                 if (!result.ok) {
                     document.getElementById('mpContent').innerHTML = '<div class="text-center text-red-400 py-12">' + _escHtml(result.message || _mpOfficialText.failed) + '</div>';
                     _renderPager({ page: 1, pages: 0, total: 0 });
@@ -610,7 +610,7 @@
             button.textContent = _mpOfficialText.importing;
             try {
                 var token = document.querySelector('meta[name="csrf-token"]');
-                var result = await window.OfficialMediaClient.importAsset('/admin/media_api.php', assetId, {
+                var result = await window.OfficialMediaClient.importAsset((window.YK_BASE || '') + '/admin/media_api.php', assetId, {
                     csrf: token ? token.content : '',
                 });
                 if (!result.ok) {
@@ -687,7 +687,7 @@
             formData.append('type', _mpType === 'video' ? 'videos' : 'images');
 
             try {
-                var resp = await fetch('/admin/media_api.php?action=upload', { method: 'POST', body: formData });
+                var resp = await fetch((window.YK_BASE || '') + '/admin/media_api.php?action=upload', { method: 'POST', body: formData });
                 var data = await resp.json();
                 if (data.code === 0) {
                     _mpSelected = data.data.url;
@@ -728,7 +728,7 @@
 function switchAdminLang(lang) {
     var fd = new FormData();
     fd.append('settings[admin_lang]', lang);
-    fetch('/admin/setting.php', { method: 'POST', body: fd })
+    fetch((window.YK_BASE || '') + '/admin/setting.php', { method: 'POST', body: fd })
         .then(function(r) { return r.json(); })
         .then(function(d) { if (d.code === 0) location.reload(); else showMessage(d.msg || 'Error', 'error'); })
         .catch(function() { showMessage('Error', 'error'); });

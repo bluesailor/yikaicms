@@ -1028,7 +1028,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     formData.append('type', 'images');
 
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const data = await safeJson(response);
 
         if (data.code === 0) {
@@ -1367,7 +1367,7 @@ function openGroupModal(item = null) {
     manageLink.classList.toggle('hidden', !item);
     manageLink.classList.toggle('inline-flex', !!item);
     manageLink.href = item
-        ? '/admin/banner.php?position=' + encodeURIComponent(item.slug) + <?php echo json_encode($_lang['qsAmp'] ?? '', JSON_UNESCAPED_UNICODE); ?>
+        ? (window.YK_BASE || '') + '/admin/banner.php?position=' + encodeURIComponent(item.slug) + <?php echo json_encode($_lang['qsAmp'] ?? '', JSON_UNESCAPED_UNICODE); ?>
         : '#';
     var modal = document.getElementById('groupModal');
     modal.classList.remove('hidden');

@@ -475,7 +475,7 @@ async function duplicateItem(id) {
     const data = await safeJson(response);
     if (data.code === 0) {
         showMessage('<?php echo __('admin_duplicated'); ?>');
-        setTimeout(() => location.href = '/admin/product_edit.php?id=' + data.data.id, 700);
+        setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/product_edit.php?id=' + data.data.id, 700);
     } else {
         showMessage(data.msg, 'error');
     }

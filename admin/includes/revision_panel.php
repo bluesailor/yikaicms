@@ -62,7 +62,7 @@ $revLabels = [
 
     function load() {
         listEl.textContent = '…';
-        fetch('/admin/revision.php?action=list&type=' + encodeURIComponent(type) + '&id=' + encodeURIComponent(id))
+        fetch((window.YK_BASE || '') + '/admin/revision.php?action=list&type=' + encodeURIComponent(type) + '&id=' + encodeURIComponent(id))
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 var items = (res && res.data && res.data.items) || [];
@@ -87,13 +87,13 @@ $revLabels = [
 
     var modal = document.getElementById('revPreviewModal');
     function openPreview(revId) {
-        fetch('/admin/revision.php?action=preview&type=' + encodeURIComponent(type) + '&id=' + encodeURIComponent(id) + '&rev_id=' + encodeURIComponent(revId))
+        fetch((window.YK_BASE || '') + '/admin/revision.php?action=preview&type=' + encodeURIComponent(type) + '&id=' + encodeURIComponent(id) + '&rev_id=' + encodeURIComponent(revId))
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 var d = (res && res.data) || {};
                 document.getElementById('revPvTitle').textContent = (d.summary || '') + '  ' + (d.time_text || '');
                 var frame = document.getElementById('revPvFrame');
-                frame.srcdoc = '<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/assets/css/tailwind.css"><link rel="stylesheet" href="/assets/css/style.css"><base target="_blank"><div style="padding:16px">' + (d.html || '') + '</div>';
+                frame.srcdoc = '<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="' + (window.YK_BASE || '') + '/assets/css/tailwind.css"><link rel="stylesheet" href="' + (window.YK_BASE || '') + '/assets/css/style.css"><base target="_blank"><div style="padding:16px">' + (d.html || '') + '</div>';
                 modal.classList.remove('hidden'); modal.classList.add('flex');
             });
     }
@@ -104,7 +104,7 @@ $revLabels = [
         btn.disabled = true;
         var fd = new FormData();
         fd.append('action', 'restore'); fd.append('type', type); fd.append('id', id); fd.append('rev_id', revId);
-        fetch('/admin/revision.php', { method: 'POST', body: fd })
+        fetch((window.YK_BASE || '') + '/admin/revision.php', { method: 'POST', body: fd })
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (res && res.code === 0) { alert(L.ok); location.reload(); }
