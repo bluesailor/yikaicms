@@ -136,7 +136,7 @@ final class BloxValueSanitizerTest extends TestCase
     {
         // 未声明 responsive 的标量控件收到数组，必须归一为空/默认值。
         // 原先原样放行 → 值一路传到 htmlspecialchars() 抛 TypeError，整页 500。
-        // 直接构造 blocks_data 就能触发。（codex 审计 P2-1，已复现）
+        // 直接构造 blocks_data 就能触发。（外部审计 P2-1，已复现）
         foreach (['text', 'textarea', 'url', 'image', 'richtext', 'icon'] as $type) {
             $out = $this->s($type, ['恶意' => '数组']);
             $this->assertIsNotArray($out, $type . ' 控件不该原样返回数组');

@@ -27,7 +27,7 @@ final class UpgradeDirective
     /**
      * nonce 保留时长。必须 ≥ 指令最长有效期（verify 里限死 86400 秒），
      * 否则「按条数滚动淘汰」会让仍在有效期内的旧 nonce 被挤掉、重放复活
-     * （codex 审计 P1-2）。改为按过期时间清理，条数自然有界。
+     * （外部审计 P1-2）。改为按过期时间清理，条数自然有界。
      */
     private const NONCE_TTL = 86400;
 

@@ -227,7 +227,7 @@ final class BloxGlobalClassesTest extends TestCase
         self::assertSame(2, (int) $legacy['revision']);
     }
 
-    /** 借鉴 GLM 整改分支的两个边界用例：no-op 保存不误报冲突；无令牌写照常推进 revision。 */
+    /** 借鉴另一条整改分支的两个边界用例：no-op 保存不误报冲突；无令牌写照常推进 revision。 */
     public function testRevisionEdgeCasesFromGlmBranch(): void
     {
         $a = BloxGlobalClasses::mutate('class_add', ['name' => 'edge'], true);

@@ -158,7 +158,7 @@ jobs:
           php tests/smoke/php80_display_conditions.php
 
       # 全新安装 ≡ 老站跑完全部迁移。install SQL 与 migrations 是两条独立演进的
-      # 路径，两个方向都漏过（v1.11.0 新装缺列 500 / cile.cn 升级缺 9 列），单向
+      # 路径，两个方向都漏过（v1.11.0 新装缺列 500 / 某站升级缺 9 列），单向
       # 检查抓不全。排在装机之前：本步不依赖 config.php，且失败时后面都没意义。
       - name: Schema parity（install SQL ↔ migrations 双向对拍）
         run: php tests/smoke/schema_parity.php
@@ -200,7 +200,7 @@ jobs:
 
       # 自动升级故障注入：真实制造故障（抢锁、毁快照目录、塞会失败的迁移、损坏状态文件），
       # 断言它「按预期失败并回滚」而不是「悄悄记成功」。
-      # 由来：codex 审计发现「续跑判定位置错」时，我的源码契约断言是全绿的；
+      # 由来：外部审计发现「续跑判定位置错」时，我的源码契约断言是全绿的；
       # 补这套注入测试后又立刻抓出「Migrator::runOne 不抛异常导致迁移失败被忽略」。
       - name: Auto-upgrade fault injection（无人值守升级的失败路径）
         run: php tests/smoke/auto_upgrade_faults.php

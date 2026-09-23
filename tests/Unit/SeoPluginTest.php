@@ -67,7 +67,7 @@ final class SeoPluginTest extends TestCase
         // 推送失败不推进游标，这批内容下次还要重试
         self::assertStringContainsString('if ($ok) {', $src);
         // 百度与 IndexNow 各记各的游标：共用一个的话，一个成功就把另一个的
-        // 待推内容也跳过了，失败那方永远补不回来。（codex 审计 P1-3）
+        // 待推内容也跳过了，失败那方永远补不回来。（外部审计 P1-3）
         self::assertStringContainsString("'seo_autopush_cursor_' . \$name", $src);
         // 取数按最旧优先，游标才能单调走完积压（原先按最新取，积压超批次上限就永久跳过）
         self::assertStringContainsString('effective_at ASC, c.id ASC', $src);
@@ -106,7 +106,7 @@ final class SeoPluginTest extends TestCase
     public function testSeoEndpointsRequireContentEditPermission(): void
     {
         // 登录 + CSRF + Pro 闸都不够：任何已登录账号都不该能改基石标记或烧 AI 配额。
-        // （codex 审计 P2-3）
+        // （外部审计 P2-3）
         foreach (['links_api.php', 'ai.php'] as $f) {
             $src = file_get_contents(ROOT_PATH . '/plugins/seo/' . $f);
             self::assertIsString($src, $f);

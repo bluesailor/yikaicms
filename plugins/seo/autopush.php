@@ -73,7 +73,7 @@ function seo_autopush_enabled(): bool
  * 为空的行（早期版本不写这一列）。
  *
  * **按最旧优先排序**：原先按最新排、再把游标推到批次最大时间，积压超过单批上限时
- * 较旧的那些会被永久跳过（codex 审计 P1-3）。从旧往新推，游标才能单调走完积压。
+ * 较旧的那些会被永久跳过（外部审计 P1-3）。从旧往新推，游标才能单调走完积压。
  *
  * @param int|array{ts: int, id: int} $cursor
  * @return array{0: list<array<string, mixed>>, 1: array{ts: int, id: int}} [内容行, 新游标]
@@ -174,7 +174,7 @@ function seo_autopush_run(bool $manual = false): string
     }
 
     // 两个服务各自记游标：原先共用一个，只要有一个成功就推进，失败那个的这批 URL
-    // 再也不会重试（codex 审计 P1-3）。分开之后各推各的，互不影响。
+    // 再也不会重试（外部审计 P1-3）。分开之后各推各的，互不影响。
     $site = (string) config('seo_baidu_site', '');
     $token = (string) config('seo_baidu_token', '');
     $key = (string) config('seo_indexnow_key', '');

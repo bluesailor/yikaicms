@@ -130,7 +130,7 @@ final class AutoUpgradeTest extends TestCase
 
         // 续跑检查必须排在 check() 之前 —— config/version.php 本身就是包里的普通文件，
         // 第一轮覆盖后站点版本号已变成新版，服务器会回「无更新」，续跑分支就永远
-        // 到不了，站点永久停在新旧混合状态。（codex 审计 P0-1）
+        // 到不了，站点永久停在新旧混合状态。（外部审计 P0-1）
         $posResume = strpos($src, '$pending = self::pendingTransaction();');
         $posCheck = strpos($src, '$data = self::check();');
         self::assertIsInt($posResume);
@@ -141,7 +141,7 @@ final class AutoUpgradeTest extends TestCase
     public function testUnattendedUpgradeAbortsOnAnyFailure(): void
     {
         // 人工升级可以「带着几个失败文件继续、让用户去补」；无人值守不行——
-        // 没人看清单，继续下去就是「缺文件却记成功」。（codex 审计 P0-2 / P0-3）
+        // 没人看清单，继续下去就是「缺文件却记成功」。（外部审计 P0-2 / P0-3）
         $src = file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
         self::assertIsString($src);
         self::assertStringContainsString('abortAndRollback(', $src);
@@ -157,7 +157,7 @@ final class AutoUpgradeTest extends TestCase
     public function testConcurrencyLockIsAtomic(): void
     {
         // 设置表的「先读后写」两个 cron 能同时通过，等于没锁；改用 flock（内核级原子，
-        // 进程被 kill 时自动释放，不必靠 TTL 猜）。（codex 审计 P1-2）
+        // 进程被 kill 时自动释放，不必靠 TTL 猜）。（外部审计 P1-2）
         $src = file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
         self::assertIsString($src);
         self::assertStringContainsString('LOCK_EX | LOCK_NB', $src);
@@ -170,7 +170,7 @@ final class AutoUpgradeTest extends TestCase
 
     public function testNonceExpiresByTimeNotByCount(): void
     {
-        // 按条数滚动淘汰会让仍在有效期内的 nonce 被挤掉、重放复活。（codex 审计 P1-2）
+        // 按条数滚动淘汰会让仍在有效期内的 nonce 被挤掉、重放复活。（外部审计 P1-2）
         $src = file_get_contents(ROOT_PATH . '/includes/UpgradeDirective.php');
         self::assertIsString($src);
         self::assertStringContainsString('NONCE_TTL', $src);
@@ -180,7 +180,7 @@ final class AutoUpgradeTest extends TestCase
     public function testDeltaBaselineIsVerifiedBeforeTouchingFiles(): void
     {
         // 包签名只证明包是官方签发的，不证明它适用于本站：别的基线的 delta 装上来会缺
-        // 文件。必须在改动任何文件之前同时核对 manifest.from/to。（codex 审计 P2-2）
+        // 文件。必须在改动任何文件之前同时核对 manifest.from/to。（外部审计 P2-2）
         $src = file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
         self::assertIsString($src);
         self::assertStringContainsString('增量包基线不匹配', $src);

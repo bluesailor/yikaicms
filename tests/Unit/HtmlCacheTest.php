@@ -1,6 +1,6 @@
 <?php
 /**
- * HtmlCache 回归测试（cile.cn 30GB 缓存目录膨胀事故防回归）：
+ * HtmlCache 回归测试（生产站 30GB 缓存目录膨胀事故防回归）：
  *   - isCacheable() 查询参数白名单：utm_* / 未知参数 / 搜索参数不落缓存
  *   - invalidate() 只删 *.html，不碰 .gitkeep 等其它文件
  *   - pruneExpired() 只删过期文件并遵守 $limit

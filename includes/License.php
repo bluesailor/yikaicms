@@ -212,7 +212,7 @@ function license_refresh(bool $force = false): array
         return license_free($hasCache ? 'grace_expired' : 'unreachable');
     }
 
-    // &t= 缓存破坏：每次请求 URL 唯一，绕开 update 服务器的 SiteGround 边缘缓存，确保拿到实时签名
+    // &t= 缓存破坏：每次请求 URL 唯一，绕开 update 服务器的 CDN 边缘缓存，确保拿到实时签名
     $resp = license_http(LICENSE_VERIFY_URL . '?key=' . urlencode($key) . '&domain=' . urlencode(license_domain()) . '&t=' . time());
 
     if ($resp !== null) {

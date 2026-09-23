@@ -16,7 +16,7 @@ CLI::register('cache:clear', '清空 HTML 缓存（storage/cache/html/）', func
     }
     $count = 0;
     $bytes = 0;
-    // 惰性遍历：目录膨胀（如 cile.cn 30GB 事故）时 glob() 巨型数组会拖死清理本身
+    // 惰性遍历：目录膨胀（如曾经的 30GB 事故）时 glob() 巨型数组会拖死清理本身
     foreach (new DirectoryIterator($dir) as $f) {
         if (!$f->isFile()) continue;
         if (strtolower($f->getExtension()) !== 'html') continue;

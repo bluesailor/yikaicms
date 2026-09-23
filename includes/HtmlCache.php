@@ -285,7 +285,7 @@ final class HtmlCache
 
         // 查询参数白名单：缓存 key 含完整 REQUEST_URI，utm_* / 爬虫随机参数 /
         // 恶意构造的查询串每个变体都会生成一个新文件，目录会无限增长
-        // （cile.cn 生产站曾因此写满 30GB）。只放行前台真实使用的分页/筛选参数。
+        // （曾有生产站因此写满 30GB）。只放行前台真实使用的分页/筛选参数。
         static $allowedQueryKeys = ['slug', 'parent', 'cat', 'sort', 'page'];
         foreach (array_keys($_GET) as $key) {
             if (!in_array((string) $key, $allowedQueryKeys, true)) return false;

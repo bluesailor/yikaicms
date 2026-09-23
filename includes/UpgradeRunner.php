@@ -564,7 +564,7 @@ function upgrade_prepare(
         // 包签名只证明包是官方签发的，**不证明它适用于本站**——服务器一旦把别的
         // 基线的 delta 关联过来（配置错误或缓存串档），签名照样通过。
         // 因此在改动任何文件之前，from/to 必须同时绑定当前事务。to 来自下载阶段
-        // 已通过 RSA 验签的 version，不能只信包内 manifest。（codex 审计 P2-2）
+        // 已通过 RSA 验签的 version，不能只信包内 manifest。（外部审计 P2-2）
         if ($from === '' || $expectedFrom === '' || $from !== $expectedFrom) {
             $zip->close();
             return ['code' => 1, 'msg' => '增量包基线不匹配（包适用于 v' . $from
@@ -1120,7 +1120,7 @@ function uo_download_total(string $url): ?int
  * 分块续传的一步。每次调用只拉一段，把进度写进游标文件，由调用方反复调用直到 done。
  *
  * 为什么必须这样：覆盖阶段早就分批了（每批 150 文件），下载却一直是「一个请求拉完整包」。
- * 国内主机拉 SiteGround 慢，Tengine/nginx 网关 60 秒一到就 504——xcidcn 两次栽在这里，
+ * 国内主机拉海外更新源慢，Tengine/nginx 网关 60 秒一到就 504——曾有站点两次栽在这里，
  * 每次都要人工 FTP 送包再手动接续。PHP 侧那个 600 秒超时救不了，因为掐连接的是网关。
  *
  * @param null|callable(string,int,int,resource):array{0:int,1:int|null,2:string} $fetcher 仅供测试注入
