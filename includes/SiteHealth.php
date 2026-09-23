@@ -7,6 +7,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/SiteAsset.php';
 require_once __DIR__ . '/ProductIdentity.php';
 require_once __DIR__ . '/RuntimeRequirements.php';
+require_once __DIR__ . '/SiteAddress.php';      // 站点URL 与实际访问地址的比对（与设置页共用）
 require_once __DIR__ . '/AccessibilityAudit.php';
 require_once __DIR__ . '/ThemeRuntime.php';
 
@@ -37,6 +38,7 @@ final class SiteHealth
             self::checkConfigPermissions($root),
             self::checkDiskSpace($root),
             self::checkHttps(),
+            self::checkSiteAddress(),
             self::checkAdminPolicy(),
             self::checkUploadPolicy(),
             self::checkFormPolicy(),
@@ -643,11 +645,31 @@ final class SiteHealth
         if ($url === '' || $host === '') {
             return self::result('https', self::UNKNOWN, 'security', 'health_https_title', 'health_https_unknown', '/admin/setting.php');
         }
-        $local = $host === 'localhost' || str_ends_with($host, '.test') || str_ends_with($host, '.local')
-            || str_ends_with($host, '.yikai') || filter_var($host, FILTER_VALIDATE_IP) !== false;
+        $local = SiteAddress::isLocalHost($host);
         $https = strtolower((string) parse_url($url, PHP_URL_SCHEME)) === 'https';
         return self::result('https', ($https || $local) ? self::GOOD : self::RECOMMENDED, 'security',
             'health_https_title', ($https || $local) ? 'health_https_good' : 'health_https_bad', '/admin/setting.php');
+    }
+
+    /**
+     * 站点URL 与实际访问地址是否一致。最要紧的是「制作时的本机地址被带上了线」：
+     * 那样 canonical、sitemap、分享卡片会全部指向外人打不开的地址，而页面本身看起来一切正常。
+     *
+     * @return array<string,mixed>
+     */
+    private static function checkSiteAddress(): array
+    {
+        $configured = function_exists('config') ? (string) config('site_url', '') : '';
+        $check = SiteAddress::inspect($configured, SiteAddress::current());
+        [$status, $message] = match ($check['status']) {
+            SiteAddress::LOCAL_LEAK => [self::CRITICAL, 'health_site_address_local_leak'],
+            SiteAddress::MISMATCH => [self::RECOMMENDED, 'health_site_address_mismatch'],
+            SiteAddress::MATCH => [self::GOOD, 'health_site_address_good'],
+            SiteAddress::EMPTY => [self::GOOD, 'health_site_address_auto'],
+            default => [self::UNKNOWN, 'health_site_address_unknown'],
+        };
+        return self::result('site_address', $status, 'operations', 'health_site_address_title', $message,
+            '/admin/setting.php', ['configured' => $check['configured'], 'current' => $check['current']]);
     }
 
     /** @return array<string,mixed> */
