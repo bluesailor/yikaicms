@@ -74,7 +74,7 @@ declare(strict_types=1);
                     if (first) body.set('restart', '1');
                     first = false;
                     pages++;
-                    return fetch('/admin/blox_template_api.php', { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    return fetch((window.YK_BASE || '') + '/admin/blox_template_api.php', { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                         .then(function (r) { return r.json().catch(function () { return { code: 1 }; }); })
                         .then(function (res) {
                             if (seq !== self.publishCheckSeq) return null;   // 已停止，或有更新的检查
@@ -174,7 +174,7 @@ declare(strict_types=1);
                     body.set('cursor', String(previous.next));
                     body.set('fingerprint', previous.fingerprint || '');
                 }
-                return fetch('/admin/blox_template_api.php', {
+                return fetch((window.YK_BASE || '') + '/admin/blox_template_api.php', {
                     method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' },
                     signal: controller ? controller.signal : undefined,
                 })

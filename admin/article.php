@@ -414,7 +414,7 @@ async function duplicateItem(id) {
     const data = await postAction('duplicate', { id });
     if (data.code === 0) {
         showMessage('<?php echo __('admin_duplicated'); ?>');
-        setTimeout(() => location.href = '/admin/article_edit.php?id=' + data.data.id, 700);
+        setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/article_edit.php?id=' + data.data.id, 700);
     } else {
         showMessage(data.msg, 'error');
     }

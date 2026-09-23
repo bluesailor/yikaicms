@@ -212,7 +212,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             var data = await safeJson(resp);
             if (data.code === 0) {
                 showMessage(data.msg || T.gen);
-                setTimeout(function () { location.href = '/admin/channel.php'; }, 1200);
+                setTimeout(function () { location.href = (window.YK_BASE || '') + '/admin/channel.php'; }, 1200);
             } else {
                 showMessage(data.msg || T.fail, 'error');
                 busy = false; refresh(); btn.textContent = T.gen;

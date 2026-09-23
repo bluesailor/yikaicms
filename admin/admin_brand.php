@@ -222,7 +222,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         data.append('file', this.files[0]);
         data.append('type', 'images');
         try {
-            var response = await fetch('/admin/upload.php', { method: 'POST', body: data });
+            var response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: data });
             var result = await safeJson(response);
             if (result.code === 0) {
                 logo.value = result.data.url;

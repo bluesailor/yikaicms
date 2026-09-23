@@ -376,6 +376,11 @@ $__seoPluginHere = is_dir(ROOT_PATH . '/plugins/seo');
             <a href="/robots.txt" target="_blank" class="text-sm text-primary hover:underline"><?php echo e(__('seo_view_current_file')); ?></a>
         </div>
         <div class="p-6">
+            <?php if (BasePath::get() !== ''): ?>
+            <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700" data-testid="seo-robots-subdir">
+                <?php echo e(str_replace(':dir', BasePath::get(), __('seo_robots_subdir_note'))); ?>
+            </div>
+            <?php endif; ?>
             <textarea id="robotsContent" rows="16"
                       class="w-full border rounded px-4 py-2 font-mono text-sm leading-relaxed"
                       placeholder="User-agent: *&#10;Allow: /"><?php echo e($robotsContent); ?></textarea>
@@ -429,7 +434,7 @@ document.querySelector('textarea[name="settings[site_description]"]')?.addEventL
 
 // 媒体选择器
 function selectMedia(inputId) {
-    window.open('/admin/media.php?mode=select&target=' + inputId, 'mediaSelect', 'width=900,height=600');
+    window.open((window.YK_BASE || '') + '/admin/media.php?mode=select&target=' + inputId, 'mediaSelect', 'width=900,height=600');
 }
 </script>
 

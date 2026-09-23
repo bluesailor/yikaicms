@@ -1285,7 +1285,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     formData.append('type', 'images');
 
     try {
-        var response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        var response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         var data = await safeJson(response);
 
         if (data.code === 0) {

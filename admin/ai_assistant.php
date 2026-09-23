@@ -219,7 +219,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             applyBtn.disabled = true; applyBtn.textContent = <?php echo json_encode(__('aia_applying'), JSON_UNESCAPED_UNICODE); ?>;
             try {
                 const fd = new FormData(); fd.append('set_id', setId);
-                const res = await fetch('/admin/api_ai_apply.php', { method: 'POST', body: fd });
+                const res = await fetch((window.YK_BASE || '') + '/admin/api_ai_apply.php', { method: 'POST', body: fd });
                 const data = await res.json();
                 if ((data.applied && data.applied.length) || data.success) {
                     renderApplied(wrap, data.applied || [], data.errors || []);
@@ -249,7 +249,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             b.disabled = true; b.textContent = <?php echo json_encode(__('aia_undoing'), JSON_UNESCAPED_UNICODE); ?>;
             try {
                 const fd = new FormData(); fd.append('id', b.dataset.log);
-                const res = await fetch('/admin/api_ai_undo.php', { method: 'POST', body: fd });
+                const res = await fetch((window.YK_BASE || '') + '/admin/api_ai_undo.php', { method: 'POST', body: fd });
                 const data = await res.json();
                 if (data.success) { b.textContent = <?php echo json_encode(__('ai_undone'), JSON_UNESCAPED_UNICODE); ?>; b.classList.remove('text-gray-500'); b.classList.add('text-green-600'); }
                 else { b.disabled = false; b.textContent = <?php echo json_encode(__('ai_undo'), JSON_UNESCAPED_UNICODE); ?>; addMsg('error', data.error || <?php echo json_encode(__('ai_undo_failed'), JSON_UNESCAPED_UNICODE); ?>); }
@@ -273,7 +273,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         try {
             const fd = new FormData();
             fd.append('prompt', prompt);
-            const res = await fetch('/admin/api_ai_agent.php', { method: 'POST', body: fd });
+            const res = await fetch((window.YK_BASE || '') + '/admin/api_ai_agent.php', { method: 'POST', body: fd });
             const data = await res.json();
 
             placeholder.remove();

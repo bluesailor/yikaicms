@@ -296,10 +296,10 @@ if ($footerBgLiteral !== '') {
         if (!document.querySelector('a[data-lightbox]:not([data-lightbox="album"])')) return;
         var css = document.createElement('link');
         css.rel = 'stylesheet';
-        css.href = '<?php echo assetVer('/assets/css/blox-lightbox.css'); ?>';
+        css.href = '<?php echo BasePath::url(assetVer('/assets/css/blox-lightbox.css')); ?>';
         document.head.appendChild(css);
         var script = document.createElement('script');
-        script.src = '<?php echo assetVer('/assets/js/blox-lightbox.js'); ?>';
+        script.src = '<?php echo BasePath::url(assetVer('/assets/js/blox-lightbox.js')); ?>';
         script.defer = true;
         document.head.appendChild(script);
     })();
