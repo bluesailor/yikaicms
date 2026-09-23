@@ -8146,6 +8146,6 @@ voltage|Voltage|220V',
     'form_token_invalid' => 'The form security token is invalid. Refresh the page and try again.',
     'form_too_fast' => 'The form was submitted too quickly. Please wait and try again.',
     'form_template_missing' => 'The form could not be found.',
-    'error_500_generic' => 'Internal server error (:time). If the admin is unavailable, use your hosting control panel file manager or FTP to check :log_file in the site root. If there is no matching entry, check the host PHP/Web error log.',
-    'error_500_db_permission' => 'The database user lacks required permissions. In your database manager, grant this user access to the target database and the permissions needed for this operation. Time: :time; log: :log_file.',
+    'error_500_generic' => 'Internal server error (:time). Check the logs in the :log_dir directory.',
+    'error_500_db_permission' => 'The database user lacks required permissions (:time). Grant the missing permissions to this database user; details are in the logs in the :log_dir directory.',
 ];
