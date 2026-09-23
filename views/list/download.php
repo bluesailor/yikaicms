@@ -19,6 +19,8 @@ $downloadClearUrl = $downloadUsesDynamicRoute
 <?php /* 下载：表格 + 右侧分类导航（数据来自 yikai_downloads 表；分类来自 download_categories） */ ?>
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
             <div class="w-full <?php echo $hasDlSidebar ? 'lg:flex-1' : ''; ?>">
+                <?php /* 搜索框：Blox 下载目录可关闭（$downloadShowSearch），固定列表未设置时照常显示 */ ?>
+                <?php if ($downloadShowSearch ?? true): ?>
                 <div class="flex flex-wrap items-center justify-end gap-3 mb-6">
                     <form method="get" action="<?php echo e(dynamicFormAction($downloadListUrl)); ?>" class="flex items-center gap-2">
                         <?php echo dynamicFormHiddenInputs('download_list', $dlCatId > 0 ? ['cat' => (int) $dlCatId] : []); ?>
@@ -44,6 +46,7 @@ $downloadClearUrl = $downloadUsesDynamicRoute
                         <?php endif; ?>
                     </form>
                 </div>
+                <?php endif; ?>
                 <?php if ($keyword !== ''): ?>
                 <div class="mb-4 text-sm text-gray-500">
                     <?php echo __('search_total', ['count' => '<span class="text-primary font-medium">' . $total . '</span>']); ?> — "<span class="text-primary"><?php echo e($keyword); ?></span>"

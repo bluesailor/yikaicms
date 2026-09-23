@@ -354,6 +354,17 @@ if ($hasPublishedContentListBlox && $contentListPageChannel) {
         'perPage' => $perPage,
         'total' => (int) ($total ?? 0),
     ]);
+    // 下载 / 招聘目录：沿用本页控制器按当前分类、搜索、分页取好的行与侧栏，前台与固定列表同一份数据
+    $listCatalogShared = [
+        'channel' => $channel, 'keyword' => $keyword, 'page' => $page, 'perPage' => $perPage,
+        'total' => (int) ($total ?? 0),
+    ];
+    DownloadCatalogElement::setRuntimeContext($channel['type'] === 'download' ? $listCatalogShared + [
+        'downloads' => $downloads, 'dlCatId' => $dlCatId,
+        'rightSidebarChannels' => $rightSidebarChannels, 'rightSidebarItems' => $rightSidebarItems,
+        'rightSidebarTitle' => $rightSidebarTitle, 'rightSidebarActiveId' => $rightSidebarActiveId,
+    ] : null);
+    JobCatalogElement::setRuntimeContext($channel['type'] === 'job' ? $listCatalogShared + ['jobs' => $jobs] : null);
     // 容器 Loop 的 current 源（v1.25）：继承本页查询上下文，渲染后清空
     BloxLoopQuery::setCurrentContext([
         'channel' => $channel,
@@ -367,6 +378,8 @@ if ($hasPublishedContentListBlox && $contentListPageChannel) {
     ], (int) $contentListPageChannel['id']);
     BloxLoopQuery::setCurrentContext(null);
     ContentCatalogElement::setRuntimeContext(null);
+    DownloadCatalogElement::setRuntimeContext(null);
+    JobCatalogElement::setRuntimeContext(null);
     require_once theme_path('layouts/footer.php');
     HtmlCache::end();
     exit;
@@ -374,7 +387,9 @@ if ($hasPublishedContentListBlox && $contentListPageChannel) {
 // v1.26 archive 模板：本栏目没有专属 Blox 文档时，按条件套用共享的栏目列表模板
 // （专属文档更具体、永远优先）。上下文与专属文档分支同一套——容器 Loop 的
 // current 源继承当前栏目/搜索词/主分页，目录元素照常取数。空输出回落原生列表。
-if (!$hasPublishedContentListBlox && $contentListPageChannel) {
+// 共享模板里的目录是内容目录（读 contents 表），只套给资讯/案例栏目，不套给下载/招聘。
+if (!$hasPublishedContentListBlox && $contentListPageChannel
+    && ChannelBloxDocument::usesContents((string) $contentListPageChannel['type'])) {
     $archiveTemplateRow = BloxArchiveTemplateRuntime::resolve($channel);
     if ($archiveTemplateRow !== null) {
         ContentCatalogElement::setRuntimeContext([

@@ -108,17 +108,24 @@ final class WebsiteStructuralPagesTest extends TestCase
     /**
      * 可排版的栏目类型必须与编辑器/前台的真实闸口一致，不能各说各话：所有闸口都读
      * ChannelBloxDocument::supportsType() 这一处（product 另走 PageBloxDocument）。
-     * 2026-09-23 起案例栏目加入；下载与招聘各有独立的表，尚无目录数据源，仍标「暂不支持排版」。
+     * 2026-09-23 起案例栏目加入，2026-09-24 起下载、招聘加入（各用自己的目录元素）。
      */
     public function testDesignableChannelTypesMatchTheEditorAndFrontendGates(): void
     {
         require_once ROOT_PATH . '/includes/builder/ChannelBloxDocument.php';
-        self::assertSame(['list', 'case'], \ChannelBloxDocument::CHANNEL_TYPES);
-        foreach (['download', 'job', 'page', 'product', 'link'] as $type) {
+        self::assertSame(['list', 'case', 'download', 'job'], \ChannelBloxDocument::CHANNEL_TYPES);
+        foreach (['page', 'product', 'link', 'album'] as $type) {
             self::assertFalse(\ChannelBloxDocument::supportsType($type), $type);
         }
+        // 下载、招聘不在 contents 表：内容侧栏、内容目录、共享栏目列表模板都不能套给它们
+        self::assertSame(['list', 'case'], \ChannelBloxDocument::CONTENT_TYPES);
+        self::assertFalse(\ChannelBloxDocument::usesContents('download'));
+        self::assertFalse(\ChannelBloxDocument::usesContents('job'));
         self::assertSame('article', \ChannelBloxDocument::contentType('list'));
         self::assertSame('case', \ChannelBloxDocument::contentType('case'));
+        self::assertSame('content-list', \ChannelBloxDocument::paletteContext('case'));
+        self::assertSame('download-list', \ChannelBloxDocument::paletteContext('download'));
+        self::assertSame('job-list', \ChannelBloxDocument::paletteContext('job'));
 
         $gates = [
             'admin/includes/website_pages.php' => "\$designable = \$type === 'product' || ChannelBloxDocument::supportsType(\$type);",
@@ -126,14 +133,53 @@ final class WebsiteStructuralPagesTest extends TestCase
             'admin/blox_page_api.php' => "ChannelBloxDocument::supportsType((string) (\$targetChannel['type'] ?? ''))",
             'list.php' => "ChannelBloxDocument::supportsType((string) (\$channel['type'] ?? '')) ? \$channel : null",
             'includes/builder/BloxPublicationStatus.php' => 'ChannelBloxDocument::supportsType(',
-            'includes/builder/BloxCatalogItems.php' => 'ChannelBloxDocument::supportsType($type)',
         ];
         foreach ($gates as $file => $needle) {
+            self::assertStringContainsString($needle, (string) file_get_contents(ROOT_PATH . '/' . $file), $file);
+        }
+        $contentsOnly = [
+            'includes/builder/BloxCatalogItems.php' => 'ChannelBloxDocument::usesContents($type)',
+            'admin/blox_page_api.php' => 'ChannelBloxDocument::usesContents($catalogType)',
+            'admin/blox_editor/partials/catalog-source.php' => 'ChannelBloxDocument::usesContents(',
+            'list.php' => "ChannelBloxDocument::usesContents((string) \$contentListPageChannel['type'])",
+        ];
+        foreach ($contentsOnly as $file => $needle) {
             self::assertStringContainsString($needle, (string) file_get_contents(ROOT_PATH . '/' . $file), $file);
         }
         $channelDocument = (string) file_get_contents(ROOT_PATH . '/includes/builder/ChannelBloxDocument.php');
         self::assertStringContainsString("!self::supportsType((string) (\$channel['type'] ?? ''))", $channelDocument);
         // 画布预览按 match 分派，新增类型时要一起补
-        self::assertStringContainsString("'list', 'case' => ChannelBloxDocument::load(", (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxCanvasPreview.php'));
+        self::assertStringContainsString("'list', 'case', 'download', 'job' => ChannelBloxDocument::load(",
+            (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxCanvasPreview.php'));
+        // 编辑器元素面板按栏目类型取上下文；前台把控制器备好的行交给下载/职位目录
+        self::assertStringContainsString('ChannelBloxDocument::paletteContext(', (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php'));
+        $list = (string) file_get_contents(ROOT_PATH . '/list.php');
+        self::assertStringContainsString("DownloadCatalogElement::setRuntimeContext(\$channel['type'] === 'download'", $list);
+        self::assertStringContainsString("JobCatalogElement::setRuntimeContext(\$channel['type'] === 'job'", $list);
+    }
+
+    /** 下载 / 职位目录只出现在各自栏目的元素面板里，默认文档按栏目选对目录元素。 */
+    public function testCatalogElementsArePaletteScopedAndSeededPerChannelType(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/AbstractElement.php';
+        require_once ROOT_PATH . '/includes/builder/elements/DownloadCatalogElement.php';
+        require_once ROOT_PATH . '/includes/builder/elements/JobCatalogElement.php';
+        $download = new \DownloadCatalogElement();
+        $job = new \JobCatalogElement();
+        foreach (['page', 'content-list', 'product', 'job-list', 'home'] as $context) {
+            self::assertFalse($download->paletteVisible($context), $context);
+        }
+        foreach (['page', 'content-list', 'product', 'download-list', 'home'] as $context) {
+            self::assertFalse($job->paletteVisible($context), $context);
+        }
+        self::assertTrue($download->paletteVisible('download-list'));
+        self::assertTrue($job->paletteVisible('job-list'));
+
+        $doc = (string) file_get_contents(ROOT_PATH . '/includes/builder/ChannelBloxDocument.php');
+        self::assertStringContainsString("'download' => ['id' => 'e_download_catalog', 'type' => 'download-catalog'", $doc);
+        self::assertStringContainsString("'job' => ['id' => 'e_job_catalog', 'type' => 'job-catalog'", $doc);
+        $registry = (string) file_get_contents(ROOT_PATH . '/includes/builder/BuilderRegistry.php');
+        self::assertStringContainsString('new DownloadCatalogElement()', $registry);
+        self::assertStringContainsString('new JobCatalogElement()', $registry);
     }
 }

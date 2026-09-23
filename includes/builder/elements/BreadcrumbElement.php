@@ -15,7 +15,7 @@ final class BreadcrumbElement extends AbstractElement
     /** 有页面上下文的编辑器才提供（单页、栏目页、产品页、联系页）。 */
     public function paletteVisible(string $context = 'page'): bool
     {
-        return in_array($context, ['page', 'content-list', 'product', 'contact'], true);
+        return in_array($context, ['page', 'content-list', 'download-list', 'job-list', 'product', 'contact'], true);
     }
 
     public function controls(): array

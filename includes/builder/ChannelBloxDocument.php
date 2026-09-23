@@ -6,16 +6,38 @@ declare(strict_types=1);
 final class ChannelBloxDocument
 {
     /**
-     * 有 Blox 落地文档的内容栏目类型（顶级栏目）。资讯与案例都存在 contents 表、走同一套
-     * 内容目录元素；下载与招聘各自有独立的表，尚无对应的目录数据源，不在此列。
-     * 编辑器入口、保存接口、画布预览、发布状态、前台 list.php 与页面列表都从这里判断，
-     * 加一种类型只改这一处。
+     * 有 Blox 落地文档的栏目类型（顶级栏目）。编辑器入口、保存接口、画布预览、发布状态、
+     * 前台 list.php 与页面列表都从这里判断，加一种类型只改这一处。
+     * 资讯与案例存在 contents 表，用内容目录元素（content-catalog）；下载与招聘各有独立的表，
+     * 分别用下载目录（download-catalog）与职位目录（job-catalog）。
      */
-    public const CHANNEL_TYPES = ['list', 'case'];
+    public const CHANNEL_TYPES = ['list', 'case', 'download', 'job'];
+
+    /** 数据在 contents 表的栏目类型：内容目录元素、编辑器内容侧栏、共享栏目列表模板只服务它们。 */
+    public const CONTENT_TYPES = ['list', 'case'];
 
     public static function supportsType(string $channelType): bool
     {
         return in_array($channelType, self::CHANNEL_TYPES, true);
+    }
+
+    public static function usesContents(string $channelType): bool
+    {
+        return in_array($channelType, self::CONTENT_TYPES, true);
+    }
+
+    /**
+     * 编辑器元素面板的上下文：各类型只出现与自己数据对应的目录元素。
+     *
+     * @psalm-suppress PossiblyUnusedMethod 调用方是 admin/blox_editor.php（不在 Psalm 扫描范围）
+     */
+    public static function paletteContext(string $channelType): string
+    {
+        return match ($channelType) {
+            'download' => 'download-list',
+            'job' => 'job-list',
+            default => 'content-list',
+        };
     }
 
     /** 栏目类型 → contents.type（资讯栏目存的是 article）。 */
@@ -155,7 +177,9 @@ final class ChannelBloxDocument
             'id' => 'e_channel_title',
             'type' => 'heading',
             'data' => [
-                'text' => (string) ($channel['name'] ?? __((string) ($channel['type'] ?? '') === 'case' ? 'admin_case' : 'admin_article')),
+                'text' => (string) ($channel['name'] ?? __(match ((string) ($channel['type'] ?? '')) {
+                    'case' => 'admin_case', 'download' => 'admin_download', 'job' => 'admin_job', default => 'admin_article',
+                })),
                 'level' => 'h1',
                 'align' => 'center',
             ],
@@ -186,20 +210,27 @@ final class ChannelBloxDocument
                 ],
                 'columns' => [[
                     'id' => 'c_content_catalog',
-                    'elements' => [[
-                        'id' => 'e_content_catalog',
-                        'type' => 'content-catalog',
-                        'data' => [
-                            'layout' => 'list', 'columns' => '3',
-                            'show_search' => true, 'show_categories' => true,
-                            'show_cover' => true, 'show_summary' => true,
-                            'show_channel' => true, 'show_author' => false,
-                            'show_date' => true, 'show_views' => true,
-                        ],
-                    ]],
+                    'elements' => [self::catalogElement((string) ($channel['type'] ?? 'list'))],
                 ]],
             ],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+    }
+
+    /** @return array<string,mixed> 默认文档里的目录元素，按栏目数据来源选型 */
+    private static function catalogElement(string $channelType): array
+    {
+        return match ($channelType) {
+            'download' => ['id' => 'e_download_catalog', 'type' => 'download-catalog',
+                'data' => ['show_search' => true, 'show_categories' => true]],
+            'job' => ['id' => 'e_job_catalog', 'type' => 'job-catalog', 'data' => ['show_pagination' => true]],
+            default => ['id' => 'e_content_catalog', 'type' => 'content-catalog', 'data' => [
+                'layout' => 'list', 'columns' => '3',
+                'show_search' => true, 'show_categories' => true,
+                'show_cover' => true, 'show_summary' => true,
+                'show_channel' => true, 'show_author' => false,
+                'show_date' => true, 'show_views' => true,
+            ]],
+        };
     }
 
     private static function canonicalJson(string $raw): string

@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
 
-if (!$isProductBlox && !$isContentListBlox) {
+// 内容侧栏只服务数据在 contents / products 表的落地页；下载、招聘的目录直接读各自的表
+if (!$isProductBlox && !($isContentListBlox && ChannelBloxDocument::usesContents((string) ($page['type'] ?? '')))) {
     return;
 }
 $catalogKind = $isProductBlox ? 'product' : ChannelBloxDocument::contentType((string) ($page['type'] ?? 'list'));

@@ -49,7 +49,7 @@ try {
 
     if ($action === 'catalog_items') {
         $catalogType = (string) ($targetChannel['type'] ?? '');
-        if ($catalogType !== 'product' && !ChannelBloxDocument::supportsType($catalogType)) {
+        if ($catalogType !== 'product' && !ChannelBloxDocument::usesContents($catalogType)) {
             error(__('blox_bad_request'));
         }
         requirePermission(match ($catalogType) { 'product' => 'edit_product', 'case' => 'edit_case', default => 'edit_article' });

@@ -29,10 +29,26 @@ if (hasPermission('edit_product')) {
         'scope' => __('blox_source_catalog_scope'),
     ];
 }
-if (hasPermission('edit_article')) {
+// 内容目录的数据管理入口随栏目类型走：案例栏目进案例管理，其余进文章管理
+$contentCatalogIsCase = (string) ($page['type'] ?? '') === 'case';
+if (hasPermission($contentCatalogIsCase ? 'edit_case' : 'edit_article')) {
     $bloxSourceLinks['content-catalog'] = [
-        'url' => '/admin/article.php?lang=' . $sourceLang,
-        'label' => __('blox_source_manage_articles'),
+        'url' => ($contentCatalogIsCase ? '/admin/case.php' : '/admin/article.php') . '?lang=' . $sourceLang,
+        'label' => __($contentCatalogIsCase ? 'admin_case' : 'blox_source_manage_articles'),
+        'scope' => __('blox_source_catalog_scope'),
+    ];
+}
+if (hasPermission('edit_download')) {
+    $bloxSourceLinks['download-catalog'] = [
+        'url' => '/admin/download.php',
+        'label' => __('admin_download'),
+        'scope' => __('blox_source_catalog_scope'),
+    ];
+}
+if (hasPermission('edit_job')) {
+    $bloxSourceLinks['job-catalog'] = [
+        'url' => '/admin/job.php',
+        'label' => __('admin_job'),
         'scope' => __('blox_source_catalog_scope'),
     ];
 }
