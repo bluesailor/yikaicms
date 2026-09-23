@@ -206,24 +206,24 @@ final class ErrorHandler
     private static function respond(string $detail, bool $exit = true, bool $databasePermissionError = false): void
     {
         $debug = defined('DEBUG') && DEBUG;
-        $logFile = 'storage/logs/' . basename(self::file());
+        $logDir = 'storage/logs/';
         $occurredAt = date('Y-m-d H:i:s');
         $messageKey = $databasePermissionError ? 'error_500_db_permission' : 'error_500_generic';
         $fallback = $databasePermissionError
-            ? '数据库用户权限不足。请在数据库管理工具中，为该用户授予访问目标数据库及当前操作所需的权限。发生时间：:time；日志位置：:log_file。'
-            : '服务器内部错误（:time）。后台无法打开时，请通过主机控制面板的文件管理器或 FTP，查看站点根目录下的 :log_file；如果没有对应记录，请查看主机面板中的 PHP/Web 错误日志。';
+            ? '数据库用户权限不足（:time），请为该数据库用户授予所需权限，详情请在 :log_dir 目录下查询日志。'
+            : '服务器内部错误（:time），请在 :log_dir 目录下查询日志。';
         if ($debug) {
             $msg = $detail;
         } else {
             try {
                 $msg = function_exists('__')
-                    ? __($messageKey, ['time' => $occurredAt, 'log_file' => $logFile])
+                    ? __($messageKey, ['time' => $occurredAt, 'log_dir' => $logDir])
                     : $fallback;
             } catch (\Throwable $ignored) {
                 $msg = $fallback;
             }
             if ($msg === $messageKey) $msg = $fallback;
-            $msg = str_replace([':time', ':log_file'], [$occurredAt, $logFile], $msg);
+            $msg = str_replace([':time', ':log_dir'], [$occurredAt, $logDir], $msg);
         }
 
         if (PHP_SAPI === 'cli') {

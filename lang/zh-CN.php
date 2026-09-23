@@ -8214,6 +8214,6 @@ voltage|电压|220V',
     'form_token_invalid' => '表单安全令牌无效，请刷新页面后重试',
     'form_too_fast' => '提交过快，请稍后再试',
     'form_template_missing' => '表单不存在',
-    'error_500_generic' => '服务器内部错误（:time）。后台无法打开时，请通过主机控制面板的文件管理器或 FTP，查看站点根目录下的 :log_file；如果没有对应记录，请查看主机面板中的 PHP/Web 错误日志。',
-    'error_500_db_permission' => '数据库用户权限不足。请在数据库管理工具中，为该用户授予访问目标数据库及当前操作所需的权限。发生时间：:time；日志位置：:log_file。',
+    'error_500_generic' => '服务器内部错误（:time），请在 :log_dir 目录下查询日志。',
+    'error_500_db_permission' => '数据库用户权限不足（:time），请为该数据库用户授予所需权限，详情请在 :log_dir 目录下查询日志。',
 ];
