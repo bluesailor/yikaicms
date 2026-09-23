@@ -11,9 +11,32 @@ final class ReleaseCandidateHardeningTest extends TestCase
         $baota = (string) file_get_contents(ROOT_PATH . '/deploy/nginx-baota.conf');
 
         self::assertStringContainsString('^/api/v1/([a-z_]+)/?$', $baota);
-        self::assertStringContainsString('(ja|en|zh-CN|zh-TW)', $baota);
+        // 宝塔 server 块没有 location / 兜底：语言前缀与首页都必须直接改写到真实入口。
+        // 「去前缀 + ?_lang= 再往下匹配」在 server 级 last 之后不会再跑后续规则，语言内页全 404；
+        // 首页不直达入口时，默认文档里 index.html 排前面就会被单页规则当成别名 index（2026-09-23 实测）。
+        self::assertStringContainsString('rewrite ^/(ja|en|zh-CN|zh-TW)/ /index.php last;', $baota);
+        self::assertStringNotContainsString('?_lang=$1 last', $baota);
+        self::assertStringContainsString('rewrite ^/$ /index.php last;', $baota);
+        self::assertStringContainsString('rewrite ^/(admin|install)/$ /$1/index.php last;', $baota);
         self::assertStringContainsString('^/download/([a-z0-9_-]+)/page/(\\d+)\\.html$', $baota);
         self::assertStringContainsString('^/download/([a-z0-9_-]+)\\.html$', $baota);
+    }
+
+    /**
+     * 默认首页不能依赖面板的 server 级 index：面板把 index.html 排前面时首页 404，
+     * 没写 index 时 /admin/、/install/ 403——新站连安装器都进不去（2026-09-23 真实 Nginx 实测）。
+     * location 级 index 会覆盖 server 级，所以三个会落到目录的块各自声明。
+     */
+    public function testNginxTemplateDeclaresItsOwnDefaultIndex(): void
+    {
+        $conf = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/deploy/nginx-server.conf'));
+        foreach (['location / {' => 'index index.php index.html;', 'location ^~ /install/ {' => 'index index.php;',
+            'location ^~ /api/v1/ {' => 'index index.php;'] as $block => $directive) {
+            $start = strpos($conf, "\n" . $block . "\n");
+            self::assertNotFalse($start, $block);
+            $body = substr($conf, (int) $start, (int) strpos($conf, "\n}", (int) $start) - (int) $start);
+            self::assertMatchesRegularExpression('/^\s+' . preg_quote($directive, '/') . '$/m', $body, $block);
+        }
     }
 
     public function testApplicationErrorsUseRealHttpErrorStatuses(): void

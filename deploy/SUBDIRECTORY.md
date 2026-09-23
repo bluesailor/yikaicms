@@ -35,6 +35,9 @@
 #   漂亮网址全部由 PHP 的 Dispatcher 路由；根目录版里那串 rewrite 只是「直接派发到入口文件」的优化，
 #   子目录下不需要。一条 try_files 交给 /sub/index.php 即可。
 location ^~ /sub/ {
+    # 默认首页自己声明：面板把 index.html 排在前面时，/sub/ 与 /sub/admin/ 仍进 PHP
+    index index.php index.html;
+
     # ── 保护规则：必须写在 \.php$ 之前（nginx 正则 location 按出现顺序，先匹配先生效）──
     location ~ ^/sub/\.                                                   { deny all; }
     location ~ ^/sub/(config|storage|deploy|vendor|includes|bin|migrations|recipes)/ { deny all; }
