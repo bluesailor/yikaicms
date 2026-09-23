@@ -21,6 +21,7 @@ return [
         'config/release-runtime.php',
         'config/version.php',
         'includes/init.php',
+        'includes/BasePath.php',            // index.php / init.php / functions.php 无条件 require：子目录部署的挂载点
         'includes/RewriteProbe.php',
         'includes/CompatibleLinks.php',
         'includes/Dispatcher.php',
