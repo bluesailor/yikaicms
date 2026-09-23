@@ -39,6 +39,28 @@ final class ReleaseCandidateHardeningTest extends TestCase
         }
     }
 
+    /**
+     * 多站通用配置与单站写法必须挡同一批目录——两份各改各的，迟早有一份漏掉 storage/。
+     * 另锁住两处实测才发现的坑（2026-09-23 真实 Nginx）：/site/install/ 直接交给 PHP 会回 403
+     * 导致新站装不上；不存在的 .php 要在 nginx 这层判 404。
+     */
+    public function testMultiSiteNginxConfigMatchesSingleSiteProtection(): void
+    {
+        $multi = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/deploy/nginx-subdirectories.conf'));
+        $single = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/deploy/SUBDIRECTORY.md'));
+        $dirs = 'config|storage|deploy|vendor|includes|bin|migrations|recipes';
+        self::assertStringContainsString("/sub/($dirs)/", $single);
+        self::assertStringContainsString("/(?:$dirs|install/sql)/", $multi);
+        foreach (['uploads/.*\.(?:php|phtml|phar|php[0-9])$', '(?:md|sql|bak|example|dist|conf|lock|yml|yaml)$',
+            'installed.lock) { return 403; }', 'index index.php index.html;'] as $rule) {
+            self::assertStringContainsString($rule, $multi, $rule);
+        }
+        self::assertStringContainsString('rewrite ^ /$yk_site/install/index.php last;', $multi);
+        self::assertSame(2, substr_count($multi, 'if (!-f $request_filename) { return 404; }'));
+        // 保护规则必须排在 PHP 处理之前（nginx 正则 location 先匹配先生效）
+        self::assertLessThan(strpos($multi, '# ── 3. PHP'), strpos($multi, '/uploads/.*\.(?:php'));
+    }
+
     public function testApplicationErrorsUseRealHttpErrorStatuses(): void
     {
         $helper = ROOT_PATH . '/includes/http_response.php';
