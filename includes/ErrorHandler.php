@@ -94,6 +94,18 @@ final class ErrorHandler
                 $who
             );
             if ($e !== null) {
+                $cause = $e;
+                $depth = 0;
+                while ($cause !== null && $depth < 4) {
+                    if ($depth > 0) {
+                        $entry .= '    Caused by: ' . get_class($cause) . ': ' . str_replace(["\r", "\n"], ' ', mb_substr($cause->getMessage(), 0, self::MSG_LIMIT)) . "\n";
+                    }
+                    if ($cause instanceof \PDOException && is_array($cause->errorInfo ?? null)) {
+                        $entry .= '    PDO state/code: ' . (string) ($cause->errorInfo[0] ?? '') . '/' . (string) ($cause->errorInfo[1] ?? '') . "\n";
+                    }
+                    $cause = $cause->getPrevious();
+                    $depth++;
+                }
                 foreach (array_slice(explode("\n", $e->getTraceAsString()), 0, 12) as $t) {
                     $entry .= "    " . $t . "\n";
                 }
@@ -147,7 +159,11 @@ final class ErrorHandler
             $e->getLine(),
             $e
         );
-        self::respond(get_class($e) . ': ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+        self::respond(
+            get_class($e) . ': ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine(),
+            true,
+            self::isDatabasePermissionError($e)
+        );
     }
 
     /** register_shutdown_function 回调：致命错误兜底（parse error / OOM / 调未定义函数等） */
@@ -159,20 +175,56 @@ final class ErrorHandler
         }
         self::log(self::levelName($err['type']), $err['message'], $err['file'], $err['line']);
         if (!headers_sent()) {
-            self::respond($err['message'] . ' at ' . $err['file'] . ':' . $err['line'], false);
+            self::respond(
+                $err['message'] . ' at ' . $err['file'] . ':' . $err['line'],
+                false,
+                self::isDatabasePermissionError((string) $err['message'])
+            );
         }
     }
 
-    /**
-     * 面向用户的出错响应。AJAX 回 JSON（与 error() 助手同构），页面回友好提示；
-     * DEBUG 时带具体错误，生产只提示去后台看日志。
-     */
-    private static function respond(string $detail, bool $exit = true): void
+    private static function isDatabasePermissionError(\Throwable|string $error): bool
+    {
+        $messagePattern = '/(?:access denied.*(?:database|user)|(?:create|alter|drop|insert|update|delete|select).*command denied|requires? .*privileges?)/i';
+        $current = $error instanceof \Throwable ? $error : null;
+        while ($current instanceof \Throwable) {
+            if ($current instanceof \PDOException) {
+                $nativeCode = is_array($current->errorInfo ?? null) ? (int) ($current->errorInfo[1] ?? 0) : 0;
+                if (in_array($nativeCode, [1044, 1045, 1142, 1143, 1227], true)
+                    || in_array((string) $current->getCode(), ['1044', '1045', '1142', '1143', '1227'], true)) {
+                    return true;
+                }
+            }
+            if (preg_match($messagePattern, $current->getMessage()) === 1) return true;
+            $current = $current->getPrevious();
+        }
+
+        return is_string($error) && preg_match($messagePattern, $error) === 1;
+    }
+
+    /** AJAX 回 JSON，页面回友好提示；生产环境不输出原始异常详情。 */
+    private static function respond(string $detail, bool $exit = true, bool $databasePermissionError = false): void
     {
         $debug = defined('DEBUG') && DEBUG;
-        $msg = $debug
-            ? $detail
-            : '服务器内部错误，详情已记录到错误日志（后台 → 系统信息 → 错误日志）';
+        $logFile = 'storage/logs/' . basename(self::file());
+        $occurredAt = date('Y-m-d H:i:s');
+        $messageKey = $databasePermissionError ? 'error_500_db_permission' : 'error_500_generic';
+        $fallback = $databasePermissionError
+            ? '数据库用户权限不足。请在数据库管理工具中，为该用户授予访问目标数据库及当前操作所需的权限。发生时间：:time；日志位置：:log_file。'
+            : '服务器内部错误（:time）。后台无法打开时，请通过主机控制面板的文件管理器或 FTP，查看站点根目录下的 :log_file；如果没有对应记录，请查看主机面板中的 PHP/Web 错误日志。';
+        if ($debug) {
+            $msg = $detail;
+        } else {
+            try {
+                $msg = function_exists('__')
+                    ? __($messageKey, ['time' => $occurredAt, 'log_file' => $logFile])
+                    : $fallback;
+            } catch (\Throwable $ignored) {
+                $msg = $fallback;
+            }
+            if ($msg === $messageKey) $msg = $fallback;
+            $msg = str_replace([':time', ':log_file'], [$occurredAt, $logFile], $msg);
+        }
 
         if (PHP_SAPI === 'cli') {
             file_put_contents('php://stderr', "[YikaiCMS] $detail\n");
@@ -192,7 +244,16 @@ final class ErrorHandler
             }
             echo json_encode(['code' => 500, 'msg' => $msg, 'data' => null], JSON_UNESCAPED_UNICODE);
         } else {
-            echo '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>500</title></head><body style="font-family:system-ui;padding:60px 24px;text-align:center;color:#374151">'
+            $htmlLanguage = 'zh-CN';
+            if (function_exists('getLang')) {
+                try {
+                    $candidate = getLang();
+                    if (in_array($candidate, ['zh-CN', 'en', 'ja'], true)) $htmlLanguage = $candidate;
+                } catch (\Throwable $ignored) {
+                    // 错误页不能因语言配置读取失败而再次报错。
+                }
+            }
+            echo '<!DOCTYPE html><html lang="' . $htmlLanguage . '"><head><meta charset="utf-8"><title>500</title></head><body style="font-family:system-ui;padding:60px 24px;text-align:center;color:#374151">'
                 . '<h1 style="font-size:48px;margin:0 0 8px">500</h1>'
                 . '<p>' . htmlspecialchars($msg, ENT_QUOTES) . '</p>'
                 . '</body></html>';
