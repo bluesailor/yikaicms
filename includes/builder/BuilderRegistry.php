@@ -165,6 +165,8 @@ final class BuilderRegistry
             // 动态元素（接 {yk:} 引擎 + 自定义模型）
             new ListDynamicElement(),
             new ContentCatalogElement(),
+            new DownloadCatalogElement(),
+            new JobCatalogElement(),
             new ProductCatalogElement(),
             new BannerElement(),
             new NavElement(),

@@ -680,7 +680,7 @@ require __DIR__ . '/blox_editor/content-language.php';
 
 $registryContext = $isHomeBlox
     ? 'home'
-    : ($isContentListBlox ? 'content-list' : ($isProductBlox ? 'product' : ($isContactBlox ? 'contact' : 'page')));
+    : ($isContentListBlox ? ChannelBloxDocument::paletteContext((string) ($page['type'] ?? 'list')) : ($isProductBlox ? 'product' : ($isContactBlox ? 'contact' : 'page')));
 $registryMeta = BuilderRegistry::meta($registryContext);
 if ($templateId && $templateType === 'product-detail') {
     $registryMeta = BuilderRegistry::meta('product-detail');

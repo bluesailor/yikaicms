@@ -7,7 +7,7 @@ final class BloxCatalogItems
     public static function read(array $channel, string $keyword, int $page): array
     {
         $type = (string) ($channel['type'] ?? '');
-        if (($type !== 'product' && !ChannelBloxDocument::supportsType($type)) || (int) ($channel['id'] ?? 0) < 1) {
+        if (($type !== 'product' && !ChannelBloxDocument::usesContents($type)) || (int) ($channel['id'] ?? 0) < 1) {
             throw new RuntimeException(__('blox_bad_request'));
         }
         $page = max(1, min(1000, $page));
