@@ -36,7 +36,7 @@ final class SiteHealthPageContractTest extends TestCase
         self::assertStringContainsString('body.slice(0, 1024)', $page);
     }
 
-    public function testFeatureIsDiscoverableFromMenuDashboardAndCli(): void
+    public function testFeatureIsDiscoverableFromMenuAndCli(): void
     {
         $menu = (string) file_get_contents(ROOT_PATH . '/admin/includes/sidebar_menu.php');
         $dashboard = (string) file_get_contents(ROOT_PATH . '/admin/index.php');
@@ -45,7 +45,6 @@ final class SiteHealthPageContractTest extends TestCase
         $healthPage = (string) file_get_contents(ROOT_PATH . '/admin/site_health.php');
 
         self::assertStringContainsString("'key'   => 'site_health'", $menu);
-        self::assertStringContainsString('/admin/site_health.php', $dashboard);
         self::assertStringContainsString("CLI::register('site:health'", $command);
         self::assertStringContainsString('!empty($opts[\'remote\'])', $command);
         self::assertStringContainsString('data-testid="admin-help-link"', $header);
@@ -91,26 +90,22 @@ final class SiteHealthPageContractTest extends TestCase
         }
     }
 
-    public function testDashboardNoticeSupportsSessionCloseAndPersistentDismissal(): void
+    /**
+     * 控制台不再显示站点健康提醒（2026-09-23 按产品要求移除）：体检照常在「站点健康」页与
+     * 命令行里可用，只是不在登录首页打扰。「不再提醒」的开关与接口随卡片一起删除。
+     */
+    public function testDashboardShowsNoSiteHealthNotice(): void
     {
         $dashboard = (string) file_get_contents(ROOT_PATH . '/admin/index.php');
         $defaults = (string) file_get_contents(ROOT_PATH . '/config/defaults.php');
 
-        self::assertStringContainsString("post('action') === 'dismiss_site_health_notice'", $dashboard);
-        self::assertStringContainsString("settingModel()->saveBatch(['dashboard_site_health_dismissed' => '1'])", $dashboard);
-        self::assertStringContainsString("config('dashboard_site_health_dismissed', '0')", $dashboard);
-        self::assertStringContainsString('verifyCsrf();', $dashboard);
-        self::assertStringContainsString("requirePermission('*')", $dashboard);
-        self::assertStringContainsString('data-testid="dashboard-health-dismiss"', $dashboard);
-        self::assertStringContainsString('data-testid="dashboard-health-close"', $dashboard);
-        self::assertStringContainsString("sessionStorage.setItem(sessionKey, '1')", $dashboard);
-        self::assertStringContainsString("'dashboard_site_health_dismissed'", $defaults);
-
+        foreach (['dashboard-health-notice', 'dismiss_site_health_notice', 'site_health_last_summary', 'dashboard_site_health_dismissed'] as $marker) {
+            self::assertStringNotContainsString($marker, $dashboard, $marker);
+        }
+        self::assertStringNotContainsString("'dashboard_site_health_dismissed'", $defaults);
         foreach (['zh-CN', 'en', 'ja'] as $lang) {
             $strings = require ROOT_PATH . '/lang/' . $lang . '.php';
-            self::assertArrayHasKey('dashboard_health_dismiss', $strings);
-            self::assertArrayHasKey('dashboard_health_close', $strings);
-            self::assertArrayHasKey('dashboard_health_dismiss_failed', $strings);
+            self::assertSame([], array_values(array_filter(array_keys($strings), static fn($k) => str_starts_with((string) $k, 'dashboard_health_'))), $lang);
         }
     }
 
