@@ -64,6 +64,7 @@ final class DownloadCatalogElement extends AbstractElement
         $result = downloadModel()->getList(0, ['status' => '1', 'lang' => $lang], 6, 0);
         return [
             'channel' => $channel,
+            'channelId' => (int) $channel['id'],
             'downloads' => $result['items'] ?? [],
             'total' => (int) ($result['total'] ?? 0),
             'page' => 1,

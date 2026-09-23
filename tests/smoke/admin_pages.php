@@ -130,6 +130,56 @@ foreach ($pages as $page) {
     }
 }
 
+// ---- 栏目落地页编辑器：画布里要渲染各栏目的目录元素 ----
+// 下载/职位目录直接套固定列表的视图，视图用到的变量缺一个就是 Warning——页面照样 200，
+// 上面按 500 判定的循环抓不到（2026-09-24：下载目录侧栏缺 $channelId，画布里直接露出 Warning）。
+// 页面正文与站点错误日志两头看：生产配置下 Warning 不显示，但 ErrorHandler 照样记日志。
+$landingDb = $root . '/storage/database.sqlite';
+if (is_file($landingDb)) {
+    $landingLogs = static fn(): int => array_sum(array_map('filesize', glob($root . '/storage/logs/error-*.log') ?: []));
+    clearstatcache();
+    $landingLogBefore = $landingLogs();
+    $landingPdo = new PDO('sqlite:' . $landingDb);
+    $landingRows = $landingPdo->query(
+        "SELECT id, type FROM yikai_channels WHERE parent_id = 0 AND lang = 'zh-CN'"
+        . " AND type IN ('list', 'case', 'download', 'job') ORDER BY id"
+    )->fetchAll(PDO::FETCH_ASSOC);
+    // 画布不在编辑器页面里渲染：编辑器脚本把文档 POST 给保存接口的 preview 动作（blox-preview-client.js），
+    // 这里照做，并要求目录元素确实渲染出来（防止检查本身什么都没看见就放行）
+    $landingElements = [
+        'list' => ['content-catalog', 'data-content-catalog'],
+        'case' => ['content-catalog', 'data-content-catalog'],
+        'download' => ['download-catalog', 'download_filename'],
+        'job' => ['job-catalog', 'data-job-catalog'],
+    ];
+    foreach ($landingRows as $landingRow) {
+        $landingId = (int) $landingRow['id'];
+        [$element, $marker] = $landingElements[(string) $landingRow['type']];
+        [$code, $editorPage] = pgReq('/admin/blox_editor.php?id=' . $landingId);
+        preg_match('/csrf:\s*"([a-f0-9]+)"/', $editorPage, $landingToken);
+        $landingDoc = json_encode([[
+            'id' => 's_smoke', 'settings' => [],
+            'columns' => [['id' => 'c_smoke', 'elements' => [['id' => 'e_smoke', 'type' => $element, 'data' => []]]]],
+        ]]);
+        [$code, $body] = pgPost('/admin/blox_page_api.php?id=' . $landingId, [
+            'action' => 'preview', 'blox' => '1', 'blocks_data' => (string) $landingDoc, '_token' => $landingToken[1] ?? '',
+        ]);
+        $checked++;
+        // download_filename 是下载表头文案的 key：表头按当前语言渲染，这里改认表格结构
+        $rendered = $marker === 'download_filename' ? str_contains($body, '<table') : str_contains($body, $marker);
+        if ($code !== 200 || !$rendered || preg_match('/(Warning|Notice|Deprecated|Fatal error)(<\/b>)?:/', $body) === 1) {
+            $fails[] = "{$landingRow['type']} 栏目 #{$landingId} 画布预览（{$element}）→ HTTP {$code}"
+                . ($rendered ? '' : '，目录元素未渲染') . '，或出现 PHP 警告';
+            echo "✗ {$landingRow['type']} #{$landingId} 画布预览 HTTP {$code}\n";
+        }
+    }
+    clearstatcache();
+    if ($landingLogs() > $landingLogBefore) {
+        $fails[] = '栏目落地页编辑器渲染期间站点错误日志新增了记录（storage/logs）';
+        echo "✗ 栏目落地页编辑器写入了错误日志\n";
+    }
+}
+
 @unlink($JAR);
 if ($fails) {
     fwrite(STDERR, "\n❌ 后台页面冒烟失败 " . count($fails) . " 项：\n  - " . implode("\n  - ", $fails) . "\n");

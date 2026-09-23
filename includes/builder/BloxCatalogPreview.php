@@ -17,7 +17,7 @@ final class BloxCatalogPreview
     public static function render(array $channel, string $json): string
     {
         $type = (string) ($channel['type'] ?? '');
-        if (!in_array($type, ['product', 'list'], true)) {
+        if ($type !== 'product' && !ChannelBloxDocument::supportsType($type)) {
             return PageTitleElement::withPage($channel, static fn(): string => renderBlocksToHtml($json));
         }
         require_once ROOT_PATH . '/controllers/list/ListRouter.php';
@@ -38,6 +38,14 @@ final class BloxCatalogPreview
                 $context['subChannels'] = getChannels($id, false);
                 $context['categoryTree'] = productCategoryModel()->getNavigationTree((int) ($context['productCategoryId'] ?? 0));
                 ProductCatalogElement::setRuntimeContext($context);
+            } elseif ($type === 'download') {
+                // 与 list.php 固定列表同一份侧栏：全部 + 各下载分类（控制器不产出侧栏，列表页自己拼）
+                $context['rightSidebarItems'] = DownloadCatalogElement::categoryItems($channel, 0);
+                $context['rightSidebarTitle'] = __('label_category');
+                $context['rightSidebarActiveId'] = null;
+                DownloadCatalogElement::setRuntimeContext($context);
+            } elseif ($type === 'job') {
+                JobCatalogElement::setRuntimeContext($context);
             } else {
                 $context['categories'] = getChannels($id, false);
                 ContentCatalogElement::setRuntimeContext($context);
@@ -46,6 +54,8 @@ final class BloxCatalogPreview
         } finally {
             ProductCatalogElement::setRuntimeContext(null);
             ContentCatalogElement::setRuntimeContext(null);
+            DownloadCatalogElement::setRuntimeContext(null);
+            JobCatalogElement::setRuntimeContext(null);
             $_GET = $savedGet;
             if ($savedUri === null) {
                 unset($_SERVER['REQUEST_URI']);
