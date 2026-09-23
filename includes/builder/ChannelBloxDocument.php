@@ -5,6 +5,25 @@ declare(strict_types=1);
 
 final class ChannelBloxDocument
 {
+    /**
+     * 有 Blox 落地文档的内容栏目类型（顶级栏目）。资讯与案例都存在 contents 表、走同一套
+     * 内容目录元素；下载与招聘各自有独立的表，尚无对应的目录数据源，不在此列。
+     * 编辑器入口、保存接口、画布预览、发布状态、前台 list.php 与页面列表都从这里判断，
+     * 加一种类型只改这一处。
+     */
+    public const CHANNEL_TYPES = ['list', 'case'];
+
+    public static function supportsType(string $channelType): bool
+    {
+        return in_array($channelType, self::CHANNEL_TYPES, true);
+    }
+
+    /** 栏目类型 → contents.type（资讯栏目存的是 article）。 */
+    public static function contentType(string $channelType): string
+    {
+        return $channelType === 'list' ? 'article' : $channelType;
+    }
+
     /** @return array{page:array<string,mixed>,document_json:string,published_document_json:string,base_revision:string,has_draft:bool,has_published:bool,has_unpublished_changes:bool,published_at:int} */
     public static function load(int $channelId): array
     {
@@ -122,7 +141,7 @@ final class ChannelBloxDocument
     private static function channel(int $channelId): array
     {
         $channel = $channelId > 0 ? channelModel()->find($channelId) : null;
-        if (!$channel || (string) ($channel['type'] ?? '') !== 'list'
+        if (!$channel || !self::supportsType((string) ($channel['type'] ?? ''))
             || (int) ($channel['parent_id'] ?? 0) !== 0) {
             throw new RuntimeException(__('blox_page_not_found'));
         }
@@ -136,7 +155,7 @@ final class ChannelBloxDocument
             'id' => 'e_channel_title',
             'type' => 'heading',
             'data' => [
-                'text' => (string) ($channel['name'] ?? __('admin_article')),
+                'text' => (string) ($channel['name'] ?? __((string) ($channel['type'] ?? '') === 'case' ? 'admin_case' : 'admin_article')),
                 'level' => 'h1',
                 'align' => 'center',
             ],

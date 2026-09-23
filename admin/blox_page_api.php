@@ -43,16 +43,16 @@ $action = (string) post('action', 'save_draft');
 try {
     // Validate page ownership before rendering submitted HTML into the editor iframe.
     $targetChannel = channelModel()->find($pageId);
-    $isContentList = is_array($targetChannel) && (string) ($targetChannel['type'] ?? '') === 'list';
+    $isContentList = is_array($targetChannel) && ChannelBloxDocument::supportsType((string) ($targetChannel['type'] ?? ''));
     $documentClass = $isContentList ? ChannelBloxDocument::class : PageBloxDocument::class;
     $documentClass::load($pageId);
 
     if ($action === 'catalog_items') {
         $catalogType = (string) ($targetChannel['type'] ?? '');
-        if (!in_array($catalogType, ['product', 'list'], true)) {
+        if ($catalogType !== 'product' && !ChannelBloxDocument::supportsType($catalogType)) {
             error(__('blox_bad_request'));
         }
-        requirePermission($catalogType === 'product' ? 'edit_product' : 'edit_article');
+        requirePermission(match ($catalogType) { 'product' => 'edit_product', 'case' => 'edit_case', default => 'edit_article' });
         require_once ROOT_PATH . '/includes/builder/BloxCatalogItems.php';
         success(BloxCatalogItems::read($targetChannel, (string) post('keyword', ''), (int) post('page', '1')));
     }

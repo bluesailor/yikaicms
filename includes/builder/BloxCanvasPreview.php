@@ -132,7 +132,7 @@ function bloxPreviewTrustedJson(bool $isHomeLayout, int $id): ?string
     try {
         return match ((string) ($channel['type'] ?? '')) {
             'page', 'product' => PageBloxDocument::load($id)['document_json'],
-            'list' => ChannelBloxDocument::load($id)['document_json'],
+            'list', 'case' => ChannelBloxDocument::load($id)['document_json'],
             default => null,
         };
     } catch (RuntimeException) {

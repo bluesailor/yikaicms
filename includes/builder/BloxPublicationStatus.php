@@ -92,7 +92,7 @@ final class BloxPublicationStatus
         }
         try {
             $channel = channelModel()->find($channelId);
-            $state = (string) ($channel['type'] ?? '') === 'list'
+            $state = ChannelBloxDocument::supportsType((string) ($channel['type'] ?? ''))
                 ? ChannelBloxDocument::load($channelId)
                 : PageBloxDocument::load($channelId);
             return $state['has_unpublished_changes'] ? $state['document_json'] : null;
@@ -169,7 +169,7 @@ final class BloxPublicationStatus
             }
             if ($descriptor['kind'] === 'page') {
                 $channel = channelModel()->find($descriptor['id']);
-                $state = (string) ($channel['type'] ?? '') === 'list'
+                $state = ChannelBloxDocument::supportsType((string) ($channel['type'] ?? ''))
                     ? ChannelBloxDocument::load($descriptor['id'])
                     : PageBloxDocument::load($descriptor['id']);
                 return $state['has_unpublished_changes'];

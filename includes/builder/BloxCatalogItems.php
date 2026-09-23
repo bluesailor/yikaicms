@@ -7,7 +7,7 @@ final class BloxCatalogItems
     public static function read(array $channel, string $keyword, int $page): array
     {
         $type = (string) ($channel['type'] ?? '');
-        if (!in_array($type, ['product', 'list'], true) || (int) ($channel['id'] ?? 0) < 1) {
+        if (($type !== 'product' && !ChannelBloxDocument::supportsType($type)) || (int) ($channel['id'] ?? 0) < 1) {
             throw new RuntimeException(__('blox_bad_request'));
         }
         $page = max(1, min(1000, $page));
@@ -23,7 +23,7 @@ final class BloxCatalogItems
             $rows = productModel()->getList($categoryId, 7, ($page - 1) * 6, $filters);
         } else {
             // Other content types have separate permissions and edit forms.
-            $filters['type'] = 'article';
+            $filters['type'] = ChannelBloxDocument::contentType($type);
             $rows = contentModel()->getList((int) $channel['id'], 7, ($page - 1) * 6, $filters);
         }
         $items = [];
