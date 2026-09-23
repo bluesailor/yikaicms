@@ -397,6 +397,8 @@ final class Dispatcher
             $static = ROOT_PATH . '/html' . $path;
             if (is_file($static) && str_starts_with((string) realpath($static), (string) realpath(ROOT_PATH . '/html'))) {
                 header('Content-Type: text/html; charset=utf-8');
+                // 预生成文件抓取时就经过了出口改写、已带挂载前缀，不能再补一次
+                BasePath::markOutputFinal();
                 readfile($static);
                 exit;
             }

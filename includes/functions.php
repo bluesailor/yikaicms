@@ -12,6 +12,7 @@ if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
 
+require_once __DIR__ . '/BasePath.php';     // 子目录部署：内联脚本里的站内地址在生成处补前缀
 require_once __DIR__ . '/frontend_preview.php';
 require_once __DIR__ . '/http_response.php';
 require_once __DIR__ . '/ThemeRuntime.php';
@@ -825,6 +826,15 @@ function siteBaseUrl(): string
     if ($base === '') {
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $base = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    }
+    // 子目录部署：地址里没有路径（没填、或只填了域名）时补上挂载前缀。
+    // 已填了带路径的完整地址就原样尊重——那是站长明确指定的规范地址，不能再叠一层。
+    $mount = BasePath::get();
+    if ($mount !== '') {
+        $path = (string) parse_url($base, PHP_URL_PATH);
+        if ($path === '' || $path === '/') {
+            $base .= $mount;
+        }
     }
     return $base;
 }
@@ -3719,7 +3729,7 @@ function renderFormNonceClientScript(): string
         . 'if(!slug||!field)return Promise.reject(new Error(' . $error . '));'
         . 'var body=new URLSearchParams();body.set("form_slug",String(slug.value||""));'
         . 'var lang=form.elements.namedItem("_lang");var langValue=lang?String(lang.value||""):"";'
-        . 'return fetch("/form_nonce.php?_lang="+encodeURIComponent(langValue),{method:"POST",credentials:"same-origin",cache:"no-store",'
+        . 'return fetch("' . BasePath::url('/form_nonce.php') . '?_lang="+encodeURIComponent(langValue),{method:"POST",credentials:"same-origin",cache:"no-store",'
         . 'headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:body.toString()})'
         . '.then(function(response){return response.json();}).then(function(data){'
         . 'if(!data||data.code!==0||!data.nonce)throw new Error((data&&data.msg)||' . $error . ');'
@@ -3756,13 +3766,13 @@ function renderFormTemplate(string $slug): string
     $html .= 'e.preventDefault();var form=e.target;var btn=form.querySelector("button[type=submit]");';
     $html .= 'btn.disabled=true;btn.textContent=' . json_encode(__('form_submitting')) . ';';
     $html .= 'window.ykFormNonce(form).then(function(){var fd=new FormData(form);var nonce=form.elements.namedItem("form_nonce");if(nonce)nonce.value="";';
-    $html .= 'return fetch("/form_submit.php?_lang="+encodeURIComponent(fd.get("_lang")||""),{method:"POST",body:fd}).then(r=>r.json()).then(function(data){';
+    $html .= 'return fetch("' . BasePath::url('/form_submit.php') . '?_lang="+encodeURIComponent(fd.get("_lang")||""),{method:"POST",body:fd}).then(r=>r.json()).then(function(data){';
     $html .= 'var msgEl=document.getElementById("shortcode-form-"+slug+"-msg");';
     $html .= 'msgEl.classList.remove("hidden","bg-green-50","text-green-600","bg-red-50","text-red-600");';
     $html .= 'if(data.code===0){msgEl.className+=" bg-green-50 text-green-600";msgEl.textContent=data.msg;form.reset();}';
     $html .= 'else{msgEl.className+=" bg-red-50 text-red-600";msgEl.textContent=data.msg;}';
     $html .= 'if(data.refresh_token){["form_ts","form_sig"].forEach(function(key){var field=form.elements.namedItem(key);if(field){field.value=String(data.refresh_token[key]);field.defaultValue=field.value;}});}';
-    $html .= 'var _ci=form.querySelector("img[src*=captcha]");if(_ci)_ci.src="/captcha.php?"+Date.now();';
+    $html .= 'var _ci=form.querySelector("img[src*=captcha]");if(_ci)_ci.src="' . BasePath::url('/captcha.php') . '?"+Date.now();';
     $html .= 'msgEl.classList.remove("hidden");btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';';
     $html .= '});}).catch(function(error){var msgEl=document.getElementById("shortcode-form-"+slug+"-msg");if(msgEl){msgEl.className="mt-4 p-4 rounded-lg text-sm bg-red-50 text-red-600";msgEl.textContent=error&&error.message?error.message:' . json_encode(__('form_nonce_fetch_error')) . ';}btn.disabled=false;btn.textContent=' . json_encode(__('form_submit')) . ';});return false;};';
     $html .= '}</script>';
