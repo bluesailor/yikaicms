@@ -10,15 +10,16 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/includes/init.php';
 
-HtmlCache::start(86400);
-
-// 检查是否启用
+// 检查是否启用（在页面缓存之前：关掉后不能再从缓存里吐旧文件）
 if (config('seo_sitemap_enabled', '1') !== '1') {
     header('HTTP/1.1 404 Not Found');
     exit;
 }
 
+// 类型必须在页面缓存之前发：缓存命中会直接输出并 exit，走不到后面的 header()，
+// 站点地图就以默认的 text/html 下发——搜索引擎按 HTML 处理、解析失败。
 header('Content-Type: application/xml; charset=utf-8');
+HtmlCache::start(86400);
 
 // 缓存（使用后台配置的缓存时间）
 $sitemapTtl = (int)config('seo_sitemap_ttl', 600);
