@@ -257,7 +257,7 @@
                 body.set('_token', this.csrf);
 
                 // 带 AJAX 头：权限不足等拒绝一律回 JSON，界面才能显示具体原因而不是"诊断失败"
-                fetch('/admin/blox_template_api.php', { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                fetch((window.YK_BASE || '') + '/admin/blox_template_api.php', { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(function (r) { return r.json().catch(function () { return { code: 1 }; }); })
                     .then(function (res) {
                         if (seq !== self.conditionDiagnosisSeq) return;   // 乱序：旧请求不得覆盖新结果

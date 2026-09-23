@@ -1030,7 +1030,7 @@ function bloxDesignManager() {
             body.set('options', JSON.stringify(this.pageHero.options || {}));
             body.set('_token', this.csrf);
             try {
-                var response = await fetch('/admin/blox_design_api.php', { method: 'POST', body: body });
+                var response = await fetch((window.YK_BASE || '') + '/admin/blox_design_api.php', { method: 'POST', body: body });
                 var result = await response.json();
                 if (!result || Number(result.code) !== 0 || !result.data) throw new Error((result && (result.msg || result.message)) || this.text.failed);
                 this.pageHeroState = result.data;
@@ -1120,7 +1120,7 @@ function bloxDesignManager() {
             body.set('theme', JSON.stringify(this.themeForm || {}));
             body.set('_token', this.csrf);
             try {
-                var response = await fetch('/admin/blox_design_api.php', { method: 'POST', body: body });
+                var response = await fetch((window.YK_BASE || '') + '/admin/blox_design_api.php', { method: 'POST', body: body });
                 var result = await response.json();
                 if (!result || Number(result.code) !== 0 || !result.data) throw new Error((result && (result.msg || result.message)) || this.text.failed);
                 this.themeState = result.data;
@@ -1183,7 +1183,7 @@ function bloxDesignManager() {
             body.set('wide_enabled', next ? '1' : '0');
             body.set('_token', this.csrf);
             try {
-                var response = await fetch('/admin/blox_design_api.php', { method: 'POST', body: body });
+                var response = await fetch((window.YK_BASE || '') + '/admin/blox_design_api.php', { method: 'POST', body: body });
                 var result = await response.json();
                 if (!result || Number(result.code) !== 0 || !result.data) throw new Error((result && (result.msg || result.message)) || this.text.failed);
                 this.breakpoints.wide = !!result.data.wide_enabled;
@@ -1208,7 +1208,7 @@ function bloxDesignManager() {
             body.set('_token', this.csrf);
             Object.entries(input || {}).forEach(([key, value]) => body.set(key, value === true ? '1' : (value === false ? '0' : String(value ?? ''))));
             try {
-                var response = await fetch('/admin/blox_design_api.php', { method: 'POST', body: body });
+                var response = await fetch((window.YK_BASE || '') + '/admin/blox_design_api.php', { method: 'POST', body: body });
                 var result = await response.json();
                 if (!result || Number(result.code) !== 0 || !result.data) throw new Error((result && (result.msg || result.message)) || this.text.failed);
                 this.state = result.data;

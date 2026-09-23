@@ -13,7 +13,7 @@
             destroy() { this.requestId++; },
             editUrl(item) {
                 return ["product", "article"].includes(kind) && Number.isSafeInteger(item.id) && item.id > 0
-                    ? "/admin/" + kind + "_edit.php?id=" + item.id : "";
+                    ? (global.YK_BASE || "") + "/admin/" + kind + "_edit.php?id=" + item.id : "";
             },
             async load(page, keyword = this.keyword.trim()) {
                 var requestId = ++this.requestId;
@@ -27,7 +27,7 @@
                 try {
                     var body = new URLSearchParams({ action: "catalog_items", id: id, _token: csrf,
                         keyword: keyword, page: page });
-                    var response = await fetch("/admin/blox_page_api.php", { method: "POST", body: body,
+                    var response = await fetch((global.YK_BASE || "") + "/admin/blox_page_api.php", { method: "POST", body: body,
                         credentials: "same-origin", headers: { "X-Requested-With": "XMLHttpRequest" } });
                     if (!response.ok) throw new Error("catalog-request-failed");
                     var result = await response.json();

@@ -264,6 +264,16 @@ final class BasePath
     }
 
     /**
+     * 内容数据里的图片路径（/uploads/…）按约定不带前缀入库，经 JSON 交给脚本渲染时没有出口改写
+     * 可以经过——媒体库网格、编辑器控件缩略图、相册列表都是这样。数据本身不能改（前台出口会再补一次），
+     * 所以只在显示端兜底：程序自有目录下的图片加载失败时，补上挂载前缀重试一次（data-yk-base 防循环）。
+     */
+    private const IMAGE_RETRY_JS = 'document.addEventListener("error",function(e){var t=e.target,s;'
+        . 'if(!t||t.tagName!=="IMG"||t.getAttribute("data-yk-base"))return;s=t.getAttribute("src")||"";'
+        . 'if(/^\/(?:uploads|assets|plugins|themes)\//.test(s)){t.setAttribute("data-yk-base","1");'
+        . 't.setAttribute("src",window.YK_BASE+s);}},true);';
+
+    /**
      * 给静态 JS 文件一个读前缀的地方：插在 <head> 之后、所有脚本之前。
      * 只在子目录部署时注入——根目录下页面逐字节不变，JS 侧按 (window.YK_BASE || '') 取用。
      */
@@ -274,7 +284,8 @@ final class BasePath
         }
         $insertAt = $match[0][1] + strlen($match[0][0]);
         // normalize() 已把字符集收紧到 URL 安全集，这里可以直接写进 JS 字符串
-        return substr($html, 0, $insertAt) . '<script>window.YK_BASE="' . $base . '";</script>' . substr($html, $insertAt);
+        return substr($html, 0, $insertAt) . '<script>window.YK_BASE="' . $base . '";' . self::IMAGE_RETRY_JS . '</script>'
+            . substr($html, $insertAt);
     }
 
     /**

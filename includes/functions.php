@@ -13,6 +13,9 @@ if (!defined('ROOT_PATH')) {
 }
 
 require_once __DIR__ . '/BasePath.php';     // 子目录部署：内联脚本里的站内地址在生成处补前缀
+// 挂载点：后台、插件接口、表单提交等入口不经 init.php，都在这里挂上（前台 init.php 已先挂，
+// 这里为空操作；根目录安装与命令行下也是空操作）
+BasePath::bootstrap();
 require_once __DIR__ . '/frontend_preview.php';
 require_once __DIR__ . '/http_response.php';
 require_once __DIR__ . '/ThemeRuntime.php';

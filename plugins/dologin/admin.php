@@ -33,7 +33,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             if (!$model->ready()) throw new RuntimeException('Migration missing.');
         } elseif ($action === 'issue' && $model->ready()) {
             $issued = $model->issue((int) post('user_id'), getAdminId(), (int) post('minutes'), trim(post('note')));
-            $issuedUrl = '/admin/login.php?dologin=1#' . $issued['token'];
+            $issuedUrl = BasePath::url('/admin/login.php?dologin=1#') . $issued['token'];
         } elseif ($action === 'revoke' && $model->ready()) {
             $model->revoke((int) post('link_id'));
         } elseif ($action === 'protection') {

@@ -301,7 +301,7 @@ unset($pageTitle);
     function postAction(values) {
         var body = new URLSearchParams(values);
         body.set(<?php echo json_encode(CSRF_TOKEN_NAME); ?>, <?php echo json_encode(csrfToken()); ?>);
-        return fetch('/admin/site_health.php', { method: 'POST', body: body, credentials: 'same-origin' })
+        return fetch((window.YK_BASE || '') + '/admin/site_health.php', { method: 'POST', body: body, credentials: 'same-origin' })
             .then(function (response) { return response.json(); })
             .then(function (payload) {
                 if (!payload || payload.code !== 0) throw new Error(payload && payload.msg ? payload.msg : labels.failed);

@@ -175,7 +175,11 @@ final class BasePathTest extends TestCase
     public function testBaseVariableIsInjectedForStaticScripts(): void
     {
         $out = BasePath::rewriteHtml('<!doctype html><html><head lang="zh"><meta charset="utf-8"></head><body></body></html>', '/sub');
-        self::assertStringContainsString('<head lang="zh"><script>window.YK_BASE="/sub";</script><meta charset="utf-8">', $out);
+        self::assertStringContainsString('<head lang="zh"><script>window.YK_BASE="/sub";', $out, '紧跟 <head>，早于所有脚本');
+        self::assertStringContainsString('</script><meta charset="utf-8">', $out);
+        // 内容数据里的图片按约定不带前缀，显示端兜底重试；只认程序自有目录，且带防循环标记
+        self::assertStringContainsString('(?:uploads|assets|plugins|themes)', $out);
+        self::assertStringContainsString('data-yk-base', $out);
         self::assertStringNotContainsString('YK_BASE', BasePath::rewriteHtml('<div>fragment</div>', '/sub'), '无 <head> 的片段不注入');
     }
 

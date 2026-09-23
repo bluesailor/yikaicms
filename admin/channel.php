@@ -1279,7 +1279,7 @@ document.getElementById('channelType').dispatchEvent(new Event('change'));
     sel.addEventListener('change', function () {
         const id = parseInt(this.value || '0', 10);
         if (id > 0) {
-            link.href = '/admin/album_photos.php?id=' + id;
+            link.href = (window.YK_BASE || '') + '/admin/album_photos.php?id=' + id;
             link.classList.remove('hidden');
         } else {
             link.classList.add('hidden');
@@ -1353,7 +1353,7 @@ document.getElementById('chHeroBgFileInput')?.addEventListener('change', async f
     formData.append('file', this.files[0]);
     formData.append('type', 'images');
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
             chSetHeroBg(data.data.url);

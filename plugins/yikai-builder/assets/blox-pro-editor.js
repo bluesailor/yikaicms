@@ -278,7 +278,7 @@
             this._creatingClass = true;
             var body = new URLSearchParams({ action: "class_add", name: name, _token: this.csrf });
             var self = this;
-            fetch("/admin/blox_class_api.php", { method: "POST", body: body })
+            fetch((window.YK_BASE || "") + "/admin/blox_class_api.php", { method: "POST", body: body })
                 .then(function (response) { return response.json(); })
                 .then(function (result) {
                     if (!result || Number(result.code) !== 0 || !result.data || !result.data.class) {
@@ -353,7 +353,7 @@
                 _token: this.csrf,
             });
             var self = this;
-            fetch("/admin/blox_query_api.php", { method: "POST", body: body })
+            fetch((window.YK_BASE || "") + "/admin/blox_query_api.php", { method: "POST", body: body })
                 .then(function (response) { return response.json(); })
                 .then(function (result) {
                     if (!result || Number(result.code) !== 0 || !result.data || !result.data.query) {

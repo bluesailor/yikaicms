@@ -110,6 +110,12 @@ function renderFrontEdit(): void
       var current = null, hideTimer = null;
       var bloxEditUrl = <?php echo json_encode($bloxEditUrl, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
       var frontendReturnTo = <?php echo json_encode($frontendReturnTo, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+      // 编辑地址在本脚本内一律按站内原始路径处理（data-yk-edit 等属性不经出口改写，校验也按原始路径），
+      // 只在写进 href 时补子目录前缀；return_to 保持原始路径，否则回到编辑器后会被出口改写再补一次。
+      function mountUrl(url) {
+        var base = window.YK_BASE || '';
+        return base && typeof url === 'string' && url.charAt(0) === '/' && url.charAt(1) !== '/' ? base + url : url;
+      }
       var frontendEditResult = <?php echo json_encode($frontendEditResult, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
       var returnFocusText = <?php echo json_encode(__('fe_return_focus', ['label' => ':label']), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
       var returnFocusFallback = <?php echo json_encode(__('fe_return_focus_fallback'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
@@ -368,7 +374,7 @@ function renderFrontEdit(): void
           section.appendChild(heading);
           groups[group].forEach(function (item) {
             var link = document.createElement('a');
-            link.href = item.url;
+            link.href = mountUrl(item.url);
             link.textContent = item.label;
             link.title = item.label;
             section.appendChild(link);
@@ -397,7 +403,7 @@ function renderFrontEdit(): void
         box.style.left   = (r.left + window.scrollX) + 'px';
         box.style.width  = r.width + 'px';
         box.style.height = r.height + 'px';
-        btn.href = targetUrl;
+        btn.href = mountUrl(targetUrl);
         btn.textContent = editLabel(sec);
 
       }
@@ -466,14 +472,14 @@ function renderFrontEdit(): void
             var mk = document.createElement('a');
             mk.className = 'yk-logo-btn yk-logo-btn--make';
             mk.textContent = '★ ' + <?php echo json_encode(__('fe_make_logo'), JSON_UNESCAPED_UNICODE); ?>;
-            mk.href = '/admin/plugin_page.php?plugin=logo-maker#logo';
+            mk.href = mountUrl('/admin/plugin_page.php?plugin=logo-maker#logo');
             mk.addEventListener('click', function (e) { e.stopPropagation(); });
             wrap.appendChild(mk);
           } else if (logoMakerGetUrl) {
             var gm = document.createElement('a');
             gm.className = 'yk-logo-btn yk-logo-btn--make';
             gm.textContent = '★ ' + <?php echo json_encode(__('fe_get_logo_maker'), JSON_UNESCAPED_UNICODE); ?>;
-            gm.href = logoMakerGetUrl;
+            gm.href = mountUrl(logoMakerGetUrl);
             gm.addEventListener('click', function (e) { e.stopPropagation(); });
             wrap.appendChild(gm);
           }
@@ -613,7 +619,7 @@ function renderFrontEdit(): void
           });
         }
         function loadMedia(page) {
-          fetch('/admin/media_api.php?action=list&type=image&page=' + page)
+          fetch((window.YK_BASE || '') + '/admin/media_api.php?action=list&type=image&page=' + page)
             .then(function (r) { return r.json(); })
             .then(function (d) {
               if (d.code !== 0 || !d.data) return;
@@ -633,7 +639,7 @@ function renderFrontEdit(): void
             fd.append('file', fileInput.files[0]); fd.append('type', 'images'); fd.append('_token', csrf);
             fileInput.value = '';
             toast(lgdT.uploading, true);
-            fetch('/admin/upload.php', { method: 'POST', body: fd })
+            fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: fd })
               .then(function (r) { return r.json(); })
               .then(function (d) {
                 if (d.code !== 0) { toast(d.msg || lgdT.upFail, false); return; }
@@ -655,7 +661,7 @@ function renderFrontEdit(): void
         function saveKey(key, value) {
           var sd = new FormData();
           sd.append('key', key); sd.append('value', value); sd.append('_token', csrf);
-          return fetch('/admin/front_edit_api.php', { method: 'POST', body: sd })
+          return fetch((window.YK_BASE || '') + '/admin/front_edit_api.php', { method: 'POST', body: sd })
             .then(function (r) { return r.json(); })
             .then(function (s) { if (s.code !== 0) throw new Error(s.msg || lgdT.saveFail); return s; });
         }
