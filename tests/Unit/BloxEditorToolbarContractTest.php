@@ -31,7 +31,7 @@ final class BloxEditorToolbarContractTest extends TestCase
         self::assertStringContainsString('data-testid="blox-clear-cache"', $header);
         self::assertSame(2, substr_count($header, 'clearSiteCache()'));
         self::assertStringContainsString('<?php if ($canManageBloxDesign): ?>', $header);
-        self::assertStringContainsString('fetch("/admin/blox_cache_api.php"', $editor);
+        self::assertStringContainsString('fetch((window.YK_BASE || "") + "/admin/blox_cache_api.php"', $editor);
         self::assertStringContainsString('new URLSearchParams({ _token: this.csrf })', $editor);
     }
 

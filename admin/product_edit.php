@@ -502,7 +502,7 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
     formData.append('type', 'images');
 
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const data = await safeJson(response);
 
         if (data.code === 0) {
@@ -620,7 +620,7 @@ function uploadGalleryImage() {
             formData.append('file', f);
             formData.append('type', 'images');
             try {
-                var response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+                var response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
                 var data = await safeJson(response);
                 if (data.code === 0) addGalleryImage(data.data.url);
                 else showMessage(data.msg, 'error');
@@ -921,7 +921,7 @@ try {
     var editor = initWangEditor("#toolbar-container", "#editor-container", {
         placeholder: ' . json_encode(__('prod_content_ph'), JSON_UNESCAPED_UNICODE) . ',
         html: ' . $productContent . ',
-        uploadUrl: "/admin/upload.php",
+        uploadUrl: (window.YK_BASE || "") + "/admin/upload.php",
         onChange: function(editor) {
             document.getElementById("contentInput").value = editor.getHtml();
         }
@@ -938,7 +938,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
 
     if (data.code === 0) {
         showMessage("' . addslashes(__('msg_save_success')) . '");
-        setTimeout(function() { location.href = "/admin/product.php"; }, 1000);
+        setTimeout(function() { location.href = (window.YK_BASE || "") + "/admin/product.php"; }, 1000);
     } else {
         showMessage(data.msg, "error");
     }

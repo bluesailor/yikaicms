@@ -14,7 +14,7 @@ final class OfficialMediaPickerContractTest extends TestCase
         self::assertStringContainsString("_mpSource = options.source === 'official' && _mpType === 'image' ? 'official' : 'local';", $footer);
         self::assertStringContainsString("_mpSetSource('official')", $footer);
         self::assertStringContainsString('window._mpImportOfficial', $footer);
-        self::assertStringContainsString("OfficialMediaClient.importAsset('/admin/media_api.php', assetId", $footer);
+        self::assertStringContainsString("OfficialMediaClient.importAsset((window.YK_BASE || '') + '/admin/media_api.php', assetId", $footer);
         self::assertStringContainsString('if (_mpCallback) _mpCallback(result.url, result.data);', $footer);
     }
 

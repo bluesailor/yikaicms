@@ -364,7 +364,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     formData.append('file', this.files[0]);
     formData.append('type', 'images');
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
             document.getElementById('imageInput').value = data.data.url;
@@ -422,7 +422,7 @@ document.getElementById('heroBgFileInput').addEventListener('change', async func
     formData.append('file', this.files[0]);
     formData.append('type', 'images');
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
             setHeroBg(data.data.url);
@@ -518,7 +518,7 @@ $extraJs = '<script>
 var editor = initWangEditor("#toolbar-container", "#editor-container", {
     placeholder: "' . __('label_content') . '...",
     html: ' . $pageContent . ',
-    uploadUrl: "/admin/upload.php",
+    uploadUrl: (window.YK_BASE || "") + "/admin/upload.php",
     onChange: function(editor) {
         document.getElementById("contentInput").value = editor.getHtml();
     }

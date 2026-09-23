@@ -235,7 +235,7 @@ async function saveBrand() {
     const fd = new FormData(document.getElementById('brandForm'));
     const r = await fetch('', { method: 'POST', body: fd });
     const d = await safeJson(r);
-    if (d.code === 0) { showMessage('<?php echo __('admin_saved'); ?>'); setTimeout(() => location.href = '/admin/product_brand.php', 1000); }
+    if (d.code === 0) { showMessage('<?php echo __('admin_saved'); ?>'); setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/product_brand.php', 1000); }
     else showMessage(d.msg, 'error');
 }
 document.getElementById('checkAll').addEventListener('change', function() {
@@ -257,7 +257,7 @@ async function uploadLogo(input) {
     const fd = new FormData();
     fd.append('file', input.files[0]);
     fd.append('type', 'images');
-    const r = await fetch('/admin/upload.php', { method: 'POST', body: fd });
+    const r = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: fd });
     const d = await safeJson(r);
     if (d.code === 0) {
         document.getElementById('brandLogo').value = d.data.url;

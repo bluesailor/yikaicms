@@ -945,7 +945,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     formData.append('type', 'images');
 
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const text = await response.text();
         let data;
         try {

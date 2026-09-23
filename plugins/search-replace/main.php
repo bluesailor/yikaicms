@@ -23,7 +23,7 @@ add_action('ik_admin_footer_scripts', function () {
         var info = card.querySelector(".text-xs.text-gray-400");
         if (info) {
             var link = document.createElement("a");
-            link.href = "/admin/plugin_page.php?plugin=search-replace";
+            link.href = (window.YK_BASE || "") + "/admin/plugin_page.php?plugin=search-replace";
             link.className = "text-primary hover:underline ml-4";
             link.textContent = "进入管理页面";
             info.appendChild(link);
