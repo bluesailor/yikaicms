@@ -375,13 +375,14 @@ if ($isHomeBlox) {
 } else {
     $page = channelModel()->find($id);
     $pageType = (string) ($page['type'] ?? '');
-    if (!$page || !in_array($pageType, ['page', 'product', 'list'], true)
-        || (in_array($pageType, ['product', 'list'], true) && (int) ($page['parent_id'] ?? 0) !== 0)) {
+    $isChannelLanding = $pageType === 'product' || ChannelBloxDocument::supportsType($pageType);
+    if (!$page || ($pageType !== 'page' && !$isChannelLanding)
+        || ($isChannelLanding && (int) ($page['parent_id'] ?? 0) !== 0)) {
         header('Location: /admin/page.php');
         exit;
     }
     $isProductBlox = $pageType === 'product';
-    $isContentListBlox = $pageType === 'list';
+    $isContentListBlox = ChannelBloxDocument::supportsType($pageType);
 
     // 发展历程由 timelines 表和专属布局渲染，普通 Blox 正文不会出现在前台。
     // 直接访问旧链接时也收口到真实编辑器，避免保存一份无效内容。

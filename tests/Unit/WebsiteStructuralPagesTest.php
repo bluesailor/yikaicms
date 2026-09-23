@@ -105,18 +105,35 @@ final class WebsiteStructuralPagesTest extends TestCase
         self::assertStringContainsString('renderWebsiteStructuralCard($item)', $source);
     }
 
-    /** 可排版的栏目类型必须与编辑器/前台的真实闸口一致，不能各说各话。 */
+    /**
+     * 可排版的栏目类型必须与编辑器/前台的真实闸口一致，不能各说各话：所有闸口都读
+     * ChannelBloxDocument::supportsType() 这一处（product 另走 PageBloxDocument）。
+     * 2026-09-23 起案例栏目加入；下载与招聘各有独立的表，尚无目录数据源，仍标「暂不支持排版」。
+     */
     public function testDesignableChannelTypesMatchTheEditorAndFrontendGates(): void
     {
-        $helper = (string) file_get_contents(ROOT_PATH . '/admin/includes/website_pages.php');
-        self::assertStringContainsString("\$designable = in_array(\$type, ['product', 'list'], true);", $helper);
+        require_once ROOT_PATH . '/includes/builder/ChannelBloxDocument.php';
+        self::assertSame(['list', 'case'], \ChannelBloxDocument::CHANNEL_TYPES);
+        foreach (['download', 'job', 'page', 'product', 'link'] as $type) {
+            self::assertFalse(\ChannelBloxDocument::supportsType($type), $type);
+        }
+        self::assertSame('article', \ChannelBloxDocument::contentType('list'));
+        self::assertSame('case', \ChannelBloxDocument::contentType('case'));
 
-        // 编辑器闸口：只接受顶级 page/product/list
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
-        self::assertStringContainsString("!in_array(\$pageType, ['page', 'product', 'list'], true)", $editor);
-
-        // 前台栏目落地文档只对 list 解析（product 走 PageBloxDocument）
+        $gates = [
+            'admin/includes/website_pages.php' => "\$designable = \$type === 'product' || ChannelBloxDocument::supportsType(\$type);",
+            'admin/blox_editor.php' => "\$isChannelLanding = \$pageType === 'product' || ChannelBloxDocument::supportsType(\$pageType);",
+            'admin/blox_page_api.php' => "ChannelBloxDocument::supportsType((string) (\$targetChannel['type'] ?? ''))",
+            'list.php' => "ChannelBloxDocument::supportsType((string) (\$channel['type'] ?? '')) ? \$channel : null",
+            'includes/builder/BloxPublicationStatus.php' => 'ChannelBloxDocument::supportsType(',
+            'includes/builder/BloxCatalogItems.php' => 'ChannelBloxDocument::supportsType($type)',
+        ];
+        foreach ($gates as $file => $needle) {
+            self::assertStringContainsString($needle, (string) file_get_contents(ROOT_PATH . '/' . $file), $file);
+        }
         $channelDocument = (string) file_get_contents(ROOT_PATH . '/includes/builder/ChannelBloxDocument.php');
-        self::assertStringContainsString("!== 'list'", $channelDocument);
+        self::assertStringContainsString("!self::supportsType((string) (\$channel['type'] ?? ''))", $channelDocument);
+        // 画布预览按 match 分派，新增类型时要一起补
+        self::assertStringContainsString("'list', 'case' => ChannelBloxDocument::load(", (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxCanvasPreview.php'));
     }
 }

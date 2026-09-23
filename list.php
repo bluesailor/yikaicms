@@ -184,10 +184,10 @@ if ($productPageChannel && (int) ($productPageChannel['parent_id'] ?? 0) === 0) 
         $hasPublishedProductBlox = true;
     }
 }
-$contentListPageChannel = (string) ($channel['type'] ?? '') === 'list' ? $channel : null;
+$contentListPageChannel = ChannelBloxDocument::supportsType((string) ($channel['type'] ?? '')) ? $channel : null;
 while ($contentListPageChannel && (int) ($contentListPageChannel['parent_id'] ?? 0) > 0) {
     $candidateParent = getChannel((int) $contentListPageChannel['parent_id']);
-    if (!$candidateParent || (string) ($candidateParent['type'] ?? '') !== 'list') {
+    if (!$candidateParent || (string) ($candidateParent['type'] ?? '') !== (string) $contentListPageChannel['type']) {
         break;
     }
     $contentListPageChannel = $candidateParent;

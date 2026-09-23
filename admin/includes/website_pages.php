@@ -168,11 +168,11 @@ function websiteStructuralPages(string $lang): array
     foreach ($channels as $channel) {
         $id = (int) $channel['id'];
         $type = (string) $channel['type'];
-        $designable = in_array($type, ['product', 'list'], true);
+        $designable = $type === 'product' || ChannelBloxDocument::supportsType($type);
         $publication = 'empty';
         if ($designable) {
             try {
-                $state = $type === 'list'
+                $state = ChannelBloxDocument::supportsType($type)
                     ? ChannelBloxDocument::load($id)
                     : PageBloxDocument::load($id);
                 $publication = $state['has_unpublished_changes']

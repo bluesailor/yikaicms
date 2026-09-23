@@ -22,6 +22,10 @@ test('catalog lookup sends only read parameters, paginates, and builds local num
     assert.equal(app.hasMore, true);
     assert.equal(app.loading, false);
     assert.equal(create(18, '', '../evil').editUrl({ id: 1 }), '');
+    // 案例栏目落地页：案例没有专属编辑页，走通用内容编辑
+    assert.equal(create(18, '', 'case').editUrl({ id: 7 }), '/admin/content_edit.php?id=7');
+    assert.equal(create(18, '', 'product').editUrl({ id: 3 }), '/admin/product_edit.php?id=3');
+    assert.equal(create(18, '', 'toString').editUrl({ id: 1 }), '', '原型链上的名字不能当编辑器');
 });
 
 test('stale responses and responses after panel destruction cannot replace current results', async t => {

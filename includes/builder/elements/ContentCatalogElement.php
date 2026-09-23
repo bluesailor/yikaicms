@@ -87,7 +87,7 @@ final class ContentCatalogElement extends AbstractElement
         $contentCatalogShowCategories = self::enabled($data, 'show_categories', true);
         // 卡片模板在前台逐篇套用：{yk:field} 标签由视图在每篇文章的循环上下文里解析
         $contentCatalogItemTemplate = $template !== []
-            ? DynamicLoopTemplateRenderer::render($template, ['query_source' => 'type:article'], $context)
+            ? DynamicLoopTemplateRenderer::render($template, ['query_source' => 'type:' . ChannelBloxDocument::contentType((string) ($rootChannel['type'] ?? 'list'))], $context)
             : '';
         $listOpts = [];
         foreach ([

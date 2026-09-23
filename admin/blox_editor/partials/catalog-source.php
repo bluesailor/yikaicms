@@ -4,7 +4,7 @@ declare(strict_types=1);
 if (!$isProductBlox && !$isContentListBlox) {
     return;
 }
-$catalogKind = $isProductBlox ? 'product' : 'article';
+$catalogKind = $isProductBlox ? 'product' : ChannelBloxDocument::contentType((string) ($page['type'] ?? 'list'));
 $catalogLanguage = (string) ($page['lang'] ?? siteLang());
 $catalogLanguageLabel = isMultiLangEnabled($isProductBlox ? 'products' : 'contents')
     ? (availableLanguages()[$catalogLanguage] ?? $catalogLanguage) : __('blox_cond_all_languages');

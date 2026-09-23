@@ -12,8 +12,10 @@
             },
             destroy() { this.requestId++; },
             editUrl(item) {
-                return ["product", "article"].includes(kind) && Number.isSafeInteger(item.id) && item.id > 0
-                    ? (global.YK_BASE || "") + "/admin/" + kind + "_edit.php?id=" + item.id : "";
+                // 案例没有专属编辑页，走通用内容编辑（与 contentEditUrl() 的默认分支一致）
+                var editors = { product: "product_edit.php", article: "article_edit.php", "case": "content_edit.php" };
+                return Object.prototype.hasOwnProperty.call(editors, kind) && Number.isSafeInteger(item.id) && item.id > 0
+                    ? (global.YK_BASE || "") + "/admin/" + editors[kind] + "?id=" + item.id : "";
             },
             async load(page, keyword = this.keyword.trim()) {
                 var requestId = ++this.requestId;
