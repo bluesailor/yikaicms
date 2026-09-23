@@ -21,6 +21,21 @@ if (config('seo_sitemap_enabled', '1') !== '1') {
 header('Content-Type: application/xml; charset=utf-8');
 HtmlCache::start(86400);
 
+/**
+ * 取第一个有效（> 0）的时间戳作 lastmod；都没有就返回空串、整行不输出。
+ * 由来：栏目的 updated_at 在安装种子数据里是 0，`??` 不跳过 0，开发站 182 个地址里
+ * 18 个 lastmod 成了 1970-01-01——搜索引擎据此判定整份 lastmod 不可信。宁缺毋错。
+ */
+function sitemapLastmod(mixed ...$timestamps): string
+{
+    foreach ($timestamps as $ts) {
+        if (is_numeric($ts) && (int) $ts > 0) {
+            return date('Y-m-d', (int) $ts);
+        }
+    }
+    return '';
+}
+
 // 缓存（使用后台配置的缓存时间）
 $sitemapTtl = (int)config('seo_sitemap_ttl', 600);
 $cached = cacheGet('sitemap_xml');
@@ -60,7 +75,7 @@ foreach ($channels as $channel) {
     if ($sitemapLangs !== [] && !in_array((string) ($channel['lang'] ?? ''), $sitemapLangs, true)) continue;
     $urls[] = [
         'loc'        => $siteUrl . channelUrl($channel),
-        'lastmod'    => date('Y-m-d', (int)($channel['updated_at'] ?? $channel['created_at'] ?? time())),
+        'lastmod'    => sitemapLastmod($channel['updated_at'] ?? null, $channel['created_at'] ?? null),
         'changefreq' => 'weekly',
         'priority'   => '0.8',
     ];
@@ -70,7 +85,7 @@ foreach ($channels as $channel) {
             if ($child['type'] === 'link') continue;
             $urls[] = [
                 'loc'        => $siteUrl . channelUrl($child),
-                'lastmod'    => date('Y-m-d', (int)($child['updated_at'] ?? $child['created_at'] ?? time())),
+                'lastmod'    => sitemapLastmod($child['updated_at'] ?? null, $child['created_at'] ?? null),
                 'changefreq' => 'weekly',
                 'priority'   => '0.7',
             ];
@@ -94,7 +109,7 @@ $contents = db()->fetchAll(
 foreach ($contents as $content) {
     $url = [
         'loc'        => $siteUrl . contentUrl($content),
-        'lastmod'    => date('Y-m-d', (int)($content['updated_at'] ?: (($content['publish_time'] ?? 0) ?: ($content['created_at'] ?? 0)))),
+        'lastmod'    => sitemapLastmod($content['updated_at'] ?? null, $content['publish_time'] ?? null, $content['created_at'] ?? null),
         'changefreq' => 'monthly',
         'priority'   => '0.6',
     ];
@@ -119,7 +134,7 @@ $products = db()->fetchAll(
 foreach ($products as $product) {
     $url = [
         'loc'        => $siteUrl . productUrl($product),
-        'lastmod'    => date('Y-m-d', (int)($product['updated_at'] ?: $product['created_at'])),
+        'lastmod'    => sitemapLastmod($product['updated_at'] ?? null, $product['created_at'] ?? null),
         'changefreq' => 'monthly',
         'priority'   => '0.6',
     ];
