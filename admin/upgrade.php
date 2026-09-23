@@ -441,7 +441,7 @@ $updateCheckApi  = $updateServerUrl . '/api/update/check';
 $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
 ?>
 <div>
-    <!-- 当前版本信息 -->
+    <?php /* 当前版本信息 */ ?>
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800"><?php echo __('upgrade_online'); ?></h2>
@@ -468,7 +468,7 @@ $currentVersion  = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
         </div>
     </div>
 
-    <!-- 升级说明 -->
+    <?php /* 升级说明 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h3 class="font-medium text-gray-700"><?php echo e(__('upg_help_title')); ?></h3>
@@ -657,7 +657,8 @@ $__mCur = defined('CMS_VERSION') ? CMS_VERSION : '?';
 <?php endif; ?>
 
 <?php if ($tab === 'config'): ?>
-<!-- 升级配置 -->
+<?php /* 升级配置 */ ?>
+
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b">
         <h2 class="font-bold text-gray-800"><?php echo __('upgrade_config_title'); ?></h2>

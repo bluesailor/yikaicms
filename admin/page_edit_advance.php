@@ -506,7 +506,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 <?php endif; ?>
-    <!-- 排版编辑器 -->
+    <?php /* 排版编辑器 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between gap-3">
             <div class="flex items-center gap-2">
@@ -537,12 +537,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </template>
 
-            <!-- 区块列表 -->
+            <?php /* 区块列表 */ ?>
             <div x-ref="sectionsContainer">
                 <template x-for="(section, si) in sections" :key="section.id">
                     <div class="border rounded-lg mb-4 group/section hover:border-blue-300 transition" :data-si="si"
                          :class="section.settings && section.settings.hidden ? 'border-amber-200 bg-amber-50/40' : 'border-gray-200'">
-                        <!-- 区块工具栏 -->
+                        <?php /* 区块工具栏 */ ?>
                         <div class="flex items-center justify-between px-4 py-2 bg-gray-50 rounded-t-lg" :class="isSectionOpen(section.id) ? 'border-b' : ''">
                             <div class="flex items-center gap-2">
                                 <span class="section-drag-handle cursor-grab text-gray-300 hover:text-gray-500">
@@ -609,7 +609,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 </button>
                             </div>
                         </div>
-                        <!-- 引用块：内容在块库中维护，此处只显示占位 -->
+                        <?php /* 引用块：内容在块库中维护，此处只显示占位 */ ?>
                         <template x-if="section.library_id">
                             <div class="p-4" x-show="isSectionOpen(section.id)" x-cloak>
                                 <div class="text-center py-6 text-sm text-purple-500 bg-purple-50/50 rounded border border-dashed border-purple-200">
@@ -619,17 +619,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 </div>
                             </div>
                         </template>
-                        <!-- 列内容 -->
+                        <?php /* 列内容 */ ?>
                         <div class="p-4" x-show="!section.library_id && isSectionOpen(section.id)" x-cloak>
                             <div class="grid gap-4" :class="section.columns.length > 1 ? 'grid-cols-' + section.columns.length : ''">
                                 <template x-for="(col, ci) in section.columns" :key="col.id">
                                     <div class="border rounded-lg p-3 min-h-[100px]"
                                          :class="(section.settings && section.settings.col_card) ? 'border-gray-200 bg-white shadow-sm text-center' : 'border-dashed border-gray-300'"
                                          :data-section-index="si" :data-column-index="ci" data-sortable-elements>
-                                        <!-- 元素列表 -->
+                                        <?php /* 元素列表 */ ?>
                                         <template x-for="(el, ei) in col.elements" :key="el.id">
                                             <div class="mb-2 bg-white border rounded p-3 group/el relative hover:border-blue-300 transition block-element">
-                                                <!-- 元素工具栏 -->
+                                                <?php /* 元素工具栏 */ ?>
                                                 <div class="absolute -top-2 -right-2 flex gap-0.5 z-10 bg-white border rounded shadow-sm px-1 py-0.5">
                                                     <span class="element-drag-handle cursor-grab p-1 text-gray-400 hover:text-gray-600" title="<?php echo e(__('pea_drag_sort')); ?>">
                                                         <i class="ti ti-menu-2 text-base"></i>
@@ -648,7 +648,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </button>
                                                 </div>
 
-                                                <!-- 标题 -->
+                                                <?php /* 标题 */ ?>
                                                 <template x-if="el.type === 'heading'">
                                                     <div>
                                                         <div class="flex items-center gap-2 mb-1">
@@ -665,7 +665,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 富文本 -->
+                                                <?php /* 富文本 */ ?>
                                                 <template x-if="el.type === 'text'">
                                                     <div x-data="{ full: false }">
                                                         <div class="flex items-center justify-between mb-1">
@@ -685,13 +685,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                  class="prose prose-sm max-w-none overflow-hidden text-gray-600 border-t pt-2 cursor-pointer transition-all"
                                                                  :class="full ? '' : 'max-h-32'"
                                                                  x-html="el.data.html || '<span class=\'text-gray-400 italic\'>' + <?php echo (string) json_encode(__('pea_dblclick_to_edit'), JSON_UNESCAPED_UNICODE); ?> + '</span>'"></div>
-                                                            <!-- 未展开时底部渐隐，提示内容被截断 -->
+                                                            <?php /* 未展开时底部渐隐，提示内容被截断 */ ?>
                                                             <div x-show="!full" class="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent"></div>
                                                         </div>
                                                     </div>
                                                 </template>
 
-                                                <!-- 图片 -->
+                                                <?php /* 图片 */ ?>
                                                 <template x-if="el.type === 'image'">
                                                     <div>
                                                         <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-1 inline-block"><?php echo e(__('media_type_image')); ?></span>
@@ -726,7 +726,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 按钮 -->
+                                                <?php /* 按钮 */ ?>
                                                 <template x-if="el.type === 'button'">
                                                     <div>
                                                         <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-1 inline-block"><?php echo e(__('pea_button')); ?></span>
@@ -742,7 +742,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 图标（选择网格默认收起，选完自动收回） -->
+                                                <?php /* 图标（选择网格默认收起，选完自动收回） */ ?>
                                                 <template x-if="el.type === 'icon'">
                                                     <div x-data="{ pick: false }">
                                                         <div class="flex items-center gap-2 mb-2">
@@ -788,7 +788,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 分隔线 -->
+                                                <?php /* 分隔线 */ ?>
                                                 <template x-if="el.type === 'divider'">
                                                     <div>
                                                         <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-2 inline-block"><?php echo e(__('pea_divider')); ?></span>
@@ -829,7 +829,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 代码/HTML -->
+                                                <?php /* 代码/HTML */ ?>
                                                 <template x-if="el.type === 'code'">
                                                     <div>
                                                         <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mb-1 inline-block"><?php echo e(__('pea_code_html')); ?></span>
@@ -838,7 +838,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 间距（支持响应式三档） -->
+                                                <?php /* 间距（支持响应式三档） */ ?>
                                                 <template x-if="el.type === 'spacer'">
                                                     <div class="flex items-center gap-2 flex-wrap">
                                                         <span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded"><?php echo e(__('pea_spacing')); ?></span>
@@ -865,7 +865,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 动态列表 -->
+                                                <?php /* 动态列表 */ ?>
                                                 <template x-if="el.type === 'list-dynamic'">
                                                     <div class="space-y-2">
                                                         <div class="flex items-center gap-2">
@@ -895,7 +895,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 轮播图 -->
+                                                <?php /* 轮播图 */ ?>
                                                 <template x-if="el.type === 'banner'">
                                                     <div class="flex items-center gap-2">
                                                         <span class="text-xs text-primary bg-blue-50 px-1.5 py-0.5 rounded"><?php echo e(__('log_mod_banner')); ?></span>
@@ -903,7 +903,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 导航菜单 -->
+                                                <?php /* 导航菜单 */ ?>
                                                 <template x-if="el.type === 'nav'">
                                                     <div class="flex items-center gap-2 flex-wrap">
                                                         <span class="text-xs text-primary bg-blue-50 px-1.5 py-0.5 rounded"><?php echo e(__('pea_nav')); ?></span>
@@ -912,7 +912,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                     </div>
                                                 </template>
 
-                                                <!-- 通用 schema 表单：controls() 是唯一字段来源，required 决定当前来源可见项 -->
+                                                <?php /* 通用 schema 表单：controls() 是唯一字段来源，required 决定当前来源可见项 */ ?>
                                                 <template x-if="!hasCustomUI(el.type)">
                                                     <div class="space-y-2">
                                                         <div class="flex items-center justify-between gap-2">
@@ -1335,13 +1335,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                 </template>                                            </div>
                                         </template>
 
-                                        <!-- 添加元素 -->
+                                        <?php /* 添加元素 */ ?>
                                         <div x-data="{ open: false }" class="relative add-element-btn">
                                             <button type="button" @click="open = !open"
                                                     class="w-full border-2 border-dashed border-gray-300 rounded py-2 text-gray-400 hover:border-primary hover:text-primary transition text-sm cursor-pointer">
                                                 + <?php echo e(__('pea_add_element')); ?>
                                             </button>
-                                            <!-- palette 由 BuilderRegistry 元数据生成，按分类分组；加元素类即自动出现 -->
+                                            <?php /* palette 由 BuilderRegistry 元数据生成，按分类分组；加元素类即自动出现 */ ?>
                                             <div x-show="open" @click.away="open = false" x-cloak
                                                  class="absolute z-10 mt-1 bg-white border rounded-lg shadow-lg py-1 w-40 left-1/2 -translate-x-1/2 max-h-80 overflow-y-auto">
                                                 <template x-for="(els, cat) in elementsByCategory()" :key="cat">
@@ -1364,7 +1364,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </template>
             </div>
 
-            <!-- 添加区块 -->
+            <?php /* 添加区块 */ ?>
             <div x-data="{ showPicker: false }" class="mt-4">
                 <button type="button" @click="showPicker = !showPicker; showPicker && libRefresh()"
                         class="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 text-gray-400 hover:border-primary hover:text-primary transition text-sm cursor-pointer">
@@ -1406,7 +1406,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <span class="text-xs mt-1 text-gray-600"><?php echo e(__('pea_cols_4')); ?></span>
                         </button>
                     </div>
-                    <!-- 从块库插入（P2 可复用块）：引用=改库全站生效；副本=独立编辑 -->
+                    <?php /* 从块库插入（P2 可复用块）：引用=改库全站生效；副本=独立编辑 */ ?>
                     <div class="mt-4 border-t pt-3">
                         <p class="text-sm text-gray-600 mb-2"><?php echo e(__('pea_insert_from_library')); ?> <span class="text-xs text-gray-400"><?php echo e(__('pea_insert_from_library_tip')); ?></span></p>
                         <template x-if="libItems.length === 0">
@@ -1434,7 +1434,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 实时预览面板 -->
+    <?php /* 实时预览面板 */ ?>
     <div x-show="showPreview" x-cloak class="bg-white rounded-lg shadow">
         <div class="px-6 py-3 border-b flex items-center justify-between gap-3">
             <h2 class="font-bold text-gray-800 inline-flex items-center gap-2"><i class="ti ti-eye"></i><?php echo e(__('pea_live_preview')); ?></h2>
@@ -1455,7 +1455,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 预设库弹窗（P2）：区块预设 + 整页模板一键插入；插件可用 builder_presets 过滤器扩展 -->
+    <?php /* 预设库弹窗（P2）：区块预设 + 整页模板一键插入；插件可用 builder_presets 过滤器扩展 */ ?>
     <div x-show="showPresets" x-cloak @click.self="showPresets = false" @keydown.escape.window="showPresets = false"
          class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
@@ -1496,7 +1496,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- hidden -->
+    <?php /* hidden */ ?>
     <input type="hidden" name="blocks_data" :value="JSON.stringify(sections)">
 <?php if ($isHomeLayout): ?>
     <input type="hidden" name="home_base_updated_at" value="<?php echo $homeBaseUpdatedAt; ?>">
@@ -1553,7 +1553,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </form>
 
-<!-- 区块设置弹窗 -->
+<?php /* 区块设置弹窗 */ ?>
 <div id="sectionSettingsModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[88vh] flex flex-col">
         <div class="px-6 py-4 border-b flex items-center justify-between shrink-0">
@@ -1692,7 +1692,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 富文本编辑弹窗 -->
+<?php /* 富文本编辑弹窗 */ ?>
 <div id="textEditorModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 flex flex-col" style="max-height: calc(100vh - 3rem)">
         <div class="px-6 py-4 border-b flex items-center justify-between gap-4 shrink-0">

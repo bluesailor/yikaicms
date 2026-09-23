@@ -177,7 +177,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </table>
 </div>
 
-<!-- 内置类型（系统预置，不可删；字段在共享的内容/产品字段里管理）-->
+<?php /* 内置类型（系统预置，不可删；字段在共享的内容/产品字段里管理） */ ?>
 <div class="mt-6 bg-white rounded-lg shadow p-6">
     <h3 class="font-bold text-gray-800 mb-1"><?php echo __('cm_builtin_title'); ?></h3>
     <p class="text-sm text-gray-500 mb-4"><?php echo __('cm_builtin_intro'); ?></p>
@@ -194,7 +194,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 编辑 Modal -->
+<?php /* 编辑 Modal */ ?>
 <div id="cmModal" class="fixed inset-0 bg-black/40 z-50 hidden items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div class="px-6 py-4 border-b flex items-center justify-between">
@@ -206,7 +206,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="hidden" name="id" id="cm_id" value="0">
             <input type="hidden" name="preset" id="cm_preset" value="">
 
-            <!-- 预置方案（仅新建时显示，点一下快速填充 + 自动建常用字段）-->
+            <?php /* 预置方案（仅新建时显示，点一下快速填充 + 自动建常用字段） */ ?>
             <div id="cm_presetPicker">
                 <label class="block text-gray-700 mb-2 text-sm"><?php echo __('cm_preset_pick'); ?></label>
                 <div class="grid grid-cols-3 gap-2">

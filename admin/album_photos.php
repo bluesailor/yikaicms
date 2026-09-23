@@ -154,7 +154,7 @@ $currentMenu = 'album';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<!-- 面包屑 -->
+<?php /* 面包屑 */ ?>
 <div class="mb-6">
     <div class="flex items-center gap-2 text-sm text-gray-500">
         <a href="/admin/album.php" class="hover:text-primary"><?php echo e(__('admin_album')); ?></a>
@@ -163,7 +163,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 页面调用短码 + 展示模式 -->
+<?php /* 页面调用短码 + 展示模式 */ ?>
 <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6 flex flex-wrap items-center gap-x-6 gap-y-2">
     <div class="flex items-center gap-2">
         <span class="text-sm text-gray-600"><?php echo e(__('ap_shortcode')); ?></span>
@@ -196,7 +196,7 @@ function ykFallbackCopy(text, cb) {
 }
 </script>
 
-<!-- 上传区域 -->
+<?php /* 上传区域 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-6">
         <div id="uploadZone" class="upload-zone">
@@ -206,7 +206,7 @@ function ykFallbackCopy(text, cb) {
             <p class="text-xs text-gray-400"><?php echo e(__('ap_format_hint')); ?></p>
         </div>
 
-        <!-- 上传进度 -->
+        <?php /* 上传进度 */ ?>
         <div id="uploadProgress" class="hidden mt-4">
             <div class="flex items-center justify-between mb-2">
                 <span class="text-sm text-gray-600"><?php echo e(__('ap_uploading')); ?></span>
@@ -219,7 +219,7 @@ function ykFallbackCopy(text, cb) {
     </div>
 </div>
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <div class="flex items-center gap-4">
@@ -237,7 +237,7 @@ function ykFallbackCopy(text, cb) {
     </div>
 </div>
 
-<!-- 图片列表 -->
+<?php /* 图片列表 */ ?>
 <div class="bg-white rounded-lg shadow p-6">
     <div id="photoGrid" class="photo-grid">
         <?php foreach ($photos as $photo): ?>
@@ -278,7 +278,7 @@ function ykFallbackCopy(text, cb) {
     <?php endif; ?>
 </div>
 
-<!-- 编辑弹窗 -->
+<?php /* 编辑弹窗 */ ?>
 <div id="editModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">
@@ -322,7 +322,7 @@ function ykFallbackCopy(text, cb) {
     </div>
 </div>
 
-<!-- Sortable.js -->
+<?php /* Sortable.js */ ?>
 <script src="/assets/sortable/Sortable.min.js"></script>
 <script>
 const albumId = <?php echo $albumId; ?>;

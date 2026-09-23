@@ -82,7 +82,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <form id="editForm" class="space-y-6">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- 左侧：基本信息 -->
+        <?php /* 左侧：基本信息 */ ?>
         <div class="lg:col-span-2 space-y-6">
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
@@ -110,7 +110,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 招聘信息 -->
+            <?php /* 招聘信息 */ ?>
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
                     <h2 class="font-bold text-gray-800"><?php echo e(__('job_info')); ?></h2>
@@ -175,7 +175,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
 
-        <!-- 右侧：设置 -->
+        <?php /* 右侧：设置 */ ?>
         <div class="space-y-6">
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
@@ -211,7 +211,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 封面图 -->
+            <?php /* 封面图 */ ?>
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo e(__('job_cover')); ?></h3>
                 <div id="coverPreview" class="mb-4 <?php echo empty($job['cover']) ? 'hidden' : ''; ?>">

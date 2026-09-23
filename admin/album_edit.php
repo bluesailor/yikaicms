@@ -95,7 +95,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
 
         <div class="p-6 space-y-6">
-            <!-- 相册名称 -->
+            <?php /* 相册名称 */ ?>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
                     <?php echo e(__('albume_name')); ?> <span class="text-red-500">*</span>
@@ -105,7 +105,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                        placeholder="<?php echo e(__('albume_name_ph')); ?>">
             </div>
 
-            <!-- URL别名 -->
+            <?php /* URL别名 */ ?>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('admin_slug'); ?></label>
                 <input type="text" name="slug" value="<?php echo e($album['slug'] ?? ''); ?>"
@@ -114,7 +114,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <p class="text-xs text-gray-400 mt-1"><?php echo e(__('albume_slug_tip')); ?></p>
             </div>
 
-            <!-- 封面图 -->
+            <?php /* 封面图 */ ?>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('label_cover_image'); ?></label>
                 <div class="flex items-start gap-4">
@@ -148,7 +148,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 相册描述 -->
+            <?php /* 相册描述 */ ?>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('albume_desc')); ?></label>
                 <textarea name="description" rows="3"
@@ -156,7 +156,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                           placeholder="<?php echo e(__('albume_desc_ph')); ?>"><?php echo e($album['description'] ?? ''); ?></textarea>
             </div>
 
-            <!-- 排序和状态 -->
+            <?php /* 排序和状态 */ ?>
             <div class="grid grid-cols-2 gap-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('label_sort_order'); ?></label>
@@ -173,7 +173,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 展示模式 -->
+            <?php /* 展示模式 */ ?>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('albume_layout')); ?></label>
                 <?php $__layout = $album['layout'] ?? 'grid'; ?>
@@ -185,7 +185,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
 
-        <!-- 操作按钮 -->
+        <?php /* 操作按钮 */ ?>
         <div class="px-6 py-4 border-t bg-gray-50 flex items-center justify-between rounded-b-lg">
             <a href="/admin/album.php" class="text-gray-500 hover:text-gray-700"><?php echo __('btn_back_list'); ?></a>
             <div class="flex gap-3">
@@ -205,7 +205,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </form>
 
 <?php if ($album && count($photos) > 0): ?>
-<!-- 图片选择弹窗 -->
+<?php /* 图片选择弹窗 */ ?>
+
 <div id="photoSelectorModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl mx-4 max-h-[80vh] flex flex-col">
         <div class="px-6 py-4 border-b flex items-center justify-between flex-shrink-0">

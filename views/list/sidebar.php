@@ -28,13 +28,13 @@ $productCatalogGridClass = [
     4 => 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6',
 ][$productCatalogColumns];
 ?>
-<!-- 产品/案例：带侧边栏布局 -->
+<?php /* 产品/案例：带侧边栏布局 */ ?>
         <div class="flex flex-wrap lg:flex-nowrap gap-8" data-product-catalog-layout>
             <?php if ($productCatalogHasSidebar): ?>
-            <!-- 左侧分类菜单 -->
+            <?php /* 左侧分类菜单 */ ?>
             <div class="w-full lg:w-64 flex-shrink-0 space-y-4" data-product-catalog-sidebar>
                 <?php if ($productCatalogShowSearch): ?>
-                <!-- 搜索框 -->
+                <?php /* 搜索框 */ ?>
                 <div class="bg-white rounded-lg shadow p-4" data-catalog-search>
                     <form method="get" action="<?php echo e($sidebarUsesDynamicRoute ? '/index.php' : $sidebarListUrl); ?>" role="search">
                         <?php if ($sidebarUsesDynamicRoute): ?>
@@ -75,16 +75,16 @@ $productCatalogGridClass = [
                 <?php endif; ?>
 
                 <?php if ($productCatalogShowCategories): ?>
-                <!-- 分类菜单 -->
+                <?php /* 分类菜单 */ ?>
                 <div class="bg-white rounded-lg shadow overflow-hidden sticky top-20" data-catalog-categories>
-                    <!-- 分类标题 -->
+                    <?php /* 分类标题 */ ?>
                     <div class="bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200" data-catalog-title>
                         <?php echo e($rootChannel['name']); ?>
                     </div>
-                    <!-- 分类列表 -->
+                    <?php /* 分类列表 */ ?>
                     <div class="divide-y">
                         <?php if ($isProductType): ?>
-                        <!-- 产品分类 -->
+                        <?php /* 产品分类 */ ?>
                         <a href="<?php echo channelUrl($rootChannel); ?>"
                            class="block px-4 py-3 hover:bg-gray-50 transition <?php echo ($productCategoryId === 0 && $keyword === '') ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
                             <?php echo __('all'); ?><?php echo __('list_product'); ?>
@@ -138,7 +138,7 @@ $productCatalogGridClass = [
                         renderProductCategoryTree($categoryTree, 0, $productCategoryId);
                         ?>
                         <?php else: ?>
-                        <!-- 栏目分类（案例等） -->
+                        <?php /* 栏目分类（案例等） */ ?>
                         <a href="<?php echo channelUrl($rootChannel); ?>"
                            class="block px-4 py-3 hover:bg-gray-50 transition <?php echo $channelId === (int)$rootChannel['id'] ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
                             <?php echo __('all'); ?><?php echo e($rootChannel['name']); ?>
@@ -196,7 +196,7 @@ $productCatalogGridClass = [
             </div>
             <?php endif; ?>
 
-            <!-- 右侧产品列表 -->
+            <?php /* 右侧产品列表 */ ?>
             <div class="flex-1 min-w-0">
                 <?php if (!$productCatalogHasSidebar && $productCatalogShowSearch): ?>
                 <form method="get" action="<?php echo e($sidebarUsesDynamicRoute ? '/index.php' : $sidebarListUrl); ?>" role="search" class="mb-6 flex items-center gap-2 max-w-md">
@@ -229,7 +229,7 @@ $productCatalogGridClass = [
                 </form>
                 <?php endif; ?>
 
-                <!-- 列表头部 -->
+                <?php /* 列表头部 */ ?>
                 <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
                     <div class="text-gray-600 text-sm">
                         <?php if ($keyword !== ''): ?>
@@ -269,7 +269,7 @@ $productCatalogGridClass = [
                 </div>
                 <?php endif; ?>
 
-                <!-- 分页 -->
+                <?php /* 分页 */ ?>
                 <?php
                 $totalPages = (int)ceil($total / $perPage);
                 $currentSort = $currentSort ?? 'default';

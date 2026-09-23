@@ -133,7 +133,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
 ?>
 
 
-<!-- 搜索栏 -->
+<?php /* 搜索栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <form method="get" class="p-4 flex flex-wrap gap-4 items-center">
         <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
@@ -150,7 +150,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
     </form>
 </div>
 
-<!-- 列表 -->
+<?php /* 列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full admin-workflow-table">
@@ -216,7 +216,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
 </div>
 <?php endif; ?>
 
-<!-- 编辑弹窗 -->
+<?php /* 编辑弹窗 */ ?>
 <div id="editModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-md">

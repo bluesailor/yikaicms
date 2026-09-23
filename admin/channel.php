@@ -585,10 +585,10 @@ function ykPickChannelIcon(name) {
 
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- 栏目列表 -->
+    <?php /* 栏目列表 */ ?>
     <div class="lg:col-span-2">
         <div class="bg-white rounded-lg shadow" x-data="{ tab: '<?php echo e($activeTab); ?>' }">
-            <!-- Tab 导航 -->
+            <?php /* Tab 导航 */ ?>
             <div class="px-6 py-3 border-b flex items-center gap-1 flex-wrap">
                 <button @click="tab='main'" :class="tab==='main' ? 'text-primary border-primary' : 'text-gray-500 border-transparent hover:text-gray-700'"
                         class="px-3 py-2 text-sm font-medium border-b-2 transition cursor-pointer">
@@ -619,9 +619,9 @@ function ykPickChannelIcon(name) {
                 </a>
             </div>
 
-            <!-- Tab 1: 主导航栏目 -->
+            <?php /* Tab 1: 主导航栏目 */ ?>
             <div x-show="tab==='main'" x-cloak>
-                <!-- Home (固定) -->
+                <?php /* Home (固定) */ ?>
                 <div class="px-4 pt-4">
                     <div class="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-lg border border-blue-200">
                         <span class="text-blue-300">
@@ -740,7 +740,7 @@ function ykPickChannelIcon(name) {
                 </div>
             </div>
 
-            <!-- Tab 2: 页脚导航栏目 -->
+            <?php /* Tab 2: 页脚导航栏目 */ ?>
             <div x-show="tab==='footer'" x-cloak>
                 <?php if (!empty($footerNavItems)): ?>
                 <div class="p-4">
@@ -812,7 +812,7 @@ function ykPickChannelIcon(name) {
                 </div>
             </div>
 
-            <!-- Tab 3: 未定义位置栏目 -->
+            <?php /* Tab 3: 未定义位置栏目 */ ?>
             <div x-show="tab==='none'" x-cloak>
                 <?php if (!empty($undefinedChannels)): ?>
                 <div class="p-4">
@@ -867,7 +867,7 @@ function ykPickChannelIcon(name) {
                 <?php endif; ?>
             </div>
 
-            <!-- Tab 4: 已停用栏目（status=0 的顶级栏目，不占前三个导航列表） -->
+            <?php /* Tab 4: 已停用栏目（status=0 的顶级栏目，不占前三个导航列表） */ ?>
             <?php if (!empty($hiddenChannels)): ?>
             <div x-show="tab==='hidden'" x-cloak>
                 <div class="p-4">
@@ -933,7 +933,7 @@ function ykPickChannelIcon(name) {
         </div>
     </div>
 
-    <!-- 编辑表单 -->
+    <?php /* 编辑表单 */ ?>
     <div class="lg:col-span-1">
         <?php require ROOT_PATH . '/admin/includes/lang_switcher_edit.php'; ?>
         <div class="bg-white rounded-lg shadow sticky top-20">
@@ -1189,7 +1189,7 @@ function ykPickChannelIcon(name) {
                     </div>
                 </div>
 
-                <!-- 列表显示元素（文章列表类栏目；随类型选择显隐） -->
+                <?php /* 列表显示元素（文章列表类栏目；随类型选择显隐） */ ?>
                 <?php
                 $__lsOpts = channelListOptions($editChannel ?? []);
                 $__lsDefs = [

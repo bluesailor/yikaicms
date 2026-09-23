@@ -77,7 +77,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php endif; ?>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- 聊天区 -->
+        <?php /* 聊天区 */ ?>
         <div class="lg:col-span-2 bg-white rounded-lg shadow flex flex-col" style="min-height: 600px;">
             <div id="chatArea" class="flex-1 p-4 overflow-y-auto space-y-3" style="max-height: 540px;">
                 <div class="text-center text-gray-400 text-sm py-12">
@@ -99,7 +99,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </form>
         </div>
 
-        <!-- 能力清单 -->
+        <?php /* 能力清单 */ ?>
         <div class="bg-white rounded-lg shadow p-4">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="font-bold text-gray-800"><?php echo str_replace(':n', (string) count($abilities), e(__('aia_abilities'))); ?></h2>

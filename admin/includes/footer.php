@@ -1,6 +1,6 @@
             </main>
 
-            <!-- 底部 -->
+            <?php /* 底部 */ ?>
             <footer class="p-6 text-center text-gray-500 text-sm">
                 <?php $adminCopyright = adminBrandCopyright(); ?>
                 <?php if ($adminCopyright): ?>
@@ -16,12 +16,12 @@
         </div>
     </div>
 
-    <!-- 通用CSS -->
+    <?php /* 通用CSS */ ?>
     <style>button, a[href], [onclick] { cursor: pointer; }</style>
 
-    <!-- 通用脚本 -->
-    <!-- 外部 swiper / tinymce 包大，移到下面；先把全局 helper（showMessage/safeJson/CSRF）
-         注入到 window，避免用户在 tinymce 还没下载完就点按钮触发 "showMessage is not defined". -->
+    <?php /* 通用脚本 */ ?>
+    <?php /* 外部 swiper / tinymce 包大，移到下面；先把全局 helper（showMessage/safeJson/CSRF）
+         注入到 window，避免用户在 tinymce 还没下载完就点按钮触发 "showMessage is not defined". */ ?>
     <script>
     // CSRF Token 自动注入
     (function() {
@@ -343,14 +343,14 @@
     }
     </script>
 
-    <!-- 体积大的外部库放在 helper 后，让 showMessage 等先就绪可被任何按钮调用 -->
+    <?php /* 体积大的外部库放在 helper 后，让 showMessage 等先就绪可被任何按钮调用 */ ?>
     <script src="/assets/swiper/swiper-bundle.min.js"></script>
     <script src="/assets/hugerte/hugerte.min.js"></script>
     <?php // 别名（给第三方插件）与界面语言 → 编辑器语言包的映射，两个页面共用 ?>
     <script src="/assets/js/rich-editor.js?v=<?php echo (int) @filemtime(ROOT_PATH . '/assets/js/rich-editor.js'); ?>"></script>
     <script src="/assets/js/official-media-client.js?v=<?php echo (int) filemtime(ROOT_PATH . '/assets/js/official-media-client.js'); ?>"></script>
 
-    <!-- 媒体库选择弹窗 -->
+    <?php /* 媒体库选择弹窗 */ ?>
     <div id="mediaPickerModal" class="fixed inset-0 hidden" style="z-index:9999">
         <div class="absolute inset-0 bg-black/50" onclick="_mpClose()"></div>
         <div class="relative mx-auto my-6 bg-white rounded-lg shadow-xl w-full max-w-5xl flex flex-col" style="max-height:calc(100vh - 3rem)">
@@ -739,7 +739,7 @@ function switchAdminLang(lang) {
         'columns'        => __('so_columns'),
     ], JSON_UNESCAPED_UNICODE); ?>;</script>
     <script src="/assets/js/screen-options.js?v=2"></script>
-    <!-- flatpickr：统一美化后台所有日期/时间输入（跨浏览器一致 + 本地化日历） -->
+    <?php /* flatpickr：统一美化后台所有日期/时间输入（跨浏览器一致 + 本地化日历） */ ?>
     <link rel="stylesheet" href="/assets/flatpickr/flatpickr.min.css">
     <script src="/assets/flatpickr/flatpickr.min.js"></script>
     <?php $__fpLang = str_starts_with((string) config('site_lang', 'zh-CN'), 'ja') ? 'ja' : (str_starts_with((string) config('site_lang', 'zh-CN'), 'zh') ? 'zh' : ''); ?>

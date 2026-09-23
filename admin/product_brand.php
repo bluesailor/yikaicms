@@ -102,7 +102,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('br
 
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- 品牌列表 -->
+    <?php /* 品牌列表 */ ?>
     <div class="lg:col-span-2">
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b flex justify-between items-center">
@@ -162,7 +162,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('br
         </div>
     </div>
 
-    <!-- 添加/编辑 -->
+    <?php /* 添加/编辑 */ ?>
     <div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="font-bold mb-4"><?php echo $editBrand ? e(__('brand_edit')) : e(__('brand_add')); ?></h3>

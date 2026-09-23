@@ -105,7 +105,7 @@ $currentMenu = 'download';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <div class="text-gray-600">
@@ -124,7 +124,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 分类列表 -->
+<?php /* 分类列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full">
@@ -185,7 +185,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 编辑弹窗 -->
+<?php /* 编辑弹窗 */ ?>
 <div id="editModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">

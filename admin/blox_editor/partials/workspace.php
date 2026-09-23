@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 ?>
-    <!-- ===== 三栏主体 ===== -->
+    <?php /* ===== 三栏主体 ===== */ ?>
     <div class="flex" style="height: calc(100vh - 3.5rem);">
 
         <?php // 左栏：元素库 ↔ 设置在同一容器切换。选中区块/元素自动进设置，
@@ -16,7 +16,7 @@ declare(strict_types=1);
             </div>
             <div id="blox-left-panel-content" x-show="leftPanelContentVisible()" class="flex-1 flex flex-col min-h-0">
 
-            <!-- ── 元素库（无选中或 libOpen） ── -->
+            <?php /* ── 元素库（无选中或 libOpen） ── */ ?>
             <div x-show="!sel || libOpen" class="flex-1 flex flex-col min-h-0">
                 <div class="h-10 px-3 flex items-center justify-between border-b border-gray-100 shrink-0">
                     <span class="text-xs font-semibold text-gray-500 tracking-wide inline-flex items-center gap-1">
@@ -134,7 +134,7 @@ declare(strict_types=1);
                 </div>
             </div>
 
-            <!-- ── 同级多选批量操作条（R2：删除/复制/剪切/粘贴；每操作一次 runCommand） ── -->
+            <?php /* ── 同级多选批量操作条（R2：删除/复制/剪切/粘贴；每操作一次 runCommand） ── */ ?>
             <div x-show="multiSelActive() || !!batchClipboard" x-cloak class="flex-1 flex flex-col min-h-0" data-testid="blox-batch-bar">
                 <div class="h-10 px-3 flex items-center gap-2 border-b border-gray-100 shrink-0">
                     <i class="ti ti-checks text-sm shrink-0 text-blue-500"></i>
@@ -224,7 +224,7 @@ declare(strict_types=1);
                 </div>
             </div>
 
-            <!-- ── 设置（选中区块/元素且未打开元素库；多选时让位给批量操作条） ── -->
+            <?php /* ── 设置（选中区块/元素且未打开元素库；多选时让位给批量操作条） ── */ ?>
             <div x-show="sel && !libOpen && !multiSelActive()" class="flex-1 flex flex-col min-h-0">
                 <div class="h-10 px-3 flex items-center gap-2 border-b border-gray-100 shrink-0">
                     <span class="text-xs font-semibold text-gray-500 tracking-wide inline-flex items-center gap-1 min-w-0">
@@ -258,7 +258,7 @@ declare(strict_types=1);
                     <?php require __DIR__ . '/left-panel-toggle.php'; ?>
                 </div>
 
-                <!-- 内容 / 样式 页签 -->
+                <?php /* 内容 / 样式 页签 */ ?>
                 <template x-if="contentReturnAvailable()">
                     <button type="button" @click="returnToContent()" data-testid="blox-return-content"
                             class="px-3 py-2 text-xs text-blue-700 hover:bg-blue-50 inline-flex items-center gap-2 border-b border-gray-100">
@@ -339,7 +339,7 @@ declare(strict_types=1);
                     <?php // 元素交互（v1.28）面板同属"条件"页签（行为类配置聚拢） ?>
                     <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_interactions'); ?>
 
-                    <!-- ── 元素设置：按 BuilderRegistry 的 controls() 生成 ── -->
+                    <?php /* ── 元素设置：按 BuilderRegistry 的 controls() 生成 ── */ ?>
                     <template x-if="selEl && panelTab !== 'condition'">
                         <div class="space-y-3">
                             <?php // 元素重命名：标题即输入框（借鉴思路来自可视化构建器惯例）；
@@ -2096,7 +2096,7 @@ declare(strict_types=1);
                         </div>
                     </template>
 
-                    <!-- 区块标题字段：按元素式交互单独编辑，不再混入整块设置 -->
+                    <?php /* 区块标题字段：按元素式交互单独编辑，不再混入整块设置 */ ?>
                     <template x-if="sel && selectedSectionField">
                         <div class="space-y-5">
                             <div x-show="panelTab === 'content'" class="space-y-4">
@@ -2229,7 +2229,7 @@ declare(strict_types=1);
                         </div>
                     </template>
 
-                    <!-- ── 区块设置：内容 / 样式 两页签 ── -->
+                    <?php /* ── 区块设置：内容 / 样式 两页签 ── */ ?>
                     <template x-if="sel && !selEl && !selectedSectionField && panelTab !== 'condition'">
                         <div>
                             <div x-show="panelTab === 'content' && (!ctaQuickTarget() || ctaQuickDetails || ctrlQuery.trim() || modifiedOnly)" class="space-y-5">
@@ -2275,7 +2275,7 @@ declare(strict_types=1);
                                 <div x-show="selLayer === 'sec'">
                                     <?php $backgroundSwitcherMode = 'content'; require __DIR__ . '/background-layer-switcher.php'; ?>
                                 </div>
-                                <!-- 区块标题 / 副标题：渲染器会输出成居中的段落头 -->
+                                <?php /* 区块标题 / 副标题：渲染器会输出成居中的段落头 */ ?>
                                 <div x-show="selLayer === 'sec'">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_field_section_title') ?></label>
                                     <input type="text" x-model="sel.settings.title" placeholder="<?= e(__('blox_empty_hidden')) ?>"
@@ -2310,7 +2310,7 @@ declare(strict_types=1);
                                     <p x-show="anchorIdDuplicate(sel.settings.anchor_id)"
                                        class="mt-1 text-[10px] text-amber-600"><?= e(__('blox_section_anchor_duplicate')) ?></p>
                                 </div>
-                                <!-- 当前区块的元素概览；具体元素在右侧结构树中选择。 -->
+                                <?php /* 当前区块的元素概览；具体元素在右侧结构树中选择。 */ ?>
                                 <div x-show="selLayer === 'sec'" class="pt-3 border-t border-gray-100">
                                     <div class="text-xs text-gray-400" x-text="<?= e($jt('blox_section_el_hint')) ?>.replace(':n', elCount(sel))"></div>
                                 </div>
@@ -2323,7 +2323,7 @@ declare(strict_types=1);
                                     <?php $backgroundSwitcherMode = 'style'; require __DIR__ . '/background-layer-switcher.php'; ?>
                                 </div>
                                 <div x-show="selLayer === 'sec'" class="blox-property-pair-grid" data-testid="blox-section-property-grid">
-                                <!-- 背景色 -->
+                                <?php /* 背景色 */ ?>
                                 <div class="blox-property-span-full">
                                     <?php $sourceField = 'bg_color'; $sourceFallback = ''; require __DIR__ . '/section-style-source.php'; ?>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_color') ?></label>
@@ -2337,7 +2337,7 @@ declare(strict_types=1);
                                     </button>
                                     <p class="mt-1 text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_background_color_hint')) ?></p>
                                 </div>
-                                <!-- 渐变背景：无/预置色板/自定义双色。叠在背景色/背景图之上 -->
+                                <?php /* 渐变背景：无/预置色板/自定义双色。叠在背景色/背景图之上 */ ?>
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_gradient_bg') ?></label>
                                     <div class="grid grid-cols-5 gap-1.5">
@@ -2375,7 +2375,7 @@ declare(strict_types=1);
                                     <p class="text-[10px] text-gray-400 mt-1" x-show="sel.settings.bg_gradient"
                                        x-text="<?= e($jt('blox_current_gradient')) ?>.replace(':g', (gradientPresets.find(g => g.css === sel.settings.bg_gradient) || {}).label || <?= e($jt('blox_custom_gradient')) ?>)"></p>
                                 </div>
-                                <!-- 背景图 + 独立遮罩 + 焦点 -->
+                                <?php /* 背景图 + 独立遮罩 + 焦点 */ ?>
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_bg_image') ?></label>
                                     <?php $imageControl = ['scope' => 'section', 'key' => "'bg_image'", 'id' => 'blox-section-background-image', 'urlId' => 'blox-section-bg-image']; require __DIR__ . '/image-control.php'; ?>
@@ -2509,7 +2509,7 @@ declare(strict_types=1);
                                         </div>
                                     </div>
                                 </div>
-                                <!-- 上下内边距 -->
+                                <?php /* 上下内边距 */ ?>
                                 <div>
                                     <label class="mb-2 flex items-center gap-2 text-xs text-gray-600">
                                         <input type="checkbox" data-testid="blox-section-padding-global"
@@ -2678,7 +2678,7 @@ declare(strict_types=1);
                                     </div>
                                 </div>
                                 <div x-show="selLayer === 'con'" class="blox-property-pair-grid" data-testid="blox-container-property-grid">
-                                <!-- 容器背景优先展示：从区块摘要进入后无需越过布局设置即可看到实际 URL。 -->
+                                <?php /* 容器背景优先展示：从区块摘要进入后无需越过布局设置即可看到实际 URL。 */ ?>
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_container_bg') ?></label>
                                     <button type="button"
@@ -2810,7 +2810,7 @@ declare(strict_types=1);
                                     </div>
                                     <p class="mt-2 text-[10px] text-gray-400 leading-relaxed"><?= __('blox_container_layout_hint') ?></p>
                                 </div>
-                                <!-- 容器宽度：预设四档 + 自定义 px -->
+                                <?php /* 容器宽度：预设四档 + 自定义 px */ ?>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_container_width') ?></label>
                                     <?php $sourceField = 'max_width'; $sourceFallback = 'default'; require __DIR__ . '/section-style-source.php'; ?>
@@ -2868,7 +2868,7 @@ declare(strict_types=1);
                                         </div>
                                     </div>
                                 </div>
-                                <!-- 列间距 -->
+                                <?php /* 列间距 */ ?>
                                 <div class="blox-property-span-full">
                                     <div class="flex items-center justify-between gap-2 mb-1.5">
                                         <label class="block text-xs font-medium text-gray-600"><?= __('blox_col_gap') ?></label>
@@ -2910,7 +2910,7 @@ declare(strict_types=1);
                                     </p>
                                 </div>
 
-                                <!-- 对齐 -->
+                                <?php /* 对齐 */ ?>
                                 <div class="blox-property-span-full">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_col_align') ?></label>
                                     <div class="text-[10px] text-gray-400 mb-1"><?= __('blox_v_axis') ?></div>
@@ -2934,7 +2934,7 @@ declare(strict_types=1);
                                         </template>
                                     </div>
                                 </div>
-                                <!-- 列卡片化：渲染器仅在列数 > 1 时生效 -->
+                                <?php /* 列卡片化：渲染器仅在列数 > 1 时生效 */ ?>
                                 <div x-show="sel.columns.length > 1" class="blox-property-span-full">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" class="rounded border-gray-300"
@@ -2974,7 +2974,7 @@ declare(strict_types=1);
             <span aria-hidden="true"></span>
         </div>
 
-        <!-- 中：画布 -->
+        <?php /* 中：画布 */ ?>
         <main id="blox-canvas-workspace" x-ref="canvasHost" data-testid="blox-canvas-host"
               class="flex-1 min-w-0 bg-gray-200 flex flex-col"
               :class="canvasDragActive ? 'overflow-hidden' : 'overflow-auto'"
@@ -2995,7 +2995,7 @@ declare(strict_types=1);
                     </button>
                 </div>
             </div>
-            <!-- r14 面包屑：选择模型的另一个视图（稳定派生自 selected*，重排/undo 后天然正确）；点父级只改选择 -->
+            <?php /* r14 面包屑：选择模型的另一个视图（稳定派生自 selected*，重排/undo 后天然正确）；点父级只改选择 */ ?>
             <div x-show="breadcrumb().length > 0" x-cloak data-testid="blox-breadcrumb"
                  class="sticky top-0 z-40 flex items-center gap-0.5 px-3 py-1 bg-white/95 backdrop-blur border-b border-gray-200 text-xs shrink-0">
                 <template x-for="(c, idx) in breadcrumb()" :key="idx">
@@ -3061,7 +3061,7 @@ declare(strict_types=1);
             <span aria-hidden="true"></span>
         </div>
 
-        <!-- 右：常驻结构树 -->
+        <?php /* 右：常驻结构树 */ ?>
         <aside id="blox-structure-panel" data-testid="blox-right-panel"
                class="blox-mobile-panel blox-structure-panel w-64 shrink-0 bg-white border-l border-gray-200 flex flex-col"
                :class="mobilePanel === 'structure' ? 'is-open' : ''" :style="rightPanelStyle()">
@@ -3161,7 +3161,7 @@ declare(strict_types=1);
                                 <span class="blox-tree-drop-label" x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
                             </span>
                         </div>
-                        <!-- 该区块展开：容器节点 → 列 → 元素 -->
+                        <?php /* 该区块展开：容器节点 → 列 → 元素 */ ?>
                         <div x-show="selectedSi === si" x-collapse>
                             <div class="px-2 pb-1">
                                 <div @click.stop="selectContainer(si)"
@@ -3306,7 +3306,7 @@ declare(strict_types=1);
                                                           data-drop-intent="inside" :data-drop-valid="treeDropIntent && treeDropIntent.valid ? '1' : '0'"
                                                           x-text="treeDropIntent ? treeDropIntent.label : ''"></span>
                                                 </div>
-                                                <!-- 复合元素命名区域：稳定、可选中、可展开；不是可删除的 children -->
+                                                <?php /* 复合元素命名区域：稳定、可选中、可展开；不是可删除的 children */ ?>
                                                 <template x-if="elRegions(el.type).length > 0">
                                                     <div class="ml-3 pl-1.5 border-l border-gray-200 py-0.5"
                                                          :data-si="si" :data-ci="ci" :data-ei="ei" data-catalog-regions>
@@ -3331,7 +3331,7 @@ declare(strict_types=1);
                                                         </div>
                                                     </div>
                                                 </template>
-                                                <!-- 容器：子元素树（0b 起随嵌套容器递归到 7 层子级；层级 1 保留全部既有交互锚点） -->
+                                                <?php /* 容器：子元素树（0b 起随嵌套容器递归到 7 层子级；层级 1 保留全部既有交互锚点） */ ?>
                                                 <?php
                                                 // 深层（2..7）子树由此闭包生成：点选/右键/上下移/删除/同层拖拽排序可用；
                                                 // 跨层拖放与画布 palette 落点在容器互嵌开闸批次补。
@@ -3469,7 +3469,7 @@ HTML;
                             </div>
                             </div>
                         </div>
-                        <!-- 该区块的操作（选中时展开） -->
+                        <?php /* 该区块的操作（选中时展开） */ ?>
                         <div x-show="selectedSi === si" class="flex items-center gap-1 px-2 pb-2 border-t border-gray-100 pt-1.5" x-collapse>
                             <button type="button" @click.stop="moveSection(si,-1)" :disabled="si===0"
                                     class="p-1 text-gray-400 hover:text-blue-500 disabled:opacity-30" title="<?= e(__('blox_ctx_move_up')) ?>">

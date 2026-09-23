@@ -129,7 +129,8 @@ $__seoPluginHere = is_dir(ROOT_PATH . '/plugins/seo');
 
 
 <?php if ($tab === 'basic'): ?>
-<!-- ==================== 基础设置 ==================== -->
+<?php /* ==================== 基础设置 ==================== */ ?>
+
 <form id="settingForm" class="space-y-6">
     <?php echo adminLangField(); ?>
     <div class="bg-white rounded-lg shadow">
@@ -188,7 +189,8 @@ $__seoPluginHere = is_dir(ROOT_PATH . '/plugins/seo');
 </form>
 
 <?php elseif ($tab === 'social'): ?>
-<!-- ==================== 社交分享 ==================== -->
+<?php /* ==================== 社交分享 ==================== */ ?>
+
 <form id="settingForm" class="space-y-6">
     <?php echo adminLangField(); ?>
     <div class="bg-white rounded-lg shadow">
@@ -236,7 +238,8 @@ $__seoPluginHere = is_dir(ROOT_PATH . '/plugins/seo');
 </form>
 
 <?php elseif ($tab === 'verify'): ?>
-<!-- ==================== 站长验证 ==================== -->
+<?php /* ==================== 站长验证 ==================== */ ?>
+
 <form id="settingForm" class="space-y-6">
     <?php echo adminLangField(); ?>
     <div class="bg-white rounded-lg shadow">
@@ -300,7 +303,8 @@ $__seoPluginHere = is_dir(ROOT_PATH . '/plugins/seo');
 </form>
 
 <?php elseif ($tab === 'sitemap'): ?>
-<!-- ==================== Sitemap ==================== -->
+<?php /* ==================== Sitemap ==================== */ ?>
+
 <form id="settingForm" class="space-y-6">
     <?php echo adminLangField(); ?>
     <div class="bg-white rounded-lg shadow">
@@ -368,7 +372,8 @@ $__seoPluginHere = is_dir(ROOT_PATH . '/plugins/seo');
 </form>
 
 <?php elseif ($tab === 'robots'): ?>
-<!-- ==================== Robots.txt ==================== -->
+<?php /* ==================== Robots.txt ==================== */ ?>
+
 <div class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">

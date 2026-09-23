@@ -39,7 +39,7 @@ $revLabels = [
     </div>
 </div>
 
-<!-- 预览弹层 -->
+<?php /* 预览弹层 */ ?>
 <div id="revPreviewModal" class="fixed inset-0 hidden items-center justify-center" style="z-index:9999;background:rgba(0,0,0,.5)">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl flex flex-col mx-4" style="max-height:calc(100vh - 4rem)">
         <div class="px-5 py-3 border-b flex items-center justify-between">

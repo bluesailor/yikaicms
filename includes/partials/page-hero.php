@@ -49,7 +49,7 @@ if ($heroLegacyGradient) {
     </div>
     <?php endif; ?>
     <div class="container mx-auto px-4 relative">
-        <!-- 面包屑导航 -->
+        <?php /* 面包屑导航 */ ?>
         <?php $style = $heroTone === 'light' ? 'light' : 'default'; require theme_path('partials/breadcrumb.php'); ?>
         <div class="<?php echo $heroCentered ? 'text-center' : 'text-left'; ?>">
             <h1 class="text-4xl md:text-5xl font-bold mb-4 <?php echo $heroTone === 'light' ? 'text-white' : 'text-gray-900'; ?>"><?php echo e($channel['name']); ?></h1>

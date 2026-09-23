@@ -173,7 +173,7 @@ add_action('ik_footer_scripts', function () {
         </div>
     </div>
     <?php if ($footerLink): ?>
-    <!-- 常驻重开入口：撤回/变更同意（GDPR Art.7(3)）。未决定时隐藏（横幅本身在显示） -->
+    <?php /* 常驻重开入口：撤回/变更同意（GDPR Art.7(3)）。未决定时隐藏（横幅本身在显示） */ ?>
     <button type="button" id="ik-consent-reopen" aria-label="<?= htmlspecialchars($t['settings'], ENT_QUOTES) ?>" style="
         position:fixed;left:14px;bottom:14px;z-index:9999;
         display:<?= $decided ? 'inline-flex' : 'none' ?>;align-items:center;gap:5px;

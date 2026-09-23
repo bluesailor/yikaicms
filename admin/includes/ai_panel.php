@@ -18,7 +18,7 @@ $GLOBALS['_ai_panel_loaded'] = true;
 </style>
 
 <div class="bg-white rounded-lg shadow mb-4" id="aiBox">
-    <!-- 标题栏（点击展开/收起） -->
+    <?php /* 标题栏（点击展开/收起） */ ?>
     <div class="px-5 py-2.5 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition rounded-lg" onclick="toggleAiBox()">
         <div class="flex items-center gap-2.5">
             <div id="aiIcon" class="relative w-6 h-6 flex items-center justify-center">
@@ -31,17 +31,17 @@ $GLOBALS['_ai_panel_loaded'] = true;
         <i class="ti ti-chevron-down text-base text-gray-400 transition-transform"></i>
     </div>
 
-    <!-- 展开内容 -->
+    <?php /* 展开内容 */ ?>
     <div id="aiBoxBody" class="hidden border-t">
         <div class="p-5 space-y-3">
             <input type="hidden" id="aiPanelAction" value="generate_all">
 
-            <!-- 提示词 -->
+            <?php /* 提示词 */ ?>
             <div>
                 <textarea id="aiPrompt" rows="2" class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo e(__('aip_prompt_ph')); ?>"></textarea>
             </div>
 
-            <!-- 模式 + 生成项 -->
+            <?php /* 模式 + 生成项 */ ?>
             <div class="flex items-start gap-6">
                 <div class="flex items-center gap-1.5 flex-wrap">
                     <button type="button" data-action="generate_all" class="ai-mode-btn px-3 py-1 text-xs rounded-full border cursor-pointer transition font-medium"><?php echo e(__('aip_generate_all')); ?></button>
@@ -54,7 +54,7 @@ $GLOBALS['_ai_panel_loaded'] = true;
                 </div>
             </div>
 
-            <!-- 一键生成选项 -->
+            <?php /* 一键生成选项 */ ?>
             <div id="aiAllOptions" class="flex items-center gap-4 text-xs text-gray-500">
                 <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenTitle" checked class="w-3.5 h-3.5 rounded"> <?php echo e(__('label_title')); ?></label>
                 <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenSummary" checked class="w-3.5 h-3.5 rounded"> <?php echo e(__('aip_summary')); ?></label>
@@ -63,7 +63,7 @@ $GLOBALS['_ai_panel_loaded'] = true;
                 <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="aiGenContent" checked class="w-3.5 h-3.5 rounded"> <?php echo e(__('aip_content')); ?></label>
             </div>
 
-            <!-- 高级选项 + 生成按钮 -->
+            <?php /* 高级选项 + 生成按钮 */ ?>
             <div class="flex items-center justify-between pt-2 border-t">
                 <details class="inline">
                     <summary class="text-xs text-gray-400 cursor-pointer hover:text-blue-500 select-none"><?php echo e(__('aip_advanced')); ?></summary>

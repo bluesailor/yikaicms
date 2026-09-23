@@ -107,7 +107,7 @@ if (trim($detailTemplateHtml) !== '') {
 } else {
 ?>
 
-<!-- 面包屑 -->
+<?php /* 面包屑 */ ?>
 <div class="bg-gray-100 py-4">
     <div class="container mx-auto px-4">
         <div class="flex items-center gap-2 text-sm text-gray-600">
@@ -144,10 +144,10 @@ if (trim($detailTemplateHtml) !== '') {
 <section class="py-12">
     <div class="container mx-auto px-4">
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
-            <!-- 主内容区 -->
+            <?php /* 主内容区 */ ?>
             <div class="w-full lg:flex-1">
                 <article class="bg-white rounded-lg shadow overflow-hidden">
-                    <!-- 标题区 -->
+                    <?php /* 标题区 */ ?>
                     <div class="p-6 md:p-8 border-b">
                         <h1 class="text-2xl md:text-3xl font-bold text-dark leading-tight">
                             <?php echo e($content['title']); ?>
@@ -179,7 +179,7 @@ if (trim($detailTemplateHtml) !== '') {
                     </div>
 
                     <?php if ($content['channel_type'] === 'case'): ?>
-                    <!-- 案例信息卡片 -->
+                    <?php /* 案例信息卡片 */ ?>
                     <?php if ($content['client_name'] || $content['industry'] || $content['duration'] || $content['result_metric']): ?>
                     <div class="px-6 md:px-8 pt-6">
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-5">
@@ -213,7 +213,7 @@ if (trim($detailTemplateHtml) !== '') {
                     </div>
                     <?php endif; ?>
                     <?php if ($content['cover']): ?>
-                    <!-- 案例封面图 -->
+                    <?php /* 案例封面图 */ ?>
                     <div class="px-6 md:px-8 pt-6 cursor-zoom-in" onclick="openCaseLightbox(0)">
                         <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($content['cover'], 'medium', '(min-width: 1024px) 768px, 100vw'); ?> alt="<?php echo e($content['title']); ?>"
                              class="w-full rounded-lg hover:opacity-95 transition">
@@ -222,7 +222,7 @@ if (trim($detailTemplateHtml) !== '') {
                     <?php endif; ?>
 
                     <?php if ($content['channel_type'] === 'product'): ?>
-                    <!-- 产品信息 -->
+                    <?php /* 产品信息 */ ?>
                     <div class="p-6 md:p-8 border-b bg-gray-50">
                         <div class="flex flex-wrap gap-8">
                             <?php if ($content['cover']): ?>
@@ -257,7 +257,7 @@ if (trim($detailTemplateHtml) !== '') {
                     <?php endif; ?>
 
                     <?php if ($content['channel_type'] === 'download'): ?>
-                    <!-- 下载信息 -->
+                    <?php /* 下载信息 */ ?>
                     <div class="p-6 md:p-8 border-b bg-green-50">
                         <div class="flex flex-wrap items-center justify-between gap-4">
                             <div class="flex items-center gap-6">
@@ -277,22 +277,22 @@ if (trim($detailTemplateHtml) !== '') {
                     <?php endif; ?>
 
                     <?php if (!in_array($content['channel_type'], ['case', 'product'], true) && !empty($content['cover'])): ?>
-                    <!-- 文章封面图（case/product 已各自渲染，此处覆盖 news/article 等类型）-->
+                    <?php /* 文章封面图（case/product 已各自渲染，此处覆盖 news/article 等类型） */ ?>
                     <div class="px-6 md:px-8 pt-6">
                         <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($content['cover'], 'medium', '(min-width: 1024px) 768px, 100vw'); ?> alt="<?php echo e($content['title']); ?>"
                              class="w-full rounded-lg">
                     </div>
                     <?php endif; ?>
 
-                    <!-- 正文内容（blocks 页浏览时渲染，动态数据实时；其它走短码） -->
+                    <?php /* 正文内容（blocks 页浏览时渲染，动态数据实时；其它走短码） */ ?>
                     <div class="p-6 md:p-8 prose prose-lg max-w-none"<?php echo frontEditAttr($content, $channel); ?>>
                         <?php echo apply_filters('content_output', renderContentBody($content), $content); ?>
                     </div>
 
-                    <!-- 扩展字段（自定义模型字段：职位/邮箱/规格… 有值才显示）-->
+                    <?php /* 扩展字段（自定义模型字段：职位/邮箱/规格… 有值才显示） */ ?>
                     <?php require theme_path('partials/content-fields.php'); ?>
 
-                    <!-- 图片画廊（lightbox）-->
+                    <?php /* 图片画廊（lightbox） */ ?>
                     <?php
                     $galleryImages = [];
                     if (!empty($content['images'])) {
@@ -326,7 +326,7 @@ if (trim($detailTemplateHtml) !== '') {
                     </div>
                     <?php endif; ?>
 
-                    <!-- 上下篇 -->
+                    <?php /* 上下篇 */ ?>
                     <div class="p-6 md:p-8 border-t bg-gray-50">
                         <div class="flex flex-wrap justify-between gap-4 text-sm">
                             <div>
@@ -354,10 +354,10 @@ if (trim($detailTemplateHtml) !== '') {
                 </article>
             </div>
 
-            <!-- 侧边栏 -->
+            <?php /* 侧边栏 */ ?>
             <div class="w-full lg:w-80 space-y-6">
                 <?php if (!empty($downloadSidebarCats)): ?>
-                <!-- 下载分类 -->
+                <?php /* 下载分类 */ ?>
                 <div class="bg-white rounded-lg shadow">
                     <div class="bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200 rounded-t-lg"><?php echo __('list_download_category'); ?></div>
                     <div class="divide-y">
@@ -371,7 +371,7 @@ if (trim($detailTemplateHtml) !== '') {
                 </div>
                 <?php endif; ?>
 
-                <!-- 相关内容 -->
+                <?php /* 相关内容 */ ?>
                 <?php if (!empty($relatedContents)): ?>
                 <div class="bg-white rounded-lg shadow">
                     <div class="px-4 py-3 border-b font-bold text-dark"><?php echo __('detail_related'); ?></div>
@@ -397,7 +397,7 @@ if (trim($detailTemplateHtml) !== '') {
                 </div>
                 <?php endif; ?>
 
-                <!-- 联系方式 -->
+                <?php /* 联系方式 */ ?>
                 <div class="bg-white rounded-lg shadow">
                     <div class="px-4 py-3 border-b font-bold text-dark"><?php echo __('footer_contact'); ?></div>
                     <div class="p-4 space-y-3 text-sm">
@@ -425,7 +425,8 @@ if (trim($detailTemplateHtml) !== '') {
 </section>
 
 <?php if (!empty($galleryImages)): ?>
-<!-- 案例/内容 Lightbox 画廊 -->
+<?php /* 案例/内容 Lightbox 画廊 */ ?>
+
 <div id="case-lightbox" class="hidden fixed inset-0 z-[9999] bg-black/90 items-center justify-center" onclick="if(event.target === this) closeCaseLightbox()">
     <button type="button" onclick="closeCaseLightbox()" class="absolute top-4 right-4 text-white/80 hover:text-white p-2" aria-label="<?php echo __('lightbox_close'); ?>">
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">

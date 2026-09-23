@@ -173,10 +173,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 require_once ROOT_PATH . '/admin/includes/product_nav.php';
 ?>
 
-<!-- Tab 导航 -->
+<?php /* Tab 导航 */ ?>
 
 <?php if (count($_enabledList) > 1): ?>
-<!-- 语言切换器 -->
+<?php /* 语言切换器 */ ?>
+
 <div class="bg-white rounded-lg shadow mb-4 px-5 py-3 flex items-center gap-3 flex-wrap text-sm">
     <span class="text-gray-500"><?php echo e(__('admin_view_lang')); ?></span>
     <?php foreach ($_enabledList as $_lc):
@@ -196,7 +197,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
 </div>
 <?php endif; ?>
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex justify-between items-center">
         <div id="batchBar" class="hidden items-center gap-3">
@@ -213,7 +214,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
     </div>
 </div>
 
-<!-- 列表 -->
+<?php /* 列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full">
@@ -292,7 +293,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
     </div>
 </div>
 
-<!-- 编辑弹窗 -->
+<?php /* 编辑弹窗 */ ?>
 <div id="editModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">

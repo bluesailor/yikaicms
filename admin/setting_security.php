@@ -151,7 +151,8 @@ adminModuleTabStart([
 
 
 <?php if ($tab === 'login'): ?>
-<!-- ==================== 登录安全 ==================== -->
+<?php /* ==================== 登录安全 ==================== */ ?>
+
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
@@ -271,7 +272,8 @@ adminModuleTabStart([
 </form>
 
 <?php elseif ($tab === 'login_logs'): ?>
-<!-- ==================== 登录记录 ==================== -->
+<?php /* ==================== 登录记录 ==================== */ ?>
+
 <div class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
@@ -364,7 +366,8 @@ adminModuleTabStart([
 </div>
 
 <?php elseif ($tab === 'upload'): ?>
-<!-- ==================== 上传安全 ==================== -->
+<?php /* ==================== 上传安全 ==================== */ ?>
+
 <form id="settingForm" class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
@@ -470,7 +473,8 @@ adminModuleTabStart([
 </form>
 
 <?php elseif ($tab === 'logs'): ?>
-<!-- ==================== 日志管理 ==================== -->
+<?php /* ==================== 日志管理 ==================== */ ?>
+
 <div class="space-y-6">
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">

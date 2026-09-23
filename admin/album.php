@@ -117,7 +117,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __('album_lang_tip')));
 ?>
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <div class="text-gray-600">
@@ -140,11 +140,11 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
     </div>
 </div>
 
-<!-- 相册列表 -->
+<?php /* 相册列表 */ ?>
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     <?php foreach ($albums as $item): ?>
     <div class="bg-white rounded-lg shadow overflow-hidden group">
-        <!-- 封面 -->
+        <?php /* 封面 */ ?>
         <a href="/admin/album_photos.php?id=<?php echo $item['id']; ?>" class="block aspect-[4/3] bg-gray-100 relative overflow-hidden">
             <?php if ($item['cover']): ?>
             <img src="<?php echo e($item['cover']); ?>" alt="<?php echo e($item['name']); ?>"
@@ -155,7 +155,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
             </div>
             <?php endif; ?>
 
-            <!-- 图片数量 -->
+            <?php /* 图片数量 */ ?>
             <div class="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
                 <?php echo str_replace(':n', (string) (int) $item['photo_count'], e(__('shome_n_images'))); ?>
             </div>
@@ -165,11 +165,11 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
             <?php endif; ?>
         </a>
 
-        <!-- 信息 -->
+        <?php /* 信息 */ ?>
         <div class="p-4">
             <h3 class="font-medium text-gray-900 mb-2"><?php echo e($item['name']); ?></h3>
 
-            <!-- 页面调用短码 -->
+            <?php /* 页面调用短码 */ ?>
             <div class="flex items-center gap-1 mb-2">
                 <code class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded select-all font-mono">[album-<?php echo (int)$item['id']; ?>]</code>
                 <button type="button" onclick="ykCopyShortcode(this,'[album-<?php echo (int)$item['id']; ?>]')"
@@ -179,11 +179,11 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
             </div>
 
             <?php if ($_lang['isSource'] && $_albumsHasLang): ?>
-            <!-- 翻译徽标（仅源语言视图显示） -->
+            <?php /* 翻译徽标（仅源语言视图显示） */ ?>
             <div class="mb-2"><?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/album_edit.php'); ?></div>
             <?php endif; ?>
 
-            <!-- 操作 -->
+            <?php /* 操作 */ ?>
             <div class="flex items-center justify-between pt-3 border-t">
                 <a href="/admin/album_photos.php?id=<?php echo $item['id']; ?>"
                    class="text-primary hover:underline text-sm inline-flex items-center gap-1">
@@ -223,7 +223,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
     <?php endif; ?>
 </div>
 
-<!-- 上传弹窗 -->
+<?php /* 上传弹窗 */ ?>
 <div id="uploadModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">
@@ -233,7 +233,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
             </button>
         </div>
         <div class="p-6">
-            <!-- 选择相册 -->
+            <?php /* 选择相册 */ ?>
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('album_select')); ?> <span class="text-red-500">*</span></label>
                 <select id="uploadAlbumId" class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
@@ -244,7 +244,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                 </select>
             </div>
 
-            <!-- 上传区域 -->
+            <?php /* 上传区域 */ ?>
             <div id="quickUploadZone" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-gray-50 transition">
                 <input type="file" id="quickFileInput" multiple accept="image/*" class="hidden">
                 <i class="ti ti-photo text-base mx-auto mb-3 text-gray-300"></i>
@@ -252,7 +252,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
                 <p class="text-xs text-gray-400"><?php echo e(__('album_formats')); ?></p>
             </div>
 
-            <!-- 上传进度 -->
+            <?php /* 上传进度 */ ?>
             <div id="quickUploadProgress" class="hidden mt-4">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-sm text-gray-600"><?php echo e(__('album_uploading')); ?></span>

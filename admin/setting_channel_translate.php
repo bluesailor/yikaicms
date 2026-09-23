@@ -216,7 +216,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div>
-    <!-- 语言选择 -->
+    <?php /* 语言选择 */ ?>
     <div class="bg-white rounded-lg shadow mb-6 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-4">
             <span class="text-sm text-gray-500"><?php echo e(__('atr_translate_to')); ?></span>
@@ -230,7 +230,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <a href="/admin/setting_lang.php" class="text-sm text-gray-400 hover:text-primary">← <?php echo e(__('admin_multilang_settings')); ?></a>
     </div>
 
-    <!-- 翻译表格 -->
+    <?php /* 翻译表格 */ ?>
     <form id="translateForm">
         <?php echo csrfField(); ?>
         <input type="hidden" name="action" value="save">

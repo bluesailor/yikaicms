@@ -177,13 +177,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <?php echo renderAdminLangSwitcher($_viewLang, __('tl_lang_tip')); ?>
 
-<!-- Swiper 全局预加载（横向布局预览需要，初始即可用） -->
+<?php /* Swiper 全局预加载（横向布局预览需要，初始即可用） */ ?>
 <link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">
 <script src="/assets/swiper/swiper-bundle.min.js"></script>
 
 <div x-data="{ tab: 'events' }">
 
-<!-- TAB 导航 -->
+<?php /* TAB 导航 */ ?>
 <div class="bg-white rounded-lg shadow mb-4">
     <div class="flex border-b">
         <button type="button" @click="tab='events'" :class="tab==='events' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
@@ -199,9 +199,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- TAB: 事件管理 -->
+<?php /* TAB: 事件管理 */ ?>
 <div x-show="tab === 'events'">
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex justify-between items-center">
         <div class="text-gray-500 text-sm">
@@ -220,7 +220,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 时间线列表 -->
+<?php /* 时间线列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full">
@@ -291,15 +291,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </table>
     </div>
 </div>
-</div><!-- /TAB: events -->
+</div><?php /* /TAB: events */ ?>
 
-<!-- TAB: 显示设置 -->
+<?php /* TAB: 显示设置 */ ?>
 <div x-show="tab === 'settings'" x-cloak>
-    <!--
-        本地化样式：编译版 tailwind.css 没把 `peer-checked:` 那批变体打进来，
+    <?php /* 本地化样式：编译版 tailwind.css 没把 `peer-checked:` 那批变体打进来，
         所以选中卡片不会高亮。这里改用 [data-active] 属性 + 独立 CSS 钩子，
-        不依赖 Tailwind 是否编译过该变体。
-    -->
+        不依赖 Tailwind 是否编译过该变体。 */ ?>
     <style>
         .layout-card { border: 2px solid #e5e7eb; transition: border-color .15s, background .15s, box-shadow .15s; }
         .layout-card[data-active="1"] {
@@ -322,11 +320,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <!-- 竖向双边卡 -->
+            <?php /* 竖向双边卡 */ ?>
             <label class="block cursor-pointer group layout-pick" data-layout="vertical">
                 <input type="radio" name="timeline_layout" value="vertical" <?php echo $timelineLayout === 'vertical' ? 'checked' : ''; ?> class="peer sr-only" tabindex="-1">
                 <div class="layout-card rounded-lg p-4 h-full" data-active="<?php echo $timelineLayout === 'vertical' ? '1' : '0'; ?>">
-                    <!-- mini 预览 -->
+                    <?php /* mini 预览 */ ?>
                     <div class="w-full h-20 bg-gray-50 rounded border flex items-center justify-center relative mb-3">
                         <div class="absolute left-1/2 -translate-x-1/2 top-2 bottom-2 w-0.5 bg-gray-300"></div>
                         <div class="absolute left-3 top-3 w-12 h-3 bg-primary rounded"></div>
@@ -344,11 +342,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </label>
 
-            <!-- 横向滑块卡 -->
+            <?php /* 横向滑块卡 */ ?>
             <label class="block cursor-pointer group layout-pick" data-layout="horizontal">
                 <input type="radio" name="timeline_layout" value="horizontal" <?php echo $timelineLayout === 'horizontal' ? 'checked' : ''; ?> class="peer sr-only" tabindex="-1">
                 <div class="layout-card rounded-lg p-4 h-full" data-active="<?php echo $timelineLayout === 'horizontal' ? '1' : '0'; ?>">
-                    <!-- mini 预览 -->
+                    <?php /* mini 预览 */ ?>
                     <div class="w-full h-20 bg-gray-50 rounded border flex items-center justify-center relative mb-3">
                         <div class="absolute left-2 right-2 top-5 h-0.5 bg-gray-300"></div>
                         <div class="absolute left-3 top-5 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-full"></div>
@@ -364,11 +362,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </label>
 
-            <!-- 紧凑列表卡 -->
+            <?php /* 紧凑列表卡 */ ?>
             <label class="block cursor-pointer group layout-pick" data-layout="compact">
                 <input type="radio" name="timeline_layout" value="compact" <?php echo $timelineLayout === 'compact' ? 'checked' : ''; ?> class="peer sr-only" tabindex="-1">
                 <div class="layout-card rounded-lg p-4 h-full" data-active="<?php echo $timelineLayout === 'compact' ? '1' : '0'; ?>">
-                    <!-- mini 预览 -->
+                    <?php /* mini 预览 */ ?>
                     <div class="w-full h-20 bg-gray-50 rounded border flex items-center relative mb-3 px-3">
                         <div class="absolute left-7 top-3 bottom-3 w-0.5 bg-gray-300"></div>
                         <div class="space-y-1.5 w-full">
@@ -398,7 +396,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </label>
         </div>
 
-        <!-- 实时预览（只渲染时间线区块，不含页面其它部分） -->
+        <?php /* 实时预览（只渲染时间线区块，不含页面其它部分） */ ?>
         <div class="mt-6 border-t pt-5">
             <div class="flex items-center justify-between mb-3">
                 <div>
@@ -431,11 +429,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <option value="asc"  <?php echo $timelineSort === 'asc'  ? 'selected' : ''; ?>><?php echo e(__('tl_order_asc')); ?></option>
         </select>
     </div>
-</div><!-- /TAB: settings -->
+</div><?php /* /TAB: settings */ ?>
 
-</div><!-- /x-data root -->
+</div><?php /* /x-data root */ ?>
 
-<!-- 编辑弹窗 -->
+<?php /* 编辑弹窗 */ ?>
 <div id="editModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
@@ -447,7 +445,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" id="editId" value="0">
 
-            <!-- 时间 -->
+            <?php /* 时间 */ ?>
             <div class="grid grid-cols-3 gap-4">
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo e(__('tl_year')); ?> <span class="text-red-500">*</span></label>
@@ -474,21 +472,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 标题 -->
+            <?php /* 标题 */ ?>
             <div>
                 <label class="block text-gray-700 mb-1"><?php echo e(__('label_title')); ?> <span class="text-red-500">*</span></label>
                 <input type="text" name="title" id="editTitle" required class="w-full border rounded px-4 py-2"
                        placeholder="<?php echo e(__('tl_title_ph')); ?>">
             </div>
 
-            <!-- 内容 -->
+            <?php /* 内容 */ ?>
             <div>
                 <label class="block text-gray-700 mb-1"><?php echo e(__('tl_desc')); ?></label>
                 <textarea name="content" id="editContent" rows="3" class="w-full border rounded px-4 py-2"
                           placeholder="<?php echo e(__('tl_desc_ph')); ?>"></textarea>
             </div>
 
-            <!-- 图片 -->
+            <?php /* 图片 */ ?>
             <div>
                 <label class="block text-gray-700 mb-1"><?php echo e(__('tl_image')); ?></label>
                 <div class="flex gap-2">
@@ -502,7 +500,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <div id="imagePreview" class="mt-2"></div>
             </div>
 
-            <!-- 样式 -->
+            <?php /* 样式 */ ?>
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('timeline_icon'); ?></label>
@@ -539,7 +537,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 排序和状态 -->
+            <?php /* 排序和状态 */ ?>
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-gray-700 mb-1"><?php echo __('label_sort_order'); ?></label>

@@ -111,7 +111,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </form>
     </div>
 
-    <!-- API Key -->
+    <?php /* API Key */ ?>
     <div class="bg-white rounded-lg shadow p-6 mb-6">
         <div class="font-medium text-gray-800 mb-2"><?php echo __('apiset_key_title'); ?></div>
         <div class="text-sm text-gray-500 mb-3"><?php echo __('apiset_key_desc'); ?></div>
@@ -124,7 +124,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 接口清单 -->
+    <?php /* 接口清单 */ ?>
     <div class="bg-white rounded-lg shadow p-6">
         <div class="font-medium text-gray-800 mb-3"><?php echo __('apiset_endpoints'); ?></div>
         <div class="overflow-x-auto">

@@ -519,7 +519,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
     <input type="hidden" name="settings[home_blocks_config]" id="blocksConfigJson">
     <input type="hidden" name="settings[home_testimonials]" id="testimonialsJson">
 
-    <!-- 添加自定义版块（从预设库） -->
+    <?php /* 添加自定义版块（从预设库） */ ?>
     <?php require_once ROOT_PATH . '/includes/builder/presets.php'; $__presets = builderPresets()['sections'] ?? []; ?>
     <div class="mb-3" x-data="{ openAdd: false }">
         <button type="button" @click="openAdd = true"
@@ -559,13 +559,13 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
         ?>
         <div id="home-source-<?= e(rawurlencode($type)) ?>" class="block-card bg-white rounded-lg shadow" data-type="<?php echo e($type); ?>"
              x-data="{ expanded: window.location.hash === '#home-source-<?= e(rawurlencode($type)) ?>' }">
-            <!-- 卡片头部 -->
+            <?php /* 卡片头部 */ ?>
             <div class="flex items-center gap-3 px-4 py-3">
-                <!-- 拖拽手柄 -->
+                <?php /* 拖拽手柄 */ ?>
                 <div class="block-drag-handle cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0" title="<?php echo e(__('shome_drag_sort')); ?>" @click.stop>
                     <i class="ti ti-grip-vertical text-lg"></i>
                 </div>
-                <!-- 图标 + 标题：整块可点，与右侧箭头等效（拖拽手柄与开关各自 stop） -->
+                <?php /* 图标 + 标题：整块可点，与右侧箭头等效（拖拽手柄与开关各自 stop） */ ?>
                 <button type="button" class="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer group"
                         @click="expanded = !expanded"
                         :aria-expanded="expanded ? 'true' : 'false'">
@@ -574,19 +574,19 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
                     </svg>
                     <span class="font-medium text-gray-800 group-hover:text-primary truncate transition"><?php echo $meta['title']; ?></span>
                 </button>
-                <!-- 开关 -->
+                <?php /* 开关 */ ?>
                 <label class="inline-flex items-center cursor-pointer flex-shrink-0" @click.stop>
                     <input type="checkbox" class="block-toggle sr-only peer" <?php echo $enabled ? 'checked' : ''; ?>>
                     <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
                 </label>
-                <!-- 展开/折叠 -->
+                <?php /* 展开/折叠 */ ?>
                 <button type="button" class="text-gray-400 hover:text-gray-600 flex-shrink-0 p-1 transition" @click="expanded = !expanded"
                         :aria-expanded="expanded ? 'true' : 'false'" title="<?php echo e(__('admin_expand_collapse')); ?>">
                     <i class="ti ti-chevron-down text-lg transition-transform" :class="expanded && 'rotate-180'"></i>
                 </button>
             </div>
 
-            <!-- 展开内容 -->
+            <?php /* 展开内容 */ ?>
             <div x-show="expanded" x-collapse class="border-t">
                 <div class="p-5 space-y-4">
                     <?php if (!empty($meta['tip'])): ?>
@@ -595,7 +595,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
                     </div>
                     <?php endif; ?>
 
-                    <!-- 背景设置 -->
+                    <?php /* 背景设置 */ ?>
                     <?php if ($type !== 'banner'):
                         $blockBgColor = $block['bg_color'] ?? '';
                         $bgDefault = $meta['bg_default'] ?? '';
@@ -639,7 +639,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
                                                 class="text-[10px] leading-none px-1.5 py-1 rounded transition"><?php echo e(__('shome_gradient')); ?></button>
                                     </div>
                                 </div>
-                                <!-- 预置背景（含放射渐变）：点击直接套用，写入背景色原始 CSS 值 -->
+                                <?php /* 预置背景（含放射渐变）：点击直接套用，写入背景色原始 CSS 值 */ ?>
                                 <div class="flex flex-wrap gap-1.5 mb-2">
                                     <?php
                                     // 精选预置：Tailwind 单色 + uiGradients/GradientCraft 风格渐变 + 放射渐变

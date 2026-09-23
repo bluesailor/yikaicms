@@ -259,7 +259,8 @@ if (hasPermission('*') && $__notifyLv === 'all') {
 $__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions)), 0, 12);
 ?>
 <?php if (hasPermission('*') && $__notifyLv !== 'off'): ?>
-<!-- 版本检测：显示当前版本，异步检查更新（结果本地缓存 6h，避免频繁请求更新服务器）；可关闭 -->
+<?php /* 版本检测：显示当前版本，异步检查更新（结果本地缓存 6h，避免频繁请求更新服务器）；可关闭 */ ?>
+
 <div id="uoBar" class="mb-6 overflow-hidden rounded-lg bg-white shadow">
     <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
         <div class="flex items-center gap-2 text-sm text-gray-600">
@@ -415,7 +416,8 @@ $__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions))
 
 
 <?php if ($showOnboard): ?>
-<!-- 新站栏目引导卡 -->
+<?php /* 新站栏目引导卡 */ ?>
+
 <div id="onbCard" class="relative bg-blue-50 border border-blue-200 rounded-lg p-5 mb-6 flex items-start gap-4">
     <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
         <i class="ti ti-align-left text-xl"></i>
@@ -628,7 +630,7 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
 </div>
 <?php endif; ?>
 
-<!-- 統計カード -->
+<?php /* 統計カード */ ?>
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
@@ -679,9 +681,9 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
     </div>
 </div>
 
-<!-- 内容列表 -->
+<?php /* 内容列表 */ ?>
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- 最新内容 -->
+    <?php /* 最新内容 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex justify-between items-center">
             <h2 class="font-bold text-gray-800"><?php echo __('dashboard_latest_contents'); ?></h2>
@@ -719,7 +721,7 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
         </div>
     </div>
 
-    <!-- 最新表单 -->
+    <?php /* 最新表单 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex justify-between items-center">
             <h2 class="font-bold text-gray-800"><?php echo __('dashboard_latest_forms'); ?></h2>

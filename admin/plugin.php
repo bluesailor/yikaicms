@@ -358,7 +358,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div x-data="pluginMarket()">
-    <!-- 页签 + 操作栏 -->
+    <?php /* 页签 + 操作栏 */ ?>
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div class="flex items-center gap-1">
             <button @click="tab = 'installed'"
@@ -376,7 +376,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </button>
         </div>
         <div class="flex items-center gap-2">
-            <!-- 网格 / 列表切换：两个页签各记各的，默认保持原样（已安装=列表，市场=网格） -->
+            <?php /* 网格 / 列表切换：两个页签各记各的，默认保持原样（已安装=列表，市场=网格） */ ?>
             <div class="inline-flex rounded-lg bg-white shadow-sm p-0.5" role="group" aria-label="<?php echo e(__('pl_view_label')); ?>">
                 <button type="button" @click="setView('grid')" data-testid="plugin-view-grid"
                         :aria-pressed="currentView() === 'grid' ? 'true' : 'false'"
@@ -401,7 +401,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- Tab: 插件市场 -->
+    <?php /* Tab: 插件市场 */ ?>
     <div x-show="tab === 'market'" x-cloak>
         <div class="flex items-center gap-2 mb-4">
             <div class="relative flex-1">
@@ -444,7 +444,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="font-semibold text-gray-800 truncate" x-text="p.name"></span>
                                 <span class="text-xs text-gray-400" x-text="'v' + p.version"></span>
-                                <!-- 付费标识：统一金色 PRO；已授权时加勾并在 title 说明 -->
+                                <?php /* 付费标识：统一金色 PRO；已授权时加勾并在 title 说明 */ ?>
                                 <template x-if="p.paid">
                                     <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 whitespace-nowrap inline-flex items-center gap-0.5"
                                           :title="p.entitled ? '<?php echo e(__('plugin_badge_licensed')); ?>' : '<?php echo e(__('plugin_tier_freemium_note')); ?>'">
@@ -497,27 +497,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <p class="text-xs text-gray-400 mt-4"><?php echo e(__('pl_security_note')); ?></p>
     </div>
 
-    <!-- Tab: 已安装 -->
+    <?php /* Tab: 已安装 */ ?>
     <div x-show="tab === 'installed'">
     <?php if (empty($plugins)): ?>
-    <!-- 空状态 -->
+    <?php /* 空状态 */ ?>
     <div class="bg-white rounded-lg shadow p-12 text-center">
         <i class="ti ti-clipboard text-base mx-auto text-gray-300 mb-4"></i>
         <p class="text-gray-500 text-lg mb-2"><?php echo e(__('pl_empty')); ?></p>
         <p class="text-gray-400 text-sm"><?php echo e(__('pl_empty_tip')); ?> <code class="bg-gray-100 px-1 rounded">/plugins/</code> 目录，或点击上方按钮上传安装。</p>
     </div>
     <?php else: ?>
-    <!-- 插件列表 -->
+    <?php /* 插件列表 */ ?>
     <div :class="views.installed === 'grid' ? 'grid md:grid-cols-2 xl:grid-cols-3 gap-4' : 'space-y-4'"
          :data-view="views.installed" data-testid="plugin-installed-list" id="pluginList">
         <?php foreach ($plugins as $slug => $p): ?>
         <div class="bg-white rounded-lg shadow" :class="views.installed === 'grid' ? 'h-full' : ''" id="plugin-<?php echo e($slug); ?>" data-testid="plugin-installed-item">
             <div :class="views.installed === 'grid' ? 'h-full px-5 py-4 flex flex-col gap-3' : 'px-6 py-5 flex items-start gap-4'">
-                <!-- 插件图标 -->
+                <?php /* 插件图标 */ ?>
                 <div class="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center <?php echo $p['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
                     <i class="ti ti-clipboard text-xl"></i>
                 </div>
-                <!-- 插件信息 -->
+                <?php /* 插件信息 */ ?>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-3 mb-1" :class="views.installed === 'grid' ? 'flex-wrap gap-y-1' : ''">
                         <?php
@@ -564,7 +564,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span>ID: <?php echo e($slug); ?></span>
                     </div>
                 </div>
-                <!-- 操作按钮（网格视图下换行并沉到卡片底部，窄卡片不溢出） -->
+                <?php /* 操作按钮（网格视图下换行并沉到卡片底部，窄卡片不溢出） */ ?>
                 <div class="flex-shrink-0 flex items-center gap-2"
                      :class="views.installed === 'grid' ? 'flex-wrap mt-auto pt-3 border-t border-gray-100' : ''">
                     <button x-show="upd['<?php echo e($slug); ?>']" x-cloak
@@ -602,10 +602,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php endforeach; ?>
     </div>
     <?php endif; ?>
-    </div><!-- /Tab: 已安装 -->
+    </div><?php /* /Tab: 已安装 */ ?>
+
 </div>
 
-<!-- 上传弹窗 -->
+<?php /* 上传弹窗 */ ?>
 <div id="uploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">

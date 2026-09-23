@@ -221,7 +221,7 @@ if ($_i18nReady) {
 ?>
 
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-3 items-center justify-between">
         <p class="text-sm text-gray-500"><?php echo __('fd_intro'); ?></p>
@@ -257,7 +257,7 @@ if ($_i18nReady) {
     <?php endif; ?>
 </div>
 
-<!-- 列表 -->
+<?php /* 列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full admin-workflow-table">
@@ -326,7 +326,7 @@ if ($_i18nReady) {
     </div>
 </div>
 
-<!-- 编辑弹窗 -->
+<?php /* 编辑弹窗 */ ?>
 <div id="editModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="relative max-w-4xl mx-auto my-10 bg-white rounded-lg shadow-xl">
@@ -346,7 +346,7 @@ if ($_i18nReady) {
             <?php endif; ?>
 
             <?php if ($_viewLang === $_defaultLang): ?>
-            <!-- 常用表单预设：仅新建时显示 -->
+            <?php /* 常用表单预设：仅新建时显示 */ ?>
             <div id="presetPicker" class="hidden" data-testid="form-design-presets">
                 <div class="mb-2 flex flex-wrap items-baseline justify-between gap-2">
                     <span class="text-sm font-medium text-gray-700"><?php echo e(__('fd_presets_title')); ?></span>
@@ -367,7 +367,7 @@ if ($_i18nReady) {
             </div>
             <?php endif; ?>
 
-            <!-- 基本信息 -->
+            <?php /* 基本信息 */ ?>
             <div class="grid grid-cols-3 gap-4">
                 <div>
                     <label class="block text-gray-700 mb-1 text-sm"><?php echo __('fd_label_name'); ?> <span class="text-red-500">*</span></label>
@@ -395,7 +395,7 @@ if ($_i18nReady) {
                 <p class="text-xs text-gray-400 mt-1 ml-6"><?php echo e(__('fd_captcha_tip')); ?></p>
             </div>
 
-            <!-- 标签生成器工具栏 -->
+            <?php /* 标签生成器工具栏 */ ?>
             <div>
                 <label class="block text-gray-700 mb-2 text-sm font-medium"><?php echo __('fd_label_template'); ?></label>
                 <div class="flex flex-wrap gap-1 mb-2 p-2 bg-gray-50 rounded-t border border-b-0">
@@ -413,7 +413,7 @@ if ($_i18nReady) {
                     <button type="button" onclick="openTagGen('checkbox')" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-green-50 hover:border-green-300 transition"><?php echo __('fd_tag_checkbox'); ?></button>
                     <button type="button" onclick="insertSubmit()" class="px-2.5 py-1 text-xs bg-white border rounded hover:bg-orange-50 hover:border-orange-300 transition"><?php echo __('fd_tag_submit'); ?></button>
                 </div>
-                <!-- 模板编辑区 -->
+                <?php /* 模板编辑区 */ ?>
                 <textarea name="template_text" id="templateEditor"
                     class="w-full border rounded-b px-4 py-3 font-mono text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                     rows="18" placeholder="<?php echo __('fd_editor_placeholder'); ?>"></textarea>
@@ -431,7 +431,7 @@ if ($_i18nReady) {
     </div>
 </div>
 
-<!-- 标签生成器弹窗 -->
+<?php /* 标签生成器弹窗 */ ?>
 <div id="tagGenModal" class="fixed inset-0 hidden" style="z-index: 60">
     <div class="absolute inset-0" onclick="closeTagGen()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl border w-96">
@@ -472,7 +472,7 @@ if ($_i18nReady) {
                 <label class="block text-gray-600 text-xs"><?php echo e(__('fd_taggen_file_max')); ?><input type="number" id="tagFileMax" value="5" min="1" max="10" step="1" class="mt-1 w-full border rounded px-3 py-1.5 text-sm"></label>
                 <p class="text-xs text-gray-400"><?php echo e(__('fd_taggen_file_tip')); ?></p>
             </div>
-            <!-- 预览 -->
+            <?php /* 预览 */ ?>
             <div class="bg-gray-50 rounded p-2">
                 <label class="block text-gray-500 mb-1 text-xs"><?php echo __('btn_preview'); ?></label>
                 <code class="text-sm text-primary break-all" id="tagPreview"></code>

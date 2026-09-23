@@ -261,7 +261,7 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
 };
 ?>
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 space-y-4">
         <nav class="flex flex-wrap gap-1" aria-label="<?php echo e(__('media_all_types')); ?>" data-testid="media-type-tabs">
@@ -422,7 +422,7 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
 </div>
 <?php endif; ?>
 
-<!-- 文件列表 -->
+<?php /* 文件列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="p-6">
         <?php if (!empty($mediaList)): ?>
@@ -527,7 +527,7 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
                 </div>
 
                 <?php if ($selectMode): ?>
-                <!-- 选择模式：hover 遮罩就是确认动作（原遮罩的复制/删除会拦截图片点击） -->
+                <?php /* 选择模式：hover 遮罩就是确认动作（原遮罩的复制/删除会拦截图片点击） */ ?>
                 <div class="pointer-events-none absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                     <button onclick="pickMedia('<?php echo e($item['url']); ?>')"
                             class="pointer-events-auto bg-primary text-white px-4 py-1.5 rounded text-sm hover:opacity-90">
@@ -564,7 +564,7 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
         <?php endif; ?>
     </div>
 
-    <!-- 分页 -->
+    <?php /* 分页 */ ?>
     <?php if ($total > $perPage): ?>
     <div class="px-6 py-4 border-t flex flex-wrap items-center justify-between gap-3">
         <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $total, e(__('mp_total_files'))); ?></span>
@@ -597,7 +597,7 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
     <?php endif; ?>
 </div>
 
-<!-- 上传弹窗 -->
+<?php /* 上传弹窗 */ ?>
 <div id="uploadModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeUploadModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg">
@@ -619,7 +619,7 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
     </div>
 </div>
 
-<!-- 图片预览弹窗 -->
+<?php /* 图片预览弹窗 */ ?>
 <div id="previewModal" class="fixed inset-0 z-50 hidden bg-black/90 flex items-center justify-center" onclick="closePreview()"
      role="dialog" aria-modal="true" aria-label="<?php echo e(__('admin_preview')); ?>">
     <div id="previewFrame" class="max-w-full max-h-full" onclick="event.stopPropagation()"></div>

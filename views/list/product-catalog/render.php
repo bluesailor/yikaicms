@@ -32,7 +32,7 @@ $pcToolbarVariant = $pcNav === 'sidebar' ? 'main' : 'full';
 <div <?php echo ProductCatalogRequest::rootAttributes($catalogQuery ?? ProductCatalogRequest::normalize($_GET)); ?> data-catalog-layout="<?php echo e((string) $catalog['mode']); ?>">
     <div class="flex flex-wrap lg:flex-nowrap <?php echo e($pcGap); ?>" data-product-catalog-layout>
         <?php if ($pcUsesSidebar): ?>
-        <!-- 侧栏：搜索 + 分类导航 + 多条件筛选 -->
+        <?php /* 侧栏：搜索 + 分类导航 + 多条件筛选 */ ?>
         <div class="w-full <?php echo e($pcSidebarWidth); ?> flex-shrink-0 space-y-4" data-product-catalog-sidebar>
             <?php if (!empty($catalog['show_search'])): ?>
             <?php $pcToolbarVariant = 'sidebar'; require __DIR__ . '/toolbar.php'; ?>

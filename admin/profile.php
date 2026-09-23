@@ -106,7 +106,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <?php endif; ?>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <!-- 基本信息 -->
+    <?php /* 基本信息 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('admin_basic_info'); ?></h2>
@@ -140,7 +140,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </form>
     </div>
 
-    <!-- 修改密码 -->
+    <?php /* 修改密码 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('profile_change_pwd'); ?></h2>
@@ -193,7 +193,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 两步验证 -->
+<?php /* 两步验证 */ ?>
 <?php
 $totpEnabled = !empty($admin['totp_secret']);
 $setupSecret = (string) ($_SESSION['totp_setup_secret'] ?? '');
@@ -267,7 +267,7 @@ if ($setupSecret !== '') {
     </div>
 </div>
 
-<!-- 登录信息 -->
+<?php /* 登录信息 */ ?>
 <div class="bg-white rounded-lg shadow mt-6">
     <div class="px-6 py-4 border-b">
         <h2 class="font-bold text-gray-800"><?php echo e(__('profile_login_info')); ?></h2>

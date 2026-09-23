@@ -142,7 +142,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
 ?>
 
 
-<!-- 状态快捷筛选 -->
+<?php /* 状态快捷筛选 */ ?>
 <div class="flex gap-2 mb-4 flex-wrap">
     <a href="?<?php echo $source ? 'source=' . e($source) . '&' : ''; ?>"
        class="px-3 py-1.5 text-sm rounded-lg <?php echo $status === '' ? 'bg-gray-800 text-white' : 'bg-white text-gray-600 border hover:bg-gray-50'; ?>">
@@ -156,7 +156,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
     <?php endforeach; ?>
 </div>
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center">
         <form class="flex flex-wrap gap-3 items-center">
@@ -181,7 +181,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
     </div>
 </div>
 
-<!-- 列表 -->
+<?php /* 列表 */ ?>
 <details class="bg-white rounded-lg shadow mb-6 p-4" data-testid="form-ip-blocklist">
     <summary class="cursor-pointer font-medium"><?= e(__('form_ip_list')) ?> (<?= count($blockedIps) ?>)</summary>
     <p class="text-sm text-gray-500 my-3"><?= e(__('form_ip_scope')) ?></p>
@@ -300,7 +300,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
     </form>
 </div>
 
-<!-- 详情弹窗 -->
+<?php /* 详情弹窗 */ ?>
 <div id="detailModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-label="<?= e(__('inq_detail_title')) ?>">

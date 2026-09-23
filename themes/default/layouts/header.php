@@ -136,7 +136,7 @@ function getChannelUrl(array $channel): string {
           // 浏览器默认图标比显示别人的品牌好。 ?>
     <?php $__fav = function_exists('siteFaviconUrl') ? siteFaviconUrl() : (string) config('site_favicon', ''); ?>
     <?php if ($__fav !== ''): ?><link rel="icon" href="<?php echo e($__fav); ?>"><?php endif; ?>
-    <!-- OpenGraph -->
+    <?php /* OpenGraph */ ?>
     <meta property="og:title" content="<?php echo e($fullTitle); ?>">
     <meta property="og:description" content="<?php echo e($ogDescription); ?>">
     <meta property="og:type" content="<?php echo e($ogType); ?>">
@@ -145,14 +145,14 @@ function getChannelUrl(array $channel): string {
     <?php if ($ogImage): ?>
     <meta property="og:image" content="<?php echo e($ogImage); ?>">
     <?php endif; ?>
-    <!-- Twitter Card -->
+    <?php /* Twitter Card */ ?>
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<?php echo e($fullTitle); ?>">
     <meta name="twitter:description" content="<?php echo e($ogDescription); ?>">
     <?php if ($ogImage): ?>
     <meta name="twitter:image" content="<?php echo e($ogImage); ?>">
     <?php endif; ?>
-    <!-- JSON-LD Structured Data -->
+    <?php /* JSON-LD Structured Data */ ?>
     <script type="application/ld+json">
     <?php echo json_encode(array_filter([
         '@context' => 'https://schema.org',
@@ -182,7 +182,7 @@ function getChannelUrl(array $channel): string {
 <body class="yk-site-body bg-gray-50 min-h-screen flex flex-col">
     <a class="yk-skip-link" href="#main-content"><?php echo e(__('skip_to_content')); ?></a>
     <?php if (empty($GLOBALS['ykBloxPageFrame']['page_header_hidden'])): ?>
-    <!-- top banner -->
+    <?php /* top banner */ ?>
     <?php if ($topbarEnabled): ?>
     <div class="text-sm <?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50" style="background-color: <?php echo e($topbarBgColor); ?>" data-yk-topbar>
         <div class="container mx-auto px-4 flex items-center justify-between h-8 text-gray-600">
@@ -209,7 +209,7 @@ function getChannelUrl(array $channel): string {
     </div>
     <?php endif; ?>
 
-    <!-- Top navigation -->
+    <?php /* Top navigation */ ?>
     <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
     <?php if ($ykBloxHeader !== ''): ?>
     <?php echo $ykBloxHeader; // Blox 头模板接管；区域壳自身携带实际模板编辑地址 ?>
@@ -217,7 +217,7 @@ function getChannelUrl(array $channel): string {
     <header id="siteHeader" class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>"<?php echo $ykHeaderTemplateEditAttr; ?>>
         <style>#siteHeader [data-yk-language-trigger] { color: <?php echo e($headerTextColor); ?>; }</style>
         <?php if ($headerNavLayout === 'below'): ?>
-        <!-- Layout: Logo on top, full-width banner below navigation -->
+        <?php /* Layout: Logo on top, full-width banner below navigation */ ?>
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between min-h-16">
                 <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('home') : langPrefix() . '/'); ?>" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
@@ -227,7 +227,7 @@ function getChannelUrl(array $channel): string {
                     <span class="text-xl font-bold text-primary"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
                 </a>
-                <!-- Member Access (Navigation Bar Mode) -->
+                <?php /* Member Access (Navigation Bar Mode) */ ?>
                 <?php if ($showMemberEntry && !$topbarEnabled): ?>
                 <div class="hidden md:flex items-center gap-3 text-sm" style="color: <?php echo e($headerTextColor); ?>">
                     <?php if (isMemberLoggedIn()): ?>
@@ -290,7 +290,7 @@ function getChannelUrl(array $channel): string {
             </div>
         </nav>
         <?php else: ?>
-        <!-- Layout: Logo left + Navigation right (default) -->
+        <?php /* Layout: Logo left + Navigation right (default) */ ?>
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between min-h-16">
                 <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('home') : langPrefix() . '/'); ?>" class="flex items-center gap-2"<?php if (!empty($_SESSION['admin_id'])) echo ' data-yk-logo'; ?>>
@@ -330,7 +330,7 @@ function getChannelUrl(array $channel): string {
                     </a>
                     <?php endif; ?>
                     <?php endforeach; ?>
-                    <!-- Member Access (Navigation Bar Mode) -->
+                    <?php /* Member Access (Navigation Bar Mode) */ ?>
                     <?php if ($showMemberEntry && !$topbarEnabled): ?>
                     <span class="w-px h-4 bg-gray-300 mx-1"></span>
                     <?php if (isMemberLoggedIn()): ?>
@@ -359,7 +359,7 @@ function getChannelUrl(array $channel): string {
         </div>
         <?php endif; ?>
 
-        <!-- Mobile menu -->
+        <?php /* Mobile menu */ ?>
         <nav id="mobileMenu" class="xl:hidden hidden border-t shadow-[0_12px_24px_rgba(15,23,42,0.08)]" aria-label="<?php echo e(__('menu_label')); ?>" style="background-color: <?php echo e($headerBgColor); ?>">
             <div class="container mx-auto px-4 py-3">
                 <?php foreach ($navChannels as $navItem): ?>
@@ -377,7 +377,7 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
-                <!-- Mobile Member Portal -->
+                <?php /* Mobile Member Portal */ ?>
                 <?php if ($showMemberEntry): ?>
                 <div class="border-t border-gray-100 pt-2 mt-2">
                     <?php if (isMemberLoggedIn()): ?>
@@ -405,5 +405,5 @@ function getChannelUrl(array $channel): string {
 
     <?php do_action('ik_header_after'); ?>
 
-    <!-- Main content -->
+    <?php /* Main content */ ?>
     <main id="main-content" tabindex="-1" class="flex-1">

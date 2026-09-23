@@ -132,9 +132,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php echo csrfField(); ?>
         <input type="hidden" name="action" value="save_lang">
 
-        <!-- 上排：启用的语言 / 语言配置（桌面下并排，移动下堆叠） -->
+        <?php /* 上排：启用的语言 / 语言配置（桌面下并排，移动下堆叠） */ ?>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- 启用的语言 -->
+        <?php /* 启用的语言 */ ?>
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b">
                 <h2 class="font-bold text-gray-800"><?php echo e(__('slang_enabled')); ?></h2>
@@ -167,7 +167,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
 
-        <!-- 默认语言 -->
+        <?php /* 默认语言 */ ?>
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b">
                 <h2 class="font-bold text-gray-800"><?php echo e(__('slang_config')); ?></h2>
@@ -208,9 +208,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
         </div>
-        </div><!-- /上排 grid -->
+        </div><?php /* /上排 grid */ ?>
 
-        <!-- 翻译工具（全宽） -->
+        <?php /* 翻译工具（全宽） */ ?>
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b">
                 <h2 class="font-bold text-gray-800"><?php echo e(__('slang_tools')); ?></h2>
@@ -269,7 +269,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </form>
 
-    <!-- 栏目翻译入口 -->
+    <?php /* 栏目翻译入口 */ ?>
     <?php
     $otherLangs = $allLangs;
     unset($otherLangs[$defaultLang]);

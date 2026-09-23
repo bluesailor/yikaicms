@@ -25,7 +25,7 @@ $contents = $hChannel['contents'];
         <?php if (!empty($contents)): ?>
 
         <?php if ($hChannel['is_product'] ?? false): ?>
-        <!-- 产品：带分类导航的卡片网格 -->
+        <?php /* 产品：带分类导航的卡片网格 */ ?>
         <?php $categories = $hChannel['categories'] ?? []; ?>
         <?php if (!empty($categories)): ?>
         <div class="flex flex-wrap justify-center gap-3 mb-8" id="productCategoryNav">
@@ -72,7 +72,7 @@ $contents = $hChannel['contents'];
         </div>
 
         <?php elseif ($channelType === 'case'): ?>
-        <!-- 案例：卡片网格 -->
+        <?php /* 案例：卡片网格 */ ?>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <?php foreach ($contents as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition group">
@@ -103,7 +103,7 @@ $contents = $hChannel['contents'];
         </div>
 
         <?php else: ?>
-        <!-- 文章/新闻：列表样式 -->
+        <?php /* 文章/新闻：列表样式 */ ?>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php foreach ($contents as $item):
                 $itemUrl = contentUrl($item);   // 文章路由已由 contentUrl 统一处理，不再本地特判
@@ -129,7 +129,7 @@ $contents = $hChannel['contents'];
         <?php endif; ?>
 
         <?php else: ?>
-        <!-- 无内容占位 -->
+        <?php /* 无内容占位 */ ?>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <?php for ($i = 0; $i < 3; $i++): ?>
             <div class="bg-white rounded-lg shadow-md overflow-hidden">

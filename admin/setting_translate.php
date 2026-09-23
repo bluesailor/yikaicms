@@ -301,7 +301,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div class="max-w-full">
-    <!-- API 配置 -->
+    <?php /* API 配置 */ ?>
     <div class="bg-white rounded-lg shadow-sm p-5 mb-6">
         <div class="flex items-center justify-between mb-3">
             <h3 class="font-bold text-gray-800 text-sm"><?php echo e(__('tr_api_config')); ?></h3>
@@ -323,7 +323,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 概览 -->
+    <?php /* 概览 */ ?>
     <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow-sm p-4 text-center">
             <div class="text-2xl font-bold text-gray-800"><?php echo $totalKeys; ?></div>
@@ -339,7 +339,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 工具栏 -->
+    <?php /* 工具栏 */ ?>
     <div class="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
             <label class="text-sm text-gray-600"><?php echo e(__('tr_target_language')); ?></label>
@@ -374,7 +374,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 翻译列表 -->
+    <?php /* 翻译列表 */ ?>
     <form id="translateForm">
         <input type="hidden" name="_token" value="<?php echo csrfToken(); ?>">
         <input type="hidden" name="action" value="save">

@@ -186,14 +186,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <?php echo renderAdminLangSwitcher($_viewLang); ?>
 
-<!-- Tab 导航 -->
+<?php /* Tab 导航 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
         <a href="/admin/article.php<?php echo e($_lang['qs']); ?>" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('admin_article'); ?></a>
     </div>
 </div>
 
-<!-- 筛选栏 -->
+<?php /* 筛选栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <form method="get" class="p-4 flex flex-wrap items-center gap-4">
             <?php echo renderAdminPageSize($perPage); ?>
@@ -237,7 +237,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </form>
 </div>
 
-<!-- 文章列表 -->
+<?php /* 文章列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
@@ -336,7 +336,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </table>
     </div>
 
-    <!-- 底部操作栏 & 分页 -->
+    <?php /* 底部操作栏 & 分页 */ ?>
     <div class="px-4 py-3 border-t flex items-center justify-between">
         <?php // 批量操作（借鉴 WordPress）：下拉选动作 + 应用按钮，替代并排按钮，
               // 避免误点破坏性操作，也便于以后加动作而不撑长工具栏 ?>

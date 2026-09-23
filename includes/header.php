@@ -110,7 +110,7 @@ function getChannelUrl(array $channel): string {
           // 浏览器默认图标比显示别人的品牌好。 ?>
     <?php $__fav = function_exists('siteFaviconUrl') ? siteFaviconUrl() : (string) config('site_favicon', ''); ?>
     <?php if ($__fav !== ''): ?><link rel="icon" href="<?php echo e($__fav); ?>"><?php endif; ?>
-    <!-- OpenGraph -->
+    <?php /* OpenGraph */ ?>
     <meta property="og:title" content="<?php echo e($fullTitle); ?>">
     <meta property="og:description" content="<?php echo e($ogDescription); ?>">
     <meta property="og:type" content="<?php echo e($ogType); ?>">
@@ -119,14 +119,14 @@ function getChannelUrl(array $channel): string {
     <?php if ($ogImage): ?>
     <meta property="og:image" content="<?php echo e($ogImage); ?>">
     <?php endif; ?>
-    <!-- Twitter Card -->
+    <?php /* Twitter Card */ ?>
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="<?php echo e($fullTitle); ?>">
     <meta name="twitter:description" content="<?php echo e($ogDescription); ?>">
     <?php if ($ogImage): ?>
     <meta name="twitter:image" content="<?php echo e($ogImage); ?>">
     <?php endif; ?>
-    <!-- JSON-LD Structured Data -->
+    <?php /* JSON-LD Structured Data */ ?>
     <script type="application/ld+json">
     <?php echo json_encode(array_filter([
         '@context' => 'https://schema.org',
@@ -152,7 +152,7 @@ function getChannelUrl(array $channel): string {
 </head>
 <body class="yk-site-body bg-gray-50 min-h-screen flex flex-col">
     <a class="yk-skip-link" href="#main-content"><?php echo e(__('skip_to_content')); ?></a>
-    <!-- 顶部通栏 -->
+    <?php /* 顶部通栏 */ ?>
     <?php if ($topbarEnabled): ?>
     <div class="text-sm <?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50" style="background-color: <?php echo e($topbarBgColor); ?>">
         <div class="container mx-auto px-4 flex items-center justify-between h-8 text-gray-600">
@@ -179,10 +179,10 @@ function getChannelUrl(array $channel): string {
     </div>
     <?php endif; ?>
 
-    <!-- 顶部导航 -->
+    <?php /* 顶部导航 */ ?>
     <header class="shadow-sm <?php echo $headerSticky === '1' ? ($topbarEnabled ? 'sticky top-8' : 'sticky top-0') : ''; ?> z-50" style="background-color: <?php echo e($headerBgColor); ?>">
         <?php if ($headerNavLayout === 'below'): ?>
-        <!-- 布局：Logo上 + 导航下方通栏 -->
+        <?php /* 布局：Logo上 + 导航下方通栏 */ ?>
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
                 <a href="/" class="flex items-center gap-2">
@@ -192,7 +192,7 @@ function getChannelUrl(array $channel): string {
                     <span class="text-xl font-bold text-primary"><?php echo e($siteName); ?></span>
                     <?php endif; ?>
                 </a>
-                <!-- 会员入口（导航栏模式） -->
+                <?php /* 会员入口（导航栏模式） */ ?>
                 <?php if ($showMemberEntry && !$topbarEnabled): ?>
                 <div class="hidden md:flex items-center gap-3 text-sm" style="color: <?php echo e($headerTextColor); ?>">
                     <?php if (isMemberLoggedIn()): ?>
@@ -252,7 +252,7 @@ function getChannelUrl(array $channel): string {
             </div>
         </nav>
         <?php else: ?>
-        <!-- 布局：Logo左 + 导航右（默认） -->
+        <?php /* 布局：Logo左 + 导航右（默认） */ ?>
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
                 <a href="/" class="flex items-center gap-2">
@@ -292,7 +292,7 @@ function getChannelUrl(array $channel): string {
                     </a>
                     <?php endif; ?>
                     <?php endforeach; ?>
-                    <!-- 会员入口（导航栏模式） -->
+                    <?php /* 会员入口（导航栏模式） */ ?>
                     <?php if ($showMemberEntry && !$topbarEnabled): ?>
                     <span class="w-px h-4 bg-gray-300 mx-1"></span>
                     <?php if (isMemberLoggedIn()): ?>
@@ -318,7 +318,7 @@ function getChannelUrl(array $channel): string {
         </div>
         <?php endif; ?>
 
-        <!-- 移动端菜单 -->
+        <?php /* 移动端菜单 */ ?>
         <nav id="mobileMenu" class="md:hidden hidden border-t" aria-label="<?php echo e(__('menu_label')); ?>" style="background-color: <?php echo e($headerBgColor); ?>">
             <div class="container mx-auto px-4 py-4">
                 <?php foreach ($navChannels as $navItem): ?>
@@ -336,7 +336,7 @@ function getChannelUrl(array $channel): string {
                     <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
-                <!-- 移动端会员入口 -->
+                <?php /* 移动端会员入口 */ ?>
                 <?php if ($showMemberEntry): ?>
                 <div class="border-t border-gray-100 pt-2 mt-2">
                     <?php if (isMemberLoggedIn()): ?>
@@ -357,5 +357,5 @@ function getChannelUrl(array $channel): string {
 
     <?php do_action('ik_header_after'); ?>
 
-    <!-- 主内容 -->
+    <?php /* 主内容 */ ?>
     <main id="main-content" tabindex="-1" class="flex-1">

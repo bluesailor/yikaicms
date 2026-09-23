@@ -80,7 +80,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div x-data="productImport()" class="max-w-5xl space-y-6">
 
-    <!-- 步骤指示器 -->
+    <?php /* 步骤指示器 */ ?>
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-center gap-2 text-sm">
             <template x-for="(step, i) in steps" :key="i">
@@ -99,7 +99,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 使用说明 + 样例下载 -->
+    <?php /* 使用说明 + 样例下载 */ ?>
     <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6" x-data="{ helpOpen: false }">
         <div class="flex items-center justify-between">
             <button type="button" @click="helpOpen = !helpOpen" class="text-sm font-medium text-blue-700 inline-flex items-center gap-1">
@@ -124,7 +124,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- Step 1: 上传文件 -->
+    <?php /* Step 1: 上传文件 */ ?>
     <div x-show="currentStep === 0" class="bg-white rounded-lg shadow p-6 space-y-5">
         <div>
             <h2 class="font-bold text-gray-800 mb-1">上传数据文件</h2>
@@ -166,7 +166,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
         <div x-show="uploadError" class="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm" x-text="uploadError"></div>
 
-        <!-- 上传结果概览 -->
+        <?php /* 上传结果概览 */ ?>
         <div x-show="uploadResult" class="border rounded-lg p-5 space-y-3">
             <h3 class="font-medium text-gray-800">解析结果</h3>
             <div class="grid grid-cols-3 gap-4 text-sm">
@@ -191,7 +191,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- Step 2: 字段映射 -->
+    <?php /* Step 2: 字段映射 */ ?>
     <div x-show="currentStep === 1" class="bg-white rounded-lg shadow p-6 space-y-5">
         <div>
             <h2 class="font-bold text-gray-800 mb-1">字段映射</h2>
@@ -239,14 +239,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- Step 3: 预览校验 -->
+    <?php /* Step 3: 预览校验 */ ?>
     <div x-show="currentStep === 2" class="bg-white rounded-lg shadow p-6 space-y-5">
         <div>
             <h2 class="font-bold text-gray-800 mb-1">数据预览与校验</h2>
             <p class="text-sm text-gray-500">以下为前 10 行数据预览，确认无误后点击开始导入</p>
         </div>
 
-        <!-- 导入设置 -->
+        <?php /* 导入设置 */ ?>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">重复处理</label>
@@ -274,7 +274,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
 
-        <!-- 预览表格 -->
+        <?php /* 预览表格 */ ?>
         <div class="overflow-x-auto border rounded-lg">
             <table class="w-full text-sm">
                 <thead>
@@ -311,11 +311,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- Step 4: 导入进度与结果 -->
+    <?php /* Step 4: 导入进度与结果 */ ?>
     <div x-show="currentStep === 3" class="bg-white rounded-lg shadow p-6 space-y-5">
         <h2 class="font-bold text-gray-800">导入进度</h2>
 
-        <!-- 进度条 -->
+        <?php /* 进度条 */ ?>
         <div class="space-y-2">
             <div class="flex justify-between text-sm text-gray-600">
                 <span x-text="'已处理 ' + importProgress.processed + ' / ' + importProgress.total + ' 行'"></span>
@@ -327,7 +327,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
 
-        <!-- 实时统计 -->
+        <?php /* 实时统计 */ ?>
         <div class="grid grid-cols-4 gap-3 text-sm">
             <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
                 <div class="text-xl font-bold text-green-600" x-text="importProgress.created"></div>
@@ -347,7 +347,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
 
-        <!-- 错误详情 -->
+        <?php /* 错误详情 */ ?>
         <div x-show="importProgress.errors.length > 0" class="space-y-2">
             <h3 class="font-medium text-sm text-red-600">错误详情</h3>
             <div class="max-h-48 overflow-y-auto border rounded-lg divide-y text-sm">
@@ -360,7 +360,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
 
-        <!-- 完成后的操作 -->
+        <?php /* 完成后的操作 */ ?>
         <div x-show="importProgress.done" class="pt-3 flex gap-3">
             <a href="/admin/product.php" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition inline-flex items-center gap-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>

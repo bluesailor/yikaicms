@@ -16,7 +16,7 @@ $downloadClearUrl = $downloadUsesDynamicRoute
     ? dynamicUrl('download_list', $dlCatId > 0 ? ['cat' => (int) $dlCatId] : [])
     : $downloadListUrl . ($dlCatId > 0 ? '?cat=' . (int) $dlCatId : '');
 ?>
-<!-- 下载：表格 + 右侧分类导航（数据来自 yikai_downloads 表；分类来自 download_categories） -->
+<?php /* 下载：表格 + 右侧分类导航（数据来自 yikai_downloads 表；分类来自 download_categories） */ ?>
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
             <div class="w-full <?php echo $hasDlSidebar ? 'lg:flex-1' : ''; ?>">
                 <div class="flex flex-wrap items-center justify-end gap-3 mb-6">

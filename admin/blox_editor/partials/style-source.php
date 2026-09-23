@@ -32,7 +32,7 @@ $sourceLabels = json_encode([
             <div class="break-all" x-show="source.sharedName" x-text="source.sharedName"></div>
             <div class="break-all" x-show="source.sharedValue" x-text="source.sharedValue"></div>
         </div>
-        <!-- 全局类来源：挂了类且该类确实设了这个属性时才列出 -->
+        <?php /* 全局类来源：挂了类且该类确实设了这个属性时才列出 */ ?>
         <div x-show="source.classes && source.classes.length" class="space-y-1" data-testid="blox-style-source-classes">
             <div x-text="labels.from_class"></div>
             <template x-for="item in (source.classes || [])" :key="item.id">

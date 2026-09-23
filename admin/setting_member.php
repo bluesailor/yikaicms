@@ -70,7 +70,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
         </div>
     </div>
 
-    <!-- 会员前台地址（只读，方便复制） -->
+    <?php /* 会员前台地址（只读，方便复制） */ ?>
     <?php $_siteUrl = rtrim((string) config('site_url', SITE_URL), '/'); ?>
     <div class="bg-white rounded-lg shadow p-6 space-y-4">
         <h3 class="text-lg font-bold text-gray-800"><?php echo __('member_frontend_urls'); ?></h3>

@@ -104,7 +104,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
 ?>
 
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex justify-end">
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
@@ -114,7 +114,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
     </div>
 </div>
 
-<!-- 列表 -->
+<?php /* 列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full admin-workflow-table">
@@ -187,7 +187,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
     </div>
 </div>
 
-<!-- 编辑弹窗 -->
+<?php /* 编辑弹窗 */ ?>
 <div id="editModal" data-testid="role-edit-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="relative max-w-2xl mx-auto my-10 bg-white rounded-lg shadow-xl">
@@ -239,7 +239,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
             <div>
                 <label class="block text-gray-700 mb-2"><?php echo e(__('role_perms')); ?></label>
                 <div class="border rounded p-4 space-y-4 bg-gray-50">
-                    <!-- 全部权限（超管）单列，勾选后禁用其余 -->
+                    <?php /* 全部权限（超管）单列，勾选后禁用其余 */ ?>
                     <label class="flex items-center gap-2 cursor-pointer pb-2 border-b">
                         <input type="checkbox" name="permissions[]" value="*"
                                class="rounded border-gray-300 text-primary focus:ring-primary perm-checkbox"

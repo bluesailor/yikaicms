@@ -70,7 +70,7 @@ $gridCols = match (count($contactCards)) {
 require_once theme_path('layouts/header.php');
 ?>
 
-<!-- 页面头部 -->
+<?php /* 页面头部 */ ?>
 <?php
 $breadcrumbItems = [['name' => __('contact_title'), 'url' => '']];
 if (!$channel) {

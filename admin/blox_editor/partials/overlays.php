@@ -144,7 +144,7 @@ declare(strict_types=1);
             </footer>
         </section>
     </div>
-    <!-- 元素、区块、列和容器共用的颜色选择器。值仍保存为 HEX 或稳定站点令牌引用。 -->
+    <?php /* 元素、区块、列和容器共用的颜色选择器。值仍保存为 HEX 或稳定站点令牌引用。 */ ?>
     <div x-show="colorPicker.open" x-cloak @keydown.escape.window="closeEditorColorPicker()"
          class="fixed inset-0 z-[170]" data-testid="blox-editor-color-picker-layer">
         <button type="button" class="absolute inset-0 cursor-default bg-transparent" @click="closeEditorColorPicker()"
@@ -240,7 +240,7 @@ declare(strict_types=1);
         </section>
     </div>
 
-    <!-- 未发布变化摘要：轻量侧栏，不打断画布操作，关闭后按稳定区块 ID 精确定位。 -->
+    <?php /* 未发布变化摘要：轻量侧栏，不打断画布操作，关闭后按稳定区块 ID 精确定位。 */ ?>
     <div x-show="draftSummaryOpen" x-cloak class="fixed inset-0 z-[115] pointer-events-none"
          @keydown.escape.window="closeDraftSummary()">
         <button type="button" class="absolute inset-0 bg-black/20 pointer-events-auto lg:hidden"
@@ -309,7 +309,7 @@ declare(strict_types=1);
         </aside>
     </div>
 
-    <!-- 页面标题区：系统区域不进入正文文档，单独保存来源、背景与显示开关。 -->
+    <?php /* 页面标题区：系统区域不进入正文文档，单独保存来源、背景与显示开关。 */ ?>
     <div x-show="pageHeroOpen" x-cloak x-ref="pageHeroDialog" tabindex="-1"
          data-testid="blox-page-hero-dialog"
          @keydown="dialogKeydown($event, $refs.pageHeroDialog, () => closePageHeroSettings())"
@@ -564,7 +564,7 @@ declare(strict_types=1);
         </div>
     </div>
 
-    <!-- 富文本编辑弹窗（系统 TinyMCE；不做点遮罩关闭——误点会丢内容） -->
+    <?php /* 富文本编辑弹窗（系统 TinyMCE；不做点遮罩关闭——误点会丢内容） */ ?>
     <div x-show="rteOpen" x-cloak x-ref="rteDialog" tabindex="-1"
          @keydown="dialogKeydown($event, $refs.rteDialog, () => closeRte())"
          role="dialog" aria-modal="true" aria-labelledby="blox-rte-dialog-title"
@@ -592,7 +592,7 @@ declare(strict_types=1);
     </div>
 
     <?php // z-[1500]：媒体库弹窗还会从 TinyMCE 的图片对话框（z≈1100+）里被唤起，必须压在其上 ?>
-    <!-- 媒体库选择弹窗 -->
+    <?php /* 媒体库选择弹窗 */ ?>
     <div x-show="mediaOpen" x-cloak x-ref="mediaDialog" tabindex="-1"
          @keydown="dialogKeydown($event, $refs.mediaDialog, () => closeMedia())"
          role="dialog" aria-modal="true" aria-labelledby="blox-media-dialog-title"
@@ -780,7 +780,7 @@ declare(strict_types=1);
         </div>
     </div>
 
-    <!-- 全站设计系统：基础颜色令牌免费；命名样式预设由高级授权控制。 -->
+    <?php /* 全站设计系统：基础颜色令牌免费；命名样式预设由高级授权控制。 */ ?>
     <div x-show="designOpen" x-cloak x-ref="designDialog" tabindex="-1" data-testid="blox-design-dialog"
          @keydown="dialogKeydown($event, $refs.designDialog, () => closeDesignSystem())"
          role="dialog" aria-modal="true" aria-labelledby="blox-design-dialog-title"
@@ -946,7 +946,7 @@ declare(strict_types=1);
         </div>
     </div>
 
-    <!-- 网页头/网页脚样式：随包预置直接替换当前区域草稿，应用动作可撤销。 -->
+    <?php /* 网页头/网页脚样式：随包预置直接替换当前区域草稿，应用动作可撤销。 */ ?>
     <div x-show="headerPresetOpen" x-cloak x-ref="headerPresetDialog" tabindex="-1"
          data-testid="blox-header-presets"
          @keydown="dialogKeydown($event, $refs.headerPresetDialog, () => closeHeaderPresets())"
@@ -1248,7 +1248,7 @@ declare(strict_types=1);
         </div>
     </div>
 
-    <!-- 画布插入检查：远程/内置模板先确认依赖映射，再一次性插入（可一次撤销整组）。 -->
+    <?php /* 画布插入检查：远程/内置模板先确认依赖映射，再一次性插入（可一次撤销整组）。 */ ?>
     <template x-if="templateReview">
         <div tabindex="-1" x-ref="templateReviewDialog"
              data-testid="blox-template-review-dialog"
@@ -1320,7 +1320,7 @@ declare(strict_types=1);
         </div>
     </template>
 
-    <!-- Blox 模板库：目录与正文按需加载，避免大模板拖慢编辑器首屏。 -->
+    <?php /* Blox 模板库：目录与正文按需加载，避免大模板拖慢编辑器首屏。 */ ?>
     <div x-show="templateOpen" x-cloak x-ref="templateDialog" tabindex="-1"
          data-testid="blox-template-dialog"
          @keydown="templateDialogKeydown($event)"
@@ -1734,7 +1734,7 @@ declare(strict_types=1);
         </div>
     </div>
 
-    <!-- revisions modal -->
+    <?php /* revisions modal */ ?>
     <div x-show="revisionOpen" x-cloak x-ref="revisionDialog" tabindex="-1"
          @keydown="dialogKeydown($event, $refs.revisionDialog, () => closeRevisions())"
          role="dialog" aria-modal="true" aria-labelledby="blox-revision-dialog-title"
@@ -1793,7 +1793,7 @@ declare(strict_types=1);
         </div>
     </div>
 
-    <!-- 异常退出恢复：只在本机存在比服务器更新且内容不同的快照时出现。 -->
+    <?php /* 异常退出恢复：只在本机存在比服务器更新且内容不同的快照时出现。 */ ?>
     <div x-show="recoveryOpen" x-cloak x-ref="recoveryDialog" tabindex="-1"
          @keydown="dialogKeydown($event, $refs.recoveryDialog, null)"
          class="fixed inset-0 z-[150] flex items-center justify-center p-5"
@@ -1821,7 +1821,7 @@ declare(strict_types=1);
         </div>
     </div>
 
-    <!-- 乐观并发冲突：本地内容已进恢复稿，不允许静默覆盖服务器版本。 -->
+    <?php /* 乐观并发冲突：本地内容已进恢复稿，不允许静默覆盖服务器版本。 */ ?>
     <div x-show="conflictOpen" x-cloak x-ref="conflictDialog" tabindex="-1"
          @keydown="dialogKeydown($event, $refs.conflictDialog, () => continueAfterConflict())"
          class="fixed inset-0 z-[150] flex items-center justify-center p-5"
@@ -1846,13 +1846,13 @@ declare(strict_types=1);
         </div>
     </div>
 
-    <!-- toast -->
+    <?php /* toast */ ?>
     <div x-show="toastMsg" data-testid="blox-toast"
          role="status" aria-live="polite" aria-atomic="true"
          class="pointer-events-none fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm px-4 py-2 rounded-lg shadow-lg z-50"
          x-text="toastMsg" style="display:none"></div>
 
-    <!-- context menu -->
+    <?php /* context menu */ ?>
     <div x-show="ctx.open" x-cloak @click.outside="closeCtx()" @contextmenu.prevent data-testid="blox-context-menu"
          class="fixed z-[120] min-w-44 rounded-lg border border-gray-200 bg-white py-1 shadow-2xl text-sm text-gray-700"
          :style="'left:' + ctx.x + 'px; top:' + ctx.y + 'px'">

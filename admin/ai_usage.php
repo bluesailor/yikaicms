@@ -66,7 +66,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 总览卡片 -->
+<?php /* 总览卡片 */ ?>
 <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
     <div class="bg-white rounded-lg shadow p-4 text-center">
         <p class="text-2xl font-bold text-blue-600"><?php echo number_format($total); ?></p>
@@ -91,7 +91,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-    <!-- 按供应商统计 -->
+    <?php /* 按供应商统计 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-4 py-3 border-b font-bold text-gray-800 text-sm"><?php echo e(__('aiu_by_provider')); ?></div>
         <div class="p-4 space-y-2">
@@ -113,7 +113,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 每日趋势 -->
+    <?php /* 每日趋势 */ ?>
     <div class="bg-white rounded-lg shadow lg:col-span-2">
         <div class="px-4 py-3 border-b font-bold text-gray-800 text-sm"><?php echo e(__('aiu_daily')); ?></div>
         <div class="p-4 overflow-x-auto">
@@ -134,7 +134,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 筛选 -->
+<?php /* 筛选 */ ?>
 <div class="bg-white rounded-lg shadow mb-4">
     <div class="px-4 py-3 flex items-center gap-4 flex-wrap">
         <span class="text-sm text-gray-500"><?php echo e(__('aiu_filter')); ?></span>
@@ -150,7 +150,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 调用记录 -->
+<?php /* 调用记录 */ ?>
 <div class="bg-white rounded-lg shadow overflow-hidden">
     <div class="overflow-x-auto">
         <table class="w-full text-sm">

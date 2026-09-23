@@ -161,7 +161,7 @@ adminModuleTabStart([
 
 <?php if ($tab === 'info'): ?>
 <div class="space-y-6">
-    <!-- CMS 信息 -->
+    <?php /* CMS 信息 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('sys_cms_info'); ?></h2>
@@ -210,7 +210,7 @@ adminModuleTabStart([
         </div>
     </div>
 
-    <!-- 服务器环境 -->
+    <?php /* 服务器环境 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('sys_server_env'); ?></h2>
@@ -249,7 +249,7 @@ adminModuleTabStart([
         </div>
     </div>
 
-    <!-- PHP 配置 -->
+    <?php /* PHP 配置 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('sys_php_config'); ?></h2>
@@ -318,7 +318,7 @@ adminModuleTabStart([
         </div>
     </div>
 
-    <!-- 存储信息 -->
+    <?php /* 存储信息 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('sys_storage'); ?></h2>
@@ -345,7 +345,7 @@ adminModuleTabStart([
         </div>
     </div>
 
-    <!-- 数据统计 -->
+    <?php /* 数据统计 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('sys_data_stats'); ?></h2>
@@ -374,7 +374,8 @@ adminModuleTabStart([
 <?php endif; ?>
 
 <?php if ($tab === 'log'): ?>
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
+
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4">
         <form class="flex flex-wrap gap-3 items-center">
@@ -410,7 +411,7 @@ adminModuleTabStart([
     </div>
 </div>
 
-<!-- 列表 -->
+<?php /* 列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full">
@@ -454,7 +455,7 @@ adminModuleTabStart([
         </table>
     </div>
 
-    <!-- 分页 -->
+    <?php /* 分页 */ ?>
     <?php if ($logTotal > $logPerPage): ?>
     <div class="px-6 py-4 border-t flex items-center justify-between">
         <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) $logTotal, e(__('admin_total_n'))); ?></span>
