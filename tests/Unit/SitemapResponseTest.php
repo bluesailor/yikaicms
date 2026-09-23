@@ -28,4 +28,19 @@ final class SitemapResponseTest extends TestCase
         self::assertLessThan($cache, $type, '缓存命中会 exit，XML 类型必须先发');
         self::assertLessThan($cache, $enabled, '关闭站点地图后不能再从缓存里吐旧文件');
     }
+
+    /**
+     * 安装种子里栏目的 updated_at 是 0，`??` 不跳过 0 —— 开发站 182 个地址里 18 个 lastmod
+     * 成了 1970-01-01。每一条 lastmod 都必须经过跳过 0 的取值函数。
+     */
+    public function testEveryLastmodSkipsZeroTimestamps(): void
+    {
+        $src = (string) file_get_contents(ROOT_PATH . '/sitemap.php');
+        preg_match_all("/'lastmod'\s*=>\s*([^\n]+)/", $src, $m);
+        self::assertGreaterThanOrEqual(4, count($m[1]));
+        foreach ($m[1] as $expr) {
+            self::assertStringStartsWith('sitemapLastmod(', trim($expr), $expr);
+        }
+        self::assertMatchesRegularExpression('/\(int\) \$ts > 0/', $src, '只认正的时间戳');
+    }
 }
