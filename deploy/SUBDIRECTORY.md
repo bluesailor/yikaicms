@@ -117,6 +117,9 @@ define('SITE_BASE_PATH', '/blog');
 ## 目前的限制
 
 - **后台暂不支持子目录部署**：后台页面能打开，但样式与部分链接仍指向根路径。
+  安装器已支持：直接访问 `/sub/install/` 即可，站点地址会自动带上目录。
+- **`robots.txt` 只在域名根目录生效**：爬虫不会读 `/sub/robots.txt`。需要的屏蔽规则
+  （如 `Disallow: /sub/admin/`）和 `Sitemap:` 行请加到域名根目录的 `robots.txt` 里。
 - **Apache 暂不支持子目录部署**：`.htaccess` 的改写规则目标是根路径、且写死了
   `RewriteBase /`，放进子目录后请求会被改写到域名根目录。请使用 nginx。
 - 预生成的静态 HTML 在子目录下由 PHP 直出，而不是 nginx 直出（功能正常，略慢）。

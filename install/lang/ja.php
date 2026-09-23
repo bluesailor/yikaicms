@@ -140,4 +140,9 @@ return [
     'error_admin_create' => '管理者の作成に失敗しました：',
     'error_config_write' => '設定ファイルの書き出しに失敗しました',
     'url_auto_notice' => 'インストール時にサーバーを確認します。対応していれば整形 URL、それ以外は Rewrite 不要の動的 URL を使用します。後から管理画面の「URL とリンク」で確認・切り替えができます。再インストールは不要です。',
+    'home_entry_title' => 'サイトのトップが YikaiCMS を指しているか確認できません',
+    'home_entry_desc' => 'インストーラーは開けますが、サイトのルートへのアクセスが index.php に届いていません。インストール後、トップページにパネルの初期ページ・404・403 が表示される可能性があります。サーバーの「デフォルトドキュメント」で index.php を先頭にしてから、このページを再読み込みして確認してください：',
+    'home_entry_nginx' => 'Nginx：同梱の deploy/nginx-server.conf を使う（index 指定済み）か、server ブロックに <code>index index.php index.html;</code> を追加',
+    'home_entry_panel' => 'BaoTa・phpStudy などのパネル：サイト設定の「デフォルトドキュメント」で index.php を先頭に移動し、パネルがルートに作成した index.html を削除',
+    'home_entry_apache' => 'Apache：.htaccess が有効（AllowOverride All）か確認するか、サイト設定に <code>DirectoryIndex index.php index.html</code> を追加',
 ];
