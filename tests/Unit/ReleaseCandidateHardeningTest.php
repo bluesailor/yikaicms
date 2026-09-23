@@ -44,6 +44,27 @@ final class ReleaseCandidateHardeningTest extends TestCase
      * 另锁住两处实测才发现的坑（2026-09-23 真实 Nginx）：/site/install/ 直接交给 PHP 会回 403
      * 导致新站装不上；不存在的 .php 要在 nginx 这层判 404。
      */
+    /**
+     * .htaccess 放在域名根或任意子目录都要能用（共享主机只认它，2026-09-23 本机 Apache 实测）：
+     * 写死 RewriteBase / 或以 / 开头的改写目标，子目录下所有漂亮网址都会被改写到域名根目录 → 404；
+     * %{DOCUMENT_ROOT}/installed.lock 在子目录下查的是别处的文件 → 安装锁失效。
+     */
+    public function testHtaccessWorksFromAnySubdirectory(): void
+    {
+        $h = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/.htaccess'));
+        // 前缀推导那行里的 \2 曾被写文件的脚本转成 0x02：规则照常加载、前缀永远为空，安装锁静默失效
+        self::assertSame(0, preg_match('/[\x00-\x08\x0B-\x1F]/', $h), '.htaccess 里不能有控制字符');
+        self::assertStringContainsString('RewriteCond %{REQUEST_URI}::$1 ^(.*/)(.*)::\2$', $h);
+        self::assertStringContainsString('RewriteRule ^(.*)$ - [E=YK_BASE:%1]', $h);
+        self::assertStringNotContainsString('RewriteBase', preg_replace('/^\s*#.*$/m', '', $h));
+        self::assertDoesNotMatchRegularExpression('~%\{DOCUMENT_ROOT\}(?!%\{ENV:YK_BASE\})~', $h);
+        preg_match_all('/^\s*RewriteRule\s+\S+\s+(\S+)/m', $h, $m);
+        self::assertGreaterThan(30, count($m[1]));
+        foreach ($m[1] as $target) {
+            self::assertTrue($target === '-' || str_starts_with($target, '%{ENV:YK_BASE}'), "改写目标必须基于挂载前缀：{$target}");
+        }
+    }
+
     public function testMultiSiteNginxConfigMatchesSingleSiteProtection(): void
     {
         $multi = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/deploy/nginx-subdirectories.conf'));

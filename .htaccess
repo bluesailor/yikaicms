@@ -1,6 +1,12 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /
+
+    # 本站挂在哪个网址前缀下：根目录为 /，子目录部署为 /sub/。
+    # 不写死 RewriteBase——同一份文件放在域名根或任意子目录都能用。下面所有改写目标与
+    # 文件检查都基于它；根目录安装时它就是 /，行为与以前完全相同。
+    # 原理：规则内看到的是相对本目录的路径 $1，完整请求路径去掉这段即为前缀。
+    RewriteCond %{REQUEST_URI}::$1 ^(.*/)(.*)::\2$
+    RewriteRule ^(.*)$ - [E=YK_BASE:%1]
 
     # 禁止访问隐藏文件
     RewriteRule ^\.git - [F,L]
@@ -14,13 +20,13 @@
     RewriteRule ^install/sql/ - [F,L]
     # 已安装后封禁整个 install/ 目录（防重装绕过 → config 写入 RCE）。
     # 与 nginx.conf 的同款保护对齐；如需重装，删除根目录 installed.lock 即可临时重开。
-    RewriteCond %{DOCUMENT_ROOT}/installed.lock -f
+    RewriteCond %{DOCUMENT_ROOT}%{ENV:YK_BASE}installed.lock -f
     RewriteRule ^install/ - [F,L]
     RewriteRule ^bin/ - [F,L]
     RewriteRule ^migrations/ - [F,L]
 
     # 开放接口伪静态：/api/v1/<resource> → 分发器（?resource=<resource> 形式始终可用，无需此规则）
-    RewriteRule ^api/v1/([a-z_]+)/?$ api/v1/index.php?resource=$1 [QSA,L]
+    RewriteRule ^api/v1/([a-z_]+)/?$ %{ENV:YK_BASE}api/v1/index.php?resource=$1 [QSA,L]
     RewriteRule ^recipes/ - [F,L]
 
     # 禁止访问敏感文件
@@ -43,25 +49,24 @@
     RewriteCond %{REQUEST_METHOD} =GET
     RewriteCond %{QUERY_STRING} ^$
     RewriteCond %{HTTP_COOKIE} !(^|;\s*)yk_admin=1
-    RewriteCond %{DOCUMENT_ROOT}/html%{REQUEST_URI} -f
-    RewriteRule ^ html%{REQUEST_URI} [L]
+    RewriteCond %{DOCUMENT_ROOT}%{ENV:YK_BASE}html/$1 -f
+    RewriteRule ^(.+)$ %{ENV:YK_BASE}html/$1 [L]
     # 首页：/ -> html/index.html
     RewriteCond %{REQUEST_METHOD} =GET
     RewriteCond %{QUERY_STRING} ^$
     RewriteCond %{HTTP_COOKIE} !(^|;\s*)yk_admin=1
-    RewriteCond %{REQUEST_URI} ^/$
-    RewriteCond %{DOCUMENT_ROOT}/html/index.html -f
-    RewriteRule ^$ html/index.html [L]
+    RewriteCond %{DOCUMENT_ROOT}%{ENV:YK_BASE}html/index.html -f
+    RewriteRule ^$ %{ENV:YK_BASE}html/index.html [L]
     # ===== /静态 HTML 直出 =====
 
     # Sitemap
-    RewriteRule ^sitemap\.xml$ /sitemap.php [L]
+    RewriteRule ^sitemap\.xml$ %{ENV:YK_BASE}sitemap.php [L]
 
     # 搜索
-    RewriteRule ^search\.html$ /search.php [L,QSA]
+    RewriteRule ^search\.html$ %{ENV:YK_BASE}search.php [L,QSA]
 
     # 多语言 URL 前缀：/ja/... /en/... /zh-CN/... /zh-TW/... → 剥离前缀，设 lang 参数
-    RewriteRule ^(ja|en|zh-CN|zh-TW)/(.*)$ /$2?_lang=$1 [QSA,L,DPI]
+    RewriteRule ^(ja|en|zh-CN|zh-TW)/(.*)$ %{ENV:YK_BASE}$2?_lang=$1 [QSA,L,DPI]
 
     # 伪静态规则
 
@@ -71,81 +76,81 @@
     # /news/company-news.html -> /news.php?cat=company-news
     # /news/company-news/page/2.html -> /news.php?cat=company-news&page=2
     # /news/article/1.html -> /article.php?id=1
-    RewriteRule ^news\.html$ /news.php [L,QSA]
-    RewriteRule ^news/page/(\d+)\.html$ /news.php?page=$1 [L,QSA]
-    RewriteRule ^news/article/(\d+)\.html$ /article.php?id=$1 [L,QSA]
+    RewriteRule ^news\.html$ %{ENV:YK_BASE}news.php [L,QSA]
+    RewriteRule ^news/page/(\d+)\.html$ %{ENV:YK_BASE}news.php?page=$1 [L,QSA]
+    RewriteRule ^news/article/(\d+)\.html$ %{ENV:YK_BASE}article.php?id=$1 [L,QSA]
     # /news/article/my-slug.html -> /article.php?slug=my-slug
-    RewriteRule ^news/article/([a-z0-9_-]+)\.html$ /article.php?slug=$1 [L,QSA]
-    RewriteRule ^news/([a-z0-9_-]+)/page/(\d+)\.html$ /news.php?cat=$1&page=$2 [L,QSA]
-    RewriteRule ^news/([a-z0-9_-]+)\.html$ /news.php?cat=$1 [L,QSA]
+    RewriteRule ^news/article/([a-z0-9_-]+)\.html$ %{ENV:YK_BASE}article.php?slug=$1 [L,QSA]
+    RewriteRule ^news/([a-z0-9_-]+)/page/(\d+)\.html$ %{ENV:YK_BASE}news.php?cat=$1&page=$2 [L,QSA]
+    RewriteRule ^news/([a-z0-9_-]+)\.html$ %{ENV:YK_BASE}news.php?cat=$1 [L,QSA]
 
     # 栏目列表页 (支持ID和slug)
     # /list/1.html -> /list.php?id=1
     # /list/1/page/2.html -> /list.php?id=1&page=2
     # /news.html -> /list.php?slug=news
     # /news/page/2.html -> /list.php?slug=news&page=2
-    RewriteRule ^list/(\d+)\.html$ /list.php?id=$1 [L,QSA]
-    RewriteRule ^list/(\d+)/page/(\d+)\.html$ /list.php?id=$1&page=$2 [L,QSA]
-    RewriteRule ^([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=$1&page=$2 [L,QSA]
+    RewriteRule ^list/(\d+)\.html$ %{ENV:YK_BASE}list.php?id=$1 [L,QSA]
+    RewriteRule ^list/(\d+)/page/(\d+)\.html$ %{ENV:YK_BASE}list.php?id=$1&page=$2 [L,QSA]
+    RewriteRule ^([a-z0-9_-]+)/page/(\d+)\.html$ %{ENV:YK_BASE}list.php?slug=$1&page=$2 [L,QSA]
 
     # 案例详情页
     # /case/1.html -> /detail.php?id=1
     # /case/my-slug.html -> /detail.php?slug=my-slug
-    RewriteRule ^case/(\d+)\.html$ /detail.php?id=$1 [L,QSA]
-    RewriteRule ^case/([a-z0-9_-]+)\.html$ /detail.php?slug=$1 [L,QSA]
+    RewriteRule ^case/(\d+)\.html$ %{ENV:YK_BASE}detail.php?id=$1 [L,QSA]
+    RewriteRule ^case/([a-z0-9_-]+)\.html$ %{ENV:YK_BASE}detail.php?slug=$1 [L,QSA]
 
     # 招聘详情页
     # /job/1.html -> /job_detail.php?id=1
-    RewriteRule ^job/(\d+)\.html$ /job_detail.php?id=$1 [L,QSA]
+    RewriteRule ^job/(\d+)\.html$ %{ENV:YK_BASE}job_detail.php?id=$1 [L,QSA]
 
     # 下载详情页
     # /download/detail/1.html -> /detail.php?id=1
-    RewriteRule ^download/detail/(\d+)\.html$ /detail.php?id=$1 [L,QSA]
+    RewriteRule ^download/detail/(\d+)\.html$ %{ENV:YK_BASE}detail.php?id=$1 [L,QSA]
 
     # 下载分类页（伪静态，需在通用两段 page 规则之前）
     # /download/software.html -> /list.php?slug=download&cat=software
     # /download/software/page/2.html -> ...&page=2
-    RewriteRule ^download/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=download&cat=$1&page=$2 [L,QSA]
-    RewriteRule ^download/([a-z0-9_-]+)\.html$ /list.php?slug=download&cat=$1 [L,QSA]
+    RewriteRule ^download/([a-z0-9_-]+)/page/(\d+)\.html$ %{ENV:YK_BASE}list.php?slug=download&cat=$1&page=$2 [L,QSA]
+    RewriteRule ^download/([a-z0-9_-]+)\.html$ %{ENV:YK_BASE}list.php?slug=download&cat=$1 [L,QSA]
 
     # 详情页 (支持ID格式)
     # /detail/1.html -> /detail.php?id=1
-    RewriteRule ^detail/(\d+)\.html$ /detail.php?id=$1 [L,QSA]
+    RewriteRule ^detail/(\d+)\.html$ %{ENV:YK_BASE}detail.php?id=$1 [L,QSA]
 
     # 产品详情页 (数字ID优先匹配)
     # /product/1.html -> /product.php?id=1
-    RewriteRule ^product/(\d+)\.html$ /product.php?id=$1 [L,QSA]
+    RewriteRule ^product/(\d+)\.html$ %{ENV:YK_BASE}product.php?id=$1 [L,QSA]
 
     # 产品详情页 (分类slug + 产品slug)
     # /product/smart-device/iot-gateway.html -> /product.php?slug=iot-gateway
-    RewriteRule ^product/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /product.php?slug=$2 [L,QSA]
+    RewriteRule ^product/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ %{ENV:YK_BASE}product.php?slug=$2 [L,QSA]
 
     # 产品分类页 (带分页)
     # /product/category-slug/page/2.html -> /list.php?slug=product&cat=category-slug&page=2
-    RewriteRule ^product/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=product&cat=$1&page=$2 [L,QSA]
+    RewriteRule ^product/([a-z0-9_-]+)/page/(\d+)\.html$ %{ENV:YK_BASE}list.php?slug=product&cat=$1&page=$2 [L,QSA]
 
     # 产品分类页
     # /product/category-slug.html -> /list.php?slug=product&cat=category-slug
-    RewriteRule ^product/([a-z0-9_-]+)\.html$ /list.php?slug=product&cat=$1 [L,QSA]
+    RewriteRule ^product/([a-z0-9_-]+)\.html$ %{ENV:YK_BASE}list.php?slug=product&cat=$1 [L,QSA]
 
     # 特殊页面（独立PHP文件，优先于通用规则）
     # /about/history.html -> /history.php
-    RewriteRule ^about/history\.html$ /history.php [L]
+    RewriteRule ^about/history\.html$ %{ENV:YK_BASE}history.php [L]
     # /contact.html -> /contact.php
-    RewriteRule ^contact\.html$ /contact.php [L]
+    RewriteRule ^contact\.html$ %{ENV:YK_BASE}contact.php [L]
 
     # 单页 (支持多级slug)
     # /page/1.html -> /page.php?id=1
     # /about.html -> /page.php?slug=about
     # /about/company.html -> /page.php?slug=company (子页面)
-    RewriteRule ^page/(\d+)\.html$ /page.php?id=$1 [L,QSA]
-    RewriteRule ^([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ /page.php?parent=$1&slug=$2 [L,QSA]
-    RewriteRule ^([a-z0-9_-]+)\.html$ /page.php?slug=$1 [L,QSA]
+    RewriteRule ^page/(\d+)\.html$ %{ENV:YK_BASE}page.php?id=$1 [L,QSA]
+    RewriteRule ^([a-z0-9_-]+)/([a-z0-9_-]+)\.html$ %{ENV:YK_BASE}page.php?parent=$1&slug=$2 [L,QSA]
+    RewriteRule ^([a-z0-9_-]+)\.html$ %{ENV:YK_BASE}page.php?slug=$1 [L,QSA]
 
     # 如果请求的文件或目录不存在
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule . /index.php [L]
+    RewriteRule . %{ENV:YK_BASE}index.php [L]
 </IfModule>
 
 # 禁止目录浏览（包在 IfModule 里，避免共享主机禁用 Options 覆盖时 500）
