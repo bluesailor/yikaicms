@@ -43,7 +43,7 @@ $GLOBALS['ykBloxPageId'] = (int) ($historyChannel['id'] ?? 0);
 require_once theme_path('layouts/header.php');
 ?>
 
-<!-- 页面头部 -->
+<?php /* 页面头部 */ ?>
 <?php
 $breadcrumbItems = [];
 if ($aboutChannel) {
@@ -62,11 +62,11 @@ $channel = [
 require theme_path('partials/page-hero.php');
 ?>
 
-<!-- 时间线主体 -->
+<?php /* 时间线主体 */ ?>
 <section class="py-16 bg-gray-50">
     <div class="container mx-auto px-4">
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
-        <!-- 主内容区 -->
+        <?php /* 主内容区 */ ?>
         <div class="w-full lg:flex-1">
         <?php if (empty($timelines)): ?>
         <div class="text-center py-20 text-gray-500">
@@ -77,7 +77,7 @@ require theme_path('partials/page-hero.php');
         </div>
         <?php else: ?>
 
-        <!-- 时间线容器（统一走 timelineBlock，可被短码 [timeline] 复用） -->
+        <?php /* 时间线容器（统一走 timelineBlock，可被短码 [timeline] 复用） */ ?>
         <?php
         // 预览模式下，URL 参数 ?layout=xxx 可临时覆盖（仅 _preview=1 时生效）
         $previewLayout = $isPreview && in_array($_GET['layout'] ?? '', ['vertical', 'horizontal', 'compact'], true)
@@ -89,7 +89,7 @@ require theme_path('partials/page-hero.php');
         <?php endif; ?>
         </div>
 
-        <!-- 侧边栏 -->
+        <?php /* 侧边栏 */ ?>
         <?php if (!empty($sidebarChannels)): ?>
         <?php
         $rightSidebarTitle = (string) ($aboutChannel['name'] ?? __('nav_about'));
@@ -104,7 +104,7 @@ require theme_path('partials/page-hero.php');
     </div>
 </section>
 
-<!-- 统计数据 -->
+<?php /* 统计数据 */ ?>
 <?php if (!empty($timelines)): ?>
 <section class="py-16 bg-gray-900 text-white">
     <div class="container mx-auto px-4">
@@ -138,7 +138,7 @@ require theme_path('partials/page-hero.php');
 </section>
 <?php endif; ?>
 
-<!-- 轻量 scroll-anim（替代 AOS） -->
+<?php /* 轻量 scroll-anim（替代 AOS） */ ?>
 <script src="/assets/js/scroll-anim.js" defer></script>
 
 <?php

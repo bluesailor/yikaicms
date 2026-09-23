@@ -1586,7 +1586,7 @@ function confirmAreaPublish(form) {
     </section>
     <?php endif; ?>
 
-    <!-- r16 官方模板库：远程签名资产一键安装（含 header/footer） -->
+    <?php /* r16 官方模板库：远程签名资产一键安装（含 header/footer） */ ?>
     <section class="border-y border-gray-200 bg-white">
         <div class="px-5 py-4 border-b border-gray-200 flex items-center gap-2">
             <h2 class="font-semibold text-gray-900"><?php echo __('blox_tpl_official_title'); ?></h2>

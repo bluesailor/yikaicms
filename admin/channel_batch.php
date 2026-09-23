@@ -97,13 +97,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div class="space-y-6">
-    <!-- 说明 -->
+    <?php /* 说明 */ ?>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
         <div class="font-bold mb-1">💡 <?php echo e(__('chbatch_title')); ?></div>
         <p><?php echo e(__('chbatch_intro_body')); ?></p>
     </div>
 
-    <!-- 一键预选套餐 -->
+    <?php /* 一键预选套餐 */ ?>
     <div class="bg-white rounded-lg shadow p-4">
         <div class="flex items-center flex-wrap gap-2">
             <span class="text-sm text-gray-500 mr-1"><?php echo e(__('chbatch_quick_preset')); ?></span>
@@ -118,7 +118,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 栏目勾选 -->
+    <?php /* 栏目勾选 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800"><?php echo e(__('chbatch_pick_title')); ?></h2>

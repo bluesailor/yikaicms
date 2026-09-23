@@ -61,9 +61,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 require_once ROOT_PATH . '/admin/includes/product_nav.php';
 ?>
 
-<!-- Tab 导航 -->
+<?php /* Tab 导航 */ ?>
 
-<!-- 设置表单 -->
+<?php /* 设置表单 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="p-6">
         <form id="settingForm" class="space-y-6 max-w-xl">
@@ -74,7 +74,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                 <p class="text-sm text-gray-500"><?= e(__('setting_catalog_product_page_size_tip')) ?></p>
                 <a href="/admin/setting.php?tab=pagination" class="text-primary"><?= e(__('setting_tab_pagination')) ?></a>
             </div>
-            <!-- 产品列表版式 -->
+            <?php /* 产品列表版式 */ ?>
             <div>
                 <label class="font-medium text-gray-800"><?php echo e(__('psetting_layout')); ?></label>
                 <p class="text-sm text-gray-500 mt-1 mb-3"><?php echo e(__('psetting_layout_tip')); ?></p>
@@ -122,7 +122,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
 
             <hr>
 
-            <!-- 显示产品价格 -->
+            <?php /* 显示产品价格 */ ?>
             <div class="flex items-center justify-between">
                 <div>
                     <label class="font-medium text-gray-800"><?php echo e(__('psetting_show_price')); ?></label>
@@ -139,7 +139,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
 
             <hr>
 
-            <!-- 货币设置 -->
+            <?php /* 货币设置 */ ?>
             <div>
                 <label class="font-medium text-gray-800"><?php echo e(__('psetting_currency')); ?></label>
                 <p class="text-sm text-gray-500 mt-1 mb-3"><?php echo e(__('psetting_currency_tip')); ?></p>
@@ -213,7 +213,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
 
             <hr>
 
-            <!-- 预置规格参数 -->
+            <?php /* 预置规格参数 */ ?>
             <div>
                 <label class="font-medium text-gray-800"><?php echo __('admin_spec_presets'); ?></label>
                 <p class="text-sm text-gray-500 mt-1 mb-3"><?php echo __('admin_spec_presets_tip'); ?></p>

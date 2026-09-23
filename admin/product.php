@@ -144,9 +144,9 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
 
 <?php echo renderAdminLangSwitcher($_viewLang); ?>
 
-<!-- Tab 导航 -->
+<?php /* Tab 导航 */ ?>
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
@@ -200,7 +200,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
     </div>
 </div>
 
-<!-- 列表 -->
+<?php /* 列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <form id="listForm">
         <div class="overflow-x-auto admin-product-table-scroll" tabindex="0" role="region" aria-label="<?= e(__('admin_product')) ?>">

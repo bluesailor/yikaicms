@@ -98,7 +98,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <p class="text-sm text-gray-500 mt-1"><?php echo e(__('scache_intro')); ?></p>
     </div>
 
-    <!-- 状态卡片 -->
+    <?php /* 状态卡片 */ ?>
     <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-4">
             <div class="text-xs text-gray-500 uppercase tracking-wide mb-1"><?php echo e(__('label_status')); ?></div>
@@ -118,7 +118,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 配置表单 -->
+    <?php /* 配置表单 */ ?>
     <div class="bg-white rounded-lg shadow p-6 mb-6">
         <form id="cacheForm" onsubmit="event.preventDefault(); saveCache();">
             <div class="space-y-5">

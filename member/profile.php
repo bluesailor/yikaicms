@@ -84,10 +84,10 @@ require_once ROOT_PATH . '/includes/header.php';
 <div class="container mx-auto px-4 py-10">
     <div class="flex flex-col md:flex-row gap-6 max-w-4xl mx-auto">
 
-        <!-- 左侧菜单 -->
+        <?php /* 左侧菜单 */ ?>
         <div class="w-full md:w-56 shrink-0">
             <div class="bg-white rounded-lg shadow overflow-hidden">
-                <!-- 会员头像+名称 -->
+                <?php /* 会员头像+名称 */ ?>
                 <div class="p-5 border-b text-center">
                     <div class="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center text-2xl font-bold mx-auto mb-3">
                         <?php echo mb_substr($member['nickname'] ?: $member['username'], 0, 1); ?>
@@ -95,7 +95,7 @@ require_once ROOT_PATH . '/includes/header.php';
                     <div class="font-medium text-gray-800"><?php echo e($member['nickname'] ?: $member['username']); ?></div>
                     <div class="text-xs text-gray-400 mt-1"><?php echo e($member['email']); ?></div>
                 </div>
-                <!-- 导航 -->
+                <?php /* 导航 */ ?>
                 <nav class="py-2">
                     <a href="/member/profile.php?tab=profile"
                        class="flex items-center gap-3 px-5 py-3 text-sm transition <?php echo $tab === 'profile' ? 'text-primary bg-primary/5 font-medium border-r-2 border-primary' : 'text-gray-600 hover:bg-gray-50'; ?>">
@@ -127,7 +127,7 @@ require_once ROOT_PATH . '/includes/header.php';
             </div>
         </div>
 
-        <!-- 右侧内容 -->
+        <?php /* 右侧内容 */ ?>
         <div class="flex-1 min-w-0">
 
             <?php if ($success): ?>
@@ -138,7 +138,7 @@ require_once ROOT_PATH . '/includes/header.php';
             <?php endif; ?>
 
             <?php if ($tab === 'profile'): ?>
-            <!-- 会员信息 -->
+            <?php /* 会员信息 */ ?>
             <div class="bg-white rounded-lg shadow p-6">
                 <h2 class="text-lg font-bold text-gray-800 mb-6">会员信息</h2>
                 <form method="post" class="space-y-5">
@@ -193,7 +193,7 @@ require_once ROOT_PATH . '/includes/header.php';
             </div>
 
             <?php elseif ($tab === 'password'): ?>
-            <!-- 修改密码 -->
+            <?php /* 修改密码 */ ?>
             <div class="bg-white rounded-lg shadow p-6">
                 <h2 class="text-lg font-bold text-gray-800 mb-6">修改密码</h2>
                 <form method="post" class="space-y-5 max-w-md">

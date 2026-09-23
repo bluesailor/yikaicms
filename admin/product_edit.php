@@ -141,7 +141,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <form id="editForm" class="space-y-6">
     <div class="flex flex-col lg:flex-row gap-6">
-        <!-- 主内容区 -->
+        <?php /* 主内容区 */ ?>
         <div class="flex-1 min-w-0 space-y-6">
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="space-y-4">
@@ -217,7 +217,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 图片画廊（多图，lightbox 前端展示） -->
+            <?php /* 图片画廊（多图，lightbox 前端展示） */ ?>
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-2"><?php echo e(__('prod_gallery')); ?></h3>
                 <p class="text-xs text-gray-500 mb-3"><?php echo e(__('prod_gallery_tip')); ?></p>
@@ -238,7 +238,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
 
-        <!-- 侧边栏 -->
+        <?php /* 侧边栏 */ ?>
         <div class="w-full lg:w-80 flex-shrink-0 space-y-6">
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_publish_settings'); ?></h3>
@@ -470,7 +470,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 底部 sticky 操作栏 -->
+    <?php /* 底部 sticky 操作栏 */ ?>
     <div class="sticky bottom-0 z-30 -mx-6 -mb-6 mt-8 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.05)] px-6 py-3">
         <div class="flex gap-3 justify-end items-center">
             <span class="text-xs text-gray-400 mr-auto hidden sm:inline"><?php echo e(__('prod_confirm_before_save')); ?></span>
@@ -776,7 +776,7 @@ function formatSpecValue(value) {
 renderSpecs();
 </script>
 
-<!-- 标签逻辑 -->
+<?php /* 标签逻辑 */ ?>
 <script>
 (function() {
     const input = document.getElementById('tagsInput');
@@ -836,7 +836,7 @@ renderSpecs();
 })();
 </script>
 
-<!-- 分类复选框逻辑 -->
+<?php /* 分类复选框逻辑 */ ?>
 <script>
 (function() {
     const checkboxes = document.querySelectorAll('.cat-checkbox');

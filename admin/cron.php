@@ -62,7 +62,7 @@ $currentMenu = 'cron';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<!-- 接入说明 -->
+<?php /* 接入说明 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b">
         <h2 class="font-bold text-gray-800"><?php echo __('cron_setup_title'); ?></h2>
@@ -80,7 +80,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 任务列表 -->
+<?php /* 任务列表 */ ?>
 <div class="bg-white rounded-lg shadow mb-6 overflow-hidden">
     <table class="w-full text-sm">
         <thead class="bg-gray-50 text-gray-500 text-left">
@@ -123,7 +123,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </table>
 </div>
 
-<!-- 运行历史 -->
+<?php /* 运行历史 */ ?>
 <div class="bg-white rounded-lg shadow overflow-hidden">
     <div class="px-6 py-4 border-b"><h2 class="font-bold text-gray-800"><?php echo __('cron_history'); ?></h2></div>
     <?php if (empty($history)): ?>

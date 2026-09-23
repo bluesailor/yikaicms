@@ -104,7 +104,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </form>
 </div>
 
-<!-- icon picker modal -->
+<?php /* icon picker modal */ ?>
 <div id="csIconModal" class="fixed inset-0 z-50 hidden items-center justify-center" style="background:rgba(0,0,0,.4)">
     <div class="bg-white rounded-lg w-full max-w-md p-5">
         <div class="flex items-center justify-between mb-3">

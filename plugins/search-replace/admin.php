@@ -141,7 +141,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div class="max-w-3xl">
-    <!-- 返回按钮 -->
+    <?php /* 返回按钮 */ ?>
     <div class="mb-4">
         <a href="/admin/plugin.php" class="text-sm text-gray-500 hover:text-primary inline-flex items-center gap-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
@@ -160,7 +160,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 操作不可逆，请先备份数据库再执行替换。
             </div>
 
-            <!-- 选择表 -->
+            <?php /* 选择表 */ ?>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">选择表</label>
                 <select id="srTable" onchange="loadColumns()" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary">
@@ -171,7 +171,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </select>
             </div>
 
-            <!-- 选择字段 -->
+            <?php /* 选择字段 */ ?>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">选择字段</label>
                 <select id="srColumn" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary" disabled>
@@ -179,19 +179,19 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </select>
             </div>
 
-            <!-- 搜索文本 -->
+            <?php /* 搜索文本 */ ?>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">搜索文本</label>
                 <input type="text" id="srSearch" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="输入要搜索的文本...">
             </div>
 
-            <!-- 替换文本 -->
+            <?php /* 替换文本 */ ?>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">替换为</label>
                 <input type="text" id="srReplace" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="输入替换后的文本...（留空则删除匹配内容）">
             </div>
 
-            <!-- 操作按钮 -->
+            <?php /* 操作按钮 */ ?>
             <div class="flex items-center gap-3 pt-2">
                 <button onclick="previewReplace()" class="bg-gray-600 hover:bg-gray-700 text-white px-5 py-2 rounded transition">
                     预览匹配

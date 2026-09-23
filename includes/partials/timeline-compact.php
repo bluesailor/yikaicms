@@ -17,7 +17,7 @@ if (empty($groupedTimelines)) return;
 ?>
 <div class="timeline-compact max-w-4xl mx-auto">
     <?php foreach ($groupedTimelines as $year => $events): ?>
-    <!-- 年份分组头 -->
+    <?php /* 年份分组头 */ ?>
     <div class="flex items-center gap-3 mb-4 mt-8 first:mt-0" data-aos="fade-up">
         <div class="px-4 py-1.5 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded shadow text-sm">
             <?php echo $year; ?>
@@ -25,7 +25,7 @@ if (empty($groupedTimelines)) return;
         <div class="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent"></div>
     </div>
 
-    <!-- 该年事件列表 -->
+    <?php /* 该年事件列表 */ ?>
     <ul class="relative pl-6 border-l-2 border-gray-200 space-y-5">
         <?php foreach ($events as $event):
             $_cp = timelineColorParts((string)($event['color'] ?? 'primary'));
@@ -40,16 +40,16 @@ if (empty($groupedTimelines)) return;
             }
         ?>
         <li class="relative" data-aos="fade-up">
-            <!-- 圆点（覆盖在主线上） -->
+            <?php /* 圆点（覆盖在主线上） */ ?>
             <span class="absolute -left-[27px] top-1.5 w-3 h-3 <?php echo $dotColor; ?> rounded-full ring-4 ring-white shadow" style="<?php echo $dotStyle; ?>"></span>
 
             <div class="flex flex-col sm:flex-row sm:items-start gap-3">
-                <!-- 日期窄列 -->
+                <?php /* 日期窄列 */ ?>
                 <div class="sm:w-20 shrink-0 text-sm font-medium <?php echo $textColor; ?>" style="<?php echo $textStyle; ?>">
                     <?php echo $dateLabel !== '' ? $dateLabel : '&nbsp;'; ?>
                 </div>
 
-                <!-- 内容主体 -->
+                <?php /* 内容主体 */ ?>
                 <div class="flex-1 min-w-0">
                     <h3 class="font-semibold text-gray-800 mb-1 leading-snug">
                         <?php if ($event['icon']): ?>

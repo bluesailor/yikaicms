@@ -181,7 +181,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <input type="hidden" name="id" value="<?php echo $id; ?>">
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- 主要内容 -->
+        <?php /* 主要内容 */ ?>
         <div class="lg:col-span-2 space-y-6">
             <div class="bg-white rounded-lg shadow p-6">
                 <div class="space-y-4">
@@ -208,7 +208,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div id="toolbar-container" class="border border-b-0 rounded-t-lg bg-gray-50"></div>
                         <div id="editor-container" class="border rounded-b-lg" style="min-height: 400px;"></div>
 
-                        <!-- 模板标签速查 -->
+                        <?php /* 模板标签速查 */ ?>
                         <details class="mt-3 text-sm border rounded-lg bg-gray-50">
                             <summary class="px-4 py-2 cursor-pointer text-gray-600 select-none">
                                 <i class="ti ti-code"></i> <?php echo __('tagref_title'); ?>
@@ -231,7 +231,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 产品字段 -->
+            <?php /* 产品字段 */ ?>
             <div id="productFields" class="bg-white rounded-lg shadow p-6 hidden">
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo e(__('admin_product_info')); ?></h3>
                 <div class="grid grid-cols-2 gap-4">
@@ -248,7 +248,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 下载字段 -->
+            <?php /* 下载字段 */ ?>
             <div id="downloadFields" class="bg-white rounded-lg shadow p-6 hidden">
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo e(__('admin_download_info')); ?></h3>
                 <div>
@@ -264,14 +264,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 扩展字段（内置 content 字段 + 自定义模型字段；渲染 ext_fields[<key>]，随表单一起提交保存到 metas）-->
+            <?php /* 扩展字段（内置 content 字段 + 自定义模型字段；渲染 ext_fields[<key>]，随表单一起提交保存到 metas） */ ?>
             <?php
             $extFieldOwnerType = resolveExtFieldOwner((string) $lockedType);
             $extFieldOwnerId   = (int) $id;
             require ROOT_PATH . '/admin/includes/extfield_render.php';
             ?>
 
-            <!-- SEO 设置 -->
+            <?php /* SEO 设置 */ ?>
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo __('admin_seo_settings'); ?></h3>
                 <div class="space-y-4">
@@ -293,9 +293,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
 
-        <!-- 侧边栏 -->
+        <?php /* 侧边栏 */ ?>
         <div class="space-y-6">
-            <!-- 发布设置 -->
+            <?php /* 发布设置 */ ?>
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_publish_settings'); ?></h3>
                 <div class="space-y-4">
@@ -389,7 +389,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 封面图 -->
+            <?php /* 封面图 */ ?>
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo e(__('admin_cover')); ?></h3>
                 <div id="coverPreview" class="mb-4 <?php echo empty($content['cover']) ? 'hidden' : ''; ?>">
@@ -408,7 +408,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 图集（多图） -->
+            <?php /* 图集（多图） */ ?>
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-1"><?php echo e(__('admin_gallery')); ?></h3>
                 <p class="text-xs text-gray-400 mb-3"><?php echo e(__('admin_gallery_tip')); ?></p>
@@ -426,7 +426,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 其他信息 -->
+            <?php /* 其他信息 */ ?>
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_other_info'); ?></h3>
                 <div class="space-y-4">
@@ -456,7 +456,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </form>
 
-<!-- 上传文件的隐藏表单 -->
+<?php /* 上传文件的隐藏表单 */ ?>
 <input type="file" id="fileInput" class="hidden" accept="image/*">
 <input type="file" id="attachmentFileInput" class="hidden">
 <input type="file" id="galleryFileInput" class="hidden" accept="image/*" multiple>

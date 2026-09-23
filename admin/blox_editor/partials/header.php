@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 ?>
-    <!-- ===== 顶栏 ===== -->
+    <?php /* ===== 顶栏 ===== */ ?>
     <header class="blox-editor-header h-14 bg-gray-900 text-white flex items-center justify-between px-4 gap-4 select-none">
         <div class="blox-header-brand flex items-center gap-3 min-w-0">
             <?php
@@ -168,7 +168,7 @@ declare(strict_types=1);
             <?php endif; ?>
         </div>
 
-        <!-- 设备切换 -->
+        <?php /* 设备切换 */ ?>
         <div class="flex items-center gap-1 bg-gray-800 rounded-lg p-1">
             <template x-for="d in devices" :key="d.key">
                 <button type="button" @click="previewDevice = d.key" :title="responsiveDeviceTitle(d.key)" :aria-label="responsiveDeviceTitle(d.key)"
@@ -203,7 +203,7 @@ declare(strict_types=1);
                 </button>
             </div>
         </div>
-        <!-- 宽度与档位不一致时，同时亮出「编辑档位」与「预览宽度」，避免误以为改了档位 -->
+        <?php /* 宽度与档位不一致时，同时亮出「编辑档位」与「预览宽度」，避免误以为改了档位 */ ?>
         <div x-show="previewCustomWidth > 0" x-cloak data-testid="blox-preview-width-chip"
              class="hidden lg:flex items-center gap-1 ml-2 px-2 h-6 rounded-full bg-gray-800 text-[10px] text-gray-300 shrink-0">
             <span><?= e(__('blox_preview_edit_tier')) ?><span x-text="responsiveDeviceTitle(previewDevice)"></span></span>

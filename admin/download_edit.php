@@ -80,7 +80,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <form id="editForm" class="space-y-6">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- 左侧：基本信息 -->
+        <?php /* 左侧：基本信息 */ ?>
         <div class="lg:col-span-2 space-y-6">
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">
@@ -125,7 +125,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <h2 class="font-bold text-gray-800"><?php echo __('label_file_upload'); ?></h2>
                 </div>
                 <div class="p-6 space-y-4">
-                    <!-- 上传方式选择 -->
+                    <?php /* 上传方式选择 */ ?>
                     <div class="flex gap-4">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="radio" name="is_external" value="0" <?php echo empty($download['is_external']) ? 'checked' : ''; ?>
@@ -139,7 +139,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </label>
                     </div>
 
-                    <!-- 上传文件区域 -->
+                    <?php /* 上传文件区域 */ ?>
                     <div id="uploadArea" class="<?php echo !empty($download['is_external']) ? 'hidden' : ''; ?>">
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition cursor-pointer"
                              onclick="document.getElementById('fileInput').click()">
@@ -150,7 +150,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <input type="file" id="fileInput" class="hidden"
                                accept=".zip,.rar,.7z,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.exe,.msi">
 
-                        <!-- 已上传文件信息 -->
+                        <?php /* 已上传文件信息 */ ?>
                         <div id="uploadedFile" class="mt-4 <?php echo empty($download['file_url']) || !empty($download['is_external']) ? 'hidden' : ''; ?>">
                             <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
                                 <i class="ti ti-circle-check text-2xl text-green-500"></i>
@@ -166,7 +166,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             </div>
                         </div>
 
-                        <!-- 上传进度 -->
+                        <?php /* 上传进度 */ ?>
                         <div id="uploadProgress" class="mt-4 hidden">
                             <div class="flex items-center gap-3">
                                 <div class="flex-1 bg-gray-200 rounded-full h-2">
@@ -177,7 +177,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </div>
                     </div>
 
-                    <!-- 外部链接区域 -->
+                    <?php /* 外部链接区域 */ ?>
                     <div id="externalArea" class="<?php echo empty($download['is_external']) ? 'hidden' : ''; ?>">
                         <div>
                             <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('dl_url')); ?></label>
@@ -207,7 +207,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </div>
                     </div>
 
-                    <!-- 隐藏字段 -->
+                    <?php /* 隐藏字段 */ ?>
                     <input type="hidden" name="file_url" id="fileUrlInput" value="<?php echo e($download['file_url'] ?? ''); ?>">
                     <input type="hidden" name="file_name" id="fileNameInput" value="<?php echo e($download['file_name'] ?? ''); ?>">
                     <input type="hidden" name="file_size" id="fileSizeInput" value="<?php echo $download['file_size'] ?? 0; ?>">
@@ -216,7 +216,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
 
-        <!-- 右侧：设置 -->
+        <?php /* 右侧：设置 */ ?>
         <div class="space-y-6">
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b">

@@ -158,7 +158,7 @@ if ($searchTemplateRow !== null) {
 require_once theme_path('layouts/header.php');
 ?>
 
-<!-- 搜索区域 -->
+<?php /* 搜索区域 */ ?>
 <section class="py-10 bg-gradient-to-r from-blue-600 to-blue-800">
     <div class="container mx-auto px-4">
         <div class="max-w-2xl mx-auto">
@@ -177,7 +177,7 @@ require_once theme_path('layouts/header.php');
     </div>
 </section>
 
-<!-- 搜索结果 -->
+<?php /* 搜索结果 */ ?>
 <section class="py-8">
     <div class="container mx-auto px-4">
 <?php

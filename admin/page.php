@@ -174,7 +174,8 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
 <?php endif; ?>
 <?php if (!$filteredPages): ?><p class="website-pages-empty"><?php echo e(__('website_pages_empty')); ?> <a href="/admin/page.php?lang=<?php echo e(rawurlencode($_viewLang)); ?>"><?php echo e(__('website_pages_reset')); ?></a></p><?php endif; ?>
 <?php else: ?>
-<!-- 列表 -->
+<?php /* 列表 */ ?>
+
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full">
@@ -370,7 +371,8 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
 </div>
 
 <?php if (!empty($hiddenPages)): ?>
-<!-- 已停用单页：不占主列表，可恢复；非系统页可删除 -->
+<?php /* 已停用单页：不占主列表，可恢复；非系统页可删除 */ ?>
+
 <div class="bg-white rounded-lg shadow mt-6">
     <div class="px-4 py-3 border-b flex items-center gap-2">
         <i class="ti ti-eye-off text-gray-400"></i>
@@ -435,7 +437,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_defaultLang, __(
 
 <?php endif; ?>
 
-<!-- 添加单页弹窗 -->
+<?php /* 添加单页弹窗 */ ?>
 <div id="createModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">

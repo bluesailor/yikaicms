@@ -92,7 +92,7 @@ $currentMenu = 'extfield';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
-<!-- Owner 切换 -->
+<?php /* Owner 切换 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="flex border-b">
         <a href="?owner_type=content" class="px-6 py-3 text-sm font-medium border-b-2 <?php echo $ownerType === 'content' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'; ?>"><?php echo __('extfield_content'); ?></a>
@@ -106,7 +106,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 字段列表 -->
+<?php /* 字段列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full">
@@ -149,7 +149,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 编辑弹窗 -->
+<?php /* 编辑弹窗 */ ?>
 <div id="editModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">

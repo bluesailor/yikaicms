@@ -27,7 +27,7 @@ if (($timelineSort ?? 'desc') === 'asc') {
 
 <div class="timeline-horizontal max-w-7xl mx-auto px-4">
     <div class="relative">
-        <!-- 顶部时间轴主线 -->
+        <?php /* 顶部时间轴主线 */ ?>
         <div class="hidden md:block absolute left-0 right-0 top-12 h-1 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 rounded-full"></div>
 
         <div class="swiper timeline-swiper">
@@ -42,18 +42,18 @@ if (($timelineSort ?? 'desc') === 'asc') {
                 ?>
                 <div class="swiper-slide h-auto">
                     <div class="flex flex-col items-center pt-2">
-                        <!-- 顶部日期徽章 -->
+                        <?php /* 顶部日期徽章 */ ?>
                         <div class="px-4 py-1 bg-gradient-to-r <?php echo $colorClass; ?> text-white font-bold rounded-full shadow text-sm whitespace-nowrap" style="<?php echo $colorStyle; ?>">
                             <?php echo $dateStr; ?>
                         </div>
 
-                        <!-- 主线上的连接点 -->
+                        <?php /* 主线上的连接点 */ ?>
                         <div class="hidden md:flex relative my-3 w-5 h-5 <?php echo $dotColor; ?> rounded-full border-4 border-white shadow-lg items-center justify-center" style="<?php echo $dotStyle; ?>">
                             <div class="w-2 h-2 bg-white rounded-full animate-ping"></div>
                         </div>
                         <div class="md:hidden h-3"></div>
 
-                        <!-- 卡片 -->
+                        <?php /* 卡片 */ ?>
                         <div class="w-full bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group">
                             <div class="h-1.5 bg-gradient-to-r <?php echo $colorClass; ?>" style="<?php echo $colorStyle; ?>"></div>
 
@@ -84,11 +84,11 @@ if (($timelineSort ?? 'desc') === 'asc') {
                 <?php endforeach; ?>
             </div>
 
-            <!-- 翻页箭头 -->
+            <?php /* 翻页箭头 */ ?>
             <div class="swiper-button-prev !text-primary !w-10 !h-10 !top-12 !-translate-y-1/2 after:!text-base after:!font-bold"></div>
             <div class="swiper-button-next !text-primary !w-10 !h-10 !top-12 !-translate-y-1/2 after:!text-base after:!font-bold"></div>
 
-            <!-- 分页指示器 -->
+            <?php /* 分页指示器 */ ?>
             <div class="swiper-pagination !relative !mt-4"></div>
         </div>
     </div>

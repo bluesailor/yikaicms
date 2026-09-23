@@ -103,13 +103,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div class="space-y-6">
-    <!-- 说明卡 -->
+    <?php /* 说明卡 */ ?>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
         <div class="font-bold mb-1">💡 <?php echo __('recipe_intro_title'); ?></div>
         <p><?php echo e(__('setup_recipe_limit')); ?></p>
     </div>
 
-    <!-- 可用配方列表 -->
+    <?php /* 可用配方列表 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('recipe_available'); ?></h2>
@@ -154,7 +154,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 导出当前配置 -->
+    <?php /* 导出当前配置 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('recipe_export_title'); ?></h2>
@@ -189,7 +189,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 应用确认模态 -->
+<?php /* 应用确认模态 */ ?>
 <dialog id="applyModal" aria-labelledby="applyTitle" style="margin:auto;padding:0;border:0;border-radius:8px;width:min(32rem,calc(100vw - 32px));max-height:90vh;overflow:auto;overflow-wrap:anywhere;">
     <div class="bg-white rounded-lg shadow-xl w-full p-6">
         <h3 id="applyTitle" class="font-bold text-lg text-gray-800 mb-2"><?php echo e(__('setup_plan_title')); ?></h3>

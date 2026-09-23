@@ -103,7 +103,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <?php echo renderAdminLangSwitcher($_viewLang, __('link_lang_hint')); ?>
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex justify-end">
         <button onclick="openEditModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
@@ -113,7 +113,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 列表 -->
+<?php /* 列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full">
@@ -174,7 +174,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<!-- 编辑弹窗 -->
+<?php /* 编辑弹窗 */ ?>
 <div id="editModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-md">

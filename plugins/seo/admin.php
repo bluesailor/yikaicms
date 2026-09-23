@@ -289,7 +289,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div x-data="seoWorkshop()">
 
-    <!-- ===== 免费：llms.txt 生成器 ===== -->
+    <?php /* ===== 免费：llms.txt 生成器 ===== */ ?>
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <div>
@@ -342,7 +342,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- ===== 免费：索引健康 ===== -->
+    <?php /* ===== 免费：索引健康 ===== */ ?>
     <div id="seo-index-health" class="bg-white rounded-lg shadow mb-6">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <div>
@@ -389,7 +389,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- ===== 免费：URL 别名管理（单条改名）／专业版：批量规范化 + 自动 301 ===== -->
+    <?php /* ===== 免费：URL 别名管理（单条改名）／专业版：批量规范化 + 自动 301 ===== */ ?>
     <div class="bg-white rounded-lg shadow mb-6" id="seo-slugs">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <div>
@@ -486,7 +486,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- ===== 免费：搜索引擎主动推送 ===== -->
+    <?php /* ===== 免费：搜索引擎主动推送 ===== */ ?>
     <div class="bg-white rounded-lg shadow mb-6">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <div>
@@ -499,7 +499,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
         <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            <!-- 百度 -->
+            <?php /* 百度 */ ?>
             <div class="border border-gray-200 rounded-lg p-4">
                 <div class="font-medium text-gray-800 text-sm mb-3 flex items-center gap-1.5">
                     <i class="ti ti-brand-baidu text-blue-600"></i> 百度（普通收录）
@@ -520,7 +520,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- IndexNow -->
+            <?php /* IndexNow */ ?>
             <div class="border border-gray-200 rounded-lg p-4">
                 <div class="font-medium text-gray-800 text-sm mb-3 flex items-center gap-1.5">
                     <i class="ti ti-brand-bing text-teal-600"></i> IndexNow（Bing / Yandex 等）
@@ -572,7 +572,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- ===== 专业版：搜索引擎自动推送 ===== -->
+    <?php /* ===== 专业版：搜索引擎自动推送 ===== */ ?>
     <div id="seo-autopush" class="bg-white rounded-lg shadow mb-6" x-data="seoAutopush()">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
@@ -646,7 +646,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- ===== 专业版：基石内容 ===== -->
+    <?php /* ===== 专业版：基石内容 ===== */ ?>
     <div id="seo-cornerstone" class="bg-white rounded-lg shadow mb-6">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
@@ -697,7 +697,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- ===== 专业版：重定向管理器 ===== -->
+    <?php /* ===== 专业版：重定向管理器 ===== */ ?>
     <div id="seo-redirects" class="bg-white rounded-lg shadow mb-6" x-data="seoRedirects()" @seo-fix-redirect.window="fixFrom($event.detail.path)">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">
@@ -706,7 +706,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <span class="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-1 rounded inline-flex items-center gap-1"><i class="ti ti-crown text-sm"></i> Pro</span>
         </div>
         <div class="p-6">
-            <!-- 添加规则 -->
+            <?php /* 添加规则 */ ?>
             <div class="flex flex-wrap items-end gap-2 mb-4">
                 <div class="flex-1 min-w-[180px]">
                     <label class="block text-xs text-gray-500 mb-1">来源路径</label>
@@ -733,7 +733,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
             <p class="text-xs text-red-500 mb-3" x-show="msg" x-text="msg"></p>
 
-            <!-- 规则列表 -->
+            <?php /* 规则列表 */ ?>
             <?php if (!$redirectRules): ?>
                 <p class="text-sm text-gray-400 text-center py-6">还没有重定向规则。改版换链接时，在此把旧地址跳到新地址，保住 SEO 权重与流量。</p>
             <?php else: ?>
@@ -761,7 +761,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endif; ?>
         </div>
 
-        <!-- 404 监控 -->
+        <?php /* 404 监控 */ ?>
         <div class="px-6 py-4 border-t border-b flex items-center justify-between">
             <h3 class="font-bold text-gray-800 inline-flex items-center gap-2">
                 <i class="ti ti-alert-triangle text-red-400"></i> 404 监控
@@ -832,7 +832,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php endif; ?>
 
     <?php if ($seoHasPro): ?>
-    <!-- ===== 专业版：失效链接检查 ===== -->
+    <?php /* ===== 专业版：失效链接检查 ===== */ ?>
     <div id="seo-linkcheck" class="bg-white rounded-lg shadow mb-6" x-data="seoLinkcheck()">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <div>
@@ -924,7 +924,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php endif; ?>
 
     <?php if ($seoHasPro): ?>
-    <!-- ===== 专业版：SEO 体检 + 批量修复 ===== -->
+    <?php /* ===== 专业版：SEO 体检 + 批量修复 ===== */ ?>
     <?php
     $colorCls = ['red' => 'bg-red-100 text-red-700', 'amber' => 'bg-amber-100 text-amber-700', 'gray' => 'bg-gray-100 text-gray-600'];
     $auditShown = array_slice($audit['items'], 0, 150);
@@ -944,7 +944,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <span class="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-1 rounded inline-flex items-center gap-1"><i class="ti ti-crown text-sm"></i> Pro</span>
         </div>
 
-        <!-- 汇总 -->
+        <?php /* 汇总 */ ?>
         <?php if ($audit['summary']): ?>
         <div class="px-6 py-3 border-b flex flex-wrap gap-2">
             <?php foreach ($audit['summary'] as $code => $cnt):
@@ -1033,7 +1033,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
     <?php endif; ?>
 
-    <!-- ===== 专业版功能（就地上锁展示） ===== -->
+    <?php /* ===== 专业版功能（就地上锁展示） ===== */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex items-center justify-between">
             <h2 class="font-bold text-gray-800 inline-flex items-center gap-2">

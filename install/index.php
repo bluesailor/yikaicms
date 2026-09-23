@@ -564,8 +564,8 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-3xl">
-        <!-- 安装向导界面语言切换器（仅影响向导本身的提示文本，
-             与 step 3 选择的"前台语言/后台语言"无关） -->
+        <?php /* 安装向导界面语言切换器（仅影响向导本身的提示文本，
+             与 step 3 选择的"前台语言/后台语言"无关） */ ?>
         <div class="flex justify-end mb-4 text-sm">
             <div class="inline-flex items-center gap-1 bg-white border border-gray-200 rounded-full px-1 py-1">
                 <?php foreach ($supportedLangs as $code => $name):
@@ -582,13 +582,13 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
             </div>
         </div>
 
-        <!-- 头部 -->
+        <?php /* 头部 */ ?>
         <div class="text-center mb-8">
             <h1 class="text-3xl font-bold text-gray-800 mb-2"><?php echo $L['title']; ?></h1>
             <p class="text-gray-400 text-sm">v<?php echo htmlspecialchars($cmsVersion); ?></p>
         </div>
 
-        <!-- 步骤指示器 -->
+        <?php /* 步骤指示器 */ ?>
         <p class="bg-white rounded p-4 mb-6 text-sm text-gray-600"><?= htmlspecialchars($L['url_auto_notice'], ENT_QUOTES, 'UTF-8') ?></p>
         <div class="flex items-center justify-center mb-8">
             <?php for ($i = 1; $i <= 4; $i++): ?>
@@ -608,10 +608,10 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
             <?php endfor; ?>
         </div>
 
-        <!-- 内容区域 -->
+        <?php /* 内容区域 */ ?>
         <div class="bg-white rounded-lg shadow-lg p-8">
             <?php if ($step === 1): ?>
-                <!-- 步骤1：环境检测 -->
+                <?php /* 步骤1：环境检测 */ ?>
                 <h2 class="text-xl font-bold mb-6"><?php echo $L['step1']; ?></h2>
 
                 <table class="w-full mb-6">
@@ -662,8 +662,8 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                     </tbody>
                 </table>
 
-                <!-- 首页入口：探一下服务器的默认首页是否交给了 index.php。只提醒不阻断——
-                     探针可能被 WAF 或超时误伤，而其它检测项全过时站点多半仍能用查询式地址访问。 -->
+                <?php /* 首页入口：探一下服务器的默认首页是否交给了 index.php。只提醒不阻断——
+                     探针可能被 WAF 或超时误伤，而其它检测项全过时站点多半仍能用查询式地址访问。 */ ?>
                 <div id="home-entry-warning" hidden class="bg-amber-50 text-amber-800 p-4 rounded mb-6 text-sm" data-testid="home-entry-warning">
                     <p class="font-bold mb-1"><?php echo $L['home_entry_title']; ?></p>
                     <p><?php echo $L['home_entry_desc']; ?></p>
@@ -699,7 +699,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                 </div>
 
                 <?php if ($envAllPass && extension_loaded('pdo_sqlite')): ?>
-                <!-- 一键极速安装（SQLite，零配置） -->
+                <?php /* 一键极速安装（SQLite，零配置） */ ?>
                 <div class="mt-6 border-t pt-6">
                     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
                         <div class="text-2xl leading-none">⚡</div>
@@ -813,11 +813,11 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                 <?php endif; ?>
 
             <?php elseif ($step === 2): ?>
-                <!-- 步骤2：数据库配置 -->
+                <?php /* 步骤2：数据库配置 */ ?>
                 <h2 class="text-xl font-bold mb-6"><?php echo $L['step2']; ?></h2>
 
                 <form id="dbForm">
-                    <!-- 数据库类型选择 -->
+                    <?php /* 数据库类型选择 */ ?>
                     <div class="mb-6">
                         <label class="block text-gray-700 font-bold mb-2"><?php echo $L['db_type']; ?></label>
                         <div class="grid grid-cols-2 gap-4">
@@ -834,7 +834,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                         </div>
                     </div>
 
-                    <!-- MySQL 配置 -->
+                    <?php /* MySQL 配置 */ ?>
                     <div id="mysqlConfig" class="space-y-4">
                         <div class="grid grid-cols-3 gap-4">
                             <div class="col-span-2">
@@ -868,21 +868,21 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                         </div>
                     </div>
 
-                    <!-- 表前缀 -->
+                    <?php /* 表前缀 */ ?>
                     <div class="mt-4">
                         <label class="block text-gray-700 mb-1"><?php echo $L['db_prefix']; ?></label>
                         <input type="text" name="db_prefix" value="yikai_" class="w-full border rounded px-3 py-2">
                     </div>
 
-                    <!-- 警告 -->
+                    <?php /* 警告 */ ?>
                     <div class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
                         <svg class="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                         <p class="text-sm text-amber-700">安装时将删除数据库中同名的表并重新创建。如果数据库中已有数据，请先备份。</p>
                     </div>
 
-                    <!-- 演示数据与语言选择已搬到 step 3，避免在两个表单里重复维护 -->
+                    <?php /* 演示数据与语言选择已搬到 step 3，避免在两个表单里重复维护 */ ?>
 
-                    <!-- 测试按钮 -->
+                    <?php /* 测试按钮 */ ?>
                     <div class="mt-6">
                         <button type="button" id="testDbBtn" class="inline-flex items-center gap-2 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition cursor-pointer">
                             <?php echo $iconPlug; ?><?php echo $L['db_test']; ?>
@@ -964,7 +964,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                 </script>
 
             <?php elseif ($step === 3): ?>
-                <!-- 步骤3：管理员设置 -->
+                <?php /* 步骤3：管理员设置 */ ?>
                 <h2 class="text-xl font-bold mb-6"><?php echo $L['step3']; ?></h2>
 
                 <form id="adminForm" class="space-y-4">
@@ -1003,7 +1003,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
 
                     <hr class="my-6">
 
-                    <!-- 前台/后台语言选择（默认跟随当前安装向导语言；扫 lang/*.php 自动发现可选项） -->
+                    <?php /* 前台/后台语言选择（默认跟随当前安装向导语言；扫 lang/*.php 自动发现可选项） */ ?>
                     <?php
                     $defaultSite = installerLangToSiteLang($lang);
                     $_installerLangLabels = ['zh-CN' => '简体中文', 'ja' => '日本語', 'en' => 'English', 'ko' => '한국어', 'fr' => 'Français', 'de' => 'Deutsch', 'es' => 'Español'];
@@ -1050,7 +1050,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                         <p class="text-sm text-gray-500 mt-1 ml-6"><?php echo $L['install_demo_tip']; ?></p>
                     </div>
 
-                    <!-- 初始场景预设：v1.7.4 移除（默认就是企业站 CMS，装完后台 → 外观 → 场景预设 可再换） -->
+                    <?php /* 初始场景预设：v1.7.4 移除（默认就是企业站 CMS，装完后台 → 外观 → 场景预设 可再换） */ ?>
                 </form>
 
                 <div id="installProgress" class="hidden mt-6">
@@ -1256,7 +1256,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                 </script>
 
             <?php elseif ($step === 4): ?>
-                <!-- 步骤4：安装完成 -->
+                <?php /* 步骤4：安装完成 */ ?>
                 <div class="text-center">
                     <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1341,7 +1341,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                     }
                     </script>
 
-                    <!-- 主 CTA：直达后台 -->
+                    <?php /* 主 CTA：直达后台 */ ?>
                     <div class="mb-8">
                         <a href="/admin/" class="inline-flex items-center gap-2 bg-primary hover:bg-secondary text-white text-lg font-bold px-8 py-3 rounded-lg shadow transition">
                             <?php echo $L['goto_admin']; ?>
@@ -1354,7 +1354,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                         <?php echo $L['security_tip']; ?>
                     </div>
 
-                    <!-- Rewrite 配置ガイド -->
+                    <?php /* Rewrite 配置ガイド */ ?>
                     <div class="bg-white border rounded-lg text-left mb-6">
                         <div class="px-5 py-3 border-b bg-gray-50 rounded-t-lg">
                             <h3 class="font-bold text-gray-800 text-sm"><?php echo $L['rewrite_title'] ?? 'URL 伪静态配置'; ?></h3>
@@ -1440,7 +1440,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
             <?php endif; ?>
         </div>
 
-        <!-- 底部 -->
+        <?php /* 底部 */ ?>
         <div class="text-center text-gray-400 text-sm mt-8">
             &copy; <?php echo date('Y'); ?> <a href="https://www.yikaicms.com" target="_blank" class="hover:text-gray-600 transition">Yikai CMS</a>
         </div>

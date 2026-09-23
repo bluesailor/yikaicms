@@ -160,10 +160,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <?php require ROOT_PATH . '/admin/includes/lang_switcher_edit.php'; ?>
 
 <form id="editForm" class="space-y-6">
-    <!-- 保存后由 JS 回填新建记录的 id，使后续提交转为更新，避免重复插入 -->
+    <?php /* 保存后由 JS 回填新建记录的 id，使后续提交转为更新，避免重复插入 */ ?>
     <input type="hidden" name="id" id="articleId" value="<?php echo (int)($article['id'] ?? 0); ?>">
     <div class="flex gap-6">
-        <!-- 主内容区 -->
+        <?php /* 主内容区 */ ?>
         <div class="flex-1 space-y-6">
             <?php include __DIR__ . '/includes/ai_panel.php'; ?>
 
@@ -223,7 +223,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </div>
 
-        <!-- 侧边栏 -->
+        <?php /* 侧边栏 */ ?>
         <div class="w-80 space-y-6">
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_publish_settings'); ?></h3>
@@ -363,7 +363,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <input type="file" id="coverFileInput" class="hidden" accept="image/*">
 
-<!-- 分类复选框逻辑 -->
+<?php /* 分类复选框逻辑 */ ?>
 <script>
 (function() {
     const checkboxes = document.querySelectorAll('.cat-checkbox');

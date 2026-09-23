@@ -440,7 +440,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
     <?php endif; ?>
 
-    <!-- 页签：本地主题 / 模板市场 / 模板设置 -->
+    <?php /* 页签：本地主题 / 模板市场 / 模板设置 */ ?>
     <div class="flex gap-1 mb-6 border-b border-gray-200">
         <button type="button" @click="tab='local'"
             :class="tab==='local' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'"
@@ -459,7 +459,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </button>
     </div>
 
-    <!-- ============ 本地主题 ============ -->
+    <?php /* ============ 本地主题 ============ */ ?>
     <div x-show="tab==='local'">
     <?php if (empty($themes)): ?>
     <div class="bg-white rounded-lg shadow p-12 text-center text-gray-500">
@@ -590,9 +590,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <li><?php echo __('theme_install_step4'); ?></li>
         </ol>
     </div>
-    </div><!-- /local -->
+    </div><?php /* /local */ ?>
 
-    <!-- ============ 模板市场 ============ -->
+    <?php /* ============ 模板市场 ============ */ ?>
     <div x-show="tab==='market'" x-cloak>
         <div class="flex items-center gap-3 mb-6">
             <div class="relative flex-1 max-w-md">
@@ -650,9 +650,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </template>
         </div>
-    </div><!-- /market -->
+    </div><?php /* /market */ ?>
 
-    <!-- ============ 模板设置 ============ -->
+    <?php /* ============ 模板设置 ============ */ ?>
     <div x-show="tab==='settings'" x-cloak data-testid="theme-settings-panel">
         <form method="POST" action="/admin/theme.php?tab=settings" class="bg-white rounded-lg shadow max-w-5xl">
             <?php echo csrfField(); ?>
@@ -814,7 +814,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </button>
             </div>
         </form>
-    </div><!-- /settings -->
+    </div><?php /* /settings */ ?>
+
 </div>
 
 <script>

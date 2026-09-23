@@ -159,7 +159,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
         }
      }">
     <div class="flex min-h-screen">
-        <!-- 移动端遮罩层 -->
+        <?php /* 移动端遮罩层 */ ?>
         <div x-show="mobileMenu"
              x-transition:enter="transition-opacity ease-out duration-300"
              x-transition:enter-start="opacity-0"
@@ -171,7 +171,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
              class="fixed inset-0 z-40 bg-black/50 lg:hidden"
              x-cloak></div>
 
-        <!-- 侧边栏 -->
+        <?php /* 侧边栏 */ ?>
         <aside data-admin-sidebar data-compact="<?= $_sbCollapsed ? 'true' : 'false' ?>" :data-compact="collapsed ? 'true' : 'false'"
                class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64 <?= $_sbCollapsed ? 'lg:w-16' : 'lg:w-64' ?>"
                <?php // 必须用对象语法：三元写法下 Alpine 只移除自己加过的类，
@@ -181,7 +181,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                @click.self="expandFromBlank()"
                :class="{ 'translate-x-0': mobileMenu, 'lg:w-16': collapsed, 'lg:w-64': !collapsed, 'lg:cursor-pointer': collapsed }">
             
-            <!-- Logo -->
+            <?php /* Logo */ ?>
             <?php // Logo 栏不画分隔线：深色侧栏上任何浅色边框都会显成一条亮线 ?>
             <?php // min-h-12：文字品牌时保持原 48px 行高；配了 LOGO 图时行随图自然长高。
                   // 图片不写死高度——按自然比例显示，上限由设置「后台Logo最大高度」控制
@@ -209,7 +209,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                 </a>
             </div>
 
-            <!-- 导航菜单 -->
+            <?php /* 导航菜单 */ ?>
             <script>
             // 单开手风琴（借鉴 WordPress）：同时只展开「当前所在组」，其余收起。
             // 菜单项近 40 个，全展开需滚动；单开后常驻约 15 行、一屏可见。
@@ -225,7 +225,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
             </script>
             <nav class="mt-3 px-3" x-data="sidebarNav()"
                  @click.self="expandFromBlank()">
-                <!-- 控制台 -->
+                <?php /* 控制台 */ ?>
                 <a href="/admin/" class="sidebar-link sidebar-dashboard flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'dashboard' ? 'active' : ''; ?>"
                    :class="collapsed ? 'lg:justify-center' : ''"
                    :title="collapsed ? '<?php echo e(__('admin_dashboard')); ?>' : ''">
@@ -434,10 +434,10 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
         })();
         </script>
 
-        <!-- 主内容区 -->
+        <?php /* 主内容区 */ ?>
         <div class="min-w-0 flex-1 transition-all duration-300 <?= $_sbCollapsed ? 'lg:ml-16' : 'lg:ml-64' ?>"
              :class="{ 'lg:ml-16': collapsed, 'lg:ml-64': !collapsed }">
-            <!-- 顶部导航 -->
+            <?php /* 顶部导航 */ ?>
             <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 sticky top-0 z-40">
                 <?php // 汉堡按钮（桌面+手机通用）：手机=开关抽屉，桌面=收起/展开侧栏。
                       // 250ms 防抖挡住习惯性连点造成的「收起又弹开」。
@@ -462,9 +462,9 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     <h1 class="text-sm font-normal text-gray-500 sm:text-lg sm:font-semibold sm:text-gray-800 truncate"><?php echo $pageTitle ?? __('admin_dashboard'); ?></h1>
                 </div>
 
-                <!-- 右侧工具栏 -->
+                <?php /* 右侧工具栏 */ ?>
                 <div class="flex items-center gap-4 flex-shrink-0">
-                    <!-- 后台命令面板搜索 -->
+                    <?php /* 后台命令面板搜索 */ ?>
                     <div class="relative" x-data="adminSearch()" x-init="init()" @click.away="open = false; mExpand = false">
                         <?php // 手机：先显示放大镜图标，点开后输入框覆盖顶栏（桌面端一直是输入框） ?>
                         <button type="button" class="md:hidden flex items-center justify-center w-9 h-9 rounded-full text-gray-500 hover:text-primary hover:bg-gray-50 transition"
@@ -577,7 +577,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     }
                     </script>
 
-                    <!-- 语言切换：动态基于 admin_languages 设置；为空时按 lang/*.php 文件自动检测 -->
+                    <?php /* 语言切换：动态基于 admin_languages 设置；为空时按 lang/*.php 文件自动检测 */ ?>
                     <?php
                     $currentAdminLang = config('admin_lang', 'zh-CN');
                     $langLabels = ['zh-CN' => '中文', 'en' => 'EN', 'ja' => '日本語'];
@@ -612,7 +612,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     </div>
                     <?php endif; ?>
 
-                    <!-- 官方使用教程：入口保持全后台可见。伪静态专项说明另见控制台提醒与站点体检页。 -->
+                    <?php /* 官方使用教程：入口保持全后台可见。伪静态专项说明另见控制台提醒与站点体检页。 */ ?>
                     <a href="<?php echo e($adminTutorialUrl); ?>" target="_blank" rel="noopener noreferrer"
                        data-testid="admin-help-link"
                        class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
@@ -626,13 +626,13 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                         <span class="hidden sm:inline"><?php echo __('admin_visit_frontend'); ?></span>
                     </a>
 
-                    <!-- HTML 缓存设置 -->
+                    <?php /* HTML 缓存设置 */ ?>
                     <a href="/admin/setting_cache.php" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50 <?php echo ($currentMenu ?? '') === 'setting_cache' ? 'text-primary' : ''; ?>" title="<?php echo e(__('admin_cache_title')); ?>">
                         <i class="ti ti-database text-lg"></i>
                         <span class="hidden sm:inline"><?php echo e(__('admin_cache_short')); ?></span>
                     </a>
 
-                    <!-- AI 助手浮窗（仅在已配置 AI 且不在助手大页时显示） -->
+                    <?php /* AI 助手浮窗（仅在已配置 AI 且不在助手大页时显示） */ ?>
                     <?php if (class_exists('AiService') && aiService()->isConfigured() && $currentMenu !== 'ai_assistant'): ?>
                     <div class="relative" x-data="aiBubble()" x-init="init()">
                         <button @click="toggle()" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary relative px-2 py-1 rounded hover:bg-gray-50" title="<?php echo __('admin_ai_assistant'); ?>">
@@ -641,7 +641,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                             <span x-show="busy" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
                         </button>
 
-                        <!-- 聊天面板 -->
+                        <?php /* 聊天面板 */ ?>
                         <div x-show="open" x-cloak @click.away="open = false"
                              x-transition:enter="transition ease-out duration-200"
                              x-transition:enter-start="opacity-0 -translate-y-2"
@@ -696,7 +696,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                                                  x-html="m.role === 'user' ? escape(m.text) : linkify(m.text)">
                                             </div>
                                         </template>
-                                        <!-- 待确认的写操作提案 -->
+                                        <?php /* 待确认的写操作提案 */ ?>
                                         <template x-if="m.role === 'proposal'">
                                             <div class="rounded-lg px-3 py-2 w-full max-w-[95%] border"
                                                  :class="m.applied ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'">
@@ -833,7 +833,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
                     </script>
                     <?php endif; ?>
 
-                    <!-- 用户菜单 -->
+                    <?php /* 用户菜单 */ ?>
                     <div class="relative" x-data="{ open: false }">
                         <button @click="open = !open" class="flex items-center gap-2 text-gray-700 hover:text-primary">
                             <?php $adminAvatar = $adminInfo['avatar'] ?? ''; ?>
@@ -883,7 +883,7 @@ $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
             </div>
             <?php endif; ?>
 
-            <!-- 页面内容 -->
+            <?php /* 页面内容 */ ?>
             <main class="p-6">
             <?php
             // ── 数据库迁移待执行检测 ──────────────────────────────

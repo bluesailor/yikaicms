@@ -103,7 +103,7 @@ if (trim($articleTemplateHtml) !== '') {
 } else {
 ?>
 
-<!-- 页面头部 -->
+<?php /* 页面头部 */ ?>
 <?php
 $breadcrumbItems = [['name' => __('news_title'), 'url' => '/news.html']];
 if ($article['channel_name'] ?? '') {
@@ -123,14 +123,14 @@ $channel = [
 require theme_path('partials/page-hero.php');
 ?>
 
-<!-- 文章内容 -->
+<?php /* 文章内容 */ ?>
 <section class="py-12">
     <div class="container mx-auto px-4">
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
-            <!-- 左侧文章内容 -->
+            <?php /* 左侧文章内容 */ ?>
             <div class="flex-1 min-w-0">
                 <article class="bg-white rounded-lg shadow overflow-hidden">
-                    <!-- 文章头部 -->
+                    <?php /* 文章头部 */ ?>
                     <div class="p-6 md:p-8 border-b">
                         <h1 class="text-2xl md:text-3xl font-bold text-dark leading-snug">
                             <?php echo e($article['title']); ?>
@@ -168,7 +168,7 @@ require theme_path('partials/page-hero.php');
                         </div>
                     </div>
 
-                    <!-- 封面图 -->
+                    <?php /* 封面图 */ ?>
                     <?php if ($article['cover']): ?>
                     <div class="border-b">
                         <img decoding="async" fetchpriority="high" <?php echo responsiveImageAttributes($article['cover'], 'medium', '(min-width: 1024px) 768px, 100vw'); ?> alt="<?php echo e($article['title']); ?>"
@@ -176,14 +176,14 @@ require theme_path('partials/page-hero.php');
                     </div>
                     <?php endif; ?>
 
-                    <!-- 文章摘要 -->
+                    <?php /* 文章摘要 */ ?>
                     <?php if ($article['summary']): ?>
                     <div class="px-6 md:px-8 py-4 bg-gray-50 border-b">
                         <p class="text-gray-600 italic"><?php echo e($article['summary']); ?></p>
                     </div>
                     <?php endif; ?>
 
-                    <!-- 文章正文 -->
+                    <?php /* 文章正文 */ ?>
                     <div class="p-6 md:p-8">
                         <div class="prose prose-lg max-w-none content-body">
                             <?php if (class_exists('TagEngine')) TagEngine::setItem($article, 'content'); ?>
@@ -191,7 +191,7 @@ require theme_path('partials/page-hero.php');
                         </div>
                     </div>
 
-                    <!-- 图集 -->
+                    <?php /* 图集 */ ?>
                     <?php
                     $gallery = json_decode((string) ($article['images'] ?? ''), true);
                     $gallery = is_array($gallery) ? array_values(array_filter($gallery, fn($u) => is_string($u) && $u !== '')) : [];
@@ -209,7 +209,7 @@ require theme_path('partials/page-hero.php');
                     </div>
                     <?php endif; ?>
 
-                    <!-- 标签 -->
+                    <?php /* 标签 */ ?>
                     <?php if ($article['tags']): ?>
                     <div class="px-6 md:px-8 py-4 border-t bg-gray-50">
                         <div class="flex flex-wrap items-center gap-2">
@@ -223,7 +223,7 @@ require theme_path('partials/page-hero.php');
                     </div>
                     <?php endif; ?>
 
-                    <!-- 来源 -->
+                    <?php /* 来源 */ ?>
                     <?php if ($article['source']): ?>
                     <div class="px-6 md:px-8 py-4 border-t text-sm text-gray-500">
                         <?php echo __('article_source'); ?>: <?php echo e($article['source']); ?>
@@ -231,7 +231,7 @@ require theme_path('partials/page-hero.php');
                     <?php endif; ?>
                 </article>
 
-                <!-- 上一篇/下一篇 -->
+                <?php /* 上一篇/下一篇 */ ?>
                 <div class="mt-6 bg-white rounded-lg shadow p-6">
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div class="flex-1">
@@ -262,9 +262,9 @@ require theme_path('partials/page-hero.php');
                 </div>
             </div>
 
-            <!-- 右侧边栏 -->
+            <?php /* 右侧边栏 */ ?>
             <div class="w-full lg:w-80 flex-shrink-0 space-y-6">
-                <!-- 相关文章 -->
+                <?php /* 相关文章 */ ?>
                 <?php if (!empty($relatedArticles)): ?>
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <div class="bg-white text-gray-900 px-4 py-4 text-lg font-semibold border-b border-gray-200">
@@ -299,7 +299,7 @@ require theme_path('partials/page-hero.php');
                 </div>
                 <?php endif; ?>
 
-                <!-- 返回列表 -->
+                <?php /* 返回列表 */ ?>
                 <div class="bg-white rounded-lg shadow p-4">
                     <a href="/news.html" class="flex items-center justify-center gap-2 text-primary hover:underline">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

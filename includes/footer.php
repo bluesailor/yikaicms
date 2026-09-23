@@ -62,7 +62,7 @@ if ($footerBgLiteral !== '') {
 
     <?php do_action('ik_footer_before'); ?>
 
-    <!-- 页脚 -->
+    <?php /* 页脚 */ ?>
     <footer class="mt-auto" style="<?php echo $footerBgStyle; ?> color: <?php echo e($footerTextColor); ?>">
         <div class="container mx-auto px-4 py-12">
             <?php if (!empty($footerColumns)): ?>
@@ -80,7 +80,7 @@ if ($footerBgLiteral !== '') {
                 <?php endforeach; ?>
             </div>
             <?php else: ?>
-            <!-- 无自定义列时的默认布局 -->
+            <?php /* 无自定义列时的默认布局 */ ?>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div class="md:col-span-2">
                     <h3 class="text-white text-lg font-bold mb-4"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h3>
@@ -101,7 +101,7 @@ if ($footerBgLiteral !== '') {
 
         </div>
 
-        <!-- 页脚导航 -->
+        <?php /* 页脚导航 */ ?>
         <?php
         $footerNav = function_exists('footerNavigationGroups')
             ? footerNavigationGroups((string) (config('footer_nav') ?: '[]'))
@@ -141,7 +141,7 @@ if ($footerBgLiteral !== '') {
         </div>
         <?php endif; ?>
 
-        <!-- 版权信息 -->
+        <?php /* 版权信息 */ ?>
         <div class="border-t border-gray-700">
             <div class="container mx-auto px-4 py-4 flex flex-wrap gap-4 items-center justify-between text-sm">
                 <div>
@@ -192,7 +192,7 @@ if ($footerBgLiteral !== '') {
         });
     </script>
 
-    <!-- 通用 Lightbox -->
+    <?php /* 通用 Lightbox */ ?>
     <?php
     // 灯箱改由共享实现提供（assets/js/blox-lightbox.js）：支持分组前后切换、焦点返回与滑动。
     // 这里只留一段极小的引导——页面上真的有 a[data-lightbox] 才去取脚本与样式，
@@ -213,7 +213,7 @@ if ($footerBgLiteral !== '') {
     })();
     </script>
 
-    <!-- 滚动入场动画 -->
+    <?php /* 滚动入场动画 */ ?>
     <script>
     (function(){
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;

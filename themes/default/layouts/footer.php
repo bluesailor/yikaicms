@@ -119,7 +119,7 @@ if ($footerBgLiteral !== '') {
     <?php do_action('ik_footer_before'); ?>
 
     <?php if (empty($GLOBALS['ykBloxPageFrame']['page_footer_hidden'])): ?>
-    <!-- footer -->
+    <?php /* footer */ ?>
     <?php $ykBloxFooter = function_exists('bloxAreaHtml') ? bloxAreaHtml('footer') : ''; ?>
     <?php if ($ykBloxFooter !== ''): ?>
     <?php echo $ykBloxFooter; // Blox 尾模板接管；无发布模板时走下方原生尾 ?>
@@ -150,7 +150,7 @@ if ($footerBgLiteral !== '') {
                 <?php endforeach; ?>
             </div>
             <?php else: ?>
-            <!-- Default layout when there are no custom columns -->
+            <?php /* Default layout when there are no custom columns */ ?>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div class="md:col-span-2">
                     <h3 class="text-white text-lg font-bold mb-4"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h3>
@@ -177,10 +177,10 @@ if ($footerBgLiteral !== '') {
             </div>
             <?php endif; ?>
 
-            <!-- 合作伙伴/友情链接已移到页脚之上的独立区段（themes/default/blocks/partners.php，由 index.php 渲染） -->
+            <?php /* 合作伙伴/友情链接已移到页脚之上的独立区段（themes/default/blocks/partners.php，由 index.php 渲染） */ ?>
         </div>
 
-        <!-- footer navigation -->
+        <?php /* footer navigation */ ?>
         <?php
         $footerNav = footerNavigationGroups();
         if (!empty($footerNav)):
@@ -218,7 +218,7 @@ if ($footerBgLiteral !== '') {
         </div>
         <?php endif; ?>
 
-        <!-- Copyright Information -->
+        <?php /* Copyright Information */ ?>
         <div class="border-t border-gray-700">
             <div class="container mx-auto px-4 py-4 flex flex-wrap gap-4 items-center justify-between text-sm">
                 <div>
@@ -284,7 +284,7 @@ if ($footerBgLiteral !== '') {
         })();
     </script>
 
-    <!-- General Lightbox -->
+    <?php /* General Lightbox */ ?>
     <?php
     // 灯箱改由共享实现提供（assets/js/blox-lightbox.js）：支持分组前后切换、焦点返回与滑动。
     // 这里只留一段极小的引导——页面上真的有 a[data-lightbox] 才去取脚本与样式，
@@ -305,7 +305,7 @@ if ($footerBgLiteral !== '') {
     })();
     </script>
 
-    <!-- scroll-in animation -->
+    <?php /* scroll-in animation */ ?>
     <?php BloxAssetCollector::addScript('/assets/js/scroll-anim.js'); ?>
 
     <?php if (!empty($extraJs)): ?>

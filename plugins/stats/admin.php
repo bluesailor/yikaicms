@@ -38,7 +38,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div class="max-w-3xl space-y-6">
 
-    <!-- 接入设置 -->
+    <?php /* 接入设置 */ ?>
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="font-bold text-gray-800 mb-1"><?php echo e(__('stt_title')); ?></h2>
         <p class="text-sm text-gray-500 mb-5"><?php echo strtr(e(__('stt_desc')), [':head' => '<code class="bg-gray-100 px-1.5 py-0.5 rounded">&lt;head&gt;</code>']); ?></p>
@@ -56,14 +56,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </select>
             </div>
 
-            <!-- 预设服务商：站点 ID -->
+            <?php /* 预设服务商：站点 ID */ ?>
             <div id="rowId" style="<?php echo ($provider !== '' && $provider !== 'custom') ? '' : 'display:none'; ?>">
                 <label class="block font-medium text-gray-700 mb-2"><?php echo e(__('stt_site_id')); ?></label>
                 <input type="text" name="stats_id" value="<?php echo e($statsId); ?>" class="w-full md:w-80 border rounded px-4 py-2 font-mono">
                 <p class="text-xs text-gray-400 mt-2" id="idHint"></p>
             </div>
 
-            <!-- 自定义代码 -->
+            <?php /* 自定义代码 */ ?>
             <div id="rowCustom" style="<?php echo $provider === 'custom' ? '' : 'display:none'; ?>">
                 <label class="block font-medium text-gray-700 mb-2"><?php echo e(__('stt_custom_code')); ?></label>
                 <textarea name="stats_custom_code" rows="5" class="w-full border rounded px-4 py-2 font-mono text-sm" placeholder="&lt;script&gt;...&lt;/script&gt;"><?php echo e($customCode); ?></textarea>
@@ -76,7 +76,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </form>
     </div>
 
-    <!-- Pro：数据看板（license 闸控） -->
+    <?php /* Pro：数据看板（license 闸控） */ ?>
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center gap-2 mb-3">
             <h2 class="font-bold text-gray-800"><?php echo e(__('stt_dashboard')); ?></h2>

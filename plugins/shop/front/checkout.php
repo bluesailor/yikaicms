@@ -158,7 +158,7 @@ require_once theme_path('layouts/header.php');
         <?php else: ?>
 
         <div class="grid md:grid-cols-2 gap-6 items-start">
-            <!-- 订单预览 -->
+            <?php /* 订单预览 */ ?>
             <div class="bg-white rounded border border-gray-200 overflow-hidden" data-testid="shop-checkout-preview">
                 <div class="px-4 py-3 border-b bg-gray-50 font-medium text-gray-700"><?php echo e(__('shop_checkout_summary')); ?></div>
                 <table class="w-full text-sm">
@@ -186,7 +186,7 @@ require_once theme_path('layouts/header.php');
                 </table>
             </div>
 
-            <!-- 联系与收货 -->
+            <?php /* 联系与收货 */ ?>
             <form method="post" action="/shop/checkout" class="bg-white rounded border border-gray-200 p-5 space-y-4" data-testid="shop-checkout-form">
                 <input type="hidden" name="op" value="place_order">
                 <input type="hidden" name="ts" value="<?php echo (int) $tokenTs; ?>">

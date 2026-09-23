@@ -432,21 +432,22 @@ if ($isProductType) {
 }
 ?>
 
-<!-- 页面头部 -->
+<?php /* 页面头部 */ ?>
 <?php require theme_path('partials/page-hero.php'); ?>
 
-<!-- 子栏目导航（横向分类标签） -->
+<?php /* 子栏目导航（横向分类标签） */ ?>
 <?php
 $horizNav = $subChannels;
 $horizRootChannel = $channel;
 // 下载类型不使用 channel 子栏目做水平导航（改用 download_categories）
 ?>
 <?php if ($showProductTopNav): ?>
-<!-- 产品顶栏模式：分类筛选面板 -->
+<?php /* 产品顶栏模式：分类筛选面板 */ ?>
+
 <div <?php echo ProductCatalogRequest::rootAttributes($catalogQuery ?? ProductCatalogRequest::normalize($_GET)); ?>>
 <div class="bg-white border-b">
     <div class="container mx-auto px-4 py-4">
-        <!-- 搜索框 -->
+        <?php /* 搜索框 */ ?>
         <div class="flex items-center justify-between mb-4">
             <div class="text-sm text-gray-500">
                 <?php echo __('list_total'); ?> <span class="text-primary font-medium"><?php echo $total; ?></span> <?php echo __('list_items'); ?>
@@ -484,7 +485,7 @@ $horizRootChannel = $channel;
                 <?php endif; ?>
             </form>
         </div>
-        <!-- 分类筛选 -->
+        <?php /* 分类筛选 */ ?>
         <div class="border rounded-lg text-sm">
             <div class="px-4 py-2 bg-gray-50 border-b flex items-center gap-2">
                 <span class="text-gray-600 font-medium"><?php echo __('list_product_category'); ?>:</span>
@@ -568,11 +569,11 @@ $horizRootChannel = $channel;
 </div>
 <?php endif; ?>
 
-<!-- 内容列表 -->
+<?php /* 内容列表 */ ?>
 <section class="py-12">
     <div class="container mx-auto px-4">
         <?php if ($showProductTopNav): ?>
-        <!-- 产品排序栏 -->
+        <?php /* 产品排序栏 */ ?>
         <?php if ($isProductType && !empty($enabledSorts) && count($enabledSorts) > 1): ?>
         <div class="flex items-center gap-2 mb-6 text-sm" data-catalog-sort>
             <span class="text-gray-500 mr-1"><?php echo __('list_sort'); ?>：</span>
@@ -594,7 +595,7 @@ $horizRootChannel = $channel;
         </div>
         <?php endif; ?>
 
-        <!-- 产品顶栏模式：全宽4列网格 -->
+        <?php /* 产品顶栏模式：全宽4列网格 */ ?>
         <?php if (!empty($contents)): ?>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             <?php foreach ($contents as $item): ?>
@@ -607,7 +608,7 @@ $horizRootChannel = $channel;
         </div>
         <?php endif; ?>
 
-        <!-- 分页 -->
+        <?php /* 分页 */ ?>
         <?php
         $totalPages = (int)ceil($total / $perPage);
         $pageUrl = static function(int $targetPage) use ($channel, $productCategory, $catalogQuery): string {
@@ -622,14 +623,14 @@ $horizRootChannel = $channel;
         <?php elseif ($channel['type'] === 'download'): ?>
         <?php require __DIR__ . '/views/list/download.php'; ?>
         <?php else: ?>
-        <!-- 其他类型的原有布局 -->
+        <?php /* 其他类型的原有布局 */ ?>
         <?php $hasRightSidebar = !empty($rightSidebarChannels); ?>
         <?php if ($hasRightSidebar): ?><div class="flex flex-wrap lg:flex-nowrap gap-8"><div class="w-full lg:flex-1"><?php endif; ?>
 
         <?php if (!empty($contents) || !empty($jobs ?? [])): ?>
 
         <?php if ($channel['type'] === 'case'): ?>
-        <!-- 案例：图文网格 -->
+        <?php /* 案例：图文网格 */ ?>
         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
             <?php foreach ($contents as $item): ?>
             <?php require theme_path('partials/case-card.php'); ?>
@@ -637,7 +638,7 @@ $horizRootChannel = $channel;
         </div>
 
         <?php elseif ($channel['type'] === 'job'): ?>
-        <!-- 招聘：卡片列表（数据来自 yikai_jobs 表） -->
+        <?php /* 招聘：卡片列表（数据来自 yikai_jobs 表） */ ?>
         <?php if (!empty($jobs)): ?>
         <div class="space-y-4">
             <?php foreach ($jobs as $item): ?>
@@ -647,7 +648,7 @@ $horizRootChannel = $channel;
         <?php endif; ?>
 
         <?php else: ?>
-        <!-- 文章 / 自定义模型：图文列表。自定义模型可指定列表卡片模板，解析不到回退文章卡片 -->
+        <?php /* 文章 / 自定义模型：图文列表。自定义模型可指定列表卡片模板，解析不到回退文章卡片 */ ?>
         <?php
         $cardTpl = 'partials/article-card.php';
         $_listModel = contentModelModel()->getByKey($channel['type']);
@@ -663,7 +664,7 @@ $horizRootChannel = $channel;
         </div>
         <?php endif; ?>
 
-        <!-- 分页 -->
+        <?php /* 分页 */ ?>
         <?php
         $totalPages = (int)ceil($total / $perPage);
         $pageUrl = function(int $p) use ($channel, $keyword): string {

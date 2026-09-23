@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center relative">
 
-    <!-- 语言切换（右上角；以后台 admin_languages 设置为准） -->
+    <?php /* 语言切换（右上角；以后台 admin_languages 设置为准） */ ?>
     <?php
     $flagFile = ['zh-CN' => 'cn', 'en' => 'us', 'ja' => 'jp'];
     if (count($supportedLangs) >= 2):
@@ -171,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <?php if ($awaiting2fa): ?>
-            <!-- 第二步：两步验证码 -->
+            <?php /* 第二步：两步验证码 */ ?>
             <form method="post" class="space-y-6">
                 <?php echo csrfField(); ?>
                 <input type="hidden" name="action" value="totp">

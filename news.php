@@ -68,7 +68,7 @@ if ($hasPublishedNewsBlox) {
 }
 ?>
 
-<!-- 页面头部 -->
+<?php /* 页面头部 */ ?>
 <?php
 $breadcrumbItems = [];
 if ($category) {
@@ -86,7 +86,7 @@ $channel = $_heroChannelBackup;
 unset($_heroChannelBackup);
 ?>
 
-<!-- 分类导航 + 搜索 -->
+<?php /* 分类导航 + 搜索 */ ?>
 <div class="bg-white border-b">
     <div class="container mx-auto px-4">
         <div class="flex flex-wrap items-center justify-between gap-4 py-4">
@@ -135,7 +135,7 @@ unset($_heroChannelBackup);
     </div>
 </div>
 
-<!-- 文章列表 -->
+<?php /* 文章列表 */ ?>
 <section class="py-12">
     <div class="container mx-auto px-4">
         <?php if (!empty($articles)): ?>
@@ -147,7 +147,7 @@ unset($_heroChannelBackup);
             <?php endforeach; ?>
         </div>
 
-        <!-- 分页 -->
+        <?php /* 分页 */ ?>
         <?php if ($total > $perPage): ?>
         <?php
         $totalPages = (int)ceil($total / $perPage);

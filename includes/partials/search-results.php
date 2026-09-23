@@ -28,7 +28,7 @@ if (!defined('ROOT_PATH')) {
 
 <?php else: ?>
 
-<!-- 分类标签 -->
+<?php /* 分类标签 */ ?>
 <div class="flex flex-wrap gap-2 mb-6 border-b pb-4">
     <?php foreach ($srTypeLabels as $tk => $tl):
         $cnt = $srTypeCounts[$tk] ?? 0;
@@ -114,7 +114,7 @@ if (!defined('ROOT_PATH')) {
     <?php endforeach; ?>
 </div>
 
-<!-- 分页 -->
+<?php /* 分页 */ ?>
 <?php
 $totalPages = (int)ceil($srTotal / $srPerPage);
 if ($totalPages > 1):

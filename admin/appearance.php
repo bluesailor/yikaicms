@@ -136,7 +136,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <input type="hidden" name="action" value="save">
     <?php echo csrfField(); ?>
 
-    <!-- 预设 -->
+    <?php /* 预设 */ ?>
     <div>
         <label class="font-medium text-gray-800"><?php echo e(__('appr_font_preset')); ?></label>
         <p class="text-sm text-gray-500 mt-1 mb-3"><?php echo e(__('appr_font_preset_tip')); ?></p>
@@ -161,7 +161,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 自定义字体栈 -->
+    <?php /* 自定义字体栈 */ ?>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
             <label class="block text-sm text-gray-600 mb-1"><?php echo e(__('appr_font_body')); ?></label>
@@ -177,7 +177,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <hr>
 
-    <!-- 基准字号 -->
+    <?php /* 基准字号 */ ?>
     <div>
         <label class="font-medium text-gray-800"><?php echo e(__('appr_font_size')); ?></label>
         <p class="text-sm text-gray-500 mt-1 mb-2"><?php echo e(__('appr_font_size_tip')); ?></p>
@@ -187,7 +187,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
     <hr>
 
-    <!-- 自托管字体 -->
+    <?php /* 自托管字体 */ ?>
     <div>
         <label class="font-medium text-gray-800"><?php echo e(__('appr_font_upload')); ?></label>
         <p class="text-sm text-gray-500 mt-1 mb-3"><?php echo e(__('appr_font_upload_tip')); ?></p>

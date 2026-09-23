@@ -173,7 +173,7 @@ if ($stats['files'] > 0 && $safeBaseUrl !== '' && function_exists('curl_init')) 
 </div>
 <?php endif; ?>
 
-<!-- 状态卡片 -->
+<?php /* 状态卡片 */ ?>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div class="bg-white rounded-lg shadow p-5">
         <div class="text-gray-400 text-sm"><?php echo __('sh_stat_files'); ?></div>
@@ -189,7 +189,7 @@ if ($stats['files'] > 0 && $safeBaseUrl !== '' && function_exists('curl_init')) 
     </div>
 </div>
 
-<!-- 设置 -->
+<?php /* 设置 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b"><h2 class="font-bold text-gray-800"><?php echo __('sh_settings'); ?></h2></div>
     <div class="p-6 space-y-4">
@@ -213,7 +213,7 @@ if ($stats['files'] > 0 && $safeBaseUrl !== '' && function_exists('curl_init')) 
     </div>
 </div>
 
-<!-- 生成操作 -->
+<?php /* 生成操作 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b"><h2 class="font-bold text-gray-800"><?php echo __('sh_actions'); ?></h2></div>
     <div class="p-6 space-y-4">
@@ -227,7 +227,7 @@ if ($stats['files'] > 0 && $safeBaseUrl !== '' && function_exists('curl_init')) 
             </button>
         </div>
 
-        <!-- 进度 -->
+        <?php /* 进度 */ ?>
         <div id="progressWrap" class="hidden">
             <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
                 <div id="progressBar" class="bg-green-500 h-3 transition-all" style="width:0%"></div>
@@ -238,7 +238,7 @@ if ($stats['files'] > 0 && $safeBaseUrl !== '' && function_exists('curl_init')) 
     </div>
 </div>
 
-<!-- 服务器配置提醒 -->
+<?php /* 服务器配置提醒 */ ?>
 <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
     <p class="font-medium mb-1"><?php echo __('sh_server_note_title'); ?></p>
     <p><?php echo __('sh_server_note'); ?></p>

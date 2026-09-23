@@ -121,7 +121,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </table>
         </div>
 
-        <!-- 样式编辑（v1 白名单字段；「与元素控件同一套 schema」在分层输出批次扩展） -->
+        <?php /* 样式编辑（v1 白名单字段；「与元素控件同一套 schema」在分层输出批次扩展） */ ?>
         <template x-if="editing">
             <div class="rounded border border-gray-200 bg-white p-4 space-y-3" data-testid="blox-class-editor">
                 <div class="text-sm font-medium text-gray-700" x-text="'yk-c-' + (currentClass() ? currentClass().name : '')"></div>

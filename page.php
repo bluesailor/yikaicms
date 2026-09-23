@@ -289,7 +289,7 @@ while ($tempChannel) {
 }
 ?>
 
-<!-- 页面头部 -->
+<?php /* 页面头部 */ ?>
 <?php
 $breadcrumbItems = [];
 foreach ($breadcrumbs as $bc) {
@@ -303,11 +303,11 @@ if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame']
 <section class="<?php echo $isBloxPage ? '' : 'py-12'; ?>">
     <div class="<?php echo $isBloxPage && empty($sidebarChannels) ? '' : 'container mx-auto px-4'; ?>">
         <div class="flex flex-wrap lg:flex-nowrap gap-8">
-            <!-- 主内容区 -->
+            <?php /* 主内容区 */ ?>
             <div class="w-full <?php echo !empty($sidebarChannels) ? 'lg:flex-1' : ''; ?>">
 
                 <?php if ($channel['type'] === 'album'): ?>
-                <!-- 相册类型展示 -->
+                <?php /* 相册类型展示 */ ?>
                 <?php if (($content && $content['content']) || ($albumData && $albumData['description'])): ?>
                 <div class="bg-white rounded-lg shadow p-6 mb-6">
                     <?php if ($content && $content['content']): ?>
@@ -324,7 +324,7 @@ if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame']
                 <?php $__albumMasonry = (($albumData['layout'] ?? 'grid') === 'masonry'); ?>
                 <div class="bg-white rounded-lg shadow p-6">
                     <?php if ($__albumMasonry): ?>
-                    <!-- 流布局（瀑布流）：保留图片原始比例 -->
+                    <?php /* 流布局（瀑布流）：保留图片原始比例 */ ?>
                     <div data-album-masonry style="columns:2;column-gap:1rem">
                         <?php foreach ($albumPhotos as $photo): ?>
                         <div class="group" style="break-inside:avoid;margin-bottom:1rem">
@@ -344,7 +344,7 @@ if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame']
                     </div>
                     <style>@media(min-width:768px){[data-album-masonry]{columns:3}}@media(min-width:1024px){[data-album-masonry]{columns:4}}</style>
                     <?php else: ?>
-                    <!-- 网格：等比方形缩略图 -->
+                    <?php /* 网格：等比方形缩略图 */ ?>
                     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         <?php foreach ($albumPhotos as $photo): ?>
                         <div class="group">
@@ -371,7 +371,7 @@ if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame']
                 <?php endif; ?>
 
                 <?php elseif ($content): ?>
-                <!-- 单页类型展示 -->
+                <?php /* 单页类型展示 */ ?>
                 <article class="<?php echo $isBloxPage ? 'yk-blox-page-content' : 'bg-white rounded-lg shadow p-6 md:p-8'; ?>">
                     <?php if ($content['cover'] && (int)($channel['show_cover'] ?? 1) === 1): ?>
                     <div class="mb-6">
@@ -387,7 +387,7 @@ if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame']
                         <?php echo PageTitleElement::withPage($channel, static fn(): string => renderFrontEditableContentBody($content, (int) $channel['id'])); ?>
                     </div>
 
-                    <!-- 图片相册 -->
+                    <?php /* 图片相册 */ ?>
                     <?php if ($content['images']): ?>
                     <?php
                     $decodedImages = json_decode($content['images'], true);
@@ -416,7 +416,7 @@ if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame']
                 <?php endif; ?>
             </div>
 
-            <!-- 侧边栏导航 -->
+            <?php /* 侧边栏导航 */ ?>
             <?php if (!empty($sidebarChannels)): ?>
             <?php
             $rightSidebarTitle = $sidebarTitle;
@@ -432,7 +432,8 @@ if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame']
 </section>
 
 <?php if ($channel['type'] === 'album' && !empty($albumPhotos)): ?>
-<!-- PhotoSwipe 灯箱（相册；替代手写 lightbox） -->
+<?php /* PhotoSwipe 灯箱（相册；替代手写 lightbox） */ ?>
+
 <link rel="stylesheet" href="/assets/photoswipe/photoswipe.css">
 <script src="/assets/photoswipe/photoswipe.umd.min.js"></script>
 <script src="/assets/photoswipe/photoswipe-lightbox.umd.min.js"></script>

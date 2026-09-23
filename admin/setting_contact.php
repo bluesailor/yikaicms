@@ -109,7 +109,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
 <form id="settingForm" class="space-y-6">
     <?php echo adminLangField(); ?>
     <?php if ($tab === 'info'): ?>
-    <!-- 联系信息 -->
+    <?php /* 联系信息 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('contact_info_title'); ?></h2>
@@ -126,7 +126,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
             <?php foreach ($infoSettings as $item): ?>
 
             <?php if ($item['type'] === 'contact_cards'): ?>
-            <!-- 联系信息卡片编辑器 -->
+            <?php /* 联系信息卡片编辑器 */ ?>
             <?php $cardsData = json_decode($item['value'], true) ?: []; ?>
             <div>
                 <label class="text-gray-700 font-medium block mb-1">
@@ -198,7 +198,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
             </div>
 
             <?php else: ?>
-            <!-- 普通设置项 -->
+            <?php /* 普通设置项 */ ?>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
                 <label class="text-gray-700 pt-2">
                     <?php echo e(settingLabel($item['key'], (string) $item['name'])); ?>
@@ -247,7 +247,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
 
     <?php if ($tab === 'form'): ?>
     <p class="text-sm text-gray-700 mb-4"><?= e(__('setup_form_source')) ?></p>
-    <!-- 表单短码提示 -->
+    <?php /* 表单短码提示 */ ?>
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
             <i class="ti ti-info-circle text-lg text-blue-500 flex-shrink-0"></i>
@@ -259,7 +259,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
         <a href="/admin/form_design.php?edit=contact&amp;lang=<?= e(rawurlencode($_viewLang)) ?>" class="text-sm text-blue-600 hover:text-blue-800 hover:underline flex-shrink-0"><?php echo e(__('scontact_goto_form_design')); ?> &rarr;</a>
     </div>
 
-    <!-- 表单设置 -->
+    <?php /* 表单设置 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo __('contact_form_config'); ?></h2>
@@ -268,7 +268,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
             <?php foreach ($formSettings as $item): ?>
 
             <?php if ($item['type'] === 'contact_form_fields'): ?>
-            <!-- 表单字段编辑器 -->
+            <?php /* 表单字段编辑器 */ ?>
             <?php $fieldsData = json_decode($item['value'], true) ?: []; ?>
             <?php
             $defaultFieldDefs = [
@@ -365,7 +365,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
     <?php endif; ?>
 
     <?php if ($tab === 'map'): ?>
-    <!-- ============ 地图 API ============ -->
+    <?php /* ============ 地图 API ============ */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b">
             <h2 class="font-bold text-gray-800"><?php echo e(__('scontact_map_api')); ?></h2>
@@ -373,7 +373,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
         </div>
         <div class="p-6 space-y-6">
 
-            <!-- 坐标 -->
+            <?php /* 坐标 */ ?>
             <div>
                 <label class="block font-medium text-gray-700 mb-2"><?php echo e(__('scontact_coords')); ?></label>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -423,7 +423,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
                 </details>
             </div>
 
-            <!-- 中文版服务商 -->
+            <?php /* 中文版服务商 */ ?>
             <div>
                 <label class="block font-medium text-gray-700 mb-2"><?php echo e(__('scontact_zh_provider')); ?></label>
                 <?php $prov = (string) config('map_zh_provider'); ?>
@@ -435,7 +435,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
                 <p class="text-xs text-gray-400 mt-1"><?php echo e(__('scontact_google_note')); ?></p>
             </div>
 
-            <!-- 高德 -->
+            <?php /* 高德 */ ?>
             <div class="border rounded-lg p-4 bg-gray-50">
                 <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
                     <span class="font-medium text-gray-700">高德地图 JS API Key</span>
@@ -454,7 +454,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
                 </details>
             </div>
 
-            <!-- 百度 -->
+            <?php /* 百度 */ ?>
             <div class="border rounded-lg p-4 bg-gray-50">
                 <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
                     <span class="font-medium text-gray-700">百度地图 ak</span>
@@ -473,7 +473,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':key', 'key_' . $_viewLang
                 </details>
             </div>
 
-            <!-- Google 说明 -->
+            <?php /* Google 说明 */ ?>
             <div class="border rounded-lg p-4 bg-blue-50">
                 <p class="text-sm text-gray-700"><b>日 / 英文版（Google 地图）</b>：使用 Google Maps 嵌入式地图，<b>无需 API Key、无需任何申请</b>——只要上面填了经纬度即自动显示，并按访问语言显示日文 / 英文界面。如将来需要更强的样式与交互，可再升级到 Google Maps JS API（需 Key 且要启用结算账号）。</p>
             </div>

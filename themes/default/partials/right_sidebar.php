@@ -34,7 +34,7 @@ $sidebarItems = $rightSidebarItems ?? null;
         </div>
     </div>
 
-    <!-- Contact Information -->
+    <?php /* Contact Information */ ?>
     <div class="bg-white rounded-lg shadow mt-6">
         <div class="px-4 py-3 border-b font-bold text-dark"><?php echo __('footer_contact'); ?></div>
         <div class="p-4 space-y-3 text-sm">

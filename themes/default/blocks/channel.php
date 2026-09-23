@@ -29,7 +29,7 @@ $articleGrid = AbstractElement::gridClasses($perRow, 4);
         <?php if (!empty($contents)): ?>
 
         <?php if ($hChannel['is_product'] ?? false): ?>
-        <!-- Product: Card Grid with Category Navigation -->
+        <?php /* Product: Card Grid with Category Navigation */ ?>
         <?php $categories = $hChannel['categories'] ?? []; ?>
         <?php if (!empty($categories)): ?>
         <div class="flex flex-wrap justify-center gap-3 mb-8" id="productCategoryNav">
@@ -76,7 +76,7 @@ $articleGrid = AbstractElement::gridClasses($perRow, 4);
         </div>
 
         <?php elseif ($channelType === 'case'): ?>
-        <!-- Example: Card Grid -->
+        <?php /* Example: Card Grid */ ?>
         <div class="grid <?php echo $caseGrid; ?> gap-8">
             <?php foreach ($contents as $item): ?>
             <a href="<?php echo contentUrl($item); ?>" class="block u-card group">
@@ -107,7 +107,7 @@ $articleGrid = AbstractElement::gridClasses($perRow, 4);
         </div>
 
         <?php else: ?>
-        <!-- Articles/News: List Style (无封面文章显示占位图，不再过滤丢弃) -->
+        <?php /* Articles/News: List Style (无封面文章显示占位图，不再过滤丢弃) */ ?>
         <?php $withCover = $contents; ?>
         <div class="grid <?php echo $articleGrid; ?> gap-6">
             <?php foreach (array_slice($withCover, 0, 4) as $item):
@@ -138,7 +138,7 @@ $articleGrid = AbstractElement::gridClasses($perRow, 4);
         <?php endif; ?>
 
         <?php else: ?>
-        <!-- The content appears to be empty or without meaningful substance. -->
+        <?php /* The content appears to be empty or without meaningful substance. */ ?>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <?php for ($i = 0; $i < 3; $i++): ?>
             <div class="u-card">

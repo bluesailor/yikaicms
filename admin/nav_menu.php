@@ -380,7 +380,7 @@ function ykToggleNavIcons(el) {
 
 <script src="/assets/sortable/Sortable.min.js"></script>
 
-<!-- Tab：默认导航 + 各菜单组 + 新建 -->
+<?php /* Tab：默认导航 + 各菜单组 + 新建 */ ?>
 <div class="flex items-center gap-2 flex-wrap mb-4" data-testid="nav-menu-tabs">
     <a href="/admin/nav_menu.php" class="px-4 py-1.5 rounded-lg text-sm <?php echo $activeGroup === 0 ? 'bg-primary text-white' : 'bg-white shadow text-gray-600 hover:text-gray-900'; ?>">
         <?php echo e(__('nav_menu_default_tab')); ?>
@@ -410,7 +410,8 @@ function ykToggleNavIcons(el) {
 </div>
 
 <?php if ($activeGroup === 0 || $editGroup === null): ?>
-<!-- ============ 默认导航：栏目投影（拖拽排序 + 即时显隐） ============ -->
+<?php /* ============ 默认导航：栏目投影（拖拽排序 + 即时显隐） ============ */ ?>
+
 <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden" data-nm-default>
     <div class="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -868,7 +869,8 @@ function ykToggleNavIcons(el) {
 </script>
 
 <?php else: ?>
-<!-- ============ 菜单组编辑器 ============ -->
+<?php /* ============ 菜单组编辑器 ============ */ ?>
+
 <div class="bg-white rounded-lg shadow"
      x-data='ykMenuGroupEditor(<?php echo json_encode([
          'items' => json_decode((string) ($editGroup['items'] ?? '[]'), true) ?: [],
@@ -907,7 +909,7 @@ function ykToggleNavIcons(el) {
     </div>
 
     <div class="px-5 py-4">
-        <!-- 添加项 -->
+        <?php /* 添加项 */ ?>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-100" data-nm-add-items>
             <div data-nm-add-channel>
                 <label class="block text-xs font-medium text-gray-600 mb-1.5"><?php echo e(__('nav_menu_add_channel')); ?></label>

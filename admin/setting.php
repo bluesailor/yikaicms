@@ -355,7 +355,7 @@ if ($_langAware) {
 
 
 <?php if ($tab === 'lang'): ?>
-<!-- 前台语言配置（独立卡片）-->
+<?php /* 前台语言配置（独立卡片） */ ?>
 <?php
 $siteDefault = config('site_lang', 'zh-CN');
 $siteEnabledRaw = trim((string)config('enabled_languages', ''));
@@ -404,7 +404,7 @@ foreach ($siteEnabled as $_lc) {
             <?php endforeach; ?>
         </div>
 
-        <!-- per-language 首页菜单显示开关：只渲染已启用语言 -->
+        <?php /* per-language 首页菜单显示开关：只渲染已启用语言 */ ?>
         <div class="border-t pt-3">
             <p class="text-xs text-gray-500 mb-2"><?php echo e(__('sset_home_per_lang')); ?></p>
             <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -469,7 +469,7 @@ async function saveSiteLanguages() {
 }
 </script>
 
-<!-- 后台语言配置（独立卡片）-->
+<?php /* 后台语言配置（独立卡片） */ ?>
 <?php
 $adminLangsRaw = trim((string)config('admin_languages', ''));
 $adminLangsCurrent = $adminLangsRaw !== ''
@@ -577,7 +577,7 @@ async function saveAdminLanguages() {
             </button>
         </div>
         <?php if ($hasSections): ?>
-        <!-- 快速导航：吸顶胶囊条（吸在顶栏下方）-->
+        <?php /* 快速导航：吸顶胶囊条（吸在顶栏下方） */ ?>
         <div class="sticky top-16 z-30 bg-white/95 backdrop-blur border-b px-4 py-2 flex flex-wrap gap-1.5">
             <?php foreach ($renderSections as $__s): ?>
             <a href="#<?php echo $sectionAnchor[$__s]; ?>" data-target="<?php echo $sectionAnchor[$__s]; ?>"
@@ -597,7 +597,7 @@ async function saveAdminLanguages() {
             <?php foreach ($itemsBySection[$__sec] as $item): ?>
 
             <?php if ($item['type'] === 'footer_columns'): ?>
-            <!-- 页脚栏目编辑器 -->
+            <?php /* 页脚栏目编辑器 */ ?>
             <?php $columnsData = json_decode($item['value'], true) ?: []; ?>
             <?php $__navGroups = navMenuModel()->asMap(); // 栏可引用网站菜单组（选了组则该栏渲染组链接） ?>
             <div>
@@ -661,7 +661,7 @@ async function saveAdminLanguages() {
             </div>
 
             <?php elseif ($item['type'] === 'footer_nav'): ?>
-            <!-- 页脚导航编辑器 -->
+            <?php /* 页脚导航编辑器 */ ?>
             <?php $navData = json_decode($item['value'], true) ?: []; ?>
             <div>
                 <label class="text-gray-700 font-medium block mb-1">
@@ -683,7 +683,7 @@ async function saveAdminLanguages() {
             </script>
 
             <?php else: ?>
-            <!-- 普通设置项 -->
+            <?php /* 普通设置项 */ ?>
             <?php
             $defaultItem = $groupDefaults[$item['key']] ?? null;
             $defaultValue = $defaultItem['value'] ?? '';
@@ -824,7 +824,7 @@ async function saveAdminLanguages() {
 
                     <?php elseif ($item['type'] === 'color'): ?>
                     <?php if ($item['key'] === 'primary_color'): ?>
-                    <!-- 预设配色方案 -->
+                    <?php /* 预设配色方案 */ ?>
                     <div class="mb-3" id="colorPresets">
                         <div class="text-xs text-gray-400 mb-2"><?php echo __('setting_color_presets'); ?></div>
                         <div class="flex flex-wrap gap-2">

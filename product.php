@@ -127,7 +127,7 @@ if (trim($productTemplateHtml) !== '') {
 } else {
 ?>
 
-<!-- 面包屑 -->
+<?php /* 面包屑 */ ?>
 <div class="bg-gray-100 py-4">
     <div class="container mx-auto px-4">
         <nav aria-label="<?php echo e(__('breadcrumb_nav')); ?>" class="flex flex-wrap items-center gap-2 text-sm text-gray-600">
@@ -150,21 +150,21 @@ if (trim($productTemplateHtml) !== '') {
     </div>
 </div>
 
-<!-- 产品详情 -->
+<?php /* 产品详情 */ ?>
 <section class="py-12">
     <div class="container mx-auto px-4">
         <div class="bg-white rounded-lg shadow overflow-hidden">
-            <!-- 产品主体 -->
+            <?php /* 产品主体 */ ?>
             <div class="flex flex-col lg:flex-row">
-                <!-- 左侧图片 -->
+                <?php /* 左侧图片 */ ?>
                 <div class="lg:w-1/2 p-6">
                     <?php if (!empty($productImages)): ?>
-                    <!-- 主图（点击打开 lightbox） -->
+                    <?php /* 主图（点击打开 lightbox） */ ?>
                     <div class="aspect-square overflow-hidden rounded-lg bg-gray-100 mb-4 relative group cursor-zoom-in"
                          onclick="openLightbox(currentImageIdx)">
                         <img decoding="async" fetchpriority="high" <?php echo responsiveImageAttributes($productImages[0], 'medium', $productImageSizes); ?> alt="<?php echo e($product['title']); ?>"
                              id="mainImage" class="w-full h-full object-contain transition-transform group-hover:scale-105">
-                        <!-- 放大镜图标 -->
+                        <?php /* 放大镜图标 */ ?>
                         <div class="absolute top-3 right-3 bg-black/50 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 3h6m0 0v6m0-6L14 10M9 21H3m0 0v-6m0 6l7-7"/>
@@ -176,7 +176,7 @@ if (trim($productTemplateHtml) !== '') {
                         </div>
                         <?php endif; ?>
                     </div>
-                    <!-- 缩略图 -->
+                    <?php /* 缩略图 */ ?>
                     <?php if (count($productImages) > 1): ?>
                     <div class="flex gap-2 overflow-x-auto">
                         <?php foreach ($productImages as $i => $img): ?>
@@ -195,7 +195,7 @@ if (trim($productTemplateHtml) !== '') {
                     <?php endif; ?>
                 </div>
 
-                <!-- 右侧信息 -->
+                <?php /* 右侧信息 */ ?>
                 <div class="lg:w-1/2 p-6 lg:border-l">
                     <h1 class="text-2xl font-bold text-dark mb-2"><?php echo e($product['title']); ?></h1>
 
@@ -229,7 +229,7 @@ if (trim($productTemplateHtml) !== '') {
                     </div>
                     <?php endif; ?>
 
-                    <!-- 标签 -->
+                    <?php /* 标签 */ ?>
                     <?php if ($product['tags']): ?>
                     <div class="flex flex-wrap gap-2 mb-6">
                         <?php foreach (explode(',', $product['tags']) as $tag): ?>
@@ -240,7 +240,7 @@ if (trim($productTemplateHtml) !== '') {
                     </div>
                     <?php endif; ?>
 
-                    <!-- 咨询信息 -->
+                    <?php /* 咨询信息 */ ?>
                     <div class="border-t pt-5 mt-2 space-y-3">
                         <?php if (configRawLang('contact_phone')): ?>
                         <div class="flex items-center gap-3 text-sm text-gray-600">
@@ -263,7 +263,7 @@ if (trim($productTemplateHtml) !== '') {
 
                     <?php $productInquiryFields = renderProductInquiryFields((string) $product['title']); ?>
                     <?php if ($productInquiryFields !== ''): ?>
-                    <!-- 产品询盘表单：原生页与 Blox 共用后台 product-inquiry 字段模板。 -->
+                    <?php /* 产品询盘表单：原生页与 Blox 共用后台 product-inquiry 字段模板。 */ ?>
                     <div class="border-t pt-5 mt-4">
                         <h3 class="text-sm font-bold text-dark mb-3 flex items-center gap-2">
                             <svg class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
@@ -289,7 +289,7 @@ if (trim($productTemplateHtml) !== '') {
                 </div>
             </div>
 
-            <!-- Tab 切换区 -->
+            <?php /* Tab 切换区 */ ?>
             <?php
             $hasSpecs = !empty($specs);
             $hasContent = !empty($product['content']);
@@ -297,7 +297,7 @@ if (trim($productTemplateHtml) !== '') {
             ?>
             <?php if ($tabCount > 0): ?>
             <div class="border-t">
-                <!-- Tab 导航 -->
+                <?php /* Tab 导航 */ ?>
                 <div class="flex border-b bg-gray-50" id="productTabs">
                     <?php if ($hasContent): ?>
                     <button type="button" class="product-tab px-6 py-4 font-bold text-primary border-b-2 border-primary" data-tab="detail">
@@ -311,7 +311,7 @@ if (trim($productTemplateHtml) !== '') {
                     <?php endif; ?>
                 </div>
 
-                <!-- Tab 内容 -->
+                <?php /* Tab 内容 */ ?>
                 <?php if ($hasContent): ?>
                 <div class="tab-panel p-6 prose prose-lg max-w-none" id="tab-detail"<?php echo (!empty($_SESSION['admin_id']) && !empty($product['id'])) ? ' data-yk-edit="/admin/product_edit.php?id=' . (int) $product['id'] . '" data-yk-edit-label="✎ ' . e(__('prod_edit')) . '"' : ''; ?>>
                     <?php if (class_exists('TagEngine')) TagEngine::setItem($product, 'product'); ?>
@@ -337,7 +337,7 @@ if (trim($productTemplateHtml) !== '') {
             <?php endif; ?>
         </div>
 
-        <!-- 上一个/下一个产品 -->
+        <?php /* 上一个/下一个产品 */ ?>
         <?php if ($prevProduct || $nextProduct): ?>
         <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
             <?php if ($prevProduct): ?>
@@ -374,7 +374,7 @@ if (trim($productTemplateHtml) !== '') {
         </div>
         <?php endif; ?>
 
-        <!-- 相关产品 -->
+        <?php /* 相关产品 */ ?>
         <?php if (!empty($relatedProducts)): ?>
         <div class="mt-12">
             <h2 class="text-2xl font-bold text-dark mb-6"><?php echo e(__('detail_related_products')); ?></h2>
@@ -408,7 +408,8 @@ if (trim($productTemplateHtml) !== '') {
 </section>
 
 <?php if (!empty($productImages)): ?>
-<!-- PhotoSwipe 灯箱资源（替代手写 lightbox：双指缩放/滑动/键盘全内置） -->
+<?php /* PhotoSwipe 灯箱资源（替代手写 lightbox：双指缩放/滑动/键盘全内置） */ ?>
+
 <link rel="stylesheet" href="/assets/photoswipe/photoswipe.css">
 <script src="/assets/photoswipe/photoswipe.umd.min.js"></script>
 <script src="/assets/photoswipe/photoswipe-lightbox.umd.min.js"></script>

@@ -223,7 +223,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div class="space-y-6">
 
-    <!-- Tab 导航 -->
+    <?php /* Tab 导航 */ ?>
     <div class="bg-white rounded-lg shadow">
         <div class="flex border-b text-sm font-medium" id="imTabs">
             <button data-tab="random" class="im-tab px-6 py-3 border-b-2 border-primary text-primary"><i class="ti ti-sparkles mr-1"></i>随机图标</button>
@@ -234,7 +234,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
 
         <div class="p-6">
-            <!-- 文字图标 -->
+            <?php /* 文字图标 */ ?>
             <div id="im-pane-text" class="im-pane hidden">
                 <div class="grid md:grid-cols-2 gap-8">
                 <div class="space-y-4">
@@ -304,11 +304,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </div>
                     </div>
                 </div>
-                <div><!-- 预览 + 下载在下方公共区 --></div>
+                <div><?php /* 预览 + 下载在下方公共区 */ ?></div>
                 </div>
             </div>
 
-            <!-- 图片转图标 -->
+            <?php /* 图片转图标 */ ?>
             <div id="im-pane-image" class="im-pane hidden">
                 <div id="imDrop" class="border-2 border-dashed border-gray-300 hover:border-primary rounded-lg p-10 text-center cursor-pointer transition">
                     <i class="ti ti-cloud-upload text-3xl text-gray-400"></i>
@@ -318,12 +318,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 随机 SVG 图标 -->
+            <?php /* 随机 SVG 图标 */ ?>
             <div id="im-pane-random" class="im-pane">
                 <?php require __DIR__ . '/random_ui.php'; ?>
             </div>
 
-            <!-- 图标绘制：先完成独立图标，再送入 LOGO 排版 -->
+            <?php /* 图标绘制：先完成独立图标，再送入 LOGO 排版 */ ?>
             <div id="im-pane-draw" class="im-pane hidden">
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <div>
@@ -382,7 +382,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 文字 LOGO：画布式编辑器（多文字元素，独立样式，拖动定位） -->
+            <?php /* 文字 LOGO：画布式编辑器（多文字元素，独立样式，拖动定位） */ ?>
             <div id="im-pane-logo" class="im-pane space-y-4">
                 <div class="flex flex-wrap items-center gap-3 text-sm">
                     <button id="imLAdd" class="px-3 py-1.5 bg-primary hover:bg-secondary text-white rounded transition"><i class="ti ti-plus mr-0.5"></i>添加文字</button>
@@ -475,7 +475,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
             </div>
 
-            <!-- 公共：多尺寸预览 + 生成（文字图标 / 图片转图标 共用） -->
+            <?php /* 公共：多尺寸预览 + 生成（文字图标 / 图片转图标 共用） */ ?>
             <div id="imIconOut" class="hidden mt-8 pt-6 border-t">
                 <h3 class="text-sm font-bold text-gray-700 mb-3">多尺寸预览</h3>
                 <div class="flex items-end gap-6 flex-wrap" id="imPreviews">
@@ -500,7 +500,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <?php if (!$imHasPro): ?>
-    <!-- 授权闸门保留，当前本地能力默认开放 -->
+    <?php /* 授权闸门保留，当前本地能力默认开放 */ ?>
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center gap-2 mb-3">
             <h2 class="font-bold text-gray-800">站点图标应用</h2>

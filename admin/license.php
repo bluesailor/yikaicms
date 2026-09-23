@@ -69,7 +69,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <div class="space-y-6">
 
-    <!-- 状态卡 -->
+    <?php /* 状态卡 */ ?>
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="flex items-center gap-3">
@@ -130,7 +130,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
-    <!-- 授权码 -->
+    <?php /* 授权码 */ ?>
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="font-bold text-gray-800 mb-1"><?php echo __('lic_key'); ?></h2>
         <?php if (function_exists('license_valid') && license_valid()): ?>
@@ -167,7 +167,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <?php if (!$valid): ?>
-    <!-- 未授权：展示专业版权益（已授权即白标，不展示营销内容） -->
+    <?php /* 未授权：展示专业版权益（已授权即白标，不展示营销内容） */ ?>
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="font-bold text-gray-800 mb-1"><?php echo __('lic_pro_title'); ?></h2>
         <p class="text-sm text-gray-500 mb-4"><?php echo __('lic_pro_desc'); ?></p>

@@ -97,7 +97,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('pt
 
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- 标签列表 -->
+    <?php /* 标签列表 */ ?>
     <div class="lg:col-span-2">
         <?php foreach ($groups as $groupName => $tags): ?>
         <div class="bg-white rounded-lg shadow mb-4">
@@ -124,7 +124,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('pt
         <?php endif; ?>
     </div>
 
-    <!-- 添加/编辑 -->
+    <?php /* 添加/编辑 */ ?>
     <div>
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="font-bold mb-4"><?php echo $editTag ? e(__('ptag_edit')) : e(__('ptag_add')); ?></h3>

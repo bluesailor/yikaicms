@@ -58,7 +58,7 @@ if ($heroLegacyGradient) {
     </div>
     <?php endif; ?>
     <div class="container mx-auto px-4 relative">
-        <!-- breadcrumb navigation -->
+        <?php /* breadcrumb navigation */ ?>
         <?php if (empty($GLOBALS['ykBloxPageFrame']['page_breadcrumb_hidden'])): ?>
         <?php $style = $heroTone === 'light' ? 'light' : 'dark'; require theme_path('partials/breadcrumb.php'); ?>
         <?php endif; ?>

@@ -231,7 +231,7 @@ adminModuleTabStart([
 ?>
 
 
-<!-- 顶部：数据库概览（左）+ 一键备份（右） -->
+<?php /* 顶部：数据库概览（左）+ 一键备份（右） */ ?>
 <div class="bg-white rounded-lg shadow mb-6 p-5 flex flex-wrap items-center justify-between gap-4">
     <div class="flex flex-wrap items-center gap-x-6 gap-y-1">
         <span class="text-sm text-gray-500"><?php echo str_replace(':n', (string) count($allTables), e(__('db_n_tables'))); ?> · <?php echo str_replace(':n', number_format($totalRows), e(__('admin_total_n'))); ?> · <?php echo round($totalSize / 1024 / 1024, 2); ?> MB · <?php echo e(DB_NAME); ?></span>
@@ -277,7 +277,7 @@ adminModuleTabStart([
 
 <?php if ($tab === 'backup'): ?>
 
-<!-- 备份记录 -->
+<?php /* 备份记录 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b">
         <h2 class="font-bold text-gray-800"><?php echo __('db_backup_history'); ?></h2>
@@ -340,7 +340,8 @@ async function deleteBackup(file) {
 </script>
 
 <?php elseif ($tab === 'export'): ?>
-<!-- 按表导出 -->
+<?php /* 按表导出 */ ?>
+
 <form method="post" class="max-w-3xl mx-auto">
     <?php echo csrfField(); ?>
     <input type="hidden" name="action" value="export">
@@ -382,7 +383,8 @@ async function deleteBackup(file) {
 </form>
 
 <?php elseif ($tab === 'import'): ?>
-<!-- 导入恢复 -->
+<?php /* 导入恢复 */ ?>
+
 <div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="font-bold text-gray-800 mb-4"><?php echo e(__('db_import_sql')); ?></h2>
@@ -438,7 +440,8 @@ document.getElementById('importForm').addEventListener('submit', async function(
 </script>
 
 <?php elseif ($tab === 'logs'): ?>
-<!-- 日志清理 -->
+<?php /* 日志清理 */ ?>
+
 <div class="max-w-2xl mx-auto space-y-4">
     <?php
     $logItems = [
@@ -511,7 +514,8 @@ async function optimizeTables() {
 </script>
 
 <?php elseif ($tab === 'tables'): ?>
-<!-- 数据表列表 -->
+<?php /* 数据表列表 */ ?>
+
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full text-sm">

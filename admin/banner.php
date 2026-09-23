@@ -306,7 +306,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
 ?>
 
-<!-- Tab 导航 -->
+<?php /* Tab 导航 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-2 flex flex-wrap gap-2" role="navigation" aria-label="<?php echo e(__('admin_banner')); ?>">
         <a href="/admin/banner.php<?php echo $_lang['qs'] ?? ''; ?>" class="px-4 py-2.5 text-sm font-medium rounded inline-flex items-center gap-2 <?php echo $tab === 'list' ? 'bg-primary text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'; ?>">
@@ -321,10 +321,11 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
 </div>
 
 <?php if ($tab === 'list'): ?>
-<!-- ========== 轮播图列表 ========== -->
+<?php /* ========== 轮播图列表 ========== */ ?>
+
 <link rel="stylesheet" href="<?php echo e(assetVer('/assets/css/blox-banner.css')); ?>">
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
@@ -367,7 +368,7 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
     </div>
 </div>
 
-<!-- 列表 -->
+<?php /* 列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <div class="overflow-x-auto">
         <table class="w-full">
@@ -476,7 +477,7 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
     </div>
 </div>
 
-<!-- 编辑弹窗 -->
+<?php /* 编辑弹窗 */ ?>
 <div id="editModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[calc(100vh-2rem)] overflow-y-auto">
@@ -685,7 +686,7 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
     </div>
 </div>
 
-<!-- 设置弹窗 -->
+<?php /* 设置弹窗 */ ?>
 <div id="settingsModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeSettingsModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-md">
@@ -1047,7 +1048,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
 <?php endif; ?>
 
 <?php if ($tab === 'groups'): ?>
-<!-- ========== 分组管理 ========== -->
+<?php /* ========== 分组管理 ========== */ ?>
 
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex justify-between items-center">
@@ -1149,7 +1150,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     </div>
 </div>
 
-<!-- 分组编辑弹窗 -->
+<?php /* 分组编辑弹窗 */ ?>
 <div id="groupModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50" onclick="closeGroupModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[calc(100vh-2rem)] overflow-y-auto"

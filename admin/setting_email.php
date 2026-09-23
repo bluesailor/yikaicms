@@ -206,7 +206,8 @@ if ($_emailLangAware) {
 
 
 <?php if ($activeTab === 'smtp'): ?>
-<!-- ============ SMTP 配置 ============ -->
+<?php /* ============ SMTP 配置 ============ */ ?>
+
 <form id="settingForm" class="space-y-6">
     <?php echo adminLangField(); ?>
     <input type="hidden" name="_save_tab" value="smtp">
@@ -435,7 +436,7 @@ async function sendTestEmail() {
 </script>
 
 <?php elseif ($activeTab === 'log'): ?>
-<!-- ============ 投递日志与失败重试 ============ -->
+<?php /* ============ 投递日志与失败重试 ============ */ ?>
 <?php
     $mailLog = MailDelivery::recent(100);
     $mailStreak = MailDelivery::failureStreak();
@@ -565,7 +566,7 @@ function retryAllFailed(button) {
 </script>
 
 <?php else: ?>
-<!-- ============ 模板编辑 ============ -->
+<?php /* ============ 模板编辑 ============ */ ?>
 <?php
     $tab = $tabs[$activeTab];
     $subjectKey = $tab['keys'][0];

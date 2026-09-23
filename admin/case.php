@@ -154,7 +154,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
 
 <?php echo renderAdminLangSwitcher($_viewLang); ?>
 
-<!-- 工具栏 -->
+<?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
@@ -191,7 +191,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
     </div>
 </div>
 
-<!-- 列表 -->
+<?php /* 列表 */ ?>
 <div class="bg-white rounded-lg shadow">
     <form id="listForm">
         <div class="overflow-x-auto">

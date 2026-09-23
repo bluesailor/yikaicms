@@ -215,7 +215,7 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
 
     <div id="uo-steps" class="space-y-3"></div>
 
-    <!-- 新版本信息卡：进入页面自动检查后填充（版本对比 / 升级级别 / 更新内容） -->
+    <?php /* 新版本信息卡：进入页面自动检查后填充（版本对比 / 升级级别 / 更新内容） */ ?>
     <div id="uo-card" class="hidden mt-5 bg-white border border-gray-200 rounded-lg overflow-hidden">
         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3 bg-gray-50">
             <div class="flex items-center gap-3 flex-wrap">
