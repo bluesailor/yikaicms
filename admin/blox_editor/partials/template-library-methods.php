@@ -123,7 +123,7 @@ declare(strict_types=1);
             headerPresetPreviewUrl(preset) {
                 if (!preset || !/^[a-z0-9-]{1,80}$/.test(String(preset.slug || ""))) return "about:blank";
                 var area = this.areaPresetType === "footer" ? "footer" : "header";
-                var url = "/admin/blox_preview.php?home=1&template_area=" + area + "&area_preset="
+                var url = (window.YK_BASE || "") + "/admin/blox_preview.php?home=1&template_area=" + area + "&area_preset="
                     + encodeURIComponent(preset.slug);
                 var previewLanguage = this.areaLanguage;
                 if (previewLanguage) url += "&_lang=" + encodeURIComponent(previewLanguage);
@@ -261,7 +261,7 @@ declare(strict_types=1);
                     blocks_data: this.documentData(),
                     _token: this.csrf,
                 });
-                fetch("/admin/blox_template_api.php", { method: "POST", body: body })
+                fetch((window.YK_BASE || "") + "/admin/blox_template_api.php", { method: "POST", body: body })
                     .then(function (response) { return response.json(); })
                     .then(function (result) {
                         self.toast(Number(result.code) === 0 ? self.headerPresetText.saveLocalDone : (result.msg || self.uiText.saveFailed));
@@ -543,7 +543,7 @@ declare(strict_types=1);
                 this.templateRemoteError = "";
                 var context = this.homeMode ? "home" : "page";
                 window.BloxTemplateLibrary.list(
-                    "/admin/blox_template_api.php",
+                    (window.YK_BASE || "") + "/admin/blox_template_api.php",
                     context,
                     this.templateText.loadFailed,
                     !!force
@@ -940,7 +940,7 @@ declare(strict_types=1);
                     case "renew": return { kind: "link", href: text.proUrl, label: text.renewPro, external: true };
                     case "activate":
                     case "domain":
-                    case "disabled": return { kind: "link", href: "/admin/license.php", label: text.manageLicense, external: false };
+                    case "disabled": return { kind: "link", href: (window.YK_BASE || "") + "/admin/license.php", label: text.manageLicense, external: false };
                     case "error": return { kind: "retry", label: text.retry };
                     default: return null;
                 }
@@ -1012,7 +1012,7 @@ declare(strict_types=1);
                     anchorAfter: requestedIndex === this.sections.length,
                 };
                 window.BloxTemplateLibrary.prepareInsert(
-                    "/admin/blox_template_api.php",
+                    (window.YK_BASE || "") + "/admin/blox_template_api.php",
                     context,
                     item.key,
                     this.templateText.insertFailed,
@@ -1113,7 +1113,7 @@ declare(strict_types=1);
                 review.error = "";
                 this.templateInserting = review.item.key;
                 window.BloxTemplateLibrary.confirmInsert(
-                    "/admin/blox_template_api.php",
+                    (window.YK_BASE || "") + "/admin/blox_template_api.php",
                     review.context,
                     review.item.key,
                     review.reviewId,

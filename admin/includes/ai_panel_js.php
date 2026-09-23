@@ -77,7 +77,7 @@ function submitAiPanel() {
     fd.append('length', (document.getElementById('aiLength') || {}).value || '800');
     fd.append('extra', (document.getElementById('aiExtra') || {}).value || '');
 
-    fetch('/admin/api_ai.php', { method: 'POST', body: fd })
+    fetch((window.YK_BASE || '') + '/admin/api_ai.php', { method: 'POST', body: fd })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (!data.success) { showMessage(<?php echo json_encode(__('aip_ai_error'), JSON_UNESCAPED_UNICODE); ?> + ': ' + data.error, 'error'); return; }
@@ -116,7 +116,7 @@ function aiQuick(action) {
     var fd = new FormData();
     fd.append('action', action); fd.append('title', title); fd.append('content', content);
 
-    fetch('/admin/api_ai.php', { method: 'POST', body: fd })
+    fetch((window.YK_BASE || '') + '/admin/api_ai.php', { method: 'POST', body: fd })
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (!data.success) { showMessage(<?php echo json_encode(__('aip_ai_error'), JSON_UNESCAPED_UNICODE); ?> + ': ' + data.error, 'error'); return; }

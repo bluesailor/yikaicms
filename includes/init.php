@@ -11,6 +11,11 @@ declare(strict_types=1);
 // 定义根目录
 if (!defined('ROOT_PATH')) define('ROOT_PATH', dirname(__DIR__));
 
+// 子目录部署：剥入口前缀、挂出口改写。必须最先执行——
+// 早于任何读取 REQUEST_URI 的代码，也早于其它 ob_start（最外层缓冲最后处理，拿到的才是成品）
+require_once __DIR__ . '/BasePath.php';
+BasePath::bootstrap();
+
 require_once __DIR__ . '/RewriteProbe.php';
 RewriteProbe::respond();
 

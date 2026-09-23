@@ -1747,7 +1747,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     formData.append('file', this.files[0]);
     formData.append('type', 'images');
     try {
-        var response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        var response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         var data = await safeJson(response);
         if (data.code === 0) {
             document.getElementById('imageInput').value = data.data.url;
@@ -1828,7 +1828,7 @@ document.getElementById('sectionBgFileInput').addEventListener('change', async f
     formData.append('file', this.files[0]);
     formData.append('type', 'images');
     try {
-        var resp = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        var resp = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         var data = await safeJson(resp);
         if (data.code === 0) {
             document.getElementById('settingBgImage').value = data.data.url;
@@ -2565,7 +2565,7 @@ function pageBuilder() {
                 _modalEditor = initWangEditor("#modal-toolbar", "#modal-editor", {
                     placeholder: ' . (string) json_encode(__('pea_content_ph'), JSON_UNESCAPED_UNICODE) . ',
                     html: el.data.html || "",
-                    uploadUrl: "/admin/upload.php",
+                    uploadUrl: (window.YK_BASE || "") + "/admin/upload.php",
                     onChange: function() {}
                 });
             } else {

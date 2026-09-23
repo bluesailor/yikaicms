@@ -106,8 +106,8 @@ declare(strict_types=1);
                 this.mediaLoading = true;
                 this.mediaPage = page;
                 var request = this.mediaSource === "official"
-                    ? window.OfficialMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage })
-                    : window.BloxMediaClient.list("/admin/media_api.php", page, this.mediaKeyword, {
+                    ? window.OfficialMediaClient.list((window.YK_BASE || "") + "/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage })
+                    : window.BloxMediaClient.list((window.YK_BASE || "") + "/admin/media_api.php", page, this.mediaKeyword, {
                         usage: this.mediaUsage,
                         type: this.mediaType,
                         sort: this.mediaSort,
@@ -226,7 +226,7 @@ declare(strict_types=1);
                 if (!assetId || this.mediaImporting) return;
                 var self = this;
                 this.mediaImporting = assetId;
-                window.OfficialMediaClient.importAsset("/admin/media_api.php", assetId, { csrf: this.csrf })
+                window.OfficialMediaClient.importAsset((window.YK_BASE || "") + "/admin/media_api.php", assetId, { csrf: this.csrf })
                     .then(function (result) {
                         if (!result.ok) {
                             self.toast(result.message || self.uiText.officialMediaFailed);
@@ -282,7 +282,7 @@ declare(strict_types=1);
                         branding: false, promotion: false, convert_urls: false,
                         images_upload_handler: function (blobInfo) {
                             return new Promise(function (resolve, reject) {
-                                window.BloxMediaClient.upload("/admin/media_api.php", blobInfo.blob(), {
+                                window.BloxMediaClient.upload((window.YK_BASE || "") + "/admin/media_api.php", blobInfo.blob(), {
                                     csrf: self.csrf,
                                     filename: blobInfo.filename(),
                                     maxDimension: <?php echo max(0, (int) config('upload_max_width', 1920)); ?>,
@@ -358,7 +358,7 @@ declare(strict_types=1);
                 if (!file || this.mediaUploading) return;
                 var self = this;
                 this.mediaUploading = true;
-                window.BloxMediaClient.upload("/admin/media_api.php", file, {
+                window.BloxMediaClient.upload((window.YK_BASE || "") + "/admin/media_api.php", file, {
                     csrf: this.csrf,
                     type: this.mediaType,
                     maxBytes: <?php echo max(0, (int) UPLOAD_MAX_SIZE); ?>,

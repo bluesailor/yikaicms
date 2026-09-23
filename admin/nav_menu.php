@@ -615,7 +615,7 @@ function ykToggleNavIcons(el) {
                 fd.append(key, fields[key]);
             }
         });
-        return fetch('/admin/nav_menu.php', { method: 'POST', body: fd })
+        return fetch((window.YK_BASE || '') + '/admin/nav_menu.php', { method: 'POST', body: fd })
             .then(function (response) {
                 return response.json().catch(function () { return null; }).then(function (payload) {
                     if (!response.ok || !payload || payload.code !== 0) throw new Error('save failed');

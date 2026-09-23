@@ -752,7 +752,7 @@ async function handleFiles(files) {
         formData.append('type', window.MediaLibraryPage.uploadType(file));
 
         try {
-            const response = await fetch('/admin/media_api.php?action=upload', { method: 'POST', body: formData });
+            const response = await fetch((window.YK_BASE || '') + '/admin/media_api.php?action=upload', { method: 'POST', body: formData });
             const data = await safeJson(response);
 
             if (data.code === 0) {
@@ -850,7 +850,7 @@ async function scanMedia(btn) {
     icon.classList.add('animate-spin');
     try {
         // 全局 POST CSRF（RBAC 加固后 auth.php 对所有 POST 强制校验）——header 携带 token
-        var resp = await fetch('/admin/media_api.php?action=scan', {
+        var resp = await fetch((window.YK_BASE || '') + '/admin/media_api.php?action=scan', {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
         });

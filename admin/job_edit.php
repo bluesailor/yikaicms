@@ -253,7 +253,7 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
     formData.append('file', this.files[0]);
     formData.append('type', 'images');
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
             document.getElementById('coverInput').value = data.data.url;
@@ -285,7 +285,7 @@ $extraJs = '<script>
 var editor = initWangEditor("#toolbar-container", "#editor-container", {
     placeholder: ' . json_encode(__('job_ph_detail'), JSON_UNESCAPED_UNICODE) . ',
     html: ' . $contentHtml . ',
-    uploadUrl: "/admin/upload.php",
+    uploadUrl: (window.YK_BASE || "") + "/admin/upload.php",
     onChange: function(editor) {
         document.getElementById("contentInput").value = editor.getHtml();
     }
@@ -302,7 +302,7 @@ document.getElementById("editForm").addEventListener("submit", async function(e)
         const data = await safeJson(response);
         if (data.code === 0) {
             showMessage("' . __('msg_save_success') . '");
-            ' . ($isEdit ? '' : 'setTimeout(function() { location.href = "/admin/job_edit.php?id=" + data.data.id; }, 1000);') . '
+            ' . ($isEdit ? '' : 'setTimeout(function() { location.href = (window.YK_BASE || "") + "/admin/job_edit.php?id=" + data.data.id; }, 1000);') . '
         } else {
             showMessage(data.msg, "error");
         }

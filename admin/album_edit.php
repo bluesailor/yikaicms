@@ -242,7 +242,7 @@ document.getElementById('coverFile').addEventListener('change', async function()
     formData.append('file', this.files[0]);
 
     try {
-        const response = await fetch('/admin/upload.php?type=image', {
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php?type=image', {
             method: 'POST',
             body: formData
         });
@@ -321,7 +321,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
                 <?php if ($album): ?>
                 location.reload();
                 <?php else: ?>
-                location.href = '/admin/album_photos.php?id=' + result.data.id;
+                location.href = (window.YK_BASE || '') + '/admin/album_photos.php?id=' + result.data.id;
                 <?php endif; ?>
             }, 1000);
         } else {

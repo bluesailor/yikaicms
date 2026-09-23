@@ -331,7 +331,7 @@
                 body.set('content', htmlToText(getContentHtml()).slice(0, 3000));
                 body.set('keyword', kwInput.value || '');
                 body.set('_token', csrf);
-                fetch('/plugins/seo/ai.php', { method: 'POST', body: body })
+                fetch((window.YK_BASE || '') + '/plugins/seo/ai.php', { method: 'POST', body: body })
                     .then(function (r) { return r.json(); })
                     .then(function (res) {
                         if (res && res.success) {
@@ -390,7 +390,7 @@
             body.set('content_id', String(lnId));
             body.set('_token', lnCsrf);
             for (var k in (extra || {})) body.set(k, extra[k]);
-            return fetch('/plugins/seo/links_api.php', { method: 'POST', body: body })
+            return fetch((window.YK_BASE || '') + '/plugins/seo/links_api.php', { method: 'POST', body: body })
                 .then(function (r) { return r.json(); });
         }
 

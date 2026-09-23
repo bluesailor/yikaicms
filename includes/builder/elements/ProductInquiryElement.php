@@ -129,7 +129,7 @@ final class ProductInquiryElement extends AbstractElement
             . 'if(data.refresh_token){["form_ts","form_sig"].forEach(function(k){'
             . 'var f=form.elements.namedItem(k);if(f){f.value=String(data.refresh_token[k]);f.defaultValue=f.value;}});}'
             . 'var captcha=form.querySelector(\'img[src*="captcha.php"]\');'
-            . 'if(captcha){captcha.src="/captcha.php?"+Date.now();}'
+            . 'if(captcha){captcha.src="' . BasePath::url('/captcha.php') . '?"+Date.now();}'
             . 'btn.disabled=false;btn.textContent=submitLabel;'
             . '}).catch(function(){'
             . 'if(msg){msg.classList.remove("hidden");msg.className="text-center text-sm text-red-600";msg.textContent=' . $networkError . ';}'

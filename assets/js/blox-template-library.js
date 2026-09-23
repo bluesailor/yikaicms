@@ -311,7 +311,7 @@
     }
 
     function localEditUrl(item) {
-        return canEditLocal(item) ? "/admin/blox_editor.php?template=" + String(item.key).slice(6) : "";
+        return canEditLocal(item) ? (global.YK_BASE || "") + "/admin/blox_editor.php?template=" + String(item.key).slice(6) : "";
     }
 
     /**

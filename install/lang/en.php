@@ -140,4 +140,9 @@ return [
     'error_admin_create' => 'Failed to create administrator: ',
     'error_config_write' => 'Failed to write configuration file',
     'url_auto_notice' => 'Installation checks server routing automatically. Pretty URLs are used when supported; otherwise query URLs work without rewrite rules. Check and switch later under URL & links in the dashboard. No reinstall is needed.',
+    'home_entry_title' => 'Could not confirm the site root points to YikaiCMS',
+    'home_entry_desc' => 'The installer opens, but a request for the site root did not reach index.php. After installation the home page may show a hosting panel placeholder page, a 404 or a 403. Put index.php first in the server default documents, then refresh this page to check again:',
+    'home_entry_nginx' => 'Nginx: use deploy/nginx-server.conf from the package (it declares its own index), or add <code>index index.php index.html;</code> to the server block',
+    'home_entry_panel' => 'Hosting panels (BaoTa, phpStudy, etc.): in the site settings, move index.php to the top of the default documents and delete the index.html the panel created in the site root',
+    'home_entry_apache' => 'Apache: make sure .htaccess is honoured (AllowOverride All), or add <code>DirectoryIndex index.php index.html</code> to the site configuration',
 ];

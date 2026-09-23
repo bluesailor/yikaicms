@@ -297,7 +297,7 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
     formData.append('file', this.files[0]);
     formData.append('type', 'images');
     try {
-        const response = await fetch('/admin/upload.php', { method: 'POST', body: formData });
+        const response = await fetch((window.YK_BASE || '') + '/admin/upload.php', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
             document.getElementById('coverInput').value = data.data.url;
@@ -386,7 +386,7 @@ document.getElementById('fileInput').addEventListener('change', async function()
             showMessage('<?php echo __('admin_fail'); ?>', 'error');
         };
 
-        xhr.open('POST', '/admin/upload.php', true);
+        xhr.open('POST', (window.YK_BASE || '') + '/admin/upload.php', true);
         xhr.send(formData);
     } catch (err) {
         document.getElementById('uploadProgress').classList.add('hidden');
@@ -448,7 +448,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
         if (data.code === 0) {
             showMessage('<?php echo __('admin_saved'); ?>');
             <?php if (!$isEdit): ?>
-            setTimeout(() => location.href = '/admin/download_edit.php?id=' + data.data.id, 1000);
+            setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/download_edit.php?id=' + data.data.id, 1000);
             <?php endif; ?>
         } else {
             showMessage(data.msg, 'error');

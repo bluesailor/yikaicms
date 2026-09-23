@@ -266,7 +266,7 @@ function bloxClassManager() {
             Object.keys(fields || {}).forEach(function (key) { body.set(key, fields[key]); });
             var self = this;
             this.busy = true;
-            fetch("/admin/blox_class_api.php", { method: "POST", body: body })
+            fetch((window.YK_BASE || "") + "/admin/blox_class_api.php", { method: "POST", body: body })
                 .then(function (response) { return response.json(); })
                 .then(function (result) {
                     if (!result || Number(result.code) !== 0) throw new Error((result && result.msg) || "error");
