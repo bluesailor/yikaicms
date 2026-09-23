@@ -10,7 +10,7 @@ require_once ROOT_PATH . '/includes/UpgradeRunner.php';
  * 分块续传的传输语义。
  *
  * 由来：升级的覆盖阶段早就分批了（每批 150 文件），下载却一直是「一个请求拉完整包」。
- * 国内主机拉官方服务器慢，Tengine/nginx 网关 60 秒一到就 504——xcidcn 两次栽在这里，
+ * 国内主机拉官方服务器慢，Tengine/nginx 网关 60 秒一到就 504——曾有站点两次栽在这里，
  * 每次都要人工 FTP 送包再手动接续。PHP 侧的 600 秒超时救不了，因为掐连接的是网关。
  *
  * 这里测的是传输本身，不涉及 RSA 验签与落位（那两步在 upgrade_download_chunk 里）。

@@ -271,7 +271,7 @@ final class BloxStoredXssTest extends TestCase
     }
 
     /**
-     * 实体编码与 srcdoc 绕过（codex 审计 P1-1，2026-08-22 复现并修复）。
+     * 实体编码与 srcdoc 绕过（外部审计 P1-1，2026-08-22 复现并修复）。
      *
      * 浏览器读属性值时会解码 HTML 实体，所以 href="java&#x73;cript:..." 在浏览器
      * 眼里就是 javascript:，按原文做正则一个都拦不住。srcdoc 更狠——它的值是一整份

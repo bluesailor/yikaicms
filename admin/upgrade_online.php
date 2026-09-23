@@ -69,7 +69,7 @@ if ($action !== '') {
 
     // 人工升级与自动升级抢同一把锁：手工流程跨请求时由 state/package-meta 的
     // owner=manual 阻止 cron 插入；这里负责阻止一个已经持锁运行的自动事务与当前
-    // 手工写动作并发。（codex 审计 P1-2 的配套，勿与自动升级 UI 一起删——
+    // 手工写动作并发。（外部审计 P1-2 的配套，勿与自动升级 UI 一起删——
     // 2026-08-23 把 UI 移到配置页时误删过一次，被单测抓住。）
     if (in_array($action, ['download', 'apply_prepare', 'apply_batch', 'apply_finalize', 'apply_rollback'], true)) {
         if (!is_dir(uo_dir())) {
@@ -114,7 +114,7 @@ if ($action !== '') {
             . '&domain=' . urlencode($_SERVER['HTTP_HOST'] ?? '')
             . '&site_name=' . urlencode((string) config('site_name', ''))
             . '&php=' . urlencode(PHP_VERSION)
-            . '&t=' . time();   // 缓存破坏：绕开 update 服务器 SiteGround 边缘缓存，拿实时版本
+            . '&t=' . time();   // 缓存破坏：绕开 update 服务器的 CDN 边缘缓存，拿实时版本
         $ctx = stream_context_create(['http' => ['timeout' => 15, 'ignore_errors' => true], 'ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]);
         $resp = @file_get_contents($api, false, $ctx);
         if ($resp === false && function_exists('curl_init')) {
@@ -146,7 +146,7 @@ if ($action !== '') {
     // ---- 3) 下载并校验（分块续传：每次只拉一段，由前端循环调用到 done）----
     //   为什么不能一次拉完：覆盖阶段早就分批了，下载却一直是单请求整包。国内主机拉
     //   官方服务器慢，Tengine/nginx 网关 60 秒一到就 504，PHP 侧的 600 秒超时救不了，
-    //   因为掐连接的是网关。xcidcn 两次栽在这里，每次都要人工 FTP 送包再手动接续。
+    //   因为掐连接的是网关。曾有站点两次栽在这里，每次都要人工 FTP 送包再手动接续。
     if ($action === 'download' || $action === 'download_chunk') {
         uo_json(upgrade_download_chunk(
             (string) ($_POST['download_url'] ?? ''),

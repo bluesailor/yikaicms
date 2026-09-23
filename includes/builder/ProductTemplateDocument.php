@@ -178,7 +178,7 @@ final class ProductTemplateDocument
     }
 
     /**
-     * 编辑器 boot 用的 v1 形态作用域（外审 P1-3，结构借鉴 GLM 整改分支）：
+     * 编辑器 boot 用的 v1 形态作用域（外审 P1-3，结构借鉴另一条整改分支）：
      * authoritativeScope + 语言回填收进可单测的一处。显式存储的 lang=''=全部语言
      * 必须原样保留（与文章 boot 同口径，v2 看 detail_template、v1 看 product_template）；
      * 只有「从未存过 lang」或存了非法语言才回退预览语言——否则跨语言共享的产品模板

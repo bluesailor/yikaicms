@@ -11,7 +11,7 @@ final class ProductTemplateDocumentTest extends TestCase
     }
 
     /**
-     * 外审 P1-3（结构借鉴 GLM 整改分支）：编辑器 boot 的语言回填单点。
+     * 外审 P1-3（结构借鉴另一条整改分支）：编辑器 boot 的语言回填单点。
      * 显式 lang=''=全部语言必须原样保留（v2 看 detail_template、v1 看 product_template）；
      * 只有从未存过 lang 或存了非法语言才回退预览语言。
      */

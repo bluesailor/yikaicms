@@ -39,7 +39,7 @@ final class BloxValueSanitizer
      * 数组值只有在 control **自己声明了 responsive** 时才算合法（那是断点结构，
      * 由管线的 BloxResponsiveValue 分支先行处理）。其余标量类型收到数组必须归一，
      * 不能原样放行：直接构造 blocks_data 把 text/url/image 提交成数组时，值会一路
-     * 传到 htmlspecialchars() 并抛 TypeError，整页 500。（codex 审计 P2-1，已复现）
+     * 传到 htmlspecialchars() 并抛 TypeError，整页 500。（外部审计 P2-1，已复现）
      *
      * @param array<string,mixed> $control
      */

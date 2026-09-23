@@ -136,7 +136,7 @@ $pkg = $ROOT . '/storage/upgrade/package.zip';
 $zip = new ZipArchive();
 if ($zip->open($pkg, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) rbFail('无法创建测试包');
 // manifest 的 from 必须等于本站当前版本，否则 prepare 会以「基线不匹配」拒绝
-// —— 那正是 v1.18.6 新增的护栏（codex 审计 P2-2）。这里如实填当前版本。
+// —— 那正是 v1.18.6 新增的护栏（外部审计 P2-2）。这里如实填当前版本。
 $currentVersion = '';
 $vf = @file_get_contents($ROOT . '/config/version.php');
 if ($vf && preg_match("/CMS_VERSION'\s*,\s*'([^']+)'/", $vf, $vm)) {

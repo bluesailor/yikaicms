@@ -573,7 +573,7 @@ $__mCur = defined('CMS_VERSION') ? CMS_VERSION : '?';
         //  · config.php / uploads/ / storage/ 根本不在安装包里（包内只有 config.sample.php
         //    与两个空占位文件），正常覆盖动不到它们 —— 危险的是「先删后传」那种操作。
         //  · 真正会被盖掉的是包里确实有、而客户又常改的那几个文件。今天两起真事故：
-        //    xcidcn 的 style.css 追加规则、cile.cn 的 list.php 垫片，都是这么丢的。
+        //    有站点在 style.css 里追加的规则、在 list.php 里加的垫片，都是这么丢的。
         ?>
         <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
             <p class="text-sm font-medium text-red-800 mb-1.5">

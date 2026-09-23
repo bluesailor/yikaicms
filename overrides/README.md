@@ -71,7 +71,7 @@ add_action('model_deleted', function ($table, $id) {
 
 ## 实例：把已经改在核心里的定制搬进覆盖层
 
-真实案例（cile.cn，从 ShopEx 迁来、要保留旧地址）。原先两处定制直接改在核心 `list.php`
+真实案例（某站从 ShopEx 迁来、要保留旧地址）。原先两处定制直接改在核心 `list.php`
 顶部，**2026-07-29 的一次在线升级把整段冲掉，只能手工重传**。搬进覆盖层后核心文件
 与主线完全一致，升级不再有风险。
 
@@ -88,7 +88,7 @@ add_action('model_deleted', function ($table, $id) {
 
 ```php
 // overrides/bootstrap.php
-function cile_shopex_shim(): void
+function legacy_shopex_shim(): void
 {
     if ((int) ($_GET['id'] ?? 0) > 0 || ($_GET['slug'] ?? '') !== '') return;
     if (($catId = (int) ($_GET['cat_id'] ?? 0)) > 0) {
@@ -96,7 +96,7 @@ function cile_shopex_shim(): void
     }
 }
 
-cile_shopex_shim();                      // 路径一
+legacy_shopex_shim();                      // 路径一
 
 add_filter('dispatch_routes', function (array $routes): array {   // 路径二
     return array_merge([
@@ -107,7 +107,7 @@ add_filter('dispatch_routes', function (array $routes): array {   // 路径二
 
 ```php
 // overrides/shopex_legacy.php —— 路径二的分发目标
-cile_shopex_shim();
+legacy_shopex_shim();
 require ROOT_PATH . '/list.php';
 ```
 

@@ -4,7 +4,7 @@
  *
  * 为什么需要：install SQL 与 migrations 是两条独立演进的路径，历史上两个方向都漏过——
  *   - install SQL 漏了迁移加的列 → 全新安装缺列（v1.11.0 首页 500）
- *   - install SQL 有、迁移从未加 → 老站升级后缺列（cile.cn 1.9.2→1.13.2 报 Unknown column，共 9 列）
+ *   - install SQL 有、迁移从未加 → 老站升级后缺列（某站 1.9.2→1.13.2 报 Unknown column，共 9 列）
  * 单向检查只能抓一半，故做双向 diff。
  *
  * 做法：

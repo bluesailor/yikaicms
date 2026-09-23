@@ -1992,8 +1992,8 @@ function getBlockBg(array $block, string $defaultClass = ''): array
 /**
  * 首页「关于」版块的默认标题（后台未自定义时用）。
  *
- * 原先各主题都写 __('home_about_title') . site_name：中文「关于KKSKY」读得通，
- * 英文就粘成「AboutKKSKY Solar Light」，日语语序还是反的。站名该放前面还是后面、
+ * 原先各主题都写 __('home_about_title') . site_name：中文「关于Acme」读得通，
+ * 英文就粘成「AboutAcme Lighting」，日语语序还是反的。站名该放前面还是后面、
  * 中间要不要空格，是**语言**的事，不能在 PHP 里拼——改用带 :site 占位的整句 key，
  * 拼法交给各语言文件（en 补空格、ja 用「〜について」后置）。
  *
