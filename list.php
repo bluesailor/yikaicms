@@ -356,7 +356,7 @@ if ($hasPublishedContentListBlox && $contentListPageChannel) {
     ]);
     // 下载 / 招聘目录：沿用本页控制器按当前分类、搜索、分页取好的行与侧栏，前台与固定列表同一份数据
     $listCatalogShared = [
-        'channel' => $channel, 'keyword' => $keyword, 'page' => $page, 'perPage' => $perPage,
+        'channel' => $channel, 'channelId' => (int) $channel['id'], 'keyword' => $keyword, 'page' => $page, 'perPage' => $perPage,
         'total' => (int) ($total ?? 0),
     ];
     DownloadCatalogElement::setRuntimeContext($channel['type'] === 'download' ? $listCatalogShared + [

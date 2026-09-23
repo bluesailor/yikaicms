@@ -57,6 +57,7 @@ final class JobCatalogElement extends AbstractElement
         $result = jobModel()->getList(['status' => '1', 'lang' => (string) ($channel['lang'] ?? siteLang())], 6, 0);
         return [
             'channel' => $channel,
+            'channelId' => (int) $channel['id'],
             'jobs' => $result['items'] ?? [],
             'total' => (int) ($result['total'] ?? 0),
             'page' => 1,
