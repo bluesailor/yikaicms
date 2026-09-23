@@ -291,7 +291,6 @@ if (!$i18nOnly) {
             9,
         ],
         'site_health_last_at' => [(string) time(), 'number', 10],
-        'dashboard_site_health_dismissed' => ['0', 'switch', 12],
     ];
     foreach ($dashboardFixtureSettings as $key => [$value, $type, $sortOrder]) {
         $settingExists->execute([$key]);

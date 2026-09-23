@@ -61,14 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_rewrite
 }
 
 
-// 控制台站点健康摘要：超管可选择永久不再提醒
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_site_health_notice') {
-    verifyCsrf();
-    requirePermission('*');
-    settingModel()->saveBatch(['dashboard_site_health_dismissed' => '1']);
-    success([], 'ok');
-}
-
 // 统计数据
 $stats = [
     'contents' => contentModel()->count(),
@@ -156,86 +148,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             dismissButton.removeAttribute('aria-busy');
             if (typeof showMessage === 'function') {
                 showMessage(<?php echo json_encode(__('onb_rewrite_dismiss_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
-            }
-        }
-    });
-})();
-</script>
-<?php endif; ?>
-
-<?php
-$__healthSummary = json_decode((string) config('site_health_last_summary', ''), true);
-$__healthLastAt = (int) config('site_health_last_at', '0');
-$__healthDismissed = (string) config('dashboard_site_health_dismissed', '0') === '1';
-?>
-<?php if (hasPermission('*') && !$__healthDismissed && is_array($__healthSummary) && $__healthLastAt > 0): ?>
-<div id="dashboardHealthNotice" data-testid="dashboard-health-notice" class="mb-6 flex flex-col gap-3 rounded-lg border border-gray-200 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-    <div class="flex min-w-0 items-start gap-3">
-        <i class="ti ti-shield-check mt-0.5 text-xl <?php echo (int) ($__healthSummary['critical'] ?? 0) > 0 ? 'text-red-600' : ((int) ($__healthSummary['recommended'] ?? 0) > 0 ? 'text-amber-600' : 'text-green-600'); ?>" aria-hidden="true"></i>
-        <div class="min-w-0">
-            <p class="text-sm font-semibold text-gray-900"><?php echo e(__('dashboard_health_title')); ?></p>
-            <p class="mt-1 text-sm text-gray-500">
-                <?php echo e(__('dashboard_health_summary', [
-                    'critical' => (string) (int) ($__healthSummary['critical'] ?? 0),
-                    'recommended' => (string) (int) ($__healthSummary['recommended'] ?? 0),
-                    'time' => date('Y-m-d H:i', $__healthLastAt),
-                ])); ?>
-            </p>
-        </div>
-    </div>
-    <div data-testid="dashboard-health-actions" class="flex shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-2 self-end sm:flex-nowrap sm:self-auto">
-        <a href="/admin/site_health.php" data-testid="dashboard-health-view" class="inline-flex items-center gap-1 py-1.5 text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-            <?php echo e(__('dashboard_health_view')); ?><i class="ti ti-chevron-right" aria-hidden="true"></i>
-        </a>
-        <button type="button" id="dashboardHealthDismiss" data-testid="dashboard-health-dismiss" class="py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60">
-            <?php echo e(__('dashboard_health_dismiss')); ?>
-        </button>
-        <button type="button" id="dashboardHealthClose" data-testid="dashboard-health-close" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2" aria-label="<?php echo e(__('dashboard_health_close')); ?>" title="<?php echo e(__('dashboard_health_close')); ?>">
-            <i class="ti ti-x text-lg" aria-hidden="true"></i>
-        </button>
-    </div>
-</div>
-<script>
-(function () {
-    var card = document.getElementById('dashboardHealthNotice');
-    var closeButton = document.getElementById('dashboardHealthClose');
-    var dismissButton = document.getElementById('dashboardHealthDismiss');
-    var sessionKey = 'yikaicms.dashboardHealth.closed';
-    if (!card) return;
-
-    try {
-        if (sessionStorage.getItem(sessionKey) === '1') {
-            card.remove();
-            return;
-        }
-    } catch (e) {}
-
-    closeButton?.addEventListener('click', function () {
-        try { sessionStorage.setItem(sessionKey, '1'); } catch (e) {}
-        card.remove();
-    });
-
-    dismissButton?.addEventListener('click', async function () {
-        dismissButton.disabled = true;
-        dismissButton.setAttribute('aria-busy', 'true');
-        var body = new FormData();
-        body.set('_token', '<?php echo csrfToken(); ?>');
-        body.set('action', 'dismiss_site_health_notice');
-        try {
-            var response = await fetch((window.YK_BASE || '') + '/admin/index.php', {
-                method: 'POST',
-                body: body,
-                credentials: 'same-origin',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            var result = await response.json();
-            if (!response.ok || Number(result.code) !== 0) throw new Error(result.msg || 'request failed');
-            card.remove();
-        } catch (error) {
-            dismissButton.disabled = false;
-            dismissButton.removeAttribute('aria-busy');
-            if (typeof showMessage === 'function') {
-                showMessage(<?php echo json_encode(__('dashboard_health_dismiss_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
             }
         }
     });
