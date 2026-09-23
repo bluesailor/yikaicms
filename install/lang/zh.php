@@ -138,4 +138,9 @@ return [
     'error_admin_create' => '创建管理员失败：',
     'error_config_write' => '写入配置文件失败',
     'url_auto_notice' => '安装时会自动检查服务器：支持伪静态时使用漂亮 URL，否则使用无需配置的动态 URL。安装后可在后台「URL 与链接」重新检测并切换，无需重新安装。',
+    'home_entry_title' => '未能确认网站首页指向本程序',
+    'home_entry_desc' => '安装器能打开，但访问网站根地址时没有进入 index.php——装完后首页可能显示面板默认页、404 或 403。请把服务器的「默认首页」改成 index.php 排第一，然后刷新本页复查：',
+    'home_entry_nginx' => 'Nginx：使用包内 deploy/nginx-server.conf（已自带默认首页声明），或在 server 块写 <code>index index.php index.html;</code>',
+    'home_entry_panel' => '宝塔 / 小皮等面板：网站设置 →「默认文档」把 index.php 移到第一位，并删除根目录里面板生成的 index.html',
+    'home_entry_apache' => 'Apache：确认站点允许 .htaccess 生效（AllowOverride All），或在站点配置里写 <code>DirectoryIndex index.php index.html</code>',
 ];
