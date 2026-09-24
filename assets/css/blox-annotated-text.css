@@ -1,0 +1,48 @@
+/* 标注只作装饰；文字始终是普通可选、可复制的 HTML 文本。 */
+.yk-annotated-mark {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    padding: 0 .12em .08em;
+    vertical-align: baseline;
+    overflow-wrap: anywhere;
+    isolation: isolate;
+}
+.yk-annotated-mark--circle, .yk-annotated-mark--box { padding: 0 .2em; }
+.yk-annotated-mark__text { position: relative; z-index: 1; }
+.yk-annotated-mark__svg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+}
+.yk-annotated-mark--circle .yk-annotated-mark__svg,
+.yk-annotated-mark--box .yk-annotated-mark__svg {
+    inset: -.36em -.16em;
+    width: calc(100% + .32em);
+    height: calc(100% + .72em);
+}
+.yk-annotated-mark__stroke {
+    fill: none;
+    stroke: var(--yk-annotated-color, #6366f1);
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+.yk-annotated-mark--highlight .yk-annotated-mark__stroke { stroke-width: 17; opacity: .38; }
+.yk-annotated-mark--circle .yk-annotated-mark__stroke,
+.yk-annotated-mark--box .yk-annotated-mark__stroke { stroke-width: 2.3; }
+.yk-annotated-mark[data-annotation-speed="fast"] { --yk-annotated-duration: .45s; }
+.yk-annotated-mark[data-annotation-speed="normal"] { --yk-annotated-duration: .65s; }
+.yk-annotated-mark[data-annotation-speed="slow"] { --yk-annotated-duration: 1s; }
+.yk-annotated-mark.is-annotation-pending .yk-annotated-mark__stroke { transition: none; }
+.yk-annotated-mark.is-annotation-drawing .yk-annotated-mark__stroke {
+    transition: stroke-dashoffset var(--yk-annotated-duration, .65s) ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+    .yk-annotated-mark__stroke { transition: none !important; stroke-dashoffset: 0 !important; }
+}
