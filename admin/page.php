@@ -67,9 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($childCount > 0) {
             error(__('pg_has_children'));
         }
-        // 删除关联内容
-        contentModel()->query("DELETE FROM " . contentModel()->tableName() . " WHERE channel_id = ?", [$id]);
-        // 删除栏目
+        // 页面内容移入回收站（不物理删除，可在回收站还原）
+        contentModel()->trashChannelContents($id);
         channelModel()->deleteById($id);
         adminLog('page', 'delete', '删除单页：' . $channel['name']);
         success();

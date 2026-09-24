@@ -155,7 +155,8 @@ declare(strict_types=1);
             </div>
             <?php endif; ?>
             <?php if ($isHomeBlox): ?>
-            <span class="blox-header-legacy text-[10px] font-medium bg-amber-500/15 text-amber-300 px-1.5 py-0.5 rounded shrink-0"><?= __('blox_legacy_home_online') ?></span>
+            <?php // 只在构建器首页尚未发布时提示——已发布后访客看到的就是本页，再挂着会让新手以为出了问题 ?>
+            <span x-show="!homePublished" x-cloak data-testid="blox-legacy-home-badge" class="blox-header-legacy text-[10px] font-medium bg-amber-500/15 text-amber-300 px-1.5 py-0.5 rounded shrink-0"><?= __('blox_legacy_home_online') ?></span>
             <?php endif; ?>
             <?php if ($templateId && $templateType === 'header' && !$customHeaderEnabled): ?>
             <a href="/admin/blox_templates.php?type=header"

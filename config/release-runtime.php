@@ -21,6 +21,7 @@ return [
         'config/release-runtime.php',
         'config/version.php',
         'includes/init.php',
+        'includes/php_guard.php',           // index.php / install/index.php / init.php 最先 require：PHP 版本底线
         'includes/BasePath.php',            // index.php / init.php / functions.php 无条件 require：子目录部署的挂载点
         'includes/RewriteProbe.php',
         'includes/CompatibleLinks.php',

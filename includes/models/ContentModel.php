@@ -7,6 +7,29 @@ class ContentModel extends Model
     protected string $defaultOrder = 'is_top DESC, publish_time DESC, id DESC';
     protected bool $softDelete = true;
 
+    /** 栏目下未进回收站的内容条数（删栏目前的确认提示用） */
+    public function countLiveInChannel(int $channelId): int
+    {
+        return (int) $this->queryColumn(
+            "SELECT COUNT(*) FROM {$this->tableName()} WHERE channel_id = ? AND deleted_at IS NULL",
+            [$channelId]
+        );
+    }
+
+    /**
+     * 删栏目时把其下内容整体移入回收站，返回移入条数。
+     * 不能物理删除：新手删一个栏目就会连带永久丢掉全部文章。还原后原栏目已不存在，
+     * 在编辑页重新选择栏目即可。
+     */
+    public function trashChannelContents(int $channelId): int
+    {
+        $ids = array_map('intval', array_column($this->query(
+            "SELECT id FROM {$this->tableName()} WHERE channel_id = ? AND deleted_at IS NULL",
+            [$channelId]
+        ), 'id'));
+        return $ids === [] ? 0 : $this->deleteByIds($ids);
+    }
+
     /**
      * 获取内容列表（支持栏目和过滤条件）
      */

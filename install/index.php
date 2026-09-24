@@ -7,6 +7,9 @@
 
 declare(strict_types=1);
 
+// 最早的门：PHP 7 主机先给看得懂的提示，别让后面的 PHP 8 函数白屏
+require_once dirname(__DIR__) . '/includes/php_guard.php';
+
 // 定义安装目录
 define('INSTALL_PATH', __DIR__);
 define('ROOT_PATH', dirname(__DIR__));
@@ -173,6 +176,15 @@ function checkEnvironment(): array
     }
 
     // 目录可写检测
+    // 根目录要写 installed.lock：写不了会出现「提示安装成功、每个页面却跳回安装页」的死循环
+    $rootWritable = is_writable(ROOT_PATH);
+    $checks['dir_root'] = [
+        'name' => '/ (installed.lock)',
+        'required' => true,
+        'current' => $rootWritable ? 'writable' : 'not_writable',
+        'pass' => $rootWritable,
+        'type' => 'directory'
+    ];
     $dirs = ['config', 'uploads', 'storage'];
     foreach ($dirs as $dir) {
         $path = ROOT_PATH . '/' . $dir;
@@ -363,6 +375,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 ], JSON_UNESCAPED_UNICODE);
                 exit;
             }
+            // 根目录写不了 installed.lock 就别动数据库：否则建完表却没有锁，
+            // 访客每次都被带回安装页，再装一次会先删光所有表。
+            if (!is_writable(ROOT_PATH)) {
+                ob_end_clean();
+                echo json_encode([
+                    'success' => false,
+                    'code' => 'root_not_writable',
+                    'message' => $L['error_root_not_writable'],
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
 
             // 校验范围：lang/*.php 实际存在的 code（扫文件，扩展时无需改代码）
             $_installerSupported = [];
@@ -518,8 +541,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 error_log('Site template baseline unavailable: ' . $templateError->getMessage());
             }
 
-            // 创建安装锁
-            file_put_contents(ROOT_PATH . '/installed.lock', date('Y-m-d H:i:s'));
+            // 创建安装锁：写失败必须报错——没有锁的「安装成功」会让整站一直跳回安装页
+            if (file_put_contents(ROOT_PATH . '/installed.lock', date('Y-m-d H:i:s')) === false) {
+                throw new Exception($L['error_lock_write']);
+            }
 
             ob_end_clean();
             echo json_encode(['success' => true, 'message' => $L['install_success']]);
@@ -561,6 +586,32 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
         .step-line.completed { background-color: #10b981; }
     </style>
 <script src="/assets/js/rewrite-probe.js"></script>
+<script>
+// SQLite 装完当场自检：库文件在站点目录内，nginx 只配 try_files（wordpress 预设）或
+// Apache 没开 AllowOverride 时会被当静态文件直接下载。只读前 16 字节并核对 SQLite 文件头，
+// 避免 catch-all 路由对不存在的文件回 200 HTML 造成误报。
+window.ykWarnIfDbExposed = function (container, message) {
+    if (!container || !window.fetch) return;
+    fetch((window.YK_BASE || '') + '/storage/database.sqlite', {
+        cache: 'no-store', credentials: 'omit', headers: { Range: 'bytes=0-15' }
+    }).then(function (resp) {
+        if (!resp.ok || !resp.body) return null;
+        var reader = resp.body.getReader();
+        return reader.read().then(function (chunk) {
+            reader.cancel().catch(function () {});
+            return chunk.value ? new TextDecoder('latin1').decode(chunk.value.slice(0, 15)) : '';
+        });
+    }).then(function (head) {
+        if (head !== 'SQLite format 3') return;
+        var box = document.createElement('div');
+        box.setAttribute('role', 'alert');
+        box.setAttribute('data-testid', 'install-db-exposed');
+        box.className = 'mt-4 bg-red-50 border border-red-300 text-red-700 p-4 rounded text-sm text-left';
+        box.textContent = message;
+        container.appendChild(box);
+    }).catch(function () {});
+};
+</script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8 max-w-3xl">
@@ -727,6 +778,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                     'warn'       => $L['quick_warn'],
                     'goto'       => $L['goto_admin'],
                     'fail'       => $L['install_fail'] ?? 'Install failed',
+                    'db_exposed' => $L['db_exposed_warn'],
                 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;
                 async function quickInstall() {
                     if (!confirm(QL.confirm)) return;
@@ -771,6 +823,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                             if (pf) { pf.focus(); pf.select(); }
                             box.classList.remove('hidden');
                             btn.style.display = 'none';
+                            window.ykWarnIfDbExposed(box, QL.db_exposed);
                         } else {
                             alert(data.message || QL.fail);
                             btn.disabled = false; btn.textContent = QL.button;
@@ -1170,6 +1223,7 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                             'failed'  => $L['quick_copy_fail'],
                             'goto'    => $L['goto_admin'],
                             'sec'     => $L['security_tip'],
+                            'dbExposed' => $L['db_exposed_warn'],
                         ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;
                         var wrap = document.createElement('div');
                         wrap.className = 'text-center';
@@ -1225,6 +1279,10 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                         result.innerHTML = '';
                         result.appendChild(wrap);
                         document.getElementById('stepButtons').classList.add('hidden');
+                        // 第 3 步表单里没有数据库字段，驱动来自第 2 步存进 sessionStorage 的值
+                        if (sessionStorage.getItem('db_driver') === 'sqlite') {
+                            window.ykWarnIfDbExposed(wrap, L.dbExposed);
+                        }
 
                         // http / 局域网 IP 下 clipboard API 不可用，故保留 execCommand 降级
                         cbtn.onclick = function () {
@@ -1376,16 +1434,18 @@ $iconPlug = $installerIcon('<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 
                             </div>
                             <div id="panel-nginx" style="display:none">
                                 <div style="background:#f0fdf4;color:#15803d;padding:12px;border-radius:6px;font-size:14px;margin-bottom:8px">
-                                    <strong>&#10003; <?php echo $L['rewrite_nginx_wp_title'] ?? '与 WordPress 规则通用'; ?></strong><br>
-                                    <?php echo $L['rewrite_nginx_wp'] ?? '宝塔等面板：伪静态直接选「wordpress」预设即可，无需手写任何规则。'; ?>
+                                    <strong>&#10003; <?php echo $L['rewrite_nginx_wp_title'] ?? '推荐：引用随包规则（含安全拦截）'; ?></strong><br>
+                                    <?php echo $L['rewrite_nginx_wp'] ?? '宝塔等面板：伪静态框里只写一行 include /www/wwwroot/你的站点目录/deploy/nginx-baota.conf; 即可。不要只选「wordpress」预设。'; ?>
                                 </div>
-                                <div style="margin:8px 0 4px;font-size:13px;color:#4b5563"><?php echo $L['rewrite_nginx_desc'] ?? '没有预设时，手动在 server 块（或面板伪静态框）加入这一行：'; ?></div>
+                                <div style="margin:8px 0 4px;font-size:13px;color:#4b5563"><?php echo $L['rewrite_nginx_desc'] ?? '不用面板、手写 server 块时，加入下面两段（第一段拦截敏感目录）：'; ?></div>
                                 <div style="position:relative">
-                                    <pre id="nginxCode" style="background:#0f172a;color:#86efac;padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;line-height:1.6"><code>location / { try_files $uri $uri/ /index.php?$query_string; }</code></pre>
+                                    <?php // 只给 try_files 会放行磁盘上真实存在的文件——SQLite 库在站点目录内，必须先拦敏感目录 ?>
+                                    <pre id="nginxCode" style="background:#0f172a;color:#86efac;padding:16px;border-radius:8px;font-size:12px;overflow-x:auto;line-height:1.6"><code>location ~* ^/(config|storage|vendor|includes|install/sql|bin|migrations|recipes)(/|$) { return 403; }
+location / { try_files $uri $uri/ /index.php?$query_string; }</code></pre>
                                     <button onclick="copyNginxCode(this)" style="position:absolute;top:8px;right:8px;background:#334155;color:#fff;border:none;padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer">复制</button>
                                 </div>
                                 <div style="margin-top:8px;font-size:12px;color:#6b7280">
-                                    <?php echo $L['rewrite_nginx_reload'] ?? '配置后请执行 nginx -t 检查语法，然后 nginx -s reload 生效。'; ?><br>
+                                    <?php echo $L['rewrite_nginx_reload'] ?? '配置后请执行 nginx -t 检查语法，然后 nginx -s reload 生效。生效后访问 /storage/database.sqlite，必须返回 403 或 404。'; ?><br>
                                     <?php echo $L['rewrite_nginx_advanced'] ?? '进阶（静态 HTML 直出 + 服务器层安全拦截）见程序仓库 deploy/nginx-server.conf。'; ?>
                                 </div>
                             </div>

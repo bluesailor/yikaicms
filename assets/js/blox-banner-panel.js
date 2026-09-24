@@ -183,6 +183,10 @@
             host.data.children = this.homeBannerSeeds.map(function (item) {
                 return { id: self.uid("e"), type: "home-banner-item", data: JSON.parse(JSON.stringify(item)) };
             });
+            // 直接编辑不设确认步骤，但断开同步不能悄悄发生：告诉用户后果和两条退路
+            if (typeof this.toast === "function" && (this.homeDynamicText || {}).forkedNotice) {
+                this.toast(this.homeDynamicText.forkedNotice, 7000);
+            }
             return host.data.children;
         },
 

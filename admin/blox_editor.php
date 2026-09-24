@@ -1591,6 +1591,7 @@ $canManageBloxDesign = hasPermission('blox_global');
                 'editSlide' => __('blox_home_banner_edit'),
                 'restoreConfirm' => __('blox_home_banner_restore_confirm'),
                 'customItems' => __('blox_home_banner_custom'),
+                'forkedNotice' => __('blox_home_banner_forked_notice'),
                 'newItemTitle' => withLanguageStrings($bloxContentLanguage, static fn (): string => __('blox_home_banner_new_title')),
                 'replaceImage' => __('blox_home_banner_replace_image'),
                 'slide' => __('blox_home_banner_slide'),
@@ -8611,11 +8612,11 @@ $canManageBloxDesign = hasPermission('blox_global');
                     .finally(function() { self.saving = false; });
             },
 
-            toast(msg) {
+            toast(msg, duration) {
                 var self = this;
                 this.toastMsg = msg;
                 clearTimeout(this._tt);
-                this._tt = setTimeout(function() { self.toastMsg = ""; }, 2200);
+                this._tt = setTimeout(function() { self.toastMsg = ""; }, duration || 2200);
             },
 
             clearSiteCache() {
