@@ -17,7 +17,7 @@ declare(strict_types=1);
                 ? $editorReturnTo
                 : (($editorBackTo ?? '') === 'home'
                     ? '/admin/blox_editor.php?home=1'
-                    : ($templateId ? $templateManagerBack : ($isHomeBlox ? '/admin/setting_home.php' : '/admin/page.php')));
+                    : ($templateId ? $templateManagerBack : ($isHomeBlox ? '/admin/site_setup.php' : '/admin/page.php')));
             if ($templateId && $templateType === 'product-detail' && !$hasFrontendReturn) $bloxBackUrl = '/admin/product_design.php';
             $bloxBackTitle = $hasFrontendReturn
                 ? __('blox_return_to_page')
