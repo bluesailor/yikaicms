@@ -60,6 +60,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_rewrite
     success([], 'ok');
 }
 
+// 「开始建站」引导：步骤定义（顺序即推荐顺序）。只对全新安装的超管显示，见 install/index.php。
+require_once ROOT_PATH . '/includes/SiteSetup.php';
+$onbStartSteps = [
+    'brand'   => ['ti-id-badge',       '/admin/setting.php?tab=basic'],
+    'contact' => ['ti-phone',          '/admin/setting_contact.php'],
+    'home'    => ['ti-layout-dashboard', SiteSetup::homeEditUrl()],
+    'content' => ['ti-package',        hasPermission('edit_product') ? '/admin/product.php' : '/admin/article.php'],
+    'preview' => ['ti-world',          '/'],
+];
+$onbStartDone = static function (): array {
+    $done = json_decode((string) config('onboarding_start_done', ''), true);
+    return is_array($done) ? array_values(array_filter($done, 'is_string')) : [];
+};
+
+// 点过的步骤记为完成（sendBeacon，点链接时顺手发）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'onboarding_start_step') {
+    verifyCsrf();
+    requirePermission('*');
+    $step = post('step');
+    if (!isset($onbStartSteps[$step])) {
+        error(__('admin_invalid_operation'));
+    }
+    $done = array_values(array_unique(array_merge($onbStartDone(), [$step])));
+    settingModel()->saveBatch(['onboarding_start_done' => json_encode($done)]);
+    success([], '');
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_onboarding_start') {
+    verifyCsrf();
+    requirePermission('*');
+    settingModel()->saveBatch(['onboarding_start_dismissed' => '1']);
+    success([], 'ok');
+}
+
 
 // 统计数据
 $stats = [
@@ -78,6 +112,9 @@ $showOnboard = $onbChannelCount === 0 && (string) config('onboarding_channel_dis
 $showRewriteOnboarding = hasPermission('*')
     && !isDynamicUrlMode()
     && (string) config('onboarding_rewrite_dismissed', '1') === '0';
+$showStartOnboarding = hasPermission('*')
+    && (string) config('onboarding_start_dismissed', '1') === '0';
+$onbStartDoneList = $showStartOnboarding ? $onbStartDone() : [];
 
 
 // 最新内容（关联栏目类型）—— 只显示源语言行，避免 EN/JA 翻译版本污染列表
@@ -97,6 +134,76 @@ $currentMenu = 'dashboard';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
+
+<?php if ($showStartOnboarding): ?>
+<?php $__onbAllDone = count(array_intersect(array_keys($onbStartSteps), $onbStartDoneList)) === count($onbStartSteps); ?>
+<section id="startOnboarding" data-testid="start-onboarding" aria-labelledby="startOnboardingTitle" class="mb-6 rounded-lg border border-blue-200 bg-white shadow-sm">
+    <div class="flex flex-col gap-3 border-b border-blue-100 bg-blue-50 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0">
+            <h2 id="startOnboardingTitle" class="text-base font-bold text-gray-900"><?php echo e(__('onb_start_title')); ?></h2>
+            <p class="mt-1 text-sm text-gray-600"><?php echo e(__($__onbAllDone ? 'onb_start_all_done' : 'onb_start_intro')); ?></p>
+        </div>
+        <div class="flex shrink-0 items-center gap-4 text-sm">
+            <a href="/admin/site_setup.php" class="font-medium text-primary hover:underline"><?php echo e(__('onb_start_wizard')); ?></a>
+            <button type="button" id="startOnboardingDismiss" data-testid="start-onboarding-dismiss"
+                    class="font-medium text-gray-500 hover:text-gray-900 hover:underline disabled:cursor-wait disabled:opacity-60"><?php echo e(__('onb_start_hide')); ?></button>
+        </div>
+    </div>
+    <ol class="grid grid-cols-1 divide-y divide-gray-100 md:grid-cols-5 md:divide-x md:divide-y-0">
+        <?php $__onbIndex = 0; foreach ($onbStartSteps as $__onbKey => [$__onbIcon, $__onbUrl]): $__onbIndex++; $__onbIsDone = in_array($__onbKey, $onbStartDoneList, true); ?>
+        <li>
+            <a href="<?php echo e($__onbUrl); ?>" data-onb-step="<?php echo e($__onbKey); ?>" data-testid="start-onboarding-step-<?php echo e($__onbKey); ?>"
+               <?php if ($__onbKey === 'preview'): ?>target="_blank" rel="noopener"<?php endif; ?>
+               class="group flex h-full items-start gap-3 px-5 py-4 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold <?php echo $__onbIsDone ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'; ?>">
+                    <?php if ($__onbIsDone): ?><i class="ti ti-check" aria-hidden="true"></i><span class="sr-only"><?php echo e(__('onb_start_done_mark')); ?></span><?php else: ?><?php echo $__onbIndex; ?><?php endif; ?>
+                </span>
+                <span class="min-w-0">
+                    <span class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 group-hover:text-primary">
+                        <i class="ti <?php echo e($__onbIcon); ?> text-base text-gray-400" aria-hidden="true"></i><?php echo e(__('onb_start_' . $__onbKey)); ?>
+                    </span>
+                    <span class="mt-1 block text-xs leading-5 text-gray-500"><?php echo e(__('onb_start_' . $__onbKey . '_desc')); ?></span>
+                </span>
+            </a>
+        </li>
+        <?php endforeach; ?>
+    </ol>
+</section>
+<script>
+(function () {
+    var card = document.getElementById('startOnboarding');
+    if (!card) return;
+    var token = <?php echo json_encode(csrfToken()); ?>;
+    var endpoint = (window.YK_BASE || '') + '/admin/index.php';
+    // 点步骤即记为完成：sendBeacon 不拦跳转，页面离开也能送达
+    card.querySelectorAll('[data-onb-step]').forEach(function (link) {
+        link.addEventListener('click', function () {
+            var body = new FormData();
+            body.set('_token', token);
+            body.set('action', 'onboarding_start_step');
+            body.set('step', link.getAttribute('data-onb-step'));
+            if (navigator.sendBeacon) navigator.sendBeacon(endpoint, body);
+        });
+    });
+    var dismiss = document.getElementById('startOnboardingDismiss');
+    dismiss.addEventListener('click', async function () {
+        dismiss.disabled = true;
+        var body = new FormData();
+        body.set('_token', token);
+        body.set('action', 'dismiss_onboarding_start');
+        try {
+            var response = await fetch(endpoint, { method: 'POST', body: body, credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            var result = await response.json();
+            if (!response.ok || Number(result.code) !== 0) throw new Error(result.msg || 'request failed');
+            card.remove();
+        } catch (error) {
+            dismiss.disabled = false;
+            if (typeof showMessage === 'function') showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+        }
+    });
+})();
+</script>
+<?php endif; ?>
 
 <?php if ($showRewriteOnboarding): ?>
 <div id="rewriteOnboardingNotice" data-testid="rewrite-onboarding-notice" class="mb-6 flex flex-col gap-4 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

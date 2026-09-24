@@ -1882,13 +1882,13 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach ([
             'paletteTapMode: false',
             'syncPaletteInputMode()',
-            'keyboard || this.paletteTapMode',
             'this.sections.length > 0 && this.selectedSi < 0',
             'this.toast(this.uiText.pickSectionFirst)',
         ] as $token) {
             $this->assertStringContainsString($token, $editor, "palette insertion token {$token} missing");
         }
-        $this->assertStringContainsString('paletteTapMode && selectedSi < 0', $workspace);
+        // 2.0：桌面单击也直接插入，所以「先选区块」提示不再只对触屏显示
+        $this->assertStringContainsString('x-if="selectedSi < 0 && sections.length > 0"', $workspace);
         $this->assertStringContainsString('data-testid="blox-pick-section-hint"', $workspace);
         $this->assertStringContainsString('aria-live="polite"', $overlays);
     }

@@ -100,6 +100,7 @@ return [
         'includes/builder/BloxMaintenanceMode.php',
         'includes/builder/BloxEmptyBinding.php',
         'includes/builder/BloxEdgeSamples.php',
+        'includes/builder/BloxLinkCatalog.php',   // 编辑器「选择页面」链接候选（link-picker-methods.php 无条件 require）
         'install/index.php',
         'install/validation.php',
         'install/sql/mysql.sql',

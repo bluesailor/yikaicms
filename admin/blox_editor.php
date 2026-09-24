@@ -2678,6 +2678,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             ],
             <?php require __DIR__ . '/blox_editor/partials/template-library-methods.php'; ?>
             <?php require __DIR__ . '/blox_editor/partials/media-editing-methods.php'; ?>
+            <?php require __DIR__ . '/blox_editor/partials/link-picker-methods.php'; ?>
             elSchema(type) {
                 return this.elementSchemas[type] || {
                     label: type, icon: "box", controls: [], container: false,
