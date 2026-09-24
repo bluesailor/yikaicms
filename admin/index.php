@@ -149,8 +149,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <section id="startOnboarding" data-testid="start-onboarding" aria-labelledby="startOnboardingTitle" class="mb-6 rounded-lg border border-blue-200 bg-white shadow-sm">
     <div class="flex flex-col gap-3 border-b border-blue-100 bg-blue-50 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0">
-            <h2 id="startOnboardingTitle" class="text-base font-bold text-gray-900"><?php echo e(__('onb_start_title')); ?></h2>
-            <p class="mt-1 text-sm text-gray-600"><?php echo e(__($__onbAllDone ? 'onb_start_all_done' : 'onb_start_intro')); ?></p>
+            <h2 id="startOnboardingTitle" class="text-base font-bold text-gray-900"><?php echo e(__($onbTemplateOffer ? 'onb_start_title_choice' : 'onb_start_title')); ?></h2>
+            <p class="mt-1 text-sm text-gray-600"><?php echo e(__($__onbAllDone ? 'onb_start_all_done' : ($onbTemplateOffer ? 'onb_start_intro_choice' : 'onb_start_intro'))); ?></p>
         </div>
         <div class="flex shrink-0 items-center gap-4 text-sm">
             <a href="/admin/site_setup.php" class="font-medium text-primary hover:underline"><?php echo e(__('onb_start_wizard')); ?></a>
@@ -159,10 +159,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
     <?php if ($onbTemplateOffer): ?>
-    <div class="flex flex-col gap-2 border-b border-blue-100 px-5 py-3 text-sm sm:flex-row sm:items-center sm:justify-between" data-testid="start-onboarding-template">
-        <span class="flex items-center gap-2 text-gray-700"><i class="ti ti-layout-grid text-base text-primary" aria-hidden="true"></i><?php echo e(__('onb_start_template')); ?></span>
-        <a href="/admin/site_template_market.php" class="shrink-0 font-medium text-primary hover:underline"><?php echo e(__('onb_start_template_link')); ?> →</a>
+    <div class="flex flex-col gap-3 border-b border-blue-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between" data-testid="start-onboarding-template">
+        <div class="flex items-start gap-3">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-white"><i class="ti ti-layout-grid text-lg" aria-hidden="true"></i></span>
+            <span><span class="block text-sm font-semibold text-gray-900"><?php echo e(__('onb_start_template_title')); ?></span>
+                <span class="mt-0.5 block text-xs leading-5 text-gray-600"><?php echo e(__('onb_start_template')); ?></span></span>
+        </div>
+        <a href="/admin/site_template_market.php" class="shrink-0 rounded bg-primary px-4 py-2 text-center text-sm font-medium text-white hover:bg-secondary"><?php echo e(__('onb_start_template_link')); ?></a>
     </div>
+    <p class="border-b border-gray-100 px-5 py-2 text-xs text-gray-500"><?php echo e(__('onb_start_or_edit')); ?></p>
     <?php endif; ?>
     <ol class="grid grid-cols-1 divide-y divide-gray-100 md:grid-cols-5 md:divide-x md:divide-y-0">
         <?php $__onbIndex = 0; foreach ($onbStartSteps as $__onbKey => [$__onbIcon, $__onbUrl]): $__onbIndex++; $__onbIsDone = in_array($__onbKey, $onbStartDoneList, true); ?>
