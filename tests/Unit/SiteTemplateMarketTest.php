@@ -65,6 +65,27 @@ final class SiteTemplateMarketTest extends TestCase
         self::assertSame('', SiteTemplateMarket::normalize($this->item(['screenshot' => 'https://evil.test/pixel.webp']))['screenshot']);
     }
 
+    public function testTemplatesWorkAcrossPatchReleasesOfTheSameLine(): void
+    {
+        // 同一「主.次」版本线内，模板制作版本不晚于本站即可导入
+        self::assertTrue(\SiteTemplateArchive::cmsCompatible('2.0.0', '2.0.0'));
+        self::assertTrue(\SiteTemplateArchive::cmsCompatible('2.0.0', '2.0.7'));
+        self::assertTrue(\SiteTemplateArchive::cmsCompatible('2.0.3', '2.0.10'));
+        self::assertFalse(\SiteTemplateArchive::cmsCompatible('2.0.1', '2.0.0'), '比本站新的模板可能用到本站没有的功能');
+        self::assertFalse(\SiteTemplateArchive::cmsCompatible('2.0.0', '2.1.0'), '跨次版本不通用');
+        self::assertFalse(\SiteTemplateArchive::cmsCompatible('1.20.0', '2.0.0'));
+        self::assertFalse(\SiteTemplateArchive::cmsCompatible('2.0', '2.0.0'));
+        self::assertFalse(\SiteTemplateArchive::cmsCompatible('>=2.0.0', '2.0.0'));
+        self::assertSame('2.0.x', \SiteTemplateArchive::cmsSeries('2.0.0'));
+
+        [$major, $minor, $patch] = array_map('intval', explode('.', CMS_VERSION));
+        $item = SiteTemplateMarket::normalize($this->item(['cms' => CMS_VERSION]));
+        self::assertSame('', $item['blocked_reason']);
+        $newer = SiteTemplateMarket::normalize($this->item(['cms' => $major . '.' . $minor . '.' . ($patch + 1)]));
+        self::assertSame('st_market_cms', $newer['blocked_reason']);
+        $nextLine = SiteTemplateMarket::normalize($this->item(['cms' => $major . '.' . ($minor + 1) . '.0']));
+        self::assertSame('st_market_cms', $nextLine['blocked_reason']);
+    }
     /** Test keys exist only in memory and cannot authorize the official market. */
     private function signed(string $bytes, bool $legacy = false): array
     {
