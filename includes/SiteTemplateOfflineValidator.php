@@ -82,7 +82,7 @@ final class SiteTemplateOfflineValidator
                 || ($manifest['format'] ?? '') !== 'yikaicms-site-template'
                 || !in_array($manifest['version'] ?? 0, SiteTemplateArchive::SUPPORTED_VERSIONS, true)
                 || !is_string($manifest['cms'] ?? null) || preg_match('/^\d+\.\d+\.\d+$/D', $manifest['cms']) !== 1
-                || $manifest['cms'] !== CMS_VERSION
+                || !SiteTemplateArchive::cmsCompatible($manifest['cms'])
                 || !is_string($manifest['theme'] ?? null) || preg_match('/^[a-z0-9][a-z0-9-]{0,79}$/D', $manifest['theme']) !== 1
                 || !is_array($manifest['schema'] ?? null) || !is_array($manifest['data'] ?? null)
                 || !is_array($manifest['data']['tables'] ?? null) || !is_array($manifest['data']['settings'] ?? null)) {

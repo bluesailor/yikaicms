@@ -106,7 +106,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php if ($categoryLabel !== ''): ?><span class="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"><?= e($categoryLabel) ?></span><?php endif; ?>
                 </div>
                 <p class="text-sm text-gray-600"><?= e($description) ?></p>
-                <p class="text-xs text-gray-500"><?= e(__('st_market_version', ['version' => $item['version'], 'cms' => $item['cms']])) ?></p>
+                <p class="text-xs text-gray-500"><?= e(__('st_market_version', ['version' => $item['version'], 'cms' => $item['cms'], 'series' => SiteTemplateArchive::cmsSeries($item['cms'])])) ?></p>
                 <?php if ($item['format_version'] > 1): ?><p class="text-sm text-gray-600"><?= e(__('st_market_format_hint', ['format' => (string) $item['format_version']])) ?></p><?php endif; ?>
                 <?php if ($item['blocked_reason'] !== ''): ?><p class="mt-auto text-sm text-amber-800"><?= e(__($item['blocked_reason'])) ?></p>
                 <?php else: ?>

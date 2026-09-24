@@ -74,7 +74,7 @@ final class SiteTemplateMarket
         $item['tier'] = $tier;
         $item['blocked_reason'] = $entry['status'] !== 'published' ? 'st_market_pending' : '';
         if ($tier !== 'free') $item['blocked_reason'] = 'st_market_license';
-        if ($entry['cms'] !== (defined('CMS_VERSION') ? CMS_VERSION : '')) $item['blocked_reason'] = 'st_market_cms';
+        if (!SiteTemplateArchive::cmsCompatible($entry['cms'])) $item['blocked_reason'] = 'st_market_cms';
         if (!version_compare(PHP_VERSION, substr($entry['requires_php'], 2), '>=')) $item['blocked_reason'] = 'st_market_php';
         if (!in_array($entry['format_version'], SiteTemplateArchive::SUPPORTED_VERSIONS, true)) $item['blocked_reason'] = 'st_market_format';
         $package = $slug . '-site-v' . $version . '.zip';
