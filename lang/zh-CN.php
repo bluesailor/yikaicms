@@ -8381,4 +8381,9 @@ voltage|电压|220V',
     'blox_section_advanced_css_hint' => '%root% 代表整个区块（<section>），可用 %root% h2 之类选中区块里的元素；只写声明时作用于区块本身。',
     'blox_section_advanced' => '高级：ID / 类 / CSS',
     'blox_section_advanced_classes_hint' => '空格分隔，加在 <section> 上；可用主题或 Tailwind 的类，yk- 开头为系统保留。',
+    // V2.0.0 整站模板市场：统计、筛选与一次性确认
+    'st_market_summary' => '共 :total 套模板 · 可导入 :available 套',
+    'st_market_filtered' => '当前显示 :count 套',
+    'st_market_clear_filter' => '清除筛选',
+    'st_market_replace_confirm_hint' => '勾选后，下方模板的「预览并导入」按钮才可用。导入前还会先打开预览，确认后才真正执行。',
 ];
