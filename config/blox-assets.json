@@ -59,6 +59,7 @@
     "assets/js/blox-home-content-panel.js",
     "assets/js/blox-style-groups.js",
     "assets/js/blox-style-sources.js",
+    "assets/js/blox-custom-code.js",
     "assets/js/blox-detail-conditions.js",
     "assets/js/blox-background-panel.js",
     "assets/js/blox-cta-quick.js",

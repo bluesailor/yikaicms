@@ -29,7 +29,7 @@ final class BloxCustomCode
     private const ATTRIBUTE_VALUE_MAX = 500;
     private const FORBIDDEN = ['@import', '@charset', '@namespace', 'expression(', 'javascript:', 'vbscript:', 'behavior:', '-moz-binding', 'src('];
 
-    /** @var array<string,true> 本次请求已输出的 ID（同页重复的只保留第一个） */
+    /** @var array<array-key,true> 本次请求已输出的 ID（同页重复的只保留第一个） */
     private static array $renderedIds = [];
 
     private static ?bool $canEditOverride = null;
@@ -73,7 +73,8 @@ final class BloxCustomCode
         // 转义解码后再查：\75 rl( → url(，\2f\2f → //
         $decoded = preg_replace_callback('/\\\\([0-9a-fA-F]{1,6})\s?/', static function (array $match): string {
             $code = hexdec($match[1]);
-            return $code > 0 && $code < 0x110000 ? mb_chr((int) $code, 'UTF-8') : '';
+            $char = $code > 0 && $code < 0x110000 ? mb_chr((int) $code, 'UTF-8') : '';
+            return is_string($char) ? $char : '';
         }, $css) ?? $css;
         $decoded = preg_replace('/\\\\(.)/su', '$1', $decoded) ?? $decoded;
         $plain = preg_replace('#/\*.*?\*/#s', '', $decoded) ?? $decoded;
