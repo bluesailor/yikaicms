@@ -17,6 +17,28 @@ final class SiteTemplateArchive
     private const STATIC_EXT = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'svg', 'ico', 'pdf', 'woff', 'woff2', 'ttf', 'mp4', 'webm'];
     private const THEME_EXT = ['php', 'css', 'js', 'json', 'md'];
 
+    /**
+     * 模板包与当前 CMS 是否兼容：同一「主.次」版本线内，模板制作版本不晚于本站即可
+     * （2.0.0 做的模板在 2.0.x 补丁版上都能导入，不必每个补丁版重签全部模板）。
+     * 跨次版本仍拒绝；补丁版若改了表结构，由 schema 契约另行拒绝。
+     */
+    public static function cmsCompatible(string $templateCms, ?string $current = null): bool
+    {
+        $current ??= defined('CMS_VERSION') ? (string) CMS_VERSION : '';
+        if (preg_match('/^(\d+)\.(\d+)\.\d+$/D', $templateCms, $template) !== 1
+            || preg_match('/^(\d+)\.(\d+)\.\d+$/D', $current, $site) !== 1) {
+            return false;
+        }
+        return (int) $template[1] === (int) $site[1] && (int) $template[2] === (int) $site[2]
+            && version_compare($current, $templateCms, '>=');
+    }
+
+    /** 市场卡片上显示的适用版本线，如 2.0.x。 */
+    public static function cmsSeries(string $templateCms): string
+    {
+        return preg_match('/^(\d+)\.(\d+)\.\d+$/D', $templateCms, $match) === 1 ? $match[1] . '.' . $match[2] . '.x' : $templateCms;
+    }
+
     public static function safePath(string $path): bool
     {
         if ($path === '' || strlen($path) > 240 || str_contains($path, '\\') || str_contains($path, '//')) return false;
@@ -134,7 +156,7 @@ final class SiteTemplateArchive
     {
         $manifest = json_decode($manifestBytes, true, 64, JSON_THROW_ON_ERROR);
         if (!is_array($manifest) || ($manifest['format'] ?? '') !== 'yikaicms-site-template' || !in_array($manifest['version'] ?? 0, self::SUPPORTED_VERSIONS, true)
-            || ($manifest['cms'] ?? '') !== (defined('CMS_VERSION') ? CMS_VERSION : '2.0.0')
+            || !self::cmsCompatible((string) ($manifest['cms'] ?? ''), defined('CMS_VERSION') ? (string) CMS_VERSION : '2.0.0')
             || ($manifest['schema'] ?? null) !== SiteTemplateData::contractSchema()
             || ($manifest['schema'] ?? null) !== SiteTemplateData::schema()) throw new RuntimeException('st_schema');
         if (!is_string($manifest['theme'] ?? null) || !preg_match('/^[a-z0-9][a-z0-9-]{0,79}$/D', $manifest['theme'])) throw new RuntimeException('st_invalid');
