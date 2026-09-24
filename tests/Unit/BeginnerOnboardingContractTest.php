@@ -123,4 +123,21 @@ final class BeginnerOnboardingContractTest extends TestCase
         self::assertStringContainsString('<a href="<?= e(SiteSetup::homeEditUrl()) ?>"', $this->source('admin/theme_content.php'));
         self::assertStringContainsString("(\$isHomeBlox ? '/admin/site_setup.php' : '/admin/page.php')", $this->source('admin/blox_editor/partials/header.php'));
     }
+
+    /** 外行最简单的路：新站把「从行业模板开始」放第一步并标推荐；已有内容的站放最后，不引导去覆盖 */
+    public function testIndustryTemplatesComeFirstOnlyForFreshSites(): void
+    {
+        $setup = $this->source('admin/site_setup.php');
+        self::assertStringContainsString('$templateFirst = (new SiteTemplateService(ROOT_PATH))->canApply();', $setup);
+        self::assertStringContainsString('<?php if ($templateFirst) $renderTemplateStep(1); ?>', $setup);
+        self::assertStringContainsString('<?php if (!$templateFirst) $renderTemplateStep(3); ?>', $setup);
+        self::assertLessThan(
+            (int) strpos($setup, 'aria-labelledby="setup-home"'),
+            (int) strpos($setup, '<?php if ($templateFirst) $renderTemplateStep(1); ?>'),
+            '新站的模板步骤排在首页之前'
+        );
+        $dashboard = $this->source('admin/index.php');
+        self::assertStringContainsString('$onbTemplateOffer = (new SiteTemplateService(ROOT_PATH))->canApply();', $dashboard);
+        self::assertStringContainsString("__(\$onbTemplateOffer ? 'onb_start_title_choice' : 'onb_start_title')", $dashboard);
+    }
 }

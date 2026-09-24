@@ -41,19 +41,39 @@ $pageTitle = __('setup_title');
 $currentMenu = 'site_setup';
 $homeMode = SiteSetup::currentHomeMode();
 $checks = SiteSetup::checklist();
+$templateFirst = false;
+try {
+    require_once ROOT_PATH . '/includes/SiteTemplateService.php';
+    $templateFirst = (new SiteTemplateService(ROOT_PATH))->canApply();
+} catch (Throwable $error) {
+    $templateFirst = false;
+}
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 <div class="space-y-6">
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
     <?php if ($savedNotice): ?><p role="status" class="bg-green-50 text-green-700 p-4 rounded"><?= e(__('setup_home_saved')) ?></p><?php endif; ?>
+    <?php $renderTemplateStep = static function (int $number) use ($templateFirst): void { ?>
+    <section class="bg-white rounded-lg shadow p-6<?= $templateFirst ? ' ring-2 ring-primary/30' : '' ?>" aria-labelledby="setup-start" data-testid="setup-template-step" data-position="<?= $templateFirst ? 'first' : 'last' ?>">
+        <h2 id="setup-start" class="text-lg font-bold text-gray-800 flex flex-wrap items-center gap-2"><?= e($number . '. ' . __('setup_start')) ?>
+            <span class="rounded px-2 py-0.5 text-xs font-medium <?= $templateFirst ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600' ?>"><?= e(__($templateFirst ? 'setup_recommended' : 'setup_optional')) ?></span></h2>
+        <p class="text-gray-600 mt-1 text-sm"><?= e(__('setup_template_hint')) ?></p>
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+            <a class="inline-block bg-primary text-white rounded px-4 py-3" href="/admin/site_template_market.php" data-testid="setup-template-market"><?= e(__('st_market_cta_button')) ?></a>
+            <a class="inline-block border rounded px-4 py-3 text-gray-700" href="/admin/site_templates.php"><?= e(__('setup_template_upload')) ?></a>
+        </div>
+        <p class="mt-4 text-sm text-gray-500"><?= e(__('setup_recipe_hint')) ?> <a class="text-primary hover:underline" href="/admin/recipe.php"><?= e(__('admin_recipe')) ?></a></p>
+    </section>
+    <?php }; ?>
     <header>
         <h1 class="text-2xl font-bold text-gray-800"><?= e($pageTitle) ?></h1>
         <p class="text-gray-600 mt-1"><?= e(__('setup_intro')) ?></p>
     </header>
     <?php // 每一步只留标题、一句话和按钮；排障说明收进折叠区 ?>
+    <?php if ($templateFirst) $renderTemplateStep(1); ?>
     <section class="bg-white rounded-lg shadow p-6" aria-labelledby="setup-home">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="setup-home" class="text-lg font-bold text-gray-800"><?= e(__('setup_home')) ?></h2>
+            <h2 id="setup-home" class="text-lg font-bold text-gray-800"><?= e(($templateFirst ? '2' : '1') . '. ' . __('setup_home')) ?></h2>
             <span class="text-sm text-gray-500" data-testid="setup-home-mode"><?= e(__('setup_mode_' . $homeMode)) ?></span>
         </div>
         <div class="flex flex-wrap gap-3 mt-4">
@@ -103,7 +123,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </section>
     <section class="bg-white rounded-lg shadow p-6" aria-labelledby="setup-content">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="setup-content" class="text-lg font-bold text-gray-800"><?= e(__('setup_content')) ?></h2>
+            <h2 id="setup-content" class="text-lg font-bold text-gray-800"><?= e(($templateFirst ? '3' : '2') . '. ' . __('setup_content')) ?></h2>
             <a class="text-sm text-primary hover:underline" href="/admin/site_content_check.php"><?= e(__('sc_title')) ?></a>
         </div>
         <p class="text-gray-600 mt-1 text-sm"><?= e(__('setup_check_hint')) ?></p>
@@ -117,14 +137,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endforeach; ?>
         </ul>
     </section>
-    <section class="bg-white rounded-lg shadow p-6" aria-labelledby="setup-start">
-        <h2 id="setup-start" class="text-lg font-bold text-gray-800"><?= e(__('setup_start')) ?></h2>
-        <p class="text-gray-600 mt-1 text-sm"><?= e(__('setup_template_hint')) ?></p>
-        <div class="mt-4 flex flex-wrap items-center gap-3">
-            <a class="inline-block bg-primary text-white rounded px-4 py-3" href="/admin/site_template_market.php" data-testid="setup-template-market"><?= e(__('st_market_cta_button')) ?></a>
-            <a class="inline-block border rounded px-4 py-3 text-gray-700" href="/admin/site_templates.php"><?= e(__('setup_template_upload')) ?></a>
-        </div>
-        <p class="mt-4 text-sm text-gray-500"><?= e(__('setup_recipe_hint')) ?> <a class="text-primary hover:underline" href="/admin/recipe.php"><?= e(__('admin_recipe')) ?></a></p>
-    </section>
+    <?php if (!$templateFirst) $renderTemplateStep(3); ?>
 </div>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
