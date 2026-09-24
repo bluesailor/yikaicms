@@ -5,6 +5,7 @@ require_once __DIR__ . '/SiteTemplateArchive.php';
 require_once __DIR__ . '/SiteTemplateLanguages.php';
 require_once __DIR__ . '/ThemeInstaller.php';
 require_once __DIR__ . '/UploadReferences.php';
+require_once __DIR__ . '/PluginMarketInstall.php';
 
 /**
  * Local, explicit site transfer. Never restores accounts or server configuration.
@@ -26,8 +27,12 @@ final class SiteTemplateService
     private const REPLACE_CLEARS = ['blox_page_drafts', 'content_revisions', 'blox_import_reviews',
         'blox_remote_template_states', 'media_remote_imports'];
 
-    public function __construct(string $root)
+    private ?PluginMarketInstall $pluginMarket;
+
+    /** @param null|PluginMarketInstall $pluginMarket 测试注入；默认按需创建官方市场安装器 */
+    public function __construct(string $root, ?PluginMarketInstall $pluginMarket = null)
     {
+        $this->pluginMarket = $pluginMarket;
         $resolved = realpath($root);
         if ($resolved === false) throw new RuntimeException('st_storage');
         $this->root = str_replace('\\', '/', $resolved);
@@ -210,7 +215,110 @@ final class SiteTemplateService
             'missing_plugins' => $missingPlugins, 'plugin_requirements' => $matchedRequirements,
             'plugin_before_hash' => SiteTemplatePluginData::fingerprint($pluginBefore)]);
         return ['token' => $token, 'summary' => $this->summary($package['manifest'], array_fill_keys($package['names'], '')),
-            'missing_plugins' => $missingPlugins, 'replace_existing' => !$fresh];
+            'missing_plugins' => $missingPlugins, 'plugin_actions' => $this->pluginActions($missingPlugins),
+            'replace_existing' => !$fresh];
+    }
+
+    /**
+     * 缺失插件各自怎么补：本站已有且版本够 → 启用；官方插件市场有且可下载 → 安装后启用；都不行 → 需要手动上传。
+     * 市场不可达时不报错，只把需要下载的标成手动，预览照常可用。
+     *
+     * @param list<array{slug:string,version:string}> $missing
+     * @return list<array{slug:string,version:string,action:string,available:string}>
+     */
+    public function pluginActions(array $missing): array
+    {
+        $catalog = null;
+        $actions = [];
+        foreach ($missing as $plugin) {
+            $local = PluginMarketPackage::installedVersion($this->root . '/plugins', $plugin['slug']);
+            if ($local !== '' && version_compare($local, $plugin['version'], '>=')) {
+                $actions[] = $plugin + ['action' => 'enable', 'available' => $local];
+                continue;
+            }
+            $catalog ??= $this->pluginMarket()->catalog() ?? [];
+            $item = PluginMarketInstall::find($catalog, $plugin['slug']);
+            $available = is_array($item) ? (string) ($item['version'] ?? '') : '';
+            $usable = is_array($item) && MarketDownloadStatus::reason($item) === '' && (string) ($item['download_url'] ?? '') !== ''
+                && $available !== '' && version_compare($available, $plugin['version'], '>=');
+            $actions[] = $plugin + ['action' => $usable ? 'market' : 'manual', 'available' => $available];
+        }
+        return $actions;
+    }
+
+    /**
+     * 「一并安装所需插件」：按预览中的清单逐个启用，或从官方插件市场安装（与插件页同一条校验链）后启用。
+     * 只在本次预览有效期内、由发起预览的管理员执行；装不上的保留原因，照旧可按「跳过缺失插件数据」继续。
+     * 之后必须在**下一个请求**里调用 refreshPreview()：新启用插件的整站数据适配器要随插件加载才注册。
+     *
+     * @return list<array{slug:string,ok:bool,msg:string}>
+     */
+    public function installRequiredPlugins(string $token, int $adminId): array
+    {
+        $this->supported();
+        [, $archive] = $this->pendingPlan($token, $adminId);
+        $missing = $this->missingPlugins(SiteTemplateArchive::inspect($archive)['manifest']['plugins']);
+
+        $results = [];
+        $catalog = null;
+        foreach ($this->pluginActions($missing) as $plugin) {
+            $slug = $plugin['slug'];
+            if ($plugin['action'] === 'manual') {
+                $results[] = ['slug' => $slug, 'ok' => false, 'msg' => __('st_plugin_action_manual')];
+                continue;
+            }
+            if ($plugin['action'] === 'market') {
+                $catalog ??= $this->pluginMarket()->catalog() ?? [];
+                $installed = $this->pluginMarket()->install($slug, $catalog);
+                if (!$installed['ok']) {
+                    $results[] = ['slug' => $slug, 'ok' => false, 'msg' => $installed['msg']];
+                    continue;
+                }
+            }
+            $version = PluginMarketPackage::installedVersion($this->root . '/plugins', $slug);
+            if ($version === '' || version_compare($version, $plugin['version'], '<')) {
+                $results[] = ['slug' => $slug, 'ok' => false, 'msg' => __('st_plugin_action_manual')];
+                continue;
+            }
+            pluginModel()->activate($slug);
+            $results[] = ['slug' => $slug, 'ok' => true, 'msg' => $slug . ' ' . $version];
+        }
+
+        return $results;
+    }
+
+    /**
+     * 用同一份包重新生成预览：缺失清单与插件数据的前置状态随之更新，导入时就会带上新启用插件的数据。
+     * @return array<string,mixed>
+     */
+    public function refreshPreview(string $token, int $adminId): array
+    {
+        $this->supported();
+        [$plan, $archive] = $this->pendingPlan($token, $adminId);
+        // prepare() 会把传入的包存回 package.zip：先拷出一份再交给它
+        $copy = tempnam(sys_get_temp_dir(), 'yk-st-refresh-');
+        if ($copy === false || !@copy($archive, $copy)) throw new RuntimeException('st_storage');
+        try {
+            return $this->prepare($copy, $adminId, !empty($plan['replace_existing']));
+        } finally {
+            @unlink($copy);
+        }
+    }
+
+    /** @return array{0:array<string,mixed>,1:string} 本人、未过期、包未被替换的预览计划与包路径 */
+    private function pendingPlan(string $token, int $adminId): array
+    {
+        $plan = $this->readRecord('plan');
+        if ($plan === null || !hash_equals((string) $plan['token'], $token) || $plan['owner'] !== $adminId || $plan['expires'] < time()) throw new RuntimeException('st_stale');
+        $archive = $this->store . '/package.zip';
+        $this->assertContained($archive);
+        if (!is_file($archive) || !hash_equals((string) $plan['hash'], (string) hash_file('sha256', $archive))) throw new RuntimeException('st_stale');
+        return [$plan, $archive];
+    }
+
+    private function pluginMarket(): PluginMarketInstall
+    {
+        return $this->pluginMarket ??= new PluginMarketInstall($this->root);
     }
 
     /** 单次 stage 请求的预算：够小才能在共享主机的执行时限内完成，够大才不至于来回太多趟。 */

@@ -47,6 +47,9 @@ function shopSiteTemplateSettingDefaults(): array
 /** @return array{id:string,version:int,sha256:string} */
 function shopSiteTemplateSchema(): array
 {
+    // 商城表按需创建（首次打开商城页面才建）：刚启用、还没打开过商城的站点，
+    // 导入整站模板时这里要先把表建好，否则会被误判为结构不一致
+    shopEnsureSchema();
     if (!db()->tableExists('shop_products')) {
         throw new RuntimeException('st_schema');
     }
