@@ -852,6 +852,29 @@ $bloxDesignSystem['classes'] = array_map(
 $bloxGlobalClasses = array_values(BloxGlobalClasses::catalog());
 $bloxGlobalQueries = array_values(BloxGlobalQueries::catalog());
 $canManageBloxDesign = hasPermission('blox_global');
+// 页面切换器（V2.0.0）：编辑首页或普通页面时，顶栏可直接跳到同语言的其他页面继续编辑。
+// 只列真正用本编辑器编辑的页面（pagePrimaryEditUrl 指向 blox_editor），父页面收口到子页面时去重。
+$bloxPageSwitcher = [];
+if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
+    $switchLanguage = $isHomeBlox ? siteLang() : (string) ($page['lang'] ?? siteLang());
+    $bloxPageSwitcher[] = ['name' => __('blox_page_switch_home'), 'slug' => '', 'level' => 0,
+        'url' => '/admin/blox_editor.php?home=1', 'current' => $isHomeBlox];
+    $seenSwitchUrls = [];
+    foreach (channelModel()->websitePages($switchLanguage) as $switchRow) {
+        $switchUrl = pagePrimaryEditUrl($switchRow);
+        if (!str_starts_with($switchUrl, '/admin/blox_editor.php?') || isset($seenSwitchUrls[$switchUrl])) {
+            continue;
+        }
+        $seenSwitchUrls[$switchUrl] = true;
+        $bloxPageSwitcher[] = [
+            'name' => (string) ($switchRow['name'] ?? ''),
+            'slug' => (string) ($switchRow['slug'] ?? ''),
+            'level' => (int) ($switchRow['parent_id'] ?? 0) > 0 ? 1 : 0,
+            'url' => $switchUrl,
+            'current' => !$isHomeBlox && (int) ($switchRow['id'] ?? 0) === (int) $id,
+        ];
+    }
+}
 ?>
 <!doctype html>
 <html lang="<?php echo htmlspecialchars(siteLang()); ?>">
@@ -888,6 +911,7 @@ $canManageBloxDesign = hasPermission('blox_global');
     <script src="/assets/js/blox-style-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-source.js') ?>"></script>
     <script src="/assets/js/blox-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-groups.js') ?>"></script>
     <script src="/assets/js/blox-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-sources.js') ?>"></script>
+    <script src="/assets/js/blox-custom-code.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-custom-code.js') ?>"></script>
     <script src="/assets/js/blox-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-conditions.js') ?>"></script>
     <script src="/assets/js/blox-background-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-background-panel.js') ?>"></script>
     <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
@@ -1460,6 +1484,16 @@ $canManageBloxDesign = hasPermission('blox_global');
             initialFocusSectionId: <?php echo json_encode($initialFocusSectionId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             initialFocusElementId: <?php echo json_encode($initialFocusElementId, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             canManageDesign: <?php echo $canManageBloxDesign ? 'true' : 'false'; ?>,
+            // V2.0.0 建站人员：自定义 CSS 的即时检查文案、页面 CSS 对话框、页面切换器
+            customCssErrors: {
+                <?php foreach (['invalid', 'too_long', 'markup', 'comment', 'forbidden', 'external', 'braces'] as $cssError): ?>
+                <?php echo json_encode($cssError); ?>: <?php echo $jt('blox_custom_css_error_' . $cssError); ?>,
+                <?php endforeach; ?>
+            },
+            pageCodeOpen: false,
+            pageCodeDraft: "",
+            pageSwitcherItems: <?php echo json_encode($bloxPageSwitcher, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            pageSwitcherQuery: "",
             designSystem: <?php echo json_encode($bloxDesignSystem, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             designUsage: { tokens: {}, styles: {} },
             colorPaletteGroups: window.YikaiBloxColorPicker.paletteGroups,
@@ -6890,6 +6924,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             },
 
             <?php require __DIR__ . '/blox_editor/partials/clipboard-methods.php'; ?>
+            <?php require __DIR__ . '/blox_editor/partials/advanced-code-methods.php'; ?>
             closeCtx() {
                 this.ctx.open = false;
             },

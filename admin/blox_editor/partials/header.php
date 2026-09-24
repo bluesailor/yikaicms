@@ -38,7 +38,42 @@ declare(strict_types=1);
                 <span class="relative pr-6" data-testid="blox-header-brand">Page Builder<span
                       class="absolute -top-2 right-0 rounded bg-blue-500 px-1 text-[9px] font-semibold leading-4 tracking-normal text-white"><?php echo e(__('blox_header_brand_badge')); ?></span></span>
             </span>
+            <?php if ($bloxPageSwitcher !== []): ?>
+            <?php // 页面切换器：不离开 Page Builder 直接换到其他页面；有未保存改动时沿用离开确认 ?>
+            <div class="blox-header-page relative min-w-0" x-data="{ open: false }" data-testid="blox-page-switcher"
+                 @keydown.escape.stop="open = false" @click.outside="open = false">
+                <button type="button" data-testid="blox-page-switcher-toggle"
+                        @click="open = !open; if (open) { pageSwitcherQuery = ''; $nextTick(() => $refs.pageSwitcherSearch.focus()); }"
+                        :aria-expanded="open ? 'true' : 'false'" aria-haspopup="true"
+                        title="<?= e(__('blox_page_switch')) ?>"
+                        class="inline-flex max-w-full min-w-0 items-center gap-1 rounded px-1 text-sm text-gray-400 hover:bg-gray-800 hover:text-white">
+                    <span class="truncate">/ <?php echo e($isHomeBlox ? __('blox_home_draft') : $page['name']); ?></span>
+                    <i class="ti ti-selector shrink-0 text-xs" aria-hidden="true"></i>
+                </button>
+                <div x-show="open" x-cloak class="absolute left-0 top-full z-50 mt-2 w-72 rounded border border-gray-700 bg-gray-900 p-2 shadow-xl"
+                     data-testid="blox-page-switcher-menu">
+                    <input type="search" x-ref="pageSwitcherSearch" x-model="pageSwitcherQuery" data-testid="blox-page-switcher-search"
+                           placeholder="<?= e(__('blox_page_switch_search')) ?>" aria-label="<?= e(__('blox_page_switch_search')) ?>"
+                           @keydown.enter.prevent="const first = $el.parentElement.querySelector('a[data-testid=blox-page-switcher-item]'); if (first) first.click()"
+                           class="mb-2 w-full rounded border border-gray-700 bg-gray-800 px-2 py-1.5 text-xs text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:outline-none">
+                    <div class="max-h-80 overflow-y-auto blox-scroll">
+                        <template x-for="item in pageSwitcherMatches()" :key="item.url">
+                            <a :href="item.url" @click="requestEditorNavigation($event)" data-testid="blox-page-switcher-item"
+                               :aria-current="item.current ? 'page' : null"
+                               class="flex items-center gap-2 rounded px-2 py-1.5 text-xs"
+                               :class="[item.current ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white', item.level ? 'pl-6' : '']">
+                                <i class="ti shrink-0" :class="item.url.indexOf('home=1') !== -1 ? 'ti-home' : 'ti-file'" aria-hidden="true"></i>
+                                <span class="min-w-0 flex-1 truncate" x-text="item.name"></span>
+                                <span x-show="item.slug" class="shrink-0 font-mono text-[10px] text-gray-500" x-text="item.slug"></span>
+                            </a>
+                        </template>
+                        <p x-show="!pageSwitcherMatches().length" class="px-2 py-1.5 text-xs text-gray-500"><?= e(__('blox_page_switch_empty')) ?></p>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
             <span class="blox-header-page min-w-0 text-gray-400 text-sm truncate">/ <?php echo e($isHomeBlox ? __('blox_home_draft') : $page['name']); ?></span>
+            <?php endif; ?>
             <?php
             // 顶栏要说清"我在编辑哪种对象"（TASK-003 A）：名字来自 BloxAreaTemplatePresets::displayName()
             // （真实模板名，不是样本标题）。
@@ -470,6 +505,15 @@ declare(strict_types=1);
                     class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800"
                     title="<?= e(__('blox_page_frame')) ?>" aria-label="<?= e(__('blox_page_frame')) ?>">
                 <i class="ti ti-layout text-lg"></i>
+            </button>
+<?php endif; ?>
+<?php if (!BloxAreaDocument::isArea($templateType) && $templateType !== 'popup'): ?>
+            <?php // 页面自定义 CSS：随页面保存；无「全站设计」权限时只读 ?>
+            <button type="button" @click="openPageCode()" data-testid="blox-page-code-open"
+                    class="relative text-gray-300 hover:text-sky-300 text-sm inline-flex items-center gap-1 px-2 py-1.5 transition-colors"
+                    title="<?php echo e(__('blox_page_code')); ?>" aria-label="<?php echo e(__('blox_page_code')); ?>">
+                <i class="ti ti-code text-base"></i><span class="hidden min-[1920px]:inline text-xs"><?php echo e(__('blox_page_code')); ?></span>
+                <span x-show="docSettings && docSettings.custom_css" class="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-sky-400" aria-hidden="true"></span>
             </button>
 <?php endif; ?>
 <?php if ($canManageBloxDesign): ?>

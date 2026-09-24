@@ -1793,6 +1793,41 @@ declare(strict_types=1);
         </div>
     </div>
 
+    <?php /* 页面自定义 CSS（V2.0.0）：随页面保存；%root% 指 body。全站 CSS 在主题设置里（链接过去）。 */ ?>
+    <div x-show="pageCodeOpen" x-cloak x-ref="pageCodeDialog" tabindex="-1"
+         @keydown="dialogKeydown($event, $refs.pageCodeDialog, () => closePageCode())"
+         class="fixed inset-0 z-[150] flex items-center justify-center p-5"
+         role="dialog" aria-modal="true" aria-labelledby="blox-page-code-title" data-testid="blox-page-code-dialog">
+        <div class="absolute inset-0 bg-black/55" @click="closePageCode()"></div>
+        <div class="relative flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg bg-white shadow-2xl">
+            <div class="border-b border-gray-100 px-5 py-4">
+                <h2 id="blox-page-code-title" class="text-base font-semibold text-gray-900"><?= e(__('blox_page_code')) ?></h2>
+                <p class="mt-1 text-sm leading-6 text-gray-500"><?= e(__('blox_page_code_hint')) ?></p>
+            </div>
+            <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <textarea x-model="pageCodeDraft" rows="16" spellcheck="false" data-testid="blox-page-code-css"
+                          :readonly="!canManageDesign"
+                          placeholder=".promo-banner { border-radius: 16px }&#10;%root% { scroll-behavior: smooth }"
+                          class="w-full rounded border px-3 py-2 font-mono text-xs leading-relaxed focus:outline-none"
+                          :class="customCssError(pageCodeDraft, 20000) ? 'border-red-400 bg-red-50' : 'border-gray-300 focus:border-blue-500'"></textarea>
+                <p x-show="customCssError(pageCodeDraft, 20000)" class="mt-1 text-xs text-red-600" data-testid="blox-page-code-error"
+                   x-text="customCssErrorText(pageCodeDraft, 20000)"></p>
+                <p x-show="!canManageDesign" class="mt-1 text-xs text-amber-700"><?= e(__('blox_custom_css_readonly')) ?></p>
+                <p class="mt-2 text-xs leading-5 text-gray-400">
+                    <?= e(__('blox_page_code_site_hint')) ?>
+                    <a href="/admin/theme.php#theme-custom-css" target="_blank" rel="noopener" class="text-blue-600 hover:underline"><?= e(__('blox_page_code_site_link')) ?></a>
+                </p>
+            </div>
+            <div class="flex flex-col-reverse gap-2 border-t border-gray-100 px-5 py-4 sm:flex-row sm:justify-end">
+                <button type="button" @click="closePageCode()" data-testid="blox-page-code-cancel"
+                        class="h-9 px-4 rounded border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"><?= e(__('cancel')) ?></button>
+                <button type="button" @click="applyPageCode()" data-testid="blox-page-code-apply" x-show="canManageDesign"
+                        :disabled="!!customCssError(pageCodeDraft, 20000)"
+                        class="h-9 px-4 rounded bg-blue-600 text-sm font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"><?= e(__('blox_page_code_apply')) ?></button>
+            </div>
+        </div>
+    </div>
+
     <?php /* 异常退出恢复：只在本机存在比服务器更新且内容不同的快照时出现。 */ ?>
     <div x-show="recoveryOpen" x-cloak x-ref="recoveryDialog" tabindex="-1"
          @keydown="dialogKeydown($event, $refs.recoveryDialog, null)"

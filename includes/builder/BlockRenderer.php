@@ -192,6 +192,8 @@ final class BlockRenderer
         if (empty($sections)) {
             return '';
         }
+        // 页面自定义 CSS（已净化）进样式区，与元素的自定义 CSS 一起输出
+        BloxCustomCode::collectDocumentCss(is_array($document['settings'] ?? null) ? $document['settings'] : []);
 
         // 仅当显式开启编辑上下文且当前是登录管理员时，才输出定位标记（不污染公开 HTML/缓存）
         $editMode = self::$editChannelId > 0 && !empty($_SESSION['admin_id']);
@@ -1174,6 +1176,9 @@ final class BlockRenderer
         $html = self::applyCompiledCss($html, $data, $element);
         $html = self::applyGlobalStyle($html, $data, $element->type());
         $html = self::applyGlobalClasses($html, $data, $element->type());
+        if ($element->type() !== 'code') {
+            $html = BloxCustomCode::applyToElement($html, $data, (string) ($el['id'] ?? ''));
+        }
         $html = self::applyElementVisibility($html, $data['_hide_on'] ?? null, $editMode);
         $html = self::markCustomHomeElement($html, $element->type(), $path);
         // v1.28 元素交互：前台把已归一的 _interactions 序列化到首标签，runtime 按需加载
