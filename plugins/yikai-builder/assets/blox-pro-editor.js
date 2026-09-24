@@ -491,9 +491,28 @@
             return "";
         },
 
-        classColorSwatch(field) {
-            var value = String(this.classFieldValue(field) || "");
-            return /^#[0-9a-f]{6}$/i.test(value) ? value : "#000000";
+        /** 本层没填时取继承来的颜色（状态页签下是基础色），用于淡显色块与「继承 …」文字。 */
+        classColorEffective(field) {
+            var own = this.classFieldValue(field);
+            if (own !== "") return String(own);
+            if (this.classState && field.group !== "states") {
+                var base = this.classSettings(this.classStyleTarget())[field.key];
+                return typeof base === "string" ? base : "";
+            }
+            return "";
+        },
+
+        /** 色块：设计变量（var(--yk-color-*)）按当前站点颜色取值，改了站点颜色这里跟着变。 */
+        classColorPreview(field) {
+            return this.colorFieldPreview(this.classColorEffective(field), "#ffffff");
+        },
+
+        classColorLabel(field) {
+            var own = this.classFieldValue(field);
+            if (own !== "") return this.colorFieldLabel(own);
+            var inherited = this.classColorEffective(field);
+            if (inherited) return (this.classText.inherits || ":value").replace(":value", this.colorFieldLabel(inherited));
+            return this.classText.colorEmpty || "";
         },
 
         setClassField(field, raw) {

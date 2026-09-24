@@ -254,4 +254,71 @@ final class BloxTemplateClassPortabilityTest extends TestCase
         }
         self::assertCount(BloxGlobalClasses::MAX_CLASSES, $this->classRows());
     }
+
+    /** 站点颜色：本站只有 local_brand；来源包的类用了 remote_brand（基础与悬停状态各一处）。 */
+    private function withDesignTokens(callable $test): void
+    {
+        $previous = $GLOBALS['_test_config'] ?? null;
+        $GLOBALS['_test_config'] = (is_array($previous) ? $previous : []) + ['blox_design_system' => json_encode([
+            'tokens' => [['id' => 'local_brand', 'name' => 'Brand', 'value' => '#c2410c']],
+            'styles' => [],
+        ], JSON_THROW_ON_ERROR)];
+        try {
+            $test();
+        } finally {
+            if ($previous === null) {
+                unset($GLOBALS['_test_config']);
+            } else {
+                $GLOBALS['_test_config'] = $previous;
+            }
+        }
+    }
+
+    private function tokenDefinition(): array
+    {
+        return $this->definition([
+            'text_color' => 'var(--yk-color-remote_brand)',
+            'states' => ['hover' => ['bg_color' => 'var(--yk-color-remote_brand)']],
+        ], 'brand-title');
+    }
+
+    public function testClassColorVariablesAreDeclaredAsTemplateDesignDependencies(): void
+    {
+        $this->withDesignTokens(function (): void {
+            $this->seedClass(self::SOURCE_ID, 'brand-title', [
+                'text_color' => 'var(--yk-color-local_brand)',
+                'states' => ['hover' => ['bg_color' => 'var(--yk-color-local_brand)']],
+            ]);
+            $package = BloxTemplateImporter::exportPackage([
+                'type' => 'section', 'name' => 'Tokens',
+                'draft_data' => json_encode(['sections' => $this->sections([self::SOURCE_ID])], JSON_THROW_ON_ERROR),
+            ]);
+            self::assertSame(['local_brand'], $package['requires']['design_tokens']);
+            self::assertSame(['local_brand'], array_column($package['design']['tokens'], 'id'));
+        });
+    }
+
+    public function testImportDiagnosesAndMapsColorVariablesUsedByClasses(): void
+    {
+        $this->withDesignTokens(function (): void {
+            // 包没声明 requires.design_tokens（手工或旧导出端）：从类定义里补出缺失颜色
+            $prepared = BloxTemplateImporter::prepare($this->package($this->tokenDefinition()));
+            self::assertContains('remote_brand', $prepared['requirements']['design_tokens']);
+            self::assertContains('remote_brand', $prepared['design_diagnostics']['missing_tokens']);
+
+            // 映射到本站颜色：类定义基础与状态里的引用都换掉
+            $result = BloxTemplateImporter::importJson($this->package($this->tokenDefinition()), 0, 'import', '', ['tokens' => ['remote_brand' => 'local_brand']]);
+            $rows = $this->classRows();
+            self::assertCount(1, $rows);
+            self::assertSame(
+                ['text_color' => 'var(--yk-color-local_brand)', 'states' => ['hover' => ['bg_color' => 'var(--yk-color-local_brand)']]],
+                json_decode($rows[0]['settings'], true)
+            );
+            self::assertSame([$rows[0]['class_id']], $this->importedClassIds($result['id']));
+
+            // 映射后与本站同名类定义相同 → 复用，不再新建
+            $again = BloxTemplateImporter::prepare($this->package($this->tokenDefinition()), ['tokens' => ['remote_brand' => 'local_brand']]);
+            self::assertSame(['brand-title'], $again['class_diagnostics']['reused']);
+        });
+    }
 }

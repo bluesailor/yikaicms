@@ -158,6 +158,7 @@ add_action('blox_editor_scripts', static function (): void {
             'editingTier' => __('blox_class_editing_tier'),
             'inherits' => __('blox_class_inherits'),
             'clear' => __('blox_class_clear_value'),
+            'colorEmpty' => __('blox_empty_default'),
             'flexOnly' => __('blox_class_flex_only'),
             'usage' => __('blox_class_usage_short'),
             'save' => __('blox_class_save'),
