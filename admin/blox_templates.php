@@ -455,6 +455,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'type' => $importReviewMeta['type'],
                 'requirements' => $importReviewMeta['requirements'],
                 'design_diagnostics' => $importReviewMeta['design_diagnostics'],
+                'class_diagnostics' => $importReviewMeta['class_diagnostics'],
                 // 评审上下文随检查结果一起交给确认页渲染（partial 不读全局）。
                 'review_meta' => $importReviewMeta,
             ];

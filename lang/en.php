@@ -8254,4 +8254,11 @@ voltage|Voltage|220V',
     'blox_class_opt_space_evenly' => 'Space evenly',
     'blox_class_opt_stretch' => 'Stretch',
     'blox_class_opt_baseline' => 'Baseline',
+    // V2.0.0 全局类：单模板 JSON 导入
+    'blox_class_import_invalid' => 'The global class definitions in this template package are invalid',
+    'blox_class_import_changed' => 'Global classes on this site changed after the check. Please import again.',
+    'blox_class_import_reused' => 'Reusing identical classes on this site',
+    'blox_class_import_created' => 'Will be created',
+    'blox_class_import_renamed' => ':from already exists here with a different definition; it will be imported as :to (the existing class is not overwritten)',
+    'blox_class_import_missing' => ':count class references have no definition in the package (older export); those elements will be imported without class styles.',
 ];

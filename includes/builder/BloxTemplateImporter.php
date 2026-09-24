@@ -33,6 +33,8 @@ final class BloxTemplateImporter
         $prepared = self::prepare($json, $designOptions);
         db()->beginTransaction();
         try {
+            // 包里带来的全局类与模板草稿同一事务：任一步失败都不留半套类
+            BloxGlobalClasses::applyImportPlan($prepared['class_plan'], $adminId);
             $id = bloxTemplateModel()->createDraft(
                 $prepared['type'],
                 $prepared['name'],
@@ -45,10 +47,14 @@ final class BloxTemplateImporter
                 $sourceRef,
                 $prepared['metadata']
             );
+            BloxDocumentIndexes::update('template:' . $id, $prepared['sections']);
             db()->commit();
         } catch (Throwable $e) {
             db()->rollback();
             throw $e;
+        }
+        if ($prepared['class_plan'] !== []) {
+            BloxGlobalClasses::invalidateStylesheet();
         }
 
         return [
@@ -115,6 +121,8 @@ final class BloxTemplateImporter
             ? ['schema' => BloxDocumentPipeline::SCHEMA_VERSION, 'settings' => $docSettings, 'sections' => $sections]
             : $sections;
         $identity = YikaiProductIdentity::identity();
+        // 可选字段（格式仍为 v1）：被引用全局类的定义。旧版导入端忽略未知字段，不带类的文档输出不变。
+        $classes = BloxGlobalClasses::exportDefinitions($sections);
 
         return [
             'format' => self::FORMAT,
@@ -130,6 +138,7 @@ final class BloxTemplateImporter
             'thumbnail' => self::safeThumbnail((string) ($template['thumbnail'] ?? '')),
             'requires' => $requirements,
             'design' => BloxDesignDependencies::exportDefinitions($requirements),
+        ] + ($classes !== [] ? ['classes' => $classes] : []) + [
             'metadata' => BloxSectionMetadata::normalize(self::decodeStoredMetadata($template['metadata'] ?? null)),
             'meta' => [
                 'source' => (string) ($template['source'] ?? ''),
@@ -176,7 +185,9 @@ final class BloxTemplateImporter
      *   type:string,name:string,schema_version:int,thumbnail:string,
      *   settings:array<string,mixed>,sections:array<int,array<string,mixed>>,draft_json:string,
      *   requirements:array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>},
-     *   metadata:array<string,mixed>,design_diagnostics:array<string,mixed>
+     *   metadata:array<string,mixed>,design_diagnostics:array<string,mixed>,
+     *   class_plan:list<array{class_id:string,name:string,settings:array<string,mixed>}>,
+     *   class_diagnostics:array{reused:list<string>,created:list<string>,renamed:list<array{from:string,to:string}>,missing:list<string>}
      * }
      * @param array<string,mixed> $designOptions
      */
@@ -255,6 +266,9 @@ final class BloxTemplateImporter
         if (($designOptions['style_mode'] ?? 'keep') === 'detach') {
             $declared['design_styles'] = [];
         }
+        // 全局类：来源站 class_id 映射到本站（复用 / 稳定改名 / 新建），只规划不写库
+        $classPlan = BloxGlobalClasses::planImport($rawSections, $package['classes'] ?? null);
+        $rawSections = BloxGlobalClasses::remapSections($rawSections, $classPlan['map']);
         $withoutIds = BloxDocumentPipeline::withoutNodeIds($rawSections);
         // 文档级 settings（如 header 的 sticky）随模板包走 v1 信封进出，不在提取 sections 时丢失
         $rawSettings = is_array($package['document']) ? ($package['document']['settings'] ?? null) : null;
@@ -296,6 +310,8 @@ final class BloxTemplateImporter
             ],
             'metadata' => BloxSectionMetadata::normalize($package['metadata'] ?? []),
             'design_diagnostics' => $designDiagnostic,
+            'class_plan' => $classPlan['create'],
+            'class_diagnostics' => $classPlan['diagnostics'],
         ];
     }
 
