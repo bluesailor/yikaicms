@@ -61,12 +61,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <a class="border rounded px-4 py-3 text-gray-700" href="/admin/theme.php"><?= e(__('admin_theme')) ?>: <?= e(currentTheme()) ?></a>
             <a class="border rounded px-4 py-3 text-gray-700" href="/" target="_blank" rel="noopener"><?= e(__('setup_preview')) ?></a>
         </div>
-        <?php if ($__homeEditUrl !== '/admin/setting_home.php'): ?>
-        <?php // 经典首页设置只留给老用户：新手点主按钮进构建器，别在两个编辑器之间犹豫 ?>
-        <p class="mt-3 text-sm text-gray-500"><a class="underline hover:text-gray-700" href="/admin/setting_home.php"><?= e(__('setup_classic_home')) ?></a></p>
+        <?php $__legacyHome = $__homeEditUrl !== '/admin/setting_home.php'; ?>
+        <?php if ($__legacyHome): ?>
+        <?php // 经典首页设置与「改用主题首页」只留给从老站迁移的人：新手只看到一个编辑首页的入口，旧选项整组折叠 ?>
+        <details class="mt-4 text-sm text-gray-500" data-testid="setup-legacy-home">
+            <summary class="cursor-pointer py-1"><?= e(__('setup_legacy_home')) ?></summary>
+            <div class="mt-2 space-y-3 border-l-2 border-gray-200 pl-4">
+            <p><?= e(__('setup_legacy_home_hint')) ?></p>
+            <p><a class="underline hover:text-gray-700" href="/admin/setting_home.php"><?= e(__('setup_classic_home')) ?></a></p>
         <?php endif; ?>
         <?php if ($homeMode !== 'theme'): ?>
-        <details class="mt-4 border rounded p-4">
+        <details class="<?= $__legacyHome ? '' : 'mt-4 ' ?>border rounded p-4">
             <summary class="cursor-pointer py-2 font-medium"><?= e(__('setup_home_switch')) ?></summary>
             <form method="post" class="space-y-3 mt-3">
                 <?= csrfField() ?>
@@ -77,6 +82,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <span><?= e(__('setup_home_confirm')) ?></span></label>
                 <button class="border rounded px-4 py-3" type="submit"><?= e(__('setup_home_switch')) ?></button>
             </form>
+        </details>
+        <?php endif; ?>
+        <?php if ($__legacyHome): ?>
+            </div>
         </details>
         <?php endif; ?>
         <?php if (isset($_SESSION['setup_home_undo'])): ?>
