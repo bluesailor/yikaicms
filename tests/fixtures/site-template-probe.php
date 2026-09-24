@@ -196,6 +196,11 @@ try {
     $before = SiteTemplateData::fingerprint();
     $preview = $service->prepare($zip, 1);
     rejects(static fn() => $service->apply($preview['token'], 1, [], false), 'st_trust');
+    // 来源标记：只有布尔 true 才算官方；封面只接受 https / data:image；预览带出模板自己的名称与联系方式供预填
+    $uploaded = $service->prepare($zip, 1, false, ['official' => 'yes', 'screenshot' => 'javascript:alert(1)']);
+    check($uploaded['origin']['official'] === false && $uploaded['origin']['screenshot'] === '', 'Only boolean true marks official origin; unsafe covers are dropped');
+    rejects(static fn() => $service->apply($uploaded['token'], 1, [], false, true), 'st_trust');
+    check(array_keys($uploaded['brand']) === ['site_name', 'contact_phone', 'contact_email', 'contact_address'], 'Preview carries the template brand for prefill');
     check($preview['missing_plugins'] === [], 'Installed and active plugin dependencies are accepted');
     file_put_contents($root . '/plugins/cookie-consent/plugin.json', '{"name":"Cookie Consent","version":"1.0.0"}');
     $preview = $service->prepare($zip, 1);
@@ -204,7 +209,9 @@ try {
     $preview = $service->prepare($zip, 1);
     check($preview['missing_plugins'] === [], 'A newer active plugin satisfies the declared minimum version');
     pluginModel()->deactivate('cookie-consent');
-    $preview = $service->prepare($zip, 1);
+    // 下面这条导入走官方模板市场来源：免「信任」勾选，但「确认」仍必需
+    $preview = $service->prepare($zip, 1, false, ['official' => true, 'name' => 'Official demo']);
+    check($preview['origin']['official'] === true && $preview['origin']['name'] === 'Official demo', 'Official origin is recorded with the preview');
     check($preview['missing_plugins'] === [['slug' => 'cookie-consent', 'version' => '1.1.0']], 'Inactive dependency is listed with its required version');
     rejects(static fn() => $service->apply($preview['token'], 1, [], false), 'st_plugin_missing');
     rejects(static fn() => $service->apply($preview['token'], 2, [], true), 'st_stale');
@@ -255,7 +262,8 @@ try {
     $classCss = $root . '/uploads/blox/css/classes.css';
     if (!is_dir(dirname($classCss))) mkdir(dirname($classCss), 0755, true);
     file_put_contents($classCss, '.yk-c-stale{color:red}');
-    $service->apply($preview['token'], 1, ['site_name' => 'Target'], true);
+    rejects(static fn() => $service->apply($preview['token'], 1, ['site_name' => 'Target'], false, false), 'st_plugin_missing');
+    $service->apply($preview['token'], 1, ['site_name' => 'Target'], false, true);
     check(!is_file($classCss), 'Import drops the stale global class stylesheet');
     $importedClass = db()->fetchOne('SELECT * FROM yikai_blox_global_classes WHERE class_id = ?', ['gc_0123456789ab']);
     check($importedClass !== null && $importedClass['name'] === 'hero-title'
