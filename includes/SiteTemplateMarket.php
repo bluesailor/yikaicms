@@ -36,12 +36,22 @@ final class SiteTemplateMarket
             || ($decoded['data']['protocol_version'] ?? null) !== 1 || !is_array($decoded['data']['templates'] ?? null)
             || count($decoded['data']['templates']) > 200) return null;
         $items = [];
-        $seen = [];
+        $positions = [];
         foreach ($decoded['data']['templates'] as $entry) {
             $item = is_array($entry) ? self::normalize($entry) : null;
-            if ($item === null || isset($seen[$item['slug']])) continue;
-            $seen[$item['slug']] = true;
-            $items[] = $item;
+            if ($item === null) continue;
+            $slug = $item['slug'];
+            if (!isset($positions[$slug])) {
+                $positions[$slug] = count($items);
+                $items[] = $item;
+                continue;
+            }
+            $position = $positions[$slug];
+            $current = $items[$position];
+            $comparison = version_compare($item['version'], $current['version']);
+            if ($comparison > 0 || ($comparison === 0 && $current['blocked_reason'] !== '' && $item['blocked_reason'] === '')) {
+                $items[$position] = $item;
+            }
         }
         return ['updated_at' => is_string($decoded['data']['updated_at'] ?? null) ? $decoded['data']['updated_at'] : '', 'templates' => $items];
     }

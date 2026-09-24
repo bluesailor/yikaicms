@@ -17,7 +17,7 @@ $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
 if ($isPost) verifyCsrf();
 // Cache display only. Every download reloads the official catalog and verifies its signature.
 $cached = $_SESSION['site_template_market_catalog'] ?? null;
-$usingCache = is_array($cached) && ($cached['expires'] ?? 0) > time() && !$isPost;
+$usingCache = is_array($cached) && ($cached['expires'] ?? 0) > time() && !$isPost && get('refresh') !== '1';
 $catalog = $usingCache ? ($cached['data'] ?? null) : SiteTemplateMarket::request();
 if (!$usingCache) $_SESSION['site_template_market_catalog'] = ['expires' => time() + SiteTemplateMarket::CACHE_SECONDS, 'data' => $catalog];
 if ($isPost) {
@@ -51,12 +51,16 @@ if ($isPost) {
 }
 $search = mb_substr(trim(get('q')), 0, 100);
 $category = trim(get('category'));
+$view = get('view') === 'all' ? 'all' : 'ready';
 $items = is_array($catalog) ? $catalog['templates'] : [];
+$totalCount = count($items);
+$readyCount = count(array_filter($items, static fn(array $item): bool => $item['blocked_reason'] === ''));
 $categories = [];
 $language = (string) config('admin_lang', getLang());
 $suffix = $language === 'en' ? '_en' : ($language === 'ja' ? '_ja' : '');
 foreach ($items as $item) $categories[$item['category']] = (string) ($item['category_name' . $suffix] ?: ($item['category_name'] ?: $item['category']));
-$items = array_values(array_filter($items, static function (array $item) use ($search, $category): bool {
+$items = array_values(array_filter($items, static function (array $item) use ($search, $category, $view): bool {
+    if ($view === 'ready' && $item['blocked_reason'] !== '') return false;
     if ($category !== '' && $item['category'] !== $category) return false;
     return $search === '' || mb_stripos(implode(' ', array_map(static fn(string $key): string => (string) ($item[$key] ?? ''),
         ['slug', 'name', 'name_en', 'name_ja', 'description', 'description_en', 'description_ja', 'category_name'])), $search) !== false;
@@ -66,28 +70,40 @@ $currentMenu = 'site_setup';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 <div class="space-y-6">
-    <header>
-        <a href="/admin/site_templates.php" class="text-primary underline"><?= e(__('st_market_local')) ?></a>
-        <h1 class="text-2xl font-bold text-gray-800 mt-2"><?= e($pageTitle) ?></h1>
-        <p class="text-gray-600 mt-2"><?= e(__('st_market_intro')) ?></p>
+    <header class="bg-white border rounded-xl p-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800"><?= e($pageTitle) ?></h2>
+                <p class="text-gray-600 mt-2"><?= e(__('st_market_intro')) ?></p>
+            </div>
+            <a href="/admin/site_templates.php" class="inline-flex items-center rounded-lg border px-4 py-2 text-primary hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><?= e(__('st_market_local')) ?></a>
+        </div>
     </header>
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
     <?php if (!$fresh) require ROOT_PATH . '/admin/includes/site_template_replace_notice.php'; ?>
     <?php if ($catalog === null): ?>
-    <p role="status" class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__('st_market_unavailable')) ?> <a href="/admin/site_templates.php" class="underline"><?= e(__('st_market_local')) ?></a></p>
+    <p role="status" class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__('st_market_unavailable')) ?> <a href="?refresh=1" class="underline"><?= e(__('st_market_retry')) ?></a></p>
     <?php else: ?>
-    <form method="get" class="flex flex-wrap gap-3 items-end">
-        <div><label for="st-market-q" class="block text-sm mb-1"><?= e(__('st_market_search')) ?></label><input id="st-market-q" name="q" value="<?= e($search) ?>" maxlength="100" class="border rounded px-3 py-2"></div>
-        <div><label for="st-market-category" class="block text-sm mb-1"><?= e(__('st_market_category')) ?></label><select id="st-market-category" name="category" class="border rounded px-3 py-2"><option value=""><?= e(__('st_market_all')) ?></option><?php foreach ($categories as $key => $label): ?><option value="<?= e((string) $key) ?>" <?= $category === $key ? 'selected' : '' ?>><?= e((string) $label) ?></option><?php endforeach; ?></select></div>
-        <button class="bg-primary text-white rounded px-4 py-2" type="submit"><?= e(__('st_market_search')) ?></button>
-    </form>
-    <?php if ($items === []): ?><p class="text-gray-600"><?= e(__('st_market_empty')) ?></p><?php endif; ?>
+    <section class="bg-white border rounded-xl p-5 space-y-4" aria-label="<?= e(__('st_market_filter_label')) ?>">
+        <p class="text-sm text-gray-600"><?= e(__('st_market_counts', ['ready' => (string) $readyCount, 'total' => (string) $totalCount])) ?></p>
+        <form method="get" class="flex flex-wrap gap-3 items-end">
+            <div><label for="st-market-q" class="block text-sm mb-1"><?= e(__('st_market_search')) ?></label><input id="st-market-q" name="q" value="<?= e($search) ?>" maxlength="100" class="border rounded-lg px-3 py-2 min-w-56"></div>
+            <div><label for="st-market-category" class="block text-sm mb-1"><?= e(__('st_market_category')) ?></label><select id="st-market-category" name="category" class="border rounded-lg px-3 py-2"><option value=""><?= e(__('st_market_all')) ?></option><?php foreach ($categories as $key => $label): ?><option value="<?= e((string) $key) ?>" <?= $category === $key ? 'selected' : '' ?>><?= e((string) $label) ?></option><?php endforeach; ?></select></div>
+            <div><label for="st-market-view" class="block text-sm mb-1"><?= e(__('st_market_view_label')) ?></label><select id="st-market-view" name="view" class="border rounded-lg px-3 py-2"><option value="ready" <?= $view === 'ready' ? 'selected' : '' ?>><?= e(__('st_market_ready_only')) ?></option><option value="all" <?= $view === 'all' ? 'selected' : '' ?>><?= e(__('st_market_all_statuses')) ?></option></select></div>
+            <button class="bg-primary text-white rounded-lg px-4 py-2 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" type="submit"><?= e(__('st_market_search')) ?></button>
+            <a href="/admin/site_template_market.php" class="px-2 py-2 text-primary underline"><?= e(__('st_market_clear')) ?></a>
+        </form>
+    </section>
+    <?php if ($items === []): ?><p role="status" class="bg-white border rounded-lg p-6 text-gray-600"><?= e($readyCount === 0 && $view === 'ready' ? __('st_market_no_ready') : __('st_market_empty')) ?><?php if ($view === 'ready'): ?> <a class="text-primary underline" href="/admin/site_template_market.php?view=all"><?= e(__('st_market_all_statuses')) ?></a><?php endif; ?></p><?php endif; ?>
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         <?php foreach ($items as $item): $name = (string) ($item['name' . $suffix] ?: $item['name']); $description = (string) ($item['description' . $suffix] ?: $item['description']); ?>
-        <article class="bg-white border rounded-lg overflow-hidden flex flex-col">
-            <?php if ($item['screenshot'] !== ''): ?><img src="<?= e($item['screenshot']) ?>" alt="<?= e($name) ?>" loading="lazy" referrerpolicy="no-referrer" class="w-full aspect-video object-cover object-top bg-gray-100"><?php else: ?><div class="aspect-video bg-gray-100 flex items-center justify-center text-gray-500"><?= e(__('st_market_no_cover')) ?></div><?php endif; ?>
+        <article class="bg-white border rounded-xl overflow-hidden flex flex-col shadow-sm">
+            <div class="relative aspect-video bg-gray-100 overflow-hidden">
+                <?php if ($item['screenshot'] !== ''): ?><img src="<?= e($item['screenshot']) ?>" alt="" loading="lazy" referrerpolicy="no-referrer" class="w-full h-full object-cover object-top" data-market-cover><?php endif; ?>
+                <div class="absolute inset-0 items-center justify-center flex-col gap-2 bg-gradient-to-br from-slate-100 to-indigo-50 text-slate-600" data-market-cover-fallback <?= $item['screenshot'] !== '' ? 'style="display:none"' : 'style="display:flex"' ?>><i class="fa-regular fa-image text-2xl" aria-hidden="true"></i><span class="text-sm"><?= e(__('st_market_no_cover')) ?></span></div>
+            </div>
             <div class="p-5 flex flex-col flex-1 gap-3">
-                <h2 class="text-lg font-bold"><?= e($name) ?></h2>
+                <div class="flex items-start justify-between gap-3"><h3 class="text-lg font-bold text-gray-900"><?= e($name) ?></h3><span class="shrink-0 rounded-full px-2 py-1 text-xs <?= $item['blocked_reason'] === '' ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-900' ?>"><?= e($item['blocked_reason'] === '' ? __('st_market_ready_badge') : __('st_market_other_badge')) ?></span></div>
                 <p class="text-sm text-gray-600"><?= e($description) ?></p>
                 <p class="text-xs text-gray-500"><?= e(__('st_market_version', ['version' => $item['version'], 'cms' => $item['cms']])) ?></p>
                 <?php if ($item['format_version'] > 1): ?><p class="text-sm text-gray-600"><?= e(__('st_market_format_hint', ['format' => (string) $item['format_version']])) ?></p><?php endif; ?>
@@ -99,7 +115,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <label class="flex items-start gap-2 text-sm text-red-800"><input type="checkbox" name="replace_existing" value="1" required class="mt-1">
                         <span><?= e(__('st_replace_confirm')) ?></span></label>
                     <?php endif; ?>
-                    <button type="submit" class="bg-primary text-white rounded px-4 py-3"><?= e(__('st_market_prepare')) ?></button>
+                    <button type="submit" class="bg-primary text-white rounded-lg px-4 py-3 hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"><?= e(__('st_market_prepare')) ?></button>
                 </form>
                 <?php endif; ?>
             </div>
@@ -108,4 +124,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
     <?php endif; ?>
 </div>
+<script>
+document.querySelectorAll('[data-market-cover]').forEach(function (image) {
+    var fallback = image.parentElement.querySelector('[data-market-cover-fallback]');
+    function showFallback() {
+        image.style.display = 'none';
+        fallback.style.display = 'flex';
+    }
+    image.addEventListener('error', showFallback);
+    if (image.complete && image.naturalWidth === 0) showFallback();
+});
+</script>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
