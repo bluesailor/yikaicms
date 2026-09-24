@@ -6,7 +6,9 @@ if (!defined('ROOT_PATH')) exit('Access Denied');
 
 final class BloxProAccess
 {
-    public const FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing', 'global_classes'];
+    // 必须与 editor.php 的 BLOX_PRO_EDITOR_MODULES 一致：v1.28 加元素交互时漏了这里，
+    // 已授权用户也打不开交互面板，还被提示「请检查授权状态」。
+    public const FEATURES = ['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing', 'global_classes', 'interactions'];
 
     public static function supports(string $version): bool
     {

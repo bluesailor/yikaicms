@@ -80,6 +80,7 @@ add_action('blox_editor_scripts', static function (): void {
             'unsatisfied' => __('blox_element_cond_unsatisfied'),
             'rule' => __('blox_element_cond_rule'),
             'empty' => __('blox_display_conditions_empty'),
+            'emptyHint' => __('blox_display_conditions_empty_hint'),
             'hint' => __('blox_display_conditions_hint'),
             'group' => __('blox_display_conditions_group'),
             'and' => __('blox_display_conditions_and'),

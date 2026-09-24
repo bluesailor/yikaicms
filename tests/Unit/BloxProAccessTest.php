@@ -19,7 +19,12 @@ final class BloxProAccessTest extends TestCase
 
     public function testOnlyKnownAuthoringFeaturesAreExposed(): void
     {
-        self::assertSame(['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing', 'global_classes'], BloxProAccess::FEATURES);
+        self::assertSame(['query_loop', 'display_conditions', 'style_presets', 'table', 'pricing', 'global_classes', 'interactions'], BloxProAccess::FEATURES);
+        // 授权放行清单必须覆盖插件提供的每个编辑器模块，否则已授权用户也会被锁住
+        self::assertStringContainsString(
+            "const BLOX_PRO_EDITOR_MODULES = ['" . implode("', '", BloxProAccess::FEATURES) . "'];",
+            (string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/editor.php')
+        );
         self::assertFalse(BloxProAccess::allows('unknown'));
         self::assertFalse(BloxProAccess::allows('product-detail'));
         self::assertFalse(BloxProAccess::allows('theme_download'));

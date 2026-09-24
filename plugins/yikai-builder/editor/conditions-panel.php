@@ -2,51 +2,21 @@
 <?php if (!defined('ROOT_PATH')) exit('Access Denied'); ?>
                     <template x-if="displayConditionsEnabled && panelTab === 'condition' && conditionTarget()">
                         <div class="space-y-3" data-testid="blox-condition-editor">
-                            <div class="rounded border border-violet-200 bg-violet-50/60 p-3">
-                                <div class="flex items-start gap-2">
-                                    <i class="ti ti-adjustments-code text-base text-violet-600 mt-0.5"></i>
-                                    <p class="text-[10px] leading-relaxed text-gray-500" x-text="conditionText.hint"></p>
-                                </div>
-                            </div>
-
-                            <div class="rounded border border-gray-200 p-3 space-y-2" data-testid="blox-element-condition-diagnosis">
-                                <button type="button" @click="diagnoseElementConditions()" :disabled="elementConditionBusy"
-                                        data-testid="blox-element-condition-run"
-                                        class="w-full h-9 rounded border border-violet-200 text-violet-600 text-xs font-medium"
-                                        x-text="elementConditionBusy ? conditionText.diagnosing : conditionText.diagnose"></button>
-                                <p class="text-[10px] leading-relaxed text-gray-500" x-text="conditionText.previewOnly"></p>
-                                <details class="text-[10px] leading-relaxed text-gray-500">
-                                    <summary class="cursor-pointer" x-text="conditionText.contextTitle"></summary>
-                                    <p x-text="conditionText.contextHint"></p>
-                                </details>
-                                <div role="status" aria-live="polite">
-                                    <p x-show="elementConditionError" class="text-xs text-amber-600" x-text="elementConditionError"></p>
-                                    <template x-if="elementConditionReport && elementConditionStale()">
-                                        <p class="text-xs text-amber-600" x-text="conditionText.stale"></p>
-                                    </template>
-                                    <template x-if="elementConditionReport && !elementConditionStale()">
-                                        <div class="space-y-2" data-testid="blox-element-condition-result">
-                                            <p class="text-xs font-medium" x-text="elementConditionReport.matched ? conditionText.passed : conditionText.blocked"></p>
-                                            <template x-for="(group, gi) in elementConditionReport.groups" :key="gi">
-                                                <div class="text-[11px]">
-                                                    <p x-text="conditionText.group.replace(':n', gi + 1) + ' · ' + elementConditionResultText(group.matched)"></p>
-                                                    <template x-for="(rule, ri) in group.rules" :key="ri">
-                                                        <p class="text-gray-500" x-text="conditionText.rule.replace(':n', ri + 1) + ' · ' + (conditionText[rule.type] || rule.type) + ' · ' + elementConditionResultText(rule.matched)"></p>
-                                                    </template>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </div>
-                            </div>
-
                             <template x-if="conditionGroups().length === 0">
                                 <button type="button" @click="addConditionGroup()" data-testid="blox-condition-empty-add"
                                         class="w-full min-h-24 rounded border-2 border-dashed border-gray-200 text-gray-400 hover:border-violet-300 hover:text-violet-600 inline-flex flex-col items-center justify-center gap-2 transition">
                                     <i class="ti ti-adjustments-plus text-xl"></i>
                                     <span class="text-xs" x-text="conditionText.empty"></span>
+                                    <span class="px-4 text-[10px] leading-relaxed text-gray-400" x-text="conditionText.emptyHint"></span>
                                 </button>
                             </template>
+
+                            <div x-show="conditionGroups().length > 0" class="rounded border border-violet-200 bg-violet-50/60 p-3">
+                                <div class="flex items-start gap-2">
+                                    <i class="ti ti-adjustments-code text-base text-violet-600 mt-0.5"></i>
+                                    <p class="text-[10px] leading-relaxed text-gray-500" x-text="conditionText.hint"></p>
+                                </div>
+                            </div>
 
                             <template x-for="(group, groupIndex) in conditionGroups()" :key="groupIndex">
                                 <div>
@@ -160,5 +130,38 @@
                                     class="w-full h-9 rounded border border-violet-200 text-violet-600 hover:bg-violet-50 text-xs font-medium inline-flex items-center justify-center gap-1.5">
                                 <i class="ti ti-folders text-sm"></i><span x-text="conditionText.addGroup"></span>
                             </button>
+
+                            <?php // 条件为空时只留「添加第一个显示条件」；说明与预览检查在有条件后才出现，避免新手先看到一堆解释 ?>
+                            <div x-show="conditionGroups().length > 0" class="rounded border border-gray-200 p-3 space-y-2" data-testid="blox-element-condition-diagnosis">
+                                <button type="button" @click="diagnoseElementConditions()" :disabled="elementConditionBusy"
+                                        data-testid="blox-element-condition-run"
+                                        class="w-full h-9 rounded border border-violet-200 text-violet-600 text-xs font-medium"
+                                        x-text="elementConditionBusy ? conditionText.diagnosing : conditionText.diagnose"></button>
+                                <p class="text-[10px] leading-relaxed text-gray-500" x-text="conditionText.previewOnly"></p>
+                                <details class="text-[10px] leading-relaxed text-gray-500">
+                                    <summary class="cursor-pointer" x-text="conditionText.contextTitle"></summary>
+                                    <p x-text="conditionText.contextHint"></p>
+                                </details>
+                                <div role="status" aria-live="polite">
+                                    <p x-show="elementConditionError" class="text-xs text-amber-600" x-text="elementConditionError"></p>
+                                    <template x-if="elementConditionReport && elementConditionStale()">
+                                        <p class="text-xs text-amber-600" x-text="conditionText.stale"></p>
+                                    </template>
+                                    <template x-if="elementConditionReport && !elementConditionStale()">
+                                        <div class="space-y-2" data-testid="blox-element-condition-result">
+                                            <p class="text-xs font-medium" x-text="elementConditionReport.matched ? conditionText.passed : conditionText.blocked"></p>
+                                            <template x-for="(group, gi) in elementConditionReport.groups" :key="gi">
+                                                <div class="text-[11px]">
+                                                    <p x-text="conditionText.group.replace(':n', gi + 1) + ' · ' + elementConditionResultText(group.matched)"></p>
+                                                    <template x-for="(rule, ri) in group.rules" :key="ri">
+                                                        <p class="text-gray-500" x-text="conditionText.rule.replace(':n', ri + 1) + ' · ' + (conditionText[rule.type] || rule.type) + ' · ' + elementConditionResultText(rule.matched)"></p>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
                         </div>
                     </template>
