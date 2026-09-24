@@ -123,6 +123,9 @@ final class BloxTemplateImporter
         $identity = YikaiProductIdentity::identity();
         // 可选字段（格式仍为 v1）：被引用全局类的定义。旧版导入端忽略未知字段，不带类的文档输出不变。
         $classes = BloxGlobalClasses::exportDefinitions($sections);
+        // 类里用到的站点颜色（设计变量）也是模板的设计依赖：一起声明并导出定义，导入端据此诊断与映射
+        $requirements = self::mergeRequirements($requirements, ['elements' => [], 'plugins' => [],
+            'design_tokens' => self::classTokenReferences($classes), 'design_styles' => []]);
 
         return [
             'format' => self::FORMAT,
@@ -223,6 +226,11 @@ final class BloxTemplateImporter
         $inferred = self::inferRequirements($rawSections);
         $foundTypes = $inferred['elements'];
         $declared = self::declaredRequirements($package['requires'] ?? []);
+        // 手工或旧导出端没声明类用到的颜色时，从类定义里补上，检查页才会列出并允许映射
+        $declared['design_tokens'] = array_values(array_unique(array_merge(
+            $declared['design_tokens'],
+            self::classTokenReferences($package['classes'] ?? null)
+        )));
         $requiredTypes = array_values(array_unique(array_merge($foundTypes, $declared['elements'])));
         sort($requiredTypes);
 
@@ -267,7 +275,11 @@ final class BloxTemplateImporter
             $declared['design_styles'] = [];
         }
         // 全局类：来源站 class_id 映射到本站（复用 / 稳定改名 / 新建），只规划不写库
-        $classPlan = BloxGlobalClasses::planImport($rawSections, $package['classes'] ?? null);
+        // 颜色映射同样作用于类定义（先映射再比对定义，同名同色才算同一个类）
+        $classPlan = BloxGlobalClasses::planImport($rawSections, self::remapClassTokens(
+            $package['classes'] ?? null,
+            is_array($designOptions['tokens'] ?? null) ? $designOptions['tokens'] : []
+        ));
         $rawSections = BloxGlobalClasses::remapSections($rawSections, $classPlan['map']);
         $withoutIds = BloxDocumentPipeline::withoutNodeIds($rawSections);
         // 文档级 settings（如 header 的 sticky）随模板包走 v1 信封进出，不在提取 sections 时丢失
@@ -367,6 +379,35 @@ final class BloxTemplateImporter
             return $node;
         };
         return $visit($sections);
+    }
+
+    /** 包里类定义引用的站点颜色 ID（var(--yk-color-*)），基础与各状态都算。 @return list<string> */
+    private static function classTokenReferences(mixed $classes): array
+    {
+        return is_array($classes) ? BloxDesignDependencies::referencesFromSections([$classes])['design_tokens'] : [];
+    }
+
+    /**
+     * 把类定义里的站点颜色引用按导入映射换成本站颜色；映射已由 applyDesignOptions 校验。
+     *
+     * @param array<mixed,mixed> $map 来源颜色 ID => 本站颜色 ID
+     */
+    private static function remapClassTokens(mixed $classes, array $map): mixed
+    {
+        if (!is_array($classes) || $map === []) {
+            return $classes;
+        }
+        $visit = static function (mixed $value) use (&$visit, $map): mixed {
+            if (is_array($value)) {
+                return array_map($visit, $value);
+            }
+            if (is_string($value) && preg_match('/^var\(--yk-color-([a-z][a-z0-9_-]{0,47})\)$/D', $value, $match) === 1
+                && is_string($map[$match[1]] ?? null)) {
+                return BloxDesignSystem::colorReference($map[$match[1]]);
+            }
+            return $value;
+        };
+        return $visit($classes);
     }
 
     /** @return array<string,mixed> */
