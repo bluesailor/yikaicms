@@ -2106,6 +2106,8 @@ declare(strict_types=1);
                                 </div>
                             </template>
                             </div>
+                            <?php // 高级配置放在样式页签最后：ID / 类 / 属性 / 自定义 CSS ?>
+                            <?php require __DIR__ . '/element-advanced.php'; ?>
                         </div>
                     </template>
 

@@ -121,7 +121,7 @@
                                 <div class="text-xs font-semibold text-gray-600" x-text="group.label"></div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <template x-for="field in group.fields" :key="'class-field-' + field.key">
-                                        <label class="block min-w-0" :class="field.type === 'color' || field.type === 'enum' ? 'col-span-2' : ''" :data-class-field="field.key">
+                                        <label class="block min-w-0" :class="['color', 'enum', 'code'].indexOf(field.type) !== -1 ? 'col-span-2' : ''" :data-class-field="field.key">
                                             <span class="flex items-center justify-between gap-1 text-[11px] text-gray-500 mb-0.5">
                                                 <span class="truncate" :title="field.applies === 'flex' ? classText.flexOnly : ''">
                                                     <span x-text="field.label"></span><span x-show="field.applies === 'flex'" class="text-gray-300">*</span>
@@ -148,6 +148,22 @@
                                                     <i class="ti ti-chevron-down text-xs text-gray-400" aria-hidden="true"></i>
                                                 </button>
                                             </template>
+                                            <template x-if="field.type === 'code'">
+                                                <?php // 类的自定义 CSS：%root% 指本类；只写声明时套到本类上。失焦时写入草稿，非法时不写并提示原因 ?>
+                                                <span class="block" x-data="{ draft: null }" x-init="$watch('classStyleTarget()', () => { draft = null })">
+                                                    <textarea rows="5" spellcheck="false" :readonly="!canManageDesign"
+                                                              :data-testid="'blox-class-input-' + field.key"
+                                                              :value="draft === null ? classFieldValue(field) : draft"
+                                                              @input="draft = $event.target.value"
+                                                              @change="if (!customCssError(draft)) { setClassField(field, draft); draft = null }"
+                                                              placeholder="%root% > img { border-radius: 12px }"
+                                                              class="w-full rounded border px-2 py-1 font-mono text-[11px] leading-relaxed focus:outline-none"
+                                                              :class="customCssError(draft === null ? classFieldValue(field) : draft) ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-sky-400'"></textarea>
+                                                    <span x-show="customCssError(draft === null ? classFieldValue(field) : draft)" class="block text-[10px] text-red-600"
+                                                          x-text="customCssErrorText(draft === null ? classFieldValue(field) : draft)"></span>
+                                                    <span class="block text-[10px] leading-relaxed text-gray-400" x-text="classText.customCssHint.replace(':selector', '.yk-c-' + globalClassLabel(classStyleTarget()))"></span>
+                                                </span>
+                                            </template>
                                             <template x-if="field.type === 'enum'">
                                                 <select :value="classFieldValue(field)" :disabled="!canManageDesign"
                                                         @change="setClassField(field, $event.target.value)"
@@ -159,7 +175,7 @@
                                                     </template>
                                                 </select>
                                             </template>
-                                            <template x-if="field.type !== 'color' && field.type !== 'enum'">
+                                            <template x-if="['color', 'enum', 'code'].indexOf(field.type) === -1">
                                                 <span class="flex items-center rounded border bg-white"
                                                       :class="classFieldOwn(field) ? 'border-sky-300' : 'border-gray-200'">
                                                     <input type="number" :min="field.min" :max="field.max" :step="field.step"

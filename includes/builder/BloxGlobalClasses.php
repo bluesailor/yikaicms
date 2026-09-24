@@ -273,6 +273,7 @@ final class BloxGlobalClasses
             'layout' => ['width_pct', 'max_width_px', 'gap_px', 'justify_content', 'align_items'],
             // 状态过渡时长存在基础设置里，编辑器在状态页签里展示
             'states' => ['transition_ms'],
+            'code' => ['custom_css'],
         ];
         foreach ($groups as $group => $keys) {
             foreach ($keys as $key) {
@@ -292,6 +293,8 @@ final class BloxGlobalClasses
                 } elseif ($key === 'border_width_px') {
                     $field += ['type' => 'px', 'css' => 'border-width', 'min' => self::BORDER_WIDTH_RANGE[0],
                         'max' => self::BORDER_WIDTH_RANGE[1], 'step' => 1, 'unit' => 'px'];
+                } elseif ($key === 'custom_css') {
+                    $field += ['type' => 'code', 'css' => '', 'max' => BloxCustomCode::ELEMENT_CSS_MAX];
                 } elseif ($key === 'transition_ms') {
                     $field += ['type' => 'number', 'css' => 'transition-duration', 'min' => self::TRANSITION_RANGE[0],
                         'max' => self::TRANSITION_RANGE[1], 'step' => 50, 'unit' => 'ms'];
@@ -493,6 +496,11 @@ final class BloxGlobalClasses
                 $css .= $selector . $selector . '{' . $body . '}';
             }
         }
+        // 自定义 CSS：%root% 指向本类（含特异性后缀），只写声明时套到本类上；排在结构化规则之后
+        $custom = BloxCustomCode::checkCss($settings['custom_css'] ?? null);
+        if ($custom['error'] === '' && $custom['css'] !== '') {
+            $css .= BloxCustomCode::scope($custom['css'], $selector);
+        }
         return $css;
     }
 
@@ -667,6 +675,10 @@ final class BloxGlobalClasses
     private static function updateSettings(array $input): array
     {
         $row = self::assertRow($input);
+        $custom = BloxCustomCode::checkCss(is_array($input['settings'] ?? null) ? ($input['settings']['custom_css'] ?? null) : null);
+        if ($custom['error'] !== '') {
+            throw new RuntimeException(BloxCustomCode::errorMessage($custom['error']));
+        }
         $settings = self::normalizeSettings(is_array($input['settings'] ?? null) ? $input['settings'] : []);
         $now = time();
         return self::guardedUpdate($row, [
@@ -838,6 +850,10 @@ final class BloxGlobalClasses
         $transition = self::intInRange($settings['transition_ms'] ?? null, self::TRANSITION_RANGE);
         if ($transition !== null && $transition > 0) {
             $normalized['transition_ms'] = $transition;
+        }
+        $custom = BloxCustomCode::checkCss($settings['custom_css'] ?? null);
+        if ($custom['error'] === '' && $custom['css'] !== '') {
+            $normalized['custom_css'] = $custom['css'];
         }
         // 状态：只收白名单状态与 STATE_KEYS，值走与基础相同的校验；空状态不落盘
         $rawStates = is_array($settings['states'] ?? null) ? $settings['states'] : [];

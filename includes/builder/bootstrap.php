@@ -37,6 +37,7 @@ require_once __DIR__ . '/BloxDocumentIndexes.php'; // 文档保存后的反向�
 require_once __DIR__ . '/BloxElementPolicy.php';
 require_once __DIR__ . '/BloxDisplayConditions.php';
 require_once __DIR__ . '/BloxDesignSystem.php';
+require_once __DIR__ . '/BloxCustomCode.php';      // 建站人员的高级配置：ID / 类 / 属性 / 自定义 CSS
 require_once __DIR__ . '/BloxGlobalClasses.php';   // 全局样式类（v1.23）：目录/归一/CSS 输出/用量索引
 require_once __DIR__ . '/BloxDesignTheme.php';
 require_once __DIR__ . '/BloxDesignDependencies.php';

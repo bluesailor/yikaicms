@@ -11,6 +11,8 @@ final class BloxAssetCollector
     private static array $styles = [];
     /** @var array<string,true> */
     private static array $renderedStyles = [];
+    /** @var array<string,bool> 作者自定义 CSS（已净化）=> 是否已输出 */
+    private static array $inlineCss = [];
     private static bool $booted = false;
 
     /** @psalm-suppress PossiblyUnusedMethod 测试专用（单测进程共享请求级收集状态时复位） */
@@ -19,6 +21,7 @@ final class BloxAssetCollector
         self::$scripts = [];
         self::$styles = [];
         self::$renderedStyles = [];
+        self::$inlineCss = [];
     }
 
     public static function bootstrap(): void
@@ -60,6 +63,15 @@ final class BloxAssetCollector
         }
     }
 
+    /** 元素 / 页面 / 类的作者自定义 CSS：调用方负责先经 BloxCustomCode::checkCss 净化。 */
+    public static function addInlineCss(string $css): void
+    {
+        $css = trim($css);
+        if ($css !== '' && !isset(self::$inlineCss[$css])) {
+            self::$inlineCss[$css] = false;
+        }
+    }
+
     public static function renderStyles(): string
     {
         $html = '';
@@ -70,6 +82,14 @@ final class BloxAssetCollector
             $html .= '<link rel="stylesheet" href="' . htmlspecialchars(self::assetUrl($path), ENT_QUOTES) . '">' . "\n";
             self::$renderedStyles[$path] = true;
         }
+        $pending = array_keys(array_filter(self::$inlineCss, static fn(bool $rendered): bool => !$rendered));
+        if ($pending !== []) {
+            // 放在样式区最后：晚于主题、设计 token、全局类与元素资源，作者的自定义 CSS 才压得住它们
+            $html .= '<style data-yk-custom-css>' . implode("\n", $pending) . '</style>' . "\n";
+            foreach ($pending as $css) {
+                self::$inlineCss[$css] = true;
+            }
+        }
         return $html;
     }
 
@@ -77,6 +97,7 @@ final class BloxAssetCollector
     public static function rewindRenderedStyles(): void
     {
         self::$renderedStyles = [];
+        self::$inlineCss = array_map(static fn(): bool => false, self::$inlineCss);
     }
 
     public static function renderScripts(): string
@@ -114,6 +135,7 @@ final class BloxAssetCollector
         self::$scripts = [];
         self::$styles = [];
         self::$renderedStyles = [];
+        self::$inlineCss = [];
     }
 
     private static function validLocalAsset(string $path, string $extension): bool

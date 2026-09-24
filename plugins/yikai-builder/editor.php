@@ -159,6 +159,7 @@ add_action('blox_editor_scripts', static function (): void {
             'inherits' => __('blox_class_inherits'),
             'clear' => __('blox_class_clear_value'),
             'colorEmpty' => __('blox_empty_default'),
+            'customCssHint' => __('blox_class_custom_css_hint'),
             'flexOnly' => __('blox_class_flex_only'),
             'usage' => __('blox_class_usage_short'),
             'save' => __('blox_class_save'),

@@ -43,6 +43,7 @@ final class BloxDocumentPipeline
             BloxDisplayConditions::assertSectionsAllowed($sections, true);
             BloxDesignSystem::assertSectionsAllowed($sections, true);
             BloxInteractions::assertSectionsAllowed($sections, true);
+            BloxCustomCode::assertSectionsAllowed($sections, true);
             return;
         }
         $validationSections = $sections;
@@ -53,6 +54,10 @@ final class BloxDocumentPipeline
             BloxMaintenanceMode::assertContentOnly($sections, self::decode($trustedJson)['sections']);
         }
         $denied = BloxFeaturePolicy::denied();
+        // 自定义 CSS 按权限（全站设计）而不是授权把关：无权限者只能原样保留已有的，不能新增或修改
+        if (!BloxCustomCode::canEditCss()) {
+            $denied[] = 'custom_code';
+        }
         if ($trustedJson !== null && $denied !== []) {
             require_once __DIR__ . '/BloxProtectedFields.php';
             // Validate raw structures before removing unchanged protected fields for entitlement checks.
@@ -64,6 +69,7 @@ final class BloxDocumentPipeline
         BloxDisplayConditions::assertSectionsAllowed($validationSections);
         BloxDesignSystem::assertSectionsAllowed($validationSections);
         BloxInteractions::assertSectionsAllowed($validationSections);
+        BloxCustomCode::assertSectionsAllowed($validationSections);
     }
 
     /** @return array{schema:int,settings:array<string,mixed>,sections:array<int,array<string,mixed>>,json:string} */
@@ -84,6 +90,11 @@ final class BloxDocumentPipeline
                 }
             }
         }
+        BloxCustomCode::assertDocumentCssAllowed(
+            $document['settings'],
+            $trustedJson !== null ? self::decode($trustedJson)['settings'] : null,
+            BloxFeaturePolicy::inTrustedWrite()
+        );
         $sections = $document['sections'];
         if (count($sections) > $maxSections) {
             throw new RuntimeException(__('blox_doc_too_many_sections', ['max' => $maxSections]));
@@ -281,6 +292,13 @@ final class BloxDocumentPipeline
         }
         if (array_key_exists('header_states', $settings)) {
             $clean['header_states'] = BloxHeaderStates::normalize($settings['header_states']);
+        }
+        // 页面自定义 CSS：只做长度与换行归一；是否合法、谁能改由 BloxCustomCode 在保存时判定
+        if (array_key_exists('custom_css', $settings)) {
+            $css = is_string($settings['custom_css']) ? trim(str_replace("\r\n", "\n", $settings['custom_css'])) : '';
+            if ($css !== '') {
+                $clean['custom_css'] = mb_substr($css, 0, BloxCustomCode::PAGE_CSS_MAX + 1);
+            }
         }
         return $clean;
     }
@@ -586,6 +604,7 @@ final class BloxDocumentPipeline
         $data = BloxGlobalClasses::normalizeElementData($data);
         $data = BloxLoopQuery::normalizeElementData($data);
         $data = BloxInteractions::normalizeElementData($data);
+        $data = BloxCustomCode::normalizeElementData($data);
         $registered = BuilderRegistry::get($type);
         $declaredKeys = [];
         foreach ($registered?->controls() ?? [] as $control) {

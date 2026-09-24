@@ -73,6 +73,7 @@ final class BloxProtectedFields
         if (in_array('display_conditions', $denied, true)) $keys[] = '_conditions';
         if (in_array('interactions', $denied, true)) $keys[] = '_interactions'; // v1.28 交互
         if (in_array('style_presets', $denied, true)) $keys = array_merge($keys, ['_global_style', '_global_style_snapshot']);
+        if (in_array('custom_code', $denied, true)) $keys[] = '_custom_css'; // 自定义 CSS 按权限保护
         if (in_array('query_loop', $denied, true)) {
             $keys = array_merge($keys, $inLoop ? self::LOOP_BINDING_KEYS : []);
             if (($element['type'] ?? '') === 'list-dynamic') {
