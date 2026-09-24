@@ -36,7 +36,18 @@
         return depth === 0 ? '' : 'braces';
     }
 
-    var api = { check: check };
+    // 与 BloxCustomCode::classList 同一规则：合法类名、去重、最多 20 个，yk- 前缀留给系统
+    function classList(value) {
+        var clean = [];
+        String(value || '').trim().split(/\s+/).forEach(function (token) {
+            if (!token || clean.length >= 20 || clean.indexOf(token) !== -1) return;
+            if (!/^[A-Za-z_!-][A-Za-z0-9_:.\/\[\]!-]{0,63}$/.test(token) || token.toLowerCase().indexOf('yk-') === 0) return;
+            clean.push(token);
+        });
+        return clean.join(' ');
+    }
+
+    var api = { check: check, classList: classList };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     if (root) root.BloxCustomCode = api;
 })(typeof window !== 'undefined' ? window : null);

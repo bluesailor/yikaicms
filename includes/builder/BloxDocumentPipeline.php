@@ -520,6 +520,7 @@ final class BloxDocumentPipeline
                 $title = preg_replace('/[\p{Cc}\p{Cf}]+/u', ' ', $title) ?? '';
                 $settings['dot_nav_title'] = mb_substr(trim($title), 0, 60);
             }
+            $settings = BloxCustomCode::normalizeSectionSettings($settings);
             if (array_key_exists('anchor_id', $settings)) {
                 $anchorId = self::normalizeSectionAnchorId($settings['anchor_id']);
                 if ($anchorId !== '') {
