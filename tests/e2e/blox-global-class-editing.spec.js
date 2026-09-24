@@ -41,7 +41,7 @@ async function selectHeading(page, id) {
   // 画布 iframe 用 CSS zoom 适配宽度，坐标点击会被误判遮挡（见 helpers.openSectionInsertAtEnd），直接派发 DOM click
   // 画布桥接脚本就绪前的点击会被忽略：未选中就重发
   await expect(async () => {
-    await canvas.locator(`[data-yk-el-id="${id}"] h2`).first().dispatchEvent('click');
+    await canvas.locator(`[data-yk-el-id="${id}"] :is(h2, h3)`).first().dispatchEvent('click');
     expect(await page.evaluate(() => {
       const app = window.Alpine.$data(document.body);
       return app.selEl ? app.selEl.id : '';
@@ -275,5 +275,82 @@ test('front end: the mobile tier applies on phones, links carry controlled attri
   } finally {
     await desktop.close();
     await phone.close();
+  }
+});
+
+test('hover and keyboard-focus states: forced in the canvas while editing, live on the published page @ci', async ({ page, browser, baseURL }, info) => {
+  const color = async (locator) => (await computed(locator)).color;
+  const background = (locator) => locator.evaluate(el => getComputedStyle(el).backgroundColor);
+  await openPageEditor(page, state.page);
+  await selectHeading(page, 'gcf-heading-a');
+  await page.getByTestId(`blox-style-target-class-${CLASS_NAME}`).click();
+  await expect(page.getByTestId('blox-class-state-base')).toHaveAttribute('aria-pressed', 'true');
+
+  // 悬停页签：只列状态字段（没有外边距），填的值在画布里对两个标题强制显示
+  const forcedPreview = classAction(page, 'class_preview');
+  await page.getByTestId('blox-class-state-hover').click();
+  expect(new URLSearchParams((await forcedPreview).request().postData()).get('force_states')).toContain('"hover"');
+  await expect(page.getByTestId('blox-class-input-margin_top_px')).toHaveCount(0);
+  await expect(page.getByTestId('blox-class-input-text_color')).toHaveValue('');
+  await setClassField(page, 'text_color', '#1d4ed8');
+  await setClassField(page, 'transition_ms', 150);
+  const canvas = await frame(page);
+  await expect.poll(() => color(heading(canvas, 'gcf-heading-a'))).toBe('rgb(29, 78, 216)');
+  await expect.poll(() => color(heading(canvas, 'gcf-heading-b'))).toBe('rgb(29, 78, 216)');
+  await info.attach('editor-hover-state', { body: await page.getByTestId('blox-property-scroll').screenshot(), contentType: 'image/png' });
+
+  // 聚焦页签：换成强制聚焦，悬停颜色随之撤掉
+  await page.getByTestId('blox-class-state-focus').click();
+  await setClassField(page, 'bg_color', '#fef3c7');
+  await expect.poll(() => background(heading(canvas, 'gcf-heading-a'))).toBe('rgb(254, 243, 199)');
+  await expect.poll(() => color(heading(canvas, 'gcf-heading-a'))).toBe('rgb(194, 65, 12)');
+  expect((await saveClass(page)).code).toBe(0);
+
+  // 回到基础：画布不再强制任何状态
+  await page.getByTestId('blox-class-state-base').click();
+  await expect.poll(() => background(heading(canvas, 'gcf-heading-a'))).toBe('rgba(0, 0, 0, 0)');
+  await expect(page.getByTestId('blox-class-input-margin_top_px')).toBeVisible();
+
+  // 把同一个类挂到带链接的标题上，保存并发布，验证前台的键盘聚焦（焦点在标题里面的链接上）
+  await selectHeading(page, 'gcf-link-heading');
+  await page.getByTestId('blox-style-target-add').click();
+  await page.getByTestId('blox-class-find').fill(CLASS_NAME);
+  await page.getByTestId('blox-class-find').press('Enter');
+  await expect(page.getByTestId(`blox-style-target-class-${CLASS_NAME}`)).toHaveAttribute('aria-pressed', 'true');
+  for (const [action, button] of [['save_draft', 'blox-save'], ['publish', 'blox-publish-page']]) {
+    const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
+      && new URLSearchParams(r.request().postData() || '').get('action') === action);
+    if (action === 'publish') page.once('dialog', dialog => dialog.accept());
+    await page.getByTestId(button).click();
+    expect((await (await response).json()).code).toBe(0);
+  }
+
+  const context = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] }, viewport: { width: 1440, height: 900 } });
+  try {
+    const front = await context.newPage();
+    expect((await front.goto(state.url)).status()).toBe(200);
+    const frontA = front.locator('h2', { hasText: 'Class heading A' });
+    expect(await color(frontA)).toBe('rgb(194, 65, 12)');
+    await frontA.hover();
+    await expect.poll(() => color(frontA)).toBe('rgb(29, 78, 216)');
+    await info.attach('front-hover', { body: await frontA.screenshot(), contentType: 'image/png' });
+
+    const linked = front.locator('h3', { hasText: 'Linked heading' });
+    await front.mouse.move(0, 0);
+    expect(await background(linked)).toBe('rgba(0, 0, 0, 0)');
+    let focused = false;
+    for (let i = 0; i < 80 && !focused; i += 1) {
+      await front.keyboard.press('Tab');
+      focused = await front.evaluate(() => document.activeElement && document.activeElement.getAttribute('aria-label') === 'Open the contact page');
+    }
+    expect(focused).toBe(true);
+    await expect.poll(() => background(linked)).toBe('rgb(254, 243, 199)');
+    await info.attach('front-keyboard-focus', { body: await linked.screenshot(), contentType: 'image/png' });
+
+    // 焦点离开后状态撤掉
+    await front.keyboard.press('Shift+Tab');
+    await expect.poll(() => background(linked)).toBe('rgba(0, 0, 0, 0)');
+  } finally {
+    await context.close();
   }
 });

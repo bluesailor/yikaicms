@@ -8334,4 +8334,12 @@ voltage|电压|220V',
     'blox_link_rel_none' => '默认',
     'blox_link_title' => '链接提示（title）',
     'blox_link_aria_label' => '读屏名称（aria-label）',
+    // V2.0.0 全局类：交互状态（hover / focus）
+    'blox_class_states' => '交互状态',
+    'blox_class_state_base' => '基础',
+    'blox_class_state_hover' => '悬停',
+    'blox_class_state_focus' => '键盘聚焦',
+    'blox_class_state_hint' => '这里没填的属性沿用基础值。编辑时画布会对所有挂了这个类的元素强制显示该状态；键盘聚焦在元素本身或它里面的链接/按钮获得焦点时生效。',
+    'blox_class_prop_transition_ms' => '状态切换过渡',
+    'blox_class_group_states' => '状态',
 ];

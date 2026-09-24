@@ -74,6 +74,20 @@ final class BloxGlobalClasses
      * 仍低于元素本地值（.yk-r-* 为 0,2,0，内联/预设为 style 属性）。只作用于挂了类的元素。
      */
     private const SELECTOR_SUFFIX = ':not(yk-none)';
+    /**
+     * 类的交互状态（V2.0.0 提前纳入）：settings.states.{state} 只存下面这些不分档的键。
+     * 聚焦用 :focus-visible（鼠标点击不触发），并用 :has() 让标题这类「类挂在外层、链接在里面」
+     * 的元素在内部链接获得键盘焦点时同样生效；不支持 :has 的浏览器由 :is() 的宽容解析忽略该分支。
+     * 状态规则特异性 0,2,1：高于类的基础规则与元素的档位预设，仍低于内联的本地值与样式预设。
+     */
+    public const STATES = [
+        'hover' => ':hover',
+        'focus' => ':is(:focus-visible,:has(:focus-visible))',
+    ];
+    public const STATE_KEYS = ['text_color', 'bg_color', 'border_color', 'border_width_px', 'radius_px', 'font_weight'];
+    private const TRANSITION_RANGE = [0, 2000];
+    /** 状态能改变、且值得过渡的属性（font-weight 是离散值，不列）。 */
+    private const TRANSITION_PROPERTIES = 'color,background-color,border-color,border-width,border-radius';
     /** 颜色类设置：key => css 属性。值为 hex 或站点色 token 引用。 */
     private const COLOR_SETTINGS = [
         'text_color' => 'color',
@@ -223,13 +237,15 @@ final class BloxGlobalClasses
      * 草稿同样过白名单；不在目录里的 class_id 忽略，无草稿时即当前样式表。
      *
      * @param array<mixed,mixed> $drafts class_id => settings
+     * @param array<mixed,mixed> $forcedStates class_id => 正在编辑的状态（画布里强制显示该状态）
      */
-    public static function previewStylesheet(array $drafts): string
+    public static function previewStylesheet(array $drafts, array $forcedStates = []): string
     {
         $rules = [];
         foreach (self::cascadeOrder() as $id => $class) {
             $settings = is_array($drafts[$id] ?? null) ? self::normalizeSettings($drafts[$id]) : $class['settings'];
-            $css = self::classRules($class['name'], $settings);
+            $forced = $forcedStates[$id] ?? '';
+            $css = self::classRules($class['name'], $settings, is_string($forced) && isset(self::STATES[$forced]) ? $forced : '');
             if ($css !== '') {
                 $rules[] = $css;
             }
@@ -255,6 +271,8 @@ final class BloxGlobalClasses
             'background' => ['bg_color'],
             'border' => ['border_color', 'border_width_px', 'radius_px'],
             'layout' => ['width_pct', 'max_width_px', 'gap_px', 'justify_content', 'align_items'],
+            // 状态过渡时长存在基础设置里，编辑器在状态页签里展示
+            'states' => ['transition_ms'],
         ];
         foreach ($groups as $group => $keys) {
             foreach ($keys as $key) {
@@ -274,6 +292,9 @@ final class BloxGlobalClasses
                 } elseif ($key === 'border_width_px') {
                     $field += ['type' => 'px', 'css' => 'border-width', 'min' => self::BORDER_WIDTH_RANGE[0],
                         'max' => self::BORDER_WIDTH_RANGE[1], 'step' => 1, 'unit' => 'px'];
+                } elseif ($key === 'transition_ms') {
+                    $field += ['type' => 'number', 'css' => 'transition-duration', 'min' => self::TRANSITION_RANGE[0],
+                        'max' => self::TRANSITION_RANGE[1], 'step' => 50, 'unit' => 'ms'];
                 } elseif ($key === 'radius_px') {
                     $field += ['type' => 'px', 'css' => 'border-radius', 'min' => self::RADIUS_PX_RANGE[0],
                         'max' => self::RADIUS_PX_RANGE[1], 'step' => 1, 'unit' => 'px'];
@@ -384,38 +405,19 @@ final class BloxGlobalClasses
      * 没有桌面值、只设了平板/手机/宽屏的走区间规则（排在最后），只作用于该档，不向上泄漏。
      * 多个类在同一属性上冲突时按样式表顺序（目录按类名升序）后者胜出，与挂载顺序无关。
      */
-    public static function classRules(string $name, array $settings): string
+    public static function classRules(string $name, array $settings, string $forcedState = ''): string
     {
         $selector = '.' . self::CLASS_PREFIX . $name . self::SELECTOR_SUFFIX;
         $wide = BloxResponsiveValue::wideEnabled();
-        $base = [];
-        foreach (self::COLOR_SETTINGS as $key => $property) {
-            $value = $settings[$key] ?? '';
-            if (is_string($value) && $value !== '') {
-                $base[$property] = $value;
-            }
-        }
-        $radiusPx = self::intInRange($settings['radius_px'] ?? null, self::RADIUS_PX_RANGE);
-        $radius = $settings['radius'] ?? '';
-        if ($radiusPx !== null) {
-            $base['border-radius'] = $radiusPx . 'px';
-        } elseif (is_string($radius) && $radius !== '' && $radius !== 'none' && isset(self::RADIUS_MAP[$radius])) {
-            $base['border-radius'] = self::RADIUS_MAP[$radius];
-        }
-        $borderWidth = self::intInRange($settings['border_width_px'] ?? null, self::BORDER_WIDTH_RANGE);
-        if (($settings['border_color'] ?? '') !== '' || $borderWidth !== null) {
-            $base['border-style'] = 'solid';
-            $base['border-width'] = ($borderWidth ?? 1) . 'px';
-        }
-        foreach (self::ENUM_SETTINGS as $key => [$property, $allowed]) {
-            $value = self::enumOrNull($settings[$key] ?? null, $allowed);
-            if ($value !== null) {
-                $base[$property] = $value;
-            }
-        }
+        $base = self::scalarDeclarations($settings);
         $lineHeight = self::lineHeightOrNull($settings['line_height'] ?? null);
         if ($lineHeight !== null) {
             $base['line-height'] = $lineHeight;
+        }
+        $transition = self::intInRange($settings['transition_ms'] ?? null, self::TRANSITION_RANGE);
+        if ($transition !== null && $transition > 0) {
+            $base['transition-property'] = self::TRANSITION_PROPERTIES;
+            $base['transition-duration'] = $transition . 'ms';
         }
 
         /** @var array<string,array{m:?int,t:?int,d:?int,w:?int}> $resolved */
@@ -473,7 +475,61 @@ final class BloxGlobalClasses
             $rule = $selector . '{' . implode(';', $body) . '}';
             $css .= $query === '' ? $rule : $query . '{' . $rule . '}';
         }
+
+        $states = is_array($settings['states'] ?? null) ? $settings['states'] : [];
+        foreach (self::STATES as $state => $pseudo) {
+            $declarations = is_array($states[$state] ?? null) ? self::scalarDeclarations($states[$state], true) : [];
+            if ($declarations === []) {
+                continue;
+            }
+            $body = implode(';', array_map(
+                static fn(string $property, string $value): string => $property . ':' . $value,
+                array_keys($declarations),
+                $declarations
+            ));
+            $css .= $selector . $pseudo . '{' . $body . '}';
+            // 编辑器正在编辑该状态：预览里对所有挂了此类的元素强制显示状态样式
+            if ($forcedState === $state) {
+                $css .= $selector . $selector . '{' . $body . '}';
+            }
+        }
         return $css;
+    }
+
+    /**
+     * 不分档的声明：颜色、圆角、边框、枚举（基础规则与各状态规则共用）。
+     * 状态里只改边框颜色时只出 border-color，沿用基础规则的线型与宽度（否则悬停会把 2px 边框改回 1px）。
+     *
+     * @return array<string,string> css 属性 => 值
+     */
+    private static function scalarDeclarations(array $settings, bool $state = false): array
+    {
+        $declarations = [];
+        foreach (self::COLOR_SETTINGS as $key => $property) {
+            $value = $settings[$key] ?? '';
+            if (is_string($value) && $value !== '') {
+                $declarations[$property] = $value;
+            }
+        }
+        $radiusPx = self::intInRange($settings['radius_px'] ?? null, self::RADIUS_PX_RANGE);
+        $radius = $settings['radius'] ?? '';
+        if ($radiusPx !== null) {
+            $declarations['border-radius'] = $radiusPx . 'px';
+        } elseif (is_string($radius) && $radius !== '' && $radius !== 'none' && isset(self::RADIUS_MAP[$radius])) {
+            $declarations['border-radius'] = self::RADIUS_MAP[$radius];
+        }
+        $borderWidth = self::intInRange($settings['border_width_px'] ?? null, self::BORDER_WIDTH_RANGE);
+        if ($state ? $borderWidth !== null : (($settings['border_color'] ?? '') !== '' || $borderWidth !== null)) {
+            $declarations['border-style'] = 'solid';
+            $declarations['border-width'] = ($borderWidth ?? 1) . 'px';
+        }
+        foreach (self::ENUM_SETTINGS as $key => [$property, $allowed]) {
+            $value = self::enumOrNull($settings[$key] ?? null, $allowed);
+            if ($value !== null) {
+                $declarations[$property] = $value;
+            }
+        }
+        return $declarations;
     }
 
     /**
@@ -778,6 +834,26 @@ final class BloxGlobalClasses
             if ($tiers !== []) {
                 $normalized[$key] = count($tiers) === 1 && isset($tiers['d']) ? $tiers['d'] : $tiers;
             }
+        }
+        $transition = self::intInRange($settings['transition_ms'] ?? null, self::TRANSITION_RANGE);
+        if ($transition !== null && $transition > 0) {
+            $normalized['transition_ms'] = $transition;
+        }
+        // 状态：只收白名单状态与 STATE_KEYS，值走与基础相同的校验；空状态不落盘
+        $rawStates = is_array($settings['states'] ?? null) ? $settings['states'] : [];
+        $states = [];
+        foreach (array_keys(self::STATES) as $state) {
+            if (!is_array($rawStates[$state] ?? null)) {
+                continue;
+            }
+            $allowed = array_flip(self::STATE_KEYS);
+            $clean = array_intersect_key(self::normalizeSettings(array_intersect_key($rawStates[$state], $allowed)), $allowed);
+            if ($clean !== []) {
+                $states[$state] = $clean;
+            }
+        }
+        if ($states !== []) {
+            $normalized['states'] = $states;
         }
         return $normalized;
     }

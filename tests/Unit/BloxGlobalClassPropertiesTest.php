@@ -243,4 +243,75 @@ final class BloxGlobalClassPropertiesTest extends TestCase
             '_classes' => [$zeta['class_id'], $alpha['class_id']],
         ]));
     }
+
+    // ── 交互状态（hover / focus） ────────────────────────────────────
+
+    public function testStatesKeepOnlyWhitelistedStatesKeysAndValues(): void
+    {
+        $normalized = BloxGlobalClasses::normalizeSettings([
+            'text_color' => '#111111',
+            'transition_ms' => '250',
+            'states' => [
+                'hover' => ['text_color' => '#c2410c', 'bg_color' => 'red;}x{', 'font_size_px' => 40, 'font_weight' => 700],
+                'focus' => ['border_color' => 'var(--yk-color-primary)', 'radius_px' => 8],
+                'active' => ['text_color' => '#000000'],
+                'visited' => 'nope',
+            ],
+        ]);
+        self::assertSame(250, $normalized['transition_ms']);
+        self::assertSame([
+            'hover' => ['text_color' => '#c2410c', 'font_weight' => 700],
+            'focus' => ['border_color' => 'var(--yk-color-primary)', 'radius_px' => 8],
+        ], $normalized['states'], '不在白名单的状态、分档键和非法值都丢弃');
+
+        self::assertArrayNotHasKey('states', BloxGlobalClasses::normalizeSettings(['states' => ['hover' => ['evil' => 1]]]));
+        self::assertArrayNotHasKey('transition_ms', BloxGlobalClasses::normalizeSettings(['transition_ms' => 0]));
+        self::assertArrayNotHasKey('transition_ms', BloxGlobalClasses::normalizeSettings(['transition_ms' => 5000]));
+    }
+
+    public function testStateRulesFollowTheBaseRuleWithHigherSpecificity(): void
+    {
+        BloxResponsiveValue::overrideWideEnabled(false);
+        $css = BloxGlobalClasses::classRules('cta', BloxGlobalClasses::normalizeSettings([
+            'text_color' => '#111111',
+            'border_color' => '#dddddd',
+            'border_width_px' => 2,
+            'transition_ms' => 200,
+            'states' => [
+                'hover' => ['text_color' => '#c2410c', 'border_color' => '#c2410c'],
+                'focus' => ['bg_color' => '#fff7ed', 'border_width_px' => 3],
+            ],
+        ]));
+        self::assertSame(
+            '.yk-c-cta:not(yk-none){color:#111111;border-color:#dddddd;border-style:solid;border-width:2px;'
+            . 'transition-property:color,background-color,border-color,border-width,border-radius;transition-duration:200ms}'
+            // 状态里只改边框颜色：沿用基础的 2px 实线，不回落成 1px
+            . '.yk-c-cta:not(yk-none):hover{color:#c2410c;border-color:#c2410c}'
+            // 聚焦：键盘焦点在元素本身，或在它里面的链接/按钮上
+            . '.yk-c-cta:not(yk-none):is(:focus-visible,:has(:focus-visible)){background-color:#fff7ed;border-style:solid;border-width:3px}',
+            $css
+        );
+    }
+
+    public function testEditorPreviewCanForceAStateOnEveryElementWithTheClass(): void
+    {
+        $row = BloxGlobalClasses::mutate('class_add', ['name' => 'link-card', 'settings' => [
+            'text_color' => '#111111', 'states' => ['hover' => ['text_color' => '#c2410c']],
+        ]], true);
+        BloxGlobalClasses::resetForTests();
+        $normal = BloxGlobalClasses::previewStylesheet([]);
+        self::assertStringNotContainsString('.yk-c-link-card:not(yk-none).yk-c-link-card', $normal);
+
+        $forced = BloxGlobalClasses::previewStylesheet([], [$row['class_id'] => 'hover']);
+        self::assertStringContainsString('.yk-c-link-card:not(yk-none).yk-c-link-card:not(yk-none){color:#c2410c}', $forced);
+        // 草稿里的状态同样可预览；未知状态名不强制
+        $draft = BloxGlobalClasses::previewStylesheet(
+            [$row['class_id'] => ['states' => ['focus' => ['bg_color' => '#000000']]]],
+            [$row['class_id'] => 'focus']
+        );
+        self::assertStringContainsString('.yk-c-link-card:not(yk-none).yk-c-link-card:not(yk-none){background-color:#000000}', $draft);
+        self::assertSame($normal, BloxGlobalClasses::previewStylesheet([], [$row['class_id'] => 'visited']));
+        // 前台样式表永远不带强制规则
+        self::assertStringNotContainsString('.yk-c-link-card:not(yk-none).yk-c-link-card', BloxGlobalClasses::stylesheet());
+    }
 }
