@@ -308,4 +308,69 @@ final class BloxCustomCodeTest extends TestCase
             self::assertStringContainsString('blox_protected_fields_changed', $e->getMessage());
         }
     }
+    public function testSectionTitleAndSubtitleGetTheSameAdvancedOptionsAsElements(): void
+    {
+        $processed = BloxDocumentPipeline::process($this->sectionDocument([
+            'title' => 'FAQ',
+            'subtitle' => 'Answers',
+            '_title_html_id' => 'faq-title',
+            '_title_css_classes' => 'title-grad  yk-c-spoof',
+            '_title_attributes' => [['name' => 'data-track', 'value' => 'faq'], ['name' => 'onclick', 'value' => 'x()']],
+            '_title_custom_css' => "letter-spacing: .04em;\r\n",
+            '_subtitle_css_classes' => 'lead',
+            '_subtitle_custom_css' => '%root% { opacity: .8 }',
+            '_subtitle_html_id' => '1bad',
+        ]));
+        $settings = $processed['sections'][0]['settings'];
+        self::assertSame('faq-title', $settings['_title_html_id']);
+        self::assertSame('title-grad', $settings['_title_css_classes']);
+        self::assertSame([['name' => 'data-track', 'value' => 'faq']], $settings['_title_attributes']);
+        self::assertSame('letter-spacing: .04em;', $settings['_title_custom_css']);
+        self::assertArrayNotHasKey('_subtitle_html_id', $settings, '非法 ID 丢弃');
+
+        $html = BlockRenderer::render($processed['json']);
+        preg_match('/<h2 ([^>]*)>FAQ<\/h2>/', $html, $title);
+        self::assertNotEmpty($title);
+        self::assertStringContainsString('id="faq-title"', $title[1]);
+        self::assertStringContainsString('data-track="faq"', $title[1]);
+        self::assertStringNotContainsString('onclick', $title[1]);
+        self::assertMatchesRegularExpression('/class="blk-title title-grad yk-css-([a-f0-9]{10})"/', $title[1]);
+        preg_match('/yk-css-([a-f0-9]{10})/', $title[1], $titleScope);
+        preg_match('/<p ([^>]*)>Answers<\/p>/', $html, $subtitle);
+        self::assertMatchesRegularExpression('/class="blk-sub lead yk-css-([a-f0-9]{10})"/', $subtitle[1]);
+        preg_match('/yk-css-([a-f0-9]{10})/', $subtitle[1], $subScope);
+        self::assertNotSame($titleScope[1], $subScope[1]);
+        $styles = BloxAssetCollector::renderStyles();
+        self::assertStringContainsString('.yk-css-' . $titleScope[1] . '.yk-css-' . $titleScope[1] . '{letter-spacing: .04em;}', $styles);
+        self::assertStringContainsString('.yk-css-' . $subScope[1] . '.yk-css-' . $subScope[1] . ' { opacity: .8 }', $styles);
+    }
+
+    public function testSectionTitleCssFollowsTheSameSafetyAndPermissionRules(): void
+    {
+        try {
+            BloxDocumentPipeline::process($this->sectionDocument(['title' => 'T', '_title_custom_css' => '%root% { background: url(//evil.test/x) }']));
+            self::fail('标题的外链 CSS 应当被拒绝');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('blox_custom_css_error_external', $e->getMessage());
+        }
+
+        $withCss = $this->sectionDocument(['title' => 'T', '_subtitle_custom_css' => 'color:red']);
+        BloxCustomCode::resetForTests(false);
+        try {
+            BloxDocumentPipeline::process($withCss);
+            self::fail('无权限新增标题 CSS 应当被拒绝');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('blox_custom_css_permission', $e->getMessage());
+        }
+        // 原样保留可以，标题文字和类照常可改；改 CSS 被拒
+        $kept = BloxDocumentPipeline::process($this->sectionDocument(['title' => 'New', '_subtitle_custom_css' => 'color:red', '_title_css_classes' => 'x']), 'blox', trustedJson: $withCss);
+        self::assertSame('color:red', $kept['sections'][0]['settings']['_subtitle_custom_css']);
+        self::assertSame('x', $kept['sections'][0]['settings']['_title_css_classes']);
+        try {
+            BloxDocumentPipeline::process($this->sectionDocument(['title' => 'T', '_subtitle_custom_css' => 'color:blue']), 'blox', trustedJson: $withCss);
+            self::fail('无权限修改标题 CSS 应当被拒绝');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('blox_protected_fields_changed', $e->getMessage());
+        }
+    }
 }
