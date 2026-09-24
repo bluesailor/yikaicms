@@ -361,12 +361,23 @@ final class BloxAreaTemplatePresets
         if ($existing) {
             // 官方预置按新内容检查；以读到的草稿做比较写入，不覆盖期间他人保存的修改。
             BloxDocumentPipeline::assertAuthoringAllowed($prepared['sections'], null);
-            bloxTemplateModel()->updateDraft(
-                (int) $existing['id'],
-                $prepared['draft_json'],
-                $prepared['requirements'],
-                (string) ($existing['draft_data'] ?? '')
-            );
+            db()->beginTransaction();
+            try {
+                BloxGlobalClasses::applyImportPlan($prepared['class_plan'], $adminId);
+                bloxTemplateModel()->updateDraft(
+                    (int) $existing['id'],
+                    $prepared['draft_json'],
+                    $prepared['requirements'],
+                    (string) ($existing['draft_data'] ?? '')
+                );
+                db()->commit();
+            } catch (Throwable $e) {
+                db()->rollback();
+                throw $e;
+            }
+            if ($prepared['class_plan'] !== []) {
+                BloxGlobalClasses::invalidateStylesheet();
+            }
             return [
                 'id' => (int) $existing['id'],
                 'type' => $prepared['type'],

@@ -664,7 +664,19 @@ try {
             error(__('blox_import_review_invalid'));
         }
         requireBloxTemplateTypePermission($prepared['type']);
-        // 画布确认无数据库写入：TTL 内重复确认幂等重放，不重复扣远端下载。
+        // 包里带来的全局类要先落库，插入的 sections 才引用得到；重复确认时规划会复用同名同定义的类，
+        // 仍然幂等。除此之外画布确认不写库：TTL 内重复确认幂等重放，不重复扣远端下载。
+        if ($prepared['class_plan'] !== []) {
+            db()->beginTransaction();
+            try {
+                BloxGlobalClasses::applyImportPlan($prepared['class_plan'], (int) ($_SESSION['admin_id'] ?? 0));
+                db()->commit();
+            } catch (Throwable $classError) {
+                db()->rollback();
+                error($classError->getMessage());
+            }
+            BloxGlobalClasses::invalidateStylesheet();
+        }
         bloxImportReviewModel()->claim($reviewId, time());
         success(['template' => [
             'key' => $key,
@@ -674,7 +686,7 @@ try {
             'provider' => '',
             'settings' => $prepared['settings'],
             'sections' => $prepared['sections'],
-        ]]);
+        ], 'global_classes' => array_values(BloxGlobalClasses::catalog())]);
     }
     error(__('blox_invalid_action'));
 } catch (Throwable $e) {

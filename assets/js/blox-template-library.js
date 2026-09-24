@@ -177,6 +177,8 @@
                 if (!data.template || !Array.isArray(data.template.sections)) {
                     throw new Error(fallbackMessage);
                 }
+                // 包里带来的全局类已在服务端落库：连同最新类目录一起交给编辑器
+                if (Array.isArray(data.global_classes)) data.template.global_classes = data.global_classes;
                 return data.template;
             });
     }

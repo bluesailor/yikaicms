@@ -16,6 +16,31 @@ function blox_pro_editor_modules(): array
     return BLOX_PRO_EDITOR_MODULES;
 }
 
+/**
+ * 全局类表单字段：核心 BloxGlobalClasses::propertyContract() 定义键、范围与响应式，这里补上三语文案。
+ *
+ * @return list<array<string,mixed>>
+ */
+function blox_pro_class_fields(): array
+{
+    if (!class_exists('BloxGlobalClasses')) {
+        return [];
+    }
+    $fields = [];
+    foreach (BloxGlobalClasses::propertyContract() as $field) {
+        $field['label'] = __('blox_class_prop_' . $field['key']);
+        $field['group_label'] = __('blox_class_group_' . $field['group']);
+        if (isset($field['options'])) {
+            $field['options'] = array_map(static fn(string $value): array => [
+                'value' => $value,
+                'label' => __('blox_class_opt_' . str_replace('-', '_', $value)),
+            ], $field['options']);
+        }
+        $fields[] = $field;
+    }
+    return $fields;
+}
+
 // 隔离加载（授权探针、CLI 工具）没有钩子系统时只提供上面的声明，不注册编辑器面板。
 if (!function_exists('add_action')) {
     return;
@@ -28,8 +53,8 @@ add_action('blox_editor_panel', static function (string $slot): void {
         require __DIR__ . '/editor/conditions-panel.php';
     } elseif ($slot === 'element_style_preset') {
         require __DIR__ . '/editor/style-preset-picker.php';
-    } elseif ($slot === 'element_global_classes') {
-        require __DIR__ . '/editor/global-class-picker.php';
+    } elseif ($slot === 'element_style_target') {
+        require __DIR__ . '/editor/class-style-target.php';
     } elseif ($slot === 'element_loop_query') {
         require __DIR__ . '/editor/loop-query-panel.php';
     } elseif ($slot === 'element_loop_template') {
@@ -120,6 +145,24 @@ add_action('blox_editor_scripts', static function (): void {
             'paramName' => __('blox_display_param_name_placeholder'),
             'fieldName' => __('blox_display_field_name_placeholder'),
             'cacheWarning' => __('blox_display_condition_cache_warning'),
+        ],
+        // V2.0.0 样式面板直接编辑全局类：字段与范围来自核心契约，这里只补文案
+        'classFields' => blox_pro_class_fields(),
+        'classText' => [
+            'createNamed' => __('blox_class_create_named'),
+            'editingTier' => __('blox_class_editing_tier'),
+            'inherits' => __('blox_class_inherits'),
+            'clear' => __('blox_class_clear_value'),
+            'flexOnly' => __('blox_class_flex_only'),
+            'usage' => __('blox_class_usage_short'),
+            'save' => __('blox_class_save'),
+            'saving' => __('blox_class_saving'),
+            'saved' => __('blox_class_saved'),
+            'conflictReloaded' => __('blox_class_conflict_reloaded'),
+            'pending' => __('blox_class_pending'),
+            'blockedElement' => __('blox_class_blocked_element'),
+            'blockedPreset' => __('blox_class_blocked_preset'),
+            'blockedClass' => __('blox_class_blocked_class'),
         ],
         'interactionText' => [
             'empty' => __('blox_interactions_empty'),

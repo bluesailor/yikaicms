@@ -245,16 +245,28 @@ function bloxClassManager() {
 
         draftSettings() {
             var draft = this.editDraft;
-            var settings = {};
+            var cls = this.currentClass();
+            // 管理器只编辑下面这几个字段：其余设置（编辑器样式面板写入的四边间距、字重、布局等）
+            // 以及平板/宽屏档原样保留，否则在这里点一次保存就会把它们清掉
+            var original = cls && cls.settings && !Array.isArray(cls.settings) ? cls.settings : {};
+            var settings = JSON.parse(JSON.stringify(original));
             ["text_color", "bg_color", "border_color"].forEach(function (key) {
+                delete settings[key];
                 if (String(draft[key] || "").trim() !== "") settings[key] = String(draft[key]).trim();
             });
+            delete settings.radius;
             if (draft.radius) settings.radius = draft.radius;
             ["padding_px", "gap_px", "font_size_px"].forEach(function (key) {
                 var d = String(draft[key + "_d"] ?? "").trim();
                 var m = String(draft[key + "_m"] ?? "").trim();
+                var previous = settings[key];
+                delete settings[key];
                 if (d === "") return;
-                settings[key] = m === "" ? Number(d) : { d: Number(d), m: Number(m) };
+                var table = previous && typeof previous === "object" ? Object.assign({}, previous) : {};
+                table.d = Number(d);
+                if (m === "") delete table.m;
+                else table.m = Number(m);
+                settings[key] = Object.keys(table).length === 1 ? table.d : table;
             });
             return settings;
         },

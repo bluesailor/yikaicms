@@ -67,7 +67,7 @@ final class BloxGlobalClassesTest extends TestCase
         BloxGlobalClasses::resetForTests();
         $attribute = BloxGlobalClasses::classAttributeFor(['_classes' => [$row['class_id']]]);
         self::assertSame(' yk-c-card-featured', $attribute);
-        self::assertStringContainsString('.yk-c-card-featured{background-color:#ffffff', BloxGlobalClasses::stylesheet());
+        self::assertStringContainsString('.yk-c-card-featured:not(yk-none){background-color:#ffffff', BloxGlobalClasses::stylesheet());
     }
 
     public function testCreateValidatesNameAndDuplicates(): void
@@ -128,10 +128,10 @@ final class BloxGlobalClassesTest extends TestCase
             BloxResponsiveValue::overrideWideEnabled(null);
         }
 
-        self::assertStringContainsString('.yk-c-card{color:#333333;border-color:#dddddd;border-radius:0.5rem;border-style:solid;border-width:1px;padding:16px}', $css);
-        self::assertStringContainsString('@media (min-width:768px){.yk-c-card{padding:24px}}', $css);
-        self::assertStringContainsString('@media (min-width:1024px){.yk-c-card{padding:32px}}', $css);
-        self::assertStringContainsString('@media (min-width:1440px){.yk-c-card{padding:48px}}', $css);
+        self::assertStringContainsString('.yk-c-card:not(yk-none){color:#333333;border-color:#dddddd;border-radius:0.5rem;border-style:solid;border-width:1px;padding:16px}', $css);
+        self::assertStringContainsString('@media (min-width:768px){.yk-c-card:not(yk-none){padding:24px}}', $css);
+        self::assertStringContainsString('@media (min-width:1024px){.yk-c-card:not(yk-none){padding:32px}}', $css);
+        self::assertStringContainsString('@media (min-width:1440px){.yk-c-card:not(yk-none){padding:48px}}', $css);
     }
 
     // ── 元素侧 _classes 归一与渲染 ──────────────────────────────────
@@ -272,14 +272,14 @@ final class BloxGlobalClassesTest extends TestCase
             $head = BloxGlobalClasses::headOutput();
             self::assertStringContainsString('/uploads/blox/css/classes.css?v=', $head);
             self::assertFileExists($path);
-            self::assertStringContainsString('.yk-c-file-test{background-color:#123456}', (string) file_get_contents($path));
+            self::assertStringContainsString('.yk-c-file-test:not(yk-none){background-color:#123456}', (string) file_get_contents($path));
 
             // 变更即失效：文件删除，下一次头部输出惰性重建出新内容
             BloxGlobalClasses::mutate('class_rename', ['id' => $row['class_id'], 'name' => 'file-test-2'], true);
             self::assertFileDoesNotExist($path);
             BloxGlobalClasses::resetForTests();
             BloxGlobalClasses::headOutput();
-            self::assertStringContainsString('.yk-c-file-test-2{', (string) file_get_contents($path));
+            self::assertStringContainsString('.yk-c-file-test-2:not(yk-none){', (string) file_get_contents($path));
         } finally {
             @unlink($path);
         }

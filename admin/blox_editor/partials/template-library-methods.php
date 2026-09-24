@@ -1104,6 +1104,16 @@ declare(strict_types=1);
                 if (item.type === "section") this.rememberRecentTemplate(item.key);
             },
 
+            /** 模板带来的全局类落库后，挂类列表与来源提示用的两份目录一起换成服务端最新版。 */
+            replaceGlobalClassCatalog(rows) {
+                var classes = {};
+                rows.forEach(function (row) {
+                    if (row && row.class_id) classes[row.class_id] = { name: row.name, settings: row.settings || {} };
+                });
+                this.globalClasses = rows;
+                if (this.designSystem) this.designSystem.classes = classes;
+            },
+
             // ── 画布插入检查模态：确认前不改文档；取消即回到模板库。 ──
             confirmTemplateReview() {
                 var review = this.templateReview;
@@ -1128,6 +1138,7 @@ declare(strict_types=1);
                     .then(function (template) {
                         // 请求在途时对话框已被关闭或换成别的评审：不再插入
                         if (self.templateReview !== review) return;
+                        if (Array.isArray(template.global_classes)) self.replaceGlobalClassCatalog(template.global_classes);
                         // 先插入再关闭：插入失败（命令回滚等）时错误留在对话框里，而不是随对话框消失
                         self.executeInsertTemplate(
                             review.item, template, review.mode, review.requestedIndex, review.requestContext
