@@ -1320,7 +1320,7 @@ declare(strict_types=1);
                                     </div>
                                     <p class="text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_nav_content_source_hint')) ?></p>
                                     <?php if ($canManageGlobalSettings): ?>
-                                    <a :href="Number((selEl.data || {}).menu_group || 0) > 0 ? '/admin/nav_menu.php?group=' + Number(selEl.data.menu_group) : '/admin/nav_menu.php'"
+                                    <a :href="(window.YK_BASE || '') + (Number((selEl.data || {}).menu_group || 0) > 0 ? '/admin/nav_menu.php?group=' + Number(selEl.data.menu_group) : '/admin/nav_menu.php')"
                                        target="_blank" rel="noopener" data-testid="blox-nav-content-manage"
                                        class="h-8 inline-flex items-center gap-1.5 rounded bg-blue-600 px-2.5 text-[11px] font-medium text-white hover:bg-blue-700 transition">
                                         <i class="ti ti-list-details text-sm" aria-hidden="true"></i>

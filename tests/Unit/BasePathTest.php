@@ -196,4 +196,37 @@ final class BasePathTest extends TestCase
         // url() 读的是本进程的挂载点；CLI 下恒为根目录，所以任何输入都原样返回
         self::assertSame('/form_submit.php', BasePath::url('/form_submit.php'));
     }
+
+    /**
+     * 输出缓冲只改静态属性；Alpine 绑定和内联事件里的地址在浏览器里才拼出来，
+     * 写死根路径就会丢掉挂载点（编辑器"管理菜单内容"曾指向站点根的 /admin/nav_menu.php）。
+     */
+    public function testBrowserEvaluatedAttributesCarryTheMountPrefix(): void
+    {
+        $attr = '/\s(?::[a-z-]+|x-bind:[a-z-]+|@[a-z.-]+|x-on:[a-z.-]+|x-init|x-data|on[a-z]+)="([^"]*)"/';
+        $offenders = [];
+        foreach (['admin', 'includes', 'member', 'plugins', 'themes', 'views'] as $dir) {
+            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(ROOT_PATH . '/' . $dir, \FilesystemIterator::SKIP_DOTS));
+            foreach ($files as $file) {
+                if ($file->getExtension() !== 'php') {
+                    continue;
+                }
+                $source = (string) file_get_contents($file->getPathname());
+                preg_match_all($attr, $source, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
+                foreach ($matches as $m) {
+                    // :placeholder 只是提示文字，不会被请求
+                    if (str_starts_with(ltrim($m[0][0]), ':placeholder')) {
+                        continue;
+                    }
+                    $js = str_replace("\\'", "'", $m[1][0]);
+                    // 形如 '/admin/…'、'/captcha.php' 的路径；正则字面量 /'/g 之类不算
+                    if (preg_match("/['`]\/[a-z_][a-z0-9_-]*[\/.?]/i", $js) === 1 && !str_contains($js, 'YK_BASE')) {
+                        $line = substr_count($source, "\n", 0, $m[0][1]) + 1;
+                        $offenders[] = substr($file->getPathname(), strlen(ROOT_PATH) + 1) . ':' . $line;
+                    }
+                }
+            }
+        }
+        self::assertSame([], $offenders, '浏览器里拼出的根路径要加 (window.YK_BASE || \'\')，或复用服务端已改写的地址');
+    }
 }

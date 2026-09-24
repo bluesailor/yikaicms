@@ -3651,7 +3651,7 @@ function renderFormCaptcha(bool $enabled): string
     if (!$enabled) return '';
     return '<div class="form-captcha" style="display:flex;gap:10px;align-items:center;margin:0 0 1rem">'
         . '<input type="text" name="captcha_code" required autocomplete="off" maxlength="6" aria-label="' . e(__('form_captcha')) . '" placeholder="' . e(__('form_captcha')) . '" style="flex:1;min-width:0;padding:.6rem .85rem;border:1px solid #d1d5db;border-radius:.5rem;font-size:1rem;outline:none">'
-        . '<button type="button" aria-label="' . e(__('form_captcha_refresh')) . '" onclick="this.querySelector(\'img\').src=\'/captcha.php?\'+Date.now()" style="padding:0;border:0;background:none;cursor:pointer;flex:none">'
+        . '<button type="button" aria-label="' . e(__('form_captcha_refresh')) . '" onclick="var i=this.querySelector(\'img\');i.src=i.src.split(\'?\')[0]+\'?\'+Date.now()" style="padding:0;border:0;background:none;cursor:pointer;flex:none">'
         . '<img src="/captcha.php" alt="' . e(__('form_captcha')) . '" style="height:42px;width:120px;border-radius:.5rem;border:1px solid #e5e7eb">'
         . '</button></div>';
 }

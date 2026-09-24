@@ -249,7 +249,7 @@ $conditionAllLabel = __(($templateType ?? '') === 'product-detail' ? 'blox_produ
                                 <span x-text="publishCheckText(item.kind === 'exposed' ? 'exposed' : 'member')"></span>
                                 <span><?= e(__('blox_pubcheck_templates')) ?></span>
                                 <template x-for="templateId in (item.template_ids || [])" :key="item.content_id + '-' + templateId">
-                                    <a class="underline" :href="'/admin/blox_editor.php?template=' + templateId" target="_blank" rel="noopener"
+                                    <a class="underline" :href="(window.YK_BASE || '') + '/admin/blox_editor.php?template=' + templateId" target="_blank" rel="noopener"
                                        :data-testid="'blox-publish-conflict-template-' + templateId" x-text="publishCheckTemplateLabel(templateId)"></a>
                                 </template>
                                 <button type="button" @click="conditionDiagnose(item.content_id)" :data-testid="'blox-publish-conflict-diagnose-' + item.content_id"
