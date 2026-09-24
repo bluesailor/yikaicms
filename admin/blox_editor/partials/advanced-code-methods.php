@@ -25,7 +25,7 @@
             setAdvancedValue(key, value) {
                 if (!this.selEl) return;
                 var text = typeof value === "string" ? value.trim() : "";
-                if (key === "_css_classes") text = text.split(/\s+/).filter(Boolean).join(" ");
+                if (key === "_css_classes") text = window.BloxCustomCode ? window.BloxCustomCode.classList(text) : text;
                 if (text === "") delete this.selEl.data[key];
                 else this.selEl.data[key] = text;
             },
@@ -56,6 +56,20 @@
                 var list = this.advancedAttributes().filter(function (item, position) { return position !== index; });
                 if (list.length) this.selEl.data._attributes = list;
                 else delete this.selEl.data._attributes;
+            },
+
+            // ── 区块「高级」面板：ID 复用区块锚点 anchor_id，类与自定义 CSS 存在区块 settings ──
+            sectionAdvancedHasValues() {
+                var settings = this.sel && this.sel.settings ? this.sel.settings : {};
+                return !!(settings._css_classes || settings._custom_css);
+            },
+
+            setSectionAdvancedValue(key, value) {
+                if (!this.sel || !this.sel.settings) return;
+                var text = typeof value === "string" ? value.trim() : "";
+                if (key === "_css_classes") text = window.BloxCustomCode ? window.BloxCustomCode.classList(text) : text;
+                if (text === "") delete this.sel.settings[key];
+                else this.sel.settings[key] = text;
             },
 
             customCssError(value, max) {

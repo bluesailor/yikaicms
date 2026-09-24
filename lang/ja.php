@@ -8449,4 +8449,9 @@ voltage|電圧|220V',
     'blox_class_group_code' => 'カスタム CSS',
     'blox_class_prop_custom_css' => 'クラスのカスタム CSS',
     'blox_class_custom_css_hint' => '%root% は :selector を表し、宣言だけを書くとそれに適用されます。上のプロパティと一緒にクラスとしてサイト全体に保存されます。',
+    // V2.0.0 建站人员：区块高级配置
+    'blox_section_advanced_id_hint' => '「コンテンツ」タブのセクションアンカーと同じ ID で、# リンクと CSS に使われます。',
+    'blox_section_advanced_css_hint' => '%root% はセクション全体（<section>）を表し、%root% h2 のように中の要素も指定できます。宣言だけを書くとセクション自体に適用されます。',
+    'blox_section_advanced' => '詳細：ID / クラス / CSS',
+    'blox_section_advanced_classes_hint' => 'スペース区切りで <section> に付きます。テーマや Tailwind のクラスが使えます。yk- で始まる名前は予約済みです。',
 ];

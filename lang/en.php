@@ -8308,4 +8308,9 @@ voltage|Voltage|220V',
     'blox_class_group_code' => 'Custom CSS',
     'blox_class_prop_custom_css' => 'Class custom CSS',
     'blox_class_custom_css_hint' => '%root% means :selector; plain declarations apply to it. Saved site-wide with the class together with the properties above.',
+    // V2.0.0 建站人员：区块高级配置
+    'blox_section_advanced_id_hint' => 'This is the same ID as the section anchor on the Content tab, used for # links and CSS.',
+    'blox_section_advanced_css_hint' => '%root% means the whole section (<section>); use selectors like %root% h2 to reach elements inside it. Plain declarations apply to the section itself.',
+    'blox_section_advanced' => 'Advanced: ID / classes / CSS',
+    'blox_section_advanced_classes_hint' => 'Space-separated, added to the <section>; theme or Tailwind classes work. Names starting with yk- are reserved.',
 ];

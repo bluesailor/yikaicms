@@ -380,7 +380,9 @@ final class BlockRenderer
             if ($hasOverlay || $bgVideo !== '') {
                 $sectionLayoutClass .= ' relative overflow-hidden';
             }
-            $html .= '<section class="' . $padding . $sectionLayoutClass . $secHideCls . $anchorClass . '"'
+            // 区块高级配置：作者的 CSS 类与自定义 CSS 作用域类（CSS 本身进样式区）
+            $customClasses = BloxCustomCode::sectionClasses($settings, $sectionLocatorId);
+            $html .= '<section class="' . $padding . $sectionLayoutClass . $secHideCls . $anchorClass . htmlspecialchars($customClasses, ENT_QUOTES) . '"'
                 . $anchorAttr . $textToneAttr . $styleAttr . $editAttr . $secHideAttr . '>';
             if ($bgVideo !== '') {
                 BloxAssetCollector::addScript('/assets/js/blox-video-policy.js');

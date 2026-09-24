@@ -167,6 +167,44 @@ final class BloxCustomCode
         return $data;
     }
 
+    /** 区块 settings：CSS 类与自定义 CSS（ID 用区块自己的 anchor_id，不另存）。 */
+    public static function normalizeSectionSettings(array $settings): array
+    {
+        if (array_key_exists('_css_classes', $settings)) {
+            $classes = self::classList($settings['_css_classes']);
+            if ($classes === '') {
+                unset($settings['_css_classes']);
+            } else {
+                $settings['_css_classes'] = $classes;
+            }
+        }
+        if (array_key_exists('_custom_css', $settings)) {
+            $css = is_string($settings['_custom_css']) ? trim(str_replace("\r\n", "\n", $settings['_custom_css'])) : '';
+            if ($css === '') {
+                unset($settings['_custom_css']);
+            } else {
+                $settings['_custom_css'] = mb_substr($css, 0, self::ELEMENT_CSS_MAX + 1);
+            }
+        }
+        return $settings;
+    }
+
+    /**
+     * 区块根标签 <section> 上追加的类（CSS 类 + 自定义 CSS 的作用域类），前导空格；CSS 交给资源收集器。
+     * 区块 ID 由渲染器按 anchor_id 输出，这里不管。
+     */
+    public static function sectionClasses(array $settings, string $sectionId): string
+    {
+        $classes = is_string($settings['_css_classes'] ?? null) ? self::classList($settings['_css_classes']) : '';
+        $css = self::checkCss($settings['_custom_css'] ?? null);
+        if ($css['error'] === '' && $css['css'] !== '') {
+            $scopeClass = 'yk-css-' . substr(hash('sha256', 'section:' . ($sectionId !== '' ? $sectionId : $css['css'])), 0, 10);
+            $classes = trim($classes . ' ' . $scopeClass);
+            BloxAssetCollector::addInlineCss(self::scope($css['css'], '.' . $scopeClass . '.' . $scopeClass));
+        }
+        return $classes === '' ? '' : ' ' . $classes;
+    }
+
     public static function classList(mixed $value): string
     {
         $tokens = is_array($value) ? $value : preg_split('/\s+/', is_string($value) ? trim($value) : '');
@@ -216,19 +254,29 @@ final class BloxCustomCode
     public static function assertSectionsAllowed(array $sections, bool $structureOnly = false): void
     {
         $canEdit = $structureOnly || self::canEditCss();
+        // 区块 settings 与元素 data 用同一套判定：_custom_css 必须合法，无权限者不能新增或修改
+        foreach ($sections as $section) {
+            if (is_array($section) && is_array($section['settings'] ?? null)) {
+                self::assertCssValue($section['settings']['_custom_css'] ?? null, $canEdit);
+            }
+        }
         self::walk($sections, static function (array $data) use ($canEdit): void {
-            $css = $data['_custom_css'] ?? null;
-            if ($css === null || $css === '') {
-                return;
-            }
-            $check = self::checkCss($css);
-            if ($check['error'] !== '') {
-                throw new RuntimeException(self::errorMessage($check['error']));
-            }
-            if (!$canEdit) {
-                throw new RuntimeException(__('blox_custom_css_permission'));
-            }
+            self::assertCssValue($data['_custom_css'] ?? null, $canEdit);
         });
+    }
+
+    private static function assertCssValue(mixed $css, bool $canEdit): void
+    {
+        if ($css === null || $css === '') {
+            return;
+        }
+        $check = self::checkCss($css);
+        if ($check['error'] !== '') {
+            throw new RuntimeException(self::errorMessage($check['error']));
+        }
+        if (!$canEdit) {
+            throw new RuntimeException(__('blox_custom_css_permission'));
+        }
     }
 
     /** @param array<string,mixed> $settings 文档 settings */

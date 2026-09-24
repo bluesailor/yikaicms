@@ -32,3 +32,10 @@ test('custom CSS checks mirror the server rules', () => {
   assert.equal(check('a'.repeat(10001)), 'too_long');
   assert.equal(check('a'.repeat(15000), 20000), '');
 });
+
+test('class names are filtered with the server rules', () => {
+  const { classList } = require('../../assets/js/blox-custom-code');
+  assert.equal(classList('  card  md:flex yk-c-fake w-1/2 bad"class card <x> '), 'card md:flex w-1/2');
+  assert.equal(classList(''), '');
+  assert.equal(classList(Array.from({ length: 25 }, (_, i) => 'c' + i).join(' ')).split(' ').length, 20);
+});

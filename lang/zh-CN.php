@@ -8376,4 +8376,9 @@ voltage|电压|220V',
     'blox_class_group_code' => '自定义 CSS',
     'blox_class_prop_custom_css' => '类的自定义 CSS',
     'blox_class_custom_css_hint' => '%root% 代表 :selector，只写声明时自动作用于它；和上面的属性一起随类保存到全站。',
+    // V2.0.0 建站人员：区块高级配置
+    'blox_section_advanced_id_hint' => '与「内容」页签里的区块锚点是同一个 ID，用于 #链接跳转和 CSS。',
+    'blox_section_advanced_css_hint' => '%root% 代表整个区块（<section>），可用 %root% h2 之类选中区块里的元素；只写声明时作用于区块本身。',
+    'blox_section_advanced' => '高级：ID / 类 / CSS',
+    'blox_section_advanced_classes_hint' => '空格分隔，加在 <section> 上；可用主题或 Tailwind 的类，yk- 开头为系统保留。',
 ];
