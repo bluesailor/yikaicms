@@ -373,6 +373,7 @@ final class SiteTemplateService
                 $journal['status'] = 'committed';
                 $this->writeRecord('current', $journal);
                 $this->writeRecord('plan', ['token' => '', 'owner' => 0, 'expires' => 0]);
+                $this->forgetDerivedStyles();
             } catch (Throwable $e) {
                 if (!$committed && db()->getPdo()->inTransaction()) db()->rollback();
                 settingModel()->clearCache();
@@ -422,8 +423,25 @@ final class SiteTemplateService
             }
             $journal['status'] = 'restored';
             $this->writeRecord('current', $journal);
+            $this->forgetDerivedStyles();
             // Imported files remain inactive. Never delete a file another editor may have started using.
         });
+    }
+
+    /**
+     * 导入/恢复整体替换了全局类表：已生成的 uploads/blox/css/classes.css 仍是旧数据，
+     * 且版本戳只看 mtime，前台会一直引用旧类样式。提交后删掉它，下次访问按新表重建。
+     * 放在事务提交之后：失败回滚时旧文件仍与旧数据一致，不该动。
+     */
+    private function forgetDerivedStyles(): void
+    {
+        try {
+            // 只载类定义（无顶层副作用）：整站导入可能跑在未加载构建器的后台入口或 CLI 里
+            require_once __DIR__ . '/builder/BloxGlobalClasses.php';
+            BloxGlobalClasses::forgetAfterBulkReplace($this->root);
+        } catch (Throwable $e) {
+            error_log('Site template: global class stylesheet refresh failed: ' . $e->getMessage());
+        }
     }
 
     /**

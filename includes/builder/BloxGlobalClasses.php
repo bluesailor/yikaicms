@@ -24,6 +24,8 @@ final class BloxGlobalClasses
     public const MAX_PER_ELEMENT = 8;
     /** 回收站保留天数：过期在目录加载时惰性清理。 */
     public const TRASH_RETENTION_DAYS = 30;
+    /** 共享样式表相对站点根的位置（uploads 可 HTTP 访问、禁 PHP 执行）。 */
+    public const STYLESHEET_RELATIVE = 'uploads/blox/css/classes.css';
 
     private const RADIUS_MAP = [
         'none' => '0',
@@ -195,7 +197,7 @@ final class BloxGlobalClasses
      */
     public static function stylesheetFilePath(): string
     {
-        return ROOT_PATH . '/uploads/blox/css/classes.css';
+        return ROOT_PATH . '/' . self::STYLESHEET_RELATIVE;
     }
 
     /** 头部输出：优先 <link> 共享文件；目录不可写等异常回退内联 <style>（fail-open）。 */
@@ -218,6 +220,22 @@ final class BloxGlobalClasses
         }
         $version = (int) @filemtime($path);
         return '<link rel="stylesheet" id="yk-blox-classes" href="/uploads/blox/css/classes.css?v=' . $version . '">';
+    }
+
+    /**
+     * 类表被外部整体替换后调用（整站模板导入/恢复导入前）：丢请求级目录缓存并删共享样式表。
+     * 否则前台继续按旧站的 classes.css（同一个 mtime 版本戳）渲染，直到有人再改一次类。
+     */
+    public static function forgetAfterBulkReplace(?string $siteRoot = null): void
+    {
+        self::$catalog = null;
+        $path = $siteRoot === null ? self::stylesheetFilePath() : rtrim($siteRoot, '/\\') . '/' . self::STYLESHEET_RELATIVE;
+        if (is_file($path)) {
+            @unlink($path);
+        }
+        if (function_exists('do_action')) {
+            do_action('data_changed', 'blox_global_classes', 0);
+        }
     }
 
     /** 变更后的失效：删文件（惰性重建）+ 走站点统一的 data_changed 失效链（页面 HTML 缓存联动）。 */

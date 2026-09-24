@@ -105,6 +105,12 @@ try {
         . '<img src="https:&#47;&#47;third.test&sol;uploads&sol;missing.png">'
         . '<p>A &sol; B, C &#47; D, E &bsol; F</p>';
     db()->execute('UPDATE ' . DB_PREFIX . 'contents SET content = ? WHERE id = ?', [$portableContent, 91]);
+    // 全局类随整站包原样走（整站是替换，不做同名合并）：class_id、名称、设置与引用索引都要在目标站复现
+    $classSettings = '{"text_color":"#c2410c","font_size_px":36}';
+    db()->insert('blox_global_classes', ['class_id' => 'gc_0123456789ab', 'name' => 'hero-title', 'category' => '',
+        'settings' => $classSettings, 'status' => 'active', 'trashed_at' => 0, 'modified' => 1, 'revision' => 0,
+        'user_id' => 0, 'created_at' => 1, 'updated_at' => 1]);
+    db()->insert('blox_class_refs', ['class_id' => 'gc_0123456789ab', 'doc_key' => 'home', 'ref_count' => 2, 'updated_at' => 1]);
     $zip = $root . '/export.zip';
     $summary = $service->export($zip);
     check($summary['media'] === 5, 'Referenced media only');
@@ -245,7 +251,16 @@ try {
     // 归属与新鲜度在每次 stage 请求上都要重查，不能只在 prepare 时查一次
     rejects(static fn() => $service->stage($preview['token'], 2), 'st_stale');
 
+    // 目标站残留一份旧的全局类样式表：导入提交后必须失效，否则前台继续用旧站类样式
+    $classCss = $root . '/uploads/blox/css/classes.css';
+    if (!is_dir(dirname($classCss))) mkdir(dirname($classCss), 0755, true);
+    file_put_contents($classCss, '.yk-c-stale{color:red}');
     $service->apply($preview['token'], 1, ['site_name' => 'Target'], true);
+    check(!is_file($classCss), 'Import drops the stale global class stylesheet');
+    $importedClass = db()->fetchOne('SELECT * FROM yikai_blox_global_classes WHERE class_id = ?', ['gc_0123456789ab']);
+    check($importedClass !== null && $importedClass['name'] === 'hero-title'
+        && json_decode((string) $importedClass['settings'], true) === json_decode($classSettings, true), 'Global class id, name and settings survive the site package');
+    check((int) db()->fetchColumn('SELECT ref_count FROM yikai_blox_class_refs WHERE class_id = ? AND doc_key = ?', ['gc_0123456789ab', 'home']) === 2, 'Class usage index travels with the site');
     check(str_starts_with(config('current_theme'), 'sitepack-'), 'New theme alias');
     check(config('site_url') === 'https://target.test' && config('smtp_pass') === 'PRIVATE PASSWORD', 'Target identity unchanged');
     check(db()->fetchColumn('SELECT channel_id FROM yikai_contents WHERE id = 91') == 71, 'Stable relations');
@@ -264,7 +279,10 @@ try {
     settingModel()->set('site_name', 'Edited');
     rejects(static fn() => $service->restore(), 'st_restore_changed');
     settingModel()->set('site_name', 'Target');
+    file_put_contents($classCss, '.yk-c-hero-title{color:#c2410c}');
     $service->restore();
+    check(!is_file($classCss), 'Restore drops the imported global class stylesheet too');
+    check((int) db()->fetchColumn('SELECT COUNT(*) FROM yikai_blox_global_classes') === 0, 'Restore removes the imported classes');
     check(hash_equals($before, SiteTemplateData::fingerprint()), 'Exact restoration');
     check($service->canApply(), 'Fresh again');
     rejects(static fn() => $service->apply($preview['token'], 1, ['site_name' => 'Target'], true), 'st_stale');
