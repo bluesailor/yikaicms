@@ -52,6 +52,23 @@ final class BeginnerOnboardingContractTest extends TestCase
         self::assertStringContainsString("hasPermission('blox_home') ? '/admin/blox_editor.php?home=1' : '/admin/setting_home.php'", $this->source('includes/SiteSetup.php'));
     }
 
+    /** 已有内容的站也能导入整站模板：先提醒备份、必须勾选确认，服务端凭勾选放行 */
+    public function testExistingSitesCanImportAfterExplicitBackupConfirmation(): void
+    {
+        $local = $this->source('admin/site_templates.php');
+        $market = $this->source('admin/site_template_market.php');
+        foreach ([$local, $market] as $page) {
+            self::assertStringContainsString("require ROOT_PATH . '/admin/includes/site_template_replace_notice.php'", $page);
+            self::assertStringContainsString('name="replace_existing" value="1" required', $page);
+        }
+        self::assertStringContainsString("getAdminId(), post('replace_existing') === '1')", $local);
+        self::assertStringContainsString('$service->prepare($temporary, getAdminId(), $replaceExisting)', $market);
+        self::assertStringContainsString('href="/admin/database.php"', $this->source('admin/includes/site_template_replace_notice.php'));
+        $service = $this->source('includes/SiteTemplateService.php');
+        self::assertStringContainsString("if (!\$fresh && !\$replaceExisting) throw new RuntimeException('st_not_fresh');", $service);
+        self::assertStringContainsString("\$journal['cleared'][\$table]", $service, '清空的依附表必须进日志，否则无法撤销');
+    }
+
     public function testUrlControlsOfferTheLinkPicker(): void
     {
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');

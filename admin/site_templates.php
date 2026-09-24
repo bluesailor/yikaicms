@@ -50,13 +50,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($action === 'prepare') {
             $upload = $_FILES['package'] ?? [];
             if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string) ($upload['tmp_name'] ?? ''))) throw new RuntimeException('st_upload');
-            $_SESSION['site_template_preview'] = $service->prepare((string) $upload['tmp_name'], getAdminId());
+            $_SESSION['site_template_preview'] = $service->prepare((string) $upload['tmp_name'], getAdminId(), post('replace_existing') === '1');
         } elseif ($action === 'apply') {
             foreach ($brand as $key => $_value) $brand[$key] = post($key);
+            $replacedExisting = !empty($_SESSION['site_template_preview']['replace_existing']);
             $service->apply(post('token'), getAdminId(), $brand, post('trusted') === '1' && post('confirm') === '1');
             unset($_SESSION['site_template_preview']);
             // 整站替换会清空并重写 28 张内容表：不留痕就无从追查谁在何时做的
-            adminLog('theme', 'import', 'Site template applied');
+            adminLog('theme', 'import', $replacedExisting ? 'Site template applied over existing site content' : 'Site template applied');
             $_SESSION['site_template_notice'] = 'st_applied';
         } elseif ($action === 'restore' && post('confirm') === '1') {
             $service->restore();
@@ -153,13 +154,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <section class="bg-white rounded-lg shadow p-6 space-y-4" aria-labelledby="st-import">
         <h2 id="st-import" class="text-lg font-bold"><?= e(__('st_import_title')) ?></h2>
         <p class="text-gray-600"><?= e(__('st_import_hint')) ?></p>
-        <?php if (!$fresh): ?><p class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__('st_not_fresh')) ?></p>
-        <?php else: ?>
+        <?php if (!$fresh) require ROOT_PATH . '/admin/includes/site_template_replace_notice.php'; ?>
         <form method="post" enctype="multipart/form-data" class="space-y-3">
             <?= csrfField() ?><input type="hidden" name="action" value="prepare">
             <label class="block font-medium" for="st-package"><?= e(__('st_package')) ?></label>
             <input id="st-package" type="file" name="package" accept=".zip" required class="block w-full max-w-full" aria-describedby="st-size">
             <p id="st-size" class="text-sm text-gray-600"><?= e(__('st_size')) ?></p>
+            <?php if (!$fresh): ?>
+            <label class="flex items-start gap-2 py-1 text-red-800"><input type="checkbox" name="replace_existing" value="1" required data-testid="st-replace-confirm" class="mt-1">
+                <span><?= e(__('st_replace_confirm')) ?></span></label>
+            <?php endif; ?>
             <button type="submit" class="border rounded px-4 py-3"><?= e(__('st_preview')) ?></button>
         </form>
         <?php if (is_array($preview)): ?>
@@ -205,6 +209,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
                 <label class="flex gap-2 items-start"><input type="checkbox" name="trusted" value="1" required class="mt-1"><span><?= e(__('st_trust_label')) ?></span></label>
                 <label class="flex gap-2 items-start"><input type="checkbox" name="confirm" value="1" required class="mt-1"><span><?= e(__('st_confirm')) ?></span></label>
+                <?php if (!empty($preview['replace_existing'])): ?>
+                <p class="bg-red-50 text-red-800 p-3 rounded text-sm" data-testid="st-replace-reminder"><?= e(__('st_replace_reminder')) ?></p>
+                <?php endif; ?>
                 <button type="submit" class="bg-primary text-white rounded px-4 py-3"><?= e(__('st_apply')) ?></button>
             </form>
             <script>
@@ -250,7 +257,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             })();
             </script>
         </div>
-        <?php endif; endif; ?>
+        <?php endif; ?>
     </section>
     <?php if ($recovery !== null): ?>
     <section class="bg-white rounded-lg shadow p-6 space-y-3" aria-labelledby="st-recovery">

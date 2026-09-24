@@ -24,7 +24,8 @@ if ($isPost) {
     $temporary = null;
     try {
         if (post('action') !== 'prepare_market') throw new RuntimeException('st_invalid');
-        if (!$fresh) throw new RuntimeException('st_not_fresh');
+        $replaceExisting = !$fresh && post('replace_existing') === '1';
+        if (!$fresh && !$replaceExisting) throw new RuntimeException('st_not_fresh');
         if (!is_array($catalog)) throw new RuntimeException('st_market_unavailable');
         $selected = null;
         foreach ($catalog['templates'] as $item) {
@@ -36,7 +37,7 @@ if ($isPost) {
         if ($temporary === false) throw new RuntimeException('st_storage');
         SiteTemplateMarket::download($selected, $temporary, license_pubkey());
         SiteTemplateMarket::verifyArchive($temporary, $selected);
-        $_SESSION['site_template_preview'] = $service->prepare($temporary, getAdminId());
+        $_SESSION['site_template_preview'] = $service->prepare($temporary, getAdminId(), $replaceExisting);
         adminLog('theme', 'market_prepare', 'Site template verified for preview: ' . $selected['slug'] . ' v' . $selected['version']);
         @unlink($temporary);
         redirect('/admin/site_templates.php');
@@ -71,7 +72,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <p class="text-gray-600 mt-2"><?= e(__('st_market_intro')) ?></p>
     </header>
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
-    <?php if (!$fresh): ?><p class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__('st_not_fresh')) ?></p><?php endif; ?>
+    <?php if (!$fresh) require ROOT_PATH . '/admin/includes/site_template_replace_notice.php'; ?>
     <?php if ($catalog === null): ?>
     <p role="status" class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__('st_market_unavailable')) ?> <a href="/admin/site_templates.php" class="underline"><?= e(__('st_market_local')) ?></a></p>
     <?php else: ?>
@@ -91,9 +92,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <p class="text-xs text-gray-500"><?= e(__('st_market_version', ['version' => $item['version'], 'cms' => $item['cms']])) ?></p>
                 <?php if ($item['format_version'] > 1): ?><p class="text-sm text-gray-600"><?= e(__('st_market_format_hint', ['format' => (string) $item['format_version']])) ?></p><?php endif; ?>
                 <?php if ($item['blocked_reason'] !== ''): ?><p class="text-sm text-amber-800"><?= e(__($item['blocked_reason'])) ?></p>
-                <?php elseif ($fresh): ?>
-                <form method="post" class="mt-auto">
+                <?php else: ?>
+                <form method="post" class="mt-auto space-y-2">
                     <?= csrfField() ?><input type="hidden" name="action" value="prepare_market"><input type="hidden" name="slug" value="<?= e($item['slug']) ?>"><input type="hidden" name="version" value="<?= e($item['version']) ?>">
+                    <?php if (!$fresh): ?>
+                    <label class="flex items-start gap-2 text-sm text-red-800"><input type="checkbox" name="replace_existing" value="1" required class="mt-1">
+                        <span><?= e(__('st_replace_confirm')) ?></span></label>
+                    <?php endif; ?>
                     <button type="submit" class="bg-primary text-white rounded px-4 py-3"><?= e(__('st_market_prepare')) ?></button>
                 </form>
                 <?php endif; ?>
