@@ -8266,4 +8266,12 @@ voltage|Voltage|220V',
     'blox_link_rel_none' => 'Default',
     'blox_link_title' => 'Link tooltip (title)',
     'blox_link_aria_label' => 'Screen reader label (aria-label)',
+    // V2.0.0 全局类：交互状态（hover / focus）
+    'blox_class_states' => 'Interaction state',
+    'blox_class_state_base' => 'Base',
+    'blox_class_state_hover' => 'Hover',
+    'blox_class_state_focus' => 'Keyboard focus',
+    'blox_class_state_hint' => 'Properties left empty here keep their base values. While you edit, the canvas shows this state on every element with the class. Keyboard focus applies when the element itself, or a link or button inside it, has keyboard focus.',
+    'blox_class_prop_transition_ms' => 'State transition',
+    'blox_class_group_states' => 'States',
 ];

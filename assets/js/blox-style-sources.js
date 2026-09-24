@@ -131,28 +131,42 @@
         var preset = presetFor(data, catalog);
         var attached = Array.isArray(data._classes) ? data._classes : [];
         var result = [];
-        Object.keys(target.settings).forEach(function (key) {
-            if (!filled(target.settings[key])) return;
-            var localKeys = (localOverrides[key] ? localOverrides[key](type) : []).filter(function (localKey) {
-                return filled(data[localKey]);
+        // 状态里的属性同样会被内联本地值与样式预设挡住（它们都写在 style 属性上）；
+        // 多类之间只比较同一状态下的同一属性。state 为空表示基础规则。
+        function check(settings, state, otherSettings) {
+            Object.keys(settings).forEach(function (key) {
+                if (key === 'states' || !filled(settings[key])) return;
+                var localKeys = (localOverrides[key] ? localOverrides[key](type) : []).filter(function (localKey) {
+                    return filled(data[localKey]);
+                });
+                if (localKeys.length) {
+                    result.push({ key: key, state: state, by: 'element', localKeys: localKeys, name: '' });
+                    return;
+                }
+                var presetField = presetFields[key];
+                if (preset && presetField && filled(preset[presetField]) && preset[presetField] !== 'none') {
+                    result.push({ key: key, state: state, by: 'preset', localKeys: [], name: typeof preset.name === 'string' ? preset.name : '' });
+                    return;
+                }
+                // 多类：样式表按类名升序输出，同一属性类名靠后者胜出（与挂载顺序无关）
+                var winner = null;
+                attached.forEach(function (otherId) {
+                    var other = classes[otherId];
+                    if (otherId === classId || !object(other)) return;
+                    var values = otherSettings(other);
+                    if (!object(values) || !filled(values[key])) return;
+                    if (String(other.name) > String(target.name) && (!winner || String(other.name) > String(winner.name))) winner = other;
+                });
+                if (winner) result.push({ key: key, state: state, by: 'class', localKeys: [], name: String(winner.name) });
             });
-            if (localKeys.length) {
-                result.push({ key: key, by: 'element', localKeys: localKeys, name: '' });
-                return;
-            }
-            var presetField = presetFields[key];
-            if (preset && presetField && filled(preset[presetField]) && preset[presetField] !== 'none') {
-                result.push({ key: key, by: 'preset', localKeys: [], name: typeof preset.name === 'string' ? preset.name : '' });
-                return;
-            }
-            // 多类：样式表按类名升序输出，同一属性类名靠后者胜出（与挂载顺序无关）
-            var winner = null;
-            attached.forEach(function (otherId) {
-                var other = classes[otherId];
-                if (otherId === classId || !object(other) || !object(other.settings) || !filled(other.settings[key])) return;
-                if (String(other.name) > String(target.name) && (!winner || String(other.name) > String(winner.name))) winner = other;
+        }
+        check(target.settings, '', function (other) { return other.settings; });
+        var states = object(target.settings.states) ? target.settings.states : {};
+        Object.keys(states).forEach(function (state) {
+            if (!object(states[state])) return;
+            check(states[state], state, function (other) {
+                return object(other.settings) && object(other.settings.states) ? other.settings.states[state] : null;
             });
-            if (winner) result.push({ key: key, by: 'class', localKeys: [], name: String(winner.name) });
         });
         return result;
     }

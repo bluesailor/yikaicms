@@ -261,6 +261,11 @@
         classQuery: "",
         classDrafts: {},
         classSaving: false,
+        // 交互状态：'' = 基础；hover / focus 时表单读写 settings.states[state]，画布强制显示该状态
+        classStates: Array.isArray(data.classStates) ? data.classStates : [],
+        classStateKeys: Array.isArray(data.classStateKeys) ? data.classStateKeys : [],
+        classState: "",
+        _classForcedKey: "",
         classUsage: null,
         _classPreviewTimer: 0,
         _classCanvasCss: null,
@@ -280,6 +285,7 @@
 
         setStyleTarget(classId) {
             this.styleTargetClass = String(classId || "");
+            this.classState = "";
             this.classAddOpen = false;
             if (this.styleTargetClass && this.classUsage === null) this.loadClassUsage();
         },
@@ -378,9 +384,42 @@
         },
 
         // ── 表单：字段值与分档（与 BloxResponsiveValue 同义：t←d、m←t、w←d） ─────────
+        setClassState(state) {
+            this.classState = this.classStates.some(function (item) { return item.key === state; }) ? state : "";
+        },
+
+        classStateLabel(state) {
+            var found = this.classStates.find(function (item) { return item.key === state; });
+            return found ? found.label : "";
+        },
+
+        /**
+         * 状态预览同步（由 Alpine.effect 驱动）：编辑目标或状态变化时重算画布里的强制状态；
+         * 选中的元素不再挂着这个类（或离开样式页签）时回到基础，强制规则随之撤掉。
+         */
+        syncClassStatePreview(target, state) {
+            if (!target && state) {
+                this.classState = "";
+                return;
+            }
+            var key = target && state ? target + ":" + state : "";
+            if (key === this._classForcedKey) return;
+            this._classForcedKey = key;
+            this.scheduleClassPreview();
+        },
+
         classFieldGroups() {
+            var self = this;
+            if (this.classState) {
+                // 状态页签：只列可以按状态设置的字段（不分档），外加基础里的过渡时长
+                var fields = classFields.filter(function (field) {
+                    return field.group === "states" || self.classStateKeys.indexOf(field.key) !== -1;
+                }).map(function (field) { return Object.assign({}, field, { responsive: false }); });
+                return [{ key: "state-" + this.classState, label: this.classStateLabel(this.classState), fields: fields }];
+            }
             var groups = [];
             classFields.forEach(function (field) {
+                if (field.group === "states") return;
                 var group = groups.find(function (item) { return item.key === field.group; });
                 if (!group) groups.push(group = { key: field.group, label: field.group_label, fields: [] });
                 group.fields.push(field);
@@ -410,15 +449,23 @@
             return { d: raw };
         },
 
+        /** 字段当前读写的那一层：状态页签下是 settings.states[state]，过渡时长与基础页签是 settings 本身。 */
+        classFieldBag(field) {
+            var settings = this.classSettings(this.classStyleTarget());
+            if (!this.classState || field.group === "states") return settings;
+            var states = settings.states && typeof settings.states === "object" ? settings.states : {};
+            return states[this.classState] && typeof states[this.classState] === "object" ? states[this.classState] : {};
+        },
+
         classFieldOwn(field) {
-            var raw = this.classSettings(this.classStyleTarget())[field.key];
+            var raw = this.classFieldBag(field)[field.key];
             if (!field.responsive) return raw !== undefined && raw !== null && raw !== "";
             var table = this.classTierTable(raw);
             return table[this.classTier()] !== undefined && table[this.classTier()] !== null && table[this.classTier()] !== "";
         },
 
         classFieldValue(field) {
-            var raw = this.classSettings(this.classStyleTarget())[field.key];
+            var raw = this.classFieldBag(field)[field.key];
             if (!field.responsive) return raw === undefined || raw === null ? "" : raw;
             var value = this.classTierTable(raw)[this.classTier()];
             return value === undefined || value === null ? "" : value;
@@ -426,6 +473,12 @@
 
         /** 本档未设时显示继承来的值（placeholder），让「缺省 / 继承 / 覆盖」看得见。 */
         classFieldPlaceholder(field) {
+            if (this.classState && field.group !== "states") {
+                // 状态未设的属性沿用基础值：把基础值显示出来
+                var base = this.classSettings(this.classStyleTarget())[field.key];
+                if (base === undefined || base === null || base === "" || typeof base === "object") return "";
+                return (this.classText.inherits || ":value").replace(":value", base + (field.unit || ""));
+            }
             if (!field.responsive) return "";
             var table = this.classTierTable(this.classSettings(this.classStyleTarget())[field.key]);
             var chain = { d: ["d"], t: ["t", "d"], m: ["m", "t", "d"], w: ["w", "d"] }[this.classTier()] || ["d"];
@@ -455,7 +508,17 @@
                 if (field.type !== "number") value = Math.round(value);
             }
             if (field.type === "enum" && value !== "" && field.key === "font_weight") value = Number(value);
-            if (field.responsive) {
+            if (this.classState && field.group !== "states") {
+                var state = this.classState;
+                var states = settings.states && typeof settings.states === "object" ? settings.states : {};
+                var bag = Object.assign({}, states[state] && typeof states[state] === "object" ? states[state] : {});
+                if (value === "") delete bag[field.key];
+                else bag[field.key] = value;
+                if (Object.keys(bag).length) states[state] = bag;
+                else delete states[state];
+                if (Object.keys(states).length) settings.states = states;
+                else delete settings.states;
+            } else if (field.responsive) {
                 var table = this.classTierTable(settings[field.key]);
                 if (value === "") delete table[this.classTier()];
                 else table[this.classTier()] = value;
@@ -490,7 +553,13 @@
             var self = this;
             clearTimeout(this._classPreviewTimer);
             this._classPreviewTimer = setTimeout(function () {
-                classApi({ action: "class_preview", drafts: JSON.stringify(self.classDrafts), _token: self.csrf })
+                var forced = {};
+                var parts = String(self._classForcedKey || "").split(":");
+                if (parts.length === 2 && parts[0] && parts[1]) forced[parts[0]] = parts[1];
+                classApi({
+                    action: "class_preview", drafts: JSON.stringify(self.classDrafts),
+                    force_states: JSON.stringify(forced), _token: self.csrf,
+                })
                     .then(function (result) { self.applyClassCanvasCss(String(result.stylesheet || "")); })
                     .catch(function (error) { self.toast(String(error && error.message || error)); });
             }, 200);
@@ -505,7 +574,9 @@
                 // 画布整页重载后（改文档触发的刷新）重新套用草稿样式，否则预览会退回已保存版本
                 frame._ykClassCssHook = true;
                 frame.addEventListener("load", function () {
-                    if (self._classCanvasCss !== null && Object.keys(self.classDrafts).length) self.applyClassCanvasCss(self._classCanvasCss);
+                    if (self._classCanvasCss !== null && (Object.keys(self.classDrafts).length || self._classForcedKey)) {
+                        self.applyClassCanvasCss(self._classCanvasCss);
+                    }
                 });
             }
             try {
@@ -537,7 +608,7 @@
                     self.storeClassRow(result.class);
                     self.dropClassDraft(classId);
                     // 其他类还有未保存草稿时，预览要继续带着它们
-                    if (Object.keys(self.classDrafts).length) self.scheduleClassPreview();
+                    if (Object.keys(self.classDrafts).length || self._classForcedKey) self.scheduleClassPreview();
                     else self.applyClassCanvasCss(String(result.stylesheet || ""));
                     self.toast(self.classText.saved);
                 })
@@ -582,10 +653,11 @@
             if (!classId || !window.BloxStyleSources || !window.BloxStyleSources.classConflicts || !this.selEl) return [];
             var classes = Object.assign({}, this.designSystem && this.designSystem.classes && !Array.isArray(this.designSystem.classes) ? this.designSystem.classes : {});
             classes[classId] = { name: this.globalClassLabel(classId), settings: this.classSettings(classId) };
+            var state = this.classState;
             return window.BloxStyleSources.classConflicts(this.selEl, classId, {
                 styles: this.designSystem && Array.isArray(this.designSystem.styles) ? this.designSystem.styles : [],
                 classes: classes,
-            });
+            }).filter(function (conflict) { return (conflict.state || "") === state; });
         },
 
         classConflictText(conflict) {
@@ -771,6 +843,16 @@
             if (["open_popup", "close_popup"].indexOf(item.action) !== -1) { item.target = "self"; item.selector = ""; }
         },
     };
+
+    // 类状态的画布强制预览跟随「编辑目标 + 状态」变化（含切换元素、离开样式页签）。
+    // alpine.min.js 带 defer，一定在本脚本之后初始化。
+    document.addEventListener("alpine:initialized", function () {
+        var app = window.Alpine && window.Alpine.$data(document.body);
+        if (!app || typeof app.syncClassStatePreview !== "function" || typeof app.classStyleTarget !== "function") return;
+        window.Alpine.effect(function () {
+            app.syncClassStatePreview(app.classStyleTarget(), app.classState);
+        });
+    });
 
     var editor = window.BloxProEditor || { modules: [], methods: {} };
     // query_loop 的作者端由服务端面板与控件开放状态提供，无额外交互方法。

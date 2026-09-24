@@ -8407,4 +8407,12 @@ voltage|電圧|220V',
     'blox_link_rel_none' => 'デフォルト',
     'blox_link_title' => 'リンクのツールチップ（title）',
     'blox_link_aria_label' => 'スクリーンリーダー用ラベル（aria-label）',
+    // V2.0.0 全局类：交互状态（hover / focus）
+    'blox_class_states' => 'インタラクション状態',
+    'blox_class_state_base' => '基本',
+    'blox_class_state_hover' => 'ホバー',
+    'blox_class_state_focus' => 'キーボードフォーカス',
+    'blox_class_state_hint' => 'ここで空欄のプロパティは基本の値を使います。編集中はこのクラスを持つすべての要素でキャンバスにこの状態を表示します。キーボードフォーカスは、要素自体またはその中のリンク・ボタンにキーボードフォーカスがあるときに適用されます。',
+    'blox_class_prop_transition_ms' => '状態切替のトランジション',
+    'blox_class_group_states' => '状態',
 ];
