@@ -86,7 +86,7 @@ require_once ROOT_PATH . '/includes/header.php';
                                class="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                placeholder="请输入验证码">
                         <img src="/member/captcha.php" alt="验证码" class="h-12 rounded-lg cursor-pointer border"
-                             onclick="this.src='/member/captcha.php?t='+Date.now()" title="点击刷新">
+                             onclick="this.src=this.src.split('?')[0]+'?t='+Date.now()" title="点击刷新">
                     </div>
                 </div>
 
