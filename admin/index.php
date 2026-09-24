@@ -115,6 +115,15 @@ $showRewriteOnboarding = hasPermission('*')
 $showStartOnboarding = hasPermission('*')
     && (string) config('onboarding_start_dismissed', '1') === '0';
 $onbStartDoneList = $showStartOnboarding ? $onbStartDone() : [];
+$onbTemplateOffer = false;
+if ($showStartOnboarding) {
+    try {
+        require_once ROOT_PATH . '/includes/SiteTemplateService.php';
+        $onbTemplateOffer = (new SiteTemplateService(ROOT_PATH))->canApply();
+    } catch (Throwable $error) {
+        $onbTemplateOffer = false;
+    }
+}
 
 
 // 最新内容（关联栏目类型）—— 只显示源语言行，避免 EN/JA 翻译版本污染列表
@@ -149,6 +158,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     class="font-medium text-gray-500 hover:text-gray-900 hover:underline disabled:cursor-wait disabled:opacity-60"><?php echo e(__('onb_start_hide')); ?></button>
         </div>
     </div>
+    <?php if ($onbTemplateOffer): ?>
+    <div class="flex flex-col gap-2 border-b border-blue-100 px-5 py-3 text-sm sm:flex-row sm:items-center sm:justify-between" data-testid="start-onboarding-template">
+        <span class="flex items-center gap-2 text-gray-700"><i class="ti ti-layout-grid text-base text-primary" aria-hidden="true"></i><?php echo e(__('onb_start_template')); ?></span>
+        <a href="/admin/site_template_market.php" class="shrink-0 font-medium text-primary hover:underline"><?php echo e(__('onb_start_template_link')); ?> →</a>
+    </div>
+    <?php endif; ?>
     <ol class="grid grid-cols-1 divide-y divide-gray-100 md:grid-cols-5 md:divide-x md:divide-y-0">
         <?php $__onbIndex = 0; foreach ($onbStartSteps as $__onbKey => [$__onbIcon, $__onbUrl]): $__onbIndex++; $__onbIsDone = in_array($__onbKey, $onbStartDoneList, true); ?>
         <li>

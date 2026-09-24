@@ -14,6 +14,8 @@ $service = new SiteTemplateService(ROOT_PATH);
 $errorMessage = '';
 $fresh = $service->canApply();
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
+$language = (string) config('admin_lang', getLang());
+$suffix = $language === 'en' ? '_en' : ($language === 'ja' ? '_ja' : '');
 if ($isPost) verifyCsrf();
 // Cache display only. Every download reloads the official catalog and verifies its signature.
 $cached = $_SESSION['site_template_market_catalog'] ?? null;
@@ -37,7 +39,10 @@ if ($isPost) {
         if ($temporary === false) throw new RuntimeException('st_storage');
         SiteTemplateMarket::download($selected, $temporary, license_pubkey());
         SiteTemplateMarket::verifyArchive($temporary, $selected);
-        $_SESSION['site_template_preview'] = $service->prepare($temporary, getAdminId(), $replaceExisting);
+        $marketName = (string) ($selected['name' . $suffix] ?: $selected['name']);
+        $_SESSION['site_template_preview'] = $service->prepare($temporary, getAdminId(), $replaceExisting, [
+            'official' => true, 'name' => $marketName, 'screenshot' => (string) $selected['screenshot'], 'version' => (string) $selected['version'],
+        ]);
         adminLog('theme', 'market_prepare', 'Site template verified for preview: ' . $selected['slug'] . ' v' . $selected['version']);
         @unlink($temporary);
         redirect('/admin/site_templates.php');
@@ -53,8 +58,6 @@ $search = mb_substr(trim(get('q')), 0, 100);
 $category = trim(get('category'));
 $items = is_array($catalog) ? $catalog['templates'] : [];
 $categories = [];
-$language = (string) config('admin_lang', getLang());
-$suffix = $language === 'en' ? '_en' : ($language === 'ja' ? '_ja' : '');
 foreach ($items as $item) $categories[$item['category']] = (string) ($item['category_name' . $suffix] ?: ($item['category_name'] ?: $item['category']));
 $allCount = count($items);
 $importableCount = count(array_filter($items, static fn(array $item): bool => $item['blocked_reason'] === ''));
@@ -110,7 +113,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php if ($item['format_version'] > 1): ?><p class="text-sm text-gray-600"><?= e(__('st_market_format_hint', ['format' => (string) $item['format_version']])) ?></p><?php endif; ?>
                 <?php if ($item['blocked_reason'] !== ''): ?><p class="mt-auto text-sm text-amber-800"><?= e(__($item['blocked_reason'])) ?></p>
                 <?php else: ?>
-                <form method="post" class="mt-auto">
+                <form method="post" class="mt-auto" data-st-market-prepare>
                     <?= csrfField() ?><input type="hidden" name="action" value="prepare_market"><input type="hidden" name="slug" value="<?= e($item['slug']) ?>"><input type="hidden" name="version" value="<?= e($item['version']) ?>">
                     <?php if (!$fresh): ?>
                     <input type="hidden" name="replace_existing" :value="replaceConfirmed ? '1' : ''" value="">
@@ -126,4 +129,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
     <?php endif; ?>
 </div>
+<script>
+// 下载并校验整站包要几秒：按钮给出进度，也防止重复提交
+document.querySelectorAll('form[data-st-market-prepare]').forEach(function (form) {
+    form.addEventListener('submit', function () {
+        var button = form.querySelector('button[type="submit"]');
+        if (!button) return;
+        setTimeout(function () {
+            button.disabled = true;
+            button.textContent = <?= json_encode(__('st_market_downloading'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        }, 0);
+    });
+});
+</script>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

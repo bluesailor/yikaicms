@@ -101,6 +101,17 @@ final class SiteTemplatePluginActionsTest extends TestCase
         self::assertSame('manual', $actions['stay-inquiry']['action']);
     }
 
+    /** 主题声明的依赖插件交给导入流程处理（可一键安装），检查模板包时不因「本站还没装」就判主题不完整 */
+    public function testThemePluginRequirementIsLeftToTheImportFlow(): void
+    {
+        $meta = ['schema_version' => 1, 'name' => 'Stay', 'version' => '2.0.0', 'author' => 'Yikai',
+            'requires_cms' => '>=1.20.1', 'requires_php' => '>=8.0.0', 'category' => 'services',
+            'required_plugins' => ['stay-inquiry', '', 'stay-inquiry', 7]];
+        self::assertSame(['stay-inquiry'], \SiteTemplateArchive::themeRequiredPlugins($meta));
+        self::assertSame([], \ThemeValidator::validateMeta($meta, 'yikai-minsu', false)['errors']);
+        self::assertSame([], \SiteTemplateArchive::themeRequiredPlugins(['name' => 'Plain']));
+    }
+
     public function testMarketInstallRejectsUnlistedAndUnsafeEntriesBeforeDownloading(): void
     {
         $downloads = 0;

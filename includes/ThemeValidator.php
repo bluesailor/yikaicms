@@ -78,9 +78,11 @@ final class ThemeValidator
      * 只校验元数据（不碰文件系统），供 ZIP 安装在解压前使用。
      *
      * @param array<string,mixed> $meta
+     * @param bool $checkPlugins false：整站模板检查包时不在这里拦插件——所需插件由导入流程列出并可一键安装，
+     *                          真正安装主题（ThemeInstaller）时仍按 true 严格检查
      * @return array{errors: list<string>, warnings: list<string>, meta: array<string,mixed>}
      */
-    public static function validateMeta(array $meta, string $slug = ''): array
+    public static function validateMeta(array $meta, string $slug = '', bool $checkPlugins = true): array
     {
         $errors = [];
         $warnings = [];
@@ -139,7 +141,7 @@ final class ThemeValidator
             if ($p === '') {
                 continue;
             }
-            if (!self::pluginActive($p)) {
+            if ($checkPlugins && !self::pluginActive($p)) {
                 $errors[] = "依赖的插件未安装或未启用：{$p}";
             }
         }
