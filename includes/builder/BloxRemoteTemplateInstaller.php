@@ -65,7 +65,7 @@ final class BloxRemoteTemplateInstaller
 
     /**
      * 检查阶段（安装）：下载验证 + 依赖诊断 + 登记服务端待确认记录；不写模板。
-     * @return array{review_id:string,operation:string,slug:string,version:string,name:string,type:string,sections:int,previous_sections:int,requirements:array<string,mixed>,design_diagnostics:array<string,mixed>}
+     * @return array{review_id:string,operation:string,slug:string,version:string,name:string,type:string,sections:int,previous_sections:int,requirements:array<string,mixed>,design_diagnostics:array<string,mixed>,class_diagnostics:array<string,mixed>}
      */
     public function prepareInstall(string $slug, int $adminId): array
     {
@@ -126,7 +126,7 @@ final class BloxRemoteTemplateInstaller
 
     /**
      * 检查阶段（另存副本）：诊断 + 登记；确认后以 import 来源落库，不留 managed 状态。
-     * @return array{review_id:string,operation:string,slug:string,version:string,name:string,type:string,sections:int,previous_sections:int,requirements:array<string,mixed>,design_diagnostics:array<string,mixed>}
+     * @return array{review_id:string,operation:string,slug:string,version:string,name:string,type:string,sections:int,previous_sections:int,requirements:array<string,mixed>,design_diagnostics:array<string,mixed>,class_diagnostics:array<string,mixed>}
      */
     public function prepareCopy(string $slug, int $adminId): array
     {
@@ -162,7 +162,7 @@ final class BloxRemoteTemplateInstaller
 
     /**
      * 检查阶段（更新）：校验目标草稿基线后下载新包并登记；确认前不改草稿。
-     * @return array{review_id:string,operation:string,slug:string,version:string,name:string,type:string,sections:int,previous_sections:int,requirements:array<string,mixed>,design_diagnostics:array<string,mixed>}
+     * @return array{review_id:string,operation:string,slug:string,version:string,name:string,type:string,sections:int,previous_sections:int,requirements:array<string,mixed>,design_diagnostics:array<string,mixed>,class_diagnostics:array<string,mixed>}
      */
     public function prepareUpdate(int $id, string $baseRevision, int $adminId): array
     {
@@ -239,6 +239,8 @@ final class BloxRemoteTemplateInstaller
                 (string) ($current['metadata'] ?? ''),
                 $origin
             );
+            // 新版本包带来的全局类与草稿更新同一事务（复用 / 稳定改名 / 新建，不覆盖本站类）
+            BloxGlobalClasses::applyImportPlan($prepared['class_plan']);
             bloxTemplateModel()->updateDraft(
                 $id,
                 $prepared['draft_json'],
@@ -246,10 +248,14 @@ final class BloxRemoteTemplateInstaller
                 $existingDraft
             );
             bloxTemplateModel()->saveMetadata($id, $prepared['metadata']);
+            BloxDocumentIndexes::update('template:' . $id, $prepared['sections']);
             db()->commit();
         } catch (Throwable $e) {
             db()->rollback();
             throw $e;
+        }
+        if ($prepared['class_plan'] !== []) {
+            BloxGlobalClasses::invalidateStylesheet();
         }
         BloxImportReview::recordResult($reviewId, 'template:' . $id);
 
@@ -331,7 +337,7 @@ final class BloxRemoteTemplateInstaller
 
     /**
      * 检查阶段共用段：下载验证 + 诊断 + 登记待确认记录。
-     * @return array{review_id:string,operation:string,slug:string,version:string,name:string,type:string,sections:int,previous_sections:int,requirements:array<string,mixed>,design_diagnostics:array<string,mixed>}
+     * @return array{review_id:string,operation:string,slug:string,version:string,name:string,type:string,sections:int,previous_sections:int,requirements:array<string,mixed>,design_diagnostics:array<string,mixed>,class_diagnostics:array<string,mixed>}
      */
     private function preparePackage(string $operation, string $slug, int $adminId, int $targetId, string $targetRevision, string $expectedOrigin = ''): array
     {
@@ -362,6 +368,7 @@ final class BloxRemoteTemplateInstaller
             'previous_sections' => 0,
             'requirements' => $prepared['requirements'],
             'design_diagnostics' => $prepared['design_diagnostics'],
+            'class_diagnostics' => $prepared['class_diagnostics'],
         ];
     }
 
@@ -441,6 +448,8 @@ final class BloxRemoteTemplateInstaller
                 (string) ($current['metadata'] ?? ''),
                 $origin
             );
+            // 新版本包带来的全局类与草稿更新同一事务（复用 / 稳定改名 / 新建，不覆盖本站类）
+            BloxGlobalClasses::applyImportPlan($prepared['class_plan']);
             bloxTemplateModel()->updateDraft(
                 $id,
                 $prepared['draft_json'],
@@ -448,10 +457,14 @@ final class BloxRemoteTemplateInstaller
                 $existingDraft
             );
             bloxTemplateModel()->saveMetadata($id, $prepared['metadata']);
+            BloxDocumentIndexes::update('template:' . $id, $prepared['sections']);
             db()->commit();
         } catch (Throwable $e) {
             db()->rollback();
             throw $e;
+        }
+        if ($prepared['class_plan'] !== []) {
+            BloxGlobalClasses::invalidateStylesheet();
         }
 
         return [

@@ -820,6 +820,231 @@ final class BloxGlobalClasses
         return rtrim(rtrim(number_format($number, 2, '.', ''), '0'), '.');
     }
 
+    // ── 单模板 JSON 的类可移植性（整站模板是整表替换，不走这里） ────────────
+
+    /**
+     * 导出：sections 引用到的活跃类的规范化定义（按类名排序）。回收站里的类不导出，
+     * 导入端会把它们报为缺失引用。
+     *
+     * @return list<array{class_id:string,name:string,settings:array<string,mixed>}>
+     */
+    public static function exportDefinitions(array $sections): array
+    {
+        $catalog = self::catalog();
+        $definitions = [];
+        foreach (array_keys(self::collectReferences($sections)) as $classId) {
+            if (isset($catalog[$classId])) {
+                $definitions[] = [
+                    'class_id' => $classId,
+                    'name' => $catalog[$classId]['name'],
+                    'settings' => $catalog[$classId]['settings'],
+                ];
+            }
+        }
+        usort($definitions, static fn(array $a, array $b): int => strcmp($a['name'], $b['name']));
+        return $definitions;
+    }
+
+    /**
+     * 导入前规划：把包里的类引用映射到本站。
+     * - 同名且定义相同 → 复用本站类；
+     * - 同名但定义不同 → 用「原名-定义哈希6位」这个稳定新名（重复导入同一个包得到同一个名字），不覆盖本站类；
+     * - 本站没有同名类 → 新建（总是生成新 ID，不沿用来源站 ID）；
+     * - 包里没带定义（旧包）：本站恰有同 ID 活跃类则保留，否则报缺失、引用原样保留（渲染期跳过）。
+     * 只规划不写库；写入由 applyImportPlan() 在调用方事务内完成。
+     *
+     * @return array{
+     *   map:array<string,string>,
+     *   create:list<array{class_id:string,name:string,settings:array<string,mixed>}>,
+     *   diagnostics:array{reused:list<string>,created:list<string>,renamed:list<array{from:string,to:string}>,missing:list<string>}
+     * }
+     */
+    public static function planImport(array $sections, mixed $packageClasses): array
+    {
+        $plan = ['map' => [], 'create' => [], 'diagnostics' => ['reused' => [], 'created' => [], 'renamed' => [], 'missing' => []]];
+        $references = array_keys(self::collectReferences($sections));
+        if ($references === []) {
+            return $plan;
+        }
+        if ($packageClasses !== null && !is_array($packageClasses)) {
+            throw new RuntimeException(__('blox_class_import_invalid'));
+        }
+        $definitions = [];
+        foreach (is_array($packageClasses) ? array_values($packageClasses) : [] as $index => $entry) {
+            if ($index >= self::MAX_CLASSES || !is_array($entry)) {
+                throw new RuntimeException(__('blox_class_import_invalid'));
+            }
+            $classId = (string) ($entry['class_id'] ?? '');
+            $name = (string) ($entry['name'] ?? '');
+            if (!preg_match(self::ID_PATTERN, $classId) || !preg_match(self::NAME_PATTERN, $name)) {
+                throw new RuntimeException(__('blox_class_import_invalid'));
+            }
+            $definitions[$classId] = [
+                'name' => $name,
+                'settings' => self::normalizeSettings(is_array($entry['settings'] ?? null) ? $entry['settings'] : []),
+            ];
+        }
+        $available = self::available();
+        $planned = [];
+        foreach ($references as $sourceId) {
+            $definition = $definitions[$sourceId] ?? null;
+            if ($definition === null) {
+                if ($available && isset(self::catalog()[$sourceId])) {
+                    $plan['map'][$sourceId] = $sourceId;
+                } else {
+                    $plan['diagnostics']['missing'][] = $sourceId;
+                }
+                continue;
+            }
+            if (!$available) {
+                throw new RuntimeException(__('blox_class_storage_missing'));
+            }
+            $target = self::resolveImportName($definition['name'], $definition['settings'], $planned);
+            if ($target['class_id'] !== '') {
+                $plan['map'][$sourceId] = $target['class_id'];
+                $plan['diagnostics']['reused'][] = $target['name'];
+            } else {
+                $row = ['class_id' => 'gc_' . bin2hex(random_bytes(6)), 'name' => $target['name'], 'settings' => $definition['settings']];
+                $planned[$row['name']] = $row;
+                $plan['create'][] = $row;
+                $plan['map'][$sourceId] = $row['class_id'];
+                $plan['diagnostics']['created'][] = $row['name'];
+            }
+            if ($target['name'] !== $definition['name']) {
+                $plan['diagnostics']['renamed'][] = ['from' => $definition['name'], 'to' => $target['name']];
+            }
+        }
+        if ($plan['create'] !== []) {
+            $total = (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . 'blox_global_classes');
+            if ($total + count($plan['create']) > self::MAX_CLASSES) {
+                throw new RuntimeException(__('blox_class_limit', ['max' => self::MAX_CLASSES]));
+            }
+        }
+        return $plan;
+    }
+
+    /**
+     * 同名同定义复用，同名异定义换稳定新名。返回 class_id 为空表示需要新建。
+     *
+     * @param array<string,array{class_id:string,name:string,settings:array<string,mixed>}> $planned 本次已规划新建的类
+     * @return array{class_id:string,name:string}
+     */
+    private static function resolveImportName(string $name, array $settings, array $planned): array
+    {
+        $fingerprint = self::settingsFingerprint($settings);
+        $suffix = substr(hash('sha256', $fingerprint), 0, 6);
+        $candidates = [$name, substr($name, 0, 41) . '-' . $suffix];
+        for ($i = 2; $i <= 9; $i++) {
+            $candidates[] = substr($name, 0, 39) . '-' . $suffix . '-' . $i;
+        }
+        foreach ($candidates as $candidate) {
+            if (isset($planned[$candidate])) {
+                if (self::settingsFingerprint($planned[$candidate]['settings']) === $fingerprint) {
+                    return ['class_id' => $planned[$candidate]['class_id'], 'name' => $candidate];
+                }
+                continue;
+            }
+            $existing = bloxGlobalClassModel()->findActiveByName($candidate);
+            if ($existing === null) {
+                return ['class_id' => '', 'name' => $candidate];
+            }
+            $existingSettings = json_decode((string) ($existing['settings'] ?? ''), true);
+            if (self::settingsFingerprint(self::normalizeSettings(is_array($existingSettings) ? $existingSettings : [])) === $fingerprint) {
+                return ['class_id' => (string) $existing['class_id'], 'name' => $candidate];
+            }
+        }
+        throw new RuntimeException(__('blox_class_duplicate_name'));
+    }
+
+    /** 定义比较用的规范化指纹：键序无关。 */
+    private static function settingsFingerprint(array $settings): string
+    {
+        $sort = static function (array $value) use (&$sort): array {
+            ksort($value);
+            foreach ($value as $key => $item) {
+                if (is_array($item)) {
+                    $value[$key] = $sort($item);
+                }
+            }
+            return $value;
+        };
+        return json_encode($sort($settings), JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION | JSON_THROW_ON_ERROR);
+    }
+
+    /** 按规划把 sections 里的 _classes 换成本站 ID（未映射的原样保留）。 */
+    public static function remapSections(array $sections, array $map): array
+    {
+        if ($map === []) {
+            return $sections;
+        }
+        $remapElement = static function (array $element) use (&$remapElement, $map): array {
+            $data = is_array($element['data'] ?? null) ? $element['data'] : null;
+            if ($data === null) {
+                return $element;
+            }
+            if (is_array($data['_classes'] ?? null)) {
+                $data['_classes'] = array_values(array_unique(array_map(
+                    static fn(mixed $id): mixed => is_string($id) && isset($map[$id]) ? $map[$id] : $id,
+                    $data['_classes']
+                ), SORT_REGULAR));
+            }
+            if (is_array($data['children'] ?? null)) {
+                $data['children'] = array_map(static fn(mixed $child): mixed => is_array($child) ? $remapElement($child) : $child, $data['children']);
+            }
+            $element['data'] = $data;
+            return $element;
+        };
+        foreach ($sections as $si => $section) {
+            if (!is_array($section) || !is_array($section['columns'] ?? null)) {
+                continue;
+            }
+            foreach ($section['columns'] as $ci => $column) {
+                if (!is_array($column) || !is_array($column['elements'] ?? null)) {
+                    continue;
+                }
+                foreach ($column['elements'] as $ei => $element) {
+                    if (is_array($element)) {
+                        $sections[$si]['columns'][$ci]['elements'][$ei] = $remapElement($element);
+                    }
+                }
+            }
+        }
+        return $sections;
+    }
+
+    /**
+     * 在调用方事务内写入规划的新类。规划与写入之间若有人建了同名类：定义相同就算了，
+     * 不同则抛错让整个导入回滚（不留半套类，也不覆盖对方）。事务提交后调用 invalidateStylesheet()。
+     *
+     * @param list<array{class_id:string,name:string,settings:array<string,mixed>}> $create
+     */
+    public static function applyImportPlan(array $create, int $userId = 0): void
+    {
+        if ($create === []) {
+            return;
+        }
+        $now = time();
+        foreach ($create as $row) {
+            $existing = bloxGlobalClassModel()->findActiveByName($row['name']);
+            if ($existing !== null) {
+                throw new RuntimeException(__('blox_class_import_changed'));
+            }
+            db()->insert('blox_global_classes', [
+                'class_id' => $row['class_id'],
+                'name' => $row['name'],
+                'category' => '',
+                'settings' => json_encode(self::normalizeSettings($row['settings']), JSON_UNESCAPED_UNICODE),
+                'status' => BloxGlobalClassModel::STATUS_ACTIVE,
+                'modified' => $now,
+                'revision' => 0,
+                'user_id' => max(0, $userId),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+        self::$catalog = null;
+    }
+
     // ── 用量反向索引 ─────────────────────────────────────────────────
 
     /** 文档保存时调用：整体替换该文档的类引用行。 */

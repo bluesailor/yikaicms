@@ -8322,4 +8322,11 @@ voltage|电压|220V',
     'blox_class_opt_space_evenly' => '平均分布',
     'blox_class_opt_stretch' => '拉伸',
     'blox_class_opt_baseline' => '基线',
+    // V2.0.0 全局类：单模板 JSON 导入
+    'blox_class_import_invalid' => '模板包里的全局类定义无效',
+    'blox_class_import_changed' => '检查后本站全局类已发生变化，请重新导入。',
+    'blox_class_import_reused' => '复用本站同名同定义的类',
+    'blox_class_import_created' => '将新建',
+    'blox_class_import_renamed' => '本站已有 :from 但定义不同，导入为 :to（不覆盖本站类）',
+    'blox_class_import_missing' => ':count 个类引用在包里没有定义（旧版导出），这些元素导入后不带类样式。',
 ];

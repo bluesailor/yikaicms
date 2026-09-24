@@ -8395,4 +8395,11 @@ voltage|電圧|220V',
     'blox_class_opt_space_evenly' => '均等に配置',
     'blox_class_opt_stretch' => '引き伸ばし',
     'blox_class_opt_baseline' => 'ベースライン',
+    // V2.0.0 全局类：单模板 JSON 导入
+    'blox_class_import_invalid' => 'テンプレートパッケージ内のグローバルクラス定義が無効です',
+    'blox_class_import_changed' => 'チェック後にこのサイトのグローバルクラスが変更されました。もう一度インポートしてください。',
+    'blox_class_import_reused' => 'このサイトの同名・同定義のクラスを再利用',
+    'blox_class_import_created' => '新規作成',
+    'blox_class_import_renamed' => ':from はこのサイトに別の定義で存在するため、:to としてインポートします（既存のクラスは上書きしません）',
+    'blox_class_import_missing' => ':count 件のクラス参照はパッケージに定義がありません（旧形式のエクスポート）。これらの要素はクラススタイルなしでインポートされます。',
 ];
