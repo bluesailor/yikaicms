@@ -39,10 +39,12 @@ final class BloxProtectedFields
                 $protected['section:' . $sectionId] = $section['settings']['_conditions'];
                 unset($section['settings']['_conditions']);
             }
-            if (in_array('custom_code', $denied, true) && ($section['settings']['_custom_css'] ?? '') !== '') {
+            // 区块本身与区块标题 / 副标题的自定义 CSS 同样按权限保护
+            foreach (in_array('custom_code', $denied, true) ? BloxCustomCode::sectionCssKeys() : [] as $cssKey) {
+                if (($section['settings'][$cssKey] ?? '') === '') continue;
                 if ($sectionId === '') throw new RuntimeException(__('blox_protected_fields_changed'));
-                $protected['section-css:' . $sectionId] = $section['settings']['_custom_css'];
-                unset($section['settings']['_custom_css']);
+                $protected['section-css:' . $sectionId . ($cssKey === '_custom_css' ? '' : ':' . $cssKey)] = $section['settings'][$cssKey];
+                unset($section['settings'][$cssKey]);
             }
             foreach ($section['columns'] ?? [] as $ci => $column) {
                 $columnId = (string) ($column['id'] ?? $ci);

@@ -215,3 +215,74 @@ test('section advanced panel sets ID, classes and scoped CSS on the <section> @c
     await context.close();
   }
 });
+
+test('section title advanced panel sets ID, classes, attributes and scoped CSS on the heading tag @ci', async ({ page, browser, baseURL }, info) => {
+  await openPageEditor(page, state.page);
+  const titled = pagePreview(page);
+  await page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    app.sections[1].settings.title = 'E2E section title';
+    app.sections[1].settings.subtitle = 'E2E section subtitle';
+  });
+  await titled;
+  const canvas = await frame(page);
+  await expect(async () => {
+    await canvas.locator('[data-yk-sec-field="1.title"]').dispatchEvent('click');
+    expect(await page.evaluate(() => window.Alpine.$data(document.body).selectedSectionField)).toBe('title');
+  }).toPass({ timeout: 10000 });
+  await page.getByTestId('blox-style-tab').click();
+  const panel = page.getByTestId('blox-section-field-advanced');
+  await expect(panel).toBeVisible();
+  if (!(await panel.evaluate(el => el.open))) await panel.locator('summary').click();
+
+  await fillAndCommit(page, page.getByTestId('blox-section-field-advanced-id'), 'e2e-sec-title');
+  await fillAndCommit(page, page.getByTestId('blox-section-field-advanced-classes'), 'e2e-title yk-c-spoof');
+  await expect(page.getByTestId('blox-section-field-advanced-classes')).toHaveValue('e2e-title');
+  await page.getByTestId('blox-section-field-advanced-attribute-add').click();
+  const attribute = page.getByTestId('blox-section-field-advanced-attribute').first();
+  await attribute.locator('input').nth(0).fill('data-track');
+  await attribute.locator('input').nth(0).press('Tab');
+  await fillAndCommit(page, attribute.locator('input').nth(1), 'sec-title');
+  const css = page.getByTestId('blox-section-field-advanced-css');
+  await css.fill('color: red; }');
+  await expect(page.getByTestId('blox-section-field-advanced-css-error')).toBeVisible();
+  await fillAndCommit(page, css, 'letter-spacing: 3px;');
+  await expect(page.getByTestId('blox-section-field-advanced-css-error')).toBeHidden();
+
+  const heading = (await frame(page)).locator('#e2e-sec-title');
+  await expect(heading).toHaveCount(1);
+  await expect(heading).toHaveClass(/\be2e-title\b/);
+  await expect(heading).not.toHaveClass(/yk-c-spoof/);
+  await expect(heading).toHaveAttribute('data-track', 'sec-title');
+  await expect.poll(() => heading.evaluate(el => getComputedStyle(el).letterSpacing)).toBe('3px');
+  await info.attach('section-title-advanced-panel', { body: await panel.screenshot(), contentType: 'image/png' });
+
+  // 切到副标题：面板跟着换成副标题自己的值，不串到标题上
+  await expect(async () => {
+    await (await frame(page)).locator('[data-yk-sec-field="1.subtitle"]').dispatchEvent('click');
+    expect(await page.evaluate(() => window.Alpine.$data(document.body).selectedSectionField)).toBe('subtitle');
+  }).toPass({ timeout: 10000 });
+  await page.getByTestId('blox-style-tab').click();
+  await expect(page.getByTestId('blox-section-field-advanced-id')).toHaveValue('');
+
+  for (const [action, button] of [['save_draft', 'blox-save'], ['publish', 'blox-publish-page']]) {
+    const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
+      && new URLSearchParams(r.request().postData() || '').get('action') === action);
+    if (action === 'publish') page.once('dialog', dialog => dialog.accept());
+    await page.getByTestId(button).click();
+    expect((await (await response).json()).code).toBe(0);
+  }
+  await expectClean(page);
+
+  const context = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
+  try {
+    const front = await context.newPage();
+    expect((await front.goto(state.url)).status()).toBe(200);
+    const published = front.locator('h2#e2e-sec-title');
+    await expect(published).toHaveClass(/\be2e-title\b/);
+    await expect(published).toHaveAttribute('data-track', 'sec-title');
+    expect(await published.evaluate(el => getComputedStyle(el).letterSpacing)).toBe('3px');
+  } finally {
+    await context.close();
+  }
+});

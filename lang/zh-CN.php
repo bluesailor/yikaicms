@@ -8379,6 +8379,8 @@ voltage|电压|220V',
     // V2.0.0 建站人员：区块高级配置
     'blox_section_advanced_id_hint' => '与「内容」页签里的区块锚点是同一个 ID，用于 #链接跳转和 CSS。',
     'blox_section_advanced_css_hint' => '%root% 代表整个区块（<section>），可用 %root% h2 之类选中区块里的元素；只写声明时作用于区块本身。',
+    'blox_section_field_advanced_classes_hint' => '加在这个标题标签上，空格分隔；yk- 开头为系统保留。',
+    'blox_section_field_advanced_css_hint' => '%root% 代表这个标题，只写声明（如 letter-spacing: .04em;）时自动作用于它。要压过上面的字号、颜色请加 !important。',
     'blox_section_advanced' => '高级：ID / 类 / CSS',
     'blox_section_advanced_classes_hint' => '空格分隔，加在 <section> 上；可用主题或 Tailwind 的类，yk- 开头为系统保留。',
     'blox_annotated_label' => '标注文字',
