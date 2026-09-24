@@ -104,7 +104,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <section class="bg-white rounded-lg shadow p-6" aria-labelledby="setup-start">
         <h2 id="setup-start" class="text-lg font-bold text-gray-800"><?= e(__('setup_start')) ?></h2>
         <p class="text-gray-600 mt-2"><?= e(__('st_intro')) ?></p>
-        <a class="inline-block bg-primary text-white rounded px-4 py-3 mt-4" href="/admin/site_templates.php"><?= e(__('st_title')) ?></a>
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+            <a class="inline-block bg-primary text-white rounded px-4 py-3" href="/admin/site_template_market.php" data-testid="setup-template-market"><?= e(__('st_market_cta_button')) ?></a>
+            <a class="inline-block border rounded px-4 py-3 text-gray-700" href="/admin/site_templates.php"><?= e(__('setup_template_upload')) ?></a>
+        </div>
         <p class="text-gray-600 mt-2"><?= e(__('setup_recipe_limit')) ?></p>
         <a class="inline-block border rounded px-4 py-3 text-gray-700 mt-4" href="/admin/recipe.php"><?= e(__('admin_recipe')) ?></a>
     </section>

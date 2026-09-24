@@ -186,9 +186,14 @@ final class SiteTemplateService
         return $this->summary($manifest, $files);
     }
 
-    /** @param bool $replaceExisting 已有内容的站：管理员已确认备份并同意覆盖 */
-    public function prepare(string $archive, int $adminId, bool $replaceExisting = false): array
+    /**
+     * @param bool $replaceExisting 已有内容的站：管理员已确认备份并同意覆盖
+     * @param array<string,mixed> $origin 来源说明。只有模板市场在官方下载并验签、验包之后才会传 official=true，
+     *                                    导入时据此免去「我信任该开发者」确认；name / screenshot 仅用于预览展示。
+     */
+    public function prepare(string $archive, int $adminId, bool $replaceExisting = false, array $origin = []): array
     {
+        $origin = self::origin($origin);
         $this->supported();
         $fresh = $this->canApply();
         if (!$fresh && !$replaceExisting) throw new RuntimeException('st_not_fresh');
@@ -211,12 +216,42 @@ final class SiteTemplateService
         $this->writeRecord('plan', ['token' => $token, 'owner' => $adminId, 'expires' => time() + 600,
             'fingerprint' => SiteTemplateData::fingerprint(), 'hash' => $package['hash'],
             'alias' => 'sitepack-' . bin2hex(random_bytes(8)), 'media' => $media, 'staged' => 0,
-            'replace_existing' => !$fresh,
+            'replace_existing' => !$fresh, 'origin' => $origin,
             'missing_plugins' => $missingPlugins, 'plugin_requirements' => $matchedRequirements,
             'plugin_before_hash' => SiteTemplatePluginData::fingerprint($pluginBefore)]);
         return ['token' => $token, 'summary' => $this->summary($package['manifest'], array_fill_keys($package['names'], '')),
             'missing_plugins' => $missingPlugins, 'plugin_actions' => $this->pluginActions($missingPlugins),
-            'replace_existing' => !$fresh];
+            'replace_existing' => !$fresh, 'origin' => $origin, 'brand' => self::templateBrand($package['manifest'])];
+    }
+
+    /** @return array{official:bool,name:string,screenshot:string,version:string} */
+    private static function origin(array $origin): array
+    {
+        $text = static fn(mixed $value, int $max): string => is_string($value) ? mb_substr(trim($value), 0, $max) : '';
+        $screenshot = $text($origin['screenshot'] ?? '', 500);
+        return [
+            'official' => ($origin['official'] ?? false) === true,
+            'name' => $text($origin['name'] ?? '', 120),
+            'screenshot' => str_starts_with($screenshot, 'https://') || str_starts_with($screenshot, 'data:image/') ? $screenshot : '',
+            'version' => $text($origin['version'] ?? '', 40),
+        ];
+    }
+
+    /**
+     * 模板自带的名称与联系方式：导入表单用它们预填，默认沿用模板的样子，
+     * 管理员可以当场改成自己的，也可以导入后再改——不再用安装器默认名覆盖、把联系方式清空。
+     * @return array{site_name:string,contact_phone:string,contact_email:string,contact_address:string}
+     */
+    private static function templateBrand(array $manifest): array
+    {
+        $settings = is_array($manifest['data']['settings'] ?? null) ? $manifest['data']['settings'] : [];
+        $brand = [];
+        foreach (['site_name', 'contact_phone', 'contact_email', 'contact_address'] as $key) {
+            $value = $settings[$key] ?? '';
+            $brand[$key] = is_string($value) ? mb_substr(trim($value), 0, 500) : '';
+        }
+        if ($brand['contact_email'] !== '' && filter_var($brand['contact_email'], FILTER_VALIDATE_EMAIL) === false) $brand['contact_email'] = '';
+        return $brand;
     }
 
     /**
@@ -299,7 +334,7 @@ final class SiteTemplateService
         $copy = tempnam(sys_get_temp_dir(), 'yk-st-refresh-');
         if ($copy === false || !@copy($archive, $copy)) throw new RuntimeException('st_storage');
         try {
-            return $this->prepare($copy, $adminId, !empty($plan['replace_existing']));
+            return $this->prepare($copy, $adminId, !empty($plan['replace_existing']), is_array($plan['origin'] ?? null) ? $plan['origin'] : []);
         } finally {
             @unlink($copy);
         }
@@ -390,9 +425,13 @@ final class SiteTemplateService
         return ['done' => $done, 'total' => $total, 'complete' => $done >= $total];
     }
 
-    public function apply(string $token, int $adminId, array $brand, bool $trusted): void
+    /**
+     * @param bool $trusted 管理员声明信任该模板来源（主题含可执行 PHP）
+     * @param null|bool $confirmed 管理员确认替换内容；传入时单独判断：官方模板市场验签过的包可以代替「信任」，但永远代替不了「确认」
+     */
+    public function apply(string $token, int $adminId, array $brand, bool $trusted, ?bool $confirmed = null): void
     {
-        $this->withLock(function () use ($token, $adminId, $brand, $trusted): void {
+        $this->withLock(function () use ($token, $adminId, $brand, $trusted, $confirmed): void {
             $alias = '';
             $committed = false;
             try {
@@ -407,11 +446,17 @@ final class SiteTemplateService
                 if (!is_file($archive) || !hash_equals((string) $plan['hash'], (string) hash_file('sha256', $archive))) throw new RuntimeException('st_stale');
                 $package = SiteTemplateArchive::read($archive);
                 $missingPlugins = $this->missingPlugins($package['manifest']['plugins']);
+                // 主题离不开的插件还缺着：即使管理员选择「跳过缺失插件数据」也启用不了主题，先明确拦下
+                $themeMeta = json_decode((string) ($package['files']['theme/theme.json'] ?? ''), true);
+                $themeNeeds = SiteTemplateArchive::themeRequiredPlugins(is_array($themeMeta) ? $themeMeta : []);
+                if (array_intersect($themeNeeds, array_column($missingPlugins, 'slug')) !== []) throw new RuntimeException('st_plugin_theme_required');
                 $previewedMissing = is_array($plan['missing_plugins'] ?? null) ? $plan['missing_plugins'] : [];
                 if ($this->pluginListFingerprint($missingPlugins) !== $this->pluginListFingerprint($previewedMissing)) {
                     // Any dependency change after preview changes what will be skipped/imported.
                     throw new RuntimeException('st_stale');
                 }
+                // 官方模板市场下载的包已在服务端验签、验包：不再要求管理员声明「信任该开发者」
+                if ($confirmed !== null) $trusted = $confirmed && ($trusted || !empty($plan['origin']['official']));
                 if (!$trusted) throw new RuntimeException($missingPlugins === [] ? 'st_trust' : 'st_plugin_missing');
                 $pluginRequirements = $this->pluginRequirements($package['manifest']['plugins'], $package['plugin_data']);
                 $matchedRequirements = $this->withoutMissingRequirements($pluginRequirements, $missingPlugins);

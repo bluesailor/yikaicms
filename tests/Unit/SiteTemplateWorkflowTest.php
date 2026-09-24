@@ -29,7 +29,8 @@ final class SiteTemplateWorkflowTest extends TestCase
         $page = (string) file_get_contents(ROOT_PATH . '/admin/site_templates.php');
         self::assertStringContainsString("\$preview['missing_plugins']", $page);
         self::assertStringContainsString('/admin/plugin.php?tab=market&amp;q=', $page);
-        self::assertStringContainsString("post('trusted') === '1' && post('confirm') === '1'", $page);
+        self::assertStringContainsString("post('trusted') === '1', post('confirm') === '1')", $page);
+        self::assertStringContainsString('name="confirm" value="1" required', $page);
     }
 
     public function testRewritingPreservesExternalReferencesAndJson(): void
@@ -47,5 +48,25 @@ final class SiteTemplateWorkflowTest extends TestCase
         self::assertSame('Hello', ThemeContent::localized(['en' => 'Hello', 'zh-CN' => 'Fallback'], 'en'));
         $this->expectExceptionMessage('tc_url');
         ThemeContent::normalize(['type' => 'image'], 'javascript:alert(1)');
+    }
+    /** 导入向导：进行中只摆导入步骤；官方包免「信任」勾选但「确认」必填；导入完成给下一步并把检查归组 */
+    public function testImportWizardStaysFocusedAndFinishesWithNextSteps(): void
+    {
+        $page = (string) file_get_contents(ROOT_PATH . '/admin/site_templates.php');
+        $wizard = strpos($page, 'data-testid="st-import-wizard"');
+        $export = strpos($page, 'aria-labelledby="st-export"');
+        self::assertIsInt($wizard);
+        self::assertIsInt($export);
+        self::assertStringContainsString('<?php elseif ($notice !== \'st_applied\'): ?>', substr($page, $wizard, $export - $wizard), '导入进行中或刚完成时不显示上传与导出');
+        self::assertStringContainsString('$importing = is_array($preview) && $notice !== \'st_applied\';', $page);
+        $trust = strpos($page, 'name="trusted" value="1" required');
+        self::assertIsInt($trust);
+        self::assertLessThan($trust, (int) strpos($page, '<?php if ($official): ?>'), '信任勾选只在非官方包的分支里');
+        self::assertStringContainsString('name="confirm" value="1" required', substr($page, $wizard));
+        self::assertStringContainsString('data-testid="st-done-<?= e($doneKey) ?>"', $page);
+        self::assertStringContainsString("['home', 'ti-layout-dashboard', SiteSetup::homeEditUrl(), false]", $page);
+        self::assertStringContainsString('$groupReport($report[\'items\'])', $page);
+        // 预填用模板自带的资料，提交失败时保留管理员填的
+        self::assertStringContainsString('if (is_array($preview) && $_SERVER[\'REQUEST_METHOD\'] !== \'POST\') {', $page);
     }
 }
