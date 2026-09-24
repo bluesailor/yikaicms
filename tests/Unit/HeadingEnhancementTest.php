@@ -28,7 +28,8 @@ final class HeadingEnhancementTest extends TestCase
         $element = new HeadingElement();
         $html = $element->render(['text' => "One\n<two>", 'level' => 'h6', 'url' => '/contact.html', 'new_tab' => true, 'html_id' => '#services']);
         self::assertStringContainsString('id="services"', $html);
-        self::assertStringContainsString('target="_blank" rel="noopener noreferrer"', $html);
+        // 站内链接开新窗口只需 noopener；外链才加 noreferrer（与按钮、图片同一规则）
+        self::assertStringContainsString('target="_blank" rel="noopener"', $html);
         self::assertStringContainsString('One<br>&lt;two&gt;', $html);
         $html = $element->render(['text' => 'Safe', 'url' => 'javascript:alert(1)', 'html_id' => '" onclick="alert(1)', 'new_tab' => '0']);
         self::assertStringNotContainsString('<a ', $html);

@@ -62,6 +62,9 @@ final class HeadingElement extends AbstractElement
                 'options' => ['h1' => 'H1', 'h2' => 'H2', 'h3' => 'H3', 'h4' => 'H4', 'h5' => 'H5', 'h6' => 'H6']],
             ['key' => 'url', 'type' => 'url', 'label' => __('blox_ctl_link'), 'default' => '', 'placeholder' => __('blox_ctl_link_ph')],
             ['key' => 'new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab'), 'default' => false],
+            ...$this->linkAttributeControls(['visible_when' => ['relation' => 'or', 'terms' => [
+                ['url', 'not_empty'], ['site_url_field', 'not_in', ['', 'none']], ['loop_url_field', 'not_in', ['', 'none']],
+            ]]]),
             ['key' => 'site_url_field', 'type' => 'select', 'label' => __('blox_dynamic_site_url_binding'),
                 'default' => 'none', 'options' => DynamicSiteData::fieldOptions('url'), 'outside_loop_only' => true],
             ['key' => 'loop_url_field', 'type' => 'select', 'label' => __('blox_loop_button_url_binding'),
@@ -123,8 +126,8 @@ final class HeadingElement extends AbstractElement
         $url = self::safeHref($rawUrl);
         $text = str_replace(["\r\n", "\r", "\n"], '<br>', htmlspecialchars($text));
         if ($url !== '') {
-            $target = BloxValueSanitizer::truthy($data['new_tab'] ?? false) ? ' target="_blank" rel="noopener noreferrer"' : '';
-            $text = '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '" class="yk-heading-link"' . $target . '>' . $text . '</a>';
+            $text = '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '" class="yk-heading-link"'
+                . self::linkAttributes($url, $data['new_tab'] ?? false, $data) . '>' . $text . '</a>';
         }
         // 全站排版（E04）只接管未设置视觉字号的标题；未配置主题时不追加任何类，输出逐字节不变。
         $visualSize = $data['visual_size'] ?? 'auto';

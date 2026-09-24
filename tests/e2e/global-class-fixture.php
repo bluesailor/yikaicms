@@ -76,6 +76,26 @@ $json = json_encode([
                 $heading('gcf-heading-b', 'Class heading B'),
             ]],
         ]]]],
+    ], [
+        // 验收用例 4：三类元素的链接属性与键盘焦点
+        'settings' => ['padding' => 'md'],
+        'columns' => [['elements' => [
+            ['id' => 'gcf-link-heading', 'type' => 'heading', 'data' => [
+                'text' => 'Linked heading', 'level' => 'h3', 'url' => '/contact.html', 'new_tab' => '1',
+                'link_rel' => 'nofollow', 'link_title' => 'Contact page', 'link_aria_label' => 'Open the contact page',
+            ]],
+            ['id' => 'gcf-link-button', 'type' => 'button', 'data' => [
+                'text' => 'External button', 'url' => 'https://example.com/docs', 'new_tab' => '1', 'link_rel' => 'sponsored',
+            ]],
+            ['id' => 'gcf-link-button-off', 'type' => 'button', 'data' => [
+                'text' => 'Same tab button', 'url' => '/about.html', 'new_tab' => '0',
+            ]],
+            ['id' => 'gcf-link-image', 'type' => 'image', 'data' => [
+                'src' => '/assets/images/blox-templates/404-route-lost.png', 'alt' => 'Route lost',
+                'click_action' => 'link', 'link_url' => '/contact.html', 'link_aria_label' => 'Contact us',
+            ]],
+            ['id' => 'gcf-link-bad', 'type' => 'button', 'data' => ['text' => 'Unsafe button', 'url' => 'javascript:alert(1)']],
+        ]]],
     ]],
 ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 BloxFeaturePolicy::asTrustedWrite(static function () use ($page, $json): void {

@@ -8261,4 +8261,9 @@ voltage|Voltage|220V',
     'blox_class_import_created' => 'Will be created',
     'blox_class_import_renamed' => ':from already exists here with a different definition; it will be imported as :to (the existing class is not overwritten)',
     'blox_class_import_missing' => ':count class references have no definition in the package (older export); those elements will be imported without class styles.',
+    // V2.0.0 链接一致性（标题 / 按钮 / 图片）
+    'blox_link_rel' => 'Link relation (rel)',
+    'blox_link_rel_none' => 'Default',
+    'blox_link_title' => 'Link tooltip (title)',
+    'blox_link_aria_label' => 'Screen reader label (aria-label)',
 ];

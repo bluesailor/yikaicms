@@ -207,3 +207,73 @@ test('tiers inherit and clear, local values are flagged and clearable, a second 
   await size.scrollIntoViewIfNeeded();
   await info.attach('class-409-reloaded', { body: await page.screenshot(), contentType: 'image/png' });
 });
+
+test('front end: the mobile tier applies on phones, links carry controlled attributes and take keyboard focus @ci', async ({ page, browser, baseURL }, info) => {
+  // 手机档只改手机：桌面沿用上一用例留下的 60px（第二编辑器保存的值）
+  await openPageEditor(page, state.page);
+  await selectHeading(page, 'gcf-heading-a');
+  await page.getByTestId(`blox-style-target-class-${CLASS_NAME}`).click();
+  await page.getByTestId('blox-device-mobile').click();
+  await setClassField(page, 'font_size_px', 30);
+  expect((await saveClass(page)).code).toBe(0);
+  await page.getByTestId('blox-device-desktop').click();
+
+  const desktop = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] }, viewport: { width: 1440, height: 900 } });
+  const phone = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] }, viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
+  try {
+    const front = await desktop.newPage();
+    expect((await front.goto(state.url)).status()).toBe(200);
+    expect((await computed(front.locator('h2', { hasText: 'Class heading A' })))['font-size']).toBe('60px');
+
+    const headingLink = front.locator('[data-yk-el-id="gcf-link-heading"] a, h3 a.yk-heading-link').first();
+    await expect(headingLink).toHaveAttribute('href', '/contact.html');
+    await expect(headingLink).toHaveAttribute('target', '_blank');
+    await expect(headingLink).toHaveAttribute('rel', 'nofollow noopener');
+    await expect(headingLink).toHaveAttribute('title', 'Contact page');
+    await expect(headingLink).toHaveAttribute('aria-label', 'Open the contact page');
+    const external = front.getByRole('link', { name: 'External button' });
+    await expect(external).toHaveAttribute('rel', 'sponsored noopener noreferrer');
+    const sameTab = front.getByRole('link', { name: 'Same tab button' });
+    await expect(sameTab).not.toHaveAttribute('target', /.*/);
+    await expect(sameTab).not.toHaveAttribute('rel', /.*/);
+    const imageLink = front.getByRole('link', { name: 'Contact us' });
+    await expect(imageLink).toHaveAttribute('href', '/contact.html');
+    await expect(front.getByRole('link', { name: 'Unsafe button' })).toHaveAttribute('href', '#');
+
+    // 键盘：Tab 能依次到达三类链接，焦点可见（未被样式去掉 outline）
+    const reached = new Set();
+    for (let i = 0; i < 80 && reached.size < 3; i += 1) {
+      await front.keyboard.press('Tab');
+      const focused = await front.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || el.tagName !== 'A') return null;
+        const style = getComputedStyle(el);
+        return {
+          name: el.getAttribute('aria-label') || el.textContent.trim(),
+          visible: el.matches(':focus-visible'), outline: style.outlineStyle, width: style.outlineWidth, color: style.outlineColor,
+        };
+      });
+      if (focused && ['Open the contact page', 'External button', 'Contact us'].includes(focused.name)) {
+        expect(focused, `${focused.name} focus ring`).toMatchObject({ visible: true, outline: 'solid', width: '2px' });
+        reached.add(focused.name);
+        if (focused.name === 'External button') {
+          await info.attach('front-link-focus', { body: await front.screenshot({ clip: await external.evaluate(el => { const r = el.getBoundingClientRect(); return { x: Math.max(0, r.x - 40), y: Math.max(0, r.y - 120), width: r.width + 260, height: r.height + 200 }; }) }), contentType: 'image/png' });
+          info.annotations.push({ type: 'focus', description: JSON.stringify(focused) });
+        }
+      }
+    }
+    expect([...reached].sort()).toEqual(['Contact us', 'External button', 'Open the contact page']);
+
+    const mobile = await phone.newPage();
+    expect((await mobile.goto(state.url)).status()).toBe(200);
+    const mobileA = mobile.locator('h2', { hasText: 'Class heading A' });
+    const mobileB = mobile.locator('h2', { hasText: 'Class heading B' });
+    expect((await computed(mobileA))['font-size']).toBe('30px');
+    expect((await computed(mobileB))['font-size']).toBe('30px');
+    await mobileA.scrollIntoViewIfNeeded();
+    await info.attach('front-mobile-tier', { body: await mobile.screenshot(), contentType: 'image/png' });
+  } finally {
+    await desktop.close();
+    await phone.close();
+  }
+});

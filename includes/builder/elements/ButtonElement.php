@@ -22,6 +22,7 @@ final class ButtonElement extends AbstractElement
                 'section' => __('blox_button_section_content'), 'section_icon' => 'text-caption'],
             ['key' => 'new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab'), 'default' => false,
                 'section' => __('blox_button_section_content'), 'section_icon' => 'text-caption'],
+            ...$this->linkAttributeControls(['section' => __('blox_button_section_content'), 'section_icon' => 'text-caption']),
             ['key' => 'icon', 'type' => 'icon', 'label' => __('blox_button_icon'), 'default' => 'none',
                 'section' => __('blox_button_section_icon'), 'section_icon' => 'star'],
             ['key' => 'icon_position', 'type' => 'button_icon_position', 'label' => __('blox_button_icon_position'), 'default' => 'left',
@@ -142,8 +143,10 @@ final class ButtonElement extends AbstractElement
         $iconPosition = ($data['icon_position'] ?? 'left') === 'right' ? 'right' : 'left';
         $buttonContent = $iconPosition === 'right' ? $text . $iconHtml : $iconHtml . $text;
         // javascript: 等伪协议在这里拦（htmlspecialchars 挡不住）；非法地址退化为 #
-        $url = htmlspecialchars(self::safeHref($rawUrl) ?: '#');
-        $target = !empty($data['new_tab']) ? ' target="_blank" rel="noopener"' : '';
+        $href = self::safeHref($rawUrl) ?: '#';
+        $url = htmlspecialchars($href);
+        // 新窗口/rel/title/aria-label 与标题、图片同一规则（"0"/"false" 不再被当成开新窗口）
+        $target = self::linkAttributes($href, $data['new_tab'] ?? false, $data);
         $align = in_array($data['align'] ?? '', ['left', 'center', 'right'], true) ? $data['align'] : 'left';
         $alignClass = ['left' => '', 'center' => ' text-center', 'right' => ' text-right'][$align];
         $variant = in_array($data['variant'] ?? '', ['primary', 'dark', 'outline', 'soft', 'ghost', 'link'], true)
