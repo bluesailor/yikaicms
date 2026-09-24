@@ -13,6 +13,18 @@ $errorMessage = '';
 $exportCheck = null;
 $notice = (string) ($_SESSION['site_template_notice'] ?? '');
 unset($_SESSION['site_template_notice']);
+$pluginResults = is_array($_SESSION['site_template_plugin_results'] ?? null) ? $_SESSION['site_template_plugin_results'] : [];
+unset($_SESSION['site_template_plugin_results']);
+$refreshToken = (string) ($_SESSION['site_template_refresh'] ?? '');
+unset($_SESSION['site_template_refresh']);
+if ($refreshToken !== '' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    try {
+        $_SESSION['site_template_preview'] = $service->refreshPreview($refreshToken, getAdminId());
+    } catch (Throwable $error) {
+        unset($_SESSION['site_template_preview']);
+        $errorMessage = __(preg_match('/^st_[a-z_]+$/D', $error->getMessage()) ? $error->getMessage() : 'st_invalid');
+    }
+}
 $brand = ['site_name' => (string) config('site_name'), 'contact_phone' => '', 'contact_email' => '', 'contact_address' => ''];
 // 导入完成后实时生成报告（不落库）：随时可重跑，也不会出现过期结论
 $report = null;
@@ -51,6 +63,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $upload = $_FILES['package'] ?? [];
             if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string) ($upload['tmp_name'] ?? ''))) throw new RuntimeException('st_upload');
             $_SESSION['site_template_preview'] = $service->prepare((string) $upload['tmp_name'], getAdminId(), post('replace_existing') === '1');
+        } elseif ($action === 'install_plugins') {
+            // 模板声明的插件：本站已有的启用，插件市场有的走与插件页同一条校验链安装后启用，然后重新预览
+            // 预览在下一个请求里重建：那时新启用的插件已加载，整站数据适配器才注册上
+            $installed = $service->installRequiredPlugins(post('token'), getAdminId());
+            $_SESSION['site_template_plugin_results'] = $installed;
+            $_SESSION['site_template_refresh'] = post('token');
+            foreach ($installed as $result) {
+                adminLog('plugin', $result['ok'] ? 'site_template_enable' : 'site_template_enable_failed', 'Site template plugin: ' . $result['slug']);
+            }
         } elseif ($action === 'apply') {
             foreach ($brand as $key => $_value) $brand[$key] = post($key);
             $replacedExisting = !empty($_SESSION['site_template_preview']['replace_existing']);
@@ -186,16 +207,33 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?= e(__('st_lang_empty', ['list' => SiteTemplateLanguages::labels($emptyLanguages)])) ?>
             </p>
             <?php endif; ?>
-            <?php if ($missingPlugins !== []): ?>
+            <?php if ($pluginResults !== []): ?>
+            <ul role="status" class="bg-gray-50 border rounded p-3 text-sm space-y-1" data-testid="st-plugin-results">
+                <?php foreach ($pluginResults as $result): ?>
+                <li class="<?= $result['ok'] ? 'text-green-700' : 'text-red-700' ?>"><code><?= e($result['slug']) ?></code> · <?= e($result['ok'] ? __('st_plugin_result_ok', ['plugin' => $result['msg']]) : $result['msg']) ?></li>
+                <?php endforeach; ?>
+            </ul>
+            <?php endif; ?>
+            <?php if ($missingPlugins !== []):
+                $pluginActions = is_array($preview['plugin_actions'] ?? null) ? array_column($preview['plugin_actions'], null, 'slug') : [];
+                $installable = array_filter($pluginActions, static fn(array $action): bool => in_array($action['action'], ['enable', 'market'], true)); ?>
             <div role="alert" class="bg-amber-50 text-amber-900 p-3 rounded text-sm space-y-2" data-testid="st-missing-plugins">
                 <p><?= e(__('st_plugin_missing_intro')) ?></p>
                 <ul class="list-disc pl-5 space-y-1">
-                    <?php foreach ($missingPlugins as $plugin): ?>
-                    <li><code><?= e($plugin['slug'] . ' ' . $plugin['version']) ?></code>
-                        <a class="text-primary underline ml-2" href="/admin/plugin.php?tab=market&amp;q=<?= e(rawurlencode($plugin['slug'])) ?>"><?= e(__('st_plugin_market')) ?></a>
+                    <?php foreach ($missingPlugins as $plugin): $action = $pluginActions[$plugin['slug']] ?? ['action' => 'manual', 'available' => '']; ?>
+                    <li data-testid="st-missing-plugin" data-action="<?= e($action['action']) ?>"><code><?= e($plugin['slug'] . ' ' . $plugin['version']) ?></code>
+                        <span class="ml-1"><?= e(__('st_plugin_action_' . $action['action'], ['version' => (string) $action['available']])) ?></span>
+                        <?php if ($action['action'] === 'manual'): ?><a class="text-primary underline ml-2" href="/admin/plugin.php?tab=market&amp;q=<?= e(rawurlencode($plugin['slug'])) ?>"><?= e(__('st_plugin_market')) ?></a><?php endif; ?>
                     </li>
                     <?php endforeach; ?>
                 </ul>
+                <?php if ($installable !== []): ?>
+                <form method="post" class="pt-1">
+                    <?= csrfField() ?><input type="hidden" name="action" value="install_plugins"><input type="hidden" name="token" value="<?= e($preview['token']) ?>">
+                    <button type="submit" class="bg-primary text-white rounded px-4 py-2" data-testid="st-install-plugins"><?= e(__('st_plugin_install_button')) ?></button>
+                    <span class="block mt-1 text-xs"><?= e(__('st_plugin_install_hint')) ?></span>
+                </form>
+                <?php endif; ?>
                 <p><?= e(__('st_plugin_force_hint')) ?></p>
             </div>
             <?php endif; ?>

@@ -59,16 +59,16 @@ final class PluginMarketPackageTest extends TestCase
 
     public function testMarketInstallChecksUrlAndDowngradeBeforeDownloadingWithASizeCap(): void
     {
-        $page = (string) file_get_contents(ROOT_PATH . '/admin/plugin.php');
+        $page = (string) file_get_contents(ROOT_PATH . '/includes/PluginMarketInstall.php');
         $urlCheck = strpos($page, 'PluginMarketPackage::isOfficialUrl(');
         $downgrade = strpos($page, 'PluginMarketPackage::isDowngrade(');
-        $download = strpos($page, 'pluginMarketHttpGet($item[\'download_url\']');
+        $download = strpos($page, '($this->httpGet)((string) $item[\'download_url\']');
         self::assertNotFalse($urlCheck);
         self::assertNotFalse($downgrade);
         self::assertNotFalse($download);
         self::assertLessThan($download, $urlCheck);
         self::assertLessThan($download, $downgrade);
-        self::assertStringContainsString('PluginMarketPackage::MAX_PACKAGE_BYTES, $tooLarge)', $page);
+        self::assertStringContainsString('120, PluginMarketPackage::MAX_PACKAGE_BYTES)', $page);
         self::assertStringNotContainsString('CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => $timeout', $page, '下载不再整包读入后才检查');
     }
 }

@@ -183,9 +183,13 @@ final class ThemeMarketTest extends TestCase
         }
         self::assertNotNull(\MarketCatalogRequest::decode('{"code":0,"data":{"protocol_version":2,"plugins":[]}}', 'plugins'));
         self::assertNull(\MarketCatalogRequest::decode('{"code":0,"data":{"protocol_version":2,"plugins":null}}', 'plugins'));
-        $source = (string) file_get_contents(ROOT_PATH . '/admin/plugin.php');
-        self::assertSame(2, substr_count($source, 'MarketCatalogRequest::query('));
-        self::assertSame(2, substr_count($source, "MarketCatalogRequest::decode(\$resp, 'plugins')"));
+        // 浏览在插件页，安装在 PluginMarketInstall（插件页与整站模板共用）：两处都走协议协商
+        $page = (string) file_get_contents(ROOT_PATH . '/admin/plugin.php');
+        $install = (string) file_get_contents(ROOT_PATH . '/includes/PluginMarketInstall.php');
+        self::assertSame(1, substr_count($page, 'MarketCatalogRequest::query('));
+        self::assertSame(1, substr_count($page, "MarketCatalogRequest::decode(\$resp, 'plugins')"));
+        self::assertSame(1, substr_count($install, 'MarketCatalogRequest::query('));
+        self::assertSame(1, substr_count($install, "MarketCatalogRequest::decode(\$response['body'], 'plugins')"));
     }
 
     #[RequiresPhpExtension('openssl')]
