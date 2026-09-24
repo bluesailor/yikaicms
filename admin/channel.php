@@ -248,12 +248,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (channelModel()->hasChildren($id)) {
             error(__('admin_category_has_children'));
         }
-        // 删除关联内容
-        db()->execute('DELETE FROM ' . DB_PREFIX . 'contents WHERE channel_id = ?', [$id]);
-        // 删除栏目
+        // 关联内容移入回收站（不物理删除，可在回收站还原）
+        $trashed = contentModel()->trashChannelContents($id);
         channelModel()->deleteById($id);
-        adminLog('channel', 'delete', __('admin_delete') . '：' . $channel['name']);
-        success();
+        adminLog('channel', 'delete', __('admin_delete') . '：' . $channel['name'] . "（{$trashed} 条内容移入回收站）");
+        success(['trashed' => $trashed]);
+    }
+
+    // 删除前预检：确认框要告诉用户会有多少条内容一起进回收站
+    if ($action === 'delete_preview') {
+        $id = postInt('id');
+        if (!channelModel()->find($id)) {
+            error(__('admin_category_not_found'));
+        }
+        success(['content_count' => contentModel()->countLiveInChannel($id)]);
     }
 
     if ($action === 'sort') {
@@ -1367,16 +1375,37 @@ document.getElementById('chHeroBgFileInput')?.addEventListener('change', async f
 });
 
 // 删除栏目
+const channelDeleteText = <?php echo json_encode([
+    'confirm' => __('admin_category_delete_confirm'),
+    'confirmContents' => __('admin_category_delete_confirm_contents'),
+    'deleted' => __('admin_deleted'),
+    'deletedContents' => __('admin_category_deleted_contents'),
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+
 async function deleteChannel(id, name) {
-    if (!confirm('<?= __('admin_confirm_delete') ?>')) return;
+    // 先问服务器这个栏目下有多少条内容，确认框里说清楚会一起进回收站
+    const preview = new FormData();
+    preview.append('action', 'delete_preview');
+    preview.append('id', id);
+    const previewData = await safeJson(await fetch('', { method: 'POST', body: preview }));
+    if (previewData.code !== 0) {
+        showMessage(previewData.msg, 'error');
+        return;
+    }
+    const count = Number((previewData.data || {}).content_count || 0);
+    const question = (count > 0 ? channelDeleteText.confirmContents : channelDeleteText.confirm)
+        .replace(':name', name).replace(':count', String(count));
+    if (!confirm(question)) return;
+
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
-        setTimeout(function() { location.reload(); }, 800);
+        const trashed = Number((data.data || {}).trashed || 0);
+        showMessage(trashed > 0 ? channelDeleteText.deletedContents.replace(':count', String(trashed)) : channelDeleteText.deleted);
+        setTimeout(function() { location.reload(); }, trashed > 0 ? 1600 : 800);
     } else {
         showMessage(data.msg, 'error');
     }

@@ -59,6 +59,34 @@ final class SoftDeleteTest extends TestCase
         $this->assertSame('A', $trashed[0]['title']);
     }
 
+    /** 删栏目连带内容：只能进回收站，不能物理删除；也不能碰别的栏目 */
+    public function testTrashChannelContentsMovesOnlyThatChannelToTrash(): void
+    {
+        $this->seed();
+        $this->insertRow('channels', ['name' => 'Cases', 'slug' => 'cases', 'type' => 'list']);
+        $this->insertRow('contents', ['channel_id' => 2, 'title' => 'C', 'slug' => 'c', 'status' => 1, 'publish_time' => 300]);
+
+        $this->assertSame(2, contentModel()->countLiveInChannel(1));
+        $this->assertSame(2, contentModel()->trashChannelContents(1));
+
+        $this->assertSame(3, (int) db()->fetchColumn('SELECT COUNT(*) FROM contents'), '物理行必须保留');
+        $this->assertEqualsCanonicalizing(['A', 'B'], array_column(contentModel()->getTrashed(), 'title'));
+        $this->assertSame(0, contentModel()->countLiveInChannel(1));
+        $this->assertSame(1, contentModel()->countLiveInChannel(2), '其它栏目的内容不受影响');
+    }
+
+    /** 已在回收站的不重复计数、不重写删除时间 */
+    public function testTrashChannelContentsSkipsAlreadyTrashedRows(): void
+    {
+        $this->seed();
+        db()->execute('UPDATE contents SET deleted_at = 1 WHERE id = 1');
+
+        $this->assertSame(1, contentModel()->countLiveInChannel(1));
+        $this->assertSame(1, contentModel()->trashChannelContents(1));
+        $this->assertSame(1, (int) db()->fetchColumn('SELECT deleted_at FROM contents WHERE id = 1'));
+        $this->assertSame(0, contentModel()->trashChannelContents(1), '全部已在回收站时返回 0');
+    }
+
     public function testTrashedExcludedFromReads(): void
     {
         $this->seed();

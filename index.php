@@ -7,6 +7,9 @@
 
 declare(strict_types=1);
 
+// 最早的门：PHP 7 主机先给看得懂的提示，别让后面的 PHP 8 函数白屏
+require_once __DIR__ . '/includes/php_guard.php';
+
 // WordPress/宝塔 catch-all 会保留原始 /en、/ja 路径并把请求交给 index.php。
 // 必须在 init.php 定义 SITE_LANG 前注入 _lang；Dispatcher::run() 里的解析已经太晚。
 // 子目录部署：先剥挂载前缀，之后的路由与语言识别都按根目录口径工作（根目录安装时为空操作）

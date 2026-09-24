@@ -84,8 +84,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     recycleRequirePerm($type, $action, postInt('id'));
 
     if ($action === 'restore') {
-        $model->restore(postInt('id'));
-        adminLog('recycle', 'restore', "还原 {$type} ID：" . postInt('id'));
+        $id = postInt('id');
+        $model->restore($id);
+        adminLog('recycle', 'restore', "还原 {$type} ID：" . $id);
+        // 删栏目时内容整体进了回收站：原栏目已不存在时，还原回来的内容在列表里找不到，
+        // 改为未分类并直接带用户去编辑页重新选栏目
+        if ($type === 'content') {
+            $row = contentModel()->find($id);
+            $channelId = (int) ($row['channel_id'] ?? 0);
+            if ($row && $channelId > 0 && !channelModel()->find($channelId)) {
+                contentModel()->updateById($id, ['channel_id' => 0]);
+                $editUrl = ($row['type'] ?? '') === 'article'
+                    ? '/admin/article_edit.php?id=' . $id
+                    : '/admin/content_edit.php?id=' . $id;
+                success(['edit_url' => $editUrl], __('recycle_restored_orphan'));
+            }
+        }
         success([], __('recycle_restored'));
     }
 
@@ -221,7 +235,12 @@ async function recyclePost(action, id) {
     if (id) body.set('id', id);
     const res = await fetch(location.pathname, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body });
     const data = await res.json().catch(() => ({ code: 1, msg: 'error' }));
-    if (data.code === 0) { location.reload(); }
+    const editUrl = data.code === 0 && data.data && data.data.edit_url;
+    if (editUrl) {
+        // 原栏目已删除：先说明原因，再去编辑页重新选栏目
+        alert(data.msg);
+        location.href = (window.YK_BASE || '') + editUrl;
+    } else if (data.code === 0) { location.reload(); }
     else { alert(data.msg || 'error'); }
 }
 function restoreItem(id) { if (confirm(recycleText.restoreConfirm)) recyclePost('restore', id); }

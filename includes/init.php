@@ -8,6 +8,9 @@
 
 declare(strict_types=1);
 
+// 最早的门：PHP 7 主机先给看得懂的提示，别让后面的 PHP 8 函数白屏
+require_once __DIR__ . '/php_guard.php';
+
 // 定义根目录
 if (!defined('ROOT_PATH')) define('ROOT_PATH', dirname(__DIR__));
 
