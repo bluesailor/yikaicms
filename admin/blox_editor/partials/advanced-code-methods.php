@@ -72,6 +72,66 @@
                 else this.sel.settings[key] = text;
             },
 
+            // ── 区块标题 / 副标题「高级」：与元素同样四项，存在区块 settings 的 _title_* / _subtitle_* ──
+            sectionFieldAdvancedKey(name) {
+                return "_" + this.selectedSectionField + "_" + name;
+            },
+
+            sectionFieldAdvancedValue(name) {
+                var settings = this.sel && this.sel.settings ? this.sel.settings : {};
+                return String(settings[this.sectionFieldAdvancedKey(name)] || "");
+            },
+
+            sectionFieldAdvancedHasValues() {
+                return !!(this.sectionFieldAdvancedValue("html_id") || this.sectionFieldAdvancedValue("css_classes")
+                    || this.sectionFieldAdvancedValue("custom_css") || this.sectionFieldAttributes().length);
+            },
+
+            sectionFieldAdvancedIdInvalid() {
+                var value = this.sectionFieldAdvancedValue("html_id");
+                return value !== "" && !/^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(value);
+            },
+
+            setSectionFieldAdvancedValue(name, value) {
+                if (!this.sel || !this.sel.settings || !this.selectedSectionField) return;
+                var text = typeof value === "string" ? value.trim() : "";
+                if (name === "css_classes") text = window.BloxCustomCode ? window.BloxCustomCode.classList(text) : text;
+                var key = this.sectionFieldAdvancedKey(name);
+                if (text === "") delete this.sel.settings[key];
+                else this.sel.settings[key] = text;
+            },
+
+            sectionFieldAttributes() {
+                var list = this.sel && this.sel.settings && this.selectedSectionField
+                    ? this.sel.settings[this.sectionFieldAdvancedKey("attributes")] : null;
+                return Array.isArray(list) ? list : [];
+            },
+
+            writeSectionFieldAttributes(list) {
+                if (!this.sel || !this.sel.settings || !this.selectedSectionField) return;
+                var key = this.sectionFieldAdvancedKey("attributes");
+                if (list.length) this.sel.settings[key] = list;
+                else delete this.sel.settings[key];
+            },
+
+            addSectionFieldAttribute() {
+                var list = this.sectionFieldAttributes().slice();
+                if (list.length >= 10) return;
+                list.push({ name: "", value: "" });
+                this.writeSectionFieldAttributes(list);
+            },
+
+            setSectionFieldAttribute(index, field, value) {
+                var list = this.sectionFieldAttributes().map(function (item) { return Object.assign({}, item); });
+                if (!list[index]) return;
+                list[index][field] = field === "name" ? String(value || "").trim().toLowerCase() : String(value || "");
+                this.writeSectionFieldAttributes(list);
+            },
+
+            removeSectionFieldAttribute(index) {
+                this.writeSectionFieldAttributes(this.sectionFieldAttributes().filter(function (item, position) { return position !== index; }));
+            },
+
             customCssError(value, max) {
                 return window.BloxCustomCode ? window.BloxCustomCode.check(value, max) : "";
             },

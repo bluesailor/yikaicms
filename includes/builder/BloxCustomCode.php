@@ -3,7 +3,8 @@
  * 建站人员的「高级」配置（V2.0.0）：元素的 HTML ID / 自定义 CSS 类 / 自定义属性 / 自定义 CSS，
  * 以及页面级自定义 CSS 与全局类的自定义 CSS（后两者复用这里的 CSS 净化）。
  *
- * 数据：element.data._html_id / _css_classes / _attributes / _custom_css；文档 settings.custom_css。
+ * 数据：element.data._html_id / _css_classes / _attributes / _custom_css；文档 settings.custom_css；
+ * 区块 settings._css_classes / _custom_css，区块标题与副标题 settings._title_* / _subtitle_*（同元素四项）。
  * ID、类名、属性都走白名单，谁能编辑页面谁就能改；自定义 CSS 能影响全站观感与布局，
  * 只有具备「全站设计」（blox_global）权限的人能新增或修改，保存时由服务端比对把关。
  *
@@ -28,6 +29,9 @@ final class BloxCustomCode
     private const ATTRIBUTE_PATTERN = '/^(?:data-[a-z0-9][a-z0-9_.-]{0,39}|aria-[a-z]{2,30}|role|title|lang|dir|tabindex)$/';
     private const ATTRIBUTE_VALUE_MAX = 500;
     private const FORBIDDEN = ['@import', '@charset', '@namespace', 'expression(', 'javascript:', 'vbscript:', 'behavior:', '-moz-binding', 'src('];
+    /** 区块自带的标题字段：各自有一套与元素相同的高级配置，存成 settings._<字段>_html_id 等 */
+    public const SECTION_FIELDS = ['title', 'subtitle'];
+    private const ADVANCED_KEYS = ['_html_id', '_css_classes', '_attributes', '_custom_css'];
 
     /** @var array<array-key,true> 本次请求已输出的 ID（同页重复的只保留第一个） */
     private static array $renderedIds = [];
@@ -186,7 +190,47 @@ final class BloxCustomCode
                 $settings['_custom_css'] = mb_substr($css, 0, self::ELEMENT_CSS_MAX + 1);
             }
         }
+        foreach (self::SECTION_FIELDS as $field) {
+            $prefix = '_' . $field;
+            $data = self::normalizeElementData(self::sectionFieldData($settings, $field));
+            foreach (self::ADVANCED_KEYS as $key) {
+                if (isset($data[$key])) {
+                    $settings[$prefix . $key] = $data[$key];
+                } else {
+                    unset($settings[$prefix . $key]);
+                }
+            }
+        }
         return $settings;
+    }
+
+    /** 区块 settings 里所有自定义 CSS 的键（区块本身 + 各标题字段），保存校验与权限比对共用。 */
+    public static function sectionCssKeys(): array
+    {
+        $keys = ['_custom_css'];
+        foreach (self::SECTION_FIELDS as $field) {
+            $keys[] = '_' . $field . '_custom_css';
+        }
+        return $keys;
+    }
+
+    /** 把 settings._title_html_id 这类键取成元素 data 的形状（_html_id …），复用元素的归一与渲染。 */
+    private static function sectionFieldData(array $settings, string $field): array
+    {
+        $data = [];
+        foreach (self::ADVANCED_KEYS as $key) {
+            if (array_key_exists('_' . $field . $key, $settings)) {
+                $data[$key] = $settings['_' . $field . $key];
+            }
+        }
+        return $data;
+    }
+
+    /** 区块标题 / 副标题的根标签：与元素一样写 ID、类、属性和作用域 CSS。 */
+    public static function applyToSectionField(string $html, array $settings, string $field, string $sectionId): string
+    {
+        return self::applyToElement($html, self::sectionFieldData($settings, $field),
+            $sectionId !== '' ? 'section:' . $sectionId . ':' . $field : '');
     }
 
     /**
@@ -257,7 +301,9 @@ final class BloxCustomCode
         // 区块 settings 与元素 data 用同一套判定：_custom_css 必须合法，无权限者不能新增或修改
         foreach ($sections as $section) {
             if (is_array($section) && is_array($section['settings'] ?? null)) {
-                self::assertCssValue($section['settings']['_custom_css'] ?? null, $canEdit);
+                foreach (self::sectionCssKeys() as $key) {
+                    self::assertCssValue($section['settings'][$key] ?? null, $canEdit);
+                }
             }
         }
         self::walk($sections, static function (array $data) use ($canEdit): void {

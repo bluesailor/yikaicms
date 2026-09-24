@@ -8311,6 +8311,8 @@ voltage|Voltage|220V',
     // V2.0.0 建站人员：区块高级配置
     'blox_section_advanced_id_hint' => 'This is the same ID as the section anchor on the Content tab, used for # links and CSS.',
     'blox_section_advanced_css_hint' => '%root% means the whole section (<section>); use selectors like %root% h2 to reach elements inside it. Plain declarations apply to the section itself.',
+    'blox_section_field_advanced_classes_hint' => 'Added to this heading tag, space-separated. Names starting with yk- are reserved.',
+    'blox_section_field_advanced_css_hint' => '%root% means this heading; plain declarations (like letter-spacing: .04em;) apply to it. Add !important to beat the size and colour set above.',
     'blox_section_advanced' => 'Advanced: ID / classes / CSS',
     'blox_section_advanced_classes_hint' => 'Space-separated, added to the <section>; theme or Tailwind classes work. Names starting with yk- are reserved.',
     'blox_annotated_label' => 'Annotated text',
