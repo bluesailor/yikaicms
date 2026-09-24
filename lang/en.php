@@ -8329,4 +8329,9 @@ voltage|Voltage|220V',
     'blox_annotated_color' => 'Annotation color',
     'blox_annotated_animate' => 'Draw when visible',
     'blox_annotated_animate_help' => 'The editor shows the finished mark. The published page draws it once; reduced-motion preferences show a static mark.',
+    // V2.0.0 整站模板市场：统计、筛选与一次性确认
+    'st_market_summary' => ':total templates · :available ready to import',
+    'st_market_filtered' => 'showing :count',
+    'st_market_clear_filter' => 'Clear filters',
+    'st_market_replace_confirm_hint' => 'Tick this to enable "Preview and import" on the templates below. Each import still opens a preview first and only runs after you confirm.',
 ];

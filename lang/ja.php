@@ -8470,4 +8470,9 @@ voltage|電圧|220V',
     'blox_annotated_color' => '注釈の色',
     'blox_annotated_animate' => '表示時に描画',
     'blox_annotated_animate_help' => '編集画面には完成形を表示します。公開ページでは一度だけ描画し、動きの低減設定では静止表示します。',
+    // V2.0.0 整站模板市场：统计、筛选与一次性确认
+    'st_market_summary' => '全 :total 件 · インポート可能 :available 件',
+    'st_market_filtered' => ':count 件を表示中',
+    'st_market_clear_filter' => '絞り込みを解除',
+    'st_market_replace_confirm_hint' => 'チェックすると下のテンプレートの「プレビューしてインポート」が使えるようになります。インポートはまずプレビューを開き、確認後に実行されます。',
 ];

@@ -8397,4 +8397,9 @@ voltage|电压|220V',
     'blox_annotated_color' => '标注颜色',
     'blox_annotated_animate' => '进入页面时绘制',
     'blox_annotated_animate_help' => '编辑画布始终显示完成效果；前台仅播放一次。低动效偏好会显示静态标注。',
+    // V2.0.0 整站模板市场：统计、筛选与一次性确认
+    'st_market_summary' => '共 :total 套模板 · 可导入 :available 套',
+    'st_market_filtered' => '当前显示 :count 套',
+    'st_market_clear_filter' => '清除筛选',
+    'st_market_replace_confirm_hint' => '勾选后，下方模板的「预览并导入」按钮才可用。导入前还会先打开预览，确认后才真正执行。',
 ];
