@@ -1369,6 +1369,18 @@ $canManageBloxDesign = hasPermission('blox_global');
             // v1.23 全局样式类：目录数据免费可读（渲染语义），创建/管理由服务端授权门再拦一道
             globalClassesEnabled: <?php echo !empty($professionalFeatures['global_classes']['allowed']) ? 'true' : 'false'; ?>,
             globalClasses: <?php echo json_encode($bloxGlobalClasses, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            // V2.0.0 样式页签的编辑目标：'' = 此元素；class_id = 编辑已挂载的全局类（表单由作者端模块提供）。
+            // 目标类必须仍挂在当前元素上才生效：切到没挂该类的元素时自动回到「此元素」。
+            styleTargetClass: "",
+            classStyleTarget() {
+                var id = this.styleTargetClass;
+                if (!id || !this.globalClassesEnabled || !this.selEl || this.panelTab !== "style") return "";
+                var list = this.selEl.data && Array.isArray(this.selEl.data._classes) ? this.selEl.data._classes : [];
+                return list.indexOf(id) !== -1 ? id : "";
+            },
+            elementStyleTab() {
+                return this.panelTab === "style" && !this.classStyleTarget();
+            },
             // v1.25 全局查询目录：循环容器可按 ID 引用（一处修改全站生效）
             globalQueries: <?php echo json_encode($bloxGlobalQueries, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             bannerPanelGroup: "common",
@@ -3931,7 +3943,7 @@ $canManageBloxDesign = hasPermission('blox_global');
             visibleCtrls() {
                 if (!this.selEl) return [];
                 if (this.ctaQuickTarget() && !this.ctaQuickDetails && this.panelTab === "content" && !this.ctrlQuery.trim() && !this.modifiedOnly) return [];
-                if (this.panelTab === "condition") return [];
+                if (this.panelTab === "condition" || this.classStyleTarget()) return [];
                 // TASK-003 R03：渲染列表一律不含通用占位项——它只服务分组与匹配（styleGroups 另走 styleCandidates）
                 var controls = window.BloxStyleGroups.withoutCommonMarker(this.styleCandidates());
                 var showAll = !!this.ctrlQuery.trim() || this.modifiedOnly || this.panelTab !== "content";

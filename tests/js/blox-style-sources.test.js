@@ -125,3 +125,42 @@ test('全局类作为第三条来源轴（E06）', () => {
   assert.equal(all.shared, 'live');
   assert.equal(all.classes.length, 1);
 });
+
+test('class conflicts: element exact values, then presets, then later-named classes block a class property', () => {
+  const catalog = {
+    styles: [{ id: 's_card', name: 'Card', status: 'live', color: '#0000ff', background: '', border_color: '', radius: 'none' }],
+    classes: {
+      gc_aaaaaaaaaaaa: { name: 'hero-title', settings: { text_color: '#c2410c', font_size_px: { d: 36, m: 28 }, margin_top_px: 24, padding_top_px: 8, radius_px: 6 } },
+      gc_bbbbbbbbbbbb: { name: 'zz-accent', settings: { font_size_px: 40 } },
+      gc_cccccccccccc: { name: 'aa-base', settings: { margin_top_px: 0 } },
+    },
+  };
+  const heading = (data) => ({ type: 'heading', data: Object.assign({ _classes: ['gc_aaaaaaaaaaaa'] }, data) });
+  const keys = (list) => list.map((item) => item.key + ':' + item.by).sort();
+
+  // 只挂类、没有本地值 → 无冲突（验收用例 1 的第二个标题）
+  assert.deepEqual(sources.classConflicts(heading({}), 'gc_aaaaaaaaaaaa', catalog), []);
+
+  // 元素本地精确值挡住类：颜色（heading 内联）、字号（声明式 CSS）、上外边距（内联 !important）
+  const local = sources.classConflicts(heading({ color: '#111111', type_font_size: { d: '20px' }, style_margin_top: '10px' }), 'gc_aaaaaaaaaaaa', catalog);
+  assert.deepEqual(keys(local), ['font_size_px:element', 'margin_top_px:element', 'text_color:element']);
+  assert.deepEqual(local.find((item) => item.key === 'margin_top_px').localKeys, ['style_margin_top']);
+  // 四边统一的本地 margin 同样挡住分边类属性
+  assert.deepEqual(sources.classConflicts(heading({ style_margin: 'lg' }), 'gc_aaaaaaaaaaaa', catalog)[0].localKeys, ['style_margin']);
+
+  // 样式预设（内联 !important）挡住颜色；预设圆角为 none 时不算
+  const preset = sources.classConflicts(heading({ _global_style: 's_card' }), 'gc_aaaaaaaaaaaa', catalog);
+  assert.deepEqual(keys(preset), ['text_color:preset']);
+  assert.equal(preset[0].name, 'Card');
+
+  // 多类：类名更靠后的类胜出（与挂载顺序无关）；更靠前的不挡
+  const multi = sources.classConflicts(heading({ _classes: ['gc_bbbbbbbbbbbb', 'gc_cccccccccccc', 'gc_aaaaaaaaaaaa'] }), 'gc_aaaaaaaaaaaa', catalog);
+  assert.deepEqual(keys(multi), ['font_size_px:class']);
+  assert.equal(multi[0].name, 'zz-accent');
+
+  // 颜色本地键只在与类同槽的元素上报（button 的 color 属于内层链接，不报）
+  assert.deepEqual(sources.classConflicts({ type: 'button', data: { _classes: ['gc_aaaaaaaaaaaa'], color: 'red' } }, 'gc_aaaaaaaaaaaa', catalog), []);
+
+  // 类不在目录里 → 不猜
+  assert.deepEqual(sources.classConflicts(heading({}), 'gc_dddddddddddd', catalog), []);
+});

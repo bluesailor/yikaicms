@@ -81,7 +81,83 @@
         };
     }
 
-    var api = { supports: supports, describe: describe };
+    // ── 编辑全局类时的反向提示：这个类属性在当前元素上会不会被挡住？ ─────────────
+    // 优先级（依据见 BloxGlobalClasses::SELECTOR_SUFFIX）：元素的精确值（内联 / .yk-r-*）
+    // > 样式预设（内联 !important）> 同元素上类名更靠后的类 > 本类 > 主题默认与元素的档位预设（Tailwind 工具类）。
+    // 只列能精确对上的本地键：对不上的宁可不报。
+    var localOverrides = {
+        text_color: function (type) { return type === 'heading' || type === 'text' ? ['color'] : []; },
+        bg_color: function () { return ['bg_color']; },
+        font_size_px: function () { return ['type_font_size']; },
+        line_height: function () { return ['type_line_height']; },
+        font_weight: function () { return ['type_font_weight']; },
+        gap_px: function () { return ['gap_px', 'row_gap_px', 'column_gap_px']; },
+        padding_px: function () {
+            return ['style_padding', 'style_padding_top', 'style_padding_right', 'style_padding_bottom', 'style_padding_left'];
+        },
+    };
+    ['top', 'right', 'bottom', 'left'].forEach(function (side) {
+        localOverrides['margin_' + side + '_px'] = function () { return ['style_margin', 'style_margin_' + side]; };
+        localOverrides['padding_' + side + '_px'] = function () { return ['style_padding', 'style_padding_' + side]; };
+    });
+    // 样式预设输出的属性 → 预设快照字段
+    var presetFields = { text_color: 'color', bg_color: 'background', border_color: 'border_color', radius_px: 'radius', radius: 'radius' };
+
+    function filled(value) {
+        if (value === undefined || value === null || value === '') return false;
+        if (object(value)) return Object.keys(value).some(function (key) { return filled(value[key]); });
+        return true;
+    }
+
+    function presetFor(data, catalog) {
+        var id = typeof data._global_style === 'string' ? data._global_style.trim() : '';
+        if (!id) return null;
+        var styles = catalog && Array.isArray(catalog.styles) ? catalog.styles : [];
+        var style = styles.find(function (item) { return object(item) && item.id === id && item.status !== 'archived'; });
+        if (style) return style;
+        return object(data._global_style_snapshot) ? data._global_style_snapshot : null;
+    }
+
+    /**
+     * 本类已设置、但在该元素上会被更高来源挡住的属性。
+     * @return {Array<{key:string, by:string, localKeys:string[], name:string}>} by: element | preset | class
+     */
+    function classConflicts(element, classId, catalog) {
+        var data = element && object(element.data) ? element.data : {};
+        var type = element && typeof element.type === 'string' ? element.type : '';
+        var classes = catalog && object(catalog.classes) ? catalog.classes : {};
+        var target = object(classes[classId]) ? classes[classId] : null;
+        if (!target || !object(target.settings)) return [];
+        var preset = presetFor(data, catalog);
+        var attached = Array.isArray(data._classes) ? data._classes : [];
+        var result = [];
+        Object.keys(target.settings).forEach(function (key) {
+            if (!filled(target.settings[key])) return;
+            var localKeys = (localOverrides[key] ? localOverrides[key](type) : []).filter(function (localKey) {
+                return filled(data[localKey]);
+            });
+            if (localKeys.length) {
+                result.push({ key: key, by: 'element', localKeys: localKeys, name: '' });
+                return;
+            }
+            var presetField = presetFields[key];
+            if (preset && presetField && filled(preset[presetField]) && preset[presetField] !== 'none') {
+                result.push({ key: key, by: 'preset', localKeys: [], name: typeof preset.name === 'string' ? preset.name : '' });
+                return;
+            }
+            // 多类：样式表按类名升序输出，同一属性类名靠后者胜出（与挂载顺序无关）
+            var winner = null;
+            attached.forEach(function (otherId) {
+                var other = classes[otherId];
+                if (otherId === classId || !object(other) || !object(other.settings) || !filled(other.settings[key])) return;
+                if (String(other.name) > String(target.name) && (!winner || String(other.name) > String(winner.name))) winner = other;
+            });
+            if (winner) result.push({ key: key, by: 'class', localKeys: [], name: String(winner.name) });
+        });
+        return result;
+    }
+
+    var api = { supports: supports, describe: describe, classConflicts: classConflicts };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     if (root) root.BloxStyleSources = api;
 })(typeof window !== 'undefined' ? window : null);

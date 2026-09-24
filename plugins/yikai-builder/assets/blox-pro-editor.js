@@ -235,34 +235,63 @@
         },
     };
 
-    // 全局样式类（v1.23）：目录数据（globalClasses）由核心提供；这里只做作者端交互。
-    // 挂类/摘类改的是 selEl.data._classes（随文档保存）；创建走 blox_class_api（服务端授权门）。
+    // 全局样式类：目录数据（globalClasses / designSystem.classes）由核心提供；这里只做作者端交互。
+    // 挂类/摘类改的是 selEl.data._classes（随文档保存、可撤销）；创建与修改类走 blox_class_api
+    // （CSRF + blox_global 权限 + 作者端授权 + revision 乐观并发），是全站生效的独立保存，不进页面撤销历史。
+    // 未保存的类修改按 class_id 暂存在 classDrafts：切换元素不丢，画布用服务端编译的整张样式表预览。
+    var classFields = Array.isArray(data.classFields) ? data.classFields : [];
+    var classApi = function (params) {
+        return fetch((window.YK_BASE || "") + "/admin/blox_class_api.php", { method: "POST", body: new URLSearchParams(params) })
+            .then(function (response) {
+                return response.json().then(function (result) {
+                    if (!result || Number(result.code) !== 0 || !result.data) {
+                        var error = new Error((result && result.msg) || "error");
+                        error.conflict = response.status === 409 || Number(result && result.code) === 409;
+                        throw error;
+                    }
+                    return result.data;
+                });
+            });
+    };
+    var classTiers = ["d", "t", "m", "w"];
     var globalClasses = {
-        newGlobalClassName: "",
+        classFields: classFields,
+        classText: data.classText && typeof data.classText === "object" ? data.classText : {},
+        classAddOpen: false,
+        classQuery: "",
+        classDrafts: {},
+        classSaving: false,
+        classUsage: null,
+        _classPreviewTimer: 0,
+        _classCanvasCss: null,
 
         elementClassIds() {
             return this.selEl && Array.isArray(this.selEl.data._classes) ? this.selEl.data._classes : [];
         },
 
+        globalClassRow(classId) {
+            return (this.globalClasses || []).find(function (item) { return item.class_id === classId; }) || null;
+        },
+
         globalClassLabel(classId) {
-            var found = (this.globalClasses || []).find(function (item) { return item.class_id === classId; });
+            var found = this.globalClassRow(classId);
             return found ? found.name : classId;
         },
 
-        availableClassOptions() {
-            var assigned = this.elementClassIds();
-            return (this.globalClasses || []).filter(function (item) {
-                return assigned.indexOf(item.class_id) === -1;
-            });
+        setStyleTarget(classId) {
+            this.styleTargetClass = String(classId || "");
+            this.classAddOpen = false;
+            if (this.styleTargetClass && this.classUsage === null) this.loadClassUsage();
         },
 
         addElementClass(classId) {
             classId = String(classId || "");
-            if (!this.selEl || !classId) return;
+            if (!this.selEl || !classId) return false;
             var list = this.elementClassIds().slice();
-            if (list.indexOf(classId) !== -1 || list.length >= 8) return;
+            if (list.indexOf(classId) !== -1 || list.length >= 8) return false;
             list.push(classId);
             this.selEl.data._classes = list;
+            return true;
         },
 
         removeElementClass(classId) {
@@ -270,26 +299,306 @@
             var list = this.elementClassIds().filter(function (item) { return item !== classId; });
             if (list.length) this.selEl.data._classes = list;
             else delete this.selEl.data._classes;
+            if (this.styleTargetClass === classId) this.styleTargetClass = "";
         },
 
-        createGlobalClass() {
-            var name = String(this.newGlobalClassName || "").trim();
+        // ── 查找 / 挂载 / 新建 ──────────────────────────────────────
+        classQueryName() {
+            return String(this.classQuery || "").trim().toLowerCase().replace(/^\.?yk-c-/, "").replace(/^\./, "");
+        },
+
+        classFinderMatches() {
+            var assigned = this.elementClassIds();
+            var query = this.classQueryName();
+            return (this.globalClasses || []).filter(function (item) {
+                return assigned.indexOf(item.class_id) === -1 && (!query || item.name.indexOf(query) !== -1);
+            }).slice(0, 30);
+        },
+
+        classFinderCanCreate() {
+            var name = this.classQueryName();
+            return !!this.canManageDesign && /^[a-z][a-z0-9-]{1,47}$/.test(name)
+                && !(this.globalClasses || []).some(function (item) { return item.name === name; });
+        },
+
+        classFinderEnter() {
+            var name = this.classQueryName();
+            var exact = (this.globalClasses || []).find(function (item) { return item.name === name; });
+            if (exact) this.attachClassFromFinder(exact.class_id);
+            else if (this.classFinderCanCreate()) this.createGlobalClass(name);
+        },
+
+        attachClassFromFinder(classId) {
+            if (this.addElementClass(classId)) this.setStyleTarget(classId);
+            this.classQuery = "";
+        },
+
+        createGlobalClass(rawName) {
+            this.classQuery = String(rawName || this.classQuery || "");
+            var name = this.classQueryName();
             if (!name || this._creatingClass) return;
             this._creatingClass = true;
-            var body = new URLSearchParams({ action: "class_add", name: name, _token: this.csrf });
             var self = this;
-            fetch((window.YK_BASE || "") + "/admin/blox_class_api.php", { method: "POST", body: body })
-                .then(function (response) { return response.json(); })
+            classApi({ action: "class_add", name: name, _token: this.csrf })
                 .then(function (result) {
-                    if (!result || Number(result.code) !== 0 || !result.data || !result.data.class) {
-                        throw new Error((result && result.msg) || "error");
-                    }
-                    self.globalClasses = (self.globalClasses || []).concat([result.data.class]);
-                    self.newGlobalClassName = "";
-                    self.addElementClass(result.data.class.class_id);
+                    if (!result.class) throw new Error("error");
+                    self.storeClassRow(result.class);
+                    self.classQuery = "";
+                    self.attachClassFromFinder(result.class.class_id);
                 })
                 .catch(function (error) { self.toast(String(error && error.message || error)); })
                 .finally(function () { self._creatingClass = false; });
+        },
+
+        /** 服务端返回的类行同时写回两份目录：挂类列表（globalClasses）与来源提示用的 designSystem.classes。 */
+        storeClassRow(row) {
+            var list = (this.globalClasses || []).filter(function (item) { return item.class_id !== row.class_id; });
+            list.push(row);
+            list.sort(function (a, b) { return a.name < b.name ? -1 : (a.name > b.name ? 1 : 0); });
+            this.globalClasses = list;
+            if (this.designSystem) {
+                var classes = Object.assign({}, this.designSystem.classes && !Array.isArray(this.designSystem.classes) ? this.designSystem.classes : {});
+                classes[row.class_id] = { name: row.name, settings: row.settings || {} };
+                this.designSystem.classes = classes;
+            }
+        },
+
+        loadClassUsage() {
+            var self = this;
+            this.classUsage = {};
+            classApi({ action: "usage", _token: this.csrf })
+                .then(function (result) { self.classUsage = result.usage && !Array.isArray(result.usage) ? result.usage : {}; })
+                .catch(function () { self.classUsage = null; });
+        },
+
+        classUsageText(classId) {
+            var usage = this.classUsage && this.classUsage[classId];
+            if (!usage || !this.classText.usage) return "";
+            return this.classText.usage.replace(":docs", usage.docs).replace(":refs", usage.refs);
+        },
+
+        // ── 表单：字段值与分档（与 BloxResponsiveValue 同义：t←d、m←t、w←d） ─────────
+        classFieldGroups() {
+            var groups = [];
+            classFields.forEach(function (field) {
+                var group = groups.find(function (item) { return item.key === field.group; });
+                if (!group) groups.push(group = { key: field.group, label: field.group_label, fields: [] });
+                group.fields.push(field);
+            });
+            return groups;
+        },
+
+        classFieldLabel(key) {
+            var field = classFields.find(function (item) { return item.key === key; });
+            return field ? field.label : key;
+        },
+
+        classSettings(classId) {
+            if (Object.prototype.hasOwnProperty.call(this.classDrafts, classId)) return this.classDrafts[classId];
+            var row = this.globalClassRow(classId);
+            return row && row.settings && !Array.isArray(row.settings) ? row.settings : {};
+        },
+
+        classTier() {
+            var tier = this.responsiveDeviceKey();
+            return classTiers.indexOf(tier) === -1 ? "d" : tier;
+        },
+
+        classTierTable(raw) {
+            if (raw === undefined || raw === null || raw === "") return {};
+            if (typeof raw === "object" && !Array.isArray(raw)) return Object.assign({}, raw);
+            return { d: raw };
+        },
+
+        classFieldOwn(field) {
+            var raw = this.classSettings(this.classStyleTarget())[field.key];
+            if (!field.responsive) return raw !== undefined && raw !== null && raw !== "";
+            var table = this.classTierTable(raw);
+            return table[this.classTier()] !== undefined && table[this.classTier()] !== null && table[this.classTier()] !== "";
+        },
+
+        classFieldValue(field) {
+            var raw = this.classSettings(this.classStyleTarget())[field.key];
+            if (!field.responsive) return raw === undefined || raw === null ? "" : raw;
+            var value = this.classTierTable(raw)[this.classTier()];
+            return value === undefined || value === null ? "" : value;
+        },
+
+        /** 本档未设时显示继承来的值（placeholder），让「缺省 / 继承 / 覆盖」看得见。 */
+        classFieldPlaceholder(field) {
+            if (!field.responsive) return "";
+            var table = this.classTierTable(this.classSettings(this.classStyleTarget())[field.key]);
+            var chain = { d: ["d"], t: ["t", "d"], m: ["m", "t", "d"], w: ["w", "d"] }[this.classTier()] || ["d"];
+            for (var i = 1; i < chain.length; i++) {
+                var value = table[chain[i]];
+                if (value !== undefined && value !== null && value !== "") {
+                    return (this.classText.inherits || ":value").replace(":value", value + (field.unit || ""));
+                }
+            }
+            return "";
+        },
+
+        classColorSwatch(field) {
+            var value = String(this.classFieldValue(field) || "");
+            return /^#[0-9a-f]{6}$/i.test(value) ? value : "#000000";
+        },
+
+        setClassField(field, raw) {
+            var classId = this.classStyleTarget();
+            if (!classId || !this.canManageDesign) return;
+            var settings = JSON.parse(JSON.stringify(this.classSettings(classId) || {}));
+            var value = typeof raw === "string" ? raw.trim() : raw;
+            if (value !== "" && ["px", "pct", "number"].indexOf(field.type) !== -1) {
+                value = Number(value);
+                if (!isFinite(value)) return;
+                value = Math.min(field.max, Math.max(field.min, value));
+                if (field.type !== "number") value = Math.round(value);
+            }
+            if (field.type === "enum" && value !== "" && field.key === "font_weight") value = Number(value);
+            if (field.responsive) {
+                var table = this.classTierTable(settings[field.key]);
+                if (value === "") delete table[this.classTier()];
+                else table[this.classTier()] = value;
+                var tiers = Object.keys(table);
+                if (!tiers.length) delete settings[field.key];
+                else settings[field.key] = tiers.length === 1 && tiers[0] === "d" ? table.d : table;
+            } else if (value === "") {
+                delete settings[field.key];
+            } else {
+                settings[field.key] = value;
+            }
+            var drafts = Object.assign({}, this.classDrafts);
+            drafts[classId] = settings;
+            this.classDrafts = drafts;
+            this.watchClassDraftsOnUnload();
+            this.scheduleClassPreview();
+        },
+
+        classDraftPending(classId) {
+            return !!classId && Object.prototype.hasOwnProperty.call(this.classDrafts, classId);
+        },
+
+        pendingClassDrafts() {
+            var self = this;
+            return Object.keys(this.classDrafts).map(function (classId) {
+                return { class_id: classId, name: self.globalClassLabel(classId) };
+            });
+        },
+
+        // ── 画布预览：服务端按草稿编译整张类样式表（与前台同一编译器），替换画布里的 #yk-blox-classes ──
+        scheduleClassPreview() {
+            var self = this;
+            clearTimeout(this._classPreviewTimer);
+            this._classPreviewTimer = setTimeout(function () {
+                classApi({ action: "class_preview", drafts: JSON.stringify(self.classDrafts), _token: self.csrf })
+                    .then(function (result) { self.applyClassCanvasCss(String(result.stylesheet || "")); })
+                    .catch(function (error) { self.toast(String(error && error.message || error)); });
+            }, 200);
+        },
+
+        applyClassCanvasCss(css) {
+            this._classCanvasCss = css;
+            var frame = this.$refs && this.$refs.canvas;
+            if (!frame) return;
+            var self = this;
+            if (!frame._ykClassCssHook) {
+                // 画布整页重载后（改文档触发的刷新）重新套用草稿样式，否则预览会退回已保存版本
+                frame._ykClassCssHook = true;
+                frame.addEventListener("load", function () {
+                    if (self._classCanvasCss !== null && Object.keys(self.classDrafts).length) self.applyClassCanvasCss(self._classCanvasCss);
+                });
+            }
+            try {
+                var doc = frame.contentDocument;
+                if (!doc || !doc.head) return;
+                var tag = doc.getElementById("yk-blox-classes");
+                if (!tag || tag.tagName !== "STYLE") {
+                    if (tag) tag.remove();
+                    tag = doc.createElement("style");
+                    tag.id = "yk-blox-classes";
+                    doc.head.appendChild(tag);
+                }
+                tag.textContent = css;
+            } catch (error) {
+                // 画布跨域或尚未就绪：预览跳过，不影响保存
+            }
+        },
+
+        saveClassDraft(classId) {
+            var row = this.globalClassRow(classId);
+            if (!row || !this.classDraftPending(classId) || this.classSaving) return;
+            this.classSaving = true;
+            var self = this;
+            classApi({
+                action: "class_update", id: classId, settings: JSON.stringify(this.classDrafts[classId]),
+                revision: String(row.revision || 0), _token: this.csrf,
+            })
+                .then(function (result) {
+                    self.storeClassRow(result.class);
+                    self.dropClassDraft(classId);
+                    // 其他类还有未保存草稿时，预览要继续带着它们
+                    if (Object.keys(self.classDrafts).length) self.scheduleClassPreview();
+                    else self.applyClassCanvasCss(String(result.stylesheet || ""));
+                    self.toast(self.classText.saved);
+                })
+                .catch(function (error) {
+                    if (!error.conflict) { self.toast(String(error && error.message || error)); return; }
+                    // 409：绝不覆盖较新的值——载入最新目录、丢弃本地草稿并提示重新修改
+                    return classApi({ action: "list", _token: self.csrf }).then(function (result) {
+                        (result.classes || []).forEach(function (item) { self.storeClassRow(item); });
+                        self.dropClassDraft(classId);
+                        self.scheduleClassPreview();
+                        self.toast(self.classText.conflictReloaded, 6000);
+                    });
+                })
+                .finally(function () { self.classSaving = false; });
+        },
+
+        discardClassDraft(classId) {
+            this.dropClassDraft(classId);
+            this.scheduleClassPreview();
+        },
+
+        dropClassDraft(classId) {
+            var drafts = Object.assign({}, this.classDrafts);
+            delete drafts[classId];
+            this.classDrafts = drafts;
+        },
+
+        watchClassDraftsOnUnload() {
+            if (this._classUnloadHook) return;
+            this._classUnloadHook = true;
+            var self = this;
+            window.addEventListener("beforeunload", function (event) {
+                if (!Object.keys(self.classDrafts).length) return;
+                event.preventDefault();
+                event.returnValue = self.classText.pending || "";
+            });
+        },
+
+        // ── 冲突提示：类属性在当前元素上被谁挡住（规则见 BloxStyleSources.classConflicts） ──
+        classConflictList() {
+            var classId = this.classStyleTarget();
+            if (!classId || !window.BloxStyleSources || !window.BloxStyleSources.classConflicts || !this.selEl) return [];
+            var classes = Object.assign({}, this.designSystem && this.designSystem.classes && !Array.isArray(this.designSystem.classes) ? this.designSystem.classes : {});
+            classes[classId] = { name: this.globalClassLabel(classId), settings: this.classSettings(classId) };
+            return window.BloxStyleSources.classConflicts(this.selEl, classId, {
+                styles: this.designSystem && Array.isArray(this.designSystem.styles) ? this.designSystem.styles : [],
+                classes: classes,
+            });
+        },
+
+        classConflictText(conflict) {
+            if (conflict.by === "preset") return String(this.classText.blockedPreset || "").replace(":name", conflict.name);
+            if (conflict.by === "class") return String(this.classText.blockedClass || "").replace(":name", conflict.name);
+            return this.classText.blockedElement || "";
+        },
+
+        /** 清除本地覆盖是对页面文档的修改（进撤销历史、随页面保存），与类本身无关。 */
+        clearClassLocalOverride(conflict) {
+            if (!this.selEl || !conflict || !Array.isArray(conflict.localKeys)) return;
+            var data = this.selEl.data;
+            conflict.localKeys.forEach(function (key) { delete data[key]; });
         },
     };
 
