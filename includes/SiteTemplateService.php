@@ -10,7 +10,7 @@ require_once __DIR__ . '/UploadReferences.php';
  * Local, explicit site transfer. Never restores accounts or server configuration.
  *
  * 默认只给全新安装的站导入。已有内容的站需管理员在预览前显式确认「覆盖现有网站」
- * （界面要求先备份数据库）：内容表整体替换，账号、会员、表单留言保留；
+ * （界面建议先备份数据库，不强制）：内容表整体替换，账号、会员、表单留言保留；
  * 导入前快照照常写入日志，可「恢复导入前」。
  */
 final class SiteTemplateService

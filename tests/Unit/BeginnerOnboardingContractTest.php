@@ -52,8 +52,8 @@ final class BeginnerOnboardingContractTest extends TestCase
         self::assertStringContainsString("hasPermission('blox_home') ? '/admin/blox_editor.php?home=1' : '/admin/setting_home.php'", $this->source('includes/SiteSetup.php'));
     }
 
-    /** 已有内容的站也能导入整站模板：先提醒备份、必须勾选确认，服务端凭勾选放行 */
-    public function testExistingSitesCanImportAfterExplicitBackupConfirmation(): void
+    /** 已有内容的站也能导入整站模板：建议备份（不强制），必须勾选「知道会覆盖」，服务端凭勾选放行 */
+    public function testExistingSitesCanImportAfterExplicitOverwriteConfirmation(): void
     {
         $local = $this->source('admin/site_templates.php');
         $market = $this->source('admin/site_template_market.php');
@@ -67,6 +67,10 @@ final class BeginnerOnboardingContractTest extends TestCase
         $service = $this->source('includes/SiteTemplateService.php');
         self::assertStringContainsString("if (!\$fresh && !\$replaceExisting) throw new RuntimeException('st_not_fresh');", $service);
         self::assertStringContainsString("\$journal['cleared'][\$table]", $service, '清空的依附表必须进日志，否则无法撤销');
+        // 备份只建议、不强制：必勾的确认只说「会覆盖」，不能要求用户声明已备份
+        $zh = require ROOT_PATH . '/lang/zh-CN.php';
+        self::assertStringNotContainsString('备份', $zh['st_replace_confirm']);
+        self::assertStringNotContainsString('备份', $zh['st_replace_reminder']);
     }
 
     /** 元素设置面板减负：PRO 只挂标题、空条件只留添加入口、元素名不被挤掉、去掉「实验」 */
