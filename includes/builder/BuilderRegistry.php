@@ -103,6 +103,7 @@ final class BuilderRegistry
         foreach ([
             // 静态元素
             new HeadingElement(),
+            new AnnotatedTextElement(),
             new PageTitleElement(),
             new BreadcrumbElement(),
             new ProductFieldElement('title'),
