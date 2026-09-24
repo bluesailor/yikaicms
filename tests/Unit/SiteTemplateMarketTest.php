@@ -172,7 +172,9 @@ final class SiteTemplateMarketTest extends TestCase
         self::assertStringContainsString('if ($isPost) verifyCsrf()', $page);
         self::assertStringContainsString('SiteTemplateMarket::verifyArchive($temporary, $selected)', $page);
         // 已有内容的站只凭勾选确认放行（replace_existing），仍然只做预览、不直接导入
-        self::assertStringContainsString('$service->prepare($temporary, getAdminId(), $replaceExisting)', $page);
+        self::assertStringContainsString('$service->prepare($temporary, getAdminId(), $replaceExisting, [', $page);
+        // 官方来源标记只在官方下载并验签、验包之后才给；导入时它只能代替「信任」，不能代替「确认」
+        self::assertLessThan(strpos($page, "'official' => true"), strpos($page, 'SiteTemplateMarket::verifyArchive($temporary, $selected)'));
         self::assertStringContainsString("redirect('/admin/site_templates.php')", $page);
         self::assertStringNotContainsString('->apply(', $page);
         self::assertStringNotContainsString('->markFreshInstall(', $page);

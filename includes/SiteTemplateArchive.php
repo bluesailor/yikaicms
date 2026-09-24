@@ -39,6 +39,16 @@ final class SiteTemplateArchive
         return preg_match('/^(\d+)\.(\d+)\.\d+$/D', $templateCms, $match) === 1 ? $match[1] . '.' . $match[2] . '.x' : $templateCms;
     }
 
+    /** 主题 theme.json 的 required_plugins（主题缺了它就不能启用）。 @return list<string> */
+    public static function themeRequiredPlugins(array $meta): array
+    {
+        $slugs = [];
+        foreach ((array) ($meta['required_plugins'] ?? []) as $slug) {
+            if (is_string($slug) && $slug !== '') $slugs[] = $slug;
+        }
+        return array_values(array_unique($slugs));
+    }
+
     public static function safePath(string $path): bool
     {
         if ($path === '' || strlen($path) > 240 || str_contains($path, '\\') || str_contains($path, '//')) return false;
@@ -165,7 +175,10 @@ final class SiteTemplateArchive
         if (!is_array($manifest['files'] ?? null) || array_diff($names, $declared) || array_diff($declared, $names)) throw new RuntimeException('st_invalid');
         foreach ($manifest['files'] as $digest) if (!is_string($digest)) throw new RuntimeException('st_invalid');
         $meta = json_decode($small['theme/theme.json'] ?? '', true);
-        if (!is_array($meta) || ThemeValidator::validateMeta($meta, $manifest['theme'])['errors'] !== []) throw new RuntimeException('st_theme');
+        if (!is_array($meta) || ThemeValidator::validateMeta($meta, $manifest['theme'], false)['errors'] !== []) throw new RuntimeException('st_theme');
+        // 主题依赖的插件必须同时在模板的插件清单里声明：这样预览会把它列为缺失插件、可一键安装；没声明的仍按主题不完整拒绝
+        $declaredPlugins = array_column($manifest['plugins'], 'slug');
+        foreach (self::themeRequiredPlugins($meta) as $slug) if (!in_array($slug, $declaredPlugins, true)) throw new RuntimeException('st_theme');
         $present = array_fill_keys($names, true);
         foreach (ThemeValidator::REQUIRED_FILES as $required) if (!isset($present['theme/' . $required])) throw new RuntimeException('st_theme');
         SiteTemplateData::validate($manifest['data'] ?? []);
