@@ -227,9 +227,9 @@ declare(strict_types=1);
             <?php /* ── 设置（选中区块/元素且未打开元素库；多选时让位给批量操作条） ── */ ?>
             <div x-show="sel && !libOpen && !multiSelActive()" class="flex-1 flex flex-col min-h-0">
                 <div class="h-10 px-3 flex items-center gap-2 border-b border-gray-100 shrink-0">
-                    <span class="text-xs font-semibold text-gray-500 tracking-wide inline-flex items-center gap-1 min-w-0">
+                    <span class="text-xs font-semibold text-gray-500 tracking-wide inline-flex items-center gap-1 min-w-0 flex-1">
                         <i class="ti ti-adjustments text-sm shrink-0"></i>
-                        <span class="truncate" x-text="panelTitle()"></span>
+                        <span class="truncate" x-text="panelTitle()" :title="panelTitle()"></span>
                     </span>
                     <?php // 元素背景统一归所在区块；从任意元素可一步进入区块样式。 ?>
                     <button type="button"
@@ -239,14 +239,16 @@ declare(strict_types=1);
                             class="text-[10px] text-amber-600 hover:text-amber-700 inline-flex items-center gap-0.5 shrink-0">
                         <i class="ti ti-arrow-left text-xs"></i><?= __('blox_banner_overall_settings') ?>
                     </button>
+                    <?php // 只留图标：文字版会把元素名挤成「标…」，名称比这个快捷入口重要 ?>
                     <button type="button" x-show="selEl && selEl.type !== 'home-banner-item'"
                             @click="openContentParent('background')"
                             data-testid="blox-edit-section-background"
-                            class="text-[10px] text-gray-500 hover:text-blue-600 inline-flex items-center gap-1 shrink-0">
-                        <i class="ti ti-photo-video text-xs"></i><?= e(__('blox_edit_section_background')) ?>
+                            title="<?= e(__('blox_edit_section_background')) ?>"
+                            class="w-7 h-7 rounded text-gray-500 hover:bg-blue-50 hover:text-blue-600 inline-flex items-center justify-center shrink-0">
+                        <i class="ti ti-photo-video text-sm" aria-hidden="true"></i><span class="sr-only"><?= e(__('blox_edit_section_background')) ?></span>
                     </button>
                     <button type="button" @click="libOpen = true" data-testid="blox-library-open"
-                            class="ml-auto shrink-0 text-xs font-medium text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2.5 py-1 inline-flex items-center gap-1">
+                            class="shrink-0 text-xs font-medium text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded px-2.5 py-1 inline-flex items-center gap-1">
                         <i class="ti ti-plus text-sm"></i><?= __('blox_element_label') ?>
                     </button>
                     <button type="button" @click="deselectAll()" data-testid="blox-deselect"

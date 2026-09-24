@@ -69,6 +69,27 @@ final class BeginnerOnboardingContractTest extends TestCase
         self::assertStringContainsString("\$journal['cleared'][\$table]", $service, '清空的依附表必须进日志，否则无法撤销');
     }
 
+    /** 元素设置面板减负：PRO 只挂标题、空条件只留添加入口、元素名不被挤掉、去掉「实验」 */
+    public function testElementPanelStaysReadableForBeginners(): void
+    {
+        $pro = $this->source('admin/blox_editor/partials/professional-features.php');
+        self::assertSame(2, substr_count($pro, "require __DIR__ . '/pro-badge.php'"), 'PRO 角标只在标题与未开通分组上各出现一次');
+        self::assertStringContainsString('<span><?= e(__($label)) ?></span><i class="ti ti-chevron-right"', $pro);
+
+        $conditions = $this->source('plugins/yikai-builder/editor/conditions-panel.php');
+        self::assertLessThan(
+            strpos($conditions, 'data-testid="blox-element-condition-diagnosis"'),
+            strpos($conditions, 'data-testid="blox-condition-add-group"'),
+            '预览检查放在条件列表之后'
+        );
+        self::assertStringContainsString('x-show="conditionGroups().length > 0" class="rounded border border-gray-200 p-3 space-y-2" data-testid="blox-element-condition-diagnosis"', $conditions);
+        self::assertStringContainsString('x-text="conditionText.emptyHint"', $conditions);
+
+        $workspace = $this->source('admin/blox_editor/partials/workspace.php');
+        self::assertStringContainsString('<span class="sr-only"><?= e(__(\'blox_edit_section_background\')) ?></span>', $workspace);
+        self::assertStringNotContainsString("label_experimental", $this->source('admin/blox_editor/partials/header.php'));
+    }
+
     public function testUrlControlsOfferTheLinkPicker(): void
     {
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
