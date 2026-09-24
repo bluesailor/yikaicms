@@ -8452,6 +8452,8 @@ voltage|電圧|220V',
     // V2.0.0 建站人员：区块高级配置
     'blox_section_advanced_id_hint' => '「コンテンツ」タブのセクションアンカーと同じ ID で、# リンクと CSS に使われます。',
     'blox_section_advanced_css_hint' => '%root% はセクション全体（<section>）を表し、%root% h2 のように中の要素も指定できます。宣言だけを書くとセクション自体に適用されます。',
+    'blox_section_field_advanced_classes_hint' => 'この見出しタグに付けます。スペース区切り。yk- で始まる名前は予約済みです。',
+    'blox_section_field_advanced_css_hint' => '%root% はこの見出しを表し、宣言だけ（letter-spacing: .04em; など）を書くとこの見出しに適用されます。上のサイズや色より優先させるには !important を付けます。',
     'blox_section_advanced' => '詳細：ID / クラス / CSS',
     'blox_section_advanced_classes_hint' => 'スペース区切りで <section> に付きます。テーマや Tailwind のクラスが使えます。yk- で始まる名前は予約済みです。',
     'blox_annotated_label' => '手描き注釈テキスト',

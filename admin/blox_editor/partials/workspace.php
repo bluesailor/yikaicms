@@ -2240,6 +2240,8 @@ declare(strict_types=1);
                                         </template>
                                     </div>
                                 </template>
+                                <?php // 与标题元素一致：样式页签最后是 ID / 类 / 属性 / 自定义 CSS ?>
+                                <?php require __DIR__ . '/section-field-advanced.php'; ?>
                             </div>
                         </div>
                     </template>

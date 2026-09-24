@@ -485,10 +485,16 @@ final class BlockRenderer
                 $html .= '<div class="' . $titleAlign . ' mb-10"' . $titleAnimAttr . '>';
                 $titleEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.title"' : '';
                 $subEditAttr = $editMode ? ' data-yk-sec-field="' . (int) $secIndex . '.subtitle"' : '';
-                $html .= '<' . $titleTag . ' class="blk-title"' . $titleEditAttr . $titleStyle . '>' . htmlspecialchars($secTitle) . '</' . $titleTag . '>';
+                $html .= BloxCustomCode::applyToSectionField(
+                    '<' . $titleTag . ' class="blk-title"' . $titleEditAttr . $titleStyle . '>' . htmlspecialchars($secTitle) . '</' . $titleTag . '>',
+                    $settings, 'title', $sectionLocatorId
+                );
                 $html .= self::sectionTitleDecor($settings);
                 if ($secSub !== '') {
-                    $html .= '<p class="blk-sub"' . $subEditAttr . $subtitleStyle . '>' . htmlspecialchars($secSub) . '</p>';
+                    $html .= BloxCustomCode::applyToSectionField(
+                        '<p class="blk-sub"' . $subEditAttr . $subtitleStyle . '>' . htmlspecialchars($secSub) . '</p>',
+                        $settings, 'subtitle', $sectionLocatorId
+                    );
                 }
                 $html .= '</div>';
             }
