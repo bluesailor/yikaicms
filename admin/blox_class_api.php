@@ -70,7 +70,8 @@ try {
             error(__('blox_class_license_required'));
         }
         $drafts = json_decode((string) post('drafts', '{}'), true);
-        success(['stylesheet' => BloxGlobalClasses::previewStylesheet(is_array($drafts) ? $drafts : [])]);
+        $forced = json_decode((string) post('force_states', '{}'), true);
+        success(['stylesheet' => BloxGlobalClasses::previewStylesheet(is_array($drafts) ? $drafts : [], is_array($forced) ? $forced : [])]);
     }
     $row = BloxGlobalClasses::mutate($action, $input, BloxFeaturePolicy::allows('global_classes'));
     adminLog('blox_class', $action, 'Blox global class ' . $action . ' ' . mb_substr((string) ($row['class_id'] ?? $input['id']), 0, 48));

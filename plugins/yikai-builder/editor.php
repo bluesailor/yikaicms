@@ -148,6 +148,11 @@ add_action('blox_editor_scripts', static function (): void {
         ],
         // V2.0.0 样式面板直接编辑全局类：字段与范围来自核心契约，这里只补文案
         'classFields' => blox_pro_class_fields(),
+        'classStates' => class_exists('BloxGlobalClasses') ? array_map(
+            static fn(string $state): array => ['key' => $state, 'label' => __('blox_class_state_' . $state)],
+            array_keys(BloxGlobalClasses::STATES)
+        ) : [],
+        'classStateKeys' => class_exists('BloxGlobalClasses') ? BloxGlobalClasses::STATE_KEYS : [],
         'classText' => [
             'createNamed' => __('blox_class_create_named'),
             'editingTier' => __('blox_class_editing_tier'),
