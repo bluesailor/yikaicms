@@ -54,12 +54,14 @@
                 this.persistElementLibraryPreferences();
             },
 
-            // Explicit canvas targets allow click-to-insert; the general palette keeps drag intent.
+            // 触屏 / 窄屏标记：只影响「先选区块」提示的展示方式，插入逻辑桌面与触屏一致。
             syncPaletteInputMode() {
                 this.paletteTapMode = window.innerWidth <= 1023
                     || !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
             },
 
+            // 单击元素即插入到当前选中位置（2.0 新手：单击只弹「请拖动」会让人以为坏了）。
+            // 不猜位置：页面已有区块却没选中任何一个时，提示先选区块。拖拽照常可用。
             activatePaletteElement(el, event) {
                 if (!el) return;
                 if (el.locked) {
@@ -68,19 +70,14 @@
                     return;
                 }
                 this.paletteSelected = el.type;
-                var keyboard = !event || event.detail === 0;
-                if (keyboard || this.paletteTapMode || this.hasQuickAddTarget()) {
-                    if (this.sections.length > 0 && this.selectedSi < 0) {
-                        this.paletteSelected = "";
-                        this.toast(this.uiText.pickSectionFirst);
-                        return;
-                    }
-                    this.quickAddTargetId = "";
-                    this.addElement(el);
+                if (this.sections.length > 0 && this.selectedSi < 0) {
                     this.paletteSelected = "";
+                    this.toast(this.uiText.pickSectionFirst);
                     return;
                 }
-                this.toast(this.uiText.dragToInsert.replace(":label", el.label));
+                this.quickAddTargetId = "";
+                this.addElement(el);
+                this.paletteSelected = "";
             },
 
             /**

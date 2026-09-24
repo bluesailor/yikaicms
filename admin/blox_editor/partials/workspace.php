@@ -50,7 +50,7 @@ declare(strict_types=1);
                             <?= __('blox_blank_auto_section') ?>
                         </p>
                     </template>
-                    <template x-if="paletteTapMode && selectedSi < 0 && sections.length > 0">
+                    <template x-if="selectedSi < 0 && sections.length > 0">
                         <p data-testid="blox-pick-section-hint"
                            class="text-[10px] text-amber-600 mt-1.5 leading-relaxed">
                             <?= __('blox_pick_section_first') ?>
@@ -940,6 +940,11 @@ declare(strict_types=1);
                                             <i class="ti ti-chevron-down text-sm text-gray-400"></i>
                                         </button>
                                     </template>
+                                    <template x-if="selectedHomeFieldDefinition().control === 'url'">
+                                        <div class="mb-1 flex justify-end">
+                                            <?php $linkPickerId = "'home-field-' + selectedHomeFieldDefinition().key"; $linkPickerSet = 'url => setSelectedHomeFieldValue(url)'; require __DIR__ . '/link-picker.php'; ?>
+                                        </div>
+                                    </template>
                                     <template x-if="selectedHomeFieldDefinition().control === 'text' || selectedHomeFieldDefinition().control === 'url'">
                                         <input type="text" :value="selectedHomeFieldValue()"
                                                @input="setSelectedHomeFieldValue($event.target.value)"
@@ -1544,9 +1549,14 @@ declare(strict_types=1);
                                     <template x-if="ctrl.type !== 'checkbox' && !ctrl.compact_richtext">
                                         <div class="flex items-center justify-between gap-2 mb-1.5">
                                             <label class="block text-[11px] font-semibold text-gray-700" x-text="ctrl.label"></label>
+                                            <div class="ml-auto flex items-center gap-0.5">
+                                            <template x-if="ctrl.type === 'url'">
+                                                <?php $linkPickerId = 'ctrl.key'; $linkPickerSet = 'url => selEl.data[ctrl.key] = url'; require __DIR__ . '/link-picker.php'; ?>
+                                            </template>
                                             <template x-if="ctrl.dynamic_tags && ctrl.type !== 'richtext'">
                                                 <?php $dynamicTagKey = 'ctrl.key'; $dynamicTagLinks = "ctrl.type === 'url'"; require __DIR__ . '/dynamic-tag-picker.php'; ?>
                                             </template>
+                                            </div>
                                             <div x-show="ctrl.responsive" class="flex items-center gap-1">
                                                 <div class="inline-flex rounded border border-gray-200 bg-gray-50 p-0.5">
                                                     <template x-for="d in devices" :key="ctrl.key + '-' + d.key">

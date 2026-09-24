@@ -55,11 +55,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <p class="mt-2 text-gray-700"><?= e(__('setup_mode_' . $homeMode)) ?></p>
         <p class="mt-2 text-gray-600"><?= e(__('setup_home_hint')) ?></p>
         <div class="flex flex-wrap gap-3 mt-4">
-            <a class="bg-primary text-white rounded px-4 py-3" href="/admin/setting_home.php"><?= e(__('setup_edit_home')) ?></a>
+            <?php $__homeEditUrl = SiteSetup::homeEditUrl(); ?>
+            <a class="bg-primary text-white rounded px-4 py-3" data-testid="setup-edit-home" href="<?= e($__homeEditUrl) ?>"><?= e(__('setup_edit_home')) ?></a>
             <a class="border rounded px-4 py-3 text-gray-700" href="/admin/theme_content.php"><?= e(__('tc_title')) ?></a>
             <a class="border rounded px-4 py-3 text-gray-700" href="/admin/theme.php"><?= e(__('admin_theme')) ?>: <?= e(currentTheme()) ?></a>
             <a class="border rounded px-4 py-3 text-gray-700" href="/" target="_blank" rel="noopener"><?= e(__('setup_preview')) ?></a>
         </div>
+        <?php if ($__homeEditUrl !== '/admin/setting_home.php'): ?>
+        <?php // 经典首页设置只留给老用户：新手点主按钮进构建器，别在两个编辑器之间犹豫 ?>
+        <p class="mt-3 text-sm text-gray-500"><a class="underline hover:text-gray-700" href="/admin/setting_home.php"><?= e(__('setup_classic_home')) ?></a></p>
+        <?php endif; ?>
         <?php if ($homeMode !== 'theme'): ?>
         <details class="mt-4 border rounded p-4">
             <summary class="cursor-pointer py-2 font-medium"><?= e(__('setup_home_switch')) ?></summary>

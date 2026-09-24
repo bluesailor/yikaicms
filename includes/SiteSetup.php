@@ -70,6 +70,15 @@ final class SiteSetup
         );
     }
 
+    /**
+     * 新手「编辑首页」只给一个入口：有构建器首页权限就进构建器（主题首页模式下打开也只是草稿，
+     * 发布前访客看不到），否则回落经典首页设置。控制台引导卡与建站向导共用。
+     */
+    public static function homeEditUrl(): string
+    {
+        return hasPermission('blox_home') ? '/admin/blox_editor.php?home=1' : '/admin/setting_home.php';
+    }
+
     /** @return list<array{label:string,url:string,done:bool}> */
     public static function checklist(): array
     {

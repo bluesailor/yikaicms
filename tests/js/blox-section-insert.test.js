@@ -129,7 +129,7 @@ test('quick add is limited to the explicitly chosen live column or container', (
     assert.equal(state.quickAddContextId(), '');
 });
 
-test('desktop palette click inserts once only after explicit quick add', () => {
+test('desktop palette click inserts into the selected section and never guesses a target', () => {
     // 元素库方法已拆入 partial（0a 编辑器拆模块），与主文件视作同一逻辑源
     const source = fs.readFileSync(path.resolve(__dirname, '../../admin/blox_editor.php'), 'utf8')
         + fs.readFileSync(path.resolve(__dirname, '../../admin/blox_editor/partials/element-library-methods.php'), 'utf8');
@@ -139,18 +139,22 @@ test('desktop palette click inserts once only after explicit quick add', () => {
     Object.assign(state, {
         sections: [{ id: 's1', columns: [{ id: 'c1' }] }],
         selectedSi: 0, selectedCi: 0, selectedEi: -1, libOpen: true,
-        paletteTapMode: false, uiText: { dragToInsert: 'Drag :label' },
+        paletteTapMode: false, uiText: { pickSectionFirst: 'Pick a section' },
         addElement(el) { this.calls.push(el.type); }
     });
     const element = { type: 'heading', label: 'Heading' };
+    // 2.0：桌面单击直接插入当前选中区块，不再要求先点「+ 添加元素」
     activate.call(state, element, { detail: 1 });
-    assert.deepEqual(state.calls, []);
+    assert.deepEqual(state.calls, ['heading']);
     state.quickAddTargetId = state.quickAddContextId();
     activate.call(state, element, { detail: 1 });
-    assert.deepEqual(state.calls, ['heading']);
-    assert.equal(state.quickAddTargetId, '');
-    activate.call(state, element, { detail: 1 });
-    assert.deepEqual(state.calls, ['heading']);
-    activate.call(state, element, { detail: 0 });
     assert.deepEqual(state.calls, ['heading', 'heading']);
+    assert.equal(state.quickAddTargetId, '');
+    activate.call(state, element, { detail: 0 });
+    assert.deepEqual(state.calls, ['heading', 'heading', 'heading']);
+    // 有区块却没选中：提示先选，不猜位置
+    state.selectedSi = -1;
+    activate.call(state, element, { detail: 1 });
+    assert.deepEqual(state.calls, ['heading', 'heading', 'heading']);
+    assert.equal(state.paletteSelected, '');
 });

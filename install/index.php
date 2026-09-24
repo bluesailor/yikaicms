@@ -505,6 +505,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             $stmt->execute();
 
+            // 「开始建站」引导同理：只在全新安装时打开，旧站升级不打扰老用户。
+            if ($driver === 'sqlite') {
+                $stmt = $pdo->prepare("INSERT OR REPLACE INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', 'onboarding_start_dismissed', '0', '控制台开始建站引导', 'switch', 14)");
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', 'onboarding_start_dismissed', '0', '控制台开始建站引导', 'switch', 14) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+            }
+            $stmt->execute();
+
             // 生成配置文件
             $configFile = ROOT_PATH . '/config/config.sample.php';
             if (!file_exists($configFile)) {
