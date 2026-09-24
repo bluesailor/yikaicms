@@ -34,12 +34,46 @@ final class BloxGlobalClasses
         'lg' => '0.75rem',
         'full' => '9999px',
     ];
-    /** 响应式 px 设置：key => [css 属性, min, max]。 */
-    private const PX_SETTINGS = [
-        'padding_px' => ['padding', 0, 160],
-        'gap_px' => ['gap', 0, 160],
-        'font_size_px' => ['font-size', 10, 120],
+    /**
+     * 响应式长度设置：key => [css 属性, min, max, 单位]。值为整数，或 {d,t,m,w} 档位表
+     * （继承 t←d、m←t、w←d，与 BloxResponsiveValue 同义）。顺序即输出顺序：
+     * 简写 padding 必须排在四边之前，四边才能覆盖简写。编辑器表单按 propertyContract() 生成。
+     */
+    private const RESPONSIVE_SETTINGS = [
+        'padding_px' => ['padding', 0, 160, 'px'],
+        'padding_top_px' => ['padding-top', 0, 400, 'px'],
+        'padding_right_px' => ['padding-right', 0, 400, 'px'],
+        'padding_bottom_px' => ['padding-bottom', 0, 400, 'px'],
+        'padding_left_px' => ['padding-left', 0, 400, 'px'],
+        'margin_top_px' => ['margin-top', -400, 400, 'px'],
+        'margin_right_px' => ['margin-right', -400, 400, 'px'],
+        'margin_bottom_px' => ['margin-bottom', -400, 400, 'px'],
+        'margin_left_px' => ['margin-left', -400, 400, 'px'],
+        'font_size_px' => ['font-size', 8, 160, 'px'],
+        'gap_px' => ['gap', 0, 160, 'px'],
+        'width_pct' => ['width', 1, 100, '%'],
+        'max_width_px' => ['max-width', 40, 2400, 'px'],
     ];
+    /** 简写属性被某条规则输出时，同规则内要重申的分边属性（否则简写会吃掉分边值）。 */
+    private const SHORTHAND_SIDES = [
+        'padding' => ['padding_top_px', 'padding_right_px', 'padding_bottom_px', 'padding_left_px'],
+    ];
+    /** 枚举设置（不分档）：key => [css 属性, 合法值]。 */
+    private const ENUM_SETTINGS = [
+        'font_weight' => ['font-weight', ['300', '400', '500', '600', '700', '800']],
+        'text_align' => ['text-align', ['left', 'center', 'right', 'justify']],
+        'justify_content' => ['justify-content', ['flex-start', 'center', 'flex-end', 'space-between', 'space-around', 'space-evenly']],
+        'align_items' => ['align-items', ['flex-start', 'center', 'flex-end', 'stretch', 'baseline']],
+    ];
+    private const LINE_HEIGHT_RANGE = [0.8, 3.0];
+    private const BORDER_WIDTH_RANGE = [0, 20];
+    private const RADIUS_PX_RANGE = [0, 999];
+    /**
+     * 类选择器后缀：把特异性从 0,1,0 抬到 0,1,1，与主题的元素限定默认值（h2.yk-type-h2、
+     * [data-blox-text-tone] :is(h1…)）打平后靠加载顺序胜出（类样式表在主题与设计 token 之后）；
+     * 仍低于元素本地值（.yk-r-* 为 0,2,0，内联/预设为 style 属性）。只作用于挂了类的元素。
+     */
+    private const SELECTOR_SUFFIX = ':not(yk-none)';
     /** 颜色类设置：key => css 属性。值为 hex 或站点色 token 引用。 */
     private const COLOR_SETTINGS = [
         'text_color' => 'color',
@@ -175,13 +209,94 @@ final class BloxGlobalClasses
     public static function stylesheet(): string
     {
         $rules = [];
-        foreach (self::catalog() as $class) {
+        foreach (self::cascadeOrder() as $class) {
             $css = self::classRules($class['name'], $class['settings']);
             if ($css !== '') {
                 $rules[] = $css;
             }
         }
         return implode("\n", $rules);
+    }
+
+    /**
+     * 编辑器预览用：把若干类的设置替换为草稿后的整张样式表（不落库）。
+     * 草稿同样过白名单；不在目录里的 class_id 忽略，无草稿时即当前样式表。
+     *
+     * @param array<mixed,mixed> $drafts class_id => settings
+     */
+    public static function previewStylesheet(array $drafts): string
+    {
+        $rules = [];
+        foreach (self::cascadeOrder() as $id => $class) {
+            $settings = is_array($drafts[$id] ?? null) ? self::normalizeSettings($drafts[$id]) : $class['settings'];
+            $css = self::classRules($class['name'], $settings);
+            if ($css !== '') {
+                $rules[] = $css;
+            }
+        }
+        return implode("\n", $rules);
+    }
+
+    /**
+     * 首批类属性契约（V2.0.0）：编辑器表单按它生成，字段、范围与输出规则同源。
+     * type: color | px | pct | number | enum；responsive=true 的字段可分 d/t/m/w 档；
+     * applies: all | flex（仅对 display:flex/grid 的容器生效）。
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function propertyContract(): array
+    {
+        $fields = [];
+        $groups = [
+            'spacing' => ['margin_top_px', 'margin_right_px', 'margin_bottom_px', 'margin_left_px',
+                'padding_px', 'padding_top_px', 'padding_right_px', 'padding_bottom_px', 'padding_left_px'],
+            'typography' => ['text_color', 'font_size_px', 'font_weight', 'line_height', 'text_align'],
+            'background' => ['bg_color'],
+            'border' => ['border_color', 'border_width_px', 'radius_px'],
+            'layout' => ['width_pct', 'max_width_px', 'gap_px', 'justify_content', 'align_items'],
+        ];
+        foreach ($groups as $group => $keys) {
+            foreach ($keys as $key) {
+                $field = ['key' => $key, 'group' => $group, 'responsive' => false, 'applies' => 'all'];
+                if (isset(self::COLOR_SETTINGS[$key])) {
+                    $field += ['type' => 'color', 'css' => self::COLOR_SETTINGS[$key]];
+                } elseif (isset(self::RESPONSIVE_SETTINGS[$key])) {
+                    [$css, $min, $max, $unit] = self::RESPONSIVE_SETTINGS[$key];
+                    $field = ['type' => $unit === '%' ? 'pct' : 'px', 'css' => $css, 'min' => $min, 'max' => $max,
+                        'step' => 1, 'unit' => $unit, 'responsive' => true] + $field;
+                } elseif (isset(self::ENUM_SETTINGS[$key])) {
+                    [$css, $options] = self::ENUM_SETTINGS[$key];
+                    $field += ['type' => 'enum', 'css' => $css, 'options' => $options];
+                } elseif ($key === 'line_height') {
+                    $field += ['type' => 'number', 'css' => 'line-height', 'min' => self::LINE_HEIGHT_RANGE[0],
+                        'max' => self::LINE_HEIGHT_RANGE[1], 'step' => 0.05, 'unit' => ''];
+                } elseif ($key === 'border_width_px') {
+                    $field += ['type' => 'px', 'css' => 'border-width', 'min' => self::BORDER_WIDTH_RANGE[0],
+                        'max' => self::BORDER_WIDTH_RANGE[1], 'step' => 1, 'unit' => 'px'];
+                } elseif ($key === 'radius_px') {
+                    $field += ['type' => 'px', 'css' => 'border-radius', 'min' => self::RADIUS_PX_RANGE[0],
+                        'max' => self::RADIUS_PX_RANGE[1], 'step' => 1, 'unit' => 'px'];
+                }
+                if (in_array($key, ['gap_px', 'justify_content', 'align_items'], true)) {
+                    $field['applies'] = 'flex';
+                }
+                $fields[] = $field;
+            }
+        }
+        return $fields;
+    }
+
+    /**
+     * 样式表输出顺序 = 多类冲突的胜负顺序：按类名字节序升序，后者胜出。
+     * 显式排序而不依赖数据库排序规则（MySQL 与 SQLite 的排序规则不同）；编辑器提示按同一规则。
+     *
+     * @return array<string,array<string,mixed>>
+     */
+    private static function cascadeOrder(): array
+    {
+        $catalog = self::catalog();
+        uasort($catalog, static fn(array $a, array $b): int => strcmp((string) $a['name'], (string) $b['name']));
+        return $catalog;
     }
 
     public static function styleTag(): string
@@ -261,62 +376,155 @@ final class BloxGlobalClasses
         }, 5);
     }
 
-    /** 单个类的 CSS 规则（基档=手机，t/d/w 按差异出媒体查询；无内容返回空串）。 */
+    /**
+     * 单个类的 CSS 规则（无内容返回空串）。
+     *
+     * 设了桌面值的响应式设置走移动优先：基档=手机，t/d/w 只在与下一档不同时出 min-width 媒体查询。
+     * 没有桌面值、只设了平板/手机/宽屏的走区间规则（排在最后），只作用于该档，不向上泄漏。
+     * 多个类在同一属性上冲突时按样式表顺序（目录按类名升序）后者胜出，与挂载顺序无关。
+     */
     public static function classRules(string $name, array $settings): string
     {
-        $selector = '.' . self::CLASS_PREFIX . $name;
+        $selector = '.' . self::CLASS_PREFIX . $name . self::SELECTOR_SUFFIX;
+        $wide = BloxResponsiveValue::wideEnabled();
         $base = [];
         foreach (self::COLOR_SETTINGS as $key => $property) {
             $value = $settings[$key] ?? '';
             if (is_string($value) && $value !== '') {
-                $base[] = $property . ':' . $value;
+                $base[$property] = $value;
             }
         }
+        $radiusPx = self::intInRange($settings['radius_px'] ?? null, self::RADIUS_PX_RANGE);
         $radius = $settings['radius'] ?? '';
-        if (is_string($radius) && $radius !== '' && $radius !== 'none' && isset(self::RADIUS_MAP[$radius])) {
-            $base[] = 'border-radius:' . self::RADIUS_MAP[$radius];
+        if ($radiusPx !== null) {
+            $base['border-radius'] = $radiusPx . 'px';
+        } elseif (is_string($radius) && $radius !== '' && $radius !== 'none' && isset(self::RADIUS_MAP[$radius])) {
+            $base['border-radius'] = self::RADIUS_MAP[$radius];
         }
-        if (isset($base[0]) && ($settings['border_color'] ?? '') !== '') {
-            $base[] = 'border-style:solid';
-            $base[] = 'border-width:1px';
+        $borderWidth = self::intInRange($settings['border_width_px'] ?? null, self::BORDER_WIDTH_RANGE);
+        if (($settings['border_color'] ?? '') !== '' || $borderWidth !== null) {
+            $base['border-style'] = 'solid';
+            $base['border-width'] = ($borderWidth ?? 1) . 'px';
+        }
+        foreach (self::ENUM_SETTINGS as $key => [$property, $allowed]) {
+            $value = self::enumOrNull($settings[$key] ?? null, $allowed);
+            if ($value !== null) {
+                $base[$property] = $value;
+            }
+        }
+        $lineHeight = self::lineHeightOrNull($settings['line_height'] ?? null);
+        if ($lineHeight !== null) {
+            $base['line-height'] = $lineHeight;
         }
 
-        $tiers = ['t' => [], 'd' => [], 'w' => []];
-        foreach (self::PX_SETTINGS as $key => [$property]) {
-            $value = $settings[$key] ?? null;
-            if (!is_array($value) && !is_numeric($value)) {
-                continue;
-            }
-            $raw = is_array($value) ? $value : ['d' => $value];
-            $d = self::pxOrNull($raw['d'] ?? null, $key);
-            if ($d === null) {
-                continue;
-            }
-            $t = self::pxOrNull($raw['t'] ?? null, $key) ?? $d;
-            $m = self::pxOrNull($raw['m'] ?? null, $key) ?? $t;
-            $w = self::pxOrNull($raw['w'] ?? null, $key) ?? $d;
-            $base[] = $property . ':' . $m . 'px';
-            if ($t !== $m) {
-                $tiers['t'][] = $property . ':' . $t . 'px';
-            }
-            if ($d !== $t) {
-                $tiers['d'][] = $property . ':' . $d . 'px';
-            }
-            if ($w !== $d && BloxResponsiveValue::wideEnabled()) {
-                $tiers['w'][] = $property . ':' . $w . 'px';
+        /** @var array<string,array{m:?int,t:?int,d:?int,w:?int}> $resolved */
+        $resolved = [];
+        foreach (self::RESPONSIVE_SETTINGS as $key => $spec) {
+            $tiers = self::resolveTiers($settings[$key] ?? null, $key, $wide);
+            if ($tiers !== null) {
+                $resolved[$key] = $tiers;
             }
         }
 
-        if ($base === [] && $tiers['t'] === [] && $tiers['d'] === [] && $tiers['w'] === []) {
-            return '';
-        }
-        $css = $base === [] ? '' : $selector . '{' . implode(';', $base) . '}';
-        foreach (['t' => 768, 'd' => 1024, 'w' => 1440] as $tier => $minWidth) {
-            if ($tiers[$tier] !== []) {
-                $css .= '@media (min-width:' . $minWidth . 'px){' . $selector . '{' . implode(';', $tiers[$tier]) . '}}';
+        $media = ['t' => [], 'd' => [], 'w' => []];
+        $ranges = ['m' => [], 't' => [], 'w' => []];
+        foreach ($resolved as $key => $tiers) {
+            [$property, , , $unit] = self::RESPONSIVE_SETTINGS[$key];
+            if ($tiers['d'] !== null) {
+                $base[$property] = $tiers['m'] . $unit;
+                if ($tiers['t'] !== $tiers['m']) {
+                    $media['t'][$property] = $tiers['t'] . $unit;
+                }
+                if ($tiers['d'] !== $tiers['t']) {
+                    $media['d'][$property] = $tiers['d'] . $unit;
+                }
+                if ($wide && $tiers['w'] !== $tiers['d']) {
+                    $media['w'][$property] = $tiers['w'] . $unit;
+                }
+                continue;
             }
+            foreach (['m', 't', 'w'] as $tier) {
+                if ($tiers[$tier] !== null) {
+                    $ranges[$tier][$property] = $tiers[$tier] . $unit;
+                }
+            }
+        }
+
+        $css = '';
+        $blocks = [
+            ['', 'm', $base],
+            ['@media (min-width:768px)', 't', $media['t']],
+            ['@media (min-width:1024px)', 'd', $media['d']],
+            ['@media (min-width:1440px)', 'w', $media['w']],
+            ['@media not all and (min-width:768px)', 'm', $ranges['m']],
+            ['@media (min-width:768px) and (max-width:1023.98px)', 't', $ranges['t']],
+            ['@media (min-width:1440px)', 'w', $ranges['w']],
+        ];
+        foreach ($blocks as [$query, $tier, $declarations]) {
+            if ($declarations === []) {
+                continue;
+            }
+            $declarations = self::restateSides($declarations, $resolved, $tier);
+            $body = [];
+            foreach ($declarations as $property => $value) {
+                $body[] = $property . ':' . $value;
+            }
+            $rule = $selector . '{' . implode(';', $body) . '}';
+            $css .= $query === '' ? $rule : $query . '{' . $rule . '}';
         }
         return $css;
+    }
+
+    /**
+     * 解析一个响应式设置的四档取值（null=该档不设）。有桌面值时按 t←d、m←t、w←d 补齐；
+     * 没有桌面值时只继承 m←t（宽屏不从平板继承），宽屏开关关闭时丢弃宽屏档。
+     *
+     * @return array{m:?int,t:?int,d:?int,w:?int}|null
+     */
+    private static function resolveTiers(mixed $value, string $key, bool $wide): ?array
+    {
+        if (!is_array($value) && !is_numeric($value)) {
+            return null;
+        }
+        $raw = is_array($value) ? $value : ['d' => $value];
+        $d = self::pxOrNull($raw['d'] ?? null, $key);
+        $t = self::pxOrNull($raw['t'] ?? null, $key) ?? $d;
+        $m = self::pxOrNull($raw['m'] ?? null, $key) ?? $t;
+        $w = $wide ? (self::pxOrNull($raw['w'] ?? null, $key) ?? $d) : $d;
+        if ($d === null && !$wide) {
+            $w = null;
+        }
+        if ($d === null && $t === null && $m === null && $w === null) {
+            return null;
+        }
+        return ['m' => $m, 't' => $t, 'd' => $d, 'w' => $w];
+    }
+
+    /**
+     * 某条规则输出了简写（padding）时，把已设置的分边值按该档重申在简写之后，
+     * 否则 `padding:24px` 会在平板档吃掉基档里的 `padding-top:40px`。
+     *
+     * @param array<string,string> $declarations
+     * @param array<string,array{m:?int,t:?int,d:?int,w:?int}> $resolved
+     * @return array<string,string>
+     */
+    private static function restateSides(array $declarations, array $resolved, string $tier): array
+    {
+        foreach (self::SHORTHAND_SIDES as $shorthand => $sideKeys) {
+            if (!isset($declarations[$shorthand])) {
+                continue;
+            }
+            foreach ($sideKeys as $sideKey) {
+                $value = $resolved[$sideKey][$tier] ?? null;
+                if ($value === null) {
+                    continue;
+                }
+                [$property, , , $unit] = self::RESPONSIVE_SETTINGS[$sideKey];
+                unset($declarations[$property]);
+                $declarations[$property] = $value . $unit;
+            }
+        }
+        return $declarations;
     }
 
     // ── 变更（class_* 动作，作者端授权） ──────────────────────────────
@@ -530,7 +738,23 @@ final class BloxGlobalClasses
         if (is_string($radius) && isset(self::RADIUS_MAP[$radius]) && $radius !== 'none') {
             $normalized['radius'] = $radius;
         }
-        foreach (array_keys(self::PX_SETTINGS) as $key) {
+        foreach (['radius_px' => self::RADIUS_PX_RANGE, 'border_width_px' => self::BORDER_WIDTH_RANGE] as $key => $range) {
+            $value = self::intInRange($settings[$key] ?? null, $range);
+            if ($value !== null) {
+                $normalized[$key] = $value;
+            }
+        }
+        foreach (self::ENUM_SETTINGS as $key => [, $allowed]) {
+            $value = self::enumOrNull($settings[$key] ?? null, $allowed);
+            if ($value !== null) {
+                $normalized[$key] = $key === 'font_weight' ? (int) $value : $value;
+            }
+        }
+        $lineHeight = self::lineHeightOrNull($settings['line_height'] ?? null);
+        if ($lineHeight !== null) {
+            $normalized['line_height'] = (float) $lineHeight;
+        }
+        foreach (array_keys(self::RESPONSIVE_SETTINGS) as $key) {
             $value = $settings[$key] ?? null;
             if (is_numeric($value)) {
                 $px = self::pxOrNull($value, $key);
@@ -549,8 +773,9 @@ final class BloxGlobalClasses
                     $tiers[$tier] = $px;
                 }
             }
-            if (isset($tiers['d'])) {
-                $normalized[$key] = count($tiers) === 1 ? $tiers['d'] : $tiers;
+            // 只有桌面值时存标量（与旧数据同形）；只设了平板/手机的也保留（区间规则）
+            if ($tiers !== []) {
+                $normalized[$key] = count($tiers) === 1 && isset($tiers['d']) ? $tiers['d'] : $tiers;
             }
         }
         return $normalized;
@@ -558,12 +783,41 @@ final class BloxGlobalClasses
 
     private static function pxOrNull(mixed $value, string $key): ?int
     {
-        if (!is_numeric($value)) {
+        [, $min, $max] = self::RESPONSIVE_SETTINGS[$key];
+        return self::intInRange($value, [$min, $max]);
+    }
+
+    /** @param array{0:int,1:int} $range */
+    private static function intInRange(mixed $value, array $range): ?int
+    {
+        // 与旧 pxOrNull 同样宽松：数字或数字串取整（表单可能给出 "16"、16.0）
+        if (!is_numeric($value) || !is_finite((float) $value)) {
             return null;
         }
-        [, $min, $max] = self::PX_SETTINGS[$key];
-        $px = (int) $value;
-        return $px >= $min && $px <= $max ? $px : null;
+        $number = (int) $value;
+        return $number >= $range[0] && $number <= $range[1] ? $number : null;
+    }
+
+    /** @param list<string> $allowed */
+    private static function enumOrNull(mixed $value, array $allowed): ?string
+    {
+        if (is_int($value)) {
+            $value = (string) $value;
+        }
+        return is_string($value) && in_array($value, $allowed, true) ? $value : null;
+    }
+
+    /** 行高：无单位倍数，0.8–3，保留两位小数；返回 CSS 文本。 */
+    private static function lineHeightOrNull(mixed $value): ?string
+    {
+        if (!is_int($value) && !is_float($value) && !(is_string($value) && is_numeric(trim($value)))) {
+            return null;
+        }
+        $number = round((float) $value, 2);
+        if (!is_finite($number) || $number < self::LINE_HEIGHT_RANGE[0] || $number > self::LINE_HEIGHT_RANGE[1]) {
+            return null;
+        }
+        return rtrim(rtrim(number_format($number, 2, '.', ''), '0'), '.');
     }
 
     // ── 用量反向索引 ─────────────────────────────────────────────────

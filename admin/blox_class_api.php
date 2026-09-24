@@ -64,6 +64,14 @@ try {
     if (post('modified', null) !== null && post('modified', '') !== '') {
         $input['modified'] = (int) post('modified', '0');
     }
+    if ($action === 'class_preview') {
+        // 编辑器草稿预览：整张样式表里替换该类的草稿设置（同样过白名单，不落库）。属作者端能力，同受授权门。
+        if (!BloxFeaturePolicy::allows('global_classes')) {
+            error(__('blox_class_license_required'));
+        }
+        $drafts = json_decode((string) post('drafts', '{}'), true);
+        success(['stylesheet' => BloxGlobalClasses::previewStylesheet(is_array($drafts) ? $drafts : [])]);
+    }
     $row = BloxGlobalClasses::mutate($action, $input, BloxFeaturePolicy::allows('global_classes'));
     adminLog('blox_class', $action, 'Blox global class ' . $action . ' ' . mb_substr((string) ($row['class_id'] ?? $input['id']), 0, 48));
     success(['class' => [
@@ -76,7 +84,7 @@ try {
         'status' => (string) ($row['status'] ?? ''),
         'modified' => (int) ($row['modified'] ?? 0),
         'revision' => (int) ($row['revision'] ?? 0),
-    ]]);
+    ], 'stylesheet' => BloxGlobalClasses::stylesheet()]);
 } catch (RuntimeException $e) {
     if ($e->getMessage() === __('blox_design_conflict')) {
         error($e->getMessage(), 409);

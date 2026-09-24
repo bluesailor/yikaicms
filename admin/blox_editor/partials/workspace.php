@@ -378,10 +378,13 @@ declare(strict_types=1);
                                 </template>
                             </div>
 
+                            <?php // 样式页签的编辑目标（此元素 / 已挂载的全局类）与类属性表单来自作者端模块；
+                                  // 选中类时下方元素样式整体让位（elementStyleTab() 为假） ?>
+                            <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_style_target'); ?>
                             <?php require __DIR__ . '/style-groups.php'; ?>
                             <?php require __DIR__ . '/visual-select.php'; ?>
 
-                            <template x-if="selEl && panelTab === 'style' && commonStyleVisible()">
+                            <template x-if="selEl && elementStyleTab() && commonStyleVisible()">
                                 <div data-testid="blox-element-visible-devices" class="rounded border border-gray-200 bg-gray-50 p-3">
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_visible_devices')) ?></label>
                                     <div class="grid gap-1" :class="wideTierEnabled() ? 'grid-cols-4' : 'grid-cols-3'">
@@ -1028,7 +1031,7 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
-                            <template x-if="isSelectedContainerEl() && panelTab === 'style'">
+                            <template x-if="isSelectedContainerEl() && elementStyleTab()">
                                 <div class="space-y-4">
                                     <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
                                         <div class="flex items-center justify-between mb-2">
@@ -1218,12 +1221,10 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
-                            <template x-if="selEl && panelTab === 'style' && commonStyleVisible() && supportsBoxStyles(selEl.type)">
+                            <template x-if="selEl && elementStyleTab() && commonStyleVisible() && supportsBoxStyles(selEl.type)">
                                 <div class="rounded border border-gray-200 bg-gray-50 p-3 space-y-3">
                                     <?php // 全局命名样式选择由 yikai-builder 作者端模块输出 ?>
                                     <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_style_preset'); ?>
-                                    <?php // 全局样式类（v1.23）挂类面板同样来自作者端模块 ?>
-                                    <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_global_classes'); ?>
                                     <?php // 容器 Loop（v1.25）查询配置面板（仅 container/div 显示，作者端模块输出） ?>
                                     <?php if (function_exists('do_action')) do_action('blox_editor_panel', 'element_loop_query'); ?>
                                     <div class="flex items-center justify-between">
