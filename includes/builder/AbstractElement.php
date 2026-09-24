@@ -374,6 +374,83 @@ abstract class AbstractElement
         return UrlPolicy::href($value, true, true);
     }
 
+    /** 可选的链接关系（受控 rel）；noopener / noreferrer 由新窗口规则自动加，不让作者选。 */
+    public const LINK_REL_OPTIONS = ['nofollow', 'sponsored', 'ugc'];
+
+    /**
+     * 链接的共用附加控件（V2.0.0：Heading / Button / Image 一致）：rel、title、aria-label。
+     *
+     * @param array<string,mixed> $extra 追加到每个控件上的键（visible_when、section 等）
+     * @return list<array<string,mixed>>
+     */
+    protected function linkAttributeControls(array $extra = []): array
+    {
+        $options = ['' => __('blox_link_rel_none')];
+        foreach (self::LINK_REL_OPTIONS as $rel) {
+            $options[$rel] = $rel;
+        }
+        return [
+            ['key' => 'link_rel', 'type' => 'select', 'label' => __('blox_link_rel'), 'default' => '', 'options' => $options] + $extra,
+            ['key' => 'link_title', 'type' => 'text', 'label' => __('blox_link_title'), 'default' => ''] + $extra,
+            ['key' => 'link_aria_label', 'type' => 'text', 'label' => __('blox_link_aria_label'), 'default' => ''] + $extra,
+        ];
+    }
+
+    /**
+     * 派生元素（商品/文章字段）删掉委托元素的部分控件后，把显示规则引用了已删除 key 的控件一并去掉，
+     * 例如标题的链接 rel/title/aria-label 在没有 url 控件的「商品标题」上没有意义。
+     *
+     * @param list<array<string,mixed>> $controls
+     * @return list<array<string,mixed>>
+     */
+    protected static function withoutOrphanedRules(array $controls): array
+    {
+        $keys = array_map(static fn(array $control): string => (string) ($control['key'] ?? ''), $controls);
+        return array_values(array_filter($controls, static function (array $control) use ($keys): bool {
+            foreach (($control['visible_when']['terms'] ?? []) as $term) {
+                if (is_array($term) && isset($term[0]) && !in_array((string) $term[0], $keys, true)) {
+                    return false;
+                }
+            }
+            return true;
+        }));
+    }
+
+    /**
+     * 链接 <a> 上 href 之后的属性串（三类元素共用）。$href 必须已过 safeHref。
+     * 新窗口一律带 noopener，外链（http(s):// 或 //）再加 noreferrer；rel 只接受白名单值；
+     * title / aria-label 转义并限长，留空不输出。
+     *
+     * @param array<string,mixed> $data
+     */
+    public static function linkAttributes(string $href, mixed $newTab, array $data): string
+    {
+        $attributes = '';
+        $rel = [];
+        $choice = $data['link_rel'] ?? '';
+        if (is_string($choice) && in_array($choice, self::LINK_REL_OPTIONS, true)) {
+            $rel[] = $choice;
+        }
+        if (BloxValueSanitizer::truthy($newTab)) {
+            $attributes .= ' target="_blank"';
+            $rel[] = 'noopener';
+            if (preg_match('#^(?:https?:)?//#i', $href) === 1) {
+                $rel[] = 'noreferrer';
+            }
+        }
+        if ($rel !== []) {
+            $attributes .= ' rel="' . implode(' ', $rel) . '"';
+        }
+        foreach (['link_title' => 'title', 'link_aria_label' => 'aria-label'] as $key => $attribute) {
+            $value = $data[$key] ?? '';
+            $value = is_string($value) ? trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '') : '';
+            if ($value !== '') {
+                $attributes .= ' ' . $attribute . '="' . htmlspecialchars(mb_substr($value, 0, 200), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
+            }
+        }
+        return $attributes;
+    }
+
     /**
      * 可用于 CSS background-image 的图片地址。
      *

@@ -743,7 +743,7 @@ final class BuilderRenderTest extends TestCase
         $keys = array_column($h->controls(), 'key');
         $this->assertSame([
             'text', 'site_field', 'site_fallback', 'loop_field', 'loop_fallback',
-            'level', 'url', 'new_tab', 'site_url_field', 'loop_url_field', 'html_id',
+            'level', 'url', 'new_tab', 'link_rel', 'link_title', 'link_aria_label', 'site_url_field', 'loop_url_field', 'html_id',
             'visual_size', 'type_font_size', 'type_line_height', 'color', 'align',
             // E10：动态绑定为空时的处置，排在动效之前
             '_empty_binding',
@@ -759,6 +759,9 @@ final class BuilderRenderTest extends TestCase
             'level' => 'h2',
             'url' => '',
             'new_tab' => false,
+            'link_rel' => '',
+            'link_title' => '',
+            'link_aria_label' => '',
             'site_url_field' => 'none',
             'loop_url_field' => 'none',
             'html_id' => '',

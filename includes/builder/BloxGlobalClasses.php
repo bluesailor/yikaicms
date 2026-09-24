@@ -247,6 +247,7 @@ final class BloxGlobalClasses
     public static function propertyContract(): array
     {
         $fields = [];
+        /** @var array<string,list<string>> $groups */
         $groups = [
             'spacing' => ['margin_top_px', 'margin_right_px', 'margin_bottom_px', 'margin_left_px',
                 'padding_px', 'padding_top_px', 'padding_right_px', 'padding_bottom_px', 'padding_left_px'],
@@ -419,7 +420,7 @@ final class BloxGlobalClasses
 
         /** @var array<string,array{m:?int,t:?int,d:?int,w:?int}> $resolved */
         $resolved = [];
-        foreach (self::RESPONSIVE_SETTINGS as $key => $spec) {
+        foreach (array_keys(self::RESPONSIVE_SETTINGS) as $key) {
             $tiers = self::resolveTiers($settings[$key] ?? null, $key, $wide);
             if ($tiers !== null) {
                 $resolved[$key] = $tiers;

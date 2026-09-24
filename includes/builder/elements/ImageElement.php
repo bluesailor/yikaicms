@@ -64,6 +64,7 @@ final class ImageElement extends AbstractElement
                 'visible_when' => ['terms' => [['click_action', '=', 'link']]]],
             ['key' => 'link_new_tab', 'type' => 'checkbox', 'label' => __('blox_new_tab_short'), 'default' => false,
                 'visible_when' => ['terms' => [['click_action', '=', 'link']]]],
+            ...$this->linkAttributeControls(['visible_when' => ['terms' => [['click_action', '=', 'link']]]]),
             // 图上标题（E05 切片 B）：仅 overlay 预设可见，留空的部分不渲染。
             ['key' => 'overlay_title', 'type' => 'text', 'label' => __('blox_overlay_title'), 'default' => '',
                 'visible_when' => ['terms' => [['image_preset', '=', 'overlay']]]],
@@ -140,7 +141,7 @@ final class ImageElement extends AbstractElement
                 DynamicSiteData::interpolate((string) $data['link_url'], true)
             ));
             if ($linkUrl !== '') {
-                $target = !empty($data['link_new_tab']) ? ' target="_blank" rel="noopener"' : '';
+                $target = self::linkAttributes($linkUrl, $data['link_new_tab'] ?? false, $data);
                 return $this->wrapOverlay('<a href="' . htmlspecialchars($linkUrl) . '"' . $target . ' class="block"' . $animationAttrs . '>' . $imgTag . '</a>', $overlay);
             }
         }

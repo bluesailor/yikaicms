@@ -8329,4 +8329,9 @@ voltage|电压|220V',
     'blox_class_import_created' => '将新建',
     'blox_class_import_renamed' => '本站已有 :from 但定义不同，导入为 :to（不覆盖本站类）',
     'blox_class_import_missing' => ':count 个类引用在包里没有定义（旧版导出），这些元素导入后不带类样式。',
+    // V2.0.0 链接一致性（标题 / 按钮 / 图片）
+    'blox_link_rel' => '链接关系（rel）',
+    'blox_link_rel_none' => '默认',
+    'blox_link_title' => '链接提示（title）',
+    'blox_link_aria_label' => '读屏名称（aria-label）',
 ];

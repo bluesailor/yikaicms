@@ -8402,4 +8402,9 @@ voltage|電圧|220V',
     'blox_class_import_created' => '新規作成',
     'blox_class_import_renamed' => ':from はこのサイトに別の定義で存在するため、:to としてインポートします（既存のクラスは上書きしません）',
     'blox_class_import_missing' => ':count 件のクラス参照はパッケージに定義がありません（旧形式のエクスポート）。これらの要素はクラススタイルなしでインポートされます。',
+    // V2.0.0 链接一致性（标题 / 按钮 / 图片）
+    'blox_link_rel' => 'リンクの関係（rel）',
+    'blox_link_rel_none' => 'デフォルト',
+    'blox_link_title' => 'リンクのツールチップ（title）',
+    'blox_link_aria_label' => 'スクリーンリーダー用ラベル（aria-label）',
 ];
