@@ -242,4 +242,70 @@ final class BloxCustomCodeTest extends TestCase
         }
         self::assertArrayNotHasKey('custom_css', BloxGlobalClasses::normalizeSettings(['custom_css' => 'x{}}']));
     }
+
+    private function sectionDocument(array $sectionSettings): string
+    {
+        return json_encode([
+            'schema' => 1,
+            'settings' => [],
+            'sections' => [['id' => 's1', 'settings' => $sectionSettings, 'columns' => [['id' => 'c1', 'elements' => [
+                ['id' => 'e1', 'type' => 'heading', 'data' => ['text' => 'T']],
+            ]]]]],
+        ], JSON_THROW_ON_ERROR);
+    }
+
+    public function testSectionClassesAndCssAreNormalizedAndRenderedOnTheSectionRoot(): void
+    {
+        $processed = BloxDocumentPipeline::process($this->sectionDocument([
+            'anchor_id' => 'features',
+            '_css_classes' => 'band-dark  yk-c-spoof md:py-24',
+            '_custom_css' => "%root% h2 { letter-spacing: .02em }\r\n",
+        ]));
+        $settings = $processed['sections'][0]['settings'];
+        self::assertSame('band-dark md:py-24', $settings['_css_classes']);
+        self::assertSame('%root% h2 { letter-spacing: .02em }', $settings['_custom_css']);
+
+        $html = BlockRenderer::render($processed['json']);
+        preg_match('/<section class="([^"]*)"[^>]*\bid="features"/', $html, $section);
+        self::assertNotEmpty($section, '区块 ID 仍由锚点输出');
+        self::assertMatchesRegularExpression('/\bband-dark md:py-24 yk-css-[a-f0-9]{10}\b/', $section[1]);
+        preg_match('/yk-css-([a-f0-9]{10})/', $section[1], $scope);
+        self::assertStringContainsString(
+            '.yk-css-' . $scope[1] . '.yk-css-' . $scope[1] . ' h2 { letter-spacing: .02em }',
+            BloxAssetCollector::renderStyles()
+        );
+
+        $empty = BloxDocumentPipeline::process($this->sectionDocument(['_css_classes' => '  ', '_custom_css' => ' ']));
+        self::assertArrayNotHasKey('_css_classes', $empty['sections'][0]['settings']);
+        self::assertArrayNotHasKey('_custom_css', $empty['sections'][0]['settings']);
+    }
+
+    public function testSectionCssFollowsTheSameSafetyAndPermissionRules(): void
+    {
+        try {
+            BloxDocumentPipeline::process($this->sectionDocument(['_custom_css' => '%root% { background: url(//evil.test/x) }']));
+            self::fail('区块的外链 CSS 应当被拒绝');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('blox_custom_css_error_external', $e->getMessage());
+        }
+
+        $withCss = $this->sectionDocument(['_custom_css' => 'color:red']);
+        BloxCustomCode::resetForTests(false);
+        try {
+            BloxDocumentPipeline::process($withCss);
+            self::fail('无权限新增区块 CSS 应当被拒绝');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('blox_custom_css_permission', $e->getMessage());
+        }
+        // 原样保留可以，其他区块设置照常可改；改 CSS 被拒；类不需要设计权限
+        $kept = BloxDocumentPipeline::process($this->sectionDocument(['_custom_css' => 'color:red', 'padding' => 'lg', '_css_classes' => 'band']), 'blox', trustedJson: $withCss);
+        self::assertSame('color:red', $kept['sections'][0]['settings']['_custom_css']);
+        self::assertSame('band', $kept['sections'][0]['settings']['_css_classes']);
+        try {
+            BloxDocumentPipeline::process($this->sectionDocument(['_custom_css' => 'color:blue']), 'blox', trustedJson: $withCss);
+            self::fail('无权限修改区块 CSS 应当被拒绝');
+        } catch (RuntimeException $e) {
+            self::assertStringContainsString('blox_protected_fields_changed', $e->getMessage());
+        }
+    }
 }

@@ -35,7 +35,7 @@ if (!defined('ROOT_PATH')) {
                 <span class="mb-1 block text-[11px] text-gray-500"><?= e(__('blox_advanced_css_classes')) ?></span>
                 <input type="text" spellcheck="false" data-testid="blox-advanced-classes"
                        :value="selEl.data._css_classes || ''"
-                       @change="setAdvancedValue('_css_classes', $event.target.value)"
+                       @change="setAdvancedValue('_css_classes', $event.target.value); $event.target.value = selEl.data._css_classes || ''"
                        placeholder="card-shadow md:flex"
                        class="w-full rounded border border-gray-200 px-2 py-1.5 font-mono text-xs focus:border-blue-400 focus:outline-none">
                 <span class="mt-1 block text-[10px] leading-relaxed text-gray-400"><?= e(__('blox_advanced_css_classes_hint')) ?></span>

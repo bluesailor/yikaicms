@@ -39,6 +39,11 @@ final class BloxProtectedFields
                 $protected['section:' . $sectionId] = $section['settings']['_conditions'];
                 unset($section['settings']['_conditions']);
             }
+            if (in_array('custom_code', $denied, true) && ($section['settings']['_custom_css'] ?? '') !== '') {
+                if ($sectionId === '') throw new RuntimeException(__('blox_protected_fields_changed'));
+                $protected['section-css:' . $sectionId] = $section['settings']['_custom_css'];
+                unset($section['settings']['_custom_css']);
+            }
             foreach ($section['columns'] ?? [] as $ci => $column) {
                 $columnId = (string) ($column['id'] ?? $ci);
                 foreach ($column['elements'] ?? [] as $ei => $element) {
