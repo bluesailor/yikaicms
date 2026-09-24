@@ -845,8 +845,8 @@
     };
 
     // 类状态的画布强制预览跟随「编辑目标 + 状态」变化（含切换元素、离开样式页签）。
-    // alpine.min.js 带 defer，一定在本脚本之后初始化。
-    document.addEventListener("alpine:initialized", function () {
+    // alpine.min.js 带 defer，一定在本脚本之后初始化。单测在无 DOM 的沙箱里加载本文件，此时跳过。
+    if (typeof document !== "undefined" && document.addEventListener) document.addEventListener("alpine:initialized", function () {
         var app = window.Alpine && window.Alpine.$data(document.body);
         if (!app || typeof app.syncClassStatePreview !== "function" || typeof app.classStyleTarget !== "function") return;
         window.Alpine.effect(function () {
