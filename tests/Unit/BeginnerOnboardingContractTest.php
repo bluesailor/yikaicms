@@ -62,6 +62,9 @@ final class BeginnerOnboardingContractTest extends TestCase
             self::assertStringContainsString('name="replace_existing" value="1" required', $page);
         }
         self::assertStringContainsString("getAdminId(), post('replace_existing') === '1')", $local);
+        // 市场页：顶部确认一次，每张卡片提交时带上 replace_existing=1；未确认前按钮不可用
+        self::assertStringContainsString("<input type=\"hidden\" name=\"replace_existing\" :value=\"replaceConfirmed ? '1' : ''\" value=\"\">", $market);
+        self::assertStringContainsString(':disabled="!replaceConfirmed"', $market);
         self::assertStringContainsString('$service->prepare($temporary, getAdminId(), $replaceExisting)', $market);
         self::assertStringContainsString('href="/admin/database.php"', $this->source('admin/includes/site_template_replace_notice.php'));
         $service = $this->source('includes/SiteTemplateService.php');

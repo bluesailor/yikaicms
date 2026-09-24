@@ -8454,4 +8454,9 @@ voltage|電圧|220V',
     'blox_section_advanced_css_hint' => '%root% はセクション全体（<section>）を表し、%root% h2 のように中の要素も指定できます。宣言だけを書くとセクション自体に適用されます。',
     'blox_section_advanced' => '詳細：ID / クラス / CSS',
     'blox_section_advanced_classes_hint' => 'スペース区切りで <section> に付きます。テーマや Tailwind のクラスが使えます。yk- で始まる名前は予約済みです。',
+    // V2.0.0 整站模板市场：统计、筛选与一次性确认
+    'st_market_summary' => '全 :total 件 · インポート可能 :available 件',
+    'st_market_filtered' => ':count 件を表示中',
+    'st_market_clear_filter' => '絞り込みを解除',
+    'st_market_replace_confirm_hint' => 'チェックすると下のテンプレートの「プレビューしてインポート」が使えるようになります。インポートはまずプレビューを開き、確認後に実行されます。',
 ];

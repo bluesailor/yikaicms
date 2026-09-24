@@ -8313,4 +8313,9 @@ voltage|Voltage|220V',
     'blox_section_advanced_css_hint' => '%root% means the whole section (<section>); use selectors like %root% h2 to reach elements inside it. Plain declarations apply to the section itself.',
     'blox_section_advanced' => 'Advanced: ID / classes / CSS',
     'blox_section_advanced_classes_hint' => 'Space-separated, added to the <section>; theme or Tailwind classes work. Names starting with yk- are reserved.',
+    // V2.0.0 整站模板市场：统计、筛选与一次性确认
+    'st_market_summary' => ':total templates · :available ready to import',
+    'st_market_filtered' => 'showing :count',
+    'st_market_clear_filter' => 'Clear filters',
+    'st_market_replace_confirm_hint' => 'Tick this to enable "Preview and import" on the templates below. Each import still opens a preview first and only runs after you confirm.',
 ];
