@@ -6,13 +6,25 @@ require_once __DIR__ . '/SiteTemplateLanguages.php';
 require_once __DIR__ . '/ThemeInstaller.php';
 require_once __DIR__ . '/UploadReferences.php';
 
-/** Local, explicit, new-install-only site transfer. Never restores accounts or server configuration. */
+/**
+ * Local, explicit site transfer. Never restores accounts or server configuration.
+ *
+ * 默认只给全新安装的站导入。已有内容的站需管理员在预览前显式确认「覆盖现有网站」
+ * （界面要求先备份数据库）：内容表整体替换，账号、会员、表单留言保留；
+ * 导入前快照照常写入日志，可「恢复导入前」。
+ */
 final class SiteTemplateService
 {
     private string $root;
     private string $store;
     private const GUARD = "<?php http_response_code(404); exit; ?>\n";
     private const PRIVATE_TABLES = ['forms', 'members', 'mail_log', 'content_revisions', 'blox_page_drafts'];
+    /**
+     * 覆盖现有站时一并清空：它们按 ID 指向被替换的内容表，而导入行保留包内原 ID——
+     * 不清就会把旧草稿、旧历史版本挂到毫不相干的新页面上。全新站里这些表本来就是空的。
+     */
+    private const REPLACE_CLEARS = ['blox_page_drafts', 'content_revisions', 'blox_import_reviews',
+        'blox_remote_template_states', 'media_remote_imports'];
 
     public function __construct(string $root)
     {
@@ -33,6 +45,17 @@ final class SiteTemplateService
     {
         $baseline = $this->readRecord('baseline');
         return $baseline !== null && hash_equals((string) $baseline['fingerprint'], SiteTemplateData::fingerprint());
+    }
+
+    /**
+     * 预览后的计划是否仍可执行：新站，或预览时已确认覆盖；两种情况都要求数据自预览起没变。
+     *
+     * @param array<string,mixed> $plan
+     */
+    private function planStillApplies(array $plan): bool
+    {
+        return (!empty($plan['replace_existing']) || $this->canApply())
+            && hash_equals((string) ($plan['fingerprint'] ?? ''), SiteTemplateData::fingerprint());
     }
 
     public function recovery(): ?array
@@ -158,10 +181,12 @@ final class SiteTemplateService
         return $this->summary($manifest, $files);
     }
 
-    public function prepare(string $archive, int $adminId): array
+    /** @param bool $replaceExisting 已有内容的站：管理员已确认备份并同意覆盖 */
+    public function prepare(string $archive, int $adminId, bool $replaceExisting = false): array
     {
         $this->supported();
-        if (!$this->canApply()) throw new RuntimeException('st_not_fresh');
+        $fresh = $this->canApply();
+        if (!$fresh && !$replaceExisting) throw new RuntimeException('st_not_fresh');
         // inspect 只做条目校验与 manifest 解析，不把内容读进内存——32MB 包在这里的
         // 峰值是单个小文件，而不是「整包解压 + base64 副本 + JSON 副本」（旧实现在
         // memory_limit=128M 的主机上会在 apply 中途 fatal）。
@@ -181,10 +206,11 @@ final class SiteTemplateService
         $this->writeRecord('plan', ['token' => $token, 'owner' => $adminId, 'expires' => time() + 600,
             'fingerprint' => SiteTemplateData::fingerprint(), 'hash' => $package['hash'],
             'alias' => 'sitepack-' . bin2hex(random_bytes(8)), 'media' => $media, 'staged' => 0,
+            'replace_existing' => !$fresh,
             'missing_plugins' => $missingPlugins, 'plugin_requirements' => $matchedRequirements,
             'plugin_before_hash' => SiteTemplatePluginData::fingerprint($pluginBefore)]);
         return ['token' => $token, 'summary' => $this->summary($package['manifest'], array_fill_keys($package['names'], '')),
-            'missing_plugins' => $missingPlugins];
+            'missing_plugins' => $missingPlugins, 'replace_existing' => !$fresh];
     }
 
     /** 单次 stage 请求的预算：够小才能在共享主机的执行时限内完成，够大才不至于来回太多趟。 */
@@ -207,7 +233,7 @@ final class SiteTemplateService
         $this->supported();
         $plan = $this->readRecord('plan');
         if ($plan === null || !hash_equals((string) $plan['token'], $token) || $plan['owner'] !== $adminId || $plan['expires'] < time()) throw new RuntimeException('st_stale');
-        if (!$this->canApply() || !hash_equals((string) $plan['fingerprint'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_not_fresh');
+        if (!$this->planStillApplies($plan)) throw new RuntimeException('st_not_fresh');
 
         $archive = $this->store . '/package.zip';
         $this->assertContained($archive);
@@ -267,7 +293,7 @@ final class SiteTemplateService
                 // 别名在 prepare 阶段就定下：分阶段提取要往固定目录落盘，重复请求也不会换目录
                 $alias = (string) $plan['alias'];
                 $this->supported();
-                if (!$this->canApply() || !hash_equals((string) $plan['fingerprint'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_not_fresh');
+                if (!$this->planStillApplies($plan)) throw new RuntimeException('st_not_fresh');
                 $archive = $this->store . '/package.zip';
                 $this->assertContained($archive);
                 if (!is_file($archive) || !hash_equals((string) $plan['hash'], (string) hash_file('sha256', $archive))) throw new RuntimeException('st_stale');
@@ -317,7 +343,7 @@ final class SiteTemplateService
                 if ($data['settings']['contact_email'] !== '' && filter_var($data['settings']['contact_email'], FILTER_VALIDATE_EMAIL) === false) throw new RuntimeException('st_brand');
 
                 $this->beginLockedTransaction();
-                if (!$this->canApply() || !hash_equals((string) $plan['fingerprint'], SiteTemplateData::fingerprint())) throw new RuntimeException('st_stale');
+                if (!$this->planStillApplies($plan)) throw new RuntimeException('st_stale');
                 $pluginBefore = SiteTemplatePluginData::targetSnapshot($pluginData, $matchedRequirements);
                 if (!hash_equals((string) ($plan['plugin_before_hash'] ?? ''), SiteTemplatePluginData::fingerprint($pluginBefore))) throw new RuntimeException('st_stale');
                 $journal = ['status' => 'preparing', 'created_at' => time(), 'before' => SiteTemplateData::fingerprint(),
@@ -325,7 +351,19 @@ final class SiteTemplateService
                     'plugin_requirements' => $matchedRequirements, 'alias' => $alias];
                 $this->writeRecord('current', $journal);
                 $this->installFiles($package['files'], $alias, $map);
+                if (!empty($plan['replace_existing'])) {
+                    // 清空前整表记入日志：「撤销导入并恢复」要连它们一起还原，
+                    // 否则草稿 / 历史版本参与的数据指纹对不上，恢复会被拒绝。
+                    $journal['cleared'] = [];
+                    foreach (self::REPLACE_CLEARS as $table) {
+                        // 不排序：并非每张表都有 id 列（如 blox_remote_template_states）
+                        $journal['cleared'][$table] = db()->fetchAll('SELECT * FROM ' . DB_PREFIX . $table);
+                    }
+                }
                 SiteTemplateData::replace($data);
+                if (!empty($plan['replace_existing'])) {
+                    foreach (self::REPLACE_CLEARS as $table) db()->execute('DELETE FROM ' . DB_PREFIX . $table);
+                }
                 $journal['plugin_after'] = SiteTemplatePluginData::apply($pluginData, $matchedRequirements);
                 $journal['after'] = SiteTemplateData::fingerprint();
                 $journal['status'] = 'prepared_commit';
@@ -362,7 +400,13 @@ final class SiteTemplateService
                 // A local backup must reproduce the original state, including pre-existing dangling seed references.
                 // Uploaded packages still undergo full reference validation in Archive::read and replace().
                 SiteTemplateData::replace($journal['snapshot'], false);
-                $pluginSnapshot = is_array($journal['plugin_snapshot'] ?? null) ? $journal['plugin_snapshot'] : [];
+                // 覆盖现有站时被清空的草稿 / 历史版本等（见 REPLACE_CLEARS），原样放回
+                foreach ((is_array($journal['cleared'] ?? null) ? $journal['cleared'] : []) as $table => $rows) {
+                    if (!in_array($table, self::REPLACE_CLEARS, true) || !is_array($rows)) continue;
+                    db()->execute('DELETE FROM ' . DB_PREFIX . $table);
+                    foreach ($rows as $row) if (is_array($row)) db()->insert($table, $row);
+                }
+                $pluginSnapshot =is_array($journal['plugin_snapshot'] ?? null) ? $journal['plugin_snapshot'] : [];
                 $portableBackup = [];
                 foreach ($pluginSnapshot as $slug => $entry) $portableBackup[$slug] = [
                     'contract' => $entry['contract'], 'schema' => $entry['schema'], 'payload' => $entry['payload'],

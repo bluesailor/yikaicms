@@ -160,6 +160,26 @@ try {
     $tampered->close();
     rejects(static fn() => SiteTemplateArchive::read($root . '/bad.zip'), 'st_limit');
     rejects(static fn() => $service->prepare($zip, 1), 'st_not_fresh');
+
+    // ── 覆盖现有站（2.0）：未确认拒绝（上一行）；确认后可预览、提取、导入；
+    //    按 ID 挂靠被替换内容的草稿 / 历史版本被清空；「撤销导入并恢复」照常回到导入前 ──
+    // 源站的测试配置覆盖只服务上面的导出断言；留着的话导入后设置与覆盖不符，恢复会被 st_overrides 拦下
+    $GLOBALS['_test_config_overrides'] = [];
+    db()->insert('content_revisions', ['target_type' => 'content', 'target_id' => 1, 'snapshot' => '{}', 'created_at' => time()]);
+    db()->insert('blox_page_drafts', ['page_id' => 1, 'draft_data' => '{"old":"draft"}', 'created_at' => time(), 'updated_at' => time()]);
+    $existingBefore = SiteTemplateData::fingerprint();
+    $overwrite = $service->prepare($zip, 1, true);
+    check($overwrite['replace_existing'] === true, 'Confirmed overwrite of an existing site is recorded in the preview');
+    do { $staged = $service->stage($overwrite['token'], 1); } while (!$staged['complete']);
+    $service->apply($overwrite['token'], 1, ['site_name' => 'Overwritten'], true);
+    settingModel()->clearCache();
+    check((string) settingModel()->get('site_name') === 'Overwritten', 'Overwrite applies the package to the existing site');
+    foreach (['content_revisions', 'blox_page_drafts'] as $dependentTable) {
+        check((int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . $dependentTable) === 0, "Overwrite clears stale {$dependentTable}");
+    }
+    $service->restore();
+    check(SiteTemplateData::fingerprint() === $existingBefore, 'Undo after an overwrite restores the pre-import content');
+
     $GLOBALS['_test_config_overrides'] = [];
     foreach (SiteTemplateData::TABLES as $table) db()->execute('DELETE FROM ' . DB_PREFIX . $table);
     settingModel()->saveBatch(['current_theme' => 'default', 'site_name' => 'Fresh', 'site_logo' => '', 'site_url' => 'https://target.test']);

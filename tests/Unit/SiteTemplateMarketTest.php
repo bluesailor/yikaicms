@@ -150,7 +150,8 @@ final class SiteTemplateMarketTest extends TestCase
         self::assertStringContainsString("requirePermission('*')", $page);
         self::assertStringContainsString('if ($isPost) verifyCsrf()', $page);
         self::assertStringContainsString('SiteTemplateMarket::verifyArchive($temporary, $selected)', $page);
-        self::assertStringContainsString('$service->prepare($temporary, getAdminId())', $page);
+        // 已有内容的站只凭勾选确认放行（replace_existing），仍然只做预览、不直接导入
+        self::assertStringContainsString('$service->prepare($temporary, getAdminId(), $replaceExisting)', $page);
         self::assertStringContainsString("redirect('/admin/site_templates.php')", $page);
         self::assertStringNotContainsString('->apply(', $page);
         self::assertStringNotContainsString('->markFreshInstall(', $page);
