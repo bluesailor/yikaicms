@@ -52,7 +52,7 @@ final class ProductFieldElement extends AbstractElement
             if ($key === 'text') $control['default'] = __('blox_product_link_label');
             $controls[] = $control;
         }
-        return $controls;
+        return self::withoutOrphanedRules($controls);
     }
 
     public function render(array $data, string $children = ''): string

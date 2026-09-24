@@ -69,7 +69,7 @@ final class ArticleFieldElement extends AbstractElement
             $controls[] = $control;
         }
 
-        return $controls;
+        return self::withoutOrphanedRules($controls);
     }
 
     public function render(array $data, string $children = ''): string

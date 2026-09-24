@@ -60,6 +60,30 @@ $confirmLabel = $isRemoteReview ? ($confirmLabels[$operation] ?? __('blox_import
                 <?php endif; ?>
             <?php endforeach; ?>
         <?php endforeach; ?>
+        <?php // 全局类：导入前说明每个类会被复用、新建还是改名（本站同名类永不被覆盖） ?>
+        <?php $classDiagnostic = is_array($importReview['class_diagnostics'] ?? null) ? $importReview['class_diagnostics'] : []; ?>
+        <?php if (array_filter($classDiagnostic) !== []): ?>
+            <div class="min-w-0 space-y-1 text-sm" data-testid="blox-import-classes">
+                <p class="font-medium text-gray-900"><?= e(__('blox_global_classes')) ?></p>
+                <?php foreach (['reused', 'created'] as $kind): ?>
+                    <?php if (($classDiagnostic[$kind] ?? []) !== []): ?>
+                        <p class="break-words text-gray-600" data-testid="blox-import-classes-<?= e($kind) ?>">
+                            <?= e(__('blox_class_import_' . $kind)) ?>: <?= e(implode(', ', array_map(static fn(string $name): string => '.yk-c-' . $name, $classDiagnostic[$kind]))) ?>
+                        </p>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+                <?php foreach ($classDiagnostic['renamed'] ?? [] as $rename): ?>
+                    <p class="break-words text-amber-700" data-testid="blox-import-classes-renamed">
+                        <?= e(__('blox_class_import_renamed', ['from' => '.yk-c-' . $rename['from'], 'to' => '.yk-c-' . $rename['to']])) ?>
+                    </p>
+                <?php endforeach; ?>
+                <?php if (($classDiagnostic['missing'] ?? []) !== []): ?>
+                    <p class="break-words text-amber-700" data-testid="blox-import-classes-missing">
+                        <?= e(__('blox_class_import_missing', ['count' => count($classDiagnostic['missing'])])) ?>
+                    </p>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
         <fieldset class="min-w-0">
             <legend class="mb-2 text-sm font-medium text-gray-900"><?= e(__('blox_import_styles')) ?></legend>
             <label class="mr-4 inline-flex items-center gap-2 text-sm"><input type="radio" name="style_mode" value="keep" x-model="styleMode" checked><?= e(__('blox_import_keep')) ?></label>
