@@ -51,6 +51,7 @@ test('element advanced panel writes ID, classes, attributes and scoped CSS; page
 
   await fillAndCommit(page, page.getByTestId('blox-advanced-id'), 'e2e-anchor');
   await fillAndCommit(page, page.getByTestId('blox-advanced-classes'), 'e2e-card  md:flex yk-c-fake');
+  await expect(page.getByTestId('blox-advanced-classes')).toHaveValue('e2e-card md:flex');
   await page.getByTestId('blox-advanced-attribute-add').click();
   const attribute = page.getByTestId('blox-advanced-attribute').first();
   await attribute.locator('input').nth(0).fill('data-track');
@@ -164,4 +165,53 @@ test('the header page switcher searches pages and guards unsaved changes @ci', a
     menu.getByTestId('blox-page-switcher-item').first().click(),
   ]);
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
+});
+
+test('section advanced panel sets ID, classes and scoped CSS on the <section> @ci', async ({ page, browser, baseURL }, info) => {
+  await openPageEditor(page, state.page);
+  await page.getByTestId('blox-tree-section').first().getByTestId('blox-tree-section-label').click();
+  await page.getByTestId('blox-style-tab').click();
+  const panel = page.getByTestId('blox-section-advanced');
+  await expect(panel).toBeVisible();
+  if (!(await panel.evaluate(el => el.open))) await panel.locator('summary').click();
+
+  await fillAndCommit(page, page.getByTestId('blox-section-advanced-id'), 'e2e-band');
+  await fillAndCommit(page, page.getByTestId('blox-section-advanced-classes'), 'e2e-band-dark yk-c-spoof');
+  // 被拒的类名当场从输入框里去掉，不等保存后才消失
+  await expect(page.getByTestId('blox-section-advanced-classes')).toHaveValue('e2e-band-dark');
+  const css = page.getByTestId('blox-section-advanced-css');
+  await css.fill('%root% { color: red; } }');
+  await expect(page.getByTestId('blox-section-advanced-css-error')).toBeVisible();
+  await fillAndCommit(page, css, '%root% { border-top: 4px solid rgb(0, 128, 0) } %root% h2 { letter-spacing: 2px }');
+  await expect(page.getByTestId('blox-section-advanced-css-error')).toBeHidden();
+
+  const canvas = await frame(page);
+  const section = canvas.locator('section#e2e-band');
+  await expect(section).toHaveCount(1);
+  await expect(section).toHaveClass(/\be2e-band-dark\b/);
+  await expect(section).not.toHaveClass(/yk-c-spoof/);
+  await expect.poll(() => section.evaluate(el => getComputedStyle(el).borderTopColor)).toBe('rgb(0, 128, 0)');
+  await expect.poll(() => section.locator('h2').first().evaluate(el => getComputedStyle(el).letterSpacing)).toBe('2px');
+  await info.attach('section-advanced-panel', { body: await panel.screenshot(), contentType: 'image/png' });
+
+  for (const [action, button] of [['save_draft', 'blox-save'], ['publish', 'blox-publish-page']]) {
+    const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
+      && new URLSearchParams(r.request().postData() || '').get('action') === action);
+    if (action === 'publish') page.once('dialog', dialog => dialog.accept());
+    await page.getByTestId(button).click();
+    expect((await (await response).json()).code).toBe(0);
+  }
+  await expectClean(page);
+
+  const context = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
+  try {
+    const front = await context.newPage();
+    expect((await front.goto(state.url)).status()).toBe(200);
+    const published = front.locator('section#e2e-band');
+    await expect(published).toHaveClass(/\be2e-band-dark\b/);
+    expect(await published.evaluate(el => getComputedStyle(el).borderTopColor)).toBe('rgb(0, 128, 0)');
+    expect(await published.locator('h2').first().evaluate(el => getComputedStyle(el).letterSpacing)).toBe('2px');
+  } finally {
+    await context.close();
+  }
 });

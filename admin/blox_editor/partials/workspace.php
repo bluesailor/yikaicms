@@ -2960,6 +2960,8 @@ declare(strict_types=1);
                                     <p class="text-[10px] text-gray-400 mt-1"><?= __('blox_col_card_hint') ?></p>
                                 </div>
                                 </div>
+                                <?php // 区块高级配置：ID / CSS 类 / 自定义 CSS（只在选中区块层时显示） ?>
+                                <?php require __DIR__ . '/section-advanced.php'; ?>
                             </div>
                         </div>
                     </template>
