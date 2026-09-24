@@ -87,7 +87,25 @@
                             </div>
                             <p class="text-[10px] leading-relaxed text-gray-500"><?= e(__('blox_class_sitewide_note')) ?></p>
                             <p x-show="!canManageDesign" class="text-[10px] text-amber-700" data-testid="blox-class-readonly"><?= e(__('blox_class_readonly')) ?></p>
-                            <p class="text-[10px] text-gray-500" x-text="classText.editingTier.replace(':device', responsiveDeviceRangeLabel(previewDevice))"></p>
+                            <p x-show="!classState" class="text-[10px] text-gray-500" x-text="classText.editingTier.replace(':device', responsiveDeviceRangeLabel(previewDevice))"></p>
+                        </div>
+
+                        <?php // 交互状态：基础 / 悬停 / 键盘聚焦。状态只存不分档的颜色、边框、圆角、字重 ?>
+                        <div x-show="classStates.length" class="space-y-1" data-testid="blox-class-states">
+                            <div class="grid gap-1" :class="'grid-cols-' + (classStates.length + 1)" role="group" aria-label="<?= e(__('blox_class_states')) ?>">
+                                <button type="button" @click="setClassState('')" data-testid="blox-class-state-base"
+                                        :aria-pressed="classState ? 'false' : 'true'"
+                                        class="rounded border px-2 py-1 text-[11px] transition"
+                                        :class="classState ? 'border-gray-200 bg-white text-gray-500 hover:text-gray-700' : 'border-sky-600 bg-sky-600 text-white'"><?= e(__('blox_class_state_base')) ?></button>
+                                <template x-for="state in classStates" :key="'state-' + state.key">
+                                    <button type="button" @click="setClassState(state.key)" :data-testid="'blox-class-state-' + state.key"
+                                            :aria-pressed="classState === state.key ? 'true' : 'false'"
+                                            class="rounded border px-2 py-1 text-[11px] transition"
+                                            :class="classState === state.key ? 'border-sky-600 bg-sky-600 text-white' : 'border-gray-200 bg-white text-gray-500 hover:text-gray-700'"
+                                            x-text="state.label"></button>
+                                </template>
+                            </div>
+                            <p x-show="classState" class="text-[10px] leading-relaxed text-gray-500"><?= e(__('blox_class_state_hint')) ?></p>
                         </div>
 
                         <template x-for="conflict in classConflictList()" :key="'conflict-' + conflict.key">

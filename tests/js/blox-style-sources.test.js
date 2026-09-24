@@ -164,3 +164,31 @@ test('class conflicts: element exact values, then presets, then later-named clas
   // 类不在目录里 → 不猜
   assert.deepEqual(sources.classConflicts(heading({}), 'gc_dddddddddddd', catalog), []);
 });
+
+test('class conflicts cover hover/focus states and never report the states map itself', () => {
+  const catalog = {
+    styles: [{ id: 's_card', name: 'Card', status: 'live', color: '', background: '#ffffff', border_color: '', radius: 'none' }],
+    classes: {
+      gc_aaaaaaaaaaaa: { name: 'cta', settings: {
+        text_color: '#111111',
+        states: { hover: { text_color: '#c2410c', bg_color: '#fff7ed' }, focus: { border_color: '#c2410c' } },
+      } },
+      gc_bbbbbbbbbbbb: { name: 'zz-hover', settings: { states: { hover: { bg_color: '#000000' } } } },
+      gc_cccccccccccc: { name: 'aa-base', settings: { states: { focus: { border_color: '#000000' } } } },
+    },
+  };
+  const el = (data) => ({ type: 'heading', data: Object.assign({ _classes: ['gc_aaaaaaaaaaaa'] }, data) });
+  const keys = (list) => list.map((item) => (item.state ? item.state + '.' : '') + item.key + ':' + item.by).sort();
+
+  assert.deepEqual(sources.classConflicts(el({}), 'gc_aaaaaaaaaaaa', catalog), []);
+  // 内联本地颜色同时挡住基础与悬停状态的文字颜色
+  assert.deepEqual(keys(sources.classConflicts(el({ color: '#222222' }), 'gc_aaaaaaaaaaaa', catalog)),
+    ['hover.text_color:element', 'text_color:element']);
+  // 样式预设的背景（内联 !important）挡住悬停背景
+  assert.deepEqual(keys(sources.classConflicts(el({ _global_style: 's_card' }), 'gc_aaaaaaaaaaaa', catalog)),
+    ['hover.bg_color:preset']);
+  // 多类只比同一状态：zz-hover 的悬停背景胜出；aa-base 名字更靠前，不挡聚焦边框
+  const multi = sources.classConflicts(el({ _classes: ['gc_aaaaaaaaaaaa', 'gc_bbbbbbbbbbbb', 'gc_cccccccccccc'] }), 'gc_aaaaaaaaaaaa', catalog);
+  assert.deepEqual(keys(multi), ['hover.bg_color:class']);
+  assert.equal(multi[0].name, 'zz-hover');
+});
