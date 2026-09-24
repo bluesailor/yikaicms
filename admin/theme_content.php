@@ -74,7 +74,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <button type="submit" class="bg-primary text-white rounded px-4 py-3"><?= e(__('tc_save')) ?></button>
     </form>
     <?php endif; ?>
-    <div class="flex flex-wrap gap-3"><a href="/admin/setting_home.php" class="border rounded px-4 py-3"><?= e(__('setup_edit_home')) ?></a>
+    <?php require_once ROOT_PATH . '/includes/SiteSetup.php'; ?>
+    <div class="flex flex-wrap gap-3"><a href="<?= e(SiteSetup::homeEditUrl()) ?>" class="border rounded px-4 py-3"><?= e(__('setup_edit_home')) ?></a>
         <a href="<?= e(langUrl('/', $language)) ?>" target="_blank" rel="noopener" class="border rounded px-4 py-3"><?= e(__('setup_preview')) ?></a></div>
 </div>
 <script>

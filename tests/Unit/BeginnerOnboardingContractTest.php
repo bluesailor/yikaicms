@@ -104,4 +104,23 @@ final class BeginnerOnboardingContractTest extends TestCase
         self::assertStringContainsString("require __DIR__ . '/blox_editor/partials/link-picker-methods.php'", $this->source('admin/blox_editor.php'));
         self::assertContains('includes/builder/BloxLinkCatalog.php', (require ROOT_PATH . '/config/release-runtime.php')['required_files']);
     }
+
+    /** 经典首页设置降级：新手处处只看到一个「编辑首页」入口，旧选项整组收进建站向导的折叠区 */
+    public function testClassicHomeSettingsStayOutOfTheNewcomerPath(): void
+    {
+        $setup = $this->source('admin/site_setup.php');
+        $legacy = strpos($setup, 'data-testid="setup-legacy-home"');
+        self::assertIsInt($legacy);
+        self::assertLessThan((int) strpos($setup, 'href="/admin/setting_home.php"'), $legacy, '经典首页链接只在折叠区里');
+        self::assertLessThan((int) strpos($setup, 'name="action" value="theme_home"'), $legacy, '「改用主题首页」也在折叠区里');
+
+        $channel = $this->source('admin/channel.php');
+        self::assertStringNotContainsString('href="/admin/setting_home.php"', $channel);
+        self::assertStringNotContainsString('data-home-editor-trigger', $channel, '不再弹窗让新手在两个编辑器之间选');
+        self::assertSame(2, substr_count($channel, '<a href="<?php echo e($_homeEditUrl); ?>"'));
+        self::assertStringContainsString('$_homeEditUrl = SiteSetup::homeEditUrl();', $channel);
+
+        self::assertStringContainsString('<a href="<?= e(SiteSetup::homeEditUrl()) ?>"', $this->source('admin/theme_content.php'));
+        self::assertStringContainsString("(\$isHomeBlox ? '/admin/site_setup.php' : '/admin/page.php')", $this->source('admin/blox_editor/partials/header.php'));
+    }
 }
