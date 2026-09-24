@@ -57,6 +57,8 @@ final class MarketCatalogItemsTest extends TestCase
         self::assertIsInt($browse);
         self::assertIsInt($install);
         self::assertStringContainsString('MarketCatalogItems::select(', substr($source, $browse, $install - $browse));
-        self::assertStringContainsString('MarketCatalogItems::select(', substr($source, $install));
+        // 安装走 PluginMarketInstall::catalog()，与浏览同一套选择
+        self::assertStringContainsString('PluginMarketInstall(ROOT_PATH))->install($slug)', substr($source, $install));
+        self::assertStringContainsString('return MarketCatalogItems::select(', (string) file_get_contents(ROOT_PATH . '/includes/PluginMarketInstall.php'));
     }
 }

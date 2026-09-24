@@ -17,50 +17,28 @@ require_once ROOT_PATH . '/includes/MarketCatalogRequest.php';
 require_once ROOT_PATH . '/includes/MarketDownloadUrl.php';
 require_once ROOT_PATH . '/includes/PluginMarketPackage.php';
 require_once ROOT_PATH . '/includes/PluginInstaller.php';
+require_once ROOT_PATH . '/includes/PluginMarketInstall.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('*');
 
 // 插件市场 API（升级服务器承载，见 update.yikaicms/api/plugins/list.php）
-const PLUGIN_MARKET_API = 'https://update.yikaicms.com/api/plugins/list.php';
+const PLUGIN_MARKET_API = PluginMarketInstall::API;
 
 /**
- * 从本地 ZIP 安装插件（上传安装与市场安装共用）。
- * 校验及暂存完成后替换目录；登记失败恢复旧目录，不自动启用。
+ * 从本地 ZIP 安装插件（上传安装与市场安装共用，实现见 PluginMarketInstall）。
  * @return array{0: bool, 1: string, 2: string} [成功?, 消息, slug]
  */
 function pluginInstallFromZip(string $zipPath, string $expectedSlug = '', string $expectedVersion = '', string $origin = 'local'): array
 {
-    $installer = new PluginInstaller(ROOT_PATH . '/plugins', ROOT_PATH . '/storage');
-    $result = $installer->install($zipPath, static function (string $pluginSlug): void {
-        if (!pluginModel()->findBySlug($pluginSlug)) {
-            pluginModel()->create([
-                'slug' => $pluginSlug, 'status' => 0,
-                'installed_at' => time(), 'activated_at' => 0,
-            ]);
-        }
-    }, $expectedSlug, $expectedVersion, $origin);
-    if ($result['ok']) {
-        return [true, __('pl_installed') . ': ' . $result['name'], $result['slug']];
-    }
-    return [false, pluginInstallError($result['code']), $result['slug']];
+    $result = (new PluginMarketInstall(ROOT_PATH))->installZip($zipPath, $expectedSlug, $expectedVersion, $origin);
+    return [$result['ok'], $result['msg'], $result['slug']];
 }
 
 function pluginInstallError(string $code): string
 {
-    return __(match ($code) {
-        'no_zip' => 'pl_no_zip_ext',
-        'open_zip' => 'pl_zip_open_failed',
-        'invalid' => 'pl_manifest_invalid',
-        'mismatch' => 'pl_mismatch',
-        'unsafe', 'resource' => 'pl_package_unsafe',
-        'origin_unknown' => 'market_origin_unknown',
-        'origin_changed' => 'market_origin_changed',
-        'busy' => 'pl_install_busy',
-        'rollback_failed' => 'pl_install_recovery_required',
-        default => 'pl_install_failed_preserved',
-    });
+    return PluginMarketInstall::errorMessage($code);
 }
 
 function pluginMarketDecorate(array $item): array
@@ -81,61 +59,10 @@ function pluginMarketDecorate(array $item): array
     return MarketDownloadStatus::decorate($item);
 }
 
-/**
- * GET 一个 URL 返回 body（curl 优先，回退 allow_url_fopen；失败返回 null）。
- * $maxBytes > 0 时边下边计数，超过上限立即中止并把 $tooLarge 置 true（不先整包读入内存）。
- */
+/** GET 一个 URL 返回 body（实现见 PluginMarketInstall::httpGet：不跟随跳转、可限量）。 */
 function pluginMarketHttpGet(string $url, int $timeout = 15, ?int &$status = null, int $maxBytes = 0, bool &$tooLarge = false): ?string
 {
-    $status = 0;
-    $tooLarge = false;
-    if (function_exists('curl_init')) {
-        $body = '';
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_TIMEOUT => $timeout,
-            CURLOPT_SSL_VERIFYPEER => true, CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$body, $maxBytes, &$tooLarge): int {
-                if ($maxBytes > 0 && strlen($body) + strlen($chunk) > $maxBytes) {
-                    $tooLarge = true;
-                    return 0; // 返回值与块长不符 → curl 中止传输
-                }
-                $body .= $chunk;
-                return strlen($chunk);
-            },
-        ]);
-        curl_exec($ch);
-        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        return !$tooLarge && $status >= 200 && $status < 300 && $body !== '' ? $body : null;
-    }
-    if (ini_get('allow_url_fopen')) {
-        $stream = @fopen($url, 'rb', false, stream_context_create(['http' => [
-            'timeout' => $timeout, 'follow_location' => 0, 'max_redirects' => 0, 'ignore_errors' => true,
-        ]]));
-        if ($stream === false) {
-            return null;
-        }
-        $meta = stream_get_meta_data($stream);
-        $headers = is_array($meta['wrapper_data'] ?? null) ? $meta['wrapper_data'] : [];
-        preg_match('/^HTTP\/\S+\s+(\d{3})/', (string) ($headers[0] ?? ''), $match);
-        $status = (int) ($match[1] ?? 0);
-        $body = '';
-        while (!feof($stream)) {
-            $chunk = fread($stream, 65536);
-            if ($chunk === false) {
-                break;
-            }
-            if ($maxBytes > 0 && strlen($body) + strlen($chunk) > $maxBytes) {
-                $tooLarge = true;
-                break;
-            }
-            $body .= $chunk;
-        }
-        fclose($stream);
-        return !$tooLarge && $status >= 200 && $status < 300 && $body !== '' ? $body : null;
-    }
-    return null;
+    return PluginMarketInstall::httpGet($url, $timeout, $status, $maxBytes, $tooLarge);
 }
 
 // 确保 plugins 表存在
@@ -243,97 +170,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             break;
 
         case 'market_install':
-            // 以服务端拿到的市场元数据为准（不信任前端传来的 URL/哈希）；
-            // 同样带授权参数，否则付费插件拿不到下载地址
-            $resp = pluginMarketHttpGet(PLUGIN_MARKET_API . '?' . MarketCatalogRequest::query());
-            $data = MarketCatalogRequest::decode($resp, 'plugins');
-            if ($data === null) {
-                echo json_encode(['code' => 1, 'msg' => __('pl_market_offline')]);
-                exit;
-            }
-            $item = null;
-            foreach (MarketCatalogItems::select(is_array($data['data']['plugins'] ?? null) ? $data['data']['plugins'] : []) as $p) {
-                if (($p['slug'] ?? '') === $slug) {
-                    $item = $p;
-                    break;
-                }
-            }
-            if ($item && MarketDownloadStatus::reason($item) !== '') {
-                $tip = MarketDownloadStatus::message(MarketDownloadStatus::reason($item), (string) ($item['requires_cms'] ?? ''));
-                echo json_encode(['code' => 1, 'msg' => $tip], JSON_UNESCAPED_UNICODE);
-                exit;
-            }
-            if (!$item || empty($item['download_url']) || empty($item['hash'])) {
-                echo json_encode(['code' => 1, 'msg' => __('pl_not_in_market')]);
-                exit;
-            }
-
-            $origin = (string) ($item['source'] ?? 'official');
-            try {
-                (new PluginInstaller(ROOT_PATH . '/plugins', ROOT_PATH . '/storage'))->assertOrigin($slug, $origin);
-            } catch (RuntimeException $error) {
-                echo json_encode(['code' => 1, 'msg' => pluginInstallError($error->getMessage())], JSON_UNESCAPED_UNICODE);
-                exit;
-            }
-
-            // 下载前的本地边界：只向官方包路径或市场令牌地址发请求，且不把已装插件换成旧版本
-            $marketVersion = (string) ($item['version'] ?? '');
-            if (!PluginMarketPackage::isOfficialUrl((string) $item['download_url'], $slug, $marketVersion)) {
-                adminLog('plugin', 'market_install_blocked', 'Untrusted plugin download URL: ' . $slug);
-                echo json_encode(['code' => 1, 'msg' => __('pl_download_untrusted')], JSON_UNESCAPED_UNICODE);
-                exit;
-            }
-            $installedVersion = PluginMarketPackage::installedVersion(ROOT_PATH . '/plugins', $slug);
-            if (PluginMarketPackage::isDowngrade($installedVersion, $marketVersion)) {
-                adminLog('plugin', 'market_install_blocked', 'Plugin marketplace downgrade blocked: ' . $slug
-                    . ' local=' . $installedVersion . ' remote=' . $marketVersion);
-                echo json_encode(['code' => 1, 'msg' => __('pl_downgrade_refused')], JSON_UNESCAPED_UNICODE);
-                exit;
-            }
-
-            // 下载到临时文件
-            $tmpZip = tempnam(sys_get_temp_dir(), 'ykplg');
-            if (!is_string($tmpZip)) {
-                echo json_encode(['code' => 1, 'msg' => __('pl_download_failed')]);
-                exit;
-            }
-            $status = 0;
-            $tooLarge = false;
-            $body = pluginMarketHttpGet($item['download_url'], 120, $status, PluginMarketPackage::MAX_PACKAGE_BYTES, $tooLarge);
-            if ($body === null || file_put_contents($tmpZip, $body) === false) {
-                @unlink($tmpZip);
-                $message = $tooLarge ? __('pl_package_too_large') : ($body === null ? MarketDownloadStatus::httpMessage($status) : __('pl_download_failed'));
-                echo json_encode(['code' => 1, 'msg' => $message], JSON_UNESCAPED_UNICODE);
-                exit;
-            }
-
-            // 完整性：sha256 必须一致
-            $expected = strtolower((string) preg_replace('/^sha256:/', '', $item['hash']));
-            $actual = strtolower((string) hash_file('sha256', $tmpZip));
-            if (!hash_equals($expected, $actual)) {
-                @unlink($tmpZip);
-                echo json_encode(['code' => 1, 'msg' => __('pl_hash_failed')]);
-                exit;
-            }
-
-            // 来源：RSA-SHA256 验签（规范串 slug|version|sha256:hash，公钥同在线升级）
-            require_once ROOT_PATH . '/includes/License.php';
-            $sig = base64_decode((string) ($item['sig'] ?? ''), true);
-            $canonical = $slug . '|' . ($item['version'] ?? '') . '|sha256:' . $expected;
-            if ($sig === false || $sig === ''
-                || !function_exists('openssl_verify')
-                || openssl_verify($canonical, $sig, license_pubkey(), OPENSSL_ALGO_SHA256) !== 1) {
-                @unlink($tmpZip);
-                echo json_encode(['code' => 1, 'msg' => __('pl_sig_failed')]);
-                exit;
-            }
-
-            [$ok, $msg, $pluginSlug] = pluginInstallFromZip($tmpZip, $slug, (string) ($item['version'] ?? ''), $origin);
-            @unlink($tmpZip);
-            if ($ok) {
-                adminLog('plugin', 'market_install', '市场安装插件: ' . $pluginSlug . ' v' . ($item['version'] ?? ''));
-            }
-            echo json_encode(['code' => $ok ? 0 : 1, 'msg' => $msg, 'slug' => $ok ? $pluginSlug : '']);
+            // 与整站模板「一并安装所需插件」同一条链（PluginMarketInstall::install）：
+            // 以服务端重新拉取的市场元数据为准，下载前查来源 / 官方地址 / 不降级，下载后校验 sha256 与签名
+            $result = (new PluginMarketInstall(ROOT_PATH))->install($slug);
+            echo json_encode(['code' => $result['ok'] ? 0 : 1, 'msg' => $result['msg'], 'slug' => $result['ok'] ? $result['slug'] : ''],
+                JSON_UNESCAPED_UNICODE);
             break;
 
         default:

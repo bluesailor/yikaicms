@@ -43,9 +43,9 @@ final class MarketDownloadStatusTest extends TestCase
     public function testAdminGuardsRunBeforeDownloadsAndThemeLogOmitsToken(): void
     {
         $theme = (string) file_get_contents(ROOT_PATH . '/admin/theme.php');
-        $plugin = (string) file_get_contents(ROOT_PATH . '/admin/plugin.php');
+        $plugin = (string) file_get_contents(ROOT_PATH . '/includes/PluginMarketInstall.php');
         self::assertLessThan(strpos($theme, 'ThemeMarket::downloadPackageToFile'), strpos($theme, "if (\$item && !empty(\$item['download_blocked']))"));
-        self::assertLessThan(strpos($plugin, "pluginMarketHttpGet(\$item['download_url']"), strpos($plugin, 'MarketDownloadStatus::reason($item)'));
+        self::assertLessThan(strpos($plugin, "(\$this->httpGet)((string) \$item['download_url']"), strpos($plugin, 'MarketDownloadStatus::reason($item)'));
         self::assertStringNotContainsString(". ' [' . \$download['code'] . '] ' . \$item['download_url']", $theme);
         self::assertStringContainsString('CURLOPT_FOLLOWLOCATION => false', $plugin);
     }
