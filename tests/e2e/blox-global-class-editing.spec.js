@@ -54,6 +54,17 @@ async function selectHeading(page, id) {
 async function setClassField(page, key, value) {
   const preview = classAction(page, 'class_preview');
   const input = page.getByTestId(`blox-class-input-${key}`);
+  if (key.endsWith('_color')) {
+    // 颜色字段走与元素颜色控件同一个取色器：自定义十六进制
+    await input.click();
+    await expect(page.getByTestId('blox-editor-color-picker')).toBeVisible();
+    await page.getByTestId('blox-editor-color-text').fill(String(value));
+    await page.getByTestId('blox-editor-color-text').press('Enter');
+    expect((await (await preview).json()).code).toBe(0);
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('blox-editor-color-picker')).toBeHidden();
+    return;
+  }
   await input.fill(String(value));
   await input.press('Tab');
   expect((await (await preview).json()).code).toBe(0);
@@ -291,7 +302,8 @@ test('hover and keyboard-focus states: forced in the canvas while editing, live 
   await page.getByTestId('blox-class-state-hover').click();
   expect(new URLSearchParams((await forcedPreview).request().postData()).get('force_states')).toContain('"hover"');
   await expect(page.getByTestId('blox-class-input-margin_top_px')).toHaveCount(0);
-  await expect(page.getByTestId('blox-class-input-text_color')).toHaveValue('');
+  // 悬停里没填的颜色显示为继承自基础的颜色
+  await expect(page.getByTestId('blox-class-input-text_color')).toContainText('#c2410c');
   await setClassField(page, 'text_color', '#1d4ed8');
   await setClassField(page, 'transition_ms', 150);
   const canvas = await frame(page);
@@ -353,4 +365,57 @@ test('hover and keyboard-focus states: forced in the canvas while editing, live 
   } finally {
     await context.close();
   }
+});
+
+test('class colours can use site colour variables from the shared picker and follow them on the front end @ci', async ({ page, browser, baseURL }, info) => {
+  const background = (locator) => locator.evaluate(el => getComputedStyle(el).backgroundColor);
+  const primaryIn = (target) => target.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.style.backgroundColor = 'var(--yk-color-primary)';
+    document.body.appendChild(probe);
+    const value = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return value;
+  });
+  await openPageEditor(page, state.page);
+  await selectHeading(page, 'gcf-heading-b');
+  await page.getByTestId(`blox-style-target-class-${CLASS_NAME}`).click();
+
+  // 同一个取色器：站点颜色在最上面，选中后存的是变量引用而不是写死的色值
+  const trigger = page.getByTestId('blox-class-input-bg_color');
+  await trigger.click();
+  await expect(page.getByTestId('blox-editor-color-site-colors')).toBeVisible();
+  await info.attach('class-color-picker', { body: await page.getByTestId('blox-editor-color-picker').screenshot(), contentType: 'image/png' });
+  const preview = classAction(page, 'class_preview');
+  await page.getByTestId('blox-editor-color-token-primary').click();
+  const drafts = JSON.parse(new URLSearchParams((await preview).request().postData()).get('drafts'));
+  expect(Object.values(drafts)[0].bg_color).toBe('var(--yk-color-primary)');
+  await page.keyboard.press('Escape');
+  await expect(trigger).toHaveAttribute('data-color-token', 'primary');
+
+  const canvas = await frame(page);
+  const canvasPrimary = await primaryIn(canvas.locator('body'));
+  await expect.poll(() => background(heading(canvas, 'gcf-heading-b'))).toBe(canvasPrimary);
+  expect((await saveClass(page)).code).toBe(0);
+  const saved = await page.evaluate((name) => window.Alpine.$data(document.body).globalClasses.find(item => item.name === name).settings.bg_color, CLASS_NAME);
+  expect(saved).toBe('var(--yk-color-primary)');
+
+  const context = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
+  try {
+    const front = await context.newPage();
+    expect((await front.goto(state.url)).status()).toBe(200);
+    const frontB = front.locator('h2', { hasText: 'Class heading B' });
+    expect(await background(frontB)).toBe(await primaryIn(front.locator('body')));
+    await info.attach('front-color-variable', { body: await frontB.screenshot(), contentType: 'image/png' });
+  } finally {
+    await context.close();
+  }
+
+  // 清除：取色器底部的「清除」回到未设置
+  await trigger.click();
+  const cleared = classAction(page, 'class_preview');
+  await page.getByTestId('blox-editor-color-clear').click();
+  expect(JSON.parse(new URLSearchParams((await cleared).request().postData()).get('drafts'))).not.toHaveProperty([Object.keys(drafts)[0], 'bg_color']);
+  await expect(trigger).toHaveAttribute('data-color-token', '');
+  await page.getByTestId('blox-class-discard').click();
 });

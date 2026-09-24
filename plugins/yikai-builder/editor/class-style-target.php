@@ -132,16 +132,21 @@
                                                 </button>
                                             </span>
                                             <template x-if="field.type === 'color'">
-                                                <span class="flex items-center gap-1">
-                                                    <input type="color" :value="classColorSwatch(field)" :disabled="!canManageDesign"
-                                                           :class="classFieldValue(field) ? '' : 'opacity-25'"
-                                                           @input="setClassField(field, $event.target.value)"
-                                                           class="h-7 w-8 shrink-0 rounded border border-gray-200 bg-white p-0.5">
-                                                    <input type="text" :value="classFieldValue(field)" :disabled="!canManageDesign"
-                                                           @change="setClassField(field, $event.target.value)" placeholder="#000000"
-                                                           :data-testid="'blox-class-input-' + field.key"
-                                                           class="flex-1 min-w-0 border border-gray-200 rounded px-2 py-1 text-xs font-mono">
-                                                </span>
+                                                <?php // 与元素颜色控件同一个取色器：站点颜色（设计变量）、推荐色、最近使用、自定义 ?>
+                                                <button type="button" :disabled="!canManageDesign"
+                                                        @click.prevent="openEditorColorPicker($event, 'class-' + field.key, field.label, classFieldValue(field), '#000000', true, value => setClassField(field, value))"
+                                                        :data-testid="'blox-class-input-' + field.key" :data-color-token="colorTokenId(classFieldValue(field))"
+                                                        class="flex h-8 w-full items-center gap-2 rounded border bg-white px-1.5 text-left hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed"
+                                                        :class="classFieldOwn(field) ? 'border-sky-300' : 'border-gray-200'">
+                                                    <span class="h-5 w-7 shrink-0 rounded border border-black/10"
+                                                          :class="classFieldOwn(field) ? '' : 'opacity-40'"
+                                                          :style="'background:' + classColorPreview(field)"></span>
+                                                    <span class="min-w-0 flex-1 truncate text-xs"
+                                                          :class="classFieldOwn(field) ? 'text-gray-700' : 'text-gray-400'"
+                                                          x-text="classColorLabel(field)"></span>
+                                                    <i x-show="colorTokenId(classFieldValue(field))" class="ti ti-palette text-xs text-sky-500" aria-hidden="true"></i>
+                                                    <i class="ti ti-chevron-down text-xs text-gray-400" aria-hidden="true"></i>
+                                                </button>
                                             </template>
                                             <template x-if="field.type === 'enum'">
                                                 <select :value="classFieldValue(field)" :disabled="!canManageDesign"
