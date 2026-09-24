@@ -33,8 +33,10 @@ declare(strict_types=1);
                 <?php endif; ?>
             </a>
             <span class="blox-header-brand-copy hidden min-[1920px]:inline-flex items-center gap-1.5 font-bold tracking-wide shrink-0">
-                <i class="ti ti-stack-2 text-blue-400"></i><?php echo e(__('blox_editor_title')); ?>
-                <?php // 2.0 起构建器是正式主力编辑器，不再挂「实验」标签 ?>
+                <?php // 2.0 起构建器是正式主力编辑器：顶栏用产品名 Page Builder，右上角挂品牌角标，不再挂「实验」标签 ?>
+                <i class="ti ti-stack-2 text-blue-400"></i>
+                <span class="relative pr-6" data-testid="blox-header-brand">Page Builder<span
+                      class="absolute -top-2 right-0 rounded bg-blue-500 px-1 text-[9px] font-semibold leading-4 tracking-normal text-white"><?php echo e(__('blox_header_brand_badge')); ?></span></span>
             </span>
             <span class="blox-header-page min-w-0 text-gray-400 text-sm truncate">/ <?php echo e($isHomeBlox ? __('blox_home_draft') : $page['name']); ?></span>
             <?php

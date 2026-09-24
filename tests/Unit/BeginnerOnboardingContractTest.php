@@ -87,7 +87,10 @@ final class BeginnerOnboardingContractTest extends TestCase
 
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
         self::assertStringContainsString('<span class="sr-only"><?= e(__(\'blox_edit_section_background\')) ?></span>', $workspace);
-        self::assertStringNotContainsString("label_experimental", $this->source('admin/blox_editor/partials/header.php'));
+        $header = $this->source('admin/blox_editor/partials/header.php');
+        self::assertStringNotContainsString("label_experimental", $header);
+        self::assertStringContainsString('data-testid="blox-header-brand">Page Builder', $header);
+        self::assertStringContainsString("__('blox_header_brand_badge')", $header);
     }
 
     public function testUrlControlsOfferTheLinkPicker(): void
