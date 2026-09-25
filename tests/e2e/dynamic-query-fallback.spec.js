@@ -10,24 +10,31 @@ const fixture = action => execFileSync(process.env.PHP_BINARY || 'php', [path.jo
 test.beforeAll(() => fixture('seed'));
 test.afterAll(() => fixture('cleanup'));
 
-test('index.php query fallback renders pages without rewrite and emits a pretty canonical @ci', async ({ request }, testInfo) => {
+// 查询模式（fixture 设 url_mode=query）下，canonical 跟随 URL 模式转成可用的查询地址（2026-09-21 起，
+// deploy/URL-COMPATIBILITY.md）：没有伪静态时漂亮地址是 404，canonical 不能指向它。只保留页面身份参数。
+const canonicalOf = (body) => {
+  const raw = body.match(/<link rel="canonical" href="([^"]+)"/i)?.[1] || '';
+  return new URL(raw.replace(/&amp;/g, '&'), 'http://canonical.test');
+};
+
+test('index.php query fallback renders pages without rewrite and emits a working query canonical @ci', async ({ request }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one HTTP routing pass is sufficient');
 
   const cases = [
     {
       path: '/index.php?yk_route=home',
       marker: 'Yikai CMS',
-      canonical: '/',
+      canonical: { path: '/', params: {} },
     },
     {
       path: '/index.php?yk_route=page&parent=service-ja&slug=process-ja&lang=ja',
       marker: 'サービスフロー',
-      canonical: '/ja/service-ja/process-ja.html',
+      canonical: { path: '/index.php', params: { yk_route: 'page', parent: 'service-ja', slug: 'process-ja', lang: 'ja' } },
     },
     {
       path: '/index.php?yk_route=search&keyword=%E6%99%BA%E8%83%BD',
       marker: '搜索',
-      canonical: '/search.html',
+      canonical: { path: '/index.php', params: { yk_route: 'search' } },
     },
   ];
 
@@ -36,11 +43,10 @@ test('index.php query fallback renders pages without rewrite and emits a pretty 
     expect(response.status(), item.path).toBe(200);
     const body = await response.text();
     expect(body, item.path).toContain(item.marker);
-    const canonical = response.headers()['x-yikai-render'] === 'dynamic'
-      ? body.match(/<link rel="canonical" href="([^"]+)"/i)?.[1]
-      : null;
-    expect(canonical, item.path).toContain(item.canonical);
-    expect(canonical, item.path).not.toContain('yk_route');
+    expect(response.headers()['x-yikai-render'], item.path).toBe('dynamic');
+    const canonical = canonicalOf(body);
+    expect(canonical.pathname, item.path).toBe(item.canonical.path);
+    expect(Object.fromEntries(canonical.searchParams), item.path).toEqual(item.canonical.params);
   }
 });
 
@@ -75,21 +81,20 @@ test('query-mode GET forms retain their route, language and category @ci', async
   expect(newsUrl.searchParams.get('lang')).toBe('en');
 });
 
-test('query mode keeps canonical URLs pretty and rejects conflicting languages @ci', async ({ request }, testInfo) => {
+test('query mode canonical URLs stay on working query routes and conflicting languages are rejected @ci', async ({ request }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one HTTP routing pass is sufficient');
 
-  for (const pathName of [
-    '/index.php?yk_route=product&id=1',
-    '/index.php?yk_route=page&id=2',
-    '/index.php?yk_route=detail&id=1',
+  for (const [pathName, route] of [
+    ['/index.php?yk_route=product&id=1', 'product'],
+    ['/index.php?yk_route=page&id=2', 'page'],
+    ['/index.php?yk_route=detail&id=1', 'article'], // 内容 1 是文章：canonical 规范到文章路由
   ]) {
     const response = await request.get(pathName);
     expect(response.status(), pathName).toBe(200);
-    const body = await response.text();
-    const canonical = body.match(/<link rel="canonical" href="([^"]+)"/i)?.[1] || '';
-    expect(canonical, pathName).not.toContain('yk_route');
-    expect(canonical, pathName).not.toContain('/index.php');
-    expect(canonical, pathName).toMatch(/\.html$/);
+    const canonical = canonicalOf(await response.text());
+    expect(canonical.pathname, pathName).toBe('/index.php');
+    expect(canonical.searchParams.get('yk_route'), pathName).toBe(route);
+    expect(canonical.href, pathName).not.toMatch(/\.html(?:$|[?#])/);
   }
 
   const conflict = await request.get('/index.php?yk_route=home&lang=ja&_lang=zh-CN');
