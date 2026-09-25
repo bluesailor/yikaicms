@@ -52,21 +52,28 @@ final class BeginnerOnboardingContractTest extends TestCase
         self::assertStringContainsString("hasPermission('blox_home') ? '/admin/blox_editor.php?home=1' : '/admin/setting_home.php'", $this->source('includes/SiteSetup.php'));
     }
 
-    /** 已有内容的站也能导入整站模板：先提醒备份、必须勾选确认，服务端凭勾选放行 */
-    public function testExistingSitesCanImportAfterExplicitBackupConfirmation(): void
+    /**
+     * 已有内容的站也能导入整站模板：挑模板、上传包只做预览（不改网站），不再先勾选；
+     * 替换确认放在真正导入那一步——提醒一次、给备份入口、勾「已备份、确认替换」，服务端凭勾选放行
+     */
+    public function testExistingSitesConfirmReplacementOnlyAtTheImportStep(): void
     {
         $local = $this->source('admin/site_templates.php');
         $market = $this->source('admin/site_template_market.php');
         foreach ([$local, $market] as $page) {
-            self::assertStringContainsString("require ROOT_PATH . '/admin/includes/site_template_replace_notice.php'", $page);
-            self::assertStringContainsString('name="replace_existing" value="1" required', $page);
+            self::assertStringNotContainsString('name="replace_existing"', $page, '挑模板/上传这一步不再要求勾选');
         }
-        self::assertStringContainsString("getAdminId(), post('replace_existing') === '1')", $local);
-        // 市场页：顶部确认一次，每张卡片提交时带上 replace_existing=1；未确认前按钮不可用
-        self::assertStringContainsString("<input type=\"hidden\" name=\"replace_existing\" :value=\"replaceConfirmed ? '1' : ''\" value=\"\">", $market);
-        self::assertStringContainsString(':disabled="!replaceConfirmed"', $market);
+        self::assertStringContainsString('$replaceExisting = !$fresh;', $market);
         self::assertStringContainsString('$service->prepare($temporary, getAdminId(), $replaceExisting, [', $market);
-        self::assertStringContainsString('href="/admin/database.php"', $this->source('admin/includes/site_template_replace_notice.php'));
+        self::assertStringContainsString("getAdminId(), !\$service->canApply())", $local);
+        $reminder = strpos($local, 'data-testid="st-replace-reminder"');
+        self::assertIsInt($reminder);
+        $tail = substr($local, $reminder, 800);
+        self::assertStringContainsString('href="/admin/database.php"', $tail);
+        self::assertStringContainsString('name="confirm" value="1" required', $tail);
+        self::assertStringContainsString("__('st_replace_confirm')", $tail);
+        self::assertStringContainsString("post('trusted') === '1', post('confirm') === '1')", $local);
+        self::assertStringContainsString('data-testid="st-market-local"><i class="ti ti-upload', $market);
         $service = $this->source('includes/SiteTemplateService.php');
         self::assertStringContainsString("if (!\$fresh && !\$replaceExisting) throw new RuntimeException('st_not_fresh');", $service);
         self::assertStringContainsString("\$journal['cleared'][\$table]", $service, '清空的依附表必须进日志，否则无法撤销');
