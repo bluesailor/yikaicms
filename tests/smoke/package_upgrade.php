@@ -132,10 +132,11 @@ $toVersion = trim((string) ($options['to'] ?? ''));
 $dbKind = (string) ($options['db'] ?? 'mysql');
 $keep = array_key_exists('keep', $options);
 if ($fromPackage === false || $toPackage === false
-    || !preg_match('/^1\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/', $fromVersion)
-    || !preg_match('/^1\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/', $toVersion)
+    // 主版本不写死 1：2.0.0 是第一个跨主版本的 N-1 升级（1.20.1 → 2.0.0）
+    || !preg_match('/^[1-9][0-9]*\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/', $fromVersion)
+    || !preg_match('/^[1-9][0-9]*\.[0-9]+\.[0-9]+(?:\.[0-9]+)?$/', $toVersion)
     || !in_array($dbKind, ['mysql', 'sqlite'], true)) {
-    fwrite(STDERR, "Usage: php tests/smoke/package_upgrade.php --from-package=<zip> --to-package=<zip> --from=1.x.y --to=1.x.y [--db=mysql|sqlite]\n");
+    fwrite(STDERR, "Usage: php tests/smoke/package_upgrade.php --from-package=<zip> --to-package=<zip> --from=X.Y.Z --to=X.Y.Z [--db=mysql|sqlite]\n");
     exit(2);
 }
 
