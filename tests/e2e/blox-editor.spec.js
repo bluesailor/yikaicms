@@ -201,7 +201,7 @@ test('viewport contract @ci', async ({ page }, testInfo) => {
     await expect(page.getByTestId('blox-pick-section-hint')).toBeVisible();
     const sectionCount = await page.getByTestId('blox-tree-section').count();
     await page.getByTestId('blox-add-element-heading').click();
-    await expect(page.getByTestId('blox-toast')).toContainText('选择目标区块');
+    await expect(page.getByTestId('blox-toast')).toContainText('点选要放进去的区块');
     await expect(page.getByTestId('blox-tree-section')).toHaveCount(sectionCount);
     await expectClean(page);
     await page.getByTestId('blox-mobile-canvas-view').click();
@@ -430,12 +430,13 @@ test('element category filter narrows the library and resets on reload @ci', asy
 
 test('desktop keyboard insertion requires a selected target @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop interaction baseline');
-  await expect(page.getByTestId('blox-pick-section-hint')).toHaveCount(0);
+  // 2026-09-24 起桌面端未选区块时也显示「先选区块」提示（原先只在触屏点选模式）
+  await expect(page.getByTestId('blox-pick-section-hint')).toBeVisible();
   const sectionCount = await page.getByTestId('blox-tree-section').count();
 
   await page.getByTestId('blox-add-element-heading').press('Enter');
 
-  await expect(page.getByTestId('blox-toast')).toContainText('选择目标区块');
+  await expect(page.getByTestId('blox-toast')).toContainText('点选要放进去的区块');
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(sectionCount);
   await expectClean(page);
 });
@@ -3103,16 +3104,17 @@ test('structure tree drag labels before and inside intentions @ci', async ({ pag
 
     await columnHeading.click();
     await page.getByTestId('blox-library-open').click();
+    // 2026-09 起容器允许嵌套容器（ContainerElement::allowedChildren 含 container/div）：放入有效
     await dragPaletteToTree(
       page,
       page.getByTestId('blox-add-element-container').first(),
       containerRow,
       0.5,
       'inside',
-      '容器内不能再放容器',
-      '0'
+      '放入此容器'
     );
-    await expect(container.locator('[data-sort-child-item]')).toHaveCount(1);
+    await expect(container.locator('[data-sort-child-item]')).toHaveCount(2);
+    await expect(container.locator('[data-sort-child-item]').nth(1)).toHaveAttribute('data-element-type', 'container');
   } finally {
     if (await editorHasChanges(page)) await restoreClean(page);
   }

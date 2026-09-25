@@ -104,7 +104,9 @@ test('theme default preview and restore preserve the published design and scope 
     await page.getByTestId('product-native-open').click();
     native = await opened;
     await expect(native.getByTestId('product-native-preview')).toBeVisible();
-    await expect(native.locator('#inquiryBtn')).toBeDisabled();
+    // 2026-09-22 询盘表单改为按表单字段渲染（提交按钮不再有 #inquiryBtn）；预览时字段含提交按钮都在 disabled fieldset 里
+    await expect(native.locator('#inquiryForm')).toHaveAttribute('data-yk-preview', '1');
+    await expect(native.locator('#inquiryForm button[type="submit"]')).toBeDisabled();
     await expect(native.locator('.yk-blox-product-detail')).toHaveCount(0);
     await expect(native.locator('h1').first()).toHaveText(products[0].title);
     expect(JSON.parse(fixture('products')).map(p => p.views)).toEqual(products.map(p => p.views));
@@ -116,8 +118,9 @@ test('theme default preview and restore preserve the published design and scope 
       expect(response.headers()['cache-control']).toContain('no-store');
       expect(response.headers()['x-robots-tag']).toContain('noindex');
       await expect(native.locator('h1').first()).toHaveText(product.title);
-      await expect(native.locator('#inquiryBtn')).toHaveText(product.submit);
-      await expect(native.locator('#inquiryBtn')).toBeDisabled();
+      await expect(native.locator('#inquiryForm button[type="submit"]')).toHaveText(product.submit);
+      await expect(native.locator('#inquiryForm')).toHaveAttribute('data-yk-preview', '1');
+      await expect(native.locator('#inquiryForm button[type="submit"]')).toBeDisabled();
     }
     await native.close();
     native = null;
@@ -132,7 +135,7 @@ test('theme default preview and restore preserve the published design and scope 
     await expect(row.getByTestId('product-design-source-select')).toHaveValue('native');
     await front.reload();
     await expect(front.locator('.yk-blox-product-detail')).toHaveCount(0);
-    await expect(front.locator('#inquiryBtn')).toBeEnabled();
+    await expect(front.locator('#inquiryForm button[type="submit"]')).toBeEnabled();
     await front.goto(products[1].url);
     await expect(front.locator('.yk-blox-product-detail')).toHaveAttribute('data-template-id', String(ids.global));
     const restored = JSON.parse(fixture('read', ids.selected));

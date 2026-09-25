@@ -72,8 +72,10 @@ for (const [kind, type, id, route] of [
       await expect(titles).toHaveCount(8);
       const firstPage = await titles.allTextContents();
       await visitor.getByRole('link', { name: '2', exact: true }).click();
+      // 2026-09-22 起目录分页是渐进式局部刷新（product-catalog-filter.js），点击后没有整页导航：
+      // 等列表真的换成第 2 页再比，立即读会拿到还没替换的第 1 页。
+      await expect.poll(() => titles.allTextContents()).not.toEqual(firstPage);
       await expect(titles).toHaveCount(8);
-      expect(await titles.allTextContents()).not.toEqual(firstPage);
       await expect(catalog.locator('input[name="keyword"]')).toHaveValue('Catalog Zero');
       await visitor.getByRole('link', { name: '3', exact: true }).click();
       await expect(titles).toHaveCount(6);
