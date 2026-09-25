@@ -28,6 +28,7 @@ ini_set('pcre.jit', '0');
 ini_set('pcre.backtrack_limit', '10000000');
 
 $repoRoot = dirname(__DIR__);
+require_once $repoRoot . '/tools/seed-i18n/about-provenance.php';
 
 // ── 白名单 1：随包的内置区域模板（按 type + source_ref 精确匹配）────────────────
 // status 由参照站决定：开发站发布了哪套页头/页脚，新装站就用哪套。
@@ -131,6 +132,8 @@ function normalizeHomeDocument(string $json): string
     };
     $walk($doc);
     $doc = attachTestimonialTranslations($doc);
+    // 关于段标明写作语言：否则英文 / 日文新装站首页显示中文关于（见 seed-i18n/about-provenance.php）
+    $doc = seedAttachAboutProvenance($doc);
     return (string) json_encode($doc, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
