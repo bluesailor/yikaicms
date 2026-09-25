@@ -29,7 +29,7 @@ foreach ($data['templates'] as $entry) {
     // A strict allowlist prevents local preparation paths or private release notes leaking into responses.
     $item = array_intersect_key($entry, array_flip([
         'slug', 'name', 'name_en', 'name_ja', 'description', 'description_en', 'description_ja',
-        'version', 'cms', 'format_version', 'category', 'category_name', 'category_name_en', 'category_name_ja', 'requires_php', 'screenshot', 'status', 'tier',
+        'version', 'cms', 'format_version', 'category', 'category_name', 'category_name_en', 'category_name_ja', 'requires_php', 'screenshot', 'demo_url', 'status', 'tier',
     ]));
     $package = $slug . '-site-v' . $version . '.zip';
     $hash = $entry['hash'] ?? '';
