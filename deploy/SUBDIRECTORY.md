@@ -22,7 +22,7 @@
 前提是主机允许 `.htaccess` 生效（`AllowOverride All`，虚拟主机默认如此）。
 站点目录若是通过 Apache `Alias` 映射出来、不在网站根目录之下，安装锁与静态页直出的文件检查会失效
 （伪静态仍正常），请改用普通子目录。
-阿里云虚拟主机专用的 `deploy/aliyun-vhost.htaccess` 仍只适用于根目录。
+阿里云虚拟主机备用的 `deploy/aliyun-vhost.htaccess` 与根目录 `.htaccess` 内容相同，同样可放在子目录；受限主机用的 `deploy/htaccess-minimal.txt` 也支持子目录。
 
 ## nginx 配置
 
@@ -55,15 +55,16 @@ location ^~ /sub/ {
     index index.php index.html;
 
     # ── 保护规则：必须写在 \.php$ 之前（nginx 正则 location 按出现顺序，先匹配先生效）──
-    location ~ ^/sub/\.                                                   { deny all; }
+    location ~ ^/sub/(?:.*/)?\.                                           { deny all; }
     location ~ ^/sub/(config|storage|deploy|vendor|includes|bin|migrations|recipes)/ { deny all; }
-    location ~ ^/sub/install/sql/                                         { deny all; }
     location ~ ^/sub/(uploads|storage)/.*\.(php|phtml|phar|php[0-9])$     { deny all; }
     location ~* ^/sub/.*\.(md|sql|bak|example|dist|conf|lock|yml|yaml)$   { deny all; }
     location ~ ^/sub/(composer\.(json|lock)|package(-lock)?\.json)$       { deny all; }
 
     # 安装完成（存在 installed.lock）后关闭安装器
     location ^~ /sub/install/ {
+        # ^~ 让上面的 .sql 正则轮不到安装目录：初始 SQL 在这里单独封，安装前也不许下载
+        location ^~ /sub/install/sql/ { deny all; }
         if (-f $document_root/sub/installed.lock) { return 403; }
         location ~ ^/sub/install/index\.php$ {
             # 请求被嵌套 location 接走后，父 location 里的 if 不再执行——锁检查必须在这里再写一次
