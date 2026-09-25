@@ -66,3 +66,16 @@ test("未知操作符 fail-closed（隐藏而非显示失效控件）", () => {
     const bad = { visible_when: { terms: [["a", "regex", ".*"]] } };
     assert.equal(rules.visibleWhenMet(bad, get({ a: "x" })), false);
 });
+
+test("boolean rules match persisted checkbox values after reload", () => {
+    // 保存管线把复选框存成 '1'/'0'；规则写的是 = true。重新打开后依赖控件不能被藏起来。
+    const on = { required: ["animation_stagger", "=", true] };
+    for (const value of [true, "1", 1, "on"]) assert.equal(rules.visibleWhenMet(on, get({ animation_stagger: value })), true, JSON.stringify(value));
+    for (const value of [false, "0", 0, "", undefined]) assert.equal(rules.visibleWhenMet(on, get({ animation_stagger: value })), false, JSON.stringify(value));
+    const off = { required: ["show_home", "=", false] };
+    assert.equal(rules.visibleWhenMet(off, get({ show_home: "0" })), true);
+    assert.equal(rules.visibleWhenMet(off, get({ show_home: "1" })), false);
+    const not = { visible_when: { terms: [["show_home", "!=", true]] } };
+    assert.equal(rules.visibleWhenMet(not, get({ show_home: "0" })), true);
+    assert.equal(rules.visibleWhenMet(not, get({ show_home: "1" })), false);
+});
