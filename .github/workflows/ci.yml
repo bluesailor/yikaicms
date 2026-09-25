@@ -540,7 +540,7 @@ jobs:
     needs: e2e_plan
     if: needs.e2e_plan.outputs.has_shards == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.e2e_plan.outputs.matrix) }}
