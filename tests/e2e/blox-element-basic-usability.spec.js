@@ -30,7 +30,8 @@ async function addElement(page, type) {
   await expect(page.getByTestId('blox-property-scroll')).toBeVisible();
 }
 
-const control = (page, key, suffix = '') => page.locator(`[data-control-key="${key}"] ${suffix}`.trim());
+// URL 与支持动态标签的字段旁有选择器（链接/动态标签），其菜单里带隐藏的搜索框：只取可见的输入框
+const control = (page, key, suffix = '') => page.locator(`[data-control-key="${key}"] ${suffix === 'input' ? 'input:visible' : suffix}`.trim());
 
 async function fillCompactText(page, key, value) {
   const editor = control(page, key).getByTestId('blox-description-editor');

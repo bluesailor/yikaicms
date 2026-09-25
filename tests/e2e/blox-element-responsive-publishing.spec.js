@@ -58,8 +58,9 @@ for (const [language, copy] of Object.entries(samples)) {
       await page.getByTestId('blox-style-tab').click();
     }
     // BloxValueSanitizer stores checkbox values as '0'/'1'; reopened documents return that form, fresh edits return booleans.
+    // Applies to every checkbox, not only new_tab (the container's animation_stagger since 2026-09-22).
     const data = () => page.evaluate(() => JSON.parse(JSON.stringify(window.Alpine.$data(document.body).selEl.data,
-      (key, item) => (key === 'new_tab' && typeof item === 'boolean' ? (item ? '1' : '0') : item))));
+      (key, item) => (typeof item === 'boolean' ? (item ? '1' : '0') : item))));
     async function addChild(type) {
       await selectContainer();
       await page.getByTestId('blox-library-open').click();

@@ -248,7 +248,7 @@ test('real image uploads replace without distortion and button alignment survive
   await performPagePreviewUpdate(page, async () => {
     await page.locator('[data-control-key="alt"] input').fill(alt);
     await page.locator('[data-control-key="click_action"] select').selectOption('link');
-    await page.locator('[data-control-key="link_url"] input').fill(publicUrl + '#image-details');
+    await page.locator('[data-control-key="link_url"] input:visible').fill(publicUrl + '#image-details');
     await page.locator('[data-control-key="link_new_tab"] input').check();
   });
   await add('button');
