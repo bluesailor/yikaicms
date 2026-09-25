@@ -17,7 +17,7 @@ header('Cache-Control: no-store');
 @media(max-width:1050px){main{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){header{padding:30px 18px 23px}.controls{padding:0 18px 22px;gap:10px}.field{max-width:none}#result-count{width:100%;padding:0;margin:0}main{padding:0 18px 35px;grid-template-columns:1fr;gap:18px}h1{margin-top:22px}.body{padding:20px}}
 </style></head><body>
 <header><div class="eyebrow"><span class="brand">YIKAI</span><span class="badge">本地草稿 · 尚未上架</span></div>
-<h1>为每一种生意，准备好开场。</h1><p>这批整站模板的页面、图片和栏目内容已经一起装进模板包。点击封面查看原图，下载后可在对应 CMS 的全新站点中预览并导入。</p>
+<h1>为每一种生意，准备好开场。</h1><p>这批整站模板的页面、图片和栏目内容已经一起装进模板包。点击封面查看原图，下载后可在同一 CMS 版本线（主.次 版本相同）的站点中预览并导入，已有内容的站需确认替换。</p>
 <div class="facts"><span><?= count($items) ?> 套行业模板</span><span>生成图片与封面采用 WebP</span><span>保留可视化编辑内容</span><span>待签名与正式发布</span></div></header>
 <section class="controls" aria-label="筛选模板"><div class="field"><label for="search">查找模板</label><input type="search" id="search" placeholder="搜索名称或行业"></div><div class="field"><label for="industry">选择行业</label><select id="industry"><option value="">全部行业</option><?php foreach ($items as $item): ?><option value="<?= reviewEscape((string) $item['category']) ?>"><?= reviewEscape((string) ($item['category_name'] ?? $item['category'])) ?></option><?php endforeach; ?></select></div><span id="result-count" role="status">显示 <?= count($items) ?> 套</span></section>
 <main id="templates">
@@ -35,7 +35,7 @@ header('Cache-Control: no-store');
 <a class="cover" href="<?= reviewEscape($cover) ?>" target="_blank" rel="noopener" aria-label="<?= reviewEscape('查看 ' . $name . ' 原图') ?>"><img src="<?= reviewEscape($cover) ?>" alt="<?= reviewEscape($name . ' 首页预览') ?>" loading="lazy"></a>
 <div class="body"><span class="industry"><?= reviewEscape($industry) ?></span><h2><?= reviewEscape($name) ?></h2><p class="description"><?= reviewEscape((string) ($item['description'] ?? '')) ?></p>
 <div class="meta">版本 <?= reviewEscape($version) ?> · <?= number_format((int) ($item['size_bytes'] ?? 0) / 1000000, 2) ?> MB<br>适用 CMS <?= reviewEscape((string) $item['cms']) ?> · 包格式 <?= (int) $item['format_version'] ?></div>
-<?php if (($item['format_version'] ?? 1) > 1): ?><div class="dependency">需使用本次支持插件数据的新导入器，并先安装、启用对应插件。原版 1.20.1 不支持此新包格式。</div><?php endif; ?>
+<?php if (($item['format_version'] ?? 1) > 1): ?><div class="dependency">需要 2.0.0 起的导入器；导入时会一并安装、启用包里声明的插件。</div><?php endif; ?>
 <div class="actions"><a class="download" href="<?= reviewEscape('packages/' . $package) ?>" download>下载整站包</a><a class="original" href="<?= reviewEscape($cover) ?>" target="_blank" rel="noopener">查看封面原图</a></div>
 </div></article>
 <?php endforeach; ?>

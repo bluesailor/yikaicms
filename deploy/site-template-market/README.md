@@ -1,20 +1,20 @@
 # Whole-site template market — local release preparation
 
 This directory is a deployment overlay for the update service. Nothing here publishes automatically.
-The client entry is `/admin/site_template_market.php`; it downloads and verifies an archive, then opens the existing whole-site import preview. The existing fresh-install fingerprint, exact CMS/schema checks, dependency checks, trust confirmation, staged extraction and transaction remain authoritative.
+The client entry is `/admin/site_template_market.php`; it downloads and verifies an archive, then opens the existing whole-site import preview. The importer's CMS-series and exact schema checks, dependency checks, replace confirmation (sites with existing content), staged extraction and transaction remain authoritative. Packages from this market are verified before the preview opens, so the trusted-source confirmation required for uploaded ZIPs is skipped.
 
 ## Package and catalog contract
 
-- Catalog: `GET https://update.yikaicms.com/api/site-templates/list.php?protocol_version=1&cms_version=1.20.1&php_version=8.0.0&format_versions=1,2`.
+- Catalog: `GET https://update.yikaicms.com/api/site-templates/list.php?protocol_version=1&cms_version=2.0.0&php_version=8.0.0&format_versions=1,2`.
 - Envelope: `{"code":0,"data":{"protocol_version":1,"updated_at":"ISO-8601","templates":[]}}`.
-- Item: `slug`, localized `name/description/category_name` (plain, `_en`, `_ja`), `category`, semantic `version`, exact `cms`, integer `format_version`, `requires_php` (`>=8.0.0`), `status` (`draft` or `published`), `tier` (`free`).
+- Item: `slug`, localized `name/description/category_name` (plain, `_en`, `_ja`), `category`, semantic `version`, `cms` (the CMS version the package was built on; compatible with sites of the same major.minor series that are not older), integer `format_version`, `requires_php` (`>=8.0.0`), `status` (`draft` or `published`), `tier` (`free` or `pro`; `pro` entries are listed but blocked), optional `screenshot`, optional `demo_url` (only `https://demo.yikaicms.com/<dir>/` is accepted by the client).
 - Package: `<slug>-site-v<version>.zip` at `/packages/site-templates/`. This is the original SiteTemplateService archive, not a ThemeInstaller ZIP.
 - Delivery fields: `package`, `download_url`, exact integer `size_bytes` (maximum 32 MiB), lowercase `hash` (`sha256:<64 hex>`), base64 `sig`.
 - Cover: `/assets/site-templates/<slug>/<version>/preview.webp`. JPG/PNG cover extensions are accepted for older assets.
 - Signature protocol v2: RSA-SHA256 over the UTF-8 bytes of `site-template-v2|<slug>|<version>|<cms>|<format_version>|<requires_php>|<tier>|<status>|<package>|<size_bytes>|sha256:<hex>`, **without a trailing newline**. It binds compatibility and authorization state plus every field that selects or describes the downloaded bytes. There is intentionally no legacy-v1 verification fallback: all draft entries must be re-signed with v2 before publication.
 - Only free official resources are supported by this first endpoint. A paid tier stays blocked; this endpoint is not an entitlement bypass.
 
-All 20 supplied entries start as `draft`. Unpublished, unsigned, incompatible or unsupported-format entries can be displayed but carry no usable delivery information. The API returns only its public allowlist; local source paths and preparation notes are never returned. The server does not sign anything and stores no private keys.
+The 20 entries in `data/site-templates.json` are the original 1.20.1 draft preparation catalog. Their `cms` is 1.20.1, so 2.0.x sites show them as incompatible; they remain only as a format sample. The published 2.0.0 catalog (30 templates) is generated in the release build directory outside this repository. Unpublished, unsigned, incompatible or unsupported-format entries can be displayed but carry no usable delivery information. The API returns only its public allowlist; local source paths and preparation notes are never returned. The server does not sign anything and stores no private keys.
 
 ## Release procedure
 
@@ -29,10 +29,10 @@ The local `data/site-templates.json` is a preparation catalog. Empty delivery va
 
 ## Compatibility and operator experience
 
-The current importer requires the package CMS string and content schema to exactly match the destination. Theme metadata such as `requires_cms >=1.20.1` does not override this.
-Format 1 is for ordinary packages. Format 2 carries supported public plugin data and requires the new importer; stock 1.20.1 must **not** be advertised as sufficient for those packages before the importer upgrade is released. Required plugin code is installed separately, and new plugin-data packages cannot bypass missing dependencies.
+The importer accepts a package built on the same major.minor CMS series as the site and not newer than it (for example a 2.0.0 package on a 2.0.3 site); the content schema must still match exactly. Theme metadata such as `requires_cms` does not override this.
+Format 1 is for ordinary packages. Format 2 carries supported public plugin data and needs a 2.0.0 or later importer. Plugins declared by the package are listed on the import step, ticked by default, and installed from the official plugin market (or enabled locally) before their data is imported; theme `required_plugins` cannot be unticked, and new plugin-data packages cannot bypass missing dependencies.
 
-An administrator starts on a fresh installation, opens the site template market, chooses **Preview and import**, reviews the package and required plugins, enters site details, then confirms trust and import in the existing page. Market selection alone never applies a package or checks either confirmation box.
+An administrator opens the site template market (optionally views the live demo), chooses **Preview and import**, reviews the package and ticks the plugins to install, enters site details, then confirms import. A site with existing content must also tick the backup/replace confirmation on that step. Market selection alone never applies a package or ticks a confirmation box.
 
 Catalog reads are bounded to 512 KiB/200 items, cached for display for 60 seconds (including failure), and fetched again on every download POST. Downloads require authenticated metadata, fixed HTTPS official paths, no redirects, exact byte length and SHA256. Local test fixtures use transport injection and ephemeral test keys only; runtime URLs/public keys have no test override.
 
