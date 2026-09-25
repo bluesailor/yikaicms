@@ -18,8 +18,8 @@ $currentMenu = 'site_setup';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 <div class="max-w-4xl space-y-6">
-    <header><a href="/admin/site_setup.php" class="underline text-primary"><?= e(__('setup_title')) ?></a>
-        <h1 class="text-2xl font-bold mt-2"><?= e($pageTitle) ?></h1><p class="text-gray-600 mt-2"><?= e(__('sc_intro')) ?></p></header>
+    <header><?php $breadcrumb = [[__('setup_title'), '/admin/site_setup.php'], [$pageTitle]]; require ROOT_PATH . '/admin/includes/breadcrumb.php'; ?>
+        <h1 class="text-2xl font-bold"><?= e($pageTitle) ?></h1><p class="text-gray-600 mt-2"><?= e(__('sc_intro')) ?></p></header>
     <form method="get"><input type="hidden" name="scan" value="1"><button class="bg-primary text-white rounded px-4 py-3" type="submit"><?= e(__('sc_run')) ?></button></form>
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
     <?php if ($report !== null): ?>
