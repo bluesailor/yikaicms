@@ -6,6 +6,7 @@ require_once __DIR__ . '/SiteTemplateLanguages.php';
 require_once __DIR__ . '/ThemeInstaller.php';
 require_once __DIR__ . '/UploadReferences.php';
 require_once __DIR__ . '/PluginMarketInstall.php';
+require_once __DIR__ . '/SiteTemplateMarket.php';
 
 /**
  * Local, explicit site transfer. Never restores accounts or server configuration.
@@ -227,7 +228,7 @@ final class SiteTemplateService
             'replace_existing' => !$fresh, 'origin' => $origin, 'brand' => self::templateBrand($package['manifest'])];
     }
 
-    /** @return array{official:bool,name:string,screenshot:string,version:string} */
+    /** @return array{official:bool,name:string,screenshot:string,version:string,demo_url:string} */
     private static function origin(array $origin): array
     {
         $text = static fn(mixed $value, int $max): string => is_string($value) ? mb_substr(trim($value), 0, $max) : '';
@@ -237,6 +238,7 @@ final class SiteTemplateService
             'name' => $text($origin['name'] ?? '', 120),
             'screenshot' => str_starts_with($screenshot, 'https://') || str_starts_with($screenshot, 'data:image/') ? $screenshot : '',
             'version' => $text($origin['version'] ?? '', 40),
+            'demo_url' => SiteTemplateMarket::demoUrl($origin['demo_url'] ?? ''),
         ];
     }
 
