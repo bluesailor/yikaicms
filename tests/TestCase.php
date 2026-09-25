@@ -15,10 +15,52 @@ declare(strict_types=1);
 
 namespace Yikai\Tests;
 
+use PHPUnit\Framework\Attributes\After;
+use PHPUnit\Framework\Attributes\Before;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {
+    /**
+     * By default every test runs with no registered actions.
+     *
+     * Actions are process-wide: includes/HtmlCache.php, plugins/shop/register.php and
+     * others register them when a test file is loaded. BatchStatusCacheInvalidationTest
+     * used to clear them in setUp without restoring, which isolated every test that
+     * happened to run after it — so which tests failed depended on file order, and Linux
+     * CI and Windows differed (first full CI run, 2026-09-25). Tests that exercise the
+     * real load-time actions set this to false. Filters are left alone.
+     */
+    protected bool $isolateActions = true;
+
+    /** @var array<string,mixed> */
+    private array $actionsBeforeTest = [];
+
+    /**
+     * Before/After hooks run even when a subclass overrides setUp()/tearDown() without
+     * calling parent (several do), so the restore below always happens.
+     */
+    #[Before]
+    protected function isolateActionsBeforeTest(): void
+    {
+        $this->actionsBeforeTest = $GLOBALS['ik_actions'] ?? [];
+        if ($this->isolateActions) {
+            $GLOBALS['ik_actions'] = [];
+        }
+    }
+
+    #[After]
+    protected function restoreActionsAfterTest(): void
+    {
+        $GLOBALS['ik_actions'] = $this->actionsBeforeTest;
+        // An assertion that fails before commit() leaves the shared connection inside a
+        // transaction; without this every later test reports "already an active transaction".
+        $pdo = db()->getPdo();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -35,6 +77,9 @@ abstract class TestCase extends BaseTestCase
     protected function resetDatabase(): void
     {
         $pdo = db()->getPdo();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         $pdo->exec('PRAGMA foreign_keys = OFF');
         // Exclude SQLite-internal tables (e.g. sqlite_sequence) — those
         // are auto-managed and cannot be DROPped explicitly.

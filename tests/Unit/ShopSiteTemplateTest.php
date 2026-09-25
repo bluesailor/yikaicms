@@ -12,6 +12,9 @@ require_once ROOT_PATH . '/plugins/shop/register.php';
 
 final class ShopSiteTemplateTest extends TestCase
 {
+    // 这里测的正是 register.php 加载时注册的真实导入/导出钩子
+    protected bool $isolateActions = false;
+
     protected function schemaSql(): array
     {
         $sql = [
@@ -44,16 +47,6 @@ final class ShopSiteTemplateTest extends TestCase
         $this->insertRow('products', [
             'id' => 42, 'translation_group_id' => 41, 'status' => 1, 'deleted_at' => null,
         ]);
-    }
-
-    protected function tearDown(): void
-    {
-        // 断言在 commit 之前失败时事务会一直开着，连接是共享的，后面的测试就全报
-        // "already an active transaction"——一处失败被放大成一串假失败。
-        if (db()->getPdo()->inTransaction()) {
-            db()->rollback();
-        }
-        parent::tearDown();
     }
 
     public function testRegisteredExportUsesStableExplicitPublicContract(): void
