@@ -77,7 +77,6 @@ if ($c !== 302) {
     fwrite(STDERR, "❌ 登录失败（HTTP {$c}）\n");
     exit(2);
 }
-echo "✓ 登录成功\n";
 
 // ---- 页面清单：admin/*.php 全量自动发现，显式排除有副作用/非页面项 ----
 // 发行包装机必须枚举解包站，而不是源码树；普通源码 smoke 不传环境变量时保持原行为。
@@ -85,6 +84,10 @@ $root = rtrim(
     pageSmokeOption('root') ?: (getenv('SMOKE_SITE_ROOT') ?: dirname(__DIR__, 2)),
     '/\\'
 );
+// 配置会启动会话，必须在输出登录/检查结果之前加载。
+if (!defined('ROOT_PATH')) define('ROOT_PATH', $root);
+require_once $root . '/config/config.php';
+echo "✓ 登录成功\n";
 if (!is_dir($root . '/admin')) {
     fwrite(STDERR, "❌ 后台冒烟目标缺少 admin 目录：{$root}\n");
     exit(2);
@@ -134,22 +137,26 @@ foreach ($pages as $page) {
 // 下载/职位目录直接套固定列表的视图，视图用到的变量缺一个就是 Warning——页面照样 200，
 // 上面按 500 判定的循环抓不到（2026-09-24：下载目录侧栏缺 $channelId，画布里直接露出 Warning）。
 // 页面正文与站点错误日志两头看：生产配置下 Warning 不显示，但 ErrorHandler 照样记日志。
-$landingDb = $root . '/storage/database.sqlite';
-if (is_file($landingDb)) {
+if (is_file($root . '/config/config.php')) {
     $landingLogs = static fn(): int => array_sum(array_map('filesize', glob($root . '/storage/logs/error-*.log') ?: []));
     clearstatcache();
     $landingLogBefore = $landingLogs();
-    $landingPdo = new PDO('sqlite:' . $landingDb);
-    $landingRows = $landingPdo->query(
-        "SELECT id, type FROM yikai_channels WHERE parent_id = 0 AND lang = 'zh-CN'"
+    $landingPdo = db()->getPdo();
+    $landingLangQuery = $landingPdo->prepare('SELECT value FROM ' . DB_PREFIX . 'settings WHERE `key` = ?');
+    $landingLangQuery->execute(['site_lang']);
+    $landingLang = (string) ($landingLangQuery->fetchColumn() ?: 'zh-CN');
+    $landingQuery = $landingPdo->prepare(
+        'SELECT id, type FROM ' . DB_PREFIX . 'channels WHERE parent_id = 0 AND lang = ?'
         . " AND type IN ('list', 'case', 'download', 'job') ORDER BY id"
-    )->fetchAll(PDO::FETCH_ASSOC);
+    );
+    $landingQuery->execute([$landingLang]);
+    $landingRows = $landingQuery->fetchAll(PDO::FETCH_ASSOC);
     // 画布不在编辑器页面里渲染：编辑器脚本把文档 POST 给保存接口的 preview 动作（blox-preview-client.js），
     // 这里照做，并要求目录元素确实渲染出来（防止检查本身什么都没看见就放行）
     $landingElements = [
         'list' => ['content-catalog', 'data-content-catalog'],
         'case' => ['content-catalog', 'data-content-catalog'],
-        'download' => ['download-catalog', 'download_filename'],
+        'download' => ['download-catalog', 'name="keyword"'],
         'job' => ['job-catalog', 'data-job-catalog'],
     ];
     foreach ($landingRows as $landingRow) {
@@ -165,8 +172,8 @@ if (is_file($landingDb)) {
             'action' => 'preview', 'blox' => '1', 'blocks_data' => (string) $landingDoc, '_token' => $landingToken[1] ?? '',
         ]);
         $checked++;
-        // download_filename 是下载表头文案的 key：表头按当前语言渲染，这里改认表格结构
-        $rendered = $marker === 'download_filename' ? str_contains($body, '<table') : str_contains($body, $marker);
+        // 空白安装没有下载记录，也必须渲染搜索入口；不能强制要求有数据时才出现的表格。
+        $rendered = str_contains($body, $marker);
         if ($code !== 200 || !$rendered || preg_match('/(Warning|Notice|Deprecated|Fatal error)(<\/b>)?:/', $body) === 1) {
             $fails[] = "{$landingRow['type']} 栏目 #{$landingId} 画布预览（{$element}）→ HTTP {$code}"
                 . ($rendered ? '' : '，目录元素未渲染') . '，或出现 PHP 警告';

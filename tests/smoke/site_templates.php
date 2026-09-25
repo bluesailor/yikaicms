@@ -6,7 +6,7 @@ define('IK_CLI', true);
 require dirname(__DIR__, 2) . '/includes/init.php';
 require ROOT_PATH . '/includes/SiteTemplateService.php';
 require ROOT_PATH . '/includes/SiteContentChecks.php';
-$base = 'http://127.0.0.1:8080';
+$base = getenv('SMOKE_BASE') ?: 'http://127.0.0.1:8080';
 $service = new SiteTemplateService(ROOT_PATH);
 $resume = in_array('--resume', $argv, true);
 if ($resume && config('site_url') === $base && ($service->recovery()['can_restore'] ?? false)) $service->restore();

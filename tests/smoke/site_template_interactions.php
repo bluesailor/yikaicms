@@ -4,7 +4,7 @@ if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 define('IK_CLI', true);
 require dirname(__DIR__, 2) . '/includes/init.php';
 require ROOT_PATH . '/includes/SiteTemplateService.php';
-$base = 'http://127.0.0.1:8080';
+$base = getenv('SMOKE_BASE') ?: 'http://127.0.0.1:8080';
 $theme = (string) config('current_theme');
 if (config('site_url') !== $base || !str_starts_with($theme, 'sitepack-') || config('smtp_host', '') !== '') throw new RuntimeException('Isolated imported fixture with no email transport required');
 $key = 'theme_content_' . $theme;
@@ -63,10 +63,12 @@ try {
     $timestamp = $field($contact, 'form_ts');
     $signature = $field($contact, 'form_sig');
     usleep(2100000); // Exercise the public anti-instant-submit guard, never forge a timestamp/signature.
+    $nonce = json_decode($request('/form_nonce.php?_lang=zh-CN', ['form_slug' => $slug]), true);
+    $assert(is_array($nonce) && ($nonce['code'] ?? 1) === 0 && is_string($nonce['nonce'] ?? null), 'Contact form nonce issue failed');
     $marker = 'Site template form probe ' . bin2hex(random_bytes(6));
-    $result = json_decode($request('/form_submit.php', ['form_slug' => $slug, 'form_ts' => $timestamp, 'form_sig' => $signature,
+    $result = json_decode($request('/form_submit.php', ['form_slug' => $slug, 'form_ts' => $timestamp, 'form_sig' => $signature, 'form_nonce' => $nonce['nonce'], '_lang' => 'zh-CN',
         'name' => 'Template tester', 'phone' => '13800000000', 'email' => 'fixture@example.test', 'content' => $marker]), true);
-    $assert(is_array($result) && ($result['code'] ?? 1) === 0, 'Contact form submission failed');
+    $assert(is_array($result) && ($result['code'] ?? 1) === 0, 'Contact form submission failed: ' . json_encode($result, JSON_UNESCAPED_UNICODE));
     $submissionId = (int) db()->fetchColumn('SELECT id FROM ' . DB_PREFIX . 'forms WHERE content = ? ORDER BY id DESC LIMIT 1', [$marker]);
     $assert($submissionId > 0, 'Contact form did not persist');
     $assert(!(new SiteTemplateService(ROOT_PATH))->recovery()['can_restore'], 'Recovery must not overwrite edited content or an inquiry');
