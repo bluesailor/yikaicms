@@ -54,7 +54,8 @@ test('element library mirrors the runtime registry with usable metadata @ci', as
   const runtime = await page.evaluate(() => {
     const app = window.Alpine.$data(document.body);
     return app.elementLib
-      .filter((element) => element.type !== '__section' && element.paletteVisible !== false)
+      // 已冻结（deprecated）的元素与编辑器一致不出现在元素库（如 2026-09-20 起的 list-dynamic）
+      .filter((element) => element.type !== '__section' && element.paletteVisible !== false && !element.deprecated)
       .map((element) => ({
         type: element.type,
         label: String(element.label || ''),
