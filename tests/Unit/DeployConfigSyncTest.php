@@ -22,6 +22,17 @@ final class DeployConfigSyncTest extends TestCase
         self::assertStringEndsWith(self::read('.htaccess'), self::read('deploy/aliyun-vhost.htaccess'));
     }
 
+    public function testReadmeAliyunSnippetIsTheMinimalFileRules(): void
+    {
+        // README 里给阿里云用户直接粘贴的片段曾比 deploy 文件少 4 条（含上传目录 PHP 禁执行）
+        $rules = static fn(string $text): array => array_values(array_filter(explode("\n", $text),
+            static fn(string $line): bool => trim($line) !== '' && !str_starts_with(ltrim($line), '#')));
+        $readme = self::read('README.md');
+        $block = substr($readme, (int) strpos($readme, "```nginx\n", (int) strpos($readme, '#### 阿里云')) + 9);
+        $block = substr($block, 0, (int) strpos($block, "```\n"));
+        self::assertSame($rules(self::read('deploy/aliyun-nginx-minimal.txt')), $rules($block));
+    }
+
     public function testBaotaIncludeFallsBackToTheDispatcher(): void
     {
         $baota = self::read('deploy/nginx-baota.conf');
