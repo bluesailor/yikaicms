@@ -36,8 +36,8 @@ $currentMenu = 'site_setup';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 <div class="max-w-3xl space-y-6">
-    <header><a class="underline text-primary" href="/admin/site_setup.php"><?= e(__('setup_title')) ?></a>
-        <h1 class="text-2xl font-bold mt-2"><?= e($pageTitle) ?></h1>
+    <header><?php $breadcrumb = [[__('setup_title'), '/admin/site_setup.php'], [$pageTitle]]; require ROOT_PATH . '/admin/includes/breadcrumb.php'; ?>
+        <h1 class="text-2xl font-bold"><?= e($pageTitle) ?></h1>
         <p class="text-gray-600 mt-2"><?= e(__('tc_intro')) ?></p></header>
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
     <?php if ($notice): ?><p role="status" class="bg-green-50 text-green-700 p-4 rounded"><?= e(__('tc_saved')) ?></p><?php endif; ?>
