@@ -17,7 +17,7 @@
 # 约定：
 #   · 解包目录固定 D:\phpstudy_pro\WWW\ykpkgtest（同时可直接当 vhost docroot）
 #   · MySQL 用独立库 ykpkgtest，跑完 DROP；绝不碰其它库
-#   · 端口 8099（premerge-check 用 8080，避免互相踩）
+#   · 端口 8099（premerge-check 用 8080，避免互相踩）；被占用时用 --port=<端口>（易开面板的 nginx 可能占着 8099）
 #   · 跑 smoke 脚本的 CLI php 固定用默认 php（它们只是 HTTP 客户端）；
 #     被测的 PHP 版本由 php -S / vhost 决定
 # ============================================================
@@ -52,6 +52,7 @@ for arg in "$@"; do
         --base=*) BASE="${arg#*=}" ;;
         --host=*) SERVE_HOST="${arg#*=}" ;;
         --lang=*) SITE_LANG="${arg#*=}" ;;
+        --port=*) PORT="${arg#*=}" ;;
         --keep)   KEEP=1 ;;
         --matrix) MATRIX=1 ;;
         *) echo "${R}未知参数: $arg${X}"; exit 2 ;;
@@ -82,7 +83,7 @@ if [ "$MATRIX" = "1" ]; then
     for leg in "8.2:sqlite" "8.0:mysql" "8.5:mysql"; do
         echo
         echo "${B}════════ 矩阵腿：PHP ${leg%%:*} / ${leg##*:} ════════${X}"
-        bash "$0" --php="${leg%%:*}" --db="${leg##*:}" ${ZIP:+--zip="$ZIP"} || rc=1
+        bash "$0" --php="${leg%%:*}" --db="${leg##*:}" ${ZIP:+--zip="$ZIP"} --port="$PORT" || rc=1
     done
     echo
     [ "$rc" = "0" ] && echo "${G}✓ 矩阵全绿${X}" || echo "${R}✗ 矩阵存在失败腿${X}"
