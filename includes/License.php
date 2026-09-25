@@ -212,8 +212,9 @@ function license_refresh(bool $force = false): array
         return license_free($hasCache ? 'grace_expired' : 'unreachable');
     }
 
-    // &t= 缓存破坏：每次请求 URL 唯一，绕开 update 服务器的 CDN 边缘缓存，确保拿到实时签名
-    $resp = license_http(LICENSE_VERIFY_URL . '?key=' . urlencode($key) . '&domain=' . urlencode(license_domain()) . '&t=' . time());
+    // 注册码放在 POST 正文里：写进 URL 会留在服务器访问日志、CDN 与代理记录中，等于一条泄码渠道。
+    // POST 本身不进 CDN 边缘缓存，拿到的始终是实时签名。
+    $resp = license_http(LICENSE_VERIFY_URL, ['key' => $key, 'domain' => license_domain()]);
 
     if ($resp !== null) {
         $j = json_decode($resp, true);
@@ -380,15 +381,19 @@ function license_expiry(): ?string
 }
 
 /**
- * HTTP GET，file_get_contents 优先、curl 兜底，失败返回 null。
+ * HTTP POST（表单编码），file_get_contents 优先、curl 兜底，失败返回 null。
  * 超时 6 秒，避免拖慢后台加载。
+ *
+ * @param array<string,string> $fields
  */
-function license_http(string $url): ?string
+function license_http(string $url, array $fields): ?string
 {
+    $body = http_build_query($fields, '', '&');
     // 不校验 TLS 证书：响应真伪由 Ed25519 签名保证（MITM 无私钥伪造不出有效签名），
     // 而老共享主机（如 my3w）常因 CA 包过旧导致 verify_peer 失败、连不上服务器。
     $ctx = stream_context_create([
-        'http' => ['method' => 'GET', 'timeout' => 6, 'ignore_errors' => true, 'header' => "Accept: application/json\r\n"],
+        'http' => ['method' => 'POST', 'timeout' => 6, 'ignore_errors' => true, 'content' => $body,
+            'header' => "Accept: application/json\r\nContent-Type: application/x-www-form-urlencoded\r\n"],
         'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
     ]);
     $r = @file_get_contents($url, false, $ctx);
@@ -401,9 +406,11 @@ function license_http(string $url): ?string
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 6,
             CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $body,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => 0,
-            CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+            CURLOPT_HTTPHEADER     => ['Accept: application/json', 'Content-Type: application/x-www-form-urlencoded'],
         ]);
         $r = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
