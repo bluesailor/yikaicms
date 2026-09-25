@@ -26,8 +26,8 @@ if ($isPost) {
     $temporary = null;
     try {
         if (post('action') !== 'prepare_market') throw new RuntimeException('st_invalid');
-        $replaceExisting = !$fresh && post('replace_existing') === '1';
-        if (!$fresh && !$replaceExisting) throw new RuntimeException('st_not_fresh');
+        // 预览只存包和导入计划，不改网站；已有内容的站在导入那一步勾选「已备份、确认替换」，服务端凭它放行
+        $replaceExisting = !$fresh;
         if (!is_array($catalog)) throw new RuntimeException('st_market_unavailable');
         $selected = null;
         foreach ($catalog['templates'] as $item) {
@@ -73,24 +73,16 @@ $pageTitle = __('st_market_title');
 $currentMenu = 'site_setup';
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
-<div class="space-y-6" x-data="{ replaceConfirmed: false }">
+<div class="space-y-6">
     <header>
         <?php $breadcrumb = [[__('setup_title'), '/admin/site_setup.php'], [$pageTitle]]; require ROOT_PATH . '/admin/includes/breadcrumb.php'; ?>
         <div class="flex flex-wrap items-baseline justify-between gap-2">
             <h1 class="text-2xl font-bold text-gray-800"><?= e($pageTitle) ?></h1>
-            <a href="/admin/site_templates.php" class="text-sm text-primary hover:underline"><?= e(__('st_market_local')) ?></a>
+            <a href="/admin/site_templates.php" class="inline-flex items-center gap-1 text-sm text-primary hover:underline" data-testid="st-market-local"><i class="ti ti-upload text-base" aria-hidden="true"></i><?= e(__('st_market_local')) ?></a>
         </div>
         <p class="text-gray-600 mt-2"><?= e(__('st_market_intro')) ?></p>
     </header>
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
-    <?php if (!$fresh): ?>
-    <?php require ROOT_PATH . '/admin/includes/site_template_replace_notice.php'; ?>
-    <?php // 已有内容的站：顶部确认一次，下方每张卡片的导入按钮随之可用；服务端仍按每次提交的 replace_existing 放行 ?>
-    <label class="flex items-start gap-2 rounded border border-red-200 bg-white p-4 text-sm text-red-800" data-testid="st-market-replace-confirm">
-        <input type="checkbox" name="replace_existing" value="1" required x-model="replaceConfirmed" class="mt-1">
-        <span><?= e(__('st_replace_confirm')) ?><span class="block text-xs text-red-700/80 mt-1"><?= e(__('st_market_replace_confirm_hint')) ?></span></span>
-    </label>
-    <?php endif; ?>
     <?php if ($catalog === null): ?>
     <p role="status" class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__('st_market_unavailable')) ?> <a href="/admin/site_templates.php" class="underline"><?= e(__('st_market_local')) ?></a></p>
     <?php else: ?>
@@ -118,12 +110,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php else: ?>
                 <form method="post" class="mt-auto" data-st-market-prepare>
                     <?= csrfField() ?><input type="hidden" name="action" value="prepare_market"><input type="hidden" name="slug" value="<?= e($item['slug']) ?>"><input type="hidden" name="version" value="<?= e($item['version']) ?>">
-                    <?php if (!$fresh): ?>
-                    <input type="hidden" name="replace_existing" :value="replaceConfirmed ? '1' : ''" value="">
-                    <button type="submit" :disabled="!replaceConfirmed" class="bg-primary text-white rounded px-4 py-3 disabled:opacity-40 disabled:cursor-not-allowed"><?= e(__('st_market_prepare')) ?></button>
-                    <?php else: ?>
-                    <button type="submit" class="bg-primary text-white rounded px-4 py-3"><?= e(__('st_market_prepare')) ?></button>
-                    <?php endif; ?>
+                    <button type="submit" class="bg-primary text-white rounded px-4 py-3 disabled:opacity-60"><?= e(__('st_market_prepare')) ?></button>
                 </form>
                 <?php endif; ?>
             </div>
