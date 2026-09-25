@@ -61,7 +61,7 @@ $copy = [
     'curl' => ['在线更新、模板市场与 AI 接口', 'Online updates, marketplace and AI APIs', 'オンライン更新、マーケット、AI API'],
     'openssl' => ['授权签名校验与加密', 'License signature verification and encryption', 'ライセンス署名の検証と暗号化'],
     'gd' => ['缩略图与图片处理', 'Thumbnails and image processing', 'サムネイルと画像処理'],
-    'zip' => ['在线更新与模板 / 插件解包', 'Update, theme and plugin extraction', '更新・テーマ・プラグインの展開'],
+    'zip' => ['在线更新、主题 / 插件安装与整站模板导入导出', 'Updates, theme/plugin installs and site template import/export', '更新、テーマ・プラグインのインストール、サイトテンプレートの入出力'],
     'simplexml' => ['部分导入插件需要，核心运行非必需', 'Required by some import plugins, not the core', '一部のインポートプラグインで使用。コアには不要'],
     'session' => ['后台登录需要 session 扩展及 session_start；会话持久化需实际登录确认。', 'Admin login needs session and session_start; verify persistence by logging in.', '管理画面へのログインに session と session_start が必要です。保持状態は実際のログインで確認してください。'],
     'memory' => ['建议至少 128M；大型图片或导入建议 256M。', 'Recommend at least 128M; 256M for large images or imports.', '128M 以上を推奨。大きな画像・インポートには 256M を推奨。'],
@@ -74,6 +74,7 @@ $copy = [
     'writable' => ['存在，可写（权限预检）', 'Present, writable (permission precheck)', '存在・書き込み可能（権限確認）'],
     'readonly' => ['存在，不可写', 'Present, not writable', '存在・書き込み不可'],
     'absent' => ['尚不存在', 'Not present', '未作成'],
+    'rootHint' => ['安装器要在根目录写入 installed.lock，写不了会装完仍跳回安装页；这里只检查权限。', 'The installer writes installed.lock to the site root; if it cannot, every page returns to the installer. Permission check only.', 'インストーラーはサイトのルートに installed.lock を書き込みます。書き込めないと完了後もインストール画面に戻ります。権限のみ確認します。'],
     'dirHint' => ['安装时须可写；这里只检查权限，不创建文件、不修改权限。', 'Must be writable during installation. No files or permissions are changed by this check.', 'インストール時に書き込み権限が必要です。この検査はファイルや権限を変更しません。'],
     'standalone' => ['未发现 CMS 文件，只检测 PHP；请将本页放在安装目录根部检查目录权限。', 'CMS files not found. PHP-only checks; place this file in the CMS root to check directories.', 'CMS が見つからないため PHP のみ検査します。ディレクトリ確認には CMS のルートに配置してください。'],
     'db' => ['数据库连接与版本', 'Database connection and version', 'DB 接続とバージョン'],
@@ -140,6 +141,8 @@ $add('optional', $t('uploads'), $t($uploadEnabled ? 'enabled' : 'missing'), $upl
 $errorsOn = !in_array(strtolower($originalDisplayErrors), ['', '0', 'off', 'false', 'none'], true);
 $add('optional', 'display_errors', $errorsOn ? 'On' : 'Off', $errorsOn ? 'warn' : 'pass', $t('display'));
 if ($inProject) {
+    $rootWritable = is_writable($root);
+    $add('files', '/ (installed.lock)', $t($rootWritable ? 'writable' : 'readonly'), $rootWritable ? 'pass' : 'fail', $t('rootHint'));
     foreach (['config', 'uploads', 'storage'] as $dir) {
         $exists = is_dir($root . '/' . $dir);
         $writable = $exists && is_writable($root . '/' . $dir);
