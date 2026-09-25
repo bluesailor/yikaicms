@@ -26,7 +26,7 @@ class SettingNormalizeLangTest extends TestCase
     {
         return [
             'CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, "group" TEXT DEFAULT \'basic\', '
-            . '"key" TEXT, value TEXT, type TEXT DEFAULT \'text\', name TEXT DEFAULT \'\', tip TEXT DEFAULT \'\', '
+            . '"key" TEXT UNIQUE, value TEXT, type TEXT DEFAULT \'text\', name TEXT DEFAULT \'\', tip TEXT DEFAULT \'\', '
             . 'options TEXT, sort_order INTEGER DEFAULT 0)',
         ];
     }

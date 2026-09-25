@@ -26,7 +26,7 @@ class SingleLangNormalizeTest extends TestCase
                 status INTEGER DEFAULT 1, is_home INTEGER DEFAULT 0, is_nav INTEGER DEFAULT 1,
                 sort_order INTEGER DEFAULT 0
             )",
-            'CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, "group" TEXT DEFAULT \'basic\', "key" TEXT, value TEXT, type TEXT DEFAULT \'text\', name TEXT DEFAULT \'\', tip TEXT DEFAULT \'\', options TEXT, sort_order INT DEFAULT 0)',
+            'CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, "group" TEXT DEFAULT \'basic\', "key" TEXT UNIQUE, value TEXT, type TEXT DEFAULT \'text\', name TEXT DEFAULT \'\', tip TEXT DEFAULT \'\', options TEXT, sort_order INT DEFAULT 0)',
         ];
     }
 

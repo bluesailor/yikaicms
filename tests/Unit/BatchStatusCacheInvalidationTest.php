@@ -17,6 +17,8 @@ require_once ROOT_PATH . '/includes/hooks.php';
 
 final class BatchStatusCacheInvalidationTest extends TestCase
 {
+    private array $savedActions = [];
+
     /** @return list<string> */
     protected function schemaSql(): array
     {
@@ -36,9 +38,17 @@ final class BatchStatusCacheInvalidationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->savedActions = $GLOBALS['ik_actions'] ?? [];
         $GLOBALS['ik_actions'] = [];
         db()->getPdo()->exec("INSERT INTO contents (id, type, title, status) VALUES
             (1, 'article', 'A1', 1), (2, 'article', 'A2', 1), (3, 'article', 'A3', 1)");
+    }
+
+    protected function tearDown(): void
+    {
+        // 恢复其他测试已注册的插件钩子，避免测试顺序影响导入与缓存事件。
+        $GLOBALS['ik_actions'] = $this->savedActions;
+        parent::tearDown();
     }
 
     public function testBatchUnpublishThroughTheModelFiresDataChanged(): void

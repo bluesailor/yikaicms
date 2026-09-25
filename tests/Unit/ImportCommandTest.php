@@ -15,7 +15,7 @@ class ImportCommandTest extends TestCase
     protected function schemaSql(): array
     {
         return [
-            'CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, "group" TEXT, "key" TEXT, value TEXT, type TEXT, name TEXT, tip TEXT, options TEXT, sort_order INT DEFAULT 0)',
+            'CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, "group" TEXT, "key" TEXT UNIQUE, value TEXT, type TEXT, name TEXT, tip TEXT, options TEXT, sort_order INT DEFAULT 0)',
             'CREATE TABLE product_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, parent_id INT DEFAULT 0, name TEXT, slug TEXT, lang TEXT, status INT DEFAULT 1, sort_order INT DEFAULT 0, created_at INT DEFAULT 0)',
             'CREATE TABLE products (id INTEGER PRIMARY KEY AUTOINCREMENT, category_id INT DEFAULT 0, title TEXT, slug TEXT, lang TEXT, cover TEXT, summary TEXT, content TEXT, price REAL DEFAULT 0, model TEXT, status INT DEFAULT 1, sort_order INT DEFAULT 0, created_at INT DEFAULT 0, updated_at INT DEFAULT 0)',
         ];
