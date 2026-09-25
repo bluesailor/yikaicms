@@ -35,11 +35,13 @@
 ## 3 分钟安装
 
 1. 下载完整包 [yikaicms-v2.0.0.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.0.0/yikaicms-v2.0.0.zip)（校验文件 [yikaicms-v2.0.0.sha256](https://github.com/bluesailor/yikaicms/releases/download/v2.0.0/yikaicms-v2.0.0.sha256)），解压上传到网站根目录（也可以放在子目录）；
-2. 确保 `/config/`、`/uploads/`、`/storage/` 可写，浏览器访问 `http://你的域名/install/`，按向导选择 MySQL 或 SQLite 完成安装；
+2. 确保站点根目录（安装器写入 `installed.lock`）和 `/config/`、`/uploads/`、`/storage/` 可写，浏览器访问 `http://你的域名/install/`，按向导选择 MySQL 或 SQLite 完成安装；
 3. 配置伪静态（宝塔面板：站点 → 设置 → 伪静态，写入一行 `include /www/wwwroot/<你的站点目录>/deploy/nginx-baota.conf;`）；
 4. 登录后台，在「建站向导」里从 30 套行业整站模板中挑一套导入，或直接在演示内容上修改。
 
 各类主机的伪静态写法、安全规则与常见 404 排查见下文 [安装与部署](#安装与部署)。
+
+> **Windows 本机试用**：用 [易开面板](https://github.com/bluesailor/yikai-panel) 新建项目时选「YikaiCMS 最新版」，自动下载、建库并完成安装，不用配服务器。
 
 ## 核心能力
 
@@ -127,13 +129,23 @@
 > 以上要求由 `includes/RuntimeRequirements.php` 统一定义，安装器、站点健康检查与兼容层都从那里读取；
 > 改要求请只改那一处。`simplexml` 核心不依赖，仅 product-import 插件读 XLSX 时用到。
 
+### 本机试用：易开面板
+
+[易开面板（Yikai Panel）](https://github.com/bluesailor/yikai-panel) 是易开出品的 Windows 本地 PHP 开发环境：Nginx / Apache、PHP 8.0 / 8.2 / 8.5、MySQL 5.7 / 8.0 与 SQLite 一次装好，图形界面操作，不用命令行、Docker 或 WSL。
+
+- 新建项目时选「YikaiCMS 最新版」：面板自动下载最新版、建目录和数据库、完成安装，直接打开后台即可；
+- 每个项目独立的域名、PHP 版本、数据库、HTTPS 与伪静态；已有的 PHPStudy 站点可一键搬入；
+- 适合本机试用、制作模板和给客户演示；正式上线仍按下文部署到服务器。
+
+下载：[panel.yikai.cn](https://panel.yikai.cn)（Windows 10 / 11 x64，中文 / English / 日本語界面）。
+
 ### 1. 下载部署
 
 - 完整安装包：[yikaicms-v2.0.0.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.0.0/yikaicms-v2.0.0.zip)，发布说明见 [v2.0.0 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.0.0)；每个版本附 `.sha256` 校验文件。
 - 已安装的站点可在后台「系统设置 → 系统升级」在线升级，无需手动下载。
 - 开发者也可以直接克隆仓库：`git clone https://github.com/bluesailor/yikaicms.git`
 
-确保以下目录可写：`/config/`、`/uploads/`、`/storage/`
+确保以下目录可写：站点根目录（安装器写入 `installed.lock`）、`/config/`、`/uploads/`、`/storage/`
 
 ### 2. 运行安装向导
 
@@ -186,8 +198,22 @@ include /www/wwwroot/<你的站点目录>/deploy/nginx-baota.conf;
 保存即生效（无需重启）：
 
 ```nginx
-# 1) 拦截敏感目录与文件
-location ~ ^/(config|storage|vendor|includes|install/sql|bin|migrations|recipes)/ {
+location ~ ^/(config|storage|vendor|includes|bin|migrations|recipes)/ {
+    deny all;
+}
+location ~ ^/uploads/.*\.(php|phtml|phar|php[0-9])$ {
+    deny all;
+}
+location ~* \.(md|sql|bak|example|dist|conf|lock|yml|yaml)$ {
+    deny all;
+}
+location ~ ^/deploy/ {
+    deny all;
+}
+location = /install/ {
+    rewrite ^ /install/index.php last;
+}
+location ~ ^/install/(?!index\.php$) {
     deny all;
 }
 location ~ /\.(git|env|htaccess|htpasswd) {
@@ -196,8 +222,6 @@ location ~ /\.(git|env|htaccess|htpasswd) {
 location ~ ^/(composer\.(json|lock)|package(-lock)?\.json)$ {
     deny all;
 }
-
-# 2) 主规则：真实文件直出，其余交给 index.php
 location / {
     if (!-e $request_filename) {
         rewrite ^ /index.php last;
@@ -207,7 +231,7 @@ location / {
 
 > 该面板只允许 `location` / `allow` / `deny` / `try_files` / `rewrite` / `return` / `if` / `set`，
 > 且后七者必须写在 `location` 内——上面的写法已经遵守这些限制。
-> 同样内容也放在源码的 `deploy/aliyun-nginx-minimal.txt`。
+> 与源码 `deploy/aliyun-nginx-minimal.txt` 的规则逐条一致（该文件带逐条说明）：敏感目录、上传目录里的 PHP、文档与 SQL 文件、安装目录里除入口以外的文件都在服务器层拦截。
 
 #### 自建 Nginx
 
@@ -287,5 +311,6 @@ YikaiCMS **源码公开（Source Available），免费商用**，采用 [《Yika
 
 - 官网：[https://www.yikaicms.com](https://www.yikaicms.com)
 - 演示：[https://demo.yikaicms.com](https://demo.yikaicms.com)
+- 易开面板（Windows 本地环境）：[https://github.com/bluesailor/yikai-panel](https://github.com/bluesailor/yikai-panel)
 - 使用教程：[https://www.yikaicms.com/tutorial.php](https://www.yikaicms.com/tutorial.php)
 - 更新日志：[https://www.yikaicms.com/changelog.html](https://www.yikaicms.com/changelog.html)
