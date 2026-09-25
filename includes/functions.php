@@ -3349,8 +3349,9 @@ function formFieldsFromStored(string $fieldsRaw): array
 
 /**
  * 将旧版 JSON 字段数组转换为 CF7 风格模板文本
+ * $submitLabel：按钮文字，缺省为通用「提交」（产品询盘传「提交询盘」）
  */
-function jsonFieldsToTemplate(array $fields): string
+function jsonFieldsToTemplate(array $fields, ?string $submitLabel = null): string
 {
     $lines = [];
     $inGrid = false;
@@ -3437,7 +3438,7 @@ function jsonFieldsToTemplate(array $fields): string
 
     $lines[] = '';
     $lines[] = '<div class="mt-4">';
-    $lines[] = '    [submit "' . __('form_submit') . '"]';
+    $lines[] = '    [submit "' . str_replace('"', '', $submitLabel ?? __('form_submit')) . '"]';
     $lines[] = '</div>';
 
     return implode("\n", $lines);
@@ -3670,13 +3671,14 @@ function formTemplateFieldsRaw(array $template): string
  *
  * @param array<string,string> $defaults 仅用于服务端提供的默认展示值；hidden 永远使用模板配置值。
  */
-function renderStoredFormFields(array $template, array $defaults = []): string
+/** $submitLabel：模板的 [submit] 没写文字时用的按钮文字（缺省为通用「提交」）。 */
+function renderStoredFormFields(array $template, array $defaults = [], ?string $submitLabel = null): string
 {
     $fieldsRaw = formTemplateFieldsRaw($template);
     if (trim($fieldsRaw) === '') return '';
     $fields = formFieldsFromStored($fieldsRaw);
     if (!formFieldSetValid($fields)) return '';
-    if (isJsonFields($fieldsRaw)) $fieldsRaw = jsonFieldsToTemplate($fields);
+    if (isJsonFields($fieldsRaw)) $fieldsRaw = jsonFieldsToTemplate($fields, $submitLabel);
 
     $rendered = preg_replace_callback(formTagPattern(), static function (array $match) use ($defaults): string {
         $tag = formTagFromMatch($match);
@@ -3689,8 +3691,8 @@ function renderStoredFormFields(array $template, array $defaults = []): string
     if (!is_string($rendered)) return '';
 
     $captcha = renderFormCaptcha(!empty($template['captcha']));
-    $rendered = preg_replace_callback('/\[submit(?:\s+"([^"]*)")?\]/', static function (array $match) use ($captcha): string {
-        return $captcha . renderFormTagHtml(['type' => 'submit', 'text' => $match[1] ?? __('form_submit')]);
+    $rendered = preg_replace_callback('/\[submit(?:\s+"([^"]*)")?\]/', static function (array $match) use ($captcha, $submitLabel): string {
+        return $captcha . renderFormTagHtml(['type' => 'submit', 'text' => $match[1] ?? ($submitLabel ?? __('form_submit'))]);
     }, $rendered);
     return is_string($rendered) ? $rendered : '';
 }
@@ -3700,9 +3702,10 @@ function renderProductInquiryFields(string $productTitle): string
     try {
         $template = formTemplateModel()->findBySlug('product-inquiry');
         if (!$template) return '';
+        // 按钮沿用 1.20 的「提交询盘」（三语）；后台在模板里写了 [submit "…"] 时以模板为准
         return renderStoredFormFields($template, [
             'content' => sprintf((string) __('product_default_inq_msg'), $productTitle),
-        ]);
+        ], (string) __('product_btn_submit_inq'));
     } catch (Throwable $error) {
         error_log('Product inquiry template unavailable: ' . get_class($error));
         return '';
