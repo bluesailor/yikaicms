@@ -15,15 +15,23 @@
 # ============================================================
 <IfModule mod_rewrite.c>
 RewriteEngine On
-RewriteBase /
+# 本站网址前缀：根目录为 /，子目录部署为 /sub/。与根目录 .htaccess 同一写法，
+# 不写死 RewriteBase——同一份文件放在域名根或任意子目录都能用。
+RewriteCond %{REQUEST_URI}::$1 ^(.*/)(.*)::\2$
+RewriteRule ^(.*)$ - [E=YK_BASE:%1]
 # 敏感目录与文件：配置、运行数据（含 SQLite 数据库）、程序与初始 SQL 一律 403
 RewriteRule ^(config|storage|vendor|includes|install/sql|bin|migrations|recipes)(/|$) - [F,L]
+# 已安装后封禁整个 install/（删除 installed.lock 即可临时重开）
+RewriteCond %{DOCUMENT_ROOT}%{ENV:YK_BASE}installed.lock -f
+RewriteRule ^install/ - [F,L]
 RewriteRule (^|/)\.(git|env|htpasswd) - [F,L]
 RewriteRule ^(composer\.(json|lock)|package(-lock)?\.json)$ - [F,L]
+# 文档 / SQL / 备份 / 部署样例：不该被当静态文件下载
+RewriteRule \.(md|sql|bak|example|dist|conf|lock|yml|yaml)$ - [F,L]
 RewriteRule ^index\.php$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.php [L]
+RewriteRule . %{ENV:YK_BASE}index.php [L]
 </IfModule>
 
 # nginx 等价写法：宝塔用 deploy/nginx-baota.conf（include 一行即可），

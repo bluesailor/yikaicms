@@ -51,7 +51,7 @@ location / {
     rewrite ^/search\.html$ /search.php last;
 
     # 多语言前缀剥离：/ja/foo → /foo?_lang=ja
-    rewrite ^/(ja|en|zh-CN)/(.*)$ /$2?_lang=$1 last;
+    rewrite ^/(ja|en|zh-CN|zh-TW)/(.*)$ /$2?_lang=$1 last;
 
     # 新闻系统
     rewrite ^/news\.html$ /news.php last;
@@ -74,6 +74,9 @@ location / {
 
     # 下载 / 通用详情
     rewrite ^/download/detail/(\d+)\.html$ /detail.php?id=$1 last;
+    # 下载分类页（需在通用两段单页规则之前，否则成了 parent=download 的单页）
+    rewrite ^/download/([a-z0-9_-]+)/page/(\d+)\.html$ /list.php?slug=download&cat=$1&page=$2 last;
+    rewrite ^/download/([a-z0-9_-]+)\.html$ /list.php?slug=download&cat=$1 last;
     rewrite ^/detail/(\d+)\.html$ /detail.php?id=$1 last;
 
     # 产品
