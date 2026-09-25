@@ -50,7 +50,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($action === 'prepare') {
             $upload = $_FILES['package'] ?? [];
             if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string) ($upload['tmp_name'] ?? ''))) throw new RuntimeException('st_upload');
-            $_SESSION['site_template_preview'] = $service->prepare((string) $upload['tmp_name'], getAdminId(), post('replace_existing') === '1');
+            // 与模板市场一致：先预览，已有内容的站在导入那一步确认替换
+            $_SESSION['site_template_preview'] = $service->prepare((string) $upload['tmp_name'], getAdminId(), !$service->canApply());
         } elseif ($action === 'install_plugins') {
             // 导入页勾选的插件：本站已有的启用，官方插件市场有的走与插件页同一条校验链安装后启用
             $selected = array_values(array_filter(array_map('strval', (array) ($_POST['plugins'] ?? [])),
@@ -303,9 +304,13 @@ $groupReport = static function (array $items): array {
                         <?php else: ?>
                         <label class="flex gap-2 items-start"><input type="checkbox" name="trusted" value="1" required class="mt-1"><span><?= e(__('st_trust_label')) ?></span></label>
                         <?php endif; ?>
-                        <label class="flex gap-2 items-start"><input type="checkbox" name="confirm" value="1" required class="mt-1"><span><?= e(__('st_confirm')) ?></span></label>
                         <?php if (!empty($preview['replace_existing'])): ?>
-                        <p class="bg-red-50 text-red-800 p-3 rounded text-sm" data-testid="st-replace-reminder"><?= e(__('st_replace_reminder')) ?></p>
+                        <?php // 已有内容的站：只在真正导入前提醒一次，勾选的就是「已备份、确认替换」 ?>
+                        <p class="bg-red-50 text-red-800 p-3 rounded text-sm" data-testid="st-replace-reminder"><?= e(__('st_replace_short')) ?>
+                            <a href="/admin/database.php" class="font-medium underline"><?= e(__('st_replace_backup')) ?></a></p>
+                        <label class="flex gap-2 items-start text-red-800"><input type="checkbox" name="confirm" value="1" required class="mt-1" data-testid="st-replace-confirm"><span><?= e(__('st_replace_confirm')) ?></span></label>
+                        <?php else: ?>
+                        <label class="flex gap-2 items-start"><input type="checkbox" name="confirm" value="1" required class="mt-1"><span><?= e(__('st_confirm')) ?></span></label>
                         <?php endif; ?>
                         <button type="submit" class="bg-primary text-white rounded px-5 py-3 font-medium" data-testid="st-apply"><?= e(__('st_apply')) ?></button>
                     </div>
@@ -390,16 +395,11 @@ $groupReport = static function (array $items): array {
     <section class="bg-white rounded-lg shadow p-6 space-y-4" aria-labelledby="st-import">
         <h2 id="st-import" class="text-lg font-bold"><?= e(__('st_import_title')) ?></h2>
         <p class="text-gray-600"><?= e(__('st_import_hint')) ?></p>
-        <?php if (!$fresh) require ROOT_PATH . '/admin/includes/site_template_replace_notice.php'; ?>
         <form method="post" enctype="multipart/form-data" class="space-y-3">
             <?= csrfField() ?><input type="hidden" name="action" value="prepare">
             <label class="block font-medium" for="st-package"><?= e(__('st_package')) ?></label>
             <input id="st-package" type="file" name="package" accept=".zip" required class="block w-full max-w-full" aria-describedby="st-size">
             <p id="st-size" class="text-sm text-gray-600"><?= e(__('st_size')) ?></p>
-            <?php if (!$fresh): ?>
-            <label class="flex items-start gap-2 py-1 text-red-800"><input type="checkbox" name="replace_existing" value="1" required data-testid="st-replace-confirm" class="mt-1">
-                <span><?= e(__('st_replace_confirm')) ?></span></label>
-            <?php endif; ?>
             <button type="submit" class="border rounded px-4 py-3"><?= e(__('st_preview')) ?></button>
         </form>
     </section>
