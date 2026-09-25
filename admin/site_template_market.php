@@ -75,8 +75,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 <div class="space-y-6" x-data="{ replaceConfirmed: false }">
     <header>
-        <a href="/admin/site_templates.php" class="text-primary underline"><?= e(__('st_market_local')) ?></a>
-        <h1 class="text-2xl font-bold text-gray-800 mt-2"><?= e($pageTitle) ?></h1>
+        <?php $breadcrumb = [[__('setup_title'), '/admin/site_setup.php'], [$pageTitle]]; require ROOT_PATH . '/admin/includes/breadcrumb.php'; ?>
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h1 class="text-2xl font-bold text-gray-800"><?= e($pageTitle) ?></h1>
+            <a href="/admin/site_templates.php" class="text-sm text-primary hover:underline"><?= e(__('st_market_local')) ?></a>
+        </div>
         <p class="text-gray-600 mt-2"><?= e(__('st_market_intro')) ?></p>
     </header>
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
