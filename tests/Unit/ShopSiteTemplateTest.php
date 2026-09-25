@@ -46,6 +46,16 @@ final class ShopSiteTemplateTest extends TestCase
         ]);
     }
 
+    protected function tearDown(): void
+    {
+        // 断言在 commit 之前失败时事务会一直开着，连接是共享的，后面的测试就全报
+        // "already an active transaction"——一处失败被放大成一串假失败。
+        if (db()->getPdo()->inTransaction()) {
+            db()->rollback();
+        }
+        parent::tearDown();
+    }
+
     public function testRegisteredExportUsesStableExplicitPublicContract(): void
     {
         $variant = [[
