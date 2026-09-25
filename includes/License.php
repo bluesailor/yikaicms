@@ -340,6 +340,19 @@ function license_allows_admin_branding(?array $state = null): bool
     return false;
 }
 
+/**
+ * 是否可导出整站模板（把本站保存为模板包）。2026-09-25 裁决：导出属专业版、导入免费。
+ *
+ * 与后台白标同一口径：授权有效，或持有任一付费模块（永久回退，服务期到期不收回）。
+ * 导入、模板市场与已导出的包都不受影响。
+ *
+ * @param array<string,mixed>|null $state
+ */
+function license_allows_site_template_export(?array $state = null): bool
+{
+    return license_allows_admin_branding($state);
+}
+
 /** 是否可下载/升级付费插件（到期即失去该资格，但已装功能不受影响） */
 /** @param array<string,mixed>|null $state */
 function license_service_active(?array $state = null): bool

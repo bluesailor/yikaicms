@@ -9,6 +9,8 @@ require_once ROOT_PATH . '/includes/SiteImportReport.php';
 checkLogin();
 requirePermission('*');
 $service = new SiteTemplateService(ROOT_PATH);
+require_once ROOT_PATH . '/includes/License.php';
+$exportAllowed = license_allows_site_template_export();
 $errorMessage = '';
 $exportCheck = null;
 $notice = (string) ($_SESSION['site_template_notice'] ?? '');
@@ -23,6 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
     try {
         $action = post('action');
+        // 导出整站模板归专业版（导入免费）：检查与下载两个入口都在这里拦
+        if (in_array($action, ['export', 'check_export'], true) && !$exportAllowed) throw new RuntimeException('st_export_pro');
         if ($action === 'export') {
             $exportCheck = $service->exportCheck();
             if ($exportCheck['blocked'] !== '') throw new RuntimeException($exportCheck['blocked']);
@@ -409,12 +413,18 @@ $groupReport = static function (array $items): array {
     </section>
 
     <section class="bg-white rounded-lg shadow p-6" aria-labelledby="st-export">
-        <h2 id="st-export" class="text-lg font-bold"><?= e(__('st_export_title')) ?></h2>
+        <h2 id="st-export" class="text-lg font-bold flex items-center gap-2"><?= e(__('st_export_title')) ?>
+            <a href="/admin/license.php" class="rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold leading-4 tracking-wide text-white no-underline hover:bg-amber-600" data-testid="st-export-pro">PRO</a></h2>
         <p class="text-gray-600 mt-2"><?= e(__('st_export_hint')) ?></p>
         <p class="text-sm text-gray-600 mt-2"><?= e(__('st_scope')) ?></p>
         <p class="text-sm text-gray-600 mt-2"><?= e(__('usability_export_scope')) ?></p>
+        <?php if ($exportAllowed): ?>
         <form method="post" class="mt-4"><?= csrfField() ?><input type="hidden" name="action" value="check_export">
             <button type="submit" class="border rounded px-4 py-3"><?= e(__('usability_export_check')) ?></button></form>
+        <?php else: ?>
+        <p class="mt-4 rounded bg-amber-50 p-3 text-sm text-amber-900" data-testid="st-export-locked"><?= e(__('st_export_pro')) ?>
+            <a href="/admin/license.php" class="ml-1 font-medium underline"><?= e(__('st_export_pro_link')) ?></a></p>
+        <?php endif; ?>
         <?php if ($exportCheck !== null): ?>
         <div role="status" class="mt-4 space-y-3" data-testid="export-check-report">
             <?php if ($exportCheck['blocked'] !== ''): ?>
