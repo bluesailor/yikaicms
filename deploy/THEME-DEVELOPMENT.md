@@ -1,32 +1,58 @@
-# YikaiCMS 主题与模板开发指南
+# YikaiCMS 主题与构建器模板开发指南
 
-文档版本：0.3。更新：2026-09-18。对象：主题作者、建站开发者、易开网页构建器（Yikai Builder）模板制作人员。
+适用对象：主题作者、项目交付开发者、易开网页构建器（Yikai Builder）模板制作者。
 
-源码核对基线：v1.20.1 发布提交 `682480197a14ea409df91523f368eb690a59de08`（0.2 版基线为 1.19.9 `c97ca429`）。v1.20.0 起可视化编辑器对外名称为「易开网页构建器」，源码类名、模板包格式仍为 BLOX/Blox（下文「BLOX 模板」即构建器模板）。代码须兼容 PHP 8.0（产品运行下限），推荐 8.2+。本文仅编写指南，未安装示例主题、未运行发版验收。
+本指南按 YikaiCMS `2.0.0`、提交 `95ff9bedecdd454a6998195ce025afd32c946460` 的实际代码重新核对。产品运行下限为 PHP 8.0；数据库兼容目标为 MySQL 5.7 / MariaDB 10.x，同时支持 SQLite。后续版本如有变化，以目标版本源码和测试为准。
 
-本文由原完整指南整理入项目，排除构建器编辑器插件开发。原文 HEAD 与版本是历史核对基线，不表示当前已重新验收；实际接口以目标版本为准。先读 [AI 阅读入口](./AI-DEVELOPMENT.md)，源码链接相对于 deploy 目录。
+本文只讲现有扩展边界，不介绍如何修改核心，也不把尚未存在的约定写成接口。
 
-## 1. 先分清三类产物
+## 1. 先理解三种不同的扩展物
 
-| 产物 | 技术形式 | 用途 |
+| 扩展物 | 形式 | 适合解决的问题 |
 |---|---|---|
-| PHP 主题 | theme.json + layouts/blocks/partials/assets | 网站整体视觉、页头页脚和可覆盖的页面片段 |
-| 站点覆盖 | overrides/ 内的受控 PHP 文件 | 单个客户站的定制，不直接改核心或官方主题 |
-| BLOX 模板 | 受控 JSON 文档与元素依赖 | 可视化编辑的页面、区块、页头、页脚、弹窗 |
+| PHP 主题 | `theme.json`、PHP 布局/区块/片段、CSS/JS/图片 | 整站外观、页头页脚、传统首页区块、列表卡片等 |
+| 单站覆盖 | `overrides/` 下与主题相同的相对路径 | 某一个客户站的局部定制 |
+| 构建器模板 | `yikaicms-blox-template` JSON | 可视化编辑的区块、页面、页头、页脚、弹窗等 |
 
-PHP 主题 ZIP 不是 BLOX JSON 包。不要把一整张 HTML 页面塞进一个文字元素，就称为可编辑模板；也不要为了更换视觉修改产品查询、会员权限或提交业务。
+这三者不能混为一谈：
 
-## 2. 源码与运行目录的边界
+- PHP 主题 ZIP 不能当作构建器模板导入。
+- 构建器模板 JSON 不会自动安装主题文件、PHP 代码或上传目录中的媒体。
+- `overrides/` 的优先级高于当前主题，适合单站交付，不适合作为可分发主题的源码目录。
+- 主题负责展示，不应复制文章、产品、会员、表单等业务逻辑。
 
-- 核心默认主题源码：`themes/default/`。
-- 官方可安装主题源码：`marketplace/themes/<slug>/`，如 Business、Minimal、Aurora、Trade。
-- 客户安装后的运行目录：`themes/<slug>/`。除核心默认主题外，不把客户目录当作官方源码维护，升级也不能随意覆盖客户定制。
-- 单站覆盖：`overrides/`。它可能优先于主题，因此切换主题后仍生效；排查样式时不要遗漏。
-- 官方主题和编辑器功能分别提交。正式版本提升 theme.json.version，需要新 CMS 能力时提高 requires_cms 并声明实际依赖。
+## 2. 源码目录与运行目录
 
-完整安装包由构建流程选择性纳入官方主题，主题作者不能以“本机 themes 下有”代替安装包实际清单。
+当前仓库把官方主题源码和客户站运行目录分开管理：
 
-## 3. 推荐主题结构
+```text
+themes/default/                  核心默认主题源码和运行目录
+marketplace/themes/<slug>/       官方可选主题源码
+themes/<slug>/                   站点安装后的主题运行目录
+overrides/                       当前站点的最高优先级覆盖
+```
+
+具体规则：
+
+1. 默认主题只在 [`themes/default/`](../themes/default/) 维护。
+2. Business、Minimal、Aurora、Trade 等官方可选主题只在 [`marketplace/themes/`](../marketplace/themes/) 维护，不要反向编辑运行目录中的副本。
+3. 完整安装包会由 [`build.sh`](../build.sh) 把指定的随包主题暂存到包内；当前随包主题是 Business 和 Minimal。Aurora、Trade 仍由主题市场提供。
+4. 客户安装后的非默认主题属于站点运行数据，升级包不应无条件覆盖。
+5. 修改官方可选主题后，应同步提升其 `theme.json.version`；使用了较新的 CMS 能力时，还要把 `requires_cms` 提高到真实最低版本。
+
+## 3. 一个可安装主题的最小结构
+
+```text
+acme-corporate/
+  theme.json
+  layouts/
+    header.php
+    footer.php
+```
+
+`theme.json`、`layouts/header.php`、`layouts/footer.php` 是运行时识别主题的最低条件。缺少其中任何一个，`ThemeRuntime` 都不会把该目录当作可用主题，站点会整体回退到 `default`。
+
+实际项目建议使用下面的结构：
 
 ```text
 acme-corporate/
@@ -38,38 +64,47 @@ acme-corporate/
   blocks/
     banner.php
     about.php
-    cta.php
+    stats.php
   partials/
+    article-card.php
     product-card.php
+    pagination.php
   assets/
-    css/theme.css
-    js/theme.js
-    images/screenshot.jpg
+    css/
+      theme.css
+    js/
+      theme.js
+    images/
+      screenshot.jpg
   README.md
   CHANGELOG.md
 ```
 
-header.php、footer.php 是校验要求的基础文件。其他文件根据实际覆盖范围提供，不必为了凑目录复制全部核心代码。
+以下文件名没有自动加载约定：
 
-`pages/` 可用于项目已有调用点，但**创建一个文件不会自动建立路由**。YikaiCMS 不是 WordPress 的文件名模板层级系统；开发时必须找到入口实际调用的 `theme_path()`。
+- 放入 `functions.php` 不会自动执行。
+- 放入 `lang/*.php` 不会自动注册语言包。
+- 随意新增 `pages/foo.php` 不会自动创建 `/foo` 路由。
 
-同样，不要假设 `functions.php`、自定义 `lang/` 或任意 schema 文件放进主题就会自动执行/注册。没有明确加载器的约定不能写成接口。
+需要 PHP 行为扩展时，应做成插件并通过钩子挂载；主题本身尽量只保留展示模板和静态资源。
 
-## 4. theme.json
+## 4. `theme.json` 清单
+
+### 4.1 推荐示例
 
 ```json
 {
   "schema_version": 1,
-  "name": "企业主题示例",
-  "name_en": "Corporate Example",
-  "name_ja": "企業サイトのサンプル",
-  "description": "企业网站主题开发起点。",
-  "description_en": "A starting point for corporate websites.",
-  "description_ja": "企業サイト向けテーマの開発例です。",
+  "name": "企业主题",
+  "name_en": "Corporate Theme",
+  "name_ja": "コーポレートテーマ",
+  "description": "适合企业官网的通用主题",
+  "description_en": "A general-purpose corporate website theme",
+  "description_ja": "企業サイト向けの汎用テーマ",
   "version": "1.0.0",
-  "author": "Your Team",
+  "author": "Acme Studio",
   "category": "general",
-  "requires_cms": ">=1.20.0",
+  "requires_cms": ">=1.20.1",
   "requires_php": ">=8.0.0",
   "required_plugins": [],
   "screenshot": "assets/images/screenshot.jpg",
@@ -77,288 +112,539 @@ header.php、footer.php 是校验要求的基础文件。其他文件根据实�
 }
 ```
 
-以上最低版本只是本指南示例基线，不代表已经验证该主题。`requires_php` 默认写产品下限 `>=8.0.0`；主题 PHP 确实用到 8.1+ 语法时才提高。
+`requires_cms` 应填写实际能力下限，不要机械复制示例中的当前版本。
 
-当前 ThemeValidator 的关键规则：
+### 4.2 当前校验规则
 
-- schema_version 当前为 1；name 必须存在。v1 要求 version、author，version 为三段版本号。
-- 目录 slug 使用小写字母、数字、连字符。
-- 基础文件为 layouts/header.php、layouts/footer.php。
-- requires_cms / requires_php 使用实际支持的简单约束，推荐明确 `>=x.y.z`。当前解析器不等同 Composer，不能依赖复杂表达式或 `^` 的 Composer 上界语义。
-- required_plugins 用于声明真实依赖；仍应测试插件缺失/停用时的表现。
-- screenshot 指向包内真实文件。封面应来自实际主题效果，不是实现中不存在的设计稿。
-- 已废弃的 supports/locales/colors 不应继续添加；区块覆盖由文件系统推导，颜色改用 design-tokens.json，演示内容不是 locales 自动导入。
-- category 当前词表包括 general、manufacturing、trade、tech、creative、services、retail。
-
-旧 schema 包存在宽松兼容，不等于新包可以省略必要字段。错误和警告分别处理，不要把“能解压”当作兼容验证。
-
-## 5. 模板和资源到底如何解析
-
-### 5.1 当前主题选择
-
-`currentTheme()` 使用 `ThemeRuntime::resolve()`。请求主题缺少 theme.json 或基础头尾时，整个主题选择回退 default。
-
-### 5.2 单个模板文件
-
-`theme_path('blocks/about.php')` 的当前解析顺序：
-
-1. 站点 `overrides/blocks/about.php`。
-2. 当前有效主题 `themes/<current>/blocks/about.php`。
-3. 核心对应回退文件。
-
-核心回退规则为：
-
-| 请求 | 核心回退 |
+| 字段 | 当前规则 |
 |---|---|
-| `layouts/header.php` | `includes/header.php` |
-| `layouts/footer.php` | `includes/footer.php` |
-| `blocks/about.php` | `includes/blocks/about.php` |
-| `partials/example.php` | `includes/partials/example.php` |
-| `pages/example.php` | 站点根目录 `example.php`，仍需实际调用点 |
+| `schema_version` | 当前支持 `1`；缺失会按旧版清单处理并产生警告，未来版本号会报错 |
+| `name` | 必填 |
+| `version` | schema v1 必填，必须是三段式 SemVer，例如 `1.2.3` |
+| `author` | schema v1 必填 |
+| `requires_cms` | 可选但建议声明；安装时会与当前 CMS 版本比较 |
+| `requires_php` | 可选但建议声明；安装时会与当前 PHP 版本比较 |
+| `required_plugins` | 插件 slug 数组；缺失或未启用会阻止安装 |
+| `category` | 可选；内置值见下方 |
+| `name_en`、`name_ja` | 缺失会警告，不阻止安装 |
+| `description_en`、`description_ja` | 缺失会警告，不阻止安装 |
+| `screenshot` | 相对主题根目录；声明后文件不存在会警告 |
+| `design_tokens` | 设计色板文件名；只能是主题根目录下的安全文件名 |
 
-**不要写成“任何文件缺失都去 themes/default 查找”。** 整体主题选择回退与单文件解析是两件不同的事。
+当前内置分类：
 
-`theme_path()` 返回路径不保证最终文件存在；可选片段使用 `theme_path_optional()`，返回 null 时处理降级。传入的文件名必须由代码常量或白名单产生，不能直接使用 GET/POST 拼 include 路径。
+```text
+general, manufacturing, trade, tech, creative, services, retail
+```
 
-### 5.3 资源 URL
+版本约束解析器支持 `>=`、`<=`、`>`、`<`、`=`、`^`、`~`。为避免把它误认为 Composer 的完整语义，主题清单建议只使用简单、明确的比较式，例如 `>=1.20.1`。
+
+旧字段 `locales`、`supports`、`colors` 目前只会产生弃用警告。不要在新主题中继续使用它们。
+
+### 4.3 设计色板
+
+如果声明了 `design_tokens`，可参考 [`themes/default/design-tokens.json`](../themes/default/design-tokens.json)：
+
+```json
+{
+  "colors": {
+    "primary": "#2563EB",
+    "secondary": "#0F172A"
+  },
+  "preview": ["#2563EB", "#0F172A", "#F8FAFC"],
+  "palettes": [
+    {
+      "name": "品牌蓝",
+      "name_en": "Brand Blue",
+      "name_ja": "ブランドブルー",
+      "primary": "#2563EB",
+      "secondary": "#0F172A"
+    }
+  ]
+}
+```
+
+颜色必须使用六位十六进制形式 `#RRGGBB`。预览颜色最多取五个；无有效 `palettes` 时，系统会根据主色和辅色生成一个回退色板。
+
+## 5. 模板是怎样被找到的
+
+调用 `theme_path('相对路径')` 时，当前代码按下面顺序查找：
+
+```text
+overrides/<相对路径>
+themes/<当前主题>/<相对路径>
+核心回退路径
+```
+
+核心回退规则不是任意目录搜索：
+
+| 请求路径 | 核心回退位置 |
+|---|---|
+| `layouts/header.php`、`layouts/footer.php` | `includes/header.php`、`includes/footer.php` |
+| `pages/foo.php` | 项目根目录 `foo.php` |
+| 其他相对路径 | `includes/<相对路径>` |
+
+`theme_path()` 即使最终文件不存在也会返回计算出的路径；需要“存在才使用”时调用 `theme_path_optional()`。
+
+### 5.1 主题不会替换整套路由
+
+`article.php`、`product.php`、`list.php`、`page.php`、`search.php` 等根入口仍负责取数、权限、SEO 和页面流程。主题只替换入口明确加载的布局、区块和片段。
+
+因此：
+
+- 新增同名 PHP 文件不等于新增路由。
+- 不要在主题里重新查询文章或产品来绕过控制器。
+- 要覆盖某一块之前，先搜索该入口实际调用的 `theme_path()`。
+
+### 5.2 区块覆盖
+
+传统首页会按配置加载主题区块。核心可回退区块位于 [`includes/blocks/`](../includes/blocks/)：
+
+```text
+about.php
+advantage.php
+banner.php
+channel.php
+cta.php
+partners.php
+product_categories.php
+stats.php
+testimonials.php
+timeline.php
+```
+
+主题只需提供真正要改变的文件。例如：
+
+```text
+themes/acme-corporate/blocks/banner.php
+themes/acme-corporate/blocks/cta.php
+```
+
+其余区块会回退到核心实现。后台显示的“区块覆盖率”也正是按主题 `blocks/*.php` 与核心区块文件比较得出。
+
+开始改造前，应复制当前核心或默认主题中的同名文件，保留控制器准备好的变量约定。例如：
+
+| 模板 | 主要输入 |
+|---|---|
+| `blocks/banner.php` | `$banners`、`$block` |
+| `blocks/about.php` | `$aboutChannel`、`$block` |
+| `blocks/testimonials.php` | `$testimonials`、`$block` |
+| `blocks/channel.php` | `$currentChannel`、`$block` |
+| `blocks/partners.php` | `$links`、`$block` |
+
+不要把这些变量改成主题专属查询，否则后台排序、多语言、缓存和构建器接管都可能失效。
+
+### 5.3 片段覆盖
+
+核心片段位于 [`includes/partials/`](../includes/partials/)。常见输入包括：
+
+| 片段 | 主要输入 |
+|---|---|
+| `article-card.php`、`article-grid-card.php` | `$item`，可选 `$listOpts` |
+| `product-card.php` | `$item`、`$isProductType` |
+| `case-card.php` | `$item` |
+| `job-card.php` | `$item` |
+| `pagination.php` | `$page`、`$total`、`$perPage`、`$totalPages`、`$pageUrl` |
+| `page-hero.php` | `$channel`、`$breadcrumbItems` |
+| `breadcrumb.php` | `$breadcrumbItems`，可选 `$style` |
+| `right_sidebar.php` | `$rightSidebarTitle`、`$rightSidebarChannels`、`$channelId`，可选 `$rightSidebarActiveId` |
+| `404.php` | `$notFoundMessage` |
+
+卡片模板列表由系统扫描下面三个位置的 `*-card.php` 得到：
+
+```text
+overrides/partials/
+themes/<当前主题>/partials/
+includes/partials/
+```
+
+## 6. 页头和页脚是运行时契约
+
+最稳妥的做法是从当前 [`themes/default/layouts/header.php`](../themes/default/layouts/header.php) 和 [`footer.php`](../themes/default/layouts/footer.php) 复制，再改结构和样式。不要从只有 `<html>`、`<body>` 的演示片段开始生产主题。
+
+### 6.1 页头必须保留的能力
+
+当前页头负责或配合处理：
+
+- 页面标题、关键词、描述、canonical、Open Graph、Twitter Card 和 JSON-LD。
+- 多语言 `hreflang` 和语言切换。
+- favicon、核心样式、主题样式与页面附加样式。
+- `ThemeSettings::css()` 输出的站点外观变量。
+- `ik_head`、`render_head`、`ik_header_after` 钩子。
+- 后台配置的自定义 `<head>` 代码。
+- 构建器发布的页头，以及原生导航回退。
+- 登录管理员的可视化编辑标记。
+- 页面级“隐藏页头”设置。
+
+页面入口可能在加载页头前设置这些变量：
+
+```php
+$pageTitle;
+$pageKeywords;
+$pageDescription;
+$canonicalUrl;
+$ogType;
+$ogImage;
+$jsonLd;
+$currentChannelId;
+$currentSlug;
+$navChannels;
+$extraCss;
+```
+
+主题可以改变它们的渲染方式，但不应删掉对应能力。
+
+### 6.2 页脚必须保留的能力
+
+当前页脚负责或配合处理：
+
+- 正确关闭 `<main>`、`<body>` 和 `<html>`。
+- 构建器发布的页脚，以及原生页脚回退。
+- 页面附加脚本 `$extraJs`。
+- `ik_footer_scripts` 钩子。
+- 在线客服渲染。
+- 后台配置的自定义 body 代码。
+
+如果构建器页头或页脚没有发布内容，原生主题布局必须仍然完整可用。
+
+## 7. CSS、静态资源和站点外观设置
+
+### 7.1 主题资源地址
+
+使用 `theme_asset()` 生成带版本参数的地址：
 
 ```php
 <link rel="stylesheet" href="<?= e(theme_asset('css/theme.css')) ?>">
 <script src="<?= e(theme_asset('js/theme.js')) ?>" defer></script>
 ```
 
-theme_asset 先查当前主题 assets，缺失时使用核心 `/assets/` 对应路径，并经 assetVer 处理。它不意味着 overrides 的资源会自动覆盖主题文件，也不会自动生成缺失资源；正式包必须检查真实资源。
+查找规则：
 
-## 6. 最稳妥的起步方式
+1. 当前主题存在 `assets/<文件>` 时，返回 `/themes/<主题>/assets/<文件>`。
+2. 否则回退到核心 `/assets/<文件>`。
 
-1. 在自己的开发工作树制作新 slug，保留清晰源码目录，不直接改线上客户主题。
-2. 阅读 default 的完整 header/footer 与目标官方主题，而不是只复制页面截图中的 HTML。
-3. 从完整基础壳开始，保留元信息、语言导航、资源、钩子、BLOX 区域/管理入口的现有逻辑，再缩小范围修改视觉。
-4. 首先完成一个首页区块和一个列表卡片；确认数据、空值、移动端及多语言后再扩展其他页面。
-5. 通过后台当前主题安装/切换流程验收。直接写 current_theme 数据库值不能替代完整激活流程验证。
+`theme_asset()` 不从 `overrides/assets/` 读取资源。需要单站资源时，应使用明确的站点资源路径，或把资源放入该主题目录。
 
-主题 PHP 新代码应声明严格类型；变量输出用 `e()`。只有来自已有受控渲染器的 HTML 才能直接输出，不能用“管理员输入”作为任意 HTML 永久可信的理由。
+所有资源应随包自托管，不要依赖 CDN。图标优先沿用所复制基础主题已经加载的本地图标集，避免同一页面重复加载多套字体。
 
-## 7. 数据与模板的职责
+### 7.2 Tailwind 的真实构建范围
 
-页面入口/控制器准备数据，模板负责呈现。优先复用现有上下文，不在每个卡片重新读取分类、正文或全站配置。
+核心样式唯一入口是 [`assets/css/src/app.css`](../assets/css/src/app.css)，当前固定使用 Tailwind CSS `4.3.3`。它会扫描根 PHP、`includes/`、`admin/`、`plugins/`、`themes/` 和 `marketplace/themes/` 中的 PHP 文件。
 
-当前产品详情由 ProductDetailController 准备产品、分类、相册、参数及关联内容；文章入口使用 ContentDetailController，但 `article.php` 会映射为 `$article` 等变量。变量名必须跟真实调用点一致，不保证所有模板都有 `$content`。
+修改仓库内官方主题的 Tailwind class 后，运行：
 
-例如以下片段仅适用于调用方已经提供 `$product` 的卡片位置：
-
-```php
-<?php
-declare(strict_types=1);
-if (!defined('ROOT_PATH')) {
-    exit('Access Denied');
-}
-$title = (string) ($product['title'] ?? '');
-$url = productPrettyUrl($product);
-?>
-<article class="acme-product-card">
-    <h3><a href="<?= e($url) ?>"><?= e($title) ?></a></h3>
-    <?php if ((string) ($product['summary'] ?? '') !== ''): ?>
-        <p><?= e((string) $product['summary']) ?></p>
-    <?php endif; ?>
-</article>
-```
-
-这不是自动生效文件；应在既有产品列表卡片调用处使用相同变量契约。完整产品卡片再接入项目现有图片 helper、无图状态与资源比例，不能把图片路径和产品名称写死。
-
-- URL 使用项目路由 helper，如产品的 productPrettyUrl、语言的 langUrl/langPrefix，而不是写死 slug 规则。
-- 字段缺失时隐藏可选项或使用受控占位，不显示假价格、假参数、假统计。
-- 主题不负责绕过会员正文限制、重建询价接口或修改浏览计数。
-- 有动态 HTML 时使用既有正文/区块渲染器，保留净化与过滤链；不要把整篇正文用描述字段规则重新清洗而丢失合法结构。
-
-## 8. 首页区块、背景和视频
-
-首页当前有明确的区块映射/渲染流程。新增一个 blocks 文件不等于后台自动出现同名区块，需先找到 index.php 的映射及对应配置。
-
-- 复用 `$block` 和现有背景 helper，避免另写一套只在主题中有效的背景配置。
-- 区分背景色、图片、遮罩和视频；颜色选择不能误删用户已选择的图片/视频。
-- 视频保持静音、适当自动播放策略、poster 和失败回退；触屏/节流/禁用自动播放时也应有可读背景。
-- 用户配置的 banner 视频和 CTA 视频属于站点数据，主题升级不得重置。
-- 头尾钩子 ik_head / ik_footer_scripts 必须按现有壳保留且避免重复。缺失会使插件资源和功能消失。
-- 经典首页、BLOX 首页、自定义页头/页脚分别验收，不能只看一种组合。
-
-## 9. 颜色与样式设置
-
-design-tokens.json 的当前简化结构：
-
-```json
-{
-  "schema_version": 1,
-  "colors": {
-    "primary": "#2563EB",
-    "secondary": "#0F766E"
-  },
-  "preview": ["#2563EB", "#0F766E", "#FFFFFF"],
-  "palettes": [
-    {
-      "name": "企业蓝绿",
-      "name_en": "Corporate Blue and Green",
-      "name_ja": "ブルーとグリーン",
-      "primary": "#2563EB",
-      "secondary": "#0F766E"
-    }
-  ]
-}
-```
-
-ThemePalette 实际读取颜色与预设。不要把任意自定义 CSS 变量写进该 JSON，就认为核心会自动注入。design_tokens 当前要求主题根下的安全文件名，不使用跨目录路径。
-
-ThemeSettings 管理站点/主题样式配置，包含布局、排版、间距、按钮和响应式等；它与 BLOX 的命名样式/颜色 token 有不同职责。不要因为名称相近就直接覆盖其 JSON。
-
-主题升级只调整出厂视觉和代码，用户已保存设置优先保留。新 token 或设置字段先定义规范化、默认值和读取位置，再接控件。
-
-全局样式类（v1.23 起）是**站点级**数据（`blox_global_classes` 表，前缀 `yk-c-` 输出到
-`uploads/blox/css/classes.css`），不随主题分发：
-
-- 主题模板与预置内容**不要携带 `_classes` 引用**——类 ID 是站点本地的，跨站导入后成为
-  无样式的悬挂引用（渲染无害，但观感残缺）。
-- 主题 CSS 不要占用 `yk-c-` 前缀，也不要引用 `uploads/blox/css/` 下的站点生成文件。
-- 「样式预设」（原名"全局样式"，编辑器与设计页现统一称样式预设）与全局样式类是两种机制：
-  预设=外观快照内联输出，类=真 CSS 类样式表输出；模板包的 `requires.design_styles`
-  依赖指的是预设。
-
-## 10. Tailwind 与独立 CSS
-
-项目当前构建入口：
-
-```text
+```bash
 bash tools/build_css.sh
 ```
 
-当前脚本要求 Tailwind 4.3.3，输入 assets/css/src/app.css，输出 assets/css/tailwind.css。以脚本实际版本为准，不手工编辑编译结果。
+脚本会拒绝版本不匹配的 Tailwind CLI，并生成 `assets/css/tailwind.css`。
 
-- 开发修改模板增加 Tailwind class 后应重新编译；动态拼接如 `bg-` + 用户值通常不能被静态扫描可靠发现，使用受控完整 class 映射或既有安全内联变量。
-- 官方源码位于 marketplace 时，核实扫描是否包含该目录或构建暂存结果，不能只因为运行 themes 目录能显示就认定发布包正确。
-- 第三方主题不能要求客户每次安装都重编核心 CSS。自带必要的作用域 CSS，避免重复引入一整套会重置全站样式的 preflight。
-- JS/CSS/字体/图标自托管。主题脚本只初始化自己的节点，幂等，避免覆盖核心或 BLOX 的全局事件。
-- 桌面、平板、手机，以及长中文/英文/日文均检查；图片比例和控制尺寸稳定，不让 hover 或加载状态推动布局。
+第三方独立主题不能假设客户会重新编译核心 CSS。分发时应把主题自己的、已构建且作用域清晰的 CSS 放入 `assets/css/theme.css`。也不要手改生成文件 `assets/css/tailwind.css`。
 
-## 11. BLOX 模板制作
+### 7.3 尊重后台外观设置
 
-### 11.1 版本与类型
+`ThemeSettings` 会输出整站布局、字体、间距、按钮、背景和响应式设置。主题应尽量消费这些变量，而不是用大量 `!important` 覆盖：
 
-v1.20.0 的 `BloxTemplateModel::TYPES` 为 `section`、`page`、`header`、`footer`、`popup`、`product-detail`、`article-detail`。后两种是 1.20.0 新增的详情模板类型；面向 1.19.x 站点的模板包只能使用前五种，并应把 `requires_cms` 写到实际支持的版本。仍以目标版本的 TYPES 为准。
+```css
+.yk-theme-shell {
+  max-width: var(--yk-content-max-width);
+  padding-inline: var(--yk-content-gutter);
+  background: var(--yk-content-bg);
+}
 
-v1.20.1 起，循环模板、显示条件、样式预设（原名"全局样式"）、表格、价格方案属于专业授权能力；v1.23 增补第六项：全局样式类的**创建与管理**（挂类引用与渲染始终免费）。站点数据绑定（`site_field` 等）自 v1.20.2 起为免费能力，模板包可以放心使用。模板包用到专业能力时，未授权站点导入或保存会被拒绝（已发布内容照常渲染）。面向所有站点的主题模板包应只使用基础元素与基础设置；确需专业能力时在说明中写明「需专业授权」。循环模板子元素里的 `loop_*` 字段只在循环内部生效，普通元素上的同名默认值不受限。
+.yk-theme-button {
+  border-radius: var(--yk-button-radius);
+  background: var(--yk-button-bg);
+  color: var(--yk-button-text);
+}
 
-**结构与语法能力的版本线**（模板包按 `requires_cms` 声明；旧核心遇到新语法会校验拒绝或按字面输出）：
+.yk-theme-button:hover {
+  background: var(--yk-button-hover-bg);
+}
+```
 
-- 嵌套容器（container/div 互嵌，最深 8 层）、容器/Div 的 **Grid 布局模式**（`layout`/`display` = grid、
-  `grid_cols` 四档、子项 `grid_span`）、列 `span` 的 `{m,w}` 手机/宽屏档：需 v1.21+ 语义的核心。
-- 双花括号动态标签 `{{article.title|后备}}` 等：需 v1.24+ 语义的核心；旧核心不解析、按字面显示。
-- 面向存量客户站的通用模板包，仍以「区块→列→单层容器」+ 单花括号站点标签为安全底线。
+可用变量还包括：
 
-### 11.2 最小 JSON 包
+```text
+--yk-html-font-size
+--yk-section-padding-y
+--yk-site-bg
+--yk-content-bg
+```
+
+## 8. 数据、安全、多语言和缓存
+
+主题虽然主要负责展示，仍必须遵守核心安全边界。
+
+### 8.1 输出转义
+
+普通文本和属性使用 `e()`：
+
+```php
+<h2><?= e($item['title'] ?? '') ?></h2>
+<a href="<?= e($item['url'] ?? '#') ?>"><?= e(__('read_more')) ?></a>
+```
+
+不要直接输出数据库字段。确实要输出富文本时，应复用相邻核心模板已经使用的清洗和渲染路径，不要自行放开原始 HTML。
+
+### 8.2 数据边界
+
+- 优先使用控制器传入的数据，不在模板中写业务 SQL。
+- 确需读取数据时，使用现有模型工厂和 `db()`，始终参数化。
+- 不在主题中实现登录、权限、支付、表单写入或文件上传。
+- 不动态包含用户提供的路径，不使用 `eval`。
+
+### 8.3 多语言和链接
+
+- 界面文字使用 `__('key')`，并在核心支持的语言文件中补齐中文、英文、日文。
+- 站内语言链接使用 `langUrl()` 等现有助手，不手工拼接语言前缀。
+- URL、标题、摘要等字段沿用控制器或模型已经准备好的值。
+
+可分发主题本身没有自动加载的私有语言包机制。如主题需要新增固定界面文案，应与插件或核心语言键方案一起设计，而不是在模板里硬编码三套分支。
+
+### 8.4 缓存
+
+前台有整页 HTML 缓存。主题改动没有立即显示时，应先确认：
+
+1. 当前启用的主题是否正确。
+2. `overrides/` 是否仍覆盖同名文件。
+3. Tailwind 是否已经重编译。
+4. 前台缓存是否已经清理。
+5. 浏览器是否仍使用旧的 CSS/JS。
+
+## 9. 易开网页构建器模板
+
+界面对外名称是“易开网页构建器”或“Yikai Builder”；源码和模板包仍使用 Blox 命名。
+
+### 9.1 当前模板类型
+
+当前代码支持：
+
+```text
+section
+page
+header
+footer
+popup
+archive
+search
+error404
+product-detail
+article-detail
+```
+
+其中页头、页脚、404、详情等模板会由对应运行时挂载点接管；没有已发布模板时，PHP 主题必须提供可工作的回退布局。
+
+### 9.2 包格式
+
+格式标识为 `yikaicms-blox-template`，当前包版本为 `1`，导入文件上限为 2,000,000 字节。一个最小区块示例：
 
 ```json
 {
   "format": "yikaicms-blox-template",
   "version": 1,
   "type": "section",
-  "name": "简洁标题区块",
-  "thumbnail": "",
+  "name": "Basic heading",
   "requires": {
-    "elements": ["heading"],
+    "elements": ["heading", "text", "button"],
     "plugins": []
   },
-  "document": [
-    {
-      "type": "section",
-      "settings": {
-        "padding": "md",
-        "max_width": "default"
-      },
-      "columns": [
-        {
-          "span": 12,
-          "elements": [
-            {
-              "type": "heading",
-              "data": { "text": "区块标题", "level": "h2" }
-            }
-          ]
-        }
-      ]
-    }
-  ]
+  "document": {
+    "schema": 1,
+    "settings": {},
+    "sections": [
+      {
+        "type": "section",
+        "settings": {
+          "padding": "lg",
+          "max_width": "narrow",
+          "gap": "sm",
+          "align_items": "center",
+          "justify_items": "center",
+          "bg_color": "#ffffff"
+        },
+        "columns": [
+          {
+            "elements": [
+              {
+                "type": "heading",
+                "data": {
+                  "text": "一句话说清这一段讲什么",
+                  "level": "h2",
+                  "align": "center"
+                }
+              },
+              {
+                "type": "text",
+                "data": {
+                  "html": "<p>补充说明文字。</p>",
+                  "align": "center"
+                }
+              },
+              {
+                "type": "button",
+                "data": {
+                  "text": "了解更多",
+                  "url": "",
+                  "variant": "outline",
+                  "align": "center"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
-示例参照仓库既有导入 fixture。正式制作优先在编辑器完成并导出，再用 BloxTemplateImporter 检查，不手写整站复杂 JSON。
+完整示例见 [`templates/blox/`](../templates/blox/)。
 
-- 包格式 version 和文档 schema 是两层概念，不与 CMS/theme 版本混用。
-- 文档也可能使用包含 schema/settings/sections 的信封，以保留文档级设置；由当前导出器生成，避免手工丢字段。
-- 当前导入器 JSON 限制为 2,000,000 字节；不得靠嵌入 base64 大图规避媒体管理。
-- requires 除元素/插件外还可能包含设计依赖；由导出器推导/合并，不能删掉依赖让包看上去可用。
-- 导入创建草稿，不应据此宣称已发布或已应用到网站。导出默认优先已发布数据，没有已发布时才可能使用草稿；编辑后要核对导出的究竟是哪版。
-- 图片、视频、缩略图必须有合法可分发来源；引用本机 uploads 路径不意味着 JSON 自动包含媒体文件。需要在既有媒体/分发流程中一并处理并实际验证。
-- 使用通用元素组合 FAQ、按钮、标题和联系区块，不为每个预置块单独写不可编辑的 HTML。
-- header/footer/popup 条件规则与页面文档结构分开核对。跨站内容 ID、栏目 ID、预览样本不能直接作为新站有效绑定。
+### 9.3 不要手写复杂模板包
 
-### 11.3 发布与默认回退
+推荐流程：
 
-草稿保存、预览、发布、应用条件不是同一个动作。模板作者必须真实测试重新打开与前台结果，不能只确认编辑器即时预览。
+1. 在目标版本的构建器中创建内容。
+2. 保存并在前台验证桌面、平板和手机布局。
+3. 从系统导出模板包。
+4. 在一个干净站点重新导入验证。
+5. 检查 `requires.elements`、`requires.plugins` 和设计依赖是否准确。
 
-v1.20.0 起，产品详情与文章详情模板可按分类、栏目或指定内容套用，带优先级、命中诊断、影响范围预览和发布冲突保护（见 `BloxTemplateModel::publishedDetailTemplates()`）。制作详情模板时要分别验证命中与未命中（回退主题详情页）两种情况；跨站的分类、栏目、内容 ID 不能直接作为新站的有效绑定。更细的条件语义以目标版本实现为准，不把内部规划当作稳定接口。
+导入器会校验模板类型、名称、元素、插件和设计依赖，并拒绝 `code` 元素。导入结果先作为草稿保存，发布是另一项操作。不要把站点专属媒体 URL、跨站组件库引用或敏感数据放入模板包。
 
-## 12. 打包、升级和市场交付
+## 10. 打包、安装、升级和删除
 
-PHP 主题 ZIP 使用单一 slug 目录，例如 `acme-corporate/theme.json`；包含基础头尾、使用到的资源及封面。不要包含站点 config、数据库导出、用户 uploads、.git、测试材料和密钥。
+### 10.1 ZIP 结构
 
-ThemeValidator 做清单/兼容检查，ThemeInstaller 处理包安装；市场下载的真实性、哈希/签名与目录一致性属于市场发行链。不能把本地 ZIP 安装当作完成官方市场签名发布。
+主题 ZIP 必须只有一个顶层主题目录：
 
-v1.20.0 起安装器在主题目录写入来源回执 `.yikai-market-origin.json`（local / official / community，见 `MarketInstallOrigin`）：
+```text
+acme-corporate.zip
+└─ acme-corporate/
+   ├─ theme.json
+   ├─ layouts/
+   │  ├─ header.php
+   │  └─ footer.php
+   └─ ...
+```
 
-- 包内不得自带该文件，含此路径的 ZIP 会被拒绝。
-- 本地上传的主题记为 local，之后模板市场不会以官方或社区更新覆盖它。因此**不要使用官方主题已占用的 slug**（如 default、business、minimal），也不要用本地包冒充官方版本。
-- 市场主题包上限 50 MB（`ThemeMarket::MAX_PACKAGE_BYTES`），远程构建器模板包上限 5 MB；替换已有目录前安装器会先备份。
+错误示例：
 
-发布检查：
+```text
+theme.json                         缺少顶层目录
+package/acme-corporate/theme.json  多包了一层 package
+```
 
-1. 源码 theme.json.version、市场目录版本、ZIP 内版本一致。
-2. requires_cms、requires_php、插件依赖与实际功能一致。
-3. 包文件清单、必要媒体、SHA-256 与官方签名流程核对。
-4. 新装和覆盖升级均验证；客户保存的配色、内容、视频、BLOX 自定义模板不被重置。
-5. theme 切换失败或目录缺失时有可用回退，不出现半套头尾混用。
-6. 版本日志写清改动与最低依赖，正式市场发布需明确授权。
+顶层目录名应与主题 slug 一致，只使用小写字母、数字和连字符。
 
-用户演示内容与主题代码分离。不要通过安装主题导入一份生产数据库，也不要修改管理员账号或安装锁。
+### 10.2 安装器会检查什么
 
-## 13. 最小验收清单
+当前安装器会：
 
-- 主题目录校验无 errors，warnings 有解释。
-- 首页、产品列表/详情、文章详情、单页、404 正常；非空内容与无图/无数据状态都有检查。
-- 三个视口和三种界面语言，无文字溢出、双重画布滚动或导航遮挡。
-- 页头页脚钩子、插件资源、BLOX 区域和经典布局切换正常。
-- 图片/视频正常，视频不能播放时 poster 和文字仍可读。
-- 缓存失效后前台与编辑结果一致，匿名与管理员状态分别检查。
-- 模板 JSON 导入、保存、发布、导出再导入可用，缺依赖明确报错。
-- 主题更新保留客户数据和自定义文件边界。
+- 要求单一、安全的顶层目录。
+- 检查 `theme.json`、页头、页脚和版本约束。
+- 拒绝路径穿越、符号链接和保留的市场来源回执路径。
+- 限制 ZIP 条目数、单文件大小、解压总量和异常压缩比。
+- 先解压到暂存目录，校验通过后再替换目标目录。
+- 替换失败时尝试恢复旧主题。
+- 阻止普通本地包覆盖来源不同的已安装主题。
 
-相关测试可从 ThemeValidatorTest、ThemeTemplateResolutionTest、ThemeMarketTest、ThemeInstallerTest、BloxTemplateImporterTest 开始。日常只跑相关用例；正式集成/交付遵守完整门禁，本文不宣称这些测试已执行。
+市场下载还受 50 MB 包大小上限、文件大小、SHA-256 和签名校验约束。官方市场包名遵循：
 
-## 14. 源码索引
+```text
+<slug>-v<version>.zip
+```
 
-- [主题路径和资源 helper](../includes/functions.php)
-- [主题有效性回退](../includes/ThemeRuntime.php)
-- [主题清单校验](../includes/ThemeValidator.php)
-- [主题安装器](../includes/ThemeInstaller.php)
-- [安装来源回执](../includes/MarketInstallOrigin.php)
-- [颜色预设](../includes/ThemePalette.php)
-- [主题样式设置](../includes/ThemeSettings.php)
-- [默认主题清单](../themes/default/theme.json)
-- [默认主题页头](../themes/default/layouts/header.php)
-- [默认主题页脚](../themes/default/layouts/footer.php)
-- [BLOX 模板导入导出](../includes/builder/BloxTemplateImporter.php)
-- [BLOX 模板类型](../includes/models/BloxTemplateModel.php)
-- [BLOX 文档规范化](../includes/builder/BloxDocumentPipeline.php)
-- [BLOX 全局样式类](../includes/builder/BloxGlobalClasses.php)
-- [BLOX 动态标签](../includes/builder/BloxDynamicTags.php)
-- [Tailwind 构建脚本](../tools/build_css.sh)
+`.yikai-market-origin.json` 是安装器写入的来源回执，主题作者不得把它放进 ZIP。
 
-维护规则：核心加载、清单 schema、导入格式或稳定类型变化时同步修订本指南；保持“实际接口”和“未来规划”分开，不用旧注释替代当前调用链。
+### 10.3 默认主题和活动主题保护
+
+- `default` 不能通过普通本地主题包覆盖或删除；只允许符合规则的官方更新。
+- 当前正在使用的主题不能删除。
+- 删除前会再次校验 slug、真实路径和主题根目录边界。
+
+开发时不要靠手工删除目录模拟后台删除结果；应分别验证安装、升级、切换和删除流程。
+
+## 11. 推荐开发流程
+
+### 11.1 创建主题
+
+1. 复制 [`themes/default/`](../themes/default/) 或最接近需求的 [`marketplace/themes/`](../marketplace/themes/) 主题源码。
+2. 立即修改目录 slug、`theme.json`、截图和版本号。
+3. 先保留完整页头页脚运行时契约，再调整结构和视觉。
+4. 只覆盖真正需要改变的 `blocks/` 和 `partials/`。
+5. 使用 `theme_asset()` 加载主题资源。
+6. 使用 `ThemeSettings` 变量适配后台外观设置。
+7. 如修改了官方主题中的 Tailwind class，运行 `bash tools/build_css.sh`。
+8. 按单一顶层目录打 ZIP，在干净站点试装。
+
+### 11.2 最低验收清单
+
+- [ ] `theme.json` 能被 `ThemeValidator` 校验，无阻断错误。
+- [ ] PHP 8.0 语法可用，没有 PHP 8.1+ 专属语法/API。
+- [ ] 未启用构建器页头页脚时，原生页头页脚完整。
+- [ ] 启用构建器页头页脚时，没有重复导航或重复闭合标签。
+- [ ] 首页传统区块与构建器首页都能正常显示。
+- [ ] 文章列表、产品列表、详情、搜索、404 和分页正常。
+- [ ] 中文、英文、日文页面没有新增的硬编码界面文案。
+- [ ] 所有动态文本和属性均正确转义。
+- [ ] 后台站点宽度、字体、按钮、背景和响应式设置仍生效。
+- [ ] 桌面、平板、手机宽度均检查过导航、卡片、表格和长文本。
+- [ ] CSS、JS、图片和字体均为本地资源，无 CDN 依赖。
+- [ ] 清理缓存后再次验证前台。
+- [ ] ZIP 可全新安装、覆盖升级和回滚，活动主题不能被误删。
+- [ ] 构建器模板可导出、在干净站点导入，并作为草稿再次编辑。
+
+### 11.3 相关自动化测试
+
+主题机制的主要测试位于：
+
+```text
+tests/Unit/ThemeRuntimeTest.php
+tests/Unit/ThemeValidatorTest.php
+tests/Unit/ThemeTemplateResolutionTest.php
+tests/Unit/ThemeInstallerTest.php
+tests/Unit/ThemeMarketTest.php
+tests/Unit/ThemePaletteTest.php
+tests/Unit/ThemeSettingsTest.php
+tests/Unit/ThemePackagingPolicyTest.php
+```
+
+修改主题基础设施时，至少运行对应测试；合并前仍应按仓库开发约定执行全量门禁。只改某个主题视觉时，也必须在该工作树的真实站点前台检查受影响页面。
+
+## 12. 代码索引
+
+| 主题 | 当前实现 |
+|---|---|
+| 当前主题与路径解析 | [`includes/functions.php`](../includes/functions.php)、[`includes/ThemeRuntime.php`](../includes/ThemeRuntime.php) |
+| 清单校验与覆盖率 | [`includes/ThemeValidator.php`](../includes/ThemeValidator.php) |
+| 本地 ZIP 安装、升级、删除 | [`includes/ThemeInstaller.php`](../includes/ThemeInstaller.php) |
+| 市场目录和下载校验 | [`includes/ThemeMarket.php`](../includes/ThemeMarket.php) |
+| 安装来源回执 | [`includes/MarketInstallOrigin.php`](../includes/MarketInstallOrigin.php) |
+| 设计色板 | [`includes/ThemePalette.php`](../includes/ThemePalette.php) |
+| 站点外观设置 | [`includes/ThemeSettings.php`](../includes/ThemeSettings.php) |
+| 默认主题参考 | [`themes/default/`](../themes/default/) |
+| 官方可选主题源码 | [`marketplace/themes/`](../marketplace/themes/) |
+| 核心区块与片段 | [`includes/blocks/`](../includes/blocks/)、[`includes/partials/`](../includes/partials/) |
+| 构建器模板模型 | [`includes/models/BloxTemplateModel.php`](../includes/models/BloxTemplateModel.php) |
+| 构建器模板导入导出 | [`includes/builder/BloxTemplateImporter.php`](../includes/builder/BloxTemplateImporter.php) |
+| 构建器模板示例 | [`templates/blox/`](../templates/blox/) |
+| 核心 CSS 构建 | [`tools/build_css.sh`](../tools/build_css.sh)、[`assets/css/src/app.css`](../assets/css/src/app.css) |
+| 安装包主题策略 | [`build.sh`](../build.sh)、[`marketplace/README.md`](../marketplace/README.md) |
+
+## 13. 常见错误
+
+| 现象 | 优先检查 |
+|---|---|
+| 切换主题后仍显示默认主题 | `theme.json`、页头、页脚是否齐全，slug 是否合法 |
+| 改了模板但前台不变 | `overrides/`、当前主题、HTML 缓存、浏览器缓存 |
+| 新 Tailwind class 没样式 | 是否用 4.3.3 重新运行 `tools/build_css.sh` |
+| 本地可见，装包后资源 404 | ZIP 路径、文件名大小写、是否使用 `theme_asset()` |
+| 后台外观设置失效 | 是否删除 `ThemeSettings::css()` 或用高优先级 CSS 覆盖变量 |
+| 构建器页头出现双导航 | 主题页头是否保留了“构建器优先、原生回退”的判断 |
+| 主题升级被拒绝 | 版本未提高、来源不一致、CMS/PHP/插件约束不满足 |
+| 主题无法删除 | 它是 `default`、当前活动主题，或路径不在主题根目录内 |
+| 模板 JSON 导入失败 | 类型、元素、插件、设计依赖、文件大小或 `code` 元素不符合规则 |
+
+主题开发的核心原则只有三条：保留运行时契约、只覆盖展示层、让缺失部分能够安全回退。遵守这三条，主题才能同时适配传统页面、易开网页构建器、后台外观设置和后续升级。
