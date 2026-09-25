@@ -2,7 +2,7 @@
 
 适用对象：主题作者、项目交付开发者、易开网页构建器（Yikai Builder）模板制作者。
 
-本指南按 YikaiCMS `2.0.0`、提交 `95ff9bedecdd454a6998195ce025afd32c946460` 的实际代码重新核对。产品运行下限为 PHP 8.0；数据库兼容目标为 MySQL 5.7 / MariaDB 10.x，同时支持 SQLite。后续版本如有变化，以目标版本源码和测试为准。
+本指南按 YikaiCMS `2.0.0`、提交 `e751fd9f8af8acb12832b273ad7b07e30f10db4a` 的实际代码重新核对。产品运行下限为 PHP 8.0；数据库兼容目标为 MySQL 5.7 / MariaDB 10.x，同时支持 SQLite。后续版本如有变化，以目标版本源码和测试为准。
 
 本文只讲现有扩展边界，不介绍如何修改核心，也不把尚未存在的约定写成接口。
 
@@ -20,6 +20,8 @@
 - 构建器模板 JSON 不会自动安装主题文件、PHP 代码或上传目录中的媒体。
 - `overrides/` 的优先级高于当前主题，适合单站交付，不适合作为可分发主题的源码目录。
 - 主题负责展示，不应复制文章、产品、会员、表单等业务逻辑。
+
+另有一种交付物是**整站模板**：主题 + 栏目、内容、产品、表单定义、被引用媒体与声明的插件数据，打成一个包，在新站一次导入。流程与限制见 [整站模板工作流](./SITE-TEMPLATE-WORKFLOW.md)。v2.0.0 起「把本站保存为模板包」（导出）是专业版功能，导入与模板市场免费；导入要求模板与站点处于同一 CMS 版本线（主.次 版本相同，如 2.0.x）且模板制作版本不晚于站点。
 
 ## 2. 源码目录与运行目录
 
@@ -124,7 +126,7 @@ acme-corporate/
 | `author` | schema v1 必填 |
 | `requires_cms` | 可选但建议声明；安装时会与当前 CMS 版本比较 |
 | `requires_php` | 可选但建议声明；安装时会与当前 PHP 版本比较 |
-| `required_plugins` | 插件 slug 数组；缺失或未启用会阻止安装 |
+| `required_plugins` | 插件 slug 数组；单独安装主题时，缺失或未启用会阻止安装。主题随整站模板分发时，这些插件还必须写进整站包的插件清单；导入步骤会把它们标为「必需」并随导入一起安装启用，仍缺失则拒绝导入 |
 | `category` | 可选；内置值见下方 |
 | `name_en`、`name_ja` | 缺失会警告，不阻止安装 |
 | `description_en`、`description_ja` | 缺失会警告，不阻止安装 |
@@ -513,6 +515,8 @@ article-detail
 
 导入器会校验模板类型、名称、元素、插件和设计依赖，并拒绝 `code` 元素。导入结果先作为草稿保存，发布是另一项操作。不要把站点专属媒体 URL、跨站组件库引用或敏感数据放入模板包。
 
+元素、区块和区块标题的「高级」设置（HTML ID、CSS 类、自定义属性、自定义 CSS）会随文档一起保存和导出。自定义 CSS 只接受净化后的样式：不能出现 `<`、`@import`、`expression()`、`javascript:` 或任何外部地址（`//`），花括号必须配平；`%root%` 指代本元素。新增或修改自定义 CSS 需要「全站设计」权限；类名 `yk-` 前缀与属性 `data-yk*` 留给系统。
+
 ## 10. 打包、安装、升级和删除
 
 ### 10.1 ZIP 结构
@@ -629,6 +633,8 @@ tests/Unit/ThemePackagingPolicyTest.php
 | 核心区块与片段 | [`includes/blocks/`](../includes/blocks/)、[`includes/partials/`](../includes/partials/) |
 | 构建器模板模型 | [`includes/models/BloxTemplateModel.php`](../includes/models/BloxTemplateModel.php) |
 | 构建器模板导入导出 | [`includes/builder/BloxTemplateImporter.php`](../includes/builder/BloxTemplateImporter.php) |
+| 元素 / 区块高级设置与自定义 CSS 净化 | [`includes/builder/BloxCustomCode.php`](../includes/builder/BloxCustomCode.php) |
+| 整站模板导出、导入与插件处理 | [`includes/SiteTemplateService.php`](../includes/SiteTemplateService.php)、[`includes/SiteTemplateArchive.php`](../includes/SiteTemplateArchive.php) |
 | 构建器模板示例 | [`templates/blox/`](../templates/blox/) |
 | 核心 CSS 构建 | [`tools/build_css.sh`](../tools/build_css.sh)、[`assets/css/src/app.css`](../assets/css/src/app.css) |
 | 安装包主题策略 | [`build.sh`](../build.sh)、[`marketplace/README.md`](../marketplace/README.md) |
