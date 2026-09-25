@@ -211,7 +211,7 @@ $groupReport = static function (array $items): array {
     <?php if ($importing): ?>
     <?php
     // 导入向导：只摆本次导入需要的东西；导出与上传入口先收起来，免得新用户在两件事之间迷路
-    $origin = is_array($preview['origin'] ?? null) ? $preview['origin'] : ['official' => false, 'name' => '', 'screenshot' => '', 'version' => ''];
+    $origin = is_array($preview['origin'] ?? null) ? $preview['origin'] : ['official' => false, 'name' => '', 'screenshot' => '', 'version' => '', 'demo_url' => ''];
     $official = !empty($origin['official']);
     $summary = $preview['summary'];
     $emptyLanguages = is_array($summary['languages_empty'] ?? null) ? $summary['languages_empty'] : [];
@@ -228,6 +228,10 @@ $groupReport = static function (array $items): array {
                     <?php if ($origin['version'] !== ''): ?><span class="text-xs text-gray-500"><?= e(__('st_market_version', ['version' => $origin['version'], 'cms' => $summary['cms'], 'series' => SiteTemplateArchive::cmsSeries((string) $summary['cms'])])) ?></span><?php endif; ?>
                 </p>
                 <p class="mt-2 text-sm text-gray-600"><?= e(__('st_wizard_languages', ['list' => (string) $summary['languages']])) ?></p>
+                <?php if (($origin['demo_url'] ?? '') !== ''): ?>
+                <a href="<?= e($origin['demo_url']) ?>" target="_blank" rel="noopener" data-testid="st-wizard-demo"
+                   class="mt-3 inline-flex items-center gap-1 border rounded px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"><i class="ti ti-external-link" aria-hidden="true"></i><?= e(__('st_wizard_demo')) ?></a>
+                <?php endif; ?>
                 <form method="post" class="mt-3"><?= csrfField() ?><input type="hidden" name="action" value="cancel_import">
                     <button type="submit" class="text-sm text-gray-500 underline hover:text-gray-800" data-testid="st-wizard-cancel"><?= e(__('st_wizard_cancel')) ?></button></form>
             </div>
