@@ -19,7 +19,7 @@ final class SiteTemplateMarketReviewRouterTest extends TestCase
             '/packages/not-listed.zip' => 'NOT-PUBLISHED',
             '/assets/site-templates/fixture/1.0.0/preview.webp' => 'PUBLIC-COVER',
             '/catalog.json' => json_encode(['templates' => [['slug' => 'fixture', 'version' => '1.0.0', 'package' => 'fixture-site-v1.0.0.zip']]], JSON_THROW_ON_ERROR),
-            '/review-router.php' => (string) file_get_contents(ROOT_PATH . '/deploy/site-template-market/review-router.php'),
+            '/review-router.php' => (string) file_get_contents(ROOT_PATH . '/tools/site-template-market/review-router.php'),
             '/probe.php' => '<?php $_SERVER["REQUEST_METHOD"]=$argv[1]; $_SERVER["REQUEST_URI"]=$argv[2]; register_shutdown_function(static function(): void { fwrite(STDERR, (string) (http_response_code() ?: 200)); }); require __DIR__ . "/review-router.php";',
         ];
         foreach ($directories as $directory) mkdir($root . $directory, 0700);

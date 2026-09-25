@@ -82,8 +82,8 @@ function prepareSiteTemplateMarket(
         }
         $assets[] = ['source' => $cover, 'relative' => $site['cover_relative']];
     }
-    $reviewPage = file_get_contents(ROOT_PATH . '/deploy/site-template-market/review.php');
-    $reviewRouter = file_get_contents(ROOT_PATH . '/deploy/site-template-market/review-router.php');
+    $reviewPage = file_get_contents(ROOT_PATH . '/tools/site-template-market/review.php');
+    $reviewRouter = file_get_contents(ROOT_PATH . '/tools/site-template-market/review-router.php');
     if (!is_string($reviewPage) || !is_string($reviewRouter)) throw new RuntimeException('Cannot read review files');
 
     $workspace = rtrim(str_replace('\\', '/', sys_get_temp_dir()), '/') . '/yk-site-prepare-' . bin2hex(random_bytes(8));

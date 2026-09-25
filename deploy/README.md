@@ -10,7 +10,6 @@
 - [整站模板中的插件数据](./SITE-TEMPLATE-PLUGIN-DATA.md)：插件如何让自己的公开数据随整站模板导出导入（英文）。
 - [整站模板工作流](./SITE-TEMPLATE-WORKFLOW.md)：整站模板导出（专业版）、导入、插件处理、恢复与主题内容面板；示例主题见 `examples/studio-starter/`。
 - [模板预设与动效](./TEMPLATE-PRESETS-MOTION.md)、[整站模板制作体验](./TEMPLATE-USABILITY.md)：构建器预设区块、动效与模板制作辅助功能的设计记录。
-- `site-template-market/`：更新服务器上整站模板市场接口与本地审阅工具（部署到更新服务器用，不是站点的一部分）。
 
 ## 部署辅助
 
