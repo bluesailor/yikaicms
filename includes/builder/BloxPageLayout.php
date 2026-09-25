@@ -18,6 +18,24 @@ final class BloxPageLayout
         ];
     }
 
+    /**
+     * 未授权站点（page_layout 归专业版）：本页的外框覆盖只能原样保留，不能新增、修改或清除。
+     * 页眉页脚显隐是 2.0 之前的免费能力，不在此检查。
+     *
+     * @param array<string,mixed> $settings 本次提交的文档 settings
+     * @param array<string,mixed> $trusted  服务端已存的 settings（新文档为空）
+     */
+    public static function assertOverridesUnchanged(array $settings, array $trusted): void
+    {
+        foreach (self::fields() as $key => $field) {
+            if ($field['type'] === 'bool') continue;
+            if (array_key_exists($key, $settings) !== array_key_exists($key, $trusted)
+                || ($settings[$key] ?? null) !== ($trusted[$key] ?? null)) {
+                throw new RuntimeException(__('layout_pro_required'));
+            }
+        }
+    }
+
     /** 新布局字段严格校验；旧 header/footer 的宽容归一继续留在原管线。 */
     public static function normalize(array $settings): array
     {

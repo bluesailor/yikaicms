@@ -90,6 +90,9 @@ final class BloxDocumentPipeline
                 }
             }
         }
+        if (!BloxFeaturePolicy::inTrustedWrite() && !BloxFeaturePolicy::allows('page_layout')) {
+            BloxPageLayout::assertOverridesUnchanged($document['settings'], $trustedJson !== null ? self::decode($trustedJson)['settings'] : []);
+        }
         BloxCustomCode::assertDocumentCssAllowed(
             $document['settings'],
             $trustedJson !== null ? self::decode($trustedJson)['settings'] : null,
