@@ -121,8 +121,12 @@ $groupReport = static function (array $items): array {
 ?>
 <div class="max-w-4xl space-y-6">
     <?php require ROOT_PATH . '/admin/includes/setting_sources_notice.php'; ?>
-    <header><a href="/admin/site_setup.php" class="text-primary underline"><?= e(__('setup_title')) ?></a>
-        <h1 class="text-2xl font-bold text-gray-800 mt-2"><?= e($importing ? __('st_wizard_title') : $pageTitle) ?></h1>
+    <header>
+        <?php $breadcrumb = $importing
+            ? [[__('setup_title'), '/admin/site_setup.php'], [__('st_market_title'), '/admin/site_template_market.php'], [__('st_wizard_title')]]
+            : [[__('setup_title'), '/admin/site_setup.php'], [__('st_title')]];
+        require ROOT_PATH . '/admin/includes/breadcrumb.php'; ?>
+        <h1 class="text-2xl font-bold text-gray-800"><?= e($importing ? __('st_wizard_title') : $pageTitle) ?></h1>
         <?php if (!$importing): ?>
         <p class="text-gray-600 mt-2"><?= e(__('st_intro')) ?></p>
         <?php // 整站包是覆盖整个站点的；只想复用一个页面或区块的人该去 Blox 模板库 ?>
