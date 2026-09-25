@@ -1,6 +1,6 @@
 # Plugin-owned data in whole-site packages
 
-This is a local delivery candidate. It neither publishes packages nor installs or enables plugins on customer sites.
+For plugin authors: how a plugin makes its own public data travel with a whole-site template package, and how import treats plugins the package depends on. Read it together with [Plugin development](./PLUGIN-DEVELOPMENT.md).
 
 ## Ownership and default-deny boundary
 
@@ -21,6 +21,8 @@ The core settings allowlist remains unchanged. A plugin must never work around i
 ## Import and recovery
 
 Before copying or staging files, `prepare()` checks each available target adapter through the same export filter. Schema id, version and SHA-256 must match exactly, and target state must be replaceable. A missing dependency remains blocked by default; after the existing trusted-source and replace-content confirmations, only that missing slug's payload is skipped. A present but incompatible adapter cannot be bypassed.
+
+When a declared plugin is already on the site, or available from the official plugin market, the import step lists it as an option that is ticked by default. The single import action installs (through the same verified market chain as the plugin page) and enables the ticked plugins, rebuilds the preview in a new request so their adapters are registered, and then imports their data. Plugins named in the theme's `required_plugins` must also be declared in the package's plugin list; they cannot be unticked, and import stops if they are still missing.
 
 Inside the same database transaction as core replacement, the importer calls:
 
