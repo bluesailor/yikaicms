@@ -28,7 +28,12 @@ final class SiteTemplateWorkflowTest extends TestCase
     {
         $page = (string) file_get_contents(ROOT_PATH . '/admin/site_templates.php');
         self::assertStringContainsString("\$preview['missing_plugins']", $page);
-        self::assertStringContainsString('/admin/plugin.php?tab=market&amp;q=', $page);
+        // 所需插件是导入表单里的勾选项（默认勾选、主题必需的不能取消），随导入一起装好；不再把人引去插件市场
+        self::assertStringNotContainsString('/admin/plugin.php?tab=market', $page);
+        self::assertStringContainsString('<input type="checkbox" name="plugins[]" value="<?= e($plugin[\'slug\']) ?>" checked form="st-apply-form">', $page);
+        self::assertStringContainsString('<input type="hidden" name="plugins[]" value="<?= e($plugin[\'slug\']) ?>" form="st-apply-form">', $page);
+        self::assertStringContainsString('$service->installRequiredPlugins(post(\'token\'), getAdminId(), $selected)', $page);
+        self::assertStringContainsString('$service->refreshPreview(post(\'token\'), getAdminId())', $page);
         self::assertStringContainsString("post('trusted') === '1', post('confirm') === '1')", $page);
         self::assertStringContainsString('name="confirm" value="1" required', $page);
     }
