@@ -4,10 +4,12 @@
   "name_en": "Studio Starter",
   "name_ja": "Studio Starter",
   "description": "整站模板工作流示例：可编辑首页文案与图片，其他栏目使用 CMS 标准页面。",
+  "description_en": "Whole-site template workflow sample: editable homepage copy and images; other sections use the standard CMS pages.",
+  "description_ja": "サイトテンプレートのワークフロー例：トップページの文言と画像を編集でき、その他のセクションは CMS 標準ページを使用します。",
   "version": "1.0.0",
   "author": "Yikai",
   "category": "services",
-  "requires_cms": ">=1.20.1",
+  "requires_cms": ">=2.0.0",
   "requires_php": ">=8.0.0",
   "required_plugins": [],
   "screenshot": "assets/cover.svg"

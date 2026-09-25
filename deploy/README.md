@@ -8,6 +8,15 @@
 - [插件开发指南](./PLUGIN-DEVELOPMENT.md)：业务插件接口、示例、安全与打包。
 - [模板开发指南](./THEME-DEVELOPMENT.md)：网站主题、模板解析、资源与交付。
 - [整站模板中的插件数据](./SITE-TEMPLATE-PLUGIN-DATA.md)：插件如何让自己的公开数据随整站模板导出导入（英文）。
+- [整站模板工作流](./SITE-TEMPLATE-WORKFLOW.md)：整站模板导出（专业版）、导入、插件处理、恢复与主题内容面板；示例主题见 `examples/studio-starter/`。
+- [模板预设与动效](./TEMPLATE-PRESETS-MOTION.md)、[整站模板制作体验](./TEMPLATE-USABILITY.md)：构建器预设区块、动效与模板制作辅助功能的设计记录。
+- `site-template-market/`：更新服务器上整站模板市场接口与本地审阅工具（部署到更新服务器用，不是站点的一部分）。
+
+## 部署辅助
+
+- [子目录部署](./SUBDIRECTORY.md)：放在 `/sub/` 这类目录下运行；nginx 一个 server 块放多个一级子目录站点用 `nginx-subdirectories.conf`。
+- [无伪静态兼容](./URL-COMPATIBILITY.md)：服务器不支持伪静态时的检测与兼容访问。
+- [环境检测页](./environment-check.md)：`environment-check.php` 单文件，安装前上传到服务器检查 PHP 版本、扩展与目录权限。
 
 ## 服务器部署
 
@@ -22,9 +31,10 @@
 |---|---|---|
 | 宝塔面板（nginx） | 伪静态框写一行 `include …/deploy/nginx-baota.conf;` | 路由 + 敏感目录封禁，升级自动更新；**不要只选 wordpress 预设** |
 | 受限主机（Apache，只能放最小规则） | `deploy/htaccess-minimal.txt` 重命名为 `.htaccess` | catch-all + 敏感目录拦截 |
-| 阿里云虚拟主机 / 万网（Apache 共享主机） | `deploy/aliyun-vhost.htaccess` 或根目录 `.htaccess` | 重命名放根目录 |
-| 阿里云虚拟主机（nginx 型） | `deploy/aliyun-nginx.htaccess` | 面板伪静态处使用（仅支持有限指令） |
+| 阿里云虚拟主机 / 万网（Apache 共享主机） | 根目录 `.htaccess`（被面板覆盖时用 `deploy/aliyun-vhost.htaccess`，内容相同） | 重命名放站点目录 |
+| 阿里云虚拟主机（nginx 型） | `deploy/aliyun-nginx-minimal.txt`（推荐）或 `deploy/aliyun-nginx.htaccess` | 面板 NGINX 设置处粘贴（仅支持有限指令） |
 | 自己的 nginx 服务器（完整 server 块） | `deploy/nginx-server.conf` | 加进 server 块，带静态直出 |
+| nginx 一个域名下多个子目录站点 | `deploy/nginx-subdirectories.conf` | 加进 server 块一次，新站放进一级目录即可 |
 | Apache（自己的服务器 / phpStudy） | 根目录 `.htaccess` | 开 mod_rewrite 即用 |
 
 ---
