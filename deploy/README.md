@@ -7,6 +7,7 @@
 - [AI 开发阅读入口](./AI-DEVELOPMENT.md)：范围、通用约定和任务模板。
 - [插件开发指南](./PLUGIN-DEVELOPMENT.md)：业务插件接口、示例、安全与打包。
 - [模板开发指南](./THEME-DEVELOPMENT.md)：网站主题、模板解析、资源与交付。
+- [整站模板中的插件数据](./SITE-TEMPLATE-PLUGIN-DATA.md)：插件如何让自己的公开数据随整站模板导出导入（英文）。
 
 ## 服务器部署
 
