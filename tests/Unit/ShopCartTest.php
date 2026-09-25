@@ -34,7 +34,7 @@ final class ShopCartTest extends TestCase
 
     public function testAddStoresOnlyIdAndQty(): void
     {
-        $r = shopCartAdd(7, 2, self::lookup(...));
+        $r = shopCartAdd(7, 2, static fn(int $id): ?array => self::lookup($id));
         $this->assertTrue($r['ok'], $r['error']);
         // 红线：session 里只有 [id, qty]——价格绝不落车
         $this->assertSame([['id' => 7, 'variant' => '', 'qty' => 2]], $_SESSION['shop_cart']);
@@ -43,12 +43,12 @@ final class ShopCartTest extends TestCase
 
     public function testAddMergesSameLineAndRejectsOverStock(): void
     {
-        shopCartAdd(7, 3, self::lookup(...));
-        $r = shopCartAdd(7, 2, self::lookup(...));   // 3+2=5 恰好到库存上限
+        shopCartAdd(7, 3, static fn(int $id): ?array => self::lookup($id));
+        $r = shopCartAdd(7, 2, static fn(int $id): ?array => self::lookup($id));   // 3+2=5 恰好到库存上限
         $this->assertTrue($r['ok']);
         $this->assertSame([['id' => 7, 'variant' => '', 'qty' => 5]], $_SESSION['shop_cart']);
 
-        $r = shopCartAdd(7, 1, self::lookup(...));   // 6 > 5：拒绝
+        $r = shopCartAdd(7, 1, static fn(int $id): ?array => self::lookup($id));   // 6 > 5：拒绝
         $this->assertFalse($r['ok']);
         $this->assertSame('shop_err_out_of_stock', $r['error']);
         $this->assertSame(5, shopCartCount(), '拒绝后原行不动');
@@ -56,10 +56,10 @@ final class ShopCartTest extends TestCase
 
     public function testAddRejectsNotOnSaleAndBadQty(): void
     {
-        $this->assertSame('shop_err_not_on_sale', shopCartAdd(999, 1, self::lookup(...))['error']);
-        $this->assertSame('shop_err_qty', shopCartAdd(7, 0, self::lookup(...))['error']);
-        $this->assertSame('shop_err_qty', shopCartAdd(7, 1000, self::lookup(...))['error']);
-        $this->assertSame('shop_err_product', shopCartAdd(0, 1, self::lookup(...))['error']);
+        $this->assertSame('shop_err_not_on_sale', shopCartAdd(999, 1, static fn(int $id): ?array => self::lookup($id))['error']);
+        $this->assertSame('shop_err_qty', shopCartAdd(7, 0, static fn(int $id): ?array => self::lookup($id))['error']);
+        $this->assertSame('shop_err_qty', shopCartAdd(7, 1000, static fn(int $id): ?array => self::lookup($id))['error']);
+        $this->assertSame('shop_err_product', shopCartAdd(0, 1, static fn(int $id): ?array => self::lookup($id))['error']);
     }
 
     public function testLineCountCapAt50(): void
@@ -74,7 +74,7 @@ final class ShopCartTest extends TestCase
 
     public function testSetQtyUpdatesAndZeroRemoves(): void
     {
-        shopCartAdd(7, 2, self::lookup(...));
+        shopCartAdd(7, 2, static fn(int $id): ?array => self::lookup($id));
         $this->assertTrue(shopCartSetQty(7, 4)['ok']);
         $this->assertSame([['id' => 7, 'variant' => '', 'qty' => 4]], $_SESSION['shop_cart']);
 
@@ -123,7 +123,7 @@ final class ShopCartTest extends TestCase
 
     public function testClear(): void
     {
-        shopCartAdd(7, 1, self::lookup(...));
+        shopCartAdd(7, 1, static fn(int $id): ?array => self::lookup($id));
         shopCartClear();
         $this->assertSame([], shopCartLines());
     }
