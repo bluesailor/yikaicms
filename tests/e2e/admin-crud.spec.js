@@ -144,9 +144,14 @@ for (const query of ['yk_route=product_list&cat=smart-device', 'yk_route=list&sl
     fixture('seed');
     try {
       await page.goto('/index.php?' + query);
-      // 列表自己的筛选表单。页头/页脚的站内搜索（role="search"，提交到 /search.php）也带
-      // keyword 输入框，且可能收起在折叠菜单里；只取「第一个带 keyword 的表单」会抓错。
-      const form = page.locator('form:not([role="search"])').filter({ has: page.locator('input[name="keyword"]') }).first();
+      // 列表自己的筛选表单。页头/页脚的站内搜索也带 keyword 输入框，且可能收起在折叠菜单里；
+      // 只取「第一个带 keyword 的表单」会抓错。不能再按 role="search" 排除：商品/案例列表的
+      // 侧栏筛选自 2026-09-22 起也标了 role="search"（它本来就是搜索地标）。动态网址下两者靠
+      // 隐藏的 yk_route 区分——站内搜索是 search，列表筛选是列表自己的路由。
+      const form = page.locator('form:visible')
+        .filter({ has: page.locator('input[name="keyword"]') })
+        .filter({ has: page.locator('input[name="yk_route"]:not([value="search"])') })
+        .first();
       const input = form.locator('input[name="keyword"]');
       for (const keyword of ['智能', 'E2E-no-matches-987654321', '']) {
         await input.fill(keyword);
