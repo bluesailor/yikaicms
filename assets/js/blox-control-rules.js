@@ -51,6 +51,12 @@
         if (op === "empty") return isEmptyValue(actual);
         if (op === "not_empty") return !isEmptyValue(actual);
         var expected = term[2];
+        // 复选框规则写成 = true / = false，而保存管线把复选框存成 '1'/'0'：按字符串比
+        // "1" 永远不等于 "true"，重新打开已保存的页面后，依赖复选框的控件全被藏起来。
+        if (typeof expected === "boolean" && (op === "=" || op === "!=")) {
+            var same = checkboxValue(actual) === expected;
+            return op === "!=" ? !same : same;
+        }
         if (op === "in" || op === "not_in") {
             var list = Array.isArray(expected) ? expected.map(String) : [String(expected)];
             var hit = list.indexOf(String(actual === undefined || actual === null ? "" : actual)) !== -1;

@@ -26,8 +26,12 @@ test('container direction inheritance and shared wrap survive reopening and publ
   const sectionIn = target => target.locator('section').filter({ has: target.getByRole('heading', { name: marker, exact: true }) }).last();
   const surfaceIn = target => sectionIn(target).locator('.yk-container');
   const containerRow = () => page.locator('[data-testid="blox-tree-element"][data-element-type="container"]').last().locator('[data-element-drag-handle]');
-  const data = () => page.evaluate(() => JSON.parse(JSON.stringify(window.Alpine.$data(document.body).selEl.data)));
-  const documentData = () => page.evaluate(() => JSON.parse(JSON.stringify(window.Alpine.$data(document.body).sections)));
+  // 保存管线把复选框一律存成 '1'/'0'（BloxValueSanitizer），新建元素的默认值却是布尔
+  // （如 2026-09-22 起容器的 animation_stagger: false）；语义相同（BloxControlRules.checkboxValue
+  // 同等对待）。前后两次取数都按「存下来的样子」比较，其余字段仍逐字比对。
+  const persisted = value => JSON.parse(JSON.stringify(value, (key, item) => typeof item === 'boolean' ? (item ? '1' : '0') : item));
+  const data = async () => persisted(await page.evaluate(() => JSON.parse(JSON.stringify(window.Alpine.$data(document.body).selEl.data))));
+  const documentData = async () => persisted(await page.evaluate(() => JSON.parse(JSON.stringify(window.Alpine.$data(document.body).sections))));
   async function selectContainer() {
     await containerRow().click();
     await page.getByTestId('blox-style-tab').click();
@@ -228,8 +232,7 @@ test('container direction inheritance and shared wrap survive reopening and publ
   expect(before.children.map(child => child.data.text)).toEqual(labels);
   expect(new Set(before.children.map(child => child.id)).size).toBe(labels.length);
   for (const child of before.children) {
-    expect(child.data.new_tab).toBe(false);
-    child.data.new_tab = '0';
+    expect(child.data.new_tab).toBe('0'); // 新建为布尔 false，data() 已按存下来的样子归一
   }
   await reopen(before);
   const originalDocument = await documentData();
