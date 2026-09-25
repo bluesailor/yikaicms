@@ -311,7 +311,9 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       await page.keyboard.press('Escape');
 
       await page.goto(navigationHref, { waitUntil: 'domcontentloaded' });
-      const selectedNavigation = page.locator(`[data-sort-child-item][data-item-id="${navigationId}"]`).first();
+      // 选中高亮打在行本身（[data-child-drag-handle]），外层 [data-sort-child-item] 只是拖拽容器
+      // （2026-09-20 深层元素寻址起的结构）。
+      const selectedNavigation = page.locator(`[data-sort-child-item][data-item-id="${navigationId}"] > [data-child-drag-handle]`).first();
       await expect(selectedNavigation).toHaveClass(/bg-blue-100/);
       await expect(page.getByTestId('blox-nav-content-source')).toBeVisible();
       await expect(page.getByTestId('blox-nav-content-manage')).toHaveAttribute('href', /\/admin\/nav_menu\.php/);
