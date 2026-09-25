@@ -221,6 +221,9 @@ final class SiteTemplateService
             'plugin_before_hash' => SiteTemplatePluginData::fingerprint($pluginBefore)]);
         return ['token' => $token, 'summary' => $this->summary($package['manifest'], array_fill_keys($package['names'], '')),
             'missing_plugins' => $missingPlugins, 'plugin_actions' => $this->pluginActions($missingPlugins),
+            'theme_plugins' => SiteTemplateArchive::themeRequiredPlugins(
+                json_decode(SiteTemplateArchive::entry($stored, $package['manifest'], 'theme/theme.json'), true) ?: []
+            ),
             'replace_existing' => !$fresh, 'origin' => $origin, 'brand' => self::templateBrand($package['manifest'])];
     }
 
@@ -286,9 +289,10 @@ final class SiteTemplateService
      * 只在本次预览有效期内、由发起预览的管理员执行；装不上的保留原因，照旧可按「跳过缺失插件数据」继续。
      * 之后必须在**下一个请求**里调用 refreshPreview()：新启用插件的整站数据适配器要随插件加载才注册。
      *
+     * @param null|list<string> $only 只处理这些插件（导入页勾选的）；null 表示全部
      * @return list<array{slug:string,ok:bool,msg:string}>
      */
-    public function installRequiredPlugins(string $token, int $adminId): array
+    public function installRequiredPlugins(string $token, int $adminId, ?array $only = null): array
     {
         $this->supported();
         [, $archive] = $this->pendingPlan($token, $adminId);
@@ -298,6 +302,7 @@ final class SiteTemplateService
         $catalog = null;
         foreach ($this->pluginActions($missing) as $plugin) {
             $slug = $plugin['slug'];
+            if ($only !== null && !in_array($slug, $only, true)) continue;
             if ($plugin['action'] === 'manual') {
                 $results[] = ['slug' => $slug, 'ok' => false, 'msg' => __('st_plugin_action_manual')];
                 continue;

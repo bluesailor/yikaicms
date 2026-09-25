@@ -13,18 +13,6 @@ $errorMessage = '';
 $exportCheck = null;
 $notice = (string) ($_SESSION['site_template_notice'] ?? '');
 unset($_SESSION['site_template_notice']);
-$pluginResults = is_array($_SESSION['site_template_plugin_results'] ?? null) ? $_SESSION['site_template_plugin_results'] : [];
-unset($_SESSION['site_template_plugin_results']);
-$refreshToken = (string) ($_SESSION['site_template_refresh'] ?? '');
-unset($_SESSION['site_template_refresh']);
-if ($refreshToken !== '' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    try {
-        $_SESSION['site_template_preview'] = $service->refreshPreview($refreshToken, getAdminId());
-    } catch (Throwable $error) {
-        unset($_SESSION['site_template_preview']);
-        $errorMessage = __(preg_match('/^st_[a-z_]+$/D', $error->getMessage()) ? $error->getMessage() : 'st_invalid');
-    }
-}
 $brand = ['site_name' => (string) config('site_name'), 'contact_phone' => '', 'contact_email' => '', 'contact_address' => ''];
 // 导入完成后实时生成报告（不落库）：随时可重跑，也不会出现过期结论
 $report = null;
@@ -64,14 +52,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string) ($upload['tmp_name'] ?? ''))) throw new RuntimeException('st_upload');
             $_SESSION['site_template_preview'] = $service->prepare((string) $upload['tmp_name'], getAdminId(), post('replace_existing') === '1');
         } elseif ($action === 'install_plugins') {
-            // 模板声明的插件：本站已有的启用，插件市场有的走与插件页同一条校验链安装后启用，然后重新预览
-            // 预览在下一个请求里重建：那时新启用的插件已加载，整站数据适配器才注册上
-            $installed = $service->installRequiredPlugins(post('token'), getAdminId());
-            $_SESSION['site_template_plugin_results'] = $installed;
-            $_SESSION['site_template_refresh'] = post('token');
+            // 导入页勾选的插件：本站已有的启用，官方插件市场有的走与插件页同一条校验链安装后启用
+            $selected = array_values(array_filter(array_map('strval', (array) ($_POST['plugins'] ?? [])),
+                static fn(string $slug): bool => preg_match('/^[a-z0-9][a-z0-9-]{0,79}$/D', $slug) === 1));
+            $installed = $service->installRequiredPlugins(post('token'), getAdminId(), $selected);
             foreach ($installed as $result) {
                 adminLog('plugin', $result['ok'] ? 'site_template_enable' : 'site_template_enable_failed', 'Site template plugin: ' . $result['slug']);
             }
+            success(['results' => $installed]);
+        } elseif ($action === 'refresh_preview') {
+            // 必须是新的请求：新启用的插件这时已加载，整站数据适配器才注册上，导入会带上它们的数据
+            $_SESSION['site_template_preview'] = $service->refreshPreview(post('token'), getAdminId());
+            success(['token' => $_SESSION['site_template_preview']['token'], 'missing' => count($_SESSION['site_template_preview']['missing_plugins'])]);
         } elseif ($action === 'apply') {
             foreach ($brand as $key => $_value) $brand[$key] = post($key);
             $replacedExisting = !empty($_SESSION['site_template_preview']['replace_existing']);
@@ -94,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Throwable $error) {
         $code = $error->getMessage();
         $errorMessage = __(preg_match('/^st_[a-z_]+$/D', $code) ? $code : 'st_invalid');
+        if (post('ajax') === '1') error($errorMessage);
     }
 }
 $fresh = false;
@@ -256,47 +249,40 @@ $groupReport = static function (array $items): array {
                 </details>
             </li>
 
-            <?php if ($missingPlugins !== [] || $pluginResults !== []): ?>
-            <li class="p-5 space-y-3">
+            <?php if ($missingPlugins !== []):
+                $pluginActions = is_array($preview['plugin_actions'] ?? null) ? array_column($preview['plugin_actions'], null, 'slug') : [];
+                $themePlugins = is_array($preview['theme_plugins'] ?? null) ? $preview['theme_plugins'] : [];
+                $optionalPlugins = false; ?>
+            <li class="p-5 space-y-3" data-testid="st-missing-plugins">
                 <h3 class="font-bold text-gray-800"><span class="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs text-blue-700">2</span><?= e(__('st_wizard_step_plugins')) ?></h3>
-                <?php if ($pluginResults !== []): ?>
-                <ul role="status" class="bg-gray-50 border rounded p-3 text-sm space-y-1" data-testid="st-plugin-results">
-                    <?php foreach ($pluginResults as $result): ?>
-                    <li class="<?= $result['ok'] ? 'text-green-700' : 'text-red-700' ?>"><code><?= e($result['slug']) ?></code> · <?= e($result['ok'] ? __('st_plugin_result_ok', ['plugin' => $result['msg']]) : $result['msg']) ?></li>
+                <p class="text-sm text-gray-600"><?= e(__('st_plugins_inline_intro')) ?></p>
+                <ul class="space-y-2 text-sm">
+                    <?php foreach ($missingPlugins as $plugin):
+                        $action = $pluginActions[$plugin['slug']] ?? ['action' => 'manual', 'available' => ''];
+                        $required = in_array($plugin['slug'], $themePlugins, true);
+                        $label = __('st_plugin_inline_' . ($action['action'] === 'manual' ? 'manual' : $action['action']), ['plugin' => $plugin['slug'], 'version' => (string) ($action['available'] ?: $plugin['version'])]); ?>
+                    <li data-testid="st-missing-plugin" data-action="<?= e($action['action']) ?>" data-required="<?= $required ? '1' : '0' ?>" class="rounded border px-3 py-2">
+                        <?php if ($action['action'] === 'manual'): ?>
+                        <span class="<?= $required ? 'text-red-700' : 'text-amber-800' ?>"><code><?= e($plugin['slug']) ?></code> · <?= e($label) ?><?= $required ? ' ' . e(__('st_plugin_inline_blocking')) : '' ?></span>
+                        <?php elseif ($required): ?>
+                        <input type="hidden" name="plugins[]" value="<?= e($plugin['slug']) ?>" form="st-apply-form">
+                        <span class="flex items-center gap-2"><i class="ti ti-circle-check text-green-600" aria-hidden="true"></i><span><?= e($label) ?></span>
+                            <span class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600"><?= e(__('st_plugin_required')) ?></span></span>
+                        <?php else: $optionalPlugins = true; ?>
+                        <label class="flex items-center gap-2"><input type="checkbox" name="plugins[]" value="<?= e($plugin['slug']) ?>" checked form="st-apply-form"><span><?= e($label) ?></span></label>
+                        <?php endif; ?>
+                    </li>
                     <?php endforeach; ?>
                 </ul>
-                <?php endif; ?>
-                <?php if ($missingPlugins !== []):
-                    $pluginActions = is_array($preview['plugin_actions'] ?? null) ? array_column($preview['plugin_actions'], null, 'slug') : [];
-                    $installable = array_filter($pluginActions, static fn(array $action): bool => in_array($action['action'], ['enable', 'market'], true)); ?>
-                <div class="bg-amber-50 text-amber-900 p-3 rounded text-sm space-y-2" data-testid="st-missing-plugins">
-                    <p><?= e(__('st_plugin_missing_intro')) ?></p>
-                    <ul class="list-disc pl-5 space-y-1">
-                        <?php foreach ($missingPlugins as $plugin): $action = $pluginActions[$plugin['slug']] ?? ['action' => 'manual', 'available' => '']; ?>
-                        <li data-testid="st-missing-plugin" data-action="<?= e($action['action']) ?>"><code><?= e($plugin['slug'] . ' ' . $plugin['version']) ?></code>
-                            <span class="ml-1"><?= e(__('st_plugin_action_' . $action['action'], ['version' => (string) $action['available']])) ?></span>
-                            <?php if ($action['action'] === 'manual'): ?><a class="text-primary underline ml-2" href="/admin/plugin.php?tab=market&amp;q=<?= e(rawurlencode($plugin['slug'])) ?>"><?= e(__('st_plugin_market')) ?></a><?php endif; ?>
-                        </li>
-                        <?php endforeach; ?>
-                    </ul>
-                    <?php if ($installable !== []): ?>
-                    <form method="post" class="pt-1">
-                        <?= csrfField() ?><input type="hidden" name="action" value="install_plugins"><input type="hidden" name="token" value="<?= e($preview['token']) ?>">
-                        <button type="submit" class="bg-primary text-white rounded px-4 py-2" data-testid="st-install-plugins"><?= e(__('st_plugin_install_button')) ?></button>
-                        <span class="block mt-1 text-xs"><?= e(__('st_plugin_install_hint')) ?></span>
-                    </form>
-                    <?php endif; ?>
-                    <p class="text-xs"><?= e(__('st_plugin_force_hint')) ?></p>
-                </div>
-                <?php endif; ?>
+                <?php if ($optionalPlugins): ?><p class="text-xs text-gray-500"><?= e(__('st_plugin_inline_skip')) ?></p><?php endif; ?>
             </li>
             <?php endif; ?>
 
             <li class="p-5">
-                <form method="post" class="space-y-5">
+                <form method="post" class="space-y-5" id="st-apply-form">
                     <?= csrfField() ?><input type="hidden" name="action" value="apply"><input type="hidden" name="token" value="<?= e($preview['token']) ?>">
                     <div class="space-y-3">
-                        <h3 class="font-bold text-gray-800"><span class="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs text-blue-700"><?= $missingPlugins !== [] || $pluginResults !== [] ? '3' : '2' ?></span><?= e(__('st_wizard_step_brand')) ?></h3>
+                        <h3 class="font-bold text-gray-800"><span class="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs text-blue-700"><?= $missingPlugins !== [] ? '3' : '2' ?></span><?= e(__('st_wizard_step_brand')) ?></h3>
                         <p class="text-sm text-gray-600"><?= e(__('st_wizard_brand_hint')) ?></p>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <?php foreach ($brand as $key => $value): ?>
@@ -306,7 +292,7 @@ $groupReport = static function (array $items): array {
                         </div>
                     </div>
                     <div class="space-y-3 border-t pt-5">
-                        <h3 class="font-bold text-gray-800"><span class="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs text-blue-700"><?= $missingPlugins !== [] || $pluginResults !== [] ? '4' : '3' ?></span><?= e(__('st_wizard_step_confirm')) ?></h3>
+                        <h3 class="font-bold text-gray-800"><span class="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs text-blue-700"><?= $missingPlugins !== [] ? '4' : '3' ?></span><?= e(__('st_wizard_step_confirm')) ?></h3>
                         <p id="st-stage-status" role="status" aria-live="polite" class="text-sm text-gray-600 hidden"></p>
                         <?php if ($official): ?>
                         <p class="flex gap-2 items-start text-sm text-green-800" data-testid="st-official-trust"><i class="ti ti-shield-check mt-0.5" aria-hidden="true"></i><span><?= e(__('st_wizard_official_trust')) ?></span></p>
@@ -321,44 +307,65 @@ $groupReport = static function (array $items): array {
                     </div>
                 </form>
                 <script>
-                // 提交前先分批把媒体落盘：大包的文件 IO 在这里按服务端预算推进，
-                // 真正的提交请求只剩数据库替换与生效，不会撞上执行时限。
+                // 一次点击完成：勾选的插件先装好并启用 → 新请求里重建预览（新插件的数据适配器此时才注册）
+                // → 分批把媒体落盘（大包的文件 IO 按服务端预算推进）→ 提交导入，只剩数据库替换与生效。
                 (function () {
-                    var form = document.currentScript.previousElementSibling;
+                    var form = document.getElementById('st-apply-form');
                     var status = document.getElementById('st-stage-status');
-                    var token = form.querySelector('input[name="token"]').value;
+                    var tokenInput = form.querySelector('input[name="token"]');
+                    var csrfName = <?= json_encode(CSRF_TOKEN_NAME) ?>;
+                    var csrf = form.querySelector('input[name="' + csrfName + '"]').value;
                     var texts = <?= json_encode([
                         'progress' => __('st_stage_progress'),
                         'failed' => __('st_stage_failed'),
+                        'plugins' => __('st_plugins_installing'),
                     ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-                    var staged = false;
+                    var ready = false;
+                    var post = function (fields) {
+                        var body = new URLSearchParams();
+                        body.set(csrfName, csrf);
+                        body.set('ajax', '1');
+                        body.set('token', tokenInput.value);
+                        fields.forEach(function (field) { body.append(field[0], field[1]); });
+                        return fetch(window.location.href, { method: 'POST', body: body, credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                            .then(function (response) { return response.json(); })
+                            .then(function (result) {
+                                if (!result || Number(result.code) !== 0) throw new Error((result && result.msg) || texts.failed);
+                                return result.data || {};
+                            });
+                    };
+                    var installPlugins = function (plugins) {
+                        status.textContent = texts.plugins;
+                        return post([['action', 'install_plugins']].concat(plugins.map(function (slug) { return ['plugins[]', slug]; })))
+                            .then(function (data) {
+                                var failed = (data.results || []).filter(function (item) { return !item.ok; });
+                                if (failed.length) throw new Error(failed.map(function (item) { return item.slug + ': ' + item.msg; }).join('; '));
+                                return post([['action', 'refresh_preview']]);
+                            })
+                            .then(function (data) { tokenInput.value = data.token; });
+                    };
+                    var stage = function () {
+                        return post([['action', 'stage']]).then(function (data) {
+                            status.textContent = texts.progress
+                                .replace(':done', String(data.done || 0))
+                                .replace(':total', String(data.total || 0));
+                            if (!data.complete) return stage();
+                        });
+                    };
                     form.addEventListener('submit', function (event) {
-                        if (staged) return;
+                        if (ready) return;
                         event.preventDefault();
                         var button = form.querySelector('button[type="submit"]');
                         button.disabled = true;
                         status.classList.remove('hidden');
-                        var step = function () {
-                            var body = new URLSearchParams();
-                            body.set('action', 'stage');
-                            body.set('token', token);
-                            return fetch(window.location.href, { method: 'POST', body: body })
-                                .then(function (response) { return response.json(); })
-                                .then(function (result) {
-                                    if (!result || Number(result.code) !== 0) throw new Error((result && result.msg) || texts.failed);
-                                    var data = result.data || {};
-                                    status.textContent = texts.progress
-                                        .replace(':done', String(data.done || 0))
-                                        .replace(':total', String(data.total || 0));
-                                    if (!data.complete) return step();
-                                    staged = true;
-                                    form.submit();
-                                });
-                        };
-                        step().catch(function (error) {
-                            status.textContent = String((error && error.message) || texts.failed);
-                            button.disabled = false;
-                        });
+                        var plugins = new FormData(form).getAll('plugins[]');
+                        (plugins.length ? installPlugins(plugins) : Promise.resolve())
+                            .then(stage)
+                            .then(function () { ready = true; form.submit(); })
+                            .catch(function (error) {
+                                status.textContent = String((error && error.message) || texts.failed);
+                                button.disabled = false;
+                            });
                     });
                 })();
                 </script>
