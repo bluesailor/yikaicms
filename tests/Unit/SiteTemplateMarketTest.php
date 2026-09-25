@@ -86,6 +86,18 @@ final class SiteTemplateMarketTest extends TestCase
         $nextLine = SiteTemplateMarket::normalize($this->item(['cms' => $major . '.' . ($minor + 1) . '.0']));
         self::assertSame('st_market_cms', $nextLine['blocked_reason']);
     }
+    public function testDemoLinksOnlyPointAtTheOfficialDemoSite(): void
+    {
+        self::assertSame('https://demo.yikaicms.com/yikai-jixie/', SiteTemplateMarket::demoUrl('https://demo.yikaicms.com/yikai-jixie/'));
+        foreach (['http://demo.yikaicms.com/yikai-jixie/', 'https://demo.yikaicms.com.evil.test/x/', 'https://evil.test/yikai-jixie/',
+            'https://demo.yikaicms.com/yikai-jixie', 'https://demo.yikaicms.com/a/b/', 'https://demo.yikaicms.com/../x/',
+            'javascript:alert(1)', '', null, ['x']] as $bad) {
+            self::assertSame('', SiteTemplateMarket::demoUrl($bad), var_export($bad, true));
+        }
+        self::assertSame('https://demo.yikaicms.com/yikai-auto/', SiteTemplateMarket::normalize($this->item(['demo_url' => 'https://demo.yikaicms.com/yikai-auto/']))['demo_url']);
+        self::assertSame('', SiteTemplateMarket::normalize($this->item(['demo_url' => 'https://evil.test/']))['demo_url']);
+        self::assertSame('', SiteTemplateMarket::normalize($this->item())['demo_url'], '没有演示站就不显示按钮');
+    }
     /** Test keys exist only in memory and cannot authorize the official market. */
     private function signed(string $bytes, bool $legacy = false): array
     {

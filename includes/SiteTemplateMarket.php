@@ -69,6 +69,7 @@ final class SiteTemplateMarket
         $image = $entry['screenshot'] ?? '';
         $prefix = 'https://update.yikaicms.com/assets/site-templates/' . $slug . '/' . $version . '/preview.';
         $item['screenshot'] = is_string($image) && in_array($image, [$prefix . 'webp', $prefix . 'jpg', $prefix . 'png'], true) ? $image : '';
+        $item['demo_url'] = self::demoUrl($entry['demo_url'] ?? '');
         $tier = $entry['tier'] ?? null;
         if (!is_string($tier) || !in_array($tier, ['free', 'pro'], true)) return null;
         $item['tier'] = $tier;
@@ -155,6 +156,12 @@ final class SiteTemplateMarket
     }
 
     /** Bind the authenticated market identity to the archive before passing it to the existing importer. */
+    /** 演示站地址：只接受 https://demo.yikaicms.com/<目录>/，其余一律不显示按钮。 */
+    public static function demoUrl(mixed $url): string
+    {
+        return is_string($url) && preg_match('#^https://demo\.yikaicms\.com/[a-z0-9][a-z0-9-]{0,79}/$#D', $url) === 1 ? $url : '';
+    }
+
     public static function verifyArchive(string $path, array $item): void
     {
         $package = SiteTemplateArchive::inspect($path);

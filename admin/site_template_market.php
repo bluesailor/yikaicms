@@ -42,6 +42,7 @@ if ($isPost) {
         $marketName = (string) ($selected['name' . $suffix] ?: $selected['name']);
         $_SESSION['site_template_preview'] = $service->prepare($temporary, getAdminId(), $replaceExisting, [
             'official' => true, 'name' => $marketName, 'screenshot' => (string) $selected['screenshot'], 'version' => (string) $selected['version'],
+            'demo_url' => (string) $selected['demo_url'],
         ]);
         adminLog('theme', 'market_prepare', 'Site template verified for preview: ' . $selected['slug'] . ' v' . $selected['version']);
         @unlink($temporary);
@@ -106,11 +107,16 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <p class="text-sm text-gray-600"><?= e($description) ?></p>
                 <p class="text-xs text-gray-500"><?= e(__('st_market_version', ['version' => $item['version'], 'cms' => $item['cms'], 'series' => SiteTemplateArchive::cmsSeries($item['cms'])])) ?></p>
                 <?php if ($item['format_version'] > 1): ?><p class="text-sm text-gray-600"><?= e(__('st_market_format_hint', ['format' => (string) $item['format_version']])) ?></p><?php endif; ?>
-                <?php if ($item['blocked_reason'] !== ''): ?><p class="mt-auto text-sm text-amber-800"><?= e(__($item['blocked_reason'])) ?></p>
+                <?php if ($item['blocked_reason'] !== ''): ?><p class="mt-auto text-sm text-amber-800"><?= e(__($item['blocked_reason'])) ?>
+                    <?php if ($item['demo_url'] !== ''): ?><a href="<?= e($item['demo_url']) ?>" target="_blank" rel="noopener" class="ml-2 text-primary underline"><?= e(__('st_market_demo')) ?></a><?php endif; ?></p>
                 <?php else: ?>
                 <form method="post" class="mt-auto" data-st-market-prepare>
                     <?= csrfField() ?><input type="hidden" name="action" value="prepare_market"><input type="hidden" name="slug" value="<?= e($item['slug']) ?>"><input type="hidden" name="version" value="<?= e($item['version']) ?>">
+                    <div class="flex flex-wrap items-center gap-2">
                     <button type="submit" class="bg-primary text-white rounded px-4 py-3 disabled:opacity-60"><?= e(__('st_market_prepare')) ?></button>
+                    <?php if ($item['demo_url'] !== ''): ?><a href="<?= e($item['demo_url']) ?>" target="_blank" rel="noopener" data-testid="st-market-demo"
+                       class="inline-flex items-center gap-1 border rounded px-4 py-3 text-gray-700 hover:bg-gray-50"><i class="ti ti-external-link" aria-hidden="true"></i><?= e(__('st_market_demo')) ?></a><?php endif; ?>
+                    </div>
                 </form>
                 <?php endif; ?>
             </div>
