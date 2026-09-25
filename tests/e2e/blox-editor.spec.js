@@ -1591,16 +1591,16 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   await expect(page.getByTestId('blox-template-tab-local')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByTestId('blox-template-quick-recommended')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('推荐用于：首页')).toBeVisible();
-  // 本地内置 8 款基础区块（2026-09-17 加入客户评价轮播、合作伙伴），都适用首页——
+  // 本地内置 11 款基础区块（09-17 加客户评价轮播、合作伙伴；09-22 加总标题＋双卡片、三列动态产品[专业版]、左文右图），都适用首页——
   // 「推荐」与「全部」在本地库里数量相同，这是目录小的结果，不是筛选失效。
-  await expect(page.getByTestId('blox-template-item')).toHaveCount(8);
+  await expect(page.getByTestId('blox-template-item')).toHaveCount(11);
   await expect.poll(() => page.getByTestId('blox-template-panel').evaluate((panel) => (
     panel.scrollWidth <= panel.clientWidth
   ))).toBe(true);
   await page.getByTestId('blox-template-quick-all').click();
 
   const builtins = page.locator('[data-testid="blox-template-item"][data-template-key^="builtin:"]');
-  await expect(builtins).toHaveCount(8);
+  await expect(builtins).toHaveCount(11);
   const firstPreview = builtins.first().locator('img');
   await expect(firstPreview).toBeVisible();
   await expect.poll(() => firstPreview.evaluate((image) => (
@@ -1619,17 +1619,19 @@ test('built-in prebuilt section library filters previews and inserts a fresh sec
   await chips.locator('[data-category="content"]').click();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]')).toBeVisible();
   await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:image-text"]')).toBeVisible();
-  await expect(builtins).toHaveCount(2);
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:story-split"]')).toBeVisible();
+  await expect(builtins).toHaveCount(3);
   await chips.locator('[data-category="social"]').click();
   await expect(builtins).toHaveCount(3);
   await chips.locator('[data-category="home-common"]').click();
   await expect(builtins).toHaveCount(5);
 
   await chips.locator('[data-category="all"]').click();
-  // 随包基础区块全部是静态结构；动态数据款已迁往远程精品库，本地筛选应为空
+  // 随包区块只有一款动态数据：09-22 加入的「三列动态产品」（专业版，本分片开着 Pro 所以可见）
   const dataSource = page.getByTestId('blox-template-data-source');
   await dataSource.selectOption('dynamic');
-  await expect(builtins).toHaveCount(0);
+  await expect(page.locator('[data-testid="blox-template-item"][data-template-key="builtin:product-showcase"]')).toBeVisible();
+  await expect(builtins).toHaveCount(1);
   await dataSource.selectOption('all');
   const hero = page.locator('[data-testid="blox-template-item"][data-template-key="builtin:basic-heading"]');
   await hero.getByTestId('blox-template-insert').click();
