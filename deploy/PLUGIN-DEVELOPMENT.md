@@ -2,7 +2,7 @@
 
 文档版本：0.3。更新：2026-09-18。对象：为 YikaiCMS 编写业务扩展和后台工具的开发者。
 
-本文根据当前主仓源码整理，不是 WordPress 插件教程。源码核对基线：v1.20.1 发布提交 `682480197a14ea409df91523f368eb690a59de08`（0.2 版基线为 1.19.9 `c97ca429`）。插件加载器、钩子 API 与后台插件路由在两版之间未变；1.20.0 新增的是安装器、来源回执与市场安装规则（见第 9 节）。代码须兼容 PHP 8.0（产品运行下限），推荐 8.2+；数据库兼容 MySQL 5.7 / MariaDB 10.x 与 SQLite。
+本文根据当前主仓源码整理，不是 WordPress 插件教程。源码核对基线：YikaiCMS v2.0.0，提交 `e751fd9f8af8acb12832b273ad7b07e30f10db4a`（0.2 版历史基线为 v1.19.9 `c97ca429`）。本版指南已按当前的插件依赖声明、整站模板插件数据接入、插件安装与来源回执规则复核。代码须兼容 PHP 8.0（产品运行下限），推荐 8.2+；数据库兼容 MySQL 5.7 / MariaDB 10.x 与 SQLite。
 
 示例是开发起点，尚未安装到站点或进行浏览器验收。发布前应针对目标 CMS 版本验证。本指南不把开发分支的未发布能力视为稳定公共接口。
 
@@ -242,6 +242,8 @@ add_filter('admin_sidebar', static function (array $menu): array {
 - 业务 SQL 通过模型和 `db()`，表名使用 `DB_PREFIX`，输入用 `?` 参数。禁止拼用户输入、CTE、窗口函数和 MySQL 8 专用排序规则。
 - 自建表使用插件前缀并有明确的 schema version。升级先检查是否已应用，重复执行安全；数据库迁移不能偷偷在每个访客请求里触发。
 - CMS 核心迁移由 `Migrator::loadAll()` 管理。插件目录内放一个 migrations 文件夹，并不会自动被核心扫描；需明确自己受控的升级入口或经审核的核心迁移接入。
+- 整站模板可以声明插件依赖。插件只有在明确提供可移植数据时才参与数据导出：用 `site_template_plugin_export` filter 返回符合当前契约的数据，并用 `site_template_plugin_import` action 接收导入数据；默认空结果表示不导出。只包含可公开迁移的数据，不包含凭据、订单、支付通知或会员地址。可参考 `plugins/shop/register.php` 与 `plugins/shop/lib/site-template.php`，完整契约见 [整站模板中的插件数据](./SITE-TEMPLATE-PLUGIN-DATA.md)。
+- 导入整站模板时，包里声明的插件会列在导入步骤里、默认勾选：本站已有的直接启用，官方插件市场有的由站点下载校验后安装启用（与插件页同一条链），然后才导入它们的数据。适配器读取自己的表之前应先确保表已建好——插件可能刚被启用、还没打开过自己的页面（参考商城插件在 `shopSiteTemplateSchema()` 里调用 `shopEnsureSchema()`）。
 - 停用不等于清空数据。卸载/清除数据应是另一个有明确提示和授权的动作。
 - 当前 ZIP 安装可能替换已有同名插件目录，**不要把用户上传、配置数据库、授权密钥或业务数据写进插件源码目录**。使用模型或站点运行数据目录，并设计访问控制。
 - 输出变化要处理缓存；含会员或个人信息的输出不可进入公共整页缓存。不要以禁用全站缓存代替正确的缓存边界。
@@ -262,7 +264,7 @@ v1.20.0 起安装由 `PluginInstaller` 统一处理，并在插件目录写入�
 
 - 回执由站点生成。包内不得自带该文件，含此路径的 ZIP 会被拒绝。
 - 本地上传的插件记为 local。之后市场不会以官方或社区更新覆盖它（来源不符会拒绝），因此**不要使用官方插件已占用的 slug**，也不要把本地改版冒充官方版本。
-- 从插件市场安装时：只接受官方包地址或市场下载令牌，单包不超过 20 MB（`PluginMarketPackage::MAX_PACKAGE_BYTES`），并拒绝安装低于已装版本的包。
+- 从插件市场安装时：只接受官方包地址或市场下载令牌，单包不超过 20 MB（`PluginMarketPackage::MAX_PACKAGE_BYTES`），并拒绝安装低于已装版本的包。v2.0.0 起这条链统一在 `PluginMarketInstall`：插件页的「安装 / 升级」与整站模板导入时的「一并安装所需插件」共用，依次检查下载状态、来源、官方地址、不降级、限量下载、sha256 与签名，再交给 `PluginInstaller`。
 - 替换已有目录前安装器会备份原目录，但这不改变「不要把业务数据写进插件目录」的要求。
 
 v1.20.1 起，安装种子（`install/sql/*.sql`）只登记随完整包提供的插件；不随包的插件（含官方市场插件）不得写进种子或迁移里预先启用，否则新装站点会留下没有目录的启用记录。需要预装的插件应随包分发，其余由站点从插件市场按需安装。
@@ -289,6 +291,8 @@ v1.20.1 起，安装种子（`install/sql/*.sql`）只登记随完整包提供�
 - [钩子 API](../includes/hooks.php)
 - [插件管理与 ZIP 安装](../admin/plugin.php)
 - [插件安装器](../includes/PluginInstaller.php)
+- [插件市场安装链](../includes/PluginMarketInstall.php)
+- [整站模板的插件处理](../includes/SiteTemplateService.php)（`pluginActions()`、`installRequiredPlugins()`）
 - [安装来源回执](../includes/MarketInstallOrigin.php)
 - [市场插件包限制](../includes/PluginMarketPackage.php)
 - [后台插件路由](../admin/plugin_page.php)
