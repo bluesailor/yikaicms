@@ -327,11 +327,11 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       expect(page.url()).not.toContain('yk_focus_element');
 
       await page.goto(`${headerEditorHref}&focus_element=${encodeURIComponent(searchId)}`, { waitUntil: 'domcontentloaded' });
-      await expect(page.locator(`[data-sort-child-item][data-item-id="${searchId}"]`).first()).toHaveClass(/bg-blue-100/);
+      await expect(page.locator(`[data-sort-child-item][data-item-id="${searchId}"] > [data-child-drag-handle]`).first()).toHaveClass(/bg-blue-100/);
       await expect(page.getByTestId('blox-search-content-source')).toBeVisible();
 
       await page.goto(`${headerEditorHref}&focus_element=${encodeURIComponent(languageId)}`, { waitUntil: 'domcontentloaded' });
-      await expect(page.locator(`[data-sort-child-item][data-item-id="${languageId}"]`).first()).toHaveClass(/bg-blue-100/);
+      await expect(page.locator(`[data-sort-child-item][data-item-id="${languageId}"] > [data-child-drag-handle]`).first()).toHaveClass(/bg-blue-100/);
       await expect(page.getByTestId('blox-language-content-source')).toBeVisible();
       await expect(page.getByTestId('blox-language-content-manage')).toHaveAttribute('href', '/admin/setting_lang.php');
 
