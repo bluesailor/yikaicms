@@ -13,7 +13,7 @@ require ROOT_PATH . '/includes/models/autoload.php';
 if (DB_DRIVER !== 'sqlite' || realpath(DB_PATH) !== realpath(ROOT_PATH . '/storage/database.sqlite')) {
     throw new RuntimeException('This probe only supports the isolated smoke database.');
 }
-$base = 'http://127.0.0.1:8080';
+$base = getenv('SMOKE_BASE') ?: 'http://127.0.0.1:8080';
 $jar = tempnam(sys_get_temp_dir(), 'site-setup-smoke-');
 if ($jar === false) throw new RuntimeException('Cannot create a cookie jar.');
 $request = static function (string $path, ?array $post = null) use ($base, $jar): string {

@@ -23,13 +23,20 @@ $BASE = getenv('SMOKE_BASE') ?: 'http://127.0.0.1:8080';
 // 角色沿用 install SQL 预置：1=超管 2=投稿者(edit_article) 3=内容编辑(edit_*+media)
 // ─────────────────────────────────────────────────────────────
 $root   = dirname(__DIR__, 2);
-$dbFile = $root . '/storage/database.sqlite';
-if (!is_file($dbFile)) {
-    fwrite(STDERR, "❌ 找不到 {$dbFile}，请先跑 tests/smoke/setup.php\n");
-    exit(2);
+if (!is_file($root . '/config/config.php')) {
+    throw new RuntimeException('An isolated installed site is required');
 }
-$pdo = new PDO('sqlite:' . $dbFile);
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+if (!defined('ROOT_PATH')) define('ROOT_PATH', $root);
+require_once $root . '/config/config.php';
+if (!str_starts_with($BASE, 'http://127.0.0.1:') || SITE_URL !== $BASE
+    || !is_file($root . '/storage/.smoke-state-backup/manifest.json')) {
+    throw new RuntimeException('Permission writes require an isolated local site with a state backup');
+}
+// 此脚本的角色夹具 SQL 使用固定前缀，先拒绝不匹配的安装，避免写错表。
+if (DB_PREFIX !== 'yikai_') {
+    throw new RuntimeException('Permission fixtures require the yikai_ prefix');
+}
+$pdo = db()->getPdo();
 
 $ACCOUNTS = [
     'super'       => ['user' => 'admin',       'pass' => 'smoke@Test123', 'role' => 1],
@@ -208,7 +215,7 @@ $add('版本·读单页', 'GET', '/admin/revision.php?action=list&type=page&id='
 // 不含 edit_job / edit_timeline 的角色，验证招聘与历程确实被挡住——
 // 否则等于白拆。
 $ISOLATED = ['user' => 'pm_artonly', 'pass' => 'Perm@Test123', 'roleId' => 91];
-$pdo2 = new PDO('sqlite:' . $dbFile);
+$pdo2 = db()->getPdo();
 $pdo2->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 $t = time();
 $pdo2->exec('DELETE FROM yikai_roles WHERE id = ' . $ISOLATED['roleId']);
@@ -317,7 +324,7 @@ $checked++;
 if (pmDenied($c, $b)) { $fail++; echo "  ✗ 前置：登录后本应进得去文章列表\n"; }
 else { echo "  ✓ 前置：登录后可进文章列表\n"; }
 
-$pdo3 = new PDO('sqlite:' . $dbFile);
+$pdo3 = db()->getPdo();
 $pdo3->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 // 1) 抽掉角色权限——同一会话下一次请求就该被拒
