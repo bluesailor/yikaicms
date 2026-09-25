@@ -892,7 +892,7 @@ test('stable element deep link selects the current header logo @ci', async ({ pa
   expect(logoId).toBeTruthy();
 
   await page.goto(`${baseUrl}&focus_element=${encodeURIComponent(logoId)}`, { waitUntil: 'domcontentloaded' });
-  const selectedLogo = page.locator(`[data-sort-child-item][data-item-id="${logoId}"]`).first();
+  const selectedLogo = page.locator(`[data-sort-child-item][data-item-id="${logoId}"] > [data-child-drag-handle]`).first();
   await expect(selectedLogo).toHaveClass(/bg-blue-100/);
   const contentFrame = await frame(page);
   const canvasLogo = contentFrame.locator(`[data-yk-el-id="${logoId}"]`);
