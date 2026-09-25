@@ -33,12 +33,24 @@ final class BatchStatusCacheInvalidationTest extends TestCase
         ];
     }
 
+    /** @var array<string,mixed> */
+    private array $savedActions = [];
+
     protected function setUp(): void
     {
         parent::setUp();
+        // 清空前先存下、测完还原：否则其它测试文件加载时注册的动作（如商城的整站模板导入钩子）
+        // 被一并抹掉，按文件顺序排在后面的测试才会失败（2026-09-25 CI 首次全量运行暴露）。
+        $this->savedActions = $GLOBALS['ik_actions'] ?? [];
         $GLOBALS['ik_actions'] = [];
         db()->getPdo()->exec("INSERT INTO contents (id, type, title, status) VALUES
             (1, 'article', 'A1', 1), (2, 'article', 'A2', 1), (3, 'article', 'A3', 1)");
+    }
+
+    protected function tearDown(): void
+    {
+        $GLOBALS['ik_actions'] = $this->savedActions;
+        parent::tearDown();
     }
 
     public function testBatchUnpublishThroughTheModelFiresDataChanged(): void

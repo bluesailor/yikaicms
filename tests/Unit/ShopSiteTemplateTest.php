@@ -12,6 +12,9 @@ require_once ROOT_PATH . '/plugins/shop/register.php';
 
 final class ShopSiteTemplateTest extends TestCase
 {
+    // 这里测的正是 register.php 加载时注册的真实导入/导出钩子
+    protected bool $isolateActions = false;
+
     protected function schemaSql(): array
     {
         $sql = [

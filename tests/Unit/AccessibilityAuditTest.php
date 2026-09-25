@@ -33,7 +33,7 @@ final class AccessibilityAuditTest extends TestCase
     public function testHtmlAuditReportsOnlyHighConfidenceFixtureProblems(): void
     {
         $bad = AccessibilityAudit::auditHtml(
-            (string) file_get_contents(ROOT_PATH . '/tests/Fixtures/accessibility/problematic.html'),
+            (string) file_get_contents(ROOT_PATH . '/tests/fixtures/accessibility/problematic.html'),
             'problematic.html'
         );
         self::assertSame(
@@ -43,7 +43,7 @@ final class AccessibilityAuditTest extends TestCase
         self::assertGreaterThan(0, $bad['issues'][0]['line']);
 
         $good = AccessibilityAudit::auditHtml(
-            (string) file_get_contents(ROOT_PATH . '/tests/Fixtures/accessibility/accessible.html'),
+            (string) file_get_contents(ROOT_PATH . '/tests/fixtures/accessibility/accessible.html'),
             'accessible.html'
         );
         self::assertSame([], $good['issues']);

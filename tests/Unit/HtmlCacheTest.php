@@ -19,6 +19,9 @@ require_once ROOT_PATH . '/includes/HtmlCache.php';
 
 final class HtmlCacheTest extends TestCase
 {
+    // 这里测的正是 HtmlCache.php 加载时注册的真实失效钩子
+    protected bool $isolateActions = false;
+
     private string $tmpDir = '';
     private array $savedGet = [];
     private array $savedServer = [];
