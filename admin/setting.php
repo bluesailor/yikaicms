@@ -149,6 +149,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach (ADMIN_BRAND_SETTING_KEYS as $key) {
         unset($settings[$key]);
     }
+    // 内容维护模式归专业版：未授权时开关冻结（开着的保护照常生效，也不能被关掉）
+    if (array_key_exists('blox_maintenance_mode', $settings)) {
+        require_once ROOT_PATH . '/includes/builder/BloxFeaturePolicy.php';
+        if (!BloxFeaturePolicy::allows('maintenance_mode')) unset($settings['blox_maintenance_mode']);
+    }
 
     // header/footer tab + 非默认语言：lang-able key 重定向到 <key>_<lang>
     // tab 关联的 lang keys 在 $TAB_LANG_KEYS 里定义

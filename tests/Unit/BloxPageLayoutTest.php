@@ -21,6 +21,29 @@ final class BloxPageLayoutTest extends TestCase
         }
     }
 
+    /** 单页外框覆盖归专业版（2026-09-25）：未授权站点只能原样保留已有覆盖，不能新增、修改或清除；页眉页脚显隐不受影响 */
+    public function testUnlicensedSitesKeepButCannotChangePageOverrides(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        self::assertFalse(BloxFeaturePolicy::allows('page_layout'), '测试环境没有注册码');
+        $existing = json_encode(['settings' => ['page_content_max_width' => 960], 'sections' => []], JSON_THROW_ON_ERROR);
+        self::assertSame(960, BloxDocumentPipeline::process($existing, trustedJson: $existing)['settings']['page_content_max_width'], '已有覆盖原样保留');
+        self::assertTrue(BloxDocumentPipeline::process('{"settings":{"page_header_hidden":true},"sections":[]}')['settings']['page_header_hidden'], '页眉显隐是免费能力');
+        foreach ([
+            ['{"settings":{"page_content_max_width":960},"sections":[]}', null],
+            ['{"settings":{"page_content_max_width":1000},"sections":[]}', $existing],
+            ['{"settings":{},"sections":[]}', $existing],
+        ] as [$json, $trusted]) {
+            try {
+                BloxDocumentPipeline::process($json, trustedJson: $trusted);
+                self::fail('未授权站点不能新增、修改或清除本页外框覆盖');
+            } catch (RuntimeException $error) {
+                self::assertSame('layout_pro_required', $error->getMessage());
+            }
+        }
+        // 代码内置内容的受信写入不按作者能力拦
+        self::assertSame(960, BloxFeaturePolicy::asTrustedWrite(static fn() => BloxDocumentPipeline::process('{"settings":{"page_content_max_width":960},"sections":[]}'))['settings']['page_content_max_width']);
+    }
     public function testAbsenceFalseZeroAndClearHaveDifferentMeanings(): void
     {
         $theme = ThemeSettings::defaults();
