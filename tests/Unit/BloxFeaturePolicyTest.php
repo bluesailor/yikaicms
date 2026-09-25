@@ -29,7 +29,8 @@ final class BloxFeaturePolicyTest extends TestCase
         foreach ([false, true] as $module) {
             self::assertTrue(BloxFeaturePolicy::decide('free', true, $module));
             self::assertSame($module, BloxFeaturePolicy::decide('licensed', true, $module));
-            foreach (['free', 'licensed', 'disabled', 'invalid', ''] as $tier) {
+            self::assertSame($module, BloxFeaturePolicy::decide('licensed_core', true, $module));
+            foreach (['free', 'licensed', 'licensed_core', 'disabled', 'invalid', ''] as $tier) {
                 self::assertFalse(BloxFeaturePolicy::decide($tier, false, $module));
             }
             self::assertFalse(BloxFeaturePolicy::decide('disabled', true, $module));
@@ -41,7 +42,9 @@ final class BloxFeaturePolicyTest extends TestCase
     {
         // v1.20.1 起五项作者端能力为 licensed；v1.23 增补 global_classes（渲染免费、创建与管理付费）。
         $policy = require ROOT_PATH . '/config/blox-feature-policy.php';
-        self::assertSame(['query_loop' => 'licensed', 'display_conditions' => 'licensed', 'style_presets' => 'licensed', 'table' => 'licensed', 'pricing' => 'licensed', 'global_classes' => 'licensed', 'interactions' => 'licensed'], $policy); // v1.28 增 interactions
+        self::assertSame(['query_loop' => 'licensed', 'display_conditions' => 'licensed', 'style_presets' => 'licensed', 'table' => 'licensed', 'pricing' => 'licensed', 'global_classes' => 'licensed', 'interactions' => 'licensed',
+            // 2026-09-25 边界裁决：内容维护模式、单页外框覆盖归专业版；代码在核心，只看注册码不依赖 Pro 插件
+            'maintenance_mode' => 'licensed_core', 'page_layout' => 'licensed_core'], $policy); // v1.28 增 interactions
         self::assertFalse(BloxFeaturePolicy::allows('unknown'));
     }
 
@@ -69,6 +72,11 @@ final class BloxFeaturePolicyTest extends TestCase
         self::assertStringContainsString("stylePresetsEnabled: <?php echo !empty(\$professionalFeatures['style_presets']['allowed'])", $editor);
         $source = (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxFeaturePolicy.php');
         self::assertStringContainsString('blox_pro_feature_allowed($feature)', $source);
+        self::assertStringContainsString("'licensed_core' => function_exists('license_owns_blox') && license_owns_blox()", $source);
+        // 维护模式开关：未授权时 setting.php 不接受写入；单页外框覆盖：保存管线与编辑器同一个 key
+        self::assertStringContainsString('if (!BloxFeaturePolicy::allows(\'maintenance_mode\')) unset($settings[\'blox_maintenance_mode\']);', (string) file_get_contents(ROOT_PATH . '/admin/setting.php'));
+        self::assertStringContainsString("!BloxFeaturePolicy::allows('page_layout')", (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxDocumentPipeline.php'));
+        self::assertStringContainsString("'locked' => !BloxFeaturePolicy::allows('page_layout'),", $editor);
         self::assertStringNotContainsString('plugins/yikai-builder/', $source);
         $pro = (string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/access.php');
         self::assertStringContainsString("license_has_module('blox')", $pro);

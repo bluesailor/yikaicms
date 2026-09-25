@@ -54,8 +54,12 @@ final class BloxFeaturePolicy
         $enabled = !function_exists('bloxAdvancedFeaturesEnabled') || bloxAdvancedFeaturesEnabled();
         // Free features do not load the Pro package or trigger licensing requests.
         // Only the normal plugin loader can provide the licensed authoring bridge.
-        $module = $enabled && $tier === 'licensed'
-            && function_exists('blox_pro_feature_allowed') && blox_pro_feature_allowed($feature);
+        $module = $enabled && match ($tier) {
+            'licensed' => function_exists('blox_pro_feature_allowed') && blox_pro_feature_allowed($feature),
+            // 核心里的授权能力：注册码含构建器模块即可（永久回退），不依赖 Pro 插件
+            'licensed_core' => function_exists('license_owns_blox') && license_owns_blox(),
+            default => false,
+        };
         return self::decide($tier, $enabled, $module);
     }
 
@@ -63,7 +67,7 @@ final class BloxFeaturePolicy
     {
         return $enabled && match ($tier) {
             'free' => true,
-            'licensed' => $module,
+            'licensed', 'licensed_core' => $module,
             default => false,
         };
     }

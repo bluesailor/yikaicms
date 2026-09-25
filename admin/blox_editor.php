@@ -8695,6 +8695,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 'slug' => (string) ($page['slug'] ?? ''),
                 'layout' => [
                     'fields' => BloxPageLayout::fields(),
+                    'locked' => !BloxFeaturePolicy::allows('page_layout'),
                     'values' => BloxPageLayout::resolve([], ['type' => 'page', 'id' => max(1, (int) $id), 'lang' => siteLang()])['values'],
                 ],
                 'url' => (!$isHomeBlox && !$templateId) ? channelUrl($page) : '',
