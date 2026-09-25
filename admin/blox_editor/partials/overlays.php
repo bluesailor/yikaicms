@@ -78,15 +78,18 @@ declare(strict_types=1);
                 </div>
                 <?php endforeach; ?>
                 <p class="text-xs text-gray-500"><?= e(__('layout_scope')) ?></p>
+                <?php if (!BloxFeaturePolicy::allows('page_layout')): ?>
+                <p class="flex items-start gap-2 rounded bg-amber-50 p-2 text-xs text-amber-900" data-testid="layout-pro-locked"><?php require __DIR__ . '/pro-badge.php'; ?><span><?= e(__('layout_pro_required')) ?></span></p>
+                <?php endif; ?>
                 <?php foreach (BloxPageLayout::fields() as $layoutKey => $layoutField): if ($layoutField['type'] === 'bool') continue; ?>
                 <div class="space-y-2">
                     <label for="layout-mode-<?= e($layoutKey) ?>" class="block text-sm text-gray-900"><?= e(__($layoutField['label'])) ?></label>
-                    <select id="layout-mode-<?= e($layoutKey) ?>" x-model="pageFrameModes.<?= e($layoutKey) ?>" class="w-full border rounded px-3 py-2 text-sm" data-testid="layout-mode-<?= e($layoutKey) ?>">
+                    <select id="layout-mode-<?= e($layoutKey) ?>" x-model="pageFrameModes.<?= e($layoutKey) ?>" :disabled="pageLayout.locked" class="w-full border rounded px-3 py-2 text-sm disabled:bg-gray-50 disabled:text-gray-400" data-testid="layout-mode-<?= e($layoutKey) ?>">
                         <option value="inherit"><?= e(__('layout_source_global')) ?></option>
                         <option value="set"><?= e(__('layout_source_local')) ?></option>
                         <?php if ($layoutField['clear'] ?? false): ?><option value="clear"><?= e(__('layout_clear_background')) ?></option><?php endif; ?>
                     </select>
-                    <input x-show="pageFrameModes.<?= e($layoutKey) ?> === 'set'" :disabled="pageFrameModes.<?= e($layoutKey) ?> !== 'set'" x-model="pageFrameDraft.<?= e($layoutKey) ?>"
+                    <input x-show="pageFrameModes.<?= e($layoutKey) ?> === 'set'" :disabled="pageLayout.locked || pageFrameModes.<?= e($layoutKey) ?> !== 'set'" x-model="pageFrameDraft.<?= e($layoutKey) ?>"
                            type="<?= e($layoutField['type']) ?>" aria-label="<?= e(__($layoutField['label'])) ?>" data-testid="layout-value-<?= e($layoutKey) ?>"
                            <?php if ($layoutField['type'] === 'number'): ?>min="<?= (int) $layoutField['min'] ?>" max="<?= (int) $layoutField['max'] ?>" step="1"<?php endif; ?> class="w-full border rounded px-3 py-2 text-sm">
                     <p x-show="pageFrameModes.<?= e($layoutKey) ?> === 'inherit'" class="text-xs text-gray-500"><?= e(__('layout_global_value')) ?> <span x-text="pageLayout.values.<?= e($layoutKey) ?>"></span></p>
