@@ -2464,6 +2464,12 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 return this.colorPickerValue(value, fallback || "#000000");
             },
 
+            // 区块边界形状预览：路径由 PHP 下发，与前台渲染同一份，改一处两边一起变
+            bloxDividerPath(shape) {
+                var paths = <?php echo json_encode(BloxSectionDivider::paths(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+                return paths[String(shape || "")] || "";
+            },
+
             colorFieldLabel(value, emptyLabel) {
                 var raw = String(value || "").trim();
                 if (!raw) return emptyLabel || this.designText.custom;

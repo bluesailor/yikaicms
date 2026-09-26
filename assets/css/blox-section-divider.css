@@ -1,0 +1,41 @@
+/* 区块边界装饰面（V2.0.1 A）。仅在作者给 Section 开了弧线/波浪/斜切时按需加载。
+ *
+ * 装饰层只负责"画形状"：绝对定位贴住区块上下边、不接收指针事件、不进无障碍树，
+ * 因此不会遮挡标题、按钮、锚点，也不改变任何可点击区域。
+ * 高度走 CSS 变量，由行内 style 提供 --yk-sd-h（桌面）与可选 --yk-sd-hm（手机）。 */
+
+.yk-sec-divider {
+    position: absolute;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: var(--yk-sd-h, 48px);
+    overflow: hidden;
+    pointer-events: none;
+    line-height: 0;
+    /* 背景媒体与遮罩在下，正文容器在上；装饰面夹在中间 */
+    z-index: 1;
+}
+
+.yk-sec-divider > svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.yk-sec-divider--bottom { bottom: 0; }
+
+/* 顶边复用同一条"占据下半部分"的路径，垂直翻转即可 */
+.yk-sec-divider--top {
+    top: 0;
+    transform: scaleY(-1);
+}
+
+.yk-sec-divider--flip { transform: scaleX(-1); }
+.yk-sec-divider--top.yk-sec-divider--flip { transform: scale(-1, -1); }
+
+@media (max-width: 767px) {
+    .yk-sec-divider { height: var(--yk-sd-hm, var(--yk-sd-h, 48px)); }
+    /* 手机端高度设为 0 即整条关闭，避免窄屏上装饰挤压正文 */
+    .yk-sec-divider[data-yk-sd-mobile-off] { display: none; }
+}
