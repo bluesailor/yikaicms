@@ -1,36 +1,37 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 const { plan } = require('../../tools/ci-e2e-plan');
 const {
   SHARDS, shardMatrix, ciSpecsForShard, extraPhasesForShard, phasePort, phasesForShard,
-  SHARD_KEYS, SHARD_PORT_WINDOW, PHASE_PORT_STEP,
+  SHARD_KEYS, SHARD_PORT_WINDOW, PHASE_PORT_STEP, shardForSpec,
 } = require('../e2e/shards');
 
 const root = path.resolve(__dirname, '../..');
 
 test('browser paths select their relevant shard', () => {
   assert.deepEqual(plan(['admin/upload.php'], { root }), ['media']);
-  assert.deepEqual(plan(['assets/js/blox-style-sources.js'], { root }), ['core', 'design']);
-  assert.deepEqual(plan(['admin/blox_editor/partials/style-source.php'], { root }), ['core', 'design']);
+  assert.deepEqual(plan(['assets/js/blox-style-sources.js'], { root }), ['core-a', 'core-b', 'design']);
+  assert.deepEqual(plan(['admin/blox_editor/partials/style-source.php'], { root }), ['core-a', 'core-b', 'design']);
   assert.deepEqual(plan(['admin/blox_templates.php'], { root }), ['design']);
   assert.deepEqual(plan(['lang/ja.php'], { root }), ['locale']);
-  assert.deepEqual(plan(['admin/blox_home_api.php'], { root }), ['core']);
+  assert.deepEqual(plan(['admin/blox_home_api.php'], { root }), ['core-a', 'core-b']);
   assert.deepEqual(plan(['tests/e2e/blox-banner-video.spec.js'], { root }), ['media']);
   assert.deepEqual(plan(['tests/e2e/theme-market.spec.js'], { root }), ['design']);
   assert.deepEqual(plan(['includes/builder/BloxAreaLanguageManager.php'], { root }), ['locale']);
   assert.deepEqual(plan(['templates/blox/areas/corporate-site-header.json'], { root }), ['design']);
-  assert.deepEqual(plan(['includes/builder/BlockRenderer.php'], { root }), ['core', 'media', 'design', 'locale']);
-  assert.deepEqual(plan(['includes/builder/HomeBloxRenderer.php'], { root }), ['core', 'media', 'design', 'locale']);
-  assert.deepEqual(plan(['tests/e2e/template-market-server.php'], { root }), ['core', 'media', 'design', 'locale']);
-  assert.deepEqual(plan(['config/defaults.php'], { root }), ['core', 'media', 'design', 'locale']);
+  assert.deepEqual(plan(['includes/builder/BlockRenderer.php'], { root }), ['core-a', 'core-b', 'media', 'design', 'locale']);
+  assert.deepEqual(plan(['includes/builder/HomeBloxRenderer.php'], { root }), ['core-a', 'core-b', 'media', 'design', 'locale']);
+  assert.deepEqual(plan(['tests/e2e/template-market-server.php'], { root }), ['core-a', 'core-b', 'media', 'design', 'locale']);
+  assert.deepEqual(plan(['config/defaults.php'], { root }), ['core-a', 'core-b', 'media', 'design', 'locale']);
 });
 
 test('shared browser infrastructure selects every shard', () => {
-  assert.deepEqual(plan(['tests/e2e/run-local.js'], { root }), ['core', 'media', 'design', 'locale']);
-  assert.deepEqual(plan(['.github/workflows/ci.yml'], { root }), ['core', 'media', 'design', 'locale']);
+  assert.deepEqual(plan(['tests/e2e/run-local.js'], { root }), ['core-a', 'core-b', 'media', 'design', 'locale']);
+  assert.deepEqual(plan(['.github/workflows/ci.yml'], { root }), ['core-a', 'core-b', 'media', 'design', 'locale']);
 });
 
 test('documentation-only changes do not schedule browser shards', () => {
@@ -38,17 +39,36 @@ test('documentation-only changes do not schedule browser shards', () => {
 });
 
 test('full mode preserves all browser coverage', () => {
-  assert.deepEqual(plan([], { root, full: true }), ['core', 'media', 'design', 'locale']);
+  assert.deepEqual(plan([], { root, full: true }), ['core-a', 'core-b', 'media', 'design', 'locale']);
+});
+
+test('core split keeps all CI specs in exactly one shard', () => {
+  const specRoot = path.join(root, 'tests/e2e');
+  const expected = fs.readdirSync(specRoot)
+    .filter((name) => name.endsWith('.spec.js'))
+    .filter((name) => fs.readFileSync(path.join(specRoot, name), 'utf8').includes('@ci'))
+    .sort();
+  const actual = SHARD_KEYS.flatMap((key) => phasesForShard(key, specRoot)
+    .filter((phase) => !phase.name)
+    .map((phase) => path.basename(phase.spec)));
+  assert.deepEqual(actual.sort(), expected);
+  assert.equal(new Set(actual).size, expected.length);
+  assert.equal(shardForSpec('blox-editor.spec.js'), 'core-a');
+  assert.equal(shardForSpec('blox-multi-select.spec.js'), 'core-b');
+  assert.deepEqual(plan(['tests/e2e/blox-editor.spec.js'], { root }), ['core-a']);
+  assert.deepEqual(plan(['tests/e2e/blox-multi-select.spec.js'], { root }), ['core-b']);
+  const coreCounts = ['core-a', 'core-b'].map((key) => ciSpecsForShard(key, specRoot).length);
+  assert.ok(Math.abs(coreCounts[0] - coreCounts[1]) <= 12, `core shards are imbalanced: ${coreCounts}`);
 });
 
 test('each shard owns a distinct fixed port and matrix row', () => {
-  assert.deepEqual(Object.values(SHARDS).map((shard) => shard.port), [8100, 9100, 10100, 11100]);
-  assert.equal(new Set(Object.values(SHARDS).map((shard) => shard.port)).size, 4);
-  assert.equal(shardMatrix().include.length, 4);
+  assert.deepEqual(Object.values(SHARDS).map((shard) => shard.port), [8100, 12100, 9100, 10100, 11100]);
+  assert.equal(new Set(Object.values(SHARDS).map((shard) => shard.port)).size, 5);
+  assert.equal(shardMatrix().include.length, 5);
   const firstInstance = Object.keys(SHARDS).flatMap((key) => [phasePort(key, 0), phasePort(key, 50)]);
   assert.equal(new Set(firstInstance).size, firstInstance.length);
-  assert.notEqual(phasePort('core', 0, 1), phasePort('media', 0, 0));
-  assert.notEqual(phasePort('core', 50, 0), phasePort('media', 0, 0));
+  assert.notEqual(phasePort('core-a', 0, 1), phasePort('media', 0, 0));
+  assert.notEqual(phasePort('core-b', 50, 0), phasePort('media', 0, 0));
   assert.equal(phasePort('media', 2, 1), 19120);
 });
 
@@ -142,7 +162,7 @@ test('native theme language navigation is executed once by design CI', () => {
   }
 });
 
-test('CI workflow keeps a planning job, four-shard fanout, and required aggregator', () => {
+test('CI workflow keeps a planning job, five-shard fanout, and required aggregator', () => {
   const workflow = require('node:fs').readFileSync(path.resolve(root, '.github/workflows/ci.yml'), 'utf8');
   assert.match(workflow, /e2e_plan:/);
   assert.match(workflow, /e2e_shards:/);
@@ -154,7 +174,7 @@ test('CI workflow keeps a planning job, four-shard fanout, and required aggregat
 // R9 审计 P2-2：tests/e2e 下的支撑件曾经一律落到 core，于是只改 banner-helpers.js
 // 的 PR 不跑 media，只改 router.php（每个分片一次性站点的前端控制器）也只跑 core。
 test('shared e2e support files invalidate every browser lane', () => {
-  const ALL = ['core', 'media', 'design', 'locale'];
+  const ALL = ['core-a', 'core-b', 'media', 'design', 'locale'];
   for (const file of [
     'tests/e2e/router.php',
     'tests/e2e/banner-helpers.js',
@@ -188,8 +208,8 @@ test('snapshot baselines stay with their own spec shard', () => {
 // phase 长起来会静默借用下一个分片的基址。
 test('phase ports stay inside each shard 900-port window', () => {
   const lastUsable = Math.floor(SHARD_PORT_WINDOW / PHASE_PORT_STEP) - 1;
-  assert.equal(phasePort('core', lastUsable, 0), SHARDS.core.port + (lastUsable * PHASE_PORT_STEP));
-  assert.throws(() => phasePort('core', lastUsable + 1, 0), /900-port window/);
+  assert.equal(phasePort('core-a', lastUsable, 0), SHARDS['core-a'].port + (lastUsable * PHASE_PORT_STEP));
+  assert.throws(() => phasePort('core-b', lastUsable + 1, 0), /900-port window/);
   for (const key of SHARD_KEYS) {
     const phases = phasesForShard(key).length;
     assert.ok(phases > 0, `${key} has no phases`);
