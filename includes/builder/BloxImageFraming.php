@@ -186,14 +186,18 @@ final class BloxImageFraming
         return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.') . '%';
     }
 
-    public static function standaloneStyle(array $data): string
+    /**
+     * @param string $extraCss 追加在最后的声明（如四角独立半径）。
+     *                         排在预设之后 → 同属性时它胜出；为空时输出与既有逐字节一致。
+     */
+    public static function standaloneStyle(array $data, string $extraCss = ''): string
     {
         $preset = self::presetFrameStyle($data['image_preset'] ?? '');
         $ratio = self::ratioCss(self::ratio($data));
         if ($ratio === '') {
             // 没有裁切比例时，预设的外观（圆形／白底）仍要生效
-            return $preset === '' ? '' : ' style="' . $preset . '"';
+            return ($preset . $extraCss) === '' ? '' : ' style="' . $preset . $extraCss . '"';
         }
-        return ' style="width:100%;height:auto;aspect-ratio:' . $ratio . ';' . self::objectStyle($data) . $preset . '"';
+        return ' style="width:100%;height:auto;aspect-ratio:' . $ratio . ';' . self::objectStyle($data) . $preset . $extraCss . '"';
     }
 }

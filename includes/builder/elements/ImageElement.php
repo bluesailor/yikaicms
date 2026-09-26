@@ -78,6 +78,7 @@ final class ImageElement extends AbstractElement
             ['key' => 'lightbox_caption', 'type' => 'text', 'label' => __('blox_lightbox_caption'), 'default' => '',
                 'visible_when' => ['terms' => [['click_action', '=', 'lightbox']]]],
             ...BloxImageFraming::controls(),
+            ...BloxImageShape::controls(),
             BloxEmptyBinding::control(),
             ...$this->animationControls(),
         ];
@@ -111,10 +112,13 @@ final class ImageElement extends AbstractElement
             return '';
         }
         $animationAttrs = $this->animationAttrs($data);
-        $frameStyle = BloxImageFraming::standaloneStyle($data);
+        // 图片形状（V2.0.1 B）：固定形状走 class，四角独立值走行内样式。
+        // 两者都排在裁切/预设之后，同属性时形状胜出。
+        $shapeClasses = BloxImageShape::classNames($data);
+        $frameStyle = BloxImageFraming::standaloneStyle($data, BloxImageShape::inlineCss($data));
         $clickAction = $data['click_action'] ?? '';
         $overlay = $this->overlayMarkup($data);
-        $imgTag = '<img class="w-full rounded-lg" ' . $imageAttrs . ' alt="' . $alt . '" loading="lazy" decoding="async"' . $frameStyle . '>';
+        $imgTag = '<img class="w-full rounded-lg' . $shapeClasses . '" ' . $imageAttrs . ' alt="' . $alt . '" loading="lazy" decoding="async"' . $frameStyle . '>';
         if ($clickAction === 'lightbox') {
             // 灯箱的 href 是可点击链接，须过伪协议校验；src 不合法则退化为普通图片
             $lightboxHref = self::safeHref($rawSrc);
@@ -145,7 +149,7 @@ final class ImageElement extends AbstractElement
                 return $this->wrapOverlay('<a href="' . htmlspecialchars($linkUrl) . '"' . $target . ' class="block"' . $animationAttrs . '>' . $imgTag . '</a>', $overlay);
             }
         }
-        return $this->wrapOverlay('<img class="w-full rounded-lg" ' . $imageAttrs . ' alt="' . $alt
+        return $this->wrapOverlay('<img class="w-full rounded-lg' . $shapeClasses . '" ' . $imageAttrs . ' alt="' . $alt
             . '" loading="lazy" decoding="async"' . $frameStyle . $animationAttrs . '>', $overlay);
     }
 
@@ -168,8 +172,11 @@ final class ImageElement extends AbstractElement
         if ($title === '' && $text === '' && $button === '') {
             return '';
         }
-        $html = '<div class="pointer-events-none absolute inset-0 flex flex-col justify-end gap-1 rounded-lg p-4"'
-            . ' style="background:linear-gradient(to top,rgba(0,0,0,.65),rgba(0,0,0,.15) 45%,transparent 70%)">';
+        // 遮罩层跟着图片一起变形，否则直角渐变会露在圆角/拱顶之外
+        $shapeClasses = BloxImageShape::classNames($data);
+        $shapeCss = BloxImageShape::inlineCss($data);
+        $html = '<div class="pointer-events-none absolute inset-0 flex flex-col justify-end gap-1 rounded-lg' . $shapeClasses . ' p-4"'
+            . ' style="' . $shapeCss . 'background:linear-gradient(to top,rgba(0,0,0,.65),rgba(0,0,0,.15) 45%,transparent 70%)">';
         if ($title !== '') {
             $html .= '<p class="text-white text-lg font-semibold leading-snug">' . e(mb_substr($title, 0, 200)) . '</p>';
         }
