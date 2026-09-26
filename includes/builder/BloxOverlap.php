@@ -35,7 +35,10 @@ final class BloxOverlap
         'title_over' => 'front',
     ];
 
-    /** @return list<string> 本特性用到的全部元素键 */
+    /**
+     * @psalm-api 契约表与单测据此核对存储键，不在渲染路径上。
+     * @return list<string> 本特性用到的全部元素键
+     */
     public static function dataKeys(): array
     {
         return ['overlap_preset', 'stack_layer'];
@@ -138,6 +141,7 @@ final class BloxOverlap
     /**
      * 属性契约（验收门槛 1）。数值与 blox-overlap.css 一一对应，改 CSS 要同步改这里。
      *
+     * @psalm-api 交付文档与单测消费（单测拿它和 CSS 逐条对拍），不在渲染路径上。
      * @return list<array<string,mixed>>
      */
     public static function propertyContract(): array
