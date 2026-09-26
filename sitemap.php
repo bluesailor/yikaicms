@@ -100,7 +100,7 @@ $contents = db()->fetchAll(
             ch.slug as channel_slug, ch.type as channel_type
      FROM " . DB_PREFIX . "contents c
      LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-     WHERE c.status = 1" . $sitemapLangCond('c.lang') . "
+     WHERE c.status = 1 AND c.deleted_at IS NULL" . $sitemapLangCond('c.lang') . "
      ORDER BY c.publish_time DESC
      LIMIT 5000",
     $sitemapLangParams
@@ -125,7 +125,7 @@ $products = db()->fetchAll(
             pc.slug as category_slug
      FROM " . DB_PREFIX . "products p
      LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-     WHERE p.status = 1" . $sitemapLangCond('p.lang') . "
+     WHERE p.status = 1 AND p.deleted_at IS NULL" . $sitemapLangCond('p.lang') . "
      ORDER BY p.updated_at DESC, p.id DESC
      LIMIT 5000",
     $sitemapLangParams
