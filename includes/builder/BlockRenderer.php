@@ -200,6 +200,10 @@ final class BlockRenderer
 
         $html = '';
         $renderedAnchors = [];
+        // 区块边界（V2.0.1 A）："跟随相邻区块"的颜色要等全部区块拼完才知道，
+        // 这里按输出顺序记下每块的纯色背景，收尾时回填占位符。
+        $dividerOrdinal = -1;
+        $dividerSectionColors = [];
         foreach ($sections as $secIndex => $section) {
             $sourceSection = $section;
             // 定位协议绑定文档中的引用节点，而不是展开后的块库副本。
@@ -377,9 +381,14 @@ final class BlockRenderer
                 $sectionLayoutClass = ' flex '
                     . (self::SECTION_V_ALIGN_MAP[$settings['content_v_align'] ?? 'center'] ?? self::SECTION_V_ALIGN_MAP['center']);
             }
-            if ($hasOverlay || $bgVideo !== '') {
+            $hasDivider = BloxSectionDivider::isEnabled($settings);
+            if ($hasOverlay || $bgVideo !== '' || $hasDivider) {
                 $sectionLayoutClass .= ' relative overflow-hidden';
             }
+            // 每个真正输出的区块都占一个序号（不只是带边界的那些），
+            // 否则"前一块/后一块"会数错。无纯色背景（图/视频/渐变）记 null。
+            $dividerOrdinal++;
+            $dividerSectionColors[$dividerOrdinal] = $hasBackgroundMedia || $bgGrad !== '' ? null : $bgColor;
             // 区块高级配置：作者的 CSS 类与自定义 CSS 作用域类（CSS 本身进样式区）
             $customClasses = BloxCustomCode::sectionClasses($settings, $sectionLocatorId);
             $html .= '<section class="' . $padding . $sectionLayoutClass . $secHideCls . $anchorClass . htmlspecialchars($customClasses, ENT_QUOTES) . '"'
@@ -401,6 +410,9 @@ final class BlockRenderer
                 $html .= '<div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="'
                     . htmlspecialchars($overlayStyle, ENT_QUOTES) . '"></div>';
             }
+            if ($hasDivider) {
+                $html .= BloxSectionDivider::html($settings, 'top', $dividerOrdinal);
+            }
 
             // ── 容器层：宽度自定义 px + 独立背景/内边距/圆角。全部是新增可选键，
             //    一个不设时输出仍为 <div class="max-w-* mx-auto px-4">（黄金对拍不破）──
@@ -419,6 +431,11 @@ final class BlockRenderer
                     $innerCls = 'mx-auto' . $containerGutter;
                     $innerStyle .= 'max-width:' . $px . 'px;';
                 }
+            }
+            // 底边装饰输出在容器之后，不抬层级就会盖住正文（点击不受影响，但看得见）。
+            // 放在自定义宽度分支之后：那个分支会重置 $innerCls，写在前面会被冲掉。
+            if ($hasDivider && !str_contains($innerCls, ' z-10')) {
+                $innerCls .= ' relative z-10';
             }
             if (!empty(self::CONTAINER_PAD_MAP[$settings['container_padding'] ?? ''])) {
                 $innerCls .= ' ' . self::CONTAINER_PAD_MAP[$settings['container_padding']];
@@ -590,10 +607,15 @@ final class BlockRenderer
             if ($hasContainerOverlay) {
                 $html .= '</div>';
             }
-            $html .= '</div></section>';
+            $html .= '</div>';
+            if ($hasDivider) {
+                $html .= BloxSectionDivider::html($settings, 'bottom', $dividerOrdinal);
+            }
+            $html .= '</section>';
         }
 
-        return $html;
+        // 把"跟随相邻区块"的颜色占位符换成真实颜色（无邻居/邻居非纯色 → 页面底色）
+        return BloxSectionDivider::resolveNeighborColors($html, $dividerSectionColors);
     }
 
     /**

@@ -2526,6 +2526,8 @@ declare(strict_types=1);
                                         </div>
                                     </div>
                                 </div>
+                                <?php /* 区块边界预设（V2.0.1 A）：顶/底的弧线、波浪、斜切装饰面 */ ?>
+                                <?php require __DIR__ . '/section-divider.php'; ?>
                                 <?php /* 上下内边距 */ ?>
                                 <div>
                                     <label class="mb-2 flex items-center gap-2 text-xs text-gray-600">
