@@ -92,7 +92,7 @@ final class BloxImageShapeTest extends TestCase
     public function testAllCornersModeEmitsASingleRadius(): void
     {
         $html = $this->renderImage(['image_radius_mode' => 'all', 'image_radius_all' => 32]);
-        self::assertStringContainsString('border-radius:32px;', $html);
+        self::assertStringContainsString('border-radius:32px!important;', $html);
     }
 
     public function testPerCornerModeEmitsFourValuesInCssOrder(): void
@@ -102,14 +102,14 @@ final class BloxImageShapeTest extends TestCase
             'image_radius_tl' => 10, 'image_radius_tr' => 20,
             'image_radius_br' => 30, 'image_radius_bl' => 40,
         ]);
-        self::assertStringContainsString('border-radius:10px 20px 30px 40px;', $html);
+        self::assertStringContainsString('border-radius:10px 20px 30px 40px!important;', $html);
     }
 
     public function testPerCornerModeCanMakeSquareCorners(): void
     {
         // 模式显式选了，就算四个都是 0 也是作者的本意：要直角
         $html = $this->renderImage(['image_radius_mode' => 'custom']);
-        self::assertStringContainsString('border-radius:0px 0px 0px 0px;', $html);
+        self::assertStringContainsString('border-radius:0px 0px 0px 0px!important;', $html);
     }
 
     public function testRadiusIsClamped(): void
@@ -129,6 +129,23 @@ final class BloxImageShapeTest extends TestCase
 
         self::assertStringContainsString('yk-img-shape--arch', $html);
         self::assertStringNotContainsString('border-radius', $html);
+    }
+
+    /**
+     * 真实模板的主题 CSS 普遍带 `#eg-hero img{border-radius:...}` 这种 ID 选择器
+     * （特异性 1,0,1），两个类名压不过去。2026-09-26 在 yikai-jp-engei 上实测：
+     * 作者选了拱顶，页面纹丝不动。形状与四角值都必须带 !important。
+     */
+    public function testShapeBeatsThemeIdSelectors(): void
+    {
+        // 先去注释：说明文字里也写着 border-radius，会把统计带偏
+        $css = (string) preg_replace('#/\*.*?\*/#s', '', (string) file_get_contents(ROOT_PATH . '/assets/css/blox-image-shape.css'));
+        $declarations = substr_count($css, 'border-radius:');
+        self::assertGreaterThan(0, $declarations);
+        self::assertSame($declarations, substr_count($css, '!important'), '每条形状声明都要带 !important');
+
+        $inline = $this->renderImage(['image_radius_mode' => 'all', 'image_radius_all' => 8]);
+        self::assertStringContainsString('!important', $inline);
     }
 
     // ── 4. 不得破坏的既有行为 ───────────────────────────────────
@@ -173,7 +190,7 @@ final class BloxImageShapeTest extends TestCase
         ]);
 
         $presetPos = strpos($html, 'border-radius:9999px');
-        $customPos = strpos($html, 'border-radius:12px');
+        $customPos = strpos($html, 'border-radius:12px!important');
         self::assertIsInt($presetPos);
         self::assertIsInt($customPos);
         self::assertGreaterThan($presetPos, $customPos);
