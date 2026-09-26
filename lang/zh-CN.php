@@ -8495,4 +8495,6 @@ voltage|电压|220V',
     'st_market_summary' => '共 :total 套模板 · 可导入 :available 套',
     'st_market_filtered' => '当前显示 :count 套',
     'st_market_clear_filter' => '清除筛选',
+    'blox_sticky_compact' => '滚动后收紧页头',
+    'blox_sticky_compact_hint' => '仅桌面端：缩小页头上下留白和 Logo，手机端保持原高度。',
 ];

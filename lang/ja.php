@@ -8568,4 +8568,6 @@ voltage|電圧|220V',
     'st_market_summary' => '全 :total 件 · インポート可能 :available 件',
     'st_market_filtered' => ':count 件を表示中',
     'st_market_clear_filter' => '絞り込みを解除',
+    'blox_sticky_compact' => 'スクロール時にヘッダーを縮小',
+    'blox_sticky_compact_hint' => 'デスクトップのみ：スクロール後に上下の余白とロゴを縮小します。モバイルの高さは変わりません。',
 ];

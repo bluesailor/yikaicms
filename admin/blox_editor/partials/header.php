@@ -310,6 +310,16 @@ declare(strict_types=1);
                         </span>
                     </label>
                     <div x-show="docSettings.sticky" class="mt-3" data-testid="blox-sticky-options">
+                        <label class="mb-3 flex items-start gap-2 text-xs text-gray-200">
+                            <input type="checkbox" x-model="docSettings.sticky_compact"
+                                   @change="markDocumentSettingsChanged(); refreshPreview()"
+                                   data-testid="blox-sticky-compact"
+                                   class="mt-0.5 rounded border-gray-600 bg-gray-800 text-blue-500">
+                            <span>
+                                <span class="block font-medium"><?php echo e(__('blox_sticky_compact')); ?></span>
+                                <span class="mt-0.5 block text-[10px] leading-relaxed text-gray-400"><?php echo e(__('blox_sticky_compact_hint')); ?></span>
+                            </span>
+                        </label>
                         <label class="block text-xs text-gray-400 mb-1.5"><?php echo e(__('blox_sticky_behavior')); ?></label>
                         <select x-model="docSettings.sticky_behavior"
                                 @change="markDocumentSettingsChanged(); refreshPreview()"

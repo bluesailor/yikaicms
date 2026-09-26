@@ -55,7 +55,7 @@ final class LogoElement extends AbstractElement
 
         $inner = '';
         if ($display !== 'text' && $logo !== '') {
-            $inner .= '<img src="' . htmlspecialchars($logo, ENT_QUOTES) . '" alt="' . htmlspecialchars($name, ENT_QUOTES) . '" class="' . $imgSize . '">';
+            $inner .= '<img src="' . htmlspecialchars($logo, ENT_QUOTES) . '" alt="' . htmlspecialchars($name, ENT_QUOTES) . '" class="' . $imgSize . '" data-yk-site-logo-img>';
         }
         if ($display !== 'image' || ($logo === '' && $name !== '')) {
             // 无 logo 图时任何模式都降级到站名文字，保证头部不空洞
