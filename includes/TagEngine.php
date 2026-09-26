@@ -30,6 +30,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/UrlPolicy.php';
 require_once __DIR__ . '/image.php';
+require_once __DIR__ . '/NavCurrent.php';   // {yk:nav}/{yk:subnav} 的当前位置字段
 
 final class TagEngine
 {
@@ -439,7 +440,10 @@ final class TagEngine
      *   <li><a href="{yk:field name=url /}">{yk:field name=name /}</a></li>
      * {/yk:nav}
      * 遍历栏目做导航菜单。parent 为父栏目 id 或 slug（0/空=顶级）；nav_only=0 显示全部栏目。
-     * 条目字段：name / slug / id …，虚拟字段 url（栏目链接）、_index。
+     * 条目字段：name / slug / id …，虚拟字段 url（栏目链接）、_index，
+     * 当前位置：nav_current（'page' | 'true' | 空，即 aria-current 取值）、is_current（本页=1）、
+     * is_active（本页或所在栏目=1）。例：
+     *   <a href="{yk:field name=url /}"{yk:if field=is_active op=eq value=1} aria-current="{yk:field name=nav_current /}"{/yk:if}>
      * @psalm-suppress PossiblyUnusedReturnValue （handler 经 callable 动态调用，Psalm 看不见调用点）
      */
     public static function tagNav(array $attrs, ?string $inner): string
@@ -478,6 +482,7 @@ final class TagEngine
         foreach (array_values($items) as $i => $item) {
             $item['_type'] = 'channel';
             $item['_index'] = $i + 1;
+            $item = self::withNavCurrent($item);
             if ($needChildren) {
                 $kids = self::filterNavLang(getChannels((int) ($item['id'] ?? 0), $navOnly));
                 $item['has_children'] = $kids === [] ? 0 : 1;
@@ -530,6 +535,7 @@ final class TagEngine
         foreach (array_values($items) as $i => $item) {
             $item['_type'] = 'channel';
             $item['_index'] = $i + 1;
+            $item = self::withNavCurrent($item);
             self::pushContext($item);
             try {
                 $out .= self::render($inner);
@@ -544,6 +550,20 @@ final class TagEngine
             return '<' . $wrap . ($cls !== '' ? ' class="' . e($cls) . '"' : '') . '>' . $out . '</' . $wrap . '>';
         }
         return $out;
+    }
+
+    /**
+     * 导航条目附上当前位置字段（{yk:nav}/{yk:subnav} 共用，判定见 NavCurrent）
+     * @param array<string,mixed> $item
+     * @return array<string,mixed>
+     */
+    private static function withNavCurrent(array $item): array
+    {
+        $state = NavCurrent::state($item);
+        $item['nav_current'] = $state;
+        $item['is_current'] = $state === NavCurrent::PAGE ? 1 : 0;
+        $item['is_active'] = $state !== '' ? 1 : 0;
+        return $item;
     }
 
     /** 多语言站点：只保留当前语言的栏目，避免菜单里混语言（{yk:nav}/{yk:subnav} 共用） */

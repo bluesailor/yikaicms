@@ -54,16 +54,18 @@ final class NavDrawerElement extends AbstractElement
             $url = htmlspecialchars(NavMegaElement::nodeHref($channel), ENT_QUOTES);
             $name = htmlspecialchars((string) ($channel['name'] ?? ''), ENT_QUOTES);
             $kids = is_array($channel['children'] ?? null) ? $channel['children'] : [];
+            $current = NavCurrent::state($channel);
             $items .= '<li class="border-b border-gray-100">';
-            $items .= '<a href="' . $url . '"' . NavMegaElement::targetAttr($channel) . ' class="flex min-h-11 items-center px-5 text-gray-800 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">' . NavMegaElement::nodeIconHtml($channel, 'mr-2', $autoIcons) . $name . '</a>';
+            $items .= '<a href="' . $url . '"' . NavMegaElement::targetAttr($channel) . NavCurrent::attr($current) . ' class="flex min-h-11 items-center px-5 ' . ($current !== '' ? 'bg-gray-50 font-medium text-primary shadow-[inset_3px_0_0_currentColor]' : 'text-gray-800') . ' transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">' . NavMegaElement::nodeIconHtml($channel, 'mr-2', $autoIcons) . $name . '</a>';
             if ($kids !== []) {
                 $items .= '<ul class="pb-2">';
                 foreach ($kids as $kid) {
                     if (!is_array($kid)) {
                         continue;
                     }
+                    $kidCurrent = NavCurrent::state($kid);
                     $items .= '<li><a href="' . htmlspecialchars(NavMegaElement::nodeHref($kid), ENT_QUOTES)
-                        . '"' . NavMegaElement::targetAttr($kid) . ' class="flex min-h-11 items-center pl-10 pr-5 text-sm text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">'
+                        . '"' . NavMegaElement::targetAttr($kid) . NavCurrent::attr($kidCurrent) . ' class="flex min-h-11 items-center pl-10 pr-5 text-sm ' . ($kidCurrent !== '' ? 'font-medium text-primary' : 'text-gray-500') . ' transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 no-underline">'
                         . NavMegaElement::nodeIconHtml($kid, 'mr-2', $autoIcons) . htmlspecialchars((string) ($kid['name'] ?? ''), ENT_QUOTES) . '</a></li>';
                 }
                 $items .= '</ul>';

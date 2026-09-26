@@ -187,9 +187,11 @@ final class NavMegaElement extends AbstractElement
             $name = htmlspecialchars((string) ($channel['name'] ?? ''), ENT_QUOTES);
             $url = htmlspecialchars(self::nodeHref($channel), ENT_QUOTES);
             $kids = is_array($channel['children'] ?? null) ? array_values(array_filter($channel['children'], 'is_array')) : [];
+            $current = NavCurrent::state($channel);
+            $tone = $current !== '' ? 'text-primary' : 'text-gray-700 hover:text-primary';
 
             if ($kids === []) {
-                $items .= '<li><a href="' . $url . '"' . self::targetAttr($channel) . ' class="inline-flex items-center px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline">' . self::nodeIconHtml($channel, 'mr-1.5', $autoIcons) . $name . '</a></li>';
+                $items .= '<li><a href="' . $url . '"' . self::targetAttr($channel) . NavCurrent::attr($current) . ' class="inline-flex items-center px-3 py-2 font-medium ' . $tone . ' no-underline">' . self::nodeIconHtml($channel, 'mr-1.5', $autoIcons) . $name . '</a></li>';
                 continue;
             }
 
@@ -202,7 +204,7 @@ final class NavMegaElement extends AbstractElement
             }
 
             $items .= '<li class="group/mega">'
-                . '<a href="' . $url . '" class="inline-flex items-center gap-1 px-3 py-2 font-medium text-gray-700 hover:text-primary no-underline" aria-haspopup="true">' . self::nodeIconHtml($channel, 'mr-1', $autoIcons) . $name
+                . '<a href="' . $url . '"' . NavCurrent::attr($current) . ' class="inline-flex items-center gap-1 px-3 py-2 font-medium ' . $tone . ' no-underline" aria-haspopup="true">' . self::nodeIconHtml($channel, 'mr-1', $autoIcons) . $name
                 . '<svg class="h-3 w-3 opacity-60 transition-transform group-hover/mega:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></a>'
                 // 面板：相对元素根全宽；hover/focus-within 展开；关闭态不拦截指针
                 . '<div class="yk-mega-panel invisible absolute ' . $panelPos . ' top-full z-40 opacity-0 transition-all duration-150 pointer-events-none'
@@ -224,8 +226,9 @@ final class NavMegaElement extends AbstractElement
         $url = htmlspecialchars(self::nodeHref($kid), ENT_QUOTES);
         $grand = is_array($kid['children'] ?? null) ? array_values(array_filter($kid['children'], 'is_array')) : [];
 
+        $current = NavCurrent::state($kid);
         $html = '<div class="min-w-0">'
-            . '<a href="' . $url . '"' . self::targetAttr($kid) . ' class="block text-sm font-semibold text-gray-900 hover:text-primary no-underline">' . self::nodeIconHtml($kid, 'mr-1', $autoIcons) . $name . '</a>';
+            . '<a href="' . $url . '"' . self::targetAttr($kid) . NavCurrent::attr($current) . ' class="block text-sm font-semibold ' . ($current !== '' ? 'text-primary' : 'text-gray-900 hover:text-primary') . ' no-underline">' . self::nodeIconHtml($kid, 'mr-1', $autoIcons) . $name . '</a>';
         if ($showDesc && trim((string) ($kid['description'] ?? '')) !== '') {
             $html .= '<p class="mt-1 text-xs text-gray-400 line-clamp-2">'
                 . htmlspecialchars((string) $kid['description'], ENT_QUOTES) . '</p>';
@@ -233,8 +236,9 @@ final class NavMegaElement extends AbstractElement
         if ($grand !== []) {
             $html .= '<ul class="mt-3 space-y-2 border-t border-gray-50 pt-3">';
             foreach ($grand as $g) {
+                $grandCurrent = NavCurrent::state($g);
                 $html .= '<li><a href="' . htmlspecialchars(self::nodeHref($g), ENT_QUOTES)
-                    . '"' . self::targetAttr($g) . ' class="block text-sm text-gray-500 hover:text-primary no-underline">'
+                    . '"' . self::targetAttr($g) . NavCurrent::attr($grandCurrent) . ' class="block text-sm ' . ($grandCurrent !== '' ? 'font-medium text-primary' : 'text-gray-500 hover:text-primary') . ' no-underline">'
                     . htmlspecialchars((string) ($g['name'] ?? ''), ENT_QUOTES) . '</a></li>';
             }
             $html .= '</ul>';
