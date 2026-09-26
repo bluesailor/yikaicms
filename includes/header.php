@@ -56,29 +56,9 @@ $navChannels = getDefaultNavigation(isset($navChannels) && is_array($navChannels
 $currentChannelId = $currentChannelId ?? 0;
 $currentSlug = $currentSlug ?? '';
 
-// 判断栏目是否激活（当前栏目或其父栏目，或匹配slug）
-function isChannelActive(array $channel, int $currentId, string $currentSlug = ''): bool {
-    // 检查ID匹配
-    if ($currentId > 0 && (int)$channel['id'] === $currentId) {
-        return true;
-    }
-    // 检查slug匹配
-    if ($currentSlug !== '' && !empty($channel['slug']) && $channel['slug'] === $currentSlug) {
-        return true;
-    }
-    // 检查子栏目
-    if (!empty($channel['children'])) {
-        foreach ($channel['children'] as $child) {
-            if ($currentId > 0 && (int)$child['id'] === $currentId) {
-                return true;
-            }
-            if ($currentSlug !== '' && !empty($child['slug']) && $child['slug'] === $currentSlug) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
+// 当前位置判定交给 NavCurrent（Blox 导航元素与 {yk:nav} 共用同一来源）；
+// 入口文件的这些变量在路由模式下不在全局作用域，只能由页头显式交给它
+NavCurrent::capture((int) $currentChannelId, (string) $currentSlug, !empty($isHomePage));
 
 // 获取栏目链接（SEO友好URL）—— 委托给通用 channelUrl()，保留动态注入分支
 function getChannelUrl(array $channel): string {
@@ -222,15 +202,14 @@ function getChannelUrl(array $channel): string {
                     <?php foreach ($navChannels as $navItem): ?>
                     <?php
                     $hasChildren = !empty($navItem['children']);
-                    $isActive = !empty($navItem['_is_home'])
-                        ? !empty($isHomePage)
-                        : isChannelActive($navItem, $currentChannelId, $currentSlug);
+                    $navState = NavCurrent::state($navItem);
+                    $isActive = $navState !== '';
                     $navUrl = getChannelUrl($navItem);
                     $linkTarget = $navItem['type'] === 'link' ? ' target="' . e($navItem['link_target'] ?: '_self') . '"' : '';
                     ?>
                     <?php if ($hasChildren): ?>
                     <div class="nav-dropdown">
-                        <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget; ?>
+                        <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget . NavCurrent::attr($navState); ?>
                            class="flex items-center gap-1 px-4 py-3 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
                             <?php echo e($navItem['name']); ?>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,7 +221,7 @@ function getChannelUrl(array $channel): string {
                         </div>
                     </div>
                     <?php else: ?>
-                    <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget; ?>
+                    <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget . NavCurrent::attr($navState); ?>
                        class="px-4 py-3 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
                         <?php echo e($navItem['name']); ?>
                     </a>
@@ -266,15 +245,14 @@ function getChannelUrl(array $channel): string {
                     <?php foreach ($navChannels as $navItem): ?>
                     <?php
                     $hasChildren = !empty($navItem['children']);
-                    $isActive = !empty($navItem['_is_home'])
-                        ? !empty($isHomePage)
-                        : isChannelActive($navItem, $currentChannelId, $currentSlug);
+                    $navState = NavCurrent::state($navItem);
+                    $isActive = $navState !== '';
                     $navUrl = getChannelUrl($navItem);
                     $linkTarget = $navItem['type'] === 'link' ? ' target="' . e($navItem['link_target'] ?: '_self') . '"' : '';
                     ?>
                     <?php if ($hasChildren): ?>
                     <div class="nav-dropdown">
-                        <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget; ?>
+                        <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget . NavCurrent::attr($navState); ?>
                            class="flex items-center gap-1 px-4 py-2 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
                             <?php echo e($navItem['name']); ?>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,7 +264,7 @@ function getChannelUrl(array $channel): string {
                         </div>
                     </div>
                     <?php else: ?>
-                    <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget; ?>
+                    <a href="<?php echo $navUrl; ?>"<?php echo $linkTarget . NavCurrent::attr($navState); ?>
                        class="px-4 py-2 hover:text-primary transition <?php echo $isActive ? 'text-primary font-medium' : ''; ?>" style="color: <?php echo $isActive ? '' : e($headerTextColor); ?>">
                         <?php echo e($navItem['name']); ?>
                     </a>
@@ -322,11 +300,11 @@ function getChannelUrl(array $channel): string {
         <nav id="mobileMenu" class="md:hidden hidden border-t" aria-label="<?php echo e(__('menu_label')); ?>" style="background-color: <?php echo e($headerBgColor); ?>">
             <div class="container mx-auto px-4 py-4">
                 <?php foreach ($navChannels as $navItem): ?>
-                <?php $hasChildren = !empty($navItem['children']); ?>
+                <?php $hasChildren = !empty($navItem['children']); $navState = NavCurrent::state($navItem); ?>
                 <div class="<?php echo $hasChildren ? 'border-b border-gray-100 pb-2 mb-2' : ''; ?>">
-                    <a href="<?php echo getChannelUrl($navItem); ?>"
+                    <a href="<?php echo getChannelUrl($navItem); ?>"<?php echo NavCurrent::attr($navState); ?>
                        <?php echo $navItem['type'] === 'link' ? 'target="' . e($navItem['link_target'] ?: '_self') . '"' : ''; ?>
-                       class="block py-2 hover:text-primary font-medium" style="color: <?php echo e($headerTextColor); ?>">
+                       class="block py-2 hover:text-primary font-medium <?php echo $navState !== '' ? 'text-primary' : ''; ?>" style="color: <?php echo $navState !== '' ? '' : e($headerTextColor); ?>">
                         <?php echo e($navItem['name']); ?>
                     </a>
                     <?php if ($hasChildren): ?>

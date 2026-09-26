@@ -18,6 +18,7 @@ require_once __DIR__ . '/BloxHeaderStates.php';
 require_once __DIR__ . '/BloxIcon.php';
 require_once __DIR__ . '/BloxImageFraming.php';
 require_once __DIR__ . '/../BloxNavIconMatcher.php';   // 语义词典在 includes/ 顶层（非 Blox UI 文案）
+require_once __DIR__ . '/../NavCurrent.php';   // 导航当前位置（主题页头与导航元素共用）
 require_once __DIR__ . '/BloxPluginRegistry.php';
 require_once __DIR__ . '/BloxAssetCollector.php';
 require_once __DIR__ . '/DynamicListItemSchema.php';

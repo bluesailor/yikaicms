@@ -75,6 +75,7 @@ $productChannel = getChannelBySlug('product', true);
 
 // 当前菜单高亮
 $currentSlug = 'product';
+NavCurrent::markDetail();   // 详情页：所属栏目在导航里标为所在区域（aria-current="true"），不冒充栏目页
 
 // SEO: OpenGraph & JSON-LD
 $ogType = 'product';
