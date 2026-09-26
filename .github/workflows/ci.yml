@@ -508,7 +508,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # ─── R7：四个独立浏览器分片。PR 按路径分流；主线、发布候选和非 PR
+  # ─── 五个独立浏览器分片（core 拆成 A/B 并行）。PR 按路径分流；主线、发布候选和非 PR
   # ─── 事件跑完整矩阵。每个 spec 由 run-shard.js 建立独立临时站点/数据库。
   e2e_plan:
     name: Plan Blox browser shards
