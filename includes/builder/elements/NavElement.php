@@ -69,23 +69,35 @@ final class NavElement extends AbstractElement
             ? array_values(array_filter($node['children'], 'is_array'))
             : [];
         $iconHtml = NavMegaElement::nodeIconHtml($node, 'mr-1', $autoIcons);
+        $current = NavCurrent::state($node);
         if (!$dropdown || $children === []) {
-            return '<li><a href="' . $url . '"' . NavMegaElement::targetAttr($node)
-                . ' class="hover:text-primary">' . $iconHtml . $name . '</a></li>';
+            return '<li><a href="' . $url . '"' . NavMegaElement::targetAttr($node) . NavCurrent::attr($current)
+                . ' class="' . ($current !== '' ? 'text-primary' : 'hover:text-primary') . '">' . $iconHtml . $name . '</a></li>';
         }
 
         $nested = '';
         foreach ($children as $child) {
+            $childCurrent = NavCurrent::state($child);
             $nested .= '<li><a href="' . htmlspecialchars(NavMegaElement::nodeHref($child), ENT_QUOTES) . '"'
-                . NavMegaElement::targetAttr($child)
-                . ' class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary">'
+                . NavMegaElement::targetAttr($child) . NavCurrent::attr($childCurrent)
+                . ' class="block px-4 py-2 text-sm hover:bg-gray-50 ' . ($childCurrent !== '' ? 'font-medium text-primary' : 'text-gray-600 hover:text-primary') . '">'
                 . NavMegaElement::nodeIconHtml($child, 'mr-1.5', $autoIcons)
                 . htmlspecialchars((string) ($child['name'] ?? ''), ENT_QUOTES) . '</a></li>';
         }
-        return '<li class="relative group/nav"><a href="' . $url . '"' . NavMegaElement::targetAttr($node)
-            . ' class="inline-flex items-center gap-1 hover:text-primary">' . $iconHtml . $name . $this->dropdownCaret() . '</a>'
+        return '<li class="relative group/nav"><a href="' . $url . '"' . NavMegaElement::targetAttr($node) . NavCurrent::attr($current)
+            . ' class="inline-flex items-center gap-1 ' . ($current !== '' ? 'text-primary' : 'hover:text-primary') . '">' . $iconHtml . $name . $this->dropdownCaret() . '</a>'
             . '<ul class="yk-nav-panel absolute left-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block">'
             . $nested . '</ul></li>';
+    }
+
+    /**
+     * TagEngine 模板里的链接属性：{yk:nav}/{yk:subnav} 条目带 nav_current 字段，
+     * 本页/所在栏目输出 aria-current 与高亮类，其余保持悬停色。类名字面量供 Tailwind 扫描。
+     */
+    private static function currentAttrs(string $base = '', string $active = 'text-primary', string $idle = 'hover:text-primary'): string
+    {
+        return '{yk:if field=is_active op=eq value=1} aria-current="{yk:field name=nav_current /}" class="' . $base . $active . '"'
+            . '{yk:else/} class="' . $base . $idle . '"{/yk:if}';
     }
 
     private function dropdownCaret(): string
@@ -107,13 +119,13 @@ final class NavElement extends AbstractElement
                 // 桌面多级下拉：{yk:subnav} 循环子栏目，wrap 包裹在无子级时整体省略（叶子项悬停不出空面板）；
                 // 下拉箭头按 has_children 条件渲染。CSS hover 展开（group/nav 命名组），移动端配 nav-drawer。
                 ? '<li class="relative group/nav">'
-                    . '<a href="{yk:field name=url /}" class="inline-flex items-center gap-1 hover:text-primary">{yk:field name=name /}'
+                    . '<a href="{yk:field name=url /}"' . self::currentAttrs('inline-flex items-center gap-1 ') . '>{yk:field name=name /}'
                     . '{yk:if field=has_children op=eq value=1}' . $this->dropdownCaret() . '{/yk:if}'
                     . '</a>'
                     . '{yk:subnav wrap=ul class="yk-nav-panel absolute left-0 top-full z-30 hidden w-max min-w-[10rem] rounded-xl border border-gray-100 bg-white py-2 shadow-lg group-hover/nav:block"}'
-                    . '<li><a href="{yk:field name=url /}" class="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-primary">{yk:field name=name /}</a></li>'
+                    . '<li><a href="{yk:field name=url /}"' . self::currentAttrs('block px-4 py-2 text-sm hover:bg-gray-50 ', 'font-medium text-primary', 'text-gray-600 hover:text-primary') . '>{yk:field name=name /}</a></li>'
                     . '{/yk:subnav}</li>'
-                : '<li><a href="{yk:field name=url /}" class="hover:text-primary">{yk:field name=name /}</a></li>';
+                : '<li><a href="{yk:field name=url /}"' . self::currentAttrs() . '>{yk:field name=name /}</a></li>';
         }
 
         $attrs = '';

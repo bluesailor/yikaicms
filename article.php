@@ -52,6 +52,7 @@ $pageDescription = $article['summary'] ?: cutStr(strip_tags($article['content'])
 
 // 当前菜单高亮
 $currentSlug = 'news';
+NavCurrent::markDetail();   // 详情页：所属栏目在导航里标为所在区域（aria-current="true"），不冒充栏目页
 
 // 获取导航
 $navChannels = getNavChannels();

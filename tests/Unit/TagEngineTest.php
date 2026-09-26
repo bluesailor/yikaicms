@@ -443,6 +443,41 @@ final class TagEngineTest extends TestCase
         $this->assertSame('[子类A]', $out);
     }
 
+    /** 当前位置字段：当前栏目 'page'，祖先栏目 'true'（按 parent_id 链，不依赖子级预取） */
+    public function testNavCurrentFieldsFollowChannelAncestry(): void
+    {
+        $this->seedNavTree();
+        \NavCurrent::reset();
+        \NavCurrent::capture(2);
+        try {
+            $out = TagEngine::render('{yk:nav}[{yk:field name=name /}:{yk:field name=nav_current /}]{/yk:nav}');
+            $this->assertSame('[产品:true][关于:]', $out);
+            $out = TagEngine::render('{yk:nav parent=product}[{yk:field name=name /}:{yk:field name=is_current /}{yk:field name=is_active /}]{/yk:nav}');
+            $this->assertSame('[子类A:11][子类B:00]', $out);
+        } finally {
+            \NavCurrent::reset();
+        }
+    }
+
+    /** Blox 导航元素的默认下拉模板：{yk:if} 与 {yk:subnav} 串联后仍逐项输出当前位置 */
+    public function testNavElementDropdownTemplateRendersCurrentState(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        $this->seedNavTree();
+        \NavCurrent::reset();
+        \NavCurrent::capture(2);
+        try {
+            $out = TagEngine::render((new \NavElement())->buildMarkup(['dropdown' => true, 'parent' => '0']));
+        } finally {
+            \NavCurrent::reset();
+        }
+        $this->assertStringContainsString('<a href="/product.html" aria-current="true" class="inline-flex items-center gap-1 text-primary">产品', $out);
+        $this->assertStringContainsString('<a href="/cat-a.html" aria-current="page" class="block px-4 py-2 text-sm hover:bg-gray-50 font-medium text-primary">子类A</a>', $out);
+        $this->assertStringContainsString('<a href="/cat-b.html" class="block px-4 py-2 text-sm hover:bg-gray-50 text-gray-600 hover:text-primary">子类B</a>', $out);
+        $this->assertStringContainsString('<a href="/about.html" class="inline-flex items-center gap-1 hover:text-primary">关于</a>', $out);
+        $this->assertStringNotContainsString('{yk:', $out);
+    }
+
     /** 非栏目上下文（文章正文里误用）安全空输出 */
     public function testSubnavOutsideChannelContextEmpty(): void
     {
