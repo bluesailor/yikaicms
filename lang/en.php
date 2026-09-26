@@ -8427,4 +8427,6 @@ voltage|Voltage|220V',
     'st_market_summary' => ':total templates · :available ready to import',
     'st_market_filtered' => 'showing :count',
     'st_market_clear_filter' => 'Clear filters',
+    'blox_sticky_compact' => 'Compact header on scroll',
+    'blox_sticky_compact_hint' => 'Desktop only: reduce header spacing and logo size after scrolling. Mobile height stays unchanged.',
 ];

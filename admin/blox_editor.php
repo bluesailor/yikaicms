@@ -6379,6 +6379,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     stuck: { background: "#ffffff", text: "#111827", border: "#e5e7eb", shadow: "sm" },
                 };
                 this.docSettings = this.docSettings && typeof this.docSettings === "object" ? this.docSettings : {};
+                this.docSettings.sticky_compact = this.docSettings.sticky_compact === true;
                 this.docSettings.sticky_behavior = ["always", "scroll-up"].indexOf(this.docSettings.sticky_behavior) >= 0
                     ? this.docSettings.sticky_behavior : "always";
                 var stickyDevices = Array.isArray(this.docSettings.sticky_devices)
