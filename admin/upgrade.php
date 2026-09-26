@@ -756,7 +756,7 @@ $__mCur = defined('CMS_VERSION') ? CMS_VERSION : '?';
             <?php
             $__auLog = AutoUpgrade::log();
             $__auLatest = $__auLog[0] ?? [];
-            $__auMajorBlocked = ($__auLatest['result'] ?? '') === 'skipped'
+            $__auMajorBlocked = $__auOn && ($__auLatest['result'] ?? '') === 'skipped'
                 && ($__auLatest['msg'] ?? '') === 'major upgrade requires manual confirmation'
                 && version_compare((string) ($__auLatest['to'] ?? ''), defined('CMS_VERSION') ? CMS_VERSION : '0', '>');
             ?>

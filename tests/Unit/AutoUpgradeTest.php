@@ -146,10 +146,35 @@ final class AutoUpgradeTest extends TestCase
 
     public function testServerCanAnnounceMajorWithoutOfferingAutomaticPackage(): void
     {
+        $GLOBALS['_test_config']['auto_upgrade_enabled'] = '1';
+        $GLOBALS['_test_config']['auto_upgrade_window'] = date('H:i', time() - 600) . '-' . date('H:i', time() + 600);
         $this->assertSame(
             [false, 'major upgrade requires manual confirmation'],
             AutoUpgrade::shouldRun(['has_update' => false, 'major_available' => '2.0.0'], '1.20.1')
         );
+    }
+
+    public function testDisabledSiteDoesNotTreatMajorAsAnAutomaticSkip(): void
+    {
+        $GLOBALS['_test_config']['auto_upgrade_enabled'] = '0';
+        foreach ([
+            ['has_update' => true, 'latest_version' => '2.0.0'],
+            ['has_update' => false, 'major_available' => '2.0.0'],
+        ] as $data) {
+            $this->assertSame([false, 'auto upgrade disabled'], AutoUpgrade::shouldRun($data, '1.20.1'));
+        }
+    }
+
+    public function testOutsideWindowDoesNotTreatMajorAsAnAutomaticSkip(): void
+    {
+        $GLOBALS['_test_config']['auto_upgrade_enabled'] = '1';
+        $GLOBALS['_test_config']['auto_upgrade_window'] = date('H:i', time() + 3600) . '-' . date('H:i', time() + 4200);
+        foreach ([
+            ['has_update' => true, 'latest_version' => '2.0.0'],
+            ['has_update' => false, 'major_available' => '2.0.0'],
+        ] as $data) {
+            $this->assertSame([false, 'outside maintenance window'], AutoUpgrade::shouldRun($data, '1.20.1'));
+        }
     }
 
     #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
