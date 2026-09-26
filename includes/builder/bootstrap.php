@@ -86,6 +86,7 @@ require_once __DIR__ . '/BloxMotion.php';
 require_once __DIR__ . '/BloxDotNav.php';
 require_once __DIR__ . '/BloxSectionDivider.php';
 require_once __DIR__ . '/BloxImageShape.php';
+require_once __DIR__ . '/BloxOverlap.php';
 require_once __DIR__ . '/ChannelBloxDocument.php';
 require_once __DIR__ . '/BloxPublicationStatus.php';
 require_once __DIR__ . '/HomeAboutContent.php';

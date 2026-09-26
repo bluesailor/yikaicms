@@ -1,0 +1,46 @@
+/* 受控错位与叠放（V2.0.1 C）。仅在作者选了预设或层级时按需加载。
+ *
+ * 只用负 margin 与三档白名单层级：不做自由拖拽、不用 transform、不用绝对定位。
+ * 断点值与 BloxOverlap::propertyContract() 一一对应，改这里要同步改那里。
+ * 选择器用两个类名，特异性压过全局类的单类选择器——与"元素本地值胜过全局类"一致。 */
+
+/* ── 预设：桌面 ───────────────────────────────────────────── */
+
+/* 上浮卡片：卡片向上咬进相邻区块 */
+.yk-overlap.yk-overlap--lift { margin-top: -64px; }
+
+/* 图片压边：图片向左越过容器边界 */
+.yk-overlap.yk-overlap--bleed { margin-left: -48px; }
+
+/* 标题叠图：标题上移压在图片上 */
+.yk-overlap.yk-overlap--title-over { margin-top: -48px; }
+
+/* ── 平板：偏移减半，版面还留得住 ────────────────────────── */
+@media (max-width: 1023px) {
+    .yk-overlap.yk-overlap--lift { margin-top: -40px; }
+    .yk-overlap.yk-overlap--bleed { margin-left: -24px; }
+    .yk-overlap.yk-overlap--title-over { margin-top: -32px; }
+}
+
+/* ── 手机：一律归零 ───────────────────────────────────────
+ * 窄屏上大幅负边距会把内容挤出屏幕或叠成一团，任务书要求默认取消。 */
+@media (max-width: 767px) {
+    .yk-overlap.yk-overlap--lift,
+    .yk-overlap.yk-overlap--title-over { margin-top: 0; }
+    .yk-overlap.yk-overlap--bleed { margin-left: 0; }
+}
+
+/* ── 层级：三档白名单 ─────────────────────────────────────── */
+
+.yk-stack.yk-stack--front {
+    position: relative;
+    z-index: 20;
+}
+
+/* 装饰背景：沉到内容之下，且不接收指针事件。
+ * 键盘可达性由渲染端附加的 inert 属性负责，CSS 只管绘制与指针。 */
+.yk-stack.yk-stack--back {
+    position: relative;
+    z-index: -1;
+    pointer-events: none;
+}
