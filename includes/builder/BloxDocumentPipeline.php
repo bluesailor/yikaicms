@@ -610,6 +610,11 @@ final class BloxDocumentPipeline
         $data = BloxLoopQuery::normalizeElementData($data);
         $data = BloxInteractions::normalizeElementData($data);
         $data = BloxCustomCode::normalizeElementData($data);
+        // V2.0.1 造型字段：声明了控件的元素本来就会被 Typed Control Schema 清洗，
+        // 这里再过一道，是为了"没声明控件却带着这些键"的情况——模板直接构造
+        // blocks_data 时完全可能出现，不能让未校验的值一路走到渲染。
+        $data = BloxImageShape::normalizeData($data);
+        $data = BloxOverlap::normalizeData($data);
         $registered = BuilderRegistry::get($type);
         $declaredKeys = [];
         foreach ($registered?->controls() ?? [] as $control) {

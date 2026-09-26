@@ -40,7 +40,10 @@ final class BloxImageShape
 
     private const BASE_CLASS = 'yk-img-shape';
 
-    /** @return list<string> 本特性用到的全部元素键 */
+    /**
+     * @psalm-api 契约表与单测据此核对存储键，不在渲染路径上。
+     * @return list<string> 本特性用到的全部元素键
+     */
     public static function dataKeys(): array
     {
         $keys = ['image_shape', 'image_shape_side', 'image_radius_mode', 'image_radius_all'];
@@ -197,6 +200,7 @@ final class BloxImageShape
     /**
      * 属性契约（验收门槛 1）。
      *
+     * @psalm-api 交付文档与单测消费，不在渲染路径上。
      * @return list<array<string,mixed>>
      */
     public static function propertyContract(): array

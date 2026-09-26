@@ -58,6 +58,7 @@ final class BloxSectionDivider
     /**
      * 形状路径表。编辑器画布的形状预览直接取它，避免 PHP 与 JS 各存一份而走形。
      *
+     * @psalm-api 由 admin/blox_editor.php 内联进编辑器 JS（Psalm 数不到那处调用）。
      * @return array<string,string>
      */
     public static function paths(): array
@@ -65,7 +66,10 @@ final class BloxSectionDivider
         return self::PATHS;
     }
 
-    /** @return list<string> 本特性用到的全部 Section 设置键 */
+    /**
+     * @psalm-api 契约表与单测据此核对存储键，不在渲染路径上。
+     * @return list<string> 本特性用到的全部 Section 设置键
+     */
     public static function settingKeys(): array
     {
         $keys = [];
@@ -209,6 +213,7 @@ final class BloxSectionDivider
     /**
      * 编辑器控件用的契约表（验收门槛 1）。
      *
+     * @psalm-api 交付文档与单测消费，不在渲染路径上。
      * @return list<array<string,mixed>>
      */
     public static function propertyContract(): array
