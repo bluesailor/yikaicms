@@ -93,10 +93,36 @@ final class BloxOverlapTest extends TestCase
         $css = $this->css();
         $phoneBlock = substr($css, (int) strpos($css, '@media (max-width: 767px)'));
 
-        self::assertStringContainsString('margin-top: 0', $phoneBlock);
-        self::assertStringContainsString('margin-left: 0', $phoneBlock);
+        // 桌面值带 !important，手机端归零也必须带，否则压不过去——负边距会留在手机上
+        self::assertStringContainsString('margin-top: 0 !important', $phoneBlock);
+        self::assertStringContainsString('margin-left: 0 !important', $phoneBlock);
         foreach (BloxOverlap::PRESETS as $preset) {
             self::assertStringContainsString(str_replace('_', '-', $preset), $phoneBlock, $preset);
+        }
+    }
+
+    /** 每条带 !important 的位移，都必须有一条同样带 !important 的手机端归零 */
+    public function testEveryImportantOffsetHasAnImportantPhoneReset(): void
+    {
+        $css = $this->css();
+        $phoneStart = strpos($css, '@media (max-width: 767px)');
+        self::assertIsInt($phoneStart);
+        $desktop = substr($css, 0, $phoneStart);
+        $phone = substr($css, $phoneStart);
+
+        self::assertGreaterThan(0, substr_count($desktop, '!important'));
+
+        // 手机块里每一条声明都得带 !important（多个预设可以合并在一条规则里，
+        // 所以按声明数比、不按预设数比）
+        preg_match_all('/margin-(?:top|left)\s*:[^;]+;/', $phone, $m);
+        self::assertNotEmpty($m[0]);
+        foreach ($m[0] as $declaration) {
+            self::assertStringContainsString('!important', $declaration, $declaration);
+        }
+
+        // 每个预设都要在手机块里被归零
+        foreach (BloxOverlap::PRESETS as $preset) {
+            self::assertStringContainsString(str_replace('_', '-', $preset), $phone, $preset);
         }
     }
 

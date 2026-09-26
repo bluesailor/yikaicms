@@ -2346,7 +2346,7 @@ return [
     'blox_bg_position_bottom' => 'Bottom center',
     'blox_bg_position_bottom_right' => 'Bottom right',
     'blox_section_divider' => 'Section edge',
-    'blox_section_divider_hint' => 'Add a decorative shape to the top or bottom of the section. It picks up the neighbouring section\'s background by default and never affects text or clicks.',
+    'blox_section_divider_hint' => 'Add a decorative shape to the top or bottom of the section. It never affects text or clicks. Left empty, the colour follows the neighbouring section — but only when that section has a background colour set in the editor. If its background comes from the theme stylesheet, pick the colour here by hand.',
     'blox_section_divider_top' => 'Top edge',
     'blox_section_divider_bottom' => 'Bottom edge',
     'blox_divider_none' => 'None',

@@ -2414,7 +2414,7 @@ return [
     'blox_bg_position_bottom' => '下方居中',
     'blox_bg_position_bottom_right' => '右下',
     'blox_section_divider' => '区块边界',
-    'blox_section_divider_hint' => '给区块顶部或底部加一层装饰形状，颜色默认接上相邻区块的背景。装饰层不影响正文和点击。',
+    'blox_section_divider_hint' => '给区块顶部或底部加一层装饰形状。装饰层不影响正文和点击。颜色留空时自动接相邻区块的背景色——仅当相邻区块在编辑器里设过背景色才准；若那块的背景由模板 CSS 绘制，请在这里手动选色。',
     'blox_section_divider_top' => '顶部边界',
     'blox_section_divider_bottom' => '底部边界',
     'blox_divider_none' => '无',

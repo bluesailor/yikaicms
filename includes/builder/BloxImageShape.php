@@ -132,13 +132,13 @@ final class BloxImageShape
             return '';
         }
         if ($mode === 'all') {
-            return 'border-radius:' . self::corner($data, 'all') . 'px;';
+            return 'border-radius:' . self::corner($data, 'all') . 'px!important;';
         }
         $values = [];
         foreach (self::CORNERS as $corner) {
             $values[] = self::corner($data, $corner) . 'px';
         }
-        return 'border-radius:' . implode(' ', $values) . ';';
+        return 'border-radius:' . implode(' ', $values) . '!important;';
     }
 
     private static function requireStylesheet(): void

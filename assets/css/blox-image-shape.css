@@ -1,29 +1,33 @@
 /* 图片形状（V2.0.1 B）。仅在作者给图片选了拱顶/单侧大圆角/有机柔角时按需加载。
  *
  * 只改 border-radius：不用 clip-path / mask，所以链接命中区、焦点环、灯箱触发、
- * alt 与 srcset 全都照旧。选择器用两个类名，特异性压过 Tailwind 的 .rounded-lg，
- * 不必动用 !important。 */
+ * alt 与 srcset 全都照旧。
+ *
+ * 为什么用 !important：真实模板的主题 CSS 普遍带 `#eg-hero img{border-radius:...}`
+ * 这类 ID 选择器（特异性 1,0,1），仅靠两个类名压不过去——作者在编辑器里选了形状
+ * 却一点反应都没有，是最糟的那种失灵。元素本地的显式选择应当胜过主题的通用规则，
+ * 与 AbstractElement::boxStyle() 对作者输入同样加 !important 是一个口径。 */
 
 /* 拱顶：顶部两角按百分比收成半椭圆，底部留一点点圆角，看起来是有意为之而不是没对齐 */
 .yk-img-shape.yk-img-shape--arch {
-    border-radius: 50% 50% 12px 12px / 38% 38% 12px 12px;
+    border-radius: 50% 50% 12px 12px / 38% 38% 12px 12px !important;
 }
 
 /* 单侧大圆角：只放大一个角，另外三个保持直角 */
-.yk-img-shape.yk-img-shape--side-tl { border-radius: 96px 0 0 0; }
-.yk-img-shape.yk-img-shape--side-tr { border-radius: 0 96px 0 0; }
-.yk-img-shape.yk-img-shape--side-br { border-radius: 0 0 96px 0; }
-.yk-img-shape.yk-img-shape--side-bl { border-radius: 0 0 0 96px; }
+.yk-img-shape.yk-img-shape--side-tl { border-radius: 96px 0 0 0 !important; }
+.yk-img-shape.yk-img-shape--side-tr { border-radius: 0 96px 0 0 !important; }
+.yk-img-shape.yk-img-shape--side-br { border-radius: 0 0 96px 0 !important; }
+.yk-img-shape.yk-img-shape--side-bl { border-radius: 0 0 0 96px !important; }
 
 /* 有机柔角：八值非对称，四角互不相同，接近手绘的柔软轮廓 */
 .yk-img-shape.yk-img-shape--organic {
-    border-radius: 42% 58% 38% 62% / 52% 44% 56% 48%;
+    border-radius: 42% 58% 38% 62% / 52% 44% 56% 48% !important;
 }
 
 /* 窄屏上大圆角会吃掉太多画面，等比收一档 */
 @media (max-width: 767px) {
-    .yk-img-shape.yk-img-shape--side-tl { border-radius: 48px 0 0 0; }
-    .yk-img-shape.yk-img-shape--side-tr { border-radius: 0 48px 0 0; }
-    .yk-img-shape.yk-img-shape--side-br { border-radius: 0 0 48px 0; }
-    .yk-img-shape.yk-img-shape--side-bl { border-radius: 0 0 0 48px; }
+    .yk-img-shape.yk-img-shape--side-tl { border-radius: 48px 0 0 0 !important; }
+    .yk-img-shape.yk-img-shape--side-tr { border-radius: 0 48px 0 0 !important; }
+    .yk-img-shape.yk-img-shape--side-br { border-radius: 0 0 48px 0 !important; }
+    .yk-img-shape.yk-img-shape--side-bl { border-radius: 0 0 0 48px !important; }
 }

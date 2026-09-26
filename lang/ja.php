@@ -2515,7 +2515,7 @@ return [
     'blox_bg_position_bottom' => '下中央',
     'blox_bg_position_bottom_right' => '右下',
     'blox_section_divider' => 'セクションの境界',
-    'blox_section_divider_hint' => 'セクションの上端または下端に装飾形状を追加します。色は既定で隣接セクションの背景に合わせ、本文やクリックには影響しません。',
+    'blox_section_divider_hint' => 'セクションの上端または下端に装飾形状を追加します。本文やクリックには影響しません。色を空にすると隣接セクションの背景に合わせますが、それが効くのは隣のセクションにエディタで背景色を設定している場合だけです。テーマの CSS が背景を描いている場合は、ここで色を指定してください。',
     'blox_section_divider_top' => '上端の境界',
     'blox_section_divider_bottom' => '下端の境界',
     'blox_divider_none' => 'なし',
