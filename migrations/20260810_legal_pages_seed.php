@@ -192,7 +192,7 @@ HTML,
         foreach ($texts as $slug => $html) {
             try {
                 $row = db()->fetchOne(
-                    'SELECT id, content FROM ' . DB_PREFIX . 'channels WHERE slug = ? LIMIT 1',
+                    'SELECT * FROM ' . DB_PREFIX . 'channels WHERE slug = ? LIMIT 1',
                     [$slug]
                 );
                 if ($row === null) {
@@ -202,9 +202,22 @@ HTML,
                 if (trim((string) ($row['content'] ?? '')) !== '') {
                     continue;
                 }
+                // 单语言站的栏目 slug 就是 privacy / terms，语言看行上的 lang。
+                // 不按语言挑文案的话，日文站会被塞一份中文样板（2026-09-26 ht-sshc 实测）。
+                $body = $html;
+                if (!str_contains($slug, '-')) {
+                    $suffix = match (strtolower(substr((string) ($row['lang'] ?? ''), 0, 2))) {
+                        'ja' => 'ja',
+                        'en' => 'en',
+                        default => '',
+                    };
+                    if ($suffix !== '' && isset($texts[$slug . '-' . $suffix])) {
+                        $body = $texts[$slug . '-' . $suffix];
+                    }
+                }
                 db()->execute(
                     'UPDATE ' . DB_PREFIX . 'channels SET content = ? WHERE id = ?',
-                    [$html, (int) $row['id']]
+                    [$body, (int) $row['id']]
                 );
                 $filled[] = $slug;
             } catch (Throwable $e) {
