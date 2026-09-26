@@ -214,21 +214,19 @@ final class AutoUpgrade
     public static function shouldRun(array $data, ?string $currentVersion = null): array
     {
         $currentVersion ??= defined('CMS_VERSION') ? CMS_VERSION : '';
-        if (empty($data['has_update'])) {
-            if (self::crossesMajor($currentVersion, (string) ($data['major_available'] ?? ''))) {
-                return [false, 'major upgrade requires manual confirmation'];
-            }
+        $hasUpdate = !empty($data['has_update']);
+        if (!$hasUpdate && empty($data['major_available'])) {
             return [false, 'no update'];
         }
-        $to = (string) ($data['latest_version'] ?? '');
+        $to = $hasUpdate
+            ? (string) ($data['latest_version'] ?? '')
+            : (string) ($data['major_available'] ?? '');
 
-        require_once ROOT_PATH . '/includes/UpgradeDirective.php';
-        if (UpgradeDirective::verify($data['directive'] ?? null, $to) === true) {
-            return [true, 'directive'];   // 控制台指令：立即执行，不等窗口
-        }
-
-        if (self::crossesMajor($currentVersion, $to)) {
-            return [false, 'major upgrade requires manual confirmation'];
+        if ($hasUpdate) {
+            require_once ROOT_PATH . '/includes/UpgradeDirective.php';
+            if (UpgradeDirective::verify($data['directive'] ?? null, $to) === true) {
+                return [true, 'directive'];   // 控制台指令：立即执行，不等窗口
+            }
         }
 
         if (!self::enabled()) {
@@ -236,6 +234,12 @@ final class AutoUpgrade
         }
         if (!self::inWindow()) {
             return [false, 'outside maintenance window'];
+        }
+        if (self::crossesMajor($currentVersion, $to)) {
+            return [false, 'major upgrade requires manual confirmation'];
+        }
+        if (!$hasUpdate) {
+            return [false, 'no update'];
         }
         $isSecurity = (string) ($data['level'] ?? '') === 'security';
         if (self::scope() === 'security' && !$isSecurity) {
@@ -305,7 +309,12 @@ final class AutoUpgrade
                 if (!$go) {
                     if ($why === 'major upgrade requires manual confirmation') {
                         $blockedVersion = (string) ($data['major_available'] ?? $data['latest_version'] ?? '');
-                        self::logAdd('skipped', $why, $from, $blockedVersion);
+                        $lastLog = self::log()[0] ?? [];
+                        if (($lastLog['result'] ?? '') !== 'skipped'
+                            || ($lastLog['msg'] ?? '') !== $why
+                            || ($lastLog['to'] ?? '') !== $blockedVersion) {
+                            self::logAdd('skipped', $why, $from, $blockedVersion);
+                        }
                     }
                     return 'skipped: ' . $why;
                 }
