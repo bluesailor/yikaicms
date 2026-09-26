@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1">
+  <project timestamp="1" name="fixture">
+    <file name="includes/models/Example.php">
+      <metrics statements="100" coveredstatements="80"/>
+    </file>
+    <metrics files="1" statements="100" coveredstatements="80"/>
+  </project>
+</coverage>
