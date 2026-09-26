@@ -218,6 +218,19 @@ class Migrator
     }
 
     /**
+     * 这条 SQL 错误是不是「目标状态已达成」？
+     *
+     * 迁移按 check() 判定是否待跑，同一状态可能被两条迁移分别覆盖（老站升级时尤其常见），
+     * 后跑的那条会撞上已存在的列/索引。MySQL 对重复索引报的是 `Duplicate key name`，
+     * 与重复列的 `Duplicate column` 措辞不同——漏掉它会让老站的 migrate:run 中途卡死
+     * （2026-09-26：ht-sshc 从 1.x 升 2.0.0 时被 idx_bn_trans 挡住）。与 _addIndex() 同口径。
+     */
+    public static function isIdempotentSqlError(string $message): bool
+    {
+        return (bool) preg_match('/duplicate column|duplicate key name|already exists|duplicate entry/i', $message);
+    }
+
+    /**
      * 执行单条迁移。
      * @return array{ok:bool, message:string, ran_sqls:int}
      */
@@ -237,7 +250,7 @@ class Migrator
             } catch (\Throwable $e) {
                 // 已存在的列/索引等幂等失败 → 忽略
                 $msg = $e->getMessage();
-                if (preg_match('/Duplicate column|duplicate column|already exists|duplicate entry/i', $msg)) {
+                if (self::isIdempotentSqlError($msg)) {
                     continue;
                 }
                 return ['ok' => false, 'message' => 'SQL 失败：' . $msg, 'ran_sqls' => $ranSqls];
