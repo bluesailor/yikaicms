@@ -753,7 +753,19 @@ $__mCur = defined('CMS_VERSION') ? CMS_VERSION : '?';
 
             <p class="text-xs text-gray-400 mt-2"><?php echo e(__('upgrade_auto_safety')); ?></p>
 
-            <?php $__auLog = AutoUpgrade::log(); ?>
+            <?php
+            $__auLog = AutoUpgrade::log();
+            $__auLatest = $__auLog[0] ?? [];
+            $__auMajorBlocked = ($__auLatest['result'] ?? '') === 'skipped'
+                && ($__auLatest['msg'] ?? '') === 'major upgrade requires manual confirmation'
+                && version_compare((string) ($__auLatest['to'] ?? ''), defined('CMS_VERSION') ? CMS_VERSION : '0', '>');
+            ?>
+            <?php if ($__auMajorBlocked): ?>
+            <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mt-3" role="status">
+                <?php echo e(__('upgrade_auto_major_manual', ['version' => (string) $__auLatest['to']])); ?>
+                <a href="/admin/upgrade_online.php" class="underline font-medium"><?php echo e(__('upgrade_online')); ?></a>
+            </p>
+            <?php endif; ?>
             <div class="mt-4 flex items-center gap-3 flex-wrap">
                 <button type="button" id="autoUpgradeRunBtn" onclick="runAutoUpgrade()"
                         class="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 hover:border-primary hover:text-primary rounded text-sm disabled:opacity-50">

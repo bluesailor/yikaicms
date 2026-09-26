@@ -76,7 +76,7 @@ final class AutoUpgradeTest extends TestCase
     public function testDisabledSiteNeverRunsWithoutDirective(): void
     {
         $GLOBALS['_test_config']['auto_upgrade_enabled'] = '0';
-        [$go, $why] = AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '9.9.9', 'level' => 'security']);
+        [$go, $why] = AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.1', 'level' => 'security']);
         $this->assertFalse($go);
         $this->assertSame('auto upgrade disabled', $why);
     }
@@ -86,7 +86,7 @@ final class AutoUpgradeTest extends TestCase
         $GLOBALS['_test_config']['auto_upgrade_enabled'] = '1';
         $GLOBALS['_test_config']['auto_upgrade_scope'] = 'security';
         $GLOBALS['_test_config']['auto_upgrade_window'] = '00:00-23:59';
-        [$go, $why] = AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '9.9.9', 'level' => 'feature']);
+        [$go, $why] = AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.1', 'level' => 'feature']);
         $this->assertFalse($go);
         $this->assertStringContainsString('not a security release', $why);
     }
@@ -95,12 +95,88 @@ final class AutoUpgradeTest extends TestCase
     {
         $GLOBALS['_test_config']['auto_upgrade_enabled'] = '1';
         $GLOBALS['_test_config']['auto_upgrade_window'] = '03:00-03:01';
-        $r = AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '9.9.9', 'level' => 'security']);
+        $r = AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.1', 'level' => 'security']);
         // 窗口只有一分钟，绝大多数时间应被挡下；正好撞上那一分钟时放行也是对的
         $this->assertIsArray($r);
         if ($r[0] === false) {
             $this->assertSame('outside maintenance window', $r[1]);
         }
+    }
+
+    public function testMajorUpgradeRequiresManualConfirmationForBothScopes(): void
+    {
+        $GLOBALS['_test_config']['auto_upgrade_enabled'] = '1';
+        $GLOBALS['_test_config']['auto_upgrade_window'] = '00:00-23:59';
+        foreach (['stable', 'security'] as $scope) {
+            $GLOBALS['_test_config']['auto_upgrade_scope'] = $scope;
+            $this->assertSame(
+                [false, 'major upgrade requires manual confirmation'],
+                AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.0', 'level' => 'security'], '1.20.1')
+            );
+        }
+    }
+
+    public function testSameMajorUpdatesCanProceed(): void
+    {
+        $GLOBALS['_test_config']['auto_upgrade_enabled'] = '1';
+        $GLOBALS['_test_config']['auto_upgrade_scope'] = 'stable';
+        $GLOBALS['_test_config']['auto_upgrade_window'] = '00:00-23:59';
+        foreach ([['1.20.0', '1.20.1'], ['2.0.0', '2.0.1']] as [$from, $to]) {
+            $this->assertSame(
+                [true, 'stable release'],
+                AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => $to, 'level' => 'feature'], $from)
+            );
+        }
+    }
+
+    public function testCustomerSuffixIsIgnoredForMajorVersion(): void
+    {
+        $GLOBALS['_test_config']['auto_upgrade_enabled'] = '1';
+        $GLOBALS['_test_config']['auto_upgrade_scope'] = 'stable';
+        $GLOBALS['_test_config']['auto_upgrade_window'] = '00:00-23:59';
+        $this->assertSame(
+            [true, 'stable release'],
+            AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '1.20.1', 'level' => 'feature'], '1.7.6.2-abc')
+        );
+        $this->assertSame(
+            [false, 'major upgrade requires manual confirmation'],
+            AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.0', 'level' => 'feature'], '1.7.6.2-abc')
+        );
+    }
+
+    public function testServerCanAnnounceMajorWithoutOfferingAutomaticPackage(): void
+    {
+        $this->assertSame(
+            [false, 'major upgrade requires manual confirmation'],
+            AutoUpgrade::shouldRun(['has_update' => false, 'major_available' => '2.0.0'], '1.20.1')
+        );
+    }
+
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    public function testValidSignedDirectiveCanCrossMajor(): void
+    {
+        $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        self::assertNotFalse($key);
+        $details = openssl_pkey_get_details($key);
+        self::assertIsArray($details);
+        define('LICENSE_PUBKEY_B64', preg_replace('/-----[^-]+-----|\s/', '', $details['key']));
+        db()->execute('CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY, `key` TEXT UNIQUE, `value` TEXT, `group` TEXT, `name` TEXT, `tip` TEXT)');
+        $_SERVER['HTTP_HOST'] = 'site.example';
+
+        $issued = time();
+        $expires = $issued + 900;
+        $nonce = bin2hex(random_bytes(12));
+        $canonical = 'autoupgrade|site.example|2.0.0|' . $issued . '|' . $expires . '|' . $nonce;
+        self::assertTrue(openssl_sign($canonical, $signature, $key, OPENSSL_ALGO_SHA256));
+        $directive = [
+            'to' => '2.0.0', 'domain' => 'site.example', 'issued_at' => $issued,
+            'expires_at' => $expires, 'nonce' => $nonce, 'sig' => base64_encode($signature),
+        ];
+        self::assertSame(
+            [true, 'directive'],
+            AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.0', 'directive' => $directive], '1.20.1')
+        );
     }
 
     public function testDirectiveContractIsSignedDomainBoundAndExpiring(): void

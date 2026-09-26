@@ -8568,4 +8568,5 @@ voltage|電圧|220V',
     'st_market_summary' => '全 :total 件 · インポート可能 :available 件',
     'st_market_filtered' => ':count 件を表示中',
     'st_market_clear_filter' => '絞り込みを解除',
+    'upgrade_auto_major_manual' => 'メジャーバージョン :version が公開されています。自動アップグレードは見送りました。バックアップとサイト固有の変更を確認してから手動でアップグレードしてください。',
 ];
