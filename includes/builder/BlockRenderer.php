@@ -1062,6 +1062,33 @@ final class BlockRenderer
     }
 
     /**
+     * 受控错位与叠放（V2.0.1 C）：把预设类与层级类挂到元素根标签。
+     *
+     * 装饰背景层额外附 inert：CSS 的 pointer-events:none 只挡鼠标，键盘 Tab 照样
+     * 能落进一个看不见也点不着的东西里。
+     */
+    private static function applyOverlap(string $html, array $data): string
+    {
+        if ($html === '' || !BloxOverlap::isEnabled($data)) {
+            return $html;
+        }
+        $classes = BloxOverlap::classNames($data);
+        if ($classes === '') {
+            return $html;
+        }
+        $processor = new HtmlTagRewriter($html);
+        if (!$processor->nextTag()) {
+            return $html;
+        }
+        $existing = $processor->getAttribute('class');
+        $processor->setAttribute('class', trim((is_string($existing) ? $existing : '') . $classes));
+        if (BloxOverlap::isInert($data)) {
+            $processor->setAttribute('inert', '');
+        }
+        return $processor->getUpdatedHtml();
+    }
+
+    /**
      * v1.25 容器 Loop：子树按查询行重复渲染。每行压入 TagEngine 上下文
      * （{{loop.*}} 与 {yk:field} 都指向当前行）；单子节点时该节点自身就是循环项
      * （grid_span 等子项设置直接生效），多子节点时用 yk-query-item 包裹保持行边界。
@@ -1206,6 +1233,7 @@ final class BlockRenderer
         $html = self::applyCompiledCss($html, $data, $element);
         $html = self::applyGlobalStyle($html, $data, $element->type());
         $html = self::applyGlobalClasses($html, $data, $element->type());
+        $html = self::applyOverlap($html, $data);
         if ($element->type() !== 'code') {
             $html = BloxCustomCode::applyToElement($html, $data, (string) ($el['id'] ?? ''));
         }

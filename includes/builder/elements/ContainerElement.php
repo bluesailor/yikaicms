@@ -131,6 +131,7 @@ final class ContainerElement extends AbstractElement
             // 0a：容器自身作为父级 flex 子项的布局（容器嵌进行向容器的场景）。
             ...$this->flexItemControls(),
             ...$this->staggerControls(),
+            ...BloxOverlap::controls(),
         ];
     }
 

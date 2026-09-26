@@ -96,6 +96,7 @@ final class HeadingElement extends AbstractElement
                 'option_icons' => ['left' => 'align-left', 'center' => 'align-center', 'right' => 'align-right']],
             BloxEmptyBinding::control(),
             ...$this->animationControls(),
+            ...BloxOverlap::controls(),
         ];
     }
 

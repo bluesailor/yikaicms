@@ -79,6 +79,7 @@ final class ImageElement extends AbstractElement
                 'visible_when' => ['terms' => [['click_action', '=', 'lightbox']]]],
             ...BloxImageFraming::controls(),
             ...BloxImageShape::controls(),
+            ...BloxOverlap::controls(),
             BloxEmptyBinding::control(),
             ...$this->animationControls(),
         ];
