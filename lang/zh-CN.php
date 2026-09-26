@@ -8495,4 +8495,5 @@ voltage|电压|220V',
     'st_market_summary' => '共 :total 套模板 · 可导入 :available 套',
     'st_market_filtered' => '当前显示 :count 套',
     'st_market_clear_filter' => '清除筛选',
+    'upgrade_auto_major_manual' => '发现大版本 :version，自动升级已跳过。请手动升级；升级前先备份并核对本站的定制改动。',
 ];
