@@ -2919,14 +2919,16 @@ function renderNavDropdownItems(array $items, string $linkClass = ''): string
         $url    = function_exists('getChannelUrl') ? getChannelUrl($it) : (string)($it['_url'] ?? '#');
         $target = ($it['type'] ?? '') === 'link' ? ' target="' . e($it['link_target'] ?: '_self') . '"' : '';
         $name   = e($it['name']);
+        // 当前位置只输出 aria-current；高亮由 style.css 的 [aria-current] 规则负责（不改各主题传入的类）
+        $current = class_exists('NavCurrent') ? NavCurrent::attr(NavCurrent::state($it)) : '';
         if ($hasSub) {
             $html .= '<div class="nav-sub-item">';
-            $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '"' . $target . $clsAttr . '>'
+            $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '"' . $target . $current . $clsAttr . '>'
                   . $name . '<span class="nav-sub-arrow">›</span></a>';
             $html .= '<div class="nav-submenu">' . renderNavDropdownItems($it['children'], $linkClass) . '</div>';
             $html .= '</div>';
         } else {
-            $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '"' . $target . $clsAttr . '>' . $name . '</a>';
+            $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '"' . $target . $current . $clsAttr . '>' . $name . '</a>';
         }
     }
     return $html;
@@ -2947,11 +2949,18 @@ function renderNavMobileItems(array $items, int $level, string $textColor, strin
         $target = ($it['type'] ?? '') === 'link' ? ' target="' . e($it['link_target'] ?: '_self') . '"' : '';
         $padLeft = $level * 12;
         $opacity = max(0.6, 1.0 - $level * 0.1);
+        $state = class_exists('NavCurrent') ? NavCurrent::state($it) : '';
         $styleParts = [];
-        if ($textColor !== '') $styleParts[] = 'color:' . e($textColor);
-        $styleParts[] = 'opacity:' . number_format($opacity, 2);
+        // 当前位置：内联主色压过主题传入的文字色（非当前项保持原内联色）
+        if ($state !== '') {
+            $styleParts[] = 'color:var(--color-primary, #3B82F6)';
+            $styleParts[] = 'font-weight:600';
+        } elseif ($textColor !== '') {
+            $styleParts[] = 'color:' . e($textColor);
+        }
+        $styleParts[] = 'opacity:' . ($state !== '' ? '1.00' : number_format($opacity, 2));
         $styleParts[] = 'padding-left:' . $padLeft . 'px';
-        $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '"' . $target
+        $html .= '<a href="' . htmlspecialchars($url, ENT_QUOTES) . '"' . $target . ($state !== '' ? NavCurrent::attr($state) : '')
               . ' class="' . htmlspecialchars($linkClass, ENT_QUOTES) . '"'
               . ' style="' . implode('; ', $styleParts) . ';">'
               . e($it['name']) . '</a>';

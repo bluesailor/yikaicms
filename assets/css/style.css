@@ -416,6 +416,9 @@ select {
 }
 .nav-submenu a { display: block; padding: 0.5rem 1.25rem; color: #4b5563; white-space: nowrap; transition: all 0.2s; }
 .nav-submenu a:hover { background: #f3f4f6; color: var(--color-primary, #3B82F6); }
+/* 当前位置（aria-current 由 NavCurrent 统一输出）：本页与所在栏目都高亮 */
+.nav-dropdown-menu a[aria-current],
+.nav-submenu a[aria-current] { color: var(--color-primary, #3B82F6); font-weight: 500; }
 .nav-sub-item:hover > .nav-submenu { opacity: 1; visibility: visible; margin-left: 0; }
 
 /* ============================================================

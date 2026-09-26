@@ -52,6 +52,7 @@ $pageTitle = $content['title'];
 $pageKeywords = $content['tags'] ?: ($channel['seo_keywords'] ?? '');
 $pageDescription = $content['summary'] ?: cutStr(strip_tags($content['content'] ?? ''), 150);
 $currentChannelId = $channelId;
+NavCurrent::markDetail();   // 详情页：所属栏目在导航里标为所在区域（aria-current="true"），不冒充栏目页
 
 // 获取导航
 $navChannels = getNavChannels();
