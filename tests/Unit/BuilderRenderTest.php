@@ -748,6 +748,8 @@ final class BuilderRenderTest extends TestCase
             // E10：动态绑定为空时的处置，排在动效之前
             '_empty_binding',
             'animation', 'animation_trigger', 'animation_speed', 'animation_delay', 'animation_device',
+            // V2.0.1 C：受控错位与叠放，挂在容器／图片／标题上
+            'overlap_preset', 'stack_layer',
         ], $keys);
         // defaults 从 controls 推导
         $this->assertSame([
@@ -776,6 +778,8 @@ final class BuilderRenderTest extends TestCase
             'animation_speed' => 'normal',
             'animation_delay' => 'none',
             'animation_device' => 'all',
+            'overlap_preset' => '',
+            'stack_layer' => '',
         ], $h->defaults());
     }
 
