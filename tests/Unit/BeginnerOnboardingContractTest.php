@@ -47,8 +47,8 @@ final class BeginnerOnboardingContractTest extends TestCase
     public function testSetupWizardUsesTheSingleHomepageEntry(): void
     {
         $setup = $this->source('admin/site_setup.php');
-        self::assertStringContainsString('$__homeEditUrl = SiteSetup::homeEditUrl();', $setup);
-        self::assertStringContainsString('data-testid="setup-edit-home" href="<?= e($__homeEditUrl) ?>"', $setup);
+        self::assertStringContainsString('$homeEditUrl = SiteSetup::homeEditUrl();', $setup);
+        self::assertStringContainsString('data-testid="setup-edit-home" href="<?= e($homeEditUrl) ?>"', $setup);
         self::assertStringContainsString("hasPermission('blox_home') ? '/admin/blox_editor.php?home=1' : '/admin/setting_home.php'", $this->source('includes/SiteSetup.php'));
     }
 
@@ -126,11 +126,11 @@ final class BeginnerOnboardingContractTest extends TestCase
         $legacy = strpos($setup, 'data-testid="setup-legacy-home"');
         self::assertIsInt($legacy);
         self::assertLessThan((int) strpos($setup, 'href="/admin/setting_home.php"'), $legacy, '经典首页链接只在折叠区里');
-        self::assertGreaterThan((int) strpos($setup, '$renderTemplateStep(3);'), $legacy, '折叠区在所有步骤之后');
+        self::assertGreaterThan((int) strpos($setup, 'data-testid="setup-template-card"'), $legacy, '折叠区在模板卡之后');
         self::assertGreaterThan((int) strpos($setup, 'aria-labelledby="setup-content"'), $legacy, '折叠区在内容检查之后');
         self::assertStringContainsString('class="px-1 text-xs text-gray-400" data-testid="setup-legacy-home"', $setup);
-        // 「改用主题首页」表单只在两处调用：经典首页在用时的第 1 步里，或页底折叠区里
-        self::assertStringContainsString("<?php if (!\$__legacyHome && \$homeMode !== 'theme') \$renderHomeSwitch('mt-4 '); ?>", $setup);
+        // 「改用主题首页」表单只在两处调用：经典首页在用时的首页卡里，或页底折叠区里
+        self::assertStringContainsString("<?php if (!\$legacyHome && \$homeMode !== 'theme') \$renderHomeSwitch('mt-4 '); ?>", $setup);
         self::assertGreaterThan($legacy, (int) strpos($setup, "\$renderHomeSwitch('');"), '「改用主题首页」也在折叠区里');
         self::assertSame(1, substr_count($setup, 'name="action" value="theme_home"'));
 
@@ -144,18 +144,33 @@ final class BeginnerOnboardingContractTest extends TestCase
         self::assertStringContainsString("(\$isHomeBlox ? '/admin/site_setup.php' : '/admin/page.php')", $this->source('admin/blox_editor/partials/header.php'));
     }
 
-    /** 外行最简单的路：新站把「从行业模板开始」放第一步并标推荐；已有内容的站放最后，不引导去覆盖 */
-    public function testIndustryTemplatesComeFirstOnlyForFreshSites(): void
+    /**
+     * 2026-09-27 用户："有些并不是 1、2、3 的顺序……去模板市场挑选，这个很重要。"
+     * 向导不再编号；「从行业模板开始」对新站、已有内容的站都放在最上面；已有内容的站只多一句"先预览、可撤销"。
+     * 推荐模板靠异步接口取，页面渲染路径上不许同步请求模板目录（目录要走网络，可能要几秒）。
+     */
+    public function testTemplateMarketLeadsTheUnnumberedWizard(): void
     {
         $setup = $this->source('admin/site_setup.php');
-        self::assertStringContainsString('$templateFirst = (new SiteTemplateService(ROOT_PATH))->canApply();', $setup);
-        self::assertStringContainsString('<?php if ($templateFirst) $renderTemplateStep(1); ?>', $setup);
-        self::assertStringContainsString('<?php if (!$templateFirst) $renderTemplateStep(3); ?>', $setup);
-        self::assertLessThan(
-            (int) strpos($setup, 'aria-labelledby="setup-home"'),
-            (int) strpos($setup, '<?php if ($templateFirst) $renderTemplateStep(1); ?>'),
-            '新站的模板步骤排在首页之前'
-        );
+        $card = strpos($setup, 'data-testid="setup-template-card"');
+        self::assertIsInt($card);
+        self::assertLessThan((int) strpos($setup, 'aria-labelledby="setup-home"'), $card, '模板卡在首页卡之前');
+        self::assertLessThan((int) strpos($setup, 'aria-labelledby="setup-content"'), $card, '模板卡在内容检查之前');
+        self::assertStringNotContainsString('renderTemplateStep', $setup, '不再按新站/已有站调换位置');
+        self::assertStringNotContainsString("'. ' . __('setup_", $setup, '标题不再带编号');
+        self::assertStringContainsString("<?php if (!\$freshSite): ?>", $setup);
+        self::assertStringContainsString("__('setup_template_existing_note')", $setup);
+        foreach (['zh-CN', 'en', 'ja'] as $lang) {
+            $strings = require ROOT_PATH . '/lang/' . $lang . '.php';
+            self::assertDoesNotMatchRegularExpression('/三步|Three steps|3 ステップ/u', $strings['setup_intro'], $lang);
+        }
+        // 目录只在 ?catalog=1 接口里取，且先释放会话锁；页面主体只读会话缓存
+        $endpoint = strpos($setup, "if ((\$_GET['catalog'] ?? '') === '1') {");
+        self::assertIsInt($endpoint);
+        self::assertSame(1, substr_count($setup, 'SiteTemplateMarket::request()'));
+        self::assertLessThan(strpos($setup, 'SiteTemplateMarket::request()'), strpos($setup, 'session_write_close();', $endpoint), '取目录前先释放会话锁');
+        self::assertLessThan(strpos($setup, "require_once ROOT_PATH . '/admin/includes/header.php';"), strpos($setup, 'SiteTemplateMarket::request()'), '只在接口里取目录');
+        self::assertStringContainsString("fetch(base + '/admin/site_setup.php?catalog=1'", $setup, '异步地址带子目录前缀');
         $dashboard = $this->source('admin/index.php');
         self::assertStringContainsString('$onbTemplateOffer = (new SiteTemplateService(ROOT_PATH))->canApply();', $dashboard);
         self::assertStringContainsString("__(\$onbTemplateOffer ? 'onb_start_title_choice' : 'onb_start_title')", $dashboard);
