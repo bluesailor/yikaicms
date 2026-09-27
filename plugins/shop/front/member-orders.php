@@ -89,7 +89,7 @@ require_once ROOT_PATH . '/includes/header.php';
                 <td class="px-4 py-3 text-right font-medium"><?php echo e(formatPrice((string) $o['amount_total'])); ?></td>
                 <td class="px-4 py-3 text-xs text-gray-500"><?php echo e(date('Y-m-d H:i', (int) $o['created_at'])); ?></td>
                 <td class="px-4 py-3 text-right">
-                    <a href="/shop/order?no=<?php echo rawurlencode((string) $o['order_no']); ?>" class="text-primary hover:underline text-xs"><?php echo e(__('shop_order_detail')); ?></a>
+                    <a href="<?php echo e(shopFrontUrl('order', ['no' => (string) $o['order_no']])); ?>" class="text-primary hover:underline text-xs"><?php echo e(__('shop_order_detail')); ?></a>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -103,7 +103,7 @@ require_once ROOT_PATH . '/includes/header.php';
             <span class="px-3 py-1 rounded bg-primary text-white"><?php echo $p; ?></span>
             <?php else: ?>
             <a class="px-3 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50"
-               href="/member/shop-orders?page=<?php echo $p; ?>"><?php echo $p; ?></a>
+               href="<?php echo e(shopFrontUrl('member-orders', ['page' => $p])); ?>"><?php echo $p; ?></a>
             <?php endif; ?>
         <?php endfor; ?>
     </div>

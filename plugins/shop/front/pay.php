@@ -24,7 +24,7 @@ $timestamp = (int) ($_POST['ts'] ?? 0);
 $signature = (string) ($_POST['sig'] ?? '');
 $secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
 $redirect = static function (string $error) use ($orderNo): void {
-    header('Location: /shop/order?no=' . rawurlencode($orderNo) . '&err=' . rawurlencode($error), true, 303);
+    header('Location: ' . shopFrontUrl('order', ['no' => $orderNo, 'err' => $error]), true, 303);
     exit;
 };
 
@@ -56,7 +56,7 @@ if ($gateway === 'wechat_pay') {
         'code_url' => (string) $result['code_url'],
         'created_at' => time(),
     ];
-    header('Location: /shop/order?no=' . rawurlencode($orderNo) . '&pay=wechat_pay', true, 303);
+    header('Location: ' . shopFrontUrl('order', ['no' => $orderNo, 'pay' => 'wechat_pay']), true, 303);
     exit;
 }
 

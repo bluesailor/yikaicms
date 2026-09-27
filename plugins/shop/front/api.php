@@ -26,7 +26,7 @@ header('Cache-Control: no-store');
 // 注意不能标 never 返回类型（PHP 8.1+）：RuntimeRequirements 守卫要求运行包 8.0 兼容。
 // 闭包内 header + exit，调用点之后不可达。
 $redirect = static function (string $errorKey = ''): void {
-    $target = '/shop/cart' . ($errorKey !== '' ? '?err=' . urlencode($errorKey) : '');
+    $target = shopFrontUrl('cart', $errorKey !== '' ? ['err' => $errorKey] : []);
     header('Location: ' . $target, true, 303);
     exit;
 };

@@ -77,7 +77,7 @@ require_once theme_path('layouts/header.php');
         <?php if (!$lookup['ok']): ?>
         <div class="bg-white rounded border border-gray-200 p-6" data-testid="shop-order-query">
             <p class="text-sm text-gray-500 mb-4"><?php echo e(__('shop_order_query_hint')); ?></p>
-            <form method="post" action="/shop/order" class="flex flex-wrap items-end gap-2">
+            <form method="post" action="<?php echo e(shopFrontUrl('order')); ?>" class="flex flex-wrap items-end gap-2">
                 <div>
                     <label class="block text-sm text-gray-700 mb-1"><?php echo e(__('shop_order_no')); ?></label>
                     <input type="text" name="no" required maxlength="32" value="<?php echo e($orderNo); ?>"
@@ -174,7 +174,7 @@ require_once theme_path('layouts/header.php');
                     <p class="mt-1 text-xs text-blue-700"><?php echo e(__('shop_online_payment_hint')); ?></p>
                     <div class="mt-3 flex flex-wrap gap-2">
                         <?php foreach ($onlinePaymentGateways as $onlineGateway): ?>
-                        <form method="post" action="/shop/pay">
+                        <form method="post" action="<?php echo e(shopFrontUrl('pay')); ?>">
                             <input type="hidden" name="gateway" value="<?php echo e($onlineGateway); ?>">
                             <input type="hidden" name="order_no" value="<?php echo e((string) $order['order_no']); ?>">
                             <input type="hidden" name="ts" value="<?php echo $paymentTokenTs; ?>">
