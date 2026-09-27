@@ -8568,4 +8568,6 @@ voltage|電圧|220V',
     'st_market_summary' => '全 :total 件 · インポート可能 :available 件',
     'st_market_filtered' => ':count 件を表示中',
     'st_market_clear_filter' => '絞り込みを解除',
+    'login_language' => '言語',
+    'st_market_language' => '言語',
 ];

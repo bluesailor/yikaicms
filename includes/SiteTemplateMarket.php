@@ -70,6 +70,7 @@ final class SiteTemplateMarket
         $prefix = 'https://update.yikaicms.com/assets/site-templates/' . $slug . '/' . $version . '/preview.';
         $item['screenshot'] = is_string($image) && in_array($image, [$prefix . 'webp', $prefix . 'jpg', $prefix . 'png'], true) ? $image : '';
         $item['demo_url'] = self::demoUrl($entry['demo_url'] ?? '');
+        $item['languages'] = self::languages($entry['languages'] ?? []);
         $tier = $entry['tier'] ?? null;
         if (!is_string($tier) || !in_array($tier, ['free', 'pro'], true)) return null;
         $item['tier'] = $tier;
@@ -92,6 +93,17 @@ final class SiteTemplateMarket
         $item['sig'] = $item['blocked_reason'] === '' ? (string) $entry['sig'] : '';
         $item['size_bytes'] = $item['blocked_reason'] === '' ? $size : 0;
         return $item;
+    }
+
+    /** 模板内容的语言（目录可选字段，只用于筛选展示，不参与签名）。只认三种界面语言，"zh" 视同 zh-CN。 */
+    public const LANGUAGES = ['zh-CN', 'en', 'ja'];
+
+    /** @return list<string> */
+    public static function languages(mixed $value): array
+    {
+        if (!is_array($value)) return [];
+        $codes = array_map(static fn(mixed $code): string => $code === 'zh' ? 'zh-CN' : (is_string($code) ? $code : ''), $value);
+        return array_values(array_intersect(self::LANGUAGES, $codes));
     }
 
     /**
