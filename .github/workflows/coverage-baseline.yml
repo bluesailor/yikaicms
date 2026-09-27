@@ -1,0 +1,55 @@
+name: PHP coverage baseline (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_run_id:
+        description: 'Optional prior successful coverage workflow run ID for a 2 pp comparison'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  php-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP with PCOV
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_sqlite, json, gd, fileinfo, dom, simplexml
+          tools: composer:v2
+          ini-values: pcov.directory=${{ github.workspace }}
+          coverage: pcov
+      - name: Install test dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Download previous baseline
+        if: ${{ inputs.baseline_run_id != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: php-coverage-baseline
+          path: build/previous-coverage
+          run-id: ${{ inputs.baseline_run_id }}
+          github-token: ${{ github.token }}
+      - name: Collect fixed-scope PHPUnit coverage
+        env:
+          BASELINE_RUN_ID: ${{ inputs.baseline_run_id }}
+        run: |
+          mkdir -p build/coverage
+          vendor/bin/phpunit --colors=never --coverage-clover build/coverage/clover.xml
+          if [ -n "$BASELINE_RUN_ID" ]; then
+            php tools/coverage-baseline.php build/coverage/clover.xml build/coverage/summary.json build/previous-coverage/summary.json
+          else
+            php tools/coverage-baseline.php build/coverage/clover.xml build/coverage/summary.json
+          fi
+      - name: Save coverage baseline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-coverage-baseline
+          path: build/coverage/
+          retention-days: 30

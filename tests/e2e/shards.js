@@ -2,11 +2,13 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { createHash } = require('node:crypto');
 
 const SHARDS = Object.freeze({
   // Each shard owns a 900-port range. Phase ports advance by 10, with the
   // adjacent port reserved for the template fixture server.
-  core: Object.freeze({ key: 'core', label: 'Editor core and publishing', port: 8100 }),
+  'core-a': Object.freeze({ key: 'core-a', label: 'Editor core and publishing A', port: 8100 }),
+  'core-b': Object.freeze({ key: 'core-b', label: 'Editor core and publishing B', port: 12100 }),
   media: Object.freeze({ key: 'media', label: 'Banner, media and video', port: 9100 }),
   design: Object.freeze({ key: 'design', label: 'Templates, areas and design system', port: 10100 }),
   locale: Object.freeze({ key: 'locale', label: 'Languages, free mode and responsive', port: 11100 }),
@@ -49,7 +51,10 @@ function shardForSpec(file) {
   for (const [key, pattern] of SPEC_OWNERSHIP) {
     if (pattern.test(name)) return key;
   }
-  return 'core';
+  // 稳定哈希让新增 spec 不会重新洗牌；最大的一组编辑器回归单独移到 A，
+  // 按 2026-09-25 CI 的阶段耗时平衡两条 core 并行队列。
+  if (name === 'blox-editor.spec.js') return 'core-a';
+  return createHash('sha256').update(name).digest()[0] % 2 === 0 ? 'core-a' : 'core-b';
 }
 
 function specsForShard(key, root = path.resolve(__dirname)) {
