@@ -133,3 +133,13 @@ Stripe、PayPal、Wise 仍只是保留标识。未实现、未注册或未完整
 ```text
 php vendor/bin/phpunit --filter ShopSiteTemplateTest
 ```
+
+## 无伪静态环境的商城入口
+
+商城购买表单、购物车操作及订单跳转通过 `shopFrontUrl()` 按站点 URL 模式生成地址。
+`query` 模式使用实体入口 `/plugins/shop/front/index.php?shop_route=cart`，支持子目录安装。
+自定义主题和站点插件的购物车链接请使用 `e(shopFrontUrl('cart'))`；调用前确认商城已启用。
+HTML 属性与 Location 头的子目录前缀仍由核心 BasePath 统一添加，调用方不要重复加前缀。
+
+实体入口仅接受固定商城路由，并检查商城启用状态；请求继续经过原有 `dispatch_routes`
+过滤器，保留测试站支付拦截和其它站点路由限制。原有 POST、令牌、会员及订单访问校验保持有效。

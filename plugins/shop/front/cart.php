@@ -121,7 +121,7 @@ require_once theme_path('layouts/header.php');
                     </td>
                     <td class="px-4 py-3 text-gray-700"><?php echo e(formatPrice($row['unit_decimal'])); ?></td>
                     <td class="px-4 py-3">
-                        <form method="post" action="/shop/api" class="flex items-center gap-1">
+                        <form method="post" action="<?php echo e(shopFrontUrl('api')); ?>" class="flex items-center gap-1">
                             <input type="hidden" name="op" value="set">
                             <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
                             <input type="hidden" name="variant" value="<?php echo e($row['variant']); ?>">
@@ -137,7 +137,7 @@ require_once theme_path('layouts/header.php');
                     </td>
                     <td class="px-4 py-3 text-right font-medium text-gray-900"><?php echo e(formatPrice($row['subtotal_decimal'])); ?></td>
                     <td class="px-4 py-3 text-right">
-                        <form method="post" action="/shop/api">
+                        <form method="post" action="<?php echo e(shopFrontUrl('api')); ?>">
                             <input type="hidden" name="op" value="set">
                             <input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>">
                             <input type="hidden" name="variant" value="<?php echo e($row['variant']); ?>">

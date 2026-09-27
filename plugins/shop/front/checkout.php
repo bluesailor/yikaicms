@@ -41,7 +41,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['op'] ?? '') ===
     $ts = (int) ($_POST['ts'] ?? 0);
     $sig = (string) ($_POST['sig'] ?? '');
     if ($secret === '' || !FormSubmissionToken::verify('shop_checkout', $ts, $sig, $secret, false, 7200)) {
-        header('Location: /shop/checkout?err=' . urlencode(__('shop_err_token')), true, 303);
+        header('Location: ' . shopFrontUrl('checkout', ['err' => __('shop_err_token')]), true, 303);
         exit;
     }
 
@@ -71,7 +71,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['op'] ?? '') ===
         $errorKey = $addressResult['error'];
     }
     if ($errorKey !== '') {
-        header('Location: /shop/checkout?err=' . urlencode(__($errorKey)), true, 303);
+        header('Location: ' . shopFrontUrl('checkout', ['err' => __($errorKey)]), true, 303);
         exit;
     }
 
@@ -82,11 +82,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['op'] ?? '') ===
         $remark
     );
     if (!$result['ok']) {
-        header('Location: /shop/checkout?err=' . urlencode(__($result['error'])), true, 303);
+        header('Location: ' . shopFrontUrl('checkout', ['err' => __($result['error'])]), true, 303);
         exit;
     }
 
-    header('Location: /shop/order?no=' . urlencode((string) $result['order_no']) . '&placed=1', true, 303);
+    header('Location: ' . shopFrontUrl('order', ['no' => (string) $result['order_no'], 'placed' => 1]), true, 303);
     exit;
 }
 
@@ -154,7 +154,7 @@ require_once theme_path('layouts/header.php');
         <?php if ($preview === []): ?>
         <div class="bg-white rounded border border-gray-200 px-6 py-16 text-center" data-testid="shop-checkout-empty">
             <p class="text-gray-500 mb-4"><?php echo e(__('shop_cart_empty')); ?></p>
-            <a href="/shop/cart" class="inline-block text-primary hover:underline"><?php echo e(__('shop_cart_continue')); ?></a>
+            <a href="<?php echo e(shopFrontUrl('cart')); ?>" class="inline-block text-primary hover:underline"><?php echo e(__('shop_cart_continue')); ?></a>
         </div>
         <?php else: ?>
 
@@ -188,7 +188,7 @@ require_once theme_path('layouts/header.php');
             </div>
 
             <?php /* 联系与收货 */ ?>
-            <form method="post" action="/shop/checkout" class="bg-white rounded border border-gray-200 p-5 space-y-4" data-testid="shop-checkout-form">
+            <form method="post" action="<?php echo e(shopFrontUrl('checkout')); ?>" class="bg-white rounded border border-gray-200 p-5 space-y-4" data-testid="shop-checkout-form">
                 <input type="hidden" name="op" value="place_order">
                 <input type="hidden" name="ts" value="<?php echo (int) $tokenTs; ?>">
                 <input type="hidden" name="sig" value="<?php echo e($tokenSig); ?>">

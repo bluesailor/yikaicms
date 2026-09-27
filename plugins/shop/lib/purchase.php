@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/routes.php';
 require_once __DIR__ . '/money.php';
 require_once __DIR__ . '/sales.php';
 require_once __DIR__ . '/cart.php';
@@ -117,7 +118,7 @@ function shopRenderPurchaseForm(array $product, array $options = []): string
         }
         $timestamp = time();
         $signature = FormSubmissionToken::sign('shop_cart', $timestamp, $secret);
-        $form = '<form method="post" action="/shop/api" class="' . $formClass . '">'
+        $form = '<form method="post" action="' . e(shopFrontUrl('api')) . '" class="' . $formClass . '">'
             . '<input type="hidden" name="op" value="add">'
             . '<input type="hidden" name="pid" value="' . $productId . '">'
             . '<input type="hidden" name="ts" value="' . $timestamp . '">'

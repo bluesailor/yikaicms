@@ -8,6 +8,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/routes.php';
 require_once __DIR__ . '/money.php';
 
 /** @return array<string,string> */
@@ -380,7 +381,7 @@ function shopPaymentNotifyUrl(string $gateway, ?string $baseUrl = null, ?string 
 
 function shopPaymentOrderReturnUrl(string $orderNo, ?string $baseUrl = null): string
 {
-    return rtrim($baseUrl ?? siteBaseUrl(), '/') . '/shop/order?no=' . rawurlencode($orderNo);
+    return rtrim($baseUrl ?? siteBaseUrl(), '/') . shopFrontUrl('order', ['no' => $orderNo]);
 }
 
 function shopPaymentStartToken(string $gateway, string $orderNo, int $timestamp, string $secret): string
