@@ -115,16 +115,23 @@ $adminTutorialUrl = match ((string) config('admin_lang', getLang())) {
 // 侧栏折叠态（图标栏）：状态存 Cookie，服务端据此预渲染宽度与主内容边距，
 // 避免 Alpine 初始化前后布局跳动；前端切换时同步回写 Cookie + localStorage。
 $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
+// 页面可声明 $sidebarCompact = true：每次进入都先收成图标栏（给内容更宽的页面，如整站模板市场）；
+// 用户仍可点开，点开只影响本次浏览，不改其它页面的记忆状态。
+$_sbCompactPage = ($sidebarCompact ?? false) === true;
+if ($_sbCompactPage) $_sbCollapsed = true;
 ?>
 <body class="bg-gray-100" x-data="{
         mobileMenu: false,
         _sbT: 0,
         collapsed: <?= $_sbCollapsed ? 'true' : 'false' ?>,
+        compactPage: <?= $_sbCompactPage ? 'true' : 'false' ?>,
         toggleCollapsed() {
             this._sbT = Date.now();
             this.collapsed = !this.collapsed;
-            try { localStorage.setItem('sidebarCollapsed', this.collapsed ? '1' : '0'); } catch (e) {}
-            document.cookie = 'sidebarCollapsed=' + (this.collapsed ? '1' : '0') + ';path=/;max-age=' + (365 * 86400) + ';samesite=Lax';
+            if (!this.compactPage) {
+                try { localStorage.setItem('sidebarCollapsed', this.collapsed ? '1' : '0'); } catch (e) {}
+                document.cookie = 'sidebarCollapsed=' + (this.collapsed ? '1' : '0') + ';path=/;max-age=' + (365 * 86400) + ';samesite=Lax';
+            }
             if (!this.collapsed) { this.fly = { key: '', label: '', items: [], top: 0 }; }
         },
         // 折叠态点空白/Logo 展开。400ms 冷却：点把手收起后侧栏还在收窄动画中，

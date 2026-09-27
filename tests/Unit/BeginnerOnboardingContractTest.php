@@ -112,14 +112,23 @@ final class BeginnerOnboardingContractTest extends TestCase
         self::assertContains('includes/builder/BloxLinkCatalog.php', (require ROOT_PATH . '/config/release-runtime.php')['required_files']);
     }
 
-    /** 经典首页设置降级：新手处处只看到一个「编辑首页」入口，旧选项整组收进建站向导的折叠区 */
+    /**
+     * 经典首页设置降级：新手处处只看到一个「编辑首页」入口，旧选项整组收进建站向导的折叠区，
+     * 且折叠区放在整页最底下（所有步骤之后）、小号浅色——2026-09-27 用户要求更隐蔽。
+     */
     public function testClassicHomeSettingsStayOutOfTheNewcomerPath(): void
     {
         $setup = $this->source('admin/site_setup.php');
         $legacy = strpos($setup, 'data-testid="setup-legacy-home"');
         self::assertIsInt($legacy);
         self::assertLessThan((int) strpos($setup, 'href="/admin/setting_home.php"'), $legacy, '经典首页链接只在折叠区里');
-        self::assertLessThan((int) strpos($setup, 'name="action" value="theme_home"'), $legacy, '「改用主题首页」也在折叠区里');
+        self::assertGreaterThan((int) strpos($setup, '$renderTemplateStep(3);'), $legacy, '折叠区在所有步骤之后');
+        self::assertGreaterThan((int) strpos($setup, 'aria-labelledby="setup-content"'), $legacy, '折叠区在内容检查之后');
+        self::assertStringContainsString('class="px-1 text-xs text-gray-400" data-testid="setup-legacy-home"', $setup);
+        // 「改用主题首页」表单只在两处调用：经典首页在用时的第 1 步里，或页底折叠区里
+        self::assertStringContainsString("<?php if (!\$__legacyHome && \$homeMode !== 'theme') \$renderHomeSwitch('mt-4 '); ?>", $setup);
+        self::assertGreaterThan($legacy, (int) strpos($setup, "\$renderHomeSwitch('');"), '「改用主题首页」也在折叠区里');
+        self::assertSame(1, substr_count($setup, 'name="action" value="theme_home"'));
 
         $channel = $this->source('admin/channel.php');
         self::assertStringNotContainsString('href="/admin/setting_home.php"', $channel);

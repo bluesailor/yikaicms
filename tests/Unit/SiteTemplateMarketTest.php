@@ -193,4 +193,40 @@ final class SiteTemplateMarketTest extends TestCase
         self::assertStringNotContainsString("post('download_url')", $page);
         self::assertStringContainsString('!$isPost', $page);
     }
+
+    /** 模板语言：目录可选字段，只认三种界面语言（zh 视同 zh-CN），缺失或乱填都得到空列表，不影响能否下载。 */
+    public function testLanguagesAreOptionalAndLimitedToTheThreeInterfaceLanguages(): void
+    {
+        self::assertSame(['zh-CN', 'en', 'ja'], SiteTemplateMarket::languages(['ja', 'en', 'zh']));
+        self::assertSame(['zh-CN'], SiteTemplateMarket::languages(['zh-CN', 'zh-CN']));
+        self::assertSame([], SiteTemplateMarket::languages('zh-CN'));
+        self::assertSame([], SiteTemplateMarket::languages(['fr', 1, null, ['ja']]));
+
+        $withLanguages = SiteTemplateMarket::normalize($this->item(['languages' => ['zh', 'ja']]));
+        self::assertSame(['zh-CN', 'ja'], $withLanguages['languages']);
+        self::assertSame('', $withLanguages['blocked_reason']);
+        $without = SiteTemplateMarket::normalize($this->item());
+        self::assertSame([], $without['languages']);
+        self::assertSame('', $without['blocked_reason'], 'a catalog without languages stays importable');
+        // 语言不进签名串：补这个字段不会让已签名的目录失效
+        self::assertSame(SiteTemplateMarket::canonical($this->item()), SiteTemplateMarket::canonical($this->item(['languages' => ['ja']])));
+    }
+
+    /** 市场页：进入时侧栏收成图标栏；分类在左侧列表；语言筛选只在目录给出语言时出现。 */
+    public function testMarketPageLayoutCategoriesLeftAndLanguageFilter(): void
+    {
+        $page = (string) file_get_contents(ROOT_PATH . '/admin/site_template_market.php');
+        self::assertLessThan(strpos($page, "require_once ROOT_PATH . '/admin/includes/header.php'"), strpos($page, '$sidebarCompact = true;'));
+        $nav = strpos($page, 'data-testid="st-market-categories"');
+        self::assertIsInt($nav);
+        self::assertLessThan(strpos($page, 'data-testid="st-market-card"'), $nav, 'category column comes before the cards');
+        self::assertStringNotContainsString('name="category" @change', $page, 'the category dropdown is replaced by the list');
+        self::assertStringContainsString("<?php if (\$hasLanguages): ?>", $page);
+        self::assertStringContainsString('data-testid="st-market-languages"', $page);
+        self::assertStringContainsString("in_array(get('lang'), SiteTemplateMarket::LANGUAGES, true)", $page);
+
+        $header = (string) file_get_contents(ROOT_PATH . '/admin/includes/header.php');
+        self::assertStringContainsString('$_sbCompactPage = ($sidebarCompact ?? false) === true;', $header);
+        self::assertStringContainsString('if (!this.compactPage) {', $header, 'expanding on a compact page must not rewrite the remembered state');
+    }
 }

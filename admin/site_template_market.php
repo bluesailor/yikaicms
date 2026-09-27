@@ -57,21 +57,34 @@ if ($isPost) {
 }
 $search = mb_substr(trim(get('q')), 0, 100);
 $category = trim(get('category'));
+$contentLanguage = in_array(get('lang'), SiteTemplateMarket::LANGUAGES, true) ? get('lang') : '';
 $items = is_array($catalog) ? $catalog['templates'] : [];
 $categories = [];
 foreach ($items as $item) $categories[$item['category']] = (string) ($item['category_name' . $suffix] ?: ($item['category_name'] ?: $item['category']));
 $allCount = count($items);
 $importableCount = count(array_filter($items, static fn(array $item): bool => $item['blocked_reason'] === ''));
-$items = array_values(array_filter($items, static function (array $item) use ($search, $category): bool {
-    if ($category !== '' && $item['category'] !== $category) return false;
+// 语言筛选只在目录给出了模板语言时出现（老的目录没有这个字段，不显示一个筛不出东西的选项）
+$hasLanguages = array_filter($items, static fn(array $item): bool => ($item['languages'] ?? []) !== []) !== [];
+$languageNames = availableLanguages();
+// 左侧分类的数量跟随搜索与语言条件（不跟随分类本身），点哪个分类都知道会看到几套
+$matchesSearchAndLanguage = static function (array $item) use ($search, $contentLanguage): bool {
+    if ($contentLanguage !== '' && !in_array($contentLanguage, $item['languages'] ?? [], true)) return false;
     return $search === '' || mb_stripos(implode(' ', array_map(static fn(string $key): string => (string) ($item[$key] ?? ''),
         ['slug', 'name', 'name_en', 'name_ja', 'description', 'description_en', 'description_ja', 'category_name'])), $search) !== false;
-}));
+};
+$pool = array_values(array_filter($items, $matchesSearchAndLanguage));
+$categoryCounts = array_count_values(array_column($pool, 'category'));
+$items = array_values(array_filter($pool, static fn(array $item): bool => $category === '' || $item['category'] === $category));
+$marketUrl = static function (array $change) use ($search, $category, $contentLanguage): string {
+    $query = array_filter(array_merge(['q' => $search, 'category' => $category, 'lang' => $contentLanguage], $change), static fn($v): bool => $v !== '');
+    return '/admin/site_template_market.php' . ($query === [] ? '' : '?' . http_build_query($query));
+};
 // 能导入的排在前面（稳定排序，目录内原有顺序不变）；暂不可用的仍然显示并说明原因
 usort($items, static fn(array $a, array $b): int => ($a['blocked_reason'] === '' ? 0 : 1) <=> ($b['blocked_reason'] === '' ? 0 : 1));
 asort($categories);
 $pageTitle = __('st_market_title');
 $currentMenu = 'site_setup';
+$sidebarCompact = true;  // 模板卡片需要宽度：进入本页先把后台侧栏收成图标栏
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 <div class="space-y-6">
@@ -87,15 +100,44 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php if ($catalog === null): ?>
     <p role="status" class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__('st_market_unavailable')) ?> <a href="/admin/site_templates.php" class="underline"><?= e(__('st_market_local')) ?></a></p>
     <?php else: ?>
-    <form method="get" class="flex flex-wrap gap-3 items-end">
-        <div><label for="st-market-q" class="block text-sm mb-1"><?= e(__('st_market_search')) ?></label><input id="st-market-q" name="q" value="<?= e($search) ?>" maxlength="100" class="border rounded px-3 py-2"></div>
-        <div><label for="st-market-category" class="block text-sm mb-1"><?= e(__('st_market_category')) ?></label><select id="st-market-category" name="category" @change="$el.form.requestSubmit()" class="border rounded px-3 py-2"><option value=""><?= e(__('st_market_all')) ?></option><?php foreach ($categories as $key => $label): ?><option value="<?= e((string) $key) ?>" <?= $category === $key ? 'selected' : '' ?>><?= e((string) $label) ?></option><?php endforeach; ?></select></div>
-        <button class="bg-primary text-white rounded px-4 py-2" type="submit"><?= e(__('st_market_search')) ?></button>
-        <?php if ($search !== '' || $category !== ''): ?><a href="/admin/site_template_market.php" class="px-2 py-2 text-sm text-gray-600 underline"><?= e(__('st_market_clear_filter')) ?></a><?php endif; ?>
+    <?php // 左：模板分类（带数量，桌面端吸顶；窄屏变成可横向滑动的一行）；右：搜索、语言筛选与模板卡片 ?>
+    <div class="lg:flex lg:items-start lg:gap-8">
+    <nav class="lg:w-56 shrink-0 lg:sticky lg:top-24 mb-6 lg:mb-0" aria-labelledby="st-market-categories-title" data-testid="st-market-categories">
+        <h2 id="st-market-categories-title" class="px-3 mb-2 text-xs font-semibold text-gray-500"><?= e(__('st_market_category')) ?></h2>
+        <ul class="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0 lg:overflow-x-visible lg:overflow-y-auto lg:max-h-[calc(100vh-8rem)]">
+            <?php foreach (['' => __('st_market_all')] + $categories as $key => $label): $key = (string) $key; $active = $category === $key; ?>
+            <li class="shrink-0"><a href="<?= e($marketUrl(['category' => $key])) ?>"<?= $active ? ' aria-current="page"' : '' ?>
+                class="flex items-center justify-between gap-3 rounded px-3 py-2 text-sm whitespace-nowrap <?= $active ? 'bg-blue-50 text-primary font-medium' : 'text-gray-700 hover:bg-gray-100' ?>">
+                <span><?= e((string) $label) ?></span><span class="text-xs <?= $active ? 'text-primary' : 'text-gray-400' ?>"><?= $key === '' ? count($pool) : (int) ($categoryCounts[$key] ?? 0) ?></span></a></li>
+            <?php endforeach; ?>
+        </ul>
+    </nav>
+    <div class="flex-1 min-w-0 space-y-5">
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <form method="get" class="flex items-center gap-2" role="search">
+            <?php if ($category !== ''): ?><input type="hidden" name="category" value="<?= e($category) ?>"><?php endif; ?>
+            <?php if ($contentLanguage !== ''): ?><input type="hidden" name="lang" value="<?= e($contentLanguage) ?>"><?php endif; ?>
+            <label for="st-market-q" class="sr-only"><?= e(__('st_market_search')) ?></label>
+            <input id="st-market-q" name="q" value="<?= e($search) ?>" maxlength="100" placeholder="<?= e(__('st_market_search')) ?>" class="border rounded px-3 py-2 w-56 max-w-full">
+            <button class="bg-primary text-white rounded px-4 py-2" type="submit"><?= e(__('st_market_search')) ?></button>
+        </form>
+        <?php if ($hasLanguages): ?>
+        <div class="flex items-center gap-2" role="group" aria-labelledby="st-market-lang-title" data-testid="st-market-languages">
+            <span id="st-market-lang-title" class="text-sm text-gray-500"><?= e(__('st_market_language')) ?></span>
+            <div class="inline-flex rounded border bg-white p-0.5">
+                <?php // 顺序固定为 中 / 英 / 日（LANGUAGES 的顺序），名称用各语言自己的写法 ?>
+                <?php foreach (['' => __('admin_all')] + array_combine(SiteTemplateMarket::LANGUAGES, array_map(static fn(string $code): string => (string) ($languageNames[$code] ?? $code), SiteTemplateMarket::LANGUAGES)) as $code => $label): $code = (string) $code; $active = $contentLanguage === $code; ?>
+                <a href="<?= e($marketUrl(['lang' => $code])) ?>"<?= $active ? ' aria-current="true"' : '' ?><?= $code !== '' ? ' lang="' . e($code) . '"' : '' ?>
+                   class="rounded px-3 py-1.5 text-sm <?= $active ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100' ?>"><?= e((string) $label) ?></a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+        <?php if ($search !== '' || $category !== '' || $contentLanguage !== ''): ?><a href="/admin/site_template_market.php" class="text-sm text-gray-600 underline"><?= e(__('st_market_clear_filter')) ?></a><?php endif; ?>
         <p class="ml-auto text-sm text-gray-600" data-testid="st-market-summary"><?= e(__('st_market_summary', ['total' => (string) $allCount, 'available' => (string) $importableCount])) ?><?php if (count($items) !== $allCount): ?> · <?= e(__('st_market_filtered', ['count' => (string) count($items)])) ?><?php endif; ?></p>
-    </form>
+    </div>
     <?php if ($items === []): ?><p class="text-gray-600"><?= e(__('st_market_empty')) ?></p><?php endif; ?>
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
         <?php foreach ($items as $item): $name = (string) ($item['name' . $suffix] ?: $item['name']); $description = (string) ($item['description' . $suffix] ?: $item['description']); $categoryLabel = (string) ($categories[$item['category']] ?? ''); ?>
         <article class="bg-white border rounded-lg overflow-hidden flex flex-col<?= $item['blocked_reason'] !== '' ? ' opacity-75' : '' ?>" data-testid="st-market-card" data-available="<?= $item['blocked_reason'] === '' ? '1' : '0' ?>">
             <?php if ($item['screenshot'] !== ''): ?><img src="<?= e($item['screenshot']) ?>" alt="<?= e($name) ?>" loading="lazy" referrerpolicy="no-referrer" class="w-full aspect-video object-cover object-top bg-gray-100"><?php else: ?><div class="aspect-video bg-gray-100 flex items-center justify-center text-gray-500"><?= e(__('st_market_no_cover')) ?></div><?php endif; ?>
@@ -105,6 +147,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php if ($categoryLabel !== ''): ?><span class="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600"><?= e($categoryLabel) ?></span><?php endif; ?>
                 </div>
                 <p class="text-sm text-gray-600"><?= e($description) ?></p>
+                <?php if (($item['languages'] ?? []) !== []): ?><p class="text-xs text-gray-500" data-testid="st-market-card-languages"><i class="ti ti-world" aria-hidden="true"></i> <?= e(implode(' · ', array_map(static fn(string $code): string => (string) ($languageNames[$code] ?? $code), $item['languages']))) ?></p><?php endif; ?>
                 <p class="text-xs text-gray-500"><?= e(__('st_market_version', ['version' => $item['version'], 'cms' => $item['cms'], 'series' => SiteTemplateArchive::cmsSeries($item['cms'])])) ?></p>
                 <?php if ($item['format_version'] > 1): ?><p class="text-sm text-gray-600"><?= e(__('st_market_format_hint', ['format' => (string) $item['format_version']])) ?></p><?php endif; ?>
                 <?php if ($item['blocked_reason'] !== ''): ?><p class="mt-auto text-sm text-amber-800"><?= e(__($item['blocked_reason'])) ?>
@@ -122,6 +165,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </article>
         <?php endforeach; ?>
+    </div>
+    </div>
     </div>
     <?php endif; ?>
 </div>

@@ -65,6 +65,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <p class="mt-4 text-sm text-gray-500"><?= e(__('setup_recipe_hint')) ?> <a class="text-primary hover:underline" href="/admin/recipe.php"><?= e(__('admin_recipe')) ?></a></p>
     </section>
     <?php }; ?>
+    <?php // 「改用主题首页」：经典首页在用时放第 1 步里；可视化首页在用时收进页底的旧版首页选项
+    $renderHomeSwitch = static function (string $spacing): void { ?>
+        <details class="<?= $spacing ?>border rounded p-4">
+            <summary class="cursor-pointer py-2 font-medium"><?= e(__('setup_home_switch')) ?></summary>
+            <form method="post" class="space-y-3 mt-3">
+                <?= csrfField() ?>
+                <input type="hidden" name="action" value="theme_home">
+                <input type="hidden" name="fingerprint" value="<?= e(SiteSetup::homeFingerprint()) ?>">
+                <p class="text-gray-700"><?= e(__('setup_home_switch_hint')) ?></p>
+                <label class="flex items-start gap-2 py-2"><input type="checkbox" name="confirm" value="1" required>
+                    <span><?= e(__('setup_home_confirm')) ?></span></label>
+                <button class="border rounded px-4 py-3" type="submit"><?= e(__('setup_home_switch')) ?></button>
+            </form>
+        </details>
+    <?php }; ?>
     <header>
         <h1 class="text-2xl font-bold text-gray-800"><?= e($pageTitle) ?></h1>
         <p class="text-gray-600 mt-1"><?= e(__('setup_intro')) ?></p>
@@ -87,32 +102,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endif; ?>
         </div>
         <?php $__legacyHome = $__homeEditUrl !== '/admin/setting_home.php'; ?>
-        <?php if ($__legacyHome): ?>
-        <?php // 经典首页设置与「改用主题首页」只留给从老站迁移的人：新手只看到一个编辑首页的入口，旧选项整组折叠 ?>
-        <details class="mt-4 text-sm text-gray-500" data-testid="setup-legacy-home">
-            <summary class="cursor-pointer py-1"><?= e(__('setup_legacy_home')) ?></summary>
-            <div class="mt-2 space-y-3 border-l-2 border-gray-200 pl-4">
-            <p><?= e(__('setup_legacy_home_hint')) ?></p>
-            <p><a class="underline hover:text-gray-700" href="/admin/setting_home.php"><?= e(__('setup_classic_home')) ?></a></p>
-        <?php endif; ?>
-        <?php if ($homeMode !== 'theme'): ?>
-        <details class="<?= $__legacyHome ? '' : 'mt-4 ' ?>border rounded p-4">
-            <summary class="cursor-pointer py-2 font-medium"><?= e(__('setup_home_switch')) ?></summary>
-            <form method="post" class="space-y-3 mt-3">
-                <?= csrfField() ?>
-                <input type="hidden" name="action" value="theme_home">
-                <input type="hidden" name="fingerprint" value="<?= e(SiteSetup::homeFingerprint()) ?>">
-                <p class="text-gray-700"><?= e(__('setup_home_switch_hint')) ?></p>
-                <label class="flex items-start gap-2 py-2"><input type="checkbox" name="confirm" value="1" required>
-                    <span><?= e(__('setup_home_confirm')) ?></span></label>
-                <button class="border rounded px-4 py-3" type="submit"><?= e(__('setup_home_switch')) ?></button>
-            </form>
-        </details>
-        <?php endif; ?>
-        <?php if ($__legacyHome): ?>
-            </div>
-        </details>
-        <?php endif; ?>
+        <?php if (!$__legacyHome && $homeMode !== 'theme') $renderHomeSwitch('mt-4 '); ?>
         <?php if (isset($_SESSION['setup_home_undo'])): ?>
         <form method="post" class="mt-4">
             <?= csrfField() ?><input type="hidden" name="action" value="undo_home">
@@ -138,5 +128,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </ul>
     </section>
     <?php if (!$templateFirst) $renderTemplateStep(3); ?>
+    <?php if ($__legacyHome): ?>
+    <?php // 经典首页设置与「改用主题首页」只留给从老站迁移的人：放在整页最底下、小号浅色，
+          // 新手走完三步也不会注意到；需要的人展开后内容与原先一致 ?>
+    <details class="px-1 text-xs text-gray-400" data-testid="setup-legacy-home">
+        <summary class="cursor-pointer w-fit hover:text-gray-600"><?= e(__('setup_legacy_home')) ?></summary>
+        <div class="mt-3 space-y-3 border-l-2 border-gray-200 pl-4 text-sm text-gray-500">
+            <p><?= e(__('setup_legacy_home_hint')) ?></p>
+            <p><a class="underline hover:text-gray-700" href="/admin/setting_home.php"><?= e(__('setup_classic_home')) ?></a></p>
+            <?php if ($homeMode !== 'theme') $renderHomeSwitch(''); ?>
+        </div>
+    </details>
+    <?php endif; ?>
 </div>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
