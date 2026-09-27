@@ -61,7 +61,7 @@ $bg = getBlockBg($block ?? [], 'bg-gray-50');
         <script>
         document.addEventListener('DOMContentLoaded', function () {
             if (typeof Swiper === 'undefined') return;
-            new Swiper('.testimonials-swiper', { slidesPerView: 1, spaceBetween: 24, loop: true, autoplay: { delay: 4500, disableOnInteraction: false }, pagination: { el: '.testimonials-swiper .swiper-pagination', clickable: true }, navigation: { nextEl: '.testimonials-swiper .swiper-button-next', prevEl: '.testimonials-swiper .swiper-button-prev' }, breakpoints: { 768: { slidesPerView: 2 }, 1024: { slidesPerView: 3 } } });
+            new Swiper('.testimonials-swiper', { slidesPerView: 1, spaceBetween: 24, loop: true, autoplay: false, pagination: { el: '.testimonials-swiper .swiper-pagination', clickable: true }, navigation: { nextEl: '.testimonials-swiper .swiper-button-next', prevEl: '.testimonials-swiper .swiper-button-prev' }, breakpoints: { 768: { slidesPerView: 2 }, 1024: { slidesPerView: 3 } } });
         });
         </script>
         <?php endif; ?>

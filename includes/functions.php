@@ -3382,7 +3382,7 @@ function jsonFieldsToTemplate(array $fields, ?string $submitLabel = null): strin
             continue;
         }
         $key = $field['key'] ?? '';
-        $label = $field['label'] ?? $key;
+        $label = e((string) ($field['label'] ?? $key));
         $type = $field['type'] ?? 'text';
         $required = !empty($field['required']);
         $placeholder = $field['placeholder'] ?? '';
@@ -3421,8 +3421,9 @@ function jsonFieldsToTemplate(array $fields, ?string $submitLabel = null): strin
                 $inGrid = false;
             }
             $lines[] = '<div class="mt-4">';
-            $lines[] = '    <label>' . $label . $reqMark . '</label>';
+            $lines[] = '    <label class="block">' . $label . $reqMark;
             $lines[] = '    [textarea' . $reqStar . ' ' . $key . $phPart . ']';
+            $lines[] = '    </label>';
             $lines[] = '</div>';
             continue;
         }
@@ -3439,17 +3440,22 @@ function jsonFieldsToTemplate(array $fields, ?string $submitLabel = null): strin
             foreach ($options as $opt) {
                 $optParts .= ' ' . $quoted($opt);
             }
-            $lines[] = '<div>';
-            $lines[] = '    <label>' . $label . $reqMark . '</label>';
+            $isChoiceGroup = in_array($type, ['radio', 'checkbox'], true);
+            $lines[] = $isChoiceGroup ? '<fieldset>' : '<div>';
+            $lines[] = $isChoiceGroup
+                ? '    <legend>' . $label . $reqMark . '</legend>'
+                : '    <label class="block">' . $label . $reqMark;
             $placeholderPart = $type === 'select' ? ' ' . $quoted((string) $placeholder) : '';
             $lines[] = '    [' . $type . $reqStar . ' ' . $key . $placeholderPart . $optParts . ']';
-            $lines[] = '</div>';
+            if (!$isChoiceGroup) $lines[] = '    </label>';
+            $lines[] = $isChoiceGroup ? '</fieldset>' : '</div>';
             continue;
         }
 
         $lines[] = '<div>';
-        $lines[] = '    <label>' . $label . $reqMark . '</label>';
+        $lines[] = '    <label class="block">' . $label . $reqMark;
         $lines[] = '    [' . $type . $reqStar . ' ' . $key . $phPart . $attrs . ']';
+        $lines[] = '    </label>';
         $lines[] = '</div>';
     }
 

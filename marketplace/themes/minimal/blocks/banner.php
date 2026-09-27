@@ -9,7 +9,7 @@ HomeBannerItemElement::registerRuntimeAssets();
     <div class="swiper banner-swiper"<?php echo HomeBloxBlockSchema::bannerRuntimeAttributes($block ?? []); ?>>
         <div class="swiper-wrapper">
             <?php if (!empty($banners)): ?>
-                <?php foreach ($banners as $banner): ?>
+                <?php $bannerHeadingIndex = 0; foreach ($banners as $banner): ?>
                 <div class="swiper-slide"<?php echo HomeBannerItemElement::motionAttributes($banner); ?><?php echo !empty($banner['_blox_path']) ? ' data-yk-el="' . e($banner['_blox_path']) . '" data-yk-el-type="home-banner-item"' : ''; ?>>
                     <?php if (!empty($banner['image']) || (($banner['media_type'] ?? '') === 'video' && !empty($banner['video']))): ?>
                         <?php echo HomeBannerItemElement::responsiveLinkedMediaHtml($banner); ?>
@@ -21,7 +21,11 @@ HomeBannerItemElement::registerRuntimeAssets();
                         <div class="w-full max-w-7xl mx-auto px-6 lg:px-10" data-blox-banner-shell>
                             <div class="max-w-2xl text-left" data-blox-banner-box>
                                 <?php if (!empty($banner['title'])): ?>
+                                <?php if ($bannerHeadingIndex++ === 0): ?>
                                 <h1 class="text-3xl md:text-5xl font-light text-gray-900 leading-tight mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo e($banner['title']); ?></h1>
+                                <?php else: ?>
+                                <h2 class="text-3xl md:text-5xl font-light text-gray-900 leading-tight mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo e($banner['title']); ?></h2>
+                                <?php endif; ?>
                                 <?php endif; ?>
                                 <?php if (!empty($banner['subtitle'])): ?>
                                 <p class="text-base md:text-xl text-gray-700 leading-relaxed max-w-2xl" data-blox-layer style="--blox-layer-order:1"><?php echo e($banner['subtitle']); ?></p>
@@ -43,8 +47,14 @@ HomeBannerItemElement::registerRuntimeAssets();
                 </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <div class="swiper-slide">
+                <div class="swiper-slide relative">
                     <div class="w-full h-full bg-gray-100"></div>
+                    <div class="absolute inset-0 flex items-center bg-white/70">
+                        <div class="w-full max-w-7xl mx-auto px-6 lg:px-10">
+                            <h1 class="text-3xl md:text-5xl font-light text-gray-900 leading-tight mb-4"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h1>
+                            <a href="<?php echo e(BasePath::url('/contact.html')); ?>" class="inline-flex items-center border border-gray-900 bg-gray-900 text-white px-6 py-3 text-sm font-medium"><?php echo e(__('nav_contact')); ?></a>
+                        </div>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>

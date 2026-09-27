@@ -40,6 +40,7 @@ if ($heroBgColor !== '') {
     $heroStyles[] = 'background-color: ' . $heroBgColor;
 }
 $heroLegacyGradient = $heroBg === '' && $heroBgColor === '';
+$ykPageHeroRenderedHeading = true;
 if ($heroLegacyGradient) {
     $heroSectionClasses[] = 'bg-gradient-to-r';
     $heroSectionClasses[] = 'from-gray-900';
