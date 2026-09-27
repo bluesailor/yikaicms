@@ -80,11 +80,18 @@ if (!empty($_SESSION['2fa_pending']) && !$awaiting2fa) {
     unset($_SESSION['2fa_pending']); // 过期清理
 }
 
+// 登录页带着本会话的 CSRF 令牌，不许被浏览器或 CDN 缓存（缓存的旧页面提交必然校验失败）
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
+header('Pragma: no-cache');
+
 // 处理登录
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verifyCsrf();
-
-    if (post('action') === 'totp') {
+    if (!csrfTokenValid()) {
+        // 不再吐一行 JSON：留在登录页、换新令牌、说清原因。仍然不做任何登录处理。
+        // 会话里连令牌都没有 = 会话没带回来（登录页放太久被回收、Cookie 被拦、服务器存不下会话）；
+        // 有令牌但对不上 = 用的是旧页面（多开标签页、后退回来的缓存页）
+        $error = __(empty($_SESSION['csrf_token']) ? 'login_session_lost' : 'login_page_expired');
+    } elseif (post('action') === 'totp') {
         // 第二步：验证器验证码
         $result = doTotpLogin(post('totp_code'));
         if ($result['success']) {

@@ -8438,4 +8438,6 @@ voltage|Voltage|220V',
     'setup_template_browse' => 'Browse all templates →',
     'setup_template_browse_all' => 'Browse all :count templates →',
     'setup_content_progress' => ':done of :total done',
+    'login_session_lost' => 'The login page expired or the session was not kept. Please sign in again. If this keeps happening, the browser may be blocking cookies or the server cannot write session files.',
+    'login_page_expired' => 'This page has expired. Please sign in again.',
 ];
