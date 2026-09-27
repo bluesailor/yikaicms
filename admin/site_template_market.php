@@ -149,9 +149,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php foreach ($items as $item): $name = (string) ($item['name' . $suffix] ?: $item['name']); $description = (string) ($item['description' . $suffix] ?: $item['description']); $categoryLabel = (string) ($categories[$item['category']] ?? ''); ?>
         <article class="bg-white border rounded-lg overflow-hidden flex flex-col<?= $item['blocked_reason'] !== '' ? ' opacity-75' : '' ?>" data-testid="st-market-card" data-available="<?= $item['blocked_reason'] === '' ? '1' : '0' ?>">
             <?php // 封面加载失败（404、被拦）时换成占位，而不是留一块破图 ?>
-            <div class="relative aspect-video bg-gray-100 overflow-hidden">
+            <?php // 4:3 比 16:9 高，能多看到首屏以下的版面；悬停时遮罩 + 正中「查看演示」 ?>
+            <div class="group relative aspect-[4/3] bg-gray-100 overflow-hidden">
                 <?php if ($item['screenshot'] !== ''): ?><img src="<?= e($item['screenshot']) ?>" alt="<?= e($name) ?>" loading="lazy" referrerpolicy="no-referrer" class="w-full h-full object-cover object-top" data-market-cover><?php endif; ?>
                 <div class="absolute inset-0 items-center justify-center flex-col gap-2 text-gray-500 <?= $item['screenshot'] !== '' ? 'hidden' : 'flex' ?>" data-market-cover-fallback><i class="ti ti-photo text-2xl" aria-hidden="true"></i><span class="text-sm"><?= e(__('st_market_no_cover')) ?></span></div>
+                <?php if ($item['demo_url'] !== ''): ?>
+                <?php // 鼠标专用的大热区：键盘和触屏用户走卡片下方的「查看演示」按钮，所以这里不进 Tab 顺序、不重复朗读 ?>
+                <a href="<?= e($item['demo_url']) ?>" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true" data-testid="st-market-cover-demo"
+                   class="absolute inset-0 flex items-center justify-center bg-gray-900/55 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-gray-900 shadow-lg"><i class="ti ti-external-link" aria-hidden="true"></i><?= e(__('st_market_demo')) ?></span>
+                </a>
+                <?php endif; ?>
             </div>
             <div class="p-5 flex flex-col flex-1 gap-3">
                 <div class="flex items-start justify-between gap-3">
