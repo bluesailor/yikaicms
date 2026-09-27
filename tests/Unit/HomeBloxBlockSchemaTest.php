@@ -812,6 +812,21 @@ PHP);
         $this->assertStringContainsString('data-yk-home="banner"', $editorHtml);
         $this->assertStringContainsString(__('blox_home_empty_hidden_preview'), $editorHtml);
     }
+
+    public function testImportedBlockWithoutEmptyStateStillHasAnEditorPlaceholder(): void
+    {
+        // Blocks imported from the classic homepage never stored empty_state. An enabled
+        // block with nothing to show (e.g. partners without links) must still be visible
+        // and clickable in the canvas, while the live homepage keeps hiding it.
+        $element = ['data' => ['block_type' => 'partners', 'enabled' => true]];
+        $frontend = HomeBloxRenderContext::fromHomePageData([['type' => 'partners', 'enabled' => true]], [], [], [], null, [], false);
+        $editor = HomeBloxRenderContext::fromHomePageData([['type' => 'partners', 'enabled' => true]], [], [], [], null, [], true);
+
+        $this->assertSame('', $frontend->renderLegacyBlock($element));
+        $editorHtml = $editor->renderLegacyBlock($element);
+        $this->assertStringContainsString('data-yk-home="partners"', $editorHtml);
+        $this->assertStringContainsString(__('blox_home_empty_hidden_preview'), $editorHtml);
+    }
     public function testResponsiveGridClassesSupportAllConfiguredColumnCounts(): void
     {
         $this->assertSame('grid-cols-2 md:grid-cols-3', AbstractElement::gridClasses(0, 3));

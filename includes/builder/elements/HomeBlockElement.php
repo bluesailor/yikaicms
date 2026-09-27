@@ -135,8 +135,11 @@ final class HomeBlockElement extends AbstractElement
             . '</section>';
     }
 
-    /** 后台界面语言的文案；语言包按请求缓存一次，一个画布可能有多个停用区块。 */
-    private static function adminText(string $key): string
+    /**
+     * 编辑器提示用后台界面语言：画布渲染期间 __() 被切到页面内容语言。
+     * 语言包按请求缓存一次，一个画布可能有多个占位。
+     */
+    public static function adminText(string $key): string
     {
         static $strings = null;
         if ($strings === null) {

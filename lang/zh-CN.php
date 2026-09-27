@@ -2840,7 +2840,7 @@ return [
     'blox_heading_ph' => '输入标题...',
     'blox_home_block_hint' => '首页区块，内容按首页设置显示',
     'blox_home_disabled' => '已停用',
-    'blox_home_disabled_hint' => '前台不显示，在区块设置中开启即可显示',
+    'blox_home_disabled_hint' => '前台不显示，在区块设置中勾选「保留在首页布局中」即可显示',
     'blox_click_action' => '点击',
     'blox_click_none' => '无动作',
     'blox_click_lightbox' => '弹出大图',
