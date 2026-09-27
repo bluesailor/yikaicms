@@ -557,6 +557,13 @@ function upgrade_prepare(
         $manifest = json_decode((string) $manifestRaw, true);
         if (!is_array($manifest)) { $zip->close(); return ['code' => 1, 'msg' => '增量包 manifest 解析失败，已中止，未改动任何文件']; }
         $mode = 'delta'; $prefix = 'payload/';
+        // 本地构建与同号正式版文件不同，增量包的「只补变化文件」前提不成立，只能走全量包。
+        require_once __DIR__ . '/ProductIdentity.php';
+        $localLabel = YikaiProductIdentity::localBuildLabel();
+        if ($localLabel !== '') {
+            $zip->close();
+            return ['code' => 1, 'msg' => '本站是本地构建（' . $localLabel . '），不能用增量包升级，请改用完整安装包，未改动任何文件'];
+        }
         $deleted = (array) ($manifest['deleted'] ?? []);
         $from = (string) ($manifest['from'] ?? '');
         $to   = (string) ($manifest['to'] ?? '');

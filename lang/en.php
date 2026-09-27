@@ -928,6 +928,8 @@ return [
     'dashboard_pending_forms' => 'Pending Inquiries',
     'dashboard_media_files' => 'Media File',
     'dashboard_version' => 'Current version',
+    'local_build_badge' => 'Local build :label',
+    'local_build_hint' => 'Local test build from the development branch; its files may be newer than the official release with the same number. It never upgrades automatically, and online upgrades use the full package only.',
     'dashboard_update_check' => 'Checking for updates…',
     'dashboard_update_uptodate' => 'Up to date',
     'dashboard_update_checking' => 'Checking…',

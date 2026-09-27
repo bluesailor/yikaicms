@@ -987,6 +987,8 @@ return [
     'dashboard_pending_forms' => '待处理表单',
     'dashboard_media_files' => '媒体文件',
     'dashboard_version' => '当前版本',
+    'local_build_badge' => '本地构建 :label',
+    'local_build_hint' => '本地测试包：取自开发主线，文件可能比同号正式版更新。不会自动升级，在线升级只用完整安装包。',
     'dashboard_update_check' => '检查更新中…',
     'dashboard_update_uptodate' => '已是最新版本',
     'dashboard_update_checking' => '检测中…',

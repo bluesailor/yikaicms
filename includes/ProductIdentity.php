@@ -207,6 +207,21 @@ final class YikaiProductIdentity
         return hash('sha256', implode("\n", $lines));
     }
 
+    /**
+     * build.sh --local=local1 产出的本地测试包：CMS_VERSION 与正式版相同，只有构建标识
+     * 带标签（2.0.0-local1-20260928…）。返回 'local1'；正式包与开发工作树返回 ''。
+     * 本地包取自开发主线，文件与同号正式版不同，也可能比下一个正式版还新。
+     */
+    public static function localBuildLabel(?string $root = null): string
+    {
+        $root ??= defined('ROOT_PATH') ? ROOT_PATH : dirname(__DIR__);
+        $buildId = self::legacyBuildId(rtrim($root, '/\\'));
+
+        return preg_match('/^\d+\.\d+\.\d+(?:\.\d+)?-(local\d{1,4})-\d{14}$/D', $buildId, $match) === 1
+            ? $match[1]
+            : '';
+    }
+
     private static function legacyBuildId(string $root): string
     {
         $file = $root . '/config/build.php';

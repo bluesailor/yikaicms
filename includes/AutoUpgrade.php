@@ -206,6 +206,8 @@ final class AutoUpgrade
      *   1) 服务器下发了合法签名指令（控制台批量下发；不受维护窗口限制——是人点的）
      *   2) 安全更新，且本站开了自动升级
      *   3) 任意正式版，且本站范围设为 stable
+     * 本地构建（build.sh --local）一律不自动升：它取自开发主线，可能比下一个正式版还新，
+     * 自动换成正式版会把已跑过迁移的新代码退回去。指令也不例外，只能站长手动升级。
      *
      * @param array<string, mixed> $data check 返回的数据段
      * @param string|null $currentVersion 测试可指定基线；运行时始终以 CMS_VERSION 为准
@@ -217,6 +219,10 @@ final class AutoUpgrade
         $hasUpdate = !empty($data['has_update']);
         if (!$hasUpdate && empty($data['major_available'])) {
             return [false, 'no update'];
+        }
+        require_once __DIR__ . '/ProductIdentity.php';
+        if (YikaiProductIdentity::localBuildLabel() !== '') {
+            return [false, 'local build: upgrade manually'];
         }
         $to = $hasUpdate
             ? (string) ($data['latest_version'] ?? '')
