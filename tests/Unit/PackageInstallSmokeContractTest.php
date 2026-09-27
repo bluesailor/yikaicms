@@ -55,6 +55,15 @@ final class PackageInstallSmokeContractTest extends TestCase
         self::assertStringContainsString('BUILD_ID="${VERSION}${LOCAL_LABEL:+-$LOCAL_LABEL}-', $script);
         $option = substr($script, (int) strpos($script, '--local=*)'), 400);
         self::assertStringContainsString('BUILD_DELTAS=0', $option);
+
+        // The --no-delta branch deletes delta-*-to-<version>; a same-version local
+        // build must be routed around it or it wipes the release's deltas.
+        $localBranch = strpos($script, 'if [ -n "$LOCAL_LABEL" ]; then' . "\n" . '    # 本地包');
+        $noDeltaBranch = strpos($script, 'elif [ "$BUILD_DELTAS" = "0" ]; then');
+        self::assertIsInt($localBranch);
+        self::assertIsInt($noDeltaBranch);
+        self::assertLessThan($noDeltaBranch, $localBranch);
+        self::assertStringNotContainsString('rm -f', substr($script, $localBranch, $noDeltaBranch - $localBranch));
     }
 
     public function testPackageServerHostCanBePinnedAndReadinessIsBounded(): void
