@@ -12,6 +12,7 @@ storage/cache/*
 storage/temp/
 storage/login_throttle/*
 storage/cron/*
+storage/sessions/
 !storage/logs/.gitkeep
 !storage/cache/.gitkeep
 !storage/login_throttle/.gitkeep
