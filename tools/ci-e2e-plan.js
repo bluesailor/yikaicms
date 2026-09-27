@@ -6,6 +6,7 @@ const path = require('node:path');
 const { SHARD_KEYS, shardForSpec, shardMatrix } = require('../tests/e2e/shards');
 
 const ALL = new Set(SHARD_KEYS);
+const CORE = ['core-a', 'core-b'];
 
 function normalize(file) {
   return String(file || '').trim().replaceAll('\\', '/').replace(/^\.\//, '');
@@ -48,7 +49,7 @@ function shardsForPath(input, root = path.resolve(__dirname, '..')) {
     return new Set(['locale']);
   }
   if (/^(?:assets\/js\/blox-style-sources\.js|admin\/blox_editor\/partials\/style-source\.php)$/i.test(file)) {
-    return new Set(['core', 'design']);
+    return new Set([...CORE, 'design']);
   }
   if (/^(?:admin\/(?:blox_templates|blox_template_api|blox_design|site_design|theme)\.php|includes\/(?:Theme|builder\/Blox(?:Area|Design|Header|Template|ThemeHeader))|marketplace\/themes\/|themes\/|templates\/blox\/areas\/)/i.test(file)) {
     return new Set(['design']);
@@ -57,11 +58,11 @@ function shardsForPath(input, root = path.resolve(__dirname, '..')) {
     return new Set(ALL);
   }
   if (/^(?:admin\/blox_editor|admin\/blox_(?:home|page|preview)_api|includes\/builder\/|assets\/js\/blox-|admin\/|controllers\/|includes\/)/i.test(file)) {
-    return new Set(['core']);
+    return new Set(CORE);
   }
 
   if (/^(?:tests\/Unit\/|tests\/Models\/|tests\/Controllers\/|tests\/js\/|tools\/)/i.test(file)) return new Set();
-  if (/\.(?:php|js|json)$/i.test(file)) return new Set(['core']);
+  if (/\.(?:php|js|json)$/i.test(file)) return new Set(CORE);
   return new Set();
 }
 
