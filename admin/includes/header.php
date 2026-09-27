@@ -117,13 +117,14 @@ $adminTutorialUrl = match ((string) config('admin_lang', getLang())) {
 $_sbCollapsed = (($_COOKIE['sidebarCollapsed'] ?? '0') === '1');
 // 页面可声明 $sidebarCompact = true：每次进入都先收成图标栏（给内容更宽的页面，如整站模板市场）；
 // 用户仍可点开，点开只影响本次浏览，不改其它页面的记忆状态。
-if (!empty($sidebarCompact)) $_sbCollapsed = true;
+$_sbCompactPage = ($sidebarCompact ?? false) === true;
+if ($_sbCompactPage) $_sbCollapsed = true;
 ?>
 <body class="bg-gray-100" x-data="{
         mobileMenu: false,
         _sbT: 0,
         collapsed: <?= $_sbCollapsed ? 'true' : 'false' ?>,
-        compactPage: <?= !empty($sidebarCompact) ? 'true' : 'false' ?>,
+        compactPage: <?= $_sbCompactPage ? 'true' : 'false' ?>,
         toggleCollapsed() {
             this._sbT = Date.now();
             this.collapsed = !this.collapsed;
