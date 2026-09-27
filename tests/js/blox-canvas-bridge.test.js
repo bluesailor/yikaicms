@@ -312,6 +312,18 @@ test("画布「编辑页头/页尾」入口：白名单 URL 通过并原样重�
     ]);
 });
 
+test("画布区域编辑入口带上来源：只认 theme，其余一律按 blox", function () {
+    const current = fixture({
+        onEditArea: function (payload) { current.calls.push([payload.area, payload.source]); },
+    });
+    for (const source of ["theme", "blox", "javascript:alert(1)", undefined]) {
+        assert.equal(current.bridge.handleMessage({ source: current.frameWindow, data: { ykEditArea: {
+            area: "footer", url: "/admin/site_design.php#site-design-area-footer", source,
+        } } }), true);
+    }
+    assert.deepEqual(current.calls, [["footer", "theme"], ["footer", "blox"], ["footer", "blox"], ["footer", "blox"]]);
+});
+
 test("画布区域编辑入口拒绝白名单外的 URL", function () {
     const current = fixture({
         onEditArea: function (payload) { current.calls.push(["editArea", payload.url]); },

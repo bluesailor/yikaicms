@@ -283,6 +283,16 @@ final class HomeBloxRenderContext
             'ykHomeEdit' => $ykHomeEdit,
             'ykHomePath' => $path,
             'ykHomeFieldAttr' => $ykHomeFieldAttr,
+            // 主题文案（content-fields.json 里 area: home:<类型> 的字段）：区块覆盖 tc_<key>
+            // → 「主题文案」站点值 → 声明默认值 → 模板兜底。模板输出时照常 e()；配合
+            // $ykHomeFieldAttr('tc_<key>') 即可在画布里直接编辑。
+            'ykThemeField' => static function (string $key, string $fallback = '') use ($block): string {
+                $override = trim((string) ($block['tc_' . $key] ?? ''));
+                if ($override !== '') {
+                    return $override;
+                }
+                return function_exists('themeContent') ? themeContent($key, $fallback) : $fallback;
+            },
             'currentChannel' => $currentChannel,
         ];
 

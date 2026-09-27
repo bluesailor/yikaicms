@@ -54,9 +54,11 @@ ErrorHandler::install();
 function themeContent(string $key, string $fallback = ''): string
 {
     try {
-        $theme = currentTheme();
-        $values = ThemeContent::values($theme, siteLang(), ThemeContent::schema($theme));
-        return $values[$key] ?? $fallback;
+        $fields = ThemeContent::currentFields();   // 按请求缓存，模板多次调用不重复解析声明
+        if (!isset($fields[$key])) {
+            return $fallback;
+        }
+        return ThemeContent::values(currentTheme(), siteLang(), [$key => $fields[$key]])[$key] ?? $fallback;
     } catch (Throwable $error) {
         return $fallback;
     }

@@ -166,8 +166,10 @@
     function areaEditPayload(value) {
         if (!isObject(value) || (value.area !== "header" && value.area !== "footer")
             || typeof value.url !== "string") return null;
+        // source 只取两个枚举值：theme = 主题默认页头/页尾（编辑器可先打开主题内容面板）
+        var source = value.source === "theme" ? "theme" : "blox";
         var fallback = "/admin/site_design.php#site-design-area-" + value.area;
-        if (value.url === fallback) return { area: value.area, url: (global.YK_BASE || "") + fallback };
+        if (value.url === fallback) return { area: value.area, url: (global.YK_BASE || "") + fallback, source: source };
         // 白名单重建：参数顺序与 BloxAreaEditorTarget::editorUrl 一致
         // （template → current_header → back → open）；改那边拼接必须同步这里，
         // 否则校验拒掉 URL、画布入口点击静默无反应（2026-08-22 back=home 踩过）。
@@ -177,7 +179,8 @@
         return {
             area: value.area,
             url: (global.YK_BASE || "") + "/admin/blox_editor.php?template=" + parseInt(template[1], 10)
-                + (template[2] || "") + (template[3] || "") + (template[4] || "")
+                + (template[2] || "") + (template[3] || "") + (template[4] || ""),
+            source: source
         };
     }
 

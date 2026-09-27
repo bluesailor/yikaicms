@@ -23,13 +23,36 @@ verifyCsrf();
 require_once ROOT_PATH . '/includes/builder/SiteCopyrightSettings.php';
 
 $action = (string) post('action');
-if ($action !== 'save_copyright') {
+if (!in_array($action, ['save_copyright', 'save_theme_content'], true)) {
     error(__('blox_bad_request'));
 }
 
 $language = trim((string) post('lang'));
 if (!isset(availableLanguages()[$language])) {
     error(__('blox_bad_request'));
+}
+
+if ($action === 'save_theme_content') {
+    // 主题在 content-fields.json 里声明给页头/页尾的文案：只改提交的这几项（主题内容页的其他字段不动），
+    // 与主题内容页同一套校验、锁与防覆盖指纹。
+    $theme = currentTheme();
+    $input = $_POST['fields'] ?? [];
+    try {
+        if (!is_array($input)) {
+            throw new RuntimeException('tc_value');
+        }
+        $state = ThemeContent::editorState($theme, $language, getLang());
+        $allowed = array_column($state['fields'], 'key');
+        if ($allowed === [] || array_diff(array_keys($input), $allowed) !== []) {
+            throw new RuntimeException('tc_schema');
+        }
+        ThemeContent::save($theme, $language, $input, (string) post('fingerprint'), true);
+    } catch (Throwable $error) {
+        $code = $error->getMessage();
+        error(__(preg_match('/^tc_[a-z_]+$/D', $code) === 1 ? $code : 'tc_schema'));
+    }
+    adminLog('setting', 'update', 'update theme content from Blox (' . $theme . ', ' . $language . '): ' . implode(',', array_keys($input)));
+    success(['state' => ThemeContent::editorState($theme, $language, getLang())], __('tc_saved'));
 }
 
 $read = static fn (string $key): string => (string) config($key, '');

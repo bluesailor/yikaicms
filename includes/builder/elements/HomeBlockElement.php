@@ -54,7 +54,8 @@ final class HomeBlockElement extends AbstractElement
 
     public function controls(): array
     {
-        $controls = HomeBloxBlockSchema::controls();
+        // 主题声明的区块文案（tc_*）也是正式控件：设置面板可见，保存管线按类型清洗。
+        $controls = array_merge(HomeBloxBlockSchema::controls(), HomeBloxBlockSchema::themeFieldControls());
         $surfaceTypes = [];
         foreach (function_exists('getThemes') ? getThemes() : [] as $theme) {
             if (($theme['slug'] ?? '') === currentTheme()) {
