@@ -105,6 +105,22 @@ final class NavCurrentTest extends TestCase
         $this->assertSame('true', NavCurrent::state($product, '/product/pumps/'));
     }
 
+    /** 动态 URL 模式：父链接的查询串是子链接的子集，子项是当前页时父项只能是所在区域 */
+    public function testQuerySubsetParentYieldsToChildPage(): void
+    {
+        $product = ['id' => 5, '_url' => '/index.php?yk_route=product_list', 'children' => [
+            ['id' => 0, '_url' => '/index.php?yk_route=product_list&cat=gift'],
+            ['id' => 0, '_url' => '/index.php?yk_route=product_list&cat=folding'],
+        ]];
+        $request = '/index.php?yk_route=product_list&cat=gift';
+        NavCurrent::capture(5);
+        $this->assertSame('true', NavCurrent::state($product, $request));
+        $this->assertSame('page', NavCurrent::state($product['children'][0], $request));
+        $this->assertSame('', NavCurrent::state($product['children'][1], $request));
+        // 落在父链接本身时仍是当前页
+        $this->assertSame('page', NavCurrent::state($product, '/index.php?yk_route=product_list'));
+    }
+
     public function testGlobalsFallbackWithoutCapture(): void
     {
         $GLOBALS['currentChannelId'] = 4;
