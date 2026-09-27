@@ -43,6 +43,20 @@ final class PackageInstallSmokeContractTest extends TestCase
         self::assertStringContainsString('deltas-v${VERSION}.json', $script);
     }
 
+    public function testLocalBuildKeepsTheVersionAndNeverShadowsReleaseArtifacts(): void
+    {
+        $script = file_get_contents(dirname(__DIR__, 2) . '/build.sh');
+
+        self::assertIsString($script);
+        // CMS_VERSION stays three-part so template compatibility still works;
+        // the label only reaches the package name and the build stamp.
+        self::assertStringContainsString('^local[0-9]{1,4}$', $script);
+        self::assertStringContainsString('PACKAGE_NAME="yikaicms-v${VERSION}-${LOCAL_LABEL}"', $script);
+        self::assertStringContainsString('BUILD_ID="${VERSION}${LOCAL_LABEL:+-$LOCAL_LABEL}-', $script);
+        $option = substr($script, (int) strpos($script, '--local=*)'), 400);
+        self::assertStringContainsString('BUILD_DELTAS=0', $option);
+    }
+
     public function testPackageServerHostCanBePinnedAndReadinessIsBounded(): void
     {
         $script = file_get_contents(dirname(__DIR__, 2) . '/tools/package-install-test.sh');
