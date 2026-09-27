@@ -41,3 +41,38 @@
         text-wrap: balance;
     }
 }
+
+/* Photo-led corporate hero: clear type and contrast across photographic slides. */
+.business-theme .banner-swiper .hero-overlay {
+    background: linear-gradient(180deg, rgba(5, 19, 33, .23), rgba(5, 19, 33, .46));
+}
+.business-theme .banner-swiper [data-blox-banner-box] h1,
+.business-theme .banner-swiper [data-blox-banner-box] h2 {
+    max-width: 980px;
+    margin-inline: auto;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: .015em;
+    text-wrap: balance;
+}
+.business-theme .banner-swiper [data-blox-banner-box] p {
+    margin-inline: auto;
+    line-height: 1.7;
+    text-wrap: pretty;
+}
+@media (max-width: 767px) {
+    .business-theme .banner-swiper [data-blox-banner-content] { padding-bottom: 160px; }
+    .business-theme .banner-swiper [data-blox-banner-box] h1,
+    .business-theme .banner-swiper [data-blox-banner-box] h2 {
+        font-size: clamp(1.875rem, 8vw, 2.5rem);
+        line-height: 1.25;
+    }
+    .business-theme .banner-swiper [data-blox-banner-buttons] a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 18px;
+        font-size: 1rem;
+    }
+}
