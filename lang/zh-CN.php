@@ -8506,4 +8506,6 @@ voltage|电压|220V',
     'setup_template_browse' => '浏览全部模板 →',
     'setup_template_browse_all' => '浏览全部 :count 套模板 →',
     'setup_content_progress' => '已完成 :done / :total',
+    'login_session_lost' => '登录页已过期或会话没有保存下来，请重新登录。如果反复出现，多半是浏览器拦截了 Cookie，或服务器的会话目录不可写。',
+    'login_page_expired' => '页面已过期，请重新登录。',
 ];

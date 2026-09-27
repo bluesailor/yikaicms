@@ -12,6 +12,9 @@ if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
 
+require_once __DIR__ . '/SessionStorage.php';
+// config.php 的 session_start() 因默认会话目录不可写而失败时，改用 storage/sessions 再开（否则后台登录必报「非法请求」）
+SessionStorage::recover(ROOT_PATH);
 require_once __DIR__ . '/BasePath.php';     // 子目录部署：内联脚本里的站内地址在生成处补前缀
 // 挂载点：后台、插件接口、表单提交等入口不经 init.php，都在这里挂上（前台 init.php 已先挂，
 // 这里为空操作；根目录安装与命令行下也是空操作）
@@ -2425,13 +2428,22 @@ function csrfToken(): string
 }
 
 /**
+ * CSRF Token 是否有效（不中断请求；需要自己决定怎么提示的页面用它，如登录页）
+ */
+function csrfTokenValid(): bool
+{
+    // 支持从 POST 字段或 X-CSRF-TOKEN 请求头获取
+    $token = $_POST[CSRF_TOKEN_NAME] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+    return is_string($token) && $token !== '' && !empty($_SESSION['csrf_token'])
+        && hash_equals((string) $_SESSION['csrf_token'], $token);
+}
+
+/**
  * 验证CSRF Token
  */
 function verifyCsrf(): bool
 {
-    // 支持从 POST 字段或 X-CSRF-TOKEN 请求头获取
-    $token = $_POST[CSRF_TOKEN_NAME] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    if (empty($token) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
+    if (!csrfTokenValid()) {
         error(__('admin_illegal_request'), 403);
     }
     return true;
