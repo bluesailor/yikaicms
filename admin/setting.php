@@ -656,8 +656,7 @@ async function saveAdminLanguages() {
                         </div>
                         <div class="mt-2 ml-8">
                             <label for="footer-content-<?= $ci ?>" class="text-xs text-gray-400 block mb-1"><?php echo __('setting_col_content'); ?></label>
-                            <textarea id="footer-content-<?= $ci ?>" class="fcol-content w-full border rounded px-3 py-1.5 text-sm" rows="4" placeholder="<?php echo __('setting_footer_content_placeholder'); ?>"><?php echo e($col['content'] ?? ''); ?></textarea>
-                            <button type="button" class="fcol-source-toggle text-sm text-primary underline mt-2" hidden aria-pressed="false" data-source="<?= e(__('footer_editor_source')) ?>" data-visual="<?= e(__('footer_editor_visual')) ?>"><?= e(__('footer_editor_source')) ?></button>
+                            <textarea id="footer-content-<?= $ci ?>" class="fcol-content w-full border rounded px-3 py-1.5 text-sm" rows="4" data-source-label="<?= e(__('footer_editor_source')) ?>" data-media-label="<?= e(__('footer_editor_media')) ?>" placeholder="<?php echo __('setting_footer_content_placeholder'); ?>"><?php echo e($col['content'] ?? ''); ?></textarea>
                             <p class="fcol-menu-notice text-sm text-amber-700 mt-2" role="status" hidden><?= e(__('footer_editor_menu')) ?></p>
                         </div>
                     </div>
