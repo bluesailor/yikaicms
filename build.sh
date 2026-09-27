@@ -544,7 +544,10 @@ php tools/build-release-evidence.php "$VERIFY_ZIP_FILE" "$VERSION" "$SOURCE_COMM
 #   结构：delta-<from>-to-<VERSION>.zip = .delta-manifest.json + payload/ 镜像树
 #   安全：客户端只在「当前版本 == delta.from」时使用，否则回退全量包。
 # ============================================================
-if [ "$BUILD_DELTAS" = "0" ]; then
+if [ -n "$LOCAL_LABEL" ]; then
+    # 本地包与正式包同版本号：绝不能动正式构建留下的 delta-*-to-<版本> 与 deltas 元数据。
+    echo "[+] 本地测试包不生成增量包，正式增量包原样保留"
+elif [ "$BUILD_DELTAS" = "0" ]; then
     echo "[+] 已按 --no-delta 跳过增量升级包（仅保留完整安装包）"
     rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
           "$RELEASE_DIR"/delta-*-to-"$VERSION".sha256 \
