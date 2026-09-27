@@ -84,6 +84,11 @@ function renderBloxCanvasThemeArea(
         ));
     }
     if ($area === 'header') {
+        $GLOBALS['ykCanvasThemeStylesheets'] = bloxCanvasThemeStylesheets($rendered);
+        // 主题样式常挂在 body 类名下（如 body.havenform-theme footer{…}），画布 body 要同名。
+        $GLOBALS['ykCanvasThemeBodyClass'] = preg_match('/<body\b[^>]*\bclass\s*=\s*"([^"]*)"/i', $rendered, $bodyClass) === 1
+            ? trim((string) preg_replace('/\s+/', ' ', html_entity_decode($bodyClass[1], ENT_QUOTES | ENT_HTML5, 'UTF-8')))
+            : '';
         $bodyStart = stripos($rendered, '<body');
         $bodyEnd = $bodyStart === false ? false : strpos($rendered, '>', $bodyStart);
         $mainStart = $bodyEnd === false ? false : stripos($rendered, '<main', $bodyEnd);
@@ -96,6 +101,74 @@ function renderBloxCanvasThemeArea(
     return $footerStart !== false && $footerEnd !== false
         ? substr($rendered, $footerStart, $footerEnd + strlen('</footer>') - $footerStart)
         : '';
+}
+
+/**
+ * 主题在自己 header.php 的 <head> 里链接的站内样式表（如 havenform.css、minimal 的 style.css）。
+ * 画布只截取主题 body 区域，不补回这些链接，主题横幅/页尾等就会以无样式的裸文本出现。
+ * 只收站内相对路径（画布 CSP 的 style-src 只放行 'self'）。
+ *
+ * @return list<string> 规范化后的 <link> 标签
+ */
+function bloxCanvasThemeStylesheets(string $themeHeaderHtml): array
+{
+    $headEnd = stripos($themeHeaderHtml, '<body');
+    $head = $headEnd === false ? $themeHeaderHtml : substr($themeHeaderHtml, 0, $headEnd);
+    if (preg_match_all('/<link\b[^>]*>/i', $head, $matches) < 1) {
+        return [];
+    }
+    $links = [];
+    foreach ($matches[0] as $tag) {
+        if (preg_match('/\brel\s*=\s*["\']?stylesheet\b/i', $tag) !== 1
+            || preg_match('/\bhref\s*=\s*["\']([^"\']+)["\']/i', $tag, $href) !== 1) {
+            continue;
+        }
+        $url = html_entity_decode($href[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if (!str_starts_with($url, '/') || str_starts_with($url, '//')) {
+            continue;
+        }
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $links[$path] = '<link rel="stylesheet" href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">';
+    }
+    return array_values($links);
+}
+
+/** 画布 <body> 的 class：页面布局标记 + 主题页头声明的 body 类名（去重）。 */
+function bloxCanvasBodyClassAttr(): string
+{
+    $classes = isset($GLOBALS['ykPageLayout']) ? ['yk-site-body'] : [];
+    foreach (explode(' ', (string) ($GLOBALS['ykCanvasThemeBodyClass'] ?? '')) as $class) {
+        if ($class !== '' && preg_match('/^[A-Za-z0-9_:\/\[\]\.\-]+$/', $class) === 1) {
+            $classes[] = $class;
+        }
+    }
+    $classes = array_values(array_unique($classes));
+
+    return $classes === [] ? '' : ' class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '"';
+}
+
+/** 画布 <head> 里补上主题样式表；画布自己已固定加载的核心样式不重复。 */
+function bloxCanvasExtraThemeStylesheets(): string
+{
+    $core = [
+        '/assets/css/tailwind.css',
+        '/assets/css/style.css',
+        '/assets/tabler/tabler-icons.min.css',
+        '/assets/swiper/swiper-bundle.min.css',
+        '/themes/default/assets/css/theme.css',
+    ];
+    $html = '';
+    foreach ((array) ($GLOBALS['ykCanvasThemeStylesheets'] ?? []) as $tag) {
+        $tag = (string) $tag;
+        if (preg_match('/\bhref="([^"]+)"/', $tag, $href) !== 1) {
+            continue;
+        }
+        $path = (string) parse_url(html_entity_decode($href[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'), PHP_URL_PATH);
+        if (!in_array($path, $core, true)) {
+            $html .= $tag;
+        }
+    }
+    return $html;
 }
 
 /**
@@ -580,16 +653,18 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
             ? $renderPublishedArea('header', $areaContext, $contextScript) : '';
         $footerBlox = $footerEnabled && $themeRendersArea('footer')
             ? $renderPublishedArea('footer', $areaContext, $contextScript) : '';
+        // 即使页头由 Blox 接管，也要渲染一次主题页头：页面区块同样依赖主题 <head> 里的样式表。
+        $themeHeader = $renderThemeArea(
+            'header',
+            $contextScript,
+            $areaContext['channel_id'],
+            $areaContext['page_id'],
+            $contextTitle,
+            $contextSlug
+        );
         $headerBody = $wrapContextArea(
             'header',
-            $headerBlox !== '' ? $headerBlox : $renderThemeArea(
-                'header',
-                $contextScript,
-                $areaContext['channel_id'],
-                $areaContext['page_id'],
-                $contextTitle,
-                $contextSlug
-            ),
+            $headerBlox !== '' ? $headerBlox : $themeHeader,
             $headerBlox !== '' ? 'blox' : 'theme',
             BloxAreaEditorTarget::url('header', $areaContext, $isHomeLayout ? 'home' : '')
         );
@@ -636,6 +711,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
 .yk-ctx-divider span{flex:0 0 auto;color:#64748b;font:600 11px/1.4 system-ui,sans-serif;white-space:nowrap}
 .yk-canvas-region{position:relative}
 .yk-home-context-area{cursor:pointer;user-select:none;opacity:.86;border-top:1px dashed #cbd5e1;border-bottom:1px dashed #cbd5e1}
+.yk-home-context-area[data-yk-region="header"]{z-index:60}
 .yk-home-context-area>*:not(.yk-canvas-region-action){pointer-events:none}
 .yk-home-context-area:before,.yk-page-content-context:before{content:attr(data-yk-preview-label);position:absolute;z-index:64;top:8px;left:8px;max-width:calc(100% - 190px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 8px;border:1px solid #cbd5e1;border-radius:4px;background:rgba(248,250,252,.94);color:#64748b;font:600 10px/1.4 system-ui,sans-serif;letter-spacing:0;pointer-events:none}
 .yk-canvas-region-action{position:absolute;z-index:66;top:8px;right:8px;display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid rgba(255,255,255,.72);border-radius:4px;background:#1f2937;color:#fff!important;font:600 11px/1.4 system-ui,sans-serif;text-decoration:none!important;cursor:pointer;user-select:none;box-shadow:0 3px 10px rgba(15,23,42,.22)}
@@ -2410,6 +2486,7 @@ HTML;
             ? '<link rel="stylesheet" href="' . assetVer('/themes/default/assets/css/theme.css') . '">' : '')
         . '<link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">'
         . '<link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">'
+        . bloxCanvasExtraThemeStylesheets()
         . '<base target="_blank">'
         . BloxDesignSystem::styleTag()
         . BloxGlobalClasses::styleTag()
@@ -2417,7 +2494,7 @@ HTML;
         . (isset($GLOBALS['ykPageLayout']) ? '<style>' . ThemeSettings::css() . BloxPageLayout::css($GLOBALS['ykPageLayout']) . '</style>' : '')
         . $previewStyles
         . $headerOverlayPreview
-        . '<style>body{margin:0;background:#fff}</style></head><body' . (isset($GLOBALS['ykPageLayout']) ? ' class="yk-site-body"' : '') . '>'
+        . '<style>body{margin:0;background:#fff}</style></head><body' . bloxCanvasBodyClassAttr() . '>'
         . $body
         . '<script' . $nonceAttr . ' src="' . assetVer('/assets/swiper/swiper-bundle.min.js') . '"></script>'
         . $previewScripts

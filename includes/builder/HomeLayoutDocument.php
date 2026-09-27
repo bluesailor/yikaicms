@@ -344,7 +344,7 @@ public static function isActive(): bool
                     continue;
                 }
             }
-            if ($type === 'about') {
+            if ($type === 'about' && self::aboutTemplateShowsSiteContent()) {
                 $sections[] = HomeAboutContent::toSection(
                     self::legacyBlockData($type, !empty($block['enabled']), $block),
                     'home_s_' . $index,
@@ -375,6 +375,27 @@ public static function isActive(): bool
             ];
         }
         return $sections;
+    }
+
+    /**
+     * 经典首页的「关于」快照成标准 Blox 元素，前提是主题的 about 模板本来就在展示站点的
+     * 关于内容（about 栏目 / home_about_* 设置 / 区块覆盖值）——快照就是把这份内容搬过去。
+     * 主题自带静态 about 设计（如 havenform 的整段英文介绍）时不能快照：画布与发布后的前台
+     * 都会变成通用样式和默认文案。这类主题保留 home-block 引用，由主题模板照常渲染；
+     * 管理员仍可在编辑器里手动转换。
+     */
+    private static function aboutTemplateShowsSiteContent(): bool
+    {
+        if (!function_exists('theme_path') || !defined('INCLUDES_PATH')) {
+            return true;   // 无主题环境（CLI 工具、隔离测试）按核心 about 处理
+        }
+        $template = theme_path('blocks/about.php');
+        if (!is_file($template) || str_starts_with(str_replace('\\', '/', $template), str_replace('\\', '/', (string) INCLUDES_PATH))) {
+            return true;   // 核心 about 模板
+        }
+        $source = (string) file_get_contents($template);
+
+        return preg_match('/\$aboutChannel\b|home_about_|\$block\s*\[/', $source) === 1;
     }
 
     /**
