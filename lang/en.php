@@ -8429,4 +8429,5 @@ voltage|Voltage|220V',
     'st_market_clear_filter' => 'Clear filters',
     'login_language' => 'Language',
     'st_market_language' => 'Language',
+    'upgrade_auto_major_manual' => 'Major version :version is available. Automatic upgrade was skipped. Upgrade manually after backing up and reviewing site customizations.',
 ];

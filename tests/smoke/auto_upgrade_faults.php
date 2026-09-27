@@ -332,6 +332,97 @@ $r = AutoUpgrade::run(false);
 auOk(!str_contains($r, 'resume'), '损坏状态不被当作可续跑事务：' . $r);
 
 // ============================================================
+// 场景 12：大版本跳过只在自动升级有效时记录，且同目标不重复刷掉历史
+// ============================================================
+echo "\n[12] 大版本跳过与日志去重\n";
+auReset();
+class AutoUpgradeCheckStream
+{
+    public mixed $context = null;
+    private string $body = '';
+    private int $offset = 0;
+
+    public function stream_open(string $path, string $mode, int $options, ?string &$openedPath): bool
+    {
+        if (!str_starts_with($path, 'https://update.yikaicms.com/api/update/check.php?')) {
+            return false;
+        }
+        $this->body = (string) json_encode(['code' => 0, 'data' => $GLOBALS['auCheckResponse']], JSON_THROW_ON_ERROR);
+        $this->offset = 0;
+        return true;
+    }
+
+    public function stream_read(int $count): string
+    {
+        $chunk = substr($this->body, $this->offset, $count);
+        $this->offset += strlen($chunk);
+        return $chunk;
+    }
+
+    public function stream_eof(): bool
+    {
+        return $this->offset >= strlen($this->body);
+    }
+
+    public function stream_stat(): array
+    {
+        return ['size' => strlen($this->body)];
+    }
+}
+
+if (!stream_wrapper_unregister('https') || !stream_wrapper_register('https', AutoUpgradeCheckStream::class)) {
+    throw new RuntimeException('无法替换测试进程中的 HTTPS stream wrapper');
+}
+try {
+    $GLOBALS['auCheckResponse'] = ['has_update' => true, 'latest_version' => '3.0.0', 'level' => 'feature'];
+    $openWindow = date('H:i', time() - 600) . '-' . date('H:i', time() + 600);
+    $closedWindow = date('H:i', time() + 3600) . '-' . date('H:i', time() + 4200);
+    $priorOk = ['time' => date('Y-m-d H:i:s', time() - 3600), 'result' => 'ok',
+        'from' => '1.9.9', 'to' => '2.0.0', 'msg' => 'previous successful update'];
+    settingModel()->saveBatch([
+        'auto_upgrade_enabled' => '1', 'auto_upgrade_scope' => 'stable', 'auto_upgrade_window' => $openWindow,
+        'auto_upgrade_log' => (string) json_encode([$priorOk]),
+        'auto_upgrade_last_result' => 'ok', 'auto_upgrade_last_at' => '12345', 'auto_upgrade_last_to' => '2.0.0',
+    ]);
+    $first = AutoUpgrade::run(false);
+    $firstLog = AutoUpgrade::log();
+    $firstResult = [(string) config('auto_upgrade_last_result'), (string) config('auto_upgrade_last_at'),
+        (string) config('auto_upgrade_last_to')];
+    $second = AutoUpgrade::run(false);
+    $secondLog = AutoUpgrade::log();
+    $secondResult = [(string) config('auto_upgrade_last_result'), (string) config('auto_upgrade_last_at'),
+        (string) config('auto_upgrade_last_to')];
+    auOk(str_contains($first, 'major upgrade requires manual confirmation')
+        && str_contains($second, 'major upgrade requires manual confirmation'), '连续两次 run() 均给出大版本跳过原因');
+    auOk(count($firstLog) === 2 && ($firstLog[0]['result'] ?? '') === 'skipped'
+        && ($firstLog[0]['to'] ?? '') === '3.0.0' && ($firstLog[1] ?? null) === $priorOk,
+        '第一次跳过只新增一条，之前的成功记录仍在');
+    auOk($secondLog === $firstLog && $secondResult === $firstResult,
+        '第二次同目标跳过不追加日志，也不覆盖最近结果/时间/目标');
+
+    auReset();
+    settingModel()->saveBatch(['auto_upgrade_enabled' => '0', 'auto_upgrade_window' => $openWindow]);
+    $disabled = AutoUpgrade::run(false);
+    auOk(str_contains($disabled, 'auto upgrade disabled') && AutoUpgrade::log() === [],
+        '关闭自动升级时不记录大版本跳过');
+
+    auReset();
+    settingModel()->saveBatch(['auto_upgrade_enabled' => '1', 'auto_upgrade_window' => $closedWindow]);
+    $outside = AutoUpgrade::run(false);
+    auOk(str_contains($outside, 'outside maintenance window') && AutoUpgrade::log() === [],
+        '维护窗口外不记录大版本跳过');
+
+    auReset();
+    $GLOBALS['auCheckResponse'] = ['has_update' => false, 'major_available' => '3.0.0'];
+    settingModel()->saveBatch(['auto_upgrade_enabled' => '0', 'auto_upgrade_window' => $openWindow]);
+    $majorOnly = AutoUpgrade::run(false);
+    auOk(str_contains($majorOnly, 'auto upgrade disabled') && AutoUpgrade::log() === [],
+        '仅有 major_available 且自动升级关闭时不写日志');
+} finally {
+    stream_wrapper_restore('https');
+}
+
+// ============================================================
 // 收尾
 // ============================================================
 auReset();
