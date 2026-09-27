@@ -8427,4 +8427,5 @@ voltage|Voltage|220V',
     'st_market_summary' => ':total templates · :available ready to import',
     'st_market_filtered' => 'showing :count',
     'st_market_clear_filter' => 'Clear filters',
+    'login_language' => 'Language',
 ];
