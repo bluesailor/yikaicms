@@ -8579,4 +8579,6 @@ voltage|電圧|220V',
     'setup_template_browse' => 'すべてのテンプレートを見る →',
     'setup_template_browse_all' => '全 :count 件のテンプレートを見る →',
     'setup_content_progress' => ':total 件中 :done 件完了',
+    'login_session_lost' => 'ログイン画面の有効期限が切れたか、セッションが保存されませんでした。もう一度ログインしてください。繰り返す場合は、ブラウザーが Cookie をブロックしているか、サーバーがセッションを保存できない可能性があります。',
+    'login_page_expired' => 'ページの有効期限が切れました。もう一度ログインしてください。',
 ];
