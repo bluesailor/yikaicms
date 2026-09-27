@@ -101,7 +101,6 @@ final class ThemeContent
     public static function editorState(string $theme, string $language, string $adminLanguage): array
     {
         $fields = [];
-        $schema = [];
         try { $schema = self::schema($theme); } catch (Throwable $error) { $schema = []; }
         foreach ($schema as $key => $field) {
             if (!in_array($field['area'] ?? '', ['header', 'footer'], true)) continue;
