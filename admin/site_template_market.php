@@ -145,7 +145,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <p class="ml-auto text-sm text-gray-600" data-testid="st-market-summary"><?= e(__('st_market_summary', ['total' => (string) $allCount, 'available' => (string) $importableCount])) ?><?php if (count($items) !== $allCount): ?> · <?= e(__('st_market_filtered', ['count' => (string) count($items)])) ?><?php endif; ?></p>
     </div>
     <?php if ($items === []): ?><p class="text-gray-600"><?= e(__('st_market_empty')) ?></p><?php endif; ?>
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 min-[1400px]:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 min-[640px]:grid-cols-2 min-[1280px]:grid-cols-3 min-[1400px]:grid-cols-4 gap-6">
         <?php foreach ($items as $item): $name = (string) ($item['name' . $suffix] ?: $item['name']); $description = (string) ($item['description' . $suffix] ?: $item['description']); $categoryLabel = (string) ($categories[$item['category']] ?? ''); ?>
         <article class="bg-white border rounded-lg overflow-hidden flex flex-col<?= $item['blocked_reason'] !== '' ? ' opacity-75' : '' ?>" data-testid="st-market-card" data-available="<?= $item['blocked_reason'] === '' ? '1' : '0' ?>">
             <?php // 封面加载失败（404、被拦）时换成占位，而不是留一块破图 ?>
