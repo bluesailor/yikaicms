@@ -59,21 +59,22 @@ final class NavCurrent
             return $ctx['home'] ? self::PAGE : '';
         }
         $requestUri ??= (string) ($_SERVER['REQUEST_URI'] ?? '');
+
+        // 子项先判：子项命中时本项只是所在区域。父链接的查询串常是子链接的子集
+        // （?yk_route=product_list ⊂ ?yk_route=product_list&cat=gift），先比父 URL 会让两级都成 'page'
+        foreach (is_array($node['children'] ?? null) ? $node['children'] : [] as $child) {
+            if (is_array($child) && self::state($child, $requestUri) !== '') {
+                return self::SECTION;
+            }
+        }
         if (self::urlMatches(self::href($node), $requestUri, $ctx['home'])) {
             return self::PAGE;
         }
 
-        $childHit = '';
-        foreach (is_array($node['children'] ?? null) ? $node['children'] : [] as $child) {
-            if (is_array($child) && ($childHit = self::state($child, $requestUri)) !== '') {
-                break;
-            }
-        }
-
         $id = (int) ($node['id'] ?? 0);
         if ($id > 0 && $id === $ctx['channel_id']) {
-            // 子项已是当前页（如产品分类页）或处在详情页时，本栏目只是所在区域
-            return self::$detail || $childHit === self::PAGE ? self::SECTION : self::PAGE;
+            // 详情页里所属栏目只是所在区域，不冒充栏目页
+            return self::$detail ? self::SECTION : self::PAGE;
         }
         if ($id > 0 && $ctx['slug'] !== '' && (string) ($node['slug'] ?? '') === $ctx['slug']) {
             return self::SECTION;
@@ -81,7 +82,7 @@ final class NavCurrent
         if ($id > 0 && isset(self::ancestors($ctx['channel_id'])[$id])) {
             return self::SECTION;
         }
-        return $childHit !== '' ? self::SECTION : '';
+        return '';
     }
 
     /** 状态 → 链接上的 aria-current 属性片段（含前导空格；无状态为空串） */
