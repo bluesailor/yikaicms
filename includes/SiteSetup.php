@@ -93,4 +93,33 @@ final class SiteSetup
                 'done' => formTemplateModel()->findBySlug('contact') !== null],
         ];
     }
+
+    /**
+     * 建站向导顶部「从行业模板开始」要露出的几套推荐模板。纯函数：只整理已取到的目录，不发网络请求。
+     * 只推荐当前能导入的；目录给了模板语言时，和本站内容语言一致的排前面（稳定排序，其余保持目录顺序）。
+     *
+     * @param array{templates?:list<array<string,mixed>>} $catalog SiteTemplateMarket::request() 的结果
+     * @return array{total:int,templates:list<array{slug:string,name:string,screenshot:string}>}
+     */
+    public static function marketPreview(array $catalog, string $adminLanguage, string $siteLanguage, int $limit = 4): array
+    {
+        $items = array_values(array_filter(is_array($catalog['templates'] ?? null) ? $catalog['templates'] : [], 'is_array'));
+        $suffix = $adminLanguage === 'en' ? '_en' : ($adminLanguage === 'ja' ? '_ja' : '');
+        $ready = array_values(array_filter($items, static fn(array $item): bool => ($item['blocked_reason'] ?? 'x') === ''));
+        $matches = static fn(array $item): bool => in_array($siteLanguage, is_array($item['languages'] ?? null) ? $item['languages'] : [], true);
+        $ordered = array_merge(
+            array_values(array_filter($ready, $matches)),
+            array_values(array_filter($ready, static fn(array $item): bool => !$matches($item)))
+        );
+        $picked = [];
+        foreach (array_slice($ordered, 0, max(0, $limit)) as $item) {
+            $name = (string) ($item['name' . $suffix] ?? '');
+            $picked[] = [
+                'slug' => (string) ($item['slug'] ?? ''),
+                'name' => $name !== '' ? $name : (string) ($item['name'] ?? ''),
+                'screenshot' => (string) ($item['screenshot'] ?? ''),
+            ];
+        }
+        return ['total' => count($items), 'templates' => $picked];
+    }
 }
