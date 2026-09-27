@@ -118,14 +118,32 @@ final class HomeBlockElement extends AbstractElement
         if ($label === '') {
             $label = HomeBloxDocument::legacyLabel($type !== '' ? $type : 'home-block');
         }
-        $status = !empty($data['enabled']) ? __('blox_home_draft_block') : __('blox_home_disabled');
+        // 画布里只有停用的首页区块会走到这里（启用的由首页渲染上下文输出真实内容）：
+        // 告诉管理员它为什么是空的、怎么让它出现，而不是开发期的阶段说明。
+        // 这是编辑器提示而非页面内容：英文页面的画布也按后台语言显示（画布渲染期 __() 被切到了内容语言）。
+        $enabled = !empty($data['enabled']);
+        $status = $enabled
+            ? self::adminText('blox_home_block_hint')
+            : self::adminText('blox_home_disabled') . ' · ' . self::adminText('blox_home_disabled_hint');
 
         return '<section class="yk-home-block-preview border-2 border-dashed border-slate-300 bg-slate-50 rounded-xl px-6 py-10 text-center" data-home-block="'
             . htmlspecialchars($type, ENT_QUOTES) . '">'
-            . '<div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white border border-slate-200 text-blue-500 mb-3">'
-            . '<i class="ti ti-layout-dashboard text-2xl"></i></div>'
+            . '<div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white border border-slate-200 text-slate-400 mb-3">'
+            . '<i class="ti ' . ($enabled ? 'ti-layout-dashboard' : 'ti-eye-off') . ' text-2xl" aria-hidden="true"></i></div>'
             . '<h2 class="text-lg font-semibold text-slate-700">' . htmlspecialchars($label, ENT_QUOTES) . '</h2>'
-            . '<p class="text-xs text-slate-400 mt-2">' . htmlspecialchars($status, ENT_QUOTES) . ' · ' . __('blox_home_next_phase') . '</p>'
+            . '<p class="text-xs text-slate-400 mt-2">' . htmlspecialchars($status, ENT_QUOTES) . '</p>'
             . '</section>';
+    }
+
+    /** 后台界面语言的文案；语言包按请求缓存一次，一个画布可能有多个停用区块。 */
+    private static function adminText(string $key): string
+    {
+        static $strings = null;
+        if ($strings === null) {
+            $strings = function_exists('langDataFor') && function_exists('getLang') ? langDataFor(getLang()) : [];
+        }
+        $text = $strings[$key] ?? null;
+
+        return is_string($text) && $text !== '' ? $text : __($key);
     }
 }
