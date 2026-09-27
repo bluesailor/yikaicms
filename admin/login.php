@@ -126,36 +126,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           // 与 admin/includes/header.php 同一口径——不这么做，登录页和编辑器在浏览器标签里就是空白图标。 ?>
     <link rel="icon" href="<?php echo e((function_exists('siteFaviconUrl') ? siteFaviconUrl() : '') ?: '/assets/img/admin-favicon.ico'); ?>">
     <link rel="stylesheet" href="/assets/css/tailwind.css">
+    <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
     <link rel="stylesheet" href="/assets/css/admin.css">
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center relative">
-
-    <?php /* 语言切换（右上角；以后台 admin_languages 设置为准） */ ?>
-    <?php
-    $flagFile = ['zh-CN' => 'cn', 'en' => 'us', 'ja' => 'jp'];
-    if (count($supportedLangs) >= 2):
-    ?>
-    <div class="absolute top-4 right-4 flex items-center gap-1.5 z-10">
-        <?php foreach ($supportedLangs as $code => $label):
-            $active = $currentLang === $code;
-            $flag = $flagFile[$code] ?? '';
-        ?>
-            <a href="?lang=<?php echo e($code); ?>"
-               hreflang="<?php echo e($code); ?>"
-               title="<?php echo e($label); ?>"
-               class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs transition <?php echo $active
-                   ? 'border-primary text-primary bg-blue-50 font-medium'
-                   : 'border-gray-200 text-gray-500 bg-white hover:border-gray-300 hover:bg-gray-50'; ?>">
-                <?php if ($flag): ?>
-                <img src="/assets/icons/flags/<?php echo e($flag); ?>.svg"
-                     alt="" aria-hidden="true"
-                     class="w-4 h-3 rounded-sm shrink-0 ring-1 ring-gray-200">
-                <?php endif; ?>
-                <span><?php echo e($label); ?></span>
-            </a>
-        <?php endforeach; ?>
-    </div>
-    <?php endif; ?>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
 
     <div class="w-full max-w-md">
         <div class="bg-white rounded-lg shadow-lg p-8">
@@ -218,6 +192,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
             <?php endif; ?>
         </div>
+
+        <?php /* 语言切换：登录框下方的下拉（列表以「语言设置」为准，只有一种语言时不显示）。
+                 普通 GET 表单提交 ?lang=，没有 JavaScript 时用 noscript 里的按钮提交。 */ ?>
+        <?php if (count($supportedLangs) >= 2): ?>
+        <form method="get" class="mt-5 flex items-center justify-center gap-2 text-sm text-gray-500" data-testid="login-lang-switcher">
+            <label for="loginLang" class="inline-flex items-center gap-1">
+                <i class="ti ti-world text-base" aria-hidden="true"></i><?php echo e(__('login_language')); ?>
+            </label>
+            <select id="loginLang" name="lang" onchange="this.form.submit()"
+                    class="border border-gray-300 rounded-md bg-white pl-2 pr-8 py-1.5 text-sm text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                <?php foreach ($supportedLangs as $code => $label): ?>
+                <option value="<?php echo e($code); ?>" lang="<?php echo e($code); ?>"<?php echo $currentLang === $code ? ' selected' : ''; ?>><?php echo e($label); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <noscript>
+                <button type="submit" class="border border-gray-300 rounded-md bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"><?php echo e(__('btn_confirm')); ?></button>
+            </noscript>
+        </form>
+        <?php endif; ?>
 
         <div class="text-center mt-6 text-gray-500 text-sm">
             &copy; <?php echo date('Y'); ?> <?php echo e(config('site_name', 'YikaiCMS')); ?>
