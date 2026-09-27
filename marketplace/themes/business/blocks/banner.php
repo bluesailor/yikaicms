@@ -27,10 +27,19 @@ HomeBannerItemElement::registerRuntimeAssets();
                         <?php if ($banner['subtitle']): ?>
                         <p class="text-lg md:text-xl opacity-80 mb-8 max-w-2xl mx-auto" data-blox-layer style="--blox-layer-order:1"><?php echo e($banner['subtitle']); ?></p>
                         <?php endif; ?>
-                        <?php if (!empty($banner['btn1_text'])): ?>
-                        <div data-blox-banner-buttons><a href="<?php echo e(safeUrl((string) ($banner['btn1_url'] ?? '')) ?: BasePath::url('/contact.html')); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-8 py-3 rounded-full text-lg font-medium transition" data-blox-layer style="--blox-layer-order:2">
-                            <?php echo e($banner['btn1_text']); ?>
-                        </a></div>
+                        <?php if (!empty($banner['btn1_text']) || !empty($banner['btn2_text'])): ?>
+                        <div class="flex flex-wrap justify-center gap-4 pointer-events-auto" data-blox-banner-buttons data-blox-layer style="--blox-layer-order:2">
+                            <?php if (!empty($banner['btn1_text'])): ?>
+                            <a href="<?php echo e(safeUrl((string) ($banner['btn1_url'] ?? '')) ?: BasePath::url('/contact.html')); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-8 py-3 rounded-full text-lg font-medium transition">
+                                <?php echo e($banner['btn1_text']); ?>
+                            </a>
+                            <?php endif; ?>
+                            <?php if (!empty($banner['btn2_text'])): ?>
+                            <a href="<?php echo e(safeUrl((string) ($banner['btn2_url'] ?? '')) ?: BasePath::url('/about.html')); ?>" class="inline-block border-2 border-white text-white hover:bg-white hover:text-slate-900 px-8 py-3 rounded-full text-lg font-medium transition">
+                                <?php echo e($banner['btn2_text']); ?>
+                            </a>
+                            <?php endif; ?>
+                        </div>
                         <?php endif; ?>
                     </div>
                 </div>
