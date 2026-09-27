@@ -8500,4 +8500,6 @@ voltage|电压|220V',
     'st_market_language' => '语言',
     'upgrade_auto_major_manual' => '发现大版本 :version，自动升级已跳过。请手动升级；升级前先备份并核对本站的定制改动。',
     'st_market_retry' => '重试读取目录',
+    'blox_sticky_compact' => '滚动后收紧页头',
+    'blox_sticky_compact_hint' => '仅桌面端：缩小页头上下留白和 Logo，手机端保持原高度。',
 ];

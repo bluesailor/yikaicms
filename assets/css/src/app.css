@@ -928,3 +928,37 @@ fieldset:disabled .blox-breadcrumb-choice, fieldset:disabled .blox-hero-mode-cho
 .yk-footer-column-content a { text-decoration: underline; text-underline-offset: .15em; }
 .yk-footer-column-content strong, .yk-footer-column-content b { font-weight: 700; }
 .yk-footer-column-content em, .yk-footer-column-content i { font-style: italic; }
+
+/* overflow-x:hidden on html/body creates a scroll container that prevents position:sticky. */
+html:has(.yk-blox-header.yk-sticky-header),
+body:has(.yk-blox-header.yk-sticky-header),
+html.yk-has-blox-sticky-header,
+body.yk-has-blox-sticky-header {
+  overflow-x: clip;
+}
+
+/* Opt-in desktop compact header: keep the document footprint while the sticky surface contracts. */
+@media (min-width: 1024px) {
+  .yk-blox-header.yk-sticky-header[data-yk-sticky-compact="1"] {
+    margin-bottom: var(--yk-header-compact-gap, 0px);
+  }
+  .yk-blox-header.yk-sticky-header[data-yk-sticky-compact="1"] > section {
+    transition: padding-top .24s ease, padding-bottom .24s ease;
+  }
+  .yk-blox-header.yk-sticky-header[data-yk-sticky-compact="1"] [data-yk-site-logo-img] {
+    transition: max-height .24s ease;
+  }
+  .yk-blox-header.yk-sticky-header[data-yk-sticky-compact="1"]:is(.yk-stuck, .yk-header-preview-stuck) > section:not(.py-0) {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+  .yk-blox-header.yk-sticky-header[data-yk-sticky-compact="1"]:is(.yk-stuck, .yk-header-preview-stuck) [data-yk-site-logo-img] {
+    max-height: 44px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .yk-blox-header.yk-sticky-header[data-yk-sticky-compact="1"] > section,
+  .yk-blox-header.yk-sticky-header[data-yk-sticky-compact="1"] [data-yk-site-logo-img] {
+    transition: none;
+  }
+}

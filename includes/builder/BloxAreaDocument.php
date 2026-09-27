@@ -22,6 +22,7 @@ final class BloxAreaDocument
         $settings = is_array($settings) ? $settings : [];
         return [
             'sticky' => !empty($settings['sticky']),
+            'sticky_compact' => !empty($settings['sticky_compact']),
             'sticky_behavior' => BloxHeaderStates::normalizeStickyBehavior($settings['sticky_behavior'] ?? null),
             'sticky_devices' => BloxHeaderStates::normalizeStickyDevices($settings['sticky_devices'] ?? null),
             'header_overlay_enabled' => !array_key_exists('header_overlay_enabled', $settings)
@@ -104,6 +105,7 @@ final class BloxAreaDocument
         return '<header id="siteHeader" class="' . implode(' ', $classes) . '"'
             . ' data-yk-header-state="' . ($previewState !== '' ? $previewState : 'normal') . '"'
             . ' data-yk-sticky-behavior="' . $settings['sticky_behavior'] . '"'
+            . ' data-yk-sticky-compact="' . ($sticky && $settings['sticky_compact'] ? '1' : '0') . '"'
             . ' data-yk-sticky-desktop="' . (in_array('desktop', $stickyDevices, true) ? '1' : '0') . '"'
             . ' data-yk-sticky-tablet="' . (in_array('tablet', $stickyDevices, true) ? '1' : '0') . '"'
             . ' data-yk-sticky-mobile="' . (in_array('mobile', $stickyDevices, true) ? '1' : '0') . '"'

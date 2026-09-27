@@ -8432,4 +8432,6 @@ voltage|Voltage|220V',
     'st_market_language' => 'Language',
     'upgrade_auto_major_manual' => 'Major version :version is available. Automatic upgrade was skipped. Upgrade manually after backing up and reviewing site customizations.',
     'st_market_retry' => 'Retry catalog',
+    'blox_sticky_compact' => 'Compact header on scroll',
+    'blox_sticky_compact_hint' => 'Desktop only: reduce header spacing and logo size after scrolling. Mobile height stays unchanged.',
 ];

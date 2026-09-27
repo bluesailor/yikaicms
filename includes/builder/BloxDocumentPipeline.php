@@ -284,6 +284,9 @@ final class BloxDocumentPipeline
         if (array_key_exists('sticky', $settings)) {
             $clean['sticky'] = !empty($settings['sticky']);
         }
+        if (array_key_exists('sticky_compact', $settings)) {
+            $clean['sticky_compact'] = !empty($settings['sticky_compact']);
+        }
         if (array_key_exists('sticky_behavior', $settings)) {
             $clean['sticky_behavior'] = BloxHeaderStates::normalizeStickyBehavior($settings['sticky_behavior']);
         }
