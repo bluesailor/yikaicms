@@ -46,6 +46,26 @@ final class SiteTemplateMarketTest extends TestCase
         self::assertNull(SiteTemplateMarket::request(static fn(): string => str_repeat('x', SiteTemplateMarket::MAX_CATALOG_BYTES + 1)));
     }
 
+    /** 移植自 codex/site-template-market-ui-20260925：同一 slug 只留最新版，与目录顺序无关；同版本时可导入的优先 */
+    public function testCatalogKeepsNewestVersionPerSlugRegardlessOfResponseOrder(): void
+    {
+        $newest = $this->item([
+            'version' => '2.0.0',
+            'package' => 'yikai-auto-site-v2.0.0.zip',
+            'download_url' => 'https://update.yikaicms.com/packages/site-templates/yikai-auto-site-v2.0.0.zip',
+            'screenshot' => 'https://update.yikaicms.com/assets/site-templates/yikai-auto/2.0.0/preview.webp',
+        ]);
+        foreach ([[$this->item(), $newest], [$newest, $this->item()]] as $entries) {
+            $result = SiteTemplateMarket::request(fn(): string => $this->response($entries));
+            self::assertNotNull($result);
+            self::assertCount(1, $result['templates']);
+            self::assertSame('2.0.0', $result['templates'][0]['version']);
+            self::assertSame('', $result['templates'][0]['blocked_reason']);
+        }
+        $result = SiteTemplateMarket::request(fn(): string => $this->response([$this->item(['version' => '2.0.0', 'status' => 'draft']), $newest]));
+        self::assertSame('', $result['templates'][0]['blocked_reason']);
+    }
+
     public function testIncompatibleUnpublishedAndUnsignedPackagesCannotDownload(): void
     {
         foreach ([

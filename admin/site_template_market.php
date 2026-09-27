@@ -19,7 +19,7 @@ $suffix = $language === 'en' ? '_en' : ($language === 'ja' ? '_ja' : '');
 if ($isPost) verifyCsrf();
 // Cache display only. Every download reloads the official catalog and verifies its signature.
 $cached = $_SESSION['site_template_market_catalog'] ?? null;
-$usingCache = is_array($cached) && ($cached['expires'] ?? 0) > time() && !$isPost;
+$usingCache = is_array($cached) && ($cached['expires'] ?? 0) > time() && !$isPost && get('refresh') !== '1';
 $catalog = $usingCache ? ($cached['data'] ?? null) : SiteTemplateMarket::request();
 if (!$usingCache) $_SESSION['site_template_market_catalog'] = ['expires' => time() + SiteTemplateMarket::CACHE_SECONDS, 'data' => $catalog];
 if ($isPost) {
@@ -98,7 +98,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </header>
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
     <?php if ($catalog === null): ?>
-    <p role="status" class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__('st_market_unavailable')) ?> <a href="/admin/site_templates.php" class="underline"><?= e(__('st_market_local')) ?></a></p>
+    <p role="status" class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__('st_market_unavailable')) ?> <a href="/admin/site_template_market.php?refresh=1" class="underline"><?= e(__('st_market_retry')) ?></a> · <a href="/admin/site_templates.php" class="underline"><?= e(__('st_market_local')) ?></a></p>
     <?php else: ?>
     <?php // 左：模板分类（带数量，桌面端吸顶；窄屏变成可横向滑动的一行）；右：搜索、语言筛选与模板卡片 ?>
     <div class="lg:flex lg:items-start lg:gap-8">
@@ -140,7 +140,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
         <?php foreach ($items as $item): $name = (string) ($item['name' . $suffix] ?: $item['name']); $description = (string) ($item['description' . $suffix] ?: $item['description']); $categoryLabel = (string) ($categories[$item['category']] ?? ''); ?>
         <article class="bg-white border rounded-lg overflow-hidden flex flex-col<?= $item['blocked_reason'] !== '' ? ' opacity-75' : '' ?>" data-testid="st-market-card" data-available="<?= $item['blocked_reason'] === '' ? '1' : '0' ?>">
-            <?php if ($item['screenshot'] !== ''): ?><img src="<?= e($item['screenshot']) ?>" alt="<?= e($name) ?>" loading="lazy" referrerpolicy="no-referrer" class="w-full aspect-video object-cover object-top bg-gray-100"><?php else: ?><div class="aspect-video bg-gray-100 flex items-center justify-center text-gray-500"><?= e(__('st_market_no_cover')) ?></div><?php endif; ?>
+            <?php // 封面加载失败（404、被拦）时换成占位，而不是留一块破图 ?>
+            <div class="relative aspect-video bg-gray-100 overflow-hidden">
+                <?php if ($item['screenshot'] !== ''): ?><img src="<?= e($item['screenshot']) ?>" alt="<?= e($name) ?>" loading="lazy" referrerpolicy="no-referrer" class="w-full h-full object-cover object-top" data-market-cover><?php endif; ?>
+                <div class="absolute inset-0 items-center justify-center flex-col gap-2 text-gray-500 <?= $item['screenshot'] !== '' ? 'hidden' : 'flex' ?>" data-market-cover-fallback><i class="ti ti-photo text-2xl" aria-hidden="true"></i><span class="text-sm"><?= e(__('st_market_no_cover')) ?></span></div>
+            </div>
             <div class="p-5 flex flex-col flex-1 gap-3">
                 <div class="flex items-start justify-between gap-3">
                     <h2 class="text-lg font-bold"><?= e($name) ?></h2>
@@ -181,6 +185,16 @@ document.querySelectorAll('form[data-st-market-prepare]').forEach(function (form
             button.textContent = <?= json_encode(__('st_market_downloading'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         }, 0);
     });
+});
+document.querySelectorAll('[data-market-cover]').forEach(function (image) {
+    var fallback = image.parentElement.querySelector('[data-market-cover-fallback]');
+    function showFallback() {
+        image.classList.add('hidden');
+        fallback.classList.remove('hidden');
+        fallback.classList.add('flex');
+    }
+    image.addEventListener('error', showFallback);
+    if (image.complete && image.naturalWidth === 0) showFallback();
 });
 </script>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
