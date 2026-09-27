@@ -8570,4 +8570,5 @@ voltage|電圧|220V',
     'st_market_clear_filter' => '絞り込みを解除',
     'login_language' => '言語',
     'st_market_language' => '言語',
+    'upgrade_auto_major_manual' => 'メジャーバージョン :version が公開されています。自動アップグレードは見送りました。バックアップとサイト固有の変更を確認してから手動でアップグレードしてください。',
 ];
