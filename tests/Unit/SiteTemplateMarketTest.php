@@ -241,6 +241,9 @@ final class SiteTemplateMarketTest extends TestCase
         self::assertIsInt($nav);
         self::assertLessThan(strpos($page, 'data-testid="st-market-card"'), $nav, 'category column comes before the cards');
         self::assertStringNotContainsString('name="category" @change', $page, 'the category dropdown is replaced by the list');
+        // 2026-09-27：语言筛选放在左栏、行业分类的上方；宽屏 4 列
+        self::assertLessThan($nav, (int) strpos($page, 'data-testid="st-market-languages"'), 'language filter sits above the categories');
+        self::assertStringContainsString('min-[1400px]:grid-cols-4', $page);
         self::assertStringContainsString("<?php if (\$hasLanguages): ?>", $page);
         self::assertStringContainsString('data-testid="st-market-languages"', $page);
         self::assertStringContainsString("in_array(get('lang'), SiteTemplateMarket::LANGUAGES, true)", $page);
