@@ -80,7 +80,7 @@ final class BeginnerOnboardingContractTest extends TestCase
         // 备份只建议、不强制：必勾的确认只说「会覆盖」，不能要求用户声明已备份
         $zh = require ROOT_PATH . '/lang/zh-CN.php';
         self::assertStringNotContainsString('备份', $zh['st_replace_confirm']);
-        self::assertStringNotContainsString('备份', $zh['st_replace_reminder']);
+        self::assertStringNotContainsString('务必', $zh['st_replace_backup']);
     }
 
     /** 元素设置面板减负：PRO 只挂标题、空条件只留添加入口、元素名不被挤掉、去掉「实验」 */
