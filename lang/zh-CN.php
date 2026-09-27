@@ -8496,4 +8496,5 @@ voltage|电压|220V',
     'st_market_filtered' => '当前显示 :count 套',
     'st_market_clear_filter' => '清除筛选',
     'login_language' => '语言',
+    'st_market_language' => '语言',
 ];
