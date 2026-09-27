@@ -6,6 +6,8 @@
 #   bash build.sh          # 自动从 config/version.php 读取版本号
 #   bash build.sh 1.2.0    # 手动指定版本号
 #   bash build.sh 1.2.0 --no-delta  # 只构建完整安装包（候选装机/审计）
+#   bash build.sh --local=local1    # 本地测试包：版本号不变，构建标识带 local1，
+#                                   # 产出 yikaicms-v{版本}-local1.zip，不生成增量包、不可发布
 #
 # 输出：
 #   releases/yikaicms-v{版本}.zip
@@ -61,11 +63,22 @@ if [ -n "$WORKTREE_STATUS" ]; then
 fi
 
 # 参数：版本号可省略；--no-delta 仅用于候选装机/审计，正式发布默认仍生成增量包。
+#       --local=<标签> 构建本地测试包：CMS_VERSION 保持不变（模板兼容判断只认三段版本号），
+#       标签只进包名和 BUILD_ID，站点健康页可见；同时强制跳过增量包，避免覆盖正式发行物。
 VERSION_ARG=""
 BUILD_DELTAS=1
+LOCAL_LABEL=""
 for arg in "$@"; do
     case "$arg" in
         --no-delta) BUILD_DELTAS=0 ;;
+        --local=*)
+            LOCAL_LABEL="${arg#--local=}"
+            if [[ ! "$LOCAL_LABEL" =~ ^local[0-9]{1,4}$ ]]; then
+                echo "Error: 本地标签须形如 local1（local + 数字），实际为 '$LOCAL_LABEL'"
+                exit 1
+            fi
+            BUILD_DELTAS=0
+            ;;
         *)
             if [ -n "$VERSION_ARG" ]; then
                 echo "Error: 未知或重复参数 '$arg'"
@@ -93,6 +106,9 @@ if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
 fi
 
 PACKAGE_NAME="yikaicms-v${VERSION}"
+if [ -n "$LOCAL_LABEL" ]; then
+    PACKAGE_NAME="yikaicms-v${VERSION}-${LOCAL_LABEL}"
+fi
 RELEASE_DIR="$ROOT_DIR/releases"
 TMP_DIR="/tmp/yikaicms-build-$$"
 PKG_DIR="$TMP_DIR/$PACKAGE_NAME"
@@ -192,7 +208,7 @@ done
 
 # 缓存命名空间随每个全量/增量发行包变化。HtmlCache 将它纳入缓存键，部署覆盖后
 # 自动绕开上一版 HTML；同版本手工热修仍需执行 php bin/yikai.php cache:clear。
-BUILD_ID="${VERSION}-$(date -u +%Y%m%d%H%M%S)"
+BUILD_ID="${VERSION}${LOCAL_LABEL:+-$LOCAL_LABEL}-$(date -u +%Y%m%d%H%M%S)"
 printf "<?php\n\ndeclare(strict_types=1);\n\nreturn '%s';\n" "$BUILD_ID" > "$PKG_DIR/config/build.php"
 
 # ---- 排除文件 ----
@@ -724,6 +740,11 @@ echo " 大小: $ZIP_SIZE"
 echo " SHA256: $SHA_VALUE"
 echo " 文件数: $FILE_COUNT"
 echo ""
+if [ -n "$LOCAL_LABEL" ]; then
+    echo " 本地测试包（${LOCAL_LABEL}）：只用于本机演示站，不要上传 GitHub 或更新服务器。"
+    echo "=========================================="
+    exit 0
+fi
 echo " 发布到 GitHub:"
 echo "   gh release create v${VERSION} \\"
 echo "     releases/${PACKAGE_NAME}.zip \\"
