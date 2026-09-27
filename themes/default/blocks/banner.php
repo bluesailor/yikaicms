@@ -9,7 +9,7 @@ HomeBannerItemElement::registerRuntimeAssets();
     <div class="swiper banner-swiper"<?php echo HomeBloxBlockSchema::bannerRuntimeAttributes($block ?? []); ?>>
         <div class="swiper-wrapper">
             <?php if (!empty($banners)): ?>
-                <?php foreach ($banners as $banner): ?>
+                <?php $bannerHeadingIndex = 0; foreach ($banners as $banner): ?>
                 <div class="swiper-slide"<?php echo HomeBannerItemElement::motionAttributes($banner); ?><?php echo !empty($banner['_blox_path']) ? ' data-yk-el="' . e($banner['_blox_path']) . '" data-yk-el-type="home-banner-item"' : ''; ?>>
                     <?php if (!empty($banner['image']) || (($banner['media_type'] ?? '') === 'video' && !empty($banner['video']))): ?>
                         <?php echo HomeBannerItemElement::responsiveLinkedMediaHtml($banner); ?>
@@ -20,7 +20,11 @@ HomeBannerItemElement::registerRuntimeAssets();
                     <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none" data-blox-banner-content<?php echo class_exists('BannerContentLayout') ? BannerContentLayout::attributes($banner ?? [], $block ?? []) : ''; ?>>
                         <div class="text-center text-white px-4 w-full max-w-4xl" data-blox-banner-box>
                             <?php if (!empty($banner['title'])): ?>
+                            <?php if ($bannerHeadingIndex++ === 0): ?>
+                            <h1 class="text-3xl md:text-5xl font-bold mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo e($banner['title']); ?></h1>
+                            <?php else: ?>
                             <h2 class="text-3xl md:text-5xl font-bold mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo e($banner['title']); ?></h2>
+                            <?php endif; ?>
                             <?php endif; ?>
                             <?php if (!empty($banner['subtitle'])): ?>
                             <p class="text-lg md:text-2xl" data-blox-layer style="--blox-layer-order:1"><?php echo e($banner['subtitle']); ?></p>
@@ -42,17 +46,17 @@ HomeBannerItemElement::registerRuntimeAssets();
                 <?php endforeach; ?>
             <?php else: ?>
                 <div class="swiper-slide">
-                    <img src="/assets/images/demo/banner-1.svg" alt="Banner 1" class="w-full h-full object-cover" data-blox-banner-bg>
+                    <img src="<?php echo e(BasePath::url('/assets/images/demo/banner-1.svg')); ?>" alt="Banner 1" class="w-full h-full object-cover" data-blox-banner-bg>
                     <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none" data-blox-banner-content<?php echo class_exists('BannerContentLayout') ? BannerContentLayout::attributes($banner ?? [], $block ?? []) : ''; ?>>
                         <div class="text-center text-white px-4 w-full max-w-4xl" data-blox-banner-box>
-                            <h2 class="text-3xl md:text-5xl font-bold mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h2>
+                            <h1 class="text-3xl md:text-5xl font-bold mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h1>
                             <p class="text-lg md:text-2xl mb-6" data-blox-layer style="--blox-layer-order:1"><?php echo e(configLang('site_description', 'quality_service_desc')); ?></p>
-                            <div data-blox-banner-buttons><a href="/contact.html" class="inline-block bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition pointer-events-auto" data-blox-layer style="--blox-layer-order:2"><?php echo __('nav_contact'); ?></a></div>
+                            <div data-blox-banner-buttons><a href="<?php echo e(BasePath::url('/contact.html')); ?>" class="inline-block bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition pointer-events-auto" data-blox-layer style="--blox-layer-order:2"><?php echo __('nav_contact'); ?></a></div>
                         </div>
                     </div>
                 </div>
                 <div class="swiper-slide">
-                    <img src="/assets/images/demo/banner-2.svg" alt="Banner 2" class="w-full h-full object-cover" data-blox-banner-bg>
+                    <img src="<?php echo e(BasePath::url('/assets/images/demo/banner-2.svg')); ?>" alt="Banner 2" class="w-full h-full object-cover" data-blox-banner-bg>
                     <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none" data-blox-banner-content<?php echo class_exists('BannerContentLayout') ? BannerContentLayout::attributes($banner ?? [], $block ?? []) : ''; ?>>
                         <div class="text-center text-white px-4 w-full max-w-4xl" data-blox-banner-box>
                             <h2 class="text-3xl md:text-5xl font-bold mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo __('quality_service'); ?></h2>
@@ -61,7 +65,7 @@ HomeBannerItemElement::registerRuntimeAssets();
                     </div>
                 </div>
                 <div class="swiper-slide">
-                    <img src="/assets/images/demo/banner-3.svg" alt="Banner 3" class="w-full h-full object-cover" data-blox-banner-bg>
+                    <img src="<?php echo e(BasePath::url('/assets/images/demo/banner-3.svg')); ?>" alt="Banner 3" class="w-full h-full object-cover" data-blox-banner-bg>
                     <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none" data-blox-banner-content<?php echo class_exists('BannerContentLayout') ? BannerContentLayout::attributes($banner ?? [], $block ?? []) : ''; ?>>
                         <div class="text-center text-white px-4 w-full max-w-4xl" data-blox-banner-box>
                             <h2 class="text-3xl md:text-5xl font-bold mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo __('about_us'); ?></h2>

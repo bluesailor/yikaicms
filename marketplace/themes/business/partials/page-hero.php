@@ -18,6 +18,8 @@
 ?>
 <?php
 // 头部背景：栏目自带 image 优先；否则用全局默认头图（后台设置 page_hero_default_bg）。首页不走本 partial。
+if (isset($channel['show_hero']) && (int) $channel['show_hero'] === 0) return;
+$ykPageHeroRenderedHeading = true;
 $heroBg = ($channel['image'] ?? '') ?: (string) config('page_hero_default_bg', '');
 $heroBgCss = UrlPolicy::cssImageLiteral($heroBg);
 ?>

@@ -962,3 +962,9 @@ body.yk-has-blox-sticky-header {
     transition: none;
   }
 }
+
+/* Keep the language choice on one line beside the logo and menu at narrow widths. */
+@media (max-width: 380px) {
+  .yk-blox-header .yk-container { gap: .5rem; }
+  .yk-blox-header [data-yk-language-trigger] { white-space: nowrap; }
+}

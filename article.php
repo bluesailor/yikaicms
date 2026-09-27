@@ -121,6 +121,7 @@ $channel = [
     'hero_bg' => (string) ($articleHeroChannel['hero_bg'] ?? ''),
     'show_hero' => (int) ($articleHeroChannel['show_hero'] ?? 1),
 ];
+$ykPageHeroRenderedHeading = false;
 require theme_path('partials/page-hero.php');
 ?>
 
@@ -133,9 +134,11 @@ require theme_path('partials/page-hero.php');
                 <article class="bg-white rounded-lg shadow overflow-hidden">
                     <?php /* 文章头部 */ ?>
                     <div class="p-6 md:p-8 border-b">
+                        <?php if (!$ykPageHeroRenderedHeading): ?>
                         <h1 class="text-2xl md:text-3xl font-bold text-dark leading-snug">
                             <?php echo e($article['title']); ?>
                         </h1>
+                        <?php endif; ?>
                         <?php if ($article['subtitle']): ?>
                         <p class="mt-2 text-gray-500"><?php echo e($article['subtitle']); ?></p>
                         <?php endif; ?>
