@@ -226,7 +226,7 @@ final class SiteTemplateMarketTest extends TestCase
         self::assertStringContainsString("in_array(get('lang'), SiteTemplateMarket::LANGUAGES, true)", $page);
 
         $header = (string) file_get_contents(ROOT_PATH . '/admin/includes/header.php');
-        self::assertStringContainsString('if (!empty($sidebarCompact)) $_sbCollapsed = true;', $header);
+        self::assertStringContainsString('$_sbCompactPage = ($sidebarCompact ?? false) === true;', $header);
         self::assertStringContainsString('if (!this.compactPage) {', $header, 'expanding on a compact page must not rewrite the remembered state');
     }
 }
