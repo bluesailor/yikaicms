@@ -7,6 +7,10 @@
  * @var array $breadcrumbItems - Breadcrumb items array
  */
 ?>
+<?php
+if (isset($channel['show_hero']) && (int) $channel['show_hero'] === 0) return;
+$ykPageHeroRenderedHeading = true;
+?>
 <section class="bg-white pt-6 md:pt-8 pb-12 md:pb-16">
     <div class="container mx-auto px-6 lg:px-8">
         <!-- Breadcrumb -->

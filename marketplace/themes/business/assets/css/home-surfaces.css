@@ -31,3 +31,13 @@
 .business-surface a:focus-visible { outline: 2px solid var(--business-link); outline-offset: 4px; }
 .business-surface .business-card .business-title,
 .business-surface .business-card .business-copy { overflow-wrap: anywhere; }
+
+/* Balance the hero heading before a single Chinese character falls on its own line. */
+@media (max-width: 380px) {
+    .business-theme .banner-swiper [data-blox-banner-box] h1,
+    .business-theme .banner-swiper [data-blox-banner-box] h2 {
+        font-size: 1.875rem;
+        line-height: 1.25;
+        text-wrap: balance;
+    }
+}
