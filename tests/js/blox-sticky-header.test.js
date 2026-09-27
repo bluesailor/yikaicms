@@ -43,3 +43,16 @@ test('disabled device never enters the stuck state', () => {
     assert.equal(sticky.enabledFor(header, 768), false);
     assert.equal(sticky.enabledFor(header, 390), false);
 });
+
+test('compact mode is desktop-only and preserves the original layout footprint', () => {
+    const header = {
+        getAttribute(name) {
+            return name === 'data-yk-sticky-compact' || name === 'data-yk-sticky-desktop' ? '1' : '0';
+        },
+    };
+    assert.equal(sticky.compactFor(header, 1440), true);
+    assert.equal(sticky.compactFor(header, 900), false);
+    assert.equal(sticky.compactFor(header, 390), false);
+    assert.equal(sticky.compactGap(96, 60), 36);
+    assert.equal(sticky.compactGap(60, 96), 0);
+});

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Compact Blox header fixture</title>
+    <link rel="stylesheet" href="../../../assets/css/tailwind.css">
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        #siteHeader > section { padding: 16px 24px; background: #fff; }
+        #siteHeader > section > div { display: flex; align-items: center; justify-content: space-between; }
+        #siteHeader img { display: block; height: 64px; width: auto; max-height: 64px; }
+        #siteHeader nav { display: flex; gap: 24px; }
+        #siteHeader nav a { color: #111827; }
+        main { min-height: 2200px; background: linear-gradient(#f1f5f9, #dbeafe); }
+        @media (max-width: 767px) { #siteHeader nav { display: none; } }
+    </style>
+</head>
+<body>
+<header id="siteHeader" class="yk-blox-area yk-blox-header yk-sticky-header"
+        data-yk-sticky-behavior="always" data-yk-sticky-compact="1"
+        data-yk-sticky-desktop="1" data-yk-sticky-tablet="1" data-yk-sticky-mobile="1"
+        data-yk-overlay-enabled="0">
+    <section><div>
+        <div><a href="#start"><img data-yk-site-logo-img src="../../../assets/images/demo/article-205.svg" alt="Fixture logo"></a></div>
+        <nav aria-label="Fixture"><a href="#start">Home</a><a href="#end">Contact</a></nav>
+    </div></section>
+</header>
+<main id="start"><p>Scroll to inspect the compact header.</p><p id="end">End</p></main>
+<script src="../../../assets/js/blox-sticky-header.js"></script>
+</body>
+</html>

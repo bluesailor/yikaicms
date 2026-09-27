@@ -8573,4 +8573,6 @@ voltage|電圧|220V',
     'st_market_language' => '言語',
     'upgrade_auto_major_manual' => 'メジャーバージョン :version が公開されています。自動アップグレードは見送りました。バックアップとサイト固有の変更を確認してから手動でアップグレードしてください。',
     'st_market_retry' => 'カタログを再取得',
+    'blox_sticky_compact' => 'スクロール時にヘッダーを縮小',
+    'blox_sticky_compact_hint' => 'デスクトップのみ：スクロール後に上下の余白とロゴを縮小します。モバイルの高さは変わりません。',
 ];

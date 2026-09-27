@@ -21,6 +21,7 @@ final class BloxAreaDocumentTest extends TestCase
 
         self::assertSame([
             'sticky' => true,
+            'sticky_compact' => false,
             'sticky_behavior' => 'always',
             'sticky_devices' => ['desktop', 'tablet', 'mobile'],
             'header_overlay_enabled' => true,
@@ -73,6 +74,27 @@ final class BloxAreaDocumentTest extends TestCase
 
         self::assertSame('always', $settings['sticky_behavior']);
         self::assertSame(['desktop', 'tablet', 'mobile'], $settings['sticky_devices']);
+    }
+
+    public function testCompactStickyHeaderIsOptInAndSurvivesDocumentProcessing(): void
+    {
+        $legacy = BloxAreaDocument::normalizeSettings('header', ['sticky' => true]);
+        self::assertFalse($legacy['sticky_compact']);
+
+        $json = json_encode([
+            'schema' => 1,
+            'settings' => ['sticky' => true, 'sticky_compact' => true],
+            'sections' => [],
+        ], JSON_THROW_ON_ERROR);
+        $settings = BloxAreaDocument::process('header', $json)['settings'];
+        self::assertTrue($settings['sticky_compact']);
+        self::assertSame([], BloxAreaDocument::process('footer', $json)['settings']);
+
+        $html = BloxAreaDocument::renderShell('header', $settings, '<nav>Menu</nav>', 'stuck');
+        self::assertStringContainsString('data-yk-sticky-compact="1"', $html);
+        self::assertStringContainsString('yk-header-preview-stuck', $html);
+        self::assertStringContainsString('data-yk-sticky-compact="0"', BloxAreaDocument::renderShell('header', $legacy, ''));
+        self::assertStringContainsString('data-yk-sticky-compact="0"', BloxAreaDocument::renderShell('header', ['sticky' => false, 'sticky_compact' => true], ''));
     }
 
     public function testAreaShellAcceptsOnlyInternalBloxEditorTargets(): void
