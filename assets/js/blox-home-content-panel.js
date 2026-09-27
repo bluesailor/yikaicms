@@ -10,7 +10,8 @@
     }
 
     function groupFor(key) {
-        if (contentKeys.includes(key)) return "content";
+        // tc_*：主题在 content-fields.json 声明的区块文案（小标签、次要链接等）
+        if (contentKeys.includes(key) || key.startsWith("tc_")) return "content";
         if (imageKeys.includes(key)) return "media";
         if (["override_layout", "override_breakpoint", "override_ratio"].includes(key) || key.startsWith("title_decor_")) return "layout";
         return "more";

@@ -767,8 +767,103 @@ trait HomeBloxSchemaControlsTrait
                 ];
             }
         }
+        foreach (array_keys(self::sourceOptions()) as $type) {
+            $themeGroup = self::themeFieldBlueprintGroup($type);
+            if ($themeGroup === null) {
+                continue;
+            }
+            $blueprints[$type] ??= ['summary' => __('blox_home_theme_fields'), 'groups' => []];
+            $blueprints[$type]['groups'][] = $themeGroup;
+        }
 
         return $blueprints;
+    }
+
+    /**
+     * 当前主题在 content-fields.json 里以 area: home:<类型> 声明的文案，作为该首页区块的
+     * Blox 控件出现。值存为区块数据 tc_<key>，随草稿/发布走；留空时模板回退到
+     * 「主题文案」页的站点值，再回退到声明里的默认文案（见 HomeBloxRenderContext 的 $ykThemeField）。
+     * toggle 只在主题文案页设置，不做区块覆盖。
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function themeFieldControls(): array
+    {
+        $fields = class_exists('ThemeContent') ? ThemeContent::currentFields() : [];
+        if ($fields === []) {
+            return [];
+        }
+        $adminLanguage = function_exists('getLang') ? getLang() : 'zh-CN';
+        $contentLanguage = function_exists('siteLang') ? siteLang() : $adminLanguage;
+        // editorBlueprints() 每个区块类型、画布每个可编辑字段都会来问一次；按请求缓存。
+        static $cache = [];
+        $cacheKey = hash('sha256', serialize([$fields, $adminLanguage, $contentLanguage]));
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+        $types = array_keys(self::sourceOptions());
+        $controls = [];
+        foreach ($fields as $key => $field) {
+            $controlType = match ((string) ($field['type'] ?? '')) {
+                'text' => 'text', 'textarea' => 'textarea', 'url' => 'url', 'image' => 'image', default => null,
+            };
+            if ($controlType === null || !str_starts_with((string) ($field['area'] ?? ''), 'home:')) {
+                continue;
+            }
+            $sources = array_values(array_filter(
+                $types,
+                static fn (string $type): bool => ThemeContent::homeBlockFields([$key => $field], $type) !== []
+            ));
+            if ($sources === []) {
+                continue;
+            }
+            $control = [
+                'key' => 'tc_' . $key,
+                'type' => $controlType,
+                'label' => ThemeContent::localized($field['label'], $adminLanguage),
+                'default' => '',
+                'tab' => 'content',
+                'required' => ['block_type', '=', $sources],
+            ];
+            $default = ThemeContent::localized($field['default'] ?? '', $contentLanguage);
+            if ($default !== '' && $controlType !== 'image') {
+                $control['placeholder'] = $default;
+            }
+            $hint = ThemeContent::localized($field['hint'] ?? '', $adminLanguage);
+            $control['help'] = trim($hint . ' ' . __('blox_home_theme_field_help'));
+            $controls[] = $control;
+        }
+
+        return $cache[$cacheKey] = $controls;
+    }
+
+    /**
+     * 首页内容面板里的「主题文案」一组；进了 blueprint 的路径也就能在画布里直接改。
+     * @return array<string,mixed>|null
+     */
+    private static function themeFieldBlueprintGroup(string $type): ?array
+    {
+        $fields = [];
+        foreach (self::themeFieldControls() as $control) {
+            if (!in_array($type, (array) ($control['required'][2] ?? []), true)) {
+                continue;
+            }
+            $fields[] = [
+                'key' => (string) $control['key'],
+                'icon' => match ((string) $control['type']) {
+                    'url' => 'link', 'image' => 'photo', 'textarea' => 'align-left', default => 'forms',
+                },
+                'label' => (string) $control['label'],
+                'control' => (string) $control['type'],
+            ];
+        }
+
+        return $fields === [] ? null : [
+            'key' => 'theme_fields',
+            'label' => __('blox_home_theme_fields'),
+            'icon' => 'palette',
+            'fields' => $fields,
+        ];
     }
 
     public static function isEditableFieldPath(string $type, string $path): bool

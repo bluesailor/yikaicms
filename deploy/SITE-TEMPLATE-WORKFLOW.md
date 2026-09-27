@@ -40,6 +40,33 @@
 
 支持 text、textarea、image、url、toggle，最多 40 字段。不同语言分别保存；图片使用已有媒体选择器。模板用 `e(themeContent('hero_title', 'Welcome'))` 读取并转义；URL 字段仍须按用途使用现有 URL 安全助手。保存立即影响前台，旧页面提交会提示重新加载。布局编辑继续使用现有构建器。
 
+### 让字段出现在 Blox 编辑器里（`area`）
+
+字段可加可选的 `area`，声明它属于页面的哪个位置（2.0.1 起）：
+
+| `area` | 在 Blox 里的位置 | 值存在哪 | 模板怎么读 |
+|---|---|---|---|
+| `home:<首页区块类型>`，如 `home:about`、`home:advantage`、`home:cta`、`home:banner`；`home:channel` 对所有栏目区块生效 | 选中该首页区块时，设置面板「内容」里多出这些控件；首页内容面板有「主题内容」一组 | 区块数据 `tc_<key>`，随首页草稿/发布走 | 区块模板里 `e($ykThemeField('about_kicker', '兜底文字'))`；元素加 `<?= $ykHomeFieldAttr('tc_about_kicker') ?>` 即可在画布里直接点改 |
+| `header` / `footer` | 画布上点主题默认的网页头/网页尾，右侧打开「主题内容 · 页头/页尾」，保存即全站生效 | 同主题内容页（按语言） | 布局文件里 `e(themeContent('header_cta_text', '兜底文字'))` |
+| 不写 | 只在「主题内容」页编辑 | 同上 | `themeContent()` |
+
+取值顺序：区块覆盖 `tc_<key>`（留空＝不覆盖）→ 主题内容页的站点值 → 声明里的 `default` → 模板兜底文字。主题内容页（及页头/页尾面板）保存的空值就是空，不回退默认——想隐藏某段文字可以清空。区块控件支持 text / textarea / url / image，toggle 只在主题内容页设置。`url` 字段在保存管线里按链接规则清洗，模板输出仍用 `e()`。首页区块的值与首页其他覆盖项一样不分语言；需要按语言区分的文字放 `header` / `footer` 或不写 `area`。
+
+```json
+{"key":"about_kicker","type":"text","area":"home:about","label":{"zh-CN":"关于 · 小标签","en":"About · eyebrow"},"default":"01 / THE IDEA"}
+```
+
+```php
+$themeField = isset($ykThemeField) && is_callable($ykThemeField)
+    ? $ykThemeField : static fn (string $key, string $fallback = ''): string => themeContent($key, $fallback);
+$fieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
+    ? $ykHomeFieldAttr : static fn (string $field): string => '';
+?>
+<span class="kicker"<?= $fieldAttr('tc_about_kicker') ?>><?= e($themeField('about_kicker', '01 / THE IDEA')) ?></span>
+```
+
+参考实现：官方 Havenform 模板（首屏、关于、项目、流程、行动号召的小标签与次要链接，页头按钮，页尾各栏文字）。
+
 示例源码：`deploy/examples/studio-starter/`，包含响应式首页、7 个可编辑字段及原创 SVG 视觉资产。配套测试构造公司介绍、服务、产品、资讯、联系栏目并导出样板 ZIP；不修改客户宠物站。示例依赖 2.0.0 起的整站模板与主题内容能力，1.x 站点不支持。
 
 ## 内容检查

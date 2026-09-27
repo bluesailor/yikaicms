@@ -767,6 +767,26 @@ $siteCopyright = SiteCopyrightSettings::editorState($siteDataLanguage, $siteCopy
     'can_edit' => $canManageGlobalSettings,
 ];
 
+// 主题给页头/页尾声明的文案（content-fields.json 里 area: header/footer）。主题页头页尾不是 Blox
+// 文档，这些字段在画布旁直接改、保存即全站生效；编辑 Blox 页头/页尾模板时它们不参与渲染，不显示。
+$themeContentLanguage = $isHomeBlox ? siteLang() : $siteDataLanguage;
+$themeContentState = ['fields' => [], 'values' => [], 'fingerprint' => '', 'language' => $themeContentLanguage];
+if (in_array($themeContentLanguage, ['zh-CN', 'en', 'ja'], true) && !in_array($templateType, ['header', 'footer'], true)) {
+    $themeContentState = ThemeContent::editorState(currentTheme(), $themeContentLanguage, getLang());
+}
+$themeContentOverridden = [];
+foreach (['header', 'footer'] as $themeContentArea) {
+    // 启用且已发布 Blox 页头/页尾时，主题自己的页头/页尾不渲染，这组文字暂时看不到
+    $themeContentOverridden[$themeContentArea] = $themeContentState['fields'] !== []
+        && (string) config('blox_custom_' . $themeContentArea . '_enabled', '1') === '1'
+        && bloxTemplateModel()->publishedAreaTemplates($themeContentArea) !== [];
+}
+$themeContentState += [
+    'language_label' => (string) (availableLanguages()[$themeContentLanguage] ?? $themeContentLanguage),
+    'can_edit' => $canManageGlobalSettings,
+    'overridden' => $themeContentOverridden,
+];
+
 /**
  * 元素 schema（全量注册元素，不受插入白名单限制）。
  *
@@ -1545,6 +1565,14 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             siteCopyrightSaving: false,
             siteCopyrightText: <?php echo json_encode([
                 'saved' => __('blox_site_copyright_saved'),
+                'failed' => __('blox_save_failed'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            themeContent: <?php echo json_encode($themeContentState, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            themeContentOpen: false,
+            themeContentChanged: false,
+            themeContentSaving: false,
+            themeContentText: <?php echo json_encode([
+                'saved' => __('tc_saved'),
                 'failed' => __('blox_save_failed'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             contactEndpoint: (window.YK_BASE || "") + "/admin/blox_contact_api.php?id=<?php echo (int) $id; ?>",
@@ -5789,7 +5817,11 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                         self.scrollInitialFooterIntoView();
                     },
                     onAreaMatch: function (match) { self.ctxMatch = match; },
-                    onEditArea: function (payload) { self.navigateEditorTo(payload.url); },
+                    onEditArea: function (payload) {
+                        // 主题默认页头/页尾且主题声明了这一区的文案：先在面板里改，不离开编辑器
+                        if (payload.source === "theme" && self.openThemeContent(payload.area)) return;
+                        self.navigateEditorTo(payload.url);
+                    },
                     onEditPageHero: function () { self.openPageHeroSettings(); },
                     // 画布空态双入口：模板库起步 / 空白区块起步
                     onEmptyAction: function (action) {
@@ -6488,6 +6520,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             },
 
             <?php require __DIR__ . '/blox_editor/partials/site-data-methods.php'; ?>
+            <?php require __DIR__ . '/blox_editor/partials/theme-content-methods.php'; ?>
             addContactFormField() {
                 if (!this.contactFormVisual || !this.contactFormCanEdit) return;
                 if (this.contactForm.fields.length >= 12) {
@@ -8452,7 +8485,8 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             },
 
             hasUnsavedChanges() {
-                return this.dirty || this.contactCardsChanged || this.contactFormChanged || this.siteCopyrightChanged;
+                return this.dirty || this.contactCardsChanged || this.contactFormChanged || this.siteCopyrightChanged
+                    || this.themeContentChanged;
             },
 
             requestEditorBack(event) {

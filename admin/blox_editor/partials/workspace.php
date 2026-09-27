@@ -3146,6 +3146,7 @@ declare(strict_types=1);
                     </a>
                 </div>
 <?php endif; ?>
+<?php require __DIR__ . '/theme-content-panel.php'; ?>
             </div>
             <div x-show="rightPanelContentVisible()" class="flex-1 overflow-y-auto blox-scroll p-2 space-y-1" x-ref="tree" data-sort-sections data-testid="blox-tree">
                 <p class="sr-only" role="status" aria-live="polite" aria-atomic="true"

@@ -638,7 +638,8 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
                     . '" aria-hidden="true"></i><span>' . htmlspecialchars($editLabel, ENT_QUOTES, 'UTF-8') . '</span></button>'
                 : '';
             return '<div class="yk-canvas-region yk-home-context-area" data-yk-region="' . $area
-                . '" data-yk-context-area="' . $area . '" data-yk-context-url="'
+                . '" data-yk-context-area="' . $area . '" data-yk-context-source="' . ($source === 'theme' ? 'theme' : 'blox')
+                . '" data-yk-context-url="'
                 . htmlspecialchars($editUrl, ENT_QUOTES, 'UTF-8') . '" data-yk-preview-label="'
                 . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '">'
                 . $editAction
@@ -1452,7 +1453,8 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             e.preventDefault();
             postToEditor({ ykEditArea: {
                 area: contextArea.getAttribute('data-yk-context-area') || '',
-                url: contextArea.getAttribute('data-yk-context-url') || ''
+                url: contextArea.getAttribute('data-yk-context-url') || '',
+                source: contextArea.getAttribute('data-yk-context-source') || ''
             } });
             return;
         }
