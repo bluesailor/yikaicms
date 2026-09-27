@@ -8428,4 +8428,5 @@ voltage|Voltage|220V',
     'st_market_filtered' => 'showing :count',
     'st_market_clear_filter' => 'Clear filters',
     'login_language' => 'Language',
+    'st_market_language' => 'Language',
 ];
