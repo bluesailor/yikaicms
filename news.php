@@ -109,17 +109,17 @@ unset($_heroChannelBackup);
             <form method="get" action="<?php echo e(dynamicFormAction($category ? '/news/' . $category['slug'] . '.html' : '/news.html')); ?>" class="flex items-center gap-2">
                 <?php echo dynamicFormHiddenInputs('news', $category ? ['cat' => $category['slug']] : []); ?>
                 <div class="relative">
-                    <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
-                           placeholder="<?php echo __('news_search_placeholder'); ?>"
-                           class="w-48 border rounded-full pl-4 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-                    <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary">
+                    <input type="search" name="keyword" value="<?php echo e($keyword); ?>" aria-label="<?php echo e(__('news_search_placeholder')); ?>"
+                           placeholder="<?php echo e(__('news_search_placeholder')); ?>"
+                           class="w-48 border rounded-full pl-4 pr-9 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <button type="submit" aria-label="<?php echo e(__('search')); ?>" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                         </svg>
                     </button>
                 </div>
                 <?php if ($keyword !== ''): ?>
-                <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('news', $category ? ['cat' => $category['slug']] : []) : ($category ? '/news/' . e($category['slug']) . '.html' : '/news.html')); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
+                <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('news', $category ? ['cat' => $category['slug']] : []) : ($category ? '/news/' . e($category['slug']) . '.html' : '/news.html')); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo e(__('search_clear')); ?>" aria-label="<?php echo e(__('search_clear')); ?>">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
