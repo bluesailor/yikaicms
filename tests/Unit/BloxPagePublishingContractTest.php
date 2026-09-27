@@ -163,7 +163,11 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString('payload = areaEditPayload(data.ykEditArea);', $bridge);
         $this->assertStringContainsString('this.onEditArea(payload);', $bridge);
         // 画布里的页头/页尾编辑入口也必须经过统一的未保存离开保护，不能直接跳转。
-        $this->assertStringContainsString('onEditArea: function (payload) { self.navigateEditorTo(payload.url); }', $editor);
+        // 主题默认页头/页尾先尝试打开「主题内容」面板（不离开编辑器），否则照常走 navigateEditorTo。
+        $this->assertMatchesRegularExpression(
+            '/onEditArea: function \(payload\) \{\s*(?:\/\/[^\n]*\n\s*)?if \(payload\.source === "theme" && self\.openThemeContent\(payload\.area\)\) return;\s*self\.navigateEditorTo\(payload\.url\);\s*\}/',
+            $editor
+        );
         $this->assertStringContainsString('navigateEditorTo(href) {', $editor);
         $this->assertStringContainsString('this.hasUnsavedChanges() && !window.confirm(this.uiText.leaveUnsavedConfirm)', $editor);
         $this->assertStringContainsString('onEditPageHero: function () { self.openPageHeroSettings(); }', $editor);
