@@ -93,6 +93,10 @@ final class HomeBloxRendererTest extends TestCase
         $this->assertStringContainsString('data-home-block="testimonials"', $html);
         $this->assertStringContainsString('Customer reviews', $html);
         $this->assertStringContainsString('blox_home_disabled', $html);
+        // Tell the editor why the block is empty and how to show it — not a development-phase note.
+        $this->assertStringContainsString('blox_home_disabled_hint', $html);
+        $this->assertStringContainsString('ti-eye-off', $html);
+        $this->assertStringNotContainsString('blox_home_next_phase', $html);
     }
 
     public function testHeaderOverlayRequiresCoverBannerAsFirstVisibleElement(): void
