@@ -20,6 +20,7 @@ require_once ROOT_PATH . '/plugins/shop/lib/money.php';
 require_once ROOT_PATH . '/plugins/shop/lib/tables.php';
 require_once ROOT_PATH . '/plugins/shop/lib/sales.php';
 require_once ROOT_PATH . '/plugins/shop/lib/cart.php';
+require_once ROOT_PATH . '/plugins/shop/lib/routes.php';
 
 header('Cache-Control: no-store');
 
