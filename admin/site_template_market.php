@@ -66,15 +66,20 @@ $importableCount = count(array_filter($items, static fn(array $item): bool => $i
 // 语言筛选只在目录给出了模板语言时出现（老的目录没有这个字段，不显示一个筛不出东西的选项）
 $hasLanguages = array_filter($items, static fn(array $item): bool => ($item['languages'] ?? []) !== []) !== [];
 $languageNames = availableLanguages();
-// 左侧分类的数量跟随搜索与语言条件（不跟随分类本身），点哪个分类都知道会看到几套
-$matchesSearchAndLanguage = static function (array $item) use ($search, $contentLanguage): bool {
-    if ($contentLanguage !== '' && !in_array($contentLanguage, $item['languages'] ?? [], true)) return false;
-    return $search === '' || mb_stripos(implode(' ', array_map(static fn(string $key): string => (string) ($item[$key] ?? ''),
-        ['slug', 'name', 'name_en', 'name_ja', 'description', 'description_en', 'description_ja', 'category_name'])), $search) !== false;
-};
-$pool = array_values(array_filter($items, $matchesSearchAndLanguage));
+// 左栏两组筛选的数量互相跟随：行业数量按「搜索 + 语言」算，语言数量按「搜索 + 行业」算，
+// 点哪一项都能先知道会看到几套
+$searchPool = array_values(array_filter($items, static fn(array $item): bool => $search === '' || mb_stripos(implode(' ', array_map(
+    static fn(string $key): string => (string) ($item[$key] ?? ''),
+    ['slug', 'name', 'name_en', 'name_ja', 'description', 'description_en', 'description_ja', 'category_name'])), $search) !== false));
+$inLanguage = static fn(array $item, string $code): bool => $code === '' || in_array($code, $item['languages'] ?? [], true);
+$inCategory = static fn(array $item, string $key): bool => $key === '' || $item['category'] === $key;
+$pool = array_values(array_filter($searchPool, static fn(array $item): bool => $inLanguage($item, $contentLanguage)));
 $categoryCounts = array_count_values(array_column($pool, 'category'));
-$items = array_values(array_filter($pool, static fn(array $item): bool => $category === '' || $item['category'] === $category));
+$languageCounts = [];
+foreach (array_merge([''], SiteTemplateMarket::LANGUAGES) as $code) {
+    $languageCounts[$code] = count(array_filter($searchPool, static fn(array $item): bool => $inCategory($item, $category) && $inLanguage($item, $code)));
+}
+$items = array_values(array_filter($pool, static fn(array $item): bool => $inCategory($item, $category)));
 $marketUrl = static function (array $change) use ($search, $category, $contentLanguage): string {
     $query = array_filter(array_merge(['q' => $search, 'category' => $category, 'lang' => $contentLanguage], $change), static fn($v): bool => $v !== '');
     return '/admin/site_template_market.php' . ($query === [] ? '' : '?' . http_build_query($query));
@@ -100,11 +105,25 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php if ($catalog === null): ?>
     <p role="status" class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__('st_market_unavailable')) ?> <a href="/admin/site_template_market.php?refresh=1" class="underline"><?= e(__('st_market_retry')) ?></a> · <a href="/admin/site_templates.php" class="underline"><?= e(__('st_market_local')) ?></a></p>
     <?php else: ?>
-    <?php // 左：模板分类（带数量，桌面端吸顶；窄屏变成可横向滑动的一行）；右：搜索、语言筛选与模板卡片 ?>
+    <?php // 左：语言在上、行业在下（都带数量，桌面端吸顶；窄屏各变成可横向滑动的一行）；右：搜索与模板卡片 ?>
     <div class="lg:flex lg:items-start lg:gap-8">
-    <nav class="lg:w-56 shrink-0 lg:sticky lg:top-24 mb-6 lg:mb-0" aria-labelledby="st-market-categories-title" data-testid="st-market-categories">
+    <div class="lg:w-56 shrink-0 lg:sticky lg:top-24 mb-6 lg:mb-0 space-y-5">
+    <?php if ($hasLanguages): ?>
+    <nav aria-labelledby="st-market-lang-title" data-testid="st-market-languages">
+        <h2 id="st-market-lang-title" class="px-3 mb-2 text-xs font-semibold text-gray-500"><?= e(__('st_market_language')) ?></h2>
+        <ul class="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0">
+            <?php // 顺序固定为 中 / 英 / 日（LANGUAGES 的顺序），名称用各语言自己的写法 ?>
+            <?php foreach (['' => __('admin_all')] + array_combine(SiteTemplateMarket::LANGUAGES, array_map(static fn(string $code): string => (string) ($languageNames[$code] ?? $code), SiteTemplateMarket::LANGUAGES)) as $code => $label): $code = (string) $code; $active = $contentLanguage === $code; ?>
+            <li class="shrink-0"><a href="<?= e($marketUrl(['lang' => $code])) ?>"<?= $active ? ' aria-current="true"' : '' ?><?= $code !== '' ? ' lang="' . e($code) . '"' : '' ?>
+                class="flex items-center justify-between gap-3 rounded px-3 py-2 text-sm whitespace-nowrap <?= $active ? 'bg-blue-50 text-primary font-medium' : 'text-gray-700 hover:bg-gray-100' ?>">
+                <span><?= e((string) $label) ?></span><span class="text-xs <?= $active ? 'text-primary' : 'text-gray-400' ?>"><?= (int) ($languageCounts[$code] ?? 0) ?></span></a></li>
+            <?php endforeach; ?>
+        </ul>
+    </nav>
+    <?php endif; ?>
+    <nav aria-labelledby="st-market-categories-title" data-testid="st-market-categories">
         <h2 id="st-market-categories-title" class="px-3 mb-2 text-xs font-semibold text-gray-500"><?= e(__('st_market_category')) ?></h2>
-        <ul class="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0 lg:overflow-x-visible lg:overflow-y-auto lg:max-h-[calc(100vh-8rem)]">
+        <ul class="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0 lg:overflow-x-visible lg:overflow-y-auto lg:max-h-[calc(100vh-18rem)]">
             <?php foreach (['' => __('st_market_all')] + $categories as $key => $label): $key = (string) $key; $active = $category === $key; ?>
             <li class="shrink-0"><a href="<?= e($marketUrl(['category' => $key])) ?>"<?= $active ? ' aria-current="page"' : '' ?>
                 class="flex items-center justify-between gap-3 rounded px-3 py-2 text-sm whitespace-nowrap <?= $active ? 'bg-blue-50 text-primary font-medium' : 'text-gray-700 hover:bg-gray-100' ?>">
@@ -112,6 +131,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endforeach; ?>
         </ul>
     </nav>
+    </div>
     <div class="flex-1 min-w-0 space-y-5">
     <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
         <form method="get" class="flex items-center gap-2" role="search">
@@ -121,23 +141,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input id="st-market-q" name="q" value="<?= e($search) ?>" maxlength="100" placeholder="<?= e(__('st_market_search')) ?>" class="border rounded px-3 py-2 w-56 max-w-full">
             <button class="bg-primary text-white rounded px-4 py-2" type="submit"><?= e(__('st_market_search')) ?></button>
         </form>
-        <?php if ($hasLanguages): ?>
-        <div class="flex items-center gap-2" role="group" aria-labelledby="st-market-lang-title" data-testid="st-market-languages">
-            <span id="st-market-lang-title" class="text-sm text-gray-500"><?= e(__('st_market_language')) ?></span>
-            <div class="inline-flex rounded border bg-white p-0.5">
-                <?php // 顺序固定为 中 / 英 / 日（LANGUAGES 的顺序），名称用各语言自己的写法 ?>
-                <?php foreach (['' => __('admin_all')] + array_combine(SiteTemplateMarket::LANGUAGES, array_map(static fn(string $code): string => (string) ($languageNames[$code] ?? $code), SiteTemplateMarket::LANGUAGES)) as $code => $label): $code = (string) $code; $active = $contentLanguage === $code; ?>
-                <a href="<?= e($marketUrl(['lang' => $code])) ?>"<?= $active ? ' aria-current="true"' : '' ?><?= $code !== '' ? ' lang="' . e($code) . '"' : '' ?>
-                   class="rounded px-3 py-1.5 text-sm <?= $active ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100' ?>"><?= e((string) $label) ?></a>
-                <?php endforeach; ?>
-            </div>
-        </div>
-        <?php endif; ?>
         <?php if ($search !== '' || $category !== '' || $contentLanguage !== ''): ?><a href="/admin/site_template_market.php" class="text-sm text-gray-600 underline"><?= e(__('st_market_clear_filter')) ?></a><?php endif; ?>
         <p class="ml-auto text-sm text-gray-600" data-testid="st-market-summary"><?= e(__('st_market_summary', ['total' => (string) $allCount, 'available' => (string) $importableCount])) ?><?php if (count($items) !== $allCount): ?> · <?= e(__('st_market_filtered', ['count' => (string) count($items)])) ?><?php endif; ?></p>
     </div>
     <?php if ($items === []): ?><p class="text-gray-600"><?= e(__('st_market_empty')) ?></p><?php endif; ?>
-    <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 min-[1400px]:grid-cols-4 gap-6">
         <?php foreach ($items as $item): $name = (string) ($item['name' . $suffix] ?: $item['name']); $description = (string) ($item['description' . $suffix] ?: $item['description']); $categoryLabel = (string) ($categories[$item['category']] ?? ''); ?>
         <article class="bg-white border rounded-lg overflow-hidden flex flex-col<?= $item['blocked_reason'] !== '' ? ' opacity-75' : '' ?>" data-testid="st-market-card" data-available="<?= $item['blocked_reason'] === '' ? '1' : '0' ?>">
             <?php // 封面加载失败（404、被拦）时换成占位，而不是留一块破图 ?>
