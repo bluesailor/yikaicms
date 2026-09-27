@@ -28,7 +28,9 @@ final class SessionStorage
         if (!is_writable($fallback)) {
             return;
         }
-        session_save_path($fallback);
+        if (session_save_path($fallback) === false) {
+            return;
+        }
         // 有的发行版把 gc_probability 设为 0、靠系统计划任务只清理默认目录；自己的目录要自己回收
         ini_set('session.gc_probability', '1');
         ini_set('session.gc_divisor', '100');
