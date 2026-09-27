@@ -140,6 +140,10 @@ if ($action !== '') {
             ]);
         }
         $data['current_version'] = $cur;
+        // 本地构建的文件与同号正式版不同，增量包前提不成立：去掉 delta，前端自然改下完整包。
+        if (YikaiProductIdentity::localBuildLabel() !== '' && is_array($data['data'] ?? null)) {
+            unset($data['data']['delta']);
+        }
         uo_json($data);
     }
 
@@ -200,7 +204,7 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
 <div class="p-6">
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-xl font-bold text-gray-800"><i class="ti ti-cloud-download text-blue-500 mr-2"></i>在线升级</h1>
-        <span class="text-sm text-gray-500">当前版本 v<?= e(defined('CMS_VERSION') ? CMS_VERSION : '?') ?></span>
+        <span class="text-sm text-gray-500">当前版本 v<?= e(defined('CMS_VERSION') ? CMS_VERSION : '?') ?><?= adminLocalBuildBadge() ?></span>
     </div>
 
     <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-4 mb-5">

@@ -947,7 +947,7 @@ async function saveUpdateChannel(toggle) {
 <div class="bg-white rounded-lg shadow mb-6 px-6 py-4 flex items-center justify-between flex-wrap gap-2">
     <div class="text-sm text-gray-600">
         <?php echo e(__('upgrade_hist_current')); ?>
-        <span class="ml-1 font-mono font-medium text-gray-900">v<?php echo e(defined('CMS_VERSION') ? CMS_VERSION : '—'); ?></span>
+        <span class="ml-1 font-mono font-medium text-gray-900">v<?php echo e(defined('CMS_VERSION') ? CMS_VERSION : '—'); ?></span><?php echo adminLocalBuildBadge(); ?>
     </div>
     <div class="text-sm text-gray-400"><?php echo e(__('upgrade_hist_tip')); ?></div>
 </div>

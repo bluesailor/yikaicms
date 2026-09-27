@@ -304,7 +304,7 @@ $__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions))
     <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
         <div class="flex items-center gap-2 text-sm text-gray-600">
             <i class="ti ti-versions text-gray-400"></i>
-            <span><?php echo __('dashboard_version'); ?>：<b class="text-gray-800">v<?php echo e(defined('CMS_VERSION') ? CMS_VERSION : '?'); ?></b></span>
+            <span><?php echo __('dashboard_version'); ?>：<b class="text-gray-800">v<?php echo e(defined('CMS_VERSION') ? CMS_VERSION : '?'); ?></b><?php echo adminLocalBuildBadge(); ?></span>
             <span id="uoStatus" class="text-gray-400 flex items-center gap-1" aria-live="polite">
                 <i class="ti ti-loader-2 animate-spin text-xs"></i><?php echo __('dashboard_update_check'); ?>
             </span>

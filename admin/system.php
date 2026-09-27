@@ -181,7 +181,11 @@ adminModuleTabStart([
                         <td class="py-3 text-gray-800">
                             <span class="inline-flex items-center gap-2">
                                 v<?php echo defined('CMS_VERSION') ? CMS_VERSION : '1.0.0'; ?>
+                                <?php if (YikaiProductIdentity::localBuildLabel() === ''): ?>
                                 <span class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700"><?php echo __('sys_stable'); ?></span>
+                                <?php else: ?>
+                                <?php echo adminLocalBuildBadge(); ?>
+                                <?php endif; ?>
                             </span>
                         </td>
                     </tr>

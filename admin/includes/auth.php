@@ -515,3 +515,14 @@ function requireBloxTemplateTypePermission(string $type): void
     requirePermission('blox_edit');
     requirePermission('edit_page');
 }
+
+/** 版本号旁的「本地构建 local1」徽标；正式包与开发工作树返回空串。 */
+function adminLocalBuildBadge(): string
+{
+    $label = YikaiProductIdentity::localBuildLabel();
+    if ($label === '') {
+        return '';
+    }
+    return '<span class="ml-1.5 inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800" title="'
+        . e(__('local_build_hint')) . '">' . e(__('local_build_badge', ['label' => $label])) . '</span>';
+}

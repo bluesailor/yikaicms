@@ -994,6 +994,8 @@ return [
     'dashboard_pending_forms' => '未処理フォーム',
     'dashboard_media_files' => 'メディアファイル',
     'dashboard_version' => '現在のバージョン',
+    'local_build_badge' => 'ローカルビルド :label',
+    'local_build_hint' => '開発ブランチから作ったローカルテスト版です。同じ番号の正式版より新しいファイルを含むことがあります。自動アップグレードは行わず、オンライン更新は完全パッケージのみを使います。',
     'dashboard_update_check' => '更新を確認中…',
     'dashboard_update_uptodate' => '最新版です',
     'dashboard_update_checking' => '確認中…',
