@@ -2771,7 +2771,7 @@ return [
     'blox_thickness_px' => 'Thickness (px)',
     'blox_heading_ph' => 'Enter heading…',
     'blox_home_block_hint' => 'Homepage block; its content follows the homepage settings',
-    'blox_home_disabled_hint' => 'Hidden on the live site. Turn it on in the block settings to show it.',
+    'blox_home_disabled_hint' => 'Hidden on the live site. Tick "Keep in the homepage layout" in the block settings to show it.',
     'blox_click_action' => 'On click',
     'blox_click_none' => 'No action',
     'blox_click_lightbox' => 'Open lightbox',

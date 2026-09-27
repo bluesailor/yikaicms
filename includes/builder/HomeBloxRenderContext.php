@@ -359,7 +359,9 @@ final class HomeBloxRenderContext
                 unset($GLOBALS[$runtimeKey]);
             }
         }
-        if ($emptyStateConfigured && trim($html) === '') {
+        // 旧首页导入的区块没有 empty_state 键；画布里仍要给出「前台将隐藏」的占位，
+        // 否则启用但没有数据的区块（如没有友情链接的合作伙伴）在画布里完全不可见、点不到。
+        if (($emptyStateConfigured || $this->editMode) && trim($html) === '') {
             $html = $this->emptyStateHtml($block);
         }
         return $this->withEditMarker($html, $type, trim((string) ($data['_blox_path'] ?? '')));
@@ -556,7 +558,7 @@ final class HomeBloxRenderContext
 
         $text = $showMessage
             ? trim((string) ($block['empty_text'] ?? ''))
-            : __('blox_home_empty_hidden_preview');
+            : HomeBlockElement::adminText('blox_home_empty_hidden_preview');
         if ($text === '') {
             $text = __('blox_home_empty_default');
         }

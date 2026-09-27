@@ -2941,7 +2941,7 @@ return [
     'blox_heading_ph' => '見出しを入力…',
     'blox_home_block_hint' => 'ホームページのブロックです。内容はホームページ設定に従います',
     'blox_home_disabled' => '無効',
-    'blox_home_disabled_hint' => '公開サイトには表示されません。ブロック設定でオンにすると表示されます。',
+    'blox_home_disabled_hint' => '公開サイトには表示されません。ブロック設定で「ホームレイアウトに保持」をオンにすると表示されます。',
     'blox_click_action' => 'クリック時',
     'blox_click_none' => '動作なし',
     'blox_click_lightbox' => 'ライトボックス表示',
