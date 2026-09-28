@@ -17,6 +17,7 @@ declare(strict_types=1);
         <i class="ti ti-link" aria-hidden="true"></i><span><?= e(__('blox_link_pick')) ?></span>
     </button>
     <div x-show="linkPickerOpen(<?= e($linkPickerId) ?>)" x-cloak data-testid="blox-link-picker-menu"
+         x-effect="if (linkPickerOpen(<?= e($linkPickerId) ?>)) $nextTick(() => placeLinkPicker($el))"
          class="absolute right-0 top-full z-30 w-72 max-w-[80vw] rounded border border-gray-200 bg-white p-2 shadow-lg">
         <input type="search" x-model="linkPickerSearch" placeholder="<?= e(__('blox_link_search')) ?>"
                aria-label="<?= e(__('blox_link_search')) ?>" class="mb-1 w-full rounded border border-gray-200 px-2 py-1.5 text-xs">
