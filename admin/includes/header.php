@@ -895,16 +895,9 @@ if ($_sbCompactPage) $_sbCollapsed = true;
             <?php
             // ── 数据库迁移待执行检测 ──────────────────────────────
             // 「文件已升级、数据库未升级」中间态会让软删除等写操作静默失效（如：删文章刷新又回来）。
-            // migrations_ok_version 缓存 = 当前版本时跳过（每次版本变更后仅全量探测一次）；
-            // 升级页自身不显示（那里有完整状态）。
-            $__pendingMig = 0;
-            if (hasPermission('*') && ($currentMenu ?? '') !== 'upgrade'
-                && (string) config('migrations_ok_version', '') !== (defined('CMS_VERSION') ? CMS_VERSION : '')) {
-                $__pendingMig = $__sidebarPendingMigrations;
-                if ($__pendingMig === 0 && defined('CMS_VERSION')) {
-                    try { settingModel()->set('migrations_ok_version', CMS_VERSION, 'system'); } catch (\Throwable $e) {}
-                }
-            }
+            // 与侧栏角标用同一次检查（sidebarPendingMigrationsCount，带缓存，迁移结束时由 Migrator::endRun 失效），
+            // 横幅和角标不会各说各话；升级页自身不显示（那里有完整状态）。
+            $__pendingMig = hasPermission('*') && ($currentMenu ?? '') !== 'upgrade' ? $__sidebarPendingMigrations : 0;
             ?>
             <?php
             // 升级正在执行（别的标签页、CLI）：横幅改成「运行中」，按钮不可点，页面自动刷新到跑完
