@@ -35,10 +35,12 @@ final class BloxProfessionalUi
                 ];
             }
             $state = self::state($tier, $allowed, $account ?? [], $moduleLoaded);
+            // 相对链接：只在 admin/blox_editor.php 里使用，由浏览器拼出地址，子目录部署（/sub/admin/）也指向本站后台；
+            // 根相对的 /admin/... 不经过服务端 BasePath 补前缀，会跳到域名根。
             $route = match ($state) {
-                'install', 'enable', 'module_install', 'module_enable' => '/admin/plugin.php',
-                'upgrade' => '/admin/upgrade_online.php',
-                'activate', 'license', 'check' => '/admin/license.php',
+                'install', 'enable', 'module_install', 'module_enable' => 'plugin.php',
+                'upgrade' => 'upgrade_online.php',
+                'activate', 'license', 'check' => 'license.php',
                 default => '',
             };
             $result[$feature] = [

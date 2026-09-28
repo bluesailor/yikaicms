@@ -82,7 +82,7 @@ test('licensed Pro elements carry a PRO badge and stay insertable @ci', async ({
     await expect(tile).toHaveAttribute('data-pro', 'available');
     await expect(tile).toHaveAttribute('draggable', 'true');
     await expect(tile).not.toHaveAttribute('aria-disabled', 'true');
-    await expect(page.getByTestId(`blox-pro-badge-${type}`)).toHaveAttribute('href', '/admin/license.php');
+    await expect(page.getByTestId(`blox-pro-badge-${type}`)).toHaveAttribute('href', 'license.php');
   }
   // Free elements carry no Pro marker.
   await expect(page.getByTestId('blox-add-element-heading')).not.toHaveAttribute('data-pro', /.+/);
