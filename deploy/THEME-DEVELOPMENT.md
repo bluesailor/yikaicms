@@ -236,6 +236,11 @@ themes/acme-corporate/blocks/cta.php
 
 不要把这些变量改成主题专属查询，否则后台排序、多语言、缓存和构建器接管都可能失效。
 
+区块里固定的装饰文字（小标签、次要链接等）不要写死：在主题根目录的 `content-fields.json` 声明字段并加 `"area": "home:<区块类型>"`，
+模板用 `$ykThemeField('key', '兜底文字')` 读取、`$ykHomeFieldAttr('tc_key')` 标记，字段就会出现在该区块的构建器设置里并可在画布上直接改；
+页头/页尾的文字用 `"area": "header"` / `"footer"`、布局里用 `themeContent()` 读取。2.0.1 起可用，完整规则见
+[整站模板工作流 · 主题内容面板](./SITE-TEMPLATE-WORKFLOW.md)。
+
 ### 5.3 片段覆盖
 
 核心片段位于 [`includes/partials/`](../includes/partials/)。常见输入包括：
