@@ -106,7 +106,7 @@ declare(strict_types=1);
                                             <span class="max-w-full px-2 text-[11px] leading-tight text-center truncate" x-text="el.label"></span>
                                         </button>
                                         <?php // 易开网页构建器 Pro 元素：角标链到授权页（授权与否都显示，与免费元素区分） ?>
-                                        <a x-show="el.proFeature" href="/admin/license.php" target="_blank" rel="noopener" @click.stop
+                                        <a x-show="el.proFeature" href="license.php" target="_blank" rel="noopener" @click.stop
                                            :data-testid="'blox-pro-badge-' + el.type"
                                            title="<?= e(__('blox_pro_badge_title')) ?>" aria-label="<?= e(__('blox_pro_badge_title')) ?>"
                                            class="absolute top-1 left-1 px-1 rounded text-[9px] font-bold leading-4 tracking-wide bg-amber-500 text-white hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">PRO</a>

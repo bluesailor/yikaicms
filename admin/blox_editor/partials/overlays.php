@@ -1725,7 +1725,7 @@ declare(strict_types=1);
                             class="text-xs text-gray-500 hover:text-blue-700 inline-flex items-center gap-1">
                         <i class="ti ti-template"></i><span x-text="templateText.allTemplates"></span>
                     </button>
-                    <a x-show="templateScope === 'remote' && premiumNotice() && premiumNotice().state === 'mixed'" href="/admin/license.php"
+                    <a x-show="templateScope === 'remote' && premiumNotice() && premiumNotice().state === 'mixed'" href="license.php"
                        class="text-xs text-amber-700 hover:text-amber-800 inline-flex items-center gap-1">
                         <i class="ti ti-key"></i><span x-text="templateText.manageLicense"></span>
                     </a>
