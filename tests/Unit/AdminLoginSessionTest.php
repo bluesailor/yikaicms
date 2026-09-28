@@ -73,7 +73,7 @@ final class AdminLoginSessionTest extends TestCase
         self::assertStringNotContainsString('verifyCsrf();', $login, 'login must not answer with a bare JSON 403');
         $post = strpos($login, "if (\$_SERVER['REQUEST_METHOD'] === 'POST') {");
         self::assertIsInt($post);
-        $block = substr($login, $post, 900);
+        $block = substr($login, $post, 2400);  // 2.0.2 起令牌分支里多了登录诊断
         self::assertStringContainsString('if (!csrfTokenValid()) {', $block);
         self::assertStringContainsString("'login_session_lost' : 'login_page_expired'", $block);
         // 令牌无效时直接落到页面渲染，doLogin / doTotpLogin 只在 elseif 分支里

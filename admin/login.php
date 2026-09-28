@@ -12,6 +12,9 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
+// 登录诊断要知道：本页改动会话之前，服务器认不认得这个会话（下面的语言检测会往会话里写东西）
+$loginSessionHadData = !empty($_SESSION);
+
 // 已登录则跳转
 if (!empty($_SESSION['admin_id'])) {
     redirect('/admin/');
@@ -91,6 +94,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 会话里连令牌都没有 = 会话没带回来（登录页放太久被回收、Cookie 被拦、服务器存不下会话）；
         // 有令牌但对不上 = 用的是旧页面（多开标签页、后退回来的缓存页）
         $error = __(empty($_SESSION['csrf_token']) ? 'login_session_lost' : 'login_page_expired');
+        if (empty($_SESSION['csrf_token'])) {
+            // 会话丢了：判断是浏览器没带回 Cookie、服务器没存下、还是登录页来自缓存。
+            // 访客只看到对症提示和诊断码；带服务器路径的细节只进站点日志
+            require_once ROOT_PATH . '/includes/LoginDiagnostics.php';
+            $loginDiagCode = LoginDiagnostics::classify($_COOKIE, session_name(), $loginSessionHadData, LoginDiagnostics::storeWritable());
+            $loginDiagHint = __(LoginDiagnostics::hintKey($loginDiagCode));
+            if (class_exists('ErrorHandler')) {
+                ErrorHandler::log('WARNING', LoginDiagnostics::logLine($loginDiagCode, $_SERVER, (string) (config('site_url', '') ?: (defined('SITE_URL') ? SITE_URL : ''))), __FILE__, __LINE__);
+            }
+        }
     } elseif (post('action') === 'totp') {
         // 第二步：验证器验证码
         $result = doTotpLogin(post('totp_code'));
@@ -146,8 +159,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <?php if ($error): ?>
-            <div class="bg-red-50 text-red-600 p-4 rounded-lg mb-6">
+            <div class="bg-red-50 text-red-600 p-4 rounded-lg mb-6" role="alert">
                 <?php echo e($error); ?>
+                <?php if (!empty($loginDiagCode)): ?>
+                <p class="mt-2 text-sm text-red-700" data-testid="login-diagnosis"><?php echo e($loginDiagHint); ?>
+                    <span class="block mt-1 text-xs text-red-500"><?php echo e(__('login_diag_code', ['code' => $loginDiagCode])); ?></span></p>
+                <?php endif; ?>
             </div>
             <?php endif; ?>
 
