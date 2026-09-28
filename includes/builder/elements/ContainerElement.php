@@ -132,6 +132,7 @@ final class ContainerElement extends AbstractElement
             ...$this->flexItemControls(),
             ...$this->staggerControls(),
             ...BloxOverlap::controls(),
+            ...$this->collapseControls(),
         ];
     }
 
@@ -174,11 +175,16 @@ final class ContainerElement extends AbstractElement
             $this->resp($data['align'] ?? 'stretch', self::ITEMS_MAP, 'stretch'),
             $this->resp($data['justify'] ?? 'start', self::JUSTIFY_MAP, 'start'),
             $this->resp($data['align_content'] ?? '', self::CONTENT_MAP, ''),
-            $this->resp($data['padding'] ?? 'none', self::PAD_MAP, 'none'),
         ] as $c) {
             if ($c !== '') {
                 $layout .= ' ' . $c;
             }
+        }
+        // 内边距仍是最后一个类（与历史输出逐字节一致）；折叠时它留在根上，按钮落在内边距以内
+        $padCls = $this->resp($data['padding'] ?? 'none', self::PAD_MAP, 'none');
+        $collapse = self::collapseParts($data);
+        if ($collapse === null && $padCls !== '') {
+            $layout .= ' ' . $padCls;
         }
         $radiusCls = self::RADIUS_MAP[$data['radius'] ?? 'none'] ?? '';
 
@@ -195,7 +201,7 @@ final class ContainerElement extends AbstractElement
             $base = $data;
             unset($base['bg_overlay']);
             $style = '';
-            $background = self::backgroundDeclarations($base);
+            $background = self::collapseStyle(self::backgroundDeclarations($base), $collapse);
             if ($background !== '') {
                 $style = ' style="' . htmlspecialchars($background, ENT_QUOTES) . '"';
             }
@@ -204,6 +210,17 @@ final class ContainerElement extends AbstractElement
                 ? '<div class="blox-bg-overlay" style="background:rgba(0,0,0,' . $alpha . ')"></div>'
                 : '';
             $selfCls = trim(self::alignSelfClass($data) . ' ' . self::gridItemSpanClasses($data));
+            if ($collapse !== null) {
+                // 视频背景 + 折叠：内容层兼作折叠内层，按钮跟在内容层后；内边距留在根上
+                return '<div class="yk-container blox-has-bg ' . $collapse['class'] . ($padCls !== '' ? ' ' . $padCls : '') . ($radiusCls !== '' ? ' ' . $radiusCls : '') . ($selfCls !== '' ? ' ' . $selfCls : '') . '"' . $style . $collapse['attrs'] . '>'
+                    . '<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="'
+                    . $mobileVideoMode . '" data-blox-video-src="'
+                    . htmlspecialchars($video, ENT_QUOTES) . '"' . $posterAttr . '></video></div>'
+                    . $overlay
+                    . '<div class="blox-content yk-collapse-body ' . $layout . '" id="' . $collapse['body_id'] . '"' . $stagger . '>' . $children . '</div>'
+                    . $collapse['toggle']
+                    . '</div>';
+            }
             return '<div class="yk-container blox-has-bg' . ($radiusCls !== '' ? ' ' . $radiusCls : '') . ($selfCls !== '' ? ' ' . $selfCls : '') . '"' . $style . '>'
                 . '<div class="blox-bg-media" aria-hidden="true"><video muted loop playsinline preload="none" data-blox-background-video data-blox-mobile-video="'
                 . $mobileVideoMode . '" data-blox-video-src="'
@@ -214,12 +231,19 @@ final class ContainerElement extends AbstractElement
         }
 
         $selfCls = trim(self::alignSelfClass($data) . ' ' . self::gridItemSpanClasses($data));
-        $cls = 'yk-container ' . $layout . ($radiusCls !== '' ? ' ' . $radiusCls : '') . ($selfCls !== '' ? ' ' . $selfCls : '');
         $style = '';
-        $background = self::backgroundDeclarations($data);
+        $background = self::collapseStyle(self::backgroundDeclarations($data), $collapse);
         if ($background !== '') {
             $style = ' style="' . htmlspecialchars($background, ENT_QUOTES) . '"';
         }
+        if ($collapse !== null) {
+            // 折叠：根保留背景、内边距、圆角与在父级中的布局；子项布局交给内层（间距由样式表继承）
+            $rootCls = 'yk-container ' . $collapse['class'] . ($padCls !== '' ? ' ' . $padCls : '') . ($radiusCls !== '' ? ' ' . $radiusCls : '') . ($selfCls !== '' ? ' ' . $selfCls : '');
+            return '<div class="' . $rootCls . '"' . $style . $collapse['attrs'] . '>'
+                . '<div class="yk-collapse-body ' . $layout . '" id="' . $collapse['body_id'] . '"' . $stagger . '>' . $children . '</div>'
+                . $collapse['toggle'] . '</div>';
+        }
+        $cls = 'yk-container ' . $layout . ($radiusCls !== '' ? ' ' . $radiusCls : '') . ($selfCls !== '' ? ' ' . $selfCls : '');
         return '<div class="' . $cls . '"' . $style . $stagger . '>' . $children . '</div>';
     }
 }

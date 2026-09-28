@@ -7,7 +7,7 @@
     // 容器/Div 的专用样式块（workspace.php isSelectedContainerEl 分支)不参与。
     // 纯函数可被 node --test 直接测；Alpine 接线经 methods 混入编辑器组件
     //（先例：BloxBannerPanel / BloxHomeContentPanel）。
-    var ORDER = ["general", "background", "animation"];
+    var ORDER = ["general", "background", "animation", "collapse"];
     var BOX_KEYS = [
         "style_margin", "style_margin_top", "style_margin_right", "style_margin_bottom", "style_margin_left",
         "style_padding", "style_padding_top", "style_padding_right", "style_padding_bottom", "style_padding_left",

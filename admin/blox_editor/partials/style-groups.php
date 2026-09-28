@@ -13,7 +13,7 @@ declare(strict_types=1);
 <template x-if="selEl && elementStyleTab() && styleGroups().length">
     <div role="group" aria-label="<?= e(__('blox_style_groups')) ?>" data-testid="blox-style-groups"
          class="flex gap-1 border-b border-gray-200 pb-2">
-        <?php foreach (['general', 'background', 'animation'] as $group): ?>
+        <?php foreach (['general', 'background', 'animation', 'collapse'] as $group): ?>
         <button type="button" x-show="styleGroups().includes('<?= e($group) ?>')"
                 @click="setStyleGroup('<?= e($group) ?>')"
                 :aria-pressed="effectiveStyleGroup() === '<?= e($group) ?>'"

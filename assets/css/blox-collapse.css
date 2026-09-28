@@ -1,0 +1,64 @@
+/* 易开网页构建器：长内容折叠（容器 / Div，2.0.3）。结构与参数见 AbstractElement::collapseParts()。
+ * 根 .yk-collapse：背景、内边距、圆角；内层 .yk-collapse-body：子项布局 + 裁切 + 渐隐；按钮在内层之后。
+ * 折叠高度按设备取 --ykc-h-m / -t / -d / -w（none = 该设备不折叠），断点与编辑器响应式档位一致。 */
+
+.yk-collapse > .yk-collapse-body {
+    /* 声明式间距（gap_px 等）写在根上：内层继承，折叠前后排版一致 */
+    gap: inherit;
+    row-gap: inherit;
+    column-gap: inherit;
+    position: relative;
+}
+
+.yk-collapse[data-yk-collapse-state="collapsed"] > .yk-collapse-body {
+    max-height: var(--ykc-h-m, none);
+    overflow: hidden;
+}
+@media (min-width: 768px) {
+    .yk-collapse[data-yk-collapse-state="collapsed"] > .yk-collapse-body { max-height: var(--ykc-h-t, none); }
+}
+@media (min-width: 1024px) {
+    .yk-collapse[data-yk-collapse-state="collapsed"] > .yk-collapse-body { max-height: var(--ykc-h-d, none); }
+}
+@media (min-width: 1440px) {
+    .yk-collapse[data-yk-collapse-state="collapsed"] > .yk-collapse-body { max-height: var(--ykc-h-w, var(--ykc-h-d, none)); }
+}
+
+.yk-collapse[data-yk-collapse-animate] > .yk-collapse-body {
+    transition: max-height .4s ease;
+}
+
+/* 渐隐只在「确实被截断」时出现（脚本测量后加 data-yk-collapse-clipped） */
+.yk-collapse[data-yk-collapse-fade="mask"][data-yk-collapse-state="collapsed"][data-yk-collapse-clipped] > .yk-collapse-body {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 6rem), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 6rem), transparent);
+}
+.yk-collapse[data-yk-collapse-fade="color"][data-yk-collapse-state="collapsed"][data-yk-collapse-clipped] > .yk-collapse-body::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 6rem;
+    background: linear-gradient(to bottom, transparent, var(--ykc-fade, #fff));
+    pointer-events: none;
+}
+
+.yk-collapse[data-yk-collapse-state="expanded"] [data-yk-collapse-icon] {
+    transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .yk-collapse > .yk-collapse-body,
+    .yk-collapse [data-yk-collapse-icon] { transition: none !important; }
+}
+
+@media print {
+    .yk-collapse > .yk-collapse-body {
+        max-height: none !important;
+        -webkit-mask-image: none !important;
+        mask-image: none !important;
+    }
+    .yk-collapse > .yk-collapse-body::after,
+    .yk-collapse > .yk-collapse-toggle { display: none !important; }
+}
