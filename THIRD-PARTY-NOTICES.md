@@ -92,6 +92,14 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
   随包只保留运行时文件（*.min.js、皮肤、插件数据），语言包沿用原 zh_CN / ja 两份并改挂
   `hugerte.addI18n`。`assets/tinymce/` 整目录删除；`window.tinymce` 作为别名保留给第三方插件。
 
+- **2026-09-28（v2.0.1 核对）**：本周期未引入或升级第三方组件，`composer.json` /
+  `composer.lock`、`package.json` 与 `assets/` 下的第三方目录自 v2.0.0 起无变化。新增的
+  `assets/css/blox-image-shape.css` / `blox-overlap.css` / `blox-section-divider.css` 及对应
+  `includes/builder/Blox*.php`、`includes/NavCurrent.php`、`includes/SessionStorage.php`、商城路由等
+  均为本项目源码。Business 模板新增的四张首屏图（`marketplace/themes/business/assets/images/
+  business-hero-*-v2.webp`）由 AI（Codex）为本项目生成，经产品方确认不涉及第三方版权，
+  不产生许可义务。反向核对：本周期未删除任何组件的加载点，清单内组件引用关系不变。
+
 - **2026-08-27（v1.19.1 候选核对）**：本周期未引入或升级第三方组件，Composer 与 npm
   依赖清单均无变化。Blox 编辑器交互、站点资源可用性与发布上传门禁的变更均为项目源码，
   不产生额外许可证义务；清单内组件与生产依赖仍有真实加载点。
