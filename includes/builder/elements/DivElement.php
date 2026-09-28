@@ -110,6 +110,7 @@ final class DivElement extends AbstractElement
             // 0a：Div 自身作为父级 flex 子项的布局。
             ...$this->flexItemControls(),
             ...$this->staggerControls(),
+            ...$this->collapseControls(),
         ];
     }
 
@@ -121,8 +122,11 @@ final class DivElement extends AbstractElement
     public function render(array $data, string $children = ''): string
     {
         $display = ($data['display'] ?? 'block') === 'flex' ? 'flex' : 'block';
-        $cls = 'yk-div';
-        if (($data['display'] ?? '') === 'overlay') $cls .= ' yk-div-overlay';
+        $root = 'yk-div';
+        if (($data['display'] ?? '') === 'overlay') $root .= ' yk-div-overlay';
+        // 子项布局类（折叠时移到内层）与盒子类（内边距、圆角、在父级中的布局，始终留在根上）分开拼；
+        // 未折叠时按 根 + 布局 + 盒子 的原顺序输出，与历史逐字节一致
+        $cls = '';
         if (($data['display'] ?? '') === 'grid') {
             // 0b Grid：列模板 + 排列填充；间距与三轴对齐类与 flex 分支同一套语义。
             $cls .= ' grid ' . self::gridColumnClasses($data['grid_cols'] ?? null);
@@ -171,6 +175,7 @@ final class DivElement extends AbstractElement
                 }
             }
         }
+        $box = '';
         foreach ([
             $this->resp($data['padding'] ?? 'none', self::PAD_MAP, 'none'),
             self::RADIUS_MAP[$data['radius'] ?? 'none'] ?? '',
@@ -178,16 +183,23 @@ final class DivElement extends AbstractElement
             self::gridItemSpanClasses($data),
         ] as $boxClass) {
             if ($boxClass !== '') {
-                $cls .= ' ' . $boxClass;
+                $box .= ' ' . $boxClass;
             }
         }
 
+        // 叠放模式靠子项绝对定位，没有「长内容」可折
+        $collapse = ($data['display'] ?? '') === 'overlay' ? null : self::collapseParts($data);
         $style = '';
-        $background = self::backgroundDeclarations($data);
+        $background = self::collapseStyle(self::backgroundDeclarations($data), $collapse);
         if ($background !== '') {
             $style = ' style="' . htmlspecialchars($background, ENT_QUOTES) . '"';
         }
 
-        return '<div class="' . $cls . '"' . $style . $this->staggerAttrs($data) . '>' . $children . '</div>';
+        if ($collapse !== null) {
+            return '<div class="' . $root . ' ' . $collapse['class'] . $box . '"' . $style . $collapse['attrs'] . '>'
+                . '<div class="yk-collapse-body' . $cls . '" id="' . $collapse['body_id'] . '"' . $this->staggerAttrs($data) . '>' . $children . '</div>'
+                . $collapse['toggle'] . '</div>';
+        }
+        return '<div class="' . $root . $cls . $box . '"' . $style . $this->staggerAttrs($data) . '>' . $children . '</div>';
     }
 }

@@ -2309,6 +2309,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 'general' => __('blox_style_group_general'),
                 'background' => __('blox_style_group_background'),
                 'animation' => __('blox_style_group_animation'),
+                'collapse' => __('blox_style_group_collapse'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             modifiedOnly: false,        // 只看已修改的设置项
             libQuery: "",

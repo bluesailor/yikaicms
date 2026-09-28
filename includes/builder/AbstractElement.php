@@ -288,6 +288,119 @@ abstract class AbstractElement
         return $attrs;
     }
 
+    /** 折叠高度选项（px）；空串 = 该设备不折叠 */
+    private const COLLAPSE_HEIGHTS = ['' => 0, '120' => 120, '200' => 200, '300' => 300, '400' => 400, '500' => 500, '640' => 640, '800' => 800];
+    private const COLLAPSE_BUTTON_STYLES = [
+        'link' => 'inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline',
+        'outline' => 'inline-flex items-center gap-1.5 rounded-full border border-current px-5 py-2 text-sm font-semibold text-primary hover:bg-primary/5',
+        'solid' => 'inline-flex items-center gap-1.5 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:opacity-90',
+    ];
+    private const COLLAPSE_ALIGN = ['center' => 'justify-center', 'left' => 'justify-start', 'right' => 'justify-end'];
+    private static int $collapseSeq = 0;
+    private static bool $collapseNoscriptSent = false;
+
+    /**
+     * 长内容折叠（容器 / Div 共用，2.0.3）：按设备设折叠高度，透明或颜色渐隐，展开/收起按钮样式与位置、动画。
+     * @return list<array<string, mixed>>
+     */
+    protected function collapseControls(): array
+    {
+        $on = ['collapse', '=', true];
+        $heights = ['' => __('blox_collapse_height_off')];
+        foreach (array_keys(self::COLLAPSE_HEIGHTS) as $px) {
+            if ($px !== '') {
+                $heights[(string) $px] = $px . 'px';
+            }
+        }
+        return [
+            ['key' => 'collapse', 'type' => 'checkbox', 'label' => __('blox_collapse_enable'), 'default' => false, 'tab' => 'style', 'group' => 'collapse'],
+            ['key' => 'collapse_height', 'type' => 'select', 'label' => __('blox_collapse_height'), 'default' => '300', 'tab' => 'style', 'group' => 'collapse',
+                'responsive' => true, 'required' => $on, 'options' => $heights],
+            ['key' => 'collapse_fade', 'type' => 'select', 'label' => __('blox_collapse_fade'), 'default' => 'mask', 'tab' => 'style', 'group' => 'collapse', 'required' => $on,
+                'options' => ['mask' => __('blox_collapse_fade_mask'), 'color' => __('blox_collapse_fade_color'), 'none' => __('blox_collapse_fade_none')]],
+            ['key' => 'collapse_fade_color', 'type' => 'color', 'label' => __('blox_collapse_fade_to'), 'default' => '#ffffff', 'tab' => 'style', 'group' => 'collapse',
+                'required' => ['collapse_fade', '=', 'color']],
+            ['key' => 'collapse_more_text', 'type' => 'text', 'label' => __('blox_collapse_more'), 'default' => __('blox_collapse_more_default'), 'tab' => 'style', 'group' => 'collapse', 'required' => $on],
+            ['key' => 'collapse_less_text', 'type' => 'text', 'label' => __('blox_collapse_less'), 'default' => __('blox_collapse_less_default'), 'tab' => 'style', 'group' => 'collapse', 'required' => $on],
+            ['key' => 'collapse_button_style', 'type' => 'select', 'label' => __('blox_collapse_button_style'), 'default' => 'link', 'tab' => 'style', 'group' => 'collapse', 'required' => $on,
+                'options' => ['link' => __('blox_collapse_style_link'), 'outline' => __('blox_collapse_style_outline'), 'solid' => __('blox_collapse_style_solid')]],
+            ['key' => 'collapse_button_align', 'type' => 'select', 'label' => __('blox_collapse_button_align'), 'default' => 'center', 'tab' => 'style', 'group' => 'collapse', 'required' => $on,
+                'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')]],
+            ['key' => 'collapse_icon', 'type' => 'checkbox', 'label' => __('blox_collapse_icon'), 'default' => true, 'tab' => 'style', 'group' => 'collapse', 'required' => $on],
+            ['key' => 'collapse_animate', 'type' => 'checkbox', 'label' => __('blox_collapse_animate'), 'default' => true, 'tab' => 'style', 'group' => 'collapse', 'required' => $on],
+        ];
+    }
+
+    /**
+     * 折叠开启且至少一个设备有高度时，给出渲染所需的几段：根元素追加的类 / 属性 / 样式变量、内层 id、按钮 HTML。
+     * 结构：根（背景、内边距、圆角、在父级中的布局）> 内层 .yk-collapse-body（子项布局 + 裁切 + 渐隐）+ 按钮。
+     * 内容始终完整输出（搜索引擎可见）；未开启时返回 null，元素输出与旧版逐字节一致。
+     *
+     * @return null|array{class:string,attrs:string,style:string,body_id:string,toggle:string}
+     */
+    protected static function collapseParts(array $data): ?array
+    {
+        if (!in_array($data['collapse'] ?? false, [true, 1, '1'], true)) {
+            return null;
+        }
+        $heights = BloxResponsiveValue::normalize($data['collapse_height'] ?? '300', self::COLLAPSE_HEIGHTS, '300');
+        $vars = [];
+        $any = false;
+        foreach (['m', 't', 'd', 'w'] as $bp) {
+            $px = self::COLLAPSE_HEIGHTS[(string) $heights[$bp]] ?? 0;
+            $any = $any || $px > 0;
+            $vars[] = '--ykc-h-' . $bp . ':' . ($px > 0 ? $px . 'px' : 'none');
+        }
+        if (!$any) {
+            return null;
+        }
+        $fade = $data['collapse_fade'] ?? 'mask';
+        $fade = in_array($fade, ['mask', 'color', 'none'], true) ? $fade : 'mask';
+        if ($fade === 'color') {
+            $vars[] = '--ykc-fade:' . (self::cssColor($data['collapse_fade_color'] ?? null) ?? '#ffffff');
+        }
+        $id = 'ykc-' . substr(md5((string) json_encode($data)), 0, 8) . '-' . (++self::$collapseSeq);
+        $clip = static fn (mixed $v, string $fallback): string => mb_substr(trim(is_scalar($v) ? (string) $v : ''), 0, 40) ?: $fallback;
+        $more = $clip($data['collapse_more_text'] ?? '', __('blox_collapse_more_default'));
+        $less = $clip($data['collapse_less_text'] ?? '', __('blox_collapse_less_default'));
+        $style = self::COLLAPSE_BUTTON_STYLES[(string) ($data['collapse_button_style'] ?? 'link')] ?? self::COLLAPSE_BUTTON_STYLES['link'];
+        $align = self::COLLAPSE_ALIGN[(string) ($data['collapse_button_align'] ?? 'center')] ?? 'justify-center';
+        $icon = !in_array($data['collapse_icon'] ?? true, [false, 0, '0'], true)
+            ? '<i class="ti ti-chevron-down transition-transform" data-yk-collapse-icon aria-hidden="true"></i>'
+            : '';
+        $h = static fn (string $v): string => htmlspecialchars($v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        // 按钮先隐藏：内容本来就不超过折叠高度时，脚本不会让它出现
+        $toggle = '<div class="yk-collapse-toggle mt-4 flex ' . $align . '" data-yk-collapse-toggle hidden>'
+            . '<button type="button" class="' . $style . '" aria-expanded="false" aria-controls="' . $id . '"'
+            . ' data-yk-collapse-more="' . $h($more) . '" data-yk-collapse-less="' . $h($less) . '">'
+            . '<span data-yk-collapse-label>' . $h($more) . '</span>' . $icon . '</button></div>';
+        if (!self::$collapseNoscriptSent) {
+            // 不跑脚本的访客（或脚本加载失败）：不裁切，完整显示
+            self::$collapseNoscriptSent = true;
+            $toggle .= '<noscript><style>.yk-collapse>.yk-collapse-body{max-height:none!important;-webkit-mask-image:none!important;mask-image:none!important}.yk-collapse>.yk-collapse-body::after{display:none!important}</style></noscript>';
+        }
+        $animate = !in_array($data['collapse_animate'] ?? true, [false, 0, '0'], true);
+        BloxAssetCollector::addScript('/assets/js/blox-collapse.js');
+        BloxAssetCollector::addStyle('/assets/css/blox-collapse.css');
+        return [
+            'class' => 'yk-collapse',
+            'attrs' => ' data-yk-collapse data-yk-collapse-state="collapsed" data-yk-collapse-fade="' . $fade . '"' . ($animate ? ' data-yk-collapse-animate' : ''),
+            'style' => implode(';', $vars),
+            'body_id' => $id,
+            'toggle' => $toggle,
+        ];
+    }
+
+    /** 根元素样式：背景声明后接折叠高度变量；未折叠时原样返回（历史输出不变）。 */
+    protected static function collapseStyle(string $declarations, ?array $collapse): string
+    {
+        if ($collapse === null || $collapse['style'] === '') {
+            return $declarations;
+        }
+        $declarations = trim($declarations);
+        return ($declarations !== '' ? rtrim($declarations, ';') . ';' : '') . $collapse['style'];
+    }
+
     /** 将动画设置转成安全的 data 属性；无动画时不改变历史 HTML。 */
     protected function animationAttrs(array $data): string
     {
