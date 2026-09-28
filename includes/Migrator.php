@@ -130,6 +130,67 @@ if (!function_exists('_addIndex')) {
 
 class Migrator
 {
+    /** @var resource|null 本进程持有的执行锁 */
+    private static $runLock = null;
+
+    /** @return array{0:string,1:string} [锁文件, 运行信息文件]（在 storage/ 下，网站禁止直接访问） */
+    private static function runLockPaths(): array
+    {
+        $dir = ROOT_PATH . '/storage';
+        return [$dir . '/migrations.lock', $dir . '/migrations.running.json'];
+    }
+
+    /**
+     * 开始执行迁移前取锁：后台、CLI 同一时刻只允许一处在跑，防止重复点击或多个标签页同时升级。
+     * 用系统文件锁（flock），进程结束（包括中途崩溃、超时）时系统自动释放，不会卡在「运行中」。
+     * 另一处正在执行时返回 false；存储目录不可写时不拦（锁只防重复执行，不能因此让升级跑不了）。
+     */
+    public static function beginRun(string $source): bool
+    {
+        if (self::$runLock !== null) return true;
+        [$lockFile, $infoFile] = self::runLockPaths();
+        if (!is_dir(dirname($lockFile))) @mkdir(dirname($lockFile), 0755, true);
+        $handle = @fopen($lockFile, 'c');
+        if ($handle === false) return true;
+        if (!flock($handle, LOCK_EX | LOCK_NB)) {
+            fclose($handle);
+            return false;
+        }
+        self::$runLock = $handle;
+        @file_put_contents($infoFile, (string) json_encode(['started_at' => time(), 'source' => $source]));
+        return true;
+    }
+
+    /** 迁移执行完（成功或失败）释放锁 */
+    public static function endRun(): void
+    {
+        if (self::$runLock === null) return;
+        [, $infoFile] = self::runLockPaths();
+        @unlink($infoFile);
+        flock(self::$runLock, LOCK_UN);
+        fclose(self::$runLock);
+        self::$runLock = null;
+    }
+
+    /**
+     * 另一处正在执行迁移时返回其开始时间与来源（admin / cli），否则 null。只探测、不留锁。
+     * @return null|array{started_at:int,source:string}
+     */
+    public static function runningInfo(): ?array
+    {
+        if (self::$runLock !== null) return null;
+        [$lockFile, $infoFile] = self::runLockPaths();
+        if (!is_file($lockFile)) return null;
+        $handle = @fopen($lockFile, 'c');
+        if ($handle === false) return null;
+        $free = flock($handle, LOCK_EX | LOCK_NB);
+        if ($free) flock($handle, LOCK_UN);
+        fclose($handle);
+        if ($free) return null;
+        $info = json_decode((string) @file_get_contents($infoFile), true);
+        return ['started_at' => (int) ($info['started_at'] ?? 0), 'source' => (string) ($info['source'] ?? '')];
+    }
+
     /**
      * 加载所有迁移定义 —— 后台「数据库升级」与 CLI migrate 的唯一来源。
      *

@@ -5,6 +5,8 @@ installed.lock
 # Runtime data
 storage/database.sqlite
 storage/.recipe-apply.lock
+storage/migrations.lock
+storage/migrations.running.json
 storage/site-templates/
 storage/theme-locks/
 storage/logs/*.log

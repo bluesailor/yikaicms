@@ -906,7 +906,25 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                 }
             }
             ?>
-            <?php if ($__pendingMig > 0): ?>
+            <?php
+            // 升级正在执行（别的标签页、CLI）：横幅改成「运行中」，按钮不可点，页面自动刷新到跑完
+            $__migRunning = null;
+            if ($__pendingMig > 0) {
+                require_once ROOT_PATH . '/includes/Migrator.php';
+                $__migRunning = Migrator::runningInfo();
+            }
+            ?>
+            <?php if ($__migRunning !== null): ?>
+            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3" role="status" data-testid="mig-running-banner">
+                <i class="ti ti-loader-2 animate-spin text-lg text-amber-600 mt-0.5" aria-hidden="true"></i>
+                <div class="text-sm text-amber-900 flex-1">
+                    <p class="font-bold"><?php echo e(__('mig_running_title')); ?></p>
+                    <p class="mt-1"><?php echo e(__('mig_running_desc', ['time' => $__migRunning['started_at'] > 0 ? date('H:i:s', $__migRunning['started_at']) : '-'])); ?></p>
+                </div>
+                <span class="flex-shrink-0 bg-amber-200 text-amber-800 px-4 py-2 rounded text-sm font-medium cursor-not-allowed" aria-disabled="true"><?php echo e(__('mig_running_button')); ?></span>
+            </div>
+            <script>setTimeout(function () { location.reload(); }, 5000);</script>
+            <?php elseif ($__pendingMig > 0): ?>
             <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start gap-3">
                 <i class="ti ti-alert-triangle text-lg text-red-500 mt-0.5"></i>
                 <div class="text-sm text-red-800 flex-1">

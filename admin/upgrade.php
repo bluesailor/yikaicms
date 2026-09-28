@@ -174,8 +174,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
 
 // AJAX 执行升级
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
+    verifyCsrf();  // 会改数据库结构，与本页其它写操作一样校验令牌
     // 抑制响应被任何 warning/notice 污染 (会破坏 JSON 解析)
     ob_start();
+
+    // 另一处（别的标签页、控制台横幅进来的页面、CLI）正在执行时不重复跑；执行完或进程结束都会释放锁
+    if (!Migrator::beginRun('admin')) {
+        ob_end_clean();
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['code' => 1, 'running' => true, 'msg' => __('mig_running_busy')], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    register_shutdown_function([Migrator::class, 'endRun']);
 
     $runIds = (array)$_POST['run'];
     $results = [];
@@ -231,6 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['run'])) {
             db()->execute("UPDATE " . DB_PREFIX . "settings SET `value` = ? WHERE `key` = 'cms_version'", [$currentVersion]);
         }
     } catch (\Throwable $e) {}
+    Migrator::endRun();
 
     // 丢弃任何意外输出 (warnings/notices/BOM/echo 等)
     ob_end_clean();
@@ -333,10 +344,16 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
     <?php endforeach; ?>
     </div>
 
+    <?php $migRunning = Migrator::runningInfo(); ?>
     <div class="mt-6">
-        <button id="btnUpgrade" onclick="runUpgrade()" class="bg-primary hover:bg-secondary text-white px-8 py-2.5 rounded transition inline-flex items-center gap-2">
+        <?php if ($migRunning !== null): ?>
+        <?php // 另一处正在执行（别的标签页、CLI）：按钮不可点，页面每 5 秒刷新一次，跑完自动回到正常状态 ?>
+        <p class="mb-3 text-sm text-amber-700" role="status" data-testid="mig-running"><i class="ti ti-loader-2 animate-spin" aria-hidden="true"></i> <?php echo e(__('mig_running_desc', ['time' => $migRunning['started_at'] > 0 ? date('H:i:s', $migRunning['started_at']) : '-'])); ?></p>
+        <script>setTimeout(function () { location.reload(); }, 5000);</script>
+        <?php endif; ?>
+        <button id="btnUpgrade" onclick="runUpgrade()"<?php echo $migRunning !== null ? ' disabled' : ''; ?> class="bg-primary hover:bg-secondary text-white px-8 py-2.5 rounded transition inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
             <i class="ti ti-refresh text-base"></i>
-            <?php echo e(__('upg_run')); ?>
+            <?php echo e($migRunning !== null ? __('mig_running_button') : __('upg_run')); ?>
         </button>
     </div>
     <?php endif; ?>
@@ -373,6 +390,7 @@ async function runUpgrade() {
     btn.textContent = '<?php echo __('upgrade_running'); ?>';
 
     var formData = new FormData();
+    formData.append('_token', '<?php echo csrfToken(); ?>');
     ids.forEach(function(id) { formData.append('run[]', id); });
 
     try {
@@ -420,6 +438,12 @@ async function runUpgrade() {
                 // 而人这会儿想知道的是刚才到底动了什么。
                 setTimeout(function() { location.href = 'upgrade.php?tab=welcome'; }, 1500);
             }
+        } else if (data.running) {
+            // 另一处正在执行：保持按钮不可点，等它跑完后刷新看结果
+            showMessage(data.msg, 'error');
+            btn.textContent = <?php echo json_encode(__('mig_running_button'), JSON_UNESCAPED_UNICODE); ?>;
+            setTimeout(function () { location.reload(); }, 5000);
+            return;
         } else {
             showMessage(data.msg || '<?php echo __('upgrade_failed'); ?>', 'error');
         }
