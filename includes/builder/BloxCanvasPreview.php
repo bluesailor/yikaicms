@@ -2457,6 +2457,36 @@ HTML;
             . 'window.addEventListener("resize",sync);document.addEventListener("blox:content-updated",sync);'
             . '})();</script>';
     }
+    // 主题自己把页头设成 absolute/fixed（如 Havenform 首页的透明页头）时，前台页头叠在首屏上；
+    // 画布里页头包在只读区域容器中，定位参照变成容器，会落到页面内容顶部的插入栏上、被标签和插入按钮挡住。
+    // 这里检测页头是否脱离文档流：是就把区域对齐到第一个页面区块、补上页头高度。
+    // 区域标签与“编辑网页头”按钮统一放到页头下沿外侧，不压住页头自己的 Logo 和按钮。
+    $headerFlowPreview = '';
+    if ($bloxCanvas) {
+        $headerFlowPreview = '<style>'
+            . '.yk-home-context-area[data-yk-region="header"].yk-header-out-of-flow{position:absolute;inset:var(--yk-canvas-header-top,0px) 0 auto;z-index:60;opacity:1;border:0;min-height:var(--yk-canvas-header-h,0px)}'
+            . '.yk-home-context-area[data-yk-region="header"].yk-header-out-of-flow>header,.yk-home-context-area[data-yk-region="header"].yk-header-out-of-flow>#siteHeader{position:absolute!important;top:0!important;left:0!important;right:0!important}'
+            . 'html.yk-home-header-overlay .yk-home-context-area[data-yk-region="header"]:before,.yk-home-context-area[data-yk-region="header"].yk-header-out-of-flow:before,'
+            . 'html.yk-home-header-overlay .yk-home-context-area[data-yk-region="header"]>.yk-canvas-region-action,.yk-home-context-area[data-yk-region="header"].yk-header-out-of-flow>.yk-canvas-region-action{top:calc(100% + 8px)}'
+            . '</style>'
+            . '<script' . $nonceAttr . '>(function(){'
+            . 'function sync(){'
+            . 'var area=document.querySelector(\'.yk-home-context-area[data-yk-region="header"]\');if(!area)return;'
+            . 'if(document.documentElement.classList.contains("yk-home-header-overlay")){area.classList.remove("yk-header-out-of-flow");return;}'
+            . 'var header=area.querySelector("#siteHeader")||area.querySelector("header");if(!header)return;'
+            . 'area.classList.remove("yk-header-out-of-flow");'
+            . 'var pos=window.getComputedStyle(header).position;'
+            . 'if(pos!=="absolute"&&pos!=="fixed")return;'
+            . 'var first=document.querySelector(".yk-page-content-context [data-yk-sec]")||document.querySelector(".yk-page-content-context");'
+            . 'var top=first?first.getBoundingClientRect().top+window.scrollY:0;'
+            . 'area.style.setProperty("--yk-canvas-header-top",top+"px");'
+            . 'area.style.setProperty("--yk-canvas-header-h",header.offsetHeight+"px");'
+            . 'area.classList.add("yk-header-out-of-flow");}'
+            . 'document.addEventListener("DOMContentLoaded",sync);window.addEventListener("load",sync);'
+            . 'window.addEventListener("resize",sync);document.addEventListener("blox:content-updated",sync);'
+            . 'document.addEventListener("blox:structure-updated",function(){setTimeout(sync,0);});'
+            . '})();</script>';
+    }
     $previewScripts = (string) preg_replace(
         '/<script\b(?![^>]*\bnonce=)/i',
         '<script' . $nonceAttr,
@@ -2496,6 +2526,7 @@ HTML;
         . (isset($GLOBALS['ykPageLayout']) ? '<style>' . ThemeSettings::css() . BloxPageLayout::css($GLOBALS['ykPageLayout']) . '</style>' : '')
         . $previewStyles
         . $headerOverlayPreview
+        . $headerFlowPreview
         . '<style>body{margin:0;background:#fff}</style></head><body' . bloxCanvasBodyClassAttr() . '>'
         . $body
         . '<script' . $nonceAttr . ' src="' . assetVer('/assets/swiper/swiper-bundle.min.js') . '"></script>'
