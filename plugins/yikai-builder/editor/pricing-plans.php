@@ -14,6 +14,11 @@ $pricingText = json_encode([
     'buttonText' => __('blox_pricing_plan_button_text'),
     'buttonUrl' => __('blox_pricing_plan_button_url'),
     'featured' => __('blox_pricing_plan_featured'),
+    'pricePrefix' => __('blox_pricing_plan_price_prefix'),
+    'originalPrice' => __('blox_pricing_plan_original_price'),
+    'originalPriceYearly' => __('blox_pricing_plan_original_price_yearly'),
+    'priceNote' => __('blox_pricing_plan_price_note'),
+    'accent' => __('blox_pricing_plan_accent'),
     'add' => __('blox_pricing_add_plan'),
     'delete' => __('blox_pricing_delete_plan'),
     'newPlan' => __('blox_pricing_new_plan'),
@@ -45,9 +50,9 @@ $pricingText = json_encode([
                 </div>
                 <?php
                 // 单行字段：[数据键, 文案键]
-                foreach ([['name', 'name'], ['badge', 'badge'], ['price', 'price'], ['period', 'period'],
-                          ['price_yearly', 'priceYearly'], ['period_yearly', 'periodYearly'],
-                          ['description', 'description'], ['button_text', 'buttonText'], ['button_url', 'buttonUrl']] as [$field, $label]):
+                foreach ([['name', 'name'], ['badge', 'badge'], ['price_prefix', 'pricePrefix'], ['price', 'price'], ['original_price', 'originalPrice'], ['period', 'period'],
+                          ['price_yearly', 'priceYearly'], ['original_price_yearly', 'originalPriceYearly'], ['period_yearly', 'periodYearly'],
+                          ['price_note', 'priceNote'], ['description', 'description'], ['button_text', 'buttonText'], ['button_url', 'buttonUrl']] as [$field, $label]):
                 ?>
                 <label class="block">
                     <span class="mb-0.5 block text-[9px] font-medium text-gray-400" x-text="pt.<?= $label ?>"></span>
@@ -56,6 +61,18 @@ $pricingText = json_encode([
                            class="w-full rounded border border-gray-200 bg-white px-2 py-1 text-xs">
                 </label>
                 <?php endforeach; ?>
+                <?php // 本档主色：取色器与文本框写同一个值；留空跟随网站主色 ?>
+                <div class="block">
+                    <span class="mb-0.5 block text-[9px] font-medium text-gray-400" x-text="pt.accent"></span>
+                    <div class="flex items-center gap-1.5">
+                        <input type="color" :value="/^#[0-9a-fA-F]{6}$/.test(plan.accent) ? plan.accent : '#2563eb'" @input="setPricingPlan(index, 'accent', $event.target.value)"
+                               :aria-label="pt.accent" data-testid="blox-pricing-accent-picker"
+                               class="h-7 w-9 shrink-0 cursor-pointer rounded border border-gray-200 bg-white p-0.5">
+                        <input type="text" :value="plan.accent" @input="setPricingPlan(index, 'accent', $event.target.value)" placeholder="#2563eb"
+                               :aria-label="pt.accent" data-testid="blox-pricing-accent"
+                               class="min-w-0 flex-1 rounded border border-gray-200 bg-white px-2 py-1 font-mono text-xs">
+                    </div>
+                </div>
                 <label class="block">
                     <span class="mb-0.5 block text-[9px] font-medium text-gray-400" x-text="pt.features"></span>
                     <textarea rows="4" :value="plan.features" @input="setPricingPlan(index, 'features', $event.target.value)"

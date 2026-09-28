@@ -10,7 +10,15 @@ final class PricingTableElement extends AbstractElement
     private const TEXT_LIMITS = [
         'name' => 60, 'badge' => 30, 'price' => 30, 'price_yearly' => 30, 'period' => 20, 'period_yearly' => 20,
         'description' => 200, 'button_text' => 40,
+        // 2.0.3：划线原价（按月/按年各一）、价格上方的小字（如「起」「限时」）、价格下方说明
+        'original_price' => 30, 'original_price_yearly' => 30, 'price_prefix' => 20, 'price_note' => 60,
     ];
+    /** 角标位置：auto 沿用旧版（居中对齐时顶边居中，否则顶边靠左），其余 7 种 */
+    private const BADGE_POSITIONS = ['auto', 'top-left', 'top-center', 'top-right', 'inline', 'corner', 'ribbon-left', 'ribbon-right'];
+    private const GAPS = ['sm' => 'gap-4', 'md' => 'gap-6', 'lg' => 'gap-8', 'xl' => 'gap-10'];
+    private const MAX_WIDTHS = ['md' => 'max-w-3xl', 'lg' => 'max-w-5xl', 'xl' => 'max-w-6xl', '2xl' => 'max-w-7xl'];
+    private const GRID_ALIGN = ['left' => 'mr-auto', 'center' => 'mx-auto', 'right' => 'ml-auto'];
+    private const FEATURED_SCALE = ['sm' => 'md:scale-[1.03]', 'md' => 'md:scale-105'];
 
     public function type(): string { return 'pricing-table'; }
     public function label(): string { return __('blox_el_pricing_table'); }
@@ -36,10 +44,43 @@ final class PricingTableElement extends AbstractElement
                     'accent' => __('blox_pricing_variant_accent'),
                     'minimal' => __('blox_pricing_variant_minimal'),
                 ]],
-            ['key' => 'columns', 'type' => 'select', 'label' => __('blox_dynamic_columns'), 'tab' => 'style', 'default' => 'auto',
-                'options' => ['auto' => __('blox_pricing_columns_auto'), '2' => '2', '3' => '3', '4' => '4']],
+            // 网格：列数按断点、间距、最大宽度与整体对齐
+            ['key' => 'columns', 'type' => 'select', 'label' => __('blox_dynamic_columns'), 'tab' => 'style', 'default' => 'auto', 'responsive' => true,
+                'options' => ['auto' => __('blox_pricing_columns_auto'), '1' => '1', '2' => '2', '3' => '3', '4' => '4']],
+            ['key' => 'gap', 'type' => 'select', 'label' => __('blox_pricing_gap'), 'tab' => 'style', 'default' => 'md',
+                'options' => ['sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
+            ['key' => 'max_width', 'type' => 'select', 'label' => __('blox_pricing_max_width'), 'tab' => 'style', 'default' => '',
+                'options' => ['' => __('blox_pricing_max_width_none'), 'md' => '768px', 'lg' => '1024px', 'xl' => '1152px', '2xl' => '1280px']],
+            ['key' => 'grid_align', 'type' => 'select', 'label' => __('blox_pricing_grid_align'), 'tab' => 'style', 'default' => 'center',
+                'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center'), 'right' => __('blox_align_right')]],
             ['key' => 'align', 'type' => 'select', 'label' => __('blox_align'), 'tab' => 'style', 'default' => 'left',
                 'options' => ['left' => __('blox_align_left'), 'center' => __('blox_align_center')]],
+            // 价格下方说明的样式
+            ['key' => 'price_note_style', 'type' => 'select', 'label' => __('blox_pricing_note_style'), 'tab' => 'style', 'default' => 'text',
+                'options' => ['text' => __('blox_pricing_note_style_text'), 'chip' => __('blox_pricing_note_style_chip')]],
+            // 角标
+            ['key' => 'badge_position', 'type' => 'select', 'label' => __('blox_pricing_badge_position'), 'tab' => 'style', 'default' => 'auto',
+                'options' => [
+                    'auto' => __('blox_pricing_badge_auto'),
+                    'top-left' => __('blox_pricing_badge_top_left'),
+                    'top-center' => __('blox_pricing_badge_top_center'),
+                    'top-right' => __('blox_pricing_badge_top_right'),
+                    'inline' => __('blox_pricing_badge_inline'),
+                    'corner' => __('blox_pricing_badge_corner'),
+                    'ribbon-left' => __('blox_pricing_badge_ribbon_left'),
+                    'ribbon-right' => __('blox_pricing_badge_ribbon_right'),
+                ]],
+            ['key' => 'badge_size', 'type' => 'select', 'label' => __('blox_pricing_badge_size'), 'tab' => 'style', 'default' => 'sm',
+                'options' => ['sm' => __('blox_pricing_badge_size_sm'), 'md' => __('blox_pricing_badge_size_md')]],
+            ['key' => 'badge_bg', 'type' => 'color', 'label' => __('blox_pricing_badge_bg'), 'tab' => 'style', 'default' => ''],
+            ['key' => 'badge_color', 'type' => 'color', 'label' => __('blox_pricing_badge_color'), 'tab' => 'style', 'default' => ''],
+            // 推荐档突出显示与按钮位置
+            ['key' => 'featured_scale', 'type' => 'select', 'label' => __('blox_pricing_featured_scale'), 'tab' => 'style', 'default' => '',
+                'options' => ['' => __('blox_pricing_featured_scale_none'), 'sm' => __('blox_pricing_featured_scale_sm'), 'md' => __('blox_pricing_featured_scale_md')]],
+            ['key' => 'featured_shadow', 'type' => 'checkbox', 'label' => __('blox_pricing_featured_shadow'), 'tab' => 'style', 'default' => false],
+            ['key' => 'button_position', 'type' => 'select', 'label' => __('blox_pricing_button_position'), 'tab' => 'style', 'default' => 'bottom',
+                'options' => ['bottom' => __('blox_pricing_button_bottom'), 'price' => __('blox_pricing_button_price')]],
+            ...$this->staggerControls(),
         ];
     }
 
@@ -58,8 +99,20 @@ final class PricingTableElement extends AbstractElement
         $toggle = self::enabled($data, 'billing_toggle', false);
         $variant = in_array($data['variant'] ?? '', ['cards', 'accent', 'minimal'], true) ? (string) $data['variant'] : 'cards';
         $center = ($data['align'] ?? 'left') === 'center';
-        $count = count($plans);
-        $columns = in_array((string) ($data['columns'] ?? 'auto'), ['2', '3', '4'], true) ? (int) $data['columns'] : min($count, 4);
+        $options = [
+            'variant' => $variant,
+            'center' => $center,
+            'toggle' => $toggle,
+            'currency' => $currency,
+            'badge_position' => self::badgePosition($data['badge_position'] ?? 'auto', $center),
+            'badge_size' => ($data['badge_size'] ?? 'sm') === 'md' ? 'md' : 'sm',
+            'badge_bg' => self::cssColor($data['badge_bg'] ?? null),
+            'badge_color' => self::cssColor($data['badge_color'] ?? null),
+            'note_chip' => ($data['price_note_style'] ?? 'text') === 'chip',
+            'featured_scale' => self::FEATURED_SCALE[(string) ($data['featured_scale'] ?? '')] ?? '',
+            'featured_shadow' => self::enabled($data, 'featured_shadow', false),
+            'button_at_price' => ($data['button_position'] ?? 'bottom') === 'price',
+        ];
 
         $html = '<div class="yk-pricing" data-yk-pricing data-yk-pricing-cycle="monthly">';
         if ($toggle) {
@@ -69,17 +122,50 @@ final class PricingTableElement extends AbstractElement
                 self::clip((string) ($data['yearly_note'] ?? ''), 30)
             );
         }
-        $html .= '<div class="grid gap-6 items-stretch ' . self::gridClasses($columns, 3, true) . '">';
+        $maxWidth = self::MAX_WIDTHS[(string) ($data['max_width'] ?? '')] ?? '';
+        $wrap = 'grid items-stretch ' . self::columnClasses($data['columns'] ?? 'auto', count($plans))
+            . ' ' . (self::GAPS[(string) ($data['gap'] ?? 'md')] ?? 'gap-6')
+            . ($maxWidth !== '' ? ' w-full ' . $maxWidth . ' ' . (self::GRID_ALIGN[(string) ($data['grid_align'] ?? 'center')] ?? 'mx-auto') : '')
+            // 放大的推荐档会越出格子：留出上下余量，免得贴到区块边上
+            . ($options['featured_scale'] !== '' ? ' md:py-4' : '');
+        $html .= '<div class="' . $wrap . '"' . $this->staggerAttrs($data) . '>';
         foreach ($plans as $plan) {
-            $html .= self::planHtml($plan, $currency, $variant, $center, $toggle);
+            $html .= self::planHtml($plan, $options);
         }
         return $html . '</div></div>';
     }
 
     /**
-     * 文档里的套餐数据不可信：逐字段限长、功能行拆分、按钮链接走统一的安全链接规则。
+     * 列数：旧文档是单值（auto/2/3/4，沿用原来的手机单列、md 起分列）；按断点设置时是 {d,t,m,w}，auto 取套餐数（最多 4）。
+     */
+    private static function columnClasses(mixed $value, int $count): string
+    {
+        $auto = min(max($count, 1), 4);
+        if (!is_array($value)) {
+            $columns = in_array((string) $value, ['1', '2', '3', '4'], true) ? (int) $value : $auto;
+            return self::gridClasses($columns, 3, true);
+        }
+        $resolved = [];
+        foreach (['d', 't', 'm', 'w'] as $bp) {
+            if (!array_key_exists($bp, $value)) {
+                continue;
+            }
+            $candidate = (string) $value[$bp];
+            $resolved[$bp] = $candidate === 'auto' ? $auto : (in_array($candidate, ['1', '2', '3', '4'], true) ? (int) $candidate : $auto);
+        }
+        return self::gridColumnClasses($resolved + ['d' => $auto]);
+    }
+
+    private static function badgePosition(mixed $value, bool $center): string
+    {
+        $value = is_string($value) && in_array($value, self::BADGE_POSITIONS, true) ? $value : 'auto';
+        return $value === 'auto' ? ($center ? 'top-center' : 'top-left') : $value;
+    }
+
+    /**
+     * 文档里的套餐数据不可信：逐字段限长、功能行拆分、按钮链接走统一的安全链接规则、颜色只收合法取值。
      *
-     * @return list<array{name:string,badge:string,price:string,price_yearly:string,period:string,period_yearly:string,description:string,features:list<array{text:string,included:bool}>,button_text:string,button_url:string,featured:bool}>
+     * @return list<array<string,mixed>>
      */
     public static function normalizePlans(mixed $raw): array
     {
@@ -104,6 +190,8 @@ final class PricingTableElement extends AbstractElement
             $plan['features'] = self::features($item['features'] ?? '');
             $plan['button_url'] = self::safeHref(is_scalar($item['button_url'] ?? null) ? (string) $item['button_url'] : '');
             $plan['featured'] = !in_array($item['featured'] ?? false, [false, 0, '0', '', null], true);
+            // 每档单独的主色：只收 #hex / rgb() 等合法颜色，其它一律忽略
+            $plan['accent'] = self::cssColor($item['accent'] ?? null) ?? '';
             $plans[] = $plan;
         }
         return $plans;
@@ -144,18 +232,28 @@ final class PricingTableElement extends AbstractElement
             . '</div></div>';
     }
 
-    /** @param array<string,mixed> $plan */
-    private static function planHtml(array $plan, string $currency, string $variant, bool $center, bool $toggle): string
+    /**
+     * @param array<string,mixed> $plan
+     * @param array<string,mixed> $o 元素级选项（见 render()）
+     */
+    private static function planHtml(array $plan, array $o): string
     {
-        $featured = $plan['featured'];
+        $variant = (string) $o['variant'];
+        $center = (bool) $o['center'];
+        $featured = (bool) $plan['featured'];
         $inverse = $featured && $variant === 'accent';
+        $emphasis = $featured ? trim($o['featured_scale'] . ($o['featured_scale'] !== '' ? ' z-10' : '')) : '';
+        $shadow = $featured && $o['featured_shadow'] ? ' shadow-xl' : ' shadow-sm';
         $card = match ($variant) {
             'minimal' => 'relative flex h-full flex-col px-2 py-6' . ($featured ? ' border-t-4 border-primary' : ' border-t border-gray-200'),
-            default => 'relative flex h-full flex-col rounded-2xl border p-8 shadow-sm'
+            default => 'relative flex h-full flex-col rounded-2xl border p-8' . $shadow
                 . ($inverse ? ' border-primary bg-primary text-white' : ' bg-white')
                 . ($featured && !$inverse ? ' border-primary ring-2 ring-primary' : '')
                 . (!$featured ? ' border-gray-200' : ''),
         };
+        if ($emphasis !== '') {
+            $card .= ' transition-transform ' . $emphasis;
+        }
         // 卡片是自带配色的独立表面：区块「文字色调」会覆盖标题/段落/列表的工具类颜色，
         // 所以卡片内文字用行内颜色（行内优先）。极简风格没有卡片底色，继续跟随区块色调。
         $palette = $variant === 'minimal' ? null : ($inverse
@@ -163,27 +261,50 @@ final class PricingTableElement extends AbstractElement
             : ['title' => '#111827', 'body' => '#374151', 'muted' => '#6b7280']);
         $color = static fn (string $role): string => $palette === null ? '' : ' style="color:' . $palette[$role] . '"';
         $align = $center ? ' text-center items-center' : '';
+        // 每档主色：卡片内的 primary 工具类（边框、角标、按钮、勾选图标、强调底色）都读这个变量
+        $accentStyle = $plan['accent'] !== '' ? ' style="--color-primary:' . self::h((string) $plan['accent']) . '"' : '';
 
-        $html = '<div class="' . $card . $align . '"' . ($featured ? ' data-yk-pricing-featured' : '') . '>';
-        if ($plan['badge'] !== '') {
-            $badge = $inverse ? 'bg-white text-primary' : 'bg-primary text-white';
-            $html .= '<span class="absolute -top-3 ' . ($center ? 'left-1/2 -translate-x-1/2' : 'left-8')
-                . ' rounded-full px-3 py-1 text-xs font-semibold ' . $badge . '">' . self::h($plan['badge']) . '</span>';
+        $html = '<div class="' . $card . $align . '"' . $accentStyle . ($featured ? ' data-yk-pricing-featured' : '') . '>';
+        $badgePos = (string) $o['badge_position'];
+        $badge = $plan['badge'] !== '' ? self::badgeHtml((string) $plan['badge'], $badgePos, $o, $inverse, $center) : '';
+        if (!in_array($badgePos, ['inline', 'corner'], true)) {
+            $html .= $badge;
         }
-        $html .= '<h3 class="text-lg font-semibold"' . $color('title') . '>' . self::h($plan['name']) . '</h3>';
+        if ($badgePos === 'inline') {
+            $html .= $badge;
+        }
+        $title = '<h3 class="text-lg font-semibold"' . $color('title') . '>' . self::h((string) $plan['name']) . '</h3>';
+        // 卡片内右上角：与名称同一行，名称再长也不会被角标压住
+        $html .= $badgePos === 'corner' && $badge !== ''
+            ? '<div class="flex w-full items-start justify-between gap-3">' . $title . $badge . '</div>'
+            : $title;
         if ($plan['description'] !== '') {
-            $html .= '<p class="mt-2 text-sm opacity-90"' . $color('muted') . '>' . self::h($plan['description']) . '</p>';
+            $html .= '<p class="mt-2 text-sm opacity-90"' . $color('muted') . '>' . self::h((string) $plan['description']) . '</p>';
         }
 
-        $html .= '<div class="mt-6 flex items-baseline gap-1' . ($center ? ' justify-center' : '') . '">';
-        $html .= self::priceHtml($currency, $plan['price'], $plan['period'], 'monthly', $palette, false);
-        if ($toggle) {
-            $yearlyPrice = $plan['price_yearly'] !== '' ? $plan['price_yearly'] : $plan['price'];
-            $yearlyPeriod = $plan['period_yearly'] !== '' ? $plan['period_yearly'] : $plan['period'];
-            $html .= self::priceHtml($currency, $yearlyPrice, $yearlyPeriod, 'yearly', $palette, true);
+        if ($plan['price_prefix'] !== '') {
+            $html .= '<p class="mt-6 text-xs font-semibold uppercase tracking-wide opacity-80"' . $color('muted') . '>' . self::h((string) $plan['price_prefix']) . '</p>';
+        }
+        $html .= '<div class="' . ($plan['price_prefix'] !== '' ? 'mt-1' : 'mt-6') . ' flex items-baseline gap-1' . ($center ? ' justify-center' : '') . '">';
+        $html .= self::priceHtml((string) $o['currency'], (string) $plan['price'], (string) $plan['original_price'], (string) $plan['period'], 'monthly', $palette, false);
+        if ($o['toggle']) {
+            $yearlyPrice = $plan['price_yearly'] !== '' ? (string) $plan['price_yearly'] : (string) $plan['price'];
+            $yearlyOriginal = $plan['original_price_yearly'] !== '' ? (string) $plan['original_price_yearly'] : ($plan['price_yearly'] !== '' ? '' : (string) $plan['original_price']);
+            $yearlyPeriod = $plan['period_yearly'] !== '' ? (string) $plan['period_yearly'] : (string) $plan['period'];
+            $html .= self::priceHtml((string) $o['currency'], $yearlyPrice, $yearlyOriginal, $yearlyPeriod, 'yearly', $palette, true);
         }
         $html .= '</div>';
+        if ($plan['price_note'] !== '') {
+            $html .= $o['note_chip']
+                ? '<p class="mt-3"><span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold ' . ($inverse ? 'bg-white/15 text-white' : 'bg-primary/10 text-primary') . '">'
+                    . self::h((string) $plan['price_note']) . '</span></p>'
+                : '<p class="mt-2 text-sm"' . $color('muted') . '>' . self::h((string) $plan['price_note']) . '</p>';
+        }
 
+        $button = self::buttonHtml($plan, $featured, $inverse, (bool) $o['button_at_price']);
+        if ($o['button_at_price']) {
+            $html .= $button;
+        }
         if ($plan['features'] !== []) {
             $html .= '<ul class="mt-6 space-y-3 text-sm' . ($center ? ' text-left' : '') . '">';
             foreach ($plan['features'] as $feature) {
@@ -195,31 +316,73 @@ final class PricingTableElement extends AbstractElement
             }
             $html .= '</ul>';
         }
-
-        if ($plan['button_text'] !== '') {
-            $button = $inverse
-                ? 'bg-white text-primary hover:bg-white/90'
-                : ($featured ? 'bg-primary text-white hover:opacity-90' : 'border border-gray-300 text-gray-900 hover:border-primary hover:text-primary');
-            // 按钮贴底：各档功能行数不同，按钮仍在同一水平线
-            $html .= '<div class="mt-auto w-full pt-8"><a href="' . self::h($plan['button_url'] !== '' ? $plan['button_url'] : '#')
-                . '" class="inline-flex w-full items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition '
-                . $button . '">' . self::h($plan['button_text']) . '</a></div>';
+        if (!$o['button_at_price']) {
+            $html .= $button;
         }
         return $html . '</div>';
     }
 
-    /** @param array{title:string,body:string,muted:string}|null $palette */
-    private static function priceHtml(string $currency, string $price, string $period, string $cycle, ?array $palette, bool $hidden): string
+    /** @param array<string,mixed> $o */
+    private static function badgeHtml(string $text, string $position, array $o, bool $inverse, bool $center): string
     {
-        $symbol = $currency !== '' && $price !== '' && !preg_match('/^\D/u', $price)
-            ? '<span class="text-xl font-semibold">' . self::h($currency) . '</span>'
+        $custom = '';
+        if ($o['badge_bg'] !== null) {
+            $custom .= 'background-color:' . $o['badge_bg'] . ';';
+        }
+        if ($o['badge_color'] !== null) {
+            $custom .= 'color:' . $o['badge_color'] . ';';
+        }
+        $colors = $custom !== '' ? '' : ($inverse ? ' bg-white text-primary' : ' bg-primary text-white');
+        $style = $custom !== '' ? ' style="' . self::h($custom) . '"' : '';
+        $size = $o['badge_size'] === 'md' ? ' px-4 py-1.5 text-sm' : ' px-3 py-1 text-xs';
+
+        if ($position === 'ribbon-left' || $position === 'ribbon-right') {
+            // 斜角绶带：外层裁掉超出卡片圆角的部分，绶带本身旋转 45°
+            $left = $position === 'ribbon-left';
+            return '<div class="pointer-events-none absolute top-0 h-24 w-24 overflow-hidden ' . ($left ? 'left-0 rounded-tl-2xl' : 'right-0 rounded-tr-2xl') . '" data-yk-pricing-badge="' . $position . '">'
+                . '<span class="absolute top-5 block w-36 text-center font-semibold shadow-sm ' . ($left ? '-left-9 -rotate-45' : '-right-9 rotate-45')
+                . ($o['badge_size'] === 'md' ? ' py-1.5 text-sm' : ' py-1 text-xs') . $colors . '"' . $style . '>' . self::h($text) . '</span></div>';
+        }
+        $place = match ($position) {
+            'top-center' => 'absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap',
+            'top-right' => 'absolute -top-3 right-8 whitespace-nowrap',
+            'inline' => 'mb-3 inline-flex self-start' . ($center ? ' self-center' : ''),
+            'corner' => 'shrink-0 whitespace-nowrap',
+            default => 'absolute -top-3 left-8 whitespace-nowrap',
+        };
+        return '<span class="' . $place . ' rounded-full font-semibold' . $size . $colors . '"' . $style . ' data-yk-pricing-badge="' . $position . '">' . self::h($text) . '</span>';
+    }
+
+    /** @param array<string,mixed> $plan */
+    private static function buttonHtml(array $plan, bool $featured, bool $inverse, bool $atPrice): string
+    {
+        if ($plan['button_text'] === '') {
+            return '';
+        }
+        $button = $inverse
+            ? 'bg-white text-primary hover:bg-white/90'
+            : ($featured ? 'bg-primary text-white hover:opacity-90' : 'border border-gray-300 text-gray-900 hover:border-primary hover:text-primary');
+        // 默认贴底：各档功能行数不同，按钮仍在同一水平线；放在价格下方时紧跟价格
+        return '<div class="' . ($atPrice ? 'mt-6' : 'mt-auto pt-8') . ' w-full"><a href="' . self::h($plan['button_url'] !== '' ? (string) $plan['button_url'] : '#')
+            . '" class="inline-flex w-full items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition '
+            . $button . '">' . self::h((string) $plan['button_text']) . '</a></div>';
+    }
+
+    /** @param array{title:string,body:string,muted:string}|null $palette */
+    private static function priceHtml(string $currency, string $price, string $original, string $period, string $cycle, ?array $palette, bool $hidden): string
+    {
+        $symbol = static fn (string $amount): string => $currency !== '' && $amount !== '' && !preg_match('/^\D/u', $amount) ? self::h($currency) : '';
+        $originalHtml = $original !== ''
+            ? '<s class="mr-1 text-base font-medium opacity-60" aria-label="' . self::h(__('blox_pricing_original_price_aria', ['price' => $symbol($original) . $original])) . '">'
+                . $symbol($original) . self::h($original) . '</s>'
             : '';
+        $symbolHtml = $symbol($price) !== '' ? '<span class="text-xl font-semibold">' . $symbol($price) . '</span>' : '';
         $periodHtml = $period !== ''
             ? '<span class="text-sm opacity-80">' . self::h($period) . '</span>'
             : '';
-        return '<span class="inline-flex items-baseline gap-1" data-yk-pricing-price="' . $cycle . '"' . ($hidden ? ' hidden' : '')
+        return '<span class="inline-flex flex-wrap items-baseline gap-1" data-yk-pricing-price="' . $cycle . '"' . ($hidden ? ' hidden' : '')
             . ($palette === null ? '' : ' style="color:' . $palette['title'] . '"') . '>'
-            . $symbol . '<span class="text-4xl font-bold tracking-tight">' . self::h($price) . '</span>' . $periodHtml . '</span>';
+            . $originalHtml . $symbolHtml . '<span class="text-4xl font-bold tracking-tight">' . self::h($price) . '</span>' . $periodHtml . '</span>';
     }
 
     /** @return list<array<string,mixed>> */
