@@ -161,15 +161,24 @@ class Migrator
         return true;
     }
 
-    /** 迁移执行完（成功或失败）释放锁 */
+    /**
+     * 迁移执行完（成功或失败）释放锁，并让「待升级数量」缓存失效。
+     * 后台「数据库升级」与 CLI migrate:run 都经这里收尾：控制台横幅和侧栏角标下一次请求就重新探测，
+     * 不会在跑完后还显示旧数量（最长 60 秒）；部分失败时显示的是真实剩余数，而不是一律清零。
+     * 存储不可写、没拿到锁文件时（beginRun 放行）同样要清缓存，所以清缓存不放在锁判断里。
+     */
     public static function endRun(): void
     {
-        if (self::$runLock === null) return;
-        [, $infoFile] = self::runLockPaths();
-        @unlink($infoFile);
-        flock(self::$runLock, LOCK_UN);
-        fclose(self::$runLock);
-        self::$runLock = null;
+        if (self::$runLock !== null) {
+            [, $infoFile] = self::runLockPaths();
+            @unlink($infoFile);
+            flock(self::$runLock, LOCK_UN);
+            fclose(self::$runLock);
+            self::$runLock = null;
+        }
+        if (function_exists('cacheDelete')) {
+            cacheDelete('sidebar_pending_migrations');
+        }
     }
 
     /**

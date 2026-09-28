@@ -1223,7 +1223,7 @@ function langPrefix(?string $lang = null): string
 /**
  * 待执行的数据库迁移条数（0 = 库结构与代码同步）。
  * 用于「文件已升级、数据库未升级」中间态的全局检测；调用方应自行做缓存
- * （见 admin/includes/header.php 的 migrations_ok_version 机制，避免每页全量探测）。
+ * （后台用 sidebarPendingMigrationsCount() 的缓存，迁移结束时由 Migrator::endRun() 失效，避免每页全量探测）。
  */
 function pendingMigrationsCount(): int
 {

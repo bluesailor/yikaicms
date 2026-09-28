@@ -57,6 +57,35 @@ final class MigratorRunLockTest extends TestCase
         self::assertTrue(Migrator::beginRun('admin'));
     }
 
+    /**
+     * 跑完迁移（成功、部分失败，或存储不可写没拿到锁）都让「待升级数量」缓存失效：
+     * 回到控制台立即重新探测，不会再显示升级前的数量（原先非 0 结果缓存 60 秒）。
+     */
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    public function testEndingARunInvalidatesThePendingCountCache(): void
+    {
+        if (!function_exists('cacheDelete')) {
+            eval('function cacheDelete(string $key): void { $GLOBALS["_deleted_cache_keys"][] = $key; }');
+        }
+        $GLOBALS['_deleted_cache_keys'] = [];
+        self::assertTrue(Migrator::beginRun('admin'));
+        Migrator::endRun();
+        self::assertSame(['sidebar_pending_migrations'], $GLOBALS['_deleted_cache_keys']);
+
+        // 没持有锁时（beginRun 因存储不可写直接放行）也要清
+        $GLOBALS['_deleted_cache_keys'] = [];
+        Migrator::endRun();
+        self::assertSame(['sidebar_pending_migrations'], $GLOBALS['_deleted_cache_keys']);
+    }
+
+    public function testDashboardBannerAndSidebarBadgeShareOneCheck(): void
+    {
+        $header = (string) file_get_contents(ROOT_PATH . '/admin/includes/header.php');
+        self::assertStringContainsString("\$__pendingMig = hasPermission('*') && (\$currentMenu ?? '') !== 'upgrade' ? \$__sidebarPendingMigrations : 0;", $header);
+        self::assertStringNotContainsString('migrations_ok_version', $header, 'no second, separately cached state that can drift from the badge');
+    }
+
     public function testEveryEntryPointUsesTheLock(): void
     {
         $upgrade = (string) file_get_contents(ROOT_PATH . '/admin/upgrade.php');
