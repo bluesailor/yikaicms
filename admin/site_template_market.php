@@ -65,6 +65,8 @@ $allCount = count($items);
 $importableCount = count(array_filter($items, static fn(array $item): bool => $item['blocked_reason'] === ''));
 // 语言筛选只在目录给出了模板语言时出现（老的目录没有这个字段，不显示一个筛不出东西的选项）
 $hasLanguages = array_filter($items, static fn(array $item): bool => ($item['languages'] ?? []) !== []) !== [];
+// 按钮与卡片上的语言标记统一按 中 / 日 / 英 排列（与演示站目录页一致）
+$languageOrder = ['zh-CN', 'ja', 'en'];
 $catalogLanguages = array_values(array_unique(array_merge([], ...array_map(static fn(array $item): array => $item['languages'] ?? [], $items))));
 $languageNames = availableLanguages();
 // 左栏两组筛选的数量互相跟随：行业数量按「搜索 + 语言」算，语言数量按「搜索 + 行业」算，
@@ -132,7 +134,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <h2 id="st-market-lang-title" class="mb-2 text-xs font-semibold text-gray-500"><?= e(__('st_market_language')) ?></h2>
         <?php // 一行四个：全部【中】【日】【英】；完整语言名和数量放在提示里 ?>
         <ul class="grid grid-cols-4 gap-1.5">
-            <?php foreach (['', 'zh-CN', 'ja', 'en'] as $code): $active = $contentLanguage === $code; $label = $code === '' ? __('admin_all') : __('st_market_lang_' . substr($code, 0, 2)); ?>
+            <?php foreach (array_merge([''], $languageOrder) as $code): $active = $contentLanguage === $code; $label = $code === '' ? __('admin_all') : __('st_market_lang_' . substr($code, 0, 2)); ?>
             <li><a href="<?= e($marketUrl(['lang' => $code])) ?>"<?= $active ? ' aria-current="true"' : '' ?><?= $code !== '' ? ' lang="' . e($code) . '"' : '' ?>
                 title="<?= e(($code === '' ? __('admin_all') : (string) ($languageNames[$code] ?? $code)) . ' · ' . (int) ($languageCounts[$code] ?? 0)) ?>"
                 class="flex min-h-8 items-center justify-center rounded-md border px-1 text-xs font-semibold whitespace-nowrap <?= $active ? 'border-primary bg-primary text-white' : 'border-gray-200 text-gray-600 hover:border-blue-300 hover:text-primary' ?>"><?= e($label) ?></a></li>
@@ -143,7 +145,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <nav aria-labelledby="st-market-categories-title" data-testid="st-market-categories">
         <h2 id="st-market-categories-title" class="mb-2 text-xs font-semibold text-gray-500"><?= e(__('st_market_category')) ?></h2>
         <ul class="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0 lg:overflow-visible">
-            <?php foreach (['' => __('st_market_all')] + $categories as $key => $label): $key = (string) $key; $active = $category === $key; ?>
+            <?php // 有搜索或语言条件时，数量为 0 的行业不列出（当前选中的除外），免得一长串 0 ?>
+            <?php foreach (['' => __('st_market_all')] + $categories as $key => $label): $key = (string) $key; $active = $category === $key; if ($key !== '' && !$active && ($search !== '' || $contentLanguage !== '') && (int) ($categoryCounts[$key] ?? 0) === 0) continue; ?>
             <li class="shrink-0"><a href="<?= e($marketUrl(['category' => $key])) ?>"<?= $active ? ' aria-current="page"' : '' ?>
                 class="flex items-center justify-between gap-3 rounded-md px-2.5 py-2 text-sm whitespace-nowrap <?= $active ? 'bg-blue-50 text-primary font-semibold' : 'text-gray-600 hover:bg-gray-50 hover:text-primary' ?>">
                 <span><?= e((string) $label) ?></span><span class="text-xs <?= $active ? 'text-primary' : 'text-gray-400' ?>"><?= $key === '' ? count($pool) : (int) ($categoryCounts[$key] ?? 0) ?></span></a></li>
@@ -180,7 +183,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="flex flex-1 flex-col gap-2.5 px-4 py-3.5">
                 <div class="flex items-start justify-between gap-3">
                     <h2 class="min-w-0 line-clamp-2 text-base font-bold text-gray-900"><?= e($name) ?></h2>
-                    <?php if (($item['languages'] ?? []) !== []): ?><span class="flex shrink-0 gap-1 pt-0.5 text-xs font-semibold text-gray-500" data-testid="st-market-card-languages" title="<?= e(implode(' · ', array_map(static fn(string $code): string => (string) ($languageNames[$code] ?? $code), $item['languages']))) ?>"><?php foreach ($item['languages'] as $code): ?><span><?= e(__('st_market_lang_' . substr((string) $code, 0, 2))) ?></span><?php endforeach; ?></span><?php endif; ?>
+                    <?php if (($item['languages'] ?? []) !== []): ?><span class="flex shrink-0 gap-1 pt-0.5 text-xs font-semibold text-gray-500" data-testid="st-market-card-languages" title="<?= e(implode(' · ', array_map(static fn(string $code): string => (string) ($languageNames[$code] ?? $code), $item['languages']))) ?>"><?php foreach (array_values(array_intersect($languageOrder, $item['languages'])) as $code): ?><span><?= e(__('st_market_lang_' . substr((string) $code, 0, 2))) ?></span><?php endforeach; ?></span><?php endif; ?>
                 </div>
                 <?php // 有演示时简介和行业在封面悬停层里；触屏与窄屏看不到悬停，照常显示 ?>
                 <?php if ($description !== ''): ?><p class="line-clamp-2 text-sm text-gray-600<?= $hasDemo ? ' lg:hidden' : '' ?>"><?= e($description) ?></p><?php endif; ?>
