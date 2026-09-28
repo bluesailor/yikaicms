@@ -875,8 +875,11 @@ $canManageBloxDesign = hasPermission('blox_global');
 // 页面切换器（V2.0.0）：编辑首页或普通页面时，顶栏可直接跳到同语言的其他页面继续编辑。
 // 只列真正用本编辑器编辑的页面（pagePrimaryEditUrl 指向 blox_editor），父页面收口到子页面时去重。
 $bloxPageSwitcher = [];
+// 切换器底部「新建页面」：走单页管理的 create（同一权限、同一 slug 规则），落在当前编辑的语言。
+$bloxPageSwitcherCreate = ['can' => false, 'lang' => siteLang()];
 if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     $switchLanguage = $isHomeBlox ? siteLang() : (string) ($page['lang'] ?? siteLang());
+    $bloxPageSwitcherCreate = ['can' => hasPermission('edit_page'), 'lang' => $switchLanguage];
     $bloxPageSwitcher[] = ['name' => __('blox_page_switch_home'), 'slug' => '', 'level' => 0,
         'url' => '/admin/blox_editor.php?home=1', 'current' => $isHomeBlox];
     $seenSwitchUrls = [];
@@ -1514,6 +1517,8 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             pageCodeDraft: "",
             pageSwitcherItems: <?php echo json_encode($bloxPageSwitcher, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             pageSwitcherQuery: "",
+            pageSwitcherCreate: <?php echo json_encode($bloxPageSwitcherCreate + ['failed' => __('blox_page_switch_create_failed')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            pageSwitcherCreating: false,
             designSystem: <?php echo json_encode($bloxDesignSystem, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             designUsage: { tokens: {}, styles: {} },
             colorPaletteGroups: window.YikaiBloxColorPicker.paletteGroups,

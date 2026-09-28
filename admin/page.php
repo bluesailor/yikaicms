@@ -28,7 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $slug = resolveSlug('', $name, 'channels', 0);
         $parentId = postInt('parent_id');
+        // 新页面落在「正在查看的语言」：列表按视图语言过滤，不写 lang 会落到列默认的 zh-CN，
+        // 英文/日文站刚建好的页面就从列表里消失（Page Builder 顶栏新建也走这里，带 view_lang）。
         $id = channelModel()->create([
+            'lang' => adminLangView()['view'],
             'parent_id' => $parentId,
             'name' => $name,
             'slug' => $slug,
@@ -493,6 +496,7 @@ async function createPage() {
     formData.append('action', 'create');
     formData.append('name', name);
     formData.append('parent_id', document.getElementById('createParent').value);
+    formData.append('view_lang', <?php echo json_encode($_viewLang); ?>);
     var response = await fetch('', { method: 'POST', body: formData });
     var data = await safeJson(response);
     if (data.code === 0) {
