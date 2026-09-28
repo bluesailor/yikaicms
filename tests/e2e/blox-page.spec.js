@@ -305,7 +305,7 @@ test('free mode lists Pro elements with a PRO badge but keeps them locked @ci', 
     await expect(tile).toHaveAttribute('data-pro', 'locked');
     await expect(tile).toHaveAttribute('draggable', 'false');
     await expect(tile).toHaveAttribute('aria-disabled', 'true');
-    await expect(page.getByTestId(`blox-pro-badge-${type}`)).toHaveAttribute('href', '/admin/license.php');
+    await expect(page.getByTestId(`blox-pro-badge-${type}`)).toHaveAttribute('href', 'license.php');
   }
 
   const sectionsBefore = await page.evaluate(() => JSON.stringify(window.Alpine.$data(document.body).sections));
