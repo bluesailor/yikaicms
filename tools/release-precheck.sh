@@ -487,14 +487,14 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────
-section "7. 官网 yikaicms.com（index.html / changelog.html）"
+section "7. 官网 yikaicms.com（index.php / changelog.php）"
 # ─────────────────────────────────────────────────────────────
 
 site="$WORKSPACE_DIR/yikaicms.com.yikai"
 if [ "$MODE" = "candidate" ]; then
     info "候选阶段不更新官网，跳过渠道版本校验"
 else
-for f in index.html changelog.html; do
+for f in index.php changelog.php; do
     fp="$site/$f"
     if [ ! -f "$fp" ]; then
         warn "$fp 不存在"

@@ -25,17 +25,17 @@ return [
         'dir_env' => 'YK_WEBSITE_DIR',
         'dir_default' => 'yikaicms.com.yikai',
         'home_pages' => [
-            'zh-CN' => 'index.html',
-            'en' => 'en/index.html',
-            'ja' => 'ja/index.html',
+            'zh-CN' => 'index.php',
+            'en' => 'en/index.php',
+            'ja' => 'ja/index.php',
         ],
         'changelog_pages' => [
-            'zh-CN' => 'changelog.html',
-            'en' => 'en/changelog.html',
-            'ja' => 'ja/changelog.html',
+            'zh-CN' => 'changelog.php',
+            'en' => 'en/changelog.php',
+            'ja' => 'ja/changelog.php',
         ],
-        // 首页下载入口必须指向本版正式完整包。
-        'download_url' => 'https://update.yikaicms.com/packages/yikaicms-v{version}.zip',
+        // 首页下载入口必须指向本版正式完整包（官网下载走 down.yikai.cn 的 OSS 直链，与升级服务器的包同一哈希）。
+        'download_url' => 'https://down.yikai.cn/soft/yikaicms/yikaicms-v{version}.zip',
     ],
 
     // 本地归档。正式完整包、校验文件、构建证据、以及实际发布过的增量包。

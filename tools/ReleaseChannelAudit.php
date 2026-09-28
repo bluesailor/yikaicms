@@ -187,9 +187,9 @@ final class ReleaseChannelAudit
             }
             $evidence = self::evidence($path);
             $found = self::versionTokens($html);
-            // 关键：取文档顺序的第一个版本号。日志累积所有历史版本，
+            // 关键：取文档顺序的第一个条目标题版本号。日志累积所有历史版本，
             // 「出现过目标版本」证明不了「目标版本是最新条目」。
-            $newest = $found[0] ?? '';
+            $newest = self::newestEntryVersion($html);
             $highest = self::highestVersion($found);
             if ($highest !== null && $highest !== $version && version_compare($highest, $version, '>')) {
                 // 日志里出现比本版更新的条目：要么发早了，要么版本号写错了。
@@ -602,6 +602,23 @@ final class ReleaseChannelAudit
             return [];
         }
         return array_values(array_map('strval', $matches[1]));
+    }
+
+    /**
+     * 更新日志的最新条目版本：取文档顺序第一个「独立成段的版本号」（条目标题，如 <span>v2.0.1</span>）。
+     * 页头说明文字里的历史版本（「自 v1.20.0 起更名为…」）排在条目之前，不能当成最新条目；
+     * 页面没有独立版本标题时退回第一个版本号。
+     */
+    private static function newestEntryVersion(string $html): string
+    {
+        $xpath = new DOMXPath(self::visibleDocument($html));
+        $nodes = $xpath->query('//text()');
+        foreach ($nodes === false ? [] : $nodes as $node) {
+            if (preg_match('/^v(\d+\.\d+\.\d+(?:\.\d+)?)$/D', trim((string) $node->nodeValue), $m) === 1) {
+                return $m[1];
+            }
+        }
+        return self::versionTokens($html)[0] ?? '';
     }
 
     /** @return array<string,string> */
