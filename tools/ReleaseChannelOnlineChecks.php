@@ -89,7 +89,7 @@ trait ReleaseChannelOnlineChecks
                         $ok = self::highestVersion($tokens) === $version;
                         $ok = $ok && ($kind === 'home_pages'
                             ? self::hasCurrentDownload($html, str_replace('{version}', $version, (string) $cfg['download_url']))
-                            : ($tokens[0] ?? '') === $version);
+                            : self::newestEntryVersion($html) === $version);
                         $checks[] = self::check('Online ' . $kind . ' ' . $lang, $ok, $url);
                     }
                 }

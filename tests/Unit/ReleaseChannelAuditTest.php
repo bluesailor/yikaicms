@@ -90,6 +90,21 @@ final class ReleaseChannelAuditTest extends TestCase
         self::assertStringContainsString('只出现在历史条目里', $detail);
     }
 
+    public function testChangelogIntroMentioningOlderVersionStillPasses(): void
+    {
+        $this->workspace = $this->buildFixture();
+        // 页头说明提到历史版本、排在条目之前；最新条目以条目标题为准（本地与线上两条判据都覆盖）。
+        foreach (['changelog.html', 'en/changelog.html', 'ja/changelog.html'] as $page) {
+            file_put_contents(
+                $this->workspace . '/yikaicms.com.yikai/' . $page,
+                '<p>Blox 自 v9.9.7 起更名为「易开网页构建器」</p><span>v' . self::VERSION . '</span><p>newest</p><span>v9.9.8</span>'
+            );
+        }
+
+        $report = $this->audit(ReleaseChannelAudit::MODE_POST_RELEASE, $this->okFetcher());
+        self::assertSame(ReleaseChannelAudit::VERIFIED, $report['channels']['website']['status']);
+    }
+
     // ── 场景 2：下载链接指向错误的包 ───────────────────────────────────
 
     public function testWrongDownloadTargetFails(): void
