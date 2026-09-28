@@ -60,6 +60,13 @@ CLI::register('migrate:run', '执行待跑的迁移', function (array $args, arr
         return 0;
     }
 
+    // 与后台「数据库升级」共用一把锁：另一处正在执行时不重复跑（进程结束时系统自动释放）
+    if (!Migrator::beginRun('cli')) {
+        CLI::err(__('mig_running_busy'));
+        return 1;
+    }
+    register_shutdown_function([Migrator::class, 'endRun']);
+
     $okCount = 0;
     $failCount = 0;
     foreach ($pending as $m) {
