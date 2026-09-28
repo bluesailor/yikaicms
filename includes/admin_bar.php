@@ -53,6 +53,48 @@ function adminBarCanOpenBloxUrl(string $url): bool
     return adminBarHasPermission('blox_edit') && adminBarHasPermission('edit_page');
 }
 
+/**
+ * 顶部管理条/草稿预览条靠 html 的 margin-top 让出位置，但 position:absolute / fixed 且贴顶的页头
+ * 不吃这个 margin，会被条盖住。核心叠加页头（html.yk-home-header-overlay）由样式处理；主题自己
+ * 实现的叠加页头（如 Havenform 首页 #siteHeader{position:absolute;top:0}）、滚动后才变 fixed 的页头
+ * 由这里兜底：还压在条下面的才下移，已经让开的（样式或主题脚本处理过）不动，避免重复偏移。
+ */
+function adminBarHeaderOffsetScript(string $barId): void
+{
+    ?>
+    <script>
+    (function () {
+      var bar = document.getElementById(<?php echo json_encode($barId); ?>);
+      if (!bar) return;
+      var pending = false;
+      function sync() {
+        pending = false;
+        var height = Math.ceil(bar.getBoundingClientRect().height);
+        if (!height) return;
+        document.querySelectorAll('#siteHeader, body > header').forEach(function (header) {
+          if (header === bar || header.hasAttribute('data-yk-adminbar-offset')) return;
+          var style = window.getComputedStyle(header);
+          if (style.position !== 'absolute' && style.position !== 'fixed') return;
+          var top = header.getBoundingClientRect().top + (style.position === 'absolute' ? window.scrollY : 0);
+          if (top >= height - 1) return;
+          header.style.setProperty('top', ((parseFloat(style.top) || 0) + height) + 'px');
+          header.setAttribute('data-yk-adminbar-offset', '1');
+        });
+      }
+      function schedule() {
+        if (pending) return;
+        pending = true;
+        window.requestAnimationFrame(sync);
+      }
+      schedule();
+      window.addEventListener('load', schedule);
+      window.addEventListener('resize', schedule);
+      window.addEventListener('scroll', schedule, { passive: true });
+    })();
+    </script>
+    <?php
+}
+
 function renderBloxDraftPreviewBar(): void
 {
     $exitUrl = BloxPublicationStatus::exitPreviewUrl((string) ($_SERVER['REQUEST_URI'] ?? '/'));
@@ -77,6 +119,7 @@ function renderBloxDraftPreviewBar(): void
       <a href="<?php echo e($exitUrl); ?>"><?php echo e(__('blox_exit_preview')); ?></a>
     </div>
     <?php
+    adminBarHeaderOffsetScript('ik-draft-previewbar');
 }
 
 function renderAdminBar(): void
@@ -284,6 +327,7 @@ function renderAdminBar(): void
       </span>
     </div>
     <?php
+    adminBarHeaderOffsetScript('ik-adminbar');
 }
 
 add_action('ik_footer_before', 'renderAdminBar');

@@ -178,3 +178,29 @@
                         || String(item.slug || "").toLowerCase().indexOf(query) !== -1;
                 });
             },
+            /** 顶栏切换器里新建页面：先过未保存确认，再建页（当前编辑语言），然后直接进入它的编辑器 */
+            createPageFromSwitcher(name) {
+                name = String(name || "").trim();
+                if (!name || !this.pageSwitcherCreate.can || this.pageSwitcherCreating) return;
+                if (this.hasUnsavedChanges() && !window.confirm(this.uiText.leaveUnsavedConfirm)) return;
+                var body = new URLSearchParams();
+                body.set("action", "create");
+                body.set("name", name);
+                body.set("parent_id", "0");
+                body.set("view_lang", String(this.pageSwitcherCreate.lang || ""));
+                body.set("_token", this.csrf);
+                var self = this;
+                this.pageSwitcherCreating = true;
+                fetch((window.YK_BASE || "") + "/admin/page.php", { method: "POST", body: body })
+                    .then(function (response) { return response.json(); })
+                    .then(function (result) {
+                        var id = result && Number(result.code) === 0 && result.data ? parseInt(result.data.id, 10) : 0;
+                        if (!(id > 0)) throw new Error((result && result.msg) || self.pageSwitcherCreate.failed);
+                        self._allowEditorLeave = true;
+                        window.location.assign((window.YK_BASE || "") + "/admin/blox_editor.php?id=" + id);
+                    })
+                    .catch(function (error) {
+                        self.pageSwitcherCreating = false;
+                        self.toast(error.message || self.pageSwitcherCreate.failed);
+                    });
+            },

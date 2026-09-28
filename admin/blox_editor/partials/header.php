@@ -47,7 +47,8 @@ declare(strict_types=1);
                         :aria-expanded="open ? 'true' : 'false'" aria-haspopup="true"
                         title="<?= e(__('blox_page_switch')) ?>"
                         class="inline-flex max-w-full min-w-0 items-center gap-1 rounded px-1 text-sm text-gray-400 hover:bg-gray-800 hover:text-white">
-                    <span class="truncate">/ <?php echo e($isHomeBlox ? __('blox_home_draft') : $page['name']); ?></span>
+                    <?php // 只说「在编辑哪个页面」；草稿/发布状态由右侧的保存状态与「未发布变更」徽标表达 ?>
+                    <span class="truncate">/ <?php echo e($isHomeBlox ? __('blox_page_switch_home') : $page['name']); ?></span>
                     <i class="ti ti-selector shrink-0 text-xs" aria-hidden="true"></i>
                 </button>
                 <div x-show="open" x-cloak class="absolute left-0 top-full z-50 mt-2 w-72 rounded border border-gray-700 bg-gray-900 p-2 shadow-xl"
@@ -69,10 +70,29 @@ declare(strict_types=1);
                         </template>
                         <p x-show="!pageSwitcherMatches().length" class="px-2 py-1.5 text-xs text-gray-500"><?= e(__('blox_page_switch_empty')) ?></p>
                     </div>
+                    <div x-show="pageSwitcherCreate.can" class="mt-2 border-t border-gray-700 pt-2" x-data="{ adding: false, name: '' }">
+                        <button type="button" x-show="!adding" data-testid="blox-page-switcher-create"
+                                @click="adding = true; name = pageSwitcherQuery.trim(); $nextTick(() => $refs.newPageName.focus())"
+                                class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-blue-300 hover:bg-gray-800 hover:text-white">
+                            <i class="ti ti-plus shrink-0" aria-hidden="true"></i><span><?= e(__('blox_page_switch_create')) ?></span>
+                        </button>
+                        <form x-show="adding" x-cloak @submit.prevent="createPageFromSwitcher(name)" class="flex items-center gap-1.5"
+                              data-testid="blox-page-switcher-create-form">
+                            <input type="text" x-ref="newPageName" x-model="name" maxlength="100"
+                                   placeholder="<?= e(__('blox_page_switch_create_placeholder')) ?>"
+                                   aria-label="<?= e(__('blox_page_switch_create_placeholder')) ?>"
+                                   @keydown.escape.stop="adding = false; name = ''"
+                                   class="min-w-0 flex-1 rounded border border-gray-700 bg-gray-800 px-2 py-1.5 text-xs text-gray-100 placeholder:text-gray-500 focus:border-blue-500 focus:outline-none">
+                            <button type="submit" :disabled="!name.trim() || pageSwitcherCreating"
+                                    class="shrink-0 rounded bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                                <?= e(__('blox_page_switch_create_submit')) ?>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
             <?php else: ?>
-            <span class="blox-header-page min-w-0 text-gray-400 text-sm truncate">/ <?php echo e($isHomeBlox ? __('blox_home_draft') : $page['name']); ?></span>
+            <span class="blox-header-page min-w-0 text-gray-400 text-sm truncate">/ <?php echo e($isHomeBlox ? __('blox_page_switch_home') : $page['name']); ?></span>
             <?php endif; ?>
             <?php
             // 顶栏要说清"我在编辑哪种对象"（TASK-003 A）：名字来自 BloxAreaTemplatePresets::displayName()
