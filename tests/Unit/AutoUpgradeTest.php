@@ -188,6 +188,9 @@ final class AutoUpgradeTest extends TestCase
         define('LICENSE_PUBKEY_B64', preg_replace('/-----[^-]+-----|\s/', '', $details['key']));
         db()->execute('CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY, `key` TEXT UNIQUE, `value` TEXT, `group` TEXT, `name` TEXT, `tip` TEXT)');
         $_SERVER['HTTP_HOST'] = 'site.example';
+        // 指令只对开了自动升级的站有效；它不等维护窗口，所以窗口设在稍后也照样执行
+        $GLOBALS['_test_config']['auto_upgrade_enabled'] = '1';
+        $GLOBALS['_test_config']['auto_upgrade_window'] = date('H:i', time() + 3600) . '-' . date('H:i', time() + 4200);
 
         $issued = time();
         $expires = $issued + 900;
@@ -202,6 +205,19 @@ final class AutoUpgradeTest extends TestCase
             [true, 'directive'],
             AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.0', 'directive' => $directive], '1.20.1')
         );
+    }
+
+    public function testDisabledSiteIgnoresEvenADirective(): void
+    {
+        // 站长没开自动升级 = 没同意远程升级：在验签之前就返回，指令再有效也不执行
+        $GLOBALS['_test_config']['auto_upgrade_enabled'] = '0';
+        $directive = ['to' => '2.0.1', 'domain' => 'site.example', 'issued_at' => time(), 'expires_at' => time() + 900, 'nonce' => 'n', 'sig' => 'x'];
+        $this->assertSame(
+            [false, 'auto upgrade disabled'],
+            AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.1', 'directive' => $directive], '2.0.0')
+        );
+        $src = (string) file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
+        $this->assertLessThan(strpos($src, 'UpgradeDirective::verify('), strpos($src, "return [false, 'auto upgrade disabled'];"), 'the switch is checked before any directive');
     }
 
     public function testDirectiveContractIsSignedDomainBoundAndExpiring(): void
