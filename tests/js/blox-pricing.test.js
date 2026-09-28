@@ -89,3 +89,19 @@ test('plans can be added up to the limit, reordered and deleted but never emptie
     app.deletePricingPlan(0);
     assert.deepEqual(app.pricingPlans().map(p => p.name), ['B']);
 });
+
+test('2.0.3 plan fields: prefix, struck-through prices, note and plan colour are editable and kept', () => {
+    const app = editor([{ name: 'A', price: '99', original_price: '129', accent: '#f2622e' }]);
+    const plan = app.pricingPlans()[0];
+    assert.equal(plan.original_price, '129');
+    assert.equal(plan.accent, '#f2622e');
+    for (const [field, value] of [['price_prefix', '限时'], ['original_price_yearly', '1290'], ['price_note', '首年'], ['accent', '#27ae60']]) {
+        app.setPricingPlan(0, field, value);
+        assert.equal(app.selEl.data.plans[0][field], value, field);
+    }
+    app.addPricingPlan('New');
+    const added = app.pricingPlans()[1];
+    for (const field of ['price_prefix', 'original_price', 'original_price_yearly', 'price_note', 'accent']) {
+        assert.equal(added[field], '', `a new plan starts with an empty ${field}`);
+    }
+});

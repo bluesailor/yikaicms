@@ -98,4 +98,132 @@ final class PricingTableElementTest extends TestCase
         self::assertNotContains('builtin:pricing-plans', $keys);
         self::assertFileDoesNotExist(ROOT_PATH . '/templates/blox/sections/pricing-plans.json');
     }
+
+    // ── 2.0.3：价格内容、每档主色、角标位置、推荐档突出、按断点网格 ─────────────────────
+
+    public function testNewPlanFieldsAreClippedAndColorsValidated(): void
+    {
+        $plans = PricingTableElement::normalizePlans([
+            ['name' => 'A', 'price' => '99', 'original_price' => str_repeat('9', 40), 'price_prefix' => '限时', 'price_note' => '首年', 'accent' => '#FF6600'],
+            ['name' => 'B', 'price' => '9', 'accent' => 'red;background:url(x)'],
+        ]);
+        self::assertSame(30, strlen($plans[0]['original_price']));
+        self::assertSame('#ff6600', $plans[0]['accent']);
+        self::assertSame('', $plans[1]['accent'], 'anything but a real colour is dropped');
+
+        $html = (new PricingTableElement())->render(['plans' => $plans]);
+        self::assertStringContainsString('style="--color-primary:#ff6600"', $html);
+        self::assertStringNotContainsString('url(x)', $html);
+    }
+
+    public function testPriceContentShowsPrefixStrikethroughAndNote(): void
+    {
+        $element = new PricingTableElement();
+        $plan = ['name' => '专业版', 'price' => '199', 'original_price' => '299', 'price_prefix' => '限时特价', 'price_note' => '按年付再省 2 个月'];
+        $html = $element->render(['plans' => [$plan]]);
+        self::assertMatchesRegularExpression('#<s class="[^"]*line-through|<s class="mr-1[^"]*"[^>]*>¥299</s>#', $html);
+        self::assertStringContainsString('限时特价', $html);
+        self::assertStringContainsString('按年付再省 2 个月', $html);
+        self::assertStringNotContainsString('bg-primary/10', $html, 'plain note by default');
+
+        $chip = $element->render(['plans' => [$plan], 'price_note_style' => 'chip']);
+        self::assertStringContainsString('bg-primary/10 text-primary', $chip);
+
+        // 按年切换：年价自带原价时用年原价；年价沿用月价时连原价一起沿用
+        $toggle = $element->render(['billing_toggle' => true, 'plans' => [
+            ['name' => 'X', 'price' => '99', 'original_price' => '129', 'price_yearly' => '990', 'original_price_yearly' => '1290'],
+            ['name' => 'Y', 'price' => '59', 'original_price' => '79'],
+        ]]);
+        self::assertMatchesRegularExpression('/data-yk-pricing-price="yearly" hidden[^>]*><s[^>]*>¥1290<\/s>/', $toggle);
+        self::assertSame(2, substr_count($toggle, '>¥79</s>'), 'monthly and yearly both show the original price when yearly reuses monthly');
+    }
+
+    public function testBadgePositionsSizesAndColors(): void
+    {
+        $element = new PricingTableElement();
+        $plans = [['name' => 'P', 'price' => '1', 'badge' => '推荐']];
+        foreach (['top-left', 'top-center', 'top-right', 'inline', 'corner', 'ribbon-left', 'ribbon-right'] as $position) {
+            $html = $element->render(['plans' => $plans, 'badge_position' => $position]);
+            self::assertStringContainsString('data-yk-pricing-badge="' . $position . '"', $html, $position);
+        }
+        // auto 沿用旧版：左对齐顶边靠左，居中对齐顶边居中
+        self::assertStringContainsString('data-yk-pricing-badge="top-left"', $element->render(['plans' => $plans]));
+        self::assertStringContainsString('data-yk-pricing-badge="top-center"', $element->render(['plans' => $plans, 'align' => 'center']));
+        self::assertStringContainsString('data-yk-pricing-badge="top-left"', $element->render(['plans' => $plans, 'badge_position' => 'bogus']));
+
+        $ribbon = $element->render(['plans' => $plans, 'badge_position' => 'ribbon-right']);
+        self::assertStringContainsString('overflow-hidden', $ribbon);
+        self::assertStringContainsString('rotate-45', $ribbon);
+
+        $custom = $element->render(['plans' => $plans, 'badge_bg' => '#111111', 'badge_color' => '#fafafa', 'badge_size' => 'md']);
+        self::assertStringContainsString('style="background-color:#111111;color:#fafafa;"', $custom);
+        self::assertStringContainsString('px-4 py-1.5 text-sm', $custom);
+        $bad = $element->render(['plans' => $plans, 'badge_bg' => 'expression(alert(1))']);
+        self::assertStringNotContainsString('expression', $bad);
+    }
+
+    public function testFeaturedPlanCanStandOutAndButtonCanFollowThePrice(): void
+    {
+        $element = new PricingTableElement();
+        $plans = PricingTableElement::seedPlans();
+        $plain = $element->render(['plans' => $plans]);
+        self::assertStringNotContainsString('md:scale-105', $plain);
+        self::assertStringNotContainsString('shadow-xl', $plain);
+
+        $standout = $element->render(['plans' => $plans, 'featured_scale' => 'md', 'featured_shadow' => true]);
+        self::assertSame(1, substr_count($standout, 'md:scale-105'), 'only the featured plan is enlarged');
+        self::assertSame(1, substr_count($standout, 'shadow-xl'));
+        self::assertStringContainsString('md:py-4', $standout, 'room for the enlarged card');
+
+        $top = $element->render(['plans' => [['name' => 'A', 'price' => '1', 'features' => "x\ny", 'button_text' => 'Go']], 'button_position' => 'price']);
+        self::assertLessThan(strpos($top, '<ul'), strpos($top, '>Go</a>'), 'button comes before the feature list');
+        $bottom = $element->render(['plans' => [['name' => 'A', 'price' => '1', 'features' => "x\ny", 'button_text' => 'Go']]]);
+        self::assertGreaterThan(strpos($bottom, '<ul'), strpos($bottom, '>Go</a>'));
+        self::assertStringContainsString('mt-auto pt-8', $bottom, 'default keeps buttons aligned at the bottom');
+    }
+
+    public function testGridColumnsPerBreakpointGapMaxWidthAndStagger(): void
+    {
+        $element = new PricingTableElement();
+        $plans = PricingTableElement::seedPlans();
+        // 旧文档的单值写法照旧
+        self::assertStringContainsString('grid-cols-1 md:grid-cols-2', $element->render(['plans' => $plans, 'columns' => '2']));
+        // 按断点：手机 1、平板 2、桌面 3
+        $responsive = $element->render(['plans' => $plans, 'columns' => ['d' => '3', 't' => '2', 'm' => '1']]);
+        self::assertStringContainsString('grid-cols-1', $responsive);
+        self::assertStringContainsString('md:grid-cols-2', $responsive);
+        self::assertStringContainsString('lg:grid-cols-3', $responsive);
+        // auto 取套餐数
+        self::assertStringContainsString('md:grid-cols-3', $element->render(['plans' => $plans, 'columns' => ['d' => 'auto']]));
+
+        $wide = $element->render(['plans' => $plans, 'gap' => 'xl', 'max_width' => 'lg', 'grid_align' => 'left']);
+        self::assertStringContainsString('gap-10', $wide);
+        self::assertStringContainsString('max-w-5xl mr-auto', $wide);
+        self::assertStringContainsString('gap-6', $element->render(['plans' => $plans]), 'default gap unchanged');
+        self::assertStringNotContainsString('max-w-', $element->render(['plans' => $plans]));
+
+        self::assertStringContainsString(' data-stagger', $element->render(['plans' => $plans, 'animation_stagger' => true]));
+        $keys = array_column($element->controls(), 'key');
+        foreach (['gap', 'max_width', 'grid_align', 'badge_position', 'badge_bg', 'featured_scale', 'button_position', 'price_note_style', 'animation_stagger'] as $key) {
+            self::assertContains($key, $keys);
+        }
+    }
+
+    public function testProEditorOffersEveryNewPlanField(): void
+    {
+        $form = (string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/editor/pricing-plans.php');
+        $methods = (string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/assets/blox-pro-pricing.js');
+        foreach (['price_prefix', 'original_price', 'original_price_yearly', 'price_note'] as $field) {
+            self::assertStringContainsString("['" . $field . "',", $form, $field);
+            self::assertStringContainsString('"' . $field . '"', $methods, $field);
+        }
+        self::assertStringContainsString("setPricingPlan(index, 'accent'", $form);
+        self::assertStringContainsString('"accent"', $methods);
+        foreach (['zh-CN', 'en', 'ja'] as $lang) {
+            $strings = require ROOT_PATH . '/lang/' . $lang . '.php';
+            foreach (['blox_pricing_plan_price_prefix', 'blox_pricing_plan_original_price', 'blox_pricing_plan_price_note', 'blox_pricing_plan_accent', 'blox_pricing_badge_ribbon_right'] as $key) {
+                self::assertNotSame('', trim((string) ($strings[$key] ?? '')), "$lang $key");
+            }
+        }
+    }
 }

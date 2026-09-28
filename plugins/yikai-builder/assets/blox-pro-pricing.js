@@ -9,7 +9,8 @@
             if (!node || node.type !== "pricing-table") return [];
             var control = (this.elSchema("pricing-table").controls || []).find(function (item) { return item.key === "plans"; }) || {};
             var source = Array.isArray((node.data || {}).plans) ? node.data.plans : (control.default || []);
-            var fields = ["name", "badge", "price", "price_yearly", "period", "period_yearly", "description", "features", "button_text", "button_url"];
+            var fields = ["name", "badge", "price", "price_yearly", "period", "period_yearly", "description", "features", "button_text", "button_url",
+                "price_prefix", "original_price", "original_price_yearly", "price_note", "accent"];
             return source.slice(0, Math.max(1, Number(control.max) || 6)).filter(function (item) {
                 return item && typeof item === "object";
             }).map(function (item) {
@@ -50,6 +51,7 @@
             plans.push({
                 name: text, badge: "", price: "", price_yearly: "", period: last.period || "", period_yearly: last.period_yearly || "",
                 description: "", features: "", button_text: last.button_text || "", button_url: last.button_url || "", featured: false,
+                price_prefix: "", original_price: "", original_price_yearly: "", price_note: "", accent: "",
             });
             this.storePricingPlans(plans);
         },
