@@ -228,15 +228,15 @@ final class AutoUpgrade
             ? (string) ($data['latest_version'] ?? '')
             : (string) ($data['major_available'] ?? '');
 
+        // 站长打开「自动升级」才算同意由我们远程升级：关着的站连控制台指令也不执行，只提示有新版本
+        if (!self::enabled()) {
+            return [false, 'auto upgrade disabled'];
+        }
         if ($hasUpdate) {
             require_once ROOT_PATH . '/includes/UpgradeDirective.php';
             if (UpgradeDirective::verify($data['directive'] ?? null, $to) === true) {
                 return [true, 'directive'];   // 控制台指令：立即执行，不等窗口
             }
-        }
-
-        if (!self::enabled()) {
-            return [false, 'auto upgrade disabled'];
         }
         if (!self::inWindow()) {
             return [false, 'outside maintenance window'];
