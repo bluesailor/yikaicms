@@ -1,0 +1,12 @@
+{
+    "source": "APNIC delegated-apnic-latest (country code CN)",
+    "source_date": "2026-09-28",
+    "generated_at": "2026-09-29",
+    "ipv4_ranges": 4114,
+    "ipv6_ranges": 2011,
+    "ipv4_addresses": 342938368,
+    "sha256": {
+        "cn-ipv4.bin": "8b4d37df48aec32aeb1db21b9e294a67e785eaca6ef5af4bced6b0038e787902",
+        "cn-ipv6.bin": "c15edc7d08408ed54f38ab79f5c34e4017d78a44a719525692dea251603849d6"
+    }
+}
