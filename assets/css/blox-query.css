@@ -1,0 +1,81 @@
+/* 查询循环（2.0.3）：局部刷新的加载态、筛选控件、画布预览行 */
+
+.yk-query-loading [data-yk-loop-item],
+.yk-query-loading [data-yk-query-empty] {
+    opacity: .45;
+    transition: opacity .15s ease;
+}
+
+.yk-query-loading [data-yk-query-more] {
+    pointer-events: none;
+    opacity: .6;
+}
+
+.yk-query-infinite [data-yk-query-next] {
+    display: inline-block;
+    padding: .5rem 1rem;
+}
+
+/* 筛选：按钮组形态（单选/多选共用），选中态跟主题主色 */
+.yk-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.yk-filter-pill input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.yk-filter-pill span {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 9999px;
+    padding: .375rem .875rem;
+    font-size: .875rem;
+    line-height: 1.25rem;
+    color: #374151;
+    background: #fff;
+    transition: border-color .15s ease, background-color .15s ease, color .15s ease;
+}
+
+.yk-filter-pill:hover span {
+    border-color: var(--color-primary, #2563eb);
+}
+
+.yk-filter-pill input:checked + span {
+    border-color: var(--color-primary, #2563eb);
+    background: var(--color-primary, #2563eb);
+    color: #fff;
+}
+
+.yk-filter-pill input:focus-visible + span {
+    outline: 2px solid var(--color-primary, #2563eb);
+    outline-offset: 2px;
+}
+
+.yk-filter-count {
+    font-size: .75rem;
+    opacity: .7;
+}
+
+/* 画布：首行之后的循环行只是预览（inert），视觉上弱化并禁止选中 */
+.yk-loop-ghost {
+    opacity: .55;
+    pointer-events: none;
+    user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .yk-query-loading [data-yk-loop-item],
+    .yk-query-loading [data-yk-query-empty],
+    .yk-filter-pill span {
+        transition: none;
+    }
+}

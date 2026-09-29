@@ -31,6 +31,10 @@ require_once __DIR__ . '/DetailTemplateProvider.php';   // 候选模板 + 内容
 require_once __DIR__ . '/DetailScopeSummary.php';       // 作用域只读摘要（后台展示用，不参与判定）
 require_once __DIR__ . '/ArticleTemplateDocument.php';  // 文章详情模板渲染/起始布局
 require_once __DIR__ . '/BloxQueryLoopPolicy.php';
+require_once __DIR__ . '/BloxQuerySpec.php';   // 查询循环规格归一（2.0.3）
+require_once __DIR__ . '/BloxQueryRunner.php';   // 查询循环执行器：计划 → 参数化 SQL（2.0.3）
+require_once __DIR__ . '/BloxQueryFilters.php';   // 前台查询筛选：URL 参数 → 计划叠加（2.0.3）
+require_once __DIR__ . '/BloxQueryFragment.php';   // 查询循环片段响应：AJAX 分页/加载更多/筛选（2.0.3）
 require_once __DIR__ . '/BloxLoopQuery.php';   // 容器 Loop 查询（v1.25）：_query 归一/取数复用/分页参数
 require_once __DIR__ . '/BloxInteractions.php';  // 元素交互（v1.28）：归一/授权/序列化
 require_once __DIR__ . '/BloxGlobalQueries.php';   // 全局查询（v1.25）：可复用查询定义 + 用量索引

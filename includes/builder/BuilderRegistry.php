@@ -169,6 +169,7 @@ final class BuilderRegistry
             new DownloadCatalogElement(),
             new JobCatalogElement(),
             new ProductCatalogElement(),
+            new QueryFilterElement(),   // 2.0.3 查询筛选（指向容器 Loop）
             new BannerElement(),
             new NavElement(),
             new HomeBannerItemElement(),

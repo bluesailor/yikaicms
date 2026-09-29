@@ -57,6 +57,10 @@ final class BloxQueryLoopPolicy
                 throw new RuntimeException(__('blox_query_loop_license_required'));
             }
         }
+        // 2.0.3 查询筛选元素：只服务于容器 Loop，同属 query_loop 作者端能力
+        if ($type === 'query-filter') {
+            throw new RuntimeException(__('blox_query_loop_license_required'));
+        }
         // v1.25 容器 Loop：container/div 挂 _query 属于同一作者端能力（渲染已发布内容仍免费）
         if (!empty($data['_query']) && in_array($type, ['container', 'div'], true)) {
             throw new RuntimeException(__('blox_query_loop_license_required'));

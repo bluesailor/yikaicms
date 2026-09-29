@@ -108,6 +108,11 @@ final class BloxProtectedFields
             $fields['table'] = $data;
             $data = [];
         }
+        if (in_array('query_loop', $denied, true) && ($element['type'] ?? '') === 'query-filter') {
+            // 查询筛选（2.0.3）归属 query_loop：能力未放行时整个元素冻结，已发布内容照常渲染
+            $fields['query_filter'] = $data;
+            $data = [];
+        }
         if (in_array('pricing', $denied, true) && ($element['type'] ?? '') === 'pricing-table') {
             // 价格方案归属 yikai-builder：能力未放行时整个元素冻结（不能新增、修改或删除），已发布内容照常渲染
             $fields['pricing'] = $data;

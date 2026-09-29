@@ -264,7 +264,19 @@ final class TagEngine
         if ($total <= $query['limit'] || $pages <= 1) {
             return '';
         }
+        return self::paginationNav($query['page_param'], $page, $pages);
+    }
 
+    /**
+     * 数字分页导航（{yk:list} 与容器 Loop 共用同一份标记）。$extraAttrs 追加到 <nav>
+     * （容器 Loop 的 AJAX 分页用它挂 data-* 钩子）；调用方保证 $param 已白名单化。
+     */
+    public static function paginationNav(string $param, int $page, int $pages, string $extraAttrs = ''): string
+    {
+        if ($pages <= 1) {
+            return '';
+        }
+        $page = max(1, min($pages, $page));
         $pageSet = [1, $pages];
         for ($i = max(1, $page - 2); $i <= min($pages, $page + 2); $i++) {
             $pageSet[] = $i;
@@ -274,7 +286,7 @@ final class TagEngine
 
         $items = [];
         if ($page > 1) {
-            $items[] = self::paginationLink($query['page_param'], $page - 1, __('pager_prev'), 'prev');
+            $items[] = self::paginationLink($param, $page - 1, __('pager_prev'), 'prev');
         }
         $previous = 0;
         foreach ($pageSet as $number) {
@@ -285,16 +297,38 @@ final class TagEngine
                 $items[] = '<span class="inline-flex min-w-9 items-center justify-center rounded border border-primary bg-primary px-3 py-2 text-sm text-white" aria-current="page">'
                     . $number . '</span>';
             } else {
-                $items[] = self::paginationLink($query['page_param'], $number, (string) $number);
+                $items[] = self::paginationLink($param, $number, (string) $number);
             }
             $previous = $number;
         }
         if ($page < $pages) {
-            $items[] = self::paginationLink($query['page_param'], $page + 1, __('pager_next'), 'next');
+            $items[] = self::paginationLink($param, $page + 1, __('pager_next'), 'next');
         }
 
         return '<nav class="yk-query-pagination mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="'
-            . e(__('blox_dynamic_pagination_label')) . '">' . implode('', $items) . '</nav>';
+            . e(__('blox_dynamic_pagination_label')) . '"' . $extraAttrs . '>' . implode('', $items) . '</nav>';
+    }
+
+    /** 某分页参数取第 N 页的当前请求 URL（保留其余查询参数）。 */
+    public static function pageUrl(string $param, int $page): string
+    {
+        $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+        $path = (string) (parse_url($requestUri, PHP_URL_PATH) ?: '/');
+        $query = [];
+        parse_str((string) (parse_url($requestUri, PHP_URL_QUERY) ?? ''), $query);
+        unset($query['_ykq']); // 片段请求参数不外泄进链接
+        if ($page <= 1) {
+            unset($query[$param]);
+        } else {
+            $query[$param] = $page;
+        }
+        return $path . ($query === [] ? '' : '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986));
+    }
+
+    /** 页面主条目（详情/单页正文的「本篇」），不受 {yk:list}/容器 Loop 上下文栈影响。 */
+    public static function pageItem(): ?array
+    {
+        return self::$item;
     }
 
     /**
@@ -420,16 +454,7 @@ final class TagEngine
 
     private static function paginationLink(string $param, int $page, string $label, string $rel = ''): string
     {
-        $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
-        $path = (string) (parse_url($requestUri, PHP_URL_PATH) ?: '/');
-        $query = [];
-        parse_str((string) (parse_url($requestUri, PHP_URL_QUERY) ?? ''), $query);
-        if ($page <= 1) {
-            unset($query[$param]);
-        } else {
-            $query[$param] = $page;
-        }
-        $url = $path . ($query === [] ? '' : '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986));
+        $url = self::pageUrl($param, $page);
         $relAttr = $rel !== '' ? ' rel="' . $rel . '"' : '';
         return '<a class="inline-flex min-w-9 items-center justify-center rounded border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 no-underline hover:border-primary hover:text-primary" href="'
             . e($url) . '"' . $relAttr . '>' . e($label) . '</a>';
