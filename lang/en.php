@@ -1330,6 +1330,7 @@ return [
     'lic_mod_oss' => 'OSS Media Acceleration',
     'lic_mod_icon_maker' => 'Icon Maker Pro',
     'lic_mod_seo_pro' => 'SEO Assistant Pro',
+    'lic_mod_geo_block' => 'Region Access Control',
     'admin_customer_service' => 'Live Chat',
     'upgrade_notify_label' => 'New version notice on the dashboard',
     'upgrade_notify_all' => 'Notify about all updates',

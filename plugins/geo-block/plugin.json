@@ -1,0 +1,14 @@
+{
+    "name": "地区访问限制",
+    "name_en": "Region Access Control",
+    "name_ja": "地域アクセス制限",
+    "version": "1.0.0",
+    "description": "按访客 IP 屏蔽中国大陆地区访问（港澳台不受影响）：命中时显示可自定义的 403 提示页或跳转到指定网址；后台、计划任务与服务器自身请求始终放行，可设置放行 IP 与放行路径，支持 Cloudflare 国家头。IP 数据来自 APNIC 公开分配记录，随插件更新。需要专业授权（地区访问限制模块）。",
+    "description_en": "Blocks visitors from mainland China by IP (Hong Kong, Macau and Taiwan are not affected): show a customizable 403 page or redirect to another address. The admin, scheduled tasks and the server's own requests always pass; you can allow specific IPs and paths, and use the Cloudflare country header. IP data comes from APNIC's public allocation records and is updated with the plugin. Requires a professional license (Region Access Control module).",
+    "description_ja": "訪問者の IP で中国本土からのアクセスを遮断します（香港・マカオ・台湾は対象外）。一致した場合はカスタマイズ可能な 403 ページを表示するか、指定した URL へ転送します。管理画面・定期タスク・サーバー自身のリクエストは常に許可され、許可 IP と許可パスを設定でき、Cloudflare の国コードヘッダーにも対応します。IP データは APNIC の公開割り当て記録に基づき、プラグインの更新とともに更新されます。プロフェッショナルライセンス（地域アクセス制限モジュール）が必要です。",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "2.0.0",
+    "tier": "pro",
+    "module": "geo-block"
+}
