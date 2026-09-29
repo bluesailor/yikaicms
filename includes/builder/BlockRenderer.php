@@ -1094,50 +1094,115 @@ final class BlockRenderer
      * （grid_span 等子项设置直接生效），多子节点时用 yk-query-item 包裹保持行边界。
      * 空结果按 empty_mode 输出提示或整体隐藏（返回 null 表示不渲染容器本身）。
      *
+     * 2.0.3：每个循环项根标签带 data-yk-loop-item、分页/空态带各自标记，宿主根标签带
+     * data-yk-query（节点 id）——AJAX 分页、加载更多、无限滚动与前台筛选据此局部替换；
+     * 请求带 _ykq=<本节点 id> 时只输出本循环的片段（BloxQueryFragment，同 URL 同上下文）。
+     * 编辑态（画布）：首行用真实数据渲染可编辑模板，其余行渲染为不可选中的预览。
+     *
      * @param array<int,mixed> $childNodes @param list<int> $path
+     * @return array{html:string,attrs:array<string,string>}|null
      */
-    private static function renderLoopChildren(array $query, array $childNodes, array $el, int $depth, array $path): ?string
+    private static function renderLoopChildren(array $query, array $childNodes, array $el, int $depth, array $path, bool $editMode = false): ?array
     {
-        $param = ($query['pagination'] ?? 'none') === 'numbers'
-            ? BloxLoopQuery::paginationParam($query, (string) ($el['id'] ?? ''))
-            : '';
-        $result = BloxLoopQuery::run($query, $param);
+        $nodeId = (string) ($el['id'] ?? '');
+        $hostId = preg_match('/^[A-Za-z0-9_-]{1,64}$/D', $nodeId) ? $nodeId : '';
+        $param = BloxQuerySpec::isPaged($query) ? BloxLoopQuery::paginationParam($query, $nodeId) : '';
+        $overrides = $hostId !== '' && !$editMode ? BloxQueryFilters::requestOverrides($hostId) : [];
+        $result = BloxLoopQuery::run($query, $param, $overrides);
+        $attrs = [];
+        if ($hostId !== '') {
+            $attrs['data-yk-query'] = $hostId;
+            if ($result['param'] !== '') {
+                $attrs['data-yk-query-param'] = $result['param'];
+            }
+            $attrs['data-yk-query-total'] = (string) $result['total'];
+            BloxLoopQuery::rememberTotal($hostId, $result['total']);
+            if (!$editMode && (BloxQuerySpec::isLive($query) || $overrides !== [])) {
+                BloxAssetCollector::addScript('/assets/js/blox-query.js');
+                BloxAssetCollector::addStyle('/assets/css/blox-query.css');
+            }
+        }
+        if ($editMode) {
+            BloxAssetCollector::addStyle('/assets/css/blox-query.css'); // 画布预览行的只读样式
+        }
+        $html = '';
         if ($result['rows'] === []) {
-            if (($query['empty_mode'] ?? 'message') === 'hidden') {
+            // 筛选后无结果：宿主必须留在页面上（否则筛选条件无法再放宽）
+            if (($query['empty_mode'] ?? 'message') === 'hidden' && $overrides === [] && !$editMode) {
                 return null;
             }
             $empty = trim((string) ($query['empty'] ?? ''));
             if ($empty === '') {
                 $empty = __('blox_dynamic_empty_default');
             }
-            return '<p class="yk-query-empty text-sm text-gray-500">' . e($empty) . '</p>';
-        }
-        $html = '';
-        $contextType = $result['is_product'] ? 'product' : 'content';
-        $wrapItems = count($childNodes) > 1;
-        foreach (array_values($result['rows']) as $index => $row) {
-            $row['_type'] = $contextType;
-            $row['_index'] = $index + 1;
-            TagEngine::pushContext($row);
-            try {
-                $itemHtml = '';
-                foreach ($childNodes as $childIndex => $child) {
-                    if (is_array($child)) {
-                        $childPath = $path;
-                        $childPath[] = (int) $childIndex;
-                        $itemHtml .= self::renderElement($child, $depth + 1, false, $childPath);
-                    }
-                }
-                $html .= $wrapItems ? '<div class="yk-query-item">' . $itemHtml . '</div>' : $itemHtml;
-            } finally {
-                TagEngine::popContext();
+            $html = '<p class="yk-query-empty text-sm text-gray-500"' . ($hostId !== '' ? ' data-yk-query-empty' : '') . '>' . e($empty) . '</p>';
+            if ($editMode) {
+                // 画布：无数据时仍渲染一次模板，作者要能编辑卡片结构
+                $html .= self::renderLoopItem($childNodes, $depth, $path, true, '');
             }
         }
-        if ($result['pagination'] !== '') {
-            // grid 容器里分页占满整行（col-span-full），flex-wrap 里独占一行（basis-full）
-            $html .= '<div class="yk-query-pagination-wrap w-full basis-full col-span-full">' . $result['pagination'] . '</div>';
+        foreach (array_values($result['rows']) as $index => $row) {
+            if ($editMode && $index >= self::EDITOR_LOOP_PREVIEW) {
+                break;
+            }
+            BloxLoopQuery::pushRow($row);
+            try {
+                // 编辑态只有首行是可编辑模板；其余行为预览（inert，点击落到模板上）
+                $html .= self::renderLoopItem($childNodes, $depth, $path, $editMode && $index === 0, $hostId, $editMode && $index > 0);
+            } finally {
+                BloxLoopQuery::popRow();
+            }
         }
-        return $html;
+        if ($result['pagination'] !== '' && !$editMode) {
+            // grid 容器里分页占满整行（col-span-full），flex-wrap 里独占一行（basis-full）
+            $html .= '<div class="yk-query-pagination-wrap w-full basis-full col-span-full"'
+                . ($hostId !== '' ? ' data-yk-query-pagination' : '') . '>' . $result['pagination'] . '</div>';
+        }
+        if ($hostId !== '' && !$editMode && BloxQueryFragment::isRequestedFor($hostId)) {
+            BloxQueryFragment::deliver($html, $result);
+        }
+        return ['html' => $html, 'attrs' => $attrs];
+    }
+
+    /** 画布里循环预览的最多行数（首行可编辑，其余只读）。 */
+    private const EDITOR_LOOP_PREVIEW = 6;
+
+    /**
+     * 渲染一个循环项：单子节点时该节点自身就是循环项（grid_span 等子项设置直接生效），
+     * 多子节点时用 yk-query-item 包裹保持行边界。$hostId 非空时根标签带 data-yk-loop-item。
+     *
+     * @param array<int,mixed> $childNodes @param list<int> $path
+     */
+    private static function renderLoopItem(array $childNodes, int $depth, array $path, bool $editable, string $hostId, bool $ghost = false): string
+    {
+        $itemHtml = '';
+        foreach ($childNodes as $childIndex => $child) {
+            if (is_array($child)) {
+                $childPath = $path;
+                $childPath[] = (int) $childIndex;
+                $itemHtml .= self::renderElement($child, $depth + 1, $editable, $childPath);
+            }
+        }
+        if (count($childNodes) > 1) {
+            $itemHtml = '<div class="yk-query-item">' . $itemHtml . '</div>';
+        }
+        if ($itemHtml === '' || ($hostId === '' && !$ghost)) {
+            return $itemHtml;
+        }
+        $root = new HtmlTagRewriter($itemHtml);
+        if (!$root->nextTag()) {
+            return $itemHtml;
+        }
+        if ($hostId !== '' && !$editable) {
+            $root->setAttribute('data-yk-loop-item', $hostId);
+        }
+        if ($ghost) {
+            $existing = $root->getAttribute('class');
+            $root->setAttribute('class', trim((is_string($existing) ? $existing : '') . ' yk-loop-ghost'));
+            $root->setAttribute('inert', '');
+            $root->setAttribute('aria-hidden', 'true');
+        }
+        return $root->getUpdatedHtml();
     }
 
     public static function renderElementNode(array $el, int $depth = 0, bool $editMode = false, array $path = []): string
@@ -1184,19 +1249,21 @@ final class BlockRenderer
         BloxAssetCollector::collectElement($element, $data);
 
         $children = '';
+        $loopHostAttrs = [];
         // 0b：深度约束改由 BloxDocumentValidator::MAX_ELEMENT_DEPTH 显式校验（顶层=第 1 层，
         // 此处 $depth 从 0 计），这里只作坏数据兜底，不再是静默截断点。
         if ($element->isContainer() && !$element->rendersOwnChildren()
             && $depth + 1 < BloxDocumentValidator::MAX_ELEMENT_DEPTH) {
             $childNodes = (array) ($el['data']['children'] ?? []);
-            // v1.25 容器 Loop：编辑态渲染一次子树作模板（不跑查询）；前台按行循环
-            $loopQuery = $editMode ? null : BloxLoopQuery::queryFrom($type, $data);
+            // v1.25 容器 Loop：前台按行循环。2.0.3 起画布也跑查询：首行真实数据可编辑，其余行只读预览
+            $loopQuery = BloxLoopQuery::queryFrom($type, $data);
             if ($loopQuery !== null && $childNodes !== []) {
-                $loopChildren = self::renderLoopChildren($loopQuery, $childNodes, $el, $depth, $path);
+                $loopChildren = self::renderLoopChildren($loopQuery, $childNodes, $el, $depth, $path, $editMode);
                 if ($loopChildren === null) {
                     return '';   // 空结果且 empty_mode=hidden：整个循环容器不输出
                 }
-                $children = $loopChildren;
+                $children = $loopChildren['html'];
+                $loopHostAttrs = $loopChildren['attrs'];
             } else {
                 foreach ($childNodes as $childIndex => $child) {
                     if (!is_array($child)) {
@@ -1222,6 +1289,15 @@ final class BlockRenderer
             'depth' => $depth,
             'node_id' => (string) ($el['id'] ?? ''),
         ]);
+        if ($loopHostAttrs !== [] && $html !== '') {
+            $loopRoot = new HtmlTagRewriter($html);
+            if ($loopRoot->nextTag()) {
+                foreach ($loopHostAttrs as $attrName => $attrValue) {
+                    $loopRoot->setAttribute($attrName, $attrValue);
+                }
+                $html = $loopRoot->getUpdatedHtml();
+            }
+        }
         $html = BloxFrontendEditTarget::mark($html, $type, (string) ($el['id'] ?? ''));
         if ($editMode && in_array($type, ['heading', 'text', 'button'], true)
             && preg_match('/\{[a-z_]+\}|\{\{[^{}]+\}\}/', (string) ($data[$type === 'text' ? 'html' : 'text'] ?? ''))) {

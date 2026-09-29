@@ -711,7 +711,7 @@ $professionalFeatures = BloxProfessionalUi::snapshot();
 $advancedQueryLoopEnabled = !empty($professionalFeatures['query_loop']['allowed']);
 // 表格、价格方案归属易开网页构建器 Pro。能力未放行时 schema 仍不可插入（容器子元素、快捷插入都据此判断），
 // 但元素库照常列出、带 PRO 角标并锁定：点击给出授权引导，不插入（已发布内容照常渲染）。
-$professionalElements = ['table' => 'table', 'pricing-table' => 'pricing'];
+$professionalElements = ['table' => 'table', 'pricing-table' => 'pricing', 'query-filter' => 'query_loop'];
 foreach ($professionalElements as $professionalType => $professionalFeature) {
     if (isset($registryMeta[$professionalType]) && empty($professionalFeatures[$professionalFeature]['allowed'])) {
         $registryMeta[$professionalType]['paletteVisible'] = false;
@@ -4058,6 +4058,8 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             },
 
             controlOptions(ctrl) {
+                // 2.0.3 查询筛选的目标：当前文档里挂了 _query 的容器/Div
+                if (ctrl.options_from === "loop_hosts") return this.loopHostOptions(ctrl);
                 var groups = ctrl.source_options || null;
                 var options = groups
                     ? (groups[this.dynamicSourceKind()] || ctrl.options || {})
@@ -4069,6 +4071,34 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                         options[current] = String((this.selEl.data || {}).label || current);
                     }
                 }
+                return options;
+            },
+
+            /** 当前文档中的查询循环宿主（container/div 挂 _query）：id → 可读名称。 */
+            loopHostOptions(ctrl) {
+                var options = {};
+                options[""] = ctrl.none_label || "—";
+                var seen = 0;
+                var label = function (node) {
+                    var name = String((node.data && (node.data._label || node.data.html_id)) || "");
+                    if (name) return name;
+                    var query = node.data._query || {};
+                    return (ctrl.loop_label || "Loop") + " #" + (++seen) + (query.source ? " · " + query.source : (query.ref ? " · " + query.ref : ""));
+                };
+                var walk = function (nodes) {
+                    (Array.isArray(nodes) ? nodes : []).forEach(function (node) {
+                        if (!node || typeof node !== "object") return;
+                        if ((node.type === "container" || node.type === "div") && node.data && node.data._query && node.id) {
+                            options[String(node.id)] = label(node);
+                        }
+                        if (node.data && Array.isArray(node.data.children)) walk(node.data.children);
+                        if (Array.isArray(node.columns)) node.columns.forEach(function (column) { walk(column && column.elements); });
+                        if (Array.isArray(node.elements)) walk(node.elements);
+                    });
+                };
+                walk(this.sections || []);
+                var current = this.selEl && this.selEl.data ? String(this.selEl.data[ctrl.key] || "") : "";
+                if (current && !Object.prototype.hasOwnProperty.call(options, current)) options[current] = current + " ?";
                 return options;
             },
 

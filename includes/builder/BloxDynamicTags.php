@@ -45,9 +45,17 @@ final class BloxDynamicTags
         'url' => ['site_url', 'url'],
         'logo' => ['site_logo', 'image'],
     ];
-    /** loop.* 循环项字段白名单（值来自数据库行，键必须白名单；url/date/index 是虚拟字段另行处理）。 */
+    /** loop.* 循环项字段白名单（值来自数据库行，键必须白名单；url/date/index 等是虚拟字段另行处理）。 */
     // cover 为图片路径列（v1.24-③ 结构化属性绑定：Image src 吃 {{loop.cover}}）
-    private const LOOP_FIELDS = ['title', 'subtitle', 'summary', 'model', 'price', 'cover'];
+    // 2.0.3：补齐各来源常用列（内容/产品/案例/招聘/下载/分类行），全部为展示型文本列
+    private const LOOP_FIELDS = ['title', 'subtitle', 'summary', 'model', 'price', 'cover',
+        'id', 'slug', 'market_price', 'author', 'source', 'views', 'tags',
+        'client_name', 'industry', 'duration', 'result_metric',
+        'location', 'salary', 'job_type', 'education', 'experience', 'headcount',
+        'file_ext', 'download_count', 'name', 'description', 'image', 'item_count'];
+    /** loop.* 虚拟字段：序号/分页类（来自 BloxLoopQuery 装饰的行键）。 */
+    private const LOOP_COUNTERS = ['index' => '_index', 'position' => '_position', 'total' => '_total', 'count' => '_count', 'page' => '_page', 'pages' => '_pages'];
+    private const LOOP_FLAGS = ['first' => 'loop_first', 'last' => 'loop_last', 'odd' => 'loop_odd', 'even' => 'loop_even'];
     private const ARTICLE_FIELDS = ['title', 'summary', 'author'];
     private const PRODUCT_FIELDS = ['title', 'model', 'price', 'summary'];
 
@@ -83,6 +91,12 @@ final class BloxDynamicTags
             '{{loop.price}}' => __('blox_dyn_loop_price'),
             '{{loop.date}}' => __('blox_dyn_loop_date'),
             '{{loop.index}}' => __('blox_dyn_loop_index'),
+            '{{loop.category}}' => __('blox_dyn_loop_category'),
+            '{{loop.views}}' => __('blox_dyn_loop_views'),
+            '{{loop.total}}' => __('blox_dyn_loop_total'),
+            '{{loop.page}}' => __('blox_dyn_loop_page'),
+            '{{loop.item_count}}' => __('blox_dyn_loop_item_count'),
+            '{{parent.title}}' => __('blox_dyn_parent_title'),
             '{{lang.code}}' => __('blox_dyn_lang_code'),
         ];
     }
@@ -176,30 +190,117 @@ final class BloxDynamicTags
                     return null;
                 }
                 $context = TagEngine::currentContext();
-                if (!is_array($context)) {
-                    return null;
-                }
-                if ($field === 'index') {
-                    $index = $context['_index'] ?? null;
-                    return is_numeric($index) ? (string) (int) $index : null;
-                }
-                // url/date 是虚拟字段（与 {yk:field} 同语义）：url 按条目类型取路由，date 回退创建时间
-                if ($field === 'url') {
-                    if (($context['_type'] ?? '') === 'product') {
-                        return function_exists('productUrl') ? (string) productUrl($context) : null;
-                    }
-                    return function_exists('contentUrl') ? (string) contentUrl($context) : null;
-                }
-                if ($field === 'date') {
-                    $timestamp = (int) ($context['publish_time'] ?? 0) ?: (int) ($context['created_at'] ?? 0);
-                    return $timestamp > 0 ? date('Y-m-d', $timestamp) : null;
-                }
-                return in_array($field, self::LOOP_FIELDS, true) ? self::rowValue($context, $field) : null;
+                return is_array($context) ? self::loopValue($context, $field, $parts[2] ?? '') : null;
+
+            case 'parent':
+                // 嵌套循环：外层循环的当前行（2.0.3）
+                $parent = class_exists('BloxLoopQuery') ? BloxLoopQuery::parentRow() : null;
+                return is_array($parent) ? self::loopValue($parent, $field, $parts[2] ?? '') : null;
 
             case 'lang':
                 return $field === 'code' && function_exists('siteLang') ? siteLang() : null;
         }
         return null;
+    }
+
+    /**
+     * 循环行取值（loop.* / parent.* 共用）。虚拟字段：
+     * url（按条目类型取路由）、date/updated（Y-m-d）、index/total/count/page/pages、
+     * first/last/odd/even（"1"/空，便于 fallback 管道与显示条件）、category/category_url、
+     * file_size（下载，人类可读）、meta.<键>（自定义字段）。
+     */
+    private static function loopValue(array $row, string $field, string $sub): ?string
+    {
+        if (isset(self::LOOP_COUNTERS[$field])) {
+            $value = $row[self::LOOP_COUNTERS[$field]] ?? null;
+            return is_numeric($value) ? (string) (int) $value : null;
+        }
+        if (isset(self::LOOP_FLAGS[$field])) {
+            return ($row[self::LOOP_FLAGS[$field]] ?? '0') === '1' ? '1' : '';
+        }
+        $type = (string) ($row['_type'] ?? 'content');
+        switch ($field) {
+            case 'url':
+                return self::rowUrl($row, $type);
+            case 'date':
+                $timestamp = (int) ($row['publish_time'] ?? 0) ?: (int) ($row['created_at'] ?? 0);
+                return $timestamp > 0 ? date('Y-m-d', $timestamp) : null;
+            case 'updated':
+                $timestamp = (int) ($row['updated_at'] ?? 0) ?: (int) ($row['created_at'] ?? 0);
+                return $timestamp > 0 ? date('Y-m-d', $timestamp) : null;
+            case 'category':
+                return self::rowValue($row, $type === 'content' ? 'channel_name' : 'category_name');
+            case 'category_url':
+                return self::categoryUrl($row, $type);
+            case 'file_size':
+                $bytes = (int) ($row['file_size'] ?? 0);
+                return $bytes > 0 && function_exists('formatFileSize') ? (string) formatFileSize($bytes) : null;
+            case 'meta':
+                return $sub !== '' ? self::metaValue($row, $type, $sub) : null;
+        }
+        return in_array($field, self::LOOP_FIELDS, true) ? self::rowValue($row, $field) : null;
+    }
+
+    private static function rowUrl(array $row, string $type): ?string
+    {
+        switch ($type) {
+            case 'product':
+                return function_exists('productUrl') ? (string) productUrl($row) : null;
+            case 'job':
+                return function_exists('jobUrl') ? (string) jobUrl($row) : null;
+            case 'download':
+                $id = (int) ($row['id'] ?? 0);
+                return $id > 0 ? '/download.php?fid=' . $id : null; // 与下载列表同一下载入口
+            case 'term':
+                return self::termUrl($row, (string) ($row['_taxonomy'] ?? ''));
+        }
+        return function_exists('contentUrl') ? (string) contentUrl($row) : null;
+    }
+
+    private static function termUrl(array $row, string $taxonomy): ?string
+    {
+        return match ($taxonomy) {
+            'content' => function_exists('channelUrl') ? (string) channelUrl($row) : null,
+            'product' => function_exists('productCategoryUrl') ? (string) productCategoryUrl($row) : null,
+            'download' => function_exists('downloadCategoryUrl') ? (string) downloadCategoryUrl($row) : null,
+            default => null,
+        };
+    }
+
+    /** 条目所属分类的链接（内容=栏目，产品/下载=分类）。 */
+    private static function categoryUrl(array $row, string $type): ?string
+    {
+        if ($type === 'content') {
+            $channelId = (int) ($row['channel_id'] ?? 0);
+            $channel = $channelId > 0 && function_exists('channelModel') ? channelModel()->find($channelId) : null;
+            return is_array($channel) ? self::termUrl($channel, 'content') : null;
+        }
+        if ($type !== 'product' && $type !== 'download') {
+            return null;
+        }
+        $categoryId = (int) ($row['category_id'] ?? 0);
+        if ($categoryId <= 0) {
+            return null;
+        }
+        return self::termUrl([
+            'id' => $categoryId,
+            'slug' => (string) ($row['category_slug'] ?? ''),
+            'name' => (string) ($row['category_name'] ?? ''),
+        ], $type);
+    }
+
+    /** 自定义字段（metas，owner 与显示条件/循环过滤同源）。 */
+    private static function metaValue(array $row, string $type, string $key): ?string
+    {
+        $id = (int) ($row['id'] ?? 0);
+        if ($id <= 0 || !function_exists('getMeta') || !in_array($type, ['content', 'product'], true)) {
+            return null;
+        }
+        $owner = $type === 'product'
+            ? 'product'
+            : (function_exists('resolveExtFieldOwner') ? resolveExtFieldOwner((string) ($row['type'] ?? 'article')) : 'content');
+        $value = getMeta($owner, $id, $key);
+        return is_scalar($value) ? trim((string) $value) : null;
     }
 
     /** 数据行取值：仅标量，其他形态一律 null（行内容不可信，形状必须收紧）。 */

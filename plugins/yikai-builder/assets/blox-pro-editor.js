@@ -697,6 +697,7 @@
     // 这里只做输入钳位与键的增删（空值/默认值不落盘，保持文档干净）。
     var loopQuery = {
         loopText: data.loopText && typeof data.loopText === "object" ? data.loopText : {},
+        loopTerms: data.loopTerms && typeof data.loopTerms === "object" ? data.loopTerms : {},
 
         loopQueryEnabled() {
             return !!(this.selEl && this.selEl.data && this.selEl.data._query
@@ -710,7 +711,79 @@
             if (key === "source") return query.source ?? "type:article";
             if (key === "pagination") return query.pagination ?? "none";
             if (key === "empty_mode") return query.empty_mode ?? "message";
+            if (key === "parent_term") return query.parent_term === undefined ? "" : String(query.parent_term);
             return query[key] ?? "";
+        },
+
+        /** 来源 → 取数种类：content / product / download / job / term / current（2.0.3）。 */
+        loopQueryKind() {
+            var source = String(this.loopQueryField("source"));
+            if (source.indexOf("terms:") === 0) return "term";
+            if (source === "current") return "current";
+            if (source === "type:product" || source === "type:download" || source === "type:job") return source.slice(5);
+            return "content";
+        },
+
+        /** 分类候选所属的分类体系（招聘/当前列表页没有可选分类）。 */
+        loopQueryTaxonomy() {
+            var source = String(this.loopQueryField("source"));
+            if (source.indexOf("terms:") === 0) return source.slice(6);
+            var kind = this.loopQueryKind();
+            if (kind === "product" || kind === "download") return kind;
+            return kind === "content" ? "content" : "";
+        },
+
+        loopTermOptions() {
+            var list = this.loopTerms[this.loopQueryTaxonomy()];
+            return Array.isArray(list) ? list : [];
+        },
+
+        loopQueryList(key) {
+            var value = this.loopQueryEnabled() ? this.selEl.data._query[key] : null;
+            return Array.isArray(value) ? value.map(String) : [];
+        },
+
+        toggleLoopQueryListItem(key, value, checked) {
+            if (!this.loopQueryEnabled()) return;
+            var list = this.loopQueryList(key).filter(function (item) { return item !== value; });
+            if (checked) list.push(value);
+            var query = Object.assign({}, this.selEl.data._query);
+            if (list.length) query[key] = list.slice(0, 20); else delete query[key];
+            // 改用多选后旧的单值 cat 并入（语义不变：旧 cat 是唯一包含项）
+            // （别名形式的旧 cat 无法对应到候选项，原样保留，面板会提示）
+            if (key === "cats" && query.cat && /^\d+$/.test(String(query.cat))) {
+                if (!query.cats) query.cats = [];
+                if (query.cats.indexOf(String(query.cat)) === -1) query.cats.unshift(String(query.cat));
+                delete query.cat;
+            }
+            this.selEl.data._query = query;
+        },
+
+        /** 含子分类：未显式设置时显示各来源的旧默认（产品含子类，内容不含）。 */
+        loopQueryChildren() {
+            var query = this.loopQueryEnabled() ? this.selEl.data._query : {};
+            if (typeof query.children === "boolean") return query.children;
+            return this.loopQueryKind() === "product";
+        },
+
+        loopQueryIds(key) {
+            return this.loopQueryList(key).join(", ");
+        },
+
+        loopQueryOrderOptions() {
+            var kind = this.loopQueryKind();
+            var labels = this.loopText.orders || {};
+            var keys;
+            if (kind === "term") {
+                labels = this.loopText.termOrders || {};
+                keys = ["default", "name", "name_desc", "newest", "count"];
+            } else {
+                keys = ["default", "newest", "oldest", "updated", "title", "title_desc", "views", "sort", "random"];
+                if (kind === "content" || kind === "product" || kind === "current") keys.splice(1, 0, "recommend_first");
+                if (kind === "product") keys.push("price_asc", "price_desc");
+                if (this.loopQueryList("ids").length) keys.push("manual");
+            }
+            return keys.map(function (key) { return { value: key, label: labels[key] || key }; });
         },
 
         toggleLoopQuery(enabled) {
@@ -739,6 +812,102 @@
                 return;
             }
             this.selEl.data._query = { ref: queryId };
+        },
+
+        // ── 全局查询管理（2.0.3）：用量、重命名、删除、就地编辑后保存回全局 ──
+        loopGlobalEditing: null,
+        globalQueryUsage: null,
+
+        loopGlobalQuery(queryId) {
+            queryId = queryId || this.loopQueryRefId() || (this.loopGlobalEditing && this.loopGlobalEditing.id) || "";
+            return (this.globalQueries || []).find(function (item) { return item.query_id === queryId; }) || null;
+        },
+
+        loopGlobalUsageText() {
+            var current = this.loopGlobalQuery();
+            if (!current || !this.globalQueryUsage) return "";
+            var usage = this.globalQueryUsage[current.query_id] || { docs: 0 };
+            return String(this.loopText.usage || ":docs").replace(":docs", String(usage.docs || 0));
+        },
+
+        _globalQueryRequest(fields) {
+            var body = new URLSearchParams(Object.assign({ _token: this.csrf }, fields));
+            return fetch((window.YK_BASE || "") + "/admin/blox_query_api.php", { method: "POST", body: body })
+                .then(function (response) { return response.json(); })
+                .then(function (result) {
+                    if (!result || Number(result.code) !== 0) throw new Error((result && result.msg) || "error");
+                    return result.data || {};
+                });
+        },
+
+        loadGlobalQueryUsage() {
+            var self = this;
+            return this._globalQueryRequest({ action: "list" }).then(function (data) {
+                if (Array.isArray(data.queries)) self.globalQueries = data.queries;
+                self.globalQueryUsage = data.usage && typeof data.usage === "object" && !Array.isArray(data.usage) ? data.usage : {};
+            }).catch(function (error) { self.toast(String(error && error.message || error)); });
+        },
+
+        _replaceGlobalQuery(row) {
+            if (!row || !row.query_id) return;
+            this.globalQueries = (this.globalQueries || []).map(function (item) { return item.query_id === row.query_id ? row : item; });
+        },
+
+        renameLoopGlobalQuery() {
+            var current = this.loopGlobalQuery();
+            if (!current) return;
+            var name = window.prompt(this.loopText.renamePrompt || "Name", current.name);
+            if (!name || !name.trim() || name.trim() === current.name) return;
+            var self = this;
+            this._globalQueryRequest({ action: "query_rename", id: current.query_id, name: name.trim(), modified: String(current.modified || "") })
+                .then(function (data) { self._replaceGlobalQuery(data.query); })
+                .catch(function (error) { self.toast(String(error && error.message || error)); });
+        },
+
+        /** 删除全局查询：服务端拒绝仍被引用的查询；本元素正引用它时先转为内联副本。 */
+        deleteLoopGlobalQuery() {
+            var current = this.loopGlobalQuery();
+            if (!current || !window.confirm(String(this.loopText.deleteConfirm || "Delete?").replace(":name", current.name))) return;
+            var self = this;
+            this._globalQueryRequest({ action: "query_delete", id: current.query_id, modified: String(current.modified || "") })
+                .then(function () {
+                    if (self.loopQueryRefId() === current.query_id) self.selEl.data._query = Object.assign({}, current.query);
+                    self.globalQueries = (self.globalQueries || []).filter(function (item) { return item.query_id !== current.query_id; });
+                    self.loopGlobalEditing = null;
+                })
+                .catch(function (error) { self.toast(String(error && error.message || error)); });
+        },
+
+        /** 就地编辑：把全局查询体展开到本元素上，复用整套面板字段；保存回全局或取消后恢复引用。 */
+        editLoopGlobalQuery() {
+            var current = this.loopGlobalQuery();
+            if (!current || !this.selEl) return;
+            this.loopGlobalEditing = { id: current.query_id, modified: current.modified || 0, element: this.selEl };
+            this.selEl.data._query = JSON.parse(JSON.stringify(current.query || { source: "type:article", limit: 6 }));
+        },
+
+        loopGlobalEditingActive() {
+            return !!(this.loopGlobalEditing && this.selEl && this.loopGlobalEditing.element === this.selEl && !this.loopQueryRefId());
+        },
+
+        saveLoopGlobalQuery() {
+            if (!this.loopGlobalEditingActive()) return;
+            var editing = this.loopGlobalEditing;
+            var self = this;
+            this._globalQueryRequest({
+                action: "query_update", id: editing.id, modified: String(editing.modified || ""),
+                query: JSON.stringify(this.selEl.data._query),
+            }).then(function (data) {
+                self._replaceGlobalQuery(data.query);
+                editing.element.data._query = { ref: editing.id };
+                self.loopGlobalEditing = null;
+            }).catch(function (error) { self.toast(String(error && error.message || error)); });
+        },
+
+        cancelLoopGlobalQuery() {
+            if (!this.loopGlobalEditing) return;
+            this.loopGlobalEditing.element.data._query = { ref: this.loopGlobalEditing.id };
+            this.loopGlobalEditing = null;
         },
 
         saveLoopQueryAsGlobal() {
@@ -816,15 +985,43 @@
             } else if (key === "offset") {
                 var offset = Math.max(0, Math.min(5000, parseInt(value, 10) || 0));
                 if (offset > 0) query.offset = offset; else delete query.offset;
-            } else if (key === "recommend" || key === "hot" || key === "top") {
+            } else if (["recommend", "hot", "top", "new", "exclude_current", "hide_empty"].indexOf(key) !== -1) {
                 if (value) query[key] = true; else delete query[key];
+            } else if (key === "children") {
+                // 与来源默认一致时不落盘（产品默认含子类、内容默认不含）
+                var fallback = this.loopQueryKind() === "product";
+                if (!!value === fallback) delete query.children; else query.children = !!value;
+            } else if (key === "ids" || key === "exclude_ids") {
+                var ids = String(value || "").split(/[\s,，]+/).filter(function (id) { return /^\d+$/.test(id) && Number(id) > 0; });
+                ids = ids.filter(function (id, index) { return ids.indexOf(id) === index; }).slice(0, 50).map(Number);
+                if (ids.length) query[key] = ids; else delete query[key];
+                if (key === "ids" && !ids.length && query.order === "manual") delete query.order;
+            } else if (key === "date_within" || key === "parent_term") {
+                var number = String(value == null ? "" : value).trim();
+                if (number === "" || !/^\d+$/.test(number) || (key === "date_within" && Number(number) === 0)) delete query[key];
+                else query[key] = Number(number);
+            } else if (key === "price_min" || key === "price_max") {
+                var price = parseFloat(value);
+                if (isNaN(price) || price < 0 || String(value).trim() === "") delete query[key]; else query[key] = price;
             } else {
                 var text = String(value == null ? "" : value).trim();
                 var isDefault = text === ""
                     || (key === "pagination" && text === "none")
                     || (key === "empty_mode" && text === "message")
-                    || (key === "order" && text === "default");
+                    || (key === "order" && text === "default")
+                    || (key === "filter_relation" && text !== "or");
                 if (isDefault) delete query[key]; else query[key] = text;
+                if (key === "source") {
+                    // 换来源：分类候选属于另一套体系，旧的分类/排序选择不再有意义
+                    ["cat", "cats", "cats_exclude", "children", "parent_term", "hide_empty", "order"].forEach(function (stale) { delete query[stale]; });
+                    if (text.indexOf("terms:") === 0) {
+                        ["keyword", "recommend", "hot", "top", "new", "ids", "exclude_ids", "exclude_current", "date_within", "date_from", "date_to", "price_min", "price_max", "filters", "filter_relation"].forEach(function (stale) { delete query[stale]; });
+                        if (query.scope === "related") delete query.scope;
+                    }
+                }
+                // 随机顺序与嵌套循环不支持分页（服务端同样会丢弃）
+                if ((key === "order" && text === "random") || (key === "scope" && text === "parent")) delete query.pagination;
+                if (key === "pagination" && text !== "load_more") delete query.load_more_text;
             }
             this.selEl.data._query = query;
         },
