@@ -104,10 +104,38 @@ final class LanguageRegistry
         return self::LANGUAGES[$code]['picker'] ?? '';
     }
 
+    /**
+     * 按语言取「<字段>_<语言>」式的多语字段（主题/插件/模板清单、目录条目、带 _en/_ja 列的数据行）。
+     *
+     * 取值顺序：本语言后缀 → 无后缀基准（仅当基准就是这种语言，或同为中文）→ 英文后缀 → 基准。
+     * 读汉字的语言（中文、日语）不插英文这一档，缺译时直接回落中文基准（与 2.0 之前一致）。
+     * $baseLang 是无后缀字段所用的语言：清单与官方目录一律是中文；站点数据行是站点默认语言。
+     * 这样韩语后台看到英文描述而不是中文，日语默认站仍优先显示基准里的日文。全部为空时返回空串。
+     */
+    public static function localizedField(array $row, string $field, string $lang, string $baseLang = 'zh-CN'): string
+    {
+        $chain = [];
+        if ($lang !== '' && $lang !== 'zh-CN') $chain[] = $field . '_' . $lang;
+        if ($lang === $baseLang || (self::isChinese($lang) && self::isChinese($baseLang))) $chain[] = $field;
+        if ($lang !== 'en' && !self::readsHan($lang)) $chain[] = $field . '_en';
+        $chain[] = $field;
+        foreach ($chain as $key) {
+            $value = $row[$key] ?? null;
+            if (is_scalar($value) && trim((string) $value) !== '') return trim((string) $value);
+        }
+        return '';
+    }
+
     /** 与语言代码同名的别名会和语言前缀撞车（/de/xxx.html），栏目与单页不能新用。 */
     public static function isReservedSlug(string $slug): bool
     {
         return in_array(strtolower(trim($slug)), array_map('strtolower', self::codes()), true);
+    }
+
+    /** 读汉字的语言：多语字段缺译时回落中文基准比回落英文更好懂。 */
+    public static function readsHan(string $code): bool
+    {
+        return self::isChinese($code) || $code === 'ja';
     }
 
     /** 中文（简/繁）：与「按中文习惯」有关的判断（全角标点、不加空格等）走这里。 */

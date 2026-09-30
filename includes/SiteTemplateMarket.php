@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/i18n/LanguageRegistry.php';
+
 require_once __DIR__ . '/SiteTemplateArchive.php';
 
 /** Official whole-site packages. This catalog never applies or trusts a package for the administrator. */
@@ -73,7 +75,13 @@ final class SiteTemplateMarket
             || preg_match('/^>=([0-9]+\.[0-9]+\.[0-9]+)$/D', $entry['requires_php']) !== 1
             || !in_array($entry['status'], ['draft', 'published'], true)) return null;
         $item = $entry;
-        foreach (['name_en', 'name_ja', 'description', 'description_en', 'description_ja', 'category_name', 'category_name_en', 'category_name_ja'] as $key) {
+        // 多语字段：<字段>_<语言>，语言取自注册表（目录以后给出 name_ko 等也能显示）
+        $textKeys = ['description', 'category_name'];
+        foreach (LanguageRegistry::codes() as $code) {
+            if ($code === 'zh-CN') continue;
+            array_push($textKeys, 'name_' . $code, 'description_' . $code, 'category_name_' . $code);
+        }
+        foreach ($textKeys as $key) {
             $item[$key] = is_string($entry[$key] ?? null) ? mb_substr($entry[$key], 0, 1200) : '';
         }
         $image = $entry['screenshot'] ?? '';
@@ -105,15 +113,21 @@ final class SiteTemplateMarket
         return $item;
     }
 
-    /** 模板内容的语言（目录可选字段，只用于筛选展示，不参与签名）。只认三种界面语言，"zh" 视同 zh-CN。 */
-    public const LANGUAGES = ['zh-CN', 'en', 'ja'];
+    /**
+     * 模板内容的语言（目录可选字段，只用于筛选展示，不参与签名）。只认注册过的语言，"zh" 视同 zh-CN。
+     * @return list<string>
+     */
+    public static function languageCodes(): array
+    {
+        return LanguageRegistry::codes();
+    }
 
     /** @return list<string> */
     public static function languages(mixed $value): array
     {
         if (!is_array($value)) return [];
         $codes = array_map(static fn(mixed $code): string => $code === 'zh' ? 'zh-CN' : (is_string($code) ? $code : ''), $value);
-        return array_values(array_intersect(self::LANGUAGES, $codes));
+        return array_values(array_intersect(self::languageCodes(), $codes));
     }
 
     /**

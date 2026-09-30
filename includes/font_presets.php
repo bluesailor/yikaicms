@@ -16,6 +16,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/i18n/LanguageRegistry.php';
+
 /**
  * @return array<string, array<string, array{label:string, body:string, heading:string}>>
  */

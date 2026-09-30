@@ -69,7 +69,7 @@ if ($action === 'save_form') {
         error(__('blox_contact_form_missing'));
     }
 
-    $localizedLang = $pageLang !== null && in_array($pageLang, ['en', 'ja'], true)
+    $localizedLang = $pageLang !== null && $pageLang !== 'zh-CN' && LanguageRegistry::has($pageLang)
         ? $pageLang
         : '';
     $fieldsColumn = $localizedLang !== '' && array_key_exists('fields_' . $localizedLang, $template)

@@ -248,7 +248,7 @@ final class ErrorHandler
             if (function_exists('getLang')) {
                 try {
                     $candidate = getLang();
-                    if (in_array($candidate, ['zh-CN', 'en', 'ja'], true)) $htmlLanguage = $candidate;
+                    if (class_exists('LanguageRegistry') && LanguageRegistry::has((string) $candidate)) $htmlLanguage = (string) $candidate;
                 } catch (\Throwable $ignored) {
                     // 错误页不能因语言配置读取失败而再次报错。
                 }

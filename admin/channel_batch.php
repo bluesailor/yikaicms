@@ -20,9 +20,7 @@ $catalog = require ROOT_PATH . '/includes/channel_catalog.php';
 
 // 按语言挑名称
 $pickName = function (array $it, string $lang): string {
-    if ($lang === 'en' && !empty($it['name_en'])) return (string) $it['name_en'];
-    if ($lang === 'ja' && !empty($it['name_ja'])) return (string) $it['name_ja'];
-    return (string) ($it['name'] ?? $it['slug']);
+    return LanguageRegistry::localizedField($it, 'name', $lang) ?: (string) ($it['slug'] ?? '');
 };
 
 // ── 生成动作 ──────────────────────────────────────────────
@@ -108,7 +106,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="flex items-center flex-wrap gap-2">
             <span class="text-sm text-gray-500 mr-1"><?php echo e(__('chbatch_quick_preset')); ?></span>
             <?php foreach ($catalog['presets'] as $pk => $p):
-                $plabel = $uiLang === 'en' ? ($p['label_en'] ?? $p['label']) : ($uiLang === 'ja' ? ($p['label_ja'] ?? $p['label']) : $p['label']);
+                $plabel = LanguageRegistry::localizedField($p, 'label', $uiLang);
             ?>
             <button type="button" class="js-preset px-3 py-1.5 text-sm rounded-full border border-gray-300 hover:border-primary hover:text-primary transition"
                     data-items='<?php echo e(json_encode($p['items'], JSON_UNESCAPED_UNICODE)); ?>'><?php echo e($plabel); ?></button>

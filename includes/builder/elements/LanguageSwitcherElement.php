@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/i18n/LanguageRegistry.php';
+
 final class LanguageSwitcherElement extends AbstractElement
 {
     /**

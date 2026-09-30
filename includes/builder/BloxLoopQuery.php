@@ -19,6 +19,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/i18n/LanguageRegistry.php';
+
 final class BloxLoopQuery
 {
     public const SOURCE_PATTERN = BloxQuerySpec::SOURCE_PATTERN;
@@ -235,7 +237,7 @@ final class BloxLoopQuery
     private static function downloadCategoryName(array $row): string
     {
         $lang = function_exists('siteLang') ? siteLang() : 'zh-CN';
-        $localized = $lang === 'en' ? (string) ($row['name_en'] ?? '') : ($lang === 'ja' ? (string) ($row['name_ja'] ?? '') : '');
+        $localized = LanguageRegistry::localizedField($row, 'name', $lang, (function_exists('config') ? (string) config('site_lang', 'zh-CN') : 'zh-CN'));
         return $localized !== '' ? $localized : (string) ($row['name'] ?? '');
     }
 

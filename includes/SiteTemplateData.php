@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/i18n/LanguageRegistry.php';
 
 require_once __DIR__ . '/SensitiveSettings.php';
 
@@ -153,9 +154,9 @@ final class SiteTemplateData
         foreach ($data['settings'] as $key => $value) {
             if (!is_string($key) || !is_string($value) || !self::settingAllowed($key)) throw new RuntimeException('st_invalid');
         }
-        if (!in_array($data['settings']['site_lang'] ?? 'zh-CN', ['zh-CN', 'en', 'ja'], true)) throw new RuntimeException('st_invalid');
+        if (!LanguageRegistry::has((string) ($data['settings']['site_lang'] ?? 'zh-CN'))) throw new RuntimeException('st_invalid');
         $languages = json_decode($data['settings']['enabled_languages'] ?? '["zh-CN"]', true);
-        if (!is_array($languages) || $languages === [] || array_diff($languages, ['zh-CN', 'en', 'ja'])) throw new RuntimeException('st_invalid');
+        if (!is_array($languages) || $languages === [] || array_diff($languages, LanguageRegistry::codes())) throw new RuntimeException('st_invalid');
     }
 
     /** Caller owns the transaction and checks the untouched-install guard. */
