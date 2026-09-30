@@ -1396,7 +1396,6 @@ return [
     'lic_mod_oss' => '媒体加速 OSS',
     'lic_mod_icon_maker' => '图标工坊 Pro',
     'lic_mod_seo_pro' => 'SEO 助手 Pro',
-    'lic_mod_geo_block' => '地区访问限制',
     'admin_customer_service' => '在线客服',
     'upgrade_notify_label' => '控制台首页的新版本提醒',
     'upgrade_notify_all' => '提醒全部更新',

@@ -316,8 +316,6 @@ EXCLUDES=(
     # dologin（易登录）2026-09-17 产品决定不随核心预装：走插件市场按需安装。
     # 核心只保留 dologin_links 表与模型（安装 SQL / 迁移），存量站已装的插件不受影响（增量包不删 plugins/）。
     "plugins/dologin"
-    # geo-block（地区访问限制）2.0.x 起的付费插件（geo-block 模块），只走插件市场分发。
-    "plugins/geo-block"
 
     # 主题市场源码目录本身不进入运行包。Business、Minimal 会在上面的显式步骤中
     # 复制到 themes/ 作为新安装预装模板；Aurora、Trade 仍由主题市场签名分发。
