@@ -50,8 +50,11 @@ location / {
     rewrite ^/sitemap\.xml$ /sitemap.php last;
     rewrite ^/search\.html$ /search.php last;
 
-    # 多语言前缀剥离：/ja/foo → /foo?_lang=ja
-    rewrite ^/(ja|en|zh-CN|zh-TW)/(.*)$ /$2?_lang=$1 last;
+    # 多语言前缀：/ja/foo、/de/foo 交给入口，由 Dispatcher 判断是语言（装了语言包）还是栏目别名。
+    # 只对不存在的路径生效，真实文件照常直出；新增语言不用改本段。
+    if (!-e $request_filename) {
+        rewrite "^/[a-z]{2}(?:-[A-Z]{2})?/" /index.php last;
+    }
 
     # 新闻系统
     rewrite ^/news\.html$ /news.php last;

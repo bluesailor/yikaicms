@@ -77,8 +77,11 @@
     # 搜索
     RewriteRule ^search\.html$ %{ENV:YK_BASE}search.php [L,QSA]
 
-    # 多语言 URL 前缀：/ja/... /en/... /zh-CN/... /zh-TW/... → 剥离前缀，设 lang 参数
-    RewriteRule ^(ja|en|zh-CN|zh-TW)/(.*)$ %{ENV:YK_BASE}$2?_lang=$1 [QSA,L,DPI]
+    # 多语言 URL 前缀：/ja/... /en/... /de/... → 剥离前缀，设 lang 参数。
+    # 通用写法：只要装了该语言包（lang/<代码>.php）就生效，新增语言不用改本文件；
+    # 没装语言包的两字母段（如叫 it 的栏目）照常按栏目别名路由。
+    RewriteCond %{DOCUMENT_ROOT}%{ENV:YK_BASE}lang/$1.php -f
+    RewriteRule ^([a-z]{2}(?:-[A-Z]{2})?)/(.*)$ %{ENV:YK_BASE}$2?_lang=$1 [QSA,L,DPI]
 
     # 伪静态规则
 

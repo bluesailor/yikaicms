@@ -949,6 +949,7 @@ return [
     'admin_url_alias' => 'URLエイリアス',
     'admin_parent_category' => '上位カテゴリ',
     'admin_url_alias_exists' => 'URLエイリアスは既に存在します',
+    'admin_url_alias_reserved_language' => 'URLエイリアス「:slug」は言語コードのため、言語のURLプレフィックスと衝突します。別のものを指定してください。',
     'admin_category_name' => 'カテゴリ名',
     'admin_category_name_required' => 'カテゴリ名を入力してください',
     'admin_category_not_found' => 'カテゴリが存在しません',

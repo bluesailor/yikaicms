@@ -79,11 +79,12 @@ function fontPresets(): array
     ];
 }
 
-/** 当前语言可用的预设组；未收录的语言回落 en */
+/** 当前语言可用的预设组：先按语言代码，再按注册表的字体组（繁体用简体组），最后回落 en */
 function fontPresetsFor(string $lang): array
 {
     $all = fontPresets();
-    return $all[$lang] ?? $all['en'];
+    $group = class_exists('LanguageRegistry') ? LanguageRegistry::fontGroup($lang) : 'en';
+    return $all[$lang] ?? $all[$group] ?? $all['en'];
 }
 
 /**

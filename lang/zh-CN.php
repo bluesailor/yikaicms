@@ -940,6 +940,7 @@ return [
     'admin_url_alias' => 'URL别名',
     'admin_parent_category' => '上级栏目',
     'admin_url_alias_exists' => 'URL别名已存在',
+    'admin_url_alias_reserved_language' => 'URL别名「:slug」是语言代码，会和语言网址前缀冲突，请换一个',
     'admin_category_name' => '栏目名称',
     'admin_category_name_required' => '请输入栏目名称',
     'admin_category_not_found' => '栏目不存在',

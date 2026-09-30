@@ -26,6 +26,7 @@ require_once __DIR__ . '/ThemeSettings.php';
 require_once __DIR__ . '/ThemeContent.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
 require_once __DIR__ . '/Slug.php';       // generateSlug/normalizeSlugInput：URL 别名净化单一来源
+require_once __DIR__ . '/i18n/LanguageRegistry.php';   // 支持哪些语言、前缀/hreflang/方向：单一来源
 require_once __DIR__ . '/AdminLogSanitizer.php';
 require_once __DIR__ . '/FormSubmissionToken.php';
 require_once __DIR__ . '/FormSubmissionNonce.php';
@@ -907,16 +908,15 @@ function renderHreflangs(): string
     // 当前请求 path（剥掉已有的 lang 前缀）
     $path = (string) ($_SERVER['REQUEST_URI'] ?? '/');
     if (($q = strpos($path, '?')) !== false) $path = substr($path, 0, $q);
-    $path = preg_replace('#^/(zh-CN|zh-TW|en|ja)(?=/|$)#', '', $path) ?? $path;
+    $path = preg_replace('#^/(' . LanguageRegistry::urlPrefixPattern() . ')(?=/|$)#', '', $path) ?? $path;
     if ($path === '') $path = '/';
 
-    $hreflangMap = ['zh-CN' => 'zh-CN', 'zh-TW' => 'zh-Hant', 'en' => 'en', 'ja' => 'ja'];
     $out = '';
     foreach ($enabled as $code) {
-        if (!isset($hreflangMap[$code])) continue;
+        if (!is_string($code) || !LanguageRegistry::has($code)) continue;
         $prefix = $code === $defaultLang ? '' : '/' . $code;
         $href = $base . $prefix . $path;
-        $out .= '<link rel="alternate" hreflang="' . htmlspecialchars($hreflangMap[$code], ENT_QUOTES) . '" href="' . htmlspecialchars($href, ENT_QUOTES) . '">' . "\n";
+        $out .= '<link rel="alternate" hreflang="' . htmlspecialchars(LanguageRegistry::hreflang($code), ENT_QUOTES) . '" href="' . htmlspecialchars($href, ENT_QUOTES) . '">' . "\n";
     }
     // x-default
     $out .= '<link rel="alternate" hreflang="x-default" href="' . htmlspecialchars($base . $path, ENT_QUOTES) . '">' . "\n";
@@ -4275,13 +4275,13 @@ function availableLanguages(): array
 {
     static $langs = null;
     if ($langs !== null) return $langs;
-    $labels = ['zh-CN' => '中文', 'zh-TW' => '繁體中文', 'ja' => '日本語', 'en' => 'English', 'ko' => '한국어', 'fr' => 'Français', 'de' => 'Deutsch', 'es' => 'Español'];
+    // 只收注册过的语言（URL 前缀、hreflang、书写方向都靠注册表）；简体沿用「中文」，其余用本族语名
     $langs = [];
     $files = glob(ROOT_PATH . '/lang/*.php') ?: [];
     foreach ($files as $f) {
         $code = basename($f, '.php');
-        if (strpos($code, 'dict-') === 0) continue;
-        $langs[$code] = $labels[$code] ?? $code;
+        if (!LanguageRegistry::has($code)) continue;
+        $langs[$code] = $code === 'zh-CN' ? '中文' : LanguageRegistry::name($code);
     }
     return $langs;
 }
