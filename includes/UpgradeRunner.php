@@ -767,6 +767,29 @@ function upgrade_batch(mixed $requestedOffset = null): array
     return $response;
     }
 
+/**
+ * 未执行迁移的编号清单；读不出来返回 null。
+ * 自动升级用它区分「这次升级新带来的迁移」与「站点原本就挂着的」（如导入整站模板后
+ * 数据状态型迁移显示未执行）——只有前者说明新版本需要改表。
+ *
+ * @return list<string>|null
+ */
+function uo_pending_migration_ids(): ?array
+{
+    try {
+        require_once ROOT_PATH . '/includes/Migrator.php';
+        $ids = [];
+        foreach (Migrator::loadAll() as $id => $migration) {
+            if (!Migrator::isApplied($migration)) {
+                $ids[] = (string) $id;
+            }
+        }
+        return $ids;
+    } catch (Throwable) {
+        return null;
+    }
+}
+
 function uo_pending_migrations(): ?int
 {
     try {

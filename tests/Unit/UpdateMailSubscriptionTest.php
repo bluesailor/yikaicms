@@ -42,6 +42,8 @@ final class UpdateMailSubscriptionTest extends TestCase
     {
         $this->boot();
         self::assertTrue(\UpdateMailSubscription::subscribe(' owner@example.com ', 'ja-JP'));
+        self::assertSame(['notify_email' => 'owner@example.com', 'notify_lang' => 'ja', 'notify_resubscribe' => '1'], \UpdateMailSubscription::reportFields());
+        \UpdateMailSubscription::acknowledge(\UpdateMailSubscription::reportFields());
         self::assertSame(['notify_email' => 'owner@example.com', 'notify_lang' => 'ja'], \UpdateMailSubscription::reportFields());
 
         \UpdateMailSubscription::unsubscribe();
@@ -54,6 +56,27 @@ final class UpdateMailSubscriptionTest extends TestCase
         // 从没订阅过的站退订：不必通知服务器
         \UpdateMailSubscription::unsubscribe();
         self::assertSame([], \UpdateMailSubscription::reportFields());
+    }
+
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testUnsubscribeFromEmailAndExplicitResubscribe(): void
+    {
+        $this->boot();
+        \UpdateMailSubscription::subscribe('owner@example.com', 'en');
+        // 在后台亲自订阅：下一次回访带解除退订标记，送达后不再带
+        $sent = \UpdateMailSubscription::reportFields();
+        self::assertSame('1', $sent['notify_resubscribe'] ?? null);
+        \UpdateMailSubscription::acknowledge($sent);
+        self::assertArrayNotHasKey('notify_resubscribe', \UpdateMailSubscription::reportFields());
+
+        // 站长点了邮件里的退订链接：服务器回告后本地停止上报，也不再弹提示
+        \UpdateMailSubscription::unsubscribedByServer();
+        self::assertSame([], \UpdateMailSubscription::reportFields());
+        self::assertFalse(\UpdateMailSubscription::promptDue());
+
+        $src = (string) file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
+        self::assertStringContainsString("(\$d['data']['notify_state'] ?? '') === 'unsubscribed'", $src);
     }
 
     #[RunInSeparateProcess]

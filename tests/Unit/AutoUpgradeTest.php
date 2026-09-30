@@ -356,6 +356,18 @@ final class AutoUpgradeTest extends TestCase
         self::assertStringContainsString('rolled_back', $src);
     }
 
+    public function testOnlyMigrationsBroughtByTheUpgradeRollItBack(): void
+    {
+        // 站点升级前就挂着的迁移（如导入整站模板后的数据状态型迁移）不是这次升级造成的：
+        // 拿它们拦截，会让这类站永远无法自动 / 远程升级
+        $src = (string) file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
+        self::assertStringContainsString('$pendingBefore = uo_pending_migration_ids();', $src);
+        self::assertStringContainsString("'auto_upgrade_pending_before' => (string) json_encode(\$pendingBefore),", $src);
+        self::assertStringContainsString('count(array_diff($pendingAfter, $pendingBefore))', $src);
+        self::assertLessThan(strpos($src, '$pre = upgrade_prepare($from, $to);'), strpos($src, '$pendingBefore = uo_pending_migration_ids();'), 'recorded before any file is written');
+        self::assertStringContainsString('function uo_pending_migration_ids(): ?array', (string) file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php'));
+    }
+
     public function testManualUpgradeRequiresDatabaseBackupBeforeWritingFiles(): void
     {
         $manual = (string) file_get_contents(ROOT_PATH . '/admin/upgrade_online.php');
