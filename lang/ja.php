@@ -1440,7 +1440,6 @@ return [
     'lic_mod_oss' => 'OSS メディア高速化',
     'lic_mod_icon_maker' => 'アイコンメーカー Pro',
     'lic_mod_seo_pro' => 'SEO アシスタント Pro',
-    'lic_mod_geo_block' => '地域アクセス制限',
     'admin_customer_service' => 'オンライン接客',
     'upgrade_notify_label' => 'ダッシュボードの新バージョン通知',
     'upgrade_notify_all' => 'すべての更新を通知',

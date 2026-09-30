@@ -40,7 +40,6 @@ $moduleLabels = [
     'oss'        => __('lic_mod_oss'),
     'icon-maker' => __('lic_mod_icon_maker'),
     'seo-pro'    => __('lic_mod_seo_pro'),
-    'geo-block'  => __('lic_mod_geo_block'),
 ];
 $planLabels   = ['free' => __('lic_plan_free'), 'basic' => __('lic_plan_basic'), 'pro' => __('lic_plan_pro')];
 $reasonLabels = [
