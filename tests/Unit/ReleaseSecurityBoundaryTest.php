@@ -40,7 +40,7 @@ final class ReleaseSecurityBoundaryTest extends TestCase
         // R05（2026-09-18 复审，真实 Nginx 实测）：/en/news.html 缺静态文件时，
         // 语言规则去掉前缀后会重新匹配通用 .html 规则，进而直出默认语言的静态页。
         // 带语言前缀的规则必须排在通用规则之前，且未命中直接交给 PHP。
-        $langLocation = strpos($full, 'location ~ ^/(?:ja|en|zh-CN|zh-TW)/.+\.html$');
+        $langLocation = strpos($full, 'location ~ "^/[a-z]{2}(?:-[A-Z]{2})?/.+\.html$" {');
         $htmlLocation = strpos($full, "location ~ \.html\$ {");
         self::assertIsInt($langLocation, '缺少多语言静态回退规则');
         self::assertIsInt($htmlLocation);

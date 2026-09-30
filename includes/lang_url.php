@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/i18n/LanguageRegistry.php';
+
 /**
  * 给站内路径加语言前缀。默认语言原样返回；非默认语言返回 /{lang}/{path}。
  *
@@ -23,7 +25,7 @@ function langUrl(string $url, string $lang = ''): string
             return $path . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
         }
         if ($path === '/' || trim($path, '/') === '' || trim($path, '/') === $defaultLang
-            || in_array(trim($path, '/'), ['en', 'ja', 'zh-CN', 'zh-TW'], true)) {
+            || LanguageRegistry::has(trim($path, '/'))) {
             return dynamicUrl('home', [], $lang);
         }
     }

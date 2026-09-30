@@ -63,7 +63,7 @@ final class DeployConfigSyncTest extends TestCase
     public function testRestrictedHostConfigsKeepRouteAndSubdirectoryParity(): void
     {
         $aliyun = self::read('deploy/aliyun-nginx.htaccess');
-        self::assertStringContainsString('^/(ja|en|zh-CN|zh-TW)/', $aliyun);
+        self::assertStringContainsString('rewrite "^/[a-z]{2}(?:-[A-Z]{2})?/" /index.php last;', $aliyun);
         $download = strpos($aliyun, 'rewrite ^/download/([a-z0-9_-]+)\.html$ /list.php?slug=download&cat=$1 last;');
         self::assertIsInt($download);
         self::assertLessThan(strpos($aliyun, 'rewrite ^/([a-z0-9_-]+)/([a-z0-9_-]+)\.html$'), $download);

@@ -20,6 +20,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/i18n/LanguageRegistry.php';
+
 final class Dispatcher
 {
     /**
@@ -65,21 +67,23 @@ final class Dispatcher
         ['#^api/v1/([a-z_]+)/?$#',                          'api/v1/index.php', ['resource'],       []],
     ];
 
-    /** 支持的多语言 URL 前缀（与 .htaccess 同步） */
-    private const LANG_PREFIXES = ['ja', 'en', 'zh-CN', 'zh-TW'];
-
     /**
      * 从原始请求路径识别语言前缀，供 index.php 在加载 init.php 前初始化语言。
+     *
+     * 只认「注册过且装了语言包」的语言（见 LanguageRegistry）：没有语言包的代码
+     * 按普通栏目别名路由，老站里叫 it、de 的栏目不会因为注册了新语言而失效。
      */
     public static function languagePrefixFromPath(string $path): ?string
     {
-        $path = ltrim((string) parse_url($path, PHP_URL_PATH), '/');
-        foreach (self::LANG_PREFIXES as $prefix) {
-            if ($path === $prefix || str_starts_with($path, $prefix . '/')) {
-                return $prefix;
-            }
-        }
-        return null;
+        $code = LanguageRegistry::prefixOf((string) parse_url($path, PHP_URL_PATH));
+        return $code !== null && self::languageInstalled($code) ? $code : null;
+    }
+
+    /** URL 可用的语言：注册 且 lang/<code>.php 存在（init 之前也能判断，只看文件）。 */
+    private static function languageInstalled(string $code): bool
+    {
+        static $seen = [];
+        return $seen[$code] ??= LanguageRegistry::has($code) && is_file(dirname(__DIR__) . '/lang/' . $code . '.php');
     }
 
     /**
@@ -336,7 +340,7 @@ final class Dispatcher
             return null;
         }
         $lang = $publicLang ?? $internalLang;
-        return $lang !== null && in_array($lang, self::LANG_PREFIXES, true) ? $lang : null;
+        return $lang !== null && self::languageInstalled($lang) ? $lang : null;
     }
 
     /** @param array<string,mixed> $query */

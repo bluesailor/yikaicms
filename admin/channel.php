@@ -145,6 +145,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data['lang'] = (string) (get('lang') ?: config('site_lang', 'zh-CN'));
         }
 
+        // 语言代码是保留别名（/de/xxx.html 会被当成德语前缀）；老栏目原样保存不拦
+        if (LanguageRegistry::isReservedSlug((string) $data['slug'])
+            && ($id <= 0 || (string) (channelModel()->find($id)['slug'] ?? '') !== (string) $data['slug'])) {
+            error(__('admin_url_alias_reserved_language', ['slug' => (string) $data['slug']]));
+        }
+
         // 检查 slug 唯一性
         if (!channelModel()->isSlugUnique($data['slug'], $id)) {
             error(__('admin_url_alias_exists'));

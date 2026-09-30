@@ -742,12 +742,16 @@ function switchAdminLang(lang) {
     <?php /* flatpickr：统一美化后台所有日期/时间输入（跨浏览器一致 + 本地化日历） */ ?>
     <link rel="stylesheet" href="/assets/flatpickr/flatpickr.min.css">
     <script src="/assets/flatpickr/flatpickr.min.js"></script>
-    <?php $__fpLang = str_starts_with((string) config('site_lang', 'zh-CN'), 'ja') ? 'ja' : (str_starts_with((string) config('site_lang', 'zh-CN'), 'zh') ? 'zh' : ''); ?>
+    <?php
+    // 日历本地化包按注册表取；随包没有该语言的包时用 flatpickr 自带英文
+    $__fpLang = LanguageRegistry::pickerLocale((string) config('site_lang', 'zh-CN'));
+    if ($__fpLang !== '' && !is_file(ROOT_PATH . '/assets/flatpickr/l10n-' . $__fpLang . '.js')) $__fpLang = '';
+    ?>
     <?php if ($__fpLang): ?><script src="/assets/flatpickr/l10n-<?php echo $__fpLang; ?>.js"></script><?php endif; ?>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         if (!window.flatpickr) return;
-        <?php if ($__fpLang === 'zh'): ?>flatpickr.localize(flatpickr.l10ns.zh);<?php elseif ($__fpLang === 'ja'): ?>flatpickr.localize(flatpickr.l10ns.ja);<?php endif; ?>
+        <?php if ($__fpLang !== ''): ?>if (flatpickr.l10ns[<?php echo json_encode($__fpLang); ?>]) flatpickr.localize(flatpickr.l10ns[<?php echo json_encode($__fpLang); ?>]);<?php endif; ?>
         // 日期时间输入（发布时间等）：先转 text，否则原生控件会拒绝「Y-m-d H:i」空格格式而清空
         document.querySelectorAll('input[type="datetime-local"]').forEach(function (el) {
             el.value = (el.value || '').replace('T', ' ');   // 原生 ISO 值归一，服务端 strtotime 兼容

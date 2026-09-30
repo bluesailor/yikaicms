@@ -884,6 +884,7 @@ return [
     'admin_url_alias' => 'URL Slug',
     'admin_parent_category' => 'Parent Column',
     'admin_url_alias_exists' => 'URL slug already exists',
+    'admin_url_alias_reserved_language' => 'The URL slug ":slug" is a language code and would clash with language URL prefixes. Please choose another.',
     'admin_category_name' => 'Column Name',
     'admin_category_name_required' => 'Please enter column name',
     'admin_category_not_found' => 'Category not found',

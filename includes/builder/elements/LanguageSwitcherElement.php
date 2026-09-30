@@ -6,19 +6,19 @@ declare(strict_types=1);
 final class LanguageSwitcherElement extends AbstractElement
 {
     /**
-     * 语言代码 → 随包 SVG 国旗文件名（assets/icons/flags/*.svg）。
+     * 语言代码 → 随包 SVG 国旗文件名（assets/icons/flags/*.svg），取自 LanguageRegistry。
      * 不用 emoji 国旗——Windows 各浏览器不渲染 Regional Indicator，只显示 "CN/US" 字母对。
-     * en→美(us，站长可预期的通用英文旗)；未列出或缺文件的语言不显示旗。
-     * @var array<string,string>
+     * en→美(us，站长可预期的通用英文旗)；注册表未给旗（繁体、阿拉伯语）的语言不显示旗。
      */
-    private const FLAGS = [
-        'zh-CN' => 'cn', 'en' => 'us', 'ja' => 'jp',
-    ];
+    private static function flagFile(string $code): string
+    {
+        return LanguageRegistry::flag($code);
+    }
 
     /** 返回内联 <img> 旗帜标签（含尾随空格），无旗则空串。 */
     private static function flagImg(string $code): string
     {
-        $file = self::FLAGS[$code] ?? '';
+        $file = self::flagFile($code);
         if ($file === '') {
             return '';
         }
@@ -28,7 +28,7 @@ final class LanguageSwitcherElement extends AbstractElement
 
     private static function hasFlag(string $code): bool
     {
-        return isset(self::FLAGS[$code]);
+        return self::flagFile($code) !== '';
     }
 
     public function type(): string { return 'language-switcher'; }
