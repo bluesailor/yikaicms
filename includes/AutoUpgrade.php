@@ -32,9 +32,21 @@ final class AutoUpgrade
     /** 历史保留条数。 */
     private const LOG_MAX = 20;
 
+    /** 上次因「本站改过核心文件」被拦下的记录（JSON：from / to / 被拦文件的本地哈希）。 */
+    private const CONFLICT_KEY = 'auto_upgrade_local_conflict';
+
     public static function enabled(): bool
     {
         return (string) config('auto_upgrade_enabled', '0') === '1';
+    }
+
+    /**
+     * 站长是否授权服务商远程升级本站（控制台签名指令，2.0.3 起与「自动升级」分开）。
+     * 默认关：客户站由客户自己决定何时升级；演示站、托管站由运维在后台打开。
+     */
+    public static function managed(): bool
+    {
+        return (string) config('managed_upgrade_enabled', '0') === '1';
     }
 
     /** 'security' = 只自动装安全更新（默认）；'stable' = 所有正式版。 */
@@ -165,6 +177,8 @@ final class AutoUpgrade
             'php' => PHP_VERSION,
             // 自动升级状态随回访上报：服务器据此在控制台标注哪些站可以批量下发
             'auto' => self::enabled() ? '1' : '0',
+            // 是否授权远程升级：服务器只把授权站列入控制台可下发名单
+            'managed' => self::managed() ? '1' : '0',
             'auto_scope' => self::scope(),
             'auto_window' => (string) config('auto_upgrade_window', '03:00-05:00'),
             'auto_result' => (string) config('auto_upgrade_last_result', ''),
@@ -184,14 +198,25 @@ final class AutoUpgrade
             't' => (string) time(),
         ];
         $url = 'https://update.yikaicms.com/api/update/check.php?' . http_build_query($q);
+        // 订阅了升级与安全邮件通知的站才带邮箱；邮箱放 POST 正文，不进 URL（访问日志会记完整 URL）
+        require_once ROOT_PATH . '/includes/UpdateMailSubscription.php';
+        $notify = UpdateMailSubscription::reportFields();
+        $body = $notify !== [] ? http_build_query($notify) : '';
+        $http = ['timeout' => 20, 'ignore_errors' => true];
+        if ($body !== '') {
+            $http += ['method' => 'POST', 'header' => "Content-Type: application/x-www-form-urlencoded\r\n", 'content' => $body];
+        }
         $ctx = stream_context_create([
-            'http' => ['timeout' => 20, 'ignore_errors' => true],
+            'http' => $http,
             'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
         ]);
         $resp = @file_get_contents($url, false, $ctx);
         if ($resp === false && function_exists('curl_init')) {
             $ch = curl_init($url);
             curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_SSL_VERIFYPEER => true]);
+            if ($body !== '') {
+                curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $body]);
+            }
             $resp = curl_exec($ch);
             curl_close($ch);
         }
@@ -199,12 +224,13 @@ final class AutoUpgrade
         if (!is_array($d) || ($d['code'] ?? 1) !== 0 || !is_array($d['data'] ?? null)) {
             return null;
         }
+        UpdateMailSubscription::acknowledge($notify);
         return $d['data'];
     }
 
     /**
      * 本次是否该升。三条路径任一成立即可：
-     *   1) 服务器下发了合法签名指令（控制台批量下发；不受维护窗口限制——是人点的）
+     *   1) 站长授权了远程升级，且服务器下发了合法签名指令（控制台批量下发；不受维护窗口限制——是人点的）
      *   2) 安全更新，且本站开了自动升级
      *   3) 任意正式版，且本站范围设为 stable
      * 本地构建（build.sh --local）一律不自动升：它取自开发主线，可能比下一个正式版还新，
@@ -229,15 +255,18 @@ final class AutoUpgrade
             ? (string) ($data['latest_version'] ?? '')
             : (string) ($data['major_available'] ?? '');
 
-        // 站长打开「自动升级」才算同意由我们远程升级：关着的站连控制台指令也不执行，只提示有新版本
-        if (!self::enabled()) {
-            return [false, 'auto upgrade disabled'];
-        }
-        if ($hasUpdate) {
+        // 控制台指令只对站长明确授权了「允许服务商远程升级」的站有效：没授权的站
+        // 在验签之前就忽略指令（客户站由客户自己决定何时升级）
+        $directive = $hasUpdate && is_array($data['directive'] ?? null) ? $data['directive'] : null;
+        if ($directive !== null && self::managed()) {
             require_once ROOT_PATH . '/includes/UpgradeDirective.php';
-            if (UpgradeDirective::verify($data['directive'] ?? null, $to) === true) {
+            if (UpgradeDirective::verify($directive, $to) === true) {
                 return [true, 'directive'];   // 控制台指令：立即执行，不等窗口
             }
+        }
+        // 站长打开「自动升级」才会自己装新版本；关着只提示有新版本
+        if (!self::enabled()) {
+            return [false, $directive !== null && !self::managed() ? 'remote upgrade not authorized' : 'auto upgrade disabled'];
         }
         if (!self::inWindow()) {
             return [false, 'outside maintenance window'];
@@ -314,7 +343,8 @@ final class AutoUpgrade
             } else {
                 [$go, $why] = self::shouldRun($data);
                 if (!$go) {
-                    if ($why === 'major upgrade requires manual confirmation') {
+                    // 这两种跳过站长需要知道（去后台手动升级 / 服务商要升但本站没授权），各记一次，不每小时刷屏
+                    if ($why === 'major upgrade requires manual confirmation' || $why === 'remote upgrade not authorized') {
                         $blockedVersion = (string) ($data['major_available'] ?? $data['latest_version'] ?? '');
                         $lastLog = self::log()[0] ?? [];
                         if (($lastLog['result'] ?? '') !== 'skipped'
@@ -328,6 +358,9 @@ final class AutoUpgrade
             }
 
             $to = (string) ($data['latest_version'] ?? '');
+            if (!$force && self::stillBlockedByLocalChanges($from, $to)) {
+                return 'skipped: local modifications (unchanged)';
+            }
             try {
                 return self::doUpgrade($data, $from, $to) . ' (' . $why . ')';
             } catch (\Throwable $e) {
@@ -337,6 +370,27 @@ final class AutoUpgrade
         } finally {
             self::unlock();
         }
+    }
+
+    /**
+     * 同一次升级（from → to）上次因本站改过的核心文件被拦下，且那些文件至今没动过：
+     * 再试也一样被拦，还白白下载、备份一遍数据库。文件一变（站长迁走了改动）就重试。
+     */
+    private static function stillBlockedByLocalChanges(string $from, string $to): bool
+    {
+        $c = json_decode((string) config(self::CONFLICT_KEY, ''), true);
+        if (!is_array($c) || ($c['from'] ?? '') !== $from || ($c['to'] ?? '') !== $to
+            || !is_array($c['hashes'] ?? null) || $c['hashes'] === []) {
+            return false;
+        }
+        require_once ROOT_PATH . '/includes/ReleaseFiles.php';
+        $now = ReleaseFiles::localHashes(ROOT_PATH, array_map('strval', array_keys($c['hashes'])));
+        foreach ($c['hashes'] as $rel => $hash) {
+            if (($now[(string) $rel] ?? null) !== $hash) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -421,6 +475,17 @@ final class AutoUpgrade
 
         // ---- 准备（备份 config + 数据库 + 建条目清单）----
         $pre = upgrade_prepare($from, $to);
+        if (($pre['error_code'] ?? '') === 'local_modifications') {
+            // 本站改过、新包要覆盖的核心文件：无人值守绝不覆盖定制。记下这批文件的当前哈希，
+            // 站长迁走改动（文件变了）之前不再重复下载、备份、被拦。
+            $files = array_values(array_map('strval', (array) ($pre['files'] ?? [])));
+            settingModel()->set(self::CONFLICT_KEY, (string) json_encode([
+                'from' => $from, 'to' => $to, 'hashes' => (array) ($pre['hashes'] ?? []),
+            ]), 'system');
+            self::logAdd('skipped', 'local modifications: ' . implode(', ', array_slice($files, 0, 5))
+                . (count($files) > 5 ? ' …(' . (int) ($pre['count'] ?? count($files)) . ')' : ''), $from, $to);
+            return 'skipped: local modifications';
+        }
         if (($pre['code'] ?? 1) !== 0) {
             self::logAdd('failed', '准备失败：' . ($pre['msg'] ?? ''), $from, $to);
             return 'failed: prepare';

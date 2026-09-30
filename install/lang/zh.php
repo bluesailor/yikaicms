@@ -66,6 +66,8 @@ return [
     'admin_pass' => '管理员密码',
     'admin_pass_confirm' => '确认密码',
     'admin_email' => '管理员邮箱',
+    'update_mail_subscribe' => '接收升级与安全邮件通知（发到上面的管理员邮箱）',
+    'update_mail_note' => '只用于版本与安全通知，不用于营销；可随时在后台「升级设置」退订。',
     'site_name' => '站点名称',
     'site_url' => '站点URL',
     'site_lang_label' => '前台语言',

@@ -56,7 +56,12 @@ final class InstallIdentity
      * 回访 check.php 时统一携带的站点标识。四处回访（自动升级、后台检查更新、
      * 在线升级、站点健康）都走这里，服务器上才不会一处按编号、一处按域名各建一条。
      *
-     * @return array{domain: string, install_id: string, base: string}
+     * `build` / `integrity` 来自包内的出厂证明（config/provenance.php）：站点上报的版本号
+     * 只是 config/version.php 里的一个常量，改一行就能冒充任意版本（2026-09-30 在服务器
+     * 站点清单里见到过不存在的 1.29.2）。构建编号与核心文件指纹校验结果让服务器能分辨
+     * 「官方包原样」「改过核心文件」「版本号与出厂证明对不上」。只报结论，不报文件内容与路径。
+     *
+     * @return array{domain: string, install_id: string, base: string, build: string, integrity: string}
      */
     public static function reportParams(): array
     {
@@ -66,7 +71,22 @@ final class InstallIdentity
             'domain' => $host !== '' ? $host : $siteUrl,
             'install_id' => self::id(),
             'base' => self::basePath($host, $siteUrl),
-        ];
+        ] + self::buildParams();
+    }
+
+    /** @return array{build: string, integrity: string} */
+    private static function buildParams(): array
+    {
+        try {
+            require_once __DIR__ . '/ProductIdentity.php';
+            $info = YikaiProductIdentity::buildInfo(ROOT_PATH);
+            return [
+                'build' => mb_substr((string) $info['build_id'], 0, 80),
+                'integrity' => (string) $info['integrity'],
+            ];
+        } catch (\Throwable) {
+            return ['build' => '', 'integrity' => 'invalid'];
+        }
     }
 
     /**

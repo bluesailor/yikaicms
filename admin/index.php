@@ -283,6 +283,71 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <?php endif; ?>
 
 <?php
+// 升级与安全邮件通知：出严重安全问题时要能找到站长。只给超级管理员看，一次订阅或「不再提示」后不再出现。
+require_once ROOT_PATH . '/includes/UpdateMailSubscription.php';
+$__mailPrompt = hasPermission('*') && UpdateMailSubscription::promptDue();
+$__mailPromptEmail = '';
+if ($__mailPrompt) {
+    try {
+        $__mailPromptEmail = (string) db()->fetchColumn('SELECT email FROM ' . DB_PREFIX . 'users WHERE id = ?', [(int) ($_SESSION['admin_id'] ?? 0)]);
+    } catch (\Throwable $e) {
+        $__mailPromptEmail = '';
+    }
+}
+?>
+<?php if ($__mailPrompt): ?>
+<div id="updateMailPrompt" data-testid="update-mail-prompt" class="mb-6 rounded-lg border border-sky-200 bg-sky-50 px-5 py-4">
+    <div class="flex items-start gap-3">
+        <i class="ti ti-shield-check mt-0.5 text-lg text-sky-600" aria-hidden="true"></i>
+        <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium text-gray-800"><?php echo e(__('upgrade_mail_prompt_title')); ?></div>
+            <p class="mt-0.5 text-xs text-gray-600"><?php echo e(__('upgrade_mail_prompt_text')); ?></p>
+            <form id="updateMailPromptForm" class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input id="updateMailPromptEmail" type="email" required maxlength="254" autocomplete="email"
+                       value="<?php echo e($__mailPromptEmail); ?>" aria-label="<?php echo e(__('upgrade_mail_email')); ?>"
+                       class="w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-sm sm:w-72">
+                <button type="submit" class="rounded bg-primary px-4 py-1.5 text-sm font-medium text-white hover:opacity-90">
+                    <?php echo e(__('upgrade_mail_subscribe')); ?>
+                </button>
+                <button type="button" id="updateMailPromptDismiss" class="text-sm text-gray-500 hover:text-gray-700 hover:underline">
+                    <?php echo e(__('upgrade_mail_prompt_dismiss')); ?>
+                </button>
+            </form>
+            <p class="mt-2 text-xs text-gray-400"><?php echo e(__('upgrade_mail_privacy')); ?></p>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    var box = document.getElementById('updateMailPrompt');
+    if (!box) return;
+    async function send(fields) {
+        var fd = new FormData();
+        fd.append('_token', <?php echo json_encode(csrfToken()); ?>);
+        Object.keys(fields).forEach(function (k) { fd.append(k, fields[k]); });
+        var r = await fetch('/admin/upgrade.php', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        return r.json();
+    }
+    document.getElementById('updateMailPromptForm').addEventListener('submit', async function (ev) {
+        ev.preventDefault();
+        try {
+            var d = await send({ action: 'save_update_mail', subscribe: '1', email: document.getElementById('updateMailPromptEmail').value });
+            if (!d || Number(d.code) !== 0) throw new Error(d && d.msg ? d.msg : '');
+            if (typeof showMessage === 'function') showMessage(<?php echo json_encode(__('upgrade_mail_prompt_done'), JSON_UNESCAPED_UNICODE); ?>);
+            box.remove();
+        } catch (e) {
+            if (typeof showMessage === 'function') showMessage(e.message || <?php echo json_encode(__('upgrade_mail_invalid'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+        }
+    });
+    document.getElementById('updateMailPromptDismiss').addEventListener('click', async function () {
+        try { await send({ action: 'dismiss_update_mail_prompt' }); } catch (e) {}
+        box.remove();
+    });
+})();
+</script>
+<?php endif; ?>
+
+<?php
 // 更新提醒级别：all=全部 / security=仅安全更新 / off=关闭（未设置时兼容旧的布尔开关）
 $__notifyLv = (string) config('update_notify_level', '');
 if ($__notifyLv === '') {

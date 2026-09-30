@@ -66,6 +66,8 @@ return [
     'admin_pass' => 'Admin Password',
     'admin_pass_confirm' => 'Confirm Password',
     'admin_email' => 'Admin Email',
+    'update_mail_subscribe' => 'Email me about upgrades and security issues (sent to the admin email above)',
+    'update_mail_note' => 'Only release and security notices, never marketing. You can unsubscribe any time under Upgrade settings.',
     'site_name' => 'Site Name',
     'site_url' => 'Site URL',
     'site_lang_label' => 'Frontend Language',

@@ -165,9 +165,14 @@ if ($action !== '') {
     //   不用 extractTo（共享主机上常失败/挂起）；后续 batch 从 zip 逐条流式写入目标。
     if ($action === 'apply_prepare') {
         $backupOverride = post('backup_override') === '1';
-        $prepare = upgrade_prepare('', '', true, $backupOverride);
+        $acceptLocal = post('accept_local_changes') === '1';
+        $prepare = upgrade_prepare('', '', true, $backupOverride, $acceptLocal);
         if (!empty($prepare['db_backup_override'])) {
             adminLog('upgrade', 'backup_override', 'Manual upgrade confirmed an external database backup');
+        }
+        if (($prepare['local_check'] ?? '') === 'accepted') {
+            adminLog('upgrade', 'overwrite_local_changes', 'Manual upgrade overwrote locally modified core files: '
+                . implode(', ', array_slice((array) ($prepare['local_changes'] ?? []), 0, 20)));
         }
         uo_json($prepare);
     }
@@ -394,14 +399,31 @@ document.getElementById('uo-upgrade').onclick = async () => {
     const fail = (row, msg) => { UO.set(row, 'fail', msg); btn.disabled = false; btn.classList.remove('opacity-50'); };
     r = UO.row('备份并解压安装包…', 'run');
     let pre = await UO.post('apply_prepare');
+    // 本站改过、新包要覆盖的核心文件：逐个列出来，站长确认「已迁走或愿意被覆盖」才继续
+    const prepExtra = {};
+    if (pre.code !== 0 && pre.error_code === 'local_modifications') {
+        const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+        UO.set(r, 'fail', pre.msg);
+        UO.row(<?php echo json_encode(__('upgrade_local_changes_list'), JSON_UNESCAPED_UNICODE); ?>, 'fail',
+            (pre.files || []).map(esc).join('<br>') + (pre.count > (pre.files || []).length ? '<br>…' : ''));
+        if (!window.confirm(<?php echo json_encode(__('upgrade_local_changes_confirm'), JSON_UNESCAPED_UNICODE); ?>)) {
+            btn.disabled = false; btn.classList.remove('opacity-50'); return;
+        }
+        prepExtra.accept_local_changes = '1';
+        r = UO.row('备份并解压安装包…', 'run');
+        pre = await UO.post('apply_prepare', prepExtra);
+    }
     if (pre.code !== 0 && pre.error_code === 'db_backup_required'
         && window.confirm(<?php echo json_encode(__('upgrade_backup_override_confirm'), JSON_UNESCAPED_UNICODE); ?>)) {
-        pre = await UO.post('apply_prepare', { backup_override: '1' });
+        pre = await UO.post('apply_prepare', Object.assign({ backup_override: '1' }, prepExtra));
     }
     if (pre.code !== 0) return fail(r, pre.msg);
     const dbNote = pre.db_backup ? `，数据库已自动备份（${pre.db_backup}）` : '';
     const backupOverrideNote = pre.db_backup_override ? <?php echo json_encode(__('upgrade_backup_override_used'), JSON_UNESCAPED_UNICODE); ?> : '';
     UO.set(r, 'ok', `已备份 config、解压完成（${pre.mode === 'delta' ? '增量' : '全量'}，共 ${pre.total} 个文件，备份: ${pre.backup}${dbNote}${backupOverrideNote}）`);
+    if (pre.local_check === 'unavailable') {
+        UO.row(<?php echo json_encode(__('upgrade_local_changes_unchecked'), JSON_UNESCAPED_UNICODE); ?>, 'ok');
+    }
     // 分批覆盖（每批 150 文件，避免共享主机单请求超时）
     const total = pre.total;
     const rr = UO.row(`覆盖程序文件… 0/${total}`, 'run');

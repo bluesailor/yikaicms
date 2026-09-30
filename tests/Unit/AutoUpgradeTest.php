@@ -19,7 +19,7 @@ final class AutoUpgradeTest extends TestCase
 {
     protected function tearDown(): void
     {
-        foreach (['auto_upgrade_enabled', 'auto_upgrade_scope', 'auto_upgrade_window'] as $k) {
+        foreach (['auto_upgrade_enabled', 'auto_upgrade_scope', 'auto_upgrade_window', 'managed_upgrade_enabled'] as $k) {
             unset($GLOBALS['_test_config'][$k]);
         }
     }
@@ -188,7 +188,8 @@ final class AutoUpgradeTest extends TestCase
         define('LICENSE_PUBKEY_B64', preg_replace('/-----[^-]+-----|\s/', '', $details['key']));
         db()->execute('CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY, `key` TEXT UNIQUE, `value` TEXT, `group` TEXT, `name` TEXT, `tip` TEXT)');
         $_SERVER['HTTP_HOST'] = 'site.example';
-        // 指令只对开了自动升级的站有效；它不等维护窗口，所以窗口设在稍后也照样执行
+        // 指令只对授权了远程升级的站有效；它不等维护窗口，所以窗口设在稍后也照样执行
+        $GLOBALS['_test_config']['managed_upgrade_enabled'] = '1';
         $GLOBALS['_test_config']['auto_upgrade_enabled'] = '1';
         $GLOBALS['_test_config']['auto_upgrade_window'] = date('H:i', time() + 3600) . '-' . date('H:i', time() + 4200);
 
@@ -222,19 +223,35 @@ final class AutoUpgradeTest extends TestCase
         ]));
 
         self::assertSame([true, 'directive'], $run($sign($install, bin2hex(random_bytes(12)))));
+
+        // 远程升级授权与「自动升级」互相独立：自动升级关着，授权了照样执行指令
+        $GLOBALS['_test_config']['auto_upgrade_enabled'] = '0';
+        self::assertSame([true, 'directive'], $run($sign($install, bin2hex(random_bytes(12)))));
+        // 没授权：指令被忽略，并给出站长看得懂的原因
+        $GLOBALS['_test_config']['managed_upgrade_enabled'] = '0';
+        self::assertSame([false, 'remote upgrade not authorized'], $run($sign($install, bin2hex(random_bytes(12)))));
     }
 
-    public function testDisabledSiteIgnoresEvenADirective(): void
+    public function testUnauthorizedSiteIgnoresEvenADirective(): void
     {
-        // 站长没开自动升级 = 没同意远程升级：在验签之前就返回，指令再有效也不执行
+        // 站长没授权远程升级（默认）= 没同意由服务商升级：在验签之前就跳过，指令再有效也不执行
         $GLOBALS['_test_config']['auto_upgrade_enabled'] = '0';
-        $directive = ['to' => '2.0.1', 'domain' => 'site.example', 'issued_at' => time(), 'expires_at' => time() + 900, 'nonce' => 'n', 'sig' => 'x'];
+        $this->assertFalse(AutoUpgrade::managed(), 'remote upgrades are off by default');
+        $directive = ['to' => '2.0.1', 'domain' => 'site.example', 'install' => str_repeat('a', 32), 'issued_at' => time(), 'expires_at' => time() + 900, 'nonce' => 'n', 'sig' => 'x'];
         $this->assertSame(
-            [false, 'auto upgrade disabled'],
+            [false, 'remote upgrade not authorized'],
             AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.1', 'directive' => $directive], '2.0.0')
         );
+        $this->assertSame(
+            [false, 'auto upgrade disabled'],
+            AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.1'], '2.0.0'),
+            'without a directive the plain reason stays'
+        );
         $src = (string) file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
-        $this->assertLessThan(strpos($src, 'UpgradeDirective::verify('), strpos($src, "return [false, 'auto upgrade disabled'];"), 'the switch is checked before any directive');
+        $this->assertStringContainsString('if ($directive !== null && self::managed()) {', $src, 'the authorization is checked before any directive is verified');
+        $this->assertLessThan(strpos($src, 'UpgradeDirective::verify('), strpos($src, 'if ($directive !== null && self::managed()) {'));
+        // 回访上报授权状态，服务器只把授权站列入可下发名单
+        $this->assertStringContainsString("'managed' => self::managed() ? '1' : '0',", $src);
     }
 
     public function testDirectiveContractIsSignedDomainBoundAndExpiring(): void
@@ -344,7 +361,7 @@ final class AutoUpgradeTest extends TestCase
         $manual = (string) file_get_contents(ROOT_PATH . '/admin/upgrade_online.php');
         $runner = (string) file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
 
-        self::assertStringContainsString('upgrade_prepare(\'\', \'\', true, $backupOverride)', $manual);
+        self::assertStringContainsString('upgrade_prepare(\'\', \'\', true, $backupOverride, $acceptLocal)', $manual);
         self::assertStringContainsString('if ($requireDbBackup && $dbBackupNote === \'\' && !$dbBackupOverride)', $runner);
         self::assertStringContainsString("post('backup_override') === '1'", $manual);
         self::assertStringContainsString('!empty($prepare[\'db_backup_override\'])', $manual);
