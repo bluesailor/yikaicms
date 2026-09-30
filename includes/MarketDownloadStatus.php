@@ -28,6 +28,8 @@ final class MarketDownloadStatus
             'expired', 'license_expired' => __('plugin_locked_expired'),
             'domain_mismatch', 'site_mismatch', 'staging_mismatch' => __('plugin_locked_domain'),
             'module_missing', 'license_required' => __('plugin_locked_need_license'),
+            'locked' => __('lic_reason_locked'),
+            'too_many_registrations' => __('lic_reason_too_many_registrations'),
             default => __('market_download_unavailable'),
         };
     }
