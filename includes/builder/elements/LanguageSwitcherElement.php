@@ -33,6 +33,7 @@ final class LanguageSwitcherElement extends AbstractElement
 
     public function type(): string { return 'language-switcher'; }
     public function label(): string { return __('blox_el_language_switcher'); }
+    public function settingDependencies(): array { return ['site_lang' => 'optional']; }
     public function icon(): string { return 'language'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }

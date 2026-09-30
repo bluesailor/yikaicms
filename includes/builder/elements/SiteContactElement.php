@@ -7,6 +7,7 @@ final class SiteContactElement extends AbstractElement
 {
     public function type(): string { return 'site-contact'; }
     public function label(): string { return __('blox_el_site_contact'); }
+    public function settingDependencies(): array { return ['contact_phone' => 'portable', 'contact_email' => 'portable', 'contact_address' => 'portable', 'contact_hours' => 'portable']; }
     public function icon(): string { return 'address-book'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }
@@ -45,7 +46,7 @@ final class SiteContactElement extends AbstractElement
             if ($value === '') {
                 continue;
             }
-            $icon = $showIcons ? '<i class="ti ti-' . $field['icon'] . ' shrink-0 text-base" aria-hidden="true"></i>' : '';
+            $icon = $showIcons ? '<i class="' . BloxIcon::classes($field['icon']) . ' shrink-0 text-base" aria-hidden="true"></i>' : '';
             $content = htmlspecialchars($value, ENT_QUOTES);
             if ($key === 'phone') {
                 $href = self::phoneHref($value);

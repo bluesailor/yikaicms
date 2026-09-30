@@ -15,6 +15,7 @@ final class NavDrawerElement extends AbstractElement
 {
     public function type(): string { return 'nav-drawer'; }
     public function label(): string { return __('blox_el_nav_drawer'); }
+    public function settingDependencies(): array { return ['site_name' => 'optional']; }
     public function icon(): string { return 'menu-deep'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }

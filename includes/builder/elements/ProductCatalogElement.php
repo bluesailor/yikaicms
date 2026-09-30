@@ -10,6 +10,7 @@ final class ProductCatalogElement extends AbstractElement
 
     public function type(): string { return 'product-catalog'; }
     public function label(): string { return __('blox_product_catalog'); }
+    public function settingDependencies(): array { return ['product_layout' => 'optional']; }
     public function icon(): string { return 'shopping-bag'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }
