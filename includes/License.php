@@ -42,6 +42,11 @@ function license_key(): string
 function license_domain(): string
 {
     $h = (string) ($_SERVER['HTTP_HOST'] ?? '');
+    // 语言域名（en.example.com、example.de）属于同一站点：授权一律按主域名上报，
+    // 否则独立域名会被授权服务器当成「另一个正式域名」，多了还会触发自动锁定。
+    if (class_exists('LanguageDomains') && LanguageDomains::currentLanguage() !== null && LanguageDomains::mainHost() !== '') {
+        $h = LanguageDomains::mainHost();
+    }
     if ($h === '') {
         $h = (string) parse_url((string) config('site_url', ''), PHP_URL_HOST);
     }

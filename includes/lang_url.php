@@ -14,6 +14,10 @@ function langUrl(string $url, string $lang = ''): string
 {
     $lang = $lang ?: siteLang();
     $defaultLang = (string)config('site_lang', 'zh-CN');
+    // 语言域名模式：目标语言在别的主机上时给完整地址，同主机给站内路径（见 LanguageDomains::url）
+    if (class_exists('LanguageDomains') && LanguageDomains::active() && !preg_match('#^[a-z][a-z0-9+.-]*:#i', $url)) {
+        return LanguageDomains::url($lang, $url);
+    }
     if (function_exists('isDynamicUrlMode') && isDynamicUrlMode()) {
         $parts = parse_url($url);
         $path = is_array($parts) ? (string) ($parts['path'] ?? '/') : $url;

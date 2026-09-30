@@ -27,6 +27,7 @@ require_once __DIR__ . '/ThemeContent.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
 require_once __DIR__ . '/Slug.php';       // generateSlug/normalizeSlugInput：URL 别名净化单一来源
 require_once __DIR__ . '/i18n/LanguageRegistry.php';   // 支持哪些语言、前缀/hreflang/方向：单一来源
+require_once __DIR__ . '/i18n/LanguageDomains.php';    // 语言域名模式（en.example.com 等）
 require_once __DIR__ . '/AdminLogSanitizer.php';
 require_once __DIR__ . '/FormSubmissionToken.php';
 require_once __DIR__ . '/FormSubmissionNonce.php';
@@ -886,6 +887,10 @@ function siteBaseUrl(): string
             $base .= $mount;
         }
     }
+    // 语言域名模式：请求落在语言域名上时，本页的规范地址、JSON-LD、sitemap 都以该域名为根
+    if (LanguageDomains::currentLanguage() !== null) {
+        return LanguageDomains::currentOrigin();
+    }
     return $base;
 }
 
@@ -916,15 +921,18 @@ function renderHreflangs(): string
     $path = preg_replace('#^/(' . LanguageRegistry::urlPrefixPattern() . ')(?=/|$)#', '', $path) ?? $path;
     if ($path === '') $path = '/';
 
+    $domains = LanguageDomains::active();
     $out = '';
     foreach ($enabled as $code) {
         if (!is_string($code) || !LanguageRegistry::has($code)) continue;
         $prefix = $code === $defaultLang ? '' : '/' . $code;
-        $href = $base . $prefix . $path;
+        // 语言域名模式下各语言的根不同（主域名 / 语言域名），用完整规范地址
+        $href = $domains ? LanguageDomains::originFor($code) . LanguageDomains::pathFor($code, $path) : $base . $prefix . $path;
         $out .= '<link rel="alternate" hreflang="' . htmlspecialchars(LanguageRegistry::hreflang($code), ENT_QUOTES) . '" href="' . htmlspecialchars($href, ENT_QUOTES) . '">' . "\n";
     }
     // x-default
-    $out .= '<link rel="alternate" hreflang="x-default" href="' . htmlspecialchars($base . $path, ENT_QUOTES) . '">' . "\n";
+    $defaultHref = $domains ? LanguageDomains::originFor($defaultLang) . $path : $base . $path;
+    $out .= '<link rel="alternate" hreflang="x-default" href="' . htmlspecialchars($defaultHref, ENT_QUOTES) . '">' . "\n";
     return $out;
 }
 
@@ -1254,7 +1262,12 @@ function langPrefix(?string $lang = null): string
 {
     $lang ??= siteLang();
     $defaultLang = (string) config('site_lang', 'zh-CN');
-    return $lang === $defaultLang ? '' : '/' . $lang;
+    if ($lang === $defaultLang) return '';
+    // 语言域名模式：正在该语言自己的域名上时不带前缀（en.example.com/news.html）。
+    // 在别的主机上仍给 /en 前缀——编辑器存进页面的链接因此保持可移植，访问时由跳转与输出改写送到语言域名。
+    $host = LanguageDomains::hostFor($lang);
+    if ($host !== null && LanguageDomains::currentLanguage() === $lang) return '';
+    return '/' . $lang;
 }
 
 /**
