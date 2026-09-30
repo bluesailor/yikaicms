@@ -155,6 +155,7 @@ function getChannelUrl(array $channel): string {
     <?php if (!empty($extraCss)): ?>
     <?php echo $extraCss; ?>
     <?php endif; ?>
+    <?php echo themeDeclaredStylesheetTags((string) ($extraCss ?? '')); ?>
     <?php do_action('ik_head'); ?>
     <?php do_action('render_head'); ?>
     <?php echo config('custom_head_code', ''); ?>

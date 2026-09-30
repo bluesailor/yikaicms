@@ -196,6 +196,42 @@ function theme_asset(string $file): string
 }
 
 /**
+ * 当前主题在 theme.json 里声明的展示样式表（2.0.3）：相对主题 assets/ 目录的 .css。
+ * 前台默认页头输出它们，编辑画布（整页 / 页头 / 页尾 / 弹窗 / 模板）也统一补载——
+ * 主题作者只声明一处，不必再担心单独编辑页头时画布缺样式。整站导入后的 sitepack-* 别名同样适用。
+ *
+ * @return list<string> 带版本号的站内 URL
+ */
+function themeDeclaredStylesheets(): array
+{
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $cache = [];
+    $theme = currentTheme();
+    $meta = json_decode((string) @file_get_contents(ROOT_PATH . '/themes/' . $theme . '/theme.json'), true);
+    if (!is_array($meta) || !is_array($meta['stylesheets'] ?? null)) return $cache;
+    if (!class_exists('ThemeValidator')) require_once ROOT_PATH . '/includes/ThemeValidator.php';
+    foreach (array_slice($meta['stylesheets'], 0, 10) as $sheet) {
+        if (is_string($sheet) && ThemeValidator::stylesheetPath($sheet) && is_file(ROOT_PATH . '/themes/' . $theme . '/assets/' . $sheet)) {
+            $cache[] = assetVer('/themes/' . $theme . '/assets/' . $sheet);
+        }
+    }
+    return $cache = array_values(array_unique($cache));
+}
+
+/** 声明样式表的 <link> 标签；$already 里已出现的路径（主题自己拼进 $extraCss 的）不重复输出。 */
+function themeDeclaredStylesheetTags(string $already = ''): string
+{
+    $html = '';
+    foreach (themeDeclaredStylesheets() as $url) {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        if ($path !== '' && str_contains($already, $path)) continue;
+        $html .= '<link rel="stylesheet" href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">' . "\n";
+    }
+    return $html;
+}
+
+/**
  * 获取所有已安装主题列表
  */
 function getThemes(): array

@@ -43,6 +43,14 @@ final class ThemeValidator
      * @param string $slug 主题标识（目录名）
      * @return array{errors: list<string>, warnings: list<string>, meta: array<string,mixed>}
      */
+    /** theme.json stylesheets 的单项：相对主题 assets/ 的 .css 路径，禁止回溯、绝对路径与外链。 */
+    public static function stylesheetPath(string $path): bool
+    {
+        return strlen($path) <= 160
+            && preg_match('#^[A-Za-z0-9_-]+(?:/[A-Za-z0-9_.-]+)*\.css$#D', $path) === 1
+            && !str_contains($path, '..');
+    }
+
     public static function validateDir(string $dir, string $slug): array
     {
         $dir = rtrim($dir, '/\\');
@@ -68,6 +76,11 @@ final class ThemeValidator
         $shot = (string) ($meta['screenshot'] ?? '');
         if ($shot !== '' && !is_file($dir . '/' . ltrim($shot, '/'))) {
             $r['warnings'][] = "screenshot 指向的文件不存在：{$shot}";
+        }
+        foreach (is_array($meta['stylesheets'] ?? null) ? $meta['stylesheets'] : [] as $sheet) {
+            if (is_string($sheet) && self::stylesheetPath($sheet) && !is_file($dir . '/assets/' . $sheet)) {
+                $r['errors'][] = "stylesheets 指向的文件不存在：assets/{$sheet}";
+            }
         }
 
         $r['meta'] = $meta;
@@ -151,6 +164,20 @@ final class ThemeValidator
             if (!$legacy) { $warnings[] = '未声明 category（市场筛选会归入未分类）'; }
         } elseif (!in_array((string) $meta['category'], self::CATEGORIES, true)) {
             $warnings[] = "category「{$meta['category']}」不在词表内：" . implode(' / ', self::CATEGORIES);
+        }
+
+        // 2.0.3 展示样式表：相对主题 assets/ 目录的 .css，前台默认页头与所有编辑画布都按它加载
+        if (array_key_exists('stylesheets', $meta)) {
+            $sheets = $meta['stylesheets'];
+            if (!is_array($sheets) || array_values($sheets) !== $sheets || count($sheets) > 10) {
+                $errors[] = 'stylesheets 必须是最多 10 项的数组';
+            } else {
+                foreach ($sheets as $sheet) {
+                    if (!is_string($sheet) || !self::stylesheetPath($sheet)) {
+                        $errors[] = 'stylesheets 含不合法路径（只允许 assets/ 下的相对 .css 路径）：' . (is_scalar($sheet) ? (string) $sheet : gettype($sheet));
+                    }
+                }
+            }
         }
 
         if (isset($meta['locales'])) {

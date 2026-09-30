@@ -150,6 +150,17 @@ function bloxCanvasBodyClassAttr(): string
 /** 画布 <head> 里补上主题样式表；画布自己已固定加载的核心样式不重复。 */
 function bloxCanvasExtraThemeStylesheets(): string
 {
+    // 单独编辑页头 / 页尾 / 弹窗 / 模板时画布不渲染主题页头，拿不到主题 <head> 里的样式表
+    // （2.0.3 英文模板反馈 #2）：这里补渲染一次只为收集样式表与 body 类名，输出丢弃。
+    if (!array_key_exists('ykCanvasThemeStylesheets', $GLOBALS)) {
+        $collect = static fn (): string => renderBloxCanvasThemeArea('header', '/index.php', 0, 0, '', '');
+        function_exists('withSiteLanguageStrings') ? withSiteLanguageStrings($collect) : $collect();
+        $GLOBALS['ykCanvasThemeStylesheets'] ??= [];
+    }
+    // 主题在 theme.json 显式声明的样式表（与前台默认页头同一来源）
+    foreach (function_exists('themeDeclaredStylesheets') ? themeDeclaredStylesheets() : [] as $url) {
+        $GLOBALS['ykCanvasThemeStylesheets'][] = '<link rel="stylesheet" href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '">';
+    }
     $core = [
         '/assets/css/tailwind.css',
         '/assets/css/style.css',
@@ -158,13 +169,15 @@ function bloxCanvasExtraThemeStylesheets(): string
         '/themes/default/assets/css/theme.css',
     ];
     $html = '';
+    $seen = [];
     foreach ((array) ($GLOBALS['ykCanvasThemeStylesheets'] ?? []) as $tag) {
         $tag = (string) $tag;
         if (preg_match('/\bhref="([^"]+)"/', $tag, $href) !== 1) {
             continue;
         }
         $path = (string) parse_url(html_entity_decode($href[1], ENT_QUOTES | ENT_HTML5, 'UTF-8'), PHP_URL_PATH);
-        if (!in_array($path, $core, true)) {
+        if (!in_array($path, $core, true) && !isset($seen[$path])) {
+            $seen[$path] = true;
             $html .= $tag;
         }
     }
