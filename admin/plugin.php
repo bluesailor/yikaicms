@@ -60,9 +60,9 @@ function pluginMarketDecorate(array $item): array
 }
 
 /** GET 一个 URL 返回 body（实现见 PluginMarketInstall::httpGet：不跟随跳转、可限量）。 */
-function pluginMarketHttpGet(string $url, int $timeout = 15, ?int &$status = null, int $maxBytes = 0, bool &$tooLarge = false): ?string
+function pluginMarketHttpGet(string $url, int $timeout = 15, ?int &$status = null, int $maxBytes = 0, bool &$tooLarge = false, string $postBody = ''): ?string
 {
-    return PluginMarketInstall::httpGet($url, $timeout, $status, $maxBytes, $tooLarge);
+    return PluginMarketInstall::httpGet($url, $timeout, $status, $maxBytes, $tooLarge, $postBody);
 }
 
 // 确保 plugins 表存在
@@ -151,7 +151,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $q = trim((string) ($_POST['q'] ?? ''));
             // 带上本站授权码与域名：付费插件的下载地址由服务端按授权下发
             $url = PLUGIN_MARKET_API . '?' . MarketCatalogRequest::query($q);
-            $resp = pluginMarketHttpGet($url);
+            $status = 0;
+            $tooLarge = false;
+            $resp = pluginMarketHttpGet($url, 15, $status, 0, $tooLarge, MarketCatalogRequest::credentials());
             if ($resp === null) {
                 echo json_encode(['code' => 1, 'msg' => __('pl_market_unreachable')]);
                 exit;

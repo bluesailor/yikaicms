@@ -24,10 +24,10 @@ final class PluginMarketInstall
     /** @param null|Closure(string,int,int):array{body:?string,status:int,too_large:bool} $httpGet 测试注入 */
     public function __construct(private string $root, ?Closure $httpGet = null)
     {
-        $this->httpGet = $httpGet ?? static function (string $url, int $timeout, int $maxBytes): array {
+        $this->httpGet = $httpGet ?? static function (string $url, int $timeout, int $maxBytes, string $postBody = ''): array {
             $status = 0;
             $tooLarge = false;
-            $body = self::httpGet($url, $timeout, $status, $maxBytes, $tooLarge);
+            $body = self::httpGet($url, $timeout, $status, $maxBytes, $tooLarge, $postBody);
             return ['body' => $body, 'status' => $status, 'too_large' => $tooLarge];
         };
     }
@@ -38,7 +38,7 @@ final class PluginMarketInstall
      */
     public function catalog(string $query = ''): ?array
     {
-        $response = ($this->httpGet)(self::API . '?' . MarketCatalogRequest::query($query), 15, 0);
+        $response = ($this->httpGet)(self::API . '?' . MarketCatalogRequest::query($query), 15, 0, MarketCatalogRequest::credentials());
         $data = MarketCatalogRequest::decode($response['body'], 'plugins');
         if ($data === null) return null;
         return MarketCatalogItems::select(is_array($data['data']['plugins'] ?? null) ? $data['data']['plugins'] : []);
@@ -157,8 +157,9 @@ final class PluginMarketInstall
     /**
      * GET 一个 URL 返回 body（curl 优先，回退 allow_url_fopen；失败返回 null）。不跟随跳转。
      * $maxBytes > 0 时边下边计数，超过上限立即中止并把 $tooLarge 置 true（不先整包读入内存）。
+     * $postBody 非空时改为 POST（授权码等凭据放正文，不进网址）。
      */
-    public static function httpGet(string $url, int $timeout = 15, ?int &$status = null, int $maxBytes = 0, bool &$tooLarge = false): ?string
+    public static function httpGet(string $url, int $timeout = 15, ?int &$status = null, int $maxBytes = 0, bool &$tooLarge = false, string $postBody = ''): ?string
     {
         $status = 0;
         $tooLarge = false;
@@ -168,6 +169,9 @@ final class PluginMarketInstall
             curl_setopt_array($ch, [
                 CURLOPT_TIMEOUT => $timeout,
                 CURLOPT_SSL_VERIFYPEER => true, CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_POST => $postBody !== '',
+                CURLOPT_POSTFIELDS => $postBody !== '' ? $postBody : null,
+                CURLOPT_HTTPHEADER => $postBody !== '' ? ['Content-Type: application/x-www-form-urlencoded'] : [],
                 CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$body, $maxBytes, &$tooLarge): int {
                     if ($maxBytes > 0 && strlen($body) + strlen($chunk) > $maxBytes) {
                         $tooLarge = true;
@@ -185,7 +189,9 @@ final class PluginMarketInstall
         if (ini_get('allow_url_fopen')) {
             $stream = @fopen($url, 'rb', false, stream_context_create(['http' => [
                 'timeout' => $timeout, 'follow_location' => 0, 'max_redirects' => 0, 'ignore_errors' => true,
-            ]]));
+            ] + ($postBody !== '' ? [
+                'method' => 'POST', 'content' => $postBody, 'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
+            ] : [])]));
             if ($stream === false) return null;
             $meta = stream_get_meta_data($stream);
             $headers = is_array($meta['wrapper_data'] ?? null) ? $meta['wrapper_data'] : [];

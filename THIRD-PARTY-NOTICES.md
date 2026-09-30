@@ -68,6 +68,16 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
 > 载明派生自 **CC-CEDICT（CC BY-SA，copyleft）**，与下方「维护约定」第 2 条
 > 冲突；改用 Apache-2.0 来源后不再有该问题。
 
+### ISRG 根证书（includes/certs/isrg-roots.pem）
+
+授权校验连接 update.yikaicms.com 时，系统 CA 证书过旧导致校验失败的老主机上，改用这两张根证书
+作为信任锚再校验一次（见 `includes/License.php` 的 `license_http()`），从不关闭证书校验。
+
+- 来源：Internet Security Research Group（Let's Encrypt）公开发布的根证书 <https://letsencrypt.org/certificates/>
+- ISRG Root X1（SHA-256 `96:BC:EC:06:…:BD:DF:08:C6`，2035-06-04 到期）、ISRG Root X2（SHA-256 `69:72:9B:8E:…:3C:CB:14:70`，2040-09-17 到期）
+- 只收录这两张公开的根证书，未随包分发 Mozilla 整套 CA 证书包（MPL-2.0，与下方第 2 条冲突）。
+  更新服务器更换证书颁发机构时需同步更新本文件。
+
 ## 维护约定
 
 1. **升级任何组件的大版本前，先核对其协议是否变更。**
