@@ -1324,6 +1324,8 @@ return [
     'lic_reason_unreachable' => 'Cannot reach the license server (using local cache)',
     'lic_reason_grace_expired' => 'Offline beyond the grace period — reconnect and verify again',
     'lic_reason_staging_mismatch' => 'The key is already used by another staging site (one staging site per license)',
+    'lic_reason_locked' => 'This license key has been locked after unusual use and paid features are paused. Please contact us to verify and appeal.',
+    'lic_reason_too_many_registrations' => 'This license key has reached its limit of main-domain changes for the year. Please contact us.',
     'lic_staging_notice' => 'This site uses the license as its staging site: besides the main domain, each license includes one staging site (localhost, a private address, a .test domain, or a staging./dev. subdomain). Using it on a staging site does not start the service period.',
     'lic_mod_stats' => 'Analytics Pro',
     'lic_mod_leads' => 'Form Leads Center',

@@ -429,6 +429,8 @@ final class BloxRemoteTemplateProvider
             // 精品区块的服务端拒绝原因：分别说明，不笼统报「需要授权」
             'domain_mismatch', 'staging_mismatch' => __('plugin_locked_domain'),
             'disabled' => __('blox_template_locked_disabled'),
+            'locked' => __('lic_reason_locked'),
+            'too_many_registrations' => __('lic_reason_too_many_registrations'),
             default => __('blox_template_locked_license'),
         };
     }
