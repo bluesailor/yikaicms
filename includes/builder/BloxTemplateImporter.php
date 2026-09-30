@@ -19,7 +19,8 @@ final class BloxTemplateImporter
 {
     public const FORMAT = 'yikaicms-blox-template';
     public const VERSION = 1;
-    public const MAX_BYTES = 2_000_000;
+    // 2.0.3 起包内可嵌入图片（base64，图片原始总量 ≤ 5MB），整包上限相应放到 8MB
+    public const MAX_BYTES = 8_000_000;
 
     /** @param array<string,mixed> $designOptions @return array{id:int,type:string,name:string,sections:int} */
     public static function importJson(
@@ -31,8 +32,11 @@ final class BloxTemplateImporter
     ): array
     {
         $prepared = self::prepare($json, $designOptions);
+        // 包里带的图片先落盘（内容寻址，同内容复用）；数据库任一步失败就删掉本次新写的文件
+        $writtenMedia = BloxTemplateMedia::writeFiles($prepared['media']);
         db()->beginTransaction();
         try {
+            BloxTemplateMedia::register($prepared['media'], $adminId);
             // 包里带来的全局类与模板草稿同一事务：任一步失败都不留半套类
             BloxGlobalClasses::applyImportPlan($prepared['class_plan'], $adminId);
             $id = bloxTemplateModel()->createDraft(
@@ -51,6 +55,7 @@ final class BloxTemplateImporter
             db()->commit();
         } catch (Throwable $e) {
             db()->rollback();
+            BloxTemplateMedia::removeFiles($writtenMedia);
             throw $e;
         }
         if ($prepared['class_plan'] !== []) {
@@ -66,9 +71,9 @@ final class BloxTemplateImporter
     }
 
     /** @param array<string,mixed> $template */
-    public static function exportJson(array $template, bool $publishedOnly = false): string
+    public static function exportJson(array $template, bool $publishedOnly = false, bool $withMedia = false): string
     {
-        $package = self::exportPackage($template, $publishedOnly);
+        $package = self::exportPackage($template, $publishedOnly, $withMedia);
         return json_encode(
             $package,
             JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
@@ -76,7 +81,7 @@ final class BloxTemplateImporter
     }
 
     /** @param array<string,mixed> $template @return array<string,mixed> */
-    public static function exportPackage(array $template, bool $publishedOnly = false): array
+    public static function exportPackage(array $template, bool $publishedOnly = false, bool $withMedia = false): array
     {
         $type = trim((string) ($template['type'] ?? ''));
         if (!BloxTemplateModel::validType($type)) {
@@ -121,6 +126,9 @@ final class BloxTemplateImporter
             ? ['schema' => BloxDocumentPipeline::SCHEMA_VERSION, 'settings' => $docSettings, 'sections' => $sections]
             : $sections;
         $identity = YikaiProductIdentity::identity();
+        $thumbnail = self::safeThumbnail((string) ($template['thumbnail'] ?? ''));
+        // 可选字段（格式仍为 v1，2.0.3）：文档与缩略图引用的上传图片；旧版导入端忽略
+        $media = $withMedia ? BloxTemplateMedia::export($document, $thumbnail) : [];
         // 可选字段（格式仍为 v1）：被引用全局类的定义。旧版导入端忽略未知字段，不带类的文档输出不变。
         $classes = BloxGlobalClasses::exportDefinitions($sections);
         // 类里用到的站点颜色（设计变量）也是模板的设计依赖：一起声明并导出定义，导入端据此诊断与映射
@@ -138,7 +146,7 @@ final class BloxTemplateImporter
             ],
             'type' => $type,
             'name' => $name,
-            'thumbnail' => self::safeThumbnail((string) ($template['thumbnail'] ?? '')),
+            'thumbnail' => $thumbnail,
             'requires' => $requirements,
             'design' => BloxDesignDependencies::exportDefinitions($requirements),
         ] + ($classes !== [] ? ['classes' => $classes] : []) + [
@@ -150,7 +158,7 @@ final class BloxTemplateImporter
                 'exported_at' => time(),
             ],
             'document' => $document,
-        ];
+        ] + ($media !== [] ? ['media' => $media] : []);
     }
 
     /** @return array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>} */
@@ -190,7 +198,8 @@ final class BloxTemplateImporter
      *   requirements:array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>},
      *   metadata:array<string,mixed>,design_diagnostics:array<string,mixed>,
      *   class_plan:list<array{class_id:string,name:string,settings:array<string,mixed>}>,
-     *   class_diagnostics:array{reused:list<string>,created:list<string>,renamed:list<array{from:string,to:string}>,missing:list<string>}
+     *   class_diagnostics:array{reused:list<string>,created:list<string>,renamed:list<array{from:string,to:string}>,missing:list<string>},
+     *   media:list<array{path:string,target:string,mime:string,sha256:string,bytes:string}>
      * }
      * @param array<string,mixed> $designOptions
      */
@@ -223,6 +232,18 @@ final class BloxTemplateImporter
 
         $rawSections = BloxDocumentPipeline::extractSections($package['document']);
         self::assertNoLibraryReferences($rawSections);
+        // 包里带的图片：先整体校验，再把文档、类定义与缩略图里的引用改写到本站落盘路径
+        $media = BloxTemplateMedia::validate($package['media'] ?? null);
+        $mediaMap = BloxTemplateMedia::referenceMap($media);
+        if ($mediaMap !== []) {
+            $rawSections = UploadReferences::rewrite($rawSections, $mediaMap);
+            if (isset($package['classes'])) {
+                $package['classes'] = UploadReferences::rewrite($package['classes'], $mediaMap);
+            }
+            if (is_string($package['thumbnail'] ?? null)) {
+                $package['thumbnail'] = UploadReferences::rewrite($package['thumbnail'], $mediaMap);
+            }
+        }
         $inferred = self::inferRequirements($rawSections);
         $foundTypes = $inferred['elements'];
         $declared = self::declaredRequirements($package['requires'] ?? []);
@@ -324,6 +345,7 @@ final class BloxTemplateImporter
             'design_diagnostics' => $designDiagnostic,
             'class_plan' => $classPlan['create'],
             'class_diagnostics' => $classPlan['diagnostics'],
+            'media' => $media,
         ];
     }
 

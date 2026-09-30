@@ -60,6 +60,10 @@ $confirmLabel = $isRemoteReview ? ($confirmLabels[$operation] ?? __('blox_import
                 <?php endif; ?>
             <?php endforeach; ?>
         <?php endforeach; ?>
+        <?php $mediaCount = is_array($importReview['media'] ?? null) ? count($importReview['media']) : 0; ?>
+        <?php if ($mediaCount > 0): ?>
+            <p class="text-sm text-gray-600" data-testid="blox-import-media"><?= e(__('blox_tpl_import_media', ['count' => (string) $mediaCount])) ?></p>
+        <?php endif; ?>
         <?php // 全局类：导入前说明每个类会被复用、新建还是改名（本站同名类永不被覆盖） ?>
         <?php $classDiagnostic = is_array($importReview['class_diagnostics'] ?? null) ? $importReview['class_diagnostics'] : []; ?>
         <?php if (array_filter($classDiagnostic) !== []): ?>

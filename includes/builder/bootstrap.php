@@ -64,6 +64,8 @@ require_once __DIR__ . '/BloxDocumentPipeline.php';
 require_once __DIR__ . '/BloxAreaDocument.php';
 require_once __DIR__ . '/BloxThemeHeaderDocument.php';
 require_once __DIR__ . '/BloxPopupDocument.php';
+require_once __DIR__ . '/../UploadReferences.php';
+require_once __DIR__ . '/BloxTemplateMedia.php';   // 模板包携带图片（2.0.3）
 require_once __DIR__ . '/BloxTemplateImporter.php';
 require_once __DIR__ . '/BloxTemplateEditPolicy.php';
 require_once __DIR__ . '/BloxAreaTemplatePresets.php';
