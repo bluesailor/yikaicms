@@ -658,9 +658,14 @@ function langDataFor(string $lang): array
     }
     $langFile = ROOT_PATH . '/lang/' . $lang . '.php';
 
-    // 先加载目标语言，再用中文兜底
+    // 先加载目标语言，再用中文兜底；非汉字语言（ko、de…）在中文之上再垫一层英文——
+    // 新语言包分批翻译，未译的键显示英文比显示中文好懂。
     $fallback = ROOT_PATH . '/lang/zh-CN.php';
     $fallbackData = file_exists($fallback) ? require $fallback : [];
+    $englishFile = ROOT_PATH . '/lang/en.php';
+    if ($lang !== 'en' && !LanguageRegistry::readsHan($lang) && file_exists($englishFile)) {
+        $fallbackData = array_merge($fallbackData, require $englishFile);
+    }
     $langData = ($lang !== 'zh-CN' && file_exists($langFile)) ? require $langFile : [];
 
     $data = array_merge($fallbackData, $langData);
@@ -991,17 +996,13 @@ function _e(string $key, array $params = []): string
  *   options => setting_opt_<key>_<value>
  */
 /**
- * 预置数据（内容模型预置方案等）的三语取值：按后台语言优先取 <field>_en /
- * <field>_ja，缺失回落中文基准。用于「文案随语言、结构不变」的静态预置表。
+ * 预置数据（内容模型预置方案等）的多语取值：按后台语言取 <field>_<语言>，
+ * 缺失按 LanguageRegistry::localizedField 的顺序回落（英文 / 中文基准）。
+ * 用于「文案随语言、结构不变」的静态预置表。
  */
 function presetText(array $row, string $field): string
 {
-    $lang = getLang();
-    $suffix = $lang === 'en' ? '_en' : ($lang === 'ja' ? '_ja' : '');
-    if ($suffix !== '' && trim((string) ($row[$field . $suffix] ?? '')) !== '') {
-        return (string) $row[$field . $suffix];
-    }
-    return (string) ($row[$field] ?? '');
+    return LanguageRegistry::localizedField($row, $field, getLang());
 }
 
 function settingLabel(string $key, string $fallback = ''): string

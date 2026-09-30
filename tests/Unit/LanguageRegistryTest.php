@@ -77,6 +77,29 @@ final class LanguageRegistryTest extends TestCase
         self::assertStringContainsString('LanguageRegistry::isReservedSlug', (string) file_get_contents(ROOT_PATH . '/includes/models/ChannelModel.php'));
     }
 
+    public function testLocalizedFieldFallsBackToEnglishOnlyForNonHanLanguages(): void
+    {
+        $row = ['name' => '企业官网', 'name_en' => 'Corporate', 'name_ja' => '', 'name_de' => 'Firmenseite'];
+        self::assertSame('Firmenseite', LanguageRegistry::localizedField($row, 'name', 'de'));
+        self::assertSame('Corporate', LanguageRegistry::localizedField($row, 'name', 'ko'), '韩语缺译回落英文');
+        self::assertSame('企业官网', LanguageRegistry::localizedField($row, 'name', 'ja'), '日语缺译仍回落中文基准');
+        self::assertSame('企业官网', LanguageRegistry::localizedField($row, 'name', 'zh-TW'));
+        self::assertSame('Corporate', LanguageRegistry::localizedField($row, 'name', 'en'));
+        // 站点数据行：无后缀基准就是站点默认语言
+        $jaSite = ['name' => 'ダウンロード', 'name_en' => 'Downloads'];
+        self::assertSame('ダウンロード', LanguageRegistry::localizedField($jaSite, 'name', 'ja', 'ja'));
+        self::assertSame('Downloads', LanguageRegistry::localizedField($jaSite, 'name', 'fr', 'ja'));
+        self::assertSame('', LanguageRegistry::localizedField(['name' => ['x']], 'name', 'en'));
+    }
+
+    public function testUntranslatedKeysOfNewLanguagesFallBackToEnglish(): void
+    {
+        $functions = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
+        self::assertStringContainsString("if (\$lang !== 'en' && !LanguageRegistry::readsHan(\$lang) && file_exists(\$englishFile)) {", $functions);
+        self::assertTrue(LanguageRegistry::readsHan('ja'));
+        self::assertFalse(LanguageRegistry::readsHan('ko'));
+    }
+
     /** 老站升级不会替换 .htaccess / nginx 配置，所以随包规则一律用通配前缀，新增语言零改动。 */
     public function testServerRulesUseTheGenericLanguagePrefix(): void
     {

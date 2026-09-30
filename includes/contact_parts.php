@@ -282,7 +282,7 @@ function renderContactMapHtml(?callable $__ykEdit = null): string
                         <?php endif;
                     else: // 日 / 英文版 → Google 地图嵌入（无需 Key）
                         $mapDone = true;
-                        $hl = $mLang === 'ja' ? 'ja' : 'en'; ?>
+                        $hl = LanguageRegistry::has((string) $mLang) ? ($mLang === 'pt' ? 'pt-BR' : (string) $mLang) : 'en'; ?>
                 <iframe class="w-full" style="min-height:400px;border:0" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"
                         src="https://www.google.com/maps?q=<?php echo (float)$mLat; ?>,<?php echo (float)$mLng; ?>&z=<?php echo $mZoom; ?>&hl=<?php echo $hl; ?>&output=embed"></iframe>
                     <?php endif;

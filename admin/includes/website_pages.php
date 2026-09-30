@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once ROOT_PATH . '/includes/i18n/LanguageRegistry.php';
+
 /** Resolve the same editing target and publication evidence used by the editor. */
 function websitePagePresentation(array $page): array
 {
@@ -64,9 +66,9 @@ function websitePagesFilter(array $pages, string $query, string $filter): array
 function websiteHomeTitle(string $lang): string
 {
     static $titles = [];
-    $lang = in_array($lang, ['zh-CN', 'en', 'ja'], true) ? $lang : 'zh-CN';
+    $lang = LanguageRegistry::has($lang) && $lang !== 'zh-TW' && is_file(ROOT_PATH . '/lang/' . $lang . '.php') ? $lang : 'zh-CN';
     if (!isset($titles[$lang])) {
-        $messages = require ROOT_PATH . '/lang/' . $lang . '.php';
+        $messages = function_exists('langDataFor') ? langDataFor($lang) : require ROOT_PATH . '/lang/' . $lang . '.php';
         $titles[$lang] = (string) $messages[$lang === 'zh-CN' ? 'site_design_home' : 'home'];
     }
     return $titles[$lang];

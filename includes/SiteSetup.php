@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/i18n/LanguageRegistry.php';
+
 /** Read-only overview. Rendering precedence must match index.php. */
 final class SiteSetup
 {
@@ -104,7 +106,6 @@ final class SiteSetup
     public static function marketPreview(array $catalog, string $adminLanguage, string $siteLanguage, int $limit = 4): array
     {
         $items = array_values(array_filter(is_array($catalog['templates'] ?? null) ? $catalog['templates'] : [], 'is_array'));
-        $suffix = $adminLanguage === 'en' ? '_en' : ($adminLanguage === 'ja' ? '_ja' : '');
         $ready = array_values(array_filter($items, static fn(array $item): bool => ($item['blocked_reason'] ?? 'x') === ''));
         $matches = static fn(array $item): bool => in_array($siteLanguage, is_array($item['languages'] ?? null) ? $item['languages'] : [], true);
         $ordered = array_merge(
@@ -113,7 +114,7 @@ final class SiteSetup
         );
         $picked = [];
         foreach (array_slice($ordered, 0, max(0, $limit)) as $item) {
-            $name = (string) ($item['name' . $suffix] ?? '');
+            $name = LanguageRegistry::localizedField($item, 'name', $adminLanguage);
             $picked[] = [
                 'slug' => (string) ($item['slug'] ?? ''),
                 'name' => $name !== '' ? $name : (string) ($item['name'] ?? ''),
