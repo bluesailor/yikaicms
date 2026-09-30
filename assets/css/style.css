@@ -463,3 +463,9 @@ select {
 .org-chart.org-style-minimal .org-vp { background: #64748b; }
 .org-chart.org-style-minimal .org-dept { background: #fff; }
 .org-chart.org-style-minimal .org-node { box-shadow: none; }
+
+/* Keep the language choice on one line beside the logo and menu at narrow widths. */
+@media (max-width: 380px) {
+    .yk-blox-header .yk-container { gap: .5rem; }
+    .yk-blox-header [data-yk-language-trigger] { white-space: nowrap; }
+}
