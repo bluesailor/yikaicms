@@ -154,12 +154,13 @@ final class AutoUpgrade
     public static function check(): ?array
     {
         require_once ROOT_PATH . '/includes/UpdateChannel.php';
+        require_once ROOT_PATH . '/includes/InstallIdentity.php';
         $health = json_decode((string) config('site_health_last_summary', ''), true);
         $health = is_array($health) ? $health : [];
         $q = [
             'version' => defined('CMS_VERSION') ? CMS_VERSION : '',
             'channel' => UpdateChannel::current(),
-            'domain' => (string) ($_SERVER['HTTP_HOST'] ?? config('site_url', '')),
+        ] + InstallIdentity::reportParams() + [
             'site_name' => (string) config('site_name', ''),
             'php' => PHP_VERSION,
             // 自动升级状态随回访上报：服务器据此在控制台标注哪些站可以批量下发

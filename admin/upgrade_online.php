@@ -109,9 +109,10 @@ if ($action !== '') {
     // ---- 2) 检查更新（代理 check.php） ----
     if ($action === 'check') {
         $cur = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
+        require_once ROOT_PATH . '/includes/InstallIdentity.php';
         $api = UO_UPDATE_SERVER . '/api/update/check.php?version=' . urlencode($cur)
             . '&channel=' . urlencode(UpdateChannel::current())
-            . '&domain=' . urlencode($_SERVER['HTTP_HOST'] ?? '')
+            . '&' . http_build_query(InstallIdentity::reportParams())
             . '&site_name=' . urlencode((string) config('site_name', ''))
             . '&php=' . urlencode(PHP_VERSION)
             . '&t=' . time();   // 缓存破坏：绕开 update 服务器的 CDN 边缘缓存，拿实时版本

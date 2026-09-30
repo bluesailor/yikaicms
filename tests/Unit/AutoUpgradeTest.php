@@ -192,19 +192,36 @@ final class AutoUpgradeTest extends TestCase
         $GLOBALS['_test_config']['auto_upgrade_enabled'] = '1';
         $GLOBALS['_test_config']['auto_upgrade_window'] = date('H:i', time() + 3600) . '-' . date('H:i', time() + 4200);
 
+        require_once ROOT_PATH . '/includes/InstallIdentity.php';
+        $install = \InstallIdentity::id();
+        self::assertMatchesRegularExpression('/^[a-f0-9]{32}$/', $install);
+
+        $sign = static function (string $installId, string $nonce) use ($key): array {
+            $issued = time();
+            $expires = $issued + 900;
+            $canonical = 'autoupgrade2|site.example|' . $installId . '|2.0.0|' . $issued . '|' . $expires . '|' . $nonce;
+            self::assertTrue(openssl_sign($canonical, $signature, $key, OPENSSL_ALGO_SHA256));
+            return [
+                'to' => '2.0.0', 'domain' => 'site.example', 'install' => $installId, 'issued_at' => $issued,
+                'expires_at' => $expires, 'nonce' => $nonce, 'sig' => base64_encode($signature),
+            ];
+        };
+        $run = static fn (array $directive): array
+            => AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.0', 'directive' => $directive], '1.20.1');
+
+        // 同一域名下另一个子目录站的指令（签名本身合法）：不是本站编号，不执行
+        self::assertSame([false, 'outside maintenance window'], $run($sign(str_repeat('a', 32), bin2hex(random_bytes(12)))));
+        // 只绑域名的旧规范串：本版本不再接受
         $issued = time();
-        $expires = $issued + 900;
-        $nonce = bin2hex(random_bytes(12));
-        $canonical = 'autoupgrade|site.example|2.0.0|' . $issued . '|' . $expires . '|' . $nonce;
-        self::assertTrue(openssl_sign($canonical, $signature, $key, OPENSSL_ALGO_SHA256));
-        $directive = [
+        $legacyNonce = bin2hex(random_bytes(12));
+        $legacy = 'autoupgrade|site.example|2.0.0|' . $issued . '|' . ($issued + 900) . '|' . $legacyNonce;
+        self::assertTrue(openssl_sign($legacy, $legacySig, $key, OPENSSL_ALGO_SHA256));
+        self::assertSame([false, 'outside maintenance window'], $run([
             'to' => '2.0.0', 'domain' => 'site.example', 'issued_at' => $issued,
-            'expires_at' => $expires, 'nonce' => $nonce, 'sig' => base64_encode($signature),
-        ];
-        self::assertSame(
-            [true, 'directive'],
-            AutoUpgrade::shouldRun(['has_update' => true, 'latest_version' => '2.0.0', 'directive' => $directive], '1.20.1')
-        );
+            'expires_at' => $issued + 900, 'nonce' => $legacyNonce, 'sig' => base64_encode($legacySig),
+        ]));
+
+        self::assertSame([true, 'directive'], $run($sign($install, bin2hex(random_bytes(12)))));
     }
 
     public function testDisabledSiteIgnoresEvenADirective(): void
@@ -224,8 +241,9 @@ final class AutoUpgradeTest extends TestCase
     {
         $src = file_get_contents(ROOT_PATH . '/includes/UpgradeDirective.php');
         self::assertIsString($src);
-        // 规范串必须含域名、目标版本、签发/过期时间与 nonce
-        self::assertStringContainsString("'autoupgrade|' . \$domain . '|' . \$to . '|' . \$issued . '|' . \$expires . '|' . \$nonce", $src);
+        // 规范串必须含域名、站点编号、目标版本、签发/过期时间与 nonce
+        self::assertStringContainsString("'autoupgrade2|' . \$domain . '|' . \$install . '|' . \$to . '|' . \$issued . '|' . \$expires . '|' . \$nonce", $src);
+        self::assertStringContainsString('hash_equals($mine, $install)', $src);
         self::assertStringContainsString('openssl_verify', $src);
         self::assertStringContainsString('license_pubkey()', $src);   // 与升级包同一把公钥
         self::assertStringContainsString('nonceSeen', $src);          // 防重放

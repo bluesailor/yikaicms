@@ -115,10 +115,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
     header('Content-Type: application/json; charset=utf-8');
     $currentVersion = defined('CMS_VERSION') ? CMS_VERSION : '1.0.0';
     $updateServerUrl = 'https://update.yikaicms.com';
-    // 带上本站域名/站名/PHP：检查更新时顺便在 update 服务器登记安装（按域名）
+    // 带上本站编号/域名/站名/PHP：检查更新时顺便在 update 服务器登记安装（按站点编号）
+    require_once ROOT_PATH . '/includes/InstallIdentity.php';
     $apiUrl = $updateServerUrl . '/api/update/check.php?version=' . urlencode($currentVersion)
         . '&channel=' . urlencode(UpdateChannel::current())
-        . '&domain=' . urlencode($_SERVER['HTTP_HOST'] ?? '')
+        . '&' . http_build_query(InstallIdentity::reportParams())
         . '&site_name=' . urlencode((string) config('site_name', ''))
         . '&php=' . urlencode(PHP_VERSION);
 
