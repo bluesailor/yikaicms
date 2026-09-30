@@ -13,6 +13,7 @@ final class SiteCopyrightElement extends AbstractElement
 
     public function type(): string { return 'site-copyright'; }
     public function label(): string { return __('blox_el_site_copyright'); }
+    public function settingDependencies(): array { return ['site_name' => 'optional', 'footer_copyright_text' => 'optional']; }
     public function icon(): string { return 'copyright'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }

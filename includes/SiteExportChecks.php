@@ -64,6 +64,81 @@ final class SiteExportChecks
         return ['issues' => array_values($issues), 'scanned' => $scanned, 'limited' => count($sources) > 3000 || count($issues) >= 100];
     }
 
+    /**
+     * 元素设置依赖（2.0.3）：包里用到的 Blox 元素依赖哪些站点设置。
+     * - 可移植设置为空 → 提示（导入后该元素没有内容可显示，如页脚社媒入口为空）；
+     * - 属于目标站点的设置（备案号等）→ 提示导入后需在目标站填写。
+     * 只读快照、不执行元素渲染；元素类型从所有文档 JSON 里按 {type, data} 节点形状收集。
+     *
+     * @return list<array{code:string,label:string,detail:string,url:string}>
+     */
+    public static function settingDependencyIssues(array $data): array
+    {
+        if (!class_exists('BuilderRegistry') && is_file(ROOT_PATH . '/includes/builder/bootstrap.php')) {
+            require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        }
+        if (!class_exists('BuilderRegistry')) return [];
+        $types = [];
+        self::collectElementTypes($data['settings'] ?? [], $types);
+        foreach ($data['tables'] ?? [] as $rows) self::collectElementTypes($rows, $types);
+        $settings = is_array($data['settings'] ?? null) ? $data['settings'] : [];
+        $issues = [];
+        foreach (array_keys($types) as $type) {
+            $element = BuilderRegistry::get($type);
+            if ($element === null) continue;
+            foreach ($element->settingDependencies() as $key => $scope) {
+                if (isset($issues[$key])) continue;
+                if ($scope === 'site') {
+                    $issues[$key] = ['code' => 'usability_export_setting_site', 'label' => $element->label(), 'detail' => $key, 'url' => self::settingUrl($key)];
+                } elseif ($scope === 'portable' && !self::settingHasValue($settings, $key)) {
+                    $issues[$key] = ['code' => 'usability_export_setting_empty', 'label' => $element->label(), 'detail' => $key, 'url' => self::settingUrl($key)];
+                }
+            }
+        }
+        return array_values($issues);
+    }
+
+    /** @param array<string,true> $types */
+    private static function collectElementTypes(mixed $value, array &$types, int $depth = 0): void
+    {
+        if ($depth > 40 || count($types) > 300) return;
+        if (is_string($value)) {
+            if ($value === '' || ($value[0] !== '{' && $value[0] !== '[')) return;
+            $value = json_decode($value, true);
+        }
+        if (!is_array($value)) return;
+        if (is_string($value['type'] ?? null) && is_array($value['data'] ?? null)
+            && preg_match('/^[a-z][a-z0-9-]{0,63}$/', $value['type']) === 1) {
+            $types[$value['type']] = true;
+        }
+        foreach ($value as $child) {
+            if (is_array($child) || is_string($child)) self::collectElementTypes($child, $types, $depth + 1);
+        }
+    }
+
+    /** 基键或任一语言变体（site_name_en 等）有值即算有值；空 JSON 列表算空。 */
+    private static function settingHasValue(array $settings, string $key): bool
+    {
+        foreach ($settings as $name => $value) {
+            if ($name !== $key && !preg_match('/^' . preg_quote($key, '/') . '_[a-zA-Z-]{2,5}$/', (string) $name)) continue;
+            $value = trim((string) $value);
+            if ($value !== '' && $value !== '[]' && $value !== '{}') return true;
+        }
+        return false;
+    }
+
+    private static function settingUrl(string $key): string
+    {
+        return match (true) {
+            $key === 'social_links' => '/admin/setting_social.php',
+            $key === 'product_layout' => '/admin/product_setting.php',
+            str_starts_with($key, 'nav_') => '/admin/nav_menu.php',
+            str_starts_with($key, 'home_') => '/admin/setting_home.php',
+            str_starts_with($key, 'footer_') => '/admin/setting.php?tab=footer',
+            default => '/admin/setting.php',
+        };
+    }
+
     /** @return array<string,true>|null null 表示配置为空或无效，按前台兼容规则不过滤任何语言。 */
     private static function enabledLanguageSet(array $settings): ?array
     {

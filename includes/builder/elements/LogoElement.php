@@ -14,6 +14,7 @@ final class LogoElement extends AbstractElement
 
     public function type(): string { return 'logo'; }
     public function label(): string { return __('blox_el_logo'); }
+    public function settingDependencies(): array { return ['site_logo' => 'optional', 'site_name' => 'optional']; }
     public function icon(): string { return 'badge-cc'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }

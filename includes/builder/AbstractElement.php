@@ -880,6 +880,22 @@ abstract class AbstractElement
         return $this->styles();
     }
 
+    /**
+     * 元素直接读取的站点设置及其可移植性（2.0.3）：
+     * - 'portable'：随整站模板导出（导出白名单里必须有这个精确键），为空时元素没有内容可显示；
+     * - 'optional'：同样随包导出，但元素有内置兜底（为空也能正常显示），导出检查不提示；
+     * - 'site'：属于装模板的那个站点（如备案号），不随包导出，导入后需在目标站填写。
+     * 导出检查据此提示「用到了但为空 / 需在目标站填写」；契约测试保证元素里
+     * 读取的每个设置键都已在这里声明（BloxElementSettingDependencyTest）。
+     * 样式、脚本与图标依赖不在这里：沿用 stylesFor()/scriptsFor() 与 BloxIcon。
+     *
+     * @return array<string,'portable'|'optional'|'site'>
+     */
+    public function settingDependencies(): array
+    {
+        return [];
+    }
+
     /** 结构树优先读取的数据字段；null 时使用编辑器的通用文本字段。 */
     public function treeLabelField(): ?string
     {

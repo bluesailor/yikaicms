@@ -10,6 +10,7 @@ final class CtaElement extends AbstractElement
 
     public function type(): string { return 'cta'; }
     public function label(): string { return __('blox_el_cta'); }
+    public function settingDependencies(): array { return ['home_cta_button' => 'optional', 'home_cta_link' => 'optional']; }
     public function icon(): string { return 'speakerphone'; }
 
     public function controls(): array

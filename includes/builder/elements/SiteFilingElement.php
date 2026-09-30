@@ -13,6 +13,7 @@ final class SiteFilingElement extends AbstractElement
 
     public function type(): string { return 'site-filing'; }
     public function label(): string { return __('blox_el_site_filing'); }
+    public function settingDependencies(): array { return ['site_icp' => 'site', 'site_police' => 'site']; }
     public function icon(): string { return 'shield-check'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }

@@ -36,7 +36,8 @@ final class SiteTemplateData
         // 安全边界：白名单只能覆盖可移植的核心内容与主题展示配置，绝不能为插件前缀
         // （shop_*、seo_* 等）放宽。插件公开数据另走版本化适配器；密钥和交易数据永不入包。
         // 社媒入口（social-links 元素的唯一数据源）：精确键放行，值在导出/导入时归一（portableValue）
-        if (in_array($key, ['site_lang', 'enabled_languages', 'social_links'], true)) return true;
+        // product_layout：商品目录元素未设布局时的兜底（元素设置依赖声明为 portable，2.0.3）
+        if (in_array($key, ['site_lang', 'enabled_languages', 'social_links', 'product_layout'], true)) return true;
         if (!SensitiveSettings::isImportable($key)) return false;
         return (bool) preg_match('/^(?:site_(?:name|keywords|description|logo|favicon)|primary_color$|secondary_color$|current_theme$|theme_(?:style|color|content)|home_|header_|footer_|contact_|banner_|nav_|page_hero_|blox_(?:design_system$|design_theme(?:_draft)?$|widescreen_enabled$|custom_header_enabled$|custom_footer_enabled$))/', $key);
     }

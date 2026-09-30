@@ -17,6 +17,7 @@ final class SocialLinksElement extends AbstractElement
 
     public function type(): string { return 'social-links'; }
     public function label(): string { return __('blox_el_social_links'); }
+    public function settingDependencies(): array { return ['social_links' => 'portable']; }
     public function icon(): string { return 'brand-instagram'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }

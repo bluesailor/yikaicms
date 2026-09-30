@@ -21,6 +21,7 @@ final class NavMegaElement extends AbstractElement
 {
     public function type(): string { return 'nav-mega'; }
     public function label(): string { return __('blox_el_nav_mega'); }
+    public function settingDependencies(): array { return ['nav_icons_enabled' => 'optional', 'nav_home_show' => 'optional']; }
     public function icon(): string { return 'layout-navbar-expand'; }
     public function category(): string { return 'dynamic'; }
     public function isDynamic(): bool { return true; }
