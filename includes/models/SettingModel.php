@@ -130,9 +130,11 @@ class SettingModel extends Model
      *   3) 删除 <key>_<新默认> 行。
      * 无新默认后缀行的键不动——base 继续按「语言无关兜底」参与前台回退链。
      *
+     * @param null|callable(string):bool $onlyBaseKeys 只归位 base 键通过筛选的行（整站模板导入：
+     *        包内设置已按包的默认语言归位过，这里只动站点自己的行）
      * @return int 归位的键数
      */
-    public function normalizeDefaultLangRows(string $newDefault, string $oldDefault): int
+    public function normalizeDefaultLangRows(string $newDefault, string $oldDefault, ?callable $onlyBaseKeys = null): int
     {
         if ($newDefault === '' || $newDefault === $oldDefault) {
             return 0;
@@ -152,7 +154,7 @@ class SettingModel extends Model
         $count = 0;
         foreach ($rows as $row) {
             $baseKey = substr((string) $row['key'], 0, -strlen($suffix));
-            if ($baseKey === '') {
+            if ($baseKey === '' || ($onlyBaseKeys !== null && !$onlyBaseKeys($baseKey))) {
                 continue;
             }
             $base = db()->fetchOne("SELECT * FROM {$this->tableName()} WHERE `key` = ?", [$baseKey]);

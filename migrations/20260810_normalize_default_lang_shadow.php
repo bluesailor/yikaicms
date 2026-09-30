@@ -47,7 +47,8 @@ return [
             $row = db()->fetchOne('SELECT value FROM ' . DB_PREFIX . "settings WHERE `key` = 'site_lang'");
             $default = trim((string) ($row['value'] ?? ''));
             // 中文/日文默认站：CJK 启发无效，也基本不生此病 —— 视为无事可做
-            if ($default === '' || in_array($default, ['zh-CN', 'zh-TW', 'ja'], true)) {
+            require_once ROOT_PATH . '/includes/DefaultLangShadow.php';
+            if (!DefaultLangShadow::applies($default)) {
                 return true;
             }
             $like = '%' . str_replace(['!', '_', '%'], ['!!', '!_', '!%'], '_' . $default);
@@ -65,12 +66,12 @@ return [
         $T = DB_PREFIX . 'settings';
         $row = db()->fetchOne("SELECT value FROM {$T} WHERE `key` = 'site_lang'");
         $default = trim((string) ($row['value'] ?? ''));
-        if ($default === '' || in_array($default, ['zh-CN', 'zh-TW', 'ja'], true)) {
+        require_once ROOT_PATH . '/includes/DefaultLangShadow.php';
+        if (!DefaultLangShadow::applies($default)) {
             return '默认语言为中文/日文，无需归位';
         }
 
         $suffix = '_' . $default;
-        $cjk = static fn(?string $s): bool => (bool) preg_match('/[\x{4e00}-\x{9fff}]/u', (string) $s);
         $like = '%' . str_replace(['!', '_', '%'], ['!!', '!_', '!%'], $suffix);
         $suffixRows = db()->fetchAll("SELECT `key`, value FROM {$T} WHERE `key` LIKE ? ESCAPE '!'", [$like]);
         if ($suffixRows === []) {
@@ -87,14 +88,7 @@ return [
             $b = db()->fetchOne("SELECT value FROM {$T} WHERE `key` = ?", [$baseKey]);
             $bVal = $b === null ? null : (string) $b['value'];
             $sVal = (string) $r['value'];
-
-            if ($bVal === null || trim($bVal) === '') {
-                $rule = 1;
-            } elseif ($cjk($bVal) && !$cjk($sVal)) {
-                $rule = 2;
-            } else {
-                $rule = 3;
-            }
+            $rule = DefaultLangShadow::rule($bVal, $sVal);
             $plan[] = ['rule' => $rule, 'base' => $baseKey, 'suffixKey' => $sKey,
                        'baseVal' => $bVal, 'suffixVal' => $sVal];
         }

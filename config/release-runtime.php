@@ -50,6 +50,7 @@ return [
         'includes/SiteTemplatePluginData.php',
         'includes/SiteTemplateArchive.php',
         'includes/SiteTemplateService.php',
+        'includes/DefaultLangShadow.php',  // SiteTemplateService 与迁移 20260810 共用的默认语言归位规则
         'includes/UploadReferences.php',
         'includes/SiteTemplateMarket.php',
         'includes/SiteTemplateLanguages.php',

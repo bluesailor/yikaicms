@@ -50,4 +50,13 @@ final class SiteTemplateRoundtripToolTest extends TestCase
         self::assertStringContainsString("' import '", $source, 'import and sampling run in separate processes');
         self::assertStringContainsString("' sample 2>&1'", $source);
     }
+
+    /** 2026-09-30：Flow 包往返全绿，后台却提示 6 项升级待执行——安装后与导入后都要查迁移 */
+    public function testFailsWhenInstallOrImportLeavesPendingMigrations(): void
+    {
+        $source = $this->source();
+        self::assertStringContainsString("' pending 2>&1'", $source);
+        self::assertStringContainsString("\$report['pending_migrations']['install'] === []", $source);
+        self::assertStringContainsString("\$report['pending_migrations']['import'] === []", $source);
+    }
 }

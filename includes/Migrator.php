@@ -130,6 +130,20 @@ if (!function_exists('_addIndex')) {
 
 class Migrator
 {
+    /**
+     * 「已了结」的迁移 id（settings 行，JSON 列表）。
+     *
+     * 大多数种子类迁移的 check() 看的是数据状态（询盘表单在不在、下载分类空不空……），
+     * 而整站模板导入会合法地整表替换这些内容——导入后 check() 翻回 false，后台就提示
+     * 「数据库有 N 项升级待执行」，真去执行又会把中文种子塞进模板站。导入时把「导入前
+     * 已应用、导入后翻回」的迁移记在这里，它们从此视为已应用。
+     * 键名刻意不在 SiteTemplateData::settingAllowed 白名单内：不随包导出，也不被导入替换。
+     */
+    public const SETTLED_KEY = 'migrations_settled';
+
+    /** @var list<string>|null */
+    private static ?array $settled = null;
+
     /** @var resource|null 本进程持有的执行锁 */
     private static $runLock = null;
 
@@ -251,9 +265,50 @@ class Migrator
         return array_values($byId);
     }
 
+    /** @return list<string> 当前判定为已应用的迁移 id */
+    public static function appliedIds(): array
+    {
+        $ids = [];
+        foreach (self::loadAll() as $migration) {
+            if (self::isApplied($migration)) $ids[] = (string) $migration['id'];
+        }
+        return $ids;
+    }
+
+    /** @return list<string> */
+    public static function settledIds(): array
+    {
+        if (self::$settled === null) {
+            try {
+                $row = db()->fetchOne('SELECT value FROM ' . DB_PREFIX . 'settings WHERE `key` = ?', [self::SETTLED_KEY]);
+                $ids = json_decode((string) ($row['value'] ?? ''), true);
+                self::$settled = is_array($ids) ? array_values(array_filter($ids, 'is_string')) : [];
+            } catch (\Throwable $e) {
+                return [];   // 库还没就绪（安装早期）：不缓存，下次再读
+            }
+        }
+        return self::$settled;
+    }
+
     /**
-     * 判断单个迁移是否已应用。
+     * 登记已了结的迁移（与已有登记合并）。调用方负责事务：整站模板导入在同一事务里写。
+     *
+     * @param list<string> $ids
      */
+    public static function settle(array $ids): void
+    {
+        $ids = array_values(array_unique(array_merge(self::settledIds(), $ids)));
+        sort($ids);
+        settingModel()->set(self::SETTLED_KEY, (string) json_encode($ids), 'system');
+        self::$settled = $ids;
+    }
+
+    /** 测试与跨库场景用：丢掉本进程缓存的登记 */
+    public static function forgetSettled(): void
+    {
+        self::$settled = null;
+    }
+
     /**
      * 迁移的标题/描述按站点语言取值。
      *
@@ -276,10 +331,14 @@ class Migrator
         return is_string($base) ? $base : '';
     }
 
+    /**
+     * 判断单个迁移是否已应用：先看「已了结」登记，再跑迁移自己的 check()。
+     */
     public static function isApplied(array $migration): bool
     {
         $check = $migration['check'] ?? null;
         if (!is_callable($check)) return false;
+        if (in_array((string) ($migration['id'] ?? ''), self::settledIds(), true)) return true;
         try {
             return (bool)$check();
         } catch (\Throwable $e) {
