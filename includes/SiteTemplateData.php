@@ -35,7 +35,8 @@ final class SiteTemplateData
     {
         // 安全边界：白名单只能覆盖可移植的核心内容与主题展示配置，绝不能为插件前缀
         // （shop_*、seo_* 等）放宽。插件公开数据另走版本化适配器；密钥和交易数据永不入包。
-        if (in_array($key, ['site_lang', 'enabled_languages'], true)) return true;
+        // 社媒入口（social-links 元素的唯一数据源）：精确键放行，值在导出/导入时归一（portableValue）
+        if (in_array($key, ['site_lang', 'enabled_languages', 'social_links'], true)) return true;
         if (!SensitiveSettings::isImportable($key)) return false;
         return (bool) preg_match('/^(?:site_(?:name|keywords|description|logo|favicon)|primary_color$|secondary_color$|current_theme$|theme_(?:style|color|content)|home_|header_|footer_|contact_|banner_|nav_|page_hero_|blox_(?:design_system$|design_theme(?:_draft)?$|widescreen_enabled$|custom_header_enabled$|custom_footer_enabled$))/', $key);
     }
@@ -86,7 +87,7 @@ final class SiteTemplateData
         foreach (settingModel()->getAll() as $key => $value) {
             if ($export && preg_match('/(?:_history|_draft)(?:_|$)|^home_(?:blox|layout)_data(?:_|$)/', $key)) continue;
             if ($export && str_starts_with($key, 'theme_content_') && $key !== 'theme_content_' . (string) config('current_theme', 'default')) continue;
-            if (self::settingAllowed($key)) $settings[$key] = $export ? SensitiveSettings::sanitizeValue((string) $value) : (string) $value;
+            if (self::settingAllowed($key)) $settings[$key] = $export ? self::portableValue($key, SensitiveSettings::sanitizeValue((string) $value)) : (string) $value;
         }
         if ($export) foreach ($settings as $key => $value) {
             if (preg_match('/^home_(blox|layout)_published(.*)$/', $key, $match)) $settings['home_' . $match[1] . '_data' . $match[2]] = $value;
@@ -167,5 +168,33 @@ final class SiteTemplateData
         }
         settingModel()->saveBatch($snapshot['settings']);
         settingModel()->clearCache();
+    }
+
+    /**
+     * 需要结构化清洗的可移植设置。social_links 是 JSON 列表：只保留平台名合法、
+     * 地址为站内相对路径或 http(s)/mailto/tel 的条目（渲染端 SocialLinksElement 仍会再过滤一次），
+     * 导出与导入两侧同一规则——包里不会带出、站点也不会写入不安全的链接。导入侧只作用于
+     * 外来包（SiteTemplateService::apply），本机备份的还原必须逐字节复原，不经这里。
+     */
+    public static function portableValue(string $key, string $value): string
+    {
+        if ($key !== 'social_links') {
+            return $value;
+        }
+        $decoded = json_decode($value, true);
+        $links = [];
+        foreach (is_array($decoded) ? $decoded : [] as $item) {
+            if (!is_array($item) || count($links) >= 30) {
+                continue;
+            }
+            $platform = strtolower(trim((string) ($item['platform'] ?? '')));
+            $url = trim((string) ($item['url'] ?? ''));
+            $safe = ($url !== '' && $url[0] === '/' && !str_starts_with($url, '//'))
+                || preg_match('#^(?:https?://[^\s<>"\']+|mailto:[^\s<>"\']+|tel:[0-9+\-() ]+)$#i', $url) === 1;
+            if (preg_match('/^[a-z][a-z0-9_]{0,31}$/', $platform) === 1 && $safe && strlen($url) <= 500) {
+                $links[] = ['platform' => $platform, 'url' => $url];
+            }
+        }
+        return json_encode($links, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[]';
     }
 }

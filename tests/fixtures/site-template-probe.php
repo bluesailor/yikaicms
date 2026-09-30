@@ -49,7 +49,9 @@ try {
     settingModel()->saveBatch(['current_theme' => 'sample', 'site_name' => 'Source', 'site_url' => 'https://source.test/cms', 'site_logo' => '/uploads/logo.svg',
         'site_lang' => 'zh-CN', 'enabled_languages' => '["zh-CN"]', 'home_blox_published' => '{"text":"public"}', 'home_blox_data' => '{"text":"PRIVATE DRAFT"}',
         'theme_style_settings' => '{"themes":{"sample":{"button":{"radius":22}}}}', 'smtp_pass' => 'PRIVATE PASSWORD', 'license_key' => 'PRIVATE LICENSE',
-        'shop_payment_secret' => 'PRIVATE SHOP SECRET', 'seo_api_key' => 'PRIVATE SEO KEY']);
+        'shop_payment_secret' => 'PRIVATE SHOP SECRET', 'seo_api_key' => 'PRIVATE SEO KEY',
+        // 社媒入口（social-links 元素的数据源）必须随包导出；不安全条目在导出时剔除
+        'social_links' => '[{"platform":"facebook","url":"https://www.facebook.com/example"},{"platform":"youtube","url":"javascript:alert(1)"},{"platform":"pinterest","url":"https://www.pinterest.com/example"}]']);
     db()->insert('channels', ['id' => 71, 'name' => 'About', 'slug' => 'about', 'type' => 'page']);
     $publicImages = ['logo.svg', 'gallery-1.svg', 'gallery-2.svg', 'gallery-3.svg', 'gallery-4.svg'];
     $publicUrls = [
@@ -140,6 +142,8 @@ try {
         ['slug' => 'back-to-top', 'version' => '1.0.0'],
         ['slug' => 'cookie-consent', 'version' => '1.1.0'],
     ], 'Active plugin dependencies are declared with versions');
+    check(($package['manifest']['data']['settings']['social_links'] ?? '') === '[{"platform":"facebook","url":"https://www.facebook.com/example"},{"platform":"pinterest","url":"https://www.pinterest.com/example"}]',
+        'Social links are exported without unsafe entries');
     check(!isset($package['manifest']['data']['tables']['shop_orders']), 'Plugin tables are not exported');
     check(!isset($package['manifest']['data']['settings']['shop_payment_secret'], $package['manifest']['data']['settings']['seo_api_key']), 'Plugin settings and secrets are not exported');
     check(array_filter(array_keys($package['files']), static fn(string $name): bool => str_starts_with($name, 'plugins/')) === [], 'Plugin files are not exported');
@@ -271,6 +275,8 @@ try {
     check((int) db()->fetchColumn('SELECT ref_count FROM yikai_blox_class_refs WHERE class_id = ? AND doc_key = ?', ['gc_0123456789ab', 'home']) === 2, 'Class usage index travels with the site');
     check(str_starts_with(config('current_theme'), 'sitepack-'), 'New theme alias');
     check(config('site_url') === 'https://target.test' && config('smtp_pass') === 'PRIVATE PASSWORD', 'Target identity unchanged');
+    check(str_contains((string) config('social_links'), 'www.facebook.com/example') && !str_contains((string) config('social_links'), 'javascript:'),
+        'Social links arrive with the imported site');
     check(db()->fetchColumn('SELECT channel_id FROM yikai_contents WHERE id = 91') == 71, 'Stable relations');
     check(count(db()->fetchAll('SELECT * FROM yikai_media')) === 5, 'Public media imported');
     check((int) db()->fetchColumn('SELECT status FROM yikai_plugins WHERE slug = ?', ['cookie-consent']) === 0, 'Plugin activation state is not imported');

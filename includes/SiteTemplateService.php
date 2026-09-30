@@ -492,6 +492,10 @@ final class SiteTemplateService
                     unset($data['settings']['theme_content_' . $oldTheme]);
                 }
                 $data['settings']['current_theme'] = $alias;
+                // 外来包的结构化设置再清洗一次（与导出同一规则，见 SiteTemplateData::portableValue）
+                foreach ($data['settings'] as $key => $value) {
+                    if (is_string($key) && is_string($value)) $data['settings'][$key] = SiteTemplateData::portableValue($key, $value);
+                }
                 foreach (['site_name', 'contact_phone', 'contact_email', 'contact_address'] as $key) {
                     $value = trim((string) ($brand[$key] ?? ''));
                     if (strlen($value) > 500 || ($key === 'site_name' && $value === '')) throw new RuntimeException('st_brand');

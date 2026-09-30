@@ -54,7 +54,8 @@ final class SocialLinksElement extends AbstractElement
             $items .= '<a href="' . htmlspecialchars($link['url'], ENT_QUOTES) . '" target="_blank" rel="nofollow noopener"'
                 . ' class="inline-flex h-9 w-9 items-center justify-center rounded-full transition ' . $buttonClass . '"'
                 . ' aria-label="' . htmlspecialchars($label, ENT_QUOTES) . '" title="' . htmlspecialchars($label, ENT_QUOTES) . '">'
-                . '<i class="ti ti-' . $icon . ' text-lg" aria-hidden="true"></i></a>';
+                // 品牌图标多数不在前台常用子集里：经 BloxIcon 解析，子集外字形会按需补载完整图标字体
+                . '<i class="' . BloxIcon::classes($icon) . ' text-lg" aria-hidden="true"></i></a>';
         }
         $align = match ($data['align'] ?? 'left') {
             'center' => 'justify-center',
@@ -62,6 +63,19 @@ final class SocialLinksElement extends AbstractElement
             default => 'justify-start',
         };
         return '<div class="flex flex-wrap gap-2 ' . $align . '">' . $items . '</div>';
+    }
+
+    /** 页面 head 阶段就声明子集外图标字体（页尾区域渲染时 BloxIcon::classes 也会补收集）。 */
+    public function stylesFor(array $data): array
+    {
+        $styles = [];
+        foreach (self::decodeLinks(function_exists('config') ? (string) config('social_links', '[]') : '[]') as $link) {
+            $stylesheet = BloxIcon::stylesheet(self::ICONS[$link['platform']]);
+            if ($stylesheet !== null && !in_array($stylesheet, $styles, true)) {
+                $styles[] = $stylesheet;
+            }
+        }
+        return $styles;
     }
 
     /** @return list<array{platform:string,url:string}> */
