@@ -68,6 +68,12 @@ final class LanguageRegistry
         return self::LANGUAGES[$code]['name'] ?? $code;
     }
 
+    /** 按钮、胶囊上的短标记：ZH / ZH-TW / EN / JA / KO …（未注册的代码原样大写）。 */
+    public static function shortLabel(string $code): string
+    {
+        return $code === 'zh-CN' ? 'ZH' : strtoupper($code);
+    }
+
     public static function englishName(string $code): string
     {
         return self::LANGUAGES[$code]['english'] ?? $code;
