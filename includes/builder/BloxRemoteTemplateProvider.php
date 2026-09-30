@@ -52,8 +52,8 @@ final class BloxRemoteTemplateProvider
         ?Closure $cacheGet = null,
         ?Closure $cacheSet = null
     ) {
-        $this->httpGet = $httpGet ?? static fn (string $url, int $timeout, int $maxBytes): ?string
-            => self::request($url, $timeout, $maxBytes);
+        $this->httpGet = $httpGet ?? static fn (string $url, int $timeout, int $maxBytes, string $postBody = ''): ?string
+            => self::request($url, $timeout, $maxBytes, $postBody);
         // 只允许测试/隔离环境替换目录接口；生产默认仍固定到官方服务。
         $testEndpoint = trim((string) getenv('YIKAI_BLOX_TEMPLATE_API_BASE'));
         // 隔离市场用自己的签名公钥（DER base64），不能靠替换全站授权公钥——那会让授权与更新校验全部失效
@@ -269,11 +269,12 @@ final class BloxRemoteTemplateProvider
     {
         $licenseKey = function_exists('license_key') ? license_key() : '';
         $licenseDomain = function_exists('license_domain') ? license_domain() : '';
-        $query = array_filter([
-            'protocol_version' => (string) self::PROTOCOL_VERSION,
+        // 协议号留在网址里（服务端据此分流）；授权码与域名放 POST 正文，不进网址与访问日志
+        $query = ['protocol_version' => (string) self::PROTOCOL_VERSION];
+        $credentials = http_build_query(array_filter([
             'key' => $licenseKey,
             'domain' => $licenseDomain,
-        ], static fn (string $value): bool => $value !== '');
+        ], static fn (string $value): bool => $value !== ''));
         $cacheKey = 'blox_remote_templates:v3:' . hash(
             'sha256',
             json_encode([$this->endpoint, self::PROTOCOL_VERSION, $licenseKey, $licenseDomain,
@@ -307,7 +308,7 @@ final class BloxRemoteTemplateProvider
         $url = $this->endpoint . ($query !== []
             ? (str_contains($this->endpoint, '?') ? '&' : '?') . http_build_query($query)
             : '');
-        $response = ($this->httpGet)($url, 15, self::MAX_CATALOG_BYTES);
+        $response = ($this->httpGet)($url, 15, self::MAX_CATALOG_BYTES, $credentials);
         if (!is_string($response) || $response === '') {
             $this->rememberFailure($cacheKey);
             throw new RuntimeException(__('blox_template_remote_unavailable'));
@@ -544,7 +545,8 @@ final class BloxRemoteTemplateProvider
             @unlink($tmp);
         }
     }
-    private static function request(string $url, int $timeout, int $maxBytes): ?string
+    /** $postBody 非空时改为 POST（授权码等凭据放正文，不进网址）。 */
+    private static function request(string $url, int $timeout, int $maxBytes, string $postBody = ''): ?string
     {
         if (function_exists('curl_init')) {
             $body = '';
@@ -557,6 +559,9 @@ final class BloxRemoteTemplateProvider
                 CURLOPT_SSL_VERIFYPEER => true,
                 CURLOPT_SSL_VERIFYHOST => 2,
                 CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_POST => $postBody !== '',
+                CURLOPT_POSTFIELDS => $postBody !== '' ? $postBody : null,
+                CURLOPT_HTTPHEADER => $postBody !== '' ? ['Content-Type: application/x-www-form-urlencoded'] : [],
                 CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$body, &$tooLarge, $maxBytes): int {
                     if (strlen($body) + strlen($chunk) > $maxBytes) {
                         $tooLarge = true;
@@ -576,8 +581,8 @@ final class BloxRemoteTemplateProvider
                 'http' => [
                     'timeout' => $timeout, 'ignore_errors' => false,
                     'follow_location' => 0, 'max_redirects' => 0,
-                    'header' => "Accept: application/json\r\n",
-                ],
+                    'header' => "Accept: application/json\r\n" . ($postBody !== '' ? "Content-Type: application/x-www-form-urlencoded\r\n" : ''),
+                ] + ($postBody !== '' ? ['method' => 'POST', 'content' => $postBody] : []),
                 'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
             ]);
             $body = @file_get_contents($url, false, $context, 0, $maxBytes + 1);

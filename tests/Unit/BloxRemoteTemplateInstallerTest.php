@@ -81,13 +81,15 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         $hash = 'sha256:' . hash('sha256', $package);
         $catalog = $this->catalogResponse($this->catalogItem(['hash' => $hash]));
         $catalogUrls = [];
+        $catalogPosts = [];
         $canonical = [];
         $provider = new BloxRemoteTemplateProvider(
-            static function (string $url) use ($catalog, $package, &$catalogUrls): string {
+            static function (string $url, int $timeout = 0, int $maxBytes = 0, string $postBody = '') use ($catalog, $package, &$catalogUrls, &$catalogPosts): string {
                 if (str_contains($url, '/api/templates/download.php')) {
                     return $package;
                 }
                 $catalogUrls[] = $url;
+                $catalogPosts[] = $postBody;
                 return $catalog;
             },
             static function (string $value, string $signature) use (&$canonical): bool {
@@ -126,8 +128,12 @@ final class BloxRemoteTemplateInstallerTest extends TestCase
         $this->assertNotEmpty($canonical);
         $this->assertSame('pricing-3col|1.0.0|' . $hash, $canonical[0]);
         $this->assertNotEmpty($catalogUrls);
-        $this->assertStringContainsString('key=service-key-123', $catalogUrls[0]);
-        $this->assertStringContainsString('domain=licensed.example.test', $catalogUrls[0]);
+        // 授权码与域名走 POST 正文，不进网址（访问日志、CDN 记录）
+        $this->assertStringNotContainsString('key=', $catalogUrls[0]);
+        $this->assertStringContainsString('protocol_version=2', $catalogUrls[0]);
+        parse_str($catalogPosts[0], $posted);
+        $this->assertSame('service-key-123', $posted['key'] ?? null);
+        $this->assertSame('licensed.example.test', $posted['domain'] ?? null);
     }
 
     public function testUpdateProtectsDraftAndRollbackNeverChangesPublishedDocument(): void

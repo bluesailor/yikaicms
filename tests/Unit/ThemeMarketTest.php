@@ -28,15 +28,19 @@ final class ThemeMarketTest extends TestCase
         ], JSON_THROW_ON_ERROR));
 
         self::assertNotNull($response);
-        $url = $this->capturedUrl('business & design');
+        [$url, $posted] = $this->capturedRequest('business & design');
         self::assertSame('https://update.yikaicms.com/api/themes/list.php', strtok($url, '?'));
         parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+        parse_str($posted, $body);
         self::assertSame('2', $query['protocol_version']);
         self::assertSame(CMS_VERSION, $query['cms_version']);
         self::assertSame(PHP_VERSION, $query['php_version']);
         self::assertSame('business & design', $query['q']);
-        self::assertSame(license_key(), $query['key']);
-        self::assertSame(license_domain(), $query['domain']);
+        // 授权码与域名走 POST 正文，不进网址
+        self::assertArrayNotHasKey('key', $query);
+        self::assertArrayNotHasKey('domain', $query);
+        self::assertSame(license_key(), $body['key'] ?? null);
+        self::assertSame(license_domain(), $body['domain'] ?? null);
         self::assertSame('default-update-v1', $query['capabilities']);
         self::assertCount(1, $response['data']['themes']);
         self::assertSame('business', $response['data']['themes'][0]['slug']);
@@ -401,14 +405,17 @@ final class ThemeMarketTest extends TestCase
         ], $override);
     }
 
-    private function capturedUrl(string $query): string
+    /** @return array{0: string, 1: string} [网址, POST 正文] */
+    private function capturedRequest(string $query): array
     {
         $url = '';
-        ThemeMarket::request($query, static function (string $value) use (&$url): string {
+        $posted = '';
+        ThemeMarket::request($query, static function (string $value, string $body = '') use (&$url, &$posted): string {
             $url = $value;
+            $posted = $body;
             return '{"code":0,"data":{"protocol_version":2,"themes":[]}}';
         });
-        return $url;
+        return [$url, $posted];
     }
 
     private function packageUrl(): string

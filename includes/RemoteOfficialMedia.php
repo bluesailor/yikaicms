@@ -37,12 +37,14 @@ final class RemoteOfficialMedia
             'industry' => self::cleanToken((string) ($query['industry'] ?? ''), self::ALLOWED_INDUSTRIES),
             'keyword' => self::cleanKeyword((string) ($query['keyword'] ?? '')),
             'lang' => self::cleanLang((string) ($query['lang'] ?? config('admin_lang', 'zh-CN'))),
-            'key' => license_key(),
-            'domain' => license_domain(),
         ];
 
+        // 授权码与域名放 POST 正文，不进网址与访问日志（服务端 2026-09-30 起同时接受 POST）
         $url = rtrim(self::apiBase(), '/') . '/list.php?' . http_build_query($params);
-        $body = self::httpRequest($url, 'GET', '', 1048576, 8);
+        $body = self::httpRequest($url, 'POST', http_build_query([
+            'key' => license_key(),
+            'domain' => license_domain(),
+        ]), 1048576, 8, ['Content-Type: application/x-www-form-urlencoded']);
         $data = json_decode($body, true);
         if (!is_array($data)) {
             throw new RuntimeException('官方素材暂时不可用，本站媒体仍可使用');

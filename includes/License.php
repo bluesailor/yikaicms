@@ -381,7 +381,7 @@ function license_expiry(): ?string
 }
 
 /**
- * HTTP POST（表单编码），file_get_contents 优先、curl 兜底，失败返回 null。
+ * HTTP POST（表单编码），curl 优先、file_get_contents 兜底，失败返回 null。
  * 超时 6 秒，避免拖慢后台加载。
  *
  * @param array<string,string> $fields
@@ -389,35 +389,64 @@ function license_expiry(): ?string
 function license_http(string $url, array $fields): ?string
 {
     $body = http_build_query($fields, '', '&');
-    // 不校验 TLS 证书：响应真伪由 Ed25519 签名保证（MITM 无私钥伪造不出有效签名），
-    // 而老共享主机（如 my3w）常因 CA 包过旧导致 verify_peer 失败、连不上服务器。
-    $ctx = stream_context_create([
-        'http' => ['method' => 'POST', 'timeout' => 6, 'ignore_errors' => true, 'content' => $body,
-            'header' => "Accept: application/json\r\nContent-Type: application/x-www-form-urlencoded\r\n"],
-        'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
-    ]);
-    $r = @file_get_contents($url, false, $ctx);
-    if ($r !== false) {
-        return $r;
+    // 必须校验 TLS 证书：签名只能证明「响应」没被伪造，注册码在「请求」正文里——不校验证书，
+    // 任何中间人都能读走注册码（2026-09-30 前这里关着校验）。
+    // 老共享主机（如 my3w）常因系统 CA 包过旧握手失败：只有证书校验失败时，才改用随包的
+    // ISRG 根证书（includes/certs/isrg-roots.pem）重试一次；无论如何都不退回「不校验」。
+    // 服务器连不上等其它失败不重试，免得授权服务器故障时后台页面多等一轮超时。
+    [$response, $tlsFailed] = license_http_once($url, $body, '');
+    if ($response !== null || !$tlsFailed) {
+        return $response;
     }
+    $bundle = license_ca_bundle();
+    return is_file($bundle) ? license_http_once($url, $body, $bundle)[0] : null;
+}
+
+/** 随包信任锚：ISRG（Let's Encrypt）根证书 X1 / X2——update.yikaicms.com 的证书链顶端，见 THIRD-PARTY-NOTICES.md。 */
+function license_ca_bundle(): string
+{
+    return __DIR__ . '/certs/isrg-roots.pem';
+}
+
+/**
+ * 一次校验请求：只 POST、不跟随跳转、始终校验证书。$caFile 为空用系统 CA。
+ *
+ * @return array{0: ?string, 1: bool} [响应正文, 是否因证书校验失败]
+ */
+function license_http_once(string $url, string $body, string $caFile): array
+{
+    $headers = ['Accept: application/json', 'Content-Type: application/x-www-form-urlencoded'];
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 6,
-            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => $body,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => 0,
-            CURLOPT_HTTPHEADER     => ['Accept: application/json', 'Content-Type: application/x-www-form-urlencoded'],
-        ]);
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_HTTPHEADER     => $headers,
+        ] + ($caFile !== '' ? [CURLOPT_CAINFO => $caFile] : []));
         $r = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $errno = curl_errno($ch);
         curl_close($ch);
-        if ($r !== false && $code < 400) {
-            return (string) $r;
+        if ($r !== false && $code > 0 && $code < 400) {
+            return [(string) $r, false];
         }
+        // 35 握手失败 / 51 证书不匹配 / 58 本地证书 / 60 无法验证对端 / 77 CA 文件读取 / 83 颁发者校验
+        return [null, in_array($errno, [35, 51, 58, 60, 77, 83], true)];
     }
-    return null;
+    $ctx = stream_context_create([
+        'http' => ['method' => 'POST', 'timeout' => 6, 'ignore_errors' => true, 'content' => $body,
+            'follow_location' => 0, 'max_redirects' => 0, 'header' => implode("\r\n", $headers) . "\r\n"],
+        'ssl'  => ['verify_peer' => true, 'verify_peer_name' => true] + ($caFile !== '' ? ['cafile' => $caFile] : []),
+    ]);
+    $r = @file_get_contents($url, false, $ctx);
+    if ($r !== false) {
+        return [$r, false];
+    }
+    // 没有 curl 时拿不到具体原因：按证书问题处理，用随包 CA 再试一次
+    return [null, true];
 }

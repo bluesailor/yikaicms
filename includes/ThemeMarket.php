@@ -23,7 +23,8 @@ final class ThemeMarket
     {
         // capabilities：告知官方 API 本站支持签名校验的 default 主题更新
         $url = self::API . '?' . MarketCatalogRequest::query($query) . '&capabilities=default-update-v1';
-        $body = $transport !== null ? $transport($url) : self::httpGet($url);
+        $credentials = MarketCatalogRequest::credentials();
+        $body = $transport !== null ? $transport($url, $credentials) : self::httpGet($url, 15, $credentials);
         if (!is_string($body) || $body === '') {
             return null;
         }
@@ -440,7 +441,8 @@ final class ThemeMarket
         return '';
     }
 
-    private static function httpGet(string $url, int $timeout = 15): ?string
+    /** $postBody 非空时改为 POST（授权码等凭据放正文，不进网址）。 */
+    private static function httpGet(string $url, int $timeout = 15, string $postBody = ''): ?string
     {
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
@@ -451,7 +453,11 @@ final class ThemeMarket
                 CURLOPT_SSL_VERIFYPEER => true,
                 CURLOPT_SSL_VERIFYHOST => 2,
                 CURLOPT_FOLLOWLOCATION => false,
-            ]);
+            ] + ($postBody !== '' ? [
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $postBody,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded'],
+            ] : []));
             $response = curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
             curl_close($ch);
@@ -461,7 +467,8 @@ final class ThemeMarket
             return null;
         }
         $context = stream_context_create([
-            'http' => ['timeout' => $timeout, 'follow_location' => 0, 'max_redirects' => 0, 'ignore_errors' => true],
+            'http' => ['timeout' => $timeout, 'follow_location' => 0, 'max_redirects' => 0, 'ignore_errors' => true]
+                + ($postBody !== '' ? ['method' => 'POST', 'content' => $postBody, 'header' => "Content-Type: application/x-www-form-urlencoded\r\n"] : []),
             'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
         ]);
         $response = @file_get_contents($url, false, $context);

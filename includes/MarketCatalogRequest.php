@@ -5,6 +5,7 @@ declare(strict_types=1);
 /** Envelope negotiation for the fixed official theme and plugin APIs only. */
 final class MarketCatalogRequest
 {
+    /** 网址里的公开参数。授权码与域名不在这里——见 credentials()。 */
     public static function query(string $search = ''): string
     {
         return http_build_query([
@@ -12,6 +13,16 @@ final class MarketCatalogRequest
             'q' => $search,
             'cms_version' => defined('CMS_VERSION') ? (string) CMS_VERSION : '',
             'php_version' => PHP_VERSION,
+        ], '', '&', PHP_QUERY_RFC3986);
+    }
+
+    /**
+     * 授权码与域名，作为 POST 正文发送：放进网址会留在服务器访问日志、CDN 与代理记录里；
+     * POST 也不会被边缘缓存（不同授权看到的目录不同）。官方接口按 $_REQUEST 读，GET 旧客户端不受影响。
+     */
+    public static function credentials(): string
+    {
+        return http_build_query([
             'key' => function_exists('license_key') ? license_key() : '',
             'domain' => function_exists('license_domain') ? license_domain() : '',
         ], '', '&', PHP_QUERY_RFC3986);
