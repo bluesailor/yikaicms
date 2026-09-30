@@ -386,7 +386,7 @@ function license_expiry(): ?string
  *
  * @param array<string,string> $fields
  */
-function license_http(string $url, array $fields): ?string
+function license_http(string $url, array $fields, int $timeout = 6): ?string
 {
     $body = http_build_query($fields, '', '&');
     // 必须校验 TLS 证书：签名只能证明「响应」没被伪造，注册码在「请求」正文里——不校验证书，
@@ -394,12 +394,12 @@ function license_http(string $url, array $fields): ?string
     // 老共享主机（如 my3w）常因系统 CA 包过旧握手失败：只有证书校验失败时，才改用随包的
     // ISRG 根证书（includes/certs/isrg-roots.pem）重试一次；无论如何都不退回「不校验」。
     // 服务器连不上等其它失败不重试，免得授权服务器故障时后台页面多等一轮超时。
-    [$response, $tlsFailed] = license_http_once($url, $body, '');
+    [$response, $tlsFailed] = license_http_once($url, $body, '', $timeout);
     if ($response !== null || !$tlsFailed) {
         return $response;
     }
     $bundle = license_ca_bundle();
-    return is_file($bundle) ? license_http_once($url, $body, $bundle)[0] : null;
+    return is_file($bundle) ? license_http_once($url, $body, $bundle, $timeout)[0] : null;
 }
 
 /** 随包信任锚：ISRG（Let's Encrypt）根证书 X1 / X2——update.yikaicms.com 的证书链顶端，见 THIRD-PARTY-NOTICES.md。 */
@@ -413,14 +413,14 @@ function license_ca_bundle(): string
  *
  * @return array{0: ?string, 1: bool} [响应正文, 是否因证书校验失败]
  */
-function license_http_once(string $url, string $body, string $caFile): array
+function license_http_once(string $url, string $body, string $caFile, int $timeout = 6): array
 {
     $headers = ['Accept: application/json', 'Content-Type: application/x-www-form-urlencoded'];
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 6,
+            CURLOPT_TIMEOUT        => $timeout,
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_POST           => true,
             CURLOPT_POSTFIELDS     => $body,
@@ -439,7 +439,7 @@ function license_http_once(string $url, string $body, string $caFile): array
         return [null, in_array($errno, [35, 51, 58, 60, 77, 83], true)];
     }
     $ctx = stream_context_create([
-        'http' => ['method' => 'POST', 'timeout' => 6, 'ignore_errors' => true, 'content' => $body,
+        'http' => ['method' => 'POST', 'timeout' => $timeout, 'ignore_errors' => true, 'content' => $body,
             'follow_location' => 0, 'max_redirects' => 0, 'header' => implode("\r\n", $headers) . "\r\n"],
         'ssl'  => ['verify_peer' => true, 'verify_peer_name' => true] + ($caFile !== '' ? ['cafile' => $caFile] : []),
     ]);

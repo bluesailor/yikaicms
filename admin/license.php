@@ -18,6 +18,18 @@ requirePermission('*');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $act = $_POST['action'] ?? 'save';
 
+    if ($act === 'deregister') {
+        // 自助注销本站授权：正式域名需授权服务器回访本站验证，成功后清掉本站授权码
+        require_once ROOT_PATH . '/includes/LicenseDeregistration.php';
+        @set_time_limit(90);
+        $r = LicenseDeregistration::run();
+        adminLog('license', 'deregister', $r['ok'] ? '注销本站授权（' . $r['role'] . '）' : '注销本站授权失败：' . $r['reason']);
+        if ($r['ok']) {
+            success($r, __('lic_dereg_done'));
+        }
+        error(__('lic_dereg_failed_' . (in_array($r['reason'], ['challenge_failed', 'domain_mismatch', 'rate_limited', 'not_found', 'unreachable'], true) ? $r['reason'] : 'other')));
+    }
+
     if ($act === 'refresh') {
         $st = license_refresh(true);
         adminLog('license', 'refresh', '手动校验授权');
@@ -162,6 +174,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <code class="flex-1 bg-gray-50 border border-gray-200 rounded px-4 py-2 font-mono tracking-wider text-gray-600 select-none"><?php echo e($keyMasked); ?></code>
             <button type="button" onclick="licShowInput()" class="border border-gray-300 hover:bg-gray-100 text-gray-700 px-6 py-2 rounded transition whitespace-nowrap"><?php echo __('lic_change_key'); ?></button>
         </div>
+        <div class="mt-3 text-xs text-gray-500">
+            <?php echo e(__('lic_dereg_tip')); ?>
+            <button type="button" id="btnDeregister" class="ml-1 text-red-600 hover:underline"><?php echo e(__('lic_dereg_button')); ?></button>
+        </div>
         <?php endif; ?>
         <form id="licenseForm" class="flex flex-col sm:flex-row gap-3 <?php echo $key !== '' ? 'hidden' : ''; ?>">
             <input type="text" name="license_key" value="" placeholder="<?php echo e(__('lic_key_ph')); ?>"
@@ -216,6 +232,15 @@ document.getElementById('licenseForm').addEventListener('submit', function (e) {
     if (v === '' && !confirm(<?php echo json_encode(__('lic_clear_confirm'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>)) return;
     adminSave(this, { reload: true });
 });
+(function () {
+    var dereg = document.getElementById('btnDeregister');
+    if (!dereg) return;
+    dereg.addEventListener('click', function () {
+        if (!window.confirm(<?php echo json_encode(__('lic_dereg_confirm'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>)) return;
+        adminSave({ action: 'deregister' }, { successMsg: <?php echo json_encode(__('lic_dereg_done'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>, reload: true, button: this });
+    });
+})();
+
 document.getElementById('btnRefresh').addEventListener('click', function () {
     adminSave({ action: 'refresh' }, { successMsg: <?php echo json_encode(__('lic_reverified'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>, reload: true, button: this });
 });

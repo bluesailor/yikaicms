@@ -43,6 +43,12 @@ if ($__dynamicRequested) {
 
 require_once __DIR__ . '/includes/init.php';
 
+// 自助注销授权的域名验证：授权服务器回访首页取一次性验证码（仅 /index.php?yk_license_challenge=…）
+if ($__isIndexRequest && isset($_GET['yk_license_challenge'])) {
+    require_once __DIR__ . '/includes/LicenseDeregistration.php';
+    LicenseDeregistration::respond(is_string($_GET['yk_license_challenge']) ? $_GET['yk_license_challenge'] : '');
+}
+
 if ($__dynamicRequested && $__dynamicHit === null) {
     render404(__('error_page_not_found'));
 }
