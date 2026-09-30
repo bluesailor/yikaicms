@@ -395,9 +395,10 @@ final class SiteHealth
     public static function checkUpdateService(): array
     {
         $version = defined('CMS_VERSION') ? (string) CMS_VERSION : '0.0.0';
+        require_once __DIR__ . '/InstallIdentity.php';
         $query = http_build_query([
             'version' => $version,
-            'domain' => (string) ($_SERVER['HTTP_HOST'] ?? ''),
+        ] + InstallIdentity::reportParams() + [
             'site_name' => function_exists('config') ? (string) config('site_name', '') : '',
             'php' => PHP_VERSION,
             't' => time(),

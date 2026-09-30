@@ -5,12 +5,16 @@
  * 控制台批量下发升级时，服务器在 check.php 的响应里附一段指令；站点用**内置公钥**
  * （与升级包验签同一把）校验后才执行。
  *
- * 规范串：`autoupgrade|<domain>|<to>|<issued_at>|<expires_at>|<nonce>`
+ * 规范串（2.0.3 起）：`autoupgrade2|<domain>|<install>|<to>|<issued_at>|<expires_at>|<nonce>`
+ * `install` 是站点编号（InstallIdentity）。只绑域名时，同一域名下的子目录站会被同一条指令
+ * 全部驱动，控制台没法逐站下发、逐站看结果；2.0.3 起的站点只认绑了本站编号的指令。
+ * （旧规范串 `autoupgrade|<domain>|<to>|…` 仍由 2.0.2 及更早的站点使用，服务器按回访里
+ * 有没有 install_id 决定签哪种；本版本不再接受旧串。）
  *
  * 为什么值得签：升级包本身已有 SHA256 + RSA 双重校验，伪造指令最多只能让站点装上
  * **官方**包。但指令仍决定「什么时候升、升到哪个版本」——不签的话，中间人可以挑
  * 时机（业务高峰）或压着不让升。签名 + 域名绑定 + 有效期 + nonce 把这些都堵住：
- *   - 域名绑定：A 站的指令不能拿去驱动 B 站
+ *   - 域名 + 站点编号绑定：A 站的指令不能拿去驱动 B 站（含同域名下的子目录站）
  *   - 有效期：过期指令重放无效（默认服务器签 15 分钟）
  *   - nonce：同一条指令只认一次，防止在有效期内反复触发
  *
@@ -48,8 +52,9 @@ final class UpgradeDirective
         $nonce = (string) ($directive['nonce'] ?? '');
         $sig = (string) ($directive['sig'] ?? '');
         $domain = (string) ($directive['domain'] ?? '');
+        $install = (string) ($directive['install'] ?? '');
 
-        if ($to === '' || $sig === '' || $nonce === '' || $domain === '') {
+        if ($to === '' || $sig === '' || $nonce === '' || $domain === '' || $install === '') {
             return false;
         }
         // 指令必须指向服务器同一次响应里的最新版本，杜绝「签一个旧版本让站点降级」
@@ -64,6 +69,11 @@ final class UpgradeDirective
         if (!self::domainMatches($domain)) {
             return false;
         }
+        require_once __DIR__ . '/InstallIdentity.php';
+        $mine = InstallIdentity::id();
+        if ($mine === '' || !hash_equals($mine, $install)) {
+            return false;   // 同域名下别的站的指令
+        }
         if (self::nonceSeen($nonce)) {
             return false;
         }
@@ -74,7 +84,7 @@ final class UpgradeDirective
         if (!function_exists('openssl_verify') || !function_exists('license_pubkey')) {
             return false;
         }
-        $canonical = 'autoupgrade|' . $domain . '|' . $to . '|' . $issued . '|' . $expires . '|' . $nonce;
+        $canonical = 'autoupgrade2|' . $domain . '|' . $install . '|' . $to . '|' . $issued . '|' . $expires . '|' . $nonce;
         $raw = base64_decode($sig, true);
         if ($raw === false || $raw === '') {
             return false;

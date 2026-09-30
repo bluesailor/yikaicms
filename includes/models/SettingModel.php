@@ -105,7 +105,7 @@ class SettingModel extends Model
     {
         if ($settings === []) return true;
         foreach (array_keys($settings) as $key) {
-            if ($key !== 'sched_sweep_at'
+            if ($key !== 'sched_sweep_at' && $key !== 'install_identity'
                 && !in_array((string) $key, self::DRAFT_ONLY_KEYS, true)
                 && !preg_match('/^cron_[a-z0-9_]+_(last|status|msg|ms)$/D', (string) $key)) {
                 return true;
