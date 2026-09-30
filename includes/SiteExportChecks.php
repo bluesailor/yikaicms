@@ -98,6 +98,30 @@ final class SiteExportChecks
         return array_values($issues);
     }
 
+    /**
+     * 自动封面陷阱（2.0.3）：Blox 单页有正文封面且开着「正文顶部显示头图」，前台会在 Blox 内容之前
+     * 输出整宽封面图，常把标题挤出首屏。英文模板一批 36 页中招，只有做首屏位置检查才发现。
+     *
+     * @return list<array{code:string,label:string,detail:string,url:string}>
+     */
+    public static function bloxCoverIssues(array $data): array
+    {
+        $covers = [];
+        foreach ($data['tables']['contents'] ?? [] as $row) {
+            if (($row['content_type'] ?? '') !== 'blocks' || trim((string) ($row['cover'] ?? '')) === '') continue;
+            $covers[(int) ($row['channel_id'] ?? 0)] ??= (string) $row['cover'];
+        }
+        $issues = [];
+        foreach ($data['tables']['channels'] ?? [] as $channel) {
+            $id = (int) ($channel['id'] ?? 0);
+            if (($channel['type'] ?? '') !== 'page' || (int) ($channel['show_cover'] ?? 1) !== 1 || !isset($covers[$id])) continue;
+            $issues[] = ['code' => 'usability_export_blox_cover', 'label' => mb_substr((string) ($channel['name'] ?? '#' . $id), 0, 120),
+                'detail' => mb_substr($covers[$id], 0, 300), 'url' => '/admin/blox_editor.php?id=' . $id];
+            if (count($issues) >= 50) break;
+        }
+        return $issues;
+    }
+
     /** @param array<string,true> $types */
     private static function collectElementTypes(mixed $value, array &$types, int $depth = 0): void
     {

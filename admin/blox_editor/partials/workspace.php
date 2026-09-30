@@ -3016,6 +3016,21 @@ declare(strict_types=1);
                     </button>
                 </div>
             </div>
+            <?php /* 2.0.3 自动封面陷阱：前台会在 Blox 内容前插入整宽封面图，画布里看不到，提示并可一键关闭 */ ?>
+            <div x-show="pageHero && pageHero.cover_applicable && pageHero.show_cover && !pageCoverNoticeDismissed" x-cloak
+                 data-testid="blox-page-cover-notice"
+                 class="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-2.5 text-amber-900 sm:px-4">
+                <div class="mx-auto flex max-w-4xl flex-wrap items-center gap-x-4 gap-y-2">
+                    <span class="inline-flex min-w-0 flex-1 items-start gap-2 text-xs leading-relaxed">
+                        <i class="ti ti-photo mt-0.5 shrink-0 text-base text-amber-600"></i>
+                        <span><strong class="font-semibold"><?= e(__('blox_page_cover_notice_title')) ?></strong> <?= e(__('blox_page_cover_notice_desc')) ?></span>
+                    </span>
+                    <button type="button" @click="disablePageCover()" :disabled="pageHeroSaving" data-testid="blox-page-cover-off"
+                            class="h-8 shrink-0 rounded bg-amber-900 px-3 text-xs font-medium text-white hover:bg-amber-800 disabled:opacity-50"><?= e(__('blox_page_cover_off')) ?></button>
+                    <button type="button" @click="pageCoverNoticeDismissed = true" data-testid="blox-page-cover-keep"
+                            class="h-8 shrink-0 rounded border border-amber-300 px-3 text-xs text-amber-900 hover:bg-amber-100"><?= e(__('blox_page_cover_keep')) ?></button>
+                </div>
+            </div>
             <?php /* r14 面包屑：选择模型的另一个视图（稳定派生自 selected*，重排/undo 后天然正确）；点父级只改选择 */ ?>
             <div x-show="breadcrumb().length > 0" x-cloak data-testid="blox-breadcrumb"
                  class="sticky top-0 z-40 flex items-center gap-0.5 px-3 py-1 bg-white/95 backdrop-blur border-b border-gray-200 text-xs shrink-0">

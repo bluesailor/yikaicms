@@ -342,6 +342,15 @@ declare(strict_types=1);
                     <input type="checkbox" x-model="pageHero.show_hero" data-dialog-initial
                            class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 </label>
+                <?php /* 2.0.3 自动封面：前台在 Blox 内容之前输出正文封面图，画布里看不到 */ ?>
+                <div x-show="pageHero.cover_applicable" class="border-b border-gray-100 pb-4" data-testid="blox-page-cover-setting">
+                    <label class="flex items-center justify-between gap-4">
+                        <strong class="block text-sm font-medium text-gray-800"><?= e(__('blox_page_cover_toggle')) ?></strong>
+                        <input type="checkbox" x-model="pageHero.show_cover" data-testid="blox-page-cover-toggle"
+                               class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    </label>
+                    <p class="mt-1.5 text-xs leading-5" :class="pageHero.show_cover ? 'text-amber-700' : 'text-gray-500'"><?= e(__('blox_page_cover_hint')) ?></p>
+                </div>
                 <div x-show="pageHero.show_hero" class="space-y-4">
                 <fieldset>
                     <legend class="mb-2 text-sm font-medium text-gray-800" x-text="pageHeroText.styleSource"></legend>

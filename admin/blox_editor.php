@@ -133,6 +133,9 @@ $pageHero = [
     'hero_bg' => '',
     'image' => '',
     'show_hero' => true,
+    'show_cover' => false,
+    'cover' => '',
+    'cover_applicable' => false,
     'style_options' => PageHeroStyleResolver::defaultOptions(),
     'resolved_options' => PageHeroStyleResolver::defaultOptions(),
     'style_source' => 'self',
@@ -487,9 +490,19 @@ if ($isHomeBlox) {
     $pageHeroGlobalPreview = PageHeroStyleResolver::resolve(array_merge($page, [
         'hero_style_source' => PageHeroStyleResolver::MODE_GLOBAL,
     ]));
+    // 2.0.3 自动封面陷阱：单页有正文封面且开着「正文顶部显示头图」时，前台会在 Blox 内容之前
+    // 输出整宽封面图，把标题挤出首屏——而编辑画布里看不到它。编辑器据此提示并可一键关闭。
+    $pageCover = '';
+    if (!$isContentListBlox && ($page['type'] ?? '') === 'page') {
+        $pageContentRow = contentModel()->getFirstByChannel((int) $page['id']);
+        $pageCover = is_array($pageContentRow) ? trim((string) ($pageContentRow['cover'] ?? '')) : '';
+    }
     $pageHero = [
         'available' => true,
         'id' => (int) $page['id'],
+        'show_cover' => (int) ($page['show_cover'] ?? 1) === 1,
+        'cover' => $pageCover,
+        'cover_applicable' => $pageCover !== '',
         'name' => (string) ($page['name'] ?? ''),
         'description' => (string) ($page['description'] ?? ''),
         'hero_bg' => (string) ($page['hero_bg'] ?? ''),
@@ -1207,6 +1220,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             pageHero: <?php echo json_encode($pageHero, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             pageHeroOpen: false,
             pageHeroSaving: false,
+            pageCoverNoticeDismissed: false,
             pageHeroPreviewDevice: "desktop",
             pageHeroText: <?php echo json_encode([
                 'title' => __('blox_page_hero_title'),
@@ -6019,6 +6033,13 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 this.openMedia(function (url) { self.pageHero.hero_bg = url; }, { usage: "hero-bg" });
             },
 
+            /** 自动封面提示条「关闭头图」：只改 show_cover，沿用标题区设置的同一保存链路。 */
+            disablePageCover() {
+                if (!this.pageHero.cover_applicable || this.pageHeroSaving) return;
+                this.pageHero.show_cover = false;
+                this.savePageHeroSettings();
+            },
+
             savePageHeroSettings() {
                 if (!this.pageHero.available || this.pageHeroSaving) return;
                 var self = this;
@@ -6029,6 +6050,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 body.set("show_hero", this.pageHero.show_hero ? "1" : "0");
                 body.set("hero_style_source", String(this.pageHero.style_source || "self"));
                 body.set("hero_style_options", JSON.stringify(this.pageHero.style_options || {}));
+                if (this.pageHero.cover_applicable) body.set("show_cover", this.pageHero.show_cover ? "1" : "0");
                 body.set("_token", this.csrf);
                 this.pageHeroSaving = true;
                 fetch(this.endpoint, { method: "POST", body: body })
@@ -6049,6 +6071,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                             self.pageHero.source = String(result.data.source || self.pageHeroSource());
                             self.pageHero.resolved_bg = String(result.data.resolved_bg || "");
                             self.pageHero.source_channel_name = String(result.data.source_channel_name || "");
+                            if (typeof result.data.show_cover !== "undefined") self.pageHero.show_cover = !!result.data.show_cover;
                         }
                         self.pageHeroOpen = false;
                         self.releaseDialog(self.$refs.pageHeroDialog);
