@@ -213,7 +213,7 @@ try {
     $server = proc_open([$php, '-S', '127.0.0.1:' . $port, '-t', $sandbox], [0 => ['pipe', 'r'], 1 => ['file', $logFile, 'a'], 2 => ['file', $logFile, 'a']], $pipes, $sandbox);
     $base = 'http://127.0.0.1:' . $port;
     $ready = false;
-    for ($i = 0; $i < 40 && !$ready; $i++) {
+    for ($i = 0; $i < 120 && !$ready; $i++) {   // 最多 30 秒：机器忙时首个请求要编译大量文件
         usleep(250000);
         $ready = rt_http('GET', $base . '/install/index.php')['status'] === 200;
     }
