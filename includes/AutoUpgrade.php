@@ -225,6 +225,10 @@ final class AutoUpgrade
             return null;
         }
         UpdateMailSubscription::acknowledge($notify);
+        // 站长点了邮件里的退订链接：服务器不再保存这个邮箱，本地也同步停止上报
+        if (($d['data']['notify_state'] ?? '') === 'unsubscribed') {
+            UpdateMailSubscription::unsubscribedByServer();
+        }
         return $d['data'];
     }
 
@@ -473,6 +477,13 @@ final class AutoUpgrade
             return 'failed: download';
         }
 
+        // 升级前就挂着的未执行迁移（与本次升级无关）：升级后只拿「新增」的来判断要不要退回
+        $pendingBefore = uo_pending_migration_ids();
+        if ($pendingBefore === null) {
+            self::logAdd('failed', '无法确认数据库迁移状态，已拒绝无人值守升级', $from, $to);
+            return 'failed: migration state';
+        }
+
         // ---- 准备（备份 config + 数据库 + 建条目清单）----
         $pre = upgrade_prepare($from, $to);
         if (($pre['error_code'] ?? '') === 'local_modifications') {
@@ -509,6 +520,7 @@ final class AutoUpgrade
         settingModel()->saveBatch([
             'auto_upgrade_target' => $to,
             'auto_upgrade_from' => $from,
+            'auto_upgrade_pending_before' => (string) json_encode($pendingBefore),
         ]);
 
         return self::applyRemaining(
@@ -601,7 +613,12 @@ final class AutoUpgrade
 
         // 数据库导入无法像文件快照一样可靠、跨 MySQL/SQLite 自动回滚。无人值守模式
         // 因此只安装“不含待执行迁移”的版本；需要 schema 变更时退回旧文件并转人工。
-        $pendingMigrations = uo_pending_migrations();
+        // 只数新版本带来的迁移：站点升级前就挂着的（记在 auto_upgrade_pending_before）不是
+        // 这次升级造成的，拿它们拦截会让这类站永远无法自动 / 远程升级。
+        $pendingAfter = uo_pending_migration_ids();
+        $pendingBefore = json_decode((string) config('auto_upgrade_pending_before', '[]'), true);
+        $pendingBefore = is_array($pendingBefore) ? array_map('strval', $pendingBefore) : [];
+        $pendingMigrations = $pendingAfter === null ? null : count(array_diff($pendingAfter, $pendingBefore));
         if ($pendingMigrations === null || $pendingMigrations > 0) {
             return self::abortAndRollback(
                 $backup,

@@ -26,6 +26,11 @@ final class UpdateMailSubscription
     private const UNSUB_PENDING = 'update_mail_unsub_pending';
     /** 控制台「订阅安全通知」提示条已被站长关掉。 */
     private const PROMPT_DISMISSED = 'update_mail_prompt_dismissed';
+    /**
+     * 站长在后台重新订阅：下一次回访带 notify_resubscribe=1，服务器据此解除该邮箱的退订记录
+     * （站长点过邮件里的退订链接后，服务器会拒收同一邮箱，直到站长亲自在后台再次订阅）。
+     */
+    private const RESUBSCRIBE = 'update_mail_resubscribe';
 
     public const LANGS = ['zh-CN', 'en', 'ja'];
 
@@ -67,6 +72,7 @@ final class UpdateMailSubscription
             self::EMAIL => $email,
             self::LANG => self::normalizeLang($lang),
             self::UNSUB_PENDING => '0',
+            self::RESUBSCRIBE => '1',
         ]);
         return true;
     }
@@ -105,7 +111,8 @@ final class UpdateMailSubscription
     {
         $cur = self::current();
         if ($cur['on']) {
-            return ['notify_email' => $cur['email'], 'notify_lang' => $cur['lang']];
+            return ['notify_email' => $cur['email'], 'notify_lang' => $cur['lang']]
+                + (self::get(self::RESUBSCRIBE, '0') === '1' ? ['notify_resubscribe' => '1'] : []);
         }
         if ((string) self::get(self::UNSUB_PENDING, '0') === '1') {
             return ['notify_email' => ''];
@@ -113,13 +120,22 @@ final class UpdateMailSubscription
         return [];
     }
 
-    /** 回访成功后调用：退订已送达，之后不再带空邮箱。 */
+    /** 回访成功后调用：退订已送达，之后不再带空邮箱；重新订阅已送达，之后不再带解除标记。 */
     public static function acknowledge(array $sent): void
     {
+        if (($sent['notify_resubscribe'] ?? '') === '1') {
+            settingModel()->set(self::RESUBSCRIBE, '0', 'system');
+        }
         if (array_key_exists('notify_email', $sent) && $sent['notify_email'] === ''
             && (string) self::get(self::UNSUB_PENDING, '0') === '1') {
             settingModel()->set(self::UNSUB_PENDING, '0', 'system');
         }
+    }
+
+    /** 服务器告知站长已通过邮件退订：本地停止上报，也不再弹控制台提示。 */
+    public static function unsubscribedByServer(): void
+    {
+        self::save([self::ON => '0', self::UNSUB_PENDING => '0', self::RESUBSCRIBE => '0', self::PROMPT_DISMISSED => '1']);
     }
 
     /** 控制台是否该显示「订阅安全通知」提示：没订阅、没关掉过提示。 */
