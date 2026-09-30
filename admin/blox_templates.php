@@ -660,7 +660,7 @@ if ((string) get('action', '') === 'export') {
         error(__('blox_tpl_not_found'));
     }
     try {
-        $json = BloxTemplateImporter::exportJson($template);
+        $json = BloxTemplateImporter::exportJson($template, false, (string) get('media', '') === '1');
         $filename = BloxTemplateImporter::exportFilename($template);
     } catch (Throwable $e) {
         error($e->getMessage());
@@ -1811,6 +1811,11 @@ function confirmAreaPublish(form) {
                                 <a href="/admin/blox_templates.php?action=export&amp;id=<?php echo (int) $template['id']; ?>"
                                    class="mr-3 text-gray-600 hover:text-gray-900" title="<?php echo e(__('blox_tpl_export_json')); ?>">
                                     <i class="ti ti-download"></i>
+                                </a>
+                                <a href="/admin/blox_templates.php?action=export&amp;media=1&amp;id=<?php echo (int) $template['id']; ?>"
+                                   data-testid="blox-template-export-media"
+                                   class="mr-3 text-gray-600 hover:text-gray-900" title="<?php echo e(__('blox_tpl_export_with_media')); ?>">
+                                    <i class="ti ti-photo-down"></i>
                                 </a>
                                 <?php if ($templateEditable): ?>
                                 <form method="post" class="mr-3 inline"
