@@ -82,7 +82,7 @@ class Abilities
 
     /**
      * 只算不改：权限 → 校验 → preview。
-     * @return array{success:bool, preview?:array{summary:string,before:mixed,after:mixed}, error?:string}
+     * @return array{success:bool, preview?:array{summary:string,before:mixed,after:mixed,input?:array<string,mixed>}, error?:string}
      */
     public static function previewChange(string $name, array $input): array
     {

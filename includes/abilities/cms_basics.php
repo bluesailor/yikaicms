@@ -103,7 +103,7 @@ register_ability('cms_get_content', [
 // ─────────────────────────────────────────────────────────
 register_ability('cms_publish_content', [
     'label'        => '发布内容',
-    'description'  => '把指定 id 的内容设为已发布（status=1）。用于把 AI 创建的草稿一键上线。',
+    'description'  => '把指定 id 的内容设为已发布（status=1）。此为写操作，会先生成提案，用户确认后才上线。',
     'input_schema' => [
         'type'       => 'object',
         'properties' => ['id' => ['type' => 'integer']],
@@ -111,6 +111,29 @@ register_ability('cms_publish_content', [
     ],
     // 粗闸；真正的类型判定在 execute 里按行做（见 assertCanEditContentRow）
     'permission'   => fn() => hasAnyContentPerm(),
+    // 2.0.3：上线是对外可见的改动，AI 不得自行发布——先暂存，用户确认后才执行，并可撤销
+    'mutating'     => true,
+    'preview'      => function (array $input): array {
+        $id = (int)$input['id'];
+        $row = db()->fetchOne('SELECT id, title, status, publish_time FROM ' . DB_PREFIX . 'contents WHERE id = ?', [$id]);
+        if (!$row) throw new \RuntimeException("Content #{$id} not found");
+        assertCanEditContentRow($id);
+        $title = (string) $row['title'];
+        return [
+            'summary' => (int) $row['status'] === 1 ? "「{$title}」已是发布状态" : "发布「{$title}」",
+            'before'  => ['status' => (int) $row['status'], 'publish_time' => (int) $row['publish_time']],
+            'after'   => ['status' => 1],
+        ];
+    },
+    'revert'       => function ($before, array $input): void {
+        $id = (int)$input['id'];
+        assertCanEditContentRow($id);
+        if (!is_array($before) || (int) ($before['status'] ?? 1) === 1) return; // 发布前就已上线：无需回退
+        db()->execute(
+            'UPDATE ' . DB_PREFIX . 'contents SET status = ?, publish_time = ?, updated_at = ? WHERE id = ?',
+            [(int) $before['status'], (int) ($before['publish_time'] ?? 0), time(), $id]
+        );
+    },
     'execute'      => function (array $input): array {
         $id = (int)$input['id'];
         $row = db()->fetchOne('SELECT id, title, status FROM ' . DB_PREFIX . 'contents WHERE id = ?', [$id]);
@@ -213,37 +236,45 @@ register_ability('cms_generate_seo_summary', [
 // ─────────────────────────────────────────────────────────
 register_ability('cms_auto_tag_content', [
     'label'        => '自动生成标签',
-    'description'  => '读取文章标题与摘要，让 AI 输出 3-6 个标签（逗号分隔），写入 tags 字段。',
+    'description'  => '为文章生成 3-6 个标签（逗号分隔）写入 tags 字段；可直接传入 tags，不传则由 AI 按标题与摘要生成。此为写操作，会先生成提案待用户确认。',
     'input_schema' => [
         'type'       => 'object',
         'properties' => [
             'id'    => ['type' => 'integer'],
             'count' => ['type' => 'integer', 'description' => '标签个数，默认 5'],
+            'tags'  => ['type' => 'string', 'description' => '可选：直接给出标签，逗号分隔'],
         ],
         'required' => ['id'],
     ],
-    // 会写回 contents.tags；类型判定在 execute 里
+    // 会写回 contents.tags；类型判定按行做
     'permission'   => fn() => hasAnyContentPerm(),
-    'execute'      => function (array $input): array {
-        $id    = (int)$input['id'];
-        $count = max(3, min(8, (int)($input['count'] ?? 5)));
+    // 2.0.3：写操作走暂存确认。标签在预览阶段生成并固定进提案（预览返回 input），
+    // 确认时写入的正是用户看到的那组，而不是再调一次 AI 得到另一组
+    'mutating'     => true,
+    'preview'      => function (array $input): array {
+        $id = (int)$input['id'];
         $row = contentModel()->getDetail($id);
         if (!$row) throw new \RuntimeException("Content #{$id} not found");
         assertCanEditContentRow($id);
-
-        $base = trim($row['title'] . "\n" . ($row['summary'] ?? ''));
-        if ($base === '') $base = mb_substr(strip_tags((string)$row['content']), 0, 500);
-
-        $sys = "提取关键标签。规则：输出严格 {$count} 个标签，逗号分隔，每个 ≤ 6 字，不带前缀，不要序号、不要解释。";
-        $r = aiService()->chat($base, $sys, 0.3);
-        if (!$r['success']) throw new \RuntimeException($r['error'] ?: 'AI failed');
-
-        // 规整：去 # / 序号 / 引号
-        $raw = preg_replace('/[#\d\.\)\(\[\]"\'\s]+/u', '', $r['content']);
-        $tags = array_values(array_filter(array_map('trim', explode(',', str_replace(['，', '、', ';'], ',', (string)$r['content'])))));
-        $tags = array_slice($tags, 0, $count);
-        $tagStr = mb_substr(implode(',', $tags), 0, 255);
-
+        $tags = cms_auto_tag_resolve($row, $input);
+        return [
+            'summary' => "为「{$row['title']}」设置标签：{$tags}",
+            'before'  => (string) ($row['tags'] ?? ''),
+            'after'   => $tags,
+            'input'   => ['id' => $id, 'tags' => $tags],
+        ];
+    },
+    'revert'       => function ($before, array $input): void {
+        $id = (int)$input['id'];
+        assertCanEditContentRow($id);
+        db()->execute('UPDATE ' . DB_PREFIX . 'contents SET tags = ?, updated_at = ? WHERE id = ?', [(string) $before, time(), $id]);
+    },
+    'execute'      => function (array $input): array {
+        $id = (int)$input['id'];
+        $row = contentModel()->getDetail($id);
+        if (!$row) throw new \RuntimeException("Content #{$id} not found");
+        assertCanEditContentRow($id);
+        $tagStr = cms_auto_tag_resolve($row, $input);
         db()->execute(
             'UPDATE ' . DB_PREFIX . 'contents SET tags = ?, updated_at = ? WHERE id = ?',
             [$tagStr, time(), $id]
@@ -251,6 +282,26 @@ register_ability('cms_auto_tag_content', [
         return ['id' => $id, 'tags' => $tagStr];
     },
 ]);
+
+/** 标签：优先用入参 tags（提案已固定），否则让 AI 按标题与摘要生成；统一规整为逗号分隔、≤255 字符。 */
+function cms_auto_tag_resolve(array $row, array $input): string
+{
+    $count = max(3, min(8, (int)($input['count'] ?? 5)));
+    $given = trim((string) ($input['tags'] ?? ''));
+    if ($given === '') {
+        $base = trim($row['title'] . "\n" . ($row['summary'] ?? ''));
+        if ($base === '') $base = mb_substr(strip_tags((string)$row['content']), 0, 500);
+        $sys = "提取关键标签。规则：输出严格 {$count} 个标签，逗号分隔，每个 ≤ 6 字，不带前缀，不要序号、不要解释。";
+        $r = aiService()->chat($base, $sys, 0.3);
+        if (!$r['success']) throw new \RuntimeException($r['error'] ?: 'AI failed');
+        $given = (string) $r['content'];
+    }
+    $tags = array_values(array_filter(array_map(
+        static fn (string $tag): string => trim($tag, " \t\n\r\0\x0B#\"'"),
+        explode(',', str_replace(['，', '、', ';', '；'], ',', $given))
+    ), static fn (string $tag): bool => $tag !== ''));
+    return mb_substr(implode(',', array_slice($tags, 0, $count)), 0, 255);
+}
 
 // ─────────────────────────────────────────────────────────
 // 8) 翻译文本

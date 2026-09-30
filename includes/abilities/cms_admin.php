@@ -193,11 +193,11 @@ register_ability('cms_list_channels', [
 ]);
 
 // ─────────────────────────────────────────────────────────
-// 14) 切换内容标志位（置顶 / 推荐 / 热门 / 新品）
+// 14) 切换内容标志位（置顶 / 推荐 / 热门）
 // ─────────────────────────────────────────────────────────
 register_ability('cms_set_content_flags', [
     'label'        => '切换内容标志',
-    'description'  => '为指定内容设置标志位：is_top（置顶）/ is_recommend（推荐）/ is_hot（热门）/ is_new（新品）。每个标志为 0/1。',
+    'description'  => '为指定内容设置标志位：is_top（置顶）/ is_recommend（推荐）/ is_hot（热门）。每个标志为 0/1。此为写操作，会先生成提案待用户确认。',
     'input_schema' => [
         'type'       => 'object',
         'properties' => [
@@ -205,12 +205,50 @@ register_ability('cms_set_content_flags', [
             'is_top'       => ['type' => 'integer'],
             'is_recommend' => ['type' => 'integer'],
             'is_hot'       => ['type' => 'integer'],
-            'is_new'       => ['type' => 'integer'],
         ],
         'required' => ['id'],
     ],
-    // 写 contents 的标志位；类型判定在 execute 里按行做
+    // 写 contents 的标志位；类型判定按行做
     'permission'   => fn() => hasAnyContentPerm(),
+    // 2.0.3：置顶/推荐直接改变前台展示，走暂存确认，可撤销
+    'mutating'     => true,
+    'preview'      => function (array $input): array {
+        $id = (int)$input['id'];
+        $row = db()->fetchOne('SELECT id, title, is_top, is_recommend, is_hot FROM ' . DB_PREFIX . 'contents WHERE id = ?', [$id]);
+        if (!$row) throw new \RuntimeException("Content #{$id} not found");
+        assertCanEditContentRow($id);
+        $labels = ['is_top' => '置顶', 'is_recommend' => '推荐', 'is_hot' => '热门'];
+        $before = [];
+        $after = [];
+        $parts = [];
+        foreach ($labels as $flag => $label) {
+            if (!array_key_exists($flag, $input)) continue;
+            $before[$flag] = (int) $row[$flag];
+            $after[$flag] = (int) $input[$flag] ? 1 : 0;
+            $parts[] = $label . ($after[$flag] ? '开' : '关');
+        }
+        return [
+            'summary' => "「{$row['title']}」：" . ($parts === [] ? '无变化' : implode('、', $parts)),
+            'before'  => $before,
+            'after'   => $after,
+        ];
+    },
+    'revert'       => function ($before, array $input): void {
+        $id = (int)$input['id'];
+        assertCanEditContentRow($id);
+        $sets = [];
+        $params = [];
+        foreach (['is_top', 'is_recommend', 'is_hot'] as $flag) {
+            if (is_array($before) && array_key_exists($flag, $before)) {
+                $sets[] = "{$flag} = ?";
+                $params[] = (int) $before[$flag] ? 1 : 0;
+            }
+        }
+        if ($sets === []) return;
+        $params[] = time();
+        $params[] = $id;
+        db()->execute('UPDATE ' . DB_PREFIX . 'contents SET ' . implode(', ', $sets) . ', updated_at = ? WHERE id = ?', $params);
+    },
     'execute'      => function (array $input): array {
         $id = (int)$input['id'];
         $row = db()->fetchOne('SELECT id, title FROM ' . DB_PREFIX . 'contents WHERE id = ?', [$id]);
@@ -219,7 +257,7 @@ register_ability('cms_set_content_flags', [
 
         $sets = [];
         $params = [];
-        foreach (['is_top', 'is_recommend', 'is_hot', 'is_new'] as $flag) {
+        foreach (['is_top', 'is_recommend', 'is_hot'] as $flag) {
             if (array_key_exists($flag, $input)) {
                 $sets[] = "{$flag} = ?";
                 $params[] = (int)$input[$flag] ? 1 : 0;
@@ -234,6 +272,6 @@ register_ability('cms_set_content_flags', [
             'UPDATE ' . DB_PREFIX . 'contents SET ' . implode(', ', $sets) . ', updated_at = ? WHERE id = ?',
             $params
         );
-        return ['id' => $id, 'title' => $row['title'], 'updated_flags' => array_keys(array_intersect_key($input, array_flip(['is_top', 'is_recommend', 'is_hot', 'is_new'])))];
+        return ['id' => $id, 'title' => $row['title'], 'updated_flags' => array_keys(array_intersect_key($input, array_flip(['is_top', 'is_recommend', 'is_hot'])))];
     },
 ]);

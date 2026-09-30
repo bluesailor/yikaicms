@@ -310,7 +310,10 @@ class AiService
                     if ($prev['success']) {
                         $stageSetId ??= AiStaging::newSet();
                         $pv  = $prev['preview'];
-                        $pid = AiStaging::add($stageSetId, $fnName, $args, $pv);
+                        // 预览可固定入参（如 AI 生成的标签）：确认时执行的是用户看到的那一份
+                        $stagedArgs = is_array($pv['input'] ?? null) ? $pv['input'] : $args;
+                        unset($pv['input']);
+                        $pid = AiStaging::add($stageSetId, $fnName, $stagedArgs, $pv);
                         $ab  = Abilities::get($fnName);
                         $proposals[] = [
                             'id'      => $pid,
