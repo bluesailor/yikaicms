@@ -132,6 +132,7 @@ acme-corporate/
 | `description_en`、`description_ja` | 缺失会警告，不阻止安装 |
 | `screenshot` | 相对主题根目录；声明后文件不存在会警告 |
 | `design_tokens` | 设计色板文件名；只能是主题根目录下的安全文件名 |
+| `stylesheets` | 可选（CMS 2.0.3+）；主题展示样式表数组，路径相对主题 `assets/` 目录，例如 `["css/theme.css"]`，最多 10 项、只允许 `.css`。默认页头会自动输出这些 `<link>`，所有 Blox 编辑画布（整页、单独编辑页头 / 页尾 / 弹窗 / 模板）也按它加载。**推荐用它代替在 `layouts/header.php` 里手动拼 `$extraCss`**；两处都写时默认页头会自动去重 |
 
 当前内置分类：
 
