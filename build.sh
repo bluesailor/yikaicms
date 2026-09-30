@@ -385,6 +385,9 @@ if [ -n "$(repo_git status --porcelain --untracked-files=normal)" ]; then
     exit 1
 fi
 php "tools/build-product-manifest.php" "$VERIFY_PKG_DIR" "$VERSION" "$BUILD_ID" "$SOURCE_COMMIT" "$SOURCE_DIRTY"
+# 全包文件哈希清单（升级前据此找出站点改过、将被覆盖的核心文件）。必须在包内容定型后、
+# 且在 provenance 之后生成；清单不含自身。
+php "tools/build-release-files.php" "$VERIFY_PKG_DIR" "$VERSION"
 
 # ---- 验证关键文件 ----
 echo "[3/5] 验证打包内容..."
@@ -422,6 +425,7 @@ MUST_EXIST=(
     "config/build.php"
     "config/product.php"
     "config/provenance.php"
+    "config/release-files.php"
     "config/release-runtime.php"
     "includes/ProductIdentity.php"
     "includes/FooterNavigation.php"
@@ -593,12 +597,14 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
         PAYLOAD="$DELTA_DIR/payload"
         mkdir -p "$PAYLOAD"
         DELETED=()
-        # build.php / provenance.php 不在 git diff 中，但每个增量包都必须覆盖它们，
+        # build.php / provenance.php / release-files.php 不在 git diff 中，但每个增量包都必须覆盖它们，
         # 同时切换 HTML 缓存命名空间和产品来源证明。
         mkdir -p "$PAYLOAD/config"
         cp "$PKG_DIR/config/build.php" "$PAYLOAD/config/build.php"
         cp "$PKG_DIR/config/provenance.php" "$PAYLOAD/config/provenance.php"
-        ADDED=2
+        # 文件清单同理：升级到新版后，下一次升级要拿新版的出厂哈希做比对
+        cp "$PKG_DIR/config/release-files.php" "$PAYLOAD/config/release-files.php"
+        ADDED=3
         # name-status：A/M/C 复制新内容；D 记删除；R 旧路径删、新路径复制
         while IFS=$'\t' read -r status path newpath; do
             [ -z "$status" ] && continue

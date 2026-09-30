@@ -493,6 +493,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             $stmt->execute([$demoFlag]);
 
+            // 升级与安全邮件通知：只有安装时勾选、且管理员邮箱有效才订阅（默认不勾）。
+            // 键与 includes/UpdateMailSubscription.php 一致；首次回访时把邮箱报给更新服务器。
+            $updateMailEmail = trim((string) $adminEmail);
+            if (($_POST['update_mail'] ?? '') === '1' && strlen($updateMailEmail) <= 254
+                && filter_var($updateMailEmail, FILTER_VALIDATE_EMAIL) !== false) {
+                $updateMailLang = str_starts_with((string) $adminLang, 'ja') ? 'ja' : (str_starts_with((string) $adminLang, 'en') ? 'en' : 'zh-CN');
+                foreach (['update_mail_on' => '1', 'update_mail_email' => $updateMailEmail, 'update_mail_lang' => $updateMailLang] as $mailKey => $mailValue) {
+                    $stmt = $driver === 'sqlite'
+                        ? $pdo->prepare("INSERT OR REPLACE INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', ?, ?, '', '', 0)")
+                        : $pdo->prepare("INSERT INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', ?, ?, '', '', 0) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+                    $stmt->execute([$mailKey, $mailValue]);
+                }
+            }
+
             $initialUrlMode = RewriteProbe::installMode($_POST['rewrite_supported'] ?? null);
             $stmt = $pdo->prepare("UPDATE {$prefix}settings SET `value` = ? WHERE `key` = 'url_mode'");
             $stmt->execute([$initialUrlMode]);
@@ -1060,6 +1074,10 @@ window.ykWarnIfDbExposed = function (container, message) {
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo $L['admin_email']; ?></label>
                         <input type="email" name="admin_email" class="w-full border rounded px-3 py-2">
+                        <label class="mt-2 flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
+                            <input type="checkbox" name="update_mail" value="1" class="mt-0.5">
+                            <span><?php echo $L['update_mail_subscribe']; ?><span class="block text-xs text-gray-400"><?php echo $L['update_mail_note']; ?></span></span>
+                        </label>
                     </div>
 
                     <hr class="my-6">

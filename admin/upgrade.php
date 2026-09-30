@@ -92,6 +92,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     success(['window' => $win]);
 }
 
+// AJAX: 允许服务商远程升级（控制台签名指令，WP-14）。默认关；开启时前端先二次确认。
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_managed_upgrade') {
+    verifyCsrf();
+    $on = post('enabled') === '1';
+    settingModel()->set('managed_upgrade_enabled', $on ? '1' : '0', 'system');
+    adminLog('setting', 'update', 'managed_upgrade: ' . ($on ? 'on' : 'off'));
+    success(['enabled' => $on]);
+}
+
+// AJAX: 升级与安全邮件通知（站长主动订阅；控制台提示条也提交到这里）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['save_update_mail', 'dismiss_update_mail_prompt'], true)) {
+    verifyCsrf();
+    require_once ROOT_PATH . '/includes/UpdateMailSubscription.php';
+    if (($_POST['action'] ?? '') === 'dismiss_update_mail_prompt') {
+        UpdateMailSubscription::dismissPrompt();
+        success();
+    }
+    if (post('subscribe') === '1') {
+        if (!UpdateMailSubscription::subscribe((string) post('email'), (string) config('admin_lang', 'zh-CN'))) {
+            error(__('upgrade_mail_invalid'));
+        }
+    } else {
+        UpdateMailSubscription::unsubscribe();
+    }
+    adminLog('setting', 'update', 'update_mail: ' . (post('subscribe') === '1' ? 'on' : 'off'));
+    // 立即回访一次，让订阅 / 退订马上送达；失败无妨，定时任务每小时还会回访
+    require_once ROOT_PATH . '/includes/AutoUpgrade.php';
+    AutoUpgrade::check();
+    success(['on' => UpdateMailSubscription::current()['on']]);
+}
+
 // AJAX: 立即检查并升级（手动触发同一条无人值守管道，用于验证配置是否可用）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'run_auto_upgrade') {
     verifyCsrf();
@@ -827,7 +858,15 @@ $__mCur = defined('CMS_VERSION') ? CMS_VERSION : '?';
                                 <td class="px-3 py-2 text-gray-500 whitespace-nowrap"><?php echo e((string) ($__row['time'] ?? '')); ?></td>
                                 <td class="px-3 py-2 whitespace-nowrap <?php echo $__tone; ?>"><?php echo e($__label); ?></td>
                                 <td class="px-3 py-2 text-gray-500 whitespace-nowrap"><?php echo e((string) ($__row['from'] ?? '')); ?> → <?php echo e((string) ($__row['to'] ?? '')); ?></td>
-                                <td class="px-3 py-2 text-gray-600"><?php echo e((string) ($__row['msg'] ?? '')); ?></td>
+                                <?php
+                                $__msg = (string) ($__row['msg'] ?? '');
+                                if ($__msg === 'remote upgrade not authorized') {
+                                    $__msg = __('upgrade_auto_msg_not_authorized');
+                                } elseif (str_starts_with($__msg, 'local modifications: ')) {
+                                    $__msg = __('upgrade_auto_msg_local_changes', ['files' => substr($__msg, strlen('local modifications: '))]);
+                                }
+                                ?>
+                                <td class="px-3 py-2 text-gray-600"><?php echo e($__msg); ?></td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -836,10 +875,96 @@ $__mCur = defined('CMS_VERSION') ? CMS_VERSION : '?';
             </div>
             <?php endif; ?>
         </div>
+
+        <?php
+        $__managedOn = AutoUpgrade::managed();
+        require_once ROOT_PATH . '/includes/UpdateMailSubscription.php';
+        $__mail = UpdateMailSubscription::current();
+        $__mailEmail = $__mail['email'];
+        if ($__mailEmail === '') {
+            // 预填当前管理员邮箱，但不替站长勾选订阅
+            try {
+                $__mailEmail = (string) db()->fetchColumn('SELECT email FROM ' . DB_PREFIX . 'users WHERE id = ?', [(int) ($_SESSION['admin_id'] ?? 0)]);
+            } catch (\Throwable $e) {
+                $__mailEmail = '';
+            }
+        }
+        ?>
+        <div class="border-t border-gray-100 mt-5 pt-5">
+            <label class="inline-flex items-center gap-3 cursor-pointer" data-testid="managed-upgrade-control">
+                <input id="managedUpgradeToggle" type="checkbox" class="sr-only peer" data-testid="managed-upgrade-toggle"
+                       onchange="saveManagedUpgrade(this)" <?php echo $__managedOn ? 'checked' : ''; ?>>
+                <span class="relative w-10 h-6 rounded-full bg-gray-200 peer-checked:bg-primary transition-colors
+                             after:content-[''] after:absolute after:top-1 after:left-1 after:w-4 after:h-4 after:bg-white after:rounded-full after:shadow after:transition-transform peer-checked:after:translate-x-4"></span>
+                <span>
+                    <span class="block text-sm font-medium text-gray-700"><?php echo e(__('upgrade_managed_label')); ?></span>
+                    <span class="block text-xs text-gray-400 mt-0.5"><?php echo e(__('upgrade_managed_tip')); ?></span>
+                </span>
+            </label>
+        </div>
+
+        <div class="border-t border-gray-100 mt-5 pt-5" data-testid="update-mail-control">
+            <div class="text-sm font-medium text-gray-700"><?php echo e(__('upgrade_mail_title')); ?></div>
+            <p class="text-xs text-gray-400 mt-0.5"><?php echo e(__('upgrade_mail_tip')); ?></p>
+            <div class="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                <input id="updateMailEmail" type="email" maxlength="254" autocomplete="email"
+                       value="<?php echo e($__mailEmail); ?>" aria-label="<?php echo e(__('upgrade_mail_email')); ?>"
+                       placeholder="<?php echo e(__('upgrade_mail_email')); ?>"
+                       class="w-full sm:w-72 border rounded px-3 py-2 text-sm">
+                <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                    <input id="updateMailOn" type="checkbox" class="rounded" <?php echo $__mail['on'] ? 'checked' : ''; ?>>
+                    <?php echo e(__('upgrade_mail_subscribe')); ?>
+                </label>
+                <button type="button" onclick="saveUpdateMail()"
+                        class="inline-flex items-center justify-center px-3 py-2 bg-white border border-gray-200 hover:border-primary hover:text-primary rounded text-sm">
+                    <?php echo e(__('upgrade_mail_save')); ?>
+                </button>
+            </div>
+            <p class="text-xs text-gray-400 mt-2"><?php echo e(__('upgrade_mail_privacy')); ?></p>
+        </div>
     </div>
 </div>
 
 <script>
+async function saveManagedUpgrade(toggle) {
+    if (toggle.checked && !window.confirm(<?php echo json_encode(__('upgrade_managed_confirm'), JSON_UNESCAPED_UNICODE); ?>)) {
+        toggle.checked = false;
+        return;
+    }
+    var fd = new FormData();
+    fd.append('action', 'save_managed_upgrade');
+    fd.append('_token', '<?php echo csrfToken(); ?>');
+    fd.append('enabled', toggle.checked ? '1' : '0');
+    try {
+        var r = await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        var d = await r.json();
+        if (!d || d.code !== 0) throw new Error(d && d.msg ? d.msg : 'save failed');
+        showMessage('<?php echo e(__('admin_saved')); ?>');
+    } catch (e) {
+        toggle.checked = !toggle.checked;
+        showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error');
+    }
+}
+
+async function saveUpdateMail() {
+    var fd = new FormData();
+    fd.append('action', 'save_update_mail');
+    fd.append('_token', '<?php echo csrfToken(); ?>');
+    fd.append('email', document.getElementById('updateMailEmail').value);
+    fd.append('subscribe', document.getElementById('updateMailOn').checked ? '1' : '0');
+    try {
+        var r = await fetch('', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        var d = await r.json();
+        if (!d || d.code !== 0) {
+            showMessage(d && d.msg ? d.msg : '<?php echo e(__('admin_save_failed')); ?>', 'error');
+            return;
+        }
+        showMessage('<?php echo e(__('admin_saved')); ?>');
+    } catch (e) {
+        showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error');
+    }
+}
+
 async function saveNotifyLevel(sel) {
     var fd = new FormData();
     fd.append('action', 'save_update_notify');

@@ -66,6 +66,8 @@ return [
     'admin_pass' => '管理者パスワード',
     'admin_pass_confirm' => 'パスワード確認',
     'admin_email' => '管理者メールアドレス',
+    'update_mail_subscribe' => 'アップグレードとセキュリティのお知らせをメールで受け取る（上の管理者メールアドレス宛）',
+    'update_mail_note' => 'バージョンとセキュリティのお知らせのみで、宣伝には使いません。管理画面の「アップグレード設定」からいつでも解除できます。',
     'site_name' => 'サイト名',
     'site_url' => 'サイトURL',
     'site_lang_label' => 'フロントエンド言語',

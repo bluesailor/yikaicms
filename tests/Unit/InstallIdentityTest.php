@@ -71,7 +71,9 @@ final class InstallIdentityTest extends TestCase
         unset($_SERVER['HTTP_HOST']);
         $GLOBALS['_test_config']['site_url'] = 'https://demo.example.com/yikai-dental/';
         $p = \InstallIdentity::reportParams();
-        self::assertSame(['domain', 'install_id', 'base'], array_keys($p));
+        self::assertSame(['domain', 'install_id', 'base', 'build', 'integrity'], array_keys($p));
+        // 版本真实性：服务器据此分辨官方包原样 / 改过核心文件 / 版本号与出厂证明对不上
+        self::assertContains($p['integrity'], ['verified', 'uncommitted', 'modified', 'invalid', 'development']);
         self::assertSame('https://demo.example.com/yikai-dental/', $p['domain']);
         self::assertSame('/yikai-dental', $p['base']);
         self::assertSame(\InstallIdentity::id(), $p['install_id']);

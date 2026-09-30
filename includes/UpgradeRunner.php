@@ -469,7 +469,8 @@ function upgrade_prepare(
     string $expectedFrom = '',
     string $expectedTo = '',
     bool $requireDbBackup = false,
-    bool $allowMissingDbBackup = false
+    bool $allowMissingDbBackup = false,
+    bool $acceptLocalChanges = false
 ): array
 {
     $pkg = uo_dir() . '/package.zip';
@@ -486,60 +487,6 @@ function upgrade_prepare(
     }
     $packageMeta = json_decode((string) @file_get_contents(uo_package_meta_file()), true);
     $owner = is_array($packageMeta) && ($packageMeta['owner'] ?? '') === 'auto' ? 'auto' : 'manual';
-
-    // 备份 config.php + 记录旧版本（轻量、稳妥；完整代码回滚依赖主机备份）
-    $oldVer = defined('CMS_VERSION') ? CMS_VERSION : 'unknown';
-    $bakDir = ROOT_PATH . '/storage/backups/pre-upgrade-' . $oldVer . '-' . date('YmdHis');
-    if (!is_dir($bakDir) && !@mkdir($bakDir, 0755, true) && !is_dir($bakDir)) {
-        return ['code' => 1, 'msg' => '无法建立升级备份目录，已中止，未改动任何文件'];
-    }
-    $configFile = ROOT_PATH . '/config/config.php';
-    if (!is_file($configFile) || !@copy($configFile, $bakDir . '/config.php')) {
-        return ['code' => 1, 'msg' => 'config.php 备份失败，已中止，未改动任何文件'];
-    }
-
-    // 数据库自动备份（v1.18.6）：文件快照管代码，这份 SQL 管「迁移改表之后」
-    // 的事故兜底——两者合起来才是完整的升级前状态。自动升级调用方会自行回滚；
-    // 人工在线升级传入 requireDbBackup=true，在写任何程序文件前失败关闭。
-    $dbBackupNote = '';
-    $dbBackupError = '';
-    try {
-        set_time_limit(300);
-        require_once ROOT_PATH . '/includes/Backup.php';
-        $dbTables = Backup::listPrefixedTables();
-        if ($dbTables !== []) {
-            $dbSql = Backup::generateSql($dbTables);
-            if (@file_put_contents($bakDir . '/database.sql', $dbSql) !== false) {
-                $dbBackupNote = 'database.sql（' . count($dbTables) . ' 表 / ' . round(strlen($dbSql) / 1048576, 1) . 'MB）';
-            } else {
-                $dbBackupError = 'storage/backups 写入失败';
-            }
-            unset($dbSql);
-        }
-    } catch (Throwable $e) {
-        $dbBackupError = $e->getMessage();
-    }
-
-    $dbBackupOverride = $requireDbBackup && $dbBackupNote === '' && $allowMissingDbBackup;
-    if ($requireDbBackup && $dbBackupNote === '' && !$dbBackupOverride) {
-        uo_rrmdir($bakDir);
-        return [
-            'code' => 1,
-            'error_code' => 'db_backup_required',
-            'msg' => '数据库自动备份失败，升级已在写入程序文件前中止：'
-                . ($dbBackupError !== '' ? $dbBackupError : '没有可验证的数据库备份文件'),
-        ];
-    }
-
-    $dbBackupInfo = $dbBackupNote !== ''
-        ? "数据库备份: {$dbBackupNote}\n"
-        : ($dbBackupOverride
-            ? "数据库备份: 外部备份已由超级管理员确认（自动备份失败：{$dbBackupError}）\n"
-            : "数据库备份: 失败（{$dbBackupError}）\n");
-    @file_put_contents(
-        $bakDir . '/INFO.txt',
-        "升级前版本: $oldVer\n时间: " . date('Y-m-d H:i:s') . "\n" . $dbBackupInfo
-    );
 
     $zip = new ZipArchive();
     if ($zip->open($pkg) !== true) return ['code' => 1, 'msg' => '安装包打开失败'];
@@ -599,8 +546,94 @@ function upgrade_prepare(
     }
 
     $entries = uo_zip_entries($zip, $prefix);
+
+    // 本站改过、新包又要写入的核心文件（WP-09）：升级会静默盖掉这些定制——页面照常 200、
+    // 不报错，只是少了东西。放在备份与写入任何文件之前：被拦下时什么都没动过。
+    // 没有出厂清单（2.0.2 及更早、开发工作树）时无法判断，照常升级并如实告知「未能检查」。
+    require_once __DIR__ . '/ReleaseFiles.php';
+    $releaseFiles = ReleaseFiles::load(ROOT_PATH, $current);
+    $localChanges = [];
+    if ($releaseFiles !== null) {
+        $namesByRel = [];
+        foreach ($entries as $entry) {
+            $namesByRel[(string) $entry['rel']] = (string) $entry['name'];
+        }
+        $localChanges = ReleaseFiles::localChanges(
+            ROOT_PATH,
+            $releaseFiles,
+            array_keys($namesByRel),
+            static fn (string $rel): string|false => $zip->getFromName($namesByRel[$rel] ?? '')
+        );
+    }
     $zip->close();
     if (empty($entries)) return ['code' => 1, 'msg' => '安装包内无可覆盖文件，已中止'];
+    if ($localChanges !== [] && !$acceptLocalChanges) {
+        return [
+            'code' => 1,
+            'error_code' => 'local_modifications',
+            'msg' => __('upgrade_local_changes_blocked', ['count' => (string) count($localChanges)]),
+            'count' => count($localChanges),
+            'files' => array_slice($localChanges, 0, 200),
+            'hashes' => ReleaseFiles::localHashes(ROOT_PATH, $localChanges),
+        ];
+    }
+    $localCheck = $releaseFiles === null ? 'unavailable' : ($localChanges === [] ? 'clean' : 'accepted');
+
+    // 备份 config.php + 记录旧版本（轻量、稳妥；完整代码回滚依赖主机备份）
+    $oldVer = defined('CMS_VERSION') ? CMS_VERSION : 'unknown';
+    $bakDir = ROOT_PATH . '/storage/backups/pre-upgrade-' . $oldVer . '-' . date('YmdHis');
+    if (!is_dir($bakDir) && !@mkdir($bakDir, 0755, true) && !is_dir($bakDir)) {
+        return ['code' => 1, 'msg' => '无法建立升级备份目录，已中止，未改动任何文件'];
+    }
+    $configFile = ROOT_PATH . '/config/config.php';
+    if (!is_file($configFile) || !@copy($configFile, $bakDir . '/config.php')) {
+        return ['code' => 1, 'msg' => 'config.php 备份失败，已中止，未改动任何文件'];
+    }
+
+    // 数据库自动备份（v1.18.6）：文件快照管代码，这份 SQL 管「迁移改表之后」
+    // 的事故兜底——两者合起来才是完整的升级前状态。自动升级调用方会自行回滚；
+    // 人工在线升级传入 requireDbBackup=true，在写任何程序文件前失败关闭。
+    $dbBackupNote = '';
+    $dbBackupError = '';
+    try {
+        set_time_limit(300);
+        require_once ROOT_PATH . '/includes/Backup.php';
+        $dbTables = Backup::listPrefixedTables();
+        if ($dbTables !== []) {
+            $dbSql = Backup::generateSql($dbTables);
+            if (@file_put_contents($bakDir . '/database.sql', $dbSql) !== false) {
+                $dbBackupNote = 'database.sql（' . count($dbTables) . ' 表 / ' . round(strlen($dbSql) / 1048576, 1) . 'MB）';
+            } else {
+                $dbBackupError = 'storage/backups 写入失败';
+            }
+            unset($dbSql);
+        }
+    } catch (Throwable $e) {
+        $dbBackupError = $e->getMessage();
+    }
+
+    $dbBackupOverride = $requireDbBackup && $dbBackupNote === '' && $allowMissingDbBackup;
+    if ($requireDbBackup && $dbBackupNote === '' && !$dbBackupOverride) {
+        uo_rrmdir($bakDir);
+        return [
+            'code' => 1,
+            'error_code' => 'db_backup_required',
+            'msg' => '数据库自动备份失败，升级已在写入程序文件前中止：'
+                . ($dbBackupError !== '' ? $dbBackupError : '没有可验证的数据库备份文件'),
+        ];
+    }
+
+    $dbBackupInfo = $dbBackupNote !== ''
+        ? "数据库备份: {$dbBackupNote}\n"
+        : ($dbBackupOverride
+            ? "数据库备份: 外部备份已由超级管理员确认（自动备份失败：{$dbBackupError}）\n"
+            : "数据库备份: 失败（{$dbBackupError}）\n");
+    @file_put_contents(
+        $bakDir . '/INFO.txt',
+        "升级前版本: $oldVer\n时间: " . date('Y-m-d H:i:s') . "\n" . $dbBackupInfo
+    );
+
+
     $state = [
         'mode' => $mode, 'pkg' => $pkg, 'prefix' => $prefix, 'entries' => $entries, 'deleted' => $deleted,
         'backup' => basename($bakDir), 'total' => count($entries), 'done' => 0, 'next_offset' => 0,
@@ -626,6 +659,7 @@ function upgrade_prepare(
         'code' => 0, 'mode' => $mode, 'total' => count($entries), 'backup' => $backup,
         'db_backup' => $dbBackupNote, 'db_backup_error' => $dbBackupError,
         'db_backup_override' => $dbBackupOverride,
+        'local_check' => $localCheck, 'local_changes' => array_slice($localChanges, 0, 200),
     ];
     }
 
