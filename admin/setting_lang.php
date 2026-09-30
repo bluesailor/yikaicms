@@ -50,6 +50,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success([], __('save_success'));
     }
 
+    // 语言域名：{"en":"en.example.com","de":"example.de"}（见 LanguageDomains）
+    if ($action === 'save_domains') {
+        $input = is_array($_POST['domains'] ?? null) ? $_POST['domains'] : [];
+        $mainHost = LanguageDomains::mainHost();
+        $map = [];
+        foreach ($input as $lang => $host) {
+            $lang = (string) $lang;
+            $host = trim((string) $host);
+            if ($host === '') continue;
+            if ($lang === $defaultLang || !in_array($lang, (array) $enabledLangs, true) || !isset($allLangs[$lang])) continue;
+            $name = (string) $allLangs[$lang];
+            $normalized = LanguageDomains::normalizeHost($host);
+            if ($normalized === null) error(__('slang_domain_invalid', ['lang' => $name]));
+            $bare = str_starts_with($normalized, 'www.') ? substr($normalized, 4) : $normalized;
+            $mainBare = str_starts_with($mainHost, 'www.') ? substr($mainHost, 4) : $mainHost;
+            if ($bare === $mainBare) error(__('slang_domain_is_main', ['lang' => $name]));
+            foreach ($map as $other) {
+                $otherBare = str_starts_with($other, 'www.') ? substr($other, 4) : $other;
+                if ($otherBare === $bare) error(__('slang_domain_duplicate', ['host' => $normalized]));
+            }
+            $map[$lang] = $normalized;
+        }
+        if ($map !== []) {
+            if ($mainHost === '') error(__('slang_domain_need_site_url'));
+            if (isDynamicUrlMode()) error(__('slang_domain_need_pretty_urls'));
+        }
+        settingModel()->set('language_domains', $map === [] ? '' : (string) json_encode($map, JSON_UNESCAPED_SLASHES));
+        if ($map !== []) {
+            // 静态直出分不清主机（见 StaticHtml::enabled）：已生成的文件必须清掉，否则服务器会继续直出
+            require_once ROOT_PATH . '/includes/StaticHtml.php';
+            StaticHtml::clearAll();
+        }
+        cacheDelete('sitemap_xml');
+        adminLog('setting', 'lang_domains', '更新语言域名：' . ($map === [] ? '（无）' : implode(', ', array_map(static fn($l, $h) => "$l=$h", array_keys($map), $map))));
+        success([], __('save_success'));
+    }
+
+    // 检测某个语言域名是否已指向本站（服务器回访 /index.php?yk_lang_domain_probe=）
+    if ($action === 'probe_domain') {
+        $result = LanguageDomains::probe((string) post('host'));
+        $message = str_starts_with($result, 'http_')
+            ? __('slang_domain_probe_http', ['status' => substr($result, 5)])
+            : __('slang_domain_probe_' . $result);
+        success(['result' => $result, 'ok' => $result === 'ok', 'message' => $message]);
+    }
+
     // 批量翻译栏目
     if ($action === 'translate_channels') {
         $targetLang = post('target_lang');
@@ -269,6 +315,54 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </form>
 
+    <?php /* 语言域名（可选）：某些语言用独立域名，其余照旧用 /xx/ 前缀 */ ?>
+    <?php
+    $domainLangs = array_filter($allLangs, static fn($label, $code): bool => $code !== $defaultLang && in_array($code, (array) $enabledLangs, true), ARRAY_FILTER_USE_BOTH);
+    $domainMap = json_decode((string) config('language_domains', ''), true);
+    $domainMap = is_array($domainMap) ? $domainMap : [];
+    ?>
+    <?php if ($domainLangs !== []): ?>
+    <form id="domainForm" class="bg-white rounded-lg shadow mt-6">
+        <?php echo csrfField(); ?>
+        <input type="hidden" name="action" value="save_domains">
+        <div class="px-6 py-4 border-b">
+            <h2 class="font-bold text-gray-800"><?php echo e(__('slang_domains_title')); ?></h2>
+            <p class="text-sm text-gray-500 mt-1"><?php echo e(__('slang_domains_tip')); ?></p>
+        </div>
+        <div class="p-6 space-y-3">
+            <?php if (LanguageDomains::mainHost() === ''): ?>
+            <p class="text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded p-3"><?php echo e(__('slang_domain_need_site_url')); ?></p>
+            <?php elseif (isDynamicUrlMode()): ?>
+            <p class="text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded p-3"><?php echo e(__('slang_domain_need_pretty_urls')); ?></p>
+            <?php endif; ?>
+            <?php foreach ($domainLangs as $code => $label): ?>
+            <div class="flex flex-wrap items-center gap-3 p-3 rounded-lg border">
+                <div class="w-40 shrink-0">
+                    <span class="font-medium"><?php echo e($label); ?></span>
+                    <span class="text-xs text-gray-400 font-mono ml-1"><?php echo e($code); ?></span>
+                </div>
+                <input type="text" name="domains[<?php echo e($code); ?>]" value="<?php echo e((string) ($domainMap[$code] ?? '')); ?>"
+                       placeholder="<?php echo e(LanguageRegistry::hreflang($code) === 'en' ? 'en.example.com' : strtolower($code) . '.example.com'); ?>"
+                       class="flex-1 min-w-[12rem] border rounded px-3 py-2 font-mono text-sm" autocomplete="off" spellcheck="false" data-domain-input>
+                <button type="button" class="px-3 py-2 text-sm rounded border hover:bg-gray-50" data-domain-probe><?php echo e(__('slang_domain_check')); ?></button>
+                <span class="text-sm w-full" data-domain-result></span>
+            </div>
+            <?php endforeach; ?>
+            <ul class="text-xs text-gray-500 list-disc pl-5 space-y-1 pt-2">
+                <li><?php echo e(__('slang_domain_note_dns')); ?></li>
+                <li><?php echo e(__('slang_domain_note_admin')); ?></li>
+                <li><?php echo e(__('slang_domain_note_static')); ?></li>
+                <li><?php echo e(__('slang_domain_note_member')); ?></li>
+            </ul>
+            <div class="flex justify-end">
+                <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded transition inline-flex items-center gap-2">
+                    <i class="ti ti-check text-base"></i><?php echo e(__('slang_domains_save')); ?>
+                </button>
+            </div>
+        </div>
+    </form>
+    <?php endif; ?>
+
     <?php /* 栏目翻译入口 */ ?>
     <?php
     $otherLangs = $allLangs;
@@ -305,6 +399,43 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 
 <script>
+var domainForm = document.getElementById('domainForm');
+if (domainForm) {
+    domainForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var resp = await fetch('', { method: 'POST', body: new FormData(this) });
+        var data = await safeJson(resp);
+        if (data.code === 0) {
+            showMessage(data.msg || <?php echo json_encode(__('save_success'), JSON_UNESCAPED_UNICODE); ?>);
+            setTimeout(() => location.reload(), 800);
+        } else {
+            showMessage(data.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+        }
+    });
+    domainForm.querySelectorAll('[data-domain-probe]').forEach(function (button) {
+        button.addEventListener('click', async function () {
+            var row = button.parentElement;
+            var input = row.querySelector('[data-domain-input]');
+            var out = row.querySelector('[data-domain-result]');
+            if (!input.value.trim()) { input.focus(); return; }
+            button.disabled = true;
+            out.className = 'text-sm w-full text-gray-500';
+            out.textContent = <?php echo json_encode(__('slang_domain_checking'), JSON_UNESCAPED_UNICODE); ?>;
+            var fd = new FormData(domainForm);   // 带上 CSRF 字段
+            fd.set('action', 'probe_domain');
+            fd.set('host', input.value.trim());
+            try {
+                var data = await safeJson(await fetch('', { method: 'POST', body: fd }));
+                var ok = data.code === 0 && data.data && data.data.ok;
+                out.className = 'text-sm w-full ' + (ok ? 'text-green-600' : 'text-red-600');
+                out.textContent = (data.data && data.data.message) || data.msg || '';
+            } finally {
+                button.disabled = false;
+            }
+        });
+    });
+}
+
 document.getElementById('langForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     var fd = new FormData(this);

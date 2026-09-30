@@ -28,6 +28,7 @@ return [
         'includes/CompatibleLinks.php',
         'includes/Dispatcher.php',
         'includes/i18n/LanguageRegistry.php',   // Dispatcher / functions.php / lang_url.php 无条件 require：语言注册表
+        'includes/i18n/LanguageDomains.php',    // functions.php 无条件 require：语言域名模式
         'includes/HtmlTagRewriter.php',
         'assets/js/rewrite-probe.js',
         'includes/functions.php',

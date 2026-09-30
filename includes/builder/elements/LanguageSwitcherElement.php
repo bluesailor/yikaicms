@@ -182,8 +182,14 @@ final class LanguageSwitcherElement extends AbstractElement
             // Real PHP detail entry files must not become virtual /en/*.php paths.
             if (in_array($path, ['/article.php', '/product.php', '/detail.php'], true)) {
                 unset($queryParams['lang']);
+                if (class_exists('LanguageDomains') && LanguageDomains::hostFor($language) !== null) {
+                    // 有独立域名的语言：去它的域名，不用 _lang
+                    return LanguageDomains::url($language, $path . '?' . http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986));
+                }
                 if ($language !== $defaultLanguage) $queryParams['_lang'] = $language;
-                return $path . '?' . http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
+                $entry = $path . '?' . http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
+                return class_exists('LanguageDomains') && LanguageDomains::active()
+                    ? LanguageDomains::url($defaultLanguage, $entry) : $entry;
             }
             // Query routing has one real entry file; language belongs in its query, not a virtual directory.
             if ($path === '/index.php' && is_string($queryParams['yk_route'] ?? null)
@@ -196,6 +202,10 @@ final class LanguageSwitcherElement extends AbstractElement
             }
             $encoded = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
             $query = $encoded === '' ? '' : '?' . $encoded;
+        }
+        // 语言域名模式：各语言在各自主机上，切换链接要带上目标主机
+        if (class_exists('LanguageDomains') && LanguageDomains::active()) {
+            return LanguageDomains::url($language, $path . $query);
         }
         return $prefix . $path . $query;
     }

@@ -59,7 +59,26 @@ initLang();
 //
 // URL 前缀总是被认；这是显式信号，且 SEO 必须保证 /en/foo 始终展示英文。
 // cookie 仅在 show_lang_switcher='1' 时生效（避免悄悄改变默认语言行为）。
+//
+// 语言域名模式（LanguageDomains）：访问语言域名 = 该语言，优先于 cookie；带语言前缀或
+// 走错主机的 GET 请求先 301 到规范地址（/en/xx 在主域名 → en.example.com/xx）。
 $disabledLanguagePrefix = false;
+$domainLanguage = null;
+if (!defined('SITE_LANG') && PHP_SAPI !== 'cli' && LanguageDomains::active()) {
+    $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+    $requestPath = (string) parse_url($requestUri, PHP_URL_PATH);
+    $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if (in_array($method, ['GET', 'HEAD'], true) && !str_starts_with($requestPath, '/api/')) {
+        $domainRedirect = LanguageDomains::redirectTarget($requestPath, (string) parse_url($requestUri, PHP_URL_QUERY));
+        if ($domainRedirect !== null && !headers_sent()) {
+            header('Location: ' . $domainRedirect, true, 301);
+            exit;
+        }
+    }
+    $domainLanguage = LanguageDomains::currentLanguage();
+    // 存量页面里写死的 /en/xxx 等链接：输出时改到对应语言域名，省一次跳转
+    ob_start(static fn(string $html): string => LanguageDomains::output($html));
+}
 if (!defined('SITE_LANG')) {
     $defaultSiteLang = (string)config('site_lang', 'zh-CN');
     $detected = $defaultSiteLang;
@@ -80,9 +99,13 @@ if (!defined('SITE_LANG')) {
 
     if ($requestedUrlLanguage !== '' && in_array($requestedUrlLanguage, $supported, true)) {
         $detected = $requestedUrlLanguage;
+    } elseif ($domainLanguage !== null) {
+        $detected = $domainLanguage;
     } elseif ((string)config('show_lang_switcher', '0') === '1'
               && !empty($_COOKIE['site_lang'])
-              && in_array($_COOKIE['site_lang'], $supported, true)) {
+              && in_array($_COOKIE['site_lang'], $supported, true)
+              // 有独立域名的语言只在自己的域名上显示，主域名不按 cookie 渲染它（否则同一内容两处可见）
+              && LanguageDomains::hostFor((string) $_COOKIE['site_lang']) === null) {
         $detected = (string)$_COOKIE['site_lang'];
     }
 

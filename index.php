@@ -49,6 +49,11 @@ if ($__isIndexRequest && isset($_GET['yk_license_challenge'])) {
     LicenseDeregistration::respond(is_string($_GET['yk_license_challenge']) ? $_GET['yk_license_challenge'] : '');
 }
 
+// 语言域名检测：后台保存语言域名前，从服务器回访该域名确认指向本站（见 LanguageDomains::probe）
+if ($__isIndexRequest && isset($_GET['yk_lang_domain_probe'])) {
+    LanguageDomains::respondProbe(is_string($_GET['yk_lang_domain_probe']) ? $_GET['yk_lang_domain_probe'] : '');
+}
+
 if ($__dynamicRequested && $__dynamicHit === null) {
     render404(__('error_page_not_found'));
 }
