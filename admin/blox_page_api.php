@@ -87,13 +87,19 @@ try {
             error(__('blox_page_hero_invalid_options'));
         }
         $styleOptions = PageHeroStyleResolver::encodeOptions($styleOptionsRaw);
-        channelModel()->updateById($pageId, [
+        $heroUpdate = [
             'hero_bg' => $heroBg,
             'show_hero' => $showHero,
             'hero_style_source' => $styleSource,
             'hero_style_options' => $styleOptions,
             'updated_at' => time(),
-        ]);
+        ];
+        // 2.0.3：单页的「正文顶部显示头图」（自动封面）可在同一弹窗里关掉；只有传了才改
+        $coverInput = post('show_cover', null);
+        if ($coverInput !== null && ($targetChannel['type'] ?? '') === 'page') {
+            $heroUpdate['show_cover'] = (string) $coverInput === '1' ? 1 : 0;
+        }
+        channelModel()->updateById($pageId, $heroUpdate);
         $resolved = PageHeroStyleResolver::resolve(array_merge($targetChannel, [
             'hero_bg' => $heroBg,
             'show_hero' => $showHero,
@@ -104,6 +110,7 @@ try {
         success([
             'hero_bg' => $heroBg,
             'show_hero' => $showHero === 1,
+            'show_cover' => (int) ($heroUpdate['show_cover'] ?? ($targetChannel['show_cover'] ?? 1)) === 1,
             'style_source' => $styleSource,
             'style_options' => PageHeroStyleResolver::normalizeOptions($styleOptions),
             'resolved_options' => $resolved['options'],

@@ -98,7 +98,7 @@ final class SiteTemplateService
             $data = SiteTemplateData::snapshot(true);
             SiteTemplateData::validate($data);
             $report = SiteExportChecks::inspect($data, channelModel()->all(), (string) config('site_url', ''));
-            $report['issues'] = array_merge($report['issues'], SiteExportChecks::settingDependencyIssues($data));
+            $report['issues'] = array_merge($report['issues'], SiteExportChecks::settingDependencyIssues($data), SiteExportChecks::bloxCoverIssues($data));
             $plugins = $this->activePlugins();
             $portable = SiteTemplatePluginData::snapshot($plugins);
             $excluded = array_values(array_filter($plugins, static fn(array $plugin): bool => !isset($portable[$plugin['slug']])));
