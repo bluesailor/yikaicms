@@ -7,6 +7,8 @@ require_once __DIR__ . '/ThemeInstaller.php';
 require_once __DIR__ . '/UploadReferences.php';
 require_once __DIR__ . '/PluginMarketInstall.php';
 require_once __DIR__ . '/SiteTemplateMarket.php';
+require_once __DIR__ . '/DefaultLangShadow.php';
+require_once __DIR__ . '/Migrator.php';
 
 /**
  * Local, explicit site transfer. Never restores accounts or server configuration.
@@ -497,6 +499,10 @@ final class SiteTemplateService
                 foreach ($data['settings'] as $key => $value) {
                     if (is_string($key) && is_string($value)) $data['settings'][$key] = SiteTemplateData::portableValue($key, $value);
                 }
+                // 包里的默认语言后缀行（site_name_en 之于英文包）按迁移 20260810 同一规则并进 base：
+                // 前台后缀优先，留着它后台改 base 永远不生效，该迁移也会在导入后翻回「待执行」
+                $data['settings'] = DefaultLangShadow::fold($data['settings'], (string) ($data['settings']['site_lang'] ?? 'zh-CN'),
+                    static fn(string $key): bool => SiteTemplateData::settingAllowed($key));
                 foreach (['site_name', 'contact_phone', 'contact_email', 'contact_address'] as $key) {
                     $value = trim((string) ($brand[$key] ?? ''));
                     if (strlen($value) > 500 || ($key === 'site_name' && $value === '')) throw new RuntimeException('st_brand');
@@ -511,6 +517,7 @@ final class SiteTemplateService
                 if (!$this->planStillApplies($plan)) throw new RuntimeException('st_stale');
                 $pluginBefore = SiteTemplatePluginData::targetSnapshot($pluginData, $matchedRequirements);
                 if (!hash_equals((string) ($plan['plugin_before_hash'] ?? ''), SiteTemplatePluginData::fingerprint($pluginBefore))) throw new RuntimeException('st_stale');
+                $migrationsBefore = Migrator::appliedIds();
                 $journal = ['status' => 'preparing', 'created_at' => time(), 'before' => SiteTemplateData::fingerprint(),
                     'snapshot' => SiteTemplateData::snapshot(), 'plugin_snapshot' => $pluginBefore,
                     'plugin_requirements' => $matchedRequirements, 'alias' => $alias];
@@ -530,6 +537,7 @@ final class SiteTemplateService
                     foreach (self::REPLACE_CLEARS as $table) db()->execute('DELETE FROM ' . DB_PREFIX . $table);
                 }
                 $journal['plugin_after'] = SiteTemplatePluginData::apply($pluginData, $matchedRequirements);
+                $this->settleAfterImport($journal, (string) ($data['settings']['site_lang'] ?? 'zh-CN'), $migrationsBefore);
                 $journal['after'] = SiteTemplateData::fingerprint();
                 $journal['status'] = 'prepared_commit';
                 $this->writeRecord('current', $journal);
@@ -542,6 +550,7 @@ final class SiteTemplateService
             } catch (Throwable $e) {
                 if (!$committed && db()->getPdo()->inTransaction()) db()->rollback();
                 settingModel()->clearCache();
+                Migrator::forgetSettled();
                 // 事务已回滚 ⇒ 没有任何记录引用本次别名（别名是本次新生成的随机值，
                 // installFiles 又拒绝写入已存在的目录），因此清理是安全的。
                 // restore() 里"绝不删除"的理由是那些文件可能已被编辑器引用——失败路径不适用。
@@ -566,6 +575,7 @@ final class SiteTemplateService
                 // A local backup must reproduce the original state, including pre-existing dangling seed references.
                 // Uploaded packages still undergo full reference validation in Archive::read and replace().
                 SiteTemplateData::replace($journal['snapshot'], false);
+                $this->restoreLanguageRows($journal);
                 // 覆盖现有站时被清空的草稿 / 历史版本等（见 REPLACE_CLEARS），原样放回
                 foreach ((is_array($journal['cleared'] ?? null) ? $journal['cleared'] : []) as $table => $rows) {
                     if (!in_array($table, self::REPLACE_CLEARS, true) || !is_array($rows)) continue;
@@ -633,6 +643,49 @@ final class SiteTemplateService
                 error_log('[SiteTemplateService] orphan cleanup skipped for ' . $alias . ': ' . $cleanup->getMessage());
             }
         }
+    }
+
+    /**
+     * 导入后的收尾，与导入同一事务：
+     *   1. 导入换了默认语言时，站点自己的多语言行（邮件模板等不随包走的设置）按后台
+     *      「切换默认语言」同一流程归位——否则新默认语言的后缀行遮蔽 base，后台改了不生效；
+     *   2. 导入前已应用、导入后翻回的迁移登记为已了结（见 Migrator::SETTLED_KEY）。它们的
+     *      check() 看的是模板合法替换掉的内容（询盘表单、下载分类、法务页正文、内置主题页脚……），
+     *      真去执行只会往模板站里塞中文种子。导入前就待执行的迁移不登记，照常提示升级。
+     *
+     * @param array<string,mixed> $journal
+     * @param list<string> $migrationsBefore
+     */
+    private function settleAfterImport(array &$journal, string $langTo, array $migrationsBefore): void
+    {
+        $langFrom = (string) ($journal['snapshot']['settings']['site_lang'] ?? 'zh-CN');
+        $moved = [];
+        settingModel()->normalizeDefaultLangRows($langTo, $langFrom, static function (string $key) use (&$moved): bool {
+            if (SiteTemplateData::settingAllowed($key)) return false;   // 包内设置导入前已按包的默认语言归位
+            $moved[] = $key;
+            return true;
+        });
+        if ($moved !== []) $journal['lang_moved'] = ['from' => $langFrom, 'to' => $langTo, 'keys' => $moved];
+        $settled = array_values(array_diff($migrationsBefore, Migrator::appliedIds()));
+        if ($settled !== []) {
+            Migrator::settle($settled);
+            $journal['migrations_settled'] = $settled;
+        }
+    }
+
+    /**
+     * 撤销导入：导入时随默认语言归位的站点设置行按原路归位回去。它们不在内容快照里
+     * （不随包走），不还原的话中文站会留下 <key>_zh-CN 后缀行，后台改了又不生效。
+     *
+     * @param array<string,mixed> $journal
+     */
+    private function restoreLanguageRows(array $journal): void
+    {
+        $moved = $journal['lang_moved'] ?? null;
+        if (!is_array($moved) || !is_array($moved['keys'] ?? null)) return;
+        $keys = array_map('strval', $moved['keys']);
+        settingModel()->normalizeDefaultLangRows((string) ($moved['from'] ?? ''), (string) ($moved['to'] ?? ''),
+            static fn(string $key): bool => in_array($key, $keys, true));
     }
 
     private function beginLockedTransaction(): void

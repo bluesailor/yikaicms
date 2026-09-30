@@ -149,6 +149,14 @@ $service->apply($preview['token'], 1, $brand, true, true);
 echo "imported\n";
 exit(0);
 }
+// 待执行迁移：全新安装与导入后都必须是零（否则后台一进来就提示「数据库有 N 项升级待执行」）
+if (($argv[1] ?? '') === 'pending') {
+require_once __DIR__ . '/includes/Migrator.php';
+$pending = [];
+foreach (Migrator::loadAll() as $migration) if (!Migrator::isApplied($migration)) $pending[] = (string) $migration['id'];
+echo json_encode($pending), "\n";
+exit(0);
+}
 $urls = ['/'];
 foreach (channelModel()->all() as $channel) {
     if (empty($channel['status']) || in_array((string) $channel['type'], ['link'], true)) continue;
@@ -213,7 +221,7 @@ try {
     $server = proc_open([$php, '-S', '127.0.0.1:' . $port, '-t', $sandbox], [0 => ['pipe', 'r'], 1 => ['file', $logFile, 'a'], 2 => ['file', $logFile, 'a']], $pipes, $sandbox);
     $base = 'http://127.0.0.1:' . $port;
     $ready = false;
-    for ($i = 0; $i < 120 && !$ready; $i++) {   // 最多 30 秒：机器忙时首个请求要编译大量文件
+    for ($i = 0; $i < 40 && !$ready; $i++) {
         usleep(250000);
         $ready = rt_http('GET', $base . '/install/index.php')['status'] === 200;
     }
@@ -239,10 +247,21 @@ try {
 
     // ── 4. 导入整站模板（临时站自己的服务、与后台同一流程） ──
     file_put_contents($sandbox . '/roundtrip-driver.php', RT_DRIVER);
+    $pendingMigrations = static function () use ($php, $sandbox): array {
+        $out = [];
+        $code = 0;
+        exec(escapeshellarg($php) . ' ' . escapeshellarg($sandbox . '/roundtrip-driver.php') . ' pending 2>&1', $out, $code);
+        $ids = json_decode((string) end($out), true);
+        return $code === 0 && is_array($ids) ? $ids : ['driver: ' . implode(' ', array_slice($out, -3))];
+    };
+    $report['pending_migrations']['install'] = $pendingMigrations();
+    rt_step($report, '全新安装：迁移零待执行', $report['pending_migrations']['install'] === [], implode(', ', $report['pending_migrations']['install']));
     $driverOut = [];
     $driverCode = 0;
     exec(escapeshellarg($php) . ' ' . escapeshellarg($sandbox . '/roundtrip-driver.php') . ' import ' . escapeshellarg($package) . ' 2>&1', $driverOut, $driverCode);
     rt_step($report, '导入整站模板', $driverCode === 0 && end($driverOut) === 'imported', implode("\n", array_slice($driverOut, -8)));
+    $report['pending_migrations']['import'] = $pendingMigrations();
+    rt_step($report, '导入后：迁移零待执行', $report['pending_migrations']['import'] === [], implode(', ', $report['pending_migrations']['import']));
     $driverOut = [];
     exec(escapeshellarg($php) . ' ' . escapeshellarg($sandbox . '/roundtrip-driver.php') . ' sample 2>&1', $driverOut, $driverCode);
     $sample = json_decode((string) end($driverOut), true);
