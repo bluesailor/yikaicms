@@ -48,6 +48,7 @@ $reasonLabels = [
     'no_key'          => __('lic_reason_no_key'),
     'not_found'       => __('lic_reason_not_found'),
     'domain_mismatch' => __('lic_reason_domain_mismatch'),
+    'staging_mismatch' => __('lic_reason_staging_mismatch'),
     'disabled'        => __('lic_reason_disabled'),
     'unreachable'     => __('lic_reason_unreachable'),
     'grace_expired'   => __('lic_reason_grace_expired'),
@@ -95,6 +96,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="mt-4 text-sm <?php echo $valid ? 'text-gray-500' : 'text-amber-600'; ?>">
             <?php echo e($reasonLabels[$reason] ?? $reason ?: '—'); ?>
         </div>
+        <?php if ($valid && !empty($st['staging'])): ?>
+        <p class="mt-2 text-xs text-sky-700 bg-sky-50 border border-sky-100 rounded px-3 py-2" role="status">
+            <i class="ti ti-flask mr-1"></i><?php echo e(__('lic_staging_notice')); ?>
+        </p>
+        <?php endif; ?>
 
         <dl class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
             <div>

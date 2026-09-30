@@ -426,7 +426,7 @@ final class BloxRemoteTemplateProvider
             'license_expired' => __('blox_template_locked_expired'),
             'module_missing' => __('blox_template_locked_module'),
             // 精品区块的服务端拒绝原因：分别说明，不笼统报「需要授权」
-            'domain_mismatch' => __('plugin_locked_domain'),
+            'domain_mismatch', 'staging_mismatch' => __('plugin_locked_domain'),
             'disabled' => __('blox_template_locked_disabled'),
             default => __('blox_template_locked_license'),
         };

@@ -26,7 +26,7 @@ final class MarketDownloadStatus
             'cms_version_required' => __('plugin_locked_cms_version', ['version' => $version]),
             'php_version_required' => __('market_php_version_required', ['version' => $version]),
             'expired', 'license_expired' => __('plugin_locked_expired'),
-            'domain_mismatch', 'site_mismatch' => __('plugin_locked_domain'),
+            'domain_mismatch', 'site_mismatch', 'staging_mismatch' => __('plugin_locked_domain'),
             'module_missing', 'license_required' => __('plugin_locked_need_license'),
             default => __('market_download_unavailable'),
         };

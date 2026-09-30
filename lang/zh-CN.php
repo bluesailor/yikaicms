@@ -1389,6 +1389,8 @@ return [
     'lic_reason_disabled' => '该授权已被停用',
     'lic_reason_unreachable' => '无法连接授权服务器（暂用本地缓存）',
     'lic_reason_grace_expired' => '离线超过宽限期，请联网重新校验',
+    'lic_reason_staging_mismatch' => '授权码已绑定了另一个测试站（每个授权只含一个测试站）',
+    'lic_staging_notice' => '本站按「测试站」使用授权：每个授权除正式域名外，还含一个测试站（本机、内网地址、.test 域名或 staging.、dev. 等开头的子域名）。在测试站上使用不会起算服务期。',
     'lic_mod_stats' => '统计接入 Pro',
     'lic_mod_leads' => '表单线索中心',
     'lic_mod_ai' => 'AI 内容助手',
