@@ -142,7 +142,7 @@
 ### 1. 下载部署
 
 - 完整安装包：[yikaicms-v2.0.2.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.0.2/yikaicms-v2.0.2.zip)，发布说明见 [v2.0.2 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.0.2)；每个版本附 `.sha256` 校验文件，历史版本见 [Releases](https://github.com/bluesailor/yikaicms/releases)。
-- 已安装的站点可在后台「系统设置 → 系统升级」在线升级，无需手动下载。
+- 已安装的站点可在后台「系统维护 → 系统升级」在线升级，无需手动下载。
 - 开发者也可以直接克隆仓库：`git clone https://github.com/bluesailor/yikaicms.git`
 
 确保以下目录可写：站点根目录（安装器写入 `installed.lock`）、`/config/`、`/uploads/`、`/storage/`
