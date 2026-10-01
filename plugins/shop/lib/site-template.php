@@ -19,7 +19,7 @@ function shopSiteTemplatePrivateTables(): array
 {
     return [
         'shop_orders', 'shop_order_items', 'shop_payments',
-        'shop_payment_notifications', 'shop_refunds', 'shop_member_addresses',
+        'shop_payment_notifications', 'shop_refunds', 'shop_member_addresses', 'shop_checkout_requests',
     ];
 }
 
@@ -101,7 +101,8 @@ function shopSiteTemplateSchema(): array
                 'shop_shipping_carriers' => 'canonical-lines:max-30',
             ],
         ],
-        'private_tables' => shopSiteTemplatePrivateTables(),
+        // v1 公开合同保留旧指纹；新增请求私表仍参加运行时保护及状态检测。
+        'private_tables' => array_values(array_diff(shopSiteTemplatePrivateTables(), ['shop_checkout_requests'])),
     ];
     $json = json_encode($contract, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     return ['id' => 'shop/catalog', 'version' => 1, 'sha256' => 'sha256:' . hash('sha256', $json)];
@@ -259,6 +260,8 @@ function shopSiteTemplateNormalizeSpecs(?string $json, int $productStock): ?stri
         if (shopShippingLikeControlChars($variant['label']) || shopShippingLikeControlChars($variant['sku'])) {
             throw new RuntimeException('st_invalid');
         }
+        // 模板只搬运公开目录，导出副本沿用 v1 可移植 ID；不改本站持久身份或订单。
+        $variant['id'] = shopVariantId($variant['label'], $variant['sku']);
         if ($variant['price'] !== null) {
             $cents = shopValidSalePriceCents($variant['price']);
             if ($cents === null) {

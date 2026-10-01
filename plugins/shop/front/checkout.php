@@ -40,7 +40,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['op'] ?? '') ===
     $secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
     $ts = (int) ($_POST['ts'] ?? 0);
     $sig = (string) ($_POST['sig'] ?? '');
-    if ($secret === '' || !FormSubmissionToken::verify('shop_checkout', $ts, $sig, $secret, false, 7200)) {
+    $requestKey = (string) ($_POST['request_key'] ?? '');
+    $request = shopCheckoutRequest($requestKey);
+    if (!$schemaReady || $request === null || $secret === ''
+        || !FormSubmissionToken::verify('shop_checkout:' . $requestKey, $ts, $sig, $secret, false, 7200)) {
         header('Location: ' . shopFrontUrl('checkout', ['err' => __('shop_err_token')]), true, 303);
         exit;
     }
@@ -76,10 +79,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['op'] ?? '') ===
     }
 
     $result = shopOrderCreate(
-        shopCartLines(),
+        $request['lines'],
         ['name' => $name, 'phone' => $phone, 'email' => $email],
         $addressResult['address'],
-        $remark
+        $remark,
+        $requestKey,
+        $request['owner']
     );
     if (!$result['ok']) {
         header('Location: ' . shopFrontUrl('checkout', ['err' => __($result['error'])]), true, 303);
@@ -135,7 +140,8 @@ foreach (array_merge([0], array_column($surchargeRules, 'cents')) as $surchargeC
 
 $secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
 $tokenTs = time();
-$tokenSig = FormSubmissionToken::sign('shop_checkout', $tokenTs, $secret);
+$requestKey = $lines !== [] ? shopCheckoutIssueRequest($lines) : '';
+$tokenSig = FormSubmissionToken::sign('shop_checkout:' . $requestKey, $tokenTs, $secret);
 
 $pageTitle = __('shop_checkout_title');
 $currentSlug = 'product';
@@ -190,6 +196,7 @@ require_once theme_path('layouts/header.php');
             <?php /* 联系与收货 */ ?>
             <form method="post" action="<?php echo e(shopFrontUrl('checkout')); ?>" class="bg-white rounded border border-gray-200 p-5 space-y-4" data-testid="shop-checkout-form">
                 <input type="hidden" name="op" value="place_order">
+                <input type="hidden" name="request_key" value="<?php echo e($requestKey); ?>">
                 <input type="hidden" name="ts" value="<?php echo (int) $tokenTs; ?>">
                 <input type="hidden" name="sig" value="<?php echo e($tokenSig); ?>">
                 <div>

@@ -185,12 +185,12 @@ final class ShopPluginFoundationTest extends TestCase
         $this->assertSame('shop_orders', $result['order_registration']['item']['perm'] ?? null);
     }
 
-    /** 七张表双方言齐备、MySQL 侧带 5.7 底线的字符集、占位符可替换。 */
-    public function testShopTableSchemasCoverSevenTablesInBothDialects(): void
+    /** 八张表双方言齐备、MySQL 侧带 5.7 底线的字符集、占位符可替换。 */
+    public function testShopTableSchemasCoverEightTablesInBothDialects(): void
     {
         $schemas = shopTableSchemas();
         $this->assertSame(
-            ['shop_products', 'shop_orders', 'shop_order_items', 'shop_payments',
+            ['shop_checkout_requests', 'shop_products', 'shop_orders', 'shop_order_items', 'shop_payments',
              'shop_payment_notifications', 'shop_refunds', 'shop_member_addresses'],
             array_keys($schemas),
             '表清单与立项报告 §四一致（增表必须是有意为之）'

@@ -21,6 +21,7 @@ require_once __DIR__ . '/tables.php';
 require_once __DIR__ . '/sales.php';
 require_once __DIR__ . '/shipping.php';
 require_once __DIR__ . '/variants.php';
+require_once __DIR__ . '/checkout-requests.php';
 
 /** @return list<string> 订单合法状态（推进顺序即此列表顺序；closed 只从 pending_payment 进入） */
 function shopOrderStatuses(): array
@@ -98,7 +99,7 @@ function shopOrderNo(): string
  * @param array<string,string> $address province/city/district/address（region 由本层生成）
  * @return array{ok:bool, error:string, order_no?:string, order_id?:int}
  */
-function shopOrderCreate(array $lines, array $contact, array $address, string $remark = ''): array
+function shopOrderCreate(array $lines, array $contact, array $address, string $remark = '', string $requestKey = '', string $requestOwner = ''): array
 {
     if ($lines === []) {
         return ['ok' => false, 'error' => 'shop_err_empty_order'];
@@ -114,28 +115,53 @@ function shopOrderCreate(array $lines, array $contact, array $address, string $r
     $lang = function_exists('siteLang') ? siteLang() : 'zh-CN';
     $now = time();
 
+    $payloadHash = '';
+    if ($requestKey !== '' || $requestOwner !== '') {
+        if (preg_match('/^[a-f0-9]{32}$/D', $requestKey) !== 1 || preg_match('/^[a-f0-9]{64}$/D', $requestOwner) !== 1) {
+            return ['ok' => false, 'error' => 'shop_err_token'];
+        }
+        $payloadHash = hash('sha256', json_encode([
+            'lines' => shopCheckoutLinesHash($lines), 'contact' => $contact, 'address' => $address,
+            'remark' => $remark, 'member_id' => $memberId, 'lang' => $lang,
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        $replay = shopCheckoutReplay($requestKey, $requestOwner, $payloadHash);
+        if ($replay !== null) {
+            return $replay;
+        }
+        require_once __DIR__ . '/cart.php';
+        if (!hash_equals(shopCheckoutLinesHash($lines), shopCheckoutLinesHash(shopCartLines()))) {
+            return ['ok' => false, 'error' => 'shop_err_checkout_changed'];
+        }
+    }
+
+    $fail = static function (string $error) use ($requestKey, $requestOwner, $payloadHash): array {
+        // 并发赢家可能在本次重算期间提交；库存变化不能掩盖原请求结果。
+        return ($requestKey !== '' ? shopCheckoutReplay($requestKey, $requestOwner, $payloadHash) : null)
+            ?? ['ok' => false, 'error' => $error];
+    };
+
     // 第一步：只读重算（不进事务——把慢操作挡在锁外）
     $priced = [];
     $goodsCents = 0;
     foreach ($lines as $line) {
         $product = shopResolveProductRow($line['id']);
         if ($product === null) {
-            return ['ok' => false, 'error' => 'shop_err_product'];
+            return $fail('shop_err_product');
         }
         $variantId = (string) ($line['variant'] ?? '');
         $sales = shopCartSalesLookupDefault($line['id'], $variantId);
         if ($sales === null) {
-            return ['ok' => false, 'error' => $variantId !== '' ? 'shop_err_variant' : 'shop_err_not_on_sale'];
+            return $fail($variantId !== '' ? 'shop_err_variant' : 'shop_err_not_on_sale');
         }
         if (!empty($sales['has_variants']) && $variantId === '') {
-            return ['ok' => false, 'error' => 'shop_err_variant_required'];
+            return $fail('shop_err_variant_required');
         }
         if ($line['qty'] > (int) $sales['stock']) {
-            return ['ok' => false, 'error' => 'shop_err_out_of_stock'];
+            return $fail('shop_err_out_of_stock');
         }
         $unitCents = shopEffectivePriceCents($product, $sales);
         if ($unitCents <= 0) {
-            return ['ok' => false, 'error' => 'shop_err_price'];
+            return $fail('shop_err_price');
         }
         $subtotal = shopMoneyMultiply($unitCents, $line['qty']);
         $goodsCents = shopMoneySum([$goodsCents, $subtotal]);
@@ -163,6 +189,13 @@ function shopOrderCreate(array $lines, array $contact, array $address, string $r
     // 第二步：事务内扣库存 + 落单（唯一索引冲突重试换单号）
     db()->beginTransaction();
     try {
+        if ($requestKey !== '') {
+            // 唯一键先于库存写入，竞争失败时整笔事务回滚并读取已提交结果。
+            db()->insert('shop_checkout_requests', [
+                'request_key' => $requestKey, 'owner_hash' => $requestOwner, 'payload_hash' => $payloadHash,
+                'order_id' => 0, 'created_at' => $now,
+            ]);
+        }
         foreach ($priced as $row) {
             // 条件扣减：库存不足时影响行数=0，绝不超卖
             $affected = db()->execute(
@@ -225,9 +258,23 @@ function shopOrderCreate(array $lines, array $contact, array $address, string $r
             'created_at' => $now,
         ]);
 
+        if ($requestKey !== '') {
+            $linked = db()->update('shop_checkout_requests', ['order_id' => $orderId],
+                'request_key = ? AND owner_hash = ? AND order_id = ?', [$requestKey, $requestOwner, 0]);
+            if ($linked !== 1) {
+                throw new RuntimeException('shop checkout request link failed');
+            }
+        }
+
         db()->commit();
     } catch (Throwable $e) {
         db()->rollBack();
+        if ($requestKey !== '') {
+            $replay = shopCheckoutReplay($requestKey, $requestOwner, $payloadHash);
+            if ($replay !== null) {
+                return $replay;
+            }
+        }
         $message = $e->getMessage();
         if ($message === 'shop_err_out_of_stock') {
             return ['ok' => false, 'error' => 'shop_err_out_of_stock'];
@@ -347,12 +394,20 @@ function shopOrderClose(int $orderId, string $reason = ''): array
 
     db()->beginTransaction();
     try {
-        db()->update('shop_orders', [
+        $closed = db()->update('shop_orders', [
             'status' => 'closed',
             'remark' => mb_substr($reason !== '' ? $reason : (string) $order['remark'], 0, 500),
             'closed_at' => time(),
             'updated_at' => time(),
         ], 'id = ? AND status = ?', [$orderId, 'pending_payment']);
+        if ($closed !== 1) {
+            // 先退出旧事务再读赢家结果，避免 MySQL 快照读继续看到旧状态。
+            db()->rollBack();
+            $current = db()->fetchOne('SELECT status FROM ' . DB_PREFIX . 'shop_orders WHERE id = ?', [$orderId]);
+            return ($current['status'] ?? '') === 'closed'
+                ? ['ok' => true, 'error' => '', 'idempotent' => true]
+                : ['ok' => false, 'error' => 'shop_err_order_cannot_close'];
+        }
         foreach (db()->fetchAll('SELECT product_id, qty, snapshot_json FROM ' . DB_PREFIX . 'shop_order_items WHERE order_id = ?', [$orderId]) as $item) {
             db()->execute(
                 'UPDATE ' . DB_PREFIX . 'shop_products SET stock = stock + ? WHERE product_id = ?',
@@ -417,7 +472,10 @@ function shopOrderTransition(int $orderId, string $to, string $trackingCompany =
     } elseif ($to === 'completed') {
         $fields['completed_at'] = time();
     }
-    db()->update('shop_orders', $fields, 'id = ? AND status = ?', [$orderId, $order['status']]);
+    $updated = db()->update('shop_orders', $fields, 'id = ? AND status = ?', [$orderId, $order['status']]);
+    if ($updated !== 1) {
+        return ['ok' => false, 'error' => 'shop_err_order_transition'];
+    }
     do_action('data_changed');
 
     return ['ok' => true, 'error' => ''];
