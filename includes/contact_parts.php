@@ -266,7 +266,7 @@ function renderContactMapHtml(?callable $__ykEdit = null): string
                 $mLat  = trim((string) config('map_lat'));
                 $mLng  = trim((string) config('map_lng'));
                 $mZoom = (int) (config('map_zoom', '15') ?: 15);
-                $mLang = function_exists('siteLang') ? siteLang() : 'zh-CN';
+                $mLang = function_exists('displayLang') ? displayLang() : (function_exists('siteLang') ? siteLang() : 'zh-CN');
                 $mapDone = false;
                 if ($mLat !== '' && $mLng !== '' && is_numeric($mLat) && is_numeric($mLng)):
                     if ($mLang === 'zh-CN'):

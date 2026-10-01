@@ -69,3 +69,23 @@ test('zh-TW pages contain no Simplified Chinese leftovers @ci', async ({ page, r
   fs.writeFileSync(info.outputPath('zh-tw-leftovers.json'), JSON.stringify({ pages: [...seen], report }, null, 2));
   expect(report).toEqual([]);
 });
+
+// 繁体站读简体数据：同一页面在繁体站上要列出与简体站一样多的产品、文章与轮播（2.0.3 之前全部为空）。
+test('zh-TW pages list the same content as Simplified Chinese @ci', async ({ request }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'one pass is enough');
+  const count = (html, re) => (html.match(re) || []).length;
+  const product = /\/product\/[a-z0-9-]+\/[a-z0-9-]+\.html/g;
+  const article = /\/news\/article\/[a-z0-9-]+\.html/g;
+  const slide = /swiper-slide/g;
+  for (const p of ['/', '/product.html', '/news.html']) {
+    const cn = await (await request.get(p)).text();
+    const tw = await (await request.get('/zh-TW' + p)).text();
+    for (const [name, re] of [['products', product], ['articles', article], ['slides', slide]]) {
+      expect(count(tw, re), `${p} ${name}`).toBe(count(cn, re));
+    }
+    if (p !== '/') expect(count(cn, p === '/product.html' ? product : article), `${p} has items to compare`).toBeGreaterThan(0);
+    // 链接留在繁体站：列表里的详情链接带 /zh-TW/ 前缀
+    const twLinks = [...tw.matchAll(/href="([^"]*\/(?:product|news\/article)\/[^"]+\.html)"/g)].map((m) => m[1]);
+    for (const href of twLinks) expect(href, `${p} link keeps the zh-TW prefix`).toContain('/zh-TW/');
+  }
+});

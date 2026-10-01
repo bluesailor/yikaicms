@@ -58,7 +58,7 @@ final class DynamicSiteData
             $author = ArticleTemplateDocument::currentContent()['author'] ?? '';
             return is_scalar($author) ? trim((string) $author) : '';
         }
-        if (in_array($tag, ['icp', 'police'], true) && function_exists('siteLang') && siteLang() !== 'zh-CN') return '';
+        if (in_array($tag, ['icp', 'police'], true) && function_exists('siteLang') && (function_exists('displayLang') ? displayLang() : siteLang()) !== 'zh-CN') return '';
         $key = self::TAGS[$tag];
         $value = in_array($tag, ['icp', 'police'], true)
             ? config($key, '')

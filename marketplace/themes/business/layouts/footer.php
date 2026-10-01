@@ -46,7 +46,7 @@ $footerNav = function_exists('footerNavigationGroups')
                     ?>
                 </div>
                 <div class="flex flex-wrap gap-4">
-                    <?php if (siteLang() === 'zh-CN' && ($icp = config('site_icp'))): ?>
+                    <?php if ((function_exists('displayLang') ? displayLang() : siteLang()) === 'zh-CN' && ($icp = config('site_icp'))): ?>
                     <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition"><?php echo e($icp); ?></a>
                     <?php endif; ?>
                 </div>

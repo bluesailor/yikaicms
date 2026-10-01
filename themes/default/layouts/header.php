@@ -70,7 +70,7 @@ if (!empty($_SESSION['admin_id']) && function_exists('bloxTemplateModel') && fun
 }
 
 $nativeLanguageSwitcher = config('show_lang_switcher', '0') === '1'
-    ? LanguageSwitcherElement::renderForLanguages(enabledLanguages(), siteLang(),
+    ? LanguageSwitcherElement::renderForLanguages(enabledLanguages(), displayLang(),
         (string) config('site_lang', 'zh-CN'), array_keys(availableLanguages()),
         (string) ($_SERVER['REQUEST_URI'] ?? '/'), ['layout' => 'dropdown', 'tone' => 'dark'])
     : '';

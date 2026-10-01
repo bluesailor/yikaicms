@@ -16,7 +16,7 @@ $type = get('type', 'all'); // all, article, product, case, download
 $page = max(1, getInt('page', 1));
 $perPage = 15;
 $offset = ($page - 1) * $perPage;
-$searchLang = siteLang() === 'zh-TW' ? 'zh-CN' : siteLang();
+$searchLang = siteLang();   // 繁体站读简体数据（siteLang() 已映射）
 
 $results = [];
 $total = 0;

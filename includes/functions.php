@@ -709,7 +709,7 @@ function langDataFor(string $lang): array
  */
 function withSiteLanguageStrings(callable $render): mixed
 {
-    return withLanguageStrings(siteLang(), $render);
+    return withLanguageStrings(displayLang(), $render);
 }
 
 /**
@@ -1271,7 +1271,7 @@ function getChildChannelIds(int $channelId): array
  */
 function langPrefix(?string $lang = null): string
 {
-    $lang ??= siteLang();
+    $lang ??= displayLang();
     $defaultLang = (string) config('site_lang', 'zh-CN');
     if ($lang === $defaultLang) return '';
     // 语言域名模式：正在该语言自己的域名上时不带前缀（en.example.com/news.html）。
@@ -1372,7 +1372,7 @@ function dynamicRouteQuery(string $route, array $params = [], ?string $lang = nu
         if ($value !== null && $value !== '' && $value !== false) $query[$key] = $value;
     }
     $defaultLang = (string) config('site_lang', 'zh-CN');
-    $targetLang = $lang ?? siteLang();
+    $targetLang = $lang ?? displayLang();
     if ($targetLang !== '' && $targetLang !== $defaultLang) $query['lang'] = $targetLang;
     return $query;
 }
@@ -3808,7 +3808,7 @@ function renderFormSecurityFields(string $slug): string
     $timestamp = time();
     $secret = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : '';
     return '<input type="hidden" name="form_slug" value="' . e($slug) . '">'
-        . '<input type="hidden" name="_lang" value="' . e(siteLang()) . '">'
+        . '<input type="hidden" name="_lang" value="' . e(displayLang()) . '">'
         . '<input type="hidden" name="form_ts" value="' . $timestamp . '">'
         . '<input type="hidden" name="form_sig" value="' . e(FormSubmissionToken::sign($slug, $timestamp, $secret)) . '">'
         . '<input type="hidden" name="form_nonce" value="">'
@@ -4282,9 +4282,26 @@ function bloxHomeEditorLanguage(): string
 /**
  * 获取当前站点语言
  */
-function siteLang(): string
+/**
+ * 访客看到的语言：URL 前缀、语言切换器、<html lang>、界面文案、表单回传的 _lang。
+ * 繁体站返回 zh-TW。
+ */
+function displayLang(): string
 {
     return defined('SITE_LANG') ? SITE_LANG : (string)config('site_lang', 'zh-CN');
+}
+
+/**
+ * 数据语言：查栏目、内容、产品、轮播、设置与翻译组用。
+ *
+ * 繁体中文（zh-TW）是简体的渲染视图——内容存的是 zh-CN，输出前整页转繁体（includes/i18n/S2T.php），
+ * 所以繁体站读简体数据。此前这里直接返回 zh-TW，各处 `lang = ?` 查询全部落空，繁体站列表、轮播、
+ * 首页动态内容一律为空（2.0.3 修复）。站点默认语言本身就是繁体时，数据按 zh-TW 存，不做映射。
+ */
+function siteLang(): string
+{
+    $lang = displayLang();
+    return $lang === 'zh-TW' && (string) config('site_lang', 'zh-CN') !== 'zh-TW' ? 'zh-CN' : $lang;
 }
 
 /**
