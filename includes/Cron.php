@@ -37,7 +37,8 @@ final class Cron
         self::$booted = true;
 
         self::register('publish_sweep', __('cron_publish_sweep'), 60, function (): string {
-            $n = contentModel()->promoteDue();
+            require_once ROOT_PATH . '/includes/ScheduledPublish.php';
+            $n = ScheduledPublish::sweep();
             return $n > 0 ? str_replace(':n', (string) $n, __('cron_published_n')) : __('cron_nothing_due');
         });
 

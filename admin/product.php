@@ -42,8 +42,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
         if ($ids) {
             $val = $action === 'batch_publish' ? 1 : 0;
+            require_once ROOT_PATH . '/includes/ScheduledPublish.php';
+            $withTime = $val === 1 && ScheduledPublish::productsReady();
             foreach ($ids as $bid) {
-                productModel()->updateById($bid, ['status' => $val, 'updated_at' => time()]);
+                $fields = ['status' => $val, 'updated_at' => time()];
+                if ($withTime) {
+                    // 定时上架的产品被「立即上架」：未来的上架时间改为现在
+                    $row = productModel()->find($bid);
+                    if ($row && (int) ($row['publish_time'] ?? 0) > time()) {
+                        $fields['publish_time'] = time();
+                    }
+                }
+                productModel()->updateById($bid, $fields);
             }
             adminLog('product', $action, '批量' . ($val ? '上架' : '下架') . '：' . implode(',', $ids));
         }
@@ -73,6 +83,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'toggle_status') {
         $id = postInt('id');
+        $row = productModel()->find($id);
+        if ($row && (int) $row['status'] === 3) {
+            // 定时上架的产品点「上架」= 立即上架（toggle 会把非 0 当成已上架而改成下架）
+            productModel()->updateById($id, ['status' => 1, 'publish_time' => time(), 'updated_at' => time()]);
+            success(['status' => 1]);
+        }
         $newStatus = productModel()->toggle($id, 'status');
         success(['status' => $newStatus]);
     }
@@ -165,6 +181,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                 <option value=""><?php echo __('admin_all'); ?></option>
                 <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>><?php echo __('status_on_shelf'); ?></option>
                 <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>><?php echo __('status_off_shelf'); ?></option>
+                <option value="3" <?php echo $status === '3' ? 'selected' : ''; ?>><?php echo __('prod_status_scheduled'); ?></option>
             </select>
 
             <?php if (getLang() === 'ja'): ?>
@@ -294,11 +311,17 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                             <?php echo number_format((int)$item['views']); ?>
                         </td>
                         <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <?php if ((int) $item['status'] === 3): ?>
+                            <?php // 定时上架：到点自动上架；行内「上架」= 立即上架 ?>
+                            <span class="text-sm block text-orange-500" data-testid="product-scheduled-badge"><?php echo __('prod_status_scheduled'); ?></span>
+                            <span class="text-gray-400 text-xs"><?php echo date('Y-m-d H:i', (int) ($item['publish_time'] ?? 0)); ?></span>
+                            <?php else: ?>
                             <?php echo renderStatusDateCell(
                                 (int) $item['id'],
                                 (int) $item['status'],
                                 (int) ($item['updated_at'] ?: $item['created_at'] ?? 0)
                             ); ?>
+                            <?php endif; ?>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/product_edit.php'); ?>

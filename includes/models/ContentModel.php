@@ -330,17 +330,13 @@ class ContentModel extends Model
     }
 
     /**
-     * 定时发布：将已到发布时间的定时内容（status=3）提升为已发布（status=1）。
-     * 无需 cron，由 init.php 在访问时限流触发。返回提升的条数。
+     * 定时发布：将已到发布时间的定时内容上线。保留给旧调用方；
+     * 2.0.3 起统一走 ScheduledPublish::sweep()（文章与产品一起，并刷新页面缓存）。
      */
     public function promoteDue(): int
     {
-        $now = time();
-        return db()->execute(
-            "UPDATE {$this->tableName()} SET status = 1, updated_at = ?
-             WHERE status = 3 AND publish_time > 0 AND publish_time <= ?",
-            [$now, $now]
-        );
+        require_once ROOT_PATH . '/includes/ScheduledPublish.php';
+        return ScheduledPublish::sweep();
     }
 
     /**
