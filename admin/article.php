@@ -101,6 +101,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 "id IN ({$placeholders})",
                 $ids
             );
+            if ($status === 1) {
+                // 定时文章被「立即发布」：未来的发布时间改为现在，列表与前台不会挂着未来日期
+                $now = time();
+                contentModel()->updateWhere(['publish_time' => $now], "id IN ({$placeholders}) AND publish_time > ?", array_merge($ids, [$now]));
+            }
             adminLog('article', $action, ($status ? '批量发布：' : '批量下架：') . implode(',', $ids));
         }
         success();
@@ -110,6 +115,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = postInt('id');
         requireContentRowOfType($id, 'article');
         $field = ['toggle_status' => 'status', 'toggle_top' => 'is_top', 'toggle_recommend' => 'is_recommend'][$action];
+        $row = contentModel()->find($id);
+        if ($field === 'status' && $row && (int) $row['status'] === 3) {
+            // 定时文章「切换状态」= 立即发布（toggle 会把非 0 当成已发布而改成草稿）
+            contentModel()->updateById($id, ['status' => 1, 'publish_time' => time(), 'updated_at' => time()]);
+            success(['status' => 1]);
+        }
         $newValue = contentModel()->toggle($id, $field);
         success([$field => $newValue]);
     }
@@ -211,6 +222,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <option value=""><?php echo __('admin_all'); ?></option>
             <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>><?php echo __('admin_published'); ?></option>
             <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>><?php echo __('admin_draft'); ?></option>
+            <option value="3" <?php echo $status === '3' ? 'selected' : ''; ?>><?php echo __('admin_scheduled'); ?></option>
         </select>
 
         <div class="relative">
@@ -279,6 +291,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <?php if (empty($item['status'])): ?>
                                     <span class="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700"
                                           title="<?php echo e(__('admin_draft_not_public')); ?>"><?php echo __('admin_draft'); ?></span>
+                                    <?php elseif ((int) $item['status'] === 3): ?>
+                                    <span class="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-orange-100 text-orange-700" data-testid="article-scheduled-badge"
+                                          title="<?php echo e(__('admin_scheduled') . '：' . date('Y-m-d H:i', (int) $item['publish_time'])); ?>"><?php echo __('admin_scheduled'); ?></span>
                                     <?php endif; ?>
                                 </div>
                                 <?php // 行内操作（借鉴 WordPress）：桌面端悬停显现，移动端常驻；
@@ -290,8 +305,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <span class="text-gray-300">|</span>
                                     <button type="button" onclick="deleteItem(<?php echo $item['id']; ?>)" class="hover:text-primary hover:underline"><?php echo __('admin_move_to_trash'); ?></button>
                                     <span class="text-gray-300">|</span>
-                                    <?php if (empty($item['status'])): ?>
-                                    <?php // 草稿前台不可访问，给「预览」：带签名 token，仅签发者本人可看 ?>
+                                    <?php if ((int) $item['status'] !== 1): ?>
+                                    <?php // 草稿与定时文章前台不可访问，给「预览」：带签名 token，仅签发者本人可看 ?>
                                     <a href="<?php echo e(contentUrl($item)); ?><?php echo (str_contains(contentUrl($item), '?') ? '&' : '?'); ?>preview=<?php echo e(contentPreviewToken((int) $item['id'])); ?>"
                                        target="_blank" rel="noopener" class="text-amber-600 hover:text-amber-700 hover:underline"
                                        title="<?php echo e(__('admin_draft_not_public')); ?>"><?php echo __('admin_preview'); ?></a>
@@ -316,6 +331,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <td class="px-4 py-3 text-gray-500"><?php echo number_format((int)$item['views']); ?></td>
                     <?php // 日期列合并状态（借鉴 WordPress）：状态可点切换，下方是发布/更新时间 ?>
                     <td class="px-4 py-3 whitespace-nowrap">
+                        <?php if ((int) $item['status'] === 3): ?>
+                        <?php // 定时文章不做一键切换（含义不明）：到点自动发布，改动请进编辑页或用批量「发布」立即发布 ?>
+                        <span class="text-sm block text-orange-500"><?php echo __('admin_scheduled'); ?></span>
+                        <?php else: ?>
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>)" class="status-btn-<?php echo $item['id']; ?> text-sm block">
                             <?php if ($item['status']): ?>
                             <span class="text-green-600"><?php echo __('admin_published'); ?></span>
@@ -323,6 +342,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <span class="text-gray-400"><?php echo __('admin_draft'); ?></span>
                             <?php endif; ?>
                         </button>
+                        <?php endif; ?>
                         <span class="text-gray-400 text-xs">
                             <?php $_ts = (int) ($item['publish_time'] ?: $item['updated_at'] ?? 0); ?>
                             <?php echo $_ts ? date('Y-m-d H:i', $_ts) : '-'; ?>
