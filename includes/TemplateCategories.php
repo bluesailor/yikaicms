@@ -58,6 +58,7 @@ final class TemplateCategories
     /**
      * 目录条目里的 category_name / category_name_<语言> 字段（无后缀的是中文）。
      * @return array<string,string>
+     * @psalm-suppress PossiblyUnusedMethod 调用方是 tools/prepare-site-template-market.php（不在 Psalm projectFiles 内）
      */
     public static function catalogNameFields(string $key): array
     {
