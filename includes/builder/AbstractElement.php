@@ -10,6 +10,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/i18n/TextDirection.php';
+
 require_once __DIR__ . '/BloxResponsiveValue.php';
 
 abstract class AbstractElement
@@ -675,14 +677,15 @@ abstract class AbstractElement
         $fields = [
             'style_margin'        => ['margin', true],
             'style_margin_top'    => ['margin-top', true],
-            'style_margin_right'  => ['margin-right', true],
+            // 左右按起始/结束输出（TextDirection）：LTR 与原来一致，阿拉伯语等 RTL 页面自动换边
+            'style_margin_right'  => ['margin-inline-end', true],
             'style_margin_bottom' => ['margin-bottom', true],
-            'style_margin_left'   => ['margin-left', true],
+            'style_margin_left'   => ['margin-inline-start', true],
             'style_padding'        => ['padding', false],
             'style_padding_top'    => ['padding-top', false],
-            'style_padding_right'  => ['padding-right', false],
+            'style_padding_right'  => ['padding-inline-end', false],
             'style_padding_bottom' => ['padding-bottom', false],
-            'style_padding_left'   => ['padding-left', false],
+            'style_padding_left'   => ['padding-inline-start', false],
         ];
 
         $style = '';

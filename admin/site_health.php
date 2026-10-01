@@ -146,7 +146,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                     (string) ($scan['upload_token'] ?? '')
                 ),
                 [SiteHealth::mediaOptimizationResult($media)],
-                [SiteHealth::checkUpdateService()]
+                [SiteHealth::checkUpdateService()],
+                SiteHealth::checkLanguageDomains()
             );
             $checks = SiteHealth::normalizeResults($checks);
             $summary = SiteHealth::summary($checks);

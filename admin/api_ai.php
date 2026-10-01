@@ -247,8 +247,8 @@ switch ($action) {
             exit;
         }
         $input = mb_substr(strip_tags($content), 0, 3000);
-        $langMap = ['en' => '英文', 'ja' => '日文', 'ko' => '韩文', 'zh-CN' => '简体中文'];
-        $langName = $langMap[$targetLang] ?? $targetLang;
+        $targetLang = LanguageRegistry::has((string) $targetLang) ? (string) $targetLang : 'en';
+        $langName = LanguageRegistry::name($targetLang) . '（' . LanguageRegistry::englishName($targetLang) . '）';
 
         $result = $ai->chat(
             "将以下内容翻译为{$langName}：\n\n{$input}\n\n要求：翻译准确自然，保持 HTML 标签结构。",

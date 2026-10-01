@@ -61,7 +61,7 @@ final class PageTitleElement extends AbstractElement
         if ($description === '') $description = (string) ($page['description'] ?? '');
         $level = in_array($data['level'] ?? '', ['h1', 'h2', 'h3'], true) ? $data['level'] : 'h1';
         $align = in_array($data['align'] ?? '', ['left', 'center', 'right'], true) ? $data['align'] : 'left';
-        $alignment = ['left' => 'text-left', 'center' => 'text-center', 'right' => 'text-right'][$align];
+        $alignment = TextDirection::alignClass($align);
         $justify = ['left' => 'justify-start', 'center' => 'justify-center', 'right' => 'justify-end'][$align];
         $size = $this->resp($data['size'] ?? 'md', [
             'sm' => ['text-2xl', 'md:text-2xl', 'lg:text-2xl', 'wide:text-2xl'],

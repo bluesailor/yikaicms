@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/i18n/LanguageRegistry.php';
+
 /**
  * 给站内路径加语言前缀。默认语言原样返回；非默认语言返回 /{lang}/{path}。
  *
@@ -12,6 +14,10 @@ function langUrl(string $url, string $lang = ''): string
 {
     $lang = $lang ?: siteLang();
     $defaultLang = (string)config('site_lang', 'zh-CN');
+    // 语言域名模式：目标语言在别的主机上时给完整地址，同主机给站内路径（见 LanguageDomains::url）
+    if (class_exists('LanguageDomains') && LanguageDomains::active() && !preg_match('#^[a-z][a-z0-9+.-]*:#i', $url)) {
+        return LanguageDomains::url($lang, $url);
+    }
     if (function_exists('isDynamicUrlMode') && isDynamicUrlMode()) {
         $parts = parse_url($url);
         $path = is_array($parts) ? (string) ($parts['path'] ?? '/') : $url;
@@ -23,7 +29,7 @@ function langUrl(string $url, string $lang = ''): string
             return $path . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
         }
         if ($path === '/' || trim($path, '/') === '' || trim($path, '/') === $defaultLang
-            || in_array(trim($path, '/'), ['en', 'ja', 'zh-CN', 'zh-TW'], true)) {
+            || LanguageRegistry::has(trim($path, '/'))) {
             return dynamicUrl('home', [], $lang);
         }
     }

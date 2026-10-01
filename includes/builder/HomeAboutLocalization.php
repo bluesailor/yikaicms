@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+require_once dirname(__DIR__) . '/i18n/LanguageRegistry.php';
 
 /** Language provenance for ordinary elements created from a classic About block. */
 final class HomeAboutLocalization
@@ -117,7 +118,7 @@ final class HomeAboutLocalization
             }
             $binding = $data[self::KEY] ?? null;
             if (!is_array($binding) || !is_string($binding['lang'] ?? null)
-                || !in_array($binding['lang'], ['zh-CN', 'zh-TW', 'en', 'ja'], true) || $binding['lang'] === $language
+                || !LanguageRegistry::has($binding['lang']) || $binding['lang'] === $language
                 || !is_array($binding['fields'] ?? null)) {
                 return $element;
             }
@@ -268,7 +269,7 @@ final class HomeAboutLocalization
                 $element['data'] = $data;
                 $language = is_array($edit) && is_string($edit['lang'] ?? null) ? $edit['lang'] : '';
                 $binding = is_array($data[self::KEY] ?? null) ? $data[self::KEY] : ($edit['binding'] ?? null);
-                if (!in_array($language, ['zh-CN', 'zh-TW', 'en', 'ja'], true) || !is_array($binding)
+                if (!LanguageRegistry::has($language) || !is_array($binding)
                     || ($binding['lang'] ?? '') === $language || !is_array($binding['fields'] ?? null)) {
                     return $element;
                 }
@@ -343,10 +344,13 @@ final class HomeAboutLocalization
     /** Old snapshots can only be attributed while their original site values still agree. @return array<string,string> */
     private static function legacyValues(string $language): array
     {
-        if (!in_array($language, ['zh-CN', 'zh-TW', 'en', 'ja'], true)) {
+        if (!LanguageRegistry::has($language)) {
             return [];
         }
-        $pack = require ROOT_PATH . '/lang/' . ($language === 'zh-TW' ? 'zh-CN' : $language) . '.php';
+        // 语言包未装或未译全时按 langDataFor 的回落顺序补齐（中文兜底 + 英文垫层）
+        $source = $language === 'zh-TW' ? 'zh-CN' : $language;
+        $pack = function_exists('langDataFor') ? langDataFor($source)
+            : require ROOT_PATH . '/lang/' . (is_file(ROOT_PATH . '/lang/' . $source . '.php') ? $source : 'zh-CN') . '.php';
         $read = static fn(string $key, string $fallback = ''): string => (string) (config($key . '_' . $language, '') ?: config($key, $fallback));
         $site = $read('site_name');
         $channel = channelModel()->findBySlug('about');

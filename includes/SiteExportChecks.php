@@ -183,7 +183,7 @@ final class SiteExportChecks
         if ($enabledLanguages === null) return false;
         $languages = function_exists('availableLanguages')
             ? array_keys(availableLanguages())
-            : ['zh-CN', 'en', 'ja'];
+            : (class_exists('LanguageRegistry') ? LanguageRegistry::codes() : ['zh-CN', 'en', 'ja']);
         foreach ($languages as $language) {
             if (str_ends_with($key, '_' . $language)) return !isset($enabledLanguages[$language]);
         }

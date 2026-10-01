@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/i18n/LanguageRegistry.php';
+
 class DownloadCategoryModel extends Model
 {
     protected string $table = 'download_categories';
@@ -25,12 +27,8 @@ class DownloadCategoryModel extends Model
     public static function localizedName(array $category, ?string $lang = null): string
     {
         $lang ??= function_exists('siteLang') ? siteLang() : 'zh-CN';
-        $field = match ($lang) {
-            'en' => 'name_en',
-            'ja' => 'name_ja',
-            default => 'name',
-        };
-        $localized = trim((string) ($category[$field] ?? ''));
+        // 无后缀 name 是站点默认语言；其余语言按 LanguageRegistry 的回落顺序取 name_<语言>
+        $localized = LanguageRegistry::localizedField($category, 'name', $lang, (function_exists('config') ? (string) config('site_lang', 'zh-CN') : 'zh-CN'));
         return $localized !== '' ? $localized : (string) ($category['name'] ?? '');
     }
 

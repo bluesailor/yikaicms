@@ -12,6 +12,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/i18n/LanguageRegistry.php';
+
 final class QueryFilterElement extends AbstractElement
 {
     public const TYPES = ['search', 'terms', 'field', 'sort', 'price', 'date', 'reset', 'summary'];
@@ -26,6 +28,8 @@ final class QueryFilterElement extends AbstractElement
     private static int $seq = 0;
 
     public function type(): string { return 'query-filter'; }
+    /** 下载名称按站点默认语言判断无后缀 name 是哪种语言（LanguageRegistry::localizedField） */
+    public function settingDependencies(): array { return ['site_lang' => 'optional']; }
     public function label(): string { return __('blox_el_query_filter'); }
     public function icon(): string { return 'filter'; }
     public function category(): string { return 'dynamic'; }
@@ -253,7 +257,7 @@ final class QueryFilterElement extends AbstractElement
     private static function downloadName(array $row): string
     {
         $lang = function_exists('siteLang') ? siteLang() : 'zh-CN';
-        $localized = $lang === 'en' ? (string) ($row['name_en'] ?? '') : ($lang === 'ja' ? (string) ($row['name_ja'] ?? '') : '');
+        $localized = LanguageRegistry::localizedField($row, 'name', $lang, (function_exists('config') ? (string) config('site_lang', 'zh-CN') : 'zh-CN'));
         return $localized !== '' ? $localized : (string) ($row['name'] ?? '');
     }
 

@@ -28,6 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     StaticHtml::$mute = true;
     $action = post('action');
 
+    // 语言域名模式与静态直出互斥（见 StaticHtml::enabled）：不允许开启或生成
+    if (in_array($action, ['save', 'start', 'batch'], true) && StaticHtml::blockedByLanguageDomains()
+        && ($action !== 'save' || post('static_html_enabled'))) {
+        error(__('sh_blocked_by_language_domains'));
+    }
+
     if ($action === 'save') {
         $base = trim((string) post('static_html_base_url', ''));
         try {
@@ -134,6 +140,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <?php if (!$hasCurl): ?>
 <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-sm text-red-700">
     <?php echo __('sh_no_curl'); ?>
+</div>
+<?php endif; ?>
+
+<?php if (StaticHtml::blockedByLanguageDomains()): ?>
+<div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 text-sm text-amber-800">
+    <?php echo e(__('sh_blocked_by_language_domains')); ?>
 </div>
 <?php endif; ?>
 

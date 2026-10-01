@@ -28,6 +28,7 @@ final class ReleaseFiles
      * 为打包目录生成清单（清单文件自身不在其中）。
      *
      * @return array{schema: int, version: string, files: array<string, string>}
+     * @psalm-suppress PossiblyUnusedMethod 调用方是 tools/build-release-files.php（不在 Psalm projectFiles 内）
      */
     public static function build(string $packageRoot, string $version): array
     {

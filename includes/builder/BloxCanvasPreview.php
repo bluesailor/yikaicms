@@ -815,7 +815,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
 .yk-empty-btn:hover{border-color:#94a3b8;color:#1e293b}
 .yk-empty-btn-primary{border-color:#2563eb;background:#2563eb;color:#fff}
 .yk-empty-btn-primary:hover{border-color:#1d4ed8;background:#1d4ed8;color:#fff}
-.yk-empty-hint .yk-empty-btn{margin-left:8px;padding:4px 12px;font-size:12px}
+.yk-empty-hint .yk-empty-btn{margin-inline-start:8px;padding:4px 12px;font-size:12px}
 .yk-empty-doc .yk-empty-btn{margin:0 6px;padding:7px 16px;font-size:13px}
 .banner-swiper{height:min(52vw,520px)}
 [data-yk-el-type="home-banner-item"] [data-blox-banner-box] h2,
@@ -2522,7 +2522,7 @@ HTML;
     header('Content-Security-Policy: ' . $csp . "; frame-ancestors 'self'");
     header('X-Frame-Options: SAMEORIGIN');
     header('Referrer-Policy: no-referrer');
-    echo '<!doctype html><html lang="' . htmlspecialchars(siteLang()) . '"><head><meta charset="utf-8">'
+    echo '<!doctype html><html lang="' . htmlspecialchars(siteLang()) . '"' . htmlDirAttr(siteLang()) . '><head><meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width,initial-scale=1">'
         . '<meta http-equiv="Content-Security-Policy" content="' . htmlspecialchars($csp, ENT_QUOTES) . '">'
         . '<link rel="stylesheet" href="' . assetVer('/assets/css/tailwind.css') . '">'

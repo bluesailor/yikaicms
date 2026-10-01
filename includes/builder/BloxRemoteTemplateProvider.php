@@ -2,6 +2,8 @@
 /** Blox 远程模板市场客户端：目录发现、授权状态与签名包解析。 */
 
 declare(strict_types=1);
+
+require_once dirname(__DIR__) . '/i18n/LanguageRegistry.php';
 require_once dirname(__DIR__) . '/MarketCoverUrl.php';
 
 /**
@@ -407,13 +409,7 @@ final class BloxRemoteTemplateProvider
     /** @param array<string,mixed> $raw */
     private function localized(array $raw, string $field, string $fallback): string
     {
-        $suffix = match ($this->language) {
-            'en' => '_en',
-            'ja' => '_ja',
-            default => '',
-        };
-        $value = trim((string) ($raw[$field . $suffix] ?? ''));
-        return $value !== '' ? $value : (trim((string) ($raw[$field] ?? '')) ?: $fallback);
+        return LanguageRegistry::localizedField($raw, $field, $this->language) ?: $fallback;
     }
 
     private function lockedMessage(string $reason): string

@@ -15,6 +15,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/i18n/TextDirection.php';
+
 final class BloxGlobalClasses
 {
     public const ID_PATTERN = '/^gc_[a-f0-9]{12}$/';
@@ -42,13 +44,14 @@ final class BloxGlobalClasses
     private const RESPONSIVE_SETTINGS = [
         'padding_px' => ['padding', 0, 160, 'px'],
         'padding_top_px' => ['padding-top', 0, 400, 'px'],
-        'padding_right_px' => ['padding-right', 0, 400, 'px'],
+        // 左右按起始/结束输出（TextDirection）：LTR 不变，RTL 页面自动换边
+        'padding_right_px' => ['padding-inline-end', 0, 400, 'px'],
         'padding_bottom_px' => ['padding-bottom', 0, 400, 'px'],
-        'padding_left_px' => ['padding-left', 0, 400, 'px'],
+        'padding_left_px' => ['padding-inline-start', 0, 400, 'px'],
         'margin_top_px' => ['margin-top', -400, 400, 'px'],
-        'margin_right_px' => ['margin-right', -400, 400, 'px'],
+        'margin_right_px' => ['margin-inline-end', -400, 400, 'px'],
         'margin_bottom_px' => ['margin-bottom', -400, 400, 'px'],
-        'margin_left_px' => ['margin-left', -400, 400, 'px'],
+        'margin_left_px' => ['margin-inline-start', -400, 400, 'px'],
         'font_size_px' => ['font-size', 8, 160, 'px'],
         'gap_px' => ['gap', 0, 160, 'px'],
         'width_pct' => ['width', 1, 100, '%'],
@@ -534,7 +537,7 @@ final class BloxGlobalClasses
         foreach (self::ENUM_SETTINGS as $key => [$property, $allowed]) {
             $value = self::enumOrNull($settings[$key] ?? null, $allowed);
             if ($value !== null) {
-                $declarations[$property] = $value;
+                $declarations[$property] = $property === 'text-align' ? TextDirection::alignValue($value) : $value;
             }
         }
         return $declarations;

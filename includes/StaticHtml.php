@@ -40,10 +40,19 @@ final class StaticHtml
         return ROOT_PATH . '/html';
     }
 
-    /** 总开关 */
+    /**
+     * 总开关。语言域名模式下强制关闭：服务器按路径直出 html/ 里的文件、分不清主机，
+     * en.example.com/news.html 会拿到默认语言的静态页。页面缓存（HtmlCache）按语言分键，照常可用。
+     */
     public static function enabled(): bool
     {
+        if (self::blockedByLanguageDomains()) return false;
         return (string) config('static_html_enabled', '0') === '1';
+    }
+
+    public static function blockedByLanguageDomains(): bool
+    {
+        return class_exists('LanguageDomains') && LanguageDomains::active();
     }
 
     public static function baseUrl(?string $candidate = null): string

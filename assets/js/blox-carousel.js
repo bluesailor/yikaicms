@@ -49,7 +49,8 @@
 
         function currentPage() {
             var pages = pageCount();
-            if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 2) return pages - 1;
+            // RTL 里 scrollLeft 从 0 往负数走（slide 的 offsetLeft 也是递减），取绝对值判断是否到底
+            if (Math.abs(track.scrollLeft) + track.clientWidth >= track.scrollWidth - 2) return pages - 1;
             var best = 0;
             var distance = Infinity;
             for (var page = 0; page < pages; page += 1) {

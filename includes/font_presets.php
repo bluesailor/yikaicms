@@ -16,6 +16,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/i18n/LanguageRegistry.php';
+
 /**
  * @return array<string, array<string, array{label:string, body:string, heading:string}>>
  */
@@ -76,14 +78,33 @@ function fontPresets(): array
                 'heading' => '"Hiragino Maru Gothic ProN","Yu Gothic",YuGothic,Meiryo,sans-serif',
             ],
         ],
+        // 阿拉伯语：只用系统自带字体（Windows Segoe UI / Tahoma 都含阿拉伯字形，苹果是 Geeza Pro，安卓是 Noto）
+        'ar' => [
+            'system' => [
+                'label'   => __('font_preset_ar_system'),
+                'body'    => 'system-ui,"Segoe UI","Noto Sans Arabic","Geeza Pro","Arabic UI Text",Tahoma,Arial,sans-serif,' . $emoji,
+                'heading' => 'system-ui,"Segoe UI","Noto Sans Arabic","Geeza Pro","Arabic UI Display",Tahoma,Arial,sans-serif',
+            ],
+            'naskh' => [
+                'label'   => __('font_preset_ar_naskh'),
+                'body'    => '"Noto Naskh Arabic","Traditional Arabic","Simplified Arabic","Times New Roman",serif,' . $emoji,
+                'heading' => '"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif',
+            ],
+            'kufi' => [
+                'label'   => __('font_preset_ar_kufi'),
+                'body'    => '"Segoe UI","Noto Sans Arabic","Geeza Pro",Tahoma,sans-serif,' . $emoji,
+                'heading' => '"Noto Kufi Arabic","Segoe UI","Geeza Pro",Tahoma,sans-serif',
+            ],
+        ],
     ];
 }
 
-/** 当前语言可用的预设组；未收录的语言回落 en */
+/** 当前语言可用的预设组：先按语言代码，再按注册表的字体组（繁体用简体组），最后回落 en */
 function fontPresetsFor(string $lang): array
 {
     $all = fontPresets();
-    return $all[$lang] ?? $all['en'];
+    $group = class_exists('LanguageRegistry') ? LanguageRegistry::fontGroup($lang) : 'en';
+    return $all[$lang] ?? $all[$group] ?? $all['en'];
 }
 
 /**

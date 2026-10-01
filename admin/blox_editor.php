@@ -427,7 +427,8 @@ if ($isHomeBlox) {
         $contactFormCanEdit = hasPermission('form');
         $contactTemplate = formTemplateModel()->findBySlug('contact');
         if ($contactTemplate) {
-            $localizedLang = $pageLang !== '' && in_array($pageLang, ['en', 'ja'], true)
+            // 联系表单模板的 fields_<语言> 列目前只有 en/ja；其他语言没有对应列时用基准字段
+            $localizedLang = $pageLang !== '' && $pageLang !== 'zh-CN' && LanguageRegistry::has($pageLang)
                 ? $pageLang
                 : '';
             $fieldsColumn = $localizedLang !== '' && array_key_exists('fields_' . $localizedLang, $contactTemplate)
@@ -784,7 +785,7 @@ $siteCopyright = SiteCopyrightSettings::editorState($siteDataLanguage, $siteCopy
 // 文档，这些字段在画布旁直接改、保存即全站生效；编辑 Blox 页头/页尾模板时它们不参与渲染，不显示。
 $themeContentLanguage = $isHomeBlox ? siteLang() : $siteDataLanguage;
 $themeContentState = ['fields' => [], 'values' => [], 'fingerprint' => '', 'language' => $themeContentLanguage];
-if (in_array($themeContentLanguage, ['zh-CN', 'en', 'ja'], true) && !in_array($templateType, ['header', 'footer'], true)) {
+if (LanguageRegistry::has($themeContentLanguage) && !in_array($templateType, ['header', 'footer'], true)) {
     $themeContentState = ThemeContent::editorState(currentTheme(), $themeContentLanguage, getLang());
 }
 $themeContentOverridden = [];
@@ -913,7 +914,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
 }
 ?>
 <!doctype html>
-<html lang="<?php echo htmlspecialchars(siteLang()); ?>">
+<html lang="<?php echo htmlspecialchars(siteLang()); ?>"<?php echo htmlDirAttr(getLang()); ?>>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
