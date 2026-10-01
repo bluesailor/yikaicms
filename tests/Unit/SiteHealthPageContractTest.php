@@ -6,11 +6,11 @@ use PHPUnit\Framework\TestCase;
 
 final class SiteHealthPageContractTest extends TestCase
 {
-    public function testPageIsSuperAdminOnlyAndPostActionsRequireCsrf(): void
+    public function testPageNeedsMaintenancePermissionAndPostActionsRequireCsrf(): void
     {
         $page = (string) file_get_contents(ROOT_PATH . '/admin/site_health.php');
 
-        self::assertStringContainsString("requirePermission('*')", $page);
+        self::assertStringContainsString("requirePermission('system_maintenance')", $page);
         self::assertStringContainsString('verifyCsrf();', $page);
         self::assertStringContainsString("post('action')", $page);
         self::assertStringNotContainsString("post('url')", $page);

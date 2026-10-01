@@ -14,7 +14,7 @@ require_once ROOT_PATH . '/includes/DatabaseMaintenance.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('*');
+requirePermission('system_maintenance');   // 超管或「系统维护」角色（官方技术支持临时账号）；改授权类设置另需超管
 
 $tab = get('tab', 'backup');
 
@@ -56,6 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
     // --- 备份到服务器 ---
+    // 系统维护角色只能在服务器上做备份、优化表；把数据带走（导出、下载）、改数据（恢复、导入、删除备份、清日志）仍只给超管
+    if (in_array($action, ['export', 'download', 'restore', 'delete_backup', 'import', 'clear_logs'], true)) {
+        requirePermission('*');
+    }
     if ($action === 'backup' || $action === 'export') {
         set_time_limit(300);
         $selectedTables = $_POST['tables'] ?? array_column($allTables, 'name');

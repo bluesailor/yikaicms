@@ -63,15 +63,8 @@ function adminMenuUsageFindItem(array $sidebarMenu, string $requestUri): ?array
     $currentPath = (string) (parse_url($current, PHP_URL_PATH) ?: $current);
 
     foreach ($sidebarMenu as $group) {
-        if (!empty($group['super_only']) && !isSuperAdmin()) {
-            continue;
-        }
-
         foreach ((array) ($group['items'] ?? []) as $item) {
-            if (isset($item['visible']) && !$item['visible']) {
-                continue;
-            }
-            if (!empty($item['perm']) && !hasPermission((string) $item['perm'])) {
+            if (!adminMenuItemVisible((array) $group, (array) $item)) {
                 continue;
             }
 

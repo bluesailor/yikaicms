@@ -30,7 +30,7 @@ require_once ROOT_PATH . '/includes/security.php';   // zipUnsafeEntry（zip-sli
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('*');
+requirePermission('system_maintenance');   // 超管或「系统维护」角色（官方技术支持临时账号）；改授权类设置另需超管
 
 // License 验签所需的公钥函数；旧版本 auth.php 不会自动加载它，这里按需引入，
 // 使本升级器在被引导进旧版本站点时也能强制 RSA 验签。

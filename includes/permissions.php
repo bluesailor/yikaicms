@@ -35,6 +35,16 @@ function modulePermKeys(): array
     return ['media', 'banner', 'link', 'form', 'member'];
 }
 
+/**
+ * 系统维护（2.0.3）：升级与迁移、站点体检、系统信息与错误日志、数据库备份与优化。
+ * 给「官方技术支持」临时账号（SupportAccess）或站长信任的运维人员；**不含**会员、询盘、订单等业务数据，
+ * 也不能恢复/导入/下载数据库、改升级授权设置、管理用户——那些仍只有超级管理员能做。
+ */
+function maintenancePermKeys(): array
+{
+    return ['system_maintenance'];
+}
+
 /** Blox 场景能力；内容编辑范围仍由 edit_page 等内容权限约束。 */
 function bloxPermKeys(): array
 {
@@ -49,7 +59,7 @@ function allPermissionKeys(): array
         $keys[] = 'edit_' . $t;
         $keys[] = 'delete_' . $t;
     }
-    return array_merge($keys, modulePermKeys(), bloxPermKeys(), pluginPermissionKeys());
+    return array_merge($keys, modulePermKeys(), bloxPermKeys(), maintenancePermKeys(), pluginPermissionKeys());
 }
 
 /**
@@ -241,6 +251,7 @@ function permLabel(string $key): string
         'form' => 'admin_form', 'member' => 'admin_member',
         'blox_edit' => 'perm_blox_edit', 'blox_home' => 'perm_blox_home',
         'blox_global' => 'perm_blox_global', 'blox_code' => 'perm_blox_code',
+        'system_maintenance' => 'perm_system_maintenance',
     ];
     if (isset($mod[$key])) {
         return __($mod[$key]);
@@ -257,6 +268,7 @@ function permDescription(string $key): string
         'blox_home' => 'perm_blox_home_desc',
         'blox_global' => 'perm_blox_global_desc',
         'blox_code' => 'perm_blox_code_desc',
+        'system_maintenance' => 'perm_system_maintenance_desc',
     ];
     return isset($descriptions[$key]) ? __($descriptions[$key]) : pluginPermissionDescription($key);
 }
@@ -716,6 +728,7 @@ function permissionCatalog(): array
         'content'  => ['label' => __('perm_group_content'),  'caps' => $content],
         'module'   => ['label' => __('perm_group_module'),   'caps' => $module],
         'blox'     => ['label' => __('perm_group_blox'),     'caps' => $blox],
+        'maintenance' => ['label' => __('perm_group_maintenance'), 'caps' => array_combine(maintenancePermKeys(), array_map('permLabel', maintenancePermKeys()))],
     ];
     // 插件声明的权限键（G1）：有才出现该分组——没装插件的站点角色界面保持原样
     $plugin = [];
