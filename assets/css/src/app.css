@@ -977,6 +977,19 @@ body.yk-has-blox-sticky-header {
   transform: scaleX(-1);
 }
 
+/*
+ * RTL 页面里天生从左到右的内容：电话、邮箱、网址。输入框按 LTR 输入、靠右对齐；
+ * 显示出来的号码与地址隔离成独立的 LTR 片段，否则「+86 138…」的加号和空格会跑到另一头。
+ */
+[dir="rtl"] :is(input[type="email"], input[type="tel"], input[type="url"]) {
+  direction: ltr;
+  text-align: right;
+}
+[dir="rtl"] :is(a[href^="tel:"], a[href^="mailto:"], .yk-ltr) {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
 /* Keep the language choice on one line beside the logo and menu at narrow widths. */
 @media (max-width: 380px) {
   .yk-blox-header .yk-container { gap: .5rem; }

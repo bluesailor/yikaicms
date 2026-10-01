@@ -392,6 +392,30 @@ final class SiteHealth
         }
     }
 
+    /**
+     * 语言域名（启用时）逐个从服务器回访，确认解析、证书、绑定都指向本站同一个安装。
+     * 没启用语言域名时不出这一项。联网检查，与 checkUpdateService 一样放在体检收尾时执行。
+     *
+     * @param (callable(string):string)|null $probe 测试注入：host → 结果码
+     * @return list<array<string,mixed>>
+     */
+    public static function checkLanguageDomains(?callable $probe = null): array
+    {
+        if (!class_exists('LanguageDomains') || !LanguageDomains::active()) return [];
+        $probe ??= static fn(string $host): string => LanguageDomains::probe($host, 5);
+        $failed = [];
+        foreach (LanguageDomains::map() as $lang => $host) {
+            $code = $probe($host);
+            if ($code !== 'ok') {
+                $failed[] = LanguageRegistry::name($lang) . ' → ' . $host . '（' . self::t('health_lang_domains_reason_' . (str_starts_with($code, 'http_') ? 'http' : $code), ['status' => substr($code, 5)]) . '）';
+            }
+        }
+        $count = count(LanguageDomains::map());
+        return [$failed === []
+            ? self::result('language_domains', self::GOOD, 'operations', 'health_lang_domains_title', 'health_lang_domains_good', '/admin/setting_lang.php', ['n' => (string) $count])
+            : self::result('language_domains', self::CRITICAL, 'operations', 'health_lang_domains_title', 'health_lang_domains_failed', '/admin/setting_lang.php', ['list' => implode('；', $failed)])];
+    }
+
     /** @return array<string,mixed> */
     public static function checkUpdateService(): array
     {

@@ -51,6 +51,16 @@ function rtl_targets(): array
     $walk('marketplace/themes', ['php', 'css', 'js']);
     $walk('views', ['php']);
     $walk('templates', ['php', 'html']);
+    // 插件的前台部分（商城、Blox 插件元素等）；插件后台页面与语言包不在范围
+    if (is_dir(RTL_ROOT . '/plugins')) {
+        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(RTL_ROOT . '/plugins', FilesystemIterator::SKIP_DOTS));
+        foreach ($it as $f) {
+            $path = str_replace('\\', '/', $f->getPathname());
+            if (!$f->isFile() || !in_array(strtolower($f->getExtension()), ['php', 'css'], true)) continue;
+            if (preg_match('#/(?:admin|editor|lang|data|lib|vendor|node_modules)/|/(?:admin[^/]*|register|plugin)\.php$|\.min\.css$#', $path)) continue;
+            $files[] = $f->getPathname();
+        }
+    }
     $add('assets/css/{style,blox-*}.css');
     $add('assets/js/blox-{carousel,tabs,lightbox,popup,banner,collapse,dot-nav,overlay,org-chart}.js');
     $files = array_values(array_unique(array_map(static fn(string $f): string => str_replace('\\', '/', (string) realpath($f)), $files)));
