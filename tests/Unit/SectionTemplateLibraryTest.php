@@ -91,7 +91,10 @@ final class SectionTemplateLibraryTest extends TestCase
 
                 $thumbnail = ROOT_PATH . $items[$key]['thumbnail'];
                 self::assertFileExists($thumbnail);
-                self::assertSame([1200, 525], array_slice((array) getimagesize($thumbnail), 0, 2));
+                [$w, $h] = array_slice((array) getimagesize($thumbnail), 0, 2);
+                // 缩略图统一 1200:525 比例；2.0.3 瘦身后宽 800，不再锁死像素。
+                self::assertGreaterThanOrEqual(800, $w);
+                self::assertSame(1200 * $h, 525 * $w, "{$items[$key]['thumbnail']} 比例应为 1200:525");
             }
         }
     }
