@@ -12,6 +12,7 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/security.php';   // zipUnsafeEntry()：插件安装/解压前的 zip-slip 校验依赖它（init.php 只在前台加载）
 require_once ROOT_PATH . '/includes/MarketDownloadStatus.php';
+require_once ROOT_PATH . '/includes/PluginIcons.php';
 require_once ROOT_PATH . '/includes/MarketCatalogItems.php';
 require_once ROOT_PATH . '/includes/MarketCatalogRequest.php';
 require_once ROOT_PATH . '/includes/MarketDownloadUrl.php';
@@ -47,6 +48,8 @@ function pluginMarketDecorate(array $item): array
     $item['thumbnail'] = ($item['source'] ?? 'official') === 'community'
         ? MarketCoverUrl::accept($item['thumbnail'] ?? '', 'plugin', (string) ($item['slug'] ?? ''), (string) ($item['version'] ?? ''))
         : '';
+    // 图标只用自托管的 Tabler 字体类名；社区条目不采用目录图标（见 PluginIcons）
+    $item['icon'] = PluginIcons::forMarket($item);
     if (MarketDownloadStatus::reason($item) === '') {
         try {
             (new PluginInstaller(ROOT_PATH . '/plugins', ROOT_PATH . '/storage'))->assertOrigin(
@@ -281,7 +284,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </template>
                     <div class="flex items-center gap-3">
                         <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
-                            <i class="ti ti-puzzle text-xl"></i>
+                            <i class="ti text-xl" :class="p.icon || 'ti-puzzle'" aria-hidden="true"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
@@ -358,7 +361,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div :class="views.installed === 'grid' ? 'h-full px-5 py-4 flex flex-col gap-3' : 'px-6 py-5 flex items-start gap-4'">
                 <?php /* 插件图标 */ ?>
                 <div class="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center <?php echo $p['status'] ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'; ?>">
-                    <i class="ti ti-clipboard text-xl"></i>
+                    <i class="ti <?php echo e(PluginIcons::forInstalled((string) $slug, $p)); ?> text-xl" aria-hidden="true" data-testid="plugin-installed-icon"></i>
                 </div>
                 <?php /* 插件信息 */ ?>
                 <div class="flex-1 min-w-0">
