@@ -2160,7 +2160,6 @@ CREATE TABLE "yikai_products" (
   "is_new" INTEGER NOT NULL DEFAULT '0',
   "views" INTEGER NOT NULL DEFAULT '0',
   "status" INTEGER NOT NULL DEFAULT '1',
-  "publish_time" INTEGER NOT NULL DEFAULT '0',
   "sort_order" INTEGER NOT NULL DEFAULT '0',
   "created_at" INTEGER NOT NULL DEFAULT '0',
   "updated_at" INTEGER NOT NULL DEFAULT '0',

@@ -330,16 +330,6 @@ class ContentModel extends Model
     }
 
     /**
-     * 定时发布：将已到发布时间的定时内容上线。保留给旧调用方；
-     * 2.0.3 起统一走 ScheduledPublish::sweep()（文章与产品一起，并刷新页面缓存）。
-     */
-    public function promoteDue(): int
-    {
-        require_once ROOT_PATH . '/includes/ScheduledPublish.php';
-        return ScheduledPublish::sweep();
-    }
-
-    /**
      * 获取含 sort_order 的排序（兼容未升级的数据库）
      */
     public function getEffectiveOrder(): string

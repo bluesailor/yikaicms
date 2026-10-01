@@ -858,7 +858,6 @@ return [
     'prod_scheduled_hint' => '选择「定时上架」并设置未来的时间，产品会在该时间自动上架。',
     'prod_future_time_hint' => '上架时间在未来：保存后会自动改为「定时上架」，到时自动上架。',
     'prod_scheduled_time_required' => '选择「定时上架」时请设置上架时间',
-    'prod_scheduled_needs_upgrade' => '请先在「系统维护 → 系统升级」执行数据库升级，再使用定时上架。',
     'admin_unpublished' => '未发布',
     'admin_sort_order' => '排序',
     'admin_update' => '更新',

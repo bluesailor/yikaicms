@@ -68,18 +68,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // 定时上架：与文章的定时发布同一套规则（未来时间自动转为定时，已过的定时直接上架）。
-    // 数据库升级还没跑（产品表缺 publish_time）时不写这一列，也不接受定时。
-    if (ScheduledPublish::productsReady()) {
-        try {
-            $sched = ScheduledPublish::normalize((int) $data['status'], (string) post('publish_time'), (int) ($product['publish_time'] ?? 0));
-        } catch (InvalidArgumentException) {
-            error(__('prod_scheduled_time_required'));
-        }
-        $data['status'] = $sched['status'];
-        $data['publish_time'] = $sched['publish_time'];
-    } elseif ((int) $data['status'] === ScheduledPublish::STATUS) {
-        error(__('prod_scheduled_needs_upgrade'));
+    // 上架时间存在 metas（见 ScheduledPublish），保存产品后写入。
+    try {
+        $sched = ScheduledPublish::normalize((int) $data['status'], (string) post('publish_time'), ScheduledPublish::productTime($id));
+    } catch (InvalidArgumentException) {
+        error(__('prod_scheduled_time_required'));
     }
+    $data['status'] = $sched['status'];
 
     // 仅在开启价格显示时更新价格字段
     if (config('show_price', '0') === '1') {
@@ -105,6 +100,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (InvalidArgumentException $e) { error(__($e->getMessage())); }
         adminLog('product', 'create', "创建产品ID: $id");
     }
+    // 只在定时期间保存上架时间：上架后不再需要，普通保存也不往 metas 写行
+    ScheduledPublish::setProductTime((int) $id, $sched['status'] === ScheduledPublish::STATUS ? $sched['publish_time'] : 0);
 
     success(['id' => $id]);
 }
@@ -367,17 +364,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <select name="status" id="productStatus" class="w-full border rounded px-4 py-2" data-testid="product-status">
                             <option value="1" <?php echo ($product['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo __('status_on'); ?></option>
                             <option value="0" <?php echo ($product['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('status_off'); ?></option>
-                            <?php if (ScheduledPublish::productsReady()): ?>
                             <option value="3" <?php echo ($product['status'] ?? 1) == 3 ? 'selected' : ''; ?>><?php echo __('prod_status_scheduled'); ?></option>
-                            <?php endif; ?>
                         </select>
                     </div>
 
-                    <?php if (ScheduledPublish::productsReady()): ?>
+                    <?php $__productTime = ScheduledPublish::productTime((int) ($product['id'] ?? 0)); ?>
                     <div id="productPublishTimeBox">
                         <label class="block text-gray-700 mb-1"><?php echo __('prod_publish_time'); ?></label>
                         <input type="datetime-local" name="publish_time" id="productPublishTime" data-testid="product-publish-time"
-                               value="<?php echo !empty($product['publish_time']) ? date('Y-m-d\TH:i', (int) $product['publish_time']) : ''; ?>"
+                               value="<?php echo $__productTime > 0 ? date('Y-m-d\TH:i', $__productTime) : ''; ?>"
                                class="w-full border rounded px-4 py-2">
                         <p id="productPublishHint" class="text-xs text-orange-500 mt-1 hidden" data-testid="product-schedule-hint"
                            data-scheduled="<?php echo e(__('prod_scheduled_hint')); ?>"
@@ -402,7 +397,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         sync();
                     })();
                     </script>
-                    <?php endif; ?>
 
                     <div class="flex flex-wrap gap-4">
                         <label class="flex items-center gap-2">
