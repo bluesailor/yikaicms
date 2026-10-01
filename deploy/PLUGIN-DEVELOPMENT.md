@@ -1,8 +1,8 @@
 # YikaiCMS 插件开发指南
 
-文档版本：0.3。更新：2026-09-18。对象：为 YikaiCMS 编写业务扩展和后台工具的开发者。
+文档版本：0.4。更新：2026-10-01。对象：为 YikaiCMS 编写业务扩展和后台工具的开发者。
 
-本文根据当前主仓源码整理，不是 WordPress 插件教程。源码核对基线：YikaiCMS v2.0.2，提交 `0bcb322f8c9b8a59975e5917d449e0753428b2bd`（0.2 版历史基线为 v1.19.9 `c97ca429`；2.0.1、2.0.2 未改变插件接口）。本版指南已按当前的插件依赖声明、整站模板插件数据接入、插件安装与来源回执规则复核。代码须兼容 PHP 8.0（产品运行下限），推荐 8.2+；数据库兼容 MySQL 5.7 / MariaDB 10.x 与 SQLite。
+本文根据当前主仓源码整理，不是 WordPress 插件教程。源码核对基线：YikaiCMS v2.0.3（`18f8dbdc695d18d0537909209e59f43613cf9869`）（0.3 版基线为 v2.0.2 `0bcb322f8c9b8a59975e5917d449e0753428b2bd`；0.2 版历史基线为 v1.19.9 `c97ca429`；2.0.1、2.0.2 未改变插件接口）。本版指南已按当前的插件依赖声明、整站模板插件数据接入、插件安装与来源回执规则复核；2.0.3 未改变插件加载、钩子与安装接口，新增的是多语言（语言注册表、语言域名、从右到左、繁体整页转换）与升级前核心文件检查带来的约束。代码须兼容 PHP 8.0（产品运行下限），推荐 8.2+；数据库兼容 MySQL 5.7 / MariaDB 10.x 与 SQLite。
 
 示例是开发起点，尚未安装到站点或进行浏览器验收。发布前应针对目标 CMS 版本验证。本指南不把开发分支的未发布能力视为稳定公共接口。
 
@@ -18,6 +18,8 @@
 | 修改 CMS 内核行为但没有现成扩展点 | 先提出最小扩展点，不直接复制一份内核到插件里 |
 
 插件与 CMS 在同一 PHP 进程运行，不是隔离沙箱。安装 PHP 插件意味着信任其代码；不要安装来源不明的包。
+
+插件不要改写核心文件（升级会覆盖的文件，含 `themes/default/` 与随包插件），也不要让客户为了接入插件去手改。2.0.3 起升级前会按包内哈希清单（`config/release-files.php`）比对：新版本要覆盖的文件若被本站改过，在线升级会列出文件、等站长确认后才覆盖，自动升级与服务商远程升级直接跳过这次升级。
 
 ## 2. 目录和命名
 
@@ -187,6 +189,14 @@ return [
 
 插件语言加载先以 zh-CN 兜底，再合并当前语言；核心已有键不会被插件覆盖。因此必须使用插件前缀，不能通过同名键偷偷重写核心文案。
 
+语言代码以 [`includes/i18n/LanguageRegistry.php`](../includes/i18n/LanguageRegistry.php) 为准（2.0.3 起登记 16 种，文件名如 `lang/ko.php`、`lang/ar.php`）。插件语言包只有上面两层，没有核心语言包那一层英文兜底（`loadPluginLang()`）：站点启用了韩语而插件没有 `lang/ko.php` 时，插件文案显示中文。`plugin.json` 的其他语言写作 `name_ko`、`description_ko`，缺译同样回落中文（`pluginMetaLabel()`）。繁体中文（zh-TW）不需要单独的语言包，见 5.5。
+
+### 5.5 前台输出的多语言要求
+
+- 站内链接用 `langUrl()`、`langPrefix()`，不手工拼 `/en/`。站点启用语言域名（`en.example.com`）后，带前缀的地址会被 301 到语言域名（`LanguageDomains::redirectTarget()`）：页面 HTML 里 `<a>`、`<form>` 等的地址有输出兜底改写，脚本里拼出的地址和 JSON 返回的地址没有，AJAX 请求会多一次跳转，POST 经 301 后会被浏览器改成 GET。语言列表用 `enabledLanguages()`，不写死。
+- 繁体中文是简体页面的整页转换（`includes/i18n/S2T.php`）：页面正文、行内 `<script>` 和前台 AJAX 返回的 JSON 都会转成繁体（`/api/` 不转）。如果页面上的数据会原样提交回服务器、并在服务器上按简体比对（选项值、地区名等），服务器端用 `S2T::canonical($value, $allowed)` 映射回简体原值，或给那段 `<script>` 加 `data-s2t="skip"`；整个响应不能转换时发 `X-S2T: skip` 响应头。详见 [多语言部署](./LANGUAGES.md) 第四节。
+- 前台样式用逻辑方向（`ms-*` / `me-*`、`text-start`、`margin-inline-start` 等），阿拉伯语页面才能镜像；规则见 [主题与模板指南](./THEME-DEVELOPMENT.md) 第 8.3 节。在源码仓库中可用 `php tools/check_rtl.php --file=<相对项目根目录的路径>` 逐处检查插件前台文件（`tools/` 不随安装包分发）。
+
 ## 6. 钩子 API 与实际覆盖范围
 
 ```php
@@ -300,5 +310,6 @@ v1.20.1 起，安装种子（`install/sql/*.sql`）只登记随完整包提供�
 - [设置模型](../includes/models/SettingModel.php)
 - [后台菜单接口](../admin/includes/sidebar_menu_api.php)
 - [插件 CLI](../includes/commands/plugin.php)
+- [语言注册表](../includes/i18n/LanguageRegistry.php)、[繁体整页转换](../includes/i18n/S2T.php)、[多语言部署](./LANGUAGES.md)
 
 后续维护：接口发生变化时同时更新本指南和对应示例；历史插件中的宽松 HTML 输出、旧 PHP 注释、未验证钩子不能当作新开发的安全标准。
