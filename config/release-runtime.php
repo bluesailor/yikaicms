@@ -72,6 +72,7 @@ return [
         'includes/ThemeMarket.php',
         'includes/SupportAccess.php',           // admin/includes/auth.php 无条件 require：技术支持临时访问
         'includes/RemoteRepair.php',            // admin/upgrade.php 无条件 require：远程修复记录
+        'includes/ScheduledPublish.php',        // includes/init.php 每次访问限流调用：定时发布 / 定时上架
         'admin/support_access.php',
         'admin/support_login.php',
         'includes/ThemeValidator.php',
