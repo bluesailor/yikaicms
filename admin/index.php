@@ -333,7 +333,7 @@ if ($__mailPrompt) {
         try {
             var d = await send({ action: 'save_update_mail', subscribe: '1', email: document.getElementById('updateMailPromptEmail').value });
             if (!d || Number(d.code) !== 0) throw new Error(d && d.msg ? d.msg : '');
-            if (typeof showMessage === 'function') showMessage(<?php echo json_encode(__('upgrade_mail_prompt_done'), JSON_UNESCAPED_UNICODE); ?>);
+            if (typeof showMessage === 'function') showMessage(d.msg || <?php echo json_encode(__('upgrade_mail_prompt_done'), JSON_UNESCAPED_UNICODE); ?>);
             box.remove();
         } catch (e) {
             if (typeof showMessage === 'function') showMessage(e.message || <?php echo json_encode(__('upgrade_mail_invalid'), JSON_UNESCAPED_UNICODE); ?>, 'error');
