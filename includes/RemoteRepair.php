@@ -41,8 +41,12 @@ final class RemoteRepair
     /** 配方不能碰的表（含插件表名里出现这些词的，如 shop_orders）。 */
     private const SENSITIVE_TABLE = '/(^|_)(users?|roles?|members?|admin_logs?|dologin_links?|mail_logs?|forms?|orders?|payments?|customers?|addresses?|settings)($|_)/';
 
-    /** 不能改的设置：密钥类之外，还有授权、升级与远程访问开关（配方不能给自己扩权）。 */
-    private const PROTECTED_SETTING = '/^(license|managed_upgrade|auto_upgrade|support_access|remote_repair|update_mail|update_channel|admin_|login_|cron_|install_)/';
+    /**
+     * 不能改的设置：密钥类之外，还有授权、升级与远程访问开关（配方不能给自己扩权）；
+     * 发信与收件地址（改了询盘就发去别处）、上传类型、可信代理、站点地址；以及会往前台页面
+     * 注入代码的自定义代码类设置。
+     */
+    private const PROTECTED_SETTING = '/^(license|managed_upgrade|auto_upgrade|support_access|remote_repair|update_mail|update_channel|admin_|login_|cron_|install_|mail_|smtp_|upload_|trusted_|demo_|debug|custom_|site_url$|static_html_base_url$)|(^|_)(code|script|js|css|html)$/';
 
     /**
      * 处理 check 响应里的 repairs 段。只在站长授权了远程升级与修复时调用。

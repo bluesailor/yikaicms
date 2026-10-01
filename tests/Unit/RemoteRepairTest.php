@@ -139,10 +139,13 @@ final class RemoteRepairTest extends TestCase
 
     public function testProtectedSettingsCannotBeChanged(): void
     {
-        foreach (['managed_upgrade_enabled', 'auto_upgrade_enabled', 'license_key', 'smtp_pass', 'cron_token', 'support_access_until', 'remote_repair_log', 'update_channel'] as $key) {
+        foreach (['managed_upgrade_enabled', 'auto_upgrade_enabled', 'license_key', 'smtp_pass', 'cron_token', 'support_access_until', 'remote_repair_log', 'update_channel',
+            'mail_admin', 'smtp_host', 'upload_file_types', 'trusted_proxies', 'custom_head_code', 'custom_body_code', 'site_url', 'demo_mode'] as $key) {
             self::assertNotNull(RemoteRepair::stepProblem(['type' => 'setting', 'key' => $key, 'value' => '1']), $key);
         }
-        self::assertNull(RemoteRepair::stepProblem(['type' => 'setting', 'key' => 'site_name', 'value' => 'x']));
+        foreach (['site_name', 'contact_qrcode', 'header_sticky', 'html_cache_ttl'] as $key) {
+            self::assertNull(RemoteRepair::stepProblem(['type' => 'setting', 'key' => $key, 'value' => 'x']), $key);
+        }
         self::assertNotNull(RemoteRepair::stepProblem(['type' => 'php', 'code' => 'phpinfo();']));
         self::assertNotNull(RemoteRepair::stepProblem(['type' => 'file', 'path' => 'index.php']));
     }
