@@ -39,6 +39,7 @@ final class SiteHealth
             self::checkDiskSpace($root),
             self::checkHttps(),
             self::checkSiteAddress(),
+            self::checkLanguageRouting($root),
             self::checkAdminPolicy(),
             self::checkUploadPolicy(),
             self::checkFormPolicy(),
@@ -671,6 +672,38 @@ final class SiteHealth
         };
         return self::result('site_address', $status, 'operations', 'health_site_address_title', $message,
             '/admin/setting.php', ['configured' => $check['configured'], 'current' => $check['current']]);
+    }
+
+    /**
+     * 语言网址前缀：老站的 .htaccess 升级时不会被覆盖，里面写死的语言规则认不得新开的语言，
+     * /ko/xxx.html 会落到栏目规则上 404。这里只看文件（快、无网络）；nginx 等不读 .htaccess 的
+     * 服务器由「多语言设置」页的浏览器探针实测，那里也提供一键更新与自动撤销。
+     */
+    private static function checkLanguageRouting(string $root): array
+    {
+        if (!function_exists('config') || (function_exists('isDynamicUrlMode') && isDynamicUrlMode())) {
+            return self::result('language_routing', self::GOOD, 'operations', 'health_lang_routing_title', 'health_lang_routing_ok', '/admin/setting_lang.php');
+        }
+        require_once $root . '/includes/i18n/LanguageRouting.php';
+        $enabled = json_decode((string) config('enabled_languages', ''), true);
+        $prefix = LanguageRouting::prefixLanguages(is_array($enabled) ? array_values(array_filter($enabled, 'is_string')) : [],
+            (string) config('site_lang', 'zh-CN'));
+        $names = static fn(array $codes): string => implode(', ', array_map(static fn(string $c): string => LanguageRegistry::name($c), $codes));
+        $status = LanguageRouting::htaccessStatus($root);
+        if ($status['state'] === 'legacy') {
+            $missing = LanguageRouting::uncovered($status['codes'], $prefix);
+            return $missing !== []
+                ? self::result('language_routing', self::CRITICAL, 'operations', 'health_lang_routing_title', 'health_lang_routing_legacy_missing', '/admin/setting_lang.php', ['langs' => $names($missing)])
+                : self::result('language_routing', self::RECOMMENDED, 'operations', 'health_lang_routing_title', 'health_lang_routing_legacy', '/admin/setting_lang.php');
+        }
+        if ($status['state'] !== 'current') {
+            // 没有 .htaccess（nginx）或自定义过：看不出来，开了老四种以外的前缀语言时提醒去实测
+            $beyond = LanguageRouting::uncovered(['zh-CN', 'zh-TW', 'en', 'ja'], $prefix);
+            if ($beyond !== []) {
+                return self::result('language_routing', self::RECOMMENDED, 'operations', 'health_lang_routing_title', 'health_lang_routing_verify', '/admin/setting_lang.php', ['langs' => $names($beyond)]);
+            }
+        }
+        return self::result('language_routing', self::GOOD, 'operations', 'health_lang_routing_title', 'health_lang_routing_ok', '/admin/setting_lang.php');
     }
 
     /** @return array<string,mixed> */

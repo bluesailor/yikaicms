@@ -2,7 +2,8 @@
 /**
  * 语言域名模式：某些语言用独立域名（en.example.com、example.de），其余语言照旧用 /xx/ 前缀。
  *
- * 设置 language_domains = {"en":"en.example.com","de":"example.de"}（后台「多语言」页维护）。
+ * 设置 language_domains = {"en":"en.example.com","de":"example.de"}（后台「多语言」页维护），
+ * 总开关 language_domains_enabled = '1' 时才生效；关掉后域名保留，全站回到 /xx/ 前缀。
  *   - 默认语言永远在主域名（site_url 的主机），不能映射；
  *   - 只收已启用、已注册的非默认语言；域名不能与主域名或彼此重复；
  *   - 访问语言域名 = 该语言，不带前缀：en.example.com/news.html 就是英文新闻页；
@@ -79,6 +80,7 @@ final class LanguageDomains
         // 兼容地址模式（?yk_route=）没有路径前缀可言，本模式只配合漂亮地址使用
         if (function_exists('isDynamicUrlMode') && isDynamicUrlMode()) return self::$map = [];
         $default = (string) config('site_lang', 'zh-CN');
+        if ((string) config('language_domains_enabled', '0') !== '1') return self::$map = [];
         $raw = trim((string) config('language_domains', ''));
         if ($raw === '' || self::mainHost() === '') return self::$map = [];
         $enabledRaw = json_decode((string) config('enabled_languages', ''), true);
