@@ -26,6 +26,7 @@ function shopProductVariantsFromJson(?string $json): array
     }
     $variants = [];
     $seen = [];
+    $seenLabels = [];
     foreach ($decoded as $row) {
         if (!is_array($row)) {
             return [];
@@ -41,14 +42,79 @@ function shopProductVariantsFromJson(?string $json): array
             || ($price !== null && shopValidSalePriceCents($price) === null)) {
             return [];
         }
-        $expectedId = shopVariantId($label, $sku);
-        if (!hash_equals($expectedId, $id) || isset($seen[$id])) {
+        // 历史哈希 ID 原样保留；身份不再随着规格名和货号变动。
+        $labelKey = mb_strtolower($label);
+        if (preg_match('/^[a-f0-9]{20}$/D', $id) !== 1 || isset($seen[$id]) || isset($seenLabels[$labelKey])) {
             return [];
         }
         $seen[$id] = true;
+        $seenLabels[$labelKey] = true;
         $variants[] = ['id' => $id, 'label' => $label, 'sku' => $sku, 'price' => $price, 'stock' => $stock];
     }
     return $variants;
+}
+
+/**
+ * 后台旧规格显式携带身份，新规格仍按四列录入；不按文本行号猜测旧身份。
+ * @param array<array-key,mixed> $rows
+ * @return array{ok:bool,error:string,value:?string,variants:list<array{id:string,label:string,sku:string,price:?string,stock:int}>,stock:int}
+ */
+function shopNormalizeVariantRows(array $rows, ?string $existingJson, string $newRaw): array
+{
+    $fail = static fn(): array => [
+        'ok' => false, 'error' => 'shop_err_variants', 'value' => null, 'variants' => [], 'stock' => 0,
+    ];
+    if (!shopProductVariantsJsonValid($existingJson) || count($rows) > 50 || mb_strlen($newRaw) > 20000) {
+        return $fail();
+    }
+    $existing = array_column(shopProductVariantsFromJson($existingJson), null, 'id');
+    $seen = [];
+    $ids = [];
+    $lines = [];
+    foreach ($rows as $row) {
+        if (!is_array($row) || !is_string($row['id'] ?? null)
+            || !isset($existing[$row['id']]) || isset($seen[$row['id']])) {
+            return $fail();
+        }
+        $seen[$row['id']] = true;
+        if (($row['remove'] ?? '') === '1') {
+            continue;
+        }
+        $fields = [];
+        foreach (['label', 'sku', 'price', 'stock'] as $field) {
+            if (!is_string($row[$field] ?? null) || str_contains($row[$field], '|')
+                || shopShippingLikeControlChars($row[$field])) {
+                return $fail();
+            }
+            $fields[] = $row[$field];
+        }
+        $lines[] = implode(' | ', $fields);
+        $ids[] = $row['id'];
+    }
+    // 截断表单/漏交的旧行不能被误解释为删除。
+    if (count($seen) !== count($existing)) {
+        return $fail();
+    }
+    $normalized = shopNormalizeVariantConfig(implode("\n", $lines) . "\n" . $newRaw);
+    if (!$normalized['ok']) {
+        return $normalized;
+    }
+    $used = array_fill_keys(array_keys($existing), true);
+    foreach ($normalized['variants'] as $index => &$variant) {
+        if (isset($ids[$index])) {
+            $variant['id'] = $ids[$index];
+        } else {
+            do {
+                $id = bin2hex(random_bytes(10));
+            } while (isset($used[$id]));
+            $variant['id'] = $id;
+            $used[$id] = true;
+        }
+    }
+    unset($variant);
+    $normalized['value'] = $normalized['variants'] === [] ? null
+        : json_encode($normalized['variants'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    return $normalized;
 }
 
 /** 非空规格 JSON 必须是空数组或能完整通过严格解析；损坏配置不得退化成普通商品继续卖。 */

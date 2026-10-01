@@ -333,37 +333,60 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
             $error = __('shop_err_stock');
         }
     }
-    $variantConfig = shopNormalizeVariantConfig($variantsRaw);
-    if ($error === '' && !$variantConfig['ok']) {
-        $error = __($variantConfig['error']);
-    }
-    if ($error === '' && $variantConfig['variants'] !== []) {
-        $stock = $variantConfig['stock'];
-    }
     if ($error !== '') {
         header('Location: /admin/plugin_page.php?plugin=shop&err=' . urlencode($error));
         exit;
     }
 
-    $now = time();
-    $data = [
-        'sku' => $sku,
-        'price' => $priceCents !== null ? shopCentsToDecimal($priceCents) : null,
-        'stock' => $stock,
-        'specs_json' => $variantConfig['value'],
-        'status' => $status,
-        'updated_at' => $now,
-    ];
-    $exists = db()->fetchOne(
-        'SELECT product_id FROM ' . DB_PREFIX . 'shop_products WHERE product_id = ?',
-        [$salesKey]
-    );
-    if ($exists) {
-        db()->update('shop_products', $data, 'product_id = ?', [$salesKey]);
-    } else {
-        $data['product_id'] = $salesKey;
-        $data['created_at'] = $now;
-        db()->insert('shop_products', $data);
+    db()->beginTransaction();
+    try {
+        if (db()->isSqlite()) {
+            db()->execute('UPDATE ' . DB_PREFIX . 'shop_products SET product_id = product_id WHERE product_id = ?', [$salesKey]);
+        }
+        $existing = db()->fetchOne(
+            'SELECT product_id, specs_json FROM ' . DB_PREFIX . 'shop_products WHERE product_id = ?'
+            . (db()->isSqlite() ? '' : ' FOR UPDATE'), [$salesKey]
+        );
+        $existingJson = isset($existing['specs_json']) ? (string) $existing['specs_json'] : null;
+        $version = is_string($_POST['variants_version'] ?? null) ? $_POST['variants_version'] : '';
+        if (!hash_equals(hash('sha256', $existingJson ?? ''), $version)) {
+            throw new RuntimeException('shop_err_sales_changed');
+        }
+        $rows = $_POST['variant_rows'] ?? [];
+        if (!is_array($rows)) {
+            throw new RuntimeException('shop_err_variants');
+        }
+        $variantConfig = shopNormalizeVariantRows($rows, $existingJson, $variantsRaw);
+        if (!$variantConfig['ok']) {
+            throw new RuntimeException($variantConfig['error']);
+        }
+        if ($variantConfig['variants'] !== []) {
+            $stock = $variantConfig['stock'];
+        }
+        $now = time();
+        $data = [
+            'sku' => $sku,
+            'price' => $priceCents !== null ? shopCentsToDecimal($priceCents) : null,
+            'stock' => $stock,
+            'specs_json' => $variantConfig['value'],
+            'status' => $status,
+            'updated_at' => $now,
+        ];
+        if ($existing !== null) {
+            db()->update('shop_products', $data, 'product_id = ?', [$salesKey]);
+        } else {
+            $data['product_id'] = $salesKey;
+            $data['created_at'] = $now;
+            db()->insert('shop_products', $data);
+        }
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        $key = in_array($e->getMessage(), ['shop_err_sales_changed', 'shop_err_variants'], true)
+            ? $e->getMessage() : 'shop_err_order_failed';
+        error_log('[shop] sales save failed: ' . $e->getMessage());
+        header('Location: /admin/plugin_page.php?plugin=shop&err=' . urlencode(__($key)), true, 303);
+        exit;
     }
 
     adminLog('shop', 'save_sales', 'Save sales config for product #' . $productId . ' (key ' . $salesKey . ') status=' . $status . ' stock=' . $stock . ' variants=' . count($variantConfig['variants']));
@@ -941,10 +964,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="text-xs text-gray-400"><?php echo e((string) $row['model']); ?> · <?php echo e((string) $row['lang']); ?><?php echo (int) ($row['sales_key'] ?? 0) > 0 && (int) $row['sales_key'] !== (int) $row['id'] ? ' · ' . e(__('shop_shared_group')) : ''; ?></div>
                         <details class="mt-2 text-xs"<?php echo shopProductVariantsFromJson(isset($row['specs_json']) ? (string) $row['specs_json'] : null) !== [] ? ' open' : ''; ?>>
                             <summary class="cursor-pointer text-primary"><?php echo e(__('shop_variants_title')); ?></summary>
+                            <input type="hidden" name="variants_version" value="<?php echo e(hash('sha256', (string) ($row['specs_json'] ?? ''))); ?>">
+                            <?php foreach (shopProductVariantsFromJson(isset($row['specs_json']) ? (string) $row['specs_json'] : null) as $variantIndex => $variant): ?>
+                            <fieldset class="mt-2 border border-gray-300 rounded px-2 py-1">
+                                <legend><?php echo e($variant['label']); ?></legend>
+                                <input type="hidden" name="variant_rows[<?php echo (int) $variantIndex; ?>][id]" value="<?php echo e($variant['id']); ?>">
+                                <?php foreach (['label' => 'shop_variant_label', 'sku' => 'shop_col_sku', 'price' => 'shop_col_sale_price', 'stock' => 'shop_col_stock'] as $variantField => $variantLabel): ?>
+                                <label class="block mt-1">
+                                    <?php echo e(__($variantLabel)); ?>
+                                    <input type="text" name="variant_rows[<?php echo (int) $variantIndex; ?>][<?php echo e($variantField); ?>]" value="<?php echo e((string) ($variant[$variantField] ?? '')); ?>"
+                                           maxlength="100" class="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                                </label>
+                                <?php endforeach; ?>
+                                <label class="block mt-1"><input type="checkbox" name="variant_rows[<?php echo (int) $variantIndex; ?>][remove]" value="1"> <?php echo e(__('shop_variant_remove')); ?></label>
+                            </fieldset>
+                            <?php endforeach; ?>
+                            <label class="block mt-1"><?php echo e(__('shop_variants_add')); ?>
                             <textarea name="variants" rows="4" maxlength="20000"
                                       class="mt-1 w-80 max-w-full border border-gray-300 rounded px-2 py-1 font-mono text-xs"
                                       placeholder="<?php echo e(__('shop_variants_placeholder')); ?>"
-                                      data-testid="shop-variants-<?php echo (int) $row['id']; ?>"><?php echo e(shopVariantConfigToLines(isset($row['specs_json']) ? (string) $row['specs_json'] : null)); ?></textarea>
+                                      data-testid="shop-variants-<?php echo (int) $row['id']; ?>"></textarea>
+                            </label>
                             <p class="mt-1 text-gray-400 max-w-80"><?php echo e(__('shop_variants_hint')); ?></p>
                         </details>
                     </td>
