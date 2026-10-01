@@ -121,10 +121,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
         UpdateMailSubscription::unsubscribe();
     }
     adminLog('setting', 'update', 'update_mail: ' . (post('subscribe') === '1' ? 'on' : 'off'));
-    // 立即回访一次，让订阅 / 退订马上送达；失败无妨，定时任务每小时还会回访
+    // 保存即生效：立即回访一次把订阅 / 退订送到更新服务器，并如实告诉站长有没有送达。
+    // 服务器暂时连不上时本地照样保存，定时任务每小时回访会再送一次。
     require_once ROOT_PATH . '/includes/AutoUpgrade.php';
-    AutoUpgrade::check();
-    success(['on' => UpdateMailSubscription::current()['on']]);
+    $synced = AutoUpgrade::check() !== null;
+    $on = UpdateMailSubscription::current()['on'];
+    success(['on' => $on, 'synced' => $synced],
+        __($synced ? ($on ? 'upgrade_mail_synced_on' : 'upgrade_mail_synced_off') : 'upgrade_mail_sync_later'));
 }
 
 // AJAX: 立即检查并升级（手动触发同一条无人值守管道，用于验证配置是否可用）
@@ -952,7 +955,7 @@ $__mCur = defined('CMS_VERSION') ? CMS_VERSION : '?';
                     <input id="updateMailOn" type="checkbox" class="rounded" <?php echo $__mail['on'] ? 'checked' : ''; ?>>
                     <?php echo e(__('upgrade_mail_subscribe')); ?>
                 </label>
-                <button type="button" onclick="saveUpdateMail()"
+                <button type="button" id="updateMailSave" onclick="saveUpdateMail()" data-testid="update-mail-save"
                         class="inline-flex items-center justify-center px-3 py-2 bg-white border border-gray-200 hover:border-primary hover:text-primary rounded text-sm">
                     <?php echo e(__('upgrade_mail_save')); ?>
                 </button>
@@ -984,6 +987,10 @@ async function saveManagedUpgrade(toggle) {
 }
 
 async function saveUpdateMail() {
+    var button = document.getElementById('updateMailSave');
+    var label = button.textContent;
+    button.disabled = true;
+    button.textContent = '<?php echo e(__('upgrade_mail_syncing')); ?>';
     var fd = new FormData();
     fd.append('action', 'save_update_mail');
     fd.append('_token', '<?php echo csrfToken(); ?>');
@@ -996,9 +1003,12 @@ async function saveUpdateMail() {
             showMessage(d && d.msg ? d.msg : '<?php echo e(__('admin_save_failed')); ?>', 'error');
             return;
         }
-        showMessage('<?php echo e(__('admin_saved')); ?>');
+        showMessage(d.msg || '<?php echo e(__('admin_saved')); ?>');
     } catch (e) {
         showMessage('<?php echo e(__('admin_save_failed')); ?>', 'error');
+    } finally {
+        button.disabled = false;
+        button.textContent = label;
     }
 }
 
