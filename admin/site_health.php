@@ -225,7 +225,7 @@ unset($pageTitle);
 <?php if ($tab === 'status'): ?>
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-        <h1 class="text-xl font-semibold text-gray-900"><?php echo e(__('health_title')); ?></h1>
+        <h2 class="text-xl font-semibold text-gray-900"><?php echo e(__('health_title')); ?></h2>
         <p id="healthLastAt" class="mt-1 text-sm text-gray-500">
             <?php echo $lastAt > 0 ? e(__('health_last_scan') . ': ' . date('Y-m-d H:i', $lastAt)) : e(__('health_never_scanned')); ?>
         </p>
@@ -237,36 +237,52 @@ unset($pageTitle);
             <i class="ti ti-help-circle text-lg" aria-hidden="true"></i>
             <span><?php echo e(__('admin_help_rewrite')); ?></span>
         </a>
-        <button id="healthRun" type="button" class="inline-flex min-h-10 items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
+        <button id="healthRun" type="button" class="inline-flex min-h-10 items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
             <i class="ti ti-shield-check text-lg" aria-hidden="true"></i>
             <span><?php echo e(__('health_run')); ?></span>
         </button>
     </div>
 </div>
 
-<div id="healthSummary" class="grid grid-cols-2 lg:grid-cols-4 border border-gray-200 bg-white rounded-lg overflow-hidden mb-6">
+<section aria-labelledby="healthSummaryHeading" class="mb-6">
+<h3 id="healthSummaryHeading" class="mb-3 text-base font-semibold text-gray-800"><?php echo e($lastAt > 0 ? __('health_saved_summary_title') : __('health_never_scanned')); ?></h3>
+<dl id="healthSummary" class="grid grid-cols-2 lg:grid-cols-4 border border-gray-200 bg-white rounded-lg overflow-hidden">
     <?php foreach (['critical', 'recommended', 'good', 'unknown'] as $index => $status): ?>
     <div class="min-h-24 px-5 py-4 <?php echo $index % 2 === 0 ? 'border-r' : ''; ?> <?php echo $index < 2 ? 'border-b lg:border-b-0' : ''; ?> <?php echo $index > 0 ? 'lg:border-l' : ''; ?> border-gray-200">
-        <p class="text-sm text-gray-500"><?php echo e(__('health_summary_' . $status)); ?></p>
-        <p class="mt-2 text-2xl font-semibold text-gray-900" data-summary="<?php echo e($status); ?>"><?php echo (int) ($lastSummary[$status] ?? 0); ?></p>
+        <dt class="text-sm text-gray-500"><?php echo e(__('health_summary_' . $status)); ?></dt>
+        <dd class="mt-2 text-2xl font-semibold text-gray-900" data-summary="<?php echo e($status); ?>"><?php echo $lastAt > 0 ? (int) ($lastSummary[$status] ?? 0) : '&mdash;'; ?></dd>
     </div>
     <?php endforeach; ?>
-</div>
+</dl>
+</section>
 
 <div id="healthNotice" class="hidden mb-6 rounded border px-4 py-3 text-sm" role="status" aria-live="polite"></div>
 
-<div id="healthResults">
+<section aria-labelledby="healthDetailsHeading">
+<h3 id="healthDetailsHeading" class="mb-3 text-base font-semibold text-gray-800"><?php echo e(__('health_details_title')); ?></h3>
+<div id="healthResults" aria-busy="false">
     <div id="healthEmpty" class="border border-dashed border-gray-300 rounded-lg bg-white px-6 py-12 text-center">
         <i class="ti ti-shield-search text-4xl text-gray-300" aria-hidden="true"></i>
-        <h2 class="mt-3 text-base font-semibold text-gray-800"><?php echo e(__('health_empty_title')); ?></h2>
+        <h4 class="mt-3 text-base font-semibold text-gray-800"><?php echo e(__('health_empty_title')); ?></h4>
         <p class="mt-1 text-sm text-gray-500"><?php echo e(__('health_empty_desc')); ?></p>
+        <?php if ($lastAt > 0): ?>
+        <p class="mt-2 text-sm text-gray-600"><?php echo e(__('health_empty_saved_desc')); ?></p>
+        <?php endif; ?>
+        <p class="mt-2 text-sm text-gray-600"><?php echo e(__('health_empty_action')); ?></p>
+        <button id="healthEmptyRun" type="button" class="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+            <i class="ti ti-shield-check text-lg" aria-hidden="true"></i>
+            <span><?php echo e(__('health_run')); ?></span>
+        </button>
     </div>
 </div>
+</section>
 
 <script>
 (function () {
     'use strict';
     var runButton = document.getElementById('healthRun');
+    var emptyRunButton = document.getElementById('healthEmptyRun');
+    var summaryHeading = document.getElementById('healthSummaryHeading');
     var resultRoot = document.getElementById('healthResults');
     var notice = document.getElementById('healthNotice');
     var lastAt = document.getElementById('healthLastAt');
@@ -276,6 +292,8 @@ unset($pageTitle);
         'mediaRunning' => __('health_media_running'),
         'failed' => __('health_scan_failed'),
         'lastScan' => __('health_last_scan'),
+        'currentSummary' => __('health_current_summary_title'),
+        'complete' => __('health_scan_complete'),
         'action' => __('health_action'),
         'categories' => [
             'security' => __('health_category_security'),
@@ -339,7 +357,7 @@ unset($pageTitle);
         content.className = 'min-w-0 flex-1';
         var titleLine = document.createElement('div');
         titleLine.className = 'flex flex-wrap items-center gap-2';
-        var title = document.createElement('h3');
+        var title = document.createElement('h5');
         title.className = 'text-sm font-semibold text-gray-900';
         title.textContent = check.title || check.id;
         var badge = document.createElement('span');
@@ -380,7 +398,7 @@ unset($pageTitle);
             if (!grouped[category] || grouped[category].length === 0) return;
             var section = document.createElement('section');
             section.className = 'mb-6 overflow-hidden rounded-lg border border-gray-200 bg-white';
-            var heading = document.createElement('h2');
+            var heading = document.createElement('h4');
             heading.className = 'border-b border-gray-200 bg-gray-50 px-5 py-3 text-sm font-semibold text-gray-800';
             heading.textContent = labels.categories[category];
             section.appendChild(heading);
@@ -411,8 +429,13 @@ unset($pageTitle);
         });
     }
 
+    emptyRunButton.addEventListener('click', function () { runButton.click(); });
+
     runButton.addEventListener('click', function () {
+        // 键盘用户从按钮发起检查：结果重绘后焦点不能丢到页面顶端
+        var restoreFocus = document.activeElement === runButton || document.activeElement === emptyRunButton;
         runButton.disabled = true;
+        resultRoot.setAttribute('aria-busy', 'true');
         runButton.querySelector('span').textContent = labels.running;
         runButton.querySelector('i').className = 'ti ti-loader-2 animate-spin text-lg';
         setNotice(labels.running, 'info');
@@ -431,13 +454,20 @@ unset($pageTitle);
                 updateSummary(data.summary);
                 var date = new Date(data.scanned_at * 1000);
                 lastAt.textContent = labels.lastScan + ': ' + date.toLocaleString();
-                notice.className = 'hidden';
+                summaryHeading.textContent = labels.currentSummary;
+                setNotice(labels.complete
+                    .replace(':critical', String(data.summary.critical || 0))
+                    .replace(':recommended', String(data.summary.recommended || 0)), 'info');
             })
             .catch(function (error) { setNotice(error.message || labels.failed, 'error'); })
             .finally(function () {
+                resultRoot.setAttribute('aria-busy', 'false');
                 runButton.disabled = false;
                 runButton.querySelector('span').textContent = labels.run;
                 runButton.querySelector('i').className = 'ti ti-shield-check text-lg';
+                if (restoreFocus && (document.activeElement === document.body || document.activeElement === document.documentElement)) {
+                    runButton.focus();
+                }
             });
     });
 }());
@@ -445,10 +475,10 @@ unset($pageTitle);
 <?php else: ?>
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>
-        <h1 class="text-xl font-semibold text-gray-900"><?php echo e(__('health_info_title')); ?></h1>
+        <h2 class="text-xl font-semibold text-gray-900"><?php echo e(__('health_info_title')); ?></h2>
         <p class="mt-1 text-sm text-gray-500"><?php echo e(__('health_info_desc')); ?></p>
     </div>
-    <button id="healthCopy" type="button" class="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+    <button id="healthCopy" type="button" class="inline-flex min-h-10 items-center justify-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
         <i class="ti ti-copy text-lg" aria-hidden="true"></i>
         <span><?php echo e(__('health_info_copy')); ?></span>
     </button>

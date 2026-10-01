@@ -142,9 +142,10 @@ function renderAdminMenuItem(array $item, string $currentMenu): string
         : '';
 
     return sprintf(
-        '<a href="%s" class="%s">%s%s%s</a>',
+        '<a href="%s" class="%s"%s>%s%s%s</a>',
         htmlspecialchars($url, ENT_QUOTES, 'UTF-8'),
         htmlspecialchars($cls, ENT_QUOTES, 'UTF-8'),
+        $isActive ? ' aria-current="page"' : '',
         $svg,
         htmlspecialchars($label, ENT_QUOTES, 'UTF-8'),
         $badgeHtml
