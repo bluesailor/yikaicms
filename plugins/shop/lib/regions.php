@@ -84,6 +84,35 @@ function shopMainlandRegionTree(): array
  * Direct-admin cities may share a code with their child: keep the full path.
  * @return array{province_code:string,city_code:string,district_code:string}|null
  */
+/**
+ * 繁体站（zh-TW）是简体整页转换出来的：地区下拉显示、提交的都是繁体名。逐级映射回地区树里的
+ * 简体原名，再交给 shopMainlandRegionPath() 校验；映射不上的原样返回，照常校验失败。
+ *
+ * @return array{0:string,1:string,2:string}
+ */
+function shopMainlandRegionFromDisplay(string $province, string $city, string $district): array
+{
+    if (!defined('SITE_LANG') || SITE_LANG !== 'zh-TW') {
+        return [$province, $city, $district];
+    }
+    require_once ROOT_PATH . '/includes/i18n/S2T.php';
+    $level = shopMainlandRegionTree();
+    $out = [];
+    foreach ([$province, $city, $district] as $name) {
+        $name = S2T::canonical($name, array_column($level, 'n'));
+        $out[] = $name;
+        $next = [];
+        foreach ($level as $node) {
+            if ($node['n'] === $name) {
+                $next = $node['ch'] ?? [];
+                break;
+            }
+        }
+        $level = $next;
+    }
+    return [$out[0], $out[1], $out[2]];
+}
+
 function shopMainlandRegionPath(string $province, string $city, string $district): ?array
 {
     foreach (shopMainlandRegionTree() as $provinceNode) {
