@@ -805,7 +805,6 @@ return [
     'prod_scheduled_hint' => 'Choose "Scheduled" and set a future time; the product goes on sale automatically at that time.',
     'prod_future_time_hint' => 'The publish time is in the future: saving switches the product to "Scheduled" and it goes on sale at that time.',
     'prod_scheduled_time_required' => 'Set a publish time to schedule this product',
-    'prod_scheduled_needs_upgrade' => 'Run the database upgrade under Maintenance → Upgrade before scheduling products.',
     'admin_unpublished' => 'Unpublished',
     'admin_sort_order' => 'Sort',
     'admin_update' => 'Update',

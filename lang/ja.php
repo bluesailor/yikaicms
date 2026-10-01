@@ -870,7 +870,6 @@ return [
     'prod_scheduled_hint' => '「予約公開」を選んで未来の日時を設定すると、その日時に商品が自動で公開されます。',
     'prod_future_time_hint' => '公開日時が未来です。保存すると「予約公開」になり、その日時に自動で公開されます。',
     'prod_scheduled_time_required' => '予約公開にするには公開日時を設定してください',
-    'prod_scheduled_needs_upgrade' => '予約公開を使う前に「システム保守 → システムアップグレード」でデータベースのアップグレードを実行してください。',
     'admin_unpublished' => '非公開',
     'admin_sort_order' => '並び順',
     'admin_update' => '更新',

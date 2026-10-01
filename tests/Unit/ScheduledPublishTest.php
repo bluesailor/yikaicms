@@ -1,6 +1,7 @@
 <?php
 /**
- * 定时发布 / 定时上架（2.0.3）：保存规则以发布时间为准，到点由 sweep() 上线并通知缓存失效。
+ * 定时发布 / 定时上架（2.0.3）：保存规则以发布时间为准，到点由 sweep() 上线。
+ * 产品的上架时间存在 metas（不给 products 加列，整站模板包按表结构精确比对）。
  */
 
 declare(strict_types=1);
@@ -12,6 +13,7 @@ require_once ROOT_PATH . '/includes/ScheduledPublish.php';
 final class ScheduledPublishTest extends TestCase
 {
     private const NOW = 1_800_000_000;
+    private const TABLES = ['contents', 'products', 'metas'];
 
     public function testScheduledNeedsATimeAndAPastTimePublishesDirectly(): void
     {
@@ -46,34 +48,49 @@ final class ScheduledPublishTest extends TestCase
 
     public function testSweepPublishesDueArticlesAndProductsOnly(): void
     {
-        foreach (['contents', 'products'] as $table) {
-            db()->execute("CREATE TABLE IF NOT EXISTS {$table} (id INTEGER PRIMARY KEY, status INTEGER, publish_time INTEGER, updated_at INTEGER)");
-            db()->execute("DELETE FROM {$table}");
-            db()->execute("INSERT INTO {$table} (id, status, publish_time, updated_at) VALUES
-                (1, 3, " . (self::NOW - 10) . ", 0),
-                (2, 3, " . (self::NOW + 10) . ", 0),
-                (3, 0, " . (self::NOW - 10) . ", 0),
-                (4, 3, 0, 0)");
-        }
+        $this->withIsolatedTables(function (): void {
+            db()->execute('CREATE TABLE contents (id INTEGER PRIMARY KEY, status INTEGER, publish_time INTEGER, updated_at INTEGER)');
+            db()->execute('CREATE TABLE products (id INTEGER PRIMARY KEY, status INTEGER, updated_at INTEGER)');
+            db()->execute('CREATE TABLE metas (id INTEGER PRIMARY KEY, owner_type TEXT, owner_id INTEGER, meta_key TEXT, meta_value TEXT, created_at INTEGER, updated_at INTEGER)');
+            db()->execute('INSERT INTO contents (id, status, publish_time, updated_at) VALUES
+                (1, 3, ' . (self::NOW - 10) . ', 0), (2, 3, ' . (self::NOW + 10) . ', 0), (3, 0, ' . (self::NOW - 10) . ', 0), (4, 3, 0, 0)');
+            db()->execute('INSERT INTO products (id, status, updated_at) VALUES (1, 3, 0), (2, 3, 0), (3, 0, 0), (4, 3, 0)');
+            db()->execute("INSERT INTO metas (owner_type, owner_id, meta_key, meta_value) VALUES
+                ('product', 1, 'publish_time', '" . (self::NOW - 10) . "'),
+                ('product', 2, 'publish_time', '" . (self::NOW + 10) . "'),
+                ('product', 3, 'publish_time', '" . (self::NOW - 10) . "'),
+                ('content', 4, 'publish_time', '" . (self::NOW - 10) . "')");
 
-        self::assertSame(2, ScheduledPublish::sweep(self::NOW));
+            self::assertSame(2, ScheduledPublish::sweep(self::NOW));
 
-        foreach (['contents', 'products'] as $table) {
-            $status = array_column(db()->fetchAll("SELECT id, status FROM {$table} ORDER BY id"), 'status', 'id');
-            self::assertSame([1 => 1, 2 => 3, 3 => 0, 4 => 3], array_map('intval', $status), $table);
-        }
-        self::assertSame(0, ScheduledPublish::sweep(self::NOW));
+            foreach (['contents', 'products'] as $table) {
+                $status = array_column(db()->fetchAll("SELECT id, status FROM {$table} ORDER BY id"), 'status', 'id');
+                self::assertSame([1 => 1, 2 => 3, 3 => 0, 4 => 3], array_map('intval', $status), $table);
+            }
+            self::assertSame(0, ScheduledPublish::sweep(self::NOW));
+            self::assertSame([2 => self::NOW + 10], ScheduledPublish::productTimes([2, 4]));
+        });
     }
 
-    public function testSweepSkipsAProductsTableWithoutTheNewColumn(): void
+    /** 共用的内存库里别的测试已建过这些表：先挪开，测完原样放回。 */
+    private function withIsolatedTables(callable $test): void
     {
-        db()->execute('DROP TABLE IF EXISTS products');
-        db()->execute('CREATE TABLE products (id INTEGER PRIMARY KEY, status INTEGER, updated_at INTEGER)');
-        db()->execute('CREATE TABLE IF NOT EXISTS contents (id INTEGER PRIMARY KEY, status INTEGER, publish_time INTEGER, updated_at INTEGER)');
-        db()->execute('DELETE FROM contents');
-        db()->execute('INSERT INTO contents (id, status, publish_time, updated_at) VALUES (1, 3, ' . (self::NOW - 1) . ', 0)');
-
-        self::assertSame(1, ScheduledPublish::sweep(self::NOW));
-        db()->execute('DROP TABLE products');
+        $moved = [];
+        foreach (self::TABLES as $table) {
+            if (db()->fetchOne("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", [$table])) {
+                db()->execute("ALTER TABLE {$table} RENAME TO {$table}__sched_backup");
+                $moved[] = $table;
+            }
+        }
+        try {
+            $test();
+        } finally {
+            foreach (self::TABLES as $table) {
+                db()->execute("DROP TABLE IF EXISTS {$table}");
+            }
+            foreach ($moved as $table) {
+                db()->execute("ALTER TABLE {$table}__sched_backup RENAME TO {$table}");
+            }
+        }
     }
 }
