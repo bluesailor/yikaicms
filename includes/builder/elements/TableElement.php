@@ -112,10 +112,10 @@ final class TableElement extends AbstractElement
                 $css .= '--table-' . str_replace('_', '-', $key) . ':' . $value . 'px;';
             }
             $headerAlign = in_array($data['header_align'] ?? null, ['left', 'center', 'right'], true) ? $data['header_align'] : 'inherit';
-            $css .= '--table-header-align:' . $headerAlign . ';--table-header-weight:' . (in_array($data['header_bold'] ?? true, [true, 1, '1'], true) ? '600' : '400') . ';';
+            $css .= '--table-header-align:' . TextDirection::alignValue($headerAlign) . ';--table-header-weight:' . (in_array($data['header_bold'] ?? true, [true, 1, '1'], true) ? '600' : '400') . ';';
         }
         $html = '<div class="yk-table-scroll" role="region" tabindex="0" aria-label="' . e($caption ?: $this->label()) . '">';
-        $html .= '<table class="yk-table border-' . $borderMode . '" data-table-style="' . $style . '" data-density="' . $density . '" style="' . e($css) . 'min-width:' . $minWidth . 'px;text-align:' . $align . ';border-collapse:' . $borderMode . ';border-spacing:' . ($borderMode === 'separate' ? $spacing : 0) . 'px">';
+        $html .= '<table class="yk-table border-' . $borderMode . '" data-table-style="' . $style . '" data-density="' . $density . '" style="' . e($css) . 'min-width:' . $minWidth . 'px;text-align:' . TextDirection::alignValue($align) . ';border-collapse:' . $borderMode . ';border-spacing:' . ($borderMode === 'separate' ? $spacing : 0) . 'px">';
         if ($caption !== '') $html .= '<caption>' . e($caption) . '</caption>';
         $html .= '<colgroup>';
         foreach ($grid['widths'] as $width) $html .= $width > 0 ? '<col style="width:' . $width . 'px">' : '<col>';

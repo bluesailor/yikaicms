@@ -914,7 +914,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
 }
 ?>
 <!doctype html>
-<html lang="<?php echo htmlspecialchars(siteLang()); ?>">
+<html lang="<?php echo htmlspecialchars(siteLang()); ?>"<?php echo htmlDirAttr(getLang()); ?>>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">

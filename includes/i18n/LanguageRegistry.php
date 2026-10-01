@@ -43,7 +43,7 @@ final class LanguageRegistry
         'vi'    => ['name' => 'Tiếng Việt', 'english' => 'Vietnamese', 'hreflang' => 'vi', 'dir' => 'ltr', 'flag' => 'vn', 'font' => 'en', 'picker' => 'vn'],
         'id'    => ['name' => 'Bahasa Indonesia', 'english' => 'Indonesian', 'hreflang' => 'id', 'dir' => 'ltr', 'flag' => 'id', 'font' => 'en', 'picker' => 'id'],
         'th'    => ['name' => 'ไทย', 'english' => 'Thai', 'hreflang' => 'th', 'dir' => 'ltr', 'flag' => 'th', 'font' => 'en', 'picker' => 'th'],
-        'ar'    => ['name' => 'العربية', 'english' => 'Arabic', 'hreflang' => 'ar', 'dir' => 'rtl', 'flag' => '', 'font' => 'en', 'picker' => 'ar'],
+        'ar'    => ['name' => 'العربية', 'english' => 'Arabic', 'hreflang' => 'ar', 'dir' => 'rtl', 'flag' => '', 'font' => 'ar', 'picker' => 'ar'],
     ];
 
     /** @return array<string, array{name:string, english:string, hreflang:string, dir:string, flag:string, font:string, picker:string}> */

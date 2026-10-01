@@ -69,7 +69,7 @@ function getChannelUrl(array $channel): string {
 }
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo getLang(); ?>" class="aurora-theme">
+<html lang="<?php echo getLang(); ?>"<?php echo function_exists('htmlDirAttr') ? htmlDirAttr() : ''; ?> class="aurora-theme">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

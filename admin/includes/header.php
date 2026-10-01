@@ -67,7 +67,7 @@ $adminTutorialUrl = match ((string) config('admin_lang', getLang())) {
 };
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo getLang(); ?>">
+<html lang="<?php echo getLang(); ?>"<?php echo htmlDirAttr(); ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

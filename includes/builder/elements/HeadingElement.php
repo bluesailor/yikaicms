@@ -106,7 +106,7 @@ final class HeadingElement extends AbstractElement
         $sizeMap = ['auto' => self::LEVEL_SIZE_MAP[$level]] + self::VISUAL_SIZE_MAP;
         $size = $this->resp($data['visual_size'] ?? 'auto', $sizeMap, 'auto');
         $align = in_array($data['align'] ?? '', ['left', 'center', 'right'], true) ? $data['align'] : 'left';
-        $alignCls = ['left' => '', 'center' => ' text-center', 'right' => ' text-right'][$align];
+        $alignCls = ['left' => '', 'center' => ' text-center', 'right' => ' text-end'][$align];
         $text = (string) ($data['text'] ?? '');
         $siteField = (string) ($data['site_field'] ?? 'none');
         if ($siteField !== 'none') {

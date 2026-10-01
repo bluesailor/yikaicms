@@ -45,7 +45,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 }
 ?>
 <!doctype html>
-<html lang="<?= e(getLang()) ?>">
+<html lang="<?= e(getLang()) ?>"<?= function_exists('htmlDirAttr') ? htmlDirAttr() : '' ?>>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

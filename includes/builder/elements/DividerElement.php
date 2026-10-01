@@ -40,8 +40,8 @@ final class DividerElement extends AbstractElement
         };
         if ($lengthCss !== '') {
             $lengthCss .= match ($data['line_align'] ?? null) {
-                'left' => ';margin-left:0;margin-right:auto', 'right' => ';margin-left:auto;margin-right:0',
-                default => ';margin-left:auto;margin-right:auto',
+                'left', 'right' => ';' . TextDirection::blockAlignCss((string) $data['line_align']),
+                default => ';' . TextDirection::blockAlignCss('center'),
             };
         }
         return '<hr class="' . $divSpacing . ' border-0" style="border-top:' . $divWidth . 'px ' . $divStyle . ' ' . $divColor . $lengthCss . '">';
