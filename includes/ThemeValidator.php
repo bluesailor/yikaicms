@@ -17,6 +17,7 @@
  */
 
 declare(strict_types=1);
+require_once __DIR__ . '/TemplateCategories.php';
 
 /** @psalm-suppress ParadoxicalCondition Direct access can load this file without the application bootstrap. */
 if (!defined('ROOT_PATH')) {
@@ -28,9 +29,13 @@ final class ThemeValidator
     /** 当前 Schema 版本 */
     public const SCHEMA_VERSION = 1;
 
-    /** 分类词表。不在表内只警告——总会有没预料到的行业。 */
+    /**
+     * 分类词表：见 config/template-categories.php（与模板市场、官网共用）。不在表内只警告——
+     * 总会有没预料到的行业；旧词表里的值（services、tech…）提示改成现在的分组。
+     * @deprecated 仅为兼容外部引用保留，读 TemplateCategories::keys()
+     */
     public const CATEGORIES = [
-        'general', 'manufacturing', 'trade', 'tech', 'creative', 'services', 'retail',
+        'general', 'manufacturing', 'food', 'home', 'service', 'auto', 'energy', 'creative',
     ];
 
     /** 缺了就无法渲染的文件（相对主题目录） */
@@ -162,8 +167,11 @@ final class ThemeValidator
         // 软性建议
         if (empty($meta['category'])) {
             if (!$legacy) { $warnings[] = '未声明 category（市场筛选会归入未分类）'; }
-        } elseif (!in_array((string) $meta['category'], self::CATEGORIES, true)) {
-            $warnings[] = "category「{$meta['category']}」不在词表内：" . implode(' / ', self::CATEGORIES);
+        } elseif (!TemplateCategories::has((string) $meta['category'])) {
+            $alias = TemplateCategories::aliasOf((string) $meta['category']);
+            $warnings[] = $alias !== null
+                ? "category「{$meta['category']}」是旧分类，请改为「{$alias}」"
+                : "category「{$meta['category']}」不在词表内：" . implode(' / ', TemplateCategories::keys());
         }
 
         // 2.0.3 展示样式表：相对主题 assets/ 目录的 .css，前台默认页头与所有编辑画布都按它加载
@@ -187,6 +195,13 @@ final class ThemeValidator
         foreach (['name_en', 'name_ja', 'description_en', 'description_ja'] as $k) {
             if (empty($meta[$k]) && !$legacy) {
                 $warnings[] = "缺少 {$k}（多语言站点会回退到中文）";
+            }
+        }
+        // 其他语言用同样的「字段_语言代码」写法（name_ko、description_de…）；代码写错的字段不会被读取
+        foreach (array_keys($meta) as $k) {
+            if (is_string($k) && preg_match('/^(?:name|description)_(.+)$/D', $k, $m) === 1
+                && $m[1] !== 'zh-CN' && !LanguageRegistry::has($m[1])) {
+                $warnings[] = "{$k}：「{$m[1]}」不是已登记的语言代码（见 includes/i18n/LanguageRegistry.php），这个字段不会被读取";
             }
         }
 

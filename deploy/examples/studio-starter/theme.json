@@ -8,7 +8,7 @@
   "description_ja": "サイトテンプレートのワークフロー例：トップページの文言と画像を編集でき、その他のセクションは CMS 標準ページを使用します。",
   "version": "1.0.0",
   "author": "Yikai",
-  "category": "services",
+  "category": "service",
   "requires_cms": ">=2.0.0",
   "requires_php": ">=8.0.0",
   "required_plugins": [],

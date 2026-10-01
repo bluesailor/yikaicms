@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/TemplateCategories.php';
 
 require_once __DIR__ . '/i18n/LanguageRegistry.php';
 
@@ -58,6 +59,21 @@ final class SiteTemplateMarket
         return ['updated_at' => is_string($decoded['data']['updated_at'] ?? null) ? $decoded['data']['updated_at'] : '', 'templates' => $items];
     }
 
+    /**
+     * 目录条目的多语文字字段：description、category_name 与它们（含 name）的「_<语言代码>」版本，
+     * 语言取自注册表。无后缀的是中文。市场页、目录准备工具都按这一份取，不要另写白名单。
+     * @return list<string>
+     */
+    public static function localizedTextKeys(): array
+    {
+        $keys = ['description', 'category_name'];
+        foreach (LanguageRegistry::codes() as $code) {
+            if ($code === 'zh-CN') continue;
+            array_push($keys, 'name_' . $code, 'description_' . $code, 'category_name_' . $code);
+        }
+        return $keys;
+    }
+
     /** @param array<string,mixed> $entry @return null|array<string,mixed> */
     public static function normalize(array $entry): ?array
     {
@@ -75,13 +91,7 @@ final class SiteTemplateMarket
             || preg_match('/^>=([0-9]+\.[0-9]+\.[0-9]+)$/D', $entry['requires_php']) !== 1
             || !in_array($entry['status'], ['draft', 'published'], true)) return null;
         $item = $entry;
-        // 多语字段：<字段>_<语言>，语言取自注册表（目录以后给出 name_ko 等也能显示）
-        $textKeys = ['description', 'category_name'];
-        foreach (LanguageRegistry::codes() as $code) {
-            if ($code === 'zh-CN') continue;
-            array_push($textKeys, 'name_' . $code, 'description_' . $code, 'category_name_' . $code);
-        }
-        foreach ($textKeys as $key) {
+        foreach (self::localizedTextKeys() as $key) {
             $item[$key] = is_string($entry[$key] ?? null) ? mb_substr($entry[$key], 0, 1200) : '';
         }
         $image = $entry['screenshot'] ?? '';
