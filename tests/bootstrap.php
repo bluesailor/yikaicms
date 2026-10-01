@@ -45,10 +45,13 @@ require_once ROOT_PATH . '/includes/models/autoload.php';
  * Each is namespaced to global scope and only declared if not already
  * defined, so a test that needs the real helper can still load it.
  */
+if (!function_exists('displayLang')) {
+    function displayLang(): string { return defined('SITE_LANG') ? SITE_LANG : (string) config('site_lang', 'zh-CN'); }
+}
 if (!function_exists('siteLang')) {
     // 镜像 includes/functions.php 的 siteLang()：SITE_LANG 常量优先，否则回落 config('site_lang')。
     // 早期桩硬编码 'zh-CN'，令依赖当前语言的读取（configJsonLang 等）无法在测试里切换语言。
-    function siteLang(): string { return defined('SITE_LANG') ? SITE_LANG : (string) config('site_lang', 'zh-CN'); }
+    function siteLang(): string { $l = displayLang(); return $l === 'zh-TW' && (string) config('site_lang', 'zh-CN') !== 'zh-TW' ? 'zh-CN' : $l; }
 }
 if (!function_exists('isMultiLangEnabled')) {
     // Tests run against a single-language schema; disable the lang filter.
