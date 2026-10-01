@@ -121,6 +121,10 @@ if (!defined('SITE_LANG')) {
 if (SITE_LANG === 'zh-TW' && strpos((string) ($_SERVER['REQUEST_URI'] ?? ''), '/api/') === false) {
     require_once ROOT_PATH . '/includes/i18n/S2T.php';
     ob_start(['S2T', 'convertOutput']);
+    // 访客输入的是繁体，内容存的是简体：搜索词先转回简体再查（页面回显时会再转成繁体）
+    if (isset($_GET['keyword']) && is_string($_GET['keyword'])) {
+        $_GET['keyword'] = S2T::toSimplified($_GET['keyword']);
+    }
 }
 
 // 加载前台会员认证
