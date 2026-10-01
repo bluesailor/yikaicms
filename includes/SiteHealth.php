@@ -39,6 +39,7 @@ final class SiteHealth
             self::checkDiskSpace($root),
             self::checkHttps(),
             self::checkSiteAddress(),
+            self::checkLanguageRouting($root),
             self::checkAdminPolicy(),
             self::checkUploadPolicy(),
             self::checkFormPolicy(),
@@ -391,6 +392,30 @@ final class SiteHealth
         }
     }
 
+    /**
+     * 语言域名（启用时）逐个从服务器回访，确认解析、证书、绑定都指向本站同一个安装。
+     * 没启用语言域名时不出这一项。联网检查，与 checkUpdateService 一样放在体检收尾时执行。
+     *
+     * @param (callable(string):string)|null $probe 测试注入：host → 结果码
+     * @return list<array<string,mixed>>
+     */
+    public static function checkLanguageDomains(?callable $probe = null): array
+    {
+        if (!class_exists('LanguageDomains') || !LanguageDomains::active()) return [];
+        $probe ??= static fn(string $host): string => LanguageDomains::probe($host, 5);
+        $failed = [];
+        foreach (LanguageDomains::map() as $lang => $host) {
+            $code = $probe($host);
+            if ($code !== 'ok') {
+                $failed[] = LanguageRegistry::name($lang) . ' → ' . $host . '（' . self::t('health_lang_domains_reason_' . (str_starts_with($code, 'http_') ? 'http' : $code), ['status' => substr($code, 5)]) . '）';
+            }
+        }
+        $count = count(LanguageDomains::map());
+        return [$failed === []
+            ? self::result('language_domains', self::GOOD, 'operations', 'health_lang_domains_title', 'health_lang_domains_good', '/admin/setting_lang.php', ['n' => (string) $count])
+            : self::result('language_domains', self::CRITICAL, 'operations', 'health_lang_domains_title', 'health_lang_domains_failed', '/admin/setting_lang.php', ['list' => implode('；', $failed)])];
+    }
+
     /** @return array<string,mixed> */
     public static function checkUpdateService(): array
     {
@@ -671,6 +696,38 @@ final class SiteHealth
         };
         return self::result('site_address', $status, 'operations', 'health_site_address_title', $message,
             '/admin/setting.php', ['configured' => $check['configured'], 'current' => $check['current']]);
+    }
+
+    /**
+     * 语言网址前缀：老站的 .htaccess 升级时不会被覆盖，里面写死的语言规则认不得新开的语言，
+     * /ko/xxx.html 会落到栏目规则上 404。这里只看文件（快、无网络）；nginx 等不读 .htaccess 的
+     * 服务器由「多语言设置」页的浏览器探针实测，那里也提供一键更新与自动撤销。
+     */
+    private static function checkLanguageRouting(string $root): array
+    {
+        if (!function_exists('config') || (function_exists('isDynamicUrlMode') && isDynamicUrlMode())) {
+            return self::result('language_routing', self::GOOD, 'operations', 'health_lang_routing_title', 'health_lang_routing_ok', '/admin/setting_lang.php');
+        }
+        require_once $root . '/includes/i18n/LanguageRouting.php';
+        $enabled = json_decode((string) config('enabled_languages', ''), true);
+        $prefix = LanguageRouting::prefixLanguages(is_array($enabled) ? array_values(array_filter($enabled, 'is_string')) : [],
+            (string) config('site_lang', 'zh-CN'));
+        $names = static fn(array $codes): string => implode(', ', array_map(static fn(string $c): string => LanguageRegistry::name($c), $codes));
+        $status = LanguageRouting::htaccessStatus($root);
+        if ($status['state'] === 'legacy') {
+            $missing = LanguageRouting::uncovered($status['codes'], $prefix);
+            return $missing !== []
+                ? self::result('language_routing', self::CRITICAL, 'operations', 'health_lang_routing_title', 'health_lang_routing_legacy_missing', '/admin/setting_lang.php', ['langs' => $names($missing)])
+                : self::result('language_routing', self::RECOMMENDED, 'operations', 'health_lang_routing_title', 'health_lang_routing_legacy', '/admin/setting_lang.php');
+        }
+        if ($status['state'] !== 'current') {
+            // 没有 .htaccess（nginx）或自定义过：看不出来，开了老四种以外的前缀语言时提醒去实测
+            $beyond = LanguageRouting::uncovered(['zh-CN', 'zh-TW', 'en', 'ja'], $prefix);
+            if ($beyond !== []) {
+                return self::result('language_routing', self::RECOMMENDED, 'operations', 'health_lang_routing_title', 'health_lang_routing_verify', '/admin/setting_lang.php', ['langs' => $names($beyond)]);
+            }
+        }
+        return self::result('language_routing', self::GOOD, 'operations', 'health_lang_routing_title', 'health_lang_routing_ok', '/admin/setting_lang.php');
     }
 
     /** @return array<string,mixed> */

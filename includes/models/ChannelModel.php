@@ -85,6 +85,7 @@ class ChannelModel extends Model
         // Fixed controller routes cannot be assigned to ordinary content pages.
         $reserved = ['index', 'admin', 'install', 'api', 'search', 'product', 'download', 'album', 'job', 'contact', 'history', 'login', 'register', 'member'];
         if (in_array($slug, $reserved, true) || in_array($expectedSlug, $reserved, true)
+            || (class_exists('LanguageRegistry') && LanguageRegistry::isReservedSlug($slug))
             || $this->count(['slug' => $slug]) > 0) {
             throw new RuntimeException(__('blox_page_url_unavailable'));
         }

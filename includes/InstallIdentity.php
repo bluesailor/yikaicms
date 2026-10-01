@@ -114,7 +114,10 @@ final class InstallIdentity
         return substr(hash('sha256', rtrim($root, '/')), 0, 16);
     }
 
-    /** 仅测试用：清掉进程内缓存。 */
+    /**
+     * 仅测试用：清掉进程内缓存。
+     * @psalm-suppress PossiblyUnusedMethod 调用方在 tests/（不在 Psalm projectFiles 内）
+     */
     public static function resetForTests(): void
     {
         self::$memo = null;

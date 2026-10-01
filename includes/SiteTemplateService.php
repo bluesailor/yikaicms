@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/i18n/LanguageRegistry.php';
 
 require_once __DIR__ . '/SiteTemplateArchive.php';
 require_once __DIR__ . '/SiteTemplateLanguages.php';
@@ -507,7 +508,7 @@ final class SiteTemplateService
                     $value = trim((string) ($brand[$key] ?? ''));
                     if (strlen($value) > 500 || ($key === 'site_name' && $value === '')) throw new RuntimeException('st_brand');
                     $data['settings'][$key] = $value;
-                    foreach (['zh-CN', 'en', 'ja'] as $language) {
+                    foreach (LanguageRegistry::codes() as $language) {
                         if (array_key_exists($key . '_' . $language, $data['settings'])) $data['settings'][$key . '_' . $language] = $value;
                     }
                 }

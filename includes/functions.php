@@ -26,6 +26,10 @@ require_once __DIR__ . '/ThemeSettings.php';
 require_once __DIR__ . '/ThemeContent.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
 require_once __DIR__ . '/Slug.php';       // generateSlug/normalizeSlugInput：URL 别名净化单一来源
+require_once __DIR__ . '/i18n/LanguageRegistry.php';   // 支持哪些语言、前缀/hreflang/方向：单一来源
+require_once __DIR__ . '/i18n/LanguageDomains.php';    // 语言域名模式（en.example.com 等）
+require_once __DIR__ . '/i18n/LanguageRouting.php';    // 语言前缀能否访问：探针、.htaccess 一键更新
+require_once __DIR__ . '/i18n/TextDirection.php';      // Blox 的左/右按起始/结束输出（RTL 镜像）
 require_once __DIR__ . '/AdminLogSanitizer.php';
 require_once __DIR__ . '/FormSubmissionToken.php';
 require_once __DIR__ . '/FormSubmissionNonce.php';
@@ -581,6 +585,15 @@ function resolveSlug(string $input, string $title, string $table, int $excludeId
  * 前台使用 site_lang，后台使用 admin_lang
  * 优先级：数据库设置 > config.php 常量 > 默认 zh-CN
  */
+/**
+ * <html> 上的方向属性：从右到左的语言（阿拉伯语等）返回 ` dir="rtl"`（含前导空格），其余返回空串。
+ * LTR 不写 dir：浏览器默认就是 ltr，现有页面输出逐字节不变。
+ */
+function htmlDirAttr(?string $lang = null): string
+{
+    return LanguageRegistry::isRtl($lang ?? getLang()) ? ' dir="rtl"' : '';
+}
+
 function getLang(): string
 {
     if (defined('YK_PRODUCT_NATIVE_PREVIEW') && YK_PRODUCT_NATIVE_PREVIEW === true && defined('SITE_LANG')) {
@@ -657,9 +670,14 @@ function langDataFor(string $lang): array
     }
     $langFile = ROOT_PATH . '/lang/' . $lang . '.php';
 
-    // 先加载目标语言，再用中文兜底
+    // 先加载目标语言，再用中文兜底；非汉字语言（ko、de…）在中文之上再垫一层英文——
+    // 新语言包分批翻译，未译的键显示英文比显示中文好懂。
     $fallback = ROOT_PATH . '/lang/zh-CN.php';
     $fallbackData = file_exists($fallback) ? require $fallback : [];
+    $englishFile = ROOT_PATH . '/lang/en.php';
+    if ($lang !== 'en' && !LanguageRegistry::readsHan($lang) && file_exists($englishFile)) {
+        $fallbackData = array_merge($fallbackData, require $englishFile);
+    }
     $langData = ($lang !== 'zh-CN' && file_exists($langFile)) ? require $langFile : [];
 
     $data = array_merge($fallbackData, $langData);
@@ -880,6 +898,10 @@ function siteBaseUrl(): string
             $base .= $mount;
         }
     }
+    // 语言域名模式：请求落在语言域名上时，本页的规范地址、JSON-LD、sitemap 都以该域名为根
+    if (LanguageDomains::currentLanguage() !== null) {
+        return LanguageDomains::currentOrigin();
+    }
     return $base;
 }
 
@@ -907,19 +929,21 @@ function renderHreflangs(): string
     // 当前请求 path（剥掉已有的 lang 前缀）
     $path = (string) ($_SERVER['REQUEST_URI'] ?? '/');
     if (($q = strpos($path, '?')) !== false) $path = substr($path, 0, $q);
-    $path = preg_replace('#^/(zh-CN|zh-TW|en|ja)(?=/|$)#', '', $path) ?? $path;
+    $path = preg_replace('#^/(' . LanguageRegistry::urlPrefixPattern() . ')(?=/|$)#', '', $path) ?? $path;
     if ($path === '') $path = '/';
 
-    $hreflangMap = ['zh-CN' => 'zh-CN', 'zh-TW' => 'zh-Hant', 'en' => 'en', 'ja' => 'ja'];
+    $domains = LanguageDomains::active();
     $out = '';
     foreach ($enabled as $code) {
-        if (!isset($hreflangMap[$code])) continue;
+        if (!is_string($code) || !LanguageRegistry::has($code)) continue;
         $prefix = $code === $defaultLang ? '' : '/' . $code;
-        $href = $base . $prefix . $path;
-        $out .= '<link rel="alternate" hreflang="' . htmlspecialchars($hreflangMap[$code], ENT_QUOTES) . '" href="' . htmlspecialchars($href, ENT_QUOTES) . '">' . "\n";
+        // 语言域名模式下各语言的根不同（主域名 / 语言域名），用完整规范地址
+        $href = $domains ? LanguageDomains::originFor($code) . LanguageDomains::pathFor($code, $path) : $base . $prefix . $path;
+        $out .= '<link rel="alternate" hreflang="' . htmlspecialchars(LanguageRegistry::hreflang($code), ENT_QUOTES) . '" href="' . htmlspecialchars($href, ENT_QUOTES) . '">' . "\n";
     }
     // x-default
-    $out .= '<link rel="alternate" hreflang="x-default" href="' . htmlspecialchars($base . $path, ENT_QUOTES) . '">' . "\n";
+    $defaultHref = $domains ? LanguageDomains::originFor($defaultLang) . $path : $base . $path;
+    $out .= '<link rel="alternate" hreflang="x-default" href="' . htmlspecialchars($defaultHref, ENT_QUOTES) . '">' . "\n";
     return $out;
 }
 
@@ -991,17 +1015,13 @@ function _e(string $key, array $params = []): string
  *   options => setting_opt_<key>_<value>
  */
 /**
- * 预置数据（内容模型预置方案等）的三语取值：按后台语言优先取 <field>_en /
- * <field>_ja，缺失回落中文基准。用于「文案随语言、结构不变」的静态预置表。
+ * 预置数据（内容模型预置方案等）的多语取值：按后台语言取 <field>_<语言>，
+ * 缺失按 LanguageRegistry::localizedField 的顺序回落（英文 / 中文基准）。
+ * 用于「文案随语言、结构不变」的静态预置表。
  */
 function presetText(array $row, string $field): string
 {
-    $lang = getLang();
-    $suffix = $lang === 'en' ? '_en' : ($lang === 'ja' ? '_ja' : '');
-    if ($suffix !== '' && trim((string) ($row[$field . $suffix] ?? '')) !== '') {
-        return (string) $row[$field . $suffix];
-    }
-    return (string) ($row[$field] ?? '');
+    return LanguageRegistry::localizedField($row, $field, getLang());
 }
 
 function settingLabel(string $key, string $fallback = ''): string
@@ -1253,7 +1273,12 @@ function langPrefix(?string $lang = null): string
 {
     $lang ??= siteLang();
     $defaultLang = (string) config('site_lang', 'zh-CN');
-    return $lang === $defaultLang ? '' : '/' . $lang;
+    if ($lang === $defaultLang) return '';
+    // 语言域名模式：正在该语言自己的域名上时不带前缀（en.example.com/news.html）。
+    // 在别的主机上仍给 /en 前缀——编辑器存进页面的链接因此保持可移植，访问时由跳转与输出改写送到语言域名。
+    $host = LanguageDomains::hostFor($lang);
+    if ($host !== null && LanguageDomains::currentLanguage() === $lang) return '';
+    return '/' . $lang;
 }
 
 /**
@@ -4275,13 +4300,13 @@ function availableLanguages(): array
 {
     static $langs = null;
     if ($langs !== null) return $langs;
-    $labels = ['zh-CN' => '中文', 'zh-TW' => '繁體中文', 'ja' => '日本語', 'en' => 'English', 'ko' => '한국어', 'fr' => 'Français', 'de' => 'Deutsch', 'es' => 'Español'];
+    // 只收注册过的语言（URL 前缀、hreflang、书写方向都靠注册表）；简体沿用「中文」，其余用本族语名
     $langs = [];
     $files = glob(ROOT_PATH . '/lang/*.php') ?: [];
     foreach ($files as $f) {
         $code = basename($f, '.php');
-        if (strpos($code, 'dict-') === 0) continue;
-        $langs[$code] = $labels[$code] ?? $code;
+        if (!LanguageRegistry::has($code)) continue;
+        $langs[$code] = $code === 'zh-CN' ? '中文' : LanguageRegistry::name($code);
     }
     return $langs;
 }

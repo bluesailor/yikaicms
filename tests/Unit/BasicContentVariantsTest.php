@@ -54,8 +54,8 @@ final class BasicContentVariantsTest extends TestCase
         self::assertSame($default, $el->render(['style' => 'solid;position:fixed', 'line_length' => [], 'line_align' => []]));
         $html = $el->render(['style' => 'dotted', 'width' => 8, 'color' => '#112233', 'spacing' => 'lg', 'line_length' => 'short', 'line_align' => 'right']);
         self::assertStringContainsString('my-8 border-0', $html);
-        self::assertStringContainsString('border-top:3px dotted #112233;width:80px;max-width:100%;margin-left:auto;margin-right:0', $html);
-        self::assertStringContainsString('width:50%;max-width:100%;margin-left:auto;margin-right:auto', $el->render(['line_length' => 'half']));
+        self::assertStringContainsString('border-top:3px dotted #112233;width:80px;max-width:100%;margin-inline-start:auto;margin-inline-end:0', $html);
+        self::assertStringContainsString('width:50%;max-width:100%;margin-inline-start:auto;margin-inline-end:auto', $el->render(['line_length' => 'half']));
         self::assertStringNotContainsString('width:', $el->render(['line_length' => 'full', 'line_align' => 'right']));
     }
 

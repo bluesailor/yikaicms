@@ -306,7 +306,7 @@ final class PricingTableElement extends AbstractElement
             $html .= $button;
         }
         if ($plan['features'] !== []) {
-            $html .= '<ul class="mt-6 space-y-3 text-sm' . ($center ? ' text-left' : '') . '">';
+            $html .= '<ul class="mt-6 space-y-3 text-sm' . ($center ? ' text-start' : '') . '">';
             foreach ($plan['features'] as $feature) {
                 $icon = $feature['included']
                     ? '<i class="ti ti-check mt-0.5 shrink-0 ' . ($inverse ? 'text-white' : 'text-primary') . '" aria-hidden="true"></i>'

@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/i18n/LanguageRegistry.php';
 
 require_once __DIR__ . '/SiteTemplateArchive.php';
 require_once __DIR__ . '/UploadReferences.php';
@@ -409,8 +410,8 @@ final class SiteTemplateOfflineValidator
         foreach ($data['settings'] as $key => $value) {
             if (!is_string($key) || !is_string($value) || !SiteTemplateData::settingAllowed($key)) throw new RuntimeException('Invalid portable setting');
         }
-        if (!in_array($data['settings']['site_lang'] ?? 'zh-CN', ['zh-CN', 'en', 'ja'], true)) throw new RuntimeException('Invalid portable language');
+        if (!LanguageRegistry::has((string) ($data['settings']['site_lang'] ?? 'zh-CN'))) throw new RuntimeException('Invalid portable language');
         $languages = json_decode($data['settings']['enabled_languages'] ?? '["zh-CN"]', true);
-        if (!is_array($languages) || $languages === [] || array_diff($languages, ['zh-CN', 'en', 'ja'])) throw new RuntimeException('Invalid portable languages');
+        if (!is_array($languages) || $languages === [] || array_diff($languages, LanguageRegistry::codes())) throw new RuntimeException('Invalid portable languages');
     }
 }

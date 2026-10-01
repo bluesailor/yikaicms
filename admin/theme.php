@@ -409,7 +409,6 @@ $activeThemeName = (string) ($activeThemeMeta['name'] ?? $currentTheme);
 $activeThemePalette = (array) ($activeThemeMeta['_palette']
     ?? ThemePalette::definition(ROOT_PATH . '/themes', $currentTheme));
 $themeColorPresets = (array) ($activeThemePalette['palettes'] ?? []);
-$presetNameKey = getLang() === 'en' ? 'name_en' : (getLang() === 'ja' ? 'name_ja' : 'name');
 
 // 本地已装版本表（市场页签据此显示 已安装/可升级）
 $localThemeVersions = [];
@@ -500,10 +499,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <h3 class="font-bold text-gray-800"><?php echo e($theme['name']); ?></h3>
                         <p class="text-sm text-gray-500 mt-1"><?php
-                            $lang = getLang();
-                            $descKey = ($lang === 'en' && !empty($theme['description_en'])) ? 'description_en'
-                                : (($lang === 'ja' && !empty($theme['description_ja'])) ? 'description_ja' : 'description');
-                            echo e($theme[$descKey] ?? '');
+                            echo e(LanguageRegistry::localizedField($theme, 'description', getLang()));
                          ?></p>
                         <?php $__palettePreview = (array) ($theme['_palette']['preview'] ?? []); ?>
                         <?php if ($__palettePreview !== []): ?>
@@ -691,7 +687,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <span class="absolute right-0 top-0 w-4 h-4 rounded-full border border-white shadow-sm" style="background: <?php echo e($preset['secondary']); ?>"></span>
                         </span>
                         <?php
-                        $presetLabel = (string) ($preset[$presetNameKey] ?? $preset['name'] ?? '');
+                        $presetLabel = LanguageRegistry::localizedField($preset, 'name', getLang());
                         echo e($presetLabel !== '' ? $presetLabel : __('theme_palette_default'));
                         ?>
                     </button>
@@ -880,8 +876,10 @@ function themeManager() {
             if (!this.loaded && !this.loading) this.search();
         },
         descOf(t) {
-            if (this.lang === 'en' && t.description_en) return t.description_en;
-            if (this.lang === 'ja' && t.description_ja) return t.description_ja;
+            // 与 LanguageRegistry::localizedField 同一顺序：本语言 → 英文（读汉字的语言除外）→ 中文基准
+            var l = this.lang;
+            if (l !== 'zh-CN' && t['description_' + l]) return t['description_' + l];
+            if (l !== 'en' && !/^(zh|ja)/.test(l) && t.description_en) return t.description_en;
             return t.description || '';
         },
         async search() {

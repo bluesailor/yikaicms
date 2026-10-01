@@ -215,12 +215,12 @@ final class SiteTemplateMarketTest extends TestCase
     }
 
     /** 模板语言：目录可选字段，只认三种界面语言（zh 视同 zh-CN），缺失或乱填都得到空列表，不影响能否下载。 */
-    public function testLanguagesAreOptionalAndLimitedToTheThreeInterfaceLanguages(): void
+    public function testLanguagesAreOptionalAndLimitedToRegisteredLanguages(): void
     {
         self::assertSame(['zh-CN', 'en', 'ja'], SiteTemplateMarket::languages(['ja', 'en', 'zh']));
         self::assertSame(['zh-CN'], SiteTemplateMarket::languages(['zh-CN', 'zh-CN']));
         self::assertSame([], SiteTemplateMarket::languages('zh-CN'));
-        self::assertSame([], SiteTemplateMarket::languages(['fr', 1, null, ['ja']]));
+        self::assertSame(['fr'], SiteTemplateMarket::languages(['fr', 'xx', 1, null, ['ja']]));
 
         $withLanguages = SiteTemplateMarket::normalize($this->item(['languages' => ['zh', 'ja']]));
         self::assertSame(['zh-CN', 'ja'], $withLanguages['languages']);
@@ -248,7 +248,7 @@ final class SiteTemplateMarketTest extends TestCase
         self::assertStringContainsString('min-[1680px]:grid-cols-4', $page);
         self::assertStringContainsString("<?php if (\$hasLanguages): ?>", $page);
         self::assertStringContainsString('data-testid="st-market-languages"', $page);
-        self::assertStringContainsString("in_array(get('lang'), SiteTemplateMarket::LANGUAGES, true)", $page);
+        self::assertStringContainsString("in_array(get('lang'), SiteTemplateMarket::languageCodes(), true)", $page);
 
         $header = (string) file_get_contents(ROOT_PATH . '/admin/includes/header.php');
         self::assertStringContainsString('$_sbCompactPage = ($sidebarCompact ?? false) === true;', $header);

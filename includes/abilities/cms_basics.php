@@ -10,6 +10,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/i18n/LanguageRegistry.php';
+
 if (!class_exists('Abilities')) {
     return; // 防御：被错误时序加载时安静退出
 }
@@ -313,13 +315,15 @@ register_ability('cms_translate_text', [
         'type'       => 'object',
         'properties' => [
             'text'        => ['type' => 'string'],
-            'target_lang' => ['type' => 'string', 'enum' => ['zh-CN', 'en', 'ja']],
+            'target_lang' => ['type' => 'string', 'enum' => LanguageRegistry::codes()],
         ],
         'required' => ['text', 'target_lang'],
     ],
     'permission'   => fn() => !empty($_SESSION['admin_id']),
     'execute'      => function (array $input): string {
-        $langName = ['zh-CN' => '简体中文', 'en' => 'English', 'ja' => '日本語'][$input['target_lang']];
+        $code = (string) $input['target_lang'];
+        if (!LanguageRegistry::has($code)) throw new \RuntimeException('Unsupported language');
+        $langName = LanguageRegistry::name($code) . '（' . LanguageRegistry::englishName($code) . '）';
         $sysPrompt = "你是专业翻译。把用户输入的文本翻译为{$langName}，仅输出译文，不要任何解释。";
         $r = aiService()->chat($input['text'], $sysPrompt, 0.3);
         if (!$r['success']) throw new \RuntimeException($r['error'] ?: 'Translation failed');

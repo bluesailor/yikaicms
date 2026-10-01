@@ -15,7 +15,8 @@ $errorMessage = '';
 $fresh = $service->canApply();
 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
 $language = (string) config('admin_lang', getLang());
-$suffix = $language === 'en' ? '_en' : ($language === 'ja' ? '_ja' : '');
+// 目录条目的名称/描述/分类名按后台语言取 <字段>_<语言>，缺失回落（见 LanguageRegistry::localizedField）
+$localized = static fn(array $item, string $field): string => LanguageRegistry::localizedField($item, $field, $language);
 if ($isPost) verifyCsrf();
 // Cache display only. Every download reloads the official catalog and verifies its signature.
 $cached = $_SESSION['site_template_market_catalog'] ?? null;
@@ -39,7 +40,7 @@ if ($isPost) {
         if ($temporary === false) throw new RuntimeException('st_storage');
         SiteTemplateMarket::download($selected, $temporary, license_pubkey());
         SiteTemplateMarket::verifyArchive($temporary, $selected);
-        $marketName = (string) ($selected['name' . $suffix] ?: $selected['name']);
+        $marketName = $localized($selected, 'name') ?: (string) $selected['name'];
         $_SESSION['site_template_preview'] = $service->prepare($temporary, getAdminId(), $replaceExisting, [
             'official' => true, 'name' => $marketName, 'screenshot' => (string) $selected['screenshot'], 'version' => (string) $selected['version'],
             'demo_url' => (string) $selected['demo_url'],
@@ -57,10 +58,10 @@ if ($isPost) {
 }
 $search = mb_substr(trim(get('q')), 0, 100);
 $category = trim(get('category'));
-$contentLanguage = in_array(get('lang'), SiteTemplateMarket::LANGUAGES, true) ? get('lang') : '';
+$contentLanguage = in_array(get('lang'), SiteTemplateMarket::languageCodes(), true) ? get('lang') : '';
 $items = is_array($catalog) ? $catalog['templates'] : [];
 $categories = [];
-foreach ($items as $item) $categories[$item['category']] = (string) ($item['category_name' . $suffix] ?: ($item['category_name'] ?: $item['category']));
+foreach ($items as $item) $categories[$item['category']] = $localized($item, 'category_name') ?: (string) $item['category'];
 $allCount = count($items);
 $importableCount = count(array_filter($items, static fn(array $item): bool => $item['blocked_reason'] === ''));
 // 语言筛选只在目录给出了模板语言时出现（老的目录没有这个字段，不显示一个筛不出东西的选项）
@@ -79,7 +80,7 @@ $inCategory = static fn(array $item, string $key): bool => $key === '' || $item[
 $pool = array_values(array_filter($searchPool, static fn(array $item): bool => $inLanguage($item, $contentLanguage)));
 $categoryCounts = array_count_values(array_column($pool, 'category'));
 $languageCounts = [];
-foreach (array_merge([''], SiteTemplateMarket::LANGUAGES) as $code) {
+foreach (array_merge([''], SiteTemplateMarket::languageCodes()) as $code) {
     $languageCounts[$code] = count(array_filter($searchPool, static fn(array $item): bool => $inCategory($item, $category) && $inLanguage($item, $code)));
 }
 $items = array_values(array_filter($pool, static fn(array $item): bool => $inCategory($item, $category)));
@@ -161,7 +162,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="min-w-0">
     <?php if ($items === []): ?><p class="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-gray-500"><?= e(__('st_market_empty')) ?></p><?php endif; ?>
     <div class="grid grid-cols-1 min-[640px]:grid-cols-2 min-[1280px]:grid-cols-3 min-[1680px]:grid-cols-4 gap-6">
-        <?php foreach ($items as $item): $name = (string) ($item['name' . $suffix] ?: $item['name']); $description = (string) ($item['description' . $suffix] ?: $item['description']); $categoryLabel = (string) ($categories[$item['category']] ?? ''); $hasDemo = $item['demo_url'] !== ''; ?>
+        <?php foreach ($items as $item): $name = $localized($item, 'name') ?: (string) $item['name']; $description = $localized($item, 'description'); $categoryLabel = (string) ($categories[$item['category']] ?? ''); $hasDemo = $item['demo_url'] !== ''; ?>
         <article class="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0<?= $item['blocked_reason'] !== '' ? ' opacity-75' : '' ?>" data-testid="st-market-card" data-available="<?= $item['blocked_reason'] === '' ? '1' : '0' ?>">
             <?php // 封面加载失败（404、被拦）时换成占位，而不是留一块破图 ?>
             <?php // 4:3 比 16:9 高，能多看到首屏以下的版面；悬停时压暗 + 正中「查看演示 →」+ 底部渐变里的简介与行业 ?>

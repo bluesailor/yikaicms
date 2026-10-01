@@ -6,9 +6,9 @@ declare(strict_types=1);
 final class SiteFilingElement extends AbstractElement
 {
     private const ALIGN_MAP = [
-        'left' => 'justify-start text-left',
+        'left' => 'justify-start text-start',
         'center' => 'justify-center text-center',
-        'right' => 'justify-end text-right',
+        'right' => 'justify-end text-end',
     ];
 
     public function type(): string { return 'site-filing'; }

@@ -12,7 +12,7 @@
 .yk-overlap.yk-overlap--lift { margin-top: -64px !important; }
 
 /* 图片压边：图片向左越过容器边界 */
-.yk-overlap.yk-overlap--bleed { margin-left: -48px !important; }
+.yk-overlap.yk-overlap--bleed { margin-inline-start: -48px !important; }
 
 /* 标题叠图：标题上移压在图片上 */
 .yk-overlap.yk-overlap--title-over { margin-top: -48px !important; }
@@ -20,7 +20,7 @@
 /* ── 平板：偏移减半，版面还留得住 ────────────────────────── */
 @media (max-width: 1023px) {
     .yk-overlap.yk-overlap--lift { margin-top: -40px !important; }
-    .yk-overlap.yk-overlap--bleed { margin-left: -24px !important; }
+    .yk-overlap.yk-overlap--bleed { margin-inline-start: -24px !important; }
     .yk-overlap.yk-overlap--title-over { margin-top: -32px !important; }
 }
 
@@ -29,7 +29,7 @@
 @media (max-width: 767px) {
     .yk-overlap.yk-overlap--lift,
     .yk-overlap.yk-overlap--title-over { margin-top: 0 !important; }
-    .yk-overlap.yk-overlap--bleed { margin-left: 0 !important; }
+    .yk-overlap.yk-overlap--bleed { margin-inline-start: 0 !important; }
 }
 
 /* ── 层级：三档白名单 ─────────────────────────────────────── */

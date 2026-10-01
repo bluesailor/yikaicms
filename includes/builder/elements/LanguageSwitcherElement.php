@@ -3,22 +3,24 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__, 2) . '/i18n/LanguageRegistry.php';
+
 final class LanguageSwitcherElement extends AbstractElement
 {
     /**
-     * 语言代码 → 随包 SVG 国旗文件名（assets/icons/flags/*.svg）。
+     * 语言代码 → 随包 SVG 国旗文件名（assets/icons/flags/*.svg），取自 LanguageRegistry。
      * 不用 emoji 国旗——Windows 各浏览器不渲染 Regional Indicator，只显示 "CN/US" 字母对。
-     * en→美(us，站长可预期的通用英文旗)；未列出或缺文件的语言不显示旗。
-     * @var array<string,string>
+     * en→美(us，站长可预期的通用英文旗)；注册表未给旗（繁体、阿拉伯语）的语言不显示旗。
      */
-    private const FLAGS = [
-        'zh-CN' => 'cn', 'en' => 'us', 'ja' => 'jp',
-    ];
+    private static function flagFile(string $code): string
+    {
+        return LanguageRegistry::flag($code);
+    }
 
     /** 返回内联 <img> 旗帜标签（含尾随空格），无旗则空串。 */
     private static function flagImg(string $code): string
     {
-        $file = self::FLAGS[$code] ?? '';
+        $file = self::flagFile($code);
         if ($file === '') {
             return '';
         }
@@ -28,7 +30,7 @@ final class LanguageSwitcherElement extends AbstractElement
 
     private static function hasFlag(string $code): bool
     {
-        return isset(self::FLAGS[$code]);
+        return self::flagFile($code) !== '';
     }
 
     public function type(): string { return 'language-switcher'; }
@@ -180,8 +182,14 @@ final class LanguageSwitcherElement extends AbstractElement
             // Real PHP detail entry files must not become virtual /en/*.php paths.
             if (in_array($path, ['/article.php', '/product.php', '/detail.php'], true)) {
                 unset($queryParams['lang']);
+                if (class_exists('LanguageDomains') && LanguageDomains::hostFor($language) !== null) {
+                    // 有独立域名的语言：去它的域名，不用 _lang
+                    return LanguageDomains::url($language, $path . '?' . http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986));
+                }
                 if ($language !== $defaultLanguage) $queryParams['_lang'] = $language;
-                return $path . '?' . http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
+                $entry = $path . '?' . http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
+                return class_exists('LanguageDomains') && LanguageDomains::active()
+                    ? LanguageDomains::url($defaultLanguage, $entry) : $entry;
             }
             // Query routing has one real entry file; language belongs in its query, not a virtual directory.
             if ($path === '/index.php' && is_string($queryParams['yk_route'] ?? null)
@@ -194,6 +202,10 @@ final class LanguageSwitcherElement extends AbstractElement
             }
             $encoded = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
             $query = $encoded === '' ? '' : '?' . $encoded;
+        }
+        // 语言域名模式：各语言在各自主机上，切换链接要带上目标主机
+        if (class_exists('LanguageDomains') && LanguageDomains::active()) {
+            return LanguageDomains::url($language, $path . $query);
         }
         return $prefix . $path . $query;
     }

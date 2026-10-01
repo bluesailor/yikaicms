@@ -473,8 +473,9 @@ $__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions))
         many: <?php echo json_encode(__('dashboard_theme_update_many')); ?>
     };
     function themeName(item) {
-        if (themeLang === 'en' && item.name_en) return item.name_en;
-        if (themeLang === 'ja' && item.name_ja) return item.name_ja;
+        // 与 LanguageRegistry::localizedField 同一顺序：本语言 → 英文（读汉字的语言除外）→ 中文基准
+        if (themeLang !== 'zh-CN' && item['name_' + themeLang]) return item['name_' + themeLang];
+        if (themeLang !== 'en' && !/^(zh|ja)/.test(themeLang) && item.name_en) return item.name_en;
         return item.name || item.slug;
     }
     function formatThemeText(template, values) {

@@ -15,6 +15,16 @@ if (!defined('ROOT_PATH')) {
 // 加载 Model 层
 require_once ROOT_PATH . '/includes/models/autoload.php';
 
+// 语言域名模式：后台只在主域名（登录状态按域名保存）。在 en.example.com 上打开后台 → 回主域名同一地址。
+if (PHP_SAPI !== 'cli' && LanguageDomains::currentLanguage() !== null && !headers_sent()) {
+    $__adminUri = (string) ($_SERVER['REQUEST_URI'] ?? '/admin/');
+    $__adminTarget = LanguageDomains::redirectTarget((string) parse_url($__adminUri, PHP_URL_PATH), (string) parse_url($__adminUri, PHP_URL_QUERY));
+    if ($__adminTarget !== null) {
+        header('Location: ' . $__adminTarget, true, in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true) ? 302 : 307);
+        exit;
+    }
+}
+
 // 加载后台公共 helper：adminLangView / adminFilterLangSuffixes / adminRemapLangKeys
 // 以及 renderAdminLangSwitcher / loadTransStatus / renderTransPills
 // 让 admin 页面顶部即可调用，无需各页自行 require

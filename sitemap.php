@@ -38,7 +38,9 @@ function sitemapLastmod(mixed ...$timestamps): string
 
 // 缓存（使用后台配置的缓存时间）
 $sitemapTtl = (int)config('seo_sitemap_ttl', 600);
-$cached = cacheGet('sitemap_xml');
+// 语言域名模式下每个主机各有一份 sitemap（只列本主机上的语言），缓存按主机分开
+$sitemapCacheKey = LanguageDomains::active() ? 'sitemap_xml_' . md5(LanguageDomains::currentOrigin()) : 'sitemap_xml';
+$cached = cacheGet($sitemapCacheKey);
 if ($cached !== null) {
     echo $cached;
     exit;
@@ -51,6 +53,10 @@ $siteUrl = siteBaseUrl();
 // 一并交给搜索引擎去索引（fhzn 实测 204 条里有 9 条是这种）。
 // enabledLanguages() 返回的是 ['en' => 'English'] 这种**映射**，要的是键不是值
 $sitemapLangs = isMultiLangEnabled('channels') ? array_keys(enabledLanguages()) : [];
+if ($sitemapLangs !== [] && LanguageDomains::active()) {
+    // 搜索引擎只认同一主机的 sitemap 条目：语言域名只列自己，主域名不列有独立域名的语言
+    $sitemapLangs = LanguageDomains::languagesServedHere($sitemapLangs);
+}
 $sitemapLangParams = [];
 $sitemapLangCond = static fn(string $col): string => '';   // 未启用多语言时不加条件
 if ($sitemapLangs !== []) {
@@ -177,6 +183,6 @@ foreach ($urls as $url) {
 $xml .= "</urlset>\n";
 
 // 写入缓存
-cacheSet('sitemap_xml', $xml, $sitemapTtl);
+cacheSet($sitemapCacheKey, $xml, $sitemapTtl);
 
 echo $xml;

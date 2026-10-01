@@ -336,6 +336,7 @@ final class TagEngine
      * 返回原始行（不含 _type/_index 虚拟键，由调用方按需注入）。
      *
      * @return array<int,array<string,mixed>>
+     * @psalm-suppress PossiblyUnusedMethod 公开取数入口，供插件与自定义元素复用 {yk:list} 的查询契约
      */
     public static function listItems(array $attrs): array
     {

@@ -8,7 +8,7 @@ checkLogin();
 requirePermission('*');
 $theme = currentTheme();
 $language = get('lang', (string) config('site_lang', 'zh-CN'));
-if (!in_array($language, ['zh-CN', 'en', 'ja'], true)) $language = 'zh-CN';
+if (!LanguageRegistry::has((string) $language)) $language = 'zh-CN';
 $fields = [];
 $values = [];
 $errorMessage = '';

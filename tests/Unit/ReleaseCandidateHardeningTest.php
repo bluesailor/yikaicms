@@ -14,7 +14,7 @@ final class ReleaseCandidateHardeningTest extends TestCase
         // 宝塔 server 块没有 location / 兜底：语言前缀与首页都必须直接改写到真实入口。
         // 「去前缀 + ?_lang= 再往下匹配」在 server 级 last 之后不会再跑后续规则，语言内页全 404；
         // 首页不直达入口时，默认文档里 index.html 排前面就会被单页规则当成别名 index（2026-09-23 实测）。
-        self::assertStringContainsString('rewrite ^/(ja|en|zh-CN|zh-TW)/ /index.php last;', $baota);
+        self::assertStringContainsString('rewrite "^/[a-z]{2}(?:-[A-Z]{2})?/" /index.php last;', $baota);
         self::assertStringNotContainsString('?_lang=$1 last', $baota);
         self::assertStringContainsString('rewrite ^/$ /index.php last;', $baota);
         self::assertStringContainsString('rewrite ^/(admin|install)/$ /$1/index.php last;', $baota);

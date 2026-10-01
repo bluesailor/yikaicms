@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/i18n/LanguageRegistry.php';
 require_once __DIR__ . '/UrlPolicy.php';
 
 /** Small, schema-driven content fields. Layouts continue to use the existing page builder. */
@@ -21,7 +22,7 @@ final class ThemeContent
                 $value = $field[$name] ?? '';
                 if (!is_string($value) && !is_array($value)) throw new RuntimeException('tc_schema');
                 if (is_array($value)) foreach ($value as $lang => $text) {
-                    if (!in_array($lang, ['zh-CN', 'en', 'ja'], true) || !is_string($text)) throw new RuntimeException('tc_schema');
+                    if (!LanguageRegistry::has((string) $lang) || !is_string($text)) throw new RuntimeException('tc_schema');
                 }
             }
             if (empty($field['label'])) throw new RuntimeException('tc_schema');
@@ -133,7 +134,7 @@ final class ThemeContent
      */
     public static function save(string $theme, string $language, array $input, string $expected, bool $partial = false): void
     {
-        if (!in_array($language, ['zh-CN', 'en', 'ja'], true)) throw new RuntimeException('tc_value');
+        if (!LanguageRegistry::has($language)) throw new RuntimeException('tc_value');
         $key = 'theme_content_' . $theme;
         $fields = self::schema($theme);
         if ($fields === [] || array_diff(array_keys($input), array_keys($fields))) throw new RuntimeException('tc_schema');

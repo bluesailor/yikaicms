@@ -82,7 +82,7 @@ final class BuilderRenderTest extends TestCase
         $right = $this->inner($this->oneEl(['type' => 'button', 'data' => ['text' => 'Right', 'align' => 'right']]));
         $invalid = $this->inner($this->oneEl(['type' => 'button', 'data' => ['text' => 'Safe', 'align' => 'absolute']]));
         $this->assertStringContainsString('<div class="mt-2 text-center">', $center);
-        $this->assertStringContainsString('<div class="mt-2 text-right">', $right);
+        $this->assertStringContainsString('<div class="mt-2 text-end">', $right);
         $this->assertStringContainsString('<div class="mt-2">', $invalid);
 
         $controls = BuilderRegistry::get('button')?->controls() ?? [];
@@ -1310,7 +1310,7 @@ final class BuilderRenderTest extends TestCase
         ]]));
 
         // 与首页动态区块标题一致：默认滚动进入视窗时向上淡入
-        $this->assertStringContainsString('<div class="text-left mb-10" data-animate="fade-up">', $out);
+        $this->assertStringContainsString('<div class="text-start mb-10" data-animate="fade-up">', $out);
         $this->assertStringContainsString(
             '<h3 class="blk-title" style="font-size:2.25rem;color:#123456;">Section title</h3>',
             $out
@@ -1357,9 +1357,9 @@ final class BuilderRenderTest extends TestCase
         // 未设置装饰项：与旧版逐字节一致
         $this->assertStringContainsString('</h2><span class="section-title-bar"></span>', $render([]));
         // 默认对齐跟随标题（旧版左对齐标题下装饰线仍居中）
-        $this->assertStringContainsString('<span class="section-title-bar" style="margin-left:0;margin-right:auto"></span>', $render(['title_align' => 'left']));
+        $this->assertStringContainsString('<span class="section-title-bar" style="margin-inline-start:0;margin-inline-end:auto"></span>', $render(['title_align' => 'left']));
         $this->assertStringContainsString(
-            '<span class="section-title-dot" style="margin-left:auto;margin-right:0;background:#ff0000;width:12px;height:12px;margin-top:20px"></span>',
+            '<span class="section-title-dot" style="margin-inline-start:auto;margin-inline-end:0;background:#ff0000;width:12px;height:12px;margin-top:20px"></span>',
             $render(['title_decor_style' => 'dot', 'title_decor_align' => 'right', 'title_decor_color' => '#ff0000', 'title_decor_width' => 12, 'title_decor_gap' => 20])
         );
         $this->assertStringNotContainsString('section-title-', $render(['title_decor_style' => 'none']));
@@ -1548,7 +1548,7 @@ final class BuilderRenderTest extends TestCase
             'style_padding_left' => 'sm',
         ]]));
         $this->assertStringContainsString(
-            'style="margin:1rem!important;margin-bottom:0!important;padding:4rem!important;padding-left:0.5rem!important;"',
+            'style="margin:1rem!important;margin-bottom:0!important;padding:4rem!important;padding-inline-start:0.5rem!important;"',
             $out
         );
         $this->assertStringContainsString('class="text-2xl font-bold mb-4"', $out);
@@ -1615,7 +1615,7 @@ final class BuilderRenderTest extends TestCase
             'style_padding' => 'md',
         ]);
         $this->assertStringContainsString('margin-top:-12px!important;', $s);
-        $this->assertStringContainsString('margin-left:auto!important;', $s);
+        $this->assertStringContainsString('margin-inline-start:auto!important;', $s);
         $this->assertStringContainsString('margin:1.5rem!important;', $s);
         $this->assertStringContainsString('padding-top:10%!important;', $s);
         $this->assertStringContainsString('padding:1rem!important;', $s);

@@ -15,6 +15,7 @@
 
 - [子目录部署](./SUBDIRECTORY.md)：放在 `/sub/` 这类目录下运行；nginx 一个 server 块放多个一级子目录站点用 `nginx-subdirectories.conf`。
 - [无伪静态兼容](./URL-COMPATIBILITY.md)：服务器不支持伪静态时的检测与兼容访问。
+- [多语言部署](./LANGUAGES.md)：语言网址前缀（老站升级后的 .htaccess 一键更新）、语言域名（en.example.com）、阿拉伯语等从右到左语言。
 - [环境检测页](./environment-check.md)：`environment-check.php` 单文件，安装前上传到服务器检查 PHP 版本、扩展与目录权限。
 
 ## 服务器部署
