@@ -61,11 +61,14 @@ acme-note/
   "description_ja": "フッターに設定可能なテキストを表示します。",
   "author": "Your Team",
   "requires_php": "8.0",
-  "requires_cms": "1.20.0"
+  "requires_cms": "1.20.0",
+  "icon": "ti-message"
 }
 ```
 
 使用清晰的三段版本号。兼容版本应填写实际验证过的最低版本，不能因为某个旧示例写了 1.0.0 就沿用。`requires_php` 默认写产品下限 8.0；只有代码确实用到 8.1+ 语法或函数时才提高，并在运行时受控检查。
+
+`icon`（可选，CMS 2.0.3+）：后台插件卡片上的图标，填 Tabler 图标类名（`ti-` 开头，如 `ti-truck`，可在 tabler.io/icons 查名称），只用项目自托管的图标字体，不支持图片或外部地址；不填或不合规时显示默认拼图。官方插件另有内置对照表（`includes/PluginIcons.php`）。
 
 付费插件在 plugin.json 中另加 `tier` 与 `module`（授权模块名）：`freemium` 表示基础功能免费、可直接安装，Pro 能力在运行时用 `license_has_module()` 判断；`pro` 表示整包付费，插件市场只向持有该模块且未过期的授权下发下载地址。两者都需在运行时自行检查授权，市场下载闸不能代替运行时判断。
 
