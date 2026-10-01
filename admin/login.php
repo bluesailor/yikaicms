@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <?php $currentLang = function_exists('getLang') ? getLang() : 'ja'; ?>
 <!DOCTYPE html>
-<html lang="<?php echo e($currentLang); ?>">
+<html lang="<?php echo e($currentLang); ?>"<?php echo htmlDirAttr($currentLang); ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

@@ -78,6 +78,24 @@ function fontPresets(): array
                 'heading' => '"Hiragino Maru Gothic ProN","Yu Gothic",YuGothic,Meiryo,sans-serif',
             ],
         ],
+        // 阿拉伯语：只用系统自带字体（Windows Segoe UI / Tahoma 都含阿拉伯字形，苹果是 Geeza Pro，安卓是 Noto）
+        'ar' => [
+            'system' => [
+                'label'   => __('font_preset_ar_system'),
+                'body'    => 'system-ui,"Segoe UI","Noto Sans Arabic","Geeza Pro","Arabic UI Text",Tahoma,Arial,sans-serif,' . $emoji,
+                'heading' => 'system-ui,"Segoe UI","Noto Sans Arabic","Geeza Pro","Arabic UI Display",Tahoma,Arial,sans-serif',
+            ],
+            'naskh' => [
+                'label'   => __('font_preset_ar_naskh'),
+                'body'    => '"Noto Naskh Arabic","Traditional Arabic","Simplified Arabic","Times New Roman",serif,' . $emoji,
+                'heading' => '"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif',
+            ],
+            'kufi' => [
+                'label'   => __('font_preset_ar_kufi'),
+                'body'    => '"Segoe UI","Noto Sans Arabic","Geeza Pro",Tahoma,sans-serif,' . $emoji,
+                'heading' => '"Noto Kufi Arabic","Segoe UI","Geeza Pro",Tahoma,sans-serif',
+            ],
+        ],
     ];
 }
 

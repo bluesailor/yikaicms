@@ -29,6 +29,7 @@ require_once __DIR__ . '/Slug.php';       // generateSlug/normalizeSlugInput：U
 require_once __DIR__ . '/i18n/LanguageRegistry.php';   // 支持哪些语言、前缀/hreflang/方向：单一来源
 require_once __DIR__ . '/i18n/LanguageDomains.php';    // 语言域名模式（en.example.com 等）
 require_once __DIR__ . '/i18n/LanguageRouting.php';    // 语言前缀能否访问：探针、.htaccess 一键更新
+require_once __DIR__ . '/i18n/TextDirection.php';      // Blox 的左/右按起始/结束输出（RTL 镜像）
 require_once __DIR__ . '/AdminLogSanitizer.php';
 require_once __DIR__ . '/FormSubmissionToken.php';
 require_once __DIR__ . '/FormSubmissionNonce.php';
@@ -584,6 +585,15 @@ function resolveSlug(string $input, string $title, string $table, int $excludeId
  * 前台使用 site_lang，后台使用 admin_lang
  * 优先级：数据库设置 > config.php 常量 > 默认 zh-CN
  */
+/**
+ * <html> 上的方向属性：从右到左的语言（阿拉伯语等）返回 ` dir="rtl"`（含前导空格），其余返回空串。
+ * LTR 不写 dir：浏览器默认就是 ltr，现有页面输出逐字节不变。
+ */
+function htmlDirAttr(?string $lang = null): string
+{
+    return LanguageRegistry::isRtl($lang ?? getLang()) ? ' dir="rtl"' : '';
+}
+
 function getLang(): string
 {
     if (defined('YK_PRODUCT_NATIVE_PREVIEW') && YK_PRODUCT_NATIVE_PREVIEW === true && defined('SITE_LANG')) {

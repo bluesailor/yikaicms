@@ -10,6 +10,8 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/i18n/TextDirection.php';
+
 require_once __DIR__ . '/../HtmlTagRewriter.php';
 
 final class BlockRenderer
@@ -78,7 +80,7 @@ final class BlockRenderer
     /** 断点隐藏类（前台输出；编辑态改打 data-yk-hide-on 标记以便画布仍可选中）。类名字面量供 Tailwind 扫描。 */
     // 桌面隐藏覆盖 ≥1024（含宽屏，与旧文档一致）；宽屏档另可单独隐藏 ≥1440
     private const HIDE_ON_MAP = ['m' => 'max-md:hidden', 't' => 'md:max-lg:hidden', 'd' => 'lg:hidden', 'w' => 'wide:hidden'];
-    private const SECTION_ALIGN_MAP = ['left' => 'text-left', 'center' => 'text-center', 'right' => 'text-right'];
+    private const SECTION_ALIGN_MAP = ['left' => 'text-start', 'center' => 'text-center', 'right' => 'text-end'];   // 左右 = 起始/结束（RTL 镜像）
     private const SECTION_TITLE_SIZE_MAP = ['sm' => '1.5rem', 'md' => '1.875rem', 'lg' => '2.25rem', 'xl' => '3rem'];
     private const SECTION_SUBTITLE_SIZE_MAP = ['sm' => '0.875rem', 'md' => '1rem', 'lg' => '1.25rem'];
     private const BG_POSITION_MAP = [
@@ -775,10 +777,8 @@ final class BlockRenderer
         if (!in_array($align, ['left', 'center', 'right'], true)) {
             $align = in_array(($settings['title_align'] ?? ''), ['left', 'right'], true) ? (string) $settings['title_align'] : '';
         }
-        if ($align === 'left') {
-            $inline[] = 'margin-left:0;margin-right:auto';
-        } elseif ($align === 'right') {
-            $inline[] = 'margin-left:auto;margin-right:0';
+        if ($align === 'left' || $align === 'right') {
+            $inline[] = TextDirection::blockAlignCss($align);
         }
         $color = AbstractElement::cssColor($settings['title_decor_color'] ?? null);
         if ($color !== null) {

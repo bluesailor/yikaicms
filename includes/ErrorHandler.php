@@ -253,7 +253,7 @@ final class ErrorHandler
                     // 错误页不能因语言配置读取失败而再次报错。
                 }
             }
-            echo '<!DOCTYPE html><html lang="' . $htmlLanguage . '"><head><meta charset="utf-8"><title>500</title></head><body style="font-family:system-ui;padding:60px 24px;text-align:center;color:#374151">'
+            echo '<!DOCTYPE html><html lang="' . $htmlLanguage . '"' . (class_exists('LanguageRegistry') && LanguageRegistry::isRtl($htmlLanguage) ? ' dir="rtl"' : '') . '><head><meta charset="utf-8"><title>500</title></head><body style="font-family:system-ui;padding:60px 24px;text-align:center;color:#374151">'
                 . '<h1 style="font-size:48px;margin:0 0 8px">500</h1>'
                 . '<p>' . htmlspecialchars($msg, ENT_QUOTES) . '</p>'
                 . '</body></html>';

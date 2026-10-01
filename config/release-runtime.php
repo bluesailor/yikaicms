@@ -30,6 +30,7 @@ return [
         'includes/i18n/LanguageRegistry.php',   // Dispatcher / functions.php / lang_url.php 无条件 require：语言注册表
         'includes/i18n/LanguageDomains.php',    // functions.php 无条件 require：语言域名模式
         'includes/i18n/LanguageRouting.php',    // functions.php 无条件 require：语言前缀探针与 .htaccess 一键更新
+        'includes/i18n/TextDirection.php',      // functions.php 与 Blox 渲染无条件 require：左右按起始/结束输出
         'includes/HtmlTagRewriter.php',
         'assets/js/rewrite-probe.js',
         'includes/functions.php',

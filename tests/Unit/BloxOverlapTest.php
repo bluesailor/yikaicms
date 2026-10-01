@@ -95,7 +95,7 @@ final class BloxOverlapTest extends TestCase
 
         // 桌面值带 !important，手机端归零也必须带，否则压不过去——负边距会留在手机上
         self::assertStringContainsString('margin-top: 0 !important', $phoneBlock);
-        self::assertStringContainsString('margin-left: 0 !important', $phoneBlock);
+        self::assertStringContainsString('margin-inline-start: 0 !important', $phoneBlock);
         foreach (BloxOverlap::PRESETS as $preset) {
             self::assertStringContainsString(str_replace('_', '-', $preset), $phoneBlock, $preset);
         }

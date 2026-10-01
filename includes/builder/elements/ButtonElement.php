@@ -148,7 +148,7 @@ final class ButtonElement extends AbstractElement
         // 新窗口/rel/title/aria-label 与标题、图片同一规则（"0"/"false" 不再被当成开新窗口）
         $target = self::linkAttributes($href, $data['new_tab'] ?? false, $data);
         $align = in_array($data['align'] ?? '', ['left', 'center', 'right'], true) ? $data['align'] : 'left';
-        $alignClass = ['left' => '', 'center' => ' text-center', 'right' => ' text-right'][$align];
+        $alignClass = ['left' => '', 'center' => ' text-center', 'right' => ' text-end'][$align];
         $variant = in_array($data['variant'] ?? '', ['primary', 'dark', 'outline', 'soft', 'ghost', 'link'], true)
             ? (string) $data['variant'] : 'primary';
         $color = self::cssColor($data['color'] ?? null);

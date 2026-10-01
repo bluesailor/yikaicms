@@ -151,7 +151,7 @@ final class BloxOverlap
                 'options' => array_merge([''], self::PRESETS),
                 'css' => [
                     'lift' => ['d' => 'margin-top:-64px', 't' => 'margin-top:-40px', 'm' => 'margin-top:0'],
-                    'bleed' => ['d' => 'margin-left:-48px', 't' => 'margin-left:-24px', 'm' => 'margin-left:0'],
+                    'bleed' => ['d' => 'margin-inline-start:-48px', 't' => 'margin-inline-start:-24px', 'm' => 'margin-inline-start:0'],
                     'title_over' => ['d' => 'margin-top:-48px', 't' => 'margin-top:-32px', 'm' => 'margin-top:0'],
                 ],
                 'note' => 'mobile always resets to 0'],

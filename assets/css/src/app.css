@@ -963,6 +963,20 @@ body.yk-has-blox-sticky-header {
   }
 }
 
+/*
+ * 从右到左语言（<html dir="rtl">，阿拉伯语等）：表示方向的图标随文字方向镜像。
+ * 「下一步 →」在 RTL 里应指向左。transform 与 Tailwind v4 的 translate/scale 属性互不覆盖。
+ * 不该镜像的图标（如播放、品牌标志）不在此列；个别要镜像的图标可加 yk-rtl-flip。
+ */
+[dir="rtl"] :is(.ti-arrow-right, .ti-arrow-left, .ti-arrow-narrow-right, .ti-arrow-narrow-left,
+  .ti-chevron-right, .ti-chevron-left, .ti-chevrons-right, .ti-chevrons-left, .ti-caret-right, .ti-caret-left,
+  .ti-arrow-up-right, .ti-arrow-back-up, .ti-arrow-forward-up, .ti-external-link,
+  .bi-arrow-right, .bi-arrow-left, .bi-chevron-right, .bi-chevron-left, .bi-arrow-right-short, .bi-arrow-left-short,
+  .yk-rtl-flip) {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
 /* Keep the language choice on one line beside the logo and menu at narrow widths. */
 @media (max-width: 380px) {
   .yk-blox-header .yk-container { gap: .5rem; }
