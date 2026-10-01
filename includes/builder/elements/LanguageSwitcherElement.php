@@ -68,7 +68,7 @@ final class LanguageSwitcherElement extends AbstractElement
         if (count($languages) < 2) {
             return '';
         }
-        $current = function_exists('siteLang') ? siteLang() : (string) array_key_first($languages);
+        $current = function_exists('displayLang') ? displayLang() : (function_exists('siteLang') ? siteLang() : (string) array_key_first($languages));
         $default = function_exists('config') ? (string) config('site_lang', 'zh-CN') : 'zh-CN';
         $knownLanguages = function_exists('availableLanguages') ? array_keys(availableLanguages()) : array_keys($languages);
         $requestUri = isset($_SERVER['REQUEST_URI']) && is_string($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';

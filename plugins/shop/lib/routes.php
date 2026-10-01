@@ -29,7 +29,7 @@ function shopFrontUrl(string $route, array $params = [], ?string $mode = null): 
         $path = '/plugins/shop/front/index.php';
         $params = ['shop_route' => $route] + $params;
         if (!isset($params['_lang']) && function_exists('siteLang')) {
-            $params['_lang'] = siteLang();
+            $params['_lang'] = function_exists('displayLang') ? displayLang() : siteLang();
         }
     } else {
         $path = $routes[$route]['path'];

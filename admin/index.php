@@ -576,9 +576,10 @@ $__qkCatalog = [
 // 默认清单不含「网站设计」：它是整站设计入口，左侧菜单常驻，放在常用里重复（2026-09-18 产品决定）。
 // 管理员用 ☆ 收藏后照常出现，所以目录里仍保留它的图标与文案。
 $__qkByRole = [
-    // 1 超级管理员：站点管理全景
-    1 => ['/admin/setting_contact.php', '/admin/setting.php', '/admin/database.php',
-          '/admin/banner.php', '/admin/channel.php', '/admin/page.php', '/admin/product.php', '/admin/download.php'],
+    // 1 超级管理员：日常最常做的事在前（询盘、文章、产品）。轮播图在首页可视化编辑里也能改、
+    //   一年改不了几次，数据库更少用，2.0.3 起移出默认（仍可 ☆ 收藏；运营角色保留轮播图）
+    1 => ['/admin/form.php', '/admin/article.php', '/admin/product.php', '/admin/page.php',
+          '/admin/channel.php', '/admin/setting_contact.php', '/admin/setting.php', '/admin/download.php'],
     // 2 投稿者：只写文章相关
     2 => ['/admin/article.php', '/admin/job.php', '/admin/timeline.php'],
     // 3 内容编辑：全类内容 + 媒体
