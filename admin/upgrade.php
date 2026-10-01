@@ -905,6 +905,39 @@ $__mCur = defined('CMS_VERSION') ? CMS_VERSION : '?';
                     <span class="block text-xs text-gray-400 mt-0.5"><?php echo e(__('upgrade_managed_tip')); ?></span>
                 </span>
             </label>
+            <?php
+            require_once ROOT_PATH . '/includes/RemoteRepair.php';
+            $__repairs = RemoteRepair::log();
+            ?>
+            <?php if ($__repairs !== []): ?>
+            <div class="mt-4" data-testid="remote-repair-log">
+                <div class="text-sm font-medium text-gray-700"><?php echo e(__('repair_log_title')); ?></div>
+                <p class="text-xs text-gray-400 mt-0.5"><?php echo e(__('repair_log_tip')); ?></p>
+                <div class="overflow-x-auto mt-2">
+                    <table class="w-full text-sm">
+                        <thead><tr class="text-left text-gray-500">
+                            <th class="py-2 pr-4 font-normal"><?php echo e(__('repair_col_time')); ?></th>
+                            <th class="py-2 pr-4 font-normal"><?php echo e(__('repair_col_title')); ?></th>
+                            <th class="py-2 pr-4 font-normal"><?php echo e(__('repair_col_status')); ?></th>
+                            <th class="py-2 font-normal"><?php echo e(__('repair_col_backup')); ?></th>
+                        </tr></thead>
+                        <tbody>
+                        <?php foreach (array_slice($__repairs, 0, 10) as $__r): ?>
+                            <tr class="border-t border-gray-100">
+                                <td class="py-2 pr-4 whitespace-nowrap text-gray-500"><?php echo e(date('Y-m-d H:i', $__r['at'])); ?></td>
+                                <td class="py-2 pr-4"><?php echo e($__r['title']); ?> <span class="text-xs text-gray-400"><?php echo e($__r['id']); ?></span></td>
+                                <td class="py-2 pr-4 <?php echo $__r['status'] === 'ok' ? 'text-green-600' : (in_array($__r['status'], ['failed', 'rejected'], true) ? 'text-red-600' : 'text-gray-500'); ?>">
+                                    <?php echo e(__('repair_status_' . $__r['status'])); ?>
+                                    <?php if ($__r['msg'] !== ''): ?><span class="block text-xs text-gray-400"><?php echo e($__r['msg']); ?></span><?php endif; ?>
+                                </td>
+                                <td class="py-2 text-xs text-gray-500 font-mono"><?php echo e($__r['backup'] !== '' ? $__r['backup'] : '-'); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
 
         <div class="border-t border-gray-100 mt-5 pt-5" data-testid="update-mail-control">
