@@ -212,7 +212,8 @@ try {
         $dbHost = (string) ($options['db-host'] ?? '127.0.0.1');
         $dbPort = (string) ($options['db-port'] ?? '3306');
         $dbUser = (string) ($options['db-user'] ?? 'root');
-        $dbPass = (string) ($options['db-pass'] ?? '123456');
+        // 本机密码可走环境变量 YK_TEST_DB_PASS，不必出现在命令行与进程列表里
+        $dbPass = (string) ($options['db-pass'] ?? (getenv('YK_TEST_DB_PASS') !== false ? getenv('YK_TEST_DB_PASS') : '123456'));
         $pdo = new PDO('mysql:host=' . $dbHost . ';port=' . $dbPort . ';charset=utf8mb4', $dbUser, $dbPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
         $pdo->exec('CREATE DATABASE `' . $dbName . '` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci');
         $install += [
