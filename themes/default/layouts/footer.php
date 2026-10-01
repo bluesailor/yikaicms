@@ -233,7 +233,7 @@ if ($footerBgLiteral !== '') {
                     ?>
                 </div>
                 <div class="flex flex-wrap gap-4">
-                    <?php if (siteLang() === 'zh-CN'): ?>
+                    <?php if (displayLang() === 'zh-CN'): ?>
                         <?php if ($icp = config('site_icp')): ?>
                         <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-white transition">
                             <?php echo e($icp); ?>

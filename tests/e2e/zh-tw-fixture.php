@@ -45,7 +45,8 @@ if ($action === 'check') {
     }
     $simplifiedOnly = [];
     foreach ($maps['p1'] as $from => $to) {
-        if (mb_strlen($from) === 1 && $from !== $to && !isset($traditional[$from])) $simplifiedOnly[$from] = true;
+        // 按完整转换（简→繁 再 繁→台湾用字）判断：床→牀→床 这类异体字往返不算简体残留
+        if (mb_strlen($from) === 1 && $from !== $to && !isset($traditional[$from]) && S2T::text($from) !== $from) $simplifiedOnly[$from] = true;
     }
     $segments = json_decode((string) stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR);
     $found = [];

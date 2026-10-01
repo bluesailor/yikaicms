@@ -12,7 +12,7 @@ require_once __DIR__ . '/i18n/LanguageRegistry.php';
  */
 function langUrl(string $url, string $lang = ''): string
 {
-    $lang = $lang ?: siteLang();
+    $lang = $lang ?: (function_exists('displayLang') ? displayLang() : siteLang());
     $defaultLang = (string)config('site_lang', 'zh-CN');
     // 语言域名模式：目标语言在别的主机上时给完整地址，同主机给站内路径（见 LanguageDomains::url）
     if (class_exists('LanguageDomains') && LanguageDomains::active() && !preg_match('#^[a-z][a-z0-9+.-]*:#i', $url)) {

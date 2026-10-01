@@ -82,7 +82,7 @@
                     &copy; <?php echo date('Y'); ?> <?php echo e($_siteName); ?>. All rights reserved.
                 </div>
                 <div class="flex items-center gap-4">
-                    <?php if (siteLang() === 'zh-CN'): ?>
+                    <?php if ((function_exists('displayLang') ? displayLang() : siteLang()) === 'zh-CN'): ?>
                         <?php if ($icp = config('site_icp')): ?>
                         <a href="https://beian.miit.gov.cn/" target="_blank" rel="nofollow" class="hover:text-slate-300 transition">
                             <?php echo e($icp); ?>
