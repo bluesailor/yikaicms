@@ -28,6 +28,7 @@ final class LanguageDomains
     /**
      * 测试用：固定映射、主站地址与当前主机；传 null 恢复按配置与请求读取。
      * @param array<string,string>|null $map
+     * @psalm-suppress PossiblyUnusedMethod 调用方在 tests/（不在 Psalm projectFiles 内）
      */
     public static function setForTests(?array $map, ?string $mainOrigin = null, ?string $currentHost = null): void
     {
@@ -214,7 +215,10 @@ final class LanguageDomains
         return null;
     }
 
-    /** 本主机上提供哪些语言（sitemap 用）：语言域名只有自己；主域名是未映射的已启用语言。 */
+    /**
+     * 本主机上提供哪些语言（sitemap 用）：语言域名只有自己；主域名是未映射的已启用语言。
+     * @psalm-suppress PossiblyUnusedMethod 调用方是 sitemap.php（根目录入口，不在 Psalm projectFiles 内）
+     */
     public static function languagesServedHere(array $enabled): array
     {
         $here = self::currentLanguage();
