@@ -4,6 +4,5 @@
     "description": "示例插件 - 演示 register.php / main.php / 可用钩子",
     "author": "Yikai CMS",
     "requires_php": "8.0",
-    "requires_cms": "1.0.0",
-    "icon": "ti-flask"
+    "requires_cms": "1.0.0"
 }
