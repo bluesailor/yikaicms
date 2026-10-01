@@ -15,7 +15,7 @@ declare(strict_types=1);
 /** 当前商城表结构版本（加列/加表时 +1 并在 shopSchemaSteps() 补步骤）。 */
 function shopSchemaVersion(): int
 {
-    return 2;
+    return 3;
 }
 
 /**
@@ -61,6 +61,9 @@ function shopSchemaSteps(): array
                 db()->execute("ALTER TABLE `{$orders}` ADD COLUMN `tracking_no` varchar(64) NOT NULL DEFAULT '' COMMENT '物流单号'");
             }
         }],
+        [3, 'Checkout request idempotency', static function (): void {
+            shopEnsureTables();
+        }],
     ];
 }
 
@@ -76,6 +79,30 @@ function shopSchemaSteps(): array
 function shopTableSchemas(): array
 {
     return [
+        'shop_checkout_requests' => [
+            'mysql' => "CREATE TABLE IF NOT EXISTS `{p}shop_checkout_requests` (
+                `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+                `request_key` varchar(32) NOT NULL,
+                `owner_hash` varchar(64) NOT NULL,
+                `payload_hash` varchar(64) NOT NULL,
+                `order_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+                `created_at` int(11) NOT NULL DEFAULT 0,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uk_request_key` (`request_key`),
+                KEY `idx_order` (`order_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci",
+            'sqlite' => "CREATE TABLE IF NOT EXISTS \"{p}shop_checkout_requests\" (
+                \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,
+                \"request_key\" TEXT NOT NULL UNIQUE,
+                \"owner_hash\" TEXT NOT NULL,
+                \"payload_hash\" TEXT NOT NULL,
+                \"order_id\" INTEGER NOT NULL DEFAULT 0,
+                \"created_at\" INTEGER NOT NULL DEFAULT 0
+            )",
+            'sqlite_indexes' => [
+                "CREATE INDEX IF NOT EXISTS \"idx_{p}shop_checkout_requests_order\" ON \"{p}shop_checkout_requests\" (\"order_id\")",
+            ],
+        ],
         // 产品销售配置（1:1 关联 products，不动产品表本身——「启用销售」是叠加而非改写）
         'shop_products' => [
             'mysql' => "CREATE TABLE IF NOT EXISTS `{p}shop_products` (

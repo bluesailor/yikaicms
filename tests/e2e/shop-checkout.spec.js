@@ -88,7 +88,7 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   // 再提交行销售设置
   await page.getByTestId(`shop-price-${product.id}`).fill('19.9');
   await page.getByTestId(`shop-stock-${product.id}`).fill('999');
-  await page.getByTestId(`shop-variants-${product.id}`).locator('xpath=..').locator('summary').click();
+  await page.getByTestId(`shop-variants-${product.id}`).locator('xpath=ancestor::details[1]').locator('summary').click();
   await page.getByTestId(`shop-variants-${product.id}`).fill('重量:1kg | E2E-1KG | 19.90 | 5\n重量:5kg | E2E-5KG | 79.90 | 2');
   await page.getByTestId(`shop-status-${product.id}`).check();
   await page.getByTestId(`shop-row-${product.id}`).locator('button[type="submit"]').click();
@@ -121,8 +121,8 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await visitor.getByTestId('shop-checkout-name').fill('E2E 买家');
   await visitor.getByTestId('shop-checkout-phone').fill('13812345678');
   await visitor.getByTestId('shop-checkout-province').selectOption('海南省');
-  await visitor.getByTestId('shop-checkout-city').fill('三沙市');
-  await visitor.getByTestId('shop-checkout-district').fill('西沙区');
+  await visitor.getByTestId('shop-checkout-city').selectOption('三沙市');
+  await visitor.getByTestId('shop-checkout-district').selectOption('西沙区');
   await visitor.getByTestId('shop-checkout-address').fill('测试路 1 号');
   await visitor.getByTestId('shop-checkout-submit').click();
   await expect(visitor).toHaveURL(/\/shop\/checkout\?err=/);
@@ -132,12 +132,23 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await visitor.getByTestId('shop-checkout-name').fill('E2E 买家');
   await visitor.getByTestId('shop-checkout-phone').fill('13812345678');
   await visitor.getByTestId('shop-checkout-province').selectOption('上海市');
-  await visitor.getByTestId('shop-checkout-city').fill('上海市');
-  await visitor.getByTestId('shop-checkout-district').fill('浦东新区');
+  await visitor.getByTestId('shop-checkout-city').selectOption('上海市');
+  await visitor.getByTestId('shop-checkout-district').selectOption('浦东新区');
   await visitor.getByTestId('shop-checkout-address').fill('测试路 1 号');
   await expect(visitor.getByTestId('shop-checkout-total')).toContainText('54.80');
+  // 记下这张结算表单，下单成功后原样再交一次（双击、后退重交）：必须回到同一个订单，不能重复扣库存
+  const checkoutForm = await visitor.getByTestId('shop-checkout-form').evaluate((form) => {
+    const data = {};
+    new FormData(form).forEach((value, key) => { data[key] = String(value); });
+    return { action: form.action, data };
+  });
   await visitor.getByTestId('shop-checkout-submit').click();
   await expect(visitor).toHaveURL(/\/shop\/order\?no=/);
+  const firstOrderUrl = visitor.url();
+  const resubmit = await visitor.request.post(checkoutForm.action, { form: checkoutForm.data, maxRedirects: 0 });
+  expect(resubmit.status()).toBe(303);
+  expect(new URL(resubmit.headers().location, firstOrderUrl).searchParams.get('no'))
+    .toBe(new URL(firstOrderUrl).searchParams.get('no'));
   await expect(visitor.getByTestId('shop-order-status')).toContainText('待付款');
   await expect(visitor.getByTestId('shop-order-contact')).toContainText('138****5678');
   await expect(visitor.getByTestId('shop-payment-details')).toContainText('E2E 公司收款');
@@ -166,6 +177,30 @@ test('shop checkout loop: native and Blox purchase, fulfillment, lookup, plugin-
   await expect(page.getByTestId('shop-order-status')).toContainText('已发货');
   await page.getByTestId('shop-order-complete').click();
   await expect(page.getByTestId('shop-order-status')).toContainText('已完成');
+
+  // 退款额度（2.0.3）：处理中的申请也占额度；用完后不再提供登记表单；拒绝后释放
+  const refundRows = page.locator('[data-testid^="shop-refund-row-"]');
+  const createRefund = async (amount) => {
+    await page.getByTestId('shop-refund-amount').fill(amount);
+    await page.getByTestId('shop-refund-create').click();
+    await page.waitForLoadState('load');
+    await page.goto('/admin/plugin_page.php?plugin=shop&view=orders&detail=1');
+  };
+  await createRefund('30.00');
+  await expect(refundRows).toHaveCount(1);
+  await createRefund('30.00');          // 只剩 24.80：拒收
+  await expect(refundRows).toHaveCount(1);
+  await createRefund('24.80');
+  await expect(refundRows).toHaveCount(2);
+  await expect(page.getByTestId('shop-refund-amount')).toHaveCount(0);
+  const [firstRefund, secondRefund] = await refundRows.evaluateAll((rows) => rows.map((row) => row.getAttribute('data-testid').replace('shop-refund-row-', '')));
+  await page.getByTestId(`shop-refund-reject-${firstRefund}`).click();
+  await page.goto('/admin/plugin_page.php?plugin=shop&view=orders&detail=1');
+  await expect(page.getByTestId('shop-refund-amount')).toHaveCount(1);
+  await page.getByTestId(`shop-refund-confirm-${secondRefund}`).click();
+  await page.goto('/admin/plugin_page.php?plugin=shop&view=orders&detail=1');
+  await expect(page.getByTestId(`shop-refund-confirm-${secondRefund}`)).toHaveCount(0);
+  await expect(page.getByTestId('shop-refund-amount')).toHaveCount(1);
 
   // 后台按当前筛选直接导出快递导单；CSV 包含规格、结构化地址和物流字段。
   await page.goto('/admin/plugin_page.php?plugin=shop&view=orders');

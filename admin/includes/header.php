@@ -122,7 +122,36 @@ if ($_sbCompactPage) $_sbCollapsed = true;
 ?>
 <body class="bg-gray-100" x-data="{
         mobileMenu: false,
+        mobileView: window.innerWidth < 1024,
+        mobileTrigger: null,
         _sbT: 0,
+        openMobileMenu(event) {
+            this.mobileTrigger = event.currentTarget;
+            this.fly = { key: '', label: '', items: [], top: 0 };
+            this.mobileMenu = true;
+            this.$nextTick(() => this.$refs.adminSidebar.querySelector('a, button')?.focus());
+        },
+        closeMobileMenu(restoreFocus = true) {
+            if (!this.mobileMenu) return;
+            this.mobileMenu = false;
+            if (restoreFocus) this.$nextTick(() => this.mobileTrigger?.focus());
+        },
+        syncViewport() {
+            this.mobileView = window.innerWidth < 1024;
+            if (!this.mobileView) this.closeMobileMenu(false);
+        },
+        trapMobileMenu(event) {
+            if (!this.mobileView || !this.mobileMenu) return;
+            var items = Array.from(this.$refs.adminSidebar.querySelectorAll('a[href], button:not([disabled])'))
+                .filter(el => el.getClientRects().length > 0);
+            if (!items.length) return;
+            var first = items[0], last = items[items.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault(); last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault(); first.focus();
+            }
+        },
         collapsed: <?= $_sbCollapsed ? 'true' : 'false' ?>,
         compactPage: <?= $_sbCompactPage ? 'true' : 'false' ?>,
         toggleCollapsed() {
@@ -159,12 +188,26 @@ if ($_sbCompactPage) $_sbCollapsed = true;
             });
         },
         flyKeep() { clearTimeout(this._flyTimer); },
+        flyFocusFirst(event, key) {
+            this.flyOpen(event, key);
+            this.$nextTick(() => this.$refs.sidebarFlyout.querySelector('a')?.focus());
+        },
+        closeFlyout(restoreFocus = false) {
+            var key = this.fly.key;
+            this.fly = { key: '', label: '', items: [], top: 0 };
+            if (restoreFocus && key) {
+                this.$nextTick(() => this.$refs.adminSidebar.querySelector('[data-group=' + key + '] .sidebar-compact-trigger')?.focus());
+            }
+        },
         flyLater() {
             var self = this;
             clearTimeout(this._flyTimer);
             this._flyTimer = setTimeout(function () { self.fly = { key: '', label: '', items: [], top: 0 }; }, 180);
         }
-     }">
+     }"
+        @resize.window="syncViewport()"
+        @keydown.escape.window="if (mobileView && mobileMenu) { $event.preventDefault(); closeMobileMenu(); }">
+    <a href="#admin-main-content" class="yk-skip-link" :inert="mobileView && mobileMenu"><?= e(__('skip_to_content')) ?></a>
     <div class="flex min-h-screen">
         <?php /* 移动端遮罩层 */ ?>
         <div x-show="mobileMenu"
@@ -174,18 +217,24 @@ if ($_sbCompactPage) $_sbCollapsed = true;
              x-transition:leave="transition-opacity ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             @click="mobileMenu = false"
+             @click="closeMobileMenu()"
              class="fixed inset-0 z-40 bg-black/50 lg:hidden"
              x-cloak></div>
 
         <?php /* 侧边栏 */ ?>
-        <aside data-admin-sidebar data-compact="<?= $_sbCollapsed ? 'true' : 'false' ?>" :data-compact="collapsed ? 'true' : 'false'"
+        <aside id="admin-sidebar" x-ref="adminSidebar" data-admin-sidebar
+               :inert="mobileView && !mobileMenu"
+               :role="mobileView && mobileMenu ? 'dialog' : null"
+               :aria-modal="mobileView && mobileMenu ? 'true' : null"
+               :aria-label="mobileView && mobileMenu ? '<?php echo e(__('admin_main_menu')); ?>' : null"
+               data-compact="<?= $_sbCollapsed ? 'true' : 'false' ?>" :data-compact="collapsed ? 'true' : 'false'"
                class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64 <?= $_sbCollapsed ? 'lg:w-16' : 'lg:w-64' ?>"
                <?php // 必须用对象语法：三元写法下 Alpine 只移除自己加过的类，
                      // 首次切换时服务端预渲染的 lg:w-64 会残留并与 lg:w-16 打架 ?>
                <?php // 折叠态点空白处即展开（.self 只吃直接命中 aside 的点击，不劫持菜单项）；
                      // 仅桌面端——手机抽屉与 collapsed 状态无关 ?>
                @click.self="expandFromBlank()"
+               @keydown.tab="trapMobileMenu($event)"
                :class="{ 'translate-x-0': mobileMenu, 'lg:w-16': collapsed, 'lg:w-64': !collapsed, 'lg:cursor-pointer': collapsed }">
             
             <?php /* Logo */ ?>
@@ -230,10 +279,11 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                 };
             }
             </script>
-            <nav class="mt-3 px-3" x-data="sidebarNav()"
+            <nav class="mt-3 px-3" x-data="sidebarNav()" aria-label="<?= e(__('admin_main_menu')) ?>"
                  @click.self="expandFromBlank()">
                 <?php /* 控制台 */ ?>
                 <a href="/admin/" class="sidebar-link sidebar-dashboard flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'dashboard' ? 'active' : ''; ?>"
+                   <?= $currentMenu === 'dashboard' ? 'aria-current="page"' : '' ?>
                    :class="collapsed ? 'lg:justify-center' : ''"
                    :title="collapsed ? '<?php echo e(__('admin_dashboard')); ?>' : ''">
                     <i class="ti ti-layout-dashboard text-lg flex-shrink-0 mr-3" :class="{ 'lg:mr-0': collapsed }"></i>
@@ -265,7 +315,7 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                 };
                 $_shortLabel = (string) ($navGroup['short_label'] ?? ($_shortKey !== '' ? __($_shortKey) : $navGroup['label']));
                 ?>
-                <div @click="collapsed && !mobileMenu ? null : toggle('<?= $_gKey ?>')" data-group="<?= $_gKey ?>"
+                <div @click="if ((!collapsed || mobileMenu) && !$event.target.closest('a, button')) toggle('<?= $_gKey ?>')" data-group="<?= $_gKey ?>"
                      @mouseenter="collapsed && flyOpen($event, '<?= $_gKey ?>')" @mouseleave="collapsed && flyLater()"
                      class="sidebar-group mt-2 px-3 py-2 rounded-lg text-base flex items-center gap-2.5<?= $_gOpen ? ' sidebar-group-current' : '' ?>"
                      :class="collapsed ? 'lg:justify-center' : ''">
@@ -276,10 +326,11 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                             aria-label="<?= e((string) $navGroup['label']) ?>"
                             :aria-expanded="fly.key === '<?= $_gKey ?>'"
                             aria-controls="admin-sidebar-flyout"
-                            @click.stop="flyOpen($event, '<?= $_gKey ?>')"
-                            @focus="flyOpen($event, '<?= $_gKey ?>')"
-                            @keydown.arrow-down.prevent="$refs.sidebarFlyout.querySelector('a')?.focus()"
-                            @keydown.escape.stop="fly.key = ''">
+                            @click.stop="fly.key === '<?= $_gKey ?>' ? closeFlyout() : flyOpen($event, '<?= $_gKey ?>')"
+                            @keydown.arrow-down.prevent="flyFocusFirst($event, '<?= $_gKey ?>')"
+                            @keydown.enter.prevent="flyFocusFirst($event, '<?= $_gKey ?>')"
+                            @keydown.space.prevent="flyFocusFirst($event, '<?= $_gKey ?>')"
+                            @keydown.escape.stop="closeFlyout()">
                         <?php if ($_gIcon !== ''): ?>
                         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><?= $_gIcon ?></svg>
                         <?php endif; ?>
@@ -290,9 +341,15 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     <?php else: ?>
                     <span class="flex-1 min-w-0 truncate" x-show="!collapsed || mobileMenu"><?= htmlspecialchars((string)$navGroup['label'], ENT_QUOTES, 'UTF-8') ?></span>
                     <?php endif; ?>
-                    <i class="ti ti-chevron-down text-sm opacity-60 transition-transform duration-200" x-show="!collapsed || mobileMenu" :class="isOpen('<?= $_gKey ?>') ? 'rotate-180' : ''"></i>
+                    <button type="button" class="sidebar-group-toggle inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60" x-show="!collapsed || mobileMenu"
+                            aria-label="<?= e((string) $navGroup['label']) ?>"
+                            :aria-expanded="isOpen('<?= $_gKey ?>')"
+                            aria-controls="admin-sidebar-panel-<?= $_gKey ?>"
+                            @click.stop="toggle('<?= $_gKey ?>')">
+                        <i class="ti ti-chevron-down text-sm opacity-60 transition-transform duration-200" aria-hidden="true" :class="isOpen('<?= $_gKey ?>') ? 'rotate-180' : ''"></i>
+                    </button>
                 </div>
-                <div class="pl-2" x-show="(!collapsed || mobileMenu) && isOpen('<?= $_gKey ?>')" x-collapse.duration.200ms<?= $_gOpen ? '' : ' style="display:none"' ?>>
+                <div id="admin-sidebar-panel-<?= $_gKey ?>" class="pl-2" x-show="(!collapsed || mobileMenu) && isOpen('<?= $_gKey ?>')" x-collapse.duration.200ms<?= $_gOpen ? '' : ' style="display:none"' ?>>
                     <?php foreach ($navGroup['items'] as $_item): ?>
                         <?= renderAdminMenuItem($_item, (string)$currentMenu) ?>
                     <?php endforeach; ?>
@@ -322,7 +379,7 @@ if ($_sbCompactPage) $_sbCollapsed = true;
              role="navigation" :aria-label="fly.label"
              @mouseenter="flyKeep()" @mouseleave="flyLater()"
              @focusin="flyKeep()"
-             @keydown.escape.stop="fly.key = ''"
+             @keydown.escape.stop="closeFlyout(true)"
              @click.outside="if (!$event.target.closest('.sidebar-group')) fly.key = ''"
              @resize.window="fly.key = ''"
              :style="{ top: fly.top + 'px' }"
@@ -443,6 +500,7 @@ if ($_sbCompactPage) $_sbCollapsed = true;
 
         <?php /* 主内容区 */ ?>
         <div class="min-w-0 flex-1 transition-all duration-300 <?= $_sbCollapsed ? 'lg:ml-16' : 'lg:ml-64' ?>"
+             :inert="mobileView && mobileMenu"
              :class="{ 'lg:ml-16': collapsed, 'lg:ml-64': !collapsed }">
             <?php /* 顶部导航 */ ?>
             <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 sticky top-0 z-40">
@@ -450,10 +508,13 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                       // 250ms 防抖挡住习惯性连点造成的「收起又弹开」。
                       // 原骑在侧栏分界线上的小圆把手已移除——热区小且与滚动条/动画区重叠，误触难根治。 ?>
                 <button type="button"
-                        @click="window.innerWidth < 1024 ? (mobileMenu = !mobileMenu) : (Date.now() - (_sbT || 0) > 250 && toggleCollapsed())"
+                        @click="mobileView ? (mobileMenu ? closeMobileMenu() : openMobileMenu($event)) : (Date.now() - (_sbT || 0) > 250 && toggleCollapsed())"
                         class="text-gray-500 hover:text-gray-700 mr-1"
-                        :title="window.innerWidth >= 1024 ? (collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>') : ''"
-                        aria-label="<?php echo e(__('admin_sidebar_collapse')); ?>">
+                        :title="mobileView ? '' : (collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>')"
+                        aria-label="<?php echo e(__('admin_sidebar_collapse')); ?>"
+                        :aria-label="mobileView ? '<?php echo e(__('admin_main_menu')); ?>' : (collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>')"
+                        :aria-expanded="mobileView ? mobileMenu : !collapsed"
+                        aria-controls="admin-sidebar">
                     <i class="ti ti-menu-2 text-xl lg:hidden"></i>
                     <?php // Ant Design MenuFoldOutlined / MenuUnfoldOutlined (MIT)：与常规菜单图标明确区分侧栏状态。 ?>
                     <svg x-show="!collapsed" x-cloak class="hidden lg:block w-5 h-5" viewBox="64 64 896 896" fill="currentColor" aria-hidden="true" focusable="false">
@@ -891,7 +952,7 @@ if ($_sbCompactPage) $_sbCollapsed = true;
             <?php endif; ?>
 
             <?php /* 页面内容 */ ?>
-            <main class="p-6">
+            <main id="admin-main-content" tabindex="-1" class="p-6">
             <?php
             // ── 数据库迁移待执行检测 ──────────────────────────────
             // 「文件已升级、数据库未升级」中间态会让软删除等写操作静默失效（如：删文章刷新又回来）。
