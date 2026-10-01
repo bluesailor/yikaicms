@@ -131,6 +131,11 @@ check_ver() {  # $1=说明  $2=实际值
 }
 verpat='[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?'
 check_ver "README.md 第1行"                 "$(head -1 README.md 2>/dev/null | grep -oE "$verpat" | head -1)"
+# README 正文里的下载 / 发布说明链接也带版本号：只改标题不改链接，下载按钮就一直指向旧包
+# （2.0.1、2.0.2 两版 README 链接停在 v2.0.0 就是这么来的）
+for readme_link_ver in $(grep -oE "(releases/(download|tag)/v|yikaicms-v)$verpat" README.md 2>/dev/null | grep -oE "$verpat" | sort -u); do
+    check_ver "README.md 下载/发布链接" "$readme_link_ver"
+done
 check_ver "install/sql/mysql.sql  -- Version" "$(grep -E '^-- Version:' install/sql/mysql.sql 2>/dev/null | grep -oE "$verpat" | head -1)"
 check_ver "install/sql/mysql.sql  cms_version" "$(grep -E 'cms_version' install/sql/mysql.sql 2>/dev/null | grep -oE "$verpat" | head -1)"
 check_ver "install/sql/sqlite.sql -- Version" "$(grep -E '^-- Version:' install/sql/sqlite.sql 2>/dev/null | grep -oE "$verpat" | head -1)"

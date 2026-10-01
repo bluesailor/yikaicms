@@ -229,6 +229,15 @@ else
     fail "README.md  第 1 行版本 = '${v:-未找到}'  (期望: 'v$VERSION')"
 fi
 
+# README.md 正文里的下载 / 发布说明链接（只改标题不改链接，下载按钮会一直指向旧包）
+readme_link_bad=$(grep -oE "(releases/(download|tag)/v|yikaicms-v)[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" README.md 2>/dev/null \
+    | grep -oE "[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?" | sort -u | grep -vxF "$VERSION" | tr '\n' ' ' || true)
+if [ -z "$readme_link_bad" ]; then
+    pass "README.md  下载/发布链接均为 v$VERSION"
+else
+    fail "README.md  下载/发布链接里有旧版本：${readme_link_bad}(期望: v$VERSION)"
+fi
+
 # composer.json：不要硬编码 version 字段（Packagist 靠 git tag）
 if grep -qE '"version"\s*:\s*"' composer.json 2>/dev/null; then
     warn "composer.json  含 version 字段（建议删除，让 Packagist 用 git tag 推断）"
