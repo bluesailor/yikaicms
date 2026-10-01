@@ -172,12 +172,13 @@ if ($disabledLanguagePrefix) {
     render404();
 }
 
-// 定时发布：到点的定时内容（status=3）自动上线为已发布（status=1）。
+// 定时发布 / 定时上架：到点的文章与产品（status=3）自动上线（status=1），见 ScheduledPublish。
 // 无需 cron，由访问触发；限流每 60 秒最多扫描一次。
 try {
     $sweepAt = (int) settingModel()->get('sched_sweep_at', '0');
     if (time() - $sweepAt >= 60) {
-        contentModel()->promoteDue();
+        require_once ROOT_PATH . '/includes/ScheduledPublish.php';
+        ScheduledPublish::sweep();
         settingModel()->set('sched_sweep_at', (string) time(), 'system');
     }
 } catch (\Throwable $e) {
