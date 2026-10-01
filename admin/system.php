@@ -13,16 +13,19 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('*');
+requirePermission('system_maintenance');   // 超管或「系统维护」角色（官方技术支持临时账号）；改授权类设置另需超管
 
 $tab = $_GET['tab'] ?? 'info';
 
 // ── 操作日志 Tab ──
+// 管理员操作日志记录的是站长团队的操作：只给超管；系统维护角色看系统信息与错误日志
 if ($tab === 'log') {
+    requirePermission('*');
     // 处理 AJAX
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = post('action');
         if ($action === 'clear_old') {
+            requirePermission('*');
             $before = time() - 30 * 86400;
             adminLogModel()->clearBefore($before);
             adminLog('log', 'clear', '清除30天前的日志');
@@ -65,6 +68,7 @@ if ($tab === 'errorlog') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = post('action');
         if ($action === 'clear_errorlog') {
+            requirePermission('*');   // 删日志会抹掉排查与操作痕迹
             $f = (string) post('file');
             if (preg_match('/^error-\d{6}\.log$/', $f)) {
                 @unlink(ROOT_PATH . '/storage/logs/' . $f);
@@ -151,11 +155,11 @@ $currentMenu = in_array($tab, ['log', 'errorlog'], true) ? 'system_log' : 'syste
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 require_once ROOT_PATH . '/admin/includes/module_nav.php';
-adminModuleTabStart([
+adminModuleTabStart(array_filter([
     'info' => [__('sys_info'), 'info-circle'],
-    'log' => [__('sys_stat_log'), 'history'],
+    'log' => isSuperAdmin() ? [__('sys_stat_log'), 'history'] : null,
     'errorlog' => [__('sys_error_log'), 'alert-triangle'],
-], $tab, __('sys_title'), '/admin/system.php');
+]), $tab, __('sys_title'), '/admin/system.php');
 ?>
 
 

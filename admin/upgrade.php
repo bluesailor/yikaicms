@@ -14,7 +14,7 @@ require_once ROOT_PATH . '/includes/UpdateChannel.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('*');
+requirePermission('system_maintenance');   // 超管或「系统维护」角色（官方技术支持临时账号）；改授权类设置另需超管
 
 // /admin/upgrade.php 是历史入口；无标签访问时统一进入程序在线升级。
 // 数据库迁移仍通过显式 tab=check 进入，避免在线升级完成后的迁移步骤被再次导回在线页。
@@ -63,6 +63,7 @@ $upgrades = Migrator::loadAll();
 // AJAX: 控制台新版本提醒级别（all=全部 / security=仅安全更新 / off=关闭）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_update_notify') {
     verifyCsrf();
+    requirePermission('*');
     $lv = post('level');
     if (!in_array($lv, ['all', 'security', 'off'], true)) {
         $lv = 'all';
@@ -78,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
 // 与后台「在线升级」共用同一条管道，这里只管配置。
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_auto_upgrade') {
     verifyCsrf();
+    requirePermission('*');
     $win = trim((string) post('window'));
     // 窗口格式不合规就回落默认：配置写坏不能变成「随时升」也不能变成「永不升」
     if (preg_match('/^\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}$/', $win) !== 1) {
@@ -95,6 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
 // AJAX: 允许服务商远程升级（控制台签名指令，WP-14）。默认关；开启时前端先二次确认。
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_managed_upgrade') {
     verifyCsrf();
+    requirePermission('*');   // 是否允许官方远程升级与修复，是站长的授权决定
     $on = post('enabled') === '1';
     settingModel()->set('managed_upgrade_enabled', $on ? '1' : '0', 'system');
     adminLog('setting', 'update', 'managed_upgrade: ' . ($on ? 'on' : 'off'));
@@ -104,6 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
 // AJAX: 升级与安全邮件通知（站长主动订阅；控制台提示条也提交到这里）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['save_update_mail', 'dismiss_update_mail_prompt'], true)) {
     verifyCsrf();
+    requirePermission('*');
     require_once ROOT_PATH . '/includes/UpdateMailSubscription.php';
     if (($_POST['action'] ?? '') === 'dismiss_update_mail_prompt') {
         UpdateMailSubscription::dismissPrompt();
@@ -126,7 +130,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 // AJAX: 立即检查并升级（手动触发同一条无人值守管道，用于验证配置是否可用）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'run_auto_upgrade') {
     verifyCsrf();
-    requirePermission('*');
     @set_time_limit(0);
     require_once ROOT_PATH . '/includes/AutoUpgrade.php';
     success(['result' => AutoUpgrade::run(true)]);
@@ -135,6 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'run_a
 // AJAX: 更新通道（stable=正式版 / beta=测试版，默认 stable）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_update_channel') {
     verifyCsrf();
+    requirePermission('*');
     $channel = UpdateChannel::normalize(post('channel'));
     settingModel()->set('update_channel', $channel, 'system');
     adminLog('setting', 'update', __('upg_log_update_channel', ['channel' => $channel]));
@@ -901,6 +905,39 @@ $__mCur = defined('CMS_VERSION') ? CMS_VERSION : '?';
                     <span class="block text-xs text-gray-400 mt-0.5"><?php echo e(__('upgrade_managed_tip')); ?></span>
                 </span>
             </label>
+            <?php
+            require_once ROOT_PATH . '/includes/RemoteRepair.php';
+            $__repairs = RemoteRepair::log();
+            ?>
+            <?php if ($__repairs !== []): ?>
+            <div class="mt-4" data-testid="remote-repair-log">
+                <div class="text-sm font-medium text-gray-700"><?php echo e(__('repair_log_title')); ?></div>
+                <p class="text-xs text-gray-400 mt-0.5"><?php echo e(__('repair_log_tip')); ?></p>
+                <div class="overflow-x-auto mt-2">
+                    <table class="w-full text-sm">
+                        <thead><tr class="text-left text-gray-500">
+                            <th class="py-2 pr-4 font-normal"><?php echo e(__('repair_col_time')); ?></th>
+                            <th class="py-2 pr-4 font-normal"><?php echo e(__('repair_col_title')); ?></th>
+                            <th class="py-2 pr-4 font-normal"><?php echo e(__('repair_col_status')); ?></th>
+                            <th class="py-2 font-normal"><?php echo e(__('repair_col_backup')); ?></th>
+                        </tr></thead>
+                        <tbody>
+                        <?php foreach (array_slice($__repairs, 0, 10) as $__r): ?>
+                            <tr class="border-t border-gray-100">
+                                <td class="py-2 pr-4 whitespace-nowrap text-gray-500"><?php echo e(date('Y-m-d H:i', $__r['at'])); ?></td>
+                                <td class="py-2 pr-4"><?php echo e($__r['title']); ?> <span class="text-xs text-gray-400"><?php echo e($__r['id']); ?></span></td>
+                                <td class="py-2 pr-4 <?php echo $__r['status'] === 'ok' ? 'text-green-600' : (in_array($__r['status'], ['failed', 'rejected'], true) ? 'text-red-600' : 'text-gray-500'); ?>">
+                                    <?php echo e(__('repair_status_' . $__r['status'])); ?>
+                                    <?php if ($__r['msg'] !== ''): ?><span class="block text-xs text-gray-400"><?php echo e($__r['msg']); ?></span><?php endif; ?>
+                                </td>
+                                <td class="py-2 text-xs text-gray-500 font-mono"><?php echo e($__r['backup'] !== '' ? $__r['backup'] : '-'); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
 
         <div class="border-t border-gray-100 mt-5 pt-5" data-testid="update-mail-control">

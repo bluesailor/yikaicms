@@ -14,6 +14,7 @@ if (!defined('ROOT_PATH')) {
 
 // 加载 Model 层
 require_once ROOT_PATH . '/includes/models/autoload.php';
+require_once ROOT_PATH . '/includes/SupportAccess.php';   // 官方技术支持临时访问（到期收回、权限锁定）
 
 // 语言域名模式：后台只在主域名（登录状态按域名保存）。在 en.example.com 上打开后台 → 回主域名同一地址。
 if (PHP_SAPI !== 'cli' && LanguageDomains::currentLanguage() !== null && !headers_sent()) {
@@ -146,6 +147,9 @@ function refreshAdminIdentity(): void
         return;
     }
 
+    // 技术支持访问到期：先停用账号，下面的「账号已停用」检查就会当场让支持会话失效
+    SupportAccess::expireIfDue();
+
     $user = userModel()->find($uid);
     if (!$user || (int) ($user['status'] ?? 0) !== 1) {
         // 账号已被禁用或删除：当场失效，不等对方自己退出
@@ -165,6 +169,8 @@ function refreshAdminIdentity(): void
 
     $_SESSION['admin_role_id']     = $roleId;
     $_SESSION['admin_permissions'] = is_array($perms) ? $perms : [];
+    // 支持账号的权限锁死为「系统维护」，角色被改动也不放大
+    SupportAccess::enforce();
 
     // 升级前就已登录的会话不会有这个 cookie，在此补种，免得管理员要重新登录才生效
     if (empty($_COOKIE[ADMIN_STATIC_BYPASS_COOKIE])) {

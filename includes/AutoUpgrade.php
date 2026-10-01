@@ -196,7 +196,7 @@ final class AutoUpgrade
             'health_rec' => (string) ($health['recommended'] ?? ''),
             'health_bad' => mb_substr((string) config('site_health_last_bad', ''), 0, 300),
             't' => (string) time(),
-        ];
+        ] + self::repairReport();
         $url = 'https://update.yikaicms.com/api/update/check.php?' . http_build_query($q);
         // 订阅了升级与安全邮件通知的站才带邮箱；邮箱放 POST 正文，不进 URL（访问日志会记完整 URL）
         require_once ROOT_PATH . '/includes/UpdateMailSubscription.php';
@@ -338,6 +338,7 @@ final class AutoUpgrade
             if ($data === null) {
                 return 'skipped: 更新服务器不可达';
             }
+            self::applyRepairs($data);
 
             if ($force) {
                 $why = 'manual';
@@ -674,6 +675,36 @@ final class AutoUpgrade
             $to
         );
         return $ok ? 'rolled back: ' . $why : 'failed (rollback failed): ' . $why;
+    }
+
+    /**
+     * 服务商签名的远程修复配方（RemoteRepair）：与远程升级共用同一个授权开关，没授权的站直接忽略。
+     * 修复失败不影响本次升级判定。
+     *
+     * @param array<string, mixed> $data
+     */
+    private static function applyRepairs(array $data): void
+    {
+        if (!self::managed() || !is_array($data['repairs'] ?? null)) {
+            return;
+        }
+        try {
+            require_once ROOT_PATH . '/includes/RemoteRepair.php';
+            RemoteRepair::process($data['repairs']);
+        } catch (\Throwable $e) {
+            error_log('[AutoUpgrade] remote repair failed: ' . $e->getMessage());
+        }
+    }
+
+    /** @return array<string, string> 远程修复结果，随回访上报 */
+    private static function repairReport(): array
+    {
+        try {
+            require_once ROOT_PATH . '/includes/RemoteRepair.php';
+            return RemoteRepair::reportParams();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     /** 注册 cron 任务（挂核心的 cron_register）。每小时看一次，窗口判断在任务体内。 */

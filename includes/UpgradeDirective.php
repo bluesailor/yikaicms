@@ -98,12 +98,12 @@ final class UpgradeDirective
     }
 
     /**
-     * 指令里的域名是否就是本站。
+     * 指令里的域名是否就是本站（远程修复配方 RemoteRepair 共用）。
      *
      * 比较时剥掉协议、www. 前缀与端口：同一个站在 HTTP_HOST 与后台配置里的写法常常
      * 不一致（有无 www、带不带端口），严格字符串相等会让指令永远验不过。
      */
-    private static function domainMatches(string $domain): bool
+    public static function domainMatches(string $domain): bool
     {
         $norm = static function (string $h): string {
             $h = strtolower(trim($h));

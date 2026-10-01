@@ -294,12 +294,11 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                 <?php
                 // ── 侧边栏菜单（数据驱动；通过 register_admin_menu() / 'admin_sidebar' filter 可扩展）──
                 foreach ($sidebarMenu as $groupKey => $navGroup):
-                    if (!empty($navGroup['super_only']) && !isSuperAdmin()) continue;
-                    // 权限过滤：菜单项声明了 perm 而当前角色没有该权限 → 不显示；整组被滤空则组标题也不显示
+                    // 权限过滤（adminMenuItemVisible）：没权限的项不显示；超管专属组对非超管只留声明了自己有的权限的项；
+                    // 整组被滤空则组标题也不显示
                     $navGroup['items'] = array_filter(
                         (array) ($navGroup['items'] ?? []),
-                        static fn($it) => (!isset($it['visible']) || $it['visible'])
-                            && (empty($it['perm']) || hasPermission((string) $it['perm']))
+                        static fn($it) => adminMenuItemVisible($navGroup, (array) $it)
                     );
                     if (empty($navGroup['items'])) continue;
                 ?>
@@ -399,11 +398,9 @@ if ($_sbCompactPage) $_sbCollapsed = true;
         window.__ykMenuFly = <?php
             $_flyData = [];
             foreach ($sidebarMenu as $_gk => $_gv) {
-                if (!empty($_gv['super_only']) && !isSuperAdmin()) continue;
                 $_its = [];
                 foreach ((array) ($_gv['items'] ?? []) as $_it) {
-                    if (isset($_it['visible']) && !$_it['visible']) continue;
-                    if (!empty($_it['perm']) && !hasPermission((string) $_it['perm'])) continue;
+                    if (!adminMenuItemVisible($_gv, (array) $_it)) continue;
                     $_its[] = [
                         'label' => trim(strip_tags((string) ($_it['label'] ?? ''))),
                         'url' => (string) ($_it['url'] ?? ''),
@@ -953,6 +950,14 @@ if ($_sbCompactPage) $_sbCollapsed = true;
 
             <?php /* 页面内容 */ ?>
             <main id="admin-main-content" tabindex="-1" class="p-6">
+            <?php // 官方技术支持访问：支持人员看到自己的身份与截止时间；站长看到访问仍开启的提醒（随时可撤销）
+            $__support = SupportAccess::state(); ?>
+            <?php if ($__support['active'] && (SupportAccess::isSupportSession() || isSuperAdmin())): ?>
+            <div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="support-banner">
+                <span><i class="ti ti-lifebuoy mr-1" aria-hidden="true"></i><?= e(__(SupportAccess::isSupportSession() ? 'support_banner_self' : 'support_banner_owner', ['time' => date('Y-m-d H:i', $__support['until'])])) ?></span>
+                <?php if (isSuperAdmin()): ?><a class="font-semibold text-primary hover:underline" href="/admin/support_access.php"><?= e(__('support_manage')) ?></a><?php endif; ?>
+            </div>
+            <?php endif; ?>
             <?php
             // ── 数据库迁移待执行检测 ──────────────────────────────
             // 「文件已升级、数据库未升级」中间态会让软删除等写操作静默失效（如：删文章刷新又回来）。
