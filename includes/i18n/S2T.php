@@ -142,6 +142,8 @@ final class S2T
 
     /**
      * 输出缓冲回调：整页 HTML 或前台 JSON 响应转换入口。
+     *
+     * @psalm-suppress PossiblyUnusedMethod init.php 以 ob_start(['S2T', 'convertOutput']) 挂载
      */
     public static function convertOutput(string $html): string
     {

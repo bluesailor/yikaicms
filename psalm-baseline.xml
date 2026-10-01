@@ -1079,11 +1079,6 @@
       <code><![CDATA[global $ik_actions, $ik_filters;]]></code>
     </InvalidGlobal>
   </file>
-  <file src="includes/i18n/S2T.php">
-    <UnusedClass>
-      <code><![CDATA[S2T]]></code>
-    </UnusedClass>
-  </file>
   <file src="includes/image.php">
     <InvalidNullableReturnType>
       <code><![CDATA[string]]></code>
