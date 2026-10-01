@@ -176,7 +176,7 @@ $add('Native product detail preview', 'GET', '/admin/product_native_preview.php?
 $add('栏目管理', 'GET', '/admin/channel.php',  ['contributor' => 'deny', 'editor' => 'deny']);
 $add('角色管理', 'GET', '/admin/role.php',     ['contributor' => 'deny', 'editor' => 'deny']);
 $add('用户管理', 'GET', '/admin/user.php',     ['contributor' => 'deny', 'editor' => 'deny']);
-$add('系统设置', 'GET', '/admin/setting.php',  ['contributor' => 'deny', 'editor' => 'deny']);
+$add('基本设置', 'GET', '/admin/setting.php',  ['contributor' => 'deny', 'editor' => 'deny']);
 $add('主题外观设置', 'GET', '/admin/theme.php?tab=settings', ['contributor' => 'deny', 'editor' => 'deny']);
 $add('主题外观写入', 'POST', '/admin/theme.php', ['contributor' => 'deny', 'editor' => 'deny'], [
     'action' => 'save_theme_settings', 'primary_color' => '#2563EB', 'secondary_color' => '#1D4ED8',
