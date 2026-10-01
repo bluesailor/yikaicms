@@ -39,6 +39,10 @@ function sendTemplateMail(string $to, string $tplPrefix, array $vars): bool
 
     $subject = renderMailTemplate($subjectTpl, $vars);
     $body    = renderMailTemplate($bodyTpl, $vars);
+    // 阿拉伯语等从右到左的站点：邮件客户端默认按从左到右排版，正文整体包一层方向
+    if (function_exists('siteLang') && class_exists('LanguageRegistry') && LanguageRegistry::isRtl(siteLang())) {
+        $body = '<div dir="rtl" style="direction:rtl;text-align:right">' . $body . '</div>';
+    }
 
     // 过滤器：允许插件修改邮件内容/收件人
     $mail = apply_filters('mail_notify', [

@@ -124,6 +124,26 @@ final class LanguageDomainsTest extends TestCase
         self::assertSame(['de'], LanguageDomains::languagesServedHere(['zh-CN', 'en', 'ja', 'de']));
     }
 
+    public function testSiteHealthProbesEachDomainOnlyWhenTheModeIsOn(): void
+    {
+        require_once ROOT_PATH . '/includes/SiteHealth.php';
+        $seen = [];
+        $results = \SiteHealth::checkLanguageDomains(static function (string $host) use (&$seen): string {
+            $seen[] = $host;
+            return $host === 'example.de' ? 'tls' : 'ok';
+        });
+        self::assertSame(['en.example.com', 'example.de'], $seen);
+        self::assertCount(1, $results);
+        self::assertSame('critical', $results[0]['status']);
+        self::assertSame('language_domains', $results[0]['id']);
+
+        $good = \SiteHealth::checkLanguageDomains(static fn(string $host): string => 'ok');
+        self::assertSame('good', $good[0]['status']);
+
+        LanguageDomains::setForTests([], 'https://example.com', 'example.com');
+        self::assertSame([], \SiteHealth::checkLanguageDomains(static fn(string $host): string => 'ok'), '没启用时不出这一项');
+    }
+
     public function testIntegrationPoints(): void
     {
         $read = static fn(string $f): string => (string) file_get_contents(ROOT_PATH . '/' . $f);

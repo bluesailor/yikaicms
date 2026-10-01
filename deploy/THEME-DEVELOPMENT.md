@@ -277,6 +277,7 @@ includes/partials/
 
 - 页面标题、关键词、描述、canonical、Open Graph、Twitter Card 和 JSON-LD。
 - 多语言 `hreflang` 和语言切换。
+- `<html>` 上的语言与方向：`<html lang="<?php echo getLang(); ?>"<?php echo htmlDirAttr(); ?>>`。阿拉伯语等从右到左的语言靠它输出 `dir="rtl"`；主题若要兼容旧版核心，写成 `function_exists('htmlDirAttr') ? htmlDirAttr() : ''`。
 - favicon、核心样式、主题样式与页面附加样式。
 - `ThemeSettings::css()` 输出的站点外观变量。
 - `ik_head`、`render_head`、`ik_header_after` 钩子。
@@ -405,8 +406,13 @@ bash tools/build_css.sh
 
 ### 8.3 多语言和链接
 
-- 界面文字使用 `__('key')`，并在核心支持的语言文件中补齐中文、英文、日文。
-- 站内语言链接使用 `langUrl()` 等现有助手，不手工拼接语言前缀。
+- 界面文字使用 `__('key')`，并在核心支持的语言文件中补齐（至少中文、英文、日文；其他语言缺词时先显示英文）。
+- 站内语言链接使用 `langUrl()`、`langPrefix()` 等现有助手，不手工拼接语言前缀。站点可能启用了语言域名（`en.example.com`），手拼的 `/en/` 会多一次跳转；语言列表也不要写死，用 `enabledLanguages()`。
+- **从右到左（阿拉伯语）**：
+  - 样式一律用逻辑方向，不写死左右：`ms-* / me-*`（代替 `ml-* / mr-*`）、`ps-* / pe-*`、`start-* / end-*`、`text-start / text-end`、`rounded-s / rounded-e`、`border-s / border-e`。
+  - CSS 里用 `margin-inline-start`、`inset-inline-start`、`text-align: start`。
+  - 只能用物理方向时，补 `rtl:` 变体（如 `left-0 rtl:left-auto rtl:right-0`）。表示方向的位移，比如箭头悬停右移，也要补 `rtl:` 变体。
+  - 核心主题与插件用 `php tools/check_rtl.php` 检查，数量只许减少。
 - URL、标题、摘要等字段沿用控制器或模型已经准备好的值。
 
 可分发主题本身没有自动加载的私有语言包机制。如主题需要新增固定界面文案，应与插件或核心语言键方案一起设计，而不是在模板里硬编码三套分支。
