@@ -71,6 +71,7 @@ function shopNormalizeMainlandAddress(array $input): array
     $city = trim((string) ($input['city'] ?? ''));
     $district = trim((string) ($input['district'] ?? ''));
     $detail = trim((string) ($input['address'] ?? ''));
+    [$province, $city, $district] = shopMainlandRegionFromDisplay($province, $city, $district);
 
     if (!in_array($province, shopMainlandProvinces(), true)) {
         return ['ok' => false, 'error' => 'shop_err_address_province'];

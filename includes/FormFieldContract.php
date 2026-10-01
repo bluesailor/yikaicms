@@ -31,7 +31,7 @@ final class FormFieldContract
             $selected = [];
             foreach ($values as $value) {
                 if (!is_string($value)) throw new InvalidArgumentException('Invalid choice');
-                $value = trim($value);
+                $value = self::fromDisplay(trim($value), $allowed);
                 if ($value === '' || !in_array($value, $allowed, true) || isset($selected[$value])) {
                     throw new InvalidArgumentException('Invalid choice');
                 }
@@ -44,9 +44,24 @@ final class FormFieldContract
             )));
         }
         if (!is_string($raw)) throw new InvalidArgumentException('Invalid choice');
-        $value = trim($raw);
+        $value = self::fromDisplay(trim($raw), $allowed);
         if ($value !== '' && !in_array($value, $allowed, true)) throw new InvalidArgumentException('Invalid choice');
         return $value;
+    }
+
+    /**
+     * 繁体站（zh-TW）是简体整页转换出来的：选项在页面上显示、提交的都是繁体，
+     * 服务器里存的是简体。把提交值映射回简体原值再校验、入库。
+     *
+     * @param list<string> $allowed
+     */
+    private static function fromDisplay(string $value, array $allowed): string
+    {
+        if (!defined('SITE_LANG') || SITE_LANG !== 'zh-TW' || $value === '' || in_array($value, $allowed, true)) {
+            return $value;
+        }
+        require_once ROOT_PATH . '/includes/i18n/S2T.php';
+        return S2T::canonical($value, $allowed);
     }
 
     /** Hidden campaign values affect persistence/fingerprints, but are configuration rather than visitor content. */
