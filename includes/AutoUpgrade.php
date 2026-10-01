@@ -683,17 +683,16 @@ final class AutoUpgrade
      *
      * @param array<string, mixed> $data
      */
-    private static function applyRepairs(array $data): int
+    private static function applyRepairs(array $data): void
     {
         if (!self::managed() || !is_array($data['repairs'] ?? null)) {
-            return 0;
+            return;
         }
         try {
             require_once ROOT_PATH . '/includes/RemoteRepair.php';
-            return RemoteRepair::process($data['repairs']);
+            RemoteRepair::process($data['repairs']);
         } catch (\Throwable $e) {
             error_log('[AutoUpgrade] remote repair failed: ' . $e->getMessage());
-            return 0;
         }
     }
 
