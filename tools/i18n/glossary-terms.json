@@ -1,0 +1,359 @@
+{
+  "note": "Terms for building tools/i18n/glossary/<code>.json. Translate each zh term into the target language once, consistently with the en/ja reference; brand names YikaiCMS and Blox stay as is.",
+  "terms": [
+    {
+      "zh": "栏目",
+      "en": "Channel / category",
+      "ja": "カテゴリ",
+      "note": "site section that holds articles, products or pages; front end usually shows it as a category or menu item"
+    },
+    {
+      "zh": "单页",
+      "en": "Page",
+      "ja": "ページ",
+      "note": "a standalone page (About us, Contact)"
+    },
+    {
+      "zh": "产品",
+      "en": "Product",
+      "ja": "製品",
+      "note": ""
+    },
+    {
+      "zh": "产品分类",
+      "en": "Product category",
+      "ja": "製品カテゴリ",
+      "note": ""
+    },
+    {
+      "zh": "文章",
+      "en": "Article",
+      "ja": "記事",
+      "note": "news / blog post"
+    },
+    {
+      "zh": "案例",
+      "en": "Case study",
+      "ja": "事例",
+      "note": ""
+    },
+    {
+      "zh": "下载",
+      "en": "Download",
+      "ja": "ダウンロード",
+      "note": ""
+    },
+    {
+      "zh": "招聘",
+      "en": "Jobs / careers",
+      "ja": "採用",
+      "note": ""
+    },
+    {
+      "zh": "询盘",
+      "en": "Inquiry",
+      "ja": "問い合わせ",
+      "note": "a sales inquiry sent through a website form"
+    },
+    {
+      "zh": "表单",
+      "en": "Form",
+      "ja": "フォーム",
+      "note": ""
+    },
+    {
+      "zh": "会员",
+      "en": "Member",
+      "ja": "会員",
+      "note": "front-end user account"
+    },
+    {
+      "zh": "管理员",
+      "en": "Administrator",
+      "ja": "管理者",
+      "note": "admin user"
+    },
+    {
+      "zh": "后台",
+      "en": "Admin panel",
+      "ja": "管理画面",
+      "note": ""
+    },
+    {
+      "zh": "前台",
+      "en": "Front end / website",
+      "ja": "サイト（フロント）",
+      "note": "what visitors see"
+    },
+    {
+      "zh": "媒体库",
+      "en": "Media library",
+      "ja": "メディアライブラリ",
+      "note": ""
+    },
+    {
+      "zh": "轮播图",
+      "en": "Banner / slider",
+      "ja": "バナー",
+      "note": ""
+    },
+    {
+      "zh": "网站菜单",
+      "en": "Site menu",
+      "ja": "サイトメニュー",
+      "note": ""
+    },
+    {
+      "zh": "主题",
+      "en": "Theme",
+      "ja": "テーマ",
+      "note": ""
+    },
+    {
+      "zh": "插件",
+      "en": "Plugin",
+      "ja": "プラグイン",
+      "note": ""
+    },
+    {
+      "zh": "整站模板",
+      "en": "Site template",
+      "ja": "サイトテンプレート",
+      "note": "a whole-site package: theme + content"
+    },
+    {
+      "zh": "模板市场",
+      "en": "Marketplace",
+      "ja": "マーケット",
+      "note": ""
+    },
+    {
+      "zh": "建站向导",
+      "en": "Site setup",
+      "ja": "サイト設定ガイド",
+      "note": ""
+    },
+    {
+      "zh": "易开网页构建器",
+      "en": "Yikai Builder",
+      "ja": "易開ウェブビルダー",
+      "note": "product name; keep 'Yikai Builder' if no official local name"
+    },
+    {
+      "zh": "区块",
+      "en": "Section",
+      "ja": "セクション",
+      "note": "a horizontal block of a builder page"
+    },
+    {
+      "zh": "元素",
+      "en": "Element",
+      "ja": "要素",
+      "note": "a builder widget (heading, image, button...)"
+    },
+    {
+      "zh": "网站资料",
+      "en": "Site Info",
+      "ja": "サイト情報",
+      "note": "admin menu group"
+    },
+    {
+      "zh": "系统维护",
+      "en": "Maintenance",
+      "ja": "システム保守",
+      "note": "admin menu group"
+    },
+    {
+      "zh": "网站设计",
+      "en": "Site Design",
+      "ja": "サイトデザイン",
+      "note": "admin menu group"
+    },
+    {
+      "zh": "外观与扩展",
+      "en": "Appearance & Extensions",
+      "ja": "外観と拡張",
+      "note": "admin menu group"
+    },
+    {
+      "zh": "基本设置",
+      "en": "General",
+      "ja": "基本設定",
+      "note": ""
+    },
+    {
+      "zh": "站点健康",
+      "en": "Site Health",
+      "ja": "サイトヘルス",
+      "note": ""
+    },
+    {
+      "zh": "系统升级",
+      "en": "System Upgrade",
+      "ja": "システムアップグレード",
+      "note": ""
+    },
+    {
+      "zh": "在线升级",
+      "en": "Online upgrade",
+      "ja": "オンラインアップグレード",
+      "note": ""
+    },
+    {
+      "zh": "数据库升级",
+      "en": "Database upgrade",
+      "ja": "データベースアップグレード",
+      "note": ""
+    },
+    {
+      "zh": "回收站",
+      "en": "Recycle Bin",
+      "ja": "ゴミ箱",
+      "note": ""
+    },
+    {
+      "zh": "定时任务",
+      "en": "Scheduled Tasks",
+      "ja": "定期タスク",
+      "note": "cron jobs"
+    },
+    {
+      "zh": "定时发布",
+      "en": "Scheduled",
+      "ja": "予約投稿",
+      "note": "publish automatically at a set time"
+    },
+    {
+      "zh": "已发布",
+      "en": "Published",
+      "ja": "公開",
+      "note": ""
+    },
+    {
+      "zh": "草稿",
+      "en": "Draft",
+      "ja": "下書き",
+      "note": ""
+    },
+    {
+      "zh": "上架",
+      "en": "Publish / on sale",
+      "ja": "公開",
+      "note": "product status"
+    },
+    {
+      "zh": "下架",
+      "en": "Unpublish / off sale",
+      "ja": "非公開",
+      "note": "product status"
+    },
+    {
+      "zh": "置顶",
+      "en": "Pin to top",
+      "ja": "トップ固定",
+      "note": ""
+    },
+    {
+      "zh": "推荐",
+      "en": "Featured",
+      "ja": "おすすめ",
+      "note": ""
+    },
+    {
+      "zh": "热门",
+      "en": "Popular",
+      "ja": "人気",
+      "note": ""
+    },
+    {
+      "zh": "授权",
+      "en": "License",
+      "ja": "ライセンス",
+      "note": ""
+    },
+    {
+      "zh": "注册码",
+      "en": "License key",
+      "ja": "ライセンスキー",
+      "note": ""
+    },
+    {
+      "zh": "专业版",
+      "en": "Pro",
+      "ja": "プロ版",
+      "note": ""
+    },
+    {
+      "zh": "伪静态",
+      "en": "URL rewriting",
+      "ja": "URL書き換え",
+      "note": "server rewrite rules (pretty URLs)"
+    },
+    {
+      "zh": "别名",
+      "en": "Slug",
+      "ja": "スラッグ",
+      "note": "URL part of an item"
+    },
+    {
+      "zh": "多语言",
+      "en": "Multilingual",
+      "ja": "多言語",
+      "note": ""
+    },
+    {
+      "zh": "在线客服",
+      "en": "Live chat",
+      "ja": "オンライン接客",
+      "note": ""
+    },
+    {
+      "zh": "合作伙伴",
+      "en": "Partners",
+      "ja": "パートナー",
+      "note": ""
+    },
+    {
+      "zh": "发展历程",
+      "en": "Timeline / history",
+      "ja": "沿革",
+      "note": ""
+    },
+    {
+      "zh": "商城",
+      "en": "Shop",
+      "ja": "ショップ",
+      "note": ""
+    },
+    {
+      "zh": "购物车",
+      "en": "Cart",
+      "ja": "カート",
+      "note": ""
+    },
+    {
+      "zh": "订单",
+      "en": "Order",
+      "ja": "注文",
+      "note": ""
+    },
+    {
+      "zh": "退款",
+      "en": "Refund",
+      "ja": "返金",
+      "note": ""
+    },
+    {
+      "zh": "运费",
+      "en": "Shipping fee",
+      "ja": "送料",
+      "note": ""
+    },
+    {
+      "zh": "备案号",
+      "en": "ICP filing number",
+      "ja": "届出番号",
+      "note": "Chinese website registration number; keep as a proper term"
+    }
+  ]
+}
