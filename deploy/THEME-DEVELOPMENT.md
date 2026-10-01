@@ -128,18 +128,21 @@ acme-corporate/
 | `requires_cms` | 可选但建议声明；安装时会与当前 CMS 版本比较 |
 | `requires_php` | 可选但建议声明；安装时会与当前 PHP 版本比较 |
 | `required_plugins` | 插件 slug 数组；单独安装主题时，缺失或未启用会阻止安装。主题随整站模板分发时，这些插件还必须写进整站包的插件清单；导入步骤会把它们标为「必需」并随导入一起安装启用，仍缺失则拒绝导入 |
-| `category` | 可选；内置值见下方 |
+| `category` | 可选；取值见下方，与整站模板市场的行业分组是同一份 |
 | `name_en`、`name_ja` | 缺失会警告，不阻止安装 |
 | `description_en`、`description_ja` | 缺失会警告，不阻止安装 |
+| `name_<语言代码>`、`description_<语言代码>` | 其他语言同样写法，如 `name_ko`、`description_ar`；代码以 `includes/i18n/LanguageRegistry.php` 为准，写错的代码会警告且不被读取。缺译时韩语等先显示英文、再显示中文 |
 | `screenshot` | 相对主题根目录；声明后文件不存在会警告 |
 | `design_tokens` | 设计色板文件名；只能是主题根目录下的安全文件名 |
 | `stylesheets` | 可选（CMS 2.0.3+）；主题展示样式表数组，路径相对主题 `assets/` 目录，例如 `["css/theme.css"]`，最多 10 项、只允许 `.css`。默认页头会自动输出这些 `<link>`，所有 Blox 编辑画布（整页、单独编辑页头 / 页尾 / 弹窗 / 模板）也按它加载。**推荐用它代替在 `layouts/header.php` 里手动拼 `$extraCss`**；两处都写时默认页头会自动去重 |
 
-当前内置分类：
+行业分类（单一来源 `config/template-categories.php`，主题校验、整站模板市场、官网模板页共用）：
 
 ```text
-general, manufacturing, trade, tech, creative, services, retail
+general, manufacturing, food, home, service, auto, energy, creative
 ```
+
+旧值 `services`、`tech`、`trade`、`retail` 仍能安装，校验时会提示改成对应的新分组。新增行业请改那份配置，不要在别处另写列表。
 
 版本约束解析器支持 `>=`、`<=`、`>`、`<`、`=`、`^`、`~`。为避免把它误认为 Composer 的完整语义，主题清单建议只使用简单、明确的比较式，例如 `>=1.20.1`。
 

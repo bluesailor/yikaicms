@@ -8,7 +8,7 @@
   "description_ja": "貿易・輸出入向けテーマ：クリーンで国際的なデザイン、製品・実績グリッド重視、問い合わせ導線を強調。輸出メーカーや越境 B2B サイトに最適。",
   "version": "1.0.4",
   "author": "Yikai CMS",
-  "category": "trade",
+  "category": "manufacturing",
   "requires_cms": ">=1.19.8",
   "requires_php": ">=8.0.0",
   "required_plugins": [],

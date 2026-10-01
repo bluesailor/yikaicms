@@ -6,6 +6,7 @@ if (!defined('ROOT_PATH')) define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/version.php';
 require_once ROOT_PATH . '/includes/SiteTemplateOfflineValidator.php';
 require_once ROOT_PATH . '/includes/SiteTemplateMarket.php';
+require_once ROOT_PATH . '/includes/TemplateCategories.php';
 
 /**
  * Build and verify a complete candidate before replacing any caller-visible file. Replacements are
@@ -36,8 +37,9 @@ function prepareSiteTemplateMarket(
     $coverRoot = str_replace('\\', '/', $coverRoot);
     siteTemplatePrepareAssertPinnedDeliveryRoot($deliveryInput, $delivery);
 
-    $publicKeys = ['slug', 'name', 'name_en', 'name_ja', 'description', 'description_en', 'description_ja',
-        'category', 'category_name', 'category_name_en', 'category_name_ja', 'requires_php', 'tier'];
+    // 公开字段：固定几项 + 市场的多语文字字段（按注册表，name_ko、description_ar 等不会再被丢掉）
+    $publicKeys = array_merge(['slug', 'name', 'category', 'requires_php', 'tier', 'languages', 'demo_url'],
+        SiteTemplateMarket::localizedTextKeys());
     $bySlug = [];
     foreach ($catalog['templates'] as $entry) {
         if (!is_array($entry) || ($entry['status'] ?? '') !== 'draft' || ($entry['sig'] ?? '') !== '') throw new RuntimeException('Only unsigned draft catalogs may be prepared');
@@ -45,6 +47,13 @@ function prepareSiteTemplateMarket(
         if (preg_match('/^[a-z0-9][a-z0-9-]*$/D', $slug) !== 1 || isset($bySlug[$slug])) throw new RuntimeException('Invalid or duplicate catalog identity');
         $public = [];
         foreach ($publicKeys as $key) if (array_key_exists($key, $entry)) $public[$key] = $entry[$key];
+        // 行业分类只认 config/template-categories.php 里的分组（旧键自动换新）；各语言名称按配置补齐，目录里写了的优先
+        $category = TemplateCategories::normalize((string) ($public['category'] ?? ''));
+        if ($category === '') throw new RuntimeException('Unknown category for ' . $slug . ': ' . (string) ($public['category'] ?? '') . ' (allowed: ' . implode(', ', TemplateCategories::keys()) . ')');
+        $public['category'] = $category;
+        foreach (TemplateCategories::catalogNameFields($category) as $field => $name) {
+            if (trim((string) ($public[$field] ?? '')) === '') $public[$field] = $name;
+        }
         $bySlug[$slug] = $public;
     }
 
