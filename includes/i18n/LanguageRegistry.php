@@ -46,7 +46,10 @@ final class LanguageRegistry
         'ar'    => ['name' => 'العربية', 'english' => 'Arabic', 'hreflang' => 'ar', 'dir' => 'rtl', 'flag' => '', 'font' => 'ar', 'picker' => 'ar'],
     ];
 
-    /** @return array<string, array{name:string, english:string, hreflang:string, dir:string, flag:string, font:string, picker:string}> */
+    /**
+     * @return array<string, array{name:string, english:string, hreflang:string, dir:string, flag:string, font:string, picker:string}>
+     * @psalm-suppress PossiblyUnusedMethod 注册表完整视图，供插件与测试使用
+     */
     public static function all(): array
     {
         return self::LANGUAGES;
@@ -68,7 +71,10 @@ final class LanguageRegistry
         return self::LANGUAGES[$code]['name'] ?? $code;
     }
 
-    /** 按钮、胶囊上的短标记：ZH / ZH-TW / EN / JA / KO …（未注册的代码原样大写）。 */
+    /**
+     * 按钮、胶囊上的短标记：ZH / ZH-TW / EN / JA / KO …（未注册的代码原样大写）。
+     * @psalm-suppress PossiblyUnusedMethod 后台语言胶囊（Codex 任务单 C1）接入前暂无调用方
+     */
     public static function shortLabel(string $code): string
     {
         return $code === 'zh-CN' ? 'ZH' : strtoupper($code);

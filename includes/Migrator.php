@@ -16,6 +16,7 @@
  */
 declare(strict_types=1);
 
+/** @psalm-suppress ParadoxicalCondition 直接访问守卫：Psalm 从调用方推断 ROOT_PATH 已定义，但本文件也会被独立请求 */
 if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }

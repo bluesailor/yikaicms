@@ -35,7 +35,10 @@ final class TextDirection
         };
     }
 
-    /** margin-left / padding-right / border-left-width … → 对应的 inline-start / inline-end 逻辑属性；其他原样。 */
+    /**
+     * margin-left / padding-right / border-left-width … → 对应的 inline-start / inline-end 逻辑属性；其他原样。
+     * @psalm-suppress PossiblyUnusedMethod 给主题与插件生成逻辑属性用；核心渲染直接写死了逻辑属性名
+     */
     public static function property(string $property): string
     {
         return (string) preg_replace_callback('/^(margin|padding|border)-(left|right)(-.+)?$/D',
