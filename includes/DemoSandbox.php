@@ -111,6 +111,7 @@ final class DemoSandbox
             'database.php',                           // 任意 SQL 恢复 / 清表
             'static_html.php', 'setting_seo.php', 'system.php',
             'license.php', 'cron.php',                // 远程授权 / 站长口令与计划任务
+            'support_access.php', 'support_login.php', // 官方技术支持临时访问：演示站上不给任何人开后门
             // 下面这些页面会把授权信息、SMTP/API 密钥显示出来，或直接触发外部服务调用。
             // 公开演示账号连 GET 都不该看到，所以拦的是整页而不是只拦提交。
             'setting_email.php', 'setting_ai.php', 'setting_translate.php', 'setting_api.php',

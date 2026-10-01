@@ -118,6 +118,25 @@ function resolveAdminSidebar(): array
  * inline HTML produced. Centralizing this keeps the rendering loop in
  * header.php trivial.
  */
+/**
+ * 菜单项对当前管理员是否可见。超管专属组（系统设置等）里，非超管只看得到**明确声明了
+ * perm 且自己有该权限**的项——例如「系统维护」角色只看到升级、体检、系统信息、数据库。
+ *
+ * @param array<string,mixed> $group
+ * @param array<string,mixed> $item
+ */
+function adminMenuItemVisible(array $group, array $item): bool
+{
+    if (isset($item['visible']) && !$item['visible']) {
+        return false;
+    }
+    $perm = (string) ($item['perm'] ?? '');
+    if (!empty($group['super_only']) && !isSuperAdmin()) {
+        return $perm !== '' && $perm !== '*' && hasPermission($perm);
+    }
+    return $perm === '' || hasPermission($perm);
+}
+
 function renderAdminMenuItem(array $item, string $currentMenu): string
 {
     $key        = (string) $item['key'];

@@ -11,7 +11,7 @@ require_once ROOT_PATH . '/includes/MediaOptimization.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-requirePermission('*');
+requirePermission('system_maintenance');   // 超管或「系统维护」角色（官方技术支持临时账号）；改授权类设置另需超管
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     verifyCsrf();

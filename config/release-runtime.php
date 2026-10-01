@@ -70,6 +70,9 @@ return [
         'admin/site_content_check.php',
         'includes/ThemePalette.php',
         'includes/ThemeMarket.php',
+        'includes/SupportAccess.php',           // admin/includes/auth.php 无条件 require：技术支持临时访问
+        'admin/support_access.php',
+        'admin/support_login.php',
         'includes/ThemeValidator.php',
         'includes/ThemeInstaller.php',
         'includes/security.php',
