@@ -57,6 +57,8 @@ return [
         'includes/DefaultLangShadow.php',  // SiteTemplateService 与迁移 20260810 共用的默认语言归位规则
         'includes/UploadReferences.php',
         'includes/SiteTemplateMarket.php',
+        'includes/TemplateCategories.php',      // ThemeValidator / SiteTemplateMarket 无条件 require：行业分类
+        'config/template-categories.php',       // 行业分类数据（主题、整站模板市场、官网共用）
         'includes/SiteTemplateLanguages.php',
         'includes/SensitiveSettings.php',
         'includes/SiteContentChecks.php',

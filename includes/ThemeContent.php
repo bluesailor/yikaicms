@@ -63,9 +63,10 @@ final class ThemeContent
         return array_filter($fields, static fn (array $field): bool => ($field['area'] ?? '') === 'home:' . $type);
     }
 
+    /** 嵌套多语值按注册表的回落顺序取（韩语等缺译先显示英文，再回落中文）。 */
     public static function localized(mixed $value, string $language): string
     {
-        return is_array($value) ? (string) ($value[$language] ?? $value['zh-CN'] ?? '') : (string) $value;
+        return is_array($value) ? LanguageRegistry::localizedValue($value, $language) : (string) $value;
     }
 
     public static function normalize(array $field, mixed $value): string

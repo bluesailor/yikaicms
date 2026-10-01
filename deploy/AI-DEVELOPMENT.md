@@ -6,7 +6,7 @@
 
 1. 先读本文。仓库根目录目前没有 AGENTS.md；目标仓库另有协作说明时一并阅读。
 2. 开发业务插件：读 [插件开发指南](./PLUGIN-DEVELOPMENT.md)。
-3. 开发网站模板/主题：读 [模板开发指南](./THEME-DEVELOPMENT.md)。
+3. 开发网站模板/主题/整站模板：先读 [模板制作入口](./TEMPLATE-AUTHORING.md)（规则摘要、格式版本、检查命令、任务卡），再按交付物读 [模板开发指南](./THEME-DEVELOPMENT.md) 或 [整站模板工作流](./SITE-TEMPLATE-WORKFLOW.md)。
 4. 插件要让自己的公开数据随整站模板导出导入：再读 [整站模板中的插件数据](./SITE-TEMPLATE-PLUGIN-DATA.md)（英文）。
 5. 阅读指南指定的实际源码和相邻实现，再给出修改范围并动手。
 

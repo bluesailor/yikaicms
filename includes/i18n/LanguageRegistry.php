@@ -138,6 +138,24 @@ final class LanguageRegistry
         return '';
     }
 
+    /**
+     * 嵌套写法的多语值：{"zh-CN": "…", "en": "…", "ko": "…"}（content-fields.json、精品区块名称等）。
+     * 与 localizedField() 同一回落顺序：本语言 → 英文（读汉字的语言除外）→ 简体中文；空串视为缺译。
+     *
+     * @param array<array-key,mixed> $values
+     */
+    public static function localizedValue(array $values, string $lang): string
+    {
+        $chain = [$lang];
+        if ($lang !== 'en' && !self::readsHan($lang)) $chain[] = 'en';
+        $chain[] = 'zh-CN';
+        foreach ($chain as $code) {
+            $value = $values[$code] ?? null;
+            if (is_scalar($value) && trim((string) $value) !== '') return (string) $value;
+        }
+        return '';
+    }
+
     /** 与语言代码同名的别名会和语言前缀撞车（/de/xxx.html），栏目与单页不能新用。 */
     public static function isReservedSlug(string $slug): bool
     {

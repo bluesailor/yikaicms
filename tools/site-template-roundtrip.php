@@ -8,6 +8,10 @@ declare(strict_types=1);
  * 为什么需要它：ThemeValidator 与 exportCheck 全绿不等于模板可用。英文模板一批里，
  * 社媒设置不随包导出、单独编辑页头时画布缺主题样式，都只有「真的装一遍、导进去、打开看」才发现。
  *
+ * 多语言（2.0.3）：每种已启用语言都打开首页、全部栏目、前 3 篇内容与前 3 个产品，检查
+ * <html lang> 是否就是该语言、从右到左语言是否带 dir="rtl"、启用了却没有任何栏目的语言，
+ * 以及非汉字语言页面里成段的中文（去掉语言切换器里的语言名后超过 15 个汉字即报，附样例）。
+ *
  * 用法（在 CMS 仓库根目录运行）：
  *   php tools/site-template-roundtrip.php --package=<整站模板.zip>
  *       [--cms=tree|<CMS 发行包.zip>]   默认 tree：用当前仓库已跟踪的文件搭临时站
@@ -96,6 +100,8 @@ function rt_http(string $method, string $url, array $form = [], array &$cookies 
 }
 
 /** 页面里的 PHP 报错与未解析的动态标签。 @return list<string> */
+require_once RT_ROOT . '/includes/i18n/LanguageRegistry.php';
+
 function rt_issues(string $html): array
 {
     $issues = [];
@@ -104,6 +110,36 @@ function rt_issues(string $html): array
     }
     if (preg_match('/\{\{\s*(?:loop|site|parent|article|product|page)\.[a-z_]+/', $html, $m)) {
         $issues[] = 'unresolved_tag: ' . $m[0];
+    }
+    return $issues;
+}
+
+/**
+ * 页面语言是否对：<html lang> 与该语言一致；从右到左语言带 dir="rtl"；
+ * 非汉字语言的页面里不该有成段中文（多半是没翻译、回落到了中文原文）。
+ * @return list<string>
+ */
+function rt_language_issues(string $html, string $lang): array
+{
+    $issues = [];
+    if (preg_match('/<html\b[^>]*\blang="([^"]*)"/i', $html, $m) !== 1 || $m[1] !== $lang) {
+        $issues[] = 'html_lang_' . ($m[1] ?? 'missing') . '_expected_' . $lang;
+    }
+    if (class_exists('LanguageRegistry') ? LanguageRegistry::isRtl($lang) : $lang === 'ar') {
+        if (preg_match('/<html\b[^>]*\bdir="rtl"/i', $html) !== 1) $issues[] = 'missing_dir_rtl';
+    }
+    if (!in_array($lang, ['zh-CN', 'zh-TW', 'ja'], true)) {
+        $text = preg_replace('#<(script|style|noscript)\b.*?</\1>#is', ' ', $html) ?? '';
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // 语言切换器里的「中文 / 日本語」等语言名不算：去掉已登记语言的本族语名后再数
+        foreach (LanguageRegistry::all() as $code => $info) $text = str_replace([$info['name'], '中文'], ' ', $text);
+        $han = preg_match_all('/\p{Han}/u', $text);
+        $GLOBALS['rt_last_han'] = $han;
+        if ($han > 15) {
+            preg_match_all('/[\p{Han}，。、：；！？「」（）0-9A-Za-z ]*\p{Han}{4,}[\p{Han}，。、：；！？「」（）0-9A-Za-z ]*/u', $text, $runs);
+            usort($runs[0], static fn (string $a, string $b): int => mb_strlen($b) <=> mb_strlen($a));
+            $issues[] = 'untranslated_chinese_' . $han . '_chars: ' . mb_substr(trim((string) ($runs[0][0] ?? '')), 0, 40);
+        }
     }
     return $issues;
 }
@@ -157,14 +193,37 @@ foreach (Migrator::loadAll() as $migration) if (!Migrator::isApplied($migration)
 echo json_encode($pending), "\n";
 exit(0);
 }
-$urls = ['/'];
-foreach (channelModel()->all() as $channel) {
-    if (empty($channel['status']) || in_array((string) $channel['type'], ['link'], true)) continue;
-    if ((string) ($channel['lang'] ?? siteLang()) !== siteLang()) continue;
-    $urls[] = channelUrl($channel);
+// 每种已启用语言都走一遍：首页、该语言的全部栏目、前 3 篇内容与前 3 个产品。
+// channelUrl() 等按当前语言（CLI 里是默认语言）出路径，再用 langUrl() 套上目标语言的前缀或参数。
+$defaultLang = (string) config('site_lang', 'zh-CN');
+$enabledLangs = json_decode((string) config('enabled_languages', ''), true);
+$enabledLangs = is_array($enabledLangs) && $enabledLangs !== [] ? array_values(array_filter($enabledLangs, 'is_string')) : [$defaultLang];
+if (!in_array($defaultLang, $enabledLangs, true)) array_unshift($enabledLangs, $defaultLang);
+$pages = [];
+$emptyLangs = [];
+foreach ($enabledLangs as $lang) {
+    $pages[] = ['url' => langUrl('/', $lang), 'lang' => $lang];
+    $channels = 0;
+    foreach (channelModel()->all() as $channel) {
+        if (empty($channel['status']) || in_array((string) $channel['type'], ['link'], true)) continue;
+        if ((string) ($channel['lang'] ?? $defaultLang) !== $lang) continue;
+        $pages[] = ['url' => langUrl(channelUrl($channel), $lang), 'lang' => $lang];
+        $channels++;
+    }
+    if ($channels === 0) $emptyLangs[] = $lang;
+    foreach (db()->fetchAll('SELECT * FROM ' . DB_PREFIX . "contents WHERE status = 1 AND deleted_at IS NULL AND type <> 'page' AND lang = ? ORDER BY id LIMIT 3", [$lang]) as $row) {
+        $pages[] = ['url' => langUrl(contentUrl($row), $lang), 'lang' => $lang];
+    }
+    if (db()->tableExists('products')) foreach (db()->fetchAll('SELECT * FROM ' . DB_PREFIX . 'products WHERE status = 1 AND deleted_at IS NULL AND lang = ? ORDER BY id LIMIT 3', [$lang]) as $row) {
+        $pages[] = ['url' => langUrl(productUrl($row), $lang), 'lang' => $lang];
+    }
 }
-foreach (db()->fetchAll('SELECT * FROM ' . DB_PREFIX . "contents WHERE status = 1 AND deleted_at IS NULL AND type <> 'page' ORDER BY id LIMIT 5") as $row) $urls[] = contentUrl($row);
-if (db()->tableExists('products')) foreach (db()->fetchAll('SELECT * FROM ' . DB_PREFIX . 'products WHERE status = 1 AND deleted_at IS NULL ORDER BY id LIMIT 5') as $row) $urls[] = productUrl($row);
+$seen = [];
+$pages = array_values(array_filter($pages, static function (array $page) use (&$seen): bool {
+    if (isset($seen[$page['url']])) return false;
+    return $seen[$page['url']] = true;
+}));
+$urls = array_column($pages, 'url');
 $canvases = [];
 if ((string) config('home_blox_active', '0') === '1' && (string) config('home_blox_published', '') !== '') {
     $canvases[] = ['kind' => 'home', 'query' => 'home=1', 'doc' => (string) config('home_blox_published')];
@@ -179,7 +238,8 @@ if (db()->tableExists('blox_templates')) foreach (['header', 'footer'] as $area)
 $theme = currentTheme();
 $themeCss = [];
 foreach (glob(__DIR__ . '/themes/' . $theme . '/assets/{,*/,*/*/}*.css', GLOB_BRACE) ?: [] as $file) $themeCss[] = basename($file);
-echo json_encode(['theme' => $theme, 'theme_css' => $themeCss, 'urls' => array_values(array_unique($urls)), 'canvases' => $canvases], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), "\n";
+echo json_encode(['theme' => $theme, 'theme_css' => $themeCss, 'urls' => array_values(array_unique($urls)), 'pages' => $pages,
+    'languages' => $enabledLangs, 'empty_languages' => $emptyLangs, 'canvases' => $canvases], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), "\n";
 PHP;
 
 $exit = 1;
@@ -270,14 +330,19 @@ try {
 
     // ── 5. 前台页面 ──
     $cookies = [];
-    foreach ($sample['urls'] as $url) {
+    $report['languages'] = $sample['languages'] ?? [];
+    foreach ($sample['pages'] ?? array_map(static fn (string $url): array => ['url' => $url, 'lang' => ''], $sample['urls']) as $page) {
+        $url = $page['url'];
         $response = rt_http('GET', $base . $url, [], $cookies);
         $issues = rt_issues($response['body']);
         if ($response['status'] !== 200) $issues[] = 'http_' . $response['status'];
-        $report['pages'][] = ['url' => $url, 'status' => $response['status'], 'h1' => preg_match_all('/<h1[\s>]/i', $response['body']), 'issues' => $issues];
+        $GLOBALS['rt_last_han'] = 0;
+        if ($response['status'] === 200 && $page['lang'] !== '') array_push($issues, ...rt_language_issues($response['body'], $page['lang']));
+        $report['pages'][] = ['url' => $url, 'lang' => $page['lang'], 'han_chars' => (int) ($GLOBALS['rt_last_han'] ?? 0), 'status' => $response['status'], 'h1' => preg_match_all('/<h1[\s>]/i', $response['body']), 'issues' => $issues];
     }
     $pageFailures = array_filter($report['pages'], static fn (array $page): bool => $page['issues'] !== []);
-    rt_step($report, '前台页面 ' . count($report['pages']) . ' 个', $pageFailures === [], json_encode(array_values($pageFailures), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '');
+    rt_step($report, '前台页面 ' . count($report['pages']) . ' 个（' . implode(' / ', $report['languages']) . '）', $pageFailures === [], json_encode(array_values($pageFailures), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '');
+    rt_step($report, '已启用的语言都有栏目', ($sample['empty_languages'] ?? []) === [], '没有任何栏目的语言：' . implode(', ', $sample['empty_languages'] ?? []));
 
     // ── 6. 编辑画布（登录临时站后台） ──
     $session = [];
