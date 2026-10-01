@@ -381,6 +381,7 @@ return [
             ],
             [
                 'key'   => 'site_health',
+                'perm'  => 'system_maintenance',
                 'label' => __('admin_site_health'),
                 'url'   => '/admin/site_health.php',
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6-2c0 5-3.438 9.74-9 11-5.562-1.26-9-6-9-11V5l9-3 9 3v5z"></path>',
@@ -393,6 +394,7 @@ return [
             ],
             [
                 'key'         => 'system',
+                'perm'        => 'system_maintenance',
                 'label'       => __('admin_system_info'),
                 'url'         => '/admin/system.php',
                 'icon'        => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>',
@@ -400,6 +402,7 @@ return [
             ],
             [
                 'key'   => 'database',
+                'perm'  => 'system_maintenance',
                 'label' => __('admin_database'),
                 'url'   => '/admin/database.php',
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>',
@@ -430,11 +433,18 @@ return [
             ],
             [
                 'key'         => 'upgrade',
+                'perm'        => 'system_maintenance',
                 'label'       => __('admin_upgrade'),
                 'url'         => '/admin/upgrade_online.php',
                 'icon'        => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>',
                 // 在线升级已并入本页「在线更新」标签；保留 online_upgrade 以兼容旧高亮逻辑
                 'active_keys' => ['upgrade', 'online_upgrade'],
+            ],
+            [
+                'key'   => 'support_access',
+                'label' => __('support_title'),
+                'url'   => '/admin/support_access.php',
+                'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"></path>',
             ],
             [
                 'key'   => 'license',
