@@ -50,6 +50,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success([], __('save_success'));
     }
 
+    // 改服务器规则 / 改访问域名：公开沙盒演示站一律不允许（改坏了所有访客都打不开）
+    if (in_array($action, ['save_domains', 'fix_htaccess', 'restore_htaccess'], true) && defined('DEMO_SANDBOX') && DEMO_SANDBOX) {
+        error(__('auth_demo_sandbox_protected'));
+    }
+
+    // 一键把 .htaccess 里写死语言的旧前缀规则换成通用规则（见 LanguageRouting）。
+    // 页面上的脚本改完立刻重测；有语言变得打不开就调 restore_htaccess 撤销。
+    if ($action === 'fix_htaccess') {
+        $result = LanguageRouting::fixHtaccess(ROOT_PATH, ROOT_PATH . '/storage/backups/htaccess');
+        if (!$result['ok']) error(__('slang_routing_fix_failed_' . $result['error']));
+        adminLog('setting', 'htaccess_lang_rule', '更新 .htaccess 语言前缀规则，备份 storage/backups/htaccess/' . $result['backup']);
+        success(['backup' => $result['backup']], __('slang_routing_fixed'));
+    }
+    if ($action === 'restore_htaccess') {
+        $backup = (string) post('backup');
+        if (!LanguageRouting::restoreHtaccess(ROOT_PATH, ROOT_PATH . '/storage/backups/htaccess', $backup)) error(__('slang_routing_restore_failed'));
+        adminLog('setting', 'htaccess_lang_rule', '撤销 .htaccess 语言前缀规则更新，还原自 ' . $backup);
+        success([], __('slang_routing_rolled_back'));
+    }
+
     // 语言域名：{"en":"en.example.com","de":"example.de"}（见 LanguageDomains）
     if ($action === 'save_domains') {
         $input = is_array($_POST['domains'] ?? null) ? $_POST['domains'] : [];
@@ -72,18 +92,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $map[$lang] = $normalized;
         }
-        if ($map !== []) {
+        // 总开关：关掉时域名照样保存（方便先填好、主机配好后再开），全站回到 /xx/ 前缀
+        $switchOn = post('language_domains_enabled') === '1';
+        if ($switchOn && $map === []) error(__('slang_domain_need_one'));
+        if ($switchOn) {
             if ($mainHost === '') error(__('slang_domain_need_site_url'));
             if (isDynamicUrlMode()) error(__('slang_domain_need_pretty_urls'));
         }
         settingModel()->set('language_domains', $map === [] ? '' : (string) json_encode($map, JSON_UNESCAPED_SLASHES));
-        if ($map !== []) {
+        settingModel()->set('language_domains_enabled', $switchOn ? '1' : '0');
+        if ($switchOn) {
             // 静态直出分不清主机（见 StaticHtml::enabled）：已生成的文件必须清掉，否则服务器会继续直出
             require_once ROOT_PATH . '/includes/StaticHtml.php';
             StaticHtml::clearAll();
         }
         cacheDelete('sitemap_xml');
-        adminLog('setting', 'lang_domains', '更新语言域名：' . ($map === [] ? '（无）' : implode(', ', array_map(static fn($l, $h) => "$l=$h", array_keys($map), $map))));
+        adminLog('setting', 'lang_domains', '更新语言域名（' . ($switchOn ? '启用' : '关闭') . '）：' . ($map === [] ? '（无）' : implode(', ', array_map(static fn($l, $h) => "$l=$h", array_keys($map), $map))));
         success([], __('save_success'));
     }
 
@@ -315,6 +339,48 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </form>
 
+    <?php /* 语言网址前缀检查：浏览器逐个请求 /<代码>/contact.html?探针，看是否被认成该语言 */ ?>
+    <?php
+    // 兼容地址模式（?yk_route=）不用路径前缀，无需检查
+    $routingLangs = isDynamicUrlMode() ? [] : LanguageRouting::prefixLanguages(array_values(array_map('strval', (array) $enabledLangs)), $defaultLang);
+    $htaccess = LanguageRouting::htaccessStatus(ROOT_PATH);
+    $routingProbes = [];
+    foreach ($routingLangs as $code) {
+        $routingProbes[] = ['code' => $code, 'name' => (string) ($allLangs[$code] ?? $code), 'url' => BasePath::url('/' . $code . '/contact.html')];
+    }
+    ?>
+    <?php if ($routingProbes !== []): ?>
+    <div id="language-routing" class="bg-white rounded-lg shadow mt-6" data-routing-state="<?php echo e($htaccess['state']); ?>">
+        <div class="px-6 py-4 border-b">
+            <h2 class="font-bold text-gray-800"><?php echo e(__('slang_routing_title')); ?></h2>
+            <p class="text-sm text-gray-500 mt-1"><?php echo e(__('slang_routing_tip')); ?></p>
+        </div>
+        <div class="p-6 space-y-3">
+            <div class="flex flex-wrap gap-2" data-routing-list>
+                <?php foreach ($routingProbes as $probe): ?>
+                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full border text-sm text-gray-500" data-routing-item="<?php echo e($probe['code']); ?>">
+                    <i class="ti ti-loader-2 animate-spin" data-routing-icon></i><?php echo e($probe['name']); ?>
+                    <span class="font-mono text-xs text-gray-400">/<?php echo e($probe['code']); ?>/</span>
+                </span>
+                <?php endforeach; ?>
+            </div>
+            <div class="hidden text-sm rounded p-3" data-routing-message></div>
+            <div class="hidden" data-routing-fix>
+                <button type="button" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm inline-flex items-center gap-2" data-routing-fix-button>
+                    <i class="ti ti-tool text-base"></i><?php echo e(__('slang_routing_fix_btn')); ?>
+                </button>
+                <p class="text-xs text-gray-400 mt-2"><?php echo e(__('slang_routing_fix_note')); ?></p>
+            </div>
+            <div class="hidden text-sm text-gray-600 space-y-2" data-routing-manual>
+                <p><?php echo e(__($htaccess['state'] !== 'none' ? 'slang_routing_manual_apache' : 'slang_routing_manual_nginx')); ?></p>
+                <pre class="bg-gray-50 border rounded p-3 text-xs overflow-x-auto"><?php echo e($htaccess['state'] !== 'none'
+                    ? "RewriteCond %{DOCUMENT_ROOT}%{ENV:YK_BASE}lang/\$1.php -f\nRewriteRule ^([a-z]{2}(?:-[A-Z]{2})?)/(.*)\$ %{ENV:YK_BASE}\$2?_lang=\$1 [QSA,L,DPI]"
+                    : "if (!-e \$request_filename) {\n    rewrite \"^/[a-z]{2}(?:-[A-Z]{2})?/\" /index.php last;\n}"); ?></pre>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <?php /* 语言域名（可选）：某些语言用独立域名，其余照旧用 /xx/ 前缀 */ ?>
     <?php
     $domainLangs = array_filter($allLangs, static fn($label, $code): bool => $code !== $defaultLang && in_array($code, (array) $enabledLangs, true), ARRAY_FILTER_USE_BOTH);
@@ -330,6 +396,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <p class="text-sm text-gray-500 mt-1"><?php echo e(__('slang_domains_tip')); ?></p>
         </div>
         <div class="p-6 space-y-3">
+            <label class="flex items-center gap-3 p-3 rounded-lg border bg-gray-50">
+                <input type="checkbox" name="language_domains_enabled" value="1" class="w-4 h-4 rounded"
+                       <?php echo (string) config('language_domains_enabled', '0') === '1' ? 'checked' : ''; ?>>
+                <div>
+                    <span class="font-medium text-gray-700"><?php echo e(__('slang_domains_switch')); ?></span>
+                    <p class="text-xs text-gray-400"><?php echo e(__('slang_domains_switch_tip')); ?></p>
+                </div>
+            </label>
             <?php if (LanguageDomains::mainHost() === ''): ?>
             <p class="text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded p-3"><?php echo e(__('slang_domain_need_site_url')); ?></p>
             <?php elseif (isDynamicUrlMode()): ?>
@@ -350,6 +424,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endforeach; ?>
             <ul class="text-xs text-gray-500 list-disc pl-5 space-y-1 pt-2">
                 <li><?php echo e(__('slang_domain_note_dns')); ?></li>
+                <li><?php echo e(__('slang_domain_note_hosting')); ?></li>
                 <li><?php echo e(__('slang_domain_note_admin')); ?></li>
                 <li><?php echo e(__('slang_domain_note_static')); ?></li>
                 <li><?php echo e(__('slang_domain_note_member')); ?></li>
@@ -399,6 +474,79 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </div>
 
 <script>
+(function () {
+    var box = document.getElementById('language-routing');
+    if (!box) return;
+    var probes = <?php echo json_encode($routingProbes ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG); ?>;
+    var T = <?php echo json_encode([
+        'ok' => __('slang_routing_all_ok'), 'bad' => __('slang_routing_bad'), 'fixing' => __('slang_routing_fixing'),
+        'fixed' => __('slang_routing_fixed'), 'rolled' => __('slang_routing_rolled_back'), 'still' => __('slang_routing_still_bad'),
+    ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;
+    var state = box.getAttribute('data-routing-state');
+    var message = box.querySelector('[data-routing-message]');
+    function nonce() {
+        var a = new Uint8Array(16); crypto.getRandomValues(a);
+        return Array.from(a, function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }
+    async function probe(p) {
+        try {
+            var n = nonce();
+            var resp = await fetch(p.url + '?<?php echo LanguageRouting::PROBE_PARAM; ?>=' + n, { cache: 'no-store', redirect: 'manual', credentials: 'omit' });
+            var data = await resp.json();
+            return data && data.probe === 'yikai-lang-route' && data.nonce === n && data.lang === p.code;
+        } catch (e) { return false; }
+    }
+    function show(text, tone) {
+        message.textContent = text;
+        message.className = 'text-sm rounded p-3 ' + (tone === 'ok' ? 'bg-green-50 text-green-700' : tone === 'info' ? 'bg-gray-50 text-gray-600' : 'bg-red-50 text-red-700');
+    }
+    async function runAll() {
+        var bad = [];
+        for (var i = 0; i < probes.length; i++) {
+            var ok = await probe(probes[i]);
+            var item = box.querySelector('[data-routing-item="' + probes[i].code + '"]');
+            var icon = item.querySelector('[data-routing-icon]');
+            icon.className = 'ti ' + (ok ? 'ti-circle-check text-green-600' : 'ti-circle-x text-red-600');
+            item.classList.toggle('border-red-200', !ok);
+            if (!ok) bad.push(probes[i].name);
+        }
+        return bad;
+    }
+    async function post(fields) {
+        var fd = new FormData();
+        fd.append('<?php echo CSRF_TOKEN_NAME; ?>', <?php echo json_encode(csrfToken()); ?>);
+        Object.keys(fields).forEach(function (k) { fd.append(k, fields[k]); });
+        return safeJson(await fetch('', { method: 'POST', body: fd }));
+    }
+    (async function () {
+        var bad = await runAll();
+        if (bad.length === 0) { show(T.ok, 'ok'); return; }
+        show(T.bad.replace(':langs', bad.join('、')), 'bad');
+        if (state === 'legacy') box.querySelector('[data-routing-fix]').classList.remove('hidden');
+        else box.querySelector('[data-routing-manual]').classList.remove('hidden');
+    })();
+    var fixButton = box.querySelector('[data-routing-fix-button]');
+    fixButton.addEventListener('click', async function () {
+        fixButton.disabled = true;
+        show(T.fixing, 'info');
+        var res = await post({ action: 'fix_htaccess' });
+        if (res.code !== 0) { show(res.msg || '', 'bad'); fixButton.disabled = false; return; }
+        var backup = res.data && res.data.backup;
+        var bad = await runAll();
+        if (bad.length === 0) {
+            show(T.fixed, 'ok');
+            box.querySelector('[data-routing-fix]').classList.add('hidden');
+            return;
+        }
+        // 改完反而有语言打不开（或仍打不开）：立刻撤销，回到修改前
+        var undo = await post({ action: 'restore_htaccess', backup: backup });
+        await runAll();
+        show((undo.code === 0 ? T.rolled : (undo.msg || '')) + ' ' + T.still.replace(':langs', bad.join('、')), 'bad');
+        box.querySelector('[data-routing-fix]').classList.add('hidden');
+        box.querySelector('[data-routing-manual]').classList.remove('hidden');
+    });
+})();
+
 var domainForm = document.getElementById('domainForm');
 if (domainForm) {
     domainForm.addEventListener('submit', async function (e) {

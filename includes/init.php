@@ -64,6 +64,10 @@ initLang();
 // 走错主机的 GET 请求先 301 到规范地址（/en/xx 在主域名 → en.example.com/xx）。
 $disabledLanguagePrefix = false;
 $domainLanguage = null;
+// 后台「多语言设置」的前缀探针：回答这次请求被认成了哪种语言（与服务器类型无关，见 LanguageRouting）
+if (PHP_SAPI !== 'cli' && isset($_GET[LanguageRouting::PROBE_PARAM])) {
+    LanguageRouting::respondProbe();
+}
 if (!defined('SITE_LANG') && PHP_SAPI !== 'cli' && LanguageDomains::active()) {
     $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
     $requestPath = (string) parse_url($requestUri, PHP_URL_PATH);

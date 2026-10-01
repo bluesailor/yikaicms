@@ -99,6 +99,7 @@ if ($argv[1] === "setup") {
     settingModel()->set("show_lang_switcher", "1");
     settingModel()->set("url_mode", "pretty");   // 内置服务器 + router 等同 WordPress 式单入口
     settingModel()->set("language_domains", json_encode(["en" => $argv[3]]));
+    settingModel()->set("language_domains_enabled", "1");
     echo "ok";
 } elseif ($argv[1] === "answer") {
     echo LanguageDomains::probeAnswer($argv[3]);
@@ -201,7 +202,15 @@ if ($argv[1] === "setup") {
     $check(($res['code'] ?? 0) !== 0, 'saving the main domain as a language domain is refused', json_encode($res, JSON_UNESCAPED_UNICODE));
     $res = $post(['action' => 'save_domains', 'domains' => ['en' => 'bad host!']]);
     $check(($res['code'] ?? 0) !== 0, 'saving an invalid host is refused', json_encode($res, JSON_UNESCAPED_UNICODE));
+    $res = $post(['action' => 'save_domains', 'language_domains_enabled' => '1', 'domains' => ['en' => '', 'ja' => '']]);
+    $check(($res['code'] ?? 0) !== 0, 'turning the switch on without any domain is refused', json_encode($res, JSON_UNESCAPED_UNICODE));
     $res = $post(['action' => 'save_domains', 'domains' => ['en' => 'EN.test:' . $port, 'ja' => '']]);
+    $check(($res['code'] ?? 1) === 0, 'saving with the switch off keeps the domain', json_encode($res, JSON_UNESCAPED_UNICODE));
+    $r = $http('GET', 'main.test', '/en/');
+    $check($r['status'] === 200 && preg_match('/<html[^>]*lang="en"/i', $r['body']) === 1, 'switch off: /en/ on the main domain is served again', $r['status'] . ' ' . $r['location']);
+    $r = $http('GET', 'en.test', '/');
+    $check(preg_match('/<html[^>]*lang="zh-CN"/i', $r['body']) === 1, 'switch off: the language domain no longer picks English');
+    $res = $post(['action' => 'save_domains', 'language_domains_enabled' => '1', 'domains' => ['en' => 'EN.test:' . $port, 'ja' => '']]);
     $check(($res['code'] ?? 1) === 0, 'saving a valid domain works', json_encode($res, JSON_UNESCAPED_UNICODE));
     $res = $post(['action' => 'probe_domain', 'host' => 'no-such-host.invalid']);
     $check(($res['data']['result'] ?? '') === 'unreachable', 'probe reports an unresolvable domain as unreachable', json_encode($res, JSON_UNESCAPED_UNICODE));
