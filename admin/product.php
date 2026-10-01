@@ -42,8 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
         if ($ids) {
             $val = $action === 'batch_publish' ? 1 : 0;
+            require_once ROOT_PATH . '/includes/ScheduledPublish.php';
             foreach ($ids as $bid) {
                 productModel()->updateById($bid, ['status' => $val, 'updated_at' => time()]);
+                if ($val === 1) {
+                    ScheduledPublish::setProductTime($bid, 0);   // 已上架，不再定时
+                }
             }
             adminLog('product', $action, '批量' . ($val ? '上架' : '下架') . '：' . implode(',', $ids));
         }
@@ -73,6 +77,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'toggle_status') {
         $id = postInt('id');
+        $row = productModel()->find($id);
+        if ($row && (int) $row['status'] === 3) {
+            // 定时上架的产品点「上架」= 立即上架（toggle 会把非 0 当成已上架而改成下架）
+            productModel()->updateById($id, ['status' => 1, 'updated_at' => time()]);
+            require_once ROOT_PATH . '/includes/ScheduledPublish.php';
+            ScheduledPublish::setProductTime($id, 0);   // 已上架，不再定时
+            success(['status' => 1]);
+        }
         $newStatus = productModel()->toggle($id, 'status');
         success(['status' => $newStatus]);
     }
@@ -125,6 +137,8 @@ $filters = array_filter([
 $result = productModel()->getAdminList($filters, $perPage, $offset);
 $total = $result['total'];
 $products = $result['items'];
+require_once ROOT_PATH . '/includes/ScheduledPublish.php';
+$productTimes = ScheduledPublish::productTimes(array_column(array_filter($products, static fn($p) => (int) $p['status'] === 3), 'id'));
 
 $pageTitle = __('admin_product');
 $currentMenu = 'product';
@@ -165,6 +179,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                 <option value=""><?php echo __('admin_all'); ?></option>
                 <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>><?php echo __('status_on_shelf'); ?></option>
                 <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>><?php echo __('status_off_shelf'); ?></option>
+                <option value="3" <?php echo $status === '3' ? 'selected' : ''; ?>><?php echo __('prod_status_scheduled'); ?></option>
             </select>
 
             <?php if (getLang() === 'ja'): ?>
@@ -294,11 +309,17 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                             <?php echo number_format((int)$item['views']); ?>
                         </td>
                         <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <?php if ((int) $item['status'] === 3): ?>
+                            <?php // 定时上架：到点自动上架；行内「上架」= 立即上架 ?>
+                            <span class="text-sm block text-orange-500" data-testid="product-scheduled-badge"><?php echo __('prod_status_scheduled'); ?></span>
+                            <span class="text-gray-400 text-xs"><?php echo isset($productTimes[(int) $item['id']]) ? date('Y-m-d H:i', $productTimes[(int) $item['id']]) : '-'; ?></span>
+                            <?php else: ?>
                             <?php echo renderStatusDateCell(
                                 (int) $item['id'],
                                 (int) $item['status'],
                                 (int) ($item['updated_at'] ?: $item['created_at'] ?? 0)
                             ); ?>
+                            <?php endif; ?>
                         </td>
                         <td class="px-4 py-3 text-center">
                             <?php echo renderTransPills((int)$item['id'], $transStatus, '/admin/product_edit.php'); ?>

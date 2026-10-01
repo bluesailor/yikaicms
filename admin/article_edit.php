@@ -84,13 +84,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $data['slug'] = resolveSlug($data['slug'], $data['title'], 'contents', $id);
 
-    // 发布时间
-    $publishTime = post('publish_time');
-    if ($publishTime) {
-        $data['publish_time'] = strtotime($publishTime);
-    } elseif ($data['status'] == 1 && (!$article || !$article['publish_time'])) {
-        $data['publish_time'] = time();
+    // 发布时间与定时发布：以发布时间为准（未来时间自动转为定时，已过的定时直接发布）
+    require_once ROOT_PATH . '/includes/ScheduledPublish.php';
+    try {
+        $sched = ScheduledPublish::normalize((int) $data['status'], (string) post('publish_time'), (int) ($article['publish_time'] ?? 0));
+    } catch (InvalidArgumentException) {
+        error(__('admin_scheduled_time_required'));
     }
+    $data['status'] = $sched['status'];
+    $data['publish_time'] = $sched['publish_time'];
 
     if ($id > 0) {
         // 保存即存档：覆盖前把旧版本快照下来（供「历史版本」查看/一键恢复）
@@ -269,18 +271,41 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('label_publish_status'); ?></label>
-                        <select name="status" class="w-full border rounded px-4 py-2">
+                        <select name="status" id="publishStatus" class="w-full border rounded px-4 py-2" data-testid="article-status">
                             <option value="1" <?php echo ($article['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo __('admin_published'); ?></option>
                             <option value="0" <?php echo ($article['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('admin_draft'); ?></option>
+                            <option value="3" <?php echo ($article['status'] ?? 1) == 3 ? 'selected' : ''; ?>><?php echo __('admin_scheduled'); ?></option>
                         </select>
                     </div>
 
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('label_publish_time'); ?></label>
-                        <input type="datetime-local" name="publish_time"
+                        <input type="datetime-local" name="publish_time" id="publishTime" data-testid="article-publish-time"
                                value="<?php echo !empty($article['publish_time']) ? date('Y-m-d\TH:i', (int)$article['publish_time']) : ''; ?>"
                                class="w-full border rounded px-4 py-2">
+                        <p id="publishTimeHint" class="text-xs text-orange-500 mt-1 hidden" data-testid="article-schedule-hint"
+                           data-scheduled="<?php echo e(__('admin_scheduled_hint')); ?>"
+                           data-future="<?php echo e(__('admin_future_time_hint')); ?>"></p>
                     </div>
+                    <script>
+                    (function () {
+                        // 与保存规则一致：定时需要时间；「已发布」配未来时间会自动转为定时，提前说明
+                        var sel = document.getElementById('publishStatus');
+                        var time = document.getElementById('publishTime');
+                        var hint = document.getElementById('publishTimeHint');
+                        if (!sel || !time || !hint) return;
+                        function sync() {
+                            var future = time.value !== '' && new Date(time.value).getTime() > Date.now();
+                            var text = sel.value === '3' ? hint.dataset.scheduled : (sel.value === '1' && future ? hint.dataset.future : '');
+                            time.required = sel.value === '3';
+                            hint.textContent = text;
+                            hint.classList.toggle('hidden', text === '');
+                        }
+                        sel.addEventListener('change', sync);
+                        time.addEventListener('input', sync);
+                        sync();
+                    })();
+                    </script>
 
                     <div class="flex flex-wrap gap-4">
                         <label class="flex items-center gap-2">
