@@ -19,23 +19,36 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 <div class="max-w-4xl space-y-6">
     <header><?php $breadcrumb = [[__('setup_title'), '/admin/site_setup.php'], [$pageTitle]]; require ROOT_PATH . '/admin/includes/breadcrumb.php'; ?>
-        <h1 class="text-2xl font-bold"><?= e($pageTitle) ?></h1><p class="text-gray-600 mt-2"><?= e(__('sc_intro')) ?></p></header>
+        <h1 class="text-2xl font-bold"><?= e($pageTitle) ?></h1><p class="text-gray-600 mt-2"><?= e(__('sc_authoring_intro')) ?></p></header>
     <form method="get"><input type="hidden" name="scan" value="1"><button class="bg-primary text-white rounded px-4 py-3" type="submit"><?= e(__('sc_run')) ?></button></form>
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
     <?php if ($report !== null): ?>
-        <p role="status"><?= e(__('sc_summary', ['count' => (string) $report['scanned'], 'issues' => (string) count($report['issues'])])) ?></p>
+        <section class="bg-white rounded shadow p-6 space-y-3" aria-labelledby="sc-result" data-testid="authoring-check-report">
+            <h2 id="sc-result" class="text-lg font-bold"><?= e(__('sc_report_title')) ?></h2>
+            <p role="status"><?= e(__('sc_summary', ['count' => (string) $report['scanned'], 'issues' => (string) count($report['issues'])])) ?></p>
+            <p class="text-sm text-gray-600"><?= e(__('sc_builder_coverage', ['documents' => (string) $report['documents'], 'drafts' => (string) $report['drafts']])) ?></p>
+            <p class="text-sm text-gray-600"><?= e(__('sc_visual_scope')) ?></p>
+        </section>
         <?php if ($report['limited']): ?><p class="bg-amber-50 text-amber-900 p-4 rounded"><?= e(__('sc_limited')) ?></p><?php endif; ?>
-        <?php if ($report['issues'] === []): ?><p class="bg-green-50 text-green-700 p-4 rounded"><?= e(__('sc_clear')) ?></p><?php endif; ?>
+        <?php if ($report['issues'] === [] && !$report['limited']): ?><p class="bg-green-50 text-green-700 p-4 rounded"><?= e(__('sc_clear')) ?></p><?php endif; ?>
+        <?php foreach (['error', 'review'] as $level): ?>
+        <?php $group = array_filter($report['issues'], static fn(array $issue): bool => $issue['level'] === $level); ?>
+        <?php if ($group === []) continue; ?>
+        <section class="space-y-3" aria-labelledby="sc-<?= e($level) ?>">
+        <h2 id="sc-<?= e($level) ?>" class="text-lg font-bold"><?= e(__('sc_level_' . $level)) ?> (<?= count($group) ?>)</h2>
+        <p class="text-sm text-gray-600"><?= e(__('sc_level_' . $level . '_hint')) ?></p>
         <ul class="space-y-3">
-            <?php foreach ($report['issues'] as $issue): ?>
+            <?php foreach ($group as $issue): ?>
             <li class="bg-white shadow rounded p-4 flex flex-wrap items-center justify-between gap-4">
                 <div class="min-w-0 flex-1"><p class="font-medium break-words"><?= e($issue['label']) ?></p>
                     <p class="text-gray-700 mt-1"><?= e(__($issue['kind'])) ?></p>
                     <?php if ($issue['detail'] !== ''): ?><p class="break-all text-sm text-gray-600 mt-1"><?= e($issue['detail']) ?></p><?php endif; ?></div>
-                <a href="<?= e($issue['url']) ?>" class="border rounded px-4 py-3"><?= e(__('setup_review')) ?></a>
+                <a href="<?= e($issue['url']) ?>" class="border rounded px-4 py-3" aria-label="<?= e(__('setup_review') . ': ' . $issue['label']) ?>"><?= e(__('setup_review')) ?></a>
             </li>
             <?php endforeach; ?>
         </ul>
+        </section>
+        <?php endforeach; ?>
     <?php endif; ?>
     <section class="bg-white rounded shadow p-6 space-y-3"><h2 class="text-lg font-bold"><?= e(__('sc_links')) ?></h2>
         <p class="text-gray-600"><?= e(__('sc_links_hint')) ?></p>
