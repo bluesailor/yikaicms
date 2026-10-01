@@ -2,9 +2,11 @@
 
 适用对象：主题作者、项目交付开发者、易开网页构建器（Yikai Builder）模板制作者。
 
-本指南按 YikaiCMS `2.0.2`、提交 `0bcb322f8c9b8a59975e5917d449e0753428b2bd` 的实际代码重新核对。产品运行下限为 PHP 8.0；数据库兼容目标为 MySQL 5.7 / MariaDB 10.x，同时支持 SQLite。后续版本如有变化，以目标版本源码和测试为准。
+本指南按 YikaiCMS v2.0.3（`18f8dbdc695d18d0537909209e59f43613cf9869`）的实际代码重新核对（上一轮基线为 `2.0.2`、提交 `0bcb322f8c9b8a59975e5917d449e0753428b2bd`）。产品运行下限为 PHP 8.0；数据库兼容目标为 MySQL 5.7 / MariaDB 10.x，同时支持 SQLite。后续版本如有变化，以目标版本源码和测试为准。
 
 本文只讲现有扩展边界，不介绍如何修改核心，也不把尚未存在的约定写成接口。
+
+制作主题、整站模板或 Blox 模板前，先读 [模板制作入口](./TEMPLATE-AUTHORING.md)：规则摘要、单一来源（语言、行业分类、目录字段）、格式版本与交付前检查命令都在那一页。本文与它冲突时，以它列出的单一来源文件为准。
 
 ## 1. 先理解三种不同的扩展物
 
@@ -17,7 +19,7 @@
 这三者不能混为一谈：
 
 - PHP 主题 ZIP 不能当作构建器模板导入。
-- 构建器模板 JSON 不会自动安装主题文件、PHP 代码或上传目录中的媒体。
+- 构建器模板 JSON 不会安装主题文件或 PHP 代码。上传目录中的图片只有用「导出 JSON（含图片）」导出时才随包携带（2.0.3 起，见 9.2），普通导出不带。
 - `overrides/` 的优先级高于当前主题，适合单站交付，不适合作为可分发主题的源码目录。
 - 单站定制只放 `overrides/`、非默认主题目录或插件，**不要改核心文件**（含 `themes/default/`）。2.0.3 起安装包自带全部文件的哈希清单（`config/release-files.php`），升级前会比对：新版本要覆盖的核心文件若被本站改过，在线升级会列出文件、要求站长确认后才覆盖，自动升级与服务商远程升级则直接跳过。
 - 主题负责展示，不应复制文章、产品、会员、表单等业务逻辑。
@@ -134,7 +136,7 @@ acme-corporate/
 | `name_<语言代码>`、`description_<语言代码>` | 其他语言同样写法，如 `name_ko`、`description_ar`；代码以 `includes/i18n/LanguageRegistry.php` 为准，写错的代码会警告且不被读取。缺译时韩语等先显示英文、再显示中文 |
 | `screenshot` | 相对主题根目录；声明后文件不存在会警告 |
 | `design_tokens` | 设计色板文件名；只能是主题根目录下的安全文件名 |
-| `stylesheets` | 可选（CMS 2.0.3+）；主题展示样式表数组，路径相对主题 `assets/` 目录，例如 `["css/theme.css"]`，最多 10 项、只允许 `.css`。默认页头会自动输出这些 `<link>`，所有 Blox 编辑画布（整页、单独编辑页头 / 页尾 / 弹窗 / 模板）也按它加载。**推荐用它代替在 `layouts/header.php` 里手动拼 `$extraCss`**；两处都写时默认页头会自动去重 |
+| `stylesheets` | 可选（CMS 2.0.3+）；主题展示样式表数组，路径相对主题 `assets/` 目录，例如 `["css/theme.css"]`，最多 10 项、只允许 `.css`，声明的文件不存在会报错。前台由页头调用 `themeDeclaredStylesheetTags((string) ($extraCss ?? ''))` 输出这些 `<link>`：默认主题页头已调用，自写或从旧版复制的页头要在输出 `$extraCss` 之后补这一行（兼容旧版核心时先 `function_exists()` 判断）。所有 Blox 编辑画布（整页、单独编辑页头 / 页尾 / 弹窗 / 模板）直接按清单加载。**推荐用它代替在 `layouts/header.php` 里手动拼 `$extraCss`**；`$extraCss` 里已有的同一路径不会重复输出 |
 
 行业分类（单一来源 `config/template-categories.php`，主题校验、整站模板市场、官网模板页共用）：
 
@@ -282,6 +284,7 @@ includes/partials/
 - 多语言 `hreflang` 和语言切换。
 - `<html>` 上的语言与方向：`<html lang="<?php echo getLang(); ?>"<?php echo htmlDirAttr(); ?>>`。阿拉伯语等从右到左的语言靠它输出 `dir="rtl"`；主题若要兼容旧版核心，写成 `function_exists('htmlDirAttr') ? htmlDirAttr() : ''`。
 - favicon、核心样式、主题样式与页面附加样式。
+- `theme.json` 声明的样式表：`themeDeclaredStylesheetTags()`（见 4.2 的 `stylesheets`）。
 - `ThemeSettings::css()` 输出的站点外观变量。
 - `ik_head`、`render_head`、`ik_header_after` 钩子。
 - 后台配置的自定义 `<head>` 代码。
@@ -416,6 +419,7 @@ bash tools/build_css.sh
   - CSS 里用 `margin-inline-start`、`inset-inline-start`、`text-align: start`。
   - 只能用物理方向时，补 `rtl:` 变体（如 `left-0 rtl:left-auto rtl:right-0`）。表示方向的位移，比如箭头悬停右移，也要补 `rtl:` 变体。
   - 核心主题与插件用 `php tools/check_rtl.php` 检查，数量只许减少。
+- **繁体中文（zh-TW）**不单独录入内容，是简体页面输出前的整页转换（`includes/i18n/S2T.php`），行内 `<script>` 与前台 AJAX 返回的 JSON 也会转换。主题脚本里会原样提交回服务器、并在服务器上按简体比对的数据，给那段 `<script>` 加 `data-s2t="skip"`，或在服务器端用 `S2T::canonical()` 映射回简体；规则见 [多语言部署](./LANGUAGES.md) 第四节。
 - URL、标题、摘要等字段沿用控制器或模型已经准备好的值。
 
 可分发主题本身没有自动加载的私有语言包机制。如主题需要新增固定界面文案，应与插件或核心语言键方案一起设计，而不是在模板里硬编码三套分支。
@@ -455,7 +459,11 @@ article-detail
 
 ### 9.2 包格式
 
-格式标识为 `yikaicms-blox-template`，当前包版本为 `1`，导入文件上限为 2,000,000 字节。一个最小区块示例：
+格式标识为 `yikaicms-blox-template`，当前包版本为 `1`，导入文件上限为 8,000,000 字节（2.0.3 起；之前为 2,000,000 字节）。
+
+2.0.3 起包内可带可选字段 `media`：用「导出 JSON（含图片）」导出时，文档与缩略图引用的上传图片以 base64 嵌入（仅 jpg / png / gif / webp / avif，最多 30 个、单个不超过 2,000,000 字节、合计不超过 5,000,000 字节，超出的不带；SVG 一律不带）。导入时按同样的上限逐项校验路径、base64、SHA-256 与真实图片类型，任一项不合格整包拒绝；通过的图片按内容哈希存入 `uploads/blox-templates/`（同内容复用）、登记到媒体库，文档、全局类与缩略图里的引用改写到本站路径。旧版 CMS 忽略这个字段，图片仍会缺失。实现见 [`includes/builder/BloxTemplateMedia.php`](../includes/builder/BloxTemplateMedia.php)。
+
+一个最小区块示例：
 
 ```json
 {
@@ -529,7 +537,7 @@ article-detail
 4. 在一个干净站点重新导入验证。
 5. 检查 `requires.elements`、`requires.plugins` 和设计依赖是否准确。
 
-导入器会校验模板类型、名称、元素、插件和设计依赖，并拒绝 `code` 元素。导入结果先作为草稿保存，发布是另一项操作。不要把站点专属媒体 URL、跨站组件库引用或敏感数据放入模板包。
+导入器会校验模板类型、名称、元素、插件和设计依赖，并拒绝 `code` 元素。导入结果先作为草稿保存，发布是另一项操作。需要随包带图片时用「导出 JSON（含图片）」，不要手写指向别的站点的图片地址；也不要放入跨站组件库引用或敏感数据。
 
 元素、区块和区块标题的「高级」设置（HTML ID、CSS 类、自定义属性、自定义 CSS）会随文档一起保存和导出。自定义 CSS 只接受净化后的样式：不能出现 `<`、`@import`、`expression()`、`javascript:` 或任何外部地址（`//`），花括号必须配平；`%root%` 指代本元素。新增或修改自定义 CSS 需要「全站设计」权限；类名 `yk-` 前缀与属性 `data-yk*` 留给系统。
 
@@ -629,6 +637,8 @@ tests/Unit/ThemeMarketTest.php
 tests/Unit/ThemePaletteTest.php
 tests/Unit/ThemeSettingsTest.php
 tests/Unit/ThemePackagingPolicyTest.php
+tests/Unit/ThemeDeclaredStylesheetsTest.php
+tests/Unit/RtlFoundationTest.php
 ```
 
 修改主题基础设施时，至少运行对应测试；合并前仍应按仓库开发约定执行全量门禁。只改某个主题视觉时，也必须在该工作树的真实站点前台检查受影响页面。
@@ -643,12 +653,14 @@ tests/Unit/ThemePackagingPolicyTest.php
 | 市场目录和下载校验 | [`includes/ThemeMarket.php`](../includes/ThemeMarket.php) |
 | 安装来源回执 | [`includes/MarketInstallOrigin.php`](../includes/MarketInstallOrigin.php) |
 | 设计色板 | [`includes/ThemePalette.php`](../includes/ThemePalette.php) |
+| 行业分类 | [`config/template-categories.php`](../config/template-categories.php)、[`includes/TemplateCategories.php`](../includes/TemplateCategories.php) |
+| 语言注册表、书写方向与繁体转换 | [`includes/i18n/LanguageRegistry.php`](../includes/i18n/LanguageRegistry.php)、[`includes/i18n/S2T.php`](../includes/i18n/S2T.php)、[多语言部署](./LANGUAGES.md) |
 | 站点外观设置 | [`includes/ThemeSettings.php`](../includes/ThemeSettings.php) |
 | 默认主题参考 | [`themes/default/`](../themes/default/) |
 | 官方可选主题源码 | [`marketplace/themes/`](../marketplace/themes/) |
 | 核心区块与片段 | [`includes/blocks/`](../includes/blocks/)、[`includes/partials/`](../includes/partials/) |
 | 构建器模板模型 | [`includes/models/BloxTemplateModel.php`](../includes/models/BloxTemplateModel.php) |
-| 构建器模板导入导出 | [`includes/builder/BloxTemplateImporter.php`](../includes/builder/BloxTemplateImporter.php) |
+| 构建器模板导入导出 | [`includes/builder/BloxTemplateImporter.php`](../includes/builder/BloxTemplateImporter.php)、[`includes/builder/BloxTemplateMedia.php`](../includes/builder/BloxTemplateMedia.php)（包内图片） |
 | 元素 / 区块高级设置与自定义 CSS 净化 | [`includes/builder/BloxCustomCode.php`](../includes/builder/BloxCustomCode.php) |
 | 整站模板导出、导入与插件处理 | [`includes/SiteTemplateService.php`](../includes/SiteTemplateService.php)、[`includes/SiteTemplateArchive.php`](../includes/SiteTemplateArchive.php) |
 | 构建器模板示例 | [`templates/blox/`](../templates/blox/) |
@@ -667,6 +679,6 @@ tests/Unit/ThemePackagingPolicyTest.php
 | 构建器页头出现双导航 | 主题页头是否保留了“构建器优先、原生回退”的判断 |
 | 主题升级被拒绝 | 版本未提高、来源不一致、CMS/PHP/插件约束不满足 |
 | 主题无法删除 | 它是 `default`、当前活动主题，或路径不在主题根目录内 |
-| 模板 JSON 导入失败 | 类型、元素、插件、设计依赖、文件大小或 `code` 元素不符合规则 |
+| 模板 JSON 导入失败 | 类型、元素、插件、设计依赖、文件大小、`code` 元素或包内图片（`media`）校验不符合规则 |
 
 主题开发的核心原则只有三条：保留运行时契约、只覆盖展示层、让缺失部分能够安全回退。遵守这三条，主题才能同时适配传统页面、易开网页构建器、后台外观设置和后续升级。

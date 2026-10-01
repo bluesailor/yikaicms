@@ -10,25 +10,25 @@
     "aurora": {
       "mode": "native",
       "renderer": "responsiveMediaHtml",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "template": "marketplace/themes/aurora/blocks/banner.php"
     },
     "business": {
       "mode": "native",
       "renderer": "responsiveLinkedMediaHtml",
-      "version": "1.0.20",
+      "version": "1.0.21",
       "template": "marketplace/themes/business/blocks/banner.php"
     },
     "minimal": {
       "mode": "native",
       "renderer": "responsiveLinkedMediaHtml",
-      "version": "1.0.19",
+      "version": "1.0.20",
       "template": "marketplace/themes/minimal/blocks/banner.php"
     },
     "trade": {
       "mode": "native",
       "renderer": "responsiveLinkedMediaHtml",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "template": "marketplace/themes/trade/blocks/banner.php"
     }
   }
