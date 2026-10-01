@@ -52,6 +52,7 @@ final class RemoteRepair
      * 处理 check 响应里的 repairs 段。只在站长授权了远程升级与修复时调用。
      *
      * @return int 本次执行（含判定为无需修复 / 不适用）的配方数
+     * @psalm-suppress PossiblyUnusedReturnValue 返回值供测试断言；cron 调用方只关心副作用
      */
     public static function process(mixed $repairs): int
     {
