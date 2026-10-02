@@ -2303,6 +2303,86 @@ function formatTime(int|string $time, string $format = 'Y-m-d'): string
 }
 
 /**
+ * 站长可选的统一日期格式（「设置 → 语言与时区」）；空 = 按访客语言自动（推荐）。
+ * 键是格式，值是给站长看的示例。
+ */
+const DATE_FORMAT_PRESETS = [
+    'Y-m-d' => '2026-10-02',
+    'Y/m/d' => '2026/10/02',
+    'd/m/Y' => '02/10/2026',
+    'm/d/Y' => '10/02/2026',
+    'd.m.Y' => '02.10.2026',
+    'Y年n月j日' => '2026年10月2日',
+    'M j, Y' => 'Oct 2, 2026',
+    'j M Y' => '2 Oct 2026',
+];
+
+/**
+ * 给访客看的日期（2.0.4 国际化）：按访客语言的习惯显示，不再一律 2026-10-02。
+ *
+ * 格式来自语言包 date_format_date / date_format_datetime / date_format_short，每种语言自己定
+ * （中文 2026-10-02、英文 Oct 2, 2026、日文 2026年10月2日），新语言翻译时一起译；站长在
+ * 「设置 → 语言与时区」选了统一格式（date_format）则日期与日期时间按它，短日期仍按语言。
+ * 时间按站点时区（SiteTimezone）。机器读的日期（sitemap、结构化数据）仍用 date()。
+ *
+ * @param string $style date（日期）/ datetime（日期 + 时间）/ short（月日）
+ */
+function displayDate(int|string|null $time, string $style = 'date'): string
+{
+    if (is_string($time)) {
+        $time = ctype_digit($time) ? (int) $time : (int) strtotime($time);
+    }
+    $time = (int) $time;
+    if ($time <= 0) {
+        return '';
+    }
+    $style = in_array($style, ['date', 'datetime', 'short'], true) ? $style : 'date';
+    $format = '';
+    if ($style !== 'short') {
+        $chosen = trim((string) config('date_format', ''));
+        if (isset(DATE_FORMAT_PRESETS[$chosen])) {
+            $format = $style === 'datetime' ? $chosen . ' H:i' : $chosen;
+        }
+    }
+    if ($format === '') {
+        $key = 'date_format_' . $style;
+        $format = __($key);
+        if ($format === $key || trim($format) === '') {
+            $format = ['date' => 'Y-m-d', 'datetime' => 'Y-m-d H:i', 'short' => 'm-d'][$style];
+        }
+    }
+    return formatDatePattern($format, $time);
+}
+
+/**
+ * 按格式输出日期。只认常用格式字符 Y y m n d j H G i s 与 M F；M / F 的月份名取语言包
+ * month_short_N / month_long_N（PHP 的 date('M') 永远是英文）。反斜杠后的字符原样输出；
+ * 其余字符（含中文「年月日」、西语 de）原样保留。
+ *
+ * @param array<string,string>|null $strings 指定语言的文案表（langDataFor()）；为空用当前语言
+ */
+function formatDatePattern(string $format, int $time, ?array $strings = null): string
+{
+    $out = '';
+    $length = strlen($format);
+    for ($i = 0; $i < $length; $i++) {
+        $char = $format[$i];
+        if ($char === '\\' && $i + 1 < $length) {
+            $out .= $format[++$i];
+            continue;
+        }
+        if ($char === 'M' || $char === 'F') {
+            $key = ($char === 'M' ? 'month_short_' : 'month_long_') . date('n', $time);
+            $name = $strings !== null ? (string) ($strings[$key] ?? $key) : __($key);
+            $out .= $name !== $key && $name !== '' ? $name : date($char, $time);
+            continue;
+        }
+        $out .= str_contains('YymndjHGis', $char) ? date($char, $time) : $char;
+    }
+    return $out;
+}
+
+/**
  * 友好时间显示
  */
 function friendlyTime(int $time): string
@@ -2315,7 +2395,7 @@ function friendlyTime(int $time): string
         $diff < 3600 => str_replace(':n', (string) floor($diff / 60), __('time_minutes_ago')),
         $diff < 86400 => str_replace(':n', (string) floor($diff / 3600), __('time_hours_ago')),
         $diff < 604800 => str_replace(':n', (string) floor($diff / 86400), __('time_days_ago')),
-        default => date('Y-m-d', $time)
+        default => displayDate($time)
     };
 }
 

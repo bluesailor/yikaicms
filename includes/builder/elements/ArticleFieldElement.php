@@ -148,7 +148,7 @@ final class ArticleFieldElement extends AbstractElement
         }
         $timestamp = (int) (($content['publish_time'] ?? 0) ?: ($content['created_at'] ?? 0));
         if ($timestamp > 0) {
-            $parts[] = date('Y-m-d', $timestamp);
+            $parts[] = function_exists('displayDate') ? displayDate($timestamp) : date('Y-m-d', $timestamp);
         }
 
         return $parts === [] ? '' : '<span class="yk-article-meta">' . implode(' · ', $parts) . '</span>';
