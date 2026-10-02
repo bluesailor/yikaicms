@@ -183,6 +183,31 @@ final class I18nPipelineTest extends TestCase
         self::assertFileDoesNotExist($this->root . '/lang/fr.php');
     }
 
+    /** 英文参考为空串的拆分标签（第 / 页 → Page / ''）可以译成空串，合入后算已译、不再导出；其他键仍不许空 */
+    public function testEmptyTranslationOnlyWhereEnglishIsEmpty(): void
+    {
+        $this->pack('lang/zh-CN.php', ['pager_page_no' => '第', 'pager_page_word' => '页']);
+        $this->pack('lang/en.php', ['pager_page_no' => 'Page', 'pager_page_word' => '']);
+        $p = new I18nPipeline($this->root);
+        $p->export('es', ['core'], 'pager_', 10, $this->root . '/out');
+        $exported = $this->root . '/out/es-core-001.jsonl';
+        $rows = array_map(static function (array $row): array {
+            unset($row['_line']);
+            $row['text'] = $row['key'] === 'pager_page_no' ? 'Página' : '';
+            return $row;
+        }, I18nPipeline::readJsonl($exported));
+
+        self::assertSame([], $p->validate('es', $exported, $this->writeJsonl('pager.jsonl', $rows))['errors']);
+        $bad = $rows;
+        $bad[0]['text'] = '';
+        self::assertStringContainsString('empty or missing', implode("\n", $p->validate('es', $exported, $this->writeJsonl('bad.jsonl', $bad))['errors']));
+
+        self::assertSame([], $p->merge('es', [$this->writeJsonl('pager.jsonl', $rows)])['rejected']);
+        self::assertSame(['pager_page_no' => 'Página', 'pager_page_word' => ''], require $this->root . '/lang/es.php');
+        self::assertSame(['translated' => 2, 'total' => 2, 'stale' => 0], $p->status()['es']['core']);
+        self::assertSame(0, $p->export('es', ['core'], 'pager_', 10, $this->root . '/out2')['total']);
+    }
+
     /** 照抄英文参考不算翻译：超过 15% 的分片 validate 报错、merge 拒收；样本不足 10 行不判 */
     public function testShardThatCopiesEnglishIsRejected(): void
     {
