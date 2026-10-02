@@ -108,6 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // URL 别名净化 + 去重（与 article_edit/product_edit 同口径）：此页此前把
     // post('slug') 直接落库，中文别名会生成百分号编码链接。见 SlugSanitizationContractTest。
     $data['slug'] = resolveSlug((string) $data['slug'], (string) $data['title'], 'contents', $id);
+    $_urlLang = $id > 0 ? (string) ($content['lang'] ?? config('site_lang', 'zh-CN')) : (string) get('lang', (string) config('site_lang', 'zh-CN'));
+    $customUrl = customUrlPrecheck('content', $id, $_urlLang);
 
     if ($id > 0) {
         contentModel()->updateById($id, $data);
@@ -121,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = contentModel()->create($data);
         adminLog('content', 'create', '创建内容：' . $data['title']);
     }
+    customUrlSave('content', (int) $id, $customUrl, $_urlLang);
 
     // 扩展字段值存入 metas（owner_type：自定义模型用 model_key，内置内容类型用 'content'）
     $extOwner = resolveExtFieldOwner((string) $data['type']);
@@ -446,6 +449,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <label class="block text-gray-700 mb-1"><?php echo __('admin_slug'); ?></label>
                         <input type="text" name="slug" value="<?php echo e($content['slug'] ?? ''); ?>"
                                class="w-full border rounded px-4 py-2" placeholder="<?php echo __('optional'); ?>">
+                        <?php echo customUrlField('content', (int) ($content['id'] ?? 0), '/case/project-name/'); ?>
                     </div>
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('label_author'); ?></label>

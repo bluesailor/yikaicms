@@ -79,15 +79,15 @@ final class ProductRouteModel extends Model
 
     private static function key(string $path): string { return hash('sha256', rtrim($path, '/')); }
 
-    /** @return array<string,mixed>|null */
+    /** 含回收站里的行：进回收站的仍占着网址（resolve 按 deleted_at 给 404），彻底删除才算没了 @return array<string,mixed>|null */
     private function entity(string $kind, int $id): ?array
     {
         return match ($kind) {
-            'product' => productModel()->find($id),
-            'category' => productCategoryModel()->find($id),
-            'content' => contentModel()->find($id),
-            'channel' => channelModel()->find($id),
-            'album' => albumModel()->find($id),
+            'product' => productModel()->findBy('id', $id),
+            'category' => productCategoryModel()->findBy('id', $id),
+            'content' => contentModel()->findBy('id', $id),
+            'channel' => channelModel()->findBy('id', $id),
+            'album' => albumModel()->findBy('id', $id),
             'product_tag' => db()->tableExists('product_tags')
                 ? (db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'product_tags WHERE id = ?', [$id]) ?: null) : null,
             'content_tag' => self::contentTag($id),
@@ -105,7 +105,7 @@ final class ProductRouteModel extends Model
 
     /**
      * 登记一个文章标签（同语言同名只登记一次），返回它的 id，供 content_tag 网址指向。
-     * @psalm-suppress PossiblyUnusedMethod 调用方是后台自定义网址输入框与 WordPress 导入（迁移第 4 步起）
+     * @psalm-suppress PossiblyUnusedMethod 调用方是 WordPress 导入（迁移下一步）与 e2e 夹具
      */
     public function contentTagId(string $name, string $lang): int
     {
@@ -156,7 +156,11 @@ final class ProductRouteModel extends Model
         }
         $conflict = db()->fetchOne('SELECT entity_type, entity_id FROM ' . DB_PREFIX . $this->table . ' WHERE path_key = ?', [self::key($path)]);
         if ($conflict && ($conflict['entity_type'] !== $kind || (int) $conflict['entity_id'] !== $id)) {
-            throw new InvalidArgumentException('product_url_conflict');
+            // 原主人已被彻底删除（删除路径很多，不逐个挂钩）：网址收回给新条目。进回收站的仍占着，恢复后照常可用。
+            if ($this->entity((string) $conflict['entity_type'], (int) $conflict['entity_id']) !== null) {
+                throw new InvalidArgumentException('product_url_conflict');
+            }
+            $this->remove((string) $conflict['entity_type'], (int) $conflict['entity_id']);
         }
         return $path;
     }
@@ -191,7 +195,6 @@ final class ProductRouteModel extends Model
     /**
      * 其余类型：条目已由各自的编辑页保存好，这里只登记（或清除）它的网址。
      * 编辑页先调 validate() 提前报错，再保存条目，最后调本方法。
-     * @psalm-suppress PossiblyUnusedMethod 调用方是后台自定义网址输入框与 WordPress 导入（迁移第 4 步起）
      */
     public function assign(string $kind, int $id, string $input, string $lang): string
     {
@@ -213,7 +216,6 @@ final class ProductRouteModel extends Model
 
     /**
      * 条目删除或进回收站时调用：网址一起释放，免得留着挡住别的条目
-     * @psalm-suppress PossiblyUnusedMethod 调用方是后台自定义网址输入框与 WordPress 导入（迁移第 4 步起）
      */
     public function remove(string $kind, int $id): void
     {

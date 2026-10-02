@@ -83,6 +83,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $data['slug'] = resolveSlug($data['slug'], $data['title'], 'contents', $id);
+    $_urlLang = $id > 0 ? (string) ($article['lang'] ?? config('site_lang', 'zh-CN'))
+        : (in_array((string) get('lang', ''), array_keys(availableLanguages()), true) ? (string) get('lang') : (string) config('site_lang', 'zh-CN'));
+    $customUrl = customUrlPrecheck('content', $id, $_urlLang);
 
     // 发布状态以用户选择为准：已发布即上线（未来时间只作显示日期）、定时到点上线、草稿不上线
     require_once ROOT_PATH . '/includes/ScheduledPublish.php';
@@ -127,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = contentModel()->create($data);
         adminLog('article', 'create', "创建文章ID: $id");
     }
+    customUrlSave('content', (int) $id, $customUrl, $_urlLang);
 
     success(['id' => $id]);
 }
@@ -181,6 +185,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <label class="block text-gray-700 mb-1"><?php echo __('admin_slug'); ?> (Slug)</label>
                         <input type="text" name="slug" value="<?php echo e($article['slug'] ?? ''); ?>"
                                class="w-full border rounded px-4 py-2 text-sm text-gray-500" placeholder="<?php echo __('label_slug_hint'); ?>">
+                        <?php echo customUrlField('content', $id, '/slewing-bearing-installation/', 'w-full border rounded px-4 py-2 text-sm'); ?>
                     </div>
 
                     <input type="hidden" name="subtitle" value="<?php echo e($article['subtitle'] ?? ''); ?>">
