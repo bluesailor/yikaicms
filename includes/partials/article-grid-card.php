@@ -31,7 +31,7 @@ $__gridOpts = $listOpts ?? null;
         <div class="mt-4 flex flex-wrap items-center gap-3 text-xs text-gray-400">
             <?php if (listShowEl($__gridOpts, 'channel') && !empty($item['channel_name'])): ?><span class="text-primary"><?php echo e($item['channel_name']); ?></span><?php endif; ?>
             <?php if (listShowEl($__gridOpts, 'author') && !empty($item['author'])): ?><span><?php echo e($item['author']); ?></span><?php endif; ?>
-            <?php if (listShowEl($__gridOpts, 'date')): ?><span><?php echo date('Y-m-d', (int) (($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?></span><?php endif; ?>
+            <?php if (listShowEl($__gridOpts, 'date')): ?><span><?php echo e(displayDate((int) (($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0)))); ?></span><?php endif; ?>
             <?php if (listShowEl($__gridOpts, 'views')): ?><span><?php echo e(__('detail_views')); ?> <?php echo number_format((int) ($item['views'] ?? 0)); ?></span><?php endif; ?>
         </div>
     </div>

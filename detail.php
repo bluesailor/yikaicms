@@ -165,7 +165,7 @@ if (trim($detailTemplateHtml) !== '') {
                             <?php if ($content['source']): ?>
                             <span><?php echo __('detail_source'); ?>: <?php echo e($content['source']); ?></span>
                             <?php endif; ?>
-                            <span><?php echo __('detail_publish_time'); ?>: <?php echo date('Y-m-d H:i', (int)(($content['publish_time'] ?? 0) ?: ($content['created_at'] ?? 0))); ?></span>
+                            <span><?php echo __('detail_publish_time'); ?>: <?php echo e(displayDate((int)(($content['publish_time'] ?? 0) ?: ($content['created_at'] ?? 0)), 'datetime')); ?></span>
                             <span><?php echo __('detail_views'); ?>: <?php echo number_format((int)$content['views'] + 1); ?></span>
                         </div>
 

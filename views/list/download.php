@@ -90,7 +90,7 @@ $downloadClearUrl = $downloadUsesDynamicRoute
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 text-center text-sm text-gray-500 hidden md:table-cell">
-                                    <?php echo $item['created_at'] > 0 ? date('Y-m-d', (int)$item['created_at']) : '-'; ?>
+                                    <?php echo $item['created_at'] > 0 ? e(displayDate((int)$item['created_at'])) : '-'; ?>
                                 </td>
                                 <td class="px-6 py-4 text-center text-sm text-gray-500 hidden md:table-cell">
                                     <?php echo number_format((int)$item['download_count']); ?>
