@@ -97,7 +97,7 @@ return [
     'quick_copy_fail' => 'Copie el contenido manualmente',
     'quick_copy_all' => 'Copiar todo',
     'quick_password' => 'Contraseña de acceso',
-    'quick_warn' => 'Inicie sesión ahora y cambie la contraseña en «Perfil». Esta contraseña solo se muestra una vez.',
+    'quick_warn' => 'Inicie sesión ahora y cambie la contraseña en «Ajustes personales». Esta contraseña solo se muestra una vez.',
     'install_cta_hint' => 'Después de iniciar sesión en el panel de administración, siga la guía de la página de inicio para generar las secciones del sitio por lotes en unos segundos.',
     'goto_home' => 'Visitar la página de inicio',
     'security_tip' => 'Aviso de seguridad: elimine el directorio install',
