@@ -44,6 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 verifyCsrf();
+// 本端点不走 checkLogin()：身份刷新（停用账号、过期的支持账号立即失效）与演示站限制要自己调
+refreshAdminIdentity();
+enforceDemoRestrictions();
+// 演示站（含沙盒模式）不调用 AI：会消耗站点自己的 AI 密钥
+if ((defined('DEMO_MODE') && DEMO_MODE) || (defined('DEMO_SANDBOX') && DEMO_SANDBOX)) {
+    echo json_encode(['success' => false, 'error' => __('auth_demo_sandbox_protected')]);
+    exit;
+}
 
 // Pro 闸
 if (!function_exists('license_has_module') || !license_has_module('seo-pro')) {

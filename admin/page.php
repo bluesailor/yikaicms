@@ -48,7 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'toggle_status') {
         $id = postInt('id');
-        $channel = channelModel()->find($id);
+        // 只认单页：其它类型栏目（产品、新闻……）要「栏目管理」权限才能改
+        $channel = channelModel()->findWhere(['id' => $id, 'type' => 'page']);
+        if (!$channel) {
+            error(__('pg_channel_missing'));
+        }
         $newStatus = $channel['status'] ? 0 : 1;
         channelModel()->updateById($id, ['status' => $newStatus, 'updated_at' => time()]);
         adminLog('page', 'toggle', "切换单页状态ID: $id");
@@ -58,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         requirePermission('delete_page');
         $id = postInt('id');
-        $channel = channelModel()->find($id);
+        $channel = channelModel()->findWhere(['id' => $id, 'type' => 'page']);
         if (!$channel) {
             error(__('pg_channel_missing'));
         }

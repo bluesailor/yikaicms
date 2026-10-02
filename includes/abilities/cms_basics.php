@@ -174,11 +174,16 @@ register_ability('cms_create_article_draft', [
     // 落库就是一篇文章，直接要求 edit_article
     'permission'   => fn() => hasPermission('edit_article'),
     'execute'      => function (array $input): array {
+        // 能力入口只校验了 edit_article；建其它类型（产品、案例……）要同时有该类型的编辑权
+        $type = (string) ($input['type'] ?? 'article');
+        if ($type !== 'article' && !hasPermission('edit_' . $type)) {
+            throw new \RuntimeException("Permission denied: edit_{$type}");
+        }
         $now = time();
         $row = [
             'lang'       => function_exists('siteLang') ? siteLang() : 'zh-CN',
             'channel_id' => (int)$input['channel_id'],
-            'type'       => $input['type'] ?? 'article',
+            'type'       => $type,
             'title'      => mb_substr((string)$input['title'], 0, 255),
             'summary'    => (string)($input['summary'] ?? ''),
             'content'    => (string)$input['content'],

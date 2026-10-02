@@ -44,6 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 verifyCsrf();
+// 本端点不走 checkLogin()：身份刷新（停用账号、过期的支持账号立即失效）与演示站限制要自己调
+refreshAdminIdentity();
+enforceDemoRestrictions();
 
 if (!seo_is_pro()) {
     echo json_encode(['success' => false, 'error' => '该功能需要 SEO 助手专业版']);

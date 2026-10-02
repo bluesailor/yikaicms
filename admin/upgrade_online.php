@@ -50,9 +50,11 @@ function uo_json(array $d): void
 // ============================================================
 // AJAX 路由
 // ============================================================
-$action = $_POST['action'] ?? $_GET['action'] ?? '';
+// 动作只认 POST 并校验 CSRF：此前也接受 GET 的 ?action=，而 CSRF 只在 POST 时校验，
+// 一个链接就能让已登录的维护者执行 apply_prepare / apply_batch（界面本来就全部用 POST 调用）
+$action = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' ? (string) ($_POST['action'] ?? '') : '';
 if ($action !== '') {
-    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') verifyCsrf();
+    verifyCsrf();
     @set_time_limit(600);
     // 关键：绝不让 PHP 警告/通知打印进响应体（否则污染 JSON → 前端解析失败静默卡住）。
     @ini_set('display_errors', '0');

@@ -48,6 +48,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && get('action') === 'theme_upd
 // 新站引导：关闭提示（AJAX）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_onboard') {
     verifyCsrf();
+    requirePermission('*');   // 改的是全站设置，与相邻三个引导动作一致
     settingModel()->set('onboarding_channel_dismissed', '1');
     success([], 'ok');
 }
