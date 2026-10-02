@@ -216,7 +216,8 @@ if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
 $pageTitle = $channel['seo_title'] ?: $channel['name'];
 $pageKeywords = $channel['seo_keywords'] ?: configJsonLang('site_keywords');
 $pageDescription = $channel['seo_description'] ?: configJsonLang('site_description');
-$currentChannelId = $channelId;
+// 同时写全局：经 Dispatcher 在方法里 require 本文件时局部变量不是全局，显示条件与栏目导航元素读不到
+$currentChannelId = $GLOBALS['currentChannelId'] = $channelId;
 // Blox 头尾激活的单页上下文：本 CMS 的「单页」即 type=page 的栏目，身份就是其栏目 id。
 // bloxAreaHtml() 读该显式全局判定 page 条件（此前误读不存在的 $GLOBALS['page']，单页条件在真实 page.php 上永不命中）。
 $GLOBALS['ykBloxPageId'] = (int) ($channel['id'] ?? 0);
