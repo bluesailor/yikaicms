@@ -48,7 +48,8 @@ if (in_array($channel['type'], ['page', 'link'], true)) {
 $pageTitle = $channel['seo_title'] ?: $channel['name'];
 $pageKeywords = $channel['seo_keywords'] ?: configJsonLang('site_keywords');
 $pageDescription = $channel['seo_description'] ?: configJsonLang('site_description');
-$currentChannelId = $channelId;
+// 同时写全局：经 Dispatcher 在方法里 require 本文件时局部变量不是全局，显示条件与栏目导航元素读不到
+$currentChannelId = $GLOBALS['currentChannelId'] = $channelId;
 
 // 搜索关键词
 $keywordRaw = $_GET['keyword'] ?? '';
@@ -90,6 +91,7 @@ $productCategory = isset($_vars['productCategory']) && is_array($_vars['productC
     ? $_vars['productCategory']
     : null;
 $productCategoryId = (int) ($_vars['productCategoryId'] ?? 0);
+$GLOBALS['currentProductCategoryId'] = $productCategoryId;   // 栏目导航元素据此高亮当前产品分类
 $currentSort = is_scalar($_vars['currentSort'] ?? null) ? (string) $_vars['currentSort'] : 'default';
 foreach (['enabledSorts', 'whereConditions',
           'facetBrands', 'facetTagGroups', 'facetPrice', 'filterActive',
