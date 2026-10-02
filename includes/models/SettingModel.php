@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/SiteTimezone.php';
+
 class SettingModel extends Model
 {
     protected string $table = 'settings';
@@ -21,6 +23,13 @@ class SettingModel extends Model
             foreach ($rows as $row) {
                 $this->cache[$row['key']] = $row['value'];
             }
+            // 站点时区：每个请求最早读设置的地方（前台、后台、接口、计划任务都会经过这里）统一生效；
+            // config/overrides.php 里固定了 site_timezone 的以它为准。见 SiteTimezone。
+            $timezone = $this->cache[SiteTimezone::KEY] ?? '';
+            if (function_exists('configOverrides')) {
+                $timezone = configOverrides()[SiteTimezone::KEY] ?? $timezone;
+            }
+            SiteTimezone::apply($timezone);
         }
         return $this->cache;
     }
