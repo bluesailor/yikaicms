@@ -33,6 +33,10 @@ if (!$channel || $channel['status'] != 1) {
     header('HTTP/1.1 404 Not Found');
     render404(__('error_channel_not_found'));
 }
+// 设了登记网址：旧地址 301 过去（产品分类 / 标签筛选另有自己的登记网址，不按栏目跳）
+if ((string) ($_GET['cat'] ?? '') === '' && (string) ($_GET['tag'] ?? '') === '') {
+    redirectToRegisteredUrl('channel', $channelId);
+}
 
 // page / link 走 PageRedirectController（短路：要么 include page.php，要么 302）
 require_once __DIR__ . '/controllers/list/ListRouter.php';

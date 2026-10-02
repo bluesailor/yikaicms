@@ -100,9 +100,7 @@ $catalogUsesDynamicRoute = str_contains($catalogBaseUrl, 'yk_route=');
                     ?? dynamicUrl('list', ['id' => (int) ($catalogCurrentChannel['id'] ?? 0), 'page' => $targetPage]);
             }
         }
-        $base = $targetPage === 1
-            ? $catalogBaseUrl
-            : (preg_replace('/\.html$/', '/page/' . $targetPage . '.html', $catalogBaseUrl) ?: $catalogBaseUrl);
+        $base = pagedUrl($catalogBaseUrl, $targetPage);
         return $base . ($keyword !== '' ? '?keyword=' . urlencode($keyword) : '');
     };
     require theme_path('partials/pagination.php');

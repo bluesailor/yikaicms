@@ -30,6 +30,7 @@ if ($productId <= 0) {
 
 // 数据装配交给 ProductDetailController：产品载入、浏览量自增、分类/相关/上下篇、
 // 图片组与规格解析。与 detail.php / article.php 同款、逻辑由 ProductDetailControllerTest 守护。
+if (!$isNativeProductPreview) redirectToRegisteredUrl('product', $productId);   // 旧地址 301 到登记网址
 require_once __DIR__ . '/controllers/detail/ProductDetailController.php';
 $_vars = (new ProductDetailController())->prepare($productId, !$isNativeProductPreview);
 if ($_vars === null) {

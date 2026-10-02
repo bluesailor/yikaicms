@@ -40,6 +40,7 @@ final class ProductController extends ListController
             $productCategory = getProductCategoryBySlug($catSlug);
             if ($productCategory) {
                 $productCategoryId = (int) $productCategory['id'];
+                redirectToRegisteredUrl('category', $productCategoryId);   // 旧地址 301 到登记网址
             }
         }
 

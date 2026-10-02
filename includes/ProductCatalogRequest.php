@@ -71,7 +71,13 @@ final class ProductCatalogRequest
             return dynamicChannelPageUrl($channel, $page, $filters)
                 ?? dynamicUrl('list', ['id' => (int) ($channel['id'] ?? 0), 'page' => $page]);
         }
+        // 登记网址：产品标签页（/product-tag/x/）与栏目自己的网址
+        $tagIds = $normalized['tag_ids'] ?? [];
+        $tagPath = is_array($tagIds) && count($tagIds) === 1 ? productRouteModel()->pathFor('product_tag', (int) $tagIds[0]) : '';
+        if ($tagPath !== '') unset($filters['tag']);
+        $registered = $tagPath !== '' ? $tagPath : productRouteModel()->pathFor('channel', (int) ($channel['id'] ?? 0));
         $query = $filters !== [] ? '?' . http_build_query($filters, '', '&', PHP_QUERY_RFC3986) : '';
+        if ($registered !== '') return pagedUrl($registered, $page) . $query;
         $prefix = langPrefix();
         $slug = (string) ($channel['slug'] ?? '');
         $encodedSlug = $slug !== '' ? rawurlencode($slug) : '';
