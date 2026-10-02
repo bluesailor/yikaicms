@@ -80,3 +80,6 @@ with open(out, 'w', encoding='utf-8') as f:
 print(f"  p1(简→繁)={len(p1)}  p2(繁→台)={len(p2)}  文件={os.path.getsize(out)} bytes")
 PY
 echo "已写入 $OUT"
+# 安装包不再自带转换表，由插件市场的「繁體中文語言包」提供：两份必须一致（ThemePackagingPolicyTest 校验）
+cp "$OUT" "$ROOT_DIR/plugins/zh-tw/s2t_maps.php"
+echo "已同步 plugins/zh-tw/s2t_maps.php"
