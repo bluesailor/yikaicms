@@ -119,6 +119,15 @@ final class RouteRegistryKindsTest extends TestCase
         self::assertSame('/shared-slug/', $m->assign('content', $b, '/shared-slug/', 'zh-CN'), '删除后网址释放给别的条目');
     }
 
+    public function testPluginRoutesAreReserved(): void
+    {
+        require_once ROOT_PATH . '/includes/hooks.php';
+        add_filter('dispatch_routes', static fn (array $r): array => array_merge([['#^shop/cart$#', 'plugins/shop/front/cart.php', [], []]], $r));
+        $id = $this->insertRow('contents', ['title' => 'X']);
+        $this->expectExceptionMessage('product_url_reserved');
+        (new ProductRouteModel())->assign('content', $id, '/shop/cart/', 'zh-CN');
+    }
+
     public function testPathOfAHardDeletedEntityCanBeReclaimed(): void
     {
         $m = new ProductRouteModel();

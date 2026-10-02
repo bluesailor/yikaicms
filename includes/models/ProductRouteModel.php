@@ -140,8 +140,12 @@ final class ProductRouteModel extends Model
             || is_file(ROOT_PATH . rawurldecode($path)) || is_dir(ROOT_PATH . rawurldecode($path))) {
             throw new InvalidArgumentException('product_url_reserved');
         }
-        $builtIn = Dispatcher::match($path);
-        if ($builtIn !== null && $builtIn['file'] !== 'page.php') throw new InvalidArgumentException('product_url_reserved');
+        // 内置路由与插件经 dispatch_routes 加的路由（商城购物车等）都不能被占用；落到通用单页规则的可以
+        // 登记网址带不带结尾斜杠都会命中，两种写法都要查
+        foreach (array_unique([$path, rtrim($path, '/')]) as $variant) {
+            $builtIn = Dispatcher::match($variant, Dispatcher::routes());
+            if ($builtIn !== null && $builtIn['file'] !== 'page.php') throw new InvalidArgumentException('product_url_reserved');
+        }
         // .html 通用路由可以自定义，但不能和别的栏目默认网址撞车（栏目给自己设网址时跳过它自己）
         if (db()->tableExists('channels')) {
             foreach (channelModel()->all() as $channel) {

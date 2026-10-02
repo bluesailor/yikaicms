@@ -95,6 +95,18 @@ final class Dispatcher
      *
      * @param array<int, array{0:string, 1:string, 2:array<int,string>, 3:array<string,string>}>|null $routes
      */
+    /**
+     * 经 dispatch_routes 过滤后的路由表（插件 / overrides 加的规则在前）。登记网址的冲突检查也用它。
+     * @return array<int, array{0:string, 1:string, 2:array<int,string>, 3:array<string,string>}>
+     */
+    public static function routes(): array
+    {
+        if (!function_exists('apply_filters')) return self::ROUTES;
+        /** @var array<int, array{0:string, 1:string, 2:array<int,string>, 3:array<string,string>}> $routes */
+        $routes = apply_filters('dispatch_routes', self::ROUTES);
+        return $routes;
+    }
+
     public static function match(string $path, ?array $routes = null): ?array
     {
         $path = ltrim($path, '/');
@@ -421,10 +433,7 @@ final class Dispatcher
         //   否则会误伤核心路由。
         //
         // 挂在 overrides/bootstrap.php 里即可，升级不冲突。见 overrides/README.md。
-        /** @var array<int, array{0:string, 1:string, 2:array<int,string>, 3:array<string,string>}> $routes */
-        $routes = apply_filters('dispatch_routes', self::ROUTES);
-
-        $hit = self::match($path, $routes);
+        $hit = self::match($path, self::routes());
         if ($hit === null) {
             render404();
         }
