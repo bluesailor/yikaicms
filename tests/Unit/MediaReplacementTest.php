@@ -115,6 +115,52 @@ final class MediaReplacementTest extends TestCase
         self::assertSame('media_replace_source_missing', $result['msg']);
     }
 
+    /**
+     * path 列有两种「不能直接 is_file」的写法：整站模板导入存相对路径 uploads/...，
+     * 整站搬过家的站存的是旧主机绝对路径。两种都要按 /uploads/ 之后的部分在本站找到源文件。
+     *
+     * @return array<string, array{0: callable(string):string}>
+     */
+    public static function storedPathVariants(): array
+    {
+        return [
+            'relative path from site template import' => [static fn(string $path): string => substr($path, strlen(ROOT_PATH) + 1)],
+            'absolute path from the previous host' => [static fn(string $path): string => 'D:/old-host/wwwroot/site' . substr($path, strlen(ROOT_PATH))],
+        ];
+    }
+
+    /** @dataProvider storedPathVariants */
+    public function testReplaceResolvesStoredPathThatIsNotTheCurrentAbsolutePath(callable $stored): void
+    {
+        $path = $this->directory . '/banner.png';
+        $this->writePng($path, 30);
+        $before = md5_file($path);
+        $replacement = $this->directory . '/banner-new.tmp';
+        $this->writePng($replacement, 220);
+
+        $media = ['path' => $stored($path)] + $this->media($path);
+        $result = MediaReplacement::replace($media, $replacement, 'png');
+
+        self::assertTrue($result['ok'], json_encode($result));
+        self::assertNotSame($before, md5_file($path), '替换写进本站真实文件');
+        self::assertFileDoesNotExist('D:/old-host/wwwroot/site' . substr($path, strlen(ROOT_PATH)));
+    }
+
+    public function testReplaceRefusesFilesOutsideUploads(): void
+    {
+        $outside = ROOT_PATH . '/storage/media-replace-outside-' . getmypid() . '.png';
+        $this->writePng($outside, 90);
+        $replacement = $this->directory . '/x.tmp';
+        $this->writePng($replacement, 10);
+        try {
+            $result = MediaReplacement::replace(['id' => 9, 'path' => $outside, 'url' => '', 'type' => 'image'], $replacement, 'png');
+            self::assertFalse($result['ok']);
+            self::assertSame('media_replace_source_missing', $result['msg']);
+        } finally {
+            @unlink($outside);
+        }
+    }
+
     public function testBackupsArePrunedPerMedia(): void
     {
         $path = $this->directory . '/loop.png';

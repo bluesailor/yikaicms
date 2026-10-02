@@ -39,8 +39,9 @@ final class MediaReplacement
      */
     public static function replace(array $media, string $sourcePath, string $sourceExt): array
     {
-        $path = (string) ($media['path'] ?? '');
-        if ($path === '' || !is_file($path)) {
+        // 不直接信任 path 列：整站模板导入存的是相对路径，搬过家的站存的是旧主机绝对路径
+        $path = MediaOptimization::resolveSource($media) ?? '';
+        if ($path === '') {
             return self::fail('media_replace_source_missing');
         }
         if (!is_file($sourcePath) || !is_readable($sourcePath)) {
