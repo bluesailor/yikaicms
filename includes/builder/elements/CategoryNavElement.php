@@ -323,9 +323,9 @@ final class CategoryNavElement extends AbstractElement
             . '<a class="' . $linkClass . '" href="' . self::escape(self::safeHref($item['url']) ?: '#') . '"' . ($item['active'] ? ' aria-current="page"' : '') . '>'
             . self::itemInner($item, $options) . '</a>';
         if ($hasChildren && $options['accordion']) {
-            $html .= '<button type="button" class="flex h-8 w-8 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-primary' . ($compact ? '' : ' me-2') . '"'
+            $html .= '<button type="button" class="group flex h-8 w-8 shrink-0 items-center justify-center rounded text-gray-400 hover:bg-gray-100 hover:text-primary' . ($compact ? '' : ' me-2') . '"'
                 . ' data-yk-category-nav-toggle aria-expanded="' . ($collapsed ? 'false' : 'true') . '" aria-controls="' . self::escape($panelId) . '">'
-                . '<i class="ti ti-chevron-down text-base transition-transform" aria-hidden="true"></i>'
+                . '<i class="ti ti-chevron-down text-base transition-transform group-aria-[expanded=false]:-rotate-90 rtl:group-aria-[expanded=false]:rotate-90" aria-hidden="true"></i>'
                 . '<span class="sr-only">' . self::escape(__('blox_catnav_toggle', ['name' => (string) $item['name']])) . '</span></button>';
         }
         $html .= '</div>';
