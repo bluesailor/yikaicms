@@ -413,7 +413,7 @@ foreach ($siteEnabled as $_lc) {
                 </div>
             <?php endforeach; ?>
         </div>
-        <?php $s2tNoticeEnabled = in_array('zh-TW', $siteEnabled, true); require ROOT_PATH . '/admin/includes/s2t_pack_notice.php'; ?>
+        <?php require_once ROOT_PATH . '/admin/includes/s2t_pack_notice.php'; renderS2TPackNotice(in_array('zh-TW', $siteEnabled, true)); ?>
 
         <?php /* per-language 首页菜单显示开关：只渲染已启用语言 */ ?>
         <div class="border-t pt-3">

@@ -125,7 +125,8 @@ final class ReleaseCandidateHardeningTest extends TestCase
     {
         $readme = (string) file_get_contents(ROOT_PATH . '/README.md');
 
-        self::assertStringContainsString('Default（标准）、Business（深色商务风）、Minimal（极简）', $readme);
+        // 2.0.4 起只随包 Default，Business、Minimal 从模板市场安装
+        self::assertStringContainsString('随包 Default（标准）；Business（深色商务风）、Minimal（极简）等更多主题', $readme);
         // Aurora、Trade 已从模板市场下架（2026-09），README 不得再把它们当作可安装主题介绍。
         self::assertStringNotContainsString('Aurora', $readme);
         self::assertStringContainsString('模板市场', $readme);

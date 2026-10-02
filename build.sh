@@ -314,7 +314,7 @@ EXCLUDES=(
     "plugins/zh-tw"
     "includes/i18n/s2t_maps.php"
 
-    # 主题市场源码目录本身不进入运行包；Business、Minimal、Aurora、Trade 都由主题市场签名分发。
+    # 主题市场源码目录本身不进入运行包；Business、Minimal 由主题市场签名分发。
     "marketplace"
 
     # Blox 资产由 config/blox-assets.json 单一登记。core/runtime 随免费包，pro 排除。
