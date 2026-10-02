@@ -10,10 +10,10 @@
  * 整站模板包按表结构精确比对，加一列会让已发布的全部整站模板在新版本上无法导入；
  * metas 本身随整站模板导出导入，定时时间也会跟着走。
  *
- * 保存时以发布时间为准：
- *   - 选「定时」但时间已到或已过 → 直接发布；
- *   - 选「发布」但时间在未来 → 自动改为定时（不会提前上线、带着未来日期挂在列表里）；
- *   - 选「定时」却没填时间 → 拒绝保存。
+ * 保存时以用户选的状态为准（2.0.4 起；2.0.3 曾把「已发布 + 未来时间」自动改成定时，与客户预期不符）：
+ *   - 已发布：保存后立即上线；发布时间只作为显示的日期，在未来也不改状态；
+ *   - 定时：必须填时间，到点上线；时间已到或已过 → 直接发布（等同到点）；
+ *   - 草稿：保存但不上线，时间照存。
  *
  * 到点上线由 sweep() 完成：前台每次访问限流 60 秒扫一次（includes/init.php），
  * 配了系统定时任务的站点另由 Cron「publish_sweep」每分钟扫一次。上线后清页面缓存。
@@ -29,7 +29,8 @@ final class ScheduledPublish
     public const PRODUCT_META = 'publish_time';
 
     /**
-     * 按发布时间规范化状态。
+     * 规范化状态与发布时间。只有「定时」看时间（没填拒绝，已过则直接发布）；
+     * 「已发布」「草稿」原样保留，不替用户改状态。
      *
      * @param int    $status   表单提交的状态（0 / 1 / 3）
      * @param string $posted   表单提交的时间（datetime-local，可空）
@@ -48,9 +49,6 @@ final class ScheduledPublish
             return ['status' => $time <= $now ? 1 : self::STATUS, 'publish_time' => $time];
         }
         if ($status === 1) {
-            if ($time > $now) {
-                return ['status' => self::STATUS, 'publish_time' => $time];
-            }
             return ['status' => 1, 'publish_time' => $time > 0 ? $time : ($existing > 0 ? $existing : $now)];
         }
         return ['status' => 0, 'publish_time' => $time > 0 ? $time : $existing];
