@@ -334,8 +334,12 @@ async function quickUploadFiles(files) {
     const formData = new FormData();
     formData.append('action', 'quick_upload');
     formData.append('album_id', albumId);
-    for (let i = 0; i < files.length; i++) {
-        formData.append('files[]', files[i]);
+    // 上传前在浏览器里压缩（手机照片动辄 5–10MB）；保留原文件名，服务端按扩展名校验
+    // 先拷一份：拖放来的 FileList 在事件结束后可能读不到了
+    const picked = Array.from(files);
+    const prepared = window.YkUploadPrep ? await window.YkUploadPrep.prepareAll(picked) : picked;
+    for (let i = 0; i < picked.length; i++) {
+        formData.append('files[]', prepared[i] || picked[i], picked[i].name);
     }
 
     const progress = document.getElementById('quickUploadProgress');
