@@ -41,7 +41,7 @@ overrides/                       当前站点的最高优先级覆盖
 
 1. 默认主题只在 [`themes/default/`](../themes/default/) 维护。
 2. Business、Minimal、Aurora、Trade 等官方可选主题只在 [`marketplace/themes/`](../marketplace/themes/) 维护，不要反向编辑运行目录中的副本。
-3. 完整安装包会由 [`build.sh`](../build.sh) 把指定的随包主题暂存到包内；当前随包主题是 Business 和 Minimal。Aurora、Trade 仍由主题市场提供。
+3. 完整安装包只带 Default（2.0.4 起）；Business、Minimal、Aurora、Trade 都由主题市场签名分发。
 4. 客户安装后的非默认主题属于站点运行数据，升级包不应无条件覆盖。
 5. 修改官方可选主题后，应同步提升其 `theme.json.version`；使用了较新的 CMS 能力时，还要把 `requires_cms` 提高到真实最低版本。
 

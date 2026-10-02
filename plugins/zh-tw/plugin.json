@@ -1,0 +1,12 @@
+{
+    "name": "繁體中文語言包",
+    "name_ja": "繁体字中国語パック",
+    "name_en": "Traditional Chinese Pack",
+    "version": "1.0.0",
+    "description": "提供简体→繁体（台湾用词）转换表。安装后在「语言设置」启用繁体中文，前台整页自动转为繁体，内容只需维护简体一份。",
+    "description_ja": "簡体字→繁体字（台湾の用語）の変換表を提供します。インストール後「言語設定」で繁体字中国語を有効にすると、サイト全体が自動で繁体字に変換されます。",
+    "description_en": "Adds the Simplified→Traditional Chinese (Taiwan usage) conversion table. After installing, enable Traditional Chinese in Language settings and every page is converted automatically; you keep only one Simplified copy of your content.",
+    "author": "Yikai CMS",
+    "requires_php": "8.0",
+    "requires_cms": "2.0.4"
+}
