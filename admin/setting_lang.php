@@ -31,7 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 确保默认语言始终启用
         $newDefault = post('default_lang', 'zh-CN');
         $newAdmin = post('admin_lang', 'zh-CN');
-        if (!in_array($newDefault, $selected)) $selected[] = $newDefault;
+        // 只收已安装的语言：语言代码会进 URL 前缀、语言包路径与后台界面
+        if (!is_array($selected) || !isset($allLangs[$newDefault]) || !isset(adminLanguages()[$newAdmin])) {
+            error(__('admin_bad_params'), 422);
+        }
+        $selected = array_values(array_intersect(array_keys($allLangs), array_filter($selected, 'is_string')));
+        if (!in_array($newDefault, $selected, true)) $selected[] = $newDefault;
 
         settingModel()->set('enabled_languages', json_encode(array_values($selected)));
         // 切默认语言：先做行角色归位（<key>_<新默认> 提升为 base、旧默认内容落后缀），
@@ -258,7 +263,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1"><?php echo e(__('slang_admin_lang')); ?></label>
                         <select name="admin_lang" class="w-full border rounded px-4 py-2">
-                            <?php foreach ($allLangs as $code => $label): ?>
+                            <?php foreach (adminLanguages() as $code => $label): ?>
                             <option value="<?php echo e($code); ?>" <?php echo $code === $adminLang ? 'selected' : ''; ?>>
                                 <?php echo e($label); ?> (<?php echo e($code); ?>)
                             </option>

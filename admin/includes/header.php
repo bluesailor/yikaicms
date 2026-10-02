@@ -642,20 +642,19 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     }
                     </script>
 
-                    <?php /* 语言切换：动态基于 admin_languages 设置；为空时按 lang/*.php 文件自动检测 */ ?>
+                    <?php /* 语言切换：动态基于 admin_languages 设置；为空时列出全部已安装的语言包（availableLanguages）*/ ?>
                     <?php
                     $currentAdminLang = config('admin_lang', 'zh-CN');
-                    $langLabels = ['zh-CN' => '中文', 'en' => 'EN', 'ja' => '日本語'];
+                    // 语言集合来自注册表 + 已装语言包；英文沿用原来的「EN」短写，其余用本族语名
+                    $langLabels = adminLanguages();
+                    if (isset($langLabels['en'])) $langLabels['en'] = 'EN';
                     $configured = trim((string)config('admin_languages', ''));
                     if ($configured !== '') {
                         $availableLangs = array_values(array_filter(array_map('trim', explode(',', $configured)),
                             fn($k) => isset($langLabels[$k])));
                     } else {
-                        // 默认：按 lang/*.php 文件存在性推断
-                        $availableLangs = [];
-                        foreach (array_keys($langLabels) as $code) {
-                            if (file_exists(ROOT_PATH . '/lang/' . $code . '.php')) $availableLangs[] = $code;
-                        }
+                        // 默认：全部已安装的语言包
+                        $availableLangs = array_keys($langLabels);
                     }
                     ?>
                     <?php if (count($availableLangs) >= 2): ?>
@@ -665,13 +664,13 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"></path>
                             </svg>
-                            <span class="hidden sm:inline"><?php echo $langLabels[$currentAdminLang] ?? $currentAdminLang; ?></span>
+                            <span class="hidden sm:inline"><?php echo e($langLabels[$currentAdminLang] ?? $currentAdminLang); ?></span>
                             <i class="ti ti-chevron-down text-base"></i>
                         </button>
                         <div x-show="open" x-cloak @click.away="open = false"
                              class="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow-lg py-1 z-50">
                             <?php foreach ($availableLangs as $code): ?>
-                            <button onclick="switchAdminLang('<?php echo $code; ?>')" class="block w-full text-left px-4 py-2 text-sm <?php echo $currentAdminLang === $code ? 'text-primary font-medium bg-blue-50' : 'text-gray-700 hover:bg-gray-100'; ?>"><?php echo $langLabels[$code]; ?></button>
+                            <button onclick="switchAdminLang('<?php echo $code; ?>')" class="block w-full text-left px-4 py-2 text-sm <?php echo $currentAdminLang === $code ? 'text-primary font-medium bg-blue-50' : 'text-gray-700 hover:bg-gray-100'; ?>"><?php echo e($langLabels[$code]); ?></button>
                             <?php endforeach; ?>
                         </div>
                     </div>
