@@ -8350,7 +8350,7 @@ return [
     'motion_stagger' => 'Exibir elementos filhos em sequência',
     'motion_editor_hint' => 'Os elementos no canvas sempre podem ser selecionados. A reprodução também respeita a intensidade do site e a preferência por reduzir movimentos.',
     'usability_page_redirect' => 'A seção “:name” redireciona atualmente para “:target”.',
-    'usability_page_redirect_hint' => 'Salvar ou publicar o texto não cancela o redirecionamento. Para que os visitantes vejam o conteúdo desta página, selecione “Exibir conteúdo próprio” e salve as configurações da seção.',
+    'usability_page_redirect_hint' => 'Salvar ou publicar o texto não cancela o redirecionamento. Para que os visitantes vejam o conteúdo desta página, selecione “Exibir o conteúdo desta página (recomendado)” e salve as configurações da seção.',
     'usability_page_redirect_settings' => 'Abrir configurações de redirecionamento da seção (nova janela)',
     'usability_page_show_pending' => 'Selecionar exibição desta página (salve a seção para aplicar)',
     'usability_sources_title' => 'Há :count configurações sobrescritas; os valores salvos no painel podem não entrar em vigor',
