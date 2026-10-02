@@ -12,7 +12,8 @@ require_once __DIR__ . '/includes/contact_parts.php';
 
 // 加载栏目数据
 $channel = getChannelBySlug('contact', true);
-$currentChannelId = $channel ? (int)$channel['id'] : 0;
+// 同时写全局：经 Dispatcher 在方法里 require 本文件时局部变量不是全局，显示条件与栏目导航元素读不到
+$currentChannelId = $GLOBALS['currentChannelId'] = $channel ? (int)$channel['id'] : 0;
 
 // 页面信息（优先使用栏目SEO设置）
 $pageTitle = ($channel && $channel['seo_title']) ? $channel['seo_title'] : __('contact_title');

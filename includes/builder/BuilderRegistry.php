@@ -106,6 +106,7 @@ final class BuilderRegistry
             new AnnotatedTextElement(),
             new PageTitleElement(),
             new BreadcrumbElement(),
+            new CategoryNavElement(),
             new ProductFieldElement('title'),
             new ProductFieldElement('image'),
             new ProductFieldElement('content'),

@@ -34,7 +34,8 @@ unset($_vars);
 $pageTitle = $job['title'];
 $pageKeywords = $channel['seo_keywords'] ?? config('site_keywords');
 $pageDescription = $job['summary'] ?: cutStr(strip_tags($job['content'] ?? ''), 150);
-$currentChannelId = $channel ? (int)$channel['id'] : 0;
+// 同时写全局：经 Dispatcher 在方法里 require 本文件时局部变量不是全局，显示条件与栏目导航元素读不到
+$currentChannelId = $GLOBALS['currentChannelId'] = $channel ? (int)$channel['id'] : 0;
 NavCurrent::markDetail();   // 详情页：所属栏目在导航里标为所在区域（aria-current="true"），不冒充栏目页
 
 // 获取导航
