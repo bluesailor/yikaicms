@@ -183,6 +183,51 @@ final class I18nPipelineTest extends TestCase
         self::assertFileDoesNotExist($this->root . '/lang/fr.php');
     }
 
+    /** 照抄英文参考不算翻译：超过 15% 的分片 validate 报错、merge 拒收；样本不足 10 行不判 */
+    public function testShardThatCopiesEnglishIsRejected(): void
+    {
+        $zh = $en = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $zh["copy_{$i}"] = "第{$i}条说明文字";
+            $en["copy_{$i}"] = "Description text number {$i}";
+        }
+        $this->pack('lang/zh-CN.php', $zh);
+        $this->pack('lang/en.php', $en);
+        $p = new I18nPipeline($this->root);
+        $p->export('es', ['core'], 'copy_', 50, $this->root . '/out');
+        $exported = $this->root . '/out/es-core-001.jsonl';
+
+        $rows = array_map(static function (array $row): array {
+            unset($row['_line']);
+            $row['text'] = 'Texto descriptivo ' . substr((string) $row['key'], 5);
+            return $row;
+        }, I18nPipeline::readJsonl($exported));
+        self::assertSame([], $p->validate('es', $exported, $this->writeJsonl('ok.jsonl', $rows))['errors']);
+
+        // 12 行里抄 1 行英文（8%）：只是警告
+        $one = $rows;
+        $one[0]['text'] = $one[0]['en'];
+        $r = $p->validate('es', $exported, $this->writeJsonl('one.jsonl', $one));
+        self::assertSame([], $r['errors']);
+        self::assertStringContainsString('identical to English', implode("\n", $r['warnings']));
+
+        // 抄 3 行（25%）：整片不合格，merge 也拒收
+        $copied = $rows;
+        foreach ([0, 1, 2] as $i) {
+            $copied[$i]['text'] = $copied[$i]['en'];
+        }
+        $copiedPath = $this->writeJsonl('copied.jsonl', $copied);
+        self::assertStringContainsString('the shard was not translated', implode("\n", $p->validate('es', $exported, $copiedPath)['errors']));
+        $merged = $p->merge('es', [$copiedPath]);
+        self::assertCount(1, $merged['rejected']);
+        self::assertStringContainsString('identical to English', $merged['rejected'][0]);
+        self::assertFileDoesNotExist($this->root . '/lang/es.php');
+
+        // 小分片（可比行不足 10）不判：3 行全是英文也能合入
+        $small = $this->writeJsonl('small.jsonl', array_slice($copied, 0, 3));
+        self::assertSame([], $p->merge('es', [$small])['rejected']);
+    }
+
     public function testPhpStringRoundTrips(): void
     {
         foreach (["it's", 'back\\slash', "two\nlines", 'dollar $x "q"', "tab\tx"] as $value) {
