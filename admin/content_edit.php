@@ -85,14 +85,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'updated_at' => time(),
     ];
 
-    // 定时发布（以发布时间为准）：
-    //  - 选「定时」但时间已过 → 按已发布
-    //  - 选「发布」但时间在未来 → 自动转为定时
-    if ((int) $data['status'] === 3 && $data['publish_time'] <= time()) {
-        $data['status'] = 1;
-    } elseif ((int) $data['status'] === 1 && $data['publish_time'] > time()) {
-        $data['status'] = 3;
+    // 状态以用户选择为准（已发布即上线、定时到点上线、草稿不上线），与文章、产品编辑页同一套规则，
+    // 见 ScheduledPublish::normalize。此前这里另写一份，会把「已发布 + 未来时间」自动改成定时。
+    require_once ROOT_PATH . '/includes/ScheduledPublish.php';
+    try {
+        $sched = ScheduledPublish::normalize((int) $data['status'], (string) post('publish_time'), (int) ($content['publish_time'] ?? 0));
+    } catch (InvalidArgumentException) {
+        error(__('admin_scheduled_time_required'));
     }
+    $data['status'] = $sched['status'];
+    $data['publish_time'] = $sched['publish_time'] ?: time();
 
     if (empty($data['title'])) {
         error(__('admin_title_required'));

@@ -10,6 +10,7 @@ declare(strict_types=1);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
+require_once ROOT_PATH . '/includes/SiteTimezone.php';
 require_once ROOT_PATH . '/includes/builder/BloxMotion.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
@@ -97,6 +98,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         settingModel()->set('admin_languages', implode(',', $list));
         adminLog('setting', 'admin_languages', '更新后台语言: ' . implode(',', $list));
         success(['admin_languages' => implode(',', $list)]);
+    }
+
+    // 站点时区：存在 system 组（不进基本设置的通用表单），读设置时由 SettingModel 统一生效
+    if ($action === 'save_timezone') {
+        verifyCsrf();
+        $timezone = trim((string) ($_POST['timezone'] ?? ''));
+        if (!SiteTimezone::valid($timezone)) {
+            error(__('admin_bad_params'), 422);
+        }
+        settingModel()->set(SiteTimezone::KEY, $timezone, 'system');
+        adminLog('setting', 'timezone', '更新站点时区: ' . $timezone);
+        success(['timezone' => $timezone, 'local_time' => SiteTimezone::localTime($timezone)], __('admin_saved'));
     }
 
     if ($action === 'save_site_languages') {
@@ -521,6 +534,86 @@ async function saveAdminLanguages() {
         _langToast(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + ': ' + e.message, 'error');
     }
 }
+</script>
+
+<?php /* 站点时区（借鉴 WordPress：以城市为主、显示此刻的本地时间）。存 system 组，见 SiteTimezone */ ?>
+<?php
+$_tzCurrent = SiteTimezone::current();
+$_tzSaved = (string) config(SiteTimezone::KEY, '');
+?>
+<section class="bg-white rounded-lg shadow mb-6" aria-labelledby="tz-title" data-testid="timezone-card">
+    <div class="px-6 py-4 border-b">
+        <h2 id="tz-title" class="font-bold text-gray-800"><?php echo e(__('sset_tz_title')); ?></h2>
+        <p class="text-xs text-gray-500 mt-1"><?php echo e(__('sset_tz_tip')); ?></p>
+    </div>
+    <div class="p-6 space-y-3">
+        <div class="flex flex-wrap items-center gap-3">
+            <label for="siteTimezone" class="sr-only"><?php echo e(__('sset_tz_title')); ?></label>
+            <select id="siteTimezone" class="w-full sm:w-auto min-w-0 border rounded px-3 py-2 text-sm" data-testid="timezone-select">
+                <?php foreach (SiteTimezone::groupedOptions() as $_tzRegion => $_tzItems):
+                    $_tzRegionKey = 'sset_tz_region_' . strtolower($_tzRegion);
+                    $_tzRegionLabel = __($_tzRegionKey);
+                    if ($_tzRegionLabel === $_tzRegionKey) $_tzRegionLabel = $_tzRegion; ?>
+                <optgroup label="<?php echo e($_tzRegionLabel); ?>">
+                    <?php foreach ($_tzItems as $_tzId => $_tzLabel): ?>
+                    <option value="<?php echo e($_tzId); ?>" <?php echo $_tzId === $_tzCurrent ? 'selected' : ''; ?>><?php echo e($_tzLabel); ?></option>
+                    <?php endforeach; ?>
+                </optgroup>
+                <?php endforeach; ?>
+            </select>
+            <button type="button" id="tzUseBrowser" class="text-sm text-primary hover:underline" hidden></button>
+            <button type="button" id="tzSave" class="sm:ml-auto cursor-pointer bg-primary hover:opacity-90 text-white px-4 py-1.5 rounded text-sm"><?php echo e(__('sset_tz_save')); ?></button>
+        </div>
+        <p class="text-sm text-gray-600" id="tzNow" aria-live="polite"><?php echo e(str_replace([':time', ':utc'], [SiteTimezone::localTime($_tzCurrent), gmdate('Y-m-d H:i')], __('sset_tz_now'))); ?></p>
+        <?php if ($_tzSaved === ''): ?>
+        <p class="text-xs text-gray-400"><?php echo e(str_replace(':tz', $_tzCurrent, __('sset_tz_unset'))); ?></p>
+        <?php endif; ?>
+    </div>
+</section>
+<script>
+(function () {
+    var sel = document.getElementById('siteTimezone');
+    var now = document.getElementById('tzNow');
+    var useBrowser = document.getElementById('tzUseBrowser');
+    var nowTpl = <?php echo json_encode(__('sset_tz_now'), JSON_UNESCAPED_UNICODE); ?>;
+    var browserTpl = <?php echo json_encode(__('sset_tz_use_browser'), JSON_UNESCAPED_UNICODE); ?>;
+    if (!sel || !now) return;
+    function fmt(date, timeZone) {
+        try {
+            var parts = new Intl.DateTimeFormat('en-CA', { timeZone: timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date);
+            var p = {}; parts.forEach(function (x) { p[x.type] = x.value; });
+            return p.year + '-' + p.month + '-' + p.day + ' ' + p.hour + ':' + p.minute;
+        } catch (e) { return ''; }
+    }
+    function preview() {
+        var d = new Date(), local = fmt(d, sel.value), utc = fmt(d, 'UTC');
+        if (local) now.textContent = nowTpl.replace(':time', local).replace(':utc', utc);
+    }
+    sel.addEventListener('change', preview);
+    // 「使用这台电脑的时区」：浏览器报的时区在列表里才显示
+    try {
+        var browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (browserTz && browserTz !== sel.value && sel.querySelector('option[value="' + browserTz.replace(/"/g, '') + '"]')) {
+            useBrowser.textContent = browserTpl.replace(':tz', browserTz);
+            useBrowser.hidden = false;
+            useBrowser.addEventListener('click', function () { sel.value = browserTz; preview(); useBrowser.hidden = true; });
+        }
+    } catch (e) {}
+    document.getElementById('tzSave').addEventListener('click', async function () {
+        var fd = new FormData();
+        fd.append('_token', _LANG_CSRF);
+        fd.append('action', 'save_timezone');
+        fd.append('timezone', sel.value);
+        try {
+            var r = await fetch(location.href, { method: 'POST', body: fd });
+            var d = await _langSafeJson(r);
+            _langToast(d.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>, d.code === 0 ? 'success' : 'error');
+            if (d.code === 0) setTimeout(function () { location.reload(); }, 600);
+        } catch (e) {
+            _langToast(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + ': ' + e.message, 'error');
+        }
+    });
+})();
 </script>
 <?php endif; ?>
 
