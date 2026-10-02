@@ -39,6 +39,12 @@ test('registered URLs serve articles, channels, albums and tags; old URLs 301 @c
     expect((await page.goto('/tag/worm-gear/')).status()).toBe(200);
     await expect(page.locator('a[href="/slewing-bearing-installation/"]').first()).toBeAttached();
     expect((await status('/tag/not-registered/')).status()).toBe(404);
+    const sitemap = await (await visitor.request.get('/sitemap.xml')).text();
+    for (const url of ['/slewing-bearing-installation/', '/category/news/', '/albums/lab-equipment/', '/tag/worm-gear/']) {
+      expect(sitemap).toContain(`${url}</loc>`);
+    }
+    // 原地址不再提交；英文翻译带自己的 /en 前缀（此前英文条目在站点地图里指向中文页）
+    expect(sitemap).not.toMatch(new RegExp(`//[^/<]+/news/article/${state.article.slug}\.html</loc>`));
 
     // 后台文章编辑页：输入框回显登记网址，改了即生效，与别的条目撞车时拒绝且不改动原网址
     const save = async () => {
