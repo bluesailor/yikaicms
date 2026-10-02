@@ -20,7 +20,7 @@ if (!empty($_SESSION['admin_id'])) {
 // ============================================================
 // 语言切换：以后台「admin_languages」设置为准，可在 /admin/setting.php?tab=lang 配置
 // ============================================================
-$_allLangs = availableLanguages();  // ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語', ...]
+$_allLangs = adminLanguages();  // ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語', ...]；不含后台显示不了的繁体与 RTL
 // enabled_languages 是站长在「语言设置」里的明确选择，优先于 admin_languages
 // ——后者是安装时写死的 'zh-CN,en,ja'，从不跟随站点实际启用语言，纯英文站的
 // 登录页因此一直显示「中文 / 日本語」，点进去整个后台变中文（客户实测报出）。
@@ -59,12 +59,13 @@ if (isset($_GET['lang']) && isset($supportedLangs[$_GET['lang']])) {
 if (empty($_SESSION['login_lang'])) {
     $accept = strtolower(trim((string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '')));
     $first = trim(explode(';', explode(',', $accept)[0] ?? '')[0]);
-    if (str_starts_with($first, 'zh') && isset($supportedLangs['zh-CN'])) {
-        $_SESSION['login_lang'] = 'zh-CN';
-    } elseif (str_starts_with($first, 'ja') && isset($supportedLangs['ja'])) {
-        $_SESSION['login_lang'] = 'ja';
-    } elseif (str_starts_with($first, 'en') && isset($supportedLangs['en'])) {
-        $_SESSION['login_lang'] = 'en';
+    // 按主语言子标签匹配（zh-TW / zh-HK 浏览器也落到 zh-CN，pt-BR 落到 pt）
+    $primary = explode('-', $first)[0];
+    foreach (array_keys($supportedLangs) as $_lc) {
+        if ($primary !== '' && strtolower(explode('-', $_lc)[0]) === $primary) {
+            $_SESSION['login_lang'] = $_lc;
+            break;
+        }
     }
     // 不匹配则不设, getLang() 走原有 admin_lang / 默认逻辑
 }

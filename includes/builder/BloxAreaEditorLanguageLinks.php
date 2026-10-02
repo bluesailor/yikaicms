@@ -83,12 +83,7 @@ final class BloxAreaEditorLanguageLinks
             $links[] = [
                 'code' => $code,
                 'label' => (string) $row['label'],
-                'short' => match ($code) {
-                    'zh-CN' => 'ZH',
-                    'en' => 'EN',
-                    'ja' => 'JA',
-                    default => strtoupper(substr($code, 0, 3)),
-                },
+                'short' => LanguageRegistry::shortLabel($code),
                 'url' => $url,
                 'current' => $code === $editorLanguage,
                 'state' => $kind,
