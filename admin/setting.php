@@ -112,6 +112,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success(['timezone' => $timezone, 'local_time' => SiteTimezone::localTime($timezone)], __('admin_saved'));
     }
 
+    // 日期格式：空 = 按访客语言自动；否则只收预设（见 DATE_FORMAT_PRESETS / displayDate）
+    if ($action === 'save_date_format') {
+        verifyCsrf();
+        $format = (string) ($_POST['date_format'] ?? '');
+        if ($format !== '' && !isset(DATE_FORMAT_PRESETS[$format])) {
+            error(__('admin_bad_params'), 422);
+        }
+        settingModel()->set('date_format', $format, 'system');
+        adminLog('setting', 'date_format', '更新日期格式: ' . ($format !== '' ? $format : 'auto'));
+        success(['date_format' => $format], __('admin_saved'));
+    }
+
     if ($action === 'save_site_languages') {
         verifyCsrf();
         $allowed = array_keys(availableLanguages());
@@ -614,6 +626,60 @@ $_tzSaved = (string) config(SiteTimezone::KEY, '');
         }
     });
 })();
+</script>
+
+<?php /* 日期格式：默认按访客语言自动（每种语言的写法在语言包 date_format_*）；也可所有语言统一一种。见 displayDate */ ?>
+<?php
+$_dfCurrent = (string) config('date_format', '');
+$_dfNow = time();
+$_dfAutoExamples = [];
+foreach (enabledLanguages() as $_dfCode => $_dfLabel) {
+    $_dfStrings = langDataFor((string) $_dfCode);
+    $_dfAutoExamples[] = $_dfLabel . ' ' . formatDatePattern((string) ($_dfStrings['date_format_date'] ?? 'Y-m-d'), $_dfNow, $_dfStrings);
+}
+?>
+<section class="bg-white rounded-lg shadow mb-6" aria-labelledby="datefmt-title" data-testid="date-format-card">
+    <div class="px-6 py-4 border-b">
+        <h2 id="datefmt-title" class="font-bold text-gray-800"><?php echo e(__('sset_datefmt_title')); ?></h2>
+        <p class="text-xs text-gray-500 mt-1"><?php echo e(__('sset_datefmt_tip')); ?></p>
+    </div>
+    <div class="p-6 space-y-2" role="radiogroup" aria-labelledby="datefmt-title">
+        <label class="flex items-start gap-2 cursor-pointer">
+            <input type="radio" name="date_format_choice" value="" class="mt-1" <?php echo $_dfCurrent === '' || !isset(DATE_FORMAT_PRESETS[$_dfCurrent]) ? 'checked' : ''; ?>>
+            <span class="text-sm">
+                <?php echo e(__('sset_datefmt_auto')); ?>
+                <span class="block text-xs text-gray-500"><?php echo e(str_replace(':examples', implode(' · ', $_dfAutoExamples), __('sset_datefmt_auto_examples'))); ?></span>
+            </span>
+        </label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
+            <?php foreach (DATE_FORMAT_PRESETS as $_dfFormat => $_dfSample): ?>
+            <label class="flex items-center gap-2 cursor-pointer rounded border px-3 py-2 text-sm">
+                <input type="radio" name="date_format_choice" value="<?php echo e($_dfFormat); ?>" <?php echo $_dfCurrent === $_dfFormat ? 'checked' : ''; ?>>
+                <span class="tabular-nums"><?php echo e($_dfSample); ?></span>
+            </label>
+            <?php endforeach; ?>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 pt-2">
+            <span class="text-xs text-gray-400"><?php echo e(__('sset_datefmt_all_languages')); ?></span>
+            <button type="button" id="datefmtSave" class="sm:ml-auto cursor-pointer bg-primary hover:opacity-90 text-white px-4 py-1.5 rounded text-sm"><?php echo e(__('sset_datefmt_save')); ?></button>
+        </div>
+    </div>
+</section>
+<script>
+document.getElementById('datefmtSave').addEventListener('click', async function () {
+    var picked = document.querySelector('input[name="date_format_choice"]:checked');
+    var fd = new FormData();
+    fd.append('_token', _LANG_CSRF);
+    fd.append('action', 'save_date_format');
+    fd.append('date_format', picked ? picked.value : '');
+    try {
+        var r = await fetch(location.href, { method: 'POST', body: fd });
+        var d = await _langSafeJson(r);
+        _langToast(d.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>, d.code === 0 ? 'success' : 'error');
+    } catch (e) {
+        _langToast(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?> + ': ' + e.message, 'error');
+    }
+});
 </script>
 <?php endif; ?>
 

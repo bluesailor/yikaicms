@@ -44,6 +44,8 @@ final class LanguageRegistry
         'id'    => ['name' => 'Bahasa Indonesia', 'english' => 'Indonesian', 'hreflang' => 'id', 'dir' => 'ltr', 'flag' => 'id', 'font' => 'en', 'picker' => 'id'],
         'th'    => ['name' => 'ไทย', 'english' => 'Thai', 'hreflang' => 'th', 'dir' => 'ltr', 'flag' => 'th', 'font' => 'en', 'picker' => 'th'],
         'ar'    => ['name' => 'العربية', 'english' => 'Arabic', 'hreflang' => 'ar', 'dir' => 'rtl', 'flag' => '', 'font' => 'ar', 'picker' => 'ar'],
+        'fa'    => ['name' => 'فارسی', 'english' => 'Persian', 'hreflang' => 'fa', 'dir' => 'rtl', 'flag' => '', 'font' => 'ar', 'picker' => 'fa'],
+        'ms'    => ['name' => 'Bahasa Melayu', 'english' => 'Malay', 'hreflang' => 'ms', 'dir' => 'ltr', 'flag' => '', 'font' => 'en', 'picker' => 'ms'],
     ];
 
     /**

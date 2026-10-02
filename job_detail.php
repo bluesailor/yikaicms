@@ -126,7 +126,7 @@ require_once theme_path('layouts/header.php');
                         <?php endif; ?>
                         <div>
                             <div class="text-xs text-gray-500 mb-1"><?php echo __('detail_publish_time'); ?></div>
-                            <div class="font-medium"><?php echo date('Y-m-d', (int)$job['publish_time']); ?></div>
+                            <div class="font-medium"><?php echo e(displayDate((int)$job['publish_time'])); ?></div>
                         </div>
                     </div>
                 </div>

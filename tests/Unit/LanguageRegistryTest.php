@@ -41,6 +41,12 @@ final class LanguageRegistryTest extends TestCase
         }
         self::assertSame('zh-Hant', LanguageRegistry::hreflang('zh-TW'));
         self::assertTrue(LanguageRegistry::isRtl('ar'));
+        // 2.0.4：波斯语从右到左、与阿拉伯语同用阿拉伯文字体；马来语从左到右（slewing-bearing.com 迁移需要）
+        self::assertTrue(LanguageRegistry::isRtl('fa'));
+        self::assertSame('ar', LanguageRegistry::fontGroup('fa'));
+        self::assertFalse(LanguageRegistry::isRtl('ms'));
+        self::assertSame('Bahasa Melayu', LanguageRegistry::name('ms'));
+        self::assertTrue(LanguageRegistry::isReservedSlug('fa') && LanguageRegistry::isReservedSlug('ms'), '语言前缀不能被别名占用');
         self::assertFalse(LanguageRegistry::isRtl('en'));
     }
 
