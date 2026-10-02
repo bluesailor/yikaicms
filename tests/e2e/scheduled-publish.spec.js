@@ -23,7 +23,7 @@ async function save(page, url, fields) {
 test('articles and products can be scheduled and go live on time @ci', async ({ page, request }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'one viewport is enough');
 
-  // 文章编辑页：有「定时发布」，选中后提示并要求填时间；「已发布」配未来时间也会提前说明
+  // 文章编辑页：有「定时发布」，选中后提示并要求填时间；「已发布」配未来时间提示「仍立即上线」
   await page.goto('/admin/article_edit.php');
   const status = page.getByTestId('article-status');
   await expect(status.locator('option[value="3"]')).toHaveCount(1);
@@ -36,8 +36,12 @@ test('articles and products can be scheduled and go live on time @ci', async ({ 
 
   // 定时却没填时间：拒绝
   expect((await save(page, '/admin/article_edit.php', { title: 'E2E 定时文章', status: '3', publish_time: '' })).code).not.toBe(0);
-  // 「已发布」+ 未来时间：存成定时，不会提前上线
-  const article = await save(page, '/admin/article_edit.php', { title: 'E2E 定时文章', status: '1', publish_time: local(86400000) });
+  // 「已发布」+ 未来时间（2.0.4 起）：按用户的选择立即上线，时间只作显示日期，不自动改成定时
+  const published = await save(page, '/admin/article_edit.php', { title: 'E2E 定时对照：选已发布', status: '1', publish_time: local(86400000) });
+  expect(published.code).toBe(0);
+  expect(Number(state('contents', published.data.id).status)).toBe(1);
+  // 「定时发布」+ 未来时间：存成定时，不会提前上线
+  const article = await save(page, '/admin/article_edit.php', { title: 'E2E 定时文章', status: '3', publish_time: local(86400000) });
   expect(article.code).toBe(0);
   const articleId = article.data.id;
   expect(Number(state('contents', articleId).status)).toBe(3);
