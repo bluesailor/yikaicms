@@ -506,6 +506,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             }
             $stmt->execute([$enabledJson]);
 
+            // 站点时区：取安装者浏览器报的时区（合法才写；否则不写，按 config.php 的默认 Asia/Shanghai）
+            require_once ROOT_PATH . '/includes/SiteTimezone.php';
+            $siteTimezone = is_string($_POST['site_timezone'] ?? null) ? trim($_POST['site_timezone']) : '';
+            if (SiteTimezone::valid($siteTimezone)) {
+                $stmt = $driver === 'sqlite'
+                    ? $pdo->prepare("INSERT OR REPLACE INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', 'site_timezone', ?, '', '', 0)")
+                    : $pdo->prepare("INSERT INTO {$prefix}settings (`group`, `key`, `value`, `name`, `type`, `sort_order`) VALUES ('system', 'site_timezone', ?, '', '', 0) ON DUPLICATE KEY UPDATE value = VALUES(value)");
+                $stmt->execute([$siteTimezone]);
+            }
+
             // 记录本次安装是否要演示数据：示例内容的种子迁移（solution/industry sample）
             // 会读它。缺键时按 '1' 处理，保证老站升级行为不变（审计 F08）。
             $demoFlag = $installDemo ? '1' : '0';
@@ -841,6 +851,8 @@ window.ykWarnIfDbExposed = function (container, message) {
                     fd.append('install_demo', '1');
                     fd.append('site_lang', '<?php echo $lang; ?>');
                     fd.append('admin_lang', '<?php echo $lang; ?>');
+                    // 站点时区默认取这台电脑的时区（服务端校验，不认得就按默认 Asia/Shanghai）
+                    try { fd.append('site_timezone', Intl.DateTimeFormat().resolvedOptions().timeZone || ''); } catch (e) {}
                     try {
                         fd.append('rewrite_supported', typeof window.yikaiCheckRewrite === 'function' && await window.yikaiCheckRewrite() ? '1' : '0');
                         var resp = await fetch('', { method: 'POST', body: fd });
@@ -1212,6 +1224,8 @@ window.ykWarnIfDbExposed = function (container, message) {
                     // 准备数据
                     const formData = new FormData(form);
                     formData.append('action', 'install');
+                    // 站点时区默认取这台电脑的时区（服务端校验，不认得就按默认 Asia/Shanghai）
+                    try { formData.append('site_timezone', Intl.DateTimeFormat().resolvedOptions().timeZone || ''); } catch (e) {}
 
                     // 添加数据库配置
                     dbFields.forEach(field => {
