@@ -192,7 +192,7 @@ return [
 
 插件语言加载先以 zh-CN 兜底，再合并当前语言；核心已有键不会被插件覆盖。因此必须使用插件前缀，不能通过同名键偷偷重写核心文案。
 
-语言代码以 [`includes/i18n/LanguageRegistry.php`](../includes/i18n/LanguageRegistry.php) 为准（2.0.3 起登记 16 种，文件名如 `lang/ko.php`、`lang/ar.php`）。插件语言包只有上面两层，没有核心语言包那一层英文兜底（`loadPluginLang()`）：站点启用了韩语而插件没有 `lang/ko.php` 时，插件文案显示中文。`plugin.json` 的其他语言写作 `name_ko`、`description_ko`，缺译同样回落中文（`pluginMetaLabel()`）。繁体中文（zh-TW）不需要单独的语言包，见 5.5。
+语言代码以 [`includes/i18n/LanguageRegistry.php`](../includes/i18n/LanguageRegistry.php) 为准（2.0.3 起登记 16 种，2.0.4 加入波斯语 fa、马来语 ms 共 18 种；文件名如 `lang/ko.php`、`lang/ar.php`）。插件语言包只有上面两层，没有核心语言包那一层英文兜底（`loadPluginLang()`）：站点启用了韩语而插件没有 `lang/ko.php` 时，插件文案显示中文。`plugin.json` 的其他语言写作 `name_ko`、`description_ko`，缺译同样回落中文（`pluginMetaLabel()`）。繁体中文（zh-TW）不需要单独的语言包，见 5.5。
 
 ### 5.5 前台输出的多语言要求
 

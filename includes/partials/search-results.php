@@ -87,7 +87,7 @@ if (!defined('ROOT_PATH')) {
         // 高亮关键词
         $hlTitle = str_ireplace($srKeyword, '<mark class="bg-yellow-200 text-inherit px-0.5 rounded">' . e($srKeyword) . '</mark>', e($title));
         $hlSummary = $summary ? str_ireplace($srKeyword, '<mark class="bg-yellow-200 text-inherit px-0.5 rounded">' . e($srKeyword) . '</mark>', e(cutStr($summary, 200))) : '';
-        $date = date('Y-m-d', (int)($item['publish_time'] ?? $item['sort_time'] ?? $item['created_at'] ?? time()));
+        $date = displayDate((int)($item['publish_time'] ?? $item['sort_time'] ?? $item['created_at'] ?? time()));
     ?>
     <a href="<?php echo e($url); ?>" class="flex gap-4 bg-white rounded-lg shadow-sm border p-5 hover:shadow transition group">
         <?php if (!empty($item['cover'])): ?>
@@ -107,7 +107,7 @@ if (!defined('ROOT_PATH')) {
                 <?php if ($channelName): ?>
                 <span><?php echo e($channelName); ?></span>
                 <?php endif; ?>
-                <span><?php echo $date; ?></span>
+                <span><?php echo e($date); ?></span>
             </div>
         </div>
     </a>
