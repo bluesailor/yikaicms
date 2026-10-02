@@ -153,7 +153,7 @@ require_once ROOT_PATH . '/includes/header.php';
                         </div>
                         <div>
                             <label class="block text-gray-600 mb-1 text-sm">注册时间</label>
-                            <input type="text" value="<?php echo date('Y-m-d H:i', (int)$member['created_at']); ?>" disabled
+                            <input type="text" value="<?php echo e(displayDate((int)$member['created_at'], 'datetime')); ?>" disabled
                                    class="w-full border border-gray-200 rounded px-4 py-2.5 bg-gray-50 text-gray-500">
                         </div>
                     </div>
@@ -173,7 +173,7 @@ require_once ROOT_PATH . '/includes/header.php';
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-gray-600 mb-1 text-sm">最后登录时间</label>
-                            <input type="text" value="<?php echo $member['last_login_time'] ? date('Y-m-d H:i', (int)$member['last_login_time']) : '-'; ?>" disabled
+                            <input type="text" value="<?php echo $member['last_login_time'] ? e(displayDate((int)$member['last_login_time'], 'datetime')) : '-'; ?>" disabled
                                    class="w-full border border-gray-200 rounded px-4 py-2.5 bg-gray-50 text-gray-500">
                         </div>
                         <div>

@@ -47,7 +47,7 @@ $__lo = $listOpts ?? null;
             <span><?php echo e($item['author']); ?></span>
             <?php endif; ?>
             <?php if (listShowEl($__lo, 'date')): ?>
-            <span><?php echo date('Y-m-d', (int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?></span>
+            <span><?php echo e(displayDate((int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0)))); ?></span>
             <?php endif; ?>
             <?php if (listShowEl($__lo, 'views')): ?>
             <span><?php echo __('detail_views'); ?> <?php echo number_format((int)$item['views']); ?></span>
