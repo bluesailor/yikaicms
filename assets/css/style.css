@@ -66,8 +66,9 @@ select {
 .testimonials-swiper .swiper-slide { height: auto; }        /* 卡片等高 */
 .testimonials-swiper .swiper-button-next,
 .testimonials-swiper .swiper-button-prev { color: var(--color-primary, #3B82F6); }
-.testimonials-swiper .swiper-button-next::after,
-.testimonials-swiper .swiper-button-prev::after { font-size: 1.5rem; font-weight: 700; }
+/* Swiper 12 起箭头是 SVG、铺满按钮：用内边距控制图标大小（原字体图标 1.5rem） */
+.testimonials-swiper .swiper-button-next,
+.testimonials-swiper .swiper-button-prev { box-sizing: border-box; padding: 10px; }
 .testimonials-swiper .swiper-pagination-bullet-active { background: var(--color-primary, #3B82F6); }
 
 /* ============================================================
