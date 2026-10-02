@@ -22,6 +22,7 @@ if (empty($_SESSION['admin_id'])) {
 
 // 本端点自建登录判断、不走 checkLogin()，身份刷新要自己调（否则沿用登录时的旧权限快照）
 refreshAdminIdentity();
+enforceDemoRestrictions();
 
 $q = (string)($_GET['q'] ?? '');
 $results = adminPagesSearch($q, 8);

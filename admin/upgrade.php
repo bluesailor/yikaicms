@@ -133,6 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 // AJAX: 立即检查并升级（手动触发同一条无人值守管道，用于验证配置是否可用）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'run_auto_upgrade') {
     verifyCsrf();
+    // 强制执行会跳过大版本与远程授权判断、本地改动拦截：与相邻设置一样只给超管
+    requirePermission('*');
     @set_time_limit(0);
     require_once ROOT_PATH . '/includes/AutoUpgrade.php';
     success(['result' => AutoUpgrade::run(true)]);
