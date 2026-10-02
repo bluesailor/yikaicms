@@ -32,9 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         $id = postInt('id');
         // 按被删内容的类型要求对应 delete_ 权限（保持类型隔离）
-        $__row = contentModel()->find($id);
-        if ($__row) {
-            requirePermission('delete_' . (in_array($__row['type'], contentPermTypes(), true) ? $__row['type'] : 'article'));
+        // 回收站里或不存在的内容不走这里（此前查不到就跳过权限校验、仍执行删除）；
+        // 权限口径与批量删除一致：自定义模型的删除只给超管
+        if (!contentModel()->find($id)) {
+            error(__('error_content_not_found'));
+        }
+        if (!canDeleteContentRow($id)) {
+            permissionDenied();
         }
         contentModel()->deleteById($id);
         adminLog('content', 'delete', '删除内容ID：' . $id);

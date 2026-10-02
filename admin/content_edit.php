@@ -25,6 +25,16 @@ require_once ROOT_PATH . '/admin/includes/translate_action.php';
 $id = getInt('id');
 $content = $id > 0 ? contentModel()->find($id) : null;
 
+// id 指向回收站里或不存在的内容：到此为止。否则下面的类型守卫只能按提交的 type 判断，
+// 保存时 updateById 却照样改写那一行（只有 edit_article 的账号能改写回收站里的案例并改类型）。
+if ($id > 0 && !$content) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        error(__('error_content_not_found'));
+    }
+    header('Location: /admin/content.php');
+    exit;
+}
+
 // 联系我们单页跳转到专用设置页
 if ($content) {
     $editChannel = getChannel((int)$content['channel_id']);
