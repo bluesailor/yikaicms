@@ -180,7 +180,7 @@ declare(strict_types=1);
                    data-testid="blox-home-language-<?= e((string) $homeLangCode) ?>" title="<?= e((string) $homeLangLabel) ?>"
                    <?php if ($homeLangCurrent): ?>aria-current="page"<?php endif; ?>
                    class="min-w-7 h-6 rounded px-1.5 text-[10px] font-semibold inline-flex items-center justify-center transition <?= $homeLangCurrent ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' ?>">
-                    <?= e(match ((string) $homeLangCode) { 'zh-CN' => 'ZH', 'en' => 'EN', 'ja' => 'JA', default => strtoupper(substr((string) $homeLangCode, 0, 3)) }) ?>
+                    <?= e(LanguageRegistry::shortLabel((string) $homeLangCode)) ?>
                 </a>
                 <?php endforeach; ?>
             </div>

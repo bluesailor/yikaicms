@@ -298,6 +298,8 @@ final class BloxAreaConditions
         if (function_exists('availableLanguages')) {
             return availableLanguages();
         }
-        return ['zh-CN' => 'zh-CN', 'en' => 'en', 'ja' => 'ja'];
+        require_once dirname(__DIR__) . '/i18n/LanguageRegistry.php';
+        $codes = LanguageRegistry::codes();
+        return array_combine($codes, $codes);
     }
 }

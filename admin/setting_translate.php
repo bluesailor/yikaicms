@@ -16,7 +16,9 @@ requirePermission('*');
 $settings = new SettingModel();
 
 // 可用语言（zh-CN 为源语言，其它为可翻译目标）
-$languages = ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語'];
+// 繁体 zh-TW 是简体的渲染视图（语言包只是标记文件），不作为翻译目标
+$languages = availableLanguages();
+unset($languages['zh-TW']);
 // 仅保留前台启用的目标语言（与 setting.php"前台语言"配置联动；源 zh-CN 始终保留）
 $enabledRaw = trim((string) config('enabled_languages', ''));
 $enabledList = $enabledRaw !== '' ? json_decode($enabledRaw, true) : null;
@@ -25,14 +27,16 @@ if (is_array($enabledList) && $enabledList !== []) {
     $allow['zh-CN'] = 0;
     $languages = array_intersect_key($languages, $allow);
 }
-$targetLang = $_GET['lang'] ?? '';
+$targetLang = is_string($_GET['lang'] ?? null) ? $_GET['lang'] : '';
 if (!isset($languages[$targetLang]) || $targetLang === 'zh-CN') {
-    // 默认指向第一个非源语言
-    $firstTarget = 'ja';
-    foreach ($languages as $c => $_n) {
-        if ($c !== 'zh-CN') { $firstTarget = $c; break; }
+    // 默认指向第一个非源语言；前台只启用了中文时，退到第一个已装的外语包（此前固定退到 ja）
+    $firstTarget = '';
+    foreach ([$languages, availableLanguages()] as $pool) {
+        foreach ($pool as $c => $_n) {
+            if ($c !== 'zh-CN' && $c !== 'zh-TW') { $firstTarget = $c; break 2; }
+        }
     }
-    $targetLang = $firstTarget;
+    $targetLang = $firstTarget !== '' ? $firstTarget : 'en';
 }
 
 // 源语言包（中文）
@@ -201,7 +205,8 @@ function apiTranslate(string $text, string $targetLang): string|false
 
 function deeplTranslate(string $text, string $targetLang, string $apiKey): string|false
 {
-    $langMap = ['ja' => 'JA', 'zh-CN' => 'ZH'];
+    // DeepL 目标语言代码多为大写的 ISO 639-1；葡萄牙语要指明巴西变体（注册表的 pt 即 pt-BR）
+    $langMap = ['zh-CN' => 'ZH', 'pt' => 'PT-BR'];
     $target = $langMap[$targetLang] ?? strtoupper($targetLang);
 
     // 判断是免费版还是付费版
@@ -234,8 +239,7 @@ function deeplTranslate(string $text, string $targetLang, string $apiKey): strin
 
 function googleTranslate(string $text, string $targetLang, string $apiKey): string|false
 {
-    $langMap = ['ja' => 'ja', 'zh-CN' => 'zh-CN'];
-    $target = $langMap[$targetLang] ?? $targetLang;
+    $target = $targetLang;   // Google 直接认注册表代码（zh-CN、ja、pt…）
 
     $url = 'https://translation.googleapis.com/language/translate/v2?' . http_build_query([
         'key' => $apiKey,
@@ -254,8 +258,7 @@ function googleTranslate(string $text, string $targetLang, string $apiKey): stri
 
 function saveLangFile(string $file, string $lang, array $data): void
 {
-    $langNames = ['ja' => '日本語言語パック', 'zh-CN' => '中文语言包'];
-    $content = "<?php\n/**\n * YikaiCMS - " . ($langNames[$lang] ?? $lang) . "\n */\n\nreturn [\n";
+    $content = "<?php\n/**\n * YikaiCMS - " . LanguageRegistry::englishName($lang) . " language pack ({$lang})\n */\n\nreturn [\n";
 
     $currentGroup = '';
     foreach ($data as $key => $value) {
@@ -265,8 +268,8 @@ function saveLangFile(string $file, string $lang, array $data): void
             $currentGroup = $prefix;
             $content .= "\n";
         }
-        $escapedValue = str_replace("'", "\\'", $value);
-        $content .= "    '{$key}' => '{$escapedValue}',\n";
+        // var_export 同时转义反斜杠与引号：此前只转单引号，以反斜杠结尾的译文会写出语法错误的语言包
+        $content .= '    ' . var_export((string) $key, true) . ' => ' . var_export((string) $value, true) . ",\n";
     }
 
     $content .= "];\n";
