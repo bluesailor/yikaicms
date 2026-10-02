@@ -108,6 +108,10 @@ $adminTutorialUrl = match ((string) config('admin_lang', getLang())) {
         };
     })();
     </script>
+    <?php /* 上传前在浏览器里压缩图片：拦截 POST 到 /admin/upload.php 的 fetch（见 admin-upload-prep.js）。
+         须在上面的 CSRF 补丁之后、页尾的 _token 补丁之前加载，表单重建时才带上 _token。 */ ?>
+    <script src="<?php echo assetVer('/assets/js/blox-media-client.js'); ?>"></script>
+    <script src="<?php echo assetVer('/assets/js/admin-upload-prep.js'); ?>"></script>
     <link rel="stylesheet" href="<?php echo assetVer('/assets/css/admin.css'); ?>">
     <?php do_action('ik_admin_head'); ?>
 </head>
