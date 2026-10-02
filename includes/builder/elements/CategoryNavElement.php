@@ -80,13 +80,12 @@ final class CategoryNavElement extends AbstractElement
 
     public function render(array $data, string $children = ''): string
     {
-        $model = [];
         try {
             $model = self::buildModel($data);
         } catch (Throwable) {
             $model = [];
         }
-        if (($model['items'] ?? []) === []) {
+        if (!isset($model['root'], $model['items']) || $model['items'] === []) {
             // 前台没有可列的栏目时整块不出；编辑器里给一句说明，免得元素「消失」
             return BlockRenderer::$showHidden
                 ? '<div class="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500"' . $this->animationAttrs($data) . '>'
