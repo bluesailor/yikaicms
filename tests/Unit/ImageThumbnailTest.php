@@ -284,6 +284,8 @@ final class ImageThumbnailTest extends TestCase
         foreach ($minimumCalls as $template => $minimum) {
             $source = file_get_contents(ROOT_PATH . '/' . $template);
             $this->assertIsString($source);
+            // 相册照片网格自 2.0.4 起在共用片段里（page.php 与 album.php 共用）
+            if ($template === 'page.php') $source .= (string) file_get_contents(ROOT_PATH . '/includes/partials/album-photos.php');
             $this->assertGreaterThanOrEqual(
                 $minimum,
                 substr_count($source, 'responsiveImageAttributes('),

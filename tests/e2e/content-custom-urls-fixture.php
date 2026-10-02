@@ -32,6 +32,7 @@ if ($action === 'setup') {
     $m->assign('album', $album, '/albums/lab-equipment/', 'zh-CN');
     $m->assign('content_tag', $tag, '/tag/worm-gear/', 'zh-CN');
     $state = ['article' => $article, 'news' => (int) $news['id'], 'newsEn' => $newsEn, 'album' => $album, 'tag' => $tag, 'settings' => $settings];
+    settingModel()->rotateHtmlCacheGeneration();   // 命令行没挂缓存钩子：手动换代号，页面缓存与站点地图随之失效
     file_put_contents($file, json_encode($state, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
     echo json_encode($state, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 } elseif ($action === 'restore' && is_file($file)) {
@@ -45,5 +46,6 @@ if ($action === 'setup') {
     db()->delete('metas', 'id = ?', [$state['tag']]);
     db()->execute('UPDATE ' . DB_PREFIX . 'contents SET tags = ? WHERE id = ?', [(string) $state['article']['tags'], (int) $state['article']['id']]);
     settingModel()->saveBatch($state['settings']);
+    settingModel()->rotateHtmlCacheGeneration();
     unlink($file);
 } else throw new RuntimeException('Invalid action');

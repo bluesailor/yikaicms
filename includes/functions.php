@@ -1467,11 +1467,24 @@ function channelPrettyUrl(array $channel): string
     return $custom !== '' ? $custom : channelDefaultPrettyUrl($channel);
 }
 
+/**
+ * 某行数据（栏目 / 内容 / 产品）自己的语言前缀：站点地图、语言切换等一次列出多种语言时，
+ * 英文行要带 /en（此前一律按当前显示语言，英文条目在站点地图里指向了中文页）。
+ * 行没带 lang、或该语言没在「已启用语言」里明确列出时，按当前显示语言（老库列默认可能残留错值）。
+ */
+function rowLangPrefix(array $row): string
+{
+    $lang = (string) ($row['lang'] ?? '');
+    if ($lang === '' || $lang === displayLang()) return langPrefix();
+    $enabled = json_decode((string) config('enabled_languages', ''), true);
+    return is_array($enabled) && in_array($lang, $enabled, true) ? langPrefix($lang) : langPrefix();
+}
+
 /** 栏目不看登记网址时的默认美化地址（/{slug}.html 等）；登记网址冲突检查用它。 */
 function channelDefaultPrettyUrl(array $channel): string
 {
 
-    $prefix = langPrefix();
+    $prefix = rowLangPrefix($channel);
     $slug = (string) ($channel['slug'] ?? '');
     if ($slug === '') {
         if ($channel['type'] === 'page') {
@@ -1701,7 +1714,7 @@ function contentPrettyUrl(array $content): string
 /** 内容不看登记网址时的默认美化地址（/news/article/{slug}.html 等）。 */
 function contentDefaultPrettyUrl(array $content): string
 {
-    $prefix = langPrefix();
+    $prefix = rowLangPrefix($content);
     // 存量别名可能含中文/空格（新别名经 normalizeSlugInput 后转义是恒等变换）——
     // 不转义会产出坏链接，且 sitemap 与页面链接同源于此
     $slug = rawurlencode((string) ($content['slug'] ?? ''));
@@ -1800,7 +1813,7 @@ function productPrettyUrl(array $product): string
 {
     $custom = productRouteModel()->pathFor('product', (int) ($product['id'] ?? 0));
     if ($custom !== '') return $custom;
-    $prefix = langPrefix();
+    $prefix = rowLangPrefix($product);
     // 同 channelPrettyUrl/contentPrettyUrl：存量别名可能需要转义
     $slug = rawurlencode((string) ($product['slug'] ?? ''));
     $categorySlug = rawurlencode((string) ($product['category_slug'] ?? ''));
