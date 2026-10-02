@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $data['slug'] = resolveSlug($data['slug'], $data['title'], 'contents', $id);
 
-    // 发布时间与定时发布：以发布时间为准（未来时间自动转为定时，已过的定时直接发布）
+    // 发布状态以用户选择为准：已发布即上线（未来时间只作显示日期）、定时到点上线、草稿不上线
     require_once ROOT_PATH . '/includes/ScheduledPublish.php';
     try {
         $sched = ScheduledPublish::normalize((int) $data['status'], (string) post('publish_time'), (int) ($article['publish_time'] ?? 0));
@@ -289,7 +289,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                     <script>
                     (function () {
-                        // 与保存规则一致：定时需要时间；「已发布」配未来时间会自动转为定时，提前说明
+                        // 与保存规则一致：定时需要时间；「已发布」配未来时间仍立即上线，提示想到点上线就选「定时发布」
                         var sel = document.getElementById('publishStatus');
                         var time = document.getElementById('publishTime');
                         var hint = document.getElementById('publishTimeHint');

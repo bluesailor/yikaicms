@@ -183,6 +183,34 @@ final class I18nPipelineTest extends TestCase
         self::assertFileDoesNotExist($this->root . '/lang/fr.php');
     }
 
+    /** 占位符只认名字（{site_name}、{loop.title}、{code,msg,data}）；文案里的 JSON 示例要翻译，不算占位符 */
+    public function testJsonExamplesAreNotPlaceholders(): void
+    {
+        self::assertSame([], I18nPipeline::placeholders('JSON 格式: {"red":"红色","blue":"蓝色"}'));
+        self::assertSame(['%s', ':name', '{code,msg,data}', '{loop.title}', '{site_name}', '{year}'],
+            I18nPipeline::placeholders('© {year} {site_name} · {loop.title} {code,msg,data} :name %s'));
+    }
+
+    /** 英文参考自己就保留了汉字（运行时要匹配的地区名等数据）：译文保留汉字不算没译完；其余仍禁止汉字 */
+    public function testChineseDataValuesMayStayWhenEnglishKeepsThem(): void
+    {
+        $this->pack('lang/zh-CN.php', ['ship_regions_ph' => "新疆维吾尔自治区 = 20.00", 'ship_title' => '运费']);
+        $this->pack('lang/en.php', ['ship_regions_ph' => "新疆维吾尔自治区 = 20.00", 'ship_title' => 'Shipping']);
+        $p = new I18nPipeline($this->root);
+        $p->export('es', ['core'], 'ship_', 10, $this->root . '/out');
+        $exported = $this->root . '/out/es-core-001.jsonl';
+        $rows = array_map(static function (array $row): array {
+            unset($row['_line']);
+            $row['text'] = $row['key'] === 'ship_title' ? 'Envío' : $row['zh'];
+            return $row;
+        }, I18nPipeline::readJsonl($exported));
+        self::assertSame([], $p->validate('es', $exported, $this->writeJsonl('ok.jsonl', $rows))['errors']);
+        self::assertSame([], $p->merge('es', [$this->writeJsonl('ok.jsonl', $rows)])['rejected']);
+
+        $rows[1]['text'] = '运费';
+        self::assertStringContainsString('Chinese characters left', implode("\n", $p->validate('es', $exported, $this->writeJsonl('bad.jsonl', $rows))['errors']));
+    }
+
     /** 英文参考为空串的拆分标签（第 / 页 → Page / ''）可以译成空串，合入后算已译、不再导出；其他键仍不许空 */
     public function testEmptyTranslationOnlyWhereEnglishIsEmpty(): void
     {

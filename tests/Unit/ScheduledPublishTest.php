@@ -1,6 +1,7 @@
 <?php
 /**
- * 定时发布 / 定时上架（2.0.3）：保存规则以发布时间为准，到点由 sweep() 上线。
+ * 定时发布 / 定时上架（2.0.3）：到点由 sweep() 上线。
+ * 2.0.4 起保存规则以用户选的状态为准：已发布即上线（未来时间只作显示日期），定时才看时间。
  * 产品的上架时间存在 metas（不给 products 加列，整站模板包按表结构精确比对）。
  */
 
@@ -27,10 +28,22 @@ final class ScheduledPublishTest extends TestCase
         ScheduledPublish::normalize(3, '', 0, self::NOW);
     }
 
-    public function testPublishedWithAFutureTimeBecomesScheduled(): void
+    /** 客户预期：选「已发布」就是马上上线，未来时间只是文章显示的日期，不替用户改成定时 */
+    public function testPublishedWithAFutureTimeStaysPublished(): void
     {
         $future = date('Y-m-d\TH:i', self::NOW + 86400);
-        self::assertSame(['status' => 3, 'publish_time' => strtotime($future)], ScheduledPublish::normalize(1, $future, 0, self::NOW));
+        self::assertSame(['status' => 1, 'publish_time' => strtotime($future)], ScheduledPublish::normalize(1, $future, 0, self::NOW));
+        self::assertSame(['status' => 1, 'publish_time' => strtotime($future)], ScheduledPublish::normalize(1, $future, 1_700_000_000, self::NOW));
+    }
+
+    /** 三个编辑页（文章、产品、通用内容）共用这一条规则，不各写一份 */
+    public function testEveryEditorUsesTheSharedRule(): void
+    {
+        foreach (['admin/article_edit.php', 'admin/product_edit.php', 'admin/content_edit.php'] as $file) {
+            $src = (string) file_get_contents(ROOT_PATH . '/' . $file);
+            self::assertStringContainsString('ScheduledPublish::normalize(', $src, $file);
+            self::assertDoesNotMatchRegularExpression("/\\\$data\\['status'\\]\\s*=\\s*3\\s*;/", $src, "{$file} 不应自己把状态改成定时");
+        }
     }
 
     public function testPublishedWithoutATimeKeepsTheOldOneOrUsesNow(): void
