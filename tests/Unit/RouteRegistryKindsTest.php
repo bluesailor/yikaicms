@@ -119,6 +119,18 @@ final class RouteRegistryKindsTest extends TestCase
         self::assertSame('/shared-slug/', $m->assign('content', $b, '/shared-slug/', 'zh-CN'), '删除后网址释放给别的条目');
     }
 
+    public function testPathOfAHardDeletedEntityCanBeReclaimed(): void
+    {
+        $m = new ProductRouteModel();
+        $a = $this->insertRow('albums', ['name' => 'Old']);
+        $b = $this->insertRow('channels', ['name' => 'New', 'slug' => 'new-page']);
+        $m->assign('album', $a, '/gallery/', 'zh-CN');
+        db()->execute('DELETE FROM albums WHERE id = ?', [$a]);
+        self::assertSame('/gallery/', $m->assign('channel', $b, '/gallery/', 'zh-CN'));
+        self::assertSame('', $m->pathFor('album', $a));
+        self::assertSame('channel', $m->resolve('/gallery/')['kind']);
+    }
+
     public function testChannelMaySetItsOwnDefaultHtmlPathButNotAnothersOne(): void
     {
         $m = new ProductRouteModel();

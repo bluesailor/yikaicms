@@ -30,6 +30,7 @@ if (PHP_SAPI !== 'cli' && LanguageDomains::currentLanguage() !== null && !header
 // 以及 renderAdminLangSwitcher / loadTransStatus / renderTransPills
 // 让 admin 页面顶部即可调用，无需各页自行 require
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+require_once ROOT_PATH . '/admin/includes/custom_url.php';   // 编辑页「自定义网址」输入框（WordPress 迁移）
 
 // 初始化语言
 initLang();

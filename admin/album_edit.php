@@ -57,6 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $data['slug'] = resolveSlug($data['slug'] ?? '', $data['name'], 'albums', $id);
+    $_urlLang = (string) ($album['lang'] ?? config('site_lang', 'zh-CN'));
+    $customUrl = customUrlPrecheck('album', $id, $_urlLang);
 
     if ($id > 0) {
         albumModel()->updateById($id, $data);
@@ -78,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         adminLog('album', 'create', '创建相册：' . $data['name']);
     }
+    customUrlSave('album', (int) $id, $customUrl, $_urlLang);
 
     success(['id' => $id]);
 }
@@ -112,6 +115,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                        class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                        placeholder="<?php echo e(__('albume_slug_ph')); ?>">
                 <p class="text-xs text-gray-400 mt-1"><?php echo e(__('albume_slug_tip')); ?></p>
+                <?php echo customUrlField('album', $id, '/albums/lab-equipment/', 'w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary'); ?>
             </div>
 
             <?php /* 封面图 */ ?>
