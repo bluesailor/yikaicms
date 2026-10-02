@@ -559,12 +559,7 @@ if ($isHomeBlox) {
             }
             $pageLanguageVersions[] = [
                 'code' => $languageCode,
-                'short' => match ($languageCode) {
-                    'zh-CN' => 'ZH',
-                    'en' => 'EN',
-                    'ja' => 'JA',
-                    default => strtoupper(substr($languageCode, 0, 3)),
-                },
+                'short' => LanguageRegistry::shortLabel($languageCode),
                 'label' => $languageLabel,
                 'id' => (int) ($translationRow['id'] ?? 0),
                 'current' => $languageCode === (string) ($page['lang'] ?? siteLang()),

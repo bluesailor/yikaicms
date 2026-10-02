@@ -582,7 +582,7 @@ function ykPickChannelIcon(name) {
 <div class="bg-white rounded-lg shadow mb-4 px-5 py-3 flex items-center gap-3 flex-wrap text-sm">
     <span class="text-gray-500"><?php echo e(__('admin_view_lang')); ?></span>
     <?php
-    $_langLabels = ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語'];
+    $_langLabels = availableLanguages();
     foreach ($_enabledList as $_lc):
         $_label = $_langLabels[$_lc] ?? $_lc;
         $_isCurrent = ($_lc === $_viewLang);

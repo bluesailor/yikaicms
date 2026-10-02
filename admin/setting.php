@@ -90,8 +90,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'save_admin_languages') {
         verifyCsrf();
         $val = trim((string)($_POST['admin_languages'] ?? ''));
-        // 仅允许 lang/*.php 实际存在的语言，去重，按 availableLanguages() 顺序
-        $allowed = array_keys(availableLanguages());
+        // 仅允许后台能显示的已装语言（见 adminLanguages），去重，按其顺序
+        $allowed = array_keys(adminLanguages());
         $list = array_values(array_intersect($allowed, array_filter(array_map('trim', explode(',', $val)))));
         if ($list === []) error(__('sset_keep_one_lang'));
         settingModel()->set('admin_languages', implode(',', $list));
@@ -133,6 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_array($settings)) error(__('admin_bad_params'), 422);
     verifyCsrf();
     if (array_key_exists('url_mode', $settings)) checkUrlModeChange($settings['url_mode']);
+    // 顶栏语言切换器走这里：只收后台能显示的已装语言
+    if (array_key_exists('admin_lang', $settings)
+        && (!is_string($settings['admin_lang']) || !isset(adminLanguages()[$settings['admin_lang']]))) {
+        error(__('admin_bad_params'), 422);
+    }
     if (array_key_exists('motion_intensity', $settings)
         && !in_array($settings['motion_intensity'], BloxMotion::LEVELS, true)) {
         error(__('admin_bad_params'), 422);
@@ -479,7 +484,8 @@ async function saveSiteLanguages() {
 $adminLangsRaw = trim((string)config('admin_languages', ''));
 $adminLangsCurrent = $adminLangsRaw !== ''
     ? array_filter(array_map('trim', explode(',', $adminLangsRaw)))
-    : array_keys(availableLanguages());
+    : array_keys(adminLanguages());
+$_adminLangsForUI = adminLanguages();
 ?>
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="px-6 py-4 border-b">
@@ -487,7 +493,7 @@ $adminLangsCurrent = $adminLangsRaw !== ''
         <p class="text-xs text-gray-500 mt-1"><?php echo e(__('sset_admin_langs_tip')); ?></p>
     </div>
     <div class="p-6 flex items-center gap-6">
-        <?php foreach ($_allLangsForUI as $code => $label): ?>
+        <?php foreach ($_adminLangsForUI as $code => $label): ?>
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" name="admin_langs[]" value="<?php echo e($code); ?>"
                        <?php echo in_array($code, $adminLangsCurrent, true) ? 'checked' : ''; ?>>

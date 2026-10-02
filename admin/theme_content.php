@@ -42,7 +42,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php if ($errorMessage !== ''): ?><p role="alert" class="bg-red-50 text-red-700 p-4 rounded"><?= e($errorMessage) ?></p><?php endif; ?>
     <?php if ($notice): ?><p role="status" class="bg-green-50 text-green-700 p-4 rounded"><?= e(__('tc_saved')) ?></p><?php endif; ?>
     <nav aria-label="<?= e(__('tc_language')) ?>" class="flex flex-wrap gap-3">
-        <?php foreach (['zh-CN' => '简体中文', 'en' => 'English', 'ja' => '日本語'] as $code => $name): ?>
+        <?php $tcLanguages = enabledLanguages(); if (!isset($tcLanguages[$language])) $tcLanguages[$language] = availableLanguages()[$language] ?? LanguageRegistry::name($language); ?>
+        <?php foreach ($tcLanguages as $code => $name): ?>
         <a class="border rounded px-4 py-3 <?= $code === $language ? 'bg-primary text-white' : '' ?>" href="?lang=<?= e($code) ?>" <?= $code === $language ? 'aria-current="page"' : '' ?>><?= e($name) ?></a>
         <?php endforeach; ?>
     </nav>

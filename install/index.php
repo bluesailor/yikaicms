@@ -13,6 +13,7 @@ require_once dirname(__DIR__) . '/includes/php_guard.php';
 // 定义安装目录
 define('INSTALL_PATH', __DIR__);
 define('ROOT_PATH', dirname(__DIR__));
+require_once ROOT_PATH . '/includes/i18n/LanguageRegistry.php';   // 语言名称与可选范围：单一来源
 // 子目录部署：安装器不经 init.php，挂载点要在这里自己挂——页面里的 /assets/…、/admin/
 // 与跳转地址才会带上目录前缀（根目录安装时为空操作）
 require_once ROOT_PATH . '/includes/BasePath.php';
@@ -47,9 +48,16 @@ if (file_exists(ROOT_PATH . '/installed.lock')) {
     }
 }
 
-// ─── 安装向导界面语言（zh / ja / en） ───────────────────────────
+// ─── 安装向导界面语言（扫 install/lang/*.php；目前 zh / ja / en） ───────────
 // 优先级: ?install_lang=  > cookie  > Accept-Language 自动嗅探  > zh
-$supportedLangs = ['zh' => '简体中文', 'ja' => '日本語', 'en' => 'English'];
+// 向导包用短代码 zh，对应注册表的 zh-CN；名称取注册表，简体中文排第一
+$supportedLangs = ['zh' => LanguageRegistry::name('zh-CN')];
+foreach (glob(__DIR__ . '/lang/*.php') ?: [] as $_wizardFile) {
+    $_wizardCode = basename($_wizardFile, '.php');
+    if ($_wizardCode !== 'zh' && LanguageRegistry::has($_wizardCode)) {
+        $supportedLangs[$_wizardCode] = LanguageRegistry::name($_wizardCode);
+    }
+}
 
 function detectInstallLang(array $supported): string
 {
@@ -112,6 +120,25 @@ function pickAcceptLanguage(string $header, array $supported): ?string
 
 $lang = detectInstallLang($supportedLangs);
 $L = require INSTALL_PATH . "/lang/{$lang}.php";
+
+/**
+ * 第 3 步可选的站点 / 后台语言（代码 => 本族语名）：注册过且装了 lang/<code>.php 的语言。
+ * 后台另外排除繁体（前台简→繁渲染视图，后台不转换）与从右到左的语言（后台无 RTL 布局），
+ * 与 includes/functions.php 的 adminLanguages() 口径一致。
+ *
+ * @return array<string,string>
+ */
+function installerLangOptions(bool $forAdmin): array
+{
+    $options = [];
+    foreach (glob(ROOT_PATH . '/lang/*.php') ?: [] as $file) {
+        $code = basename($file, '.php');
+        if (!LanguageRegistry::has($code)) continue;
+        if ($forAdmin && ($code === 'zh-TW' || LanguageRegistry::isRtl($code))) continue;
+        $options[$code] = LanguageRegistry::name($code);
+    }
+    return $options !== [] ? $options : ['zh-CN' => LanguageRegistry::name('zh-CN')];
+}
 
 // 把简短的安装向导语言映射到 CMS 内部的标签（zh→zh-CN，其它原样）
 function installerLangToSiteLang(string $l): string
@@ -387,15 +414,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 exit;
             }
 
-            // 校验范围：lang/*.php 实际存在的 code（扫文件，扩展时无需改代码）
-            $_installerSupported = [];
-            foreach (glob(dirname(__DIR__) . '/lang/*.php') ?: [] as $_f) {
-                $_c = basename($_f, '.php');
-                if (strpos($_c, 'dict-') !== 0) $_installerSupported[] = $_c;
-            }
-            if (empty($_installerSupported)) $_installerSupported = ['zh-CN', 'ja', 'en'];
-            $siteLang  = in_array($_POST['site_lang'] ?? '', $_installerSupported, true) ? $_POST['site_lang'] : 'zh-CN';
-            $adminLang = in_array($_POST['admin_lang'] ?? '', $_installerSupported, true) ? $_POST['admin_lang'] : 'zh-CN';
+            // 校验范围与第 3 步下拉框同源（installerLangOptions）
+            $_siteChoices  = installerLangOptions(false);
+            $_adminChoices = installerLangOptions(true);
+            $siteLang  = is_string($_POST['site_lang'] ?? null) && isset($_siteChoices[$_POST['site_lang']]) ? $_POST['site_lang'] : 'zh-CN';
+            $adminLang = is_string($_POST['admin_lang'] ?? null) && isset($_adminChoices[$_POST['admin_lang']]) ? $_POST['admin_lang'] : 'zh-CN';
             $installDemo = !empty($_POST['install_demo']);
             // 初始场景预设功能 v1.7.4 移除（装完后台 → 外观 → 场景预设 操作）
 
@@ -1085,16 +1108,9 @@ window.ykWarnIfDbExposed = function (container, message) {
                     <?php /* 前台/后台语言选择（默认跟随当前安装向导语言；扫 lang/*.php 自动发现可选项） */ ?>
                     <?php
                     $defaultSite = installerLangToSiteLang($lang);
-                    $_installerLangLabels = ['zh-CN' => '简体中文', 'ja' => '日本語', 'en' => 'English', 'ko' => '한국어', 'fr' => 'Français', 'de' => 'Deutsch', 'es' => 'Español'];
-                    $siteLangOptions = [];
-                    foreach (glob(dirname(__DIR__) . '/lang/*.php') ?: [] as $_f) {
-                        $_code = basename($_f, '.php');
-                        if (strpos($_code, 'dict-') === 0) continue;
-                        $siteLangOptions[$_code] = $_installerLangLabels[$_code] ?? $_code;
-                    }
-                    if (empty($siteLangOptions)) {
-                        $siteLangOptions = ['zh-CN' => '简体中文', 'ja' => '日本語', 'en' => 'English'];
-                    }
+                    $siteLangOptions  = installerLangOptions(false);
+                    $adminLangOptions = installerLangOptions(true);
+                    $defaultAdmin = isset($adminLangOptions[$defaultSite]) ? $defaultSite : 'zh-CN';
                     ?>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
@@ -1111,8 +1127,8 @@ window.ykWarnIfDbExposed = function (container, message) {
                         <div>
                             <label class="block text-gray-700 mb-1"><?php echo $L['admin_lang_label']; ?></label>
                             <select name="admin_lang" class="w-full border rounded px-3 py-2 bg-white">
-                                <?php foreach ($siteLangOptions as $code => $name): ?>
-                                <option value="<?php echo $code; ?>" <?php echo $code === $defaultSite ? 'selected' : ''; ?>>
+                                <?php foreach ($adminLangOptions as $code => $name): ?>
+                                <option value="<?php echo $code; ?>" <?php echo $code === $defaultAdmin ? 'selected' : ''; ?>>
                                     <?php echo $name; ?>
                                 </option>
                                 <?php endforeach; ?>
