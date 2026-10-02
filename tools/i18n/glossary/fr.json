@@ -11,7 +11,7 @@
   "表单": "Formulaire",
   "会员": "Membre",
   "管理员": "Administrateur",
-  "后台": "panneau d'administration",
+  "后台": "panneau d’administration",
   "前台": "site web",
   "媒体库": "Médiathèque",
   "轮播图": "Carrousel",
@@ -46,10 +46,10 @@
   "授权": "Licence",
   "注册码": "Clé de licence",
   "专业版": "Pro",
-  "伪静态": "Réécriture d'URL",
+  "伪静态": "Réécriture d’URL",
   "别名": "Slug",
   "多语言": "Multilingue",
-  "在线客服": "Discussion en direct",
+  "在线客服": "Assistance en ligne",
   "合作伙伴": "Partenaires",
   "发展历程": "Histoire",
   "商城": "Boutique",
@@ -57,5 +57,5 @@
   "订单": "Commande",
   "退款": "Remboursement",
   "运费": "Frais de livraison",
-  "备案号": "numéro d'enregistrement ICP"
+  "备案号": "numéro d’enregistrement ICP"
 }
