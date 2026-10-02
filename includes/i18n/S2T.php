@@ -26,12 +26,34 @@ final class S2T
     /** @var array{p1: array<string,string>, p2: array<string,string>}|null */
     private static ?array $maps = null;
 
+    /** 繁体语言包插件的目录名（插件市场 slug） */
+    public const PACK_PLUGIN = 'zh-tw';
+
+    /**
+     * 映射表文件：2.0.4 前安装的站点核心目录里自带一份（升级不删）；之后的安装包不再自带，
+     * 由「繁體中文語言包」插件提供。两处都没有时返回 null，繁体页面按简体原样输出。
+     */
+    public static function mapsFile(): ?string
+    {
+        $candidates = [__DIR__ . '/s2t_maps.php', dirname(__DIR__, 2) . '/plugins/' . self::PACK_PLUGIN . '/s2t_maps.php'];
+        foreach ($candidates as $file) {
+            if (is_file($file)) return $file;
+        }
+        return null;
+    }
+
+    /** 是否装有转换表（后台据此提示安装语言包） */
+    public static function available(): bool
+    {
+        return self::mapsFile() !== null;
+    }
+
     /** 懒加载映射表（p1 简→繁，p2 繁→台湾用词） */
     private static function maps(): array
     {
         if (self::$maps === null) {
-            $file = __DIR__ . '/s2t_maps.php';
-            $m = is_file($file) ? require $file : null;
+            $file = self::mapsFile();
+            $m = $file !== null ? require $file : null;
             self::$maps = (is_array($m) && isset($m['p1'], $m['p2']))
                 ? $m : ['p1' => [], 'p2' => []];
         }

@@ -239,6 +239,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php if (empty($allLangs)): ?>
                 <p class="text-gray-400 text-sm text-center py-4"><?php echo e(__('slang_no_packs')); ?></p>
                 <?php endif; ?>
+                <?php require_once ROOT_PATH . '/admin/includes/s2t_pack_notice.php'; renderS2TPackNotice(in_array('zh-TW', (array) $enabledLangs, true)); ?>
             </div>
         </div>
 

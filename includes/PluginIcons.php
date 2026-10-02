@@ -34,6 +34,7 @@ final class PluginIcons
         'yikai-builder' => 'ti-layout-dashboard',
         'shop' => 'ti-shopping-bag',
         'stay-inquiry' => 'ti-home-question',
+        'zh-tw' => 'ti-language',
     ];
 
     public static function valid(mixed $icon): bool

@@ -162,8 +162,7 @@ mkdir -p "$RELEASE_DIR"
 
 # ---- 复制文件（当前工作树源码）----
 # tracked + 未忽略的新文件构成当前源码；再过滤已从工作树移走但索引尚未提交删除的路径。
-# 后续 EXCLUDES 仍负责剔除 tests、marketplace、开发工具等。仅明确列入
-# BUNDLED_THEMES 的市场主题会复制到运行包的 themes/ 目录。
+# 后续 EXCLUDES 仍负责剔除 tests、marketplace、开发工具等。
 echo "[1/5] 复制项目文件（当前工作树源码）..."
 FILE_LIST="$TMP_DIR/worktree-files.list"
 : > "$FILE_LIST"
@@ -194,22 +193,8 @@ for scope in core runtime; do
     done < <(php "bin/blox-assets.php" list "$scope")
 done
 
-# 新安装默认提供三套模板：default 来自 themes/default；Business、Minimal 的
-# 唯一源码仍在 marketplace/themes。这里只复制到完整包的运行目录，避免仓库里
-# 再维护一份容易漂移的副本。在线升级会保护所有非 default 主题，不覆盖客户修改。
-BUNDLED_THEMES=("business" "minimal")
-for theme in "${BUNDLED_THEMES[@]}"; do
-    source_dir="$ROOT_DIR/marketplace/themes/$theme"
-    target_dir="$PKG_DIR/themes/$theme"
-    if [ ! -f "$source_dir/theme.json" ] \
-        || [ ! -f "$source_dir/layouts/header.php" ] \
-        || [ ! -f "$source_dir/layouts/footer.php" ]; then
-        echo "Error: 预装模板不完整: $theme"
-        exit 1
-    fi
-    mkdir -p "$target_dir"
-    cp -a "$source_dir/." "$target_dir/"
-done
+# 2.0.4 起安装包只带 Default 模板：Business、Minimal（源码在 marketplace/themes）改由主题市场
+# 按需安装，包小约 760KB、少约 50 个文件。在线升级保护所有非 default 主题，存量站已装的不受影响。
 
 # 缓存命名空间随每个全量/增量发行包变化。HtmlCache 将它纳入缓存键，部署覆盖后
 # 自动绕开上一版 HTML；同版本手工热修仍需执行 php bin/yikai.php cache:clear。
@@ -321,9 +306,15 @@ EXCLUDES=(
     # dologin（易登录）2026-09-17 产品决定不随核心预装：走插件市场按需安装。
     # 核心只保留 dologin_links 表与模型（安装 SQL / 迁移），存量站已装的插件不受影响（增量包不删 plugins/）。
     "plugins/dologin"
+    # shop（商城）2.0.4 起只在插件市场提供：多数企业站不做在线交易。整站模板需要它时，
+    # 导入向导的「一并安装所需插件」会从市场装上（SiteTemplateService::installRequiredPlugins）。
+    "plugins/shop"
+    # 繁體中文語言包：简→繁转换表约 1MB，开启繁体的站点才需要；核心的 includes/i18n/s2t_maps.php
+    # 同样不随包（存量站保留旧文件，S2T 两处都找）。语言设置页会提示到插件市场安装。
+    "plugins/zh-tw"
+    "includes/i18n/s2t_maps.php"
 
-    # 主题市场源码目录本身不进入运行包。Business、Minimal 会在上面的显式步骤中
-    # 复制到 themes/ 作为新安装预装模板；Aurora、Trade 仍由主题市场签名分发。
+    # 主题市场源码目录本身不进入运行包；Business、Minimal 由主题市场签名分发。
     "marketplace"
 
     # Blox 资产由 config/blox-assets.json 单一登记。core/runtime 随免费包，pro 排除。
@@ -352,6 +343,29 @@ done < <(php "bin/blox-assets.php" list pro)
 for item in "${EXCLUDES[@]}"; do
     rm -rf "$PKG_DIR/$item"
 done
+
+# HugeRTE 只带编辑器实际启用的插件和默认皮肤（2.0.4 瘦身：随包 29 个插件、4 套界面皮肤）。
+# 仓库里保留完整发行版；某处 hugerte.init 新增插件或改 skin 时同步这里——
+# tests/Unit/RichEditorDependencyContractTest.php 会核对配置与清单一致。
+HUGERTE_PLUGINS=(anchor autolink charmap code codesample fullscreen help image insertdatetime link lists media preview quickbars searchreplace table visualblocks wordcount)
+HUGERTE_DIR="$PKG_DIR/assets/hugerte"
+for plugin_dir in "$HUGERTE_DIR"/plugins/*/; do
+    plugin_name="$(basename "$plugin_dir")"
+    plugin_keep=0
+    for wanted in "${HUGERTE_PLUGINS[@]}"; do
+        if [ "$plugin_name" = "$wanted" ]; then plugin_keep=1; break; fi
+    done
+    [ "$plugin_keep" = "1" ] || rm -rf "$plugin_dir"
+done
+for wanted in "${HUGERTE_PLUGINS[@]}"; do
+    if [ ! -f "$HUGERTE_DIR/plugins/$wanted/plugin.min.js" ]; then
+        echo "Error: HugeRTE 缺少编辑器用到的插件: $wanted"
+        exit 1
+    fi
+done
+# 界面皮肤 oxide、内容样式 default 是 HugeRTE 的默认值（各 init 都没设 skin / content_css）
+find "$HUGERTE_DIR/skins/ui" -mindepth 1 -maxdepth 1 -type d ! -name oxide -exec rm -rf {} +
+find "$HUGERTE_DIR/skins/content" -mindepth 1 -maxdepth 1 -type d ! -name default -exec rm -rf {} +
 
 # 被核心包排除的路径从未随核心包分发：市场插件（logo-maker、seo、dologin…）、Pro 资产
 # 只可能是站点自行安装的。它们在仓库里删改时，增量包不得删除客户站点上的同名文件。

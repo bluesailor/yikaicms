@@ -97,20 +97,66 @@ final class RichEditorDependencyContractTest extends TestCase
     /** 两个编辑器入口用到的插件都得随包，缺一个编辑器就起不来。 */
     public function testEveryConfiguredPluginShips(): void
     {
-        $sources = $this->source('admin/includes/footer.php')
-            . $this->source('admin/blox_editor/partials/media-editing-methods.php')
-            . $this->source('assets/js/blox-compact-richtext.js');
+        $sources = $this->editorInitSources();
         preg_match_all("/plugins:\s*[\"']([a-z ]+)[\"']/", $sources, $m);
         self::assertNotEmpty($m[1], '没解析到插件清单');
         $plugins = array_unique(array_merge(...array_map(
             static fn (string $list): array => preg_split('/\s+/', trim($list)) ?: [],
             $m[1]
         )));
+        // 发行包按 build.sh 的 HUGERTE_PLUGINS 裁剪插件目录
+        self::assertSame(1, preg_match('/^HUGERTE_PLUGINS=\(([a-z ]+)\)$/m', $this->source('build.sh'), $bundled));
+        $bundled = preg_split('/\s+/', trim($bundled[1])) ?: [];
         foreach ($plugins as $plugin) {
             self::assertFileExists(
                 ROOT_PATH . '/assets/hugerte/plugins/' . $plugin . '/plugin.min.js',
                 "编辑器配置用到的插件 {$plugin} 没随包"
             );
+            self::assertContains($plugin, $bundled, "插件 {$plugin} 不在 build.sh 的 HUGERTE_PLUGINS 里，发行包会裁掉它");
         }
+    }
+
+    /** 发行包只留默认皮肤（oxide / default）：哪个编辑器改了 skin 或 content_css，build.sh 要同步 */
+    public function testEditorsUseTheBundledDefaultSkin(): void
+    {
+        $sources = $this->editorInitSources();
+        self::assertDoesNotMatchRegularExpression('/\bskin(_url)?\s*:/', $sources);
+        self::assertDoesNotMatchRegularExpression('/\bcontent_css\s*:\s*["\']/', $sources);
+        $build = $this->source('build.sh');
+        self::assertStringContainsString('! -name oxide', $build);
+        self::assertStringContainsString('! -name default', $build);
+    }
+
+    /** 所有调用 hugerte.init 的入口（testEveryHugeRteInitIsListed 守住清单完整） */
+    private function editorInitSources(): string
+    {
+        return implode("\n", array_map(fn (string $path): string => $this->source($path), self::INIT_SOURCES));
+    }
+
+    private const INIT_SOURCES = [
+        'admin/blox_editor/partials/media-editing-methods.php',
+        'admin/includes/footer.php',
+        'assets/js/blox-compact-richtext.js',
+        'assets/js/footer-content-editor.js',
+    ];
+
+    public function testEveryHugeRteInitIsListed(): void
+    {
+        $found = [];
+        foreach (['admin', 'assets/js', 'includes', 'plugins', 'themes', 'marketplace'] as $dir) {
+            if (!is_dir(ROOT_PATH . '/' . $dir)) continue;
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(ROOT_PATH . '/' . $dir, \FilesystemIterator::SKIP_DOTS));
+            foreach ($iterator as $file) {
+                $path = str_replace('\\', '/', substr((string) $file, strlen(ROOT_PATH) + 1));
+                if (!preg_match('/\.(php|js)$/', $path) || str_contains($path, '.min.')) {
+                    continue;
+                }
+                if (preg_match('/\b(hugerte|tiny)\.init\(/', (string) file_get_contents((string) $file))) {
+                    $found[] = $path;
+                }
+            }
+        }
+        sort($found);
+        self::assertSame(self::INIT_SOURCES, $found, '新的 hugerte.init 入口：加进 INIT_SOURCES，并核对 build.sh 的 HUGERTE_PLUGINS');
     }
 }
