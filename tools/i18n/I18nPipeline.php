@@ -28,6 +28,14 @@ final class I18nPipeline
     /** 译文中允许出现汉字的语言 */
     private const HAN_ALLOWED = ['ja', 'zh-CN', 'zh-TW'];
     private const BRAND = ['YikaiCMS', 'Yikai', 'Blox', 'SEO', 'URL', 'API', 'HTML', 'CSS', 'PHP', 'SMTP', 'Logo', 'ID', 'OK'];
+    /**
+     * 与英文参考一字不差的行占比：超过 WARN 提示，超过 ERROR 整片不合格。
+     * 2026-10-02 第一次外包翻译交回的分片 83% 是照抄英文（脚本「词典替换 + 其余抄英文」），
+     * 只给警告时「0 错误」照样能合入。样本太小（不足 MIN 行可比）不判，避免小分片误伤。
+     */
+    private const ENGLISH_COPY_WARN = 0.03;
+    private const ENGLISH_COPY_ERROR = 0.15;
+    private const ENGLISH_COPY_MIN = 10;
     /** 键名前缀 → 页面提示，帮助翻译模型判断语境 */
     private const NOTES = [
         'blox_' => 'Blox visual page builder (admin)',
@@ -299,8 +307,11 @@ final class I18nPipeline
                 }
             }
         }
-        if ($comparable > 0 && $sameAsEnglish / $comparable > 0.03) {
-            $warnings[] = sprintf('%d of %d lines are identical to English (%.1f%%); check they were translated', $sameAsEnglish, $comparable, 100 * $sameAsEnglish / $comparable);
+        [$copyError, $copyWarning] = self::englishCopyVerdict($sameAsEnglish, $comparable);
+        if ($copyError !== null) {
+            $errors[] = $copyError;
+        } elseif ($copyWarning !== null) {
+            $warnings[] = $copyWarning;
         }
         return ['errors' => $errors, 'warnings' => $warnings, 'rows' => count($input)];
     }
@@ -319,6 +330,20 @@ final class I18nPipeline
     {
         preg_match_all('#<\s*(/?)\s*([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>#', $text, $m, PREG_SET_ORDER);
         return array_map(static fn(array $t): string => $t[1] . strtolower($t[2]), $m);
+    }
+
+    /** @return array{0:?string,1:?string} [错误, 警告] */
+    private static function englishCopyVerdict(int $same, int $comparable): array
+    {
+        if ($comparable === 0) {
+            return [null, null];
+        }
+        $ratio = $same / $comparable;
+        $message = sprintf('%d of %d lines are identical to English (%.1f%%)', $same, $comparable, 100 * $ratio);
+        if ($comparable >= self::ENGLISH_COPY_MIN && $ratio > self::ENGLISH_COPY_ERROR) {
+            return [$message . '; the shard was not translated (copying the English reference is not allowed)', null];
+        }
+        return [null, $ratio > self::ENGLISH_COPY_WARN ? $message . '; check they were translated' : null];
     }
 
     private static function trivial(string $english): bool
@@ -385,6 +410,8 @@ final class I18nPipeline
     private function validateRows(string $code, array $rows): array
     {
         $errors = [];
+        $sameAsEnglish = 0;
+        $comparable = 0;
         foreach ($rows as $row) {
             $where = (string) ($row['key'] ?? '?');
             $text = $row['text'] ?? null;
@@ -401,6 +428,17 @@ final class I18nPipeline
             if (!in_array($code, self::HAN_ALLOWED, true) && preg_match('/\p{Han}/u', $text) === 1) {
                 $errors[] = "{$where}: Chinese characters left in translation";
             }
+            $english = (string) ($row['en'] ?? '');
+            if ($english !== '' && !self::trivial($english)) {
+                $comparable++;
+                if (trim($text) === trim($english)) {
+                    $sameAsEnglish++;
+                }
+            }
+        }
+        $copyError = self::englishCopyVerdict($sameAsEnglish, $comparable)[0];
+        if ($copyError !== null) {
+            $errors[] = $copyError;
         }
         return $errors;
     }
