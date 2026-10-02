@@ -353,6 +353,29 @@ for item in "${EXCLUDES[@]}"; do
     rm -rf "$PKG_DIR/$item"
 done
 
+# HugeRTE 只带编辑器实际启用的插件和默认皮肤（2.0.4 瘦身：随包 29 个插件、4 套界面皮肤）。
+# 仓库里保留完整发行版；某处 hugerte.init 新增插件或改 skin 时同步这里——
+# tests/Unit/RichEditorDependencyContractTest.php 会核对配置与清单一致。
+HUGERTE_PLUGINS=(anchor autolink charmap code codesample fullscreen help image insertdatetime link lists media preview quickbars searchreplace table visualblocks wordcount)
+HUGERTE_DIR="$PKG_DIR/assets/hugerte"
+for plugin_dir in "$HUGERTE_DIR"/plugins/*/; do
+    plugin_name="$(basename "$plugin_dir")"
+    plugin_keep=0
+    for wanted in "${HUGERTE_PLUGINS[@]}"; do
+        if [ "$plugin_name" = "$wanted" ]; then plugin_keep=1; break; fi
+    done
+    [ "$plugin_keep" = "1" ] || rm -rf "$plugin_dir"
+done
+for wanted in "${HUGERTE_PLUGINS[@]}"; do
+    if [ ! -f "$HUGERTE_DIR/plugins/$wanted/plugin.min.js" ]; then
+        echo "Error: HugeRTE 缺少编辑器用到的插件: $wanted"
+        exit 1
+    fi
+done
+# 界面皮肤 oxide、内容样式 default 是 HugeRTE 的默认值（各 init 都没设 skin / content_css）
+find "$HUGERTE_DIR/skins/ui" -mindepth 1 -maxdepth 1 -type d ! -name oxide -exec rm -rf {} +
+find "$HUGERTE_DIR/skins/content" -mindepth 1 -maxdepth 1 -type d ! -name default -exec rm -rf {} +
+
 # 被核心包排除的路径从未随核心包分发：市场插件（logo-maker、seo、dologin…）、Pro 资产
 # 只可能是站点自行安装的。它们在仓库里删改时，增量包不得删除客户站点上的同名文件。
 # 2026-09-17 实测：未加此护栏时 1.18.x → 1.20.0 增量包会删掉 plugins/logo-maker 7618 个文件。
