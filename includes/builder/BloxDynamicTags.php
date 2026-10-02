@@ -224,10 +224,10 @@ final class BloxDynamicTags
                 return self::rowUrl($row, $type);
             case 'date':
                 $timestamp = (int) ($row['publish_time'] ?? 0) ?: (int) ($row['created_at'] ?? 0);
-                return $timestamp > 0 ? date('Y-m-d', $timestamp) : null;
+                return $timestamp > 0 ? self::date($timestamp) : null;
             case 'updated':
                 $timestamp = (int) ($row['updated_at'] ?? 0) ?: (int) ($row['created_at'] ?? 0);
-                return $timestamp > 0 ? date('Y-m-d', $timestamp) : null;
+                return $timestamp > 0 ? self::date($timestamp) : null;
             case 'category':
                 return self::rowValue($row, $type === 'content' ? 'channel_name' : 'category_name');
             case 'category_url':
@@ -239,6 +239,12 @@ final class BloxDynamicTags
                 return $sub !== '' ? self::metaValue($row, $type, $sub) : null;
         }
         return in_array($field, self::LOOP_FIELDS, true) ? self::rowValue($row, $field) : null;
+    }
+
+    /** 给访客看的日期，按访客语言（displayDate）；单测等未加载 functions.php 时退回 Y-m-d */
+    private static function date(int $timestamp): string
+    {
+        return function_exists('displayDate') ? displayDate($timestamp) : date('Y-m-d', $timestamp);
     }
 
     private static function rowUrl(array $row, string $type): ?string

@@ -38,6 +38,8 @@ final class I18nPipeline
     private const ENGLISH_COPY_MIN = 10;
     /** 键名前缀 → 页面提示，帮助翻译模型判断语境 */
     private const NOTES = [
+        'date_format_' => 'PHP date pattern, not words: Y year, n/m month, j/d day, M/F short/long month name (from month_* keys), H:i time; put a backslash before literal letters (es: j \\d\\e F \\d\\e Y). Use the usual order in that country',
+        'month_' => 'month name used in dates (short = abbreviation, long = full name)',
         'blox_' => 'Blox visual page builder (admin)',
         'admin_' => 'admin panel',
         'setting_' => 'admin settings page',
