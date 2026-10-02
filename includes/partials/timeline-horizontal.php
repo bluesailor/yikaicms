@@ -85,8 +85,8 @@ if (($timelineSort ?? 'desc') === 'asc') {
             </div>
 
             <?php /* 翻页箭头 */ ?>
-            <div class="swiper-button-prev !text-primary !w-10 !h-10 !top-12 !-translate-y-1/2 after:!text-base after:!font-bold"></div>
-            <div class="swiper-button-next !text-primary !w-10 !h-10 !top-12 !-translate-y-1/2 after:!text-base after:!font-bold"></div>
+            <div class="swiper-button-prev !text-primary !w-10 !h-10 !top-12 !-translate-y-1/2 !p-2.5"></div>
+            <div class="swiper-button-next !text-primary !w-10 !h-10 !top-12 !-translate-y-1/2 !p-2.5"></div>
 
             <?php /* 分页指示器 */ ?>
             <div class="swiper-pagination !relative !mt-4"></div>

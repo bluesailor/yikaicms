@@ -13,7 +13,7 @@ YikaiCMS 随包分发以下第三方组件，各组件按其自身协议授权�
 | Alpine.js | — | MIT | https://alpinejs.dev |
 | Tailwind CSS（编译产物） | — | MIT | https://tailwindcss.com |
 | SortableJS | 1.15.6 | MIT | https://sortablejs.github.io/Sortable/ |
-| Swiper | 11.2.10 | MIT | https://swiperjs.com |
+| Swiper | 12.2.0 | MIT | https://swiperjs.com |
 | flatpickr | 4.6.13 | MIT | https://flatpickr.js.org |
 | PhotoSwipe | 5.4.4 | MIT | https://photoswipe.com |
 | Plyr | — | MIT | https://plyr.io |
