@@ -499,7 +499,7 @@ ROOT_ALLOWED=(
     "favicon.ico" "robots.txt"
     "index.php" "article.php" "captcha.php" "contact.php" "cron.php" "detail.php"
     "download.php" "form_submit.php" "form_nonce.php" "history.php" "job_detail.php" "list.php"
-    "news.php" "page.php" "product.php" "search.php" "sitemap.php"
+    "news.php" "page.php" "product.php" "search.php" "sitemap.php" "album.php" "tag.php"
 )
 while IFS= read -r entry; do
     name="$(basename "$entry")"

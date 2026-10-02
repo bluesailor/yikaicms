@@ -45,7 +45,7 @@ if (PHP_SAPI !== 'cli' && isDynamicUrlMode()) {
 // Custom paths pin the entity language before SITE_LANG, independently of browser cookies.
 $customProductHit = null;
 if (PHP_SAPI !== 'cli') {
-    $customProductHit = productRouteModel()->resolve((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH));
+    $customProductHit = productRouteModel()->resolve(customRouteLookupPath((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH)));
     if ($customProductHit !== null) $_GET['_lang'] = $_REQUEST['_lang'] = $customProductHit['lang'];
 }
 

@@ -96,14 +96,17 @@ final class ProductRouteModel extends Model
     }
 
     /** 文章标签（metas 一行）→ ['id','name','lang','status'] @return array<string,mixed>|null */
-    private static function contentTag(int $id): ?array
+    public static function contentTag(int $id): ?array
     {
         if (!db()->tableExists('metas')) return null;
         $row = db()->fetchOne('SELECT id, meta_key, meta_value FROM ' . DB_PREFIX . 'metas WHERE id = ? AND owner_type = ?', [$id, 'content_tag']);
         return $row ? ['id' => (int) $row['id'], 'name' => (string) $row['meta_value'], 'lang' => (string) $row['meta_key'], 'status' => 1] : null;
     }
 
-    /** 登记一个文章标签（同语言同名只登记一次），返回它的 id，供 content_tag 网址指向。 */
+    /**
+     * 登记一个文章标签（同语言同名只登记一次），返回它的 id，供 content_tag 网址指向。
+     * @psalm-suppress PossiblyUnusedMethod 调用方是后台自定义网址输入框与 WordPress 导入（迁移第 4 步起）
+     */
     public function contentTagId(string $name, string $lang): int
     {
         $name = trim($name);
@@ -144,7 +147,7 @@ final class ProductRouteModel extends Model
             foreach (channelModel()->all() as $channel) {
                 if ($kind === 'channel' && (int) $channel['id'] === $id) continue;
                 if (($channel['type'] ?? '') !== 'link' && ($channel['lang'] ?? $default) === $lang) {
-                    $existing = channelPrettyUrl($channel);
+                    $existing = channelDefaultPrettyUrl($channel);
                     $existingPrefix = Dispatcher::languagePrefixFromPath($existing);
                     $existingRelative = $existingPrefix !== null ? substr($existing, strlen($existingPrefix) + 2) : ltrim($existing, '/');
                     if (rtrim($existingRelative, '/') === rtrim($relative, '/')) throw new InvalidArgumentException('product_url_conflict');
@@ -188,6 +191,7 @@ final class ProductRouteModel extends Model
     /**
      * 其余类型：条目已由各自的编辑页保存好，这里只登记（或清除）它的网址。
      * 编辑页先调 validate() 提前报错，再保存条目，最后调本方法。
+     * @psalm-suppress PossiblyUnusedMethod 调用方是后台自定义网址输入框与 WordPress 导入（迁移第 4 步起）
      */
     public function assign(string $kind, int $id, string $input, string $lang): string
     {
@@ -207,7 +211,10 @@ final class ProductRouteModel extends Model
         return $path;
     }
 
-    /** 条目删除或进回收站时调用：网址一起释放，免得留着挡住别的条目 */
+    /**
+     * 条目删除或进回收站时调用：网址一起释放，免得留着挡住别的条目
+     * @psalm-suppress PossiblyUnusedMethod 调用方是后台自定义网址输入框与 WordPress 导入（迁移第 4 步起）
+     */
     public function remove(string $kind, int $id): void
     {
         if ($id < 1 || !$this->available()) return;
@@ -221,6 +228,34 @@ final class ProductRouteModel extends Model
         if ($path !== '') db()->insert($this->table, [
             'entity_type' => $kind, 'entity_id' => $id, 'path' => $path, 'path_key' => self::key($path),
         ]);
+    }
+
+    private const TRANSLATED_TABLES = ['product' => 'products', 'category' => 'product_categories', 'content' => 'contents',
+        'channel' => 'channels', 'album' => 'albums', 'product_tag' => 'product_tags'];
+
+    /**
+     * 条目各语言版本（同 translation_group_id、已发布）的登记网址：语言 → 网址。hreflang 用。
+     * 没登记网址的语言版本不在其中；文章标签没有翻译组，只返回自己。
+     * @return array<string,string>
+     */
+    public function translationPaths(string $kind, int $id): array
+    {
+        $paths = $this->pathsFor($kind);
+        $table = self::TRANSLATED_TABLES[$kind] ?? null;
+        if ($table === null || !db()->tableExists($table)) {
+            $entity = $kind === 'content_tag' ? self::contentTag($id) : null;
+            return $entity !== null && isset($paths[$id]) ? [(string) $entity['lang'] => $paths[$id]] : [];
+        }
+        $t = DB_PREFIX . $table;
+        $self = db()->fetchOne("SELECT id, translation_group_id FROM {$t} WHERE id = ?", [$id]);
+        if (!$self) return [];
+        $group = (int) ($self['translation_group_id'] ?? 0) ?: $id;
+        $out = [];
+        foreach (db()->fetchAll("SELECT id, lang FROM {$t} WHERE (translation_group_id = ? OR id = ?) AND status = 1", [$group, $group]) as $row) {
+            $path = $paths[(int) $row['id']] ?? '';
+            if ($path !== '' && !isset($out[(string) $row['lang']])) $out[(string) $row['lang']] = $path;
+        }
+        return $out;
     }
 
     /** 命中但未发布 / 已删除的条目仍是 404，绝不落到别的页面 */

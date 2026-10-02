@@ -30,8 +30,8 @@ final class RouteRegistryKindsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        if (!function_exists('channelPrettyUrl')) {
-            eval('function channelPrettyUrl(array $c): string { return "/" . $c["slug"] . ".html"; }');
+        if (!function_exists('channelDefaultPrettyUrl')) {
+            eval('function channelDefaultPrettyUrl(array $c): string { return "/" . $c["slug"] . ".html"; }');
         }
     }
 

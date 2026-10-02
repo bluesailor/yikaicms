@@ -17,6 +17,8 @@ $currentSort = $currentSort ?? 'default';
 
 $catalogQuery = $catalogQuery ?? ProductCatalogRequest::normalize($_GET);
 $pageUrl = function (int $p) use ($channel, $keyword, $isProductType, $productCategory, $currentSort, $catalogQuery): string {
+    // 产品目录与侧栏分页同一出处（含语言前缀与登记网址）；此前这里写死 /product/{分类}/page/N.html
+    if ($isProductType) return ProductCatalogRequest::pageUrl($channel, $productCategory, $p, $catalogQuery);
     if (isDynamicUrlMode()) {
         $params = [];
         if ($keyword !== '') { $params['keyword'] = $keyword; }
@@ -42,6 +44,8 @@ $pageUrl = function (int $p) use ($channel, $keyword, $isProductType, $productCa
             ? '/product/' . $catSlug . '.html' . $queryStr
             : '/product/' . $catSlug . '/page/' . $p . '.html' . $queryStr;
     }
+    $registered = productRouteModel()->pathFor('channel', (int) ($channel['id'] ?? 0));
+    if ($registered !== '') return pagedUrl($registered, $p) . $queryStr;
     $slug = $channel['slug'] ?? '';
     if ($p === 1) {
         $url = $slug ? "/{$slug}.html" : "/list/{$channel['id']}.html";
