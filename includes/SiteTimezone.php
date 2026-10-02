@@ -79,7 +79,7 @@ final class SiteTimezone
         $groups = [];
         $offsets = [];
         foreach (timezone_identifiers_list() as $id) {
-            $region = str_contains($id, '/') ? strstr($id, '/', true) : 'UTC';
+            $region = str_contains($id, '/') ? (string) strstr($id, '/', true) : 'UTC';
             $place = str_contains($id, '/') ? substr($id, strlen($region) + 1) : $id;
             $label = str_replace(['/', '_'], [' / ', ' '], $place) . ' (' . self::offsetLabel($id, $at) . ')';
             $groups[$region][$id] = $label;
