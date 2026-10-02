@@ -278,16 +278,17 @@ final class HtmlCache
         if (!empty($_SESSION['shop_cart'])) return false;
 
         // 含动态 token 的页面不缓存（表单页）
-        if (isset($_GET['token']) || isset($_GET['csrf'])) return false;
+        $get = self::requestQuery();
+        if (isset($get['token']) || isset($get['csrf'])) return false;
 
         // 搜索类请求不缓存：关键词组合无限多，每个都会落一个缓存文件
-        if (isset($_GET['keyword']) || isset($_GET['q']) || isset($_GET['s'])) return false;
+        if (isset($get['keyword']) || isset($get['q']) || isset($get['s'])) return false;
 
         // 查询参数白名单：缓存 key 含完整 REQUEST_URI，utm_* / 爬虫随机参数 /
         // 恶意构造的查询串每个变体都会生成一个新文件，目录会无限增长
         // （曾有生产站因此写满 30GB）。只放行前台真实使用的分页/筛选参数。
         static $allowedQueryKeys = ['slug', 'parent', 'cat', 'sort', 'page'];
-        foreach (array_keys($_GET) as $key) {
+        foreach (array_keys($get) as $key) {
             if (!in_array((string) $key, $allowedQueryKeys, true)) return false;
         }
 
@@ -332,7 +333,20 @@ final class HtmlCache
     /** @return array<string,string>|null null 表示参数值不应进入缓存 */
     private static function normalizedQuery(): ?array
     {
-        return ProductCatalogRequest::normalizeCacheQuery($_GET);
+        return ProductCatalogRequest::normalizeCacheQuery(self::requestQuery());
+    }
+
+    /**
+     * 判定与缓存键用的查询参数。登记网址分发进来的请求，$_GET 里的 id/slug/cat/_lang 是分发注入的、由路径唯一决定，
+     * 只看访客实际带的查询串；否则这类页面因含 id 永远不缓存。
+     * @return array<array-key,mixed>
+     */
+    private static function requestQuery(): array
+    {
+        if (!defined('YK_CUSTOM_PRODUCT_ROUTE') || empty($_SERVER['YK_CANONICAL_PATH'])) return $_GET;
+        $query = [];
+        parse_str((string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_QUERY), $query);
+        return $query;
     }
 
     private static function releaseNamespace(): string

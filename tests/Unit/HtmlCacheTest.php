@@ -220,6 +220,20 @@ final class HtmlCacheTest extends TestCase
         self::assertNull(HtmlCache::canonicalRequest()['query'], '白名单外参数必须返回 null（该请求不缓存）');
     }
 
+    /** 登记网址分发进来的页面：id/_lang 是分发注入的，只看访客实际带的查询串（WordPress 迁移） */
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    public function testRegisteredRouteIgnoresDispatcherInjectedParameters(): void
+    {
+        define('YK_CUSTOM_PRODUCT_ROUTE', true);
+        $_SERVER['YK_CANONICAL_PATH'] = '/category/news/page/2/';
+        $_SERVER['REQUEST_URI'] = '/category/news/page/2/';
+        $_GET = ['id' => '7', '_lang' => 'en', 'page' => '2'];
+        $this->assertTrue($this->isCacheable());
+        self::assertSame(['path' => '/category/news/page/2/', 'query' => []], HtmlCache::canonicalRequest());
+        $_SERVER['REQUEST_URI'] = '/category/news/?utm_source=x';
+        $this->assertFalse($this->isCacheable(), '访客自己带的白名单外参数照样不缓存');
+    }
+
     public function testUnknownQueryKeyIsNotCacheable(): void
     {
         $_GET = ['utm_source' => 'x'];
