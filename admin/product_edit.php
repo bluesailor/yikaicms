@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error(__('prod_name_required'));
     }
 
-    // 定时上架：与文章的定时发布同一套规则（未来时间自动转为定时，已过的定时直接上架）。
+    // 定时上架：与文章同一套规则（上架即上线；定时到点上架，时间已过则直接上架）。
     // 上架时间存在 metas（见 ScheduledPublish），保存产品后写入。
     try {
         $sched = ScheduledPublish::normalize((int) $data['status'], (string) post('publish_time'), ScheduledPublish::productTime($id));
@@ -380,7 +380,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                     <script>
                     (function () {
-                        // 与保存规则一致：定时需要时间；「上架」配未来时间会自动转为定时，提前说明
+                        // 与保存规则一致：定时需要时间；「上架」配未来时间仍立即上架，提示想到点上架就选「定时上架」
                         var sel = document.getElementById('productStatus');
                         var time = document.getElementById('productPublishTime');
                         var hint = document.getElementById('productPublishHint');
