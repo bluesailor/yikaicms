@@ -260,6 +260,18 @@ final class MediaOptimization
         return self::inspect($media);
     }
 
+    /**
+     * 媒体行 → 本站 uploads 内真实存在的源文件。path 可能是旧主机的绝对路径（整站搬家、
+     * 本地构建的演示站）或相对路径（整站模板导入写的是 uploads/...），都按 /uploads/ 之后的部分
+     * 落到当前 UPLOADS_PATH 下解析；不在 uploads 内或不存在时返回 null。
+     *
+     * @param array<string,mixed> $media
+     */
+    public static function resolveSource(array $media): ?string
+    {
+        return self::sourcePath($media);
+    }
+
     /** @param array<string,mixed> $media */
     private static function sourcePath(array $media): ?string
     {
