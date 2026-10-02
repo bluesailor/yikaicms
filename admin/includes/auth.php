@@ -97,25 +97,36 @@ function checkLogin(): void
     // 不刷新的话「停用某人」「收紧某个角色」对已登录的人都不生效。
     refreshAdminIdentity();
 
+    // 自动校验 CSRF：所有 POST 请求必须携带 _token
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        verifyCsrf();
+    }
+
+    enforceDemoRestrictions();
+}
+
+/**
+ * 演示站限制：受保护页面整页拒绝；只读演示拦截全部写操作。
+ *
+ * checkLogin() 会调用它。自己做登录判断、不走 checkLogin() 的端点（AI 接口、插件里的 JSON 接口）
+ * 必须在 refreshAdminIdentity() 之后显式调用，否则演示站访客能经它们写数据、消耗站点的 AI 密钥。
+ */
+function enforceDemoRestrictions(): void
+{
+    $demoMode = defined('DEMO_MODE') && DEMO_MODE;
     // 公开演示账号不应看到授权令牌、SMTP/API 密钥，也不能触发外部服务。
     // 这类页面在只读与沙盒两种模式下连 GET 都拒绝，而不是只拦提交。
-    if ((defined('DEMO_MODE') && DEMO_MODE) || (defined('DEMO_SANDBOX') && DEMO_SANDBOX)) {
+    if ($demoMode || (defined('DEMO_SANDBOX') && DEMO_SANDBOX)) {
         if (DemoSandbox::isProtectedPage((string) ($_SERVER['SCRIPT_NAME'] ?? ''))) {
             error(__('auth_demo_sandbox_protected'));
         }
     }
 
-    // 自动校验 CSRF：所有 POST 请求必须携带 _token
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        verifyCsrf();
-
-        // 只读演示：除带 Owner Token 的演示管理页外，拦截全部写操作。
-        if ((defined('DEMO_MODE') && DEMO_MODE) || DemoSandbox::mode() === DemoSandbox::MODE_READONLY) {
-            $demoAllowPages = ['setting_demo.php'];
-            $currentPage = basename($_SERVER['SCRIPT_NAME'] ?? '');
-            if (!in_array($currentPage, $demoAllowPages)) {
-                error(__('auth_demo_readonly'));
-            }
+    // 只读演示：除带 Owner Token 的演示管理页外，拦截全部写操作。
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'
+        && ($demoMode || DemoSandbox::mode() === DemoSandbox::MODE_READONLY)) {
+        if (basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) !== 'setting_demo.php') {
+            error(__('auth_demo_readonly'));
         }
     }
 }

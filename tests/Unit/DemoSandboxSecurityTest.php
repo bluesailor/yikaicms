@@ -125,11 +125,17 @@ final class DemoSandboxSecurityTest extends TestCase
     public function testProtectedPagesAreBlockedBeforeRequestMethodBranch(): void
     {
         $auth = (string) file_get_contents(ROOT_PATH . '/admin/includes/auth.php');
-        $protected = strpos($auth, 'DemoSandbox::isProtectedPage');
-        $postBranch = strpos($auth, "if (\$_SERVER['REQUEST_METHOD'] === 'POST')");
+        // 演示限制收进 enforceDemoRestrictions()：受保护页判断要在只拦 POST 的分支之前（GET 也拒）
+        $helper = strpos($auth, 'function enforceDemoRestrictions(): void');
+        self::assertNotFalse($helper);
+        $body = substr($auth, $helper);
+        $protected = strpos($body, 'DemoSandbox::isProtectedPage');
+        $postBranch = strpos($body, "(\$_SERVER['REQUEST_METHOD'] ?? '') === 'POST'");
         self::assertNotFalse($protected);
         self::assertNotFalse($postBranch);
         self::assertLessThan($postBranch, $protected);
+        // checkLogin() 无条件调用它，不能挪进 POST 分支
+        self::assertMatchesRegularExpression('/verifyCsrf\(\);\s*\}\s*enforceDemoRestrictions\(\);\s*\}/', $auth);
 
         $mediaApi = (string) file_get_contents(ROOT_PATH . '/admin/media_api.php');
         self::assertStringContainsString("in_array(\$action, ['remote_list', 'remote_import'], true)", $mediaApi);
