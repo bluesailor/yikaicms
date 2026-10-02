@@ -285,7 +285,7 @@ final class I18nPipeline
             if (self::tags($source) !== self::tags($text)) {
                 $errors[] = "{$where}: HTML tags differ (source " . implode(' ', self::tags($source)) . ' / translation ' . implode(' ', self::tags($text)) . ')';
             }
-            if (!in_array($code, self::HAN_ALLOWED, true) && preg_match('/\p{Han}/u', $text) === 1) {
+            if (!in_array($code, self::HAN_ALLOWED, true) && preg_match('/\p{Han}/u', $text) === 1 && !self::hanIsData($in)) {
                 $errors[] = "{$where}: Chinese characters left in translation";
             }
             if (substr_count($source, "\n") !== substr_count($text, "\n")) {
@@ -319,7 +319,7 @@ final class I18nPipeline
     /** @return list<string> 排好序的占位符：:name、%s / %d、{…} */
     public static function placeholders(string $text): array
     {
-        preg_match_all('/(?<![\w:\/]):[A-Za-z_]\w*|%[sd]|\{[^{}\s]*\}/', $text, $m);
+        preg_match_all('/(?<![\w:\/]):[A-Za-z_]\w*|%[sd]|\{[A-Za-z_][\w.]*(?:,[A-Za-z_][\w.]*)*\}/', $text, $m);
         $list = $m[0];
         sort($list);
         return $list;
@@ -355,6 +355,17 @@ final class I18nPipeline
             return false;
         }
         return trim($target[$key]) !== '' || (($en[$key] ?? null) === '');
+    }
+
+    /**
+     * 英文参考里本身就有汉字（如商城运费示例「新疆维吾尔自治区 = 20.00」）：这些汉字是运行时要匹配的数据值，
+     * 不能翻译，译文里保留汉字不算「没译完」。
+     *
+     * @param array<string,mixed> $row
+     */
+    private static function hanIsData(array $row): bool
+    {
+        return preg_match('/\p{Han}/u', (string) ($row['en'] ?? '')) === 1;
     }
 
     /** @return array{0:?string,1:?string} [错误, 警告] */
@@ -450,7 +461,7 @@ final class I18nPipeline
             if (self::placeholders((string) $row['zh']) !== self::placeholders($text) || self::tags((string) $row['zh']) !== self::tags($text)) {
                 $errors[] = "{$where}: placeholders or HTML tags differ";
             }
-            if (!in_array($code, self::HAN_ALLOWED, true) && preg_match('/\p{Han}/u', $text) === 1) {
+            if (!in_array($code, self::HAN_ALLOWED, true) && preg_match('/\p{Han}/u', $text) === 1 && !self::hanIsData($row)) {
                 $errors[] = "{$where}: Chinese characters left in translation";
             }
             $english = (string) ($row['en'] ?? '');
