@@ -1313,6 +1313,7 @@ final class BlockRenderer
             $html = $dynamicRoot->getUpdatedHtml();
         }
         $html = self::applyElementSharedStyles($html, $data, $element);
+        if ($element->supportsAurora()) $html = BloxAurora::apply($html, $data);
         $html = self::applyCompiledCss($html, $data, $element);
         $stateTarget = $element->stateStyleTarget();
         if ($stateTarget !== null) $html = BloxStateStyles::apply($html, $data, $stateTarget);
