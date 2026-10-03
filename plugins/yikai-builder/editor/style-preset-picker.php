@@ -1,6 +1,6 @@
 <?php declare(strict_types=1); ?>
 <?php if (!defined('ROOT_PATH')) exit('Access Denied'); ?>
-                                    <div x-show="professionalOpen && stylePresetsEnabled" class="pb-3 border-b border-gray-200">
+                                    <div x-show="professionalOpen && stylePresetsEnabled && (!!selEl.data._global_style || globalStyleOptions('').length > 0)" class="pb-3 border-b border-gray-200">
                                         <div class="flex items-center justify-between mb-1.5">
                                             <label class="text-xs font-semibold text-gray-600 inline-flex items-center gap-1.5">
                                                 <i class="ti ti-components text-sm text-emerald-500"></i><?= e(__('blox_global_style')) ?>

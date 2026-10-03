@@ -202,7 +202,8 @@
     // 全局命名样式：设计系统数据（designSystem、activeGlobalStyles）仍由核心提供。
     var stylePresets = {
         globalStyleOptions(currentId) {
-            var items = this.activeGlobalStyles();
+            // 已转成全局类的预设（RFC-1 第 4 点）不再出现在这里：到类选择器里挂对应的类
+            var items = this.activeGlobalStyles().filter(function (style) { return !style.class_id; });
             currentId = String(currentId || "");
             if (!currentId || items.some(function (style) { return style.id === currentId; })) return items;
             var archived = (this.designSystem.styles || []).find(function (style) { return style.id === currentId; });

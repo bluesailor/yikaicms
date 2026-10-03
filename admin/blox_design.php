@@ -23,7 +23,16 @@ requirePermission('blox_global');
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
 $advancedBloxEnabled = BloxFeaturePolicy::allows('style_presets');
+// 样式预设收编为全局类（RFC-1 第 4 点）：设计系统页同样触发一次性转换
+BloxPresetClasses::convert((int) ($_SESSION['admin_id'] ?? 0));
 $designState = BloxDesignSystem::snapshot();
+// 预设已转成的全局类：class_id => 类名（只读行里显示「→ .yk-c-xxx」）
+$presetClassNames = [];
+foreach (BloxGlobalClasses::catalog() as $presetClassId => $presetClassRow) {
+    $presetClassNames[$presetClassId] = BloxGlobalClasses::CLASS_PREFIX . $presetClassRow['name'];
+}
+// 能建类的站点不再新建预设：新的共享样式直接在类管理器里建
+$presetsBecomeClasses = BloxGlobalClasses::available() && BloxFeaturePolicy::allows('global_classes');
 $designUsage = BloxDesignDependencies::usageSnapshot();
 $pageHeroDesign = PageHeroDesignDraft::snapshot();
 $themeDesign = BloxDesignTheme::snapshot();
@@ -297,7 +306,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <h2 class="text-sm font-semibold text-gray-900"><?php echo e(__('blox_design_styles')); ?></h2>
             <p class="mt-1 text-xs text-gray-500"><?php echo e(__('blox_design_styles_hint')); ?></p>
         </div>
-
+        <?php if ($presetsBecomeClasses): ?>
+        <div class="mb-4 flex items-start gap-2 border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800" data-testid="blox-design-presets-converted">
+            <i class="ti ti-arrows-exchange mt-0.5 text-sm"></i>
+            <p><?php echo e(__('blox_preset_converted_notice')); ?>
+                <a href="/admin/blox_classes.php" class="font-semibold underline hover:text-emerald-600"><?php echo e(__('blox_preset_open_classes')); ?></a></p>
+        </div>
+        <?php else: ?>
         <form @submit.prevent="addStyle()" class="grid min-w-0 max-w-full gap-3 border-y border-gray-200 bg-gray-50 px-4 py-4 lg:grid-cols-[1.1fr_.8fr_repeat(3,1fr)_.8fr_auto] lg:items-end">
             <label class="block text-xs font-medium text-gray-600"><?php echo e(__('blox_design_name')); ?><input type="text" x-model="newStyle.name" maxlength="60" required class="mt-1 h-10 w-full border border-gray-300 bg-white px-2 text-sm"></label>
             <label class="block text-xs font-medium text-gray-600"><?php echo e(__('blox_design_category')); ?><input type="text" x-model="newStyle.category" maxlength="32" class="mt-1 h-10 w-full border border-gray-300 bg-white px-2 text-sm"></label>
@@ -309,21 +324,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     title="<?php echo e(__('blox_design_add')); ?>" aria-label="<?php echo e(__('blox_design_add')); ?>"
                     class="inline-flex h-10 items-center justify-center bg-emerald-600 px-4 text-white hover:bg-emerald-500 disabled:opacity-40"><i class="ti ti-plus"></i></button>
         </form>
+        <?php endif; ?>
 
         <div class="mt-4 space-y-3">
             <template x-for="style in activeStyles()" :key="style.id">
                 <div class="grid gap-3 border-y border-gray-200 bg-white px-4 py-4 lg:grid-cols-[1.1fr_.8fr_repeat(3,1fr)_.8fr_auto] lg:items-center" data-testid="blox-design-page-style-row">
-                    <input type="text" x-model="style.name" :disabled="style.locked" class="h-9 min-w-0 border border-gray-300 px-2 text-sm disabled:bg-gray-50">
-                    <input type="text" x-model="style.category" :disabled="style.locked" class="h-9 min-w-0 border border-gray-300 px-2 text-sm disabled:bg-gray-50">
+                    <input type="text" x-model="style.name" :disabled="style.locked || !!style.class_id" class="h-9 min-w-0 border border-gray-300 px-2 text-sm disabled:bg-gray-50">
+                    <input type="text" x-model="style.category" :disabled="style.locked || !!style.class_id" class="h-9 min-w-0 border border-gray-300 px-2 text-sm disabled:bg-gray-50">
                     <template x-for="field in styleColorFields" :key="style.id + '-' + field.key">
-                        <select x-model="style[field.key]" :disabled="style.locked" :title="field.label" class="h-9 min-w-0 border border-gray-300 bg-white px-2 text-sm disabled:bg-gray-50"><option value="" x-text="field.label + ' · ' + text.none"></option><template x-for="token in tokenOptions(style[field.key])" :key="style.id + '-' + field.key + '-' + token.id"><option :value="tokenRef(token.id)" x-text="tokenLabel(token)"></option></template></select>
+                        <select x-model="style[field.key]" :disabled="style.locked || !!style.class_id" :title="field.label" class="h-9 min-w-0 border border-gray-300 bg-white px-2 text-sm disabled:bg-gray-50"><option value="" x-text="field.label + ' · ' + text.none"></option><template x-for="token in tokenOptions(style[field.key])" :key="style.id + '-' + field.key + '-' + token.id"><option :value="tokenRef(token.id)" x-text="tokenLabel(token)"></option></template></select>
                     </template>
-                    <select x-model="style.radius" :disabled="style.locked" class="h-9 border border-gray-300 bg-white px-2 text-sm disabled:bg-gray-50"><option value="none"><?php echo e(__('blox_spacing_none')); ?></option><option value="sm"><?php echo e(__('blox_spacing_sm')); ?></option><option value="md"><?php echo e(__('blox_spacing_md')); ?></option><option value="lg"><?php echo e(__('blox_spacing_lg')); ?></option><option value="full"><?php echo e(__('blox_design_radius_full')); ?></option></select>
+                    <select x-model="style.radius" :disabled="style.locked || !!style.class_id" class="h-9 border border-gray-300 bg-white px-2 text-sm disabled:bg-gray-50"><option value="none"><?php echo e(__('blox_spacing_none')); ?></option><option value="sm"><?php echo e(__('blox_spacing_sm')); ?></option><option value="md"><?php echo e(__('blox_spacing_md')); ?></option><option value="lg"><?php echo e(__('blox_spacing_lg')); ?></option><option value="full"><?php echo e(__('blox_design_radius_full')); ?></option></select>
                     <div class="flex items-center justify-end gap-1">
+                        <span x-show="!!style.class_id" class="mr-1 font-mono text-xs text-emerald-700" data-testid="blox-design-style-class"
+                              x-text="'→ .' + (presetClassNames[style.class_id] || style.class_id)"></span>
                         <span class="mr-1 text-xs text-gray-400" x-text="usageLabel('style', style.id)"></span>
-                        <button type="button" @click="toggleLock('style', style)" class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-amber-600" :title="style.locked ? text.unlock : text.lock"><i class="ti" :class="style.locked ? 'ti-lock' : 'ti-lock-open'"></i></button>
-                        <button x-show="!style.locked" type="button" @click="updateStyle(style)" class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-emerald-600" title="<?php echo e(__('blox_design_save')); ?>"><i class="ti ti-device-floppy"></i></button>
-                        <button x-show="!style.locked" type="button" @click="archiveItem('style', style)" class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-red-600" title="<?php echo e(__('blox_design_archive')); ?>"><i class="ti ti-trash"></i></button>
+                        <button x-show="!style.class_id" type="button" @click="toggleLock('style', style)" class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-amber-600" :title="style.locked ? text.unlock : text.lock"><i class="ti" :class="style.locked ? 'ti-lock' : 'ti-lock-open'"></i></button>
+                        <button x-show="!style.locked && !style.class_id" type="button" @click="updateStyle(style)" class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-emerald-600" title="<?php echo e(__('blox_design_save')); ?>"><i class="ti ti-device-floppy"></i></button>
+                        <button x-show="!style.locked && !style.class_id" type="button" @click="archiveItem('style', style)" class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-red-600" title="<?php echo e(__('blox_design_archive')); ?>"><i class="ti ti-trash"></i></button>
                     </div>
                 </div>
             </template>
@@ -782,6 +800,7 @@ function bloxDesignManager() {
     return {
         tab: 'colors',
         advanced: <?php echo $advancedBloxEnabled ? 'true' : 'false'; ?>,
+        presetClassNames: <?php echo json_encode((object) $presetClassNames, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         state: <?php echo json_encode($designState, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         usage: <?php echo json_encode($designUsage, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
         pageHeroState: <?php echo json_encode($pageHeroDesign, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
