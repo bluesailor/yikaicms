@@ -1642,13 +1642,13 @@ final class BuilderRenderTest extends TestCase
     public function testBoxStyleExactLengthsWhitelist(): void
     {
         // 精确输入：margin 允负值/auto，padding 非负；档位继续可用
-        $s = \AbstractElement::boxStyle([
+        $s = \AbstractElement::boxSpacing([
             'style_margin_top' => '-12px',
             'style_margin_left' => 'auto',
             'style_margin' => '1.5rem',
             'style_padding_top' => '10%',
             'style_padding' => 'md',
-        ]);
+        ])['style'];
         $this->assertStringContainsString('margin-top:-12px!important;', $s);
         $this->assertStringContainsString('margin-inline-start:auto!important;', $s);
         $this->assertStringContainsString('margin:1.5rem!important;', $s);
@@ -1659,7 +1659,7 @@ final class BuilderRenderTest extends TestCase
     public function testBoxStyleRejectsInvalidAndInjection(): void
     {
         // 注入与越界一律静默忽略——值会进 style 属性，白名单是安全边界
-        $s = \AbstractElement::boxStyle([
+        $s = \AbstractElement::boxSpacing([
             'style_padding_top' => '-4px',            // padding 不允许负值
             'style_padding_left' => 'auto',           // padding 不允许 auto
             'style_margin_top' => 'calc(1px + 1px)',  // 函数
@@ -1667,7 +1667,7 @@ final class BuilderRenderTest extends TestCase
             'style_margin_bottom' => 'expression(a)', // IE 注入
             'style_margin_left' => '99999px',         // 位数越界
             'style_padding' => '10 px',               // 空格
-        ]);
+        ])['style'];
         $this->assertSame('', $s);
     }
 

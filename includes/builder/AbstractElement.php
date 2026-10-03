@@ -760,12 +760,6 @@ abstract class AbstractElement
         return ['m' => $m, 't' => $t, 'd' => $d, 'w' => $w];
     }
 
-    /** 只要样式字符串的旧接口（测试与少量调用方） */
-    public static function boxStyle(array $data): string
-    {
-        return self::boxSpacing($data)['style'];
-    }
-
     /**
      * 响应式间距的固定规则（编进 app.css，与此逐字一致，由单测校验）。每档一组媒体查询，组内总值在前、四边在后。
      * @api Build-time stylesheet contract, not a per-request renderer.
