@@ -65,10 +65,10 @@ $productImageVariants = array_map(
 
 // 页面信息
 // 产品表没有 SEO 列：自定义 SEO 标题 / 描述 / 关键词存在 metas（WordPress 导入的 Yoast 设置也写在这里）
-$productSeo = static fn (string $key): string => trim((string) getMeta('product', (int) $product['id'], $key, ''));
-$pageTitle = $productSeo('seo_title') ?: $product['title'];
-$pageKeywords = $productSeo('seo_keywords') ?: ($product['tags'] ?: configJsonLang('site_keywords'));
-$pageDescription = $productSeo('seo_description') ?: ($product['summary'] ?: cutStr(strip_tags($product['content']), 150));
+$productSeoId = (int) $product['id'];
+$pageTitle = trim((string) getMeta('product', $productSeoId, 'seo_title', '')) ?: $product['title'];
+$pageKeywords = trim((string) getMeta('product', $productSeoId, 'seo_keywords', '')) ?: ($product['tags'] ?: configJsonLang('site_keywords'));
+$pageDescription = trim((string) getMeta('product', $productSeoId, 'seo_description', '')) ?: ($product['summary'] ?: cutStr(strip_tags($product['content']), 150));
 
 // 获取导航
 $navChannels = getNavChannels();
