@@ -82,7 +82,7 @@ if ($pcNavVariant !== 'sidebar'): ?>
         <?php if ($isProductType): ?>
         <a href="<?php echo channelUrl($rootChannel); ?>"
            class="block px-4 py-3 hover:bg-gray-50 transition <?php echo ($productCategoryId === 0 && $keyword === '') ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
-            <?php echo __('all'); ?><?php echo __('list_product'); ?>
+            <?php echo __('all_products'); ?>
         </a>
         <?php if ($channel['parent_id'] > 0): ?>
         <a href="<?php echo ($channel['parent_id'] == (int) $rootChannel['id']) ? channelUrl($rootChannel) : productCategoryUrl(getChannel((int) $channel['parent_id'])); ?>"
