@@ -21,6 +21,7 @@ final class BloxMotion
         if ($level === 'standard') return $html;
         // 不禁用交互、定位或吸顶头部的功能性 transform；只降低已知的装饰性动效。
         $css = '.yk-icon-motion,.yk-logo-track,.yk-aurora::before{animation:none!important;}';
+        $css .= '.yk-testimonial-track{animation:none!important;flex-wrap:wrap;}.yk-testimonial-track[aria-hidden="true"]{display:none;}';
         $css .= '.card-hover:hover,.img-zoom:hover img,.yk-card-hover-zoom:is(:hover,:focus-visible) .yk-card-media img{transform:none!important;}';
         $css .= '.yk-card-hover-lift:is(:hover,:focus-visible),[data-yk-motion-hover]:hover{translate:none!important;}';
         if ($level === 'none') {
