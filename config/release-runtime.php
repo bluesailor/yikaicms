@@ -39,6 +39,7 @@ return [
         'includes/language_request.php',
         'includes/lang_url.php',
         'includes/product_routes.php',
+        'includes/Redirects.php',
         'includes/ProductCatalogRequest.php',
         'includes/FooterNavigation.php',
         'includes/ProductIdentity.php',

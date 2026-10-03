@@ -66,7 +66,9 @@ final class SiteTemplateData
             $rows = db()->fetchAll('SELECT * FROM ' . DB_PREFIX . $table . ' ORDER BY ' . ($table === 'product_tag_map' ? 'product_id, tag_id' : 'id'));
             if ($export) {
                 $rows = array_values(array_filter($rows, static function (array $row) use ($table): bool {
-                    if ($table === 'metas' && !in_array($row['owner_type'], ['channel', 'content', 'article', 'page', 'case', 'product', 'album', 'download', 'job'], true)) return false;
+                    // content_tag：文章标签页的登记行（标签网址指向它）；跳转（redirect）属于具体站点，不随模板走
+                    if ($table === 'metas' && !in_array($row['owner_type'], ['channel', 'content', 'article', 'page', 'case', 'product', 'album', 'download', 'job', 'content_tag'], true)) return false;
+                    if ($table === 'product_routes' && ($row['entity_type'] ?? '') === 'redirect') return false;
                     if (isset($row['deleted_at']) && $row['deleted_at'] !== '' && (int) $row['deleted_at'] > 0) return false;
                     if (in_array($table, ['channels', 'contents', 'products', 'jobs', 'blox_templates'], true) && (int) ($row['status'] ?? 1) !== 1) return false;
                     return true;
