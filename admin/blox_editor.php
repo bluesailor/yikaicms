@@ -940,6 +940,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     <script src="/assets/js/blox-command-runner.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-command-runner.js') ?>"></script>
     <script src="/assets/js/blox-style-clipboard.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-clipboard.js') ?>"></script>
     <script src="/assets/js/blox-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-control-rules.js') ?>"></script>
+    <script src="/assets/js/blox-command-palette.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-command-palette.js') ?>"></script>
     <script src="/assets/js/blox-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-banner-panel.js') ?>"></script>
     <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
     <script src="/assets/js/blox-cta-quick.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-cta-quick.js') ?>"></script>
@@ -1211,6 +1212,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     <?php require __DIR__ . '/blox_editor/partials/header.php'; ?>
     <?php require __DIR__ . '/blox_editor/partials/workspace.php'; ?>
     <?php require __DIR__ . '/blox_editor/partials/overlays.php'; ?>
+    <?php require __DIR__ . '/blox_editor/partials/command-palette.php'; ?>
 
     <script>
     function bloxEditor() {
@@ -5806,6 +5808,12 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                         return;
                     }
                     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+                    // 命令面板（2.0.4）：Ctrl+K / ⌘K 在任何焦点下都可打开（抢在浏览器地址栏搜索之前）
+                    if (!e.shiftKey && String(e.key || "").toLowerCase() === "k") {
+                        e.preventDefault();
+                        if (self.cmdOpen) self.closeCommandPalette(); else self.openCommandPalette();
+                        return;
+                    }
                     var activeEditor = window.hugerte && hugerte.activeEditor;
                     if (activeEditor && typeof activeEditor.hasFocus === "function" && activeEditor.hasFocus()) return;
                     var active = document.activeElement;
@@ -7052,6 +7060,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             },
 
             <?php require __DIR__ . '/blox_editor/partials/clipboard-methods.php'; ?>
+            <?php require __DIR__ . '/blox_editor/partials/command-palette-methods.php'; ?>
             <?php require __DIR__ . '/blox_editor/partials/advanced-code-methods.php'; ?>
             closeCtx() {
                 this.ctx.open = false;
