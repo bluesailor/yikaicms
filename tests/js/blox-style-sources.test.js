@@ -165,6 +165,31 @@ test('class conflicts: element exact values, then presets, then later-named clas
   assert.deepEqual(sources.classConflicts(heading({}), 'gc_dddddddddddd', catalog), []);
 });
 
+test('class conflicts: classes converted from presets (important) beat local values and plain classes', () => {
+  const catalog = {
+    styles: [{ id: 's_card', name: 'Card', status: 'live', color: '#0000ff', background: '', border_color: '', radius: 'none' }],
+    classes: {
+      gc_aaaaaaaaaaaa: { name: 'preset-card', settings: { text_color: '#c2410c', important: true, from_preset: 's_card' } },
+      gc_bbbbbbbbbbbb: { name: 'zz-accent', settings: { text_color: '#111111' } },
+      gc_cccccccccccc: { name: 'preset-zz', settings: { text_color: '#222222', important: true } },
+    },
+  };
+  const heading = (data) => ({ type: 'heading', data: data });
+  const keys = (list) => list.map((item) => item.key + ':' + item.by).sort();
+
+  // important 的类压过元素本地颜色与样式预设，也不把 important / from_preset 当属性报
+  assert.deepEqual(sources.classConflicts(heading({ _classes: ['gc_aaaaaaaaaaaa'], color: '#000000', _global_style: 's_card' }), 'gc_aaaaaaaaaaaa', catalog), []);
+  // 普通类名再靠后也挡不住 important 的类；反过来 important 的类挡住普通类
+  assert.deepEqual(sources.classConflicts(heading({ _classes: ['gc_aaaaaaaaaaaa', 'gc_bbbbbbbbbbbb'] }), 'gc_aaaaaaaaaaaa', catalog), []);
+  const plain = sources.classConflicts(heading({ _classes: ['gc_aaaaaaaaaaaa', 'gc_bbbbbbbbbbbb'] }), 'gc_bbbbbbbbbbbb', catalog);
+  assert.deepEqual(keys(plain), ['text_color:class']);
+  assert.equal(plain[0].name, 'preset-card');
+  // 同为 important：仍按类名先后
+  const both = sources.classConflicts(heading({ _classes: ['gc_aaaaaaaaaaaa', 'gc_cccccccccccc'] }), 'gc_aaaaaaaaaaaa', catalog);
+  assert.deepEqual(keys(both), ['text_color:class']);
+  assert.equal(both[0].name, 'preset-zz');
+});
+
 test('class conflicts cover hover/focus states and never report the states map itself', () => {
   const catalog = {
     styles: [{ id: 's_card', name: 'Card', status: 'live', color: '', background: '#ffffff', border_color: '', radius: 'none' }],
