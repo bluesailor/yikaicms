@@ -1307,6 +1307,8 @@ final class BlockRenderer
         }
         $html = self::applyElementSharedStyles($html, $data, $element);
         $html = self::applyCompiledCss($html, $data, $element);
+        $stateTarget = $element->stateStyleTarget();
+        if ($stateTarget !== null) $html = BloxStateStyles::apply($html, $data, $stateTarget);
         $html = self::applyGlobalStyle($html, $data, $element->type());
         $html = self::applyGlobalClasses($html, $data, $element->type());
         $html = self::applyOverlap($html, $data);
