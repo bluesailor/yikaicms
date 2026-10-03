@@ -136,7 +136,8 @@ final class DispatcherTest extends TestCase
         $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'article', 'id' => '1', 'slug' => 'post']));
         $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'article', 'slug' => '../admin']));
         $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'job', 'id' => '0']));
-        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'home', 'lang' => 'fr']));
+        // 未安装的语言（用永远不会有语言包的代码；fr 等会陆续装上）
+        $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'home', 'lang' => 'xx']));
         $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'search', 'type' => 'sql']));
         $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'list', 'slug' => 'news', 'page' => '0']));
         $this->assertNull(Dispatcher::dynamicQuery(['yk_route' => 'home', 'lang' => 'ja', '_lang' => 'zh-CN']));
