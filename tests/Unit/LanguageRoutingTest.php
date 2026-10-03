@@ -96,8 +96,16 @@ final class LanguageRoutingTest extends TestCase
     {
         self::assertSame('current', LanguageRouting::htaccessStatus(ROOT_PATH)['state']);
         self::assertSame(['ko', 'de'], LanguageRouting::uncovered(['ja', 'en', 'zh-CN', 'zh-TW'], ['en', 'ko', 'de']));
-        // ko 已注册但仓库里没有语言包：不按前缀路由，也就不在检查之列
-        self::assertSame(['en'], LanguageRouting::prefixLanguages(['zh-CN', 'en', 'ko', 'xx'], 'zh-CN'));
+        // 已注册但仓库里没有语言包的：不按前缀路由，也就不在检查之列。
+        // 用运行时挑出的「还没有语言包」的语言（ko、fr 等陆续有了语言包，写死会过期）
+        $packless = null;
+        foreach (\LanguageRegistry::codes() as $code) {
+            if (!is_file(ROOT_PATH . '/lang/' . $code . '.php')) { $packless = $code; break; }
+        }
+        if ($packless !== null) {
+            self::assertSame(['en'], LanguageRouting::prefixLanguages(['zh-CN', 'en', $packless, 'xx'], 'zh-CN'));
+        }
+        self::assertSame(['en'], LanguageRouting::prefixLanguages(['zh-CN', 'en', 'xx'], 'zh-CN'), '未注册的代码不路由');
     }
 
     public function testProbeIsAnsweredBeforeLanguageDetectionAndTheFixIsSandboxGuarded(): void
