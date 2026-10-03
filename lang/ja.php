@@ -35,6 +35,8 @@ return [
 
     'all' => 'すべて',
 
+    'all_products' => 'すべての製品',
+
     'more' => 'もっと見る',
 
     'loading' => '読み込み中...',
@@ -3652,7 +3654,7 @@ return [
     'admin_illegal_request' => '不正なリクエストです',
     'admin_home_display_tip' => 'トップページに表示：トップページのセクションとして表示されます（最上位カテゴリのみ。並び順とスタイルは「トップページ設定」で調整）',
     'tl_autosave_note' => 'カードをクリックすると自動保存されます（保存ボタンは不要です）',
-    'tl_vertical_use' => '。企業の沿革に適しています。',
+    'tl_vertical_use' => '企業の沿革に適しています。',
     'pl_invalid_plugin' => '無効なプラグイン',
     'pl_back_to_plugins' => 'プラグイン管理に戻る',
     'user_name_required' => 'ユーザー名を入力してください',

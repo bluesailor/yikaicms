@@ -338,7 +338,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <span class="font-semibold text-gray-800"><?php echo e(__('tl_vertical')); ?></span>
                         <span class="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded"><?php echo e(__('slang_default_badge')); ?></span>
                     </div>
-                    <p class="text-xs text-gray-500 leading-relaxed"><?php echo e(__('tl_vertical_desc')); ?><?php echo e(__('tl_vertical_use')); ?></p>
+                    <p class="text-xs text-gray-500 leading-relaxed"><?php echo e(trim(__('tl_vertical_desc')) . ' ' . trim(__('tl_vertical_use'))); ?></p>
                 </div>
             </label>
 
