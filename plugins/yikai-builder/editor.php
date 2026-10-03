@@ -31,10 +31,13 @@ function blox_pro_class_fields(): array
         $field['label'] = __('blox_class_prop_' . $field['key']);
         $field['group_label'] = __('blox_class_group_' . $field['group']);
         if (isset($field['options'])) {
+            // 设计系统 token 这类站点自定义选项自带名称（option_labels），其余按文案键翻译
+            $labels = is_array($field['option_labels'] ?? null) ? $field['option_labels'] : null;
             $field['options'] = array_map(static fn(string $value): array => [
                 'value' => $value,
-                'label' => __('blox_class_opt_' . str_replace('-', '_', $value)),
+                'label' => $labels !== null ? (string) ($labels[$value] ?? $value) : __('blox_class_opt_' . str_replace('-', '_', $value)),
             ], $field['options']);
+            unset($field['option_labels']);
         }
         $fields[] = $field;
     }

@@ -9,6 +9,9 @@
       "--yk-layout-gap": "40px",
       "--yk-layout-max-width": "1120px",
       "--yk-layout-section-spacing": "96px",
+      "--yk-radius-card": "10px",
+      "--yk-radius-md": "10px",
+      "--yk-shadow-md": "0 6px 18px rgba(15,23,42,.14)",
       "--yk-type-body-size": "17px",
       "--yk-type-h1-size": "52px",
       "--yk-type-h2-size": "36px",
@@ -176,6 +179,24 @@
         "max-width": "none",
         "gap": "normal",
         "box-shadow": "none"
+      },
+      "cn-scale": {
+        "font-family": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", \"Noto Sans\", Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+        "font-size": "16px",
+        "font-weight": "400",
+        "line-height": "24px",
+        "color": "rgb(0, 0, 0)",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-top-style": "solid",
+        "border-top-color": "oklch(0.928 0.006 264.531)",
+        "border-top-left-radius": "10px",
+        "padding-top": "24px",
+        "padding-left": "24px",
+        "margin-bottom": "0px",
+        "max-width": "none",
+        "gap": "40px",
+        "box-shadow": "rgba(15, 23, 42, 0.14) 0px 6px 18px 0px"
       }
     },
     "section": {
@@ -207,6 +228,9 @@
       "--yk-layout-gap": "20px",
       "--yk-layout-max-width": "1120px",
       "--yk-layout-section-spacing": "56px",
+      "--yk-radius-card": "10px",
+      "--yk-radius-md": "10px",
+      "--yk-shadow-md": "0 6px 18px rgba(15,23,42,.14)",
       "--yk-type-body-size": "16px",
       "--yk-type-h1-size": "34px",
       "--yk-type-h2-size": "28px",
@@ -374,6 +398,24 @@
         "max-width": "none",
         "gap": "normal",
         "box-shadow": "none"
+      },
+      "cn-scale": {
+        "font-family": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", \"Noto Sans\", Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+        "font-size": "16px",
+        "font-weight": "400",
+        "line-height": "24px",
+        "color": "rgb(0, 0, 0)",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top-width": "0px",
+        "border-top-style": "solid",
+        "border-top-color": "oklch(0.928 0.006 264.531)",
+        "border-top-left-radius": "10px",
+        "padding-top": "24px",
+        "padding-left": "24px",
+        "margin-bottom": "0px",
+        "max-width": "none",
+        "gap": "20px",
+        "box-shadow": "rgba(15, 23, 42, 0.14) 0px 6px 18px 0px"
       }
     },
     "section": {

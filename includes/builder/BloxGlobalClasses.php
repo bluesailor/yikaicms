@@ -89,10 +89,12 @@ final class BloxGlobalClasses
         'focus' => ':is(:focus-visible,:has(:focus-visible))',
         'active' => ':active',
     ];
-    public const STATE_KEYS = ['text_color', 'bg_color', 'border_color', 'border_width_px', 'radius_px', 'font_weight'];
+    public const STATE_KEYS = ['text_color', 'bg_color', 'border_color', 'border_width_px', 'radius_px', 'font_weight', 'shadow_token'];
+    /** 引用设计系统圆角 / 阴影 token 的设置（2.0.4）：存 token id，输出 var(--yk-…, 回退) */
+    private const SCALE_SETTINGS = ['radius_token' => 'radius', 'shadow_token' => 'shadow'];
     private const TRANSITION_RANGE = [0, 2000];
     /** 状态能改变、且值得过渡的属性（font-weight 是离散值，不列）。 */
-    private const TRANSITION_PROPERTIES = 'color,background-color,border-color,border-width,border-radius';
+    private const TRANSITION_PROPERTIES = 'color,background-color,border-color,border-width,border-radius,box-shadow';
     /** 颜色类设置：key => css 属性。值为 hex 或站点色 token 引用。 */
     private const COLOR_SETTINGS = [
         'text_color' => 'color',
@@ -274,7 +276,8 @@ final class BloxGlobalClasses
                 'padding_px', 'padding_top_px', 'padding_right_px', 'padding_bottom_px', 'padding_left_px'],
             'typography' => ['text_color', 'font_size_px', 'font_weight', 'line_height', 'text_align'],
             'background' => ['bg_color'],
-            'border' => ['border_color', 'border_width_px', 'radius_px'],
+            'border' => ['border_color', 'border_width_px', 'radius_px', 'radius_token'],
+            'effects' => ['shadow_token'],
             'layout' => ['width_pct', 'max_width_px', 'gap_px', 'justify_content', 'align_items'],
             // 状态过渡时长存在基础设置里，编辑器在状态页签里展示
             'states' => ['transition_ms'],
@@ -303,6 +306,11 @@ final class BloxGlobalClasses
                 } elseif ($key === 'transition_ms') {
                     $field += ['type' => 'number', 'css' => 'transition-duration', 'min' => self::TRANSITION_RANGE[0],
                         'max' => self::TRANSITION_RANGE[1], 'step' => 50, 'unit' => 'ms'];
+                } elseif (isset(self::SCALE_SETTINGS[$key])) {
+                    // 选项来自设计系统（站点自己的 token），标签直接用 token 名称
+                    $tokens = BloxDesignSystem::scaleOptions(self::SCALE_SETTINGS[$key]);
+                    $field += ['type' => 'enum', 'css' => $key === 'radius_token' ? 'border-radius' : 'box-shadow',
+                        'options' => array_map('strval', array_keys($tokens)), 'option_labels' => $tokens];
                 } elseif ($key === 'radius_px') {
                     $field += ['type' => 'px', 'css' => 'border-radius', 'min' => self::RADIUS_PX_RANGE[0],
                         'max' => self::RADIUS_PX_RANGE[1], 'step' => 1, 'unit' => 'px'];
@@ -532,6 +540,15 @@ final class BloxGlobalClasses
             $declarations['border-radius'] = $radiusPx . 'px';
         } elseif (is_string($radius) && $radius !== '' && $radius !== 'none' && isset(self::RADIUS_MAP[$radius])) {
             $declarations['border-radius'] = self::RADIUS_MAP[$radius];
+        }
+        // 圆角 token 优先，像素 / 档位值作它的回退（token 被删时仍有圆角）
+        $radiusVar = BloxDesignScale::cssVar('radius', $settings['radius_token'] ?? null, $declarations['border-radius'] ?? '0');
+        if ($radiusVar !== null) {
+            $declarations['border-radius'] = $radiusVar;
+        }
+        $shadowVar = BloxDesignScale::cssVar('shadow', $settings['shadow_token'] ?? null, 'none');
+        if ($shadowVar !== null) {
+            $declarations['box-shadow'] = $shadowVar;
         }
         $borderWidth = self::intInRange($settings['border_width_px'] ?? null, self::BORDER_WIDTH_RANGE);
         if ($state ? $borderWidth !== null : (($settings['border_color'] ?? '') !== '' || $borderWidth !== null)) {
@@ -813,6 +830,12 @@ final class BloxGlobalClasses
         $radius = $settings['radius'] ?? '';
         if (is_string($radius) && isset(self::RADIUS_MAP[$radius]) && $radius !== 'none') {
             $normalized['radius'] = $radius;
+        }
+        foreach (self::SCALE_SETTINGS as $key => $kind) {
+            $value = $settings[$key] ?? '';
+            if (is_string($value) && BloxDesignScale::cssVar($kind, $value, '0') !== null) {
+                $normalized[$key] = $value;
+            }
         }
         foreach (['radius_px' => self::RADIUS_PX_RANGE, 'border_width_px' => self::BORDER_WIDTH_RANGE] as $key => $range) {
             $value = self::intInRange($settings[$key] ?? null, $range);

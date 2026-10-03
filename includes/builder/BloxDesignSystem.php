@@ -4,6 +4,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/BloxFeaturePolicy.php';
+require_once __DIR__ . '/BloxDesignScale.php';
 
 final class BloxDesignSystem
 {
@@ -35,7 +36,7 @@ final class BloxDesignSystem
         }
     }
 
-    /** @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>} */
+    /** @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>} */
     public static function snapshot(): array
     {
         $raw = (string) config(self::SETTING_KEY, '');
@@ -57,7 +58,7 @@ final class BloxDesignSystem
      * catalog instead of duplicated into JSON, so the existing site color setting
      * remains the single owner of primary/secondary.
      *
-     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>}
+     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>}
      */
     public static function fromRaw(string $raw, string $primary, string $secondary): array
     {
@@ -93,7 +94,30 @@ final class BloxDesignSystem
             'revision' => max(1, (int) ($state['revision'] ?? 1)),
             'tokens' => array_values(array_merge(array_column($system, null, 'id'), $tokens)),
             'styles' => array_values($styles),
+            // 圆角与阴影 token（BloxDesignScale）：从未保存过时给出厂刻度
+            'radii' => BloxDesignScale::normalizeList('radius', $state['radii'] ?? null),
+            'shadows' => BloxDesignScale::normalizeList('shadow', $state['shadows'] ?? null),
         ];
+    }
+
+    /**
+     * 编辑器 / 类管理器下拉用：某类 token 的可选项（只含未归档的）。
+     *
+     * @return array<string,string> id => 名称
+     */
+    public static function scaleOptions(string $kind): array
+    {
+        $bucket = BloxDesignScale::KINDS[$kind] ?? null;
+        if ($bucket === null) {
+            return [];
+        }
+        $options = [];
+        foreach (self::snapshot()[$bucket] as $item) {
+            if (($item['status'] ?? '') !== 'archived') {
+                $options[(string) $item['id']] = (string) $item['name'];
+            }
+        }
+        return $options;
     }
 
     public static function styleTag(): string
@@ -108,6 +132,9 @@ final class BloxDesignSystem
                 $declarations .= '--yk-color-' . $id . ':' . $value . ';';
             }
         }
+        $snapshot = self::snapshot();
+        $declarations .= BloxDesignScale::declarations('radius', $snapshot['radii'])
+            . BloxDesignScale::declarations('shadow', $snapshot['shadows']);
         $tag = $declarations === '' ? '' : '<style id="yk-blox-design-tokens">:root{' . $declarations . '}</style>';
         // 已发布的全站主题（E04）；未配置时为空串，输出与之前逐字节一致。
         $theme = class_exists(BloxDesignTheme::class) ? BloxDesignTheme::compile(BloxDesignTheme::published()) : '';
@@ -242,7 +269,7 @@ final class BloxDesignSystem
      * Apply one API mutation with optimistic revision checking.
      *
      * @param array<string,mixed> $input
-     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>}
+     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>}
      */
     public static function mutate(string $action, array $input, bool $advanced): array
     {
@@ -264,6 +291,9 @@ final class BloxDesignSystem
 
         if (str_starts_with($action, 'token_')) {
             $state['tokens'] = self::mutateCollection($state['tokens'], substr($action, 6), $input, false);
+        } elseif (preg_match('/^(radius|shadow)_(add|update|archive|restore|lock)$/', $action, $scale) === 1) {
+            $bucket = BloxDesignScale::KINDS[$scale[1]];
+            $state[$bucket] = self::mutateScale($scale[1], $state[$bucket], $scale[2], $input);
         } elseif ($isStyleAction) {
             $state['styles'] = self::mutateCollection($state['styles'], substr($action, 6), $input, true);
         } else {
@@ -342,6 +372,58 @@ final class BloxDesignSystem
         throw new RuntimeException(__('blox_design_not_found'));
     }
 
+    /**
+     * 圆角 / 阴影 token 的增改归档恢复（免费，与颜色 token 同一把写锁与 revision）。
+     * 引用只允许指向同类、非引用的另一个 token（一层）。
+     *
+     * @param list<array<string,mixed>> $items
+     * @param array<string,mixed> $input
+     * @return list<array<string,mixed>>
+     */
+    private static function mutateScale(string $kind, array $items, string $operation, array $input): array
+    {
+        if ($operation === 'add') {
+            if (count($items) >= BloxDesignScale::MAX_ITEMS) {
+                throw new RuntimeException(__('blox_design_limit'));
+            }
+            $item = BloxDesignScale::normalizeItem($kind, [
+                'id' => ($kind === 'radius' ? 'r_' : 'sh_') . bin2hex(random_bytes(4)),
+                'name' => $input['name'] ?? '', 'value' => $input['value'] ?? null,
+            ]);
+            if ($item === null || !BloxDesignScale::referenceValid($items, $item['id'], $item['value'])) {
+                throw new RuntimeException(__('blox_design_invalid'));
+            }
+            $items[] = $item;
+            return $items;
+        }
+        $id = trim((string) ($input['id'] ?? ''));
+        foreach ($items as $index => $item) {
+            if (($item['id'] ?? '') !== $id) {
+                continue;
+            }
+            if ($operation === 'lock') {
+                $items[$index]['locked'] = !empty($input['locked']);
+            } elseif ($operation === 'restore') {
+                $items[$index]['status'] = 'active';
+            } elseif (!empty($item['locked'])) {
+                throw new RuntimeException(__('blox_design_locked'));
+            } elseif ($operation === 'archive') {
+                $items[$index]['status'] = 'archived';
+            } else {
+                $next = BloxDesignScale::normalizeItem($kind, array_merge($item, [
+                    'name' => $input['name'] ?? $item['name'], 'value' => $input['value'] ?? $item['value'],
+                ]));
+                if ($next === null || !BloxDesignScale::referenceValid($items, $id, $next['value'])) {
+                    throw new RuntimeException(__('blox_design_invalid'));
+                }
+                $items[$index] = $next;
+            }
+            $items[$index]['version'] = (int) $item['version'] + 1;
+            return $items;
+        }
+        throw new RuntimeException(__('blox_design_not_found'));
+    }
+
     /** @param array<string,mixed> $state */
     private static function persist(array $state): void
     {
@@ -353,6 +435,8 @@ final class BloxDesignSystem
                 static fn(array $item): bool => empty($item['system'])
             )),
             'styles' => array_values($state['styles']),
+            'radii' => array_values($state['radii'] ?? []),
+            'shadows' => array_values($state['shadows'] ?? []),
         ];
         settingModel()->saveBatch([
             self::SETTING_KEY => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
