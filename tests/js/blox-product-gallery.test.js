@@ -174,3 +174,45 @@ test('falls back to href and drops items without any source', () => {
     );
     assert.equal(opened[0].openedAt, 0, '索引按过滤后的有效图算，不能因缺图而错位');
 });
+
+test('thumbnail layout switches the visible main image and supports arrow keys', () => {
+    const links = [makeLink('/a.jpg'), makeLink('/b.jpg'), makeLink('/c.jpg')];
+    links.forEach((link, i) => { link.hidden = i > 0; });
+    const makeThumb = (i) => {
+        const attrs = { 'data-yk-gallery-thumb': String(i) };
+        const classes = new Set([i === 0 ? 'border-primary' : 'border-transparent']);
+        const thumb = {
+            listeners: {},
+            focused: false,
+            getAttribute: (name) => (name in attrs ? attrs[name] : null),
+            setAttribute: (name, value) => { attrs[name] = value; },
+            removeAttribute: (name) => { delete attrs[name]; },
+            classList: { toggle: (name, on) => { if (on) classes.add(name); else classes.delete(name); }, has: (name) => classes.has(name) },
+            addEventListener(type, handler) { (this.listeners[type] = this.listeners[type] || []).push(handler); },
+            focus() { this.focused = true; },
+            click() { (this.listeners.click || []).forEach((handler) => handler({})); },
+            key(key) { let prevented = false; (this.listeners.keydown || []).forEach((h) => h({ key, preventDefault: () => { prevented = true; } })); return prevented; },
+            attrs,
+        };
+        return thumb;
+    };
+    const thumbs = [makeThumb(0), makeThumb(1), makeThumb(2)];
+    const container = makeContainer(links);
+    const base = container.querySelectorAll.bind(container);
+    container.querySelectorAll = (selector) => (selector === '[data-yk-gallery-thumb]' ? thumbs : base(selector));
+    const { opened } = load([container], true);
+
+    thumbs[2].click();
+    assert.deepEqual(links.map((l) => l.hidden), [true, true, false], '点缩略图换大图');
+    assert.equal(thumbs[2].attrs['aria-current'], 'true');
+    assert.equal(thumbs[0].attrs['aria-current'], undefined);
+    assert.equal(thumbs[2].classList.has('border-primary'), true);
+    assert.equal(opened.length, 0, '点缩略图不开灯箱');
+
+    assert.equal(thumbs[2].key('ArrowRight'), true);
+    assert.equal(thumbs[0].focused, true, '右方向键绕回第一张');
+    assert.deepEqual(links.map((l) => l.hidden), [false, true, true]);
+
+    container.click(links[0]);
+    assert.equal(opened[0].openedAt, 0, '点大图从当前这张开灯箱');
+});
