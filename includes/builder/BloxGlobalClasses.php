@@ -417,6 +417,8 @@ final class BloxGlobalClasses
     {
         $selector = '.' . self::CLASS_PREFIX . $name . self::SELECTOR_SUFFIX;
         $wide = BloxResponsiveValue::wideEnabled();
+        // 由样式预设转来的类（BloxPresetClasses）：预设原是内联 !important，转换后保持同样的优先级
+        $important = !empty($settings['important']) ? '!important' : '';
         $base = self::scalarDeclarations($settings);
         $lineHeight = self::lineHeightOrNull($settings['line_height'] ?? null);
         if ($lineHeight !== null) {
@@ -478,7 +480,7 @@ final class BloxGlobalClasses
             $declarations = self::restateSides($declarations, $resolved, $tier);
             $body = [];
             foreach ($declarations as $property => $value) {
-                $body[] = $property . ':' . $value;
+                $body[] = $property . ':' . $value . $important;
             }
             $rule = $selector . '{' . implode(';', $body) . '}';
             $css .= $query === '' ? $rule : $query . '{' . $rule . '}';
@@ -491,7 +493,7 @@ final class BloxGlobalClasses
                 continue;
             }
             $body = implode(';', array_map(
-                static fn(string $property, string $value): string => $property . ':' . $value,
+                static fn(string $property, string $value): string => $property . ':' . $value . $important,
                 array_keys($declarations),
                 $declarations
             ));
@@ -875,6 +877,14 @@ final class BloxGlobalClasses
         }
         if ($states !== []) {
             $normalized['states'] = $states;
+        }
+        // 预设转来的类（RFC-1 第 4 点）：保持预设的 !important 优先级，并记下来源预设
+        if (!empty($settings['important'])) {
+            $normalized['important'] = true;
+        }
+        $fromPreset = $settings['from_preset'] ?? '';
+        if (is_string($fromPreset) && preg_match('/^[a-z][a-z0-9_-]{0,47}$/', $fromPreset) === 1) {
+            $normalized['from_preset'] = $fromPreset;
         }
         return $normalized;
     }

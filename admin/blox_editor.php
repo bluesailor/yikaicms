@@ -680,6 +680,9 @@ if ($templateId && isset($templateRow, $templateType)
         $replaceThemeAreaOnPublish = $templateType;
     }
 }
+// 样式预设收编为全局类（RFC-1 第 4 点）：首次进入编辑器时一次性转换，文档里的预设引用改写为类引用，保存后落盘
+BloxPresetClasses::convert((int) ($_SESSION['admin_id'] ?? 0));
+$bootDoc['sections'] = BloxPresetClasses::migrateSections($bootDoc['sections']);
 $initBlocks = json_encode(
     $bootDoc['sections'],
     JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT

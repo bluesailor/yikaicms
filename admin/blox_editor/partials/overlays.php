@@ -896,7 +896,14 @@ declare(strict_types=1);
             </div>
 
             <div x-show="designTab === 'styles' && stylePresetsEnabled" class="min-h-0 flex-1 overflow-y-auto blox-scroll">
-                <div class="grid grid-cols-[1.1fr_.7fr_repeat(3,1fr)_.7fr_auto] gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <?php /* 样式预设已并入全局类（RFC-1 第 4 点）：能建类的站点不再新建预设 */ ?>
+                <div x-show="globalClassesEnabled" class="flex items-start gap-2 px-4 py-3 bg-emerald-50 border-b border-emerald-100 text-xs text-emerald-800"
+                     data-testid="blox-design-presets-converted">
+                    <i class="ti ti-arrows-exchange mt-0.5 text-sm"></i>
+                    <p><?= e(__('blox_preset_converted_notice')) ?>
+                        <a href="/admin/blox_classes.php" target="_blank" rel="noopener" class="font-semibold underline hover:text-emerald-600"><?= e(__('blox_preset_open_classes')) ?></a></p>
+                </div>
+                <div x-show="!globalClassesEnabled" class="grid grid-cols-[1.1fr_.7fr_repeat(3,1fr)_.7fr_auto] gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
                     <input type="text" x-model="newStyle.name" placeholder="<?= e(__('blox_design_new_style')) ?>" class="min-w-0 border border-gray-200 rounded px-2 py-1.5 text-xs">
                     <input type="text" x-model="newStyle.category" placeholder="<?= e(__('blox_design_category')) ?>" class="min-w-0 border border-gray-200 rounded px-2 py-1.5 text-xs">
                     <?php foreach (['color' => 'blox_design_text_color', 'background' => 'blox_design_background', 'border_color' => 'blox_design_border'] as $field => $label): ?>
@@ -919,17 +926,17 @@ declare(strict_types=1);
                 <template x-for="style in activeGlobalStyles()" :key="style.id">
                       <div class="grid grid-cols-[1.1fr_.7fr_repeat(3,1fr)_.7fr_auto] gap-2 items-center px-4 py-2 border-t border-gray-100"
                          data-testid="blox-design-style-row">
-                        <input type="text" x-model="style.name" :disabled="style.locked" class="min-w-0 border border-gray-200 rounded px-2 py-1.5 text-xs disabled:bg-gray-50">
-                        <input type="text" x-model="style.category" :disabled="style.locked" class="min-w-0 border border-gray-200 rounded px-2 py-1.5 text-xs disabled:bg-gray-50">
+                        <input type="text" x-model="style.name" :disabled="style.locked || !!style.class_id" class="min-w-0 border border-gray-200 rounded px-2 py-1.5 text-xs disabled:bg-gray-50">
+                        <input type="text" x-model="style.category" :disabled="style.locked || !!style.class_id" class="min-w-0 border border-gray-200 rounded px-2 py-1.5 text-xs disabled:bg-gray-50">
                         <template x-for="field in ['color','background','border_color']" :key="style.id+'-'+field">
-                            <select x-model="style[field]" :disabled="style.locked" class="min-w-0 border border-gray-200 rounded px-1 py-1.5 text-xs bg-white disabled:bg-gray-50">
+                            <select x-model="style[field]" :disabled="style.locked || !!style.class_id" class="min-w-0 border border-gray-200 rounded px-1 py-1.5 text-xs bg-white disabled:bg-gray-50">
                                 <option value="" x-text="field === 'color' ? <?= e($jt('blox_design_text_color')) ?> : (field === 'background' ? <?= e($jt('blox_design_background')) ?> : <?= e($jt('blox_design_border')) ?>)"></option>
                                 <template x-for="token in colorTokenOptions(style[field])" :key="style.id+'-'+field+'-'+token.id">
                                     <option :value="colorTokenRef(token.id)" x-text="colorTokenLabel(token)"></option>
                                 </template>
                             </select>
                         </template>
-                        <select x-model="style.radius" :disabled="style.locked" class="min-w-0 border border-gray-200 rounded px-1 py-1.5 text-xs bg-white disabled:bg-gray-50">
+                        <select x-model="style.radius" :disabled="style.locked || !!style.class_id" class="min-w-0 border border-gray-200 rounded px-1 py-1.5 text-xs bg-white disabled:bg-gray-50">
                             <option value="none"><?= e(__('blox_spacing_none')) ?></option><option value="sm"><?= e(__('blox_spacing_sm')) ?></option>
                             <option value="md"><?= e(__('blox_spacing_md')) ?></option><option value="lg"><?= e(__('blox_spacing_lg')) ?></option><option value="full"><?= e(__('blox_design_radius_full')) ?></option>
                         </select>
@@ -939,9 +946,11 @@ declare(strict_types=1);
                                     :title="designUsageTitle('style', style.id)"
                                     class="mr-1 text-[10px] text-gray-400"
                                     x-text="designText.usedCount.replace(':count', designUsageCount('style', style.id))"></span>
-                            <button type="button" @click="toggleDesignLock('style', style)" class="w-8 h-8 rounded text-gray-400 hover:text-amber-600" :title="style.locked ? <?= e($jt('blox_design_unlock')) ?> : <?= e($jt('blox_design_lock')) ?>"><i class="ti" :class="style.locked ? 'ti-lock' : 'ti-lock-open'"></i></button>
-                            <button x-show="!style.locked" type="button" @click="updateGlobalStyle(style)" class="w-8 h-8 rounded text-gray-400 hover:text-emerald-600" title="<?= e(__('blox_design_save')) ?>"><i class="ti ti-device-floppy"></i></button>
-                            <button x-show="!style.locked" type="button" @click="archiveDesignItem('style', style)" class="w-8 h-8 rounded text-gray-400 hover:text-red-500" title="<?= e(__('blox_design_archive')) ?>"><i class="ti ti-trash"></i></button>
+                            <span x-show="!!style.class_id" class="mr-1 font-mono text-[10px] text-emerald-700" data-testid="blox-design-style-class"
+                                  x-text="'→ .yk-c-' + ((globalClasses.find(function (c) { return c.class_id === style.class_id; }) || {}).name || style.class_id)"></span>
+                            <button x-show="!style.class_id" type="button" @click="toggleDesignLock('style', style)" class="w-8 h-8 rounded text-gray-400 hover:text-amber-600" :title="style.locked ? <?= e($jt('blox_design_unlock')) ?> : <?= e($jt('blox_design_lock')) ?>"><i class="ti" :class="style.locked ? 'ti-lock' : 'ti-lock-open'"></i></button>
+                            <button x-show="!style.locked && !style.class_id" type="button" @click="updateGlobalStyle(style)" class="w-8 h-8 rounded text-gray-400 hover:text-emerald-600" title="<?= e(__('blox_design_save')) ?>"><i class="ti ti-device-floppy"></i></button>
+                            <button x-show="!style.locked && !style.class_id" type="button" @click="archiveDesignItem('style', style)" class="w-8 h-8 rounded text-gray-400 hover:text-red-500" title="<?= e(__('blox_design_archive')) ?>"><i class="ti ti-trash"></i></button>
                         </div>
                     </div>
                 </template>
