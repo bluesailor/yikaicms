@@ -3135,7 +3135,7 @@ return [
     'setting_custom_body_code_tip' => 'Inséré avant </body> (statistiques, module de service client, etc.)',
     'pager_prev' => 'Précédent',
     'pager_next' => 'Suivant',
-    'pager_summary' => ':total éléments · Page :page',
+    'pager_summary' => ':total éléments · Page :page sur :pages',
     'time_just_now' => 'à l’instant',
     'time_minutes_ago' => 'il y a :n min',
     'time_hours_ago' => 'il y a :n h',
