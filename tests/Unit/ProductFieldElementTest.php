@@ -132,6 +132,27 @@ final class ProductFieldElementTest extends TestCase
         $this->assertStringNotContainsString('http://', $html);
     }
 
+    /** 大图 + 缩略图布局（WordPress 迁移的产品页常用）：每张大图仍是灯箱锚点，只显示第一张，缩略图按钮切换。 */
+    public function testGalleryThumbsLayoutShowsOneMainImageAndAThumbnailStrip(): void
+    {
+        $gallery = new ProductFieldElement('gallery');
+        $html = ProductTemplateDocument::withProduct(
+            ProductTemplateDocument::normalizeContext(self::controllerVars()),
+            static fn(): string => $gallery->render(['gallery_layout' => 'thumbs'])
+        );
+        $this->assertStringContainsString('data-yk-gallery-layout="thumbs"', $html);
+        $this->assertSame(2, substr_count($html, 'data-yk-gallery-item'), '每张大图都进灯箱');
+        $this->assertSame(1, substr_count($html, ' hidden '), '只显示当前一张大图');
+        $this->assertSame(2, substr_count($html, 'data-yk-gallery-thumb='));
+        $this->assertSame(1, substr_count($html, 'aria-current="true"'), '当前缩略图标出来');
+        $this->assertStringContainsString('blox_product_gallery_show', $html, '缩略图按钮有可访问名称');
+        $this->assertStringContainsString('type="button"', $html);
+
+        $controls = array_column($gallery->controls(), null, 'key');
+        $this->assertSame('grid', $controls['gallery_layout']['default'], '默认仍是网格，老模板不变');
+        $this->assertArrayNotHasKey('gallery_layout', array_column((new ProductFieldElement('specs'))->controls(), null, 'key'));
+    }
+
     public function testGalleryEscapesImagePathAndSkipsLightboxWhenEmpty(): void
     {
         $gallery = new ProductFieldElement('gallery');
