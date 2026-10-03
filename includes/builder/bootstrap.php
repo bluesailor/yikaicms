@@ -115,6 +115,7 @@ require_once __DIR__ . '/BloxSearchTemplateRuntime.php';  // search 模板（v1.
 BloxAssetCollector::bootstrap();
 if (function_exists('add_action')) add_action('ik_head', [BloxPageLayout::class, 'renderHead'], 30);
 if (function_exists('add_action')) add_action('ik_head', [BloxMotion::class, 'renderHead'], 31);
+if (function_exists('add_action')) add_action('ik_head', [BloxMotion::class, 'renderTransitionHead'], 32);
 BloxDesignSystem::bootstrap();
 BloxGlobalClasses::bootstrap();
 BloxPopupRuntime::bootstrap();

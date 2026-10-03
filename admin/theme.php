@@ -223,6 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     $activeTheme = currentTheme();
     $generalValidation = null;
     $motionLevel = $_POST['motion_intensity'] ?? BloxMotion::level();
+    $pageTransition = $_POST['page_transition'] ?? BloxMotion::transition();
     if ($activeTheme === 'default') {
         $rawStyle = $_POST['theme_style'] ?? [];
         $generalValidation = ThemeSettings::validateGeneral(
@@ -234,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     if (isset($_POST['theme_settings_target']) && $_POST['theme_settings_target'] !== $activeTheme) {
         $message = __('theme_schema_target_changed');
         $messageType = 'error';
-    } elseif (!in_array($motionLevel, BloxMotion::LEVELS, true)) {
+    } elseif (!in_array($motionLevel, BloxMotion::LEVELS, true) || !in_array($pageTransition, BloxMotion::TRANSITIONS, true)) {
         $message = __('motion_invalid');
         $messageType = 'error';
     } elseif ($themeGeneralErrors !== []) {
@@ -269,6 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
 
         settingModel()->saveBatch([
             'motion_intensity' => $motionLevel,
+            'page_transition' => $pageTransition,
             'primary_color' => $primaryColor,
             'secondary_color' => $secondaryColor,
             'theme_color_profiles' => ThemePalette::encodeProfiles($colorProfiles),
@@ -734,6 +736,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <?php endforeach; ?>
                         </select>
                         <span class="block mt-2 text-xs text-gray-500"><?= e(__('motion_hint')) ?></span>
+                    </label>
+                    <label class="block md:col-span-2">
+                        <span class="block text-sm font-medium text-gray-700 mb-2"><?= e(__('page_transition_title')) ?></span>
+                        <select name="page_transition" class="w-full border border-gray-200 rounded-lg px-3 py-2" data-testid="page-transition">
+                            <?php foreach (BloxMotion::TRANSITIONS as $transitionOption): ?>
+                            <option value="<?= e($transitionOption) ?>" <?= BloxMotion::transition() === $transitionOption ? 'selected' : '' ?>><?= e(__('page_transition_' . $transitionOption)) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="block mt-2 text-xs text-gray-500"><?= e(__('page_transition_hint')) ?></span>
                     </label>
                     <?php if ($currentTheme === 'default'): ?>
                         <?php require __DIR__ . '/includes/theme_general_fields.php'; ?>
