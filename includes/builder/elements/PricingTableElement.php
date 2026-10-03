@@ -210,7 +210,7 @@ final class PricingTableElement extends AbstractElement
     }
 
     /**
-     * 每行一项；以「-」开头表示该档不包含；随后可写 [图标名] 给这一行单独换图标（如 [star]、-[lock]、[bi:gift]，
+     * 每行一项；以「-」开头表示该档不包含；随后可写 [图标名] 给这一行单独换图标（如 [star]、-[lock]，Bootstrap 图标写 [bi:图标名]，
      * [none] 表示不显示图标）。图标名不合法时原样当文字。
      *
      * @return list<array{text:string,included:bool,icon:string}>
