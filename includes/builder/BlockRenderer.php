@@ -1048,6 +1048,26 @@ final class BlockRenderer
         return $processor->getUpdatedHtml();
     }
 
+    /** 设计系统圆角 / 阴影 token（2.0.4）：var 声明接在根标签已有内联样式之后。 */
+    private static function applyDesignScale(string $html, array $data): string
+    {
+        $css = AbstractElement::designScaleDeclarations($data);
+        if ($html === '' || $css === '') {
+            return $html;
+        }
+        $processor = new HtmlTagRewriter($html);
+        if (!$processor->nextTag()) {
+            return $html;
+        }
+        $style = $processor->getAttribute('style');
+        $style = is_string($style) ? trim($style) : '';
+        if ($style !== '' && !str_ends_with($style, ';')) {
+            $style .= ';';
+        }
+        $processor->setAttribute('style', $style . $css);
+        return $processor->getUpdatedHtml();
+    }
+
     /** 全局类（v1.23）：_classes 的 ID 数组 → 当前类名（yk-c- 前缀），追加到元素根标签。 */
     private static function applyGlobalClasses(string $html, array $data, string $type): string
     {
@@ -1314,6 +1334,7 @@ final class BlockRenderer
         }
         $html = self::applyElementSharedStyles($html, $data, $element);
         if ($element->supportsAurora()) $html = BloxAurora::apply($html, $data);
+        if ($element->supportsDesignScale()) $html = self::applyDesignScale($html, $data);
         $html = self::applyCompiledCss($html, $data, $element);
         $stateTarget = $element->stateStyleTarget();
         if ($stateTarget !== null) $html = BloxStateStyles::apply($html, $data, $stateTarget);

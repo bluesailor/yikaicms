@@ -70,6 +70,7 @@ final class DivElement extends AbstractElement
     /** 通用背景：native——背景写在自己的根 div 上，存量输出逐字节不变 */
     public function backgroundRenderStrategy(): string { return 'native'; }
     public function supportsAurora(): bool { return true; }
+    public function supportsDesignScale(): bool { return true; }
 
     public function controls(): array
     {
@@ -108,6 +109,7 @@ final class DivElement extends AbstractElement
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
             ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
                 'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
+            ...$this->designScaleControls(),
             // 0a：Div 自身作为父级 flex 子项的布局。
             ...$this->flexItemControls(),
             ...$this->staggerControls(),

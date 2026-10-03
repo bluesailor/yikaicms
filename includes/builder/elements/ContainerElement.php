@@ -75,6 +75,7 @@ final class ContainerElement extends AbstractElement
     /** 背景视频首批仅容器（区块级视频背景是真实场景；正文元素无此需求） */
     protected function backgroundVideoEnabled(): bool { return true; }
     public function supportsAurora(): bool { return true; }
+    public function supportsDesignScale(): bool { return true; }
 
     /** @param array<string,mixed> $data @return list<string> */
     public function scriptsFor(array $data): array
@@ -129,6 +130,7 @@ final class ContainerElement extends AbstractElement
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
             ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
                 'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
+            ...$this->designScaleControls(),
             // 0a：容器自身作为父级 flex 子项的布局（容器嵌进行向容器的场景）。
             ...$this->flexItemControls(),
             ...$this->staggerControls(),
