@@ -2988,11 +2988,46 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 });
             },
 
+            /**
+             * 间距四档响应式（2.0.4）：画布切到平板 / 手机 / 宽屏时，间距面板读写该档的值。
+             * 桌面且没有分档时仍存字符串（与改版前一致）；分档存 {d,t,m,w}，只剩桌面档时收回成字符串。
+             * 读取按继承：平板←桌面、手机←平板、宽屏←桌面（与渲染 AbstractElement::boxSpacing 一致）。
+             */
+            boxGet(key) {
+                var raw = this.selEl && this.selEl.data ? this.selEl.data[key] : undefined;
+                if (typeof raw === "string") return raw;
+                if (!raw || typeof raw !== "object") return "";
+                var d = raw.d || "", t = raw.t || d, m = raw.m || t, w = raw.w || d;
+                return { d: d, t: t, m: m, w: w }[this.responsiveDeviceKey()] || "";
+            },
+
+            boxSet(key, value) {
+                if (!this.selEl || !this.selEl.data) return;
+                var data = this.selEl.data, raw = data[key], device = this.responsiveDeviceKey();
+                if (device === "d" && (raw === undefined || raw === null || typeof raw === "string")) {
+                    if (value === "") delete data[key]; else data[key] = value;
+                    return;
+                }
+                var slots = typeof raw === "string" ? { d: raw } : (raw && typeof raw === "object" ? Object.assign({}, raw) : {});
+                if (value === "") delete slots[device]; else slots[device] = value;
+                var filled = Object.keys(slots).filter(function (k) { return slots[k] !== "" && slots[k] !== undefined && slots[k] !== null; });
+                if (filled.length === 0) delete data[key];
+                else if (filled.length === 1 && filled[0] === "d") data[key] = slots.d;
+                else data[key] = slots;
+            },
+
+            /** 当前编辑的不是桌面档时，面板顶部提示正在改哪一档 */
+            boxDeviceHint() {
+                var device = this.responsiveDeviceKey();
+                if (device === "d") return "";
+                return this.responsiveDeviceRangeLabel(this.previewDevice);
+            },
+
             setBoxSpacing(kind, side, value) {
                 if (!this.selEl || !this.selEl.data) return;
                 var key = "style_" + kind + (side ? "_" + side : "");
                 if (value === "exact") {
-                    delete this.selEl.data[key];
+                    this.boxSet(key, "");
                     this.clearBoxSides(kind);
                     this.boxOpen[kind] = false;
                     this.boxExactOpen[kind] = true;
@@ -3000,13 +3035,12 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 }
                 if (value === "custom") {
                     // 四边独立设置：清掉总值、展开该类自己的四边环
-                    delete this.selEl.data[key];
+                    this.boxSet(key, "");
                     this.boxExactOpen[kind] = false;
                     this.boxOpen[kind] = true;
                     return;
                 }
-                if (value === "") delete this.selEl.data[key];
-                else this.selEl.data[key] = value;
+                this.boxSet(key, value);
                 if (!side) {
                     this.clearBoxSides(kind);
                     this.boxOpen[kind] = false;
@@ -3016,16 +3050,15 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
 
             clearBoxSides(kind) {
                 if (!this.selEl || !this.selEl.data) return;
-                var data = this.selEl.data;
-                ["top", "right", "bottom", "left"].forEach(function (s2) { delete data["style_" + kind + "_" + s2]; });
+                var self = this;
+                ["top", "right", "bottom", "left"].forEach(function (s2) { self.boxSet("style_" + kind + "_" + s2, ""); });
             },
 
             hasKindSides(kind) {
                 if (!this.selEl || !this.selEl.data) return false;
-                var data = this.selEl.data;
+                var self = this;
                 return ["top", "right", "bottom", "left"].some(function (s2) {
-                    var v = data["style_" + kind + "_" + s2];
-                    return v !== undefined && v !== null && v !== "";
+                    return self.boxGet("style_" + kind + "_" + s2) !== "";
                 });
             },
 
@@ -3040,16 +3073,15 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
 
             /** 总值 select 显示：该类存在任一四边值 → 显示「自定义」档；否则显示总值档位 */
             spacingSelectValue(kind, side) {
-                var data = this.selEl && this.selEl.data ? this.selEl.data : {};
+                var self = this;
                 if (!side) {
                     var hasSides = ["top", "right", "bottom", "left"].some(function (s2) {
-                        var sv = data["style_" + kind + "_" + s2];
-                        return sv !== undefined && sv !== null && sv !== "";
+                        return self.boxGet("style_" + kind + "_" + s2) !== "";
                     });
                     if (hasSides) return "custom";
                 }
-                var v = data["style_" + kind + (side ? "_" + side : "")];
-                if (v === undefined || v === null) return "";
+                var v = this.boxGet("style_" + kind + (side ? "_" + side : ""));
+                if (v === "") return "";
                 var known = this.boxSpacingBase.some(function (opt) {
                     return opt.k !== "exact" && opt.k !== "custom" && opt.k === v;
                 });
@@ -3058,17 +3090,15 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
 
             kindExactVisible(kind) {
                 if (this.boxExactOpen[kind]) return true;
-                var data = this.selEl && this.selEl.data ? this.selEl.data : {};
-                var value = data["style_" + kind];
-                if (value === undefined || value === null || value === "") return false;
+                var value = this.boxGet("style_" + kind);
+                if (value === "") return false;
                 return !this.boxSpacingBase.some(function (opt) {
                     return opt.k !== "exact" && opt.k !== "custom" && opt.k === value;
                 });
             },
 
             boxOverallDisplay(kind) {
-                var data = this.selEl && this.selEl.data ? this.selEl.data : {};
-                var value = data["style_" + kind];
+                var value = this.boxGet("style_" + kind);
                 return this.spacingRegex(kind).test(String(value || "")) ? value : "";
             },
 
@@ -3077,7 +3107,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 var key = "style_" + kind;
                 var raw = String(ev.target.value).trim();
                 if (raw === "") {
-                    delete this.selEl.data[key];
+                    this.boxSet(key, "");
                     this.boxExactOpen[kind] = false;
                     return;
                 }
@@ -3087,7 +3117,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     return;
                 }
                 this.clearBoxSides(kind);
-                this.selEl.data[key] = raw;
+                this.boxSet(key, raw);
                 this.boxOpen[kind] = false;
                 this.boxExactOpen[kind] = true;
             },
@@ -3100,8 +3130,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
 
             /** 盒模型输入框显示值（档位或精确值原样显示，空=未设置） */
             boxSideDisplay(kind, side) {
-                var v = this.selEl && this.selEl.data ? this.selEl.data["style_" + kind + "_" + side] : "";
-                return (v === undefined || v === null) ? "" : v;
+                return this.boxGet("style_" + kind + "_" + side);
             },
 
             /** 盒模型输入提交：档位关键词或精确值皆可；非法值提示并回显原值 */
@@ -3109,10 +3138,10 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 if (!this.selEl || !this.selEl.data) return;
                 var key = "style_" + kind + "_" + side;
                 var raw = String(ev.target.value).trim();
-                if (raw === "") { delete this.selEl.data[key]; return; }
+                if (raw === "") { this.boxSet(key, ""); return; }
                 var tokenOk = this.boxSpacingBase.some(function (o) { return o.k === raw && o.k !== "" && o.k !== "custom"; });
-                if (tokenOk && !(kind === "padding" && raw === "auto")) { this.selEl.data[key] = raw; return; }
-                if (this.spacingRegex(kind).test(raw)) { this.selEl.data[key] = raw; return; }
+                if (tokenOk && !(kind === "padding" && raw === "auto")) { this.boxSet(key, raw); return; }
+                if (this.spacingRegex(kind).test(raw)) { this.boxSet(key, raw); return; }
                 this.toast(<?php echo json_encode(__('blox_spacing_invalid'), JSON_UNESCAPED_UNICODE); ?>);
                 ev.target.value = this.boxSideDisplay(kind, side);
             },

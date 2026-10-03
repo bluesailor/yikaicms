@@ -1238,6 +1238,12 @@ declare(strict_types=1);
                                             <i class="ti ti-restore text-sm"></i>
                                         </button>
                                     </div>
+                                    <p x-show="boxDeviceHint() !== ''" x-cloak data-blox-spacing-device
+                                       class="text-[11px] leading-snug text-blue-600 inline-flex items-center gap-1">
+                                        <i class="ti ti-device-mobile text-xs"></i>
+                                        <span><?php echo e(__('blox_spacing_device_hint')); ?></span>
+                                        <span class="font-semibold" x-text="boxDeviceHint()"></span>
+                                    </p>
 
                                     <template x-for="kind in boxKinds" :key="'all-'+kind.key">
                                         <div>
