@@ -116,6 +116,16 @@ unset($_request, $_vars, $_k, $keywordRaw);
 
 if ($isProductType) {
     $canonicalUrl = siteBaseUrl() . ProductCatalogRequest::pageUrl($channel, $productCategory, $page, $catalogQuery);
+    // 产品分类页、单个产品标签页用分类 / 标签自己的名称与 SEO 设置（此前一律是「产品中心」栏目的标题）
+    if ($productCategory !== null) {
+        $pageTitle = trim((string) ($productCategory['seo_title'] ?? '')) ?: (string) $productCategory['name'];
+        $pageDescription = trim((string) ($productCategory['seo_description'] ?? ''))
+            ?: (cutStr(strip_tags((string) ($productCategory['description'] ?? '')), 150) ?: $pageDescription);
+        $pageKeywords = trim((string) ($productCategory['seo_keywords'] ?? '')) ?: $pageKeywords;
+    } elseif (count((array) ($catalogQuery['tag_ids'] ?? [])) === 1 && db()->tableExists('product_tags')) {
+        $tagRow = db()->fetchOne('SELECT name FROM ' . DB_PREFIX . 'product_tags WHERE id = ?', [(int) $catalogQuery['tag_ids'][0]]);
+        if ($tagRow) $pageTitle = (string) $tagRow['name'];
+    }
 }
 
 // 获取子栏目（不限制is_nav，侧边栏/子导航显示所有子栏目）

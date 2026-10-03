@@ -49,9 +49,10 @@ if (!empty($_SESSION['admin_id']) && ($__eu = frontEditUrl($content, $channel)) 
 }
 
 // 页面信息
-$pageTitle = $content['title'];
-$pageKeywords = $content['tags'] ?: ($channel['seo_keywords'] ?? '');
-$pageDescription = $content['summary'] ?: cutStr(strip_tags($content['content'] ?? ''), 150);
+// 编辑里填了 SEO 标题 / 关键词 / 描述的用它们（WordPress 导入的 Yoast 设置也在这里）
+$pageTitle = trim((string) ($content['seo_title'] ?? '')) ?: $content['title'];
+$pageKeywords = trim((string) ($content['seo_keywords'] ?? '')) ?: ($content['tags'] ?: ($channel['seo_keywords'] ?? ''));
+$pageDescription = trim((string) ($content['seo_description'] ?? '')) ?: ($content['summary'] ?: cutStr(strip_tags($content['content'] ?? ''), 150));
 // 同时写全局：经 Dispatcher 在方法里 require 本文件时局部变量不是全局，显示条件与栏目导航元素读不到
 $currentChannelId = $GLOBALS['currentChannelId'] = $channelId;
 NavCurrent::markDetail();   // 详情页：所属栏目在导航里标为所在区域（aria-current="true"），不冒充栏目页
