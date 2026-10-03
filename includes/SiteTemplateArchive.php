@@ -18,9 +18,11 @@ final class SiteTemplateArchive
     private const THEME_EXT = ['php', 'css', 'js', 'json', 'md'];
 
     /**
-     * 模板包与当前 CMS 是否兼容：同一「主.次」版本线内，模板制作版本不晚于本站即可
-     * （2.0.0 做的模板在 2.0.x 补丁版上都能导入，不必每个补丁版重签全部模板）。
-     * 跨次版本仍拒绝；补丁版若改了表结构，由 schema 契约另行拒绝。
+     * 模板包与当前 CMS 是否兼容：主版本相同、模板制作版本不晚于本站即可
+     * （2.0.x 做的模板在 2.1、2.2 上照样能导入，不必每个次版本重做全部在售模板；2.0.4 起放宽）。
+     * 比本站新的模板可能用到本站没有的功能，仍拒绝；跨主版本拒绝。
+     * 表结构由 schema 契约逐列比对另行把关——所以次版本不要给可移植表加列，新字段放 metas / settings；
+     * 旧版本模板里的设置数据格式若有变化，导入时要走与升级相同的迁移。
      */
     public static function cmsCompatible(string $templateCms, ?string $current = null): bool
     {
@@ -29,14 +31,13 @@ final class SiteTemplateArchive
             || preg_match('/^(\d+)\.(\d+)\.\d+$/D', $current, $site) !== 1) {
             return false;
         }
-        return (int) $template[1] === (int) $site[1] && (int) $template[2] === (int) $site[2]
-            && version_compare($current, $templateCms, '>=');
+        return (int) $template[1] === (int) $site[1] && version_compare($current, $templateCms, '>=');
     }
 
-    /** 市场卡片上显示的适用版本线，如 2.0.x。 */
+    /** 市场卡片上显示的适用版本线，如 2.x（与 cmsCompatible 同口径：同一主版本）。 */
     public static function cmsSeries(string $templateCms): string
     {
-        return preg_match('/^(\d+)\.(\d+)\.\d+$/D', $templateCms, $match) === 1 ? $match[1] . '.' . $match[2] . '.x' : $templateCms;
+        return preg_match('/^(\d+)\.\d+\.\d+$/D', $templateCms, $match) === 1 ? $match[1] . '.x' : $templateCms;
     }
 
     /** 主题 theme.json 的 required_plugins（主题缺了它就不能启用）。 @return list<string> */
