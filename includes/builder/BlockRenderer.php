@@ -959,9 +959,9 @@ final class BlockRenderer
         // 背景 root 策略（第 3 轮）：元素正常渲染后由此处把共享背景声明注入首标签；
         // native 元素（container/div）自行渲染背景，此处不重复注入。
         $bgStyle = $element->backgroundRenderStrategy() === 'root' ? AbstractElement::backgroundDeclarations($data) : '';
-        $boxStyle = $element->supportsBoxStyles() ? AbstractElement::boxStyle($data) : '';
-        $style = $bgStyle . $boxStyle;
-        if ($html === '' || $style === '') {
+        $box = $element->supportsBoxStyles() ? AbstractElement::boxSpacing($data) : ['style' => '', 'classes' => []];
+        $style = $bgStyle . $box['style'];
+        if ($html === '' || ($style === '' && $box['classes'] === [])) {
             return $html;
         }
 
@@ -974,7 +974,14 @@ final class BlockRenderer
         if ($existing !== '' && !str_ends_with($existing, ';')) {
             $existing .= ';';
         }
-        $processor->setAttribute('style', $existing . $style);
+        if ($style !== '') {
+            $processor->setAttribute('style', $existing . $style);
+        }
+        if ($box['classes'] !== []) {
+            // 响应式间距：只在对应屏幕范围生效的固定类（规则在 app.css）
+            $existingClass = $processor->getAttribute('class');
+            $processor->setAttribute('class', trim((is_string($existingClass) ? $existingClass : '') . ' ' . implode(' ', $box['classes'])));
+        }
         return $processor->getUpdatedHtml();
     }
 

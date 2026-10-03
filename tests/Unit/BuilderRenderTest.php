@@ -1557,15 +1557,50 @@ final class BuilderRenderTest extends TestCase
             'text' => 'Safe',
             'style_margin' => '1rem;display:none',
             'style_padding' => 'auto',
-            'style_padding_top' => ['d' => 'xl'],
+            'style_padding_top' => ['d' => 'xl;}x{', 'm' => ['nested']],
         ]]));
-        $this->assertSame('<h2 class="text-2xl font-bold mb-4">Safe</h2>', $unsafe);
+        $this->assertSame('<h2 class="text-2xl font-bold mb-4">Safe</h2>', $unsafe, '分档里的非法值同样丢弃');
 
         $code = $this->inner($this->oneEl(['type' => 'code', 'data' => [
             'html' => '<div>Raw</div>',
             'style_margin' => 'xl',
         ]]));
         $this->assertSame('<div>Raw</div>', $code);
+    }
+
+    /** 2.0.4：间距四档响应式。各档相同仍是内联（存量输出不变）；不同则每档一个变量 + 只在该档生效的类。 */
+    public function testResponsiveBoxSpacingUsesPerDeviceClasses(): void
+    {
+        $same = $this->inner($this->oneEl(['type' => 'heading', 'data' => [
+            'text' => 'Same', 'style_margin_top' => ['d' => 'lg', 't' => 'lg', 'm' => 'lg'],
+        ]]));
+        $this->assertStringContainsString('style="margin-top:2rem!important;"', $same, '各档相同：内联，与字符串取值一样');
+        $this->assertStringNotContainsString('yk-sp-', $same);
+
+        $out = $this->inner($this->oneEl(['type' => 'heading', 'data' => [
+            'text' => 'Responsive', 'style_margin_top' => ['d' => 'xl', 'm' => 'sm'], 'style_margin_bottom' => 'md',
+        ]]));
+        $this->assertStringContainsString(
+            'style="--yk-sp-mt-m:0.5rem;--yk-sp-mt-t:4rem;--yk-sp-mt-d:4rem;--yk-sp-mb-m:1rem;--yk-sp-mb-t:1rem;--yk-sp-mb-d:1rem;"', $out,
+            '平板继承桌面；同类里的字符串取值也改走类，保证四边与总值的先后'
+        );
+        $this->assertStringContainsString('class="text-2xl font-bold mb-4 yk-sp-mt-m yk-sp-mt-t yk-sp-mt-d yk-sp-mb-m yk-sp-mb-t yk-sp-mb-d"', $out);
+
+        $mobileOnly = $this->inner($this->oneEl(['type' => 'heading', 'data' => [
+            'text' => 'Mobile', 'style_padding' => ['m' => '12px'],
+        ]]));
+        $this->assertStringContainsString('style="--yk-sp-p-m:12px;"', $mobileOnly, '只设手机：桌面与平板保持元素原有间距');
+        $this->assertStringContainsString('yk-sp-p-m"', $mobileOnly);
+    }
+
+    public function testResponsiveBoxStylesheetIsCompiledIntoAppCss(): void
+    {
+        $sheet = \AbstractElement::responsiveBoxStylesheet();
+        $this->assertStringContainsString('@media not all and (min-width:768px){.yk-sp-m-m{margin:var(--yk-sp-m-m)!important}', $sheet);
+        $this->assertStringContainsString('.yk-sp-ps-w{padding-inline-start:var(--yk-sp-ps-w)!important}', $sheet);
+        $this->assertLessThan(strpos($sheet, '@media (min-width:1440px)'), strpos($sheet, '@media (min-width:1024px)'), '宽屏排在桌面之后覆盖它');
+        $app = (string) file_get_contents(ROOT_PATH . '/assets/css/src/app.css');
+        $this->assertStringContainsString($sheet, $app, 'app.css 里的规则必须与 responsiveBoxStylesheet() 逐字一致');
     }
 
     public function testContainerAndDivAdvancedFlexOptions(): void

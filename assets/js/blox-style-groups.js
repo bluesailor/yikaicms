@@ -88,6 +88,10 @@
     function hasBoxValue(data) {
         return BOX_KEYS.some(function (k) {
             var v = (data || {})[k];
+            if (v && typeof v === "object") {
+                // 2.0.4 四档响应式：{d,t,m,w} 任一档非空即算设置了间距
+                return ["d", "t", "m", "w"].some(function (slot) { return typeof v[slot] === "string" && v[slot] !== ""; });
+            }
             return typeof v === "string" && v !== "";
         });
     }
