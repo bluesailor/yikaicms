@@ -2611,7 +2611,7 @@ return [
     'blox_design_scale_hint' => 'サイト共通の角丸と影のスケールです。コンテナ、レイアウトブロック、グローバルクラスから直接選べます。ここで変えると使っている箇所すべてに反映されます。値に {別の項目の識別子} と書くと参照になります。',
     'blox_design_radii' => '角丸',
     'blox_design_shadows' => '影',
-    'blox_design_value' => '値',
+    'blox_design_scale_value' => '値',
     'blox_design_radius_value_ph' => '例：8px、0.5rem',
     'blox_design_shadow_value_ph' => '例：0 4px 12px rgba(15,23,42,.08)',
     'blox_collapse' => '折りたたむ',

@@ -2441,7 +2441,7 @@ return [
     'blox_design_scale_hint' => 'Site-wide radius and shadow scales. Containers, layout blocks and global classes can use them directly; change them here and every place that uses them follows. A value can also be {another-id} to reference another entry.',
     'blox_design_radii' => 'Radius',
     'blox_design_shadows' => 'Shadow',
-    'blox_design_value' => 'Value',
+    'blox_design_scale_value' => 'Value',
     'blox_design_radius_value_ph' => 'e.g. 8px, 0.5rem',
     'blox_design_shadow_value_ph' => 'e.g. 0 4px 12px rgba(15,23,42,.08)',
     'blox_collapse' => 'Collapse',
