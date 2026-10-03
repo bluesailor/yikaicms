@@ -13,6 +13,19 @@
 .yk-tabs[data-tabs-style="bordered"] .yk-tabs-tab { border: 1px solid transparent; border-radius: 6px 6px 0 0; }
 .yk-tabs[data-tabs-style="bordered"] .yk-tabs-tab[aria-selected="true"] { border-color: #d1d5db; border-bottom-color: #fff; background: #fff; }
 .yk-tabs[data-tabs-style="bordered"] .yk-tabs-panel { padding: 24px; border: 1px solid #d1d5db; border-top: 0; background: #fff; }
+/* 2.0.4 自动轮播：选中项底部的进度条即计时器（动画播完由脚本切到下一个），悬停 / 聚焦 / 暂停时动画停住 */
+.yk-tabs[data-tabs-autoplay] { position: relative; }
+.yk-tabs[data-tabs-autoplay] .yk-tabs-tab { position: relative; }
+.yk-tabs-progress { position: absolute; inset-inline: 0; bottom: 0; height: 3px; background: currentColor; opacity: .55; transform: scaleX(0); transform-origin: left center; pointer-events: none; }
+[dir="rtl"] .yk-tabs-progress { transform-origin: right center; }
+.yk-tabs[data-tabs-running] .yk-tabs-tab[aria-selected="true"] .yk-tabs-progress { animation: yk-tabs-progress var(--yk-tabs-interval, 6s) linear forwards; }
+.yk-tabs[data-tabs-paused] .yk-tabs-progress { animation-play-state: paused; }
+@keyframes yk-tabs-progress { to { transform: scaleX(1); } }
+.yk-tabs:has(> .yk-tabs-autoplay-toggle:not([hidden])) .yk-tabs-nav { padding-inline-end: 44px; }
+.yk-tabs-autoplay-toggle { position: absolute; top: 6px; inset-inline-end: 0; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid #d1d5db; border-radius: 9999px; background: #fff; color: #4b5563; cursor: pointer; }
+.yk-tabs-autoplay-toggle:hover { color: #111827; border-color: #9ca3af; }
+.yk-tabs-autoplay-toggle:focus-visible { outline: 2px solid #1d4ed8; outline-offset: 2px; }
+.yk-tabs-autoplay-toggle[hidden] { display: none; }
 @media (max-width: 640px) {
     .yk-tabs .yk-tabs-tab { padding: 10px 12px; }
     .yk-tabs[data-tabs-style="bordered"] .yk-tabs-panel { padding: 16px; }
