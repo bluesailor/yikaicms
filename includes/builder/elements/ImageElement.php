@@ -108,7 +108,10 @@ final class ImageElement extends AbstractElement
             $rawSrc = UrlPolicy::storedImage($rawSrc);
             $imageAttrs = responsiveImageAttributes($rawSrc, 'medium', '100vw');
         }
-        $alt = htmlspecialchars(BloxDynamicTags::resolveText((string) ($data['alt'] ?? '')), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $altText = BloxDynamicTags::resolveText((string) ($data['alt'] ?? ''));
+        // 没写替代文字时用媒体库里给这张图填的（图片编辑弹窗）
+        if (trim($altText) === '' && $rawSrc !== '' && $dynamicField === '' && function_exists('mediaAltFor')) $altText = mediaAltFor($rawSrc);
+        $alt = htmlspecialchars($altText, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         if ($rawSrc === '' && $dynamicField === '') {
             return '';
         }
