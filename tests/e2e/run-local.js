@@ -188,6 +188,8 @@ async function main() {
     const playwrightEnv = {
       ...e2eEnv,
       BLOX_E2E_BASE_URL: baseURL,
+      // 需要写回仓库的用例（如金丝雀基线更新）用它定位源码树；测试本身跑在临时副本里
+      BLOX_E2E_SOURCE_ROOT: sourceRoot,
       BLOX_E2E_STORAGE_STATE: path.join(sourceRoot, 'test-results', `e2e-auth-${runId}.json`),
       BLOX_E2E_OUTPUT_DIR: outputDir,
       BLOX_E2E_REPORT_DIR: reportDir,
