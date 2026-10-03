@@ -47,9 +47,10 @@ $relatedArticles = $_vars['relatedContents'];
 unset($_vars);
 
 // 页面信息
-$pageTitle = $article['title'];
-$pageKeywords = $article['tags'] ?: configJsonLang('site_keywords');
-$pageDescription = $article['summary'] ?: cutStr(strip_tags($article['content']), 150);
+// 编辑里填了 SEO 标题 / 关键词 / 描述的用它们（WordPress 导入的 Yoast 设置也在这里）
+$pageTitle = trim((string) ($article['seo_title'] ?? '')) ?: $article['title'];
+$pageKeywords = trim((string) ($article['seo_keywords'] ?? '')) ?: ($article['tags'] ?: configJsonLang('site_keywords'));
+$pageDescription = trim((string) ($article['seo_description'] ?? '')) ?: ($article['summary'] ?: cutStr(strip_tags($article['content']), 150));
 
 // 当前菜单高亮
 $currentSlug = 'news';
