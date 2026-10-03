@@ -84,6 +84,8 @@
     // ── 编辑全局类时的反向提示：这个类属性在当前元素上会不会被挡住？ ─────────────
     // 优先级（依据见 BloxGlobalClasses::SELECTOR_SUFFIX）：元素的精确值（内联 / .yk-r-*）
     // > 样式预设（内联 !important）> 同元素上类名更靠后的类 > 本类 > 主题默认与元素的档位预设（Tailwind 工具类）。
+    // 由样式预设转来的类（settings.important，2.0.4）声明带 !important：压过元素本地值与其他普通类，
+    // 同为 important 的类之间仍按类名先后。
     // 只列能精确对上的本地键：对不上的宁可不报。
     var localOverrides = {
         text_color: function (type) { return type === 'heading' || type === 'text' ? ['color'] : []; },
@@ -130,32 +132,39 @@
         if (!target || !object(target.settings)) return [];
         var preset = presetFor(data, catalog);
         var attached = Array.isArray(data._classes) ? data._classes : [];
+        var strong = function (entry) { return !!(object(entry) && object(entry.settings) && entry.settings.important); };
+        // a 是否压过 b：important 优先，同级按类名升序靠后者胜
+        var beats = function (a, b) {
+            if (strong(a) !== strong(b)) return strong(a);
+            return String(a.name) > String(b.name);
+        };
+        var targetStrong = strong(target);
         var result = [];
         // 状态里的属性同样会被内联本地值与样式预设挡住（它们都写在 style 属性上）；
         // 多类之间只比较同一状态下的同一属性。state 为空表示基础规则。
         function check(settings, state, otherSettings) {
             Object.keys(settings).forEach(function (key) {
-                if (key === 'states' || !filled(settings[key])) return;
+                if (key === 'states' || key === 'important' || key === 'from_preset' || !filled(settings[key])) return;
                 var localKeys = (localOverrides[key] ? localOverrides[key](type) : []).filter(function (localKey) {
                     return filled(data[localKey]);
                 });
-                if (localKeys.length) {
+                if (localKeys.length && !targetStrong) {
                     result.push({ key: key, state: state, by: 'element', localKeys: localKeys, name: '' });
                     return;
                 }
                 var presetField = presetFields[key];
-                if (preset && presetField && filled(preset[presetField]) && preset[presetField] !== 'none') {
+                if (!targetStrong && preset && presetField && filled(preset[presetField]) && preset[presetField] !== 'none') {
                     result.push({ key: key, state: state, by: 'preset', localKeys: [], name: typeof preset.name === 'string' ? preset.name : '' });
                     return;
                 }
-                // 多类：样式表按类名升序输出，同一属性类名靠后者胜出（与挂载顺序无关）
+                // 多类：样式表按类名升序输出，同一属性类名靠后者胜出（与挂载顺序无关）；important 的类先比
                 var winner = null;
                 attached.forEach(function (otherId) {
                     var other = classes[otherId];
                     if (otherId === classId || !object(other)) return;
                     var values = otherSettings(other);
                     if (!object(values) || !filled(values[key])) return;
-                    if (String(other.name) > String(target.name) && (!winner || String(other.name) > String(winner.name))) winner = other;
+                    if (beats(other, target) && (!winner || beats(other, winner))) winner = other;
                 });
                 if (winner) result.push({ key: key, state: state, by: 'class', localKeys: [], name: String(winner.name) });
             });

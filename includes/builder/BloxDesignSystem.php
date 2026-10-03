@@ -157,6 +157,39 @@ final class BloxDesignSystem
         return $css;
     }
 
+    /**
+     * 预设转成全局类后回写 class_id（BloxPresetClasses::convert）。与 mutate 同一把写锁与 revision。
+     * 已有 class_id 的预设不覆盖（两个管理员同时首次进编辑器时先写者胜）。
+     *
+     * @param array<string,string> $map 预设 id => class_id
+     * @return list<string> 实际回写的预设 id
+     */
+    public static function linkStylesToClasses(array $map): array
+    {
+        $raw = BloxDocumentWriteLock::rawSettings([self::SETTING_KEY]);
+        if (function_exists('settingModel')) {
+            settingModel()->clearCache();
+        }
+        $state = self::snapshot();
+        $linked = [];
+        foreach ($state['styles'] as $index => $style) {
+            $classId = $map[(string) ($style['id'] ?? '')] ?? '';
+            if ($classId !== '' && empty($style['class_id']) && preg_match(BloxGlobalClasses::ID_PATTERN, $classId) === 1) {
+                $state['styles'][$index]['class_id'] = $classId;
+                $state['styles'][$index]['version'] = (int) $style['version'] + 1;
+                $linked[] = (string) $style['id'];
+            }
+        }
+        if ($linked === []) {
+            return [];
+        }
+        $state['revision']++;
+        BloxDocumentWriteLock::settings(self::SETTING_KEY, $raw, static function () use ($state): void {
+            self::persist($state);
+        }, '', 'blox');
+        return $linked;
+    }
+
     /** @param array<int,mixed> $sections */
     public static function assertSectionsAllowed(array $sections, ?bool $advanced = null): void
     {
@@ -281,7 +314,8 @@ final class BloxDesignSystem
                 $items[$index]['version'] = (int) $item['version'] + 1;
                 return $items;
             }
-            if (!empty($item['locked'])) {
+            if (!empty($item['locked']) || ($style && $operation === 'update' && !empty($item['class_id']))) {
+                // 已转成全局类的预设只读：改动请到类管理器，免得预设与类各改各的
                 throw new RuntimeException(__('blox_design_locked'));
             }
             if ($operation === 'archive') {
@@ -387,6 +421,10 @@ final class BloxDesignSystem
             return null;
         }
         $snapshot = self::normalizeStyleSnapshot($item) ?? [];
+        // 已转成全局类（BloxPresetClasses）：记下类 id，此后渲染与编辑都走类
+        $classId = is_string($item['class_id'] ?? null) && preg_match(BloxGlobalClasses::ID_PATTERN, $item['class_id']) === 1
+            ? ['class_id' => $item['class_id']]
+            : [];
         return array_merge([
             'id' => $id,
             'name' => $name,
@@ -395,7 +433,7 @@ final class BloxDesignSystem
             'status' => ($item['status'] ?? '') === 'archived' ? 'archived' : 'active',
             'locked' => !empty($item['locked']),
             'version' => max(1, (int) ($item['version'] ?? 1)),
-        ]);
+        ], $classId);
     }
 
     /** @return array{color:string,background:string,border_color:string,radius:string}|null */

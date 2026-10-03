@@ -1316,8 +1316,10 @@ final class BlockRenderer
         $html = self::applyCompiledCss($html, $data, $element);
         $stateTarget = $element->stateStyleTarget();
         if ($stateTarget !== null) $html = BloxStateStyles::apply($html, $data, $stateTarget);
-        $html = self::applyGlobalStyle($html, $data, $element->type());
-        $html = self::applyGlobalClasses($html, $data, $element->type());
+        // 已转成全局类的样式预设：等价改挂该类（不改存储），存量页面随类的修改而更新
+        $classData = BloxPresetClasses::renderData($data);
+        $html = self::applyGlobalStyle($html, $classData, $element->type());
+        $html = self::applyGlobalClasses($html, $classData, $element->type());
         $html = self::applyOverlap($html, $data);
         if ($element->type() !== 'code') {
             $html = BloxCustomCode::applyToElement($html, $data, (string) ($el['id'] ?? ''));
