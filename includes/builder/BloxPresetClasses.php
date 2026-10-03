@@ -52,6 +52,7 @@ final class BloxPresetClasses
      * 把未转换的预设逐个建成全局类并回写 class_id。类数量到上限等失败时跳过该预设（它继续按预设渲染）。
      *
      * @return array<string,string> 本次新转换的 预设 id => class_id
+     * @psalm-suppress PossiblyUnusedReturnValue 后台入口（admin/blox_editor.php、blox_design.php）只触发转换，结果供测试核对
      */
     public static function convert(int $userId = 0): array
     {
@@ -115,6 +116,7 @@ final class BloxPresetClasses
      * @param array<int,mixed> $sections
      * @param array<string,string>|null $map 预设 id => class_id；null 取当前站点
      * @return array<int,mixed>
+     * @psalm-suppress PossiblyUnusedMethod 调用方是 admin/blox_editor.php（不在 Psalm 分析范围）
      */
     public static function migrateSections(array $sections, ?array $map = null): array
     {

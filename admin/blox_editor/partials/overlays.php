@@ -896,7 +896,7 @@ declare(strict_types=1);
             </div>
 
             <div x-show="designTab === 'styles' && stylePresetsEnabled" class="min-h-0 flex-1 overflow-y-auto blox-scroll">
-                <!-- 样式预设已并入全局类（RFC-1 第 4 点）：能建类的站点不再新建预设 -->
+                <?php /* 样式预设已并入全局类（RFC-1 第 4 点）：能建类的站点不再新建预设 */ ?>
                 <div x-show="globalClassesEnabled" class="flex items-start gap-2 px-4 py-3 bg-emerald-50 border-b border-emerald-100 text-xs text-emerald-800"
                      data-testid="blox-design-presets-converted">
                     <i class="ti ti-arrows-exchange mt-0.5 text-sm"></i>
