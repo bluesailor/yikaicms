@@ -52,6 +52,13 @@ final class ProductFieldElement extends AbstractElement
             if ($key === 'text') $control['default'] = __('blox_product_link_label');
             $controls[] = $control;
         }
+        if ($this->field === 'gallery') {
+            array_unshift($controls, ['key' => 'gallery_layout', 'type' => 'select', 'label' => __('blox_product_gallery_layout'),
+                'default' => 'grid', 'options' => [
+                    'grid' => __('blox_product_gallery_layout_grid'),
+                    'thumbs' => __('blox_product_gallery_layout_thumbs'),
+                ]]);
+        }
         return self::withoutOrphanedRules($controls);
     }
 
@@ -71,11 +78,17 @@ final class ProductFieldElement extends AbstractElement
             case 'gallery':
                 // 相册：只列控制器解析出的真实图片组；没有图不渲染占位（与原生「无图占位」区分：
                 // 动态元素缺失时整块隐藏，由模板作者决定要不要放占位元素）
-                $images = is_array($context['images'] ?? null) ? $context['images'] : [];
+                $images = [];
+                foreach (is_array($context['images'] ?? null) ? $context['images'] : [] as $candidate) {
+                    if (is_string($candidate) && $candidate !== '') $images[] = $candidate;
+                }
                 if ($images === []) return '';
+                if (($data['gallery_layout'] ?? 'grid') === 'thumbs' && count($images) > 1) {
+                    $data['html'] = $this->galleryWithThumbs($images, $title);
+                    break;
+                }
                 $items = [];
                 foreach ($images as $image) {
-                    if (!is_string($image) || $image === '') continue;
                     // 锚点带原图 href：PhotoSwipe 接管时用它做大图，脚本缺失时退化为普通链接
                     $items[] = '<a href="' . e($image) . '" data-yk-gallery-item'
                         . ' data-yk-gallery-full="' . e($image) . '"'
@@ -156,6 +169,34 @@ final class ProductFieldElement extends AbstractElement
             return $this->textShell($data, (string) ($data['html'] ?? ''));
         }
         return $this->delegate()->render($data);
+    }
+
+    /**
+     * 大图 + 缩略图条：每张大图都是灯箱锚点，只显示当前一张（其余 hidden，懒加载的不会提前下载）；
+     * 缩略图按钮切换显示哪张。灯箱仍按全部锚点的顺序浏览，脚本缺失时停在第一张、照样能点开原图。
+     * @param list<string> $images
+     */
+    private function galleryWithThumbs(array $images, string $title): string
+    {
+        $main = $thumbs = '';
+        foreach ($images as $i => $image) {
+            $label = __('blox_product_gallery_show', ['n' => (string) ($i + 1), 'total' => (string) count($images)]);
+            $main .= '<a href="' . e($image) . '" data-yk-gallery-item data-yk-gallery-full="' . e($image) . '"'
+                . ' data-yk-gallery-alt="' . e($title) . '" aria-label="' . e(__('blox_product_gallery_zoom')) . '"'
+                . ($i > 0 ? ' hidden' : '')
+                . ' class="block aspect-square overflow-hidden rounded-lg bg-gray-100">'
+                . '<img alt="' . e($title) . '" decoding="async" ' . ($i === 0 ? 'fetchpriority="high" ' : 'loading="lazy" ')
+                . responsiveImageAttributes($image, 'medium', '(min-width: 1024px) 40vw, 100vw')
+                . ' class="w-full h-full object-contain"></a>';
+            $thumbs .= '<button type="button" data-yk-gallery-thumb="' . $i . '" aria-label="' . e($label) . '"'
+                . ($i === 0 ? ' aria-current="true"' : '')
+                . ' class="shrink-0 w-16 h-16 overflow-hidden rounded-md border-2 bg-gray-100 '
+                . ($i === 0 ? 'border-primary' : 'border-transparent') . '">'
+                . '<img alt="" loading="lazy" decoding="async" ' . responsiveImageAttributes($image, 'thumb', '64px')
+                . ' class="w-full h-full object-cover"></button>';
+        }
+        return '<div class="yk-product-gallery" data-yk-gallery data-yk-gallery-layout="thumbs">' . $main
+            . '<div class="mt-3 flex gap-2 overflow-x-auto" data-yk-gallery-thumbs>' . $thumbs . '</div></div>';
     }
 
     /** 与 TextElement 同款外观壳（prose + 圆角 + 颜色 + 动画），区别是不做富文本净化。 */
