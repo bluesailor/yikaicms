@@ -658,57 +658,124 @@ abstract class AbstractElement
         return false;
     }
 
-    /**
-     * 通用盒模型间距。接受固定档位或经 cssLength() 白名单校验的精确值，
-     * 返回可安全拼入 style 属性的声明。
-     * 总值先输出、四边覆盖后输出；同为 !important 时后者精确覆盖元素自带间距。
-     */
-    public static function boxStyle(array $data): string
-    {
-        $sizes = [
-            'none' => '0',
-            'xs'   => '0.25rem',
-            'sm'   => '0.5rem',
-            'md'   => '1rem',
-            'lg'   => '2rem',
-            'xl'   => '4rem',
-            'auto' => 'auto',
-        ];
-        $fields = [
-            'style_margin'        => ['margin', true],
-            'style_margin_top'    => ['margin-top', true],
-            // 左右按起始/结束输出（TextDirection）：LTR 与原来一致，阿拉伯语等 RTL 页面自动换边
-            'style_margin_right'  => ['margin-inline-end', true],
-            'style_margin_bottom' => ['margin-bottom', true],
-            'style_margin_left'   => ['margin-inline-start', true],
-            'style_padding'        => ['padding', false],
-            'style_padding_top'    => ['padding-top', false],
-            'style_padding_right'  => ['padding-inline-end', false],
-            'style_padding_bottom' => ['padding-bottom', false],
-            'style_padding_left'   => ['padding-inline-start', false],
-        ];
+    /** 盒模型间距：数据键 => [css 属性, 是否外边距, 响应式类缩写]。总值在前、四边在后（四边覆盖总值）。 */
+    private const BOX_FIELDS = [
+        'style_margin'        => ['margin', true, 'm'],
+        'style_margin_top'    => ['margin-top', true, 'mt'],
+        // 左右按起始/结束输出（TextDirection）：LTR 与原来一致，阿拉伯语等 RTL 页面自动换边
+        'style_margin_right'  => ['margin-inline-end', true, 'me'],
+        'style_margin_bottom' => ['margin-bottom', true, 'mb'],
+        'style_margin_left'   => ['margin-inline-start', true, 'ms'],
+        'style_padding'        => ['padding', false, 'p'],
+        'style_padding_top'    => ['padding-top', false, 'pt'],
+        'style_padding_right'  => ['padding-inline-end', false, 'pe'],
+        'style_padding_bottom' => ['padding-bottom', false, 'pb'],
+        'style_padding_left'   => ['padding-inline-start', false, 'ps'],
+    ];
+    private const BOX_SIZES = ['none' => '0', 'xs' => '0.25rem', 'sm' => '0.5rem', 'md' => '1rem', 'lg' => '2rem', 'xl' => '4rem', 'auto' => 'auto'];
+    /** 各档的屏幕范围（与 BloxResponsiveValue::TIERS 一致）：手机 <768、平板 768–1023、桌面 ≥1024、宽屏 ≥1440（排在桌面之后覆盖它） */
+    private const BOX_MEDIA = [
+        'm' => '@media not all and (min-width:768px)',
+        't' => '@media (min-width:768px) and (max-width:1023.98px)',
+        'd' => '@media (min-width:1024px)',
+        'w' => '@media (min-width:1440px)',
+    ];
 
-        $style = '';
-        foreach ($fields as $key => [$property, $isMargin]) {
-            $value = $data[$key] ?? null;
-            if (!is_string($value) || $value === '') {
-                continue;
-            }
-            if (isset($sizes[$value])) {
-                // 固定档位（auto 档仅 margin 可用）
-                if (!$isMargin && $value === 'auto') {
-                    continue;
+    /** 单个取值（档位或精确值）→ css 值；不合法返回 null。auto 档仅外边距可用。 */
+    private static function boxValue(mixed $value, bool $isMargin): ?string
+    {
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+        if (isset(self::BOX_SIZES[$value])) {
+            return !$isMargin && $value === 'auto' ? null : self::BOX_SIZES[$value];
+        }
+        // 精确输入：白名单校验（margin 允负值/auto，padding 非负）
+        return self::cssLength($value, $isMargin, $isMargin);
+    }
+
+    /**
+     * 通用盒模型间距（2.0.4 起四档响应式）。
+     * - 取值为字符串：所有屏幕相同，输出内联声明（与改版前逐字一致，存量页面与缓存不变）。
+     * - 取值为 {d,t,m,w}：平板继承桌面、手机继承平板、宽屏继承桌面；各档相同仍走内联；
+     *   不同则每档输出一个内联变量 + 只在该档屏幕范围生效的类（规则见 responsiveBoxStylesheet，带 !important）。
+     *   同一类（外边距或内边距）里只要有响应式取值，该类的字符串取值也改走类，保证「四边覆盖总值」的顺序不被内联打乱。
+     *
+     * @return array{style:string,classes:list<string>}
+     */
+    public static function boxSpacing(array $data): array
+    {
+        $responsiveKind = ['margin' => false, 'padding' => false];
+        foreach (self::BOX_FIELDS as $key => [, $isMargin]) {
+            if (is_array($data[$key] ?? null)) {
+                $tiers = self::boxTiers($data[$key], $isMargin);
+                if ($tiers !== null && count(array_unique(array_map('strval', $tiers))) > 1) {
+                    $responsiveKind[$isMargin ? 'margin' : 'padding'] = true;
                 }
-                $style .= $property . ':' . $sizes[$value] . '!important;';
-                continue;
-            }
-            // 精确输入：白名单校验（margin 允负值/auto，padding 非负），不合法静默忽略
-            $exact = self::cssLength($value, $isMargin, $isMargin);
-            if ($exact !== null) {
-                $style .= $property . ':' . $exact . '!important;';
             }
         }
-        return $style;
+        $style = '';
+        $classes = [];
+        foreach (self::BOX_FIELDS as $key => [$property, $isMargin, $abbr]) {
+            $raw = $data[$key] ?? null;
+            if (!$responsiveKind[$isMargin ? 'margin' : 'padding']) {
+                $value = is_array($raw) ? (self::boxTiers($raw, $isMargin)['d'] ?? null) : self::boxValue($raw, $isMargin);
+                if ($value !== null) {
+                    $style .= $property . ':' . $value . '!important;';
+                }
+                continue;
+            }
+            $tiers = self::boxTiers(is_string($raw) ? ['d' => $raw] : $raw, $isMargin);
+            if ($tiers === null) {
+                continue;
+            }
+            foreach (['m', 't', 'd', 'w'] as $device) {
+                $value = $tiers[$device];
+                if ($value === null || ($device === 'w' && $value === $tiers['d'])) {
+                    continue;
+                }
+                $style .= '--yk-sp-' . $abbr . '-' . $device . ':' . $value . ';';
+                $classes[] = 'yk-sp-' . $abbr . '-' . $device;
+            }
+        }
+        return ['style' => $style, 'classes' => $classes];
+    }
+
+    /**
+     * 四档取值（已换成 css 值；null = 该档不设）。全空或不是数组返回 null。
+     * @return array{m:?string,t:?string,d:?string,w:?string}|null
+     */
+    private static function boxTiers(mixed $raw, bool $isMargin): ?array
+    {
+        if (!is_array($raw)) {
+            return null;
+        }
+        $d = self::boxValue($raw['d'] ?? null, $isMargin);
+        $t = self::boxValue($raw['t'] ?? null, $isMargin) ?? $d;
+        $m = self::boxValue($raw['m'] ?? null, $isMargin) ?? $t;
+        $w = BloxResponsiveValue::wideEnabled() ? (self::boxValue($raw['w'] ?? null, $isMargin) ?? $d) : $d;
+        if ($d === null && $t === null && $m === null && $w === null) {
+            return null;
+        }
+        return ['m' => $m, 't' => $t, 'd' => $d, 'w' => $w];
+    }
+
+    /**
+     * 响应式间距的固定规则（编进 app.css，与此逐字一致，由单测校验）。每档一组媒体查询，组内总值在前、四边在后。
+     * @api Build-time stylesheet contract, not a per-request renderer.
+     */
+    public static function responsiveBoxStylesheet(): string
+    {
+        $css = '';
+        foreach (self::BOX_MEDIA as $device => $media) {
+            $rules = '';
+            foreach (self::BOX_FIELDS as [$property, , $abbr]) {
+                $class = 'yk-sp-' . $abbr . '-' . $device;
+                $rules .= '.' . $class . '{' . $property . ':var(--' . $class . ')!important}';
+            }
+            $css .= $media . '{' . $rules . '}';
+        }
+        return $css;
     }
 
     /** 由 controls() 推导默认 data（后台新增元素用） */

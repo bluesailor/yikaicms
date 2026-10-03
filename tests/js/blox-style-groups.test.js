@@ -26,13 +26,15 @@ test('filter: partitions by active group, showAll bypasses', () => {
     assert.deepEqual(styleGroups.filter(null, 'general', false), []);
 });
 
-test('hasBoxValue: only non-empty strings count (server boxStyle parity)', () => {
+test('hasBoxValue: non-empty strings or responsive slots count (server boxSpacing parity)', () => {
     assert.equal(styleGroups.hasBoxValue({ style_margin: 'md' }), true);
     assert.equal(styleGroups.hasBoxValue({ style_padding_top: '10%' }), true);
     assert.equal(styleGroups.hasBoxValue({ style_margin: '' }), false);
     // 数值/数组形态服务端会丢弃，圆点不得亮（unknown-keys 勘误的同口径锚点）
     assert.equal(styleGroups.hasBoxValue({ style_margin_bottom: 20 }), false);
-    assert.equal(styleGroups.hasBoxValue({ style_padding_top: { d: 'xl' } }), false);
+    assert.equal(styleGroups.hasBoxValue({ style_padding_top: { d: 'xl' } }), true);
+    assert.equal(styleGroups.hasBoxValue({ style_padding_top: { m: '12px' } }), true);
+    assert.equal(styleGroups.hasBoxValue({ style_padding_top: { d: '', t: 3 } }), false);
     assert.equal(styleGroups.hasBoxValue({}), false);
     assert.equal(styleGroups.hasBoxValue(null), false);
 });
