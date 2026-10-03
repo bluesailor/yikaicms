@@ -292,7 +292,7 @@ final class BloxGlobalClassPropertiesTest extends TestCase
         ]));
         self::assertSame(
             '.yk-c-cta:not(yk-none){color:#111111;border-color:#dddddd;border-style:solid;border-width:2px;'
-            . 'transition-property:color,background-color,border-color,border-width,border-radius;transition-duration:200ms}'
+            . 'transition-property:color,background-color,border-color,border-width,border-radius,box-shadow;transition-duration:200ms}'
             // 状态里只改边框颜色：沿用基础的 2px 实线，不回落成 1px
             . '.yk-c-cta:not(yk-none):hover{color:#c2410c;border-color:#c2410c}'
             // 聚焦：键盘焦点在元素本身，或在它里面的链接/按钮上

@@ -74,6 +74,13 @@ settingModel()->saveBatch([
             ['id' => 'c_sand', 'name' => 'Sand', 'category' => 'neutral', 'value' => '#f5efe6', 'status' => 'active', 'locked' => false, 'version' => 1],
         ],
         'styles' => [],
+        'radii' => [
+            ['id' => 'md', 'name' => 'Medium', 'value' => '10px'],
+            ['id' => 'card', 'name' => 'Card', 'value' => '{md}'],
+        ],
+        'shadows' => [
+            ['id' => 'md', 'name' => 'Medium', 'value' => '0 6px 18px rgba(15,23,42,.14)'],
+        ],
     ], JSON_THROW_ON_ERROR),
     BloxDesignTheme::PUBLISHED_KEY => json_encode(['revision' => 2, 'state' => [
         'typography' => [
@@ -124,6 +131,10 @@ $json = json_encode([
                 ['id' => 'cn-box-btn', 'type' => 'button', 'data' => ['text' => 'Inner', 'url' => '/about.html']],
             ]]),
             $el('cn-token-text', 'heading', ['text' => 'Token colour', 'level' => 'h3', 'color' => 'var(--yk-color-secondary)']),
+            // 圆角 / 阴影 token（2.0.4）：容器直接选用，card 引用 md
+            $el('cn-scale', 'container', ['bg_color' => '#ffffff', 'padding' => 'md', 'radius_token' => 'card', 'shadow_token' => 'md', 'children' => [
+                ['id' => 'cn-scale-text', 'type' => 'text', 'data' => ['html' => '<p>Scale tokens</p>']],
+            ]]),
         ]]],
     ]],
 ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
