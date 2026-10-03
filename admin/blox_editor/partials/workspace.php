@@ -895,6 +895,12 @@ declare(strict_types=1);
                                                     <button type="button" @click="setIconProvider('bootstrap')" data-testid="blox-home-icon-provider-bootstrap"
                                                             class="h-7 rounded border text-[10px] font-medium transition"
                                                             :class="iconProvider === 'bootstrap' ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-200 text-gray-600 hover:border-blue-300'">Bootstrap</button>
+                                                    <template x-for="set in iconSets" :key="'icon-set-' + set.prefix">
+                                                        <button type="button" @click="setIconProvider(set.prefix)" :data-testid="'blox-home-icon-provider-' + set.prefix"
+                                                                class="h-7 rounded border text-[10px] font-medium transition truncate px-1"
+                                                                :class="iconProvider === set.prefix ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-200 text-gray-600 hover:border-blue-300'"
+                                                                x-text="set.label"></button>
+                                                    </template>
                                                 </div>
                                                 <input type="text" x-model="iconQuery"
                                                        :placeholder="homeDynamicText.iconSearch"
@@ -2069,6 +2075,12 @@ declare(strict_types=1);
                                                     <button type="button" @click="setIconProvider('bootstrap')" data-testid="blox-icon-provider-bootstrap"
                                                             class="h-7 rounded border text-[10px] font-medium transition"
                                                             :class="iconProvider === 'bootstrap' ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-200 text-gray-600 hover:border-blue-300'">Bootstrap</button>
+                                                    <template x-for="set in iconSets" :key="'icon-set-' + set.prefix">
+                                                        <button type="button" @click="setIconProvider(set.prefix)" :data-testid="'blox-icon-provider-' + set.prefix"
+                                                                class="h-7 rounded border text-[10px] font-medium transition truncate px-1"
+                                                                :class="iconProvider === set.prefix ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-200 text-gray-600 hover:border-blue-300'"
+                                                                x-text="set.label"></button>
+                                                    </template>
                                                 </div>
                                                 <input type="text" x-model="iconQuery" data-testid="blox-icon-search" placeholder="<?= e(__('blox_icon_search_ph')) ?>"
                                                        class="w-full border border-gray-200 rounded px-2 py-1 text-xs mb-2">
