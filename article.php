@@ -31,6 +31,7 @@ if ($id <= 0) {
 // 数据装配交给 ContentDetailController：浏览量自增、栏目、上一篇/下一篇/相关。
 // 与 detail.php 复用同一套已测逻辑（tests/Controllers/ContentDetailControllerTest），
 // 替代早先本页内联的重复取数（incrementViews / getPrev / getNext / getRelated）。
+redirectToRegisteredUrl('content', $id);   // 设了登记网址（WordPress 迁移）：旧地址 301 过去
 require_once __DIR__ . '/controllers/detail/ContentDetailController.php';
 $_vars = (new ContentDetailController())->prepare($id);
 if ($_vars === null) {
@@ -60,7 +61,7 @@ $navChannels = getNavChannels();
 // SEO: OpenGraph & JSON-LD
 $ogType = 'article';
 $siteUrl = siteBaseUrl();
-$canonicalUrl = $siteUrl . langPrefix() . '/news/article/' . ($article['slug'] ?: $article['id']) . '.html';
+$canonicalUrl = $siteUrl . contentPrettyUrl($article + ['type' => 'article']);   // 设了登记网址时即登记网址
 if (!empty($article['cover'])) {
     $ogImage = $article['cover'];
 }
@@ -106,9 +107,9 @@ if (trim($articleTemplateHtml) !== '') {
 
 <?php /* 页面头部 */ ?>
 <?php
-$breadcrumbItems = [['name' => __('news_title'), 'url' => '/news.html']];
+$breadcrumbItems = [['name' => __('news_title'), 'url' => newsChannelUrl(null)]];
 if ($article['channel_name'] ?? '') {
-    $breadcrumbItems[] = ['name' => $article['channel_name'], 'url' => '/news/' . e($article['channel_slug'] ?? '') . '.html'];
+    $breadcrumbItems[] = ['name' => $article['channel_name'], 'url' => newsChannelUrl(['id' => (int) ($article['channel_id'] ?? 0), 'slug' => (string) ($article['channel_slug'] ?? '')])];
 }
 $breadcrumbItems[] = ['name' => cutStr($article['title'], 30), 'url' => ''];
 // image 维持历史行为（详情页不拿栏目图当横幅）；hero_bg/show_hero 透传所属栏目行，

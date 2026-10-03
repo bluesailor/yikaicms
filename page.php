@@ -63,6 +63,7 @@ if (!$channel || $channel['status'] != 1) {
     header('HTTP/1.1 404 Not Found');
     render404(__('error_page_not_found'));
 }
+redirectToRegisteredUrl('channel', $channelId);   // 设了登记网址：旧地址 301 过去
 
 // 联系页：所有语言版本都委托给 contact.php 渲染
 // （保留 cards / form / map 等专属布局；避免 /en/contact-en.html /ja/contact-ja.html
@@ -321,55 +322,7 @@ if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame']
                 </div>
                 <?php endif; ?>
 
-                <?php if (!empty($albumPhotos)): ?>
-                <?php $__albumMasonry = (($albumData['layout'] ?? 'grid') === 'masonry'); ?>
-                <div class="bg-white rounded-lg shadow p-6">
-                    <?php if ($__albumMasonry): ?>
-                    <?php /* 流布局（瀑布流）：保留图片原始比例 */ ?>
-                    <div data-album-masonry style="columns:2;column-gap:1rem">
-                        <?php foreach ($albumPhotos as $photo): ?>
-                        <div class="group" style="break-inside:avoid;margin-bottom:1rem">
-                            <a href="<?php echo e($photo['image']); ?>"
-                               data-lightbox="album"
-                               data-title="<?php echo e($photo['title']); ?>"
-                               class="block rounded-lg overflow-hidden bg-gray-100">
-                                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($photo['image'], 'medium', '(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw'); ?>
-                                     alt="<?php echo e($photo['title']); ?>"
-                                     class="w-full h-auto group-hover:opacity-90 transition duration-300">
-                            </a>
-                            <?php if ($photo['title']): ?>
-                            <p class="text-center text-sm text-gray-600 mt-2"><?php echo e($photo['title']); ?></p>
-                            <?php endif; ?>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <style>@media(min-width:768px){[data-album-masonry]{columns:3}}@media(min-width:1024px){[data-album-masonry]{columns:4}}</style>
-                    <?php else: ?>
-                    <?php /* 网格：等比方形缩略图 */ ?>
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <?php foreach ($albumPhotos as $photo): ?>
-                        <div class="group">
-                            <a href="<?php echo e($photo['image']); ?>"
-                               data-lightbox="album"
-                               data-title="<?php echo e($photo['title']); ?>"
-                               class="block aspect-square rounded-lg overflow-hidden bg-gray-100">
-                                <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($photo['image'], 'medium', '(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw'); ?>
-                                     alt="<?php echo e($photo['title']); ?>"
-                                     class="w-full h-full object-cover group-hover:scale-110 transition duration-300">
-                            </a>
-                            <?php if ($photo['title']): ?>
-                            <p class="text-center text-sm text-gray-600 mt-2"><?php echo e($photo['title']); ?></p>
-                            <?php endif; ?>
-                        </div>
-                        <?php endforeach; ?>
-                    </div>
-                    <?php endif; ?>
-                </div>
-                <?php else: ?>
-                <div class="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-                    <?php echo e(__('no_image')); ?>
-                </div>
-                <?php endif; ?>
+                <?php require ROOT_PATH . '/includes/partials/album-photos.php'; ?>
 
                 <?php elseif ($content): ?>
                 <?php /* 单页类型展示 */ ?>
@@ -432,30 +385,7 @@ if (!$isBloxPage || PageBloxDocument::usesThemeTitle($GLOBALS['ykBloxPageFrame']
     </div>
 </section>
 
-<?php if ($channel['type'] === 'album' && !empty($albumPhotos)): ?>
-<?php /* PhotoSwipe 灯箱（相册；替代手写 lightbox） */ ?>
-
-<link rel="stylesheet" href="/assets/photoswipe/photoswipe.css">
-<script src="/assets/photoswipe/photoswipe.umd.min.js"></script>
-<script src="/assets/photoswipe/photoswipe-lightbox.umd.min.js"></script>
-<script>
-(function () {
-    var images = <?php echo json_encode(array_map(function ($p) { return ['src' => $p['image'], 'title' => $p['title']]; }, $albumPhotos), JSON_UNESCAPED_UNICODE); ?>;
-    var dims = {};
-    images.forEach(function (im) { var pr = new Image(); pr.onload = function () { dims[im.src] = { w: pr.naturalWidth, h: pr.naturalHeight }; }; pr.src = im.src; });
-    function openAlbum(idx) {
-        if (!window.PhotoSwipeLightbox) return;
-        var ds = images.map(function (im) { var d = dims[im.src] || { w: 1600, h: 1600 }; return { src: im.src, width: d.w, height: d.h, alt: im.title }; });
-        var lb = new PhotoSwipeLightbox({ dataSource: ds, pswpModule: window.PhotoSwipe, showHideAnimationType: 'zoom', bgOpacity: 0.92 });
-        lb.init();
-        lb.loadAndOpen(idx || 0);
-    }
-    document.querySelectorAll('[data-lightbox="album"]').forEach(function (el, idx) {
-        el.addEventListener('click', function (e) { e.preventDefault(); openAlbum(idx); });
-    });
-})();
-</script>
-<?php endif; ?>
+<?php if ($channel['type'] === 'album') require ROOT_PATH . '/includes/partials/album-lightbox.php'; ?>
 
 <?php if ($isBloxPage && isset($pageDocument)) echo BloxDotNav::render($pageDocument); ?>
 <?php require_once theme_path('layouts/footer.php'); ?>

@@ -304,6 +304,8 @@ $productCatalogGridClass = [
                             return '/product/' . $catSlug . '/page/' . $p . '.html' . $queryStr;
                         }
                     }
+                    $registered = productRouteModel()->pathFor('channel', (int) ($channel['id'] ?? 0));
+                    if ($registered !== '') return pagedUrl($registered, $p) . $queryStr;
                     $slug = $channel['slug'] ?? '';
                     if ($p === 1) {
                         $url = $slug ? "/{$slug}.html" : "/list/{$channel['id']}.html";

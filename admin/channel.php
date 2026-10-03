@@ -156,6 +156,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('admin_url_alias_exists'));
         }
 
+        $_urlLang = $id > 0 ? (string) ((channelModel()->find($id) ?: [])['lang'] ?? config('site_lang', 'zh-CN')) : (string) $data['lang'];
+        $customUrl = ($data['type'] ?? '') === 'link' ? null : customUrlPrecheck('channel', $id, $_urlLang);
+
         // 获取旧slug（用于更新页脚导航中的URL）
         $oldSlug = '';
         if ($id > 0) {
@@ -171,6 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = channelModel()->create($data);
             adminLog('channel', 'create', __('admin_add') . '：' . $data['name']);
         }
+        customUrlSave('channel', (int) $id, $customUrl, $_urlLang);
 
         // 更新页脚导航
         $isFooterNav = postInt('is_footer_nav');
@@ -257,6 +261,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 关联内容移入回收站（不物理删除，可在回收站还原）
         $trashed = contentModel()->trashChannelContents($id);
         channelModel()->deleteById($id);
+        productRouteModel()->remove('channel', $id);
         adminLog('channel', 'delete', __('admin_delete') . '：' . $channel['name'] . "（{$trashed} 条内容移入回收站）");
         success(['trashed' => $trashed]);
     }
@@ -1029,6 +1034,7 @@ function ykPickChannelIcon(name) {
                            class="w-full border rounded px-3 py-2 <?php echo $__slugLocked ? 'bg-gray-100 text-gray-500' : ''; ?>"
                            placeholder="<?php echo __('admin_slug_auto_placeholder'); ?>"
                            <?php echo $__slugLocked ? 'readonly title="' . e(__('admin_product_slug_locked')) . '"' : ''; ?>>
+                    <?php echo customUrlField('channel', (int) ($editChannel['id'] ?? 0), '/category/news/', 'w-full border rounded px-3 py-2'); ?>
                 </div>
 
                 <div>

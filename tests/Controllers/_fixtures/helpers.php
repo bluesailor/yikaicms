@@ -11,6 +11,10 @@
 
 declare(strict_types=1);
 
+if (!function_exists('redirectToRegisteredUrl')) {
+    // 旧地址 301 到登记网址：命令行下直接返回，控制器测试不受影响
+    function redirectToRegisteredUrl(string $kind, int $id): void {}
+}
 if (!function_exists('getChannel')) {
     function getChannel(int $id): ?array {
         return db()->fetchOne('SELECT * FROM channels WHERE id = ?', [$id]);

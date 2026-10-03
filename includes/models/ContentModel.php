@@ -31,6 +31,18 @@ class ContentModel extends Model
     }
 
     /**
+     * 逗号分隔的 tags 列里整词匹配一个标签（不区分 , 与全角，、逗号后空格）。
+     * @param list<mixed> $params
+     */
+    public static function tagCondition(string $column, string $tag, array &$params): string
+    {
+        $list = "REPLACE(REPLACE(REPLACE({$column}, '，', ','), ', ', ','), ' ,', ',')";
+        $wrapped = db()->isSqlite() ? "(',' || {$list} || ',')" : "CONCAT(',', {$list}, ',')";
+        $params[] = '%,' . strtr(trim($tag), ['!' => '!!', '%' => '!%', '_' => '!_']) . ',%';
+        return "{$wrapped} LIKE ? ESCAPE '!'";
+    }
+
+    /**
      * 获取内容列表（支持栏目和过滤条件）
      */
     public function getList(int $channelId = 0, int $limit = 10, int $offset = 0, array $filters = []): array
@@ -70,6 +82,9 @@ class ContentModel extends Model
         }
         if (!empty($filters['is_top'])) {
             $where[] = 'c.is_top = 1';
+        }
+        if ((string) ($filters['tag'] ?? '') !== '') {
+            $where[] = self::tagCondition('c.tags', (string) $filters['tag'], $params);
         }
 
         MetaModel::applyMetaFilters($filters['_meta_filters'] ?? null, 'c.', $where, $params);
@@ -128,6 +143,9 @@ class ContentModel extends Model
         }
         if (!empty($filters['is_top'])) {
             $where[] = 'is_top = 1';
+        }
+        if ((string) ($filters['tag'] ?? '') !== '') {
+            $where[] = self::tagCondition('tags', (string) $filters['tag'], $params);
         }
 
         MetaModel::applyMetaFilters($filters['_meta_filters'] ?? null, $this->tableName() . '.', $where, $params);

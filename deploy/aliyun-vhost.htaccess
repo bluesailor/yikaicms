@@ -63,6 +63,12 @@
     RewriteCond %{HTTP_COOKIE} !(^|;\s*)yk_admin=1
     RewriteCond %{DOCUMENT_ROOT}%{ENV:YK_BASE}html/$1 -f
     RewriteRule ^(.+)$ %{ENV:YK_BASE}html/$1 [L]
+    # 结尾斜杠的地址（WordPress 迁移的 /about/team/）：-> html/about/team/index.html
+    RewriteCond %{REQUEST_METHOD} =GET
+    RewriteCond %{QUERY_STRING} ^$
+    RewriteCond %{HTTP_COOKIE} !(^|;\s*)yk_admin=1
+    RewriteCond %{DOCUMENT_ROOT}%{ENV:YK_BASE}html/$1index.html -f
+    RewriteRule ^(.+/)$ %{ENV:YK_BASE}html/$1index.html [L]
     # 首页：/ -> html/index.html
     RewriteCond %{REQUEST_METHOD} =GET
     RewriteCond %{QUERY_STRING} ^$

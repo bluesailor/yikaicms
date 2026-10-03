@@ -34,6 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'status' => postInt('status', 1),
         ];
         if (empty($data['name']) || empty($data['group_name'])) error(__('ptag_group_name_required'));
+        $_urlLang = $id > 0 ? (string) ((db()->fetchOne('SELECT lang FROM ' . DB_PREFIX . 'product_tags WHERE id = ?', [$id]) ?: [])['lang'] ?? $postLang) : $postLang;
+        $customUrl = customUrlPrecheck('product_tag', $id, $_urlLang);
 
         if ($id > 0) {
             db()->update('product_tags', $data, 'id = ?', [$id]);
@@ -44,7 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($postLang === $_defaultLang) {
                 db()->execute("UPDATE " . DB_PREFIX . "product_tags SET translation_group_id = ? WHERE id = ?", [$newId, $newId]);
             }
+            $id = $newId;
         }
+        customUrlSave('product_tag', $id, $customUrl, $_urlLang);
         success();
     }
 
@@ -52,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = postInt('id');
         db()->delete('product_tags', 'id = ?', [$id]);
         db()->delete('product_tag_map', 'tag_id = ?', [$id]);
+        productRouteModel()->remove('product_tag', $id);
         success();
     }
 
@@ -151,6 +156,7 @@ echo renderAdminLangSwitcher($_viewLang, str_replace(':lang', $_viewLang, __('pt
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
                     <input type="text" name="slug" value="<?php echo e($editTag['slug'] ?? ''); ?>" class="w-full border rounded px-3 py-2 text-sm" placeholder="<?php echo e(__('ptag_slug_ph')); ?>">
+                    <?php echo customUrlField('product_tag', (int) ($editTag['id'] ?? 0), '/product-tag/worm-gear/', 'w-full border rounded px-3 py-2 text-sm'); ?>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>

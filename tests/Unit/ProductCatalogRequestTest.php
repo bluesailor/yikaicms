@@ -123,6 +123,7 @@ final class ProductCatalogRequestTest extends TestCase
         $class = $root . '/includes/ProductCatalogRequest.php';
         $code = 'define("SITE_LANG", ' . var_export($lang, true) . ');'
             . 'function isDynamicUrlMode(): bool { return false; }'
+            . 'function productRouteModel(): object { return new class { public function pathFor(string $k, int $i): string { return ""; } }; }'
             . 'function langPrefix(?string $lang = null): string {'
             . ' $lang = $lang ?? SITE_LANG; return $lang === "zh-CN" ? "" : "/" . $lang; }'
             . 'require ' . var_export($class, true) . ';'
