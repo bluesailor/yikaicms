@@ -199,6 +199,8 @@ final class ProductRouteModel extends Model
     /**
      * 其余类型：条目已由各自的编辑页保存好，这里只登记（或清除）它的网址。
      * 编辑页先调 validate() 提前报错，再保存条目，最后调本方法。
+     * 返回规范化后的网址（WordPress 导入记日志、测试断言用；编辑页不需要）。
+     * @psalm-suppress PossiblyUnusedReturnValue
      */
     public function assign(string $kind, int $id, string $input, string $lang): string
     {
