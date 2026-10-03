@@ -295,7 +295,7 @@ final class ImageThumbnailTest extends TestCase
 
         $article = (string) file_get_contents(ROOT_PATH . '/article.php');
         $detail = (string) file_get_contents(ROOT_PATH . '/detail.php');
-        $page = (string) file_get_contents(ROOT_PATH . '/page.php');
+        $page = (string) file_get_contents(ROOT_PATH . '/page.php') . (string) file_get_contents(ROOT_PATH . '/includes/partials/album-photos.php');
         $this->assertStringContainsString('href="<?php echo e($img); ?>"', $article);
         $this->assertStringContainsString('img.src = caseGallery[caseLbIdx]', $detail);
         $this->assertStringContainsString('JSON_HEX_TAG', $detail);
