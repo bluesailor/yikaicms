@@ -1,5 +1,8 @@
 <?php
-/** Blox 图标值：无前缀默认使用 Tabler，bi:<name> 使用 Bootstrap Icons。 */
+/**
+ * Blox 图标值：无前缀默认使用 Tabler，bi:<name> 使用 Bootstrap Icons；
+ * 插件 / 主题注册的图标集（2.0.4）用自己的前缀 <prefix>:<name>，见 registerSet()。
+ */
 
 declare(strict_types=1);
 
@@ -10,9 +13,110 @@ final class BloxIcon
     public const BOOTSTRAP_STYLESHEET = '/assets/bootstrap-icons/bootstrap-icons.min.css';
 
     private const MOTIONS = ['pulse', 'ring', 'slide', 'spin', 'sparkle', 'lift'];
+    private const NAME_PATTERN = '/^[a-z0-9][a-z0-9-]{0,79}$/';
+    private const SET_PREFIX_PATTERN = '/^[a-z][a-z0-9]{1,15}$/';
+    /** 内置前缀，注册时不可占用 */
+    private const RESERVED_PREFIXES = ['ti', 'tabler', 'bi', 'none'];
+    private const MAX_SET_ICONS = 5000;
+
+    /** @var array<string,array{prefix:string,label:string,stylesheet:string,class:string,icons:list<string>}> */
+    private static array $sets = [];
 
     /**
-     * @return array{library:'tabler'|'bootstrap',name:string,value:string}
+     * 注册图标集（插件 / 主题在加载时调用，或挂 blox_icon_sets 过滤器返回同样结构）。
+     * - prefix：2–16 位小写字母数字，图标值写作 prefix:name；
+     * - stylesheet：站内 /assets/、/plugins/ 或 /themes/<主题>/assets/ 下的 .css（前台只在页面用到该图标集时加载）；
+     * - class：类名模板，{name} 处换成图标名，如 "lucide lucide-{name}"；
+     * - icons：图标名清单（编辑器选择器用；可选）。
+     * 不合法的注册静默忽略，返回是否成功。
+     *
+     * @param array<string,mixed> $set
+     * @psalm-suppress PossiblyUnusedMethod, PossiblyUnusedReturnValue 插件 / 主题 API，调用方不随本仓库分发
+     */
+    public static function registerSet(string $prefix, array $set): bool
+    {
+        $normalized = self::normalizeSet($prefix, $set);
+        if ($normalized === null) {
+            return false;
+        }
+        self::$sets[$normalized['prefix']] = $normalized;
+        return true;
+    }
+
+    /** @return array<string,array{prefix:string,label:string,stylesheet:string,class:string,icons:list<string>}> */
+    public static function sets(): array
+    {
+        $sets = self::$sets;
+        if (function_exists('apply_filters')) {
+            $filtered = apply_filters('blox_icon_sets', []);
+            foreach (is_array($filtered) ? $filtered : [] as $key => $set) {
+                $prefix = is_array($set) && is_string($set['prefix'] ?? null) ? $set['prefix'] : (is_string($key) ? $key : '');
+                $normalized = is_array($set) ? self::normalizeSet($prefix, $set) : null;
+                if ($normalized !== null && !isset($sets[$normalized['prefix']])) {
+                    $sets[$normalized['prefix']] = $normalized;
+                }
+            }
+        }
+        return $sets;
+    }
+
+    /** @psalm-suppress PossiblyUnusedMethod 单测隔离用 */
+    public static function resetSetsForTests(): void
+    {
+        self::$sets = [];
+    }
+
+    /**
+     * 编辑器用的图标集目录（不含内置的 Tabler / Bootstrap）。
+     *
+     * @return list<array{prefix:string,label:string,stylesheet:string,class:string,icons:list<string>}>
+     * @psalm-suppress PossiblyUnusedMethod 后台编辑器入口通过 JSON 消费
+     */
+    public static function editorSets(): array
+    {
+        return array_values(self::sets());
+    }
+
+    /**
+     * @param array<string,mixed> $set
+     * @return array{prefix:string,label:string,stylesheet:string,class:string,icons:list<string>}|null
+     */
+    private static function normalizeSet(string $prefix, array $set): ?array
+    {
+        $prefix = strtolower(trim($prefix));
+        if (preg_match(self::SET_PREFIX_PATTERN, $prefix) !== 1 || in_array($prefix, self::RESERVED_PREFIXES, true)) {
+            return null;
+        }
+        $stylesheet = is_string($set['stylesheet'] ?? null) ? trim($set['stylesheet']) : '';
+        // 与 BloxAssetCollector 的本地资源规则一致：只收站内 assets / plugins / 主题 assets 下的 .css
+        if (preg_match('#^/(?:assets/|plugins/|themes/[a-zA-Z0-9_-]+/assets/)[a-zA-Z0-9_./-]+\.css$#', $stylesheet) !== 1 || str_contains($stylesheet, '..')) {
+            return null;
+        }
+        $class = is_string($set['class'] ?? null) ? trim($set['class']) : '';
+        if (!str_contains($class, '{name}') || preg_match('/^[A-Za-z0-9 _{}-]{1,80}$/', $class) !== 1) {
+            return null;
+        }
+        $icons = [];
+        foreach (is_array($set['icons'] ?? null) ? $set['icons'] : [] as $name) {
+            if (is_string($name) && preg_match(self::NAME_PATTERN, strtolower($name)) === 1) {
+                $icons[strtolower($name)] = true;
+                if (count($icons) >= self::MAX_SET_ICONS) {
+                    break;
+                }
+            }
+        }
+        $label = is_string($set['label'] ?? null) ? mb_substr(trim($set['label']), 0, 30) : '';
+        return [
+            'prefix' => $prefix,
+            'label' => $label !== '' ? $label : $prefix,
+            'stylesheet' => $stylesheet,
+            'class' => preg_replace('/\s+/', ' ', $class) ?? $class,
+            'icons' => array_keys($icons),
+        ];
+    }
+
+    /**
+     * @return array{library:string,name:string,value:string}
      */
     public static function parse(mixed $value, string $fallback = 'star'): array
     {
@@ -27,13 +131,19 @@ final class BloxIcon
         } elseif (str_starts_with($raw, 'tabler:')) {
             $name = preg_replace('/[^a-z0-9-]/', '', substr($raw, 7)) ?? '';
         } elseif (str_contains($raw, ':')) {
+            // 注册图标集：prefix:name；未注册（如插件已停用）回落到默认图标
+            [$prefix, $rest] = explode(':', $raw, 2);
             $name = '';
+            if (isset(self::sets()[$prefix]) && preg_match(self::NAME_PATTERN, $rest) === 1) {
+                $library = $prefix;
+                $name = $rest;
+            }
         } else {
             // 兼容旧元素：过去会移除非法字符后继续使用该 Tabler 类名。
             $name = preg_replace('/[^a-z0-9-]/', '', $raw) ?? '';
         }
 
-        if (preg_match('/^[a-z0-9][a-z0-9-]{0,79}$/', $name) !== 1) {
+        if (preg_match(self::NAME_PATTERN, $name) !== 1) {
             $library = 'tabler';
             $name = strtolower(trim($fallback));
             if (str_starts_with($name, 'ti:')) {
@@ -49,7 +159,11 @@ final class BloxIcon
         return [
             'library' => $library,
             'name' => $name,
-            'value' => $library === 'bootstrap' ? 'bi:' . $name : $name,
+            'value' => match ($library) {
+                'tabler' => $name,
+                'bootstrap' => 'bi:' . $name,
+                default => $library . ':' . $name,
+            },
         ];
     }
 
@@ -68,9 +182,11 @@ final class BloxIcon
         if ($stylesheet !== null && class_exists(BloxAssetCollector::class)) {
             BloxAssetCollector::addStyle($stylesheet);
         }
-        return $icon['library'] === 'bootstrap'
-            ? 'bi bi-' . $icon['name']
-            : 'ti ti-' . $icon['name'];
+        return match ($icon['library']) {
+            'tabler' => 'ti ti-' . $icon['name'],
+            'bootstrap' => 'bi bi-' . $icon['name'],
+            default => str_replace('{name}', $icon['name'], self::sets()[$icon['library']]['class'] ?? 'ti ti-{name}'),
+        };
     }
 
     public static function motionClass(mixed $value): string
@@ -130,11 +246,14 @@ final class BloxIcon
         return $icon['library'] === 'tabler' && $icon['name'] === 'none';
     }
 
-    /** @param array{library:'tabler'|'bootstrap',name:string,value:string} $icon */
+    /** @param array{library:string,name:string,value:string} $icon */
     private static function stylesheetFor(array $icon): ?string
     {
         if ($icon['library'] === 'tabler' && $icon['name'] === 'none') {
             return null;
+        }
+        if (!in_array($icon['library'], ['tabler', 'bootstrap'], true)) {
+            return self::sets()[$icon['library']]['stylesheet'] ?? null;
         }
         if (self::siteSubsetHas($icon['library'], $icon['name'])) {
             return null;

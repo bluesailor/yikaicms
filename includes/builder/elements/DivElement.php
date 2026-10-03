@@ -69,6 +69,7 @@ final class DivElement extends AbstractElement
     public function allowedChildren(array $data = []): array { return ['container', 'div', '*']; }
     /** 通用背景：native——背景写在自己的根 div 上，存量输出逐字节不变 */
     public function backgroundRenderStrategy(): string { return 'native'; }
+    public function supportsAurora(): bool { return true; }
 
     public function controls(): array
     {

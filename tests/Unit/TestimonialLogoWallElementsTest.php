@@ -85,4 +85,31 @@ final class TestimonialLogoWallElementsTest extends TestCase
         $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
         self::assertStringContainsString('...window.BloxItemsControl.methods,', $editor);
     }
+    /** 2.0.4：网格「wall of love」与跑马灯布局；纯 CSS 不加载轮播脚本；首字母头像。 */
+    public function testTestimonialGridAndMarqueeLayoutsAndInitials(): void
+    {
+        $element = new TestimonialCarouselElement();
+        $items = [['name' => 'Jane Doe', 'content' => 'A'], ['name' => '王小明', 'content' => 'B'], ['name' => 'bob', 'content' => 'C']];
+
+        $grid = $element->render(['items' => $items, 'layout' => 'grid', 'grid_columns' => '4']);
+        self::assertStringContainsString('yk-testimonials--grid" style="--yk-testimonial-columns:4" role="list"', $grid);
+        self::assertSame(3, substr_count($grid, 'class="yk-testimonial-cell" role="listitem"'));
+        self::assertStringNotContainsString('data-yk-carousel', $grid);
+        self::assertSame([], $element->scriptsFor(['layout' => 'grid']));
+        self::assertStringContainsString('--yk-testimonial-columns:3', $element->render(['items' => $items, 'layout' => 'grid', 'grid_columns' => '9']));
+
+        $marquee = $element->render(['items' => $items, 'layout' => 'marquee', 'marquee_speed' => 'fast']);
+        self::assertSame(2, substr_count($marquee, 'class="yk-testimonial-track"'));
+        self::assertStringContainsString('<div class="yk-testimonial-track" aria-hidden="true" inert>', $marquee, '重复轨道对读屏和键盘隐藏');
+        self::assertSame(6, substr_count($marquee, 'class="yk-testimonial-cell"'));
+        self::assertStringContainsString('--yk-testimonial-marquee:26.25s', $marquee);
+        self::assertSame([], $element->scriptsFor(['layout' => 'marquee']));
+        self::assertSame(['/assets/js/blox-carousel.js'], $element->scriptsFor(['layout' => 'bogus']), '未知布局按轮播');
+
+        self::assertSame('JD', TestimonialCarouselElement::initials('Jane  van Doe'));
+        self::assertSame('王', TestimonialCarouselElement::initials('王小明'));
+        self::assertSame('B', TestimonialCarouselElement::initials('bob'));
+        self::assertSame('·', TestimonialCarouselElement::initials('  '));
+        self::assertStringContainsString('yk-testimonial-initial" aria-hidden="true">JD<', $grid);
+    }
 }
