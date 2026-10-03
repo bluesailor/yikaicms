@@ -74,6 +74,7 @@ final class ContainerElement extends AbstractElement
     public function backgroundRenderStrategy(): string { return 'native'; }
     /** 背景视频首批仅容器（区块级视频背景是真实场景；正文元素无此需求） */
     protected function backgroundVideoEnabled(): bool { return true; }
+    public function supportsAurora(): bool { return true; }
 
     /** @param array<string,mixed> $data @return list<string> */
     public function scriptsFor(array $data): array

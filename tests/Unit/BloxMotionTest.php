@@ -63,4 +63,28 @@ final class BloxMotionTest extends TestCase
             self::assertStringNotContainsString('data-stagger', $element->render(['animation_stagger' => 'false']));
         }
     }
+    /** 2.0.4 页面切换动画：白名单、随动效强度降级或关闭、尊重减少动态、不随模板迁移。 */
+    public function testPageTransitionFollowsTheMotionLevel(): void
+    {
+        self::assertSame('', BloxMotion::transitionHtml(), '默认关闭');
+        $GLOBALS['_test_config']['page_transition'] = 'slide';
+        $html = BloxMotion::transitionHtml();
+        self::assertStringContainsString('<style data-yk-page-transition="slide">@view-transition{navigation:auto}', $html);
+        self::assertStringContainsString('320ms', $html);
+        self::assertStringContainsString('html[dir="rtl"]::view-transition-old(root)', $html, '从右到左反向滑动');
+        self::assertStringContainsString('@media (prefers-reduced-motion:reduce)', $html);
+
+        $GLOBALS['_test_config']['motion_intensity'] = 'light';
+        $light = BloxMotion::transitionHtml();
+        self::assertStringContainsString('data-yk-page-transition="fade"', $light, '轻动效只淡入淡出');
+        self::assertStringContainsString('200ms', $light);
+
+        $GLOBALS['_test_config']['motion_intensity'] = 'none';
+        self::assertSame('', BloxMotion::transitionHtml(), '无动效不播放');
+
+        $GLOBALS['_test_config'] = ['page_transition' => '</style><script>'];
+        self::assertSame('none', BloxMotion::transition());
+        self::assertSame('', BloxMotion::transitionHtml());
+        self::assertFalse(SiteTemplateData::settingAllowed('page_transition'), '站点偏好不随整站模板迁移');
+    }
 }

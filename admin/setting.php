@@ -167,6 +167,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         && !in_array($settings['motion_intensity'], BloxMotion::LEVELS, true)) {
         error(__('admin_bad_params'), 422);
     }
+    if (array_key_exists('page_transition', $settings)
+        && !in_array($settings['page_transition'], BloxMotion::TRANSITIONS, true)) {
+        error(__('admin_bad_params'), 422);
+    }
     foreach (array_keys(getDefaults('pagination')) as $key) {
         if (array_key_exists($key, $settings) && !validCatalogPageSize($settings[$key])) {
             error(__('catalog_page_size_invalid'), 422);

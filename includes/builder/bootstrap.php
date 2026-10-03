@@ -44,6 +44,7 @@ require_once __DIR__ . '/BloxDisplayConditions.php';
 require_once __DIR__ . '/BloxDesignSystem.php';
 require_once __DIR__ . '/BloxCustomCode.php';      // 建站人员的高级配置：ID / 类 / 属性 / 自定义 CSS
 require_once __DIR__ . '/BloxGlobalClasses.php';    // 全局样式类（v1.23）：目录/归一/CSS 输出/用量索引
+require_once __DIR__ . '/BloxAurora.php';         // 极光动态背景（2.0.4）：容器与布局块
 require_once __DIR__ . '/BloxStateStyles.php';     // 元素级交互状态颜色（2.0.4）：按钮、导航链接
 require_once __DIR__ . '/BloxPresetClasses.php';   // 样式预设收编为全局类（RFC-1 第 4 点，2.0.4）
 require_once __DIR__ . '/BloxDesignTheme.php';
@@ -116,6 +117,7 @@ require_once __DIR__ . '/BloxSearchTemplateRuntime.php';  // search 模板（v1.
 BloxAssetCollector::bootstrap();
 if (function_exists('add_action')) add_action('ik_head', [BloxPageLayout::class, 'renderHead'], 30);
 if (function_exists('add_action')) add_action('ik_head', [BloxMotion::class, 'renderHead'], 31);
+if (function_exists('add_action')) add_action('ik_head', [BloxMotion::class, 'renderTransitionHead'], 32);
 BloxDesignSystem::bootstrap();
 BloxGlobalClasses::bootstrap();
 BloxPopupRuntime::bootstrap();

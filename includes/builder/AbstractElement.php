@@ -658,6 +658,12 @@ abstract class AbstractElement
         return false;
     }
 
+    /** 是否提供极光动态背景（2.0.4：容器与布局块） */
+    public function supportsAurora(): bool
+    {
+        return false;
+    }
+
     /** 盒模型间距：数据键 => [css 属性, 是否外边距, 响应式类缩写]。总值在前、四边在后（四边覆盖总值）。 */
     private const BOX_FIELDS = [
         'style_margin'        => ['margin', true, 'm'],
@@ -931,6 +937,7 @@ abstract class AbstractElement
                     'visible_when' => ['terms' => [['bg_video', 'not_empty']]],
                     'help' => __('blox_bg_video_mobile_help')],
             ] : []),
+            ...($this->supportsAurora() ? BloxAurora::controls() : []),
         ];
     }
 
