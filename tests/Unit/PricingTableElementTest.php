@@ -209,6 +209,47 @@ final class PricingTableElementTest extends TestCase
         }
     }
 
+    /** 2.0.4 功能行：行首 [图标名] 单独换图标、默认图标可改、「不含」行三种样式、按钮可放在名称下方。 */
+    public function testFeatureRowIconsExcludedStylesAndTopButton(): void
+    {
+        $plans = PricingTableElement::normalizePlans([[
+            'name' => 'Pro', 'price' => '9',
+            'features' => "[star] Priority support\n-[lock] Data export\n[bi:gift] Welcome gift\n[none] Plain row\n[not an icon] Literal\nDefault row",
+        ]]);
+        self::assertSame([
+            ['Priority support', true, 'star'],
+            ['Data export', false, 'lock'],
+            ['Welcome gift', true, 'bi:gift'],
+            ['Plain row', true, 'none'],
+            ['[not an icon] Literal', true, ''],
+            ['Default row', true, ''],
+        ], array_map(static fn (array $f): array => [$f['text'], $f['included'], $f['icon']], $plans[0]['features']));
+
+        $element = new PricingTableElement();
+        $plan = ['name' => 'A', 'price' => '1', 'features' => "[star] Starred\nIncluded\n-Excluded", 'button_text' => 'Go'];
+        $html = $element->render(['plans' => [$plan]]);
+        self::assertStringContainsString('<i class="ti ti-star mt-0.5', $html);
+        self::assertStringContainsString('<i class="ti ti-check mt-0.5', $html, '默认图标与改版前相同');
+        self::assertStringContainsString('<i class="ti ti-x mt-0.5', $html);
+        self::assertStringContainsString('line-through opacity-70" data-yk-pricing-excluded', $html, '默认划线，与改版前相同');
+        self::assertStringContainsString('<span class="sr-only">' . __('blox_pricing_feature_excluded_sr') . '</span>Excluded', $html);
+
+        $custom = $element->render(['plans' => [$plan], 'feature_icon' => 'circle-check', 'feature_excluded_icon' => 'none', 'feature_excluded_style' => 'muted']);
+        self::assertStringContainsString('ti ti-circle-check', $custom);
+        self::assertStringNotContainsString('ti ti-x', $custom, '不含项图标设为无');
+        self::assertStringContainsString('opacity-60" data-yk-pricing-excluded', $custom);
+        self::assertStringNotContainsString('line-through', $custom);
+
+        $hidden = $element->render(['plans' => [$plan], 'feature_excluded_style' => 'hide']);
+        self::assertStringNotContainsString('Excluded', $hidden);
+        self::assertStringContainsString('Included', $hidden);
+
+        $top = $element->render(['plans' => [$plan + ['description' => 'Desc']], 'button_position' => 'top']);
+        self::assertLessThan(strpos($top, 'data-yk-pricing-price'), strpos($top, '>Go</a>'), '按钮在价格之前');
+        self::assertGreaterThan(strpos($top, '>Desc</p>'), strpos($top, '>Go</a>'), '按钮在名称与简介之后');
+        self::assertStringNotContainsString('mt-auto pt-8', $top);
+    }
+
     public function testProEditorOffersEveryNewPlanField(): void
     {
         $form = (string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/editor/pricing-plans.php');

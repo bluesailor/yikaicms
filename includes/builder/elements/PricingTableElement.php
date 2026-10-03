@@ -79,7 +79,16 @@ final class PricingTableElement extends AbstractElement
                 'options' => ['' => __('blox_pricing_featured_scale_none'), 'sm' => __('blox_pricing_featured_scale_sm'), 'md' => __('blox_pricing_featured_scale_md')]],
             ['key' => 'featured_shadow', 'type' => 'checkbox', 'label' => __('blox_pricing_featured_shadow'), 'tab' => 'style', 'default' => false],
             ['key' => 'button_position', 'type' => 'select', 'label' => __('blox_pricing_button_position'), 'tab' => 'style', 'default' => 'bottom',
-                'options' => ['bottom' => __('blox_pricing_button_bottom'), 'price' => __('blox_pricing_button_price')]],
+                'options' => ['bottom' => __('blox_pricing_button_bottom'), 'price' => __('blox_pricing_button_price'), 'top' => __('blox_pricing_button_top')]],
+            // 2.0.4 功能行：包含 / 不含的默认图标与「不含」行的样式；单行可在行首写 [图标名] 换图标
+            ['key' => 'feature_icon', 'type' => 'icon', 'label' => __('blox_pricing_feature_icon'), 'tab' => 'style', 'default' => 'check'],
+            ['key' => 'feature_excluded_icon', 'type' => 'icon', 'label' => __('blox_pricing_feature_excluded_icon'), 'tab' => 'style', 'default' => 'x'],
+            ['key' => 'feature_excluded_style', 'type' => 'select', 'label' => __('blox_pricing_feature_excluded_style'), 'tab' => 'style', 'default' => 'strike',
+                'options' => [
+                    'strike' => __('blox_pricing_feature_excluded_strike'),
+                    'muted' => __('blox_pricing_feature_excluded_muted'),
+                    'hide' => __('blox_pricing_feature_excluded_hide'),
+                ]],
             ...$this->staggerControls(),
         ];
     }
@@ -111,7 +120,10 @@ final class PricingTableElement extends AbstractElement
             'note_chip' => ($data['price_note_style'] ?? 'text') === 'chip',
             'featured_scale' => self::FEATURED_SCALE[(string) ($data['featured_scale'] ?? '')] ?? '',
             'featured_shadow' => self::enabled($data, 'featured_shadow', false),
-            'button_at_price' => ($data['button_position'] ?? 'bottom') === 'price',
+            'button_position' => in_array($data['button_position'] ?? 'bottom', ['price', 'top'], true) ? (string) $data['button_position'] : 'bottom',
+            'feature_icon' => BloxIcon::normalize($data['feature_icon'] ?? 'check', 'check'),
+            'feature_excluded_icon' => BloxIcon::normalize($data['feature_excluded_icon'] ?? 'x', 'x'),
+            'excluded_style' => in_array($data['feature_excluded_style'] ?? 'strike', ['muted', 'hide'], true) ? (string) $data['feature_excluded_style'] : 'strike',
         ];
 
         $html = '<div class="yk-pricing" data-yk-pricing data-yk-pricing-cycle="monthly">';
@@ -197,7 +209,12 @@ final class PricingTableElement extends AbstractElement
         return $plans;
     }
 
-    /** 每行一项；以「-」开头表示该档不包含。 @return list<array{text:string,included:bool}> */
+    /**
+     * 每行一项；以「-」开头表示该档不包含；随后可写 [图标名] 给这一行单独换图标（如 [star]、-[lock]、[bi:gift]，
+     * [none] 表示不显示图标）。图标名不合法时原样当文字。
+     *
+     * @return list<array{text:string,included:bool,icon:string}>
+     */
     private static function features(mixed $raw): array
     {
         // 不能用 \R：非 /u 模式下它也匹配 0x85，会把「包」「持」这类 UTF-8 汉字从中间切断
@@ -209,15 +226,27 @@ final class PricingTableElement extends AbstractElement
                 continue;
             }
             $included = !str_starts_with($line, '-');
-            $text = self::clip($included ? $line : ltrim(substr($line, 1)), 120);
+            $text = $included ? $line : ltrim(substr($line, 1));
+            $icon = '';
+            if (preg_match('/^\[([A-Za-z0-9:-]{1,90})\]\s*/', $text, $match) === 1 && self::validIcon($match[1])) {
+                $icon = BloxIcon::normalize($match[1]);
+                $text = substr($text, strlen($match[0]));
+            }
+            $text = self::clip($text, 120);
             if ($text !== '') {
-                $out[] = ['text' => $text, 'included' => $included];
+                $out[] = ['text' => $text, 'included' => $included, 'icon' => $icon];
             }
             if (count($out) >= self::MAX_FEATURES) {
                 break;
             }
         }
         return $out;
+    }
+
+    private static function validIcon(string $value): bool
+    {
+        $raw = strtolower($value);
+        return $raw === 'none' || BloxIcon::parse($raw, 'none')['name'] !== 'none';
     }
 
     private static function toggleHtml(string $monthly, string $yearly, string $note): string
@@ -281,6 +310,11 @@ final class PricingTableElement extends AbstractElement
         if ($plan['description'] !== '') {
             $html .= '<p class="mt-2 text-sm opacity-90"' . $color('muted') . '>' . self::h((string) $plan['description']) . '</p>';
         }
+        $buttonPosition = (string) $o['button_position'];
+        $button = self::buttonHtml($plan, $featured, $inverse, $buttonPosition !== 'bottom');
+        if ($buttonPosition === 'top') {
+            $html .= $button;
+        }
 
         if ($plan['price_prefix'] !== '') {
             $html .= '<p class="mt-6 text-xs font-semibold uppercase tracking-wide opacity-80"' . $color('muted') . '>' . self::h((string) $plan['price_prefix']) . '</p>';
@@ -301,22 +335,27 @@ final class PricingTableElement extends AbstractElement
                 : '<p class="mt-2 text-sm"' . $color('muted') . '>' . self::h((string) $plan['price_note']) . '</p>';
         }
 
-        $button = self::buttonHtml($plan, $featured, $inverse, (bool) $o['button_at_price']);
-        if ($o['button_at_price']) {
+        if ($buttonPosition === 'price') {
             $html .= $button;
         }
-        if ($plan['features'] !== []) {
+        $features = $o['excluded_style'] === 'hide'
+            ? array_values(array_filter($plan['features'], static fn (array $feature): bool => $feature['included']))
+            : $plan['features'];
+        if ($features !== []) {
             $html .= '<ul class="mt-6 space-y-3 text-sm' . ($center ? ' text-start' : '') . '">';
-            foreach ($plan['features'] as $feature) {
-                $icon = $feature['included']
-                    ? '<i class="ti ti-check mt-0.5 shrink-0 ' . ($inverse ? 'text-white' : 'text-primary') . '" aria-hidden="true"></i>'
-                    : '<i class="ti ti-x mt-0.5 shrink-0 ' . ($inverse ? 'text-white/50' : 'text-gray-300') . '" aria-hidden="true"></i>';
-                $html .= '<li class="flex items-start gap-2' . ($feature['included'] ? '' : ' line-through opacity-70') . '"'
-                    . $color($feature['included'] ? 'body' : 'muted') . '>' . $icon . '<span>' . self::h($feature['text']) . '</span></li>';
+            foreach ($features as $feature) {
+                $name = $feature['icon'] !== '' ? $feature['icon'] : (string) ($feature['included'] ? $o['feature_icon'] : $o['feature_excluded_icon']);
+                $icon = BloxIcon::isNone($name) ? '' : '<i class="' . self::h(BloxIcon::classes($name)) . ' mt-0.5 shrink-0 '
+                    . ($feature['included'] ? ($inverse ? 'text-white' : 'text-primary') : ($inverse ? 'text-white/50' : 'text-gray-300')) . '" aria-hidden="true"></i>';
+                // 不含的行要让读屏也知道：图标是装饰，文字前补一段隐藏说明
+                $excluded = $feature['included'] ? '' : '<span class="sr-only">' . self::h(__('blox_pricing_feature_excluded_sr')) . '</span>';
+                $html .= '<li class="flex items-start gap-2' . ($feature['included'] ? '' : ($o['excluded_style'] === 'strike' ? ' line-through opacity-70' : ' opacity-60')) . '"'
+                    . ($feature['included'] ? '' : ' data-yk-pricing-excluded')
+                    . $color($feature['included'] ? 'body' : 'muted') . '>' . $icon . '<span>' . $excluded . self::h($feature['text']) . '</span></li>';
             }
             $html .= '</ul>';
         }
-        if (!$o['button_at_price']) {
+        if ($buttonPosition === 'bottom') {
             $html .= $button;
         }
         return $html . '</div>';
@@ -362,7 +401,7 @@ final class PricingTableElement extends AbstractElement
         $button = $inverse
             ? 'bg-white text-primary hover:bg-white/90'
             : ($featured ? 'bg-primary text-white hover:opacity-90' : 'border border-gray-300 text-gray-900 hover:border-primary hover:text-primary');
-        // 默认贴底：各档功能行数不同，按钮仍在同一水平线；放在价格下方时紧跟价格
+        // 默认贴底：各档功能行数不同，按钮仍在同一水平线；放在名称下方或价格下方时紧跟其后
         return '<div class="' . ($atPrice ? 'mt-6' : 'mt-auto pt-8') . ' w-full"><a href="' . self::h($plan['button_url'] !== '' ? (string) $plan['button_url'] : '#')
             . '" class="inline-flex w-full items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition '
             . $button . '">' . self::h((string) $plan['button_text']) . '</a></div>';
