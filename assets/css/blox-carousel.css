@@ -82,3 +82,19 @@
 .yk-testimonials--single.yk-testimonials--center .yk-testimonial { max-width: 760px; margin: 0 auto; }
 .yk-testimonials--single .yk-testimonial-avatar { width: 56px; height: 56px; }
 @media (max-width: 767px) { .yk-testimonials--single .yk-testimonial-text { font-size: 16px; } }
+
+/* 2.0.4 客户评价网格「wall of love」：按列错落排布，窄屏按卡片最小宽度自动减列 */
+.yk-testimonials--grid { columns: var(--yk-testimonial-columns, 3) 260px; column-gap: 24px; }
+.yk-testimonials--grid .yk-testimonial-cell { break-inside: avoid; margin-bottom: 24px; }
+/* 2.0.4 客户评价跑马灯：两条相同轨道无缝滚动，悬停暂停；减少动态时改为静态换行 */
+.yk-testimonial-marquee { display: flex; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.yk-testimonial-track { display: flex; flex: none; align-items: stretch; gap: 24px; padding: 8px 12px 8px 12px; animation: yk-testimonial-marquee var(--yk-testimonial-marquee, 60s) linear infinite; }
+.yk-testimonial-track .yk-testimonial-cell { display: flex; width: 320px; flex: none; }
+.yk-testimonial-marquee:hover .yk-testimonial-track, .yk-testimonial-marquee:focus-within .yk-testimonial-track { animation-play-state: paused; }
+@keyframes yk-testimonial-marquee { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+[dir="rtl"] .yk-testimonial-track { animation-direction: reverse; }
+@media (prefers-reduced-motion: reduce) {
+    .yk-testimonial-marquee { flex-wrap: wrap; -webkit-mask-image: none; mask-image: none; }
+    .yk-testimonial-track { animation: none; flex-wrap: wrap; }
+    .yk-testimonial-track[aria-hidden="true"] { display: none; }
+}
