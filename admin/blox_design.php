@@ -110,6 +110,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <i x-show="!advanced" class="ti ti-lock text-xs"></i>
             <span x-show="advanced" class="bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500" x-text="activeStyles().length"></span>
         </button>
+        <button type="button" role="tab" data-testid="blox-design-page-tab-scale"
+                @click="tab = 'scale'" :aria-selected="tab === 'scale'"
+                class="inline-flex h-11 items-center gap-2 border-b-2 px-4 text-sm font-medium"
+                :class="tab === 'scale' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-gray-500 hover:text-gray-900'">
+            <i class="ti ti-shadow"></i><?php echo e(__('blox_design_tab_scale')); ?>
+        </button>
         <?php // v1.23：全局样式类管理器并入本页页签带（独立页面，链接式页签） ?>
         <a role="tab" data-testid="blox-design-page-tab-classes" href="/admin/blox_classes.php"
            class="inline-flex h-11 items-center gap-2 border-b-2 border-transparent px-4 text-sm font-medium text-gray-500 hover:text-gray-900">
@@ -300,6 +306,57 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
         </section>
     </div>
+
+    <?php /* 圆角与阴影 token（2.0.4，v2.1 token 扩展第一步）：免费 */ ?>
+    <section x-show="tab === 'scale'" x-cloak data-testid="blox-design-page-scale">
+        <div class="mb-4">
+            <h2 class="text-sm font-semibold text-gray-900"><?php echo e(__('blox_design_tab_scale')); ?></h2>
+            <p class="mt-1 text-xs text-gray-500"><?php echo e(__('blox_design_scale_hint')); ?></p>
+        </div>
+        <div class="grid gap-6 xl:grid-cols-2">
+            <?php foreach (['radius' => ['blox_design_radii', 'blox_design_radius_value_ph'], 'shadow' => ['blox_design_shadows', 'blox_design_shadow_value_ph']] as $scaleKind => [$scaleTitle, $scalePlaceholder]): ?>
+            <div class="min-w-0 border-y border-gray-200 bg-white" data-testid="blox-design-scale-<?php echo $scaleKind; ?>">
+                <h3 class="px-4 py-3 text-sm font-semibold text-gray-800"><?php echo e(__($scaleTitle)); ?></h3>
+                <template x-for="item in scaleItems('<?php echo $scaleKind; ?>')" :key="'<?php echo $scaleKind; ?>-' + item.id">
+                    <div class="flex flex-wrap items-center gap-3 border-t border-gray-100 px-4 py-3" :data-testid="'blox-design-scale-row-<?php echo $scaleKind; ?>-' + item.id">
+                        <span class="h-10 w-10 shrink-0 border border-gray-300 bg-white" :style="scalePreview('<?php echo $scaleKind; ?>', item)" aria-hidden="true"></span>
+                        <input type="text" x-model="item.name" maxlength="60" :disabled="item.locked" aria-label="<?php echo e(__('blox_design_name')); ?>"
+                               class="h-9 w-28 min-w-0 border border-gray-300 px-2 text-sm disabled:bg-gray-50">
+                        <input type="text" x-model="item.value" :disabled="item.locked" placeholder="<?php echo e(__($scalePlaceholder)); ?>"
+                               aria-label="<?php echo e(__('blox_design_scale_value')); ?>" :data-testid="'blox-design-scale-value-<?php echo $scaleKind; ?>-' + item.id"
+                               class="h-9 min-w-0 flex-1 border border-gray-300 px-2 font-mono text-xs disabled:bg-gray-50">
+                        <code class="text-[10px] text-gray-400" x-text="'--yk-<?php echo $scaleKind; ?>-' + item.id"></code>
+                        <button type="button" @click="toggleScaleLock('<?php echo $scaleKind; ?>', item)" class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-amber-600"
+                                :title="item.locked ? text.unlock : text.lock"><i class="ti" :class="item.locked ? 'ti-lock' : 'ti-lock-open'"></i></button>
+                        <button x-show="!item.locked" type="button" @click="mutate('<?php echo $scaleKind; ?>_update', { id: item.id, name: item.name, value: item.value })"
+                                :data-testid="'blox-design-scale-save-<?php echo $scaleKind; ?>-' + item.id"
+                                class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-emerald-600" title="<?php echo e(__('blox_design_save')); ?>"><i class="ti ti-device-floppy"></i></button>
+                        <button x-show="!item.locked" type="button" @click="mutate('<?php echo $scaleKind; ?>_archive', { id: item.id })"
+                                class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-red-600" title="<?php echo e(__('blox_design_archive')); ?>"><i class="ti ti-trash"></i></button>
+                    </div>
+                </template>
+                <form @submit.prevent="addScale('<?php echo $scaleKind; ?>')" class="flex flex-wrap items-center gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3">
+                    <input type="text" x-model="newScale.<?php echo $scaleKind; ?>.name" maxlength="60" required placeholder="<?php echo e(__('blox_design_name')); ?>"
+                           class="h-9 w-28 min-w-0 border border-gray-300 bg-white px-2 text-sm">
+                    <input type="text" x-model="newScale.<?php echo $scaleKind; ?>.value" required placeholder="<?php echo e(__($scalePlaceholder)); ?>"
+                           class="h-9 min-w-0 flex-1 border border-gray-300 bg-white px-2 font-mono text-xs">
+                    <button type="submit" :disabled="busy || !newScale.<?php echo $scaleKind; ?>.name.trim() || !newScale.<?php echo $scaleKind; ?>.value.trim()"
+                            data-testid="blox-design-scale-add-<?php echo $scaleKind; ?>" title="<?php echo e(__('blox_design_add')); ?>" aria-label="<?php echo e(__('blox_design_add')); ?>"
+                            class="inline-flex h-9 items-center justify-center bg-emerald-600 px-3 text-white hover:bg-emerald-500 disabled:opacity-40"><i class="ti ti-plus"></i></button>
+                </form>
+                <details x-show="archivedScale('<?php echo $scaleKind; ?>').length" class="border-t border-gray-200">
+                    <summary class="cursor-pointer px-4 py-2 text-xs font-medium text-gray-500"><?php echo e(__('blox_design_archived')); ?></summary>
+                    <template x-for="item in archivedScale('<?php echo $scaleKind; ?>')" :key="'archived-<?php echo $scaleKind; ?>-' + item.id">
+                        <div class="flex items-center gap-3 border-t border-gray-100 px-4 py-2">
+                            <span class="min-w-0 flex-1 text-sm text-gray-600" x-text="item.name"></span>
+                            <button type="button" @click="mutate('<?php echo $scaleKind; ?>_restore', { id: item.id })" class="inline-flex items-center gap-1 text-sm text-emerald-700 hover:text-emerald-600"><i class="ti ti-restore"></i><?php echo e(__('blox_design_restore')); ?></button>
+                        </div>
+                    </template>
+                </details>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
 
     <section x-show="tab === 'styles' && advanced" x-cloak data-testid="blox-design-page-styles">
         <div class="mb-4">
@@ -875,6 +932,7 @@ function bloxDesignManager() {
         recentColors: colorPicker.loadRecent(),
         picker: { open: false, key: '', title: '', value: '#3b82f6', style: '', apply: null, invalid: false },
         newStyle: { name: '', category: 'general', color: '', background: '', border_color: '', radius: 'none' },
+        newScale: { radius: { name: '', value: '' }, shadow: { name: '', value: '' } },
         pageHeroHeightOptions: <?php echo json_encode([
             ['value' => 'compact', 'label' => __('blox_page_hero_height_compact')],
             ['value' => 'standard', 'label' => __('blox_page_hero_height_standard')],
@@ -934,6 +992,24 @@ function bloxDesignManager() {
         archivedTokens() { return (this.state.tokens || []).filter((item) => item.status === 'archived'); },
         activeStyles() { return (this.state.styles || []).filter((item) => item.status !== 'archived'); },
         archivedStyles() { return (this.state.styles || []).filter((item) => item.status === 'archived'); },
+        scaleBucket(kind) { return kind === 'radius' ? (this.state.radii || []) : (this.state.shadows || []); },
+        scaleItems(kind) { return this.scaleBucket(kind).filter((item) => item.status !== 'archived'); },
+        archivedScale(kind) { return this.scaleBucket(kind).filter((item) => item.status === 'archived'); },
+        /** 预览：引用 {id} 在本地解析一层，和前台输出一致 */
+        scalePreview(kind, item) {
+            var value = String(item.value || '');
+            var ref = value.match(/^\{([a-z][a-z0-9_-]*)\}$/);
+            if (ref) {
+                var target = this.scaleBucket(kind).find((other) => other.id === ref[1]);
+                value = target && !/^\{/.test(String(target.value)) ? String(target.value) : '';
+            }
+            return kind === 'radius' ? 'border-radius:' + value : 'box-shadow:' + value;
+        },
+        async addScale(kind) {
+            var draft = this.newScale[kind];
+            if (await this.mutate(kind + '_add', { name: draft.name, value: draft.value })) this.newScale[kind] = { name: '', value: '' };
+        },
+        toggleScaleLock(kind, item) { this.mutate(kind + '_lock', { id: item.id, locked: !item.locked }); },
         tokenRef(id) { return 'var(--yk-color-' + String(id || '') + ')'; },
         tokenId(value) {
             var match = String(value || '').match(/^var\(--yk-color-([a-z][a-z0-9_-]{0,47})\)$/);

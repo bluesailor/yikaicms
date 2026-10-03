@@ -18,7 +18,7 @@ const fixture = action => execFileSync(process.env.PHP_BINARY || 'php',
 const PROBES = {
   'cn-h1': 'h1', 'cn-h2': 'h2', 'cn-h3': 'h3', 'cn-body': 'p',
   'cn-btn-filled': 'a', 'cn-btn-outline': 'a', 'cn-btn-pill': 'a',
-  'cn-box': null, 'cn-token-text': 'h3',
+  'cn-box': null, 'cn-token-text': 'h3', 'cn-scale': null,
 };
 const PROPS = [
   'font-family', 'font-size', 'font-weight', 'line-height', 'color', 'background-color',

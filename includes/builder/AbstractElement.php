@@ -658,6 +658,46 @@ abstract class AbstractElement
         return false;
     }
 
+    /** 是否提供设计系统的圆角 / 阴影 token 选项（2.0.4：容器与布局块） */
+    public function supportsDesignScale(): bool
+    {
+        return false;
+    }
+
+    /**
+     * 圆角 / 阴影 token 选择（选项是站点自己的 token）。选了圆角 token 时它覆盖上面的圆角档位。
+     *
+     * @return list<array<string,mixed>>
+     */
+    protected function designScaleControls(): array
+    {
+        if (!$this->supportsDesignScale()) {
+            return [];
+        }
+        return [
+            ['key' => 'radius_token', 'type' => 'select', 'label' => __('blox_radius_token'), 'default' => '', 'tab' => 'style',
+                'options' => ['' => __('blox_scale_token_none')] + BloxDesignSystem::scaleOptions('radius'),
+                'help' => __('blox_radius_token_help')],
+            ['key' => 'shadow_token', 'type' => 'select', 'label' => __('blox_shadow_token'), 'default' => '', 'tab' => 'style',
+                'options' => ['' => __('blox_scale_token_none')] + BloxDesignSystem::scaleOptions('shadow')],
+        ];
+    }
+
+    /** 圆角 / 阴影 token → 根标签内联声明（var 带回退）；未设置返回 ''。 */
+    public static function designScaleDeclarations(array $data): string
+    {
+        $css = '';
+        $radius = BloxDesignScale::cssVar('radius', $data['radius_token'] ?? null, '0');
+        if ($radius !== null) {
+            $css .= 'border-radius:' . $radius . ';';
+        }
+        $shadow = BloxDesignScale::cssVar('shadow', $data['shadow_token'] ?? null, 'none');
+        if ($shadow !== null) {
+            $css .= 'box-shadow:' . $shadow . ';';
+        }
+        return $css;
+    }
+
     /** 是否提供极光动态背景（2.0.4：容器与布局块） */
     public function supportsAurora(): bool
     {
