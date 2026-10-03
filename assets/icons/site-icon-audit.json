@@ -119,6 +119,7 @@
             "phone-call",
             "photo",
             "photo-off",
+            "player-pause",
             "plug-off",
             "plus",
             "refresh",
@@ -182,7 +183,8 @@
             "bulb",
             "lock",
             "heart-handshake",
-            "trending-up"
+            "trending-up",
+            "player-play"
         ],
         "bootstrap": []
     },
@@ -298,6 +300,8 @@
             "phone-call",
             "photo",
             "photo-off",
+            "player-pause",
+            "player-play",
             "plug-off",
             "plus",
             "refresh",
@@ -340,12 +344,12 @@
     },
     "outputs": {
         "assets/icons/site-icons.min.css": {
-            "bytes": 5776,
-            "sha256": "5a0a5768eb33df7fab493e40e2daa44d300e8bcf0553c2651ec328affed25ae1"
+            "bytes": 5855,
+            "sha256": "4537cdbd33cf06f4d0fd3b053ce6f1fa1eaf41048197d29dcd3f88069dc08496"
         },
         "assets/icons/fonts/tabler-icons-site.woff2": {
-            "bytes": 17648,
-            "sha256": "a5c2930426a17848911529fce65af099305b7f09c7d2552a38b26cdc27bd5d01"
+            "bytes": 17780,
+            "sha256": "1a7109bf25cfa579a89b0d758fa9af28248d855241dedaace6e038fc21f13dae"
         }
     }
 }
