@@ -222,6 +222,26 @@ has_filter(string $hook): bool;
 | `ik_footer_scripts` | 页尾脚本/附加输出 | 主题必须保留调用位置，不能重复执行 |
 | `admin_sidebar` filter | 修改后台菜单数据 | 菜单可见不是服务端权限检查 |
 | `content_output` filter | 修改经过该过滤器的正文 | 当前已核对 `detail.php`；不能据此保证所有文章路由都会触发 |
+| `blox_icon_sets` filter | 给网页构建器注册图标集（2.0.4，见 6.1） | 只认合法前缀与站内样式表，不合法的整项忽略 |
+
+### 6.1 注册图标集（2.0.4）
+
+插件或主题可以把自己的图标字体加进网页构建器的图标选择器。图标值写作 `前缀:图标名`，前台只在页面用到该图标集时才加载它的样式表：
+
+```php
+// main.php
+BloxIcon::registerSet('lucide', [
+    'label' => 'Lucide',
+    'stylesheet' => '/plugins/my-icons/assets/lucide.css',   // 只收 /assets/、/plugins/、/themes/<主题>/assets/ 下的 .css
+    'class' => 'lucide lucide-{name}',                        // {name} 处换成图标名
+    'icons' => ['rocket', 'anchor', 'map'],                   // 选择器里列出的图标（可选，最多 5000 个）
+]);
+// 或者挂过滤器：add_filter('blox_icon_sets', fn (array $sets) => $sets + ['lucide' => [...]]);
+```
+
+- 前缀 2–16 位小写字母或数字；`ti`、`tabler`、`bi`、`none` 已被内置图标占用。
+- 插件停用后，已用了该图标集的元素显示默认图标，页面不会报错；重新启用即恢复。
+- 只用 MIT / ISC 等可商用许可的图标库，随插件附上它的 LICENSE。
 
 旧示例注释列出的 `admin_init`、内容保存钩子等，不能单凭注释认定所有入口都触发。开发时用 `rg` 找真实 `do_action` / `apply_filters` 调用，核实参数、事务时机和路由覆盖；挂了回调不等于事件会发生。
 
