@@ -118,4 +118,46 @@ final class BloxIconTest extends TestCase
         $this->assertStringNotContainsString('yk-icon-motion--', $unsafe);
         $this->assertStringNotContainsString('<script>', $unsafe);
     }
+    /** 2.0.4 插件 / 主题注册图标集：前缀解析、类名模板、按需加载样式表；停用后回落默认图标。 */
+    public function testRegisteredIconSetsParseRenderAndLoadTheirStylesheet(): void
+    {
+        BloxIcon::resetSetsForTests();
+        BloxAssetCollector::reset();
+        try {
+            self::assertTrue(BloxIcon::registerSet('lucide', [
+                'label' => 'Lucide', 'stylesheet' => BloxIcon::BOOTSTRAP_STYLESHEET, 'class' => 'lucide lucide-{name}',
+                'icons' => ['rocket', 'Anchor', 'bad name', 'rocket'],
+            ]));
+            self::assertSame('lucide:rocket', BloxIcon::normalize('Lucide:Rocket'));
+            self::assertSame('lucide lucide-rocket', BloxIcon::classes('lucide:rocket'));
+            self::assertContains(BloxIcon::BOOTSTRAP_STYLESHEET, BloxAssetCollector::styles());
+            self::assertSame(BloxIcon::BOOTSTRAP_STYLESHEET, BloxIcon::stylesheet('lucide:rocket'));
+            self::assertSame(['rocket', 'anchor'], BloxIcon::editorSets()[0]['icons'], '图标名去重、小写、过滤非法');
+            self::assertSame('star', BloxIcon::normalize('lucide:<script>'));
+
+            // 不合法的注册：占用内置前缀、外部或带 .. 的样式表、类名模板缺 {name} 或带引号
+            self::assertFalse(BloxIcon::registerSet('bi', ['stylesheet' => '/assets/x.css', 'class' => 'x-{name}']));
+            self::assertFalse(BloxIcon::registerSet('ext', ['stylesheet' => 'https://cdn.example/x.css', 'class' => 'x-{name}']));
+            self::assertFalse(BloxIcon::registerSet('ext', ['stylesheet' => '//cdn.example/x.css', 'class' => 'x-{name}']));
+            self::assertFalse(BloxIcon::registerSet('ext', ['stylesheet' => '/plugins/../config/x.css', 'class' => 'x-{name}']));
+            self::assertFalse(BloxIcon::registerSet('ext', ['stylesheet' => '/x.css', 'class' => 'x-icon']));
+            self::assertFalse(BloxIcon::registerSet('ext', ['stylesheet' => '/assets/x.css', 'class' => 'x" onclick="{name}']));
+            self::assertFalse(BloxIcon::registerSet('ext', ['stylesheet' => '/config/x.css', 'class' => 'x-{name}']), '只收 assets / plugins / 主题 assets');
+
+            // 过滤器注册同样生效；与直接注册同前缀时直接注册优先
+            if (!function_exists('add_filter')) {
+                require_once ROOT_PATH . '/includes/hooks.php';
+            }
+            add_filter('blox_icon_sets', static fn (array $sets): array => $sets + [
+                'phosphor' => ['label' => 'Phosphor', 'stylesheet' => '/themes/default/assets/phosphor.css', 'class' => 'ph ph-{name}'],
+                'lucide' => ['stylesheet' => '/other.css', 'class' => 'other-{name}'],
+            ]);
+            self::assertSame('ph ph-house', BloxIcon::classes('phosphor:house'));
+            self::assertSame('lucide lucide-rocket', BloxIcon::classes('lucide:rocket'));
+        } finally {
+            unset($GLOBALS['ik_filters']['blox_icon_sets']);
+            BloxIcon::resetSetsForTests();
+        }
+        self::assertSame('star', BloxIcon::normalize('lucide:rocket'), '插件停用后回落默认图标');
+    }
 }

@@ -35,3 +35,13 @@ test("all recommended advantage icons resolve to bundled font glyphs", () => {
         assert.match(css, new RegExp("\\." + className + ":before\\{"), value);
     }
 });
+
+test("registered icon sets render through their class template; built-in prefixes stay reserved", () => {
+    assert.equal(icons.className("lucide:rocket"), "ti ti-star", "unregistered prefix falls back");
+    assert.equal(icons.registerSet("lucide", "lucide lucide-{name}"), true);
+    assert.equal(icons.className("Lucide:Rocket"), "lucide lucide-rocket");
+    assert.equal(icons.className("lucide:bad name"), "ti ti-star");
+    assert.equal(icons.registerSet("bi", "x-{name}"), false);
+    assert.equal(icons.registerSet("ok", "no-placeholder"), false);
+    assert.equal(icons.className("bi:check-circle"), "bi bi-check-circle");
+});

@@ -871,6 +871,8 @@ if ($isHomeBlox) {
 }
 
 $businessIconPresets = BloxIcon::businessPresets();
+// 插件 / 主题注册的图标集（2.0.4）：编辑器选择器多出对应页签，并预载样式表
+$bloxIconSets = BloxIcon::editorSets();
 $bloxDesignSystem = BloxDesignSystem::snapshot();
 // 样式来源提示要能说出"这个颜色来自哪个全局类"，所以把类目录一并给编辑器。
 // 只带来源判定用得到的字段，不下发整张表。
@@ -920,6 +922,9 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     <link rel="stylesheet" href="<?php echo e(assetVer('/assets/css/tailwind.css')); ?>">
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
     <link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
+    <?php foreach ($bloxIconSets as $bloxIconSet): ?>
+    <link rel="stylesheet" href="<?php echo e($bloxIconSet['stylesheet']); ?>">
+    <?php endforeach; ?>
     <script defer src="/assets/alpinejs/collapse.min.js"></script>
     <script defer src="/assets/alpinejs/alpine.min.js"></script>
     <script src="/assets/sortable/Sortable.min.js"></script>
@@ -959,6 +964,11 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     <script src="/assets/js/blox-section-insert.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-section-insert.js') ?>"></script>
     <script src="/assets/js/blox-multi-properties.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-properties.js') ?>"></script>
     <script src="/assets/js/blox-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-icon-utils.js') ?>"></script>
+    <script>
+    (<?php echo json_encode(array_map(static fn(array $set): array => ['prefix' => $set['prefix'], 'class' => $set['class']], $bloxIconSets), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>).forEach(function (set) {
+        window.BloxIconUtils.registerSet(set.prefix, set.class);
+    });
+    </script>
     <script src="/assets/js/blox-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-field-store.js') ?>"></script>
     <?php // 系统富文本编辑器（richtext 控件的「可视化编辑」弹窗用；按需 init） ?>
     <script src="/assets/hugerte/hugerte.min.js"></script>
@@ -2350,6 +2360,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             bootstrapIcons: [],
             iconCatalogLoaded: false,
             iconCatalogLoading: false,
+            iconSets: <?php echo json_encode($bloxIconSets, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             businessIconPresets: <?php echo json_encode($businessIconPresets, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             iconPick: "",               // 当前展开选择器的控件 key（"" = 都收起）
             iconQuery: "",
@@ -2361,7 +2372,15 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             },
 
             iconProviderForValue(value) {
-                return String(value || "").toLowerCase().startsWith("bi:") ? "bootstrap" : "tabler";
+                var raw = String(value || "").toLowerCase();
+                if (raw.startsWith("bi:")) return "bootstrap";
+                var prefix = raw.indexOf(":") > 0 ? raw.slice(0, raw.indexOf(":")) : "";
+                return this.iconSet(prefix) ? prefix : "tabler";
+            },
+
+            /** 注册的图标集（插件 / 主题提供）；内置的 tabler / bootstrap 返回 null */
+            iconSet(prefix) {
+                return (this.iconSets || []).find(function (set) { return set.prefix === prefix; }) || null;
             },
 
             iconClass(value) {
@@ -2389,7 +2408,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             },
 
             setIconProvider(provider) {
-                this.iconProvider = provider === "bootstrap" ? "bootstrap" : "tabler";
+                this.iconProvider = provider === "bootstrap" || this.iconSet(provider) ? provider : "tabler";
                 this.iconQuery = "";
                 this.loadIconCatalog();
             },
@@ -2420,13 +2439,18 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             },
 
             iconLibrary() {
+                var set = this.iconSet(this.iconProvider);
+                if (set) {
+                    var prefix = set.prefix;
+                    return set.icons.map(function (name) { return prefix + ":" + name; });
+                }
                 return this.iconProvider === "bootstrap" ? this.bootstrapIcons : this.tablerIcons;
             },
 
             /** 选择器网格内容：无词=常用集；有词=全量包含匹配，最多 96 个防卡 */
             iconMatches() {
                 var q = this.iconQuery.trim().toLowerCase();
-                if (!q) return this.iconCommon[this.iconProvider] || [];
+                if (!q) return this.iconCommon[this.iconProvider] || (this.iconSet(this.iconProvider) ? this.iconLibrary().slice(0, 48) : []);
                 var icons = this.iconLibrary();
                 var out = [];
                 for (var i = 0; i < icons.length && out.length < 96; i++) {
