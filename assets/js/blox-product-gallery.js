@@ -78,10 +78,36 @@
         return true;
     }
 
+    /** 大图 + 缩略图布局：显示第 index 张大图，缩略图高亮跟着走。 */
+    function show(container, index) {
+        itemsOf(container).forEach(function (link, i) { link.hidden = i !== index; });
+        Array.prototype.slice.call(container.querySelectorAll("[data-yk-gallery-thumb]")).forEach(function (thumb) {
+            var active = Number(thumb.getAttribute("data-yk-gallery-thumb")) === index;
+            thumb.classList.toggle("border-primary", active);
+            thumb.classList.toggle("border-transparent", !active);
+            if (active) thumb.setAttribute("aria-current", "true"); else thumb.removeAttribute("aria-current");
+        });
+    }
+
     function bind(container) {
         if (container.dataset.ykGalleryBound === "1") return;
         container.dataset.ykGalleryBound = "1";
         entriesOf(container).forEach(function (entry) { probe(entry.item.src); });
+
+        var thumbs = Array.prototype.slice.call(container.querySelectorAll("[data-yk-gallery-thumb]"));
+        thumbs.forEach(function (thumb, position) {
+            thumb.addEventListener("click", function () {
+                show(container, Number(thumb.getAttribute("data-yk-gallery-thumb")));
+            });
+            // 左右方向键在缩略图之间移动并切换大图
+            thumb.addEventListener("keydown", function (event) {
+                if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+                var next = thumbs[(position + (event.key === "ArrowRight" ? 1 : thumbs.length - 1)) % thumbs.length];
+                event.preventDefault();
+                next.focus();
+                next.click();
+            });
+        });
 
         container.addEventListener("click", function (event) {
             var target = event.target;
