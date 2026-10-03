@@ -2509,7 +2509,7 @@ return [
     'blox_design_scale_hint' => '全站统一的圆角与阴影刻度。容器、布局块和全局样式类可以直接选用；改这里，所有用到的地方一起变。值也可以写 {其他刻度的标识} 引用另一项。',
     'blox_design_radii' => '圆角',
     'blox_design_shadows' => '阴影',
-    'blox_design_value' => '取值',
+    'blox_design_scale_value' => '取值',
     'blox_design_radius_value_ph' => '如 8px、0.5rem',
     'blox_design_shadow_value_ph' => '如 0 4px 12px rgba(15,23,42,.08)',
     'blox_collapse' => '收起',

@@ -323,7 +323,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <input type="text" x-model="item.name" maxlength="60" :disabled="item.locked" aria-label="<?php echo e(__('blox_design_name')); ?>"
                                class="h-9 w-28 min-w-0 border border-gray-300 px-2 text-sm disabled:bg-gray-50">
                         <input type="text" x-model="item.value" :disabled="item.locked" placeholder="<?php echo e(__($scalePlaceholder)); ?>"
-                               aria-label="<?php echo e(__('blox_design_value')); ?>" :data-testid="'blox-design-scale-value-<?php echo $scaleKind; ?>-' + item.id"
+                               aria-label="<?php echo e(__('blox_design_scale_value')); ?>" :data-testid="'blox-design-scale-value-<?php echo $scaleKind; ?>-' + item.id"
                                class="h-9 min-w-0 flex-1 border border-gray-300 px-2 font-mono text-xs disabled:bg-gray-50">
                         <code class="text-[10px] text-gray-400" x-text="'--yk-<?php echo $scaleKind; ?>-' + item.id"></code>
                         <button type="button" @click="toggleScaleLock('<?php echo $scaleKind; ?>', item)" class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-amber-600"
