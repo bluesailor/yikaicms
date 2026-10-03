@@ -81,11 +81,13 @@ final class BloxGlobalClasses
      * 类的交互状态（V2.0.0 提前纳入）：settings.states.{state} 只存下面这些不分档的键。
      * 聚焦用 :focus-visible（鼠标点击不触发），并用 :has() 让标题这类「类挂在外层、链接在里面」
      * 的元素在内部链接获得键盘焦点时同样生效；不支持 :has 的浏览器由 :is() 的宽容解析忽略该分支。
+     * 按下（active，2.0.4）：鼠标按住或触屏按住时；排在悬停、聚焦之后，按下时覆盖它们。
      * 状态规则特异性 0,2,1：高于类的基础规则与元素的档位预设，仍低于内联的本地值与样式预设。
      */
     public const STATES = [
         'hover' => ':hover',
         'focus' => ':is(:focus-visible,:has(:focus-visible))',
+        'active' => ':active',
     ];
     public const STATE_KEYS = ['text_color', 'bg_color', 'border_color', 'border_width_px', 'radius_px', 'font_weight'];
     private const TRANSITION_RANGE = [0, 2000];

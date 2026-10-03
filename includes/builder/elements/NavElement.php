@@ -27,7 +27,14 @@ final class NavElement extends AbstractElement
             ['key' => 'dropdown', 'type' => 'checkbox', 'label' => __('blox_nav_dropdown'), 'default' => false],
             ['key' => 'desktop_only', 'type' => 'checkbox', 'label' => __('blox_nav_desktop_only'), 'default' => false],
             ...NavMegaElement::ctaControls(),
+            // 菜单链接的交互状态颜色（2.0.4）；行动按钮（CTA）不受影响
+            ...BloxStateStyles::controls(['text_color', 'bg_color'], true),
         ];
+    }
+
+    public function stateStyleTarget(): ?string
+    {
+        return ' li:not([data-yk-nav-cta]) a';
     }
 
     public function render(array $data, string $children = ''): string
