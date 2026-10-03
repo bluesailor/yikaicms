@@ -53,6 +53,7 @@
     "assets/js/blox-canvas-bridge.js",
     "assets/js/blox-color-picker.js",
     "assets/js/blox-command-runner.js",
+    "assets/js/blox-command-palette.js",
     "assets/js/blox-style-clipboard.js",
     "assets/js/blox-control-rules.js",
     "assets/js/blox-banner-panel.js",
