@@ -106,7 +106,7 @@ sort($pages);
 // 核心设置页：超管必须 200（渲染失败=客户可感知的后台事故）
 $must200 = [
     '/admin/index.php', '/admin/setting.php', '/admin/setting_email.php',
-    '/admin/setting_cache.php', '/admin/setting_api.php', '/admin/setting_seo.php',
+    '/admin/setting_cache.php', '/admin/setting_api.php', '/admin/setting_seo.php', '/admin/redirects.php',
     '/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/channel.php',
     '/admin/banner.php', '/admin/media.php', '/admin/form.php', '/admin/role.php',
     '/admin/blox_templates.php', '/admin/upgrade_online.php',

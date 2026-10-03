@@ -23,6 +23,8 @@ final class RouteRegistryKindsTest extends TestCase
             'CREATE TABLE albums (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, slug TEXT, lang TEXT DEFAULT "zh-CN", status INTEGER DEFAULT 1, deleted_at INTEGER DEFAULT NULL)',
             'CREATE TABLE product_tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, slug TEXT, lang TEXT DEFAULT "zh-CN", status INTEGER DEFAULT 1)',
             'CREATE TABLE metas (id INTEGER PRIMARY KEY AUTOINCREMENT, owner_type TEXT, owner_id INTEGER, meta_key TEXT, meta_value TEXT, created_at INTEGER, updated_at INTEGER)',
+            // 与正式库一致的唯一索引：每个标签 / 跳转的 meta_key 必须不同（漏了它测试曾放过「每种语言只能存一个标签」）
+            'CREATE UNIQUE INDEX uk_owner_key_metas ON metas (owner_type, owner_id, meta_key)',
             'CREATE TABLE product_routes (id INTEGER PRIMARY KEY AUTOINCREMENT, entity_type TEXT, entity_id INTEGER, path TEXT, path_key TEXT UNIQUE, UNIQUE(entity_type,entity_id))',
         ];
     }
@@ -61,6 +63,16 @@ final class RouteRegistryKindsTest extends TestCase
         }
         self::assertSame('worm gear', $m->resolve('/tag/worm-gear/')['entity']['name']);
         self::assertSame($ctag, $m->contentTagId('worm gear', 'zh-CN'), '同名标签只登记一次');
+    }
+
+    public function testManyTagsPerLanguageCanBeRegistered(): void
+    {
+        $m = new ProductRouteModel();
+        $a = $m->contentTagId('worm gear', 'en');
+        $b = $m->contentTagId('slewing ring', 'en');
+        $c = $m->contentTagId('worm gear', 'ja');
+        self::assertCount(3, array_unique([$a, $b, $c]), 'metas 唯一索引下每个标签要有自己的 meta_key');
+        self::assertSame(['slewing ring', 'en'], [ProductRouteModel::contentTag($b)['name'], ProductRouteModel::contentTag($b)['lang']]);
     }
 
     public function testListingKindsTakePaginationButDetailsDoNot(): void

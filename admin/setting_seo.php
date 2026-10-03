@@ -38,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'clear_sitemap_cache') {
         cacheDelete('sitemap_xml');
+        settingModel()->rotateHtmlCacheGeneration();   // 站点地图缓存键带页面缓存代号（2.0.4），换代号才真正清掉
         adminLog('setting', 'update', '清除 Sitemap 缓存');
         success([], __('seo_sitemap_cache_cleared'));
     }

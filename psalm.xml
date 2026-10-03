@@ -53,6 +53,7 @@
                 <file name="admin/support_access.php" />
                 <!-- Navigation context consumed by the shared admin header. -->
                 <file name="admin/site_setup.php" />
+                <file name="admin/redirects.php" />
                 <file name="admin/site_templates.php" />
                 <file name="admin/site_template_market.php" />
                 <file name="admin/theme_content.php" />
@@ -138,6 +139,7 @@
                 <file name="admin/blox_query_api.php" />
                 <!-- 整站模板工作流新增独立入口 -->
                 <file name="admin/site_setup.php" />
+                <file name="admin/redirects.php" />
                 <file name="admin/site_templates.php" />
                 <file name="admin/site_template_market.php" />
                 <file name="admin/site_content_check.php" />
