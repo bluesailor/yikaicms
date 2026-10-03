@@ -31,6 +31,7 @@ if (!$id) {
 
 // 数据装配交给 ContentDetailController：404 判断、浏览量自增、栏目、
 // 上一篇 / 下一篇 / 相关、下载类型侧栏。详见 docs/refactor-list-detail-plan.md。
+redirectToRegisteredUrl('content', $id);   // 设了登记网址（WordPress 迁移）：旧地址 301 过去
 require_once __DIR__ . '/controllers/detail/ContentDetailController.php';
 $_vars = (new ContentDetailController())->prepare($id);
 if ($_vars === null) {

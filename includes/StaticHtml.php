@@ -141,6 +141,15 @@ final class StaticHtml
             }
         }
 
+        // 只有登记网址才有入口的页面（相册、文章标签、产品标签、产品分类）：按登记表补上，未发布的跳过
+        if (productRouteModel()->available()) {
+            $routes = db()->fetchAll("SELECT path FROM " . DB_PREFIX . "product_routes WHERE entity_type IN ('album', 'content_tag', 'product_tag', 'category') LIMIT 20000");
+            foreach ($routes as $route) {
+                $hit = productRouteModel()->resolve((string) $route['path']);
+                if ($hit !== null && $hit['active'] && in_array($hit['lang'], $langs, true)) $add((string) $route['path'], 'registered');
+            }
+        }
+
         return $out;
     }
 
@@ -219,10 +228,10 @@ final class StaticHtml
         return $made;
     }
 
-    /** 从 HTML 中提取所有形如 /.../page/N.html 的干净分页路径（去重） */
+    /** 从 HTML 中提取所有形如 /.../page/N.html、/.../page/N/（登记网址）的干净分页路径（去重） */
     private static function findPaginationPaths(string $html): array
     {
-        if (!preg_match_all('#href=["\'](/[a-z0-9_\-/]*?/page/\d+\.html)["\']#i', $html, $m)) {
+        if (!preg_match_all('#href=["\'](/[a-z0-9_\-/%.]*?/page/\d+(?:\.html|/))["\']#i', $html, $m)) {
             return [];
         }
         return array_values(array_unique($m[1]));

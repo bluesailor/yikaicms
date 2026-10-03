@@ -40,6 +40,8 @@ function sitemapLastmod(mixed ...$timestamps): string
 $sitemapTtl = (int)config('seo_sitemap_ttl', 600);
 // 语言域名模式下每个主机各有一份 sitemap（只列本主机上的语言），缓存按主机分开
 $sitemapCacheKey = LanguageDomains::active() ? 'sitemap_xml_' . md5(LanguageDomains::currentOrigin()) : 'sitemap_xml';
+// 带上页面缓存代号：内容、网址登记或设置一改代号就换，站点地图随之重建（此前要等 TTL 过期）
+$sitemapCacheKey .= '_' . substr(md5(settingModel()->htmlCacheGeneration()), 0, 12);
 $cached = cacheGet($sitemapCacheKey);
 if ($cached !== null) {
     echo $cached;
@@ -102,7 +104,7 @@ foreach ($channels as $channel) {
 // 文章/案例/下载/招聘等内容
 $contents = db()->fetchAll(
     // c.type 必须选出来，否则 contentUrl() 认不出文章，提交给搜索引擎的就是 404 地址
-    "SELECT c.id, c.title, c.slug, c.type, c.cover, c.publish_time, c.updated_at,
+    "SELECT c.id, c.lang, c.title, c.slug, c.type, c.cover, c.publish_time, c.updated_at,
             ch.slug as channel_slug, ch.type as channel_type
      FROM " . DB_PREFIX . "contents c
      LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
@@ -127,7 +129,7 @@ foreach ($contents as $content) {
 
 // 产品
 $products = db()->fetchAll(
-    "SELECT p.id, p.title, p.slug, p.cover, p.created_at, p.updated_at,
+    "SELECT p.id, p.lang, p.title, p.slug, p.cover, p.created_at, p.updated_at,
             pc.slug as category_slug
      FROM " . DB_PREFIX . "products p
      LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
@@ -154,6 +156,17 @@ foreach ($products as $product) {
 foreach (productRouteModel()->available() ? productCategoryModel()->where(['status' => 1, 'lang' => siteLang()]) : [] as $category) {
     if (productRouteModel()->pathFor('category', (int) $category['id']) !== '') {
         $urls[] = ['loc' => $siteUrl . productCategoryUrl($category), 'changefreq' => 'weekly', 'priority' => '0.7'];
+    }
+}
+
+// 只有登记网址才有入口的页面（相册、文章标签、产品标签；WordPress 迁移保留的原站地址）
+if (productRouteModel()->available()) {
+    $registeredOnly = db()->fetchAll("SELECT path FROM " . DB_PREFIX . "product_routes WHERE entity_type IN ('album', 'content_tag', 'product_tag') LIMIT 20000");
+    foreach ($registeredOnly as $route) {
+        $hit = productRouteModel()->resolve((string) $route['path']);
+        if ($hit !== null && $hit['active'] && $hit['lang'] === siteLang()) {
+            $urls[] = ['loc' => $siteUrl . customRoutePublicPath((string) $route['path']), 'changefreq' => 'weekly', 'priority' => '0.5'];
+        }
     }
 }
 

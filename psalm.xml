@@ -64,6 +64,10 @@
                 <file name="index.php" />
                 <!-- 列表控制器/分页 partial：变量由动态主题模板与 require 作用域消费 -->
                 <file name="list.php" />
+                <!-- 相册照片与灯箱在 includes/partials/album-*.php，经 require 作用域消费 -->
+                <file name="page.php" />
+                <file name="album.php" />
+                <file name="tag.php" />
                 <file name="views/list/download.php" />
                 <file name="views/list/sidebar.php" />
                 <!-- $imRandom* 系列变量供 require 的 random_ui.php 面板模板使用 -->

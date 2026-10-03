@@ -71,6 +71,8 @@ if ($contentRecord) {
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $slug = resolveSlug(post('slug'), post('name'), 'channels', $id);
+    $_urlLang = (string) ($page['lang'] ?? config('site_lang', 'zh-CN'));
+    $customUrl = customUrlPrecheck('channel', $id, $_urlLang);
 
     $newContent = $_POST['content'] ?? '';
 
@@ -125,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     recordContentRevision('page', $id, (string) ($page['lang'] ?? ''), $revTargets, (string) ($page['name'] ?? ''));
 
     channelModel()->updateById($id, $channelData);
+    customUrlSave('channel', $id, $customUrl, $_urlLang);
 
     // 同步到 contents 表（向后兼容）
     if ($contentRecord) {
@@ -214,6 +217,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <label class="block text-sm text-gray-700 mb-1"><?php echo __('admin_slug'); ?> (Slug)</label>
                     <input type="text" name="slug" value="<?php echo e($page['slug']); ?>"
                            class="w-full border rounded px-4 py-2" placeholder="<?php echo __('pe_slug_ph'); ?>">
+                    <?php echo customUrlField('channel', $id, '/about/engineer-team/'); ?>
                 </div>
             </div>
 
