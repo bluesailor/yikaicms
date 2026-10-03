@@ -244,7 +244,15 @@ final class BloxGlobalClassPropertiesTest extends TestCase
         ]));
     }
 
-    // ── 交互状态（hover / focus） ────────────────────────────────────
+    // ── 交互状态（hover / focus / active） ───────────────────────────
+
+    public function testPressedStateCompilesAfterHoverAndFocus(): void
+    {
+        self::assertSame(['hover', 'focus', 'active'], array_keys(BloxGlobalClasses::STATES), '按下排在最后，按住时覆盖悬停与聚焦');
+        $normalized = BloxGlobalClasses::normalizeSettings(['states' => ['active' => ['bg_color' => '#111111', 'evil' => 1]]]);
+        self::assertSame(['active' => ['bg_color' => '#111111']], $normalized['states']);
+    }
+
 
     public function testStatesKeepOnlyWhitelistedStatesKeysAndValues(): void
     {
@@ -254,8 +262,8 @@ final class BloxGlobalClassPropertiesTest extends TestCase
             'states' => [
                 'hover' => ['text_color' => '#c2410c', 'bg_color' => 'red;}x{', 'font_size_px' => 40, 'font_weight' => 700],
                 'focus' => ['border_color' => 'var(--yk-color-primary)', 'radius_px' => 8],
-                'active' => ['text_color' => '#000000'],
-                'visited' => 'nope',
+                'visited' => ['text_color' => '#000000'],
+                'checked' => 'nope',
             ],
         ]);
         self::assertSame(250, $normalized['transition_ms']);
