@@ -2318,6 +2318,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             styleGroupLabels: <?php echo json_encode([
                 'general' => __('blox_style_group_general'),
                 'background' => __('blox_style_group_background'),
+                'states' => __('blox_style_group_states'),
                 'animation' => __('blox_style_group_animation'),
                 'collapse' => __('blox_style_group_collapse'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,

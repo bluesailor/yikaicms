@@ -874,6 +874,15 @@ abstract class AbstractElement
     }
 
     /** 是否在编辑器样式面板显示通用 margin / padding 盒模型。 */
+    /**
+     * 元素级交互状态（BloxStateStyles）作用到哪里：返回作用域类之后的目标选择器（如 ' a'），null 表示不支持。
+     * 支持的元素同时在 controls() 里放 BloxStateStyles::controls()。
+     */
+    public function stateStyleTarget(): ?string
+    {
+        return null;
+    }
+
     public function supportsBoxStyles(): bool
     {
         return true;

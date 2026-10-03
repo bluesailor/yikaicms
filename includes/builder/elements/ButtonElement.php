@@ -113,9 +113,15 @@ final class ButtonElement extends AbstractElement
             ['key' => 'btn_radius', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_css_radius'),
                 'default' => '', 'tab' => 'style', 'min' => 0, 'max' => 999, 'step' => 1, 'unit' => 'px',
                 'css' => [['property' => 'border-radius']]],
+            ...BloxStateStyles::controls(['text_color', 'bg_color', 'border_color']),
             BloxEmptyBinding::control(),
             ...$this->animationControls(),
         ];
+    }
+
+    public function stateStyleTarget(): ?string
+    {
+        return ' a';
     }
 
     public function render(array $data, string $children = ''): string
