@@ -85,18 +85,21 @@ final class SiteTemplateMarketTest extends TestCase
         self::assertSame('', SiteTemplateMarket::normalize($this->item(['screenshot' => 'https://evil.test/pixel.webp']))['screenshot']);
     }
 
-    public function testTemplatesWorkAcrossPatchReleasesOfTheSameLine(): void
+    public function testTemplatesWorkAcrossLaterReleasesOfTheSameMajorVersion(): void
     {
-        // 同一「主.次」版本线内，模板制作版本不晚于本站即可导入
+        // 主版本相同、模板制作版本不晚于本站即可导入（2.0.4 起跨次版本也通用）
         self::assertTrue(\SiteTemplateArchive::cmsCompatible('2.0.0', '2.0.0'));
         self::assertTrue(\SiteTemplateArchive::cmsCompatible('2.0.0', '2.0.7'));
         self::assertTrue(\SiteTemplateArchive::cmsCompatible('2.0.3', '2.0.10'));
         self::assertFalse(\SiteTemplateArchive::cmsCompatible('2.0.1', '2.0.0'), '比本站新的模板可能用到本站没有的功能');
-        self::assertFalse(\SiteTemplateArchive::cmsCompatible('2.0.0', '2.1.0'), '跨次版本不通用');
+        self::assertTrue(\SiteTemplateArchive::cmsCompatible('2.0.0', '2.1.0'), '2.0 的模板在 2.1 上可用');
+        self::assertTrue(\SiteTemplateArchive::cmsCompatible('2.0.9', '2.3.0'));
+        self::assertFalse(\SiteTemplateArchive::cmsCompatible('2.1.0', '2.0.9'), '更新次版本做的模板不能装到旧站');
+        self::assertFalse(\SiteTemplateArchive::cmsCompatible('2.0.0', '3.0.0'), '跨主版本不通用');
         self::assertFalse(\SiteTemplateArchive::cmsCompatible('1.20.0', '2.0.0'));
         self::assertFalse(\SiteTemplateArchive::cmsCompatible('2.0', '2.0.0'));
         self::assertFalse(\SiteTemplateArchive::cmsCompatible('>=2.0.0', '2.0.0'));
-        self::assertSame('2.0.x', \SiteTemplateArchive::cmsSeries('2.0.0'));
+        self::assertSame('2.x', \SiteTemplateArchive::cmsSeries('2.0.0'));
 
         [$major, $minor, $patch] = array_map('intval', explode('.', CMS_VERSION));
         $item = SiteTemplateMarket::normalize($this->item(['cms' => CMS_VERSION]));
@@ -105,6 +108,10 @@ final class SiteTemplateMarketTest extends TestCase
         self::assertSame('st_market_cms', $newer['blocked_reason']);
         $nextLine = SiteTemplateMarket::normalize($this->item(['cms' => $major . '.' . ($minor + 1) . '.0']));
         self::assertSame('st_market_cms', $nextLine['blocked_reason']);
+        if ($minor > 0) {
+            $olderLine = SiteTemplateMarket::normalize($this->item(['cms' => $major . '.' . ($minor - 1) . '.0']));
+            self::assertSame('', $olderLine['blocked_reason'], '旧次版本做的模板照常可装');
+        }
     }
     public function testDemoLinksOnlyPointAtTheOfficialDemoSite(): void
     {
