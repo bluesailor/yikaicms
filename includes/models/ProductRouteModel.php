@@ -12,13 +12,15 @@ declare(strict_types=1);
  * - channel      channels 表（单页、列表栏目）
  * - album        albums 表
  * - content_tag  文章标签：标签只是 contents.tags 里的文字，没有自己的表；每个标签在 metas 存一行
- *                （owner_type=content_tag，meta_key=语言，meta_value=标签文字），entity_id 指这行的 id
+ *                （owner_type=content_tag，meta_key=「语言:文字摘要」，meta_value=标签文字），entity_id 指这行的 id。
+ *                metas 有 (owner_type, owner_id, meta_key) 唯一索引，meta_key 必须每个标签不同
  * - product_tag  product_tags 表
  * - product / category  产品与产品分类（原有）
+ * - redirect     301/302 跳转（核心免费版，见 Redirects）：目标存在 metas 一行（owner_type=redirect），entity_id 指这行
  */
 final class ProductRouteModel extends Model
 {
-    public const KINDS = ['product', 'category', 'content', 'channel', 'album', 'content_tag', 'product_tag'];
+    public const KINDS = ['product', 'category', 'content', 'channel', 'album', 'content_tag', 'product_tag', 'redirect'];
     /** 能带 /page/N/ 分页后缀的类型 */
     public const LISTING_KINDS = ['category', 'channel', 'content_tag', 'product_tag'];
 
@@ -91,6 +93,7 @@ final class ProductRouteModel extends Model
             'product_tag' => db()->tableExists('product_tags')
                 ? (db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'product_tags WHERE id = ?', [$id]) ?: null) : null,
             'content_tag' => self::contentTag($id),
+            'redirect' => Redirects::find($id),
             default => null,
         };
     }
@@ -100,7 +103,9 @@ final class ProductRouteModel extends Model
     {
         if (!db()->tableExists('metas')) return null;
         $row = db()->fetchOne('SELECT id, meta_key, meta_value FROM ' . DB_PREFIX . 'metas WHERE id = ? AND owner_type = ?', [$id, 'content_tag']);
-        return $row ? ['id' => (int) $row['id'], 'name' => (string) $row['meta_value'], 'lang' => (string) $row['meta_key'], 'status' => 1] : null;
+        if (!$row) return null;
+        $lang = explode(':', (string) $row['meta_key'], 2)[0];
+        return ['id' => (int) $row['id'], 'name' => (string) $row['meta_value'], 'lang' => $lang, 'status' => 1];
     }
 
     /**
@@ -111,9 +116,10 @@ final class ProductRouteModel extends Model
     {
         $name = trim($name);
         if ($name === '' || !db()->tableExists('metas')) return 0;
-        $row = db()->fetchOne('SELECT id FROM ' . DB_PREFIX . 'metas WHERE owner_type = ? AND owner_id = 0 AND meta_key = ? AND meta_value = ?', ['content_tag', $lang, $name]);
+        $key = $lang . ':' . substr(sha1($name), 0, 24);
+        $row = db()->fetchOne('SELECT id FROM ' . DB_PREFIX . 'metas WHERE owner_type = ? AND owner_id = 0 AND meta_key = ?', ['content_tag', $key]);
         if ($row) return (int) $row['id'];
-        return (int) db()->insert('metas', ['owner_type' => 'content_tag', 'owner_id' => 0, 'meta_key' => $lang, 'meta_value' => $name,
+        return (int) db()->insert('metas', ['owner_type' => 'content_tag', 'owner_id' => 0, 'meta_key' => $key, 'meta_value' => $name,
             'created_at' => time(), 'updated_at' => time()]);
     }
 

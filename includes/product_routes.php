@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/Redirects.php';
+
 /**
  * 登记网址（product_routes）的请求路径换算：语言域名上不带语言前缀，登记的是带前缀的写法
  * （en.example.com/foo/ ↔ 登记的 /en/foo/）。主域名或未启用语言域名时原样返回。
@@ -39,6 +41,8 @@ function dispatchCustomProductRoute(?array $hit): void
     if ($hit === null || defined('YK_CUSTOM_PRODUCT_ROUTE')) return;
     define('YK_CUSTOM_PRODUCT_ROUTE', true);
     if (!$hit['active']) render404();
+    // 跳转直接发往目标，不先补结尾斜杠（免得多跳一次）
+    if ($hit['kind'] === 'redirect' && is_array($hit['entity'])) Redirects::send($hit['entity']);
     if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)) {
         header('Allow: GET, HEAD');
         http_response_code(405);

@@ -199,6 +199,13 @@ return [
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>',
             ],
             [
+                'key'   => 'redirects',
+                'perm'  => '*',
+                'label' => __('admin_redirects'),
+                'url'   => '/admin/redirects.php',
+                'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>',
+            ],
+            [
                 'key'   => 'link',
                 'perm'  => 'link',
                 'label' => __('admin_link'),

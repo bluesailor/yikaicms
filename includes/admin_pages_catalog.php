@@ -56,6 +56,7 @@ if (!function_exists('adminPagesCatalog')) {
             ['url'=>'/admin/setting_contact.php',  'title'=>'联系方式',     'keywords'=>'联系方式 电话 邮箱 邮件 公司地址 微信 二维码 客服 contact phone email address', 'group'=>'站点'],
             ['url'=>'/admin/setting_social.php',   'title'=>'社交账号',     'keywords'=>'社交 微博 抖音 知乎 facebook twitter linkedin instagram social',         'group'=>'站点'],
             ['url'=>'/admin/setting_email.php',    'title'=>'邮件 / SMTP',  'keywords'=>'SMTP 邮件发送 发件 邮箱配置 mail email server',                          'group'=>'站点'],
+            ['url'=>'/admin/redirects.php',        'title'=>'301 跳转',     'keywords'=>'301 302 redirect 重定向 跳转 旧网址 死链 迁移 WordPress',                  'group'=>'站点'],
             ['url'=>'/admin/setting_seo.php',      'title'=>'SEO 设置',     'keywords'=>'SEO sitemap robots 站长 统计代码 google analytics',                       'group'=>'站点'],
 
             // 外观
