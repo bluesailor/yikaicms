@@ -4533,3 +4533,4 @@ require_once __DIR__ . '/lang_url.php';
 require_once __DIR__ . '/permissions.php';
 require_once __DIR__ . '/catalog_pagination.php';
 require_once __DIR__ . '/product_routes.php';
+require_once __DIR__ . '/media/MediaAlt.php';
