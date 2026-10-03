@@ -18,6 +18,7 @@ return [
     'close' => '닫기',
     'confirm' => '확인',
     'all' => '전체',
+    'all_products' => '전체 제품',
     'more' => '더 보기',
     'loading' => '로딩 중...',
     'no_data' => '데이터 없음',

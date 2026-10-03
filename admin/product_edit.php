@@ -239,7 +239,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <button type="button" onclick="uploadGalleryImage()"
                             class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
                         <i class="ti ti-plus text-base"></i>
-                        <?php echo e(__('admin_upload_image')); ?><?php echo e(__('prod_multi_select')); ?>
+                        <?php echo e(trim(__('admin_upload_image')) . ' ' . trim(__('prod_multi_select'))); ?>
                     </button>
                     <button type="button" onclick="pickGalleryFromMedia()"
                             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm inline-flex items-center gap-1">
