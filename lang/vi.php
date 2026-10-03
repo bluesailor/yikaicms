@@ -18,6 +18,7 @@ return [
     'close' => 'Đóng',
     'confirm' => 'Xác nhận',
     'all' => 'Tất cả',
+    'all_products' => 'Tất cả sản phẩm',
     'more' => 'Xem thêm',
     'loading' => 'Đang tải...',
     'no_data' => 'Không có dữ liệu',
