@@ -29,6 +29,8 @@ return [
             'pencil', 'mood-smile', 'device-tv', 'thumb-up', 'circle-check', 'box', 'settings',
             'headset', 'shield-check', 'users', 'truck', 'bulb', 'lock', 'heart-handshake',
             'trending-up',
+            // Tabs 自动轮播的暂停 / 继续按钮：继续图标由 assets/js/blox-tabs.js 换类（2.0.4）。
+            'player-play',
         ],
         'bootstrap' => [],
     ],
