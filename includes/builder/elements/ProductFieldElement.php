@@ -78,8 +78,10 @@ final class ProductFieldElement extends AbstractElement
             case 'gallery':
                 // 相册：只列控制器解析出的真实图片组；没有图不渲染占位（与原生「无图占位」区分：
                 // 动态元素缺失时整块隐藏，由模板作者决定要不要放占位元素）
-                $images = is_array($context['images'] ?? null) ? $context['images'] : [];
-                $images = array_values(array_filter($images, static fn ($image): bool => is_string($image) && $image !== ''));
+                $images = [];
+                foreach (is_array($context['images'] ?? null) ? $context['images'] : [] as $candidate) {
+                    if (is_string($candidate) && $candidate !== '') $images[] = $candidate;
+                }
                 if ($images === []) return '';
                 if (($data['gallery_layout'] ?? 'grid') === 'thumbs' && count($images) > 1) {
                     $data['html'] = $this->galleryWithThumbs($images, $title);
