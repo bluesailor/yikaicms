@@ -657,7 +657,7 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     ?>
                     <?php if (count($availableLangs) >= 2): ?>
                     <div class="relative" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50">
+                        <button @click="open = !open" :aria-expanded="open.toString()" aria-haspopup="true" aria-label="<?php echo e(__('login_language') . ': ' . ($langLabels[$currentAdminLang] ?? $currentAdminLang)); ?>" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18M12 3a15 15 0 000 18"></path>
@@ -897,10 +897,10 @@ if ($_sbCompactPage) $_sbCollapsed = true;
 
                     <?php /* 用户菜单 */ ?>
                     <div class="relative" x-data="{ open: false }">
-                        <button @click="open = !open" class="flex items-center gap-2 text-gray-700 hover:text-primary">
+                        <button @click="open = !open" :aria-expanded="open.toString()" aria-haspopup="true" aria-label="<?php echo e(trim(__('admin_profile') . ' · ' . ($adminInfo['nickname'] ?? ''), ' ·')); ?>" class="flex items-center gap-2 text-gray-700 hover:text-primary">
                             <?php $adminAvatar = $adminInfo['avatar'] ?? ''; ?>
                             <?php if ($adminAvatar): ?>
-                            <img src="<?php echo e($adminAvatar); ?>" class="w-8 h-8 rounded-full object-cover">
+                            <img src="<?php echo e($adminAvatar); ?>" alt="" class="w-8 h-8 rounded-full object-cover">
                             <?php else: ?>
                             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center">
                                 <i class="ti ti-user text-lg"></i>

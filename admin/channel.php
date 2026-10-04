@@ -602,7 +602,7 @@ function ykPickChannelIcon(name) {
     <a href="?lang=<?php echo e($_lc); ?>&tab=<?php echo e($activeTab); ?>"
        class="px-3 py-1 rounded-full transition <?php echo $_isCurrent ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
         <?php echo e($_label); ?>
-        <?php if ($_isDefault): ?><span class="ml-1 text-[10px] opacity-70">(<?php echo e(__('lang_source')); ?>)</span><?php endif; ?>
+        <?php if ($_isDefault): ?><span class="ml-1 text-[10px]">(<?php echo e(__('lang_source')); ?>)</span><?php endif; ?>
     </a>
     <?php endforeach; ?>
     <?php if ($_viewLang !== $_defaultLang): ?>

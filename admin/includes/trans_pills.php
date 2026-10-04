@@ -163,7 +163,7 @@ function renderAdminLangSwitcher(string $currentLang, string $extraNote = ''): s
         $href = '?' . http_build_query($qs);
         $html .= '<a href="' . htmlspecialchars($href, ENT_QUOTES) . '" class="px-3 py-1 rounded-full transition ' . $cls . '">'
               . htmlspecialchars($labels[$lc], ENT_QUOTES);
-        if ($isDefault) $html .= '<span class="ml-1 text-[10px] opacity-70">(' . e(__('lang_source')) . ')</span>';
+        if ($isDefault) $html .= '<span class="ml-1 text-[10px]">(' . e(__('lang_source')) . ')</span>';
         $html .= '</a>';
     }
     if ($currentLang !== $defaultLang) {

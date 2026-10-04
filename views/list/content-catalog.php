@@ -45,7 +45,7 @@ $catalogUsesDynamicRoute = str_contains($catalogBaseUrl, 'yk_route=');
                 <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                        placeholder="<?php echo e(__('news_search_placeholder')); ?>"
                        class="w-56 border rounded-full pl-4 pr-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-                <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary" aria-label="<?php echo e(__('search')); ?>">
+                <button type="submit" class="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-primary" aria-label="<?php echo e(__('search')); ?>">
                     <i class="ti ti-search text-base"></i>
                 </button>
             </div>

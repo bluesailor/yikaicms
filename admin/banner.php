@@ -329,7 +329,7 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
-            <select name="position" class="border rounded px-3 py-2">
+            <select name="position" aria-label="<?php echo e(__('label_group')); ?>" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('filter_all_groups'); ?></option>
                 <?php foreach ($positions as $k => $v): ?>
                 <option value="<?php echo $k; ?>" <?php echo $position === $k ? 'selected' : ''; ?>><?php echo $v; ?></option>

@@ -9134,4 +9134,6 @@ es.: steel|Acciaio inox',
     'blox_origin_spacing_local' => 'Questo elemento sostituisce:',
     'ch_lang_empty' => 'Non ci sono ancora sezioni in :lang. Generale in un solo passaggio dalle sezioni in :source: i nomi vengono tradotti con il dizionario integrato e potrai poi modificarli uno per uno.',
     'ch_lang_empty_btn' => 'Genera sezioni in :lang',
+    'a11y_select_row' => 'Seleziona: :name',
+    'a11y_show_password' => 'Mostra password',
 ];

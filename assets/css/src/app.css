@@ -1007,3 +1007,9 @@ body.yk-has-blox-sticky-header {
   .yk-blox-header .yk-container { gap: .5rem; }
   .yk-blox-header [data-yk-language-trigger] { white-space: nowrap; }
 }
+
+/* Accessibility (2.0.4): Swiper pagination dots are 8px. WCAG 2.2 target size wants a 24px zone per
+   target, so space the dots 24px apart (center to center) and extend the hit area without changing the look. */
+:root { --swiper-pagination-bullet-horizontal-gap: 8px; --swiper-pagination-bullet-vertical-gap: 8px; }
+.swiper-pagination-bullet { position: relative; }
+.swiper-pagination-bullet::after { content: ""; position: absolute; inset: -8px; }
