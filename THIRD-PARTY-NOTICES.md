@@ -68,6 +68,17 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
 > 载明派生自 **CC-CEDICT（CC BY-SA，copyleft）**，与下方「维护约定」第 2 条
 > 冲突；改用 Apache-2.0 来源后不再有该问题。
 
+### OpenCC 简繁转换词典（includes/i18n/s2t_maps.php、plugins/zh-tw/s2t_maps.php）
+
+繁体中文的简→繁（台湾用词）转换表编译自 OpenCC 的词典数据：
+
+- Project: `BYVoid/OpenCC`
+- Source: <https://github.com/BYVoid/OpenCC>（`data/dictionary/` 下的 STCharacters、STPhrases、TWPhrases、TWVariants、TWVariantsPhrases）
+- License: Apache License 2.0
+- 许可副本：`includes/i18n/OPENCC-LICENSE.txt`；随「繁體中文語言包」插件分发时为 `plugins/zh-tw/LICENSE-OpenCC.txt`
+
+**本项目所做的修改**（Apache-2.0 §4(b) 要求声明）：由 `tools/build-s2t-map.sh` 把上述词典合并编译为 PHP 数组（p1 简→繁、p2 繁→台湾用词），供 `includes/i18n/S2T.php` 两趟替换使用；运行时另由 `S2T::TW_TERMS` / `TW_KEEP` 叠加本项目审定的少量产品用语（如 发布→發佈），不改动词典文件本身。2.0.4 起转换表不随核心安装包分发（2.0.4 前安装的站点核心目录里仍有一份），由插件市场的 zh-tw 插件提供。
+
 ### ISRG 根证书（includes/certs/isrg-roots.pem）
 
 授权校验连接 update.yikaicms.com 时，系统 CA 证书过旧导致校验失败的老主机上，改用这两张根证书
@@ -101,6 +112,8 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
   `584c0b4524eb6e6bf55214d27a9dae3b88ec7beb`，与 npm 登记的 integrity 核对一致。
   随包只保留运行时文件（*.min.js、皮肤、插件数据），语言包沿用原 zh_CN / ja 两份并改挂
   `hugerte.addI18n`。`assets/tinymce/` 整目录删除；`window.tinymce` 作为别名保留给第三方插件。
+
+- **2026-10-05（v2.0.4 核对）**：Swiper 11.2.10 → **12.2.0**（MIT，协议未变；修复 CVE-2026-27212），随包 LICENSE 原文已核对。新增 `assets/hugerte/langs/zh_TW.js` 由随包的 HugeRTE `zh_CN.js` 经 OpenCC 词表转换生成（`tools/i18n/zh-tw.php`），沿用 HugeRTE 的 MIT 许可；繁体界面语言包 `lang/zh-TW.php` 与插件的 `lang/zh-TW.php` 由本项目简体文案经同一词表生成，OpenCC 词表许可见上文「OpenCC 简繁转换词典」一节（此前漏登，本次补上）。`assets/js/admin-a11y.js` 为本项目源码；无障碍检测用的 axe-core 只在开发机临时使用，不随包、不进仓库。`composer.json` / `composer.lock` 与 `package.json` 生产依赖自 v2.0.3 起无变化。反向核对：本周期未删除任何组件的加载点。
 
 - **2026-09-28（v2.0.1 核对）**：本周期未引入或升级第三方组件，`composer.json` /
   `composer.lock`、`package.json` 与 `assets/` 下的第三方目录自 v2.0.0 起无变化。新增的
