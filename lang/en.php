@@ -9185,4 +9185,5 @@ e.g. steel|Stainless steel',
     'blox_origin_overrides' => 'Overrides:',
     'blox_origin_restore_tip' => 'Remove this element’s value and use the inherited setting',
     'blox_origin_edit' => 'Edit',
+    'blox_origin_spacing_local' => 'This element overrides:',
 ];

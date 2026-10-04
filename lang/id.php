@@ -9131,4 +9131,5 @@ contoh: steel|Baja tahan karat',
     'blox_origin_overrides' => 'Menimpa:',
     'blox_origin_restore_tip' => 'Hapus nilai elemen ini dan gunakan pengaturan warisan',
     'blox_origin_edit' => 'Ubah',
+    'blox_origin_spacing_local' => 'Elemen ini menimpa:',
 ];

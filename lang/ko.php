@@ -9131,4 +9131,5 @@ return [
     'blox_origin_overrides' => '덮어씀:',
     'blox_origin_restore_tip' => '이 요소의 값을 지우고 상속된 설정을 사용합니다',
     'blox_origin_edit' => '수정',
+    'blox_origin_spacing_local' => '이 요소가 덮어씀:',
 ];

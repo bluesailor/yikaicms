@@ -184,7 +184,16 @@ test('style origin names the class and theme layers, flags overrides and restore
   await expect(source).toHaveAttribute('data-origin', 'class');
   await undo(page);
   await expect(source).toHaveAttribute('data-origin', 'local');
-  await app(() => { const a = window.Alpine.$data(document.body); a.selEl.data._classes = []; delete a.selEl.data.type_font_size; });
+  // 间距块：类设的边距与本元素压过的部分
+  await app(() => {
+    const a = window.Alpine.$data(document.body);
+    a.designSystem.classes.gc_e2e0origin01.settings.padding_px = 24;
+    a.selEl.data.style_padding_top = 'lg';
+  });
+  await expect(page.getByTestId('blox-spacing-origin')).toContainText('.e2e-origin');
+  await expect(page.getByTestId('blox-spacing-origin')).toContainText('24px');
+  await expect(page.getByTestId('blox-spacing-overrides')).toBeVisible();
+  await app(() => { const a = window.Alpine.$data(document.body); a.selEl.data._classes = []; delete a.selEl.data.type_font_size; delete a.selEl.data.style_padding_top; });
   await restoreClean(page);
 });
 

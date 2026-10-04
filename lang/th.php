@@ -9131,4 +9131,5 @@ return [
     'blox_origin_overrides' => 'แทนที่:',
     'blox_origin_restore_tip' => 'ลบค่าขององค์ประกอบนี้และใช้การตั้งค่าที่สืบทอดมา',
     'blox_origin_edit' => 'แก้ไข',
+    'blox_origin_spacing_local' => 'องค์ประกอบนี้แทนที่:',
 ];

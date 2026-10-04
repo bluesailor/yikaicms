@@ -9327,4 +9327,5 @@ voltage|電圧|220V',
     'blox_origin_overrides' => '上書き中：',
     'blox_origin_restore_tip' => 'この要素の値を削除し、継承される設定に戻します',
     'blox_origin_edit' => '編集',
+    'blox_origin_spacing_local' => 'この要素で上書き：',
 ];

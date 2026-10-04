@@ -9131,4 +9131,5 @@ VD: steel|Thép không gỉ',
     'blox_origin_overrides' => 'Ghi đè:',
     'blox_origin_restore_tip' => 'Xóa giá trị của phần tử này và dùng thiết lập kế thừa',
     'blox_origin_edit' => 'Sửa',
+    'blox_origin_spacing_local' => 'Phần tử này ghi đè:',
 ];

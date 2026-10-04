@@ -9131,4 +9131,5 @@ return [
     'blox_origin_overrides' => 'Переопределяет:',
     'blox_origin_restore_tip' => 'Удаляет значение этого элемента и возвращает унаследованную настройку',
     'blox_origin_edit' => 'Изменить',
+    'blox_origin_spacing_local' => 'Этот элемент переопределяет:',
 ];

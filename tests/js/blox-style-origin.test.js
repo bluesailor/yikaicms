@@ -2,7 +2,7 @@
 // 样式来源与恢复继承（2.0.4）：层的顺序 = 渲染优先级；生效层之后的有值层 = 被覆盖的来源。
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { describe, display } = require('../../assets/js/blox-style-origin.js');
+const { describe, display, spacing } = require('../../assets/js/blox-style-origin.js');
 
 const catalog = {
     classes: {
@@ -66,4 +66,14 @@ test('stored defaults are not reported as local overrides', () => {
     const seeded = describe(heading({ align: 'left' }), { key: 'align', default: 'left' }, {});
     assert.equal(seeded.effective.kind, 'default');
     assert.equal(seeded.resettable, false);
+});
+
+test('spacing summary lists class paddings and what the element overrides', () => {
+    const classes = { gc_pad000000001: { name: 'e2e-pad', settings: { padding_px: 24, margin_top_px: { d: 16, m: 8 } } } };
+    const element = { type: 'container', data: { _classes: ['gc_pad000000001'], style_padding_top: 'lg' } };
+    const desktop = spacing(element, { catalog: { classes } });
+    assert.deepEqual(desktop.classes[0].items, [{ kind: 'padding', side: '', value: 24 }, { kind: 'margin', side: 'top', value: 16 }]);
+    assert.deepEqual(desktop.overridden, [{ kind: 'padding', side: '' }], '元素的单边压过类的「全部」里的那一边');
+    assert.equal(spacing(element, { catalog: { classes }, device: 'mobile' }).classes[0].items[1].value, 8);
+    assert.deepEqual(spacing({ type: 'container', data: {} }, { catalog: { classes } }).classes, []);
 });

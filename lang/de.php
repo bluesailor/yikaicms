@@ -9131,4 +9131,5 @@ z. B. steel|Edelstahl',
     'blox_origin_overrides' => 'Überschreibt:',
     'blox_origin_restore_tip' => 'Entfernt den Wert dieses Elements und nutzt die geerbte Einstellung',
     'blox_origin_edit' => 'Bearbeiten',
+    'blox_origin_spacing_local' => 'Dieses Element überschreibt:',
 ];
