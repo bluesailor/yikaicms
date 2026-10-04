@@ -48,6 +48,7 @@ final class BloxAssetCollector
 
     public static function addScript(string $path): void
     {
+        $path = self::legacyPath($path);
         if (self::validLocalAsset($path, 'js')) {
             if (in_array($path, ['/assets/js/yikay-interactions.js', '/assets/js/yikay-counter.js', '/assets/js/yikay-carousel.js', '/assets/js/yikay-banner.js', '/assets/js/yikay-video-policy.js', '/assets/js/yikay-dot-nav.js'], true)) {
                 self::addScript('/assets/js/scroll-anim.js');
@@ -58,6 +59,7 @@ final class BloxAssetCollector
 
     public static function addStyle(string $path): void
     {
+        $path = self::legacyPath($path);
         if (self::validLocalAsset($path, 'css')) {
             self::$styles[$path] = true;
         }
@@ -136,6 +138,19 @@ final class BloxAssetCollector
         self::$styles = [];
         self::$renderedStyles = [];
         self::$inlineCss = [];
+    }
+
+    /**
+     * 2.0.4 起核心构建器资源由 blox-* 改名为 yikay-*。客户自改的主题 / overrides 里写死的旧地址
+     * （如 /assets/js/blox-counter.js）映射到新文件，避免效果静默失效。升级站可能残留旧文件，新文件存在就优先用新的。
+     */
+    private static function legacyPath(string $path): string
+    {
+        if (preg_match('#^/assets/(js|css)/blox-([a-z0-9-]+\.(?:js|css))$#D', $path, $m) !== 1) {
+            return $path;
+        }
+        $renamed = '/assets/' . $m[1] . '/yikay-' . $m[2];
+        return !defined('ROOT_PATH') || is_file(ROOT_PATH . $renamed) ? $renamed : $path;
     }
 
     private static function validLocalAsset(string $path, string $extension): bool
