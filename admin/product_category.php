@@ -55,6 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($data['name'])) {
             error(__('pcat_name_required'));
         }
+        $missingField = ExtFields::missingRequired('product_category', (array) ($_POST['ext_fields'] ?? []));
+        if ($missingField !== null) {
+            error(sprintf(__('ef_required_missing'), $missingField));
+        }
 
         $data['slug'] = resolveSlug($data['slug'], $data['name'], 'product_categories', $id);
 
@@ -70,6 +74,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (InvalidArgumentException $e) { error(__($e->getMessage())); }
             adminLog('product_category', 'create', "创建产品分类ID: $id");
         }
+        // 产品分类字段（2.0.4 高级字段，专业版定义；值照常可填）
+        ExtFields::save('product_category', (int) $id, (array) ($_POST['ext_fields'] ?? []));
 
         success(['id' => $id]);
     }
@@ -364,6 +370,9 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                 <textarea name="description" id="editDescription" rows="2" class="w-full border rounded px-4 py-2"></textarea>
             </div>
 
+            <?php /* 产品分类字段（2.0.4）：打开弹窗时按条目取服务端渲染的字段区 */ ?>
+            <div id="efFields" class="hidden border-t pt-4"></div>
+
             <div class="flex justify-end gap-2 pt-4">
                 <button type="button" onclick="closeModal()" class="border px-4 py-2 rounded hover:bg-gray-100"><?php echo __('admin_cancel'); ?></button>
                 <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded inline-flex items-center gap-1">
@@ -375,6 +384,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
 </div>
 
 <input type="file" id="imageFileInput" class="hidden" accept="image/*">
+<?php if (ExtFields::fields('product_category') !== []) { require_once ROOT_PATH . '/admin/includes/extfield_helpers.php'; echo efScriptsHtml(); } ?>
 
 <script>
 function openEditModal(item = null) {
@@ -390,6 +400,7 @@ function openEditModal(item = null) {
     document.getElementById('editImage').value = item?.image || '';
     document.getElementById('editDescription').value = item?.description || '';
     document.getElementById('editModal').classList.remove('hidden');
+    if (window.YkExtFields) window.YkExtFields.mount(document.getElementById('efFields'), 'product_category', item?.id || 0);
 }
 
 function closeModal() {

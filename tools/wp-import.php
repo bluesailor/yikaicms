@@ -82,6 +82,9 @@ foreach ($report['menus'] as $menu) {
     fwrite($out, "菜单：{$menu['name']}（{$menu['lang']}，{$menu['items']} 项" . ($menu['locations'] !== [] ? '，原站位置 ' . implode('/', $menu['locations']) : '') . "）→ 菜单组 #{$menu['id']}\n");
 }
 if ($report['menus'] !== []) fwrite($out, "  在页头导航元素里选默认语言的菜单组即可，其它语言自动换成各自的菜单。\n");
+foreach ($report['acf'] as $acf) {
+    fwrite($out, "ACF 字段组：{$acf['group']} → " . ExtFields::ownerLabel($acf['owner']) . "（{$acf['fields']} 个字段）\n");
+}
 if ($report['dropped'] !== []) fwrite($out, '去掉的短代码（表单、幻灯片等，请在新站重做）：' . json_encode($report['dropped'], JSON_UNESCAPED_UNICODE) . "\n");
 if ($report['unknown'] !== []) fwrite($out, '没认出的短代码（原样保留在正文里，请检查）：' . json_encode($report['unknown'], JSON_UNESCAPED_UNICODE) . "\n");
 if (isset($report['uploads'])) fwrite($out, '上传文件：复制 ' . $report['uploads']['copied'] . '，已存在 ' . $report['uploads']['kept'] . "\n");

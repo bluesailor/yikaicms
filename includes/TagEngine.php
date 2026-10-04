@@ -845,15 +845,23 @@ final class TagEngine
     private static function metaFallback(array $ctx, string $name): mixed
     {
         $ctxType = (string) ($ctx['_type'] ?? '');
-        if ($ctxType === 'channel' || empty($ctx['id']) || !function_exists('getMeta')) {
+        if (empty($ctx['id']) || !function_exists('getMeta')) {
             return null;
         }
         if ($ctxType === 'product') {
             $owner = 'product';
+        } elseif ($ctxType === 'channel') {
+            $owner = 'channel';   // 2.0.4 栏目字段
         } elseif (function_exists('resolveExtFieldOwner')) {
             $owner = resolveExtFieldOwner((string) ($ctx['type'] ?? ''));
         } else {
             $owner = 'content';
+        }
+        // 2.0.4：按字段类型出纯文本（链接取网址、下拉取显示名、组用 name=键.子键）；没定义的键照旧原样读
+        if (class_exists('ExtFields')) {
+            [$key, $sub] = array_pad(explode('.', $name, 2), 2, '');
+            $text = ExtFields::textFor($owner, (int) $ctx['id'], $key, $sub);
+            return $text === '' ? null : $text;
         }
         return getMeta($owner, (int) $ctx['id'], $name, null);
     }

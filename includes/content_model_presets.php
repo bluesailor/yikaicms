@@ -5,7 +5,7 @@
  * 新手在「新建模型」时可一键套用：填充模型基本信息 + 自动创建常用字段。
  * 结构：key => [name/name_en/name_ja, url_prefix, has_detail, icon, fields[]]
  *   fields[] 每项对应 extfields 定义（field_key/field_name/field_type，可选 options/is_required/help_text）。
- * field_type 取值见 ExtFieldModel::TYPES。
+ * field_type 取值见 ExtFields::CORE_TYPES。
  * 文案三语并列（name / name_en / name_ja，字段同理），套用时按后台语言取——
  * 英文站新建模型不应得到一堆中文字段名。取值走 presetText()。
  *

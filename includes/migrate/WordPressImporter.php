@@ -5,6 +5,7 @@ require_once __DIR__ . '/WordPressSource.php';
 require_once __DIR__ . '/WordPressPermalinks.php';
 require_once __DIR__ . '/WordPressContent.php';
 require_once __DIR__ . '/WordPressForms.php';
+require_once __DIR__ . '/WordPressAcf.php';
 require_once dirname(__DIR__) . '/LegacyUrls.php';
 
 /**
@@ -59,9 +60,11 @@ final class WordPressImporter
     private array $newsChannels = [];
     /** @var array<string,string> CF7 表单 id / hash 前 7 位 → 本站表单别名 */
     private array $formSlugs = [];
+    /** @var array<string,list<array{key:string,acf:array<string,mixed>}>> ACF 字段（按本站归属），写值时用 */
+    private array $acfFields = [];
 
-    /** @var array{created:array<string,int>,updated:array<string,int>,skipped:array<string,int>,urls:int,warnings:list<string>,dropped:array<string,int>,unknown:array<string,int>,languages:list<string>,menus:list<array<string,mixed>>,forms:list<array{name:string,slug:string,lang:string,translations:list<string>}>} */
-    private array $report = ['created' => [], 'updated' => [], 'skipped' => [], 'urls' => 0, 'warnings' => [], 'dropped' => [], 'unknown' => [], 'languages' => [], 'menus' => [], 'forms' => []];
+    /** @var array{created:array<string,int>,updated:array<string,int>,skipped:array<string,int>,urls:int,warnings:list<string>,dropped:array<string,int>,unknown:array<string,int>,languages:list<string>,menus:list<array<string,mixed>>,forms:list<array{name:string,slug:string,lang:string,translations:list<string>}>,acf:list<array{group:string,owner:string,fields:int}>} */
+    private array $report = ['created' => [], 'updated' => [], 'skipped' => [], 'urls' => 0, 'warnings' => [], 'dropped' => [], 'unknown' => [], 'languages' => [], 'menus' => [], 'forms' => [], 'acf' => []];
     /** @var list<string> 本次登记的全部网址（覆盖检查用） */
     private array $paths = [];
 
@@ -108,9 +111,12 @@ final class WordPressImporter
             $this->importPostTags();
             $this->importProductCategories();
             $this->importProductTags();
+            // ACF 字段定义在分类之后建（挂载位置要用到分类的新 id），值等全部条目导完再写（关联字段要对上新 id）
+            $this->importAcfFields();
             $this->importPages();
             $this->importPosts();
             $this->importProducts();
+            $this->importAcfValues();
             // 菜单最后导：菜单项指向的页面、分类、产品都已经有了
             $this->importMenus();
             // 打开旧链接兜底：?p=123、/feed/、/author/… 等（LegacyUrls）
@@ -786,6 +792,125 @@ final class WordPressImporter
             }
             $categoryPath = $primary !== null ? $this->termPath('product_cat', (int) $primary['term_id']) : '';
             $this->register('product', $id, $this->langPrefix($lang) . $this->links->product((string) $product['post_name'], $categoryPath), $lang, "产品 {$title}");
+        }
+    }
+
+    // ── Advanced Custom Fields ────────────────────────────────────────────
+
+    /** ACF 字段组 → 扩展字段定义（按挂载规则分到产品 / 内容 / 栏目 / 产品分类 / 全站选项）。 */
+    private function importAcfFields(): void
+    {
+        $groupPosts = $this->src->posts(['acf-field-group']);
+        if ($groupPosts === []) return;
+        $fieldPosts = $this->src->posts(['acf-field']);
+        foreach (WordPressAcf::groups($groupPosts, $fieldPosts) as $gi => $group) {
+            // WPML 翻译过的字段组只取默认语言那份（字段是共用的，值各语言各存）
+            if ($this->langOf('post_acf-field-group', $group['id']) !== $this->defaultLang) continue;
+            $unknown = [];
+            $owners = WordPressAcf::owners($group['location'], $unknown);
+            if ($unknown !== []) $this->warn("ACF 字段组「{$group['title']}」有认不出的挂载规则（" . implode('；', array_unique($unknown)) . '），这部分没有导入');
+            if ($owners === []) continue;
+            foreach ($owners as $target) {
+                $owner = $target['owner'];
+                $location = $this->acfLocation($target['terms']);
+                $count = 0;
+                foreach ($group['fields'] as $fi => $acf) {
+                    $skipped = null;
+                    $def = WordPressAcf::definition($acf, $skipped);
+                    if ($def === null) {
+                        if ($skipped !== '' && $skipped !== null) {
+                            $this->count('skipped', 'acf_' . $skipped);
+                            $this->warn("ACF 字段「{$acf['label']}」是 {$skipped} 类型，本站没有对应类型，没有导入");
+                        }
+                        continue;
+                    }
+                    $key = WordPressAcf::key((string) $acf['name']);
+                    if (strlen($key) < 2) $key = 'f_' . $key;
+                    $kind = 'acf_field:' . $owner;
+                    $data = ['owner_type' => $owner, 'field_key' => $key, 'field_name' => mb_substr((string) $acf['label'] ?: $key, 0, 100),
+                        'field_type' => $def['field_type'], 'options' => $def['options'], 'placeholder' => $def['placeholder'],
+                        'help_text' => $def['help_text'], 'is_required' => $def['is_required'], 'sort_order' => $gi * 100 + $fi, 'status' => 1];
+                    $id = $this->mapped($kind, (int) $acf['id'], 'extfields')
+                        ?: (int) db()->fetchColumn('SELECT id FROM ' . DB_PREFIX . 'extfields WHERE owner_type = ? AND field_key = ?', [$owner, $key]);
+                    if ($id > 0) {
+                        db()->update('extfields', $data, 'id = ?', [$id]);
+                        $this->count('updated', 'acf_field');
+                    } else {
+                        $id = (int) db()->insert('extfields', $data + ['created_at' => time()]);
+                        $this->count('created', 'acf_field');
+                    }
+                    setMeta(self::MAP, (int) $acf['id'], $kind, (string) $id);
+                    $config = $def['config'];
+                    if ($location !== [] && !ExtFields::isProOwner($owner)) $config['location'] = $location;
+                    ExtFields::saveConfig($id, $def['field_type'], $config);
+                    $this->acfFields[$owner][] = ['key' => $key, 'acf' => $acf];
+                    $count++;
+                }
+                $this->report['acf'][] = ['group' => $group['title'], 'owner' => $owner, 'fields' => $count];
+            }
+        }
+        ExtFields::flushCache();
+    }
+
+    /** 挂载规则里的分类别名 → 本站分类 id（产品分类 / 栏目）。 @param array<string,list<string>> $terms @return list<int> */
+    private function acfLocation(array $terms): array
+    {
+        $ids = [];
+        foreach ($terms as $taxonomy => $slugs) {
+            foreach ($this->terms as $tt => $term) {
+                if ($term['taxonomy'] === $taxonomy && in_array((string) $term['slug'], $slugs, true)) {
+                    $id = (int) ($this->ids[$taxonomy][$tt] ?? 0);
+                    if ($id > 0) $ids[] = $id;
+                }
+            }
+        }
+        return array_values(array_unique($ids));
+    }
+
+    /** ACF 字段值：产品、文章、单页（栏目）、分类、全站选项。 */
+    private function importAcfValues(): void
+    {
+        if ($this->acfFields === []) return;
+        $resolve = function (string $kind, int $wpId): string {
+            if ($wpId <= 0) return '';
+            return match ($kind) {
+                'attachment' => $this->attachments[$wpId] ?? '',
+                'product' => (string) ($this->ids['product'][$wpId] ?? $this->mapped('product', $wpId, 'products')),
+                default => (string) ($this->ids['post'][$wpId] ?? $this->mapped('post', $wpId, 'contents')),
+            };
+        };
+        $postOwners = ['product' => 'product', 'content' => 'post', 'channel' => 'page'];
+        foreach ($postOwners as $owner => $kind) {
+            $map = $this->ids[$kind] ?? [];
+            if (!isset($this->acfFields[$owner]) || $map === []) continue;
+            $meta = $this->src->meta(array_keys($map));
+            foreach ($map as $wpId => $cmsId) $this->writeAcf($owner, (int) $cmsId, $meta[$wpId] ?? [], $resolve);
+        }
+        foreach (['channel' => 'category', 'product_category' => 'product_cat'] as $owner => $taxonomy) {
+            if (!isset($this->acfFields[$owner])) continue;
+            foreach ($this->ids[$taxonomy] ?? [] as $tt => $cmsId) {
+                $termId = (int) ($this->terms[$tt]['term_id'] ?? 0);
+                if ($termId > 0) $this->writeAcf($owner, (int) $cmsId, $this->src->termMeta($termId), $resolve);
+            }
+        }
+        if (isset($this->acfFields['site'])) {
+            $this->writeAcf('site', 0, $this->src->optionsWithPrefix('options_'), $resolve);
+        }
+    }
+
+    /** @param array<string,string> $meta @param callable(string,int):string $resolve */
+    private function writeAcf(string $owner, int $ownerId, array $meta, callable $resolve): void
+    {
+        foreach ($this->acfFields[$owner] ?? [] as $item) {
+            $field = ExtFields::field($owner, $item['key']);
+            if ($field === null) continue;
+            $raw = WordPressAcf::value($item['acf'], $meta, '', $resolve);
+            if ($field['field_type'] === 'richtext' && is_string($raw) && $raw !== '') $raw = $this->content->clean($raw);
+            $value = ExtFields::sanitize($field, $raw);
+            $previous = getMeta($owner, $ownerId, $item['key']);
+            if ($value === '' && $previous === null) continue;
+            setMeta($owner, $ownerId, $item['key'], $value);
+            $this->count($previous === null ? 'created' : 'updated', 'acf_value');
         }
     }
 

@@ -41,6 +41,7 @@ return [
         'includes/product_routes.php',
         'includes/Redirects.php',
         'includes/LegacyUrls.php',
+        'includes/ExtFields.php',
         'includes/media/MediaAlt.php',
         'includes/media/ImageEditPlan.php',
         'includes/media/ImageEditor.php',

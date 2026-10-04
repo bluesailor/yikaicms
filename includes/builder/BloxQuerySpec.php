@@ -22,7 +22,8 @@ declare(strict_types=1);
 
 final class BloxQuerySpec
 {
-    public const SOURCE_PATTERN = '/^(?:type:[a-z][a-z0-9_-]{0,31}|channel:[1-9][0-9]{0,9}|current|terms:(?:content|product|download))$/D';
+    // 2.0.4 高级字段：field:键（当前条目的重复器行）、option:键（全站选项的重复器行）、rel:键（关联字段指向的条目）
+    public const SOURCE_PATTERN = '/^(?:type:[a-z][a-z0-9_-]{0,31}|channel:[1-9][0-9]{0,9}|current|terms:(?:content|product|download)|(?:field|option|rel):[a-z][a-z0-9_]{0,63})$/D';
     public const MAX_LIMIT = 50;
     public const MAX_OFFSET = 5000;
     public const MAX_TERMS = 20;
