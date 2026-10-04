@@ -1,0 +1,192 @@
+<?php
+/**
+ * 中文→越南文 网站常用词典
+ *
+ * 用于栏目名、菜单名、文章标题等快速翻译
+ * AI 翻译前先查字典，命中则直接使用，未命中再调 AI
+ *
+ * 使用: $dict = require ROOT_PATH . '/lang/dict-zh-vi.php';
+ *       $vi = $dict['关于我们'] ?? null; // 'Giới thiệu'
+ */
+
+return [
+    // ============ 导航/栏目 ============
+    '首页' => 'Trang chủ',
+    '返回列表' => 'Quay lại danh sách',
+    '暂无内容' => 'Chưa có nội dung',
+    '暂无数据' => 'Chưa có dữ liệu',
+    '关于我们' => 'Giới thiệu',
+    '关于' => 'Giới thiệu',
+    '公司简介' => 'Hồ sơ công ty',
+    '企业简介' => 'Hồ sơ công ty',
+    '协会简介' => 'Giới thiệu hiệp hội',
+    '企业文化' => 'Văn hóa doanh nghiệp',
+    '发展历程' => 'Lịch sử phát triển',
+    '组织架构' => 'Cơ cấu tổ chức',
+    '组织机构' => 'Cơ cấu tổ chức',
+    '荣誉资质' => 'Chứng nhận & giải thưởng',
+    '团队风采' => 'Đội ngũ của chúng tôi',
+
+    '产品中心' => 'Sản phẩm',
+    '产品展示' => 'Sản phẩm',
+    '产品列表' => 'Danh sách sản phẩm',
+    '产品详情' => 'Chi tiết sản phẩm',
+    '热门产品' => 'Sản phẩm bán chạy',
+    '新品推荐' => 'Sản phẩm mới',
+    '全部产品' => 'Tất cả sản phẩm',
+
+    '新闻中心' => 'Tin tức',
+    '新闻资讯' => 'Tin tức',
+    '公司新闻' => 'Tin công ty',
+    '行业动态' => 'Tin ngành',
+    '行业资讯' => 'Tin ngành',
+    '媒体报道' => 'Tin truyền thông',
+    '通知公告' => 'Thông báo',
+    '协会通知' => 'Thông báo hiệp hội',
+    '图片新闻' => 'Tin ảnh',
+    '工作研讨' => 'Hội thảo chuyên đề',
+
+    '解决方案' => 'Giải pháp',
+    '成功案例' => 'Dự án tiêu biểu',
+    '案例展示' => 'Dự án tiêu biểu',
+    '行业方案' => 'Giải pháp theo ngành',
+
+    '服务支持' => 'Hỗ trợ',
+    '服务流程' => 'Quy trình',
+    '售后服务' => 'Dịch vụ hậu mãi',
+    '常见问题' => 'Câu hỏi thường gặp',
+    '技术支持' => 'Hỗ trợ kỹ thuật',
+
+    '人才招聘' => 'Tuyển dụng',
+    '招聘信息' => 'Thông tin tuyển dụng',
+    '加入我们' => 'Gia nhập cùng chúng tôi',
+
+    '联系我们' => 'Liên hệ',
+    '在线留言' => 'Để lại lời nhắn',
+    '联系方式' => 'Thông tin liên hệ',
+
+    '下载中心' => 'Tải về',
+    '资料下载' => 'Tải về',
+
+    '会员之窗' => 'Góc hội viên',
+    '会员风采' => 'Hội viên tiêu biểu',
+    '会员服务' => 'Dịch vụ hội viên',
+    '入会申请' => 'Đăng ký hội viên',
+    '入会程序' => 'Thủ tục gia nhập',
+    '入会申请表' => 'Mẫu đơn đăng ký',
+
+    '行业品牌' => 'Thương hiệu',
+    '服务品牌' => 'Thương hiệu dịch vụ',
+    '商品品牌' => 'Thương hiệu sản phẩm',
+    '品牌展示' => 'Giới thiệu thương hiệu',
+
+    '供求信息' => 'Thông tin cung cầu',
+    '培训天地' => 'Đào tạo',
+    '法规标准' => 'Quy định & tiêu chuẩn',
+    '协会月刊' => 'Nguyệt san hiệp hội',
+    '分支机构' => 'Chi nhánh',
+    '新年贺词' => 'Thư chúc mừng năm mới',
+
+    '隐私政策' => 'Chính sách bảo mật',
+    '服务条款' => 'Điều khoản dịch vụ',
+    '网站地图' => 'Sơ đồ trang web',
+    '友情链接' => 'Liên kết website',
+    '合作伙伴' => 'Đối tác',
+    '技术分享' => 'Chia sẻ kỹ thuật',
+    '软件下载' => 'Phần mềm',
+    '文档资料' => 'Tài liệu',
+    '驱动程序' => 'Trình điều khiển',
+
+    // ============ 页面元素 ============
+    '更多' => 'Thêm',
+    '查看更多' => 'Xem thêm',
+    '了解更多' => 'Tìm hiểu thêm',
+    '立即咨询' => 'Liên hệ ngay',
+    '免费咨询' => 'Tư vấn miễn phí',
+    '在线咨询' => 'Tư vấn trực tuyến',
+    '获取报价' => 'Nhận báo giá',
+    '提交' => 'Gửi',
+    '发送' => 'Gửi',
+    '搜索' => 'Tìm kiếm',
+    '返回顶部' => 'Lên đầu trang',
+    '返回首页' => 'Về trang chủ',
+    '上一页' => 'Trang trước',
+    '下一页' => 'Trang sau',
+    '上一篇' => 'Bài trước',
+    '下一篇' => 'Bài tiếp theo',
+    '全部' => 'Tất cả',
+    '推荐' => 'Nổi bật',
+    '热门' => 'Phổ biến',
+    '最新' => 'Mới nhất',
+    '置顶' => 'Đã ghim',
+
+    // ============ 表单 ============
+    '姓名' => 'Họ tên',
+    '您的姓名' => 'Họ tên của bạn',
+    '称呼' => 'Tên',
+    '电话' => 'Điện thoại',
+    '手机' => 'Di động',
+    '联系电话' => 'Số điện thoại',
+    '邮箱' => 'Email',
+    '电子邮箱' => 'Địa chỉ email',
+    '公司' => 'Công ty',
+    '公司名称' => 'Tên công ty',
+    '地址' => 'Địa chỉ',
+    '公司地址' => 'Địa chỉ công ty',
+    '留言内容' => 'Nội dung',
+    '留言' => 'Lời nhắn',
+    '主题' => 'Tiêu đề',
+    '验证码' => 'Mã xác nhận',
+    '提交留言' => 'Gửi lời nhắn',
+    '必填' => 'Bắt buộc',
+
+    // ============ 文章/内容 ============
+    '阅读全文' => 'Đọc tiếp',
+    '发布时间' => 'Ngày đăng',
+    '作者' => 'Tác giả',
+    '来源' => 'Nguồn',
+    '浏览量' => 'Lượt xem',
+    '阅读' => 'Lượt đọc',
+    '分享' => 'Chia sẻ',
+    '标签' => 'Thẻ',
+    '分类' => 'Danh mục',
+    '相关文章' => 'Bài viết liên quan',
+    '相关产品' => 'Sản phẩm liên quan',
+    '相关推荐' => 'Có thể bạn quan tâm',
+
+    // ============ 产品 ============
+    '价格' => 'Giá',
+    '型号' => 'Model',
+    '规格' => 'Thông số kỹ thuật',
+    '品牌' => 'Thương hiệu',
+    '材质' => 'Chất liệu',
+    '颜色' => 'Màu sắc',
+    '尺寸' => 'Kích thước',
+    '重量' => 'Trọng lượng',
+    '包装' => 'Đóng gói',
+    '产地' => 'Xuất xứ',
+    '库存' => 'Tồn kho',
+    '起订量' => 'Đơn hàng tối thiểu',
+    '交货期' => 'Thời gian giao hàng',
+    '面议' => 'Thương lượng',
+    '询价' => 'Hỏi giá',
+
+    // ============ 页脚 ============
+    '快速链接' => 'Liên kết nhanh',
+    '关注我们' => 'Theo dõi chúng tôi',
+    '版权所有' => 'Bảo lưu mọi quyền',
+    '备案号' => 'Số đăng ký',
+    '工作时间' => 'Giờ làm việc',
+    '传真' => 'Fax',
+    '邮编' => 'Mã bưu chính',
+
+    // ============ 行业通用 ============
+    '质量保证' => 'Đảm bảo chất lượng',
+    '技术领先' => 'Công nghệ dẫn đầu',
+    '专业服务' => 'Dịch vụ chuyên nghiệp',
+    '合作共赢' => 'Hợp tác cùng có lợi',
+    '品质保证' => 'Cam kết chất lượng',
+    '诚信经营' => 'Kinh doanh uy tín',
+    '创新发展' => 'Đổi mới & phát triển',
+    '客户至上' => 'Khách hàng là trên hết',
+];
