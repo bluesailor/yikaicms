@@ -9117,4 +9117,7 @@ return [
     'blox_field_table_striped' => 'راه‌راه',
     'blox_field_table_bordered' => 'با حاشیه',
     'blox_field_table_plain' => 'ساده',
+    'email_smtp_pass_saved' => 'ذخیره شده (پنهان)؛ برای حفظ آن خالی بگذارید',
+    'email_smtp_pass_clear' => 'پاک کردن گذرواژه ذخیره‌شده',
+    'seo_push_tls_error' => 'بررسی گواهی HTTPS ناموفق بود؛ معمولاً به این دلیل که گواهی‌های ریشه سرور قدیمی است. از میزبان خود بخواهید آن‌ها را به‌روز کند',
 ];

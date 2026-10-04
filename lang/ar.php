@@ -9117,4 +9117,7 @@ return [
     'blox_field_table_striped' => 'مخطط',
     'blox_field_table_bordered' => 'بحدود',
     'blox_field_table_plain' => 'بسيط',
+    'email_smtp_pass_saved' => 'محفوظة (مخفية)؛ اتركها فارغة للإبقاء عليها',
+    'email_smtp_pass_clear' => 'مسح كلمة المرور المحفوظة',
+    'seo_push_tls_error' => 'فشل التحقق من شهادة HTTPS، وغالبًا ما يكون السبب قِدم شهادات الجذر على الخادم. اطلب من مزوّد الاستضافة تحديثها',
 ];

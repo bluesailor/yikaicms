@@ -243,13 +243,19 @@ function seo_http_post(string $url, string $body, array $headers = []): array
         CURLOPT_POSTFIELDS     => $body,
         CURLOPT_HTTPHEADER     => $headers,
         CURLOPT_TIMEOUT        => 15,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => 0,
+        // 推送请求带着站长平台的令牌：必须校验证书（2.0.4 前关掉了校验，令牌可被中间人截获）
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
     ]);
     $resp = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err = curl_error($ch);
+    $errno = curl_errno($ch);
     curl_close($ch);
+    if (in_array($errno, [51, 60, 77], true)) {   // 证书主机名不符 / 根证书校验失败 / 根证书库读不到
+        // 多是主机的根证书库过旧：说清楚原因，而不是悄悄关掉校验
+        $err = __('seo_push_tls_error') . ' (' . $err . ')';
+    }
     return [$code, (string) $resp, $err];
 }
 

@@ -9117,4 +9117,7 @@ return [
     'blox_field_table_striped' => 'ลายสลับแถว',
     'blox_field_table_bordered' => 'มีเส้นขอบ',
     'blox_field_table_plain' => 'เรียบง่าย',
+    'email_smtp_pass_saved' => 'บันทึกแล้ว (ซ่อนไว้) เว้นว่างไว้หากไม่ต้องการเปลี่ยน',
+    'email_smtp_pass_clear' => 'ล้างรหัสผ่านที่บันทึกไว้',
+    'seo_push_tls_error' => 'การตรวจสอบใบรับรอง HTTPS ล้มเหลว มักเกิดจากใบรับรองรากของเซิร์ฟเวอร์เก่าเกินไป โปรดให้ผู้ให้บริการโฮสติ้งอัปเดต',
 ];

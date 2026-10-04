@@ -9117,4 +9117,7 @@ es.: steel|Acciaio inox',
     'blox_field_table_striped' => 'A righe alterne',
     'blox_field_table_bordered' => 'Con bordi',
     'blox_field_table_plain' => 'Semplice',
+    'email_smtp_pass_saved' => 'Salvata (nascosta); lascia vuoto per mantenerla',
+    'email_smtp_pass_clear' => 'Cancella la password salvata',
+    'seo_push_tls_error' => 'Verifica del certificato HTTPS non riuscita, di solito perché i certificati radice del server sono obsoleti. Chiedi al tuo hosting di aggiornarli',
 ];

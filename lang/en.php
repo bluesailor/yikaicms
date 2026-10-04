@@ -9171,4 +9171,7 @@ e.g. steel|Stainless steel',
     'blox_field_table_striped' => 'Striped',
     'blox_field_table_bordered' => 'Bordered',
     'blox_field_table_plain' => 'Plain',
+    'email_smtp_pass_saved' => 'Saved (hidden); leave blank to keep it',
+    'email_smtp_pass_clear' => 'Clear the saved password',
+    'seo_push_tls_error' => 'HTTPS certificate verification failed, usually because the server\'s CA bundle is out of date. Ask your host to update it',
 ];

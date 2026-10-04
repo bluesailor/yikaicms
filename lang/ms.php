@@ -9117,4 +9117,7 @@ cth.: steel|Keluli tahan karat',
     'blox_field_table_striped' => 'Berjalur',
     'blox_field_table_bordered' => 'Berbingkai',
     'blox_field_table_plain' => 'Ringkas',
+    'email_smtp_pass_saved' => 'Disimpan (tersembunyi); biarkan kosong untuk mengekalkannya',
+    'email_smtp_pass_clear' => 'Kosongkan kata laluan yang disimpan',
+    'seo_push_tls_error' => 'Pengesahan sijil HTTPS gagal, biasanya kerana sijil akar pelayan sudah lapuk. Minta penyedia hos anda mengemas kininya',
 ];
