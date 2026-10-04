@@ -114,6 +114,7 @@
                 <file name="admin/nav_menu.php" />
                 <file name="admin/extfield_api.php" />
                 <file name="admin/site_fields.php" />
+                <file name="admin/media_edit.php" />
                 <!-- v1.18.0 新增/改写的独立入口（Blox 设计系统/栏目 API 等） -->
                 <file name="admin/blox_contact_api.php" />
                 <file name="admin/blox_site_api.php" />

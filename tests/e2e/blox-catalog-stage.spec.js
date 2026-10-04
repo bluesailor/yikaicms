@@ -78,7 +78,7 @@ test('public category filtering and sorting preserve language and canvas links s
     for (const [sort, first] of [['default', 24], ['newest', 24], ['updated', 24], ['views', 24],
         ['price_asc', 1], ['price_desc', 24], ['not-a-sort', 24]]) {
         await page.goto(`/list.php?id=${id}&_lang=zh-CN&cat=${category}&keyword=Stage+gate+0&sort=${sort}`);
-        const titles = await page.locator('h3').allTextContents();
+        const titles = await page.locator(':is(h2, h3)').allTextContents();
         const matches = titles.filter(title => title.includes('Stage gate 0'));
         expect(matches[0].trim()).toBe('Stage gate 0 zh-CN ' + first);
         expect(matches.some(title => /Stage gate 0 (en|ja)/.test(title))).toBe(false);
