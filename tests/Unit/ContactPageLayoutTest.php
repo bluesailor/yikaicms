@@ -209,8 +209,11 @@ final class ContactPageLayoutTest extends TestCase
     public function testContactSubmissionUsesLocalizedFieldsAndSkipsDisabledOnes(): void
     {
         $source = (string) file_get_contents(ROOT_PATH . '/form_submit.php');
+        $functions = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
 
-        self::assertStringContainsString("$" . "template['fields_' . $" . "fieldsLang]", $source);
+        // 当前语言的字段由 formTemplateFieldsRaw() 取（语言列 → metas 里的语言版本 → 基础字段）
+        self::assertStringContainsString('$fieldsRaw = formTemplateFieldsRaw($template);', $source);
+        self::assertStringContainsString("$" . "template['fields_' . $" . "lang]", $functions);
         self::assertStringContainsString('array_key_exists(\'enabled\', $field)', $source);
     }
 
