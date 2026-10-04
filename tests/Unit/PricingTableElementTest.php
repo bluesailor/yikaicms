@@ -253,7 +253,7 @@ final class PricingTableElementTest extends TestCase
     public function testProEditorOffersEveryNewPlanField(): void
     {
         $form = (string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/editor/pricing-plans.php');
-        $methods = (string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/assets/blox-pro-pricing.js');
+        $methods = (string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/assets/yikay-pro-pricing.js');
         foreach (['price_prefix', 'original_price', 'original_price_yearly', 'price_note'] as $field) {
             self::assertStringContainsString("['" . $field . "',", $form, $field);
             self::assertStringContainsString('"' . $field . '"', $methods, $field);

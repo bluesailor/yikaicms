@@ -2744,7 +2744,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             },
             ...window.BloxImageControl.methods,
             ...window.BloxItemsControl.methods,
-            // 表格作者端方法由 yikai-builder 提供（plugins/yikai-builder/assets/blox-pro-table.js）
+            // 表格作者端方法由 yikai-builder 提供（plugins/yikai-builder/assets/yikay-pro-table.js）
             ...((window.BloxTableControl || {}).methods || {}),
             tableExpanded: null,
             tableCreate: null,
@@ -3649,7 +3649,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 return null;
             },
 
-            // 显示条件编辑方法由 yikai-builder 作者端模块提供（plugins/yikai-builder/assets/blox-pro-editor.js）。
+            // 显示条件编辑方法由 yikai-builder 作者端模块提供（plugins/yikai-builder/assets/yikay-pro-editor.js）。
 
             setColumnSpanT(t) {
                 var col = this.selectedCol();
@@ -4436,7 +4436,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 this.highlightCanvasSelection(false);
             },
 
-            // 价格方案套餐编辑方法由 yikai-builder 提供（plugins/yikai-builder/assets/blox-pro-pricing.js）
+            // 价格方案套餐编辑方法由 yikai-builder 提供（plugins/yikai-builder/assets/yikay-pro-pricing.js）
             ...((window.BloxPricingControl || {}).methods || {}),
             orgNodes(el) {
                 var node = el || this.selEl;
