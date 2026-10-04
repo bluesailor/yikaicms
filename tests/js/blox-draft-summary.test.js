@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 global.window = global;
-require("../../assets/js/blox-draft-summary.js");
+require("../../assets/js/yikay-draft-summary.js");
 
 function section(id, text, options = {}) {
     return {

@@ -42,13 +42,13 @@ function shardsForPath(input, root = path.resolve(__dirname, '..')) {
     return new Set(ALL);
   }
 
-  if (/^(?:admin\/(?:media(?:_api)?|upload|banner)\.php|admin\/blox_editor\/partials\/(?:banner|video)|includes\/models\/(?:Media|Banner)Model\.php|includes\/(?:BundledMediaLibrary|Media|RemoteOfficialMedia|ResponsiveImage)|includes\/blocks\/banner\.php|assets\/js\/(?:blox-(?:background-video|banner|media|video)|media-library|official-media)|(?:marketplace\/themes\/|themes\/)[^/]+\/blocks\/banner\.php)/i.test(file)) {
+  if (/^(?:admin\/(?:media(?:_api)?|upload|banner)\.php|admin\/blox_editor\/partials\/(?:banner|video)|includes\/models\/(?:Media|Banner)Model\.php|includes\/(?:BundledMediaLibrary|Media|RemoteOfficialMedia|ResponsiveImage)|includes\/blocks\/banner\.php|assets\/js\/(?:yikay-(?:background-video|banner|media|video)|media-library|official-media)|(?:marketplace\/themes\/|themes\/)[^/]+\/blocks\/banner\.php)/i.test(file)) {
     return new Set(['media']);
   }
-  if (/^(?:lang\/|includes\/(?:i18n|language|HomeSettingsLanguageDefaults)|includes\/builder\/(?:BloxAreaLanguageManager|BloxResponsiveValue)\.php|includes\/builder\/elements\/LanguageSwitcherElement\.php|admin\/role\.php|admin\/blox_templates\/partials\/language-areas\.php|assets\/js\/blox-(?:language-switcher|responsive)\.js|deploy\/)/i.test(file)) {
+  if (/^(?:lang\/|includes\/(?:i18n|language|HomeSettingsLanguageDefaults)|includes\/builder\/(?:BloxAreaLanguageManager|BloxResponsiveValue)\.php|includes\/builder\/elements\/LanguageSwitcherElement\.php|admin\/role\.php|admin\/blox_templates\/partials\/language-areas\.php|assets\/js\/yikay-(?:language-switcher|responsive)\.js|deploy\/)/i.test(file)) {
     return new Set(['locale']);
   }
-  if (/^(?:assets\/js\/blox-style-sources\.js|admin\/blox_editor\/partials\/style-source\.php)$/i.test(file)) {
+  if (/^(?:assets\/js\/yikay-style-sources\.js|admin\/blox_editor\/partials\/style-source\.php)$/i.test(file)) {
     return new Set([...CORE, 'design']);
   }
   if (/^(?:admin\/(?:blox_templates|blox_template_api|blox_design|site_design|theme)\.php|includes\/(?:Theme|builder\/Blox(?:Area|Design|Header|Template|ThemeHeader))|marketplace\/themes\/|themes\/|templates\/blox\/areas\/)/i.test(file)) {
@@ -57,7 +57,7 @@ function shardsForPath(input, root = path.resolve(__dirname, '..')) {
   if (/^(?:config\/defaults\.php|includes\/builder\/(?:BlockRenderer|HomeBloxRenderer)\.php|tests\/e2e\/template-market-server\.php)/i.test(file)) {
     return new Set(ALL);
   }
-  if (/^(?:admin\/blox_editor|admin\/blox_(?:home|page|preview)_api|includes\/builder\/|assets\/js\/blox-|admin\/|controllers\/|includes\/)/i.test(file)) {
+  if (/^(?:admin\/blox_editor|admin\/blox_(?:home|page|preview)_api|includes\/builder\/|assets\/js\/yikay-|admin\/|controllers\/|includes\/)/i.test(file)) {
     return new Set(CORE);
   }
 

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const pricing = require('../../assets/js/blox-pricing.js');
+const pricing = require('../../assets/js/yikay-pricing.js');
 
 function classList(initial) {
     const set = new Set(initial);

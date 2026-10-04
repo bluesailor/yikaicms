@@ -5,11 +5,11 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const POLICY_SRC = fs.readFileSync(
-    path.join(__dirname, '..', '..', 'assets', 'js', 'blox-video-policy.js'),
+    path.join(__dirname, '..', '..', 'assets', 'js', 'yikay-video-policy.js'),
     'utf8'
 );
 const BANNER_SRC = fs.readFileSync(
-    path.join(__dirname, '..', '..', 'assets', 'js', 'blox-banner.js'),
+    path.join(__dirname, '..', '..', 'assets', 'js', 'yikay-banner.js'),
     'utf8'
 );
 

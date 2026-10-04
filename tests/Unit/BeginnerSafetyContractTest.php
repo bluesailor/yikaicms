@@ -110,7 +110,7 @@ final class BeginnerSafetyContractTest extends TestCase
             'x-show="!homePublished" x-cloak data-testid="blox-legacy-home-badge"',
             $this->source('admin/blox_editor/partials/header.php')
         );
-        self::assertStringContainsString('this.homeDynamicText.forkedNotice', $this->source('assets/js/blox-banner-panel.js'));
+        self::assertStringContainsString('this.homeDynamicText.forkedNotice', $this->source('assets/js/yikay-banner-panel.js'));
         self::assertStringContainsString("'forkedNotice' => __('blox_home_banner_forked_notice')", $this->source('admin/blox_editor.php'));
     }
 }

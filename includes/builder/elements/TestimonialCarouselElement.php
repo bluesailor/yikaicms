@@ -19,8 +19,8 @@ final class TestimonialCarouselElement extends AbstractElement
     public const LAYOUTS = ['carousel', 'grid', 'marquee'];
     private const MARQUEE_SPEEDS = ['slow' => 80, 'medium' => 55, 'fast' => 35];
 
-    public function scripts(): array { return ['/assets/js/blox-carousel.js']; }
-    public function styles(): array { return ['/assets/css/blox-carousel.css']; }
+    public function scripts(): array { return ['/assets/js/yikay-carousel.js']; }
+    public function styles(): array { return ['/assets/css/yikay-carousel.css']; }
 
     /** 只有轮播布局需要脚本；网格与跑马灯是纯 CSS */
     public function scriptsFor(array $data): array

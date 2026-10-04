@@ -35,12 +35,12 @@ final class BloxLightboxTest extends TestCase
     {
         $this->render(['click_action' => '']);
         $quiet = BloxAssetCollector::scripts();
-        self::assertNotContains('/assets/js/blox-lightbox.js', $quiet,
+        self::assertNotContains('/assets/js/yikay-lightbox.js', $quiet,
             '没有灯箱图片的页面不该引入灯箱脚本');
 
         $this->render(['click_action' => 'lightbox']);
-        self::assertContains('/assets/js/blox-lightbox.js', BloxAssetCollector::scripts());
-        self::assertContains('/assets/css/blox-lightbox.css', BloxAssetCollector::styles());
+        self::assertContains('/assets/js/yikay-lightbox.js', BloxAssetCollector::scripts());
+        self::assertContains('/assets/css/yikay-lightbox.css', BloxAssetCollector::styles());
     }
 
     /** 分组名会进 querySelector，必须只允许安全字符。 */

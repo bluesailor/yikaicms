@@ -33,7 +33,7 @@ final class BloxOverlapTest extends TestCase
 
     private function css(): string
     {
-        return (string) file_get_contents(ROOT_PATH . '/assets/css/blox-overlap.css');
+        return (string) file_get_contents(ROOT_PATH . '/assets/css/yikay-overlap.css');
     }
 
     // ── 1. 缺省不变 ────────────────────────────────────────────

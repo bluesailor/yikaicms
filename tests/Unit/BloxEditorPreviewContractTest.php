@@ -63,7 +63,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $editor = $this->source('admin/blox_editor.php');
         $group = $this->source('includes/builder/elements/StatsGroupElement.php');
         $footer = $this->source('themes/default/layouts/footer.php');
-        $counter = $this->source('assets/js/blox-counter.js');
+        $counter = $this->source('assets/js/yikay-counter.js');
 
         $this->assertStringNotContainsString('isStatsGroupHost', $editor);
         $this->assertStringContainsString("allowedChildren(array \$data = []): array { return ['stat-item']; }", $group);
@@ -92,7 +92,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $header = $this->source('admin/blox_editor/partials/header.php');
         $templates = $this->source('admin/blox_templates.php');
         $languageAreas = $this->source('admin/blox_templates/partials/language-areas.php');
-        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
 
         // 服务端：显式 DTO 解析（fail-closed 回退首页），redirect 栏目不可作上下文
         $this->assertStringContainsString("preg_match('/^(channel|page):(\\d+)\$/', (string) (\$_GET['preview_context']", $advance);
@@ -133,7 +133,7 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         $advance = $this->source('admin/page_edit_advance.php');
         $editor = $this->source('admin/blox_editor.php');
-        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
 
         // 画布注入：文档级空态卡（每次预览更新先清后建），动作经 postMessage 白名单出画布
@@ -255,7 +255,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         // 前台壳层：sticky 输出类 + 按需注入脚本
         $this->assertStringContainsString('BloxAreaDocument::renderShell(', $functions);
         $this->assertStringContainsString("yk-sticky-header", $areaDocument);
-        $this->assertStringContainsString("BloxAssetCollector::addScript('/assets/js/blox-sticky-header.js')", $areaDocument);
+        $this->assertStringContainsString("BloxAssetCollector::addScript('/assets/js/yikay-sticky-header.js')", $areaDocument);
         $this->assertStringContainsString(
             'BloxDocumentPipeline::decode($blocksDataJson)',
             $this->source('admin/page_edit_advance.php')
@@ -296,9 +296,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         // 0b：paste 命令随剪贴板方法拆入 partial，与主文件视作同一逻辑源
         $editor = $this->source('admin/blox_editor.php') . "\n"
             . $this->source('admin/blox_editor/partials/clipboard-methods.php');
-        $runner = $this->source('assets/js/blox-command-runner.js');
+        $runner = $this->source('assets/js/yikay-command-runner.js');
 
-        $this->assertStringContainsString('<script src="/assets/js/blox-command-runner.js?v=', $editor);
+        $this->assertStringContainsString('<script src="/assets/js/yikay-command-runner.js?v=', $editor);
         // capture/restore 复用历史快照协议（回滚不产生新历史、选择与 dirty 一并恢复）
         $this->assertStringContainsString('return self.historyStore().snapshot(self.historyData());', $editor);
         $this->assertStringContainsString('self.applyHistorySnapshot(snapshot);', $editor);
@@ -306,9 +306,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (['delete-section', 'delete-element', 'paste', 'canvas-drop', 'apply-layout', 'add-section'] as $cmd) {
             $this->assertStringContainsString('this.runCommand("' . $cmd . '"', $editor);
         }
-        $this->assertStringContainsString('<script src="/assets/js/blox-page-settings.js?v=', $editor);
+        $this->assertStringContainsString('<script src="/assets/js/yikay-page-settings.js?v=', $editor);
         $this->assertStringContainsString('window.YikaiBloxPageSettings.mixin(', $editor);
-        $this->assertStringContainsString('this.runCommand("add-element"', $this->source('assets/js/blox-page-settings.js'));
+        $this->assertStringContainsString('this.runCommand("add-element"', $this->source('assets/js/yikay-page-settings.js'));
         // 模板插入应用段 silent 执行，错误提示走既有 catch 面板
         $this->assertStringContainsString('this.commandRunner().execute("insert-template"', $editor);
         $this->assertStringContainsString('}, { silent: true });', $editor);
@@ -321,7 +321,7 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         $advance = $this->source('admin/page_edit_advance.php');
         $canvasPreview = $this->source('includes/builder/BloxCanvasPreview.php');
-        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
         $editor = $this->source('admin/blox_editor.php');
 
         // 注入层：轨道每次画布更新先清后建（不进保存文档），动作全部经 postMessage
@@ -329,10 +329,10 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString("postToEditor({ ykInsertAt: { index: index, kind: 'picker', anchor:", $canvasPreview);
         $this->assertStringContainsString('sec.after(makeRail(i + 1, true))', $canvasPreview);
         $this->assertStringNotContainsString('sec.appendChild(makeRail', $canvasPreview);
-        $this->assertStringContainsString('/assets/js/blox-section-insert.js', $editor);
+        $this->assertStringContainsString('/assets/js/yikay-section-insert.js', $editor);
         $this->assertStringContainsString('window.YikaiBloxSectionInsert.mixin(', $editor);
         $assets = json_decode($this->source('config/blox-assets.json'), true, 512, JSON_THROW_ON_ERROR);
-        $this->assertContains('assets/js/blox-section-insert.js', $assets['core']);
+        $this->assertContains('assets/js/yikay-section-insert.js', $assets['core']);
         $this->assertStringNotContainsString('yk-insert-rail-tail', $advance);
         $this->assertStringContainsString("querySelectorAll('[data-yk-sec]')", $canvasPreview);
         $this->assertStringNotContainsString('yk-insert-rail-tail', $canvasPreview);
@@ -352,7 +352,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $editor = $this->source('admin/blox_editor.php');
         $advance = $this->source('admin/page_edit_advance.php');
         $api = $this->source('admin/blox_template_api.php');
-        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
 
         // 面包屑：状态派生（不存索引副本），末层高亮，点父级走既有 select*
         $this->assertStringContainsString('data-testid="blox-breadcrumb"', $editor);
@@ -417,9 +417,9 @@ final class BloxEditorPreviewContractTest extends TestCase
     public function testDeclarativeControlRulesContract(): void
     {
         $editor = $this->source('admin/blox_editor.php');
-        $rules = $this->source('assets/js/blox-control-rules.js');
+        $rules = $this->source('assets/js/yikay-control-rules.js');
 
-        $this->assertStringContainsString('<script src="/assets/js/blox-control-rules.js?v=', $editor);
+        $this->assertStringContainsString('<script src="/assets/js/yikay-control-rules.js?v=', $editor);
         $this->assertStringContainsString('return window.BloxControlRules.visibleWhenMet(ctrl, function (key) {', $editor);
         // 模块契约：required 兼容归一 + fail-closed 未知操作符
         $this->assertStringContainsString('function normalizeRule(ctrl)', $rules);
@@ -473,9 +473,9 @@ final class BloxEditorPreviewContractTest extends TestCase
     public function testPreviewRefreshPreservesScrollAndRejectsStaleResponses(): void
     {
         $editor = $this->source('admin/blox_editor.php');
-        $client = $this->source('assets/js/blox-preview-client.js');
+        $client = $this->source('assets/js/yikay-preview-client.js');
 
-        $this->assertStringContainsString('<script src="/assets/js/blox-preview-client.js?v=', $editor);
+        $this->assertStringContainsString('<script src="/assets/js/yikay-preview-client.js?v=', $editor);
         $this->assertStringContainsString('return this.previewClient().refresh();', $editor);
         $this->assertStringContainsString('var shouldScroll = self._pendingInitialFocus;', $editor);
         $this->assertStringContainsString('if (shouldScroll) {', $editor);
@@ -500,9 +500,9 @@ final class BloxEditorPreviewContractTest extends TestCase
     public function testCanvasMessageRoutingUsesSourceCheckedBridge(): void
     {
         $editor = $this->source('admin/blox_editor.php');
-        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
 
-        $this->assertStringContainsString('<script src="/assets/js/blox-canvas-bridge.js?v=', $editor);
+        $this->assertStringContainsString('<script src="/assets/js/yikay-canvas-bridge.js?v=', $editor);
         $this->assertStringContainsString('new window.BloxCanvasBridge({', $editor);
         $this->assertStringContainsString('this.canvasBridge().start();', $editor);
         $this->assertStringContainsString('if (self._canvasBridge) self._canvasBridge.dispose();', $editor);
@@ -557,7 +557,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $editor = $this->source('admin/blox_editor.php');
         $renderer = $this->source('includes/builder/BlockRenderer.php');
         $canvas = $this->source('admin/page_edit_advance.php');
-        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
 
         foreach ([
             "get('focus_section', '')",
@@ -636,7 +636,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $editor = $this->source('admin/blox_editor.php');
         $renderer = $this->source('includes/builder/BlockRenderer.php');
         $canvas = $this->source('admin/page_edit_advance.php');
-        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
 
         foreach ([
             "get('focus_element', '')",
@@ -735,7 +735,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('...window.BloxBannerPanel.methods', $editor);
         $editor .= $this->source('admin/blox_editor/partials/banner-manager.php')
             . $this->source('admin/blox_editor/partials/banner-image-control.php')
-            . $this->source('assets/js/blox-banner-panel.js');
+            . $this->source('assets/js/yikay-banner-panel.js');
 
         foreach ([
             '/assets/swiper/swiper-bundle.min.css',
@@ -910,7 +910,7 @@ final class BloxEditorPreviewContractTest extends TestCase
         foreach (['paletteAutoPanSpeed(', 'setInterval(function autoPanTick()', 'window.scrollBy(0, speed)'] as $token) {
             $this->assertStringNotContainsString($token, $preview, "canvas drag must not auto-scroll: {$token}");
         }
-        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
         // 0b：容器落点从「仅顶层」放宽为「任意深度、最深 9 段」（isContainerHostPath）
         foreach (['payload.dropId', 'this.lastDropId', 'onDrop', 'onTemplateDrop', 'templateDropPayload', 'isContainerHostPath(value.target.path)'] as $token) {
             $this->assertStringContainsString($token, $bridge, "canvas bridge drop contract {$token} missing");
@@ -1007,7 +1007,7 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         $editor = $this->source('admin/blox_editor.php');
         $preview = $this->source('includes/builder/BloxCanvasPreview.php');
-        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
 
         foreach ([
             'data-yk-region="page-hero"',
@@ -1377,9 +1377,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-cta-background-url"', $imageControl);
         $this->assertStringContainsString('data-testid="blox-cta-background-clear"', $imageControl);
         $this->assertStringContainsString("setHomeContentImage(ctrl.key, '')", $imageControl);
-        $this->assertStringContainsString('clearMatchingHomeBackgroundCopies', $this->source('assets/js/blox-image-control.js'));
+        $this->assertStringContainsString('clearMatchingHomeBackgroundCopies', $this->source('assets/js/yikay-image-control.js'));
         $this->assertStringContainsString("__('blox_home_cta_color_covered_hint')", $workspace);
-        $this->assertStringContainsString('{ usage: "cta", source: "official" }', $this->source('assets/js/blox-home-content-panel.js'));
+        $this->assertStringContainsString('{ usage: "cta", source: "official" }', $this->source('assets/js/yikay-home-content-panel.js'));
     }
 
     public function testWideBackgroundMediaPickerPrioritizesRecommendedImagesWithoutBlockingFallbacks(): void
@@ -1391,7 +1391,7 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('this.mediaUsage === "hero-bg" ? 1920 : 0', $editor);
         $this->assertStringContainsString('self.pageHero.hero_bg = url; }, { usage: "hero-bg" }', $editor);
-        $imageControl = $this->source('assets/js/blox-image-control.js');
+        $imageControl = $this->source('assets/js/yikay-image-control.js');
         $this->assertStringContainsString('scope === "element" ? {} : { usage: "hero-bg" }', $imageControl);
         $this->assertStringContainsString("'scope' => 'section', 'key' => \"'bg_image'\"", $workspace);
         $this->assertStringContainsString("'scope' => 'container', 'key' => \"'container_bg_image'\"", $workspace);
@@ -1520,12 +1520,12 @@ final class BloxEditorPreviewContractTest extends TestCase
     {
         $editor = $this->source('admin/blox_editor.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
-        $backgroundPanel = $this->source('assets/js/blox-background-panel.js');
+        $backgroundPanel = $this->source('assets/js/yikay-background-panel.js');
         $backgroundSwitcher = $this->source('admin/blox_editor/partials/background-layer-switcher.php');
         $pipeline = $this->source('includes/builder/BloxDocumentPipeline.php');
         $renderer = $this->source('includes/builder/BlockRenderer.php');
 
-        $imageMethods = $this->source('assets/js/blox-image-control.js');
+        $imageMethods = $this->source('assets/js/yikay-image-control.js');
         $imageControl = $this->source('admin/blox_editor/partials/image-control.php');
         $this->assertStringContainsString('...window.BloxImageControl.methods', $editor);
         $this->assertStringContainsString('...window.BloxBackgroundPanel.methods', $editor);

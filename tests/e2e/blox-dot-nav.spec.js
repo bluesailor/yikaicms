@@ -62,8 +62,8 @@ test('dot navigation publishes real anchors and highlights on the front end @ci'
     expect(html).toContain(`id="${anchor}"`);
   }
   expect(html).toContain('aria-label="第一站"');
-  expect(html).toContain('blox-dot-nav.css');
-  expect(html).toContain('blox-dot-nav.js');
+  expect(html).toContain('yikay-dot-nav.css');
+  expect(html).toContain('yikay-dot-nav.js');
 
   // 浏览器行为：点击第二个圆点 → hash 变化（真实锚点导航，不劫持历史）+ 高亮跟随
   await page.goto(frontUrl, { waitUntil: 'domcontentloaded' });

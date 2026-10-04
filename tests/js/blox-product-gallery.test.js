@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const SOURCE = path.join(__dirname, '..', '..', 'assets', 'js', 'blox-product-gallery.js');
+const SOURCE = path.join(__dirname, '..', '..', 'assets', 'js', 'yikay-product-gallery.js');
 
 /** 最小锚点替身：只有绑定代码真正会读的属性与方法。 */
 function makeLink(src, alt) {

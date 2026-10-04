@@ -88,16 +88,16 @@ final class AnnotatedTextElementTest extends TestCase
 
         $element = new AnnotatedTextElement();
         BloxAssetCollector::collectElement($element, $data);
-        self::assertSame(['/assets/css/blox-annotated-text.css'], BloxAssetCollector::styles());
+        self::assertSame(['/assets/css/yikay-annotated-text.css'], BloxAssetCollector::styles());
         self::assertSame([], BloxAssetCollector::scripts());
         BloxAssetCollector::collectElement($element, ['animate' => '1']);
-        self::assertSame(['/assets/js/blox-annotated-text.js'], BloxAssetCollector::scripts());
+        self::assertSame(['/assets/js/yikay-annotated-text.js'], BloxAssetCollector::scripts());
     }
 
     public function testRuntimeKeepsStaticAndReducedMotionFallbacks(): void
     {
-        $css = (string) file_get_contents(ROOT_PATH . '/assets/css/blox-annotated-text.css');
-        $js = (string) file_get_contents(ROOT_PATH . '/assets/js/blox-annotated-text.js');
+        $css = (string) file_get_contents(ROOT_PATH . '/assets/css/yikay-annotated-text.css');
+        $js = (string) file_get_contents(ROOT_PATH . '/assets/js/yikay-annotated-text.js');
         self::assertStringContainsString('prefers-reduced-motion: reduce', $css);
         self::assertStringContainsString('IntersectionObserver', $js);
         self::assertStringContainsString("document.querySelector('.yk-canvas-region')", $js);

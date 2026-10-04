@@ -11,7 +11,7 @@ global.removeEventListener = function (type, listener) {
     if (listeners[type]) listeners[type].delete(listener);
 };
 
-require("../../assets/js/blox-canvas-bridge.js");
+require("../../assets/js/yikay-canvas-bridge.js");
 
 function fixture(overrides = {}) {
     const sent = [];

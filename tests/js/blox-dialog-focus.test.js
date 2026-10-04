@@ -15,7 +15,7 @@ function element(name) {
 global.window = global;
 global.document = { activeElement: null };
 global.requestAnimationFrame = function (callback) { callback(); };
-require("../../assets/js/blox-dialog-focus.js");
+require("../../assets/js/yikay-dialog-focus.js");
 
 function root(items, initial) {
     const node = element("root");

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const panel = require('../../assets/js/blox-banner-panel');
+const panel = require('../../assets/js/yikay-banner-panel');
 const banner = { type: 'home-block', data: { block_type: 'banner' } };
 const controls = ['banner_height_mode', 'banner_mobile_mode', 'banner_autoplay', 'banner_speed', 'label'].map(key => ({ key }));
 

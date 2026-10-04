@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const context = { globalThis: {} };
 vm.runInNewContext(
-    fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'blox-responsive.js'), 'utf8'),
+    fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'yikay-responsive.js'), 'utf8'),
     context
 );
 const responsive = context.globalThis.BloxResponsive;

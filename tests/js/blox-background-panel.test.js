@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const panel = require('../../assets/js/blox-background-panel');
+const panel = require('../../assets/js/yikay-background-panel');
 
 test('background layer state exposes the effective stored value for both visual layers', () => {
     const section = { settings: {

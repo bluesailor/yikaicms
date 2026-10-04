@@ -16,7 +16,7 @@ final class BloxDraftSummaryContractTest extends TestCase
         self::assertStringContainsString('published_document_json', $editor);
         self::assertStringContainsString('HomeBloxDocument::loadPublished()', $editor);
         self::assertStringContainsString('$publishedDocumentSource =', $editor);
-        self::assertStringContainsString('/assets/js/blox-draft-summary.js', $editor);
+        self::assertStringContainsString('/assets/js/yikay-draft-summary.js', $editor);
         self::assertStringContainsString('publishedDocument:', $editor);
         self::assertStringContainsString('draftSummary()', $editor);
         self::assertStringContainsString('locateDraftChange(item)', $editor);

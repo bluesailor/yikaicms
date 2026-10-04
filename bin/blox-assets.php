@@ -83,7 +83,7 @@ function assertPaths(string $root, array $paths, bool $mustExist): void
 /** @param array{core:list<string>,pro:list<string>,runtime:list<string>} $policy */
 function verifyBloxJavascriptClassification(string $root, array $policy): void
 {
-    $files = glob($root . '/assets/js/blox-*.js');
+    $files = glob($root . '/assets/js/yikay-*.js');
     if ($files === false) {
         throw new RuntimeException('Unable to enumerate Blox JavaScript assets.');
     }

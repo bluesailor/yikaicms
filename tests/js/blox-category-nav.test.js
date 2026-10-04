@@ -1,5 +1,5 @@
 /**
- * assets/js/blox-category-nav.js 的零依赖回归测试（栏目 / 分类导航元素的前台脚本）。
+ * assets/js/yikay-category-nav.js 的零依赖回归测试（栏目 / 分类导航元素的前台脚本）。
  * 最小假 DOM + vm 沙箱：手风琴按钮开合子列表；小屏下拉框选中即跳转，编辑器画布里不跳。
  */
 
@@ -10,7 +10,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const SRC = fs.readFileSync(
-    path.join(__dirname, '..', '..', 'assets', 'js', 'blox-category-nav.js'),
+    path.join(__dirname, '..', '..', 'assets', 'js', 'yikay-category-nav.js'),
     'utf8'
 );
 

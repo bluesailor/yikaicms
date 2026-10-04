@@ -20,7 +20,7 @@ final class BloxOverlap
     /** 层级白名单。不接受任意 z-index 数值。 */
     public const LAYERS = ['front', 'back'];
 
-    public const STYLESHEET = '/assets/css/blox-overlap.css';
+    public const STYLESHEET = '/assets/css/yikay-overlap.css';
 
     private const PRESET_CLASS = 'yk-overlap';
     private const LAYER_CLASS = 'yk-stack';
@@ -139,7 +139,7 @@ final class BloxOverlap
     }
 
     /**
-     * 属性契约（验收门槛 1）。数值与 blox-overlap.css 一一对应，改 CSS 要同步改这里。
+     * 属性契约（验收门槛 1）。数值与 yikay-overlap.css 一一对应，改 CSS 要同步改这里。
      *
      * @psalm-api 交付文档与单测消费（单测拿它和 CSS 逐条对拍），不在渲染路径上。
      * @return list<array<string,mixed>>

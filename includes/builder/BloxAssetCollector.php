@@ -49,7 +49,7 @@ final class BloxAssetCollector
     public static function addScript(string $path): void
     {
         if (self::validLocalAsset($path, 'js')) {
-            if (in_array($path, ['/assets/js/blox-interactions.js', '/assets/js/blox-counter.js', '/assets/js/blox-carousel.js', '/assets/js/blox-banner.js', '/assets/js/blox-video-policy.js', '/assets/js/blox-dot-nav.js'], true)) {
+            if (in_array($path, ['/assets/js/yikay-interactions.js', '/assets/js/yikay-counter.js', '/assets/js/yikay-carousel.js', '/assets/js/yikay-banner.js', '/assets/js/yikay-video-policy.js', '/assets/js/yikay-dot-nav.js'], true)) {
                 self::addScript('/assets/js/scroll-anim.js');
             }
             self::$scripts[$path] = true;

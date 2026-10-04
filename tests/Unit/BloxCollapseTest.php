@@ -50,7 +50,7 @@ final class BloxCollapseTest extends TestCase
             self::assertTrue($controls['collapse_height']['responsive']);
             self::assertArrayHasKey('', $controls['collapse_height']['options'], 'each device can opt out');
         }
-        self::assertStringContainsString('"collapse"', (string) file_get_contents(ROOT_PATH . '/assets/js/blox-style-groups.js'));
+        self::assertStringContainsString('"collapse"', (string) file_get_contents(ROOT_PATH . '/assets/js/yikay-style-groups.js'));
     }
 
     public function testContainerSplitsIntoRootAndClippedBody(): void
@@ -68,8 +68,8 @@ final class BloxCollapseTest extends TestCase
         self::assertStringContainsString('aria-expanded="false"', $html);
         self::assertStringContainsString('<p>long</p>', $html, 'full content is always in the HTML');
         self::assertStringContainsString('data-yk-collapse-toggle hidden', $html, 'button stays hidden until the script finds real overflow');
-        self::assertContains('/assets/js/blox-collapse.js', BloxAssetCollector::scripts());
-        self::assertContains('/assets/css/blox-collapse.css', BloxAssetCollector::styles());
+        self::assertContains('/assets/js/yikay-collapse.js', BloxAssetCollector::scripts());
+        self::assertContains('/assets/css/yikay-collapse.css', BloxAssetCollector::styles());
     }
 
     public function testNoHeightOnAnyDeviceMeansNoCollapse(): void
@@ -118,17 +118,17 @@ final class BloxCollapseTest extends TestCase
     {
         $page = (new DivElement())->render(['collapse' => true], 'a') . (new DivElement())->render(['collapse' => true], 'b');
         self::assertLessThanOrEqual(1, substr_count($page, '<noscript>'), 'fallback style is emitted at most once per request');
-        $css = (string) file_get_contents(ROOT_PATH . '/assets/css/blox-collapse.css');
+        $css = (string) file_get_contents(ROOT_PATH . '/assets/css/yikay-collapse.css');
         foreach (['--ykc-h-m', '--ykc-h-t', '--ykc-h-d', '--ykc-h-w', 'gap: inherit', 'mask-image', '@media print', 'prefers-reduced-motion'] as $needle) {
             self::assertStringContainsString($needle, $css, $needle);
         }
-        $js = (string) file_get_contents(ROOT_PATH . '/assets/js/blox-collapse.js');
+        $js = (string) file_get_contents(ROOT_PATH . '/assets/js/yikay-collapse.js');
         foreach (['aria-expanded', 'tabindex', 'ResizeObserver', 'prefers-reduced-motion'] as $needle) {
             self::assertStringContainsString($needle, $js, $needle);
         }
         $manifest = json_decode((string) file_get_contents(ROOT_PATH . '/config/blox-assets.json'), true);
-        self::assertContains('assets/css/blox-collapse.css', $manifest['runtime']);
-        self::assertContains('assets/js/blox-collapse.js', $manifest['runtime']);
+        self::assertContains('assets/css/yikay-collapse.css', $manifest['runtime']);
+        self::assertContains('assets/js/yikay-collapse.js', $manifest['runtime']);
         foreach (['zh-CN', 'en', 'ja'] as $lang) {
             $strings = require ROOT_PATH . '/lang/' . $lang . '.php';
             foreach (['blox_style_group_collapse', 'blox_collapse_enable', 'blox_collapse_height', 'blox_collapse_more_default', 'blox_collapse_less_default'] as $key) {

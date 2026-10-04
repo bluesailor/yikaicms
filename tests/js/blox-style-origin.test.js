@@ -2,7 +2,7 @@
 // 样式来源与恢复继承（2.0.4）：层的顺序 = 渲染优先级；生效层之后的有值层 = 被覆盖的来源。
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { describe, display, spacing } = require('../../assets/js/blox-style-origin.js');
+const { describe, display, spacing } = require('../../assets/js/yikay-style-origin.js');
 
 const catalog = {
     classes: {

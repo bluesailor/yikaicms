@@ -22,7 +22,7 @@
     --color-dark: #0F172A;
     --color-dark-soft: #1E293B;
     --color-sidebar: #0f172a;
-    /* 宽屏断点（Blox 第四档 w）：≥1440px，与 BloxCssCompiler::WIDE_MIN、blox-responsive.js 一致 */
+    /* 宽屏断点（Blox 第四档 w）：≥1440px，与 BloxCssCompiler::WIDE_MIN、yikay-responsive.js 一致 */
     --breakpoint-wide: 90rem;
 }
 

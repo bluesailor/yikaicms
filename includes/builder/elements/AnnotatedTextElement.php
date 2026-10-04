@@ -27,11 +27,11 @@ final class AnnotatedTextElement extends AbstractElement
     public function label(): string { return __('blox_annotated_label'); }
     public function icon(): string { return 'highlight'; }
     public function treeLabelField(): ?string { return 'text'; }
-    public function styles(): array { return ['/assets/css/blox-annotated-text.css']; }
+    public function styles(): array { return ['/assets/css/yikay-annotated-text.css']; }
     public function scriptsFor(array $data): array
     {
         return in_array($data['animate'] ?? true, [true, 1, '1'], true)
-            ? ['/assets/js/blox-annotated-text.js'] : [];
+            ? ['/assets/js/yikay-annotated-text.js'] : [];
     }
 
     public function controls(): array

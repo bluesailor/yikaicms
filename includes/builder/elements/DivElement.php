@@ -119,7 +119,7 @@ final class DivElement extends AbstractElement
 
     public function stylesFor(array $data): array
     {
-        return ($data['display'] ?? '') === 'overlay' ? ['/assets/css/blox-overlay.css'] : [];
+        return ($data['display'] ?? '') === 'overlay' ? ['/assets/css/yikay-overlay.css'] : [];
     }
 
     public function render(array $data, string $children = ''): string

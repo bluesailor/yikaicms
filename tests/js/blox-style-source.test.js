@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-require('../../assets/js/blox-responsive');
-const {state,methods} = require('../../assets/js/blox-style-source');
+require('../../assets/js/yikay-responsive');
+const {state,methods} = require('../../assets/js/yikay-style-source');
 const color = {key:'color',type:'color',default:''};
 test('style sources distinguish inheritance, local values, tokens and winning global styles', () => {
     const source = data => state(data,color,'desktop',global.BloxResponsive,[]).source;

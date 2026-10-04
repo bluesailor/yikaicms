@@ -32,7 +32,7 @@ require ROOT_PATH . '/includes/builder/bootstrap.php';
 $element = new TableElement();
 $data = $element->defaults();
 if ($path === '/styles') {
-    echo '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/assets/css/blox-table.css"><style>body{margin:24px;font:14px sans-serif;color:#1f2937;background:white;--yk-color-primary:#2563eb}main{max-width:900px;margin:auto;display:grid;gap:24px}h2{font-size:16px;margin:0 0 8px}</style><main>';
+    echo '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/assets/css/yikay-table.css"><style>body{margin:24px;font:14px sans-serif;color:#1f2937;background:white;--yk-color-primary:#2563eb}main{max-width:900px;margin:auto;display:grid;gap:24px}h2{font-size:16px;margin:0 0 8px}</style><main>';
     foreach (['lines', 'bordered', 'striped', 'brand', 'dark'] as $preset) {
         $sample = $data;
         $sample['table_style'] = $preset;
@@ -55,15 +55,15 @@ if ($path === '/canvas') {
     foreach (['row', 'column'] as $axis) foreach (['add', 'delete', 'previous', 'next'] as $action) $tableLabels[$axis . '-' . $action] = __('blox_table_' . $axis . '_' . $action);
     $script = str_replace('__YK_TABLE_LABELS__', json_encode($tableLabels), $script);
     $script = preg_replace('/__YK_[A-Z_]+__/', '{}', $script);
-    echo '<!doctype html><link rel="stylesheet" href="/assets/css/blox-table.css"><link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css"><div data-yk-sec="0" data-yk-sec-id="s1"><div data-yk-con="0"><div data-yk-col="0.0"><div data-yk-el="0.0.0" data-yk-el-id="t1" data-yk-el-type="table">' . $element->render($data) . '</div></div></div></div>' . $script;
+    echo '<!doctype html><link rel="stylesheet" href="/assets/css/yikay-table.css"><link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css"><div data-yk-sec="0" data-yk-sec-id="s1"><div data-yk-con="0"><div data-yk-col="0.0"><div data-yk-el="0.0.0" data-yk-el-id="t1" data-yk-el-type="table">' . $element->render($data) . '</div></div></div></div>' . $script;
     exit;
 }
 ?>
 <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="/assets/css/tailwind.css"><link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
 <style>[x-cloak]{display:none!important}body{margin:0;background:#f3f4f6;font:14px sans-serif}</style>
-<script src="/plugins/yikai-builder/assets/blox-pro-table.js"></script><script src="/assets/js/blox-canvas-bridge.js"></script><script src="/assets/js/blox-dialog-focus.js"></script>
-<script src="/assets/js/blox-page-settings.js"></script>
+<script src="/plugins/yikai-builder/assets/blox-pro-table.js"></script><script src="/assets/js/yikay-canvas-bridge.js"></script><script src="/assets/js/yikay-dialog-focus.js"></script>
+<script src="/assets/js/yikay-page-settings.js"></script>
 <script>
 function probe() {
     return {

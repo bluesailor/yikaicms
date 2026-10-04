@@ -29,7 +29,7 @@ final class BloxSectionDivider
     /** 手机端高度允许 0，表示该断点不显示这条装饰。 */
     public const HEIGHT_M_MIN = 0;
 
-    public const STYLESHEET = '/assets/css/blox-section-divider.css';
+    public const STYLESHEET = '/assets/css/yikay-section-divider.css';
 
     /**
      * 固定内置路径，统一 viewBox 0 0 1200 100，形状占据下半部分。

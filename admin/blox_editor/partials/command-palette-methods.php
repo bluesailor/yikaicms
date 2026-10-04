@@ -2,7 +2,7 @@
 /**
  * 命令面板（Ctrl+K / ⌘K，2.0.4，借鉴 Avada 7.16）：跳到页面里的元素、插入元素、常用操作、
  * 整页复制粘贴与文字查找替换。纯函数（匹配排序、整页格式、只改文字的替换）在
- * assets/js/blox-command-palette.js，可单测；这里只组装命令清单并调用编辑器已有的方法。
+ * assets/js/yikay-command-palette.js，可单测；这里只组装命令清单并调用编辑器已有的方法。
  * 改动文档的命令都走 runCommand，进撤销历史。
  */
 $commandPaletteText = [

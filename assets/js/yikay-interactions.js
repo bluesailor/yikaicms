@@ -5,7 +5,7 @@
  * 触发 click/hover/page_load/enter_viewport/scroll，动作 show/hide/toggle/
  * add|remove|toggle_class/animate/open_popup/close_popup。
  * 本文件只在页面确实含交互元素时由 BloxAssetCollector 按需输出。
- * open/close_popup 通过 document 级自定义事件交给 blox-popup.js（解耦：弹窗未启用时静默无事）。
+ * open/close_popup 通过 document 级自定义事件交给 yikay-popup.js（解耦：弹窗未启用时静默无事）。
  */
 (function () {
     'use strict';

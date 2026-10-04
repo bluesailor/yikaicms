@@ -155,7 +155,7 @@ final class BloxPagePublishingContractTest extends TestCase
         $this->assertStringContainsString("host.querySelectorAll('[data-yk-sec]').length > 0", $canvas);
         $this->assertStringContainsString('$canvasFrame = BloxDocumentPipeline::normalizeDocSettings', $canvas);
 
-        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
         $this->assertStringContainsString('function areaEditPayload(value)', $bridge);
         // v1.18.6：白名单加入 back=home 段（首页↔页头编辑回路）
         $this->assertStringContainsString('(&current_header=1)?(&back=home)?(&open=header-settings)?$', $bridge);

@@ -382,8 +382,8 @@ abstract class AbstractElement
             $toggle .= '<noscript><style>.yk-collapse>.yk-collapse-body{max-height:none!important;-webkit-mask-image:none!important;mask-image:none!important}.yk-collapse>.yk-collapse-body::after{display:none!important}</style></noscript>';
         }
         $animate = !in_array($data['collapse_animate'] ?? true, [false, 0, '0'], true);
-        BloxAssetCollector::addScript('/assets/js/blox-collapse.js');
-        BloxAssetCollector::addStyle('/assets/css/blox-collapse.css');
+        BloxAssetCollector::addScript('/assets/js/yikay-collapse.js');
+        BloxAssetCollector::addStyle('/assets/css/yikay-collapse.css');
         return [
             'class' => 'yk-collapse',
             'attrs' => ' data-yk-collapse data-yk-collapse-state="collapsed" data-yk-collapse-fade="' . $fade . '"' . ($animate ? ' data-yk-collapse-animate' : ''),

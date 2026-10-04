@@ -22,11 +22,11 @@ final class BloxAssetPolicyTest extends TestCase
         $policy = $this->policy();
         $classified = array_values(array_filter(
             array_merge($policy['core'], $policy['pro'], $policy['runtime']),
-            static fn(string $path): bool => str_starts_with($path, 'assets/js/blox-')
+            static fn(string $path): bool => str_starts_with($path, 'assets/js/yikay-')
         ));
         self::assertSame($classified, array_values(array_unique($classified)));
 
-        $files = glob(ROOT_PATH . '/assets/js/blox-*.js');
+        $files = glob(ROOT_PATH . '/assets/js/yikay-*.js');
         self::assertIsArray($files);
         $actual = array_map(
             static fn(string $path): string => 'assets/js/' . basename($path),
@@ -53,31 +53,31 @@ final class BloxAssetPolicyTest extends TestCase
             'includes/builder/DetailTemplateProvider.php',
             'includes/builder/DynamicLoopTemplateRenderer.php',
             'includes/builder/BloxAssetCollector.php',
-            'assets/css/blox-table.css',
+            'assets/css/yikay-table.css',
             // 这两个在 HEAD 时就已在 runtime，字面量没跟上（继承失败，非本轮引入）
-            'assets/css/blox-tabs.css',
-            'assets/js/blox-tabs.js',
-            'assets/css/blox-overlay.css',
-            'assets/css/blox-banner.css',
-            'assets/js/blox-video-policy.js',
-            'assets/js/blox-banner.js',
-            'assets/js/blox-background-video.js',
-            'assets/js/blox-counter.js',
-            'assets/js/blox-language-switcher.js',
-            'assets/js/blox-category-nav.js',
-            'assets/js/blox-nav-drawer.js',
-            'assets/js/blox-nav-overflow.js',
-            'assets/css/blox-org-chart.css',
-            'assets/js/blox-org-chart.js',
+            'assets/css/yikay-tabs.css',
+            'assets/js/yikay-tabs.js',
+            'assets/css/yikay-overlay.css',
+            'assets/css/yikay-banner.css',
+            'assets/js/yikay-video-policy.js',
+            'assets/js/yikay-banner.js',
+            'assets/js/yikay-background-video.js',
+            'assets/js/yikay-counter.js',
+            'assets/js/yikay-language-switcher.js',
+            'assets/js/yikay-category-nav.js',
+            'assets/js/yikay-nav-drawer.js',
+            'assets/js/yikay-nav-overflow.js',
+            'assets/css/yikay-org-chart.css',
+            'assets/js/yikay-org-chart.js',
             'assets/d3',
             'assets/d3-flextree',
             'assets/d3-org-chart',
-            'assets/js/blox-sticky-header.js',
+            'assets/js/yikay-sticky-header.js',
             'includes/builder/BloxPopupDocument.php',
             'includes/builder/BloxPopupRuntime.php',
-            'assets/css/blox-popup.css',
-            'assets/js/blox-popup.js',
-            'assets/js/blox-product-gallery.js',
+            'assets/css/yikay-popup.css',
+            'assets/js/yikay-popup.js',
+            'assets/js/yikay-product-gallery.js',
             'migrations/20260812_banner_group_height_mode.php',
             'migrations/20260812_banner_group_runtime.php',
             'migrations/20260812_banner_item_runtime.php',
@@ -112,7 +112,7 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertContains('admin/blox_home_api.php', $policy['core']);
         self::assertContains('admin/blox_template_api.php', $policy['core']);
         self::assertContains('admin/blox_templates.php', $policy['core']);
-        self::assertContains('assets/js/blox-responsive.js', $policy['core']);
+        self::assertContains('assets/js/yikay-responsive.js', $policy['core']);
         self::assertContains('templates/blox/areas', $policy['core']);
         self::assertContains('plugins/blox-example', $policy['pro']);
         self::assertNotContains('themes/blox', $policy['pro']);
@@ -158,8 +158,8 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertStringContainsString('blox-assets.php" list pro', $build);
         self::assertStringContainsString('blox-assets.php" verify-free', $build);
         self::assertStringContainsString('create_upgrade_zip "$PKG_DIR" "$ZIP_FILE" "$PACKAGE_NAME/"', $build);
-        self::assertStringNotContainsString('"assets/js/blox-draft-recovery.js"', $build);
-        self::assertStringNotContainsString('"assets/js/blox-dialog-focus.js"', $build);
+        self::assertStringNotContainsString('"assets/js/yikay-draft-recovery.js"', $build);
+        self::assertStringNotContainsString('"assets/js/yikay-dialog-focus.js"', $build);
         self::assertSame(2, substr_count($build, 'for scope in core runtime'));
         self::assertStringContainsString('repo_git ls-files --cached --others --exclude-standard -z', $build);
         self::assertStringContainsString('repo_git ls-files --others --exclude-standard -z', $build);

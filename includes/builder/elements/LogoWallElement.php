@@ -11,7 +11,7 @@ final class LogoWallElement extends AbstractElement
     public function label(): string { return __('blox_el_logo_wall'); }
     public function icon(): string { return 'building-community'; }
     public function category(): string { return 'advanced'; }
-    public function styles(): array { return ['/assets/css/blox-logo-wall.css']; }
+    public function styles(): array { return ['/assets/css/yikay-logo-wall.css']; }
 
     public function controls(): array
     {

@@ -128,17 +128,17 @@ final class BloxDotNavTest extends TestCase
         foreach (["blox-page-frame-dotnav", "blox-dotnav-enabled", "blox-dotnav-left", "blox-dotnav-right", "blox-dotnav-mobile"] as $testid) {
             self::assertStringContainsString($testid, $overlays);
         }
-        $settingsJs = (string) file_get_contents(ROOT_PATH . "/assets/js/blox-page-settings.js");
+        $settingsJs = (string) file_get_contents(ROOT_PATH . "/assets/js/yikay-page-settings.js");
         self::assertStringContainsString("dot_nav: {", $settingsJs, "网页设置草稿必须带 dot_nav");
         $pagePhp = (string) file_get_contents(ROOT_PATH . "/page.php");
         self::assertStringContainsString('BloxDotNav::render($pageDocument)', $pagePhp);
         $assets = json_decode((string) file_get_contents(ROOT_PATH . "/config/blox-assets.json"), true);
         $flat = json_encode($assets, JSON_UNESCAPED_SLASHES);
-        self::assertStringContainsString("assets/css/blox-dot-nav.css", $flat);
-        self::assertStringContainsString("assets/js/blox-dot-nav.js", $flat);
-        self::assertStringContainsString("assets/js/blox-style-clipboard.js", $flat);
+        self::assertStringContainsString("assets/css/yikay-dot-nav.css", $flat);
+        self::assertStringContainsString("assets/js/yikay-dot-nav.js", $flat);
+        self::assertStringContainsString("assets/js/yikay-style-clipboard.js", $flat);
         // 前台 JS 不劫持导航：不 preventDefault、不改 history
-        $frontJs = (string) file_get_contents(ROOT_PATH . "/assets/js/blox-dot-nav.js");
+        $frontJs = (string) file_get_contents(ROOT_PATH . "/assets/js/yikay-dot-nav.js");
         self::assertStringNotContainsString(".preventDefault(", $frontJs);
         self::assertStringNotContainsString(".pushState(", $frontJs);
         self::assertStringContainsString("prefers-reduced-motion", $frontJs);

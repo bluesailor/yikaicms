@@ -5,7 +5,7 @@
  *
  * 类型：搜索 / 分类 / 自定义字段 / 排序 / 价格区间 / 发布时间 / 重置 / 结果摘要。
  * 渐进增强：本身就是 GET 表单，禁用脚本时提交整页同样得到正确结果；有脚本时
- * blox-query.js 局部刷新目标循环并同步地址栏（可分享、可后退）。
+ * yikay-query.js 局部刷新目标循环并同步地址栏（可分享、可后退）。
  *
  * 授权：作者端归 query_loop（与容器 Loop 同一能力），已发布内容渲染永远免费。
  */
@@ -36,12 +36,12 @@ final class QueryFilterElement extends AbstractElement
 
     public function scripts(): array
     {
-        return ['/assets/js/blox-query.js'];
+        return ['/assets/js/yikay-query.js'];
     }
 
     public function styles(): array
     {
-        return ['/assets/css/blox-query.css'];
+        return ['/assets/css/yikay-query.css'];
     }
 
     public function controls(): array

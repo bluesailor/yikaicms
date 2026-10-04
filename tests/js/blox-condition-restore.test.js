@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const conditions = require('../../assets/js/blox-detail-conditions');
+const conditions = require('../../assets/js/yikay-detail-conditions');
 const { bloxEditorSource } = require('./helpers/editor-source');
 
 // 这些方法是 Alpine 组件对象上的普通方法；按源码原样取出，挂到最小宿主上执行，

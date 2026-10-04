@@ -104,7 +104,7 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
 
 - **2026-09-28（v2.0.1 核对）**：本周期未引入或升级第三方组件，`composer.json` /
   `composer.lock`、`package.json` 与 `assets/` 下的第三方目录自 v2.0.0 起无变化。新增的
-  `assets/css/blox-image-shape.css` / `blox-overlap.css` / `blox-section-divider.css` 及对应
+  `assets/css/yikay-image-shape.css` / `yikay-overlap.css` / `yikay-section-divider.css` 及对应
   `includes/builder/Blox*.php`、`includes/NavCurrent.php`、`includes/SessionStorage.php`、商城路由等
   均为本项目源码。Business 模板新增的四张首屏图（`marketplace/themes/business/assets/images/
   business-hero-*-v2.webp`）由 AI（Codex）为本项目生成，经产品方确认不涉及第三方版权，
