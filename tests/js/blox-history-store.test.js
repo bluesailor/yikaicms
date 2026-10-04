@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 global.window = global;
-require("../../assets/js/blox-history-store.js");
+require("../../assets/js/yikay-history-store.js");
 
 function fixture(options = {}) {
     let data = options.data || '[{"id":"s1","title":"A"}]';

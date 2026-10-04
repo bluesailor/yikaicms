@@ -101,7 +101,7 @@ final class HomeAboutContentTest extends TestCase
         self::assertStringContainsString('Independent title', $html);
         self::assertStringContainsString('Quality', $html);
         self::assertStringContainsString('yk-div-overlay', $html);
-        self::assertContains('/assets/css/blox-overlay.css', BloxAssetCollector::styles());
+        self::assertContains('/assets/css/yikay-overlay.css', BloxAssetCollector::styles());
         self::assertStringNotContainsString('<script>alert', $html);
         $GLOBALS['yikai_config_runtime_overrides']['home_about_title'] = 'Changed site title';
         self::assertSame($html, BlockRenderer::render($json));

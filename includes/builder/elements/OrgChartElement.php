@@ -54,13 +54,13 @@ final class OrgChartElement extends AbstractElement
             '/assets/d3/d3.min.js',
             '/assets/d3-flextree/d3-flextree.min.js',
             '/assets/d3-org-chart/d3-org-chart.min.js',
-            '/assets/js/blox-org-chart.js',
+            '/assets/js/yikay-org-chart.js',
         ];
     }
 
     public function styles(): array
     {
-        return ['/assets/css/blox-org-chart.css'];
+        return ['/assets/css/yikay-org-chart.css'];
     }
 
     /** @return list<array{id:string,parent_id:string,name:string,title:string}> */

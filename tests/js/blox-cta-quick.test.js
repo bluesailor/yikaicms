@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { target, methods } = require('../../assets/js/blox-cta-quick');
+const { target, methods } = require('../../assets/js/yikay-cta-quick');
 function editor(node) {
     return Object.assign({ sections: [{ settings: {}, columns: [{ elements: [{ type: 'container', data: { children: [node] } }] }] }], selectedSi: 0,
         selEl: null, ctaQuickSeeds: {title:'Site title',text:'Site text',btn_text:'Contact',btn_url:'/contact.html'},
@@ -51,5 +51,5 @@ test('selecting a field the quick panel does not offer shows the full field pane
     assert.equal(ctx.ctaQuickTarget(), node);
     ctx.selectedHomeField = 'override_call_text';
     assert.equal(ctx.ctaQuickTarget(), null);
-    assert.equal(require('../../assets/js/blox-home-content-panel').groupFor('override_call_phone'), 'content');
+    assert.equal(require('../../assets/js/yikay-home-content-panel').groupFor('override_call_phone'), 'content');
 });

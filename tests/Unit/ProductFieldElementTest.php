@@ -117,7 +117,7 @@ final class ProductFieldElementTest extends TestCase
         $this->assertSame([
             '/assets/photoswipe/photoswipe.umd.min.js',
             '/assets/photoswipe/photoswipe-lightbox.umd.min.js',
-            '/assets/js/blox-product-gallery.js',
+            '/assets/js/yikay-product-gallery.js',
         ], BloxAssetCollector::scripts(), '相册需声明 PhotoSwipe 引擎与绑定脚本');
         $this->assertSame(['/assets/photoswipe/photoswipe.css'], BloxAssetCollector::styles());
 

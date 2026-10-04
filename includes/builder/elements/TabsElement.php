@@ -40,8 +40,8 @@ final class TabsElement extends AbstractElement
         ];
     }
 
-    public function scripts(): array { return ['/assets/js/blox-tabs.js']; }
-    public function styles(): array { return ['/assets/css/blox-tabs.css']; }
+    public function scripts(): array { return ['/assets/js/yikay-tabs.js']; }
+    public function styles(): array { return ['/assets/css/yikay-tabs.css']; }
 
     public function render(array $data, string $children = ''): string
     {

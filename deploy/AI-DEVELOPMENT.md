@@ -28,6 +28,8 @@
 
 ## 通用要求
 
+- **命名约定（2.0.4 起）**：可视化构建器的英文及所有外语名称是 **Yikay Builder**，中文仍叫「易开网页构建器」，界面文案里不再出现「Blox」。核心的构建器前台 / 编辑器静态资源由 `assets/js/blox-*.js`、`assets/css/blox-*.css` 改名为 `assets/js/yikay-*.js`、`assets/css/yikay-*.css`；新增资源用 `yikay-` 前缀。源码类名（`Blox*`）、数据表与设置键（`blox_*`）、钩子名（`blox_icon_sets` 等）、前台 CSS 类名（`blox-*`）、模板包格式（`yikaicms-blox-template`）、后台地址（`admin/blox_*.php`）**保持不变**，不要自行改名。
+
 - **运行下限 PHP 8.0**（`RuntimeRequirements::PHP_MINIMUM`、composer `php >=8.0`），推荐 8.2 或更高。扩展代码必须能在 PHP 8.0 上加载运行：不要使用 enum、readonly 属性、`never` 返回类型、纯交集类型、first-class callable 语法等 8.1+ 特性，除非在 plugin.json / theme.json 声明更高的 `requires_php`，并在运行时受控检查。
 - 原生 PHP，不引入框架。SQL 兼容 MySQL 5.7 / MariaDB 10.x；需要支持 SQLite 的路径使用现有数据库分支。
 - 不使用 CTE、窗口函数、JSON_TABLE 或 MySQL 8 专属排序规则。表名使用 DB_PREFIX，值使用参数绑定。

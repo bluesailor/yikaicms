@@ -38,8 +38,8 @@ final class BloxPopupRuntime
             if (!BlockRenderer::hasMeaningfulOutput($body)) {
                 return;
             }
-            BloxAssetCollector::addStyle('/assets/css/blox-popup.css');
-            BloxAssetCollector::addScript('/assets/js/blox-popup.js');
+            BloxAssetCollector::addStyle('/assets/css/yikay-popup.css');
+            BloxAssetCollector::addScript('/assets/js/yikay-popup.js');
             $settings = $document['settings'];
             $id = max(1, (int) ($row['id'] ?? 0));
             $version = max(1, (int) ($row['published_at'] ?? 0));

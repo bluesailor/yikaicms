@@ -1,7 +1,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const BloxCommandRunner = require("../../assets/js/blox-command-runner.js");
+const BloxCommandRunner = require("../../assets/js/yikay-command-runner.js");
 
 function fixture(overrides) {
     const calls = { captures: 0, restores: [], errors: [] };

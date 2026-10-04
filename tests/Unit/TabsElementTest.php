@@ -49,7 +49,7 @@ final class TabsElementTest extends TestCase
             }
         }
         self::assertSame('', $element->render(['items' => []]));
-        self::assertSame(['/assets/js/blox-tabs.js'], $element->scripts());
+        self::assertSame(['/assets/js/yikay-tabs.js'], $element->scripts());
     }
     public function testDeepLinkHashesAndAutoplayMarkup(): void
     {

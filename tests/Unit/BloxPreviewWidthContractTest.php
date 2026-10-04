@@ -76,7 +76,7 @@ final class BloxPreviewWidthContractTest extends TestCase
 
     public function testStyleClipboardIsWiredThroughCommandRunnerOnly(): void
     {
-        $clipboard = (string) file_get_contents(ROOT_PATH . '/assets/js/blox-style-clipboard.js');
+        $clipboard = (string) file_get_contents(ROOT_PATH . '/assets/js/yikay-style-clipboard.js');
         self::assertStringContainsString('"paste-element-style"', $clipboard);
         self::assertStringContainsString("group === \"animation\"", $clipboard, '动画/交互动作不复制');
         self::assertStringContainsString('typography_role: true', $clipboard, '全局样式引用不隐式复制');

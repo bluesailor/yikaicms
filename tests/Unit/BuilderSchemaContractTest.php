@@ -56,8 +56,8 @@ final class BuilderSchemaContractTest extends TestCase
     public function testControlVisibilityRulesReferenceExistingKeysAndKnownOps(): void
     {
         $ops = ['=', '!=', 'in', 'not_in', 'empty', 'not_empty', '>', '<'];
-        // 与 JS 求值器枚举同步（blox-control-rules.js OPS）
-        $rulesJs = (string) file_get_contents(ROOT_PATH . '/assets/js/blox-control-rules.js');
+        // 与 JS 求值器枚举同步（yikay-control-rules.js OPS）
+        $rulesJs = (string) file_get_contents(ROOT_PATH . '/assets/js/yikay-control-rules.js');
         $this->assertStringContainsString('var OPS = ["=", "!=", "in", "not_in", "empty", "not_empty", ">", "<"];', $rulesJs);
 
         foreach (BuilderRegistry::meta() as $type => $meta) {

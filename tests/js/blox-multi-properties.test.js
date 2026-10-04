@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const Properties = require('../../assets/js/blox-multi-properties.js');
+const Properties = require('../../assets/js/yikay-multi-properties.js');
 
 const item = (id, type, data = {}) => ({ id, type, data });
 

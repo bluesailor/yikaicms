@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 function fixture() {
     const context = { window: { innerWidth: 1440, innerHeight: 900 } };
-    vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../assets/js/blox-section-insert.js'), 'utf8'), context);
+    vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../assets/js/yikay-section-insert.js'), 'utf8'), context);
     const state = context.window.YikaiBloxSectionInsert.mixin({ after: 'After :name', start: 'Start', changed: 'Missing target' });
     return Object.assign(state, {
         sections: [{ id: 'a' }, { id: 'b' }, { id: 'c' }], calls: [], notices: [], focused: 0,

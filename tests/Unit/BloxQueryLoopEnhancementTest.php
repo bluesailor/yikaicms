@@ -308,7 +308,7 @@ final class BloxQueryLoopEnhancementTest extends TestCase
         self::assertSame(2, substr_count($more, 'data-yk-loop-item="host1"'));
         self::assertStringContainsString('data-yk-query-more', $more);
         self::assertStringContainsString('>再来</a>', $more);
-        self::assertStringContainsString('blox-query.js', implode(',', \BloxAssetCollector::scripts()));
+        self::assertStringContainsString('yikay-query.js', implode(',', \BloxAssetCollector::scripts()));
 
         $param = BloxLoopQuery::paginationParam(['source' => 'type:article'], 'host1');
         $infinite = $this->renderHost(['_query' => ['source' => 'type:article', 'limit' => 2, 'pagination' => 'infinite']], $children);

@@ -249,7 +249,7 @@ $bannerHeightCss = $bannerFullscreen
 @media (min-width: 768px) { .banner-swiper { height: calc(100vh - var(--hg-banner-offset, 70px)); height: calc(100svh - var(--hg-banner-offset, 70px)); } }'
     : '.banner-swiper { height: ' . $bannerHeightMobile . 'px; }
 @media (min-width: 768px) { .banner-swiper { height: ' . $bannerHeightPC . 'px; } }';
-BloxAssetCollector::addStyle('/assets/css/blox-banner.css');
+BloxAssetCollector::addStyle('/assets/css/yikay-banner.css');
 $extraCss = '
 <link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">
 ' . BloxAssetCollector::renderStyles() . '
@@ -274,8 +274,8 @@ if ($bannerFullscreen) {
 <script>(function(){function s(){var b=document.querySelector(".banner-swiper");if(!b)return;var t=b.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0);document.documentElement.style.setProperty("--hg-banner-offset",Math.round(t)+"px");}window.addEventListener("DOMContentLoaded",s);window.addEventListener("load",s);window.addEventListener("resize",s);s();})();</script>';
 }
 
-BloxAssetCollector::addScript('/assets/js/blox-video-policy.js');
-BloxAssetCollector::addScript('/assets/js/blox-banner.js');
+BloxAssetCollector::addScript('/assets/js/yikay-video-policy.js');
+BloxAssetCollector::addScript('/assets/js/yikay-banner.js');
 
 $extraJs = '
 <script src="/assets/swiper/swiper-bundle.min.js"></script>

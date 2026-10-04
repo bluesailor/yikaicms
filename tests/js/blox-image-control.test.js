@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { clearMatchingHomeBackgroundCopies, methods } = require('../../assets/js/blox-image-control');
+const { clearMatchingHomeBackgroundCopies, methods } = require('../../assets/js/yikay-image-control');
 
 function editor() {
     const app = Object.assign({

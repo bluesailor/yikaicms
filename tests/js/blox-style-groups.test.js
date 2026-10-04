@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const styleGroups = require('../../assets/js/blox-style-groups');
+const styleGroups = require('../../assets/js/yikay-style-groups');
 
 const bg = { key: 'bg_color', type: 'color', tab: 'style', group: 'background', default: '' };
 const anim = { key: 'animation', type: 'select', tab: 'style', group: 'animation', default: '' };

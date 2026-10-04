@@ -139,7 +139,7 @@ final class BloxImageShapeTest extends TestCase
     public function testShapeBeatsThemeIdSelectors(): void
     {
         // 先去注释：说明文字里也写着 border-radius，会把统计带偏
-        $css = (string) preg_replace('#/\*.*?\*/#s', '', (string) file_get_contents(ROOT_PATH . '/assets/css/blox-image-shape.css'));
+        $css = (string) preg_replace('#/\*.*?\*/#s', '', (string) file_get_contents(ROOT_PATH . '/assets/css/yikay-image-shape.css'));
         $declarations = substr_count($css, 'border-radius:');
         self::assertGreaterThan(0, $declarations);
         self::assertSame($declarations, substr_count($css, '!important'), '每条形状声明都要带 !important');

@@ -33,7 +33,7 @@ $statCounterStart = max(0, min(1000000, (int) config('home_stat_counter_start', 
 $statCounterDuration = max(0, min(5000, (int) config('home_stat_counter_duration', 0)));
 $statCounterAttr = '';
 if ($statCounterEnabled) {
-    BloxAssetCollector::addScript('/assets/js/blox-counter.js');
+    BloxAssetCollector::addScript('/assets/js/yikay-counter.js');
     $statCounterAttr = ' data-blox-counter="' . e(json_encode([
         'enabled' => true,
         'start' => $statCounterStart,

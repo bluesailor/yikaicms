@@ -62,7 +62,7 @@ final class BloxAreaDocumentTest extends TestCase
         self::assertStringContainsString('data-yk-sticky-mobile="0"', $html);
         self::assertStringContainsString('--yk-header-normal-bg:#abc', $html);
         self::assertStringNotContainsString('javascript:', $html);
-        self::assertContains('/assets/js/blox-sticky-header.js', BloxAssetCollector::scripts());
+        self::assertContains('/assets/js/yikay-sticky-header.js', BloxAssetCollector::scripts());
     }
 
     public function testInvalidStickyOptionsFallBackToTheLegacyBehavior(): void

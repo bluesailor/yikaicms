@@ -221,7 +221,7 @@ final class BloxSiteElementsTest extends TestCase
     {
         $element = new LanguageSwitcherElement();
         self::assertSame('dropdown', $element->defaults()['layout']);
-        self::assertSame(['/assets/js/blox-language-switcher.js'], $element->scriptsFor([]));
+        self::assertSame(['/assets/js/yikay-language-switcher.js'], $element->scriptsFor([]));
         self::assertSame([], $element->scriptsFor(['layout' => 'inline']));
 
         $html = LanguageSwitcherElement::renderForLanguages(

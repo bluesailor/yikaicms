@@ -34,7 +34,7 @@ final class StatsGroupElement extends AbstractElement
 
     public function scripts(): array
     {
-        return ['/assets/js/blox-counter.js'];
+        return ['/assets/js/yikay-counter.js'];
     }
 
     public function scriptsFor(array $data): array

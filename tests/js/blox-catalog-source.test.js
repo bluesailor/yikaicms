@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { create } = require('../../assets/js/blox-catalog-source');
+const { create } = require('../../assets/js/yikay-catalog-source');
 
 const response = (items, page = 1, more = false) => ({ ok: true,
     json: async () => ({ code: 0, data: { items, page, has_more: more } }) });

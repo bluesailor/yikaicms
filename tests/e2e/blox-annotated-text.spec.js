@@ -14,14 +14,14 @@ async function openFixture(page, withScript = true) {
   await page.route('**/__blox-annotated-text', route => route.fulfill({
     contentType: 'text/html',
     body: `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-      <link rel="stylesheet" href="/assets/css/blox-annotated-text.css">
+      <link rel="stylesheet" href="/assets/css/yikay-annotated-text.css">
       <style>body{margin:0;font:24px/1.5 system-ui,sans-serif;color:#1e293b;background:#f8fafc}
       main{max-width:840px;margin:auto;padding:36px 20px}h2{font-size:clamp(28px,5vw,48px);line-height:1.3}
       .spacer{height:1100px}</style></head><body><main>
       <h2 class="yk-annotated-text">让${mark('每一个想法')}被看见</h2>
       <p>正文不依赖 SVG 朗读，也能正常选中与复制。</p>
       <div class="spacer"></div><h2>再一次${mark('描画短语')}</h2>
-      </main>${withScript ? '<script src="/assets/js/blox-annotated-text.js"></script>' : ''}</body></html>`,
+      </main>${withScript ? '<script src="/assets/js/yikay-annotated-text.js"></script>' : ''}</body></html>`,
   }));
   await page.goto('/__blox-annotated-text');
 }

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 const path = require('node:path');
-const { styleKeys } = require('../../assets/js/blox-style-clipboard.js');
+const { styleKeys } = require('../../assets/js/yikay-style-clipboard.js');
 
 test('style clipboard excludes background media assets', () => {
     const controls = [
@@ -40,6 +40,6 @@ test('dot navigation measures the bottom of a header below the admin bar', () =>
             documentElement: { classList: { add() {} }, style: { setProperty: (_, value) => { offset = value; } } },
         },
     };
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../assets/js/blox-dot-nav.js'), 'utf8'), context);
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../assets/js/yikay-dot-nav.js'), 'utf8'), context);
     assert.equal(offset, '104px');
 });

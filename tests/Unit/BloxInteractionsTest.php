@@ -53,7 +53,7 @@ final class BloxInteractionsTest extends TestCase
         // 无交互：零属性、零脚本（「未用交互时 Builder 前端 JS = 0」承诺）
         $plain = BlockRenderer::render($sections([]));
         self::assertStringNotContainsString('data-yk-interactions', $plain);
-        self::assertStringNotContainsString('blox-interactions.js', implode(' ', BloxAssetCollector::scripts()));
+        self::assertStringNotContainsString('yikay-interactions.js', implode(' ', BloxAssetCollector::scripts()));
 
         // 有交互：首标签得到序列化属性 + runtime 入列
         $withInteractions = BlockRenderer::render($sections([
@@ -61,7 +61,7 @@ final class BloxInteractionsTest extends TestCase
         ]));
         self::assertStringContainsString('data-yk-interactions=', $withInteractions);
         self::assertStringContainsString('&quot;trigger&quot;:&quot;click&quot;', $withInteractions);
-        self::assertStringContainsString('/assets/js/blox-interactions.js', implode(' ', BloxAssetCollector::scripts()));
+        self::assertStringContainsString('/assets/js/yikay-interactions.js', implode(' ', BloxAssetCollector::scripts()));
 
         // 编辑态不注入（画布不执行交互）——编辑渲染入口是 renderElementNode(editMode=true)
         $editHtml = BlockRenderer::renderElementNode([

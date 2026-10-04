@@ -158,7 +158,7 @@ final class HomeBloxRendererTest extends TestCase
             ['height_mode' => 'screen']
         ));
 
-        $bannerCss = (string) file_get_contents(ROOT_PATH . '/assets/css/blox-banner.css');
+        $bannerCss = (string) file_get_contents(ROOT_PATH . '/assets/css/yikay-banner.css');
         $index = (string) file_get_contents(ROOT_PATH . '/index.php');
         $this->assertStringContainsString('[data-blox-mobile-mode="hidden"]', $bannerCss);
         $this->assertStringContainsString('[data-blox-mobile-mode="fixed"]', $bannerCss);
@@ -201,9 +201,9 @@ final class HomeBloxRendererTest extends TestCase
 
         HomeBloxRenderer::render($sections, static fn (array $element): string => '<div>Banner</div>');
 
-        $this->assertSame(['/assets/css/blox-banner.css'], BloxAssetCollector::styles());
+        $this->assertSame(['/assets/css/yikay-banner.css'], BloxAssetCollector::styles());
         $this->assertSame(
-            ['/assets/js/scroll-anim.js', '/assets/js/blox-video-policy.js', '/assets/js/blox-banner.js'],
+            ['/assets/js/scroll-anim.js', '/assets/js/yikay-video-policy.js', '/assets/js/yikay-banner.js'],
             BloxAssetCollector::scripts()
         );
     }
@@ -498,7 +498,7 @@ PHP);
     {
         $template = file_get_contents(ROOT_PATH . '/themes/default/blocks/stats.php');
         $footer = file_get_contents(ROOT_PATH . '/themes/default/layouts/footer.php');
-        $counter = file_get_contents(ROOT_PATH . '/assets/js/blox-counter.js');
+        $counter = file_get_contents(ROOT_PATH . '/assets/js/yikay-counter.js');
         $this->assertIsString($template);
         $this->assertIsString($footer);
         $this->assertIsString($counter);
@@ -508,7 +508,7 @@ PHP);
             "config('home_stat_counter_start', 0)",
             "config('home_stat_counter_duration', 0)",
             'data-blox-counter=',
-            "BloxAssetCollector::addScript('/assets/js/blox-counter.js')",
+            "BloxAssetCollector::addScript('/assets/js/yikay-counter.js')",
             '$statCounterEnabled',
             "config('home_stat_mobile_columns', '2')",
             "config('home_stat_tablet_columns', '4')",

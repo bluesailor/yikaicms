@@ -362,10 +362,10 @@ final class HomeBloxBlockSchemaTest extends TestCase
     {
         $element = new \HomeBlockElement();
         $this->assertSame(
-            ['/assets/js/blox-video-policy.js', '/assets/js/blox-banner.js'],
+            ['/assets/js/yikay-video-policy.js', '/assets/js/yikay-banner.js'],
             $element->scriptsFor(['block_type' => 'banner'])
         );
-        $this->assertSame(['/assets/css/blox-banner.css'], $element->stylesFor(['block_type' => 'banner']));
+        $this->assertSame(['/assets/css/yikay-banner.css'], $element->stylesFor(['block_type' => 'banner']));
         $this->assertSame([], $element->scriptsFor(['block_type' => 'about']));
         $this->assertSame([], $element->stylesFor(['block_type' => 'about']));
     }

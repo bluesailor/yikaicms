@@ -32,7 +32,7 @@ global.fetch = function (url, options) {
         text: function () { return Promise.resolve(JSON.stringify({ code: 0, data: data })); },
     });
 };
-require("../../assets/js/blox-template-library.js");
+require("../../assets/js/yikay-template-library.js");
 
 test("full page imports apply only explicit page frame settings without mutating inputs", function () {
     const current = { page_header_hidden: false, sticky: true };

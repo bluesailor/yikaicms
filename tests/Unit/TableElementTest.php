@@ -39,7 +39,7 @@ final class TableElementTest extends TestCase
         $html = $element->render(['grid' => null, 'header_row' => false, 'caption' => ['invalid']]);
         self::assertStringContainsString('<tbody><tr><td>', $html);
         self::assertStringNotContainsString('<thead>', $html);
-        self::assertSame(['/assets/css/blox-table.css'], $element->styles());
+        self::assertSame(['/assets/css/yikay-table.css'], $element->styles());
         $grid = TableElement::normalizeGrid(['rows' => array_fill(0, 55, array_fill(0, 15, ['invalid'])), 'widths' => [[], -1, 1]]);
         self::assertCount(50, $grid['rows']);
         self::assertCount(12, $grid['rows'][0]);

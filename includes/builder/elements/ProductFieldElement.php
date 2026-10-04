@@ -226,7 +226,7 @@ final class ProductFieldElement extends AbstractElement
         return [
             '/assets/photoswipe/photoswipe.umd.min.js',
             '/assets/photoswipe/photoswipe-lightbox.umd.min.js',
-            '/assets/js/blox-product-gallery.js',
+            '/assets/js/yikay-product-gallery.js',
         ];
     }
 

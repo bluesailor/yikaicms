@@ -75,8 +75,8 @@ final class BloxDotNav
             return '';
         }
         if (class_exists('BloxAssetCollector')) {
-            BloxAssetCollector::addStyle('/assets/css/blox-dot-nav.css');
-            BloxAssetCollector::addScript('/assets/js/blox-dot-nav.js');
+            BloxAssetCollector::addStyle('/assets/css/yikay-dot-nav.css');
+            BloxAssetCollector::addScript('/assets/js/yikay-dot-nav.js');
         }
         $classes = 'yk-dotnav yk-dotnav--' . $settings['position'] . ($settings['mobile'] ? ' yk-dotnav--mobile' : '');
         $html = '<nav class="' . e($classes) . '" data-yk-dotnav aria-label="' . e(__('blox_dotnav_aria')) . '">';

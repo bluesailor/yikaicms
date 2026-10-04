@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const Multi = require("../../assets/js/blox-multi-select.js");
+const Multi = require("../../assets/js/yikay-multi-select.js");
 
 // 三个兄弟元素（同列）与两个区块，按文档顺序。
 const COL = ["e_a", "e_b", "e_c", "e_d"];
