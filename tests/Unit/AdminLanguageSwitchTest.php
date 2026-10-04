@@ -32,7 +32,7 @@ final class AdminLanguageSwitchTest extends TestCase
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */
-    public function testAdminLanguagesKeepsInstalledPacksExceptRenderViewAndRtl(): void
+    public function testAdminLanguagesKeepsInstalledPacksExceptRtl(): void
     {
         require_once ROOT_PATH . '/includes/i18n/LanguageRegistry.php';
         eval('function availableLanguages(): array {
@@ -41,7 +41,7 @@ final class AdminLanguageSwitchTest extends TestCase
         eval($this->functionSource('includes/functions.php', 'adminLanguages'));
 
         self::assertSame(
-            ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語', 'ko' => '한국어'],
+            ['zh-CN' => '中文', 'zh-TW' => '繁體中文', 'en' => 'English', 'ja' => '日本語', 'ko' => '한국어'],
             adminLanguages()
         );
     }

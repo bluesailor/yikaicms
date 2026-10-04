@@ -9,7 +9,7 @@
 | `php tools/i18n/validate.php <code> <导出的.jsonl> <译好的.jsonl> [--glossary=tools/i18n/glossary/<code>.json]` | 逐行校验；有错误时退出码 1 |
 | `php tools/i18n/merge.php <code> <译好的.jsonl>...` | 合入；原文在导出后改过的键跳过并列为 STALE |
 
-- 原文是 `zh-CN`；`en`、`ja` 是人工维护的参考，`zh-TW` 由简体整页转换，这四种都不是翻译目标。
+- 原文是 `zh-CN`；`en`、`ja` 是人工维护的参考，`zh-TW` 的界面语言包由 `php tools/i18n/zh-tw.php` 从简体自动生成（`--check` 只检查是否过期），这四种都不是翻译目标。
 - 语言代码以 `includes/i18n/LanguageRegistry.php` 为准（ko、es、pt、fr、de、ru、it、tr、vi、id、th、ar）。
 - 原文哈希记在 `tools/i18n/hashes/<code>.json`，原文改动后 `status.php` 会显示过时数，重新导出即只导出缺的键（过时的键需先从目标包删除或在合入时覆盖）。
 

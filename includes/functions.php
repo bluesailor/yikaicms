@@ -4479,8 +4479,8 @@ function availableLanguages(): array
 /**
  * 后台界面可选的语言（代码 => 显示名）：已安装的语言包里、后台真能显示成该语言的那些。
  *
- * 排除繁体（zh-TW 是前台整页简→繁的渲染视图，后台不转换，选了仍是简体）
- * 和从右到左的语言（后台还没有 RTL 布局）。切换器、登录页、后台语言设置都用它。
+ * 繁体（zh-TW）有自己的界面语言包（tools/i18n/zh-tw.php 从简体生成），后台可选；内容仍是一份简体。
+ * 排除从右到左的语言（后台还没有 RTL 布局）。切换器、登录页、后台语言设置都用它。
  *
  * @return array<string,string>
  */
@@ -4488,7 +4488,7 @@ function adminLanguages(): array
 {
     $langs = availableLanguages();
     foreach (array_keys($langs) as $code) {
-        if ($code === 'zh-TW' || LanguageRegistry::isRtl($code)) {
+        if (LanguageRegistry::isRtl($code)) {
             unset($langs[$code]);
         }
     }
