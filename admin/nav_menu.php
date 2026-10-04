@@ -336,7 +336,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     ?>
     <a href="?lang=<?php echo e($_lc); ?>&group=<?php echo $activeGroup; ?>"
        class="px-3 py-1 rounded-full transition <?php echo $_lc === $_viewLang ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
-        <?php echo e($_langLabels[$_lc] ?? $_lc); ?><?php if ($_lc === $_defaultLang): ?><span class="ml-1 text-[10px] opacity-70">(<?php echo e(__('lang_source')); ?>)</span><?php endif; ?>
+        <?php echo e($_langLabels[$_lc] ?? $_lc); ?><?php if ($_lc === $_defaultLang): ?><span class="ml-1 text-[10px]">(<?php echo e(__('lang_source')); ?>)</span><?php endif; ?>
     </a>
     <?php endforeach; ?>
 </div>

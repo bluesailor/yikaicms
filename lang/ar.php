@@ -9132,4 +9132,8 @@ return [
     'blox_origin_restore_tip' => 'يحذف قيمة هذا العنصر ويستخدم الإعداد الموروث',
     'blox_origin_edit' => 'تعديل',
     'blox_origin_spacing_local' => 'هذا العنصر يتجاوز:',
+    'ch_lang_empty' => 'لا توجد أقسام بلغة :lang بعد. يمكنك إنشاؤها دفعة واحدة من أقسام :source: تُترجم الأسماء بالقاموس المدمج، ويمكنك تعديل كل قسم بعد ذلك.',
+    'ch_lang_empty_btn' => 'إنشاء أقسام :lang',
+    'a11y_select_row' => 'تحديد: :name',
+    'a11y_show_password' => 'إظهار كلمة المرور',
 ];

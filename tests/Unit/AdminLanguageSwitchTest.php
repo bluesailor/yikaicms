@@ -32,7 +32,7 @@ final class AdminLanguageSwitchTest extends TestCase
     }
 
     /** @runInSeparateProcess @preserveGlobalState disabled */
-    public function testAdminLanguagesKeepsInstalledPacksExceptRenderViewAndRtl(): void
+    public function testAdminLanguagesKeepsInstalledPacksExceptRtl(): void
     {
         require_once ROOT_PATH . '/includes/i18n/LanguageRegistry.php';
         eval('function availableLanguages(): array {
@@ -41,7 +41,7 @@ final class AdminLanguageSwitchTest extends TestCase
         eval($this->functionSource('includes/functions.php', 'adminLanguages'));
 
         self::assertSame(
-            ['zh-CN' => '中文', 'en' => 'English', 'ja' => '日本語', 'ko' => '한국어'],
+            ['zh-CN' => '中文', 'zh-TW' => '繁體中文', 'en' => 'English', 'ja' => '日本語', 'ko' => '한국어'],
             adminLanguages()
         );
     }
@@ -65,6 +65,24 @@ final class AdminLanguageSwitchTest extends TestCase
         } finally {
             @unlink($file);
         }
+    }
+
+    /** 栏目翻译页改的导航固定项写站点覆盖层：核心语言包升级会整份替换，写进去会丢，还会被当成核心改动 */
+    public function testChannelTranslatePageWritesTheSiteOverrideLayer(): void
+    {
+        $code = $this->code('admin/setting_channel_translate.php');
+        self::assertStringContainsString("'/lang/overrides/' . \$targetLang . '.php'", $code);
+        self::assertStringContainsString('array_intersect_key($sysItems, $sysNavItems)', $code);
+        self::assertSame(1, substr_count($code, 'file_put_contents('));
+        self::assertStringContainsString('file_put_contents($overrideFile', $code);
+    }
+
+    /** 某语言还没有栏目时，栏目页给出按词典批量生成的入口 */
+    public function testEmptyLanguageChannelListLinksToGeneration(): void
+    {
+        $code = $this->code('admin/channel.php');
+        self::assertStringContainsString("__('ch_lang_empty', \$_emptyArgs)", $code);
+        self::assertStringContainsString('/admin/setting_channel_translate.php?lang=', $code);
     }
 
     public function testNoHardcodedLanguageTablesLeft(): void

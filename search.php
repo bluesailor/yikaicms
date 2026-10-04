@@ -169,7 +169,7 @@ require_once theme_path('layouts/header.php');
                 <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                        class="w-full px-5 py-3.5 pr-14 rounded-lg text-base border-0 shadow-lg focus:ring-2 focus:ring-blue-300 outline-none"
                        placeholder="<?php echo __('search_input_hint'); ?>" autofocus>
-                <button type="submit" class="absolute right-2 top-2 px-4 py-2 bg-primary rounded-lg text-white transition hover:bg-secondary">
+                <button type="submit" aria-label="<?php echo e(__('search')); ?>" class="absolute right-2 top-2 px-4 py-2 bg-primary rounded-lg text-white transition hover:bg-secondary">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </button>
             </form>

@@ -20,7 +20,7 @@
         <?php if ($isProductType && (!empty($item['is_new']) || !empty($item['is_hot']) || !empty($item['is_recommend']))): ?>
         <div class="absolute top-2 left-2 flex flex-col gap-1">
             <?php if (!empty($item['is_new'])): ?>
-            <span class="bg-green-500 text-white text-xs px-2 py-0.5 rounded">NEW</span>
+            <span class="bg-green-700 text-white text-xs px-2 py-0.5 rounded">NEW</span>
             <?php endif; ?>
             <?php if (!empty($item['is_hot'])): ?>
             <span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded">HOT</span>
@@ -36,7 +36,7 @@
             <?php echo e($item['title']); ?>
         </h3>
         <?php if ($isProductType && !empty($item['model'])): ?>
-        <p class="text-xs text-gray-400 mt-1"><?php echo e($item['model']); ?></p>
+        <p class="text-xs text-gray-500 mt-1"><?php echo e($item['model']); ?></p>
         <?php endif; ?>
         <?php if (config('show_price', '0') === '1' && $isProductType && !empty($item['price']) && $item['price'] > 0): ?>
         <div class="mt-2 text-primary font-bold"><?php echo formatPrice($item['price']); ?></div>

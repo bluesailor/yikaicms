@@ -203,7 +203,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
                 <label class="block text-gray-700 mb-1"><?php echo e(__('admin_password')); ?> <span id="pwdRequired" class="text-red-500">*</span></label>
                 <div class="relative pwd-toggle">
                     <input type="password" name="password" id="editPassword" class="w-full border rounded px-4 py-2 pr-10" minlength="6">
-                    <button type="button" onclick="togglePassword(this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <button type="button" onclick="togglePassword(this)" aria-label="<?php echo e(__('a11y_show_password')); ?>" class="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700">
                         <i class="ti ti-eye text-lg eye-open hidden"></i>
                         <i class="ti ti-eye-off text-lg eye-closed"></i>
                     </button>

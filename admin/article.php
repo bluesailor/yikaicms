@@ -209,7 +209,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <form method="get" class="p-4 flex flex-wrap items-center gap-4">
             <?php echo renderAdminPageSize($perPage); ?>
         <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
-        <select name="channel_id" class="border rounded px-3 py-2 text-sm">
+        <select name="channel_id" aria-label="<?php echo e(__('admin_category')); ?>" class="border rounded px-3 py-2 text-sm">
             <option value=""><?php echo __('admin_all'); ?></option>
             <?php foreach ($categories as $cat): ?>
             <option value="<?php echo $cat['id']; ?>" <?php echo $channelId === (int)$cat['id'] ? 'selected' : ''; ?>>
@@ -218,7 +218,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endforeach; ?>
         </select>
 
-        <select name="status" class="border rounded px-3 py-2 text-sm">
+        <select name="status" aria-label="<?php echo e(__('admin_status')); ?>" class="border rounded px-3 py-2 text-sm">
             <option value=""><?php echo __('admin_all'); ?></option>
             <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>><?php echo __('admin_published'); ?></option>
             <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>><?php echo __('admin_draft'); ?></option>
@@ -229,8 +229,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <input type="text" name="keyword" value="<?php echo e($keyword); ?>"
                    placeholder="<?php echo __('admin_search'); ?>..."
                    class="border rounded pl-3 pr-8 py-2 text-sm w-48">
-            <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary">
-                <i class="ti ti-search text-base"></i>
+            <button type="submit" aria-label="<?php echo e(__('search')); ?>" class="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-primary">
+                <i class="ti ti-search text-base" aria-hidden="true"></i>
             </button>
         </div>
 

@@ -9186,4 +9186,8 @@ e.g. steel|Stainless steel',
     'blox_origin_restore_tip' => 'Remove this element’s value and use the inherited setting',
     'blox_origin_edit' => 'Edit',
     'blox_origin_spacing_local' => 'This element overrides:',
+    'ch_lang_empty' => 'There are no :lang channels yet. Generate them from the :source channels in one step: names are translated with the built-in dictionary, and you can edit each one afterwards.',
+    'ch_lang_empty_btn' => 'Generate :lang channels',
+    'a11y_select_row' => 'Select: :name',
+    'a11y_show_password' => 'Show password',
 ];

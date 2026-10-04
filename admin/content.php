@@ -158,7 +158,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div class="bg-white rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap gap-4 items-center justify-between">
         <form class="flex flex-wrap gap-3 items-center">
-            <select name="channel_id" class="border rounded px-3 py-2">
+            <select name="channel_id" aria-label="<?php echo e(__('log_mod_channel')); ?>" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?><?php echo __('admin_channel'); ?></option>
                 <?php foreach ($channels as $ch): ?>
                 <option value="<?php echo $ch['id']; ?>" <?php echo $channelId == $ch['id'] ? 'selected' : ''; ?>>
@@ -167,7 +167,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
             </select>
 
-            <select name="type" class="border rounded px-3 py-2">
+            <select name="type" aria-label="<?php echo e(__('admin_type')); ?>" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?><?php echo __('admin_type'); ?></option>
                 <?php foreach ($contentTypes as $key => $label): ?>
                 <option value="<?php echo $key; ?>" <?php echo $type === $key ? 'selected' : ''; ?>>
@@ -176,7 +176,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endforeach; ?>
             </select>
 
-            <select name="status" class="border rounded px-3 py-2">
+            <select name="status" aria-label="<?php echo e(__('admin_status')); ?>" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?><?php echo __('admin_status'); ?></option>
                 <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>><?php echo __('admin_published'); ?></option>
                 <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>><?php echo __('admin_draft'); ?></option>

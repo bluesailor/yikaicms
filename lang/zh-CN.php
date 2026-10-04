@@ -9254,4 +9254,8 @@ voltage|电压|220V',
     'blox_origin_restore_tip' => '删除本元素的这个值，改用上一层的设置',
     'blox_origin_edit' => '去修改',
     'blox_origin_spacing_local' => '本元素已覆盖：',
+    'ch_lang_empty' => ':lang 还没有栏目。可以按:source的栏目一键生成，栏目名用内置词典自动翻译，生成后可逐条修改。',
+    'ch_lang_empty_btn' => '生成:lang栏目',
+    'a11y_select_row' => '选择：:name',
+    'a11y_show_password' => '显示密码',
 ];

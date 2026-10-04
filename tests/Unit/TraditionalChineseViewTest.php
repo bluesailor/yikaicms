@@ -103,4 +103,31 @@ final class TraditionalChineseViewTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         FormFieldContract::choiceValue('select', '售後服務', ['售后服务']);
     }
+
+    /**
+     * 界面文案有自己的 zh-TW 包（2.0.4，后台也能选繁体）：改了 zh-CN 文案要重跑 tools/i18n/zh-tw.php。
+     * 包里的文案必须是转换的不动点——前台还会整页再转一次，不能把审过的用词又改掉。
+     */
+    public function testInterfacePackIsGeneratedAndStableUnderPageConversion(): void
+    {
+        // 产品用语（繁体用语审校的结论）：内容转换也照此，审过的写法再转一次不变
+        self::assertSame('發佈時間', S2T::text('发布时间'));
+        self::assertSame('後台登入', S2T::text('后台登录'));
+        self::assertSame('全部權限', S2T::text(S2T::text('全部权限')));
+        self::assertSame('會議主題', S2T::text('会议主题'));
+        self::assertSame('产品与服务', S2T::toSimplified('產品與服務'));
+
+        // 结果包含原词的台湾用词：转过的文字再转不能叠字（演演算法）
+        self::assertSame('當前演算法', S2T::text(S2T::text('当前算法')));
+        self::assertSame('虛擬機器', S2T::text('虛擬機器'));
+
+        exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(ROOT_PATH . '/tools/i18n/zh-tw.php') . ' --check 2>&1', $out, $code);
+        self::assertSame(0, $code, "zh-TW packs are stale, run php tools/i18n/zh-tw.php:\n" . implode("\n", $out));
+
+        foreach (array_merge([ROOT_PATH . '/lang/zh-TW.php'], glob(ROOT_PATH . '/plugins/*/lang/zh-TW.php') ?: []) as $file) {
+            foreach (require $file as $key => $value) {
+                self::assertSame($value, S2T::text($value), basename(dirname($file, 2)) . " {$key}");
+            }
+        }
+    }
 }
