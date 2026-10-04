@@ -1,5 +1,5 @@
 <?php
-/** Write config/release-files.php (per-file hashes of the package) into a package directory. */
+/** Write config/release-manifest.php (per-file hashes of the package) into a package directory. */
 
 declare(strict_types=1);
 

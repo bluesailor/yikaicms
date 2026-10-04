@@ -87,6 +87,25 @@ final class ReleaseFilesTest extends TestCase
         self::assertSame(['includes/new.php'], \ReleaseFiles::localChanges($this->dir, $manifest, $rels, $read));
     }
 
+    /**
+     * 2.0.4 发版 N-1 实测：清单文件不含自身，新包又带着新清单，2.0.3 的比对把它当成「站点自己放的同名文件」
+     * 拦下了升级。清单改名为 release-manifest.php（2.0.3 碰不到），比对时新旧两个名字都跳过。
+     */
+    public function testManifestFilesAreNeverReportedAsLocalChanges(): void
+    {
+        $manifest = $this->writeManifest('2.0.4');
+        self::assertSame('config/release-manifest.php', \ReleaseFiles::FILE);
+        file_put_contents($this->dir . '/' . \ReleaseFiles::LEGACY_FILE, "<?php return ['schema' => 1, 'version' => '2.0.3', 'files' => []];");
+        $incoming = [
+            \ReleaseFiles::FILE => "<?php return ['schema' => 1, 'version' => '2.0.5', 'files' => []];",
+            \ReleaseFiles::LEGACY_FILE => "<?php return [];",
+            'index.php' => "<?php echo 1;\n",
+        ];
+        $read = static fn (string $rel): string|false => $incoming[$rel] ?? false;
+        self::assertSame([], \ReleaseFiles::localChanges($this->dir, $manifest, array_keys($incoming), $read));
+        self::assertArrayNotHasKey(\ReleaseFiles::LEGACY_FILE, \ReleaseFiles::build($this->dir, '2.0.4')['files']);
+    }
+
     public function testCheckRunsBeforeAnyBackupOrWrite(): void
     {
         $src = (string) file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
@@ -114,6 +133,6 @@ final class ReleaseFilesTest extends TestCase
             strpos($build, 'php "tools/build-product-manifest.php"'),
             'generated after provenance so provenance.php is covered'
         );
-        self::assertStringContainsString('cp "$PKG_DIR/config/release-files.php" "$PAYLOAD/config/release-files.php"', $build);
+        self::assertStringContainsString('cp "$PKG_DIR/config/release-manifest.php" "$PAYLOAD/config/release-manifest.php"', $build);
     }
 }
