@@ -291,9 +291,9 @@ final class HomeBannerItemElement extends AbstractElement
     /** @psalm-api Theme template entry point. */
     public static function registerRuntimeAssets(): void
     {
-        BloxAssetCollector::addStyle('/assets/css/blox-banner.css');
-        BloxAssetCollector::addScript('/assets/js/blox-video-policy.js');
-        BloxAssetCollector::addScript('/assets/js/blox-banner.js');
+        BloxAssetCollector::addStyle('/assets/css/yikay-banner.css');
+        BloxAssetCollector::addScript('/assets/js/yikay-video-policy.js');
+        BloxAssetCollector::addScript('/assets/js/yikay-banner.js');
     }
 
     /** @param array<string, mixed> $banner @return array<string, mixed> */

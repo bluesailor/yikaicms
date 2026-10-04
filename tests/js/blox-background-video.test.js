@@ -4,8 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const POLICY_SRC = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'blox-video-policy.js'), 'utf8');
-const BACKGROUND_SRC = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'blox-background-video.js'), 'utf8');
+const POLICY_SRC = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'yikay-video-policy.js'), 'utf8');
+const BACKGROUND_SRC = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'yikay-background-video.js'), 'utf8');
 
 function video(mode = 'poster') {
     const attrs = { 'data-blox-video-src': '/uploads/background.mp4', 'data-blox-mobile-video': mode };

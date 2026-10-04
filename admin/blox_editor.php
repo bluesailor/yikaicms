@@ -933,55 +933,55 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     <script defer src="/assets/alpinejs/collapse.min.js"></script>
     <script defer src="/assets/alpinejs/alpine.min.js"></script>
     <script src="/assets/sortable/Sortable.min.js"></script>
-    <script src="/assets/js/blox-color-picker.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-color-picker.js') ?>"></script>
-    <script src="/assets/js/blox-template-library.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-template-library.js') ?>"></script>
+    <script src="/assets/js/yikay-color-picker.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-color-picker.js') ?>"></script>
+    <script src="/assets/js/yikay-template-library.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-template-library.js') ?>"></script>
     <script>window.BloxTemplateLibrary.setContentLanguage(<?= json_encode($bloxContentLanguage, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);</script>
-    <script src="/assets/js/blox-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-media-client.js') ?>"></script>
+    <script src="/assets/js/yikay-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-media-client.js') ?>"></script>
     <script src="/assets/js/official-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/official-media-client.js') ?>"></script>
-    <script src="/assets/js/blox-dialog-focus.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-dialog-focus.js') ?>"></script>
-    <script src="/assets/js/blox-preview-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-preview-client.js') ?>"></script>
-    <script src="/assets/js/blox-canvas-bridge.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-canvas-bridge.js') ?>"></script>
-    <script src="/assets/js/blox-history-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-history-store.js') ?>"></script>
-    <script src="/assets/js/blox-draft-recovery.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-draft-recovery.js') ?>"></script>
-    <script src="/assets/js/blox-draft-summary.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-draft-summary.js') ?>"></script>
-    <script src="/assets/js/blox-command-runner.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-command-runner.js') ?>"></script>
-    <script src="/assets/js/blox-style-clipboard.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-clipboard.js') ?>"></script>
-    <script src="/assets/js/blox-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-control-rules.js') ?>"></script>
-    <script src="/assets/js/blox-command-palette.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-command-palette.js') ?>"></script>
-    <script src="/assets/js/blox-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-banner-panel.js') ?>"></script>
-    <script src="/assets/js/blox-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-content-panel.js') ?>"></script>
-    <script src="/assets/js/blox-cta-quick.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-cta-quick.js') ?>"></script>
-    <script src="/assets/js/blox-style-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-source.js') ?>"></script>
-    <script src="/assets/js/blox-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-groups.js') ?>"></script>
-    <script src="/assets/js/blox-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-sources.js') ?>"></script>
-    <script src="/assets/js/blox-style-origin.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-origin.js') ?>"></script>
-    <script src="/assets/js/blox-custom-code.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-custom-code.js') ?>"></script>
-    <script src="/assets/js/blox-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-conditions.js') ?>"></script>
-    <script src="/assets/js/blox-background-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-background-panel.js') ?>"></script>
-    <script src="/assets/js/blox-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-image-control.js') ?>"></script>
-    <script src="/assets/js/blox-items-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-items-control.js') ?>"></script>
-    <script src="/assets/js/blox-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-catalog-source.js') ?>"></script>
-    <script src="/assets/js/blox-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-responsive.js') ?>"></script>
+    <script src="/assets/js/yikay-dialog-focus.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-dialog-focus.js') ?>"></script>
+    <script src="/assets/js/yikay-preview-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-preview-client.js') ?>"></script>
+    <script src="/assets/js/yikay-canvas-bridge.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-canvas-bridge.js') ?>"></script>
+    <script src="/assets/js/yikay-history-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-history-store.js') ?>"></script>
+    <script src="/assets/js/yikay-draft-recovery.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-draft-recovery.js') ?>"></script>
+    <script src="/assets/js/yikay-draft-summary.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-draft-summary.js') ?>"></script>
+    <script src="/assets/js/yikay-command-runner.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-command-runner.js') ?>"></script>
+    <script src="/assets/js/yikay-style-clipboard.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-clipboard.js') ?>"></script>
+    <script src="/assets/js/yikay-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-control-rules.js') ?>"></script>
+    <script src="/assets/js/yikay-command-palette.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-command-palette.js') ?>"></script>
+    <script src="/assets/js/yikay-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-banner-panel.js') ?>"></script>
+    <script src="/assets/js/yikay-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-home-content-panel.js') ?>"></script>
+    <script src="/assets/js/yikay-cta-quick.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-cta-quick.js') ?>"></script>
+    <script src="/assets/js/yikay-style-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-source.js') ?>"></script>
+    <script src="/assets/js/yikay-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-groups.js') ?>"></script>
+    <script src="/assets/js/yikay-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-sources.js') ?>"></script>
+    <script src="/assets/js/yikay-style-origin.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-origin.js') ?>"></script>
+    <script src="/assets/js/yikay-custom-code.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-custom-code.js') ?>"></script>
+    <script src="/assets/js/yikay-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-detail-conditions.js') ?>"></script>
+    <script src="/assets/js/yikay-background-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-background-panel.js') ?>"></script>
+    <script src="/assets/js/yikay-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-image-control.js') ?>"></script>
+    <script src="/assets/js/yikay-items-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-items-control.js') ?>"></script>
+    <script src="/assets/js/yikay-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-catalog-source.js') ?>"></script>
+    <script src="/assets/js/yikay-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-responsive.js') ?>"></script>
 <?php if (!BloxResponsiveValue::wideEnabled()): ?>
     <script>window.BloxResponsive.setWideEnabled(false);</script>
 <?php endif; ?>
-    <script src="/assets/js/blox-multi-select.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-select.js') ?>"></script>
-    <script src="/assets/js/blox-multi-actions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-actions.js') ?>"></script>
-    <script src="/assets/js/blox-page-settings.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-page-settings.js') ?>"></script>
-    <script src="/assets/js/blox-section-insert.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-section-insert.js') ?>"></script>
-    <script src="/assets/js/blox-multi-properties.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-multi-properties.js') ?>"></script>
-    <script src="/assets/js/blox-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-icon-utils.js') ?>"></script>
+    <script src="/assets/js/yikay-multi-select.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-multi-select.js') ?>"></script>
+    <script src="/assets/js/yikay-multi-actions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-multi-actions.js') ?>"></script>
+    <script src="/assets/js/yikay-page-settings.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-page-settings.js') ?>"></script>
+    <script src="/assets/js/yikay-section-insert.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-section-insert.js') ?>"></script>
+    <script src="/assets/js/yikay-multi-properties.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-multi-properties.js') ?>"></script>
+    <script src="/assets/js/yikay-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-icon-utils.js') ?>"></script>
     <script>
     (<?php echo json_encode(array_map(static fn(array $set): array => ['prefix' => $set['prefix'], 'class' => $set['class']], $bloxIconSets), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>).forEach(function (set) {
         window.BloxIconUtils.registerSet(set.prefix, set.class);
     });
     </script>
-    <script src="/assets/js/blox-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-home-field-store.js') ?>"></script>
+    <script src="/assets/js/yikay-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-home-field-store.js') ?>"></script>
     <?php // 系统富文本编辑器（richtext 控件的「可视化编辑」弹窗用；按需 init） ?>
     <script src="/assets/hugerte/hugerte.min.js"></script>
     <?php // 别名（给第三方插件）与界面语言 → 编辑器语言包的映射，两个页面共用 ?>
     <script src="/assets/js/rich-editor.js?v=<?php echo (int) @filemtime(ROOT_PATH . '/assets/js/rich-editor.js'); ?>"></script>
-    <script src="/assets/js/blox-compact-richtext.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-compact-richtext.js') ?>"></script>
+    <script src="/assets/js/yikay-compact-richtext.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-compact-richtext.js') ?>"></script>
     <?php // 作者端扩展模块（如 yikai-builder）在 Alpine 组件定义前注入自己的脚本与数据 ?>
     <?php if (function_exists('do_action')) do_action('blox_editor_scripts'); ?>
     <style>
@@ -4121,7 +4121,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
 
             controlRequirementMet(ctrl) {
                 // r15 声明式显示规则：required（单条件兼容别名）/ visible_when（AND-OR + 8 操作符）
-                // 求值器在 blox-control-rules.js（可单测纯函数）；引用存在性由 SchemaContract 测试兜底
+                // 求值器在 yikay-control-rules.js（可单测纯函数）；引用存在性由 SchemaContract 测试兜底
                 if (ctrl.source_kind && this.dynamicSourceKind() !== String(ctrl.source_kind)) return false;
                 if (!this.selEl) return true;
                 var self = this;

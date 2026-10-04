@@ -46,7 +46,7 @@ final class LanguageSwitcherElement extends AbstractElement
     {
         return ($data['layout'] ?? 'dropdown') === 'inline'
             ? []
-            : ['/assets/js/blox-language-switcher.js'];
+            : ['/assets/js/yikay-language-switcher.js'];
     }
 
     public function controls(): array

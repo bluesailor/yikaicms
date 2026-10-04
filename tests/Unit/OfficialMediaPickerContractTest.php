@@ -42,7 +42,7 @@ final class OfficialMediaPickerContractTest extends TestCase
         self::assertStringContainsString("require __DIR__ . '/home-image-control.php'", $workspace);
         self::assertStringContainsString('...window.BloxHomeContentPanel.methods', $this->source('admin/blox_editor.php'));
         self::assertStringContainsString('replaceHomeContentImage(ctrl.key)', $this->source('admin/blox_editor/partials/home-image-control.php'));
-        self::assertStringContainsString('{ usage: "cta", source: "official" }', $this->source('assets/js/blox-home-content-panel.js'));
+        self::assertStringContainsString('{ usage: "cta", source: "official" }', $this->source('assets/js/yikay-home-content-panel.js'));
     }
 
     private function source(string $relativePath): string

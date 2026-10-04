@@ -3451,7 +3451,7 @@ function renderBannerShortcode(string $slug): string
 
     // 短代码可出现在非首页，资源需要自包含；加载器会复用页面已有脚本。
     $html .= '<link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">';
-    $html .= '<link rel="stylesheet" href="' . e(assetVer('/assets/css/blox-banner.css')) . '">';
+    $html .= '<link rel="stylesheet" href="' . e(assetVer('/assets/css/yikay-banner.css')) . '">';
 
     // Swiper 容器
     $html .= '<div id="' . e($uid) . '" class="swiper ' . e($uid) . '"' . $runtimeAttributes . '>';
@@ -3494,8 +3494,8 @@ function renderBannerShortcode(string $slug): string
 
     $uidJson = json_encode($uid, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
     $swiperJsJson = json_encode(assetVer('/assets/swiper/swiper-bundle.min.js'), JSON_UNESCAPED_SLASHES);
-    $policyJsJson = json_encode(assetVer('/assets/js/blox-video-policy.js'), JSON_UNESCAPED_SLASHES);
-    $runtimeJsJson = json_encode(assetVer('/assets/js/blox-banner.js'), JSON_UNESCAPED_SLASHES);
+    $policyJsJson = json_encode(assetVer('/assets/js/yikay-video-policy.js'), JSON_UNESCAPED_SLASHES);
+    $runtimeJsJson = json_encode(assetVer('/assets/js/yikay-banner.js'), JSON_UNESCAPED_SLASHES);
     $html .= '<script>(function(){';
     $html .= 'var root=document.getElementById(' . $uidJson . ');if(!root)return;';
     $html .= 'function init(){if(window.BloxBanner)window.BloxBanner.init(root);}';

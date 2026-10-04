@@ -36,7 +36,7 @@ final class BloxImageShape
 
     public const RADIUS_MAX = 400;
 
-    public const STYLESHEET = '/assets/css/blox-image-shape.css';
+    public const STYLESHEET = '/assets/css/yikay-image-shape.css';
 
     private const BASE_CLASS = 'yk-img-shape';
 

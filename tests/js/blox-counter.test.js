@@ -1,5 +1,5 @@
 /**
- * assets/js/blox-counter.js 的零依赖回归测试。
+ * assets/js/yikay-counter.js 的零依赖回归测试。
  *
  * 该脚本随免费版分发，被默认主题统计区块、StatsGroupElement 与 HomeBlockElement 引用。
  * 用最小假 DOM 在 vm 沙箱里加载 IIFE，只验对外契约，不碰内部实现细节。
@@ -12,7 +12,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const SRC = fs.readFileSync(
-    path.join(__dirname, '..', '..', 'assets', 'js', 'blox-counter.js'),
+    path.join(__dirname, '..', '..', 'assets', 'js', 'yikay-counter.js'),
     'utf8'
 );
 

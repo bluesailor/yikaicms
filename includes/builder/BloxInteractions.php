@@ -3,7 +3,7 @@
  * Blox 元素交互（v1.28 §10.1）：`data._interactions` repeater。
  *
  * PHP 零逻辑承诺：服务端只做归一化/授权/序列化为 `data-yk-interactions` 属性，
- * 全部行为语义在 assets/js/blox-interactions.js（页面含交互元素才按需输出——
+ * 全部行为语义在 assets/js/yikay-interactions.js（页面含交互元素才按需输出——
  * BloxAssetCollector 现成能力，兑现「未用交互时 Builder 前端 JS = 0」）。
  *
  * 对计划 §10.1 的两处实施收敛（记档）：

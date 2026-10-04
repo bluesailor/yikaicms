@@ -703,7 +703,7 @@ window.YK_IMAGE_EDIT_I18N = <?php echo json_encode([
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;
 </script>
 <script src="/assets/js/admin-image-editor.js"></script>
-<script src="/assets/js/blox-media-client.js"></script>
+<script src="/assets/js/yikay-media-client.js"></script>
 <script src="/assets/js/media-library-page.js"></script>
 <script>
 function uploadFiles() {

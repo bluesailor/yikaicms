@@ -9,7 +9,7 @@ final class TableElement extends AbstractElement
     public function type(): string { return 'table'; }
     public function label(): string { return __('blox_el_table'); }
     public function icon(): string { return 'table'; }
-    public function styles(): array { return ['/assets/css/blox-table.css']; }
+    public function styles(): array { return ['/assets/css/yikay-table.css']; }
 
     public function controls(): array
     {

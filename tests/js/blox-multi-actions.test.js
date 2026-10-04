@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const Actions = require("../../assets/js/blox-multi-actions.js");
+const Actions = require("../../assets/js/yikay-multi-actions.js");
 
 let seq = 0;
 const newId = () => "n_" + (++seq);

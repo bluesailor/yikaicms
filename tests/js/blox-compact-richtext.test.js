@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const api = require('../../assets/js/blox-compact-richtext.js');
+const api = require('../../assets/js/yikay-compact-richtext.js');
 
 function fixture(value = { id: 'card-a', text: 'Old <b>literal</b> & text', allowLinks: false }) {
     let current = { ...value }, html = '', writes = [], removed = 0, config, pending;

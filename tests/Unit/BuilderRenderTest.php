@@ -334,7 +334,7 @@ final class BuilderRenderTest extends TestCase
         $this->assertStringContainsString('hidden xl:flex', $out); // 桌面导航；较窄屏幕配 nav-drawer
         $this->assertStringContainsString('data-yk-nav-overflow=', $out);
         $this->assertStringContainsString('w-full min-w-0', $out);
-        $this->assertContains('/assets/js/blox-nav-overflow.js', (new \NavMegaElement())->scripts());
+        $this->assertContains('/assets/js/yikay-nav-overflow.js', (new \NavMegaElement())->scripts());
         $this->assertStringContainsString('>首页<', $out); // 无子级=普通链接，无面板
         $this->assertStringContainsString('grid-cols-2', $out); // 两个子栏目=两列
         $this->assertStringContainsString('inset-x-0', $out); // 默认通栏面板（相对元素根）

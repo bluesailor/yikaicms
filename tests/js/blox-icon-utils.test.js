@@ -4,7 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const icons = require("../../assets/js/blox-icon-utils.js");
+const icons = require("../../assets/js/yikay-icon-utils.js");
 
 test("legacy homepage icon names resolve to available Tabler classes", () => {
     assert.equal(icons.className("check-circle"), "ti ti-circle-check");

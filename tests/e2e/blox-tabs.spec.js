@@ -8,8 +8,8 @@ const root = path.resolve(__dirname, '../..');
 const rendered = JSON.parse(execFileSync(process.env.PHP_BINARY || 'php', [
   path.join(__dirname, 'fixtures/tabs.php'),
 ], { encoding: 'utf8' }));
-const css = fs.readFileSync(path.join(root, 'assets/css/blox-tabs.css'), 'utf8');
-const js = fs.readFileSync(path.join(root, 'assets/js/blox-tabs.js'), 'utf8');
+const css = fs.readFileSync(path.join(root, 'assets/css/yikay-tabs.css'), 'utf8');
+const js = fs.readFileSync(path.join(root, 'assets/js/yikay-tabs.js'), 'utf8');
 test.use({ storageState: { cookies: [], origins: [] } });
 
 async function open(page, html, hash = '') {

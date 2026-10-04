@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { mixin, styleKeys } = require('../../assets/js/blox-style-clipboard.js');
+const { mixin, styleKeys } = require('../../assets/js/yikay-style-clipboard.js');
 
 // 与真实 controls() 元数据同构的极简 schema：tab=style 即样式，group=animation 是动作
 const SCHEMAS = {

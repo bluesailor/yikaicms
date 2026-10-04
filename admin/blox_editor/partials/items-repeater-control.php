@@ -1,7 +1,7 @@
 <?php
 
 declare(strict_types=1);
-/** 通用条目编辑器（ctrl.type === 'items_repeater'），由 workspace 控件循环 require；方法见 assets/js/blox-items-control.js。 */
+/** 通用条目编辑器（ctrl.type === 'items_repeater'），由 workspace 控件循环 require；方法见 assets/js/yikay-items-control.js。 */
 $itemsText = json_encode([
     'add' => __('blox_items_add'),
     'delete' => __('blox_items_delete'),

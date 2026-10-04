@@ -81,7 +81,7 @@ final class ContainerElement extends AbstractElement
     public function scriptsFor(array $data): array
     {
         return self::backgroundVideoUrl($data) !== ''
-            ? ['/assets/js/blox-video-policy.js', '/assets/js/blox-background-video.js']
+            ? ['/assets/js/yikay-video-policy.js', '/assets/js/yikay-background-video.js']
             : [];
     }
 

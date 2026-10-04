@@ -24,9 +24,9 @@ final class OrgChartElementTest extends TestCase
             '/assets/d3/d3.min.js',
             '/assets/d3-flextree/d3-flextree.min.js',
             '/assets/d3-org-chart/d3-org-chart.min.js',
-            '/assets/js/blox-org-chart.js',
+            '/assets/js/yikay-org-chart.js',
         ], $element->scripts());
-        self::assertSame(['/assets/css/blox-org-chart.css'], $element->styles());
+        self::assertSame(['/assets/css/yikay-org-chart.css'], $element->styles());
         foreach (array_merge($element->scripts(), $element->styles()) as $asset) {
             self::assertFileExists(ROOT_PATH . $asset);
         }

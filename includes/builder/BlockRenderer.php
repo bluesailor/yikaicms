@@ -396,8 +396,8 @@ final class BlockRenderer
             $html .= '<section class="' . $padding . $sectionLayoutClass . $secHideCls . $anchorClass . htmlspecialchars($customClasses, ENT_QUOTES) . '"'
                 . $anchorAttr . $textToneAttr . $styleAttr . $editAttr . $secHideAttr . '>';
             if ($bgVideo !== '') {
-                BloxAssetCollector::addScript('/assets/js/blox-video-policy.js');
-                BloxAssetCollector::addScript('/assets/js/blox-background-video.js');
+                BloxAssetCollector::addScript('/assets/js/yikay-video-policy.js');
+                BloxAssetCollector::addScript('/assets/js/yikay-background-video.js');
                 $mobileVideoMode = ($settings['bg_video_mobile_mode'] ?? 'poster') === 'video' ? 'video' : 'poster';
                 $posterAttr = $bgImage !== null
                     ? ' poster="' . htmlspecialchars($bgImage, ENT_QUOTES) . '"'
@@ -1145,12 +1145,12 @@ final class BlockRenderer
             $attrs['data-yk-query-total'] = (string) $result['total'];
             BloxLoopQuery::rememberTotal($hostId, $result['total']);
             if (!$editMode && (BloxQuerySpec::isLive($query) || $overrides !== [])) {
-                BloxAssetCollector::addScript('/assets/js/blox-query.js');
-                BloxAssetCollector::addStyle('/assets/css/blox-query.css');
+                BloxAssetCollector::addScript('/assets/js/yikay-query.js');
+                BloxAssetCollector::addStyle('/assets/css/yikay-query.css');
             }
         }
         if ($editMode) {
-            BloxAssetCollector::addStyle('/assets/css/blox-query.css'); // 画布预览行的只读样式
+            BloxAssetCollector::addStyle('/assets/css/yikay-query.css'); // 画布预览行的只读样式
         }
         $html = '';
         if ($result['rows'] === []) {
@@ -1357,7 +1357,7 @@ final class BlockRenderer
                 if ($interactionRoot->nextTag()) {
                     $interactionRoot->setAttribute('data-yk-interactions', BloxInteractions::attributeValue($interactionItems));
                     $html = $interactionRoot->getUpdatedHtml();
-                    BloxAssetCollector::addScript('/assets/js/blox-interactions.js');
+                    BloxAssetCollector::addScript('/assets/js/yikay-interactions.js');
                 }
             }
         }

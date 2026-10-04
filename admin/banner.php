@@ -323,7 +323,7 @@ echo renderAdminLangSwitcher($_viewLang, __('bn_lang_tip'));
 <?php if ($tab === 'list'): ?>
 <?php /* ========== 轮播图列表 ========== */ ?>
 
-<link rel="stylesheet" href="<?php echo e(assetVer('/assets/css/blox-banner.css')); ?>">
+<link rel="stylesheet" href="<?php echo e(assetVer('/assets/css/yikay-banner.css')); ?>">
 
 <?php /* 工具栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
@@ -1312,7 +1312,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
     </div>
 </div>
 
-<script src="<?php echo e(assetVer('/assets/js/blox-dialog-focus.js')); ?>"></script>
+<script src="<?php echo e(assetVer('/assets/js/yikay-dialog-focus.js')); ?>"></script>
 <script>
 function setGroupChoice(key, value) {
     var inputIds = {

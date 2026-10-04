@@ -24,7 +24,7 @@ final class ShareButtonsElement extends AbstractElement
     public function label(): string { return __('blox_el_share_buttons'); }
     public function icon(): string { return 'share'; }
     public function category(): string { return 'dynamic'; }
-    public function scripts(): array { return ['/assets/js/blox-share.js']; }
+    public function scripts(): array { return ['/assets/js/yikay-share.js']; }
 
     public function controls(): array
     {
