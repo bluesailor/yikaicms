@@ -7,7 +7,7 @@ function adminModuleStart(array $items, string $label, string $testId = 'admin-m
 {
     ?>
     <div class="admin-module-layout" data-testid="admin-module-layout">
-        <aside class="admin-module-sidebar">
+        <aside class="admin-module-sidebar" aria-label="<?= e($label) ?>">
             <div class="admin-module-mobile">
                 <label for="admin-module-select"><?= e($label) ?></label>
                 <select id="admin-module-select" data-testid="admin-module-select" onchange="window.location.assign(this.value)">

@@ -499,7 +499,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="p-4">
                 <div class="flex items-start justify-between">
                     <div>
-                        <h3 class="font-bold text-gray-800"><?php echo e($theme['name']); ?></h3>
+                        <h2 class="font-bold text-gray-800"><?php echo e($theme['name']); ?></h2>
                         <p class="text-sm text-gray-500 mt-1"><?php
                             echo e(LanguageRegistry::localizedField($theme, 'description', getLang()));
                          ?></p>

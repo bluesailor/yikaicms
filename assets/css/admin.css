@@ -311,3 +311,7 @@ input[type="radio"] {
 .text-blue-600 { color: var(--color-blue-700); }
 .bg-blue-500 { background-color: var(--color-blue-600); }
 .hover\:bg-blue-600:hover { background-color: var(--color-blue-700); }
+/* 导航菜单里已隐藏的项：原来整行 60% 透明，文字对比度不够。改用虚线边框 + 浅灰底表示状态，文字保持原色。 */
+.nm-item-row.nm-row-hidden { border-style: dashed; background-color: var(--color-gray-50); }
+/* 上面的加深只适合浅底；深底（gray-800/900、侧栏）里的灰字反而要提亮，否则更看不清。 */
+:is(.bg-gray-800, .bg-gray-900, .bg-sidebar) :is(.text-gray-400, .text-gray-500) { color: var(--color-gray-300); }

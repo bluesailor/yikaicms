@@ -233,7 +233,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php /* 侧边栏 */ ?>
         <div class="w-80 space-y-6">
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_publish_settings'); ?></h3>
+                <h2 class="font-bold text-gray-800 mb-4"><?php echo __('label_publish_settings'); ?></h2>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-gray-700 mb-2"><?php echo __('label_category'); ?></label>
@@ -333,7 +333,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_cover_image'); ?></h3>
+                <h2 class="font-bold text-gray-800 mb-4"><?php echo __('label_cover_image'); ?></h2>
                 <div class="space-y-2">
                     <input type="text" name="cover" id="coverInput"
                            value="<?php echo e($article['cover'] ?? ''); ?>"
@@ -357,7 +357,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_other_info'); ?></h3>
+                <h2 class="font-bold text-gray-800 mb-4"><?php echo __('label_other_info'); ?></h2>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo __('label_author'); ?></label>
