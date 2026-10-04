@@ -884,7 +884,7 @@ fieldset:disabled .blox-breadcrumb-choice, fieldset:disabled .blox-hero-mode-cho
 .website-page-cover-label { position:absolute; bottom:8px; left:8px; padding:3px 7px; border-radius:4px; background:#fff; color:#475569; }
 .website-page-body { padding:16px; display:flex; flex-direction:column; gap:10px; flex:1; }
 .website-page-title { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
-.website-page-title h3 { font-size:16px; font-weight:600; color:#0f172a; overflow-wrap:anywhere; }
+.website-page-title h2 { font-size:16px; font-weight:600; color:#0f172a; overflow-wrap:anywhere; }
 .website-page-title>span { font-size:11px; color:#64748b; flex-shrink:0; }
 .website-page-url { font-size:12px; color:#475569; overflow-wrap:anywhere; }
 .website-page-badges { display:flex; flex-wrap:wrap; gap:6px; }
@@ -894,7 +894,7 @@ fieldset:disabled .blox-breadcrumb-choice, fieldset:disabled .blox-hero-mode-cho
 .website-page-badges .is-muted { background:#f1f5f9; color:#64748b; }
 .website-page-badges .is-off { background:#fef3c7; color:#92400e; display:inline-flex; align-items:center; gap:4px; }
 .website-page-card.is-disabled { background:#f8fafc; border-style:dashed; }
-.website-page-card.is-disabled .website-page-title h3,.website-page-card.is-disabled .website-page-url { color:#94a3b8; }
+.website-page-card.is-disabled .website-page-title h2,.website-page-card.is-disabled .website-page-url { color:#94a3b8; }
 .website-page-actions .website-page-restore,.website-page-actions .website-page-delete { display:inline-flex; align-items:center; gap:4px; min-height:36px; padding:0 10px; border-radius:6px; font-size:13px; cursor:pointer; }
 .website-page-actions .website-page-restore { border:1px solid #6ee7b7; color:#047857; }
 .website-page-actions .website-page-restore:hover { background:#ecfdf5; }
@@ -902,7 +902,7 @@ fieldset:disabled .blox-breadcrumb-choice, fieldset:disabled .blox-hero-mode-cho
 .website-page-actions .website-page-delete:hover { background:#fef2f2; }
 .website-pages-divider { margin:24px 0 12px; display:flex; align-items:center; gap:8px; color:#92400e; font-size:13px; font-weight:600; }
 .website-pages-divider::after { content:""; flex:1; border-top:1px dashed #e2e8f0; }
-.website-page-note { font-size:12px; color:#64748b; overflow-wrap:anywhere; }
+.website-page-note { font-size:12px; color:#475569; overflow-wrap:anywhere; }
 .website-page-actions { margin-top:auto; padding-top:6px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:13px; color:var(--color-primary); }
 .website-page-actions>a { min-height:36px; display:inline-flex; align-items:center; gap:4px; }
 .website-page-actions .website-page-primary { color:var(--color-primary); background:color-mix(in srgb,var(--color-primary) 8%,#fff); border:1px solid color-mix(in srgb,var(--color-primary) 22%,#fff); padding:0 12px; border-radius:6px; font-weight:500; }

@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center">
 
-    <div class="w-full max-w-md">
+    <main class="w-full max-w-md">
         <div class="bg-white rounded-lg shadow-lg p-8">
             <div class="text-center mb-8">
                 <h1 class="text-2xl font-bold text-gray-800"><?php echo e(config('site_name', 'YikaiCMS')); ?></h1>
@@ -223,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="text-center mt-6 text-gray-500 text-sm">
             &copy; <?php echo date('Y'); ?> <?php echo e(config('site_name', 'YikaiCMS')); ?>
         </div>
-    </div>
+    </main>
 <script>
 function togglePassword(el) {
     var wrap = el.closest('.pwd-toggle');

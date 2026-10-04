@@ -74,6 +74,8 @@
 .yk-org-style-minimal .yk-org-card { box-shadow: none; }
 .yk-org-card strong { overflow: hidden; font-size: 15px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .yk-org-card span { overflow: hidden; margin-top: 4px; font-size: 11px; line-height: 1.3; opacity: 0.72; text-overflow: ellipsis; white-space: nowrap; }
+/* 根节点是主色底白字：72% 透明的 11px 职务行对比度不足 4.5:1，根节点不减淡 */
+.yk-org-card.is-root span { opacity: 1; }
 
 .yk-org-card.is-level-3 {
     align-items: center;

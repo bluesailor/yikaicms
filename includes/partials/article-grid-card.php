@@ -24,7 +24,7 @@ $__gridOpts = $listOpts ?? null;
     </div>
     <?php endif; ?>
     <div class="p-5">
-        <h3 class="line-clamp-2 text-lg font-bold text-dark transition group-hover:text-primary"><?php echo e($item['title']); ?></h3>
+        <h2 class="line-clamp-2 text-lg font-bold text-dark transition group-hover:text-primary"><?php echo e($item['title']); ?></h2>
         <?php if (listShowEl($__gridOpts, 'summary')): ?>
         <p class="mt-2 line-clamp-2 text-sm text-gray-500"><?php echo e(($item['summary'] ?? '') ?: cutStr(strip_tags((string) ($item['content'] ?? '')), 100)); ?></p>
         <?php endif; ?>

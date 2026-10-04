@@ -237,7 +237,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <?php /* 图片画廊（多图，lightbox 前端展示） */ ?>
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-2"><?php echo e(__('prod_gallery')); ?></h3>
+                <h2 class="font-bold text-gray-800 mb-2"><?php echo e(__('prod_gallery')); ?></h2>
                 <p class="text-xs text-gray-500 mb-3"><?php echo e(__('prod_gallery_tip')); ?></p>
                 <input type="hidden" name="images" id="imagesInput" value="<?php echo e($product['images'] ?? ''); ?>">
                 <div id="galleryPreview" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-3"></div>
@@ -265,7 +265,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php /* 侧边栏 */ ?>
         <div class="w-full lg:w-80 flex-shrink-0 space-y-6">
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_publish_settings'); ?></h3>
+                <h2 class="font-bold text-gray-800 mb-4"><?php echo __('label_publish_settings'); ?></h2>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-gray-700 mb-2"><?php echo __('label_category'); ?></label>
@@ -437,7 +437,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <?php if (config('show_price', '0') === '1'): ?>
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4"><?php echo e(__('prod_price_settings')); ?></h3>
+                <h2 class="font-bold text-gray-800 mb-4"><?php echo e(__('prod_price_settings')); ?></h2>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo e(__('prod_price')); ?></label>
@@ -454,7 +454,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endif; ?>
 
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_product_images'); ?></h3>
+                <h2 class="font-bold text-gray-800 mb-4"><?php echo __('label_product_images'); ?></h2>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-gray-700 mb-1"><?php echo e(__('admin_cover')); ?></label>
@@ -481,7 +481,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
 
             <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="font-bold text-gray-800 mb-4"><?php echo __('label_product_tags'); ?></h3>
+                <h2 class="font-bold text-gray-800 mb-4"><?php echo __('label_product_tags'); ?></h2>
                 <div class="space-y-3">
                     <div>
                         <input type="text" name="tags" id="tagsInput" value="<?php echo e($product['tags'] ?? ''); ?>"

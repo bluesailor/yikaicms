@@ -347,7 +347,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <i class="ti ti-icons text-lg text-gray-500" aria-hidden="true"></i>
     <span class="font-medium text-gray-800"><?php echo e(__('nav_icons_enable_label')); ?></span>
     <label class="relative inline-flex items-center cursor-pointer">
-        <input type="checkbox" id="navIconsToggle" class="sr-only peer" <?php echo (string) config('nav_icons_enabled', '0') === '1' ? 'checked' : ''; ?>
+        <input type="checkbox" id="navIconsToggle" aria-label="<?php echo e(__('nav_icons_enable_label')); ?>" class="sr-only peer" <?php echo (string) config('nav_icons_enabled', '0') === '1' ? 'checked' : ''; ?>
                onchange="ykToggleNavIcons(this)">
         <span class="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-primary transition-colors"></span>
         <span class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-4"></span>
@@ -453,7 +453,7 @@ function ykToggleNavIcons(el) {
     <div class="px-5 py-4" data-nm-tree>
         <?php ob_start(); ?>
         <div class="nm-menu-item nm-home-item" data-id="home" data-name="<?php echo e(mb_strtolower($homeName)); ?>" data-visible="<?php echo $homeVisible ? '1' : '0'; ?>" data-testid="nav-menu-home-row">
-            <div class="nm-item-row nm-home-row min-h-11 flex items-center gap-2 rounded border border-blue-200 px-2.5 py-1.5 bg-blue-50/60 hover:bg-blue-50 transition <?php echo $homeVisible ? '' : 'opacity-60'; ?>">
+            <div class="nm-item-row nm-home-row min-h-11 flex items-center gap-2 rounded border border-blue-200 px-2.5 py-1.5 bg-blue-50/60 hover:bg-blue-50 transition <?php echo $homeVisible ? '' : 'nm-row-hidden'; ?>">
                 <span class="nm-drag w-7 h-7 cursor-grab text-gray-300 hover:text-gray-600 inline-flex items-center justify-center rounded hover:bg-blue-100" title="<?php echo e(__('nav_menu_drag_handle')); ?>">
                     <i class="ti ti-grip-vertical"></i>
                 </span>
@@ -521,7 +521,7 @@ function ykToggleNavIcons(el) {
                 $rowBorder = $level === 0 ? 'border-gray-200' : 'border-gray-100';
                 ?>
                 <div class="nm-menu-item nm-nav-item" data-id="<?php echo $id; ?>" data-name="<?php echo e(mb_strtolower($name)); ?>" data-visible="<?php echo $isVisible ? '1' : '0'; ?>" data-level="<?php echo $level; ?>" data-testid="nav-menu-row">
-                    <div class="nm-item-row nm-nav-row min-h-11 flex items-center gap-2 rounded border <?php echo $rowBorder; ?> px-2.5 py-1.5 hover:border-gray-300 hover:bg-gray-50/70 bg-white transition <?php echo $isVisible ? '' : 'opacity-60'; ?>">
+                    <div class="nm-item-row nm-nav-row min-h-11 flex items-center gap-2 rounded border <?php echo $rowBorder; ?> px-2.5 py-1.5 hover:border-gray-300 hover:bg-gray-50/70 bg-white transition <?php echo $isVisible ? '' : 'nm-row-hidden'; ?>">
                         <span class="nm-drag w-7 h-7 cursor-grab text-gray-300 hover:text-gray-600 inline-flex items-center justify-center rounded hover:bg-gray-100" title="<?php echo e(__('nav_menu_drag_handle')); ?>">
                             <i class="ti ti-grip-vertical"></i>
                         </span>
@@ -773,7 +773,7 @@ function ykToggleNavIcons(el) {
                 .then(function () {
                     row.dataset.visible = checkbox.checked ? '1' : '0';
                     var rowContent = row.querySelector(':scope > .nm-item-row');
-                    if (rowContent) rowContent.classList.toggle('opacity-60', !checkbox.checked);
+                    if (rowContent) rowContent.classList.toggle('nm-row-hidden', !checkbox.checked);
                     setStatus('success', ui.saved);
                     applyFilter();
                 })

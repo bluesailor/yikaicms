@@ -25,7 +25,7 @@ $__lo = $listOpts ?? null;
     </div>
     <?php endif; ?>
     <div class="flex-1 py-4 <?php echo listShowEl($__lo, 'cover') ? 'pr-4' : 'px-6'; ?>">
-        <h3 class="text-lg font-bold text-dark group-hover:text-primary transition line-clamp-2">
+        <h2 class="text-lg font-bold text-dark group-hover:text-primary transition line-clamp-2">
             <?php if (!empty($item['is_top'])): ?>
             <span class="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded mr-2"><?php echo __('article_top'); ?></span>
             <?php endif; ?>
@@ -33,7 +33,7 @@ $__lo = $listOpts ?? null;
             <span class="text-xs bg-orange-700 text-white px-1.5 py-0.5 rounded mr-2"><?php echo __('article_recommend'); ?></span>
             <?php endif; ?>
             <?php echo e($item['title']); ?>
-        </h3>
+        </h2>
         <?php if (listShowEl($__lo, 'summary')): ?>
         <p class="mt-2 text-gray-500 text-sm line-clamp-2">
             <?php echo e(($item['summary'] ?? '') ?: cutStr(strip_tags($item['content'] ?? ''), 120)); ?>

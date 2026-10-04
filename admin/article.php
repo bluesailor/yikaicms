@@ -361,7 +361,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php // 批量操作（借鉴 WordPress）：下拉选动作 + 应用按钮，替代并排按钮，
               // 避免误点破坏性操作，也便于以后加动作而不撑长工具栏 ?>
         <div class="flex items-center gap-2">
-            <select id="bulkAction" class="border rounded px-3 py-1.5 text-sm bg-white">
+            <select id="bulkAction" aria-label="<?php echo e(__('admin_bulk_actions')); ?>" class="border rounded px-3 py-1.5 text-sm bg-white">
                 <option value=""><?php echo __('admin_bulk_actions'); ?></option>
                 <option value="batch_publish"><?php echo __('admin_published'); ?></option>
                 <option value="batch_unpublish"><?php echo __('admin_unpublished'); ?></option>

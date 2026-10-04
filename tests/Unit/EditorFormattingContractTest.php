@@ -91,7 +91,7 @@ final class EditorFormattingContractTest extends TestCase
     public function testEditorLanguageMappingFallsBackToEnglish(): void
     {
         $shared = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/assets/js/rich-editor.js'));
-        self::assertStringContainsString("var packs = { 'ja': 'ja', 'zh-cn': 'zh_CN', 'zh': 'zh_CN', 'zh-tw': 'zh_CN' };", $shared);
+        self::assertStringContainsString("var packs = { 'ja': 'ja', 'zh-cn': 'zh_CN', 'zh': 'zh_CN', 'zh-tw': 'zh_TW' };", $shared);
         self::assertStringContainsString("return packs[String(lang || '').toLowerCase()] || '';", $shared);
 
         $footer = str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/admin/includes/footer.php'));

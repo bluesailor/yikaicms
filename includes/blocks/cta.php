@@ -9,7 +9,7 @@ $bg = getBlockBg($block ?? [], 'bg-primary text-white');
     <div class="<?php echo $bg['container']; ?> text-center <?php echo $bg['content']; ?>" data-animate="fade-up">
         <h2 class="text-3xl font-bold mb-2"><?php echo e(configLang('home_cta_title', 'home_cta_title')); ?></h2>
         <?php echo homeTitleDeco(true); ?>
-        <p class="text-xl opacity-90 mb-8 mt-4"><?php echo e(configLang('home_cta_desc', 'home_cta_desc')); ?></p>
+        <p class="text-xl mb-8 mt-4"><?php echo e(configLang('home_cta_desc', 'home_cta_desc')); ?></p>
         <div class="flex flex-wrap justify-center gap-4">
             <a href="/contact.html" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-bold transition">
                 <?php echo __('detail_consult'); ?>
