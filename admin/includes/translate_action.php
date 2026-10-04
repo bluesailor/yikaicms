@@ -112,5 +112,14 @@ if (array_key_exists('seo_description', $newData) && $newData['seo_description']
 }
 
 $newId = (int) $model->create($newData);
+// 扩展字段值随新语言版本带过去（2.0.4；之后各语言各自维护）
+$extOwner = match ($table) {
+    'products' => 'product',
+    'contents' => resolveExtFieldOwner((string) ($src['type'] ?? '')),
+    'channels' => 'channel',
+    'product_categories' => 'product_category',
+    default => '',
+};
+if ($extOwner !== '') ExtFields::copyValues($extOwner, $srcId, $newId);
 adminLog('translate', 'create', "为 {$table}#{$srcId} 创建 {$toLang} 翻译 → #{$newId}");
 success(['id' => $newId], '翻译已创建');

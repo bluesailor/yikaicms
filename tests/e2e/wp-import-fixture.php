@@ -26,6 +26,14 @@ if ($action === 'setup') {
         'product_cat' => ['product_categories', 'category'], 'product_tag' => ['product_tags', 'product_tag'], 'post_tag' => ['metas', 'content_tag'],
         'form' => ['form_templates', null], 'nav_menu' => ['nav_menus', null]];
     foreach (db()->fetchAll('SELECT owner_id, meta_key, meta_value FROM ' . DB_PREFIX . "metas WHERE owner_type = 'wp_import'") as $row) {
+        if (str_starts_with((string) $row['meta_key'], 'acf_field:')) {
+            // ACF 导入的扩展字段：定义、类型配置、各条目上的值
+            $field = db()->fetchOne('SELECT owner_type, field_key FROM ' . DB_PREFIX . 'extfields WHERE id = ?', [(int) $row['meta_value']]);
+            if ($field) db()->delete('metas', 'owner_type = ? AND meta_key = ?', [$field['owner_type'], $field['field_key']]);
+            db()->delete('metas', "owner_type = 'extfield' AND owner_id = ?", [(int) $row['meta_value']]);
+            db()->delete('extfields', 'id = ?', [(int) $row['meta_value']]);
+            continue;
+        }
         [$table, $kind] = $tables[$row['meta_key']] ?? [null, null];
         if ($table === null) continue;
         $id = (int) $row['meta_value'];
@@ -51,5 +59,19 @@ if ($action === 'setup') {
             'success_de' => (string) (getMeta('form_template_lang', (int) ($form['id'] ?? 0), 'success_de') ?? '')],
         'menu' => ['name' => $menu['name'] ?? '', 'items' => json_decode((string) ($menu['items'] ?? '[]'), true),
             'ja' => (int) (getMeta('nav_menu_lang', $menuId, 'ja') ?? 0)],
+        // ACF：字段定义（类型 + 配置）与导入后的值
+        'acf' => (static function () use ($mapped, $ids): array {
+            $product = $mapped('product', (int) $ids['product_drive']);
+            $fields = [];
+            foreach (['product', 'product_category', 'site'] as $owner) {
+                foreach (ExtFields::fields($owner, false) as $f) {
+                    $fields[$owner . ':' . $f['field_key']] = ['type' => $f['field_type'], 'config' => $f['config'], 'options' => $f['options']];
+                }
+            }
+            $category = (int) (db()->fetchColumn('SELECT id FROM ' . DB_PREFIX . "product_categories WHERE slug = 'worm-gear-slew-drive-cat'") ?: 0);
+            return ['fields' => $fields, 'product' => getAllMeta('product', $product), 'site' => getAllMeta('site', 0),
+                'category' => getAllMeta('product_category', $category), 'category_id' => $category,
+                'post' => $mapped('post', (int) $ids['post_install'])];
+        })(),
     ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 } else throw new RuntimeException('Invalid action');

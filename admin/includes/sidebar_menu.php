@@ -337,6 +337,13 @@ return [
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h10"/>',
             ],
             [
+                'key'   => 'site_fields',
+                'perm'  => '*',
+                'label' => __('ef_site_title'),
+                'url'   => '/admin/site_fields.php',
+                'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1zm3 5h8M8 12h8M8 15h5"/>',
+            ],
+            [
                 'key'   => 'setting_ai',
                 'perm'  => '*',
                 'label' => __('admin_setting_ai'),
