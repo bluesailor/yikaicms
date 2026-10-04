@@ -92,6 +92,10 @@ return [
     '网站地图' => 'Sitemap',
     '友情链接' => 'Links',
     '合作伙伴' => 'Partners',
+    '技术分享' => 'Tech Articles',
+    '软件下载' => 'Software',
+    '文档资料' => 'Documents',
+    '驱动程序' => 'Drivers',
 
     // ============ 页面元素 ============
     '更多' => 'More',

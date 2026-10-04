@@ -1,0 +1,192 @@
+<?php
+/**
+ * 中文→法文 网站常用词典
+ *
+ * 用于栏目名、菜单名、文章标题等快速翻译
+ * AI 翻译前先查字典，命中则直接使用，未命中再调 AI
+ *
+ * 使用: $dict = require ROOT_PATH . '/lang/dict-zh-fr.php';
+ *       $fr = $dict['关于我们'] ?? null; // 'À propos'
+ */
+
+return [
+    // ============ 导航/栏目 ============
+    '首页' => 'Accueil',
+    '返回列表' => 'Retour à la liste',
+    '暂无内容' => 'Aucun contenu',
+    '暂无数据' => 'Aucune donnée',
+    '关于我们' => 'À propos',
+    '关于' => 'À propos',
+    '公司简介' => 'Présentation de l\'entreprise',
+    '企业简介' => 'Présentation de l\'entreprise',
+    '协会简介' => 'À propos de l\'association',
+    '企业文化' => 'Culture d\'entreprise',
+    '发展历程' => 'Historique',
+    '组织架构' => 'Organisation',
+    '组织机构' => 'Organisation',
+    '荣誉资质' => 'Certifications',
+    '团队风采' => 'Notre équipe',
+
+    '产品中心' => 'Produits',
+    '产品展示' => 'Produits',
+    '产品列表' => 'Liste des produits',
+    '产品详情' => 'Détails du produit',
+    '热门产品' => 'Produits phares',
+    '新品推荐' => 'Nouveautés',
+    '全部产品' => 'Tous les produits',
+
+    '新闻中心' => 'Actualités',
+    '新闻资讯' => 'Actualités',
+    '公司新闻' => 'Actualités de l\'entreprise',
+    '行业动态' => 'Actualités du secteur',
+    '行业资讯' => 'Actualités du secteur',
+    '媒体报道' => 'Revue de presse',
+    '通知公告' => 'Annonces',
+    '协会通知' => 'Avis de l\'association',
+    '图片新闻' => 'Actualités en images',
+    '工作研讨' => 'Séminaires de travail',
+
+    '解决方案' => 'Solutions',
+    '成功案例' => 'Références',
+    '案例展示' => 'Références',
+    '行业方案' => 'Solutions par secteur',
+
+    '服务支持' => 'Assistance',
+    '服务流程' => 'Processus',
+    '售后服务' => 'Service après-vente',
+    '常见问题' => 'FAQ',
+    '技术支持' => 'Assistance technique',
+
+    '人才招聘' => 'Carrières',
+    '招聘信息' => 'Offres d\'emploi',
+    '加入我们' => 'Rejoignez-nous',
+
+    '联系我们' => 'Contact',
+    '在线留言' => 'Laissez un message',
+    '联系方式' => 'Coordonnées',
+
+    '下载中心' => 'Téléchargements',
+    '资料下载' => 'Téléchargements',
+
+    '会员之窗' => 'Espace membres',
+    '会员风采' => 'Nos membres',
+    '会员服务' => 'Services aux membres',
+    '入会申请' => 'Demande d\'adhésion',
+    '入会程序' => 'Comment adhérer',
+    '入会申请表' => 'Formulaire d\'adhésion',
+
+    '行业品牌' => 'Marques',
+    '服务品牌' => 'Marques de services',
+    '商品品牌' => 'Marques de produits',
+    '品牌展示' => 'Nos marques',
+
+    '供求信息' => 'Offres et demandes',
+    '培训天地' => 'Formation',
+    '法规标准' => 'Réglementation et normes',
+    '协会月刊' => 'Revue mensuelle',
+    '分支机构' => 'Antennes régionales',
+    '新年贺词' => 'Vœux du Nouvel An',
+
+    '隐私政策' => 'Confidentialité',
+    '服务条款' => 'Conditions d\'utilisation',
+    '网站地图' => 'Plan du site',
+    '友情链接' => 'Liens utiles',
+    '合作伙伴' => 'Partenaires',
+    '技术分享' => 'Articles techniques',
+    '软件下载' => 'Logiciels',
+    '文档资料' => 'Documentation',
+    '驱动程序' => 'Pilotes',
+
+    // ============ 页面元素 ============
+    '更多' => 'Plus',
+    '查看更多' => 'Voir plus',
+    '了解更多' => 'En savoir plus',
+    '立即咨询' => 'Demander des renseignements',
+    '免费咨询' => 'Consultation gratuite',
+    '在线咨询' => 'Demande en ligne',
+    '获取报价' => 'Demander un devis',
+    '提交' => 'Envoyer',
+    '发送' => 'Envoyer',
+    '搜索' => 'Rechercher',
+    '返回顶部' => 'Haut de page',
+    '返回首页' => 'Retour à l\'accueil',
+    '上一页' => 'Page précédente',
+    '下一页' => 'Page suivante',
+    '上一篇' => 'Article précédent',
+    '下一篇' => 'Article suivant',
+    '全部' => 'Tout',
+    '推荐' => 'À la une',
+    '热门' => 'Populaire',
+    '最新' => 'Récents',
+    '置顶' => 'Épinglé',
+
+    // ============ 表单 ============
+    '姓名' => 'Nom',
+    '您的姓名' => 'Votre nom',
+    '称呼' => 'Nom',
+    '电话' => 'Téléphone',
+    '手机' => 'Portable',
+    '联系电话' => 'Téléphone',
+    '邮箱' => 'E-mail',
+    '电子邮箱' => 'Adresse e-mail',
+    '公司' => 'Entreprise',
+    '公司名称' => 'Nom de l\'entreprise',
+    '地址' => 'Adresse',
+    '公司地址' => 'Adresse de l\'entreprise',
+    '留言内容' => 'Votre message',
+    '留言' => 'Message',
+    '主题' => 'Objet',
+    '验证码' => 'Code de vérification',
+    '提交留言' => 'Envoyer le message',
+    '必填' => 'Obligatoire',
+
+    // ============ 文章/内容 ============
+    '阅读全文' => 'Lire la suite',
+    '发布时间' => 'Publié le',
+    '作者' => 'Auteur',
+    '来源' => 'Source',
+    '浏览量' => 'Vues',
+    '阅读' => 'Lectures',
+    '分享' => 'Partager',
+    '标签' => 'Étiquettes',
+    '分类' => 'Catégorie',
+    '相关文章' => 'Articles associés',
+    '相关产品' => 'Produits associés',
+    '相关推荐' => 'Recommandations',
+
+    // ============ 产品 ============
+    '价格' => 'Prix',
+    '型号' => 'Modèle',
+    '规格' => 'Caractéristiques',
+    '品牌' => 'Marque',
+    '材质' => 'Matériau',
+    '颜色' => 'Couleur',
+    '尺寸' => 'Dimensions',
+    '重量' => 'Poids',
+    '包装' => 'Emballage',
+    '产地' => 'Origine',
+    '库存' => 'Stock',
+    '起订量' => 'Quantité minimale',
+    '交货期' => 'Délai de livraison',
+    '面议' => 'Prix sur demande',
+    '询价' => 'Demande de prix',
+
+    // ============ 页脚 ============
+    '快速链接' => 'Liens rapides',
+    '关注我们' => 'Suivez-nous',
+    '版权所有' => 'Tous droits réservés',
+    '备案号' => 'N° d\'enregistrement',
+    '工作时间' => 'Horaires d\'ouverture',
+    '传真' => 'Fax',
+    '邮编' => 'Code postal',
+
+    // ============ 行业通用 ============
+    '质量保证' => 'Assurance qualité',
+    '技术领先' => 'Avance technologique',
+    '专业服务' => 'Service professionnel',
+    '合作共赢' => 'Coopération gagnant-gagnant',
+    '品质保证' => 'Qualité garantie',
+    '诚信经营' => 'Intégrité',
+    '创新发展' => 'Innovation et développement',
+    '客户至上' => 'Le client avant tout',
+];

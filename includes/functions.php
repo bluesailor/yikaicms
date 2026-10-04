@@ -4496,6 +4496,36 @@ function adminLanguages(): array
 }
 
 /**
+ * 后台语言切换里可选的语言（「基本设置 → 后台语言」）。空 = 不限制，列出全部 adminLanguages()。
+ * 安装数据曾写死 'zh-CN,en,ja'：2.0.4 起这个原值也按不限制处理（不用迁移——小版本带迁移会让自动升级转人工）。
+ * 站长真要只开这三种时，保存端会存成 'zh-CN,en,ja,'（末尾逗号只为区分，解析时忽略）。
+ *
+ * @return list<string>
+ */
+function adminLanguageChoices(): array
+{
+    $all = adminLanguages();
+    $raw = trim((string) config('admin_languages', ''));
+    if ($raw === '' || $raw === 'zh-CN,en,ja') {
+        return array_keys($all);
+    }
+    $picked = array_values(array_filter(array_map('trim', explode(',', $raw)), static fn (string $code): bool => isset($all[$code])));
+    return $picked !== [] ? $picked : array_keys($all);
+}
+
+/** 保存「后台语言」：全选存空（以后新增的语言自动出现），恰好是旧安装原值时加尾逗号区分。 @param list<string> $codes */
+function adminLanguageChoicesValue(array $codes): string
+{
+    $all = array_keys(adminLanguages());
+    $codes = array_values(array_intersect($all, $codes));
+    if (count($codes) === count($all)) {
+        return '';
+    }
+    $value = implode(',', $codes);
+    return $value === 'zh-CN,en,ja' ? $value . ',' : $value;
+}
+
+/**
  * 用户在后台勾选启用的前台语言列表（available × enabled_languages 设置）。
  *
  * 设置为空时退化到全部 available（首装/老站兼容）。
