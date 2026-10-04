@@ -40,6 +40,16 @@ final class BloxMotionTest extends TestCase
         self::assertSame(['/assets/js/scroll-anim.js'], BloxAssetCollector::scripts());
     }
 
+    public function testLegacyBloxAssetPathsFromOldThemesMapToRenamedFiles(): void
+    {
+        BloxAssetCollector::reset();
+        BloxAssetCollector::addScript('/assets/js/blox-counter.js');
+        BloxAssetCollector::addStyle('/assets/css/blox-banner.css');
+        BloxAssetCollector::addScript('/assets/js/blox-not-a-real-file.js');
+        self::assertSame(['/assets/js/scroll-anim.js', '/assets/js/yikay-counter.js'], BloxAssetCollector::scripts());
+        self::assertSame(['/assets/css/yikay-banner.css'], BloxAssetCollector::styles());
+    }
+
     public function testGroupingIsOptInAndSurvivesDocumentNormalization(): void
     {
         $element = BuilderRegistry::get('container');
