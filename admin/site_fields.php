@@ -46,10 +46,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
         <?php if ($hasFields): ?>
             <?php
-            $extFieldOwnerType = 'site';
-            $extFieldOwnerId = 0;
-            $extFieldBare = true;
-            require ROOT_PATH . '/admin/includes/extfield_render.php';
+            require_once ROOT_PATH . '/admin/includes/extfield_helpers.php';
+            efRenderFields('site', 0, ['bare' => true]);
             ?>
         <?php else: ?>
             <p class="py-8 text-center text-gray-500"><?php echo e(__('ef_site_empty')); ?></p>

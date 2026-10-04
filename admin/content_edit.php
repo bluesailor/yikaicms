@@ -281,11 +281,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <?php /* 扩展字段（内置 content 字段 + 自定义模型字段；渲染 ext_fields[<key>]，随表单一起提交保存到 metas） */ ?>
             <?php
-            $extFieldOwnerType = resolveExtFieldOwner((string) $lockedType);
-            $extFieldOwnerId   = (int) $id;
-            $extFieldTermId    = (int) ($content['channel_id'] ?? $lockedChannelId ?? 0);
-            $extFieldTermInput = $lockedChannelId ? '' : '#channelSelect';
-            require ROOT_PATH . '/admin/includes/extfield_render.php';
+            require_once ROOT_PATH . '/admin/includes/extfield_helpers.php';
+            efRenderFields(resolveExtFieldOwner((string) $lockedType), (int) $id, [
+                'term_id' => (int) ($content['channel_id'] ?? $lockedChannelId ?? 0),
+                'term_input' => $lockedChannelId ? '' : '#channelSelect',
+            ]);
             ?>
 
             <?php /* SEO 设置 */ ?>
