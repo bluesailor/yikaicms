@@ -1600,7 +1600,6 @@ declare(strict_types=1);
 
                                     <?php $styleSourceControl = 'ctrl'; require __DIR__ . '/style-source.php'; ?>
                                     <?php require __DIR__ . '/home-content-source.php'; ?>
-                                    <?php require __DIR__ . '/control-style-source.php'; ?>
                                     <p x-show="ctrl.responsive && previewDevice !== 'desktop'"
                                        class="-mt-0.5 mb-1.5 text-[10px] text-gray-400 flex items-center gap-1">
                                         <i class="ti" :class="controlResponsiveState(ctrl).overridden ? 'ti-adjustments' : 'ti-link'"></i>
