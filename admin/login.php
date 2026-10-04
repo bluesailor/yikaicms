@@ -31,7 +31,7 @@ $_adminLangsRaw = trim((string) config('admin_languages', ''));
 if (is_array($_enabledList) && $_enabledList !== []) {
     $_adminAllowed = array_values(array_filter(array_map('strval', $_enabledList)));
 } elseif ($_adminLangsRaw !== '') {
-    $_adminAllowed = array_values(array_filter(array_map('trim', explode(',', $_adminLangsRaw))));
+    $_adminAllowed = adminLanguageChoices();
 } else {
     // 两者都没配：退到后台语言/站点语言，再不行才列全部语言包
     $_fallbackLang = (string) (config('admin_lang', '') ?: config('site_lang', ''));

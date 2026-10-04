@@ -2573,7 +2573,7 @@ INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "ti
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (117,'basic','ai_base_url','','text','ai_base_url','',NULL,0);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (118,'translate','translate_api','deepl','select','翻译API','选择翻译服务提供商','{"deepl":"DeepL","google":"Google Translate"}',1);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (119,'translate','translate_api_key','','text','API Key','DeepL: 注册 https://www.deepl.com/pro-api 获取免费Key',NULL,2);
-INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (120,'basic','admin_languages','zh-CN,en,ja','text','admin_languages','',NULL,0);
+INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (120,'basic','admin_languages','','text','admin_languages','',NULL,0);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (121,'basic','timeline_layout','compact','text','timeline_layout','',NULL,0);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (122,'basic','enabled_languages','["en","ja","zh-CN"]','text','enabled_languages','',NULL,0);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (123,'basic','show_lang_switcher','1','text','show_lang_switcher','',NULL,0);
