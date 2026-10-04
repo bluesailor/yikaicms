@@ -444,7 +444,7 @@ MUST_EXIST=(
     "config/build.php"
     "config/product.php"
     "config/provenance.php"
-    "config/release-files.php"
+    "config/release-manifest.php"
     "config/release-runtime.php"
     "includes/ProductIdentity.php"
     "includes/FooterNavigation.php"
@@ -616,13 +616,13 @@ rm -f "$RELEASE_DIR"/delta-*-to-"$VERSION".zip \
         PAYLOAD="$DELTA_DIR/payload"
         mkdir -p "$PAYLOAD"
         DELETED=()
-        # build.php / provenance.php / release-files.php 不在 git diff 中，但每个增量包都必须覆盖它们，
+        # build.php / provenance.php / release-manifest.php 不在 git diff 中，但每个增量包都必须覆盖它们，
         # 同时切换 HTML 缓存命名空间和产品来源证明。
         mkdir -p "$PAYLOAD/config"
         cp "$PKG_DIR/config/build.php" "$PAYLOAD/config/build.php"
         cp "$PKG_DIR/config/provenance.php" "$PAYLOAD/config/provenance.php"
         # 文件清单同理：升级到新版后，下一次升级要拿新版的出厂哈希做比对
-        cp "$PKG_DIR/config/release-files.php" "$PAYLOAD/config/release-files.php"
+        cp "$PKG_DIR/config/release-manifest.php" "$PAYLOAD/config/release-manifest.php"
         ADDED=3
         # name-status：A/M/C 复制新内容；D 记删除；R 旧路径删、新路径复制
         while IFS=$'\t' read -r status path newpath; do
