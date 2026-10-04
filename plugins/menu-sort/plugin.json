@@ -6,7 +6,7 @@
     "description": "自定义后台侧栏菜单：拖拽排序、显示隐藏、菜单改名（按语言分存）。v1.2 起走服务端过滤器，侧栏/折叠飞出/命令面板一次全对，无加载闪烁。",
     "description_ja": "管理サイドバーをカスタマイズ：ドラッグ並び替え、表示/非表示、メニュー名の変更（言語ごとに保存）。v1.2 よりサーバー側フィルターで動作し、サイドバー・フライアウト・コマンドパレットが一括で反映されます。",
     "description_en": "Customize the admin sidebar: drag to reorder, show/hide, and rename menu entries (per admin language). Since v1.2 it works through the server-side filter, so sidebar, fly-out and command palette all stay in sync.",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "author": "Yikai CMS",
     "require_cms": "1.12.8"
 }
