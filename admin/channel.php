@@ -752,7 +752,7 @@ function ykPickChannelIcon(name) {
                                     <span class="text-gray-700 flex-1"><?php echo e($cat['name']); ?></span>
                                     <?php echo renderTransPills((int)$cat['id'], $transStatusCats, '/admin/product_category.php', 'edit'); ?>
                                     <?php if ($level === 0): ?>
-                                    <span class="text-xs text-amber-500"><?= __('admin_product_category') ?></span>
+                                    <span class="text-xs text-amber-700"><?= __('admin_product_category') ?></span>
                                     <?php else: ?>
                                     <span class="text-xs text-gray-400">L<?php echo $level + 1; ?></span>
                                     <?php endif; ?>
@@ -1144,8 +1144,8 @@ function ykPickChannelIcon(name) {
                 </div>
 
                 <div>
-                    <label class="block text-gray-700 text-sm mb-1"><?php echo __('blox_page_hero_style_source'); ?></label>
-                    <select name="hero_style_source" class="w-full border rounded px-3 py-2 mb-3">
+                    <label for="chHeroStyleSource" class="block text-gray-700 text-sm mb-1"><?php echo __('blox_page_hero_style_source'); ?></label>
+                    <select name="hero_style_source" id="chHeroStyleSource" class="w-full border rounded px-3 py-2 mb-3">
                         <option value="self" <?php echo ($editChannel['hero_style_source'] ?? 'self') === 'self' ? 'selected' : ''; ?>><?php echo __('blox_page_hero_mode_self'); ?></option>
                         <option value="parent" <?php echo ($editChannel['hero_style_source'] ?? 'self') === 'parent' ? 'selected' : ''; ?> <?php echo (int) ($editChannel['parent_id'] ?? 0) <= 0 ? 'disabled' : ''; ?>><?php echo __('blox_page_hero_mode_parent'); ?></option>
                         <option value="global" <?php echo ($editChannel['hero_style_source'] ?? 'self') === 'global' ? 'selected' : ''; ?>><?php echo __('blox_page_hero_mode_global'); ?></option>
@@ -1184,7 +1184,7 @@ function ykPickChannelIcon(name) {
                         <div class="grid grid-cols-2 gap-2">
                             <label class="cursor-pointer">
                                 <input type="radio" name="status" value="1" class="peer sr-only" <?php echo $chStatus === 1 ? 'checked' : ''; ?>>
-                                <div class="flex items-center justify-center gap-1.5 py-2 rounded-lg border text-sm text-gray-600 hover:bg-gray-50 transition peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-500">
+                                <div class="flex items-center justify-center gap-1.5 py-2 rounded-lg border text-sm text-gray-600 hover:bg-gray-50 transition peer-checked:bg-green-700 peer-checked:text-white peer-checked:border-green-700">
                                     <i class="ti ti-eye text-base"></i><?php echo __('admin_show'); ?>
                                 </div>
                             </label>

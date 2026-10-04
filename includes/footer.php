@@ -71,7 +71,7 @@ if ($footerBgLiteral !== '') {
                 <?php $span = (int)($col['col_span'] ?? 1); ?>
                 <div class="<?php echo $span > 1 ? 'md:col-span-' . $span : ''; ?>">
                     <?php if (!empty($col['title'])): ?>
-                    <h3 class="text-white text-lg font-bold mb-4"><?php echo e($col['title']); ?></h3>
+                    <h2 class="text-white text-lg font-bold mb-4"><?php echo e($col['title']); ?></h2>
                     <?php endif; ?>
                     <div class="text-sm leading-relaxed">
                         <?php echo renderFooterContent($col['content'] ?? ''); ?>
@@ -83,16 +83,16 @@ if ($footerBgLiteral !== '') {
             <?php /* 无自定义列时的默认布局 */ ?>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div class="md:col-span-2">
-                    <h3 class="text-white text-lg font-bold mb-4"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h3>
+                    <h2 class="text-white text-lg font-bold mb-4"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h2>
                     <p class="text-sm leading-relaxed"><?php echo e(config('site_description', '')); ?></p>
                 </div>
                 <div>
-                    <h3 class="text-white text-lg font-bold mb-4"><?php echo __('footer_contact'); ?></h3>
+                    <h2 class="text-white text-lg font-bold mb-4"><?php echo __('footer_contact'); ?></h2>
                     <?php echo renderFooterContent('{{contact_info}}'); ?>
                 </div>
                 <div>
                     <?php if (config('contact_qrcode')): ?>
-                    <h3 class="text-white text-lg font-bold mb-4"><?php echo __('footer_follow'); ?></h3>
+                    <h2 class="text-white text-lg font-bold mb-4"><?php echo __('footer_follow'); ?></h2>
                     <?php echo renderFooterContent('{{qrcode}}'); ?>
                     <?php endif; ?>
                 </div>

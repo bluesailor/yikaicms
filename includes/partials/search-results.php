@@ -21,7 +21,7 @@ if (!defined('ROOT_PATH')) {
 }
 ?>
 <?php if ($srKeyword === ''): ?>
-<div class="text-center py-16 text-gray-400">
+<div class="text-center py-16 text-gray-500">
     <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m21 21-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
     <p class="text-lg"><?php echo __('search_empty_hint'); ?></p>
 </div>

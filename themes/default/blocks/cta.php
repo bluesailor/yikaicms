@@ -12,7 +12,7 @@ $_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
     <div class="<?php echo $bg['container']; ?> text-center <?php echo $bg['content']; ?>" data-animate="fade-up">
         <h2<?php echo $_homeFieldAttr('override_title'); ?> class="blk-title blk-title--light mb-2"><?php echo e(configLang('home_cta_title', 'home_cta_title')); ?></h2>
         <?php echo homeTitleDeco(true); ?>
-        <p<?php echo $_homeFieldAttr('override_description'); ?> class="text-xl opacity-90 mb-8 mt-4"><?php echo e(configLang('home_cta_desc', 'home_cta_desc')); ?></p>
+        <p<?php echo $_homeFieldAttr('override_description'); ?> class="text-xl mb-8 mt-4"><?php echo e(configLang('home_cta_desc', 'home_cta_desc')); ?></p>
         <div class="flex flex-wrap justify-center gap-4">
             <a<?php echo $_homeFieldAttr('override_button_text'); ?> href="<?php echo e(config('home_cta_link', '') ?: '/contact.html'); ?>" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-bold shadow-lg transition">
                 <?php echo e(config('home_cta_button', '') ?: __('detail_consult')); ?>

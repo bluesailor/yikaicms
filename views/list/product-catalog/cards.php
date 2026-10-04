@@ -65,7 +65,7 @@ $pcTextBlock = static function (bool $featured) use ($pcTitle, $pcModel, $pcShow
     ?>
     <div class="p-<?php echo $featured ? '5' : '4'; ?> flex-1 flex flex-col <?php echo e($pcAlignCls); ?>">
         <?php if (!empty($catalog['show_title']) && $pcTitle !== ''): ?>
-        <h3 class="<?php echo $featured ? 'text-xl' : ''; ?> font-bold text-dark group-hover:text-primary transition line-clamp-2"><?php echo e($pcTitle); ?></h3>
+        <h2 class="<?php echo $featured ? 'text-xl' : ''; ?> font-bold text-dark group-hover:text-primary transition line-clamp-2"><?php echo e($pcTitle); ?></h2>
         <?php endif; ?>
         <?php if ($pcModel !== ''): ?>
         <p class="text-xs text-gray-500 mt-1"><?php echo e($pcModel); ?></p>

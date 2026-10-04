@@ -93,6 +93,23 @@ foreach ($units as $dir) {
     }
     echo "{$dir}/zh-TW.php: " . count($values) . " keys, {$changed} converted\n";
 }
+
+// 富文本编辑器（HugeRTE）的繁体界面包：由随包的 zh_CN 转换而来（只有界面文字，不涉及内容）
+$editorSrc = $root . '/assets/hugerte/langs/zh_CN.js';
+$editorDst = $root . '/assets/hugerte/langs/zh_TW.js';
+if (is_file($editorSrc)) {
+    $editorPack = str_replace('hugerte.addI18n("zh_CN"', 'hugerte.addI18n("zh_TW"', S2T::convertScript((string) file_get_contents($editorSrc)));
+    if ($check) {
+        if (!is_file($editorDst) || file_get_contents($editorDst) !== $editorPack) {
+            echo "assets/hugerte/langs/zh_TW.js: missing or stale\n";
+            $problems++;
+        }
+    } else {
+        file_put_contents($editorDst, $editorPack);
+        echo "assets/hugerte/langs/zh_TW.js: written\n";
+    }
+}
+
 if ($check) {
     exit($problems > 0 ? 1 : 0);
 }

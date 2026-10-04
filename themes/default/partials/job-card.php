@@ -9,7 +9,7 @@
 <a href="<?php echo jobUrl($item); ?>" class="block bg-white rounded-lg shadow p-6 hover:shadow-lg transition group">
     <div class="flex flex-wrap gap-4 items-start justify-between">
         <div class="flex-1 min-w-0">
-            <h3 class="text-lg font-bold text-dark group-hover:text-primary transition"><?php echo e($item['title']); ?></h3>
+            <h2 class="text-lg font-bold text-dark group-hover:text-primary transition"><?php echo e($item['title']); ?></h2>
             <div class="flex flex-wrap gap-2 mt-2">
                 <?php if ($item['job_type']): ?>
                 <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded"><?php echo e($item['job_type']); ?></span>

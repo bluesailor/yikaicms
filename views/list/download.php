@@ -70,12 +70,12 @@ $downloadClearUrl = $downloadUsesDynamicRoute
                                     <div class="flex items-center gap-3">
                                         <?php
                                         $extClass = match(strtolower($item['file_ext'])) {
-                                            'pdf' => 'bg-red-100 text-red-600',
-                                            'doc', 'docx' => 'bg-blue-100 text-blue-600',
-                                            'xls', 'xlsx' => 'bg-green-100 text-green-600',
-                                            'zip', 'rar', '7z' => 'bg-purple-100 text-purple-600',
+                                            'pdf' => 'bg-red-100 text-red-700',
+                                            'doc', 'docx' => 'bg-blue-100 text-blue-700',
+                                            'xls', 'xlsx' => 'bg-green-100 text-green-700',
+                                            'zip', 'rar', '7z' => 'bg-purple-100 text-purple-700',
                                             'exe', 'msi' => 'bg-gray-100 text-gray-600',
-                                            default => 'bg-gray-100 text-gray-500',
+                                            default => 'bg-gray-100 text-gray-600',
                                         };
                                         ?>
                                         <span class="flex-shrink-0 w-9 h-9 <?php echo $extClass; ?> rounded flex items-center justify-center text-xs font-bold">

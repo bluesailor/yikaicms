@@ -369,7 +369,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php
                         $pName = pluginMetaLabel($p, 'name', (string) $slug);
                         ?>
-                        <h3 class="font-semibold text-gray-800"><?php echo e($pName); ?></h3>
+                        <h2 class="font-semibold text-gray-800"><?php echo e($pName); ?></h2>
                         <?php if (!empty($p['version'])): ?>
                         <span class="text-xs text-gray-400">v<?php echo e($p['version']); ?></span>
                         <?php endif; ?>
@@ -456,7 +456,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <div id="uploadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
         <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h3 class="font-bold text-gray-800"><?php echo e(__('pl_upload_install')); ?></h3>
+            <h2 class="font-bold text-gray-800"><?php echo e(__('pl_upload_install')); ?></h2>
             <button onclick="document.getElementById('uploadModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
                 <i class="ti ti-x text-lg"></i>
             </button>
