@@ -9328,4 +9328,6 @@ voltage|電圧|220V',
     'blox_origin_restore_tip' => 'この要素の値を削除し、継承される設定に戻します',
     'blox_origin_edit' => '編集',
     'blox_origin_spacing_local' => 'この要素で上書き：',
+    'ch_lang_empty' => ':lang のチャンネルはまだありません。:source のチャンネルから一括で作成できます。名前は内蔵の辞書で自動翻訳され、作成後に個別に編集できます。',
+    'ch_lang_empty_btn' => ':lang のチャンネルを作成',
 ];

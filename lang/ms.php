@@ -9132,4 +9132,6 @@ cth.: steel|Keluli tahan karat',
     'blox_origin_restore_tip' => 'Buang nilai elemen ini dan guna tetapan warisan',
     'blox_origin_edit' => 'Sunting',
     'blox_origin_spacing_local' => 'Elemen ini mengatasi:',
+    'ch_lang_empty' => 'Belum ada bahagian :lang. Jana sekali gus daripada bahagian :source: nama diterjemah dengan kamus terbina dalam dan boleh disunting satu demi satu selepas itu.',
+    'ch_lang_empty_btn' => 'Jana bahagian :lang',
 ];

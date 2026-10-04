@@ -9132,4 +9132,6 @@ return [
     'blox_origin_restore_tip' => '刪除本元素的這個值，改用上一層的設定',
     'blox_origin_edit' => '去修改',
     'blox_origin_spacing_local' => '本元素已覆蓋：',
+    'ch_lang_empty' => ':lang 還沒有欄目。可以按:source的欄目一鍵生成，欄目名用內建詞典自動翻譯，生成後可逐條修改。',
+    'ch_lang_empty_btn' => '生成:lang欄目',
 ];

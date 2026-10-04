@@ -9132,4 +9132,6 @@ VD: steel|Thép không gỉ',
     'blox_origin_restore_tip' => 'Xóa giá trị của phần tử này và dùng thiết lập kế thừa',
     'blox_origin_edit' => 'Sửa',
     'blox_origin_spacing_local' => 'Phần tử này ghi đè:',
+    'ch_lang_empty' => 'Chưa có chuyên mục :lang. Bạn có thể tạo tất cả từ các chuyên mục :source chỉ với một bước: tên được dịch bằng từ điển tích hợp và có thể sửa từng mục sau đó.',
+    'ch_lang_empty_btn' => 'Tạo chuyên mục :lang',
 ];

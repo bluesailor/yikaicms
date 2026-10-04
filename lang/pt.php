@@ -9132,4 +9132,6 @@ ex.: steel|Aço inoxidável',
     'blox_origin_restore_tip' => 'Remove o valor deste elemento e usa a configuração herdada',
     'blox_origin_edit' => 'Editar',
     'blox_origin_spacing_local' => 'Este elemento substitui:',
+    'ch_lang_empty' => 'Ainda não há seções em :lang. Gere-as de uma só vez a partir das seções em :source: os nomes são traduzidos com o dicionário integrado e depois você pode editar cada uma.',
+    'ch_lang_empty_btn' => 'Gerar seções em :lang',
 ];
