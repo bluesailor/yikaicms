@@ -1268,12 +1268,10 @@ function ykPickChannelIcon(name) {
 
                 <?php /* 栏目字段（2.0.4 高级字段） */ ?>
                 <?php
-                $extFieldOwnerType = 'channel';
-                $extFieldOwnerId = (int) ($editChannel['id'] ?? 0);
-                $extFieldBare = true;
                 if (ExtFields::fields('channel') !== []) {
+                    require_once ROOT_PATH . '/admin/includes/extfield_helpers.php';
                     echo '<div class="border-t pt-4">';
-                    require ROOT_PATH . '/admin/includes/extfield_render.php';
+                    efRenderFields('channel', (int) ($editChannel['id'] ?? 0), ['bare' => true]);
                     echo '</div>';
                 }
                 ?>
