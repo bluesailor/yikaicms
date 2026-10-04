@@ -54,15 +54,17 @@ final class S2T
         if (self::$maps === null) {
             $file = self::mapsFile();
             $m = $file !== null ? require $file : null;
-            self::$maps = (is_array($m) && isset($m['p1'], $m['p2']))
+            /** @var array{p1: array<string, string>, p2: array<string, string>} $maps */
+            $maps = (is_array($m) && isset($m['p1'], $m['p2']))
                 ? $m : ['p1' => [], 'p2' => []];
             // 台湾用词里有几条结果包含原词（算法→演算法、虚拟机→虛擬機器）：已是繁体的文字再转一次会变成
             // 「演演算法」。给这些结果补一条原样映射，strtr 取最长匹配，转过的文字就不再变。
-            foreach (self::$maps['p2'] as $from => $to) {
-                if ($to !== $from && str_contains((string) $to, (string) $from)) {
-                    self::$maps['p2'][$to] ??= $to;
+            foreach ($maps['p2'] as $from => $to) {
+                if ($to !== $from && str_contains($to, (string) $from)) {
+                    $maps['p2'][$to] ??= $to;
                 }
             }
+            self::$maps = $maps;
         }
         return self::$maps;
     }
