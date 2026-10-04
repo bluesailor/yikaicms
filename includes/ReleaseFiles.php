@@ -2,7 +2,10 @@
 /**
  * YikaiCMS —— 发行包文件清单与「本站改过的核心文件」体检（2.0.3，WP-09）。
  *
- * 打包时（build.sh）把包内每个文件的哈希写进 config/release-files.php，随包分发。
+ * 打包时（build.sh）把包内每个文件的哈希写进 config/release-manifest.php，随包分发。
+ * 2.0.3 用的是 config/release-files.php：2.0.3 的升级器把新包里的清单文件当成「站点自己放的
+ * 同名文件」拦下升级（清单不含自身），所以 2.0.4 起换名，让 2.0.3 → 2.0.4 碰不到它；
+ * 旧名文件留在老站上无害，本类读写都只认新名，比对时两个名字都跳过。
  * 升级前拿它与本站现有文件比较：哈希对不上 = 站点改过这个文件。若新包也要写这个文件
  * （且内容与本站现有的不同），升级就会静默盖掉站点的定制——页面照常 200、不报错，
  * 只是少了东西。老站把定制写进核心文件的事故多次发生，这里在写任何文件之前把它拦下来。
@@ -17,7 +20,10 @@ declare(strict_types=1);
 
 final class ReleaseFiles
 {
-    public const FILE = 'config/release-files.php';
+    public const FILE = 'config/release-manifest.php';
+
+    /** 2.0.3 的清单文件名：升级后残留在站点上，比对时同样跳过。 */
+    public const LEGACY_FILE = 'config/release-files.php';
 
     public static function hash(string $content): string
     {
@@ -45,7 +51,7 @@ final class ReleaseFiles
                 continue;
             }
             $rel = substr(str_replace('\\', '/', $file->getPathname()), strlen($packageRoot) + 1);
-            if ($rel === self::FILE) {
+            if ($rel === self::FILE || $rel === self::LEGACY_FILE) {
                 continue;
             }
             $content = file_get_contents($file->getPathname());
@@ -98,6 +104,10 @@ final class ReleaseFiles
         $root = rtrim($root, '/\\');
         $changed = [];
         foreach ($rels as $rel) {
+            // 清单文件每版都不同、又不在清单里：不是站点的改动
+            if ($rel === self::FILE || $rel === self::LEGACY_FILE) {
+                continue;
+            }
             $local = $root . '/' . $rel;
             if (!is_file($local)) {
                 continue;
